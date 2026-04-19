@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: turkish-banking-sector
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --timeout 120 src.dashboard.app:server
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12"
+      - key: EVDS_API_KEY
+        sync: false

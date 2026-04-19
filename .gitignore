@@ -45,6 +45,8 @@ data/processed/**/*.xlsx
 *.db
 *.sqlite
 *.sqlite3
+# but DO ship the compressed DB snapshot used by Render at startup
+!data/bddk_data.db.gz
 
 # External reports — third-party PDFs, do not redistribute
 data/external_reports/

@@ -24,3 +24,6 @@ loguru>=0.7.0
 
 # CBRT EVDS API
 evds>=1.0.0
+
+# Production WSGI server (Render, etc.)
+gunicorn>=21.2.0

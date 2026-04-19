@@ -4,11 +4,26 @@ All tab content lives in src/dashboard/sections/*.py. Charts, theme, and
 extra metric helpers live in their sibling modules.
 """
 
+import os
 import sys
+import gzip
+import shutil
 from pathlib import Path
 
 # Allow `src.*` imports when launched directly.
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+ROOT = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(ROOT))
+
+# On first start (e.g. Render deploy) the SQLite DB may not exist yet —
+# decompress the shipped snapshot if present.
+_DB_PATH = ROOT / "data" / "bddk_data.db"
+_DB_GZ = ROOT / "data" / "bddk_data.db.gz"
+if not _DB_PATH.exists() and _DB_GZ.exists():
+    _DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    print(f"Decompressing {_DB_GZ.name} → {_DB_PATH.name} …", flush=True)
+    with gzip.open(_DB_GZ, "rb") as src, open(_DB_PATH, "wb") as dst:
+        shutil.copyfileobj(src, dst)
+    print("DB ready.", flush=True)
 
 import dash
 from dash import html, Input, Output, callback
@@ -169,4 +184,10 @@ def render_data_as_of(_):
 # RUN
 # =============================================================================
 if __name__ == "__main__":
-    app.run_server(debug=False, host="0.0.0.0", port=8050)
+    port = int(os.environ.get("PORT", 8050))
+    app.run_server(debug=False, host="0.0.0.0", port=port)
+
+
+# Expose the underlying Flask server so Render/Gunicorn can pick it up
+# via `gunicorn src.dashboard.app:server`.
+server = app.server
