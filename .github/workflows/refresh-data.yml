@@ -1,0 +1,60 @@
+name: Refresh BDDK data
+
+# When to run:
+#   - Every Saturday 06:00 Turkey time (03:00 UTC) — BDDK publishes
+#     weekly data Fridays, monthly bulletins land sporadically.
+#   - Manually from the Actions tab (workflow_dispatch).
+on:
+  schedule:
+    - cron: "0 3 * * 6"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write   # so the job can commit the new DB snapshot back
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Decompress shipped DB snapshot
+        run: |
+          python - <<'PY'
+          import gzip, shutil, pathlib
+          src = pathlib.Path("data/bddk_data.db.gz")
+          dst = pathlib.Path("data/bddk_data.db")
+          if not dst.exists() and src.exists():
+              with gzip.open(src, "rb") as s, open(dst, "wb") as d:
+                  shutil.copyfileobj(s, d)
+              print(f"Decompressed {src.stat().st_size/1e6:.1f} MB -> {dst.stat().st_size/1e6:.1f} MB")
+          PY
+
+      - name: Run refresh (monthly + weekly + vacuum + gzip)
+        env:
+          EVDS_API_KEY: ${{ secrets.EVDS_API_KEY }}
+          PYTHONIOENCODING: utf-8
+        run: python scripts/refresh.py
+
+      - name: Commit + push new snapshot (if changed)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/bddk_data.db.gz
+          if git diff --staged --quiet; then
+            echo "No data changes — nothing to commit."
+          else
+            git commit -m "Automated data refresh ($(date -u +%Y-%m-%d))"
+            git push
+          fi
