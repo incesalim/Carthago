@@ -71,6 +71,32 @@ def _ensure_catalogue() -> dict:
     return catalogue
 
 
+def _latest_week_in_db(scraper) -> str | None:
+    row = scraper.conn.execute(
+        "SELECT MAX(period_date) FROM weekly_series"
+    ).fetchone()
+    return row[0] if row and row[0] else None
+
+
+def _latest_week_on_api(anchor_tarih: str) -> str | None:
+    """One probe call to see the newest available Friday on BDDK."""
+    import requests
+    H = {"User-Agent": "Mozilla/5.0", "X-Requested-With": "XMLHttpRequest",
+         "Referer": "https://www.bddk.org.tr/BultenHaftalik"}
+    payload = {"dil": "tr", "tarih": anchor_tarih, "id": "1.0.1",
+               "parabirimi": "TRY", "sutun": "3",
+               "tarafKodu": "10001", "gun": "90"}
+    r = requests.post(
+        "https://www.bddk.org.tr/BultenHaftalik/tr/Home/KiyaslamaJsonGetir",
+        headers=H, data=payload, timeout=20,
+    )
+    xs = r.json().get("XEkseni", [])
+    if not xs:
+        return None
+    d, m, y = xs[-1].split(".")
+    return f"{int(y):04d}-{int(m):02d}-{int(d):02d}"
+
+
 def main():
     catalogue = _ensure_catalogue()
 
@@ -79,6 +105,16 @@ def main():
     try:
         anchor = datetime.today().date()
         tarih = anchor.strftime("%d.%m.%Y")
+
+        # ---- Early-exit probe ----
+        db_latest = _latest_week_in_db(scraper)
+        api_latest = _latest_week_on_api(tarih)
+        print(f"DB latest week:  {db_latest}", flush=True)
+        print(f"API latest week: {api_latest}", flush=True)
+        if db_latest and api_latest and db_latest >= api_latest:
+            print("No new week published by BDDK — nothing to scrape.", flush=True)
+            return
+
         all_items = [(cat, cid, name) for cat, items in catalogue.items()
                      for (cid, name) in items]
 
