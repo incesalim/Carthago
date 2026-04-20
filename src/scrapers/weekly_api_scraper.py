@@ -170,6 +170,7 @@ class BDDKWeeklyAPIScraper:
     # Low-level API call
     # -------------------------------------------------------------------
     def _fetch(self, chart_id: str, tarih: str, sutun: int, taraf_weekly: str) -> dict:
+        """POST to BDDK with transient-error retry (exponential backoff)."""
         payload = {
             "dil": "tr",
             "tarih": tarih,
@@ -179,9 +180,26 @@ class BDDKWeeklyAPIScraper:
             "tarafKodu": taraf_weekly,
             "gun": "90",
         }
-        r = self.session.post(URL, data=payload, timeout=20)
-        r.raise_for_status()
-        return r.json()
+        last_err = None
+        delay = 2.0
+        for attempt in range(5):
+            try:
+                r = self.session.post(URL, data=payload, timeout=20)
+                r.raise_for_status()
+                return r.json()
+            except Exception as e:
+                last_err = e
+                # Only retry on transient network errors / 5xx / timeouts.
+                msg = str(e).lower()
+                transient = ("timed out" in msg or "getaddrinfo" in msg
+                             or "max retries exceeded" in msg
+                             or "connection reset" in msg
+                             or "503" in msg or "502" in msg or "500" in msg)
+                if not transient or attempt == 4:
+                    raise
+                time.sleep(delay)
+                delay *= 2          # 2s, 4s, 8s, 16s
+        raise last_err
 
     # -------------------------------------------------------------------
     # One unit of work: one (chart, weekly-bank-code, sutun) at one anchor
