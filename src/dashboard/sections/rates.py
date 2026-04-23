@@ -149,14 +149,14 @@ def _panel_corridor():
     return C.chart_panel(fig, caption=caption)
 
 
-def _panel_cbrt_sterilization(days: int = 90):
+def _panel_cbrt_sterilization(start_date: str = "2020-01-01"):
     """CBRT sterilization volume — stacked bar: TL depos + Quotation + Liq bills.
 
-    Replicates BBVA's Figure 5 (CBRT Sterilization Volume, TL bn).
+    Replicates BBVA's Figure 5. Defaults to 6-year view so the 2020 peak
+    (~1.8T TL daily) and the current regime are both visible.
     """
-    from datetime import timedelta
     end = datetime.today().date()
-    start = end - timedelta(days=days)
+    start = datetime.strptime(start_date, "%Y-%m-%d").date()
 
     SERIES_DEFS = [
         ("TL depos",       "TP.APIFON2.IHA", theme.DATA_1),   # oxblood — dominant
@@ -184,9 +184,9 @@ def _panel_cbrt_sterilization(days: int = 90):
         for d, v in zip(df["date"], df["bn_tl"]):
             total_by_date[d] = total_by_date.get(d, 0) + v
 
-    fig.update_layout(barmode="stack")
-    C._apply_layout(fig, "CBRT Sterilization Volume (TL bn)", height=320)
-    fig.update_xaxes(tickformat="%d %b")
+    fig.update_layout(barmode="stack", bargap=0.05)
+    C._apply_layout(fig, "CBRT Sterilization Volume (TL bn)", height=340)
+    fig.update_xaxes(tickformat="%b %y")
     fig.update_yaxes(tickformat=",")
 
     # Caption — latest composition
