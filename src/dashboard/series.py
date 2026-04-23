@@ -67,9 +67,15 @@ EVDS_TL_RATES = {
 EVDS_MACRO = {
     "usd_try":             {"source": "evds", "code": "TP.DK.USD.A", "label": "USD/TRY (buying)",       "kind": "daily"},
     "eur_try":             {"source": "evds", "code": "TP.DK.EUR.A", "label": "EUR/TRY (buying)",       "kind": "daily"},
-    # ⚠ TP.AB.N01 unit scaling is off by ~1000× vs BBVA's NIR — do NOT wire
-    # as "Net Intl Reserves" until investigated (see METRICS.md Appendix A).
-    "net_reserves_raw":    {"source": "evds", "code": "TP.AB.N01",   "label": "Net Intl Reserves (raw, suspect)", "kind": "weekly"},
+    # CBRT balance sheet monetary aggregates (bie_abstc2, weekly Friday, thousand TL)
+    # N01 is BASE MONEY (NOT NIR — previous registry mislabel, investigated 2026-04-23).
+    "cbrt_base_money_tl":   {"source": "evds", "code": "TP.AB.N01",  "label": "CBRT Base Money",          "kind": "weekly",
+                             "note": "Currency issued + bank required reserves + free deposits. Thousand TL."},
+    # The REAL NIR — thousand TL; divide by USD/TRY to get USD bn.
+    "cbrt_nir_tl":          {"source": "evds", "code": "TP.AB.N06",  "label": "Net Intl Reserves (TL)",   "kind": "weekly",
+                             "note": "bie_abstc2. ÷ USD_TRY ÷ 1e6 → bn USD. Matches BBVA's NIR."},
+    "cbrt_gross_fx_assets": {"source": "evds", "code": "TP.AB.N07",  "label": "Gross Foreign Assets",     "kind": "weekly"},
+    "cbrt_fx_liabilities":  {"source": "evds", "code": "TP.AB.N08",  "label": "Gross Reserve Liabilities","kind": "weekly"},
     # CPI (TurkStat via CBRT mirror) — monthly index, 2003=100
     "cpi_index":           {"source": "evds", "code": "TP.FG.J0",    "label": "CPI (2003=100)",         "kind": "monthly"},
     # Residents' FC deposits (weekly, bie_hpbitablo4, million USD)

@@ -538,13 +538,25 @@ All panels use §10 data and §11 transforms.
 | BBVA Weekly Reserve Flows decomposition | BBVA derives "implicit FC sales", "export & services revenue", and "net sales" from daily reserve changes cross-checked against TCMB BoP. Proprietary. |
 | BBVA "Net International Reserves exc Swaps" | Requires outstanding FX swap stock (`TP.FXSWAP03` is per-auction flow, not stock). Could approximate by cumulating swap auctions and deducting, but error-prone. |
 
-> **Flag on `TP.AB.N01`:** The series currently has the key
-> `net_reserves` in the registry, but its value is ~1000× smaller than
-> BBVA's NIR ($4.2bn vs chart's $42bn). Unit handling is wrong or the
-> series is a different concept. Do not wire a "Net International
-> Reserves" chart from `TP.AB.N01` without investigating. The derived
-> `(TP.BL054 − TP.BL122) / USD-TRY / 1e6` calculation (see Rates tab
-> panel) is the better interim proxy.
+> **`TP.AB.N01` investigation (resolved 2026-04-23):** N01 is not NIR —
+> it's **Base Money** (Para Tabanı = currency issued + bank required
+> reserves + free deposits), from datagroup `bie_abstc2` (CBRT Balance
+> Sheet - Stand By, IMF Letter-of-Intent monitoring, weekly Friday).
+>
+> **The correct NIR is `TP.AB.N06`** (bie_abstc2). Raw unit is
+> **thousand TL**; convert via `÷ USD_TRY ÷ 1e6` to get bn USD.
+> Verified 2026-04-10: $55.6 bn, matching BBVA's Apr-1 chart label of
+> $42 bn on a 27-Mar→3-Apr trajectory.
+>
+> Sibling series in the same datagroup:
+>   - `TP.AB.N05` — Net Foreign Assets
+>   - `TP.AB.N07` — Gross Foreign Assets
+>   - `TP.AB.N08` — Gross Reserve Liabilities (negative)
+>   - `TP.AB.N12` — Net Forward Position (returns 0 currently; ≠ swap stock)
+>   - `TP.AB.N15` — Net Domestic Assets
+>
+> Registry updated: `net_reserves_raw` (mislabeled) replaced by
+> `cbrt_base_money_tl` (N01) and `cbrt_nir_tl` (N06) with correct units.
 
 ### Net International Reserves — our derivation
 
