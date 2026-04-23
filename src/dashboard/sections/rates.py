@@ -82,35 +82,54 @@ def _panel_tl_rates():
     return C.chart_panel(fig, caption=caption)
 
 
-def _panel_policy_rate():
-    df = evds.fetch_series("TP.APIFON4", "2024-01-01",
-                           datetime.today().strftime("%Y-%m-%d"))
-    if df.empty:
-        return C.chart_panel(C._empty_fig(), caption="")
+CORRIDOR_SERIES = {
+    "Policy Rate":        ("TP.PY.P02.1H",       "#1e3a8a"),  # dark navy — 1-week repo quotation OFFER
+    "ON Lending":         ("TP.PY.P02.ON",       "#60a5fa"),  # light blue — overnight OFFER (upper corridor)
+    "ON Borrowing":       ("TP.PY.P01.ON",       "#22c55e"),  # green — overnight BID (lower corridor)
+    "BIST TRY REF":       ("TP.BISTTLREF.ORAN",  "#f59e0b"),  # orange — actual interbank O/N market rate
+}
+
+
+def _panel_corridor():
+    today = datetime.today().strftime("%Y-%m-%d")
+    start = "2024-01-01"
+
     fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=df["date"], y=df["value"], mode="lines",
-        name="Policy Rate",
-        line=dict(color=theme.ACCENT, width=2.4),
-        hovertemplate="<b>Policy Rate</b><br>%{x|%d %b %Y}<br>" + "%{y:.2f}%<extra></extra>",
-    ))
-    # Endpoint label
-    last = df.iloc[-1]
-    fig.add_annotation(
-        x=last["date"], y=last["value"],
-        text=f"{last['value']:.1f}%",
-        showarrow=False, xanchor="left", xshift=6,
-        font=dict(color=theme.ACCENT, size=10, family=theme.FONT_FAMILY),
-    )
-    C._apply_layout(fig, "CBRT Policy Rate (One-Week Repo)", height=280)
+    latest = {}
+    for label, (code, color) in CORRIDOR_SERIES.items():
+        df = evds.fetch_series(code, start, today)
+        if df.empty:
+            continue
+        df = df.sort_values("date")
+        fig.add_trace(go.Scatter(
+            x=df["date"], y=df["value"], mode="lines",
+            name=label, line=dict(color=color, width=2.2,
+                                  shape="hv" if label != "BIST TRY REF" else "linear"),
+            hovertemplate=f"<b>{label}</b><br>%{{x|%d %b %Y}}<br>" + "%{y:.2f}%<extra></extra>",
+        ))
+        last = df.iloc[-1]
+        latest[label] = last["value"]
+        fig.add_annotation(
+            x=last["date"], y=last["value"],
+            text=f"{last['value']:.1f}%", showarrow=False,
+            xanchor="left", xshift=6,
+            font=dict(color=color, size=10, family=theme.FONT_FAMILY),
+        )
+
+    C._apply_layout(fig, "CBRT Interest Rate Corridor & ON TRY Ref Rate (%)", height=360)
     fig.update_yaxes(ticksuffix="%", tickformat=".0f")
     fig.update_xaxes(tickformat="%b %y")
-    fig.update_layout(showlegend=False)
 
-    first, last = df.iloc[0], df.iloc[-1]
-    delta = last["value"] - first["value"]
-    caption = (f"Policy rate at {last['value']:.1f}% "
-               f"({delta:+.1f}pp since {first['date']:%b %Y}).")
+    caption_parts = []
+    if "Policy Rate" in latest:
+        caption_parts.append(f"Policy {latest['Policy Rate']:.1f}%")
+    if "ON Lending" in latest and "ON Borrowing" in latest:
+        width = latest["ON Lending"] - latest["ON Borrowing"]
+        caption_parts.append(f"corridor {latest['ON Borrowing']:.1f}–{latest['ON Lending']:.1f}% ({width:.1f}pp wide)")
+    if "BIST TRY REF" in latest:
+        caption_parts.append(f"market O/N {latest['BIST TRY REF']:.1f}%")
+    caption = " · ".join(caption_parts) + "."
+
     return C.chart_panel(fig, caption=caption)
 
 
@@ -157,18 +176,25 @@ def build_rates():
             },
         ),
         C.section_header(
+            "CBRT Interest Rate Corridor",
+            "Policy rate (1-week repo quotation), the overnight corridor, and "
+            "the BIST TLREF market rate. Gaps between policy and TLREF show "
+            "how far effective funding diverges from the announced stance.",
+        ),
+        dbc.Row([dbc.Col(_panel_corridor(), md=12)], className="g-3"),
+        html.Div(style={"height": "8px"}),
+        C.section_header(
             "Lending & Funding Rates",
             "Weekly flow rates published by TCMB — headline indicator for monetary transmission.",
         ),
         dbc.Row([dbc.Col(_panel_tl_rates(), md=12)], className="g-3"),
         html.Div(style={"height": "8px"}),
         C.section_header(
-            "Monetary & Currency Context",
-            "Policy rate and the Lira exchange rate.",
+            "Currency",
+            "USD/TRY buying rate.",
         ),
         dbc.Row([
-            dbc.Col(_panel_policy_rate(), md=6),
-            dbc.Col(_panel_usdtry(), md=6),
+            dbc.Col(_panel_usdtry(), md=12),
         ], className="g-3"),
         html.Div(style={"height": "24px"}),
     ], fluid=True)

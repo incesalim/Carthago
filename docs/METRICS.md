@@ -260,10 +260,38 @@ Other series in the same datagroups (TP.KTF10/11/12/17, TP.KTF101,
 TP.TRY.MT01-05, TP.TRYTAS.*, TP.TRYTIC.*) are available from the same
 helper but not wired into any chart yet.
 
-### Monetary & currency context
+### CBRT Interest Rate Corridor (Rates tab)
+Datagroups `bie_pyintbnk` (Central Bank Interbank Quotations) and
+`bie_bisttlref` (BIST TLREF Reference Rate). Matches BBVA's "Interest Rate
+Corridor & ON TRY Ref" chart 1:1.
+
+| Line | EVDS code | What it is |
+|---|---|---|
+| **Policy Rate** | `TP.PY.P02.1H` | 1-week repo **quotation OFFER**. Set by MPC; step-function. CBRT's announced policy rate. |
+| **ON Lending** (corridor upper) | `TP.PY.P02.ON` | Overnight OFFER quotation — rate at which CBRT lends to market. |
+| **ON Borrowing** (corridor lower) | `TP.PY.P01.ON` | Overnight BID quotation — rate at which CBRT borrows from market. |
+| **BIST TRY REF** | `TP.BISTTLREF.ORAN` | BIST TLREF — actual interbank O/N reference rate. Floats with market. |
+
+**Why not `TP.APIFON4`?** `TP.APIFON4` is *CBRT Weighted Average Cost of
+Funding* — an operational metric of what the market actually pays for
+CBRT funding on a given day. It tracks the effective stance but isn't
+the announced policy rate. CBRT's policy rate by definition is the
+1-week repo rate (`TP.PY.P02.1H`).
+
+**Why quotation vs auction:** The 1-week **auction** realized weighted
+average (`TP.PY.P06.1HI`, currently ~40%) can differ from the posted
+quotation (`TP.PY.P02.1H` = 37%) — CBRT uses auction sizing to tighten
+beyond the announced rate. The auction series doesn't run continuously
+and isn't "the policy rate"; it's a separate liquidity-management tool.
+
+Related (not plotted currently):
+- `TP.APIFON4` — effective cost of CBRT funding (daily)
+- `TP.PY.P06.1HI` — 1-week deposit auction realized weighted avg
+- `TP.BISPOLFAIZ.TUR` — BIS-published policy rate (monthly, same values)
+
+### Other macro series
 | Label | EVDS code | Notes |
 |---|---|---|
-| Policy Rate | `TP.APIFON4` | One-Week Repo. Daily series. |
 | USD/TRY | `TP.DK.USD.A` | Buying rate. Daily. |
 | Net international reserves | `TP.AB.N01` | Weekly. |
 
