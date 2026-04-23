@@ -53,6 +53,50 @@ def fmt_delta_pct(delta: float, decimals: int = 1) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Date range selector — inline preset buttons above the chart
+# ---------------------------------------------------------------------------
+MONTHLY_RANGE_BUTTONS = [
+    dict(count=6,  label="6M",  step="month", stepmode="backward"),
+    dict(count=1,  label="YTD", step="year",  stepmode="todate"),
+    dict(count=1,  label="1Y",  step="year",  stepmode="backward"),
+    dict(count=3,  label="3Y",  step="year",  stepmode="backward"),
+    dict(count=5,  label="5Y",  step="year",  stepmode="backward"),
+    dict(step="all", label="MAX"),
+]
+
+WEEKLY_RANGE_BUTTONS = [
+    dict(count=1,  label="1M",  step="month", stepmode="backward"),
+    dict(count=3,  label="3M",  step="month", stepmode="backward"),
+    dict(count=6,  label="6M",  step="month", stepmode="backward"),
+    dict(count=1,  label="YTD", step="year",  stepmode="todate"),
+    dict(count=1,  label="1Y",  step="year",  stepmode="backward"),
+    dict(count=3,  label="3Y",  step="year",  stepmode="backward"),
+    dict(step="all", label="MAX"),
+]
+
+
+def add_range_selector(fig: go.Figure, granularity: str = "monthly") -> go.Figure:
+    """Add a top-right preset date-filter bar (6M / YTD / 1Y / 3Y / 5Y / MAX).
+
+    Call after `_apply_layout`. Requires a date-typed x-axis.
+    """
+    buttons = MONTHLY_RANGE_BUTTONS if granularity == "monthly" else WEEKLY_RANGE_BUTTONS
+    fig.update_xaxes(
+        rangeselector=dict(
+            buttons=buttons,
+            bgcolor=theme.NEUTRAL_100,
+            activecolor=theme.ACCENT_TINT,
+            bordercolor=theme.BORDER,
+            borderwidth=1,
+            font=dict(size=10, color=theme.LABEL, family=theme.FONT_FAMILY),
+            x=1, xanchor="right", y=1.08, yanchor="bottom",
+        ),
+        rangeslider=dict(visible=False),
+    )
+    return fig
+
+
+# ---------------------------------------------------------------------------
 # Axis helpers
 # ---------------------------------------------------------------------------
 def _tl_tick_config(series_max: float) -> dict:
@@ -99,21 +143,45 @@ def _nice_step(approx: float) -> float:
 # ---------------------------------------------------------------------------
 # Layout application
 # ---------------------------------------------------------------------------
-def _apply_layout(fig: go.Figure, title: str = None, height: int = 320) -> go.Figure:
+def _apply_layout(fig: go.Figure, title: str = None, height: int = 320,
+                  subtitle: str = None, date_range = "monthly") -> go.Figure:
+    """Apply Meridian layout defaults.
+
+    `date_range`: 'monthly' | 'weekly' | False. When truthy, adds the
+    preset date-filter bar (6M/YTD/1Y/3Y/5Y/MAX) above the chart. Pass
+    False for non-date axes (bar charts, categorical)."""
     defaults = dict(theme.PLOTLY_LAYOUT_DEFAULTS)
     if title:
         defaults["title"] = dict(
-            text=title,
-            x=0, xanchor="left", y=0.98, yanchor="top",
-            font=dict(size=13, color=theme.TEXT, family=theme.FONT_FAMILY),
+            text=f"<b>{title}</b>",
+            x=0, xanchor="left", y=0.97, yanchor="top",
+            font=dict(size=14, color=theme.TEXT, family=theme.FONT_FAMILY),
+            pad=dict(b=6),
         )
     defaults["height"] = height
     fig.update_layout(**defaults)
-    # Hairline grid; axis labels in mono for numeric rows
-    fig.update_xaxes(showgrid=False, showline=False, zeroline=False,
-                     tickfont=dict(size=10, color=theme.LABEL, family=theme.FONT_MONO))
-    fig.update_yaxes(gridcolor=theme.GRID, showline=False, zeroline=False,
-                     tickfont=dict(size=10, color=theme.LABEL, family=theme.FONT_MONO))
+
+    if subtitle:
+        fig.add_annotation(
+            text=subtitle, xref="paper", yref="paper",
+            x=0, xanchor="left", y=1.02, yanchor="bottom",
+            showarrow=False,
+            font=dict(size=11, color=theme.MUTED, family=theme.FONT_FAMILY),
+        )
+
+    # Dates/categories in sans; numeric y-ticks in mono
+    fig.update_xaxes(
+        showgrid=False, showline=False, zeroline=False,
+        tickfont=dict(size=11, color=theme.LABEL, family=theme.FONT_FAMILY),
+    )
+    fig.update_yaxes(
+        gridcolor=theme.BORDER, gridwidth=1,
+        showline=False, zeroline=False,
+        tickfont=dict(size=10, color=theme.LABEL, family=theme.FONT_MONO),
+    )
+
+    if date_range:
+        add_range_selector(fig, granularity=date_range)
     return fig
 
 
@@ -122,7 +190,7 @@ def _empty_fig(message: str = "No data available") -> go.Figure:
     fig.add_annotation(text=message, xref="paper", yref="paper",
                        x=0.5, y=0.5, showarrow=False,
                        font=dict(color=theme.MUTED, size=12))
-    _apply_layout(fig)
+    _apply_layout(fig, date_range=False)
     fig.update_xaxes(visible=False)
     fig.update_yaxes(visible=False)
     return fig
@@ -137,8 +205,17 @@ def trend_chart(
     value_format: str = "tl",     # 'tl' | 'pct' | 'number'
     bank_types: list[str] = None, # bank_type_code filter
     height: int = 300,
+    hero_code: str = None,        # if set, that series is accented; others go muted
+    subtitle: str = None,
+    date_range: bool = True,      # show preset date-range buttons
+    granularity: str = "monthly", # 'monthly' | 'weekly'
 ) -> go.Figure:
-    """One line per bank_type_code. Expects columns: period, bank_type_code, bank_type, value."""
+    """One line per bank_type_code with end-of-line labels (no bottom legend).
+
+    If `hero_code` is passed, that series is drawn thick in its bank color while
+    all others fall back to a muted neutral, creating clear narrative focus.
+    Expects columns: period, bank_type_code, bank_type, value.
+    """
     if df is None or df.empty:
         return _empty_fig()
 
@@ -146,12 +223,23 @@ def trend_chart(
     fig = go.Figure()
 
     max_val = 0.0
+    endpoints = []  # (y, name, color, is_hero) — for end-of-line labels
     for code in codes:
-        sub = df[df["bank_type_code"] == code].sort_values("period")
+        sub = df[df["bank_type_code"] == code].sort_values("period").dropna(subset=["value"])
         if sub.empty:
             continue
-        color = theme.BANK_COLORS.get(code, theme.MUTED)
+        bank_color = theme.BANK_COLORS.get(code, theme.MUTED)
         name = theme.BANK_SHORT.get(sub["bank_type"].iloc[0], sub["bank_type"].iloc[0])
+
+        if hero_code is None:
+            color, width = bank_color, 1.5
+            is_hero = True
+        elif code == hero_code:
+            color, width = bank_color, 2.4
+            is_hero = True
+        else:
+            color, width = theme.NEUTRAL_300, 1.2
+            is_hero = False
 
         if value_format == "pct":
             hover = [f"<b>{name}</b><br>{d.strftime('%b %Y')}<br>{v:.2f}%"
@@ -166,13 +254,28 @@ def trend_chart(
         fig.add_trace(go.Scatter(
             x=sub["period"], y=sub["value"], mode="lines",
             name=name,
-            line=dict(color=color, width=2.2),
+            line=dict(color=color, width=width),
             hovertext=hover, hoverinfo="text",
+            showlegend=False,
         ))
         if not sub["value"].isna().all():
             max_val = max(max_val, float(sub["value"].max()))
 
-    _apply_layout(fig, title, height=height)
+        last = sub.iloc[-1]
+        endpoints.append((last["period"], last["value"], name, color, is_hero))
+
+    _apply_layout(fig, title, height=height, subtitle=subtitle,
+                  date_range=granularity if date_range else False)
+    fig.update_layout(showlegend=False)
+
+    # End-of-line labels — color-matched, nudged right of the last point
+    for x, y, name, color, is_hero in endpoints:
+        fig.add_annotation(
+            x=x, y=y, text=name, showarrow=False,
+            xanchor="left", xshift=6,
+            font=dict(color=color, size=10, family=theme.FONT_FAMILY),
+            opacity=1.0 if is_hero else 0.75,
+        )
 
     if value_format == "pct":
         fig.update_yaxes(ticksuffix="%", tickformat=".0f")
@@ -188,11 +291,17 @@ def zero_line_trend_chart(
     title: str = None,
     bank_types: list[str] = None,
     height: int = 300,
+    hero_code: str = None,
+    subtitle: str = None,
+    date_range: bool = True,
+    granularity: str = "monthly",
 ) -> go.Figure:
     """Trend chart for growth rates: includes zero reference line, pct formatting."""
     fig = trend_chart(df, title=title, value_format="pct",
-                      bank_types=bank_types, height=height)
-    fig.add_hline(y=0, line=dict(color=theme.MUTED, width=1, dash="dot"))
+                      bank_types=bank_types, height=height,
+                      hero_code=hero_code, subtitle=subtitle,
+                      date_range=date_range, granularity=granularity)
+    fig.add_hline(y=0, line=dict(color=theme.BORDER_STRONG, width=1, dash="dot"))
     return fig
 
 
@@ -226,16 +335,19 @@ def bar_chart_by_bank(
     fig = go.Figure(go.Bar(
         x=labels, y=df["value"], marker_color=colors,
         text=texts, textposition="outside", cliponaxis=False,
+        textfont=dict(size=11, color=theme.TEXT, family=theme.FONT_MONO),
+        width=0.62,
         hovertext=hover, hoverinfo="text",
     ))
-    _apply_layout(fig, title, height=height)
-    fig.update_layout(showlegend=False)
+    _apply_layout(fig, title, height=height, date_range=False)
+    fig.update_layout(showlegend=False, bargap=0.35)
     if value_format == "pct":
         fig.update_yaxes(ticksuffix="%", tickformat=".0f")
-        fig.add_hline(y=0, line=dict(color=theme.MUTED, width=1))
+        fig.add_hline(y=0, line=dict(color=theme.BORDER_STRONG, width=1))
     elif value_format == "tl":
         fig.update_yaxes(**_tl_tick_config(df["value"].max()))
-    fig.update_xaxes(tickangle=0)
+    fig.update_xaxes(tickangle=0,
+                     tickfont=dict(size=11, color=theme.TEXT, family=theme.FONT_FAMILY))
     return fig
 
 
@@ -247,6 +359,8 @@ def stacked_area(
     title: str = None,
     height: int = 300,
     value_format: str = "tl",
+    date_range: bool = True,
+    granularity: str = "monthly",
 ) -> go.Figure:
     if not series:
         return _empty_fig()
@@ -266,7 +380,8 @@ def stacked_area(
                           + ("%{y:.1f}%" if value_format == "pct"
                              else "%{y:,.0f} M TL") + "<extra></extra>",
         ))
-    _apply_layout(fig, title, height=height)
+    _apply_layout(fig, title, height=height,
+                  date_range=granularity if date_range else False)
     fig.update_xaxes(tickformat="%b %y")
     if value_format == "pct":
         fig.update_yaxes(ticksuffix="%")

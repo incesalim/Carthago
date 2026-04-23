@@ -100,10 +100,10 @@ FONT_MONO   = "'JetBrains Mono', ui-monospace, SF Mono, Menlo, Consolas, monospa
 # Plotly layout defaults
 # ---------------------------------------------------------------------------
 PLOTLY_LAYOUT_DEFAULTS = dict(
-    font=dict(family=FONT_FAMILY, size=12, color=TEXT),
+    font=dict(family=FONT_FAMILY, size=11, color=TEXT),
     plot_bgcolor=CARD_BG,
     paper_bgcolor=CARD_BG,
-    margin=dict(l=56, r=72, t=44, b=40),
+    margin=dict(l=48, r=72, t=72, b=32),
     hoverlabel=dict(
         bgcolor=NEUTRAL_900,
         bordercolor=NEUTRAL_900,
