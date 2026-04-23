@@ -91,3 +91,7 @@ bddk_data.db.bak*
 !data/processed/.gitkeep
 !reports/.gitkeep
 !logs/.gitkeep
+
+# Agent / scratch work (not versioned)
+_scratch/
+
