@@ -172,7 +172,7 @@ def _panel_cbrt_sterilization(days: int = 90):
         if df.empty:
             continue
         df = df.copy()
-        df["bn_tl"] = df["value"] / 1e6
+        df["bn_tl"] = df["value"] / 1e3
         df = df.dropna(subset=["bn_tl"])
         if df.empty:
             continue

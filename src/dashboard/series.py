@@ -74,13 +74,13 @@ EVDS_CBRT_BALANCE = {
                               "note": "A.2Aa1 — CBRT's holdings of TRY government bonds (outright + legacy)."},
     # Sterilization — unit: thousand TL (divide by 1e6 to get bn TL)
     "cbrt_steril_total":     {"source": "evds", "code": "TP.APIFON2.TOP", "label": "Total Sterilization",    "kind": "daily",
-                              "unit_scale": 1e6,  "note": "B. Total sterilization (B1+B2+B3). Values in thousand TL."},
+                              "unit_scale": 1e3,  "note": "B. Total sterilization (B1+B2+B3). Raw in thousand TL → /1e3 = bn TL."},
     "cbrt_steril_auction":   {"source": "evds", "code": "TP.APIFON2.IHA", "label": "TL Deposits (auction)",  "kind": "daily",
-                              "unit_scale": 1e6,  "note": "B1. Sterilization via TL deposit auction."},
+                              "unit_scale": 1e3,  "note": "B1. Sterilization via TL deposit auction."},
     "cbrt_steril_quotation": {"source": "evds", "code": "TP.APIFON2.KOT", "label": "Quotation",              "kind": "daily",
-                              "unit_scale": 1e6,  "note": "B2. Sterilization via quotation."},
+                              "unit_scale": 1e3,  "note": "B2. Sterilization via quotation."},
     "cbrt_steril_liqbills":  {"source": "evds", "code": "TP.APIFON2.LIK", "label": "Liquidity Bills",        "kind": "daily",
-                              "unit_scale": 1e6,  "note": "B3. Sterilization via liquidity bills (new 2025-03+)."},
+                              "unit_scale": 1e3,  "note": "B3. Sterilization via liquidity bills (new 2025-03+)."},
 }
 
 # ---------------------------------------------------------------------------
