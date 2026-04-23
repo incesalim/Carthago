@@ -37,6 +37,27 @@ idempotent and skip work that's already done.
 - `python scripts/backfill_2020_2023.py` — full historical monthly backfill (~3 h).
 - `python scripts/backfill_weekly_2y.py` — full 2-year weekly backfill (~3.5 h).
 
+## Developing the dashboard (hot reload)
+
+```bash
+python scripts/dev.py
+```
+
+Dash runs with `debug=True` + auto-reload. Edit a file, save, browser
+refreshes in under a second. No process kills, no manual restart. Stop
+with Ctrl+C.
+
+Production (Render) still uses `src/dashboard/app.py` directly via
+gunicorn — `scripts/dev.py` is local-only.
+
+## Series registry
+
+Every EVDS code, BDDK chart-id, published-ratio `item_name` lives in
+[`src/dashboard/series.py`](../src/dashboard/series.py) keyed by short
+names (`"policy_rate"`, `"w_total_loans"`, `"r_npl_ratio"` …). Any new
+chart should look up series by key, never paste a raw code. Missing key?
+Add it to the registry — don't inline.
+
 ## Troubleshooting
 
 - **Render build succeeded but dashboard blank** — re-check that
