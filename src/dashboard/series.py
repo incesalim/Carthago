@@ -63,6 +63,18 @@ EVDS_MACRO = {
 }
 
 # ---------------------------------------------------------------------------
+# EVDS — CBRT Analytical Balance Sheet (daily, bie_abanlbil)
+# ---------------------------------------------------------------------------
+EVDS_CBRT_BALANCE = {
+    "cbrt_total_assets":     {"source": "evds", "code": "TP.AB.A01",  "label": "CBRT Total Assets",          "kind": "daily",
+                              "note": "A. TOTAL ASSETS — daily CBRT analytical balance sheet."},
+    "cbrt_foreign_assets":   {"source": "evds", "code": "TP.AB.A02",  "label": "CBRT Foreign Assets",        "kind": "daily"},
+    "cbrt_domestic_assets":  {"source": "evds", "code": "TP.AB.A03",  "label": "CBRT Domestic Assets",       "kind": "daily"},
+    "cbrt_gov_securities":   {"source": "evds", "code": "TP.AB.A051", "label": "CBRT Domestic Securities",   "kind": "daily",
+                              "note": "A.2Aa1 — CBRT's holdings of TRY government bonds (outright + legacy)."},
+}
+
+# ---------------------------------------------------------------------------
 # BDDK weekly bulletin — weekly_series table
 #   Chart IDs follow {category}.0.{item} from KiyaslamaJsonGetir.
 #   See docs/METRICS.md §10 for the full 124-item catalogue.
@@ -145,6 +157,7 @@ SERIES: dict[str, dict] = {
     **EVDS_CORRIDOR,
     **EVDS_TL_RATES,
     **EVDS_MACRO,
+    **EVDS_CBRT_BALANCE,
     **BDDK_WEEKLY,
     **BDDK_RATIOS,
     **BDDK_BS,

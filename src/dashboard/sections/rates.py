@@ -149,6 +149,52 @@ def _panel_corridor():
     return C.chart_panel(fig, caption=caption)
 
 
+def _panel_cbrt_bond_share():
+    """CBRT TRY Sovereign Bond Holdings / Total Assets — replicates BBVA's chart."""
+    import pandas as pd
+    from src.dashboard import series
+    today = datetime.today().strftime("%Y-%m-%d")
+    start = "2015-01-01"
+
+    sec_spec = series.get("cbrt_gov_securities")
+    tot_spec = series.get("cbrt_total_assets")
+    sec = evds.fetch_series(sec_spec["code"], start, today)
+    tot = evds.fetch_series(tot_spec["code"], start, today)
+    if sec.empty or tot.empty:
+        return C.chart_panel(C._empty_fig("EVDS unavailable"), caption="")
+
+    df = pd.merge(sec.rename(columns={"value": "sec"}),
+                   tot.rename(columns={"value": "tot"}),
+                   on="date").sort_values("date")
+    df["ratio"] = df["sec"] / df["tot"] * 100
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=df["date"], y=df["ratio"], mode="lines",
+        line=dict(color="#1e3a8a", width=1.6),
+        hovertemplate="<b>%{x|%d %b %Y}</b><br>%{y:.2f}%<extra></extra>",
+        showlegend=False,
+    ))
+    last = df.iloc[-1]
+    fig.add_annotation(
+        x=last["date"], y=last["ratio"],
+        text=f"{last['ratio']:.1f}%", showarrow=False,
+        xanchor="left", xshift=6,
+        font=dict(color="#1e3a8a", size=11, family=theme.FONT_FAMILY),
+    )
+    C._apply_layout(fig, "CBRT TRY Sovereign Bond Holdings / Assets (%)", height=320)
+    fig.update_yaxes(ticksuffix="%", tickformat=".0f")
+    fig.update_xaxes(tickformat="%b %y")
+
+    peak_idx = df["ratio"].idxmax()
+    peak = df.loc[peak_idx]
+    caption = (f"Latest {last['ratio']:.1f}% ({last['date']:%d %b %Y}). "
+               f"Peak {peak['ratio']:.1f}% on {peak['date']:%b %Y} (COVID-era purchases). "
+               f"Ratio shows CBRT's outright holdings of TRY government securities "
+               f"relative to its total balance-sheet footprint.")
+    return C.chart_panel(fig, caption=caption)
+
+
 def _panel_usdtry():
     df = evds.fetch_series("TP.DK.USD.A", "2024-01-01",
                            datetime.today().strftime("%Y-%m-%d"))
@@ -204,6 +250,13 @@ def build_rates():
             "Weekly flow rates published by TCMB — headline indicator for monetary transmission.",
         ),
         dbc.Row([dbc.Col(_panel_tl_rates(), md=12)], className="g-3"),
+        html.Div(style={"height": "8px"}),
+        C.section_header(
+            "CBRT Balance Sheet",
+            "CBRT's exposure to TRY government bonds, as a share of its total "
+            "balance-sheet assets. Rises during large-scale outright purchases.",
+        ),
+        dbc.Row([dbc.Col(_panel_cbrt_bond_share(), md=12)], className="g-3"),
         html.Div(style={"height": "8px"}),
         C.section_header(
             "Currency",

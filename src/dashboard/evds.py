@@ -52,7 +52,11 @@ def fetch_series(
     aggregation: str = "avg",     # avg / last / min / max / first
     cache: bool = True,
 ) -> pd.DataFrame:
-    """Fetch a single series. Returns DataFrame with columns [date, value]."""
+    """Fetch a single series. Returns DataFrame with columns [date, value].
+
+    EVDS caps each response at 1,000 rows. For longer windows this function
+    auto-chunks the request (3-year sub-windows) and stitches the pieces.
+    """
     if not API_KEY:
         raise RuntimeError("EVDS_API_KEY not set in .env")
 
@@ -62,6 +66,37 @@ def fetch_series(
     if cache and key in _CACHE:
         return _CACHE[key].copy()
 
+    # If window is > 3y of workdays, fetch in 3-year chunks.
+    start_dt = pd.to_datetime(s, format="%d-%m-%Y")
+    end_dt = pd.to_datetime(e, format="%d-%m-%Y")
+    span_days = (end_dt - start_dt).days
+
+    if span_days > 3 * 365:
+        chunks = []
+        cur = start_dt
+        while cur < end_dt:
+            chunk_end = min(cur + pd.Timedelta(days=3 * 365), end_dt)
+            chunks.append(_fetch_one(
+                code,
+                cur.strftime("%d-%m-%Y"),
+                chunk_end.strftime("%d-%m-%Y"),
+                frequency, aggregation,
+            ))
+            cur = chunk_end + pd.Timedelta(days=1)
+        if chunks:
+            df = pd.concat(chunks, ignore_index=True).drop_duplicates("date").sort_values("date").reset_index(drop=True)
+        else:
+            df = pd.DataFrame(columns=["date", "value"])
+    else:
+        df = _fetch_one(code, s, e, frequency, aggregation)
+
+    if cache:
+        _CACHE[key] = df.copy()
+    return df
+
+
+def _fetch_one(code: str, s: str, e: str,
+               frequency: Optional[int], aggregation: str) -> pd.DataFrame:
     url = (
         f"{BASE_URL}/series={code}"
         f"&startDate={s}&endDate={e}"
@@ -78,19 +113,14 @@ def fetch_series(
     items = data.get("items", []) if isinstance(data, dict) else []
 
     if not items:
-        df = pd.DataFrame(columns=["date", "value"])
-    else:
-        value_col = _find_value_col(items[0], code)
-        df = pd.DataFrame(items)[["Tarih", value_col]].rename(
-            columns={"Tarih": "date", value_col: "value"}
-        )
-        df["date"] = pd.to_datetime(df["date"], format="%d-%m-%Y", errors="coerce")
-        df["value"] = pd.to_numeric(df["value"], errors="coerce")
-        df = df.dropna(subset=["date"]).sort_values("date").reset_index(drop=True)
-
-    if cache:
-        _CACHE[key] = df.copy()
-    return df
+        return pd.DataFrame(columns=["date", "value"])
+    value_col = _find_value_col(items[0], code)
+    df = pd.DataFrame(items)[["Tarih", value_col]].rename(
+        columns={"Tarih": "date", value_col: "value"}
+    )
+    df["date"] = pd.to_datetime(df["date"], format="%d-%m-%Y", errors="coerce")
+    df["value"] = pd.to_numeric(df["value"], errors="coerce")
+    return df.dropna(subset=["date"]).sort_values("date").reset_index(drop=True)
 
 
 def fetch_many(
