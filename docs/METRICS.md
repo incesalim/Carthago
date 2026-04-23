@@ -4,8 +4,9 @@ Authoritative reference for every metric shown in the dashboard. For each
 metric this document lists the **source** (which BDDK table / EVDS series /
 derived formula), the **unit**, the **frequency**, and **where** it appears.
 
-Last refreshed: 2026-04-19 · Dashboard coverage: monthly BDDK data
-2020-01 → 2026-02, weekly BDDK data 2024-01 → 2026-04, weekly EVDS rates.
+Last refreshed: 2026-04-23 · Dashboard coverage: monthly BDDK data
+2020-01 → 2026-02, weekly BDDK data 2019-11 → 2026-04, weekly/daily EVDS
+rates. BBVA Mar-26 report chart mapping captured in Appendices C+D.
 
 > **Supersedes earlier notes in this folder.** `PROJECT_STATE.md` holds the
 > architectural snapshot; this file holds metric definitions.
@@ -207,6 +208,27 @@ underlying tables. For income-based ratios BDDK publishes YTD (see
 
 Implementation: [`metrics_ext.get_published_ratio`](../src/dashboard/metrics_ext.py) plus named wrappers (`ratio_npl`, `ratio_car`, `ratio_ldr`, `ratio_coverage`, `ratio_roa_ytd`, `ratio_roe_ytd`, `ratio_nim_ytd`, `ratio_demand_share`).
 
+### CET 1 and capital-adequacy detail (lives in `other_data`, not Table 15)
+Table 12 (BDDK Capital Adequacy Detail) — not in `financial_ratios`. Query
+`other_data` with `table_number = 12` and the Turkish `item_name`:
+
+| Metric | `item_name` |
+|---|---|
+| **CET 1 Ratio** | `Çekirdek Sermaye Yeterliliği Rasyosu ((6/7)*100) (YÜZDE)` |
+| CAR (standard method) | `Sermaye Yeterliliği Standart Rasyosu ((5/7)*100) (YÜZDE)` |
+| CET 1 Capital | `Çekirdek Sermaye` |
+| Tier 1 Capital | `Ana Sermaye Toplamı` |
+| Tier 2 Capital | `Katkı Sermaye Toplamı` |
+| Total Capital | `Orana Esas Sermaye Toplamı (1+2)` |
+
+⚠ **Value precision:** `value_numeric` is stored as integer (scraper cast).
+For 2-decimal precision re-parse `value_text` or the raw JSON cache.
+
+⚠ **Bank-type mapping:** BBVA's "Public Banks" CET 1 chart maps to
+`bank_type_code = '10009'` (Public Banks all-models), **not** `10004`
+(State Deposit Banks only). The latter has a much higher CET 1 (~20%)
+because of different RWA composition.
+
 ---
 
 ## 8. Derived / transformed metrics
@@ -288,6 +310,63 @@ Related (not plotted currently):
 - `TP.APIFON4` — effective cost of CBRT funding (daily)
 - `TP.PY.P06.1HI` — 1-week deposit auction realized weighted avg
 - `TP.BISPOLFAIZ.TUR` — BIS-published policy rate (monthly, same values)
+
+### CBRT Net Funding / Sterilization (cat 3002, `bie_apifon`)
+| Label | EVDS code | Notes |
+|---|---|---|
+| **CBRT Net Funding** | `TP.APIFON3` | Already equals `APIFON1 − APIFON2` at source — **do not recompute**. Daily, thousand TL (÷1000 → bn TL). Positive = excess TL liquidity (CBRT net funding market); negative = lack of liquidity (CBRT net absorbing). |
+| Total funding (A) | `TP.APIFON1.TOP` | Gross daily funding to market. |
+| Total sterilization (B) | `TP.APIFON2.TOP` | Gross daily absorption. Sub: `.IHA` auction, `.KOT` quotation, `.LIK` liquidity bills. |
+| Effective cost of funding | `TP.APIFON4` | Weighted-avg rate CBRT charges on daily operations. Operational indicator, not the policy rate. |
+
+### CBRT Gold Reserves in Tons (weekly, `bie_mbblnch`)
+Unit is **grams** despite label "Net Gram" — divide by `1e9` for tons. 121-ton
+decline 2026-03-06 → 2026-03-27 confirms unit.
+
+| Label | EVDS code | Notes |
+|---|---|---|
+| Total CBRT gold (asset) | `TP.BL0021` | A11 International Standard Gold (net gram). Weekly Friday. |
+| Banks' gold at CBRT | `TP.BL0891` | P3232 liability (net gram). |
+| **CBRT-owned gold** | derived | `(TP.BL0021 − TP.BL0891) / 1e9` → tons. |
+| Treasury non-int std gold | `TP.BL1111` | Usually zero. |
+| Monthly equivalents | `TP.BL0021.A`, etc. | same series, monthly agg. |
+
+### Residents' FC Deposits (weekly, `bie_hpbitablo4`)
+All in **million USD**, weekly Friday.
+
+| Label | EVDS code | Notes |
+|---|---|---|
+| Residents total FC | `TP.HPBITABLO4.2` | 1.1 All resident FC deposits. |
+| Households total FC | `TP.HPBITABLO4.3` | 1.1.1 |
+| Households USD | `TP.HPBITABLO4.4` | USD-denominated only. |
+| Households EUR | `TP.HPBITABLO4.5` | EUR-denominated (already in USD equivalent). |
+| Households Precious Metals | `TP.HPBITABLO4.7` | |
+| Corporates total FC | `TP.HPBITABLO4.8` | 1.1.2 |
+
+### CBRT Expectations Surveys
+- **Market Participants Survey** (cat 1004, `bie_pkauo`, monthly):
+  - `TP.PKAUO.S01.D.U` — CPI expectation, current year-end
+  - `TP.PKAUO.S01.I.U` — CPI expectation, next year-end
+  - `TP.PKAUO.S01.E.U` — 12-month-ahead CPI expectation
+  - `TP.PKAUO.S04.D.U` — 12-month-ahead CBRT policy rate expectation
+- **Household Expectations Survey** (cat 1007, `bie_hanebek`, monthly):
+  - `TP.HANEBEK.HAN14A` — Household 12-month annual inflation expectation (avg)
+
+### FC Loan & Deposit Rates (weekly, `bie_kt100h` / `bie_mt100h`)
+All %, weekly flow.
+
+| Label | EVDS code |
+|---|---|
+| Commercial Loan rate, USD | `TP.KTF17.USD` |
+| Commercial Loan rate, EUR | `TP.KTF17.EUR` |
+| Total USD Deposit rate | `TP.USD.MT06` |
+| Total EUR Deposit rate | `TP.EUR.MT06` |
+| Savings-only: `TP.USDTAS.MT06`, `TP.EURTAS.MT06`; Commercial-only: `.TIC.` variant | |
+
+### CPI & inflation derived
+- `TP.FG.J0` — Consumer Price Index (2003=100, monthly). Raw index value.
+- `cpi_yoy[m] = CPI[m] / CPI[m−12] − 1`
+- `cpi_12m_avg[m] = mean(cpi_yoy[m−11 .. m])`
 
 ### Other macro series
 | Label | EVDS code | Notes |
@@ -459,6 +538,14 @@ All panels use §10 data and §11 transforms.
 | BBVA Weekly Reserve Flows decomposition | BBVA derives "implicit FC sales", "export & services revenue", and "net sales" from daily reserve changes cross-checked against TCMB BoP. Proprietary. |
 | BBVA "Net International Reserves exc Swaps" | Requires outstanding FX swap stock (`TP.FXSWAP03` is per-auction flow, not stock). Could approximate by cumulating swap auctions and deducting, but error-prone. |
 
+> **Flag on `TP.AB.N01`:** The series currently has the key
+> `net_reserves` in the registry, but its value is ~1000× smaller than
+> BBVA's NIR ($4.2bn vs chart's $42bn). Unit handling is wrong or the
+> series is a different concept. Do not wire a "Net International
+> Reserves" chart from `TP.AB.N01` without investigating. The derived
+> `(TP.BL054 − TP.BL122) / USD-TRY / 1e6` calculation (see Rates tab
+> panel) is the better interim proxy.
+
 ### Net International Reserves — our derivation
 
 The dashboard's Net Reserves line on the Rates tab is:
@@ -500,3 +587,121 @@ IMF SDDS template. Left for later.
 6. **Weekly growth annualizations are compound** (`^13` or `^4`), not
    linear (`× 13`). Compound matches the way BBVA and TCMB report trend
    rates. Difference at 50% 4w ann. is ~3pp vs. simple.
+7. **`TP.APIFON3` = net funding directly.** Do not recompute
+   `APIFON1.TOP − APIFON2.TOP`; the difference is already published as
+   its own series. Confirmed by the metric-finder agent 2026-04-23.
+8. **CET 1 lives in `other_data` table 12**, not `financial_ratios`
+   Table 15. See §7 end. Values are rounded to integer in
+   `value_numeric` — parse `value_text` if decimals matter.
+
+## Appendix C — BDDK income-statement item mapping (Table 2)
+
+Used for ROE / NIM / revenue-composition decompositions. Item orders
+are stable across months. All values are YTD cumulative; annualize with
+`× 12/month` when building annualized displays.
+
+### Interest income items
+| `item_order` | `item_name` (abbrev) | Used for |
+|---|---|---|
+| 1 | Kredilerden Alınan Faizler (total) | NIM-loans component |
+| 2 | — of which Consumer | loan-NIM sub-split |
+| 3 | — of which Credit Cards | loan-NIM sub-split |
+| 4 | — of which Commercial Instalment | loan-NIM sub-split |
+| 5 | — of which Other | loan-NIM sub-split |
+| 6 | Takipteki Alacaklardan | NPL interest (adds to "loans" bucket) |
+| 7 | Bankalardan Alınan Faizler | "banks/MM/repo" bucket |
+| 8 | Para Piyasası İşlemlerinden | "banks/MM/repo" bucket |
+| 9 | FVPL (alım-satım amaçlı) menkul faiz | securities-NIM |
+| 10 | FVOCI menkul faiz | securities-NIM |
+| 11 | Amortized-cost menkul faiz | securities-NIM |
+| 12 | Reverse repo | "banks/MM/repo" bucket |
+| 13 | Finansal kiralama | "banks/MM/repo" |
+| 14 | Diğer faiz gelirleri | "banks/MM/repo" |
+| **15** | **Toplam Faiz Gelirleri** | Interest income total (pair with `Toplam Faiz Gelirleri / Faiz Getirili Aktifler Ortalaması` from Table 15 to back-solve avg IEA) |
+
+### Interest expense items
+| 16 | Mevduata verilen faizler | Deposit-NIM component |
+| 17 | Bankalara verilen | Debt-NIM component |
+| 18 | Para piyasasından | Debt-NIM |
+| 19 | İhraç edilen menkul | Debt-NIM |
+| 20 | Repo | Debt-NIM |
+| 21 | Finansal kiralama | Debt-NIM |
+| 22 | Diğer faiz giderleri | Debt-NIM |
+| 23 | Toplam Faiz Giderleri | |
+| **24** | **Net Faiz Geliri (= 15 − 23)** | NII — first ROE bucket |
+
+### Non-interest items (ROE decomposition)
+| 25 | Kredi ve alacaklar karşılık giderleri | Provisions bucket |
+| 27 | Kredi kredisi ücret ve komisyonları | Fees (minor) |
+| 31 | Bankacılık hizmetleri gelirleri | Fees (major) |
+| 30 | Ortaklık/iştirak gelirleri | Dividend bucket |
+| 32, 33, 34 | Diğer faiz dışı gelirler / Toplam faiz dışı gelirler | Other NII |
+| 35, 42, 43, 44 | Personel, amortisman, vergi, diğer giderler | OPEX bucket |
+| 36, 38, 39, 40 | Menkul değer değer düşüklüğü / iştirak değer düşüklüğü / diğer karşılıklar | Provisions (spec + gen + impair) |
+| 41 | Ücret ve komisyon giderleri | **not** subtracted from fees in BBVA chart |
+| **46** | **Net ticari kar/zarar (securities trading only)** | "Trading" bucket |
+| **47** | **Net kambiyo (FX) kar/zarar** | **"Other NII" in BBVA — NOT "Trading"** |
+| 49 | Net parasal pozisyon kar/zarar | Hyperinflation monetary gain; not in "Trading" |
+| 50 | Toplam diğer faiz dışı gelir/gider (net) | Total non-int net — revenue denominator |
+| 52 | Vergi karşılığı | "Other/tax" bucket |
+
+### Typical BBVA decomposition formulas
+```
+NII            = item_24
+Fees & Comm    = item_27 + item_31
+Trading        = item_46                 # (securities only)
+Dividend       = item_30
+Other NII      = item_32 + item_33 + item_47 + item_48 + item_49
+                 # FX goes here, not Trading
+OPEX           = item_35 + item_42 + item_43 + item_44
+Provisions     = item_25 + item_36 + item_38 + item_39 + item_40
+Other/tax      = item_52
+
+ROE component% = (TTM item) / (13-point trailing avg equity) × 100
+
+NIM component% = (YTD item × 12 / month) / avg_IEA × 100
+  where avg_IEA = item_15(YTD) × (12/month) / r_interest_yield_ytd × 100
+                  # back-solved from Table 15 "Toplam Faiz Gelirleri /
+                  # Faiz Getirili Aktifler Ortalaması (%)"
+```
+
+### Bank-type convention for BBVA "deposit banks" ROE panels
+Use `bank_type_code = '10002'` (Deposit Banks, combined). Sector total
+(`10001`) runs ~1pp higher because participation + dev/inv banks pull
+it up.
+
+## Appendix D — Derivations catalog (charts we replicate from primitives)
+
+All formulas verified numerically by the metric-finder agent
+(2026-04-23). Numerical agreement ≤ 1pp vs BBVA Mar-26 chart except
+where noted.
+
+| Chart / description | Formula | Verified |
+|---|---|---|
+| CBRT Sov Bonds / Total Assets | `TP.AB.A051 / TP.AB.A01 × 100` | 4.22% vs 4.1% ✓ (0.12pp; BBVA likely nets a small liability) |
+| CBRT Net Funding (bn TL) | `TP.APIFON3 / 1000` | −895 bn TL Mar-25, +543 bn TL Apr-26 ✓ |
+| TL commercial spread | `TP.KTF18 − TP.TRY.MT06` | +2.52pp (raw; BBVA adds ~5pp RR cost) |
+| TL consumer spread | `TP.KTFTUK − TP.TRY.MT06` | +12.65pp (raw) |
+| NPL ratio — GPL | `Takipteki İhtiyaç / Tüketici İhtiyaç` (Table 4) | 5.64% vs 5.0% ✓ |
+| NPL ratio — Cards (retail) | `Takipteki Bireysel KK / Bireysel KK (10+11)` | 4.78% vs 4.0% ✓ |
+| NPL ratio — Housing | `Takipteki Konut / Tüketici Konut` | 0.16% vs 0.2% ✓ |
+| NPL ratio — Auto | `Takipteki Taşıt / Tüketici Taşıt` | 0.79% vs 0.3% (small denom; trending up) |
+| NPL ratio — Installment commercial | `Takipteki Taksitli Tic. / Taksitli Ticari (20+21+22)` | 2.81% vs 3.1% ✓ |
+| NPL ratio — Corporate cards | `Takipteki Kurumsal KK / Kurumsal KK (28+29)` | 2.65% vs 2.2% ✓ |
+| NPL ratio — SME | weekly `2.0.4 / 1.0.11` (currency=TOTAL) | 3.53% vs 3.1% ✓ |
+| NPL ratio — Commercial (all) | weekly `2.0.5 / 1.0.12` | 2.15% vs 2.6% (0.45pp; denominator scope differs) |
+| NPL ratio — Non-SME | weekly `(2.0.5 − 2.0.4) / (1.0.12 − 1.0.11)` | 1.37% vs 2.1% (0.7pp) |
+| NIM — loans component | `(item_1 + item_6) × 12/m / avg_IEA × 100` | 12.58% vs 13.0% ✓ |
+| NIM — securities | `(item_9+10+11) × 12/m / avg_IEA × 100` | 2.91% vs 3.1% ✓ |
+| NIM — banks/MM | `(item_7+8+12+13+14) × 12/m / avg_IEA × 100` | 3.35% vs 2.9% ✓ |
+| NIM — deposit exp | `item_16 × 12/m / avg_IEA × 100` | −11.64% vs −10.6% ✓ |
+| NIM — debt-issued exp | `(item_17-22) × 12/m / avg_IEA × 100` | −2.78% vs −2.6% ✓ |
+| ROE — NII bucket | `TTM item_24 / avg_equity_TTM × 100` | +51.7% vs +51% (Private Feb-26) ✓ |
+| ROE — Fees bucket | `TTM (item_27+31) / avg_equity × 100` | +33.0% vs +36% close |
+| ROE — OPEX bucket | `TTM (item_35+42+43+44) / avg_equity × 100` | −43.6% vs −42% ✓ |
+| NII / Total Revenue | `item_24 / (item_24 + item_34 + item_50)` | 49.15% Dec-25 Sector ✓ |
+| Trading+FX / Total Revenue | `(item_46 + item_47) / (item_24+item_34+item_50)` | −3.53% Sector ✓ |
+| Fees YoY | `(item_27 + item_31)_t / same_YTD_{t−12m} − 1` | +48.8% Dec-25 ✓ |
+| Real policy rate expectation (12m) | `(1+PKAUO.S04.D.U)/(1+PKAUO.S01.E.U) − 1` | 5.0% Apr-26 ✓ |
+| CPI 12-month avg | `mean(CPI_YoY[m−11..m])` | 34.23% Jan-26 ✓ |
+| CBRT-owned gold (tons) | `(TP.BL0021 − TP.BL0891) / 1e9` | 508 tons Mar-26 vs chart 509 ✓ |
