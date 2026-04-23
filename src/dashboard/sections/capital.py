@@ -114,9 +114,51 @@ def _panel_rwa():
     ], className="mt-4")
 
 
+def _panel_cet1():
+    """CET 1 Ratio — BDDK other_data Table 12. BBVA Charts 69 + 71."""
+    cet1 = M.ratio_cet1([SECTOR] + OWNERSHIP)
+    car = M.ratio_car([SECTOR] + OWNERSHIP)
+
+    trend = C.trend_chart(cet1, "CET 1 Ratio (%)",
+                          value_format="pct",
+                          bank_types=[SECTOR] + OWNERSHIP,
+                          height=280)
+    # Regulatory minimums
+    trend.add_hline(y=8.5,
+                    line=dict(color=theme.NEG_COLOR, width=1.0, dash="dash"),
+                    annotation_text="CET1 min 8.5%",
+                    annotation_position="bottom right",
+                    annotation_font=dict(color=theme.NEG_COLOR, size=10))
+    trend.add_hline(y=12.0,
+                    line=dict(color=theme.WARN_COLOR, width=1.0, dash="dot"),
+                    annotation_text="Local min 12%",
+                    annotation_position="top right",
+                    annotation_font=dict(color=theme.WARN_COLOR, size=10))
+
+    # Side-by-side with CAR for context
+    bar = C.bar_chart_by_bank(M.latest_snapshot(cet1),
+                               "CET 1 by Bank Type — Latest",
+                               value_format="pct", height=280)
+
+    return html.Div([
+        C.section_header("CET 1 — Core Tier 1 Capital Ratio",
+            "From BDDK Table 12 (other_data). Values stored as integers; for "
+            "2-decimal precision re-parse the raw JSON cache."),
+        dbc.Row([
+            dbc.Col(C.chart_panel(trend,
+                caption=C.caption_comparison(M.latest_snapshot(cet1), "CET 1", "pct")),
+                md=8),
+            dbc.Col(C.chart_panel(bar,
+                caption="Sector ~13%, well above 8.5% regulatory minimum."),
+                md=4),
+        ], className="g-3"),
+    ], className="mt-4")
+
+
 def build_capital():
     return dbc.Container([
         _panel_car(),
+        _panel_cet1(),
         _panel_equity(),
         _panel_rwa(),
         html.Div(style={"height": "24px"}),

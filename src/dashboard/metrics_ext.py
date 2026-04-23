@@ -321,6 +321,171 @@ def _in(codes: list[str]) -> str:
     return ",".join(f"'{c}'" for c in codes)
 
 
+# ---------------------------------------------------------------------------
+# Loans Table 4 — NPL sub-segment ratios
+# ---------------------------------------------------------------------------
+def _get_loans4_series(item_name: str, bank_type_code: str = "10001",
+                       currency: str = "TL") -> pd.DataFrame:
+    q = """
+    SELECT year, month, bank_type_code, SUM(total_amount) AS value
+    FROM loans
+    WHERE table_number = 4 AND item_name = ?
+      AND bank_type_code = ? AND currency = ?
+    GROUP BY year, month, bank_type_code
+    ORDER BY year, month
+    """
+    return _query(q, (item_name, bank_type_code, currency))
+
+
+def npl_ratio_from_table4(num_item: str, den_item: str,
+                          bank_type_code: str = "10001") -> pd.DataFrame:
+    """Compute NPL ratio for a sub-segment from Table 4 time series.
+    Returns df with columns [period, value] (ratio in %)."""
+    num = _get_loans4_series(num_item, bank_type_code)
+    den = _get_loans4_series(den_item, bank_type_code)
+    if num.empty or den.empty:
+        return pd.DataFrame(columns=["period", "value"])
+    m = pd.merge(num.rename(columns={"value":"n"}),
+                  den.rename(columns={"value":"d"}),
+                  on=["year","month","bank_type_code"])
+    m["period"] = pd.to_datetime(
+        m["year"].astype(str) + "-" + m["month"].astype(str).str.zfill(2) + "-01"
+    )
+    m["value"] = (m["n"] / m["d"] * 100).where(m["d"] > 0)
+    return m[["period","value"]].dropna().sort_values("period").reset_index(drop=True)
+
+
+def npl_ratio_from_weekly(num_item_id: str, den_item_id: str,
+                          bank_type_code: str = "10001",
+                          currency: str = "TOTAL") -> pd.DataFrame:
+    """NPL ratio derived from weekly_series (for SME/Commercial where
+    monthly Table 4 doesn't split by SME)."""
+    q = """
+    SELECT period_date, value, item_id
+    FROM weekly_series
+    WHERE item_id IN (?, ?) AND bank_type_code = ? AND currency = ?
+    ORDER BY period_date
+    """
+    df = _query(q, (num_item_id, den_item_id, bank_type_code, currency))
+    if df.empty:
+        return pd.DataFrame(columns=["period", "value"])
+    wide = df.pivot_table(index="period_date", columns="item_id",
+                          values="value", aggfunc="sum").reset_index()
+    if num_item_id not in wide or den_item_id not in wide:
+        return pd.DataFrame(columns=["period", "value"])
+    wide = wide.rename(columns={"period_date": "period"})
+    wide["value"] = (wide[num_item_id] / wide[den_item_id] * 100).where(wide[den_item_id] > 0)
+    return wide[["period","value"]].dropna().sort_values("period").reset_index(drop=True)
+
+
+# ---------------------------------------------------------------------------
+# Income statement — BDDK Table 2 line-item aggregator
+# ---------------------------------------------------------------------------
+def get_income_item(item_order: int, bank_types: list[str] = None) -> pd.DataFrame:
+    """Return YTD values for a specific income_statement line (by item_order)."""
+    bt = bank_types or PRIMARY_BANK_TYPES
+    q = f"""
+    SELECT year, month, bank_type_code, SUM(amount_total) AS value, item_name
+    FROM income_statement
+    WHERE item_order = ?
+      AND bank_type_code IN ({_in(bt)})
+    GROUP BY year, month, bank_type_code
+    ORDER BY year, month, bank_type_code
+    """
+    return _query(q, (item_order,))
+
+
+def sum_income_items(orders: list[int], bank_types: list[str] = None) -> pd.DataFrame:
+    """Sum multiple income-statement line-items together (YTD)."""
+    frames = [get_income_item(o, bank_types) for o in orders]
+    frames = [f for f in frames if not f.empty]
+    if not frames:
+        return pd.DataFrame()
+    out = frames[0][["year","month","period","bank_type_code","bank_type","value"]].copy()
+    for f in frames[1:]:
+        out = pd.merge(
+            out, f[["year","month","bank_type_code","value"]],
+            on=["year","month","bank_type_code"], suffixes=("","_add"),
+        )
+        out["value"] = out["value"] + out["value_add"]
+        out.drop(columns=["value_add"], inplace=True)
+    return out
+
+
+def annualize_ytd_flow(df: pd.DataFrame) -> pd.DataFrame:
+    """YTD flow values × 12/month to annualize."""
+    if df is None or df.empty:
+        return df
+    out = df.copy()
+    out["value"] = out["value"] * 12.0 / out["month"].astype(float)
+    return out
+
+
+# ---------------------------------------------------------------------------
+# other_data lookup (Table 12 — capital adequacy detail)
+# ---------------------------------------------------------------------------
+def get_other_data_item(table_number: int, item_name_like: str,
+                        bank_types: list[str] = None) -> pd.DataFrame:
+    """Return a specific metric from `other_data` (stored as value_numeric)."""
+    bt = bank_types or PRIMARY_BANK_TYPES
+    q = f"""
+    SELECT year, month, bank_type_code, value_numeric AS value
+    FROM other_data
+    WHERE table_number = ? AND item_name LIKE ?
+      AND bank_type_code IN ({_in(bt)})
+    ORDER BY year, month, bank_type_code
+    """
+    return _query(q, (table_number, item_name_like))
+
+
+def ratio_cet1(bank_types=None):
+    """CET 1 Ratio from BDDK Table 12 (other_data).
+
+    Note: value_numeric is stored as integer — for decimal precision
+    re-parse value_text or the raw JSON cache.
+    """
+    return get_other_data_item(
+        12,
+        "Çekirdek Sermaye Yeterliliği Rasyosu%",
+        bank_types,
+    )
+
+
+# ---------------------------------------------------------------------------
+# TTM (trailing twelve months) helper for YTD flow series
+# ---------------------------------------------------------------------------
+def ttm_from_ytd(df: pd.DataFrame) -> pd.DataFrame:
+    """Convert monthly YTD values into TTM (rolling 12-month) flow.
+
+    Formula per bank_type_code:
+        TTM[y,m] = YTD[y,m] + (YTD_fullyear[y-1] - YTD[y-1,m])
+    When YTD[y,m] is December of year y, TTM equals the full-year YTD.
+    """
+    if df is None or df.empty:
+        return df
+    df = df.sort_values(["bank_type_code","year","month"]).copy()
+
+    def _apply(g):
+        g = g.copy().reset_index(drop=True)
+        out = []
+        # build YTD dict and full-year dict for quick lookup
+        ytd = {(r.year, r.month): r.value for r in g.itertuples()}
+        fy = {r.year: r.value for r in g.itertuples() if r.month == 12}
+        for r in g.itertuples():
+            prev_fy = fy.get(r.year - 1)
+            prev_ytd_sm = ytd.get((r.year - 1, r.month))
+            if prev_fy is not None and prev_ytd_sm is not None:
+                out.append(r.value + prev_fy - prev_ytd_sm)
+            elif r.month == 12:
+                out.append(r.value)           # full-year YTD = TTM
+            else:
+                out.append(None)              # insufficient history
+        g["value"] = out
+        return g
+
+    return df.groupby("bank_type_code", group_keys=False).apply(_apply).dropna(subset=["value"])
+
+
 def latest_snapshot(df: pd.DataFrame) -> pd.DataFrame:
     if df is None or df.empty:
         return pd.DataFrame()

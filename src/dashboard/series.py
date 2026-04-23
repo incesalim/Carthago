@@ -51,6 +51,14 @@ EVDS_TL_RATES = {
     "rate_deposit_total_tl":   {"source": "evds", "code": "TP.TRY.MT06", "label": "Deposit (total TL)",           "kind": "weekly"},
     "rate_deposit_1m":         {"source": "evds", "code": "TP.TRY.MT01", "label": "Deposit ≤1m",                  "kind": "weekly"},
     "rate_deposit_3m":         {"source": "evds", "code": "TP.TRY.MT02", "label": "Deposit ≤3m",                  "kind": "weekly"},
+    "rate_deposit_6m":         {"source": "evds", "code": "TP.TRY.MT03", "label": "Deposit ≤6m",                  "kind": "weekly"},
+    "rate_deposit_12m":        {"source": "evds", "code": "TP.TRY.MT04", "label": "Deposit ≤1y",                  "kind": "weekly"},
+    "rate_deposit_over_12m":   {"source": "evds", "code": "TP.TRY.MT05", "label": "Deposit >1y",                  "kind": "weekly"},
+    # FC loan/deposit rates (Chart 23)
+    "rate_fc_loan_usd":        {"source": "evds", "code": "TP.KTF17.USD","label": "Commercial Loan (USD)",        "kind": "weekly"},
+    "rate_fc_loan_eur":        {"source": "evds", "code": "TP.KTF17.EUR","label": "Commercial Loan (EUR)",        "kind": "weekly"},
+    "rate_fc_dep_usd":         {"source": "evds", "code": "TP.USD.MT06", "label": "Total USD Deposit",            "kind": "weekly"},
+    "rate_fc_dep_eur":         {"source": "evds", "code": "TP.EUR.MT06", "label": "Total EUR Deposit",            "kind": "weekly"},
 }
 
 # ---------------------------------------------------------------------------
@@ -59,7 +67,23 @@ EVDS_TL_RATES = {
 EVDS_MACRO = {
     "usd_try":             {"source": "evds", "code": "TP.DK.USD.A", "label": "USD/TRY (buying)",       "kind": "daily"},
     "eur_try":             {"source": "evds", "code": "TP.DK.EUR.A", "label": "EUR/TRY (buying)",       "kind": "daily"},
-    "net_reserves":        {"source": "evds", "code": "TP.AB.N01",   "label": "Net Intl Reserves",      "kind": "weekly"},
+    # ⚠ TP.AB.N01 unit scaling is off by ~1000× vs BBVA's NIR — do NOT wire
+    # as "Net Intl Reserves" until investigated (see METRICS.md Appendix A).
+    "net_reserves_raw":    {"source": "evds", "code": "TP.AB.N01",   "label": "Net Intl Reserves (raw, suspect)", "kind": "weekly"},
+    # CPI (TurkStat via CBRT mirror) — monthly index, 2003=100
+    "cpi_index":           {"source": "evds", "code": "TP.FG.J0",    "label": "CPI (2003=100)",         "kind": "monthly"},
+    # Residents' FC deposits (weekly, bie_hpbitablo4, million USD)
+    "fc_dep_residents":      {"source": "evds", "code": "TP.HPBITABLO4.2", "label": "Residents total FC deposits", "kind": "weekly"},
+    "fc_dep_households":     {"source": "evds", "code": "TP.HPBITABLO4.3", "label": "Households total FC",          "kind": "weekly"},
+    "fc_dep_hh_usd":         {"source": "evds", "code": "TP.HPBITABLO4.4", "label": "Households USD",               "kind": "weekly"},
+    "fc_dep_hh_eur":         {"source": "evds", "code": "TP.HPBITABLO4.5", "label": "Households EUR (in USD eq)",   "kind": "weekly"},
+    "fc_dep_hh_pm":          {"source": "evds", "code": "TP.HPBITABLO4.7", "label": "Households Precious Metals",   "kind": "weekly"},
+    # Expectations — Market Participants Survey (monthly)
+    "mps_cpi_curr_ye":     {"source": "evds", "code": "TP.PKAUO.S01.D.U", "label": "CPI Exp, current year-end",    "kind": "monthly"},
+    "mps_cpi_next_ye":     {"source": "evds", "code": "TP.PKAUO.S01.I.U", "label": "CPI Exp, next year-end",       "kind": "monthly"},
+    "mps_cpi_12m":         {"source": "evds", "code": "TP.PKAUO.S01.E.U", "label": "CPI Exp, 12m ahead",           "kind": "monthly"},
+    "mps_policy_12m":      {"source": "evds", "code": "TP.PKAUO.S04.D.U", "label": "Policy Rate Exp, 12m ahead",   "kind": "monthly"},
+    "hh_inflation_12m":    {"source": "evds", "code": "TP.HANEBEK.HAN14A","label": "Household 12m CPI Expectation","kind": "monthly"},
 }
 
 # ---------------------------------------------------------------------------
@@ -81,6 +105,16 @@ EVDS_CBRT_BALANCE = {
                               "unit_scale": 1e3,  "note": "B2. Sterilization via quotation."},
     "cbrt_steril_liqbills":  {"source": "evds", "code": "TP.APIFON2.LIK", "label": "Liquidity Bills",        "kind": "daily",
                               "unit_scale": 1e3,  "note": "B3. Sterilization via liquidity bills (new 2025-03+)."},
+
+    # CBRT Net Funding — `TP.APIFON3` is already `APIFON1 − APIFON2` at source.
+    "cbrt_net_funding":      {"source": "evds", "code": "TP.APIFON3",  "label": "CBRT Net Funding",          "kind": "daily",
+                              "unit_scale": 1e3, "note": "Positive = CBRT net funding market (excess TL liquidity); negative = CBRT net absorbing."},
+
+    # Gold in TONS — BL0021 is in grams (÷1e9 = tons)
+    "cbrt_gold_total_tons":  {"source": "evds", "code": "TP.BL0021",   "label": "CBRT Gold Assets (tons)",   "kind": "weekly",
+                              "unit_scale": 1e9, "note": "A11 Int'l Standard Gold (net gram); ÷1e9 → tons."},
+    "cbrt_gold_banks_tons":  {"source": "evds", "code": "TP.BL0891",   "label": "Banks' Gold at CBRT (tons)","kind": "weekly",
+                              "unit_scale": 1e9},
 
     # International Reserves (weekly Friday, million USD directly)
     "cbrt_gross_reserves":   {"source": "evds", "code": "TP.AB.TOPLAM", "label": "Gross Reserves",            "kind": "weekly",

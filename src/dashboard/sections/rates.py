@@ -149,6 +149,181 @@ def _panel_corridor():
     return C.chart_panel(fig, caption=caption)
 
 
+def _panel_cbrt_net_funding(start_date: str = "2020-01-01"):
+    """CBRT Net Funding — `TP.APIFON3` in thousand TL → bn TL.
+    Positive = excess TL liquidity (CBRT net funding market);
+    negative = lack (CBRT net absorbing). BBVA Chart 10 replica."""
+    today = datetime.today().strftime("%Y-%m-%d")
+    df = evds.fetch_series("TP.APIFON3", start_date, today)
+    if df.empty:
+        return C.chart_panel(C._empty_fig(), caption="")
+    df = df.copy()
+    df["value_bn"] = df["value"] / 1e3
+
+    fig = go.Figure()
+    # Color the areas by sign (BBVA uses green/red-ish)
+    fig.add_trace(go.Scatter(
+        x=df["date"], y=df["value_bn"], mode="lines",
+        line=dict(color=theme.DATA_2, width=1.6),
+        fill="tozeroy", fillcolor="rgba(47,93,98,0.15)",
+        hovertemplate="<b>%{x|%d %b %Y}</b><br>%{y:,.0f} bn TL<extra></extra>",
+        showlegend=False,
+    ))
+    fig.add_hline(y=0, line=dict(color=theme.MUTED, width=1, dash="dot"))
+    last = df.iloc[-1]
+    fig.add_annotation(
+        x=last["date"], y=last["value_bn"],
+        text=f"{last['value_bn']:,.0f} bn TL", showarrow=False,
+        xanchor="left", xshift=6,
+        font=dict(color=theme.DATA_2, size=10, family=theme.FONT_FAMILY),
+    )
+    C._apply_layout(fig, "CBRT Net Funding (bn TL)", height=300)
+    fig.update_xaxes(tickformat="%b %y")
+    fig.update_yaxes(tickformat=",.0f")
+
+    peak_pos = df["value_bn"].max()
+    peak_neg = df["value_bn"].min()
+    caption = (f"Latest {last['value_bn']:+,.0f} bn TL "
+               f"({last['date']:%d %b %Y}). "
+               f"Peak excess liquidity {peak_pos:+,.0f}; peak absorption {peak_neg:+,.0f}. "
+               "Positive = CBRT providing net funding; negative = net sterilization.")
+    return C.chart_panel(fig, caption=caption)
+
+
+def _panel_cbrt_gold_tons(start_date: str = "2018-01-01"):
+    """CBRT Gold Assets in tons — TP.BL0021 (grams, ÷1e9). BBVA Chart 7."""
+    today = datetime.today().strftime("%Y-%m-%d")
+    total = evds.fetch_series("TP.BL0021", start_date, today)
+    banks = evds.fetch_series("TP.BL0891", start_date, today)
+    if total.empty:
+        return C.chart_panel(C._empty_fig(), caption="")
+    total = total.assign(value=total["value"] / 1e9)
+    banks_bn = banks.assign(value=banks["value"] / 1e9) if not banks.empty else None
+
+    # Owned = total - banks' gold
+    owned = None
+    if banks_bn is not None:
+        import pandas as pd
+        m = pd.merge(total.rename(columns={"value":"t"}),
+                      banks_bn.rename(columns={"value":"b"}), on="date")
+        m["value"] = m["t"] - m["b"]
+        owned = m[["date","value"]]
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=total["date"], y=total["value"], mode="lines",
+        name="Total (CBRT books)", line=dict(color=theme.DATA_3, width=2.2),
+        hovertemplate="<b>Total</b><br>%{x|%d %b %Y}<br>%{y:.0f} tons<extra></extra>",
+    ))
+    if owned is not None and not owned.empty:
+        fig.add_trace(go.Scatter(
+            x=owned["date"], y=owned["value"], mode="lines",
+            name="CBRT-owned (ex banks)", line=dict(color=theme.DATA_1, width=2.2),
+            hovertemplate="<b>CBRT-owned</b><br>%{x|%d %b %Y}<br>%{y:.0f} tons<extra></extra>",
+        ))
+
+    for df_, color, label in [(total, theme.DATA_3, "Total"),
+                               (owned, theme.DATA_1, "Owned")]:
+        if df_ is None or df_.empty:
+            continue
+        last = df_.iloc[-1]
+        fig.add_annotation(
+            x=last["date"], y=last["value"],
+            text=f"{last['value']:.0f}t", showarrow=False,
+            xanchor="left", xshift=6,
+            font=dict(color=color, size=10, family=theme.FONT_FAMILY),
+        )
+
+    C._apply_layout(fig, "CBRT Gold Reserves (tons)", height=300)
+    fig.update_xaxes(tickformat="%b %y")
+    fig.update_yaxes(tickformat=",.0f")
+
+    if owned is not None and not owned.empty:
+        last_owned = owned.iloc[-1]
+        caption = (f"CBRT-owned gold: {last_owned['value']:.0f} tons "
+                   f"({last_owned['date']:%d %b %Y}). "
+                   "Total on CBRT books minus banks' gold held at CBRT.")
+    else:
+        caption = f"Total gold on CBRT books: {total.iloc[-1]['value']:.0f} tons."
+    return C.chart_panel(fig, caption=caption)
+
+
+def _panel_residents_fc(start_date: str = "2022-01-01"):
+    """Residents' FC deposits — households breakdown by currency. BBVA Chart 15."""
+    today = datetime.today().strftime("%Y-%m-%d")
+
+    series_map = [
+        ("Households USD", "TP.HPBITABLO4.4", theme.DATA_1),
+        ("Households EUR (USD eq)", "TP.HPBITABLO4.5", theme.DATA_4),
+        ("Households Precious Metals", "TP.HPBITABLO4.7", theme.DATA_3),
+    ]
+    fig = go.Figure()
+    latest = {}
+    for label, code, color in series_map:
+        df = evds.fetch_series(code, start_date, today)
+        if df.empty:
+            continue
+        df = df.copy()
+        df["bn"] = df["value"] / 1e3   # million → billion USD
+        fig.add_trace(go.Scatter(
+            x=df["date"], y=df["bn"], mode="lines",
+            name=label, line=dict(color=color, width=2.2),
+            hovertemplate=f"<b>{label}</b><br>%{{x|%d %b %Y}}<br>$%{{y:,.1f}} bn<extra></extra>",
+        ))
+        last = df.iloc[-1]
+        latest[label] = last["bn"]
+        fig.add_annotation(
+            x=last["date"], y=last["bn"],
+            text=f"${last['bn']:,.0f}bn", showarrow=False,
+            xanchor="left", xshift=6,
+            font=dict(color=color, size=10, family=theme.FONT_FAMILY),
+        )
+    C._apply_layout(fig, "Residents' FC Deposits — Households (US$ bn)", height=300)
+    fig.update_xaxes(tickformat="%b %y")
+    fig.update_yaxes(tickformat=",.0f")
+
+    caption = " · ".join(f"{k}: ${v:,.0f}bn" for k, v in latest.items())
+    return C.chart_panel(fig, caption=caption)
+
+
+def _panel_expectations(start_date: str = "2022-01-01"):
+    """Inflation expectations — MPS + HES. BBVA Chart 11 (inflation line) + 18."""
+    today = datetime.today().strftime("%Y-%m-%d")
+    series_map = [
+        ("MPS Current YE", "TP.PKAUO.S01.D.U", theme.DATA_1),
+        ("MPS Next YE", "TP.PKAUO.S01.I.U", theme.DATA_4),
+        ("MPS 12m ahead", "TP.PKAUO.S01.E.U", theme.DATA_2),
+        ("Household 12m", "TP.HANEBEK.HAN14A", theme.DATA_5),
+    ]
+    fig = go.Figure()
+    latest = {}
+    for label, code, color in series_map:
+        df = evds.fetch_series(code, start_date, today, frequency=evds.FREQ_MONTHLY)
+        if df.empty:
+            continue
+        df = df.sort_values("date")
+        fig.add_trace(go.Scatter(
+            x=df["date"], y=df["value"], mode="lines+markers",
+            name=label, line=dict(color=color, width=2.0),
+            marker=dict(size=4),
+            hovertemplate=f"<b>{label}</b><br>%{{x|%b %Y}}<br>%{{y:.1f}}%<extra></extra>",
+        ))
+        last = df.iloc[-1]
+        latest[label] = last["value"]
+        fig.add_annotation(
+            x=last["date"], y=last["value"],
+            text=f"{last['value']:.1f}%", showarrow=False,
+            xanchor="left", xshift=6,
+            font=dict(color=color, size=10, family=theme.FONT_FAMILY),
+        )
+    C._apply_layout(fig, "Inflation Expectations (%)", height=300)
+    fig.update_xaxes(tickformat="%b %y")
+    fig.update_yaxes(ticksuffix="%", tickformat=".0f")
+
+    caption = " · ".join(f"{k}: {v:.1f}%" for k, v in latest.items())
+    return C.chart_panel(fig, caption=caption)
+
+
 def _panel_cbrt_reserves(start_date: str = "2022-01-01"):
     """CBRT International Reserves — gross, gold, and derived net.
 
@@ -398,18 +573,32 @@ def build_rates():
         dbc.Row([dbc.Col(_panel_cbrt_bond_share(), md=12)], className="g-3"),
         html.Div(style={"height": "8px"}),
         C.section_header(
-            "CBRT Sterilization",
-            "Daily volume of TL liquidity absorbed by CBRT — a direct read on "
-            "how aggressively the bank tightens beyond the announced policy rate.",
+            "CBRT Sterilization & Net Funding",
+            "Daily TL liquidity absorption vs provision — stance indicator beyond "
+            "the announced policy rate.",
         ),
-        dbc.Row([dbc.Col(_panel_cbrt_sterilization(), md=12)], className="g-3"),
+        dbc.Row([
+            dbc.Col(_panel_cbrt_sterilization(), md=6),
+            dbc.Col(_panel_cbrt_net_funding(), md=6),
+        ], className="g-3"),
         html.Div(style={"height": "8px"}),
         C.section_header(
             "CBRT International Reserves",
-            "Gross reserves, gold component, and a derived net position — "
-            "how much real FX liquidity CBRT commands.",
+            "Gross reserves, gold component (US$ and tons), and a derived net position.",
         ),
-        dbc.Row([dbc.Col(_panel_cbrt_reserves(), md=12)], className="g-3"),
+        dbc.Row([
+            dbc.Col(_panel_cbrt_reserves(), md=7),
+            dbc.Col(_panel_cbrt_gold_tons(), md=5),
+        ], className="g-3"),
+        html.Div(style={"height": "8px"}),
+        C.section_header(
+            "Residents' Dollarization & Expectations",
+            "Household FC deposits and inflation expectations (MPS + HES surveys).",
+        ),
+        dbc.Row([
+            dbc.Col(_panel_residents_fc(), md=6),
+            dbc.Col(_panel_expectations(), md=6),
+        ], className="g-3"),
         html.Div(style={"height": "8px"}),
         C.section_header(
             "Currency",
