@@ -81,6 +81,18 @@ EVDS_CBRT_BALANCE = {
                               "unit_scale": 1e3,  "note": "B2. Sterilization via quotation."},
     "cbrt_steril_liqbills":  {"source": "evds", "code": "TP.APIFON2.LIK", "label": "Liquidity Bills",        "kind": "daily",
                               "unit_scale": 1e3,  "note": "B3. Sterilization via liquidity bills (new 2025-03+)."},
+
+    # International Reserves (weekly Friday, million USD directly)
+    "cbrt_gross_reserves":   {"source": "evds", "code": "TP.AB.TOPLAM", "label": "Gross Reserves",            "kind": "weekly",
+                              "note": "Official Total International Reserves (gold + FX) in million USD."},
+    "cbrt_reserves_gold":    {"source": "evds", "code": "TP.AB.C1",     "label": "Gold Reserves",             "kind": "weekly"},
+    "cbrt_reserves_fx":      {"source": "evds", "code": "TP.AB.C2",     "label": "FX Reserves",               "kind": "weekly"},
+
+    # Weekly CBRT balance sheet (raw in thousand TL — use USD/TRY to convert)
+    "cbrt_bs_fx_assets":     {"source": "evds", "code": "TP.BL054",     "label": "Total FX Assets (BS)",      "kind": "weekly",
+                              "note": "bie_mbblnch P54 — weekly CBRT balance sheet, thousand TL."},
+    "cbrt_bs_fx_liabs":      {"source": "evds", "code": "TP.BL122",     "label": "Total FX Liabilities (BS)", "kind": "weekly",
+                              "note": "Used with FX assets to derive Net FX position."},
 }
 
 # ---------------------------------------------------------------------------
