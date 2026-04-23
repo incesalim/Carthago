@@ -455,6 +455,27 @@ All panels use §10 data and §11 transforms.
 | 4w / 13w rate trends | Weekly data in DB is sparse (14 periods). Use EVDS directly. |
 | Bracket deposit mix (10k/50k/250k/1m/>1m) | Columns exist but not consistently populated. |
 | Sectoral loans (Table 5) | Units are **thousand TL** — needs unit handling before wiring. |
+| BBVA HQLA ex CB Swaps | BBVA's own definition of liquid FX assets — combines CBRT balance-sheet items net of swap exposures. Not a single EVDS series. Would need to replicate their formula. |
+| BBVA Weekly Reserve Flows decomposition | BBVA derives "implicit FC sales", "export & services revenue", and "net sales" from daily reserve changes cross-checked against TCMB BoP. Proprietary. |
+| BBVA "Net International Reserves exc Swaps" | Requires outstanding FX swap stock (`TP.FXSWAP03` is per-auction flow, not stock). Could approximate by cumulating swap auctions and deducting, but error-prone. |
+
+### Net International Reserves — our derivation
+
+The dashboard's Net Reserves line on the Rates tab is:
+```
+Net FX = (TP.BL054 Total FX Assets − TP.BL122 Total FX Liabilities) / TP.DK.USD.A / 1e6
+```
+from CBRT's weekly balance sheet (`bie_mbblnch`). This gives roughly $51bn
+on 2026-04-10 vs BBVA's $42bn on 2026-03-31 — directionally right, differs
+from BoP-defined NIR because:
+- Balance-sheet FX assets include all FX claims (reserves + foreign bank
+  credits + other FX securities), while BoP-NIR counts only liquid reserve
+  assets.
+- BoP-NIR further excludes FX liabilities to resident banks that show in
+  our derivation.
+
+To match BBVA's exact NIR we'd need: BoP reserves + derive liabilities per
+IMF SDDS template. Left for later.
 
 ## Appendix B — non-obvious methodology choices
 
