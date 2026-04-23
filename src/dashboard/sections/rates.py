@@ -149,6 +149,58 @@ def _panel_corridor():
     return C.chart_panel(fig, caption=caption)
 
 
+def _panel_cbrt_sterilization(days: int = 90):
+    """CBRT sterilization volume — stacked bar: TL depos + Quotation + Liq bills.
+
+    Replicates BBVA's Figure 5 (CBRT Sterilization Volume, TL bn).
+    """
+    from datetime import timedelta
+    end = datetime.today().date()
+    start = end - timedelta(days=days)
+
+    SERIES_DEFS = [
+        ("TL depos",       "TP.APIFON2.IHA", theme.DATA_1),   # oxblood — dominant
+        ("Quotation",      "TP.APIFON2.KOT", theme.DATA_4),   # slate blue — tiny
+        ("Liquidity bills","TP.APIFON2.LIK", theme.DATA_5),   # olive — new 2025+
+    ]
+
+    fig = go.Figure()
+    total_by_date = {}
+    for label, code, color in SERIES_DEFS:
+        df = evds.fetch_series(code, start.strftime("%Y-%m-%d"),
+                                end.strftime("%Y-%m-%d"))
+        if df.empty:
+            continue
+        df = df.copy()
+        df["bn_tl"] = df["value"] / 1e6
+        df = df.dropna(subset=["bn_tl"])
+        if df.empty:
+            continue
+        fig.add_trace(go.Bar(
+            x=df["date"], y=df["bn_tl"],
+            name=label, marker_color=color,
+            hovertemplate=f"<b>{label}</b><br>%{{x|%d %b %Y}}<br>" + "%{y:,.0f} bn TL<extra></extra>",
+        ))
+        for d, v in zip(df["date"], df["bn_tl"]):
+            total_by_date[d] = total_by_date.get(d, 0) + v
+
+    fig.update_layout(barmode="stack")
+    C._apply_layout(fig, "CBRT Sterilization Volume (TL bn)", height=320)
+    fig.update_xaxes(tickformat="%d %b")
+    fig.update_yaxes(tickformat=",")
+
+    # Caption — latest composition
+    if total_by_date:
+        last_date = max(total_by_date.keys())
+        latest_total = total_by_date[last_date]
+        caption = (f"Latest total sterilization {latest_total:,.0f} bn TL "
+                   f"({last_date:%d %b %Y}). BBVA Figure 5 replicated — "
+                   "TL deposits dominate; liquidity bills introduced March 2025.")
+    else:
+        caption = "Data unavailable."
+    return C.chart_panel(fig, caption=caption)
+
+
 def _panel_cbrt_bond_share():
     """CBRT TRY Sovereign Bond Holdings / Total Assets — replicates BBVA's chart."""
     import pandas as pd
@@ -257,6 +309,13 @@ def build_rates():
             "balance-sheet assets. Rises during large-scale outright purchases.",
         ),
         dbc.Row([dbc.Col(_panel_cbrt_bond_share(), md=12)], className="g-3"),
+        html.Div(style={"height": "8px"}),
+        C.section_header(
+            "CBRT Sterilization",
+            "Daily volume of TL liquidity absorbed by CBRT — a direct read on "
+            "how aggressively the bank tightens beyond the announced policy rate.",
+        ),
+        dbc.Row([dbc.Col(_panel_cbrt_sterilization(), md=12)], className="g-3"),
         html.Div(style={"height": "8px"}),
         C.section_header(
             "Currency",
