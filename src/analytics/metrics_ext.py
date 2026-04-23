@@ -1,8 +1,19 @@
-"""Extra metric queries and transformations the dashboard needs on top of
-the shared data_store. Pulls directly from SQLite where appropriate.
+"""Public metric layer for the dashboard.
 
-Every function here returns a DataFrame with the standard shape:
-  columns = [year, month, period, bank_type_code, bank_type, value]
+This is the **single entry point** for metric queries. Sections should
+import only from here — never reach into `metrics_engine` (which is the
+internal SQL/compute class used by `data_store` to pre-populate cached
+DataFrames).
+
+Layering (from raw data up):
+    metrics_engine  — class-based SQL access + base calculations (~1100 lines)
+    data_store      — singleton that caches pre-computed DataFrames
+    metrics_ext     — THIS module: derivations, ratios, segment queries,
+                      income-statement aggregators, TTM / annualization
+
+Every query-returning function here produces a DataFrame with the standard
+shape:  columns = [year, month, period, bank_type_code, bank_type, value]
+(or [period, value] for single-series helpers).
 """
 
 from __future__ import annotations
@@ -12,6 +23,9 @@ import pandas as pd
 from pathlib import Path
 
 from src.analytics.metrics_catalog import BANK_TYPES, PRIMARY_BANK_TYPES
+# Re-export the engine + singleton so callers never need to import
+# metrics_engine directly.
+from src.analytics.metrics_engine import MetricsEngine, engine  # noqa: F401
 
 
 DB_PATH = Path(__file__).resolve().parent.parent.parent / "data" / "bddk_data.db"

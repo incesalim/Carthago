@@ -1,3 +1,0 @@
-2026-01-24 22:32:38.101 | INFO     | src.scrapers.weekly_scraper:setup_driver:100 - WebDriver initialized successfully
-2026-01-24 22:32:46.145 | INFO     | src.scrapers.weekly_scraper:load_page:122 - Page loaded: 
-2026-01-24 22:32:58.498 | INFO     | src.scrapers.weekly_scraper:close_driver:107 - WebDriver closed

@@ -8,7 +8,8 @@ from dash import html
 import dash_bootstrap_components as dbc
 
 from src.analytics import data_store
-from src.dashboard import charts as C, metrics_ext as M, theme
+from src.dashboard import charts as C, theme
+from src.analytics import metrics_ext as M
 
 
 SECTOR = "10001"

@@ -12,7 +12,9 @@ from datetime import datetime
 import plotly.graph_objects as go
 
 from src.analytics import data_store
-from src.dashboard import charts as C, metrics_ext as M, theme, evds
+from src.dashboard import charts as C, theme
+from src.analytics import metrics_ext as M
+from src.dashboard import evds
 
 
 SECTOR = "10001"

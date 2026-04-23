@@ -9,9 +9,9 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "archive" / "scrapers"))
+sys.path.insert(0, str(ROOT))
 
-from bddk_api_scraper import BDDKAPIScraper, BANK_TYPES
+from src.scrapers.bddk_api_scraper import BDDKAPIScraper, BANK_TYPES
 
 DB_PATH = ROOT / "data" / "bddk_data.db"
 

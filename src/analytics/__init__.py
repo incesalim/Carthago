@@ -19,6 +19,7 @@ from .metrics_catalog import (
 
 from .metrics_engine import MetricsEngine, engine
 from .data_store import MetricsDataStore, data_store
+from . import metrics_ext
 
 __all__ = [
     # Catalog

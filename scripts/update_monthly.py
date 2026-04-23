@@ -18,11 +18,10 @@ from datetime import datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "archive" / "scrapers"))
 sys.path.insert(0, str(ROOT))
 
 import requests                                     # noqa: E402
-from bddk_api_scraper import BDDKAPIScraper, BANK_TYPES  # noqa: E402
+from src.scrapers.bddk_api_scraper import BDDKAPIScraper, BANK_TYPES  # noqa: E402
 
 DB_PATH = ROOT / "data" / "bddk_data.db"
 

@@ -1,9 +1,0 @@
-2026-01-24 22:26:53.459 | INFO     | src.scrapers.weekly_scraper:setup_driver:100 - WebDriver initialized successfully
-2026-01-24 22:27:00.235 | INFO     | src.scrapers.weekly_scraper:load_page:122 - Page loaded: 
-2026-01-24 22:27:06.058 | INFO     | src.scrapers.weekly_scraper:get_available_periods:151 - Found 629 available periods
-2026-01-24 22:27:11.413 | INFO     | src.scrapers.weekly_scraper:load_page:122 - Page loaded: 
-2026-01-24 22:27:11.413 | INFO     | src.scrapers.weekly_scraper:scrape_multiple_periods:393 - Scraping period 629 (1/3)
-2026-01-24 22:27:19.246 | INFO     | src.scrapers.weekly_scraper:scrape_multiple_periods:393 - Scraping period 628 (2/3)
-2026-01-24 22:27:26.860 | INFO     | src.scrapers.weekly_scraper:scrape_multiple_periods:393 - Scraping period 627 (3/3)
-2026-01-24 22:27:32.434 | INFO     | src.scrapers.weekly_scraper:scrape_multiple_periods:410 - Saved 66 rows to C:\Users\Salim\Desktop\code\claude\bddk_analysis\src\data\raw\weekly\krediler_20260124_222732.csv
-2026-01-24 22:27:38.679 | INFO     | src.scrapers.weekly_scraper:close_driver:107 - WebDriver closed
