@@ -103,7 +103,7 @@ PLOTLY_LAYOUT_DEFAULTS = dict(
     font=dict(family=FONT_FAMILY, size=11, color=TEXT),
     plot_bgcolor=CARD_BG,
     paper_bgcolor=CARD_BG,
-    margin=dict(l=48, r=72, t=72, b=32),
+    margin=dict(l=48, r=72, t=72, b=56),
     hoverlabel=dict(
         bgcolor=NEUTRAL_900,
         bordercolor=NEUTRAL_900,
@@ -113,6 +113,10 @@ PLOTLY_LAYOUT_DEFAULTS = dict(
         orientation="h",
         yanchor="top", y=-0.18, xanchor="center", x=0.5,
         font=dict(size=11, color=MUTED, family=FONT_FAMILY),
+        # Interactive filter behaviour: click isolates the clicked series,
+        # double-click adds/removes one. Matches Bloomberg/FT convention.
+        itemclick="toggleothers",
+        itemdoubleclick="toggle",
     ),
 )
 

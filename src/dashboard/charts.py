@@ -256,7 +256,6 @@ def trend_chart(
             name=name,
             line=dict(color=color, width=width),
             hovertext=hover, hoverinfo="text",
-            showlegend=False,
         ))
         if not sub["value"].isna().all():
             max_val = max(max_val, float(sub["value"].max()))
@@ -266,16 +265,38 @@ def trend_chart(
 
     _apply_layout(fig, title, height=height, subtitle=subtitle,
                   date_range=granularity if date_range else False)
-    fig.update_layout(showlegend=False)
 
-    # End-of-line labels — color-matched, nudged right of the last point
-    for x, y, name, color, is_hero in endpoints:
-        fig.add_annotation(
-            x=x, y=y, text=name, showarrow=False,
-            xanchor="left", xshift=6,
-            font=dict(color=color, size=10, family=theme.FONT_FAMILY),
-            opacity=1.0 if is_hero else 0.75,
-        )
+    # End-of-line labels — positioned in the right margin (xref="x domain")
+    # so the data axis doesn't have to extend to fit them. Vertical dodging
+    # ensures overlapping values don't stack on top of each other.
+    if endpoints:
+        # Estimate usable plot height in pixels — rough, good enough for dodging
+        plot_h = max(height - 110, 120)
+        ys = [e[1] for e in endpoints]
+        y_span = max(ys) - min(ys)
+        if y_span <= 0:
+            y_span = max(abs(max(ys)), 1.0) * 0.2
+        min_gap_y = (13.0 / plot_h) * y_span  # min 13px between labels
+
+        # Sort indices by actual y descending; dodge downward when needed
+        ordered = sorted(range(len(endpoints)), key=lambda i: -endpoints[i][1])
+        adjusted = {}
+        prev_y = None
+        for i in ordered:
+            y = endpoints[i][1]
+            if prev_y is not None and (prev_y - y) < min_gap_y:
+                y = prev_y - min_gap_y
+            adjusted[i] = y
+            prev_y = y
+
+        for i, (_, _, name, color, is_hero) in enumerate(endpoints):
+            fig.add_annotation(
+                text=name, showarrow=False,
+                xref="x domain", x=1, xanchor="left", xshift=4,
+                yref="y", y=adjusted[i],
+                font=dict(color=color, size=10, family=theme.FONT_FAMILY),
+                opacity=1.0 if is_hero else 0.75,
+            )
 
     if value_format == "pct":
         fig.update_yaxes(ticksuffix="%", tickformat=".0f")
