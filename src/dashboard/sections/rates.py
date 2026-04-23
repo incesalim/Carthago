@@ -90,7 +90,22 @@ CORRIDOR_SERIES = {
 }
 
 
+def _ffill_daily(df: "pd.DataFrame", start: str, end: str) -> "pd.DataFrame":
+    """Reindex to calendar days and forward-fill — corridor rates are
+    step-functions (policy, O/N quotations). Weekends and missing-publication
+    days carry the last observed value."""
+    import pandas as pd
+    if df is None or df.empty:
+        return df
+    df = df.drop_duplicates(subset="date").set_index("date").sort_index()
+    idx = pd.date_range(start=start, end=end, freq="D")
+    out = df.reindex(idx).ffill()
+    out = out.dropna(subset=["value"]).rename_axis("date").reset_index()
+    return out
+
+
 def _panel_corridor():
+    import pandas as pd
     today = datetime.today().strftime("%Y-%m-%d")
     start = "2024-01-01"
 
@@ -100,11 +115,12 @@ def _panel_corridor():
         df = evds.fetch_series(code, start, today)
         if df.empty:
             continue
-        df = df.sort_values("date")
+        df = _ffill_daily(df, start, today)
         fig.add_trace(go.Scatter(
             x=df["date"], y=df["value"], mode="lines",
             name=label, line=dict(color=color, width=2.2,
                                   shape="hv" if label != "BIST TRY REF" else "linear"),
+            connectgaps=True,
             hovertemplate=f"<b>{label}</b><br>%{{x|%d %b %Y}}<br>" + "%{y:.2f}%<extra></extra>",
         ))
         last = df.iloc[-1]
