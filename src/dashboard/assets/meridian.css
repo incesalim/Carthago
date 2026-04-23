@@ -1,0 +1,268 @@
+/* =========================================================================
+   Meridian — Banking Dashboard Design System
+   colors_and_type.css
+   Import this file anywhere. Defines CSS custom properties and a small set
+   of global typography defaults. All component styles build on these.
+   ========================================================================= */
+
+/* -------------------------------------------------------------------------
+   Fonts — Google Fonts substitutions (flagged in README):
+     Inter Tight       → stand-in for Söhne / Neue Haas Grotesk Display
+     JetBrains Mono    → stand-in for Söhne Mono / Berkeley Mono
+   ------------------------------------------------------------------------- */
+@import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  /* -----------------------------------------------------------------------
+     COLOR — NEUTRALS (warm, OKLCH-derived for perceptual evenness)
+     ----------------------------------------------------------------------- */
+  --neutral-0:   #FFFFFF;
+  --neutral-50:  #FAFAF7;   /* page surface, light */
+  --neutral-100: #F3F2EC;   /* subtle fill, table zebra */
+  --neutral-200: #E7E5DC;   /* hairline borders */
+  --neutral-300: #D5D2C6;   /* dividers */
+  --neutral-400: #A9A59A;   /* muted text, placeholders */
+  --neutral-500: #7C7972;   /* secondary text */
+  --neutral-600: #55524D;   /* tertiary labels */
+  --neutral-700: #35332F;   /* strong text */
+  --neutral-800: #1E1D1B;   /* headers */
+  --neutral-900: #0E1116;   /* ink — primary text */
+
+  /* -----------------------------------------------------------------------
+     COLOR — BRAND / ACCENT
+     ----------------------------------------------------------------------- */
+  --accent-ink:        #7A1D2B;   /* oxblood — primary brand accent */
+  --accent-ink-hover:  #641722;
+  --accent-ink-press:  #4F121B;
+  --accent-ink-tint:   #F5E5E7;   /* wash for selected rows / badges */
+
+  /* -----------------------------------------------------------------------
+     COLOR — STATUS (reserved — never decorative)
+     ----------------------------------------------------------------------- */
+  --pos:        #1F7A4C;   /* positive delta, gain */
+  --pos-tint:   #E4F2EA;
+  --neg:        #B42E1A;   /* negative delta, loss, risk */
+  --neg-tint:   #FBE6E2;
+  --warn:       #A86B12;   /* amber — caution */
+  --warn-tint:  #FAEDD4;
+  --info:       #2C5E8F;   /* neutral info */
+  --info-tint:  #E2ECF5;
+
+  /* -----------------------------------------------------------------------
+     COLOR — DATA PALETTE (categorical, desaturated for dense charts)
+     ----------------------------------------------------------------------- */
+  --data-1: #7A1D2B;   /* oxblood */
+  --data-2: #2F5D62;   /* ink teal */
+  --data-3: #B8872E;   /* ochre */
+  --data-4: #4A5D8F;   /* slate blue */
+  --data-5: #6B7A3E;   /* olive */
+  --data-6: #9C4A2E;   /* muted rust */
+  --data-7: #5E4B7A;   /* muted plum */
+  --data-8: #2E7A6B;   /* muted emerald */
+
+  /* -----------------------------------------------------------------------
+     SEMANTIC SURFACES — light mode (default)
+     ----------------------------------------------------------------------- */
+  --surface-0:      var(--neutral-50);    /* page background */
+  --surface-1:      var(--neutral-0);     /* cards / widgets */
+  --surface-2:      var(--neutral-100);   /* subtle fill, zebra, chip bg */
+  --surface-hover:  rgba(14,17,22,0.04);
+  --surface-active: rgba(14,17,22,0.06);
+  --surface-inverse: var(--neutral-900);
+
+  --text-1:   var(--neutral-900);   /* primary */
+  --text-2:   var(--neutral-600);   /* secondary */
+  --text-3:   var(--neutral-500);   /* tertiary — labels, axis */
+  --text-4:   var(--neutral-400);   /* placeholder */
+  --text-on-accent: #FFFFFF;
+
+  --line-1:   var(--neutral-300);   /* stronger dividers */
+  --line-2:   var(--neutral-200);   /* card borders, hairlines */
+  --line-3:   var(--neutral-100);   /* very subtle internal grid */
+
+  --focus-ring: rgba(14,17,22,0.40);
+  --icon-stroke: 1.5px;
+
+  /* -----------------------------------------------------------------------
+     ELEVATION
+     ----------------------------------------------------------------------- */
+  --elev-flat:     none;
+  --elev-raised:   0 1px 2px rgba(10,16,22,0.04), 0 2px 8px rgba(10,16,22,0.04);
+  --elev-floating: 0 4px 12px rgba(10,16,22,0.08), 0 16px 40px rgba(10,16,22,0.10);
+
+  /* -----------------------------------------------------------------------
+     RADIUS
+     ----------------------------------------------------------------------- */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-pill: 999px;
+
+  /* -----------------------------------------------------------------------
+     SPACING (4px base)
+     ----------------------------------------------------------------------- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* -----------------------------------------------------------------------
+     TYPOGRAPHY — raw families
+     ----------------------------------------------------------------------- */
+  --font-sans: 'Inter Tight', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  /* Type scale */
+  --fs-11: 11px;
+  --fs-12: 12px;
+  --fs-13: 13px;
+  --fs-14: 14px;
+  --fs-16: 16px;
+  --fs-20: 20px;
+  --fs-24: 24px;
+  --fs-32: 32px;
+  --fs-44: 44px;
+
+  /* Weights */
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+
+  /* Line-heights */
+  --lh-tight: 1.2;
+  --lh-snug:  1.35;
+  --lh-body:  1.5;
+
+  /* Letter-spacing */
+  --tracking-tight: -0.01em;
+  --tracking-normal: 0;
+  --tracking-caps: 0.06em;
+
+  /* -----------------------------------------------------------------------
+     SEMANTIC TYPOGRAPHY — use as composites
+     ----------------------------------------------------------------------- */
+  --t-display:    var(--fw-semibold) var(--fs-44)/var(--lh-tight) var(--font-sans);
+  --t-h1:         var(--fw-semibold) var(--fs-32)/var(--lh-tight) var(--font-sans);
+  --t-h2:         var(--fw-semibold) var(--fs-24)/var(--lh-snug)  var(--font-sans);
+  --t-h3:         var(--fw-semibold) var(--fs-20)/var(--lh-snug)  var(--font-sans);
+  --t-body:       var(--fw-regular)  var(--fs-14)/var(--lh-body)  var(--font-sans);
+  --t-body-sm:    var(--fw-regular)  var(--fs-13)/var(--lh-body)  var(--font-sans);
+  --t-label:      var(--fw-medium)   var(--fs-13)/var(--lh-snug)  var(--font-sans);
+  --t-caption:    var(--fw-regular)  var(--fs-12)/var(--lh-snug)  var(--font-sans);
+  --t-caps:       var(--fw-medium)   var(--fs-11)/1.2            var(--font-sans);
+  --t-kpi:        var(--fw-semibold) var(--fs-32)/1.1            var(--font-mono);
+  --t-kpi-sm:     var(--fw-medium)   var(--fs-20)/1.1            var(--font-mono);
+  --t-tabular:    var(--fw-regular)  var(--fs-13)/1.4            var(--font-mono);
+}
+
+/* -------------------------------------------------------------------------
+   DARK MODE — mirrors the light semantic tokens
+   Apply via `data-theme="dark"` on <html> or <body>.
+   ------------------------------------------------------------------------- */
+[data-theme="dark"] {
+  --surface-0: #0B0F14;
+  --surface-1: #121820;
+  --surface-2: #1A2029;
+  --surface-hover:  rgba(255,255,255,0.04);
+  --surface-active: rgba(255,255,255,0.08);
+  --surface-inverse: var(--neutral-50);
+
+  --text-1: #E8EAED;
+  --text-2: #A8ADB5;
+  --text-3: #7A8088;
+  --text-4: #51575E;
+  --text-on-accent: #FFFFFF;
+
+  --line-1: #2A313B;
+  --line-2: #1F252E;
+  --line-3: #161B22;
+
+  --accent-ink:       #C8596B;
+  --accent-ink-hover: #D76A7C;
+  --accent-ink-press: #B5475A;
+  --accent-ink-tint:  rgba(200,89,107,0.14);
+
+  --pos:      #47B47A;
+  --pos-tint: rgba(71,180,122,0.14);
+  --neg:      #E56A57;
+  --neg-tint: rgba(229,106,87,0.14);
+  --warn:     #D4A04C;
+  --warn-tint: rgba(212,160,76,0.14);
+  --info:     #6FA3D1;
+  --info-tint: rgba(111,163,209,0.14);
+
+  --elev-raised:   0 1px 2px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.30);
+  --elev-floating: 0 4px 12px rgba(0,0,0,0.35), 0 16px 40px rgba(0,0,0,0.45);
+  --focus-ring: rgba(232,234,237,0.55);
+}
+
+/* =========================================================================
+   BASE ELEMENT STYLES
+   Minimal global defaults — keep component files in charge of layout.
+   ========================================================================= */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--surface-0);
+  color: var(--text-1);
+  font: var(--t-body);
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+h1 { font: var(--t-h1); letter-spacing: var(--tracking-tight); margin: 0; }
+h2 { font: var(--t-h2); letter-spacing: var(--tracking-tight); margin: 0; }
+h3 { font: var(--t-h3); margin: 0; }
+p  { font: var(--t-body); margin: 0; }
+small { font: var(--t-caption); color: var(--text-2); }
+code, kbd, pre, .mono { font-family: var(--font-mono); }
+
+/* Tabular figures globally where numbers are shown */
+.num, td.num, .kpi, .tabular {
+  font-feature-settings: "tnum" 1, "zero" 1;
+  font-variant-numeric: tabular-nums slashed-zero;
+}
+
+/* Tracked caps (used sparingly — table column headers, chart axis legends) */
+.caps {
+  font: var(--t-caps);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+/* Global focus ring */
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Global selection */
+::selection { background: var(--accent-ink-tint); color: var(--accent-ink); }
+
+/* Scroll fade helper — apply to a wrapper */
+.scroll-fade-y {
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
+          mask-image: linear-gradient(180deg, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
+}
+
+/* Hairline utility */
+.hairline { border: 1px solid var(--line-2); }
+
+/* Delta helpers */
+.delta-pos { color: var(--pos); }
+.delta-neg { color: var(--neg); }
+.delta-warn { color: var(--warn); }

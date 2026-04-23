@@ -56,71 +56,34 @@ app = dash.Dash(
     __name__,
     external_stylesheets=[
         dbc.themes.BOOTSTRAP,
-        "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
+        # Meridian fonts
+        "https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap",
     ],
     suppress_callback_exceptions=True,
-    title="Türkiye Banking Sector — BDDK Dashboard",
+    title="Türkiye Banking Sector — Meridian",
 )
-
-app.index_string = """<!DOCTYPE html>
-<html>
-    <head>
-        {%metas%}
-        <title>{%title%}</title>
-        {%favicon%}
-        {%css%}
-        <style>
-            body { font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
-                   background-color: #f8fafc; color: #0f172a; }
-            .nav-tabs .nav-link { border: none !important; color: #64748b;
-                                  font-weight: 500; padding: 10px 16px; }
-            .nav-tabs .nav-link:hover { color: #0f172a; }
-            .nav-tabs .nav-link.active { border: none !important;
-                                         border-bottom: 2px solid #0f172a !important;
-                                         color: #0f172a !important;
-                                         font-weight: 600; background: transparent !important; }
-            .nav-tabs { border-bottom: 1px solid #e2e8f0 !important; padding-left: 16px; }
-            .card { transition: box-shadow 0.15s ease; }
-            .card:hover { box-shadow: 0 2px 8px rgba(15,23,42,.08) !important; }
-        </style>
-    </head>
-    <body>
-        {%app_entry%}
-        <footer>
-            {%config%}
-            {%scripts%}
-            {%renderer%}
-        </footer>
-    </body>
-</html>"""
+# Meridian tokens and component CSS are auto-loaded from
+# src/dashboard/assets/*.css by Dash.
 
 
 # =============================================================================
 # LAYOUT
 # =============================================================================
 app.layout = dbc.Container([
-    # Header
+    # Meridian-style top bar: hairline bottom, oxblood brand glyph
     html.Div([
         html.Div([
-            html.H3("Türkiye Banking Sector", style={
-                "color": T.HEADER_FG, "margin": 0, "fontWeight": 700,
-                "letterSpacing": "-0.01em",
-            }),
-            html.P("Sector outlook · BDDK monthly data",
-                   style={"color": "rgba(241,245,249,0.65)", "margin": "2px 0 0 0",
-                          "fontSize": "0.82rem", "fontWeight": 500}),
-        ], style={"display": "flex", "flexDirection": "column"}),
-        html.Div(id="data-as-of", style={
-            "color": "rgba(241,245,249,0.7)", "fontSize": "0.78rem",
-            "fontWeight": 500, "alignSelf": "center",
-        }),
-    ], style={
-        "backgroundColor": T.HEADER_BG,
-        "padding": "20px 28px",
-        "marginLeft": "-12px", "marginRight": "-12px",
-        "marginBottom": "18px",
-        "display": "flex", "justifyContent": "space-between",
-    }),
+            html.Span(className="md-brand-glyph"),
+            html.Div([
+                html.Div("Türkiye banking sector", className="md-topbar-title"),
+                html.Div("Sector outlook · BDDK monthly & weekly data",
+                         className="md-topbar-sub"),
+            ]),
+        ], style={"display": "flex", "alignItems": "center"}),
+        html.Div(id="data-as-of", className="md-topbar-meta"),
+    ], className="md-topbar",
+       style={"marginLeft": "-12px", "marginRight": "-12px",
+              "marginBottom": "16px"}),
 
     # Tabs
     dbc.Tabs([

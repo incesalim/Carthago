@@ -1,42 +1,84 @@
-"""Dashboard theme: colors, fonts, constants."""
+"""Dashboard theme — Meridian Banking Dashboard Design System.
+
+Mirrors the CSS tokens defined in `assets/meridian.css` for use in Python
+chart code (Plotly layouts, KPI cards, narrative cards). If you change a
+token here, change it in the CSS too.
+"""
 
 # ---------------------------------------------------------------------------
-# Brand / chrome
+# Neutrals (warm, OKLCH-derived)
 # ---------------------------------------------------------------------------
-HEADER_BG = "#0f172a"          # slate-900, deep neutral
-HEADER_FG = "#f1f5f9"          # slate-100
-ACCENT = "#0ea5e9"             # sky-500 for highlights
-TEXT = "#0f172a"
-MUTED = "#64748b"              # slate-500
-BG = "#f8fafc"                 # slate-50
-CARD_BG = "#ffffff"
-BORDER = "#e2e8f0"             # slate-200
-GRID = "#eef2f7"               # even lighter for plot gridlines
+NEUTRAL_0   = "#FFFFFF"
+NEUTRAL_50  = "#FAFAF7"   # page surface
+NEUTRAL_100 = "#F3F2EC"
+NEUTRAL_200 = "#E7E5DC"   # hairlines
+NEUTRAL_300 = "#D5D2C6"
+NEUTRAL_400 = "#A9A59A"   # placeholders
+NEUTRAL_500 = "#7C7972"   # secondary text
+NEUTRAL_600 = "#55524D"
+NEUTRAL_700 = "#35332F"
+NEUTRAL_800 = "#1E1D1B"
+NEUTRAL_900 = "#0E1116"   # ink (primary text)
 
 # ---------------------------------------------------------------------------
-# Direction semantics for KPI deltas
+# Semantic surfaces (light mode)
 # ---------------------------------------------------------------------------
-# color meaning: green = good, red = bad, gray = neutral
-POS_COLOR = "#059669"          # emerald-600
-NEG_COLOR = "#dc2626"          # red-600
-NEUTRAL_COLOR = "#64748b"
+BG         = NEUTRAL_50
+CARD_BG    = NEUTRAL_0
+BORDER     = NEUTRAL_200
+BORDER_STRONG = NEUTRAL_300
+GRID       = NEUTRAL_100
+TEXT       = NEUTRAL_900
+MUTED      = NEUTRAL_500
+LABEL      = NEUTRAL_600
+PLACEHOLDER= NEUTRAL_400
 
 # ---------------------------------------------------------------------------
-# Bank-type palette
-# Sector is neutral gray (baseline). Ownership types get saturated hues so
-# "public vs private" comparisons pop. Participation / Dev&Inv get secondary.
+# Brand accent — oxblood
 # ---------------------------------------------------------------------------
+ACCENT        = "#7A1D2B"
+ACCENT_HOVER  = "#641722"
+ACCENT_PRESS  = "#4F121B"
+ACCENT_TINT   = "#F5E5E7"
+
+# For back-compat with existing files that import HEADER_* names
+HEADER_BG = CARD_BG     # top bar is light in Meridian (was dark before)
+HEADER_FG = TEXT
+
+# ---------------------------------------------------------------------------
+# Status (never decorative)
+# ---------------------------------------------------------------------------
+POS_COLOR = "#1F7A4C"
+NEG_COLOR = "#B42E1A"
+WARN_COLOR = "#A86B12"
+INFO_COLOR = "#2C5E8F"
+NEUTRAL_COLOR = NEUTRAL_500
+
+# ---------------------------------------------------------------------------
+# Data palette — desaturated categorical
+# ---------------------------------------------------------------------------
+DATA_1 = "#7A1D2B"   # oxblood
+DATA_2 = "#2F5D62"   # ink teal
+DATA_3 = "#B8872E"   # ochre
+DATA_4 = "#4A5D8F"   # slate blue
+DATA_5 = "#6B7A3E"   # olive
+DATA_6 = "#9C4A2E"   # muted rust
+DATA_7 = "#5E4B7A"   # muted plum
+DATA_8 = "#2E7A6B"   # muted emerald
+
+CATEGORICAL = [DATA_1, DATA_2, DATA_3, DATA_4, DATA_5, DATA_6, DATA_7, DATA_8]
+
+# Bank-type palette — Sector neutral (grey), ownership types take signature hues
 BANK_COLORS = {
-    "10001": "#475569",  # Sector — slate-600 (neutral anchor)
-    "10003": "#2563eb",  # Private Deposit — blue-600
-    "10004": "#dc2626",  # State Deposit  — red-600
-    "10005": "#f59e0b",  # Foreign Deposit — amber-500
-    "10006": "#059669",  # Participation  — emerald-600
-    "10007": "#7c3aed",  # Dev & Investment — violet-600
-    # Ownership cross-cuts (used rarely)
-    "10008": "#2563eb",
-    "10009": "#dc2626",
-    "10010": "#f59e0b",
+    "10001": NEUTRAL_700,  # Sector — strong neutral (anchor)
+    "10003": DATA_1,       # Private Deposit — oxblood
+    "10004": DATA_2,       # State Deposit  — ink teal
+    "10005": DATA_3,       # Foreign Deposit — ochre
+    "10006": DATA_5,       # Participation   — olive
+    "10007": DATA_7,       # Dev & Investment — muted plum
+    "10008": DATA_1,
+    "10009": DATA_2,
+    "10010": DATA_3,
 }
 
 BANK_SHORT = {
@@ -48,39 +90,33 @@ BANK_SHORT = {
     "Dev & Investment Banks": "Dev & Inv",
 }
 
-# Categorical palette for segment breakdowns (consumer sub-types etc.)
-CATEGORICAL = [
-    "#2563eb", "#059669", "#f59e0b", "#7c3aed",
-    "#dc2626", "#0ea5e9", "#ec4899", "#64748b",
-]
-
 # ---------------------------------------------------------------------------
 # Typography
 # ---------------------------------------------------------------------------
-FONT_FAMILY = "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif"
+FONT_FAMILY = "'Inter Tight', -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif"
+FONT_MONO   = "'JetBrains Mono', ui-monospace, SF Mono, Menlo, Consolas, monospace"
 
 # ---------------------------------------------------------------------------
-# Plotly layout defaults (used via apply_layout() in charts.py)
+# Plotly layout defaults
 # ---------------------------------------------------------------------------
 PLOTLY_LAYOUT_DEFAULTS = dict(
     font=dict(family=FONT_FAMILY, size=12, color=TEXT),
     plot_bgcolor=CARD_BG,
     paper_bgcolor=CARD_BG,
-    margin=dict(l=56, r=56, t=48, b=48),
+    margin=dict(l=56, r=72, t=44, b=40),
     hoverlabel=dict(
-        bgcolor="#1e293b",
-        bordercolor="#1e293b",
-        font=dict(color="#f1f5f9", family=FONT_FAMILY, size=11),
+        bgcolor=NEUTRAL_900,
+        bordercolor=NEUTRAL_900,
+        font=dict(color=NEUTRAL_50, family=FONT_FAMILY, size=11),
     ),
     legend=dict(
         orientation="h",
         yanchor="top", y=-0.18, xanchor="center", x=0.5,
-        font=dict(size=11, color=MUTED),
+        font=dict(size=11, color=MUTED, family=FONT_FAMILY),
     ),
 )
 
-# Graph config applied to every dcc.Graph
 GRAPH_CONFIG = {
     "displaylogo": False,
-    "displayModeBar": False,   # cleaner BBVA-style pages
+    "displayModeBar": False,
 }

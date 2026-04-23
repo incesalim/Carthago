@@ -1,0 +1,160 @@
+/* =========================================================================
+   Meridian — component-level styling on top of meridian.css tokens
+   Lives alongside Dash's auto-loaded assets so every page picks it up.
+   ========================================================================= */
+
+body {
+  font-family: var(--font-sans);
+  background: var(--surface-0);
+  color: var(--text-1);
+  font-feature-settings: "ss01", "cv11";
+}
+
+/* Tabular figures anywhere a number goes */
+.card, .num, .kpi, code, kbd, pre {
+  font-variant-numeric: tabular-nums slashed-zero;
+}
+
+/* ---- Tabs: hairline bottom, oxblood active underline ---- */
+.nav-tabs {
+  border-bottom: 1px solid var(--line-2) !important;
+  padding-left: var(--space-6);
+}
+.nav-tabs .nav-link {
+  border: none !important;
+  color: var(--text-2);
+  font: var(--t-label);
+  padding: 12px 20px;
+  letter-spacing: var(--tracking-normal);
+}
+.nav-tabs .nav-link:hover {
+  color: var(--text-1);
+  background: var(--surface-hover);
+}
+.nav-tabs .nav-link.active {
+  background: transparent !important;
+  color: var(--accent-ink) !important;
+  border: none !important;
+  border-bottom: 2px solid var(--accent-ink) !important;
+  font-weight: var(--fw-semibold);
+}
+
+/* ---- Cards (Meridian flat) ---- */
+.card {
+  background: var(--surface-1) !important;
+  border: 1px solid var(--line-2) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--elev-flat) !important;
+}
+.card:hover {
+  background: var(--surface-1) !important;
+}
+
+/* Kill Bootstrap hover shadow we introduced earlier */
+.card { transition: border-color 120ms ease-out; }
+.card:hover { border-color: var(--line-1) !important; }
+
+/* ---- Section headers ---- */
+.md-section-title {
+  font: var(--t-label);
+  color: var(--text-1);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-tight);
+}
+.md-section-sub {
+  font: var(--t-caption);
+  color: var(--text-2);
+  margin: 2px 0 12px 0;
+}
+
+/* ---- Caps label (used in KPI labels, chart legends) ---- */
+.caps {
+  font: var(--t-caps);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+/* ---- KPI card styling ---- */
+.md-kpi-label {
+  font: var(--t-caps);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.md-kpi-value {
+  font: var(--t-kpi);
+  color: var(--text-1);
+  letter-spacing: var(--tracking-tight);
+}
+.md-kpi-delta {
+  font: var(--t-caption);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Deltas ---- */
+.delta-pos { color: var(--pos); }
+.delta-neg { color: var(--neg); }
+.delta-neutral { color: var(--text-3); }
+
+/* ---- Top bar (app header) ---- */
+.md-topbar {
+  background: var(--surface-1);
+  border-bottom: 1px solid var(--line-2);
+  padding: 16px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.md-topbar-title {
+  font: var(--t-h3);
+  color: var(--text-1);
+  letter-spacing: var(--tracking-tight);
+}
+.md-topbar-sub {
+  font: var(--t-caption);
+  color: var(--text-2);
+  margin-top: 2px;
+}
+.md-topbar-meta {
+  font: var(--t-caption);
+  color: var(--text-3);
+}
+
+/* ---- Brand glyph block next to the title ---- */
+.md-brand-glyph {
+  display: inline-block;
+  width: 28px; height: 28px;
+  background: var(--accent-ink);
+  margin-right: 12px;
+  border-radius: var(--radius-sm);
+  position: relative;
+}
+.md-brand-glyph::before {
+  content: "";
+  position: absolute;
+  left: 6px; right: 6px; bottom: 6px;
+  height: 10px;
+  background:
+    linear-gradient(to top, var(--accent-ink-tint) 60%, transparent 60%);
+  opacity: 0.9;
+}
+
+/* ---- Focus ring (keyboard users) ---- */
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* ---- Paragraph tightening in card captions ---- */
+.card p.caption {
+  font: var(--t-caption);
+  color: var(--text-2);
+  margin: 4px 12px 8px 12px;
+  line-height: 1.4;
+}
+
+/* ---- Chart container tight padding ---- */
+.js-plotly-plot .plotly { background: transparent !important; }

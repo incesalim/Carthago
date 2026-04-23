@@ -103,16 +103,17 @@ def _apply_layout(fig: go.Figure, title: str = None, height: int = 320) -> go.Fi
     defaults = dict(theme.PLOTLY_LAYOUT_DEFAULTS)
     if title:
         defaults["title"] = dict(
-            text=f"<b>{title}</b>",
-            x=0, xanchor="left",
-            font=dict(size=13, color=theme.TEXT),
+            text=title,
+            x=0, xanchor="left", y=0.98, yanchor="top",
+            font=dict(size=13, color=theme.TEXT, family=theme.FONT_FAMILY),
         )
     defaults["height"] = height
     fig.update_layout(**defaults)
+    # Hairline grid; axis labels in mono for numeric rows
     fig.update_xaxes(showgrid=False, showline=False, zeroline=False,
-                     tickfont=dict(size=10, color=theme.MUTED))
+                     tickfont=dict(size=10, color=theme.LABEL, family=theme.FONT_MONO))
     fig.update_yaxes(gridcolor=theme.GRID, showline=False, zeroline=False,
-                     tickfont=dict(size=10, color=theme.MUTED))
+                     tickfont=dict(size=10, color=theme.LABEL, family=theme.FONT_MONO))
     return fig
 
 
@@ -316,39 +317,29 @@ def kpi_card(
         else:
             color = theme.NEUTRAL_COLOR
 
-        delta_el = html.Span(
-            f"{delta_str} MoM",
-            style={"color": color, "fontSize": "0.78rem", "fontWeight": 500},
+        arrow = "↑" if (delta or 0) > 0 else "↓" if (delta or 0) < 0 else "→"
+        delta_el = html.Div(
+            f"{arrow} {delta_str} MoM",
+            className="md-kpi-delta",
+            style={"color": color, "marginTop": "4px"},
         )
 
     return dbc.Card(
         dbc.CardBody([
             html.Div([
-                html.Div(label, style={
-                    "fontSize": "0.7rem", "color": theme.MUTED,
-                    "textTransform": "uppercase", "letterSpacing": "0.06em",
-                    "fontWeight": 600,
-                }),
-                html.Div(period or "", style={
-                    "fontSize": "0.68rem", "color": theme.MUTED,
-                }) if period else html.Span(),
+                html.Div(label, className="md-kpi-label"),
+                html.Div(period or "",
+                         style={"fontSize": "11px", "color": theme.PLACEHOLDER,
+                                "fontFamily": theme.FONT_MONO}) if period else html.Span(),
             ], style={"display": "flex", "justifyContent": "space-between",
-                      "alignItems": "baseline", "marginBottom": "4px"}),
-            html.Div(val_str, style={
-                "fontSize": "1.45rem", "fontWeight": 700, "color": theme.TEXT,
-                "lineHeight": 1.15,
-            }),
+                      "alignItems": "baseline", "marginBottom": "8px"}),
+            html.Div(val_str, className="md-kpi-value"),
             delta_el,
-            html.Div(help_text, style={
-                "fontSize": "0.7rem", "color": theme.MUTED, "marginTop": "4px",
-            }) if help_text else html.Span(),
-        ]),
-        style={
-            "border": f"1px solid {theme.BORDER}",
-            "borderRadius": "10px",
-            "backgroundColor": theme.CARD_BG,
-            "boxShadow": "0 1px 2px rgba(15,23,42,.04)",
-        },
+            html.Div(help_text,
+                     style={"fontSize": "11px", "color": theme.MUTED,
+                            "marginTop": "6px", "lineHeight": 1.4})
+            if help_text else html.Span(),
+        ], style={"padding": "18px"}),
         className="h-100",
     )
 
@@ -358,12 +349,9 @@ def kpi_card(
 # ---------------------------------------------------------------------------
 def section_header(title: str, subtitle: str = None):
     return html.Div([
-        html.H5(title, style={
-            "color": theme.TEXT, "fontWeight": 700, "margin": 0,
-        }),
-        html.P(subtitle, style={
-            "color": theme.MUTED, "fontSize": "0.85rem", "margin": "2px 0 12px 0",
-        }) if subtitle else html.Span(),
+        html.Div(title, className="md-section-title",
+                 style={"fontSize": "14px"}),
+        html.Div(subtitle, className="md-section-sub") if subtitle else html.Span(),
     ])
 
 
@@ -373,43 +361,31 @@ def chart_panel(figure, caption: str = None, height: int = None):
                       style={"height": f"{height}px"} if height else {})
     children = [graph]
     if caption:
-        children.append(html.P(caption, style={
-            "fontSize": "0.78rem", "color": theme.MUTED,
-            "margin": "4px 12px 8px 12px", "lineHeight": 1.4,
-        }))
-    return dbc.Card(children, style={
-        "border": f"1px solid {theme.BORDER}", "borderRadius": "10px",
-        "backgroundColor": theme.CARD_BG, "boxShadow": "0 1px 2px rgba(15,23,42,.04)",
-    }, className="h-100")
+        children.append(html.P(caption, className="caption"))
+    return dbc.Card(children, className="h-100")
 
 
 def narrative_card(title: str, body: str, accent: str = None):
-    """BBVA-style 'main message' card with a colored accent bar."""
+    """Meridian-style main-message card with a left accent rail."""
     return dbc.Card(
         dbc.CardBody([
             html.Div([
                 html.Div(style={
                     "width": "3px", "backgroundColor": accent or theme.ACCENT,
-                    "borderRadius": "2px", "marginRight": "10px",
+                    "borderRadius": "2px", "marginRight": "14px",
                     "alignSelf": "stretch",
                 }),
                 html.Div([
-                    html.Div(title, style={
-                        "fontSize": "0.72rem", "color": theme.MUTED,
-                        "textTransform": "uppercase", "letterSpacing": "0.08em",
-                        "fontWeight": 700, "marginBottom": "6px",
-                    }),
+                    html.Div(title, className="caps",
+                             style={"marginBottom": "8px"}),
                     html.P(body, style={
-                        "color": theme.TEXT, "fontSize": "0.85rem",
+                        "color": theme.TEXT, "fontSize": "13px",
                         "lineHeight": 1.5, "margin": 0,
                     }),
                 ], style={"flex": 1}),
             ], style={"display": "flex"})
-        ]),
-        style={
-            "border": f"1px solid {theme.BORDER}", "borderRadius": "10px",
-            "backgroundColor": theme.CARD_BG, "height": "100%",
-        },
+        ], style={"padding": "18px"}),
+        className="h-100",
     )
 
 
