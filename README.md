@@ -1,129 +1,108 @@
 # BDDK Banking Analytics
 
-A streamlined system for collecting and visualizing Turkish Banking Regulation and Supervision Agency (BDDK) monthly data.
+Two-layer analytical system for the Turkish banking sector:
 
-## Quick Start
+1. **Sector aggregates** — monthly + weekly bulletins from **BDDK** (Bankacılık
+   Düzenleme ve Denetleme Kurumu), plus EVDS macro/rate series — driving an
+   interactive Dash dashboard.
+2. **Per-bank quarterly data** — each bank's published BRSA Financial Report
+   PDF parsed into structured rows. 32 banks × up to 16 quarters
+   (2022Q1 → 2025Q4) covering ~98% of sector assets.
 
-1. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
+Both layers live in the same SQLite database (`data/bddk_data.db`) and are
+designed to reconcile against each other.
 
-2. **Run the system:**
-   ```bash
-   python run.py
-   ```
+## Quick start
 
-   This will present you with options to:
-   - Download monthly BDDK data
-   - Run the interactive dashboard
+```bash
+pip install -r requirements.txt
+python run.py                       # interactive CLI (dashboard / refresh)
+python scripts/refresh.py --push    # refresh BDDK monthly + weekly + EVDS
+```
 
-## Features
+Dashboard runs at `http://localhost:8050`.
 
-- **Monthly Data Collection**: Automated scraping of BDDK monthly banking sector data
-- **Database Storage**: SQLite database for efficient data management
-- **Interactive Dashboard**: Real-time visualization of banking sector metrics
+## What's in the database
 
-## Project Structure
+| Table | Granularity | Coverage |
+|---|---|---|
+| `balance_sheet`, `income_statement`, `loans`, `deposits`, `financial_ratios`, `other_data` | Sector + 5 ownership groups | 2020-01 → 2026-02 (74 months) |
+| `weekly_series` | Sector + 6 BDDK banks × 3 currencies × 124 items | 2019-11 → 2026-04 (334 weeks) |
+| `bank_audit_balance_sheet` | Per-bank Assets / Liabilities / Off-Balance | 2022Q1 → 2025Q4 (16 quarters × 32 banks) |
+| `bank_audit_profit_loss` | Per-bank P&L line items | same |
+| `bank_audit_extractions` | One row per ingested PDF (success flag) | same |
+| `raw_api_responses`, `raw_weekly_responses` | JSON cache | for re-parsing |
+| `download_log`, `bank_types`, `table_definitions` | Metadata | — |
+
+## Project structure
 
 ```
 bddk_analysis/
+├── run.py                        ← interactive CLI entry
+├── README.md, requirements.txt, render.yaml, .env(.example)
 │
-├── src/                      # Source code
-│   ├── config.py            # Configuration settings
-│   ├── scrapers/            # Data collection modules
-│   │   ├── monthly_scraper.py
-│   │   └── bddk_table_parser.py
-│   ├── database/            # Database management
-│   │   └── db_manager.py
-│   ├── analytics/           # Analytics engines
-│   │   ├── fci_engine.py    # Financial Conditions Index
-│   │   └── metrics_engine.py
-│   ├── utils/               # Utility functions
-│   │   ├── data_processor.py
-│   │   └── monthly_data_manager.py
-│   └── dashboard/           # Interactive dashboard
-│       ├── app.py
-│       ├── fci_tab.py       # FCI visualization tab
-│       ├── components/
-│       ├── data/
-│       └── utils/
+├── src/                          ← code modules
+│   ├── config.py
+│   ├── scrapers/                 ← BDDK monthly + weekly API scrapers
+│   ├── analytics/                ← metrics_catalog, metrics_engine, fci_engine, data_store
+│   ├── audit_reports/            ← per-bank PDF → SQLite (extractor + loader + schema)
+│   │   └── README.md             ← module-level pipeline docs
+│   ├── dashboard/                ← Dash app, sections, charts, EVDS client
+│   ├── reports/, data/           ← project-specific helpers
+│   └── __init__.py
 │
-├── data/                    # Data storage
-│   ├── raw/                # Downloaded raw data
-│   ├── processed/          # Cleaned data
-│   └── bddk_data.db       # SQLite database
+├── scripts/                      ← CLI entry points
+│   ├── refresh.py                ← BDDK monthly + weekly + EVDS update + git push
+│   ├── update_monthly.py / update_weekly.py / update_db_2026.py
+│   ├── backfill_2020_2023.py / backfill_weekly_2y.py / backfill_weekly_2020_2023.py
+│   ├── scrape_all_banks.py       ← downloads quarterly BRSA PDFs from bank IR sites
+│   ├── extract_all_audit_reports.py  ← parses PDFs into bank_audit_* tables
+│   ├── generate_metrics_docs.py
+│   └── dev.py                    ← dashboard with hot reload
 │
-├── archive/                # Legacy code (preserved)
-├── docs/                   # Documentation
-├── logs/                   # Application logs
+├── data/
+│   ├── bddk_data.db              ← SQLite (~370 MB)
+│   ├── audit_reports/            ← 32 bank folders, ~1.8 GB of PDFs
+│   ├── banks/                    ← URL config + BDDK bank list
+│   ├── evds_cache/               ← TCMB EVDS API cache
+│   └── external_reports/         ← BBVA / IMF / OECD / TCMB reference PDFs
 │
-├── run.py                  # Main entry point
-├── requirements.txt        # Python dependencies
-└── README.md              # This file
+├── docs/                         ← canonical docs (this is the source of truth)
+│   ├── PROJECT_STATE.md          ← architectural snapshot — read this first
+│   ├── METRICS.md                ← every metric formula + source
+│   └── OPERATIONS.md             ← refresh cadence + commands
+│
+└── logs/                         ← refresh / backfill logs
 ```
 
-## Dashboard
+## Daily / weekly cadence
 
-The dashboard provides:
-- Real-time KPIs (Total Assets, NPL Ratio, CAR Ratio, ROA/ROE)
-- Asset growth trends
-- Bank type market share comparison
-- Interactive filters and visualizations
-- **Financial Conditions Index (FCI)**: BBVA-style composite indicator of monetary conditions
-
-Access the dashboard at: `http://localhost:8050`
-
-## Data Source
-
-All data is collected from the official BDDK (Bankacılık Düzenleme ve Denetleme Kurumu) website.
-
-## Database
-
-The system uses SQLite for data storage with the following key tables:
-- `balance_sheet`: Monthly balance sheet data
-- `loans`: Loan portfolio data
-- `deposits`: Deposit data
-- `ratios`: Financial ratios and metrics
-
-Database location: `data/bddk_data.db`
-
-## Advanced Usage
-
-### Direct Dashboard Launch
 ```bash
-python src/dashboard/app.py
+python scripts/refresh.py --push   # Saturdays after BDDK posts weekly data
 ```
 
-### Custom Data Download
-```python
-from src.scrapers.monthly_scraper import BDDKMonthlyScraper
+Runs the monthly + weekly + EVDS pipeline, vacuums the DB, gzips it, and
+pushes to GitHub (Render auto-redeploys).
 
-scraper = BDDKMonthlyScraper(headless=True)
-scraper.download_year_data(2024, currency='TL')
-scraper.close_driver()
-```
+GitHub Actions workflow `refresh-data.yml` runs the same automatically every
+Saturday 03:00 UTC.
 
-## Documentation
+## Quarterly cadence (per-bank audit reports)
 
-Additional documentation is available in the `docs/` directory:
-- `METRICS.md` - Full metrics documentation with data sources and formulas
-- `USAGE_GUIDE.md` - Detailed usage instructions
-- `DASHBOARD_DESIGN.md` - Dashboard architecture
-- `PROJECT_SUMMARY.md` - Complete project overview
+After each quarter-end (~late Apr / Jul / Oct / Feb):
 
-## Requirements
+1. Add new period URLs to `data/banks/audit_report_urls.json` (banks rename
+   files unpredictably each quarter, so URLs aren't templatable).
+2. `python scripts/scrape_all_banks.py` — downloads new PDFs, idempotent.
+3. `python scripts/extract_all_audit_reports.py` — parses into DB.
 
-- Python 3.8+
-- Chrome/Chromium (for web scraping)
-- See `requirements.txt` for full dependency list
+See [`src/audit_reports/README.md`](src/audit_reports/README.md) for details.
+
+## Production
+
+- **Dashboard:** https://turkish-banking-sector.onrender.com
+- **Repo:** GitHub (auto-deployed via Render free tier)
 
 ## License
 
-This project is for educational and analytical purposes only. Please respect BDDK's terms of service when using this tool.
-
-## Notes
-
-- The database (`data/bddk_data.db`) contains all historical monthly data
-- Legacy code and unused features are preserved in the `archive/` directory
-- Logs are automatically rotated and retained for 30 days
+Educational / analytical use. Respect BDDK's terms of service.

@@ -37,6 +37,33 @@ idempotent and skip work that's already done.
 - `python scripts/backfill_2020_2023.py` — full historical monthly backfill (~3 h).
 - `python scripts/backfill_weekly_2y.py` — full 2-year weekly backfill (~3.5 h).
 
+## Per-bank audit reports (quarterly cadence)
+
+Separate pipeline from the BDDK refresh above. After each quarter-end
+(~late April / July / October / February), banks file new BRSA Financial
+Reports on their investor-relations sites.
+
+```bash
+# 1. Add new period URLs to data/banks/audit_report_urls.json
+#    (one entry per bank — IR sites rename files unpredictably each quarter,
+#     so URLs are not constructible from a template; see
+#     src/audit_reports/README.md for the workflow)
+
+# 2. Download new PDFs (idempotent, parallel, ~1 min for ~30 PDFs)
+python scripts/scrape_all_banks.py
+
+# 3. Extract into bank_audit_* tables (idempotent, parallel, ~5 min for new period)
+python scripts/extract_all_audit_reports.py
+```
+
+Both scripts skip work already done — re-running is safe.
+
+The full historical run (920 PDFs) was completed May 2026 in ~50 min.
+Going forward only the new quarter's ~32 PDFs are added.
+
+See [`src/audit_reports/README.md`](../src/audit_reports/README.md) for
+extraction logic and example queries.
+
 ## Developing the dashboard (hot reload)
 
 ```bash
