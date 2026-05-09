@@ -32,7 +32,9 @@
       "Bash(wmic process where \"name=''python.exe''\" get processid,commandline)",
       "Bash(wmic process:*)",
       "Bash(netstat:*)",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(mkdir -p \"_bddk_design_review\")",
+      "Bash(unzip -o \"Banking Dashboard Design System \\(1\\).zip\" -d \"_bddk_design_review\")"
     ]
   }
 }
