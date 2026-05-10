@@ -47,6 +47,7 @@ SYNC_TABLES = [
     "bank_audit_balance_sheet",
     "bank_audit_profit_loss",
     "bank_audit_extractions",
+    "evds_series",
 ]
 
 BATCH_SIZE = 100  # rows per INSERT statement

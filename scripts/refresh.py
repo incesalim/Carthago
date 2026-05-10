@@ -72,6 +72,7 @@ def main():
                         help="git add/commit/push the new snapshot (triggers Render redeploy)")
     parser.add_argument("--skip-monthly", action="store_true")
     parser.add_argument("--skip-weekly", action="store_true")
+    parser.add_argument("--skip-evds", action="store_true")
     args = parser.parse_args()
 
     start = datetime.now()
@@ -83,6 +84,9 @@ def main():
     if not args.skip_weekly:
         _run_step("Weekly update",
                    [sys.executable, "scripts/update_weekly.py"])
+    if not args.skip_evds:
+        _run_step("EVDS update",
+                   [sys.executable, "-m", "src.scrapers.evds_scraper"])
 
     vacuum()
     gzip_db()

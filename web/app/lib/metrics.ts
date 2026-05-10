@@ -439,6 +439,52 @@ export const totalDepositsMoM = (bankTypes: string[] = PRIMARY_BANK_TYPES) =>
   _growthMoM(SPECS.total_deposits, bankTypes);
 
 // ---------------------------------------------------------------------------
+// EVDS — TCMB macro / rate series
+// ---------------------------------------------------------------------------
+
+export interface EvdsRow {
+  period_date: string;
+  value: number;
+}
+
+/**
+ * Fetch one EVDS series by code, optionally limited to last N years.
+ */
+export async function evdsSeries(
+  code: string,
+  yearsBack = 5,
+): Promise<EvdsRow[]> {
+  const db = await getDB();
+  const { results } = await db
+    .prepare(
+      `SELECT period_date, value
+       FROM evds_series
+       WHERE code = ?
+         AND period_date >= date('now', '-' || ? || ' years')
+         AND value IS NOT NULL
+       ORDER BY period_date`,
+    )
+    .bind(code, yearsBack)
+    .all<EvdsRow>();
+  return results;
+}
+
+/**
+ * Fetch multiple EVDS series in parallel, return as a map keyed by code.
+ */
+export async function evdsMulti(
+  codes: string[],
+  yearsBack = 5,
+): Promise<Record<string, EvdsRow[]>> {
+  const results = await Promise.all(codes.map((c) => evdsSeries(c, yearsBack)));
+  const out: Record<string, EvdsRow[]> = {};
+  codes.forEach((c, i) => {
+    out[c] = results[i];
+  });
+  return out;
+}
+
+// ---------------------------------------------------------------------------
 // "Latest" snapshot per bank type — for bar charts comparing groups
 // ---------------------------------------------------------------------------
 
