@@ -1,7 +1,8 @@
-# Project State — verified 2026-05-09
+# Project State — verified 2026-05-10
 
-> **See also:** [METRICS.md](METRICS.md) for every metric formula,
-> [OPERATIONS.md](OPERATIONS.md) for the refresh/deploy cadence.
+> **Reading order:** [ARCHITECTURE.md](ARCHITECTURE.md) for the dual-stack
+> picture (Python ingest + Cloudflare display), then this file for current
+> snapshot, then [METRICS.md](METRICS.md) and [OPERATIONS.md](OPERATIONS.md).
 
 Authoritative snapshot of the repo's current shape. Older Dec-2025 notes
 referenced here in earlier versions have been deleted.

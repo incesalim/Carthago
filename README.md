@@ -1,107 +1,116 @@
 # BDDK Banking Analytics
 
-Two-layer analytical system for the Turkish banking sector:
+Turkish banking-sector analytical platform. Two parallel stacks during the
+Render → Cloudflare migration; see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+for the full picture.
 
-1. **Sector aggregates** — monthly + weekly bulletins from **BDDK** (Bankacılık
-   Düzenleme ve Denetleme Kurumu), plus EVDS macro/rate series — driving an
-   interactive Dash dashboard.
+**Two data layers:**
+
+1. **Sector aggregates** — monthly + weekly bulletins from BDDK (Bankacılık
+   Düzenleme ve Denetleme Kurumu) plus EVDS macro/rate series.
 2. **Per-bank quarterly data** — each bank's published BRSA Financial Report
-   PDF parsed into structured rows. 32 banks × up to 16 quarters
-   (2022Q1 → 2025Q4) covering ~98% of sector assets.
+   PDF parsed into structured rows. 32 banks × up to 16 quarters (2022-Q1 →
+   2025-Q4), ~98% of sector by assets.
 
-Both layers live in the same SQLite database (`data/bddk_data.db`) and are
-designed to reconcile against each other.
+Both live in the same SQLite (`data/bddk_data.db`), and selected tables are
+mirrored to **Cloudflare D1** for the new edge dashboard.
+
+**Two dashboards (during migration):**
+
+| Dashboard | Stack | URL |
+|---|---|---|
+| Legacy | Python · Dash · Plotly · Render | <https://turkish-banking-sector.onrender.com> |
+| New | Next.js 15 · OpenNext · D1 · Cloudflare Workers | <https://turkish-banking-dashboard.incesalim10.workers.dev> |
 
 ## Quick start
 
 ```bash
+# Python pipeline (ingestion + legacy dashboard)
 pip install -r requirements.txt
-python run.py                       # interactive CLI (dashboard / refresh)
-python scripts/refresh.py --push    # refresh BDDK monthly + weekly + EVDS
+python run.py                       # interactive CLI
+python scripts/refresh.py --push    # full refresh → push → Render redeploys
+
+# Next.js dashboard (Cloudflare side)
+cd web
+npm install
+npm run dev                         # local: http://localhost:3000
+npm run deploy                      # build + deploy to Cloudflare
 ```
 
-Dashboard runs at `http://localhost:8050`.
-
-## What's in the database
-
-| Table | Granularity | Coverage |
-|---|---|---|
-| `balance_sheet`, `income_statement`, `loans`, `deposits`, `financial_ratios`, `other_data` | Sector + 5 ownership groups | 2020-01 → 2026-02 (74 months) |
-| `weekly_series` | Sector + 6 BDDK banks × 3 currencies × 124 items | 2019-11 → 2026-04 (334 weeks) |
-| `bank_audit_balance_sheet` | Per-bank Assets / Liabilities / Off-Balance | 2022Q1 → 2025Q4 (16 quarters × 32 banks) |
-| `bank_audit_profit_loss` | Per-bank P&L line items | same |
-| `bank_audit_extractions` | One row per ingested PDF (success flag) | same |
-| `raw_api_responses`, `raw_weekly_responses` | JSON cache | for re-parsing |
-| `download_log`, `bank_types`, `table_definitions` | Metadata | — |
-
-## Project structure
+## Project layout
 
 ```
 bddk_analysis/
-├── run.py                        ← interactive CLI entry
-├── README.md, requirements.txt, render.yaml, .env(.example)
+├── README.md                       ← this file
+├── requirements.txt                ← Python deps
+├── run.py                          ← Python CLI entry
+├── render.yaml                     ← Render service config (legacy)
+├── .env, .env.example, .gitignore
 │
-├── src/                          ← code modules
+├── docs/                           ← canonical docs (read these)
+│   ├── ARCHITECTURE.md             ← dual-stack overview · start here
+│   ├── PROJECT_STATE.md            ← current snapshot of code + DB
+│   ├── METRICS.md                  ← every metric's formula + source
+│   └── OPERATIONS.md               ← refresh + deploy cadence
+│
+├── src/                            ← Python — ingestion + legacy dashboard
 │   ├── config.py
-│   ├── scrapers/                 ← BDDK monthly + weekly API scrapers
-│   ├── analytics/                ← metrics_catalog, metrics_engine, fci_engine, data_store
-│   ├── audit_reports/            ← per-bank PDF → SQLite (extractor + loader + schema)
-│   │   └── README.md             ← module-level pipeline docs
-│   ├── dashboard/                ← Dash app, sections, charts, EVDS client
-│   ├── reports/, data/           ← project-specific helpers
+│   ├── scrapers/                   ← BDDK monthly + weekly API scrapers
+│   ├── analytics/                  ← metrics, FCI, in-memory cache
+│   ├── audit_reports/              ← per-bank PDF extraction (extractor + loader)
+│   ├── dashboard/                  ← Render Dash app · marked _LEGACY.md
+│   ├── reports/, data/             ← project-specific helpers
 │   └── __init__.py
 │
-├── scripts/                      ← CLI entry points
-│   ├── refresh.py                ← BDDK monthly + weekly + EVDS update + git push
-│   ├── update_monthly.py / update_weekly.py / update_db_2026.py
-│   ├── backfill_2020_2023.py / backfill_weekly_2y.py / backfill_weekly_2020_2023.py
-│   ├── scrape_all_banks.py       ← downloads quarterly BRSA PDFs from bank IR sites
-│   ├── extract_all_audit_reports.py  ← parses PDFs into bank_audit_* tables
+├── scripts/                        ← Python CLI entry points
+│   ├── refresh.py                  ← MAIN: full refresh + git push (Render)
+│   ├── update_monthly.py / update_weekly.py
+│   ├── scrape_all_banks.py         ← bank IR PDF download (parallel)
+│   ├── extract_all_audit_reports.py ← PDF → bank_audit_* tables
+│   ├── generate_d1_migrations.py   ← export local SQLite → D1 import files
+│   ├── push_to_d1.py               ← incremental D1 sync
 │   ├── generate_metrics_docs.py
-│   └── dev.py                    ← dashboard with hot reload
+│   ├── dev.py                      ← legacy Dash hot-reload
+│   └── backfills/                  ← historical / one-off scripts
 │
-├── data/
-│   ├── bddk_data.db              ← SQLite (~370 MB)
-│   ├── audit_reports/            ← 32 bank folders, ~1.8 GB of PDFs
-│   ├── banks/                    ← URL config + BDDK bank list
-│   ├── evds_cache/               ← TCMB EVDS API cache
-│   └── external_reports/         ← BBVA / IMF / OECD / TCMB reference PDFs
+├── web/                            ← Next.js 15 + OpenNext (Cloudflare Workers)
+│   ├── app/                        ← routes (overview / credit / deposits / …)
+│   │   ├── components/             ← TrendChart, BarByBank, StackedArea, Nav
+│   │   ├── lib/                    ← db.ts (D1 binding) · metrics.ts (SQL helpers)
+│   │   ├── sector/                 ← sector total-assets + key-ratios pages
+│   │   ├── credit/, deposits/, asset-quality/, capital/, profitability/
+│   │   └── weekly/, rates/         ← placeholders
+│   ├── wrangler.jsonc, open-next.config.ts
+│   ├── package.json
+│   └── migrations/                 ← gitignored · regenerated from local SQLite
 │
-├── docs/                         ← canonical docs (this is the source of truth)
-│   ├── PROJECT_STATE.md          ← architectural snapshot — read this first
-│   ├── METRICS.md                ← every metric formula + source
-│   └── OPERATIONS.md             ← refresh cadence + commands
+├── data/                           ← all data (mostly gitignored)
+│   ├── bddk_data.db                ← SQLite source of truth (~370 MB, gitignored)
+│   ├── bddk_data.db.gz             ← compressed snapshot (~55 MB, in git for Render)
+│   ├── backups/                    ← old DB snapshots before risky migrations
+│   ├── audit_reports/              ← bank PDFs (~2 GB, gitignored)
+│   ├── banks/                      ← URL config + BDDK bank list
+│   ├── evds_cache/                 ← TCMB EVDS API cache
+│   └── external_reports/           ← reference PDFs (BBVA, IMF, …)
 │
-└── logs/                         ← refresh / backfill logs
+├── logs/                           ← runtime logs (gitignored)
+│
+└── .github/workflows/
+    ├── refresh-data.yml            ← Saturday cron: scrape → push to D1 + Render
+    └── deploy-cloudflare.yml       ← Push trigger: Cloudflare deploy
 ```
 
-## Daily / weekly cadence
+## Cadences
 
-```bash
-python scripts/refresh.py --push   # Saturdays after BDDK posts weekly data
-```
+| | When | Command / trigger |
+|---|---|---|
+| **BDDK weekly + monthly refresh** | Saturday 03:00 UTC (auto) or manual | `python scripts/refresh.py --push` |
+| **Cloudflare D1 sync** | Auto, runs after refresh | `python scripts/push_to_d1.py --hours 168` |
+| **Render redeploy** | Every git push to master | (auto via Render) |
+| **Cloudflare deploy** | Every push that touches `web/` | `.github/workflows/deploy-cloudflare.yml` |
+| **Quarterly audit-report scrape** | After each quarter (manual) | `scripts/scrape_all_banks.py` then `extract_all_audit_reports.py` |
 
-Runs the monthly + weekly + EVDS pipeline, vacuums the DB, gzips it, and
-pushes to GitHub (Render auto-redeploys).
-
-GitHub Actions workflow `refresh-data.yml` runs the same automatically every
-Saturday 03:00 UTC.
-
-## Quarterly cadence (per-bank audit reports)
-
-After each quarter-end (~late Apr / Jul / Oct / Feb):
-
-1. Add new period URLs to `data/banks/audit_report_urls.json` (banks rename
-   files unpredictably each quarter, so URLs aren't templatable).
-2. `python scripts/scrape_all_banks.py` — downloads new PDFs, idempotent.
-3. `python scripts/extract_all_audit_reports.py` — parses into DB.
-
-See [`src/audit_reports/README.md`](src/audit_reports/README.md) for details.
-
-## Production
-
-- **Dashboard:** https://turkish-banking-sector.onrender.com
-- **Repo:** GitHub (auto-deployed via Render free tier)
+See [`docs/OPERATIONS.md`](docs/OPERATIONS.md) for full instructions.
 
 ## License
 
