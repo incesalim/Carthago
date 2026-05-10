@@ -439,6 +439,120 @@ export const totalDepositsMoM = (bankTypes: string[] = PRIMARY_BANK_TYPES) =>
   _growthMoM(SPECS.total_deposits, bankTypes);
 
 // ---------------------------------------------------------------------------
+// Weekly bulletin (weekly_series) — different code semantics than monthly
+// ---------------------------------------------------------------------------
+
+/**
+ * IMPORTANT: weekly_series uses DIFFERENT semantics for bank_type_code than
+ * the monthly tables. The codes are reshuffled:
+ *
+ *   weekly:   10001=Sector, 10003=Private,    10004=State,
+ *             10005=Foreign, 10006=Participation, 10007=Dev&Inv
+ *   monthly:  10001=Sector, 10003=Participation, 10004=Dev&Inv,
+ *             10005=Private, 10006=State, 10007=Foreign
+ */
+export const WEEKLY_BANK_TYPES = {
+  SECTOR: "10001",
+  PRIVATE: "10003",
+  STATE: "10004",
+  FOREIGN: "10005",
+  PARTICIPATION: "10006",
+  DEV_INV: "10007",
+} as const;
+
+export const WEEKLY_BANK_TYPE_LABELS: Record<string, string> = {
+  "10001": "Sector",
+  "10003": "Private",
+  "10004": "State",
+  "10005": "Foreign",
+  "10006": "Participation",
+  "10007": "Dev & Inv",
+};
+
+export interface WeeklyRow {
+  period: string;
+  bank_type_code: string;
+  value: number;
+}
+
+/** Get a weekly metric by category + item_id, optionally limited window. */
+export async function weeklySeries(
+  category: string,
+  itemId: string,
+  currency: "TL" | "FX" | "TOTAL" = "TOTAL",
+  bankTypes: string[] = Object.values(WEEKLY_BANK_TYPES),
+  weeksBack = 156,  // ~3 years
+): Promise<WeeklyRow[]> {
+  const db = await getDB();
+  const placeholders = bankTypes.map(() => "?").join(",");
+  const { results } = await db
+    .prepare(
+      `SELECT
+         period_date AS period,
+         bank_type_code,
+         value
+       FROM weekly_series
+       WHERE category = ? AND item_id = ? AND currency = ?
+         AND bank_type_code IN (${placeholders})
+         AND period_date >= date('now', '-' || ? || ' days')
+       ORDER BY period_date, bank_type_code`,
+    )
+    .bind(category, itemId, currency, ...bankTypes, weeksBack * 7)
+    .all<WeeklyRow>();
+  return results;
+}
+
+/**
+ * Annualized growth over a rolling window (4w/13w/52w).
+ * SQL returns (value, prev_value); annualization (52/N exponent) computed
+ * in TypeScript because D1 sandboxes block POWER().
+ */
+export async function weeklyGrowth(
+  category: string,
+  itemId: string,
+  currency: "TL" | "FX" | "TOTAL" = "TOTAL",
+  windowWeeks: 4 | 13 | 52 = 13,
+  bankTypes: string[] = Object.values(WEEKLY_BANK_TYPES),
+  weeksBack = 156,
+): Promise<WeeklyRow[]> {
+  const db = await getDB();
+  const placeholders = bankTypes.map(() => "?").join(",");
+  const { results } = await db
+    .prepare(
+      `WITH s AS (
+         SELECT
+           period_date, bank_type_code, value,
+           LAG(value, ?) OVER (PARTITION BY bank_type_code ORDER BY period_date) AS prev_value
+         FROM weekly_series
+         WHERE category = ? AND item_id = ? AND currency = ?
+           AND bank_type_code IN (${placeholders})
+       )
+       SELECT period_date AS period, bank_type_code, value, prev_value
+       FROM s
+       WHERE prev_value IS NOT NULL
+         AND period_date >= date('now', '-' || ? || ' days')
+       ORDER BY period_date, bank_type_code`,
+    )
+    .bind(windowWeeks, category, itemId, currency, ...bankTypes, weeksBack * 7)
+    .all<{ period: string; bank_type_code: string; value: number; prev_value: number }>();
+
+  type Row = { period: string; bank_type_code: string; value: number; prev_value: number };
+  const rows = results as Row[];
+  const exponent = 52 / windowWeeks;
+  const out: WeeklyRow[] = [];
+  for (const r of rows) {
+    if (r.prev_value > 0) {
+      out.push({
+        period: r.period,
+        bank_type_code: r.bank_type_code,
+        value: (Math.pow(r.value / r.prev_value, exponent) - 1) * 100,
+      });
+    }
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
 // EVDS — TCMB macro / rate series
 // ---------------------------------------------------------------------------
 
