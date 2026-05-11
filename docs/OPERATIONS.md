@@ -1,9 +1,9 @@
 # Operations
 
-The data pipeline runs entirely from GitHub Actions. You shouldn't need
-to touch your laptop for routine refreshes — the cron picks up new BDDK
-bulletins, new audit reports, and fresh EVDS data on its own and pushes
-everything to Cloudflare D1.
+The data pipeline runs entirely from GitHub Actions. The scheduled
+workflows pick up new BDDK bulletins, new audit reports, and fresh
+EVDS data on their own and push everything to Cloudflare D1 — no local
+machine involvement is required for routine refreshes.
 
 ## Schedules
 
@@ -18,12 +18,12 @@ workflow → Run workflow**.
 
 ## Manual operations (rare)
 
-### Force a fresh refresh outside the cron
+### Force a fresh refresh outside the cron schedule
 ```
 GitHub → Actions → "Refresh BDDK data" → Run workflow
 ```
 
-### Local one-off refresh (development)
+### One-off refresh from a local checkout (development)
 ```bash
 # Monthly + weekly + EVDS into local SQLite
 python scripts/refresh.py
@@ -31,11 +31,11 @@ python scripts/refresh.py
 # EVDS-only
 python scripts/refresh.py --skip-monthly --skip-weekly
 
-# Scrape new audit PDFs to R2 + extract → SQLite
-# (needs R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY in env)
+# Scrape new audit PDFs to R2 + extract into local SQLite
+# (requires R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY)
 python scripts/sync_audit_reports.py
 
-# Push any new rows to D1 (needs CLOUDFLARE_API_TOKEN)
+# Push new rows to D1 (requires CLOUDFLARE_API_TOKEN)
 python scripts/push_to_d1.py --hours 168
 ```
 
@@ -47,8 +47,8 @@ October / February), add the URL to
 Saturday cron picks it up automatically, downloads the PDF to R2,
 extracts the financial tables, and pushes the rows to D1.
 
-If you want it live faster than next Saturday, fire the workflow
-manually.
+To pick up the change before the next Saturday cron, trigger the
+workflow manually.
 
 ## Secrets
 
@@ -71,5 +71,5 @@ GitHub repo → Settings → Secrets and variables → Actions:
   SQLite and D1. Regenerate migrations with
   `python scripts/generate_d1_migrations.py` and apply via wrangler.
 - **Cron didn't run on Saturday** — GitHub Actions sometimes delays
-  free-tier crons by up to a few hours. Trigger manually if you need
-  the data sooner.
+  free-tier crons by up to a few hours. Trigger manually for faster
+  turnaround.

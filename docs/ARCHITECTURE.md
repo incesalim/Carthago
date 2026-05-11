@@ -1,7 +1,8 @@
 # Architecture
 
-End-to-end Cloudflare stack. No laptop required for production data
-flow — everything runs from GitHub Actions, R2, and D1.
+End-to-end cloud stack. Ingestion runs in GitHub Actions; storage is
+Cloudflare R2 + D1; display is Next.js on Cloudflare Workers. No local
+machine is involved in the production data flow.
 
 ## Data flow
 

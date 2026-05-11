@@ -1,40 +1,56 @@
-# BDDK Banking Analytics
+# Turkish Banking Sector Analytics
 
-Turkish banking-sector analytical platform. End-to-end stack:
+An analytical platform for the Turkish banking sector built around two
+official sources:
 
-- **Ingestion** — Python scripts in `scripts/` and `src/`, run by the
-  GitHub Actions cron (no laptop required).
-- **Storage** — Cloudflare R2 (bank audit-report PDFs) and Cloudflare D1
-  (structured rows: monthly + weekly bulletins, EVDS macro, per-bank
-  quarterly statements).
+- **BDDK** (*Bankacılık Düzenleme ve Denetleme Kurumu*) — the Banking
+  Regulation and Supervision Agency, publisher of monthly + weekly
+  sector bulletins and per-bank quarterly BRSA Financial Reports.
+- **TCMB EVDS** (*Türkiye Cumhuriyet Merkez Bankası Elektronik Veri
+  Dağıtım Sistemi*) — the Central Bank's macro / interest-rate data
+  service.
+
+The entire pipeline runs in the cloud: GitHub Actions for ingestion,
+Cloudflare for storage and display.
+
+- **Ingestion** — Python scripts in `scripts/` and `src/`, executed by
+  scheduled GitHub Actions workflows.
+- **Storage** — Cloudflare R2 (bank audit-report PDFs + the SQLite
+  staging snapshot) and Cloudflare D1 (structured rows: monthly +
+  weekly bulletins, EVDS macro series, per-bank quarterly statements).
 - **Dashboard** — Next.js 15 + OpenNext, deployed to Cloudflare Workers.
   Live at <https://turkish-banking-dashboard.incesalim10.workers.dev>.
 
 Two data layers cohabit in D1:
 
-1. **Sector aggregates** — monthly + weekly bulletins from BDDK
-   (Bankacılık Düzenleme ve Denetleme Kurumu) plus TCMB EVDS macro/rate
-   series.
+1. **Sector aggregates** — monthly + weekly bulletins from BDDK plus
+   TCMB EVDS macro / rate series.
 2. **Per-bank quarterly data** — each bank's published BRSA Financial
-   Report PDF parsed into structured rows. 32 banks × up to 16 quarters
+   Report PDF parsed into structured rows. 32 banks × up to 17 quarters
    (2022-Q1 → 2026-Q1), ~98% of sector by assets. PDFs live in R2.
 
 ## Quick start
 
+Production runs in GitHub Actions on a schedule — local installation is
+only needed for development or ad-hoc backfills.
+
 ```bash
-# Python pipeline — only needed for local dev / one-off backfills.
-# Production runs in GitHub Actions; nothing to install on your laptop.
+# Python pipeline (ingestion)
 pip install -r requirements.txt
-python scripts/refresh.py                  # monthly + weekly + EVDS (local SQLite)
+python scripts/refresh.py                  # monthly + weekly + EVDS (writes to local SQLite)
 python scripts/sync_audit_reports.py       # scrape new PDFs → R2 → extract → SQLite
 python scripts/push_to_d1.py --hours 168   # push incremental rows to D1
 
-# Next.js dashboard
+# Next.js dashboard (display)
 cd web
 npm install
 npm run dev                                # http://localhost:3000
 npm run deploy                             # build + deploy to Cloudflare
 ```
+
+Required secrets (in shell env or `.env` for local runs; repo Secrets
+for GitHub Actions): `EVDS_API_KEY`, `CLOUDFLARE_API_TOKEN`,
+`R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`.
 
 ## Project layout
 
@@ -87,7 +103,7 @@ bddk_analysis/
 ├── data/                           ← all data (mostly gitignored)
 │   ├── banks/                      ← URL config + BDDK bank list (committed)
 │   └── external_reports/           ← reference PDFs (BBVA, IMF, …) [local]
-│   # Not in git, not on laptop in production:
+│   # Not in git; live in cloud storage:
 │   #   bddk_data.db.gz             ← R2 bucket bddk-audit-reports, key state/
 │   #   audit_reports/*.pdf         ← R2 bucket bddk-audit-reports, by ticker
 │   #   bddk_data.db                ← rebuilt in each cron run from R2 snapshot
