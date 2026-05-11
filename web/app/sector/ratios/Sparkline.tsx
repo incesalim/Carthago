@@ -18,10 +18,17 @@ interface Props {
   decimals?: number;
 }
 
+// en-US locale: comma thousands separator + dot decimal (e.g. 1,234,567.89).
+const nf = (v: number, d: number) =>
+  new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: d,
+    maximumFractionDigits: d,
+  }).format(v);
+
 const formatters: Record<FormatKind, (v: number, d: number) => string> = {
-  pct: (v, d) => `${v.toFixed(d)}%`,
-  trn: (v, d) => `₺${(v / 1_000_000).toFixed(d)} trn`,
-  raw: (v, d) => v.toFixed(d),
+  pct: (v, d) => `${nf(v, d)}%`,
+  trn: (v, d) => `₺${nf(v / 1_000_000, d)} trn`,
+  raw: (v, d) => nf(v, d),
 };
 
 export default function Sparkline({

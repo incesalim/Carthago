@@ -22,7 +22,7 @@ interface Props {
 }
 
 const fmtTl = (v: number | null) =>
-  v == null ? "—" : new Intl.NumberFormat("tr-TR", { maximumFractionDigits: 0 }).format(v);
+  v == null ? "—" : new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(v);
 
 export default async function BankDetailPage({ params, searchParams }: Props) {
   const { ticker: rawTicker } = await params;
