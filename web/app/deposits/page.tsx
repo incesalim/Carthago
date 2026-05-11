@@ -7,6 +7,9 @@ import {
   totalDepositsYoY,
   totalDepositsMoM,
   depositMaturityMix,
+  tlDeposits,
+  fxDeposits,
+  ratioLdr,
   latestPerBank,
   PRIMARY_BANK_TYPES,
   BANK_TYPES,
@@ -53,6 +56,7 @@ export default async function DepositsPage() {
   const [
     depSector, demandSec,
     yoyAll, momSec, yoyByBank, mix,
+    tlSec, fxSec, ldr,
   ] = await Promise.all([
     totalDeposits(sector),
     demandDeposits(sector),
@@ -60,9 +64,22 @@ export default async function DepositsPage() {
     totalDepositsMoM(sector),
     latestPerBank(totalDepositsYoY, groups),
     depositMaturityMix(BANK_TYPES.SECTOR),
+    tlDeposits(sector),
+    fxDeposits(sector),
+    ratioLdr(PRIMARY_BANK_TYPES),
   ]);
 
   const dShare = demandShare(depSector, demandSec);
+  // FX share = FX / (TL + FX) per period
+  const tlMap = new Map(tlSec.map((r: TimeSeriesRow) => [r.period, r.value]));
+  const fxShare: TimeSeriesRow[] = [];
+  for (const r of fxSec) {
+    const t = tlMap.get(r.period);
+    if (t == null || r.value == null) continue;
+    const total = t + r.value;
+    if (total <= 0) continue;
+    fxShare.push({ period: r.period, bank_type_code: BANK_TYPES.SECTOR, value: (r.value * 100) / total });
+  }
 
   return (
     <main className="px-8 py-8 space-y-8">
@@ -166,6 +183,43 @@ export default async function DepositsPage() {
             zeroLine
           />
         </div>
+      </Section>
+
+      <Section title="Currency Breakdown" subtitle="TL vs FX deposits — dollarization signal.">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <TrendChart
+            data={tlSec}
+            seriesLabels={{ [BANK_TYPES.SECTOR]: "TL Deposits" }}
+            title="TL Deposits — Level (sector)"
+            yFormat="trn"
+            decimals={2}
+          />
+          <TrendChart
+            data={fxSec}
+            seriesLabels={{ [BANK_TYPES.SECTOR]: "FX Deposits" }}
+            title="FX Deposits — Level (TL equivalent)"
+            yFormat="trn"
+            decimals={2}
+          />
+          <TrendChart
+            data={fxShare}
+            seriesLabels={{ [BANK_TYPES.SECTOR]: "FX share" }}
+            title="FX Share of Total Deposits (%)"
+            yFormat="pct"
+            decimals={1}
+          />
+        </div>
+      </Section>
+
+      <Section title="Loan-to-Deposit Ratio" subtitle="Bank-group LDR — funding pressure indicator.">
+        <TrendChart
+          data={ldr}
+          seriesLabels={BANK_TYPE_LABELS}
+          title="LDR (%) — by group"
+          yFormat="pct"
+          decimals={0}
+          height={320}
+        />
       </Section>
     </main>
   );

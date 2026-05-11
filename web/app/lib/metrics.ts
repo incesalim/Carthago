@@ -129,6 +129,21 @@ export const ratioCar = (bankTypes?: string[]) =>
     bankTypes,
   );
 
+/** RWA density: net risk-weighted assets / gross. Lower = more diversified
+ * risk weights / more low-risk exposure (e.g. govt bonds). */
+export const ratioRwaDensity = (bankTypes?: string[]) =>
+  getPublishedRatio(
+    "Risk Ağırlıklı Kalemler Toplamı (Net) / Risk Ağırlıklı Kalemler Toplamı (Brüt) (%)",
+    bankTypes,
+  );
+
+/** Off-balance-sheet derivative exposure / total assets. */
+export const ratioOffBsDerivatives = (bankTypes?: string[]) =>
+  getPublishedRatio(
+    "(Bilanço Dışı Riskler - Türev Finansal Araçlar) / Toplam Aktifler (%)",
+    bankTypes,
+  );
+
 /** Net Interest Margin (annualized — YTD × 12/month). */
 export const ratioNim = (bankTypes?: string[]) =>
   getPublishedRatio(
@@ -316,6 +331,60 @@ export const totalDeposits = (bankTypes?: string[]) =>
 export const demandDeposits = (bankTypes?: string[]) =>
   getDepositColumn("TOPLAM MEVDUAT", "demand", bankTypes);
 
+/** TL deposits = TP Mevduat (Yurt İçi + Yurt Dışı Yerleşik). */
+export async function tlDeposits(
+  bankTypes: string[] = PRIMARY_BANK_TYPES,
+): Promise<TimeSeriesRow[]> {
+  const db = await getDB();
+  const placeholders = bankTypes.map(() => "?").join(",");
+  const { results } = await db
+    .prepare(
+      `SELECT
+         year || '-' || PRINTF('%02d', month) AS period,
+         bank_type_code,
+         SUM(total_amount) AS value
+       FROM deposits
+       WHERE currency = 'TL'
+         AND item_name IN (
+           'TP Mevduat / Katılım Fonları - Yurt İçi Yerleşik',
+           'TP Mevduat / Katılım Fonları - Yurt Dışı Yerleşik'
+         )
+         AND bank_type_code IN (${placeholders})
+       GROUP BY year, month, bank_type_code
+       ORDER BY year, month, bank_type_code`,
+    )
+    .bind(...bankTypes)
+    .all<TimeSeriesRow>();
+  return results;
+}
+
+/** FX deposits in TL equivalent = Döviz Tevdiat (Yurt İçi + Yurt Dışı Yerleşik). */
+export async function fxDeposits(
+  bankTypes: string[] = PRIMARY_BANK_TYPES,
+): Promise<TimeSeriesRow[]> {
+  const db = await getDB();
+  const placeholders = bankTypes.map(() => "?").join(",");
+  const { results } = await db
+    .prepare(
+      `SELECT
+         year || '-' || PRINTF('%02d', month) AS period,
+         bank_type_code,
+         SUM(total_amount) AS value
+       FROM deposits
+       WHERE currency = 'TL'
+         AND item_name IN (
+           'Döviz Tevdiat Hesabı / Katılım Fonları - Yurt İçi Yerleşik',
+           'Döviz Tevdiat Hesabı / Katılım Fonları - Yurt Dışı Yerleşik'
+         )
+         AND bank_type_code IN (${placeholders})
+       GROUP BY year, month, bank_type_code
+       ORDER BY year, month, bank_type_code`,
+    )
+    .bind(...bankTypes)
+    .all<TimeSeriesRow>();
+  return results;
+}
+
 /**
  * Deposit maturity composition for sector — long-form rows for stacked area.
  * One row per (period, maturity_bucket).
@@ -381,6 +450,121 @@ export async function consumerSegmentYoY(
     itemName,
     [BANK_TYPES.SECTOR],
   );
+}
+
+/** Consumer-segment NPL composition (stock in million TL, sector). */
+export async function consumerNplMix(): Promise<
+  Array<{ period: string; housing: number; auto: number; gpl: number; cards: number }>
+> {
+  const db = await getDB();
+  const { results } = await db
+    .prepare(
+      `SELECT
+         year || '-' || PRINTF('%02d', month) AS period,
+         SUM(CASE WHEN item_name = 'Takipteki Konut Kredileri'         THEN total_amount END) AS housing,
+         SUM(CASE WHEN item_name = 'Takipteki Taşıt Kredileri'         THEN total_amount END) AS auto,
+         SUM(CASE WHEN item_name = 'Takipteki İhtiyaç Kredileri'       THEN total_amount END) AS gpl,
+         SUM(CASE WHEN item_name = 'Takipteki Bireysel Kredi Kartları' THEN total_amount END) AS cards
+       FROM loans
+       WHERE table_number = 4
+         AND currency = 'TL'
+         AND bank_type_code = '10001'
+       GROUP BY year, month
+       ORDER BY year, month`,
+    )
+    .all<{ period: string; housing: number; auto: number; gpl: number; cards: number }>();
+  return results;
+}
+
+/** Per-segment NPL ratio (%) for consumer products, sector only.
+ * Numerator: "Takipteki <X>" total_amount
+ * Denominator: corresponding performing "Tüketici Kredileri - <X>" (or cards)
+ */
+export async function consumerNplRatios(): Promise<
+  Array<{ period: string; housing: number | null; auto: number | null; gpl: number | null; cards: number | null }>
+> {
+  const db = await getDB();
+  const { results } = await db
+    .prepare(
+      `WITH s AS (
+         SELECT year, month, item_name, SUM(total_amount) AS amt
+         FROM loans
+         WHERE table_number = 4
+           AND currency = 'TL'
+           AND bank_type_code = '10001'
+           AND item_name IN (
+             'Takipteki Konut Kredileri',         'Tüketici Kredileri - Konut',
+             'Takipteki Taşıt Kredileri',         'Tüketici Kredileri - Taşıt',
+             'Takipteki İhtiyaç Kredileri',       'Tüketici Kredileri - İhtiyaç',
+             'Takipteki Bireysel Kredi Kartları', 'Bireysel Kredi Kartları (10+11)'
+           )
+         GROUP BY year, month, item_name
+       )
+       SELECT
+         year || '-' || PRINTF('%02d', month) AS period,
+         CASE WHEN MAX(CASE WHEN item_name='Tüketici Kredileri - Konut' THEN amt END) > 0
+              THEN MAX(CASE WHEN item_name='Takipteki Konut Kredileri' THEN amt END) * 100.0 /
+                   MAX(CASE WHEN item_name='Tüketici Kredileri - Konut' THEN amt END)
+              END AS housing,
+         CASE WHEN MAX(CASE WHEN item_name='Tüketici Kredileri - Taşıt' THEN amt END) > 0
+              THEN MAX(CASE WHEN item_name='Takipteki Taşıt Kredileri' THEN amt END) * 100.0 /
+                   MAX(CASE WHEN item_name='Tüketici Kredileri - Taşıt' THEN amt END)
+              END AS auto,
+         CASE WHEN MAX(CASE WHEN item_name='Tüketici Kredileri - İhtiyaç' THEN amt END) > 0
+              THEN MAX(CASE WHEN item_name='Takipteki İhtiyaç Kredileri' THEN amt END) * 100.0 /
+                   MAX(CASE WHEN item_name='Tüketici Kredileri - İhtiyaç' THEN amt END)
+              END AS gpl,
+         CASE WHEN MAX(CASE WHEN item_name='Bireysel Kredi Kartları (10+11)' THEN amt END) > 0
+              THEN MAX(CASE WHEN item_name='Takipteki Bireysel Kredi Kartları' THEN amt END) * 100.0 /
+                   MAX(CASE WHEN item_name='Bireysel Kredi Kartları (10+11)' THEN amt END)
+              END AS cards
+       FROM s
+       GROUP BY year, month
+       ORDER BY year, month`,
+    )
+    .all<{ period: string; housing: number | null; auto: number | null; gpl: number | null; cards: number | null }>();
+  return results;
+}
+
+/** Commercial NPL ratios (SME, Commercial total, Non-SME) from weekly_series.
+ * NPL items: 2.0.4 (SME), 2.0.5 (Commercial total)
+ * Denominators: 1.0.11 (SME loans), 1.0.12 (Commercial loans)
+ * Non-SME = (Commercial NPL − SME NPL) / (Commercial loans − SME loans). */
+export async function commercialNplRatios(): Promise<
+  Array<{ period: string; sme: number | null; commercial: number | null; non_sme: number | null }>
+> {
+  const db = await getDB();
+  const { results } = await db
+    .prepare(
+      `WITH s AS (
+         SELECT period_date AS period, item_id, value
+         FROM weekly_series
+         WHERE bank_type_code = '10001' AND currency = 'TOTAL'
+           AND item_id IN ('1.0.11', '1.0.12', '2.0.4', '2.0.5')
+       )
+       SELECT
+         period,
+         CASE WHEN MAX(CASE WHEN item_id='1.0.11' THEN value END) > 0
+              THEN MAX(CASE WHEN item_id='2.0.4' THEN value END) * 100.0 /
+                   MAX(CASE WHEN item_id='1.0.11' THEN value END)
+              END AS sme,
+         CASE WHEN MAX(CASE WHEN item_id='1.0.12' THEN value END) > 0
+              THEN MAX(CASE WHEN item_id='2.0.5' THEN value END) * 100.0 /
+                   MAX(CASE WHEN item_id='1.0.12' THEN value END)
+              END AS commercial,
+         CASE WHEN MAX(CASE WHEN item_id='1.0.12' THEN value END) >
+                   MAX(CASE WHEN item_id='1.0.11' THEN value END)
+              THEN (MAX(CASE WHEN item_id='2.0.5' THEN value END) -
+                    MAX(CASE WHEN item_id='2.0.4' THEN value END)) * 100.0 /
+                   (MAX(CASE WHEN item_id='1.0.12' THEN value END) -
+                    MAX(CASE WHEN item_id='1.0.11' THEN value END))
+              END AS non_sme
+       FROM s
+       GROUP BY period
+       ORDER BY period`,
+    )
+    .all<{ period: string; sme: number | null; commercial: number | null; non_sme: number | null }>();
+  return results;
 }
 
 // ---------------------------------------------------------------------------
