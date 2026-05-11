@@ -32,11 +32,18 @@ interface Props {
 
 const COLORS = ["#7a0d2e", "#1f4068", "#0f7b6c", "#a16500", "#5b1a8c", "#5a5a5a"];
 
+// en-US locale: comma thousands separator + dot decimal (e.g. 1,234,567.89).
+const nf = (v: number, d: number) =>
+  new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: d,
+    maximumFractionDigits: d,
+  }).format(v);
+
 const formatters = {
-  pct: (v: number, d: number) => `${v.toFixed(d)}%`,
-  rate: (v: number, d: number) => `${v.toFixed(d)}`,
-  fx: (v: number, d: number) => `₺${v.toFixed(d)}`,
-  raw: (v: number, d: number) => v.toFixed(d),
+  pct: (v: number, d: number) => `${nf(v, d)}%`,
+  rate: (v: number, d: number) => nf(v, d),
+  fx: (v: number, d: number) => `₺${nf(v, d)}`,
+  raw: (v: number, d: number) => nf(v, d),
 };
 
 export default function TimeSeriesChart({

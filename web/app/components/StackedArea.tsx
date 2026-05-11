@@ -31,11 +31,18 @@ interface Props {
 
 const COLORS = ["#7a0d2e", "#a16500", "#0f7b6c", "#1f4068", "#5b1a8c", "#5a5a5a"];
 
+// en-US locale: comma thousands separator + dot decimal (e.g. 1,234,567.89).
+const nf = (v: number, d: number) =>
+  new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: d,
+    maximumFractionDigits: d,
+  }).format(v);
+
 const formatters: Record<FormatKind, (v: number, d: number) => string> = {
-  pct: (v, d) => `${v.toFixed(d)}%`,
-  trn: (v, d) => `₺${(v / 1_000_000).toFixed(d)} trn`,
-  bn: (v, d) => `₺${(v / 1_000).toFixed(d)} bn`,
-  raw: (v, d) => v.toFixed(d),
+  pct: (v, d) => `${nf(v, d)}%`,
+  trn: (v, d) => `₺${nf(v / 1_000_000, d)} trn`,
+  bn: (v, d) => `₺${nf(v / 1_000, d)} bn`,
+  raw: (v, d) => nf(v, d),
 };
 
 export default function StackedArea({
