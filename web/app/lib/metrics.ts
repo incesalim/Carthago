@@ -297,14 +297,17 @@ async function getDepositColumn(
   return results;
 }
 
+// Note: loans.item_name in D1 is mixed-case "Toplam Krediler" (not uppercase
+// like balance_sheet's "TOPLAM AKTİFLER"). Using the wrong casing returns 0
+// rows silently, which was the root cause of blank Credit-page charts.
 export const totalLoans = (bankTypes?: string[]) =>
-  getLoanColumn("TOPLAM KREDİLER", "total_amount", bankTypes);
+  getLoanColumn("Toplam Krediler", "total_amount", bankTypes);
 
 export const tlLoans = (bankTypes?: string[]) =>
-  getLoanColumn("TOPLAM KREDİLER", "total_tl", bankTypes);
+  getLoanColumn("Toplam Krediler", "total_tl", bankTypes);
 
 export const fxLoans = (bankTypes?: string[]) =>
-  getLoanColumn("TOPLAM KREDİLER", "total_fx", bankTypes);
+  getLoanColumn("Toplam Krediler", "total_fx", bankTypes);
 
 export const totalDeposits = (bankTypes?: string[]) =>
   getDepositColumn("TOPLAM MEVDUAT", "total_amount", bankTypes);
@@ -340,6 +343,114 @@ export async function depositMaturityMix(
 }
 
 // ---------------------------------------------------------------------------
+// Consumer-credit segments (Table 4 of monthly bulletin)
+// ---------------------------------------------------------------------------
+
+/** Consumer credit mix for stacked area: housing / auto / GPL / retail cards. */
+export async function consumerMix(
+  bankType: string = BANK_TYPES.SECTOR,
+): Promise<Array<{ period: string; housing: number; auto: number; gpl: number; cards: number }>> {
+  const db = await getDB();
+  const { results } = await db
+    .prepare(
+      `SELECT
+         year || '-' || PRINTF('%02d', month) AS period,
+         SUM(CASE WHEN item_name = 'Tüketici Kredileri - Konut'    THEN total_amount END) AS housing,
+         SUM(CASE WHEN item_name = 'Tüketici Kredileri - Taşıt'    THEN total_amount END) AS auto,
+         SUM(CASE WHEN item_name = 'Tüketici Kredileri - İhtiyaç'  THEN total_amount END) AS gpl,
+         SUM(CASE WHEN item_name = 'Bireysel Kredi Kartları (10+11)' THEN total_amount END) AS cards
+       FROM loans
+       WHERE table_number = 4
+         AND currency = 'TL'
+         AND bank_type_code = ?
+       GROUP BY year, month
+       ORDER BY year, month`,
+    )
+    .bind(bankType)
+    .all<{ period: string; housing: number; auto: number; gpl: number; cards: number }>();
+  return results;
+}
+
+/** YoY of one consumer segment, sector only. */
+export async function consumerSegmentYoY(
+  itemName: string,
+): Promise<TimeSeriesRow[]> {
+  return _growthYoYExact(
+    "loans",
+    "total_amount",
+    itemName,
+    [BANK_TYPES.SECTOR],
+  );
+}
+
+// ---------------------------------------------------------------------------
+// SME loans (Table 6)
+// ---------------------------------------------------------------------------
+
+/** SME total loans by bank type, from Table 6. */
+export async function smeLoans(
+  bankTypes: string[] = PRIMARY_BANK_TYPES,
+): Promise<TimeSeriesRow[]> {
+  const db = await getDB();
+  const placeholders = bankTypes.map(() => "?").join(",");
+  const { results } = await db
+    .prepare(
+      `SELECT
+         year || '-' || PRINTF('%02d', month) AS period,
+         bank_type_code,
+         total_amount AS value
+       FROM loans
+       WHERE table_number = 6
+         AND item_name = 'Toplam KOBİ Kredileri (2+3+4)'
+         AND currency = 'TL'
+         AND bank_type_code IN (${placeholders})
+       ORDER BY year, month, bank_type_code`,
+    )
+    .bind(...bankTypes)
+    .all<TimeSeriesRow>();
+  return results;
+}
+
+/** SME YoY growth. */
+export async function smeLoansYoY(
+  bankTypes: string[] = PRIMARY_BANK_TYPES,
+): Promise<TimeSeriesRow[]> {
+  return _growthYoYExact("loans", "total_amount", "Toplam KOBİ Kredileri (2+3+4)", bankTypes);
+}
+
+// Generic YoY helper that takes a literal item_name string (no SPECS lookup).
+async function _growthYoYExact(
+  table: "loans" | "deposits" | "balance_sheet",
+  amountCol: string,
+  itemName: string,
+  bankTypes: string[],
+): Promise<TimeSeriesRow[]> {
+  const db = await getDB();
+  const placeholders = bankTypes.map(() => "?").join(",");
+  const { results } = await db
+    .prepare(
+      `WITH s AS (
+         SELECT year, month, bank_type_code, ${amountCol} AS amt
+         FROM ${table}
+         WHERE item_name = ? AND currency = 'TL'
+           AND bank_type_code IN (${placeholders})
+       )
+       SELECT
+         a.year || '-' || PRINTF('%02d', a.month) AS period,
+         a.bank_type_code,
+         CASE WHEN b.amt > 0 THEN ((a.amt - b.amt) * 100.0 / b.amt) ELSE NULL END AS value
+       FROM s a
+       JOIN s b ON b.bank_type_code = a.bank_type_code
+              AND b.year = a.year - 1
+              AND b.month = a.month
+       ORDER BY a.year, a.month, a.bank_type_code`,
+    )
+    .bind(itemName, ...bankTypes)
+    .all<TimeSeriesRow>();
+  return results;
+}
+
+// ---------------------------------------------------------------------------
 // Latest-value helpers (for KPI cards)
 // ---------------------------------------------------------------------------
 
@@ -367,7 +478,7 @@ type GrowthSpec = {
 
 const SPECS: Record<string, GrowthSpec> = {
   total_assets: { table: "balance_sheet", amountColumn: "amount_total", itemName: "TOPLAM AKTİFLER" },
-  total_loans:  { table: "loans",         amountColumn: "total_amount", itemName: "TOPLAM KREDİLER" },
+  total_loans:  { table: "loans",         amountColumn: "total_amount", itemName: "Toplam Krediler" },
   total_deposits: { table: "deposits",    amountColumn: "total_amount", itemName: "TOPLAM MEVDUAT" },
 };
 

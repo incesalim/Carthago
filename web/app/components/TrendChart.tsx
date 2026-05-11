@@ -77,8 +77,8 @@ export default function TrendChart({
   const fmt = formatters[yFormat];
 
   return (
-    <div className="rounded-lg border bg-white p-4 shadow-sm">
-      {title && <div className="text-sm font-medium mb-2">{title}</div>}
+    <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm hover:shadow-md transition">
+      {title && <div className="text-sm font-medium text-neutral-800 mb-3">{title}</div>}
       <div style={{ height }}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={wide} margin={{ top: 10, right: 20, left: 60, bottom: 30 }}>
