@@ -1,98 +1,75 @@
 # Operations
 
-Two-paragraph guide to keeping the dashboard fresh after BDDK publishes
-new data.
+The data pipeline runs entirely from GitHub Actions. You shouldn't need
+to touch your laptop for routine refreshes — the cron picks up new BDDK
+bulletins, new audit reports, and fresh EVDS data on its own and pushes
+everything to Cloudflare D1.
 
-## One command
+## Schedules
 
-From the project root:
+| When | Workflow | What it does |
+|---|---|---|
+| Sun–Fri 05:00 UTC | `refresh-evds-daily.yml` | TCMB EVDS scrape (FX, rates, sterilization, …) → D1 |
+| Saturday 03:00 UTC | `refresh-data.yml` | Monthly + weekly BDDK + EVDS + audit-report sync → D1 |
+| On push touching `web/**` | `deploy-cloudflare.yml` | Build OpenNext bundle, deploy to Cloudflare Workers |
 
-```bash
-python scripts/refresh.py --push
+All three are also triggerable manually: **GitHub → Actions → pick
+workflow → Run workflow**.
+
+## Manual operations (rare)
+
+### Force a fresh refresh outside the cron
+```
+GitHub → Actions → "Refresh BDDK data" → Run workflow
 ```
 
-That does **everything**:
-1. Checks BDDK for new monthly bulletins, scrapes anything it hasn't got.
-2. Pulls the latest 13 weeks of weekly data (overlaps are safe — idempotent).
-3. Vacuums the SQLite DB.
-4. Re-compresses `data/bddk_data.db.gz` to ship with the repo.
-5. Commits the snapshot and pushes to GitHub → Render auto-redeploys.
+### Local one-off refresh (development)
+```bash
+# Monthly + weekly + EVDS into local SQLite
+python scripts/refresh.py
 
-Drop the `--push` flag if you want to refresh locally without publishing.
+# EVDS-only
+python scripts/refresh.py --skip-monthly --skip-weekly
 
-## When to run it
+# Scrape new audit PDFs to R2 + extract → SQLite
+# (needs R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY in env)
+python scripts/sync_audit_reports.py
 
-| Cadence | Why |
+# Push any new rows to D1 (needs CLOUDFLARE_API_TOKEN)
+python scripts/push_to_d1.py --hours 168
+```
+
+### Add new audit-report URLs (quarterly cadence)
+
+When a bank publishes a new quarterly report (~late April / July /
+October / February), add the URL to
+`data/banks/audit_report_urls.json` — that's the only edit needed. The
+Saturday cron picks it up automatically, downloads the PDF to R2,
+extracts the financial tables, and pushes the rows to D1.
+
+If you want it live faster than next Saturday, fire the workflow
+manually.
+
+## Secrets
+
+GitHub repo → Settings → Secrets and variables → Actions:
+
+| Secret | Used by |
 |---|---|
-| Every Friday evening / Saturday | BDDK publishes weekly data Fridays. |
-| ~6 weeks after each month-end | Monthly bulletins lag ~4–6 weeks. Running weekly still catches monthly as soon as it's available. |
-
-Running more often than that is harmless — the update scripts are
-idempotent and skip work that's already done.
-
-## Individual scripts (if you want finer control)
-
-- `python scripts/update_monthly.py` — only monthly.
-- `python scripts/update_weekly.py` — only weekly (13-week window).
-- `python scripts/backfill_2020_2023.py` — full historical monthly backfill (~3 h).
-- `python scripts/backfill_weekly_2y.py` — full 2-year weekly backfill (~3.5 h).
-
-## Per-bank audit reports (quarterly cadence)
-
-Separate pipeline from the BDDK refresh above. After each quarter-end
-(~late April / July / October / February), banks file new BRSA Financial
-Reports on their investor-relations sites.
-
-```bash
-# 1. Add new period URLs to data/banks/audit_report_urls.json
-#    (one entry per bank — IR sites rename files unpredictably each quarter,
-#     so URLs are not constructible from a template; see
-#     src/audit_reports/README.md for the workflow)
-
-# 2. Download new PDFs (idempotent, parallel, ~1 min for ~30 PDFs)
-python scripts/scrape_all_banks.py
-
-# 3. Extract into bank_audit_* tables (idempotent, parallel, ~5 min for new period)
-python scripts/extract_all_audit_reports.py
-```
-
-Both scripts skip work already done — re-running is safe.
-
-The full historical run (920 PDFs) was completed May 2026 in ~50 min.
-Going forward only the new quarter's ~32 PDFs are added.
-
-See [`src/audit_reports/README.md`](../src/audit_reports/README.md) for
-extraction logic and example queries.
-
-## Developing the dashboard (hot reload)
-
-```bash
-python scripts/dev.py
-```
-
-Dash runs with `debug=True` + auto-reload. Edit a file, save, browser
-refreshes in under a second. No process kills, no manual restart. Stop
-with Ctrl+C.
-
-Production (Render) still uses `src/dashboard/app.py` directly via
-gunicorn — `scripts/dev.py` is local-only.
-
-## Series registry
-
-Every EVDS code, BDDK chart-id, published-ratio `item_name` lives in
-[`src/dashboard/series.py`](../src/dashboard/series.py) keyed by short
-names (`"policy_rate"`, `"w_total_loans"`, `"r_npl_ratio"` …). Any new
-chart should look up series by key, never paste a raw code. Missing key?
-Add it to the registry — don't inline.
+| `CLOUDFLARE_API_TOKEN` | wrangler (D1 push, dashboard deploy) |
+| `EVDS_API_KEY` | TCMB EVDS API |
+| `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` | audit-report PDFs in R2 |
 
 ## Troubleshooting
 
-- **Render build succeeded but dashboard blank** — re-check that
-  `data/bddk_data.db.gz` is in the latest commit and under 100 MB.
-- **"No new months published"** — expected most of the time; BDDK only
-  publishes once a month and runs a 4–6 week lag.
-- **`refresh.py` errors on push** — usually a merge conflict if you
-  edited files on GitHub directly. `git pull --rebase && git push` and
-  retry.
-- **Deploy logs mention `EVDS_API_KEY`** — set it in Render's Environment
-  tab (it's a secret, not in the repo).
+- **EVDS step failed** — TCMB occasionally rate-limits. Re-run the
+  workflow; the scraper is idempotent (INSERT OR REPLACE on
+  `(code, period_date)`).
+- **`sync_audit_reports.py` reports a 404** — bank rotated a URL on
+  their IR site. Update the entry in `audit_report_urls.json`.
+- **D1 push errors `no such column`** — schema drift between local
+  SQLite and D1. Regenerate migrations with
+  `python scripts/generate_d1_migrations.py` and apply via wrangler.
+- **Cron didn't run on Saturday** — GitHub Actions sometimes delays
+  free-tier crons by up to a few hours. Trigger manually if you need
+  the data sooner.

@@ -1,11 +1,15 @@
-# Project State — verified 2026-05-10
+# Project State — verified 2026-05-11
 
-> **Reading order:** [ARCHITECTURE.md](ARCHITECTURE.md) for the dual-stack
-> picture (Python ingest + Cloudflare display), then this file for current
-> snapshot, then [METRICS.md](METRICS.md) and [OPERATIONS.md](OPERATIONS.md).
+> **Reading order:** [ARCHITECTURE.md](ARCHITECTURE.md) for the end-to-end
+> picture (Python ingest in GitHub Actions → R2 → D1 → Cloudflare Workers
+> dashboard), then this file for current snapshot, then
+> [METRICS.md](METRICS.md) and [OPERATIONS.md](OPERATIONS.md).
 
-Authoritative snapshot of the repo's current shape. Older Dec-2025 notes
-referenced here in earlier versions have been deleted.
+> **Render → Cloudflare migration is complete.** The legacy Python Dash
+> dashboard, its analytics package, `render.yaml`, `run.py`, and
+> `scripts/dev.py` were removed on 2026-05-11. References to
+> `src/dashboard/` or `src/analytics/` elsewhere in the docs are
+> historical. Production runs only on Cloudflare Workers + D1 + R2.
 
 ---
 
