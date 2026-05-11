@@ -171,6 +171,38 @@ export const ratioRoe = (bankTypes?: string[]) =>
     true,
   );
 
+/** OPEX / Avg Total Assets (annualized — YTD × 12/month). */
+export const ratioOpex = (bankTypes?: string[]) =>
+  getPublishedRatio(
+    "İşletme Giderleri / Ortalama Toplam Aktifler (%)",
+    bankTypes,
+    15,
+    true,
+  );
+
+/** Fees & Commissions / Total Revenue (%). YTD ratio — both num + den
+ * cumulate within year, so the ratio itself is already comparable across
+ * months without annualization. */
+export const ratioFeesToRevenue = (bankTypes?: string[]) =>
+  getPublishedRatio(
+    "Ücret, Komisyon ve Bankacılık Hizmetleri Gelirleri / Toplam Gelirler (%)",
+    bankTypes,
+  );
+
+/** Non-interest income / non-interest expense (cost coverage). */
+export const ratioNonInterestCoverage = (bankTypes?: string[]) =>
+  getPublishedRatio(
+    "Faiz Dışı Gelirler / Faiz Dışı Giderler (%)",
+    bankTypes,
+  );
+
+/** Fees & Commissions / OPEX (fee-led cost coverage). */
+export const ratioFeesToOpex = (bankTypes?: string[]) =>
+  getPublishedRatio(
+    "Ücret, Komisyon ve Bankacılık Hizmetleri Gelirleri / İşletme Giderleri (%)",
+    bankTypes,
+  );
+
 // ---------------------------------------------------------------------------
 // Balance-sheet direct queries
 // ---------------------------------------------------------------------------
