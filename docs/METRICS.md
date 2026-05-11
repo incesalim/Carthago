@@ -1,15 +1,18 @@
 # Metrics Catalogue
 
-Authoritative reference for every metric shown in the dashboard. For each
-metric this document lists the **source** (which BDDK table / EVDS series /
-derived formula), the **unit**, the **frequency**, and **where** it appears.
+Authoritative reference for every metric in the data pipeline. Lists the
+**source** (BDDK table / EVDS series / derived formula), the **unit**,
+the **frequency**, and **where** it surfaces.
 
-Last refreshed: 2026-04-23 · Dashboard coverage: monthly BDDK data
-2020-01 → 2026-02, weekly BDDK data 2019-11 → 2026-04, weekly/daily EVDS
-rates. BBVA Mar-26 report chart mapping captured in Appendices C+D.
-
-> **Supersedes earlier notes in this folder.** `PROJECT_STATE.md` holds the
-> architectural snapshot; this file holds metric definitions.
+> **Heads-up on code paths.** This doc was written when the dashboard
+> was a Python Dash app at `src/dashboard/`. That stack has been
+> retired. The data sources, formulas, and BDDK / EVDS references below
+> are still accurate, but the *implementation* of each metric now lives
+> in `web/app/lib/metrics.ts` (TypeScript helpers reading directly from
+> Cloudflare D1). EVDS HTTP client moved from `src/dashboard/evds.py`
+> to `src/scrapers/evds_client.py`. Treat any `src/dashboard/*` or
+> `src/analytics/*` link in this file as a historical pointer, not a
+> live file path.
 
 ---
 

@@ -26,7 +26,7 @@ Don't just flag "needs derivation" — actually produce it.
 **EVDS code hunting is part of the job.** Before declaring a code
 unfindable, traverse the category tree methodically:
 ```py
-from src.dashboard import evds
+from src.scrapers import evds_client as evds
 import requests
 H = {"key": "<env>", "User-Agent": "Mozilla/5.0"}
 base = "https://evds3.tcmb.gov.tr/igmevdsms-dis"
@@ -44,18 +44,21 @@ scope — mark as "BBVA-proprietary, skip" and move on.
 
 ## Context you operate in
 
-- The dashboard is a Dash app at `src/dashboard/` backed by SQLite
-  (`data/bddk_data.db`) with monthly and weekly BDDK data, plus the
-  TCMB EVDS API for macro series.
-- Canonical series registry lives at **`src/dashboard/series.py`** —
-  always read it first and report what's **already available** under a
-  short key vs what is **missing**.
+- The production dashboard is a Next.js app under `web/`, served from
+  Cloudflare Workers and reading from Cloudflare D1. The data pipeline
+  feeding D1 is in `src/` and `scripts/`, run by the GitHub Actions
+  cron — local SQLite (`data/bddk_data.db`) acts as a staging area on
+  the runner.
+- Canonical EVDS series registry lives at
+  **`src/scrapers/evds_scraper.py`** — read its `SERIES` list first and
+  report what's **already in D1** (queryable via the `evds_series`
+  table) vs what is **missing**.
 - Methodology conventions and unit handling are in **`docs/METRICS.md`**
   — read the relevant section before proposing a derivation.
 - EVDS API access: header `key: $EVDS_API_KEY` against
-  `https://evds3.tcmb.gov.tr/igmevdsms-dis`. A Python client is at
-  `src/dashboard/evds.py`; use it via small inline Python scripts rather
-  than writing fresh HTTP code.
+  `https://evds3.tcmb.gov.tr/igmevdsms-dis`. The Python client is at
+  `src/scrapers/evds_client.py`; use it via small inline Python scripts
+  rather than writing fresh HTTP code.
 
 ## Workflow (always follow this order)
 
@@ -63,15 +66,15 @@ scope — mark as "BBVA-proprietary, skip" and move on.
    stacked areas, axes, annotations, legend labels. Note date range and
    unit (%, bn USD, M TL, etc.). If there is Turkish text, translate.
 
-2. **Read `src/dashboard/series.py`**. List which of the required series
-   are **already in the registry** (cite the key). This short-circuits
-   duplicate hunts.
+2. **Read `src/scrapers/evds_scraper.py`** (the `SERIES` list). List
+   which of the required series are **already in D1** (cite the code).
+   This short-circuits duplicate hunts.
 
 3. **For missing series**, probe EVDS categorically:
    - List categories → find related datagroup → list series → match by
      name and unit. A small Python probe like
      ```py
-     from src.dashboard import evds
+     from src.scrapers import evds_client as evds
      df = evds.fetch_series("TP.XXX.XXX", "2024-01-01", "2026-04-20")
      print(df.tail())
      ```
@@ -91,8 +94,9 @@ scope — mark as "BBVA-proprietary, skip" and move on.
    bug — investigate before reporting.
 
 6. **Output a single structured report** (format below). Do NOT edit
-   `series.py`, `charts.py`, `sections/*`, the DB, `docs/METRICS.md`,
-   or anything else. The user will decide what to wire up.
+   `evds_scraper.py`, `web/app/lib/metrics.ts`, dashboard pages, the
+   DB, `docs/METRICS.md`, or anything else. The user will decide what
+   to wire up.
 
 ## Output format
 

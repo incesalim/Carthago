@@ -1,17 +1,19 @@
-"""One-shot data refresh + deploy orchestrator.
+"""One-shot data refresh orchestrator.
 
-Steps:
+Steps (each can be skipped individually):
   1. Incremental monthly update (only new months BDDK has published).
   2. Incremental weekly update (latest 13-week window).
-  3. VACUUM the DB.
-  4. Gzip to data/bddk_data.db.gz for Render deployment.
-  5. Optionally: git add / commit / push so Render auto-redeploys.
+  3. EVDS refresh (TCMB macro / rate series).
+  4. VACUUM + gzip to data/bddk_data.db.gz.
+  5. Optional: git add / commit / push the new snapshot.
 
-Use with `--push` to also publish. Without it, it only refreshes locally.
+After this runs, scripts/push_to_d1.py syncs the changed rows up to
+Cloudflare D1 — which the production dashboard reads from.
 
 Example:
-    python scripts/refresh.py          # refresh data locally
-    python scripts/refresh.py --push   # refresh + push to GitHub (triggers Render)
+    python scripts/refresh.py                                    # full refresh
+    python scripts/refresh.py --skip-monthly --skip-weekly       # EVDS only
+    python scripts/refresh.py --push                             # also commit + push
 """
 
 from __future__ import annotations
@@ -69,7 +71,7 @@ def git_push(date_label: str) -> None:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--push", action="store_true",
-                        help="git add/commit/push the new snapshot (triggers Render redeploy)")
+                        help="git add/commit/push the new bddk_data.db.gz snapshot")
     parser.add_argument("--skip-monthly", action="store_true")
     parser.add_argument("--skip-weekly", action="store_true")
     parser.add_argument("--skip-evds", action="store_true")

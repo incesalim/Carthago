@@ -14,9 +14,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import NamedTuple
 
-# Reuse the existing client
+# EVDS HTTP client lives alongside this file
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from src.dashboard import evds  # noqa: E402
+from src.scrapers import evds_client as evds  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 DB = ROOT / "data" / "bddk_data.db"
