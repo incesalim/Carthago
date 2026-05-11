@@ -9,13 +9,25 @@ on:
     - cron: "0 3 * * 6"
   workflow_dispatch: {}
 
+# Read-only — snapshot now lives in R2 (state/bddk_data.db.gz),
+# not in git. No `contents: write` needed.
 permissions:
-  contents: write   # so the job can commit the new DB snapshot back
+  contents: read
+
+# Serialize against the daily EVDS workflow so they can't race on the R2 snapshot.
+concurrency:
+  group: bddk-pipeline
+  cancel-in-progress: false
 
 jobs:
   refresh:
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      PYTHONIOENCODING: utf-8
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -29,30 +41,30 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Decompress shipped DB snapshot
+      - name: Fetch SQLite snapshot from R2 + decompress
         run: |
           python - <<'PY'
           import gzip, shutil, pathlib
-          src = pathlib.Path("data/bddk_data.db.gz")
-          dst = pathlib.Path("data/bddk_data.db")
-          if not dst.exists() and src.exists():
-              with gzip.open(src, "rb") as s, open(dst, "wb") as d:
+          from src.audit_reports import r2_storage
+          gz  = pathlib.Path("data/bddk_data.db.gz")
+          db  = pathlib.Path("data/bddk_data.db")
+          gz.parent.mkdir(parents=True, exist_ok=True)
+          if r2_storage.exists("state/bddk_data.db.gz"):
+              size = r2_storage.download_to("state/bddk_data.db.gz", gz)
+              print(f"Pulled state/bddk_data.db.gz from R2 ({size/1e6:.1f} MB)")
+              with gzip.open(gz, "rb") as s, open(db, "wb") as d:
                   shutil.copyfileobj(s, d)
-              print(f"Decompressed {src.stat().st_size/1e6:.1f} MB -> {dst.stat().st_size/1e6:.1f} MB")
+              print(f"Decompressed to {db.stat().st_size/1e6:.1f} MB")
+          else:
+              print("No snapshot in R2 yet — starting from empty DB.")
           PY
 
-      - name: Run refresh (monthly + weekly + vacuum + gzip)
+      - name: Run refresh (monthly + weekly + EVDS + vacuum + gzip)
         env:
           EVDS_API_KEY: ${{ secrets.EVDS_API_KEY }}
-          PYTHONIOENCODING: utf-8
         run: python scripts/refresh.py
 
       - name: Sync audit reports (scrape new PDFs → R2 → extract → local DB)
-        env:
-          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
-          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          PYTHONIOENCODING: utf-8
         # Idempotent: skips PDFs already in R2 and (ticker,period,kind) already
         # extracted with success=1. New audit reports get picked up automatically
         # the week after a bank publishes.
@@ -66,20 +78,17 @@ jobs:
       - name: Push incremental rows to Cloudflare D1
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          PYTHONIOENCODING: utf-8
         # 168h (7 days) window — covers the weekly cron interval. Idempotent
         # via INSERT OR REPLACE; re-running overwrites unchanged rows safely.
         # Covers monthly / weekly / EVDS / bank_audit_* tables.
         run: python scripts/push_to_d1.py --hours 168
 
-      - name: Commit + push new snapshot (if changed)
+      - name: Upload new SQLite snapshot back to R2
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/bddk_data.db.gz
-          if git diff --staged --quiet; then
-            echo "No data changes — nothing to commit."
-          else
-            git commit -m "Automated data refresh ($(date -u +%Y-%m-%d))"
-            git push
-          fi
+          python - <<'PY'
+          from src.audit_reports import r2_storage
+          import pathlib
+          gz = pathlib.Path("data/bddk_data.db.gz")
+          size = r2_storage.upload_file(gz, "state/bddk_data.db.gz")
+          print(f"Uploaded {size/1e6:.1f} MB to R2 state/bddk_data.db.gz")
+          PY

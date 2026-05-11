@@ -67,11 +67,14 @@ Saturday 03:00 UTC. Full pipeline:
 On push touching `web/**`. Builds OpenNext bundle and deploys to
 Cloudflare Workers.
 
-## Why the local `.db.gz` still exists
+## Why the SQLite snapshot exists
 
 The cron pipeline uses a local SQLite as a staging area between scrapers
 and D1 (it's cheap to query, supports complex SQL the scrapers expect,
 and gives us a backup of the canonical numbers). After each run the
-gzipped snapshot (`data/bddk_data.db.gz`, ~55 MB) is committed back to
-git so the next cron starts from the last known state without
-re-scraping from scratch. Production reads go to D1, not this file.
+gzipped snapshot (~55 MB) is uploaded to R2 at
+`bddk-audit-reports/state/bddk_data.db.gz` so the next cron starts from
+the last known state without re-scraping from scratch.
+
+Production dashboard reads go to D1, not this snapshot — the R2 copy is
+purely pipeline state.

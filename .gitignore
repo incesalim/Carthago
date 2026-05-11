@@ -48,8 +48,9 @@ data/processed/**/*.xlsx
 *.db
 *.sqlite
 *.sqlite3
-# but DO ship the compressed DB snapshot that bootstraps each cron run
-!data/bddk_data.db.gz
+# Compressed DB snapshot now lives in R2 (state/bddk_data.db.gz);
+# previously committed here.
+data/bddk_data.db.gz
 
 # External reports — third-party PDFs, do not redistribute
 data/external_reports/

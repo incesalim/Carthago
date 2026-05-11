@@ -85,10 +85,12 @@ bddk_analysis/
 │   └── migrations/                 ← gitignored · regenerated from local SQLite
 │
 ├── data/                           ← all data (mostly gitignored)
-│   ├── bddk_data.db                ← local SQLite (gitignored)
-│   ├── bddk_data.db.gz             ← committed snapshot (~55 MB) — cron bootstraps from this
-│   ├── banks/                      ← URL config + BDDK bank list
-│   └── external_reports/           ← reference PDFs (BBVA, IMF, …)
+│   ├── banks/                      ← URL config + BDDK bank list (committed)
+│   └── external_reports/           ← reference PDFs (BBVA, IMF, …) [local]
+│   # Not in git, not on laptop in production:
+│   #   bddk_data.db.gz             ← R2 bucket bddk-audit-reports, key state/
+│   #   audit_reports/*.pdf         ← R2 bucket bddk-audit-reports, by ticker
+│   #   bddk_data.db                ← rebuilt in each cron run from R2 snapshot
 │
 └── .github/workflows/
     ├── refresh-data.yml            ← Sat 03 UTC: monthly + weekly + EVDS + audit + push
