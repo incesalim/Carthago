@@ -19,6 +19,14 @@ from pathlib import Path
 
 import pdfplumber
 
+# Optional fallback parser — used when pdfplumber's column-flattened text
+# misses item names (some banks change layouts year over year).
+try:
+    import fitz  # PyMuPDF
+    _HAS_FITZ = True
+except ImportError:
+    _HAS_FITZ = False
+
 # Match a numeric token. Handles both EN and TR thousands/decimal conventions:
 #   EN:  1,234,567.89
 #   TR:  1.234.567,89
@@ -311,13 +319,33 @@ def _locate_pages(pdf: pdfplumber.PDF) -> dict[str, int]:
         kws = [_norm(k) for k in cfg['keywords']]
         # Pattern: ^I+ followed by any keyword
         pat = re.compile(r'^I+(?:' + '|'.join(re.escape(k) for k in kws) + r')')
-        matchers[kind] = (pat, [_norm(s) for s in cfg['support']])
+        matchers[kind] = (
+            pat,
+            [_norm(k) for k in cfg['keywords']],
+            [_norm(s) for s in cfg['support']],
+        )
     out: dict[str, int] = {}
+    # Helper: count rows that look like hierarchy+number patterns. Used to confirm
+    # a page is actually a statement (not a section heading mentioning the words).
+    def has_data_rows(text: str, min_rows: int = 8) -> bool:
+        cnt = 0
+        for ln in text.split('\n'):
+            if re.match(r'^\s*(?:[IVX]+\.?|\d+(?:\.\d+){0,3}\.?)\s', ln) and re.search(r'\d{2,}', ln):
+                cnt += 1
+                if cnt >= min_rows:
+                    return True
+        return False
+    pdf_path = pdf.stream.name if hasattr(pdf, 'stream') else None
     for i, page in enumerate(pdf.pages, 1):
-        text = page.extract_text() or ''
+        text_pp = page.extract_text() or ''
+        # Always combine pdfplumber + fitz text when available. Some banks
+        # (e.g. Akbank 2026Q1) render item names as absolutely-positioned text
+        # that pdfplumber's column-flatten drops but fitz captures cleanly.
+        text_fz = _fitz_page_text(pdf_path, i - 1) if (_HAS_FITZ and pdf_path) else ''
+        text = text_pp + '\n' + text_fz
         norm_full = _norm(text)
         norm_lines = [_norm(ln) for ln in text.split('\n')]
-        for kind, (pat, supports) in matchers.items():
+        for kind, (pat, keywords, supports) in matchers.items():
             if kind in out:
                 continue
             first_match = any(pat.match(ln) for ln in norm_lines)
@@ -330,6 +358,153 @@ def _locate_pages(pdf: pdfplumber.PDF) -> dict[str, int]:
     return out
 
 
+def _fitz_page_text(pdf_path: str, page_idx_0: int) -> str:
+    """Extract page text with PyMuPDF using word-level coordinates.
+
+    Reconstructs lines by y-bucketing words (same approach as
+    extract_page_text_repaired for pdfplumber). This catches text that fitz's
+    default get_text() ordering splits across lines, and preserves the row
+    structure that pdfplumber's column-flatten loses for some banks (e.g.
+    Akbank 2026Q1)."""
+    if not _HAS_FITZ:
+        return ""
+    try:
+        doc = fitz.open(pdf_path)
+        page = doc[page_idx_0]
+        # get_text("words") returns (x0, y0, x1, y1, "text", block, line, word)
+        words = page.get_text("words")
+        doc.close()
+        if not words:
+            return ""
+        rows: dict[int, list[tuple[float, float, str]]] = defaultdict(list)
+        for w in words:
+            x0, y0, x1, _y1, text = w[0], w[1], w[2], w[3], w[4]
+            y_key = int(round(y0))
+            rows[y_key].append((x0, x1, text))
+        # Merge close y-buckets (within 3px) into single rows
+        sorted_keys = sorted(rows.keys())
+        merged: dict[int, list[tuple[float, float, str]]] = {}
+        last_key = None
+        for k in sorted_keys:
+            if last_key is not None and k - last_key <= 3:
+                merged[last_key].extend(rows[k])
+            else:
+                merged[k] = list(rows[k])
+                last_key = k
+        out_lines: list[str] = []
+        for y in sorted(merged.keys()):
+            ws = sorted(merged[y], key=lambda t: t[0])
+            # Merge digit-fragment runs: a single digit token immediately before
+            # a digit-rich token within ~4px → join them (same fix as the
+            # pdfplumber path uses).
+            tokens: list[tuple[float, float, str]] = []
+            i = 0
+            while i < len(ws):
+                x0, x1, text = ws[i]
+                j = i + 1
+                while j < len(ws):
+                    nx0, nx1, ntext = ws[j]
+                    gap = nx0 - x1
+                    if (
+                        re.match(r'^\d{1,2}$', text)
+                        and re.match(r'^[\d.,]', ntext)
+                        and gap < 4
+                    ):
+                        text = text + ntext
+                        x1 = nx1
+                        j += 1
+                        continue
+                    if (
+                        text and re.match(r'^\d', text[-1])
+                        and re.match(r'^[.,]\d', ntext)
+                        and gap < 4
+                    ):
+                        text = text + ntext
+                        x1 = nx1
+                        j += 1
+                        continue
+                    break
+                tokens.append((x0, x1, text))
+                i = j
+            line = ' '.join(t for _, _, t in tokens)
+            out_lines.append(line)
+        return '\n'.join(out_lines)
+    except Exception:
+        return ""
+
+
+def _fitz_merge_rows(text: str, n_cols: int) -> str:
+    """Some banks (e.g. Akbank 2026Q1) split each row across multiple physical
+    lines: label on one line, N values across the next 1–2 lines. Re-join them
+    so the standard _parse_rows logic can recognize them as single rows.
+
+    Also fixes fitz's no-space output (e.g. "1.1.1Nakit Değerler …" → "1.1.1 Nakit…").
+    """
+    # Inject space after hierarchy markers that have no whitespace before the label
+    _INSERT_SPACE = re.compile(r'^([IVX]+\.|[A-Z]\.|\d+(?:\.\d+)*\.?)([A-Za-zÇĞİÖŞÜçğıöşü(])')
+    lines: list[str] = []
+    for raw in text.split('\n'):
+        s = raw.strip()
+        if not s:
+            continue
+        m = _INSERT_SPACE.match(s)
+        if m:
+            s = m.group(1) + ' ' + s[m.end(1):]
+        lines.append(s)
+    out: list[str] = []
+    i = 0
+    NUM_RE = re.compile(r'^[\d.,()\- ]+$')
+    while i < len(lines):
+        ln = lines[i]
+        # Already has hierarchy + enough numbers → keep as-is
+        nums_in_line = len(re.findall(NUM_PAT, ln))
+        if HIERARCHY_PAT.match(ln) and nums_in_line >= n_cols:
+            out.append(ln)
+            i += 1
+            continue
+        # Line is hierarchy + label only → look ahead for value lines
+        if HIERARCHY_PAT.match(ln) and nums_in_line < n_cols:
+            accumulated = ln
+            j = i + 1
+            while j < len(lines) and len(re.findall(NUM_PAT, accumulated)) < n_cols and j - i <= 3:
+                # Stop if we hit a NEW item header — hierarchy + alphabetic label.
+                # Plain value lines (e.g. "228.693.745 272.963.728 501.657.473")
+                # also match HIERARCHY_PAT (the first number looks like a hierarchy
+                # marker), so we additionally check for alphabetic text in the rest.
+                m_h = HIERARCHY_PAT.match(lines[j])
+                if m_h and re.search(r'[A-Za-zÇĞİÖŞÜçğıöşü]', m_h.group('rest')[:30]):
+                    break
+                accumulated += ' ' + lines[j]
+                j += 1
+            out.append(accumulated)
+            i = j
+            continue
+        out.append(ln)
+        i += 1
+    return '\n'.join(out)
+
+
+def _parse_page(pdf_path: str, page_idx_1: int, n_cols: int) -> list[tuple[str, list[float | None]]]:
+    """Try BOTH pdfplumber and PyMuPDF; pick whichever parses more rows.
+
+    Some banks (e.g. Akbank 2026Q1) trip pdfplumber's column-flatten which
+    silently truncates item labels — pdfplumber still returns N rows, but with
+    'I-a' instead of '1.1.1 Nakit Değerler ve Merkez Bankası (I-a)'. Falling
+    back only when pdfplumber returns 0 rows misses this. Compare both."""
+    import pdfplumber as _pp
+    with _pp.open(pdf_path) as pdf:
+        pp_text = extract_page_text_repaired(pdf.pages[page_idx_1 - 1])
+    pp_rows = _parse_rows(pp_text, n_cols)
+    if not _HAS_FITZ:
+        return pp_rows
+    fitz_text = _fitz_page_text(pdf_path, page_idx_1 - 1)
+    if not fitz_text:
+        return pp_rows
+    fz_rows = _parse_rows(_fitz_merge_rows(fitz_text, n_cols), n_cols)
+    # Prefer whichever finds more rows. Tie → pdfplumber (proven baseline).
+    return fz_rows if len(fz_rows) > len(pp_rows) else pp_rows
+
+
 def extract(pdf_path: str | Path) -> BankReport:
     """Parse one BRSA-format audit report. Returns a BankReport with rows populated."""
     pdf_path = str(pdf_path)
@@ -337,8 +512,7 @@ def extract(pdf_path: str | Path) -> BankReport:
     with pdfplumber.open(pdf_path) as pdf:
         loc = _locate_pages(pdf)
         if 'bs_assets' in loc:
-            text = extract_page_text_repaired(pdf.pages[loc['bs_assets'] - 1])
-            for order, (label, vals) in enumerate(_parse_rows(text, 6), 1):
+            for order, (label, vals) in enumerate(_parse_page(pdf_path, loc['bs_assets'], 6), 1):
                 h, name, fn = _split_label(label)
                 rep.bs_assets.append(StatementRow(
                     order=order, hierarchy=h, name=name, footnote=fn,
@@ -346,8 +520,7 @@ def extract(pdf_path: str | Path) -> BankReport:
                     pri_tl=vals[3], pri_fc=vals[4], pri_total=vals[5],
                 ))
         if 'bs_liab' in loc:
-            text = extract_page_text_repaired(pdf.pages[loc['bs_liab'] - 1])
-            for order, (label, vals) in enumerate(_parse_rows(text, 6), 1):
+            for order, (label, vals) in enumerate(_parse_page(pdf_path, loc['bs_liab'], 6), 1):
                 h, name, fn = _split_label(label)
                 rep.bs_liabilities.append(StatementRow(
                     order=order, hierarchy=h, name=name, footnote=fn,
@@ -355,8 +528,7 @@ def extract(pdf_path: str | Path) -> BankReport:
                     pri_tl=vals[3], pri_fc=vals[4], pri_total=vals[5],
                 ))
         if 'off_bs' in loc:
-            text = extract_page_text_repaired(pdf.pages[loc['off_bs'] - 1])
-            for order, (label, vals) in enumerate(_parse_rows(text, 6), 1):
+            for order, (label, vals) in enumerate(_parse_page(pdf_path, loc['off_bs'], 6), 1):
                 h, name, fn = _split_label(label)
                 rep.off_balance.append(StatementRow(
                     order=order, hierarchy=h, name=name, footnote=fn,
@@ -364,8 +536,7 @@ def extract(pdf_path: str | Path) -> BankReport:
                     pri_tl=vals[3], pri_fc=vals[4], pri_total=vals[5],
                 ))
         if 'pl' in loc:
-            text = extract_page_text_repaired(pdf.pages[loc['pl'] - 1])
-            for order, (label, vals) in enumerate(_parse_rows(text, 2), 1):
+            for order, (label, vals) in enumerate(_parse_page(pdf_path, loc['pl'], 2), 1):
                 h, name, fn = _split_label(label)
                 rep.profit_loss.append(StatementRow(
                     order=order, hierarchy=h, name=name, footnote=fn,
