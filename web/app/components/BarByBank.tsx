@@ -8,6 +8,7 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  LabelList,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -56,28 +57,60 @@ export default function BarByBank({
 }: Props) {
   const fmt = formatters[format];
   const ordered = data
-    .filter((r) => labels[r.bank_type_code])
-    .map((r) => ({ ...r, label: labels[r.bank_type_code] }))
+    .filter((r) => labels[r.bank_type_code] && r.value != null && !Number.isNaN(r.value))
+    .map((r) => ({ ...r, label: labels[r.bank_type_code], value: Number(r.value) }))
     .sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
+
+  // Domain padding so even small bars stay visible.
+  const maxAbs = ordered.reduce((m, r) => Math.max(m, Math.abs(r.value)), 0);
+  const domain: [number, number] = [
+    Math.min(0, ...ordered.map((r) => r.value)) * 1.1,
+    Math.max(0, ...ordered.map((r) => r.value)) * 1.1 || maxAbs * 1.1 || 1,
+  ];
+  const labelFmt = (v: React.ReactNode) =>
+    v == null ? "" : fmt(Number(v), decimals);
 
   return (
     <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm hover:shadow-md transition">
       {title && <div className="text-sm font-medium text-neutral-800 mb-3">{title}</div>}
       <div style={{ height }}>
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={ordered} layout="vertical" margin={{ top: 5, right: 30, left: 70, bottom: 5 }}>
+          <BarChart
+            data={ordered}
+            layout="vertical"
+            margin={{ top: 5, right: 60, left: 10, bottom: 5 }}
+            barCategoryGap="20%"
+          >
             <CartesianGrid strokeDasharray="3 3" stroke="#eee" horizontal={false} />
-            <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={(v) => fmt(v, 0)} />
-            <YAxis type="category" dataKey="label" tick={{ fontSize: 11 }} width={70} />
+            <XAxis
+              type="number"
+              tick={{ fontSize: 11 }}
+              tickFormatter={(v) => fmt(v, 0)}
+              domain={domain}
+            />
+            <YAxis
+              type="category"
+              dataKey="label"
+              tick={{ fontSize: 11 }}
+              width={90}
+              axisLine={false}
+              tickLine={false}
+            />
             <Tooltip
               contentStyle={{ fontSize: 11, padding: "6px 10px", borderRadius: 4 }}
               formatter={(v) => [fmt(Number(v), decimals), ""]}
               cursor={{ fill: "#f5f5f5" }}
             />
-            <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-              {ordered.map((_, i) => (
-                <Cell key={i} fill={COLORS[i % COLORS.length]} />
+            <Bar dataKey="value" radius={[0, 4, 4, 0]} isAnimationActive={false}>
+              {ordered.map((row, i) => (
+                <Cell key={`bar-${row.bank_type_code}`} fill={COLORS[i % COLORS.length]} />
               ))}
+              <LabelList
+                dataKey="value"
+                position="right"
+                formatter={labelFmt}
+                style={{ fontSize: 11, fill: "#404040" }}
+              />
             </Bar>
           </BarChart>
         </ResponsiveContainer>
