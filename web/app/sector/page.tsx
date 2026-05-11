@@ -39,7 +39,7 @@ export default async function SectorPage() {
   const latest = data.at(-1);
 
   return (
-    <main className="p-8 max-w-5xl mx-auto">
+    <main className="px-8 py-8">
       <h1 className="text-3xl font-bold mb-2">Banking Sector — Total Assets</h1>
       <p className="text-sm text-muted-foreground mb-6">
         Live D1 query · {data.length} months loaded
