@@ -54,25 +54,36 @@ BATCH_SIZE = 100  # rows per INSERT statement
 
 
 def fetch_recent(conn: sqlite3.Connection, table: str, hours: int) -> list[str]:
-    """Return SQL statements (INSERT OR REPLACE) for rows updated in last `hours`."""
-    cols = [c[1] for c in conn.execute(f"PRAGMA table_info({table})")]
-    if "downloaded_at" not in cols:
-        return [f"-- {table}: no downloaded_at column, skipped"]
+    """Return SQL statements (INSERT OR REPLACE) for rows updated in last `hours`.
 
+    Tables with a `downloaded_at` column are filtered by it.
+    bank_audit_* tables don't have one — they're filtered by extracted_at
+    in bank_audit_extractions (the parent log table).
+    """
+    cols = [c[1] for c in conn.execute(f"PRAGMA table_info({table})")]
     col_list = ",".join(cols)
-    n = conn.execute(
-        f"SELECT COUNT(*) FROM {table} "
-        f"WHERE downloaded_at >= datetime('now', '-{hours} hours')"
-    ).fetchone()[0]
+
+    if "downloaded_at" in cols:
+        where = f"WHERE downloaded_at >= datetime('now', '-{hours} hours')"
+    elif table == "bank_audit_extractions":
+        where = f"WHERE extracted_at >= datetime('now', '-{hours} hours')"
+    elif table in ("bank_audit_balance_sheet", "bank_audit_profit_loss"):
+        # Pull rows whose (bank_ticker, period, kind) was extracted recently
+        where = (
+            "WHERE (bank_ticker, period, kind) IN ("
+            f"  SELECT bank_ticker, period, kind FROM bank_audit_extractions "
+            f"  WHERE extracted_at >= datetime('now', '-{hours} hours'))"
+        )
+    else:
+        return [f"-- {table}: no time column, skipped"]
+
+    n = conn.execute(f"SELECT COUNT(*) FROM {table} {where}").fetchone()[0]
     if n == 0:
         return [f"-- {table}: no rows in last {hours}h"]
 
     out: list[str] = [f"-- {table}: {n} rows from last {hours}h"]
     batch: list[str] = []
-    rows_iter = conn.execute(
-        f"SELECT {col_list} FROM {table} "
-        f"WHERE downloaded_at >= datetime('now', '-{hours} hours')"
-    )
+    rows_iter = conn.execute(f"SELECT {col_list} FROM {table} {where}")
     for r in rows_iter:
         vals = []
         for v in r:
