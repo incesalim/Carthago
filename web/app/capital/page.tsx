@@ -3,6 +3,8 @@
  */
 import {
   ratioCar,
+  ratioRwaDensity,
+  ratioOffBsDerivatives,
   totalEquity,
   equityYoY,
   leverage,
@@ -22,12 +24,15 @@ export default async function CapitalPage() {
 
   const [
     carAll, carByBank, equity, equityYoYSec, lev,
+    rwa, offBsDeriv,
   ] = await Promise.all([
     ratioCar(PRIMARY_BANK_TYPES),
     latestPerBank(ratioCar, groups),
     totalEquity(sector),
     equityYoY(sector),
     leverage(PRIMARY_BANK_TYPES),
+    ratioRwaDensity(PRIMARY_BANK_TYPES),
+    ratioOffBsDerivatives(PRIMARY_BANK_TYPES),
   ]);
 
   return (
@@ -90,6 +95,33 @@ export default async function CapitalPage() {
             title="Liabilities / Equity (%)"
             yFormat="pct"
             decimals={0}
+          />
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <div className="space-y-0.5">
+          <h2 className="text-base font-semibold text-neutral-900">Risk Density</h2>
+          <p className="text-xs text-neutral-500">
+            How concentrated each group&apos;s balance-sheet risk is — lower RWA-net/gross
+            means more low-weight exposure (govt bonds, cash). Off-BS derivatives /
+            total assets shows derivative book size relative to balance sheet.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <TrendChart
+            data={rwa}
+            seriesLabels={BANK_TYPE_LABELS}
+            title="RWA Net / Gross (%)"
+            yFormat="pct"
+            decimals={1}
+          />
+          <TrendChart
+            data={offBsDeriv}
+            seriesLabels={BANK_TYPE_LABELS}
+            title="Off-Balance-Sheet Derivatives / Total Assets (%)"
+            yFormat="pct"
+            decimals={1}
           />
         </div>
       </section>

@@ -1,9 +1,13 @@
 /**
- * Asset Quality tab — NPL ratio, NPL by bank, coverage, gross NPL level.
+ * Asset Quality tab — NPL ratio, NPL by bank, coverage, gross NPL level,
+ * consumer NPL composition + ratios, commercial NPL ratios.
  */
 import {
   ratioNpl,
   ratioCoverage,
+  consumerNplMix,
+  consumerNplRatios,
+  commercialNplRatios,
   latestPerBank,
   PRIMARY_BANK_TYPES,
   BANK_TYPES,
@@ -13,6 +17,7 @@ import {
 import { getDB } from "@/app/lib/db";
 import BarByBank from "@/app/components/BarByBank";
 import TrendChart from "@/app/components/TrendChart";
+import StackedArea from "@/app/components/StackedArea";
 
 export const dynamic = "force-dynamic";
 
@@ -62,17 +67,48 @@ function Section({ title, subtitle, children }: { title: string; subtitle?: stri
   );
 }
 
+// Reshape `consumerNplRatios` rows into long-form TrendChart input keyed by
+// a synthetic "bank_type_code" per segment (so we get one line per segment).
+function ratiosToTrendRows(
+  rows: Array<{ period: string; housing: number | null; auto: number | null; gpl: number | null; cards: number | null }>,
+): TimeSeriesRow[] {
+  const out: TimeSeriesRow[] = [];
+  for (const r of rows) {
+    if (r.housing != null) out.push({ period: r.period, bank_type_code: "HOUSING", value: r.housing });
+    if (r.auto    != null) out.push({ period: r.period, bank_type_code: "AUTO",    value: r.auto });
+    if (r.gpl     != null) out.push({ period: r.period, bank_type_code: "GPL",     value: r.gpl });
+    if (r.cards   != null) out.push({ period: r.period, bank_type_code: "CARDS",   value: r.cards });
+  }
+  return out;
+}
+
+function commercialToTrendRows(
+  rows: Array<{ period: string; sme: number | null; commercial: number | null; non_sme: number | null }>,
+): TimeSeriesRow[] {
+  const out: TimeSeriesRow[] = [];
+  for (const r of rows) {
+    if (r.sme        != null) out.push({ period: r.period, bank_type_code: "SME",        value: r.sme });
+    if (r.commercial != null) out.push({ period: r.period, bank_type_code: "COMMERCIAL", value: r.commercial });
+    if (r.non_sme    != null) out.push({ period: r.period, bank_type_code: "NONSME",     value: r.non_sme });
+  }
+  return out;
+}
+
 export default async function AssetQualityPage() {
   const sector = [BANK_TYPES.SECTOR];
   const groups = PRIMARY_BANK_TYPES.filter((c) => c !== BANK_TYPES.SECTOR);
 
   const [
     nplAll, nplByBank, coverageAll, gross,
+    cMix, cRatios, commRatios,
   ] = await Promise.all([
     ratioNpl(PRIMARY_BANK_TYPES),
     latestPerBank(ratioNpl, groups),
     ratioCoverage(PRIMARY_BANK_TYPES),
     nplAmount(sector),
+    consumerNplMix(),
+    consumerNplRatios(),
+    commercialNplRatios(),
   ]);
 
   return (
@@ -80,7 +116,7 @@ export default async function AssetQualityPage() {
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">Asset Quality</h1>
         <p className="text-sm text-neutral-500">
-          NPL ratio + coverage · BDDK Table 15 · sector + group breakdowns
+          NPL ratio + coverage · sub-segment NPL ratios · BDDK Tables 4, 5, 15 + weekly bulletin
         </p>
       </header>
 
@@ -122,6 +158,56 @@ export default async function AssetQualityPage() {
             decimals={0}
           />
         </div>
+      </Section>
+
+      <Section title="Consumer NPL Breakdown" subtitle="Where household-credit deterioration is concentrated — derived from BDDK Table 4 sub-segments, sector only.">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <StackedArea
+            data={cMix.map((r) => ({
+              period: r.period,
+              Housing: r.housing ?? 0,
+              Auto: r.auto ?? 0,
+              "Gen. Purpose": r.gpl ?? 0,
+              "Retail Cards": r.cards ?? 0,
+            }))}
+            series={[
+              { key: "Housing", label: "Housing" },
+              { key: "Auto", label: "Auto" },
+              { key: "Gen. Purpose", label: "Gen. Purpose" },
+              { key: "Retail Cards", label: "Retail Cards" },
+            ]}
+            title="Consumer NPL — Composition (sector, TL bn)"
+            yFormat="bn"
+            decimals={0}
+          />
+          <TrendChart
+            data={ratiosToTrendRows(cRatios)}
+            seriesLabels={{
+              HOUSING: "Housing",
+              AUTO: "Auto",
+              GPL: "Gen. Purpose",
+              CARDS: "Retail Cards",
+            }}
+            title="Consumer NPL Ratio by Product (%)"
+            yFormat="pct"
+            decimals={2}
+          />
+        </div>
+      </Section>
+
+      <Section title="Commercial NPL by Segment" subtitle="SME vs commercial-total vs derived non-SME, weekly BDDK bulletin (sector).">
+        <TrendChart
+          data={commercialToTrendRows(commRatios)}
+          seriesLabels={{
+            SME: "SME",
+            COMMERCIAL: "Commercial (all)",
+            NONSME: "Non-SME (derived)",
+          }}
+          title="Commercial NPL Ratio (%) — sector"
+          yFormat="pct"
+          decimals={2}
+          height={320}
+        />
       </Section>
     </main>
   );
