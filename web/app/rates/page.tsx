@@ -75,7 +75,7 @@ export default async function RatesPage() {
   const cbrtCost = data["TP.APIFON4"]?.at(-1);
 
   return (
-    <main className="p-8 max-w-7xl mx-auto">
+    <main className="px-8 py-8 space-y-6">
       <h1 className="text-3xl font-bold mb-2">Rates &amp; Macro</h1>
       <p className="text-sm text-neutral-500 mb-6">
         TCMB EVDS · daily snapshots · cached in D1, refreshed weekly with the BDDK pipeline

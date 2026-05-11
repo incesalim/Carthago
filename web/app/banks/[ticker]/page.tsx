@@ -56,7 +56,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   const distinctPeriods = Array.from(new Set(periods.map((p) => p.period))).sort().reverse();
 
   return (
-    <main className="p-8 max-w-7xl mx-auto">
+    <main className="px-8 py-8">
       <div className="flex items-baseline justify-between mb-2">
         <h1 className="text-3xl font-bold">{ticker}</h1>
         <Link href="/banks" className="text-sm text-neutral-500 hover:text-neutral-900">

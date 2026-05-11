@@ -16,7 +16,7 @@ const TABS = [
 export default function Nav() {
   return (
     <nav className="sticky top-0 z-20 border-b border-neutral-200 bg-white/85 backdrop-blur supports-[backdrop-filter]:bg-white/70">
-      <div className="max-w-7xl mx-auto flex flex-wrap items-center gap-1 px-6 py-3">
+      <div className="flex flex-wrap items-center gap-1 px-8 py-3">
         <Link href="/" className="font-semibold mr-6 text-neutral-900 tracking-tight">
           🇹🇷 Banking Sector
         </Link>

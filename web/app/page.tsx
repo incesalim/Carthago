@@ -97,7 +97,7 @@ export default async function OverviewPage() {
   const r = roe.at(-1);
 
   return (
-    <main className="px-6 py-8 max-w-7xl mx-auto space-y-8">
+    <main className="px-8 py-8 space-y-8">
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">Banking Sector — Overview</h1>
         <p className="text-sm text-neutral-500">

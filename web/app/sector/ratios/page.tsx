@@ -86,7 +86,7 @@ export default async function RatiosPage({
   const re = roe.at(-1);
 
   return (
-    <main className="p-8 max-w-6xl mx-auto">
+    <main className="px-8 py-8">
       <h1 className="text-3xl font-bold mb-2">Banking Sector — Key Ratios</h1>
       <p className="text-sm text-neutral-500 mb-4">
         BDDK monthly bulletin · {BANK_TYPE_LABELS[bankType]} ({bankType}) · queried live from D1

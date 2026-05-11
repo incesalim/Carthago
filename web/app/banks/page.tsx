@@ -47,7 +47,7 @@ export default async function BanksPage() {
   const banks = await bankSummaries();
 
   return (
-    <main className="p-8 max-w-7xl mx-auto">
+    <main className="px-8 py-8">
       <h1 className="text-3xl font-bold mb-2">Banks</h1>
       <p className="text-sm text-neutral-500 mb-6">
         {banks.length} banks · per-bank quarterly BRSA audit reports
