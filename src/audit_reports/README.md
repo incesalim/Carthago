@@ -53,8 +53,9 @@ April / July / October / February):
 2. **That's it.** The Saturday cron picks up the new entries
    automatically: downloads them to R2, extracts them, pushes to D1.
 
-If you want it live faster than next Saturday, fire the workflow
-manually from **GitHub → Actions → Refresh BDDK data → Run workflow**.
+To pick up the change before the next Saturday cron, trigger the
+workflow manually from **GitHub → Actions → Refresh BDDK data →
+Run workflow**.
 
 ## Modules
 
