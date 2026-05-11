@@ -47,6 +47,17 @@ jobs:
           PYTHONIOENCODING: utf-8
         run: python scripts/refresh.py
 
+      - name: Sync audit reports (scrape new PDFs → R2 → extract → local DB)
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          PYTHONIOENCODING: utf-8
+        # Idempotent: skips PDFs already in R2 and (ticker,period,kind) already
+        # extracted with success=1. New audit reports get picked up automatically
+        # the week after a bank publishes.
+        run: python scripts/sync_audit_reports.py --workers 16
+
       - name: Setup Node (for wrangler)
         uses: actions/setup-node@v4
         with:
@@ -58,6 +69,7 @@ jobs:
           PYTHONIOENCODING: utf-8
         # 168h (7 days) window — covers the weekly cron interval. Idempotent
         # via INSERT OR REPLACE; re-running overwrites unchanged rows safely.
+        # Covers monthly / weekly / EVDS / bank_audit_* tables.
         run: python scripts/push_to_d1.py --hours 168
 
       - name: Commit + push new snapshot (if changed)

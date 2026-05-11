@@ -13,6 +13,13 @@ openpyxl>=3.1.0
 # Database
 sqlalchemy>=2.0.0
 
+# Audit-report PDF extraction
+pdfplumber>=0.11.0
+pymupdf>=1.24.0
+
+# Cloudflare R2 (S3-compatible) for audit-report PDF storage
+boto3>=1.34.0
+
 # Dashboard & Visualization
 plotly>=5.18.0
 dash>=2.14.0
