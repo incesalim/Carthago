@@ -61,8 +61,8 @@ export default function BarByBank({
     .sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
 
   return (
-    <div className="rounded-lg border bg-white p-4 shadow-sm">
-      {title && <div className="text-sm font-medium mb-2">{title}</div>}
+    <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm hover:shadow-md transition">
+      {title && <div className="text-sm font-medium text-neutral-800 mb-3">{title}</div>}
       <div style={{ height }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={ordered} layout="vertical" margin={{ top: 5, right: 30, left: 70, bottom: 5 }}>

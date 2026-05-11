@@ -1,8 +1,8 @@
 /**
  * Home / Overview tab.
  *
- * 6 sector-level KPI cards + bar chart of loan growth by bank type +
- * trend chart of NPL across groups.
+ * Sector-level KPI cards + bar chart of loan growth by bank type +
+ * trend chart of NPL across groups + total-assets time series.
  */
 import {
   ratioCar,
@@ -10,7 +10,9 @@ import {
   ratioNpl,
   ratioRoe,
   totalAssets,
+  totalAssetsYoY,
   totalLoansYoY,
+  totalDepositsYoY,
   latestPerBank,
   PRIMARY_BANK_TYPES,
   BANK_TYPES,
@@ -31,18 +33,24 @@ interface KpiCardProps {
   series?: TimeSeriesRow[];
   format?: "pct" | "trn" | "raw";
   decimals?: number;
+  tone?: "neutral" | "positive" | "warn";
 }
 
-function KpiCard({ label, value, period, hint, series, format, decimals }: KpiCardProps) {
+function KpiCard({ label, value, period, hint, series, format, decimals, tone = "neutral" }: KpiCardProps) {
+  const toneClass = {
+    neutral: "text-neutral-900",
+    positive: "text-emerald-700",
+    warn: "text-amber-700",
+  }[tone];
   return (
-    <div className="rounded-lg border bg-white p-5 shadow-sm">
-      <div className="text-xs uppercase tracking-wide text-neutral-500">{label}</div>
-      <div className="mt-2 text-3xl font-semibold tabular-nums">{value}</div>
-      <div className="mt-1 text-xs text-neutral-500">
+    <div className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm hover:shadow-md transition">
+      <div className="text-[10px] uppercase tracking-wider text-neutral-500 font-medium">{label}</div>
+      <div className={`mt-1.5 text-2xl font-semibold tabular-nums ${toneClass}`}>{value}</div>
+      <div className="mt-0.5 text-xs text-neutral-500">
         {period}{hint ? ` · ${hint}` : ""}
       </div>
       {series && series.length > 0 && (
-        <div className="mt-3">
+        <div className="mt-3 -mx-1">
           <Sparkline
             data={series.map((r) => ({ period: r.period, value: r.value ?? 0 }))}
             format={format}
@@ -64,11 +72,13 @@ export default async function OverviewPage() {
   const groupsExSector = PRIMARY_BANK_TYPES.filter((c) => c !== BANK_TYPES.SECTOR);
 
   const [
-    assets, loansYoY, npl, car, ldr, roe,
+    assets, assetsYoY, loansYoY, depositsYoY, npl, car, ldr, roe,
     loanYoYByBank, nplAllGroups,
   ] = await Promise.all([
     totalAssets(sector),
+    totalAssetsYoY(sector),
     totalLoansYoY(sector),
+    totalDepositsYoY(sector),
     ratioNpl(sector),
     ratioCar(sector),
     ratioLdr(sector),
@@ -78,24 +88,37 @@ export default async function OverviewPage() {
   ]);
 
   const a = assets.at(-1);
+  const ay = assetsYoY.at(-1);
   const ly = loansYoY.at(-1);
+  const dy = depositsYoY.at(-1);
   const n = npl.at(-1);
   const c = car.at(-1);
   const l = ldr.at(-1);
   const r = roe.at(-1);
 
   return (
-    <main className="p-8 max-w-7xl mx-auto">
-      <h1 className="text-3xl font-bold mb-2">Banking Sector — Overview</h1>
-      <p className="text-sm text-neutral-500 mb-8">
-        BDDK monthly bulletin · sector aggregate · live D1 query
-      </p>
+    <main className="px-6 py-8 max-w-7xl mx-auto space-y-8">
+      <header className="space-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight">Banking Sector — Overview</h1>
+        <p className="text-sm text-neutral-500">
+          BDDK monthly bulletin · sector aggregate · live D1 query
+        </p>
+      </header>
 
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+      {/* Top row — size + growth */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KpiCard label="Total Assets" value={fmtTrn(a?.value)} period={a?.period ?? "—"}
                  series={assets} format="trn" decimals={2} />
+        <KpiCard label="Assets YoY" value={fmtPct(ay?.value, 1)} period={ay?.period ?? "—"}
+                 series={assetsYoY} format="pct" decimals={1} />
         <KpiCard label="Loan Growth YoY" value={fmtPct(ly?.value, 1)} period={ly?.period ?? "—"}
                  series={loansYoY} format="pct" decimals={1} />
+        <KpiCard label="Deposit Growth YoY" value={fmtPct(dy?.value, 1)} period={dy?.period ?? "—"}
+                 series={depositsYoY} format="pct" decimals={1} />
+      </div>
+
+      {/* Quality + capital + returns */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KpiCard label="NPL Ratio" value={fmtPct(n?.value)} period={n?.period ?? "—"}
                  series={npl} format="pct" decimals={2} />
         <KpiCard label="Capital Adequacy" value={fmtPct(c?.value, 1)} period={c?.period ?? "—"}
@@ -104,6 +127,24 @@ export default async function OverviewPage() {
                  series={ldr} format="pct" decimals={1} />
         <KpiCard label="ROE (annualized)" value={fmtPct(r?.value, 1)} period={r?.period ?? "—"}
                  series={roe} format="pct" decimals={1} />
+      </div>
+
+      {/* Trend charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <TrendChart
+          data={assets}
+          seriesLabels={{ [BANK_TYPES.SECTOR]: "Total Assets" }}
+          title="Total Assets — Level (sector)"
+          yFormat="trn"
+          decimals={2}
+        />
+        <TrendChart
+          data={nplAllGroups}
+          seriesLabels={BANK_TYPE_LABELS}
+          title="NPL Ratio — by bank group"
+          yFormat="pct"
+          decimals={2}
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -115,11 +156,12 @@ export default async function OverviewPage() {
           decimals={1}
         />
         <TrendChart
-          data={nplAllGroups}
-          seriesLabels={BANK_TYPE_LABELS}
-          title="NPL Ratio — by bank group"
+          data={loansYoY}
+          seriesLabels={{ [BANK_TYPES.SECTOR]: "Sector loans" }}
+          title="Loan Growth YoY — sector"
           yFormat="pct"
-          decimals={2}
+          decimals={1}
+          zeroLine
         />
       </div>
     </main>
