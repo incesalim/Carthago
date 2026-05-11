@@ -61,6 +61,39 @@ SERIES: list[Series] = [
     Series("TP.FG.J0",          "CPI (2003=100)",                "inflation", evds.FREQ_MONTHLY),
     Series("TP.PKAUO.S01.D.U",  "CPI Expectation, Current Year-End", "inflation", evds.FREQ_MONTHLY),
     Series("TP.PKAUO.S01.I.U",  "CPI Expectation, Next Year-End",    "inflation", evds.FREQ_MONTHLY),
+    Series("TP.PKAUO.S01.E.U",  "CPI Expectation, 12m ahead",        "inflation", evds.FREQ_MONTHLY),
+    Series("TP.HANEBEK.HAN14A", "Household Inflation Exp, 12m",      "inflation", evds.FREQ_MONTHLY),
+
+    # CBRT net funding (complement to sterilization)
+    Series("TP.APIFON3",  "CBRT Net Funding (TL thousand)", "cbrt", evds.FREQ_DAILY),
+
+    # CBRT reserves (international)
+    Series("TP.AB.TOPLAM", "Gross Reserves (USD m)", "cbrt", evds.FREQ_WEEKLY),
+    Series("TP.AB.C1",     "Gold Reserves (USD m)",  "cbrt", evds.FREQ_WEEKLY),
+
+    # CBRT BS FX positions — for derived net reserves
+    Series("TP.BL054", "CBRT FX Assets (TL thousand)",      "cbrt", evds.FREQ_WEEKLY),
+    Series("TP.BL122", "CBRT FX Liabilities (TL thousand)", "cbrt", evds.FREQ_WEEKLY),
+
+    # Gold tons (CBRT books)
+    Series("TP.BL0021", "Total Gold Reserves (grams)",         "cbrt", evds.FREQ_WEEKLY),
+    Series("TP.BL0891", "Banks' Gold at CBRT (grams)",         "cbrt", evds.FREQ_WEEKLY),
+
+    # Residents' FC deposits (dollarization)
+    Series("TP.HPBITABLO4.4", "Households USD Deposits (USD m)",         "fx", evds.FREQ_MONTHLY),
+    Series("TP.HPBITABLO4.5", "Households EUR Deposits (USD eq, USD m)", "fx", evds.FREQ_MONTHLY),
+    Series("TP.HPBITABLO4.7", "Households Precious Metals (USD m)",      "fx", evds.FREQ_MONTHLY),
+
+    # Deposit rates by maturity (≤1m through >12m)
+    Series("TP.TRY.MT01", "Deposit rate ≤1m",   "rates", evds.FREQ_WEEKLY),
+    Series("TP.TRY.MT02", "Deposit rate 1-3m",  "rates", evds.FREQ_WEEKLY),
+    Series("TP.TRY.MT03", "Deposit rate 3-6m",  "rates", evds.FREQ_WEEKLY),
+    Series("TP.TRY.MT04", "Deposit rate 6-12m", "rates", evds.FREQ_WEEKLY),
+    Series("TP.TRY.MT05", "Deposit rate >12m",  "rates", evds.FREQ_WEEKLY),
+
+    # Lending rate refinements
+    Series("TP.KTF18",    "Commercial Loan (ex cards & OD)", "rates", evds.FREQ_WEEKLY),
+    Series("TP.KTFTUK01", "Consumer Loan (incl. overdraft)", "rates", evds.FREQ_WEEKLY),
 ]
 
 
