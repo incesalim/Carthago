@@ -8,9 +8,13 @@ import {
   fxLoans,
   totalLoansYoY,
   totalLoansMoM,
+  tlLoansYoY,
   consumerMix,
+  consumerSegmentYoYAll,
+  cardsSplit,
   smeLoans,
   smeLoansYoY,
+  smeBreakdown,
   latestPerBank,
   PRIMARY_BANK_TYPES,
   BANK_TYPES,
@@ -49,6 +53,7 @@ export default async function CreditPage() {
     loansSector, tlSec, fxSec,
     yoyAll, momAll, yoyByBank,
     consMix, smeLevel, smeYoY,
+    consYoY, cards, smeBreak, tlYoYAll,
   ] = await Promise.all([
     totalLoans(sector),
     tlLoans(sector),
@@ -59,11 +64,24 @@ export default async function CreditPage() {
     consumerMix(BANK_TYPES.SECTOR),
     smeLoans([BANK_TYPES.SECTOR, ...publicVsPrivate]),
     smeLoansYoY([BANK_TYPES.SECTOR, ...publicVsPrivate]),
+    consumerSegmentYoYAll(),
+    cardsSplit(),
+    smeBreakdown(),
+    tlLoansYoY(publicVsPrivate),
   ]);
 
   const fxShare = computeFxShare(tlSec, fxSec);
   const pubPriv = new Set<string>(publicVsPrivate);
   const yoyPubVsPriv = yoyAll.filter((r: TimeSeriesRow) => pubPriv.has(r.bank_type_code));
+
+  // Reshape consumer YoY into long-form for TrendChart
+  const consYoYLong: TimeSeriesRow[] = [];
+  for (const r of consYoY) {
+    if (r.housing != null) consYoYLong.push({ period: r.period, bank_type_code: "HOUSING", value: r.housing });
+    if (r.auto    != null) consYoYLong.push({ period: r.period, bank_type_code: "AUTO",    value: r.auto });
+    if (r.gpl     != null) consYoYLong.push({ period: r.period, bank_type_code: "GPL",     value: r.gpl });
+    if (r.cards   != null) consYoYLong.push({ period: r.period, bank_type_code: "CARDS",   value: r.cards });
+  }
 
   return (
     <main className="px-8 py-8 space-y-8">
@@ -179,6 +197,36 @@ export default async function CreditPage() {
         </div>
       </Section>
 
+      <Section title="Consumer Segments" subtitle="Per-product growth — cards & GPL drive the headline number.">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <TrendChart
+            data={consYoYLong}
+            seriesLabels={{
+              HOUSING: "Housing",
+              AUTO: "Auto",
+              GPL: "Gen. Purpose",
+              CARDS: "Retail Cards",
+            }}
+            title="Consumer Segment YoY Growth (%)"
+            yFormat="pct"
+            decimals={1}
+            zeroLine
+          />
+          <TrendChart
+            data={cards.flatMap((r: { period: string; retail: number | null; corporate: number | null }) => {
+              const out: TimeSeriesRow[] = [];
+              if (r.retail    != null) out.push({ period: r.period, bank_type_code: "RETAIL",    value: r.retail });
+              if (r.corporate != null) out.push({ period: r.period, bank_type_code: "CORPORATE", value: r.corporate });
+              return out;
+            })}
+            seriesLabels={{ RETAIL: "Retail Cards", CORPORATE: "Corporate Cards" }}
+            title="Credit Cards — Retail vs Corporate (Level)"
+            yFormat="bn"
+            decimals={0}
+          />
+        </div>
+      </Section>
+
       <Section title="SME & Public vs. Private" subtitle="Public bank lending vs. private bank lending — the clearest sector signal.">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <TrendChart
@@ -203,6 +251,35 @@ export default async function CreditPage() {
             yFormat="pct"
             decimals={1}
             zeroLine
+          />
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <TrendChart
+            data={tlYoYAll}
+            seriesLabels={{
+              [BANK_TYPES.PRIVATE]: "Private",
+              [BANK_TYPES.STATE]: "State",
+            }}
+            title="TL Loans YoY — Public vs Private"
+            yFormat="pct"
+            decimals={1}
+            zeroLine
+          />
+          <StackedArea
+            data={smeBreak.map((r: { period: string; micro: number | null; small: number | null; medium: number | null }) => ({
+              period: r.period,
+              Micro: r.micro ?? 0,
+              Small: r.small ?? 0,
+              Medium: r.medium ?? 0,
+            }))}
+            series={[
+              { key: "Micro", label: "Micro" },
+              { key: "Small", label: "Small" },
+              { key: "Medium", label: "Medium" },
+            ]}
+            title="SME Mix — Micro / Small / Medium (sector, TL bn)"
+            yFormat="bn"
+            decimals={0}
           />
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
