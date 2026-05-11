@@ -99,7 +99,13 @@ export default function TrendChart({
               formatter={(v) => [v == null ? "—" : fmt(Number(v), decimals), ""]}
               labelFormatter={(l) => String(l)}
             />
-            <Legend wrapperStyle={{ fontSize: 11 }} iconType="line" />
+            <Legend
+              wrapperStyle={{ fontSize: 11, paddingTop: 4 }}
+              iconType="line"
+              layout="horizontal"
+              align="center"
+              verticalAlign="bottom"
+            />
             {codes.map((code, i) => (
               <Line
                 key={code}
