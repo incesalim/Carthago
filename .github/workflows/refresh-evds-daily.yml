@@ -1,0 +1,84 @@
+name: Refresh EVDS (daily)
+
+# When to run:
+#   - Sunday through Friday 05:00 UTC (08:00 Turkey).
+#     Saturday is intentionally skipped — the weekly Refresh BDDK data
+#     workflow already pulls EVDS as part of its broader refresh
+#     (monthly + weekly + audit + EVDS + push) and the two jobs would
+#     race on the same git commit otherwise.
+#   - Manually from the Actions tab.
+on:
+  schedule:
+    - cron: "0 5 * * 0-5"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+# Prevent two daily runs from racing on the same git push.
+concurrency:
+  group: refresh-evds
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Decompress shipped DB snapshot
+        run: |
+          python - <<'PY'
+          import gzip, shutil, pathlib
+          src = pathlib.Path("data/bddk_data.db.gz")
+          dst = pathlib.Path("data/bddk_data.db")
+          if not dst.exists() and src.exists():
+              with gzip.open(src, "rb") as s, open(dst, "wb") as d:
+                  shutil.copyfileobj(s, d)
+              print(f"Decompressed {src.stat().st_size/1e6:.1f} MB -> {dst.stat().st_size/1e6:.1f} MB")
+          PY
+
+      - name: Refresh EVDS only (skip monthly + weekly)
+        env:
+          EVDS_API_KEY: ${{ secrets.EVDS_API_KEY }}
+          PYTHONIOENCODING: utf-8
+        run: python scripts/refresh.py --skip-monthly --skip-weekly
+
+      - name: Setup Node (for wrangler)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Push new evds_series rows to Cloudflare D1
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          PYTHONIOENCODING: utf-8
+        # 30h window — covers daily cadence with a 6h safety margin so a
+        # late-publishing series doesn't get missed. Idempotent INSERT
+        # OR REPLACE on (code, period_date).
+        run: python scripts/push_to_d1.py --hours 30
+
+      - name: Commit + push new snapshot (if changed)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Pull first in case another workflow pushed since checkout.
+          git pull --rebase --autostash || true
+          git add data/bddk_data.db.gz
+          if git diff --staged --quiet; then
+            echo "No EVDS changes — nothing to commit."
+          else
+            git commit -m "Automated EVDS refresh ($(date -u +%Y-%m-%d))"
+            git push
+          fi
