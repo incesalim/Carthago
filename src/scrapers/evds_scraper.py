@@ -3,8 +3,7 @@
 Designed to run inside scripts/refresh.py weekly.
 Idempotent via INSERT OR REPLACE on (code, period_date).
 
-Reuses the existing EVDS client at src/dashboard/evds.py (hosted in the
-legacy Dash module since that's where it was first written).
+Uses the EVDS HTTP client at src/scrapers/evds_client.py.
 """
 from __future__ import annotations
 

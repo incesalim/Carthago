@@ -1,18 +1,15 @@
 # Metrics Catalogue
 
-Authoritative reference for every metric in the data pipeline. Lists the
-**source** (BDDK table / EVDS series / derived formula), the **unit**,
-the **frequency**, and **where** it surfaces.
+Authoritative reference for every metric in the data pipeline. Lists
+the **source** (BDDK table / EVDS series / derived formula), the
+**unit**, the **frequency**, and **where** it surfaces in the
+dashboard.
 
-> **Heads-up on code paths.** This doc was written when the dashboard
-> was a Python Dash app at `src/dashboard/`. That stack has been
-> retired. The data sources, formulas, and BDDK / EVDS references below
-> are still accurate, but the *implementation* of each metric now lives
-> in `web/app/lib/metrics.ts` (TypeScript helpers reading directly from
-> Cloudflare D1). EVDS HTTP client moved from `src/dashboard/evds.py`
-> to `src/scrapers/evds_client.py`. Treat any `src/dashboard/*` or
-> `src/analytics/*` link in this file as a historical pointer, not a
-> live file path.
+> Implementation lives in
+> [`web/app/lib/metrics.ts`](../web/app/lib/metrics.ts) (TypeScript
+> helpers reading directly from Cloudflare D1). Per-bank queries are in
+> [`web/app/lib/audit.ts`](../web/app/lib/audit.ts). EVDS scraping is
+> in [`src/scrapers/`](../src/scrapers/).
 
 ---
 
@@ -46,7 +43,7 @@ the **frequency**, and **where** it surfaces.
 | BDDK — raw JSON (monthly) | Cache of every monthly API response | — | `raw_api_responses` | same |
 | BDDK weekly bulletin | Weekly aggregates (loans, NPL, deposits, securities, etc.) | Weekly | `weekly_series`; endpoint `POST /BultenHaftalik/tr/Home/KiyaslamaJsonGetir` | 2024-01-26 → 2026-04-10 (116 weeks) |
 | BDDK — raw JSON (weekly) | Cache of every weekly API response | — | `raw_weekly_responses` | same |
-| TCMB EVDS v3 | Interest rates, FX, CPI, reserves | Daily/Weekly/Monthly | evds3.tcmb.gov.tr/igmevdsms-dis | live via [evds.py](../src/dashboard/evds.py) |
+| TCMB EVDS v3 | Interest rates, FX, CPI, reserves | Daily/Weekly/Monthly | evds3.tcmb.gov.tr/igmevdsms-dis | cached in `evds_series` via [evds_scraper.py](../src/scrapers/evds_scraper.py) |
 
 All monetary BDDK values are in **million TL** unless noted. Table 5 (Sectoral
 Loans) is an exception — published in **thousand TL**.
@@ -55,7 +52,10 @@ Loans) is an exception — published in **thousand TL**.
 
 ## 2. Bank-type taxonomy
 
-Defined in [`src/analytics/metrics_catalog.py:BANK_TYPES`](../src/analytics/metrics_catalog.py).
+Defined in [`web/app/lib/metrics.ts`](../web/app/lib/metrics.ts) as the
+`BANK_TYPES` and `WEEKLY_BANK_TYPES` constants. (The same numeric codes
+mean different banks in the monthly vs. weekly BDDK APIs — both
+mappings live in that file.)
 
 | Code | Name (EN) | Name (TR) |
 |---|---|---|
@@ -90,7 +90,9 @@ The dashboard uses `PRIMARY_BANK_TYPES = ['10001','10003','10004','10005','10006
 - **Published YTD ratios** (Table 15 income-based): BDDK reports as
   cumulative Jan..month. The dashboard scales them linearly
   (`value × 12 / month`) to produce a constant-annualized figure — see
-  [`annualize_ytd`](../src/dashboard/metrics_ext.py).
+  the `annualize=true` flag on `getPublishedRatio` in
+  [`web/app/lib/metrics.ts`](../web/app/lib/metrics.ts) (SQL expression
+  `ratio_value * 12.0 / month`).
 - **Stock ratios** (NPL, CAR, LDR, demand share, coverage) are already
   annual-in-nature and never rescaled.
 
@@ -112,7 +114,7 @@ Source: `balance_sheet` (BDDK Table 1). Filter by `item_name LIKE`.
 | Securities (AC) | `İtfa Edilmiş Maliyeti Üzerinden Değerlenen Menkul Değerler` | M TL | — |
 | Cash & central bank | `Nakit Değerler` + `T.C. Merkez Bankasından Alacaklar` | M TL | — |
 
-Implementation: [`MetricsEngine.calculate_balance_sheet_metric`](../src/analytics/metrics_engine.py) and [`metrics_ext.get_balance_item`](../src/dashboard/metrics_ext.py).
+Implementation: `getBalanceItem` in [`web/app/lib/metrics.ts`](../web/app/lib/metrics.ts).
 
 ---
 
@@ -152,7 +154,8 @@ Kartları, Faktoring, Toplam Krediler, etc. Columns: `short_term_tl/_fx`,
 | SME — Medium | `Orta Büyüklükteki İşletmelere Kullandırılan Krediler` |
 | SME — Customer counts | `%İşletme Niteliğindeki Müşteri Sayısı%` |
 
-Implementation: [`metrics_ext.get_sme_loans / get_sme_breakdown / get_consumer_mix / get_consumer_npl_segments`](../src/dashboard/metrics_ext.py).
+Implementation: `smeLoans`, `smeBreakdown`, `consumerMix`,
+`consumerNplMix` in [`web/app/lib/metrics.ts`](../web/app/lib/metrics.ts).
 
 ---
 
@@ -175,7 +178,8 @@ Columns `bracket_10k, bracket_50k, bracket_250k, bracket_1m, bracket_over_1m`
 exist but are currently only populated for some rows / not wired into the
 dashboard.
 
-Implementation: [`metrics_ext.get_deposit_maturity_mix / get_domestic_tl_deposits / get_domestic_fx_deposits`](../src/dashboard/metrics_ext.py).
+Implementation: `depositMaturityMix`, `tlDeposits`, `fxDeposits` in
+[`web/app/lib/metrics.ts`](../web/app/lib/metrics.ts).
 
 ---
 
@@ -209,7 +213,12 @@ underlying tables. For income-based ratios BDDK publishes YTD (see
 | RWA net/gross | `Risk Ağırlıklı Kalemler Toplamı (Net) / Risk Ağırlıklı Kalemler Toplamı (Brüt) (%)` | no | neutral |
 | Large deposits (≥1M TL) share | `Yüksek Montanlı (1 Milyon TL ve Üzeri) Mevduat / Toplam Mevduat (%)` | no | neutral |
 
-Implementation: [`metrics_ext.get_published_ratio`](../src/dashboard/metrics_ext.py) plus named wrappers (`ratio_npl`, `ratio_car`, `ratio_ldr`, `ratio_coverage`, `ratio_roa_ytd`, `ratio_roe_ytd`, `ratio_nim_ytd`, `ratio_demand_share`).
+Implementation: `getPublishedRatio` plus named wrappers (`ratioNpl`,
+`ratioCar`, `ratioLdr`, `ratioCoverage`, `ratioRoa`, `ratioRoe`,
+`ratioNim`, `ratioOpex`, `ratioFeesToRevenue`, `ratioRwaDensity`,
+`ratioNonInterestCoverage`, `ratioFeesToOpex`,
+`ratioOffBsDerivatives`) in
+[`web/app/lib/metrics.ts`](../web/app/lib/metrics.ts).
 
 ### CET 1 and capital-adequacy detail (lives in `other_data`, not Table 15)
 Table 12 (BDDK Capital Adequacy Detail) — not in `financial_ratios`. Query
@@ -236,7 +245,7 @@ because of different RWA composition.
 
 ## 8. Derived / transformed metrics
 
-### Growth transforms — [`metrics_ext`](../src/dashboard/metrics_ext.py)
+### Growth transforms — [`web/app/lib/metrics.ts`](../web/app/lib/metrics.ts)
 - **YoY** — `yoy_growth(df)`: `x_t / x_{t-12} − 1`, percent.
 - **MoM** — `mom_growth(df)`: `x_t / x_{t-1} − 1`, percent.
 - **MoM annualized** — `mom_annualized(df)`: `(1 + MoM)^12 − 1`.
@@ -252,23 +261,28 @@ because of different RWA composition.
 - **Market share** = bank_type's assets / Sector assets × 100 (available in
   the data store; currently not shown as a standalone panel).
 
-Implementation: [`src/analytics/data_store.py`](../src/analytics/data_store.py) initializes all derived DataFrames on startup.
+Implementation: derivations are computed on-the-fly inside each page's
+Server Component (e.g. `web/app/credit/page.tsx` calls `tlLoans` + `fxLoans`
+and computes FX share in JS). There is no precomputed cache layer; D1's
+edge latency makes one query per chart cheap enough.
 
 ### NPL ratio by segment
-Not published for sub-segments. To approximate: segment NPL amount from
-Table 4 divided by segment cash loans. Currently shown as **NPL stock
-composition** only — not as ratio, to avoid implying precision.
-
-### Caption generators
-`caption_growth`, `caption_level`, `caption_comparison` in
-[`charts.py`](../src/dashboard/charts.py) turn the latest two periods into
-readable sentences for every chart.
+The dashboard now computes per-product consumer NPL ratios via
+`consumerNplRatios` and commercial NPL ratios (SME / commercial / non-SME)
+via `commercialNplRatios` in
+[`web/app/lib/metrics.ts`](../web/app/lib/metrics.ts). Both are surfaced
+on the Asset Quality page.
 
 ---
 
 ## 9. EVDS macro & interest rate series
 
-Source: TCMB EVDS v3, via [`src/dashboard/evds.py`](../src/dashboard/evds.py).
+Source: TCMB EVDS v3, fetched by
+[`src/scrapers/evds_client.py`](../src/scrapers/evds_client.py),
+scheduled by [`src/scrapers/evds_scraper.py`](../src/scrapers/evds_scraper.py),
+cached into the `evds_series` D1 table; dashboard reads via the
+`evdsSeries` / `evdsMulti` helpers in
+[`web/app/lib/metrics.ts`](../web/app/lib/metrics.ts).
 Host: `evds3.tcmb.gov.tr/igmevdsms-dis` — API key sent as header `key`.
 
 ### Weekly TL flow rates (Rates tab)
@@ -439,17 +453,23 @@ all 6 primary bank types (10001 + 10003–10007) × 3 currencies (TL/FX/TOTAL).
 
 Full catalogue persisted at [`scripts/_weekly_catalogue.json`](../scripts/_weekly_catalogue.json).
 
-### Helper module
-[`src/dashboard/weekly_ext.py`](../src/dashboard/weekly_ext.py) exposes:
-- `get_series(item_id, bank_type_code, currency)` → `[period_date, value]`
-- `get_series_multi_bank(item_id, [codes], currency)` → long-format
-- `to_trend_format(df)` → renames for `charts.trend_chart`
+### Helper functions
+
+In [`web/app/lib/metrics.ts`](../web/app/lib/metrics.ts):
+
+- `weeklySeries(category, item_id, currency, bankTypes, weeksBack)` →
+  raw `(period, bank_type_code, value)` rows.
+- `weeklyGrowth(category, item_id, currency, windowWeeks, bankTypes, weeksBack)` →
+  annualized compound growth (see §11 below). The 52/N exponent is
+  computed in TypeScript because D1's sandbox blocks `POWER()`.
 
 ---
 
 ## 11. Weekly growth transforms
 
-Implemented in [`weekly_ext.py`](../src/dashboard/weekly_ext.py).
+Implemented as `weeklyGrowth` in
+[`web/app/lib/metrics.ts`](../web/app/lib/metrics.ts) — SQL pulls
+current + lagged values, exponent is applied in TypeScript.
 
 | Transform | Formula | Notes |
 |---|---|---|
@@ -466,64 +486,20 @@ is in **percent**, not decimal.
 
 ## 12. Where each metric appears in the dashboard
 
-Quick map from UI → metric. Source modules under `src/dashboard/sections/`.
+Implementation lives in `web/app/lib/metrics.ts` (TypeScript helpers
+reading directly from D1). One page per tab under `web/app/<tab>/page.tsx`.
 
-### Overview ([overview.py](../src/dashboard/sections/overview.py))
-- **Main Messages** narrative cards: credit growth (derived), LDR (§7),
-  CAR (§7), NPL ratio (§7), coverage (§7), demand share (§7).
-- **KPIs:** Total Assets (§4), Loan Growth YoY (§8), NPL Ratio (§7),
-  Capital Adequacy (§7), LDR (§7), ROE annualized (§7 + §8).
-- Credit vs Deposits trend: Total Loans + Total Deposits (§4).
-- Loan Growth YoY by bank type bar: YoY of Total Loans.
-
-### Credit ([credit.py](../src/dashboard/sections/credit.py))
-- Growth panel: YoY + MoM of Total Loans; YoY by bank type bar.
-- Currency panel: TL Loans, FX Loans (§4), FX share (§8).
-- Consumer panel: consumer mix stacked area (§5), YoY by segment, retail
-  vs corporate cards trend (§5).
-- SME panel: total SME level (§5), YoY by bank type, micro/small/medium
-  mix (§5).
-- Public vs Private: YoY of Total Loans and TL Loans for codes 10003 & 10004.
-
-### Deposits & Liquidity ([deposits.py](../src/dashboard/sections/deposits.py))
-- Level & growth: Total Deposits (§4), YoY growth.
-- Currency: TL, FX, FX share.
-- Maturity & liquidity: deposit maturity mix (§6), demand share (§7),
-  LDR (§7).
-
-### Capital ([capital.py](../src/dashboard/sections/capital.py))
-- CAR trend & bar with 12% regulatory floor line (§7).
-- Equity level (§4), Equity YoY growth, leverage (§7).
-- RWA net/gross (§7).
-
-### Asset Quality ([asset_quality.py](../src/dashboard/sections/asset_quality.py))
-- NPL ratio trend + bar (§7).
-- Coverage trend (§7), Gross NPL level (§4).
-- Consumer NPL composition & YoY by segment (§5 Takipteki items).
-
-### Profitability ([profitability.py](../src/dashboard/sections/profitability.py))
-- ROE / ROA annualized (§7 × §8).
-- NIM annualized, Interest Yield − Cost spread (§7 × §8).
-- OPEX / avg assets (annualized), Fees / total income, Non-interest cover (§7).
-
-### Rates ([rates.py](../src/dashboard/sections/rates.py))
-- TL loan & deposit flow rates (§9, weekly).
-- Policy Rate, USD/TRY (§9, daily).
-
-### Weekly Trends ([weekly_trends.py](../src/dashboard/sections/weekly_trends.py))
-All panels use §10 data and §11 transforms.
-- **Total Credit Growth** (sector + 5 ownership types): 4w ann. + 13w ann.
-  on `1.0.1 Toplam Krediler` / `currency=TOTAL`.
-- **Currency & ownership**: 4w ann. of `1.0.1` TL vs FX for Sector; plus
-  TL Sector-vs-Private-vs-State small-multiples.
-- **Consumer segments** (4w ann.): Housing `1.0.4`, Auto `1.0.5`, GPL
-  `1.0.6`, Retail Cards `1.0.8` — all TOTAL. Plus GPL public vs private.
-- **SME & Commercial** (4w ann.): SME `1.0.11` and Commercial `1.0.12` +
-  SME TL public-vs-private.
-- **Deposits** (4w ann.): `4.0.1` TL vs FX; individuals' demand (`4.0.3`)
-  vs time (`4.0.4`).
-- **NPL Momentum**: `2.0.1` 13w ann. growth (sector + public + private) +
-  sector level.
+| Page | Charts | Underlying metrics (this doc §) |
+|---|---|---|
+| `/` (Overview) | 8 KPIs + sparklines: Total Assets, Assets YoY, Loan YoY, Deposit YoY, NPL, CAR, LDR, ROE. Sector trend charts: Total Assets level, NPL by group, Loan growth by group, Loan YoY trend. | §4, §7, §8 |
+| `/credit` | Total Loans level + YoY by group + MoM sector + bar by bank. TL / FX / FX share. Consumer mix stacked area (level + percent). Consumer segment YoY. Retail vs Corporate cards. Public-vs-Private YoY (total + TL). SME breakdown + level. | §4, §5, §8 |
+| `/deposits` | Total deposits level, YoY by group, MoM, bar by bank. TL / FX / FX share. Demand level + share. Maturity stacked (level + percent). LDR by group. | §4, §6, §7, §8 |
+| `/asset-quality` | NPL by group + bar by bank. Coverage by group. Gross NPL stock (derived as total × ratio). Consumer NPL composition + per-product ratios. Commercial NPL (SME / commercial / non-SME from weekly bulletin). | §4, §5, §7, §10 |
+| `/capital` | CAR by group + bar. Equity level + YoY. Liabilities / Equity. RWA Net / Gross. Off-BS derivatives / total assets. | §4, §7, §8 |
+| `/profitability` | ROE, ROA, NIM (annualized). OPEX / avg assets. Fees / revenue. Non-interest income / non-interest expense. Fees / OPEX. Optional ROE-vs-CPI overlay. | §7, §8, §9 (CPI) |
+| `/weekly` | Loan level + 4w ann. + 13w ann. (all groups). TL vs FX, public vs private TL. Consumer segments 13w. SME vs commercial 13w. Deposits trio. NPL stock + YoY. | §10, §11 |
+| `/rates` | TCMB rate corridor, FX, weekly survey rates, sterilization channels. (Several historical Rates panels still pending D1 backfill — see [PROJECT_STATE.md](PROJECT_STATE.md) "Known issues".) | §9 |
+| `/banks` + `/banks/[ticker]` | Bank index + per-bank drill-down: full BS + P&L tables, financial-assets time series. Reads from `bank_audit_*` tables. | See `web/app/lib/audit.ts` |
 
 ---
 
@@ -584,9 +560,9 @@ IMF SDDS template. Left for later.
 1. **LDR uses the "ex Development & Investment banks" version.** This is
    the headline sector number; including dev/inv banks double-counts
    project-finance lending that has no deposit counterpart.
-2. **NPL up is red, CAR up is green.** KPI cards in the dashboard apply
-   metric-specific direction colors — see `direction` arg in
-   [`charts.kpi_card`](../src/dashboard/charts.py).
+2. **NPL up is red, CAR up is green** is the legacy direction convention
+   from the old Dash app. The new dashboard renders KPIs without
+   direction tinting; magnitudes speak for themselves.
 3. **YTD annualization is linear** (`× 12/m`). A more-accurate approach
    would use last-12-months flows, which we don't have from the
    cumulative series. The simple scaling matches typical TCMB /

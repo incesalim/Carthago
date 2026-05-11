@@ -1,36 +1,84 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Turkish Banking Dashboard (web)
 
-## Getting Started
+Next.js 15 + OpenNext + Recharts dashboard deployed to Cloudflare Workers.
+Reads directly from Cloudflare D1.
 
-First, run the development server:
+Production: <https://turkish-banking-dashboard.incesalim10.workers.dev>
+
+## Local development
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev          # http://localhost:3000 — hot reload
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`npm run dev` runs against the **remote** D1 binding configured in
+`wrangler.jsonc`, so local + production read identical data.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deploy
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Pushing to `master` with changes under `web/**` triggers
+`.github/workflows/deploy-cloudflare.yml`, which runs:
 
-## Learn More
+```bash
+npm run build        # Next.js production build
+npm run deploy       # OpenNext → wrangler deploy
+```
 
-To learn more about Next.js, take a look at the following resources:
+Both can be run manually too.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Layout
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+app/
+├── page.tsx                  # Overview — 8 KPIs + summary charts
+├── credit/                   # Loan growth, currency split, consumer mix, SME
+├── deposits/                 # Total / TL / FX deposits, maturity, LDR
+├── asset-quality/            # NPL by group, consumer + commercial NPL ratios
+├── capital/                  # CAR, equity, leverage, RWA density
+├── profitability/            # ROE, ROA, NIM, efficiency, fee mix
+├── weekly/                   # BDDK weekly bulletin growth charts
+├── rates/                    # TCMB EVDS — rates corridor, FX, sterilization
+├── banks/                    # Index + per-bank drill-down (BS + P&L tables)
+├── sector/                   # Top-level sector views (Total Assets, ratios)
+├── components/
+│   ├── Nav.tsx
+│   ├── TrendChart.tsx        # Multi-line time series (Recharts)
+│   ├── TimeSeriesChart.tsx   # Single-bank time series with multiple Y formats
+│   ├── BarByBank.tsx         # Horizontal bar comparing groups at latest period
+│   └── StackedArea.tsx       # Stacked composition (level + % share)
+└── lib/
+    ├── db.ts                 # D1 binding helper via @opennextjs/cloudflare
+    ├── metrics.ts            # SQL helpers — every dashboard query lives here
+    └── audit.ts              # Per-bank audit-report queries (bank_audit_*)
+```
 
-## Deploy on Vercel
+Every page is a Server Component. Routes call helpers from `app/lib/metrics.ts`
+which run D1 queries server-side; results stream to client charts.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Adding a new chart
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. If the data isn't already in D1, add the source to the ingestion
+   pipeline (`src/scrapers/`) and let the cron backfill.
+2. Add a typed helper to `app/lib/metrics.ts` (or `audit.ts` for
+   per-bank tables).
+3. Import + render in the appropriate `app/<section>/page.tsx`.
+
+Never put SQL strings inside a page file — keep them centralized in
+`metrics.ts` so the schema surface stays auditable.
+
+## Conventions
+
+- All numbers render with **en-US** formatting (`1,234,567.89` — comma
+  thousands, dot decimal) via `Intl.NumberFormat("en-US", ...)`.
+- Recharts colors come from a fixed 6-tone palette so the same group
+  (e.g. "Private" banks) renders the same shade across every chart.
+- Sections use `space-y-8` containers + the `Section` wrapper for visual
+  rhythm; cards are `rounded-xl border-neutral-200 shadow-sm`.
+
+## AGENTS / CLAUDE
+
+`AGENTS.md` and `CLAUDE.md` carry per-folder guidance for AI assistants
+(read the relevant Next.js docs in `node_modules/next/dist/docs/`
+before generating Next.js code — this codebase pins Next 15.5 + Tailwind
+v4 + OpenNext, which differ from older training data).
