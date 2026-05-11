@@ -571,6 +571,96 @@ export async function commercialNplRatios(): Promise<
 // SME loans (Table 6)
 // ---------------------------------------------------------------------------
 
+/** Consumer-segment YoY growth lines (housing/auto/GPL/cards), sector only. */
+export async function consumerSegmentYoYAll(): Promise<
+  Array<{ period: string; housing: number | null; auto: number | null; gpl: number | null; cards: number | null }>
+> {
+  const db = await getDB();
+  const { results } = await db
+    .prepare(
+      `WITH s AS (
+         SELECT year, month, item_name, SUM(total_amount) AS amt
+         FROM loans
+         WHERE table_number = 4
+           AND currency = 'TL'
+           AND bank_type_code = '10001'
+           AND item_name IN (
+             'Tüketici Kredileri - Konut', 'Tüketici Kredileri - Taşıt',
+             'Tüketici Kredileri - İhtiyaç', 'Bireysel Kredi Kartları (10+11)'
+           )
+         GROUP BY year, month, item_name
+       ), wide AS (
+         SELECT year, month,
+           MAX(CASE WHEN item_name='Tüketici Kredileri - Konut'     THEN amt END) AS housing,
+           MAX(CASE WHEN item_name='Tüketici Kredileri - Taşıt'     THEN amt END) AS auto,
+           MAX(CASE WHEN item_name='Tüketici Kredileri - İhtiyaç'   THEN amt END) AS gpl,
+           MAX(CASE WHEN item_name='Bireysel Kredi Kartları (10+11)' THEN amt END) AS cards
+         FROM s GROUP BY year, month
+       )
+       SELECT
+         a.year || '-' || PRINTF('%02d', a.month) AS period,
+         CASE WHEN b.housing > 0 THEN (a.housing - b.housing) * 100.0 / b.housing END AS housing,
+         CASE WHEN b.auto    > 0 THEN (a.auto    - b.auto)    * 100.0 / b.auto    END AS auto,
+         CASE WHEN b.gpl     > 0 THEN (a.gpl     - b.gpl)     * 100.0 / b.gpl     END AS gpl,
+         CASE WHEN b.cards   > 0 THEN (a.cards   - b.cards)   * 100.0 / b.cards   END AS cards
+       FROM wide a
+       JOIN wide b ON b.year = a.year - 1 AND b.month = a.month
+       ORDER BY a.year, a.month`,
+    )
+    .all<{ period: string; housing: number | null; auto: number | null; gpl: number | null; cards: number | null }>();
+  return results;
+}
+
+/** Credit cards split — Retail Cards vs Corporate Cards level, sector only. */
+export async function cardsSplit(): Promise<
+  Array<{ period: string; retail: number | null; corporate: number | null }>
+> {
+  const db = await getDB();
+  const { results } = await db
+    .prepare(
+      `SELECT
+         year || '-' || PRINTF('%02d', month) AS period,
+         MAX(CASE WHEN item_name='Bireysel Kredi Kartları (10+11)' THEN total_amount END) AS retail,
+         MAX(CASE WHEN item_name='Kurumsal Kredi Kartları (28+29)**' THEN total_amount END) AS corporate
+       FROM loans
+       WHERE table_number = 4
+         AND currency = 'TL'
+         AND bank_type_code = '10001'
+         AND item_name IN ('Bireysel Kredi Kartları (10+11)', 'Kurumsal Kredi Kartları (28+29)**')
+       GROUP BY year, month
+       ORDER BY year, month`,
+    )
+    .all<{ period: string; retail: number | null; corporate: number | null }>();
+  return results;
+}
+
+/** SME breakdown by size — Micro / Small / Medium level, sector only. */
+export async function smeBreakdown(): Promise<
+  Array<{ period: string; micro: number | null; small: number | null; medium: number | null }>
+> {
+  const db = await getDB();
+  const { results } = await db
+    .prepare(
+      `SELECT
+         year || '-' || PRINTF('%02d', month) AS period,
+         MAX(CASE WHEN item_name='Mikro İşletmelere Kullandırılan Krediler'           THEN total_amount END) AS micro,
+         MAX(CASE WHEN item_name='Küçük İşletmelere Kullandırılan Krediler'          THEN total_amount END) AS small,
+         MAX(CASE WHEN item_name='Orta Büyüklükteki İşletmelere Kullandırılan Krediler' THEN total_amount END) AS medium
+       FROM loans
+       WHERE table_number = 6
+         AND currency = 'TL'
+         AND bank_type_code = '10001'
+       GROUP BY year, month
+       ORDER BY year, month`,
+    )
+    .all<{ period: string; micro: number | null; small: number | null; medium: number | null }>();
+  return results;
+}
+
+/** TL loans YoY by bank type. */
+export const tlLoansYoY = (bankTypes: string[] = PRIMARY_BANK_TYPES) =>
+  _growthYoYExact("loans", "total_tl", "Toplam Krediler", bankTypes);
+
 /** SME total loans by bank type, from Table 6. */
 export async function smeLoans(
   bankTypes: string[] = PRIMARY_BANK_TYPES,
