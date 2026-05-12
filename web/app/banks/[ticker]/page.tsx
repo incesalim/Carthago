@@ -1,18 +1,17 @@
 /**
  * /banks/[ticker] — per-bank drill-down.
  *
- * Shows latest unconsolidated BS Assets + P&L as tables, plus a chart
- * of total financial assets over time.
+ * Latest unconsolidated BS Assets + Liabilities + P&L as tables, plus a
+ * Recent KAP disclosures widget. Period / kind selector lets the reader
+ * walk back through quarters.
  */
 import Link from "next/link";
 import {
   bankPeriods,
   balanceSheet,
   profitLoss,
-  bsItemTimeSeries,
 } from "@/app/lib/audit";
 import { newsByTicker } from "@/app/lib/news";
-import TimeSeriesChart from "@/app/components/TimeSeriesChart";
 import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -36,22 +35,11 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   const period = sp.period ?? periods[0].period;
   const kind = (sp.kind as "consolidated" | "unconsolidated") ?? "unconsolidated";
 
-  const [bs, pl, finAssetsTs, kapItems] = await Promise.all([
+  const [bs, pl, kapItems] = await Promise.all([
     balanceSheet(ticker, period, kind),
     profitLoss(ticker, period, kind),
-    bsItemTimeSeries(
-      ticker,
-      // try both EN and TR spellings — exact match
-      "FINANCIAL ASSETS (Net)",
-      kind,
-    ),
     newsByTicker(ticker, 15),
   ]);
-
-  // Fallback to Turkish if no EN matches
-  const finAssetsTr = finAssetsTs.length === 0
-    ? await bsItemTimeSeries(ticker, "FİNANSAL VARLIKLAR (Net)", kind)
-    : finAssetsTs;
 
   const bsAssets = bs.filter((r) => r.statement === "assets");
   const bsLiab = bs.filter((r) => r.statement === "liabilities");
@@ -103,58 +91,42 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
         </div>
       </div>
 
-      {/* Financial assets trend + recent KAP disclosures */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-        {finAssetsTr.length > 0 ? (
-          <div className="lg:col-span-2">
-            <TimeSeriesChart
-              series={{ "Financial Assets (Net)": finAssetsTr.map((r) => ({ period_date: r.period, value: r.value })) }}
-              title={`Financial Assets — ${kind}, TL thousands`}
-              yFormat="raw"
-              decimals={0}
-              height={280}
-            />
-          </div>
-        ) : (
-          <div className="lg:col-span-2" />
-        )}
-
-        <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
-          <div className="text-sm font-medium text-neutral-800 mb-3 flex items-baseline justify-between">
-            <span>Recent KAP disclosures</span>
-            {kapItems.length > 0 && (
-              <Link
-                href={`/disclosures?ticker=${ticker}`}
-                className="text-xs text-neutral-500 hover:text-neutral-900"
-              >
-                all {ticker} →
-              </Link>
-            )}
-          </div>
-          {kapItems.length === 0 ? (
-            <div className="text-xs text-neutral-500 italic">No disclosures cached.</div>
-          ) : (
-            <ul className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
-              {kapItems.map((it) => (
-                <li key={it.external_id} className="text-xs">
-                  <a
-                    href={it.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block hover:bg-neutral-50 -mx-1 px-1 py-1 rounded transition"
-                  >
-                    <div className="text-[10px] uppercase tracking-wide text-neutral-500 tabular-nums">
-                      {new Date(it.published_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                    </div>
-                    <div className="text-neutral-900 leading-snug line-clamp-2">
-                      {it.title}
-                    </div>
-                  </a>
-                </li>
-              ))}
-            </ul>
+      {/* Recent KAP disclosures */}
+      <div className="mb-6 rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
+        <div className="text-sm font-medium text-neutral-800 mb-3 flex items-baseline justify-between">
+          <span>Recent KAP disclosures</span>
+          {kapItems.length > 0 && (
+            <Link
+              href={`/disclosures?ticker=${ticker}`}
+              className="text-xs text-neutral-500 hover:text-neutral-900"
+            >
+              all {ticker} →
+            </Link>
           )}
         </div>
+        {kapItems.length === 0 ? (
+          <div className="text-xs text-neutral-500 italic">No disclosures cached.</div>
+        ) : (
+          <ul className="space-y-2 max-h-[280px] overflow-y-auto pr-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4">
+            {kapItems.map((it) => (
+              <li key={it.external_id} className="text-xs">
+                <a
+                  href={it.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block hover:bg-neutral-50 -mx-1 px-1 py-1 rounded transition"
+                >
+                  <div className="text-[10px] uppercase tracking-wide text-neutral-500 tabular-nums">
+                    {new Date(it.published_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                  </div>
+                  <div className="text-neutral-900 leading-snug line-clamp-2">
+                    {it.title}
+                  </div>
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
