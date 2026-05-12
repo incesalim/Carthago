@@ -1,0 +1,87 @@
+name: Refresh news (daily)
+
+# When to run:
+#   - Every day at 04:00 UTC (07:00 Turkey). Sits between the daily EVDS
+#     job (05:00 UTC, Sun-Fri) and the Saturday full refresh (03:00 UTC).
+#     Runs all 7 days because news is the source most affected by lag.
+#   - Manually from the Actions tab.
+on:
+  schedule:
+    - cron: "0 4 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+# Share the snapshot lock with the other pipeline workflows so the
+# four jobs (refresh-data, refresh-evds-daily, refresh-news-daily, +
+# any manual dispatch) can never write to R2's snapshot concurrently.
+concurrency:
+  group: bddk-pipeline
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      PYTHONIOENCODING: utf-8
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Fetch SQLite snapshot from R2 + decompress
+        run: |
+          python - <<'PY'
+          import gzip, shutil, pathlib
+          from src.audit_reports import r2_storage
+          gz, db = pathlib.Path("data/bddk_data.db.gz"), pathlib.Path("data/bddk_data.db")
+          gz.parent.mkdir(parents=True, exist_ok=True)
+          if r2_storage.exists("state/bddk_data.db.gz"):
+              size = r2_storage.download_to("state/bddk_data.db.gz", gz)
+              print(f"Pulled state/bddk_data.db.gz from R2 ({size/1e6:.1f} MB)")
+              with gzip.open(gz, "rb") as s, open(db, "wb") as d:
+                  shutil.copyfileobj(s, d)
+              print(f"Decompressed to {db.stat().st_size/1e6:.1f} MB")
+          else:
+              print("No snapshot in R2 yet — starting from empty DB.")
+          PY
+
+      - name: Sync news (KAP + TCMB + BDDK)
+        run: python scripts/sync_news.py
+
+      - name: Setup Node (for wrangler)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Push news_items to Cloudflare D1
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        # 30h window covers daily cadence with a 6h safety margin.
+        # news_items is idempotent on (source, external_id) so re-pushes are safe.
+        run: python scripts/push_to_d1.py --hours 30
+
+      - name: Re-gzip + upload snapshot back to R2
+        run: |
+          python - <<'PY'
+          import gzip, shutil, pathlib
+          from src.audit_reports import r2_storage
+          gz, db = pathlib.Path("data/bddk_data.db.gz"), pathlib.Path("data/bddk_data.db")
+          with open(db, "rb") as src, gzip.open(gz, "wb", compresslevel=9) as dst:
+              shutil.copyfileobj(src, dst)
+          size = r2_storage.upload_file(gz, "state/bddk_data.db.gz")
+          print(f"Uploaded {size/1e6:.1f} MB to R2 state/bddk_data.db.gz")
+          PY
