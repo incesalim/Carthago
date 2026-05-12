@@ -1,16 +1,18 @@
 /**
  * /banks/[ticker] — per-bank drill-down.
  *
- * Standardized financial tables (Balance Sheet + Income Statement) with
- * up to four periods side-by-side. View modes:
- *   ?view=annual    → most recent Q4s (default; comparable year-end data)
- *   ?view=quarterly → most recent quarters (sequential)
+ * Standardized financial tables (Balance Sheet + Income Statement) in a
+ * Yahoo-Finance-style layout: single continuous table, period-end dates
+ * as column headers, computed subtotals (Total Assets, Total Liabilities,
+ * Total Liabilities + Equity, plus P&L subtotals) shown in bold. Missing
+ * values render as "--".
  *
- * Line items are pulled by BRSA hierarchy code (I, II, III, …) and
- * rendered with our canonical English labels — see
- * web/app/lib/standard_lines.ts. Raw `item_name` from the database is
- * never displayed (it's noisy: mixes TR / EN, has extraction artefacts,
- * uses different terms for participation banks).
+ * View modes:
+ *   ?view=annual    — most recent Q4s (default, comparable year-end data)
+ *   ?view=quarterly — most recent quarters (sequential)
+ *
+ * Lines map to BRSA hierarchy codes — see web/app/lib/standard_lines.ts.
+ * Raw `item_name` from the database is never displayed.
  */
 import Link from "next/link";
 import {
@@ -34,67 +36,107 @@ interface Props {
   searchParams: Promise<{ view?: string; kind?: string }>;
 }
 
-const fmtTl = (v: number | null | undefined) =>
-  v == null
-    ? "—"
-    : new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(v);
+const NF = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
+const fmtTl = (v: number | null | undefined) => (v == null ? "--" : NF.format(v));
+
+/** "2025Q4" → "12/31/2025" (Yahoo-style period-end date). */
+function periodToDate(period: string): string {
+  const m = /^(\d{4})Q([1-4])$/.exec(period);
+  if (!m) return period;
+  const year = m[1];
+  const q = m[2];
+  const endDate: Record<string, string> = {
+    "1": `3/31/${year}`,
+    "2": `6/30/${year}`,
+    "3": `9/30/${year}`,
+    "4": `12/31/${year}`,
+  };
+  return endDate[q] ?? period;
+}
 
 /** Pick the periods to display based on view mode. */
 function pickPeriods(allPeriods: string[], view: "annual" | "quarterly", count = 4): string[] {
   if (view === "annual") {
-    // Only Q4 of each year, most recent first
-    const q4 = allPeriods.filter((p) => p.endsWith("Q4"));
-    return q4.slice(0, count);
+    return allPeriods.filter((p) => p.endsWith("Q4")).slice(0, count);
   }
   return allPeriods.slice(0, count);
 }
 
-/** Render a multi-period row for a single StandardLine. */
-function FinRow({
-  line,
-  pivot,
-  periods,
-  statement,
-}: {
-  line: StandardLine;
-  pivot: Map<string, Map<string, number | null>>;
-  periods: string[];
-  /** Only used for BS rows — "assets" | "liabilities". P&L pass empty string. */
-  statement: string;
-}) {
-  const key = statement ? `${statement}::${line.hierarchy}` : line.hierarchy;
-  const periodMap = pivot.get(key) ?? new Map();
+interface RowProps {
+  label: string;
+  values: (number | null | undefined)[];
+  bold?: boolean;
+  /** Optional extra top border (used for subtotal rows). */
+  divider?: boolean;
+}
+
+function Row({ label, values, bold, divider }: RowProps) {
   return (
-    <tr className={line.isTotal ? "border-y border-neutral-300 bg-neutral-50" : "border-b border-neutral-100"}>
-      <td className={`py-1.5 pr-3 text-xs ${line.isTotal ? "font-semibold text-neutral-900" : "text-neutral-700"}`}>
-        {line.label}
+    <tr
+      className={
+        (bold ? "bg-neutral-50 " : "") +
+        (divider ? "border-t border-neutral-300 " : "border-b border-neutral-100")
+      }
+    >
+      <td className={`py-1.5 pr-3 pl-3 text-xs ${bold ? "font-semibold text-neutral-900" : "text-neutral-700"}`}>
+        {label}
       </td>
-      {periods.map((p) => (
+      {values.map((v, i) => (
         <td
-          key={p}
-          className={`py-1.5 pl-2 text-right text-xs tabular-nums ${
-            line.isTotal ? "font-semibold text-neutral-900" : "text-neutral-800"
+          key={i}
+          className={`py-1.5 pl-2 pr-3 text-right text-xs tabular-nums ${
+            bold ? "font-semibold text-neutral-900" : "text-neutral-800"
           }`}
         >
-          {fmtTl(periodMap.get(p))}
+          {fmtTl(v)}
         </td>
       ))}
     </tr>
   );
 }
 
-/** Section sub-header inside the BS table (Assets / Liabilities & Equity). */
-function SectionHeader({ label, span }: { label: string; span: number }) {
-  return (
-    <tr className="bg-neutral-100">
-      <td
-        colSpan={span}
-        className="py-2 px-3 text-[11px] font-semibold uppercase tracking-wide text-neutral-600"
-      >
-        {label}
-      </td>
-    </tr>
-  );
+/** Helper to pull a line's value for each period from the pivot map. */
+function valuesForLine(
+  line: StandardLine,
+  pivot: Map<string, Map<string, number | null>>,
+  periods: string[],
+  statement: string,
+): (number | null | undefined)[] {
+  const key = statement ? `${statement}::${line.hierarchy}` : line.hierarchy;
+  const periodMap = pivot.get(key) ?? new Map();
+  return periods.map((p) => periodMap.get(p) ?? null);
+}
+
+/** Sum non-null values across a set of lines per period. Used for synthetic
+ *  Total Assets / Total Liabilities rows. */
+function sumLines(
+  lines: StandardLine[],
+  pivot: Map<string, Map<string, number | null>>,
+  periods: string[],
+  statement: string,
+): (number | null)[] {
+  return periods.map((p) => {
+    let total = 0;
+    let any = false;
+    for (const line of lines) {
+      const key = `${statement}::${line.hierarchy}`;
+      const v = pivot.get(key)?.get(p);
+      if (v != null) {
+        total += v;
+        any = true;
+      }
+    }
+    return any ? total : null;
+  });
+}
+
+/** Element-wise add of two parallel arrays of (number | null). */
+function addArrays(a: (number | null)[], b: (number | null)[]): (number | null)[] {
+  return a.map((av, i) => {
+    const bv = b[i];
+    if (av == null && bv == null) return null;
+    return (av ?? 0) + (bv ?? 0);
+  });
 }
 
 export default async function BankDetailPage({ params, searchParams }: Props) {
@@ -108,11 +150,9 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   const kind = (sp.kind as "consolidated" | "unconsolidated") ?? "unconsolidated";
   const view = (sp.view as "annual" | "quarterly") ?? "annual";
 
-  // Distinct periods available for this (ticker, kind), most recent first
   const allPeriods = Array.from(
     new Set(allPeriodMeta.filter((p) => p.kind === kind).map((p) => p.period)),
   ).sort().reverse();
-
   const periods = pickPeriods(allPeriods, view, 4);
 
   const [bsPivot, plPivot, kapItems] = await Promise.all([
@@ -121,10 +161,16 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
     newsByTicker(ticker, 12),
   ]);
 
-  const periodColSpan = periods.length + 1;
+  // Computed totals
+  const totalAssets = sumLines(BS_ASSET_LINES, bsPivot, periods, "assets");
+  const equityLine = BS_LIAB_LINES.find((l) => l.id === "equity")!;
+  const liabExEquityLines = BS_LIAB_LINES.filter((l) => l.id !== "equity");
+  const totalLiab = sumLines(liabExEquityLines, bsPivot, periods, "liabilities");
+  const equityValues = valuesForLine(equityLine, bsPivot, periods, "liabilities") as (number | null)[];
+  const totalLE = addArrays(totalLiab, equityValues);
 
   return (
-    <main className="px-8 py-8 max-w-6xl">
+    <main className="px-8 py-8 max-w-5xl">
       {/* Header */}
       <div className="flex items-baseline justify-between mb-2">
         <h1 className="text-3xl font-bold">{ticker}</h1>
@@ -133,7 +179,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
         </Link>
       </div>
       <p className="text-sm text-neutral-500 mb-6">
-        Standardized per-bank financials from quarterly BRSA reports · values in TL thousands
+        Standardized per-bank financials from quarterly BRSA reports
       </p>
 
       {/* View toggles: annual / quarterly + kind */}
@@ -208,44 +254,43 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
         )}
       </div>
 
-      {/* Balance Sheet (Assets + Liabilities + Equity in one table) */}
+      {/* Balance Sheet — single table, assets and liabilities together */}
       <section className="mb-6 rounded-lg border bg-white shadow-sm overflow-hidden">
-        <div className="px-5 py-3 border-b bg-neutral-50">
+        <div className="px-5 py-3 border-b bg-neutral-50 flex items-baseline justify-between">
           <h2 className="text-sm font-semibold text-neutral-900">Balance Sheet</h2>
+          <span className="text-[11px] text-neutral-500">All numbers in TL thousands</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
-            <thead className="border-b text-neutral-500">
-              <tr>
-                <th className="text-left py-2 px-3 font-medium">Line</th>
+            <thead className="text-neutral-500">
+              <tr className="border-b">
+                <th className="text-left py-2 pl-3 pr-3 font-medium">Breakdown</th>
                 {periods.map((p) => (
                   <th key={p} className="text-right py-2 pl-2 pr-3 font-medium tabular-nums">
-                    {p}
+                    {periodToDate(p)}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              <SectionHeader label="Assets" span={periodColSpan} />
               {BS_ASSET_LINES.map((line) => (
-                <FinRow
+                <Row
                   key={line.id}
-                  line={line}
-                  pivot={bsPivot}
-                  periods={periods}
-                  statement="assets"
+                  label={line.label}
+                  values={valuesForLine(line, bsPivot, periods, "assets")}
                 />
               ))}
-              <SectionHeader label="Liabilities & Equity" span={periodColSpan} />
-              {BS_LIAB_LINES.map((line) => (
-                <FinRow
+              <Row label="Total Assets" values={totalAssets} bold divider />
+              {liabExEquityLines.map((line) => (
+                <Row
                   key={line.id}
-                  line={line}
-                  pivot={bsPivot}
-                  periods={periods}
-                  statement="liabilities"
+                  label={line.label}
+                  values={valuesForLine(line, bsPivot, periods, "liabilities")}
                 />
               ))}
+              <Row label="Total Liabilities" values={totalLiab} bold divider />
+              <Row label="Shareholders' Equity" values={equityValues} bold />
+              <Row label="Total Liabilities & Equity" values={totalLE} bold divider />
             </tbody>
           </table>
         </div>
@@ -253,29 +298,30 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
 
       {/* Income Statement */}
       <section className="rounded-lg border bg-white shadow-sm overflow-hidden">
-        <div className="px-5 py-3 border-b bg-neutral-50">
+        <div className="px-5 py-3 border-b bg-neutral-50 flex items-baseline justify-between">
           <h2 className="text-sm font-semibold text-neutral-900">Income Statement</h2>
+          <span className="text-[11px] text-neutral-500">All numbers in TL thousands</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
-            <thead className="border-b text-neutral-500">
-              <tr>
-                <th className="text-left py-2 px-3 font-medium">Line</th>
+            <thead className="text-neutral-500">
+              <tr className="border-b">
+                <th className="text-left py-2 pl-3 pr-3 font-medium">Breakdown</th>
                 {periods.map((p) => (
                   <th key={p} className="text-right py-2 pl-2 pr-3 font-medium tabular-nums">
-                    {p}
+                    {periodToDate(p)}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {PL_LINES.map((line) => (
-                <FinRow
+                <Row
                   key={line.id}
-                  line={line}
-                  pivot={plPivot}
-                  periods={periods}
-                  statement=""
+                  label={line.label}
+                  values={valuesForLine(line, plPivot, periods, "")}
+                  bold={line.isTotal}
+                  divider={line.isTotal}
                 />
               ))}
             </tbody>
@@ -283,11 +329,11 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
         </div>
       </section>
 
-      {/* Coverage note */}
       <p className="text-[11px] text-neutral-500 mt-3">
-        Lines aligned by BRSA hierarchy code (Roman numeral). &quot;—&quot; means the
-        line was not reported for that period or did not extract cleanly. Items shown in bold
-        are subtotals / totals from the BRSA template.
+        Lines aligned by BRSA hierarchy code. &quot;--&quot; indicates the line was not
+        reported for that period or did not extract. &quot;Total Assets&quot;,
+        &quot;Total Liabilities&quot;, and &quot;Total Liabilities &amp; Equity&quot;
+        are computed as sums of the Roman-numeral rows.
       </p>
     </main>
   );
