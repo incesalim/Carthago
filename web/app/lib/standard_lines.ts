@@ -115,22 +115,64 @@ export const BS_LIAB_ROMAN_HIERARCHIES = [
 /** Equity hierarchy code, summed separately for the L+E grand total. */
 export const BS_EQUITY_HIERARCHY = "XVI.";
 
-/** Income Statement. */
+/** Income Statement — replicates the rows the user highlighted on the
+ *  BRSA template, in order. Roman numerals render bold (they're the
+ *  major template rows AND subtotals); numeric sub-items render indented. */
 export const PL_LINES: StandardLine[] = [
-  { id: "interest_income", label: "Interest / Profit Share Income", hierarchy: "I." },
-  { id: "interest_expense", label: "Interest / Profit Share Expense", hierarchy: "II." },
-  { id: "net_interest", label: "Net Interest / Profit Share Income", hierarchy: "III.", bold: true },
-  { id: "net_fees", label: "Net Fees & Commissions", hierarchy: "IV." },
-  { id: "dividend_income", label: "Dividend Income", hierarchy: "V." },
-  { id: "trading_income", label: "Net Trading Income / (Loss)", hierarchy: "VI." },
-  { id: "other_op_income", label: "Other Operating Income", hierarchy: "VII." },
-  { id: "gross_op_profit", label: "Gross Operating Profit", hierarchy: "VIII.", bold: true },
-  { id: "ecl_provisions", label: "Expected Credit Loss Provisions", hierarchy: "IX." },
-  { id: "other_provisions", label: "Other Provisions for Losses", hierarchy: "X." },
-  { id: "personnel_expense", label: "Personnel Expense", hierarchy: "XI." },
-  { id: "other_op_expense", label: "Other Operating Expenses", hierarchy: "XII." },
-  { id: "net_op_profit", label: "Net Operating Profit / (Loss)", hierarchy: "XIII.", bold: true },
-  { id: "pretax_profit", label: "Pre-tax Profit / (Loss)", hierarchy: "XVII.", bold: true },
-  { id: "tax_provision", label: "Tax Provision", hierarchy: "XVIII." },
-  { id: "net_profit", label: "Net Period Profit / (Loss)", hierarchy: "XIX.", bold: true },
+  // I. Interest Income + breakdown
+  { id: "interest_income",        label: "Interest / Profit Share Income",                       hierarchy: "I.",     bold: true },
+  { id: "ii_loans",               label: "Interest from Loans",                                  hierarchy: "1.1" },
+  { id: "ii_reserves",            label: "Interest from Required Reserves",                      hierarchy: "1.2" },
+  { id: "ii_banks",               label: "Interest from Banks",                                  hierarchy: "1.3" },
+  { id: "ii_money_market",        label: "Interest from Money Market Operations",                hierarchy: "1.4" },
+  { id: "ii_securities",          label: "Interest from Securities Portfolio",                   hierarchy: "1.5" },
+
+  // II. Interest Expense + breakdown
+  { id: "interest_expense",       label: "Interest / Profit Share Expense (-)",                  hierarchy: "II.",    bold: true },
+  { id: "ie_deposits",            label: "Interest on Deposits / Funds Collected",               hierarchy: "2.1" },
+  { id: "ie_borrowings",          label: "Interest on Funds Borrowed",                           hierarchy: "2.2" },
+  { id: "ie_money_market",        label: "Interest on Money Market Operations",                  hierarchy: "2.3" },
+  { id: "ie_issued_securities",   label: "Interest on Issued Securities",                        hierarchy: "2.4" },
+  { id: "ie_lease",               label: "Lease Interest Expense",                               hierarchy: "2.5" },
+
+  // III. Net Interest Income (subtotal)
+  { id: "net_interest",           label: "Net Interest / Profit Share Income (I - II)",          hierarchy: "III.",   bold: true },
+
+  // IV. Net Fees & Commissions + breakdown
+  { id: "net_fees",               label: "Net Fees & Commissions",                               hierarchy: "IV.",    bold: true },
+  { id: "fees_received",          label: "Fees & Commissions Received",                          hierarchy: "4.1" },
+  { id: "fees_paid",              label: "Fees & Commissions Paid (-)",                          hierarchy: "4.2" },
+
+  // V-VII. Other operating revenue lines
+  { id: "dividend_income",        label: "Dividend Income",                                      hierarchy: "V.",     bold: true },
+  { id: "trading_income",         label: "Net Trading Income / (Loss)",                          hierarchy: "VI.",    bold: true },
+  { id: "other_op_income",        label: "Other Operating Income",                               hierarchy: "VII.",   bold: true },
+
+  // VIII. Gross Operating Profit (subtotal)
+  { id: "gross_op_profit",        label: "Gross Operating Profit (III+IV+V+VI+VII)",             hierarchy: "VIII.",  bold: true },
+
+  // IX-XII. Provisions + operating expenses
+  { id: "ecl_provisions",         label: "Expected Credit Loss Provisions (-)",                  hierarchy: "IX.",    bold: true },
+  { id: "other_provisions",       label: "Other Provisions for Losses (-)",                      hierarchy: "X.",     bold: true },
+  { id: "personnel_expense",      label: "Personnel Expenses (-)",                               hierarchy: "XI.",    bold: true },
+  { id: "other_op_expense",       label: "Other Operating Expenses (-)",                         hierarchy: "XII.",   bold: true },
+
+  // XIII. Net Operating Profit (subtotal)
+  { id: "net_op_profit",          label: "Net Operating Profit / (Loss) (VIII-IX-X-XI-XII)",     hierarchy: "XIII.",  bold: true },
+
+  // XV-XVI. Other below-the-line items (XIV is merger surplus — skipped)
+  { id: "equity_method",          label: "Profit / (Loss) from Equity-Method Subsidiaries",      hierarchy: "XV.",    bold: true },
+  { id: "monetary_position",      label: "Net Monetary Position Profit / (Loss)",                hierarchy: "XVI.",   bold: true },
+
+  // XVII. Pre-tax Profit (subtotal)
+  { id: "pretax_profit_cont",     label: "Pre-tax Profit / (Loss) from Continuing Operations",   hierarchy: "XVII.",  bold: true },
+
+  // XVIII. Tax
+  { id: "tax_provision",          label: "Tax Provision on Continuing Operations (±)",           hierarchy: "XVIII.", bold: true },
+
+  // XIX. Net Period Profit from continuing ops (subtotal)
+  { id: "net_profit_cont",        label: "Net Period Profit / (Loss) from Continuing Operations",hierarchy: "XIX.",   bold: true },
+
+  // XXV. Total Net Period Profit (XX-XXIV are discontinued-ops detail — skipped)
+  { id: "net_profit_total",       label: "Net Period Profit / (Loss) (XIX + XXIV)",              hierarchy: "XXV.",   bold: true },
 ];
