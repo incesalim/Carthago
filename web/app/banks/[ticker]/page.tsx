@@ -31,13 +31,14 @@ import {
   indentLevel,
   type StandardLine,
 } from "@/app/lib/standard_lines";
+import { bankDisplayName } from "@/app/lib/bank_names";
 import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 interface Props {
   params: Promise<{ ticker: string }>;
-  searchParams: Promise<{ view?: string; kind?: string }>;
+  searchParams: Promise<{ view?: string; kind?: string; statement?: string }>;
 }
 
 const NF = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
@@ -166,6 +167,16 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
 
   const kind = (sp.kind as "consolidated" | "unconsolidated") ?? "unconsolidated";
   const view = (sp.view as "annual" | "quarterly") ?? "annual";
+  const statement = (sp.statement as "bs" | "is") ?? "bs";
+  // Helper to build URLs that preserve the other two params.
+  const url = (overrides: Partial<{ view: string; kind: string; statement: string }>) => {
+    const params = new URLSearchParams({
+      view: overrides.view ?? view,
+      kind: overrides.kind ?? kind,
+      statement: overrides.statement ?? statement,
+    });
+    return `/banks/${ticker}?${params.toString()}`;
+  };
 
   const allPeriods = Array.from(
     new Set(allPeriodMeta.filter((p) => p.kind === kind).map((p) => p.period)),
@@ -198,8 +209,11 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   return (
     <main className="px-8 py-8 max-w-5xl">
       {/* Header */}
-      <div className="flex items-baseline justify-between mb-2">
-        <h1 className="text-3xl font-bold">{ticker}</h1>
+      <div className="flex items-baseline justify-between mb-2 gap-4 flex-wrap">
+        <div>
+          <h1 className="text-3xl font-bold">{bankDisplayName(ticker)}</h1>
+          <p className="text-xs text-neutral-500 tabular-nums mt-0.5">{ticker}</p>
+        </div>
         <Link href="/banks" className="text-sm text-neutral-500 hover:text-neutral-900">
           ← All banks
         </Link>
@@ -208,13 +222,28 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
         Standardized per-bank financials from quarterly BRSA reports
       </p>
 
-      {/* View toggles: annual / quarterly + kind */}
+      {/* Three toggle groups: statement / period view / consolidation kind */}
       <div className="mb-6 flex flex-wrap gap-3 items-center">
+        <div className="flex gap-1 rounded-lg border bg-neutral-50 p-1">
+          {(["bs", "is"] as const).map((s) => (
+            <Link
+              key={s}
+              href={url({ statement: s })}
+              className={`px-3 py-1 text-xs rounded-md transition ${
+                s === statement
+                  ? "bg-white shadow-sm font-medium text-neutral-900"
+                  : "text-neutral-600 hover:text-neutral-900"
+              }`}
+            >
+              {s === "bs" ? "Balance Sheet" : "Income Statement"}
+            </Link>
+          ))}
+        </div>
         <div className="flex gap-1 rounded-lg border bg-neutral-50 p-1">
           {(["annual", "quarterly"] as const).map((v) => (
             <Link
               key={v}
-              href={`/banks/${ticker}?view=${v}&kind=${kind}`}
+              href={url({ view: v })}
               className={`px-3 py-1 text-xs rounded-md transition ${
                 v === view
                   ? "bg-white shadow-sm font-medium text-neutral-900"
@@ -229,7 +258,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
           {(["unconsolidated", "consolidated"] as const).map((k) => (
             <Link
               key={k}
-              href={`/banks/${ticker}?view=${view}&kind=${k}`}
+              href={url({ kind: k })}
               className={`px-3 py-1 text-xs rounded-md transition ${
                 k === kind
                   ? "bg-white shadow-sm font-medium text-neutral-900"
@@ -281,6 +310,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
       </div>
 
       {/* Balance Sheet — single table, assets and liabilities together */}
+      {statement === "bs" && (
       <section className="mb-6 rounded-lg border bg-white shadow-sm overflow-hidden">
         <div className="px-5 py-3 border-b bg-neutral-50 flex items-baseline justify-between">
           <h2 className="text-sm font-semibold text-neutral-900">Balance Sheet</h2>
@@ -333,8 +363,10 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
           </table>
         </div>
       </section>
+      )}
 
       {/* Income Statement */}
+      {statement === "is" && (
       <section className="rounded-lg border bg-white shadow-sm overflow-hidden">
         <div className="px-5 py-3 border-b bg-neutral-50 flex items-baseline justify-between">
           <h2 className="text-sm font-semibold text-neutral-900">Income Statement</h2>
@@ -366,6 +398,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
           </table>
         </div>
       </section>
+      )}
 
       <p className="text-[11px] text-neutral-500 mt-3">
         Lines aligned by BRSA hierarchy code. &quot;--&quot; indicates the line was not
