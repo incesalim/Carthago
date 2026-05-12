@@ -90,6 +90,88 @@ export async function newsByTicker(
   return results;
 }
 
+/** Lookup table for {source}:{external_id} → {title, url} so the
+ *  AI-generated briefing can render its cited source links inline. */
+export async function newsLookupBySourceIds(
+  pairs: { source: string; external_id: string }[],
+): Promise<Map<string, { title: string; url: string }>> {
+  const out = new Map<string, { title: string; url: string }>();
+  if (pairs.length === 0) return out;
+  const db = await getDB();
+  // Build a (source,external_id) IN-list. D1 supports tuples via OR.
+  const conditions = pairs.map(() => "(source = ? AND external_id = ?)").join(" OR ");
+  const flat: string[] = [];
+  for (const { source, external_id } of pairs) flat.push(source, external_id);
+  const { results } = await db
+    .prepare(
+      `SELECT source, external_id, title, url FROM news_items
+       WHERE ${conditions}`,
+    )
+    .bind(...flat)
+    .all<{ source: string; external_id: string; title: string; url: string }>();
+  for (const r of results) {
+    out.set(`${r.source}:${r.external_id}`, { title: r.title, url: r.url });
+  }
+  return out;
+}
+
+/** Briefing types — mirrors the JSON structure stored in
+ *  regulation_briefings.categories_json (validated server-side by
+ *  scripts/summarize_regulations.py before insert). */
+export interface BriefingBullet {
+  text: string;
+  source_ids: string[];          // "tcmb:ANO2026-19", "bddk:2286", ...
+}
+export interface BriefingCategory {
+  name: string;
+  bullets: BriefingBullet[];
+}
+export interface Briefing {
+  generated_at: string;
+  window_days: number;
+  item_count: number;
+  model: string;
+  prompt_version: string;
+  categories: BriefingCategory[];
+}
+
+/** Fetch the most recent regulatory briefing (null if none yet). */
+export async function latestRegulationBriefing(): Promise<Briefing | null> {
+  const db = await getDB();
+  const { results } = await db
+    .prepare(
+      `SELECT generated_at, window_days, item_count, model, prompt_version, categories_json
+       FROM regulation_briefings
+       ORDER BY generated_at DESC
+       LIMIT 1`,
+    )
+    .all<{
+      generated_at: string;
+      window_days: number;
+      item_count: number;
+      model: string;
+      prompt_version: string;
+      categories_json: string;
+    }>();
+  if (results.length === 0) return null;
+  const row = results[0];
+  let categories: BriefingCategory[] = [];
+  try {
+    const parsed = JSON.parse(row.categories_json);
+    categories = parsed.categories ?? [];
+  } catch {
+    categories = [];
+  }
+  return {
+    generated_at: row.generated_at,
+    window_days: row.window_days,
+    item_count: row.item_count,
+    model: row.model,
+    prompt_version: row.prompt_version,
+    categories,
+  };
+}
+
 /** Per-source counts and latest publish-time — used by the /news header. */
 export async function newsSourceSummary(): Promise<
   { source: NewsSource; total: number; latest: string }[]

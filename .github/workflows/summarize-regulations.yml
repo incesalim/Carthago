@@ -1,0 +1,89 @@
+name: Summarize regulations (weekly)
+
+# When to run:
+#   - Every Sunday at 06:00 UTC (09:00 Turkey). Sits AFTER:
+#     • Saturday 03:00 — refresh-data.yml (monthly + weekly + audit + EVDS)
+#     • Sun 05:00 — refresh-evds-daily.yml (Sun is in 0-5 range)
+#     • Sun 04:00 — refresh-news-daily.yml
+#     so the snapshot already has all the week's fresh TCMB/BDDK bodies.
+#   - Manually from the Actions tab (e.g. after adjusting the prompt).
+on:
+  schedule:
+    - cron: "0 6 * * 0"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+# Share the snapshot lock with the other pipeline workflows so concurrent
+# manual dispatches can't trample each other's R2 snapshot.
+concurrency:
+  group: bddk-pipeline
+  cancel-in-progress: false
+
+jobs:
+  summarize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      PYTHONIOENCODING: utf-8
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Fetch SQLite snapshot from R2 + decompress
+        run: |
+          python - <<'PY'
+          import gzip, shutil, pathlib
+          from src.audit_reports import r2_storage
+          gz, db = pathlib.Path("data/bddk_data.db.gz"), pathlib.Path("data/bddk_data.db")
+          gz.parent.mkdir(parents=True, exist_ok=True)
+          if r2_storage.exists("state/bddk_data.db.gz"):
+              size = r2_storage.download_to("state/bddk_data.db.gz", gz)
+              print(f"Pulled state/bddk_data.db.gz from R2 ({size/1e6:.1f} MB)")
+              with gzip.open(gz, "rb") as s, open(db, "wb") as d:
+                  shutil.copyfileobj(s, d)
+              print(f"Decompressed to {db.stat().st_size/1e6:.1f} MB")
+          else:
+              raise SystemExit("No R2 snapshot found — cannot summarize from empty DB.")
+          PY
+
+      - name: Generate weekly briefing via Kimi
+        env:
+          KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}
+        run: python scripts/summarize_regulations.py
+
+      - name: Setup Node (for wrangler)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Push briefing to Cloudflare D1
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        # 2h window — the briefing was just inserted so fetched_at is fresh.
+        run: python scripts/push_to_d1.py --hours 2
+
+      - name: Re-gzip + upload snapshot back to R2
+        run: |
+          python - <<'PY'
+          import gzip, shutil, pathlib
+          from src.audit_reports import r2_storage
+          gz, db = pathlib.Path("data/bddk_data.db.gz"), pathlib.Path("data/bddk_data.db")
+          with open(db, "rb") as src, gzip.open(gz, "wb", compresslevel=9) as dst:
+              shutil.copyfileobj(src, dst)
+          size = r2_storage.upload_file(gz, "state/bddk_data.db.gz")
+          print(f"Uploaded {size/1e6:.1f} MB to R2 state/bddk_data.db.gz")
+          PY
