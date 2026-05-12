@@ -28,6 +28,7 @@ import {
   BS_LIAB_ROMAN_HIERARCHIES,
   BS_EQUITY_HIERARCHY,
   PL_LINES,
+  indentLevel,
   type StandardLine,
 } from "@/app/lib/standard_lines";
 import { notFound } from "next/navigation";
@@ -71,11 +72,16 @@ interface RowProps {
   bold?: boolean;
   /** Optional extra top border (used for subtotal rows). */
   divider?: boolean;
-  /** Visually indent (used for "of which:" sub-items). */
-  indent?: boolean;
+  /** Indent depth 0/1/2 — drives left padding + text muting. */
+  depth?: number;
 }
 
-function Row({ label, values, bold, divider, indent }: RowProps) {
+/** Tailwind padding by indent depth (0 = top-level, 1 = sub, 2 = sub-sub). */
+const INDENT_PL = ["pl-3", "pl-7", "pl-12"];
+
+function Row({ label, values, bold, divider, depth = 0 }: RowProps) {
+  const pl = INDENT_PL[Math.min(depth, INDENT_PL.length - 1)];
+  const muted = depth >= 2;
   return (
     <tr
       className={
@@ -84,8 +90,8 @@ function Row({ label, values, bold, divider, indent }: RowProps) {
       }
     >
       <td
-        className={`py-1.5 pr-3 text-xs ${indent ? "pl-8 text-neutral-600" : "pl-3 text-neutral-700"} ${
-          bold ? "font-semibold text-neutral-900" : ""
+        className={`py-1.5 pr-3 ${pl} text-xs ${
+          bold ? "font-semibold text-neutral-900" : muted ? "text-neutral-500" : "text-neutral-700"
         }`}
       >
         {label}
@@ -94,7 +100,7 @@ function Row({ label, values, bold, divider, indent }: RowProps) {
         <td
           key={i}
           className={`py-1.5 pl-2 pr-3 text-right text-xs tabular-nums ${
-            bold ? "font-semibold text-neutral-900" : indent ? "text-neutral-600" : "text-neutral-800"
+            bold ? "font-semibold text-neutral-900" : muted ? "text-neutral-500" : "text-neutral-800"
           }`}
         >
           {fmtTl(v)}
@@ -292,7 +298,8 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
                   key={line.id}
                   label={line.label}
                   values={valuesForLine(line, bsPivot, periods, "assets")}
-                  indent={line.indent}
+                  bold={line.bold}
+                  depth={indentLevel(line.hierarchy)}
                 />
               ))}
               <Row label="Total Assets" values={totalAssets} bold divider />
@@ -301,7 +308,8 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
                   key={line.id}
                   label={line.label}
                   values={valuesForLine(line, bsPivot, periods, "liabilities")}
-                  indent={line.indent}
+                  bold={line.bold}
+                  depth={indentLevel(line.hierarchy)}
                 />
               ))}
               <Row label="Total Liabilities" values={totalLiab} bold divider />
@@ -336,8 +344,8 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
                   key={line.id}
                   label={line.label}
                   values={valuesForLine(line, plPivot, periods, "")}
-                  bold={line.isTotal}
-                  divider={line.isTotal}
+                  bold={line.bold}
+                  divider={line.bold}
                 />
               ))}
             </tbody>
