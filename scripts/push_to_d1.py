@@ -49,6 +49,7 @@ SYNC_TABLES = [
     "bank_audit_extractions",
     "evds_series",
     "news_items",
+    "regulation_briefings",
 ]
 
 BATCH_SIZE = 100  # rows per INSERT statement (default for skinny tables)
@@ -56,6 +57,7 @@ BATCH_SIZE = 100  # rows per INSERT statement (default for skinny tables)
 # single INSERT statement stays under D1's SQLITE_TOOBIG limit (~1 MB).
 BATCH_SIZE_PER_TABLE = {
     "news_items": 10,
+    "regulation_briefings": 1,  # categories_json + raw_response are large per row
 }
 
 
@@ -72,6 +74,8 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int) -> list[str]:
     if "downloaded_at" in cols:
         where = f"WHERE downloaded_at >= datetime('now', '-{hours} hours')"
     elif table == "news_items":
+        where = f"WHERE fetched_at >= datetime('now', '-{hours} hours')"
+    elif table == "regulation_briefings":
         where = f"WHERE fetched_at >= datetime('now', '-{hours} hours')"
     elif table == "bank_audit_extractions":
         where = f"WHERE extracted_at >= datetime('now', '-{hours} hours')"
