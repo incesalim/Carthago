@@ -183,11 +183,17 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   // double-count). Equity is summed separately.
   const totalAssets = sumHierarchies(BS_ASSET_ROMAN_HIERARCHIES, bsPivot, periods, "assets");
   const totalLiab = sumHierarchies(BS_LIAB_ROMAN_HIERARCHIES, bsPivot, periods, "liabilities");
-  const liabExEquityLines = BS_LIAB_LINES.filter((l) => l.id !== "equity");
-  const equityLine = BS_LIAB_LINES.find((l) => l.id === "equity")!;
   const equityValues = sumHierarchies([BS_EQUITY_HIERARCHY], bsPivot, periods, "liabilities");
   const totalLE = addArrays(totalLiab, equityValues);
-  void equityLine; // kept for reference; equity row built from equityValues below
+
+  // Split the liability catalog at the equity boundary so the synthetic
+  // "Total Liabilities" subtotal slots in *before* the equity block.
+  const liabPreEquity = BS_LIAB_LINES.filter(
+    (l) => !l.hierarchy.startsWith("XVI") && !l.hierarchy.startsWith("16."),
+  );
+  const equityBlock = BS_LIAB_LINES.filter(
+    (l) => l.hierarchy.startsWith("XVI") || l.hierarchy.startsWith("16."),
+  );
 
   return (
     <main className="px-8 py-8 max-w-5xl">
@@ -303,7 +309,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
                 />
               ))}
               <Row label="Total Assets" values={totalAssets} bold divider />
-              {liabExEquityLines.map((line) => (
+              {liabPreEquity.map((line) => (
                 <Row
                   key={line.id}
                   label={line.label}
@@ -313,7 +319,15 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
                 />
               ))}
               <Row label="Total Liabilities" values={totalLiab} bold divider />
-              <Row label="Shareholders' Equity" values={equityValues} bold />
+              {equityBlock.map((line) => (
+                <Row
+                  key={line.id}
+                  label={line.label}
+                  values={valuesForLine(line, bsPivot, periods, "liabilities")}
+                  bold={line.bold}
+                  depth={indentLevel(line.hierarchy)}
+                />
+              ))}
               <Row label="Total Liabilities & Equity" values={totalLE} bold divider />
             </tbody>
           </table>
