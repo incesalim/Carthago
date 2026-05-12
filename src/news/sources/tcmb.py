@@ -93,11 +93,14 @@ def fetch_body(url: str, timeout: int = 30) -> str | None:
     return body[:BODY_MAX_CHARS]
 
 
-def fetch(years: list[int] | None = None) -> list[NewsItem]:
-    """Fetch press releases for the given years (defaults to current year).
-    Items returned newest-first by publish date."""
+def fetch(years: list[int] | None = None, years_back: int = 5) -> list[NewsItem]:
+    """Fetch press releases for the given years (defaults to current year
+    and the prior `years_back-1` years). TCMB publishes ~50 press
+    releases per year, so 5 years = ~250 items. Items returned
+    newest-first by publish date."""
     if years is None:
-        years = [datetime.now(timezone.utc).year]
+        current = datetime.now(timezone.utc).year
+        years = list(range(current, current - years_back, -1))
     items: list[NewsItem] = []
     for year in years:
         url = BASE + LIST_PATH.format(year=year)
