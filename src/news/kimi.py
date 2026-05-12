@@ -22,7 +22,10 @@ import time
 import requests
 
 DEFAULT_API_URL = "https://api.moonshot.ai/v1/chat/completions"
-DEFAULT_MODEL = "moonshot-v1-32k"
+# Default to 128k context — gives comfortable headroom for the 365-day
+# briefing window (~30K input tokens). Cost is ~$7/year at weekly cadence,
+# still negligible. Override via KIMI_MODEL env var if needed.
+DEFAULT_MODEL = "moonshot-v1-128k"
 
 
 def chat_completion(

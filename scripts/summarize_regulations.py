@@ -30,73 +30,44 @@ from src.news.schema import init_schema  # noqa: E402
 
 DB_PATH = REPO_ROOT / "data" / "bddk_data.db"
 
-PROMPT_VERSION = "2026-05-12.v2"
+PROMPT_VERSION = "2026-05-12.v3"
 
-# Fixed 6-category schema — keeps the briefing comparable week-over-week.
-# Kimi must categorize each policy change into ONE of these.
+# Fixed 6-category schema, named to match BBVA Research's Turkish Banking
+# Sector report so readers familiar with their format land smoothly.
+# Order is enforced — Kimi outputs sections in this exact order.
 CATEGORIES = [
-    "TL Deposit Share Regulations",
-    "Loan Growth & Limits",
-    "Reserve Requirements",
-    "Capital Adequacy",
-    "Credit Cards & Consumer Credit",
+    "Regulations for TL Deposit Share",
+    "Loan Growth Caps",
+    "Regulations on RRs",
+    "Regulations for CARs",
+    "Regulations on Credit Cards",
     "Other Regulatory Actions",
 ]
 
-SYSTEM_PROMPT = """You are summarizing Turkish banking-sector REGULATIONS for an analyst dashboard.
+SYSTEM_PROMPT = """You are producing a Turkish banking-sector regulatory briefing in
+the exact format of BBVA Research's Monthly Turkish Banking Sector Report
+(the "Monetary stance ... macro-prudential measures" page). The output is
+a cumulative snapshot of macroprudential rules currently in force, not a
+"what changed this week" diff.
 
-You receive a JSON list of regulatory press releases and announcements from
-TCMB (Türkiye Cumhuriyet Merkez Bankası, central bank) and BDDK (Bankacılık
-Düzenleme ve Denetleme Kurumu, banking regulator). Each item has:
-  - id        (use this verbatim when citing sources)
+You receive a JSON list of regulatory press releases and Kurul Kararı
+(Board Decisions) from TCMB (Türkiye Cumhuriyet Merkez Bankası, the
+central bank) and BDDK (Bankacılık Düzenleme ve Denetleme Kurumu, the
+banking regulator). Each item has:
+  - id        (use verbatim when citing — format: "tcmb:ANO2026-19" or "bddk:2286")
   - source    ("tcmb" or "bddk")
-  - date      (YYYY-MM-DD)
+  - date      (YYYY-MM-DD — most-recent revision date for the cited rule)
   - title     (Turkish or English)
   - body      (Turkish or English, may be truncated)
 
-YOUR TASK: produce a thematic briefing in the BBVA Research Monthly
-Turkish Banking Report style — short bullets emphasising *what regulatory
-rules changed* and *by how much* (specific limits, ratios, caps,
-thresholds, effective dates).
-
-==================== CRITICAL: WHAT QUALIFIES AS A REGULATION ====================
-
-INCLUDE:
-  - New or modified caps, limits, thresholds, ratios set by the regulator
-    (e.g. "RRR for TL deposits raised from 17% to 20%",
-     "TL commercial loan growth cap tightened from 3% to 2.5% per 8 weeks",
-     "Credit-card overdraft cap reduced to 2× monthly average income").
-  - Monetary policy decisions: policy rate changes, corridor changes,
-    new operational frameworks (open banking rules, FX forward auctions,
-    repo suspensions).
-  - Capital / liquidity / provisioning rule changes
-    (CAR floors, RWA weightings, LCR/NSFR thresholds).
-  - License grants / revocations only if structurally significant
-    (a major new bank type — like the first participation bank in a class).
-
-EXCLUDE — these are NOT regulations and should be omitted entirely:
-  - Observed market data ("retail loan growth was 2.7%",
-    "commercial rates rose 121 bps to 49.3%"). These are MPC commentary
-    OBSERVING the market, not regulatory rules changing the market.
-  - Per-bank operational filings, single-bank license events that aren't
-    structurally novel, factoring / leasing company licenses, internal HR.
-  - Conference / meeting announcements, briefings, technical training,
-    general-assembly notices.
-  - Data-publication notices ("Fintürk March data published").
-
-The litmus test: "Did this announcement CHANGE A RULE that banks must
-follow?" If yes → include. If it just describes what's happening → exclude.
-
-==================== OUTPUT FORMAT ====================
-
-Return a single JSON object exactly like:
+OUTPUT FORMAT — single JSON object:
 {
   "categories": [
     {
       "name": "<one of the fixed category names>",
       "bullets": [
         {
-          "text": "<one or two sentences naming the rule change with numbers>",
+          "text": "<one or two sentences describing the rule with numbers>",
           "source_ids": ["<id1>", "<id2>"]
         }
       ]
@@ -104,31 +75,90 @@ Return a single JSON object exactly like:
   ]
 }
 
-==================== RULES ====================
+==================== CATEGORIES (use these EXACT names, in this order) ====================
 
-1. Use EXACTLY these category names (omit categories with zero qualifying
-   items entirely — DO NOT include a category just to have it present):
-     "TL Deposit Share Regulations"
-     "Loan Growth & Limits"
-     "Reserve Requirements"
-     "Capital Adequacy"
-     "Credit Cards & Consumer Credit"
-     "Other Regulatory Actions"
-2. Each bullet describes ONE rule change. Group related changes that come
-   from the same announcement into one bullet; cite all related source_ids.
-3. Quote specific numbers from the body whenever they exist
-   ("raised from X% to Y% effective DD/MM/YYYY"). If a body only contains
-   vague language with no numbers, you may still include it but be precise
-   about what changed.
-4. Translate Turkish bodies to clear English for international analysts.
-5. If the past 90 days produced ZERO regulatory rule changes (only
-   market commentary and licensing notices), return:
-     {"categories": []}
-   It's better to be empty than to misclassify market data as a regulation.
-6. Output VALID JSON only. No markdown fences, no commentary outside JSON."""
+  "Regulations for TL Deposit Share"
+       — calculation period, growth targets, tolerance ranges, commission
+         rates, FX-rate basis for share calculations.
+  "Loan Growth Caps"
+       — TL/FC loan growth limits, SME exclusions, CGF / "breath" credits,
+         housing LTV rules, sector-specific carve-outs.
+  "Regulations on RRs"
+       — Reserve Requirement Ratios across deposit types, FC deposits,
+         repo/funds from abroad, indexed deposits, etc.
+  "Regulations for CARs"
+       — Capital Adequacy Ratio: floors, RWA weights, forbearances on FX
+         rate fixing in CAR calculations, HTC&S securities treatment.
+  "Regulations on Credit Cards"
+       — credit-card limits (overdraft, total), restructuring rules,
+         interest-rate caps by balance tier, fee limits.
+  "Other Regulatory Actions"
+       — only for material rule changes that don't fit any above category
+         (e.g. new operational frameworks, structurally novel licenses,
+         monetary-policy operational changes). Use sparingly.
+
+==================== WHAT TO INCLUDE / EXCLUDE ====================
+
+INCLUDE:
+  - Specific caps, limits, thresholds, ratios set by the regulator
+    (with numbers and effective dates).
+  - Monetary-policy decisions (policy rate, corridor, repo frameworks).
+  - Capital / liquidity / provisioning rule changes.
+  - When a single rule has been revised multiple times in the window,
+    describe the CURRENT state and cite all relevant source_ids in
+    chronological order.
+
+EXCLUDE — these are NOT regulations:
+  - Observed market data ("retail loan growth was 2.7%",
+    "commercial rates rose 121 bps to 49.3%"). These are MPC commentary
+    OBSERVING the market, not regulatory rules.
+  - Single-bank licensing / factoring / leasing company licenses, internal
+    HR, conference / training / general-assembly notices.
+  - Data-publication notices ("Fintürk March data published").
+
+The litmus test: "Does this set a RULE that banks must follow?" If yes →
+include. If it observes / reports / announces an event → exclude.
+
+==================== STYLE ====================
+
+Bullets must read like BBVA Research bullets. Example of the target style:
+
+  "The calculation period for TL deposit rules was extended to eight weeks
+   from four weeks with the same thresholds. Accordingly, real-person TRY
+   deposit share growth target has been changed to 0.4pp from 0.2pp for
+   banks between 60-65% ratio and to 0.8pp from 0.4pp for those below 60%."
+
+  "Limits on TL & FC loan growth are reviewed via 8 weeks with a cumulative
+   cap of 5% for TL SME loans & 3% for non-SME TL commercial loans
+   excluding export & investment, agriculture, and tradesman loans; 4%
+   auto loans, 4% GPL, 4% for overdraft loans with more than 3 installments;
+   2% for overdraft account limits (introduced as of 30.01.26)."
+
+  "The RRR of 17% for TL deposits (demand and 1M & 3M time deposits)"
+  "The RRR of 10% for TL deposits (>3M)"
+  "TL RRR of 2.5% for FC deposits"
+
+Rules of thumb:
+  1. Lead with the rule (the rate / cap / threshold), not the regulator.
+  2. Always include the SPECIFIC NUMBER and the effective / revision date.
+  3. Reference previous values when they changed ("previously 1.0%, revised
+     to 0.5% as of 30.01.26").
+  4. Translate Turkish source bodies to clear English for international
+     analysts.
+  5. If the body lacks numeric specifics, omit the bullet rather than
+     write something vague.
+  6. Group related sub-rules into one bullet rather than fragmenting.
+
+RULES:
+  1. Use EXACTLY the six category names listed above, in that order.
+     Omit any category with zero qualifying bullets.
+  2. Each bullet describes ONE rule (or one coherent rule cluster).
+  3. If the input window contains zero qualifying regulatory rules,
+     return: {"categories": []}
+  4. Output VALID JSON only. No markdown fences."""
 
 
-def fetch_input(conn: sqlite3.Connection, window_days: int) -> list[dict]:
+def fetch_input(conn: sqlite3.Connection, window_days: int, body_cap: int) -> list[dict]:
     rows = conn.execute(
         """SELECT source, external_id, published_at, title, body_text
            FROM news_items
@@ -146,7 +176,7 @@ def fetch_input(conn: sqlite3.Connection, window_days: int) -> list[dict]:
             "source": src,
             "date": (published_at or "")[:10],
             "title": title,
-            "body": body[:2500],   # cap per-item body for token budget
+            "body": body[:body_cap],
         })
     return items
 
@@ -198,8 +228,14 @@ def validate_response(data) -> dict:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--window-days", type=int, default=90,
-                    help="Look-back window for input items (default 90).")
+    ap.add_argument("--window-days", type=int, default=365,
+                    help="Look-back window for input items (default 365 — "
+                         "BBVA-style briefing is a cumulative snapshot of "
+                         "currently-active rules, not just recent changes).")
+    ap.add_argument("--body-cap", type=int, default=1500,
+                    help="Max chars per item body. Keeps prompt within "
+                         "the 32k-context window for ~100 items. Raise + "
+                         "switch KIMI_MODEL to moonshot-v1-128k for richer input.")
     ap.add_argument("--dry-run", action="store_true",
                     help="Build the prompt + print stats but skip the LLM call.")
     args = ap.parse_args()
@@ -220,7 +256,7 @@ def main():
                 fetched_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
         """)
-        items = fetch_input(conn, args.window_days)
+        items = fetch_input(conn, args.window_days, args.body_cap)
 
     print(f"[briefing] {len(items)} TCMB+BDDK items with body in last {args.window_days}d", flush=True)
     if not items:
