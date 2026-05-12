@@ -107,6 +107,64 @@ export async function profitLoss(
   return results;
 }
 
+/** Balance-sheet rows for one bank across multiple periods.
+ *  Returned shape: "<statement>::<hierarchy>" → period → amount_total.
+ *  Used by the per-bank page to render a multi-column standardized table. */
+export async function balanceSheetMultiPeriod(
+  ticker: string,
+  kind: "consolidated" | "unconsolidated",
+  periods: string[],
+): Promise<Map<string, Map<string, number | null>>> {
+  if (periods.length === 0) return new Map();
+  const db = await getDB();
+  const placeholders = periods.map(() => "?").join(",");
+  const { results } = await db
+    .prepare(
+      `SELECT statement, period, hierarchy, amount_total
+       FROM bank_audit_balance_sheet
+       WHERE bank_ticker = ? AND kind = ?
+         AND period IN (${placeholders})
+         AND hierarchy != ''`,
+    )
+    .bind(ticker, kind, ...periods)
+    .all<{ statement: string; period: string; hierarchy: string; amount_total: number | null }>();
+  const out = new Map<string, Map<string, number | null>>();
+  for (const r of results) {
+    const key = `${r.statement}::${r.hierarchy}`;
+    if (!out.has(key)) out.set(key, new Map());
+    out.get(key)!.set(r.period, r.amount_total);
+  }
+  return out;
+}
+
+/** P&L rows for one bank across multiple periods.
+ *  Returned shape: hierarchy → period → amount. */
+export async function profitLossMultiPeriod(
+  ticker: string,
+  kind: "consolidated" | "unconsolidated",
+  periods: string[],
+): Promise<Map<string, Map<string, number | null>>> {
+  if (periods.length === 0) return new Map();
+  const db = await getDB();
+  const placeholders = periods.map(() => "?").join(",");
+  const { results } = await db
+    .prepare(
+      `SELECT period, hierarchy, amount
+       FROM bank_audit_profit_loss
+       WHERE bank_ticker = ? AND kind = ?
+         AND period IN (${placeholders})
+         AND hierarchy != ''`,
+    )
+    .bind(ticker, kind, ...periods)
+    .all<{ period: string; hierarchy: string; amount: number | null }>();
+  const out = new Map<string, Map<string, number | null>>();
+  for (const r of results) {
+    if (!out.has(r.hierarchy)) out.set(r.hierarchy, new Map());
+    out.get(r.hierarchy)!.set(r.period, r.amount);
+  }
+  return out;
+}
+
 /**
  * Time series of a specific BS line for one bank.
  * Matches `item_name` exactly. Returns (period, amount_total) tuples.
