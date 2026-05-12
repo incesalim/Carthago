@@ -80,14 +80,38 @@ def main():
             with sqlite3.connect(str(DB_PATH)) as conn:
                 init_schema(conn)
                 upsert_items(conn, items)
+                # Self-heal: drop any historical rows that match the current
+                # BDDK noise patterns (e.g. data-publication notices, internal
+                # HR posts). Patterns can evolve over time; this keeps the
+                # cache in sync without manual cleanup.
+                deleted = _delete_bddk_noise(conn)
             totals["bddk"] = len(items)
-            print(f"[bddk] upserted {len(items):>4d} duyurus (latest {args.bddk_limit})")
+            print(f"[bddk] upserted {len(items):>4d} duyurus (latest {args.bddk_limit})"
+                  + (f"; purged {deleted} legacy-noise rows" if deleted else ""))
         except Exception as e:
             print(f"[bddk] FAILED: {type(e).__name__}: {e}", flush=True)
 
     elapsed = time.time() - t0
     print(f"\ntotal: {sum(totals.values())} items in {elapsed:.1f}s "
           f"(kap={totals['kap']} tcmb={totals['tcmb']} bddk={totals['bddk']})")
+
+
+def _delete_bddk_noise(conn: sqlite3.Connection) -> int:
+    """Apply bddk.NOISE_PATTERNS as DELETEs to existing rows. The scraper
+    already filters new ones; this cleans up anything that slipped in
+    before the pattern was added."""
+    rows = conn.execute(
+        "SELECT external_id, title FROM news_items WHERE source = 'bddk'"
+    ).fetchall()
+    to_delete = [ext_id for ext_id, title in rows if bddk.is_noise(title or "")]
+    if not to_delete:
+        return 0
+    conn.executemany(
+        "DELETE FROM news_items WHERE source = 'bddk' AND external_id = ?",
+        [(eid,) for eid in to_delete],
+    )
+    conn.commit()
+    return len(to_delete)
 
 
 if __name__ == "__main__":
