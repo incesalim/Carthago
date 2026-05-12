@@ -201,8 +201,16 @@ export default async function RegulationPage() {
         </div>
       </header>
 
-      {briefing ? (
+      {briefing && briefing.categories.length > 0 ? (
         <BriefingWidget briefing={briefing} sourceLookup={sourceLookup} />
+      ) : briefing ? (
+        <section className="rounded-lg border border-dashed border-neutral-300 bg-neutral-50 p-4 text-sm text-neutral-600">
+          <strong className="font-semibold">No regulatory rule changes detected in the past {briefing.window_days} days.</strong>
+          {" "}The summarizer scanned {briefing.item_count} TCMB &amp; BDDK announcements
+          on {fmtDate(briefing.generated_at)} but none qualified as a substantive
+          rule change (caps, ratios, thresholds, or policy decisions). Raw feeds
+          below show all administrative + market-commentary items.
+        </section>
       ) : (
         <section className="rounded-lg border border-dashed border-neutral-300 bg-neutral-50 p-4 text-sm text-neutral-600">
           <strong className="font-semibold">Weekly briefing not yet generated.</strong> The
