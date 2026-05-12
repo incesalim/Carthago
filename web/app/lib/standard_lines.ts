@@ -74,25 +74,36 @@ export const BS_ASSET_ROMAN_HIERARCHIES = [
 ];
 
 /** Balance-Sheet Liabilities (+ Equity at the end).
- *  Verified from real AKBNK data 2024Q4/2025Q4 — BRSA's actual ordering
- *  is *not* what an outsider would guess from looking at IFRS templates. */
+ *  Replicates the rows the user highlighted on the BRSA liabilities
+ *  template, in the same order. Roman numerals (top-level) render bold;
+ *  numeric sub-items render indented. Real AKBNK data verifies the
+ *  Roman-numeral mapping (e.g. II = ALINAN KREDİLER, III = PARA
+ *  PİYASALARINA BORÇLAR, IV = İHRAÇ EDİLEN MENKUL KIYMETLER, ...). */
 export const BS_LIAB_LINES: StandardLine[] = [
-  { id: "deposits", label: "Deposits / Funds Collected", hierarchy: "I." },
-  { id: "borrowings", label: "Funds Borrowed", hierarchy: "II." },
-  { id: "money_market", label: "Money Market Borrowings", hierarchy: "III." },
-  { id: "issued_securities", label: "Issued Securities (Net)", hierarchy: "IV." },
-  { id: "funds_sub", label: "Funds (Sub-Borrowed)", hierarchy: "V." },
-  { id: "fvtpl_liab", label: "Financial Liabilities at FVTPL", hierarchy: "VI." },
-  { id: "derivatives_liab", label: "Derivative Financial Liabilities", hierarchy: "VII." },
-  { id: "factoring", label: "Factoring Payables", hierarchy: "VIII." },
-  { id: "lease_liab", label: "Lease Payables (Net)", hierarchy: "IX." },
-  { id: "provisions", label: "Provisions", hierarchy: "X." },
-  { id: "current_tax_liab", label: "Current Tax Liability", hierarchy: "XI." },
-  { id: "deferred_tax_liab", label: "Deferred Tax Liability", hierarchy: "XII." },
-  { id: "held_for_sale_liab", label: "Held-for-Sale Liabilities", hierarchy: "XIII." },
-  { id: "subordinated_debt", label: "Subordinated Debt Instruments", hierarchy: "XIV." },
-  { id: "other_liab", label: "Other Liabilities", hierarchy: "XV." },
-  { id: "equity", label: "Shareholders' Equity", hierarchy: "XVI.", bold: true },
+  { id: "deposits",            label: "Deposits / Funds Collected",            hierarchy: "I.",     bold: true },
+  { id: "borrowings",          label: "Funds Borrowed",                         hierarchy: "II.",    bold: true },
+  { id: "money_market",        label: "Money Market Borrowings",                hierarchy: "III.",   bold: true },
+  { id: "issued_securities",   label: "Issued Securities (Net)",                hierarchy: "IV.",    bold: true },
+  { id: "bonds",               label: "Bonds",                                  hierarchy: "4.3" },
+  { id: "funds_sub",           label: "Funds (Sub-Borrowed)",                   hierarchy: "V.",     bold: true },
+  { id: "fvtpl_liab",          label: "Financial Liabilities at FVTPL",         hierarchy: "VI.",    bold: true },
+  { id: "derivatives_liab",    label: "Derivative Financial Liabilities",       hierarchy: "VII.",   bold: true },
+  { id: "factoring",           label: "Factoring Payables",                     hierarchy: "VIII.",  bold: true },
+  { id: "lease_liab",          label: "Lease Payables (Net)",                   hierarchy: "IX.",    bold: true },
+  { id: "provisions",          label: "Provisions",                             hierarchy: "X.",     bold: true },
+  { id: "current_tax_liab",    label: "Current Tax Liability",                  hierarchy: "XI.",    bold: true },
+  { id: "deferred_tax_liab",   label: "Deferred Tax Liability",                 hierarchy: "XII.",   bold: true },
+  { id: "held_for_sale_liab",  label: "Held-for-Sale and Discontinued Liabilities (Net)", hierarchy: "XIII.",  bold: true },
+  { id: "subordinated_debt",   label: "Subordinated Debt Instruments",          hierarchy: "XIV.",   bold: true },
+  { id: "subordinated_loans",  label: "Loans (Subordinated)",                   hierarchy: "14.1" },
+  { id: "other_liab",          label: "Other Liabilities",                      hierarchy: "XV.",    bold: true },
+  // Equity (XVI) + selected sub-items. The page injects the synthetic
+  // "Total Liabilities" subtotal row *before* the equity block so these
+  // sit visually under their parent equity row.
+  { id: "equity",              label: "Shareholders' Equity",                   hierarchy: "XVI.",   bold: true },
+  { id: "capital_reserves",    label: "Capital Reserves",                       hierarchy: "16.2" },
+  { id: "profit_reserves",     label: "Profit Reserves",                        hierarchy: "16.5" },
+  { id: "legal_reserves",      label: "Legal Reserves",                         hierarchy: "16.5.1" },
 ];
 
 /** Roman-numeral parents used to sum Total Liabilities (excluding equity). */
