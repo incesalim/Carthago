@@ -124,7 +124,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
             <span>Recent KAP disclosures</span>
             {kapItems.length > 0 && (
               <Link
-                href={`/news?ticker=${ticker}`}
+                href={`/disclosures?ticker=${ticker}`}
                 className="text-xs text-neutral-500 hover:text-neutral-900"
               >
                 all {ticker} →
