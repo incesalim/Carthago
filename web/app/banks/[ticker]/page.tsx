@@ -23,7 +23,10 @@ import {
 import { newsByTicker } from "@/app/lib/news";
 import {
   BS_ASSET_LINES,
+  BS_ASSET_ROMAN_HIERARCHIES,
   BS_LIAB_LINES,
+  BS_LIAB_ROMAN_HIERARCHIES,
+  BS_EQUITY_HIERARCHY,
   PL_LINES,
   type StandardLine,
 } from "@/app/lib/standard_lines";
@@ -68,9 +71,11 @@ interface RowProps {
   bold?: boolean;
   /** Optional extra top border (used for subtotal rows). */
   divider?: boolean;
+  /** Visually indent (used for "of which:" sub-items). */
+  indent?: boolean;
 }
 
-function Row({ label, values, bold, divider }: RowProps) {
+function Row({ label, values, bold, divider, indent }: RowProps) {
   return (
     <tr
       className={
@@ -78,14 +83,18 @@ function Row({ label, values, bold, divider }: RowProps) {
         (divider ? "border-t border-neutral-300 " : "border-b border-neutral-100")
       }
     >
-      <td className={`py-1.5 pr-3 pl-3 text-xs ${bold ? "font-semibold text-neutral-900" : "text-neutral-700"}`}>
+      <td
+        className={`py-1.5 pr-3 text-xs ${indent ? "pl-8 text-neutral-600" : "pl-3 text-neutral-700"} ${
+          bold ? "font-semibold text-neutral-900" : ""
+        }`}
+      >
         {label}
       </td>
       {values.map((v, i) => (
         <td
           key={i}
           className={`py-1.5 pl-2 pr-3 text-right text-xs tabular-nums ${
-            bold ? "font-semibold text-neutral-900" : "text-neutral-800"
+            bold ? "font-semibold text-neutral-900" : indent ? "text-neutral-600" : "text-neutral-800"
           }`}
         >
           {fmtTl(v)}
@@ -107,10 +116,12 @@ function valuesForLine(
   return periods.map((p) => periodMap.get(p) ?? null);
 }
 
-/** Sum non-null values across a set of lines per period. Used for synthetic
- *  Total Assets / Total Liabilities rows. */
-function sumLines(
-  lines: StandardLine[],
+/** Sum non-null values across a list of BRSA hierarchy codes per period.
+ *  Used for synthetic Total Assets / Total Liabilities rows — pass the
+ *  Roman-numeral parent codes (BS_ASSET_ROMAN_HIERARCHIES etc.) to avoid
+ *  double-counting sub-items that are also displayed individually. */
+function sumHierarchies(
+  hierarchies: string[],
   pivot: Map<string, Map<string, number | null>>,
   periods: string[],
   statement: string,
@@ -118,8 +129,8 @@ function sumLines(
   return periods.map((p) => {
     let total = 0;
     let any = false;
-    for (const line of lines) {
-      const key = `${statement}::${line.hierarchy}`;
+    for (const h of hierarchies) {
+      const key = `${statement}::${h}`;
       const v = pivot.get(key)?.get(p);
       if (v != null) {
         total += v;
@@ -161,13 +172,16 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
     newsByTicker(ticker, 12),
   ]);
 
-  // Computed totals
-  const totalAssets = sumLines(BS_ASSET_LINES, bsPivot, periods, "assets");
-  const equityLine = BS_LIAB_LINES.find((l) => l.id === "equity")!;
+  // Computed totals. Sum BRSA Roman-numeral parents — never sub-items
+  // (e.g. "2.1 Loans" is inside "II. Amortized Cost"; including both would
+  // double-count). Equity is summed separately.
+  const totalAssets = sumHierarchies(BS_ASSET_ROMAN_HIERARCHIES, bsPivot, periods, "assets");
+  const totalLiab = sumHierarchies(BS_LIAB_ROMAN_HIERARCHIES, bsPivot, periods, "liabilities");
   const liabExEquityLines = BS_LIAB_LINES.filter((l) => l.id !== "equity");
-  const totalLiab = sumLines(liabExEquityLines, bsPivot, periods, "liabilities");
-  const equityValues = valuesForLine(equityLine, bsPivot, periods, "liabilities") as (number | null)[];
+  const equityLine = BS_LIAB_LINES.find((l) => l.id === "equity")!;
+  const equityValues = sumHierarchies([BS_EQUITY_HIERARCHY], bsPivot, periods, "liabilities");
   const totalLE = addArrays(totalLiab, equityValues);
+  void equityLine; // kept for reference; equity row built from equityValues below
 
   return (
     <main className="px-8 py-8 max-w-5xl">
@@ -278,6 +292,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
                   key={line.id}
                   label={line.label}
                   values={valuesForLine(line, bsPivot, periods, "assets")}
+                  indent={line.indent}
                 />
               ))}
               <Row label="Total Assets" values={totalAssets} bold divider />
@@ -286,6 +301,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
                   key={line.id}
                   label={line.label}
                   values={valuesForLine(line, bsPivot, periods, "liabilities")}
+                  indent={line.indent}
                 />
               ))}
               <Row label="Total Liabilities" values={totalLiab} bold divider />
