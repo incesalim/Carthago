@@ -133,10 +133,10 @@ export default async function DisclosuresPage({ searchParams }: Props) {
             </div>
           )}
           <Link
-            href="/news"
+            href="/regulation"
             className="text-neutral-600 underline hover:text-neutral-900"
           >
-            Regulatory news (TCMB / BDDK) →
+            TCMB &amp; BDDK regulation →
           </Link>
           <Link
             href="/banks"
