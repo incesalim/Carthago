@@ -51,7 +51,12 @@ SYNC_TABLES = [
     "news_items",
 ]
 
-BATCH_SIZE = 100  # rows per INSERT statement
+BATCH_SIZE = 100  # rows per INSERT statement (default for skinny tables)
+# news_items can carry multi-KB body_text per row — batch much smaller so a
+# single INSERT statement stays under D1's SQLITE_TOOBIG limit (~1 MB).
+BATCH_SIZE_PER_TABLE = {
+    "news_items": 10,
+}
 
 
 def fetch_recent(conn: sqlite3.Connection, table: str, hours: int) -> list[str]:
@@ -86,6 +91,7 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int) -> list[str]:
 
     out: list[str] = [f"-- {table}: {n} rows from last {hours}h"]
     batch: list[str] = []
+    batch_size = BATCH_SIZE_PER_TABLE.get(table, BATCH_SIZE)
     rows_iter = conn.execute(f"SELECT {col_list} FROM {table} {where}")
     for r in rows_iter:
         vals = []
@@ -98,7 +104,7 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int) -> list[str]:
                 s = str(v).replace("'", "''")
                 vals.append(f"'{s}'")
         batch.append("(" + ",".join(vals) + ")")
-        if len(batch) >= BATCH_SIZE:
+        if len(batch) >= batch_size:
             out.append(
                 f"INSERT OR REPLACE INTO {table}({col_list}) VALUES\n"
                 + ",\n".join(batch)

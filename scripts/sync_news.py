@@ -14,13 +14,14 @@ import argparse
 import sqlite3
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 sys.stdout.reconfigure(encoding="utf-8")
 
-from src.news.loader import upsert_items  # noqa: E402
+from src.news.loader import items_missing_body, update_body, upsert_items  # noqa: E402
 from src.news.schema import init_schema  # noqa: E402
 from src.news.sources import bddk, kap, tcmb  # noqa: E402
 
@@ -38,6 +39,12 @@ def main():
                     help="Years to fetch from TCMB (default: current year)")
     ap.add_argument("--bddk-limit", type=int, default=200,
                     help="Max BDDK rows from the announcement list (default 200)")
+    ap.add_argument("--skip-bodies", action="store_true",
+                    help="Skip the per-item body backfill")
+    ap.add_argument("--body-workers", type=int, default=8,
+                    help="Parallel detail-page fetchers (default 8)")
+    ap.add_argument("--body-limit", type=int, default=None,
+                    help="Cap on body-fetches per source per run (default unlimited)")
     args = ap.parse_args()
 
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -91,9 +98,49 @@ def main():
         except Exception as e:
             print(f"[bddk] FAILED: {type(e).__name__}: {e}", flush=True)
 
+    # Body backfill — incremental: only fetch detail pages for rows that
+    # don't yet have a body cached. Cheap on first run after the column
+    # was added, near-free on every subsequent run.
+    if not args.skip_bodies:
+        for source_name, fetcher in [("tcmb", tcmb.fetch_body), ("bddk", bddk.fetch_body)]:
+            if only_one and not getattr(args, f"{source_name}_only"):
+                continue
+            try:
+                _backfill_bodies(source_name, fetcher, args.body_workers, args.body_limit)
+            except Exception as e:
+                print(f"[{source_name}-body] FAILED: {type(e).__name__}: {e}", flush=True)
+
     elapsed = time.time() - t0
     print(f"\ntotal: {sum(totals.values())} items in {elapsed:.1f}s "
           f"(kap={totals['kap']} tcmb={totals['tcmb']} bddk={totals['bddk']})")
+
+
+def _backfill_bodies(source: str, fetcher, workers: int, limit: int | None) -> None:
+    """Fetch and store body_text for any rows of `source` that don't have one."""
+    with sqlite3.connect(str(DB_PATH)) as conn:
+        pending = items_missing_body(conn, source, limit=limit)
+    if not pending:
+        print(f"[{source}-body] up to date")
+        return
+    print(f"[{source}-body] fetching {len(pending)} detail pages × {workers} workers")
+    ok = fail = 0
+    with sqlite3.connect(str(DB_PATH)) as conn, \
+         ThreadPoolExecutor(max_workers=workers) as ex:
+        futures = {ex.submit(fetcher, url): (ext, url) for ext, url in pending}
+        for fut in as_completed(futures):
+            ext_id, url = futures[fut]
+            try:
+                body = fut.result()
+            except Exception as e:
+                fail += 1
+                print(f"  [FAIL] {ext_id}: {type(e).__name__}: {e}", flush=True)
+                continue
+            if body:
+                update_body(conn, source, ext_id, body)
+                ok += 1
+            else:
+                fail += 1
+    print(f"[{source}-body] ok={ok} fail={fail}")
 
 
 def _delete_bddk_noise(conn: sqlite3.Connection) -> int:
