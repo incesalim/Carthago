@@ -25,10 +25,16 @@ import requests
 
 from src.news.loader import NewsItem
 
+import html as html_lib
+
 BASE = "https://www.tcmb.gov.tr"
 LIST_PATH = "/wps/wcm/connect/EN/TCMB+EN/Main+Menu/Announcements/Press+Releases/{year}"
 
 HEADERS = {"User-Agent": "Mozilla/5.0", "Accept-Language": "en-US,en;q=0.9"}
+
+# Cap stored body length so unusually long press releases don't bloat D1.
+# 8 KB is enough for every TCMB release sampled (MPC meetings are ~3-4 KB).
+BODY_MAX_CHARS = 8000
 
 # Title anchor followed by the date div, with arbitrary whitespace + sibling
 # markup between them. DOTALL lets `.*?` span newlines; non-greedy so we don't
@@ -49,6 +55,42 @@ def _to_iso(raw: str) -> str:
     except ValueError:
         return datetime.now(timezone.utc).isoformat()
     return d.replace(tzinfo=timezone.utc).isoformat()
+
+
+# Pattern to match the press-release content area: TCMB renders the body
+# inside <div class="contentMain"> ... </div> with substantive text in <p>
+# tags. We don't bound by a single class because the wrapper name has
+# drifted across template versions; instead we collect every >30-char
+# <p> block in document order until we hit footer boilerplate.
+_FOOTER_MARKERS = (
+    "Address:",  "Adres:",
+    "Türkiye Cumhuriyet Merkez Bankası",
+    "© Central Bank",
+)
+
+
+def fetch_body(url: str, timeout: int = 30) -> str | None:
+    """Fetch a TCMB ANO detail page and extract the press-release body."""
+    try:
+        r = requests.get(url, headers=HEADERS, timeout=timeout)
+    except requests.RequestException:
+        return None
+    if r.status_code != 200:
+        return None
+    paragraphs: list[str] = []
+    for p_html in re.findall(r"<p[^>]*>(.*?)</p>", r.text, re.DOTALL | re.IGNORECASE):
+        text = re.sub(r"<[^>]+>", " ", p_html)
+        text = html_lib.unescape(text)
+        text = re.sub(r"\s+", " ", text).strip()
+        if len(text) < 30:
+            continue
+        if any(marker in text for marker in _FOOTER_MARKERS):
+            break
+        paragraphs.append(text)
+    body = "\n\n".join(paragraphs).strip()
+    if not body:
+        return None
+    return body[:BODY_MAX_CHARS]
 
 
 def fetch(years: list[int] | None = None) -> list[NewsItem]:

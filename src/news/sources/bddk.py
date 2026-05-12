@@ -52,6 +52,18 @@ def is_noise(title: str) -> bool:
 
 BASE = "https://www.bddk.org.tr"
 LIST_URL = f"{BASE}/Duyuru/Liste"
+BODY_MAX_CHARS = 4000
+
+# Markers that signal we've fallen out of the announcement body into site
+# boilerplate (cookie notice, copyright, etc.).
+_BODY_NOISE = (
+    "Kurumumuzun internet adresi",
+    "BDDK web sitesi",
+    "Web sitemizde yayınlanan çalışmalardan",
+    "Bu sitede yer alan bilgi",
+    "Telif Hakkı",
+    "Çerez Politika",
+)
 
 # Match the whole <a><span class="icon">…</span><span class="text">…</span></a>
 # block. Captures: id, displayed date, title text after the date span.
@@ -65,6 +77,35 @@ _ROW_RE = re.compile(
     r'</a>',
     re.DOTALL,
 )
+
+
+def fetch_body(url: str, timeout: int = 30) -> str | None:
+    """Fetch a BDDK Duyuru detail page and extract the announcement body.
+
+    The detail page is wrapped in a lot of site chrome; the actual
+    announcement text is in the first 1-3 <p> blocks before boilerplate
+    starts (cookie notice, copyright, terms). We collect <p>s in order
+    and stop at the first known boilerplate marker."""
+    try:
+        r = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=timeout)
+    except requests.RequestException:
+        return None
+    if r.status_code != 200:
+        return None
+    paragraphs: list[str] = []
+    for p_html in re.findall(r"<p[^>]*>(.*?)</p>", r.text, re.DOTALL | re.IGNORECASE):
+        text = re.sub(r"<[^>]+>", " ", p_html)
+        text = html_lib.unescape(text)
+        text = re.sub(r"\s+", " ", text).strip()
+        if len(text) < 30:
+            continue
+        if any(marker in text for marker in _BODY_NOISE):
+            break
+        paragraphs.append(text)
+    body = "\n\n".join(paragraphs).strip()
+    if not body:
+        return None
+    return body[:BODY_MAX_CHARS]
 
 
 def _to_iso(raw: str) -> str:

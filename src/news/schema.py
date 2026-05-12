@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS news_items (
     category      TEXT,                     -- source-specific category string
     title         TEXT NOT NULL,
     summary       TEXT,                     -- short body / first paragraph
+    body_text     TEXT,                     -- full extracted body (TCMB/BDDK detail page)
     url           TEXT NOT NULL,            -- canonical link to the original
     language      TEXT NOT NULL,            -- 'tr' | 'en'
     raw_json      TEXT,                     -- json blob of the source record

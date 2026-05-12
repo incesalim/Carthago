@@ -17,27 +17,73 @@ class NewsItem:
     ticker: str | None = None
     category: str | None = None
     summary: str | None = None
+    body_text: str | None = None     # full extracted body — populated by source-specific fetch_body()
     raw_json: str | None = None      # JSON blob; set automatically if None
 
 
 def upsert_items(conn: sqlite3.Connection, items: list[NewsItem]) -> int:
-    """INSERT OR REPLACE a batch of items. Returns the rowcount."""
+    """INSERT OR REPLACE a batch of items. Preserves any existing body_text
+    if the new item doesn't carry one (so list-only resyncs don't clobber
+    bodies fetched by an earlier detail pass)."""
     if not items:
         return 0
-    rows = [
-        (
+    # Pull existing body_text for items missing one in the new batch
+    existing: dict[tuple[str, str], str | None] = {}
+    needs_existing = [(it.source, it.external_id) for it in items if it.body_text is None]
+    if needs_existing:
+        placeholders = ",".join(["(?, ?)"] * len(needs_existing))
+        flat = [v for pair in needs_existing for v in pair]
+        rows = conn.execute(
+            f"""SELECT source, external_id, body_text FROM news_items
+                WHERE (source, external_id) IN (VALUES {placeholders})""",
+            flat,
+        ).fetchall()
+        for src, ext, body in rows:
+            existing[(src, ext)] = body
+
+    rows = []
+    for it in items:
+        body = it.body_text if it.body_text is not None else existing.get((it.source, it.external_id))
+        rows.append((
             it.source, it.external_id, it.published_at,
-            it.ticker, it.category, it.title, it.summary, it.url, it.language,
+            it.ticker, it.category, it.title, it.summary, body, it.url, it.language,
             it.raw_json or json.dumps(asdict(it), ensure_ascii=False, default=str),
-        )
-        for it in items
-    ]
+        ))
     cur = conn.executemany(
         """INSERT OR REPLACE INTO news_items
            (source, external_id, published_at, ticker, category, title,
-            summary, url, language, raw_json)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            summary, body_text, url, language, raw_json)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         rows,
     )
     conn.commit()
     return cur.rowcount
+
+
+def items_missing_body(
+    conn: sqlite3.Connection,
+    source: str,
+    limit: int | None = None,
+) -> list[tuple[str, str]]:
+    """Return [(external_id, url), …] for items of `source` that don't yet
+    have a non-empty body_text. Used to drive the body-fetch backfill."""
+    sql = """SELECT external_id, url FROM news_items
+             WHERE source = ?
+               AND (body_text IS NULL OR length(body_text) < 30)
+             ORDER BY published_at DESC"""
+    if limit is not None:
+        sql += f" LIMIT {int(limit)}"
+    return [(row[0], row[1]) for row in conn.execute(sql, (source,))]
+
+
+def update_body(
+    conn: sqlite3.Connection,
+    source: str,
+    external_id: str,
+    body_text: str,
+) -> None:
+    conn.execute(
+        "UPDATE news_items SET body_text = ? WHERE source = ? AND external_id = ?",
+        (body_text, source, external_id),
+    )
+    conn.commit()
