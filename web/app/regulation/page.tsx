@@ -1,10 +1,12 @@
 /**
- * /news — regulatory + central-bank news.
+ * /regulation — central-bank + banking-regulator announcements.
  *
- * Two columns: TCMB (central bank press releases) and BDDK (banking
- * regulator announcements). Per-company disclosures from KAP live on
- * /disclosures so the two pages can be scanned separately by audience
- * (macro / regulatory reader vs. per-bank reader).
+ * Two columns: TCMB (monetary policy + market-operations press
+ * releases) and BDDK (banking-regulator board decisions on licensing,
+ * capital adequacy, sanctions). Per-bank KAP disclosures live under
+ * /banks/{ticker} (with a focused per-ticker view at
+ * /disclosures?ticker=...) — they're operational filings, not
+ * regulatory decisions, and the two feeds serve different readers.
  */
 import Link from "next/link";
 import {
@@ -85,9 +87,9 @@ export default async function NewsPage() {
   return (
     <main className="px-8 py-8 space-y-6">
       <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Regulatory News</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Regulation</h1>
         <p className="text-sm text-neutral-500">
-          Central-bank press releases and banking-regulator announcements — refreshed daily.
+          Central-bank press releases (TCMB) and banking-regulator board decisions (BDDK) — refreshed daily.
         </p>
         <div className="flex flex-wrap gap-4 text-xs text-neutral-500 pt-2">
           {tcmbStats && (
@@ -111,10 +113,10 @@ export default async function NewsPage() {
             </div>
           )}
           <Link
-            href="/disclosures"
+            href="/banks"
             className="text-neutral-600 underline hover:text-neutral-900"
           >
-            Per-bank KAP disclosures →
+            Per-bank disclosures (KAP) →
           </Link>
         </div>
       </header>
