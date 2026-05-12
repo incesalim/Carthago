@@ -30,7 +30,7 @@ from src.news.schema import init_schema  # noqa: E402
 
 DB_PATH = REPO_ROOT / "data" / "bddk_data.db"
 
-PROMPT_VERSION = "2026-05-12.v1"
+PROMPT_VERSION = "2026-05-12.v2"
 
 # Fixed 6-category schema — keeps the briefing comparable week-over-week.
 # Kimi must categorize each policy change into ONE of these.
@@ -43,7 +43,8 @@ CATEGORIES = [
     "Other Regulatory Actions",
 ]
 
-SYSTEM_PROMPT = """You are summarizing Turkish banking-sector regulations for an analyst dashboard.
+SYSTEM_PROMPT = """You are summarizing Turkish banking-sector REGULATIONS for an analyst dashboard.
+
 You receive a JSON list of regulatory press releases and announcements from
 TCMB (Türkiye Cumhuriyet Merkez Bankası, central bank) and BDDK (Bankacılık
 Düzenleme ve Denetleme Kurumu, banking regulator). Each item has:
@@ -54,17 +55,48 @@ Düzenleme ve Denetleme Kurumu, banking regulator). Each item has:
   - body      (Turkish or English, may be truncated)
 
 YOUR TASK: produce a thematic briefing in the BBVA Research Monthly
-Turkish Banking Report style — short bullets emphasising *what changed*
-and *by how much* (specific percentages, ratios, dates, thresholds).
+Turkish Banking Report style — short bullets emphasising *what regulatory
+rules changed* and *by how much* (specific limits, ratios, caps,
+thresholds, effective dates).
 
-OUTPUT: a single JSON object with this exact structure:
+==================== CRITICAL: WHAT QUALIFIES AS A REGULATION ====================
+
+INCLUDE:
+  - New or modified caps, limits, thresholds, ratios set by the regulator
+    (e.g. "RRR for TL deposits raised from 17% to 20%",
+     "TL commercial loan growth cap tightened from 3% to 2.5% per 8 weeks",
+     "Credit-card overdraft cap reduced to 2× monthly average income").
+  - Monetary policy decisions: policy rate changes, corridor changes,
+    new operational frameworks (open banking rules, FX forward auctions,
+    repo suspensions).
+  - Capital / liquidity / provisioning rule changes
+    (CAR floors, RWA weightings, LCR/NSFR thresholds).
+  - License grants / revocations only if structurally significant
+    (a major new bank type — like the first participation bank in a class).
+
+EXCLUDE — these are NOT regulations and should be omitted entirely:
+  - Observed market data ("retail loan growth was 2.7%",
+    "commercial rates rose 121 bps to 49.3%"). These are MPC commentary
+    OBSERVING the market, not regulatory rules changing the market.
+  - Per-bank operational filings, single-bank license events that aren't
+    structurally novel, factoring / leasing company licenses, internal HR.
+  - Conference / meeting announcements, briefings, technical training,
+    general-assembly notices.
+  - Data-publication notices ("Fintürk March data published").
+
+The litmus test: "Did this announcement CHANGE A RULE that banks must
+follow?" If yes → include. If it just describes what's happening → exclude.
+
+==================== OUTPUT FORMAT ====================
+
+Return a single JSON object exactly like:
 {
   "categories": [
     {
       "name": "<one of the fixed category names>",
       "bullets": [
         {
-          "text": "<one or two sentences with specific numbers>",
+          "text": "<one or two sentences naming the rule change with numbers>",
           "source_ids": ["<id1>", "<id2>"]
         }
       ]
@@ -72,30 +104,28 @@ OUTPUT: a single JSON object with this exact structure:
   ]
 }
 
-RULES:
-1. Use EXACTLY these category names (omit categories with no relevant
-   items entirely):
+==================== RULES ====================
+
+1. Use EXACTLY these category names (omit categories with zero qualifying
+   items entirely — DO NOT include a category just to have it present):
      "TL Deposit Share Regulations"
      "Loan Growth & Limits"
      "Reserve Requirements"
      "Capital Adequacy"
      "Credit Cards & Consumer Credit"
      "Other Regulatory Actions"
-2. Each bullet must describe a CONCRETE policy change with numbers
-   where available (e.g. "Reserve requirement ratio for TL deposits raised
-   from 17% to 20% effective [date]"). Skip items that are merely
-   administrative (single-bank licensing, hiring notices, data-portal
-   publication notices) — those go to "Other Regulatory Actions" only if
-   genuinely material, else skip entirely.
-3. Group related changes into one bullet and cite all relevant source ids.
-4. Write bullets in clear English suitable for international analysts.
-   The source text may be Turkish — translate as needed.
-5. Be specific. "Various changes were made" is unacceptable; quote the
-   actual numbers and dates from the body.
-6. Output VALID JSON only. No markdown fences, no commentary outside the
-   JSON object.
-7. Categories list order should follow the fixed order above; do not invent
-   new categories."""
+2. Each bullet describes ONE rule change. Group related changes that come
+   from the same announcement into one bullet; cite all related source_ids.
+3. Quote specific numbers from the body whenever they exist
+   ("raised from X% to Y% effective DD/MM/YYYY"). If a body only contains
+   vague language with no numbers, you may still include it but be precise
+   about what changed.
+4. Translate Turkish bodies to clear English for international analysts.
+5. If the past 90 days produced ZERO regulatory rule changes (only
+   market commentary and licensing notices), return:
+     {"categories": []}
+   It's better to be empty than to misclassify market data as a regulation.
+6. Output VALID JSON only. No markdown fences, no commentary outside JSON."""
 
 
 def fetch_input(conn: sqlite3.Connection, window_days: int) -> list[dict]:
@@ -157,8 +187,12 @@ def validate_response(data) -> dict:
                 })
         if good_bullets:
             cleaned.append({"name": name, "bullets": good_bullets})
+    # Empty result is legitimate when no rule changes occurred in the window —
+    # the prompt instructs Kimi to prefer empty over misclassifying market
+    # commentary as a regulation. Just log it and return the empty shape so
+    # the dashboard can render an "no rule changes this period" note.
     if not cleaned:
-        raise ValueError("Kimi returned 0 valid category entries")
+        print("[briefing] note: Kimi returned 0 qualifying regulatory actions", flush=True)
     return {"categories": cleaned}
 
 
