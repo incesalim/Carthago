@@ -8,9 +8,9 @@
  * display by mapping (statement, hierarchy) → canonical English label
  * and ignoring the raw `item_name` entirely.
  *
- * Each entry corresponds to a single Roman-numeral row in the BRSA
- * template. Items that don't have a row for some bank/period simply
- * render as "—".
+ * The mapping was verified against real D1 rows for AKBNK 2024Q4 / 2025Q4
+ * unconsolidated — see commit history for the queries that confirmed each
+ * Roman numeral's content.
  */
 
 export interface StandardLine {
@@ -18,17 +18,23 @@ export interface StandardLine {
   id: string;
   /** Canonical English label shown in the table. */
   label: string;
-  /** BRSA hierarchy code (e.g. "I.", "XVI."). */
+  /** BRSA hierarchy code (e.g. "I.", "2.1", "XVI."). */
   hierarchy: string;
   /** Whether to render bold (subtotal / total row). */
   isTotal?: boolean;
+  /** Visually indent (used for sub-items shown alongside a parent). */
+  indent?: boolean;
 }
 
-/** Balance-Sheet Assets — items I through X of the BRSA template. */
+/** Balance-Sheet Assets.
+ *  Roman numerals are the BRSA template's top-level rows; sub-items
+ *  (2.1 etc.) are pulled in where the breakdown matters for a bank reader
+ *  (mainly "Loans" — the dominant asset for any commercial bank). */
 export const BS_ASSET_LINES: StandardLine[] = [
   { id: "fa_net", label: "Financial Assets (Net)", hierarchy: "I." },
   { id: "amort_cost", label: "Financial Assets at Amortized Cost (Net)", hierarchy: "II." },
-  { id: "held_for_sale", label: "Held-for-Sale & Discontinued Operations Assets", hierarchy: "III." },
+  { id: "loans", label: "of which: Loans (Net)", hierarchy: "2.1", indent: true },
+  { id: "held_for_sale", label: "Held-for-Sale Assets", hierarchy: "III." },
   { id: "subsidiaries", label: "Investments in Associates & Subsidiaries", hierarchy: "IV." },
   { id: "ppe", label: "Property, Plant & Equipment (Net)", hierarchy: "V." },
   { id: "intangibles", label: "Intangible Assets (Net)", hierarchy: "VI." },
@@ -38,27 +44,44 @@ export const BS_ASSET_LINES: StandardLine[] = [
   { id: "other_assets", label: "Other Assets", hierarchy: "X." },
 ];
 
-/** Balance-Sheet Liabilities + Equity — items I through XVI of the template. */
+/** Roman-numeral subtotals to sum for Total Assets. Excludes the "Loans"
+ *  sub-item (2.1) since 2.1 is already inside II.. */
+export const BS_ASSET_ROMAN_HIERARCHIES = [
+  "I.", "II.", "III.", "IV.", "V.", "VI.", "VII.", "VIII.", "IX.", "X.",
+];
+
+/** Balance-Sheet Liabilities (+ Equity at the end).
+ *  Verified from real AKBNK data 2024Q4/2025Q4 — BRSA's actual ordering
+ *  is *not* what an outsider would guess from looking at IFRS templates. */
 export const BS_LIAB_LINES: StandardLine[] = [
   { id: "deposits", label: "Deposits / Funds Collected", hierarchy: "I." },
-  { id: "fvtpl_liab", label: "Financial Liabilities at FVTPL", hierarchy: "II." },
-  { id: "borrowings", label: "Funds Borrowed", hierarchy: "III." },
-  { id: "money_market", label: "Money Market Funds", hierarchy: "IV." },
-  { id: "issued_securities", label: "Issued Securities (Net)", hierarchy: "V." },
-  { id: "hedging_derivatives", label: "Derivative Financial Liabilities — Hedging", hierarchy: "VI." },
-  { id: "lease_liab", label: "Lease Payables", hierarchy: "VII." },
-  { id: "provisions", label: "Provisions", hierarchy: "VIII." },
-  { id: "current_tax_liab", label: "Current Tax Liability", hierarchy: "IX." },
-  { id: "deferred_tax_liab", label: "Deferred Tax Liability", hierarchy: "X." },
-  { id: "held_for_sale_liab", label: "Held-for-Sale Liabilities", hierarchy: "XI." },
-  { id: "subordinated_debt", label: "Subordinated Debt Instruments", hierarchy: "XII." },
-  { id: "other_liab", label: "Other Liabilities", hierarchy: "XIII." },
+  { id: "borrowings", label: "Funds Borrowed", hierarchy: "II." },
+  { id: "money_market", label: "Money Market Borrowings", hierarchy: "III." },
+  { id: "issued_securities", label: "Issued Securities (Net)", hierarchy: "IV." },
+  { id: "funds_sub", label: "Funds (Sub-Borrowed)", hierarchy: "V." },
+  { id: "fvtpl_liab", label: "Financial Liabilities at FVTPL", hierarchy: "VI." },
+  { id: "derivatives_liab", label: "Derivative Financial Liabilities", hierarchy: "VII." },
+  { id: "factoring", label: "Factoring Payables", hierarchy: "VIII." },
+  { id: "lease_liab", label: "Lease Payables (Net)", hierarchy: "IX." },
+  { id: "provisions", label: "Provisions", hierarchy: "X." },
+  { id: "current_tax_liab", label: "Current Tax Liability", hierarchy: "XI." },
+  { id: "deferred_tax_liab", label: "Deferred Tax Liability", hierarchy: "XII." },
+  { id: "held_for_sale_liab", label: "Held-for-Sale Liabilities", hierarchy: "XIII." },
+  { id: "subordinated_debt", label: "Subordinated Debt Instruments", hierarchy: "XIV." },
+  { id: "other_liab", label: "Other Liabilities", hierarchy: "XV." },
   { id: "equity", label: "Shareholders' Equity", hierarchy: "XVI.", isTotal: true },
 ];
 
-/** Income Statement — items I through XX of the template.
- *  We surface the high-frequency rows; sparser items (e.g. XIV, XXIII)
- *  are hidden to keep the table digestible. */
+/** Roman-numeral parents used to sum Total Liabilities (excluding equity). */
+export const BS_LIAB_ROMAN_HIERARCHIES = [
+  "I.", "II.", "III.", "IV.", "V.", "VI.", "VII.", "VIII.",
+  "IX.", "X.", "XI.", "XII.", "XIII.", "XIV.", "XV.",
+];
+
+/** Equity hierarchy code, summed separately for the L+E grand total. */
+export const BS_EQUITY_HIERARCHY = "XVI.";
+
+/** Income Statement. */
 export const PL_LINES: StandardLine[] = [
   { id: "interest_income", label: "Interest / Profit Share Income", hierarchy: "I." },
   { id: "interest_expense", label: "Interest / Profit Share Expense", hierarchy: "II." },
