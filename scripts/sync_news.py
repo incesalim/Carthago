@@ -33,12 +33,14 @@ def main():
     ap.add_argument("--kap-only", action="store_true")
     ap.add_argument("--tcmb-only", action="store_true")
     ap.add_argument("--bddk-only", action="store_true")
-    ap.add_argument("--kap-days", type=int, default=30,
-                    help="KAP look-back window in days (default 30)")
+    ap.add_argument("--kap-days", type=int, default=90,
+                    help="KAP look-back window in days (default 90)")
+    ap.add_argument("--tcmb-years-back", type=int, default=5,
+                    help="How many calendar years of TCMB press releases to fetch (default 5)")
     ap.add_argument("--tcmb-years", type=int, nargs="+", default=None,
-                    help="Years to fetch from TCMB (default: current year)")
-    ap.add_argument("--bddk-limit", type=int, default=200,
-                    help="Max BDDK rows from the announcement list (default 200)")
+                    help="Explicit TCMB year list (overrides --tcmb-years-back)")
+    ap.add_argument("--bddk-limit", type=int, default=600,
+                    help="Max BDDK rows from the announcement list (default 600 ≈ 5+ years)")
     ap.add_argument("--skip-bodies", action="store_true",
                     help="Skip the per-item body backfill")
     ap.add_argument("--body-workers", type=int, default=8,
@@ -71,7 +73,7 @@ def main():
     if not only_one or args.tcmb_only:
         print("[tcmb] fetching...")
         try:
-            items = tcmb.fetch(years=args.tcmb_years)
+            items = tcmb.fetch(years=args.tcmb_years, years_back=args.tcmb_years_back)
             with sqlite3.connect(str(DB_PATH)) as conn:
                 init_schema(conn)
                 upsert_items(conn, items)

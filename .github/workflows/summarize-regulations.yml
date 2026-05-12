@@ -62,7 +62,8 @@ jobs:
 
       - name: Generate weekly briefing via Kimi
         env:
-          KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}
+          # Repo secret is named KIMI_API_TOKEN; Python code reads KIMI_API_KEY.
+          KIMI_API_KEY: ${{ secrets.KIMI_API_TOKEN }}
         run: python scripts/summarize_regulations.py
 
       - name: Setup Node (for wrangler)
