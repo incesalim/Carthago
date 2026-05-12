@@ -1,15 +1,26 @@
 /**
  * /news — qualitative feed.
  *
- * Three columns side-by-side at desktop width: KAP (bank disclosures),
- * TCMB (CBRT press releases), BDDK (regulator announcements). Each
- * column shows the latest ~25 items. Click any item to open the
- * original source.
+ * Default view: three columns (KAP / TCMB / BDDK), latest ~30 items each.
+ * Filtered view (?ticker=AKBNK): all KAP disclosures for one bank in a
+ * single tall column. Click any item to open the original source.
  */
 import Link from "next/link";
-import { newsBySource, newsSourceSummary, sourceLabel, type NewsItem, type NewsSource } from "@/app/lib/news";
+import {
+  latestNews,
+  newsBySource,
+  newsByTicker,
+  newsSourceSummary,
+  sourceLabel,
+  type NewsItem,
+  type NewsSource,
+} from "@/app/lib/news";
 
 export const dynamic = "force-dynamic";
+
+interface Props {
+  searchParams: Promise<{ ticker?: string }>;
+}
 
 const SOURCE_DESCRIPTIONS: Record<NewsSource, string> = {
   kap: "Public Disclosure Platform — regulator-mandated filings from BIST-listed banks.",
@@ -43,8 +54,10 @@ function NewsCard({ item }: { item: NewsItem }) {
     >
       <div className="flex items-baseline justify-between gap-2 text-[10px] text-neutral-500 uppercase tracking-wide mb-1">
         <span className="tabular-nums">{fmtDate(item.published_at)}</span>
-        {item.ticker && (
+        {item.ticker ? (
           <span className="font-semibold text-neutral-700">{item.ticker}</span>
+        ) : (
+          <span className="text-neutral-400">{sourceLabel(item.source)}</span>
         )}
       </div>
       <div className="text-sm text-neutral-900 leading-snug line-clamp-3">
@@ -79,7 +92,53 @@ function SourceColumn({ source, items }: { source: NewsSource; items: NewsItem[]
   );
 }
 
-export default async function NewsPage() {
+export default async function NewsPage({ searchParams }: Props) {
+  const sp = await searchParams;
+  const ticker = sp.ticker?.toUpperCase();
+
+  // -- Per-ticker focused view -----------------------------------------------
+  if (ticker) {
+    const items = await newsByTicker(ticker, 200);
+    return (
+      <main className="px-8 py-8 space-y-6 max-w-3xl">
+        <header className="space-y-1">
+          <div className="flex items-baseline gap-3">
+            <h1 className="text-2xl font-semibold tracking-tight">{ticker}</h1>
+            <span className="text-sm text-neutral-500">disclosures</span>
+          </div>
+          <p className="text-sm text-neutral-500">
+            All KAP disclosures filed by {ticker}, newest first.
+          </p>
+          <div className="flex flex-wrap gap-4 text-xs text-neutral-500 pt-2">
+            <span>{items.length} items</span>
+            <Link
+              href={`/banks/${ticker}`}
+              className="text-neutral-600 underline hover:text-neutral-900"
+            >
+              ← back to {ticker}
+            </Link>
+            <Link
+              href="/news"
+              className="text-neutral-600 underline hover:text-neutral-900"
+            >
+              ← all news
+            </Link>
+          </div>
+        </header>
+        <div className="space-y-2">
+          {items.length === 0 ? (
+            <div className="text-xs text-neutral-500 italic">
+              No disclosures cached for {ticker} yet.
+            </div>
+          ) : (
+            items.map((it) => <NewsCard key={`${it.source}-${it.external_id}`} item={it} />)
+          )}
+        </div>
+      </main>
+    );
+  }
+
+  // -- Default three-column feed --------------------------------------------
   const [kap, tcmb, bddk, summary] = await Promise.all([
     newsBySource("kap", 30),
     newsBySource("tcmb", 30),
@@ -125,3 +184,7 @@ export default async function NewsPage() {
     </main>
   );
 }
+
+// Silence ts-unused for the import — `latestNews` is exported for callers
+// outside this file (and may be used here later).
+void latestNews;
