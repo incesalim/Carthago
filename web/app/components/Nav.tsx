@@ -11,6 +11,7 @@ const TABS = [
   { href: "/weekly", label: "Weekly" },
   { href: "/rates", label: "Rates" },
   { href: "/banks", label: "Banks" },
+  { href: "/news", label: "News" },
 ];
 
 export default function Nav() {
