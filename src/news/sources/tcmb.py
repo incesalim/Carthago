@@ -1,12 +1,19 @@
 """TCMB (Türkiye Cumhuriyet Merkez Bankası) press-release scraper.
 
 Annual archive page returns server-rendered HTML with all press releases
-for a year, each linking to a per-release detail page. Stable URL pattern:
+for a year. Stable URL pattern:
 
   list:    /wps/wcm/connect/EN/TCMB+EN/Main+Menu/Announcements/Press+Releases/{year}
   detail:  /wps/wcm/connect/EN/TCMB+EN/Main+Menu/Announcements/Press+Releases/{year}/ANO{year}-{nn}
 
-Press-release IDs are stable (e.g. ANO2026-19 = "Summary of the MPC Meeting").
+Each list row is structured as:
+
+  <a class="collection-title" href=".../ANO{year}-{nn}"...>Title (year-nn)</a>
+  …whitespace…
+  <div class="collection-tag">DD/MM/YYYY</div>
+
+We capture both halves in one regex so each NewsItem carries the actual
+publish date, not a fallback year-anchor.
 """
 from __future__ import annotations
 
@@ -23,34 +30,30 @@ LIST_PATH = "/wps/wcm/connect/EN/TCMB+EN/Main+Menu/Announcements/Press+Releases/
 
 HEADERS = {"User-Agent": "Mozilla/5.0", "Accept-Language": "en-US,en;q=0.9"}
 
-# Anchor pattern: <a href="/wps/.../ANO2026-19">Press Release on ... (2026-19)</a>
-_LINK_RE = re.compile(
-    r'<a[^>]+href="(?P<href>/wps/[^"]*ANO(?P<year>\d{4})-(?P<num>\d+))"[^>]*>(?P<label>[^<]+)</a>',
-    re.IGNORECASE,
+# Title anchor followed by the date div, with arbitrary whitespace + sibling
+# markup between them. DOTALL lets `.*?` span newlines; non-greedy so we don't
+# overrun into the next row.
+_ROW_RE = re.compile(
+    r'<a\s+class="collection-title"[^>]+href="(?P<href>/wps/[^"]*ANO(?P<year>\d{4})-(?P<num>\d+))"[^>]*>'
+    r'(?P<label>[^<]+)</a>'
+    r'.*?'
+    r'<div\s+class="collection-tag">\s*(?P<date>\d{2}/\d{2}/\d{4})\s*</div>',
+    re.IGNORECASE | re.DOTALL,
 )
 
 
-def _to_iso(year: int, raw: str | None) -> str:
-    """The list page doesn't carry per-item publish dates — pull from the
-    label if present (e.g. "Briefing on May 14, 2026"). Otherwise use
-    Jan 1 of the year as a stable, sortable fallback (refined by ANO num)."""
-    if raw:
-        # Look for 'Month DD, YYYY' inside the label
-        m = re.search(
-            r"(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),\s*(\d{4})",
-            raw,
-        )
-        if m:
-            try:
-                return datetime.strptime(m.group(0), "%B %d, %Y").replace(tzinfo=timezone.utc).isoformat()
-            except ValueError:
-                pass
-    return datetime(year, 1, 1, tzinfo=timezone.utc).isoformat()
+def _to_iso(raw: str) -> str:
+    """TCMB publish dates are 'DD/MM/YYYY' (Turkey time, date-only)."""
+    try:
+        d = datetime.strptime(raw, "%d/%m/%Y")
+    except ValueError:
+        return datetime.now(timezone.utc).isoformat()
+    return d.replace(tzinfo=timezone.utc).isoformat()
 
 
 def fetch(years: list[int] | None = None) -> list[NewsItem]:
-    """Fetch all press releases for the given years (defaults to current
-    year). Items returned newest-first by ANO id."""
+    """Fetch press releases for the given years (defaults to current year).
+    Items returned newest-first by publish date."""
     if years is None:
         years = [datetime.now(timezone.utc).year]
     items: list[NewsItem] = []
@@ -59,9 +62,8 @@ def fetch(years: list[int] | None = None) -> list[NewsItem]:
         r = requests.get(url, headers=HEADERS, timeout=30)
         if r.status_code != 200:
             continue
-        # Dedup by ANO id since the page sometimes lists each link twice
         seen: set[str] = set()
-        for m in _LINK_RE.finditer(r.text):
+        for m in _ROW_RE.finditer(r.text):
             ano = f"ANO{m.group('year')}-{m.group('num')}"
             if ano in seen:
                 continue
@@ -69,18 +71,21 @@ def fetch(years: list[int] | None = None) -> list[NewsItem]:
             label = re.sub(r"\s+", " ", m.group("label")).strip()
             # Strip the trailing "(YYYY-NN)" tag that duplicates the ID
             label = re.sub(r"\s*\(\d{4}-\d+\)\s*$", "", label)
+            date_str = m.group("date")
             items.append(NewsItem(
                 source="tcmb",
                 external_id=ano,
-                published_at=_to_iso(int(m.group("year")), label),
+                published_at=_to_iso(date_str),
                 ticker=None,
                 category="press_release",
                 title=label or ano,
                 summary=None,
                 url=BASE + m.group("href"),
                 language="en",
-                raw_json=json.dumps({"ano": ano, "label": label}, ensure_ascii=False),
+                raw_json=json.dumps(
+                    {"ano": ano, "label": label, "date": date_str},
+                    ensure_ascii=False,
+                ),
             ))
-    # Newest-first by external_id (string sort works since ANO format is fixed-width)
-    items.sort(key=lambda x: x.external_id, reverse=True)
+    items.sort(key=lambda x: x.published_at, reverse=True)
     return items
