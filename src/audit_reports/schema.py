@@ -201,6 +201,48 @@ CREATE TABLE IF NOT EXISTS bank_audit_npl_movement (
 
 CREATE INDEX IF NOT EXISTS idx_bank_npl_bank_period
   ON bank_audit_npl_movement(bank_ticker, period);
+
+
+-- Consolidated TFRS 9 stage view per (bank, period, kind, period_type).
+-- Derived from bank_audit_credit_quality by combining the four sources
+-- that publish Stage 1/2/3 figures:
+--   amounts:
+--     1st choice  bank_audit_credit_quality.section='loans_amounts'
+--                 (single row holds S1/S2/S3 inline — AKBNK-style banks)
+--     2nd choice  section='loans_by_stage' for S1+S2 +
+--                 section='npl_brsa_gross'.total_amount for S3
+--   provisions:
+--     1st choice  section='loans_ecl'      (full S1/S2/S3)
+--     2nd choice  section='loans_ecl_brsa' for S1+S2 +
+--                 section='npl_brsa_provision'.total_amount for S3
+--
+-- Coverage ratio = ecl / amount per stage. Stored as REAL fractions
+-- (0.0083 = 0.83%) so the consumer chooses formatting.
+--
+-- Populated by scripts/build_bank_audit_stages.py — re-run whenever
+-- credit_quality data changes.
+CREATE TABLE IF NOT EXISTS bank_audit_stages (
+    bank_ticker      TEXT NOT NULL,
+    period           TEXT NOT NULL,
+    kind             TEXT NOT NULL,
+    period_type      TEXT NOT NULL,           -- 'current' | 'prior'
+    stage1_amount    REAL,
+    stage2_amount    REAL,
+    stage3_amount    REAL,
+    total_amount     REAL,                    -- stage1 + stage2 + stage3
+    stage1_ecl       REAL,
+    stage2_ecl       REAL,
+    stage3_ecl       REAL,
+    total_ecl        REAL,                    -- stage1 + stage2 + stage3 ECL
+    stage1_coverage  REAL,                    -- stage1_ecl / stage1_amount
+    stage2_coverage  REAL,
+    stage3_coverage  REAL,
+    extracted_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (bank_ticker, period, kind, period_type)
+);
+
+CREATE INDEX IF NOT EXISTS idx_bank_stages_bank_period
+  ON bank_audit_stages(bank_ticker, period);
 """
 
 
