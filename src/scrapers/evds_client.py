@@ -56,18 +56,15 @@ _CACHE_ENABLED = os.getenv("EVDS_CACHE_DISABLED", "0") != "1"
 
 
 def _round_end_to_last_saturday(end_str: str) -> str:
-    """Normalize a date to the most recent Saturday to stabilise cache keys.
-
-    Sections typically pass `datetime.today()` as `end`, which changes every
-    day and produces daily cache misses. Snapping to the previous Saturday
-    matches our weekly refresh cadence: data is at most 6 days stale — fine
-    for a research dashboard, and the cache stays warm all week.
+    """[Deprecated] Used to snap the end-date back to the previous Saturday
+    to stabilise the cache key when the dashboard called fetch_series live
+    on every page load. The dashboard now reads from D1 — the only caller
+    of this client is the daily/weekly scrapers, where snapping CAPS the
+    data window at the previous Saturday and silently breaks the daily
+    refresh. Kept as a no-op for backwards compatibility; remove once no
+    callers reference it.
     """
-    d = pd.to_datetime(end_str)
-    # Python: Mon=0 … Sat=5 … Sun=6
-    days_since_sat = (d.weekday() - 5) % 7
-    snapped = d - pd.Timedelta(days=days_since_sat)
-    return snapped.strftime("%Y-%m-%d")
+    return pd.to_datetime(end_str).strftime("%Y-%m-%d")
 
 
 def _cache_path(key: tuple) -> Path:
@@ -120,11 +117,10 @@ def fetch_series(
     if not API_KEY:
         raise RuntimeError("EVDS_API_KEY not set in .env")
 
-    # Snap volatile "today"-style end dates to the last Saturday so daily
-    # navigation doesn't miss the cache. Bounded 6-day staleness is fine for
-    # a research dashboard and matches our weekly refresh cadence.
-    end = _round_end_to_last_saturday(end)
-
+    # No end-date snap: the dashboard no longer calls this live (D1 holds
+    # the data) — the daily cron MUST use the literal "today" as the end
+    # so it can fetch yesterday's just-published values. Snapping would
+    # cap fetches at the previous Saturday.
     s = _to_evds_date(start)
     e = _to_evds_date(end)
     key = (code, s, e, frequency, aggregation)
