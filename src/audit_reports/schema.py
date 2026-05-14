@@ -121,6 +121,86 @@ CREATE TABLE IF NOT EXISTS bank_audit_profile (
     extracted_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (bank_ticker, period, kind)
 );
+
+
+-- Sector-level loan exposure with TFRS 9 stage breakdown. Sourced from
+-- the "Information by major sectors and type of counterparties" /
+-- "Önemli Sektörlere veya Karşı Taraf Türüne Göre" footnote table.
+--
+-- One row per (bank, period, kind, sector, period_type). The `sector`
+-- key is a canonical short code mapped from bilingual labels:
+--   agri_total, agri_farming, agri_forestry, agri_fishery,
+--   mfg_total, mfg_mining, mfg_production, mfg_utilities,
+--   construction,
+--   svc_total, svc_trade, svc_hospitality, svc_transport,
+--   svc_financial, svc_realestate, svc_professional,
+--   svc_education, svc_health,
+--   other, total.
+--
+-- *_total keys are the group parent (sum of sub-sectors). `total` is the
+-- grand total across all groups.
+CREATE TABLE IF NOT EXISTS bank_audit_loans_by_sector (
+    bank_ticker      TEXT NOT NULL,
+    period           TEXT NOT NULL,
+    kind             TEXT NOT NULL,
+    sector           TEXT NOT NULL,
+    period_type      TEXT NOT NULL,           -- 'current' | 'prior'
+    source_page      INTEGER,
+    stage2_amount    REAL,                    -- loans with significant increase in credit risk
+    stage3_amount    REAL,                    -- defaulted / impaired loans (sector NPL gross)
+    ecl_amount       REAL,                    -- expected credit loss provisions
+    raw_label        TEXT,                    -- original row label, for debug
+    extracted_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (bank_ticker, period, kind, sector, period_type)
+);
+
+CREATE INDEX IF NOT EXISTS idx_bank_lbs_bank_period
+  ON bank_audit_loans_by_sector(bank_ticker, period);
+
+CREATE INDEX IF NOT EXISTS idx_bank_lbs_sector
+  ON bank_audit_loans_by_sector(sector);
+
+
+-- NPL gross-amount roll-forward by BRSA severity group (III / IV / V).
+-- Sourced from the "Information on the movement of non-performing loans"
+-- / "Toplam donuk alacak hareketlerine ilişkin bilgiler" footnote.
+--
+-- For each (bank, period, kind, group_code, period_type) row:
+--   opening_balance     prior-period-end NPL balance
+--   additions           new NPL inflows during the period
+--   transfers_in        loans migrating INTO this group from another NPL group
+--   transfers_out       loans migrating OUT of this group to another NPL group
+--   collections         recoveries during the period
+--   write_offs          write-downs against the balance sheet
+--   sold                NPL portfolio sales
+--   fx_diff             FX revaluation (rare; GARAN-style banks only)
+--   closing_balance     period-end NPL balance
+--   provision           cumulative loss provision against the group
+--   net_balance         closing_balance − provision (carrying amount)
+CREATE TABLE IF NOT EXISTS bank_audit_npl_movement (
+    bank_ticker        TEXT NOT NULL,
+    period             TEXT NOT NULL,
+    kind               TEXT NOT NULL,
+    group_code         TEXT NOT NULL,         -- 'III' | 'IV' | 'V'
+    period_type        TEXT NOT NULL,         -- 'current' | 'prior'
+    source_page        INTEGER,
+    opening_balance    REAL,
+    additions          REAL,
+    transfers_in       REAL,
+    transfers_out      REAL,
+    collections        REAL,
+    write_offs         REAL,
+    sold               REAL,
+    fx_diff            REAL,
+    closing_balance    REAL,
+    provision          REAL,
+    net_balance        REAL,
+    extracted_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (bank_ticker, period, kind, group_code, period_type)
+);
+
+CREATE INDEX IF NOT EXISTS idx_bank_npl_bank_period
+  ON bank_audit_npl_movement(bank_ticker, period);
 """
 
 
