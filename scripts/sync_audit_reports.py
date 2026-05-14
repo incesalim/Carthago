@@ -27,7 +27,6 @@ from __future__ import annotations
 import argparse
 import io
 import json
-import re
 import sqlite3
 import sys
 import tempfile
@@ -64,9 +63,6 @@ REFERERS = {
     "AKTIF":  "https://www.aktifbank.com.tr/hakkimizda/finansal-bilgiler/denetim-raporlari",
     "VAKIFK": "https://www.vakifkatilim.com.tr/",
 }
-
-STD_PAT = re.compile(r"^([A-Z]+)_(\d{4}Q\d)_(consolidated|unconsolidated)\.pdf$", re.I)
-
 
 # ---------------------------------------------------------------------------
 # Step 1+2: scrape new PDFs into R2
@@ -153,17 +149,8 @@ def scrape_to_r2(workers: int = 16) -> dict[str, int]:
 # Step 3+4: extract pending PDFs from R2 → local DB
 # ---------------------------------------------------------------------------
 def list_r2_pdfs() -> list[tuple[str, str, str, str]]:
-    """Return [(ticker, period, kind, key), ...] for every PDF in R2."""
-    out: list[tuple[str, str, str, str]] = []
-    for key, _size in r2_storage.list_keys():
-        if not key.endswith(".pdf"):
-            continue
-        name = key.split("/")[-1]
-        m = STD_PAT.match(name)
-        if not m:
-            continue
-        out.append((m.group(1).upper(), m.group(2).upper(), m.group(3).lower(), key))
-    return out
+    """Thin alias preserved for callers that imported from this module."""
+    return r2_storage.list_audit_pdfs()
 
 
 def already_extracted(db_path: Path) -> set[tuple[str, str, str]]:
@@ -180,22 +167,28 @@ def already_extracted(db_path: Path) -> set[tuple[str, str, str]]:
 
 
 def _worker_extract(args):
+    """Worker process: pull PDF from R2, run extractor (BS/PL + credit-quality
+    in one pass), return the report. Pickleable so it can cross the
+    ProcessPool boundary."""
     ticker, period, kind, key, tmp_dir = args
     t0 = time.time()
     dest = Path(tmp_dir) / f"{ticker}_{period}_{kind}.pdf"
     try:
         r2_storage.download_to(key, dest)
     except Exception as e:
-        return (ticker, period, kind, key, False, 0, 0, 0, 0,
-                time.time() - t0, f"r2get:{type(e).__name__}:{str(e)[:80]}", None, str(dest))
+        return (ticker, period, kind, key, False, 0, 0, 0, 0, 0,
+                time.time() - t0, f"r2get:{type(e).__name__}:{str(e)[:80]}",
+                None, str(dest))
     try:
         rep = extract(str(dest))
     except Exception as e:
-        return (ticker, period, kind, key, False, 0, 0, 0, 0,
-                time.time() - t0, f"extract:{type(e).__name__}:{str(e)[:80]}", None, str(dest))
+        return (ticker, period, kind, key, False, 0, 0, 0, 0, 0,
+                time.time() - t0, f"extract:{type(e).__name__}:{str(e)[:80]}",
+                None, str(dest))
     return (
         ticker, period, kind, key, True,
         len(rep.bs_assets), len(rep.bs_liabilities), len(rep.off_balance), len(rep.profit_loss),
+        len(rep.credit_quality),
         time.time() - t0, "", rep, str(dest),
     )
 
@@ -220,7 +213,9 @@ def extract_from_r2(workers: int) -> dict[str, int]:
             futures = [ex.submit(_worker_extract, w) for w in work]
             for fut in as_completed(futures):
                 res = fut.result()
-                ticker, period, kind, key, succ, bsa, bsl, obs, pl, secs, err, rep, path_str = res
+                (ticker, period, kind, key, succ,
+                 bsa, bsl, obs, pl, cq,
+                 secs, err, rep, path_str) = res
                 if not succ:
                     counts["fail"] += 1
                     print(f"  [FAIL] {ticker:<8} {period} {kind:<14} {err}", flush=True)
@@ -230,7 +225,7 @@ def extract_from_r2(workers: int) -> dict[str, int]:
                 counts["ok"] += 1
                 print(
                     f"  [{tag:<4}] {ticker:<8} {period} {kind:<14} "
-                    f"BSA={bsa} BSL={bsl} OBS={obs} PL={pl}  ({secs:.1f}s)",
+                    f"BSA={bsa} BSL={bsl} OBS={obs} PL={pl} CQ={cq}  ({secs:.1f}s)",
                     flush=True,
                 )
                 # Delete the temp file as we go so disk doesn't fill up

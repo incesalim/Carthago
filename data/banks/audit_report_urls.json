@@ -1094,31 +1094,6 @@
         }
       }
     },
-    "TAKAS": {
-      "name": "İstanbul Takas ve Saklama Bankası A.Ş. (Takasbank)",
-      "ir_page": "https://www.takasbank.com.tr/hakkimizda/yatirimci-iliskileri/finansal-raporlar",
-      "_note": "Solo only.",
-      "urls": {
-        "unconsolidated": {
-          "2022Q1": "https://www.takasbank.com.tr/documents/raporlar/istanbul-takas-ve-saklama-bankasi-a_s_31_03_2022.pdf",
-          "2022Q2": "https://www.takasbank.com.tr/documents/raporlar/stanbul-takas-ve-saklama-bankasi-a_s_30_06_2022.pdf",
-          "2022Q3": "https://www.takasbank.com.tr/documents/finansal-rapor/stanbul-takas-ve-saklama-bankasi-a_s_30_09_2022.pdf",
-          "2022Q4": "https://www.takasbank.com.tr/documents/finansal-rapor/istanbul-takas-ve-saklama-bankasi-a_s-31_12_2022.pdf",
-          "2023Q1": "https://www.takasbank.com.tr/documents/finansal-rapor/istanbul-takas-ve-saklama-bankasi-a_s_31_03_2023.pdf",
-          "2023Q2": "https://www.takasbank.com.tr/documents/finansal-rapor/stanbul-takas-ve-saklama-bankasi-a_s-bagimsiz-denetim-raporu_30_06_2023.pdf",
-          "2023Q3": "https://www.takasbank.com.tr/documents/finansal-rapor/stanbul-takas-ve-saklama-bankasi-a_s_30_09_2023.pdf",
-          "2023Q4": "https://www.takasbank.com.tr/documents/finansal-rapor/istanbul-takas-ve-saklama-bankasi-a_s-31_12_2023.pdf",
-          "2024Q1": "https://www.takasbank.com.tr/documents/finansal-rapor/istanbul-takas-ve-saklama-bankasi-a_s_31_03_2024.pdf",
-          "2024Q2": "https://www.takasbank.com.tr/documents/finansal-rapor/stanbul-takas-ve-saklama-bankasi-a_s_30_06_2024.pdf",
-          "2024Q3": "https://www.takasbank.com.tr/documents/finansal-rapor/stanbul-takas-ve-saklama-bankasi-a_s_30_09_2024.pdf",
-          "2024Q4": "https://www.takasbank.com.tr/documents/finansal-rapor/stanbul-takas-ve-saklama-bankasi-a_s-31_12_2024(1).pdf",
-          "2025Q1": "https://www.takasbank.com.tr/documents/finansal-rapor/stanbul-takas-ve-saklama-bankasi-a_s_31_03_2025.pdf",
-          "2025Q2": "https://www.takasbank.com.tr/documents/finansal-rapor/stanbul-takas-ve-saklama-bankasi-a_s_30_06_2025.pdf",
-          "2025Q3": "https://www.takasbank.com.tr/documents/finansal-rapor/stanbul-takas-ve-saklama-bankasi-a_s_30_09_2025.pdf",
-          "2025Q4": "https://www.takasbank.com.tr/documents/finansal-rapor/stanbul-takas-ve-saklama-bankasi-a_s-31_12_2025.pdf"
-        }
-      }
-    },
     "HSBC": {
       "name": "HSBC Bank A.Ş.",
       "ir_page": "https://www.hsbc.com.tr/hsbc-hakkinda/finansal-bilgiler/denetim-raporlari",
