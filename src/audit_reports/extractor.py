@@ -154,6 +154,12 @@ class BankReport:
     bs_liabilities: list[StatementRow] = field(default_factory=list)
     off_balance: list[StatementRow] = field(default_factory=list)
     profit_loss: list[StatementRow] = field(default_factory=list)
+    # Populated by extract() when credit-quality scan succeeds. Kept on the
+    # same object so downstream callers (upsert_report) get one report per PDF.
+    credit_quality: "list" = field(default_factory=list)
+    # Branch counts + personnel extracted from the qualitative section.
+    # Stored as a dict (or None) so the loader can persist it cheaply.
+    bank_profile: object = None
 
 
 def _split_label(label: str) -> tuple[str, str, str]:
@@ -211,6 +217,39 @@ def _parse_rows(text: str, n_cols: int) -> list[tuple[str, list[float | None]]]:
             continue
         # Reject pure date labels ("1 January 2024", "31 December 2024")
         if re.match(r'^\d+\.?\s+(January|February|March|April|May|June|July|August|September|October|November|December|Ocak|Şubat|Mart|Nisan|Mayıs|Haziran|Temmuz|Ağustos|Eylül|Ekim|Kasım|Aralık)\b', label):
+            continue
+        # Reject labels that look like page-/section-headers rather than BS rows.
+        # AKBNK has a section header "I. 31 ARALIK 2025 TARİHİ İTİBARIYLA
+        # KONSOLİDE OLMAYAN BİLANÇO ..." that the wrap-merge sometimes splices
+        # together with the page-column header until 6 numbers accumulate.
+        if len(label) > 150:
+            continue
+        if re.search(
+            r'(?:\d+\s+(?:Aralık|Ocak|Şubat|Mart|Nisan|Mayıs|Haziran|Temmuz|'
+            r'Ağustos|Eylül|Ekim|Kasım)\s+\d{2,4}'
+            r'|TARİHİ\s+İTİBARIYLA|KONSOLİDE\s+OLMAYAN|FİNANSAL\s+DURUM\s+TABLOSU'
+            r'|DİPNOT|CARİ\s+DÖNEM\s+ÖNCEKİ\s+DÖNEM'
+            r'|FINANCIAL\s+(?:STATEMENTS|POSITION\s+STATEMENT)'
+            # English / mixed-language section + column headers — QNBFB,
+            # HSBC, BURGAN emit "I. BALANCE SHEET (STATEMENT OF FINANCIAL
+            # POSITION) Curre…", "I. BİLANÇO Bağımsız Denetimden …",
+            # "I. BALANCE SHEET Audited Audited Note" as phantom rows.
+            r'|BALANCE\s+SHEET(?!\s+TOTAL)'
+            r'|STATEMENT\s+OF\s+FINANCIAL\s+POSITION'
+            r'|BİLANÇO(?!\s+TOPLAMI)'
+            r'|Bağımsız\s+Denetimden'
+            r'|Audited\s+Audited'
+            r'|\bNote\s*$)',
+            label,
+            re.IGNORECASE,
+        ):
+            continue
+        # After stripping the hierarchy prefix, a real BS row label always
+        # starts with an alphabetic character (Turkish-extended). Numeric/date
+        # starts (e.g. "31 ARALIK 202") are page-header noise.
+        m_h = HIERARCHY_PAT.match(label)
+        rest_after_hier = (m_h.group('rest') if m_h else label).lstrip()
+        if rest_after_hier and not re.match(r"^[A-Za-zÇĞİÖŞÜçğıöşü(\[]", rest_after_hier):
             continue
         vals = [parse_num(x) for x in last_n]
         if any(v is None for v in vals):
@@ -490,11 +529,20 @@ def _parse_page(pdf_path: str, page_idx_1: int, n_cols: int) -> list[tuple[str, 
     Some banks (e.g. Akbank 2026Q1) trip pdfplumber's column-flatten which
     silently truncates item labels — pdfplumber still returns N rows, but with
     'I-a' instead of '1.1.1 Nakit Değerler ve Merkez Bankası (I-a)'. Falling
-    back only when pdfplumber returns 0 rows misses this. Compare both."""
+    back only when pdfplumber returns 0 rows misses this. Compare both.
+
+    Other banks (ZIRAAT, VAKBN public-sector reports) wrap a single logical
+    row across two physical PDF lines — `II. İTFA EDİLMİŞ MALİYETİ İLE
+    ÖLÇÜLEN` on one line and `FİNANSAL VARLIKLAR (Net) <6 numbers>` on the
+    next. `_fitz_merge_rows` already handles this for the fitz path; we now
+    apply it to the pdfplumber path too so the merge logic is unified.
+    """
     import pdfplumber as _pp
     with _pp.open(pdf_path) as pdf:
         pp_text = extract_page_text_repaired(pdf.pages[page_idx_1 - 1])
-    pp_rows = _parse_rows(pp_text, n_cols)
+    # Merge wrapped rows on both extraction paths — the logic is text-source
+    # agnostic and the function is idempotent on already-merged rows.
+    pp_rows = _parse_rows(_fitz_merge_rows(pp_text, n_cols), n_cols)
     if not _HAS_FITZ:
         return pp_rows
     fitz_text = _fitz_page_text(pdf_path, page_idx_1 - 1)
@@ -510,6 +558,20 @@ def extract(pdf_path: str | Path) -> BankReport:
     pdf_path = str(pdf_path)
     rep = BankReport(pdf_path=pdf_path)
     with pdfplumber.open(pdf_path) as pdf:
+        # Run credit-quality scan first, on the same open PDF. Isolated try
+        # so a failure in the credit-quality pass can't sink the BS/PL extract.
+        try:
+            from .credit_quality import extract_from_pdf as _extract_cq
+            rep.credit_quality = _extract_cq(pdf, pdf_path).rows
+        except Exception:
+            rep.credit_quality = []
+        # Bank profile (branches + personnel) from the qualitative section.
+        # Independently isolated.
+        try:
+            from .bank_profile import extract_profile_from_pdf as _extract_bp
+            rep.bank_profile = _extract_bp(pdf)
+        except Exception:
+            rep.bank_profile = None
         loc = _locate_pages(pdf)
         if 'bs_assets' in loc:
             for order, (label, vals) in enumerate(_parse_page(pdf_path, loc['bs_assets'], 6), 1):

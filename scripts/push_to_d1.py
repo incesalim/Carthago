@@ -46,6 +46,8 @@ SYNC_TABLES = [
     "weekly_bulletin",
     "bank_audit_balance_sheet",
     "bank_audit_profit_loss",
+    "bank_audit_credit_quality",
+    "bank_audit_profile",
     "bank_audit_extractions",
     "evds_series",
     "news_items",
@@ -78,6 +80,11 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int) -> list[str]:
     elif table == "regulation_briefings":
         where = f"WHERE fetched_at >= datetime('now', '-{hours} hours')"
     elif table == "bank_audit_extractions":
+        where = f"WHERE extracted_at >= datetime('now', '-{hours} hours')"
+    elif table in ("bank_audit_credit_quality", "bank_audit_profile"):
+        # These tables have their own extracted_at column (the backfill
+        # / profile-extractor writes here without touching
+        # bank_audit_extractions). Filter on the local timestamp directly.
         where = f"WHERE extracted_at >= datetime('now', '-{hours} hours')"
     elif table in ("bank_audit_balance_sheet", "bank_audit_profit_loss"):
         # Pull rows whose (bank_ticker, period, kind) was extracted recently
@@ -147,6 +154,10 @@ def main() -> int:
                         help="Sync rows updated in the last N hours (default 48)")
     parser.add_argument("--dry-run", action="store_true",
                         help="Generate SQL file but don't execute it")
+    parser.add_argument("--only-tables", type=str, default=None,
+                        help="Comma-separated table allow-list. "
+                             "E.g. --only-tables=bank_audit_balance_sheet,bank_audit_extractions "
+                             "to push just BS data when other tables (e.g. credit_quality) need a migration first.")
     args = parser.parse_args()
 
     if not DB.exists():
@@ -159,9 +170,18 @@ def main() -> int:
     conn = sqlite3.connect(str(DB))
     conn.execute("PRAGMA foreign_keys = OFF")
 
+    allowed_tables = (
+        {t.strip() for t in args.only_tables.split(",") if t.strip()}
+        if args.only_tables else None
+    )
     lines: list[str] = ["-- incremental D1 push", f"-- window: last {args.hours} hours", ""]
+    if allowed_tables:
+        lines.append(f"-- table filter: {sorted(allowed_tables)}")
+        lines.append("")
     total_inserts = 0
     for tbl in SYNC_TABLES:
+        if allowed_tables is not None and tbl not in allowed_tables:
+            continue
         block = fetch_recent(conn, tbl, args.hours)
         lines.extend(block)
         lines.append("")

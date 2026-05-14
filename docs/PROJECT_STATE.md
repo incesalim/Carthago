@@ -7,7 +7,7 @@ coverage or known issues change.
 > → this file → [OPERATIONS.md](OPERATIONS.md). Metric definitions in
 > [METRICS.md](METRICS.md).
 >
-> Last verified: 2026-05-11.
+> Last verified: 2026-05-14.
 
 ---
 
@@ -20,12 +20,18 @@ coverage or known issues change.
 | `evds_series` | TCMB EVDS | 2018-01 → present | daily / weekly / monthly per series |
 | `bank_audit_balance_sheet` (assets / liabilities / off-balance) | BRSA quarterly PDFs | 2022-Q1 → 2026-Q1 | per-bank |
 | `bank_audit_profit_loss` | BRSA quarterly PDFs | same | per-bank |
+| `bank_audit_credit_quality` | BRSA PDFs, IFRS 9 footnotes | same | per-bank, per-section |
+| `bank_audit_profile` | BRSA PDFs, qualitative section | same | branches + personnel where disclosed |
 | `bank_audit_extractions` | extraction log | one row per PDF | 949 PDFs in R2 |
 | `bank_types`, `table_definitions`, `download_log` | metadata | — | — |
 
 **Quarterly audit reports**: 32 banks in URL config, 949 PDFs extracted into
-D1 (~144k balance-sheet rows + ~62k P&L rows). PDFs themselves live in
-R2 at `bddk-audit-reports/<ticker>/<TICKER>_<period>_<kind>.pdf`.
+D1 (~159k balance-sheet rows + ~59k P&L rows + ~7.4k IFRS 9 credit-quality
+rows + ~460 bank-profile rows). PDFs themselves live in R2 at
+`bddk-audit-reports/<ticker>/<TICKER>_<period>_<kind>.pdf`. Bank profile
+(branches + personnel) is extracted where the bank discloses it in a
+recognized phrasing — 16 of 31 banks currently parsed; the remaining 15
+use phrasings not yet covered by the regex patterns.
 
 ## Bank-type taxonomy
 
@@ -55,11 +61,15 @@ bulletin uses different code mappings — see METRICS.md §2.
 - **TSKB 2026Q1** — bank rotated their IR URL; current entry in
   `audit_report_urls.json` 404s. Skip for now; refresh the URL when TSKB
   publishes the next quarter.
-- **TAKAS (Takasbank)** — F5 bot mitigation blocks automated downloads.
-  User decision to skip; not tracked.
-- **A handful of pre-existing partial extractions** (~3% of PDFs flagged
-  `success=0` in `bank_audit_extractions`) — mostly FIBA, VAKBN historical
-  quarters with layout edge cases. Triable bank-by-bank if needed.
+- **A handful of pre-existing partial extractions** (~2% of PDFs flagged
+  `success=0` in `bank_audit_extractions`, 20 of 949) — mostly VAKBN
+  consolidated historical quarters with layout edge cases. Triable
+  bank-by-bank if needed.
+- **Bank-profile coverage gap** — 15 of 31 banks (AKTIF, ALBRK, ATBANK,
+  BURGAN, EMLAK, EXIM, FIBA, ING, ISCTR, KLNMA, KUVEYT, ODEA, TFKB, TSKB,
+  VAKIFK) disclose branches/personnel in phrasings not yet covered by the
+  regex patterns in `src/audit_reports/bank_profile.py`. Add patterns as
+  needed; the qualitative section is always in the first 25 pages.
 - **Rates dashboard** — 6 panels from the old Dash app aren't ported yet
   (CBRT reserves, gold tons, net funding, residents' FC, expectations).
   EVDS scraper extended to fetch the underlying series; charts can be

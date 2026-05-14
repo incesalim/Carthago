@@ -16,6 +16,7 @@ filename parser (STD_PAT in extract_all_audit_reports.py) working unchanged.
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -90,6 +91,29 @@ def _bucket() -> str:
 def make_key(ticker: str, period: str, kind: str) -> str:
     """Canonical R2 object key for a (ticker, period, kind) PDF."""
     return f"{ticker.lower()}/{ticker.upper()}_{period.upper()}_{kind.lower()}.pdf"
+
+
+# Filename → (ticker, period, kind) parser. Mirrors make_key's output.
+KEY_FILENAME_PAT = re.compile(
+    r"^([A-Z]+)_(\d{4}Q\d)_(consolidated|unconsolidated)\.pdf$", re.I
+)
+
+
+def list_audit_pdfs() -> list[tuple[str, str, str, str]]:
+    """Return every audit-report PDF in R2 as [(ticker, period, kind, key), ...].
+
+    Filters out any keys that don't match the canonical filename convention,
+    so callers can rely on the tuple shape."""
+    out: list[tuple[str, str, str, str]] = []
+    for key, _size in list_keys():
+        if not key.endswith(".pdf"):
+            continue
+        name = key.split("/")[-1]
+        m = KEY_FILENAME_PAT.match(name)
+        if not m:
+            continue
+        out.append((m.group(1).upper(), m.group(2).upper(), m.group(3).lower(), key))
+    return out
 
 
 def exists(key: str) -> bool:

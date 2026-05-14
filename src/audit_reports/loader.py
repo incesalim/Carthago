@@ -4,6 +4,7 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
+from .credit_quality import CreditQualityReport, upsert as _upsert_cq
 from .extractor import BankReport, extract
 
 
@@ -64,22 +65,37 @@ def upsert_report(
             pl_rows,
         )
 
+    # Credit-quality rows ride along on the BankReport when extractor.extract
+    # populates them. Persist via the shared upsert so both sync paths go
+    # through one code path.
+    cq_rep = CreditQualityReport(pdf_path=pdf_path, rows=getattr(rep, 'credit_quality', []) or [])
+    cq_count = _upsert_cq(conn, bank_ticker, period, kind, cq_rep)
+
+    # Bank-profile metadata (branches + personnel). Stored in its own table.
+    bp = getattr(rep, 'bank_profile', None)
+    if bp is not None and not getattr(bp, 'is_empty', lambda: True)():
+        from .bank_profile import upsert_profile as _upsert_bp
+        _upsert_bp(conn, bank_ticker, period, kind, bp)
+
     counts = {
         'bs_assets': len(rep.bs_assets),
         'bs_liabilities': len(rep.bs_liabilities),
         'off_balance': len(rep.off_balance),
         'profit_loss': len(rep.profit_loss),
+        'credit_quality': cq_count,
     }
 
     # Extractions log row (idempotent via REPLACE)
     cur.execute(
         'INSERT OR REPLACE INTO bank_audit_extractions '
-        '(bank_ticker, period, kind, pdf_path, rows_bs_assets, rows_bs_liabilities, rows_off_balance, rows_profit_loss, success) '
-        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        '(bank_ticker, period, kind, pdf_path, rows_bs_assets, rows_bs_liabilities, '
+        ' rows_off_balance, rows_profit_loss, rows_credit_quality, success) '
+        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         (
             bank_ticker, period, kind, pdf_path,
             counts['bs_assets'], counts['bs_liabilities'],
             counts['off_balance'], counts['profit_loss'],
+            counts['credit_quality'],
             1 if all(c >= 20 for c in [counts['bs_assets'], counts['bs_liabilities'], counts['profit_loss']]) else 0,
         ),
     )

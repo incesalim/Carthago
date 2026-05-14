@@ -75,7 +75,6 @@ Run workflow**.
 | **VAKIFK** | some PDFs ship with a 27-byte Java `ObjectOutputStream` wrapper. Stripped via magic-byte detection. |
 | **Solo-only banks** | Odea, Pasha, Eximbank, KLNMA have no consolidated tables. URL config has them as `unconsolidated` only. |
 | **TSKB** / **QNBFB** / **PASHA** / **AKTIF** / **VAKIFK** | CDNs require Referer header. Mapping in `sync_audit_reports.REFERERS`. |
-| **TAKAS** | F5 bot mitigation blocks automated downloads. Manual-only; not tracked in cron. |
 | **Partial extractions** (~3% of PDFs) | one of the four statements has fewer than 20 rows. Flagged `success=0` in `bank_audit_extractions`. Mostly historical FIBA / VAKBN quarters. |
 
 ## Quick query examples

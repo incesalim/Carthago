@@ -62,8 +62,63 @@ CREATE TABLE IF NOT EXISTS bank_audit_extractions (
     rows_bs_liabilities  INTEGER,
     rows_off_balance     INTEGER,
     rows_profit_loss     INTEGER,
+    rows_credit_quality  INTEGER,
     success              INTEGER NOT NULL DEFAULT 1,
     note                 TEXT,
+    PRIMARY KEY (bank_ticker, period, kind)
+);
+
+
+-- IFRS 9 staging extracts: every Stage 1/2/3/Total movement table found in
+-- the audit-report footnotes, plus the GARAN-style stage-amount summary.
+-- One row per (bank, period, kind, section, period_type).
+--
+-- `section` taxonomy (best-effort label from the heading above the table):
+--   loans_ecl              — Expected credit loss provisions for loans
+--   loans_amounts          — Actual loan balances by stage (TL+FC sum)
+--   cash_ecl               — ECL for cash & cash equivalents
+--   amortised_cost_ecl     — ECL for financial assets at amortized cost
+--   non_cash_ecl           — ECL for non-cash loans / commitments / guarantees
+--   other_ecl              — Any other Stage 1/2/3 movement table we can't classify
+--
+-- `period_type` distinguishes "Current Period" tables from "Prior Period"
+-- comparatives that often sit immediately below in the same footnote.
+CREATE TABLE IF NOT EXISTS bank_audit_credit_quality (
+    bank_ticker      TEXT NOT NULL,
+    period           TEXT NOT NULL,
+    kind             TEXT NOT NULL,
+    section          TEXT NOT NULL,
+    period_type      TEXT NOT NULL,           -- 'current' | 'prior'
+    source_page      INTEGER,
+    stage1_amount    REAL,
+    stage2_amount    REAL,
+    stage3_amount    REAL,
+    total_amount     REAL,
+    heading_snippet  TEXT,                    -- raw heading we matched on, for debug
+    extracted_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (bank_ticker, period, kind, section, period_type)
+);
+
+CREATE INDEX IF NOT EXISTS idx_bank_cq_bank_period
+  ON bank_audit_credit_quality(bank_ticker, period);
+
+CREATE INDEX IF NOT EXISTS idx_bank_cq_section
+  ON bank_audit_credit_quality(section);
+
+
+-- Bank-profile metadata extracted from the qualitative section of the
+-- audit report: branch counts (domestic / foreign / total) and personnel.
+-- One row per (bank, period, kind). Any field may be NULL if the bank's
+-- report didn't disclose it in a recognized format.
+CREATE TABLE IF NOT EXISTS bank_audit_profile (
+    bank_ticker        TEXT NOT NULL,
+    period             TEXT NOT NULL,
+    kind               TEXT NOT NULL,
+    branches_domestic  INTEGER,
+    branches_foreign   INTEGER,
+    branches_total     INTEGER,
+    personnel          INTEGER,
+    extracted_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (bank_ticker, period, kind)
 );
 """

@@ -74,6 +74,8 @@ reports/**/*.xlsx
 
 # Logs
 logs/**/*.log
+data/_*.log
+data/_tmp_*.pdf
 
 # Environment variables
 .env
