@@ -160,6 +160,10 @@ class BankReport:
     # Branch counts + personnel extracted from the qualitative section.
     # Stored as a dict (or None) so the loader can persist it cheaply.
     bank_profile: object = None
+    # Sector-level loan exposure (Stage 2 / Stage 3 / ECL by sector).
+    loans_by_sector: "list" = field(default_factory=list)
+    # NPL gross-amount roll-forward by BRSA group (III / IV / V).
+    npl_movement: "list" = field(default_factory=list)
 
 
 def _split_label(label: str) -> tuple[str, str, str]:
@@ -572,6 +576,18 @@ def extract(pdf_path: str | Path) -> BankReport:
             rep.bank_profile = _extract_bp(pdf)
         except Exception:
             rep.bank_profile = None
+        # Loans-by-sector (Stage 2 / Stage 3 / ECL per sector).
+        try:
+            from .loans_by_sector import extract_from_pdf as _extract_lbs
+            rep.loans_by_sector = _extract_lbs(pdf, pdf_path).rows
+        except Exception:
+            rep.loans_by_sector = []
+        # NPL gross-amount roll-forward.
+        try:
+            from .npl_movement import extract_from_pdf as _extract_nplm
+            rep.npl_movement = _extract_nplm(pdf, pdf_path).rows
+        except Exception:
+            rep.npl_movement = []
         loc = _locate_pages(pdf)
         if 'bs_assets' in loc:
             for order, (label, vals) in enumerate(_parse_page(pdf_path, loc['bs_assets'], 6), 1):

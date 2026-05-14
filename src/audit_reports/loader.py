@@ -77,12 +77,23 @@ def upsert_report(
         from .bank_profile import upsert_profile as _upsert_bp
         _upsert_bp(conn, bank_ticker, period, kind, bp)
 
+    # Loans-by-sector + NPL movement ride along on the BankReport too.
+    from .loans_by_sector import LoansBySectorReport, upsert as _upsert_lbs
+    lbs_rep = LoansBySectorReport(pdf_path=pdf_path, rows=getattr(rep, 'loans_by_sector', []) or [])
+    lbs_count = _upsert_lbs(conn, bank_ticker, period, kind, lbs_rep)
+
+    from .npl_movement import NplMovementReport, upsert as _upsert_nplm
+    nplm_rep = NplMovementReport(pdf_path=pdf_path, rows=getattr(rep, 'npl_movement', []) or [])
+    nplm_count = _upsert_nplm(conn, bank_ticker, period, kind, nplm_rep)
+
     counts = {
         'bs_assets': len(rep.bs_assets),
         'bs_liabilities': len(rep.bs_liabilities),
         'off_balance': len(rep.off_balance),
         'profit_loss': len(rep.profit_loss),
         'credit_quality': cq_count,
+        'loans_by_sector': lbs_count,
+        'npl_movement': nplm_count,
     }
 
     # Extractions log row (idempotent via REPLACE)
