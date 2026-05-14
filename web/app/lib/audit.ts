@@ -189,6 +189,83 @@ export async function bsItemTimeSeries(
 }
 
 /**
+ * Bank profile (branches + personnel) — latest extraction across periods.
+ * Picks the most-recent (period, kind) for the ticker; period_type=current
+ * is implied (the profile extractor only emits current-period values).
+ */
+export interface BankProfile {
+  bank_ticker: string;
+  period: string;
+  kind: string;
+  branches_domestic: number | null;
+  branches_foreign: number | null;
+  branches_total: number | null;
+  personnel: number | null;
+}
+
+export async function bankProfile(ticker: string): Promise<BankProfile | null> {
+  const db = await getDB();
+  const { results } = await db
+    .prepare(
+      `SELECT bank_ticker, period, kind, branches_domestic, branches_foreign,
+              branches_total, personnel
+       FROM bank_audit_profile
+       WHERE bank_ticker = ?
+       ORDER BY period DESC, kind
+       LIMIT 1`,
+    )
+    .bind(ticker)
+    .all<BankProfile>();
+  return results[0] ?? null;
+}
+
+
+/**
+ * Latest TFRS 9 stage view for one bank (consolidated|unconsolidated).
+ * Reads bank_audit_stages — already a consolidated view across the 4
+ * source sections in bank_audit_credit_quality.
+ */
+export interface BankStages {
+  bank_ticker: string;
+  period: string;
+  kind: string;
+  period_type: string;
+  stage1_amount: number | null;
+  stage2_amount: number | null;
+  stage3_amount: number | null;
+  total_amount: number | null;
+  stage1_ecl: number | null;
+  stage2_ecl: number | null;
+  stage3_ecl: number | null;
+  total_ecl: number | null;
+  stage1_coverage: number | null;
+  stage2_coverage: number | null;
+  stage3_coverage: number | null;
+}
+
+export async function bankStagesLatest(
+  ticker: string,
+  kind: "consolidated" | "unconsolidated" = "unconsolidated",
+): Promise<BankStages | null> {
+  const db = await getDB();
+  const { results } = await db
+    .prepare(
+      `SELECT bank_ticker, period, kind, period_type,
+              stage1_amount, stage2_amount, stage3_amount, total_amount,
+              stage1_ecl, stage2_ecl, stage3_ecl, total_ecl,
+              stage1_coverage, stage2_coverage, stage3_coverage
+       FROM bank_audit_stages
+       WHERE bank_ticker = ? AND kind = ? AND period_type = 'current'
+       ORDER BY period DESC
+       LIMIT 1`,
+    )
+    .bind(ticker, kind)
+    .all<BankStages>();
+  return results[0] ?? null;
+}
+
+
+/**
  * For a given bank, the SUM of all top-level (single-Roman) hierarchy
  * items at item_order = 1, 2, 3, … in the assets statement.
  * Approximates "Total Assets" when the actual TOTAL row is missing.

@@ -19,8 +19,11 @@ import {
   bankPeriods,
   balanceSheetMultiPeriod,
   profitLossMultiPeriod,
+  bankProfile,
+  bankStagesLatest,
 } from "@/app/lib/audit";
 import { newsByTicker } from "@/app/lib/news";
+import BankCard from "@/app/components/BankCard";
 import {
   BS_ASSET_LINES,
   BS_ASSET_ROMAN_HIERARCHIES,
@@ -183,10 +186,12 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   ).sort().reverse();
   const periods = pickPeriods(allPeriods, view, 4);
 
-  const [bsPivot, plPivot, kapItems] = await Promise.all([
+  const [bsPivot, plPivot, kapItems, profile, stages] = await Promise.all([
     balanceSheetMultiPeriod(ticker, kind, periods),
     profitLossMultiPeriod(ticker, kind, periods),
     newsByTicker(ticker, 12),
+    bankProfile(ticker),
+    bankStagesLatest(ticker, kind),
   ]);
 
   // Computed totals. Sum BRSA Roman-numeral parents — never sub-items
@@ -270,6 +275,13 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
           ))}
         </div>
       </div>
+
+      {/* Bank-card summary: branches, personnel, TFRS 9 stage + coverage */}
+      <BankCard
+        profile={profile}
+        stages={stages}
+        latestPeriod={periods[0] ?? null}
+      />
 
       {/* Recent KAP disclosures */}
       <div className="mb-6 rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
