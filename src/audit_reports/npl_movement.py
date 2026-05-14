@@ -47,13 +47,17 @@ from .extractor import parse_num
 # a canonical column key. Longest-first matching.
 # ---------------------------------------------------------------------------
 _ROW_LABELS: list[tuple[str, str]] = [
-    # Opening (always the first row)
+    # Opening (always the first row). ISCTR variant: "Prior Period Ending
+    # Balance". YKBNK variant: bare "Prior Period" (with numeric tail) — added
+    # at the end of the list as a last-resort fallback so longer labels win.
     ("önceki dönem sonu bakiyesi", "opening_balance"),
+    ("prior period ending balance", "opening_balance"),
     ("prior period end balance", "opening_balance"),
     ("balances at end of prior period", "opening_balance"),
     ("beginning balance", "opening_balance"),
     ("opening balance", "opening_balance"),
     # Closing — must come BEFORE "balance" prefixes for longest-first.
+    ("current period ending balance", "closing_balance"),
     ("current period end balance", "closing_balance"),
     ("balances at end of period", "closing_balance"),
     ("end of period balance", "closing_balance"),
@@ -100,16 +104,25 @@ _ROW_LABELS: list[tuple[str, str]] = [
     # Net balance
     ("net balance on balance sheet", "net_balance"),
     ("bilançodaki net bakiyesi", "net_balance"),
+    # YKBNK-style bare period labels — opening = "Prior Period <nums>",
+    # closing = "Current Period <nums>". Listed last so longest-first
+    # matching prefers more specific phrases ("prior period end balance",
+    # "current period end balance") when they exist.
+    ("prior period", "opening_balance"),
+    ("current period", "closing_balance"),
 ]
 _ROW_LABELS_SORTED = sorted(_ROW_LABELS, key=lambda kv: -len(kv[0]))
 
 
 # Heading detector — the page must mention NPL movement / hareket explicitly.
+# ISCTR and YKBNK insert "total " before "non-performing", so accept that
+# variant. Both English orderings ("movement of total non-performing" and
+# "movement of non-performing total") are observed.
 _HEADING_RX = re.compile(
     r"(?:Movements?\s+in\s+non[-\s]?performing\s+loans?(?:\s+groups?)?|"
-    r"movement\s+of\s+non[-\s]?performing\s+loans?|"
-    r"information\s+on\s+the\s+movement\s+of\s+non[-\s]?performing\s+loans?|"
-    r"donuk\s+alacak\s+hareketlerine|"
+    r"movement\s+of\s+(?:total\s+)?non[-\s]?performing\s+loans?|"
+    r"information\s+on\s+the\s+movement\s+of\s+(?:total\s+)?non[-\s]?performing\s+loans?|"
+    r"(?:toplam\s+)?donuk\s+alacak\s+hareketlerine|"
     r"takipteki\s+kredilerin\s+hareketleri)",
     re.IGNORECASE,
 )
