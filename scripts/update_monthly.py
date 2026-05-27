@@ -22,6 +22,7 @@ sys.path.insert(0, str(ROOT))
 
 import requests                                     # noqa: E402
 from src.scrapers.bddk_api_scraper import BDDKAPIScraper, BANK_TYPES  # noqa: E402
+from src.scrapers._http import bddk_verify          # noqa: E402
 
 DB_PATH = ROOT / "data" / "bddk_data.db"
 
@@ -60,7 +61,7 @@ def is_published(year: int, month: int) -> bool:
     }
     try:
         r = requests.post(MONTHLY_PROBE_URL, headers=PROBE_HEADERS,
-                          data=payload, timeout=20)
+                          data=payload, timeout=20, verify=bddk_verify())
         r.raise_for_status()
         rows = r.json().get("Json", {}).get("data", {}).get("rows", [])
         return bool(rows)

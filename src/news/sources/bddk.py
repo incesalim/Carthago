@@ -25,6 +25,7 @@ from datetime import datetime, timezone
 import requests
 
 from src.news.loader import NewsItem
+from src.scrapers._http import bddk_verify
 
 
 # Title patterns to drop. Case-insensitive on the part that matters.
@@ -87,7 +88,8 @@ def fetch_body(url: str, timeout: int = 30) -> str | None:
     starts (cookie notice, copyright, terms). We collect <p>s in order
     and stop at the first known boilerplate marker."""
     try:
-        r = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=timeout)
+        r = requests.get(url, headers={"User-Agent": "Mozilla/5.0"},
+                         timeout=timeout, verify=bddk_verify())
     except requests.RequestException:
         return None
     if r.status_code != 200:
@@ -122,7 +124,8 @@ def fetch(limit: int | None = 200) -> list[NewsItem]:
 
     `limit=None` returns the full historical list (~1100 rows).
     """
-    r = requests.get(LIST_URL, headers={"User-Agent": "Mozilla/5.0"}, timeout=45)
+    r = requests.get(LIST_URL, headers={"User-Agent": "Mozilla/5.0"},
+                     timeout=45, verify=bddk_verify())
     r.raise_for_status()
     text = r.text
 
