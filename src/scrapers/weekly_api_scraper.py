@@ -28,6 +28,8 @@ from typing import Iterable, Optional
 
 import requests
 
+from src.scrapers._http import bddk_verify
+
 
 # ---------------------------------------------------------------------------
 # Config
@@ -150,6 +152,8 @@ class BDDKWeeklyAPIScraper:
         self.conn: Optional[sqlite3.Connection] = None
         self.session = requests.Session()
         self.session.headers.update(HEADERS)
+        # BDDK serves an incomplete cert chain — trust vendored intermediate.
+        self.session.verify = bddk_verify()
         # Quick counters for summary
         self.stats = {
             "calls": 0, "empty": 0, "errors": 0,

@@ -25,6 +25,7 @@ sys.path.insert(0, str(ROOT))
 from src.scrapers.weekly_api_scraper import (          # noqa: E402
     BDDKWeeklyAPIScraper, PRIMARY_WEEKLY_CODES, CATEGORY_NAMES,
 )
+from src.scrapers._http import bddk_verify             # noqa: E402
 
 DB_PATH = ROOT / "data" / "bddk_data.db"
 CATALOGUE_FILE = ROOT / "scripts" / "_weekly_catalogue.json"
@@ -53,7 +54,8 @@ def _ensure_catalogue() -> dict:
                        "parabirimi": "TRY", "sutun": "3",
                        "tarafKodu": "10001", "gun": "90"}
             try:
-                r = requests.post(URL, headers=H, data=payload, timeout=10)
+                r = requests.post(URL, headers=H, data=payload, timeout=10,
+                                  verify=bddk_verify())
                 d = r.json()
                 if d.get("XEkseni"):
                     name = d.get("Baslik", "").split(" (TRY)")[0].strip()
@@ -88,7 +90,7 @@ def _latest_week_on_api(anchor_tarih: str) -> str | None:
                "tarafKodu": "10001", "gun": "90"}
     r = requests.post(
         "https://www.bddk.org.tr/BultenHaftalik/tr/Home/KiyaslamaJsonGetir",
-        headers=H, data=payload, timeout=20,
+        headers=H, data=payload, timeout=20, verify=bddk_verify(),
     )
     xs = r.json().get("XEkseni", [])
     if not xs:

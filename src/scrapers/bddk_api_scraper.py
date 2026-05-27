@@ -14,6 +14,8 @@ import time
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent))
 
+from src.scrapers._http import bddk_verify  # noqa: E402
+
 # Constants
 BDDK_API_URL = "https://www.bddk.org.tr/BultenAylik/tr/Home/BasitRaporGetir"
 DB_PATH = Path(__file__).parent.parent / "data" / "bddk_data.db"
@@ -71,7 +73,8 @@ class BDDKAPIScraper:
         }
 
         try:
-            resp = requests.post(BDDK_API_URL, headers=HEADERS, data=payload, timeout=30)
+            resp = requests.post(BDDK_API_URL, headers=HEADERS, data=payload,
+                                 timeout=30, verify=bddk_verify())
             resp.raise_for_status()
 
             data = resp.json()
