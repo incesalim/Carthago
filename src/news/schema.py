@@ -1,8 +1,9 @@
 """SQLite + D1 schema for the qualitative-data layer.
 
-One table: `news_items`. Each row is one disclosure or press release
-from KAP (Public Disclosure Platform), TCMB (CBRT), or BDDK (banking
-regulator). Idempotent ingestion via (source, external_id) PK.
+Two tables:
+- `news_items` — one row per KAP/TCMB/BDDK disclosure or press release.
+- `regulation_briefings` — weekly Kimi-generated thematic summaries
+  over recent TCMB+BDDK news items.
 """
 from __future__ import annotations
 
@@ -33,6 +34,17 @@ CREATE INDEX IF NOT EXISTS idx_news_ticker
   ON news_items(ticker, published_at DESC);
 CREATE INDEX IF NOT EXISTS idx_news_source
   ON news_items(source, published_at DESC);
+
+CREATE TABLE IF NOT EXISTS regulation_briefings (
+    generated_at    TEXT NOT NULL PRIMARY KEY,
+    window_days     INTEGER NOT NULL,
+    item_count      INTEGER NOT NULL,
+    model           TEXT NOT NULL,
+    prompt_version  TEXT NOT NULL,
+    categories_json TEXT NOT NULL,
+    raw_response    TEXT,
+    fetched_at      TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 """
 
 

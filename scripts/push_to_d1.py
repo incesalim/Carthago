@@ -31,6 +31,10 @@ ROOT = Path(__file__).resolve().parent.parent
 DB = ROOT / "data" / "bddk_data.db"
 WEB = ROOT / "web"
 
+sys.path.insert(0, str(ROOT))
+from src.audit_reports.schema import init_schema as _init_audit_schema  # noqa: E402
+from src.news.schema import init_schema as _init_news_schema            # noqa: E402
+
 # Tables to sync. Each entry: (table_name, has_downloaded_at)
 # We only sync tables that have a `downloaded_at` column for incremental
 # filtering. Reference tables (bank_types, table_definitions) rarely change
@@ -178,6 +182,13 @@ def main() -> int:
 
     conn = sqlite3.connect(str(DB))
     conn.execute("PRAGMA foreign_keys = OFF")
+    # The R2 snapshot may predate recent schema additions (new bank_audit_*
+    # tables, regulation_briefings). The daily news / EVDS workflows don't
+    # run any extractor that would call init_schema, so without this they
+    # crash when SYNC_TABLES lists a table that's not in the snapshot. All
+    # DDL is `CREATE … IF NOT EXISTS`, so it's a no-op once snapshot is current.
+    _init_audit_schema(conn)
+    _init_news_schema(conn)
 
     allowed_tables = (
         {t.strip() for t in args.only_tables.split(",") if t.strip()}

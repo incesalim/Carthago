@@ -242,20 +242,8 @@ def main():
 
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(str(DB_PATH)) as conn:
+        # init_schema covers both news_items and regulation_briefings.
         init_schema(conn)
-        # Ensure the briefings table exists locally too (CREATE TABLE IF NOT EXISTS).
-        conn.executescript("""
-            CREATE TABLE IF NOT EXISTS regulation_briefings (
-                generated_at TEXT NOT NULL PRIMARY KEY,
-                window_days INTEGER NOT NULL,
-                item_count INTEGER NOT NULL,
-                model TEXT NOT NULL,
-                prompt_version TEXT NOT NULL,
-                categories_json TEXT NOT NULL,
-                raw_response TEXT,
-                fetched_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
         items = fetch_input(conn, args.window_days, args.body_cap)
 
     print(f"[briefing] {len(items)} TCMB+BDDK items with body in last {args.window_days}d", flush=True)
