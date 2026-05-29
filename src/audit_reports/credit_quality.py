@@ -560,16 +560,19 @@ def _extract_pl_expense_from_page(page_num: int, page_text: str) -> list[StageRo
 # immediately-adjacent gross/net rows.
 # ---------------------------------------------------------------------------
 
-# Header pattern — tolerates all 6 wording variants observed across 14 banks:
+# Header pattern — tolerates all wording variants observed across banks:
 #   "III. Group / IV. Group / V. Group"  (HALKB, YKBNK, QNBFB)
 #   "Group III / Group IV / Group V"     (GARAN, ALBRK)
+#   "GroupIII GroupIV GroupV"            (ISCTR 2024 — pdfplumber drops spaces)
 #   "III. Grup / IV. Grup / V. Grup"     (Turkish — VAKBN, AKBNK, TEB, ...)
 #   "III.Group / IV.Group / V.Group"     (TSKB — no space)
 #   "III. Group: / IV. Group: / V. Group:" (SKBNK — colons)
+# The space between "Group" and the Roman numeral is \s* (not \s+) because
+# pdfplumber sometimes renders the header with no space ("GroupIII").
 _NPL_HEADER_PAT = re.compile(
-    r"(?:Group\s+III|III\.?\s*(?:Group|Grup):?)"
-    r"\s*(?:Group\s+IV|IV\.?\s*(?:Group|Grup):?)"
-    r"\s*(?:Group\s+V|V\.?\s*(?:Group|Grup):?)",
+    r"(?:Group\s*III|III\.?\s*(?:Group|Grup):?)"
+    r"\s*(?:Group\s*IV|IV\.?\s*(?:Group|Grup):?)"
+    r"\s*(?:Group\s*V|V\.?\s*(?:Group|Grup):?)",
     re.IGNORECASE,
 )
 
@@ -602,10 +605,12 @@ _NPL_PROVISION_ROW = re.compile(
     re.IGNORECASE,
 )
 # III/IV/V header pattern (line-anchored variant used by the block walker).
+# Group↔numeral gap is \s* (pdfplumber may drop it); the gaps BETWEEN the
+# three group tokens stay \s+ so we don't match a single run-together word.
 _NPL_HEADER_LINE = re.compile(
-    r"^\s*(?:Group\s+III|III\.?\s*(?:Group|Grup):?)"
-    r"\s+(?:Group\s+IV|IV\.?\s*(?:Group|Grup):?)"
-    r"\s+(?:Group\s+V|V\.?\s*(?:Group|Grup):?)",
+    r"^\s*(?:Group\s*III|III\.?\s*(?:Group|Grup):?)"
+    r"\s+(?:Group\s*IV|IV\.?\s*(?:Group|Grup):?)"
+    r"\s+(?:Group\s*V|V\.?\s*(?:Group|Grup):?)",
     re.IGNORECASE,
 )
 # A row qualifies as "data" if it has at least 3 numeric tokens with thousands
