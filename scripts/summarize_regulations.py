@@ -43,7 +43,7 @@ from src.news.schema import init_schema  # noqa: E402
 
 DB_PATH = REPO_ROOT / "data" / "bddk_data.db"
 
-PROMPT_VERSION = "2026-05-29.v11-percat"
+PROMPT_VERSION = "2026-05-29.v12-percat"
 
 # Fixed sections, in display order, named to match BBVA Research's Turkish
 # Banking Sector report. Each gets its own focused LLM call.
@@ -219,6 +219,21 @@ def build_context(items: list[dict], baseline: dict | None) -> str:
 
 # --- generation ------------------------------------------------------------
 
+# Deterministic guards: a section that has no genuine source in our feeds
+# (CARs / credit-card content lives in BDDK Resmî Gazete, which we don't scrape)
+# tends to get filled with leaked rules from adjacent sections. Drop the leaks;
+# if nothing genuine remains, the section is omitted rather than faked.
+_CAR_OK = re.compile(r"capital|risk[- ]?weight|\brwa\b|forbearance|htc|own funds|buffer|leverage", re.I)
+_CAR_LEAK = re.compile(r"reserve requirement|zorunlu|\bkkm\b|fx-protected|loan growth|deposit share|credit card", re.I)
+
+
+def enforce_category(name: str, bullets: list[dict]) -> list[dict]:
+    if name == "Regulations for CARs":
+        return [b for b in bullets
+                if _CAR_OK.search(b["text"]) and not _CAR_LEAK.search(b["text"])]
+    return bullets
+
+
 def generate_category(name: str, desc: str, context: str, retries: int) -> tuple[list[dict], str]:
     """One focused call (with parse-retry) for a single section. Returns
     (bullets, model). Keeps the most specific parse seen across attempts."""
@@ -294,9 +309,12 @@ def main() -> int:
         bullets, model = generate_category(name, desc, context, args.cat_retries)
         if model:
             models.add(model)
-        print(f"[briefing] {name}: {len(bullets)} bullets", flush=True)
-        if bullets:
-            categories.append({"name": name, "bullets": bullets})
+        kept = enforce_category(name, bullets)
+        dropped = len(bullets) - len(kept)
+        print(f"[briefing] {name}: {len(kept)} bullets"
+              + (f" ({dropped} leaked dropped)" if dropped else ""), flush=True)
+        if kept:
+            categories.append({"name": name, "bullets": kept})
 
     n_bullets = sum(len(c["bullets"]) for c in categories)
     print(f"[briefing] assembled {len(categories)} sections, {n_bullets} bullets "
