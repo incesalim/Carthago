@@ -31,7 +31,7 @@ from src.news.schema import init_schema  # noqa: E402
 
 DB_PATH = REPO_ROOT / "data" / "bddk_data.db"
 
-PROMPT_VERSION = "2026-05-29.v7"
+PROMPT_VERSION = "2026-05-29.v8"
 
 # Fixed 6-category schema, named to match BBVA Research's Turkish Banking
 # Sector report so readers familiar with their format land smoothly.
@@ -210,15 +210,25 @@ RULES:
      regulations regarding ... were mentioned", "Not mentioned in the
      provided documents"). If a category has no rule, drop the whole
      category — do not include an empty/placeholder bullet.
-  3. Each bullet describes ONE rule (or one tightly-coupled rule cluster,
-     BBVA-style). When a category contains several DISTINCT rules, give each
-     its own bullet rather than compressing them — e.g. for TL Deposit Share,
-     the growth-target tiers, the calculation period, and the remuneration of
-     required reserves are separate bullets; for RRs, each deposit type /
-     maturity band is its own bullet.
-  4. If the input window contains zero qualifying regulatory rules,
+  3. SPECIFICITY — every bullet MUST contain the concrete number(s): the
+     rate, cap, ratio, threshold, or limit, with units and (where stated) the
+     effective date. NEVER write a vague bullet that names a rule without its
+     figures (BAD: "growth targets were set for different ratios"; GOOD: "the
+     real-person TRY deposit-share growth target is 0.4pp for banks at 60-65%
+     and 0.8pp below 60%"). The numbers are in the baseline annex tables and
+     the press-release bodies — extract them.
+  4. CURRENCY — report the CURRENT value. The baseline gives the start-of-year
+     figure; when a later dated press release revises a rule, the most recent
+     value WINS — use it, not the baseline's. Cite the press release that set
+     the current value (plus the baseline if helpful).
+  5. Each bullet describes ONE rule (or one tightly-coupled BBVA-style
+     cluster). When a category has several DISTINCT rules, give each its own
+     bullet — e.g. TL Deposit Share: growth-target tiers, calculation period,
+     and required-reserve remuneration are separate bullets; RRs: each deposit
+     type / maturity band is its own bullet.
+  6. If the input window contains zero qualifying regulatory rules,
      return: {"categories": []}
-  5. Output VALID JSON only. No markdown fences."""
+  7. Output VALID JSON only. No markdown fences."""
 
 
 def fetch_input(conn: sqlite3.Connection, window_days: int, body_cap: int) -> list[dict]:
@@ -284,18 +294,26 @@ _PLACEHOLDER_RE = re.compile(
 )
 
 
+# UTF-8-as-Latin-1 mojibake digraphs -> correct char (Turkish + common punct).
+# A direct map repairs mixed strings safely; the whole-string latin-1 round-trip
+# bails out whenever any other non-Latin-1 char is present in the bullet.
+_MOJIBAKE_MAP = {
+    "Ã¼": "ü", "Ãœ": "Ü", "Ã§": "ç", "Ã‡": "Ç", "Ã¶": "ö", "Ã–": "Ö",
+    "ÄŸ": "ğ", "Äž": "Ğ", "Ä±": "ı", "Ä°": "İ", "ÅŸ": "ş", "Åž": "Ş",
+    "Ã¢": "â", "Ã‚": "Â", "â‚º": "₺", "â€™": "’", "â€œ": "“", "â€\x9d": "”",
+    "â€“": "–", "â€”": "—",
+}
+
+
 def _fix_mojibake(s: str) -> str:
     """Repair UTF-8-as-Latin-1 mojibake (e.g. 'TÃ¼rkiye' -> 'Türkiye').
 
-    Source bodies are clean, but Kimi's response sometimes double-encodes
-    Turkish characters. Only attempt the latin-1->utf-8 round-trip when the
-    telltale sequences are present, and bail out if it doesn't cleanly decode
-    (so correct text is never damaged)."""
-    if any(m in s for m in ("Ã", "Å", "Ä", "Â")):
-        try:
-            return s.encode("latin-1").decode("utf-8")
-        except (UnicodeEncodeError, UnicodeDecodeError):
-            return s
+    Source bodies are clean, but Kimi's response double-encodes Turkish
+    characters. Replace the known digraphs directly so mixed strings (with a
+    real '₺' or 'İ' elsewhere) are still repaired."""
+    if "Ã" in s or "Å" in s or "Ä" in s or "â€" in s:
+        for bad, good in _MOJIBAKE_MAP.items():
+            s = s.replace(bad, good)
     return s
 
 
