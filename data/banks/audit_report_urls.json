@@ -776,7 +776,8 @@
           "2025Q1": "https://www.atbank.com.tr/Documents/Features/ATB_091_20250331_denetim_raporu_konsolide-pdf_701.pdf",
           "2025Q2": "https://www.atbank.com.tr/Documents/Features/ATB_konsolide-30-06-2025-bddk-raporu-pdf_473.pdf",
           "2025Q3": "https://www.atbank.com.tr/Documents/Features/ATB_091-atbank-konsolide-30-09-2025-bddk-raporu-pdf_480.pdf",
-          "2025Q4": "https://www.atbank.com.tr/Documents/Features/ATB_31-12-2025-bddk-raporu-pdf_395.pdf"
+          "2025Q4": "https://www.atbank.com.tr/Documents/Features/ATB_31-12-2025-bddk-raporu-pdf_395.pdf",
+          "2026Q1": "https://www.atbank.com.tr/Documents/Features/ATB_31-03-2026-bddk-raporu-pdf_895.pdf"
         },
         "unconsolidated": {
           "2022Q1": "https://www.atbank.com.tr/Documents/Features/ATB_ok_atb_091_20220331_denetim-raporu_solo-pdf_554-pdf_417.pdf",
@@ -794,7 +795,8 @@
           "2025Q1": "https://www.atbank.com.tr/Documents/Features/ATB_091_20250331_denetim_raporu_solo-pdf_610.pdf",
           "2025Q2": "https://www.atbank.com.tr/Documents/Features/ATB_konsolide-olmayan-30-06-2025-bddk-raporu-pdf_705.pdf",
           "2025Q3": "https://www.atbank.com.tr/Documents/Features/ATB_091-atbank-konsolide-olmayan-30-09-2025-bddk-raporu-pdf_479.pdf",
-          "2025Q4": "https://www.atbank.com.tr/Documents/Features/ATB_31-12-2025-bddk-raporu-pdf_51.pdf"
+          "2025Q4": "https://www.atbank.com.tr/Documents/Features/ATB_31-12-2025-bddk-raporu-pdf_51.pdf",
+          "2026Q1": "https://www.atbank.com.tr/Documents/Features/ATB_31-03-2026-bddk-raporu-pdf_894.pdf"
         }
       }
     },
@@ -950,7 +952,8 @@
           "2025Q1": "https://www.ziraatkatilim.com.tr/sites/default/files/media-file/31.03.2025%20Konsolide%20Ziraat%20Katilim%20Denetim%20Raporu.pdf",
           "2025Q2": "https://www.ziraatkatilim.com.tr/sites/default/files/media-file/30.06.2025%20Konsolide%20Ziraat%20Katilim%20Denetim%20Raporu.pdf",
           "2025Q3": "https://www.ziraatkatilim.com.tr/sites/default/files/inline-files/30.09.2025%20Konsolide%20Ziraat%20Katilim%20Denetim%20Raporu.pdf",
-          "2025Q4": "https://www.ziraatkatilim.com.tr/sites/default/files/inline-files/31.12.2025%20Konsolide%20Ziraat%20Katilim%20Denetim%20Raporu.pdf"
+          "2025Q4": "https://www.ziraatkatilim.com.tr/sites/default/files/inline-files/31.12.2025%20Konsolide%20Ziraat%20Katilim%20Denetim%20Raporu.pdf",
+          "2026Q1": "https://www.ziraatkatilim.com.tr/sites/default/files/media-file/31.03.2026 Konsolide Ziraat Katilim Denetim Raporu.pdf"
         },
         "unconsolidated": {
           "2022Q1": "https://www.ziraatkatilim.com.tr/sites/default/files/inline-files/31.03.2022%20Solo%20Ziraat%20Kat%C4%B1l%C4%B1m%20Denetim%20Raporu_1.pdf",
@@ -968,7 +971,8 @@
           "2025Q1": "https://www.ziraatkatilim.com.tr/sites/default/files/media-file/31.03.2025%20Solo%20Ziraat%20Katilim%20Denetim%20Raporu.pdf",
           "2025Q2": "https://www.ziraatkatilim.com.tr/sites/default/files/media-file/30.06.2025%20Solo%20Ziraat%20Katilim%20Denetim%20Raporu.pdf",
           "2025Q3": "https://www.ziraatkatilim.com.tr/sites/default/files/inline-files/30.09.2025%20Solo%20Ziraat%20Katilim%20Denetim%20Raporu.pdf",
-          "2025Q4": "https://www.ziraatkatilim.com.tr/sites/default/files/inline-files/31.12.2025%20Solo%20Ziraat%20Katilim%20Denetim%20Raporu.pdf"
+          "2025Q4": "https://www.ziraatkatilim.com.tr/sites/default/files/inline-files/31.12.2025%20Solo%20Ziraat%20Katilim%20Denetim%20Raporu.pdf",
+          "2026Q1": "https://www.ziraatkatilim.com.tr/sites/default/files/media-file/31.03.2026 Solo Ziraat Katilim Denetim Raporu.pdf"
         }
       }
     },
