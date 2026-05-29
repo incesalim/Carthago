@@ -15,11 +15,16 @@ from __future__ import annotations
 import html as html_lib
 import re
 
-# A top-level <p> or <table> block. finditer is non-overlapping, so a matched
-# <table> consumes any <p> nested inside it (we don't want those twice).
-_BLOCK_RE = re.compile(r"<(p|table)\b[^>]*>(.*?)</\1>", re.DOTALL | re.IGNORECASE)
+# A top-level <p>, <table> or <ul>/<ol> block. finditer is non-overlapping,
+# so a matched container consumes any nested block (we don't want it twice).
+_BLOCK_RE = re.compile(r"<(p|table|ul|ol)\b[^>]*>(.*?)</\1>", re.DOTALL | re.IGNORECASE)
+# <script>/<style> bodies contain JS/CSS that mentions <li>, <ul>, etc. (BDDK
+# pages build dropdowns in inline JS). Strip them before block extraction so
+# that code never leaks into a body.
+_SCRIPT_STYLE_RE = re.compile(r"<(script|style)\b[^>]*>.*?</\1>", re.DOTALL | re.IGNORECASE)
 _ROW_RE = re.compile(r"<tr\b[^>]*>(.*?)</tr>", re.DOTALL | re.IGNORECASE)
 _CELL_RE = re.compile(r"<(t[hd])\b[^>]*>(.*?)</\1>", re.DOTALL | re.IGNORECASE)
+_LI_RE = re.compile(r"<li\b[^>]*>(.*?)</li>", re.DOTALL | re.IGNORECASE)
 
 
 def _clean_inline(fragment: str) -> str:
@@ -53,11 +58,23 @@ def _table_to_markdown(table_html: str) -> str:
     return "\n".join(lines)
 
 
+def _list_to_markdown(list_html: str) -> str:
+    """Convert one <ul>/<ol> to Markdown "- " bullets. Returns "" if empty.
+
+    Some macroprudential releases put their rate changes in a bullet list
+    rather than a table, so dropping lists would lose the numbers too.
+    """
+    items = [_clean_inline(li) for li in _LI_RE.findall(list_html)]
+    items = [i for i in items if i]
+    return "\n".join(f"- {i}" for i in items)
+
+
 def extract_body(
     html_text: str,
     footer_markers: tuple[str, ...],
     max_chars: int,
     min_para_len: int = 30,
+    include_lists: bool = False,
 ) -> str | None:
     """Extract a press-release / announcement body from a detail page.
 
@@ -65,6 +82,7 @@ def extract_body(
     document order, stopping at the first <p> that hits a footer/boilerplate
     marker. Tables are emitted as Markdown. Returns None if nothing usable.
     """
+    html_text = _SCRIPT_STYLE_RE.sub(" ", html_text)
     blocks: list[str] = []
     for m in _BLOCK_RE.finditer(html_text):
         tag = m.group(1).lower()
@@ -75,13 +93,27 @@ def extract_body(
             if any(marker in text for marker in footer_markers):
                 break
             blocks.append(text)
-        else:  # table
+        elif tag == "table":
             # Footer/boilerplate is often a contact-info <table> (phone,
             # address). Apply the same marker check to table text so we stop
             # at it instead of emitting it as a junk "data" table.
             if any(marker in _clean_inline(m.group(2)) for marker in footer_markers):
                 break
             md = _table_to_markdown(m.group(2))
+            if md:
+                blocks.append(md)
+        else:  # ul / ol
+            # Off by default: some sites (BDDK) server-render their nav menu
+            # as a long <ul>, which would pollute every body. Only enabled
+            # for sources whose content uses lists (TCMB rate-change bullets).
+            if not include_lists:
+                continue
+            inner = _clean_inline(m.group(2))
+            if any(marker in inner for marker in footer_markers):
+                break
+            if len(inner) < min_para_len:
+                continue
+            md = _list_to_markdown(m.group(2))
             if md:
                 blocks.append(md)
     body = "\n\n".join(blocks).strip()
