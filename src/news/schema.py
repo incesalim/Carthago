@@ -51,6 +51,15 @@ CREATE TABLE IF NOT EXISTS regulation_briefings (
 -- The briefing summarizer grounds on the latest row, then layers the raw
 -- feed on top. Python-only (the web never reads it), so it is not synced to
 -- D1 — it travels in the R2 SQLite snapshot.
+-- Single-row guard so the weekly briefing run can no-op when its inputs
+-- (feed items + baseline + prompt version) are unchanged — avoids burning LLM
+-- calls to regenerate identical output in quiet weeks. Local-only; not synced.
+CREATE TABLE IF NOT EXISTS briefing_input_state (
+    id          INTEGER PRIMARY KEY CHECK (id = 1),
+    input_hash  TEXT NOT NULL,
+    updated_at  TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS regulation_baseline (
     year          INTEGER NOT NULL PRIMARY KEY,  -- policy year the doc covers
     title         TEXT NOT NULL,
