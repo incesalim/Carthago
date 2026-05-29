@@ -43,7 +43,14 @@ from src.news.schema import init_schema  # noqa: E402
 
 DB_PATH = REPO_ROOT / "data" / "bddk_data.db"
 
-PROMPT_VERSION = "2026-05-29.v12-percat"
+PROMPT_VERSION = "2026-05-29.v13-percat"
+
+# Sections whose source data is NOT in our scraped feeds — the rules live in
+# BDDK Resmî Gazete / Tebliğ, which we don't ingest yet. Generating them makes
+# the model leak adjacent rules (CARs) or fabricate tier tables (Credit Cards),
+# so they are skipped until a BDDK Tebliğ source is added (then drop them from
+# this set / pass --include-unsourced).
+UNSOURCED_CATEGORIES = {"Regulations for CARs", "Regulations on Credit Cards"}
 
 # Fixed sections, in display order, named to match BBVA Research's Turkish
 # Banking Sector report. Each gets its own focused LLM call.
@@ -274,6 +281,10 @@ def main() -> int:
                     help="Parse/quality retries per section (default 2).")
     ap.add_argument("--only-category", default=None,
                     help="Generate just one section (exact name) for debugging.")
+    ap.add_argument("--include-unsourced", action="store_true",
+                    help="Also generate sections in UNSOURCED_CATEGORIES (CARs, "
+                         "Credit Cards). Off by default — enable once a BDDK "
+                         "Tebliğ source backs them.")
     ap.add_argument("--dry-run", action="store_true",
                     help="Build context + print stats but make no LLM calls.")
     args = ap.parse_args()
@@ -291,7 +302,12 @@ def main() -> int:
         print("[briefing] WARNING: no baseline — run scripts/ingest_policy_baseline.py", flush=True)
 
     context = build_context(items, baseline)
-    specs = [s for s in CATEGORY_SPECS if not args.only_category or s[0] == args.only_category]
+    specs = [
+        s for s in CATEGORY_SPECS
+        if (args.only_category and s[0] == args.only_category)
+        or (not args.only_category
+            and (args.include_unsourced or s[0] not in UNSOURCED_CATEGORIES))
+    ]
     if not specs:
         print(f"[briefing] no category matches --only-category {args.only_category!r}")
         return 1
