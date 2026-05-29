@@ -29,6 +29,8 @@ cares about (e.g. `section='loans_ecl'`).
 """
 from __future__ import annotations
 
+import json
+import logging
 import re
 import sqlite3
 from dataclasses import dataclass, field
@@ -38,6 +40,113 @@ import pdfplumber
 
 from .extractor import NUM_PAT as _NUM_PAT_STR
 from .extractor import parse_num
+
+_log = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Per-bank template registry — see data/banks/audit_templates.json.
+#
+# Each bank entry pins the EXACT row labels that bank uses for the main NPL
+# movement table (gross / provision / net) plus the loans-by-stage Toplam
+# label and the Stage 1+2 ECL row labels. When a bank has a template entry,
+# we anchor on these exact labels instead of running the looser regex
+# fallback — far fewer false matches on PDFs with multiple III/IV/V tables.
+#
+# Banks NOT in the registry fall back to the regex-driven path. A WARNING is
+# logged the first time we extract such a bank so the gap is visible.
+# ---------------------------------------------------------------------------
+_TEMPLATES_PATH = Path(__file__).resolve().parents[2] / "data" / "banks" / "audit_templates.json"
+
+
+def _load_templates() -> dict[str, dict]:
+    """Read the per-bank template registry once. Returns {} if missing."""
+    if not _TEMPLATES_PATH.exists():
+        _log.warning("audit_templates.json not found at %s — falling back to regex extraction for every bank.",
+                     _TEMPLATES_PATH)
+        return {}
+    with open(_TEMPLATES_PATH, encoding="utf-8") as f:
+        data = json.load(f)
+    # Strip _doc / _lang / _note keys etc that are just human-readable.
+    return {k: v for k, v in data.items() if not k.startswith("_")}
+
+
+_TEMPLATES = _load_templates()
+
+
+def _norm(s: str) -> str:
+    """Lowercase + collapse internal whitespace + strip leading/trailing.
+
+    Used for both row-label lookup and line matching so we get tolerant
+    prefix matches without writing regex per bank.
+    """
+    return re.sub(r"\s+", " ", s.lower()).strip()
+
+
+def _classify_alias(alias: str) -> str:
+    """Route an alias to the right row-type bucket using keyword content.
+
+    Aliases in the registry are stored as a flat list per bank (mixing case
+    variations of gross/provision/net). We split them at load time by which
+    semantic keyword they contain. This keeps the JSON terse without
+    sacrificing correctness — the keywords are unambiguous in practice.
+    """
+    low = _norm(alias)
+    if any(kw in low for kw in (
+        "karşılık", "provision", "beklenen zarar karşılığı",
+        "özel karşılık",
+    )):
+        return "provision"
+    if "net" in low or "bilanço" in low or "bilanco" in low:
+        return "net"
+    # Everything else (Bakiye / Balance / Brüt / Gross / End-of-period / etc.)
+    return "gross"
+
+
+def _bank_label_sets(template: dict) -> tuple[set[str], set[str], set[str]]:
+    """Return ({gross_labels}, {provision_labels}, {net_labels}) for one bank.
+
+    All labels are stored normalised so callers do `_norm(line)` once and
+    compare with `startswith`.
+    """
+    npl = template.get("npl_movement", {})
+    gross = {_norm(npl["gross_label"])} if "gross_label" in npl else set()
+    prov = {_norm(npl["provision_label"])} if "provision_label" in npl else set()
+    net = {_norm(npl["net_label"])} if "net_label" in npl else set()
+    for alias in npl.get("aliases", []):
+        cls = _classify_alias(alias)
+        if cls == "provision":
+            prov.add(_norm(alias))
+        elif cls == "net":
+            net.add(_norm(alias))
+        else:
+            gross.add(_norm(alias))
+    return gross, prov, net
+
+
+def _line_matches(line: str, label_set: set[str]) -> bool:
+    """True when the stripped, normalised line starts with any of the labels."""
+    nl = _norm(line)
+    return any(nl.startswith(lbl) for lbl in label_set)
+
+
+_logged_missing: set[str] = set()
+
+
+def _template_for(bank_ticker: str) -> dict | None:
+    """Return the bank's template, or None if not registered. Warns once."""
+    if not bank_ticker:
+        return None
+    tmpl = _TEMPLATES.get(bank_ticker.upper())
+    if tmpl is None:
+        if bank_ticker.upper() not in _logged_missing:
+            _logged_missing.add(bank_ticker.upper())
+            _log.warning(
+                "No template entry for %s in data/banks/audit_templates.json — "
+                "falling back to regex extraction. Add an entry with the bank's "
+                "gross/provision/net row labels for accurate IFRS 9 staging.",
+                bank_ticker,
+            )
+    return tmpl
 
 # -- Header-row detector -----------------------------------------------------
 #
@@ -79,6 +188,26 @@ _END_ROW_PAT = re.compile(
 # Numeric-token regex + TR/EN-aware parser are shared with the main extractor —
 # keeping a single implementation avoids the two parsers diverging.
 _NUM = re.compile(_NUM_PAT_STR)
+
+
+def _merge_split_digits(line: str) -> str:
+    """Reattach a leading digit that pdfplumber separated from its number.
+
+    pdfplumber sometimes splits the leading 1-2 digits off a large number with
+    a stray space — e.g. TFKB renders '334,098' as '3 34,098' and '1,553,507'
+    as '1 ,553,507'. Without this normalization the tokenizer sees two numeric
+    tokens for one column, throwing off column counts and value magnitudes.
+
+    The leading digit MUST NOT be preceded by another digit — otherwise we'd
+    incorrectly merge the trailing digit of a date or label into the next
+    number, e.g. '...2024 6.124.453 ...' would become '...20246.124.453...'
+    which the tokenizer reads as 46,124,453 (AKBNK p64 prior period).
+    """
+    # '1 95,170,209' -> '195,170,209'  (standalone digit, space, digit-group)
+    line = re.sub(r"(?<!\d)(\d{1,2})\s+(?=\d{1,3}[.,]\d{3})", r"\1", line)
+    # '1 ,553,507'   -> '1,553,507'    (standalone digit, leading-separator)
+    line = re.sub(r"(?<!\d)(\d{1,2})\s+([.,]\d{3})", r"\1\2", line)
+    return line
 
 
 # -- Section classifier ------------------------------------------------------
@@ -431,16 +560,19 @@ def _extract_pl_expense_from_page(page_num: int, page_text: str) -> list[StageRo
 # immediately-adjacent gross/net rows.
 # ---------------------------------------------------------------------------
 
-# Header pattern — tolerates all 6 wording variants observed across 14 banks:
+# Header pattern — tolerates all wording variants observed across banks:
 #   "III. Group / IV. Group / V. Group"  (HALKB, YKBNK, QNBFB)
 #   "Group III / Group IV / Group V"     (GARAN, ALBRK)
+#   "GroupIII GroupIV GroupV"            (ISCTR 2024 — pdfplumber drops spaces)
 #   "III. Grup / IV. Grup / V. Grup"     (Turkish — VAKBN, AKBNK, TEB, ...)
 #   "III.Group / IV.Group / V.Group"     (TSKB — no space)
 #   "III. Group: / IV. Group: / V. Group:" (SKBNK — colons)
+# The space between "Group" and the Roman numeral is \s* (not \s+) because
+# pdfplumber sometimes renders the header with no space ("GroupIII").
 _NPL_HEADER_PAT = re.compile(
-    r"(?:Group\s+III|III\.?\s*(?:Group|Grup):?)"
-    r"\s*(?:Group\s+IV|IV\.?\s*(?:Group|Grup):?)"
-    r"\s*(?:Group\s+V|V\.?\s*(?:Group|Grup):?)",
+    r"(?:Group\s*III|III\.?\s*(?:Group|Grup):?)"
+    r"\s*(?:Group\s*IV|IV\.?\s*(?:Group|Grup):?)"
+    r"\s*(?:Group\s*V|V\.?\s*(?:Group|Grup):?)",
     re.IGNORECASE,
 )
 
@@ -448,21 +580,138 @@ _NPL_HEADER_PAT = re.compile(
 # Must be ANCHORED to the start of the (stripped) line — otherwise we match
 # the row label "Loans to Individuals and Corporates (Net)" because some banks
 # use "Provision" as part of column headers too.
-# BURGAN uses "Specific Provision (-)" so we also accept that variant.
+# Variants in the wild:
+#   "Provision (-)"           — most common (GARAN, AKBNK)
+#   "Provisions (-)"          — plural (ISCTR, YKBNK)
+#   "Specific Provision (-)"  — BURGAN
+#   "Provisions"              — no `(-)` suffix, values wrapped in accounting
+#                                parens instead (EXIM)
+#   "Karşılık (-)" / "Özel Karşılık (-)" — Turkish
+#   "Beklenen Zarar Karşılığı (3. Aşama) (-)" — ZIRAATK
+#   "Beklenen Zarar Karşılığı (Üçüncü Aşama) (-)" — variant phrasing
 _NPL_PROVISION_ROW = re.compile(
-    r"^\s*(?:Provision|Specific\s+Provision|Karşılık|Özel\s+Karşılık)\s*\(\s*-\s*\)",
+    r"^\s*(?:"
+    r"Provisions?\s*\(\s*-\s*\)"
+    r"|Specific\s+Provisions?\s*\(\s*-\s*\)"
+    r"|Provisions?\s+(?=\(\s*\d)"                # EXIM: 'Provisions (26.483) ...'
+    # Turkish: '(Özel )?Karşılık( Tutarı)? (-)'. The 'Tutarı' (= 'amount')
+    # variant is the most common Turkish provision-row label (TFKB uses
+    # 'Özel Karşılık Tutarı (-)'); without it the regex fallback misses
+    # every Turkish bank whose template path also failed.
+    r"|(?:Özel\s+)?Karşılık(?:\s+Tutarı)?\s*\(\s*-\s*\)"
+    r"|Beklenen\s+Zarar\s+Karşılığı"
+    r"\s*\(\s*(?:3\.?|Üçüncü)\s*Aşama\s*\)\s*\(\s*-\s*\)"
+    r")",
     re.IGNORECASE,
 )
 # III/IV/V header pattern (line-anchored variant used by the block walker).
+# Group↔numeral gap is \s* (pdfplumber may drop it); the gaps BETWEEN the
+# three group tokens stay \s+ so we don't match a single run-together word.
 _NPL_HEADER_LINE = re.compile(
-    r"^\s*(?:Group\s+III|III\.?\s*(?:Group|Grup):?)"
-    r"\s+(?:Group\s+IV|IV\.?\s*(?:Group|Grup):?)"
-    r"\s+(?:Group\s+V|V\.?\s*(?:Group|Grup):?)",
+    r"^\s*(?:Group\s*III|III\.?\s*(?:Group|Grup):?)"
+    r"\s+(?:Group\s*IV|IV\.?\s*(?:Group|Grup):?)"
+    r"\s+(?:Group\s*V|V\.?\s*(?:Group|Grup):?)",
     re.IGNORECASE,
 )
 # A row qualifies as "data" if it has at least 3 numeric tokens with thousands
 # separators (filters out short administrative rows like "Sold (-)").
 _NPL_DATA_ROW_FILTER = re.compile(r"\d{1,3}[.,]\d{3}")
+
+
+def _extract_npl_brsa_via_template(
+    page_num: int, page_text: str, template: dict,
+) -> list[StageRow]:
+    """Template-driven NPL/III-IV-V extractor.
+
+    Walks the page line-by-line, anchoring on this bank's known gross row
+    label. When it finds a gross row, it walks forward for the provision row
+    and the net row using this bank's labels. No regex guessing.
+
+    Returns 0 or N rows (one gross/provision/net triple per occurrence;
+    typically 2 — current and prior period from the same page).
+    """
+    if not page_text or not _NPL_HEADER_PAT.search(page_text):
+        return []
+    gross_labels, prov_labels, net_labels = _bank_label_sets(template)
+    if not (gross_labels and prov_labels):
+        return []  # bank not configured for npl_brsa
+
+    lines = [_merge_split_digits(ln) for ln in page_text.split("\n")]
+    out: list[StageRow] = []
+    header_idxs = [i for i, ln in enumerate(lines) if _NPL_HEADER_LINE.match(ln.strip())]
+    if not header_idxs:
+        return []
+
+    def _period_for(i: int) -> str:
+        # Scan back from i to find the most recent period marker within the
+        # same III/IV/V band.
+        block_start = max((h for h in header_idxs if h < i), default=0)
+        for j in range(i, block_start - 1, -1):
+            pt = _detect_period_type(lines[j].strip())
+            if pt is not None:
+                return pt
+        return "current"
+
+    # Walk every gross-label hit. For each, peek forward (bounded by next
+    # III/IV/V header) for the provision line, and after that the net line.
+    seen_keys: set[tuple[str, int]] = set()
+    for i, ln in enumerate(lines):
+        if not _line_matches(ln, gross_labels):
+            continue
+        # The gross line should carry 3 numeric tokens (Group III, IV, V).
+        gnums = _NUM.findall(ln)
+        if len(gnums) < 3:
+            continue
+        # Bound the forward walk by the next III/IV/V header (or EOF).
+        next_hdr = min((h for h in header_idxs if h > i), default=len(lines))
+        prov_idx: int | None = None
+        net_idx: int | None = None
+        for j in range(i + 1, next_hdr):
+            cand = lines[j]
+            if prov_idx is None and _line_matches(cand, prov_labels):
+                if len(_NUM.findall(cand)) >= 3:
+                    prov_idx = j
+                    continue
+            if prov_idx is not None and net_idx is None and _line_matches(cand, net_labels):
+                if len(_NUM.findall(cand)) >= 3:
+                    net_idx = j
+                    break
+        if prov_idx is None:
+            continue
+        pt = _period_for(prov_idx)
+        key = (pt, header_idxs and max((h for h in header_idxs if h <= i), default=-1) or 0)
+        if key in seen_keys:
+            continue
+        seen_keys.add(key)
+
+        gross = [parse_num(n) for n in gnums[-3:]]
+        pnums = _NUM.findall(lines[prov_idx])
+        prov = [abs(parse_num(n)) if parse_num(n) is not None else None
+                for n in pnums[-3:]]
+
+        def _sum_or_none(v: list[float | None]) -> float | None:
+            clean = [x for x in v if x is not None]
+            return sum(clean) if clean else None
+
+        out.append(StageRow(
+            section="npl_brsa_gross", period_type=pt, page=page_num,
+            stage1=gross[0], stage2=gross[1], stage3=gross[2],
+            total=_sum_or_none(gross), heading="III/IV/V groups (template)",
+        ))
+        out.append(StageRow(
+            section="npl_brsa_provision", period_type=pt, page=page_num,
+            stage1=prov[0], stage2=prov[1], stage3=prov[2],
+            total=_sum_or_none(prov), heading="",
+        ))
+        if net_idx is not None:
+            nnums = _NUM.findall(lines[net_idx])
+            net = [parse_num(n) for n in nnums[-3:]]
+            out.append(StageRow(
+                section="npl_brsa_net", period_type=pt, page=page_num,
+                stage1=net[0], stage2=net[1], stage3=net[2],
+                total=_sum_or_none(net), heading="",
+            ))
+    return out
 
 
 def _extract_npl_brsa_from_page(page_num: int, page_text: str) -> list[StageRow]:
@@ -474,7 +723,8 @@ def _extract_npl_brsa_from_page(page_num: int, page_text: str) -> list[StageRow]
     """
     if not page_text or not _NPL_HEADER_PAT.search(page_text):
         return []
-    lines = page_text.split("\n")
+    # Pre-normalize every line to repair pdfplumber's split-digit numbers.
+    lines = [_merge_split_digits(ln) for ln in page_text.split("\n")]
     out: list[StageRow] = []
 
     # Pre-locate every III/IV/V header on the page — period detection is
@@ -501,6 +751,15 @@ def _extract_npl_brsa_from_page(page_num: int, page_text: str) -> list[StageRow]
         # almost always reports the current period).
         return "current"
 
+    # Index every "Provisions" anchor line. We need its position to bound the
+    # gross/net walks — banks like ISCTR put multiple III/IV/V tables on one
+    # page, each with its own gross/provision/net trio. Without bounds the
+    # walk-forward from prior-period provision crosses into the next table.
+    provision_idxs = [
+        i for i, ln in enumerate(lines)
+        if _NPL_PROVISION_ROW.match(ln.strip())
+    ]
+
     for i, ln in enumerate(lines):
         stripped = ln.strip()
         # Anchor: provision row.
@@ -510,6 +769,15 @@ def _extract_npl_brsa_from_page(page_num: int, page_text: str) -> list[StageRow]
         nums = _NUM.findall(stripped)
         if len(nums) < 3:
             continue
+        # Find the bounds of this provision's block: from the prev provision
+        # (exclusive) to the next provision (exclusive), additionally clipped
+        # by III/IV/V header_idxs so we never cross a table boundary.
+        prev_prov = max((p for p in provision_idxs if p < i), default=-1)
+        next_prov = min((p for p in provision_idxs if p > i), default=len(lines))
+        prev_header = max((h for h in header_idxs if h < i), default=-1)
+        next_header = min((h for h in header_idxs if h > i), default=len(lines))
+        block_lo = max(prev_prov, prev_header) + 1
+        block_hi = min(next_prov, next_header)
         # The row label "Karşılık (-)" / "Provision (-)" already encodes that
         # values are deductions. Some banks (KLNMA / PASHA) ALSO write the
         # numbers in accounting parentheses, so parse_num returns negatives —
@@ -518,34 +786,48 @@ def _extract_npl_brsa_from_page(page_num: int, page_text: str) -> list[StageRow]
         prov = [abs(parse_num(n)) if parse_num(n) is not None else None
                 for n in nums[-3:]]
 
-        # Walk back up to 4 lines to find the gross row (3 numbers, doesn't
-        # contain "Net" / "Provision" / "Karşılık"). Skip movement-table noise.
-        gross = None
-        for j in range(i - 1, max(-1, i - 5), -1):
+        # Walk back up to 10 lines to find the gross row. Some banks (ISCTR)
+        # interpose 4-5 customer-segment sub-rows (Corporate / Retail / Credit
+        # Cards / Other) between the parent gross row and the Provisions row,
+        # so we can't stop at the first eligible row — that's a sub-row, not
+        # the real gross balance. Collect ALL candidates and pick the one
+        # whose values sum to the LARGEST magnitude: the parent row equals
+        # the sum of its sub-rows so it always has the largest values.
+        gross_candidates: list[list[float | None]] = []
+        for j in range(i - 1, block_lo - 1, -1):
             cand = lines[j].strip()
             if not _NPL_DATA_ROW_FILTER.search(cand):
                 continue
-            if re.search(r"\b(?:Net|Provision|Karşılık)\b", cand, re.IGNORECASE):
-                continue
+            if re.search(r"\b(?:Net|Provisions?|Karşılık|Beklenen\s+Zarar)\b",
+                         cand, re.IGNORECASE):
+                break
             cnums = _NUM.findall(cand)
             if len(cnums) >= 3:
-                gross = [parse_num(n) for n in cnums[-3:]]
-                break
+                gross_candidates.append([parse_num(n) for n in cnums[-3:]])
 
-        # Walk forward up to 4 lines to find the net row.
-        net = None
-        for j in range(i + 1, min(len(lines), i + 5)):
+        def _abs_sum(v: list[float | None]) -> float:
+            return sum(abs(x) for x in v if x is not None)
+
+        # Pick the row with the largest magnitude — for banks like ISCTR that
+        # interpose customer-segment sub-rows (Corporate / Retail / Credit
+        # Cards / Other) between the parent gross row and the Provisions row,
+        # the parent row sums to a larger value than any single sub-row.
+        gross = max(gross_candidates, key=_abs_sum) if gross_candidates else None
+
+        # Walk forward, bounded by the next provision/header, to find the net
+        # row. Apply the same largest-magnitude pick over sub-rows.
+        net_candidates: list[list[float | None]] = []
+        for j in range(i + 1, block_hi):
             cand = lines[j].strip()
             if not _NPL_DATA_ROW_FILTER.search(cand):
                 continue
-            if not re.search(r"\bNet\b", cand, re.IGNORECASE):
-                # Continue past explanatory lines without "Net"; many banks have
-                # a movement-table closing row right after Provision.
+            if not re.search(r"\bNet\b|Bilançodaki", cand, re.IGNORECASE):
                 continue
             cnums = _NUM.findall(cand)
             if len(cnums) >= 3:
-                net = [parse_num(n) for n in cnums[-3:]]
-                break
+                net_candidates.append([parse_num(n) for n in cnums[-3:]])
+
+        net = max(net_candidates, key=_abs_sum) if net_candidates else None
 
         def _sum_or_none(v: list[float | None]) -> float | None:
             clean = [x for x in v if x is not None]
@@ -609,7 +891,15 @@ def _extract_npl_brsa_from_page(page_num: int, page_text: str) -> list[StageRow]
 # some PDFs render the Stage 2 sub-headers physically above the Stage 1 label
 # because they wrap to multiple lines).
 _STAGE12_S1_PHRASE = re.compile(
-    r"(?:Standart\s+Nitelikli|Standard\s+[Ll]oans?|Performing\s+Loans?)",
+    # "Standart Nitelikli" is the table's column header, but pdfplumber often
+    # wraps column headers across visual lines so the words land on different
+    # rows of extract_text() output (VAKIFK, TFKB). Fall back to the universal
+    # BRSA section title "Birinci ve İkinci Grup Krediler" — every Turkish
+    # bank uses it.
+    r"(?:Standart\s+Nitelikli"
+    r"|Standard\s+[Ll]oans?"
+    r"|Performing\s+Loans?"
+    r"|Birinci\s+ve\s+İkinci\s+Grup)",
     re.IGNORECASE,
 )
 _STAGE12_S2_PHRASE = re.compile(
@@ -691,12 +981,14 @@ def _extract_loans_by_stage_from_page(page_num: int, page_text: str) -> list[Sta
                 current_period = pt
             if not _STAGE12_TOTAL_ROW.match(stripped):
                 continue
-            nums = re.findall(_NUM_PAT_STR, stripped)
-            # A real BRSA 7.2 Toplam row carries 2-5 numeric columns
-            # (Stage 1 + 1-4 Yakın İzlemedeki sub-types). Reject narrower
-            # tables (employee-loan disclosures have 4 numbers split across
-            # current/prior).
-            if not (2 <= len(nums) <= 5):
+            nums = re.findall(_NUM_PAT_STR, _merge_split_digits(stripped))
+            # A real BRSA 7.2 Toplam row carries 3-5 numeric columns: Stage 1
+            # + 2-4 Yakın İzlemedeki sub-types (Yeniden Yapılandırma /
+            # Sözleşme Koşullarında Değişiklik / Yeniden Finansman). 2-column
+            # Toplam rows on the same page are unrelated tables: aging-
+            # analysis Toplam (AKBNK p59 L47: "Toplam 16.622.792 15.101.565"),
+            # currency split totals, etc. — reject those.
+            if not (3 <= len(nums) <= 5):
                 continue
             vals = [parse_num(n) for n in nums]
             # Sanity gate: Stage 1 column must be:
@@ -797,8 +1089,11 @@ def _extract_loans_by_stage_from_page(page_num: int, page_text: str) -> list[Sta
 # ---------------------------------------------------------------------------
 
 _ECL_S1_ROW_PAT = re.compile(
-    r"(?:12\s*Aylık\s*Beklenen\s*(?:Zarar|Kredi\s*Zarar(?:ı|ları))"
-    r"\s*(?:Karşılığı?)?"
+    # Turkish: "Karşılığı" (genitive) is REQUIRED — without it the regex matches
+    # narrative prose like "12 Aylık beklenen zarar değerleri" (sentence about
+    # 12-month expected loss values) which appears in the IFRS 9 policy
+    # description that almost every Turkish bank includes before the data table.
+    r"(?:12\s*Aylık\s*Beklenen\s*(?:Zarar|Kredi\s*Zarar(?:ı|ları))\s*Karşılığı"
     r"|12\s*Months?\s*Expected\s*(?:Credit\s*)?Loss\s*(?:Provision)?)",
     re.IGNORECASE,
 )
@@ -835,31 +1130,43 @@ def _extract_stage12_ecl_from_page(page_num: int, page_text: str) -> list[StageR
         return []
 
     lines = page_text.split("\n")
-    s1_line: str | None = None
-    s2_line: str | None = None
-    for ln in lines:
-        if s1_line is None and _ECL_S1_ROW_PAT.search(ln):
-            s1_line = ln
-        if s2_line is None and _ECL_S2_ROW_PAT.search(ln):
-            s2_line = ln
-        if s1_line and s2_line:
-            break
-    if not (s1_line and s2_line):
+    # Collect ALL candidate lines (the policy section often repeats the row
+    # label as a heading before the actual data table appears). Try each and
+    # pick the first one that yields data-like numbers.
+    s1_candidates = [ln for ln in lines if _ECL_S1_ROW_PAT.search(ln)]
+    s2_candidates = [ln for ln in lines if _ECL_S2_ROW_PAT.search(ln)]
+    if not (s1_candidates and s2_candidates):
         return []
 
     def _parse_first_nonzero(line: str, label_pat: re.Pattern) -> float | None:
         # Numbers must come AFTER the row label, otherwise the "12" prefix
         # of "12 Aylık" / "12 Months" gets parsed as the first numeric column.
+        # Also reject bare 1-3 digit tokens without thousands separators —
+        # those are footnote refs, stage markers like "(1. Aşama)", or stray
+        # digits from prose. Real data-table values are thousand-TL and almost
+        # always have a separator or magnitude >= 1000.
         m = label_pat.search(line)
         tail = line[m.end():] if m else line
         for tok in re.findall(_NUM_PAT_STR, tail):
             v = parse_num(tok)
-            if v is not None and v != 0:
+            if v is None or v == 0:
+                continue
+            if re.search(r"\d[.,]\d{3}", tok) or abs(v) >= 1000:
                 return v
         return None
 
-    s1_ecl = _parse_first_nonzero(s1_line, _ECL_S1_ROW_PAT)
-    s2_ecl = _parse_first_nonzero(s2_line, _ECL_S2_ROW_PAT)
+    s1_ecl: float | None = None
+    for ln in s1_candidates:
+        v = _parse_first_nonzero(ln, _ECL_S1_ROW_PAT)
+        if v is not None:
+            s1_ecl = v
+            break
+    s2_ecl: float | None = None
+    for ln in s2_candidates:
+        v = _parse_first_nonzero(ln, _ECL_S2_ROW_PAT)
+        if v is not None:
+            s2_ecl = v
+            break
 
     if s1_ecl is None and s2_ecl is None:
         return []
@@ -876,15 +1183,39 @@ def _extract_stage12_ecl_from_page(page_num: int, page_text: str) -> list[StageR
     )]
 
 
-def extract_from_pdf(pdf: pdfplumber.PDF, pdf_path: str = "") -> CreditQualityReport:
+_FILENAME_TICKER_PAT = re.compile(r"^([A-Z]+)_\d{4}Q\d_", re.IGNORECASE)
+
+
+def _infer_ticker(pdf_path: str) -> str:
+    """Pull the bank ticker out of a canonical filename like AKBNK_2025Q3_..."""
+    name = Path(pdf_path).name
+    m = _FILENAME_TICKER_PAT.match(name)
+    return m.group(1).upper() if m else ""
+
+
+def extract_from_pdf(
+    pdf: pdfplumber.PDF, pdf_path: str = "", bank_ticker: str = "",
+) -> CreditQualityReport:
     """Scan an already-open pdfplumber.PDF for IFRS 9 stage tables.
 
     Prefer this over `extract` when the caller already has the PDF open —
     pdfplumber's open() costs ~5–15s on a typical audit report, and the main
     `extractor.extract` pipeline also opens the same PDF. Sharing one handle
     halves per-PDF cost in the sync_audit_reports worker.
+
+    `bank_ticker` selects the per-bank template registry entry (see
+    data/banks/audit_templates.json). If empty, we infer it from the
+    filename `<TICKER>_<period>_<kind>.pdf`. If still unknown, npl_brsa
+    extraction falls back to regex.
     """
+    if not bank_ticker:
+        bank_ticker = _infer_ticker(pdf_path)
+    template = _template_for(bank_ticker)
     rep = CreditQualityReport(pdf_path=pdf_path)
+    # NPL rows are collected separately so we can fall back from the template
+    # path to the regex path per-PDF (see below).
+    npl_tmpl: list[StageRow] = []
+    npl_regex: list[StageRow] = []
     for i, page in enumerate(pdf.pages, 1):
         text = page.extract_text() or ""
         # Stock tables (movement-table end-row) — primary signal.
@@ -894,9 +1225,18 @@ def extract_from_pdf(pdf: pdfplumber.PDF, pdf_path: str = "") -> CreditQualityRe
         # P&L expense decomposition — fallback signal for banks that omit
         # the stock table. Cheap to check — just look for the row-pattern.
         rep.rows.extend(_extract_pl_expense_from_page(i, text))
-        # BRSA NPL classification (III/IV/V groups) — the actual NPL loan
-        # balances broken into severity groups. Universal across BRSA reports.
-        rep.rows.extend(_extract_npl_brsa_from_page(i, text))
+        # BRSA NPL classification (III/IV/V groups). Run BOTH the template path
+        # (precise — anchors on this bank's known labels) and the regex path
+        # (language-agnostic — matches Karşılık/Provision and Dönem Sonu/Balance
+        # generically). We prefer the template result, but fall back to the
+        # regex result when the template yields nothing — e.g. a bank switching
+        # report language between periods (BURGAN went EN→TR), a provision-row
+        # label that drifted, or a gross row on a later page than the first
+        # III/IV/V header. This guarantees we never regress a bank to zero NPL
+        # rows just because its template entry is stale.
+        if template is not None:
+            npl_tmpl.extend(_extract_npl_brsa_via_template(i, text, template))
+        npl_regex.extend(_extract_npl_brsa_from_page(i, text))
         # BRSA section 7.2 "Standart Nitelikli ve Yakın İzlemedeki" loan
         # amounts. Gives Stage 1 + Stage 2 portfolio balances for every bank
         # (combined with npl_brsa_gross's Stage 3 = full stage breakdown).
@@ -904,6 +1244,19 @@ def extract_from_pdf(pdf: pdfplumber.PDF, pdf_path: str = "") -> CreditQualityRe
         # Stage 1 + Stage 2 ECL provisions from the same section 7.2.
         # Completes per-stage coverage ratio coverage for every bank.
         rep.rows.extend(_extract_stage12_ecl_from_page(i, text))
+
+    # Choose the NPL source: template if it found a gross row, else regex.
+    tmpl_has_gross = any(r.section == "npl_brsa_gross" for r in npl_tmpl)
+    if tmpl_has_gross:
+        rep.rows.extend(npl_tmpl)
+    else:
+        if template is not None and npl_regex:
+            _log.warning(
+                "%s: template NPL extraction found no gross row; using regex "
+                "fallback (template may be stale — check labels in "
+                "audit_templates.json).", bank_ticker or _infer_ticker(pdf_path),
+            )
+        rep.rows.extend(npl_regex)
     # Keep the first row per (section, period_type); later same-key matches are
     # usually narrower sub-tables (e.g. consumer-only) we already classified.
     seen: set[tuple[str, str]] = set()
@@ -918,13 +1271,13 @@ def extract_from_pdf(pdf: pdfplumber.PDF, pdf_path: str = "") -> CreditQualityRe
     return rep
 
 
-def extract(pdf_path: str | Path) -> CreditQualityReport:
+def extract(pdf_path: str | Path, bank_ticker: str = "") -> CreditQualityReport:
     """Open the PDF and run the stage-table extractor. Convenience wrapper
     around `extract_from_pdf` for callers that don't already have a PDF handle.
     """
     pdf_path = str(pdf_path)
     with pdfplumber.open(pdf_path) as pdf:
-        return extract_from_pdf(pdf, pdf_path)
+        return extract_from_pdf(pdf, pdf_path, bank_ticker=bank_ticker)
 
 
 # ---------------------------------------------------------------------------

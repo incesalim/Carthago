@@ -1,6 +1,6 @@
 {
   "_doc": "Direct PDF URLs for quarterly BRSA Financial Reports per Turkish bank. Sourced from each bank's investor relations site. Filenames are heterogeneous; future quarters need re-scraping (see README).",
-  "_updated": "2026-05-09",
+  "_updated": "2026-05-27",
   "banks": {
     "AKBNK": {
       "name": "Akbank T.A.Ş.",
@@ -141,14 +141,14 @@
       "_note": "Solo files come as ZIPs containing PDF+XLSX. Q1/Q3 consolidated NOT published.",
       "urls": {
         "consolidated": {
-          "2022Q2": "https://www.vakifbank.com.tr/documents/bankamiz/yatirimci-iliskileri/finansal-bilgiler/bddk/haziran-2022.pdf",
-          "2022Q4": "https://www.vakifbank.com.tr/documents/bankamiz/yatirimci-iliskileri/finansal-bilgiler/bddk/aralik-2022.pdf",
-          "2023Q2": "https://www.vakifbank.com.tr/documents/bankamiz/yatirimci-iliskileri/finansal-bilgiler/bddk/haziran-2023.pdf",
-          "2023Q4": "https://www.vakifbank.com.tr/documents/bankamiz/yatirimci-iliskileri/finansal-bilgiler/bddk/aralik-2023.pdf",
-          "2024Q2": "https://www.vakifbank.com.tr/documents/bankamiz/yatirimci-iliskileri/finansal-bilgiler/bddk/haziran-2024.pdf",
-          "2024Q4": "https://www.vakifbank.com.tr/documents/bankamiz/yatirimci-iliskileri/finansal-bilgiler/bddk/aralik-2024.pdf",
-          "2025Q2": "https://www.vakifbank.com.tr/documents/bankamiz/yatirimci-iliskileri/finansal-bilgiler/bddk/haziran-2025.pdf",
-          "2025Q4": "https://www.vakifbank.com.tr/documents/bankamiz/yatirimci-iliskileri/finansal-bilgiler/bddk/aralik-2025.pdf"
+          "2022Q2": "https://www.vakifbank.com.tr/documents/bankamiz/yatirimci-iliskileri/finansal-bilgiler/konsolide-raporlar/haziran-2022-konsolide-raporlar.zip",
+          "2022Q4": "https://www.vakifbank.com.tr/documents/bankamiz/yatirimci-iliskileri/finansal-bilgiler/konsolide-raporlar/aralik-2022-konsolide-raporlar.zip",
+          "2023Q2": "https://www.vakifbank.com.tr/documents/bankamiz/yatirimci-iliskileri/finansal-bilgiler/konsolide-raporlar/haziran-2023-konsolide-raporlar.zip",
+          "2023Q4": "https://www.vakifbank.com.tr/documents/bankamiz/yatirimci-iliskileri/finansal-bilgiler/konsolide-raporlar/aralik-2023-konsolide-raporlar.zip",
+          "2024Q2": "https://www.vakifbank.com.tr/documents/bankamiz/yatirimci-iliskileri/finansal-bilgiler/konsolide-raporlar/haziran-2024-konsolide-raporlar.zip",
+          "2024Q4": "https://www.vakifbank.com.tr/documents/bankamiz/yatirimci-iliskileri/finansal-bilgiler/konsolide-raporlar/aralik-2024-konsolide-raporlar.zip",
+          "2025Q2": "https://www.vakifbank.com.tr/documents/bankamiz/yatirimci-iliskileri/finansal-bilgiler/konsolide-raporlar/haziran-2025-konsolide-raporlar.zip",
+          "2025Q4": "https://www.vakifbank.com.tr/documents/bankamiz/yatirimci-iliskileri/finansal-bilgiler/konsolide-raporlar/aralik-2025-konsolide-raporlar.zip"
         },
         "unconsolidated_zip": {
           "2022Q1": "https://www.vakifbank.com.tr/documents/bankamiz/yatirimci-iliskileri/finansal-bilgiler/konsolide-olmayan-raporlar/mart-2022-solo-raporlar.zip",
@@ -238,7 +238,7 @@
           "2025Q2": "https://www.qnb.com.tr/medium/document-file-4349.vsf",
           "2025Q3": "https://www.qnb.com.tr/medium/document-file-4449.vsf",
           "2025Q4": "https://www.qnb.com.tr/medium/document-file-4547.vsf",
-          "2026Q1": "https://www.qnb.com.tr/medium/document-file-4599.vsf"
+          "2026Q1": "https://www.qnb.com.tr/medium/document-file-4621.vsf"
         },
         "unconsolidated": {
           "2022Q1": "https://www.qnb.com.tr/medium/document-file-3561.vsf",
@@ -255,9 +255,9 @@
           "2024Q4": "https://www.qnb.com.tr/medium/document-file-4200.vsf",
           "2025Q1": "https://www.qnb.com.tr/medium/document-file-4267.vsf",
           "2025Q2": "https://www.qnb.com.tr/medium/document-file-4348.vsf",
-          "2025Q3": "https://www.qnb.com.tr/medium/document-file-4396.vsf",
+          "2025Q3": "https://www.qnb.com.tr/medium/document-file-4422.vsf",
           "2025Q4": "https://www.qnb.com.tr/medium/document-file-4546.vsf",
-          "2026Q1": "https://www.qnb.com.tr/medium/document-file-4598.vsf"
+          "2026Q1": "https://www.qnb.com.tr/medium/document-file-4620.vsf"
         }
       }
     },
@@ -416,7 +416,8 @@
           "2025Q1": "https://www.isbank.com.tr/contentmanagement/IsbankFinancialDocuments/TAS%20Bank-only/pdf/IsbankUnconsolidatedFinancials31032025.pdf",
           "2025Q2": "https://www.isbank.com.tr/contentmanagement/IsbankFinancialDocuments/TAS%20Bank-only/pdf/IsbankUnconsolidatedFinancials30062025.pdf",
           "2025Q3": "https://www.isbank.com.tr/contentmanagement/IsbankFinancialDocuments/TAS%20Bank-only/pdf/IsbankUnconsolidatedFinancials30092025.pdf",
-          "2025Q4": "https://www.isbank.com.tr/contentmanagement/IsbankFinancialDocuments/TAS%20Bank-only/pdf/IsbankUnconsolidatedFinancials31122025.pdf"
+          "2025Q4": "https://www.isbank.com.tr/contentmanagement/IsbankFinancialDocuments/TAS%20Bank-only/pdf/IsbankUnconsolidatedFinancials31122025.pdf",
+          "2026Q1": "https://www.isbank.com.tr/contentmanagement/IsbankFinancialDocuments/TAS Bank-only/pdf/IsbankUnconsolidatedFinancials31032026.pdf"
         }
       }
     },
@@ -485,7 +486,8 @@
           "2025Q1": "https://www.ziraatbank.com.tr/tr/yatirimci-iliskileri-ZB/finansal-bilgiler/DenetimRaporuMaliTablo/TCZBKONSOLIDE31032025-denetim-raporu.pdf",
           "2025Q2": "https://www.ziraatbank.com.tr/tr/yatirimci-iliskileri-ZB/finansal-bilgiler/DenetimRaporuMaliTablo/konsolide-denetim-30062025.pdf",
           "2025Q3": "https://www.ziraatbank.com.tr/tr/yatirimci-iliskileri-ZB/finansal-bilgiler/DenetimRaporuMaliTablo/TCZB-KONSOLIDE-30092025.pdf",
-          "2025Q4": "https://www.ziraatbank.com.tr/tr/yatirimci-iliskileri-ZB/finansal-bilgiler/DenetimRaporuMaliTablo/TCZB-KONSOLIDE-31122025.pdf"
+          "2025Q4": "https://www.ziraatbank.com.tr/tr/yatirimci-iliskileri-ZB/finansal-bilgiler/DenetimRaporuMaliTablo/TCZB-KONSOLIDE-31122025.pdf",
+          "2026Q1": "https://www.ziraatbank.com.tr/tr/yatirimci-iliskileri-ZB/finansal-bilgiler/DenetimRaporuMaliTablo/TCZB-Konsolide-31032026.pdf"
         },
         "unconsolidated": {
           "2022Q1": "https://www.ziraatbank.com.tr/tr/yatirimci-iliskileri-ZB/finansal-bilgiler/DenetimRaporuMaliTablo/TCZB_KONSOLIDE_OLMAYAN_31032022_denetim-raporu.pdf",
@@ -503,7 +505,8 @@
           "2025Q1": "https://www.ziraatbank.com.tr/tr/yatirimci-iliskileri-ZB/finansal-bilgiler/DenetimRaporuMaliTablo/TCZB-KONSOLIDE-OLMAYAN-31032025-denetim-raporu.pdf",
           "2025Q2": "https://www.ziraatbank.com.tr/tr/yatirimci-iliskileri-ZB/finansal-bilgiler/DenetimRaporuMaliTablo/konsolide-olmayan-denetim-30062025.pdf",
           "2025Q3": "https://www.ziraatbank.com.tr/tr/yatirimci-iliskileri-ZB/finansal-bilgiler/DenetimRaporuMaliTablo/TCZB-KONSOLIDE-OLMAYAN-30092025.pdf",
-          "2025Q4": "https://www.ziraatbank.com.tr/tr/yatirimci-iliskileri-ZB/finansal-bilgiler/DenetimRaporuMaliTablo/TCZB-KONSOLIDE-OLMAYAN-31122025.pdf"
+          "2025Q4": "https://www.ziraatbank.com.tr/tr/yatirimci-iliskileri-ZB/finansal-bilgiler/DenetimRaporuMaliTablo/TCZB-KONSOLIDE-OLMAYAN-31122025.pdf",
+          "2026Q1": "https://www.ziraatbank.com.tr/tr/yatirimci-iliskileri-ZB/finansal-bilgiler/DenetimRaporuMaliTablo/TCZB-Konsolide-Olmayan-31032026.pdf"
         }
       }
     },
@@ -659,7 +662,8 @@
           "2025Q1": "https://www.fibabanka.com.tr/docs/default-source/mali-tablolar/bddk-mali-tablolar/konsolide-olan/fibabanka-bddk-konsolide-dipnotlar-31032025-final.pdf?sfvrsn=61fe0348_4",
           "2025Q2": "https://www.fibabanka.com.tr/docs/default-source/mali-tablolar/bddk-mali-tablolar/konsolide-olan/fibabanka-bddk-konsolide-dipnotlar-30062025-final.pdf?sfvrsn=98e136dd_4",
           "2025Q3": "https://www.fibabanka.com.tr/docs/default-source/mali-tablolar/bddk-mali-tablolar/konsolide-olan/fibabanka-konsolide-bddk-dipnotlar-30092025-final.pdf?sfvrsn=5df7f56f_4",
-          "2025Q4": "https://www.fibabanka.com.tr/docs/default-source/mali-tablolar/bddk-mali-tablolar/konsolide-olan/fibabanka-konsolide-bddk-dipnotlar-31122025_final.pdf?sfvrsn=95bc8749_3"
+          "2025Q4": "https://www.fibabanka.com.tr/docs/default-source/mali-tablolar/bddk-mali-tablolar/konsolide-olan/fibabanka-konsolide-bddk-dipnotlar-31122025_final.pdf?sfvrsn=95bc8749_3",
+          "2026Q1": "https://www.fibabanka.com.tr/docs/default-source/mali-tablolar/bddk-mali-tablolar/konsolide-olan/fibabanka-konsolide-bddk-dipnotlar-31032026_final.pdf?sfvrsn=9c01e0_3"
         },
         "unconsolidated": {
           "2022Q1": "https://www.fibabanka.com.tr/docs/default-source/mali-tablolar/bddk-mali-tablolar/konsolide-olmayan/mart-2022.pdf?sfvrsn=f33674db_4",
@@ -677,7 +681,8 @@
           "2025Q1": "https://www.fibabanka.com.tr/docs/default-source/mali-tablolar/bddk-mali-tablolar/konsolide-olmayan/fibabanka-bddk-dipnotlar-31032025-final.pdf?sfvrsn=d380b2ab_5",
           "2025Q2": "https://www.fibabanka.com.tr/docs/default-source/mali-tablolar/bddk-mali-tablolar/konsolide-olmayan/fibabanka-bddk-dipnotlar-30062025-final.pdf?sfvrsn=9d75dd4e_5",
           "2025Q3": "https://www.fibabanka.com.tr/docs/default-source/mali-tablolar/bddk-mali-tablolar/konsolide-olmayan/fibabanka-bddk-dipnotlar-30092025---final.pdf?sfvrsn=36a92b3f_5",
-          "2025Q4": "https://www.fibabanka.com.tr/docs/default-source/mali-tablolar/bddk-mali-tablolar/konsolide-olmayan/fibabanka-bddk-dipnotlar-31122025---final.pdf?sfvrsn=2251ecba_3"
+          "2025Q4": "https://www.fibabanka.com.tr/docs/default-source/mali-tablolar/bddk-mali-tablolar/konsolide-olmayan/fibabanka-bddk-dipnotlar-31122025---final.pdf?sfvrsn=2251ecba_3",
+          "2026Q1": "https://www.fibabanka.com.tr/docs/default-source/mali-tablolar/bddk-mali-tablolar/konsolide-olmayan/fibabanka-bddk-dipnotlar-31032026---final.pdf?sfvrsn=ec743fe2_3"
         }
       }
     },
@@ -701,7 +706,8 @@
           "2025Q1": "https://www.burgan.com.tr/uploads/2025/5/engburgan-bank-31032025-bddk-konsolide-v2.pdf",
           "2025Q2": "https://www.burgan.com.tr/uploads/2025/9/eng-burgan-bank-30062025-bddk-konsolide-final.pdf",
           "2025Q3": "https://www.burgan.com.tr/uploads/2025/11/3-rd-quarter-consolidated-report-951d3bde-8275-4058-94ce-3112eb3bf090.pdf",
-          "2025Q4": "https://www.burgan.com.tr/uploads/2026/3/konsolide-eng-final-burgan-bank-3112.pdf"
+          "2025Q4": "https://www.burgan.com.tr/uploads/2026/3/konsolide-eng-final-burgan-bank-3112.pdf",
+          "2026Q1": "https://www.burgan.com.tr/uploads/2026/5/burgan-bank-31032026-bddk-konsolide.pdf"
         },
         "unconsolidated": {
           "2022Q1": "https://www.burgan.com.tr/uploads/2022/6/eng-burgan-bank-31-03-2022-bddksolov4.pdf",
@@ -719,7 +725,8 @@
           "2025Q1": "https://www.burgan.com.tr/uploads/2025/5/engburgan-bank-31032025-bddk-solo-v2.pdf",
           "2025Q2": "https://www.burgan.com.tr/uploads/2025/9/burgan-bank-30062025-bddk-solo-eng-final.pdf",
           "2025Q3": "https://www.burgan.com.tr/uploads/2025/11/3-rd-quarter-unconsolidated-report-76c8bf15-93f1-4f12-9885-da5d7e55d357.pdf",
-          "2025Q4": "https://www.burgan.com.tr/uploads/2026/3/solo-eng-burgan-bank-3112.pdf"
+          "2025Q4": "https://www.burgan.com.tr/uploads/2026/3/solo-eng-burgan-bank-3112.pdf",
+          "2026Q1": "https://www.burgan.com.tr/uploads/2026/5/burgan-bank-31032026-bddk-solo.pdf"
         }
       }
     },
@@ -769,7 +776,8 @@
           "2025Q1": "https://www.atbank.com.tr/Documents/Features/ATB_091_20250331_denetim_raporu_konsolide-pdf_701.pdf",
           "2025Q2": "https://www.atbank.com.tr/Documents/Features/ATB_konsolide-30-06-2025-bddk-raporu-pdf_473.pdf",
           "2025Q3": "https://www.atbank.com.tr/Documents/Features/ATB_091-atbank-konsolide-30-09-2025-bddk-raporu-pdf_480.pdf",
-          "2025Q4": "https://www.atbank.com.tr/Documents/Features/ATB_31-12-2025-bddk-raporu-pdf_395.pdf"
+          "2025Q4": "https://www.atbank.com.tr/Documents/Features/ATB_31-12-2025-bddk-raporu-pdf_395.pdf",
+          "2026Q1": "https://www.atbank.com.tr/Documents/Features/ATB_31-03-2026-bddk-raporu-pdf_895.pdf"
         },
         "unconsolidated": {
           "2022Q1": "https://www.atbank.com.tr/Documents/Features/ATB_ok_atb_091_20220331_denetim-raporu_solo-pdf_554-pdf_417.pdf",
@@ -787,7 +795,8 @@
           "2025Q1": "https://www.atbank.com.tr/Documents/Features/ATB_091_20250331_denetim_raporu_solo-pdf_610.pdf",
           "2025Q2": "https://www.atbank.com.tr/Documents/Features/ATB_konsolide-olmayan-30-06-2025-bddk-raporu-pdf_705.pdf",
           "2025Q3": "https://www.atbank.com.tr/Documents/Features/ATB_091-atbank-konsolide-olmayan-30-09-2025-bddk-raporu-pdf_479.pdf",
-          "2025Q4": "https://www.atbank.com.tr/Documents/Features/ATB_31-12-2025-bddk-raporu-pdf_51.pdf"
+          "2025Q4": "https://www.atbank.com.tr/Documents/Features/ATB_31-12-2025-bddk-raporu-pdf_51.pdf",
+          "2026Q1": "https://www.atbank.com.tr/Documents/Features/ATB_31-03-2026-bddk-raporu-pdf_894.pdf"
         }
       }
     },
@@ -811,7 +820,8 @@
           "2025Q1": "https://www.kuveytturk.com.tr/medium/konsolide-denetim-raporu31-mart-2025-2989.pdf",
           "2025Q2": "https://www.kuveytturk.com.tr/medium/konsolide-denetim-raporu-30-haziran-2025-3181.pdf",
           "2025Q3": "https://www.kuveytturk.com.tr/medium/konsolide-denetim-raporu-30-eylul-2025-3424.pdf",
-          "2025Q4": "https://www.kuveytturk.com.tr/medium/konsolide-denetim-raporu-31-aralik-2025-3741.pdf"
+          "2025Q4": "https://www.kuveytturk.com.tr/medium/konsolide-denetim-raporu-31-aralik-2025-3741.pdf",
+          "2026Q1": "https://www.kuveytturk.com.tr/medium/denetim-raporu-31-mart-2026-3926.pdf"
         },
         "unconsolidated": {
           "2022Q1": "https://www.kuveytturk.com.tr/medium/denetim-raporu-31-mart-2022-189.pdf",
@@ -829,7 +839,8 @@
           "2025Q1": "https://www.kuveytturk.com.tr/medium/denetim-raporu-31-mart-2025-2988.pdf",
           "2025Q2": "https://www.kuveytturk.com.tr/medium/denetim-raporu-30-haziran-2025-3180.pdf",
           "2025Q3": "https://www.kuveytturk.com.tr/medium/denetim-raporu-30-eylul-2025-3423.pdf",
-          "2025Q4": "https://www.kuveytturk.com.tr/medium/denetim-raporu-31-aralik-2025-3740.pdf"
+          "2025Q4": "https://www.kuveytturk.com.tr/medium/denetim-raporu-31-aralik-2025-3740.pdf",
+          "2026Q1": "https://www.kuveytturk.com.tr/medium/denetim-raporu-31-mart-2026-3926.pdf"
         }
       }
     },
@@ -853,7 +864,8 @@
           "2025Q1": "https://www.turkiyefinans.com.tr/Lists/BagimsizDenetimRaporlari/Attachments/170/TFKB%20-%2031.03.2025%20BDDK%20-%20Konsolide%20.pdf",
           "2025Q2": "https://www.turkiyefinans.com.tr/Lists/BagimsizDenetimRaporlari/Attachments/171/TFKB%20-%2030.06.2025%20-%20Konsolide%20.pdf",
           "2025Q3": "https://www.turkiyefinans.com.tr/Lists/BagimsizDenetimRaporlari/Attachments/174/TFKB%20-%2030.09.2025%20-%20Konsolide%20.pdf",
-          "2025Q4": "https://www.turkiyefinans.com.tr/Lists/BagimsizDenetimRaporlari/Attachments/178/bagimsiz-denetim-rapor-konsolide-4-donem-31122025.pdf"
+          "2025Q4": "https://www.turkiyefinans.com.tr/Lists/BagimsizDenetimRaporlari/Attachments/178/bagimsiz-denetim-rapor-konsolide-4-donem-31122025.pdf",
+          "2026Q1": "https://www.turkiyefinans.com.tr/Lists/BagimsizDenetimRaporlari/Attachments/179/TFKB 31 03 2026 konsolide_Final.pdf"
         },
         "unconsolidated": {
           "2022Q1": "https://www.turkiyefinans.com.tr/Lists/BagimsizDenetimRaporlari/Attachments/135/TFKB%2031%2003%202022%20solo_f.pdf",
@@ -871,7 +883,8 @@
           "2025Q1": "https://www.turkiyefinans.com.tr/Lists/BagimsizDenetimRaporlari/Attachments/169/TFKB%20-%2031.03.2025%20BDDK%20-%20Solo.pdf",
           "2025Q2": "https://www.turkiyefinans.com.tr/Lists/BagimsizDenetimRaporlari/Attachments/172/TFKB%20-%2030.06.2025%20-%20Solo.pdf",
           "2025Q3": "https://www.turkiyefinans.com.tr/Lists/BagimsizDenetimRaporlari/Attachments/175/TFKB%20-%2030.09.2025%20-%20Solo.pdf",
-          "2025Q4": "https://www.turkiyefinans.com.tr/Lists/BagimsizDenetimRaporlari/Attachments/177/bagimsiz-denetim-raporu-4-donem-31122025-.pdf"
+          "2025Q4": "https://www.turkiyefinans.com.tr/Lists/BagimsizDenetimRaporlari/Attachments/177/bagimsiz-denetim-raporu-4-donem-31122025-.pdf",
+          "2026Q1": "https://www.turkiyefinans.com.tr/Lists/BagimsizDenetimRaporlari/Attachments/180/TFKB 31 03 2026 solo_Final.pdf"
         }
       }
     },
@@ -895,7 +908,8 @@
           "2025Q1": "https://www.vakifkatilim.com.tr/documents/UluslararasiBankacilik/vakif-katilim-bankasi_konsolide_tr_31_03_2025-final.pdf",
           "2025Q2": "https://www.vakifkatilim.com.tr/documents/vakif-katilim-bankasi_30_06_2025_tr_konsolide_final.pdf",
           "2025Q3": "https://www.vakifkatilim.com.tr/documents/final-vakif-katilim-bankasi_30_09_2025_tr_konsolide_final.pdf",
-          "2025Q4": "https://www.vakifkatilim.com.tr/documents/vakif-katilim-bankasi_31_12_2025.pdf"
+          "2025Q4": "https://www.vakifkatilim.com.tr/documents/vakif-katilim-bankasi_31_12_2025.pdf",
+          "2026Q1": "https://www.vakifkatilim.com.tr/documents/vakif-katilim-bankasi_31_03_2026_tr_konsolide.pdf"
         },
         "unconsolidated": {
           "2022Q1": "https://www.vakifkatilim.com.tr/documents/UluslararasiBankacilik/BagimsizDenetimRaporu/vakifkatilimbankasi_31_03_2022_tr_solo.pdf",
@@ -913,7 +927,8 @@
           "2025Q1": "https://www.vakifkatilim.com.tr/documents/UluslararasiBankacilik/vakif-katilim-bankasi_solo_tr_31_03_2025_dzt_11062025.pdf",
           "2025Q2": "https://www.vakifkatilim.com.tr/documents/vakif-katilim-bankasi_30_06_2025-solo.pdf",
           "2025Q3": "https://www.vakifkatilim.com.tr/documents/final-vakif-katilim-bankasi_30_09_2025_tr_solo_final.pdf",
-          "2025Q4": "https://www.vakifkatilim.com.tr/documents/vakif-katilim-bankasi_31_12_2025_solo.pdf"
+          "2025Q4": "https://www.vakifkatilim.com.tr/documents/vakif-katilim-bankasi_31_12_2025_solo.pdf",
+          "2026Q1": "https://www.vakifkatilim.com.tr/documents/vakif-katilim-bankasi_31_03_2026_tr_solo.pdf"
         }
       }
     },
@@ -937,7 +952,8 @@
           "2025Q1": "https://www.ziraatkatilim.com.tr/sites/default/files/media-file/31.03.2025%20Konsolide%20Ziraat%20Katilim%20Denetim%20Raporu.pdf",
           "2025Q2": "https://www.ziraatkatilim.com.tr/sites/default/files/media-file/30.06.2025%20Konsolide%20Ziraat%20Katilim%20Denetim%20Raporu.pdf",
           "2025Q3": "https://www.ziraatkatilim.com.tr/sites/default/files/inline-files/30.09.2025%20Konsolide%20Ziraat%20Katilim%20Denetim%20Raporu.pdf",
-          "2025Q4": "https://www.ziraatkatilim.com.tr/sites/default/files/inline-files/31.12.2025%20Konsolide%20Ziraat%20Katilim%20Denetim%20Raporu.pdf"
+          "2025Q4": "https://www.ziraatkatilim.com.tr/sites/default/files/inline-files/31.12.2025%20Konsolide%20Ziraat%20Katilim%20Denetim%20Raporu.pdf",
+          "2026Q1": "https://www.ziraatkatilim.com.tr/sites/default/files/media-file/31.03.2026 Konsolide Ziraat Katilim Denetim Raporu.pdf"
         },
         "unconsolidated": {
           "2022Q1": "https://www.ziraatkatilim.com.tr/sites/default/files/inline-files/31.03.2022%20Solo%20Ziraat%20Kat%C4%B1l%C4%B1m%20Denetim%20Raporu_1.pdf",
@@ -955,7 +971,8 @@
           "2025Q1": "https://www.ziraatkatilim.com.tr/sites/default/files/media-file/31.03.2025%20Solo%20Ziraat%20Katilim%20Denetim%20Raporu.pdf",
           "2025Q2": "https://www.ziraatkatilim.com.tr/sites/default/files/media-file/30.06.2025%20Solo%20Ziraat%20Katilim%20Denetim%20Raporu.pdf",
           "2025Q3": "https://www.ziraatkatilim.com.tr/sites/default/files/inline-files/30.09.2025%20Solo%20Ziraat%20Katilim%20Denetim%20Raporu.pdf",
-          "2025Q4": "https://www.ziraatkatilim.com.tr/sites/default/files/inline-files/31.12.2025%20Solo%20Ziraat%20Katilim%20Denetim%20Raporu.pdf"
+          "2025Q4": "https://www.ziraatkatilim.com.tr/sites/default/files/inline-files/31.12.2025%20Solo%20Ziraat%20Katilim%20Denetim%20Raporu.pdf",
+          "2026Q1": "https://www.ziraatkatilim.com.tr/sites/default/files/media-file/31.03.2026 Solo Ziraat Katilim Denetim Raporu.pdf"
         }
       }
     },
@@ -979,7 +996,8 @@
           "2025Q1": "https://asset.emlakkatilim.com.tr/documents/yatirimci-iliskileri/finansal-bilgiler/denetim-raporlari/2025/31-mart-2025-bagimsiz-denetim-raporu-konsolide.pdf",
           "2025Q2": "https://asset.emlakkatilim.com.tr/documents/yatirimci-iliskileri/finansal-bilgiler/denetim-raporlari/2025/30-haziran-2025-bagimsiz-denetim-raporu-konsolide.pdf",
           "2025Q3": "https://asset.emlakkatilim.com.tr/documents/yatirimci-iliskileri/finansal-bilgiler/denetim-raporlari/2025/30-eylul-2025-konsolide-turkiye-emlak-katilim-bankasi.pdf",
-          "2025Q4": "https://asset.emlakkatilim.com.tr/documents/yatirimci-iliskileri/finansal-bilgiler/denetim-raporlari/2025/31%20Aral%C4%B1k%202025%20Ba%C4%9F%C4%B1ms%C4%B1z%20Denetim%20Raporu%20-%20%20Konsolide_5b34b8f1-2f09-4777-ae34-e63e50608250.pdf"
+          "2025Q4": "https://asset.emlakkatilim.com.tr/documents/yatirimci-iliskileri/finansal-bilgiler/denetim-raporlari/2025/31%20Aral%C4%B1k%202025%20Ba%C4%9F%C4%B1ms%C4%B1z%20Denetim%20Raporu%20-%20%20Konsolide_5b34b8f1-2f09-4777-ae34-e63e50608250.pdf",
+          "2026Q1": "https://asset.emlakkatilim.com.tr/documents/yatirimci-iliskileri/finansal-bilgiler/denetim-raporlari/konsolide_turkiye-emlak-katilim-bankasi_31_03_2026_final_mzasiz.pdf"
         },
         "unconsolidated": {
           "2022Q1": "https://asset.emlakkatilim.com.tr/documents/yatirimci-iliskileri/finansal-bilgiler/denetim-raporlari/solo_turkiye_emlak_katilim_bankasi_31_03_2022_tr.pdf",
@@ -997,7 +1015,8 @@
           "2025Q1": "https://asset.emlakkatilim.com.tr/documents/yatirimci-iliskileri/finansal-bilgiler/denetim-raporlari/2025/31-mart-2025-bagimsiz-denetim-raporu-solo.pdf",
           "2025Q2": "https://asset.emlakkatilim.com.tr/documents/yatirimci-iliskileri/finansal-bilgiler/denetim-raporlari/2025/30-haziran-2025-solo-turkiye-emlak-katilim-bankasi.pdf",
           "2025Q3": "https://asset.emlakkatilim.com.tr/documents/yatirimci-iliskileri/finansal-bilgiler/denetim-raporlari/2025/30-eylul-2025-solo-turkiye-emlak-katilim-bankasi%285%29.pdf",
-          "2025Q4": "https://asset.emlakkatilim.com.tr/documents/yatirimci-iliskileri/finansal-bilgiler/denetim-raporlari/2025/31%20Aral%C4%B1k%202025%20Ba%C4%9F%C4%B1ms%C4%B1z%20Denetim%20Raporu%20-%20Solo_c1b4370f-cfe9-453e-b956-3bf9c4f8cd1c.pdf"
+          "2025Q4": "https://asset.emlakkatilim.com.tr/documents/yatirimci-iliskileri/finansal-bilgiler/denetim-raporlari/2025/31%20Aral%C4%B1k%202025%20Ba%C4%9F%C4%B1ms%C4%B1z%20Denetim%20Raporu%20-%20Solo_c1b4370f-cfe9-453e-b956-3bf9c4f8cd1c.pdf",
+          "2026Q1": "https://asset.emlakkatilim.com.tr/documents/yatirimci-iliskileri/finansal-bilgiler/denetim-raporlari/2026/31-mart-2026-bagimsiz-denetim-raporu-solo.pdf"
         }
       }
     },
@@ -1046,7 +1065,8 @@
           "2025Q1": "https://www.aktifbank.com.tr/uploads/20250521083925171.pdf",
           "2025Q2": "https://www.aktifbank.com.tr/uploads/20250819082347887.pdf",
           "2025Q3": "https://www.aktifbank.com.tr/uploads/2025112008332980.pdf",
-          "2025Q4": "https://www.aktifbank.com.tr/uploads/20260312104631551.pdf"
+          "2025Q4": "https://www.aktifbank.com.tr/uploads/20260312104631551.pdf",
+          "2026Q1": "https://www.aktifbank.com.tr/uploads/20260521111045987.pdf"
         },
         "unconsolidated": {
           "2022Q1": "https://www.aktifbank.com.tr/Documents/aktif-%20yatirim-%20bankasi-solo-%2031-03-2022.pdf",
@@ -1064,7 +1084,8 @@
           "2025Q1": "https://www.aktifbank.com.tr/uploads/20250514091212973.pdf",
           "2025Q2": "https://www.aktifbank.com.tr/uploads/20250809191240668.pdf",
           "2025Q3": "https://www.aktifbank.com.tr/uploads/20251113093215813.pdf",
-          "2025Q4": "https://www.aktifbank.com.tr/uploads/20260302092534360.pdf"
+          "2025Q4": "https://www.aktifbank.com.tr/uploads/20260302092534360.pdf",
+          "2026Q1": "https://www.aktifbank.com.tr/uploads/20260513092025522.pdf"
         }
       }
     },
@@ -1114,7 +1135,8 @@
           "2025Q1": "https://www.hsbc.com.tr/medium/document-file-7263.vsf",
           "2025Q2": "https://www.hsbc.com.tr/medium/document-file-7478.vsf",
           "2025Q3": "https://www.hsbc.com.tr/medium/document-file-7721.vsf",
-          "2025Q4": "https://www.hsbc.com.tr/medium/document-file-7988.vsf"
+          "2025Q4": "https://www.hsbc.com.tr/medium/document-file-7988.vsf",
+          "2026Q1": "https://www.hsbc.com.tr/medium/document-file-8135.vsf"
         },
         "unconsolidated": {
           "2022Q1": "https://www.hsbc.com.tr/medium/document-file-4503.vsf",
@@ -1132,7 +1154,8 @@
           "2025Q1": "https://www.hsbc.com.tr/medium/document-file-7261.vsf",
           "2025Q2": "https://www.hsbc.com.tr/medium/document-file-7441.vsf",
           "2025Q3": "https://www.hsbc.com.tr/medium/document-file-7720.vsf",
-          "2025Q4": "https://www.hsbc.com.tr/medium/document-file-7987.vsf"
+          "2025Q4": "https://www.hsbc.com.tr/medium/document-file-7987.vsf",
+          "2026Q1": "https://www.hsbc.com.tr/medium/document-file-8134.vsf"
         }
       }
     },
@@ -1156,7 +1179,8 @@
           "2025Q1": "https://www.anadolubank.com.tr/images/uploads/files/Anadolubank-AS-31032025-Konsolide-Rapor.pdf",
           "2025Q2": "https://www.anadolubank.com.tr/images/uploads/files/Anadolubank-Konsolide-30062025.pdf",
           "2025Q3": "https://www.anadolubank.com.tr/images/uploads/files/Anadolubank-Konsolide-30092025.pdf",
-          "2025Q4": "https://www.anadolubank.com.tr/images/uploads/files/Anadolubank-Konsolide-31122025.pdf"
+          "2025Q4": "https://www.anadolubank.com.tr/images/uploads/files/Anadolubank-Konsolide-31122025.pdf",
+          "2026Q1": "https://www.anadolubank.com.tr/images/uploads/files/Anadolubank-Konsolide-31032026.pdf"
         },
         "unconsolidated": {
           "2022Q1": "https://www.anadolubank.com.tr/images/uploads/files/Anadolubank_Solo_31.03.2022_Raporu.pdf",
@@ -1174,7 +1198,8 @@
           "2025Q1": "https://www.anadolubank.com.tr/images/uploads/files/Anadolubank-AS-31.03.2025-Solo-Rapor.pdf",
           "2025Q2": "https://www.anadolubank.com.tr/images/uploads/files/Anadolubank-AS-30062025-Solo-Rapor.pdf",
           "2025Q3": "https://www.anadolubank.com.tr/images/uploads/files/Anadolubank-AS-30092025-Solo-Rapor.pdf",
-          "2025Q4": "https://www.anadolubank.com.tr/images/uploads/files/Anadolubank-AS-31122025-Solo-Rapor.pdf"
+          "2025Q4": "https://www.anadolubank.com.tr/images/uploads/files/Anadolubank-AS-31122025-Solo-Rapor.pdf",
+          "2026Q1": "https://www.anadolubank.com.tr/images/uploads/files/Anadolubank-AS-31032026-Solo-Rapor.pdf"
         }
       }
     },
