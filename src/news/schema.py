@@ -45,6 +45,20 @@ CREATE TABLE IF NOT EXISTS regulation_briefings (
     raw_response    TEXT,
     fetched_at      TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Authoritative annual baseline: TCMB's "Monetary Policy for YYYY" document
+-- (annex tables = the regulatory regime in force at the start of the year).
+-- The briefing summarizer grounds on the latest row, then layers the raw
+-- feed on top. Python-only (the web never reads it), so it is not synced to
+-- D1 — it travels in the R2 SQLite snapshot.
+CREATE TABLE IF NOT EXISTS regulation_baseline (
+    year          INTEGER NOT NULL PRIMARY KEY,  -- policy year the doc covers
+    title         TEXT NOT NULL,
+    source_url    TEXT,                           -- where it was fetched from
+    content       TEXT NOT NULL,                  -- extracted text (annex tables + body)
+    content_hash  TEXT NOT NULL,                  -- sha256 of content; skip re-ingest if unchanged
+    fetched_at    TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 """
 
 

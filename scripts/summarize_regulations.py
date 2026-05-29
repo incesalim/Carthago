@@ -31,7 +31,7 @@ from src.news.schema import init_schema  # noqa: E402
 
 DB_PATH = REPO_ROOT / "data" / "bddk_data.db"
 
-PROMPT_VERSION = "2026-05-29.v6"
+PROMPT_VERSION = "2026-05-29.v7"
 
 # Fixed 6-category schema, named to match BBVA Research's Turkish Banking
 # Sector report so readers familiar with their format land smoothly.
@@ -51,6 +51,25 @@ the exact format of BBVA Research's Monthly Turkish Banking Sector Report
 (the "Monetary stance ... macro-prudential measures" page). The output is
 a cumulative snapshot of macroprudential rules currently in force, not a
 "what changed this week" diff.
+
+==================== INPUT: BASELINE + UPDATES ====================
+
+You are given, in order:
+  1. A BASELINE document — TCMB's official annual "Monetary Policy for YYYY"
+     text. Its annex tables list EVERY rule in force at the start of the
+     policy year (policy-rate path, macroprudential simplification, deposits,
+     liquidity management, loans, credit cards, credit programs). Treat this
+     as the AUTHORITATIVE scaffold.
+  2. DATED PRESS RELEASES — the raw TCMB/BDDK feed for the period since.
+
+Build the snapshot by starting from the BASELINE for every category, then
+applying the dated press releases as UPDATES (a later date overrides an
+earlier value for the same rule). The baseline guarantees completeness —
+seed every category from it, including Credit Cards and CARs — and the press
+releases bring each rule to its CURRENT value. Never drop a baseline rule
+just because no press release re-mentions it; carry it forward.
+
+If the BASELINE is absent, compose from the press releases alone.
 
 ==================== GOAL: COMPLETENESS ====================
 
@@ -225,15 +244,33 @@ def fetch_input(conn: sqlite3.Connection, window_days: int, body_cap: int) -> li
     return items
 
 
-def build_messages(items: list[dict]) -> list[dict]:
-    user = (
-        f"Items ({len(items)}):\n"
-        f"{json.dumps(items, ensure_ascii=False)}\n\n"
-        f"Generate the briefing JSON now."
+def fetch_baseline(conn: sqlite3.Connection) -> dict | None:
+    """Latest annual policy baseline (the grounding scaffold), or None."""
+    row = conn.execute(
+        "SELECT year, title, content FROM regulation_baseline ORDER BY year DESC LIMIT 1"
+    ).fetchone()
+    if not row:
+        return None
+    return {"year": row[0], "title": row[1], "content": row[2]}
+
+
+def build_messages(items: list[dict], baseline: dict | None) -> list[dict]:
+    parts: list[str] = []
+    if baseline:
+        parts.append(
+            f"==================== BASELINE ====================\n"
+            f"{baseline['title']} — authoritative current-status of all rules "
+            f"in force at the start of the policy year. Use as the scaffold.\n\n"
+            f"{baseline['content']}"
+        )
+    parts.append(
+        "==================== DATED PRESS RELEASES (updates) ====================\n"
+        f"Items ({len(items)}):\n{json.dumps(items, ensure_ascii=False)}"
     )
+    parts.append("Generate the briefing JSON now.")
     return [
         {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": user},
+        {"role": "user", "content": "\n\n".join(parts)},
     ]
 
 
@@ -324,16 +361,23 @@ def main():
 
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(str(DB_PATH)) as conn:
-        # init_schema covers both news_items and regulation_briefings.
+        # init_schema covers news_items, regulation_briefings, regulation_baseline.
         init_schema(conn)
         items = fetch_input(conn, args.window_days, args.body_cap)
+        baseline = fetch_baseline(conn)
 
     print(f"[briefing] {len(items)} TCMB+BDDK items with body in last {args.window_days}d", flush=True)
+    if baseline:
+        print(f"[briefing] grounding on baseline: {baseline['title']} "
+              f"({len(baseline['content'])} chars)", flush=True)
+    else:
+        print("[briefing] no baseline found — composing from feed alone "
+              "(run scripts/ingest_policy_baseline.py to add one)", flush=True)
     if not items:
         print("[briefing] nothing to summarize; exiting.")
         return
 
-    messages = build_messages(items)
+    messages = build_messages(items, baseline)
     approx_input_chars = sum(len(m["content"]) for m in messages)
     print(f"[briefing] prompt approx {approx_input_chars:,} chars "
           f"(~{approx_input_chars // 3:,} tokens)", flush=True)

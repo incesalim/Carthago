@@ -95,8 +95,8 @@ export async function newsByTicker(
  *  AI-generated briefing can render its cited source links inline. */
 export async function newsLookupBySourceIds(
   pairs: { source: string; external_id: string }[],
-): Promise<Map<string, { title: string; url: string }>> {
-  const out = new Map<string, { title: string; url: string }>();
+): Promise<Map<string, { title: string; url: string; published_at: string }>> {
+  const out = new Map<string, { title: string; url: string; published_at: string }>();
   if (pairs.length === 0) return out;
   const db = await getDB();
   // Build a (source,external_id) IN-list. D1 supports tuples via OR.
@@ -105,13 +105,13 @@ export async function newsLookupBySourceIds(
   for (const { source, external_id } of pairs) flat.push(source, external_id);
   const { results } = await db
     .prepare(
-      `SELECT source, external_id, title, url FROM news_items
+      `SELECT source, external_id, title, url, published_at FROM news_items
        WHERE ${conditions}`,
     )
     .bind(...flat)
-    .all<{ source: string; external_id: string; title: string; url: string }>();
+    .all<{ source: string; external_id: string; title: string; url: string; published_at: string }>();
   for (const r of results) {
-    out.set(`${r.source}:${r.external_id}`, { title: r.title, url: r.url });
+    out.set(`${r.source}:${r.external_id}`, { title: r.title, url: r.url, published_at: r.published_at });
   }
   return out;
 }

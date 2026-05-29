@@ -32,7 +32,7 @@ function BriefingWidget({
   sourceLookup,
 }: {
   briefing: Briefing;
-  sourceLookup: Map<string, { title: string; url: string }>;
+  sourceLookup: Map<string, { title: string; url: string; published_at: string }>;
 }) {
   return (
     <section className="space-y-3">
@@ -64,6 +64,9 @@ function BriefingWidget({
                     <span className="ml-1 text-[10px] text-neutral-400">
                       {b.source_ids.map((id, idx) => {
                         const item = sourceLookup.get(id);
+                        // Show the regulation's publication (effective) date,
+                        // not the opaque source id; fall back to the id.
+                        const label = item?.published_at ? fmtDate(item.published_at) : id;
                         return (
                           <span key={id}>
                             {idx > 0 && ", "}
@@ -72,10 +75,10 @@ function BriefingWidget({
                                 href={item.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="hover:text-neutral-700 underline-offset-2 hover:underline"
-                                title={item.title}
+                                className="hover:text-neutral-700 underline-offset-2 hover:underline tabular-nums"
+                                title={`${item.title} (${id})`}
                               >
-                                {id}
+                                {label}
                               </a>
                             ) : (
                               <span>{id}</span>
