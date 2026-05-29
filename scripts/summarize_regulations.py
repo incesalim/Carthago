@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sqlite3
 import sys
 import time
@@ -30,7 +31,7 @@ from src.news.schema import init_schema  # noqa: E402
 
 DB_PATH = REPO_ROOT / "data" / "bddk_data.db"
 
-PROMPT_VERSION = "2026-05-29.v5"
+PROMPT_VERSION = "2026-05-29.v6"
 
 # Fixed 6-category schema, named to match BBVA Research's Turkish Banking
 # Sector report so readers familiar with their format land smoothly.
@@ -184,12 +185,21 @@ Rules of thumb:
   6. Group related sub-rules into one bullet rather than fragmenting.
 
 RULES:
-  1. Use EXACTLY the six category names listed above, in that order.
-     Omit any category with zero qualifying bullets.
-  2. Each bullet describes ONE rule (or one coherent rule cluster).
-  3. If the input window contains zero qualifying regulatory rules,
+  1. Use EXACTLY the seven category names listed above, in that order.
+     OMIT any category that has no qualifying rule in the input.
+  2. NEVER output a bullet that says nothing was found (e.g. "No specific
+     regulations regarding ... were mentioned", "Not mentioned in the
+     provided documents"). If a category has no rule, drop the whole
+     category — do not include an empty/placeholder bullet.
+  3. Each bullet describes ONE rule (or one tightly-coupled rule cluster,
+     BBVA-style). When a category contains several DISTINCT rules, give each
+     its own bullet rather than compressing them — e.g. for TL Deposit Share,
+     the growth-target tiers, the calculation period, and the remuneration of
+     required reserves are separate bullets; for RRs, each deposit type /
+     maturity band is its own bullet.
+  4. If the input window contains zero qualifying regulatory rules,
      return: {"categories": []}
-  4. Output VALID JSON only. No markdown fences."""
+  5. Output VALID JSON only. No markdown fences."""
 
 
 def fetch_input(conn: sqlite3.Connection, window_days: int, body_cap: int) -> list[dict]:
@@ -227,6 +237,16 @@ def build_messages(items: list[dict]) -> list[dict]:
     ]
 
 
+# Matches "no rule found" placeholder bullets the model occasionally emits
+# instead of omitting an empty category.
+_PLACEHOLDER_RE = re.compile(
+    r"no specific|not mentioned|mentioned in the provided|"
+    r"no (?:relevant|such|applicable) |none (?:were|was|found)|"
+    r"no regulations? (?:regarding|on|were|was)",
+    re.IGNORECASE,
+)
+
+
 def validate_response(data) -> dict:
     """Sanity-check the Kimi response shape; raise on garbage."""
     if not isinstance(data, dict) or "categories" not in data:
@@ -244,11 +264,17 @@ def validate_response(data) -> dict:
             continue
         good_bullets = []
         for b in bullets:
-            if isinstance(b, dict) and b.get("text"):
-                good_bullets.append({
-                    "text": str(b["text"]).strip(),
-                    "source_ids": [str(s) for s in (b.get("source_ids") or [])],
-                })
+            if not (isinstance(b, dict) and b.get("text")):
+                continue
+            text = str(b["text"]).strip()
+            # Drop "nothing found" placeholder bullets the model sometimes
+            # emits instead of omitting an empty category.
+            if _PLACEHOLDER_RE.search(text):
+                continue
+            good_bullets.append({
+                "text": text,
+                "source_ids": [str(s) for s in (b.get("source_ids") or [])],
+            })
         if good_bullets:
             cleaned.append({"name": name, "bullets": good_bullets})
     # Empty result is legitimate when no rule changes occurred in the window —
