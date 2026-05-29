@@ -246,8 +246,35 @@ CREATE INDEX IF NOT EXISTS idx_bank_stages_bank_period
 """
 
 
+# Column-level migrations for tables that already exist in older snapshots.
+# `CREATE TABLE IF NOT EXISTS` won't add a column to a pre-existing table, so
+# every column added to an existing table needs an explicit ALTER entry here.
+# Append new tuples as columns are introduced — they're applied idempotently
+# (guarded by PRAGMA table_info), so re-running is always safe.
+#
+# Format: (table, column_name, column_declaration)
+_COLUMN_MIGRATIONS: list[tuple[str, str, str]] = [
+    # Added 2026-05-14 (commit 6b429d8) alongside the IFRS 9 credit-quality
+    # extractor. Without this, old snapshots in R2 crash inside
+    # src/audit_reports/loader.py:upsert_report.
+    ("bank_audit_extractions", "rows_credit_quality", "INTEGER"),
+]
+
+
+def _ensure_column(conn: sqlite3.Connection, table: str, col: str, decl: str) -> None:
+    """Idempotently add a column to an existing table."""
+    have = {r[1] for r in conn.execute(f"PRAGMA table_info({table})")}
+    # If the table doesn't exist at all, CREATE TABLE IF NOT EXISTS in DDL
+    # will have created it with the column already — nothing to do here.
+    if not have or col in have:
+        return
+    conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {decl}")
+
+
 def init_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(DDL)
+    for table, col, decl in _COLUMN_MIGRATIONS:
+        _ensure_column(conn, table, col, decl)
     conn.commit()
 
 
