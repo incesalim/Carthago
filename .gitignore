@@ -110,6 +110,11 @@ bddk_data.db.bak*
 # Agent / scratch work (not versioned)
 _scratch/
 
+# Claude Code local state — per-user, never committed
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+.claude/worktrees/
+
 # Next.js / Cloudflare / OpenNext local build artefacts (not versioned)
 .next/
 .wrangler/
