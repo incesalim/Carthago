@@ -72,7 +72,10 @@ def chat_completion(
                 time.sleep(wait)
                 continue
             r.raise_for_status()
-            return r.json()
+            # Decode as UTF-8 explicitly: Moonshot's response omits a charset,
+            # so requests' r.json() guesses (often latin-1) and mangles Turkish
+            # characters ("Türkiye" -> "TÃ¼rkiye"). Decode the raw bytes.
+            return json.loads(r.content.decode("utf-8"))
         except Exception as e:
             last_err = e
             time.sleep(2 ** attempt)
