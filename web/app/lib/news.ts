@@ -22,6 +22,7 @@ export interface NewsItem {
   summary: string | null;
   url: string;
   language: "tr" | "en";
+  body_text?: string | null;     // full extracted body — only selected by newsBySource
 }
 
 const SOURCE_LABELS: Record<NewsSource, string> = {
@@ -59,7 +60,7 @@ export async function newsBySource(
   const { results } = await db
     .prepare(
       `SELECT source, external_id, published_at, ticker, category,
-              title, summary, url, language
+              title, summary, url, language, body_text
        FROM news_items
        WHERE source = ?
        ORDER BY published_at DESC
