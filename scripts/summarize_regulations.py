@@ -30,12 +30,13 @@ from src.news.schema import init_schema  # noqa: E402
 
 DB_PATH = REPO_ROOT / "data" / "bddk_data.db"
 
-PROMPT_VERSION = "2026-05-29.v4"
+PROMPT_VERSION = "2026-05-29.v5"
 
 # Fixed 6-category schema, named to match BBVA Research's Turkish Banking
 # Sector report so readers familiar with their format land smoothly.
 # Order is enforced — Kimi outputs sections in this exact order.
 CATEGORIES = [
+    "Monetary Policy Stance",
     "Regulations for TL Deposit Share",
     "Loan Growth Caps",
     "Regulations on RRs",
@@ -100,6 +101,13 @@ OUTPUT FORMAT — single JSON object:
 
 ==================== CATEGORIES (use these EXACT names, in this order) ====================
 
+  "Monetary Policy Stance"
+       — the CURRENT policy rate (one-week repo auction rate), the interest-
+         rate corridor (overnight lending & borrowing rates), the latest MPC
+         decision and the easing/holding/tightening direction, plus core
+         funding & liquidity-management operations (repo auctions, swaps).
+         This is the headline "where rates stand now" section and should
+         lead the snapshot. The policy rate / corridor NEVER goes under CARs.
   "Regulations for TL Deposit Share"
        — calculation period, growth targets, tolerance ranges, commission
          rates, FX-rate basis for share calculations.
@@ -110,11 +118,14 @@ OUTPUT FORMAT — single JSON object:
        — Reserve Requirement Ratios across deposit types, FC deposits,
          repo/funds from abroad, indexed deposits, etc.
   "Regulations for CARs"
-       — Capital Adequacy Ratio: floors, RWA weights, forbearances on FX
-         rate fixing in CAR calculations, HTC&S securities treatment.
+       — Capital Adequacy Ratio ONLY (about BANK CAPITAL, not the policy
+         rate): capital floors, RWA risk weights, forbearances on FX-rate
+         fixing in CAR calculations, HTC&S securities treatment.
   "Regulations on Credit Cards"
-       — credit-card limits (overdraft, total), restructuring rules,
-         interest-rate caps by balance tier, fee limits.
+       — credit-card rules: maximum (contractual & overdue) interest rates,
+         minimum-payment ratios, cash-advance/installment limits, credit-card
+         limits and fee caps. If the input mentions credit-card maximum
+         interest rates, this category MUST be populated.
   "Other Regulatory Actions"
        — only for material rule changes that don't fit any above category
          (e.g. new operational frameworks, structurally novel licenses,
