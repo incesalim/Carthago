@@ -69,6 +69,10 @@ BATCH_SIZE_PER_TABLE = {
     "regulation_briefings": 1,  # categories_json + raw_response are large per row
 }
 
+# Stand-in for newline chars in generated SQL literals (see fetch_recent).
+# Must be a string that never occurs in real source text.
+_NL_SENTINEL = "__D1_NL__"
+
 
 def fetch_recent(conn: sqlite3.Connection, table: str, hours: int) -> list[str]:
     """Return SQL statements (INSERT OR REPLACE) for rows updated in last `hours`.
@@ -124,9 +128,20 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int) -> list[str]:
                 vals.append("NULL")
             elif isinstance(v, (int, float)):
                 vals.append(str(v))
+            elif "\n" in str(v) or "\r" in str(v):
+                # Don't embed raw newlines in the generated SQL: wrangler's
+                # --file parser collapses consecutive blank lines, so '\n\n'
+                # in a body (the blank line between a paragraph and a Markdown
+                # table) would reach D1 as a single '\n' and the UI could no
+                # longer tell blocks apart. Replace newlines with a sentinel
+                # (keeps the literal single-line, so nothing collapses) and
+                # rebuild them with ONE replace() call — char(10) concatenation
+                # would instead blow past SQLite's 100-deep expression limit.
+                s = str(v).replace("\r\n", "\n").replace("\r", "\n")
+                s = s.replace("'", "''").replace("\n", _NL_SENTINEL)
+                vals.append(f"replace('{s}', '{_NL_SENTINEL}', char(10))")
             else:
-                s = str(v).replace("'", "''")
-                vals.append(f"'{s}'")
+                vals.append("'" + str(v).replace("'", "''") + "'")
         batch.append("(" + ",".join(vals) + ")")
         if len(batch) >= batch_size:
             out.append(
