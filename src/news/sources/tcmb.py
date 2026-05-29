@@ -24,8 +24,7 @@ from datetime import datetime, timezone
 import requests
 
 from src.news.loader import NewsItem
-
-import html as html_lib
+from src.news._htmltext import extract_body
 
 BASE = "https://www.tcmb.gov.tr"
 LIST_PATH = "/wps/wcm/connect/EN/TCMB+EN/Main+Menu/Announcements/Press+Releases/{year}"
@@ -70,27 +69,18 @@ _FOOTER_MARKERS = (
 
 
 def fetch_body(url: str, timeout: int = 30) -> str | None:
-    """Fetch a TCMB ANO detail page and extract the press-release body."""
+    """Fetch a TCMB ANO detail page and extract the press-release body.
+
+    Captures <p> prose and any <table> blocks (rendered as Markdown) in
+    document order — TCMB macroprudential releases put the caps/ratios in a
+    table, so dropping tables would discard the substance of the release."""
     try:
         r = requests.get(url, headers=HEADERS, timeout=timeout)
     except requests.RequestException:
         return None
     if r.status_code != 200:
         return None
-    paragraphs: list[str] = []
-    for p_html in re.findall(r"<p[^>]*>(.*?)</p>", r.text, re.DOTALL | re.IGNORECASE):
-        text = re.sub(r"<[^>]+>", " ", p_html)
-        text = html_lib.unescape(text)
-        text = re.sub(r"\s+", " ", text).strip()
-        if len(text) < 30:
-            continue
-        if any(marker in text for marker in _FOOTER_MARKERS):
-            break
-        paragraphs.append(text)
-    body = "\n\n".join(paragraphs).strip()
-    if not body:
-        return None
-    return body[:BODY_MAX_CHARS]
+    return extract_body(r.text, _FOOTER_MARKERS, BODY_MAX_CHARS)
 
 
 def fetch(years: list[int] | None = None, years_back: int = 5) -> list[NewsItem]:
