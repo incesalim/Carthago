@@ -247,6 +247,21 @@ _PLACEHOLDER_RE = re.compile(
 )
 
 
+def _fix_mojibake(s: str) -> str:
+    """Repair UTF-8-as-Latin-1 mojibake (e.g. 'TÃ¼rkiye' -> 'Türkiye').
+
+    Source bodies are clean, but Kimi's response sometimes double-encodes
+    Turkish characters. Only attempt the latin-1->utf-8 round-trip when the
+    telltale sequences are present, and bail out if it doesn't cleanly decode
+    (so correct text is never damaged)."""
+    if any(m in s for m in ("Ã", "Å", "Ä", "Â")):
+        try:
+            return s.encode("latin-1").decode("utf-8")
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            return s
+    return s
+
+
 def validate_response(data) -> dict:
     """Sanity-check the Kimi response shape; raise on garbage."""
     if not isinstance(data, dict) or "categories" not in data:
@@ -266,7 +281,7 @@ def validate_response(data) -> dict:
         for b in bullets:
             if not (isinstance(b, dict) and b.get("text")):
                 continue
-            text = str(b["text"]).strip()
+            text = _fix_mojibake(str(b["text"]).strip())
             # Drop "nothing found" placeholder bullets the model sometimes
             # emits instead of omitting an empty category.
             if _PLACEHOLDER_RE.search(text):
