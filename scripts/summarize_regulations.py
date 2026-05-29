@@ -38,11 +38,12 @@ sys.path.insert(0, str(REPO_ROOT))
 sys.stdout.reconfigure(encoding="utf-8")
 
 from src.news import kimi  # noqa: E402
+from src.news._htmltext import fix_mojibake  # noqa: E402
 from src.news.schema import init_schema  # noqa: E402
 
 DB_PATH = REPO_ROOT / "data" / "bddk_data.db"
 
-PROMPT_VERSION = "2026-05-29.v10-percat"
+PROMPT_VERSION = "2026-05-29.v11-percat"
 
 # Fixed sections, in display order, named to match BBVA Research's Turkish
 # Banking Sector report. Each gets its own focused LLM call.
@@ -119,31 +120,23 @@ EXCLUDE (never bullets): market observations / MPC commentary ("loan growth was
 2.7%"), single-bank licensing, data-publication notices, internal HR notices.
 Never output a placeholder bullet that says nothing was found.
 
+DISCIPLINE — a short, correct section is the goal. It is BETTER to return 1-2
+bullets, or even an empty list, than to pad. NEVER:
+  - borrow a rule that belongs to a DIFFERENT section. Reserve-requirement /
+    KKM (FX-protected deposit) rules belong ONLY to "Regulations on RRs";
+    loan-growth limits ONLY to "Loan Growth Caps". Do not use them to fill
+    "{name}".
+  - include observed market data (growth rates, balances, averages — e.g.
+    "the average four-week growth rate was 2.7%"). Those are not rules.
+  - include narrative intent with no number ("will maintain a tight stance").
+If "{name}" genuinely has few or no qualifying rules, return few or none.
+
 OUTPUT: a single JSON object: {{"bullets": [{{"text": "...", "source_ids": ["..."]}}]}}
 If this section genuinely has no qualifying rule even in the baseline, return
 {{"bullets": []}}. Output VALID JSON only — no markdown fences."""
 
 
 # --- text hygiene ----------------------------------------------------------
-
-_MOJIBAKE_MAP = {
-    "Ã¼": "ü", "Ãœ": "Ü", "Ã§": "ç", "Ã‡": "Ç", "Ã¶": "ö", "Ã–": "Ö",
-    "ÄŸ": "ğ", "Äž": "Ğ", "Ä±": "ı", "Ä°": "İ", "ÅŸ": "ş", "Åž": "Ş",
-    "Ã¢": "â", "Ã‚": "Â", "â‚º": "₺", "â€™": "’", "â€œ": "“", "â€\x9d": "”",
-    "â€“": "–", "â€”": "—",
-}
-
-
-def _fix_mojibake(s: str) -> str:
-    """Repair UTF-8-as-Latin-1 mojibake (e.g. 'TÃ¼rkiye' -> 'Türkiye').
-
-    Kimi's response double-encodes Turkish characters. Replace the known
-    digraphs directly so mixed strings (with a real ₺/İ) are still repaired."""
-    if "Ã" in s or "Å" in s or "Ä" in s or "â€" in s:
-        for bad, good in _MOJIBAKE_MAP.items():
-            s = s.replace(bad, good)
-    return s
-
 
 _PLACEHOLDER_RE = re.compile(
     r"no specific|not mentioned|mentioned in the provided|"
@@ -162,7 +155,7 @@ def clean_bullets(raw) -> list[dict]:
     for b in raw:
         if not (isinstance(b, dict) and b.get("text")):
             continue
-        text = _fix_mojibake(str(b["text"]).strip())
+        text = fix_mojibake(str(b["text"]).strip())
         if not text or _PLACEHOLDER_RE.search(text):
             continue
         out.append({
