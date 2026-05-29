@@ -617,6 +617,21 @@ _NPL_HEADER_LINE = re.compile(
 # separators (filters out short administrative rows like "Sold (-)").
 _NPL_DATA_ROW_FILTER = re.compile(r"\d{1,3}[.,]\d{3}")
 
+# FC-only NPL sub-tables (e.g. ALBRK h.3, AKBNK iii) report only the FC-
+# denominated subset and are MUCH smaller than the total NPL classification.
+# When this sub-section comes before the total on the same page, the
+# Provision-anchored extractor would otherwise emit it as 'npl_brsa_gross'
+# and the later (correct) total gets dropped by the (section, period_type)
+# dedup. Detect the FC-only banner and skip the block.
+_NPL_FC_ONLY_HEADING = re.compile(
+    r"(?:in\s+foreign\s+currenc(?:y|ies)|"
+    r"foreign[-\s]?currency\s+(?:loans?|receivables?|non[-\s]?performing)|"
+    r"yabancı\s+para\s+olarak\s+kullandırılan|"
+    r"yabancı\s+paraya\s+endeksli|"
+    r"yp\s+olarak\s+kullandırılan)",
+    re.IGNORECASE,
+)
+
 
 def _extract_npl_brsa_via_template(
     page_num: int, page_text: str, template: dict,
@@ -760,10 +775,33 @@ def _extract_npl_brsa_from_page(page_num: int, page_text: str) -> list[StageRow]
         if _NPL_PROVISION_ROW.match(ln.strip())
     ]
 
+    def _is_fc_only_block(prov_idx: int) -> bool:
+        """Scan back from the provision row to the start of this III/IV/V
+        table block. If a 'foreign currencies' / 'yabancı para olarak' banner
+        appears anywhere in that window, the block is the FC-only sub-table,
+        not the total. The block_start is the line of the III/IV/V header
+        that introduced this provision row; we also scan a few lines above
+        the header itself because the section heading typically sits there."""
+        block_start = 0
+        for hi in header_idxs:
+            if hi < prov_idx:
+                block_start = hi
+            else:
+                break
+        scan_from = max(0, block_start - 6)
+        for j in range(scan_from, prov_idx):
+            if _NPL_FC_ONLY_HEADING.search(lines[j]):
+                return True
+        return False
+
     for i, ln in enumerate(lines):
         stripped = ln.strip()
         # Anchor: provision row.
         if not _NPL_PROVISION_ROW.match(stripped):
+            continue
+        # Reject FC-only sub-tables — they're 5-20% of total NPL and would
+        # silently displace the real total via dedup.
+        if _is_fc_only_block(i):
             continue
         current_period = _period_for_provision(i)
         nums = _NUM.findall(stripped)
