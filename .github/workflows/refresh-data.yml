@@ -70,6 +70,14 @@ jobs:
         # the week after a bank publishes.
         run: python scripts/sync_audit_reports.py --workers 16
 
+      - name: Rebuild bank_audit_stages from credit-quality
+        # bank_audit_stages is a DERIVED table (the dashboard reads it for the
+        # Stage 1/2/3 view). sync_audit_reports only writes bank_audit_credit_quality;
+        # this rebuilds the consolidated stage rows so push_to_d1 has fresh rows
+        # to send. Without this step a new quarter's credit-quality lands in D1
+        # but the stage view never updates.
+        run: python scripts/build_bank_audit_stages.py
+
       - name: Setup Node (for wrangler)
         uses: actions/setup-node@v4
         with:

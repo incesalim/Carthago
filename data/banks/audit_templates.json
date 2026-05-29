@@ -1,0 +1,445 @@
+{
+  "_doc": [
+    "Per-bank row-label registry for IFRS 9 footnote extraction.",
+    "",
+    "Source: built by walking the BRSA audit-report PDFs (2024Q4 + 2025Q3) and",
+    "cataloguing the exact row labels each bank uses in its III/IV/V NPL",
+    "classification table, BRSA 7.2 'Standart Nitelikli ve Yakın İzlemedeki'",
+    "loans-by-stage table, and Stage 1+2 ECL sub-table.",
+    "",
+    "Matching rules (see src/audit_reports/credit_quality.py):",
+    "  - All labels matched case-insensitively after normalising whitespace.",
+    "  - Each label is treated as a PREFIX — a line is a hit when its stripped",
+    "    text starts with the registered label.",
+    "  - 'aliases' supplies extra prefix forms accepted for that bank (handles",
+    "    case variations, suffix decorations like '(-)' or '(31.12.2024)',",
+    "    and pdfplumber's no-space rendering on a few PDFs).",
+    "",
+    "When a new bank publishes a report:",
+    "  1. Run scripts/catalog_audit_templates.py --ticker NEWBANK to see its",
+    "     actual row labels.",
+    "  2. Add an entry here matching the most common label per row-type.",
+    "  3. Re-extract: python scripts/backfill_credit_quality.py --ticker NEWBANK",
+    "",
+    "Banks falling back to generic regex (no entry below) trigger a WARNING",
+    "in the log so they can be added next."
+  ],
+  "AKBNK": {
+    "npl_movement": {
+      "gross_label": "Dönem Sonu Bakiyesi",
+      "provision_label": "Karşılık Tutarı",
+      "net_label": "Bilançodaki Net Bakiyesi"
+    },
+    "loans_by_stage": {"toplam_label": "Toplam"},
+    "ecl_brsa": {
+      "s1_label": "12 Aylık Beklenen Zarar Karşılığı",
+      "s2_label": "Kredi Riskinde Önemli Artış"
+    }
+  },
+  "AKTIF": {
+    "npl_movement": {
+      "gross_label": "Dönem Sonu Bakiyesi",
+      "provision_label": "Karşılık Tutarı",
+      "net_label": "Bilançodaki Net Bakiyesi",
+      "aliases": ["Dönem sonu bakiyesi", "Bilançodaki net bakiyesi", "Karşılık tutarı"]
+    },
+    "loans_by_stage": {"toplam_label": "Toplam"},
+    "ecl_brsa": {
+      "s1_label": "12 Aylık Beklenen Zarar Karşılığı",
+      "s2_label": "Kredi Riskinde Önemli Artış"
+    }
+  },
+  "ALBRK": {
+    "_lang": "en",
+    "npl_movement": {
+      "gross_label": "Period end balance",
+      "provision_label": "Provision",
+      "net_label": "Net balance",
+      "aliases": ["Closing balance of the current period", "Provisions", "Net balance at the balance sheet"]
+    },
+    "loans_by_stage": {"toplam_label": "Total"},
+    "ecl_brsa": {
+      "s1_label": "12 Month Expected Credit Losses",
+      "s2_label": "Significant Increase in Credit Risk"
+    }
+  },
+  "ALNTF": {
+    "npl_movement": {
+      "gross_label": "Dönem Sonu Bakiyesi",
+      "provision_label": "Karşılık Tutarı",
+      "net_label": "Bilançodaki Net Bakiyesi",
+      "aliases": ["Özel Karşılık"]
+    },
+    "loans_by_stage": {"toplam_label": "Toplam"},
+    "ecl_brsa": {
+      "s1_label": "12 Aylık Beklenen Zarar Karşılığı",
+      "s2_label": "Kredi Riskinde Önemli Artış"
+    }
+  },
+  "ANADOLU": {
+    "npl_movement": {
+      "gross_label": "Dönem Sonu Bakiyesi",
+      "provision_label": "Özel Karşılık",
+      "net_label": "Bilançodaki Net Bakiyesi",
+      "aliases": ["Karşılık Tutarı", "Özel Karşılık(-)(1)", "Dönem Sonu Bakiyesi(1)"]
+    },
+    "loans_by_stage": {"toplam_label": "Toplam"},
+    "ecl_brsa": {
+      "s1_label": "12 Aylık Beklenen Zarar Karşılığı",
+      "s2_label": "Kredi Riskinde Önemli Artış"
+    }
+  },
+  "ATBANK": {
+    "npl_movement": {
+      "gross_label": "Dönem Sonu Bakiyesi",
+      "provision_label": "Özel Karşılık",
+      "net_label": "Bilançodaki Net Bakiyesi",
+      "aliases": ["Karşılık Tutarı"]
+    },
+    "loans_by_stage": {"toplam_label": "Toplam"},
+    "ecl_brsa": {
+      "s1_label": "12 Aylık Beklenen Zarar Karşılığı",
+      "s2_label": "Kredi Riskinde Önemli Artış"
+    }
+  },
+  "BURGAN": {
+    "_lang": "en",
+    "npl_movement": {
+      "gross_label": "Balance at the End of the Period",
+      "provision_label": "Specific Provision",
+      "net_label": "Net Balance on Balance Sheet",
+      "aliases": ["Provision", "Provisions"]
+    },
+    "loans_by_stage": {"toplam_label": "Total"},
+    "ecl_brsa": {
+      "s1_label": "12 Month Expected Credit Loss",
+      "s2_label": "Significant Increase in Credit Risk"
+    }
+  },
+  "DENIZ": {
+    "npl_movement": {
+      "gross_label": "Dönem Sonu Bakiyesi",
+      "provision_label": "Karşılık Tutarı",
+      "net_label": "Bilançodaki Net Bakiyesi",
+      "aliases": ["Karşılık Tutarı(-)"]
+    },
+    "loans_by_stage": {"toplam_label": "Toplam"},
+    "ecl_brsa": {
+      "s1_label": "12 Aylık Beklenen Zarar Karşılığı",
+      "s2_label": "Kredi Riskinde Önemli Artış"
+    }
+  },
+  "EMLAK": {
+    "npl_movement": {
+      "gross_label": "Dönem Sonu Bakiyesi",
+      "provision_label": "Karşılık Tutarı",
+      "net_label": "Bilançodaki Net Bakiyesi",
+      "aliases": ["Dönem sonu bakiyesi", "Bilançodaki net bakiyesi"]
+    },
+    "loans_by_stage": {"toplam_label": "Toplam"},
+    "ecl_brsa": {
+      "s1_label": "12 Aylık Beklenen Zarar Karşılığı",
+      "s2_label": "Kredi Riskinde Önemli Artış"
+    }
+  },
+  "EXIM": {
+    "_lang": "en",
+    "_note": "Provision row has no '(-)' suffix; values wrapped in accounting parens.",
+    "npl_movement": {
+      "gross_label": "Balance at the End of the Period",
+      "provision_label": "Provisions",
+      "net_label": "Net Balance Sheet Amount",
+      "aliases": ["Specific Provision Amount"]
+    },
+    "loans_by_stage": {"toplam_label": "Total"},
+    "ecl_brsa": {
+      "s1_label": "12 month expected credit loss",
+      "s2_label": "Significant increase in credit risk"
+    }
+  },
+  "FIBA": {
+    "npl_movement": {
+      "gross_label": "Dönem Sonu Bakiyesi",
+      "provision_label": "Karşılık Tutarı",
+      "net_label": "Bilançodaki Net Bakiyesi"
+    },
+    "loans_by_stage": {"toplam_label": "Toplam"},
+    "ecl_brsa": {
+      "s1_label": "12 Aylık Beklenen Zarar Karşılığı",
+      "s2_label": "Kredi Riskinde Önemli Artış"
+    }
+  },
+  "GARAN": {
+    "_lang": "en",
+    "npl_movement": {
+      "gross_label": "Balances at End of Period",
+      "provision_label": "Provision",
+      "net_label": "Net Balance on Balance Sheet",
+      "aliases": ["Balance at End of Period", "Provisions", "Net Balance at Balance Sheet"]
+    },
+    "loans_by_stage": {"toplam_label": "Total"},
+    "ecl_brsa": {
+      "s1_label": "12 Month Expected Credit Loss",
+      "s2_label": "Significant Increase in Credit Risk"
+    }
+  },
+  "HALKB": {
+    "_lang": "en",
+    "npl_movement": {
+      "gross_label": "Current period end balance",
+      "provision_label": "Provisions",
+      "net_label": "Net balance on balance sheet",
+      "aliases": ["Balance at the end of the period", "Provision", "Net balance in the balance sheet"]
+    },
+    "loans_by_stage": {"toplam_label": "Total"},
+    "ecl_brsa": {
+      "s1_label": "12 Months Expected Loss Provision",
+      "s2_label": "Significant Increase in Credit Risk",
+      "aliases_s1": ["12 Month Expected Credit Losses", "12 Month Expected Credit Loss"]
+    }
+  },
+  "HSBC": {
+    "npl_movement": {
+      "gross_label": "Dönem Sonu Bakiyesi",
+      "provision_label": "Karşılık Tutarı",
+      "net_label": "Bilançodaki Net Bakiyesi"
+    },
+    "loans_by_stage": {"toplam_label": "Toplam"},
+    "ecl_brsa": {
+      "s1_label": "12 Aylık Beklenen Zarar Karşılığı",
+      "s2_label": "Kredi Riskinde Önemli Artış"
+    }
+  },
+  "ICBCT": {
+    "npl_movement": {
+      "gross_label": "Dönem Sonu Bakiyesi",
+      "provision_label": "Karşılık Tutarı",
+      "net_label": "Bilançodaki Net Bakiyesi"
+    },
+    "loans_by_stage": {"toplam_label": "Toplam"},
+    "ecl_brsa": {
+      "s1_label": "12 Aylık Beklenen Zarar Karşılığı",
+      "s2_label": "Kredi Riskinde Önemli Artış"
+    }
+  },
+  "ING": {
+    "npl_movement": {
+      "gross_label": "Dönem sonu bakiyesi",
+      "provision_label": "Karşılık tutarı",
+      "net_label": "Bilançodaki net bakiyesi",
+      "aliases": ["Karşılık"]
+    },
+    "loans_by_stage": {"toplam_label": "Toplam"},
+    "ecl_brsa": {
+      "s1_label": "12 aylık beklenen zarar karşılığı",
+      "s2_label": "Kredi riskinde önemli artış"
+    }
+  },
+  "ISCTR": {
+    "_lang": "en",
+    "npl_movement": {
+      "gross_label": "Balance at the End of the Period",
+      "provision_label": "Provisions",
+      "net_label": "Net Balance on Balance Sheet",
+      "aliases": ["Specific Provisions"]
+    },
+    "loans_by_stage": {"toplam_label": "Total"},
+    "ecl_brsa": {
+      "s1_label": "12 Month Expected Credit Losses",
+      "s2_label": "Significant Increase in Credit Risk"
+    }
+  },
+  "KLNMA": {
+    "npl_movement": {
+      "gross_label": "Dönem Sonu Bakiyesi",
+      "provision_label": "Karşılık Tutarı",
+      "net_label": "Bilançodaki Net Bakiyesi",
+      "_note": "Sometimes adds inline date suffix: 'Dönem Sonu Bakiyesi(31.12.2024)' — prefix match handles it."
+    },
+    "loans_by_stage": {"toplam_label": "Toplam"},
+    "ecl_brsa": {
+      "s1_label": "12 Aylık Beklenen Zarar Karşılığı",
+      "s2_label": "Kredi Riskinde Önemli Artış"
+    }
+  },
+  "KUVEYT": {
+    "npl_movement": {
+      "gross_label": "Dönem Sonu Bakiyesi",
+      "provision_label": "Karşılık Tutarı",
+      "net_label": "Bilançodaki Net Bakiyesi",
+      "aliases": ["Dönem sonu bakiyesi", "Bilançodaki net bakiyesi", "Karşılık tutarı", "Karşılık Tutarı(-)"]
+    },
+    "loans_by_stage": {"toplam_label": "Toplam"},
+    "ecl_brsa": {
+      "s1_label": "12 Aylık Beklenen Zarar Karşılığı",
+      "s2_label": "Kredi Riskinde Önemli Artış"
+    }
+  },
+  "ODEA": {
+    "npl_movement": {
+      "gross_label": "Dönem Sonu Bakiyesi",
+      "provision_label": "Karşılık Tutarı",
+      "net_label": "Bilançodaki Net Bakiyesi",
+      "aliases": ["Özel Karşılık"]
+    },
+    "loans_by_stage": {"toplam_label": "Toplam"},
+    "ecl_brsa": {
+      "s1_label": "12 Aylık Beklenen Zarar Karşılığı",
+      "s2_label": "Kredi Riskinde Önemli Artış"
+    }
+  },
+  "PASHA": {
+    "npl_movement": {
+      "gross_label": "Dönem Sonu Bakiyesi",
+      "provision_label": "Karşılık Tutarı",
+      "net_label": "Bilançodaki Net Bakiyesi"
+    },
+    "loans_by_stage": {"toplam_label": "Toplam"},
+    "ecl_brsa": {
+      "s1_label": "12 Aylık Beklenen Zarar Karşılığı",
+      "s2_label": "Kredi Riskinde Önemli Artış"
+    }
+  },
+  "QNBFB": {
+    "_lang": "en",
+    "npl_movement": {
+      "gross_label": "Current Period End Balance",
+      "provision_label": "Provision",
+      "net_label": "Net Balances on Balance Sheet",
+      "aliases": ["Specific provision", "Specific Provision"]
+    },
+    "loans_by_stage": {"toplam_label": "Total"},
+    "ecl_brsa": {
+      "s1_label": "12 Month Expected Credit Losses",
+      "s2_label": "Significant Increase in Credit Risk",
+      "aliases_s1": ["Provision for 12 Month Expected Credit Losses"]
+    }
+  },
+  "SKBNK": {
+    "_lang": "en",
+    "npl_movement": {
+      "gross_label": "Current period end balance",
+      "provision_label": "Provision",
+      "net_label": "Net Balances on Balance Sheet",
+      "aliases": ["Ending balance", "Provisions"]
+    },
+    "loans_by_stage": {"toplam_label": "Total"},
+    "ecl_brsa": {
+      "s1_label": "12 Months Expected Loss Provision",
+      "s2_label": "Significant Increase in Credit Risk",
+      "aliases_s1": ["12 Months Expected Loss"]
+    }
+  },
+  "TEB": {
+    "npl_movement": {
+      "gross_label": "Dönem Sonu Bakiyesi",
+      "provision_label": "Karşılık Tutarı",
+      "net_label": "Bilançodaki Net Bakiyesi"
+    },
+    "loans_by_stage": {"toplam_label": "Toplam"},
+    "ecl_brsa": {
+      "s1_label": "12 Aylık Beklenen Zarar Karşılığı",
+      "s2_label": "Kredi Riskinde Önemli Artış"
+    }
+  },
+  "TFKB": {
+    "_note": "Catalog returned only 5 npl_brsa contexts — main NPL movement table may use different labels in 2024Q4. Verify on 2025Q3 data.",
+    "npl_movement": {
+      "gross_label": "Dönem Sonu Bakiyesi",
+      "provision_label": "Özel Karşılık",
+      "net_label": "Bilançodaki Net Bakiyesi",
+      "aliases": ["Karşılık Tutarı"]
+    },
+    "loans_by_stage": {"toplam_label": "Toplam"},
+    "ecl_brsa": {
+      "s1_label": "12 Aylık Beklenen Zarar Karşılığı",
+      "s2_label": "Kredi Riskinde Önemli Artış"
+    }
+  },
+  "TSKB": {
+    "_lang": "en",
+    "_note": "pdfplumber renders this bank's PDFs WITHOUT spaces between adjacent words. Aliases capture the concatenated forms.",
+    "npl_movement": {
+      "gross_label": "Period End Balance",
+      "provision_label": "Provision",
+      "net_label": "Net Balance on Balance Sheet",
+      "aliases": [
+        "PeriodEndBalance", "CurrentPeriodEndBalance", "Currentperiodendbalance",
+        "Provision(-)", "Provisions(-)",
+        "NetBalanceonBalanceSheet", "NetBalancesonBalanceSheet"
+      ]
+    },
+    "loans_by_stage": {"toplam_label": "Total"},
+    "ecl_brsa": {
+      "s1_label": "12 Month Expected Credit Losses",
+      "s2_label": "Significant Increase in Credit Risk"
+    }
+  },
+  "VAKBN": {
+    "npl_movement": {
+      "gross_label": "Dönem Sonu Bakiyesi",
+      "provision_label": "Karşılık Tutarı",
+      "net_label": "Bilançodaki Net Bakiyesi"
+    },
+    "loans_by_stage": {"toplam_label": "Toplam"},
+    "ecl_brsa": {
+      "s1_label": "12 aylık Beklenen Zarar Karşılığı",
+      "s2_label": "Kredi Riskinde Önemli Artış",
+      "aliases_s1": ["12 Aylık Beklenen Zarar Karşılığı"]
+    }
+  },
+  "VAKIFK": {
+    "npl_movement": {
+      "gross_label": "Dönem Sonu Bakiyesi",
+      "provision_label": "Karşılık Tutarı",
+      "net_label": "Bilançodaki Net Bakiyesi",
+      "aliases": ["Karşılık", "Bilançodaki net bakiyesi"]
+    },
+    "loans_by_stage": {"toplam_label": "Toplam"},
+    "ecl_brsa": {
+      "s1_label": "12 Aylık Beklenen Zarar Karşılığı",
+      "s2_label": "Kredi Riskinde Önemli Artış",
+      "aliases_s2": ["Kredi Riskinde Önemli artış"]
+    }
+  },
+  "YKBNK": {
+    "_lang": "en",
+    "npl_movement": {
+      "gross_label": "Period end balance",
+      "provision_label": "Provision",
+      "net_label": "Net balance on-balance sheet",
+      "aliases": ["Net balance on balance sheet"]
+    },
+    "loans_by_stage": {"toplam_label": "Total"},
+    "ecl_brsa": {
+      "s1_label": "12 Month Expected Credit Losses",
+      "s2_label": "Significant Increase in Credit Risk"
+    }
+  },
+  "ZIRAAT": {
+    "npl_movement": {
+      "gross_label": "Dönem Sonu Bakiyesi",
+      "provision_label": "Karşılık Tutarı",
+      "net_label": "Bilançodaki Net Bakiyesi"
+    },
+    "loans_by_stage": {"toplam_label": "Toplam"},
+    "ecl_brsa": {
+      "s1_label": "12 Aylık Beklenen Zarar Karşılığı",
+      "s2_label": "Kredi Riskinde Önemli Artış"
+    }
+  },
+  "ZIRAATK": {
+    "_note": "2024Q4 uses 'Karşılık Tutarı' as the primary provision label (16x in catalog) but the FX sub-table uses 'Beklenen Zarar Karşılığı (3. Aşama) (-)'. Main movement table = Karşılık Tutarı.",
+    "npl_movement": {
+      "gross_label": "Dönem Sonu Bakiyesi",
+      "provision_label": "Karşılık Tutarı",
+      "net_label": "Bilançodaki Net Bakiyesi",
+      "aliases": ["Beklenen Zarar Karşılığı (3. Aşama)"]
+    },
+    "loans_by_stage": {"toplam_label": "Toplam"},
+    "ecl_brsa": {
+      "s1_label": "12 Aylık Beklenen Zarar Karşılığı",
+      "s2_label": "Kredi Riskinde Önemli Artış"
+    }
+  }
+}
