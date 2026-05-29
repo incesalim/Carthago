@@ -80,7 +80,9 @@ def fetch_body(url: str, timeout: int = 30) -> str | None:
         return None
     if r.status_code != 200:
         return None
-    return extract_body(r.text, _FOOTER_MARKERS, BODY_MAX_CHARS)
+    # include_lists: TCMB sometimes puts rate changes in a <ul> rather than a
+    # table. TCMB doesn't server-render nav menus as <ul>, so this is safe.
+    return extract_body(r.text, _FOOTER_MARKERS, BODY_MAX_CHARS, include_lists=True)
 
 
 def fetch(years: list[int] | None = None, years_back: int = 5) -> list[NewsItem]:

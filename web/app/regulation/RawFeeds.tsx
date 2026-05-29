@@ -49,6 +49,23 @@ function isTableBlock(block: string): boolean {
   );
 }
 
+// A block is a bullet list when every line starts with "- ".
+function isListBlock(block: string): boolean {
+  const lines = block.split("\n");
+  return lines.length > 0 && lines.every((l) => /^-\s+/.test(l.trim()));
+}
+
+function MarkdownList({ block }: { block: string }) {
+  const items = block.split("\n").map((l) => l.trim().replace(/^-\s+/, ""));
+  return (
+    <ul className="list-disc pl-5 space-y-1">
+      {items.map((it, i) => (
+        <li key={i}>{it}</li>
+      ))}
+    </ul>
+  );
+}
+
 function splitRow(line: string): string[] {
   return line
     .trim()
@@ -105,7 +122,13 @@ function BodyContent({ text }: { text: string }) {
   return (
     <div className="space-y-3 text-sm text-neutral-700 leading-relaxed">
       {blocks.map((b, i) =>
-        isTableBlock(b) ? <MarkdownTable key={i} block={b} /> : <p key={i}>{b}</p>,
+        isTableBlock(b) ? (
+          <MarkdownTable key={i} block={b} />
+        ) : isListBlock(b) ? (
+          <MarkdownList key={i} block={b} />
+        ) : (
+          <p key={i}>{b}</p>
+        ),
       )}
     </div>
   );
