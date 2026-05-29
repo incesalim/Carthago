@@ -29,29 +29,35 @@ export function sourceTag(source: string): Tag {
 }
 
 // Ordered keyword rules — first match wins. Titles are English (TCMB) or
-// Turkish (BDDK), so both languages' keywords live in one list.
+// Turkish (BDDK), so both languages' keywords live in one list. Patterns use
+// word boundaries (\b) to avoid substring false-positives: bare `repo` once
+// matched "Report", `ratio` matched "cooperation", `payment` matched
+// "Repayments". Keep boundaries when editing.
 const RULES: { test: RegExp; tag: Tag }[] = [
   // TCMB — monetary policy
-  { test: /interest rate|policy committee|monetary policy|\bmpc\b|faiz/i,
+  { test: /interest rate|policy committee|monetary policy|\bmpc\b|quantitative tightening|tightening measures|faiz/i,
     tag: { label: "Monetary Policy", className: "bg-amber-100 text-amber-700" } },
-  // TCMB — liquidity / FX operations
-  { test: /liquidity|forward|lira-settled|\bfx\b|foreign exchange|swap|repo|likidite/i,
-    tag: { label: "Liquidity & FX", className: "bg-sky-100 text-sky-700" } },
-  // Capital / macroprudential rules
-  { test: /macroprudential|capital adequacy|reserve requirement|ratio|makro/i,
+  // Capital / macroprudential rules (before Liquidity so "Macroprudential
+  // Framework and Liquidity Steps" lands here, not in Liquidity)
+  { test: /macroprudential|capital adequacy|reserve requirement|securities maintenance|\bratios?\b|makro/i,
     tag: { label: "Macroprudential", className: "bg-violet-100 text-violet-700" } },
-  // Payments / open banking / systems
-  { test: /open banking|payment|ödeme|elektronik para|system/i,
+  // TCMB — liquidity / FX operations
+  { test: /liquidity|likidite|\bswap\b|lira-settled|\bfx\b|foreign exchange|foreign currency|rediscount|forward|\brepo\b|protected (?:deposit|account)|yuvam/i,
+    tag: { label: "Liquidity & FX", className: "bg-sky-100 text-sky-700" } },
+  // Payments / open banking / systems (specific terms — not the bare words
+  // "payment"/"system", which leak into "Repayments"/"Systemic"/"Balance of
+  // Payments"). `ödeme` retained for BDDK payment-institution items.
+  { test: /open banking|\bfast\b|payment system|electronic money|elektronik para|ödeme|digital turkish lira|interbank card|request-to-pay|center of payments|overlay service/i,
     tag: { label: "Payments & Systems", className: "bg-teal-100 text-teal-700" } },
+  // Reports / briefings / assembly notices (incl. Inflation Report briefings)
+  { test: /inflation report|faaliyet raporu|\breport\b|briefing|general assembly|\brapor/i,
+    tag: { label: "Report", className: "bg-neutral-200 text-neutral-700" } },
   // BDDK — licensing
   { test: /faaliyet izni|kuruluş izni|kurulmasına izin/i,
     tag: { label: "Licensing", className: "bg-emerald-100 text-emerald-700" } },
   // BDDK — revocation / cancellation
   { test: /iptal/i,
     tag: { label: "Revocation", className: "bg-rose-100 text-rose-700" } },
-  // Reports / briefings / assembly notices
-  { test: /inflation report|faaliyet raporu|briefing|general assembly|technical|rapor/i,
-    tag: { label: "Report", className: "bg-neutral-200 text-neutral-700" } },
   // BDDK — generic board decision (after the more specific BDDK rules)
   { test: /kurul kararı/i,
     tag: { label: "Board Decision", className: "bg-indigo-100 text-indigo-700" } },
