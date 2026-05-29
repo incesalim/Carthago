@@ -323,13 +323,20 @@ def main():
         print("[briefing] --dry-run; skipping LLM call.")
         return
 
+    # Kimi occasionally returns slightly malformed JSON despite json_object
+    # mode (a stray comma, an unquoted token). Retry the whole call a few
+    # times rather than failing the weekly cron on a one-off bad sample.
     t0 = time.time()
-    response = kimi.chat_completion(
-        messages,
-        temperature=0.2,
-        json_object=True,
-    )
-    parsed = kimi.extract_json(response)
+    response = parsed = None
+    for attempt in range(1, 4):
+        response = kimi.chat_completion(messages, temperature=0.2, json_object=True)
+        try:
+            parsed = kimi.extract_json(response)
+            break
+        except (json.JSONDecodeError, ValueError) as e:
+            print(f"[briefing] parse attempt {attempt}/3 failed: {e}", flush=True)
+    if parsed is None:
+        raise SystemExit("[briefing] Kimi returned unparseable JSON after 3 attempts")
     validated = validate_response(parsed)
     elapsed = time.time() - t0
     model_used = response.get("model", "")
