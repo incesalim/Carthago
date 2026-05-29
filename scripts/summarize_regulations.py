@@ -31,7 +31,7 @@ from src.news.schema import init_schema  # noqa: E402
 
 DB_PATH = REPO_ROOT / "data" / "bddk_data.db"
 
-PROMPT_VERSION = "2026-05-29.v8"
+PROMPT_VERSION = "2026-05-29.v9"
 
 # Fixed 6-category schema, named to match BBVA Research's Turkish Banking
 # Sector report so readers familiar with their format land smoothly.
@@ -204,8 +204,20 @@ Rules of thumb:
   6. Group related sub-rules into one bullet rather than fragmenting.
 
 RULES:
-  1. Use EXACTLY the seven category names listed above, in that order.
-     OMIT any category that has no qualifying rule in the input.
+  1. Use EXACTLY the seven category names listed above, in that order. Every
+     category the BASELINE covers — Monetary Policy Stance, TL Deposit Share,
+     Loan Growth Caps, RRs, CARs, Credit Cards — MUST appear (seed it from the
+     baseline annex tables). Only "Other Regulatory Actions" is optional, and
+     only omit a baseline category if even the baseline has nothing for it.
+  1b. CATEGORIZATION — put each rule under exactly ONE category, its best fit:
+      • Reserve-requirement ratios (RR/RRR, on deposits, FC liabilities, funds
+        from abroad, repo) → "Regulations on RRs" ONLY — never under TL Deposit
+        Share.
+      • "TL Deposit Share" → ONLY deposit-share growth targets/tiers, tolerance
+        bands, and commission rates.
+      • Policy rate / corridor / repo auctions → "Monetary Policy Stance".
+      • Credit-card rates/limits/fees → "Credit Cards". Capital/RWA/forbearance
+        → "CARs".
   2. NEVER output a bullet that says nothing was found (e.g. "No specific
      regulations regarding ... were mentioned", "Not mentioned in the
      provided documents"). If a category has no rule, drop the whole
@@ -217,10 +229,13 @@ RULES:
      real-person TRY deposit-share growth target is 0.4pp for banks at 60-65%
      and 0.8pp below 60%"). The numbers are in the baseline annex tables and
      the press-release bodies — extract them.
-  4. CURRENCY — report the CURRENT value. The baseline gives the start-of-year
-     figure; when a later dated press release revises a rule, the most recent
-     value WINS — use it, not the baseline's. Cite the press release that set
-     the current value (plus the baseline if helpful).
+  4. CURRENCY — report the CURRENT value, and NEVER a value older than the
+     baseline. The baseline is the regime as of the policy-year start, so it
+     already supersedes anything from prior years: report the baseline figure
+     UNLESS a press release dated AFTER the baseline revises that rule, in
+     which case the most recent value WINS. Do NOT cite a pre-baseline (e.g.
+     prior-year) figure as the current rule. Cite the source that set the
+     current value.
   5. Each bullet describes ONE rule (or one tightly-coupled BBVA-style
      cluster). When a category has several DISTINCT rules, give each its own
      bullet — e.g. TL Deposit Share: growth-target tiers, calculation period,
@@ -369,10 +384,10 @@ def main():
                     help="Max chars per item body (default 3000). Large enough "
                          "that a release's full rate table + bullet list fits "
                          "without truncation.")
-    ap.add_argument("--samples", type=int, default=3,
-                    help="Generate N candidate briefings and keep the most "
-                         "complete (most bullets). Counters Kimi's run-to-run "
-                         "variance. Default 3; cost is ~3 cheap calls/week.")
+    ap.add_argument("--samples", type=int, default=4,
+                    help="Generate N candidate briefings and keep the best by "
+                         "(category coverage, numeric bullets, total bullets). "
+                         "Counters Kimi's run-to-run variance. Default 4.")
     ap.add_argument("--dry-run", action="store_true",
                     help="Build the prompt + print stats but skip the LLM call.")
     args = ap.parse_args()
@@ -419,14 +434,20 @@ def main():
             print(f"[briefing] sample {attempt}/{args.samples}: bad JSON ({e})", flush=True)
             continue
         v = validate_response(parsed)
-        n_bullets = sum(len(c["bullets"]) for c in v["categories"])
-        candidates.append((n_bullets, len(v["categories"]), v, response))
+        all_bullets = [b for c in v["categories"] for b in c["bullets"]]
+        n_specific = sum(1 for b in all_bullets if re.search(r"\d", b["text"]))
+        # Rank: category coverage first (completeness), then bullets carrying a
+        # concrete number (specificity), then total bullets. This stops the
+        # picker from rewarding a verbose-but-vague or category-dropping sample.
+        score = (len(v["categories"]), n_specific, len(all_bullets))
+        candidates.append((score, v, response))
         print(f"[briefing] sample {attempt}/{args.samples}: "
-              f"{len(v['categories'])} categories, {n_bullets} bullets", flush=True)
+              f"{len(v['categories'])} categories, {n_specific}/{len(all_bullets)} "
+              f"bullets with numbers", flush=True)
     if not candidates:
         raise SystemExit("[briefing] no parseable Kimi response across all samples")
-    candidates.sort(key=lambda c: (c[0], c[1]), reverse=True)
-    _, _, validated, response = candidates[0]
+    candidates.sort(key=lambda c: c[0], reverse=True)
+    _, validated, response = candidates[0]
     elapsed = time.time() - t0
     model_used = response.get("model", "")
     print(f"[briefing] picked best of {len(candidates)}: "
