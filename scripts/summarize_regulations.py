@@ -314,6 +314,10 @@ def main():
                     help="Max chars per item body (default 3000). Large enough "
                          "that a release's full rate table + bullet list fits "
                          "without truncation.")
+    ap.add_argument("--samples", type=int, default=3,
+                    help="Generate N candidate briefings and keep the most "
+                         "complete (most bullets). Counters Kimi's run-to-run "
+                         "variance. Default 3; cost is ~3 cheap calls/week.")
     ap.add_argument("--dry-run", action="store_true",
                     help="Build the prompt + print stats but skip the LLM call.")
     args = ap.parse_args()
@@ -338,27 +342,35 @@ def main():
         print("[briefing] --dry-run; skipping LLM call.")
         return
 
-    # Kimi occasionally returns slightly malformed JSON despite json_object
-    # mode (a stray comma, an unquoted token). Retry the whole call a few
-    # times rather than failing the weekly cron on a one-off bad sample.
+    # Kimi output varies run-to-run (one sample gives 11 rich bullets, the
+    # next 5 thin ones) and occasionally returns malformed JSON. Generate a
+    # few candidates and keep the most COMPLETE one — most total bullets, then
+    # most categories. This both counters the completeness variance and
+    # absorbs one-off parse failures.
     t0 = time.time()
-    response = parsed = None
-    for attempt in range(1, 4):
-        response = kimi.chat_completion(messages, temperature=0.2, json_object=True)
+    candidates: list[tuple[int, int, dict, dict]] = []
+    for attempt in range(1, args.samples + 1):
+        response = kimi.chat_completion(messages, temperature=0.3, json_object=True)
         try:
             parsed = kimi.extract_json(response)
-            break
         except (json.JSONDecodeError, ValueError) as e:
-            print(f"[briefing] parse attempt {attempt}/3 failed: {e}", flush=True)
-    if parsed is None:
-        raise SystemExit("[briefing] Kimi returned unparseable JSON after 3 attempts")
-    validated = validate_response(parsed)
+            print(f"[briefing] sample {attempt}/{args.samples}: bad JSON ({e})", flush=True)
+            continue
+        v = validate_response(parsed)
+        n_bullets = sum(len(c["bullets"]) for c in v["categories"])
+        candidates.append((n_bullets, len(v["categories"]), v, response))
+        print(f"[briefing] sample {attempt}/{args.samples}: "
+              f"{len(v['categories'])} categories, {n_bullets} bullets", flush=True)
+    if not candidates:
+        raise SystemExit("[briefing] no parseable Kimi response across all samples")
+    candidates.sort(key=lambda c: (c[0], c[1]), reverse=True)
+    _, _, validated, response = candidates[0]
     elapsed = time.time() - t0
     model_used = response.get("model", "")
-    print(f"[briefing] Kimi responded in {elapsed:.1f}s "
-          f"({len(validated['categories'])} categories, "
-          f"{sum(len(c['bullets']) for c in validated['categories'])} bullets)",
-          flush=True)
+    print(f"[briefing] picked best of {len(candidates)}: "
+          f"{len(validated['categories'])} categories, "
+          f"{sum(len(c['bullets']) for c in validated['categories'])} bullets "
+          f"(in {elapsed:.1f}s)", flush=True)
 
     with sqlite3.connect(str(DB_PATH)) as conn:
         conn.execute(
