@@ -591,8 +591,11 @@ _NPL_PROVISION_ROW = re.compile(
     r"Provisions?\s*\(\s*-\s*\)"
     r"|Specific\s+Provisions?\s*\(\s*-\s*\)"
     r"|Provisions?\s+(?=\(\s*\d)"                # EXIM: 'Provisions (26.483) ...'
-    r"|Özel\s+Karşılık\s*\(\s*-\s*\)"
-    r"|Karşılık\s*\(\s*-\s*\)"
+    # Turkish: '(Özel )?Karşılık( Tutarı)? (-)'. The 'Tutarı' (= 'amount')
+    # variant is the most common Turkish provision-row label (TFKB uses
+    # 'Özel Karşılık Tutarı (-)'); without it the regex fallback misses
+    # every Turkish bank whose template path also failed.
+    r"|(?:Özel\s+)?Karşılık(?:\s+Tutarı)?\s*\(\s*-\s*\)"
     r"|Beklenen\s+Zarar\s+Karşılığı"
     r"\s*\(\s*(?:3\.?|Üçüncü)\s*Aşama\s*\)\s*\(\s*-\s*\)"
     r")",
@@ -1204,6 +1207,10 @@ def extract_from_pdf(
         bank_ticker = _infer_ticker(pdf_path)
     template = _template_for(bank_ticker)
     rep = CreditQualityReport(pdf_path=pdf_path)
+    # NPL rows are collected separately so we can fall back from the template
+    # path to the regex path per-PDF (see below).
+    npl_tmpl: list[StageRow] = []
+    npl_regex: list[StageRow] = []
     for i, page in enumerate(pdf.pages, 1):
         text = page.extract_text() or ""
         # Stock tables (movement-table end-row) — primary signal.
@@ -1213,12 +1220,18 @@ def extract_from_pdf(
         # P&L expense decomposition — fallback signal for banks that omit
         # the stock table. Cheap to check — just look for the row-pattern.
         rep.rows.extend(_extract_pl_expense_from_page(i, text))
-        # BRSA NPL classification (III/IV/V groups). Template-driven when
-        # we have a registry entry; fall back to regex for unknown banks.
+        # BRSA NPL classification (III/IV/V groups). Run BOTH the template path
+        # (precise — anchors on this bank's known labels) and the regex path
+        # (language-agnostic — matches Karşılık/Provision and Dönem Sonu/Balance
+        # generically). We prefer the template result, but fall back to the
+        # regex result when the template yields nothing — e.g. a bank switching
+        # report language between periods (BURGAN went EN→TR), a provision-row
+        # label that drifted, or a gross row on a later page than the first
+        # III/IV/V header. This guarantees we never regress a bank to zero NPL
+        # rows just because its template entry is stale.
         if template is not None:
-            rep.rows.extend(_extract_npl_brsa_via_template(i, text, template))
-        else:
-            rep.rows.extend(_extract_npl_brsa_from_page(i, text))
+            npl_tmpl.extend(_extract_npl_brsa_via_template(i, text, template))
+        npl_regex.extend(_extract_npl_brsa_from_page(i, text))
         # BRSA section 7.2 "Standart Nitelikli ve Yakın İzlemedeki" loan
         # amounts. Gives Stage 1 + Stage 2 portfolio balances for every bank
         # (combined with npl_brsa_gross's Stage 3 = full stage breakdown).
@@ -1226,6 +1239,19 @@ def extract_from_pdf(
         # Stage 1 + Stage 2 ECL provisions from the same section 7.2.
         # Completes per-stage coverage ratio coverage for every bank.
         rep.rows.extend(_extract_stage12_ecl_from_page(i, text))
+
+    # Choose the NPL source: template if it found a gross row, else regex.
+    tmpl_has_gross = any(r.section == "npl_brsa_gross" for r in npl_tmpl)
+    if tmpl_has_gross:
+        rep.rows.extend(npl_tmpl)
+    else:
+        if template is not None and npl_regex:
+            _log.warning(
+                "%s: template NPL extraction found no gross row; using regex "
+                "fallback (template may be stale — check labels in "
+                "audit_templates.json).", bank_ticker or _infer_ticker(pdf_path),
+            )
+        rep.rows.extend(npl_regex)
     # Keep the first row per (section, period_type); later same-key matches are
     # usually narrower sub-tables (e.g. consumer-only) we already classified.
     seen: set[tuple[str, str]] = set()
