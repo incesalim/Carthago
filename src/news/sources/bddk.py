@@ -25,6 +25,7 @@ from datetime import datetime, timezone
 import requests
 
 from src.news.loader import NewsItem
+from src.news._htmltext import extract_body
 from src.scrapers._http import bddk_verify
 
 
@@ -64,6 +65,10 @@ _BODY_NOISE = (
     "Bu sitede yer alan bilgi",
     "Telif Hakkı",
     "Çerez Politika",
+    # Contact-info footer block (rendered as a <table>): phone/call-centre/
+    # address. These markers stop the extractor before that footer table.
+    "Çağrı Merkezi",
+    "Finanskent Mahallesi",
 )
 
 # Match the whole <a><span class="icon">…</span><span class="text">…</span></a>
@@ -84,9 +89,9 @@ def fetch_body(url: str, timeout: int = 30) -> str | None:
     """Fetch a BDDK Duyuru detail page and extract the announcement body.
 
     The detail page is wrapped in a lot of site chrome; the actual
-    announcement text is in the first 1-3 <p> blocks before boilerplate
-    starts (cookie notice, copyright, terms). We collect <p>s in order
-    and stop at the first known boilerplate marker."""
+    announcement text is in the first <p>/<table> blocks before boilerplate
+    starts (cookie notice, copyright, terms). We collect them in document
+    order — tables as Markdown — and stop at the first boilerplate marker."""
     try:
         r = requests.get(url, headers={"User-Agent": "Mozilla/5.0"},
                          timeout=timeout, verify=bddk_verify())
@@ -94,20 +99,7 @@ def fetch_body(url: str, timeout: int = 30) -> str | None:
         return None
     if r.status_code != 200:
         return None
-    paragraphs: list[str] = []
-    for p_html in re.findall(r"<p[^>]*>(.*?)</p>", r.text, re.DOTALL | re.IGNORECASE):
-        text = re.sub(r"<[^>]+>", " ", p_html)
-        text = html_lib.unescape(text)
-        text = re.sub(r"\s+", " ", text).strip()
-        if len(text) < 30:
-            continue
-        if any(marker in text for marker in _BODY_NOISE):
-            break
-        paragraphs.append(text)
-    body = "\n\n".join(paragraphs).strip()
-    if not body:
-        return None
-    return body[:BODY_MAX_CHARS]
+    return extract_body(r.text, _BODY_NOISE, BODY_MAX_CHARS)
 
 
 def _to_iso(raw: str) -> str:

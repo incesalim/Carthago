@@ -76,14 +76,33 @@ def items_missing_body(
     return [(row[0], row[1]) for row in conn.execute(sql, (source,))]
 
 
+def items_with_body_url(
+    conn: sqlite3.Connection,
+    source: str,
+    limit: int | None = None,
+) -> list[tuple[str, str]]:
+    """Return [(external_id, url), …] for ALL items of `source` (regardless of
+    whether a body is already cached). Drives a forced body re-scrape, e.g.
+    after the extractor learns to capture a new block type (tables)."""
+    sql = """SELECT external_id, url FROM news_items
+             WHERE source = ?
+             ORDER BY published_at DESC"""
+    if limit is not None:
+        sql += f" LIMIT {int(limit)}"
+    return [(row[0], row[1]) for row in conn.execute(sql, (source,))]
+
+
 def update_body(
     conn: sqlite3.Connection,
     source: str,
     external_id: str,
     body_text: str,
 ) -> None:
+    # Bump fetched_at so the incremental D1 push (which filters on fetched_at)
+    # picks up body-only refreshes — UPDATE wouldn't otherwise touch it.
     conn.execute(
-        "UPDATE news_items SET body_text = ? WHERE source = ? AND external_id = ?",
+        "UPDATE news_items SET body_text = ?, fetched_at = CURRENT_TIMESTAMP "
+        "WHERE source = ? AND external_id = ?",
         (body_text, source, external_id),
     )
     conn.commit()

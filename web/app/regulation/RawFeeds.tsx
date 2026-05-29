@@ -37,6 +37,80 @@ function Pill({ tag }: { tag: Tag }) {
   );
 }
 
+// A block is a Markdown pipe table when every line starts with "|" and the
+// second line is a separator row (--- cells). Scrapers emit tables in this
+// shape (see src/news/_htmltext.py).
+function isTableBlock(block: string): boolean {
+  const lines = block.split("\n");
+  return (
+    lines.length >= 2 &&
+    lines.every((l) => l.trim().startsWith("|")) &&
+    /^\s*\|(\s*:?-+:?\s*\|)+\s*$/.test(lines[1])
+  );
+}
+
+function splitRow(line: string): string[] {
+  return line
+    .trim()
+    .replace(/^\||\|$/g, "")
+    .split("|")
+    .map((c) => c.trim().replace(/\\\|/g, "|"));
+}
+
+function MarkdownTable({ block }: { block: string }) {
+  const lines = block.split("\n");
+  const header = splitRow(lines[0]);
+  const rows = lines.slice(2).map(splitRow);
+  return (
+    <div className="overflow-x-auto rounded-md border border-neutral-200">
+      <table className="w-full text-sm border-collapse">
+        <thead>
+          <tr className="bg-neutral-50">
+            {header.map((h, i) => (
+              <th
+                key={i}
+                className={`px-3 py-2 font-semibold text-neutral-700 border-b border-neutral-200 ${
+                  i === 0 ? "text-left" : "text-right tabular-nums"
+                }`}
+              >
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, ri) => (
+            <tr key={ri} className="border-b border-neutral-100 last:border-0">
+              {r.map((c, ci) => (
+                <td
+                  key={ci}
+                  className={`px-3 py-2 text-neutral-700 ${
+                    ci === 0 ? "text-left" : "text-right tabular-nums"
+                  }`}
+                >
+                  {c}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// Render body_text: blank-line-separated blocks, each a table or a paragraph.
+function BodyContent({ text }: { text: string }) {
+  const blocks = text.split(/\n{2,}/).map((b) => b.trim()).filter(Boolean);
+  return (
+    <div className="space-y-3 text-sm text-neutral-700 leading-relaxed">
+      {blocks.map((b, i) =>
+        isTableBlock(b) ? <MarkdownTable key={i} block={b} /> : <p key={i}>{b}</p>,
+      )}
+    </div>
+  );
+}
+
 function FeedCard({ item, onOpen }: { item: NewsItem; onOpen: (it: NewsItem) => void }) {
   return (
     <button
@@ -102,7 +176,7 @@ function Drawer({ item, onClose }: { item: NewsItem | null; onClose: () => void 
   }, [item, onClose]);
 
   const open = item !== null;
-  const paragraphs = item?.body_text?.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean) ?? [];
+  const hasBody = !!item?.body_text && item.body_text.trim().length > 0;
 
   return (
     <>
@@ -147,12 +221,8 @@ function Drawer({ item, onClose }: { item: NewsItem | null; onClose: () => void 
             </header>
 
             <div className="flex-1 overflow-y-auto px-6 py-5">
-              {paragraphs.length > 0 ? (
-                <div className="space-y-3 text-sm text-neutral-700 leading-relaxed">
-                  {paragraphs.map((p, i) => (
-                    <p key={i}>{p}</p>
-                  ))}
-                </div>
+              {hasBody ? (
+                <BodyContent text={item.body_text as string} />
               ) : item.summary ? (
                 <div className="space-y-3">
                   <p className="text-sm text-neutral-700 leading-relaxed">{item.summary}</p>

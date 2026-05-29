@@ -21,7 +21,12 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 sys.stdout.reconfigure(encoding="utf-8")
 
-from src.news.loader import items_missing_body, update_body, upsert_items  # noqa: E402
+from src.news.loader import (  # noqa: E402
+    items_missing_body,
+    items_with_body_url,
+    update_body,
+    upsert_items,
+)
 from src.news.schema import init_schema  # noqa: E402
 from src.news.sources import bddk, kap, tcmb  # noqa: E402
 
@@ -43,6 +48,11 @@ def main():
                     help="Max BDDK rows from the announcement list (default 600 ≈ 5+ years)")
     ap.add_argument("--skip-bodies", action="store_true",
                     help="Skip the per-item body backfill")
+    ap.add_argument("--refresh-bodies", action="store_true",
+                    help="Re-fetch body_text for ALL tcmb/bddk items (not just "
+                         "missing ones) and overwrite. Use after a fetch_body "
+                         "change, e.g. adding table extraction. Failed/empty "
+                         "fetches never clobber an existing body.")
     ap.add_argument("--body-workers", type=int, default=8,
                     help="Parallel detail-page fetchers (default 8)")
     ap.add_argument("--body-limit", type=int, default=None,
@@ -108,7 +118,8 @@ def main():
             if only_one and not getattr(args, f"{source_name}_only"):
                 continue
             try:
-                _backfill_bodies(source_name, fetcher, args.body_workers, args.body_limit)
+                _backfill_bodies(source_name, fetcher, args.body_workers,
+                                 args.body_limit, refresh=args.refresh_bodies)
             except Exception as e:
                 print(f"[{source_name}-body] FAILED: {type(e).__name__}: {e}", flush=True)
 
@@ -117,14 +128,22 @@ def main():
           f"(kap={totals['kap']} tcmb={totals['tcmb']} bddk={totals['bddk']})")
 
 
-def _backfill_bodies(source: str, fetcher, workers: int, limit: int | None) -> None:
-    """Fetch and store body_text for any rows of `source` that don't have one."""
+def _backfill_bodies(source: str, fetcher, workers: int, limit: int | None,
+                     refresh: bool = False) -> None:
+    """Fetch and store body_text for rows of `source`.
+
+    Default: only rows missing a body. With `refresh=True`: every row, to
+    overwrite stale bodies after a fetch_body change. update_body only writes
+    on a truthy result, so a failed re-fetch leaves the existing body intact.
+    """
     with sqlite3.connect(str(DB_PATH)) as conn:
-        pending = items_missing_body(conn, source, limit=limit)
+        pending = (items_with_body_url(conn, source, limit=limit) if refresh
+                   else items_missing_body(conn, source, limit=limit))
     if not pending:
         print(f"[{source}-body] up to date")
         return
-    print(f"[{source}-body] fetching {len(pending)} detail pages × {workers} workers")
+    verb = "re-fetching" if refresh else "fetching"
+    print(f"[{source}-body] {verb} {len(pending)} detail pages × {workers} workers")
     ok = fail = 0
     with sqlite3.connect(str(DB_PATH)) as conn, \
          ThreadPoolExecutor(max_workers=workers) as ex:
