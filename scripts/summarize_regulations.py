@@ -30,7 +30,7 @@ from src.news.schema import init_schema  # noqa: E402
 
 DB_PATH = REPO_ROOT / "data" / "bddk_data.db"
 
-PROMPT_VERSION = "2026-05-12.v3"
+PROMPT_VERSION = "2026-05-29.v4"
 
 # Fixed 6-category schema, named to match BBVA Research's Turkish Banking
 # Sector report so readers familiar with their format land smoothly.
@@ -49,6 +49,29 @@ the exact format of BBVA Research's Monthly Turkish Banking Sector Report
 (the "Monetary stance ... macro-prudential measures" page). The output is
 a cumulative snapshot of macroprudential rules currently in force, not a
 "what changed this week" diff.
+
+==================== GOAL: COMPLETENESS ====================
+
+This briefing is the reader's SINGLE source for understanding the CURRENT
+state of Turkish banking regulation at a glance — like the status tables in
+the CBRT's annual "Monetary Policy" document. A reader should be able to
+learn the current caps, ratios, thresholds and limits WITHOUT opening any
+source link.
+
+Be COMPREHENSIVE, not sparse:
+  - For every category that the input supports, state ALL currently-in-force
+    rules, each with its latest numeric value(s).
+  - Synthesize across the whole input: when several items revise one rule,
+    track the rule forward and report its CURRENT value (citing the items in
+    chronological order).
+  - Aim for as many bullets as the input genuinely supports (typically 3-8
+    per active category). Do not omit a real rule just to be brief.
+  - The input bodies now contain the actual rate tables and bullet lists —
+    mine them for every concrete number.
+
+This completeness goal does NOT relax the exclusions below: market
+observations are still never bullets. Completeness means capturing every
+real RULE, not padding with commentary.
 
 You receive a JSON list of regulatory press releases and Kurul Kararı
 (Board Decisions) from TCMB (Türkiye Cumhuriyet Merkez Bankası, the
@@ -228,14 +251,17 @@ def validate_response(data) -> dict:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--window-days", type=int, default=365,
-                    help="Look-back window for input items (default 365 — "
-                         "BBVA-style briefing is a cumulative snapshot of "
-                         "currently-active rules, not just recent changes).")
-    ap.add_argument("--body-cap", type=int, default=1500,
-                    help="Max chars per item body. Keeps prompt within "
-                         "the 32k-context window for ~100 items. Raise + "
-                         "switch KIMI_MODEL to moonshot-v1-128k for richer input.")
+    ap.add_argument("--window-days", type=int, default=730,
+                    help="Look-back window for input items (default 730 = 2y). "
+                         "The briefing is a cumulative snapshot of currently-"
+                         "active rules; 1y misses rules set earlier but still "
+                         "in force. ~175 items / ~66k tokens at 2y, comfortably "
+                         "within moonshot-v1-128k. 3y (~1095) gets close to the "
+                         "context limit — raise the model/trim body-cap first.")
+    ap.add_argument("--body-cap", type=int, default=3000,
+                    help="Max chars per item body (default 3000). Large enough "
+                         "that a release's full rate table + bullet list fits "
+                         "without truncation.")
     ap.add_argument("--dry-run", action="store_true",
                     help="Build the prompt + print stats but skip the LLM call.")
     args = ap.parse_args()
