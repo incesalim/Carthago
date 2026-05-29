@@ -141,14 +141,14 @@
       "_note": "Solo files come as ZIPs containing PDF+XLSX. Q1/Q3 consolidated NOT published.",
       "urls": {
         "consolidated": {
-          "2022Q2": "https://www.vakifbank.com.tr/documents/bankamiz/yatirimci-iliskileri/finansal-bilgiler/bddk/haziran-2022.pdf",
-          "2022Q4": "https://www.vakifbank.com.tr/documents/bankamiz/yatirimci-iliskileri/finansal-bilgiler/bddk/aralik-2022.pdf",
-          "2023Q2": "https://www.vakifbank.com.tr/documents/bankamiz/yatirimci-iliskileri/finansal-bilgiler/bddk/haziran-2023.pdf",
-          "2023Q4": "https://www.vakifbank.com.tr/documents/bankamiz/yatirimci-iliskileri/finansal-bilgiler/bddk/aralik-2023.pdf",
-          "2024Q2": "https://www.vakifbank.com.tr/documents/bankamiz/yatirimci-iliskileri/finansal-bilgiler/bddk/haziran-2024.pdf",
-          "2024Q4": "https://www.vakifbank.com.tr/documents/bankamiz/yatirimci-iliskileri/finansal-bilgiler/bddk/aralik-2024.pdf",
-          "2025Q2": "https://www.vakifbank.com.tr/documents/bankamiz/yatirimci-iliskileri/finansal-bilgiler/bddk/haziran-2025.pdf",
-          "2025Q4": "https://www.vakifbank.com.tr/documents/bankamiz/yatirimci-iliskileri/finansal-bilgiler/bddk/aralik-2025.pdf"
+          "2022Q2": "https://www.vakifbank.com.tr/documents/bankamiz/yatirimci-iliskileri/finansal-bilgiler/konsolide-raporlar/haziran-2022-konsolide-raporlar.zip",
+          "2022Q4": "https://www.vakifbank.com.tr/documents/bankamiz/yatirimci-iliskileri/finansal-bilgiler/konsolide-raporlar/aralik-2022-konsolide-raporlar.zip",
+          "2023Q2": "https://www.vakifbank.com.tr/documents/bankamiz/yatirimci-iliskileri/finansal-bilgiler/konsolide-raporlar/haziran-2023-konsolide-raporlar.zip",
+          "2023Q4": "https://www.vakifbank.com.tr/documents/bankamiz/yatirimci-iliskileri/finansal-bilgiler/konsolide-raporlar/aralik-2023-konsolide-raporlar.zip",
+          "2024Q2": "https://www.vakifbank.com.tr/documents/bankamiz/yatirimci-iliskileri/finansal-bilgiler/konsolide-raporlar/haziran-2024-konsolide-raporlar.zip",
+          "2024Q4": "https://www.vakifbank.com.tr/documents/bankamiz/yatirimci-iliskileri/finansal-bilgiler/konsolide-raporlar/aralik-2024-konsolide-raporlar.zip",
+          "2025Q2": "https://www.vakifbank.com.tr/documents/bankamiz/yatirimci-iliskileri/finansal-bilgiler/konsolide-raporlar/haziran-2025-konsolide-raporlar.zip",
+          "2025Q4": "https://www.vakifbank.com.tr/documents/bankamiz/yatirimci-iliskileri/finansal-bilgiler/konsolide-raporlar/aralik-2025-konsolide-raporlar.zip"
         },
         "unconsolidated_zip": {
           "2022Q1": "https://www.vakifbank.com.tr/documents/bankamiz/yatirimci-iliskileri/finansal-bilgiler/konsolide-olmayan-raporlar/mart-2022-solo-raporlar.zip",
@@ -255,7 +255,7 @@
           "2024Q4": "https://www.qnb.com.tr/medium/document-file-4200.vsf",
           "2025Q1": "https://www.qnb.com.tr/medium/document-file-4267.vsf",
           "2025Q2": "https://www.qnb.com.tr/medium/document-file-4348.vsf",
-          "2025Q3": "https://www.qnb.com.tr/medium/document-file-4396.vsf",
+          "2025Q3": "https://www.qnb.com.tr/medium/document-file-4422.vsf",
           "2025Q4": "https://www.qnb.com.tr/medium/document-file-4546.vsf",
           "2026Q1": "https://www.qnb.com.tr/medium/document-file-4620.vsf"
         }
