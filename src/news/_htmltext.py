@@ -27,6 +27,33 @@ _CELL_RE = re.compile(r"<(t[hd])\b[^>]*>(.*?)</\1>", re.DOTALL | re.IGNORECASE)
 _LI_RE = re.compile(r"<li\b[^>]*>(.*?)</li>", re.DOTALL | re.IGNORECASE)
 
 
+_MOJIBAKE_MAP = {
+    "Ã¼": "ü", "Ãœ": "Ü", "Ã§": "ç", "Ã‡": "Ç", "Ã¶": "ö", "Ã–": "Ö",
+    "ÄŸ": "ğ", "Äž": "Ğ", "Ä±": "ı", "Ä°": "İ", "ÅŸ": "ş", "Åž": "Ş",
+    "Ã¢": "â", "Ã‚": "Â", "Â±": "±", "â‚º": "₺", "â€™": "’", "â€œ": "“",
+    "â€\x9d": "”", "â€“": "–", "â€”": "—", "Â ": " ",
+}
+
+
+def fix_mojibake(s: str) -> str:
+    """Repair UTF-8-as-Latin-1 mojibake (e.g. 'TÃ¼rkiye' -> 'Türkiye').
+
+    Applied iteratively (to clear double-encoding) until stable. Only triggers
+    on the telltale sequences, so clean text passes through untouched. Used by
+    the briefing summarizer and as a final gate in push_to_d1."""
+    if not s:
+        return s
+    for _ in range(3):
+        if not any(m in s for m in ("Ã", "Å", "Ä", "Â", "â€")):
+            break
+        prev = s
+        for bad, good in _MOJIBAKE_MAP.items():
+            s = s.replace(bad, good)
+        if s == prev:
+            break
+    return s
+
+
 def _clean_inline(fragment: str) -> str:
     """Strip inline tags, unescape entities, collapse whitespace."""
     text = re.sub(r"<[^>]+>", " ", fragment)

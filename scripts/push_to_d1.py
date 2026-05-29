@@ -33,7 +33,12 @@ WEB = ROOT / "web"
 
 sys.path.insert(0, str(ROOT))
 from src.audit_reports.schema import init_schema as _init_audit_schema  # noqa: E402
+from src.news._htmltext import fix_mojibake                            # noqa: E402
 from src.news.schema import init_schema as _init_news_schema            # noqa: E402
+
+# Tables whose text values get a final mojibake repair before D1 (Turkish text
+# from scrapers / LLM; "Ã/Å/Ä" only ever appear there as mis-encoding).
+_MOJIBAKE_TABLES = {"news_items", "regulation_briefings"}
 
 # Tables to sync. Each entry: (table_name, has_downloaded_at)
 # We only sync tables that have a `downloaded_at` column for incremental
@@ -120,15 +125,19 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int) -> list[str]:
     out: list[str] = [f"-- {table}: {n} rows from last {hours}h"]
     batch: list[str] = []
     batch_size = BATCH_SIZE_PER_TABLE.get(table, BATCH_SIZE)
+    repair = table in _MOJIBAKE_TABLES
     rows_iter = conn.execute(f"SELECT {col_list} FROM {table} {where}")
     for r in rows_iter:
         vals = []
         for v in r:
             if v is None:
                 vals.append("NULL")
-            elif isinstance(v, (int, float)):
+                continue
+            if isinstance(v, (int, float)):
                 vals.append(str(v))
-            elif "\n" in str(v) or "\r" in str(v):
+                continue
+            s = fix_mojibake(str(v)) if repair else str(v)
+            if "\n" in s or "\r" in s:
                 # Don't embed raw newlines in the generated SQL: wrangler's
                 # --file parser collapses consecutive blank lines, so '\n\n'
                 # in a body (the blank line between a paragraph and a Markdown
@@ -137,11 +146,11 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int) -> list[str]:
                 # (keeps the literal single-line, so nothing collapses) and
                 # rebuild them with ONE replace() call — char(10) concatenation
                 # would instead blow past SQLite's 100-deep expression limit.
-                s = str(v).replace("\r\n", "\n").replace("\r", "\n")
+                s = s.replace("\r\n", "\n").replace("\r", "\n")
                 s = s.replace("'", "''").replace("\n", _NL_SENTINEL)
                 vals.append(f"replace('{s}', '{_NL_SENTINEL}', char(10))")
             else:
-                vals.append("'" + str(v).replace("'", "''") + "'")
+                vals.append("'" + s.replace("'", "''") + "'")
         batch.append("(" + ",".join(vals) + ")")
         if len(batch) >= batch_size:
             out.append(
