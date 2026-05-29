@@ -38,9 +38,13 @@ function BriefingWidget({
     <section className="space-y-3">
       <header className="flex items-baseline justify-between flex-wrap gap-2">
         <div>
-          <h2 className="text-base font-semibold text-neutral-900">This Week's Regulatory Briefing</h2>
+          <h2 className="text-base font-semibold text-neutral-900">Current Regulatory Snapshot</h2>
           <p className="text-xs text-neutral-500">
-            AI-synthesized summary of {briefing.item_count} TCMB &amp; BDDK items over the past {briefing.window_days} days
+            AI-synthesized snapshot of macroprudential rules currently in force — distilled from{" "}
+            {briefing.item_count} TCMB &amp; BDDK releases over the past{" "}
+            {briefing.window_days >= 365
+              ? `~${Math.round(briefing.window_days / 365)} year${Math.round(briefing.window_days / 365) > 1 ? "s" : ""}`
+              : `${briefing.window_days} days`}
           </p>
         </div>
         <div className="text-[11px] text-neutral-400 tabular-nums">
