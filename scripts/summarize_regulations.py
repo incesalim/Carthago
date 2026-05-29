@@ -25,6 +25,7 @@ The weekly workflow runs this, then push_to_d1.py syncs the new row to D1.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import sqlite3
@@ -197,6 +198,17 @@ def fetch_input(conn: sqlite3.Connection, window_days: int, body_cap: int) -> li
     return items
 
 
+def compute_input_hash(items: list[dict], baseline: dict | None) -> str:
+    """Stable fingerprint of everything that determines the briefing: the feed
+    items (ids/dates/bodies), the baseline content, and the prompt version.
+    Used to skip regeneration when nothing changed."""
+    blob = json.dumps(items, ensure_ascii=False, sort_keys=True)
+    base = baseline["content"] if baseline else ""
+    return hashlib.sha256(
+        (PROMPT_VERSION + "\n" + base + "\n" + blob).encode("utf-8")
+    ).hexdigest()
+
+
 def fetch_baseline(conn: sqlite3.Connection) -> dict | None:
     """Latest annual policy baseline (the grounding scaffold), or None."""
     row = conn.execute(
@@ -287,6 +299,8 @@ def main() -> int:
                          "Tebliğ source backs them.")
     ap.add_argument("--dry-run", action="store_true",
                     help="Build context + print stats but make no LLM calls.")
+    ap.add_argument("--force", action="store_true",
+                    help="Regenerate even if inputs are unchanged since last run.")
     args = ap.parse_args()
 
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -294,12 +308,24 @@ def main() -> int:
         init_schema(conn)
         items = fetch_input(conn, args.delta_days, args.body_cap)
         baseline = fetch_baseline(conn)
+        prev = conn.execute(
+            "SELECT input_hash FROM briefing_input_state WHERE id = 1"
+        ).fetchone()
 
     print(f"[briefing] {len(items)} update items in last {args.delta_days}d", flush=True)
     if baseline:
         print(f"[briefing] baseline: {baseline['title']} ({len(baseline['content'])} chars)", flush=True)
     else:
         print("[briefing] WARNING: no baseline — run scripts/ingest_policy_baseline.py", flush=True)
+
+    # No-op when nothing changed: feed + baseline + prompt all identical to the
+    # last run. Keeps the weekly cron from regenerating identical output (and
+    # spending LLM calls) in quiet weeks.
+    input_hash = compute_input_hash(items, baseline)
+    if prev and prev[0] == input_hash and not args.force and not args.dry_run:
+        print("[briefing] inputs unchanged since last run — skipping regeneration. "
+              "(use --force to override)", flush=True)
+        return 0
 
     context = build_context(items, baseline)
     specs = [
@@ -355,6 +381,11 @@ def main() -> int:
                 json.dumps(payload, ensure_ascii=False),
                 None,
             ),
+        )
+        conn.execute(
+            "INSERT OR REPLACE INTO briefing_input_state (id, input_hash, updated_at) "
+            "VALUES (1, ?, ?)",
+            (input_hash, datetime.now(timezone.utc).isoformat(timespec="seconds")),
         )
         conn.commit()
     print("[briefing] stored in regulation_briefings.")
