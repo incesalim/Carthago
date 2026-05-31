@@ -14,6 +14,8 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { ChartCard } from "@/app/components/ui/chart-card";
+import { useChartTheme, tooltipStyles } from "@/app/lib/chart-theme";
 
 interface Row {
   bank_type_code: string;
@@ -30,8 +32,6 @@ interface Props {
   decimals?: number;
   height?: number;
 }
-
-const COLORS = ["#7a0d2e", "#1f4068", "#0f7b6c", "#a16500", "#5b1a8c", "#5a5a5a"];
 
 // en-US locale: comma thousands separator + dot decimal (e.g. 1,234,567.89).
 const nf = (v: number, d: number) =>
@@ -55,6 +55,8 @@ export default function BarByBank({
   decimals = 2,
   height = 320,
 }: Props) {
+  const t = useChartTheme();
+  const tt = tooltipStyles(t);
   const fmt = formatters[format];
   const ordered = data
     .filter((r) => labels[r.bank_type_code] && r.value != null && !Number.isNaN(r.value))
@@ -71,8 +73,7 @@ export default function BarByBank({
     v == null ? "" : fmt(Number(v), decimals);
 
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm hover:shadow-md transition">
-      {title && <div className="text-sm font-medium text-neutral-800 mb-3">{title}</div>}
+    <ChartCard title={title}>
       <div style={{ height }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
@@ -81,40 +82,45 @@ export default function BarByBank({
             margin={{ top: 5, right: 60, left: 10, bottom: 5 }}
             barCategoryGap="20%"
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#eee" horizontal={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke={t.grid} horizontal={false} />
             <XAxis
               type="number"
-              tick={{ fontSize: 11 }}
+              tick={{ fontSize: 11, fill: t.axis }}
               tickFormatter={(v) => fmt(v, 0)}
               domain={domain}
+              axisLine={{ stroke: t.grid }}
+              tickLine={{ stroke: t.grid }}
             />
             <YAxis
               type="category"
               dataKey="label"
-              tick={{ fontSize: 11 }}
+              tick={{ fontSize: 11, fill: t.axis }}
               width={90}
               axisLine={false}
               tickLine={false}
             />
             <Tooltip
-              contentStyle={{ fontSize: 11, padding: "6px 10px", borderRadius: 4 }}
+              {...tt}
               formatter={(v) => [fmt(Number(v), decimals), ""]}
-              cursor={{ fill: "#f5f5f5" }}
+              cursor={{ fill: t.cursor }}
             />
             <Bar dataKey="value" radius={[0, 4, 4, 0]} isAnimationActive={false}>
               {ordered.map((row, i) => (
-                <Cell key={`bar-${row.bank_type_code}`} fill={COLORS[i % COLORS.length]} />
+                <Cell
+                  key={`bar-${row.bank_type_code}`}
+                  fill={t.palette[i % t.palette.length]}
+                />
               ))}
               <LabelList
                 dataKey="value"
                 position="right"
                 formatter={labelFmt}
-                style={{ fontSize: 11, fill: "#404040" }}
+                style={{ fontSize: 11, fill: t.axis }}
               />
             </Bar>
           </BarChart>
         </ResponsiveContainer>
       </div>
-    </div>
+    </ChartCard>
   );
 }

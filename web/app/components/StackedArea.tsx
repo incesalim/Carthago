@@ -10,6 +10,8 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { ChartCard } from "@/app/components/ui/chart-card";
+import { useChartTheme, tooltipStyles } from "@/app/lib/chart-theme";
 
 export interface StackPoint {
   period: string;
@@ -29,7 +31,8 @@ interface Props {
   percentStack?: boolean;
 }
 
-const COLORS = ["#7a0d2e", "#a16500", "#0f7b6c", "#1f4068", "#5b1a8c", "#5a5a5a"];
+// Stacked areas read best when the brand red leads but warm/cool alternate.
+const ORDER = [0, 3, 2, 1, 4, 5];
 
 // en-US locale: comma thousands separator + dot decimal (e.g. 1,234,567.89).
 const nf = (v: number, d: number) =>
@@ -54,25 +57,35 @@ export default function StackedArea({
   height = 320,
   percentStack = false,
 }: Props) {
+  const t = useChartTheme();
+  const tt = tooltipStyles(t);
   const fmt = formatters[percentStack ? "pct" : yFormat];
+  const colorAt = (i: number) => t.palette[ORDER[i % ORDER.length] % t.palette.length];
 
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm hover:shadow-md transition">
-      {title && <div className="text-sm font-medium text-neutral-800 mb-3">{title}</div>}
+    <ChartCard title={title}>
       <div style={{ height }}>
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} stackOffset={percentStack ? "expand" : "none"}
                      margin={{ top: 10, right: 20, left: 60, bottom: 30 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
-            <XAxis dataKey="period" tick={{ fontSize: 11 }} minTickGap={30} />
+            <CartesianGrid strokeDasharray="3 3" stroke={t.grid} />
+            <XAxis
+              dataKey="period"
+              tick={{ fontSize: 11, fill: t.axis }}
+              minTickGap={30}
+              axisLine={{ stroke: t.grid }}
+              tickLine={{ stroke: t.grid }}
+            />
             <YAxis
-              tick={{ fontSize: 11 }}
+              tick={{ fontSize: 11, fill: t.axis }}
               tickFormatter={(v) =>
                 percentStack ? `${(v * 100).toFixed(0)}%` : fmt(v, 0)
               }
+              axisLine={{ stroke: t.grid }}
+              tickLine={{ stroke: t.grid }}
             />
             <Tooltip
-              contentStyle={{ fontSize: 11, padding: "6px 10px", borderRadius: 4 }}
+              {...tt}
               formatter={(v) => [v == null ? "—" : fmt(Number(v), decimals), ""]}
               labelFormatter={(l) => String(l)}
             />
@@ -84,8 +97,8 @@ export default function StackedArea({
                 dataKey={s.key}
                 name={s.label}
                 stackId="1"
-                stroke={COLORS[i % COLORS.length]}
-                fill={COLORS[i % COLORS.length]}
+                stroke={colorAt(i)}
+                fill={colorAt(i)}
                 fillOpacity={0.55}
                 isAnimationActive={false}
               />
@@ -93,6 +106,6 @@ export default function StackedArea({
           </AreaChart>
         </ResponsiveContainer>
       </div>
-    </div>
+    </ChartCard>
   );
 }

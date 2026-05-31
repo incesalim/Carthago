@@ -38,27 +38,27 @@ function BriefingWidget({
     <section className="space-y-3">
       <header className="flex items-baseline justify-between flex-wrap gap-2">
         <div>
-          <h2 className="text-base font-semibold text-neutral-900">Current Regulatory Snapshot</h2>
-          <p className="text-xs text-neutral-500">
+          <h2 className="text-base font-semibold text-foreground">Current Regulatory Snapshot</h2>
+          <p className="text-xs text-muted-foreground">
             AI-synthesized snapshot of macroprudential rules currently in force — grounded on TCMB&apos;s
             annual Monetary Policy framework and updated with {briefing.item_count} recent TCMB &amp; BDDK releases
           </p>
         </div>
-        <div className="text-[11px] text-neutral-400 tabular-nums">
+        <div className="text-[11px] text-muted-foreground tabular-nums">
           generated {fmtDate(briefing.generated_at)} · {briefing.model}
         </div>
       </header>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {briefing.categories.map((cat) => (
-          <div key={cat.name} className="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
-            <h3 className="text-sm font-semibold text-neutral-900 mb-2">{cat.name}</h3>
+          <div key={cat.name} className="rounded-lg border border-border bg-card p-4 shadow-sm">
+            <h3 className="text-sm font-semibold text-foreground mb-2">{cat.name}</h3>
             <ul className="space-y-2">
               {cat.bullets.map((b, i) => (
-                <li key={i} className="text-xs text-neutral-700 leading-snug">
-                  <span className="text-neutral-400 mr-1">•</span>
+                <li key={i} className="text-xs text-foreground leading-snug">
+                  <span className="text-muted-foreground mr-1">•</span>
                   {b.text}
                   {b.source_ids.length > 0 && (
-                    <span className="ml-1 text-[10px] text-neutral-400">
+                    <span className="ml-1 text-[10px] text-muted-foreground">
                       {b.source_ids.map((id, idx) => {
                         const item = sourceLookup.get(id);
                         // Show the regulation's publication (effective) date,
@@ -72,7 +72,7 @@ function BriefingWidget({
                                 href={item.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="hover:text-neutral-700 underline-offset-2 hover:underline tabular-nums"
+                                className="hover:text-foreground underline-offset-2 hover:underline tabular-nums"
                                 title={`${item.title} (${id})`}
                               >
                                 {label}
@@ -121,33 +121,33 @@ export default async function RegulationPage() {
   const bddkStats = summary.find((s) => s.source === "bddk");
 
   return (
-    <main className="px-8 py-8 space-y-8">
+    <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">Regulation</h1>
-        <p className="text-sm text-neutral-500">
+        <p className="text-sm text-muted-foreground">
           Central-bank press releases (TCMB) and banking-regulator board decisions (BDDK) — refreshed daily,
           thematic briefing refreshed weekly.
         </p>
-        <div className="flex flex-wrap gap-4 text-xs text-neutral-500 pt-2">
+        <div className="flex flex-wrap gap-4 text-xs text-muted-foreground pt-2">
           {tcmbStats && (
             <div>
-              <span className="font-semibold text-neutral-700">TCMB</span> — {tcmbStats.total} items
+              <span className="font-semibold text-foreground">TCMB</span> — {tcmbStats.total} items
               {tcmbStats.latest && (
-                <span className="text-neutral-400"> · latest {fmtDate(tcmbStats.latest)}</span>
+                <span className="text-muted-foreground"> · latest {fmtDate(tcmbStats.latest)}</span>
               )}
             </div>
           )}
           {bddkStats && (
             <div>
-              <span className="font-semibold text-neutral-700">BDDK</span> — {bddkStats.total} items
+              <span className="font-semibold text-foreground">BDDK</span> — {bddkStats.total} items
               {bddkStats.latest && (
-                <span className="text-neutral-400"> · latest {fmtDate(bddkStats.latest)}</span>
+                <span className="text-muted-foreground"> · latest {fmtDate(bddkStats.latest)}</span>
               )}
             </div>
           )}
           <Link
             href="/banks"
-            className="text-neutral-600 underline hover:text-neutral-900"
+            className="text-muted-foreground underline hover:text-foreground"
           >
             Per-bank disclosures (KAP) →
           </Link>
@@ -157,7 +157,7 @@ export default async function RegulationPage() {
       {briefing && briefing.categories.length > 0 ? (
         <BriefingWidget briefing={briefing} sourceLookup={sourceLookup} />
       ) : briefing ? (
-        <section className="rounded-lg border border-dashed border-neutral-300 bg-neutral-50 p-4 text-sm text-neutral-600">
+        <section className="rounded-lg border border-dashed border-border bg-muted p-4 text-sm text-muted-foreground">
           <strong className="font-semibold">No regulatory rule changes detected in the past {briefing.window_days} days.</strong>
           {" "}The summarizer scanned {briefing.item_count} TCMB &amp; BDDK announcements
           on {fmtDate(briefing.generated_at)} but none qualified as a substantive
@@ -165,7 +165,7 @@ export default async function RegulationPage() {
           below show all administrative + market-commentary items.
         </section>
       ) : (
-        <section className="rounded-lg border border-dashed border-neutral-300 bg-neutral-50 p-4 text-sm text-neutral-600">
+        <section className="rounded-lg border border-dashed border-border bg-muted p-4 text-sm text-muted-foreground">
           <strong className="font-semibold">Weekly briefing not yet generated.</strong> The
           first thematic summary will land after the next Sunday cron run.
           Raw TCMB &amp; BDDK feeds are available below in the meantime.

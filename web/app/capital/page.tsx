@@ -13,6 +13,7 @@ import {
   BANK_TYPES,
   BANK_TYPE_LABELS,
 } from "@/app/lib/metrics";
+import { PageHeader } from "@/app/components/ui";
 import BarByBank from "@/app/components/BarByBank";
 import TrendChart from "@/app/components/TrendChart";
 
@@ -36,17 +37,12 @@ export default async function CapitalPage() {
   ]);
 
   return (
-    <main className="px-8 py-8 space-y-8">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Capital</h1>
-        <p className="text-sm text-neutral-500">
-          Capital adequacy + equity + leverage · BDDK · regulatory min CAR = 12%
-        </p>
-      </header>
+    <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
+      <PageHeader title="Capital" description="Capital adequacy + equity + leverage · BDDK · regulatory min CAR = 12%" />
 
       <section className="space-y-4">
         <div className="space-y-0.5">
-          <h2 className="text-base font-semibold text-neutral-900">Capital Adequacy</h2>
+          <h2 className="text-base font-semibold text-foreground">Capital Adequacy</h2>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="lg:col-span-2">
@@ -70,8 +66,8 @@ export default async function CapitalPage() {
 
       <section className="space-y-4">
         <div className="space-y-0.5">
-          <h2 className="text-base font-semibold text-neutral-900">Equity & Leverage</h2>
-          <p className="text-xs text-neutral-500">Sector equity level, growth, and gearing.</p>
+          <h2 className="text-base font-semibold text-foreground">Equity & Leverage</h2>
+          <p className="text-xs text-muted-foreground">Sector equity level, growth, and gearing.</p>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <TrendChart
@@ -101,8 +97,8 @@ export default async function CapitalPage() {
 
       <section className="space-y-4">
         <div className="space-y-0.5">
-          <h2 className="text-base font-semibold text-neutral-900">Risk Density</h2>
-          <p className="text-xs text-neutral-500">
+          <h2 className="text-base font-semibold text-foreground">Risk Density</h2>
+          <p className="text-xs text-muted-foreground">
             How concentrated each group&apos;s balance-sheet risk is — lower RWA-net/gross
             means more low-weight exposure (govt bonds, cash). Off-BS derivatives /
             total assets shows derivative book size relative to balance sheet.

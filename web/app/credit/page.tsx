@@ -21,6 +21,7 @@ import {
   BANK_TYPE_LABELS,
   type TimeSeriesRow,
 } from "@/app/lib/metrics";
+import { PageHeader } from "@/app/components/ui";
 import BarByBank from "@/app/components/BarByBank";
 import TrendChart from "@/app/components/TrendChart";
 import StackedArea from "@/app/components/StackedArea";
@@ -84,13 +85,8 @@ export default async function CreditPage() {
   }
 
   return (
-    <main className="px-8 py-8 space-y-8">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Credit</h1>
-        <p className="text-sm text-neutral-500">
-          Loan growth · currency split · consumer mix · SME · public vs. private — BDDK monthly bulletin
-        </p>
-      </header>
+    <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
+      <PageHeader title="Credit" description="Loan growth · currency split · consumer mix · SME · public vs. private — BDDK monthly bulletin" />
 
       <Section title="Total Credit Growth" subtitle="Sector level + cross-sectional and time-series growth.">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -310,8 +306,8 @@ function Section({ title, subtitle, children }: { title: string; subtitle?: stri
   return (
     <section className="space-y-4">
       <div className="space-y-0.5">
-        <h2 className="text-base font-semibold text-neutral-900">{title}</h2>
-        {subtitle && <p className="text-xs text-neutral-500">{subtitle}</p>}
+        <h2 className="text-base font-semibold text-foreground">{title}</h2>
+        {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
       </div>
       <div className="space-y-4">{children}</div>
     </section>

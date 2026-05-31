@@ -15,6 +15,7 @@ import {
   BANK_TYPE_LABELS,
   type TimeSeriesRow,
 } from "@/app/lib/metrics";
+import { PageHeader } from "@/app/components/ui";
 import TrendChart from "@/app/components/TrendChart";
 
 export const dynamic = "force-dynamic";
@@ -69,18 +70,13 @@ export default async function ProfitabilityPage() {
   }
 
   return (
-    <main className="px-8 py-8 space-y-8">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Profitability</h1>
-        <p className="text-sm text-neutral-500">
-          ROE / ROA / NIM · annualized (YTD × 12 / month) · BDDK Table 15
-        </p>
-      </header>
+    <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
+      <PageHeader title="Profitability" description="ROE / ROA / NIM · annualized (YTD × 12 / month) · BDDK Table 15" />
 
       <section className="space-y-4">
         <div className="space-y-0.5">
-          <h2 className="text-base font-semibold text-neutral-900">Returns</h2>
-          <p className="text-xs text-neutral-500">Return on equity & assets by bank group.</p>
+          <h2 className="text-base font-semibold text-foreground">Returns</h2>
+          <p className="text-xs text-muted-foreground">Return on equity & assets by bank group.</p>
         </div>
         <TrendChart
           data={roe}
@@ -104,7 +100,7 @@ export default async function ProfitabilityPage() {
 
       <section className="space-y-4">
         <div className="space-y-0.5">
-          <h2 className="text-base font-semibold text-neutral-900">Margins</h2>
+          <h2 className="text-base font-semibold text-foreground">Margins</h2>
         </div>
         <TrendChart
           data={nim}
@@ -117,8 +113,8 @@ export default async function ProfitabilityPage() {
 
       <section className="space-y-4">
         <div className="space-y-0.5">
-          <h2 className="text-base font-semibold text-neutral-900">Cost Efficiency & Non-Interest Income</h2>
-          <p className="text-xs text-neutral-500">
+          <h2 className="text-base font-semibold text-foreground">Cost Efficiency & Non-Interest Income</h2>
+          <p className="text-xs text-muted-foreground">
             Operating cost intensity and fee-driven income contribution.
           </p>
         </div>
@@ -157,8 +153,8 @@ export default async function ProfitabilityPage() {
       {cpiAvg.length > 0 && (
         <section className="space-y-4">
           <div className="space-y-0.5">
-            <h2 className="text-base font-semibold text-neutral-900">Real Returns</h2>
-            <p className="text-xs text-neutral-500">
+            <h2 className="text-base font-semibold text-foreground">Real Returns</h2>
+            <p className="text-xs text-muted-foreground">
               Sector / Private / State ROE alongside the 12-month rolling average of CPI YoY —
               distance from inflation = real return.
             </p>

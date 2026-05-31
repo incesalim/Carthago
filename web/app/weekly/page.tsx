@@ -11,6 +11,7 @@ import {
   WEEKLY_BANK_TYPES,
   WEEKLY_BANK_TYPE_LABELS,
 } from "@/app/lib/metrics";
+import { PageHeader } from "@/app/components/ui";
 import TrendChart from "@/app/components/TrendChart";
 import type { WeeklyRow } from "@/app/lib/metrics";
 
@@ -20,8 +21,8 @@ function Section({ title, subtitle, children }: { title: string; subtitle?: stri
   return (
     <section className="space-y-4">
       <div className="space-y-0.5">
-        <h2 className="text-base font-semibold text-neutral-900">{title}</h2>
-        {subtitle && <p className="text-xs text-neutral-500">{subtitle}</p>}
+        <h2 className="text-base font-semibold text-foreground">{title}</h2>
+        {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
       </div>
       <div className="space-y-4">{children}</div>
     </section>
@@ -104,13 +105,8 @@ export default async function WeeklyPage() {
   ];
 
   return (
-    <main className="px-8 py-8 space-y-8">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Weekly Trends</h1>
-        <p className="text-sm text-neutral-500">
-          BDDK weekly bulletin · loans, deposits, NPL · annualized 4-week and 13-week growth · by bank group
-        </p>
-      </header>
+    <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
+      <PageHeader title="Weekly Trends" description="BDDK weekly bulletin · loans, deposits, NPL · annualized 4-week and 13-week growth · by bank group" />
 
       <Section title="Loans">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

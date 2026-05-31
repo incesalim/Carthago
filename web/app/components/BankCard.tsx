@@ -65,19 +65,19 @@ export default function BankCard({ profile, stages, latestPeriod }: Props) {
   const period = stages?.period ?? profile?.period ?? latestPeriod ?? null;
 
   return (
-    <section className="mb-6 rounded-lg border bg-white shadow-sm overflow-hidden">
-      <div className="px-5 py-3 border-b bg-neutral-50 flex items-baseline justify-between">
-        <h2 className="text-sm font-semibold text-neutral-900">Bank profile</h2>
-        <span className="text-[11px] text-neutral-500 tabular-nums">
+    <section className="mb-6 rounded-lg border bg-card shadow-sm overflow-hidden">
+      <div className="px-5 py-3 border-b bg-muted flex items-baseline justify-between">
+        <h2 className="text-sm font-semibold text-foreground">Bank profile</h2>
+        <span className="text-[11px] text-muted-foreground tabular-nums">
           {fmtPeriod(period)}
           {stages?.kind ? ` · ${stages.kind === "consolidated" ? "Consolidated" : "Bank-only"}` : ""}
         </span>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-neutral-100">
+      <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border">
         {/* --- Operational scale ----------------------------------------- */}
         <div className="px-5 py-4">
-          <h3 className="text-[10px] uppercase tracking-wide text-neutral-500 mb-2">Scale</h3>
+          <h3 className="text-[10px] uppercase tracking-wide text-muted-foreground mb-2">Scale</h3>
           <div className="space-y-1.5">
             <CardRow label="Branches" value={fmtInt(profile?.branches_total)} />
             <CardRow
@@ -96,7 +96,7 @@ export default function BankCard({ profile, stages, latestPeriod }: Props) {
 
         {/* --- TFRS 9 stage breakdown ----------------------------------- */}
         <div className="px-5 py-4">
-          <h3 className="text-[10px] uppercase tracking-wide text-neutral-500 mb-2">
+          <h3 className="text-[10px] uppercase tracking-wide text-muted-foreground mb-2">
             Loan portfolio
           </h3>
           <div className="space-y-1.5">
@@ -113,7 +113,7 @@ export default function BankCard({ profile, stages, latestPeriod }: Props) {
 
         {/* --- Coverage ratios ------------------------------------------- */}
         <div className="px-5 py-4">
-          <h3 className="text-[10px] uppercase tracking-wide text-neutral-500 mb-2">
+          <h3 className="text-[10px] uppercase tracking-wide text-muted-foreground mb-2">
             Coverage
           </h3>
           <div className="space-y-1.5">
@@ -144,10 +144,10 @@ function CardRow({
       <span
         className={
           muted
-            ? "text-neutral-400 pl-2"
+            ? "text-muted-foreground pl-2"
             : bold
-            ? "text-neutral-900 font-medium"
-            : "text-neutral-600"
+            ? "text-foreground font-medium"
+            : "text-muted-foreground"
         }
       >
         {label}
@@ -156,10 +156,10 @@ function CardRow({
         className={
           "tabular-nums " +
           (muted
-            ? "text-neutral-500"
+            ? "text-muted-foreground"
             : bold
-            ? "text-neutral-900 font-semibold"
-            : "text-neutral-800")
+            ? "text-foreground font-semibold"
+            : "text-foreground")
         }
       >
         {value}

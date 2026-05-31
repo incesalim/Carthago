@@ -79,14 +79,14 @@ function MarkdownTable({ block }: { block: string }) {
   const header = splitRow(lines[0]);
   const rows = lines.slice(2).map(splitRow);
   return (
-    <div className="overflow-x-auto rounded-md border border-neutral-200">
+    <div className="overflow-x-auto rounded-md border border-border">
       <table className="w-full text-sm border-collapse">
         <thead>
-          <tr className="bg-neutral-50">
+          <tr className="bg-muted">
             {header.map((h, i) => (
               <th
                 key={i}
-                className={`px-3 py-2 font-semibold text-neutral-700 border-b border-neutral-200 ${
+                className={`px-3 py-2 font-semibold text-foreground border-b border-border ${
                   i === 0 ? "text-left" : "text-right tabular-nums"
                 }`}
               >
@@ -97,11 +97,11 @@ function MarkdownTable({ block }: { block: string }) {
         </thead>
         <tbody>
           {rows.map((r, ri) => (
-            <tr key={ri} className="border-b border-neutral-100 last:border-0">
+            <tr key={ri} className="border-b border-border last:border-0">
               {r.map((c, ci) => (
                 <td
                   key={ci}
-                  className={`px-3 py-2 text-neutral-700 ${
+                  className={`px-3 py-2 text-foreground ${
                     ci === 0 ? "text-left" : "text-right tabular-nums"
                   }`}
                 >
@@ -120,7 +120,7 @@ function MarkdownTable({ block }: { block: string }) {
 function BodyContent({ text }: { text: string }) {
   const blocks = text.split(/\n{2,}/).map((b) => b.trim()).filter(Boolean);
   return (
-    <div className="space-y-3 text-sm text-neutral-700 leading-relaxed">
+    <div className="space-y-3 text-sm text-foreground leading-relaxed">
       {blocks.map((b, i) =>
         isTableBlock(b) ? (
           <MarkdownTable key={i} block={b} />
@@ -139,13 +139,13 @@ function FeedCard({ item, onOpen }: { item: NewsItem; onOpen: (it: NewsItem) => 
     <button
       type="button"
       onClick={() => onOpen(item)}
-      className={`block w-full text-left rounded-md border border-neutral-200 border-l-4 ${SOURCE_BORDER[item.source] ?? ""} bg-white p-3 hover:bg-neutral-50 transition`}
+      className={`block w-full text-left rounded-md border border-border border-l-4 ${SOURCE_BORDER[item.source] ?? ""} bg-card p-3 hover:bg-accent transition`}
     >
-      <div className="flex items-baseline justify-between gap-2 text-[10px] text-neutral-500 uppercase tracking-wide mb-1">
+      <div className="flex items-baseline justify-between gap-2 text-[10px] text-muted-foreground uppercase tracking-wide mb-1">
         <span className="tabular-nums">{fmtDate(item.published_at)}</span>
-        <span className="text-neutral-400">{sourceLabel(item.source)}</span>
+        <span className="text-muted-foreground">{sourceLabel(item.source)}</span>
       </div>
-      <div className="text-sm text-neutral-900 leading-snug line-clamp-3">{item.title}</div>
+      <div className="text-sm text-foreground leading-snug line-clamp-3">{item.title}</div>
       <div className="flex flex-wrap gap-1 mt-2">
         <Pill tag={sourceTag(item.source)} />
         <Pill tag={topicTag(item.title)} />
@@ -166,12 +166,12 @@ function SourceColumn({
   return (
     <section className="space-y-3">
       <header className="space-y-0.5">
-        <h2 className="text-base font-semibold text-neutral-900">{sourceLabel(source)}</h2>
-        <p className="text-xs text-neutral-500">{SOURCE_DESCRIPTIONS[source]}</p>
+        <h2 className="text-base font-semibold text-foreground">{sourceLabel(source)}</h2>
+        <p className="text-xs text-muted-foreground">{SOURCE_DESCRIPTIONS[source]}</p>
       </header>
       <div className="space-y-2">
         {items.length === 0 ? (
-          <div className="text-xs text-neutral-500 italic">No items yet.</div>
+          <div className="text-xs text-muted-foreground italic">No items yet.</div>
         ) : (
           items.map((it) => (
             <FeedCard key={`${it.source}-${it.external_id}`} item={it} onOpen={onOpen} />
@@ -216,26 +216,26 @@ function Drawer({ item, onClose }: { item: NewsItem | null; onClose: () => void 
         role="dialog"
         aria-modal="true"
         aria-label={item?.title ?? "News detail"}
-        className={`fixed right-0 top-0 z-40 h-full w-full max-w-xl bg-white shadow-2xl flex flex-col transition-transform duration-200 ${
+        className={`fixed right-0 top-0 z-40 h-full w-full max-w-xl bg-card shadow-2xl flex flex-col transition-transform duration-200 ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
       >
         {item && (
           <>
-            <header className="border-b border-neutral-200 px-6 py-4 flex items-start justify-between gap-4">
+            <header className="border-b border-border px-6 py-4 flex items-start justify-between gap-4">
               <div className="space-y-2">
-                <div className="flex flex-wrap items-center gap-2 text-[10px] text-neutral-500 uppercase tracking-wide">
+                <div className="flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground uppercase tracking-wide">
                   <span className="tabular-nums">{fmtDate(item.published_at)}</span>
                   <Pill tag={sourceTag(item.source)} />
                   <Pill tag={topicTag(item.title)} />
                 </div>
-                <h2 className="text-lg font-semibold text-neutral-900 leading-snug">{item.title}</h2>
+                <h2 className="text-lg font-semibold text-foreground leading-snug">{item.title}</h2>
               </div>
               <button
                 type="button"
                 onClick={onClose}
                 aria-label="Close"
-                className="shrink-0 rounded-md p-1.5 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 transition"
+                className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground transition"
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M18 6 6 18M6 6l12 12" />
@@ -248,24 +248,24 @@ function Drawer({ item, onClose }: { item: NewsItem | null; onClose: () => void 
                 <BodyContent text={item.body_text as string} />
               ) : item.summary ? (
                 <div className="space-y-3">
-                  <p className="text-sm text-neutral-700 leading-relaxed">{item.summary}</p>
-                  <p className="text-xs text-neutral-400 italic">
+                  <p className="text-sm text-foreground leading-relaxed">{item.summary}</p>
+                  <p className="text-xs text-muted-foreground italic">
                     Full text not cached for this item — open the original for the complete release.
                   </p>
                 </div>
               ) : (
-                <p className="text-sm text-neutral-500 italic">
+                <p className="text-sm text-muted-foreground italic">
                   No content cached for this item. Open the original release below.
                 </p>
               )}
             </div>
 
-            <footer className="border-t border-neutral-200 px-6 py-3">
+            <footer className="border-t border-border px-6 py-3">
               <a
                 href={item.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-sm text-neutral-700 hover:text-neutral-900 underline-offset-2 hover:underline"
+                className="inline-flex items-center gap-1 text-sm text-foreground hover:text-foreground underline-offset-2 hover:underline"
               >
                 Open original at {sourceLabel(item.source)} ↗
               </a>
@@ -283,8 +283,8 @@ export default function RawFeeds({ tcmb, bddk }: { tcmb: NewsItem[]; bddk: NewsI
   return (
     <section className="space-y-3">
       <header className="space-y-0.5">
-        <h2 className="text-base font-semibold text-neutral-900">Raw feeds</h2>
-        <p className="text-xs text-neutral-500">
+        <h2 className="text-base font-semibold text-foreground">Raw feeds</h2>
+        <p className="text-xs text-muted-foreground">
           Source items the briefing draws from. Click a card to read the content here.
         </p>
       </header>

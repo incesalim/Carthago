@@ -15,6 +15,8 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { ChartCard } from "@/app/components/ui/chart-card";
+import { useChartTheme, tooltipStyles } from "@/app/lib/chart-theme";
 
 export interface TrendPoint {
   period: string;
@@ -36,8 +38,6 @@ interface Props {
   zeroLine?: boolean;
   height?: number;
 }
-
-const COLORS = ["#7a0d2e", "#1f4068", "#0f7b6c", "#a16500", "#5b1a8c", "#5a5a5a"];
 
 // en-US locale: comma thousands separator + dot decimal (e.g. 1,234,567.89).
 const nf = (v: number, d: number) =>
@@ -62,6 +62,9 @@ export default function TrendChart({
   zeroLine = false,
   height = 320,
 }: Props) {
+  const t = useChartTheme();
+  const tt = tooltipStyles(t);
+
   // Pivot long → wide: { period, "10001": v, "10003": v, ... }
   const codes = Object.keys(seriesLabels);
   type Wide = { period: string; [code: string]: string | number | null };
@@ -77,25 +80,28 @@ export default function TrendChart({
   const fmt = formatters[yFormat];
 
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm hover:shadow-md transition">
-      {title && <div className="text-sm font-medium text-neutral-800 mb-3">{title}</div>}
+    <ChartCard title={title}>
       <div style={{ height }}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={wide} margin={{ top: 10, right: 20, left: 60, bottom: 30 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+            <CartesianGrid strokeDasharray="3 3" stroke={t.grid} />
             <XAxis
               dataKey="period"
-              tick={{ fontSize: 11 }}
+              tick={{ fontSize: 11, fill: t.axis }}
               tickMargin={6}
               minTickGap={30}
+              axisLine={{ stroke: t.grid }}
+              tickLine={{ stroke: t.grid }}
             />
             <YAxis
-              tick={{ fontSize: 11 }}
+              tick={{ fontSize: 11, fill: t.axis }}
               tickFormatter={(v) => fmt(v, 0)}
+              axisLine={{ stroke: t.grid }}
+              tickLine={{ stroke: t.grid }}
             />
-            {zeroLine && <ReferenceLine y={0} stroke="#999" strokeDasharray="3 3" />}
+            {zeroLine && <ReferenceLine y={0} stroke={t.reference} strokeDasharray="3 3" />}
             <Tooltip
-              contentStyle={{ fontSize: 11, padding: "6px 10px", borderRadius: 4 }}
+              {...tt}
               formatter={(v) => [v == null ? "—" : fmt(Number(v), decimals), ""]}
               labelFormatter={(l) => String(l)}
             />
@@ -112,7 +118,7 @@ export default function TrendChart({
                 type="monotone"
                 dataKey={code}
                 name={seriesLabels[code]}
-                stroke={COLORS[i % COLORS.length]}
+                stroke={t.palette[i % t.palette.length]}
                 strokeWidth={1.75}
                 dot={false}
                 isAnimationActive={false}
@@ -121,6 +127,6 @@ export default function TrendChart({
           </LineChart>
         </ResponsiveContainer>
       </div>
-    </div>
+    </ChartCard>
   );
 }

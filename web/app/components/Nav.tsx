@@ -1,4 +1,9 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cn } from "@/app/lib/cn";
+import { ThemeToggle } from "./ui/theme-toggle";
 
 const TABS = [
   { href: "/", label: "Overview" },
@@ -14,22 +19,49 @@ const TABS = [
   { href: "/regulation", label: "Regulation" },
 ];
 
+function isActive(pathname: string, href: string) {
+  if (href === "/") return pathname === "/";
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
 export default function Nav() {
+  const pathname = usePathname() ?? "/";
+
   return (
-    <nav className="sticky top-0 z-20 border-b border-neutral-200 bg-white/85 backdrop-blur supports-[backdrop-filter]:bg-white/70">
-      <div className="flex flex-wrap items-center gap-1 px-8 py-3">
-        <Link href="/" className="font-semibold mr-6 text-neutral-900 tracking-tight">
-          🇹🇷 Banking Sector
+    <nav className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/65">
+      <div className="flex items-center gap-2 px-4 py-2.5 sm:px-6 lg:px-8">
+        <Link
+          href="/"
+          className="mr-2 flex shrink-0 items-center gap-2 font-semibold tracking-tight text-foreground"
+        >
+          <span className="grid size-6 place-items-center rounded-md bg-primary text-[13px] font-bold text-primary-foreground">
+            ₺
+          </span>
+          <span className="hidden sm:inline">Banking Sector</span>
         </Link>
-        {TABS.map((t) => (
-          <Link
-            key={t.href}
-            href={t.href}
-            className="px-3 py-1.5 text-sm rounded-md text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 transition-colors"
-          >
-            {t.label}
-          </Link>
-        ))}
+
+        <div className="flex flex-1 flex-wrap items-center gap-0.5">
+          {TABS.map((t) => {
+            const active = isActive(pathname, t.href);
+            return (
+              <Link
+                key={t.href}
+                href={t.href}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors",
+                  active
+                    ? "bg-accent text-foreground"
+                    : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
+                )}
+              >
+                {t.label}
+              </Link>
+            );
+          })}
+        </div>
+
+        <ThemeToggle className="ml-auto shrink-0" />
       </div>
     </nav>
   );

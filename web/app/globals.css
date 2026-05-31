@@ -1,26 +1,182 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+/*
+ * Design system tokens.
+ * ---------------------------------------------------------------------------
+ * Semantic, theme-aware variables consumed by the Tailwind utility layer via
+ * the `@theme inline` block below. Component code never references raw colours
+ * — it uses utilities like `bg-card`, `text-muted-foreground`, `border-border`,
+ * `text-positive`, `bg-chart-1`, so light/dark stay consistent app-wide.
+ *
+ * Palette: cool-neutral base + brand maroon (#7a0d2e) as the primary accent.
+ */
+
+@custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --radius: 0.75rem;
+
+  --background: oklch(0.994 0.001 240);
+  --foreground: oklch(0.205 0.012 260);
+
+  --card: oklch(1 0 0);
+  --card-foreground: var(--foreground);
+
+  --popover: oklch(1 0 0);
+  --popover-foreground: var(--foreground);
+
+  --muted: oklch(0.972 0.003 250);
+  --muted-foreground: oklch(0.515 0.012 258);
+
+  --accent: oklch(0.965 0.004 250);
+  --accent-foreground: var(--foreground);
+
+  --secondary: oklch(0.965 0.004 250);
+  --secondary-foreground: var(--foreground);
+
+  --border: oklch(0.918 0.004 255);
+  --input: oklch(0.918 0.004 255);
+  --ring: oklch(0.42 0.14 12);
+
+  /* Brand — Turkish maroon. */
+  --primary: oklch(0.42 0.14 12);
+  --primary-foreground: oklch(0.985 0.004 250);
+
+  /* Data-semantic tones (used as text + as /10 tinted backgrounds). */
+  --positive: oklch(0.585 0.13 158);
+  --negative: oklch(0.575 0.205 25);
+  --warning: oklch(0.62 0.13 70);
+  --info: oklch(0.55 0.13 248);
+
+  /* Categorical chart palette (brand-led). */
+  --chart-1: #7a0d2e;
+  --chart-2: #1f4068;
+  --chart-3: #0f7b6c;
+  --chart-4: #a16500;
+  --chart-5: #5b1a8c;
+  --chart-6: #5a5a5a;
+}
+
+.dark {
+  --background: oklch(0.175 0.008 265);
+  --foreground: oklch(0.955 0.004 250);
+
+  --card: oklch(0.213 0.01 265);
+  --card-foreground: var(--foreground);
+
+  --popover: oklch(0.213 0.01 265);
+  --popover-foreground: var(--foreground);
+
+  --muted: oklch(0.255 0.01 265);
+  --muted-foreground: oklch(0.685 0.012 258);
+
+  --accent: oklch(0.272 0.012 265);
+  --accent-foreground: var(--foreground);
+
+  --secondary: oklch(0.272 0.012 265);
+  --secondary-foreground: var(--foreground);
+
+  --border: oklch(1 0 0 / 9%);
+  --input: oklch(1 0 0 / 13%);
+  --ring: oklch(0.68 0.16 8);
+
+  --primary: oklch(0.66 0.17 9);
+  --primary-foreground: oklch(0.18 0.01 265);
+
+  --positive: oklch(0.7 0.15 160);
+  --negative: oklch(0.68 0.18 22);
+  --warning: oklch(0.78 0.14 78);
+  --info: oklch(0.7 0.13 248);
+
+  --chart-1: #f0608a;
+  --chart-2: #6f9fe0;
+  --chart-3: #34c9b0;
+  --chart-4: #e0a23c;
+  --chart-5: #b07ee0;
+  --chart-6: #a3a3a3;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-positive: var(--positive);
+  --color-negative: var(--negative);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background-color: color-mix(in oklch, var(--primary) 22%, transparent);
+  }
+
+  /* Quiet, modern scrollbars. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklch, var(--foreground) 18%, transparent) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background-color: color-mix(in oklch, var(--foreground) 18%, transparent);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(in oklch, var(--foreground) 30%, transparent);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Numeric tables read better with lining, tabular figures. */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }
