@@ -15,6 +15,8 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { ChartCard } from "@/app/components/ui/chart-card";
+import { useChartTheme, tooltipStyles } from "@/app/lib/chart-theme";
 
 interface Point {
   period_date: string;
@@ -29,8 +31,6 @@ interface Props {
   decimals?: number;
   height?: number;
 }
-
-const COLORS = ["#7a0d2e", "#1f4068", "#0f7b6c", "#a16500", "#5b1a8c", "#5a5a5a"];
 
 // en-US locale: comma thousands separator + dot decimal (e.g. 1,234,567.89).
 const nf = (v: number, d: number) =>
@@ -53,6 +53,8 @@ export default function TimeSeriesChart({
   decimals = 2,
   height = 320,
 }: Props) {
+  const t = useChartTheme();
+  const tt = tooltipStyles(t);
   const fmt = formatters[yFormat];
   const labels = Object.keys(series);
 
@@ -71,17 +73,27 @@ export default function TimeSeriesChart({
   );
 
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm hover:shadow-md transition">
-      {title && <div className="text-sm font-medium text-neutral-800 mb-3">{title}</div>}
+    <ChartCard title={title}>
       <div style={{ height }}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 10, right: 20, left: 60, bottom: 30 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
-            <XAxis dataKey="period_date" tick={{ fontSize: 11 }} minTickGap={40}
-                   tickFormatter={(v) => String(v).slice(0, 7)} />
-            <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => fmt(v, 0)} />
+            <CartesianGrid strokeDasharray="3 3" stroke={t.grid} />
+            <XAxis
+              dataKey="period_date"
+              tick={{ fontSize: 11, fill: t.axis }}
+              minTickGap={40}
+              tickFormatter={(v) => String(v).slice(0, 7)}
+              axisLine={{ stroke: t.grid }}
+              tickLine={{ stroke: t.grid }}
+            />
+            <YAxis
+              tick={{ fontSize: 11, fill: t.axis }}
+              tickFormatter={(v) => fmt(v, 0)}
+              axisLine={{ stroke: t.grid }}
+              tickLine={{ stroke: t.grid }}
+            />
             <Tooltip
-              contentStyle={{ fontSize: 11, padding: "6px 10px", borderRadius: 4 }}
+              {...tt}
               formatter={(v) => [v == null ? "—" : fmt(Number(v), decimals), ""]}
               labelFormatter={(l) => String(l)}
             />
@@ -92,7 +104,7 @@ export default function TimeSeriesChart({
                 type="monotone"
                 dataKey={label}
                 name={label}
-                stroke={COLORS[i % COLORS.length]}
+                stroke={t.palette[i % t.palette.length]}
                 strokeWidth={1.75}
                 dot={false}
                 connectNulls
@@ -102,6 +114,6 @@ export default function TimeSeriesChart({
           </LineChart>
         </ResponsiveContainer>
       </div>
-    </div>
+    </ChartCard>
   );
 }

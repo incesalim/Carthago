@@ -14,6 +14,7 @@ import {
   BANK_TYPE_LABELS,
   type TimeSeriesRow,
 } from "@/app/lib/metrics";
+import { PageHeader } from "@/app/components/ui";
 import { getDB } from "@/app/lib/db";
 import BarByBank from "@/app/components/BarByBank";
 import TrendChart from "@/app/components/TrendChart";
@@ -59,8 +60,8 @@ function Section({ title, subtitle, children }: { title: string; subtitle?: stri
   return (
     <section className="space-y-4">
       <div className="space-y-0.5">
-        <h2 className="text-base font-semibold text-neutral-900">{title}</h2>
-        {subtitle && <p className="text-xs text-neutral-500">{subtitle}</p>}
+        <h2 className="text-base font-semibold text-foreground">{title}</h2>
+        {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
       </div>
       <div className="space-y-4">{children}</div>
     </section>
@@ -112,13 +113,8 @@ export default async function AssetQualityPage() {
   ]);
 
   return (
-    <main className="px-8 py-8 space-y-8">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Asset Quality</h1>
-        <p className="text-sm text-neutral-500">
-          NPL ratio + coverage · sub-segment NPL ratios · BDDK Tables 4, 5, 15 + weekly bulletin
-        </p>
-      </header>
+    <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
+      <PageHeader title="Asset Quality" description="NPL ratio + coverage · sub-segment NPL ratios · BDDK Tables 4, 5, 15 + weekly bulletin" />
 
       <Section title="NPL Ratio">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

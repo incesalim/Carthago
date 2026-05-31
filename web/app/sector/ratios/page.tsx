@@ -16,6 +16,7 @@ import {
   BANK_TYPE_LABELS,
   type TimeSeriesRow,
 } from "@/app/lib/metrics";
+import { PageHeader } from "@/app/components/ui";
 import BankTypeFilter from "./BankTypeFilter";
 import Sparkline from "./Sparkline";
 
@@ -34,12 +35,12 @@ interface KpiCardProps {
 function KpiCard({ label, value, period, hint, series, format, decimals }: KpiCardProps) {
   const sparkData = series.map((r) => ({ period: r.period, value: r.value }));
   return (
-    <div className="rounded-lg border bg-white p-5 shadow-sm">
-      <div className="text-xs uppercase tracking-wide text-neutral-500">
+    <div className="rounded-lg border bg-card p-5 shadow-sm">
+      <div className="text-xs uppercase tracking-wide text-muted-foreground">
         {label}
       </div>
       <div className="mt-2 text-3xl font-semibold tabular-nums">{value}</div>
-      <div className="mt-1 text-xs text-neutral-500">
+      <div className="mt-1 text-xs text-muted-foreground">
         {period}
         {hint ? ` · ${hint}` : ""}
       </div>
@@ -86,11 +87,17 @@ export default async function RatiosPage({
   const re = roe.at(-1);
 
   return (
-    <main className="px-8 py-8">
-      <h1 className="text-3xl font-bold mb-2">Banking Sector — Key Ratios</h1>
-      <p className="text-sm text-neutral-500 mb-4">
-        BDDK monthly bulletin · {BANK_TYPE_LABELS[bankType]} ({bankType}) · queried live from D1
-      </p>
+    <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8">
+      <PageHeader
+        eyebrow="Banking Sector"
+        title="Key Ratios"
+        description={
+          <>
+            BDDK monthly bulletin · {BANK_TYPE_LABELS[bankType]} ({bankType}) · queried live from D1
+          </>
+        }
+        className="mb-4"
+      />
 
       <div className="mb-6">
         <BankTypeFilter active={bankType} />
@@ -111,7 +118,7 @@ export default async function RatiosPage({
                  hint="annualized" series={roe} format="pct" decimals={1} />
       </div>
 
-      <div className="mt-10 text-xs text-neutral-400">
+      <div className="mt-10 text-xs text-muted-foreground">
         Each KPI = one D1 query · 6 queries in parallel · sparklines from 60+ months of history · rendered server-side at the edge
       </div>
     </main>

@@ -8,6 +8,7 @@
 import Link from "next/link";
 import { bankSummaries } from "@/app/lib/audit";
 import { BANK_NAMES } from "@/app/lib/bank_names";
+import { PageHeader } from "@/app/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -15,21 +16,22 @@ export default async function BanksPage() {
   const banks = await bankSummaries();
 
   return (
-    <main className="px-8 py-8">
-      <h1 className="text-2xl font-semibold tracking-tight mb-1">Banks</h1>
-      <p className="text-sm text-neutral-500 mb-2">
-        {banks.length} banks · per-bank quarterly BRSA audit reports
-      </p>
-      <div className="flex flex-wrap gap-4 text-xs text-neutral-500 mb-6">
+    <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8">
+      <PageHeader
+        title="Banks"
+        description={`${banks.length} banks · per-bank quarterly BRSA audit reports`}
+        className="mb-3"
+      />
+      <div className="flex flex-wrap gap-4 text-xs text-muted-foreground mb-6">
         <Link
           href="/disclosures"
-          className="text-neutral-600 underline hover:text-neutral-900"
+          className="text-muted-foreground underline hover:text-foreground"
         >
           Recent KAP disclosures (all banks) →
         </Link>
         <Link
           href="/regulation"
-          className="text-neutral-600 underline hover:text-neutral-900"
+          className="text-muted-foreground underline hover:text-foreground"
         >
           TCMB &amp; BDDK regulation →
         </Link>
@@ -40,13 +42,13 @@ export default async function BanksPage() {
           <Link
             key={b.bank_ticker}
             href={`/banks/${b.bank_ticker}`}
-            className="block rounded-lg border bg-white p-4 hover:bg-neutral-50 transition"
+            className="block rounded-lg border bg-card p-4 hover:bg-accent transition"
           >
             <div className="flex items-baseline justify-between">
               <div className="font-medium">{BANK_NAMES[b.bank_ticker] ?? b.bank_ticker}</div>
-              <div className="text-xs text-neutral-400 tabular-nums">{b.bank_ticker}</div>
+              <div className="text-xs text-muted-foreground tabular-nums">{b.bank_ticker}</div>
             </div>
-            <div className="text-xs text-neutral-500 mt-1">
+            <div className="text-xs text-muted-foreground mt-1">
               {b.periods} quarters · latest {b.latest_period}
             </div>
           </Link>

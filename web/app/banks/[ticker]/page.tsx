@@ -15,6 +15,7 @@
  * Raw `item_name` from the database is never displayed.
  */
 import Link from "next/link";
+import { PageHeader } from "@/app/components/ui";
 import {
   bankPeriods,
   balanceSheetMultiPeriod,
@@ -89,13 +90,13 @@ function Row({ label, values, bold, divider, depth = 0 }: RowProps) {
   return (
     <tr
       className={
-        (bold ? "bg-neutral-50 " : "") +
-        (divider ? "border-t border-neutral-300 " : "border-b border-neutral-100")
+        (bold ? "bg-muted " : "") +
+        (divider ? "border-t border-border " : "border-b border-border")
       }
     >
       <td
         className={`py-1.5 pr-3 ${pl} text-xs ${
-          bold ? "font-semibold text-neutral-900" : muted ? "text-neutral-500" : "text-neutral-700"
+          bold ? "font-semibold text-foreground" : muted ? "text-muted-foreground" : "text-foreground"
         }`}
       >
         {label}
@@ -104,7 +105,7 @@ function Row({ label, values, bold, divider, depth = 0 }: RowProps) {
         <td
           key={i}
           className={`py-1.5 pl-2 pr-3 text-right text-xs tabular-nums ${
-            bold ? "font-semibold text-neutral-900" : muted ? "text-neutral-500" : "text-neutral-800"
+            bold ? "font-semibold text-foreground" : muted ? "text-muted-foreground" : "text-foreground"
           }`}
         >
           {fmtTl(v)}
@@ -212,62 +213,59 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   );
 
   return (
-    <main className="px-8 py-8 max-w-5xl">
-      {/* Header */}
-      <div className="flex items-baseline justify-between mb-2 gap-4 flex-wrap">
-        <div>
-          <h1 className="text-3xl font-bold">{bankDisplayName(ticker)}</h1>
-          <p className="text-xs text-neutral-500 tabular-nums mt-0.5">{ticker}</p>
-        </div>
-        <Link href="/banks" className="text-sm text-neutral-500 hover:text-neutral-900">
+    <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+      <PageHeader
+        eyebrow={ticker}
+        title={bankDisplayName(ticker)}
+        description="Standardized per-bank financials from quarterly BRSA reports"
+        className="mb-6"
+      >
+        <Link href="/banks" className="text-sm text-muted-foreground hover:text-foreground">
           ← All banks
         </Link>
-      </div>
-      <p className="text-sm text-neutral-500 mb-6">
-        Standardized per-bank financials from quarterly BRSA reports
-      </p>
+      </PageHeader>
 
       {/* Three toggle groups: statement / period view / consolidation kind */}
       <div className="mb-6 flex flex-wrap gap-3 items-center">
-        <div className="flex gap-1 rounded-lg border bg-neutral-50 p-1">
+        <div className="flex gap-1 rounded-lg border bg-muted p-1">
           {(["bs", "is"] as const).map((s) => (
             <Link
               key={s}
               href={url({ statement: s })}
               className={`px-3 py-1 text-xs rounded-md transition ${
                 s === statement
-                  ? "bg-white shadow-sm font-medium text-neutral-900"
-                  : "text-neutral-600 hover:text-neutral-900"
+                  ? "bg-card shadow-sm font-medium text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               {s === "bs" ? "Balance Sheet" : "Income Statement"}
             </Link>
           ))}
         </div>
-        <div className="flex gap-1 rounded-lg border bg-neutral-50 p-1">
+        <div className="flex gap-1 rounded-lg border bg-muted p-1">
           {(["annual", "quarterly"] as const).map((v) => (
             <Link
               key={v}
               href={url({ view: v })}
               className={`px-3 py-1 text-xs rounded-md transition ${
                 v === view
-                  ? "bg-white shadow-sm font-medium text-neutral-900"
-                  : "text-neutral-600 hover:text-neutral-900"
+                  ? "bg-card shadow-sm font-medium text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               {v === "annual" ? "Annual" : "Quarterly"}
             </Link>
           ))}
         </div>
-        <div className="flex gap-1 rounded-lg border bg-neutral-50 p-1">
+        <div className="flex gap-1 rounded-lg border bg-muted p-1">
           {(["unconsolidated", "consolidated"] as const).map((k) => (
             <Link
               key={k}
               href={url({ kind: k })}
               className={`px-3 py-1 text-xs rounded-md transition ${
                 k === kind
-                  ? "bg-white shadow-sm font-medium text-neutral-900"
-                  : "text-neutral-600 hover:text-neutral-900"
+                  ? "bg-card shadow-sm font-medium text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               {k === "consolidated" ? "Consolidated" : "Bank-only"}
@@ -284,20 +282,20 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
       />
 
       {/* Recent KAP disclosures */}
-      <div className="mb-6 rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
-        <div className="text-sm font-medium text-neutral-800 mb-3 flex items-baseline justify-between">
+      <div className="mb-6 rounded-xl border border-border bg-card p-4 shadow-sm">
+        <div className="text-sm font-medium text-foreground mb-3 flex items-baseline justify-between">
           <span>Recent KAP disclosures</span>
           {kapItems.length > 0 && (
             <Link
               href={`/disclosures?ticker=${ticker}`}
-              className="text-xs text-neutral-500 hover:text-neutral-900"
+              className="text-xs text-muted-foreground hover:text-foreground"
             >
               all {ticker} →
             </Link>
           )}
         </div>
         {kapItems.length === 0 ? (
-          <div className="text-xs text-neutral-500 italic">No disclosures cached.</div>
+          <div className="text-xs text-muted-foreground italic">No disclosures cached.</div>
         ) : (
           <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-2">
             {kapItems.map((it) => (
@@ -306,12 +304,12 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
                   href={it.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block hover:bg-neutral-50 -mx-1 px-1 py-1 rounded transition"
+                  className="block hover:bg-accent -mx-1 px-1 py-1 rounded transition"
                 >
-                  <div className="text-[10px] uppercase tracking-wide text-neutral-500 tabular-nums">
+                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground tabular-nums">
                     {new Date(it.published_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                   </div>
-                  <div className="text-neutral-900 leading-snug line-clamp-2">
+                  <div className="text-foreground leading-snug line-clamp-2">
                     {it.title}
                   </div>
                 </a>
@@ -323,14 +321,14 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
 
       {/* Balance Sheet — single table, assets and liabilities together */}
       {statement === "bs" && (
-      <section className="mb-6 rounded-lg border bg-white shadow-sm overflow-hidden">
-        <div className="px-5 py-3 border-b bg-neutral-50 flex items-baseline justify-between">
-          <h2 className="text-sm font-semibold text-neutral-900">Balance Sheet</h2>
-          <span className="text-[11px] text-neutral-500">All numbers in TL thousands</span>
+      <section className="mb-6 rounded-lg border bg-card shadow-sm overflow-hidden">
+        <div className="px-5 py-3 border-b bg-muted flex items-baseline justify-between">
+          <h2 className="text-sm font-semibold text-foreground">Balance Sheet</h2>
+          <span className="text-[11px] text-muted-foreground">All numbers in TL thousands</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
-            <thead className="text-neutral-500">
+            <thead className="text-muted-foreground">
               <tr className="border-b">
                 <th className="text-left py-2 pl-3 pr-3 font-medium">Breakdown</th>
                 {periods.map((p) => (
@@ -379,14 +377,14 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
 
       {/* Income Statement */}
       {statement === "is" && (
-      <section className="rounded-lg border bg-white shadow-sm overflow-hidden">
-        <div className="px-5 py-3 border-b bg-neutral-50 flex items-baseline justify-between">
-          <h2 className="text-sm font-semibold text-neutral-900">Income Statement</h2>
-          <span className="text-[11px] text-neutral-500">All numbers in TL thousands</span>
+      <section className="rounded-lg border bg-card shadow-sm overflow-hidden">
+        <div className="px-5 py-3 border-b bg-muted flex items-baseline justify-between">
+          <h2 className="text-sm font-semibold text-foreground">Income Statement</h2>
+          <span className="text-[11px] text-muted-foreground">All numbers in TL thousands</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
-            <thead className="text-neutral-500">
+            <thead className="text-muted-foreground">
               <tr className="border-b">
                 <th className="text-left py-2 pl-3 pr-3 font-medium">Breakdown</th>
                 {periods.map((p) => (
@@ -412,7 +410,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
       </section>
       )}
 
-      <p className="text-[11px] text-neutral-500 mt-3">
+      <p className="text-[11px] text-muted-foreground mt-3">
         Lines aligned by BRSA hierarchy code. &quot;--&quot; indicates the line was not
         reported for that period or did not extract. &quot;Total Assets&quot;,
         &quot;Total Liabilities&quot;, and &quot;Total Liabilities &amp; Equity&quot;

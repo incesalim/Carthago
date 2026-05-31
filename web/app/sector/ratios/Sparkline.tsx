@@ -1,6 +1,7 @@
 "use client";
 
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis } from "recharts";
+import { useChartTheme, tooltipStyles } from "@/app/lib/chart-theme";
 
 interface Point {
   period: string;
@@ -11,6 +12,7 @@ type FormatKind = "pct" | "trn" | "raw";
 
 interface Props {
   data: Point[];
+  /** Override the stroke colour; defaults to the brand chart colour. */
   color?: string;
   /** Tooltip format hint (cannot pass functions across the server/client boundary). */
   format?: FormatKind;
@@ -33,10 +35,15 @@ const formatters: Record<FormatKind, (v: number, d: number) => string> = {
 
 export default function Sparkline({
   data,
-  color = "#7a0d2e",
+  color,
   format = "raw",
   decimals = 2,
 }: Props) {
+  const t = useChartTheme();
+  const tt = tooltipStyles(t);
+  const stroke = color ?? t.palette[0];
+  const gradId = `spark-${stroke.replace(/[^a-z0-9]/gi, "")}`;
+
   if (!data.length) return <div className="h-10" />;
   const fmt = formatters[format];
 
@@ -45,19 +52,16 @@ export default function Sparkline({
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data} margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
           <defs>
-            <linearGradient id={`grad-${color}`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={color} stopOpacity={0.3} />
-              <stop offset="100%" stopColor={color} stopOpacity={0} />
+            <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={stroke} stopOpacity={0.3} />
+              <stop offset="100%" stopColor={stroke} stopOpacity={0} />
             </linearGradient>
           </defs>
           <XAxis dataKey="period" hide />
           <Tooltip
-            contentStyle={{
-              fontSize: 11,
-              padding: "4px 8px",
-              borderRadius: 4,
-              border: "1px solid #e5e5e5",
-            }}
+            contentStyle={tt.contentStyle}
+            labelStyle={tt.labelStyle}
+            itemStyle={tt.itemStyle}
             formatter={(v) => [fmt(Number(v), decimals), ""]}
             labelFormatter={(l) => String(l)}
             separator=""
@@ -65,9 +69,9 @@ export default function Sparkline({
           <Area
             type="monotone"
             dataKey="value"
-            stroke={color}
+            stroke={stroke}
             strokeWidth={1.5}
-            fill={`url(#grad-${color})`}
+            fill={`url(#${gradId})`}
             isAnimationActive={false}
           />
         </AreaChart>

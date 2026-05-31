@@ -21,6 +21,7 @@ import {
 import BarByBank from "@/app/components/BarByBank";
 import TrendChart from "@/app/components/TrendChart";
 import Sparkline from "@/app/sector/ratios/Sparkline";
+import { PageHeader, Stat } from "@/app/components/ui";
 import type { TimeSeriesRow } from "@/app/lib/metrics";
 
 export const dynamic = "force-dynamic";
@@ -37,28 +38,21 @@ interface KpiCardProps {
 }
 
 function KpiCard({ label, value, period, hint, series, format, decimals, tone = "neutral" }: KpiCardProps) {
-  const toneClass = {
-    neutral: "text-neutral-900",
-    positive: "text-emerald-700",
-    warn: "text-amber-700",
-  }[tone];
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm hover:shadow-md transition">
-      <div className="text-[10px] uppercase tracking-wider text-neutral-500 font-medium">{label}</div>
-      <div className={`mt-1.5 text-2xl font-semibold tabular-nums ${toneClass}`}>{value}</div>
-      <div className="mt-0.5 text-xs text-neutral-500">
-        {period}{hint ? ` · ${hint}` : ""}
-      </div>
+    <Stat
+      label={label}
+      value={value}
+      hint={`${period}${hint ? ` · ${hint}` : ""}`}
+      tone={tone === "warn" ? "warning" : tone}
+    >
       {series && series.length > 0 && (
-        <div className="mt-3 -mx-1">
-          <Sparkline
-            data={series.map((r) => ({ period: r.period, value: r.value ?? 0 }))}
-            format={format}
-            decimals={decimals}
-          />
-        </div>
+        <Sparkline
+          data={series.map((r) => ({ period: r.period, value: r.value ?? 0 }))}
+          format={format}
+          decimals={decimals}
+        />
       )}
-    </div>
+    </Stat>
   );
 }
 
@@ -97,13 +91,12 @@ export default async function OverviewPage() {
   const r = roe.at(-1);
 
   return (
-    <main className="px-8 py-8 space-y-8">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Banking Sector — Overview</h1>
-        <p className="text-sm text-neutral-500">
-          BDDK monthly bulletin · sector aggregate · live D1 query
-        </p>
-      </header>
+    <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
+      <PageHeader
+        eyebrow="Banking Sector"
+        title="Overview"
+        description="BDDK monthly bulletin · sector aggregate · live D1 query"
+      />
 
       {/* Top row — size + growth */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

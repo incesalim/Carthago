@@ -6,6 +6,7 @@
  */
 import { getDB } from "@/app/lib/db";
 import TotalAssetsChart from "./TotalAssetsChart";
+import { PageHeader, ChartCard } from "@/app/components/ui";
 
 // Per-request rendering — page reads from D1 each time, no static prerendering.
 export const dynamic = "force-dynamic";
@@ -39,13 +40,21 @@ export default async function SectorPage() {
   const latest = data.at(-1);
 
   return (
-    <main className="px-8 py-8">
-      <h1 className="text-3xl font-bold mb-2">Banking Sector — Total Assets</h1>
-      <p className="text-sm text-muted-foreground mb-6">
-        Live D1 query · {data.length} months loaded
-        {latest && ` · latest: ${latest.period} = ₺${(latest.total / 1_000_000).toFixed(1)} trn`}
-      </p>
-      <TotalAssetsChart data={data} />
+    <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-6">
+      <PageHeader
+        eyebrow="Banking Sector"
+        title="Total Assets"
+        description={
+          <>
+            Live D1 query · {data.length} months loaded
+            {latest &&
+              ` · latest: ${latest.period} = ₺${(latest.total / 1_000_000).toFixed(1)} trn`}
+          </>
+        }
+      />
+      <ChartCard title="Total Assets — sector (₺ trn)">
+        <TotalAssetsChart data={data} />
+      </ChartCard>
     </main>
   );
 }
