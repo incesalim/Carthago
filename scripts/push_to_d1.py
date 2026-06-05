@@ -195,16 +195,21 @@ def main() -> int:
                         help="Comma-separated table allow-list. "
                              "E.g. --only-tables=bank_audit_balance_sheet,bank_audit_extractions "
                              "to push just BS data when other tables (e.g. credit_quality) need a migration first.")
+    parser.add_argument("--db", type=str, default=str(DB),
+                        help="SQLite staging DB to push from (default data/bddk_data.db). "
+                             "The audit pipeline passes data/bank_audit.db so it can sync "
+                             "the bank_audit_* tables from its own standalone snapshot.")
     args = parser.parse_args()
 
-    if not DB.exists():
-        print(f"ERROR: {DB} not found", file=sys.stderr)
+    db = Path(args.db)
+    if not db.exists():
+        print(f"ERROR: {db} not found", file=sys.stderr)
         return 1
     if not (WEB / "wrangler.jsonc").exists():
         print(f"ERROR: {WEB}/wrangler.jsonc not found", file=sys.stderr)
         return 1
 
-    conn = sqlite3.connect(str(DB))
+    conn = sqlite3.connect(str(db))
     conn.execute("PRAGMA foreign_keys = OFF")
     # The R2 snapshot may predate recent schema additions (new bank_audit_*
     # tables, regulation_briefings). The daily news / EVDS workflows don't

@@ -20,6 +20,7 @@ Usage:
 """
 from __future__ import annotations
 
+import argparse
 import sqlite3
 import sys
 from pathlib import Path
@@ -107,10 +108,18 @@ LEFT JOIN s3_prov sp   USING (bank_ticker, period, kind, period_type)
 
 
 def main() -> None:
-    if not DB.exists():
-        print(f"ERROR: {DB} not found", file=sys.stderr)
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--db", type=str, default=str(DB),
+                    help="SQLite DB holding bank_audit_credit_quality (default "
+                         "data/bddk_data.db). The audit pipeline passes "
+                         "data/bank_audit.db.")
+    args = ap.parse_args()
+
+    db = Path(args.db)
+    if not db.exists():
+        print(f"ERROR: {db} not found", file=sys.stderr)
         sys.exit(1)
-    with sqlite3.connect(str(DB)) as conn:
+    with sqlite3.connect(str(db)) as conn:
         # Ensure the table exists (init_schema also creates it; this is a
         # no-op if so).
         conn.execute("""
