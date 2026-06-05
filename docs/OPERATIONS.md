@@ -13,7 +13,9 @@ machine involvement is required for routine refreshes.
 | Saturday 02:00 UTC | `refresh-bddk-bulletins.yml` | Monthly + weekly BDDK bulletins (no EVDS, no audit) → D1 |
 | Saturday 03:00 UTC | `refresh-data.yml` | Monthly + weekly BDDK + EVDS → D1 |
 | Sunday 04:00 UTC | `refresh-audit.yml` | Audit-report scrape + extract → `bank_audit_*` → D1 (own DB + snapshot) |
-| On push touching `web/**` | `deploy-cloudflare.yml` | Build OpenNext bundle, deploy to Cloudflare Workers |
+| Daily 06:00 UTC | `healthcheck.yml` | D1 freshness check → Telegram/Discord alert if stale/failing |
+| On push touching `web/**` | `deploy-cloudflare.yml` | Apply D1 migrations, build OpenNext bundle, deploy to Workers |
+| On every PR | `ci.yml` | ruff + pytest + eslint + tsc quality gates |
 
 All are also triggerable manually: **GitHub → Actions → pick
 workflow → Run workflow**.
@@ -32,8 +34,8 @@ refresh-evds-daily / refresh-audit) → Run workflow
 Or use the **/admin** control center's Pipeline trigger buttons (needs
 `GITHUB_DISPATCH_TOKEN`).
 
-> **Dashboard caching:** public pages cache their D1 reads for ~1h, so freshly
-> pushed data can take up to an hour to appear on the site even though D1 itself
+> **Dashboard caching:** public pages cache their D1 reads for ~12h, so freshly
+> pushed data can take up to ~12 hours to appear on the site even though D1 itself
 > is updated immediately. The `/admin` health view is uncached.
 
 ### One-off refresh from a local checkout (development)

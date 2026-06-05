@@ -55,7 +55,8 @@ The **weekly** bulletin numbers the same groups differently — see METRICS.md �
 | `<ticker>/<TICKER>_<period>_<kind>.pdf` | Cloudflare R2 (`bddk-audit-reports`) | audit cron when banks publish |
 | `state/bddk_data.db.gz` | Cloudflare R2 (same bucket) | bulletin/EVDS cron (bulletin lane snapshot) |
 | `state/bank_audit.db.gz` | Cloudflare R2 (same bucket) | audit cron (audit lane snapshot) |
-| Next.js page-data cache | Cloudflare KV (`NEXT_INC_CACHE_KV`) | dashboard render (1h TTL on D1 reads) |
+| `state/history/<lane>-YYYYMMDD.db.gz` | Cloudflare R2 (same bucket) | every cron — dated backup, last 7 kept |
+| Next.js page-data cache | Cloudflare KV (`NEXT_INC_CACHE_KV`) | dashboard render (12h TTL on D1 reads) |
 | `data/banks/audit_report_urls.json` | git | hand-edited via PR |
 | `data/banks/bddk_bank_list.json` | git | hand-edited via PR |
 | `src/`, `scripts/`, `web/` | git | hand-edited via PR |
@@ -69,13 +70,19 @@ concurrency group), so audit failures can't stall the bulletin pipeline:
 - `.github/workflows/refresh-bddk-bulletins.yml` — Sat 02:00 UTC. Monthly + weekly bulletins (no EVDS, no audit) → D1.
 - `.github/workflows/refresh-data.yml` — Sat 03:00 UTC. Monthly + weekly + EVDS → D1. *(Audit removed — now its own workflow.)*
 - `.github/workflows/refresh-audit.yml` — Sun 04:00 UTC. Audit-report sync + extract → `bank_audit_*` → D1. Own DB `data/bank_audit.db`, own snapshot `state/bank_audit.db.gz`, own group `bddk-audit`.
-- `.github/workflows/deploy-cloudflare.yml` — on push to `web/**`. Build + deploy dashboard.
+- `.github/workflows/deploy-cloudflare.yml` — on push to `web/**`. Apply D1 migrations + build + deploy dashboard.
+- `.github/workflows/healthcheck.yml` — daily 06:00 UTC. D1 freshness check → Telegram/Discord alert if stale.
+- `.github/workflows/ci.yml` — on PRs. ruff + pytest + eslint + tsc. (Dependency bumps via `dependabot.yml`.)
+
+Schema source of truth: hand-authored migrations in `web/migrations/`, applied
+by the deploy workflow (`wrangler d1 migrations apply`); `d1_migrations` tracks
+what's applied.
 
 ## Dashboard
 
 Next.js 15 + OpenNext on Cloudflare Workers — live at
 <https://turkish-banking-dashboard.incesalim10.workers.dev>. D1 reads are cached
-~1h via KV (`cachedAll` → `unstable_cache`), so repeat page views don't re-query
+~12h via KV (`cachedAll` → `unstable_cache`), so repeat page views don't re-query
 D1. A password-gated `/admin` control center (data health, refresh triggers,
 traffic) is unlocked by the `ADMIN_PASSWORD` Worker secret; optional
 `GITHUB_DISPATCH_TOKEN` enables the trigger buttons and Web-Analytics creds the
