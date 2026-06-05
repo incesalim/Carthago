@@ -1,21 +1,24 @@
-"""Generate D1 migration files from data/bddk_data.db.
+"""Generate one-off D1 DATA-SEED dumps from data/bddk_data.db.
 
-Splits into 4 files (Option A):
-  0001_audit.sql         — bank_audit_* tables (~30 MB)
+NOTE: this is for *bulk data seeding only* (e.g. first-time hydration of a fresh
+D1). The SCHEMA source of truth is the hand-authored, version-controlled
+migrations in web/migrations/ (applied via `wrangler d1 migrations apply`).
+Routine row updates go through scripts/push_to_d1.py — you rarely need this.
+
+Output goes to web/seeds/ (gitignored, regenerable):
+  0001_audit.sql         — bank_audit_* tables
   0002_monthly_core.sql  — balance_sheet, income_statement, loans, deposits,
-                           financial_ratios + small reference tables (~65 MB)
-  0003_monthly_other.sql — other_data only (~71 MB)
-  0004_weekly.sql        — weekly_series + weekly_bulletin (~80 MB)
+                           financial_ratios + small reference tables
+  0003_monthly_other.sql — other_data only
+  0004_weekly.sql        — weekly_series + weekly_bulletin
 
 Run from project root:
     python scripts/generate_d1_migrations.py
 
-Then apply with wrangler:
+Then apply (after the schema migrations) with wrangler:
     cd web
-    npx wrangler d1 execute bddk-data --remote --file=migrations/0001_audit.sql
-    npx wrangler d1 execute bddk-data --remote --file=migrations/0002_monthly_core.sql
-    npx wrangler d1 execute bddk-data --remote --file=migrations/0003_monthly_other.sql
-    npx wrangler d1 execute bddk-data --remote --file=migrations/0004_weekly.sql
+    npx wrangler d1 execute bddk-data --remote --file=seeds/0001_audit.sql
+    # …etc for the other seed files
 """
 from __future__ import annotations
 
@@ -28,7 +31,8 @@ sys.stdout.reconfigure(encoding="utf-8")
 
 ROOT = Path(__file__).resolve().parent.parent
 DB = ROOT / "data" / "bddk_data.db"
-OUT = ROOT / "web" / "migrations"
+# Data seeds only — schema lives in web/migrations/ (hand-authored, tracked).
+OUT = ROOT / "web" / "seeds"
 
 GROUPS = {
     "0001_audit": [
@@ -163,9 +167,9 @@ def main() -> None:
             print(f"  ⚠ {group_name} is {size_mb:.0f} MB — close to D1's 100 MB import limit")
 
     print(f"\nwrote {len(GROUPS)} files to {OUT}")
-    print("\nApply with:")
+    print("\nApply with (after `wrangler d1 migrations apply`):")
     for g in GROUPS:
-        print(f"  npx wrangler d1 execute bddk-data --remote --file=migrations/{g}.sql")
+        print(f"  npx wrangler d1 execute bddk-data --remote --file=seeds/{g}.sql")
 
 
 if __name__ == "__main__":
