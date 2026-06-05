@@ -35,9 +35,17 @@ use phrasings not yet covered by the regex patterns.
 
 ## Bank-type taxonomy
 
-Sector (10001) = Private Deposit (10005) + State Deposit (10006) + Foreign
-Deposit (10007) + Participation (10003) + Dev&Inv (10004). The weekly
-bulletin uses different code mappings — see METRICS.md §2.
+Monthly `bank_type_code` (per the `bank_types` table) gives TWO overlapping
+partitions of the sector — never add across them:
+
+- **By type** (= Sector 10001): Deposit (10002) + Participation (10003) + Dev&Inv (10004)
+- **By ownership, all types** (= Sector 10001): Private/Yerli Özel (10005) + State/Kamu (10006) + Foreign/Yabancı (10007)
+- **Deposit-only ownership**: Deposit-Private (10008) / Deposit-State (10009) / Deposit-Foreign (10010)
+
+`10006` "State" therefore spans every type — it includes state-owned
+participation (Ziraat/Vakıf/Emlak Katılım) and development banks (Eximbank,
+Kalkınma, İller), not just the three state deposit banks (those are `10009`).
+The **weekly** bulletin numbers the same groups differently — see METRICS.md §2.
 
 ## Storage map
 
