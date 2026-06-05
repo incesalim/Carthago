@@ -53,28 +53,38 @@ Loans) is an exception — published in **thousand TL**.
 ## 2. Bank-type taxonomy
 
 Defined in [`web/app/lib/metrics.ts`](../web/app/lib/metrics.ts) as the
-`BANK_TYPES` and `WEEKLY_BANK_TYPES` constants. (The same numeric codes
-mean different banks in the monthly vs. weekly BDDK APIs — both
-mappings live in that file.)
+`BANK_TYPES` (monthly) and `WEEKLY_BANK_TYPES` (weekly) constants. ⚠ The same
+numeric codes mean **different** banks in the monthly vs. weekly feeds — both
+mappings live in that file. The table below is the **monthly** scheme
+(balance_sheet, financial_ratios, loans, deposits), matching the `bank_types`
+DB table; for `weekly_series` codes see §4.
 
 | Code | Name (EN) | Name (TR) |
 |---|---|---|
-| 10001 | Sector | Sektör |
-| 10002 | Deposit Banks | Mevduat Bankaları |
-| 10003 | Private Deposit Banks | Özel Mevduat Bankaları |
-| 10004 | State Deposit Banks | Kamu Mevduat Bankaları |
-| 10005 | Foreign Deposit Banks | Yabancı Mevduat Bankaları |
-| 10006 | Participation Banks | Katılım Bankaları |
-| 10007 | Dev & Investment Banks | Kalkınma ve Yatırım Bankaları |
-| 10008 | Domestic Private (all models) | Yerli Özel Bankalar |
-| 10009 | Public Banks (all models) | Kamu Bankaları |
-| 10010 | Foreign Banks (all models) | Yabancı Bankalar |
+| 10001 | Entire Sector | Sektör |
+| 10002 | Deposit Banks | Mevduat |
+| 10003 | Participation Banks | Katılım |
+| 10004 | Development & Investment Banks | Kalkınma ve Yatırım |
+| 10005 | Local Private Banks (all types) | Yerli Özel |
+| 10006 | State Banks (all types) | Kamu |
+| 10007 | Foreign Banks (all types) | Yabancı |
+| 10008 | Deposit Banks – Local Private | Mevduat-Yerli Özel |
+| 10009 | Deposit Banks – State | Mevduat-Kamu |
+| 10010 | Deposit Banks – Foreign | Mevduat-Yabancı |
 
-**Additivity:** Sector 10001 = 10003 + 10004 + 10005 + 10006 + 10007.
-Codes 10008–10010 are an alternative ownership-only cut (do not add up
-with 10001).
+**Two overlapping partitions** (verified vs 2026-03 data, total assets, trn TL):
+- **By type** → Sector: `10002` (41.8) + `10003` (4.7) + `10004` (3.2) = 49.7 = `10001`
+- **By ownership, all types** → Sector: `10005` (14.3) + `10006` (23.3) + `10007` (12.2) = 49.7 = `10001`
+- **Deposit ownership** → Deposit: `10008` (13.3) + `10009` (18.7) + `10010` (9.7) = 41.8 = `10002`
 
-The dashboard uses `PRIMARY_BANK_TYPES = ['10001','10003','10004','10005','10006','10007']`.
+⚠ The two partitions **overlap** — do NOT sum `{10005,10006,10007}` together with
+`{10003,10004}`; that double-counts participation + development banks (→ 57.7 trn,
+not 49.7). So `10006` "State" already includes state-owned participation banks
+(Ziraat/Vakıf/Emlak Katılım) and development banks (Eximbank, Kalkınma, İller);
+the three state *deposit* banks alone are `10009`.
+
+The dashboard's `PRIMARY_BANK_TYPES = ['10001','10005','10006','10007','10003','10004']`
+fetches these for **side-by-side comparison**, not as a summed breakdown.
 
 ---
 
@@ -424,26 +434,32 @@ weekly_series(
 
 All values in million TL. Dates are published Fridays.
 
-### ⚠ Bank-type code remap — CRITICAL
-The weekly and monthly APIs use **the same code range `10001–10010` but
-assign them to different bank types**. The scraper normalises to the
-MONTHLY scheme on write, so every other table and this file use the
-monthly codes consistently.
+### ⚠ Bank-type codes: weekly ≠ monthly — CRITICAL
+The weekly and monthly BDDK feeds reuse **the same numeric range `10001–10010`
+for different bank groups.** The weekly scraper remaps the weekly-API codes
+(`WEEKLY_TO_MONTHLY_CODE` in [weekly_api_scraper.py](../src/scrapers/weekly_api_scraper.py))
+and stores them, but the **stored numbers still don't match the monthly tables**
+in §2 — they match `WEEKLY_BANK_TYPES`. So **read `weekly_series` with
+`WEEKLY_BANK_TYPES`, never `BANK_TYPES`.** (The remap dict's inline comments name
+the targets with monthly labels that are wrong vs §2 — cosmetic only; values are
+read back with the matching weekly mapping, so charts are correct.)
 
-| Weekly API | Name returned | Stored as (monthly) | Monthly name |
-|---|---|---|---|
-| 10001 | Sektör | 10001 | Sector |
-| 10002 | Mevduat | 10002 | Deposit Banks |
-| 10003 | Kalkınma ve Yatırım | **10007** | Dev & Investment Banks |
-| 10004 | Katılım | **10006** | Participation Banks |
-| 10005 | Kamu | **10009** | Public Banks (all) |
-| 10006 | Yabancı | **10010** | Foreign Banks (all) |
-| 10007 | Yerli Özel | **10008** | Domestic Private (all) |
-| 10008 | Mevduat - Kamu | **10004** | State Deposit Banks |
-| 10009 | Mevduat - Yabancı | **10005** | Foreign Deposit Banks |
-| 10010 | Mevduat - Yerli Özel | **10003** | Private Deposit Banks |
+What `weekly_series.bank_type_code` actually holds (the scraper fetches only this
+primary set), and how the SAME number differs in the monthly tables:
 
-See `WEEKLY_TO_MONTHLY_CODE` in [weekly_api_scraper.py](../src/scrapers/weekly_api_scraper.py).
+| weekly_series code | Weekly group (`WEEKLY_BANK_TYPES`) | Same code in MONTHLY (§2) |
+|---|---|---|
+| 10001 | Sector | Sector ✓ |
+| 10003 | Private (deposit) | Participation ✗ |
+| 10004 | State (deposit) | Dev & Investment ✗ |
+| 10005 | Foreign (deposit) | Private, all types ✗ |
+| 10006 | Participation | State, all types ✗ |
+| 10007 | Dev & Investment | Foreign, all types ✗ |
+
+Verified vs live data (weekly total loans `1.0.1`, trn TL): `10004` = 9.6 (State
+deposit — Participation's whole asset base is only 4.7, so `10004` can't be
+Participation), `10003` = 7.0, `10005` = 5.4, `10006` = 2.1, `10007` = 1.9; these
+sum to the sector (25.9).
 
 ### Item catalogue (124 items across 7 categories)
 Chart IDs follow `{category}.0.{item}` format. Each item is available for
