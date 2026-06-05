@@ -183,6 +183,35 @@ def delete(key: str) -> None:
     client.delete_object(Bucket=_bucket(), Key=key)
 
 
+# ---------------------------------------------------------------------------
+# Snapshot history — keep dated backups so a bad run can't destroy the only copy
+# ---------------------------------------------------------------------------
+def upload_history(local_gz: str | Path, lane: str, date_str: str, keep: int = 7) -> str:
+    """Upload a dated backup of a snapshot to state/history/<lane>-<date>.db.gz
+    and prune older copies to the newest `keep`. `date_str` is YYYYMMDD (passed
+    in by the caller so the key sorts chronologically). Returns the key written.
+
+    R2 free tier easily covers this: 7 × ~55 MB ≈ 0.4 GB and a handful of
+    Class-A ops per run.
+    """
+    key = f"state/history/{lane}-{date_str}.db.gz"
+    upload_file(local_gz, key, content_type="application/gzip")
+    prune_history(lane, keep)
+    return key
+
+
+def prune_history(lane: str, keep: int = 7) -> int:
+    """Keep only the newest `keep` dated snapshots for a lane, delete the rest.
+    Returns the number deleted. Keys are `state/history/<lane>-YYYYMMDD.db.gz`,
+    so a lexicographic sort is chronological."""
+    prefix = f"state/history/{lane}-"
+    keys = sorted(k for k, _ in list_keys(prefix) if k.endswith(".db.gz"))
+    to_delete = keys[:-keep] if len(keys) > keep else []
+    for k in to_delete:
+        delete(k)
+    return len(to_delete)
+
+
 if __name__ == "__main__":
     # Smoke test: list everything in the bucket
     import sys
