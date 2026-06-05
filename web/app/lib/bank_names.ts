@@ -53,12 +53,13 @@ export function bankDisplayName(ticker: string): string {
  * data/banks/bddk_bank_list.json. Deliberate consequences so the per-bank tag
  * always agrees with the State/Private/Foreign lines on the sector charts
  * (both read these same five codes):
- *   • Foreign-OWNED deposit banks are Foreign, even though they're everyday
- *     "private" names: GARAN (BBVA), DENIZ (Emirates NBD), QNBFB (Qatar),
- *     TEB (BNP Paribas), BURGAN (Kuwait), ALNTF (Qatar CB), ODEA (Bank Audi),
- *     ATBANK (Libyan Foreign Bank).
- *   • İş Bankası (ISCTR) is Private — the only State deposit banks are Ziraat,
- *     Halkbank, VakıfBank.
+ *   • Foreign-OWNED deposit banks get the Foreign/Yabancı code (10007). They
+ *     are still PRIVATE banks — just foreign capital — so the badge labels them
+ *     "Private · Foreign" (BANK_TYPE_BADGE_LABELS): GARAN (BBVA),
+ *     DENIZ (Emirates NBD), QNBFB (Qatar), TEB (BNP Paribas), BURGAN (Kuwait),
+ *     ALNTF (Qatar CB), ODEA (Bank Audi), ATBANK (Libyan Foreign Bank).
+ *   • İş Bankası (ISCTR) is domestic-private — the only State deposit banks
+ *     are Ziraat, Halkbank, VakıfBank.
  *   • Participation / Dev&Inv are their own groups regardless of owner, so
  *     state-owned Ziraat Katılım / Vakıf Katılım / Emlak Katılım / Eximbank /
  *     Kalkınma sit there, not under State.
@@ -79,6 +80,21 @@ export const BANK_TYPE_BY_TICKER: Record<string, string> = {
   // Development & investment (Kalkınma ve Yatırım)
   TSKB: "10004", EXIM: "10004", KLNMA: "10004",
   AKTIF: "10004", PASHA: "10004",
+};
+
+/**
+ * Display labels for the per-bank pill on /banks. BDDK's "Özel" means
+ * DOMESTIC-private, so its separate "Yabancı/Foreign" group is still private —
+ * just foreign capital. The labels make that explicit (both deposit-private
+ * codes read "Private · …") while the codes stay distinct so each pill keeps
+ * its own sector-chart colour.
+ */
+export const BANK_TYPE_BADGE_LABELS: Record<string, string> = {
+  "10006": "State",
+  "10005": "Private · Domestic",
+  "10007": "Private · Foreign",
+  "10003": "Participation",
+  "10004": "Dev & Inv",
 };
 
 export function bankTypeCode(ticker: string): string | undefined {

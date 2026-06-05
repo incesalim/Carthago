@@ -7,8 +7,7 @@
  */
 import Link from "next/link";
 import { bankSummaries } from "@/app/lib/audit";
-import { BANK_NAMES, BANK_TYPE_BY_TICKER } from "@/app/lib/bank_names";
-import { BANK_TYPE_LABELS } from "@/app/lib/metrics";
+import { BANK_NAMES, BANK_TYPE_BY_TICKER, BANK_TYPE_BADGE_LABELS } from "@/app/lib/bank_names";
 import { PageHeader } from "@/app/components/ui";
 import BankTypeBadge from "@/app/components/BankTypeBadge";
 
@@ -57,7 +56,7 @@ export default async function BanksPage() {
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="font-medium truncate">{BANK_NAMES[b.bank_ticker] ?? b.bank_ticker}</span>
                   {typeCode && (
-                    <BankTypeBadge code={typeCode} label={BANK_TYPE_LABELS[typeCode]} />
+                    <BankTypeBadge code={typeCode} label={BANK_TYPE_BADGE_LABELS[typeCode]} />
                   )}
                 </div>
                 <div className="text-xs text-muted-foreground tabular-nums shrink-0">{b.bank_ticker}</div>
