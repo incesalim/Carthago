@@ -86,6 +86,9 @@ export default function StackedArea({
             />
             <Tooltip
               {...tt}
+              // Order tooltip rows by `series` (= stack + legend order); Recharts
+              // otherwise uses its own internal series order.
+              itemSorter={(item) => series.findIndex((s) => s.key === String(item.dataKey))}
               formatter={(value, name, item) => {
                 if (value == null) return ["—", name];
                 if (percentStack) {
