@@ -94,7 +94,7 @@ export default function TimeSeriesChart({
             />
             <Tooltip
               {...tt}
-              formatter={(v) => [v == null ? "—" : fmt(Number(v), decimals), ""]}
+              formatter={(v, name) => [v == null ? "—" : fmt(Number(v), decimals), name]}
               labelFormatter={(l) => String(l)}
             />
             <Legend wrapperStyle={{ fontSize: 11 }} iconType="line" />

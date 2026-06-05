@@ -102,7 +102,7 @@ export default function TrendChart({
             {zeroLine && <ReferenceLine y={0} stroke={t.reference} strokeDasharray="3 3" />}
             <Tooltip
               {...tt}
-              formatter={(v) => [v == null ? "—" : fmt(Number(v), decimals), ""]}
+              formatter={(v, name) => [v == null ? "—" : fmt(Number(v), decimals), name]}
               labelFormatter={(l) => String(l)}
             />
             <Legend
