@@ -21,7 +21,7 @@
  * state-owned participation + development banks; the three state *deposit*
  * banks alone are 10009.
  */
-import { cachedAll, getDB } from "./db";
+import { cachedAll } from "./db";
 
 // ---------------------------------------------------------------------------
 // Bank-type taxonomy
@@ -380,11 +380,9 @@ export const demandDeposits = (bankTypes?: string[]) =>
 export async function tlDeposits(
   bankTypes: string[] = PRIMARY_BANK_TYPES,
 ): Promise<TimeSeriesRow[]> {
-  const db = await getDB();
   const placeholders = bankTypes.map(() => "?").join(",");
-  const { results } = await db
-    .prepare(
-      `SELECT
+  return cachedAll<TimeSeriesRow>(
+    `SELECT
          year || '-' || PRINTF('%02d', month) AS period,
          bank_type_code,
          SUM(total_amount) AS value
@@ -397,21 +395,17 @@ export async function tlDeposits(
          AND bank_type_code IN (${placeholders})
        GROUP BY year, month, bank_type_code
        ORDER BY year, month, bank_type_code`,
-    )
-    .bind(...bankTypes)
-    .all<TimeSeriesRow>();
-  return results;
+    [...bankTypes],
+  );
 }
 
 /** FX deposits in TL equivalent = Döviz Tevdiat (Yurt İçi + Yurt Dışı Yerleşik). */
 export async function fxDeposits(
   bankTypes: string[] = PRIMARY_BANK_TYPES,
 ): Promise<TimeSeriesRow[]> {
-  const db = await getDB();
   const placeholders = bankTypes.map(() => "?").join(",");
-  const { results } = await db
-    .prepare(
-      `SELECT
+  return cachedAll<TimeSeriesRow>(
+    `SELECT
          year || '-' || PRINTF('%02d', month) AS period,
          bank_type_code,
          SUM(total_amount) AS value
@@ -424,10 +418,8 @@ export async function fxDeposits(
          AND bank_type_code IN (${placeholders})
        GROUP BY year, month, bank_type_code
        ORDER BY year, month, bank_type_code`,
-    )
-    .bind(...bankTypes)
-    .all<TimeSeriesRow>();
-  return results;
+    [...bankTypes],
+  );
 }
 
 /**
@@ -437,10 +429,8 @@ export async function fxDeposits(
 export async function depositMaturityMix(
   bankType: string = BANK_TYPES.SECTOR,
 ): Promise<Array<{ period: string } & Record<string, number>>> {
-  const db = await getDB();
-  const { results } = await db
-    .prepare(
-      `SELECT
+  return cachedAll<{ period: string } & Record<string, number>>(
+    `SELECT
          year || '-' || PRINTF('%02d', month) AS period,
          demand, maturity_1m, maturity_1_3m, maturity_3_6m, maturity_6_12m, maturity_over_12m
        FROM deposits
@@ -448,12 +438,8 @@ export async function depositMaturityMix(
          AND currency = 'TL'
          AND bank_type_code = ?
        ORDER BY year, month`,
-    )
-    .bind(bankType)
-    .all<{ period: string; demand: number; maturity_1m: number;
-            maturity_1_3m: number; maturity_3_6m: number;
-            maturity_6_12m: number; maturity_over_12m: number }>();
-  return results;
+    [bankType],
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -464,10 +450,8 @@ export async function depositMaturityMix(
 export async function consumerMix(
   bankType: string = BANK_TYPES.SECTOR,
 ): Promise<Array<{ period: string; housing: number; auto: number; gpl: number; cards: number }>> {
-  const db = await getDB();
-  const { results } = await db
-    .prepare(
-      `SELECT
+  return cachedAll<{ period: string; housing: number; auto: number; gpl: number; cards: number }>(
+    `SELECT
          year || '-' || PRINTF('%02d', month) AS period,
          SUM(CASE WHEN item_name = 'Tüketici Kredileri - Konut'    THEN total_amount END) AS housing,
          SUM(CASE WHEN item_name = 'Tüketici Kredileri - Taşıt'    THEN total_amount END) AS auto,
@@ -479,10 +463,8 @@ export async function consumerMix(
          AND bank_type_code = ?
        GROUP BY year, month
        ORDER BY year, month`,
-    )
-    .bind(bankType)
-    .all<{ period: string; housing: number; auto: number; gpl: number; cards: number }>();
-  return results;
+    [bankType],
+  );
 }
 
 /** YoY of one consumer segment, sector only. */
@@ -501,10 +483,8 @@ export async function consumerSegmentYoY(
 export async function consumerNplMix(): Promise<
   Array<{ period: string; housing: number; auto: number; gpl: number; cards: number }>
 > {
-  const db = await getDB();
-  const { results } = await db
-    .prepare(
-      `SELECT
+  return cachedAll<{ period: string; housing: number; auto: number; gpl: number; cards: number }>(
+    `SELECT
          year || '-' || PRINTF('%02d', month) AS period,
          SUM(CASE WHEN item_name = 'Takipteki Konut Kredileri'         THEN total_amount END) AS housing,
          SUM(CASE WHEN item_name = 'Takipteki Taşıt Kredileri'         THEN total_amount END) AS auto,
@@ -516,9 +496,7 @@ export async function consumerNplMix(): Promise<
          AND bank_type_code = '10001'
        GROUP BY year, month
        ORDER BY year, month`,
-    )
-    .all<{ period: string; housing: number; auto: number; gpl: number; cards: number }>();
-  return results;
+  );
 }
 
 /** Per-segment NPL ratio (%) for consumer products, sector only.
@@ -528,10 +506,8 @@ export async function consumerNplMix(): Promise<
 export async function consumerNplRatios(): Promise<
   Array<{ period: string; housing: number | null; auto: number | null; gpl: number | null; cards: number | null }>
 > {
-  const db = await getDB();
-  const { results } = await db
-    .prepare(
-      `WITH s AS (
+  return cachedAll<{ period: string; housing: number | null; auto: number | null; gpl: number | null; cards: number | null }>(
+    `WITH s AS (
          SELECT year, month, item_name, SUM(total_amount) AS amt
          FROM loans
          WHERE table_number = 4
@@ -566,9 +542,7 @@ export async function consumerNplRatios(): Promise<
        FROM s
        GROUP BY year, month
        ORDER BY year, month`,
-    )
-    .all<{ period: string; housing: number | null; auto: number | null; gpl: number | null; cards: number | null }>();
-  return results;
+  );
 }
 
 /** Commercial NPL ratios (SME, Commercial total, Non-SME) from weekly_series.
@@ -578,10 +552,8 @@ export async function consumerNplRatios(): Promise<
 export async function commercialNplRatios(): Promise<
   Array<{ period: string; sme: number | null; commercial: number | null; non_sme: number | null }>
 > {
-  const db = await getDB();
-  const { results } = await db
-    .prepare(
-      `WITH s AS (
+  return cachedAll<{ period: string; sme: number | null; commercial: number | null; non_sme: number | null }>(
+    `WITH s AS (
          SELECT period_date AS period, item_id, value
          FROM weekly_series
          WHERE bank_type_code = '10001' AND currency = 'TOTAL'
@@ -607,9 +579,7 @@ export async function commercialNplRatios(): Promise<
        FROM s
        GROUP BY period
        ORDER BY period`,
-    )
-    .all<{ period: string; sme: number | null; commercial: number | null; non_sme: number | null }>();
-  return results;
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -620,10 +590,8 @@ export async function commercialNplRatios(): Promise<
 export async function consumerSegmentYoYAll(): Promise<
   Array<{ period: string; housing: number | null; auto: number | null; gpl: number | null; cards: number | null }>
 > {
-  const db = await getDB();
-  const { results } = await db
-    .prepare(
-      `WITH s AS (
+  return cachedAll<{ period: string; housing: number | null; auto: number | null; gpl: number | null; cards: number | null }>(
+    `WITH s AS (
          SELECT year, month, item_name, SUM(total_amount) AS amt
          FROM loans
          WHERE table_number = 4
@@ -651,19 +619,15 @@ export async function consumerSegmentYoYAll(): Promise<
        FROM wide a
        JOIN wide b ON b.year = a.year - 1 AND b.month = a.month
        ORDER BY a.year, a.month`,
-    )
-    .all<{ period: string; housing: number | null; auto: number | null; gpl: number | null; cards: number | null }>();
-  return results;
+  );
 }
 
 /** Credit cards split — Retail Cards vs Corporate Cards level, sector only. */
 export async function cardsSplit(): Promise<
   Array<{ period: string; retail: number | null; corporate: number | null }>
 > {
-  const db = await getDB();
-  const { results } = await db
-    .prepare(
-      `SELECT
+  return cachedAll<{ period: string; retail: number | null; corporate: number | null }>(
+    `SELECT
          year || '-' || PRINTF('%02d', month) AS period,
          MAX(CASE WHEN item_name='Bireysel Kredi Kartları (10+11)' THEN total_amount END) AS retail,
          MAX(CASE WHEN item_name='Kurumsal Kredi Kartları (28+29)**' THEN total_amount END) AS corporate
@@ -674,19 +638,15 @@ export async function cardsSplit(): Promise<
          AND item_name IN ('Bireysel Kredi Kartları (10+11)', 'Kurumsal Kredi Kartları (28+29)**')
        GROUP BY year, month
        ORDER BY year, month`,
-    )
-    .all<{ period: string; retail: number | null; corporate: number | null }>();
-  return results;
+  );
 }
 
 /** SME breakdown by size — Micro / Small / Medium level, sector only. */
 export async function smeBreakdown(): Promise<
   Array<{ period: string; micro: number | null; small: number | null; medium: number | null }>
 > {
-  const db = await getDB();
-  const { results } = await db
-    .prepare(
-      `SELECT
+  return cachedAll<{ period: string; micro: number | null; small: number | null; medium: number | null }>(
+    `SELECT
          year || '-' || PRINTF('%02d', month) AS period,
          MAX(CASE WHEN item_name='Mikro İşletmelere Kullandırılan Krediler'           THEN total_amount END) AS micro,
          MAX(CASE WHEN item_name='Küçük İşletmelere Kullandırılan Krediler'          THEN total_amount END) AS small,
@@ -697,9 +657,7 @@ export async function smeBreakdown(): Promise<
          AND bank_type_code = '10001'
        GROUP BY year, month
        ORDER BY year, month`,
-    )
-    .all<{ period: string; micro: number | null; small: number | null; medium: number | null }>();
-  return results;
+  );
 }
 
 /** TL loans YoY by bank type. */
@@ -710,11 +668,9 @@ export const tlLoansYoY = (bankTypes: string[] = PRIMARY_BANK_TYPES) =>
 export async function smeLoans(
   bankTypes: string[] = PRIMARY_BANK_TYPES,
 ): Promise<TimeSeriesRow[]> {
-  const db = await getDB();
   const placeholders = bankTypes.map(() => "?").join(",");
-  const { results } = await db
-    .prepare(
-      `SELECT
+  return cachedAll<TimeSeriesRow>(
+    `SELECT
          year || '-' || PRINTF('%02d', month) AS period,
          bank_type_code,
          total_amount AS value
@@ -724,10 +680,8 @@ export async function smeLoans(
          AND currency = 'TL'
          AND bank_type_code IN (${placeholders})
        ORDER BY year, month, bank_type_code`,
-    )
-    .bind(...bankTypes)
-    .all<TimeSeriesRow>();
-  return results;
+    [...bankTypes],
+  );
 }
 
 /** SME YoY growth. */
@@ -744,11 +698,9 @@ async function _growthYoYExact(
   itemName: string,
   bankTypes: string[],
 ): Promise<TimeSeriesRow[]> {
-  const db = await getDB();
   const placeholders = bankTypes.map(() => "?").join(",");
-  const { results } = await db
-    .prepare(
-      `WITH s AS (
+  return cachedAll<TimeSeriesRow>(
+    `WITH s AS (
          SELECT year, month, bank_type_code, ${amountCol} AS amt
          FROM ${table}
          WHERE item_name = ? AND currency = 'TL'
@@ -763,10 +715,8 @@ async function _growthYoYExact(
               AND b.year = a.year - 1
               AND b.month = a.month
        ORDER BY a.year, a.month, a.bank_type_code`,
-    )
-    .bind(itemName, ...bankTypes)
-    .all<TimeSeriesRow>();
-  return results;
+    [itemName, ...bankTypes],
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -803,11 +753,9 @@ const SPECS: Record<string, GrowthSpec> = {
 
 /** Year-over-year % change (vs same month last year). */
 async function _growthYoY(spec: GrowthSpec, bankTypes: string[]) {
-  const db = await getDB();
   const placeholders = bankTypes.map(() => "?").join(",");
-  const { results } = await db
-    .prepare(
-      `WITH s AS (
+  return cachedAll<TimeSeriesRow>(
+    `WITH s AS (
          SELECT year, month, bank_type_code, ${spec.amountColumn} AS amt
          FROM ${spec.table}
          WHERE item_name = ? AND currency = 'TL'
@@ -822,19 +770,15 @@ async function _growthYoY(spec: GrowthSpec, bankTypes: string[]) {
               AND b.year = a.year - 1
               AND b.month = a.month
        ORDER BY a.year, a.month, a.bank_type_code`,
-    )
-    .bind(spec.itemName, ...bankTypes)
-    .all<TimeSeriesRow>();
-  return results;
+    [spec.itemName, ...bankTypes],
+  );
 }
 
 /** Month-over-month % change. */
 async function _growthMoM(spec: GrowthSpec, bankTypes: string[]) {
-  const db = await getDB();
   const placeholders = bankTypes.map(() => "?").join(",");
-  const { results } = await db
-    .prepare(
-      `WITH s AS (
+  return cachedAll<TimeSeriesRow>(
+    `WITH s AS (
          SELECT
            year || '-' || PRINTF('%02d', month) AS period,
            bank_type_code,
@@ -849,10 +793,8 @@ async function _growthMoM(spec: GrowthSpec, bankTypes: string[]) {
        FROM s
        WHERE prev_amt IS NOT NULL
        ORDER BY period, bank_type_code`,
-    )
-    .bind(spec.itemName, ...bankTypes)
-    .all<TimeSeriesRow>();
-  return results;
+    [spec.itemName, ...bankTypes],
+  );
 }
 
 export const totalAssetsYoY = (bankTypes: string[] = PRIMARY_BANK_TYPES) =>
