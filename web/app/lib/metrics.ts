@@ -13,7 +13,7 @@
  *   10006 = Participation banks (Katılım)
  *   10007 = Development & investment banks (Kalkınma & Yatırım)
  */
-import { getDB } from "./db";
+import { cachedAll, getDB } from "./db";
 
 // ---------------------------------------------------------------------------
 // Bank-type taxonomy
@@ -100,14 +100,12 @@ async function getPublishedRatio(
   tableNumber = 15,
   annualize = false,
 ): Promise<TimeSeriesRow[]> {
-  const db = await getDB();
   const placeholders = bankTypes.map(() => "?").join(",");
   const valueExpr = annualize
     ? "ratio_value * 12.0 / month"
     : "ratio_value";
-  const { results } = await db
-    .prepare(
-      `SELECT
+  return cachedAll<TimeSeriesRow>(
+    `SELECT
          year || '-' || PRINTF('%02d', month) AS period,
          bank_type_code,
          ${valueExpr} AS value
@@ -116,10 +114,8 @@ async function getPublishedRatio(
          AND item_name = ?
          AND bank_type_code IN (${placeholders})
        ORDER BY year, month, bank_type_code`,
-    )
-    .bind(tableNumber, itemName, ...bankTypes)
-    .all<TimeSeriesRow>();
-  return results;
+    [tableNumber, itemName, ...bankTypes],
+  );
 }
 
 /** NPL ratio (Takipteki Alacaklar Brüt / Toplam Nakdi Krediler). */
@@ -233,11 +229,9 @@ async function getBalanceItem(
   bankTypes: string[] = PRIMARY_BANK_TYPES,
   currency: "TL" | "USD" = "TL",
 ): Promise<TimeSeriesRow[]> {
-  const db = await getDB();
   const placeholders = bankTypes.map(() => "?").join(",");
-  const { results } = await db
-    .prepare(
-      `SELECT
+  return cachedAll<TimeSeriesRow>(
+    `SELECT
          year || '-' || PRINTF('%02d', month) AS period,
          bank_type_code,
          amount_total AS value
@@ -246,10 +240,8 @@ async function getBalanceItem(
          AND currency = ?
          AND bank_type_code IN (${placeholders})
        ORDER BY year, month, bank_type_code`,
-    )
-    .bind(itemName, currency, ...bankTypes)
-    .all<TimeSeriesRow>();
-  return results;
+    [itemName, currency, ...bankTypes],
+  );
 }
 
 /** Sector / per-group total assets (in million TL — divide by 1e6 for trillion). */
@@ -280,11 +272,9 @@ export async function equityYoY(
 export async function leverage(
   bankTypes: string[] = PRIMARY_BANK_TYPES,
 ): Promise<TimeSeriesRow[]> {
-  const db = await getDB();
   const placeholders = bankTypes.map(() => "?").join(",");
-  const { results } = await db
-    .prepare(
-      `WITH x AS (
+  return cachedAll<TimeSeriesRow>(
+    `WITH x AS (
          SELECT year, month, bank_type_code, item_name, amount_total
          FROM balance_sheet
          WHERE currency = 'TL'
@@ -304,10 +294,8 @@ export async function leverage(
         AND a.item_name = 'TOPLAM YABANCI KAYNAKLAR'
         AND b.item_name = 'TOPLAM ÖZKAYNAKLAR'
        ORDER BY a.year, a.month, a.bank_type_code`,
-    )
-    .bind(...bankTypes)
-    .all<TimeSeriesRow>();
-  return results;
+    [...bankTypes],
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -321,11 +309,9 @@ async function getLoanColumn(
   column: "total_amount" | "total_tl" | "total_fx" | "npl_amount",
   bankTypes: string[] = PRIMARY_BANK_TYPES,
 ): Promise<TimeSeriesRow[]> {
-  const db = await getDB();
   const placeholders = bankTypes.map(() => "?").join(",");
-  const { results } = await db
-    .prepare(
-      `SELECT
+  return cachedAll<TimeSeriesRow>(
+    `SELECT
          year || '-' || PRINTF('%02d', month) AS period,
          bank_type_code,
          ${column} AS value
@@ -334,10 +320,8 @@ async function getLoanColumn(
          AND currency = 'TL'
          AND bank_type_code IN (${placeholders})
        ORDER BY year, month, bank_type_code`,
-    )
-    .bind(itemName, ...bankTypes)
-    .all<TimeSeriesRow>();
-  return results;
+    [itemName, ...bankTypes],
+  );
 }
 
 async function getDepositColumn(
@@ -346,11 +330,9 @@ async function getDepositColumn(
     "maturity_1m" | "maturity_1_3m" | "maturity_3_6m" | "maturity_6_12m" | "maturity_over_12m",
   bankTypes: string[] = PRIMARY_BANK_TYPES,
 ): Promise<TimeSeriesRow[]> {
-  const db = await getDB();
   const placeholders = bankTypes.map(() => "?").join(",");
-  const { results } = await db
-    .prepare(
-      `SELECT
+  return cachedAll<TimeSeriesRow>(
+    `SELECT
          year || '-' || PRINTF('%02d', month) AS period,
          bank_type_code,
          ${column} AS value
@@ -359,10 +341,8 @@ async function getDepositColumn(
          AND currency = 'TL'
          AND bank_type_code IN (${placeholders})
        ORDER BY year, month, bank_type_code`,
-    )
-    .bind(itemName, ...bankTypes)
-    .all<TimeSeriesRow>();
-  return results;
+    [itemName, ...bankTypes],
+  );
 }
 
 // Note: loans.item_name in D1 is mixed-case "Toplam Krediler" (not uppercase
@@ -921,11 +901,9 @@ export async function weeklySeries(
   bankTypes: string[] = Object.values(WEEKLY_BANK_TYPES),
   weeksBack = 156,  // ~3 years
 ): Promise<WeeklyRow[]> {
-  const db = await getDB();
   const placeholders = bankTypes.map(() => "?").join(",");
-  const { results } = await db
-    .prepare(
-      `SELECT
+  return cachedAll<WeeklyRow>(
+    `SELECT
          period_date AS period,
          bank_type_code,
          value
@@ -934,10 +912,8 @@ export async function weeklySeries(
          AND bank_type_code IN (${placeholders})
          AND period_date >= date('now', '-' || ? || ' days')
        ORDER BY period_date, bank_type_code`,
-    )
-    .bind(category, itemId, currency, ...bankTypes, weeksBack * 7)
-    .all<WeeklyRow>();
-  return results;
+    [category, itemId, currency, ...bankTypes, weeksBack * 7],
+  );
 }
 
 /**
@@ -953,11 +929,9 @@ export async function weeklyGrowth(
   bankTypes: string[] = Object.values(WEEKLY_BANK_TYPES),
   weeksBack = 156,
 ): Promise<WeeklyRow[]> {
-  const db = await getDB();
   const placeholders = bankTypes.map(() => "?").join(",");
-  const { results } = await db
-    .prepare(
-      `WITH s AS (
+  const results = await cachedAll<{ period: string; bank_type_code: string; value: number; prev_value: number }>(
+    `WITH s AS (
          SELECT
            period_date, bank_type_code, value,
            LAG(value, ?) OVER (PARTITION BY bank_type_code ORDER BY period_date) AS prev_value
@@ -970,9 +944,8 @@ export async function weeklyGrowth(
        WHERE prev_value IS NOT NULL
          AND period_date >= date('now', '-' || ? || ' days')
        ORDER BY period_date, bank_type_code`,
-    )
-    .bind(windowWeeks, category, itemId, currency, ...bankTypes, weeksBack * 7)
-    .all<{ period: string; bank_type_code: string; value: number; prev_value: number }>();
+    [windowWeeks, category, itemId, currency, ...bankTypes, weeksBack * 7],
+  );
 
   type Row = { period: string; bank_type_code: string; value: number; prev_value: number };
   const rows = results as Row[];
@@ -1006,19 +979,15 @@ export async function evdsSeries(
   code: string,
   yearsBack = 5,
 ): Promise<EvdsRow[]> {
-  const db = await getDB();
-  const { results } = await db
-    .prepare(
-      `SELECT period_date, value
+  return cachedAll<EvdsRow>(
+    `SELECT period_date, value
        FROM evds_series
        WHERE code = ?
          AND period_date >= date('now', '-' || ? || ' years')
          AND value IS NOT NULL
        ORDER BY period_date`,
-    )
-    .bind(code, yearsBack)
-    .all<EvdsRow>();
-  return results;
+    [code, yearsBack],
+  );
 }
 
 /**

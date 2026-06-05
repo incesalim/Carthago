@@ -18,6 +18,14 @@
       "database_id": "4ff6aaac-b2ca-4371-b93c-282a96083e72"
     }
   ],
+  // ISR / Next incremental cache store. Lets pages be cached and revalidated
+  // hourly instead of re-querying D1 on every request (cuts D1 rows-read).
+  "kv_namespaces": [
+    {
+      "binding": "NEXT_INC_CACHE_KV",
+      "id": "7604e6fd05344c9aabbecbee1a73b7e3"
+    }
+  ],
   // Admin panel config (non-secret vars). The CF_ACCESS_* pair is only for a
   // custom-domain setup; on workers.dev the page is gated by the ADMIN_PASSWORD
   // secret instead. See docs/ADMIN.md. Secrets (set via `wrangler secret put`,
