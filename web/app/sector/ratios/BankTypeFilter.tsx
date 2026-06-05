@@ -2,10 +2,13 @@
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 
+// Order: Sector, then the deposit-ownership trio State / Domestic / Foreign,
+// then Participation and Dev & Inv. "Domestic" (10005 = Yerli Özel) reads
+// clearer than "Private" alongside Foreign (both are non-state/private).
 const OPTIONS = [
   { code: "10001", label: "Sector" },
-  { code: "10005", label: "Private" },
   { code: "10006", label: "State" },
+  { code: "10005", label: "Domestic" },
   { code: "10007", label: "Foreign" },
   { code: "10003", label: "Participation" },
   { code: "10004", label: "Dev & Inv" },
