@@ -1,20 +1,41 @@
 import * as React from "react";
 import { cn } from "@/app/lib/cn";
+import { Badge } from "./badge";
 
 export interface PageHeaderProps {
   title: React.ReactNode;
   description?: React.ReactNode;
   /** Small coloured label above the title. */
   eyebrow?: React.ReactNode;
+  /**
+   * Period string of the most recent data point on the tab — rendered as a
+   * "Data through …" badge on the right. Accepts 'YYYY-MM' or 'YYYY-MM-DD'.
+   */
+  dataThrough?: string;
   /** Right-aligned actions (filters, buttons). */
   children?: React.ReactNode;
   className?: string;
+}
+
+const MONTHS = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+/** 'YYYY-MM' → 'Mar 2026'; 'YYYY-MM-DD' → '23 Mar 2026'; else the raw string. */
+function formatPeriod(p: string): string {
+  const m = /^(\d{4})-(\d{2})(?:-(\d{2}))?$/.exec(p.trim());
+  if (!m) return p;
+  const mon = MONTHS[Number(m[2]) - 1];
+  if (!mon) return p;
+  return m[3] ? `${Number(m[3])} ${mon} ${m[1]}` : `${mon} ${m[1]}`;
 }
 
 export function PageHeader({
   title,
   description,
   eyebrow,
+  dataThrough,
   children,
   className,
 }: PageHeaderProps) {
@@ -38,8 +59,19 @@ export function PageHeader({
           <p className="max-w-2xl text-sm text-muted-foreground">{description}</p>
         )}
       </div>
-      {children && (
-        <div className="flex flex-wrap items-center gap-2">{children}</div>
+      {(dataThrough || children) && (
+        <div className="flex flex-wrap items-center gap-2">
+          {dataThrough && (
+            <Badge variant="secondary" title={`Latest data point: ${dataThrough}`}>
+              <span
+                className="size-1.5 rounded-full bg-positive"
+                aria-hidden="true"
+              />
+              Data through {formatPeriod(dataThrough)}
+            </Badge>
+          )}
+          {children}
+        </div>
       )}
     </header>
   );

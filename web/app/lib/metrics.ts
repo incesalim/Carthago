@@ -61,6 +61,27 @@ export interface TimeSeriesRow {
   value: number;
 }
 
+/**
+ * Largest period across one or more row sets — used to label a tab with the
+ * date of its most recent data point. Works for both monthly ('YYYY-MM') and
+ * dated ('YYYY-MM-DD') series since ISO strings sort lexicographically.
+ * Returns undefined if no row carries a period.
+ */
+export function latestPeriod(
+  ...sets: ReadonlyArray<
+    ReadonlyArray<{ period?: string | null; period_date?: string | null }>
+  >
+): string | undefined {
+  let max: string | undefined;
+  for (const set of sets) {
+    for (const r of set) {
+      const p = r.period ?? r.period_date;
+      if (p && (max === undefined || p > max)) max = p;
+    }
+  }
+  return max;
+}
+
 // ---------------------------------------------------------------------------
 // Published ratios — BDDK Table 15 (NPL, CAR, ROA, ROE, NIM, LDR, …)
 // Pre-calculated by BDDK; no math needed in our app.

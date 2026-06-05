@@ -218,6 +218,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
         eyebrow={ticker}
         title={bankDisplayName(ticker)}
         description="Standardized per-bank financials from quarterly BRSA reports"
+        dataThrough={allPeriods[0]}
         className="mb-6"
       >
         <Link href="/banks" className="text-sm text-muted-foreground hover:text-foreground">

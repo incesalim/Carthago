@@ -9,6 +9,7 @@ import {
   consumerNplRatios,
   commercialNplRatios,
   latestPerBank,
+  latestPeriod,
   PRIMARY_BANK_TYPES,
   BANK_TYPES,
   BANK_TYPE_LABELS,
@@ -117,7 +118,11 @@ export default async function AssetQualityPage() {
 
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
-      <PageHeader title="Asset Quality" description="NPL ratio + coverage · sub-segment NPL ratios · BDDK Tables 4, 5, 15 + weekly bulletin" />
+      <PageHeader
+        title="Asset Quality"
+        description="NPL ratio + coverage · sub-segment NPL ratios · BDDK Tables 4, 5, 15 + weekly bulletin"
+        dataThrough={latestPeriod(nplAll, coverageAll)}
+      />
 
       <Section title="NPL Ratio">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

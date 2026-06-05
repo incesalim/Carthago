@@ -12,6 +12,7 @@ import {
   ratioRoa,
   ratioRoe,
   totalAssets,
+  latestPeriod,
   BANK_TYPES,
   BANK_TYPE_LABELS,
   type TimeSeriesRow,
@@ -91,6 +92,7 @@ export default async function RatiosPage({
       <PageHeader
         eyebrow="Banking Sector"
         title="Key Ratios"
+        dataThrough={latestPeriod(assets, npl, nim, ldr, roa, roe)}
         description={
           <>
             BDDK monthly bulletin · {BANK_TYPE_LABELS[bankType]} ({bankType}) · queried live from D1

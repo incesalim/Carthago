@@ -10,6 +10,7 @@ import {
   ratioNonInterestCoverage,
   ratioFeesToOpex,
   evdsSeries,
+  latestPeriod,
   PRIMARY_BANK_TYPES,
   BANK_TYPES,
   BANK_TYPE_LABELS,
@@ -71,7 +72,11 @@ export default async function ProfitabilityPage() {
 
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
-      <PageHeader title="Profitability" description="ROE / ROA / NIM · annualized (YTD × 12 / month) · BDDK Table 15" />
+      <PageHeader
+        title="Profitability"
+        description="ROE / ROA / NIM · annualized (YTD × 12 / month) · BDDK Table 15"
+        dataThrough={latestPeriod(roe, roa, nim)}
+      />
 
       <section className="space-y-4">
         <div className="space-y-0.5">

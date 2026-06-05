@@ -44,6 +44,7 @@ export default async function SectorPage() {
       <PageHeader
         eyebrow="Banking Sector"
         title="Total Assets"
+        dataThrough={latest?.period}
         description={
           <>
             Live D1 query · {data.length} months loaded

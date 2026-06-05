@@ -8,6 +8,7 @@
 import {
   weeklySeries,
   weeklyGrowth,
+  latestPeriod,
   WEEKLY_BANK_TYPES,
   WEEKLY_BANK_TYPE_LABELS,
 } from "@/app/lib/metrics";
@@ -106,7 +107,11 @@ export default async function WeeklyPage() {
 
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
-      <PageHeader title="Weekly Trends" description="BDDK weekly bulletin · loans, deposits, NPL · annualized 4-week and 13-week growth · by bank group" />
+      <PageHeader
+        title="Weekly Trends"
+        description="BDDK weekly bulletin · loans, deposits, NPL · annualized 4-week and 13-week growth · by bank group"
+        dataThrough={latestPeriod(loansLevel, depsLevel, nplLevel)}
+      />
 
       <Section title="Loans">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

@@ -3,7 +3,7 @@
  *
  * Cron-fed via scripts/refresh.py → src/scrapers/evds_scraper.py.
  */
-import { evdsMulti } from "@/app/lib/metrics";
+import { evdsMulti, latestPeriod } from "@/app/lib/metrics";
 import { PageHeader, Stat } from "@/app/components/ui";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
 
@@ -75,6 +75,7 @@ export default async function RatesPage() {
         eyebrow="TCMB EVDS"
         title="Rates & Macro"
         description="Daily snapshots · cached in D1, refreshed weekly with the BDDK pipeline"
+        dataThrough={latestPeriod(...Object.values(data))}
       />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

@@ -14,12 +14,17 @@ export const dynamic = "force-dynamic";
 
 export default async function BanksPage() {
   const banks = await bankSummaries();
+  const through = banks.reduce(
+    (m, b) => (b.latest_period > m ? b.latest_period : m),
+    "",
+  );
 
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8">
       <PageHeader
         title="Banks"
         description={`${banks.length} banks · per-bank quarterly BRSA audit reports`}
+        dataThrough={through || undefined}
         className="mb-3"
       />
       <div className="flex flex-wrap gap-4 text-xs text-muted-foreground mb-6">
