@@ -4,13 +4,19 @@
  * Reads from bank_audit_balance_sheet / bank_audit_profit_loss /
  * bank_audit_extractions tables. Filter by (bank_ticker, period, kind).
  */
-import { getDB } from "./db";
+import { cachedAll, getDB } from "./db";
 
 export interface BankSummary {
   bank_ticker: string;
   periods: number;
   reports: number;
   latest_period: string;
+  /** Latest-period total assets (unconsolidated), summed from the BRSA
+   *  balance-sheet roman subtotals I.–X. — same value the per-bank page shows
+   *  as "Total Assets". Thousand-TL units (matches amount_total). Used to
+   *  size-rank the /banks index within each type group. Null if the bank has
+   *  no unconsolidated balance sheet. */
+  total_assets: number | null;
 }
 
 export interface BalanceSheetRow {
@@ -32,23 +38,40 @@ export interface PlRow {
   amount: number | null;
 }
 
-/** Listing of all banks with audit-data coverage. */
+/** Listing of all banks with audit-data coverage, each carrying its latest
+ *  total assets so the index can size-rank within type groups. Cached via KV
+ *  (`cachedAll`) — the balance-sheet sum scans many rows, so we don't want it
+ *  re-running on every page render.
+ *
+ *  CTE names (`ta`, `ta_latest`) deliberately don't match any table — D1 throws
+ *  a "circular reference" 500 if a CTE shadows a table it reads. */
 export async function bankSummaries(): Promise<BankSummary[]> {
-  const db = await getDB();
-  const { results } = await db
-    .prepare(
-      `SELECT
-         bank_ticker,
-         COUNT(DISTINCT period) AS periods,
-         COUNT(*) AS reports,
-         MAX(period) AS latest_period
-       FROM bank_audit_extractions
-       WHERE success = 1
-       GROUP BY bank_ticker
-       ORDER BY bank_ticker`,
-    )
-    .all<BankSummary>();
-  return results;
+  return cachedAll<BankSummary>(
+    `WITH ta AS (
+       SELECT bank_ticker, period, SUM(amount_total) AS total_assets
+       FROM bank_audit_balance_sheet
+       WHERE kind = 'unconsolidated' AND statement = 'assets'
+         AND hierarchy IN ('I.','II.','III.','IV.','V.','VI.','VII.','VIII.','IX.','X.')
+       GROUP BY bank_ticker, period
+     ),
+     ta_latest AS (
+       SELECT t.bank_ticker, t.total_assets
+       FROM ta t
+       JOIN (SELECT bank_ticker, MAX(period) AS mp FROM ta GROUP BY bank_ticker) m
+         ON t.bank_ticker = m.bank_ticker AND t.period = m.mp
+     )
+     SELECT
+       e.bank_ticker,
+       COUNT(DISTINCT e.period) AS periods,
+       COUNT(*) AS reports,
+       MAX(e.period) AS latest_period,
+       MAX(tl.total_assets) AS total_assets
+     FROM bank_audit_extractions e
+     LEFT JOIN ta_latest tl ON tl.bank_ticker = e.bank_ticker
+     WHERE e.success = 1
+     GROUP BY e.bank_ticker
+     ORDER BY e.bank_ticker`,
+  );
 }
 
 /** Available (period, kind) tuples for one bank. */
