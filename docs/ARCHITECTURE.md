@@ -21,7 +21,7 @@ machine is involved in the production data flow.
                               (SQLite, ephemeral             │                       │
                                on the runner —               │  bucket: bddk-audit-reports
                                re-built each cron            │                       │
-                               from committed .db.gz)        │                       │
+                               from the R2 .db.gz snapshot)  │                       │
                                           │                 │                       │
                                           ▼                 ▼                       ▼
                                     scripts/push_to_d1.py — incremental sync
@@ -44,8 +44,10 @@ machine is involved in the production data flow.
 | **R2 wrapper** | `src/audit_reports/r2_storage.py` | boto3 against S3-compatible R2 |
 | **D1 sync** | `scripts/push_to_d1.py` | incremental push via wrangler |
 | **Edge database** | Cloudflare D1 (`bddk-data`) | SQLite at the edge, ~1.6M rows |
-| **PDF storage** | Cloudflare R2 (`bddk-audit-reports`) | ~2.2 GB, 949 quarterly PDFs |
+| **PDF storage** | Cloudflare R2 (`bddk-audit-reports`) | ~2.2 GB, ~970 quarterly PDFs |
 | **Dashboard** | `web/` | Next.js 15 + OpenNext + Recharts on Cloudflare Workers |
+| **Read cache** | Cloudflare KV (`NEXT_INC_CACHE_KV`) | 1h data cache for D1 reads (`cachedAll` → `unstable_cache`) |
+| **Admin panel** | `web/app/admin/`, `web/app/api/admin/` | password-gated control center: data health, refresh triggers, traffic |
 
 ## Workflows
 
@@ -111,3 +113,25 @@ bootstraps its snapshot on first run by seeding from the bulletin snapshot
 
 Production dashboard reads go to D1, not this snapshot — the R2 copy is
 purely pipeline state.
+
+## Dashboard read caching
+
+Dashboard pages are dynamic (server-rendered per request), but the D1 queries
+behind them are cached: `web/app/lib/db.ts` `cachedAll()` wraps reads in
+`unstable_cache` (1h TTL), keyed by SQL + params and backed by the
+`NEXT_INC_CACHE_KV` namespace via OpenNext's incremental cache
+(`open-next.config.ts`). The hot `metrics.ts` query helpers route through it, so
+identical queries hit D1 at most once per hour instead of on every page view —
+cutting D1 rows-read sharply.
+
+Pages stay dynamic on purpose: page-level ISR (`export const revalidate`) would
+prerender the data pages at build time, which queries D1 against the empty
+build-time DB and fails. Caching the *data* (not the page) avoids that. `/admin`
+is intentionally uncached (auth-gated + shows live pipeline status).
+
+## Admin control center
+
+A password-gated `/admin` route (see [ADMIN.md](ADMIN.md)) surfaces data-freshness
+per source, audit-extraction failures, GitHub workflow run status + manual
+triggers, and Cloudflare Web Analytics — reading D1 plus the GitHub/Cloudflare
+APIs through route handlers under `web/app/api/admin/`.

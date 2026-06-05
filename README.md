@@ -20,6 +20,9 @@ Cloudflare for storage and display.
   weekly bulletins, EVDS macro series, per-bank quarterly statements).
 - **Dashboard** — Next.js 15 + OpenNext, deployed to Cloudflare Workers.
   Live at <https://turkish-banking-dashboard.incesalim10.workers.dev>.
+  D1 reads are cached ~1h via a KV-backed data cache. A password-gated
+  `/admin` control center (data health, refresh triggers, traffic) lives at
+  `/admin` — see [`docs/ADMIN.md`](docs/ADMIN.md).
 
 Two data layers cohabit in D1:
 
@@ -37,9 +40,9 @@ only needed for development or ad-hoc backfills.
 ```bash
 # Python pipeline (ingestion)
 pip install -r requirements.txt
-python scripts/refresh.py                  # monthly + weekly + EVDS (writes to local SQLite)
-python scripts/sync_audit_reports.py       # scrape new PDFs → R2 → extract → SQLite
-python scripts/push_to_d1.py --hours 168   # push incremental rows to D1
+python scripts/refresh.py                              # monthly + weekly + EVDS (local SQLite)
+python scripts/sync_audit_reports.py --db data/bank_audit.db   # audit PDFs → R2 → extract (own DB)
+python scripts/push_to_d1.py --hours 168               # push incremental rows to D1
 
 # Next.js dashboard (display)
 cd web
@@ -64,7 +67,8 @@ bddk_analysis/
 │   ├── ARCHITECTURE.md
 │   ├── PROJECT_STATE.md
 │   ├── METRICS.md
-│   └── OPERATIONS.md
+│   ├── OPERATIONS.md
+│   └── ADMIN.md                    ← /admin control-panel setup
 │
 ├── src/                            ← Python — ingestion + extraction
 │   ├── config.py
@@ -104,13 +108,18 @@ bddk_analysis/
 │   ├── banks/                      ← URL config + BDDK bank list (committed)
 │   └── external_reports/           ← reference PDFs (BBVA, IMF, …) [local]
 │   # Not in git; live in cloud storage:
-│   #   bddk_data.db.gz             ← R2 bucket bddk-audit-reports, key state/
+│   #   state/bddk_data.db.gz       ← R2 bucket bddk-audit-reports (bulletin/EVDS lane snapshot)
+│   #   state/bank_audit.db.gz      ← R2 bucket bddk-audit-reports (audit lane snapshot)
 │   #   audit_reports/*.pdf         ← R2 bucket bddk-audit-reports, by ticker
-│   #   bddk_data.db                ← rebuilt in each cron run from R2 snapshot
+│   #   bddk_data.db / bank_audit.db ← rebuilt in each cron run from the R2 snapshot
 │
 └── .github/workflows/
-    ├── refresh-data.yml            ← Sat 03 UTC: monthly + weekly + EVDS + audit + push
-    ├── refresh-evds-daily.yml      ← Sun-Fri 05 UTC: EVDS only + push
+    ├── refresh-evds-daily.yml      ← Sun-Fri 05 UTC: EVDS only → D1
+    ├── refresh-bddk-bulletins.yml  ← Sat 02 UTC: monthly + weekly bulletins → D1
+    ├── refresh-data.yml            ← Sat 03 UTC: monthly + weekly + EVDS → D1
+    ├── refresh-audit.yml           ← Sun 04 UTC: audit PDFs → bank_audit_* → D1 (own lane)
+    ├── refresh-news-daily.yml      ← daily: KAP/TCMB/BDDK news → D1
+    ├── summarize-regulations.yml   ← weekly: LLM regulation briefing → D1
     └── deploy-cloudflare.yml       ← on web/ push: deploy
 ```
 
@@ -119,8 +128,9 @@ bddk_analysis/
 | | When | Workflow |
 |---|---|---|
 | **EVDS daily refresh** | Sun–Fri 05:00 UTC | `refresh-evds-daily.yml` |
-| **Full weekly refresh** | Saturday 03:00 UTC | `refresh-data.yml` (monthly + weekly + EVDS + audit reports + D1 push) |
-| **Audit-report scrape** | Saturday (above) | inside `sync_audit_reports.py` — pulls new bank IR PDFs to R2, extracts, upserts |
+| **Weekly bulletins** | Saturday 02:00 UTC | `refresh-bddk-bulletins.yml` (monthly + weekly, no EVDS/audit) |
+| **Full weekly refresh** | Saturday 03:00 UTC | `refresh-data.yml` (monthly + weekly + EVDS + D1 push) |
+| **Audit-report scrape** | Sunday 04:00 UTC | `refresh-audit.yml` — own DB + R2 snapshot; new bank IR PDFs → R2 → extract → D1 |
 | **Cloudflare dashboard deploy** | Every push to `web/` | `deploy-cloudflare.yml` |
 
 All schedules can be triggered manually from **GitHub → Actions → Run workflow**.

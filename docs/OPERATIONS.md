@@ -26,8 +26,15 @@ don't serialize against each other and an audit failure can't stall bulletins.
 
 ### Force a fresh refresh outside the cron schedule
 ```
-GitHub → Actions → "Refresh BDDK data" → Run workflow
+GitHub → Actions → pick the workflow (refresh-bddk-bulletins / refresh-data /
+refresh-evds-daily / refresh-audit) → Run workflow
 ```
+Or use the **/admin** control center's Pipeline trigger buttons (needs
+`GITHUB_DISPATCH_TOKEN`).
+
+> **Dashboard caching:** public pages cache their D1 reads for ~1h, so freshly
+> pushed data can take up to an hour to appear on the site even though D1 itself
+> is updated immediately. The `/admin` health view is uncached.
 
 ### One-off refresh from a local checkout (development)
 ```bash
@@ -71,6 +78,21 @@ GitHub repo → Settings → Secrets and variables → Actions:
 | `CLOUDFLARE_API_TOKEN` | wrangler (D1 push, dashboard deploy) |
 | `EVDS_API_KEY` | TCMB EVDS API |
 | `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` | audit-report PDFs in R2 |
+
+### Worker secrets (dashboard / `/admin`)
+
+Set on the Worker — Cloudflare → Workers & Pages → `turkish-banking-dashboard`
+→ Settings → Variables and Secrets (or `cd web && npx wrangler secret put NAME`):
+
+| Secret | Used by |
+|---|---|
+| `ADMIN_PASSWORD` | unlocks `/admin` (password login) — **required to open /admin** |
+| `GITHUB_DISPATCH_TOKEN` | `/admin` run status + trigger buttons (fine-grained PAT, Actions: read+write) |
+| `CF_ANALYTICS_TOKEN` | `/admin` traffic panel (optional) |
+
+Non-secret vars live in `web/wrangler.jsonc`: `CF_ANALYTICS_SITE_TAG`,
+`CF_ACCOUNT_TAG`, and `CF_ACCESS_*` (only if you move to a custom domain and
+switch `/admin` to Cloudflare Access). Full setup: [ADMIN.md](ADMIN.md).
 
 ## Troubleshooting
 
