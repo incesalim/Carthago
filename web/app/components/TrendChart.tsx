@@ -54,6 +54,11 @@ const formatters: Record<FormatKind, (v: number, d: number) => string> = {
   raw: (v, d) => nf(v, d),
 };
 
+// Fixed display order for the bank-group series (Sector, then the deposit-
+// ownership trio, then participation/dev). Series whose label isn't listed keep
+// their original order (single-series, TL/FX, consumer-segment charts, …).
+const BANK_GROUP_ORDER = ["Sector", "State", "Domestic", "Foreign", "Participation", "Dev & Inv"];
+
 export default function TrendChart({
   data,
   seriesLabels,
@@ -69,7 +74,12 @@ export default function TrendChart({
   const [active, setActive] = useState<string | null>(null);
 
   // Pivot long → wide: { period, "10001": v, "10003": v, ... }
-  const codes = Object.keys(seriesLabels);
+  // Order series by BANK_GROUP_ORDER (by label); unknown labels keep their order.
+  const rank = (code: string) => {
+    const i = BANK_GROUP_ORDER.indexOf(seriesLabels[code]);
+    return i === -1 ? Number.MAX_SAFE_INTEGER : i;
+  };
+  const codes = Object.keys(seriesLabels).sort((a, b) => rank(a) - rank(b));
   type Wide = { period: string; [code: string]: string | number | null };
   const byPeriod = new Map<string, Wide>();
   for (const r of data) {
@@ -112,13 +122,58 @@ export default function TrendChart({
               }
             />
             <Legend
-              wrapperStyle={{ fontSize: 11, paddingTop: 4 }}
-              iconType="line"
-              layout="horizontal"
-              align="center"
               verticalAlign="bottom"
-              onMouseEnter={(o) => setActive(String(o.dataKey ?? ""))}
-              onMouseLeave={() => setActive(null)}
+              align="center"
+              layout="horizontal"
+              wrapperStyle={{ fontSize: 11, paddingTop: 4 }}
+              content={({ payload }) => {
+                // Recharts 3 auto-sorts the legend alphabetically; render it
+                // ourselves so it follows BANK_GROUP_ORDER.
+                const items = [...(payload ?? [])].sort(
+                  (a, b) => rank(String(a.dataKey)) - rank(String(b.dataKey)),
+                );
+                return (
+                  <ul
+                    style={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      justifyContent: "center",
+                      gap: "2px 14px",
+                      listStyle: "none",
+                      margin: 0,
+                      padding: 0,
+                    }}
+                  >
+                    {items.map((it) => {
+                      const code = String(it.dataKey);
+                      return (
+                        <li
+                          key={code}
+                          onMouseEnter={() => setActive(code)}
+                          onMouseLeave={() => setActive(null)}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 5,
+                            color: t.axis,
+                            opacity: active && active !== code ? 0.4 : 1,
+                            cursor: "default",
+                          }}
+                        >
+                          <span
+                            style={{
+                              display: "inline-block",
+                              width: 14,
+                              borderTop: `2px solid ${it.color ?? "currentColor"}`,
+                            }}
+                          />
+                          {it.value}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                );
+              }}
             />
             {codes.map((code, i) => (
               <Line
