@@ -12,9 +12,12 @@ export async function getDB() {
   return env.DB;
 }
 
-/** Default cache window for D1 reads — data changes daily/weekly, so reusing
- *  results for an hour cuts D1 rows-read dramatically without staleness issues. */
-export const DATA_REVALIDATE_SECONDS = 3600;
+/** Default cache window for D1 reads. Data changes daily at most, so a 12h
+ *  window keeps pages fresh enough while keeping KV writes well under the free
+ *  tier's 1,000 writes/day cap (each cache miss / revalidation = one KV write).
+ *  A 1h window risked exceeding that on a busy day, which silently disables the
+ *  cache and sends reads back to D1. */
+export const DATA_REVALIDATE_SECONDS = 43200; // 12h
 
 /**
  * Run a `SELECT … .all()` through Next's data cache (KV-backed via OpenNext),
