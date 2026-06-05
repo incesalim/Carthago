@@ -122,6 +122,12 @@ CREATE INDEX IF NOT EXISTS idx_weekly_by_item
     ON weekly_series(item_name, bank_type_code, currency, period_date);
 CREATE INDEX IF NOT EXISTS idx_weekly_by_date
     ON weekly_series(period_date);
+-- Serves the dashboard's weekly queries, which filter on
+-- (category, item_id, currency, bank_type_code) — NOT item_name — and order
+-- by period_date. Covering (value appended) so weeklySeries / weeklyGrowth in
+-- web/app/lib/metrics.ts run as index-only range scans instead of full scans.
+CREATE INDEX IF NOT EXISTS idx_weekly_cat_item_cur
+    ON weekly_series(category, item_id, currency, bank_type_code, period_date, value);
 
 CREATE TABLE IF NOT EXISTS raw_weekly_responses (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
