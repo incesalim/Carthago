@@ -72,20 +72,37 @@ class BDDKAPIScraper:
             "taraf[0]": bank_type_code,
         }
 
-        try:
-            resp = requests.post(BDDK_API_URL, headers=HEADERS, data=payload,
-                                 timeout=30, verify=bddk_verify())
-            resp.raise_for_status()
-
-            data = resp.json()
-            if "Json" in data and data["Json"].get("data", {}).get("rows"):
-                return data
-            else:
+        # Retry transient failures (timeouts, connection drops, 429/5xx) with
+        # exponential backoff. A single blip used to abort the whole monthly run.
+        for attempt in range(3):
+            try:
+                resp = requests.post(BDDK_API_URL, headers=HEADERS, data=payload,
+                                     timeout=30, verify=bddk_verify())
+                resp.raise_for_status()
+                data = resp.json()
+                if "Json" in data and data["Json"].get("data", {}).get("rows"):
+                    return data
+                return None  # valid response, just no rows — not retryable
+            except requests.exceptions.RequestException as e:
+                status = getattr(getattr(e, "response", None), "status_code", None)
+                transient = (
+                    isinstance(e, (requests.exceptions.Timeout,
+                                   requests.exceptions.ConnectionError))
+                    or status in (429, 500, 502, 503, 504)
+                )
+                if transient and attempt < 2:
+                    wait = 2 ** attempt
+                    print(f"  transient error T{table_no} {year}-{month:02d} "
+                          f"{bank_type_code} (attempt {attempt + 1}/3): {e}; "
+                          f"retrying in {wait}s")
+                    time.sleep(wait)
+                    continue
+                print(f"Error fetching T{table_no} {year}-{month:02d} {bank_type_code}: {e}")
                 return None
-
-        except Exception as e:
-            print(f"Error fetching T{table_no} {year}-{month:02d} {bank_type_code}: {e}")
-            return None
+            except Exception as e:  # JSON/parse errors — not retryable
+                print(f"Error fetching T{table_no} {year}-{month:02d} {bank_type_code}: {e}")
+                return None
+        return None
 
     def save_raw_response(self, table_no, year, month, currency, bank_type_code,
                          bank_type_name, response_data):
@@ -357,7 +374,7 @@ class BDDKAPIScraper:
                 value_text = str(value)
                 try:
                     value_numeric = float(value)
-                except:
+                except (ValueError, TypeError):
                     pass
 
                 try:
