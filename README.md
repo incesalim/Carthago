@@ -20,7 +20,7 @@ Cloudflare for storage and display.
   weekly bulletins, EVDS macro series, per-bank quarterly statements).
 - **Dashboard** — Next.js 15 + OpenNext, deployed to Cloudflare Workers.
   Live at <https://turkish-banking-dashboard.incesalim10.workers.dev>.
-  D1 reads are cached ~1h via a KV-backed data cache. A password-gated
+  D1 reads are cached ~12h via a KV-backed data cache. A password-gated
   `/admin` control center (data health, refresh triggers, traffic) lives at
   `/admin` — see [`docs/ADMIN.md`](docs/ADMIN.md).
 
@@ -98,7 +98,8 @@ bddk_analysis/
 │   │   ├── components/             ← TrendChart, BarByBank, StackedArea, …
 │   │   ├── lib/                    ← db.ts (D1 binding) · metrics.ts (SQL helpers)
 │   │   ├── credit/, deposits/, asset-quality/, capital/, profitability/
-│   │   ├── weekly/, rates/, banks/, sector/
+│   │   ├── weekly/, rates/, banks/, sector/, liquidity/
+│   │   ├── admin/, api/admin/      ← password-gated control center
 │   │   └── page.tsx                ← Overview
 │   ├── wrangler.jsonc, open-next.config.ts
 │   ├── package.json
@@ -121,7 +122,10 @@ bddk_analysis/
     ├── refresh-audit.yml           ← Sun 04 UTC: audit PDFs → bank_audit_* → D1 (own lane)
     ├── refresh-news-daily.yml      ← daily: KAP/TCMB/BDDK news → D1
     ├── summarize-regulations.yml   ← weekly: LLM regulation briefing → D1
-    └── deploy-cloudflare.yml       ← on web/ push: deploy
+    ├── healthcheck.yml             ← daily: D1 freshness → Telegram/Discord alert
+    ├── ci.yml                      ← PRs: ruff + pytest + eslint + tsc
+    └── deploy-cloudflare.yml       ← on web/ push: migrate + build + deploy
+# also: pyproject.toml (ruff/pytest), tests/, .github/dependabot.yml
 ```
 
 ## Cadences
@@ -132,7 +136,9 @@ bddk_analysis/
 | **Weekly bulletins** | Saturday 02:00 UTC | `refresh-bddk-bulletins.yml` (monthly + weekly, no EVDS/audit) |
 | **Full weekly refresh** | Saturday 03:00 UTC | `refresh-data.yml` (monthly + weekly + EVDS + D1 push) |
 | **Audit-report scrape** | Sunday 04:00 UTC | `refresh-audit.yml` — own DB + R2 snapshot; new bank IR PDFs → R2 → extract → D1 |
-| **Cloudflare dashboard deploy** | Every push to `web/` | `deploy-cloudflare.yml` |
+| **Health check** | Daily 06:00 UTC | `healthcheck.yml` — D1 freshness → alert if stale |
+| **CI quality gates** | Every PR | `ci.yml` — ruff + pytest + eslint + tsc |
+| **Cloudflare dashboard deploy** | Every push to `web/` | `deploy-cloudflare.yml` (migrate + build + deploy) |
 
 All schedules can be triggered manually from **GitHub → Actions → Run workflow**.
 
