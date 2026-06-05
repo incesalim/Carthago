@@ -69,6 +69,33 @@ PDF to R2, extracts the financial tables, and pushes the rows to D1.
 To pick up the change before the next Sunday cron, trigger
 `refresh-audit.yml` manually.
 
+## Disaster recovery
+
+Two independent safety nets, both **free**:
+
+**D1 (the serving store) — Time Travel.** D1 keeps a 7-day point-in-time history
+automatically (always on, no cost). To roll back a bad write:
+```
+cd web
+npx wrangler d1 time-travel info bddk-data                 # see the restore window
+npx wrangler d1 time-travel restore bddk-data --timestamp=<UNIX_TS>
+```
+(Destructive — it overwrites current data after a confirm. Free plan = 7 days back.)
+
+**Pipeline snapshots — dated R2 backups.** Each refresh writes a dated copy to
+`state/history/<lane>-YYYYMMDD.db.gz` (lane = `bddk_data` or `bank_audit`) and
+keeps the last 7, so a corrupt run never destroys the only snapshot. To recover,
+copy a good dated backup over the live key, e.g.:
+```
+# in a checkout with R2 creds in env
+python - <<'PY'
+from src.audit_reports import r2_storage
+r2_storage.download_to("state/history/bddk_data-20260601.db.gz", "snap.db.gz")
+r2_storage.upload_file("snap.db.gz", "state/bddk_data.db.gz")
+PY
+```
+Then re-run the relevant refresh workflow to push the restored rows to D1.
+
 ## Secrets
 
 GitHub repo → Settings → Secrets and variables → Actions:
