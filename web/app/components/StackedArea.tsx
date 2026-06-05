@@ -86,10 +86,65 @@ export default function StackedArea({
             />
             <Tooltip
               {...tt}
-              formatter={(v) => [v == null ? "—" : fmt(Number(v), decimals), ""]}
+              formatter={(value, name, item) => {
+                if (value == null) return ["—", name];
+                if (percentStack) {
+                  // stackOffset="expand" only normalises the drawn areas — the
+                  // tooltip value is still the raw level, so compute each
+                  // bucket's share of the period total here.
+                  const row = (item?.payload ?? {}) as Record<string, number>;
+                  const total = series.reduce(
+                    (sum, s) => sum + (Number(row[s.key]) || 0),
+                    0,
+                  );
+                  const share = total > 0 ? (Number(value) / total) * 100 : 0;
+                  return [`${nf(share, decimals)}%`, name];
+                }
+                return [fmt(Number(value), decimals), name];
+              }}
               labelFormatter={(l) => String(l)}
             />
-            <Legend wrapperStyle={{ fontSize: 11 }} iconType="square" />
+            <Legend
+              wrapperStyle={{ fontSize: 11 }}
+              content={() => (
+                // Render straight from `series` so the legend order matches the
+                // stack (bottom→top); Recharts otherwise reorders it.
+                <ul
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    justifyContent: "center",
+                    gap: "2px 14px",
+                    listStyle: "none",
+                    margin: 0,
+                    padding: 0,
+                  }}
+                >
+                  {series.map((s, i) => (
+                    <li
+                      key={s.key}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 5,
+                        color: t.axis,
+                      }}
+                    >
+                      <span
+                        style={{
+                          display: "inline-block",
+                          width: 11,
+                          height: 11,
+                          borderRadius: 2,
+                          background: colorAt(i),
+                        }}
+                      />
+                      {s.label}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            />
             {series.map((s, i) => (
               <Area
                 key={s.key}
