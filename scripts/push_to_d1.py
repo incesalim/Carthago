@@ -52,7 +52,6 @@ SYNC_TABLES = [
     "financial_ratios",
     "other_data",
     "weekly_series",
-    "weekly_bulletin",
     "bank_audit_balance_sheet",
     "bank_audit_profit_loss",
     "bank_audit_credit_quality",
