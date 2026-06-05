@@ -140,4 +140,9 @@ jobs:
               shutil.copyfileobj(s, d)
           size = r2_storage.upload_file(gz, "state/bank_audit.db.gz")
           print(f"Uploaded {size/1e6:.1f} MB to R2 state/bank_audit.db.gz")
+          # Dated backup so a bad run can't destroy the only copy (keep last 7).
+          from datetime import datetime, timezone
+          date_str = datetime.now(timezone.utc).strftime("%Y%m%d")
+          hkey = r2_storage.upload_history(gz, "bank_audit", date_str, keep=7)
+          print(f"Backup → {hkey} (history pruned to last 7)")
           PY
