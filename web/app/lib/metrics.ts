@@ -56,7 +56,7 @@ export const PRIMARY_BANK_TYPES = [
 
 export const BANK_TYPE_LABELS: Record<string, string> = {
   "10001": "Sector",
-  "10005": "Private",
+  "10005": "Domestic", // 10005 = Local Private (Yerli Özel) — domestic private, vs Foreign
   "10006": "State",
   "10007": "Foreign",
   "10003": "Participation",
@@ -892,7 +892,7 @@ export const WEEKLY_BANK_TYPES = {
 
 export const WEEKLY_BANK_TYPE_LABELS: Record<string, string> = {
   "10001": "Sector",
-  "10003": "Private",
+  "10003": "Domestic", // weekly 10003 = domestic private deposit banks, vs Foreign
   "10004": "State",
   "10005": "Foreign",
   "10006": "Participation",
