@@ -251,18 +251,41 @@ def main():
                          "data/bddk_data.db). The standalone audit pipeline "
                          "passes data/bank_audit.db so audit data lives in its "
                          "own snapshot, decoupled from the BDDK-bulletin DB.")
+    ap.add_argument("--fail-threshold", type=float, default=0.25,
+                    help="Exit non-zero if the scrape/extract failure ratio "
+                         "exceeds this on a non-trivial batch (>=4 items). "
+                         "Catches systemic breakage (R2 down, extractor broken) "
+                         "while ignoring the ~2%% known-partial baseline.")
     args = ap.parse_args()
 
     db_path = Path(args.db)
     t0 = time.time()
+    scrape_counts: dict[str, int] = {}
+    extract_counts: dict[str, int] = {}
     if not args.no_scrape:
-        scrape_to_r2(workers=args.workers)
+        scrape_counts = scrape_to_r2(workers=args.workers)
     if not args.no_extract:
         # Extraction is CPU-bound (pdfplumber/fitz) — cap at min(workers, cpu_count)
         import os
         cpu_workers = min(args.workers, (os.cpu_count() or 4))
-        extract_from_r2(workers=cpu_workers, db_path=db_path)
+        extract_counts = extract_from_r2(workers=cpu_workers, db_path=db_path)
     print(f"\ntotal {time.time() - t0:.1f}s")
+
+    # Systemic-failure guard: make the run exit non-zero (→ CI failure email +
+    # webhook alert) when a non-trivial batch mostly failed. Tiny batches and the
+    # known-partial baseline don't trip it.
+    problems = []
+    sc_fail = scrape_counts.get("failed", 0)
+    sc_total = sc_fail + scrape_counts.get("new", 0)
+    if sc_total >= 4 and sc_fail / sc_total > args.fail_threshold:
+        problems.append(f"scrape {sc_fail}/{sc_total} failed")
+    ex_fail = extract_counts.get("fail", 0)
+    ex_total = ex_fail + extract_counts.get("ok", 0)
+    if ex_total >= 4 and ex_fail / ex_total > args.fail_threshold:
+        problems.append(f"extract {ex_fail}/{ex_total} failed")
+    if problems:
+        print(f"SYSTEMIC FAILURE: {'; '.join(problems)}", file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
