@@ -14,6 +14,7 @@ const TABS = [
   { href: "/profitability", label: "Profitability" },
   { href: "/sector/ratios", label: "Ratios" },
   { href: "/weekly", label: "Weekly" },
+  { href: "/liquidity", label: "Liquidity" },
   { href: "/rates", label: "Rates" },
   { href: "/banks", label: "Banks" },
   { href: "/regulation", label: "Regulation" },
