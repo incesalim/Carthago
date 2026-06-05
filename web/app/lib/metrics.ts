@@ -5,13 +5,21 @@
  * Components call these directly. Mirrors the Python `metrics_ext.py`
  * surface where possible.
  *
- * BDDK bank-type taxonomy (column `bank_type_code`):
- *   10001 = Sector total
- *   10003 = Private deposit banks (Özel)
- *   10004 = State deposit banks (Kamu)
- *   10005 = Foreign deposit banks (Yabancı)
- *   10006 = Participation banks (Katılım)
- *   10007 = Development & investment banks (Kalkınma & Yatırım)
+ * BDDK bank-type taxonomy — MONTHLY tables (balance_sheet, financial_ratios,
+ * loans, deposits), per the `bank_types` DB table. NOTE: the weekly bulletin
+ * numbers the same groups DIFFERENTLY — see WEEKLY_BANK_TYPES below. Monthly:
+ *   10001 = Entire sector
+ *   10002 = Deposit banks (Mevduat)
+ *   10003 = Participation banks (Katılım)
+ *   10004 = Development & investment banks (Kalkınma ve Yatırım)
+ *   10005 = Private banks, all types (Yerli Özel)
+ *   10006 = State banks, all types (Kamu)
+ *   10007 = Foreign banks, all types (Yabancı)
+ *   10008 / 10009 / 10010 = deposit banks only — Private / State / Foreign
+ * Two partitions each sum to the sector and OVERLAP: by type {10002,10003,
+ * 10004}; by ownership {10005,10006,10007}. So 10006 "State" already includes
+ * state-owned participation + development banks; the three state *deposit*
+ * banks alone are 10009.
  */
 import { cachedAll, getDB } from "./db";
 
@@ -31,8 +39,12 @@ export const BANK_TYPES = {
   FOREIGN: "10007",
 } as const;
 
-// Bank groups that aren't subsets of each other — useful for sector breakdown.
-// (Sector = Private + State + Foreign + Participation + Dev_Inv).
+// The headline groups charts compare. CAUTION — NOT a partition: {Private,
+// State, Foreign} (10005/6/7) already cover the whole sector by ownership, and
+// {Participation, Dev_Inv} overlap with them, so SUMMING/stacking all five
+// double-counts (~sector × 1.16). Fine as side-by-side comparison series; for a
+// true breakdown use ONE partition (by type, by ownership, or deposit-ownership
+// 10008/9/10 + Participation + Dev_Inv).
 export const PRIMARY_BANK_TYPES = [
   BANK_TYPES.SECTOR,
   BANK_TYPES.PRIVATE,
