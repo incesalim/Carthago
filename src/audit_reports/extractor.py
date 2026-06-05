@@ -485,6 +485,9 @@ def _fitz_merge_rows(text: str, n_cols: int) -> str:
     """
     # Inject space after hierarchy markers that have no whitespace before the label
     _INSERT_SPACE = re.compile(r'^([IVX]+\.|[A-Z]\.|\d+(?:\.\d+)*\.?)([A-Za-zÇĞİÖŞÜçğıöşü(])')
+    # A line that is JUST a hierarchy marker, nothing else (VAKIFK 2024+ wraps a
+    # long label around the marker so it lands on its own physical line).
+    _BARE_HIER = re.compile(r'^(?:[IVX]+\.|[A-Z]\.|\d+(?:\.\d+)*\.?)$')
     lines: list[str] = []
     for raw in text.split('\n'):
         s = raw.strip()
@@ -497,10 +500,38 @@ def _fitz_merge_rows(text: str, n_cols: int) -> str:
     out: list[str] = []
     i = 0
     NUM_RE = re.compile(r'^[\d.,()\- ]+$')
+    _HAS_ALPHA = re.compile(r'[A-Za-zÇĞİÖŞÜçğıöşü]')
     while i < len(lines):
         ln = lines[i]
         # Already has hierarchy + enough numbers → keep as-is
         nums_in_line = len(re.findall(NUM_PAT, ln))
+        # Hierarchy marker isolated on its own line — the label wraps around it:
+        #   line i-1: 'İTFA EDİLMİŞ MALİYETİ İLE ÖLÇÜLEN FİNANSAL'  (label, part 1)
+        #   line i  : 'II.'                                          (bare marker)
+        #   line i+1: 'VARLIKLAR (Net) <6 numbers>'                 (label part 2 + values)
+        # Reattach the marker to the preceding label fragment (already emitted)
+        # and pull following lines until the value columns accumulate, so
+        # _parse_rows sees one '<marker> <full label> <numbers>' row.
+        if _BARE_HIER.match(ln):
+            pre = ''
+            if (out and not HIERARCHY_PAT.match(out[-1]) and not _BARE_HIER.match(out[-1])
+                    and len(re.findall(NUM_PAT, out[-1])) < n_cols
+                    and _HAS_ALPHA.search(out[-1])):
+                pre = out.pop()
+            accumulated = ln + ((' ' + pre) if pre else '')
+            j = i + 1
+            while (j < len(lines) and len(re.findall(NUM_PAT, accumulated)) < n_cols
+                   and j - i <= 3):
+                if _BARE_HIER.match(lines[j]):
+                    break
+                m_h = HIERARCHY_PAT.match(lines[j])
+                if m_h and _HAS_ALPHA.search(m_h.group('rest')[:30]):
+                    break
+                accumulated += ' ' + lines[j]
+                j += 1
+            out.append(accumulated)
+            i = j
+            continue
         if HIERARCHY_PAT.match(ln) and nums_in_line >= n_cols:
             out.append(ln)
             i += 1
