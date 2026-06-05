@@ -1,0 +1,143 @@
+name: Refresh audit reports
+
+# Standalone bank audit-report pipeline — fully decoupled from the BDDK
+# bulletin / EVDS refresh. Banks publish quarterly BRSA audit PDFs on their
+# IR sites; this scrapes new ones to R2, extracts them, and pushes the
+# bank_audit_* tables to D1.
+#
+# Decoupled by design:
+#   - Own staging DB:        data/bank_audit.db (NOT the shared bddk_data.db)
+#   - Own R2 snapshot:       state/bank_audit.db.gz
+#   - Own concurrency group: bddk-audit (NOT bddk-pipeline)
+# So it runs in parallel with the bulletin/EVDS workflows and a flaky PDF
+# extraction or a rotated IR URL can never delay or fail the monthly/weekly
+# D1 push. The only shared sink is D1 itself, where it writes a disjoint set
+# of tables (bank_audit_*) with idempotent INSERT OR REPLACE.
+#
+# When to run:
+#   - Sunday 04:00 UTC. Banks publish quarterly, but a weekly check picks up
+#     new reports promptly the week a bank publishes. 49 of 52 weeks this is a
+#     cheap no-op (every PDF already in R2, every report already extracted).
+#   - Manually from the Actions tab.
+on:
+  schedule:
+    - cron: "0 4 * * 0"
+  workflow_dispatch:
+    inputs:
+      skip_scrape:
+        description: "Skip scraping new PDFs (extract-only)"
+        type: boolean
+        default: false
+
+# Read-only on git — the audit snapshot lives in R2, not git.
+permissions:
+  contents: read
+
+# Separate lane from bddk-pipeline: audit shares no R2 snapshot with the
+# bulletin/EVDS workflows, so it can run concurrently with them.
+concurrency:
+  group: bddk-audit
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    name: Audit reports → SQLite → D1
+    runs-on: ubuntu-latest
+    # Generous: a from-scratch extraction of every PDF (if the snapshot were
+    # ever lost) is the worst case. The first-run bootstrap below avoids that
+    # by seeding from the bulletin snapshot instead.
+    timeout-minutes: 180
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      PYTHONIOENCODING: utf-8
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Fetch audit snapshot from R2 (bootstrap from bulletin snapshot on first run)
+        run: |
+          python - <<'PY'
+          import gzip, shutil, pathlib, subprocess, sys
+          from src.audit_reports import r2_storage
+          gz = pathlib.Path("data/bank_audit.db.gz")
+          db = pathlib.Path("data/bank_audit.db")
+          gz.parent.mkdir(parents=True, exist_ok=True)
+          if r2_storage.exists("state/bank_audit.db.gz"):
+              size = r2_storage.download_to("state/bank_audit.db.gz", gz)
+              print(f"Pulled state/bank_audit.db.gz from R2 ({size/1e6:.1f} MB)")
+              with gzip.open(gz, "rb") as s, open(db, "wb") as d:
+                  shutil.copyfileobj(s, d)
+              print(f"Decompressed to {db.stat().st_size/1e6:.1f} MB")
+          elif r2_storage.exists("state/bddk_data.db.gz"):
+              # First run: no standalone audit snapshot yet. Seed bank_audit.db
+              # from the bulletin snapshot's bank_audit_* tables so we don't
+              # re-extract every PDF from scratch.
+              print("No audit snapshot yet — bootstrapping from state/bddk_data.db.gz")
+              bgz = pathlib.Path("data/bddk_data.db.gz")
+              bdb = pathlib.Path("data/bddk_data.db")
+              r2_storage.download_to("state/bddk_data.db.gz", bgz)
+              with gzip.open(bgz, "rb") as s, open(bdb, "wb") as d:
+                  shutil.copyfileobj(s, d)
+              subprocess.run(
+                  [sys.executable, "scripts/seed_audit_db.py",
+                   "--from", str(bdb), "--to", str(db)],
+                  check=True,
+              )
+          else:
+              print("No snapshot in R2 at all — starting from empty audit DB. "
+                    "sync_audit_reports will extract every PDF found in R2.")
+          PY
+
+      - name: Sync audit reports (scrape new PDFs → R2 → extract → audit DB)
+        # Idempotent: skips PDFs already in R2 and (ticker,period,kind) already
+        # extracted with success=1. Writes to the standalone data/bank_audit.db.
+        env:
+          NO_SCRAPE: ${{ inputs.skip_scrape && '--no-scrape' || '' }}
+        run: python scripts/sync_audit_reports.py --db data/bank_audit.db --workers 16 $NO_SCRAPE
+
+      - name: Rebuild bank_audit_stages from credit-quality
+        # Derived table the dashboard's Stage 1/2/3 view reads. Rebuild from the
+        # standalone audit DB so push_to_d1 has fresh stage rows to send.
+        run: python scripts/build_bank_audit_stages.py --db data/bank_audit.db
+
+      - name: Setup Node (for wrangler)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Push fresh bank_audit_* rows to Cloudflare D1
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        # 168h window — a new quarter's reports trickle in over weeks, so a wide
+        # window is harmless (INSERT OR REPLACE is idempotent). Restricted to the
+        # bank_audit_* tables; everything else is owned by the bulletin pipeline.
+        run: >
+          python scripts/push_to_d1.py --db data/bank_audit.db --hours 168
+          --only-tables bank_audit_balance_sheet,bank_audit_profit_loss,bank_audit_credit_quality,bank_audit_profile,bank_audit_loans_by_sector,bank_audit_npl_movement,bank_audit_stages,bank_audit_extractions
+
+      - name: Upload audit snapshot back to R2
+        run: |
+          python - <<'PY'
+          import gzip, shutil, sqlite3, pathlib
+          from src.audit_reports import r2_storage
+          db = pathlib.Path("data/bank_audit.db")
+          # VACUUM keeps the snapshot tight before compressing.
+          with sqlite3.connect(str(db)) as c:
+              c.execute("VACUUM")
+          gz = pathlib.Path("data/bank_audit.db.gz")
+          with open(db, "rb") as s, gzip.open(gz, "wb", compresslevel=6) as d:
+              shutil.copyfileobj(s, d)
+          size = r2_storage.upload_file(gz, "state/bank_audit.db.gz")
+          print(f"Uploaded {size/1e6:.1f} MB to R2 state/bank_audit.db.gz")
+          PY

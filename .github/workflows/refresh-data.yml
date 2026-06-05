@@ -64,19 +64,12 @@ jobs:
           EVDS_API_KEY: ${{ secrets.EVDS_API_KEY }}
         run: python scripts/refresh.py
 
-      - name: Sync audit reports (scrape new PDFs → R2 → extract → local DB)
-        # Idempotent: skips PDFs already in R2 and (ticker,period,kind) already
-        # extracted with success=1. New audit reports get picked up automatically
-        # the week after a bank publishes.
-        run: python scripts/sync_audit_reports.py --workers 16
-
-      - name: Rebuild bank_audit_stages from credit-quality
-        # bank_audit_stages is a DERIVED table (the dashboard reads it for the
-        # Stage 1/2/3 view). sync_audit_reports only writes bank_audit_credit_quality;
-        # this rebuilds the consolidated stage rows so push_to_d1 has fresh rows
-        # to send. Without this step a new quarter's credit-quality lands in D1
-        # but the stage view never updates.
-        run: python scripts/build_bank_audit_stages.py
+      # NOTE: audit-report sync + bank_audit_stages rebuild moved to the
+      # standalone refresh-audit.yml workflow (own DB data/bank_audit.db, own
+      # R2 snapshot state/bank_audit.db.gz, own concurrency group). This job
+      # owns only the BDDK bulletin + EVDS tables now. The bank_audit_* tables
+      # still present in this snapshot are frozen (never re-extracted here), so
+      # the push below picks up no fresh audit rows — its time window finds none.
 
       - name: Setup Node (for wrangler)
         uses: actions/setup-node@v4
@@ -88,7 +81,9 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         # 168h (7 days) window — covers the weekly cron interval. Idempotent
         # via INSERT OR REPLACE; re-running overwrites unchanged rows safely.
-        # Covers monthly / weekly / EVDS / bank_audit_* tables.
+        # Covers monthly / weekly / EVDS tables. The bank_audit_* tables are
+        # now owned by refresh-audit.yml (separate DB + snapshot); they sit
+        # frozen in this snapshot, so the time-window filter pushes none.
         run: python scripts/push_to_d1.py --hours 168
 
       - name: Upload new SQLite snapshot back to R2

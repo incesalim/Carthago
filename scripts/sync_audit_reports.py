@@ -193,13 +193,13 @@ def _worker_extract(args):
     )
 
 
-def extract_from_r2(workers: int) -> dict[str, int]:
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with sqlite3.connect(str(DB_PATH)) as conn:
+def extract_from_r2(workers: int, db_path: Path = DB_PATH) -> dict[str, int]:
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(str(db_path)) as conn:
         init_schema(conn)
 
     pdfs = list_r2_pdfs()
-    done = already_extracted(DB_PATH)
+    done = already_extracted(db_path)
     todo = [(t, p, k, key) for (t, p, k, key) in pdfs if (t, p, k) not in done]
     print(f"[extract] {len(pdfs)} in R2 · {len(done)} already done · {len(todo)} to extract")
     if not todo:
@@ -208,7 +208,7 @@ def extract_from_r2(workers: int) -> dict[str, int]:
     counts = {"ok": 0, "fail": 0}
     with tempfile.TemporaryDirectory(prefix="bddk_pdfs_") as tmp_dir:
         work = [(t, p, k, key, tmp_dir) for (t, p, k, key) in todo]
-        with sqlite3.connect(str(DB_PATH)) as conn, \
+        with sqlite3.connect(str(db_path)) as conn, \
              ProcessPoolExecutor(max_workers=workers) as ex:
             futures = [ex.submit(_worker_extract, w) for w in work]
             for fut in as_completed(futures):
@@ -246,8 +246,14 @@ def main():
     ap.add_argument("--workers", type=int, default=16, help="parallel HTTP / extraction workers")
     ap.add_argument("--no-scrape", action="store_true", help="skip the scrape step")
     ap.add_argument("--no-extract", action="store_true", help="skip the extract step")
+    ap.add_argument("--db", type=str, default=str(DB_PATH),
+                    help="SQLite DB to upsert extracted rows into (default "
+                         "data/bddk_data.db). The standalone audit pipeline "
+                         "passes data/bank_audit.db so audit data lives in its "
+                         "own snapshot, decoupled from the BDDK-bulletin DB.")
     args = ap.parse_args()
 
+    db_path = Path(args.db)
     t0 = time.time()
     if not args.no_scrape:
         scrape_to_r2(workers=args.workers)
@@ -255,7 +261,7 @@ def main():
         # Extraction is CPU-bound (pdfplumber/fitz) — cap at min(workers, cpu_count)
         import os
         cpu_workers = min(args.workers, (os.cpu_count() or 4))
-        extract_from_r2(workers=cpu_workers)
+        extract_from_r2(workers=cpu_workers, db_path=db_path)
     print(f"\ntotal {time.time() - t0:.1f}s")
 
 
