@@ -7,8 +7,10 @@
  */
 import Link from "next/link";
 import { bankSummaries } from "@/app/lib/audit";
-import { BANK_NAMES } from "@/app/lib/bank_names";
+import { BANK_NAMES, BANK_TYPE_BY_TICKER } from "@/app/lib/bank_names";
+import { BANK_TYPE_LABELS } from "@/app/lib/metrics";
 import { PageHeader } from "@/app/components/ui";
+import BankTypeBadge from "@/app/components/BankTypeBadge";
 
 export const dynamic = "force-dynamic";
 
@@ -43,21 +45,29 @@ export default async function BanksPage() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {banks.map((b) => (
-          <Link
-            key={b.bank_ticker}
-            href={`/banks/${b.bank_ticker}`}
-            className="block rounded-lg border bg-card p-4 hover:bg-accent transition"
-          >
-            <div className="flex items-baseline justify-between">
-              <div className="font-medium">{BANK_NAMES[b.bank_ticker] ?? b.bank_ticker}</div>
-              <div className="text-xs text-muted-foreground tabular-nums">{b.bank_ticker}</div>
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">
-              {b.periods} quarters · latest {b.latest_period}
-            </div>
-          </Link>
-        ))}
+        {banks.map((b) => {
+          const typeCode = BANK_TYPE_BY_TICKER[b.bank_ticker];
+          return (
+            <Link
+              key={b.bank_ticker}
+              href={`/banks/${b.bank_ticker}`}
+              className="block rounded-lg border bg-card p-4 hover:bg-accent transition"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="font-medium truncate">{BANK_NAMES[b.bank_ticker] ?? b.bank_ticker}</span>
+                  {typeCode && (
+                    <BankTypeBadge code={typeCode} label={BANK_TYPE_LABELS[typeCode]} />
+                  )}
+                </div>
+                <div className="text-xs text-muted-foreground tabular-nums shrink-0">{b.bank_ticker}</div>
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                {b.periods} quarters · latest {b.latest_period}
+              </div>
+            </Link>
+          );
+        })}
       </div>
     </main>
   );
