@@ -23,8 +23,9 @@
 # Wrangler local state
 /.wrangler/
 
-# Generated D1 migrations (regenerable via scripts/generate_d1_migrations.py)
-/migrations/*.sql
+# web/migrations/ holds hand-authored schema migrations — TRACKED (source of truth).
+# Generated DATA seed dumps (scripts/generate_d1_migrations.py) go to web/seeds/ — ignored.
+/seeds/
 
 # production
 /build

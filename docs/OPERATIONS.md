@@ -69,6 +69,24 @@ PDF to R2, extracts the financial tables, and pushes the rows to D1.
 To pick up the change before the next Sunday cron, trigger
 `refresh-audit.yml` manually.
 
+### Change the D1 schema (migrations)
+
+The schema source of truth is the hand-authored, version-controlled files in
+`web/migrations/` (idempotent, `IF NOT EXISTS`). To change it:
+
+1. Add a new numbered file, e.g. `web/migrations/0002_add_xyz.sql`, with the
+   `CREATE TABLE IF NOT EXISTS …` / `ALTER TABLE … ADD COLUMN …` statements.
+   Mirror the change in the Python DDL (`src/*/schema.py` / scraper) so the
+   staging SQLite matches.
+2. Commit + push. The deploy workflow runs `wrangler d1 migrations apply
+   bddk-data --remote`, which applies only files not yet recorded in the
+   `d1_migrations` table. (`CREATE … IF NOT EXISTS` makes re-apply a no-op.)
+3. Test locally first: `cd web && npx wrangler d1 migrations apply bddk-data --local`.
+
+`scripts/generate_d1_migrations.py` is **data seeding only** (writes to
+`web/seeds/`, gitignored) — not schema. Routine row updates go through
+`push_to_d1.py`.
+
 ## Disaster recovery
 
 Two independent safety nets, both **free**:
