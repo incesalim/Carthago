@@ -104,7 +104,47 @@ export default function StackedArea({
               }}
               labelFormatter={(l) => String(l)}
             />
-            <Legend wrapperStyle={{ fontSize: 11 }} iconType="square" />
+            <Legend
+              wrapperStyle={{ fontSize: 11 }}
+              content={() => (
+                // Render straight from `series` so the legend order matches the
+                // stack (bottom→top); Recharts otherwise reorders it.
+                <ul
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    justifyContent: "center",
+                    gap: "2px 14px",
+                    listStyle: "none",
+                    margin: 0,
+                    padding: 0,
+                  }}
+                >
+                  {series.map((s, i) => (
+                    <li
+                      key={s.key}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 5,
+                        color: t.axis,
+                      }}
+                    >
+                      <span
+                        style={{
+                          display: "inline-block",
+                          width: 11,
+                          height: 11,
+                          borderRadius: 2,
+                          background: colorAt(i),
+                        }}
+                      />
+                      {s.label}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            />
             {series.map((s, i) => (
               <Area
                 key={s.key}
