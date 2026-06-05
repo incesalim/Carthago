@@ -83,6 +83,9 @@ SERIES: list[Series] = [
     Series("TP.HPBITABLO4.5", "Households EUR Deposits (USD eq, USD m)", "fx", evds.FREQ_MONTHLY),
     Series("TP.HPBITABLO4.7", "Households Precious Metals (USD m)",      "fx", evds.FREQ_MONTHLY),
 
+    # Real effective exchange rate (real appreciation backdrop)
+    Series("TP.RK.T1.Y", "REER (CPI based, 2003=100)", "fx", evds.FREQ_MONTHLY),
+
     # Deposit rates by maturity (≤1m through >12m)
     Series("TP.TRY.MT01", "Deposit rate ≤1m",   "rates", evds.FREQ_WEEKLY),
     Series("TP.TRY.MT02", "Deposit rate 1-3m",  "rates", evds.FREQ_WEEKLY),

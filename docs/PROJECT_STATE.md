@@ -73,6 +73,12 @@ traffic) is unlocked by the `ADMIN_PASSWORD` Worker secret; optional
 `GITHUB_DISPATCH_TOKEN` enables the trigger buttons and Web-Analytics creds the
 traffic panel. Setup in [OPERATIONS.md](OPERATIONS.md) / [ADMIN.md](ADMIN.md).
 
+A **Liquidity** tab (`/liquidity`) adapts the BBVA "Banking Sector Outlook"
+liquidity section: TL & FC loan/deposit ratios and TL deposit growth split
+Public (state) vs Private (private + foreign), deposit dollarization, net CBRT
+funding, gross reserves, residents' household FC savings, and REER. See
+[METRICS.md](METRICS.md) §12.
+
 ## Known issues / pending work
 
 - **TSKB 2026Q1** — bank rotated their IR URL; current entry in
@@ -87,7 +93,11 @@ traffic panel. Setup in [OPERATIONS.md](OPERATIONS.md) / [ADMIN.md](ADMIN.md).
   VAKIFK) disclose branches/personnel in phrasings not yet covered by the
   regex patterns in `src/audit_reports/bank_profile.py`. Add patterns as
   needed; the qualitative section is always in the first 25 pages.
-- **Rates dashboard** — 6 panels from the old Dash app aren't ported yet
-  (CBRT reserves, gold tons, net funding, residents' FC, expectations).
-  EVDS scraper extended to fetch the underlying series; charts can be
-  wired once D1 has a few weeks of data.
+- **Rates dashboard** — some panels from the old Dash app aren't ported yet
+  (gold tons, expectations). CBRT reserves, net funding and residents' FC are
+  now live on the new **Liquidity** tab.
+- **Monthly EVDS series were silently empty** until the 2026-06-05 date-parse
+  fix in `evds_client._parse_evds_dates` (EVDS returns monthly dates as
+  `YYYY-M`, previously dropped). CPI, inflation expectations, REER and
+  residents' FC repopulate on the next refresh. New series added: REER
+  `TP.RK.T1.Y`.
