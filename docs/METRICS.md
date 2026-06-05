@@ -285,6 +285,13 @@ cached into the `evds_series` D1 table; dashboard reads via the
 [`web/app/lib/metrics.ts`](../web/app/lib/metrics.ts).
 Host: `evds3.tcmb.gov.tr/igmevdsms-dis` — API key sent as header `key`.
 
+> **Monthly-series date fix (2026-06-05):** EVDS returns monthly dates as
+> `YYYY-M` (e.g. `2026-5`), but `evds_client._fetch_one` parsed only
+> `%d-%m-%Y`, so **every monthly series** (CPI, expectations, REER,
+> residents' FC) was silently coerced to NaT and dropped — landing empty in
+> D1. `_parse_evds_dates` now backfills the `%Y-%m` format. After deploying,
+> the next refresh repopulates these monthly series.
+
 ### Weekly TL flow rates (Rates tab)
 Datagroups `bie_kt100h` (loans) and `bie_mt100h` (deposits).
 
@@ -390,6 +397,7 @@ All %, weekly flow.
 |---|---|---|
 | USD/TRY | `TP.DK.USD.A` | Buying rate. Daily. |
 | Net international reserves | `TP.AB.N01` | Weekly. |
+| REER (CPI based, 2003=100) | `TP.RK.T1.Y` | Monthly. Real-appreciation backdrop on the Liquidity tab. (`.T2.Y` = PPI based, `.T3.Y` = developing-economies basket.) |
 
 ### BBVA's "Deposit Rate (inc. RR cost)"
 BBVA adds an internal required-reserve cost to the raw deposit rate. TCMB
@@ -498,6 +506,7 @@ reading directly from D1). One page per tab under `web/app/<tab>/page.tsx`.
 | `/capital` | CAR by group + bar. Equity level + YoY. Liabilities / Equity. RWA Net / Gross. Off-BS derivatives / total assets. | §4, §7, §8 |
 | `/profitability` | ROE, ROA, NIM (annualized). OPEX / avg assets. Fees / revenue. Non-interest income / non-interest expense. Fees / OPEX. Optional ROE-vs-CPI overlay. | §7, §8, §9 (CPI) |
 | `/weekly` | Loan level + 4w ann. + 13w ann. (all groups). TL vs FX, public vs private TL. Consumer segments 13w. SME vs commercial 13w. Deposits trio. NPL stock + YoY. | §10, §11 |
+| `/liquidity` | Adapts BBVA's liquidity section. TL & FC loan/deposit ratios (public vs private), TL deposit growth (sector YoY+13w; public vs private YoY), deposit dollarization (sector/public/private), residents' FC savings (households, USD bn), net CBRT funding (TL bn), gross reserves (USD bn), REER. | §9, §10, §11 |
 | `/rates` | TCMB rate corridor, FX, weekly survey rates, sterilization channels. (Several historical Rates panels still pending D1 backfill — see [PROJECT_STATE.md](PROJECT_STATE.md) "Known issues".) | §9 |
 | `/banks` + `/banks/[ticker]` | Bank index + per-bank drill-down: full BS + P&L tables, financial-assets time series. Reads from `bank_audit_*` tables. | See `web/app/lib/audit.ts` |
 
@@ -508,7 +517,17 @@ reading directly from D1). One page per tab under `web/app/<tab>/page.tsx`.
 | Missing | Reason |
 |---|---|
 | Forecasts (ROE/credit path) | Requires proper model; BBVA uses in-house projections. |
-| Full Financial Conditions Index | Model-dependent weighting; user asked to skip. |
+| Full Financial Conditions Index | Model-dependent weighting; user asked to skip. Liquidity tab shows the REER component as a standalone backdrop. |
+| Investment-fund volumes / net flows / fund dollarization | Source is TEFAS (mutual-fund AUM), not BDDK or EVDS. Needs a new TEFAS scraper. |
+| Under-the-mattress (household) gold stock | BBVA estimate per CBRT 2012-IV methodology — needs gold import/production/jewelry-trade data + a model. Our `TP.BL0021` is CBRT vault gold, a different concept. |
+
+> **Now replicated (Liquidity tab, 2026-06-05):** the BBVA liquidity-section
+> charts we *can* source — TL & FC loan/deposit ratios and TL deposit growth
+> split **Public (state) vs Private (private + foreign)**, deposit
+> dollarization, net CBRT funding, gross reserves, residents' household FC
+> savings, and REER. The public/private fold (foreign → private) reproduces
+> the report's own figures. Helpers: `weeklyOwnershipRatio`,
+> `weeklyGrowthByOwnership`, `weeklyDollarization` in `web/app/lib/metrics.ts`.
 | FX-parity-adjusted credit growth | Needs monthly FX basket, not yet wired. Plain FX growth shown. |
 | 4w / 13w rate trends | Weekly data in DB is sparse (14 periods). Use EVDS directly. |
 | Bracket deposit mix (10k/50k/250k/1m/>1m) | Columns exist but not consistently populated. |

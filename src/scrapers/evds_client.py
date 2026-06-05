@@ -185,7 +185,7 @@ def _fetch_one(code: str, s: str, e: str,
     df = pd.DataFrame(items)[["Tarih", value_col]].rename(
         columns={"Tarih": "date", value_col: "value"}
     )
-    df["date"] = pd.to_datetime(df["date"], format="%d-%m-%Y", errors="coerce")
+    df["date"] = _parse_evds_dates(df["date"])
     df["value"] = pd.to_numeric(df["value"], errors="coerce")
     return df.dropna(subset=["date"]).sort_values("date").reset_index(drop=True)
 
@@ -219,6 +219,23 @@ def fetch_many(
 
 
 # ---------------------------------------------------------------------------
+def _parse_evds_dates(raw: pd.Series) -> pd.Series:
+    """Parse EVDS 'Tarih' values into datetimes.
+
+    Daily/weekly series return 'DD-MM-YYYY' (e.g. '15-05-2026'); monthly
+    series return 'YYYY-M' / 'YYYY-MM' (e.g. '2026-5'). Parse the day-first
+    format first, then backfill any failures with the year-month format —
+    otherwise EVERY monthly series (CPI, REER, residents' FC deposits,
+    inflation expectations) is silently dropped to NaT and lands empty in D1.
+    """
+    s = raw.astype(str).str.strip()
+    dt = pd.to_datetime(s, format="%d-%m-%Y", errors="coerce")
+    miss = dt.isna()
+    if miss.any():
+        dt.loc[miss] = pd.to_datetime(s[miss], format="%Y-%m", errors="coerce")
+    return dt
+
+
 def _to_evds_date(v: str) -> str:
     """Accept 'YYYY-MM-DD' or 'DD-MM-YYYY', always return 'DD-MM-YYYY'."""
     if len(v) == 10 and v[2] == "-":

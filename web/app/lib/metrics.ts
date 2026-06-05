@@ -964,6 +964,171 @@ export async function weeklyGrowth(
 }
 
 // ---------------------------------------------------------------------------
+// Liquidity — public-vs-private cuts of the weekly bulletin (BBVA framing)
+//
+// BBVA's "Banking Sector Outlook" liquidity section splits the system into
+// PUBLIC (state banks) vs PRIVATE (private + foreign banks). Folding foreign
+// into private reproduces the report's own figures (verified: deposit
+// dollarization 35.6% public / 39.8% private vs the report's "~36% / ~40%";
+// FC loan/deposit ratio public > private). These codes are weekly_series
+// semantics (see WEEKLY_BANK_TYPES) — different from the monthly tables.
+// ---------------------------------------------------------------------------
+
+export const LIQ_OWNERSHIP = {
+  PUBLIC: ["10004"], // State deposit banks
+  PRIVATE: ["10003", "10005"], // Private + Foreign deposit banks
+} as const;
+
+export const LIQ_OWNERSHIP_LABELS: Record<string, string> = {
+  PUBLIC: "Public",
+  PRIVATE: "Private",
+};
+
+export const LIQ_DOLLARIZATION_LABELS: Record<string, string> = {
+  SECTOR: "Sector",
+  PUBLIC: "Public",
+  PRIVATE: "Private",
+};
+
+// SQL fragment: bucket weekly_series bank_type_code into PUBLIC/PRIVATE.
+const OWNERSHIP_BUCKET =
+  "CASE WHEN bank_type_code = '10004' THEN 'PUBLIC' ELSE 'PRIVATE' END";
+
+/**
+ * Loan/deposit-style ratio (numerator / denominator × 100) of two weekly
+ * metrics, bucketed into PUBLIC vs PRIVATE. Numerator and denominator are
+ * summed across each group's bank types BEFORE dividing.
+ *
+ * Drives the TL and FC loan-to-deposit charts (num = loans krediler/1.0.1,
+ * den = deposits mevduat/4.0.1).
+ */
+export async function weeklyOwnershipRatio(
+  numCategory: string,
+  numItemId: string,
+  denCategory: string,
+  denItemId: string,
+  currency: "TL" | "FX" | "TOTAL" = "TL",
+  weeksBack = 156,
+): Promise<TimeSeriesRow[]> {
+  return cachedAll<TimeSeriesRow>(
+    `WITH num AS (
+         SELECT period_date, ${OWNERSHIP_BUCKET} AS grp, SUM(value) AS v
+         FROM weekly_series
+         WHERE category = ? AND item_id = ? AND currency = ?
+           AND bank_type_code IN ('10003','10004','10005')
+         GROUP BY period_date, grp
+       ),
+       den AS (
+         SELECT period_date, ${OWNERSHIP_BUCKET} AS grp, SUM(value) AS v
+         FROM weekly_series
+         WHERE category = ? AND item_id = ? AND currency = ?
+           AND bank_type_code IN ('10003','10004','10005')
+         GROUP BY period_date, grp
+       )
+       SELECT num.period_date AS period,
+              num.grp        AS bank_type_code,
+              num.v * 100.0 / den.v AS value
+       FROM num JOIN den ON num.period_date = den.period_date AND num.grp = den.grp
+       WHERE den.v > 0
+         AND num.period_date >= date('now', '-' || ? || ' days')
+       ORDER BY period, bank_type_code`,
+    [
+      numCategory, numItemId, currency,
+      denCategory, denItemId, currency,
+      weeksBack * 7,
+    ],
+  );
+}
+
+/**
+ * Annualized growth of a weekly metric bucketed into PUBLIC vs PRIVATE,
+ * summing the group's bank types before computing growth (so the two lines
+ * are exactly Public vs Private, not per-bank-type). Annualization exponent
+ * (52/window) is applied in TS because D1 blocks POWER().
+ */
+export async function weeklyGrowthByOwnership(
+  category: string,
+  itemId: string,
+  currency: "TL" | "FX" | "TOTAL" = "TL",
+  windowWeeks: 4 | 13 | 52 = 52,
+  weeksBack = 156,
+): Promise<TimeSeriesRow[]> {
+  const results = await cachedAll<{ period: string; bank_type_code: string; value: number; prev_value: number }>(
+    `WITH summed AS (
+         SELECT period_date, ${OWNERSHIP_BUCKET} AS grp, SUM(value) AS value
+         FROM weekly_series
+         WHERE category = ? AND item_id = ? AND currency = ?
+           AND bank_type_code IN ('10003','10004','10005')
+         GROUP BY period_date, grp
+       ),
+       s AS (
+         SELECT period_date, grp, value,
+                LAG(value, ?) OVER (PARTITION BY grp ORDER BY period_date) AS prev_value
+         FROM summed
+       )
+       SELECT period_date AS period, grp AS bank_type_code, value, prev_value
+       FROM s
+       WHERE prev_value IS NOT NULL
+         AND period_date >= date('now', '-' || ? || ' days')
+       ORDER BY period, bank_type_code`,
+    [category, itemId, currency, windowWeeks, weeksBack * 7],
+  );
+
+  const exponent = 52 / windowWeeks;
+  const out: TimeSeriesRow[] = [];
+  for (const r of results) {
+    if (r.prev_value > 0) {
+      out.push({
+        period: r.period,
+        bank_type_code: r.bank_type_code,
+        value: (Math.pow(r.value / r.prev_value, exponent) - 1) * 100,
+      });
+    }
+  }
+  return out;
+}
+
+/**
+ * Deposit dollarization — FX share of total deposits, FX / (TL + FX) × 100.
+ * Returns three series keyed by bank_type_code: SECTOR, PUBLIC, PRIVATE.
+ * FX deposits are stored TL-equivalent in weekly_series, which is exactly
+ * what the FX-share ratio needs.
+ */
+export async function weeklyDollarization(
+  weeksBack = 156,
+): Promise<TimeSeriesRow[]> {
+  return cachedAll<TimeSeriesRow>(
+    `WITH base AS (
+         SELECT period_date,
+                CASE bank_type_code
+                  WHEN '10001' THEN 'SECTOR'
+                  WHEN '10004' THEN 'PUBLIC'
+                  ELSE 'PRIVATE'
+                END AS grp,
+                currency, SUM(value) AS v
+         FROM weekly_series
+         WHERE category = 'mevduat' AND item_id = '4.0.1'
+           AND currency IN ('TL','FX')
+           AND bank_type_code IN ('10001','10003','10004','10005')
+         GROUP BY period_date, grp, currency
+       ),
+       piv AS (
+         SELECT period_date, grp,
+                SUM(CASE WHEN currency = 'FX' THEN v ELSE 0 END) AS fx,
+                SUM(CASE WHEN currency = 'TL' THEN v ELSE 0 END) AS tl
+         FROM base GROUP BY period_date, grp
+       )
+       SELECT period_date AS period, grp AS bank_type_code,
+              fx * 100.0 / (fx + tl) AS value
+       FROM piv
+       WHERE (fx + tl) > 0
+         AND period_date >= date('now', '-' || ? || ' days')
+       ORDER BY period, bank_type_code`,
+    [weeksBack * 7],
+  );
+}
+
+// ---------------------------------------------------------------------------
 // EVDS — TCMB macro / rate series
 // ---------------------------------------------------------------------------
 
