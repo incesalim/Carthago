@@ -4,60 +4,68 @@ A protected `/admin` page in the dashboard that consolidates **pipeline/data
 health**, **manual refresh triggers**, and **site traffic** into one view.
 
 - URL: `https://<dashboard-host>/admin` (not linked from the public nav).
-- Gated by **Cloudflare Access** (email allowlist). **Safe-by-default**: until
-  Access is configured the page returns a Forbidden card — it is never publicly
-  readable.
-- Everything degrades gracefully: the health view works with no extra setup; the
-  Pipeline and Traffic panels show a "not configured" hint until their tokens are
-  added.
+- **Safe-by-default**: until an auth method is configured the page is locked —
+  it is never publicly readable.
+- Two auth modes (auto-selected): **password** (default, works on the free
+  `workers.dev` URL) and **Cloudflare Access** (only when on a custom domain).
+- Everything degrades gracefully: health works as soon as you can log in; the
+  Pipeline and Traffic panels show a "not configured" hint until their tokens
+  are added.
 
 ## Code map
 
 | Piece | File |
 |---|---|
-| Auth (Access JWT verify, WebCrypto) | `web/app/lib/admin-auth.ts` |
-| Env reader (vars + secrets) | `web/app/lib/cf-env.ts` |
+| Auth (password session + Access JWT) | `web/app/lib/admin-auth.ts` |
+| Login / logout endpoints | `web/app/api/admin/{login,logout}/route.ts` |
+| Env reader | `web/app/lib/cf-env.ts` |
 | D1 health queries | `web/app/lib/admin-health.ts` |
 | GitHub Actions client | `web/app/lib/github.ts` |
 | Web Analytics client | `web/app/lib/cf-analytics.ts` |
-| Page + panels | `web/app/admin/{page,PipelinePanel,TrafficPanel}.tsx` |
-| Route handlers | `web/app/api/admin/{runs,dispatch}/route.ts` |
+| Page + panels + login form | `web/app/admin/{page,PipelinePanel,TrafficPanel,LoginForm}.tsx` |
+| Runs / dispatch endpoints | `web/app/api/admin/{runs,dispatch}/route.ts` |
 
-## One-time setup
+## Setup
 
-### 1. Cloudflare Access (required to open `/admin`)
+### 1. Set the admin password (unlocks the page)
 
-1. Cloudflare dashboard → **Zero Trust → Access → Applications → Add → Self-hosted**.
-2. Application domain: the dashboard host, **path** `/admin` (add a second app or
-   path for `/api/admin` so the API is gated too).
-3. Policy: **Allow**, include your Google email (`incesalim10@gmail.com`).
-4. Copy two values into `web/wrangler.jsonc` → `vars`:
-   - `CF_ACCESS_TEAM_DOMAIN` — e.g. `yourname.cloudflareaccess.com`
-   - `CF_ACCESS_AUD` — the application's **Application Audience (AUD) Tag**
-5. Redeploy (push to `web/**`).
+This is all that's needed to open `/admin` on the current `workers.dev` URL.
 
-Local dev bypass: set `ADMIN_DEV_BYPASS=1` (e.g. in `web/.dev.vars`) to skip auth.
+Cloudflare dashboard → **Workers & Pages → `turkish-banking-dashboard` →
+Settings → Variables and Secrets → Add** → name `ADMIN_PASSWORD`, type **Secret**,
+value = a password you choose → **Save**. (Or CLI: `cd web && npx wrangler secret
+put ADMIN_PASSWORD`.)
+
+Then visit `/admin`, enter the password, and you're in. The session lasts ~12h;
+"Sign out" clears it.
 
 ### 2. GitHub token (enables run status + trigger buttons)
 
-1. GitHub → **Settings → Developer settings → Fine-grained tokens** → new token
-   scoped to `incesalim/turkish-banking-sector`, **Actions: Read and write**.
-2. Store it as a Worker secret (you paste it; it's never committed):
-   ```
-   cd web && npx wrangler secret put GITHUB_DISPATCH_TOKEN
-   ```
+Fine-grained PAT scoped to `incesalim/turkish-banking-sector`, **Actions: Read
+and write** → add as a secret named `GITHUB_DISPATCH_TOKEN` (same Variables and
+Secrets screen, or `npx wrangler secret put GITHUB_DISPATCH_TOKEN`).
 
 ### 3. Cloudflare Web Analytics (optional — traffic panel)
 
-1. Cloudflare → **Web Analytics** → add/enable the site → copy the **site tag**.
-2. Create an **account API token** with **Analytics: Read**.
-3. Set:
-   - `web/wrangler.jsonc` vars: `CF_ANALYTICS_SITE_TAG`, `CF_ACCOUNT_TAG`
-   - secret: `cd web && npx wrangler secret put CF_ANALYTICS_TOKEN`
+Enable Web Analytics for the site, create an account API token with **Analytics:
+Read**, then set:
+- vars `CF_ANALYTICS_SITE_TAG`, `CF_ACCOUNT_TAG` (in `web/wrangler.jsonc`)
+- secret `CF_ANALYTICS_TOKEN`
+
+### 4. Cloudflare Access (optional — only on a custom domain)
+
+On `workers.dev`, Cloudflare Access can only gate the **whole** subdomain, which
+would lock the public dashboard too — so we use the password instead. If you
+later put the dashboard on a **custom domain**, you can switch to Access:
+create a self-hosted Access app over `/admin` + `/api/admin`, allow your email,
+then set vars `CF_ACCESS_TEAM_DOMAIN` + `CF_ACCESS_AUD`. When both are present
+the panel uses Access automatically (and ignores the password).
+
+Local dev: set `ADMIN_DEV_BYPASS=1` (e.g. in `web/.dev.vars`) to skip auth.
 
 ## How health status is derived
 
-Each source reports the latest data period, last ingest timestamp, and a row
+Each source reports its latest data period, last ingest timestamp, and a row
 count. The colour (Fresh / Late / Stale) compares time-since-last-ingest against
 the source's expected cron cadence (daily for EVDS/news, weekly for
 bulletins/audit/regulation): `≤1.5×` cadence = Fresh, `≤3×` = Late, else Stale.

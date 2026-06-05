@@ -18,11 +18,11 @@
       "database_id": "4ff6aaac-b2ca-4371-b93c-282a96083e72"
     }
   ],
-  // Admin panel config (non-secret). Empty → the panel stays locked / shows a
-  // "not configured" state (safe-by-default). Fill in after the one-time setup
-  // in docs/ADMIN.md. Tokens are secrets, set via `wrangler secret put`:
-  //   GITHUB_DISPATCH_TOKEN  (pipeline triggers + run status)
-  //   CF_ANALYTICS_TOKEN     (traffic panel)
+  // Admin panel config (non-secret vars). The CF_ACCESS_* pair is only for a
+  // custom-domain setup; on workers.dev the page is gated by the ADMIN_PASSWORD
+  // secret instead. See docs/ADMIN.md. Secrets (set via `wrangler secret put`,
+  // NOT here): ADMIN_PASSWORD (login), GITHUB_DISPATCH_TOKEN (triggers),
+  // CF_ANALYTICS_TOKEN (traffic).
   "vars": {
     "CF_ACCESS_TEAM_DOMAIN": "",
     "CF_ACCESS_AUD": "",
