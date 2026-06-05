@@ -11,6 +11,7 @@ import {
   fxDeposits,
   ratioLdr,
   latestPerBank,
+  latestPeriod,
   PRIMARY_BANK_TYPES,
   BANK_TYPES,
   BANK_TYPE_LABELS,
@@ -84,7 +85,11 @@ export default async function DepositsPage() {
 
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
-      <PageHeader title="Deposits" description="Sector aggregate + group breakdown · BDDK monthly bulletin" />
+      <PageHeader
+        title="Deposits"
+        description="Sector aggregate + group breakdown · BDDK monthly bulletin"
+        dataThrough={latestPeriod(depSector, yoyAll)}
+      />
 
       <Section title="Total Deposits Growth">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

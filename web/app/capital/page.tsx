@@ -9,6 +9,7 @@ import {
   equityYoY,
   leverage,
   latestPerBank,
+  latestPeriod,
   PRIMARY_BANK_TYPES,
   BANK_TYPES,
   BANK_TYPE_LABELS,
@@ -38,7 +39,11 @@ export default async function CapitalPage() {
 
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
-      <PageHeader title="Capital" description="Capital adequacy + equity + leverage · BDDK · regulatory min CAR = 12%" />
+      <PageHeader
+        title="Capital"
+        description="Capital adequacy + equity + leverage · BDDK · regulatory min CAR = 12%"
+        dataThrough={latestPeriod(carAll, equity, lev)}
+      />
 
       <section className="space-y-4">
         <div className="space-y-0.5">

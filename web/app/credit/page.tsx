@@ -16,6 +16,7 @@ import {
   smeLoansYoY,
   smeBreakdown,
   latestPerBank,
+  latestPeriod,
   PRIMARY_BANK_TYPES,
   BANK_TYPES,
   BANK_TYPE_LABELS,
@@ -86,7 +87,11 @@ export default async function CreditPage() {
 
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
-      <PageHeader title="Credit" description="Loan growth · currency split · consumer mix · SME · public vs. private — BDDK monthly bulletin" />
+      <PageHeader
+        title="Credit"
+        description="Loan growth · currency split · consumer mix · SME · public vs. private — BDDK monthly bulletin"
+        dataThrough={latestPeriod(loansSector, yoyAll)}
+      />
 
       <Section title="Total Credit Growth" subtitle="Sector level + cross-sectional and time-series growth.">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

@@ -14,6 +14,7 @@ import {
   totalLoansYoY,
   totalDepositsYoY,
   latestPerBank,
+  latestPeriod,
   PRIMARY_BANK_TYPES,
   BANK_TYPES,
   BANK_TYPE_LABELS,
@@ -96,6 +97,7 @@ export default async function OverviewPage() {
         eyebrow="Banking Sector"
         title="Overview"
         description="BDDK monthly bulletin · sector aggregate · live D1 query"
+        dataThrough={latestPeriod(assets, npl, car, roe)}
       />
 
       {/* Top row — size + growth */}
