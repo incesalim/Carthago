@@ -9,12 +9,17 @@
     "total": 68
   },
   "categories_in_bddk_aggregates": {
-    "10003_private": "Özel Mevduat",
-    "10004_state": "Kamu Mevduat",
-    "10005_foreign": "Yabancı Mevduat",
-    "10006_participation": "Katılım",
-    "10007_dev_inv": "Kalkınma ve Yatırım",
-    "10001_sector_total": "all of the above"
+    "_note": "Two OVERLAPPING partitions of the sector (10001). By type: 10002+10003+10004. By ownership (spans all types): 10005+10006+10007. Never sum across the two partitions — that double-counts. Verified against D1: 10005+10006+10007 = 10001.",
+    "10002_deposit": "Mevduat",
+    "10003_participation": "Katılım",
+    "10004_dev_inv": "Kalkınma ve Yatırım",
+    "10005_private": "Yerli Özel (all types)",
+    "10006_state": "Kamu (all types)",
+    "10007_foreign": "Yabancı (all types)",
+    "10008_deposit_private": "Mevduat - Yerli Özel",
+    "10009_deposit_state": "Mevduat - Kamu",
+    "10010_deposit_foreign": "Mevduat - Yabancı",
+    "10001_sector_total": "by type 10002+10003+10004, or by ownership 10005+10006+10007"
   },
   "banks": [
     {"name_tr": "AKBANK T.A.Ş.", "category": "Özel Mevduat", "bist_ticker": "AKBNK", "listed": true},

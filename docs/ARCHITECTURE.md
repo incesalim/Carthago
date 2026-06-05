@@ -46,8 +46,10 @@ machine is involved in the production data flow.
 | **Edge database** | Cloudflare D1 (`bddk-data`) | SQLite at the edge, ~1.6M rows |
 | **PDF storage** | Cloudflare R2 (`bddk-audit-reports`) | ~2.2 GB, ~970 quarterly PDFs |
 | **Dashboard** | `web/` | Next.js 15 + OpenNext + Recharts on Cloudflare Workers |
-| **Read cache** | Cloudflare KV (`NEXT_INC_CACHE_KV`) | 1h data cache for D1 reads (`cachedAll` → `unstable_cache`) |
+| **Read cache** | Cloudflare KV (`NEXT_INC_CACHE_KV`) | 12h data cache for D1 reads (`cachedAll` → `unstable_cache`) |
 | **Admin panel** | `web/app/admin/`, `web/app/api/admin/` | password-gated control center: data health, refresh triggers, traffic |
+| **Quality gates** | `.github/workflows/ci.yml`, `pyproject.toml`, `tests/` | ruff + pytest + eslint + tsc on every PR |
+| **Schema migrations** | `web/migrations/` | hand-authored, version-controlled; applied via `wrangler d1 migrations apply` on deploy |
 
 ## Workflows
 
@@ -94,8 +96,18 @@ Sunday 04:00 UTC. Standalone audit pipeline on its own DB + snapshot:
 5. VACUUM + re-gzip + upload `state/bank_audit.db.gz` back to R2
 
 ### Deploy — `.github/workflows/deploy-cloudflare.yml`
-On push touching `web/**`. Builds OpenNext bundle and deploys to
-Cloudflare Workers.
+On push touching `web/**`. Applies D1 migrations (`wrangler d1 migrations
+apply`), builds the OpenNext bundle, and deploys to Cloudflare Workers.
+
+### Health check — `.github/workflows/healthcheck.yml`
+Daily 06:00 UTC. Queries D1 freshness per source + audit failure count and
+alerts (`scripts/notify.py` → Telegram/Discord) when data is stale or
+extractions spike.
+
+### CI — `.github/workflows/ci.yml`
+On every PR (and master push): Python `ruff` + `pytest` and web `eslint` +
+`tsc`. Dependency updates come via `.github/dependabot.yml` (pip / npm /
+github-actions, weekly).
 
 ## Why the SQLite snapshot exists
 
@@ -114,14 +126,20 @@ bootstraps its snapshot on first run by seeding from the bulletin snapshot
 Production dashboard reads go to D1, not this snapshot — the R2 copy is
 purely pipeline state.
 
+**Backups & recovery (free):** each run also writes a dated copy
+`state/history/<lane>-YYYYMMDD.db.gz` and keeps the last 7, so a corrupt run
+can't destroy the only snapshot. For the serving DB, D1 **Time Travel** gives a
+7-day point-in-time restore. See [OPERATIONS.md](OPERATIONS.md) → Disaster recovery.
+
 ## Dashboard read caching
 
 Dashboard pages are dynamic (server-rendered per request), but the D1 queries
 behind them are cached: `web/app/lib/db.ts` `cachedAll()` wraps reads in
-`unstable_cache` (1h TTL), keyed by SQL + params and backed by the
+`unstable_cache` (12h TTL — data changes daily at most, and a longer TTL keeps
+KV writes under the free 1,000/day cap), keyed by SQL + params and backed by the
 `NEXT_INC_CACHE_KV` namespace via OpenNext's incremental cache
 (`open-next.config.ts`). The hot `metrics.ts` query helpers route through it, so
-identical queries hit D1 at most once per hour instead of on every page view —
+identical queries hit D1 at most once per 12h instead of on every page view —
 cutting D1 rows-read sharply.
 
 Pages stay dynamic on purpose: page-level ISR (`export const revalidate`) would
