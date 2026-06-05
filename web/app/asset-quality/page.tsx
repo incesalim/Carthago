@@ -31,7 +31,10 @@ async function nplAmount(bankTypes: string[]): Promise<TimeSeriesRow[]> {
   const placeholders = bankTypes.map(() => "?").join(",");
   const { results } = await db
     .prepare(
-      `WITH loans AS (
+      // CTE must NOT be named `loans` — D1's SQLite resolves a self-named CTE's
+      // inner `FROM loans` to the CTE itself and rejects it as a circular
+      // reference. Use a neutral name (`loan_totals`).
+      `WITH loan_totals AS (
          SELECT year, month, bank_type_code, total_amount
          FROM loans
          WHERE item_name = 'Toplam Krediler' AND currency = 'TL'
@@ -47,7 +50,7 @@ async function nplAmount(bankTypes: string[]): Promise<TimeSeriesRow[]> {
          l.year || '-' || PRINTF('%02d', l.month) AS period,
          l.bank_type_code,
          l.total_amount * r.ratio_value / 100.0 AS value
-       FROM loans l
+       FROM loan_totals l
        JOIN ratio r ON r.year = l.year AND r.month = l.month AND r.bank_type_code = l.bank_type_code
        ORDER BY l.year, l.month, l.bank_type_code`,
     )
