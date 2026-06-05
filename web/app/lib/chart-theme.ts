@@ -50,6 +50,36 @@ export function useChartTheme(): ChartTheme {
   return resolvedTheme === "dark" ? DARK : LIGHT;
 }
 
+/**
+ * Fixed palette slot per BDDK bank-type code, so each group keeps ONE colour
+ * across every chart regardless of which subset a given chart renders (e.g.
+ * Private was previously slot 3 on the full chart but slot 1 on a 3-series
+ * chart). Sector — the aggregate — takes the neutral grey; the five groups get
+ * distinct hues.
+ */
+const BANK_TYPE_COLOR_INDEX: Record<string, number> = {
+  "10001": 5, // Sector — neutral grey (aggregate / reference)
+  "10007": 0, // Foreign
+  "10005": 1, // Private
+  "10006": 2, // State
+  "10003": 3, // Participation
+  "10004": 4, // Dev & Inv
+};
+
+/**
+ * Stroke colour for a series. Known bank-type codes map to their fixed slot;
+ * any other key (synthetic segment codes, EVDS labels) falls back to its
+ * positional index, which is stable within a single chart.
+ */
+export function seriesColor(
+  t: ChartTheme,
+  key: string,
+  fallbackIndex: number,
+): string {
+  const idx = BANK_TYPE_COLOR_INDEX[key] ?? fallbackIndex;
+  return t.palette[idx % t.palette.length];
+}
+
 /** Shared Recharts tooltip styling for a given theme. */
 export function tooltipStyles(t: ChartTheme) {
   return {

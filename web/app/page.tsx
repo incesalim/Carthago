@@ -22,7 +22,7 @@ import {
 import BarByBank from "@/app/components/BarByBank";
 import TrendChart from "@/app/components/TrendChart";
 import Sparkline from "@/app/sector/ratios/Sparkline";
-import { PageHeader, Stat } from "@/app/components/ui";
+import { PageHeader, Stat, DeltaBadge } from "@/app/components/ui";
 import type { TimeSeriesRow } from "@/app/lib/metrics";
 
 export const dynamic = "force-dynamic";
@@ -36,15 +36,29 @@ interface KpiCardProps {
   format?: "pct" | "trn" | "raw";
   decimals?: number;
   tone?: "neutral" | "positive" | "warn";
+  /** Direction that colours the period-over-period delta chip green. */
+  goodDirection?: "up" | "down" | "neutral";
 }
 
-function KpiCard({ label, value, period, hint, series, format, decimals, tone = "neutral" }: KpiCardProps) {
+function KpiCard({ label, value, period, hint, series, format, decimals, tone = "neutral", goodDirection = "up" }: KpiCardProps) {
+  const curr = series?.at(-1)?.value ?? null;
+  const prev = series?.at(-2)?.value ?? null;
+  const deltaFormat = format === "trn" ? "trn" : format === "raw" ? "raw" : "pp";
   return (
     <Stat
       label={label}
       value={value}
       hint={`${period}${hint ? ` · ${hint}` : ""}`}
       tone={tone === "warn" ? "warning" : tone}
+      badge={
+        <DeltaBadge
+          curr={curr}
+          prev={prev}
+          format={deltaFormat}
+          decimals={decimals ?? 2}
+          goodDirection={goodDirection}
+        />
+      }
     >
       {series && series.length > 0 && (
         <Sparkline
@@ -115,11 +129,11 @@ export default async function OverviewPage() {
       {/* Quality + capital + returns */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KpiCard label="NPL Ratio" value={fmtPct(n?.value)} period={n?.period ?? "—"}
-                 series={npl} format="pct" decimals={2} />
+                 series={npl} format="pct" decimals={2} goodDirection="down" />
         <KpiCard label="Capital Adequacy" value={fmtPct(c?.value, 1)} period={c?.period ?? "—"}
                  hint="SYR · regulatory min 12%" series={car} format="pct" decimals={1} />
         <KpiCard label="Loan / Deposit" value={fmtPct(l?.value, 1)} period={l?.period ?? "—"}
-                 series={ldr} format="pct" decimals={1} />
+                 series={ldr} format="pct" decimals={1} goodDirection="neutral" />
         <KpiCard label="ROE (annualized)" value={fmtPct(r?.value, 1)} period={r?.period ?? "—"}
                  series={roe} format="pct" decimals={1} />
       </div>

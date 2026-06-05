@@ -17,7 +17,7 @@ import {
   BANK_TYPE_LABELS,
   type TimeSeriesRow,
 } from "@/app/lib/metrics";
-import { PageHeader } from "@/app/components/ui";
+import { PageHeader, DeltaBadge } from "@/app/components/ui";
 import BankTypeFilter from "./BankTypeFilter";
 import Sparkline from "./Sparkline";
 
@@ -31,14 +31,26 @@ interface KpiCardProps {
   series: TimeSeriesRow[];
   format?: "pct" | "trn" | "raw";
   decimals?: number;
+  /** Direction that colours the period-over-period delta chip green. */
+  goodDirection?: "up" | "down" | "neutral";
 }
 
-function KpiCard({ label, value, period, hint, series, format, decimals }: KpiCardProps) {
+function KpiCard({ label, value, period, hint, series, format, decimals, goodDirection = "up" }: KpiCardProps) {
   const sparkData = series.map((r) => ({ period: r.period, value: r.value }));
+  const deltaFormat = format === "trn" ? "trn" : format === "raw" ? "raw" : "pp";
   return (
     <div className="rounded-lg border bg-card p-5 shadow-sm">
-      <div className="text-xs uppercase tracking-wide text-muted-foreground">
-        {label}
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-xs uppercase tracking-wide text-muted-foreground">
+          {label}
+        </div>
+        <DeltaBadge
+          curr={series.at(-1)?.value ?? null}
+          prev={series.at(-2)?.value ?? null}
+          format={deltaFormat}
+          decimals={decimals ?? 2}
+          goodDirection={goodDirection}
+        />
       </div>
       <div className="mt-2 text-3xl font-semibold tabular-nums">{value}</div>
       <div className="mt-1 text-xs text-muted-foreground">
@@ -109,11 +121,11 @@ export default async function RatiosPage({
         <KpiCard label="Total Assets" value={fmtTrn(a?.value)} period={a?.period ?? "—"}
                  series={assets} format="trn" decimals={2} />
         <KpiCard label="NPL Ratio" value={fmtPct(n?.value)} period={n?.period ?? "—"}
-                 hint="Takipteki / Toplam Krediler" series={npl} format="pct" decimals={2} />
+                 hint="Takipteki / Toplam Krediler" series={npl} format="pct" decimals={2} goodDirection="down" />
         <KpiCard label="Net Interest Margin" value={fmtPct(c?.value)} period={c?.period ?? "—"}
                  hint="annualized · NII / avg assets" series={nim} format="pct" decimals={2} />
         <KpiCard label="Loan / Deposit" value={fmtPct(l?.value, 1)} period={l?.period ?? "—"}
-                 series={ldr} format="pct" decimals={1} />
+                 series={ldr} format="pct" decimals={1} goodDirection="neutral" />
         <KpiCard label="ROA" value={fmtPct(ra?.value)} period={ra?.period ?? "—"}
                  hint="annualized" series={roa} format="pct" decimals={2} />
         <KpiCard label="ROE" value={fmtPct(re?.value, 1)} period={re?.period ?? "—"}
