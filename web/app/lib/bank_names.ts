@@ -42,3 +42,61 @@ export const BANK_NAMES: Record<string, string> = {
 export function bankDisplayName(ticker: string): string {
   return BANK_NAMES[ticker.toUpperCase()] ?? ticker;
 }
+
+/**
+ * BDDK aggregate group per bank, as a `bank_type_code` (see metrics.ts
+ * BANK_TYPE_LABELS): 10005 Private · 10006 State · 10007 Foreign ·
+ * 10003 Participation · 10004 Dev & Inv.
+ *
+ * This follows BDDK's OWNERSHIP split — the one the sector aggregates / charts
+ * use — NOT the colloquial "private = not-state" labelling in
+ * data/banks/bddk_bank_list.json. Deliberate consequences so the per-bank tag
+ * always agrees with the State/Private/Foreign lines on the sector charts
+ * (both read these same five codes):
+ *   • Foreign-OWNED deposit banks get the Foreign/Yabancı code (10007). They
+ *     are still PRIVATE banks — just foreign capital — so the badge labels them
+ *     "Private · Foreign" (BANK_TYPE_BADGE_LABELS): GARAN (BBVA),
+ *     DENIZ (Emirates NBD), QNBFB (Qatar), TEB (BNP Paribas), BURGAN (Kuwait),
+ *     ALNTF (Qatar CB), ODEA (Bank Audi), ATBANK (Libyan Foreign Bank).
+ *   • İş Bankası (ISCTR) is domestic-private — the only State deposit banks
+ *     are Ziraat, Halkbank, VakıfBank.
+ *   • Participation / Dev&Inv are their own groups regardless of owner, so
+ *     state-owned Ziraat Katılım / Vakıf Katılım / Emlak Katılım / Eximbank /
+ *     Kalkınma sit there, not under State.
+ */
+export const BANK_TYPE_BY_TICKER: Record<string, string> = {
+  // State deposit (Kamu)
+  ZIRAAT: "10006", HALKB: "10006", VAKBN: "10006",
+  // Private domestic deposit (Özel)
+  AKBNK: "10005", ISCTR: "10005", YKBNK: "10005",
+  SKBNK: "10005", ANADOLU: "10005", FIBA: "10005",
+  // Foreign-owned deposit (Yabancı)
+  GARAN: "10007", DENIZ: "10007", QNBFB: "10007", TEB: "10007",
+  BURGAN: "10007", ALNTF: "10007", ODEA: "10007", ATBANK: "10007",
+  HSBC: "10007", ING: "10007", ICBCT: "10007",
+  // Participation (Katılım)
+  ALBRK: "10003", KUVEYT: "10003", TFKB: "10003",
+  EMLAK: "10003", VAKIFK: "10003", ZIRAATK: "10003",
+  // Development & investment (Kalkınma ve Yatırım)
+  TSKB: "10004", EXIM: "10004", KLNMA: "10004",
+  AKTIF: "10004", PASHA: "10004",
+};
+
+/**
+ * Display labels for the per-bank pill on /banks. BDDK's "Özel" means
+ * DOMESTIC-private, so its separate "Yabancı/Foreign" group is still private —
+ * just foreign capital. The labels make that explicit (both deposit-private
+ * codes read "Private · …") while the codes stay distinct so each pill keeps
+ * its own sector-chart colour.
+ */
+export const BANK_TYPE_BADGE_LABELS: Record<string, string> = {
+  "10006": "State",
+  "10005": "Private · Domestic",
+  "10007": "Private · Foreign",
+  "10003": "Participation",
+  "10004": "Dev & Inv",
+};
+
+export function bankTypeCode(ticker: string): string | undefined {
+  return BANK_TYPE_BY_TICKER[ticker.toUpperCase()];
+}
