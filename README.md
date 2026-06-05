@@ -102,7 +102,8 @@ bddk_analysis/
 │   │   └── page.tsx                ← Overview
 │   ├── wrangler.jsonc, open-next.config.ts
 │   ├── package.json
-│   └── migrations/                 ← gitignored · regenerated from local SQLite
+│   ├── migrations/                 ← hand-authored D1 schema migrations (source of truth)
+│   └── seeds/                      ← gitignored · bulk data-seed dumps (generate_d1_migrations.py)
 │
 ├── data/                           ← all data (mostly gitignored)
 │   ├── banks/                      ← URL config + BDDK bank list (committed)
