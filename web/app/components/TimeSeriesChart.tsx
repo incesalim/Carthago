@@ -5,6 +5,7 @@
  * with non-bank-code identification). Simpler than TrendChart since we
  * don't need bank-type pivot.
  */
+import { useState } from "react";
 import {
   CartesianGrid,
   Legend,
@@ -16,7 +17,7 @@ import {
   YAxis,
 } from "recharts";
 import { ChartCard } from "@/app/components/ui/chart-card";
-import { useChartTheme, tooltipStyles } from "@/app/lib/chart-theme";
+import { useChartTheme, tooltipStyles, seriesColor } from "@/app/lib/chart-theme";
 
 interface Point {
   period_date: string;
@@ -57,6 +58,8 @@ export default function TimeSeriesChart({
   const tt = tooltipStyles(t);
   const fmt = formatters[yFormat];
   const labels = Object.keys(series);
+  // Hovering a legend item emphasises that line and fades the rest.
+  const [active, setActive] = useState<string | null>(null);
 
   // Pivot all series into a wide structure { period_date, label1: v, label2: v }
   const byDate = new Map<string, Record<string, number | string>>();
@@ -96,16 +99,25 @@ export default function TimeSeriesChart({
               {...tt}
               formatter={(v, name) => [v == null ? "—" : fmt(Number(v), decimals), name]}
               labelFormatter={(l) => String(l)}
+              itemSorter={(item) =>
+                typeof item.value === "number" ? -item.value : 0
+              }
             />
-            <Legend wrapperStyle={{ fontSize: 11 }} iconType="line" />
+            <Legend
+              wrapperStyle={{ fontSize: 11 }}
+              iconType="line"
+              onMouseEnter={(o) => setActive(String(o.dataKey ?? ""))}
+              onMouseLeave={() => setActive(null)}
+            />
             {labels.map((label, i) => (
               <Line
                 key={label}
                 type="monotone"
                 dataKey={label}
                 name={label}
-                stroke={t.palette[i % t.palette.length]}
-                strokeWidth={1.75}
+                stroke={seriesColor(t, label, i)}
+                strokeWidth={active === label ? 2.75 : 1.75}
+                strokeOpacity={active && active !== label ? 0.18 : 1}
                 dot={false}
                 connectNulls
                 isAnimationActive={false}

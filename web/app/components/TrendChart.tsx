@@ -4,6 +4,7 @@
  * Multi-series time-series line/area chart.
  * Designed for showing one metric over time, optionally split by bank type.
  */
+import { useState } from "react";
 import {
   CartesianGrid,
   Legend,
@@ -16,7 +17,7 @@ import {
   YAxis,
 } from "recharts";
 import { ChartCard } from "@/app/components/ui/chart-card";
-import { useChartTheme, tooltipStyles } from "@/app/lib/chart-theme";
+import { useChartTheme, tooltipStyles, seriesColor } from "@/app/lib/chart-theme";
 
 export interface TrendPoint {
   period: string;
@@ -64,6 +65,8 @@ export default function TrendChart({
 }: Props) {
   const t = useChartTheme();
   const tt = tooltipStyles(t);
+  // Hovering a legend item emphasises that line and fades the rest.
+  const [active, setActive] = useState<string | null>(null);
 
   // Pivot long → wide: { period, "10001": v, "10003": v, ... }
   const codes = Object.keys(seriesLabels);
@@ -104,6 +107,9 @@ export default function TrendChart({
               {...tt}
               formatter={(v, name) => [v == null ? "—" : fmt(Number(v), decimals), name]}
               labelFormatter={(l) => String(l)}
+              itemSorter={(item) =>
+                typeof item.value === "number" ? -item.value : 0
+              }
             />
             <Legend
               wrapperStyle={{ fontSize: 11, paddingTop: 4 }}
@@ -111,6 +117,8 @@ export default function TrendChart({
               layout="horizontal"
               align="center"
               verticalAlign="bottom"
+              onMouseEnter={(o) => setActive(String(o.dataKey ?? ""))}
+              onMouseLeave={() => setActive(null)}
             />
             {codes.map((code, i) => (
               <Line
@@ -118,8 +126,9 @@ export default function TrendChart({
                 type="monotone"
                 dataKey={code}
                 name={seriesLabels[code]}
-                stroke={t.palette[i % t.palette.length]}
-                strokeWidth={1.75}
+                stroke={seriesColor(t, code, i)}
+                strokeWidth={active === code ? 2.75 : 1.75}
+                strokeOpacity={active && active !== code ? 0.18 : 1}
                 dot={false}
                 isAnimationActive={false}
               />
