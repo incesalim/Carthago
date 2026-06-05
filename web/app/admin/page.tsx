@@ -3,11 +3,12 @@
  * Gated by requireAdmin() (Cloudflare Access JWT). Safe-by-default: until Access
  * is configured the header is absent and this renders a Forbidden card.
  */
-import { requireAdmin } from "@/app/lib/admin-auth";
+import { AdminAuthError, requireAdmin } from "@/app/lib/admin-auth";
 import { getHealthReport, type FreshnessStatus, type SourceHealth } from "@/app/lib/admin-health";
 import { relativeFromHours } from "@/app/lib/format-time";
 import {
   Badge,
+  Button,
   Card,
   PageHeader,
   Section,
@@ -21,6 +22,7 @@ import {
   type BadgeProps,
   type StatProps,
 } from "@/app/components/ui";
+import LoginForm from "./LoginForm";
 import PipelinePanel from "./PipelinePanel";
 import TrafficPanel from "./TrafficPanel";
 
@@ -42,10 +44,11 @@ function Forbidden() {
   return (
     <main className="mx-auto max-w-md px-4 py-24">
       <Card className="p-8 text-center">
-        <h1 className="text-lg font-semibold text-foreground">Admin access required</h1>
+        <h1 className="text-lg font-semibold text-foreground">Admin not configured</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          This page is gated by Cloudflare Access. Sign in with an authorised account, or
-          set <code className="rounded bg-muted px-1">ADMIN_DEV_BYPASS=1</code> for local dev.
+          Set an <code className="rounded bg-muted px-1">ADMIN_PASSWORD</code> secret on the
+          Worker to enable the password login (or <code className="rounded bg-muted px-1">ADMIN_DEV_BYPASS=1</code>{" "}
+          for local dev). See <code className="rounded bg-muted px-1">docs/ADMIN.md</code>.
         </p>
       </Card>
     </main>
@@ -70,10 +73,18 @@ function SourceCard({ s }: { s: SourceHealth }) {
   );
 }
 
-export default async function AdminPage() {
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   try {
     await requireAdmin();
-  } catch {
+  } catch (e) {
+    if (e instanceof AdminAuthError && e.mode === "login") {
+      const sp = await searchParams;
+      return <LoginForm error={sp?.error === "config" ? "config" : sp?.error ? "wrong" : undefined} />;
+    }
     return <Forbidden />;
   }
 
@@ -87,7 +98,13 @@ export default async function AdminPage() {
         eyebrow="Internal"
         title="Control center"
         description="Pipeline health, manual refresh triggers, and site traffic — all in one place."
-      />
+      >
+        <form method="post" action="/api/admin/logout">
+          <Button type="submit" variant="outline" size="sm">
+            Sign out
+          </Button>
+        </form>
+      </PageHeader>
 
       <Section title="Data health" description="Freshness per source, against expected refresh cadence">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

@@ -5,7 +5,9 @@ interface CloudflareEnv {
   ASSETS: Fetcher;
 
   // --- Admin panel (all optional; the panel degrades gracefully when unset) ---
-  // Cloudflare Access JWT verification (set as wrangler `vars`).
+  // Password mode (default for workers.dev): the shared /admin password (secret).
+  ADMIN_PASSWORD?: string;
+  // Cloudflare Access mode (custom-domain setups only): set as wrangler `vars`.
   CF_ACCESS_TEAM_DOMAIN?: string; // e.g. "yourname.cloudflareaccess.com"
   CF_ACCESS_AUD?: string; // the Access application's AUD tag
   // Bypass auth for local dev only — NEVER set in production.
