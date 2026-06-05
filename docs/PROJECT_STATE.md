@@ -44,16 +44,22 @@ bulletin uses different code mappings — see METRICS.md §2.
 | Bytes | Where | Mutated by |
 |---|---|---|
 | `evds_series`, `balance_sheet`, `weekly_series`, `bank_audit_*`, … | Cloudflare D1 (`bddk-data`) | weekly + daily cron |
-| `<ticker>/<TICKER>_<period>_<kind>.pdf` | Cloudflare R2 (`bddk-audit-reports`) | weekly cron when banks publish |
-| `state/bddk_data.db.gz` | Cloudflare R2 (same bucket) | every cron run (state snapshot) |
+| `<ticker>/<TICKER>_<period>_<kind>.pdf` | Cloudflare R2 (`bddk-audit-reports`) | audit cron when banks publish |
+| `state/bddk_data.db.gz` | Cloudflare R2 (same bucket) | bulletin/EVDS cron (bulletin lane snapshot) |
+| `state/bank_audit.db.gz` | Cloudflare R2 (same bucket) | audit cron (audit lane snapshot) |
 | `data/banks/audit_report_urls.json` | git | hand-edited via PR |
 | `data/banks/bddk_bank_list.json` | git | hand-edited via PR |
 | `src/`, `scripts/`, `web/` | git | hand-edited via PR |
 
 ## Active workflows
 
+Two independent ingestion lanes (separate staging DB + R2 snapshot +
+concurrency group), so audit failures can't stall the bulletin pipeline:
+
 - `.github/workflows/refresh-evds-daily.yml` — Sun–Fri 05:00 UTC. EVDS scrape → D1.
-- `.github/workflows/refresh-data.yml` — Sat 03:00 UTC. Monthly + weekly + EVDS + audit-report sync → D1.
+- `.github/workflows/refresh-bddk-bulletins.yml` — Sat 02:00 UTC. Monthly + weekly bulletins (no EVDS, no audit) → D1.
+- `.github/workflows/refresh-data.yml` — Sat 03:00 UTC. Monthly + weekly + EVDS → D1. *(Audit removed — now its own workflow.)*
+- `.github/workflows/refresh-audit.yml` — Sun 04:00 UTC. Audit-report sync + extract → `bank_audit_*` → D1. Own DB `data/bank_audit.db`, own snapshot `state/bank_audit.db.gz`, own group `bddk-audit`.
 - `.github/workflows/deploy-cloudflare.yml` — on push to `web/**`. Build + deploy dashboard.
 
 ## Known issues / pending work
