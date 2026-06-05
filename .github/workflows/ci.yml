@@ -1,0 +1,48 @@
+name: CI
+
+# Quality gates on every PR (and master push). Free: public-repo Actions.
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    name: Python — ruff + pytest
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install lint/test tools
+        run: pip install ruff pytest
+      - name: Ruff (lint)
+        run: ruff check .
+      - name: Pytest
+        run: pytest
+
+  web:
+    name: Web — eslint + tsc
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: ESLint
+        run: npm run lint
+      - name: Type-check
+        run: npx tsc --noEmit
