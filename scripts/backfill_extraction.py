@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import gzip
+import json
 import shutil
 import sqlite3
 import subprocess
@@ -43,11 +44,18 @@ AUDIT_TABLES = [
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--banks", required=True, help="comma-separated tickers, e.g. EXIM,ZIRAAT")
+    ap.add_argument("--banks", required=True,
+                    help="comma-separated tickers, or ALL for every bank in the config")
+    ap.add_argument("--latest-period", action="store_true",
+                    help="only re-extract each bank's most recent period (fast, bounded)")
     ap.add_argument("--dry-run", action="store_true", help="re-extract locally; skip D1 push + snapshot upload")
     args = ap.parse_args()
-    banks = {b.strip().upper() for b in args.banks.split(",") if b.strip()}
-    print(f"[backfill] banks: {sorted(banks)}")
+    if args.banks.strip().upper() == "ALL":
+        cfg = json.loads((REPO / "data" / "banks" / "audit_report_urls.json").read_text(encoding="utf-8"))
+        banks = {t.upper() for t in cfg["banks"]}
+    else:
+        banks = {b.strip().upper() for b in args.banks.split(",") if b.strip()}
+    print(f"[backfill] banks: {len(banks)}{' (latest period only)' if args.latest_period else ''}")
 
     DB.parent.mkdir(parents=True, exist_ok=True)
     if not r2_storage.exists(SNAP):
@@ -57,18 +65,23 @@ def main() -> None:
         shutil.copyfileobj(s, d)
     print(f"[backfill] pulled snapshot → {DB.stat().st_size/1e6:.1f} MB")
 
-    # Force re-extraction by clearing the extraction log for these banks.
+    # Force re-extraction by clearing the extraction log. With --latest-period
+    # only the newest period per bank is cleared (and re-extracted).
     ph = ",".join("?" * len(banks))
     with sqlite3.connect(str(DB)) as conn:
+        where = f"bank_ticker IN ({ph})"
+        params: tuple = tuple(banks)
+        if args.latest_period:
+            where += (" AND (bank_ticker, period) IN (SELECT bank_ticker, MAX(period) "
+                      f"FROM bank_audit_extractions WHERE bank_ticker IN ({ph}) GROUP BY bank_ticker)")
+            params = tuple(banks) * 2
         before = conn.execute(
-            f"SELECT COUNT(*) FROM bank_audit_extractions WHERE bank_ticker IN ({ph})",
-            tuple(banks)).fetchone()[0]
-        conn.execute(
-            f"DELETE FROM bank_audit_extractions WHERE bank_ticker IN ({ph})", tuple(banks))
+            f"SELECT COUNT(*) FROM bank_audit_extractions WHERE {where}", params).fetchone()[0]
+        conn.execute(f"DELETE FROM bank_audit_extractions WHERE {where}", params)
         conn.commit()
     print(f"[backfill] cleared {before} extraction records → will re-extract")
 
-    counts = extract_from_r2(workers=8, db_path=DB, only=banks)
+    counts = extract_from_r2(workers=8, db_path=DB, only=banks, latest_period=args.latest_period)
     print(f"[backfill] re-extract: {counts}")
 
     subprocess.run([sys.executable, str(REPO / "scripts" / "build_bank_audit_stages.py"),

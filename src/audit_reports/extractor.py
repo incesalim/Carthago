@@ -36,7 +36,11 @@ NUM_PAT = r'(?:\(\s*-?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?\s*\)|-?\d{1,3}(?:[.,]\d{
 HIERARCHY_PAT = re.compile(
     r'^(?P<h>(?:[IVX]+\.|[A-Z]\.|\d+(?:\.\d+)*\.?))\s+(?P<rest>.+)$'
 )
-TOTAL_PAT = re.compile(r'TOTAL\b', re.I)
+# Grand-total rows ("TOTAL ASSETS", "VARLIKLAR TOPLAMI", "TOPLAM AKTİFLER",
+# "PASİF TOPLAMI", …) carry no hierarchy prefix, so they're admitted as data
+# rows via this pattern. Must cover Turkish (TOPLAM) as well as English (TOTAL),
+# or Turkish-language reports lose their total-assets / total-liabilities lines.
+TOTAL_PAT = re.compile(r'(?:TOTAL|TOPLAM)', re.I)
 
 
 def parse_num(s: str) -> float | None:
