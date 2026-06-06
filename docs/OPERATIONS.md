@@ -86,6 +86,42 @@ To enable auto-discovery for more banks, run
 config) and add any passing ticker to `DISCOVERY_BANKS`. See
 [ADMIN.md](ADMIN.md) §Auto-discovery.
 
+### TBB digital-banking statistics (quarterly)
+
+The weekly Saturday `refresh-data.yml` cron already refreshes TBB (a
+non-critical step in `refresh.py` → `scripts/update_tbb_digital.py`, latest 2
+reports). When TBB publishes a new quarter (~Feb / May / Aug / Nov) it is
+picked up automatically; nothing to edit. Discovery constructs the report slug
+(`{year}-{month}-dijital-internet-ve-mobil-bankacilik-istatistikleri`) and
+verifies the Excel link exists, so not-yet-published quarters are ignored.
+
+**One-time / full-history backfill** (e.g. after first deploy, or to extend
+history). Run against the bulletin-lane snapshot, then push + re-upload — the
+same pattern as other backfills:
+
+```bash
+# 1. Pull the current snapshot from R2 → data/bddk_data.db (R2 creds in env)
+python - <<'PY'
+import gzip, shutil, pathlib
+from src.audit_reports import r2_storage
+gz, db = pathlib.Path("data/bddk_data.db.gz"), pathlib.Path("data/bddk_data.db")
+r2_storage.download_to("state/bddk_data.db.gz", gz)
+with gzip.open(gz, "rb") as s, open(db, "wb") as d: shutil.copyfileobj(s, d)
+PY
+# 2. Backfill every published quarter into the snapshot DB
+python scripts/update_tbb_digital.py --all --start-year 2018
+# 3. Push the table to D1 (wide window so it all lands), then re-upload snapshot
+python scripts/push_to_d1.py --only-tables tbb_digital_stats --hours 8760
+python - <<'PY'
+import pathlib; from src.audit_reports import r2_storage
+r2_storage.upload_file(pathlib.Path("data/bddk_data.db.gz"), "state/bddk_data.db.gz")
+PY
+```
+
+The `tbb_digital_stats` table must exist in D1 first (migration
+`0003_tbb_digital_stats.sql`, applied by the deploy workflow). Workbooks
+overlap and revise; `--all` processes oldest→newest so the latest figure wins.
+
 ### Change the D1 schema (migrations)
 
 The schema source of truth is the hand-authored, version-controlled files in

@@ -40,6 +40,7 @@ machine is involved in the production data flow.
 |---|---|---|
 | **BDDK scrapers** | `src/scrapers/` | Python — monthly + weekly bulletins |
 | **EVDS client + scraper** | `src/scrapers/evds_client.py`, `evds_scraper.py` | TCMB EVDS v3 HTTP client |
+| **TBB digital-banking** | `src/tbb/` | Python — quarterly `.xls`/`.xlsx` workbook → tidy `tbb_digital_stats` |
 | **Audit-report extraction** | `src/audit_reports/` | pdfplumber + pymupdf with fallback |
 | **R2 wrapper** | `src/audit_reports/r2_storage.py` | boto3 against S3-compatible R2 |
 | **D1 sync** | `scripts/push_to_d1.py` | incremental push via wrangler |
@@ -76,11 +77,14 @@ Saturday 02:00 UTC. Isolated BDDK-only refresh (monthly + weekly bulletins,
 `--skip-evds`, no audit). Catches the new week before `refresh-data.yml`.
 
 ### Weekly full — `.github/workflows/refresh-data.yml`
-Saturday 03:00 UTC. BDDK bulletins + EVDS:
+Saturday 03:00 UTC. BDDK bulletins + EVDS + TBB digital:
 1. Decompress `state/bddk_data.db.gz` (pulled from R2) → `data/bddk_data.db`
-2. `scripts/refresh.py` — monthly + weekly + EVDS scrapes into SQLite
+2. `scripts/refresh.py` — monthly + weekly + EVDS scrapes + TBB quarterly
+   digital-banking refresh into SQLite (TBB is a non-critical step:
+   `scripts/update_tbb_digital.py`, latest 2 reports; a TBB outage won't abort
+   the BDDK refresh)
 3. `scripts/push_to_d1.py --hours 168` — push the week's rows to D1
-   (idempotent via INSERT OR REPLACE)
+   (idempotent via INSERT OR REPLACE; covers `tbb_digital_stats` too)
 4. VACUUM + re-gzip + upload the snapshot back to R2
 
 ### Audit reports — `.github/workflows/refresh-audit.yml`

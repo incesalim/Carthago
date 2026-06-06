@@ -27,6 +27,7 @@ dashboard.
 - [10. Weekly BDDK series](#10-weekly-bddk-series) (`weekly_series`)
 - [11. Weekly growth transforms](#11-weekly-growth-transforms)
 - [12. Where each metric appears in the dashboard](#12-where-each-metric-appears-in-the-dashboard)
+- [13. TBB digital-banking statistics](#13-tbb-digital-banking-statistics) (`tbb_digital_stats`)
 
 ---
 
@@ -44,6 +45,7 @@ dashboard.
 | BDDK weekly bulletin | Weekly aggregates (loans, NPL, deposits, securities, etc.) | Weekly | `weekly_series`; endpoint `POST /BultenHaftalik/tr/Home/KiyaslamaJsonGetir` | 2024-01-26 → 2026-04-10 (116 weeks) |
 | BDDK — raw JSON (weekly) | Cache of every weekly API response | — | `raw_weekly_responses` | same |
 | TCMB EVDS v3 | Interest rates, FX, CPI, reserves | Daily/Weekly/Monthly | evds3.tcmb.gov.tr/igmevdsms-dis | cached in `evds_series` via [evds_scraper.py](../src/scrapers/evds_scraper.py) |
+| TBB digital-banking report | Sector digital/internet/mobile banking stats | Quarterly | `tbb_digital_stats`; tbb.org.tr `.xls`/`.xlsx` workbook | 2019-Q1 → latest, via [update_tbb_digital.py](../scripts/update_tbb_digital.py) (see §13) |
 
 All monetary BDDK values are in **million TL** unless noted. Table 5 (Sectoral
 Loans) is an exception — published in **thousand TL**.
@@ -732,3 +734,55 @@ where noted.
 | Real policy rate expectation (12m) | `(1+PKAUO.S04.D.U)/(1+PKAUO.S01.E.U) − 1` | 5.0% Apr-26 ✓ |
 | CPI 12-month avg | `mean(CPI_YoY[m−11..m])` | 34.23% Jan-26 ✓ |
 | CBRT-owned gold (tons) | `(TP.BL0021 − TP.BL0891) / 1e9` | 508 tons Mar-26 vs chart 509 ✓ |
+
+---
+
+## 13. TBB digital-banking statistics
+
+Source: the **Banks Association of Türkiye (TBB)** "Dijital, İnternet ve Mobil
+Bankacılık İstatistikleri" report, published quarterly as an Excel workbook
+(`.xls` pre-2021, `.xlsx` since). These are **sector-wide aggregates** — there is
+no per-bank or bank-type breakdown — so they complement (never overlap) the
+balance-sheet / P&L tables. Ingestion: [`src/tbb/`](../src/tbb/) (discover →
+download → parse) driven by [`scripts/update_tbb_digital.py`](../scripts/update_tbb_digital.py),
+landing in `tbb_digital_stats`. Surfaces on the **/digital** tab
+([`web/app/lib/digital.ts`](../web/app/lib/digital.ts)).
+
+The parser emits one tidy long row per measurement, keyed by:
+
+| Dimension | Values | Notes |
+|---|---|---|
+| `period` | `YYYY-MM` quarter-end | Mar/Jun/Sep/Dec. Each workbook holds a trailing ~5 quarters. |
+| `channel` | `digital` \| `internet` \| `mobile` | `digital` = the union view (internet ∪ mobile), incl. demographics. |
+| `segment` | `individual` \| `corporate` \| `total` | Customers (section I) come **only** from the channel-total sheet, split by the Bireysel/Kurumsal/Toplam column groups; transactions come from each sheet by name. |
+| `section_code` | `I` … `IV` (`III.1`–`III.6`) | I customers · II non-financial txn · III.1–III.6 financial (transfers/payments/investments/cards/…) · IV product sales. On the `digital` sheet: II = gender, III = age group. |
+| `metric_path` | `>`-joined Turkish header | Reproduces the 1–3-level merged column headers (e.g. `Havale > Üçüncü şahıslara yapılan > TP Havale`). `metric_slug` is its ASCII slug (the stable join key). |
+| `unit` | `persons_thousands` \| `count_thousands` \| `volume_bn_try` | Head-counts (thousand people), transaction counts (thousand), transaction value (billion TL). |
+
+**Units & conventions.** Customer counts are point-in-time at quarter end;
+transaction figures are quarterly flows. The `/digital` data layer rescales for
+display: thousands → millions, billion TL → ₺ trillion.
+
+**Revisions.** TBB occasionally revises a recent quarter (flagged with `*` in
+the source). Workbooks overlap, so `update_tbb_digital.py` processes them
+oldest→newest and the idempotent upsert (PK = period, channel, segment, section,
+metric_slug, unit) lets the newest file's revised value win.
+
+**Cross-era stability.** The 2025 reports added `*` footnote markers to headers
+(`EFT` → `EFT *`, `Kurumsal` → `Kurumsal*`); the parser strips them so slugs stay
+stable across the whole series. A handful of investment sub-instruments (III.3)
+and renumbered mobile sub-sections only exist from the year TBB introduced them —
+genuine source evolution, not a parsing gap. All headline series (customers,
+transfers, payments, gender, age) are continuous across the full history.
+
+### Charted on /digital
+
+| Chart | Series | section / unit |
+|---|---|---|
+| Active customers — mobile vs internet | `mobile`/`internet` total, `aktif_musteri_sayisi` | I / persons |
+| Active individuals by channel usage | mobile-only / both / internet-only | I / persons (digital, individual) |
+| Money-transfer volume per quarter | mobile vs internet grand total | III.1 / volume (₺ trn) |
+| Money-transfer count per quarter | mobile vs internet grand total | III.1 / count |
+| Bill-payment count per quarter | mobile vs internet `fatura_odemeleri` | III.2 / count |
+| Active individuals by gender | Kadın / Erkek (TOPLAM) | II / persons (digital) |
+| Active individuals by age group | 0–17 … 66+ (TOPLAM) | III / persons (digital) |

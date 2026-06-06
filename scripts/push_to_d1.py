@@ -63,6 +63,7 @@ SYNC_TABLES = [
     "evds_series",
     "news_items",
     "regulation_briefings",
+    "tbb_digital_stats",
 ]
 
 BATCH_SIZE = 100  # rows per INSERT statement (default for skinny tables)

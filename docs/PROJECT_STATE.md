@@ -18,6 +18,7 @@ coverage or known issues change.
 | `balance_sheet`, `income_statement`, `loans`, `deposits`, `financial_ratios`, `other_data` | BDDK monthly bulletin | 2020-01 → present | 2026-04 |
 | `weekly_series` | BDDK weekly bulletin | 2019-11 → present | rolling 2-week lag |
 | `evds_series` | TCMB EVDS | 2018-01 → present | daily / weekly / monthly per series |
+| `tbb_digital_stats` | TBB quarterly digital-banking report | 2019-Q1 → present | quarterly (Mar/Jun/Sep/Dec) |
 | `bank_audit_balance_sheet` (assets / liabilities / off-balance) | BRSA quarterly PDFs | 2022-Q1 → 2026-Q1 | per-bank |
 | `bank_audit_profit_loss` | BRSA quarterly PDFs | same | per-bank |
 | `bank_audit_credit_quality` | BRSA PDFs, IFRS 9 footnotes | same | per-bank, per-section |
@@ -68,7 +69,7 @@ concurrency group), so audit failures can't stall the bulletin pipeline:
 
 - `.github/workflows/refresh-evds-daily.yml` — Sun–Fri 05:00 UTC. EVDS scrape → D1.
 - `.github/workflows/refresh-bddk-bulletins.yml` — Sat 02:00 UTC. Monthly + weekly bulletins (no EVDS, no audit) → D1.
-- `.github/workflows/refresh-data.yml` — Sat 03:00 UTC. Monthly + weekly + EVDS → D1. *(Audit removed — now its own workflow.)*
+- `.github/workflows/refresh-data.yml` — Sat 03:00 UTC. Monthly + weekly + EVDS + TBB digital-banking (quarterly) → D1. *(Audit removed — now its own workflow.)* TBB is a non-critical step in `refresh.py` (a TBB outage won't abort the BDDK refresh); it rides the bulletin lane's snapshot, so no new lane.
 - `.github/workflows/refresh-audit.yml` — Sun 04:00 UTC. Audit-report sync + extract → `bank_audit_*` → D1. Own DB `data/bank_audit.db`, own snapshot `state/bank_audit.db.gz`, own group `bddk-audit`. Manual dispatch takes optional `bank` / `skip_scrape` inputs (the /admin per-bank trigger uses `bank` → `--only-bank … --latest-period`). After extraction it runs `scripts/check_audit_quality.py --alert` (alert-only): flags a quarter whose lines are identical to the prior one (period-shift), a balance sheet that doesn't balance, or missing rows → Telegram/Discord, never blocking the push.
 - `.github/workflows/deploy-cloudflare.yml` — on push to `web/**`. Apply D1 migrations + build + deploy dashboard.
 - `.github/workflows/healthcheck.yml` — daily 06:00 UTC. D1 freshness check → Telegram/Discord alert if stale.
@@ -96,6 +97,14 @@ liquidity section: TL & FC loan/deposit ratios and TL deposit growth split
 Public (state) vs Private (private + foreign), deposit dollarization, net CBRT
 funding, gross reserves, residents' household FC savings, and REER. See
 [METRICS.md](METRICS.md) §12.
+
+A **Digital** tab (`/digital`) surfaces the TBB quarterly digital/internet/mobile
+banking statistics (`tbb_digital_stats`, sector-wide): channel adoption (active
+mobile vs internet customers; mobile-only/both/internet-only usage), quarterly
+money-transfer volume (₺ trn) & count and bill-payment count split internet vs
+mobile, and demographics of active individual digital customers (gender + age).
+Data layer `web/app/lib/digital.ts` pins verified full-history series by their
+`(channel, segment, section, unit, metric_slug)` key. See [METRICS.md](METRICS.md) §13.
 
 A **Compare** tab (`/cross-bank`) is a cross-bank performance heatmap built
 entirely off the per-bank `bank_audit_*` tables (the monthly BDDK tables are
