@@ -94,6 +94,18 @@ Public (state) vs Private (private + foreign), deposit dollarization, net CBRT
 funding, gross reserves, residents' household FC savings, and REER. See
 [METRICS.md](METRICS.md) §12.
 
+A qualitative-data layer feeds two tabs from the `news_items` table
+(`scripts/sync_news.py`, daily cron):
+
+- **/regulation** — primary regulator feeds: TCMB press releases + BDDK board
+  decisions, with a weekly AI thematic briefing. Per-bank KAP disclosures
+  surface on each bank's page.
+- **/news** — banking-sector *journalism* aggregated from TR financial-media
+  RSS feeds (Bloomberg HT, Dünya, Ekonomim, AA, Hürriyet, NTV) via
+  `src/news/sources/press.py`, keyword-filtered to banking-relevant items
+  (`source='press'`). Feed list is hand-edited in `data/news/press_feeds.json`.
+  Only headline + link + snippet are stored (no full body); cards link out.
+
 ## Known issues / pending work
 
 - **TSKB 2026Q1** — bank rotated their IR URL; current entry in

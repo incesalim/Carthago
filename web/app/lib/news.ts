@@ -1,16 +1,18 @@
 /**
  * D1 queries for the qualitative-data layer (news_items table).
  *
- * Three sources, one table:
- *   - kap  → BIST disclosure platform (Turkish, per-ticker, regulator-mandated)
- *   - tcmb → CBRT press releases (English)
- *   - bddk → Banking regulator announcements (Turkish)
+ * Four sources, one table:
+ *   - kap   → BIST disclosure platform (Turkish, per-ticker, regulator-mandated)
+ *   - tcmb  → CBRT press releases (English)
+ *   - bddk  → Banking regulator announcements (Turkish)
+ *   - press → Banking-sector journalism from TR financial-media RSS feeds
+ *             (headline + link + snippet only; the card links out, no body)
  *
  * Pipeline: scripts/sync_news.py → SQLite → push_to_d1.py → here.
  */
 import { cachedAll } from "./db";
 
-export type NewsSource = "kap" | "tcmb" | "bddk";
+export type NewsSource = "kap" | "tcmb" | "bddk" | "press";
 
 export interface NewsItem {
   source: NewsSource;
@@ -29,6 +31,7 @@ const SOURCE_LABELS: Record<NewsSource, string> = {
   kap: "KAP",
   tcmb: "TCMB",
   bddk: "BDDK",
+  press: "Press",
 };
 
 export function sourceLabel(s: string): string {
@@ -60,6 +63,20 @@ export async function newsBySource(
        ORDER BY published_at DESC
        LIMIT ?`,
     [source, limit],
+  );
+}
+
+/** Latest banking-sector press items (source='press'). `category` holds the
+ *  outlet name (e.g. "Bloomberg HT"). No body_text — these link out. */
+export async function latestPress(limit = 120): Promise<NewsItem[]> {
+  return cachedAll<NewsItem>(
+    `SELECT source, external_id, published_at, ticker, category,
+              title, summary, url, language
+       FROM news_items
+       WHERE source = 'press'
+       ORDER BY published_at DESC
+       LIMIT ?`,
+    [limit],
   );
 }
 
