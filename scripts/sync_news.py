@@ -1,11 +1,16 @@
-"""News / qualitative-data sync — pull KAP + TCMB + BDDK into local SQLite.
+"""News / qualitative-data sync — pull KAP + TCMB + BDDK + press into SQLite.
 
 After this runs, scripts/push_to_d1.py syncs the new news_items rows to D1.
 Designed for the GitHub Actions cron — no laptop dependency.
 
+Sources: kap/tcmb/bddk are primary regulator + disclosure feeds; `press`
+aggregates banking-sector journalism from TR financial-media RSS feeds
+(data/news/press_feeds.json) — see src/news/sources/press.py.
+
 Usage:
-  python scripts/sync_news.py                # all three sources
+  python scripts/sync_news.py                # all sources
   python scripts/sync_news.py --kap-only     # for ad-hoc debugging
+  python scripts/sync_news.py --press-only   # just the media feeds
   python scripts/sync_news.py --kap-days 7   # smaller KAP window
 """
 from __future__ import annotations
@@ -28,7 +33,7 @@ from src.news.loader import (  # noqa: E402
     upsert_items,
 )
 from src.news.schema import init_schema  # noqa: E402
-from src.news.sources import bddk, kap, tcmb  # noqa: E402
+from src.news.sources import bddk, kap, press, tcmb  # noqa: E402
 
 DB_PATH = REPO_ROOT / "data" / "bddk_data.db"
 
@@ -38,6 +43,7 @@ def main():
     ap.add_argument("--kap-only", action="store_true")
     ap.add_argument("--tcmb-only", action="store_true")
     ap.add_argument("--bddk-only", action="store_true")
+    ap.add_argument("--press-only", action="store_true")
     ap.add_argument("--kap-days", type=int, default=90,
                     help="KAP look-back window in days (default 90)")
     ap.add_argument("--tcmb-years-back", type=int, default=5,
@@ -63,10 +69,10 @@ def main():
     with sqlite3.connect(str(DB_PATH)) as conn:
         init_schema(conn)
 
-    only_one = args.kap_only or args.tcmb_only or args.bddk_only
+    only_one = args.kap_only or args.tcmb_only or args.bddk_only or args.press_only
 
     t0 = time.time()
-    totals = {"kap": 0, "tcmb": 0, "bddk": 0}
+    totals = {"kap": 0, "tcmb": 0, "bddk": 0, "press": 0}
 
     if not only_one or args.kap_only:
         print("[kap] fetching...")
@@ -110,6 +116,18 @@ def main():
         except Exception as e:
             print(f"[bddk] FAILED: {type(e).__name__}: {e}", flush=True)
 
+    if not only_one or args.press_only:
+        print("[press] fetching...")
+        try:
+            items = press.fetch()
+            with sqlite3.connect(str(DB_PATH)) as conn:
+                init_schema(conn)
+                upsert_items(conn, items)
+            totals["press"] = len(items)
+            print(f"[press] upserted {len(items):>4d} banking-sector press items")
+        except Exception as e:
+            print(f"[press] FAILED: {type(e).__name__}: {e}", flush=True)
+
     # Body backfill — incremental: only fetch detail pages for rows that
     # don't yet have a body cached. Cheap on first run after the column
     # was added, near-free on every subsequent run.
@@ -125,7 +143,8 @@ def main():
 
     elapsed = time.time() - t0
     print(f"\ntotal: {sum(totals.values())} items in {elapsed:.1f}s "
-          f"(kap={totals['kap']} tcmb={totals['tcmb']} bddk={totals['bddk']})")
+          f"(kap={totals['kap']} tcmb={totals['tcmb']} bddk={totals['bddk']} "
+          f"press={totals['press']})")
 
 
 def _backfill_bodies(source: str, fetcher, workers: int, limit: int | None,
