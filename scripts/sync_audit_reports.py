@@ -44,6 +44,7 @@ sys.path.insert(0, str(REPO_ROOT))
 sys.stdout.reconfigure(encoding="utf-8")
 
 from src.audit_reports import r2_storage  # noqa: E402
+from src.audit_reports.discovery import discover_targets  # noqa: E402
 from src.audit_reports.extractor import extract  # noqa: E402
 from src.audit_reports.loader import upsert_report  # noqa: E402
 from src.audit_reports.schema import init_schema  # noqa: E402
@@ -123,15 +124,28 @@ def scrape_to_r2(
     newest quarter only (across all kinds)."""
     cfg = json.loads(CONFIG.read_text(encoding="utf-8"))
     targets: list[tuple[str, str, str, str]] = []  # ticker, period, kind, url
+    seen: set[tuple[str, str, str]] = set()  # (ticker, period, kind) — dedup
     for ticker, b in cfg["banks"].items():
         if only and ticker.upper() not in only:
             continue
-        if "urls" not in b:
-            continue
-        for kind, period_map in b["urls"].items():
+        # Static, hand-maintained URLs.
+        for kind, period_map in b.get("urls", {}).items():
             normalised = "unconsolidated" if kind == "unconsolidated_zip" else kind
             for period, url in period_map.items():
+                key = (ticker.upper(), period.upper(), normalised)
+                if key in seen:
+                    continue
+                seen.add(key)
                 targets.append((ticker, period, normalised, url))
+        # Auto-discovered URLs (e.g. EXIM). Augments the config so new quarters
+        # are picked up without a hand-edit; on failure it returns [] and we
+        # keep the static targets above. Never adds a duplicate (ticker,period,kind).
+        for period, kind, url in discover_targets(ticker, b.get("ir_page", "")):
+            key = (ticker.upper(), period.upper(), kind)
+            if key in seen:
+                continue
+            seen.add(key)
+            targets.append((ticker, period, kind, url))
     if latest_period:
         targets = _restrict_to_latest_period(targets)
 
