@@ -151,8 +151,11 @@ A qualitative-data layer feeds two tabs from the `news_items` table
   Verified across all banks: **26/27 now capture both totals and balance**;
   only **AKBNK** still misses total *liabilities* (its label is detached from
   the numbers row in the PDF — a narrow per-bank layout quirk; the balance check
-  skips it rather than false-alarm). Backfill via
-  `scripts/backfill_extraction.py --banks ALL [--latest-period]`.
+  skips it rather than false-alarm). 2026Q1 was backfilled to D1 + the R2
+  snapshot via `scripts/backfill_extraction.py --banks ALL --latest-period`,
+  which now **clears each re-extracted (bank, period) partition in D1 before the
+  upsert-only push** — otherwise an older, larger extraction leaves orphan rows
+  at item_orders the fresh extract no longer produces.
 - **TSKB 2026Q1** — bank rotated their IR URL; current entry in
   `audit_report_urls.json` 404s. Skip for now; refresh the URL when TSKB
   publishes the next quarter.

@@ -6,8 +6,12 @@ PDFs already extracted with success=1, so it won't self-heal). It:
   1. pulls state/bank_audit.db.gz from R2 → data/bank_audit.db
   2. deletes the named banks' bank_audit_extractions rows (forces re-extract)
   3. re-extracts those banks from their R2 PDFs with the current extractor
-  4. rebuilds bank_audit_stages, pushes the rows to D1
-  5. re-uploads the snapshot (with a dated history backup)
+  4. rebuilds bank_audit_stages
+  5. clears the re-extracted (bank, period) partitions in D1, then pushes the
+     fresh rows. The push (push_to_d1) is INSERT OR REPLACE — upsert-only, never
+     DELETEs — so without this clear an old, larger extraction would leave
+     orphan rows at item_orders the fresh extract no longer produces.
+  6. re-uploads the snapshot (with a dated history backup)
 
 Requires R2_* and CLOUDFLARE_API_TOKEN env vars.
 
@@ -23,6 +27,7 @@ import shutil
 import sqlite3
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
@@ -30,6 +35,7 @@ sys.path.insert(0, str(REPO))
 sys.stdout.reconfigure(encoding="utf-8")
 
 from src.audit_reports import r2_storage  # noqa: E402
+from scripts.push_to_d1 import run_wrangler  # noqa: E402
 from scripts.sync_audit_reports import extract_from_r2  # noqa: E402
 
 DB = REPO / "data" / "bank_audit.db"
@@ -40,6 +46,43 @@ AUDIT_TABLES = [
     "bank_audit_profile", "bank_audit_loans_by_sector", "bank_audit_npl_movement",
     "bank_audit_stages", "bank_audit_extractions",
 ]
+# Window passed to push_to_d1; the D1 partition-clear below derives the same
+# (bank, period) set the push will re-insert, so keep these two in lock-step.
+PUSH_WINDOW_HOURS = 24
+
+
+def _partition_delete_sql(parts: list[tuple[str, str]]) -> str:
+    """DELETE statements for every re-extracted (bank, period) across all audit
+    tables — run against D1 before the upsert-only push so stale rows from a
+    bigger old extraction don't survive as orphans."""
+    stmts = []
+    for tbl in AUDIT_TABLES:
+        for bank, period in parts:
+            if "'" in bank or "'" in period:  # tickers/periods are alnum; guard anyway
+                raise ValueError(f"unexpected quote in partition {bank!r} {period!r}")
+            stmts.append(f"DELETE FROM {tbl} WHERE bank_ticker='{bank}' AND period='{period}';")
+    return "\n".join(stmts) + "\n"
+
+
+def _clear_d1_partitions(db_path: Path) -> None:
+    """Clear the just-re-extracted partitions in remote D1 so the subsequent
+    push lands in clean partitions (no orphan rows). The (bank, period) set is
+    derived from the fresh bank_audit_extractions rows — the same set push_to_d1
+    re-inserts within PUSH_WINDOW_HOURS."""
+    with sqlite3.connect(str(db_path)) as conn:
+        parts = conn.execute(
+            "SELECT DISTINCT bank_ticker, period FROM bank_audit_extractions "
+            f"WHERE extracted_at >= datetime('now', '-{PUSH_WINDOW_HOURS} hours')"
+        ).fetchall()
+    if not parts:
+        print("[backfill] no freshly-extracted partitions to clear in D1")
+        return
+    sql_path = Path(tempfile.gettempdir()) / "d1_backfill_deletes.sql"
+    sql_path.write_text(_partition_delete_sql(parts), encoding="utf-8")
+    print(f"[backfill] clearing {len(parts)} partitions × {len(AUDIT_TABLES)} tables in D1")
+    rc = run_wrangler(sql_path)
+    if rc != 0:
+        sys.exit(f"[backfill] D1 partition delete failed (rc={rc})")
 
 
 def main() -> None:
@@ -88,11 +131,13 @@ def main() -> None:
                     "--db", str(DB)], check=True)
 
     if args.dry_run:
-        print("[backfill] dry-run: skipping D1 push + snapshot upload")
+        print("[backfill] dry-run: skipping D1 clear + push + snapshot upload")
         return
 
+    _clear_d1_partitions(DB)
+
     subprocess.run([sys.executable, str(REPO / "scripts" / "push_to_d1.py"),
-                    "--db", str(DB), "--hours", "24",
+                    "--db", str(DB), "--hours", str(PUSH_WINDOW_HOURS),
                     "--only-tables", ",".join(AUDIT_TABLES)], check=True)
 
     with sqlite3.connect(str(DB)) as c:
