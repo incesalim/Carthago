@@ -768,6 +768,15 @@ the source). Workbooks overlap, so `update_tbb_digital.py` processes them
 oldest→newest and the idempotent upsert (PK = period, channel, segment, section,
 metric_slug, unit) lets the newest file's revised value win.
 
+**Cross-era unit changes (normalised at parse time).** TBB changed report units
+over the years; `_classify_unit` recovers the canonical unit from each block's
+header and rescales, so a series is continuous across the switch:
+- *Customer counts* — pre-2020 reports give **absolute persons** (`Aktif müşteri
+  sayısı`); 2020+ give **thousands** (`… (Bin)`). Canonical = thousands.
+- *Transaction volumes* — pre-2020 give **`Milyon TL`** (million); recent give
+  **`Milyar TL`** (billion). Canonical = billion TL.
+- *Transaction counts* — always `(Bin)` (thousands); unaffected.
+
 **Cross-era stability.** The 2025 reports added `*` footnote markers to headers
 (`EFT` → `EFT *`, `Kurumsal` → `Kurumsal*`); the parser strips them so slugs stay
 stable across the whole series. A handful of investment sub-instruments (III.3)
