@@ -196,7 +196,18 @@ def _parse_rows(text: str, n_cols: int) -> list[tuple[str, list[float | None]]]:
         nums = re.findall(NUM_PAT, line)
         if len(nums) < n_cols:
             continue
-        last_n = nums[-n_cols:]
+        # Multi-period balance sheets (e.g. Eximbank) print 3+ periods, each as
+        # a TL / FC / Total triplet, so a row carries 9, 12, … numbers. The
+        # current and prior periods are the FIRST two triplets; the default
+        # "last n_cols" grabs the prior + an older restated period instead,
+        # storing the prior year-end as the current period. When the row is a
+        # clean multiple of the 3-column triplet and has more than n_cols, take
+        # the first n_cols. (Only affects 6-column statements — assets,
+        # liabilities, off-balance — never the 2-column P&L.)
+        if n_cols % 3 == 0 and len(nums) > n_cols and len(nums) % 3 == 0:
+            last_n = nums[:n_cols]
+        else:
+            last_n = nums[-n_cols:]
         # Locate label as substring before the first of the trailing N numbers
         # Find position of last_n[0] starting from the right
         pos = line.rfind(last_n[0])
