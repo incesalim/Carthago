@@ -28,6 +28,10 @@ on:
         description: "Skip scraping new PDFs (extract-only)"
         type: boolean
         default: false
+      bank:
+        description: "Restrict to one or more tickers (comma-separated, e.g. AKBNK). Blank = all banks."
+        type: string
+        default: ""
 
 # Read-only on git — the audit snapshot lives in R2, not git.
 permissions:
@@ -104,7 +108,15 @@ jobs:
         # extracted with success=1. Writes to the standalone data/bank_audit.db.
         env:
           NO_SCRAPE: ${{ inputs.skip_scrape && '--no-scrape' || '' }}
-        run: python scripts/sync_audit_reports.py --db data/bank_audit.db --workers 16 $NO_SCRAPE
+          # Forwarded via env (never interpolated into the command line) so an
+          # arbitrary dispatch input is passed as one quoted argument and can't
+          # inject shell. Blank on the schedule → full all-banks run.
+          BANK: ${{ inputs.bank }}
+        run: |
+          args=(--db data/bank_audit.db --workers 16)
+          [ -n "$NO_SCRAPE" ] && args+=("$NO_SCRAPE")
+          [ -n "$BANK" ] && args+=(--only-bank "$BANK")
+          python scripts/sync_audit_reports.py "${args[@]}"
 
       - name: Rebuild bank_audit_stages from credit-quality
         # Derived table the dashboard's Stage 1/2/3 view reads. Rebuild from the

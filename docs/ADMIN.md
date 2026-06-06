@@ -63,6 +63,17 @@ the panel uses Access automatically (and ignores the password).
 
 Local dev: set `ADMIN_DEV_BYPASS=1` (e.g. in `web/.dev.vars`) to skip auth.
 
+## Per-bank audit trigger
+
+The **Audit reports** card has a bank dropdown. Leave it on **All banks** for
+the normal full sweep, or pick a single ticker to scrape + extract just that
+bank's PDFs — handy the moment a bank publishes a new quarter instead of waiting
+for the Sunday cron. It forwards a `bank` input to `refresh-audit.yml`, which
+the workflow passes through to `sync_audit_reports.py --only-bank`. The ticker
+list mirrors `data/banks/audit_report_urls.json` (`AUDIT_BANKS` in
+`web/app/lib/github.ts`) and is validated server-side in the dispatch route, so
+only a known ticker can ever reach the workflow.
+
 ## How health status is derived
 
 Each source reports its latest data period, last ingest timestamp, and a row

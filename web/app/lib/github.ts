@@ -53,6 +53,22 @@ export const WORKFLOWS: WorkflowDef[] = [
 
 const ALLOWED = new Set(WORKFLOWS.map((w) => w.file));
 
+/** The audit workflow accepts a per-bank `bank` dispatch input. */
+export const AUDIT_WORKFLOW = "refresh-audit.yml";
+
+/**
+ * Tickers the audit pipeline knows about — mirrors the keys of
+ * data/banks/audit_report_urls.json (which isn't bundled into the Worker).
+ * Used both to populate the admin panel's bank picker and to validate the
+ * `bank` dispatch input server-side. Keep in sync when banks are added.
+ */
+export const AUDIT_BANKS = [
+  "AKBNK", "YKBNK", "HALKB", "VAKBN", "ICBCT", "QNBFB", "SKBNK", "ALBRK",
+  "KLNMA", "ISCTR", "TSKB", "ZIRAAT", "DENIZ", "TEB", "ING", "FIBA",
+  "BURGAN", "ODEA", "ATBANK", "KUVEYT", "TFKB", "VAKIFK", "ZIRAATK", "EMLAK",
+  "EXIM", "AKTIF", "PASHA", "HSBC", "ANADOLU", "ALNTF", "GARAN",
+] as const;
+
 export interface WorkflowRun {
   id: number;
   name: string;
@@ -121,12 +137,17 @@ export async function listRuns(perPage = 25): Promise<WorkflowRun[]> {
   }));
 }
 
-export async function dispatchWorkflow(file: string, ref = "master"): Promise<void> {
+export async function dispatchWorkflow(
+  file: string,
+  opts: { ref?: string; inputs?: Record<string, string> } = {},
+): Promise<void> {
   if (!ALLOWED.has(file)) throw new Error(`workflow not allowed: ${file}`);
+  const { ref = "master", inputs } = opts;
+  const body = inputs && Object.keys(inputs).length ? { ref, inputs } : { ref };
   const res = await fetch(`${API}/repos/${REPO}/actions/workflows/${file}/dispatches`, {
     method: "POST",
     headers: { ...ghHeaders(await token()), "Content-Type": "application/json" },
-    body: JSON.stringify({ ref }),
+    body: JSON.stringify(body),
   });
   if (res.status !== 204) {
     throw new Error(
