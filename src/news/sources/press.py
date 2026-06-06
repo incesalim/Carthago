@@ -58,9 +58,11 @@ DEFAULT_FEEDS: list[dict[str, str]] = [
     {"name": "dunya", "outlet": "Dünya", "url": "https://www.dunya.com/rss", "language": "tr"},
     {"name": "ekonomim", "outlet": "Ekonomim", "url": "https://www.ekonomim.com/rss", "language": "tr"},
     {"name": "aa_ekonomi", "outlet": "Anadolu Ajansı", "url": "https://www.aa.com.tr/tr/rss/default?cat=ekonomi", "language": "tr"},
-    {"name": "hurriyet_ekonomi", "outlet": "Hürriyet Ekonomi", "url": "https://www.hurriyet.com.tr/rss/ekonomi", "language": "tr"},
     {"name": "ntv_ekonomi", "outlet": "NTV Ekonomi", "url": "https://www.ntv.com.tr/ekonomi.rss", "language": "tr"},
 ]
+# Hürriyet was dropped 2026-06-06 — its feed froze a large Oct-2024 block that
+# injected stale items. Kept out of DEFAULT_FEEDS too; see press_feeds.json
+# "_removed".
 
 # Banking-relevance keywords, pre-normalized to lowercase Turkish (see
 # `_normalize_tr`). An item is kept if its title or summary matches ANY of
@@ -264,6 +266,13 @@ def _load_feeds() -> list[dict[str, str]]:
         return feeds or DEFAULT_FEEDS
     except (json.JSONDecodeError, OSError):
         return DEFAULT_FEEDS
+
+
+def enabled_outlets() -> set[str]:
+    """Outlet display names for the currently-enabled feeds. Used to purge
+    stored press rows from outlets that have been removed/disabled in
+    press_feeds.json (e.g. Hürriyet), so a removed feed's items don't linger."""
+    return {f.get("outlet", f.get("name", "")) for f in _load_feeds()}
 
 
 def fetch(request_timeout: int = 25, max_retries: int = 2) -> list[NewsItem]:
