@@ -127,6 +127,17 @@ jobs:
         # standalone audit DB so push_to_d1 has fresh stage rows to send.
         run: python scripts/build_bank_audit_stages.py --db data/bank_audit.db
 
+      - name: Audit data-quality check (alert-only)
+        # Flags silent extraction errors — a quarter whose lines are identical to
+        # the prior one (period-shift, the Eximbank fingerprint), a balance sheet
+        # that doesn't balance, or missing rows — and pings Telegram/Discord.
+        # Never blocks the pipeline (exits 0); it's informational.
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+        run: python scripts/check_audit_quality.py --db data/bank_audit.db --alert
+
       - name: Setup Node (for wrangler)
         uses: actions/setup-node@v4
         with:
