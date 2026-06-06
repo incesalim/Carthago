@@ -48,9 +48,9 @@ data/processed/**/*.xlsx
 *.db
 *.sqlite
 *.sqlite3
-# Compressed DB snapshot now lives in R2 (state/bddk_data.db.gz);
-# previously committed here.
+# Compressed DB snapshots now live in R2 (state/*.db.gz); never commit them.
 data/bddk_data.db.gz
+data/bank_audit.db.gz
 
 # External reports — third-party PDFs, do not redistribute
 data/external_reports/

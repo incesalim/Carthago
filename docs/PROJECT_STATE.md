@@ -7,7 +7,7 @@ coverage or known issues change.
 > → this file → [OPERATIONS.md](OPERATIONS.md). Metric definitions in
 > [METRICS.md](METRICS.md).
 >
-> Last verified: 2026-06-06.
+> Last verified: 2026-06-06 (EXIM balance-sheet extraction fix).
 
 ---
 
@@ -114,6 +114,17 @@ A qualitative-data layer feeds two tabs from the `news_items` table
 
 ## Known issues / pending work
 
+- **EXIM income statement — multi-column (pending).** Eximbank's recent reports
+  (2025Q3+) print extra period columns. The balance-sheet extractor now handles
+  this (3-period triplet → take the current+prior columns; fixed + backfilled
+  D1 + R2 snapshot 2026-06-06, see `scripts/backfill_extraction.py`). The
+  **income statement** has the same kind of quirk (interim P&L = 4 columns:
+  cumulative + 3-month × current/prior), so EXIM's interim P&L still stores the
+  prior period as current. A safe fix needs to read the column *headers* (a bare
+  count is unreliable — footnotes inflate it and layouts vary: FIBA is 2-col,
+  EXIM interim is 4-col), so it's deferred rather than risk other banks' P&L.
+  EXIM is the **only** bank with the 3-period balance sheet (verified by
+  `scripts/audit_extraction.py` + a D1 duplicate-quarter scan).
 - **TSKB 2026Q1** — bank rotated their IR URL; current entry in
   `audit_report_urls.json` 404s. Skip for now; refresh the URL when TSKB
   publishes the next quarter.
