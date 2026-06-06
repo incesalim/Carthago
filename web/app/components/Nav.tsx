@@ -18,6 +18,7 @@ const TABS = [
   { href: "/rates", label: "Rates" },
   { href: "/banks", label: "Banks" },
   { href: "/regulation", label: "Regulation" },
+  { href: "/news", label: "News" },
 ];
 
 function isActive(pathname: string, href: string) {

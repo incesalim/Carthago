@@ -20,7 +20,11 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install lint/test tools
-        run: pip install ruff pytest
+        # lxml + requests: the only runtime deps imported by the pure-logic
+        # unit tests (e.g. tests/test_press_news.py imports src/news/sources/
+        # press.py). Kept minimal — not the full requirements.txt (selenium/
+        # pandas/pdfplumber) so the lint+test job stays fast.
+        run: pip install ruff pytest lxml requests
       - name: Ruff (lint)
         run: ruff check .
       - name: Pytest

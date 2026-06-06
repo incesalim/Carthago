@@ -1,0 +1,12 @@
+{
+  "_note": "Turkish financial-press RSS feeds for the banking-sector news feed (source='press' in news_items). These are GENERAL economy/finance feeds; src/news/sources/press.py keeps only banking-relevant items via keyword match (RELEVANCE_KEYWORDS). Hand-edited via PR, like data/banks/audit_report_urls.json. A feed that 404s or breaks is logged and skipped at scrape time — it never fails the run. Only headline + link + short snippet are stored (no full article body) to respect outlet copyright/ToS; the card links out to the original.",
+  "_verified": "2026-06-06",
+  "feeds": [
+    {"name": "bloomberght", "outlet": "Bloomberg HT", "url": "https://www.bloomberght.com/rss", "language": "tr", "enabled": true},
+    {"name": "dunya", "outlet": "Dünya", "url": "https://www.dunya.com/rss", "language": "tr", "enabled": true},
+    {"name": "ekonomim", "outlet": "Ekonomim", "url": "https://www.ekonomim.com/rss", "language": "tr", "enabled": true},
+    {"name": "aa_ekonomi", "outlet": "Anadolu Ajansı", "url": "https://www.aa.com.tr/tr/rss/default?cat=ekonomi", "language": "tr", "enabled": true},
+    {"name": "hurriyet_ekonomi", "outlet": "Hürriyet Ekonomi", "url": "https://www.hurriyet.com.tr/rss/ekonomi", "language": "tr", "enabled": true},
+    {"name": "ntv_ekonomi", "outlet": "NTV Ekonomi", "url": "https://www.ntv.com.tr/ekonomi.rss", "language": "tr", "enabled": true}
+  ]
+}
