@@ -17,6 +17,7 @@ const TABS = [
   { href: "/liquidity", label: "Liquidity" },
   { href: "/rates", label: "Rates" },
   { href: "/banks", label: "Banks" },
+  { href: "/cross-bank", label: "Compare" },
   { href: "/regulation", label: "Regulation" },
   { href: "/news", label: "News" },
 ];
