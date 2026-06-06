@@ -123,8 +123,14 @@ def main():
             with sqlite3.connect(str(DB_PATH)) as conn:
                 init_schema(conn)
                 upsert_items(conn, items)
+                # Self-heal: drop stored items from outlets no longer in
+                # press_feeds.json (e.g. Hürriyet, removed for a stale feed).
+                # Keeps the snapshot from re-pushing them; the matching D1 rows
+                # are deleted once by hand (the D1 push is insert-only).
+                purged = _delete_unconfigured_press(conn)
             totals["press"] = len(items)
-            print(f"[press] upserted {len(items):>4d} banking-sector press items")
+            print(f"[press] upserted {len(items):>4d} banking-sector press items"
+                  + (f"; purged {purged} rows from removed feeds" if purged else ""))
         except Exception as e:
             print(f"[press] FAILED: {type(e).__name__}: {e}", flush=True)
 
@@ -181,6 +187,26 @@ def _backfill_bodies(source: str, fetcher, workers: int, limit: int | None,
             else:
                 fail += 1
     print(f"[{source}-body] ok={ok} fail={fail}")
+
+
+def _delete_unconfigured_press(conn: sqlite3.Connection) -> int:
+    """Delete press rows whose outlet (stored in `category`) is no longer an
+    enabled feed in press_feeds.json. Mirrors _delete_bddk_noise: the scraper
+    already stops fetching the removed feed; this purges anything stored before
+    the removal so it never re-pushes."""
+    keep = press.enabled_outlets()
+    rows = conn.execute(
+        "SELECT external_id, category FROM news_items WHERE source = 'press'"
+    ).fetchall()
+    to_delete = [ext_id for ext_id, outlet in rows if (outlet or "") not in keep]
+    if not to_delete:
+        return 0
+    conn.executemany(
+        "DELETE FROM news_items WHERE source = 'press' AND external_id = ?",
+        [(eid,) for eid in to_delete],
+    )
+    conn.commit()
+    return len(to_delete)
 
 
 def _delete_bddk_noise(conn: sqlite3.Connection) -> int:
