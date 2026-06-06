@@ -119,6 +119,37 @@ def test_segment_sheet_skips_customers():
     assert rows == []
 
 
+def test_absolute_persons_normalised_to_thousands():
+    """Pre-2020 reports give customer counts in absolute persons (no "(Bin)"
+    header); they must be rescaled to thousands so the series is continuous."""
+    grid = [
+        ["I. Mobil Bankacılık Müşteri Sayıları", "", ""],
+        ["", "Toplam", ""],
+        ["Dönem", "Aktif müşteri sayısı", ""],   # NB: no "(Bin)"
+        ["Aralık 2017", 29541221.0, 0.0],         # absolute persons
+    ]
+    role = _SheetRole("mobile", "total", skip_section_i=False)
+    rows = _parse_sheet(_sheet(grid), "Mobil bank.istat.", role)
+    r = next(x for x in rows if x.segment == "total")
+    assert r.unit == "persons_thousands"
+    assert r.value == 29541.221   # 29,541,221 persons → thousands
+
+
+def test_million_tl_volume_normalised_to_billion():
+    """Pre-2020 volumes are in "Milyon TL" (million); normalise to billion TL."""
+    grid = [
+        ["III.1. Para Transferleri", ""],
+        ["Dönem", "İşlem Hacmi (Milyon TL)"],
+        ["", "EFT"],
+        ["Mart 2018", 481120.38],   # million TL
+    ]
+    role = _SheetRole("internet", "total", skip_section_i=False)
+    rows = _parse_sheet(_sheet(grid), "İnternet bank.istat.", role)
+    r = next(x for x in rows if x.metric_slug == "eft")
+    assert r.unit == "volume_bn_try"
+    assert abs(r.value - 481.12038) < 1e-6   # million → billion
+
+
 def test_parse_workbook_engine_detection(tmp_path):
     """parse_workbook picks the engine by magic bytes; a non-Excel file with an
     .xls name should not crash discovery of the engine (it raises on read)."""

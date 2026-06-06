@@ -58,10 +58,15 @@ _UNIT_RE = re.compile(
 _UNIT_SUFFIX_RE = re.compile(r"\s*\((?:Bin|Milyar\s*TL|Adet)\)\s*$", re.IGNORECASE)
 # "… devamı aşağıdadır…" = a 'continued below' layout note glued onto a label.
 _CONT_NOTE_RE = re.compile(r"\s*devam[ıi]\s*aşağıdad[ıi]r.*$", re.IGNORECASE)
-_VOLUME_RE = re.compile(r"Hacmi|Milyar\s*TL", re.IGNORECASE)
-# Customer / demographic sections are head-counts (thousand persons), even though
-# their labels also carry "(Bin)". Detected by section name.
+_VOLUME_RE = re.compile(r"Hacmi|Milyar\s*TL|Milyon\s*TL", re.IGNORECASE)
+# Customer / demographic sections are head-counts, detected by section name.
 _PERSONS_RE = re.compile(r"Müşteri\s+Sayı|Musteri\s+Sayi|Cinsiyet|Yaş|Yas", re.IGNORECASE)
+# Source unit markers. TBB switched conventions over the years, so the canonical
+# unit is recovered per block from the header text rather than assumed:
+#   persons  → thousands  ("(Bin)" present; older reports gave absolute persons)
+#   volume   → billion TL ("Milyar TL"; older reports gave "Milyon TL" = million)
+_BIN_RE = re.compile(r"\(\s*Bin\s*\)", re.IGNORECASE)   # "(Bin)" = thousands
+_MILYON_RE = re.compile(r"Milyon", re.IGNORECASE)        # million (→ /1000 to bn)
 
 _SEGMENT_MARKERS = {
     "bireysel": "individual",
@@ -194,12 +199,22 @@ def _clean_label(text: str) -> str:
     return re.sub(r"\s+", " ", t).strip()
 
 
-def _classify_unit(section_tr: str, zone_texts: list[str]) -> str:
+def _classify_unit(section_tr: str, zone_texts: list[str]) -> tuple[str, float]:
+    """Return (canonical_unit, scale). `scale` converts the block's source values
+    to the canonical unit, normalising TBB's cross-era unit changes:
+
+    - persons → thousands: "(Bin)" header ⇒ already thousands (×1); otherwise the
+      report gives absolute persons (×1/1000).  [switched to thousands ~2020]
+    - volume  → billion TL: "Milyon TL" header ⇒ million (×1/1000); else billion.
+    - counts  → thousands: "(Bin)" (×1); absent ⇒ absolute (×1/1000).
+    """
+    blob = " ".join(zone_texts)
+    has_bin = bool(_BIN_RE.search(blob))
     if _PERSONS_RE.search(section_tr):
-        return "persons_thousands"
-    if _VOLUME_RE.search(" ".join(zone_texts)):
-        return "volume_bn_try"
-    return "count_thousands"
+        return "persons_thousands", (1.0 if has_bin else 0.001)
+    if _VOLUME_RE.search(blob):
+        return "volume_bn_try", (0.001 if _MILYON_RE.search(blob) else 1.0)
+    return "count_thousands", (1.0 if has_bin else 0.001)
 
 
 def _parse_sheet(df: pd.DataFrame, sheet: str, role: _SheetRole) -> list[TbbStat]:
@@ -265,7 +280,7 @@ def _parse_sheet(df: pd.DataFrame, sheet: str, role: _SheetRole) -> list[TbbStat
             if any(label_row):
                 header_rows.append(_ffill_row(label_row))
 
-        unit = _classify_unit(sec_name, zone_texts)
+        unit, scale = _classify_unit(sec_name, zone_texts)
         is_customers = top == "I"
 
         # Compose a per-column metric path (top-to-bottom, de-duplicating repeats),
@@ -312,7 +327,7 @@ def _parse_sheet(df: pd.DataFrame, sheet: str, role: _SheetRole) -> list[TbbStat
                     period=period, channel=role.channel, segment=seg,
                     section_code=sec_code or "?", section_tr=sec_name or sheet,
                     metric_path=mpath, metric_slug=slug, unit=unit,
-                    value=val, source_sheet=sheet,
+                    value=val * scale, source_sheet=sheet,
                 ))
         prev_end = bend
     return out
