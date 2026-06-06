@@ -7,7 +7,7 @@ coverage or known issues change.
 > → this file → [OPERATIONS.md](OPERATIONS.md). Metric definitions in
 > [METRICS.md](METRICS.md).
 >
-> Last verified: 2026-06-06 (EXIM balance-sheet extraction fix).
+> Last verified: 2026-06-06 (EXIM extraction fix + audit data-quality check).
 
 ---
 
@@ -69,7 +69,7 @@ concurrency group), so audit failures can't stall the bulletin pipeline:
 - `.github/workflows/refresh-evds-daily.yml` — Sun–Fri 05:00 UTC. EVDS scrape → D1.
 - `.github/workflows/refresh-bddk-bulletins.yml` — Sat 02:00 UTC. Monthly + weekly bulletins (no EVDS, no audit) → D1.
 - `.github/workflows/refresh-data.yml` — Sat 03:00 UTC. Monthly + weekly + EVDS → D1. *(Audit removed — now its own workflow.)*
-- `.github/workflows/refresh-audit.yml` — Sun 04:00 UTC. Audit-report sync + extract → `bank_audit_*` → D1. Own DB `data/bank_audit.db`, own snapshot `state/bank_audit.db.gz`, own group `bddk-audit`. Manual dispatch takes optional `bank` / `skip_scrape` inputs (the /admin per-bank trigger uses `bank` → `--only-bank … --latest-period`).
+- `.github/workflows/refresh-audit.yml` — Sun 04:00 UTC. Audit-report sync + extract → `bank_audit_*` → D1. Own DB `data/bank_audit.db`, own snapshot `state/bank_audit.db.gz`, own group `bddk-audit`. Manual dispatch takes optional `bank` / `skip_scrape` inputs (the /admin per-bank trigger uses `bank` → `--only-bank … --latest-period`). After extraction it runs `scripts/check_audit_quality.py --alert` (alert-only): flags a quarter whose lines are identical to the prior one (period-shift), a balance sheet that doesn't balance, or missing rows → Telegram/Discord, never blocking the push.
 - `.github/workflows/deploy-cloudflare.yml` — on push to `web/**`. Apply D1 migrations + build + deploy dashboard.
 - `.github/workflows/healthcheck.yml` — daily 06:00 UTC. D1 freshness check → Telegram/Discord alert if stale.
 - `.github/workflows/ci.yml` — on PRs. ruff + pytest + eslint + tsc. (Dependency bumps via `dependabot.yml`.)
@@ -114,17 +114,18 @@ A qualitative-data layer feeds two tabs from the `news_items` table
 
 ## Known issues / pending work
 
-- **EXIM income statement — multi-column (pending).** Eximbank's recent reports
-  (2025Q3+) print extra period columns. The balance-sheet extractor now handles
-  this (3-period triplet → take the current+prior columns; fixed + backfilled
-  D1 + R2 snapshot 2026-06-06, see `scripts/backfill_extraction.py`). The
-  **income statement** has the same kind of quirk (interim P&L = 4 columns:
-  cumulative + 3-month × current/prior), so EXIM's interim P&L still stores the
-  prior period as current. A safe fix needs to read the column *headers* (a bare
-  count is unreliable — footnotes inflate it and layouts vary: FIBA is 2-col,
-  EXIM interim is 4-col), so it's deferred rather than risk other banks' P&L.
-  EXIM is the **only** bank with the 3-period balance sheet (verified by
-  `scripts/audit_extraction.py` + a D1 duplicate-quarter scan).
+- **EXIM multi-column report (resolved 2026-06-06).** Eximbank's recent reports
+  (2025Q3+) print 3 balance-sheet period columns (TL/FC/Total × current / prior /
+  restated) and a 4-column interim income statement (cumulative + 3-month ×
+  current / prior). The extractor assumed 2 periods and took the wrong columns —
+  storing the prior period as current, so EXIM's figures showed under the wrong
+  dates. Both are now handled in `extractor.py` (BS: take the first triplet pair
+  on >6-column rows; P&L: `_detect_pl_ncols` → cumulative current = col 0, prior
+  = col n//2), validated to be a no-op for the 2-column banks, and EXIM was
+  re-extracted + backfilled to D1 + the R2 snapshot via
+  `scripts/backfill_extraction.py`. EXIM is the **only** bank with the 3-period
+  balance sheet (verified by `scripts/audit_extraction.py` + a D1 duplicate-quarter
+  scan). Credit-quality / stages / loans / NPL tables were unaffected.
 - **TSKB 2026Q1** — bank rotated their IR URL; current entry in
   `audit_report_urls.json` 404s. Skip for now; refresh the URL when TSKB
   publishes the next quarter.
