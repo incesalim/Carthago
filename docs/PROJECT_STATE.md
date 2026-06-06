@@ -126,6 +126,17 @@ A qualitative-data layer feeds two tabs from the `news_items` table
   `scripts/backfill_extraction.py`. EXIM is the **only** bank with the 3-period
   balance sheet (verified by `scripts/audit_extraction.py` + a D1 duplicate-quarter
   scan). Credit-quality / stages / loans / NPL tables were unaffected.
+- **Grand-total rows now captured (2026-06-06).** `TOTAL_PAT` only matched
+  English `TOTAL`, so Turkish reports' `VARLIKLAR TOPLAMI` / `PASİF TOPLAMI`
+  grand-total rows were dropped (they carry no hierarchy prefix). Now also
+  matches `TOPLAM`. Dashboard total-assets was **never** affected (it sums the
+  roman subtotals I.–X., not the total row — `web/app/lib/audit.ts`); this is
+  completeness + it lets the data-quality balance check cover all banks.
+  Verified across all banks: **26/27 now capture both totals and balance**;
+  only **AKBNK** still misses total *liabilities* (its label is detached from
+  the numbers row in the PDF — a narrow per-bank layout quirk; the balance check
+  skips it rather than false-alarm). Backfill via
+  `scripts/backfill_extraction.py --banks ALL [--latest-period]`.
 - **TSKB 2026Q1** — bank rotated their IR URL; current entry in
   `audit_report_urls.json` 404s. Skip for now; refresh the URL when TSKB
   publishes the next quarter.
