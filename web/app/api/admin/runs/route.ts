@@ -4,9 +4,19 @@
  * GitHub token isn't set, so the UI can show a setup hint.
  */
 import { requireAdminOr403 } from "@/app/lib/admin-auth";
-import { GitHubNotConfigured, WORKFLOWS, listRuns } from "@/app/lib/github";
+import {
+  AUDIT_BANKS,
+  AUDIT_WORKFLOW,
+  GitHubNotConfigured,
+  WORKFLOWS,
+  listRuns,
+} from "@/app/lib/github";
 
 export const dynamic = "force-dynamic";
+
+// Static bits the UI needs to render the per-bank audit picker, regardless of
+// whether the GitHub token is configured.
+const META = { workflows: WORKFLOWS, auditWorkflow: AUDIT_WORKFLOW, auditBanks: AUDIT_BANKS };
 
 export async function GET() {
   const gate = await requireAdminOr403();
@@ -14,12 +24,12 @@ export async function GET() {
 
   try {
     const runs = await listRuns(25);
-    return Response.json({ configured: true, workflows: WORKFLOWS, runs });
+    return Response.json({ configured: true, ...META, runs });
   } catch (e) {
     if (e instanceof GitHubNotConfigured) {
-      return Response.json({ configured: false, workflows: WORKFLOWS, runs: [] });
+      return Response.json({ configured: false, ...META, runs: [] });
     }
     const detail = e instanceof Error ? e.message : "failed to list runs";
-    return Response.json({ configured: true, workflows: WORKFLOWS, runs: [], error: detail }, { status: 502 });
+    return Response.json({ configured: true, ...META, runs: [], error: detail }, { status: 502 });
   }
 }
