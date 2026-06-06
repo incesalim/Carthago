@@ -525,6 +525,7 @@ reading directly from D1). One page per tab under `web/app/<tab>/page.tsx`.
 | `/liquidity` | Adapts BBVA's liquidity section. TL & FC loan/deposit ratios (public vs private), TL deposit growth (sector YoY+13w; public vs private YoY), deposit dollarization (sector/public/private), residents' FC savings (households, USD bn), net CBRT funding (TL bn), gross reserves (USD bn), REER. | §9, §10, §11 |
 | `/rates` | TCMB rate corridor, FX, weekly survey rates, sterilization channels. (Several historical Rates panels still pending D1 backfill — see [PROJECT_STATE.md](PROJECT_STATE.md) "Known issues".) | §9 |
 | `/banks` + `/banks/[ticker]` | Bank index + per-bank drill-down: full BS + P&L tables, financial-assets time series. Reads from `bank_audit_*` tables. | See `web/app/lib/audit.ts` |
+| `/cross-bank` (Compare) | Cross-bank heatmap, banks × {Total assets, NPL, Stage-2, NPL coverage, Provision intensity, ROE, ROA, NIM, Cost/Income}, colored by rank-vs-peers. Snapshot (latest common quarter) + Over-time (one metric × quarters). ROE/ROA/NIM/Cost-Income derived per bank from the P&L pivot by BRSA hierarchy (net profit `XXV.`→`XIX.`, NII `III.`, opex `XI.`+`XII.`, gross op profit `VIII.`) over period-end assets (BS roman I.–X.) / equity (BS liab `XVI.`); YTD flows annualized × (4/quarter). | See `web/app/lib/heatmap.ts` |
 
 ---
 
