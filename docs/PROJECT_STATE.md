@@ -104,10 +104,13 @@ A qualitative-data layer feeds two tabs from the `news_items` table
   decisions, with a weekly AI thematic briefing. Per-bank KAP disclosures
   surface on each bank's page.
 - **/news** — banking-sector *journalism* aggregated from TR financial-media
-  RSS feeds (Bloomberg HT, Dünya, Ekonomim, AA, Hürriyet, NTV) via
+  RSS feeds (Bloomberg HT, Dünya, Ekonomim, AA, NTV) via
   `src/news/sources/press.py`, keyword-filtered to banking-relevant items
   (`source='press'`). Feed list is hand-edited in `data/news/press_feeds.json`.
   Only headline + link + snippet are stored (no full body); cards link out.
+  Removing a feed there purges its stored items on the next cron (a one-time
+  manual D1 delete clears what was already pushed). Hürriyet was dropped — its
+  RSS froze a stale Oct-2024 block.
 
 ## Known issues / pending work
 

@@ -30,6 +30,15 @@ def test_drops_non_banking_items():
     assert not press.is_banking_relevant("Altın fiyatları canlı grafik")
 
 
+def test_hurriyet_not_in_enabled_outlets():
+    # Hürriyet was removed for serving a stale Oct-2024 block; guard against
+    # it (or the stale fallback) creeping back into the configured feeds.
+    outlets = press.enabled_outlets()
+    assert outlets, "expected at least one configured press feed"
+    assert "Hürriyet Ekonomi" not in outlets
+    assert all("hurriyet" not in f["url"] for f in press.DEFAULT_FEEDS)
+
+
 def test_negative_keyword_dropped_unless_strong_signal():
     # World Bank alone → out; World Bank + a domestic-banking signal → in.
     assert not press.is_banking_relevant("Dünya Bankası'ndan Türkiye'ye 191 milyon euro destek")
