@@ -137,10 +137,10 @@ def scrape_to_r2(
                     continue
                 seen.add(key)
                 targets.append((ticker, period, normalised, url))
-        # Auto-discovered URLs (e.g. EXIM). Augments the config so new quarters
-        # are picked up without a hand-edit; on failure it returns [] and we
-        # keep the static targets above. Never adds a duplicate (ticker,period,kind).
-        for period, kind, url in discover_targets(ticker, b.get("ir_page", "")):
+        # Auto-discovered URLs. Augments the config so new quarters are picked
+        # up without a hand-edit; on failure it returns [] and we keep the static
+        # targets above. Never adds a duplicate (ticker, period, kind).
+        for period, kind, url in discover_targets(ticker, b):
             key = (ticker.upper(), period.upper(), kind)
             if key in seen:
                 continue

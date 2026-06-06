@@ -78,14 +78,33 @@ list mirrors `data/banks/audit_report_urls.json` (`AUDIT_BANKS` in
 `web/app/lib/github.ts`) and is validated server-side in the dispatch route, so
 only a known ticker can ever reach the workflow.
 
-> Note: for most banks the scraper only fetches URLs listed in
-> `audit_report_urls.json`, so a brand-new quarter's URL must be added there
-> first (hand-edited via PR). **Exception:** banks with a registered discoverer
-> — currently **EXIM** — auto-discover new quarters straight from their IR page,
-> so you just trigger and the newest report is found, scraped, and ingested with
-> no hand-edit. See `src/audit_reports/discovery.py` to add more banks. To
-> re-process an *older* period for one bank, run the script directly with
-> `--only-bank TICKER` (no `--latest-period`).
+### Auto-discovery
+
+Some banks **auto-discover** new quarters straight from their IR page, so you
+just trigger and the newest report is found, scraped, and ingested with no
+hand-edit. Currently 13 banks: **ALBRK, ANADOLU, EMLAK, EXIM, FIBA, HALKB, ING,
+PASHA, TEB, TFKB, TSKB, VAKIFK, ZIRAAT** (`DISCOVERY_BANKS` in
+`src/audit_reports/discovery.py`).
+
+The engine (`discovery.py`) is generic and config-anchored: for each bank it
+learns the URL's quarter-end date encoding and a filename "skeleton" from that
+bank's existing config entries, then matches new links on the page — which picks
+the right document (full report vs tables-only / TR vs EN) and assigns the
+consolidated/unconsolidated kind. It's fail-safe: any error falls back to the
+static config.
+
+The other banks still need a hand-added URL in `audit_report_urls.json` before
+triggering: some are JavaScript-rendered (AKBNK, GARAN, YKBNK, ISCTR, VAKBN,
+ICBCT, ALNTF), some serve opaque file-id URLs with no date (HSBC, KLNMA, ODEA,
+QNBFB), and a few don't validate cleanly yet (AKTIF, BURGAN, KUVEYT, SKBNK).
+
+**Adding / re-checking a bank:** run `python scripts/validate_discovery.py`
+(uses the config as a test oracle — a bank passes when it reproduces its latest
+period with no recent-period URL mismatch), then add the passing tickers to
+`DISCOVERY_BANKS`. Re-run it if a bank redesigns its IR page.
+
+> Note: to re-process an *older* period for one bank, run the script directly
+> with `--only-bank TICKER` (no `--latest-period`).
 
 ## How health status is derived
 
