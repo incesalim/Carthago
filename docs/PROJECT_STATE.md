@@ -97,6 +97,22 @@ Public (state) vs Private (private + foreign), deposit dollarization, net CBRT
 funding, gross reserves, residents' household FC savings, and REER. See
 [METRICS.md](METRICS.md) §12.
 
+A **Compare** tab (`/cross-bank`) is a cross-bank performance heatmap built
+entirely off the per-bank `bank_audit_*` tables (the monthly BDDK tables are
+group aggregates only). It puts individual banks side by side across the full
+performance set — total assets, NPL ratio, Stage-2 share, NPL coverage,
+provision intensity, ROE, ROA, NIM, Cost/Income — each cell colored by the
+bank's rank vs peers (green better / red worse; a neutral `--info` ramp for
+size). Two views: **Snapshot** (banks × metrics at the latest common quarter,
+grouped by BDDK type or sortable by any metric column) and **Over time** (banks
+× quarters for one selected metric, scored across the whole panel to surface
+trends). The data layer (`web/app/lib/heatmap.ts`) builds one cached panel from
+four queries: assets = BS roman I.–X. sum; stage ratios from `bank_audit_stages`;
+ROE/ROA/NIM/Cost-Income derived from a P&L pivot by BRSA hierarchy (net profit
+`XXV.`→`XIX.`, net interest `III.`, opex `XI.`+`XII.`, gross op profit `VIII.`)
+over equity (BS liab `XVI.`), with YTD flows annualized × (4/quarter). Rank +
+color logic is the pure, client-safe `heatmap-normalize.ts`.
+
 A qualitative-data layer feeds two tabs from the `news_items` table
 (`scripts/sync_news.py`, daily cron):
 
