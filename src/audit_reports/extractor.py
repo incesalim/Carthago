@@ -599,6 +599,40 @@ def _parse_page(pdf_path: str, page_idx_1: int, n_cols: int) -> list[tuple[str, 
     return fz_rows if len(fz_rows) > len(pp_rows) else pp_rows
 
 
+def _detect_pl_ncols(pdf_path: str, page_idx_1: int) -> int:
+    """Modal value-column count on a P&L page.
+
+    BRSA income statements come 2-column (current / prior, cumulative only) or
+    4-column for interim reports (current / prior × cumulative / 3-month, in the
+    BRSA order: cur-cumulative, cur-quarter, prior-cumulative, prior-quarter).
+    We take the modal column count across data rows — robust to footnote numbers
+    that inflate individual rows — so the caller can map cumulative-current to
+    col 0 and cumulative-prior to col n//2, instead of blindly taking the last
+    two (which grabs the prior period on a 4-column page). 2-column pages return
+    2, so the mapping is identical to the old behaviour and can't regress them.
+    """
+    from collections import Counter
+    try:
+        import pdfplumber as _pp
+        with _pp.open(pdf_path) as pdf:
+            text = extract_page_text_repaired(pdf.pages[page_idx_1 - 1])
+    except Exception:
+        return 2
+    counts = []
+    for line in _fitz_merge_rows(text, 2).splitlines():
+        s = line.strip()
+        if not (HIERARCHY_PAT.match(s) or TOTAL_PAT.search(s)):
+            continue
+        n = len(re.findall(NUM_PAT, s))
+        if n >= 2:
+            counts.append(n)
+    if not counts:
+        return 2
+    mode = Counter(counts).most_common(1)[0][0]
+    n = mode if mode % 2 == 0 else mode - 1  # an odd count = a footnote number
+    return max(2, min(6, n))
+
+
 def extract(pdf_path: str | Path) -> BankReport:
     """Parse one BRSA-format audit report. Returns a BankReport with rows populated."""
     pdf_path = str(pdf_path)
@@ -656,11 +690,15 @@ def extract(pdf_path: str | Path) -> BankReport:
                     pri_tl=vals[3], pri_fc=vals[4], pri_total=vals[5],
                 ))
         if 'pl' in loc:
-            for order, (label, vals) in enumerate(_parse_page(pdf_path, loc['pl'], 2), 1):
+            # Interim income statements can carry 4 columns (cumulative + 3-month
+            # for current/prior). Detect the structure and take the cumulative
+            # current (col 0) and cumulative prior (col n//2), not the last two.
+            pl_n = _detect_pl_ncols(pdf_path, loc['pl'])
+            for order, (label, vals) in enumerate(_parse_page(pdf_path, loc['pl'], pl_n), 1):
                 h, name, fn = _split_label(label)
                 rep.profit_loss.append(StatementRow(
                     order=order, hierarchy=h, name=name, footnote=fn,
-                    cur_amount=vals[0], pri_amount=vals[1],
+                    cur_amount=vals[0], pri_amount=vals[pl_n // 2],
                 ))
     return rep
 
