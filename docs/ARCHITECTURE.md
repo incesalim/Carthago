@@ -89,7 +89,11 @@ Sunday 04:00 UTC. Standalone audit pipeline on its own DB + snapshot:
    `data/bank_audit.db` from the bulletin snapshot via `seed_audit_db.py`,
    so it doesn't re-extract every PDF)
 2. `scripts/sync_audit_reports.py --db data/bank_audit.db` — scrape new bank
-   IR PDFs to R2, pull pending PDFs, extract, upsert
+   IR PDFs to R2, pull pending PDFs, extract, upsert. URLs come from
+   `data/banks/audit_report_urls.json`; 13 banks also auto-discover new quarters
+   from their IR page (`src/audit_reports/discovery.py`). Accepts
+   `--only-bank TICKER` / `--latest-period` for targeted runs (the /admin
+   per-bank trigger passes these via the workflow's `bank` input)
 3. `scripts/build_bank_audit_stages.py --db data/bank_audit.db` — rebuild the
    derived Stage 1/2/3 table
 4. `scripts/push_to_d1.py --db data/bank_audit.db --only-tables bank_audit_*`
