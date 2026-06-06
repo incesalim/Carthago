@@ -7,7 +7,7 @@ coverage or known issues change.
 > → this file → [OPERATIONS.md](OPERATIONS.md). Metric definitions in
 > [METRICS.md](METRICS.md).
 >
-> Last verified: 2026-06-05.
+> Last verified: 2026-06-06.
 
 ---
 
@@ -69,7 +69,7 @@ concurrency group), so audit failures can't stall the bulletin pipeline:
 - `.github/workflows/refresh-evds-daily.yml` — Sun–Fri 05:00 UTC. EVDS scrape → D1.
 - `.github/workflows/refresh-bddk-bulletins.yml` — Sat 02:00 UTC. Monthly + weekly bulletins (no EVDS, no audit) → D1.
 - `.github/workflows/refresh-data.yml` — Sat 03:00 UTC. Monthly + weekly + EVDS → D1. *(Audit removed — now its own workflow.)*
-- `.github/workflows/refresh-audit.yml` — Sun 04:00 UTC. Audit-report sync + extract → `bank_audit_*` → D1. Own DB `data/bank_audit.db`, own snapshot `state/bank_audit.db.gz`, own group `bddk-audit`.
+- `.github/workflows/refresh-audit.yml` — Sun 04:00 UTC. Audit-report sync + extract → `bank_audit_*` → D1. Own DB `data/bank_audit.db`, own snapshot `state/bank_audit.db.gz`, own group `bddk-audit`. Manual dispatch takes optional `bank` / `skip_scrape` inputs (the /admin per-bank trigger uses `bank` → `--only-bank … --latest-period`).
 - `.github/workflows/deploy-cloudflare.yml` — on push to `web/**`. Apply D1 migrations + build + deploy dashboard.
 - `.github/workflows/healthcheck.yml` — daily 06:00 UTC. D1 freshness check → Telegram/Discord alert if stale.
 - `.github/workflows/ci.yml` — on PRs. ruff + pytest + eslint + tsc. (Dependency bumps via `dependabot.yml`.)
@@ -86,7 +86,10 @@ Next.js 15 + OpenNext on Cloudflare Workers — live at
 D1. A password-gated `/admin` control center (data health, refresh triggers,
 traffic) is unlocked by the `ADMIN_PASSWORD` Worker secret; optional
 `GITHUB_DISPATCH_TOKEN` enables the trigger buttons and Web-Analytics creds the
-traffic panel. Setup in [OPERATIONS.md](OPERATIONS.md) / [ADMIN.md](ADMIN.md).
+traffic panel. The Pipeline panel's audit card supports a **per-bank,
+latest-period** trigger, and **13 banks auto-discover** new quarters from their
+IR page (no hand-added URL needed) — see [ADMIN.md](ADMIN.md) §Auto-discovery.
+Setup in [OPERATIONS.md](OPERATIONS.md) / [ADMIN.md](ADMIN.md).
 
 A **Liquidity** tab (`/liquidity`) adapts the BBVA "Banking Sector Outlook"
 liquidity section: TL & FC loan/deposit ratios and TL deposit growth split

@@ -49,6 +49,8 @@ python scripts/refresh.py --skip-monthly --skip-weekly
 # Scrape new audit PDFs to R2 + extract into the standalone audit SQLite
 # (requires R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY)
 python scripts/sync_audit_reports.py --db data/bank_audit.db
+# Or just one bank's freshly published quarter:
+python scripts/sync_audit_reports.py --db data/bank_audit.db --only-bank ZIRAAT --latest-period
 python scripts/build_bank_audit_stages.py --db data/bank_audit.db
 
 # Push new rows to D1 (requires CLOUDFLARE_API_TOKEN)
@@ -60,16 +62,29 @@ python scripts/push_to_d1.py --db data/bank_audit.db --hours 168 \
 > First-time local audit run: seed the standalone DB from the combined one
 > with `python scripts/seed_audit_db.py` so you don't re-extract every PDF.
 
-### Add new audit-report URLs (quarterly cadence)
+### Get a newly published audit report in (quarterly cadence)
 
 When a bank publishes a new quarterly report (~late April / July /
-October / February), add the URL to
-`data/banks/audit_report_urls.json` — that's the only edit needed. The
-Sunday `refresh-audit.yml` cron picks it up automatically, downloads the
-PDF to R2, extracts the financial tables, and pushes the rows to D1.
+October / February):
 
-To pick up the change before the next Sunday cron, trigger
-`refresh-audit.yml` manually.
+- **13 banks auto-discover** from their IR page — no edit needed. They are
+  ALBRK, ANADOLU, EMLAK, EXIM, FIBA, HALKB, ING, PASHA, TEB, TFKB, TSKB,
+  VAKIFK, ZIRAAT (`DISCOVERY_BANKS` in `src/audit_reports/discovery.py`).
+- **Every other bank**: add the URL to `data/banks/audit_report_urls.json`
+  — that's the only edit needed.
+
+Either way the Sunday `refresh-audit.yml` cron picks it up automatically:
+downloads the PDF to R2, extracts the financial tables, pushes rows to D1.
+
+To pick it up before the next Sunday cron, trigger `refresh-audit.yml`
+manually — from **GitHub → Actions** (optional `bank` / `skip_scrape`
+inputs) or the **/admin** Pipeline panel, whose audit card has a per-bank
+dropdown that scrapes just that bank's latest published quarter.
+
+To enable auto-discovery for more banks, run
+`python scripts/validate_discovery.py` (it checks discovery against the
+config) and add any passing ticker to `DISCOVERY_BANKS`. See
+[ADMIN.md](ADMIN.md) §Auto-discovery.
 
 ### Change the D1 schema (migrations)
 
