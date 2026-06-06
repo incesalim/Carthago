@@ -66,6 +66,20 @@ REFERERS = {
     "VAKIFK": "https://www.vakifkatilim.com.tr/",
 }
 
+def _restrict_to_latest_period(rows: list, t_idx: int = 0, p_idx: int = 1) -> list:
+    """Keep only the rows for each ticker's most-recent period.
+
+    Periods are formatted YYYYQN, so a plain lexicographic max is chronological
+    ('2026Q1' > '2025Q4'). Used by --latest-period so a per-bank trigger only
+    touches the newest published quarter, not the bank's full history."""
+    latest: dict[str, str] = {}
+    for r in rows:
+        t, p = r[t_idx].upper(), r[p_idx].upper()
+        if t not in latest or p > latest[t]:
+            latest[t] = p
+    return [r for r in rows if r[p_idx].upper() == latest[r[t_idx].upper()]]
+
+
 # ---------------------------------------------------------------------------
 # Step 1+2: scrape new PDFs into R2
 # ---------------------------------------------------------------------------
@@ -99,11 +113,14 @@ def fetch_pdf_bytes(url: str, ticker: str) -> tuple[bytes | None, str]:
     return body, "ok"
 
 
-def scrape_to_r2(workers: int = 16, only: set[str] | None = None) -> dict[str, int]:
+def scrape_to_r2(
+    workers: int = 16, only: set[str] | None = None, latest_period: bool = False
+) -> dict[str, int]:
     """Walk audit_report_urls.json; upload any new PDFs to R2.
 
     If ``only`` is given (a set of upper-case tickers), restrict the scrape to
-    just those banks."""
+    just those banks. If ``latest_period`` is set, restrict each bank to its
+    newest quarter only (across all kinds)."""
     cfg = json.loads(CONFIG.read_text(encoding="utf-8"))
     targets: list[tuple[str, str, str, str]] = []  # ticker, period, kind, url
     for ticker, b in cfg["banks"].items():
@@ -115,6 +132,8 @@ def scrape_to_r2(workers: int = 16, only: set[str] | None = None) -> dict[str, i
             normalised = "unconsolidated" if kind == "unconsolidated_zip" else kind
             for period, url in period_map.items():
                 targets.append((ticker, period, normalised, url))
+    if latest_period:
+        targets = _restrict_to_latest_period(targets)
 
     counts = {"new": 0, "skipped": 0, "failed": 0}
 
@@ -201,7 +220,8 @@ def _worker_extract(args):
 
 
 def extract_from_r2(
-    workers: int, db_path: Path = DB_PATH, only: set[str] | None = None
+    workers: int, db_path: Path = DB_PATH, only: set[str] | None = None,
+    latest_period: bool = False,
 ) -> dict[str, int]:
     db_path.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(str(db_path)) as conn:
@@ -210,6 +230,8 @@ def extract_from_r2(
     pdfs = list_r2_pdfs()
     if only:
         pdfs = [(t, p, k, key) for (t, p, k, key) in pdfs if t.upper() in only]
+    if latest_period:
+        pdfs = _restrict_to_latest_period(pdfs)
     done = already_extracted(db_path)
     todo = [(t, p, k, key) for (t, p, k, key) in pdfs if (t, p, k) not in done]
     print(f"[extract] {len(pdfs)} in R2 · {len(done)} already done · {len(todo)} to extract")
@@ -261,6 +283,10 @@ def main():
                     help="restrict scrape + extract to one or more tickers "
                          "(comma-separated, e.g. AKBNK or AKBNK,GARAN). "
                          "Default: all banks in audit_report_urls.json.")
+    ap.add_argument("--latest-period", action="store_true",
+                    help="restrict to each bank's newest quarter only (across "
+                         "all kinds). Pair with --only-bank to grab just the "
+                         "report a bank has freshly published.")
     ap.add_argument("--db", type=str, default=str(DB_PATH),
                     help="SQLite DB to upsert extracted rows into (default "
                          "data/bddk_data.db). The standalone audit pipeline "
@@ -284,17 +310,22 @@ def main():
             print(f"[warn] unknown ticker(s) not in audit_report_urls.json: "
                   f"{', '.join(sorted(unknown))}", file=sys.stderr)
         print(f"[filter] restricting to bank(s): {', '.join(sorted(only))}")
+    if args.latest_period:
+        print("[filter] restricting to each bank's latest period only")
 
     t0 = time.time()
     scrape_counts: dict[str, int] = {}
     extract_counts: dict[str, int] = {}
     if not args.no_scrape:
-        scrape_counts = scrape_to_r2(workers=args.workers, only=only)
+        scrape_counts = scrape_to_r2(
+            workers=args.workers, only=only, latest_period=args.latest_period)
     if not args.no_extract:
         # Extraction is CPU-bound (pdfplumber/fitz) — cap at min(workers, cpu_count)
         import os
         cpu_workers = min(args.workers, (os.cpu_count() or 4))
-        extract_counts = extract_from_r2(workers=cpu_workers, db_path=db_path, only=only)
+        extract_counts = extract_from_r2(
+            workers=cpu_workers, db_path=db_path, only=only,
+            latest_period=args.latest_period)
     print(f"\ntotal {time.time() - t0:.1f}s")
 
     # Systemic-failure guard: make the run exit non-zero (→ CI failure email +
