@@ -32,12 +32,14 @@ DB_PATH = ROOT / "data" / "bddk_data.db"
 DB_GZ = ROOT / "data" / "bddk_data.db.gz"
 
 
-def _run_step(name: str, cmd: list[str]) -> None:
+def _run_step(name: str, cmd: list[str], critical: bool = True) -> None:
     print(f"\n{'='*8} {name} {'='*8}", flush=True)
     res = subprocess.run(cmd, cwd=str(ROOT))
     if res.returncode != 0:
         print(f"{name} exited with code {res.returncode}", flush=True)
-        sys.exit(res.returncode)
+        if critical:
+            sys.exit(res.returncode)
+        print(f"(non-critical) continuing despite {name} failure", flush=True)
 
 
 def vacuum() -> None:
@@ -75,6 +77,8 @@ def main():
     parser.add_argument("--skip-monthly", action="store_true")
     parser.add_argument("--skip-weekly", action="store_true")
     parser.add_argument("--skip-evds", action="store_true")
+    parser.add_argument("--skip-tbb", action="store_true",
+                        help="skip the TBB quarterly digital-banking refresh")
     args = parser.parse_args()
 
     start = datetime.now()
@@ -89,6 +93,13 @@ def main():
     if not args.skip_evds:
         _run_step("EVDS update",
                    [sys.executable, "-m", "src.scrapers.evds_scraper"])
+    if not args.skip_tbb:
+        # Quarterly source; latest 2 reports refresh the newest quarter and pick
+        # up TBB's revisions. Non-critical: a TBB outage must not abort the core
+        # BDDK refresh — the next cron retries.
+        _run_step("TBB digital-banking update",
+                   [sys.executable, "scripts/update_tbb_digital.py"],
+                   critical=False)
 
     vacuum()
     gzip_db()

@@ -1,6 +1,6 @@
 # Turkish Banking Sector Analytics
 
-An analytical platform for the Turkish banking sector built around two
+An analytical platform for the Turkish banking sector built around three
 official sources:
 
 - **BDDK** (*Bankacılık Düzenleme ve Denetleme Kurumu*) — the Banking
@@ -9,6 +9,9 @@ official sources:
 - **TCMB EVDS** (*Türkiye Cumhuriyet Merkez Bankası Elektronik Veri
   Dağıtım Sistemi*) — the Central Bank's macro / interest-rate data
   service.
+- **TBB** (*Türkiye Bankalar Birliği*) — the Banks Association of Türkiye,
+  publisher of quarterly sector-wide digital / internet / mobile banking
+  statistics.
 
 The entire pipeline runs in the cloud: GitHub Actions for ingestion,
 Cloudflare for storage and display.
@@ -76,6 +79,7 @@ bddk_analysis/
 │   │   ├── evds_client.py          ← TCMB EVDS HTTP client
 │   │   ├── evds_scraper.py         ← scrape EVDS → SQLite
 │   │   └── ...                     ← BDDK monthly + weekly scrapers
+│   ├── tbb/                        ← TBB quarterly digital-banking .xls/.xlsx → SQLite
 │   └── audit_reports/              ← per-bank PDF extraction
 │       ├── extractor.py            ← pdfplumber + pymupdf with fallback
 │       ├── loader.py               ← upsert into bank_audit_* tables
@@ -86,6 +90,7 @@ bddk_analysis/
 │   ├── refresh.py                  ← monthly + weekly + EVDS + gzip (incremental)
 │   ├── sync_audit_reports.py       ← scrape bank IR → R2 → extract → SQLite
 │   ├── update_monthly.py / update_weekly.py
+│   ├── update_tbb_digital.py       ← TBB quarterly digital-banking → SQLite
 │   ├── push_to_d1.py               ← incremental D1 sync (handles every table)
 │   ├── migrate_pdfs_to_r2.py       ← one-shot uploader for existing local PDFs
 │   ├── generate_d1_migrations.py   ← export local SQLite → D1 import files
@@ -118,7 +123,7 @@ bddk_analysis/
 └── .github/workflows/
     ├── refresh-evds-daily.yml      ← Sun-Fri 05 UTC: EVDS only → D1
     ├── refresh-bddk-bulletins.yml  ← Sat 02 UTC: monthly + weekly bulletins → D1
-    ├── refresh-data.yml            ← Sat 03 UTC: monthly + weekly + EVDS → D1
+    ├── refresh-data.yml            ← Sat 03 UTC: monthly + weekly + EVDS + TBB digital → D1
     ├── refresh-audit.yml           ← Sun 04 UTC: audit PDFs → bank_audit_* → D1 (own lane)
     ├── refresh-news-daily.yml      ← daily: KAP/TCMB/BDDK news → D1
     ├── summarize-regulations.yml   ← weekly: LLM regulation briefing → D1
@@ -134,7 +139,7 @@ bddk_analysis/
 |---|---|---|
 | **EVDS daily refresh** | Sun–Fri 05:00 UTC | `refresh-evds-daily.yml` |
 | **Weekly bulletins** | Saturday 02:00 UTC | `refresh-bddk-bulletins.yml` (monthly + weekly, no EVDS/audit) |
-| **Full weekly refresh** | Saturday 03:00 UTC | `refresh-data.yml` (monthly + weekly + EVDS + D1 push) |
+| **Full weekly refresh** | Saturday 03:00 UTC | `refresh-data.yml` (monthly + weekly + EVDS + TBB digital + D1 push) |
 | **Audit-report scrape** | Sunday 04:00 UTC | `refresh-audit.yml` — own DB + R2 snapshot; new bank IR PDFs → R2 → extract → D1 |
 | **Health check** | Daily 06:00 UTC | `healthcheck.yml` — D1 freshness → alert if stale |
 | **CI quality gates** | Every PR | `ci.yml` — ruff + pytest + eslint + tsc |

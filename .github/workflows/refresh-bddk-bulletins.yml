@@ -78,11 +78,12 @@ jobs:
 
       - name: Refresh BDDK bulletins (skip EVDS, no audit-report sync)
         # refresh.py orchestrates: monthly → weekly → VACUUM → gzip.
-        # --skip-evds keeps this workflow strictly BDDK-only.
+        # --skip-evds keeps this workflow strictly BDDK-only; --skip-tbb defers
+        # the quarterly TBB digital-banking refresh to the 03:00 full refresh.
         env:
           SKIP_MONTHLY: ${{ inputs.skip_monthly && '--skip-monthly' || '' }}
           SKIP_WEEKLY: ${{ inputs.skip_weekly && '--skip-weekly' || '' }}
-        run: python scripts/refresh.py --skip-evds $SKIP_MONTHLY $SKIP_WEEKLY
+        run: python scripts/refresh.py --skip-evds --skip-tbb $SKIP_MONTHLY $SKIP_WEEKLY
 
       - name: Setup Node (for wrangler)
         uses: actions/setup-node@v4
