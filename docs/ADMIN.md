@@ -66,13 +66,22 @@ Local dev: set `ADMIN_DEV_BYPASS=1` (e.g. in `web/.dev.vars`) to skip auth.
 ## Per-bank audit trigger
 
 The **Audit reports** card has a bank dropdown. Leave it on **All banks** for
-the normal full sweep, or pick a single ticker to scrape + extract just that
-bank's PDFs — handy the moment a bank publishes a new quarter instead of waiting
-for the Sunday cron. It forwards a `bank` input to `refresh-audit.yml`, which
-the workflow passes through to `sync_audit_reports.py --only-bank`. The ticker
+the normal full sweep (every bank, every quarter — idempotent), or pick a single
+ticker to scrape + extract just that bank's **latest published quarter** — handy
+the moment a bank publishes a new report instead of waiting for the Sunday cron.
+
+It forwards a `bank` input to `refresh-audit.yml`. Because a per-bank trigger
+means "grab the quarter this bank just published", the workflow also adds
+`--latest-period`, so it runs `sync_audit_reports.py --only-bank TICKER
+--latest-period` (newest quarter only, not the bank's full history). The ticker
 list mirrors `data/banks/audit_report_urls.json` (`AUDIT_BANKS` in
 `web/app/lib/github.ts`) and is validated server-side in the dispatch route, so
 only a known ticker can ever reach the workflow.
+
+> Note: the scraper fetches URLs from `audit_report_urls.json`, so the new
+> quarter's URL must already be in that file for the trigger to pick it up. To
+> re-process an *older* period for one bank, run the script directly with
+> `--only-bank TICKER` (no `--latest-period`).
 
 ## How health status is derived
 

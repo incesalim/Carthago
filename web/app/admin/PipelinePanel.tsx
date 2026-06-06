@@ -83,7 +83,7 @@ export default function PipelinePanel() {
 
   async function dispatch(w: WorkflowDef, bank?: string) {
     if (busy) return;
-    const scope = bank ? ` for ${bank}` : "";
+    const scope = bank ? ` for ${bank} (latest period)` : "";
     if (!window.confirm(`Trigger "${w.label}"${scope} now?`)) return;
     setBusy(w.file);
     try {
@@ -178,6 +178,7 @@ export default function PipelinePanel() {
                 {isAudit && banks.length > 0 && (
                   <select
                     aria-label="Bank to scrape"
+                    title="Pick a bank to scrape only its latest published quarter; All banks runs the full sweep."
                     value={auditBank}
                     onChange={(e) => setAuditBank(e.target.value)}
                     disabled={disabled}
