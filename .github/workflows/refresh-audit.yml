@@ -112,10 +112,14 @@ jobs:
           # arbitrary dispatch input is passed as one quoted argument and can't
           # inject shell. Blank on the schedule → full all-banks run.
           BANK: ${{ inputs.bank }}
+          # A per-bank trigger means "grab this bank's freshly published quarter",
+          # so restrict to its latest period. All-banks / scheduled runs stay full.
+          LATEST: ${{ inputs.bank && '--latest-period' || '' }}
         run: |
           args=(--db data/bank_audit.db --workers 16)
           [ -n "$NO_SCRAPE" ] && args+=("$NO_SCRAPE")
           [ -n "$BANK" ] && args+=(--only-bank "$BANK")
+          [ -n "$LATEST" ] && args+=("$LATEST")
           python scripts/sync_audit_reports.py "${args[@]}"
 
       - name: Rebuild bank_audit_stages from credit-quality
