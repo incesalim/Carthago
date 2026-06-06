@@ -30,6 +30,8 @@ interface WorkflowRun {
 interface RunsResponse {
   configured: boolean;
   workflows: WorkflowDef[];
+  auditWorkflow?: string;
+  auditBanks?: string[];
   runs: WorkflowRun[];
   error?: string;
 }
@@ -55,6 +57,9 @@ export default function PipelinePanel() {
   const [data, setData] = useState<RunsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
+  // Selected ticker for the audit workflow ("" = all banks). Other workflows
+  // ignore this.
+  const [auditBank, setAuditBank] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -76,19 +81,20 @@ export default function PipelinePanel() {
     void load();
   }, [load]);
 
-  async function dispatch(w: WorkflowDef) {
+  async function dispatch(w: WorkflowDef, bank?: string) {
     if (busy) return;
-    if (!window.confirm(`Trigger "${w.label}" now?`)) return;
+    const scope = bank ? ` for ${bank}` : "";
+    if (!window.confirm(`Trigger "${w.label}"${scope} now?`)) return;
     setBusy(w.file);
     try {
       const res = await fetch("/api/admin/dispatch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ workflow: w.file }),
+        body: JSON.stringify({ workflow: w.file, ...(bank ? { bank } : {}) }),
       });
       const body = (await res.json().catch(() => ({}))) as { error?: string };
       if (res.ok) {
-        toast.success(`Triggered ${w.label}`, { description: "Refreshing run status…" });
+        toast.success(`Triggered ${w.label}${scope}`, { description: "Refreshing run status…" });
         setTimeout(() => void load(), 3000);
       } else {
         toast.error(`Couldn't trigger ${w.label}`, { description: body.error ?? `HTTP ${res.status}` });
@@ -138,6 +144,9 @@ export default function PipelinePanel() {
         {workflows.map((w) => {
           const run = latestFor(w.file);
           const badge = runBadge(run);
+          const isAudit = w.file === data?.auditWorkflow;
+          const banks = data?.auditBanks ?? [];
+          const disabled = !!busy || (data ? !data.configured : true);
           return (
             <Card key={w.file} className="flex items-center justify-between gap-3 p-4">
               <div className="min-w-0">
@@ -165,13 +174,31 @@ export default function PipelinePanel() {
                   )}
                 </p>
               </div>
-              <Button
-                size="sm"
-                onClick={() => void dispatch(w)}
-                disabled={!!busy || (data ? !data.configured : true)}
-              >
-                {busy === w.file ? "Triggering…" : "Run"}
-              </Button>
+              <div className="flex shrink-0 items-center gap-2">
+                {isAudit && banks.length > 0 && (
+                  <select
+                    aria-label="Bank to scrape"
+                    value={auditBank}
+                    onChange={(e) => setAuditBank(e.target.value)}
+                    disabled={disabled}
+                    className="h-8 rounded-md border border-border bg-transparent px-2 text-xs text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+                  >
+                    <option value="">All banks</option>
+                    {banks.map((b) => (
+                      <option key={b} value={b}>
+                        {b}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                <Button
+                  size="sm"
+                  onClick={() => void dispatch(w, isAudit ? auditBank || undefined : undefined)}
+                  disabled={disabled}
+                >
+                  {busy === w.file ? "Triggering…" : "Run"}
+                </Button>
+              </div>
             </Card>
           );
         })}

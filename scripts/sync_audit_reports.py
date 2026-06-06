@@ -21,6 +21,8 @@ Env vars required:
 
 Usage:
   python scripts/sync_audit_reports.py [--workers 16] [--no-scrape] [--no-extract]
+  python scripts/sync_audit_reports.py --only-bank AKBNK   # one bank only
+  python scripts/sync_audit_reports.py --only-bank AKBNK,GARAN
 """
 from __future__ import annotations
 
@@ -97,11 +99,16 @@ def fetch_pdf_bytes(url: str, ticker: str) -> tuple[bytes | None, str]:
     return body, "ok"
 
 
-def scrape_to_r2(workers: int = 16) -> dict[str, int]:
-    """Walk audit_report_urls.json; upload any new PDFs to R2."""
+def scrape_to_r2(workers: int = 16, only: set[str] | None = None) -> dict[str, int]:
+    """Walk audit_report_urls.json; upload any new PDFs to R2.
+
+    If ``only`` is given (a set of upper-case tickers), restrict the scrape to
+    just those banks."""
     cfg = json.loads(CONFIG.read_text(encoding="utf-8"))
     targets: list[tuple[str, str, str, str]] = []  # ticker, period, kind, url
     for ticker, b in cfg["banks"].items():
+        if only and ticker.upper() not in only:
+            continue
         if "urls" not in b:
             continue
         for kind, period_map in b["urls"].items():
@@ -193,12 +200,16 @@ def _worker_extract(args):
     )
 
 
-def extract_from_r2(workers: int, db_path: Path = DB_PATH) -> dict[str, int]:
+def extract_from_r2(
+    workers: int, db_path: Path = DB_PATH, only: set[str] | None = None
+) -> dict[str, int]:
     db_path.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(str(db_path)) as conn:
         init_schema(conn)
 
     pdfs = list_r2_pdfs()
+    if only:
+        pdfs = [(t, p, k, key) for (t, p, k, key) in pdfs if t.upper() in only]
     done = already_extracted(db_path)
     todo = [(t, p, k, key) for (t, p, k, key) in pdfs if (t, p, k) not in done]
     print(f"[extract] {len(pdfs)} in R2 · {len(done)} already done · {len(todo)} to extract")
@@ -246,6 +257,10 @@ def main():
     ap.add_argument("--workers", type=int, default=16, help="parallel HTTP / extraction workers")
     ap.add_argument("--no-scrape", action="store_true", help="skip the scrape step")
     ap.add_argument("--no-extract", action="store_true", help="skip the extract step")
+    ap.add_argument("--only-bank", type=str, default="",
+                    help="restrict scrape + extract to one or more tickers "
+                         "(comma-separated, e.g. AKBNK or AKBNK,GARAN). "
+                         "Default: all banks in audit_report_urls.json.")
     ap.add_argument("--db", type=str, default=str(DB_PATH),
                     help="SQLite DB to upsert extracted rows into (default "
                          "data/bddk_data.db). The standalone audit pipeline "
@@ -259,16 +274,27 @@ def main():
     args = ap.parse_args()
 
     db_path = Path(args.db)
+
+    only: set[str] | None = None
+    if args.only_bank.strip():
+        only = {t.strip().upper() for t in args.only_bank.split(",") if t.strip()}
+        known = {t.upper() for t in json.loads(CONFIG.read_text(encoding="utf-8"))["banks"]}
+        unknown = only - known
+        if unknown:
+            print(f"[warn] unknown ticker(s) not in audit_report_urls.json: "
+                  f"{', '.join(sorted(unknown))}", file=sys.stderr)
+        print(f"[filter] restricting to bank(s): {', '.join(sorted(only))}")
+
     t0 = time.time()
     scrape_counts: dict[str, int] = {}
     extract_counts: dict[str, int] = {}
     if not args.no_scrape:
-        scrape_counts = scrape_to_r2(workers=args.workers)
+        scrape_counts = scrape_to_r2(workers=args.workers, only=only)
     if not args.no_extract:
         # Extraction is CPU-bound (pdfplumber/fitz) — cap at min(workers, cpu_count)
         import os
         cpu_workers = min(args.workers, (os.cpu_count() or 4))
-        extract_counts = extract_from_r2(workers=cpu_workers, db_path=db_path)
+        extract_counts = extract_from_r2(workers=cpu_workers, db_path=db_path, only=only)
     print(f"\ntotal {time.time() - t0:.1f}s")
 
     # Systemic-failure guard: make the run exit non-zero (→ CI failure email +
