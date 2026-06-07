@@ -1,0 +1,88 @@
+[
+  {
+    "id": "liquidity.net_cbrt_funding",
+    "title": "Net CBRT Funding (TL bn) — + excess / − lack of TL liquidity",
+    "source": {
+      "report": "Garanti BBVA Research — Türkiye Banking Sector Outlook",
+      "page": "Liquidity",
+      "as_of": "2026-03"
+    },
+    "placement": { "tab": "liquidity", "section": "CBRT Liquidity & Reserves" },
+    "unit": "TL bn",
+    "format": "bn",
+    "decimals": 0,
+    "chart": "TrendChart",
+    "series": [
+      {
+        "key": "netfund",
+        "label": "Net CBRT funding",
+        "source": "evds",
+        "locator": { "code": "TP.APIFON3", "years_back": 8 },
+        "transform": []
+      }
+    ],
+    "verify": [
+      {
+        "series": "netfund",
+        "date": "2026-03-31",
+        "value": 892429.23,
+        "tolerance": 2000,
+        "tolerance_unit": "abs"
+      }
+    ],
+    "registry_additions": [
+      { "code": "TP.APIFON3", "label": "CBRT Net Funding (TL thousand)", "category": "cbrt", "freq": "daily" }
+    ]
+  },
+  {
+    "id": "rates.cbrt_foreign_asset_share",
+    "title": "CBRT Foreign Assets / Total Assets (%)",
+    "source": {
+      "report": "TCMB EVDS — CBRT analytical balance sheet",
+      "page": "CBRT balance sheet",
+      "as_of": "2026-03"
+    },
+    "placement": { "tab": "rates", "section": "CBRT Balance Sheet" },
+    "unit": "%",
+    "format": "pct",
+    "decimals": 1,
+    "chart": "TrendChart",
+    "series": [
+      {
+        "key": "fa",
+        "label": "Foreign assets",
+        "source": "evds",
+        "locator": { "code": "TP.AB.A02", "years_back": 8 },
+        "transform": []
+      },
+      {
+        "key": "ta",
+        "label": "Total assets",
+        "source": "evds",
+        "locator": { "code": "TP.AB.A01", "years_back": 8 },
+        "transform": []
+      },
+      {
+        "key": "share",
+        "label": "Foreign assets / total assets",
+        "source": "derived",
+        "transform": [
+          { "op": "ratio", "numerator": "fa", "denominator": "ta" }
+        ]
+      }
+    ],
+    "verify": [
+      {
+        "series": "share",
+        "date": "2026-03-31",
+        "value": 69.68,
+        "tolerance": 0.3,
+        "tolerance_unit": "pp"
+      }
+    ],
+    "registry_additions": [
+      { "code": "TP.AB.A02", "label": "CBRT Foreign Assets", "category": "cbrt", "freq": "daily" },
+      { "code": "TP.AB.A01", "label": "CBRT Total Assets", "category": "cbrt", "freq": "daily" }
+    ]
+  }
+]

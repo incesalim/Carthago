@@ -17,6 +17,10 @@ Checks (each yields offending (bank, period, kind)):
                     Skipped (not failed) when a total row isn't identifiable.
   3. coverage    — an extracted (bank, period, kind) missing assets /
                     liabilities / P&L rows (or far below a sane minimum).
+  4. npl_drop    — a quarter whose Stage-3 NPL ratio crashes from a real level
+                    (>=1%) to ~0 (<0.1%). Fingerprint of the Stage-3 extractor
+                    grabbing an FC-only / fragment sub-table instead of the
+                    total III/IV/V NPL classification (the DENIZ/FIBA 2026Q1 bug).
 
 Alert-only / non-blocking: prints a report and (with --alert) sends one
 Telegram/Discord summary via scripts/notify.py, then always exits 0 so it never
@@ -42,6 +46,14 @@ DUP_FRACTION = 0.95       # >=95% of line items identical to prior quarter
 DUP_MIN_ROWS = 15         # need enough comparable rows to trust the fraction
 MIN_ASSET_ROWS = 15
 MIN_PL_ROWS = 15
+# NPL-collapse check: a Stage-3 gross that falls from a real level to ~zero
+# between consecutive quarters is the fingerprint of the extractor grabbing an
+# FC-only / fragment sub-table instead of the total NPL classification (the
+# DENIZ/FIBA 2026Q1 bug: ~5% NPL read as ~0%). Require the PRIOR quarter to be a
+# genuine NPL so we never flag banks that are simply low-NPL every quarter
+# (ATBANK/ICBCT sit at ~0% legitimately).
+NPL_COLLAPSE_PRIOR_MIN = 0.01   # prior-quarter NPL ratio >= 1%
+NPL_COLLAPSE_CUR_MAX = 0.001    # current-quarter NPL ratio < 0.1%
 
 _TOT_ASSETS = re.compile(r"(TOPLAM\s+AKT[İI]F|AKT[İI]F\s+TOPLAM|VARLIKLAR\s+TOPLAM|TOPLAM\s+VARLIK|TOTAL\s+ASSETS)", re.I)
 _TOT_LIAB = re.compile(r"(TOPLAM\s+PAS[İI]F|PAS[İI]F\s+TOPLAM|TOPLAM\s+KAYNAK|TOPLAM\s+Y[ÜU]K[ÜU]ML[ÜU]L[ÜU]K|TOTAL\s+LIABILITIES|TOTAL\s+EQUITY\s+AND\s+LIABILITIES|TOTAL\s+SHAREHOLDERS)", re.I)
@@ -120,10 +132,42 @@ def _coverage(conn) -> list[str]:
     return out
 
 
+def _npl_collapse(conn: sqlite3.Connection) -> list[str]:
+    """Flag a quarter whose Stage-3 NPL ratio crashes from a real level to ~0 —
+    the signature of the Stage-3 extractor latching onto an FC-only / fragment
+    sub-table instead of the total III/IV/V classification."""
+    # bank_audit_stages may not exist on a freshly-seeded DB; degrade gracefully.
+    have = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='bank_audit_stages'"
+    ).fetchone()
+    if not have:
+        return []
+    out = []
+    banks = [r[0] for r in conn.execute(
+        "SELECT DISTINCT bank_ticker FROM bank_audit_stages "
+        "WHERE kind='unconsolidated' AND period_type='current'")]
+    for bank in banks:
+        rows = conn.execute(
+            "SELECT period, CASE WHEN total_amount > 0 "
+            "       THEN stage3_amount * 1.0 / total_amount END AS npl "
+            "FROM bank_audit_stages "
+            "WHERE bank_ticker=? AND kind='unconsolidated' AND period_type='current' "
+            "ORDER BY period", (bank,)).fetchall()
+        for (p0, n0), (p1, n1) in zip(rows, rows[1:]):
+            if (n0 is not None and n1 is not None
+                    and n0 >= NPL_COLLAPSE_PRIOR_MIN and n1 < NPL_COLLAPSE_CUR_MAX):
+                out.append(
+                    f"npl_drop  {bank} {p1} unconsolidated: NPL {n1*100:.3f}% "
+                    f"collapsed from {n0*100:.2f}% at {p0} — Stage-3 likely an "
+                    f"FC-only/fragment table, not the total NPL classification")
+    return out
+
+
 def check(db: Path) -> list[str]:
     conn = sqlite3.connect(str(db))
     try:
-        return _stale_periods(conn) + _balance(conn) + _coverage(conn)
+        return (_stale_periods(conn) + _balance(conn) + _coverage(conn)
+                + _npl_collapse(conn))
     finally:
         conn.close()
 

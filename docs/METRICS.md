@@ -705,6 +705,14 @@ All formulas verified numerically by the metric-finder agent
 (2026-04-23). Numerical agreement ≤ 1pp vs BBVA Mar-26 chart except
 where noted.
 
+> **Now also machine-readable.** New chart reproductions are captured as specs in
+> [`web/app/lib/chart-specs.catalog.json`](../web/app/lib/chart-specs.catalog.json)
+> (locator + transform + a `verify[]` anchor) and re-checked every day by
+> `scripts/verify_chart_spec.py` (wired into the `healthcheck.yml` cron), so a
+> BDDK rename or EVDS breakage alerts instead of silently blanking a chart. The
+> derivations in this table are the seed backlog to migrate into specs over time.
+> See [REPRODUCING_CHARTS.md](REPRODUCING_CHARTS.md) for the full loop.
+
 | Chart / description | Formula | Verified |
 |---|---|---|
 | CBRT Sov Bonds / Total Assets | `TP.AB.A051 / TP.AB.A01 × 100` | 4.22% vs 4.1% ✓ (0.12pp; BBVA likely nets a small liability) |
