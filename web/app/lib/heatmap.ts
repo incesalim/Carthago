@@ -7,11 +7,13 @@
  * over-time views derive from this single panel.
  *
  * Period format is `YYYYQN` with NO dash (2025Q4, 2026Q1). String MAX(period)
- * sorts correctly lexically. P&L amounts are YTD cumulative, so flow ratios
- * annualize by × (4 / quarterNum); ratios of two YTD figures (Cost/Income) do
- * not. Denominators use period-end assets/equity (average-balance is a later
- * refinement). Any missing or non-positive denominator → null cell, never a
- * wrong ratio.
+ * sorts correctly lexically. P&L amounts are YTD cumulative. ROE uses a
+ * trailing-twelve-month net income (de-cumulated to single quarters and summed
+ * over the last 4) divided by the average equity across the last 5 quarter-ends
+ * — the standard, less-noisy basis. ROA / NIM still annualize the YTD flow by
+ * × (4 / quarterNum) over period-end assets (average-balance is a later
+ * refinement); Cost/Income is a ratio of two YTD figures (no annualization).
+ * Any missing input or non-positive denominator → null cell, never a wrong ratio.
  *
  * CTE / naming caveat (see audit.ts): never name a CTE after a table it reads —
  * D1 throws a circular-reference 500.
@@ -49,7 +51,7 @@ export const METRIC_DEFS: MetricDef[] = [
   { key: "stage2_share",        label: "Stage-2 share",       short: "Stage 2",    unit: "pct", decimals: 2, direction: "higher_worse" },
   { key: "npl_coverage",        label: "NPL coverage",        short: "Coverage",   unit: "pct", decimals: 1, direction: "higher_better" },
   { key: "provision_intensity", label: "Provision intensity", short: "Provisions", unit: "pct", decimals: 2, direction: "neutral" },
-  { key: "roe",                 label: "ROE",                 short: "ROE",        unit: "pct", decimals: 1, direction: "higher_better" },
+  { key: "roe",                 label: "ROE (TTM)",           short: "ROE",        unit: "pct", decimals: 1, direction: "higher_better" },
   { key: "roa",                 label: "ROA",                 short: "ROA",        unit: "pct", decimals: 2, direction: "higher_better" },
   { key: "nim",                 label: "NIM (annualized)",    short: "NIM",        unit: "pct", decimals: 2, direction: "higher_better" },
   { key: "cost_income",         label: "Cost / Income",       short: "Cost/Inc",   unit: "pct", decimals: 1, direction: "higher_worse" },
@@ -206,13 +208,65 @@ export async function heatmapPanel(kind: string = DEFAULT_KIND): Promise<BankMet
     ensure(r.bank_ticker, r.period);
   }
 
-  // Derive ROE / ROA / NIM / Cost-Income. P&L flows are YTD → annualize by
-  // 4/quarter; denominators use period-end assets/equity. Missing or
-  // non-positive denominators (or an unparsable quarter) leave the cell null.
+  // --- Trailing-twelve-month ROE -------------------------------------------
+  // ROE = (sum of the last 4 quarters' net income) / (average equity over the
+  // last 5 quarter-ends). TTM income avoids the noisy YTD×(4/q) annualization
+  // (which quadruples a single Q1), and a 5-point average equity matches the
+  // earnings flow to the capital that earned it instead of a period-end snap.
+  // P&L is YTD cumulative, so de-cumulate to single-quarter income first.
+  // Index every (bank, ord) where ord is a chronological quarter number.
+  const ordOf = (period: string): number | null => {
+    const m = /^(\d{4})Q([1-4])$/.exec(period);
+    return m ? Number(m[1]) * 4 + (Number(m[2]) - 1) : null;
+  };
+  const byBank = new Map<string, Map<number, { ytd: number | null; eq: number | null }>>();
+  for (const row of map.values()) {
+    const ord = ordOf(row.period);
+    if (ord == null) continue;
+    const key = `${row.bank_ticker}|${row.period}`;
+    let b = byBank.get(row.bank_ticker);
+    if (!b) { b = new Map(); byBank.set(row.bank_ticker, b); }
+    b.set(ord, { ytd: plByKey.get(key)?.net_profit ?? null, eq: equityByKey.get(key) ?? null });
+  }
+  // Single-quarter net income from YTD: Q1 (ord%4===0) is already one quarter;
+  // any other quarter is YTD(this) − YTD(prior), so the prior quarter must exist.
+  const singleQ = (b: Map<number, { ytd: number | null; eq: number | null }>, ord: number): number | null => {
+    const cur = b.get(ord)?.ytd ?? null;
+    if (cur == null) return null;
+    if (ord % 4 === 0) return cur;
+    const prev = b.get(ord - 1)?.ytd ?? null;
+    return prev == null ? null : cur - prev;
+  };
+  const ttmRoe = (ticker: string, period: string): number | null => {
+    const b = byBank.get(ticker);
+    const ord = ordOf(period);
+    if (!b || ord == null) return null;
+    // Need a contiguous 4-quarter income window; a gap (or the bank's earliest
+    // quarters) leaves ROE null rather than guessing.
+    let ttm = 0;
+    for (let k = 0; k < 4; k++) {
+      const s = singleQ(b, ord - k);
+      if (s == null) return null;
+      ttm += s;
+    }
+    // Average equity over the 5 trailing quarter-ends (those present, ≥2).
+    const eqs: number[] = [];
+    for (let k = 0; k < 5; k++) {
+      const e = b.get(ord - k)?.eq ?? null;
+      if (e != null && e > 0) eqs.push(e);
+    }
+    if (eqs.length < 2) return null;
+    const avgEq = eqs.reduce((s, x) => s + x, 0) / eqs.length;
+    return avgEq > 0 ? ttm / avgEq : null;
+  };
+
+  // Derive the metrics. ROE uses TTM net income / average equity (above). ROA /
+  // NIM are still YTD flows annualized by 4/quarter over period-end assets, and
+  // Cost/Income is a ratio of two YTD flows. Missing inputs (or non-positive
+  // denominators) leave the cell null.
   for (const row of map.values()) {
     const key = `${row.bank_ticker}|${row.period}`;
     const p = plByKey.get(key);
-    const eq = equityByKey.get(key) ?? null;
     const assetsTotal = row.total_assets;
 
     const q = Number(/Q([1-4])$/.exec(row.period)?.[1]);
@@ -223,10 +277,9 @@ export async function heatmapPanel(kind: string = DEFAULT_KIND): Promise<BankMet
     const opex = p?.opex ?? null;
     const grossOp = p?.gross_op_profit ?? null;
 
+    row.roe = ttmRoe(row.bank_ticker, row.period);
     if (ann != null && netProfit != null && assetsTotal != null && assetsTotal > 0)
       row.roa = (netProfit * ann) / assetsTotal;
-    if (ann != null && netProfit != null && eq != null && eq > 0)
-      row.roe = (netProfit * ann) / eq;
     if (ann != null && netInterest != null && assetsTotal != null && assetsTotal > 0)
       row.nim = (netInterest * ann) / assetsTotal;
     // Opex / gross operating profit may be sign-negative in source (expenses
