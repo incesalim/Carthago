@@ -78,6 +78,9 @@ export default function PipelinePanel() {
   }, []);
 
   useEffect(() => {
+    // Fetch the run list on mount; load() synchronously flips `loading`, which
+    // is the intended fetch-on-mount pattern here.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
   }, [load]);
 
