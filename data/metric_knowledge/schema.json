@@ -33,11 +33,28 @@
 
         "group": {
           "type": "string",
-          "enum": ["profitability", "income", "balance_sheet", "growth", "asset_quality", "capital", "liquidity_funding", "franchise", "market_position", "esg", "macro"],
+          "enum": ["profitability", "income", "balance_sheet", "growth", "asset_quality", "capital", "liquidity_funding", "efficiency", "valuation", "franchise", "market_position", "esg", "macro"],
           "description": "Metric family."
         },
         "definition": { "type": "string" },
+        "formula": { "type": "string", "description": "Concise math expression, distinct from `definition` (prose) and `derivation` (how to get it from OUR data). e.g. 'net_income / avg_equity'." },
         "unit": { "type": "string" },
+        "frameworks": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["basel_iii", "ifrs9", "tfrs", "brsa", "market", "management", "none"] },
+          "description": "Definitional origin: basel_iii (capital/liquidity ratios), ifrs9 (staging/ECL), tfrs (Turkish IFRS accounting line), brsa (BDDK-defined regulatory ratio), market (equity-market metric), management (bank-defined, non-standard), none."
+        },
+        "decomposes_into": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Metric ids this one breaks into (decomposition tree, e.g. roe -> [roa, equity_multiplier]). Each must be a known metric id."
+        },
+        "related": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Loosely related metric ids (drivers, numerator/denominator, peers). Each must be a known metric id."
+        },
+        "drivers": { "type": "array", "items": { "type": "string" }, "description": "Free-text: what moves this metric." },
 
         "level": {
           "type": "string",
