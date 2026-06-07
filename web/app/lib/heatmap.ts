@@ -17,7 +17,7 @@
  * D1 throws a circular-reference 500.
  */
 import { cachedAll } from "./db";
-import { BS_ASSET_ROMAN_HIERARCHIES, BS_EQUITY_HIERARCHY } from "./standard_lines";
+import { BS_ASSET_ROMAN_HIERARCHIES } from "./standard_lines";
 import type { Direction } from "./heatmap-normalize";
 
 export type MetricKey =
@@ -149,10 +149,20 @@ export async function heatmapPanel(kind: string = DEFAULT_KIND): Promise<BankMet
         GROUP BY bank_ticker, period`,
       [kind],
     ),
-    // D — equity: BS liabilities XVI. (value column amount_total).
+    // D — equity. The equity row's BRSA roman numeral differs by balance-sheet
+    // layout: XVI. for deposit banks, but XIV. for participation banks (their
+    // liabilities side has fewer roman items). Match the equity row by its
+    // LABEL on any roman-numeral line instead of a fixed numeral, so the
+    // participation group gets an ROE too (was "—"). The `GLOB '[IVXLCDM]*.'`
+    // guard keeps this to roman-numeral rows, excluding the label-bearing
+    // "Total Liabilities and Equity" grand total (which carries no hierarchy and
+    // would otherwise win MAX()). UPPER+'%ZKAYNAK%' matches "Özkaynaklar" across
+    // Turkish casing; '%EQUITY%' matches "Shareholders' Equity".
     cachedAll<RowEquity>(
       `SELECT bank_ticker, period,
-              MAX(CASE WHEN hierarchy = '${BS_EQUITY_HIERARCHY}' THEN amount_total END) AS equity
+              MAX(CASE WHEN hierarchy GLOB '[IVXLCDM]*.'
+                        AND (UPPER(item_name) LIKE '%ZKAYNAK%' OR UPPER(item_name) LIKE '%EQUITY%')
+                       THEN amount_total END) AS equity
          FROM bank_audit_balance_sheet
         WHERE kind = ? AND statement = 'liabilities'
         GROUP BY bank_ticker, period`,
