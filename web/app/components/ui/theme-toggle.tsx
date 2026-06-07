@@ -8,6 +8,10 @@ import { cn } from "@/app/lib/cn";
 export function ThemeToggle({ className }: { className?: string }) {
   const { setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
+  // next-themes hydration guard: flag the client mount once so theme-dependent
+  // icons aren't rendered during SSR (avoids a hydration mismatch). The single
+  // post-mount setState is intentional.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   React.useEffect(() => setMounted(true), []);
 
   const isDark = mounted && resolvedTheme === "dark";
