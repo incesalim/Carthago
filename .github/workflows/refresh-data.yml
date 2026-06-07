@@ -72,7 +72,7 @@ jobs:
       # the push below picks up no fresh audit rows — its time window finds none.
 
       - name: Setup Node (for wrangler)
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "22"
 
