@@ -103,6 +103,8 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int) -> list[str]:
         "bank_audit_loans_by_sector",
         "bank_audit_npl_movement",
         "bank_audit_stages",
+        "bank_audit_capital",
+        "bank_audit_liquidity",
     ):
         # These tables have their own extracted_at column (the
         # corresponding extractor writes here without touching

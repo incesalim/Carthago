@@ -23,6 +23,8 @@ coverage or known issues change.
 | `bank_audit_profit_loss` | BRSA quarterly PDFs | same | per-bank |
 | `bank_audit_credit_quality` | BRSA PDFs, IFRS 9 footnotes | same | per-bank, per-section |
 | `bank_audit_profile` | BRSA PDFs, qualitative section | same | branches + personnel where disclosed |
+| `bank_audit_capital` | BRSA PDFs, §4.1 capital adequacy | same | CET1/Tier1/Tier2/Total/RWA + CET1/Tier1/CAR ratios, per period_type |
+| `bank_audit_liquidity` | BRSA PDFs, §4.6/4.7 | same | LCR (total/FC), NSFR, leverage ratio, per period_type |
 | `bank_audit_extractions` | extraction log | one row per PDF | 974 rows (954 ok / 20 partial) |
 | `bank_types`, `table_definitions`, `download_log` | metadata | — | — |
 

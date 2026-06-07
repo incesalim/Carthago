@@ -168,6 +168,10 @@ class BankReport:
     loans_by_sector: "list" = field(default_factory=list)
     # NPL gross-amount roll-forward by BRSA group (III / IV / V).
     npl_movement: "list" = field(default_factory=list)
+    # §4 risk-management ratios — full report objects (capital_adequacy.py /
+    # liquidity.py) carrying rows + source_page; persisted by upsert_report.
+    capital: object = None
+    liquidity: object = None
 
 
 def _split_label(label: str) -> tuple[str, str, str]:
@@ -668,6 +672,17 @@ def extract(pdf_path: str | Path) -> BankReport:
             rep.npl_movement = _extract_nplm(pdf, pdf_path).rows
         except Exception:
             rep.npl_movement = []
+        # Capital adequacy (§4.1) and liquidity/leverage (§4.6/4.7).
+        try:
+            from .capital_adequacy import extract_from_pdf as _extract_cap
+            rep.capital = _extract_cap(pdf, pdf_path)
+        except Exception:
+            rep.capital = None
+        try:
+            from .liquidity import extract_from_pdf as _extract_liq
+            rep.liquidity = _extract_liq(pdf, pdf_path)
+        except Exception:
+            rep.liquidity = None
         loc = _locate_pages(pdf)
         if 'bs_assets' in loc:
             for order, (label, vals) in enumerate(_parse_page(pdf_path, loc['bs_assets'], 6), 1):
