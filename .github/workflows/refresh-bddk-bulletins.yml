@@ -86,7 +86,7 @@ jobs:
         run: python scripts/refresh.py --skip-evds --skip-tbb $SKIP_MONTHLY $SKIP_WEEKLY
 
       - name: Setup Node (for wrangler)
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "22"
 
