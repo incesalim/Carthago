@@ -21,6 +21,11 @@ Checks (each yields offending (bank, period, kind)):
                     (>=1%) to ~0 (<0.1%). Fingerprint of the Stage-3 extractor
                     grabbing an FC-only / fragment sub-table instead of the
                     total III/IV/V NPL classification (the DENIZ/FIBA 2026Q1 bug).
+  5. capital     — bank_audit_capital arithmetic: CET1<=Tier1<=Total Capital and
+                    reported CAR must reconcile to Total Capital / RWA. A failure
+                    is a parse error (missing label variant / wrong total row).
+  6. liquidity   — bank_audit_liquidity plausibility bands (leverage <30%,
+                    LCR/NSFR sane; a sub-50% LCR is a mis-grabbed value).
 
 Alert-only / non-blocking: prints a report and (with --alert) sends one
 Telegram/Discord summary via scripts/notify.py, then always exits 0 so it never
@@ -163,11 +168,71 @@ def _npl_collapse(conn: sqlite3.Connection) -> list[str]:
     return out
 
 
+def _has_table(conn: sqlite3.Connection, name: str) -> bool:
+    return conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (name,)
+    ).fetchone() is not None
+
+
+# Capital tolerance: 2% absorbs rounding and any sub-line the extractor missed.
+CAP_REL_TOL = 0.02
+
+
+def _capital_consistency(conn: sqlite3.Connection) -> list[str]:
+    """Arithmetic sanity on bank_audit_capital (current period): the tier
+    ordering must hold and the reported CAR must reconcile to capital / RWA.
+    A failure is almost always a parse error — a missing label variant or the
+    wrong 'Total Capital' line picked up — i.e. exactly what to fix next."""
+    if not _has_table(conn, "bank_audit_capital"):
+        return []
+    out = []
+    rows = conn.execute(
+        "SELECT bank_ticker, period, kind, cet1_capital, tier1_capital, "
+        "       total_capital, total_rwa, capital_adequacy_ratio "
+        "FROM bank_audit_capital WHERE period_type='current'").fetchall()
+    for bank, period, kind, cet1, t1, tc, rwa, car in rows:
+        tag = f"capital   {bank} {period} {kind}:"
+        if cet1 and t1 and cet1 > t1 * (1 + CAP_REL_TOL):
+            out.append(f"{tag} CET1 {cet1:,.0f} > Tier1 {t1:,.0f}")
+        if t1 and tc and t1 > tc * (1 + CAP_REL_TOL):
+            out.append(f"{tag} Tier1 {t1:,.0f} > Total capital {tc:,.0f}")
+        if tc and rwa and car:
+            implied = tc / rwa * 100
+            if abs(implied - car) > max(0.5, car * 0.05):
+                out.append(f"{tag} CAR {car:.2f}% != capital/RWA {implied:.2f}%")
+        if car is not None and not (5 <= car <= 80):
+            out.append(f"{tag} CAR {car} out of plausible band")
+    return out
+
+
+def _liquidity_bands(conn: sqlite3.Connection) -> list[str]:
+    """Plausibility bands on bank_audit_liquidity (current period). Ratios are
+    percentages; banks must run LCR/NSFR >= 100% in steady state, so a very low
+    LCR is the fingerprint of a mis-grabbed value."""
+    if not _has_table(conn, "bank_audit_liquidity"):
+        return []
+    out = []
+    rows = conn.execute(
+        "SELECT bank_ticker, period, kind, leverage_ratio, lcr_total, nsfr "
+        "FROM bank_audit_liquidity WHERE period_type='current'").fetchall()
+    for bank, period, kind, lev, lcr, nsfr in rows:
+        tag = f"liquidity {bank} {period} {kind}:"
+        if lev is not None and not (0 < lev < 30):
+            out.append(f"{tag} leverage {lev} out of band")
+        for nm, v in (("LCR", lcr), ("NSFR", nsfr)):
+            if v is not None and not (0 < v < 2000):
+                out.append(f"{tag} {nm} {v} out of band")
+        if lcr is not None and lcr < 50:
+            out.append(f"{tag} LCR {lcr}% implausibly low — likely a mis-grabbed value")
+    return out
+
+
 def check(db: Path) -> list[str]:
     conn = sqlite3.connect(str(db))
     try:
         return (_stale_periods(conn) + _balance(conn) + _coverage(conn)
-                + _npl_collapse(conn))
+                + _npl_collapse(conn) + _capital_consistency(conn)
+                + _liquidity_bands(conn))
     finally:
         conn.close()
 
