@@ -1,0 +1,244 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://bddk.local/chart_specs/schema.json",
+  "title": "BDDK chart-spec catalog",
+  "description": "Machine-readable specs for charts reproduced from external banking-sector reports (Garanti BBVA Research / IMF / OECD / TCMB). The canonical catalog is web/app/lib/chart-specs.catalog.json (one file, read by both scripts/verify_chart_spec.py and the dashboard). See docs/REPRODUCING_CHARTS.md. NOTE: scripts/verify_chart_spec.py validates specs itself (stdlib only); this schema is the contract/reference (used by the metric-finder agent and by any external validator).",
+  "type": "array",
+  "items": { "$ref": "#/definitions/spec" },
+
+  "definitions": {
+    "spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "source", "placement", "unit", "format", "chart", "series", "verify"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9_]+\\.[a-z0-9_]+$",
+          "description": "Unique, dot-namespaced by dashboard tab, e.g. 'liquidity.net_cbrt_funding'."
+        },
+        "title": { "type": "string" },
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["report"],
+          "properties": {
+            "report": { "type": "string", "description": "e.g. 'Garanti BBVA Research — Türkiye Banking Sector Outlook'." },
+            "page": { "type": "string", "description": "Section/page in the source report." },
+            "as_of": { "type": "string", "description": "Report vintage, e.g. '2026-03'." }
+          }
+        },
+        "placement": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["tab"],
+          "properties": {
+            "tab": { "type": "string", "description": "Dashboard route segment, e.g. 'liquidity'." },
+            "section": { "type": "string" }
+          }
+        },
+        "unit": { "type": "string", "description": "Human unit, e.g. 'TL bn', '%', 'USD bn'." },
+        "format": {
+          "type": "string",
+          "enum": ["pct", "bn", "raw", "rate"],
+          "description": "Maps to the chart component yFormat. 'bn' divides the stored value by 1000 at display time."
+        },
+        "decimals": { "type": "integer", "minimum": 0, "maximum": 4, "default": 1 },
+        "chart": { "type": "string", "enum": ["TrendChart", "TimeSeriesChart"] },
+        "series": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/definitions/series" }
+        },
+        "verify": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/definitions/verifyPoint" },
+          "description": "Regression anchors. Values are in the STORED DB unit (before any display formatter)."
+        },
+        "registry_additions": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/registryAddition" },
+          "description": "EVDS codes this spec needs in src/scrapers/evds_scraper.py SERIES. The harness warns if a referenced code is absent from evds_series."
+        }
+      }
+    },
+
+    "series": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "label", "source"],
+      "properties": {
+        "key": { "type": "string", "description": "Unique within the spec; referenced by transforms and verify[]; also the legend code." },
+        "label": { "type": "string", "description": "Legend label." },
+        "source": { "type": "string", "enum": ["evds", "bddk_monthly", "bddk_weekly", "derived"] },
+        "locator": { "$ref": "#/definitions/locator" },
+        "transform": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/transform" },
+          "default": []
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "source": { "const": "derived" } } },
+          "then": { "not": { "required": ["locator"] }, "required": ["transform"] },
+          "else": { "required": ["locator"] }
+        }
+      ]
+    },
+
+    "locator": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["code"],
+          "properties": {
+            "code": { "type": "string", "description": "EVDS series code, e.g. 'TP.APIFON3'." },
+            "years_back": { "type": "integer", "minimum": 1, "default": 8 }
+          },
+          "title": "evds"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["table", "item_name", "column", "bank_types_named"],
+          "properties": {
+            "table": { "type": "string", "enum": ["balance_sheet", "loans", "deposits", "financial_ratios"] },
+            "item_name": { "type": "string", "description": "EXACT Turkish item_name — casing matters (the /credit blank-chart bug)." },
+            "column": { "type": "string", "description": "Value column (balance_sheet: amount_total/amount_tl/amount_fx; loans: total_amount/total_tl/total_fx/npl_amount; deposits: total_amount/demand/maturity_*; financial_ratios: ratio_value)." },
+            "currency": { "type": "string", "enum": ["TL", "USD", "FX"], "default": "TL" },
+            "bank_types_named": { "$ref": "#/definitions/bankTypesNamed" },
+            "bank_types_raw": { "type": "array", "items": { "type": "string" }, "description": "Escape hatch: raw numeric codes. Discouraged — harness warns. Use bank_types_named." },
+            "table_number": { "type": "integer", "description": "financial_ratios table_number (default 15)." },
+            "annualize": { "type": "boolean", "description": "financial_ratios only: ratio_value * 12 / month." }
+          },
+          "title": "bddk_monthly"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["category", "item_id", "bank_types_named"],
+          "properties": {
+            "category": { "type": "string", "description": "weekly_series category, e.g. 'mevduat', 'krediler'." },
+            "item_id": { "type": "string", "description": "weekly_series item_id, e.g. '4.0.1'." },
+            "currency": { "type": "string", "enum": ["TL", "FX", "TOTAL"], "default": "TOTAL" },
+            "bank_types_named": { "$ref": "#/definitions/bankTypesNamed" },
+            "bank_types_raw": { "type": "array", "items": { "type": "string" } }
+          },
+          "title": "bddk_weekly"
+        }
+      ]
+    },
+
+    "bankTypesNamed": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1,
+      "items": {
+        "type": "string",
+        "enum": ["SECTOR", "DEPOSIT", "PARTICIPATION", "DEV_INV", "PRIVATE", "STATE", "FOREIGN", "DEPOSIT_PRIVATE", "DEPOSIT_STATE", "DEPOSIT_FOREIGN"]
+      },
+      "description": "Exactly one name. Resolved through the MONTHLY namespace for bddk_monthly and the WEEKLY namespace for bddk_weekly — so the monthly/weekly code collision is structurally impossible to get wrong. A spec series must resolve to a single value per date."
+    },
+
+    "transform": {
+      "type": "object",
+      "required": ["op"],
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "required": ["op", "factor"],
+          "properties": { "op": { "const": "scale" }, "factor": { "type": "number" } }
+        },
+        {
+          "additionalProperties": false,
+          "required": ["op", "keys"],
+          "properties": { "op": { "const": "sum_series" }, "keys": { "type": "array", "items": { "type": "string" }, "minItems": 1 } }
+        },
+        {
+          "additionalProperties": false,
+          "required": ["op", "numerator", "denominator"],
+          "properties": {
+            "op": { "const": "ratio" },
+            "numerator": { "type": "string" },
+            "denominator": { "type": "string" },
+            "scale": { "type": "number", "default": 100, "description": "Multiplier after division (default 100 → percent)." }
+          }
+        },
+        {
+          "additionalProperties": false,
+          "required": ["op", "window", "mode"],
+          "properties": {
+            "op": { "const": "growth" },
+            "window": { "type": "integer", "enum": [4, 13, 52] },
+            "mode": { "type": "string", "enum": ["yoy", "annualized"] }
+          }
+        },
+        {
+          "additionalProperties": false,
+          "required": ["op", "formula"],
+          "properties": { "op": { "const": "derive" }, "formula": { "$ref": "#/definitions/formulaNode" } }
+        }
+      ]
+    },
+
+    "formulaNode": {
+      "description": "Safe arithmetic AST — NEVER an eval'd string. Leaves are {ref:<sibling key>} or {const:<number>}; nodes are {op:add|sub|mul|div, args:[node,node]}.",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["ref"],
+          "properties": { "ref": { "type": "string" } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["const"],
+          "properties": { "const": { "type": "number" } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["op", "args"],
+          "properties": {
+            "op": { "type": "string", "enum": ["add", "sub", "mul", "div"] },
+            "args": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": { "$ref": "#/definitions/formulaNode" }
+            }
+          }
+        }
+      ]
+    },
+
+    "verifyPoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["series", "date", "value"],
+      "properties": {
+        "series": { "type": "string", "description": "A series key in this spec." },
+        "date": { "type": "string", "description": "Prefix-match against period/period_date; the resolver picks the last point in the matched window. Use a full date (YYYY-MM-DD) for daily series." },
+        "value": { "type": "number", "description": "Expected value in the STORED DB unit (pre-display-formatter)." },
+        "tolerance": { "type": "number", "default": 0.5 },
+        "tolerance_unit": { "type": "string", "enum": ["abs", "pp", "pct"], "description": "abs = absolute units; pp = percentage points; pct = relative %. Defaults to pp for format=pct, else abs." }
+      }
+    },
+
+    "registryAddition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "label"],
+      "properties": {
+        "code": { "type": "string" },
+        "label": { "type": "string" },
+        "category": { "type": "string", "enum": ["rates", "fx", "inflation", "cbrt"] },
+        "freq": { "type": "string", "enum": ["daily", "weekly", "monthly"] }
+      }
+    }
+  }
+}

@@ -633,6 +633,30 @@ _NPL_FC_ONLY_HEADING = re.compile(
 )
 
 
+def _is_fc_only_block(lines: list[str], header_idxs: list[int], anchor_idx: int) -> bool:
+    """True when the III/IV/V table block containing `anchor_idx` is the FC-only
+    sub-table (heading 'in foreign currencies' / 'yabancı para olarak
+    kullandırılan').
+
+    The block starts at the nearest III/IV/V header above the anchor; the
+    section heading typically sits a few lines above that header, so we scan
+    from `header − 6` down to the anchor row. Shared by BOTH the regex and the
+    template NPL extractors so neither emits the small FC-only subset (5-20% of
+    total NPL) as the total Stage-3 balance — e.g. DENIZ/FIBA 2026Q1 where the
+    FC-only table reports only a few thousand TL against a ~5-6% real NPL.
+    """
+    block_start = 0
+    for hi in header_idxs:
+        if hi < anchor_idx:
+            block_start = hi
+        else:
+            break
+    for j in range(max(0, block_start - 6), anchor_idx):
+        if _NPL_FC_ONLY_HEADING.search(lines[j]):
+            return True
+    return False
+
+
 def _extract_npl_brsa_via_template(
     page_num: int, page_text: str, template: dict,
 ) -> list[StageRow]:
@@ -676,6 +700,15 @@ def _extract_npl_brsa_via_template(
         # The gross line should carry 3 numeric tokens (Group III, IV, V).
         gnums = _NUM.findall(ln)
         if len(gnums) < 3:
+            continue
+        # Skip the FC-only sub-table: its gross row carries the same label
+        # ("Dönem Sonu Bakiyesi") but only the foreign-currency subset, so it
+        # would shadow the real total via the (section, period_type) dedup —
+        # exactly DENIZ/FIBA 2026Q1, where the template otherwise emitted a
+        # ~36k / ~24k Stage-3 against a real ~60bn / ~4.4bn balance. When this
+        # leaves the template with no gross row, extract_from_pdf falls back to
+        # the regex path, which scopes the total table correctly.
+        if _is_fc_only_block(lines, header_idxs, i):
             continue
         # Bound the forward walk by the next III/IV/V header (or EOF).
         next_hdr = min((h for h in header_idxs if h > i), default=len(lines))
@@ -775,33 +808,15 @@ def _extract_npl_brsa_from_page(page_num: int, page_text: str) -> list[StageRow]
         if _NPL_PROVISION_ROW.match(ln.strip())
     ]
 
-    def _is_fc_only_block(prov_idx: int) -> bool:
-        """Scan back from the provision row to the start of this III/IV/V
-        table block. If a 'foreign currencies' / 'yabancı para olarak' banner
-        appears anywhere in that window, the block is the FC-only sub-table,
-        not the total. The block_start is the line of the III/IV/V header
-        that introduced this provision row; we also scan a few lines above
-        the header itself because the section heading typically sits there."""
-        block_start = 0
-        for hi in header_idxs:
-            if hi < prov_idx:
-                block_start = hi
-            else:
-                break
-        scan_from = max(0, block_start - 6)
-        for j in range(scan_from, prov_idx):
-            if _NPL_FC_ONLY_HEADING.search(lines[j]):
-                return True
-        return False
-
     for i, ln in enumerate(lines):
         stripped = ln.strip()
         # Anchor: provision row.
         if not _NPL_PROVISION_ROW.match(stripped):
             continue
         # Reject FC-only sub-tables — they're 5-20% of total NPL and would
-        # silently displace the real total via dedup.
-        if _is_fc_only_block(i):
+        # silently displace the real total via dedup. (Shared helper, also
+        # used by the template path.)
+        if _is_fc_only_block(lines, header_idxs, i):
             continue
         current_period = _period_for_provision(i)
         nums = _NUM.findall(stripped)
