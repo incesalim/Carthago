@@ -10,6 +10,11 @@ dashboard.
 > helpers reading directly from Cloudflare D1). Per-bank queries are in
 > [`web/app/lib/audit.ts`](../web/app/lib/audit.ts). EVDS scraping is
 > in [`src/scrapers/`](../src/scrapers/).
+>
+> For meta-knowledge *about* banking metrics — which are disclosed,
+> standardized across banks, on a regular cadence, and reproducible from the
+> BRSA audit reports vs not — see [BANKING_METRICS.md](BANKING_METRICS.md)
+> (registry: [`data/metric_knowledge/registry.json`](../data/metric_knowledge/registry.json)).
 
 ---
 
