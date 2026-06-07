@@ -139,6 +139,29 @@ A qualitative-data layer feeds two tabs from the `news_items` table
 
 ## Known issues / pending work
 
+- **Stage-3 NPL understated by FC-only sub-table (resolved 2026-06-07).** The
+  per-bank NPL ratio / coverage on `/cross-bank` (and per-bank pages) was
+  understated for ~11 templated banks because the IFRS-9 Stage-3 extractor's
+  **template path** latched onto the *foreign-currency-only* NPL sub-table
+  ("Yabancı para olarak kullandırılan…" / "in foreign currencies") instead of
+  the total III/IV/V classification — so e.g. DENIZ read 0.00% (real ~5.4%),
+  AKBNK 0.73% (real ~3.8%), ZIRAAT/ISCTR/YKBNK/TEB/KUVEYT/AKTIF/FIBA/ICBCT/ODEA
+  all similarly low. Root cause: those banks' main provision/gross rows use
+  labels that differ from their `audit_templates.json` entry ("Karşılık (-)" vs
+  template "Karşılık Tutarı"), so the template could only pair gross+provision
+  *inside* the FC-only block. Fix: the template path now skips FC-only blocks
+  (shared `_is_fc_only_block` helper, already used by the regex path); when that
+  leaves no template gross row, extraction falls back to the language-agnostic
+  regex path, which scopes the total table correctly. Verified on all 11 changed
+  banks (each old value = that bank's FC-only subset; each new value = the total
+  NPL movement row); 18 banks unchanged, **zero regressions**. 2026Q1 backfilled
+  to D1 + the R2 snapshot via `scripts/backfill_extraction.py --banks ALL
+  --latest-period`; the 11 affected banks' **history** backfilled separately so
+  the `/cross-bank` Over-time view has no fake cliff. A new
+  `check_audit_quality.py` **npl_drop** check now alerts if any quarter's Stage-3
+  ratio crashes from ≥1% to <0.1% (the fingerprint of this bug) on a future
+  report-format change. Minor residual: ODEA's regex pick takes the prior-period
+  end-balance when current < prior (~2% high) — immaterial to ranking.
 - **EXIM multi-column report (resolved 2026-06-06).** Eximbank's recent reports
   (2025Q3+) print 3 balance-sheet period columns (TL/FC/Total × current / prior /
   restated) and a 4-column interim income statement (cumulative + 3-month ×
