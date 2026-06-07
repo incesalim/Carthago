@@ -81,7 +81,7 @@ what's applied.
 
 ## Dashboard
 
-Next.js 15 + OpenNext on Cloudflare Workers — live at
+Next.js 16 (React 19, TypeScript 6) + OpenNext on Cloudflare Workers — live at
 <https://turkish-banking-dashboard.incesalim10.workers.dev>. D1 reads are cached
 ~12h via KV (`cachedAll` → `unstable_cache`), so repeat page views don't re-query
 D1. A password-gated `/admin` control center (data health, refresh triggers,
