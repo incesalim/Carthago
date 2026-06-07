@@ -1,16 +1,13 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
+import nextCoreWebVitals from "eslint-config-next/core-web-vitals";
+import nextTypescript from "eslint-config-next/typescript";
 
-// eslint-config-next ships legacy (eslintrc) shareable configs, so bridge them
-// into flat config via FlatCompat. The previous `import …/core-web-vitals`
-// spread didn't resolve (ERR_MODULE_NOT_FOUND) and silently disabled linting.
-const compat = new FlatCompat({
-  baseDirectory: dirname(fileURLToPath(import.meta.url)),
-});
-
+// eslint-config-next 16 ships native flat configs, so spread them directly.
+// (Earlier we bridged the legacy eslintrc configs via FlatCompat; ESLint 10
+// dropped the implicit @eslint/eslintrc dep and FlatCompat fails to validate
+// the bridged config, so the native flat exports are the supported path now.)
 const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+  ...nextCoreWebVitals,
+  ...nextTypescript,
   {
     ignores: [".next/**", "out/**", "build/**", ".open-next/**", "next-env.d.ts"],
   },
