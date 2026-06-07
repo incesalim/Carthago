@@ -14,6 +14,8 @@ Usage:
     python scripts/metric_knowledge.py --not-reproducible   # what we CAN'T get
     python scripts/metric_knowledge.py --group asset_quality
     python scripts/metric_knowledge.py --reproducible direct,derived
+    python scripts/metric_knowledge.py --framework ifrs9    # filter by definitional framework
+    python scripts/metric_knowledge.py --tree roe           # decomposition tree of a metric
     python scripts/metric_knowledge.py --validate           # integrity check only
 
 Stdlib only — safe under the minimal-deps CI.
@@ -34,13 +36,15 @@ CHART_SPECS = ROOT / "web" / "app" / "lib" / "chart-specs.catalog.json"
 # tests/test_metric_knowledge.py asserts these match the schema (parity guard).
 ENUMS: dict[str, set[str]] = {
     "group": {"profitability", "income", "balance_sheet", "growth", "asset_quality",
-              "capital", "liquidity_funding", "franchise", "market_position", "esg", "macro"},
+              "capital", "liquidity_funding", "efficiency", "valuation", "franchise",
+              "market_position", "esg", "macro"},
     "level": {"bank", "group", "sector", "macro"},
     "availability": {"mandatory", "voluntary", "third_party", "none"},
     "cadence": {"daily", "weekly", "monthly", "quarterly", "annual", "adhoc", "none"},
     "reproducible": {"direct", "derived", "partial", "no"},
     "source_datasets": {"bank_audit", "bddk_monthly", "bddk_weekly", "evds",
                         "tbb_digital", "external", "none"},
+    "frameworks": {"basel_iii", "ifrs9", "tfrs", "brsa", "market", "management", "none"},
 }
 
 REQUIRED = ("id", "name_en", "group", "definition", "level", "availability",
@@ -63,6 +67,7 @@ def validate(metrics: list[dict]) -> list[str]:
     errs: list[str] = []
     seen: set[str] = set()
     spec_ids = _known_spec_ids()
+    ids = {m.get("id") for m in metrics}
     for m in metrics:
         mid = m.get("id", "?")
         for field in REQUIRED:
@@ -72,10 +77,10 @@ def validate(metrics: list[dict]) -> list[str]:
             errs.append(f"{mid}: duplicate id")
         seen.add(mid)
         for field, valid in ENUMS.items():
-            if field == "source_datasets":
-                for v in m.get("source_datasets", []):
+            if field in ("source_datasets", "frameworks"):
+                for v in m.get(field, []):
                     if v not in valid:
-                        errs.append(f"{mid}: invalid source_dataset {v!r}")
+                        errs.append(f"{mid}: invalid {field[:-1] if field.endswith('s') else field} {v!r}")
             elif field in m and m[field] not in valid:
                 errs.append(f"{mid}: invalid {field} {m[field]!r}")
         if not isinstance(m.get("standard_across_banks"), bool):
@@ -85,6 +90,10 @@ def validate(metrics: list[dict]) -> list[str]:
                 f"{mid}: reproducible_from_audit={m['reproducible_from_audit']} contradicts "
                 f"source/reproducible (expected {is_reproducible_from_audit(m)})"
             )
+        for field in ("decomposes_into", "related"):
+            for ref in m.get(field, []):
+                if ref not in ids:
+                    errs.append(f"{mid}: {field} references unknown metric {ref!r}")
         for sid in m.get("spec_ids", []):
             if spec_ids is not None and sid not in spec_ids:
                 errs.append(f"{mid}: spec_id {sid!r} not in chart-specs catalog")
@@ -129,13 +138,31 @@ def _list(metrics: list[dict]) -> None:
         print(f"  {m['id']:{width}}  {flags} {std:8} [{','.join(m['source_datasets'])}]  {m['name_en']}")
 
 
+def _tree(by_id: dict[str, dict], root: str, indent: int = 0, seen: set[str] | None = None) -> None:
+    """Print a metric's decomposition tree (via decomposes_into)."""
+    seen = seen or set()
+    m = by_id.get(root)
+    if m is None:
+        print(f"{'  ' * indent}? {root} (unknown)")
+        return
+    suffix = f"  = {m['formula']}" if m.get("formula") else ""
+    print(f"{'  ' * indent}{m['id']} ({m['name_en']}){suffix}")
+    if root in seen:
+        return
+    seen = seen | {root}
+    for child in m.get("decomposes_into", []):
+        _tree(by_id, child, indent + 1, seen)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--group")
     ap.add_argument("--reproducible", help="comma list, e.g. direct,derived")
     ap.add_argument("--source", help="filter by a source_dataset, e.g. bank_audit")
+    ap.add_argument("--framework", help="filter by a framework, e.g. ifrs9, basel_iii")
     ap.add_argument("--audit", action="store_true", help="reproducible from audit reports")
     ap.add_argument("--not-reproducible", action="store_true", help="reproducible == no")
+    ap.add_argument("--tree", help="print the decomposition tree of a metric id")
     ap.add_argument("--validate", action="store_true", help="integrity check only")
     args = ap.parse_args()
 
@@ -149,6 +176,10 @@ def main() -> int:
     if errs:
         print(f"WARNING: registry has {len(errs)} integrity error(s); run --validate", file=sys.stderr)
 
+    if args.tree:
+        _tree({m["id"]: m for m in metrics}, args.tree)
+        return 0
+
     sel = metrics
     if args.group:
         sel = [m for m in sel if m["group"] == args.group]
@@ -157,12 +188,14 @@ def main() -> int:
         sel = [m for m in sel if m["reproducible"] in want]
     if args.source:
         sel = [m for m in sel if args.source in m["source_datasets"]]
+    if args.framework:
+        sel = [m for m in sel if args.framework in m.get("frameworks", [])]
     if args.audit:
         sel = [m for m in sel if is_reproducible_from_audit(m)]
     if args.not_reproducible:
         sel = [m for m in sel if m["reproducible"] == "no"]
 
-    if args.group or args.reproducible or args.source or args.audit or args.not_reproducible:
+    if any([args.group, args.reproducible, args.source, args.framework, args.audit, args.not_reproducible]):
         _list(sel)
         print(f"\n{len(sel)} metric(s)")
     else:
