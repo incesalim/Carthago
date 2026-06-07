@@ -1,0 +1,109 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://bddk.local/metric_knowledge/schema.json",
+  "title": "Banking-metric knowledge registry",
+  "description": "Meta-knowledge about banking metrics: for each metric, whether it is disclosed at all, in a standardized way across banks, on a regular cadence, and whether WE can reproduce it from the data we hold (esp. the BRSA quarterly audit reports in bank_audit_*). This is the ontology above docs/METRICS.md (sector metric definitions) and web/app/lib/chart-specs.catalog.json (specific reproduced charts). See docs/BANKING_METRICS.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "axes", "metrics"],
+  "properties": {
+    "version": { "type": "integer" },
+    "axes": {
+      "type": "object",
+      "description": "Human-readable glossary of each classification axis and its allowed values (kept in sync with the enums below; scripts/metric_knowledge.py asserts parity).",
+      "additionalProperties": true
+    },
+    "metrics": { "type": "array", "items": { "$ref": "#/definitions/metric" } }
+  },
+
+  "definitions": {
+    "metric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id", "name_en", "group", "definition", "level",
+        "availability", "cadence", "standard_across_banks",
+        "reproducible", "source_datasets"
+      ],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+        "name_en": { "type": "string" },
+        "name_tr": { "type": "string" },
+        "aliases": { "type": "array", "items": { "type": "string" } },
+
+        "group": {
+          "type": "string",
+          "enum": ["profitability", "income", "balance_sheet", "growth", "asset_quality", "capital", "liquidity_funding", "franchise", "market_position", "esg", "macro"],
+          "description": "Metric family."
+        },
+        "definition": { "type": "string" },
+        "unit": { "type": "string" },
+
+        "level": {
+          "type": "string",
+          "enum": ["bank", "group", "sector", "macro"],
+          "description": "The unit of observation. bank = a single bank; group = a BDDK bank-type aggregate; sector = whole banking system; macro = economy/central bank."
+        },
+
+        "availability": {
+          "type": "string",
+          "enum": ["mandatory", "voluntary", "third_party", "none"],
+          "description": "How/whether the metric is disclosed. mandatory = required regulatory disclosure (BRSA/BDDK financial statements & tables); voluntary = management-disclosed in IR/earnings decks, definition set by the bank; third_party = published by an external provider (rating agency, TBB); none = not publicly disclosed."
+        },
+
+        "cadence": {
+          "type": "string",
+          "enum": ["daily", "weekly", "monthly", "quarterly", "annual", "adhoc", "none"],
+          "description": "Reporting frequency. adhoc = published irregularly / only when the bank chooses; none = not a time series."
+        },
+
+        "standard_across_banks": {
+          "type": "boolean",
+          "description": "Is the metric defined consistently enough across banks to compare like-for-like? Regulatory line items: true. Management metrics whose definition varies by bank (e.g. 'active digital customers', a bespoke market-share peer set): false."
+        },
+
+        "reproducible": {
+          "type": "string",
+          "enum": ["direct", "derived", "partial", "no"],
+          "description": "Can WE reproduce it from the data we currently hold? direct = a stored field; derived = a formula/transform over stored fields; partial = only approximable, or only at the wrong level/cadence; no = not from our data."
+        },
+
+        "source_datasets": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "enum": ["bank_audit", "bddk_monthly", "bddk_weekly", "evds", "tbb_digital", "external", "none"]
+          },
+          "description": "Which of our datasets carry (or would carry) this metric. bank_audit = per-bank BRSA quarterly statements; bddk_monthly/weekly = sector bulletins; evds = TCMB macro; tbb_digital = TBB sector digital stats; external = needs a source we don't ingest; none = unavailable."
+        },
+
+        "reproducible_from_audit": {
+          "type": "boolean",
+          "description": "Convenience flag: true iff this can be reproduced (direct/derived) specifically from the bank_audit_* reports. Derived/checked by scripts/metric_knowledge.py."
+        },
+
+        "derivation": { "type": "string", "description": "How to compute it from our fields (hierarchy codes / sections / transforms)." },
+        "caveats": { "type": "string" },
+        "spec_ids": { "type": "array", "items": { "type": "string" }, "description": "chart-specs.catalog.json ids that operationalize this metric, if any." },
+        "examples": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["value", "source"],
+            "properties": {
+              "bank": { "type": "string" },
+              "period": { "type": "string" },
+              "value": { "type": ["number", "string"] },
+              "unit": { "type": "string" },
+              "source": { "type": "string" },
+              "ours": { "type": ["number", "string"], "description": "The value we compute from our data, for cross-check." }
+            }
+          }
+        },
+        "references": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}
