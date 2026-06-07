@@ -139,7 +139,7 @@ jobs:
         run: python scripts/check_audit_quality.py --db data/bank_audit.db --alert
 
       - name: Setup Node (for wrangler)
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "22"
 

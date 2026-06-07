@@ -67,7 +67,7 @@ jobs:
         run: python scripts/summarize_regulations.py
 
       - name: Setup Node (for wrangler)
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "22"
 
