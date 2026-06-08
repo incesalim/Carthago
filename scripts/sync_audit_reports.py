@@ -235,7 +235,7 @@ def _worker_extract(args):
 
 def extract_from_r2(
     workers: int, db_path: Path = DB_PATH, only: set[str] | None = None,
-    latest_period: bool = False,
+    latest_period: bool = False, periods: set[str] | None = None,
 ) -> dict[str, int]:
     db_path.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(str(db_path)) as conn:
@@ -244,6 +244,9 @@ def extract_from_r2(
     pdfs = list_r2_pdfs()
     if only:
         pdfs = [(t, p, k, key) for (t, p, k, key) in pdfs if t.upper() in only]
+    if periods:
+        want = {p.upper() for p in periods}
+        pdfs = [(t, p, k, key) for (t, p, k, key) in pdfs if p.upper() in want]
     if latest_period:
         pdfs = _restrict_to_latest_period(pdfs)
     done = already_extracted(db_path)

@@ -2,8 +2,9 @@ name: Health check (data freshness)
 
 # Daily freshness/health check. Queries D1 for the latest ingest time per source
 # and the audit extraction-failure count, and alerts (Telegram/Discord) when a
-# source is stale or extractions are failing. Free: public-repo Actions + a
-# single read-only D1 query.
+# source is stale or extractions are failing. Also verifies the reproduced charts
+# in web/app/lib/chart-specs.catalog.json still resolve + match their anchors
+# (catches silent 0-row breakage). Free: public-repo Actions + read-only D1 queries.
 on:
   schedule:
     - cron: "0 6 * * *" # 06:00 UTC daily, after the EVDS daily refresh (05:00)
@@ -38,3 +39,7 @@ jobs:
 
       - name: Run health check
         run: python scripts/healthcheck.py
+
+      - name: Verify reproduced charts
+        if: always()
+        run: python scripts/verify_chart_spec.py --alert

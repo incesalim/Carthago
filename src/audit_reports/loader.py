@@ -86,6 +86,16 @@ def upsert_report(
     nplm_rep = NplMovementReport(pdf_path=pdf_path, rows=getattr(rep, 'npl_movement', []) or [])
     nplm_count = _upsert_nplm(conn, bank_ticker, period, kind, nplm_rep)
 
+    # §4 risk-management ratios. extract() attaches full report objects; rebuild
+    # an empty one if the scan was skipped/failed so the upsert still clears stale rows.
+    from .capital_adequacy import CapitalReport, upsert as _upsert_cap
+    cap_rep = getattr(rep, 'capital', None) or CapitalReport(pdf_path=pdf_path)
+    cap_count = _upsert_cap(conn, bank_ticker, period, kind, cap_rep)
+
+    from .liquidity import LiquidityReport, upsert as _upsert_liq
+    liq_rep = getattr(rep, 'liquidity', None) or LiquidityReport(pdf_path=pdf_path)
+    liq_count = _upsert_liq(conn, bank_ticker, period, kind, liq_rep)
+
     counts = {
         'bs_assets': len(rep.bs_assets),
         'bs_liabilities': len(rep.bs_liabilities),
@@ -94,6 +104,8 @@ def upsert_report(
         'credit_quality': cq_count,
         'loans_by_sector': lbs_count,
         'npl_movement': nplm_count,
+        'capital': cap_count,
+        'liquidity': liq_count,
     }
 
     # Extractions log row (idempotent via REPLACE)

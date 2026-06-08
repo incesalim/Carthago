@@ -23,6 +23,8 @@ coverage or known issues change.
 | `bank_audit_profit_loss` | BRSA quarterly PDFs | same | per-bank |
 | `bank_audit_credit_quality` | BRSA PDFs, IFRS 9 footnotes | same | per-bank, per-section |
 | `bank_audit_profile` | BRSA PDFs, qualitative section | same | branches + personnel where disclosed |
+| `bank_audit_capital` | BRSA PDFs, §4.1 capital adequacy | same | CET1/Tier1/Tier2/Total/RWA + CET1/Tier1/CAR ratios, per period_type |
+| `bank_audit_liquidity` | BRSA PDFs, §4.6/4.7 | same | LCR (total/FC), NSFR, leverage ratio, per period_type |
 | `bank_audit_extractions` | extraction log | one row per PDF | 974 rows (954 ok / 20 partial) |
 | `bank_types`, `table_definitions`, `download_log` | metadata | — | — |
 
@@ -72,7 +74,7 @@ concurrency group), so audit failures can't stall the bulletin pipeline:
 - `.github/workflows/refresh-data.yml` — Sat 03:00 UTC. Monthly + weekly + EVDS + TBB digital-banking (quarterly) → D1. *(Audit removed — now its own workflow.)* TBB is a non-critical step in `refresh.py` (a TBB outage won't abort the BDDK refresh); it rides the bulletin lane's snapshot, so no new lane.
 - `.github/workflows/refresh-audit.yml` — Sun 04:00 UTC. Audit-report sync + extract → `bank_audit_*` → D1. Own DB `data/bank_audit.db`, own snapshot `state/bank_audit.db.gz`, own group `bddk-audit`. Manual dispatch takes optional `bank` / `skip_scrape` inputs (the /admin per-bank trigger uses `bank` → `--only-bank … --latest-period`). After extraction it runs `scripts/check_audit_quality.py --alert` (alert-only): flags a quarter whose lines are identical to the prior one (period-shift), a balance sheet that doesn't balance, or missing rows → Telegram/Discord, never blocking the push.
 - `.github/workflows/deploy-cloudflare.yml` — on push to `web/**`. Apply D1 migrations + build + deploy dashboard.
-- `.github/workflows/healthcheck.yml` — daily 06:00 UTC. D1 freshness check → Telegram/Discord alert if stale.
+- `.github/workflows/healthcheck.yml` — daily 06:00 UTC. D1 freshness check → Telegram/Discord alert if stale. Also runs `scripts/verify_chart_spec.py --alert`: re-resolves every reproduced chart in `web/app/lib/chart-specs.catalog.json` against D1 and alerts if a series goes blank (0 rows) or drifts past its `verify[]` anchor. See [REPRODUCING_CHARTS.md](REPRODUCING_CHARTS.md).
 - `.github/workflows/ci.yml` — on PRs. ruff + pytest + eslint + tsc. (Dependency bumps via `dependabot.yml`.)
 
 Schema source of truth: hand-authored migrations in `web/migrations/`, applied
@@ -139,6 +141,29 @@ A qualitative-data layer feeds two tabs from the `news_items` table
 
 ## Known issues / pending work
 
+- **Stage-3 NPL understated by FC-only sub-table (resolved 2026-06-07).** The
+  per-bank NPL ratio / coverage on `/cross-bank` (and per-bank pages) was
+  understated for ~11 templated banks because the IFRS-9 Stage-3 extractor's
+  **template path** latched onto the *foreign-currency-only* NPL sub-table
+  ("Yabancı para olarak kullandırılan…" / "in foreign currencies") instead of
+  the total III/IV/V classification — so e.g. DENIZ read 0.00% (real ~5.4%),
+  AKBNK 0.73% (real ~3.8%), ZIRAAT/ISCTR/YKBNK/TEB/KUVEYT/AKTIF/FIBA/ICBCT/ODEA
+  all similarly low. Root cause: those banks' main provision/gross rows use
+  labels that differ from their `audit_templates.json` entry ("Karşılık (-)" vs
+  template "Karşılık Tutarı"), so the template could only pair gross+provision
+  *inside* the FC-only block. Fix: the template path now skips FC-only blocks
+  (shared `_is_fc_only_block` helper, already used by the regex path); when that
+  leaves no template gross row, extraction falls back to the language-agnostic
+  regex path, which scopes the total table correctly. Verified on all 11 changed
+  banks (each old value = that bank's FC-only subset; each new value = the total
+  NPL movement row); 18 banks unchanged, **zero regressions**. 2026Q1 backfilled
+  to D1 + the R2 snapshot via `scripts/backfill_extraction.py --banks ALL
+  --latest-period`; the 11 affected banks' **history** backfilled separately so
+  the `/cross-bank` Over-time view has no fake cliff. A new
+  `check_audit_quality.py` **npl_drop** check now alerts if any quarter's Stage-3
+  ratio crashes from ≥1% to <0.1% (the fingerprint of this bug) on a future
+  report-format change. Minor residual: ODEA's regex pick takes the prior-period
+  end-balance when current < prior (~2% high) — immaterial to ranking.
 - **EXIM multi-column report (resolved 2026-06-06).** Eximbank's recent reports
   (2025Q3+) print 3 balance-sheet period columns (TL/FC/Total × current / prior /
   restated) and a 4-column interim income statement (cumulative + 3-month ×
