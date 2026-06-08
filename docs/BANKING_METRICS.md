@@ -90,13 +90,14 @@ python scripts/metric_knowledge.py --validate         # integrity check (CI-frie
 `--tree roe` prints the DuPont bridge; `--tree net_income` walks revenue → NII →
 interest income/expense, opex, provisions and tax.
 
-Current snapshot (v3, **139 metrics** across 13 groups): **70 / 139** reproducible
-from audit reports. The metrics we can't get at all cluster in **valuation** (P/B,
-P/E, market cap, EPS, dividend yield — need BIST price data), **franchise/customer**
-(active digital customers, NPS, payroll/POS — bank-defined, no fixed cadence),
-regulatory liquidity (LCR, NSFR — footnote-only), and **esg** (third-party
-ratings, financed emissions). Run `--not-reproducible` for the full list with the
-reason on each.
+Current snapshot (v4, **139 metrics** across 13 groups): **82 / 139** reproducible
+from audit reports — up from 70 now that the per-bank §4 capital/liquidity
+extractors have merged (CAR/CET1/Tier1/RWA from `bank_audit_capital`, LCR/NSFR/
+leverage from `bank_audit_liquidity`). The metrics we still can't get at all
+cluster in **valuation** (P/B, P/E, market cap, EPS, dividend yield — need BIST
+price data), **franchise/customer** (active digital customers, NPS, payroll/POS —
+bank-defined, no fixed cadence), and **esg** (third-party ratings, financed
+emissions). Run `--not-reproducible` for the full list with the reason on each.
 
 ## How it was seeded & how to extend it
 
@@ -118,7 +119,10 @@ reproduced chart, and `decomposes_into` / `related` to wire it into the graph.
 Keep the helper's `ENUMS` in sync with the schema —
 `tests/test_metric_knowledge.py::test_enum_parity_with_schema` enforces it.
 
-> **Coordination note:** per-bank `capital_adequacy` and `liquidity` extractors are
-> in progress on another branch. When they merge, the `capital` (CAR/CET1/Tier1)
-> and `liquidity_funding` (LCR/NSFR/HQLA) entries currently marked `partial`/`no`
-> should be upgraded toward `derived`/`direct`.
+> **Done (§4 extractors merged):** per-bank capital/liquidity is now extracted into
+> `bank_audit_capital` (cet1/tier1/tier2/total capital, total_rwa, cet1/tier1/CAR
+> ratios) and `bank_audit_liquidity` (leverage, LCR total/FC, NSFR). The `capital`
+> (CAR, CET1, Tier1/Tier2, AT1, RWA, RWA density/growth, leverage ratio) and
+> `liquidity_funding` (LCR, NSFR) entries were upgraded from `partial`/`no` to
+> `direct`/`derived` with `bank_audit` as a source. Still out: HQLA stock and the
+> capital buffers/excess (the regulatory requirement isn't stored).
