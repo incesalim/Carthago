@@ -115,6 +115,51 @@ export const BS_LIAB_ROMAN_HIERARCHIES = [
 /** Equity hierarchy code, summed separately for the L+E grand total. */
 export const BS_EQUITY_HIERARCHY = "XVI.";
 
+/** Participation banks (BDDK type 10003: Kuveyt, Vakıf Katılım, Ziraat Katılım,
+ *  Albaraka, Türkiye Finans, Emlak) file the BRSA *participation* balance sheet,
+ *  whose LIABILITIES side has fewer roman line-items than the deposit template —
+ *  most importantly equity sits at XIV., not XVI. Applying the deposit catalog
+ *  above to them mislabels every row from VI. down (e.g. equity rendered as
+ *  "Subordinated Debt Instruments", the real "Shareholders' Equity" row blank,
+ *  and the Total-Liabilities subtotal overstated by equity). This parallel
+ *  catalog maps the participation liabilities layout. The asset + income-
+ *  statement hierarchies ARE identical to deposit banks, so only liabilities
+ *  need a variant. Verified identical across all six participation banks. */
+export const BS_LIAB_LINES_PARTICIPATION: StandardLine[] = [
+  { id: "p_funds_collected",  label: "Deposits / Funds Collected",               hierarchy: "I.",    bold: true },
+  { id: "p_funds_borrowed",   label: "Funds Borrowed",                           hierarchy: "II.",   bold: true },
+  { id: "p_money_market",     label: "Money Market Borrowings",                  hierarchy: "III.",  bold: true },
+  { id: "p_issued_sec",       label: "Issued Securities (Net)",                  hierarchy: "IV.",   bold: true },
+  { id: "p_fvtpl",            label: "Financial Liabilities at FVTPL",           hierarchy: "V.",    bold: true },
+  { id: "p_derivatives",      label: "Derivative Financial Liabilities",         hierarchy: "VI.",   bold: true },
+  { id: "p_lease",            label: "Lease Payables (Net)",                     hierarchy: "VII.",  bold: true },
+  { id: "p_provisions",       label: "Provisions",                               hierarchy: "VIII.", bold: true },
+  { id: "p_current_tax",      label: "Current Tax Liability",                    hierarchy: "IX.",   bold: true },
+  { id: "p_deferred_tax",     label: "Deferred Tax Liability",                   hierarchy: "X.",    bold: true },
+  { id: "p_held_for_sale",    label: "Held-for-Sale and Discontinued Liabilities (Net)", hierarchy: "XI.", bold: true },
+  { id: "p_subordinated",     label: "Subordinated Loans",                       hierarchy: "XII.",  bold: true },
+  { id: "p_sub_loans",        label: "Loans (Subordinated)",                     hierarchy: "12.1" },
+  { id: "p_other_liab",       label: "Other Liabilities",                        hierarchy: "XIII.", bold: true },
+  // Equity (XIV) + selected sub-items. The page injects the synthetic "Total
+  // Liabilities" subtotal before the equity block, as with deposit banks.
+  { id: "p_equity",           label: "Shareholders' Equity",                     hierarchy: "XIV.",  bold: true },
+  { id: "p_paid_in",          label: "Paid-In Capital",                          hierarchy: "14.1" },
+  { id: "p_capital_reserves", label: "Capital Reserves",                         hierarchy: "14.2" },
+  { id: "p_profit_reserves",  label: "Profit Reserves",                          hierarchy: "14.5" },
+  { id: "p_legal_reserves",   label: "Legal Reserves",                           hierarchy: "14.5.1" },
+  { id: "p_profit_loss",      label: "Profit or Loss",                           hierarchy: "14.6" },
+];
+
+/** Roman parents summed for participation banks' Total Liabilities (excludes
+ *  equity, which is XIV. for these banks). */
+export const BS_LIAB_ROMAN_HIERARCHIES_PARTICIPATION = [
+  "I.", "II.", "III.", "IV.", "V.", "VI.", "VII.",
+  "VIII.", "IX.", "X.", "XI.", "XII.", "XIII.",
+];
+
+/** Equity hierarchy for participation banks (deposit banks use XVI.). */
+export const BS_EQUITY_HIERARCHY_PARTICIPATION = "XIV.";
+
 /** Income Statement — replicates the rows the user highlighted on the
  *  BRSA template, in order. Roman numerals render bold (they're the
  *  major template rows AND subtotals); numeric sub-items render indented. */
