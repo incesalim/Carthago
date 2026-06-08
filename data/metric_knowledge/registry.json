@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "axes": {
     "group": "profitability | income | balance_sheet | growth | asset_quality | capital | liquidity_funding | efficiency | valuation | franchise | market_position | esg | macro",
     "level": "bank | group (BDDK bank-type aggregate) | sector | macro",
@@ -1313,15 +1313,17 @@
       "availability": "mandatory",
       "cadence": "quarterly",
       "standard_across_banks": true,
-      "reproducible": "partial",
+      "reproducible": "direct",
       "source_datasets": [
+        "bank_audit",
         "bddk_monthly"
       ],
       "related": [
         "car",
         "rwa_density"
       ],
-      "caveats": "Per-bank RWA is in the capital-adequacy footnote we don't yet extract; sector RWA in other_data."
+      "caveats": "Per-bank RWA now extracted (§4.1, bank_audit_capital); sector RWA in other_data.",
+      "derivation": "bank_audit_capital.total_rwa (§4.1); sector in other_data."
     },
     {
       "id": "tangible_equity",
@@ -1666,14 +1668,16 @@
       "availability": "mandatory",
       "cadence": "quarterly",
       "standard_across_banks": true,
-      "reproducible": "partial",
+      "reproducible": "derived",
       "source_datasets": [
+        "bank_audit",
         "bddk_monthly"
       ],
       "related": [
         "rwa"
       ],
-      "caveats": "Per-bank RWA not yet extracted."
+      "caveats": "Per-bank RWA now extracted.",
+      "derivation": "Δ total_rwa across periods (bank_audit_capital)."
     },
     {
       "id": "npl_ratio",
@@ -2237,15 +2241,16 @@
       "availability": "mandatory",
       "cadence": "quarterly",
       "standard_across_banks": true,
-      "reproducible": "partial",
+      "reproducible": "direct",
       "source_datasets": [
+        "bank_audit",
         "bddk_monthly"
       ],
       "decomposes_into": [
         "tier1_ratio",
         "tier2_ratio"
       ],
-      "caveats": "Basel III, disclosed, but in the capital-adequacy footnote we don't extract. Sector CAR in financial_ratios Table 15. (Per-bank extractor in progress.)",
+      "caveats": "Basel III. Now extracted per-bank from the §4.1 capital-adequacy table (bank_audit_capital).",
       "examples": [
         {
           "bank": "GARAN",
@@ -2268,7 +2273,8 @@
           "unit": "%",
           "source": "YK 1Q26 deck (consolidated)"
         }
-      ]
+      ],
+      "derivation": "bank_audit_capital.capital_adequacy_ratio (per-bank, §4.1); sector also financial_ratios Table 15."
     },
     {
       "id": "tier1_ratio",
@@ -2288,14 +2294,16 @@
       "availability": "mandatory",
       "cadence": "quarterly",
       "standard_across_banks": true,
-      "reproducible": "partial",
+      "reproducible": "direct",
       "source_datasets": [
+        "bank_audit",
         "bddk_monthly"
       ],
       "decomposes_into": [
         "cet1",
         "additional_tier1"
-      ]
+      ],
+      "derivation": "bank_audit_capital.tier1_ratio (§4.1)."
     },
     {
       "id": "tier2_ratio",
@@ -2314,13 +2322,14 @@
       "availability": "mandatory",
       "cadence": "quarterly",
       "standard_across_banks": true,
-      "reproducible": "partial",
+      "reproducible": "derived",
       "source_datasets": [
-        "bddk_monthly"
+        "bank_audit"
       ],
       "related": [
         "car"
-      ]
+      ],
+      "derivation": "tier2_capital / total_rwa from bank_audit_capital."
     },
     {
       "id": "cet1",
@@ -2340,14 +2349,15 @@
       "availability": "mandatory",
       "cadence": "quarterly",
       "standard_across_banks": true,
-      "reproducible": "partial",
+      "reproducible": "direct",
       "source_datasets": [
+        "bank_audit",
         "bddk_monthly"
       ],
       "related": [
         "tier1_ratio"
       ],
-      "caveats": "Sector CET1 in other_data (BDDK table 12); per-bank in the capital footnote (extractor in progress).",
+      "caveats": "Per-bank from bank_audit_capital (§4.1); sector CET1 in other_data (BDDK table 12).",
       "examples": [
         {
           "bank": "GARAN",
@@ -2363,7 +2373,8 @@
           "unit": "%",
           "source": "YK 1Q26 deck"
         }
-      ]
+      ],
+      "derivation": "bank_audit_capital.cet1_ratio (§4.1); sector CET1 in other_data."
     },
     {
       "id": "additional_tier1",
@@ -2382,14 +2393,15 @@
       "availability": "mandatory",
       "cadence": "quarterly",
       "standard_across_banks": true,
-      "reproducible": "partial",
+      "reproducible": "derived",
       "source_datasets": [
-        "bddk_monthly"
+        "bank_audit"
       ],
       "related": [
         "tier1_ratio"
       ],
-      "caveats": "AT1 issuance is IR news; the ratio contribution is in the capital footnote. Deck: AT1 +103bp to CAR (1Q26)."
+      "caveats": "AT1 issuance is IR news; the ratio is now derivable from bank_audit_capital. Deck: AT1 +103bp to CAR (1Q26).",
+      "derivation": "additional_tier1_capital / total_rwa from bank_audit_capital."
     },
     {
       "id": "leverage",
@@ -2431,11 +2443,12 @@
       "availability": "mandatory",
       "cadence": "quarterly",
       "standard_across_banks": true,
-      "reproducible": "no",
+      "reproducible": "direct",
       "source_datasets": [
-        "none"
+        "bank_audit"
       ],
-      "caveats": "Basel III leverage ratio is a footnote disclosure we don't extract; distinct from accounting leverage."
+      "caveats": "Basel III leverage ratio (3-month avg) now extracted per-bank; distinct from accounting leverage.",
+      "derivation": "bank_audit_liquidity.leverage_ratio (§4.6, 3-month avg)."
     },
     {
       "id": "rwa_density",
@@ -2452,15 +2465,17 @@
       "availability": "mandatory",
       "cadence": "quarterly",
       "standard_across_banks": true,
-      "reproducible": "partial",
+      "reproducible": "derived",
       "source_datasets": [
+        "bank_audit",
         "bddk_monthly"
       ],
       "related": [
         "rwa",
         "total_assets"
       ],
-      "caveats": "Sector RWA-density-style ratio exists (ratioRwaDensity); per-bank RWA not yet extracted."
+      "caveats": "Per-bank RWA now in bank_audit_capital; sector ratio also via ratioRwaDensity.",
+      "derivation": "total_rwa (bank_audit_capital) / total_assets (BS)."
     },
     {
       "id": "capital_buffers",
@@ -2497,15 +2512,15 @@
       "availability": "voluntary",
       "cadence": "quarterly",
       "standard_across_banks": true,
-      "reproducible": "no",
+      "reproducible": "partial",
       "source_datasets": [
-        "none"
+        "bank_audit"
       ],
       "related": [
         "car",
         "capital_buffers"
       ],
-      "caveats": "Requires per-bank CAR (not extracted)."
+      "caveats": "CAR is now in bank_audit_capital, but the regulatory minimum + buffers (the subtrahend) aren't stored, so the surplus is only approximable."
     },
     {
       "id": "internal_capital_generation",
@@ -2521,7 +2536,7 @@
       "availability": "voluntary",
       "cadence": "quarterly",
       "standard_across_banks": false,
-      "reproducible": "partial",
+      "reproducible": "derived",
       "source_datasets": [
         "bank_audit"
       ],
@@ -2529,7 +2544,8 @@
         "net_income",
         "equity_growth"
       ],
-      "caveats": "Approximable from retained earnings; the capital-ratio impact needs RWA."
+      "caveats": "Now derivable: per-bank capital and RWA are in bank_audit_capital.",
+      "derivation": "Retained-earnings contribution to capital ratios; capital + total_rwa now in bank_audit_capital."
     },
     {
       "id": "ldr",
@@ -2649,14 +2665,15 @@
       "availability": "mandatory",
       "cadence": "quarterly",
       "standard_across_banks": true,
-      "reproducible": "no",
+      "reproducible": "direct",
       "source_datasets": [
-        "none"
+        "bank_audit"
       ],
       "related": [
         "hqla"
       ],
-      "caveats": "Regulatory ratio disclosed in footnotes only; not in statements/sector tables we hold. (Per-bank extractor in progress.)"
+      "caveats": "Per-bank LCR (total + FC) now extracted from the §4.7 liquidity table (bank_audit_liquidity).",
+      "derivation": "bank_audit_liquidity.lcr_total (and lcr_fc for FX), §4.7."
     },
     {
       "id": "nsfr",
@@ -2675,11 +2692,12 @@
       "availability": "mandatory",
       "cadence": "quarterly",
       "standard_across_banks": true,
-      "reproducible": "no",
+      "reproducible": "direct",
       "source_datasets": [
-        "none"
+        "bank_audit"
       ],
-      "caveats": "Footnote-only regulatory ratio; not extracted."
+      "caveats": "Per-bank NSFR now extracted (bank_audit_liquidity).",
+      "derivation": "bank_audit_liquidity.nsfr (§4)."
     },
     {
       "id": "deposit_funding_ratio",
