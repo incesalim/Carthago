@@ -65,6 +65,24 @@ def _partition_delete_sql(parts: list[tuple[str, str]]) -> str:
     return "\n".join(stmts) + "\n"
 
 
+def _ensure_d1_schema() -> None:
+    """Create any missing bank_audit_* tables in remote D1 before the clear/push.
+
+    push_to_d1 only emits INSERT OR REPLACE — it never CREATEs — so a newly-added
+    table (e.g. bank_audit_capital / bank_audit_liquidity) won't exist in D1, and
+    the partition-clear's `DELETE FROM <missing>` would error mid-batch, risking a
+    partial delete with no re-push (data loss). The schema DDL is all
+    CREATE TABLE/INDEX IF NOT EXISTS, so applying it here is idempotent and makes
+    the backfill self-healing for D1 schema."""
+    from src.audit_reports.schema import DDL
+    sql_path = Path(tempfile.gettempdir()) / "d1_audit_schema.sql"
+    sql_path.write_text(DDL, encoding="utf-8")
+    print("[backfill] ensuring bank_audit_* schema exists in D1")
+    rc = run_wrangler(sql_path)
+    if rc != 0:
+        sys.exit(f"[backfill] D1 schema ensure failed (rc={rc})")
+
+
 def _clear_d1_partitions(db_path: Path) -> None:
     """Clear the just-re-extracted partitions in remote D1 so the subsequent
     push lands in clean partitions (no orphan rows). The (bank, period) set is
@@ -135,6 +153,7 @@ def main() -> None:
         print("[backfill] dry-run: skipping D1 clear + push + snapshot upload")
         return
 
+    _ensure_d1_schema()   # create any missing bank_audit_* tables before clear/push
     _clear_d1_partitions(DB)
 
     subprocess.run([sys.executable, str(REPO / "scripts" / "push_to_d1.py"),
