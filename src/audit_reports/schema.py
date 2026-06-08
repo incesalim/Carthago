@@ -243,6 +243,59 @@ CREATE TABLE IF NOT EXISTS bank_audit_stages (
 
 CREATE INDEX IF NOT EXISTS idx_bank_stages_bank_period
   ON bank_audit_stages(bank_ticker, period);
+
+
+-- ===========================================================================
+-- §4 (Risk Management) tables — deterministic pdfplumber extraction, same lane
+-- as bank_audit_loans_by_sector / bank_audit_npl_movement. `period_type`
+-- distinguishes the report's Current-Period column from the Prior-Period
+-- comparative. Arithmetic sanity (CET1<=Tier1<=Total, CAR=capital/RWA, LCR/NSFR
+-- bands) is checked downstream in scripts/check_audit_quality.py.
+-- ===========================================================================
+
+-- Capital adequacy (BRSA §4.1 "Total capital" + "Capital adequacy ratios").
+-- Amounts in thousand TRY (report native unit); ratios as percent (14.23 = 14.23%).
+CREATE TABLE IF NOT EXISTS bank_audit_capital (
+    bank_ticker              TEXT NOT NULL,
+    period                   TEXT NOT NULL,
+    kind                     TEXT NOT NULL,
+    period_type              TEXT NOT NULL,        -- 'current' | 'prior'
+    cet1_capital             REAL,                 -- Common Equity Tier 1 capital
+    additional_tier1_capital REAL,
+    tier1_capital            REAL,
+    tier2_capital            REAL,
+    total_capital            REAL,                 -- own funds (Tier 1 + Tier 2)
+    total_rwa                REAL,                 -- total risk-weighted assets
+    cet1_ratio               REAL,                 -- percent
+    tier1_ratio              REAL,                 -- percent
+    capital_adequacy_ratio   REAL,                 -- CAR, percent
+    source_page              INTEGER,
+    extracted_at             TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (bank_ticker, period, kind, period_type)
+);
+
+CREATE INDEX IF NOT EXISTS idx_bank_capital_bank_period
+  ON bank_audit_capital(bank_ticker, period);
+
+
+-- Liquidity & leverage (BRSA §4.6 LCR / NSFR, §4.7 leverage ratio).
+-- All values are percentages.
+CREATE TABLE IF NOT EXISTS bank_audit_liquidity (
+    bank_ticker     TEXT NOT NULL,
+    period          TEXT NOT NULL,
+    kind            TEXT NOT NULL,
+    period_type     TEXT NOT NULL,        -- 'current' | 'prior'
+    leverage_ratio  REAL,                 -- percent (3-month average)
+    lcr_total       REAL,                 -- Liquidity Coverage Ratio, total, percent
+    lcr_fc          REAL,                 -- LCR, foreign currency, percent
+    nsfr            REAL,                 -- Net Stable Funding Ratio, percent
+    source_page     INTEGER,
+    extracted_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (bank_ticker, period, kind, period_type)
+);
+
+CREATE INDEX IF NOT EXISTS idx_bank_liquidity_bank_period
+  ON bank_audit_liquidity(bank_ticker, period);
 """
 
 

@@ -19,6 +19,7 @@ import { PageHeader } from "@/app/components/ui";
 import {
   bankPeriods,
   balanceSheetMultiPeriod,
+  balanceSheetLineNames,
   profitLossMultiPeriod,
   bankProfile,
   bankStagesLatest,
@@ -31,11 +32,15 @@ import {
   BS_LIAB_LINES,
   BS_LIAB_ROMAN_HIERARCHIES,
   BS_EQUITY_HIERARCHY,
+  BS_LIAB_LINES_PARTICIPATION,
+  BS_LIAB_ROMAN_HIERARCHIES_PARTICIPATION,
+  BS_EQUITY_HIERARCHY_PARTICIPATION,
+  resolveBsLineLabel,
   PL_LINES,
   indentLevel,
   type StandardLine,
 } from "@/app/lib/standard_lines";
-import { bankDisplayName } from "@/app/lib/bank_names";
+import { bankDisplayName, BANK_TYPE_BY_TICKER } from "@/app/lib/bank_names";
 import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -187,29 +192,46 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   ).sort().reverse();
   const periods = pickPeriods(allPeriods, view, 4);
 
-  const [bsPivot, plPivot, kapItems, profile, stages] = await Promise.all([
+  const [bsPivot, bsNames, plPivot, kapItems, profile, stages] = await Promise.all([
     balanceSheetMultiPeriod(ticker, kind, periods),
+    balanceSheetLineNames(ticker, kind, periods),
     profitLossMultiPeriod(ticker, kind, periods),
     newsByTicker(ticker, 12),
     bankProfile(ticker),
     bankStagesLatest(ticker, kind),
   ]);
 
+  // Participation banks (BDDK type 10003) file a different BRSA liabilities
+  // layout — equity at XIV., not XVI., with fewer roman items — so they need a
+  // separate label catalog + roman ranges. Assets and the income statement
+  // share the deposit-bank hierarchy, so only liabilities switch.
+  const isParticipation = BANK_TYPE_BY_TICKER[ticker] === "10003";
+  const liabLines = isParticipation ? BS_LIAB_LINES_PARTICIPATION : BS_LIAB_LINES;
+  const liabRomans = isParticipation
+    ? BS_LIAB_ROMAN_HIERARCHIES_PARTICIPATION
+    : BS_LIAB_ROMAN_HIERARCHIES;
+  const equityHierarchy = isParticipation
+    ? BS_EQUITY_HIERARCHY_PARTICIPATION
+    : BS_EQUITY_HIERARCHY;
+  // The equity roman + its dotted sub-items, used to split the catalog.
+  const equityRomanPrefix = isParticipation ? "XIV" : "XVI";
+  const equityDotPrefix = isParticipation ? "14." : "16.";
+
   // Computed totals. Sum BRSA Roman-numeral parents — never sub-items
   // (e.g. "2.1 Loans" is inside "II. Amortized Cost"; including both would
   // double-count). Equity is summed separately.
   const totalAssets = sumHierarchies(BS_ASSET_ROMAN_HIERARCHIES, bsPivot, periods, "assets");
-  const totalLiab = sumHierarchies(BS_LIAB_ROMAN_HIERARCHIES, bsPivot, periods, "liabilities");
-  const equityValues = sumHierarchies([BS_EQUITY_HIERARCHY], bsPivot, periods, "liabilities");
+  const totalLiab = sumHierarchies(liabRomans, bsPivot, periods, "liabilities");
+  const equityValues = sumHierarchies([equityHierarchy], bsPivot, periods, "liabilities");
   const totalLE = addArrays(totalLiab, equityValues);
 
   // Split the liability catalog at the equity boundary so the synthetic
   // "Total Liabilities" subtotal slots in *before* the equity block.
-  const liabPreEquity = BS_LIAB_LINES.filter(
-    (l) => !l.hierarchy.startsWith("XVI") && !l.hierarchy.startsWith("16."),
+  const liabPreEquity = liabLines.filter(
+    (l) => !l.hierarchy.startsWith(equityRomanPrefix) && !l.hierarchy.startsWith(equityDotPrefix),
   );
-  const equityBlock = BS_LIAB_LINES.filter(
-    (l) => l.hierarchy.startsWith("XVI") || l.hierarchy.startsWith("16."),
+  const equityBlock = liabLines.filter(
+    (l) => l.hierarchy.startsWith(equityRomanPrefix) || l.hierarchy.startsWith(equityDotPrefix),
   );
 
   return (
@@ -343,7 +365,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
               {BS_ASSET_LINES.map((line) => (
                 <Row
                   key={line.id}
-                  label={line.label}
+                  label={resolveBsLineLabel("assets", line.hierarchy, bsNames, line.label)}
                   values={valuesForLine(line, bsPivot, periods, "assets")}
                   bold={line.bold}
                   depth={indentLevel(line.hierarchy)}
