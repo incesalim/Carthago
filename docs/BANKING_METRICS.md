@@ -90,9 +90,9 @@ python scripts/metric_knowledge.py --validate         # integrity check (CI-frie
 `--tree roe` prints the DuPont bridge; `--tree net_income` walks revenue → NII →
 interest income/expense, opex, provisions and tax.
 
-Current snapshot (v2, **130 metrics** across 13 groups): **66 / 130** reproducible
-from audit reports. The 32 we can't get at all cluster in **valuation** (P/B, P/E,
-market cap, EPS, dividend yield — need BIST price data), **franchise/customer**
+Current snapshot (v3, **139 metrics** across 13 groups): **70 / 139** reproducible
+from audit reports. The metrics we can't get at all cluster in **valuation** (P/B,
+P/E, market cap, EPS, dividend yield — need BIST price data), **franchise/customer**
 (active digital customers, NPS, payroll/POS — bank-defined, no fixed cadence),
 regulatory liquidity (LCR, NSFR — footnote-only), and **esg** (third-party
 ratings, financed emissions). Run `--not-reproducible` for the full list with the
@@ -101,10 +101,16 @@ reason on each.
 ## How it was seeded & how to extend it
 
 Seeded by classifying the Akbank 1Q26 consolidated earnings presentation against
-our holdings, then broadened to the canonical universe a bank-sector analyst
-tracks (v2). Several entries carry a verified `examples` cross-check — e.g. ROE
-25.3%, Stage 2+3 11.4%, both matching our `compute_bank_metrics` output for AKBNK
-2026Q1 consolidated.
+our holdings, broadened to the canonical universe a bank-sector analyst tracks
+(v2), then enriched by reading the **Garanti BBVA, Yapı Kredi, İşbank and Halkbank**
+1Q26 decks (v3) — which added naming-variant `aliases` (ROAE/RoTE/RoAA, PPP, "Net
+Cost of Risk excl. currency", SICR…), nine bank-disclosed metrics (real ROE, core
+NIM, core revenue, cost of funding, free funds, net NPL formation, FX capital
+sensitivity, securities MtM, loans/assets), and **cross-bank `examples`** verified
+against our `compute_bank_metrics` output — e.g. YKBNK total assets 3,760bn and
+equity 271bn match the deck exactly; ROE/ROA match within ~0.2pp for HALKB & YKBNK.
+The same `examples` also expose where a metric is *not* comparable: active digital
+customers reads 15.5 / 16.8 / 15.9 / 7.5 mn across four banks on four definitions.
 
 To extend: add an entry to `registry.json` conforming to `schema.json`, run
 `python scripts/metric_knowledge.py --validate`, link `spec_ids` if it maps to a
