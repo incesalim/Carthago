@@ -160,6 +160,37 @@ export const BS_LIAB_ROMAN_HIERARCHIES_PARTICIPATION = [
 /** Equity hierarchy for participation banks (deposit banks use XVI.). */
 export const BS_EQUITY_HIERARCHY_PARTICIPATION = "XIV.";
 
+/** Asset sub-items 2.3 and 2.4 reuse the same BRSA hierarchy code for DIFFERENT
+ *  content depending on the bank (independent of deposit/participation type):
+ *    Layout A — 2.3 = Factoring Receivables, 2.4 = Other Financial Assets at
+ *               Amortized Cost  (AKBNK, İş, …)
+ *    Layout B — 2.3 = Securities at Amortized Cost (govt securities / sukuk),
+ *               2.4 = Expected Credit Losses (-)  (Garanti, all participation
+ *               banks, …)
+ *  So the hierarchy code alone can't label them — resolve from the stored
+ *  item_names. `names` maps "<statement>::<hierarchy>" → representative
+ *  item_name (see audit.ts `balanceSheetLineNames`). Returns `fallback`
+ *  (the deposit catalog label) for every other line. */
+export function resolveBsLineLabel(
+  statement: "assets" | "liabilities",
+  hierarchy: string,
+  names: Map<string, string>,
+  fallback: string,
+): string {
+  if (statement !== "assets" || (hierarchy !== "2.3" && hierarchy !== "2.4")) return fallback;
+  const n23 = names.get("assets::2.3") ?? "";
+  const n24 = names.get("assets::2.4") ?? "";
+  const isFactoring = (s: string) => /fakto?ring/i.test(s);
+  const isAmortizedSecurities = (s: string) =>
+    /menkul|securit|amorti[sz]|maliyet|itfa/i.test(s);
+  const isEcl = (s: string) => /beklenen\s*zarar|expected\s*credit/i.test(s);
+  // Layout B when 2.4 is ECL, or 2.3 is clearly a securities/amortized-cost line
+  // rather than factoring.
+  const layoutB = isEcl(n24) || (!isFactoring(n23) && isAmortizedSecurities(n23));
+  if (hierarchy === "2.3") return layoutB ? "Securities at Amortized Cost" : "Factoring Receivables";
+  return layoutB ? "Expected Credit Losses (-)" : "Other Financial Assets at Amortized Cost";
+}
+
 /** Income Statement — replicates the rows the user highlighted on the
  *  BRSA template, in order. Roman numerals render bold (they're the
  *  major template rows AND subtotals); numeric sub-items render indented. */
