@@ -160,6 +160,42 @@ export async function balanceSheetMultiPeriod(
   return out;
 }
 
+/** Representative `item_name` per `<statement>::<hierarchy>` for one bank, taken
+ *  from the most recent of `periods`. Used to disambiguate balance-sheet lines
+ *  whose BRSA hierarchy CODE is reused for different content across banks — e.g.
+ *  asset 2.3 is "Factoring Receivables" for AKBNK/İş but "Securities at Amortized
+ *  Cost" for Garanti/participation banks, and 2.4 is "Other Financial Assets" vs
+ *  "Expected Credit Losses (-)". The code alone can't label them. */
+export async function balanceSheetLineNames(
+  ticker: string,
+  kind: "consolidated" | "unconsolidated",
+  periods: string[],
+): Promise<Map<string, string>> {
+  if (periods.length === 0) return new Map();
+  const db = await getDB();
+  const placeholders = periods.map(() => "?").join(",");
+  const { results } = await db
+    .prepare(
+      `SELECT statement, hierarchy, item_name, period
+       FROM bank_audit_balance_sheet
+       WHERE bank_ticker = ? AND kind = ?
+         AND period IN (${placeholders})
+         AND hierarchy != '' AND item_name IS NOT NULL`,
+    )
+    .bind(ticker, kind, ...periods)
+    .all<{ statement: string; hierarchy: string; item_name: string; period: string }>();
+  // Keep the name from the latest period each key appears in.
+  const best = new Map<string, { period: string; name: string }>();
+  for (const r of results) {
+    const key = `${r.statement}::${r.hierarchy}`;
+    const cur = best.get(key);
+    if (!cur || r.period > cur.period) best.set(key, { period: r.period, name: r.item_name });
+  }
+  const out = new Map<string, string>();
+  for (const [k, v] of best) out.set(k, v.name);
+  return out;
+}
+
 /** P&L rows for one bank across multiple periods.
  *  Returned shape: hierarchy → period → amount. */
 export async function profitLossMultiPeriod(
