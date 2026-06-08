@@ -19,6 +19,7 @@ import { PageHeader } from "@/app/components/ui";
 import {
   bankPeriods,
   balanceSheetMultiPeriod,
+  balanceSheetLineNames,
   profitLossMultiPeriod,
   bankProfile,
   bankStagesLatest,
@@ -34,6 +35,7 @@ import {
   BS_LIAB_LINES_PARTICIPATION,
   BS_LIAB_ROMAN_HIERARCHIES_PARTICIPATION,
   BS_EQUITY_HIERARCHY_PARTICIPATION,
+  resolveBsLineLabel,
   PL_LINES,
   indentLevel,
   type StandardLine,
@@ -190,8 +192,9 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   ).sort().reverse();
   const periods = pickPeriods(allPeriods, view, 4);
 
-  const [bsPivot, plPivot, kapItems, profile, stages] = await Promise.all([
+  const [bsPivot, bsNames, plPivot, kapItems, profile, stages] = await Promise.all([
     balanceSheetMultiPeriod(ticker, kind, periods),
+    balanceSheetLineNames(ticker, kind, periods),
     profitLossMultiPeriod(ticker, kind, periods),
     newsByTicker(ticker, 12),
     bankProfile(ticker),
@@ -362,7 +365,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
               {BS_ASSET_LINES.map((line) => (
                 <Row
                   key={line.id}
-                  label={line.label}
+                  label={resolveBsLineLabel("assets", line.hierarchy, bsNames, line.label)}
                   values={valuesForLine(line, bsPivot, periods, "assets")}
                   bold={line.bold}
                   depth={indentLevel(line.hierarchy)}
