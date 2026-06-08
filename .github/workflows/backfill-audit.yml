@@ -1,0 +1,86 @@
+name: Backfill audit reports
+
+# Re-extract already-ingested BRSA reports from R2 and push the refreshed
+# bank_audit_* tables to D1. The weekly "Refresh audit reports" workflow SKIPS
+# any (bank, period, kind) already extracted with success=1, so it never
+# re-opens the existing PDFs. Run THIS workflow after an extractor change that
+# adds columns/tables (e.g. §4 capital adequacy + liquidity) so the existing
+# corpus is re-extracted and the new data lands in D1.
+#
+# Wraps scripts/backfill_extraction.py: pull snapshot → clear the named banks'
+# extraction log → re-extract from R2 → rebuild stages → clear D1 partitions →
+# push (INSERT OR REPLACE) → re-upload snapshot. Manual only.
+on:
+  workflow_dispatch:
+    inputs:
+      banks:
+        description: "Tickers to re-extract (comma-separated, e.g. AKBNK,GARAN) or ALL"
+        type: string
+        default: "ALL"
+      latest_period:
+        description: "Only re-extract each bank's most recent period (fast, bounded)"
+        type: boolean
+        default: false
+      dry_run:
+        description: "Re-extract locally only; skip the D1 push + snapshot upload"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+# Share the audit lane so a backfill can't race the weekly refresh (same R2
+# snapshot). One audit job at a time.
+concurrency:
+  group: bddk-audit
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    name: Re-extract → D1 + snapshot
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      PYTHONIOENCODING: utf-8
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Setup Node (for wrangler / D1 push)
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
+      - name: Backfill (re-extract → clear D1 partitions → push → snapshot)
+        # Inputs forwarded via env (never interpolated into the command line) so a
+        # dispatch input is one quoted argument and can't inject shell.
+        env:
+          BANKS: ${{ inputs.banks }}
+          LATEST: ${{ inputs.latest_period && '--latest-period' || '' }}
+          DRY: ${{ inputs.dry_run && '--dry-run' || '' }}
+        run: |
+          args=(--banks "$BANKS")
+          [ -n "$LATEST" ] && args+=("$LATEST")
+          [ -n "$DRY" ] && args+=("$DRY")
+          python scripts/backfill_extraction.py "${args[@]}"
+
+      - name: Audit data-quality check (alert-only)
+        if: ${{ !inputs.dry_run }}
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+        run: python scripts/check_audit_quality.py --db data/bank_audit.db --alert
