@@ -57,6 +57,7 @@ Assets". Pages 1–12 are skipped (cover/TOC).
 | ATBANK | Turkish-only filing (Arap Türk Bankası). Inline footnote markers "(2)" after ratio labels were read as values (fixed: footnote-token skip). Reported CAR runs ~1.5pp above total/RWA in 2024 — bank applies BRSA temporary-measure adjustments, so the quality-check CAR cross-check flags it as a known false positive |
 | TFKB | Split-digit text layer: the leading digit of every number detaches ("1 1,372,338" = 11,372,338; "2 0.20" = 20.20) in the §4 capital AND LCR/NSFR tables, all vintages (fixed: `_repair_split_digits` line repair in both §4 extractors). Same damage class as TSKB §2 (see AUDIT_REWORK_PLAN.md) |
 | SKBNK | Row-shifted values in the current-period §4.1 table: the labelled Tier1 row carries the AT1 amount (CET1 > Tier1 flags). Fixed via identity repair — Tier1 rebuilt as CET1+AT1, candidate validated against reported Tier1 ratio × RWA. Prior-period columns are "-" in some quarters → prior row stored as zeros |
+| VAKIFK | Consolidated reports prefix ratio labels with "Konsolide" ("Konsolide Sermaye Yeterliliği Oranı") — unprefixed patterns fell through to a wrapped narrative line whose trailing "30 Haziran" date parsed as CAR=30 (fixed: optional Konsolide/Consolidated prefix on all ratio labels). Unconsolidated Tier1 dipnot-ref misread healed by the SKBNK identity repair |
 
 Banks not listed here either extracted cleanly with the base rules during the
 dev pass or have not yet been run through §4 (first pass = the 2026-06
