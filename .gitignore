@@ -123,3 +123,6 @@ _scratch/
 # Migration log from one-shot migrate_pdfs_to_r2.py runs
 migrate.log
 
+
+# Local pipeline run logs
+data/*.log
