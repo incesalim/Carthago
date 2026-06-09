@@ -8,8 +8,9 @@
  * server-side (see cross-bank/page.tsx) and passed in.
  *
  * Two arrangements via a header click:
- *   • default — grouped by BDDK type (section bands, same order as /banks),
- *     banks sized-ranked by total assets within each group.
+ *   • default — grouped by BDDK type (same order as /banks, no section
+ *     bands — the per-row badge labels the type), banks size-ranked by
+ *     total assets within each group.
  *   • sorted  — click a metric header to rank every bank by that column.
  */
 import { Fragment, useMemo, useState } from "react";
@@ -166,23 +167,11 @@ export default function HeatmapGrid({ metrics, rows, groupOrder }: Props) {
           );
         })}
 
-        {/* Body */}
-        {sortMetric == null
-          ? grouped.map((g) => (
-              <Fragment key={`group-${g.code}`}>
-                <div
-                  style={{ gridColumn: "1 / -1" }}
-                  className="border-b border-border bg-muted/50"
-                >
-                  <div className="sticky left-0 inline-block px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    {g.label}{" "}
-                    <span className="text-muted-foreground/50">{g.banks.length}</span>
-                  </div>
-                </div>
-                {g.banks.map(renderRow)}
-              </Fragment>
-            ))
-          : sortedRows.map(renderRow)}
+        {/* Body — grouped order keeps the type buckets, no section bands
+            (the per-row type badge already labels each bank). */}
+        {(sortMetric == null ? grouped.flatMap((g) => g.banks) : sortedRows).map(
+          renderRow,
+        )}
       </div>
     </div>
   );
