@@ -242,9 +242,12 @@ ECL_MIN_BANK_TOTAL = 10_000_000  # only apply the tiny test to large banks
 def _ecl_sanity(conn: sqlite3.Connection) -> list[str]:
     """Fingerprints of the ECL parse bug (ALBRK -6 / row-drop class):
        a) truncated label '…Losses(' — the label boundary landed inside '(-)';
-       b) implausibly tiny |amount| on a large bank — dipnot ref read as value
-          (covers -6: some banks print the value itself in parens, so a large
-          NEGATIVE ECL is legitimate — ING/KLNMA/PASHA/TFKB — never flag sign);
+       b) ALL of a large bank's ECL rows implausibly tiny — dipnot ref read as
+          value (covers -6). Per-row tiny is normal: the cash-section 1.1.4 ECL
+          is legitimately ~tens of TL-thousands (BURGAN prints "77") — only a
+          partition whose LARGEST |ECL| is tiny is corrupt. Sign is never
+          flagged: some banks print the value itself in parens, so a large
+          negative ECL is the faithful reading (ING/KLNMA/PASHA/TFKB);
        c) a quarter whose ECL rows vanish while the prior quarter had them —
           the silent row-drop variant."""
     out = []
@@ -267,6 +270,7 @@ def _ecl_sanity(conn: sqlite3.Connection) -> list[str]:
         return totals[key]
 
     ecl_periods: dict[tuple, set] = {}
+    partition_max: dict[tuple, float] = {}
     for bank, period, kind, name, amt in rows:
         ecl_periods.setdefault((bank, kind), set()).add(period)
         tag = f"ecl       {bank} {period} {kind}:"
@@ -275,8 +279,12 @@ def _ecl_sanity(conn: sqlite3.Connection) -> list[str]:
             continue
         if amt is None:
             continue
-        if 0 < abs(amt) < ECL_TINY_MAX and bank_total(bank, period, kind) > ECL_MIN_BANK_TOTAL:
-            out.append(f"{tag} implausibly tiny ECL {amt:,.0f} ({name!r})")
+        key = (bank, period, kind)
+        partition_max[key] = max(partition_max.get(key, 0.0), abs(amt))
+    for (bank, period, kind), mx in partition_max.items():
+        if 0 < mx < ECL_TINY_MAX and bank_total(bank, period, kind) > ECL_MIN_BANK_TOTAL:
+            out.append(f"ecl       {bank} {period} {kind}: largest ECL only "
+                       f"{mx:,.0f} — dipnot ref likely read as the value")
     # c) ECL rows vanished vs the prior quarter (needs enough asset rows that
     #    the quarter isn't just a failed extraction — coverage flags those).
     for (bank, kind), have in ecl_periods.items():
