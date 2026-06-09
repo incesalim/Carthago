@@ -81,3 +81,24 @@ def test_repair_split_digits_leaves_clean_lines_alone():
         "Tier 1 Capital Ratio (%) 14.08 16.61",      # label digit untouched
     ]:
         assert _repair_split_digits(ln) == ln
+
+
+def test_ratio_labels_match_consolidated_prefixes():
+    # VAKIFK consolidated reports prefix every ratio label with "Konsolide";
+    # without the prefix match, CAR fell through to a narrative line ("…30").
+    from src.audit_reports.capital_adequacy import _FIELD_RX
+
+    rx_by_field = {f: rxs for f, _is_ratio, rxs in _FIELD_RX}
+
+    def matches(field, line):
+        return any(rx.match(line) for rx in rx_by_field[field])
+
+    assert matches("capital_adequacy_ratio",
+                   "Konsolide Sermaye Yeterliliği Oranı (%) 20,63 18,32")
+    assert matches("cet1_ratio",
+                   "Konsolide Çekirdek Sermaye Yeterliliği Oranı (%) 18,33 15,57")
+    assert matches("tier1_ratio",
+                   "Konsolide Ana Sermaye Yeterliliği Oranı (%) 20,01 17,71")
+    # "Konsolide Sermaye…" must hit CAR, not the Tier1/CET1 patterns.
+    assert not matches("tier1_ratio",
+                       "Konsolide Sermaye Yeterliliği Oranı (%) 20,63 18,32")
