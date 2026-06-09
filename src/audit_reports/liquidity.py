@@ -23,7 +23,7 @@ from pathlib import Path
 
 import pdfplumber
 
-from .capital_adequacy import _parse_ratio, _trailing_two_tokens
+from .capital_adequacy import _parse_ratio, _repair_split_digits, _trailing_two_tokens
 
 _SKIP_PAGES = 12
 _MAX_SCAN_FROM_START = 26   # pages to scan once the LCR section begins; the
@@ -95,7 +95,7 @@ def extract_from_pdf(pdf: pdfplumber.PDF, pdf_path: str = "") -> LiquidityReport
     lev: list[list[str]] = []
     for i in range(start, min(n, start + _MAX_SCAN_FROM_START)):
         for raw in (pdf.pages[i].extract_text() or "").splitlines():
-            ln = raw.strip()
+            ln = _repair_split_digits(raw.strip())
             if not ln:
                 continue
             if _match(_LCR_RX, ln):
