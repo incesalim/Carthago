@@ -9,7 +9,11 @@ import pytest
 
 pytest.importorskip("pdfplumber")
 
-from src.audit_reports.capital_adequacy import _parse_ratio, _trailing_two_tokens  # noqa: E402
+from src.audit_reports.capital_adequacy import (  # noqa: E402
+    _parse_ratio,
+    _repair_split_digits,
+    _trailing_two_tokens,
+)
 
 
 def test_parse_ratio_handles_tr_and_en_and_percent_placement():
@@ -50,3 +54,30 @@ def test_trailing_two_tokens_skips_footnote_markers():
     # A real parenthesized negative (separators/decimals) still parses.
     assert _trailing_two_tokens("Some deduction (1,208) (2,310)") == [
         "(1,208)", "(2,310)"]
+
+
+def test_repair_split_digits_rejoins_tfkb_damage():
+    # TFKB's text layer detaches the leading digit of every number.
+    assert _repair_split_digits(
+        "Toplam Özkaynak (Ana Sermaye ve Katkı Sermaye Toplamı) 1 1,372,338 1 0,094,760"
+    ) == "Toplam Özkaynak (Ana Sermaye ve Katkı Sermaye Toplamı) 11,372,338 10,094,760"
+    assert _repair_split_digits(
+        "Sermaye Yeterliliği Oranı (%) 2 0.20 1 7.85"
+    ) == "Sermaye Yeterliliği Oranı (%) 20.20 17.85"
+    # Separator-leading fragment ("7 ,348,196") and decimal fragment ("2 .500").
+    assert _repair_split_digits(
+        "İndirimler Öncesi Çekirdek Sermaye 7 ,348,196 6 ,601,019"
+    ) == "İndirimler Öncesi Çekirdek Sermaye 7,348,196 6,601,019"
+    assert _repair_split_digits("tamponu oranı 2 .500 2 .500") == (
+        "tamponu oranı 2.500 2.500")
+
+
+def test_repair_split_digits_leaves_clean_lines_alone():
+    for ln in [
+        "Capital Adequacy Ratio (%) 18.76 21.85",
+        "Total Risk Weighted Assets 3,154,771,905 2,645,600,330",
+        "rates as of 31 December 2021.",            # date stays a date
+        "Yönetmeliğin 9 uncu maddesinin (i) bendi",  # prose ordinals untouched
+        "Tier 1 Capital Ratio (%) 14.08 16.61",      # label digit untouched
+    ]:
+        assert _repair_split_digits(ln) == ln
