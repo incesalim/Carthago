@@ -70,8 +70,11 @@ export default function TrendChart({
 }: Props) {
   const t = useChartTheme();
   const tt = tooltipStyles(t);
-  // Hovering a legend item emphasises that line and fades the rest.
-  const [active, setActive] = useState<string | null>(null);
+  // Hovering a legend item emphasises that line and fades the rest;
+  // right-clicking pins the isolation until right-clicked again.
+  const [hovered, setHovered] = useState<string | null>(null);
+  const [pinned, setPinned] = useState<string | null>(null);
+  const active = hovered ?? pinned;
 
   // Pivot long → wide: { period, "10001": v, "10003": v, ... }
   // Order series by BANK_GROUP_ORDER (by label); unknown labels keep their order.
@@ -149,14 +152,19 @@ export default function TrendChart({
                       return (
                         <li
                           key={code}
-                          onMouseEnter={() => setActive(code)}
-                          onMouseLeave={() => setActive(null)}
+                          onMouseEnter={() => setHovered(code)}
+                          onMouseLeave={() => setHovered(null)}
+                          onContextMenu={(e) => {
+                            e.preventDefault();
+                            setPinned((p) => (p === code ? null : code));
+                          }}
                           style={{
                             display: "inline-flex",
                             alignItems: "center",
                             gap: 5,
                             color: t.axis,
                             opacity: active && active !== code ? 0.4 : 1,
+                            fontWeight: pinned === code ? 600 : 400,
                             cursor: "default",
                           }}
                         >
