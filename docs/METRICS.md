@@ -803,3 +803,62 @@ transfers, payments, gender, age) are continuous across the full history.
 | Bill-payment count per quarter | mobile vs internet `fatura_odemeleri` | III.2 / count |
 | Active individuals by gender | Kadın / Erkek (TOPLAM) | II / persons (digital) |
 | Active individuals by age group | 0–17 … 66+ (TOPLAM) | III / persons (digital) |
+
+## 14. Economy tab (macro)
+
+`/economy` adapts the Türkiye macro section of the BBVA (Garanti BBVA
+Research) **"Türkiye Economic Outlook"** (1Q26, March 2026) into EVDS data.
+Data layer: `web/app/lib/economy.ts`; all series live in `evds_series`
+(category `macro`, plus the existing `inflation` / `rates` / `fx` codes).
+
+### Sources (EVDS codes)
+
+| Block | Code | Series | Freq |
+|---|---|---|---|
+| Growth | `TP.GSYIH26.HY.ZH` | GDP, chain-linked volume index | quarterly |
+| Growth | `TP.GSYIH26.HY.CF` | GDP, current prices (TL thousand) | quarterly |
+| Growth | `TP.TSANAYMT2021.Y1` | Industrial production, SA+cal adj (2021=100) | monthly |
+| Labor | `TP.TIG03` / `TP.TIG06` / `TP.TIG08` | Employed (thousand, SA) / LFP (SA %) / unemployment (SA %) | monthly |
+| Inflation | `TP.TUKFIY2025.GENEL` | CPI (2025=100) | monthly |
+| Inflation | `TP.PKAUO.S01.D.U` / `.I.U` / `.E.U` | CBRT survey CPI expectations (current y-e / next y-e / 12m) | monthly |
+| Policy | `TP.APIFON4` | CBRT effective cost of funding | daily |
+| FX | `TP.DK.USD.A` / `TP.RK.T1.Y` | USD/TRY / REER (CPI, 2003=100) | daily / monthly |
+| External | `TP.ODANA6.Q01` / `Q04` / `Q31` | Current account / goods balance / net errors & omissions (USD m) | monthly |
+| External | `TP.HARICCARIACIK.K8` / `K10` | CA ex gold / ex gold & energy (USD m) | monthly |
+| Fiscal | `TP.KB.GEN34` / `GEN35` / `GEN39` | General budget primary / overall / cash balance (TL thousand) | monthly |
+
+### Derivations
+
+- **GDP growth** = y/y % change of the chain-linked volume index (lag 4
+  quarters). Quarterly EVDS dates (`2025-Q4`) are parsed to the quarter-start
+  date by `evds_client._parse_evds_dates`.
+- **CPI y/y & m/m** from the **2025=100** index, which TUIK backcasts to well
+  before 2018. `TP.FG.J0` (2003=100) **died at the Jan-2026 rebase** — do not
+  use it for current inflation.
+- **Ex-ante real policy rate** = ((1 + funding/100) / (1 + πᵉ/100) − 1) × 100,
+  where funding = monthly average of `TP.APIFON4` and πᵉ = 12m-ahead market
+  expectation (`TP.PKAUO.S01.E.U`).
+- **Current account / NEO** = trailing 12-month rolling sums, USD m → USD bn.
+- **Fiscal balances (% GDP)** = trailing 12-month rolling sum of the monthly
+  balance ÷ the most recent completed rolling-4-quarter **nominal** GDP at or
+  before that month (both TL thousand, units cancel).
+- **Caveat:** `TP.KB.GEN*` is the Treasury **general budget** (cash based) —
+  slightly narrower than the *central government* budget BBVA charts, but the
+  12m/%-GDP profile tracks it closely (2025: −2.84% vs BBVA's −2.9%).
+
+### Not reproducible here (and why)
+
+CDS spreads, OIS pricing, sovereign yield curves, BIST/MSCI indices
+(Bloomberg); GDP nowcast and Financial Conditions Index (BBVA-proprietary
+models); foreigners' positioning / carry stock (CBRT securities statistics
+not ingested); investment-fund flows (TEFAS). The static **BBVA baseline
+scenario table** (report p. 42) is embedded in `economy.ts` for context —
+refresh it when a new quarterly outlook is published.
+
+### Verification
+
+Anchored in `web/app/lib/chart-specs.catalog.json` (`economy.*` specs):
+GDP y/y 2025-Q4 = 3.42%, CPI y/y May-26 = 32.6%, CA 12m Mar-26 = −$39.7bn,
+unemployment Apr-26 = 8.2% — all match the published BBVA/TURKSTAT/CBRT
+figures; `scripts/verify_chart_spec.py` re-checks daily in the healthcheck
+(rolling sums supported via the `rolling_sum` transform op).

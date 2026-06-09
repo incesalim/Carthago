@@ -24,8 +24,8 @@ DB = ROOT / "data" / "bddk_data.db"
 class Series(NamedTuple):
     code: str
     label: str
-    category: str  # rates / fx / inflation / cbrt
-    freq: int      # 1=daily, 3=weekly, 5=monthly
+    category: str  # rates / fx / inflation / cbrt / macro
+    freq: int      # 1=daily, 3=weekly, 5=monthly, 6=quarterly
 
 
 # Curated set — covers everything the legacy /rates tab uses.
@@ -96,6 +96,38 @@ SERIES: list[Series] = [
     # Lending rate refinements
     Series("TP.KTF18",    "Commercial Loan (ex cards & OD)", "rates", evds.FREQ_WEEKLY),
     Series("TP.KTFTUK01", "Consumer Loan (incl. overdraft)", "rates", evds.FREQ_WEEKLY),
+
+    # ------------------------------------------------------------------
+    # Macro block — feeds the /economy tab (BBVA Türkiye Economic Outlook
+    # adaptation). TP.FG.J0 (CPI 2003=100) died at the Jan-2026 TUIK
+    # rebase; TP.TUKFIY2025.GENEL is the replacement and is backcast to
+    # well before 2018, so it carries the full history alone.
+    # ------------------------------------------------------------------
+    Series("TP.TUKFIY2025.GENEL", "CPI (2025=100)", "inflation", evds.FREQ_MONTHLY),
+
+    # National accounts (TURKSTAT, quarterly)
+    Series("TP.GSYIH26.HY.ZH", "GDP (chain-linked volume index)",    "macro", evds.FREQ_QUARTERLY),
+    Series("TP.GSYIH26.HY.CF", "GDP (current prices, TL thousand)",  "macro", evds.FREQ_QUARTERLY),
+
+    # Industrial production (TURKSTAT, SA + calendar adjusted, 2021=100)
+    Series("TP.TSANAYMT2021.Y1", "Industrial Production (SA, 2021=100)", "macro", evds.FREQ_MONTHLY),
+
+    # Labor market (TURKSTAT, seasonally adjusted, monthly)
+    Series("TP.TIG03", "Employed (thousand persons, SA)",        "macro", evds.FREQ_MONTHLY),
+    Series("TP.TIG06", "Labour Force Participation Rate (SA %)", "macro", evds.FREQ_MONTHLY),
+    Series("TP.TIG08", "Unemployment Rate (SA %)",               "macro", evds.FREQ_MONTHLY),
+
+    # Balance of payments (CBRT, monthly, USD million)
+    Series("TP.ODANA6.Q01", "Current Account (USD m)",        "macro", evds.FREQ_MONTHLY),
+    Series("TP.ODANA6.Q04", "Balance on Goods (USD m)",       "macro", evds.FREQ_MONTHLY),
+    Series("TP.ODANA6.Q31", "Net Errors & Omissions (USD m)", "macro", evds.FREQ_MONTHLY),
+    Series("TP.HARICCARIACIK.K8",  "Current Account ex Gold (USD m)",          "macro", evds.FREQ_MONTHLY),
+    Series("TP.HARICCARIACIK.K10", "Current Account ex Gold & Energy (USD m)", "macro", evds.FREQ_MONTHLY),
+
+    # Fiscal — Treasury general budget, cash based (monthly, TL thousand)
+    Series("TP.KB.GEN34", "General Budget Primary Balance (TL thousand)", "macro", evds.FREQ_MONTHLY),
+    Series("TP.KB.GEN35", "General Budget Balance (TL thousand)",         "macro", evds.FREQ_MONTHLY),
+    Series("TP.KB.GEN39", "General Budget Cash Balance (TL thousand)",    "macro", evds.FREQ_MONTHLY),
 ]
 
 

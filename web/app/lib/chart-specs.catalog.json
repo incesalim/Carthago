@@ -84,5 +84,176 @@
       { "code": "TP.AB.A02", "label": "CBRT Foreign Assets", "category": "cbrt", "freq": "daily" },
       { "code": "TP.AB.A01", "label": "CBRT Total Assets", "category": "cbrt", "freq": "daily" }
     ]
+  },
+  {
+    "id": "economy.gdp_growth",
+    "title": "GDP Growth (y/y %, chain-linked volume, quarterly)",
+    "source": {
+      "report": "Garanti BBVA Research — Türkiye Economic Outlook 1Q26",
+      "page": "p. 29 / p. 40",
+      "as_of": "2026-03"
+    },
+    "placement": { "tab": "economy", "section": "Growth & Activity" },
+    "unit": "%",
+    "format": "pct",
+    "decimals": 1,
+    "chart": "TimeSeriesChart",
+    "series": [
+      {
+        "key": "gdp_yoy",
+        "label": "GDP growth (y/y)",
+        "source": "evds",
+        "locator": { "code": "TP.GSYIH26.HY.ZH", "years_back": 8 },
+        "transform": [{ "op": "growth", "window": 4, "mode": "yoy" }]
+      }
+    ],
+    "verify": [
+      {
+        "series": "gdp_yoy",
+        "date": "2025-10-01",
+        "value": 3.42,
+        "tolerance": 0.3,
+        "tolerance_unit": "pp"
+      }
+    ],
+    "registry_additions": [
+      { "code": "TP.GSYIH26.HY.ZH", "label": "GDP (chain-linked volume index)", "category": "macro", "freq": "quarterly" }
+    ]
+  },
+  {
+    "id": "economy.cpi_yoy",
+    "title": "CPI Inflation vs CBRT Effective Funding Cost (%)",
+    "source": {
+      "report": "Garanti BBVA Research — Türkiye Economic Outlook 1Q26",
+      "page": "p. 39",
+      "as_of": "2026-03"
+    },
+    "placement": { "tab": "economy", "section": "Inflation & Monetary Policy" },
+    "unit": "%",
+    "format": "pct",
+    "decimals": 1,
+    "chart": "TimeSeriesChart",
+    "series": [
+      {
+        "key": "cpi_yoy",
+        "label": "CPI (y/y)",
+        "source": "evds",
+        "locator": { "code": "TP.TUKFIY2025.GENEL", "years_back": 8 },
+        "transform": [{ "op": "growth", "window": 12, "mode": "yoy" }]
+      }
+    ],
+    "verify": [
+      {
+        "series": "cpi_yoy",
+        "date": "2026-05-01",
+        "value": 32.62,
+        "tolerance": 0.3,
+        "tolerance_unit": "pp"
+      }
+    ],
+    "registry_additions": [
+      { "code": "TP.TUKFIY2025.GENEL", "label": "CPI (2025=100)", "category": "inflation", "freq": "monthly" }
+    ]
+  },
+  {
+    "id": "economy.current_account_12m",
+    "title": "Current Account Balance (12m rolling, USD bn)",
+    "source": {
+      "report": "Garanti BBVA Research — Türkiye Economic Outlook 1Q26",
+      "page": "p. 35 / p. 41",
+      "as_of": "2026-03"
+    },
+    "placement": { "tab": "economy", "section": "Lira & External Balance" },
+    "unit": "USD bn",
+    "format": "raw",
+    "decimals": 1,
+    "chart": "TimeSeriesChart",
+    "series": [
+      {
+        "key": "ca",
+        "label": "Current account",
+        "source": "evds",
+        "locator": { "code": "TP.ODANA6.Q01", "years_back": 8 },
+        "transform": [{ "op": "rolling_sum", "window": 12, "scale": 0.001 }]
+      },
+      {
+        "key": "ca_ex_gold",
+        "label": "ex gold",
+        "source": "evds",
+        "locator": { "code": "TP.HARICCARIACIK.K8", "years_back": 8 },
+        "transform": [{ "op": "rolling_sum", "window": 12, "scale": 0.001 }]
+      },
+      {
+        "key": "ca_ex_gold_energy",
+        "label": "ex gold & energy",
+        "source": "evds",
+        "locator": { "code": "TP.HARICCARIACIK.K10", "years_back": 8 },
+        "transform": [{ "op": "rolling_sum", "window": 12, "scale": 0.001 }]
+      }
+    ],
+    "verify": [
+      {
+        "series": "ca",
+        "date": "2026-03-01",
+        "value": -39.72,
+        "tolerance": 1.5,
+        "tolerance_unit": "abs"
+      },
+      {
+        "series": "ca_ex_gold_energy",
+        "date": "2026-03-01",
+        "value": 26.7,
+        "tolerance": 1.5,
+        "tolerance_unit": "abs"
+      }
+    ],
+    "registry_additions": [
+      { "code": "TP.ODANA6.Q01", "label": "Current Account (USD m)", "category": "macro", "freq": "monthly" },
+      { "code": "TP.HARICCARIACIK.K8", "label": "Current Account ex Gold (USD m)", "category": "macro", "freq": "monthly" },
+      { "code": "TP.HARICCARIACIK.K10", "label": "Current Account ex Gold & Energy (USD m)", "category": "macro", "freq": "monthly" }
+    ]
+  },
+  {
+    "id": "economy.unemployment",
+    "title": "Unemployment & Labor Force Participation (SA %)",
+    "source": {
+      "report": "Garanti BBVA Research — Türkiye Economic Outlook 1Q26",
+      "page": "p. 31",
+      "as_of": "2026-03"
+    },
+    "placement": { "tab": "economy", "section": "Labor Market" },
+    "unit": "%",
+    "format": "pct",
+    "decimals": 1,
+    "chart": "TimeSeriesChart",
+    "series": [
+      {
+        "key": "unemp",
+        "label": "Unemployment rate",
+        "source": "evds",
+        "locator": { "code": "TP.TIG08", "years_back": 8 },
+        "transform": []
+      },
+      {
+        "key": "lfp",
+        "label": "Participation rate",
+        "source": "evds",
+        "locator": { "code": "TP.TIG06", "years_back": 8 },
+        "transform": []
+      }
+    ],
+    "verify": [
+      {
+        "series": "unemp",
+        "date": "2026-04-01",
+        "value": 8.2,
+        "tolerance": 0.3,
+        "tolerance_unit": "pp"
+      }
+    ],
+    "registry_additions": [
+      { "code": "TP.TIG08", "label": "Unemployment Rate (SA %)", "category": "macro", "freq": "monthly" },
+      { "code": "TP.TIG06", "label": "Labour Force Participation Rate (SA %)", "category": "macro", "freq": "monthly" }
+    ]
   }
 ]

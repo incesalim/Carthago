@@ -223,16 +223,24 @@ def _parse_evds_dates(raw: pd.Series) -> pd.Series:
     """Parse EVDS 'Tarih' values into datetimes.
 
     Daily/weekly series return 'DD-MM-YYYY' (e.g. '15-05-2026'); monthly
-    series return 'YYYY-M' / 'YYYY-MM' (e.g. '2026-5'). Parse the day-first
-    format first, then backfill any failures with the year-month format —
-    otherwise EVERY monthly series (CPI, REER, residents' FC deposits,
-    inflation expectations) is silently dropped to NaT and lands empty in D1.
+    series return 'YYYY-M' / 'YYYY-MM' (e.g. '2026-5'); quarterly series
+    (GDP) return 'YYYY-Qn' (e.g. '2025-Q4'). Parse the day-first format
+    first, then backfill failures with the year-month format, then the
+    quarter format (mapped to the quarter-start date, mirroring how
+    monthly values land on the month start) — otherwise every series of
+    that frequency is silently dropped to NaT and lands empty in D1.
     """
     s = raw.astype(str).str.strip()
     dt = pd.to_datetime(s, format="%d-%m-%Y", errors="coerce")
     miss = dt.isna()
     if miss.any():
         dt.loc[miss] = pd.to_datetime(s[miss], format="%Y-%m", errors="coerce")
+    miss = dt.isna()
+    if miss.any():
+        quarterly = s[miss].str.match(r"^\d{4}-Q[1-4]$")
+        q_idx = quarterly[quarterly].index
+        if len(q_idx):
+            dt.loc[q_idx] = pd.PeriodIndex(s[q_idx], freq="Q").to_timestamp()
     return dt
 
 
