@@ -44,6 +44,8 @@ from .extractor import parse_num
 # `_TI` / `_TII` absorb the roman-vs-digit variation everywhere.
 _TI = r"Tier\s*(?:I|1)"
 _TII = r"Tier\s*(?:II|2)"
+_KON = r"(?:Konsolide\s+)?"      # TR consolidated-report label prefix (VAKIFK)
+_CONS = r"(?:Consolidated\s+)?"  # EN equivalent
 _FIELDS: list[tuple[str, bool, list[str]]] = [
     ("cet1_capital", False, [
         rf"^Total\s+Common\s+Equity\s+{_TI}\s+Capital\b",
@@ -78,19 +80,21 @@ _FIELDS: list[tuple[str, bool, list[str]]] = [
     ]),
     # Ratio labels use \s* between words: pdfplumber sometimes drops the space
     # between words in these rows (EXIM: "Capital AdequacyRatio (%)").
+    # Consolidated reports may prefix the labels (VAKIFK: "Konsolide Sermaye
+    # Yeterliliği Oranı") — _KON/_CONS absorb that.
     ("cet1_ratio", True, [
-        r"^CET\s*1\s*Capital\s*(?:Adequacy\s*)?Ratio",
-        rf"^Common\s*Equity\s*{_TI}\s*Capital\s*(?:Adequacy\s*)?Ratio",
-        r"^Core\s*Capital\s*(?:Adequacy\s*)?Ratio",
-        r"^Çekirdek\s+Sermaye\s+Yeterlili[ğg]i\s+Oranı",
+        rf"^{_CONS}CET\s*1\s*Capital\s*(?:Adequacy\s*)?Ratio",
+        rf"^{_CONS}Common\s*Equity\s*{_TI}\s*Capital\s*(?:Adequacy\s*)?Ratio",
+        rf"^{_CONS}Core\s*Capital\s*(?:Adequacy\s*)?Ratio",
+        rf"^{_KON}Çekirdek\s+Sermaye\s+Yeterlili[ğg]i\s+Oranı",
     ]),
     ("tier1_ratio", True, [
-        rf"^{_TI}\s*Capital\s*(?:Adequacy\s*)?Ratio",
-        r"^Ana\s+Sermaye\s+Yeterlili[ğg]i\s+Oranı",
+        rf"^{_CONS}{_TI}\s*Capital\s*(?:Adequacy\s*)?Ratio",
+        rf"^{_KON}Ana\s+Sermaye\s+Yeterlili[ğg]i\s+Oranı",
     ]),
     ("capital_adequacy_ratio", True, [
-        r"^Capital\s*Adequacy\s*(?:Standard\s*)?Ratio",
-        r"^Sermaye\s+Yeterlili[ğg]i\s+(?:Standart\s+)?Oranı",
+        rf"^{_CONS}Capital\s*Adequacy\s*(?:Standard\s*)?Ratio",
+        rf"^{_KON}Sermaye\s+Yeterlili[ğg]i\s+(?:Standart\s+)?Oranı",
     ]),
 ]
 _FIELD_RX = [(f, is_ratio, [re.compile(p, re.IGNORECASE) for p in pats])
