@@ -53,7 +53,8 @@ Assets". Pages 1–12 are skipped (cover/TOC).
 | TEB | Leading-% ratios (`%5.50`) |
 | VAKBN | Turkish labels; glued leverage row number. Full 2022Q1→2026Q1 backfill verified in D1 (50 capital + 50 liquidity rows) |
 | YKBNK | Turkish labels; "Tier 1" digit variant |
-| EXIM | Multi-column statements (3-period BS, 4-column P&L) — affects §2 extractors |
+| EXIM | Multi-column statements (3-period BS, 4-column P&L) — affects §2 extractors. §4: wrapped narrative line starting "capital adequacy ratio … 31 December 2021." parsed the year as CAR (fixed: ratio band 0–100); glued words "Capital AdequacyRatio (%)" (fixed: `\s*` in ratio labels); current-table total worded "Total Equity (Total Tier I and Tier II Capital)" (added variant); prior period in a separate table, so prior columns stay NULL |
+| ATBANK | Turkish-only filing (Arap Türk Bankası). Inline footnote markers "(2)" after ratio labels were read as values (fixed: footnote-token skip). Reported CAR runs ~1.5pp above total/RWA in 2024 — bank applies BRSA temporary-measure adjustments, so the quality-check CAR cross-check flags it as a known false positive |
 
 Banks not listed here either extracted cleanly with the base rules during the
 dev pass or have not yet been run through §4 (first pass = the 2026-06
