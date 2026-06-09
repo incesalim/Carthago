@@ -34,7 +34,8 @@ export default async function ProfitabilityPage() {
     ratioFeesToRevenue(PRIMARY_BANK_TYPES),
     ratioNonInterestCoverage(PRIMARY_BANK_TYPES),
     ratioFeesToOpex(PRIMARY_BANK_TYPES),
-    evdsSeries("TP.FG.J0", 10),
+    // CPI 2025=100 — TP.FG.J0 (2003=100) died at the Jan-2026 TUIK rebase
+    evdsSeries("TP.TUKFIY2025.GENEL", 10),
   ]);
 
   // Build CPI 12m-rolling-average YoY from monthly CPI levels
