@@ -96,6 +96,15 @@ def upsert_report(
     liq_rep = getattr(rep, 'liquidity', None) or LiquidityReport(pdf_path=pdf_path)
     liq_count = _upsert_liq(conn, bank_ticker, period, kind, liq_rep)
 
+    # Structural validation (internal-sum identities) — persisted per
+    # statement so crons/dashboard can see WHICH partitions are trustworthy.
+    # Isolated: a validator bug must never sink the extraction itself.
+    try:
+        from .validator import upsert_validation, validate_report
+        upsert_validation(conn, bank_ticker, period, kind, validate_report(rep))
+    except Exception:
+        pass
+
     counts = {
         'bs_assets': len(rep.bs_assets),
         'bs_liabilities': len(rep.bs_liabilities),

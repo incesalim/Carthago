@@ -26,7 +26,11 @@ Checks (each yields offending (bank, period, kind)):
                     is a parse error (missing label variant / wrong total row).
   6. liquidity   — bank_audit_liquidity plausibility bands (leverage <30%,
                     LCR/NSFR sane; a sub-50% LCR is a mis-grabbed value).
-  7. ecl         — Expected Credit Losses balance-sheet rows: a truncated label
+  7. structure   — bank_audit_validation partitions with failed internal-sum
+                    identities (TL+FC=Total per row, parent=Σchildren,
+                    TOTAL=Σromans, assets=liabilities+equity). Written at
+                    extraction time by src/audit_reports/validator.py.
+  8. ecl         — Expected Credit Losses balance-sheet rows: a truncated label
                     ("…Losses(") or a tiny |amount| on a large bank are
                     fingerprints of the dipnot-ref "(6)" being read as the value
                     (the ALBRK -6 bug); a quarter that LOSES its ECL rows while
@@ -304,12 +308,29 @@ def _ecl_sanity(conn: sqlite3.Connection) -> list[str]:
     return out
 
 
+def _structure(conn: sqlite3.Connection) -> list[str]:
+    """Partitions whose extraction-time identity validation failed (see
+    src/audit_reports/validator.py). Summarized per partition — the per-check
+    detail lives in bank_audit_validation.failed_detail."""
+    if not _has_table(conn, "bank_audit_validation"):
+        return []
+    out = []
+    rows = conn.execute(
+        "SELECT bank_ticker, period, kind, statement, checks_passed, checks_failed "
+        "FROM bank_audit_validation WHERE checks_failed > 0 "
+        "ORDER BY bank_ticker, period, kind, statement").fetchall()
+    for bank, period, kind, stmt, ok, bad in rows:
+        out.append(f"structure {bank} {period} {kind}: {stmt} — {bad} identity "
+                   f"check(s) failed ({ok} passed)")
+    return out
+
+
 def check(db: Path) -> list[str]:
     conn = sqlite3.connect(str(db))
     try:
         return (_stale_periods(conn) + _balance(conn) + _coverage(conn)
                 + _npl_collapse(conn) + _capital_consistency(conn)
-                + _liquidity_bands(conn) + _ecl_sanity(conn))
+                + _liquidity_bands(conn) + _structure(conn) + _ecl_sanity(conn))
     finally:
         conn.close()
 

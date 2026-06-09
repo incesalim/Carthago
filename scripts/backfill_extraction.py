@@ -45,7 +45,7 @@ AUDIT_TABLES = [
     "bank_audit_balance_sheet", "bank_audit_profit_loss", "bank_audit_credit_quality",
     "bank_audit_profile", "bank_audit_loans_by_sector", "bank_audit_npl_movement",
     "bank_audit_stages", "bank_audit_capital", "bank_audit_liquidity",
-    "bank_audit_extractions",
+    "bank_audit_validation", "bank_audit_extractions",
 ]
 # Window passed to push_to_d1; the D1 partition-clear below derives the same
 # (bank, period) set the push will re-insert, so keep these two in lock-step.
