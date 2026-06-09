@@ -296,6 +296,28 @@ CREATE TABLE IF NOT EXISTS bank_audit_liquidity (
 
 CREATE INDEX IF NOT EXISTS idx_bank_liquidity_bank_period
   ON bank_audit_liquidity(bank_ticker, period);
+
+
+-- Structural-validation results per extracted statement (see
+-- src/audit_reports/validator.py and docs/AUDIT_REWORK_PLAN.md). One row per
+-- (bank, period, kind, statement); statement is 'assets' | 'liabilities' |
+-- 'cross' (assets vs liabilities+equity). failed_detail is a JSON list of
+-- {check, node, expected, actual, diff} for the failing identities.
+CREATE TABLE IF NOT EXISTS bank_audit_validation (
+    bank_ticker    TEXT NOT NULL,
+    period         TEXT NOT NULL,
+    kind           TEXT NOT NULL,
+    statement      TEXT NOT NULL,
+    checks_passed  INTEGER NOT NULL DEFAULT 0,
+    checks_failed  INTEGER NOT NULL DEFAULT 0,
+    checks_skipped INTEGER NOT NULL DEFAULT 0,
+    failed_detail  TEXT,
+    validated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (bank_ticker, period, kind, statement)
+);
+
+CREATE INDEX IF NOT EXISTS idx_bank_validation_failed
+  ON bank_audit_validation(checks_failed);
 """
 
 
