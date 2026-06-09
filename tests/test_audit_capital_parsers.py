@@ -38,3 +38,15 @@ def test_trailing_two_tokens_takes_last_two_numbers():
 
 def test_trailing_two_tokens_empty_when_no_numbers():
     assert _trailing_two_tokens("Components of total capital") == []
+
+
+def test_trailing_two_tokens_skips_footnote_markers():
+    # ATBANK: "(2)" after the label is a footnote reference, not a value —
+    # naive collection read it as current=2.00 and pushed 17.77 to prior.
+    assert _trailing_two_tokens("Sermaye Yeterliliği Oranı (%) (2) 17.77") == ["17.77"]
+    # Marker between the two real columns must not displace either value.
+    assert _trailing_two_tokens("Capital Adequacy Ratio (%) (1) 18.76 21.85") == [
+        "18.76", "21.85"]
+    # A real parenthesized negative (separators/decimals) still parses.
+    assert _trailing_two_tokens("Some deduction (1,208) (2,310)") == [
+        "(1,208)", "(2,310)"]

@@ -66,23 +66,30 @@ _FIELDS: list[tuple[str, bool, list[str]]] = [
         r"^Total\s+Capital\b",
         r"^Total\s+Own\s+Funds\b",
         r"^Toplam\s+Özkaynak\b",
+        # EXIM words the current-period total differently from the prior table:
+        # "Total Equity (Total Tier I and Tier II Capital)" /
+        # "The sum of Tier I Capital and Tier II Capital (Total Capital)".
+        rf"^Total\s+Equity\s*\(\s*Total\s+(?:of\s+)?{_TI}\s+and\s+{_TII}",
+        rf"^The\s+sum\s+of\s+{_TI}\s+Capital\s+and\s+{_TII}\s+Capital",
     ]),
     ("total_rwa", False, [
-        r"^Total\s+Risk[\s-]?Weighted\s+(?:Assets|Amount)",
+        r"^Total\s*Risk[\s-]?Weighted\s*(?:Assets|Amount|Items)",
         r"^Toplam\s+Risk\s+Ağırlıklı\s+(?:Tutar|Varlık)",
     ]),
+    # Ratio labels use \s* between words: pdfplumber sometimes drops the space
+    # between words in these rows (EXIM: "Capital AdequacyRatio (%)").
     ("cet1_ratio", True, [
-        r"^CET\s*1\s+Capital\s+(?:Adequacy\s+)?Ratio",
-        rf"^Common\s+Equity\s+{_TI}\s+Capital\s+(?:Adequacy\s+)?Ratio",
-        r"^Core\s+Capital\s+(?:Adequacy\s+)?Ratio",
+        r"^CET\s*1\s*Capital\s*(?:Adequacy\s*)?Ratio",
+        rf"^Common\s*Equity\s*{_TI}\s*Capital\s*(?:Adequacy\s*)?Ratio",
+        r"^Core\s*Capital\s*(?:Adequacy\s*)?Ratio",
         r"^Çekirdek\s+Sermaye\s+Yeterlili[ğg]i\s+Oranı",
     ]),
     ("tier1_ratio", True, [
-        rf"^{_TI}\s+Capital\s+(?:Adequacy\s+)?Ratio",
+        rf"^{_TI}\s*Capital\s*(?:Adequacy\s*)?Ratio",
         r"^Ana\s+Sermaye\s+Yeterlili[ğg]i\s+Oranı",
     ]),
     ("capital_adequacy_ratio", True, [
-        r"^Capital\s+Adequacy\s+(?:Standard\s+)?Ratio",
+        r"^Capital\s*Adequacy\s*(?:Standard\s*)?Ratio",
         r"^Sermaye\s+Yeterlili[ğg]i\s+(?:Standart\s+)?Oranı",
     ]),
 ]
@@ -108,6 +115,13 @@ _MAX_SECTION_PAGES = 8    # how far past the start we keep scanning
 # Allows a leading OR trailing '%' (Turkish reports often write "%5.50").
 _NUM_TOKEN = re.compile(r"^%?\(?-?\d[\d.,]*%?\)?$")
 _NIL = {"-", "—", "–"}
+# Superscript footnote markers rendered inline, e.g. ATBANK's
+# "Sermaye Yeterliliği Oranı (%) (2) 17.77" — "(2)" is a note reference, not a
+# value. A real negative amount always carries separators/decimals.
+_FOOTNOTE = re.compile(r"^\(\d\)$")
+# Capital ratios are percentages well under 100; anything outside the band is a
+# parse artefact (e.g. the year "2021." off a wrapped narrative sentence).
+_RATIO_BAND = (0.0, 100.0)
 
 
 def _parse_ratio(tok: str) -> float | None:
@@ -153,6 +167,8 @@ def _trailing_two_tokens(line: str) -> list[str]:
     digits embedded in labels (the '1' in 'CET1') are ignored."""
     collected: list[str] = []
     for tok in reversed(line.split()):
+        if _FOOTNOTE.match(tok):
+            continue
         if tok in _NIL or _NUM_TOKEN.match(tok):
             collected.append(tok)
             if len(collected) == 2:
@@ -200,7 +216,12 @@ def extract_from_pdf(pdf: pdfplumber.PDF, pdf_path: str = "") -> CapitalReport:
                     cur = parse(toks[0])
                     if cur is None:
                         continue
+                    if is_ratio and not (_RATIO_BAND[0] < cur < _RATIO_BAND[1]):
+                        continue  # year/footnote artefact; let a real row match later
                     pri = parse(toks[1]) if len(toks) > 1 else None
+                    if (is_ratio and pri is not None
+                            and not (_RATIO_BAND[0] < pri < _RATIO_BAND[1])):
+                        pri = None
                     if fld == "total_capital":
                         tc_candidates.append((cur, pri))
                     else:
