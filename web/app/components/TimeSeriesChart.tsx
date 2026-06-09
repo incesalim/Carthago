@@ -80,7 +80,8 @@ export default function TimeSeriesChart({
 
   return (
     <ChartCard title={title}>
-      <div style={{ height }}>
+      {/* Right-click is a pin/unpin gesture here — keep the browser menu out. */}
+      <div style={{ height }} onContextMenu={(e) => e.preventDefault()}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 10, right: 20, left: 60, bottom: 30 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={t.grid} />
