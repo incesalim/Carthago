@@ -58,8 +58,11 @@ export default function TimeSeriesChart({
   const tt = tooltipStyles(t);
   const fmt = formatters[yFormat];
   const labels = Object.keys(series);
-  // Hovering a legend item emphasises that line and fades the rest.
-  const [active, setActive] = useState<string | null>(null);
+  // Hovering a legend item emphasises that line and fades the rest;
+  // right-clicking pins the isolation until right-clicked again.
+  const [hovered, setHovered] = useState<string | null>(null);
+  const [pinned, setPinned] = useState<string | null>(null);
+  const active = hovered ?? pinned;
 
   // Pivot all series into a wide structure { period_date, label1: v, label2: v }
   const byDate = new Map<string, Record<string, number | string>>();
@@ -105,9 +108,52 @@ export default function TimeSeriesChart({
             />
             <Legend
               wrapperStyle={{ fontSize: 11 }}
-              iconType="line"
-              onMouseEnter={(o) => setActive(String(o.dataKey ?? ""))}
-              onMouseLeave={() => setActive(null)}
+              content={({ payload }) => (
+                <ul
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    justifyContent: "center",
+                    gap: "2px 14px",
+                    listStyle: "none",
+                    margin: 0,
+                    padding: 0,
+                  }}
+                >
+                  {(payload ?? []).map((it) => {
+                    const label = String(it.dataKey);
+                    return (
+                      <li
+                        key={label}
+                        onMouseEnter={() => setHovered(label)}
+                        onMouseLeave={() => setHovered(null)}
+                        onContextMenu={(e) => {
+                          e.preventDefault();
+                          setPinned((p) => (p === label ? null : label));
+                        }}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 5,
+                          color: t.axis,
+                          opacity: active && active !== label ? 0.4 : 1,
+                          fontWeight: pinned === label ? 600 : 400,
+                          cursor: "default",
+                        }}
+                      >
+                        <span
+                          style={{
+                            display: "inline-block",
+                            width: 14,
+                            borderTop: `2px solid ${it.color ?? "currentColor"}`,
+                          }}
+                        />
+                        {it.value}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
             />
             {labels.map((label, i) => (
               <Line
