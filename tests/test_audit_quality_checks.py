@@ -73,3 +73,70 @@ def test_checks_skip_when_tables_absent():
     c = sqlite3.connect(":memory:")
     assert q._capital_consistency(c) == []
     assert q._liquidity_bands(c) == []
+
+
+def _ins_bs(c, bank, period, rows, kind="unconsolidated", statement="assets"):
+    """rows = list of (item_name, amount_total); item_order auto-assigned."""
+    start = c.execute(
+        "SELECT COALESCE(MAX(item_order),0) FROM bank_audit_balance_sheet "
+        "WHERE bank_ticker=? AND period=? AND kind=? AND statement=?",
+        (bank, period, kind, statement)).fetchone()[0]
+    for i, (name, amt) in enumerate(rows, start + 1):
+        c.execute(
+            "INSERT INTO bank_audit_balance_sheet (bank_ticker, period, kind, "
+            "statement, item_order, item_name, amount_total) VALUES (?,?,?,?,?,?,?)",
+            (bank, period, kind, statement, i, name, amt))
+    c.commit()
+
+
+def _big_bank_quarter(c, bank, period, ecl_rows):
+    """A large-bank quarter: enough asset rows + a grand total + the ECL rows."""
+    filler = [(f"Line {i}", 1_000_000) for i in range(20)]
+    _ins_bs(c, bank, period, filler + [("TOTAL ASSETS", 500_000_000)] + ecl_rows)
+
+
+def test_ecl_clean_passes():
+    c = _conn()
+    _big_bank_quarter(c, "A", "2025Q4", [("Expected Credit Losses (-) (6)", 6_057_750)])
+    _big_bank_quarter(c, "A", "2026Q1", [("Expected Credit Losses (-) (6)", 6_540_511)])
+    assert q._ecl_sanity(c) == []
+
+
+def test_ecl_flags_truncated_negative_and_tiny():
+    c = _conn()
+    _big_bank_quarter(c, "B", "2025Q4", [("ExpectedCreditLosses(", -6)])
+    _big_bank_quarter(c, "C", "2025Q4", [("Expected Credit Losses (", 63)])
+    issues = q._ecl_sanity(c)
+    assert any("B 2025Q4" in i and "truncated" in i for i in issues)
+    assert any("C 2025Q4" in i and "truncated" in i for i in issues)
+    # tiny |amounts| on intact labels also flag (covers the -6 class)
+    _big_bank_quarter(c, "D", "2025Q4", [("Expected Credit Losses (-)", -6)])
+    _big_bank_quarter(c, "E", "2025Q4", [("Beklenen Zarar Karşılıkları (-)", 41)])
+    issues = q._ecl_sanity(c)
+    assert any("D 2025Q4" in i and "tiny" in i for i in issues)
+    assert any("E 2025Q4" in i and "tiny" in i for i in issues)
+
+
+def test_ecl_paren_negative_value_not_flagged():
+    c = _conn()
+    # ING/KLNMA-style: the bank prints the value itself in parens → a large
+    # negative ECL is the faithful reading, not a parse error.
+    _big_bank_quarter(c, "N", "2025Q4", [("Beklenen zarar karşılıkları (-) (I-5)", -2_034_323)])
+    assert q._ecl_sanity(c) == []
+
+
+def test_ecl_small_bank_tiny_not_flagged():
+    c = _conn()
+    # A small bank (total assets below the gate) may legitimately carry tiny ECL.
+    _ins_bs(c, "S", "2025Q4",
+            [(f"Line {i}", 1_000) for i in range(20)]
+            + [("TOTAL ASSETS", 80_000), ("Expected Credit Losses (-)", 12)])
+    assert q._ecl_sanity(c) == []
+
+
+def test_ecl_flags_vanished_rows():
+    c = _conn()
+    _big_bank_quarter(c, "F", "2025Q4", [("Expected Credit Losses (-) (6)", 6_000_000)])
+    _big_bank_quarter(c, "F", "2026Q1", [])  # rows dropped by the parser
+    issues = q._ecl_sanity(c)
+    assert any("F 2026Q1" in i and "missing" in i for i in issues)

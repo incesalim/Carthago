@@ -7,7 +7,7 @@ coverage or known issues change.
 > → this file → [OPERATIONS.md](OPERATIONS.md). Metric definitions in
 > [METRICS.md](METRICS.md).
 >
-> Last verified: 2026-06-09 (Economy tab + EVDS macro block).
+> Last verified: 2026-06-10 (balance-sheet row-drop/ECL extraction fix + fleet backfill).
 
 ---
 
@@ -150,6 +150,35 @@ A qualitative-data layer feeds two tabs from the `news_items` table
 
 ## Known issues / pending work
 
+- **Balance-sheet rows dropped / corrupted by spurious number matches (resolved
+  2026-06-10).** `extractor.py`'s `_parse_rows` counted three non-values as
+  value columns: the row's own hierarchy token (`2.4`, `1.1.4.`), the dash
+  inside the label decoration `(-)`, and the parenthesized dipnot ref `(6)`
+  (which `parse_num` reads as **-6**). A 6-column row could then "carry 9
+  numbers", triggering the EXIM multi-period branch (first-6 → garbage values),
+  while the `rfind`-based label boundary landed at position 0 (row silently
+  dropped) or inside `(-)` (label truncated at `(`, dipnot stored as the
+  value). Surfaced as ALBRK's `/banks` page showing **Expected Credit Losses =
+  -6** (true value 6,057,750 at 2025Q4); the new `ecl` quality check found the
+  class across **17+ banks / ~435 (bank, quarter, kind) rows** (AKTIF ALNTF
+  ATBANK BURGAN EMLAK EXIM FIBA HALKB HSBC ING KLNMA PASHA QNBFB TEB TFKB TSKB
+  ZIRAATK; TEB lost its ECL rows every Q4; ALBRK/EMLAK lost them in 2026Q1).
+  Fix: scan value tokens with `finditer` positions (label = text before the
+  first taken token), skip a leading hierarchy marker, anchor the bare dash to
+  whitespace, and drop parenthesized 1–2-digit dipnot refs when the line has
+  surplus tokens; `_fitz_merge_rows` accumulation now counts with the same
+  rules. Regression-verified on 29 PDFs covering every layout quirk (EXIM
+  multi-period, AKBNK fitz path, ZIRAAT/VAKBN wrapped rows, TSKB squished
+  text): zero count decreases, zero total changes; every bank *gains* rows
+  (e.g. GARAN 32→46 asset rows — the bug also dropped non-ECL rows
+  fleet-wide), and ALBRK 2025Q4 recovers its `TOTAL ASSETS` row. A new
+  `check_audit_quality.py` **ecl** check alerts on truncated labels, tiny
+  |ECL| on large banks, and ECL rows vanishing vs the prior quarter. Notes:
+  ING/KLNMA/PASHA/TFKB print the ECL *value* in parens → stored negative is
+  the faithful reading (display-normalization is a follow-up); TSKB has
+  separate pre-existing split-digit damage (`…(-) 1.849.927 5.` label) still
+  open. Full-fleet re-extraction backfilled to D1 + the R2 snapshot via
+  `scripts/backfill_extraction.py --banks ALL`.
 - **Stage-3 NPL understated by FC-only sub-table (resolved 2026-06-07).** The
   per-bank NPL ratio / coverage on `/cross-bank` (and per-bank pages) was
   understated for ~11 templated banks because the IFRS-9 Stage-3 extractor's

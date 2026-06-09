@@ -31,7 +31,10 @@ except ImportError:
 #   EN:  1,234,567.89
 #   TR:  1.234.567,89
 # Also bare integers and "-" for zero. Negatives may be wrapped in parens.
-NUM_PAT = r'(?:\(\s*-?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?\s*\)|-?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?|-)'
+# The bare-dash alternative is anchored to whitespace on both sides so the
+# dash inside a label decoration like "Expected Credit Losses (-)" — or a
+# hyphenated word ("Held-for-Sale") — is never counted as a value column.
+NUM_PAT = r'(?:\(\s*-?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?\s*\)|-?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?|(?<!\S)-(?!\S))'
 
 HIERARCHY_PAT = re.compile(
     r'^(?P<h>(?:[IVX]+\.|[A-Z]\.|\d+(?:\.\d+)*\.?))\s+(?P<rest>.+)$'
@@ -41,6 +44,30 @@ HIERARCHY_PAT = re.compile(
 # rows via this pattern. Must cover Turkish (TOPLAM) as well as English (TOTAL),
 # or Turkish-language reports lose their total-assets / total-liabilities lines.
 TOTAL_PAT = re.compile(r'(?:TOTAL|TOPLAM)', re.I)
+
+_NUM_RX = re.compile(NUM_PAT)
+# Leading hierarchy marker on a data line ("2.4", "1.1.4.", "IX.", "A.").
+# Set aside before scanning for value tokens: a dotted-decimal marker like
+# "1.1.4." otherwise matches NUM_PAT ("1.1" + "4"), inflating the token count
+# into the multi-period branch and shifting the label boundary — which dropped
+# rows like "2.4 Expected Credit Losses (-) (6) …" or stored the footnote
+# "(6)" as the value -6 under a label truncated at "(".
+_LINE_HIER_RX = re.compile(
+    r'^\s*(?:[IVX]+\.|[A-Z]\.|\d+(?:\.\d+)*\.?)(?=\s|[A-Za-zÇĞİÖŞÜçğıöşü(])')
+# A parenthesized 1-2 digit integer next to the label is a dipnot (footnote
+# section) reference, not a value.
+_FOOTNOTE_RX = re.compile(r'\(\s*\d{1,2}\s*\)')
+
+
+def _value_matches(line: str) -> list:
+    """Numeric-token matches on a data line, excluding the hierarchy marker."""
+    m0 = _LINE_HIER_RX.match(line)
+    return list(_NUM_RX.finditer(line, m0.end() if m0 else 0))
+
+
+def _count_values(line: str) -> int:
+    """How many true value columns a line carries (no marker, no dipnot refs)."""
+    return sum(1 for m in _value_matches(line) if not _FOOTNOTE_RX.fullmatch(m.group()))
 
 
 def parse_num(s: str) -> float | None:
@@ -200,9 +227,16 @@ def _parse_rows(text: str, n_cols: int) -> list[tuple[str, list[float | None]]]:
         line = line.rstrip()
         if not line.strip():
             continue
-        # Find all numeric tokens
-        nums = re.findall(NUM_PAT, line)
-        if len(nums) < n_cols:
+        # Find all numeric tokens (positions included, marker excluded)
+        nums_m = _value_matches(line)
+        # Dipnot refs like "(6)" sit between the label and the value columns;
+        # drop them while the line still has surplus tokens, so they can never
+        # be taken as a value (-6) or skew the triplet count below.
+        if len(nums_m) > n_cols:
+            kept = [m for m in nums_m if not _FOOTNOTE_RX.fullmatch(m.group())]
+            if len(kept) >= n_cols:
+                nums_m = kept
+        if len(nums_m) < n_cols:
             continue
         # Multi-period balance sheets (e.g. Eximbank) print 3+ periods, each as
         # a TL / FC / Total triplet, so a row carries 9, 12, … numbers. The
@@ -212,27 +246,12 @@ def _parse_rows(text: str, n_cols: int) -> list[tuple[str, list[float | None]]]:
         # clean multiple of the 3-column triplet and has more than n_cols, take
         # the first n_cols. (Only affects 6-column statements — assets,
         # liabilities, off-balance — never the 2-column P&L.)
-        if n_cols % 3 == 0 and len(nums) > n_cols and len(nums) % 3 == 0:
-            last_n = nums[:n_cols]
+        if n_cols % 3 == 0 and len(nums_m) > n_cols and len(nums_m) % 3 == 0:
+            take = nums_m[:n_cols]
         else:
-            last_n = nums[-n_cols:]
-        # Locate label as substring before the first of the trailing N numbers
-        # Find position of last_n[0] starting from the right
-        pos = line.rfind(last_n[0])
-        if pos == -1:
-            continue
-        # Walk back through any previous trailing numbers that should also be excluded
-        for tok in reversed(last_n[1:]):
-            new_pos = line.rfind(tok, 0, pos)
-            if new_pos != -1:
-                pos = new_pos
-        # Find label by trimming nums[-n_cols] start
-        # Simpler: split line into [label, ...nums]; label = everything before last_n[0]'s position
-        label_pos = pos
-        # But we may have matched a number INSIDE the label (footnote). Try walking left past
-        # any numeric tokens that immediately precede last_n[0] in adjacent text.
-        label = line[:label_pos].rstrip()
-        # If label still contains the entire numeric trail, skip
+            take = nums_m[-n_cols:]
+        # Label = everything before the first taken value token.
+        label = line[:take[0].start()].rstrip()
         if not label:
             continue
         if not (HIERARCHY_PAT.match(label) or TOTAL_PAT.search(label)):
@@ -274,7 +293,7 @@ def _parse_rows(text: str, n_cols: int) -> list[tuple[str, list[float | None]]]:
         rest_after_hier = (m_h.group('rest') if m_h else label).lstrip()
         if rest_after_hier and not re.match(r"^[A-Za-zÇĞİÖŞÜçğıöşü(\[]", rest_after_hier):
             continue
-        vals = [parse_num(x) for x in last_n]
+        vals = [parse_num(m.group()) for m in take]
         if any(v is None for v in vals):
             continue
         rows.append((label, vals))
@@ -523,7 +542,7 @@ def _fitz_merge_rows(text: str, n_cols: int) -> str:
     while i < len(lines):
         ln = lines[i]
         # Already has hierarchy + enough numbers → keep as-is
-        nums_in_line = len(re.findall(NUM_PAT, ln))
+        nums_in_line = _count_values(ln)
         # Hierarchy marker isolated on its own line — the label wraps around it:
         #   line i-1: 'İTFA EDİLMİŞ MALİYETİ İLE ÖLÇÜLEN FİNANSAL'  (label, part 1)
         #   line i  : 'II.'                                          (bare marker)
@@ -534,12 +553,12 @@ def _fitz_merge_rows(text: str, n_cols: int) -> str:
         if _BARE_HIER.match(ln):
             pre = ''
             if (out and not HIERARCHY_PAT.match(out[-1]) and not _BARE_HIER.match(out[-1])
-                    and len(re.findall(NUM_PAT, out[-1])) < n_cols
+                    and _count_values(out[-1]) < n_cols
                     and _HAS_ALPHA.search(out[-1])):
                 pre = out.pop()
             accumulated = ln + ((' ' + pre) if pre else '')
             j = i + 1
-            while (j < len(lines) and len(re.findall(NUM_PAT, accumulated)) < n_cols
+            while (j < len(lines) and _count_values(accumulated) < n_cols
                    and j - i <= 3):
                 if _BARE_HIER.match(lines[j]):
                     break
@@ -559,7 +578,7 @@ def _fitz_merge_rows(text: str, n_cols: int) -> str:
         if HIERARCHY_PAT.match(ln) and nums_in_line < n_cols:
             accumulated = ln
             j = i + 1
-            while j < len(lines) and len(re.findall(NUM_PAT, accumulated)) < n_cols and j - i <= 3:
+            while j < len(lines) and _count_values(accumulated) < n_cols and j - i <= 3:
                 # Stop if we hit a NEW item header — hierarchy + alphabetic label.
                 # Plain value lines (e.g. "228.693.745 272.963.728 501.657.473")
                 # also match HIERARCHY_PAT (the first number looks like a hierarchy

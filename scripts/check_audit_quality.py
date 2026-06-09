@@ -26,6 +26,11 @@ Checks (each yields offending (bank, period, kind)):
                     is a parse error (missing label variant / wrong total row).
   6. liquidity   — bank_audit_liquidity plausibility bands (leverage <30%,
                     LCR/NSFR sane; a sub-50% LCR is a mis-grabbed value).
+  7. ecl         — Expected Credit Losses balance-sheet rows: a truncated label
+                    ("…Losses(") or a tiny |amount| on a large bank are
+                    fingerprints of the dipnot-ref "(6)" being read as the value
+                    (the ALBRK -6 bug); a quarter that LOSES its ECL rows while
+                    the prior quarter had them is the row-drop variant.
 
 Alert-only / non-blocking: prints a report and (with --alert) sends one
 Telegram/Discord summary via scripts/notify.py, then always exits 0 so it never
@@ -227,12 +232,76 @@ def _liquidity_bands(conn: sqlite3.Connection) -> list[str]:
     return out
 
 
+# ECL sanity: corrupted parses show up as values like -6 / 63 / 89 (the dipnot
+# ref "(6)" read as a value). Real ECL on a bank with a >10bn-TL balance sheet
+# is never under 100 thousand TL.
+ECL_TINY_MAX = 100            # thousand TL
+ECL_MIN_BANK_TOTAL = 10_000_000  # only apply the tiny test to large banks
+
+
+def _ecl_sanity(conn: sqlite3.Connection) -> list[str]:
+    """Fingerprints of the ECL parse bug (ALBRK -6 / row-drop class):
+       a) truncated label '…Losses(' — the label boundary landed inside '(-)';
+       b) implausibly tiny |amount| on a large bank — dipnot ref read as value
+          (covers -6: some banks print the value itself in parens, so a large
+          NEGATIVE ECL is legitimate — ING/KLNMA/PASHA/TFKB — never flag sign);
+       c) a quarter whose ECL rows vanish while the prior quarter had them —
+          the silent row-drop variant."""
+    out = []
+    rows = conn.execute(
+        "SELECT bank_ticker, period, kind, item_name, amount_total "
+        "FROM bank_audit_balance_sheet WHERE statement='assets' AND ("
+        "  replace(upper(item_name),' ','') LIKE '%EXPECTEDCREDITLOSS%'"
+        "  OR replace(upper(item_name),' ','') LIKE '%BEKLENENZARAR%')"
+    ).fetchall()
+    totals: dict[tuple, float] = {}
+
+    def bank_total(bank: str, period: str, kind: str) -> float:
+        key = (bank, period, kind)
+        if key not in totals:
+            v = conn.execute(
+                "SELECT MAX(amount_total) FROM bank_audit_balance_sheet "
+                "WHERE bank_ticker=? AND period=? AND kind=? AND statement='assets'",
+                key).fetchone()[0]
+            totals[key] = v or 0
+        return totals[key]
+
+    ecl_periods: dict[tuple, set] = {}
+    for bank, period, kind, name, amt in rows:
+        ecl_periods.setdefault((bank, kind), set()).add(period)
+        tag = f"ecl       {bank} {period} {kind}:"
+        if (name or "").rstrip().endswith("("):
+            out.append(f"{tag} truncated label {name!r} (amount {amt}) — parse error")
+            continue
+        if amt is None:
+            continue
+        if 0 < abs(amt) < ECL_TINY_MAX and bank_total(bank, period, kind) > ECL_MIN_BANK_TOTAL:
+            out.append(f"{tag} implausibly tiny ECL {amt:,.0f} ({name!r})")
+    # c) ECL rows vanished vs the prior quarter (needs enough asset rows that
+    #    the quarter isn't just a failed extraction — coverage flags those).
+    for (bank, kind), have in ecl_periods.items():
+        periods = [r[0] for r in conn.execute(
+            "SELECT DISTINCT period FROM bank_audit_balance_sheet "
+            "WHERE bank_ticker=? AND kind=? AND statement='assets' ORDER BY period",
+            (bank, kind))]
+        for p0, p1 in zip(periods, periods[1:]):
+            if p0 in have and p1 not in have:
+                n = conn.execute(
+                    "SELECT COUNT(*) FROM bank_audit_balance_sheet WHERE bank_ticker=? "
+                    "AND period=? AND kind=? AND statement='assets'",
+                    (bank, p1, kind)).fetchone()[0]
+                if n >= MIN_ASSET_ROWS:
+                    out.append(f"ecl       {bank} {p1} {kind}: ECL rows present at {p0} "
+                               f"but missing here — row likely dropped by the parser")
+    return out
+
+
 def check(db: Path) -> list[str]:
     conn = sqlite3.connect(str(db))
     try:
         return (_stale_periods(conn) + _balance(conn) + _coverage(conn)
                 + _npl_collapse(conn) + _capital_consistency(conn)
-                + _liquidity_bands(conn))
+                + _liquidity_bands(conn) + _ecl_sanity(conn))
     finally:
         conn.close()
 
