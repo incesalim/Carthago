@@ -176,6 +176,9 @@ blocks automated checks — confirmed via HTTP status, opens normally in a brows
 
 ### BBVA Research / Garanti BBVA
 - **Türkiye geography landing** (all Turkey pubs) 🟢 EN — https://www.bbvaresearch.com/en/geography/turkiye/
+- **Türkiye Economic Outlook — 1Q26, Mar 2026** (quarterly macro sibling of the banking outlook;
+  distilled in [`../bbva-economic-outlook/`](../bbva-economic-outlook/), adapted by the `/economy` tab) 🟢 EN
+  - https://www.bbvaresearch.com/wp-content/uploads/2026/04/1Q26_Turkiye_Economic_Outlook_Mar26.pdf
 - **Monthly Banking Sector Outlook — Mar 2026** (latest; author Deniz Ergun) 🟢 EN
   - https://www.bbvaresearch.com/en/publicaciones/turkiye-monthly-banking-sector-outlook-march-2026/
 - **Monthly Banking Sector Outlook — Jan 2026** 🟢 EN — https://www.bbvaresearch.com/en/publicaciones/turkiye-monthly-banking-sector-outlook-january-2026

@@ -853,7 +853,10 @@ CDS spreads, OIS pricing, sovereign yield curves, BIST/MSCI indices
 models); foreigners' positioning / carry stock (CBRT securities statistics
 not ingested); investment-fund flows (TEFAS). The static **BBVA baseline
 scenario table** (report p. 42) is embedded in `economy.ts` for context —
-refresh it when a new quarterly outlook is published.
+refresh it when a new quarterly outlook is published. The non-reproducible
+numbers themselves (CDS, OIS, carry/positioning, nowcast, FCI, sensitivities)
+are preserved per edition in
+[knowledge/bbva-economic-outlook/](knowledge/bbva-economic-outlook/).
 
 ### Verification
 
