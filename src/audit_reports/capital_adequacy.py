@@ -123,6 +123,19 @@ _FOOTNOTE = re.compile(r"^\(\d\)$")
 # parse artefact (e.g. the year "2021." off a wrapped narrative sentence).
 _RATIO_BAND = (0.0, 100.0)
 
+# TFKB-class text damage: the PDF text layer detaches the leading digit of
+# every number ("Toplam Özkaynak 1 1,372,338 1 0,094,760" = 11,372,338 and
+# 10,094,760; "Oranı (%) 2 0.20 1 7.85" = 20.20 and 17.85). Rejoin a lone digit
+# to the numeric/decimal fragment that follows. Values on the rows we read are
+# never genuine bare single digits, so the join is unambiguous in practice.
+_SPLIT_SEP = re.compile(r"(\d)\s+([.,]\d)")               # "7 ,348,196" / "2 .500"
+_SPLIT_DIGIT = re.compile(r"\b(\d)\s+(?=\d[\d.,]*(?:\s|$))")  # "2 0.20" / "1 1,372,338"
+
+
+def _repair_split_digits(line: str) -> str:
+    line = _SPLIT_SEP.sub(r"\1\2", line)
+    return _SPLIT_DIGIT.sub(r"\1", line)
+
 
 def _parse_ratio(tok: str) -> float | None:
     """Parse a percentage token, tolerant of TR (16,79) and EN (16.79) decimals.
@@ -202,7 +215,7 @@ def extract_from_pdf(pdf: pdfplumber.PDF, pdf_path: str = "") -> CapitalReport:
     for i in range(start, min(n, start + _MAX_SECTION_PAGES)):
         text = pdf.pages[i].extract_text() or ""
         for raw in text.splitlines():
-            ln = raw.strip()
+            ln = _repair_split_digits(raw.strip())
             if not ln:
                 continue
             for fld, is_ratio, rxs in _FIELD_RX:
@@ -237,6 +250,24 @@ def extract_from_pdf(pdf: pdfplumber.PDF, pdf_path: str = "") -> CapitalReport:
         best_cur, best_pri = max(tc_candidates, key=lambda t: t[0])
         current["total_capital"] = best_cur
         prior["total_capital"] = best_pri
+
+    # SKBNK-class row shift: the labelled Tier1 row can carry a neighbouring
+    # row's value (usually the AT1 amount). Tier1 = CET1 + AT1 by definition,
+    # so a Tier1 below CET1 is always a misread — rebuild from the identity,
+    # picking the candidate that best matches the reported Tier1 ratio × RWA
+    # when both are available (SKBNK 2022Q4: misread 16,233 IS the AT1 →
+    # 4,502,933; 2025Q4: misread 8,585,373 IS the AT1 → 21,144,203).
+    for vals in (current, prior):
+        cet1, t1 = vals.get("cet1_capital"), vals.get("tier1_capital")
+        if cet1 is None or t1 is None or t1 >= cet1:
+            continue
+        cands = [cet1 + (vals.get("additional_tier1_capital") or 0), cet1 + t1]
+        ratio, rwa = vals.get("tier1_ratio"), vals.get("total_rwa")
+        if ratio and rwa:
+            target = ratio * rwa / 100.0
+            vals["tier1_capital"] = min(cands, key=lambda c: abs(c - target))
+        else:
+            vals["tier1_capital"] = cands[0]
 
     if current:
         rep.rows.append(CapitalRow(period_type="current", **current))
