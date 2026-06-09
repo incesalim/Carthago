@@ -81,12 +81,12 @@ export function scoreToColor(score: number | null, neutral = false): string {
 /**
  * Format a raw metric value for display. Mirrors the en-US number style used
  * across the dashboard (BarByBank.tsx). NOTE: bank_audit_*.amount_total is in
- * THOUSAND-TL (BankCard.tsx), so trillions = value / 1e9 (not /1e6 as the
- * sector-aggregate tables use).
+ * THOUSAND-TL (BankCard.tsx), so trillions = value / 1e9 and billions =
+ * value / 1e6 (not /1e6 and /1e3 as the sector-aggregate tables use).
  */
 export function formatMetricValue(
   value: number | null,
-  unit: "pct" | "trn" | "raw",
+  unit: "pct" | "trn" | "bn" | "raw",
   decimals: number,
 ): string {
   if (value == null || !Number.isFinite(value)) return "—";
@@ -99,6 +99,8 @@ export function formatMetricValue(
       return `${nf.format(value * 100)}%`;
     case "trn":
       return `₺${nf.format(value / 1e9)} trn`;
+    case "bn":
+      return `₺${nf.format(value / 1e6)} bn`;
     default:
       return nf.format(value);
   }
