@@ -111,6 +111,13 @@ def test_growth_yoy_and_annualized():
     assert ann["b"] == pytest.approx((1.1 ** 52 - 1) * 100)
 
 
+def test_rolling_sum_window_and_scale():
+    series = {"m1": 1.0, "m2": 2.0, "m3": 3.0, "m4": 4.0}
+    out = v.apply_op({"op": "rolling_sum", "window": 3, "scale": 0.001}, series, {})
+    # first complete window ends at m3; earlier dates dropped
+    assert out == {"m3": pytest.approx(0.006), "m4": pytest.approx(0.009)}
+
+
 def test_apply_op_unresolved_ref_raises():
     with pytest.raises(ValueError, match="ratio references unresolved series"):
         v.apply_op({"op": "ratio", "numerator": "a", "denominator": "b"}, {}, {"a": {}})

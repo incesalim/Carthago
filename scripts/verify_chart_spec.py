@@ -279,6 +279,16 @@ def apply_op(op: dict, cur: dict[str, float], resolved: dict[str, dict]) -> dict
         }
     if kind == "growth":
         return _growth(cur, int(op["window"]), op["mode"])
+    if kind == "rolling_sum":
+        # Trailing sum over `window` observations (e.g. 12m rolling current
+        # account), optionally scaled — mirrors economy.ts rollingSum().
+        window = int(op["window"])
+        scale = op.get("scale", 1)
+        dates = sorted(cur)
+        out: dict[str, float] = {}
+        for i in range(window - 1, len(dates)):
+            out[dates[i]] = sum(cur[d] for d in dates[i - window + 1 : i + 1]) * scale
+        return out
     if kind == "derive":
         result = eval_formula(op["formula"], resolved)
         if not isinstance(result, dict):

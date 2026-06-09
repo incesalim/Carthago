@@ -7,7 +7,7 @@ coverage or known issues change.
 > → this file → [OPERATIONS.md](OPERATIONS.md). Metric definitions in
 > [METRICS.md](METRICS.md).
 >
-> Last verified: 2026-06-06 (EXIM extraction fix + audit data-quality check).
+> Last verified: 2026-06-09 (Economy tab + EVDS macro block).
 
 ---
 
@@ -99,6 +99,15 @@ liquidity section: TL & FC loan/deposit ratios and TL deposit growth split
 Public (state) vs Private (private + foreign), deposit dollarization, net CBRT
 funding, gross reserves, residents' household FC savings, and REER. See
 [METRICS.md](METRICS.md) §12.
+
+An **Economy** tab (`/economy`) adapts the Türkiye macro section of the BBVA
+"Türkiye Economic Outlook" (1Q26): GDP growth, industrial production, labor
+market, CPI vs CBRT funding cost, inflation expectations, ex-ante real rate,
+USD/TRY + REER, 12m-rolling current account (total / ex-gold / ex-gold&energy)
+and net errors & omissions, fiscal balances as % of GDP, plus BBVA's static
+baseline-scenario table. Fed by a `macro` EVDS block (GDP, IP, labor, BoP,
+budget — 15 new series incl. CPI 2025=100, which replaces the dead 2003=100
+index). See [METRICS.md](METRICS.md) §14.
 
 A **Digital** tab (`/digital`) surfaces the TBB quarterly digital/internet/mobile
 banking statistics (`tbb_digital_stats`, sector-wide): channel adoption (active
