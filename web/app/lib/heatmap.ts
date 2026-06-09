@@ -37,7 +37,7 @@ export interface MetricDef {
   key: MetricKey;
   label: string;
   short: string;
-  unit: "pct" | "trn" | "raw";
+  unit: "pct" | "trn" | "bn" | "raw";
   decimals: number;
   direction: Direction;
 }
@@ -46,7 +46,7 @@ export interface MetricDef {
  *  `total_assets` MUST stay first: the grid sizes-ranks within type groups by
  *  raw[indexOf total_assets]. */
 export const METRIC_DEFS: MetricDef[] = [
-  { key: "total_assets",        label: "Total assets",        short: "Assets",     unit: "trn", decimals: 2, direction: "neutral" },
+  { key: "total_assets",        label: "Total assets",        short: "Assets",     unit: "bn",  decimals: 0, direction: "neutral" },
   { key: "npl_ratio",           label: "NPL ratio",           short: "NPL",        unit: "pct", decimals: 2, direction: "higher_worse" },
   { key: "stage2_share",        label: "Stage-2 share",       short: "Stage 2",    unit: "pct", decimals: 2, direction: "higher_worse" },
   { key: "npl_coverage",        label: "NPL coverage",        short: "Coverage",   unit: "pct", decimals: 1, direction: "higher_better" },
