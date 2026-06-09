@@ -109,12 +109,12 @@ def test_ecl_flags_truncated_negative_and_tiny():
     issues = q._ecl_sanity(c)
     assert any("B 2025Q4" in i and "truncated" in i for i in issues)
     assert any("C 2025Q4" in i and "truncated" in i for i in issues)
-    # tiny |amounts| on intact labels also flag (covers the -6 class)
+    # a partition whose LARGEST |ECL| is tiny also flags (covers the -6 class)
     _big_bank_quarter(c, "D", "2025Q4", [("Expected Credit Losses (-)", -6)])
     _big_bank_quarter(c, "E", "2025Q4", [("Beklenen Zarar Karşılıkları (-)", 41)])
     issues = q._ecl_sanity(c)
-    assert any("D 2025Q4" in i and "tiny" in i for i in issues)
-    assert any("E 2025Q4" in i and "tiny" in i for i in issues)
+    assert any("D 2025Q4" in i and "largest ECL" in i for i in issues)
+    assert any("E 2025Q4" in i and "largest ECL" in i for i in issues)
 
 
 def test_ecl_paren_negative_value_not_flagged():
@@ -122,6 +122,15 @@ def test_ecl_paren_negative_value_not_flagged():
     # ING/KLNMA-style: the bank prints the value itself in parens → a large
     # negative ECL is the faithful reading, not a parse error.
     _big_bank_quarter(c, "N", "2025Q4", [("Beklenen zarar karşılıkları (-) (I-5)", -2_034_323)])
+    assert q._ecl_sanity(c) == []
+
+
+def test_ecl_tiny_cash_row_next_to_healthy_section_ecl_not_flagged():
+    c = _conn()
+    # BURGAN-style: cash-section 1.1.4 ECL is genuinely 77 while the section
+    # ECL is healthy — must not alarm every cron.
+    _big_bank_quarter(c, "G", "2024Q1", [("Expected Credit Losses (-)", 77),
+                                         ("Expected Credit Losses (-) I-e-f", 838_394)])
     assert q._ecl_sanity(c) == []
 
 
