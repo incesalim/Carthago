@@ -53,13 +53,22 @@ def _per_bank(conn: sqlite3.Connection, banks: list[str]) -> dict[str, tuple[int
 
 
 def _per_partition(conn: sqlite3.Connection, bank: str) -> dict[tuple, tuple[int, int]]:
-    """{(period, kind): (identity failures, balance-sheet rows)} for one bank."""
-    failed = {(p, k): f for p, k, f in conn.execute(
-        "SELECT period, kind, SUM(checks_failed) FROM bank_audit_validation "
-        "WHERE bank_ticker=? GROUP BY period, kind", (bank,))}
-    rows = {(p, k): n for p, k, n in conn.execute(
-        "SELECT period, kind, COUNT(*) FROM bank_audit_balance_sheet "
-        "WHERE bank_ticker=? GROUP BY period, kind", (bank,))}
+    """{(period, kind, statement): (identity failures, rows)} for one bank.
+
+    Statement-level so a loss in one statement can't be masked by a gain in
+    another (ICBCT: liabilities lost the malformed 16.4 row while off_balance
+    RECOVERED two long-dropped rows — net +1 at partition level). 'cross'
+    failures are attributed to 'liabilities' (they compare both statements)."""
+    failed: dict[tuple, int] = {}
+    for p, k, s, f in conn.execute(
+            "SELECT period, kind, statement, SUM(checks_failed) "
+            "FROM bank_audit_validation WHERE bank_ticker=? GROUP BY 1,2,3", (bank,)):
+        s = "liabilities" if s == "cross" else s
+        key = (p, k, s)
+        failed[key] = failed.get(key, 0) + (f or 0)
+    rows = {(p, k, s): n for p, k, s, n in conn.execute(
+        "SELECT period, kind, statement, COUNT(*) FROM bank_audit_balance_sheet "
+        "WHERE bank_ticker=? GROUP BY 1,2,3", (bank,))}
     return {key: (failed.get(key, 0), rows.get(key, 0))
             for key in set(failed) | set(rows)}
 
@@ -78,10 +87,10 @@ def _is_honest_skip(bank: str) -> tuple[bool, list[str]]:
         if nf <= bf:
             continue
         if nr < br and nf - bf <= 3:
-            notes.append(f"{bank} {key[0]} {key[1]}: +{nf - bf} failure(s) with "
+            notes.append(f"{bank} {' '.join(key)}: +{nf - bf} failure(s) with "
                          f"rows {br}→{nr} — honest skip of a malformed row")
         else:
-            return False, [f"{bank} {key[0]} {key[1]}: +{nf - bf} failure(s), "
+            return False, [f"{bank} {' '.join(key)}: +{nf - bf} failure(s), "
                            f"rows {br}→{nr} — not an honest skip"]
     return True, notes
 
