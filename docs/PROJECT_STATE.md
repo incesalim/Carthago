@@ -25,8 +25,8 @@ coverage or known issues change.
 | `bank_audit_profit_loss` | BRSA quarterly PDFs | same | per-bank |
 | `bank_audit_credit_quality` | BRSA PDFs, IFRS 9 footnotes | same | per-bank, per-section |
 | `bank_audit_profile` | BRSA PDFs, qualitative section | same | branches + personnel where disclosed |
-| `bank_audit_capital` | BRSA PDFs, §4.1 capital adequacy | same | CET1/Tier1/Tier2/Total/RWA + CET1/Tier1/CAR ratios, per period_type |
-| `bank_audit_liquidity` | BRSA PDFs, §4.6/4.7 | same | LCR (total/FC), NSFR, leverage ratio, per period_type |
+| `bank_audit_capital` | BRSA PDFs, §4.1 capital adequacy | same — **fully backfilled 2026-06-10** (31/31 banks, ~1.7k rows) | CET1/Tier1/Tier2/Total/RWA + CET1/Tier1/CAR ratios, per period_type |
+| `bank_audit_liquidity` | BRSA PDFs, §4.6/4.7 | same — **fully backfilled 2026-06-10** (31/31 banks, ~1.8k rows) | LCR (total/FC), NSFR, leverage ratio, per period_type |
 | `bank_audit_extractions` | extraction log | one row per PDF | 974 rows (954 ok / 20 partial) |
 | `bank_types`, `table_definitions`, `download_log` | metadata | — | — |
 
@@ -37,6 +37,14 @@ rows + ~460 bank-profile rows). PDFs themselves live in R2 at
 (branches + personnel) is extracted where the bank discloses it in a
 recognized phrasing — 16 of 31 banks currently parsed; the remaining 15
 use phrasings not yet covered by the regex patterns.
+
+**§4 capital/liquidity (2026-06-10)**: full-fleet history backfilled via
+`backfill-audit.yml` in 5-bank chunks (`ALL` exceeds the 180-min job timeout).
+Per-bank §4 filing quirks and their fixes are catalogued in
+[AUDIT_BANK_CATALOG.md](AUDIT_BANK_CATALOG.md); the only standing
+capital-quality flags are bank-reported BRSA temporary-measure CARs
+(ATBANK 2024, TEB consolidated 2022) — false positives, not parse errors.
+Dashboard surfacing (e.g. cross-bank CAR/LCR view) is an open follow-up.
 
 ## Bank-type taxonomy
 
