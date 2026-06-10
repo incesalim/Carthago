@@ -100,6 +100,8 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int) -> list[str]:
         where = f"WHERE fetched_at >= datetime('now', '-{hours} hours')"
     elif table == "bank_audit_extractions":
         where = f"WHERE extracted_at >= datetime('now', '-{hours} hours')"
+    elif table == "bank_audit_validation":
+        where = f"WHERE validated_at >= datetime('now', '-{hours} hours')"
     elif table in (
         "bank_audit_credit_quality",
         "bank_audit_profile",
