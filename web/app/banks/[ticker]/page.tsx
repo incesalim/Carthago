@@ -23,6 +23,7 @@ import {
   profitLossMultiPeriod,
   bankProfile,
   bankStagesLatest,
+  validationByPeriod,
 } from "@/app/lib/audit";
 import { newsByTicker } from "@/app/lib/news";
 import BankCard from "@/app/components/BankCard";
@@ -192,14 +193,25 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   ).sort().reverse();
   const periods = pickPeriods(allPeriods, view, 4);
 
-  const [bsPivot, bsNames, plPivot, kapItems, profile, stages] = await Promise.all([
+  const [bsPivot, bsNames, plPivot, kapItems, profile, stages, validation] = await Promise.all([
     balanceSheetMultiPeriod(ticker, kind, periods),
     balanceSheetLineNames(ticker, kind, periods),
     profitLossMultiPeriod(ticker, kind, periods),
     newsByTicker(ticker, 12),
     bankProfile(ticker),
     bankStagesLatest(ticker, kind),
+    validationByPeriod(ticker, kind),
   ]);
+
+  // ⚠ on a period column = that quarter's extraction failed one or more
+  // internal-sum identity checks (TL+FC=Total, parent=Σchildren, TOTAL=Σromans,
+  // assets=liabilities+equity) — treat its figures with care.
+  const periodWarning = (p: string): string | null => {
+    const v = validation.get(p);
+    if (!v || v.checks_failed === 0) return null;
+    return `${v.checks_failed} of ${v.checks_failed + v.checks_passed} internal-sum checks failed for this quarter's extraction — figures may be incomplete or misread.`;
+  };
+  const anyWarning = periods.some((p) => periodWarning(p) !== null);
 
   // Participation banks (BDDK type 10003) file a different BRSA liabilities
   // layout — equity at XIV., not XVI., with fewer roman items — so they need a
@@ -357,6 +369,9 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
                 {periods.map((p) => (
                   <th key={p} className="text-right py-2 pl-2 pr-3 font-medium tabular-nums">
                     {periodToDate(p)}
+                    {periodWarning(p) && (
+                      <span title={periodWarning(p)!} className="ml-1 cursor-help text-amber-600">⚠</span>
+                    )}
                   </th>
                 ))}
               </tr>
@@ -413,6 +428,9 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
                 {periods.map((p) => (
                   <th key={p} className="text-right py-2 pl-2 pr-3 font-medium tabular-nums">
                     {periodToDate(p)}
+                    {periodWarning(p) && (
+                      <span title={periodWarning(p)!} className="ml-1 cursor-help text-amber-600">⚠</span>
+                    )}
                   </th>
                 ))}
               </tr>
@@ -437,7 +455,13 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
         Lines aligned by BRSA hierarchy code. &quot;--&quot; indicates the line was not
         reported for that period or did not extract. &quot;Total Assets&quot;,
         &quot;Total Liabilities&quot;, and &quot;Total Liabilities &amp; Equity&quot;
-        are computed as sums of the Roman-numeral rows.
+        are computed as sums of the Roman-numeral rows. Lines labelled
+        &quot;(-)&quot; are deductions shown as magnitudes.
+        {anyWarning && (
+          <> <span className="text-amber-600">⚠</span> marks a period whose
+          extraction failed internal-sum validation (TL+FC=Total,
+          subtotal=Σcomponents) — treat those figures with care.</>
+        )}
       </p>
     </main>
   );
