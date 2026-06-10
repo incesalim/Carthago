@@ -7,9 +7,10 @@ coverage or known issues change.
 > → this file → [OPERATIONS.md](OPERATIONS.md). Metric definitions in
 > [METRICS.md](METRICS.md).
 >
-> Last verified: 2026-06-10 (audit rework Phases 0–2 complete: census + identity
-> validator + fleet evidence dry-run; Phase 3 history repair awaits review of
-> data/backfill_evidence/report.md — see docs/AUDIT_REWORK_PLAN.md).
+> Last verified: 2026-06-11 (audit rework Phases 0–4 COMPLETE: census, identity
+> validator, evidence dry-run, batchwise fleet repair pushed to D1 — 30 banks,
+> 7 gated batches — and dashboard ⚠ validation surfacing live. Phase 5
+> refactor pending; see docs/AUDIT_REWORK_PLAN.md).
 
 ---
 
@@ -160,6 +161,20 @@ A qualitative-data layer feeds two tabs from the `news_items` table
 
 ## Known issues / pending work
 
+- **Audit rework Phases 3–4 complete (2026-06-11).** Fleet history repaired in
+  7 gated batches (28 banks + ALBRK/BURGAN re-repair in batch 7 after the §4
+  CI chunk backfills clobbered Monday's fix via last-writer-wins on the R2
+  snapshot — operational rule now in AUDIT_BANK_CATALOG.md). Verification
+  gates caught and we fixed mid-run: a D1 service transient (now auto-retried
+  3×), the header filter eating squished OFF-BALANCE data rows (ISCTR — also
+  recovered off-balance totals lost since the original extractor), and
+  honest-skip classification (EMLAK/ICBCT/PASHA single malformed rows now
+  visibly flagged instead of silently garbage). bank_audit_validation is in
+  D1 (2,898 rows; push_to_d1 now maps validated_at; scripts/
+  revalidate_audit_db.py recomputes after validator changes); /banks period
+  columns show ⚠ on identity-failing quarters and /admin has the per-bank
+  validation table. 165 partitions still fail identity checks (TSKB damage +
+  investigate-bucket quirks) — visible, itemized, iterative fix targets.
 - **Audit rework Phases 0–2 complete (2026-06-10, docs/AUDIT_REWORK_PLAN.md).**
   Phase 0: all 975 PDFs profiled (`scripts/profile_audit_corpus.py` →
   `data/audit_profiles.json`; census + format-drift + §5 footnote inventory

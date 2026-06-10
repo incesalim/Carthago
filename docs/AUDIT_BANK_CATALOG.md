@@ -8,6 +8,11 @@ variant rule. This file is the human-readable index of those rules and the
 known ways they break.
 
 Status: seeded from the §4 (capital/liquidity) development pass (2026-06).
+**Operational rule:** never run local backfills while CI backfill chunks are
+queued/running — the `bddk-audit` concurrency group does NOT serialize
+against local runs, and the R2 snapshot is last-writer-wins (the §4 chunk
+runs clobbered the 2026-06-10 ALBRK/BURGAN repair; re-repaired as Phase-3
+batch 7).
 The full-fleet backfill (`backfill-audit.yml`, run in 5-bank chunks — `ALL`
 exceeds the 180-min job timeout) is the census that completes this table;
 `scripts/check_audit_quality.py` flags any bank whose layout we haven't
@@ -73,6 +78,8 @@ backfill). After the backfill, fill in the coverage census below.
 | SKBNK | Rows like `INVESTMENT PROPERTY (Net) (14) - - - - -` stored the dipnot as value -14 (fixed: leading-dipnot drop). Residual: occasional dash glyph lost by the text layer (`16.5.4 … 239,160 - 239,160 159,400 159,400` — 5 tokens) → row skipped, parent 16.5 fails its sum check by that child. |
 | ISCTR | **2025Q1 consolidated PDF has no text layer on the statement pages** (page 11 yields headers only; pdfplumber and fitz both see no table words). Unextractable without OCR — EXCLUDE this partition from history repair (a backfill would clear the old D1 rows and push nothing). |
 | TSKB | Split-digit damage in some 2025 quarters (`Expected Credit Losses (-) 1.849.927 5.` labels, triplet checks fail by 10^6×) + 2026Q1 statements not located at all. Needs its own pass. |
+| EMLAK/ICBCT/PASHA | Phase-3 honest-skips: a single malformed row per filing (dipnot stored as a tiny TL value in the old data) is now skipped, so one parent/total identity check fails VISIBLY per affected quarter (EMLAK 2025Q3; ICBCT 2025Q3-Q4 equity 16.4; PASHA assets in 4 quarters) — flagged with ⚠ on /banks rather than hiding garbage |
+| ISCTR | Squished AND spaced "OFF-BALANCE SHEET …" data rows were eaten by the page-header filter for years (the spaced variant even in the pre-rework extractor); fixed with OFF/OFF- lookbehinds + BİLANÇO DIŞI lookahead — off-balance section totals recovered fleet-wide |
 | ING/KLNMA/PASHA/TFKB/DENIZ/SKBNK | Print contra/negative values in parens → stored negative (sign convention `paren_negative` in the census). Faithful to filing; display normalization is a Phase-4 item. |
 
 ## Coverage census (generated)

@@ -1,8 +1,12 @@
 # Audit-report extraction rework — plan
 
-> Status: **approved direction, not yet implemented** (planned 2026-06-10 after
-> the ECL/-6 incident, see PROJECT_STATE.md). Implement top-to-bottom; each
-> phase is independently shippable and ends with docs updated.
+> Status (2026-06-11): **Phases 0–4 COMPLETE** — census (975 PDFs), identity
+> validator (bank_audit_validation in D1), evidence dry-run (800 improved /
+> 9 explained regressions), batchwise repair (7 gated batches, 30 banks,
+> TSKB excluded), dashboard ⚠ surfacing live. **Phase 5 remaining**: the
+> textops/locate refactor (guide already shipped:
+> AUDIT_EXTRACTION_GUIDE.md). Follow-ups: TSKB split-digit pass; the 165
+> identity-failing partitions on /admin as iterative fix targets.
 
 ## Why (the lesson this plan encodes)
 
