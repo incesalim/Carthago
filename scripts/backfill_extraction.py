@@ -53,15 +53,18 @@ PUSH_WINDOW_HOURS = 24
 
 
 def _partition_delete_sql(parts: list[tuple[str, str]]) -> str:
-    """DELETE statements for every re-extracted (bank, period) across all audit
-    tables — run against D1 before the upsert-only push so stale rows from a
-    bigger old extraction don't survive as orphans."""
+    """DELETE statements for every re-extracted (bank, period, kind) across all
+    audit tables — run against D1 before the upsert-only push so stale rows from
+    a bigger old extraction don't survive as orphans. Kind-scoped so a skipped
+    kind (e.g. an unextractable no-text-layer PDF protected via --skip) keeps
+    its D1 rows while its sibling kind is repaired."""
     stmts = []
     for tbl in AUDIT_TABLES:
-        for bank, period in parts:
-            if "'" in bank or "'" in period:  # tickers/periods are alnum; guard anyway
-                raise ValueError(f"unexpected quote in partition {bank!r} {period!r}")
-            stmts.append(f"DELETE FROM {tbl} WHERE bank_ticker='{bank}' AND period='{period}';")
+        for bank, period, kind in parts:
+            if any("'" in s for s in (bank, period, kind)):  # alnum; guard anyway
+                raise ValueError(f"unexpected quote in partition {bank!r} {period!r} {kind!r}")
+            stmts.append(f"DELETE FROM {tbl} WHERE bank_ticker='{bank}' "
+                         f"AND period='{period}' AND kind='{kind}';")
     return "\n".join(stmts) + "\n"
 
 
@@ -83,15 +86,15 @@ def _ensure_d1_schema() -> None:
         sys.exit(f"[backfill] D1 schema ensure failed (rc={rc})")
 
 
-def _clear_d1_partitions(db_path: Path) -> None:
+def _clear_d1_partitions(db_path: Path, window_hours: int) -> None:
     """Clear the just-re-extracted partitions in remote D1 so the subsequent
-    push lands in clean partitions (no orphan rows). The (bank, period) set is
-    derived from the fresh bank_audit_extractions rows — the same set push_to_d1
-    re-inserts within PUSH_WINDOW_HOURS."""
+    push lands in clean partitions (no orphan rows). The (bank, period, kind)
+    set is derived from the fresh bank_audit_extractions rows — the same set
+    push_to_d1 re-inserts within the same window."""
     with sqlite3.connect(str(db_path)) as conn:
         parts = conn.execute(
-            "SELECT DISTINCT bank_ticker, period FROM bank_audit_extractions "
-            f"WHERE extracted_at >= datetime('now', '-{PUSH_WINDOW_HOURS} hours')"
+            "SELECT DISTINCT bank_ticker, period, kind FROM bank_audit_extractions "
+            f"WHERE extracted_at >= datetime('now', '-{window_hours} hours')"
         ).fetchall()
     if not parts:
         print("[backfill] no freshly-extracted partitions to clear in D1")
@@ -111,6 +114,14 @@ def main() -> None:
     ap.add_argument("--latest-period", action="store_true",
                     help="only re-extract each bank's most recent period (fast, bounded)")
     ap.add_argument("--dry-run", action="store_true", help="re-extract locally; skip D1 push + snapshot upload")
+    ap.add_argument("--skip", type=str, default="",
+                    help="comma-separated BANK:PERIOD:KIND triples to leave untouched "
+                         "(not re-extracted, not cleared in D1 — e.g. an unextractable "
+                         "no-text-layer PDF whose old rows must survive: "
+                         "ISCTR:2025Q1:consolidated)")
+    ap.add_argument("--window-hours", type=int, default=PUSH_WINDOW_HOURS,
+                    help="freshness window for the D1 clear+push set (smaller for "
+                         "batched runs so batches don't re-push each other)")
     args = ap.parse_args()
     if args.banks.strip().upper() == "ALL":
         cfg = json.loads((REPO / "data" / "banks" / "audit_report_urls.json").read_text(encoding="utf-8"))
@@ -127,8 +138,14 @@ def main() -> None:
         shutil.copyfileobj(s, d)
     print(f"[backfill] pulled snapshot → {DB.stat().st_size/1e6:.1f} MB")
 
+    skips = [tuple(s.strip().split(":")) for s in args.skip.split(",") if s.strip()]
+    if any(len(t) != 3 for t in skips):
+        sys.exit(f"--skip entries must be BANK:PERIOD:KIND, got {args.skip!r}")
+
     # Force re-extraction by clearing the extraction log. With --latest-period
-    # only the newest period per bank is cleared (and re-extracted).
+    # only the newest period per bank is cleared (and re-extracted). --skip
+    # triples keep their success=1 log row, so extract_from_r2 leaves them
+    # alone and their local + D1 rows survive untouched.
     ph = ",".join("?" * len(banks))
     with sqlite3.connect(str(DB)) as conn:
         where = f"bank_ticker IN ({ph})"
@@ -137,11 +154,15 @@ def main() -> None:
             where += (" AND (bank_ticker, period) IN (SELECT bank_ticker, MAX(period) "
                       f"FROM bank_audit_extractions WHERE bank_ticker IN ({ph}) GROUP BY bank_ticker)")
             params = tuple(banks) * 2
+        for bank, period, kind in skips:
+            where += " AND NOT (bank_ticker=? AND period=? AND kind=?)"
+            params += (bank.upper(), period.upper(), kind.lower())
         before = conn.execute(
             f"SELECT COUNT(*) FROM bank_audit_extractions WHERE {where}", params).fetchone()[0]
         conn.execute(f"DELETE FROM bank_audit_extractions WHERE {where}", params)
         conn.commit()
-    print(f"[backfill] cleared {before} extraction records → will re-extract")
+    print(f"[backfill] cleared {before} extraction records → will re-extract"
+          + (f" (skipping {len(skips)})" if skips else ""))
 
     counts = extract_from_r2(workers=8, db_path=DB, only=banks, latest_period=args.latest_period)
     print(f"[backfill] re-extract: {counts}")
@@ -154,10 +175,10 @@ def main() -> None:
         return
 
     _ensure_d1_schema()   # create any missing bank_audit_* tables before clear/push
-    _clear_d1_partitions(DB)
+    _clear_d1_partitions(DB, args.window_hours)
 
     subprocess.run([sys.executable, str(REPO / "scripts" / "push_to_d1.py"),
-                    "--db", str(DB), "--hours", str(PUSH_WINDOW_HOURS),
+                    "--db", str(DB), "--hours", str(args.window_hours),
                     "--only-tables", ",".join(AUDIT_TABLES)], check=True)
 
     with sqlite3.connect(str(DB)) as c:
