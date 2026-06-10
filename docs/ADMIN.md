@@ -114,3 +114,10 @@ the source's expected cron cadence (daily for EVDS/news, weekly for
 bulletins/audit/regulation): `≤1.5×` cadence = Fresh, `≤3×` = Late, else Stale.
 Audit extraction failures come straight from `bank_audit_extractions` where
 `success = 0`, with the recorded `note`.
+
+**Structural validation** (shown once `bank_audit_validation` exists in D1 —
+written by the extraction pipeline since the 2026-06 audit rework, populated
+fleet-wide by the Phase-3 backfill): per-bank counts of (bank, quarter)
+partitions whose internal-sum identity checks failed (TL+FC=Total per row,
+parent = Σ children, TOTAL = Σ roman sections, assets = liabilities+equity).
+The same data drives the ⚠ markers on `/banks/[ticker]` period columns.

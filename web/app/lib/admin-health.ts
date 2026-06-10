@@ -42,9 +42,22 @@ export interface ExtractionHealth {
   failures: ExtractionFailure[];
 }
 
+export interface ValidationBankHealth {
+  bank_ticker: string;
+  partitions: number;
+  failed_partitions: number;
+  checks_failed: number;
+}
+
+export interface ValidationHealth {
+  banks: ValidationBankHealth[];
+  totalFailedPartitions: number;
+}
+
 export interface HealthReport {
   sources: SourceHealth[];
   extraction: ExtractionHealth;
+  validation: ValidationHealth;
 }
 
 type DB = Awaited<ReturnType<typeof getDB>>;
@@ -210,6 +223,32 @@ async function extractionHealth(db: DB): Promise<ExtractionHealth> {
   };
 }
 
+async function validationHealth(db: DB): Promise<ValidationHealth> {
+  // bank_audit_validation lands with the Phase-3 backfill (rework plan) —
+  // degrade to an empty section until then.
+  try {
+    const { results } = await db
+      .prepare(
+        "SELECT bank_ticker, " +
+          "COUNT(DISTINCT period || '|' || kind) AS partitions, " +
+          "COUNT(DISTINCT CASE WHEN checks_failed > 0 THEN period || '|' || kind END) AS failed_partitions, " +
+          "SUM(checks_failed) AS checks_failed " +
+          "FROM bank_audit_validation GROUP BY bank_ticker " +
+          "ORDER BY checks_failed DESC, bank_ticker",
+      )
+      .all<ValidationBankHealth>();
+    const banks = results ?? [];
+    return {
+      banks,
+      totalFailedPartitions: banks.reduce(
+        (s: number, b: ValidationBankHealth) => s + (b.failed_partitions ?? 0), 0),
+    };
+  } catch {
+    return { banks: [], totalFailedPartitions: 0 };
+  }
+}
+
+
 export async function getHealthReport(): Promise<HealthReport> {
   const db = await getDB();
   const [monthly, weekly, evds, audit, news, regulation, extraction] = await Promise.all([
@@ -242,6 +281,7 @@ export async function getHealthReport(): Promise<HealthReport> {
     }),
     extractionHealth(db),
   ]);
+  const validation = await validationHealth(db);
 
-  return { sources: [monthly, weekly, evds, audit, news, regulation], extraction };
+  return { sources: [monthly, weekly, evds, audit, news, regulation], extraction, validation };
 }

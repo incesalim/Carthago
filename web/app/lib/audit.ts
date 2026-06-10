@@ -143,21 +143,60 @@ export async function balanceSheetMultiPeriod(
   const placeholders = periods.map(() => "?").join(",");
   const { results } = await db
     .prepare(
-      `SELECT statement, period, hierarchy, amount_total
+      `SELECT statement, period, hierarchy, item_name, amount_total
        FROM bank_audit_balance_sheet
        WHERE bank_ticker = ? AND kind = ?
          AND period IN (${placeholders})
          AND hierarchy != ''`,
     )
     .bind(ticker, kind, ...periods)
-    .all<{ statement: string; period: string; hierarchy: string; amount_total: number | null }>();
+    .all<{ statement: string; period: string; hierarchy: string; item_name: string; amount_total: number | null }>();
   const out = new Map<string, Map<string, number | null>>();
   for (const r of results) {
     const key = `${r.statement}::${r.hierarchy}`;
     if (!out.has(key)) out.set(key, new Map());
-    out.get(key)!.set(r.period, r.amount_total);
+    // Contra lines ("Expected Credit Losses (-)") are stored as the filing
+    // prints them: positive magnitude for most banks, NEGATIVE for the banks
+    // that parenthesize the value itself (ING/KLNMA/PASHA/TFKB). Normalize to
+    // the magnitude — the displayed label already carries the "(-)".
+    const contra = /\(\s*-\s*\)/.test(r.item_name ?? "");
+    const v = r.amount_total == null ? null : contra ? Math.abs(r.amount_total) : r.amount_total;
+    out.get(key)!.set(r.period, v);
   }
   return out;
+}
+
+export interface ValidationCell {
+  period: string;
+  checks_failed: number;
+  checks_passed: number;
+}
+
+/** Identity-validation outcome per period for one (bank, kind) — powers the
+ *  ⚠ markers on the per-bank tables. `bank_audit_validation` is written by
+ *  the extraction pipeline (src/audit_reports/validator.py) and may not exist
+ *  in D1 until the Phase-3 backfill lands, so degrade to "no data" on error
+ *  instead of failing the page. */
+export async function validationByPeriod(
+  ticker: string,
+  kind: "consolidated" | "unconsolidated",
+): Promise<Map<string, ValidationCell>> {
+  try {
+    const db = await getDB();
+    const { results } = await db
+      .prepare(
+        `SELECT period, SUM(checks_failed) AS checks_failed,
+                SUM(checks_passed) AS checks_passed
+         FROM bank_audit_validation
+         WHERE bank_ticker = ? AND kind = ?
+         GROUP BY period`,
+      )
+      .bind(ticker, kind)
+      .all<ValidationCell>();
+    return new Map(results.map((r: ValidationCell) => [r.period, r]));
+  } catch {
+    return new Map();
+  }
 }
 
 /** Representative `item_name` per `<statement>::<hierarchy>` for one bank, taken
