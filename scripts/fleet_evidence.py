@@ -72,6 +72,10 @@ def _partition_stats(conn, bank, period, kind) -> dict | None:
 
 
 def _bucket(old: dict | None, new: dict | None) -> tuple[str, str]:
+    if old is None and new is None:
+        # e.g. ISCTR 2025Q1 consolidated: only off-balance rows exist on both
+        # sides (the statement pages have no text layer) — nothing changed.
+        return "unchanged", "no assets/liabilities on either side"
     if new is None:
         return "regressed", "partition missing in re-extraction"
     if old is None:
