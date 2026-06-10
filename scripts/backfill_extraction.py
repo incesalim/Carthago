@@ -28,6 +28,7 @@ import sqlite3
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
@@ -50,6 +51,25 @@ AUDIT_TABLES = [
 # Window passed to push_to_d1; the D1 partition-clear below derives the same
 # (bank, period) set the push will re-insert, so keep these two in lock-step.
 PUSH_WINDOW_HOURS = 24
+
+# D1 occasionally drops a remote execute with a service-side transient
+# ("D1_RESET_DO" / "import polling failed" / fetch failed) — seen during the
+# Phase-3 batch run right after a heavy partition clear. Imports are
+# transactional, so retrying is safe; without it a transient strands a batch
+# with cleared-but-unpushed partitions.
+D1_RETRIES = 3
+D1_RETRY_WAIT_S = 90
+
+
+def _retry_wrangler(sql_path: Path, what: str) -> None:
+    for attempt in range(1, D1_RETRIES + 1):
+        if run_wrangler(sql_path) == 0:
+            return
+        if attempt < D1_RETRIES:
+            print(f"[backfill] {what} failed (attempt {attempt}/{D1_RETRIES}) — "
+                  f"retrying in {D1_RETRY_WAIT_S}s", flush=True)
+            time.sleep(D1_RETRY_WAIT_S)
+    sys.exit(f"[backfill] {what} failed after {D1_RETRIES} attempts")
 
 
 def _partition_delete_sql(parts: list[tuple[str, str]]) -> str:
@@ -81,9 +101,7 @@ def _ensure_d1_schema() -> None:
     sql_path = Path(tempfile.gettempdir()) / "d1_audit_schema.sql"
     sql_path.write_text(DDL, encoding="utf-8")
     print("[backfill] ensuring bank_audit_* schema exists in D1")
-    rc = run_wrangler(sql_path)
-    if rc != 0:
-        sys.exit(f"[backfill] D1 schema ensure failed (rc={rc})")
+    _retry_wrangler(sql_path, "D1 schema ensure")
 
 
 def _clear_d1_partitions(db_path: Path, window_hours: int) -> None:
@@ -102,9 +120,7 @@ def _clear_d1_partitions(db_path: Path, window_hours: int) -> None:
     sql_path = Path(tempfile.gettempdir()) / "d1_backfill_deletes.sql"
     sql_path.write_text(_partition_delete_sql(parts), encoding="utf-8")
     print(f"[backfill] clearing {len(parts)} partitions × {len(AUDIT_TABLES)} tables in D1")
-    rc = run_wrangler(sql_path)
-    if rc != 0:
-        sys.exit(f"[backfill] D1 partition delete failed (rc={rc})")
+    _retry_wrangler(sql_path, "D1 partition delete")
 
 
 def main() -> None:
@@ -177,9 +193,19 @@ def main() -> None:
     _ensure_d1_schema()   # create any missing bank_audit_* tables before clear/push
     _clear_d1_partitions(DB, args.window_hours)
 
-    subprocess.run([sys.executable, str(REPO / "scripts" / "push_to_d1.py"),
-                    "--db", str(DB), "--hours", str(args.window_hours),
-                    "--only-tables", ",".join(AUDIT_TABLES)], check=True)
+    push_cmd = [sys.executable, str(REPO / "scripts" / "push_to_d1.py"),
+                "--db", str(DB), "--hours", str(args.window_hours),
+                "--only-tables", ",".join(AUDIT_TABLES)]
+    for attempt in range(1, D1_RETRIES + 1):
+        if subprocess.run(push_cmd).returncode == 0:
+            break
+        if attempt == D1_RETRIES:
+            sys.exit(f"[backfill] D1 push failed after {D1_RETRIES} attempts "
+                     "— partitions are cleared but unpushed; re-run this backfill "
+                     "for the same banks to recover")
+        print(f"[backfill] D1 push failed (attempt {attempt}/{D1_RETRIES}) — "
+              f"retrying in {D1_RETRY_WAIT_S}s", flush=True)
+        time.sleep(D1_RETRY_WAIT_S)
 
     with sqlite3.connect(str(DB)) as c:
         c.execute("VACUUM")
