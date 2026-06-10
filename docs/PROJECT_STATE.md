@@ -7,7 +7,9 @@ coverage or known issues change.
 > → this file → [OPERATIONS.md](OPERATIONS.md). Metric definitions in
 > [METRICS.md](METRICS.md).
 >
-> Last verified: 2026-06-10 (balance-sheet row-drop/ECL extraction fix + fleet backfill).
+> Last verified: 2026-06-10 (audit rework Phases 0–2 complete: census + identity
+> validator + fleet evidence dry-run; Phase 3 history repair awaits review of
+> data/backfill_evidence/report.md — see docs/AUDIT_REWORK_PLAN.md).
 
 ---
 
@@ -150,6 +152,19 @@ A qualitative-data layer feeds two tabs from the `news_items` table
 
 ## Known issues / pending work
 
+- **Audit rework Phases 0–2 complete (2026-06-10, docs/AUDIT_REWORK_PLAN.md).**
+  Phase 0: all 975 PDFs profiled (`scripts/profile_audit_corpus.py` →
+  `data/audit_profiles.json`; census + format-drift + §5 footnote inventory
+  generated into AUDIT_BANK_CATALOG.md). Phase 1: extraction-time internal-sum
+  validator (`src/audit_reports/validator.py` → `bank_audit_validation`,
+  D1 migration 0005, `structure` quality check). Phase 2: full-fleet dry-run
+  re-extraction into a scratch DB with old-vs-new evidence
+  (`data/backfill_evidence/report.md`). Dry-run findings already fixed:
+  QNBFB phantom page-header rows, SKBNK leading-dipnot corruption. Findings
+  excluded from repair: ISCTR 2025Q1 consolidated (PDF has no text layer —
+  a backfill would destroy its D1 rows), TSKB 2025 split-digit quarters.
+  **NEXT: user reviews report.md buckets → Phase 3 batchwise D1 repair →
+  Phase 4 dashboard states → Phase 5 footnote foundation.**
 - **Balance-sheet rows dropped / corrupted by spurious number matches (resolved
   2026-06-10).** `extractor.py`'s `_parse_rows` counted three non-values as
   value columns: the row's own hierarchy token (`2.4`, `1.1.4.`), the dash

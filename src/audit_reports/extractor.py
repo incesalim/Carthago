@@ -229,6 +229,13 @@ def _parse_rows(text: str, n_cols: int) -> list[tuple[str, list[float | None]]]:
             continue
         # Find all numeric tokens (positions included, marker excluded)
         nums_m = _value_matches(line)
+        # A parenthesized 1-2 digit token IMMEDIATELY after the label is a
+        # dipnot ref even when the line carries no surplus (SKBNK prints
+        # "INVESTMENT PROPERTY (Net) (14) - - - - -", which used to store -14
+        # as a value). Drop it; if the row then falls below n_cols it is
+        # skipped — better lost than corrupted.
+        while nums_m and _FOOTNOTE_RX.fullmatch(nums_m[0].group()):
+            nums_m = nums_m[1:]
         # Dipnot refs like "(6)" sit between the label and the value columns;
         # drop them while the line still has surplus tokens, so they can never
         # be taken as a value (-6) or skew the triplet count below.
@@ -276,9 +283,14 @@ def _parse_rows(text: str, n_cols: int) -> list[tuple[str, list[float | None]]]:
             # HSBC, BURGAN emit "I. BALANCE SHEET (STATEMENT OF FINANCIAL
             # POSITION) Curre…", "I. BİLANÇO Bağımsız Denetimden …",
             # "I. BALANCE SHEET Audited Audited Note" as phantom rows.
-            r'|BALANCE\s+SHEET(?!\s+TOTAL)'
+            # \s* (not \s+) so squished variants ("BALANCESHEET-ASSETS
+            # CurrentPeriod PriorPeriod 31.12.2023 …", QNBFB) match too —
+            # the two dates fragment into exactly 6 numeric tokens, which
+            # otherwise admits the page header as a roman-I data row.
+            r'|BALANCE\s*SHEET(?!\s*TOTAL)'
             r'|STATEMENT\s+OF\s+FINANCIAL\s+POSITION'
-            r'|BİLANÇO(?!\s+TOPLAMI)'
+            r'|BİLANÇO(?!\s*TOPLAMI)'
+            r'|Current\s*Period\s+Prior\s*Period'
             r'|Bağımsız\s+Denetimden'
             r'|Audited\s+Audited'
             r'|\bNote\s*$)',
