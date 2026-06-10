@@ -33,27 +33,30 @@ _MAX_SCAN_FROM_START = 26   # pages to scan once the LCR section begins; the
 # label) so policy prose that merely mentions the ratio name is not matched.
 # `_RN` absorbs an optional leading row number in any form: "34 ", "15.", "15." glued.
 _RN = r"(?:\d+\.?\s*)?"
+# EN labels use \s* between words: TSKB's 2023–2024 squished text layer drops
+# inter-word spaces ("LiquidityCoverageRatio(%)") — same class capital_adequacy
+# handles. Turkish squish has not been observed; TR patterns keep \s+.
 _LCR_RX = [re.compile(p, re.IGNORECASE) for p in [
-    rf"^{_RN}Liquidity\s+Coverage\s+Ratio\s*\(\s*%\s*\)",
+    rf"^{_RN}Liquidity\s*Coverage\s*Ratio\s*\(\s*%\s*\)",
     rf"^{_RN}Likidite\s+Kar[şs]ılama\s+Oranı\s*\(\s*%\s*\)",
 ]]
 # NSFR: banks vary wording (Ratio/Rate), drop the "(%)" (DENIZ), or file in
 # Turkish ("Net İstikrarlı Fonlama Oranı", with i/İ/ı variants). The leading ^
 # anchor + a trailing number keeps prose mentions out even without the "(%)".
 _NSFR_RX = [re.compile(p, re.IGNORECASE) for p in [
-    rf"^{_RN}Net\s+Stable\s+Funding\s+(?:Ratio|Rate)\b",
+    rf"^{_RN}Net\s*Stable\s*Funding\s*(?:Ratio|Rate)\b",
     rf"^{_RN}Net\s+[Iİiı]stikrarl[ıi]\s+Fonlama\s+Oran",
 ]]
 # Leverage: optional "Financial " (QNBFB) / "Finansal " prefix; EN or TR label.
 _LEV_RX = [re.compile(p, re.IGNORECASE) for p in [
-    rf"^{_RN}(?:Financial\s+)?Leverage\s+[Rr]atio\b",
+    rf"^{_RN}(?:Financial\s*)?Leverage\s*[Rr]atio\b",
     rf"^{_RN}(?:Finansal\s+)?Kaldıraç\s+[Oo]ran[ıi]\b",
 ]]
 # Where the §4.6/4.7 section begins — table-specific phrasing (not policy prose).
 _START_RX = [re.compile(p, re.IGNORECASE) for p in [
-    r"High[\s-]?Quality\s+Liquid\s+Assets",
+    r"High[\s-]?Quality\s*Liquid\s*Assets",
     r"Yüksek\s+Kaliteli\s+Likit",
-    r"leverage\s+ratio\s+table\s+prepared",
+    r"leverage\s*ratio\s*table\s*prepared",
 ]]
 
 

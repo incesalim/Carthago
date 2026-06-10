@@ -46,33 +46,43 @@ _TI = r"Tier\s*(?:I|1)"
 _TII = r"Tier\s*(?:II|2)"
 _KON = r"(?:Konsolide\s+)?"      # TR consolidated-report label prefix (VAKIFK)
 _CONS = r"(?:Consolidated\s+)?"  # EN equivalent
+# Label patterns use \s* between words throughout: TSKB's 2023–2024 reports
+# squish ALL inter-word spaces out of the text layer ("Core EquityTier1Capital
+# BeforeDeductions", "CapitalAdequacyRatio(%) 22,87 26,16") while the numbers
+# keep their separating spaces, and EXIM glues word pairs the same way.
 _FIELDS: list[tuple[str, bool, list[str]]] = [
     ("cet1_capital", False, [
-        rf"^Total\s+Common\s+Equity\s+{_TI}\s+Capital\b",
-        rf"^Common\s+Equity\s+{_TI}\s+[Cc]apital\s*\(\s*CET\s*1\s*\)",
+        rf"^Total\s*Common\s*Equity\s*{_TI}\s*Capital\b",
+        rf"^Common\s*Equity\s*{_TI}\s*[Cc]apital\s*\(\s*CET\s*1\s*\)",
+        # TSKB says "Core" instead of "Common" and writes the post-deduction
+        # total without a "Total" prefix ("Core Equity Tier I Capital
+        # 44.540.818"). The Before-Deductions line never matches: squished or
+        # not, "Capital" is followed by "Before" (\b/lookahead reject it),
+        # and the all-caps section header carries no numbers.
+        rf"^(?:Total\s*)?Core\s*Equity\s*{_TI}\s*Capital\b(?!\s*Before)",
         r"^Çekirdek\s+Sermaye\s+Toplamı\b",
     ]),
     ("additional_tier1_capital", False, [
-        rf"^Total\s+Additional\s+(?:{_TI}|Core)\s+[Cc]apital\b",
+        rf"^Total\s*Additional\s*(?:{_TI}|Core)\s*[Cc]apital\b",
         r"^İlave\s+Ana\s+Sermaye\s+Toplamı\b",
     ]),
     ("tier1_capital", False, [
-        rf"^Total\s+{_TI}\s+[Cc]apital\b(?!\s*(?:Ratio|Adequacy))",
+        rf"^Total\s*{_TI}\s*[Cc]apital\b(?!\s*(?:Ratio|Adequacy))",
         r"^Ana\s+Sermaye\s+Toplamı\b",
     ]),
     ("tier2_capital", False, [
-        rf"^Total\s+{_TII}\s+[Cc]apital\b",
+        rf"^Total\s*{_TII}\s*[Cc]apital\b",
         r"^Katkı\s+Sermaye\s+Toplamı\b",
     ]),
     ("total_capital", False, [
-        r"^Total\s+Capital\b",
-        r"^Total\s+Own\s+Funds\b",
+        r"^Total\s*Capital\b",
+        r"^Total\s*Own\s*Funds\b",
         r"^Toplam\s+Özkaynak\b",
         # EXIM words the current-period total differently from the prior table:
         # "Total Equity (Total Tier I and Tier II Capital)" /
         # "The sum of Tier I Capital and Tier II Capital (Total Capital)".
-        rf"^Total\s+Equity\s*\(\s*Total\s+(?:of\s+)?{_TI}\s+and\s+{_TII}",
-        rf"^The\s+sum\s+of\s+{_TI}\s+Capital\s+and\s+{_TII}\s+Capital",
+        rf"^Total\s*Equity\s*\(\s*Total\s*(?:of\s+)?{_TI}\s*and\s*{_TII}",
+        rf"^The\s*sum\s*of\s*{_TI}\s*Capital\s*and\s*{_TII}\s*Capital",
     ]),
     ("total_rwa", False, [
         r"^Total\s*Risk[\s-]?Weighted\s*(?:Assets|Amount|Items)",
@@ -103,12 +113,12 @@ _FIELD_RX = [(f, is_ratio, [re.compile(p, re.IGNORECASE) for p in pats])
 # Section anchors (where the §4.1 capital table starts / ends). The start is the
 # "before deductions" CET1 line, which sits at the top of the components table.
 _START_RX = [re.compile(p, re.IGNORECASE) for p in [
-    rf"Common\s+Equity\s+{_TI}\s+[Cc]apital\s+[Bb]efore",
+    rf"(?:Common|Core)\s*Equity\s*{_TI}\s*[Cc]apital\s*[Bb]efore",
     r"İndirimler\s+Öncesi\s+Çekirdek\s+Sermaye",
     r"Components\s+of\s+(?:the\s+)?total\s+capital",
 ]]
 _END_RX = [re.compile(p, re.IGNORECASE) for p in [
-    r"Capital\s+Adequacy\s+(?:Standard\s+)?Ratio\s*\(\s*%",
+    r"Capital\s*Adequacy\s*(?:Standard\s*)?Ratio\s*\(\s*%",
     r"^Sermaye\s+Yeterlili[ğg]i\s+(?:Standart\s+)?Oranı",
 ]]
 _SKIP_PAGES = 12          # clear cover / auditor / TOC / statements front matter
@@ -261,17 +271,25 @@ def extract_from_pdf(pdf: pdfplumber.PDF, pdf_path: str = "") -> CapitalReport:
     # picking the candidate that best matches the reported Tier1 ratio × RWA
     # when both are available (SKBNK 2022Q4: misread 16,233 IS the AT1 →
     # 4,502,933; 2025Q4: misread 8,585,373 IS the AT1 → 21,144,203).
+    # When the Tier1 row is missing entirely (TSKB: the wrapped label never
+    # yields tokens), fill CET1+AT1 only if the reported Tier1 ratio × RWA
+    # confirms it within 2% — quarters where AT1 itself was missed stay NULL
+    # rather than storing a confidently wrong number.
     for vals in (current, prior):
         cet1, t1 = vals.get("cet1_capital"), vals.get("tier1_capital")
-        if cet1 is None or t1 is None or t1 >= cet1:
+        if cet1 is None:
             continue
-        cands = [cet1 + (vals.get("additional_tier1_capital") or 0), cet1 + t1]
+        at1 = vals.get("additional_tier1_capital") or 0
         ratio, rwa = vals.get("tier1_ratio"), vals.get("total_rwa")
-        if ratio and rwa:
-            target = ratio * rwa / 100.0
-            vals["tier1_capital"] = min(cands, key=lambda c: abs(c - target))
-        else:
-            vals["tier1_capital"] = cands[0]
+        target = ratio * rwa / 100.0 if (ratio and rwa) else None
+        if t1 is not None and t1 < cet1:
+            cands = [cet1 + at1, cet1 + t1]
+            vals["tier1_capital"] = (min(cands, key=lambda c: abs(c - target))
+                                     if target else cands[0])
+        elif t1 is None and target:
+            cand = cet1 + at1
+            if abs(cand - target) <= 0.02 * target:
+                vals["tier1_capital"] = cand
 
     if current:
         rep.rows.append(CapitalRow(period_type="current", **current))
