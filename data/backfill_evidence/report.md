@@ -1,0 +1,1083 @@
+# Fleet re-extraction evidence report (Phase 2 — dry run, nothing pushed)
+
+Old = current production-state DB (data/bank_audit.db). New = scratch re-extraction with the current extractor. Buckets: see scripts/fleet_evidence.py.
+
+## Summary
+
+- **improved**: 800
+- **unchanged**: 72
+- **investigate**: 85
+- **regressed**: 9
+
+## Per bank
+
+| Bank | improved | unchanged | investigate | regressed |
+|---|---|---|---|---|
+| AKBNK | 34 | 0 | 0 | 0 |
+| AKTIF | 34 | 0 | 0 | 0 |
+| ALBRK | 0 | 34 | 0 | 0 |
+| ALNTF | 22 | 0 | 10 | 0 |
+| ANADOLU | 24 | 0 | 10 | 0 |
+| ATBANK | 30 | 0 | 4 | 0 |
+| BURGAN | 0 | 32 | 2 | 0 |
+| DENIZ | 34 | 0 | 0 | 0 |
+| EMLAK | 30 | 0 | 4 | 0 |
+| EXIM | 11 | 0 | 6 | 0 |
+| FIBA | 26 | 0 | 2 | 0 |
+| GARAN | 34 | 0 | 0 | 0 |
+| HALKB | 34 | 0 | 0 | 0 |
+| HSBC | 32 | 0 | 2 | 0 |
+| ICBCT | 22 | 0 | 12 | 0 |
+| ING | 34 | 0 | 0 | 0 |
+| ISCTR | 30 | 0 | 2 | 1 |
+| KLNMA | 17 | 0 | 1 | 0 |
+| KUVEYT | 25 | 0 | 9 | 0 |
+| ODEA | 15 | 0 | 2 | 0 |
+| PASHA | 16 | 0 | 1 | 0 |
+| QNBFB | 33 | 0 | 1 | 0 |
+| SKBNK | 18 | 6 | 4 | 6 |
+| TEB | 33 | 0 | 1 | 0 |
+| TFKB | 33 | 0 | 0 | 0 |
+| TSKB | 24 | 0 | 7 | 1 |
+| VAKBN | 24 | 0 | 1 | 0 |
+| VAKIFK | 34 | 0 | 0 | 0 |
+| YKBNK | 32 | 0 | 2 | 0 |
+| ZIRAAT | 34 | 0 | 0 | 0 |
+| ZIRAATK | 31 | 0 | 2 | 1 |
+
+## Regressed (9)
+
+- **ISCTR 2025Q1 consolidated** — partition missing in re-extraction
+- **SKBNK 2022Q2 unconsolidated** — rows 158→155
+- **SKBNK 2022Q4 unconsolidated** — rows 157→153
+    - hierarchy_sum: 16.5 Profit Reserves exp=965,369 act=831,854
+- **SKBNK 2023Q2 unconsolidated** — rows 159→156
+- **SKBNK 2023Q3 unconsolidated** — rows 159→155
+    - hierarchy_sum: 16.5 Profit Reserves exp=2,360,327 act=2,200,927
+- **SKBNK 2024Q2 unconsolidated** — rows 158→155
+    - hierarchy_sum: 16.5 Profit Reserves exp=4,684,079 act=4,444,919
+- **SKBNK 2024Q3 unconsolidated** — rows 158→154
+    - hierarchy_sum: 16.5 Profit Reserves exp=4,684,079 act=4,444,919
+- **TSKB 2025Q2 unconsolidated** — identity failures 18→20
+    - row_triplet: I. FINANCIAL ASSETS (Net) exp=16 act=67,644,943
+    - row_triplet: 1.2.3 Other Financial Assets exp=1 act=1,612,537
+    - row_triplet: 1.3 Financial Assets at Fair Value Through Other Comprehensive Income  exp=16,774 act=7,148,606
+- **ZIRAATK 2024Q3 consolidated** — rows 138→133
+
+## Investigate (85)
+
+- **ALNTF 2023Q2 consolidated** — still 1 identity failure(s) (was 2)
+    - statement_total: TOTAL vs Σ romans exp=64,956,944 act=46,076,587
+- **ALNTF 2023Q2 unconsolidated** — still 1 identity failure(s) (was 2)
+    - statement_total: TOTAL vs Σ romans exp=62,135,870 act=43,233,796
+- **ALNTF 2023Q3 consolidated** — still 1 identity failure(s) (was 2)
+    - statement_total: TOTAL vs Σ romans exp=68,730,269 act=46,547,529
+- **ALNTF 2023Q3 unconsolidated** — still 1 identity failure(s) (was 2)
+    - statement_total: TOTAL vs Σ romans exp=65,496,100 act=43,534,568
+- **ALNTF 2024Q1 consolidated** — still 1 identity failure(s) (was 2)
+    - statement_total: TOTAL vs Σ romans exp=71,404,062 act=48,587,756
+- **ALNTF 2024Q1 unconsolidated** — still 1 identity failure(s) (was 2)
+    - statement_total: TOTAL vs Σ romans exp=67,085,969 act=44,286,469
+- **ALNTF 2024Q2 consolidated** — still 1 identity failure(s) (was 2)
+    - statement_total: TOTAL vs Σ romans exp=72,323,861 act=53,227,233
+- **ALNTF 2024Q2 unconsolidated** — still 1 identity failure(s) (was 2)
+    - statement_total: TOTAL vs Σ romans exp=68,426,539 act=49,376,048
+- **ALNTF 2025Q2 unconsolidated** — still 1 identity failure(s) (was 2)
+    - statement_total: TOTAL vs Σ romans exp=103,304,534 act=73,684,657
+- **ALNTF 2025Q4 unconsolidated** — still 1 identity failure(s) (was 2)
+    - statement_total: TOTAL vs Σ romans exp=118,483,385 act=83,544,950
+- **ANADOLU 2022Q1 unconsolidated** — still 2 identity failure(s) (was 4)
+    - row_triplet: XIV. SERMAYE BENZERİ BORÇLANMA ARAÇLARI V-II exp=0 act=-9
+    - hierarchy_sum: 16.5 Kâr Yedekleri exp=2,756,677 act=164,453
+- **ANADOLU 2022Q3 unconsolidated** — still 1 identity failure(s) (was 5)
+    - row_triplet: VARLIKLAR TOPLAMI 24,847,702 exp=46,665,629 act=21,817,954
+- **ANADOLU 2023Q2 consolidated** — still 1 identity failure(s) (was 5)
+    - row_triplet: VII. YATIRIM AMAÇLI GAYRİMENKULLER (Net) V exp=13 act=0
+- **ANADOLU 2023Q3 unconsolidated** — still 1 identity failure(s) (was 3)
+    - hierarchy_sum: 16.5 Kar Yedekleri exp=4,676,209 act=4,456,794
+- **ANADOLU 2023Q4 unconsolidated** — still 1 identity failure(s) (was 6)
+    - row_triplet: XIV. SERMAYE BENZERİ BORÇLANMA ARAÇLARI V-II exp=0 act=-9
+- **ANADOLU 2024Q1 unconsolidated** — still 1 identity failure(s) (was 5)
+    - hierarchy_sum: III. SATIŞ AMAÇLI ELDE TUTULAN VE DURDURULAN FAALİYETLERE İLİŞKİN DURA exp=210,021 act=0
+- **ANADOLU 2025Q1 unconsolidated** — still 2 identity failure(s) (was 5)
+    - row_triplet: IX. ERTELENMİŞ VERGİ VARLIĞI V-I exp=276,268 act=276,253
+    - hierarchy_sum: XVI. ÖZKAYNAKLAR exp=19,098,134 act=17,998,134
+- **ANADOLU 2025Q3 unconsolidated** — still 3 identity failure(s) (was 6)
+    - row_triplet: XVI. ÖZKAYNAKLAR 24,596,809 exp=16,370,252 act=25,851,455
+    - hierarchy_sum: XVI. ÖZKAYNAKLAR 24,596,809 exp=16,370,252 act=25,224,132
+    - statement_total: TOTAL vs Σ romans exp=161,220,910 act=152,367,030
+- **ANADOLU 2025Q4 unconsolidated** — still 1 identity failure(s) (was 4)
+    - hierarchy_sum: XVI. ÖZKAYNAKLAR exp=28,616,873 act=27,516,873
+- **ANADOLU 2026Q1 unconsolidated** — still 1 identity failure(s) (was 4)
+    - hierarchy_sum: XVI. ÖZKAYNAKLAR exp=31,385,335 act=30,285,335
+- **ATBANK 2022Q2 consolidated** — still 1 identity failure(s) (was 3)
+    - hierarchy_sum: XVI. ÖZKAYNAK LAR 9 exp=1,432,768 act=13,475,347
+- **ATBANK 2024Q2 consolidated** — still 1 identity failure(s) (was 3)
+    - row_triplet: XI. CARİ VERGİ BORCU exp=85,883 act=85,875
+- **ATBANK 2024Q4 unconsolidated** — still 2 identity failure(s) (was 5)
+    - hierarchy_sum: 1.3 Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılan Finansa exp=923,057 act=886,955
+    - hierarchy_sum: X. KARŞILIKLAR (7) exp=195,773 act=88,227
+- **ATBANK 2025Q1 consolidated** — still 1 identity failure(s) (was 4)
+    - hierarchy_sum: 1.3 Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılan Finansa exp=1,029,726 act=991,794
+- **BURGAN 2023Q2 consolidated** — still 4 identity failure(s) (was 4)
+    - row_triplet: 1.1 Cash and Cash Equivalents 5,810,737 exp=399 act=6,194,655
+    - row_triplet: V. TANGIBLE ASSETS (Net) exp=2,818,188 act=2,818
+    - hierarchy_sum: I. FINANCIAL ASSETS (Net) exp=20,395,967 act=8,402,967
+- **BURGAN 2025Q3 consolidated** — still 1 identity failure(s) (was 1)
+    - statement_total: TOTAL vs Σ romans exp=166,816,492 act=128,999,065
+- **EMLAK 2022Q3 consolidated** — still 1 identity failure(s) (was 2)
+    - hierarchy_sum: 1.1 Nakit ve Nakit Benzerleri exp=35,318,116 act=35,345,765
+- **EMLAK 2022Q4 consolidated** — still 1 identity failure(s) (was 2)
+    - statement_total: TOTAL vs Σ romans exp=98,955,214 act=44,875,946
+- **EMLAK 2023Q2 unconsolidated** — still 1 identity failure(s) (was 3)
+    - statement_total: TOTAL vs Σ romans exp=128,439,710 act=119,767,151
+- **EMLAK 2025Q2 unconsolidated** — still 1 identity failure(s) (was 3)
+    - hierarchy_sum: VIII. KARŞILIKLAR (6) exp=12,508,397 act=11,653,901
+- **EXIM 2023Q2 unconsolidated** — still 1 identity failure(s) (was 3)
+    - row_triplet: XVI. SHAREHOLDERS' EQUITY (10) exp=28,231,468 act=28,386,663
+- **EXIM 2024Q4 unconsolidated** — still 3 identity failure(s) (was 5)
+    - row_triplet: 1.3.2. Equity Securities exp=4,671,868 act=4,621,868
+    - row_triplet: V. TANGIBLE ASSETS (Net) (13) exp=336,235 act=336,253
+    - row_triplet: 16.4 Other Comprehensive Income/Expense Items to be Reclassified to Pr exp=-79,403 act=-79,502
+- **EXIM 2025Q2 unconsolidated** — still 1 identity failure(s) (was 3)
+    - statement_total: TOTAL vs Σ romans exp=1,101,608,372 act=1,101,002,414
+- **EXIM 2025Q3 unconsolidated** — still 2 identity failure(s) (was 7)
+    - hierarchy_sum: X. PROVISIONS (7) exp=2,268,831 act=2,363,083
+    - statement_total: TOTAL vs Σ romans exp=1,228,264,728 act=1,228,194,823
+- **EXIM 2025Q4 unconsolidated** — still 2 identity failure(s) (was 7)
+    - hierarchy_sum: X. PROVISIONS (7) exp=2,528,646 act=2,716,189
+    - statement_total: TOTAL vs Σ romans exp=1,291,485,336 act=1,291,370,077
+- **EXIM 2026Q1 unconsolidated** — still 2 identity failure(s) (was 6)
+    - hierarchy_sum: X. PROVISIONS (7) exp=2,589,457 act=2,413,740
+    - statement_total: TOTAL vs Σ romans exp=1,451,797,737 act=1,451,579,290
+- **FIBA 2025Q4 unconsolidated** — still 1 identity failure(s) (was 7)
+    - statement_total: TOTAL vs Σ romans exp=191,216,926 act=189,672,577
+- **FIBA 2026Q1 unconsolidated** — still 1 identity failure(s) (was 5)
+    - statement_total: TOTAL vs Σ romans exp=236,093,193 act=234,498,286
+- **HSBC 2023Q4 unconsolidated** — still 1 identity failure(s) (was 3)
+    - statement_total: TOTAL vs Σ romans exp=139,906,442 act=139,566,145
+- **HSBC 2024Q3 unconsolidated** — still 1 identity failure(s) (was 2)
+    - statement_total: TOTAL vs Σ romans exp=173,389,977 act=173,225,289
+- **ICBCT 2022Q3 unconsolidated** — still 2 identity failure(s) (was 5)
+    - row_triplet: XIII. SATIŞ AMAÇLI ELDE TUTULAN VE DURDURULAN - - exp=10 act=5
+    - hierarchy_sum: XIII. SATIŞ AMAÇLI ELDE TUTULAN VE DURDURULAN - - exp=10 act=0
+- **ICBCT 2022Q4 unconsolidated** — still 2 identity failure(s) (was 5)
+    - row_triplet: III. SATIŞ AMAÇLI ELDE TUTULAN VE DURDURULAN FAALİYETLERE İLİŞKİN - - exp=16 act=5
+    - hierarchy_sum: III. SATIŞ AMAÇLI ELDE TUTULAN VE DURDURULAN FAALİYETLERE İLİŞKİN - - exp=16 act=0
+- **ICBCT 2023Q1 consolidated** — still 4 identity failure(s) (was 7)
+    - row_triplet: III. SATIŞ AMAÇLI ELDE TUTULAN VE DURDURULAN FAALİYETLERE - - exp=14 act=5
+    - hierarchy_sum: III. SATIŞ AMAÇLI ELDE TUTULAN VE DURDURULAN FAALİYETLERE - - exp=14 act=0
+    - row_triplet: XIII. SATIŞ AMAÇLI ELDE TUTULAN VE DURDURULAN - - exp=10 act=5
+- **ICBCT 2023Q1 unconsolidated** — still 4 identity failure(s) (was 7)
+    - row_triplet: III. SATIŞ AMAÇLI ELDE TUTULAN VE DURDURULAN FAALİYETLERE İLİŞKİN - - exp=14 act=5
+    - hierarchy_sum: III. SATIŞ AMAÇLI ELDE TUTULAN VE DURDURULAN FAALİYETLERE İLİŞKİN - - exp=14 act=0
+    - row_triplet: XIII. SATIŞ AMAÇLI ELDE TUTULAN VE DURDURULAN - - exp=10 act=5
+- **ICBCT 2023Q2 consolidated** — still 2 identity failure(s) (was 5)
+    - row_triplet: III. SATIŞ AMAÇLI ELDE TUTULAN VE DURDURULAN FAALİYETLERE - - exp=14 act=5
+    - hierarchy_sum: III. SATIŞ AMAÇLI ELDE TUTULAN VE DURDURULAN FAALİYETLERE - - exp=14 act=0
+- **ICBCT 2023Q2 unconsolidated** — still 2 identity failure(s) (was 5)
+    - row_triplet: IX. ERTELENMİŞ VERGİ VARLIĞI exp=90 act=273,363
+    - statement_total: TOTAL vs Σ romans exp=87,778,513 act=87,368,852
+- **ICBCT 2023Q3 consolidated** — still 2 identity failure(s) (was 5)
+    - row_triplet: III. SATIŞ AMAÇLI ELDE TUTULAN VE DURDURULAN FAALİYETLERE - - exp=14 act=5
+    - hierarchy_sum: III. SATIŞ AMAÇLI ELDE TUTULAN VE DURDURULAN FAALİYETLERE - - exp=14 act=0
+- **ICBCT 2023Q4 consolidated** — still 2 identity failure(s) (was 5)
+    - row_triplet: III. SATIŞ AMAÇLI ELDE TUTULAN VE DURDURULAN FAALİYETLERE - - exp=16 act=5
+    - hierarchy_sum: III. SATIŞ AMAÇLI ELDE TUTULAN VE DURDURULAN FAALİYETLERE - - exp=16 act=0
+- **ICBCT 2023Q4 unconsolidated** — still 2 identity failure(s) (was 5)
+    - row_triplet: XIII. SATIŞ AMAÇLI ELDE TUTULAN VE DURDURULAN - - exp=10 act=5
+    - hierarchy_sum: XIII. SATIŞ AMAÇLI ELDE TUTULAN VE DURDURULAN - - exp=10 act=0
+- **ICBCT 2024Q3 unconsolidated** — still 2 identity failure(s) (was 5)
+    - row_triplet: XIII. SATIŞ AMAÇLI ELDE TUTULAN VE DURDURULAN - - exp=10 act=5
+    - hierarchy_sum: XIII. SATIŞ AMAÇLI ELDE TUTULAN VE DURDURULAN - - exp=10 act=0
+- **ICBCT 2024Q4 consolidated** — still 2 identity failure(s) (was 5)
+    - row_triplet: III. SATIŞ AMAÇLI ELDE TUTULAN VE DURDURULAN FAALİYETLERE - - exp=16 act=5
+    - hierarchy_sum: III. SATIŞ AMAÇLI ELDE TUTULAN VE DURDURULAN FAALİYETLERE - - exp=16 act=0
+- **ICBCT 2024Q4 unconsolidated** — still 2 identity failure(s) (was 5)
+    - row_triplet: XIII. SATIŞ AMAÇLI ELDE TUTULAN VE DURDURULAN - - exp=10 act=5
+    - hierarchy_sum: XIII. SATIŞ AMAÇLI ELDE TUTULAN VE DURDURULAN - - exp=10 act=0
+- **ISCTR 2024Q1 unconsolidated** — still 1 identity failure(s) (was 6)
+    - hierarchy_sum: 16.2 CapitalReserves exp=1,241,817 act=95,650
+- **ISCTR 2025Q4 consolidated** — still 1 identity failure(s) (was 7)
+    - hierarchy_sum: IV. SECURITIES ISSUED (Net) V-II-ç exp=257,269,942 act=30,792,270
+- **KLNMA 2022Q1 unconsolidated** — still 1 identity failure(s) (was 2)
+    - hierarchy_sum: 4.2 Bağlı Ortaklıklar (Net) exp=3,050 act=0
+- **KUVEYT 2022Q2 consolidated** — still 2 identity failure(s) (was 6)
+    - hierarchy_sum: XIV. ÖZKAYNAKLAR (5.2.12.) exp=22,448,029 act=17,401,918
+    - statement_total: TOTAL vs Σ romans exp=346,799,491 act=346,305,169
+- **KUVEYT 2022Q2 unconsolidated** — still 1 identity failure(s) (was 4)
+    - row_triplet: IV. ORTAKLIK YATIRIMLARI 148 exp=1,481,015 act=1,015
+- **KUVEYT 2022Q3 unconsolidated** — still 1 identity failure(s) (was 2)
+    - hierarchy_sum: I. FİNANSAL VARLIKLAR (Net) exp=169,019,273 act=151,119,454
+- **KUVEYT 2022Q4 unconsolidated** — still 1 identity failure(s) (was 4)
+    - hierarchy_sum: XIV. ÖZKAYNAKLAR (5.2.12.) exp=28,714,842 act=24,325,746
+- **KUVEYT 2024Q1 unconsolidated** — still 3 identity failure(s) (was 3)
+    - hierarchy_sum: 1.2. Gerçeğe Uygun Değer Farkı Kâr Zarara exp=27,634,515 act=27,593,385
+    - hierarchy_sum: 1.3. Gerçeğe Uygun Değer Farkı Diğer (5.1.4.) Kapsamlı Gelire Yansıtıl exp=48,014,467 act=47,648,953
+    - hierarchy_sum: 4.2. Bağlı Ortaklıklar (Net) (5.1.8.) exp=3,692,925 act=3,569,245
+- **KUVEYT 2025Q1 consolidated** — still 1 identity failure(s) (was 3)
+    - hierarchy_sum: I. FİNANSAL VARLIKLAR (Net) exp=426,556,828 act=396,091,062
+- **KUVEYT 2025Q1 unconsolidated** — still 3 identity failure(s) (was 3)
+    - hierarchy_sum: 1.2. Gerçeğe Uygun Değer Farkı Kâr Zarara exp=33,986,692 act=33,961,296
+    - hierarchy_sum: 1.3. Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılan Finans exp=63,125,697 act=62,543,421
+    - hierarchy_sum: 4.2. Bağlı Ortaklıklar (Net) (5.1.8.) exp=12,872,212 act=4,748,532
+- **KUVEYT 2025Q2 consolidated** — still 1 identity failure(s) (was 4)
+    - statement_total: TOTAL vs Σ romans exp=1,128,342,787 act=1,125,391,222
+- **KUVEYT 2025Q4 consolidated** — still 1 identity failure(s) (was 4)
+    - statement_total: TOTAL vs Σ romans exp=1,452,061,271 act=1,449,208,201
+- **ODEA 2022Q3 unconsolidated** — still 2 identity failure(s) (was 5)
+    - row_triplet: 7.2 Türev Finansal Yükümlülüklerin Gerçeğe Uygun Değer Farkı Diğer Kap exp=-8 act=32,589
+    - hierarchy_sum: VII. TÜREV FİNANSAL YÜKÜMLÜLÜKLER II-2 exp=1,168,137 act=1,135,540
+- **ODEA 2023Q4 unconsolidated** — still 1 identity failure(s) (was 4)
+    - row_triplet: 2.2 Kiralama İşlemlerinden Alacaklar I exp=0 act=-10
+- **PASHA 2024Q1 unconsolidated** — still 2 identity failure(s) (was 2)
+    - row_triplet: III. SATIŞ AMAÇLI ELDE TUTULAN VE DURDURULAN - - exp=15 act=5
+    - hierarchy_sum: III. SATIŞ AMAÇLI ELDE TUTULAN VE DURDURULAN - - exp=15 act=0
+- **QNBFB 2022Q4 consolidated** — still 1 identity failure(s) (was 3)
+    - row_triplet: XV. OTHERLIABILITIES exp=37,266,819 act=36,952,319
+- **SKBNK 2022Q1 unconsolidated** — still 1 identity failure(s) (was 1)
+    - hierarchy_sum: 16.5 Profit Reserves exp=976,845 act=843,330
+- **SKBNK 2023Q4 unconsolidated** — still 1 identity failure(s) (was 1)
+    - hierarchy_sum: 16.5 Profit Reserves exp=2,360,327 act=2,200,927
+- **SKBNK 2024Q1 unconsolidated** — still 1 identity failure(s) (was 2)
+    - hierarchy_sum: 16.5 Profit Reserves exp=2,360,327 act=2,200,927
+- **SKBNK 2024Q4 unconsolidated** — still 1 identity failure(s) (was 2)
+    - hierarchy_sum: 16.5 Profit Reserves exp=4,684,079 act=4,444,919
+- **TEB 2024Q4 unconsolidated** — still 1 identity failure(s) (was 3)
+    - statement_total: TOTAL vs Σ romans exp=611,417,816 act=608,374,190
+- **TSKB 2023Q2 consolidated** — still 1 identity failure(s) (was 4)
+    - row_triplet: TOTAL LIABILITIES AND EQUITY 22. 999 . exp=148,811,437 act=125,812,437
+- **TSKB 2023Q2 unconsolidated** — still 2 identity failure(s) (was 4)
+    - row_triplet: 1.3.1 Government Debt Securities exp=2,846,542 act=13,718,439
+    - hierarchy_sum: 1.3 Financial Assets at Fair Value Through Other Comprehensive Income  exp=9,671,508 act=4,426,772
+- **TSKB 2025Q1 consolidated** — still 1 identity failure(s) (was 2)
+    - row_triplet: TOTAL ASSETS 64. exp=265,631,633 act=201,631,633
+- **TSKB 2025Q1 unconsolidated** — still 17 identity failure(s) (was 18)
+    - row_triplet: 1.2 Financial Assets at Fair Value Through Profit or Loss (2) exp=1 act=1,491,856
+    - row_triplet: 1.2.3 Other Financial Assets exp=1 act=1,491,856
+    - row_triplet: II. FINANCIAL ASSETS MEASURED AT AMORTIZED COST (NET exp=20 act=394,292,250
+- **TSKB 2025Q2 consolidated** — still 1 identity failure(s) (was 2)
+    - row_triplet: TOTAL ASSETS 66. exp=291,479,292 act=225,479,292
+- **TSKB 2025Q3 unconsolidated** — still 23 identity failure(s) (was 24)
+    - row_triplet: I. FINANCIAL ASSETS (Net) 33.843.354 exp=16 act=453,712
+    - row_triplet: 1.2 Financial Assets at Fair Value Through Profit or Loss (2) exp=1 act=1,590,479
+    - row_triplet: 1.2.3 Other Financial Assets 1.590.479 - exp=383 act=1,590,480
+- **TSKB 2025Q4 unconsolidated** — still 17 identity failure(s) (was 17)
+    - row_triplet: I. FINANCIAL ASSETS (NET) exp=16 act=78,192,594
+    - row_triplet: 1.2.3 Other Financial Assets exp=1 act=2,889,495
+    - row_triplet: 1.3 Financial Assets at Fair Value Through Other Comprehensive Income  exp=12 act=34,419,240
+- **VAKBN 2022Q4 unconsolidated** — still 1 identity failure(s) (was 4)
+    - row_triplet: X. DİĞER AKTİFLER (Net) V-I-17 32,96 exp=39,995,853 act=7,035,853
+- **YKBNK 2022Q3 consolidated** — still 2 identity failure(s) (was 6)
+    - hierarchy_sum: VII. DERIVATIVE FINANCIAL LIABILITIES exp=15,604,924 act=15,547,504
+    - hierarchy_sum: XVI. SHAREHOLDERS' EQUITY exp=112,522,713 act=90,564,153
+- **YKBNK 2022Q4 consolidated** — still 2 identity failure(s) (was 6)
+    - hierarchy_sum: VII. DERIVATIVE FINANCIAL LIABILITIES exp=13,969,063 act=13,936,713
+    - hierarchy_sum: XVI. SHAREHOLDERS' EQUITY exp=126,261,939 act=124,295,668
+- **ZIRAATK 2022Q3 consolidated** — still 1 identity failure(s) (was 3)
+    - statement_total: TOTAL vs Σ romans exp=182,203,540 act=182,138,896
+- **ZIRAATK 2022Q3 unconsolidated** — still 1 identity failure(s) (was 3)
+    - statement_total: TOTAL vs Σ romans exp=182,203,640 act=182,138,996
+
+## Improved (notes)
+
+- AKBNK 2022Q1 consolidated — identity failures 3→0; rows 156→159
+- AKBNK 2022Q1 unconsolidated — identity failures 2→0; rows 150→155
+- AKBNK 2022Q2 consolidated — identity failures 2→0; rows 155→159
+- AKBNK 2022Q2 unconsolidated — identity failures 2→0; rows 148→153
+- AKBNK 2022Q3 consolidated — identity failures 2→0; rows 155→159
+- AKBNK 2022Q3 unconsolidated — identity failures 2→0; rows 148→153
+- AKBNK 2022Q4 consolidated — identity failures 2→0; rows 155→159
+- AKBNK 2022Q4 unconsolidated — identity failures 2→0; rows 152→156
+- AKBNK 2023Q1 consolidated — identity failures 3→0; rows 156→159
+- AKBNK 2023Q1 unconsolidated — identity failures 3→0; rows 153→156
+- AKBNK 2023Q2 consolidated — identity failures 2→0; rows 155→159
+- AKBNK 2023Q2 unconsolidated — identity failures 2→0; rows 152→156
+- AKBNK 2023Q3 consolidated — identity failures 2→0; rows 155→159
+- AKBNK 2023Q3 unconsolidated — identity failures 2→0; rows 152→156
+- AKBNK 2023Q4 consolidated — identity failures 2→0; rows 155→159
+- AKBNK 2023Q4 unconsolidated — identity failures 2→0; rows 152→156
+- AKBNK 2024Q1 consolidated — identity failures 2→0; rows 155→159
+- AKBNK 2024Q1 unconsolidated — identity failures 2→0; rows 152→156
+- AKBNK 2024Q2 consolidated — identity failures 2→0; rows 155→159
+- AKBNK 2024Q2 unconsolidated — identity failures 2→0; rows 152→156
+- AKBNK 2024Q3 consolidated — identity failures 2→0; rows 155→159
+- AKBNK 2024Q3 unconsolidated — identity failures 2→0; rows 152→156
+- AKBNK 2024Q4 consolidated — identity failures 2→0; rows 155→159
+- AKBNK 2024Q4 unconsolidated — identity failures 2→0; rows 152→156
+- AKBNK 2025Q1 consolidated — identity failures 2→0; rows 155→159
+- AKBNK 2025Q1 unconsolidated — identity failures 2→0; rows 152→156
+- AKBNK 2025Q2 consolidated — identity failures 2→0; rows 155→159
+- AKBNK 2025Q2 unconsolidated — identity failures 2→0; rows 152→156
+- AKBNK 2025Q3 consolidated — identity failures 2→0; rows 155→159
+- AKBNK 2025Q3 unconsolidated — identity failures 2→0; rows 152→156
+- AKBNK 2025Q4 consolidated — identity failures 2→0; rows 155→159
+- AKBNK 2025Q4 unconsolidated — identity failures 2→0; rows 152→156
+- AKBNK 2026Q1 consolidated — identity failures 2→0; rows 154→158
+- AKBNK 2026Q1 unconsolidated — identity failures 2→0; rows 151→155
+- AKTIF 2022Q1 consolidated — identity failures 2→0; rows 156→159
+- AKTIF 2022Q1 unconsolidated — identity failures 2→0; rows 154→157
+- AKTIF 2022Q2 consolidated — identity failures 2→0; rows 155→158
+- AKTIF 2022Q2 unconsolidated — identity failures 2→0; rows 153→156
+- AKTIF 2022Q3 consolidated — identity failures 2→0; rows 155→158
+- AKTIF 2022Q3 unconsolidated — identity failures 2→0; rows 153→156
+- AKTIF 2022Q4 consolidated — identity failures 2→0; rows 156→159
+- AKTIF 2022Q4 unconsolidated — identity failures 2→0; rows 154→157
+- AKTIF 2023Q1 consolidated — identity failures 1→0; rows 155→159
+- AKTIF 2023Q1 unconsolidated — identity failures 1→0; rows 153→157
+- AKTIF 2023Q2 consolidated — identity failures 1→0; rows 155→158
+- AKTIF 2023Q2 unconsolidated — identity failures 1→0; rows 153→156
+- AKTIF 2023Q3 consolidated — identity failures 1→0; rows 155→158
+- AKTIF 2023Q3 unconsolidated — identity failures 1→0; rows 153→156
+- AKTIF 2023Q4 consolidated — identity failures 1→0; rows 155→159
+- AKTIF 2023Q4 unconsolidated — identity failures 1→0; rows 153→157
+- AKTIF 2024Q1 consolidated — identity failures 1→0; rows 157→160
+- AKTIF 2024Q1 unconsolidated — identity failures 1→0; rows 154→157
+- AKTIF 2024Q2 consolidated — identity failures 1→0; rows 155→158
+- AKTIF 2024Q2 unconsolidated — identity failures 1→0; rows 153→156
+- AKTIF 2024Q3 consolidated — identity failures 1→0; rows 156→159
+- AKTIF 2024Q3 unconsolidated — identity failures 1→0; rows 153→156
+- AKTIF 2024Q4 consolidated — identity failures 1→0; rows 157→160
+- AKTIF 2024Q4 unconsolidated — identity failures 1→0; rows 154→157
+- AKTIF 2025Q1 consolidated — identity failures 1→0; rows 156→159
+- AKTIF 2025Q1 unconsolidated — identity failures 1→0; rows 154→157
+- AKTIF 2025Q2 consolidated — identity failures 1→0; rows 155→158
+- AKTIF 2025Q2 unconsolidated — identity failures 1→0; rows 153→156
+- AKTIF 2025Q3 consolidated — identity failures 1→0; rows 155→158
+- AKTIF 2025Q3 unconsolidated — identity failures 1→0; rows 153→156
+- AKTIF 2025Q4 consolidated — identity failures 1→0; rows 155→159
+- AKTIF 2025Q4 unconsolidated — identity failures 1→0; rows 153→157
+- AKTIF 2026Q1 consolidated — identity failures 1→0; rows 155→159
+- AKTIF 2026Q1 unconsolidated — identity failures 1→0; rows 153→157
+- ALNTF 2022Q1 consolidated — identity failures 1→0; rows 157→160
+- ALNTF 2022Q1 unconsolidated — identity failures 1→0; rows 152→157
+- ALNTF 2022Q2 consolidated — identity failures 1→0; rows 157→160
+- ALNTF 2022Q2 unconsolidated — identity failures 1→0; rows 152→157
+- ALNTF 2022Q3 consolidated — identity failures 1→0; rows 157→160
+- ALNTF 2022Q3 unconsolidated — identity failures 1→0; rows 152→157
+- ALNTF 2022Q4 consolidated — identity failures 2→0; rows 156→160
+- ALNTF 2022Q4 unconsolidated — identity failures 1→0; rows 152→157
+- ALNTF 2023Q1 consolidated — identity failures 1→0; rows 157→160
+- ALNTF 2023Q1 unconsolidated — identity failures 1→0; rows 152→157
+- ALNTF 2023Q4 consolidated — identity failures 2→0; rows 156→160
+- ALNTF 2023Q4 unconsolidated — identity failures 1→0; rows 152→157
+- ALNTF 2024Q3 consolidated — identity failures 1→0; rows 154→159
+- ALNTF 2024Q3 unconsolidated — identity failures 1→0; rows 152→157
+- ALNTF 2024Q4 consolidated — identity failures 2→0; rows 156→160
+- ALNTF 2024Q4 unconsolidated — identity failures 1→0; rows 152→157
+- ALNTF 2025Q1 consolidated — identity failures 2→0; rows 155→160
+- ALNTF 2025Q1 unconsolidated — identity failures 1→0; rows 152→157
+- ALNTF 2025Q2 consolidated — identity failures 2→0; rows 155→160
+- ALNTF 2025Q3 consolidated — identity failures 2→0; rows 155→160
+- ALNTF 2025Q3 unconsolidated — identity failures 1→0; rows 151→156
+- ALNTF 2025Q4 consolidated — identity failures 2→0; rows 156→160
+- ANADOLU 2022Q1 consolidated — identity failures 4→0; rows 145→158
+- ANADOLU 2022Q2 consolidated — identity failures 4→0; rows 143→157
+- ANADOLU 2022Q2 unconsolidated — identity failures 5→0; rows 141→154
+- ANADOLU 2022Q3 consolidated — identity failures 4→0; rows 145→158
+- ANADOLU 2022Q4 consolidated — identity failures 4→0; rows 144→155
+- ANADOLU 2022Q4 unconsolidated — identity failures 5→0; rows 143→154
+- ANADOLU 2023Q1 consolidated — identity failures 4→0; rows 147→160
+- ANADOLU 2023Q1 unconsolidated — identity failures 4→0; rows 144→157
+- ANADOLU 2023Q2 unconsolidated — identity failures 4→0; rows 142→154
+- ANADOLU 2023Q3 consolidated — identity failures 4→0; rows 143→155
+- ANADOLU 2023Q4 consolidated — identity failures 4→0; rows 143→155
+- ANADOLU 2024Q1 consolidated — identity failures 4→0; rows 144→156
+- ANADOLU 2024Q2 consolidated — identity failures 4→0; rows 147→159
+- ANADOLU 2024Q2 unconsolidated — identity failures 4→0; rows 144→155
+- ANADOLU 2024Q3 consolidated — identity failures 4→0; rows 142→154
+- ANADOLU 2024Q3 unconsolidated — identity failures 4→0; rows 145→156
+- ANADOLU 2024Q4 consolidated — identity failures 4→0; rows 144→155
+- ANADOLU 2024Q4 unconsolidated — identity failures 3→0; rows 145→155
+- ANADOLU 2025Q1 consolidated — identity failures 4→0; rows 140→152
+- ANADOLU 2025Q2 consolidated — identity failures 4→0; rows 148→159
+- ANADOLU 2025Q2 unconsolidated — identity failures 4→0; rows 144→155
+- ANADOLU 2025Q3 consolidated — identity failures 4→0; rows 148→159
+- ANADOLU 2025Q4 consolidated — identity failures 4→0; rows 149→160
+- ANADOLU 2026Q1 consolidated — identity failures 4→0; rows 149→160
+- ATBANK 2022Q1 consolidated — identity failures 2→0; rows 156→160
+- ATBANK 2022Q1 unconsolidated — identity failures 2→0; rows 154→158
+- ATBANK 2022Q2 unconsolidated — identity failures 2→0; rows 151→157
+- ATBANK 2022Q3 consolidated — identity failures 2→0; rows 154→159
+- ATBANK 2022Q3 unconsolidated — identity failures 2→0; rows 154→157
+- ATBANK 2022Q4 consolidated — identity failures 1→0; rows 157→160
+- ATBANK 2022Q4 unconsolidated — identity failures 2→0; rows 156→158
+- ATBANK 2023Q1 consolidated — identity failures 2→0; rows 155→161
+- ATBANK 2023Q1 unconsolidated — identity failures 2→0; rows 152→157
+- ATBANK 2023Q2 consolidated — identity failures 2→0; rows 151→158
+- ATBANK 2023Q2 unconsolidated — identity failures 2→0; rows 152→156
+- ATBANK 2023Q3 consolidated — identity failures 2→0; rows 154→158
+- ATBANK 2023Q3 unconsolidated — identity failures 2→0; rows 155→157
+- ATBANK 2023Q4 consolidated — identity failures 1→0; rows 154→158
+- ATBANK 2023Q4 unconsolidated — identity failures 2→0; rows 154→157
+- ATBANK 2024Q1 consolidated — identity failures 2→0; rows 154→158
+- ATBANK 2024Q1 unconsolidated — identity failures 2→0; rows 155→157
+- ATBANK 2024Q2 unconsolidated — identity failures 2→0; rows 153→156
+- ATBANK 2024Q3 consolidated — identity failures 4→0; rows 153→157
+- ATBANK 2024Q3 unconsolidated — identity failures 2→0; rows 154→156
+- ATBANK 2024Q4 consolidated — identity failures 3→0; rows 155→158
+- ATBANK 2025Q1 unconsolidated — identity failures 2→0; rows 155→157
+- ATBANK 2025Q2 consolidated — identity failures 4→0; rows 152→156
+- ATBANK 2025Q2 unconsolidated — identity failures 2→0; rows 154→156
+- ATBANK 2025Q3 consolidated — identity failures 4→0; rows 153→156
+- ATBANK 2025Q3 unconsolidated — identity failures 2→0; rows 154→156
+- ATBANK 2025Q4 consolidated — identity failures 4→0; rows 155→158
+- ATBANK 2025Q4 unconsolidated — identity failures 2→0; rows 155→157
+- ATBANK 2026Q1 consolidated — identity failures 2→0; rows 154→158
+- ATBANK 2026Q1 unconsolidated — identity failures 2→0; rows 155→157
+- DENIZ 2022Q1 consolidated — identity failures 1→0; rows 155→160
+- DENIZ 2022Q1 unconsolidated — identity failures 1→0; rows 152→157
+- DENIZ 2022Q2 consolidated — identity failures 1→0; rows 154→159
+- DENIZ 2022Q2 unconsolidated — identity failures 1→0; rows 151→156
+- DENIZ 2022Q3 consolidated — identity failures 1→0; rows 154→159
+- DENIZ 2022Q3 unconsolidated — identity failures 1→0; rows 151→156
+- DENIZ 2022Q4 consolidated — identity failures 1→0; rows 155→160
+- DENIZ 2022Q4 unconsolidated — identity failures 1→0; rows 152→157
+- DENIZ 2023Q1 consolidated — identity failures 1→0; rows 154→160
+- DENIZ 2023Q1 unconsolidated — identity failures 1→0; rows 151→157
+- DENIZ 2023Q2 consolidated — identity failures 1→0; rows 154→159
+- DENIZ 2023Q2 unconsolidated — identity failures 1→0; rows 151→156
+- DENIZ 2023Q3 consolidated — identity failures 1→0; rows 154→159
+- DENIZ 2023Q3 unconsolidated — identity failures 1→0; rows 151→156
+- DENIZ 2023Q4 consolidated — identity failures 1→0; rows 152→160
+- DENIZ 2023Q4 unconsolidated — identity failures 1→0; rows 151→157
+- DENIZ 2024Q1 consolidated — identity failures 1→0; rows 154→160
+- DENIZ 2024Q1 unconsolidated — identity failures 1→0; rows 152→157
+- DENIZ 2024Q2 consolidated — identity failures 1→0; rows 153→159
+- DENIZ 2024Q2 unconsolidated — identity failures 1→0; rows 151→156
+- DENIZ 2024Q3 consolidated — identity failures 1→0; rows 154→159
+- DENIZ 2024Q3 unconsolidated — identity failures 1→0; rows 151→156
+- DENIZ 2024Q4 consolidated — identity failures 1→0; rows 155→160
+- DENIZ 2024Q4 unconsolidated — identity failures 1→0; rows 152→157
+- DENIZ 2025Q1 consolidated — identity failures 1→0; rows 155→160
+- DENIZ 2025Q1 unconsolidated — identity failures 1→0; rows 152→157
+- DENIZ 2025Q2 consolidated — identity failures 1→0; rows 154→159
+- DENIZ 2025Q2 unconsolidated — identity failures 1→0; rows 151→156
+- DENIZ 2025Q3 consolidated — identity failures 1→0; rows 154→159
+- DENIZ 2025Q3 unconsolidated — identity failures 1→0; rows 151→156
+- DENIZ 2025Q4 consolidated — identity failures 1→0; rows 155→160
+- DENIZ 2025Q4 unconsolidated — identity failures 1→0; rows 152→157
+- DENIZ 2026Q1 consolidated — identity failures 1→0; rows 155→160
+- DENIZ 2026Q1 unconsolidated — identity failures 1→0; rows 152→157
+- EMLAK 2022Q1 consolidated — identity failures 2→0; rows 147→151
+- EMLAK 2022Q1 unconsolidated — identity failures 2→0; rows 145→149
+- EMLAK 2022Q2 consolidated — identity failures 2→0; rows 144→148
+- EMLAK 2022Q2 unconsolidated — identity failures 2→0; rows 143→148
+- EMLAK 2022Q3 unconsolidated — identity failures 2→0; rows 144→148
+- EMLAK 2022Q4 unconsolidated — identity failures 2→0; rows 145→149
+- EMLAK 2023Q1 consolidated — identity failures 2→0; rows 146→151
+- EMLAK 2023Q1 unconsolidated — identity failures 2→0; rows 144→149
+- EMLAK 2023Q2 consolidated — identity failures 2→0; rows 141→145
+- EMLAK 2023Q3 consolidated — identity failures 2→0; rows 143→147
+- EMLAK 2023Q3 unconsolidated — identity failures 2→0; rows 143→147
+- EMLAK 2023Q4 consolidated — identity failures 2→0; rows 145→150
+- EMLAK 2023Q4 unconsolidated — identity failures 2→0; rows 143→148
+- EMLAK 2024Q1 consolidated — identity failures 2→0; rows 145→149
+- EMLAK 2024Q1 unconsolidated — identity failures 2→0; rows 145→149
+- EMLAK 2024Q2 consolidated — identity failures 2→0; rows 141→145
+- EMLAK 2024Q2 unconsolidated — identity failures 2→0; rows 144→148
+- EMLAK 2024Q3 consolidated — identity failures 2→0; rows 142→146
+- EMLAK 2024Q3 unconsolidated — identity failures 2→0; rows 144→148
+- EMLAK 2024Q4 consolidated — identity failures 2→0; rows 146→151
+- EMLAK 2024Q4 unconsolidated — identity failures 2→0; rows 144→148
+- EMLAK 2025Q1 consolidated — identity failures 2→0; rows 147→151
+- EMLAK 2025Q1 unconsolidated — identity failures 2→0; rows 145→149
+- EMLAK 2025Q2 consolidated — identity failures 2→0; rows 140→144
+- EMLAK 2025Q3 consolidated — identity failures 2→0; rows 141→145
+- EMLAK 2025Q3 unconsolidated — identity failures 2→0; rows 144→148
+- EMLAK 2025Q4 consolidated — identity failures 2→0; rows 146→151
+- EMLAK 2025Q4 unconsolidated — identity failures 2→0; rows 145→149
+- EMLAK 2026Q1 consolidated — identity failures 2→0; rows 145→149
+- EMLAK 2026Q1 unconsolidated — identity failures 4→0; rows 145→149
+- EXIM 2022Q1 unconsolidated — identity failures 2→0; rows 149→155
+- EXIM 2022Q2 unconsolidated — identity failures 2→0; rows 150→156
+- EXIM 2022Q3 unconsolidated — identity failures 2→0; rows 147→153
+- EXIM 2022Q4 unconsolidated — identity failures 2→0; rows 150→156
+- EXIM 2023Q1 unconsolidated — identity failures 4→0; rows 148→154
+- EXIM 2023Q3 unconsolidated — identity failures 3→0; rows 150→156
+- EXIM 2023Q4 unconsolidated — identity failures 2→0; rows 150→156
+- EXIM 2024Q1 unconsolidated — identity failures 5→0; rows 150→156
+- EXIM 2024Q2 unconsolidated — identity failures 5→0; rows 149→155
+- EXIM 2024Q3 unconsolidated — identity failures 2→0; rows 150→155
+- EXIM 2025Q1 unconsolidated — identity failures 2→0; rows 150→156
+- FIBA 2022Q2 consolidated — identity failures 2→0; rows 145→158
+- FIBA 2022Q2 unconsolidated — identity failures 1→0; rows 143→155
+- FIBA 2022Q3 consolidated — identity failures 2→0; rows 145→158
+- FIBA 2022Q3 unconsolidated — identity failures 1→0; rows 143→155
+- FIBA 2022Q4 consolidated — identity failures 5→0; rows 147→159
+- FIBA 2022Q4 unconsolidated — identity failures 1→0; rows 144→156
+- FIBA 2023Q1 consolidated — identity failures 7→0; rows 148→159
+- FIBA 2023Q1 unconsolidated — identity failures 4→0; rows 145→156
+- FIBA 2023Q2 consolidated — identity failures 5→0; rows 147→158
+- FIBA 2023Q2 unconsolidated — identity failures 1→0; rows 144→155
+- FIBA 2023Q3 unconsolidated — identity failures 4→0; rows 145→155
+- FIBA 2023Q4 consolidated — identity failures 5→0; rows 147→159
+- FIBA 2023Q4 unconsolidated — identity failures 1→0; rows 144→156
+- FIBA 2024Q1 unconsolidated — identity failures 4→0; rows 146→156
+- FIBA 2024Q2 consolidated — identity failures 2→0; rows 144→158
+- FIBA 2024Q2 unconsolidated — identity failures 4→0; rows 143→155
+- FIBA 2024Q3 consolidated — identity failures 2→0; rows 145→158
+- FIBA 2024Q3 unconsolidated — identity failures 1→0; rows 143→155
+- FIBA 2024Q4 consolidated — identity failures 2→0; rows 146→159
+- FIBA 2024Q4 unconsolidated — identity failures 4→0; rows 145→156
+- FIBA 2025Q1 consolidated — identity failures 4→0; rows 148→159
+- FIBA 2025Q1 unconsolidated — identity failures 5→0; rows 100→109
+- FIBA 2025Q2 consolidated — identity failures 2→0; rows 145→158
+- FIBA 2025Q2 unconsolidated — identity failures 4→0; rows 97→108
+- FIBA 2025Q4 consolidated — identity failures 2→0; rows 147→159
+- FIBA 2026Q1 consolidated — identity failures 2→0; rows 147→159
+- GARAN 2022Q1 consolidated — identity failures 1→0; rows 144→159
+- GARAN 2022Q1 unconsolidated — identity failures 1→0; rows 141→155
+- GARAN 2022Q2 consolidated — identity failures 1→0; rows 144→159
+- GARAN 2022Q2 unconsolidated — identity failures 1→0; rows 141→155
+- GARAN 2022Q3 consolidated — identity failures 1→0; rows 144→159
+- GARAN 2022Q3 unconsolidated — identity failures 1→0; rows 142→156
+- GARAN 2022Q4 consolidated — identity failures 1→0; rows 144→159
+- GARAN 2022Q4 unconsolidated — identity failures 1→0; rows 141→155
+- GARAN 2023Q1 consolidated — identity failures 1→0; rows 144→159
+- GARAN 2023Q1 unconsolidated — identity failures 1→0; rows 141→155
+- GARAN 2023Q2 consolidated — identity failures 1→0; rows 144→159
+- GARAN 2023Q2 unconsolidated — identity failures 1→0; rows 141→155
+- GARAN 2023Q3 consolidated — identity failures 1→0; rows 144→159
+- GARAN 2023Q3 unconsolidated — identity failures 1→0; rows 141→155
+- GARAN 2023Q4 consolidated — identity failures 1→0; rows 144→159
+- GARAN 2023Q4 unconsolidated — identity failures 1→0; rows 144→159
+- GARAN 2024Q1 consolidated — identity failures 1→0; rows 144→159
+- GARAN 2024Q1 unconsolidated — identity failures 1→0; rows 141→155
+- GARAN 2024Q2 consolidated — identity failures 1→0; rows 144→159
+- GARAN 2024Q2 unconsolidated — identity failures 1→0; rows 141→155
+- GARAN 2024Q3 consolidated — identity failures 1→0; rows 144→159
+- GARAN 2024Q3 unconsolidated — identity failures 1→0; rows 141→155
+- GARAN 2024Q4 consolidated — identity failures 1→0; rows 144→159
+- GARAN 2024Q4 unconsolidated — identity failures 1→0; rows 141→155
+- GARAN 2025Q1 consolidated — identity failures 1→0; rows 144→159
+- GARAN 2025Q1 unconsolidated — identity failures 1→0; rows 141→155
+- GARAN 2025Q2 consolidated — identity failures 1→0; rows 144→159
+- GARAN 2025Q2 unconsolidated — identity failures 1→0; rows 141→155
+- GARAN 2025Q3 consolidated — identity failures 1→0; rows 144→159
+- GARAN 2025Q3 unconsolidated — identity failures 1→0; rows 141→155
+- GARAN 2025Q4 consolidated — identity failures 1→0; rows 144→159
+- GARAN 2025Q4 unconsolidated — identity failures 1→0; rows 141→155
+- GARAN 2026Q1 consolidated — identity failures 1→0; rows 144→159
+- GARAN 2026Q1 unconsolidated — identity failures 1→0; rows 141→155
+- HALKB 2022Q1 consolidated — identity failures 2→0; rows 154→159
+- HALKB 2022Q1 unconsolidated — identity failures 3→0; rows 156→161
+- HALKB 2022Q2 consolidated — identity failures 3→0; rows 154→159
+- HALKB 2022Q2 unconsolidated — identity failures 4→0; rows 154→159
+- HALKB 2022Q3 consolidated — identity failures 3→0; rows 154→159
+- HALKB 2022Q3 unconsolidated — identity failures 4→0; rows 154→159
+- HALKB 2022Q4 consolidated — identity failures 3→0; rows 155→160
+- HALKB 2022Q4 unconsolidated — identity failures 4→0; rows 155→160
+- HALKB 2023Q1 consolidated — identity failures 3→0; rows 155→160
+- HALKB 2023Q1 unconsolidated — identity failures 4→0; rows 155→161
+- HALKB 2023Q2 consolidated — identity failures 3→0; rows 154→159
+- HALKB 2023Q2 unconsolidated — identity failures 4→0; rows 154→159
+- HALKB 2023Q3 consolidated — identity failures 3→0; rows 154→159
+- HALKB 2023Q3 unconsolidated — identity failures 4→0; rows 154→159
+- HALKB 2023Q4 consolidated — identity failures 3→0; rows 154→160
+- HALKB 2023Q4 unconsolidated — identity failures 4→0; rows 154→160
+- HALKB 2024Q1 consolidated — identity failures 2→0; rows 155→160
+- HALKB 2024Q1 unconsolidated — identity failures 3→0; rows 156→161
+- HALKB 2024Q2 consolidated — identity failures 2→0; rows 154→159
+- HALKB 2024Q2 unconsolidated — identity failures 3→0; rows 154→159
+- HALKB 2024Q3 consolidated — identity failures 4→0; rows 155→159
+- HALKB 2024Q3 unconsolidated — identity failures 5→0; rows 155→159
+- HALKB 2024Q4 consolidated — identity failures 4→0; rows 156→160
+- HALKB 2024Q4 unconsolidated — identity failures 5→0; rows 156→160
+- HALKB 2025Q1 consolidated — identity failures 4→0; rows 156→160
+- HALKB 2025Q1 unconsolidated — identity failures 5→0; rows 157→161
+- HALKB 2025Q2 consolidated — identity failures 5→0; rows 155→159
+- HALKB 2025Q2 unconsolidated — identity failures 6→0; rows 155→159
+- HALKB 2025Q3 consolidated — identity failures 5→0; rows 155→159
+- HALKB 2025Q3 unconsolidated — identity failures 6→0; rows 155→159
+- HALKB 2025Q4 consolidated — identity failures 5→0; rows 156→160
+- HALKB 2025Q4 unconsolidated — identity failures 6→0; rows 156→160
+- HALKB 2026Q1 consolidated — identity failures 3→0; rows 155→160
+- HALKB 2026Q1 unconsolidated — identity failures 4→0; rows 155→160
+- HSBC 2022Q1 consolidated — identity failures 3→0; rows 151→156
+- HSBC 2022Q1 unconsolidated — identity failures 3→0; rows 150→154
+- HSBC 2022Q2 consolidated — identity failures 3→0; rows 151→156
+- HSBC 2022Q2 unconsolidated — identity failures 3→0; rows 151→156
+- HSBC 2022Q3 consolidated — identity failures 3→0; rows 151→156
+- HSBC 2022Q3 unconsolidated — identity failures 3→0; rows 150→154
+- HSBC 2022Q4 consolidated — identity failures 3→0; rows 151→156
+- HSBC 2022Q4 unconsolidated — identity failures 3→0; rows 150→155
+- HSBC 2023Q1 consolidated — identity failures 2→0; rows 152→156
+- HSBC 2023Q1 unconsolidated — identity failures 2→0; rows 151→154
+- HSBC 2023Q2 consolidated — identity failures 3→0; rows 151→156
+- HSBC 2023Q2 unconsolidated — identity failures 3→0; rows 150→154
+- HSBC 2023Q3 consolidated — identity failures 3→0; rows 151→156
+- HSBC 2023Q3 unconsolidated — identity failures 3→0; rows 150→155
+- HSBC 2023Q4 consolidated — identity failures 2→0; rows 152→156
+- HSBC 2024Q1 consolidated — identity failures 1→0; rows 152→156
+- HSBC 2024Q1 unconsolidated — identity failures 1→0; rows 151→155
+- HSBC 2024Q2 consolidated — identity failures 2→0; rows 151→156
+- HSBC 2024Q2 unconsolidated — identity failures 1→0; rows 151→155
+- HSBC 2024Q3 consolidated — identity failures 2→0; rows 151→156
+- HSBC 2024Q4 consolidated — identity failures 1→0; rows 152→156
+- HSBC 2024Q4 unconsolidated — identity failures 1→0; rows 152→156
+- HSBC 2025Q1 consolidated — identity failures 1→0; rows 152→156
+- HSBC 2025Q1 unconsolidated — identity failures 1→0; rows 152→156
+- HSBC 2025Q2 consolidated — identity failures 1→0; rows 152→156
+- HSBC 2025Q2 unconsolidated — identity failures 1→0; rows 152→156
+- HSBC 2025Q3 consolidated — identity failures 1→0; rows 152→156
+- HSBC 2025Q3 unconsolidated — identity failures 1→0; rows 152→156
+- HSBC 2025Q4 consolidated — identity failures 1→0; rows 152→156
+- HSBC 2025Q4 unconsolidated — identity failures 1→0; rows 152→156
+- HSBC 2026Q1 consolidated — identity failures 1→0; rows 152→156
+- HSBC 2026Q1 unconsolidated — identity failures 1→0; rows 152→156
+- ICBCT 2022Q1 consolidated — identity failures 3→0; rows 151→160
+- ICBCT 2022Q1 unconsolidated — identity failures 3→0; rows 149→158
+- ICBCT 2022Q2 consolidated — identity failures 3→0; rows 150→159
+- ICBCT 2022Q2 unconsolidated — identity failures 3→0; rows 148→157
+- ICBCT 2022Q3 consolidated — identity failures 3→0; rows 150→159
+- ICBCT 2022Q4 consolidated — identity failures 3→0; rows 151→160
+- ICBCT 2023Q3 unconsolidated — identity failures 3→0; rows 146→155
+- ICBCT 2024Q1 consolidated — identity failures 3→0; rows 151→160
+- ICBCT 2024Q1 unconsolidated — identity failures 3→0; rows 149→158
+- ICBCT 2024Q2 consolidated — identity failures 3→0; rows 147→156
+- ICBCT 2024Q2 unconsolidated — identity failures 3→0; rows 148→157
+- ICBCT 2024Q3 consolidated — identity failures 3→0; rows 148→157
+- ICBCT 2025Q1 consolidated — identity failures 3→0; rows 151→160
+- ICBCT 2025Q1 unconsolidated — identity failures 3→0; rows 149→158
+- ICBCT 2025Q2 consolidated — identity failures 3→0; rows 150→159
+- ICBCT 2025Q2 unconsolidated — identity failures 3→0; rows 148→157
+- ICBCT 2025Q3 consolidated — identity failures 3→0; rows 148→157
+- ICBCT 2025Q3 unconsolidated — identity failures 3→0; rows 147→157
+- ICBCT 2025Q4 consolidated — identity failures 3→0; rows 151→160
+- ICBCT 2025Q4 unconsolidated — identity failures 2→0; rows 149→158
+- ICBCT 2026Q1 consolidated — identity failures 3→0; rows 151→160
+- ICBCT 2026Q1 unconsolidated — identity failures 4→0; rows 151→158
+- ING 2022Q1 consolidated — total assets 25,186,250→90,836,434; identity failures 3→0; rows 143→159
+- ING 2022Q1 unconsolidated — total assets 25,029,636→84,014,286; identity failures 3→0; rows 140→156
+- ING 2022Q2 consolidated — total assets 31,963,728→98,666,244; identity failures 3→0; rows 140→159
+- ING 2022Q2 unconsolidated — total assets 31,861,037→91,909,375; identity failures 3→0; rows 137→156
+- ING 2022Q3 consolidated — total assets 38,499,293→109,964,353; identity failures 3→0; rows 140→159
+- ING 2022Q3 unconsolidated — total assets 38,220,084→102,081,919; identity failures 3→0; rows 137→156
+- ING 2022Q4 consolidated — total assets 31,579,901→107,955,126; identity failures 3→0; rows 143→159
+- ING 2022Q4 unconsolidated — total assets 30,813,492→98,853,442; identity failures 3→0; rows 140→156
+- ING 2023Q1 consolidated — total assets 38,064,243→118,426,298; identity failures 3→0; rows 143→159
+- ING 2023Q1 unconsolidated — total assets 37,429,079→109,194,973; identity failures 3→0; rows 140→156
+- ING 2023Q2 consolidated — total assets 62,163,316→149,167,281; identity failures 3→0; rows 140→159
+- ING 2023Q2 unconsolidated — total assets 62,384,924→137,968,651; identity failures 3→0; rows 137→156
+- ING 2023Q3 consolidated — total assets 66,579,996→155,995,939; identity failures 3→0; rows 140→159
+- ING 2023Q3 unconsolidated — total assets 66,652,253→144,574,446; identity failures 3→0; rows 137→156
+- ING 2023Q4 consolidated — total assets 56,032,844→152,787,077; identity failures 3→0; rows 143→159
+- ING 2023Q4 unconsolidated — total assets 56,118,549→140,520,245; identity failures 3→0; rows 140→156
+- ING 2024Q1 consolidated — total assets 58,320,431→154,887,298; identity failures 3→0; rows 143→159
+- ING 2024Q1 unconsolidated — total assets 58,257,985→142,097,663; identity failures 3→0; rows 140→156
+- ING 2024Q2 consolidated — total assets 66,871,653→160,551,872; identity failures 3→0; rows 140→159
+- ING 2024Q2 unconsolidated — total assets 67,882,847→147,419,714; identity failures 3→0; rows 137→156
+- ING 2024Q3 consolidated — total assets 82,474,767→187,209,468; identity failures 3→0; rows 140→159
+- ING 2024Q3 unconsolidated — total assets 83,506,779→168,271,069; identity failures 3→0; rows 137→156
+- ING 2024Q4 consolidated — total assets 83,321,376→199,013,272; identity failures 3→0; rows 143→159
+- ING 2024Q4 unconsolidated — total assets 84,466,561→179,586,801; identity failures 3→0; rows 140→156
+- ING 2025Q1 consolidated — total assets 99,092,616→228,337,325; identity failures 3→0; rows 143→159
+- ING 2025Q1 unconsolidated — total assets 99,545,264→204,835,014; identity failures 3→0; rows 140→156
+- ING 2025Q2 consolidated — total assets 87,520,957→231,911,312; identity failures 3→0; rows 140→159
+- ING 2025Q2 unconsolidated — total assets 88,579,568→203,936,406; identity failures 3→0; rows 137→156
+- ING 2025Q3 consolidated — total assets 113,837,072→266,302,413; identity failures 3→0; rows 140→159
+- ING 2025Q3 unconsolidated — total assets 114,802,585→237,139,867; identity failures 3→0; rows 137→156
+- ING 2025Q4 consolidated — total assets 120,271,376→279,578,387; identity failures 3→0; rows 143→159
+- ING 2025Q4 unconsolidated — total assets 122,550,932→249,810,391; identity failures 3→0; rows 140→156
+- ING 2026Q1 consolidated — identity failures 2→0; rows 154→159
+- ING 2026Q1 unconsolidated — identity failures 2→0; rows 151→156
+- ISCTR 2022Q1 consolidated — identity failures 6→0; rows 148→159
+- ISCTR 2022Q1 unconsolidated — identity failures 5→0; rows 145→156
+- ISCTR 2022Q2 consolidated — identity failures 6→0; rows 148→159
+- ISCTR 2022Q2 unconsolidated — identity failures 5→0; rows 145→156
+- ISCTR 2022Q3 consolidated — identity failures 6→0; rows 148→159
+- ISCTR 2022Q3 unconsolidated — identity failures 5→0; rows 145→156
+- ISCTR 2022Q4 consolidated — identity failures 6→0; rows 148→159
+- ISCTR 2022Q4 unconsolidated — identity failures 5→0; rows 145→156
+- ISCTR 2023Q1 consolidated — identity failures 6→0; rows 148→159
+- ISCTR 2023Q1 unconsolidated — identity failures 5→0; rows 145→156
+- ISCTR 2023Q2 consolidated — identity failures 6→0; rows 148→159
+- ISCTR 2023Q2 unconsolidated — identity failures 5→0; rows 145→156
+- ISCTR 2023Q3 consolidated — identity failures 6→0; rows 148→159
+- ISCTR 2023Q3 unconsolidated — identity failures 5→0; rows 144→155
+- ISCTR 2023Q4 consolidated — identity failures 6→0; rows 148→159
+- ISCTR 2023Q4 unconsolidated — identity failures 5→0; rows 146→156
+- ISCTR 2024Q1 consolidated — identity failures 6→0; rows 147→158
+- ISCTR 2024Q2 consolidated — identity failures 6→0; rows 148→159
+- ISCTR 2024Q2 unconsolidated — identity failures 5→0; rows 145→156
+- ISCTR 2024Q3 consolidated — identity failures 2→0; rows 157→159
+- ISCTR 2024Q3 unconsolidated — identity failures 2→0; rows 154→156
+- ISCTR 2024Q4 consolidated — identity failures 6→0; rows 148→159
+- ISCTR 2024Q4 unconsolidated — identity failures 5→0; rows 105→115
+- ISCTR 2025Q1 unconsolidated — identity failures 5→0; rows 146→156
+- ISCTR 2025Q2 consolidated — identity failures 6→0; rows 148→159
+- ISCTR 2025Q2 unconsolidated — identity failures 5→0; rows 145→156
+- ISCTR 2025Q3 consolidated — identity failures 6→0; rows 148→159
+- ISCTR 2025Q3 unconsolidated — identity failures 5→0; rows 146→156
+- ISCTR 2025Q4 unconsolidated — identity failures 6→0; rows 145→156
+- ISCTR 2026Q1 unconsolidated — identity failures 6→0; rows 145→155
+- KLNMA 2022Q2 unconsolidated — identity failures 1→0; rows 144→152
+- KLNMA 2022Q3 unconsolidated — identity failures 1→0; rows 144→152
+- KLNMA 2022Q4 unconsolidated — identity failures 1→0; rows 144→152
+- KLNMA 2023Q1 unconsolidated — identity failures 1→0; rows 143→151
+- KLNMA 2023Q2 unconsolidated — identity failures 1→0; rows 145→153
+- KLNMA 2023Q3 unconsolidated — identity failures 1→0; rows 145→153
+- KLNMA 2023Q4 unconsolidated — rows 148→156
+- KLNMA 2024Q1 unconsolidated — rows 148→156
+- KLNMA 2024Q2 unconsolidated — rows 145→153
+- KLNMA 2024Q3 unconsolidated — rows 145→153
+- KLNMA 2024Q4 unconsolidated — identity failures 1→0; rows 145→153
+- KLNMA 2025Q1 unconsolidated — identity failures 1→0; rows 146→153
+- KLNMA 2025Q2 unconsolidated — identity failures 1→0; rows 145→153
+- KLNMA 2025Q3 unconsolidated — identity failures 1→0; rows 146→153
+- KLNMA 2025Q4 unconsolidated — identity failures 1→0; rows 145→153
+- KLNMA 2026Q1 consolidated — identity failures 1→0; rows 157→158
+- KLNMA 2026Q1 unconsolidated — identity failures 1→0; rows 152→153
+- KUVEYT 2022Q1 consolidated — identity failures 3→0; rows 142→152
+- KUVEYT 2022Q1 unconsolidated — identity failures 2→0; rows 142→152
+- KUVEYT 2022Q3 consolidated — identity failures 3→0; rows 136→147
+- KUVEYT 2022Q4 consolidated — identity failures 3→0; rows 139→149
+- KUVEYT 2023Q1 consolidated — identity failures 3→0; rows 140→152
+- KUVEYT 2023Q1 unconsolidated — identity failures 2→0; rows 140→152
+- KUVEYT 2023Q2 consolidated — identity failures 3→0; rows 138→148
+- KUVEYT 2023Q2 unconsolidated — identity failures 2→0; rows 141→151
+- KUVEYT 2023Q3 consolidated — identity failures 3→0; rows 140→151
+- KUVEYT 2023Q3 unconsolidated — identity failures 2→0; rows 140→151
+- KUVEYT 2023Q4 consolidated — identity failures 3→0; rows 140→152
+- KUVEYT 2023Q4 unconsolidated — identity failures 2→0; rows 140→152
+- KUVEYT 2024Q1 consolidated — identity failures 3→0; rows 142→152
+- KUVEYT 2024Q2 consolidated — identity failures 3→0; rows 138→148
+- KUVEYT 2024Q2 unconsolidated — identity failures 2→0; rows 141→151
+- KUVEYT 2024Q3 consolidated — identity failures 3→0; rows 140→151
+- KUVEYT 2024Q3 unconsolidated — identity failures 2→0; rows 140→151
+- KUVEYT 2024Q4 consolidated — identity failures 3→0; rows 141→152
+- KUVEYT 2024Q4 unconsolidated — identity failures 2→0; rows 141→152
+- KUVEYT 2025Q2 unconsolidated — identity failures 2→0; rows 141→151
+- KUVEYT 2025Q3 consolidated — identity failures 3→0; rows 140→151
+- KUVEYT 2025Q3 unconsolidated — identity failures 2→0; rows 140→151
+- KUVEYT 2025Q4 unconsolidated — identity failures 1→0; rows 143→152
+- KUVEYT 2026Q1 consolidated — identity failures 2→0; rows 142→152
+- KUVEYT 2026Q1 unconsolidated — identity failures 2→0; rows 142→152
+- ODEA 2022Q1 unconsolidated — identity failures 3→0; rows 151→157
+- ODEA 2022Q2 unconsolidated — identity failures 3→0; rows 150→156
+- ODEA 2022Q4 unconsolidated — identity failures 3→0; rows 151→157
+- ODEA 2023Q1 unconsolidated — identity failures 3→0; rows 151→157
+- ODEA 2023Q2 unconsolidated — identity failures 3→0; rows 148→153
+- ODEA 2023Q3 unconsolidated — identity failures 3→0; rows 148→153
+- ODEA 2024Q1 unconsolidated — identity failures 3→0; rows 151→156
+- ODEA 2024Q2 unconsolidated — identity failures 3→0; rows 150→155
+- ODEA 2024Q3 unconsolidated — identity failures 2→0; rows 150→155
+- ODEA 2024Q4 unconsolidated — identity failures 2→0; rows 151→156
+- ODEA 2025Q1 unconsolidated — identity failures 2→0; rows 152→156
+- ODEA 2025Q2 unconsolidated — identity failures 2→0; rows 150→155
+- ODEA 2025Q3 unconsolidated — identity failures 2→0; rows 150→155
+- ODEA 2025Q4 unconsolidated — identity failures 2→0; rows 152→157
+- ODEA 2026Q1 unconsolidated — identity failures 2→0; rows 152→157
+- PASHA 2022Q1 unconsolidated — total assets 841,024→3,959,423; identity failures 2→0; rows 143→156
+- PASHA 2022Q2 unconsolidated — total assets 1,301,566→4,803,204; identity failures 2→0; rows 142→154
+- PASHA 2022Q3 unconsolidated — total assets 1,620,116→5,665,582; identity failures 2→0; rows 143→155
+- PASHA 2022Q4 unconsolidated — total assets 2,138,859→6,155,855; identity failures 2→0; rows 143→156
+- PASHA 2023Q1 unconsolidated — total assets 1,997,447→6,283,991; identity failures 2→0; rows 142→156
+- PASHA 2023Q2 unconsolidated — total assets 1,767,873→7,766,198; identity failures 2→0; rows 142→155
+- PASHA 2023Q3 unconsolidated — total assets 2,442,342→8,579,576; identity failures 2→0; rows 142→155
+- PASHA 2023Q4 unconsolidated — total assets 3,395,093→9,910,172; identity failures 2→0; rows 143→156
+- PASHA 2024Q2 unconsolidated — total assets 3,266,057→10,431,512; identity failures 2→0; rows 143→155
+- PASHA 2024Q3 unconsolidated — total assets 3,511,932→10,966,448; identity failures 2→0; rows 143→155
+- PASHA 2024Q4 unconsolidated — total assets 4,386,167→12,913,309; identity failures 2→0; rows 143→156
+- PASHA 2025Q1 unconsolidated — total assets 3,801,797→12,599,972; identity failures 2→0; rows 143→156
+- PASHA 2025Q2 unconsolidated — total assets 3,924,719→13,327,780; identity failures 2→0; rows 143→155
+- PASHA 2025Q3 unconsolidated — total assets 4,213,041→14,227,481; identity failures 2→0; rows 143→155
+- PASHA 2025Q4 unconsolidated — total assets 4,433,937→14,809,401; identity failures 2→0; rows 143→156
+- PASHA 2026Q1 unconsolidated — identity failures 3→0; rows 145→156
+- QNBFB 2022Q1 consolidated — identity failures 3→0; rows 148→159
+- QNBFB 2022Q1 unconsolidated — identity failures 4→0; rows 145→159
+- QNBFB 2022Q2 consolidated — identity failures 4→0; rows 146→157
+- QNBFB 2022Q2 unconsolidated — identity failures 7→0; rows 150→160
+- QNBFB 2022Q3 consolidated — identity failures 4→0; rows 146→159
+- QNBFB 2022Q3 unconsolidated — total assets 198,105,356→555,143,826; identity failures 4→0; rows 143→159
+- QNBFB 2022Q4 unconsolidated — total assets 194,854,711→601,755,176; identity failures 4→0; rows 142→158
+- QNBFB 2023Q1 consolidated — identity failures 2→0; rows 147→159
+- QNBFB 2023Q1 unconsolidated — total assets 186,116,566→638,293,849; identity failures 3→0; rows 141→157
+- QNBFB 2023Q2 consolidated — identity failures 2→0; rows 148→159
+- QNBFB 2023Q2 unconsolidated — total assets 245,100,827→782,656,689; identity failures 3→0; rows 141→156
+- QNBFB 2023Q3 consolidated — identity failures 3→0; rows 150→157
+- QNBFB 2023Q3 unconsolidated — identity failures 3→0; rows 141→156
+- QNBFB 2023Q4 consolidated — identity failures 2→0; rows 149→159
+- QNBFB 2023Q4 unconsolidated — total assets 314,704,776→987,816,567; identity failures 3→0; rows 141→156
+- QNBFB 2024Q1 consolidated — identity failures 2→0; rows 149→159
+- QNBFB 2024Q1 unconsolidated — total assets 378,958,263→1,145,846,102; identity failures 3→0; rows 141→156
+- QNBFB 2024Q2 consolidated — identity failures 2→0; rows 149→160
+- QNBFB 2024Q2 unconsolidated — total assets 425,742,427→1,258,883,145; identity failures 3→0; rows 139→156
+- QNBFB 2024Q3 consolidated — identity failures 3→0; rows 150→160
+- QNBFB 2024Q3 unconsolidated — identity failures 3→0; rows 140→157
+- QNBFB 2024Q4 consolidated — identity failures 3→0; rows 150→159
+- QNBFB 2024Q4 unconsolidated — identity failures 3→0; rows 142→156
+- QNBFB 2025Q1 consolidated — identity failures 2→0; rows 151→159
+- QNBFB 2025Q1 unconsolidated — identity failures 3→0; rows 143→157
+- QNBFB 2025Q2 consolidated — identity failures 1→0; rows 149→156
+- QNBFB 2025Q2 unconsolidated — identity failures 3→0; rows 142→156
+- QNBFB 2025Q3 consolidated — identity failures 1→0; rows 149→156
+- QNBFB 2025Q3 unconsolidated — total assets 1,804,585,068→1,740,307,692; identity failures 5→0; rows 149→156
+- QNBFB 2025Q4 consolidated — identity failures 3→0; rows 150→159
+- QNBFB 2025Q4 unconsolidated — identity failures 4→0; rows 138→155
+- QNBFB 2026Q1 consolidated — identity failures 3→0; rows 150→156
+- QNBFB 2026Q1 unconsolidated — identity failures 3→0; rows 150→156
+- SKBNK 2022Q1 consolidated — identity failures 2→0; rows 146→159
+- SKBNK 2022Q2 consolidated — identity failures 2→0; rows 152→159
+- SKBNK 2022Q3 consolidated — identity failures 2→0; rows 152→158
+- SKBNK 2022Q4 consolidated — identity failures 2→0; rows 145→160
+- SKBNK 2023Q1 consolidated — identity failures 3→0; rows 144→160
+- SKBNK 2023Q2 consolidated — identity failures 3→0; rows 152→159
+- SKBNK 2023Q3 consolidated — identity failures 3→0; rows 152→159
+- SKBNK 2023Q4 consolidated — identity failures 3→0; rows 145→159
+- SKBNK 2024Q1 consolidated — identity failures 3→0; rows 146→160
+- SKBNK 2024Q2 consolidated — identity failures 3→0; rows 152→158
+- SKBNK 2024Q3 consolidated — identity failures 3→0; rows 152→159
+- SKBNK 2024Q4 consolidated — identity failures 3→0; rows 145→159
+- SKBNK 2025Q1 consolidated — identity failures 3→0; rows 146→160
+- SKBNK 2025Q2 consolidated — identity failures 3→0; rows 152→158
+- SKBNK 2025Q3 consolidated — identity failures 3→0; rows 152→159
+- SKBNK 2025Q4 consolidated — identity failures 3→0; rows 145→159
+- SKBNK 2026Q1 consolidated — identity failures 3→0; rows 153→160
+- SKBNK 2026Q1 unconsolidated — identity failures 3→0; rows 150→157
+- TEB 2022Q1 consolidated — identity failures 2→0; rows 155→160
+- TEB 2022Q1 unconsolidated — identity failures 2→0; rows 152→157
+- TEB 2022Q2 consolidated — identity failures 2→0; rows 154→159
+- TEB 2022Q2 unconsolidated — identity failures 2→0; rows 152→157
+- TEB 2022Q3 consolidated — identity failures 2→0; rows 152→157
+- TEB 2022Q3 unconsolidated — identity failures 2→0; rows 152→157
+- TEB 2022Q4 consolidated — identity failures 2→0; rows 154→159
+- TEB 2022Q4 unconsolidated — identity failures 1→0; rows 152→156
+- TEB 2023Q1 consolidated — identity failures 2→0; rows 154→160
+- TEB 2023Q1 unconsolidated — identity failures 2→0; rows 151→157
+- TEB 2023Q2 consolidated — identity failures 2→0; rows 154→160
+- TEB 2023Q2 unconsolidated — identity failures 2→0; rows 150→156
+- TEB 2023Q3 consolidated — identity failures 2→0; rows 154→160
+- TEB 2023Q3 unconsolidated — identity failures 2→0; rows 150→156
+- TEB 2023Q4 consolidated — identity failures 2→0; rows 153→159
+- TEB 2023Q4 unconsolidated — identity failures 1→0; rows 151→156
+- TEB 2024Q1 consolidated — identity failures 2→0; rows 154→160
+- TEB 2024Q1 unconsolidated — identity failures 2→0; rows 151→157
+- TEB 2024Q2 consolidated — identity failures 2→0; rows 154→160
+- TEB 2024Q2 unconsolidated — identity failures 2→0; rows 150→156
+- TEB 2024Q3 consolidated — identity failures 2→0; rows 154→160
+- TEB 2024Q3 unconsolidated — identity failures 2→0; rows 150→156
+- TEB 2024Q4 consolidated — identity failures 1→0; rows 154→159
+- TEB 2025Q1 consolidated — identity failures 1→0; rows 155→160
+- TEB 2025Q1 unconsolidated — identity failures 1→0; rows 152→157
+- TEB 2025Q2 consolidated — identity failures 1→0; rows 154→159
+- TEB 2025Q2 unconsolidated — identity failures 1→0; rows 151→156
+- TEB 2025Q3 consolidated — identity failures 1→0; rows 154→159
+- TEB 2025Q3 unconsolidated — identity failures 1→0; rows 151→156
+- TEB 2025Q4 consolidated — identity failures 1→0; rows 154→159
+- TEB 2025Q4 unconsolidated — identity failures 2→0; rows 150→156
+- TEB 2026Q1 consolidated — identity failures 1→0; rows 155→160
+- TEB 2026Q1 unconsolidated — identity failures 1→0; rows 152→157
+- TFKB 2022Q1 consolidated — total assets 52,315,940→119,122,821; identity failures 3→0; rows 134→151
+- TFKB 2022Q1 unconsolidated — total assets 53,758,075→120,564,956; identity failures 3→0; rows 134→151
+- TFKB 2022Q2 consolidated — total assets 63,226,544→139,923,521; identity failures 3→0; rows 135→151
+- TFKB 2022Q2 unconsolidated — total assets 65,108,214→141,805,191; identity failures 3→0; rows 135→148
+- TFKB 2022Q3 unconsolidated — total assets 75,067,724→157,194,078; identity failures 3→0; rows 135→148
+- TFKB 2022Q4 consolidated — total assets 60,269,515→145,905,182; identity failures 3→0; rows 134→151
+- TFKB 2022Q4 unconsolidated — total assets 67,126,455→152,762,122; identity failures 3→0; rows 134→151
+- TFKB 2023Q1 consolidated — total assets 59,193,938→159,096,027; identity failures 3→0; rows 134→151
+- TFKB 2023Q1 unconsolidated — total assets 65,983,628→165,885,717; identity failures 3→0; rows 134→151
+- TFKB 2023Q2 consolidated — total assets 74,821,545→190,440,528; identity failures 3→0; rows 137→151
+- TFKB 2023Q2 unconsolidated — total assets 82,657,981→198,276,964; identity failures 3→0; rows 137→148
+- TFKB 2023Q3 consolidated — total assets 87,186,905→214,745,305; identity failures 3→0; rows 137→151
+- TFKB 2023Q3 unconsolidated — total assets 94,852,287→222,410,687; identity failures 3→0; rows 136→151
+- TFKB 2023Q4 consolidated — total assets 95,063,294→232,197,741; identity failures 3→0; rows 136→151
+- TFKB 2023Q4 unconsolidated — total assets 103,078,494→240,212,941; identity failures 3→0; rows 136→151
+- TFKB 2024Q1 consolidated — rows 150→152
+- TFKB 2024Q1 unconsolidated — total assets 101,490,333→255,247,796; identity failures 3→0; rows 137→152
+- TFKB 2024Q2 consolidated — total assets 93,078,447→255,608,788; identity failures 3→0; rows 137→151
+- TFKB 2024Q2 unconsolidated — rows 149→151
+- TFKB 2024Q3 consolidated — total assets 101,675,608→275,768,961; identity failures 3→0; rows 137→151
+- TFKB 2024Q3 unconsolidated — rows 150→151
+- TFKB 2024Q4 consolidated — total assets 103,404,112→281,767,377; identity failures 3→0; rows 136→151
+- TFKB 2024Q4 unconsolidated — total assets 111,776,822→290,140,087; identity failures 3→0; rows 136→151
+- TFKB 2025Q1 consolidated — total assets 117,464,911→319,574,443; identity failures 3→0; rows 136→151
+- TFKB 2025Q1 unconsolidated — total assets 124,437,723→326,547,255; identity failures 3→0; rows 136→151
+- TFKB 2025Q2 consolidated — total assets 123,124,746→347,023,833; identity failures 3→0; rows 136→151
+- TFKB 2025Q2 unconsolidated — total assets 132,752,072→356,651,159; identity failures 3→0; rows 134→151
+- TFKB 2025Q3 consolidated — total assets 131,146,339→377,068,269; identity failures 3→0; rows 134→151
+- TFKB 2025Q3 unconsolidated — total assets 143,588,028→389,509,958; identity failures 3→0; rows 134→151
+- TFKB 2025Q4 consolidated — total assets 132,443,502→378,824,488; identity failures 3→0; rows 134→151
+- TFKB 2025Q4 unconsolidated — total assets 144,051,095→390,432,081; identity failures 3→0; rows 134→151
+- TFKB 2026Q1 consolidated — identity failures 1→0; rows 148→151
+- TFKB 2026Q1 unconsolidated — identity failures 1→0; rows 148→151
+- TSKB 2022Q1 consolidated — identity failures 1→0; rows 144→159
+- TSKB 2022Q1 unconsolidated — identity failures 1→0; rows 141→156
+- TSKB 2022Q2 consolidated — identity failures 1→0; rows 144→159
+- TSKB 2022Q2 unconsolidated — identity failures 3→0; rows 139→156
+- TSKB 2022Q3 consolidated — identity failures 1→0; rows 144→159
+- TSKB 2022Q3 unconsolidated — identity failures 3→0; rows 139→156
+- TSKB 2022Q4 consolidated — identity failures 1→0; rows 151→159
+- TSKB 2022Q4 unconsolidated — identity failures 3→0; rows 144→156
+- TSKB 2023Q1 consolidated — identity failures 3→0; rows 147→159
+- TSKB 2023Q1 unconsolidated — identity failures 3→0; rows 144→156
+- TSKB 2023Q3 consolidated — total assets 38,973,074→166,900,759; identity failures 3→0; rows 138→159
+- TSKB 2023Q3 unconsolidated — identity failures 3→0; rows 137→156
+- TSKB 2023Q4 consolidated — identity failures 1→0; rows 150→159
+- TSKB 2023Q4 unconsolidated — identity failures 2→0; rows 147→156
+- TSKB 2024Q1 consolidated — total assets 43,394,244→202,600,862; identity failures 3→0; rows 145→159
+- TSKB 2024Q1 unconsolidated — total assets 41,278,884→198,692,650; identity failures 3→0; rows 141→156
+- TSKB 2024Q2 consolidated — total assets 43,045,066→211,537,823; identity failures 3→0; rows 144→159
+- TSKB 2024Q2 unconsolidated — total assets 40,669,670→207,184,596; identity failures 3→0; rows 137→156
+- TSKB 2024Q3 consolidated — total assets 39,956,628→225,112,497; identity failures 3→0; rows 141→157
+- TSKB 2024Q3 unconsolidated — identity failures 3→0; rows 140→156
+- TSKB 2024Q4 consolidated — identity failures 1→0; rows 149→159
+- TSKB 2024Q4 unconsolidated — identity failures 1→0; rows 142→157
+- TSKB 2025Q3 consolidated — identity failures 1→0; rows 152→158
+- TSKB 2025Q4 consolidated — identity failures 1→0; rows 152→159
+- VAKBN 2022Q1 unconsolidated — identity failures 2→0; rows 148→160
+- VAKBN 2022Q2 consolidated — identity failures 2→0; rows 149→160
+- VAKBN 2022Q2 unconsolidated — identity failures 2→0; rows 148→159
+- VAKBN 2022Q3 unconsolidated — identity failures 2→0; rows 148→159
+- VAKBN 2022Q4 consolidated — identity failures 3→0; rows 150→161
+- VAKBN 2023Q1 unconsolidated — identity failures 2→0; rows 148→160
+- VAKBN 2023Q2 consolidated — identity failures 2→0; rows 149→160
+- VAKBN 2023Q2 unconsolidated — identity failures 2→0; rows 148→159
+- VAKBN 2023Q3 unconsolidated — identity failures 2→0; rows 148→159
+- VAKBN 2023Q4 consolidated — identity failures 2→0; rows 147→161
+- VAKBN 2023Q4 unconsolidated — identity failures 2→0; rows 147→160
+- VAKBN 2024Q1 unconsolidated — identity failures 2→0; rows 149→160
+- VAKBN 2024Q2 consolidated — identity failures 2→0; rows 149→160
+- VAKBN 2024Q2 unconsolidated — identity failures 2→0; rows 148→159
+- VAKBN 2024Q3 unconsolidated — identity failures 2→0; rows 147→159
+- VAKBN 2024Q4 consolidated — identity failures 2→0; rows 149→161
+- VAKBN 2024Q4 unconsolidated — identity failures 2→0; rows 148→160
+- VAKBN 2025Q1 unconsolidated — identity failures 2→0; rows 149→160
+- VAKBN 2025Q2 consolidated — identity failures 3→0; rows 148→160
+- VAKBN 2025Q2 unconsolidated — identity failures 3→0; rows 147→159
+- VAKBN 2025Q3 unconsolidated — identity failures 3→0; rows 147→159
+- VAKBN 2025Q4 consolidated — identity failures 3→0; rows 150→161
+- VAKBN 2025Q4 unconsolidated — identity failures 3→0; rows 148→160
+- VAKBN 2026Q1 unconsolidated — identity failures 3→0; rows 148→160
+- VAKIFK 2022Q1 consolidated — total assets 52,197,136→118,578,689; identity failures 3→0; rows 133→151
+- VAKIFK 2022Q1 unconsolidated — total assets 52,303,885→118,685,438; identity failures 3→0; rows 135→151
+- VAKIFK 2022Q2 consolidated — total assets 56,628,224→142,301,901; identity failures 3→0; rows 132→151
+- VAKIFK 2022Q2 unconsolidated — total assets 56,676,152→142,349,829; identity failures 3→0; rows 133→151
+- VAKIFK 2022Q3 consolidated — total assets 65,719,922→166,290,133; identity failures 3→0; rows 132→151
+- VAKIFK 2022Q3 unconsolidated — total assets 65,865,085→166,435,296; identity failures 3→0; rows 133→151
+- VAKIFK 2022Q4 consolidated — total assets 64,765,451→188,037,185; identity failures 3→0; rows 132→151
+- VAKIFK 2022Q4 unconsolidated — total assets 64,814,346→188,086,080; identity failures 3→0; rows 134→151
+- VAKIFK 2023Q1 consolidated — total assets 65,575,171→210,067,096; identity failures 3→0; rows 132→151
+- VAKIFK 2023Q1 unconsolidated — total assets 65,828,579→210,320,504; identity failures 3→0; rows 134→151
+- VAKIFK 2023Q2 consolidated — total assets 86,387,002→235,769,524; identity failures 3→0; rows 132→151
+- VAKIFK 2023Q2 unconsolidated — total assets 86,706,852→236,089,374; identity failures 3→0; rows 133→151
+- VAKIFK 2023Q3 consolidated — total assets 99,543,723→268,589,333; identity failures 3→0; rows 132→151
+- VAKIFK 2023Q3 unconsolidated — total assets 99,863,197→268,908,807; identity failures 3→0; rows 133→151
+- VAKIFK 2023Q4 consolidated — total assets 111,764,502→315,123,265; identity failures 3→0; rows 133→151
+- VAKIFK 2023Q4 unconsolidated — total assets 111,937,735→315,296,498; identity failures 3→0; rows 134→151
+- VAKIFK 2024Q1 consolidated — total assets 112,127,520→341,839,028; identity failures 3→0; rows 132→151
+- VAKIFK 2024Q1 unconsolidated — rows 147→150
+- VAKIFK 2024Q2 consolidated — total assets 108,665,760→348,595,225; identity failures 3→0; rows 132→151
+- VAKIFK 2024Q2 unconsolidated — rows 148→150
+- VAKIFK 2024Q3 consolidated — total assets 146,793,901→391,606,251; identity failures 3→0; rows 130→151
+- VAKIFK 2024Q3 unconsolidated — rows 148→150
+- VAKIFK 2024Q4 consolidated — total assets 148,557,522→402,713,280; identity failures 3→0; rows 132→151
+- VAKIFK 2024Q4 unconsolidated — rows 148→150
+- VAKIFK 2025Q1 consolidated — total assets 186,187,848→483,580,252; identity failures 3→0; rows 132→151
+- VAKIFK 2025Q1 unconsolidated — rows 148→150
+- VAKIFK 2025Q2 consolidated — total assets 219,240,798→561,492,992; identity failures 3→0; rows 127→151
+- VAKIFK 2025Q2 unconsolidated — rows 146→150
+- VAKIFK 2025Q3 consolidated — total assets 292,183,515→664,354,231; identity failures 3→0; rows 128→151
+- VAKIFK 2025Q3 unconsolidated — rows 148→150
+- VAKIFK 2025Q4 consolidated — total assets 365,741,124→784,017,364; identity failures 3→0; rows 132→151
+- VAKIFK 2025Q4 unconsolidated — rows 149→151
+- VAKIFK 2026Q1 consolidated — identity failures 1→0; rows 146→151
+- VAKIFK 2026Q1 unconsolidated — identity failures 1→0; rows 146→151
+- YKBNK 2022Q1 consolidated — identity failures 4→0; rows 154→159
+- YKBNK 2022Q1 unconsolidated — identity failures 3→0; rows 152→156
+- YKBNK 2022Q2 consolidated — identity failures 3→0; rows 155→159
+- YKBNK 2022Q2 unconsolidated — identity failures 3→0; rows 152→156
+- YKBNK 2022Q3 unconsolidated — identity failures 4→0; rows 151→156
+- YKBNK 2022Q4 unconsolidated — identity failures 4→0; rows 151→156
+- YKBNK 2023Q1 consolidated — identity failures 5→0; rows 154→159
+- YKBNK 2023Q1 unconsolidated — identity failures 4→0; rows 151→156
+- YKBNK 2023Q2 consolidated — identity failures 4→0; rows 153→159
+- YKBNK 2023Q2 unconsolidated — identity failures 4→0; rows 151→156
+- YKBNK 2023Q3 consolidated — identity failures 4→0; rows 153→159
+- YKBNK 2023Q3 unconsolidated — identity failures 4→0; rows 151→156
+- YKBNK 2023Q4 consolidated — identity failures 4→0; rows 153→159
+- YKBNK 2023Q4 unconsolidated — identity failures 4→0; rows 151→156
+- YKBNK 2024Q1 consolidated — identity failures 4→0; rows 154→159
+- YKBNK 2024Q1 unconsolidated — identity failures 4→0; rows 151→156
+- YKBNK 2024Q2 consolidated — identity failures 4→0; rows 154→159
+- YKBNK 2024Q2 unconsolidated — identity failures 5→0; rows 152→156
+- YKBNK 2024Q3 consolidated — identity failures 4→0; rows 154→159
+- YKBNK 2024Q3 unconsolidated — identity failures 4→0; rows 151→156
+- YKBNK 2024Q4 consolidated — identity failures 4→0; rows 153→159
+- YKBNK 2024Q4 unconsolidated — identity failures 4→0; rows 151→156
+- YKBNK 2025Q1 consolidated — identity failures 4→0; rows 154→159
+- YKBNK 2025Q1 unconsolidated — identity failures 4→0; rows 151→156
+- YKBNK 2025Q2 consolidated — identity failures 4→0; rows 154→159
+- YKBNK 2025Q2 unconsolidated — identity failures 4→0; rows 151→156
+- YKBNK 2025Q3 consolidated — identity failures 4→0; rows 154→159
+- YKBNK 2025Q3 unconsolidated — identity failures 4→0; rows 151→156
+- YKBNK 2025Q4 consolidated — identity failures 4→0; rows 153→159
+- YKBNK 2025Q4 unconsolidated — identity failures 4→0; rows 151→156
+- YKBNK 2026Q1 consolidated — identity failures 4→0; rows 154→159
+- YKBNK 2026Q1 unconsolidated — identity failures 4→0; rows 151→156
+- ZIRAATK 2022Q1 consolidated — total assets 121,528,706→121,811,476; identity failures 3→0; rows 136→148
+- ZIRAATK 2022Q1 unconsolidated — total assets 121,324,146→121,606,916; identity failures 3→0; rows 136→148
+- ZIRAATK 2022Q2 consolidated — total assets 151,322,596→151,597,581; identity failures 3→0; rows 136→146
+- ZIRAATK 2022Q2 unconsolidated — total assets 151,322,696→151,597,681; identity failures 3→0; rows 136→146
+- ZIRAATK 2022Q4 consolidated — total assets 212,082,279→212,356,923; identity failures 3→0; rows 137→148
+- ZIRAATK 2022Q4 unconsolidated — total assets 213,068,946→213,343,590; identity failures 3→0; rows 137→148
+- ZIRAATK 2023Q1 consolidated — total assets 241,414,725→241,701,917; identity failures 3→0; rows 136→148
+- ZIRAATK 2023Q1 unconsolidated — total assets 242,178,203→242,465,395; identity failures 3→0; rows 136→148
+- ZIRAATK 2023Q2 consolidated — identity failures 3→0; rows 135→147
+- ZIRAATK 2023Q2 unconsolidated — identity failures 2→0; rows 135→147
+- ZIRAATK 2023Q3 consolidated — identity failures 2→0; rows 135→147
+- ZIRAATK 2023Q3 unconsolidated — identity failures 2→0; rows 135→147
+- ZIRAATK 2023Q4 consolidated — total assets 383,231,141→383,658,370; identity failures 2→0; rows 135→148
+- ZIRAATK 2023Q4 unconsolidated — total assets 383,829,376→384,256,605; identity failures 2→0; rows 135→148
+- ZIRAATK 2024Q1 consolidated — total assets 380,820,346→381,315,484; identity failures 2→0; rows 136→148
+- ZIRAATK 2024Q1 unconsolidated — total assets 384,273,687→384,768,825; identity failures 2→0; rows 136→148
+- ZIRAATK 2024Q2 consolidated — total assets 384,404,632→384,916,290; identity failures 2→0; rows 136→147
+- ZIRAATK 2024Q2 unconsolidated — total assets 388,657,850→389,169,508; identity failures 2→0; rows 136→147
+- ZIRAATK 2024Q3 unconsolidated — total assets 422,718,180→423,752,254; identity failures 1→0; rows 136→147
+- ZIRAATK 2024Q4 consolidated — total assets 508,506,732→510,158,328; identity failures 1→0; rows 136→148
+- ZIRAATK 2024Q4 unconsolidated — total assets 513,676,773→515,328,369; identity failures 1→0; rows 136→148
+- ZIRAATK 2025Q1 consolidated — total assets 552,111,076→554,588,314; identity failures 1→0; rows 136→148
+- ZIRAATK 2025Q1 unconsolidated — total assets 558,414,336→560,891,574; identity failures 1→0; rows 136→148
+- ZIRAATK 2025Q2 consolidated — total assets 629,422,026→632,801,820; identity failures 2→0; rows 136→147
+- ZIRAATK 2025Q2 unconsolidated — total assets 634,902,244→638,282,038; identity failures 2→0; rows 136→147
+- ZIRAATK 2025Q3 consolidated — total assets 691,898,702→696,364,922; identity failures 2→0; rows 136→147
+- ZIRAATK 2025Q3 unconsolidated — total assets 705,089,846→709,556,066; identity failures 2→0; rows 136→147
+- ZIRAATK 2025Q4 consolidated — total assets 746,379,811→753,361,337; identity failures 2→0; rows 136→148
+- ZIRAATK 2025Q4 unconsolidated — total assets 761,835,969→768,817,495; identity failures 2→0; rows 136→148
+- ZIRAATK 2026Q1 consolidated — identity failures 1→0; rows 145→148
+- ZIRAATK 2026Q1 unconsolidated — identity failures 1→0; rows 145→148
+- ZIRAAT 2022Q1 consolidated — identity failures 3→0; rows 155→158
+- ZIRAAT 2022Q1 unconsolidated — identity failures 2→0; rows 153→157
+- ZIRAAT 2022Q2 consolidated — identity failures 2→0; rows 156→160
+- ZIRAAT 2022Q2 unconsolidated — identity failures 2→0; rows 153→157
+- ZIRAAT 2022Q3 consolidated — identity failures 2→0; rows 156→160
+- ZIRAAT 2022Q3 unconsolidated — identity failures 2→0; rows 153→157
+- ZIRAAT 2022Q4 consolidated — identity failures 2→0; rows 156→160
+- ZIRAAT 2022Q4 unconsolidated — identity failures 2→0; rows 153→157
+- ZIRAAT 2023Q1 consolidated — identity failures 2→0; rows 155→160
+- ZIRAAT 2023Q1 unconsolidated — identity failures 2→0; rows 152→157
+- ZIRAAT 2023Q2 consolidated — identity failures 2→0; rows 156→160
+- ZIRAAT 2023Q2 unconsolidated — identity failures 2→0; rows 153→157
+- ZIRAAT 2023Q3 consolidated — identity failures 2→0; rows 156→160
+- ZIRAAT 2023Q3 unconsolidated — identity failures 3→0; rows 154→157
+- ZIRAAT 2023Q4 consolidated — identity failures 2→0; rows 155→160
+- ZIRAAT 2023Q4 unconsolidated — identity failures 2→0; rows 152→157
+- ZIRAAT 2024Q1 consolidated — identity failures 2→0; rows 156→160
+- ZIRAAT 2024Q1 unconsolidated — identity failures 2→0; rows 153→157
+- ZIRAAT 2024Q2 consolidated — identity failures 2→0; rows 156→160
+- ZIRAAT 2024Q2 unconsolidated — identity failures 2→0; rows 153→157
+- ZIRAAT 2024Q3 consolidated — identity failures 3→0; rows 157→160
+- ZIRAAT 2024Q3 unconsolidated — identity failures 2→0; rows 153→157
+- ZIRAAT 2024Q4 consolidated — identity failures 2→0; rows 156→160
+- ZIRAAT 2024Q4 unconsolidated — identity failures 2→0; rows 153→157
+- ZIRAAT 2025Q1 consolidated — identity failures 2→0; rows 156→160
+- ZIRAAT 2025Q1 unconsolidated — identity failures 2→0; rows 153→157
+- ZIRAAT 2025Q2 consolidated — identity failures 2→0; rows 156→160
+- ZIRAAT 2025Q2 unconsolidated — identity failures 2→0; rows 153→157
+- ZIRAAT 2025Q3 consolidated — identity failures 3→0; rows 157→160
+- ZIRAAT 2025Q3 unconsolidated — identity failures 2→0; rows 153→157
+- ZIRAAT 2025Q4 consolidated — identity failures 2→0; rows 156→160
+- ZIRAAT 2025Q4 unconsolidated — identity failures 3→0; rows 154→157
+- ZIRAAT 2026Q1 consolidated — identity failures 2→0; rows 156→160
+- ZIRAAT 2026Q1 unconsolidated — identity failures 3→0; rows 154→157
