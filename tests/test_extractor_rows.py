@@ -47,3 +47,18 @@ def test_plain_row_unaffected():
     text = f"1.1.2 Banks {VALUES_6}"
     rows = _parse_rows(text, 6)
     assert len(rows) == 1 and rows[0][1][2] == 124245.0
+
+
+def test_squished_off_balance_rows_survive_header_filter():
+    # ISCTR off-balance: real data rows that contain "BALANCESHEET" squished —
+    # the header filter must not eat them (it did, briefly, between the QNBFB
+    # fix and the Phase-3 batch-3 gate catching a 12-row loss).
+    a = f"A. OFF-BALANCESHEETCONTINGENCIESandCOMMITMENTS(I+II+III) V-III {VALUES_6}"
+    total = f"TOTALOFF-BALANCESHEETCOMMITMENTS(A+B) {VALUES_6}"
+    tr = f"A. BİLANÇO DIŞI YÜKÜMLÜLÜKLER (I+II+III) {VALUES_6}"
+    assert len(_parse_rows(a, 6)) == 1
+    assert len(_parse_rows(total, 6)) == 1
+    assert len(_parse_rows(tr, 6)) == 1
+    # …while the page header stays rejected
+    hdr = "I. BALANCESHEET-ASSETS CurrentPeriod PriorPeriod 31.12.2023 31.12.2022"
+    assert _parse_rows(hdr, 6) == []
