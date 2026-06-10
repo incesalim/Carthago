@@ -35,6 +35,11 @@ BATCHES = [
     ["KLNMA", "KUVEYT", "ODEA", "PASHA", "QNBFB"],
     ["SKBNK", "TEB", "TFKB", "VAKBN"],
     ["VAKIFK", "YKBNK", "ZIRAAT", "ZIRAATK"],
+    # Batch 7: ALBRK/BURGAN were repaired 2026-06-10 but the §4 chunk
+    # backfills (PRs #61-64, pre-fix extractor) clobbered them via
+    # last-writer-wins on the R2 snapshot — CI's concurrency group doesn't
+    # serialize against local runs. Re-repair with the fixed extractor.
+    ["ALBRK", "BURGAN"],
 ]
 
 
