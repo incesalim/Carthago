@@ -102,3 +102,27 @@ def test_ratio_labels_match_consolidated_prefixes():
     # "Konsolide Sermaye…" must hit CAR, not the Tier1/CET1 patterns.
     assert not matches("tier1_ratio",
                        "Konsolide Sermaye Yeterliliği Oranı (%) 20,63 18,32")
+
+
+def test_labels_match_tskb_squished_and_core_variants():
+    # TSKB 2023-2024 squishes ALL inter-word spaces out of the text layer,
+    # and says "Core" where other banks say "Common".
+    from src.audit_reports.capital_adequacy import _FIELD_RX, _START_RX
+
+    rx_by_field = {f: rxs for f, _is_ratio, rxs in _FIELD_RX}
+
+    def matches(field, line):
+        return any(rx.match(line) for rx in rx_by_field[field])
+
+    assert any(rx.search("Core EquityTier1CapitalBeforeDeductions 23.718.003")
+               for rx in _START_RX)
+    assert matches("cet1_capital", "Core Equity Tier I Capital 44.540.818 31.507.909")
+    assert matches("capital_adequacy_ratio", "CapitalAdequacyRatio(%) 22,87 26,16")
+    assert matches("tier1_ratio", "TierICapitalAdequacyRatio(%) 21,76 25,02")
+    assert matches("total_rwa", "TotalRiskWeightedAssets 148.421.372 106.339.113")
+    # The Before-Deductions line must NOT be read as the CET1 total,
+    # squished or spaced.
+    assert not matches("cet1_capital",
+                       "Core Equity Tier 1 Capital Before Deductions 46.114.215")
+    assert not matches("cet1_capital",
+                       "Core EquityTier1CapitalBeforeDeductions 23.718.003")
