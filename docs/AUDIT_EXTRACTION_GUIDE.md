@@ -44,9 +44,12 @@
 8. Tests: fixture-based, including **must-fail fixtures** (a corrupted row the
    validator must catch), importable under CI's minimal deps (no top-level
    pdfplumber in test modules — `pytest.importorskip`).
-9. New table = four registrations in the same change:
+9. New table = **five** registrations in the same change:
    `schema.py` DDL + `web/migrations/000X.sql` + `push_to_d1.SYNC_TABLES` +
-   `backfill_extraction.AUDIT_TABLES` (catalogue failure-mode #6).
+   **`push_to_d1.fetch_recent` time-column mapping** +
+   `backfill_extraction.AUDIT_TABLES` (catalogue failure-mode #6 — the
+   missing time-column mapping silently skipped bank_audit_validation in
+   every Phase-3 push: "no time column, skipped").
 
 ## Shipping
 
