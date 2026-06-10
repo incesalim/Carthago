@@ -287,9 +287,13 @@ def _parse_rows(text: str, n_cols: int) -> list[tuple[str, list[float | None]]]:
             # CurrentPeriod PriorPeriod 31.12.2023 …", QNBFB) match too —
             # the two dates fragment into exactly 6 numeric tokens, which
             # otherwise admits the page header as a roman-I data row.
-            r'|BALANCE\s*SHEET(?!\s*TOTAL)'
+            # Lookarounds keep real OFF-balance data rows alive: ISCTR's
+            # squished "A. OFF-BALANCESHEETCONTINGENCIES…" and
+            # "TOTALOFF-BALANCESHEETCOMMITMENTS(A+B)" are data, not headers,
+            # and Turkish "BİLANÇO DIŞI…" rows likewise.
+            r'|(?<!OFF)(?<!OFF-)BALANCE\s*SHEET(?!\s*TOTAL)'
             r'|STATEMENT\s+OF\s+FINANCIAL\s+POSITION'
-            r'|BİLANÇO(?!\s*TOPLAMI)'
+            r'|BİLANÇO(?!\s*(?:TOPLAMI|DI[ŞS]I))'
             r'|Current\s*Period\s+Prior\s*Period'
             r'|Bağımsız\s+Denetimden'
             r'|Audited\s+Audited'
