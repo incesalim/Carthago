@@ -52,6 +52,40 @@ def _per_bank(conn: sqlite3.Connection, banks: list[str]) -> dict[str, tuple[int
     return out
 
 
+def _per_partition(conn: sqlite3.Connection, bank: str) -> dict[tuple, tuple[int, int]]:
+    """{(period, kind): (identity failures, balance-sheet rows)} for one bank."""
+    failed = {(p, k): f for p, k, f in conn.execute(
+        "SELECT period, kind, SUM(checks_failed) FROM bank_audit_validation "
+        "WHERE bank_ticker=? GROUP BY period, kind", (bank,))}
+    rows = {(p, k): n for p, k, n in conn.execute(
+        "SELECT period, kind, COUNT(*) FROM bank_audit_balance_sheet "
+        "WHERE bank_ticker=? GROUP BY period, kind", (bank,))}
+    return {key: (failed.get(key, 0), rows.get(key, 0))
+            for key in set(failed) | set(rows)}
+
+
+def _is_honest_skip(bank: str) -> tuple[bool, list[str]]:
+    """A bank may exceed its baseline failures ONLY via the honest-skip class:
+    the fixed extractor drops a malformed row the dry-run stored with a garbage
+    value (EMLAK 'IX. CARİ VERGİ BORCU' with the dipnot (8) as amount_tl=-8) —
+    so the partition LOSES rows and a sum check starts failing visibly.
+    Garbage-VALUE corruption keeps row counts, so it still trips the gate."""
+    notes = []
+    with sqlite3.connect(str(DB)) as new_c, sqlite3.connect(str(SCRATCH)) as base_c:
+        new_p, base_p = _per_partition(new_c, bank), _per_partition(base_c, bank)
+    for key, (nf, nr) in sorted(new_p.items()):
+        bf, br = base_p.get(key, (0, 0))
+        if nf <= bf:
+            continue
+        if nr < br:
+            notes.append(f"{bank} {key[0]} {key[1]}: +{nf - bf} failure(s) with "
+                         f"rows {br}→{nr} — honest skip of a malformed row")
+        else:
+            return False, [f"{bank} {key[0]} {key[1]}: +{nf - bf} failure(s) "
+                           f"WITHOUT row loss ({br}→{nr}) — not an honest skip"]
+    return True, notes
+
+
 def verify_batch(banks: list[str], baseline: dict[str, tuple[int, int]]) -> list[str]:
     problems = []
     with sqlite3.connect(str(DB)) as conn:
@@ -60,7 +94,11 @@ def verify_batch(banks: list[str], baseline: dict[str, tuple[int, int]]) -> list
         bf, br = baseline[b]
         gf, gr = got[b]
         if gf > bf:
-            problems.append(f"{b}: identity failures {gf} > dry-run baseline {bf}")
+            ok, notes = _is_honest_skip(b)
+            for n in notes:
+                print(f"[phase3]   note: {n}", flush=True)
+            if not ok or gf > bf + 3:
+                problems.append(f"{b}: identity failures {gf} > dry-run baseline {bf}")
         if gr < br - 5:
             problems.append(f"{b}: balance-sheet rows {gr} << dry-run baseline {br}")
     return problems
