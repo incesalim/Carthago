@@ -77,12 +77,12 @@ def _is_honest_skip(bank: str) -> tuple[bool, list[str]]:
         bf, br = base_p.get(key, (0, 0))
         if nf <= bf:
             continue
-        if nr < br:
+        if nr < br and nf - bf <= 3:
             notes.append(f"{bank} {key[0]} {key[1]}: +{nf - bf} failure(s) with "
                          f"rows {br}→{nr} — honest skip of a malformed row")
         else:
-            return False, [f"{bank} {key[0]} {key[1]}: +{nf - bf} failure(s) "
-                           f"WITHOUT row loss ({br}→{nr}) — not an honest skip"]
+            return False, [f"{bank} {key[0]} {key[1]}: +{nf - bf} failure(s), "
+                           f"rows {br}→{nr} — not an honest skip"]
     return True, notes
 
 
@@ -97,7 +97,11 @@ def verify_batch(banks: list[str], baseline: dict[str, tuple[int, int]]) -> list
             ok, notes = _is_honest_skip(b)
             for n in notes:
                 print(f"[phase3]   note: {n}", flush=True)
-            if not ok or gf > bf + 3:
+            # No flat per-bank failure cap: the honest-skip signature is
+            # per-partition (+3 max each, row loss required) and the row floor
+            # below bounds any pathological mass-drop (ICBCT legitimately had
+            # 4 partitions each skipping the same malformed equity row).
+            if not ok:
                 problems.append(f"{b}: identity failures {gf} > dry-run baseline {bf}")
         if gr < br - 5:
             problems.append(f"{b}: balance-sheet rows {gr} << dry-run baseline {br}")
