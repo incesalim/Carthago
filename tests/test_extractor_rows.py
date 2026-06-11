@@ -185,6 +185,23 @@ def test_roman_footnote_with_glued_note_number_masked():
     assert len(v) == 1 and v[0][1][:3] == [276268.0, 0.0, 276268.0]
 
 
+def test_parenthesized_roman_footnote_masked():
+    # TEB/EXIM dipnot column "(I-10)" leaked "-10" as a value and truncated the
+    # label; must be masked so the row's real values parse.
+    text = "4.3 Birlikte Kontrol Edilen Ortaklıklar (Net) (I-10) 5 - 5 5 - 5"
+    rows = _parse_rows(text, 6)
+    assert len(rows) == 1 and rows[0][1][:3] == [5.0, 0.0, 5.0]
+
+
+def test_dotless_roman_does_not_eat_split_VARLIKLAR_header():
+    # ATBANK's column-header word "VARLIKLAR" (ASSETS) splits as "V ARLIKLAR";
+    # the dotless-roman rule must NOT treat it as roman V.
+    assert _parse_rows("V ARLIKLAR (Beşinci Bölüm-I) 1 2 3 4 5 6", 6) == []
+    # ...while a genuine dotless roman section header still parses.
+    rows = _parse_rows("I FİNANSAL VARLIKLAR (Net) 100 50 150 90 40 130", 6)
+    assert len(rows) == 1 and rows[0][0].startswith("I FİNANSAL")
+
+
 def test_squished_off_balance_rows_survive_header_filter():
     # ISCTR off-balance: real data rows that contain "BALANCESHEET" squished —
     # the header filter must not eat them (it did, briefly, between the QNBFB

@@ -7,6 +7,42 @@ _Generated from the local DB + R2. Coverage: this lists every (bank, period, kin
 
 ---
 
+## 0b. Failing identity checks after the 2026-06-11 fix campaign (68→17)
+
+Seven general, identity-gated extractor fixes cleared 51 of 68 failing
+balance-sheet partitions (bare dotless romans, bracketed/roman footnote-ref
+masking that no longer eats TR-format negatives, wrapped bare-marker rows,
+duplicated-digit repair, paren-negative value protection, identity-gated
+first-triplet fallback). The 17 survivors below stay ⚠-flagged on /banks:
+
+**Genuine source-digit errors — the PDF's own numbers don't reconcile; not
+guessed (fixing would fabricate data):**
+- EXIM 2024Q4 unconsolidated — 1.3.2 Equity Securities (TP+YP=4,621,868 but
+  Toplam=4,671,868, off 50,000); V. Tangible (336,253 vs 336,235); 16.4
+  (off 99). Internal inconsistencies in the filing's own digits.
+- TSKB 2025Q3 unconsolidated — text layer shatters numbers into 4+ fragments
+  ("1.878.676 6. 019.66"); beyond identity-gated repair (≤3 fragments).
+- ODEA 2023Q4 (asset 2.2, off 10); TEB 2024Q4 (asset 4.3, off 10) — single
+  rows off by ~10 thousand TL on multi-billion statements.
+- BURGAN 2023Q2 consolidated — V. Tangible off 2,815,370.
+
+**Idiosyncratic layout/wrap (one-off per filing; left for targeted follow-up):**
+- FIBA 2025Q4 / 2026Q1 — a roman section's values wrap to the line ABOVE its
+  label (deferred-tax XII), so the section is dropped from Σromans.
+- KUVEYT 2022Q2 / 2025Q4 cons; EMLAK 2022Q3 / 2023Q2; TEB 2024Q4; BURGAN
+  2025Q3 — statement_total short: a roman section missing from Σromans via a
+  wrap variant.
+- ATBANK 2022Q2 cons — equity label split mid-word ("ÖZKAYNAK LAR 9").
+- QNBFB 2022Q4 cons — squished "XV. OTHERLIABILITIES".
+- YKBNK 2022Q3 / Q4 cons — consolidated equity components individually
+  consistent but don't sum to the parent (label/value interleave wrap).
+- EXIM 2023Q2 / 2025Q3 / Q4 / 2026Q1 — equity YP column format / small
+  growing diffs.
+
+All 17 are visible as ⚠ on the dashboard and in /admin; none are silently
+wrong. They are correct candidates for OCR (the shattered/source-error ones)
+or a future per-filing layout pass (the wrap ones).
+
 ## 0. Permanent gaps — statement pages have NO TEXT LAYER (2026-06-11 audit)
 
 The files below are the banks' official uploads, re-checked against the live
