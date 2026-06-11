@@ -23,8 +23,12 @@ def test_qnbfb_squished_page_header_rejected():
 
 def test_skbnk_leading_dipnot_with_dashes_not_stored_as_value():
     # 5 dashes + the "(14)" dipnot = 6 tokens; (14) used to become tl=-14.
+    # After the dipnot drop the row recovers as a genuine zero row (identity
+    # 0+0=0 holds) — never as -14.
     text = "VII. INVESTMENT PROPERTY (Net) (14) - - - - -"
-    assert _parse_rows(text, 6) == []  # below n_cols after dipnot drop → skip
+    rows = _parse_rows(text, 6)
+    assert len(rows) == 1 and rows[0][1][:3] == [0.0, 0.0, 0.0]
+    assert -14.0 not in rows[0][1]
 
 
 def test_leading_dipnot_with_full_columns_kept():
@@ -47,6 +51,76 @@ def test_plain_row_unaffected():
     text = f"1.1.2 Banks {VALUES_6}"
     rows = _parse_rows(text, 6)
     assert len(rows) == 1 and rows[0][1][2] == 124245.0
+
+
+def test_short_row_recovered_when_current_triplet_validates():
+    # SKBNK 16.5.4: prior-period dash lost → 5 tokens; the current triplet is
+    # intact and TL+FC=Total confirms it.
+    text = "16.5.4 Other Profit Reserves 239,160 - 239,160 159,400 159,400"
+    rows = _parse_rows(text, 6)
+    assert len(rows) == 1
+    assert rows[0][1][:3] == [239160.0, 0.0, 239160.0]
+    assert rows[0][1][3:] == [None, None, None]
+
+
+def test_short_row_recovered_by_zero_insertion():
+    # ICBCT 16.4-style: the TL dash lost entirely → triplet completes with 0.
+    text = "16.4 Birikmis Diger Kapsamli Gelirler 151.096 151.094 140.000"
+    rows = _parse_rows(text, 6)
+    assert len(rows) == 1
+    assert rows[0][1][:3] == [0.0, 151096.0, 151094.0]
+
+
+def test_short_dash_row_recovered_as_zeros():
+    text = "VII. INVESTMENT PROPERTY (Net) (14) - - - - -"
+    rows = _parse_rows(text, 6)
+    assert len(rows) == 1 and rows[0][1][:3] == [0.0, 0.0, 0.0]
+
+
+def test_short_row_not_recovered_when_identity_fails():
+    # 5 tokens but no interpretation satisfies TL+FC=Total → still skipped.
+    text = "2.3 Securities 100.000 50.000 800.000 70.000 90.000"
+    assert _parse_rows(text, 6) == []
+
+
+def test_no_recovery_for_two_nonzero_tokens():
+    # A bare pair of coincidentally-equal numbers must not fabricate a row.
+    text = "5.1 Some Note 5 5"
+    assert _parse_rows(text, 6) == []
+
+
+def test_pl_rows_never_recovered():
+    # P&L (2-col) has no internal identity — short rows stay skipped.
+    assert _parse_rows("1.1 Interest on Loans 123.456", 2) == []
+
+
+def test_tskb_split_digit_join_recovers_row():
+    # TSKB 2025Q2 line I.: "16. 462.594" is one number split in two; the join
+    # is accepted because BOTH triplets then satisfy TL+FC=Total.
+    text = ("I. FINANCIAL ASSETS (Net) 27.225.645 20.209.649 47.435.294 "
+            "16. 462.594 18.808.018 35.270.612")
+    rows = _parse_rows(text, 6)
+    assert len(rows) == 1
+    assert rows[0][1] == [27225645.0, 20209649.0, 47435294.0,
+                          16462594.0, 18808018.0, 35270612.0]
+
+
+def test_split_digit_chain_join_three_fragments():
+    # TSKB also splits one number into THREE fragments: "5. 219 . 274".
+    text = "4.2 Subsidiaries (Net) (8) 6.310.323 - 6.310.323 5. 219 . 274 - 5.219.274"
+    rows = _parse_rows(text, 6)
+    assert len(rows) == 1
+    assert rows[0][1] == [6310323.0, 0.0, 6310323.0, 5219274.0, 0.0, 5219274.0]
+
+
+def test_split_digit_join_rejected_when_identity_fails():
+    # Same shape but numbers that don't add up — no join, falls back to
+    # last-6 (and the validator flags the row downstream).
+    text = ("I. FINANCIAL ASSETS (Net) 27.225.645 20.209.649 99.999.999 "
+            "16. 462.594 18.808.018 35.270.612")
+    rows = _parse_rows(text, 6)
+    assert len(rows) == 1
+    assert rows[0][1][2] != 99999999.0 or rows[0][1][0] != 27225645.0
 
 
 def test_squished_off_balance_rows_survive_header_filter():
