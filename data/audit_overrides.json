@@ -1,0 +1,26 @@
+{
+  "_doc": "Curated per-cell corrections for balance-sheet rows the deterministic extractor cannot recover because of one-off OCR/render artifacts in the source PDF (stray glyphs, comma-for-dot markers, values wrapped off the label line). Each entry carries the exact values READ FROM THE PDF and a note citing the artifact. Applied post-extraction in src/audit_reports/loader.py:upsert_report, keyed by (bank_ticker, period, kind, statement, hierarchy): the matching row's amounts are corrected, or the row is inserted if the parser dropped it. NOT for genuine source defects where the bank's own digits don't foot — those stay flagged. amount_total is authoritative; amount_tl+amount_fc must equal it.",
+  "overrides": [
+    {
+      "bank_ticker": "EMLAK", "period": "2023Q2", "kind": "unconsolidated",
+      "statement": "liabilities", "hierarchy": "XIV.",
+      "item_name": "ÖZKAYNAKLAR",
+      "amount_tl": 8659438, "amount_fc": 13121, "amount_total": 8672559,
+      "note": "stray 'v' glued before marker ('vXIV.') dropped the equity row"
+    },
+    {
+      "bank_ticker": "EMLAK", "period": "2022Q3", "kind": "consolidated",
+      "statement": "assets", "hierarchy": "1.1.4",
+      "item_name": "Beklenen Zarar Karşılıkları (-)",
+      "amount_tl": 228, "amount_fc": 27421, "amount_total": 27649,
+      "note": "ECL marker garbled to '1. B1.e4kl'; values legible, row not recognised as 1.1.4 child"
+    },
+    {
+      "bank_ticker": "BURGAN", "period": "2025Q3", "kind": "consolidated",
+      "statement": "assets", "hierarchy": "I.",
+      "item_name": "FINANCIAL ASSETS (Net)",
+      "amount_tl": 17740253, "amount_fc": 20077174, "amount_total": 37817427,
+      "note": "comma-for-dot markers ('I,'); roman I section row dropped"
+    }
+  ]
+}
