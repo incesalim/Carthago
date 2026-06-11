@@ -7,10 +7,11 @@ coverage or known issues change.
 > → this file → [OPERATIONS.md](OPERATIONS.md). Metric definitions in
 > [METRICS.md](METRICS.md).
 >
-> Last verified: 2026-06-11 (audit rework Phases 0–4 COMPLETE: census, identity
-> validator, evidence dry-run, batchwise fleet repair pushed to D1 — 30 banks,
-> 7 gated batches — and dashboard ⚠ validation surfacing live. Phase 5
-> refactor pending; see docs/AUDIT_REWORK_PLAN.md).
+> Last verified: 2026-06-11 (audit rework Phases 0–4 COMPLETE + R1/R2 recovery
+> pass: identity-gated dropped-row recovery and TSKB split-digit repair pushed
+> to D1 — fleet now 898/966 partitions fully identity-clean (was 801). 68
+> residual failing partitions are documented per-bank quirks + image-only PDFs,
+> all ⚠-flagged. Phase 5 refactor pending; see docs/AUDIT_REWORK_PLAN.md).
 
 ---
 

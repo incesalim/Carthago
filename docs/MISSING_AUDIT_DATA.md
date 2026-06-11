@@ -7,6 +7,19 @@ _Generated from the local DB + R2. Coverage: this lists every (bank, period, kin
 
 ---
 
+## 0. Permanent gaps — statement pages have NO TEXT LAYER (2026-06-11 audit)
+
+The files below are the banks' official uploads, re-checked against the live
+IR URLs — the statement pages are scans/images with no extractable text on
+either copy. Unfixable without OCR (pipeline stays deterministic). They show
+as missing on the dashboard, never as wrong numbers.
+
+| Bank | Period(s) | Kind | Note |
+|---|---|---|---|
+| ISCTR | 2025Q1 | consolidated | statements at pp.11-12 image-only; live URL serves the same file |
+| FIBA | 2022Q1, 2023Q3, 2024Q1, 2025Q3 (+2025Q1/Q2 liabilities page) | varies | statement pages ~50-300 chars of text; live URL identical |
+| TSKB | 2026Q1 | unconsolidated | real report now live at the IR URL but its text layer shatters numbers into 4+ fragments — identity-gated repair can fix only ≤3; kept as gap rather than storing wrong values. CONSOLIDATED 2026Q1 extracts perfectly from the live URL (candidate at data/tskb_2026q1_candidates/, awaiting R2 replacement approval) |
+
 ## 1. Need a document — provide the full BRSA report PDF (or wait for publication)
 
 | Bank | Period | Kind | Missing | In R2? | Source / IR page |
