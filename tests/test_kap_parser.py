@@ -33,6 +33,25 @@ _FREE_FLOAT = {
     ],
 }
 _PAID_IN = {"itemKey": "kpy41_acc5_odenmis_sermaye", "value": "5.200.000.000"}
+_SUBS = {
+    "itemKey": "kpy41_acc7_bagli_ortakliklar",
+    "creationDate": "21/05/2026 16:49:19",
+    "value": [
+        {"companyTitle": "AKBANK AG", "scopeOfActivitiesOfCompany": "BANKACILIK",
+         "taxNo": "4722007023", "leiCode": "   529900P90XJRYLOJNP77",
+         "paidInOrIssuedCapital": "320000000", "capitalShareOfCompany": "320000000",
+         "monetaryUnit": {"key": "EUR", "text": "EUR"},
+         "ratioOfCapitalShareOfCompany": "100",
+         "relationWithTheCompany": "BAĞLI ORTAKLIK"},
+        {"companyTitle": "ARAP-TÜRK BANKASI A.Ş.",
+         "scopeOfActivitiesOfCompany": "Bankacılık",
+         "paidInOrIssuedCapital": "3221000000,00",
+         "capitalShareOfCompany": "662748519,40",
+         "monetaryUnit": {"key": "TRY", "text": "TRY"},
+         "ratioOfCapitalShareOfCompany": "20,58",
+         "relationWithTheCompany": "İştirak"},
+    ],
+}
 
 # Non-listed variant (Ziraat-style): grid under ortaklik_yapisi, scalar
 # under odenmis_sermaye_2, null ceiling.
@@ -141,6 +160,20 @@ def test_ownership_rows_nonlisted_variant():
     assert by_item["shareholder"][0].ratio_pct == 100.0
     assert by_item["paid_in_capital"][0].share_tl == 84_600_000_000
     assert "capital_ceiling" not in by_item  # null value → no row
+
+
+def test_ownership_rows_subsidiaries():
+    rows = ownership_rows("AKBNK", "AKBANK T.A.Ş.", 2413,
+                          {o["itemKey"]: o for o in (_SUBS,)})
+    assert [r.item for r in rows] == ["subsidiary", "subsidiary"]
+    ag, atb = rows
+    assert ag.holder == "AKBANK AG"
+    assert ag.share_tl == 320_000_000 and ag.currency == "EUR"
+    assert ag.ratio_pct == 100.0 and ag.relation == "BAĞLI ORTAKLIK"
+    assert ag.activity == "BANKACILIK"
+    assert ag.as_of == "2026-05-21"
+    assert atb.share_tl == 662748519.40 and atb.currency == "TRY"
+    assert atb.ratio_pct == 20.58 and atb.relation == "İştirak"
 
 
 def test_ownership_rows_empty_items():

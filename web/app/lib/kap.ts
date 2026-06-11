@@ -13,25 +13,34 @@ export type KapItem =
   | "indirect_shareholder"
   | "free_float"
   | "paid_in_capital"
-  | "capital_ceiling";
+  | "capital_ceiling"
+  | "subsidiary";
 
 export interface KapOwnershipRow {
   item: KapItem;
   seq: number;
-  /** Shareholder name, or the share-class ISIN ticker for free_float rows. */
+  /** Shareholder / subsidiary name, or the share-class ISIN for free_float rows. */
   holder: string | null;
-  /** Nominal TL. Caveat: in the non-listed form variant some banks repeat
-   *  the percentage here (e.g. Ziraat files 100) — ratio_pct is authoritative. */
+  /** Nominal amount. TL for ownership rows (caveat: in the non-listed form
+   *  variant some banks repeat the percentage here — ratio_pct is
+   *  authoritative); for subsidiary rows it is in `currency`. */
   share_tl: number | null;
   ratio_pct: number | null;
   voting_pct: number | null;
   as_of: string | null;
+  /** subsidiary rows: ISO currency of share_tl (TRY/EUR/USD/…). */
+  currency: string | null;
+  /** subsidiary rows: scope of activities (Turkish, as filed). */
+  activity: string | null;
+  /** subsidiary rows: relation type (Bağlı Ortaklık / İştirak / …). */
+  relation: string | null;
 }
 
 /** All ownership rows for one bank, grid order preserved. */
 export async function bankOwnership(ticker: string): Promise<KapOwnershipRow[]> {
   return cachedAll<KapOwnershipRow>(
-    `SELECT item, seq, holder, share_tl, ratio_pct, voting_pct, as_of
+    `SELECT item, seq, holder, share_tl, ratio_pct, voting_pct, as_of,
+            currency, activity, relation
      FROM kap_ownership
      WHERE bank_ticker = ?
      ORDER BY item, seq`,

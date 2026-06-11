@@ -132,9 +132,14 @@ every bank in `data/banks/kap_company_map.json` it scrapes the KAP "Genel
 Bilgi Formu" page (server-rendered Next.js — plain requests decode the flight
 payload; no browser, no API key) and **replaces the bank's whole partition**:
 ≥5% shareholders (+ DİĞER/TOPLAM), indirect holders, free float, paid-in
-capital, capital ceiling. Listed and non-listed banks file different item-key
-variants (`sermayede_dogrudan` vs `ortaklik_yapisi`); both are handled.
-Per-bank failures keep the previous rows; ATBANK has no published form at all.
+capital, capital ceiling, and §7 subsidiaries / financial investments
+(item='subsidiary': company, activity, relation type, share %, and the bank's
+capital share **in the filing currency** — TRY/EUR/USD, not converted).
+Listed and non-listed banks file different item-key variants
+(`sermayede_dogrudan` vs `ortaklik_yapisi`); both are handled, but only the
+full form carries the subsidiaries grid (~15 banks — variant filers like
+Ziraat/Kuveyt don't disclose it on KAP). Per-bank failures keep the previous
+rows; ATBANK has no published form at all.
 
 Shrunken grids queue DELETEs in the staging-side `d1_pending_deletes` outbox,
 which `push_to_d1.py` replays against D1 before its INSERTs (the push is

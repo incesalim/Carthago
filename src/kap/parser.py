@@ -14,6 +14,12 @@ Items extracted (all under the form's §5 "Sermaye ve Ortaklık Yapısı"):
   non-listed variant ``…_odenmis_sermaye_2``).
 - ``kpy41_acc5_kayitli_sermaye_tavani``→ item 'capital_ceiling' (scalar TL;
   non-listed variant ``…_kayitli_sermaye_tavani_2``).
+- ``kpy41_acc7_bagli_ortakliklar``     → item 'subsidiary' — subsidiaries,
+  financial fixed assets & investments: company, activity, relation type
+  (Bağlı Ortaklık / İştirak / …), bank's capital share **in the filing
+  currency** (TRY/EUR/USD — see ``currency``), and share ratio. Only the
+  full form has this grid; non-listed variant filers (Ziraat, Kuveyt, …)
+  don't disclose it on KAP.
 
 Caveat: in the non-listed ``ortaklik_yapisi`` grid some banks enter the
 ratio into the TL column too (e.g. Ziraat reports shareInCapital "100");
@@ -41,6 +47,9 @@ class OwnershipRow:
     ratio_pct: float | None
     voting_pct: float | None
     as_of: str | None
+    currency: str | None = None   # subsidiary rows: ISO code of share_tl
+    activity: str | None = None   # subsidiary rows: scope of activities
+    relation: str | None = None   # subsidiary rows: Bağlı Ortaklık / İştirak / …
 
 
 def parse_tr_number(s: object) -> float | None:
@@ -126,6 +135,20 @@ def ownership_rows(
             add("free_float", i, r.get("isin"), r.get("actualSharesOutstanding"),
                 r.get("actualOutstandingSharesRatio"), None,
                 r.get("creationDate") or free.get("creationDate"))
+
+    subs = items.get("kpy41_acc7_bagli_ortakliklar")
+    if subs:
+        for i, r in enumerate(_grid(subs.get("value"))):
+            title = (r.get("companyTitle") or "").strip()
+            if not title:
+                continue
+            unit = r.get("monetaryUnit")
+            add("subsidiary", i, title, r.get("capitalShareOfCompany"),
+                r.get("ratioOfCapitalShareOfCompany"), None,
+                subs.get("creationDate"))
+            rows[-1].currency = (unit or {}).get("key") if isinstance(unit, dict) else None
+            rows[-1].activity = (r.get("scopeOfActivitiesOfCompany") or "").strip() or None
+            rows[-1].relation = (r.get("relationWithTheCompany") or "").strip() or None
 
     for keys, item_name in (
         (("kpy41_acc5_odenmis_sermaye", "kpy41_acc5_odenmis_sermaye_2"),
