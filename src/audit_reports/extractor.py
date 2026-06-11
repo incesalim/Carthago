@@ -70,6 +70,118 @@ def _count_values(line: str) -> int:
     return sum(1 for m in _value_matches(line) if not _FOOTNOTE_RX.fullmatch(m.group()))
 
 
+def _triplet_ok(tl: float | None, fc: float | None, tot: float | None) -> bool:
+    """The BRSA row identity TL + FC = Total, with thousands-rounding slack."""
+    if tl is None or fc is None or tot is None:
+        return False
+    return abs((tl + fc) - tot) <= max(3.0, abs(tot) * 1e-5)
+
+
+def _try_split_digit_joins(line: str, nums_m: list) -> list[float] | None:
+    """TSKB-class text damage splits a number into two tokens ('16. 462.594'
+    → '16' + '462.594', the separator stranded in the gap). For a 6-column
+    row carrying 7-8 tokens, try re-joining gap-adjacent fragments and accept
+    ONLY an interpretation where BOTH the current and prior triplets satisfy
+    TL + FC = Total — a false join can't pass two identities at once."""
+    n_extra = len(nums_m) - 6
+    if n_extra not in (1, 2):
+        return None
+    joinable: dict[int, float] = {}
+    for i in range(len(nums_m) - 1):
+        gap = line[nums_m[i].end():nums_m[i + 1].start()].strip()
+        if gap not in ("", ".", ","):
+            continue
+        v = parse_num(nums_m[i].group() + gap + nums_m[i + 1].group())
+        if v is not None:
+            joinable[i] = v
+
+    def interpretation(join_at: tuple[int, ...]) -> list[float] | None:
+        vals: list[float] = []
+        i = 0
+        while i < len(nums_m):
+            if i in join_at:
+                vals.append(joinable[i])
+                i += 2
+            else:
+                v = parse_num(nums_m[i].group())
+                if v is None:
+                    return None
+                vals.append(v)
+                i += 1
+        if len(vals) != 6:
+            return None
+        if _triplet_ok(*vals[0:3]) and _triplet_ok(*vals[3:6]):
+            return vals
+        return None
+
+    if n_extra == 1:
+        for i in joinable:
+            got = interpretation((i,))
+            if got is not None:
+                return got
+    else:
+        idxs = sorted(joinable)
+        for a in range(len(idxs)):
+            for b in range(a + 1, len(idxs)):
+                if idxs[b] > idxs[a] + 1:  # non-overlapping
+                    got = interpretation((idxs[a], idxs[b]))
+                    if got is not None:
+                        return got
+        # Chain: one number split into THREE fragments ("5. 219 . 274" —
+        # TSKB). Merge tokens i, i+1, i+2 when both gaps are joinable.
+        for i in range(len(nums_m) - 2):
+            if i in joinable and (i + 1) in joinable:
+                g1 = line[nums_m[i].end():nums_m[i + 1].start()].strip()
+                g2 = line[nums_m[i + 1].end():nums_m[i + 2].start()].strip()
+                v = parse_num(nums_m[i].group() + g1 + nums_m[i + 1].group()
+                              + g2 + nums_m[i + 2].group())
+                if v is None:
+                    continue
+                vals: list[float] = []
+                j = 0
+                bad = False
+                while j < len(nums_m):
+                    if j == i:
+                        vals.append(v)
+                        j += 3
+                    else:
+                        pv = parse_num(nums_m[j].group())
+                        if pv is None:
+                            bad = True
+                            break
+                        vals.append(pv)
+                        j += 1
+                if (not bad and len(vals) == 6
+                        and _triplet_ok(*vals[0:3]) and _triplet_ok(*vals[3:6])):
+                    return vals
+    return None
+
+
+def _recover_current_triplet(tokens: list[float | None]) -> list[float | None] | None:
+    """Identity-gated recovery for a 6-column row that lost tokens (a dash
+    glyph the text layer drops — SKBNK '239,160 - 239,160 159,400 159,400' is
+    5 tokens for 6 columns). We only store the CURRENT triplet, and the BRSA
+    row identity TL + FC = Total tells us when a recovery is sound:
+      1. the first three tokens already form a valid triplet (the shortfall
+         was in the prior-period columns), or
+      2. inserting a single 0 at the TL or FC position completes a valid
+         triplet (the lost token was a dash = zero).
+    Returns [tl, fc, total, None, None, None] or None — NEVER guesses without
+    the identity confirming."""
+    _ok = _triplet_ok
+    if len(tokens) >= 3 and _ok(tokens[0], tokens[1], tokens[2]):
+        return [tokens[0], tokens[1], tokens[2], None, None, None]
+    # Zero-insertion needs ≥3 tokens for non-zero values (a bare hierarchy +
+    # two coincidentally-equal numbers shouldn't fabricate a row); an
+    # all-dash pair is safe (a genuine zero row).
+    if len(tokens) >= 3 or (len(tokens) == 2 and tokens[0] == 0 and tokens[1] == 0):
+        if _ok(0.0, tokens[0], tokens[1]):
+            return [0.0, tokens[0], tokens[1], None, None, None]
+        if _ok(tokens[0], 0.0, tokens[1]):
+            return [tokens[0], 0.0, tokens[1], None, None, None]
+    return None
+
+
 def parse_num(s: str) -> float | None:
     s = s.strip()
     if s == '-' or s == '':
@@ -243,8 +355,26 @@ def _parse_rows(text: str, n_cols: int) -> list[tuple[str, list[float | None]]]:
             kept = [m for m in nums_m if not _FOOTNOTE_RX.fullmatch(m.group())]
             if len(kept) >= n_cols:
                 nums_m = kept
-        if len(nums_m) < n_cols:
-            continue
+        recovered_vals: list[float | None] | None = None
+        if n_cols == 6 and n_cols < len(nums_m) <= n_cols + 2:
+            joined = _try_split_digit_joins(line, nums_m)
+            if joined is not None:
+                recovered_vals = list(joined)
+                take = nums_m
+        if recovered_vals is not None:
+            pass
+        elif len(nums_m) < n_cols:
+            # Identity-gated short-row recovery: the text layer sometimes
+            # loses a token (usually a dash glyph), which used to skip the
+            # whole row. We only store the CURRENT triplet, and TL+FC=Total
+            # confirms when a recovery is sound. 6-column statements only —
+            # a 2-column P&L row has no internal identity to confirm with.
+            if n_cols == 6 and len(nums_m) >= 2:
+                recovered_vals = _recover_current_triplet(
+                    [parse_num(m.group()) for m in nums_m])
+            if recovered_vals is None:
+                continue
+            take = nums_m  # label boundary = first surviving token
         # Multi-period balance sheets (e.g. Eximbank) print 3+ periods, each as
         # a TL / FC / Total triplet, so a row carries 9, 12, … numbers. The
         # current and prior periods are the FIRST two triplets; the default
@@ -253,7 +383,7 @@ def _parse_rows(text: str, n_cols: int) -> list[tuple[str, list[float | None]]]:
         # clean multiple of the 3-column triplet and has more than n_cols, take
         # the first n_cols. (Only affects 6-column statements — assets,
         # liabilities, off-balance — never the 2-column P&L.)
-        if n_cols % 3 == 0 and len(nums_m) > n_cols and len(nums_m) % 3 == 0:
+        elif n_cols % 3 == 0 and len(nums_m) > n_cols and len(nums_m) % 3 == 0:
             take = nums_m[:n_cols]
         else:
             take = nums_m[-n_cols:]
@@ -309,9 +439,12 @@ def _parse_rows(text: str, n_cols: int) -> list[tuple[str, list[float | None]]]:
         rest_after_hier = (m_h.group('rest') if m_h else label).lstrip()
         if rest_after_hier and not re.match(r"^[A-Za-zÇĞİÖŞÜçğıöşü(\[]", rest_after_hier):
             continue
-        vals = [parse_num(m.group()) for m in take]
-        if any(v is None for v in vals):
-            continue
+        if recovered_vals is not None:
+            vals = recovered_vals  # prior-period slots stay None by design
+        else:
+            vals = [parse_num(m.group()) for m in take]
+            if any(v is None for v in vals):
+                continue
         rows.append((label, vals))
     return rows
 
