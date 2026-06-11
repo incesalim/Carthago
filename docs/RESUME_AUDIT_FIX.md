@@ -1,4 +1,47 @@
-# AUDIT BALANCE-SHEET FIX — FINAL STATE (2026-06-11, updated)
+# AUDIT BALANCE-SHEET FIX — COMPLETE (2026-06-12)
+
+Production D1: **balance-sheet validation failures = 0 fleet-wide** (was 68),
+`-6` ECL corruption = 0, **validation covers all 975 partitions**. The final
+10 flagged partitions were each cleared by hand-transcribing the legible PDF
+values into `data/audit_overrides.json` (user supplied screenshots; values
+cross-checked against the report's own subtotals/column totals before writing).
+Only the 49 off-balance-sheet truncated-label rows (DENIZ/HSBC/KUVEYT) remain —
+display-only, validator doesn't cover them, low priority.
+
+## The final 10 — what each actually was (all now 0 failures):
+- **EXIM 2024Q4** — 3 published digit-typos pinned by footing: asset 1.3.2 TL
+  746.469→796.469, asset V. TL 336.253→336.235, liab 16.4/XVI FC 4.374→4.473.
+- **QNBFB 2022Q4** — XV. Other Liab TRY under-printed 19.501.461→19.815.961
+  (FC + grand total correct; TL column short by 314.500).
+- **ODEA 2023Q4** — 2.2 Lease Receivables: dipnot "I-10" leaked a phantom −10;
+  deposit bank → true value 0.
+- **TEB 2024Q4** (uncons) — V. Maddi Duran row dropped (roman marker absent in
+  page text); re-inserted 3.043.626 at the right position.
+- **BURGAN 2023Q2** — V. Tangible TL misparsed as decimal 2818.188 → 2.818.188.
+- **TSKB 2025Q3** (uncons) — II. parent + 2.5 ECL value strings wrapped across
+  columns; re-read from the (intact) text layer. NOT image-only after all.
+- **KUVEYT 2022Q2 / 2025Q4** — VII. Lease (Net) rows were dipnot stubs
+  (label "(Net) (5.2.6.)" wrapped → TL5/FC2/Total6); restored real lease figures.
+- **YKBNK 2022Q3 / 2022Q4** — equity children garble: 2022Q3 fixed 7.2/16.3/16.4
+  values; 2022Q4 the "16.3" row held 16.4's values (reset 16.3, inserted 16.4)
+  and 7.2 was missing (inserted). XVI=Σ16.x and VII=7.1+7.2 now foot.
+
+## Tooling added this pass
+- `scripts/apply_overrides.py` gained **positional insert** (`item_order` field
+  on an override) — shifts later rows via a negative-temp pass (a plain +1
+  collides with the UNIQUE(item_order) index). Used for dropped-row re-inserts
+  (TEB V., YKBNK 16.4 / 7.2).
+- `data/audit_overrides.json` now holds 22 curated cell corrections, each noted
+  with the evidence that fixes its partition to 0.
+
+## Still open (separate from the 10, validator doesn't cover):
+- 3 P&L footnote-leak rows: ISCTR 2024Q4 (×2), KUVEYT 2024Q4 — need P&L override.
+- 49 off-balance truncated-label rows — cosmetic.
+- FOLLOW-UP: make validation push always-full (the coverage-erosion bug).
+
+---
+
+# (prior) AUDIT BALANCE-SHEET FIX — FINAL STATE (2026-06-11, updated)
 
 Production D1: BS validation failures **68 → 10**, `-6` corruption = 0,
 261+ partitions corrected, 7 readable rows fixed via overrides + BURGAN 2025Q3

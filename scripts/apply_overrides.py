@@ -72,15 +72,25 @@ def _apply_one(conn: sqlite3.Connection, o: dict) -> str:
             "WHERE bank_ticker=? AND period=? AND kind=? AND statement=? AND item_order=?",
             (o["amount_tl"], o["amount_fc"], o["amount_total"], o.get("item_name", h), b, p, k, st, row[0]))
         return f"BS update {b} {p} {k} {st} {h}"
-    nxt = (conn.execute("SELECT COALESCE(MAX(item_order),0)+1 FROM bank_audit_balance_sheet "
-                        "WHERE bank_ticker=? AND period=? AND kind=? AND statement=?",
-                        (b, p, k, st)).fetchone()[0])
+    if "item_order" in o:  # positional insert: shift later rows down, slot in at the right spot
+        # two-step via negatives — a plain +1 collides with the UNIQUE(item_order) index mid-update
+        conn.execute("UPDATE bank_audit_balance_sheet SET item_order=-(item_order+1) "
+                     "WHERE bank_ticker=? AND period=? AND kind=? AND statement=? AND item_order>=?",
+                     (b, p, k, st, o["item_order"]))
+        conn.execute("UPDATE bank_audit_balance_sheet SET item_order=-item_order "
+                     "WHERE bank_ticker=? AND period=? AND kind=? AND statement=? AND item_order<0",
+                     (b, p, k, st))
+        nxt = o["item_order"]
+    else:
+        nxt = (conn.execute("SELECT COALESCE(MAX(item_order),0)+1 FROM bank_audit_balance_sheet "
+                            "WHERE bank_ticker=? AND period=? AND kind=? AND statement=?",
+                            (b, p, k, st)).fetchone()[0])
     conn.execute(
         "INSERT INTO bank_audit_balance_sheet "
         "(bank_ticker,period,kind,statement,item_order,hierarchy,item_name,amount_tl,amount_fc,amount_total) "
         "VALUES (?,?,?,?,?,?,?,?,?,?)",
         (b, p, k, st, nxt, h, o.get("item_name", h), o["amount_tl"], o["amount_fc"], o["amount_total"]))
-    return f"BS insert {b} {p} {k} {st} {h}"
+    return f"BS insert {b} {p} {k} {st} {h} @order{nxt}"
 
 
 def _revalidate_partition(conn, b, p, k):
