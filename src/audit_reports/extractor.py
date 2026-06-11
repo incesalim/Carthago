@@ -102,6 +102,12 @@ _DUP_DIGIT_RX = re.compile(r'([.,])(\d)(\d{2})\3(?=\D|$)')
 _ROMAN_FN_RX = re.compile(
     r'\(\s*[IVXivx]+\s*-\s*[A-Za-z0-9][A-Za-z0-9.\s-]*\)'   # (a) parenthesized
     r'|\b[IVX]+\s*-\s*[IVX]+(?:\s*-\s*\d{1,3})?\b')          # (b) unparenthesized
+# Comma-for-dot hierarchy markers: BURGAN 2025Q3's text layer renders the
+# marker separator as a comma — "I,", "1,1", "1,1,1" — the SAME glyph as the
+# thousands separator. Only the LEADING marker is normalized to dot-form;
+# thousands groups are 3 digits ("17,740,253") so they never match the
+# 1-2-digit groups here. A normal dotted marker has no comma → unaffected.
+_COMMA_MARKER_RX = re.compile(r'^\s*(?:[IVXivx]+,|\d{1,2}(?:,\d{1,2}){1,2})(?=\s)')
 
 
 def _value_matches(line: str) -> list:
@@ -395,6 +401,9 @@ def _parse_rows(text: str, n_cols: int) -> list[tuple[str, list[float | None]]]:
         # spaces — kills the spurious value tokens NUM_PAT would split out of
         # them while preserving every other token's offset (so the label slice
         # and the recovery paths below stay correct).
+        # Normalize a leading comma-for-dot hierarchy marker ("1,1" → "1.1",
+        # "I," → "I.") — same length, so downstream offsets are preserved.
+        line = _COMMA_MARKER_RX.sub(lambda m: m.group(0).replace(',', '.'), line, count=1)
         line = _SECTION_REF_RX.sub(lambda m: ' ' * len(m.group()), line)
         line = _ROMAN_FN_RX.sub(lambda m: ' ' * len(m.group()), line)
         # Repair the duplicated-digit artifact (XYZYZ → XYZ) so the garbled
