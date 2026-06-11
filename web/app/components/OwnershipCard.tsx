@@ -41,7 +41,9 @@ function fmtAsOf(d: string | null | undefined): string | null {
 
 function holderLabel(name: string | null): string {
   if (!name) return "—";
-  return /^diğer$/i.test(name.trim()) ? "Other / free float" : name;
+  // /i can't fold the Turkish dotted İ (U+0130), so compare via tr locale.
+  const t = name.trim().toLocaleUpperCase("tr-TR");
+  return t === "DİĞER" ? "Other / free float" : name;
 }
 
 interface Props {
