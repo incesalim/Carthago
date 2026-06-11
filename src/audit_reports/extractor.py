@@ -83,7 +83,10 @@ _SECTION_REF_RX = re.compile(
     r'|\(\s*\d+(?:\.\d{1,2}){1,3}\s*\)')          # all groups 1-2 digits
 # A label that is nothing but a hierarchy marker — the row's text label wrapped
 # onto an adjacent line, leaving "<marker> <values>". Such a row is real data.
-_BARE_MARKER_RX = re.compile(r'(?:[IVX]+\.?|[A-Z]\.|\d+(?:\.\d+)*\.?)')
+# Numeric groups are capped at 1-2 digits: real BRSA markers are "16.5.4", never
+# 3-digit groups — so a TR-format number like "37.239.656" (EXIM's label-less
+# total line) is NOT mistaken for a marker and turned into a bogus row.
+_BARE_MARKER_RX = re.compile(r'(?:[IVX]+\.?|[A-Z]\.|\d{1,2}(?:\.\d{1,2})*\.?)')
 # Duplicated-digit render artifact: a thousands group of 3 digits "XYZ" comes
 # out as the 5-digit "XYZYZ" — the final two digits repeated (ANADOLU:
 # "21,817,92727" for 21,817,927; "16,370,25252" for 16,370,252). A real group
