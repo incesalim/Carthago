@@ -70,7 +70,14 @@ _FOOTNOTE_RX = re.compile(r'\(\s*\d{1,2}\s*\)')
 # (ICBCT held-for-sale rows: "…İLİŞKİN - - - DURAN VARLIKLAR (Net) (5.I.16) - - -"),
 # so the leaked digits land in the value slots. Masked (offset-preserved) before
 # tokenizing so neither the digits nor the label boundary are disturbed.
-_SECTION_REF_RX = re.compile(r'\(\s*\d+(?:\.[0-9IVXivx]+)+\s*\)')
+# Two safe shapes ONLY, so a TR-format negative value "(178.162)" (= -178,162,
+# three-digit thousands group) is NOT mistaken for a footnote ref and masked
+# away (that zeroed HSBC's 16.3 equity row): (a) contains a roman part —
+# "(5.I.16)", "(5.II.10)"; (b) digit-only with every dotted group 1-2 digits —
+# "(5.1.14)". A 3-digit dotted group means thousands (a value), never a ref.
+_SECTION_REF_RX = re.compile(
+    r'\(\s*\d+\.[IVXivx][0-9IVXivx.]*\s*\)'      # roman part present
+    r'|\(\s*\d+(?:\.\d{1,2}){1,3}\s*\)')          # all groups 1-2 digits
 # A label that is nothing but a hierarchy marker — the row's text label wrapped
 # onto an adjacent line, leaving "<marker> <values>". Such a row is real data.
 _BARE_MARKER_RX = re.compile(r'(?:[IVX]+\.?|[A-Z]\.|\d+(?:\.\d+)*\.?)')
