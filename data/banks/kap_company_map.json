@@ -1,0 +1,194 @@
+{
+  "_doc": "Bank → KAP company mapping for the kap_ownership lane. Rebuilt with scripts/update_kap_ownership.py --discover; entries with \"manual\": true are hand-pinned and survive re-discovery.",
+  "_generated": "2026-06-11",
+  "banks": {
+    "AKBNK": {
+      "kap_id": 2413,
+      "slug": "2413-akbank-t-a-s",
+      "kap_title": "AKBANK T.A.Ş.",
+      "mkk_member_oid": "4028e4a240e8d1830140e905edcd0006"
+    },
+    "AKTIF": {
+      "kap_id": 2212,
+      "slug": "2212-aktif-yatirim-bankasi-a-s",
+      "kap_title": "AKTİF YATIRIM BANKASI A.Ş.",
+      "mkk_member_oid": "1DE05DAA8212073AE0530A4A622A2EBD"
+    },
+    "ALBRK": {
+      "kap_id": 2414,
+      "slug": "2414-albaraka-turk-katilim-bankasi-a-s",
+      "kap_title": "ALBARAKA TÜRK KATILIM BANKASI A.Ş.",
+      "mkk_member_oid": "4028e4a240f2ef4c014106a1c5ef016d"
+    },
+    "ALNTF": {
+      "kap_id": 2430,
+      "slug": "2430-alternatifbank-a-s",
+      "kap_title": "ALTERNATİFBANK A.Ş.",
+      "mkk_member_oid": "4028e4a240e95dc90140ed1a01700061"
+    },
+    "ANADOLU": {
+      "kap_id": 2010,
+      "slug": "2010-anadolubank-a-s",
+      "kap_title": "ANADOLUBANK A.Ş.",
+      "mkk_member_oid": "4028e4a140f2ed72014116e79df405db"
+    },
+    "ATBANK": {
+      "kap_id": 2030,
+      "slug": "2030-arap-turk-bankasi-a-s",
+      "kap_title": "ARAP TÜRK BANKASI A.Ş.",
+      "mkk_member_oid": "4028e4a241558bd9014155d0f940045f"
+    },
+    "BURGAN": {
+      "kap_id": 2494,
+      "slug": "2494-burgan-bank-a-s",
+      "kap_title": "BURGAN BANK A.Ş.",
+      "mkk_member_oid": "4028e4a140ee35c70140ee3e44840009"
+    },
+    "DENIZ": {
+      "kap_id": 2415,
+      "slug": "2415-denizbank-a-s",
+      "kap_title": "DENİZBANK A.Ş.",
+      "mkk_member_oid": "4028e4a240f2ef4c01412b0cbaf605a3"
+    },
+    "EMLAK": {
+      "kap_id": 4922,
+      "slug": "4922-turkiye-emlak-katilim-bankasi-a-s",
+      "kap_title": "TÜRKİYE EMLAK KATILIM BANKASI A.Ş.",
+      "mkk_member_oid": "8F1DCA744EB6013EE0530A4A622B617D"
+    },
+    "EXIM": {
+      "kap_id": 2424,
+      "slug": "2424-turkiye-ihracat-kredi-bankasi-a-s",
+      "kap_title": "TÜRKİYE İHRACAT KREDİ BANKASI A.Ş.",
+      "mkk_member_oid": "1DE05DAA8430073AE0530A4A622A2EBD",
+      "manual": true
+    },
+    "FIBA": {
+      "kap_id": 2067,
+      "slug": "2067-fibabanka-a-s",
+      "kap_title": "FİBABANKA A.Ş.",
+      "mkk_member_oid": "1DE05DAA820D073AE0530A4A622A2EBD"
+    },
+    "GARAN": {
+      "kap_id": 2422,
+      "slug": "2422-turkiye-garanti-bankasi-a-s",
+      "kap_title": "TÜRKİYE GARANTİ BANKASI A.Ş.",
+      "mkk_member_oid": "4028e4a140f2ed720140f37cb2a601b7"
+    },
+    "HALKB": {
+      "kap_id": 2423,
+      "slug": "2423-turkiye-halk-bankasi-a-s",
+      "kap_title": "TÜRKİYE HALK BANKASI A.Ş.",
+      "mkk_member_oid": "1DE05DAA82C3073AE0530A4A622A2EBD"
+    },
+    "HSBC": {
+      "kap_id": 2034,
+      "slug": "2034-hsbc-bank-a-s",
+      "kap_title": "HSBC BANK A.Ş.",
+      "mkk_member_oid": "4028e4a14158e41e01415abcf49765df"
+    },
+    "ICBCT": {
+      "kap_id": 2420,
+      "slug": "2420-icbc-turkey-bank-a-s",
+      "kap_title": "ICBC TURKEY BANK A.Ş.",
+      "mkk_member_oid": "4028e4a24158e42401415a700e104f3f"
+    },
+    "ING": {
+      "kap_id": 2214,
+      "slug": "2214-ing-bank-a-s",
+      "kap_title": "ING BANK A.Ş.",
+      "mkk_member_oid": "4028e4a243dd5e8f0144062ac27b0ca1"
+    },
+    "ISCTR": {
+      "kap_id": 2425,
+      "slug": "2425-turkiye-is-bankasi-a-s",
+      "kap_title": "TÜRKİYE İŞ BANKASI A.Ş.",
+      "mkk_member_oid": "4028e4a140f2ed7201411682b0cb05c6"
+    },
+    "KLNMA": {
+      "kap_id": 2426,
+      "slug": "2426-turkiye-kalkinma-ve-yatirim-bankasi-a-s",
+      "kap_title": "TÜRKİYE KALKINMA VE YATIRIM BANKASI A.Ş.",
+      "mkk_member_oid": "4028e4a14158e41e01415b2dc3476cf4"
+    },
+    "KUVEYT": {
+      "kap_id": 2366,
+      "slug": "2366-kuveyt-turk-katilim-bankasi-a-s",
+      "kap_title": "KUVEYT TÜRK KATILIM BANKASI A.Ş.",
+      "mkk_member_oid": "4028e4a2420327a4014209c5092c1448"
+    },
+    "ODEA": {
+      "kap_id": 2259,
+      "slug": "2259-odea-bank-a-s",
+      "kap_title": "ODEA BANK A.Ş.",
+      "mkk_member_oid": "4028e4a1415f4d9901416017ed29323a"
+    },
+    "PASHA": {
+      "kap_id": 2025,
+      "slug": "2025-pasha-yatirim-bankasi-a-s",
+      "kap_title": "PASHA YATIRIM BANKASI A.Ş.",
+      "mkk_member_oid": "4028e4a14184e9c9014192aa6c1c1e03"
+    },
+    "QNBFB": {
+      "kap_id": 2417,
+      "slug": "2417-qnb-bank-a-s",
+      "kap_title": "QNB BANK A.Ş.",
+      "mkk_member_oid": "4028e4a240e95dc90140ee076f400178"
+    },
+    "SKBNK": {
+      "kap_id": 2418,
+      "slug": "2418-sekerbank-t-a-s",
+      "kap_title": "ŞEKERBANK T.A.Ş.",
+      "mkk_member_oid": "4028e4a240f2ef4c01412adc8fba04ee"
+    },
+    "TEB": {
+      "kap_id": 2421,
+      "slug": "2421-turk-ekonomi-bankasi-a-s",
+      "kap_title": "TÜRK EKONOMİ BANKASI A.Ş.",
+      "mkk_member_oid": "4028e4a1415f4d9b01416003716f3d03"
+    },
+    "TFKB": {
+      "kap_id": 2029,
+      "slug": "2029-turkiye-finans-katilim-bankasi-a-s",
+      "kap_title": "TÜRKİYE FİNANS KATILIM BANKASI A.Ş.",
+      "mkk_member_oid": "4028e4a240f2ef4c01413b15797606f0"
+    },
+    "TSKB": {
+      "kap_id": 2427,
+      "slug": "2427-turkiye-sinai-kalkinma-bankasi-a-s",
+      "kap_title": "TÜRKİYE SINAİ KALKINMA BANKASI A.Ş.",
+      "mkk_member_oid": "4028e4a140f2ed710140f3831c6300fd"
+    },
+    "VAKBN": {
+      "kap_id": 2428,
+      "slug": "2428-turkiye-vakiflar-bankasi-t-a-o",
+      "kap_title": "TÜRKİYE VAKIFLAR BANKASI T.A.O.",
+      "mkk_member_oid": "4028e4a1415f4d9b01415fe3340f36e4"
+    },
+    "VAKIFK": {
+      "kap_id": 4183,
+      "slug": "4183-vakif-katilim-bankasi-a-s",
+      "kap_title": "VAKIF KATILIM BANKASI A.Ş.",
+      "mkk_member_oid": "8acae2c552efe7350152f445c6580061"
+    },
+    "YKBNK": {
+      "kap_id": 2429,
+      "slug": "2429-yapi-ve-kredi-bankasi-a-s",
+      "kap_title": "YAPI VE KREDİ BANKASI A.Ş.",
+      "mkk_member_oid": "4028e4a240f2ef4c01412ae6d6630538"
+    },
+    "ZIRAAT": {
+      "kap_id": 2419,
+      "slug": "2419-t-c-ziraat-bankasi-a-s",
+      "kap_title": "T.C. ZİRAAT BANKASI A.Ş.",
+      "mkk_member_oid": "4028e4a244a081810144df8a1df43625"
+    },
+    "ZIRAATK": {
+      "kap_id": 3829,
+      "slug": "3829-ziraat-katilim-bankasi-a-s",
+      "kap_title": "ZİRAAT KATILIM BANKASI A.Ş.",
+      "mkk_member_oid": "402821814bf524d5014d338f92f50d61"
+    }
+  },
+  "unmatched": []
+}

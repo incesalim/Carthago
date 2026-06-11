@@ -33,6 +33,7 @@ WEB = ROOT / "web"
 
 sys.path.insert(0, str(ROOT))
 from src.audit_reports.schema import init_schema as _init_audit_schema  # noqa: E402
+from src.kap.schema import init_schema as _init_kap_schema              # noqa: E402
 from src.news._htmltext import fix_mojibake                            # noqa: E402
 from src.news.schema import init_schema as _init_news_schema            # noqa: E402
 
@@ -67,6 +68,7 @@ SYNC_TABLES = [
     "news_items",
     "regulation_briefings",
     "tbb_digital_stats",
+    "kap_ownership",
 ]
 
 BATCH_SIZE = 100  # rows per INSERT statement (default for skinny tables)
@@ -225,6 +227,7 @@ def main() -> int:
     # DDL is `CREATE … IF NOT EXISTS`, so it's a no-op once snapshot is current.
     _init_audit_schema(conn)
     _init_news_schema(conn)
+    _init_kap_schema(conn)
 
     allowed_tables = (
         {t.strip() for t in args.only_tables.split(",") if t.strip()}
@@ -234,6 +237,19 @@ def main() -> int:
     if allowed_tables:
         lines.append(f"-- table filter: {sorted(allowed_tables)}")
         lines.append("")
+
+    # Replay queued partition-shrink deletes (d1_pending_deletes outbox —
+    # written by lanes whose runs replace whole partitions, e.g. KAP
+    # ownership) BEFORE the inserts, so D1 can't keep orphan rows that the
+    # INSERT OR REPLACE sync would never touch.
+    pending = conn.execute(
+        "SELECT rowid, sql FROM d1_pending_deletes ORDER BY rowid"
+    ).fetchall()
+    if pending:
+        lines.append(f"-- d1_pending_deletes outbox: {len(pending)} statements")
+        lines.extend(stmt for _, stmt in pending)
+        lines.append("")
+
     total_inserts = 0
     for tbl in SYNC_TABLES:
         if allowed_tables is not None and tbl not in allowed_tables:
@@ -243,7 +259,7 @@ def main() -> int:
         lines.append("")
         total_inserts += sum(1 for ln in block if ln.startswith("INSERT"))
 
-    if total_inserts == 0:
+    if total_inserts == 0 and not pending:
         print(f"no new rows in last {args.hours}h — nothing to push")
         return 0
 
@@ -260,6 +276,13 @@ def main() -> int:
     if rc != 0:
         print(f"wrangler failed with exit code {rc}", file=sys.stderr)
         return rc
+    if pending:
+        conn.executemany(
+            "DELETE FROM d1_pending_deletes WHERE rowid = ?",
+            [(rid,) for rid, _ in pending],
+        )
+        conn.commit()
+        print(f"cleared {len(pending)} replayed outbox deletes")
     print("D1 push complete")
     return 0
 

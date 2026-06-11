@@ -4,8 +4,10 @@ Steps (each can be skipped individually):
   1. Incremental monthly update (only new months BDDK has published).
   2. Incremental weekly update (latest 13-week window).
   3. EVDS refresh (TCMB macro / rate series).
-  4. VACUUM + gzip to data/bddk_data.db.gz.
-  5. Optional: git add / commit / push the new snapshot.
+  4. TBB quarterly digital-banking refresh (non-critical).
+  5. KAP ownership-structure refresh (non-critical).
+  6. VACUUM + gzip to data/bddk_data.db.gz.
+  7. Optional: git add / commit / push the new snapshot.
 
 After this runs, scripts/push_to_d1.py syncs the changed rows up to
 Cloudflare D1 — which the production dashboard reads from.
@@ -79,6 +81,8 @@ def main():
     parser.add_argument("--skip-evds", action="store_true")
     parser.add_argument("--skip-tbb", action="store_true",
                         help="skip the TBB quarterly digital-banking refresh")
+    parser.add_argument("--skip-kap", action="store_true",
+                        help="skip the KAP ownership-structure refresh")
     args = parser.parse_args()
 
     start = datetime.now()
@@ -99,6 +103,13 @@ def main():
         # BDDK refresh — the next cron retries.
         _run_step("TBB digital-banking update",
                    [sys.executable, "scripts/update_tbb_digital.py"],
+                   critical=False)
+    if not args.skip_kap:
+        # Ownership structure from KAP Genel Bilgi Formu pages. Non-critical:
+        # a KAP outage must not abort the core BDDK refresh; per-bank parse
+        # failures keep that bank's previous rows in place.
+        _run_step("KAP ownership update",
+                   [sys.executable, "scripts/update_kap_ownership.py"],
                    critical=False)
 
     vacuum()
