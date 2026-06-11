@@ -36,6 +36,7 @@ from src.audit_reports.schema import init_schema as _init_audit_schema  # noqa: 
 from src.kap.schema import init_schema as _init_kap_schema              # noqa: E402
 from src.news._htmltext import fix_mojibake                            # noqa: E402
 from src.news.schema import init_schema as _init_news_schema            # noqa: E402
+from src.tefas.schema import init_schema as _init_tefas_schema          # noqa: E402
 
 # Tables whose text values get a final mojibake repair before D1 (Turkish text
 # from scrapers / LLM; "Ã/Å/Ä" only ever appear there as mis-encoding).
@@ -69,6 +70,10 @@ SYNC_TABLES = [
     "regulation_briefings",
     "tbb_digital_stats",
     "kap_ownership",
+    "tefas_manager_daily",
+    "tefas_category_daily",
+    "tefas_allocation_daily",
+    "tefas_top_funds",
 ]
 
 BATCH_SIZE = 100  # rows per INSERT statement (default for skinny tables)
@@ -228,6 +233,7 @@ def main() -> int:
     _init_audit_schema(conn)
     _init_news_schema(conn)
     _init_kap_schema(conn)
+    _init_tefas_schema(conn)
 
     allowed_tables = (
         {t.strip() for t in args.only_tables.split(",") if t.strip()}

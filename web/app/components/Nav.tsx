@@ -16,6 +16,7 @@ const TABS = [
   { href: "/weekly", label: "Weekly" },
   { href: "/liquidity", label: "Liquidity" },
   { href: "/digital", label: "Digital" },
+  { href: "/funds", label: "Funds" },
   { href: "/economy", label: "Economy" },
   { href: "/rates", label: "Rates" },
   { href: "/banks", label: "Banks" },

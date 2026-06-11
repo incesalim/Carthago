@@ -24,6 +24,7 @@ coverage or known issues change.
 | `evds_series` | TCMB EVDS | 2018-01 → present | daily / weekly / monthly per series |
 | `tbb_digital_stats` | TBB quarterly digital-banking report | 2019-Q1 → present | quarterly (Mar/Jun/Sep/Dec) |
 | `kap_ownership` | KAP Genel Bilgi Formu §5 (kap.org.tr) | current state per bank (`as_of` = filing date) | weekly full replace; 30/31 banks (ATBANK files no form) |
+| `tefas_manager_daily`, `tefas_category_daily`, `tefas_allocation_daily`, `tefas_top_funds` | TEFAS fund-market JSON API (tefas.gov.tr) | 2020-06 → present (after backfill) | daily T+1, trading days; aggregated at ingest (no per-fund rows) |
 | `bank_audit_balance_sheet` (assets / liabilities / off-balance) | BRSA quarterly PDFs | 2022-Q1 → 2026-Q1 | per-bank |
 | `bank_audit_profit_loss` | BRSA quarterly PDFs | same | per-bank |
 | `bank_audit_credit_quality` | BRSA PDFs, IFRS 9 footnotes | same | per-bank, per-section |
@@ -82,9 +83,10 @@ The **weekly** bulletin numbers the same groups differently — see METRICS.md �
 Two independent ingestion lanes (separate staging DB + R2 snapshot +
 concurrency group), so audit failures can't stall the bulletin pipeline:
 
-- `.github/workflows/refresh-evds-daily.yml` — Sun–Fri 05:00 UTC. EVDS scrape → D1.
+- `.github/workflows/refresh-evds-daily.yml` — Sun–Fri 05:00 UTC. EVDS scrape → D1. Also carries the non-critical TBB / KAP / TEFAS steps of `refresh.py` (TEFAS re-fetches a trailing 7-day window daily — self-heals T+1 lag, holidays and revisions).
 - `.github/workflows/refresh-bddk-bulletins.yml` — Sat 02:00 UTC. Monthly + weekly bulletins (no EVDS, no audit) → D1.
-- `.github/workflows/refresh-data.yml` — Sat 03:00 UTC. Monthly + weekly + EVDS + TBB digital-banking (quarterly) + KAP ownership structure → D1. *(Audit removed — now its own workflow.)* TBB and KAP are non-critical steps in `refresh.py` (an outage won't abort the BDDK refresh); they ride the bulletin lane's snapshot, so no new lane. KAP details in [OPERATIONS.md](OPERATIONS.md) §KAP ownership.
+- `.github/workflows/refresh-data.yml` — Sat 03:00 UTC. Monthly + weekly + EVDS + TBB digital-banking (quarterly) + KAP ownership structure + TEFAS fund market → D1. *(Audit removed — now its own workflow.)* TBB, KAP and TEFAS are non-critical steps in `refresh.py` (an outage won't abort the BDDK refresh); they ride the bulletin lane's snapshot, so no new lane. KAP details in [OPERATIONS.md](OPERATIONS.md) §KAP ownership; TEFAS in §TEFAS fund market.
+- `.github/workflows/backfill-tefas.yml` — manual dispatch only. Resumable ~6-year TEFAS history backfill (28-day windows, rate-limited ≈2.5–3 h; re-dispatch with the same `from` to resume — completed windows are skipped via `tefas_fetch_log`).
 - `.github/workflows/refresh-audit.yml` — Sun 04:00 UTC. Audit-report sync + extract → `bank_audit_*` → D1. Own DB `data/bank_audit.db`, own snapshot `state/bank_audit.db.gz`, own group `bddk-audit`. Manual dispatch takes optional `bank` / `skip_scrape` inputs (the /admin per-bank trigger uses `bank` → `--only-bank … --latest-period`). After extraction it runs `scripts/check_audit_quality.py --alert` (alert-only): flags a quarter whose lines are identical to the prior one (period-shift), a balance sheet that doesn't balance, or missing rows → Telegram/Discord, never blocking the push.
 - `.github/workflows/deploy-cloudflare.yml` — on push to `web/**`. Apply D1 migrations + build + deploy dashboard.
 - `.github/workflows/healthcheck.yml` — daily 06:00 UTC. D1 freshness check → Telegram/Discord alert if stale. Also runs `scripts/verify_chart_spec.py --alert`: re-resolves every reproduced chart in `web/app/lib/chart-specs.catalog.json` against D1 and alerts if a series goes blank (0 rows) or drifts past its `verify[]` anchor. See [REPRODUCING_CHARTS.md](REPRODUCING_CHARTS.md).
@@ -130,6 +132,14 @@ mobile, and demographics of active individual digital customers (gender + age).
 Data layer `web/app/lib/digital.ts` pins verified full-history series by their
 `(channel, segment, section, unit, metric_slug)` key. See [METRICS.md](METRICS.md) §13.
 
+A **Funds** tab (`/funds`) surfaces TEFAS fund-market sector aggregates: AUM by
+fund type (mutual / pension / ETF, ₺ trn) with a CPI-deflated index, mutual-fund
+AUM by category (the money-market & hedge-fund boom), AUM-weighted portfolio
+allocation, investor-account counts, and the latest top-15 funds per type. Time
+series sample the month-end trading day; GYF/GSYF (not daily-priced) are
+excluded from trends. Data layer `web/app/lib/funds.ts`. See
+[METRICS.md](METRICS.md) §15.
+
 A **Compare** tab (`/cross-bank`) is a cross-bank performance heatmap built
 entirely off the per-bank `bank_audit_*` tables (the monthly BDDK tables are
 group aggregates only). It puts individual banks side by side across the full
@@ -163,6 +173,15 @@ A qualitative-data layer feeds two tabs from the `news_items` table
 
 ## Known issues / pending work
 
+- **TEFAS funds lane shipped (2026-06-11)** — `tefas_*` aggregates in D1,
+  `/funds` tab live. Caveats by design: investor counts double-count people
+  holding several funds; GYF/GSYF excluded from time series (not daily-priced);
+  manager names extracted from the fund-title prefix (sector sums are invariant
+  to mis-bucketing); changing any normalization rule requires re-running the
+  backfill (aggregated at ingest, per-fund rows not persisted). The healthcheck
+  `tefas` threshold (120 h on the data date) may fire one benign alert over
+  multi-day religious holidays. Follow-ups: a manager/bank-affiliated view off
+  the existing `manager` dimension; carry-forward aggregation for GYF/GSYF.
 - **KAP ownership lane shipped (2026-06-11)** — `kap_ownership` in D1
   (203 rows, 30/31 banks; weekly via `refresh-data.yml`). Surfaced on
   `/banks/[ticker]` as an Ownership card (≥5% direct + indirect holders with
