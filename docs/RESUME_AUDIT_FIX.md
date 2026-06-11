@@ -1,4 +1,23 @@
-# AUDIT BALANCE-SHEET FIX — FINAL STATE (2026-06-11)
+# AUDIT BALANCE-SHEET FIX — FINAL STATE (2026-06-11, updated)
+
+Production D1: BS validation failures **68 → 10**, `-6` corruption = 0,
+261+ partitions corrected, 7 readable rows fixed via overrides + BURGAN 2025Q3
+fixed via comma-marker normalization. **Validation now fully covers all 975
+partitions** (an earlier bug: incremental `push_to_d1 --hours N` clears a
+partition across all tables but only re-pushes rows inside the time window, so
+repeated partition-pushes eroded bank_audit_validation coverage to 613, hiding
+~4 bad partitions; fixed by wiping + full-pushing the validation table.
+FOLLOW-UP: make validation push always full, or stop the clear from eroding it).
+
+## The 10 still flagged (⚠ everywhere):
+**6 genuine-source defects (PDF wrong/unreadable — OCR or reissue):**
+EXIM 2024Q4, QNBFB 2022Q4, ODEA 2023Q4, TEB 2024Q4, BURGAN 2023Q2, TSKB 2025Q3.
+**4 structural-hard:** KUVEYT 2022Q2/2025Q4 (lease value wrapped off label),
+YKBNK 2022Q3/2022Q4 (bank's own equity children don't sum to parent).
+
+---
+
+# (prior) AUDIT BALANCE-SHEET FIX — FINAL STATE (2026-06-11)
 
 Production D1: BS validation failures **68 → 11**, `-6` corruption eliminated,
 261+ partitions corrected, 6 readable rows fixed via curated overrides
