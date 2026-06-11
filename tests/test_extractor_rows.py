@@ -123,6 +123,41 @@ def test_split_digit_join_rejected_when_identity_fails():
     assert rows[0][1][2] != 99999999.0 or rows[0][1][0] != 27225645.0
 
 
+def test_bare_roman_without_dot_recovered():
+    # ALNTF prints its first section header with no trailing dot:
+    # "I FİNANSAL VARLIKLAR (Net) <6 numbers>". Must parse as a roman row.
+    text = f"I FİNANSAL VARLIKLAR (Net) {VALUES_6}"
+    rows = _parse_rows(text, 6)
+    assert len(rows) == 1
+    assert rows[0][0].startswith("I FİNANSAL")
+    assert rows[0][1][2] == 124245.0
+
+
+def test_bare_letter_without_dot_not_a_marker():
+    # A lone non-roman uppercase word must NOT be treated as a hierarchy marker
+    # (only I/V/X romans get the dotless treatment).
+    text = f"A FOO BAR {VALUES_6}"
+    rows = _parse_rows(text, 6)
+    # admitted only if it looks like a total; "A FOO BAR" is neither roman nor total
+    assert rows == [] or not rows[0][0].startswith("A ")
+
+
+def test_section_ref_masked_not_read_as_value():
+    # ICBCT held-for-sale: long label wraps, all-dash columns interleave around
+    # the "(5.I.16)" footnote ref → its 5/16 used to land in the value slots.
+    text = ("III. SATIŞ AMAÇLI ELDE TUTULAN VE DURDURULAN FAALİYETLERE İLİŞKİN "
+            "- - - DURAN VARLIKLAR (Net) (5.I.16) - - -")
+    rows = _parse_rows(text, 6)
+    assert len(rows) == 1
+    assert rows[0][1] == [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+
+def test_section_ref_digit_only_masked():
+    text = f"III. Held for Sale (5.1.14) {VALUES_6}"
+    rows = _parse_rows(text, 6)
+    assert len(rows) == 1 and rows[0][1][0] == 123456.0  # 5,1,14 not leaked
+
+
 def test_squished_off_balance_rows_survive_header_filter():
     # ISCTR off-balance: real data rows that contain "BALANCESHEET" squished —
     # the header filter must not eat them (it did, briefly, between the QNBFB
