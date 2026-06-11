@@ -389,16 +389,25 @@ def _parse_rows(text: str, n_cols: int) -> list[tuple[str, list[float | None]]]:
         # dipnot ref even when the line carries no surplus (SKBNK prints
         # "INVESTMENT PROPERTY (Net) (14) - - - - -", which used to store -14
         # as a value). Drop it; if the row then falls below n_cols it is
-        # skipped — better lost than corrupted.
-        while nums_m and _FOOTNOTE_RX.fullmatch(nums_m[0].group()):
+        # skipped — better lost than corrupted. EXCEPTION: paren-negative banks
+        # (PASHA/ING/KLNMA/TFKB) print negative VALUES in parens, so "(69)" can
+        # be a real value — recognisable because the NEXT token is also
+        # parenthesized (a value sequence, not a lone footnote). Don't drop then.
+        def _next_is_paren(ms):
+            return len(ms) > 1 and ms[1].group().lstrip().startswith('(')
+        while (nums_m and _FOOTNOTE_RX.fullmatch(nums_m[0].group())
+               and not _next_is_paren(nums_m)):
             nums_m = nums_m[1:]
         # Dipnot refs like "(6)" sit between the label and the value columns;
         # drop them while the line still has surplus tokens, so they can never
-        # be taken as a value (-6) or skew the triplet count below.
+        # be taken as a value (-6) or skew the triplet count below. Skip when
+        # most tokens are parenthesized (paren-negative value row).
         if len(nums_m) > n_cols:
-            kept = [m for m in nums_m if not _FOOTNOTE_RX.fullmatch(m.group())]
-            if len(kept) >= n_cols:
-                nums_m = kept
+            paren = sum(1 for m in nums_m if m.group().lstrip().startswith('('))
+            if paren <= 1:
+                kept = [m for m in nums_m if not _FOOTNOTE_RX.fullmatch(m.group())]
+                if len(kept) >= n_cols:
+                    nums_m = kept
         recovered_vals: list[float | None] | None = None
         if n_cols == 6 and n_cols < len(nums_m) <= n_cols + 2:
             joined = _try_split_digit_joins(line, nums_m)
