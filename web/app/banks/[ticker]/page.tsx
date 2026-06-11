@@ -26,7 +26,9 @@ import {
   validationByPeriod,
 } from "@/app/lib/audit";
 import { newsByTicker } from "@/app/lib/news";
+import { bankOwnership } from "@/app/lib/kap";
 import BankCard from "@/app/components/BankCard";
+import OwnershipCard from "@/app/components/OwnershipCard";
 import CopyTableButton from "@/app/components/CopyTableButton";
 import {
   BS_ASSET_LINES,
@@ -194,15 +196,17 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   ).sort().reverse();
   const periods = pickPeriods(allPeriods, view, 4);
 
-  const [bsPivot, bsNames, plPivot, kapItems, profile, stages, validation] = await Promise.all([
-    balanceSheetMultiPeriod(ticker, kind, periods),
-    balanceSheetLineNames(ticker, kind, periods),
-    profitLossMultiPeriod(ticker, kind, periods),
-    newsByTicker(ticker, 12),
-    bankProfile(ticker),
-    bankStagesLatest(ticker, kind),
-    validationByPeriod(ticker, kind),
-  ]);
+  const [bsPivot, bsNames, plPivot, kapItems, profile, stages, validation, ownership] =
+    await Promise.all([
+      balanceSheetMultiPeriod(ticker, kind, periods),
+      balanceSheetLineNames(ticker, kind, periods),
+      profitLossMultiPeriod(ticker, kind, periods),
+      newsByTicker(ticker, 12),
+      bankProfile(ticker),
+      bankStagesLatest(ticker, kind),
+      validationByPeriod(ticker, kind),
+      bankOwnership(ticker),
+    ]);
 
   // ⚠ on a period column = that quarter's extraction failed one or more
   // internal-sum identity checks (TL+FC=Total, parent=Σchildren, TOTAL=Σromans,
@@ -316,6 +320,9 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
         stages={stages}
         latestPeriod={periods[0] ?? null}
       />
+
+      {/* Ownership structure from the KAP Genel Bilgi Formu (weekly refresh) */}
+      <OwnershipCard rows={ownership} />
 
       {/* Recent KAP disclosures */}
       <div className="mb-6 rounded-xl border border-border bg-card p-4 shadow-sm">

@@ -164,10 +164,13 @@ A qualitative-data layer feeds two tabs from the `news_items` table
 ## Known issues / pending work
 
 - **KAP ownership lane shipped (2026-06-11)** — `kap_ownership` in D1
-  (203 rows, 30/31 banks; weekly via `refresh-data.yml`). Open follow-up:
-  dashboard surfacing (ownership/free-float card on per-bank pages, ownership
-  taxonomy cross-check) is not built yet. ATBANK publishes no Genel Bilgi
-  Formu; `as_of` filing dates can be years old (structure-change driven).
+  (203 rows, 30/31 banks; weekly via `refresh-data.yml`). Surfaced on
+  `/banks/[ticker]` as an Ownership card (≥5% direct + indirect holders with
+  share bars, paid-in capital / registered ceiling, per-class actual free
+  float; `web/app/components/OwnershipCard.tsx` + `web/app/lib/kap.ts`).
+  ATBANK publishes no Genel Bilgi Formu (card hidden); `as_of` filing dates
+  can be years old (structure-change driven). Possible follow-up: ownership
+  taxonomy cross-check vs `bank_types`.
 - **Audit rework Phases 3–4 complete (2026-06-11).** Fleet history repaired in
   7 gated batches (28 banks + ALBRK/BURGAN re-repair in batch 7 after the §4
   CI chunk backfills clobbered Monday's fix via last-writer-wins on the R2
