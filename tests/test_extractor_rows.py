@@ -202,6 +202,15 @@ def test_dotless_roman_does_not_eat_split_VARLIKLAR_header():
     assert len(rows) == 1 and rows[0][0].startswith("I FİNANSAL")
 
 
+def test_tr_number_not_treated_as_bare_marker():
+    # EXIM's grand-total line wraps its label away, leaving "37.239.656 …" —
+    # a TR-format number must NOT be admitted as a hierarchy marker / bogus row.
+    line = "37.239.656 305.395.566 342.635.222 24.983.265 297.394.215 322.377.480 The accompanying notes"
+    assert _parse_rows(line, 6) == []
+    # ...while a genuine wrapped marker "1.2." still parses.
+    assert len(_parse_rows("1.2. 3.272.959 14.626.860 17.899.819 1.233.834 10.951.814 12.185.648", 6)) == 1
+
+
 def test_squished_off_balance_rows_survive_header_filter():
     # ISCTR off-balance: real data rows that contain "BALANCESHEET" squished —
     # the header filter must not eat them (it did, briefly, between the QNBFB
