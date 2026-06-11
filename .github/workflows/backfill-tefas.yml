@@ -1,10 +1,11 @@
 name: Backfill TEFAS funds
 
 # One-time (re-runnable) historical backfill of the TEFAS fund-market lane.
-# ~6 years × 5 fund types × 2 endpoints in 28-day windows ≈ 800 rate-limited
-# requests at ~11 s spacing ≈ 2.5–3 h. Resumable: completed windows are
-# recorded in tefas_fetch_log inside the R2 snapshot — if a run dies,
-# re-dispatch with the SAME `from` date and only missing windows re-fetch.
+# ~5 years (the API rejects start dates older than 5 years) × 5 fund types ×
+# 2 endpoints in 28-day windows ≈ 660 rate-limited requests at ~11 s spacing
+# ≈ 2–2.5 h. Resumable: completed windows are recorded in tefas_fetch_log
+# inside the R2 snapshot — if a run dies, re-dispatch with the SAME `from`
+# date (windows are aligned from it) and only missing windows re-fetch.
 #
 # Apply the D1 migration (0007) BEFORE dispatching — the periodic
 # --push-every pushes fail on missing remote tables otherwise.
@@ -12,9 +13,9 @@ on:
   workflow_dispatch:
     inputs:
       from:
-        description: "Backfill start date (YYYY-MM-DD)"
-        required: true
-        default: "2020-06-01"
+        description: "Backfill start date YYYY-MM-DD (empty = API's ~5-year horizon; resume runs MUST repeat the first run's date)"
+        required: false
+        default: ""
       to:
         description: "Backfill end date (YYYY-MM-DD, empty = today)"
         required: false
@@ -83,7 +84,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: >
           python scripts/update_tefas.py --backfill
-          --from "${{ inputs.from }}"
+          ${{ inputs.from != '' && format('--from "{0}"', inputs.from) || '' }}
           ${{ inputs.to != '' && format('--to "{0}"', inputs.to) || '' }}
           --types "${{ inputs.types }}"
           --push-every 15
