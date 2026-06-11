@@ -891,27 +891,44 @@ def _detect_pl_ncols(pdf_path: str, page_idx_1: int) -> int:
     col 0 and cumulative-prior to col n//2, instead of blindly taking the last
     two (which grabs the prior period on a 4-column page). 2-column pages return
     2, so the mapping is identical to the old behaviour and can't regress them.
+
+    A P&L is NEVER more than 4 value columns. If the pdfplumber text yields a
+    mode >4 the page is letter-spaced — each value is shattered into several
+    number-tokens ('38,9 06,5 46' → 3), inflating the count and (downstream)
+    letting the garbled pdfplumber rows out-vote the clean fitz parse. In that
+    case recompute the mode from the coordinate-reconstructed fitz text, which
+    doesn't shatter values. (ISCTR 2024Q4 unconsolidated.)
     """
     from collections import Counter
+
+    def _mode_from(text: str) -> int | None:
+        counts = []
+        for line in _fitz_merge_rows(text, 2).splitlines():
+            s = line.strip()
+            if not (HIERARCHY_PAT.match(s) or TOTAL_PAT.search(s)):
+                continue
+            n = len(re.findall(NUM_PAT, s))
+            if n >= 2:
+                counts.append(n)
+        if not counts:
+            return None
+        mode = Counter(counts).most_common(1)[0][0]
+        return mode if mode % 2 == 0 else mode - 1  # an odd count = a footnote number
+
     try:
         import pdfplumber as _pp
         with _pp.open(pdf_path) as pdf:
             text = extract_page_text_repaired(pdf.pages[page_idx_1 - 1])
     except Exception:
         return 2
-    counts = []
-    for line in _fitz_merge_rows(text, 2).splitlines():
-        s = line.strip()
-        if not (HIERARCHY_PAT.match(s) or TOTAL_PAT.search(s)):
-            continue
-        n = len(re.findall(NUM_PAT, s))
-        if n >= 2:
-            counts.append(n)
-    if not counts:
+    n = _mode_from(text)
+    if (n is None or n > 4) and _HAS_FITZ:  # shattered pdfplumber text → trust fitz
+        fn = _mode_from(_fitz_page_text(pdf_path, page_idx_1 - 1))
+        if fn is not None:
+            n = fn
+    if n is None:
         return 2
-    mode = Counter(counts).most_common(1)[0][0]
-    n = mode if mode % 2 == 0 else mode - 1  # an odd count = a footnote number
-    return max(2, min(6, n))
+    return max(2, min(4, n))
 
 
 def extract(pdf_path: str | Path) -> BankReport:

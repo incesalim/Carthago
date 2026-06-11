@@ -34,8 +34,18 @@ display-only, validator doesn't cover them, low priority.
 - `data/audit_overrides.json` now holds 22 curated cell corrections, each noted
   with the evidence that fixes its partition to 0.
 
-## Still open (separate from the 10, validator doesn't cover):
-- 3 P&L footnote-leak rows: ISCTR 2024Q4 (×2), KUVEYT 2024Q4 — need P&L override.
+## P&L rows — FIXED 2026-06-12:
+- KUVEYT 2024Q4 uncons XVII. pre-tax (override, value leaked into dipnot).
+- ISCTR 2024Q4 uncons — whole statement was letter-spaced → 32 garbage rows.
+  Root cause was `_detect_pl_ncols`: the shattered pdfplumber text ('38,9 06,5
+  46' → 3 number-tokens) inflated the column count to 6, letting the garbled
+  pdfplumber parse out-vote the clean fitz parse. Fix: when pdfplumber yields a
+  mode >4 (impossible for a real P&L), recompute the count from the
+  coordinate-reconstructed fitz text, clamp to 4. Re-extracted just that one PDF
+  via `scripts/reextract_pl.py` (replaces ONLY profit_loss for one partition in
+  prod DB + D1, no fleet loop, no other tables touched) → 62 clean rows.
+
+## Still open (validator doesn't cover these):
 - 49 off-balance truncated-label rows — cosmetic.
 - FOLLOW-UP: make validation push always-full (the coverage-erosion bug).
 
