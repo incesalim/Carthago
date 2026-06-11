@@ -851,7 +851,9 @@ Data layer: `web/app/lib/economy.ts`; all series live in `evds_series`
 CDS spreads, OIS pricing, sovereign yield curves, BIST/MSCI indices
 (Bloomberg); GDP nowcast and Financial Conditions Index (BBVA-proprietary
 models); foreigners' positioning / carry stock (CBRT securities statistics
-not ingested); investment-fund flows (TEFAS). The static **BBVA baseline
+not ingested). Investment-fund *levels and composition* are now ingested from
+TEFAS (§15, the /funds tab) — pure flow series (subscriptions/redemptions) are
+still not derivable (AUM deltas mix flows with valuation). The static **BBVA baseline
 scenario table** (report p. 42) is embedded in `economy.ts` for context —
 refresh it when a new quarterly outlook is published. The non-reproducible
 numbers themselves (CDS, OIS, carry/positioning, nowcast, FCI, sensitivities)
@@ -865,3 +867,88 @@ GDP y/y 2025-Q4 = 3.42%, CPI y/y May-26 = 32.6%, CA 12m Mar-26 = −$39.7bn,
 unemployment Apr-26 = 8.2% — all match the published BBVA/TURKSTAT/CBRT
 figures; `scripts/verify_chart_spec.py` re-checks daily in the healthcheck
 (rolling sums supported via the `rolling_sum` transform op).
+
+## 15. TEFAS fund-market statistics
+
+Source: **TEFAS** (Turkey Electronic Fund Trading Platform, tefas.gov.tr) —
+two JSON POST endpoints behind the fon-verileri SPA:
+`api/funds/fonGnlBlgSiraliGetir` (per fund per day: NAV `fiyat`, AUM
+`portfoyBuyukluk` in TL, investor count `kisiSayisi`, units outstanding) and
+`api/funds/dagilimSiraliGetirT` (per fund per day portfolio allocation across
+~55 sparse percentage fields). Data is T+1, trading days only; history goes
+back 6+ years. Server limits: ~6 requests/min, max 30 days per request
+(client paces at ~5.5/min — see [OPERATIONS.md](OPERATIONS.md) §TEFAS).
+Ingestion: [`src/tefas/`](../src/tefas/) driven by
+[`scripts/update_tefas.py`](../scripts/update_tefas.py). Surfaces on the
+**/funds** tab ([`web/app/lib/funds.ts`](../web/app/lib/funds.ts)).
+
+**Aggregated at ingest.** Per-fund rows (~7k/day across types) are never
+persisted — each fetch window carries *every* fund for the dates it covers,
+so complete per-date aggregates are computed in memory and only those land
+in SQLite/D1 (four skinny tables, AUM in raw TL). Consequence: changing any
+normalization rule below requires re-running the backfill
+(`backfill-tefas.yml`, resumable, ~2.5–3 h).
+
+| Table | Grain | Content |
+|---|---|---|
+| `tefas_manager_daily` | date × fon_tipi × manager | Σ AUM, fund count, Σ investor accounts |
+| `tefas_category_daily` | date × fon_tipi × category | same, grouped by fund category |
+| `tefas_allocation_daily` | date × fon_tipi × asset_class | AUM-weighted allocation % + covered-AUM base |
+| `tefas_top_funds` | date × fon_tipi × fon_kodu | top 15 by AUM (rank, name, manager, NAV, investors) |
+
+**Fund types** (`fon_tipi`): YAT mutual (~2,000 funds/day), EMK pension
+(~400), BYF ETF (~30), GYF real-estate (~250), GSYF venture (~500). GYF/GSYF
+are **not daily-priced** — stored as-is but excluded from /funds time series
+(a single date's SUM only counts the funds that happened to report).
+
+**Derived dimensions** (deterministic, in
+[`src/tefas/normalize.py`](../src/tefas/normalize.py), unit-tested):
+
+- **manager** — fund-title prefix through the `PORTFÖY` token
+  (`"AK PORTFÖY ÇOKLU VARLIK …"` → `AK PORTFÖY`); EMK funds (run by pension
+  companies) take the prefix through `EMEKLİLİK` (+ `A.Ş.` when adjacent);
+  fallback = first two tokens. Mis-bucketing only affects manager-level
+  views — sector sums are invariant to the grouping.
+- **category** — first-match keyword scan of the fund title: `PARA PİYASASI`
+  → money_market, `HİSSE SENEDİ` → equity, `BORÇLANMA ARAÇLARI` → debt,
+  `KİRA SERTİFİKALARI` → lease_certificates, `SERBEST` → hedge,
+  `ALTIN`/`KIYMETLİ MADEN` → precious_metals, `FON SEPETİ` → fund_of_funds,
+  `KATILIM` → participation, `DEĞİŞKEN`/`KARMA` → mixed, else other.
+  Specific keywords run before generic ones (`KATILIM HİSSE SENEDİ` → equity).
+- **asset_class** — the ~55 allocation fields roll up to 11 classes
+  (`ASSET_ROLLUP`): equity_tr (hs, gyy, gsyy) · equity_foreign (yhs) ·
+  gov_debt_tr (dt, hb) · gov_debt_fx (kba, eut, db, dot, kibd) · corp_debt
+  (ost, fb, bb, vdm, osdb) · foreign_debt (yba, ybkb, ybosb) · participation
+  (kh\*, kks\*, osks, oksyd) · money_market (r, tr, tpp, bpp, vm\*, vint) ·
+  precious_metals (km, kmbyf, kmkba, kmkks) · fund_units (yyf, byf, ybyf,
+  fkb, gykb, gsykb) · other (d, t, gas, ymk, btaa, btas). Legend verified
+  against tefas-crawler v0.5.0's legacy field schema; keys the API adds
+  later roll to *other* and are logged with their weight (never fatal).
+
+**AUM-weighted allocation.** Over funds having both an info row with AUM > 0
+and an allocation row that day:
+`weighted_pct[class] = Σ(aum_i × pct_i[class]) / Σ(aum_i)`, with the covered
+denominator stored as `aum_base_try`. A fund's unmapped residual
+(`100 − Σ mapped`, clamped ≥ 0) goes to *other*. Repo (`r`) and Borsa Para
+Piyasası (`bpp`) can be **negative** (money-market borrowing / leverage,
+common in serbest funds), so a class share can sit slightly outside 0..100;
+each fund's own fields still sum to 100.
+
+**Caveats.** `kisiSayisi` counts investor *accounts per fund* — a person
+holding five funds is counted five times, so investor series are levels of
+engagement, not unique people. `bilFiyat` (allocation endpoint) and
+`borsaBultenFiyat` are ignored.
+
+### Charted on /funds
+
+| Chart | Series | Source table |
+|---|---|---|
+| AUM by fund type (₺ trn, stacked) | YAT / EMK / BYF, month-end | `tefas_manager_daily` (SUM over managers) |
+| Total AUM nominal vs real (index) | deflated by CPI `TP.TUKFIY2025.GENEL` | same + `evds_series` |
+| Mutual-fund AUM by category (₺ trn + % stack) | money_market / debt / equity / hedge / precious_metals / rest | `tefas_category_daily` |
+| Portfolio allocation (% stack) | 8 display classes (gov/corp debt, equity, … merged from the 11 stored) | `tefas_allocation_daily` |
+| Investor accounts & fund counts | per fund type, month-end | `tefas_manager_daily` |
+| Largest funds tables | latest top-15 per YAT / EMK / BYF | `tefas_top_funds` |
+
+All time series sample the **month-end trading day** per fund type and chart
+by `YYYY-MM` (~72 points over the 6-year history) so per-type samples align.

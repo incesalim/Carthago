@@ -41,6 +41,7 @@ machine is involved in the production data flow.
 | **BDDK scrapers** | `src/scrapers/` | Python — monthly + weekly bulletins |
 | **EVDS client + scraper** | `src/scrapers/evds_client.py`, `evds_scraper.py` | TCMB EVDS v3 HTTP client |
 | **TBB digital-banking** | `src/tbb/` | Python — quarterly `.xls`/`.xlsx` workbook → tidy `tbb_digital_stats` |
+| **TEFAS fund market** | `src/tefas/` | Python — rate-limited tefas.gov.tr JSON client → per-day sector aggregates in `tefas_*` (per-fund rows not persisted) |
 | **Audit-report extraction** | `src/audit_reports/` | pdfplumber + pymupdf with fallback |
 | **R2 wrapper** | `src/audit_reports/r2_storage.py` | boto3 against S3-compatible R2 |
 | **D1 sync** | `scripts/push_to_d1.py` | incremental push via wrangler |
@@ -68,23 +69,25 @@ the bulletin/EVDS workflows. Their only shared sink is D1, where they write a
 `INSERT OR REPLACE`.
 
 ### Daily — `.github/workflows/refresh-evds-daily.yml`
-Sun–Fri 05:00 UTC. EVDS scraper only — fresh FX / rates / sterilization
-data in D1 within 24h. Saturday is skipped because the weekly workflow
-already includes EVDS.
+Sun–Fri 05:00 UTC. EVDS scraper (fresh FX / rates / sterilization data in D1
+within 24h) plus the non-critical TBB / KAP / TEFAS steps of `refresh.py`
+(TEFAS re-fetches a trailing 7-day window daily). Saturday is skipped because
+the weekly workflow already covers everything.
 
 ### Weekly bulletins — `.github/workflows/refresh-bddk-bulletins.yml`
 Saturday 02:00 UTC. Isolated BDDK-only refresh (monthly + weekly bulletins,
 `--skip-evds`, no audit). Catches the new week before `refresh-data.yml`.
 
 ### Weekly full — `.github/workflows/refresh-data.yml`
-Saturday 03:00 UTC. BDDK bulletins + EVDS + TBB digital:
+Saturday 03:00 UTC. BDDK bulletins + EVDS + TBB digital + KAP + TEFAS:
 1. Decompress `state/bddk_data.db.gz` (pulled from R2) → `data/bddk_data.db`
 2. `scripts/refresh.py` — monthly + weekly + EVDS scrapes + TBB quarterly
-   digital-banking refresh into SQLite (TBB is a non-critical step:
-   `scripts/update_tbb_digital.py`, latest 2 reports; a TBB outage won't abort
-   the BDDK refresh)
+   digital-banking refresh + KAP ownership + TEFAS fund market into SQLite
+   (TBB/KAP/TEFAS are non-critical steps; an outage in one won't abort the
+   BDDK refresh)
 3. `scripts/push_to_d1.py --hours 168` — push the week's rows to D1
-   (idempotent via INSERT OR REPLACE; covers `tbb_digital_stats` too)
+   (idempotent via INSERT OR REPLACE; covers `tbb_digital_stats`,
+   `kap_ownership` and the `tefas_*` tables too)
 4. VACUUM + re-gzip + upload the snapshot back to R2
 
 ### Audit reports — `.github/workflows/refresh-audit.yml`

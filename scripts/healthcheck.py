@@ -29,6 +29,11 @@ THRESHOLDS = [
     ("weekly", "Weekly bulletin", 192),
     ("evds", "EVDS rates/FX", 48),  # daily cron (24h) + margin
     ("news", "News", 48),
+    # Checked on the latest DATA date (not downloaded_at, which refreshes even
+    # when TEFAS publishes nothing) so publishing breaks are caught. 120h
+    # survives normal long weekends; multi-day religious holidays (Kurban)
+    # may fire one benign alert.
+    ("tefas", "TEFAS funds", 120),
 ]
 AUDIT_FAILED_ALERT = 25  # baseline known-partial extractions is ~20
 
@@ -38,6 +43,7 @@ SQL = (
     "(SELECT MAX(downloaded_at) FROM weekly_series) AS weekly,"
     "(SELECT MAX(downloaded_at) FROM evds_series) AS evds,"
     "(SELECT MAX(fetched_at) FROM news_items) AS news,"
+    "(SELECT MAX(date) FROM tefas_manager_daily) AS tefas,"
     "(SELECT MAX(extracted_at) FROM bank_audit_extractions) AS audit,"
     "(SELECT COUNT(*) FROM bank_audit_extractions WHERE success=0) AS audit_failed"
 )

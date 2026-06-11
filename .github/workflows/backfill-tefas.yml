@@ -1,0 +1,121 @@
+name: Backfill TEFAS funds
+
+# One-time (re-runnable) historical backfill of the TEFAS fund-market lane.
+# ~6 years × 5 fund types × 2 endpoints in 28-day windows ≈ 800 rate-limited
+# requests at ~11 s spacing ≈ 2.5–3 h. Resumable: completed windows are
+# recorded in tefas_fetch_log inside the R2 snapshot — if a run dies,
+# re-dispatch with the SAME `from` date and only missing windows re-fetch.
+#
+# Apply the D1 migration (0007) BEFORE dispatching — the periodic
+# --push-every pushes fail on missing remote tables otherwise.
+on:
+  workflow_dispatch:
+    inputs:
+      from:
+        description: "Backfill start date (YYYY-MM-DD)"
+        required: true
+        default: "2020-06-01"
+      to:
+        description: "Backfill end date (YYYY-MM-DD, empty = today)"
+        required: false
+        default: ""
+      types:
+        description: "Comma-separated fund types"
+        required: false
+        default: "YAT,EMK,BYF,GYF,GSYF"
+
+permissions:
+  contents: read
+
+# Hold the shared pipeline group for the whole run so the daily crons can't
+# race this job on the R2 snapshot (they queue behind it).
+concurrency:
+  group: bddk-pipeline
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      PYTHONIOENCODING: utf-8
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Setup Node (for wrangler, used by periodic D1 pushes)
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
+      - name: Fetch SQLite snapshot from R2 + decompress
+        run: |
+          python - <<'PY'
+          import gzip, shutil, pathlib
+          from src.audit_reports import r2_storage
+          gz  = pathlib.Path("data/bddk_data.db.gz")
+          db  = pathlib.Path("data/bddk_data.db")
+          gz.parent.mkdir(parents=True, exist_ok=True)
+          if r2_storage.exists("state/bddk_data.db.gz"):
+              size = r2_storage.download_to("state/bddk_data.db.gz", gz)
+              print(f"Pulled state/bddk_data.db.gz from R2 ({size/1e6:.1f} MB)")
+              with gzip.open(gz, "rb") as s, open(db, "wb") as d:
+                  shutil.copyfileobj(s, d)
+              print(f"Decompressed to {db.stat().st_size/1e6:.1f} MB")
+          else:
+              print("No snapshot in R2 yet — starting from empty DB.")
+          PY
+
+      - name: Run TEFAS backfill (resumable, pushes to D1 every 15 windows)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: >
+          python scripts/update_tefas.py --backfill
+          --from "${{ inputs.from }}"
+          ${{ inputs.to != '' && format('--to "{0}"', inputs.to) || '' }}
+          --types "${{ inputs.types }}"
+          --push-every 15
+
+      - name: VACUUM + gzip snapshot
+        run: |
+          python - <<'PY'
+          import gzip, shutil, sqlite3, pathlib
+          db = pathlib.Path("data/bddk_data.db")
+          gz = pathlib.Path("data/bddk_data.db.gz")
+          c = sqlite3.connect(db)
+          c.execute("VACUUM")
+          c.close()
+          with open(db, "rb") as s, gzip.open(gz, "wb", compresslevel=9) as d:
+              shutil.copyfileobj(s, d)
+          print(f"{gz.name}: {gz.stat().st_size/1e6:.1f} MB")
+          PY
+
+      - name: Upload new SQLite snapshot back to R2
+        run: |
+          python - <<'PY'
+          from src.audit_reports import r2_storage
+          import pathlib
+          gz = pathlib.Path("data/bddk_data.db.gz")
+          size = r2_storage.upload_file(gz, "state/bddk_data.db.gz")
+          print(f"Uploaded {size/1e6:.1f} MB to R2 state/bddk_data.db.gz")
+          PY
+
+      - name: Alert on failure
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+        run: python scripts/notify.py "❌ ${{ github.workflow }} failed — ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} (re-dispatch with the same 'from' to resume)"

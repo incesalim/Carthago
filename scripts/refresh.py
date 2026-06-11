@@ -6,8 +6,9 @@ Steps (each can be skipped individually):
   3. EVDS refresh (TCMB macro / rate series).
   4. TBB quarterly digital-banking refresh (non-critical).
   5. KAP ownership-structure refresh (non-critical).
-  6. VACUUM + gzip to data/bddk_data.db.gz.
-  7. Optional: git add / commit / push the new snapshot.
+  6. TEFAS fund-market refresh (non-critical).
+  7. VACUUM + gzip to data/bddk_data.db.gz.
+  8. Optional: git add / commit / push the new snapshot.
 
 After this runs, scripts/push_to_d1.py syncs the changed rows up to
 Cloudflare D1 — which the production dashboard reads from.
@@ -83,6 +84,8 @@ def main():
                         help="skip the TBB quarterly digital-banking refresh")
     parser.add_argument("--skip-kap", action="store_true",
                         help="skip the KAP ownership-structure refresh")
+    parser.add_argument("--skip-tefas", action="store_true",
+                        help="skip the TEFAS fund-market refresh")
     args = parser.parse_args()
 
     start = datetime.now()
@@ -110,6 +113,14 @@ def main():
         # failures keep that bank's previous rows in place.
         _run_step("KAP ownership update",
                    [sys.executable, "scripts/update_kap_ownership.py"],
+                   critical=False)
+    if not args.skip_tefas:
+        # Fund-market aggregates from tefas.gov.tr (trailing 7-day window,
+        # rate-limited to ~5.5 req/min ≈ 2.5 min). Non-critical: a TEFAS
+        # outage must not abort the core BDDK refresh — the trailing window
+        # self-heals on the next cron.
+        _run_step("TEFAS funds update",
+                   [sys.executable, "scripts/update_tefas.py"],
                    critical=False)
 
     vacuum()

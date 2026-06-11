@@ -9,10 +9,11 @@ machine involvement is required for routine refreshes.
 
 | When | Workflow | What it does |
 |---|---|---|
-| Sun–Fri 05:00 UTC | `refresh-evds-daily.yml` | TCMB EVDS scrape (FX, rates, sterilization, …) → D1 |
+| Sun–Fri 05:00 UTC | `refresh-evds-daily.yml` | TCMB EVDS scrape (FX, rates, sterilization, …) + TBB/KAP/TEFAS non-critical steps → D1 |
 | Saturday 02:00 UTC | `refresh-bddk-bulletins.yml` | Monthly + weekly BDDK bulletins (no EVDS, no audit) → D1 |
 | Saturday 03:00 UTC | `refresh-data.yml` | Monthly + weekly BDDK + EVDS → D1 |
 | Sunday 04:00 UTC | `refresh-audit.yml` | Audit-report scrape + extract → `bank_audit_*` → D1 (own DB + snapshot) |
+| Manual only | `backfill-tefas.yml` | One-time (re-runnable) ~6-year TEFAS fund-market history backfill — resumable via `tefas_fetch_log` (re-dispatch with the same `from` date) |
 | Manual only | `backfill-audit.yml` | Re-extract already-ingested audit PDFs after an extractor fix (cron skips `success=1`, so history never self-heals) → clear D1 partitions → push → snapshot. **Never run `banks=ALL`** — it exceeds the 180-min job timeout mid-extraction; dispatch ~5-bank chunks sequentially (the `bddk-audit` concurrency group queues them) |
 | Daily 06:00 UTC | `healthcheck.yml` | D1 freshness check → Telegram/Discord alert if stale/failing |
 | On push touching `web/**` | `deploy-cloudflare.yml` | Apply D1 migrations, build OpenNext bundle, deploy to Workers |
@@ -153,6 +154,49 @@ The `kap_ownership` table must exist in D1 first (migration
 rows can be years old if the structure hasn't changed; in the non-listed grid
 variant some banks enter the ratio into the TL column too (Ziraat reports
 `share_tl` = 100), so treat `ratio_pct` as authoritative there.
+
+### TEFAS fund market (daily + one-time backfill)
+
+The daily crons refresh the four `tefas_*` aggregate tables (a non-critical
+step in `refresh.py` → `scripts/update_tefas.py`): each run re-fetches a
+trailing **7-day window** per fund type from the tefas.gov.tr JSON API and
+re-aggregates, so T+1 publishing lag, holidays and revisions self-heal via the
+idempotent upsert. Per-fund rows are never stored — see
+[METRICS.md](METRICS.md) §15.
+
+**Rate limit.** The API allows ~6 requests/min (HTTP 429 beyond, resets
+~65 s) and max 30 days per request. `src/tefas/client.py` paces at ~5.5/min
+(11 s spacing) and sleeps 70 s on a 429. The site's robots.txt disallows
+`/api/` for AI crawlers — this lane is a polite, low-volume scheduled
+fetcher: never parallelize it or shrink the pacing interval.
+
+**Backfill / re-aggregation.** Dispatch `backfill-tefas.yml` (inputs:
+`from` = 2020-06-01 default, optional `to` and `types`). It pulls the
+bulletin snapshot, walks 28-day windows oldest→newest (~800 requests ≈
+2.5–3 h, holding the `bddk-pipeline` group so daily crons queue behind it),
+pushes to D1 every 15 windows, and uploads the snapshot back. Completed
+windows are recorded in the staging-only `tefas_fetch_log` — **resume by
+re-dispatching with the same `from` date** (windows are aligned from it).
+After changing `extract_manager` / `categorize_fund` / `ASSET_ROLLUP` in
+`src/tefas/normalize.py`, history must be re-aggregated: clear the log, then
+re-run the full backfill:
+
+```bash
+python - <<'PY'
+import sqlite3
+c = sqlite3.connect("data/bddk_data.db")
+c.execute("DELETE FROM tefas_fetch_log"); c.commit()
+PY
+python scripts/update_tefas.py --backfill --from 2020-06-01 --push-every 15
+```
+
+The `tefas_*` tables must exist in D1 first (migration
+`0007_tefas_funds.sql`, applied by the deploy workflow) — the periodic
+`--push-every` pushes fail otherwise. Top-fund partition shrinks queue
+DELETEs in the shared `d1_pending_deletes` outbox (KAP pattern). The
+healthcheck watches `MAX(date)` in `tefas_manager_daily` with a 120 h
+threshold; one benign alert can fire during multi-day religious holidays
+(no trading days → no new data).
 
 ### Change the D1 schema (migrations)
 
