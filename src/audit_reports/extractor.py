@@ -41,10 +41,13 @@ NUM_PAT = r'(?:\(\s*-?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?\s*\)|-?\d{1,3}(?:[.,]\d{
 # when it's immediately followed by an uppercase (section-header) label —
 # ALNTF prints its first section as "I FİNANSAL VARLIKLAR (Net)" (no dot)
 # while later sections keep the dot, so the dotted-only pattern dropped roman I
-# and Σromans fell short of the grand total. Gated by the uppercase lookahead
-# plus the n-numeric-column requirement in _parse_rows, so it can't admit prose.
+# and Σromans fell short of the grand total. The `(?!\s+ARLIKLAR…)` guard stops
+# it eating the column-header word "VARLIKLAR" (assets) when its text layer
+# splits it as "V ARLIKLAR" (ATBANK) — the only observed false positive.
+# Gated further by the uppercase lookahead plus the n-numeric-column
+# requirement in _parse_rows, so it can't admit prose.
 HIERARCHY_PAT = re.compile(
-    r'^(?P<h>(?:[IVX]+\.|[IVX]+(?=\s+[A-ZÇĞİÖŞÜ])|[A-Z]\.|\d+(?:\.\d+)*\.?))\s+(?P<rest>.+)$'
+    r'^(?P<h>(?:[IVX]+\.|[IVX]+(?=\s+[A-ZÇĞİÖŞÜ])(?!\s+ARLIKLAR)|[A-Z]\.|\d+(?:\.\d+)*\.?))\s+(?P<rest>.+)$'
 )
 # Grand-total rows ("TOTAL ASSETS", "VARLIKLAR TOPLAMI", "TOPLAM AKTİFLER",
 # "PASİF TOPLAMI", …) carry no hierarchy prefix, so they're admitted as data
@@ -87,11 +90,15 @@ _BARE_MARKER_RX = re.compile(r'(?:[IVX]+\.?|[A-Z]\.|\d+(?:\.\d+)*\.?)')
 # is always exactly 3 digits, so a 5-digit group with this XYZYZ shape is
 # unambiguously the artifact. Repaired to "XYZ" before tokenizing.
 _DUP_DIGIT_RX = re.compile(r'([.,])(\d)(\d{2})\3(?=\D|$)')
-# Roman-numeral footnote refs with a glued note number — "V-II-9", "V-I-15",
-# "V - I - 13" (ANADOLU). Unparenthesized, so _SECTION_REF_RX misses them; the
-# trailing "-9"/"-15"/"-13" leaks as a value. Roman-roman pairs never occur in
-# a real BS label, so this is safe to mask (offset-preserved).
-_ROMAN_FN_RX = re.compile(r'\b[IVX]+\s*-\s*[IVX]+(?:\s*-\s*\d{1,3})?\b')
+# Roman-numeral footnote refs. Two forms, both safe to mask (a real value never
+# starts with a roman letter, and roman-roman pairs never occur in a BS label):
+#   (a) PARENTHESIZED "(I-10)", "(II-8)", "(I-e-f)" — TEB/EXIM dipnot column;
+#       the trailing digits ("-10") otherwise leak as a value and truncate the
+#       label (TEB 4.3 "(I-10)" → stored -10 / -5).
+#   (b) UNPARENTHESIZED "V-II-9", "V-I-15", "V - I - 13" — ANADOLU.
+_ROMAN_FN_RX = re.compile(
+    r'\(\s*[IVXivx]+\s*-\s*[A-Za-z0-9][A-Za-z0-9.\s-]*\)'   # (a) parenthesized
+    r'|\b[IVX]+\s*-\s*[IVX]+(?:\s*-\s*\d{1,3})?\b')          # (b) unparenthesized
 
 
 def _value_matches(line: str) -> list:
