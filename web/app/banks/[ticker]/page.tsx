@@ -27,6 +27,7 @@ import {
 } from "@/app/lib/audit";
 import { newsByTicker } from "@/app/lib/news";
 import BankCard from "@/app/components/BankCard";
+import CopyTableButton from "@/app/components/CopyTableButton";
 import {
   BS_ASSET_LINES,
   BS_ASSET_ROMAN_HIERARCHIES,
@@ -356,10 +357,13 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
 
       {/* Balance Sheet — single table, assets and liabilities together */}
       {statement === "bs" && (
-      <section className="mb-6 rounded-lg border bg-card shadow-sm overflow-hidden">
-        <div className="px-5 py-3 border-b bg-muted flex items-baseline justify-between">
+      <section className="group mb-6 rounded-lg border bg-card shadow-sm overflow-hidden">
+        <div className="px-5 py-3 border-b bg-muted flex items-center justify-between">
           <h2 className="text-sm font-semibold text-foreground">Balance Sheet</h2>
-          <span className="text-[11px] text-muted-foreground">All numbers in TL thousands</span>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-muted-foreground">All numbers in TL thousands</span>
+            <CopyTableButton />
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
@@ -415,10 +419,13 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
 
       {/* Income Statement */}
       {statement === "is" && (
-      <section className="rounded-lg border bg-card shadow-sm overflow-hidden">
-        <div className="px-5 py-3 border-b bg-muted flex items-baseline justify-between">
+      <section className="group rounded-lg border bg-card shadow-sm overflow-hidden">
+        <div className="px-5 py-3 border-b bg-muted flex items-center justify-between">
           <h2 className="text-sm font-semibold text-foreground">Income Statement</h2>
-          <span className="text-[11px] text-muted-foreground">All numbers in TL thousands</span>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-muted-foreground">All numbers in TL thousands</span>
+            <CopyTableButton />
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
