@@ -158,6 +158,33 @@ def test_section_ref_digit_only_masked():
     assert len(rows) == 1 and rows[0][1][0] == 123456.0  # 5,1,14 not leaked
 
 
+def test_wrapped_marker_only_row_kept():
+    # KUVEYT: the "1.2." parent's label wrapped to adjacent lines, leaving just
+    # the marker + 6 numbers. Must be kept with hierarchy="1.2.", name empty.
+    text = "1.2. 3.272.959 14.626.860 17.899.819 1.233.834 10.951.814 12.185.648"
+    rows = _parse_rows(text, 6)
+    assert len(rows) == 1
+    assert rows[0][1][:3] == [3272959.0, 14626860.0, 17899819.0]
+
+
+def test_dup_digit_artifact_repaired():
+    # ANADOLU: prior-period "21,817,92727" (=21,817,927 with last 2 digits
+    # duplicated) shifts the window; repaired so the current triplet balances.
+    text = ("VARLIKLAR TOPLAMI 24,847,702 21,817,927 46,665,629 "
+            "19,894,088 14,790,92727 34,685,073")
+    rows = _parse_rows(text, 6)
+    assert len(rows) == 1
+    assert rows[0][1][:3] == [24847702.0, 21817927.0, 46665629.0]
+
+
+def test_roman_footnote_with_glued_note_number_masked():
+    # ANADOLU: "V-II-9" / "V-I-15" footnote refs leak their note number.
+    z = _parse_rows("XIV. SERMAYE BENZERİ BORÇLANMA ARAÇLARI V-II-9 - - - - - -", 6)
+    assert len(z) == 1 and z[0][1][:3] == [0.0, 0.0, 0.0]
+    v = _parse_rows("IX. ERTELENMİŞ VERGİ VARLIĞI V-I-15 276.268 - 276.268 532.041 - 532.041", 6)
+    assert len(v) == 1 and v[0][1][:3] == [276268.0, 0.0, 276268.0]
+
+
 def test_squished_off_balance_rows_survive_header_filter():
     # ISCTR off-balance: real data rows that contain "BALANCESHEET" squished —
     # the header filter must not eat them (it did, briefly, between the QNBFB
