@@ -18,7 +18,7 @@ as missing on the dashboard, never as wrong numbers.
 |---|---|---|---|
 | ISCTR | 2025Q1 | consolidated | statements at pp.11-12 image-only; live URL serves the same file |
 | FIBA | 2022Q1, 2023Q3, 2024Q1, 2025Q3 (+2025Q1/Q2 liabilities page) | varies | statement pages ~50-300 chars of text; live URL identical |
-| TSKB | 2026Q1 | unconsolidated | real report now live at the IR URL but its text layer shatters numbers into 4+ fragments — identity-gated repair can fix only ≤3; kept as gap rather than storing wrong values. CONSOLIDATED 2026Q1 extracts perfectly from the live URL (candidate at data/tskb_2026q1_candidates/, awaiting R2 replacement approval) |
+| TSKB | 2026Q1 | unconsolidated | real report now live at the IR URL but its text layer shatters numbers into 4+ fragments — identity-gated repair can fix only ≤3; kept as gap rather than storing wrong values. (CONSOLIDATED 2026Q1: FILLED 2026-06-11 — clean PDF from live URL uploaded to R2 + extracted, 180 rows, 0 identity failures) |
 
 ## 1. Need a document — provide the full BRSA report PDF (or wait for publication)
 
