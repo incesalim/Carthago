@@ -23,7 +23,7 @@ coverage or known issues change.
 | `weekly_series` | BDDK weekly bulletin | 2019-11 → present | rolling 2-week lag |
 | `evds_series` | TCMB EVDS | 2018-01 → present | daily / weekly / monthly per series |
 | `tbb_digital_stats` | TBB quarterly digital-banking report | 2019-Q1 → present | quarterly (Mar/Jun/Sep/Dec) |
-| `kap_ownership` | KAP Genel Bilgi Formu §5 (kap.org.tr) | current state per bank (`as_of` = filing date) | weekly full replace; 30/31 banks (ATBANK files no form) |
+| `kap_ownership` | KAP Genel Bilgi Formu §5 + §7 subsidiaries (kap.org.tr) | current state per bank (`as_of` = filing date) | weekly full replace; 30/31 banks (ATBANK files no form); subsidiaries grid only on the full form (~15 banks) |
 | `tefas_manager_daily`, `tefas_category_daily`, `tefas_allocation_daily`, `tefas_top_funds` | TEFAS fund-market JSON API (tefas.gov.tr) | rolling ~5 years (API rejects older start dates) → present | daily T+1, trading days; aggregated at ingest (no per-fund rows) |
 | `bank_audit_balance_sheet` (assets / liabilities / off-balance) | BRSA quarterly PDFs | 2022-Q1 → 2026-Q1 | per-bank |
 | `bank_audit_profit_loss` | BRSA quarterly PDFs | same | per-bank |
@@ -183,13 +183,16 @@ A qualitative-data layer feeds two tabs from the `news_items` table
   multi-day religious holidays. Follow-ups: a manager/bank-affiliated view off
   the existing `manager` dimension; carry-forward aggregation for GYF/GSYF.
 - **KAP ownership lane shipped (2026-06-11)** — `kap_ownership` in D1
-  (203 rows, 30/31 banks; weekly via `refresh-data.yml`). Surfaced on
+  (379 rows, 30/31 banks; weekly via `refresh-data.yml`). Surfaced on
   `/banks/[ticker]` as an Ownership card (≥5% direct + indirect holders with
   share bars, paid-in capital / registered ceiling, per-class actual free
-  float; `web/app/components/OwnershipCard.tsx` + `web/app/lib/kap.ts`).
-  ATBANK publishes no Genel Bilgi Formu (card hidden); `as_of` filing dates
-  can be years old (structure-change driven). Possible follow-up: ownership
-  taxonomy cross-check vs `bank_types`.
+  float; `web/app/components/OwnershipCard.tsx` + `web/app/lib/kap.ts`) and a
+  Subsidiaries & financial investments table (§7 grid, item='subsidiary',
+  amounts in the filing currency; `SubsidiariesCard.tsx`, migration 0007 —
+  only the ~15 full-form banks file it). ATBANK publishes no Genel Bilgi
+  Formu (cards hidden); `as_of` filing dates can be years old
+  (structure-change driven). Possible follow-up: ownership taxonomy
+  cross-check vs `bank_types`.
 - **Audit rework Phases 3–4 complete (2026-06-11).** Fleet history repaired in
   7 gated batches (28 banks + ALBRK/BURGAN re-repair in batch 7 after the §4
   CI chunk backfills clobbered Monday's fix via last-writer-wins on the R2

@@ -29,11 +29,13 @@ def replace_bank_rows(
     conn.executemany(
         "INSERT INTO kap_ownership"
         " (bank_ticker, bank_name, kap_company_id, item, seq,"
-        "  holder, share_tl, ratio_pct, voting_pct, as_of)"
-        " VALUES (?,?,?,?,?,?,?,?,?,?)",
+        "  holder, share_tl, ratio_pct, voting_pct, as_of,"
+        "  currency, activity, relation)"
+        " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
         [
             (r.bank_ticker, r.bank_name, r.kap_company_id, r.item, r.seq,
-             r.holder, r.share_tl, r.ratio_pct, r.voting_pct, r.as_of)
+             r.holder, r.share_tl, r.ratio_pct, r.voting_pct, r.as_of,
+             r.currency, r.activity, r.relation)
             for r in rows
         ],
     )
