@@ -126,3 +126,11 @@ migrate.log
 
 # Local pipeline run logs
 data/*.log
+
+# design-sync (staged scripts, build output, machine state)
+.ds-sync/
+ds-bundle/
+.design-sync/.cache/
+.design-sync/learnings/
+web/.ds-dist/
+.design-sync/fonts/google-fonts-raw.css

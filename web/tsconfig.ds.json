@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "outDir": ".ds-dist",
+    "rootDir": ".",
+    "incremental": false
+  },
+  "include": ["app/components/ui/**/*", "app/lib/cn.ts"]
+}

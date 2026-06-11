@@ -1,0 +1,17 @@
+/*
+ * design-sync Tailwind entry — compiles the app's token + utility CSS into a
+ * static stylesheet for the Claude Design bundle (web/.ds-dist/ds.css).
+ * The app itself never uses this file; Next compiles globals.css its own way.
+ */
+@import "../web/app/globals.css";
+
+/* Class-name sources: the app tree + the authored preview compositions. */
+@source "../web/app";
+@source "./previews";
+
+/* Static stand-ins for the next/font CSS variables set at runtime by the app.
+   The Geist families ship as @font-face via cfg.extraFonts (fonts/geist.css). */
+:root {
+  --font-geist-sans: "Geist";
+  --font-geist-mono: "Geist Mono";
+}
