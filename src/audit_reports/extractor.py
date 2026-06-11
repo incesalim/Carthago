@@ -36,8 +36,15 @@ except ImportError:
 # hyphenated word ("Held-for-Sale") — is never counted as a value column.
 NUM_PAT = r'(?:\(\s*-?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?\s*\)|-?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?|(?<!\S)-(?!\S))'
 
+# Hierarchy marker at line start. The bare-roman alternative
+# (`[IVX]+(?=\s+[A-ZÇĞİÖŞÜ])`) matches a Roman numeral with NO trailing dot
+# when it's immediately followed by an uppercase (section-header) label —
+# ALNTF prints its first section as "I FİNANSAL VARLIKLAR (Net)" (no dot)
+# while later sections keep the dot, so the dotted-only pattern dropped roman I
+# and Σromans fell short of the grand total. Gated by the uppercase lookahead
+# plus the n-numeric-column requirement in _parse_rows, so it can't admit prose.
 HIERARCHY_PAT = re.compile(
-    r'^(?P<h>(?:[IVX]+\.|[A-Z]\.|\d+(?:\.\d+)*\.?))\s+(?P<rest>.+)$'
+    r'^(?P<h>(?:[IVX]+\.|[IVX]+(?=\s+[A-ZÇĞİÖŞÜ])|[A-Z]\.|\d+(?:\.\d+)*\.?))\s+(?P<rest>.+)$'
 )
 # Grand-total rows ("TOTAL ASSETS", "VARLIKLAR TOPLAMI", "TOPLAM AKTİFLER",
 # "PASİF TOPLAMI", …) carry no hierarchy prefix, so they're admitted as data
@@ -57,6 +64,16 @@ _LINE_HIER_RX = re.compile(
 # A parenthesized 1-2 digit integer next to the label is a dipnot (footnote
 # section) reference, not a value.
 _FOOTNOTE_RX = re.compile(r'\(\s*\d{1,2}\s*\)')
+# Bracketed footnote section-refs like "(5.I.14)", "(5.II.10)", "(5.1.14)".
+# NUM_PAT splits these at the dots into spurious value tokens ("5","14") — and
+# on long wrapping labels the all-dash value columns interleave around the ref
+# (ICBCT held-for-sale rows: "…İLİŞKİN - - - DURAN VARLIKLAR (Net) (5.I.16) - - -"),
+# so the leaked digits land in the value slots. Masked (offset-preserved) before
+# tokenizing so neither the digits nor the label boundary are disturbed.
+_SECTION_REF_RX = re.compile(r'\(\s*\d+(?:\.[0-9IVXivx]+)+\s*\)')
+# A label that is nothing but a hierarchy marker — the row's text label wrapped
+# onto an adjacent line, leaving "<marker> <values>". Such a row is real data.
+_BARE_MARKER_RX = re.compile(r'(?:[IVX]+\.?|[A-Z]\.|\d+(?:\.\d+)*\.?)')
 
 
 def _value_matches(line: str) -> list:
@@ -316,13 +333,20 @@ class BankReport:
 def _split_label(label: str) -> tuple[str, str, str]:
     """Returns (hierarchy_token, clean_name, footnote_ref). Footnote is a trailing
     pattern like '5.1.1' that follows the item name."""
-    m = HIERARCHY_PAT.match(label.strip())
+    stripped = label.strip()
+    m = HIERARCHY_PAT.match(stripped)
     if m:
         h = m.group('h')
         rest = m.group('rest').strip()
+    elif _BARE_MARKER_RX.fullmatch(stripped):
+        # Label is ONLY a marker — text wrapped to an adjacent line (KUVEYT
+        # "1.2."). Keep the marker as the hierarchy so the validator/dashboard
+        # can place the row; name is empty (dashboard labels by code).
+        h = stripped
+        rest = ''
     else:
         h = ''
-        rest = label.strip()
+        rest = stripped
     # Footnote ref: trailing token like 5.1.1 or 5.4.12
     footnote = None
     fm = re.search(r'\s(\d+(?:\.\d+){1,3})$', rest)
@@ -339,6 +363,11 @@ def _parse_rows(text: str, n_cols: int) -> list[tuple[str, list[float | None]]]:
         line = line.rstrip()
         if not line.strip():
             continue
+        # Blank bracketed footnote section-refs ("(5.I.16)") with equal-length
+        # spaces — kills the spurious value tokens NUM_PAT would split out of
+        # them while preserving every other token's offset (so the label slice
+        # and the recovery paths below stay correct).
+        line = _SECTION_REF_RX.sub(lambda m: ' ' * len(m.group()), line)
         # Find all numeric tokens (positions included, marker excluded)
         nums_m = _value_matches(line)
         # A parenthesized 1-2 digit token IMMEDIATELY after the label is a
@@ -391,7 +420,12 @@ def _parse_rows(text: str, n_cols: int) -> list[tuple[str, list[float | None]]]:
         label = line[:take[0].start()].rstrip()
         if not label:
             continue
-        if not (HIERARCHY_PAT.match(label) or TOTAL_PAT.search(label)):
+        # A label is admissible if it has a hierarchy marker + text, is a grand
+        # total, OR is a BARE marker (label wrapped to an adjacent line — KUVEYT
+        # "1.2. <6 numbers>"). HIERARCHY_PAT requires text after the marker, so
+        # the bare-marker case needs its own clause.
+        if not (HIERARCHY_PAT.match(label) or TOTAL_PAT.search(label)
+                or _BARE_MARKER_RX.fullmatch(label.strip())):
             # Continuation line or noise
             continue
         # Reject pure date labels ("1 January 2024", "31 December 2024")
@@ -434,11 +468,17 @@ def _parse_rows(text: str, n_cols: int) -> list[tuple[str, list[float | None]]]:
             continue
         # After stripping the hierarchy prefix, a real BS row label always
         # starts with an alphabetic character (Turkish-extended). Numeric/date
-        # starts (e.g. "31 ARALIK 202") are page-header noise.
-        m_h = HIERARCHY_PAT.match(label)
-        rest_after_hier = (m_h.group('rest') if m_h else label).lstrip()
-        if rest_after_hier and not re.match(r"^[A-Za-zÇĞİÖŞÜçğıöşü(\[]", rest_after_hier):
-            continue
+        # starts (e.g. "31 ARALIK 202") are page-header noise. EXCEPTION: a
+        # label that is ONLY a hierarchy marker ("1.2.") is a real data row
+        # whose text label wrapped onto the adjacent line(s) — KUVEYT prints
+        # "Gerçeğe Uygun…Zarara / 1.2. <6 numbers> / Yansıtılan Finansal…", so
+        # the marker line carries the values but no inline label. Keep it; its
+        # values reconcile the section sum, and the dashboard labels by code.
+        if not _BARE_MARKER_RX.fullmatch(label.strip()):
+            m_h = HIERARCHY_PAT.match(label)
+            rest_after_hier = (m_h.group('rest') if m_h else label).lstrip()
+            if rest_after_hier and not re.match(r"^[A-Za-zÇĞİÖŞÜçğıöşü(\[]", rest_after_hier):
+                continue
         if recovered_vals is not None:
             vals = recovered_vals  # prior-period slots stay None by design
         else:
