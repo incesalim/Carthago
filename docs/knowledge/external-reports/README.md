@@ -5,8 +5,7 @@ sector — official, multilateral, rating-agency, and sell-side sources. Links +
 only (no summaries). Built for **reference and discussion**, not for the dashboard.
 
 > ⚠️ **This is NOT a data source for any dashboard.** Nothing here feeds `data/`, D1, or R2. It's
-> background reading — a "where do I find the authoritative external view" reading list. (Same role
-> as [`../newsletter-507yedi/`](../newsletter-507yedi/), which distils a daily newsletter.)
+> background reading — a "where do I find the authoritative external view" reading list.
 
 **Links verified to resolve on 2026-06-08.** Recurring series are listed with their **stable landing /
 archive page** (survives across editions) plus the **latest edition** found at that time. Prefer the
