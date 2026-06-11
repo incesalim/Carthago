@@ -12,19 +12,22 @@ Two modes:
   ~10–14 rate-limited requests, ≈2.5 min. Re-fetching the recent window every
   run self-heals TEFAS's T+1 publishing lag, weekend/holiday gaps and
   revisions via the idempotent upsert.
-- **Backfill** (``--backfill --from … [--to …]``): consecutive 28-day windows,
-  oldest→newest, resumable — completed windows are recorded in
+- **Backfill** (``--backfill [--from …] [--to …]``): consecutive 28-day
+  windows, oldest→newest, resumable — completed windows are recorded in
   ``tefas_fetch_log`` and skipped on re-run. Windows are aligned from
-  ``--from``, so resume with the SAME ``--from`` date. With ``--push-every K``
-  the new rows are pushed to D1 every K windows (a single end-of-run push of
-  the full history would generate an SQL file too large for wrangler).
+  ``--from``, so resume with the SAME ``--from`` date. The server rejects
+  start dates older than **5 years** ("Başlangıç Tarihi 5 yıldan eski
+  olamaz"); the default ``--from`` is 5 years ago plus a 2-week margin. With
+  ``--push-every K`` the new rows are pushed to D1 every K windows (a single
+  end-of-run push of the full history would generate an SQL file too large
+  for wrangler).
 
 The client paces requests at ~5.5/min (server limit ~6/min). Never run two
 instances concurrently.
 
 Usage:
   python scripts/update_tefas.py                                  # daily
-  python scripts/update_tefas.py --backfill --from 2020-06-01 --push-every 15
+  python scripts/update_tefas.py --backfill --push-every 15   # full ~5y history
   python scripts/update_tefas.py --backfill --from 2026-05-01 --to 2026-06-10
 """
 from __future__ import annotations
@@ -92,7 +95,9 @@ def main() -> int:
     ap.add_argument("--backfill", action="store_true",
                     help="Resumable historical backfill (needs --from)")
     ap.add_argument("--from", dest="date_from", default=None,
-                    help="Backfill start date YYYY-MM-DD")
+                    help="Backfill start date YYYY-MM-DD (default: 5 years ago "
+                         "+ 2 weeks, the oldest the API accepts). Resume runs "
+                         "must pass the SAME date — windows are aligned from it")
     ap.add_argument("--to", dest="date_to", default=None,
                     help="Backfill end date YYYY-MM-DD (default: today)")
     ap.add_argument("--types", default=",".join(FUND_TYPES),
@@ -109,10 +114,13 @@ def main() -> int:
 
     today = date.today()
     if args.backfill:
-        if not args.date_from:
-            print("ERROR: --backfill requires --from YYYY-MM-DD", file=sys.stderr)
-            return 1
-        start = date.fromisoformat(args.date_from)
+        if args.date_from:
+            start = date.fromisoformat(args.date_from)
+        else:
+            # Server-side cap: start date may not be older than 5 years.
+            start = today - timedelta(days=5 * 365 - 14)
+            print(f"--from not given; starting at the API's ~5-year horizon: "
+                  f"{start}", flush=True)
         end = date.fromisoformat(args.date_to) if args.date_to else today
         windows = []
         cur = start

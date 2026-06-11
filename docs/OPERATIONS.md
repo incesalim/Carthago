@@ -13,7 +13,7 @@ machine involvement is required for routine refreshes.
 | Saturday 02:00 UTC | `refresh-bddk-bulletins.yml` | Monthly + weekly BDDK bulletins (no EVDS, no audit) → D1 |
 | Saturday 03:00 UTC | `refresh-data.yml` | Monthly + weekly BDDK + EVDS → D1 |
 | Sunday 04:00 UTC | `refresh-audit.yml` | Audit-report scrape + extract → `bank_audit_*` → D1 (own DB + snapshot) |
-| Manual only | `backfill-tefas.yml` | One-time (re-runnable) ~6-year TEFAS fund-market history backfill — resumable via `tefas_fetch_log` (re-dispatch with the same `from` date) |
+| Manual only | `backfill-tefas.yml` | One-time (re-runnable) ~5-year TEFAS fund-market history backfill (API cap) — resumable via `tefas_fetch_log` (re-dispatch with the same `from` date) |
 | Manual only | `backfill-audit.yml` | Re-extract already-ingested audit PDFs after an extractor fix (cron skips `success=1`, so history never self-heals) → clear D1 partitions → push → snapshot. **Never run `banks=ALL`** — it exceeds the 180-min job timeout mid-extraction; dispatch ~5-bank chunks sequentially (the `bddk-audit` concurrency group queues them) |
 | Daily 06:00 UTC | `healthcheck.yml` | D1 freshness check → Telegram/Discord alert if stale/failing |
 | On push touching `web/**` | `deploy-cloudflare.yml` | Apply D1 migrations, build OpenNext bundle, deploy to Workers |
@@ -171,9 +171,11 @@ idempotent upsert. Per-fund rows are never stored — see
 fetcher: never parallelize it or shrink the pacing interval.
 
 **Backfill / re-aggregation.** Dispatch `backfill-tefas.yml` (inputs:
-`from` = 2020-06-01 default, optional `to` and `types`). It pulls the
-bulletin snapshot, walks 28-day windows oldest→newest (~800 requests ≈
-2.5–3 h, holding the `bddk-pipeline` group so daily crons queue behind it),
+`from` — empty = the API's ~5-year horizon (start dates older than 5 years
+are rejected: "Başlangıç Tarihi 5 yıldan eski olamaz") — plus optional `to`
+and `types`). It pulls the bulletin snapshot, walks 28-day windows
+oldest→newest (~660 requests ≈ 2–2.5 h, holding the `bddk-pipeline` group so
+daily crons queue behind it),
 pushes to D1 every 15 windows, and uploads the snapshot back. Completed
 windows are recorded in the staging-only `tefas_fetch_log` — **resume by
 re-dispatching with the same `from` date** (windows are aligned from it).
@@ -187,7 +189,7 @@ import sqlite3
 c = sqlite3.connect("data/bddk_data.db")
 c.execute("DELETE FROM tefas_fetch_log"); c.commit()
 PY
-python scripts/update_tefas.py --backfill --from 2020-06-01 --push-every 15
+python scripts/update_tefas.py --backfill --push-every 15  # from = ~5y horizon
 ```
 
 The `tefas_*` tables must exist in D1 first (migration
