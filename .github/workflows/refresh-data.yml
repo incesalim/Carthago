@@ -59,7 +59,7 @@ jobs:
               print("No snapshot in R2 yet — starting from empty DB.")
           PY
 
-      - name: Run refresh (monthly + weekly + EVDS + TBB digital + vacuum + gzip)
+      - name: Run refresh (monthly + weekly + EVDS + TBB digital + KAP ownership + vacuum + gzip)
         env:
           EVDS_API_KEY: ${{ secrets.EVDS_API_KEY }}
         run: python scripts/refresh.py
