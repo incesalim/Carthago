@@ -28,13 +28,16 @@ sys.stdout.reconfigure(encoding="utf-8")
 DB = REPO / "data" / "bank_audit.db"
 SCRATCH = REPO / "data" / "fleet_scratch.db"
 
-# R1/R2 repair (2026-06-11): the 9 banks the identity-gated row-recovery +
-# split-digit-join dry-run improved (data/backfill_evidence/report.md). The
-# scratch DB (fleet_scratch.db) holds the R1/R2 baseline these verify against.
-# Banks not listed had no improved partition (controls + already-clean).
+# R3 repair (2026-06-11): all banks with any failing partition across the
+# 68→17 fix campaign. Re-extracted with the identity-gated extractor; verified
+# against the fresh fleet_scratch.db baseline. 17 survivors stay ⚠-flagged
+# (genuine source-digit errors / unreadable PDFs — see MISSING_AUDIT_DATA.md).
 BATCHES = [
-    ["ANADOLU", "SKBNK", "TSKB", "ATBANK"],
-    ["ICBCT", "EMLAK", "EXIM", "BURGAN", "KUVEYT"],
+    ["ALNTF", "ANADOLU", "ATBANK", "BURGAN", "EMLAK"],
+    ["EXIM", "FIBA", "HSBC", "ICBCT", "ISCTR"],
+    ["KLNMA", "KUVEYT", "ODEA", "PASHA", "QNBFB"],
+    ["SKBNK", "TEB", "TSKB", "VAKBN", "YKBNK"],
+    ["ZIRAATK"],
 ]
 
 
