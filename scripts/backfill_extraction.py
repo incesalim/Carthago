@@ -23,6 +23,7 @@ from __future__ import annotations
 import argparse
 import gzip
 import json
+import os
 import shutil
 import sqlite3
 import subprocess
@@ -59,6 +60,34 @@ PUSH_WINDOW_HOURS = 24
 # with cleared-but-unpushed partitions.
 D1_RETRIES = 3
 D1_RETRY_WAIT_S = 90
+
+
+def _guard_against_ci_writers() -> None:
+    """Abort if a CI audit workflow is queued/running. The R2 snapshot is
+    last-writer-wins and the bddk-audit concurrency group does NOT serialize
+    against local runs — a CI chunk backfill clobbered the 2026-06-10
+    ALBRK/BURGAN repair exactly this way. Requires gh CLI; degrades to a
+    warning when gh is unavailable."""
+    import json as _json
+    busy = []
+    for wf in ("backfill-audit.yml", "refresh-audit.yml"):
+        for status in ("in_progress", "queued"):
+            try:
+                out = subprocess.run(
+                    ["gh", "run", "list", "--workflow", wf, "--status", status,
+                     "--json", "databaseId", "--limit", "1"],
+                    capture_output=True, text=True, timeout=30)
+                if out.returncode == 0 and _json.loads(out.stdout or "[]"):
+                    busy.append(f"{wf} ({status})")
+            except Exception as e:  # noqa: BLE001
+                print(f"[backfill] WARNING: cannot check CI writers ({e}) — "
+                      "make sure no audit workflow is running", flush=True)
+                return
+    if busy:
+        sys.exit("[backfill] ABORT: CI audit workflow(s) active — "
+                 + ", ".join(busy)
+                 + ". A concurrent run would clobber the R2 snapshot "
+                 "(last-writer-wins). Re-run when CI is idle.")
 
 
 def _retry_wrangler(sql_path: Path, what: str) -> None:
@@ -147,6 +176,8 @@ def main() -> None:
     print(f"[backfill] banks: {len(banks)}{' (latest period only)' if args.latest_period else ''}")
 
     DB.parent.mkdir(parents=True, exist_ok=True)
+    if not args.dry_run and os.environ.get("GITHUB_ACTIONS") != "true":
+        _guard_against_ci_writers()
     if not r2_storage.exists(SNAP):
         sys.exit(f"no snapshot at R2 {SNAP}")
     r2_storage.download_to(SNAP, GZ)
