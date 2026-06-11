@@ -875,8 +875,10 @@ two JSON POST endpoints behind the fon-verileri SPA:
 `api/funds/fonGnlBlgSiraliGetir` (per fund per day: NAV `fiyat`, AUM
 `portfoyBuyukluk` in TL, investor count `kisiSayisi`, units outstanding) and
 `api/funds/dagilimSiraliGetirT` (per fund per day portfolio allocation across
-~55 sparse percentage fields). Data is T+1, trading days only; history goes
-back 6+ years. Server limits: ~6 requests/min, max 30 days per request
+~55 sparse percentage fields). Data is T+1, trading days only; history is a
+**rolling ~5 years** (the server rejects start dates older than 5 years:
+"Başlangıç Tarihi 5 yıldan eski olamaz"). Server limits: ~6 requests/min,
+max 30 days per request
 (client paces at ~5.5/min — see [OPERATIONS.md](OPERATIONS.md) §TEFAS).
 Ingestion: [`src/tefas/`](../src/tefas/) driven by
 [`scripts/update_tefas.py`](../scripts/update_tefas.py). Surfaces on the
@@ -951,4 +953,4 @@ engagement, not unique people. `bilFiyat` (allocation endpoint) and
 | Largest funds tables | latest top-15 per YAT / EMK / BYF | `tefas_top_funds` |
 
 All time series sample the **month-end trading day** per fund type and chart
-by `YYYY-MM` (~72 points over the 6-year history) so per-type samples align.
+by `YYYY-MM` (~60 points over the 5-year history) so per-type samples align.
