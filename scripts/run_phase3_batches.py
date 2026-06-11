@@ -28,18 +28,13 @@ sys.stdout.reconfigure(encoding="utf-8")
 DB = REPO / "data" / "bank_audit.db"
 SCRATCH = REPO / "data" / "fleet_scratch.db"
 
+# R1/R2 repair (2026-06-11): the 9 banks the identity-gated row-recovery +
+# split-digit-join dry-run improved (data/backfill_evidence/report.md). The
+# scratch DB (fleet_scratch.db) holds the R1/R2 baseline these verify against.
+# Banks not listed had no improved partition (controls + already-clean).
 BATCHES = [
-    ["AKBNK", "AKTIF", "ALNTF", "ANADOLU", "ATBANK"],
-    ["DENIZ", "EMLAK", "EXIM", "FIBA", "GARAN"],
-    ["HALKB", "HSBC", "ICBCT", "ING", "ISCTR"],
-    ["KLNMA", "KUVEYT", "ODEA", "PASHA", "QNBFB"],
-    ["SKBNK", "TEB", "TFKB", "VAKBN"],
-    ["VAKIFK", "YKBNK", "ZIRAAT", "ZIRAATK"],
-    # Batch 7: ALBRK/BURGAN were repaired 2026-06-10 but the §4 chunk
-    # backfills (PRs #61-64, pre-fix extractor) clobbered them via
-    # last-writer-wins on the R2 snapshot — CI's concurrency group doesn't
-    # serialize against local runs. Re-repair with the fixed extractor.
-    ["ALBRK", "BURGAN"],
+    ["ANADOLU", "SKBNK", "TSKB", "ATBANK"],
+    ["ICBCT", "EMLAK", "EXIM", "BURGAN", "KUVEYT"],
 ]
 
 
