@@ -7,7 +7,11 @@ coverage or known issues change.
 > → this file → [OPERATIONS.md](OPERATIONS.md). Metric definitions in
 > [METRICS.md](METRICS.md).
 >
-> Last verified: 2026-06-11 (audit rework Phases 0–4 COMPLETE + R1/R2 recovery
+> Last verified: 2026-06-11 (balance-sheet repair pushed live: -6 corruption
+> eliminated, validation-failing BS partitions 68→17, 261 partitions improved
+> in D1; residual = documented genuine-source defects + override candidates +
+> off-balance/P&L footnote leaks. See docs/RESUME_AUDIT_FIX.md).
+> Prior: audit rework Phases 0–4 COMPLETE + R1/R2 recovery
 > pass: identity-gated dropped-row recovery and TSKB split-digit repair pushed
 > to D1 — fleet now 898/966 partitions fully identity-clean (was 801). 68
 > residual failing partitions are documented per-bank quirks + image-only PDFs,
