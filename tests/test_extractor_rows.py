@@ -211,6 +211,17 @@ def test_tr_number_not_treated_as_bare_marker():
     assert len(_parse_rows("1.2. 3.272.959 14.626.860 17.899.819 1.233.834 10.951.814 12.185.648", 6)) == 1
 
 
+def test_comma_for_dot_markers_normalized():
+    # BURGAN 2025Q3: hierarchy separators render as commas (same glyph as
+    # thousands). Leading marker normalized; thousands untouched.
+    r = _parse_rows("I, FINANCIAL ASSETS (Net) 17,740,253 20,077,174 37,817,427 14,741,143 13,757,005 28,498,148", 6)
+    assert len(r) == 1 and r[0][0].startswith("I. FINANCIAL") and r[0][1][:3] == [17740253.0, 20077174.0, 37817427.0]
+    r2 = _parse_rows("1,1,1 Cash I-a 6,150,151 11,150,408 17,300,559 5,631,150 5,260,389 10,891,539", 6)
+    assert len(r2) == 1 and r2[0][0].startswith("1.1.1")
+    # a thousands-only line (no real marker) is NOT turned into a marker row
+    assert _parse_rows("17,740,253 20,077,174 37,817,427 14,741,143 13,757,005 28,498,148 notes", 6) == []
+
+
 def test_squished_off_balance_rows_survive_header_filter():
     # ISCTR off-balance: real data rows that contain "BALANCESHEET" squished —
     # the header filter must not eat them (it did, briefly, between the QNBFB
