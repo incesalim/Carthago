@@ -2,7 +2,6 @@
   "name": "web",
   "version": "0.1.0",
   "private": true,
-  "types": ".ds-dist/app/components/ui/index.d.ts",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
