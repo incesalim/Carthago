@@ -74,6 +74,17 @@ _SECTION_REF_RX = re.compile(r'\(\s*\d+(?:\.[0-9IVXivx]+)+\s*\)')
 # A label that is nothing but a hierarchy marker — the row's text label wrapped
 # onto an adjacent line, leaving "<marker> <values>". Such a row is real data.
 _BARE_MARKER_RX = re.compile(r'(?:[IVX]+\.?|[A-Z]\.|\d+(?:\.\d+)*\.?)')
+# Duplicated-digit render artifact: a thousands group of 3 digits "XYZ" comes
+# out as the 5-digit "XYZYZ" — the final two digits repeated (ANADOLU:
+# "21,817,92727" for 21,817,927; "16,370,25252" for 16,370,252). A real group
+# is always exactly 3 digits, so a 5-digit group with this XYZYZ shape is
+# unambiguously the artifact. Repaired to "XYZ" before tokenizing.
+_DUP_DIGIT_RX = re.compile(r'([.,])(\d)(\d{2})\3(?=\D|$)')
+# Roman-numeral footnote refs with a glued note number — "V-II-9", "V-I-15",
+# "V - I - 13" (ANADOLU). Unparenthesized, so _SECTION_REF_RX misses them; the
+# trailing "-9"/"-15"/"-13" leaks as a value. Roman-roman pairs never occur in
+# a real BS label, so this is safe to mask (offset-preserved).
+_ROMAN_FN_RX = re.compile(r'\b[IVX]+\s*-\s*[IVX]+(?:\s*-\s*\d{1,3})?\b')
 
 
 def _value_matches(line: str) -> list:
@@ -368,6 +379,10 @@ def _parse_rows(text: str, n_cols: int) -> list[tuple[str, list[float | None]]]:
         # them while preserving every other token's offset (so the label slice
         # and the recovery paths below stay correct).
         line = _SECTION_REF_RX.sub(lambda m: ' ' * len(m.group()), line)
+        line = _ROMAN_FN_RX.sub(lambda m: ' ' * len(m.group()), line)
+        # Repair the duplicated-digit artifact (XYZYZ → XYZ) so the garbled
+        # token doesn't shift the value window or break its triplet.
+        line = _DUP_DIGIT_RX.sub(r'\1\2\3', line)
         # Find all numeric tokens (positions included, marker excluded)
         nums_m = _value_matches(line)
         # A parenthesized 1-2 digit token IMMEDIATELY after the label is a
@@ -416,6 +431,21 @@ def _parse_rows(text: str, n_cols: int) -> list[tuple[str, list[float | None]]]:
             take = nums_m[:n_cols]
         else:
             take = nums_m[-n_cols:]
+        # Garbled-token fallback: a duplicated-digit render artifact in a
+        # PRIOR-period column ("21,817,92727", "16,370,25252" — ANADOLU) makes
+        # the token count not a clean multiple of 3, so "last n_cols" slides the
+        # window and the stored current triplet stops balancing. BRSA always
+        # prints the current period as the FIRST TP/YP/Toplam triplet — if the
+        # window's current triplet is broken but the first three tokens satisfy
+        # TP+FC=Total, use those (prior slots left None). Only fires on failure,
+        # so it can't disturb the clean EXIM multi-period rows.
+        if (recovered_vals is None and n_cols == 6 and len(nums_m) > n_cols):
+            win = [parse_num(m.group()) for m in take[:3]]
+            if not _triplet_ok(*win):
+                first3 = [parse_num(m.group()) for m in nums_m[:3]]
+                if _triplet_ok(*first3):
+                    recovered_vals = first3 + [None, None, None]
+                    take = nums_m[:3]
         # Label = everything before the first taken value token.
         label = line[:take[0].start()].rstrip()
         if not label:
