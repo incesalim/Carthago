@@ -30,7 +30,7 @@ from src.audit_reports import r2_storage  # noqa: E402
 from src.audit_reports.extractor import extract, StatementRow  # noqa: E402
 from src.audit_reports.loader import upsert_report  # noqa: E402
 from src.audit_reports import validator as v  # noqa: E402
-from scripts.backfill_extraction import (  # noqa: E402
+from scripts.audit_d1 import (  # noqa: E402
     AUDIT_TABLES, _ensure_d1_schema, _guard_against_ci_writers, _retry_wrangler,
 )
 

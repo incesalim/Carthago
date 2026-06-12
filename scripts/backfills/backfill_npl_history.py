@@ -40,7 +40,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 from src.audit_reports import r2_storage  # noqa: E402
 from scripts.push_to_d1 import run_wrangler  # noqa: E402
 from scripts.sync_audit_reports import extract_from_r2  # noqa: E402
-from scripts.backfill_extraction import AUDIT_TABLES, DB, GZ, SNAP  # noqa: E402
+from scripts.audit_d1 import AUDIT_TABLES, DB, GZ, SNAP  # noqa: E402
 
 # Banks whose templates grabbed the FC-only NPL sub-table (the set that changed
 # in the 2026Q1 latest-period backfill). Their full history needs re-extraction.
