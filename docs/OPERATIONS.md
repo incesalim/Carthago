@@ -12,9 +12,10 @@ machine involvement is required for routine refreshes.
 | Sun–Fri 05:00 UTC | `refresh-evds-daily.yml` | TCMB EVDS scrape (FX, rates, sterilization, …) + TBB/KAP/TEFAS non-critical steps → D1 |
 | Saturday 02:00 UTC | `refresh-bddk-bulletins.yml` | Monthly + weekly BDDK bulletins (no EVDS, no audit) → D1 |
 | Saturday 03:00 UTC | `refresh-data.yml` | Monthly + weekly BDDK + EVDS → D1 |
-| Sunday 04:00 UTC | `refresh-audit.yml` | Audit-report scrape + extract → `bank_audit_*` → D1 (own DB + snapshot) |
+| Sunday 04:00 UTC | `acquire-audit.yml` | Audit-report **acquisition only**: discover + download new PDFs → R2, refresh the coverage matrix, notify on new reports (own `bddk-audit` group, read-only on the snapshot) |
+| Manual / admin only | `refresh-audit.yml` | Audit-report **extraction**: PDFs from R2 → `bank_audit_*` → D1 + snapshot. Triggered from `/admin` (Pipeline "Extract audit reports" card or the coverage matrix's per-cell Re-extract). No schedule — extraction is reviewed, not automated |
 | Manual only | `backfill-tefas.yml` | One-time (re-runnable) ~5-year TEFAS fund-market history backfill (API cap) — resumable via `tefas_fetch_log` (re-dispatch with the same `from` date) |
-| Manual only | `backfill-audit.yml` | Re-extract already-ingested audit PDFs after an extractor fix (cron skips `success=1`, so history never self-heals) → clear D1 partitions → push → snapshot. **Never run `banks=ALL`** — it exceeds the 180-min job timeout mid-extraction; dispatch ~5-bank chunks sequentially (the `bddk-audit` concurrency group queues them) |
+| Manual only | `backfill-audit.yml` | Re-extract already-ingested audit PDFs after an extractor fix (extraction skips `success=1`, so history never self-heals) → clear D1 partitions → push → snapshot. **Never run `banks=ALL`** — it exceeds the 180-min job timeout mid-extraction; dispatch ~5-bank chunks sequentially (the `bddk-audit` concurrency group queues them) |
 | Daily 06:00 UTC | `healthcheck.yml` | D1 freshness check → Telegram/Discord alert if stale/failing |
 | On push touching `web/**` | `deploy-cloudflare.yml` | Apply D1 migrations, build OpenNext bundle, deploy to Workers |
 | On every PR | `ci.yml` | ruff + pytest + eslint + tsc + vitest quality gates |
@@ -75,13 +76,14 @@ October / February):
 - **Every other bank**: add the URL to `data/banks/audit_report_urls.json`
   — that's the only edit needed.
 
-Either way the Sunday `refresh-audit.yml` cron picks it up automatically:
-downloads the PDF to R2, extracts the financial tables, pushes rows to D1.
+The Sunday `acquire-audit.yml` cron then **downloads the PDF to R2 by itself**,
+refreshes the coverage matrix (the new quarter shows as a **missing** column),
+and pings Telegram. **Extraction is a deliberate second step**: open **/admin**,
+find the new cell, and click **Re-extract** (or run the Pipeline "Extract audit
+reports" card). Extraction is not automatic — you review the matrix after.
 
-To pick it up before the next Sunday cron, trigger `refresh-audit.yml`
-manually — from **GitHub → Actions** (optional `bank` / `skip_scrape`
-inputs) or the **/admin** Pipeline panel, whose audit card has a per-bank
-dropdown that scrapes just that bank's latest published quarter.
+To acquire before the next Sunday cron, trigger `acquire-audit.yml` manually
+(GitHub → Actions, or the /admin Pipeline "Acquire audit PDFs" card).
 
 To enable auto-discovery for more banks, run
 `python scripts/validate_discovery.py` (it checks discovery against the

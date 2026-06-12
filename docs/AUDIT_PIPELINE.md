@@ -7,34 +7,46 @@ D1 tables, so it can run in parallel with the bulletin lane. See
 [`docs/ARCHITECTURE.md`](ARCHITECTURE.md) for the lane model and [`scripts/README.md`](../scripts/README.md)
 for the full script index.
 
-## The weekly path (`.github/workflows/refresh-audit.yml`, Sun 04:00 UTC)
-1. **Pull snapshot** — download `state/bank_audit.db.gz` → `data/bank_audit.db`
-   (first run only: `seed_audit_db.py` bootstraps from the bulletin snapshot).
-2. **`sync_audit_reports.py`** — scrape any newly published PDFs to R2
-   (`bddk-audit-reports/<ticker>/<TICKER>_<period>_<kind>.pdf`), then extract every PDF that
-   isn't already in `bank_audit_extractions` → `bank_audit.db`. 49/52 weeks this is a cheap
-   no-op. Flags: `--only-bank`, `--periods`, `--latest-period`, `--no-scrape`, `--force`, `--workers`.
-   (`--periods YYYYQn --force` re-extracts a specific quarter even if already done — the
-   `period` `workflow_dispatch` input wires this, and the `/admin` matrix's per-cell
-   re-extract dispatches it as `bank` + `period`.)
-3. **`build_bank_audit_stages.py`** — roll the per-section `bank_audit_credit_quality` rows up
-   into the derived `bank_audit_stages` view (S1/S2/S3 amounts + ECL + coverage).
-4. **`revalidate_audit_db.py`** — recompute `bank_audit_validation` for the WHOLE corpus from
-   stored rows (cheap), so the matrix + `/banks` badges reflect the current validator
-   everywhere, not just freshly re-extracted banks. Bumps `validated_at` → step 6 ships them.
-5. **`check_audit_quality.py --alert`** — 8 alert-only anomaly checks (never blocks): stale
-   period, balance, coverage, npl_drop, capital, liquidity, structure, ecl → Telegram/Discord.
-6. **`push_to_d1.py --db data/bank_audit.db --only-tables bank_audit_*`** — windowed sync of
-   the row tables + `bank_audit_validation` to D1 (last 168h, idempotent).
-7. **`sync_audit_expected.py --push`** — rebuild the coverage spine (`bank_audit_expected`,
-   `bank_audit_statement_types`, `bank_audit_coverage`) for the `/admin` matrix from the
-   profile census + stored rows; a **full-rebuild** D1 push (DELETE + insert-all), no R2 write.
-8. **Snapshot** — VACUUM + gzip → upload `state/bank_audit.db.gz` (+ dated history, keep 7).
+## Two lanes: ACQUISITION is automated, EXTRACTION is managed by hand
+Only **acquisition** (getting new PDFs into R2) runs on a schedule. **Extraction** (turning
+PDFs into `bank_audit_*` rows) is triggered manually from `/admin` — review the coverage matrix
+after. Both share the `bddk-audit` concurrency group, so they never run at the same time.
 
-Step 4 makes the coverage rollup's `error` cells self-maintaining: it reads
-`bank_audit_validation`, which the corpus-wide revalidate keeps current with the validator and
-the snapshot then persists. (For an ad-hoc local recompute, run `revalidate_audit_db.py` then
-`sync_audit_expected.py --push`.)
+### Acquisition (`.github/workflows/acquire-audit.yml`, Sun 04:00 UTC)
+1. **Pull snapshot, read-only** — download `state/bank_audit.db.gz` → `data/bank_audit.db`
+   (first run: `seed_audit_db.py` bootstraps from the bulletin snapshot). Needed only so the
+   coverage refresh below has accurate row counts; this job **never re-uploads the snapshot**.
+2. **`sync_audit_reports.py --no-extract`** — discover + scrape any newly published PDFs to R2
+   (`<ticker>/<TICKER>_<period>_<kind>.pdf`), via `audit_report_urls.json` + live
+   `discover_targets()`. No extraction. `--new-count-file` records how many were new.
+3. **`sync_audit_expected.py --push`** — rebuild the coverage spine so freshly-acquired PDFs
+   appear in the matrix as **missing + pdf_present** ("acquired, not yet extracted"). The
+   expected universe is `audit_profiles.json` **∪ the R2 PDF list**, so a brand-new quarter
+   shows up even before the profile census is regenerated.
+4. **Notify** — if any new PDFs landed, ping Telegram so an admin knows to extract them.
+
+### Extraction (`.github/workflows/refresh-audit.yml`, dispatch-only)
+Triggered from `/admin` (Pipeline "Extract audit reports" card, or the coverage matrix's
+per-cell **Re-extract**). No schedule.
+1. **Pull/seed snapshot** → `data/bank_audit.db`.
+2. **`sync_audit_reports.py`** — extract PDFs from R2 not already in `bank_audit_extractions`
+   (or a forced re-extract). Flags: `--only-bank`, `--periods`, `--latest-period`,
+   `--no-scrape`, `--force`, `--workers`. The matrix's per-cell re-extract dispatches
+   `bank` + `period` → `--periods YYYYQn --force --no-scrape` (re-runs one quarter).
+3. **`build_bank_audit_stages.py`** — derive the `bank_audit_stages` view (S1/S2/S3 + ECL).
+4. **`revalidate_audit_db.py`** — recompute `bank_audit_validation` corpus-wide from stored
+   rows so the matrix + `/banks` badges reflect the current validator everywhere.
+5. **`check_audit_quality.py --alert`** — alert-only anomaly checks → Telegram/Discord.
+6. **`push_to_d1.py --only-tables bank_audit_*`** — windowed sync of the row tables +
+   `bank_audit_validation` to D1.
+7. **`sync_audit_expected.py --push`** — rebuild the coverage spine (full D1 push, no R2 write).
+8. **Snapshot** — VACUUM + gzip → upload `state/bank_audit.db.gz` (+ dated history, keep 7).
+   This is the **only** job that writes the snapshot.
+
+A `missing` matrix cell with a PDF present is told apart in the drawer by whether the partition
+has any `bank_audit_extractions` row: **none** → "acquired, not yet extracted" (click
+Re-extract); **present but this statement empty** → likely a scanned-image page (hand-transcribe
+via `audit_correct.py overlay-statement`).
 
 The R2 snapshot is **last-writer-wins**, so any out-of-band write must guard against a
 concurrent CI run (`scripts/audit_d1.guard_against_ci_writers()`) and the manual lanes write D1 + the

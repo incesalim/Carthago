@@ -111,7 +111,12 @@ export default function CoverageDrawer({
     (v) => v.statement === (open.validationStatement ?? open.type),
   );
   const failures = parseFailures(valRow?.failed_detail ?? null);
-  const needsManual = open.status === "missing" && open.pdfPresent;
+  // A missing cell with a PDF is one of two things, told apart by whether the
+  // partition has ANY extraction row: never-extracted (acquired, ready to ingest)
+  // vs extracted-but-this-statement-empty (likely a scanned-image page → manual).
+  const missingWithPdf = open.status === "missing" && open.pdfPresent && !loading;
+  const acquiredNotExtracted = missingWithPdf && ex == null;
+  const likelyScanned = missingWithPdf && ex != null;
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true">
@@ -140,9 +145,16 @@ export default function CoverageDrawer({
         </div>
 
         <div className="flex flex-col gap-4 p-4 text-sm">
-          {needsManual && (
+          {acquiredNotExtracted && (
+            <div className="rounded-md border border-info/40 bg-info/10 p-3 text-xs text-info">
+              PDF acquired into R2 but this partition hasn&apos;t been extracted yet —
+              click <strong>Re-extract</strong> below to ingest it.
+            </div>
+          )}
+
+          {likelyScanned && (
             <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-xs text-warning">
-              PDF is in R2 but this statement extracted no rows — a likely
+              The partition is extracted but this statement has no rows — a likely
               scanned-image page. Hand-transcribe it into{" "}
               <code>data/manual_statements.json</code> and run{" "}
               <code>audit_correct.py overlay-statement</code>.

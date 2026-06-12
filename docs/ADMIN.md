@@ -27,17 +27,29 @@ health**, **manual refresh triggers**, and **site traffic** into one view.
 | Coverage queries | `web/app/lib/coverage.ts` |
 | Runs / dispatch / coverage endpoints | `web/app/api/admin/{runs,dispatch,coverage}/route.ts` |
 
-### Coverage matrix
+### Managing audit reports (the intended workflow)
 
-For each statement type × bank × period (×kind), a cell shows
-**ok / manual / error / missing**: present and valid, hand-corrected, present but
-failing a structural identity check, or expected-but-absent. Click a cell for the
-drawer — extraction counts/note, the failing validator identities (`failed_detail`),
-a "needs manual transcription" hint when a PDF exists but no rows were extracted, and
-a per-bank re-extract trigger. Data comes from `bank_audit_coverage` /
-`bank_audit_expected` / `bank_audit_statement_types`, rebuilt each `refresh-audit.yml`
-run by `scripts/sync_audit_expected.py`. The matrix is empty until the first run after
-migration `0008` applies.
+Audit extraction is **not scheduled** — you run it from here. `acquire-audit.yml` (weekly)
+downloads newly published PDFs into R2 by itself and pings Telegram; they then show up in the
+coverage matrix as **missing** for you to extract.
+
+- **Coverage matrix** — for each statement type × bank × period (×kind), a cell shows
+  **ok / manual / error / missing**: present and valid, hand-corrected, present but failing a
+  structural identity check, or expected-but-absent. New columns appear automatically when a new
+  quarter is acquired (the expected universe is the profile census **∪** the R2 PDF list).
+- **Cell drawer** — extraction counts/note, the failing validator identities (`failed_detail`),
+  and a context hint: a PDF-present *missing* cell with **no extraction row** says "acquired, not
+  yet extracted — click Re-extract"; one that's been extracted but has an empty statement says
+  "likely scanned-image — hand-transcribe." The drawer's **Re-extract** dispatches
+  `refresh-audit.yml` for that `bank` + `period`.
+- **Pipeline panel** — two audit cards: **Acquire audit PDFs** (`acquire-audit.yml`, no inputs)
+  and **Extract audit reports** (`refresh-audit.yml`, optional bank).
+
+Data comes from `bank_audit_coverage` / `bank_audit_expected` / `bank_audit_statement_types`,
+rebuilt by `scripts/sync_audit_expected.py` (in both the acquire and extract workflows).
+
+Audit **health** in the data-health cards is no longer time-based (extraction isn't scheduled):
+it reads `fresh` when every extracted partition succeeded, else `late`.
 
 ## Setup
 

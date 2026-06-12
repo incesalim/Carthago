@@ -35,9 +35,14 @@ export const WORKFLOWS: WorkflowDef[] = [
     description: "TCMB rates / FX → D1",
   },
   {
+    file: "acquire-audit.yml",
+    label: "Acquire audit PDFs",
+    description: "Discover + download new audit PDFs → R2 (no extraction)",
+  },
+  {
     file: "refresh-audit.yml",
-    label: "Audit reports",
-    description: "Bank audit PDFs → bank_audit_* → D1",
+    label: "Extract audit reports",
+    description: "Extract audit PDFs from R2 → bank_audit_* → D1 (manual)",
   },
   {
     file: "refresh-news-daily.yml",
