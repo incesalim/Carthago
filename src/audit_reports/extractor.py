@@ -348,6 +348,8 @@ class BankReport:
     bs_liabilities: list[StatementRow] = field(default_factory=list)
     off_balance: list[StatementRow] = field(default_factory=list)
     profit_loss: list[StatementRow] = field(default_factory=list)
+    # Other Comprehensive Income — single-column statement that follows P&L.
+    other_comprehensive_income: list[StatementRow] = field(default_factory=list)
     # Populated by extract() when credit-quality scan succeeds. Kept on the
     # same object so downstream callers (upsert_report) get one report per PDF.
     credit_quality: "list" = field(default_factory=list)
@@ -931,6 +933,32 @@ def _detect_pl_ncols(pdf_path: str, page_idx_1: int) -> int:
     return max(2, min(4, n))
 
 
+def _locate_oci_page(pdf, pl_page_idx_1: int | None) -> int | None:
+    """Find the OCI (Other Comprehensive Income) statement page.
+
+    The OCI always follows the P&L page in BRSA reports. Searches the next
+    1-4 pages after P&L for the OCI anchor keywords, then confirms the page
+    has at least two numeric data rows (not just a section-title page).
+    """
+    if pl_page_idx_1 is None:
+        return None
+    _OCI_NORMS = ("KAPSAMLIGELIR", "KAPSAMLIKAZAN", "COMPREHENSIVEINCOME", "KAPSAMLIGEL")
+    for i in range(pl_page_idx_1 + 1, min(pl_page_idx_1 + 5, len(pdf.pages) + 1)):
+        page = pdf.pages[i - 1]
+        text = page.extract_text() or ""
+        norm = _norm(text)
+        if not any(kw in norm for kw in _OCI_NORMS):
+            continue
+        # Require at least 2 numeric data rows (roman-preceded lines with 3+ digits)
+        data_rows = sum(
+            1 for ln in text.split("\n")
+            if re.match(r'^\s*[IVX]+[.\s]', ln) and re.search(r'\d{3,}', ln)
+        )
+        if data_rows >= 2:
+            return i
+    return None
+
+
 def extract(pdf_path: str | Path) -> BankReport:
     """Parse one BRSA-format audit report. Returns a BankReport with rows populated."""
     pdf_path = str(pdf_path)
@@ -1009,6 +1037,17 @@ def extract(pdf_path: str | Path) -> BankReport:
                     order=order, hierarchy=h, name=name, footnote=fn,
                     cur_amount=vals[0], pri_amount=vals[pl_n // 2],
                 ))
+            # OCI always follows the P&L page. Use the same ncol detection since
+            # OCI shares the P&L single-value-column structure.
+            oci_page = _locate_oci_page(pdf, loc['pl'])
+            if oci_page:
+                oci_n = _detect_pl_ncols(pdf_path, oci_page)
+                for order, (label, vals) in enumerate(_parse_page(pdf_path, oci_page, oci_n), 1):
+                    h, name, fn = _split_label(label)
+                    rep.other_comprehensive_income.append(StatementRow(
+                        order=order, hierarchy=h, name=name, footnote=fn,
+                        cur_amount=vals[0], pri_amount=vals[oci_n // 2],
+                    ))
     return rep
 
 

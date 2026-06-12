@@ -35,8 +35,12 @@ coverage matrix as **missing** for you to extract.
 
 - **Coverage matrix** — for each statement type × bank × period (×kind), a cell shows
   **ok / manual / error / missing**: present and valid, hand-corrected, present but failing a
-  structural identity check, or expected-but-absent. New columns appear automatically when a new
-  quarter is acquired (the expected universe is the profile census **∪** the R2 PDF list).
+  structural identity check, or expected-but-absent. All 12 statement types now have validators
+  (assets, liabilities, off-balance, P&L, OCI, credit_quality, stages, loans_by_sector,
+  npl_movement, capital, liquidity; profile has presence-only sanity). `is_core=False` types
+  (everything except assets/liabilities/P&L) surface `error`/`missing` cells but never flip
+  `success`. New columns appear automatically when a new quarter is acquired (the expected
+  universe is the profile census **∪** the R2 PDF list).
 - **Cell drawer** — extraction counts/note, the failing validator identities (`failed_detail`),
   and a context hint: a PDF-present *missing* cell with **no extraction row** says "acquired, not
   yet extracted — click Re-extract"; one that's been extracted but has an empty statement says

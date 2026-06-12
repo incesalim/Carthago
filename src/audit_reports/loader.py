@@ -28,6 +28,10 @@ def upsert_report(
         'DELETE FROM bank_audit_profit_loss WHERE bank_ticker=? AND period=? AND kind=?',
         (bank_ticker, period, kind),
     )
+    cur.execute(
+        'DELETE FROM bank_audit_oci WHERE bank_ticker=? AND period=? AND kind=?',
+        (bank_ticker, period, kind),
+    )
 
     # Insert balance sheet rows (3 statements: assets / liabilities / off_balance)
     bs_rows = []
@@ -65,6 +69,21 @@ def upsert_report(
             pl_rows,
         )
 
+    # OCI (Other Comprehensive Income)
+    oci_rows = []
+    for r in getattr(rep, 'other_comprehensive_income', []):
+        oci_rows.append((
+            bank_ticker, period, kind, r.order,
+            r.hierarchy, r.name, r.footnote, r.cur_amount,
+        ))
+    if oci_rows:
+        cur.executemany(
+            'INSERT INTO bank_audit_oci '
+            '(bank_ticker, period, kind, item_order, hierarchy, item_name, footnote, amount) '
+            'VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            oci_rows,
+        )
+
     # Footnote / §4 sub-statements. Each extractor module exposes the same
     # contract — upsert(conn, bank, period, kind, report) -> int|None — and the
     # report rides along on the BankReport (a rows list or a full report object).
@@ -96,6 +115,7 @@ def upsert_report(
         'bs_liabilities': len(rep.bs_liabilities),
         'off_balance': len(rep.off_balance),
         'profit_loss': len(rep.profit_loss),
+        'oci': len(getattr(rep, 'other_comprehensive_income', [])),
     }
     for key, build, upsert_fn, skip_if_empty in persisters:
         report = build()
@@ -118,13 +138,14 @@ def upsert_report(
     cur.execute(
         'INSERT OR REPLACE INTO bank_audit_extractions '
         '(bank_ticker, period, kind, pdf_path, rows_bs_assets, rows_bs_liabilities, '
-        ' rows_off_balance, rows_profit_loss, rows_credit_quality, success) '
-        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        ' rows_off_balance, rows_profit_loss, rows_credit_quality, rows_oci, success) '
+        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         (
             bank_ticker, period, kind, pdf_path,
             counts['bs_assets'], counts['bs_liabilities'],
             counts['off_balance'], counts['profit_loss'],
             counts.get('credit_quality', 0),
+            counts.get('oci', 0),
             1 if registry.success_from_counts(counts) else 0,
         ),
     )

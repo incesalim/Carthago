@@ -53,16 +53,29 @@ concurrent CI run (`scripts/audit_d1.guard_against_ci_writers()`) and the manual
 local DB only where possible.
 
 ## Statement types (each is a registry entry — `src/audit_reports/registry.py`)
-| Type | Table | Validator |
-|---|---|---|
-| Balance sheet — assets / liabilities / off-balance | `bank_audit_balance_sheet` (`statement` col) | structural (TL+FC=Total, parent=Σchildren, Σromans=TOTAL, assets=liab+equity) |
-| Income statement (P&L) | `bank_audit_profit_loss` | structural identity chain + net = BS equity 16.6.2 / 14.6.2 |
-| Credit quality / IFRS-9 stages | `bank_audit_credit_quality` → `bank_audit_stages` | plausibility (`check_audit_quality`) |
-| Loans by sector | `bank_audit_loans_by_sector` | — |
-| NPL movement | `bank_audit_npl_movement` | — |
-| Capital adequacy (§4) | `bank_audit_capital` | plausibility |
-| Liquidity (§4) | `bank_audit_liquidity` | plausibility |
-| Bank profile (branches/personnel) | `bank_audit_profile` | — |
+
+`is_core=True` types gate the `bank_audit_extractions.success` flag; `is_core=False` types
+surface `error`/`missing` cells in the matrix but never flip `success`. All types with
+`has_validator=True` write a `bank_audit_validation` row keyed by their `validation_statement`.
+
+| Type | Table | `is_core` | Validator (`validation_statement`) |
+|---|---|---|---|
+| Balance sheet — assets | `bank_audit_balance_sheet` (statement='assets') | ✓ | structural: TL+FC=Total, parent=Σchildren, Σromans=TOTAL, assets=liab+equity (`assets`) |
+| Balance sheet — liabilities | `bank_audit_balance_sheet` (statement='liabilities') | ✓ | structural: TL+FC=Total, parent=Σchildren, Σromans=TOTAL; A=L+E cross-check (`liabilities`) |
+| Off-balance sheet | `bank_audit_balance_sheet` (statement='off_balance') | — | structural: TL+FC=Total, parent=Σchildren, Σromans=TOTAL (`off_balance`) |
+| Income statement (P&L) | `bank_audit_profit_loss` | ✓ | identity chain + net = BS equity 16.6.2 / 14.6.2 (`profit_loss`) |
+| Other comprehensive income (OCI) | `bank_audit_oci` | — | `III = I + II`; 2.x subtree sums; **OCI row I = P&L net** (`oci`) |
+| Credit quality / IFRS-9 | `bank_audit_credit_quality` | — | per-section total=S1+S2+S3; coverage∈[0,1]; npl_brsa gross−prov=net; cross-section reconciliations (`credit_quality`) |
+| IFRS-9 stages (derived) | `bank_audit_stages` | — | total_ecl=ΣSx_ecl; coverage∈[0,1]; **stage3==total fingerprint** (`stages`) |
+| Loans by sector | `bank_audit_loans_by_sector` | — | Σ top-level sectors ≈ total row (`loans_by_sector`) |
+| NPL movement | `bank_audit_npl_movement` | — | opening±flows=closing (0.2% + 100 tol) (`npl_movement`) |
+| Capital adequacy (§4) | `bank_audit_capital` | — | CET1≤Tier1≤Total; CAR=capital/RWA; band [5,80] (`capital`) |
+| Liquidity (§4) | `bank_audit_liquidity` | — | leverage∈(0,30); LCR/NSFR∈(0,2000); LCR≥50 (`liquidity`) |
+| Bank profile (branches/personnel) | `bank_audit_profile` | — | presence sanity only — no `bank_audit_validation` row |
+
+**Known false-positive skip-list** (stored in `_CAP_SKIP` in `revalidate_audit_db.py`):
+ATBANK 2024Q1–Q4 unconsolidated and TEB 2022Q1–Q4 consolidated produce BRSA-floor CARs that
+fail arithmetic reconciliation; capital validation is **skipped** (not red) for these partitions.
 
 `bank_audit_extractions` logs one row per PDF (`success`, per-statement row counts, `note`,
 `extracted_at`). `bank_audit_validation` stores per-statement check results
@@ -91,8 +104,8 @@ Use this when the cron extraction is wrong or a statement page is unreadable. Ev
    the text statements and overlays the manual ones. The balance sheet is validated to 0 and
    the P&L net is cross-checked to BS equity before push.
 6. **Validator logic changed** — `scripts/revalidate_audit_db.py --db <db>` recomputes
-   `bank_audit_validation` from stored rows (balance sheet + P&L, no re-extraction); push
-   with `scripts/push_to_d1.py --db <db> --only-tables bank_audit_validation`.
+   `bank_audit_validation` from stored rows (all 12 statement types, no re-extraction); push
+   with `scripts/push_to_d1.py --db <db> --hours 9999 --only-tables bank_audit_validation`.
 
 After any repair, confirm on D1: `bank_audit_validation` failing partitions and the
 `/admin` coverage matrix should reflect the fix; `bank_audit_extractions.success` flips to 1

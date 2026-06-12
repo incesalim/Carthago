@@ -57,7 +57,7 @@ admin-triggered.** Acquire (`acquire-audit.yml`, weekly): `sync_audit_reports --
 |---|---|---|---|
 | `backfill_extraction.py` | Re-extract named banks from R2 → clear D1 partitions → push → snapshot. Shared D1/R2 helpers live in `scripts/audit_d1.py`. | `backfill-audit.yml`; by hand | operational |
 | `audit_correct.py` | Unified manual-correction CLI: `overlay-statement` (hand-transcribed `manual_statements.json`), `override-cells` (`audit_overrides.json`), `reextract-pl`. Validate-to-0 → push one partition. | by hand | operational |
-| `revalidate_audit_db.py` | Recompute `bank_audit_validation` from stored rows (balance sheet + P&L, no re-extraction); push validation only. | by hand after a validator change | operational |
+| `revalidate_audit_db.py` | Recompute `bank_audit_validation` from stored rows (all 12 statement types — BS, P&L, OCI, off-balance, capital, liquidity, credit_quality, stages, npl_movement, loans_by_sector; no re-extraction); push validation only. | by hand after a validator change | operational |
 | `push_from_scratch.py` | Push pre-extracted rows from `fleet_scratch.db` → D1 (no re-extraction). | by hand (large repair) | operational |
 | `discover_audit_urls.py` | Scan bank IR pages for new quarterly report URLs. | by hand, quarterly | operational |
 | `compute_bank_metrics.py` | Derive a per-bank KPI snapshot from audit data. | by hand | operational |
