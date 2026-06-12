@@ -522,7 +522,7 @@ reading directly from D1). One page per tab under `web/app/<tab>/page.tsx`.
 | `/deposits` | Total deposits level, YoY by group, MoM, bar by bank. TL / FX / FX share. Demand level + share. Maturity stacked (level + percent). LDR by group. | §4, §6, §7, §8 |
 | `/asset-quality` | NPL by group + bar by bank. Coverage by group. Gross NPL stock (derived as total × ratio). Consumer NPL composition + per-product ratios. Commercial NPL (SME / commercial / non-SME from weekly bulletin). | §4, §5, §7, §10 |
 | `/capital` | CAR by group + bar. Equity level + YoY. Liabilities / Equity. RWA Net / Gross. Off-BS derivatives / total assets. | §4, §7, §8 |
-| `/profitability` | ROE, ROA, NIM (annualized). OPEX / avg assets. Fees / revenue. Non-interest income / non-interest expense. Fees / OPEX. Optional ROE-vs-CPI overlay. | §7, §8, §9 (CPI) |
+| `/profitability` | ROE, ROA, NIM (annualized). NIM components decomposition (signed stacked bars per bank group, annual + monthly TTM). OPEX / avg assets. Fees / revenue. Non-interest income / non-interest expense. Fees / OPEX. Optional ROE-vs-CPI overlay. | §7, §8, §9 (CPI), §16 |
 | `/weekly` | Loan level + 4w ann. + 13w ann. (all groups). TL vs FX, public vs private TL. Consumer segments 13w. SME vs commercial 13w. Deposits trio. NPL stock + YoY. | §10, §11 |
 | `/liquidity` | Adapts BBVA's liquidity section. TL & FC loan/deposit ratios (public vs private), TL deposit growth (sector YoY+13w; public vs private YoY), deposit dollarization (sector/public/private), residents' FC savings (households, USD bn), net CBRT funding (TL bn), gross reserves (USD bn), REER. | §9, §10, §11 |
 | `/rates` | TCMB rate corridor, FX, weekly survey rates, sterilization channels. (Several historical Rates panels still pending D1 backfill — see [PROJECT_STATE.md](PROJECT_STATE.md) "Known issues".) | §9 |
@@ -954,3 +954,51 @@ engagement, not unique people. `bilFiyat` (allocation endpoint) and
 
 All time series sample the **month-end trading day** per fund type and chart
 by `YYYY-MM` (~60 points over the 5-year history) so per-type samples align.
+
+---
+
+## 16. NIM components decomposition (/profitability)
+
+Replicates the Garanti BBVA Research **"NIM components of private banks
+(annualized)"** chart from the BDDK monthly bulletin (verified to 0.1pp on
+every bucket for Dec-24 and 2025). Implementation:
+`web/app/lib/nim-components.ts` (shaping; pure TS) + `nimComponentsRaw()` in
+`web/app/lib/metrics.ts` (one D1 query); chart spec
+`profitability.nim_components_private` anchors it in the daily healthcheck.
+
+**Buckets** — `income_statement` `item_order` positions (currency `'TL'`,
+`amount_total`, million TL, cumulative YTD). Expense items are stored
+**positive** and negated for display:
+
+| Bucket | item_order | Notes |
+|---|---|---|
+| Customer loans (income) | 1 + 6 | 2–5 are consumer sub-lines of 1 — never added |
+| Banks & money market (income) | 7 + 8 | |
+| Fixed-income securities (income) | 9 + 10 + 11 + 12 | **incl. reverse-repo income (12)** — BBVA convention |
+| Other interest income | 13 + 14 | |
+| Customer deposits (expense) | 16 | "participation funds" label for 10003 |
+| Interbank & money market (expense) | 17 + 18 | |
+| Debt issued & repo (expense) | 19 + 20 | **incl. repo funding expense (20)** — BBVA convention |
+| Other interest expense | 21 + 22 | |
+
+15/23/24 are subtotals (excluded); internal sums reconcile: 1+6..14 − (2..5) =
+15, 16..22 = 23, net = 24.
+
+**Denominator** = 13-point average of month-end `balance_sheet`
+`TOPLAM AKTİFLER` (item 26): Dec(Y−1)…Dec(Y) for annual bars.
+
+**Views.** *Annual*: `YTD(Dec) / avg13 × 100` per year from 2021 (2020 needs
+Dec-2019 assets, which predate the data) plus a trailing
+**"YYYY ann."** bar when the latest month < Dec: `YTD(m) × 12/m` over the
+average of the m+1 month-ends Dec(Y−1)…m — **annualized actuals, not a
+forecast** (BBVA's "F" bar is their projection; we don't reproduce it).
+*Monthly TTM*: `TTM(m) = YTD(y,m) + FY(y−1) − YTD(y−1,m)` over the 13-month
+trailing average of assets ending m; first valid point **2021-01**.
+
+**Bank groups.** Default **Private = deposit codes 10008+10010 summed**
+(domestic private + foreign deposit banks) — the BBVA definition; ownership
+code 10005 alone misses the chart by 0.3–0.6pp. Also selectable: the two
+Private sub-cuts (10008 / 10010), State deposit (10009), Participation
+(10003), Dev & Inv (10004), Sector (10001). {10008,10010,10009} ∪ 10003 ∪
+10004 partitions the sector. For composite groups a period is emitted only
+when every member code has data.

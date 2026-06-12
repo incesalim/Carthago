@@ -62,6 +62,7 @@ MONTHLY_COLUMNS: dict[str, set[str]] = {
         "maturity_3_6m", "maturity_6_12m", "maturity_over_12m",
     },
     "financial_ratios": {"ratio_value"},
+    "income_statement": {"amount_total", "amount_tl", "amount_fx"},
 }
 
 _AST_OPS = {
@@ -176,6 +177,23 @@ def resolve_monthly(loc: dict, runner) -> dict[str, float]:
             "WHERE table_number = ? AND item_name = ? AND bank_type_code = ? "
             "ORDER BY year, month",
             [int(loc.get("table_number", 15)), loc["item_name"], code],
+        )
+    elif "item_orders" in loc:
+        # Positional selection, SUMMED per period — for tables whose row labels
+        # are unstable but whose item_order positions are fixed (e.g. the
+        # income_statement interest buckets). Orders can't be bound one-by-one
+        # into IN(...) portably with the wrangler inliner, so validate them as
+        # ints and inline (injection guard).
+        orders = loc["item_orders"]
+        if not orders or not all(isinstance(o, int) and not isinstance(o, bool) for o in orders):
+            raise ValueError(f"item_orders must be a non-empty list of ints, got {orders!r}")
+        in_list = ",".join(str(o) for o in orders)
+        rows = runner.query(
+            f"SELECT year || '-' || PRINTF('%02d', month) AS d, SUM({column}) AS v "
+            f"FROM {table} "
+            f"WHERE item_order IN ({in_list}) AND currency = ? AND bank_type_code = ? "
+            "GROUP BY year, month ORDER BY year, month",
+            [loc.get("currency", "TL"), code],
         )
     else:
         rows = runner.query(

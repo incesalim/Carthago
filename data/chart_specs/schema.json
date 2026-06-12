@@ -44,7 +44,7 @@
           "description": "Maps to the chart component yFormat. 'bn' divides the stored value by 1000 at display time."
         },
         "decimals": { "type": "integer", "minimum": 0, "maximum": 4, "default": 1 },
-        "chart": { "type": "string", "enum": ["TrendChart", "TimeSeriesChart"] },
+        "chart": { "type": "string", "enum": ["TrendChart", "TimeSeriesChart", "NimComponentsChart"] },
         "series": {
           "type": "array",
           "minItems": 1,
@@ -103,11 +103,21 @@
         {
           "type": "object",
           "additionalProperties": false,
-          "required": ["table", "item_name", "column", "bank_types_named"],
+          "required": ["table", "column", "bank_types_named"],
+          "oneOf": [
+            { "required": ["item_name"] },
+            { "required": ["item_orders"] }
+          ],
           "properties": {
-            "table": { "type": "string", "enum": ["balance_sheet", "loans", "deposits", "financial_ratios"] },
-            "item_name": { "type": "string", "description": "EXACT Turkish item_name — casing matters (the /credit blank-chart bug)." },
-            "column": { "type": "string", "description": "Value column (balance_sheet: amount_total/amount_tl/amount_fx; loans: total_amount/total_tl/total_fx/npl_amount; deposits: total_amount/demand/maturity_*; financial_ratios: ratio_value)." },
+            "table": { "type": "string", "enum": ["balance_sheet", "loans", "deposits", "financial_ratios", "income_statement"] },
+            "item_name": { "type": "string", "description": "EXACT Turkish item_name — casing matters (the /credit blank-chart bug). Exactly one of item_name / item_orders." },
+            "item_orders": {
+              "type": "array",
+              "items": { "type": "integer" },
+              "minItems": 1,
+              "description": "item_order positions SUMMED per period (e.g. income_statement interest buckets [1,6]). Positions are stable across periods/bank types; labels carry footnote suffixes that item_name matching would trip on. Exactly one of item_name / item_orders."
+            },
+            "column": { "type": "string", "description": "Value column (balance_sheet/income_statement: amount_total/amount_tl/amount_fx; loans: total_amount/total_tl/total_fx/npl_amount; deposits: total_amount/demand/maturity_*; financial_ratios: ratio_value)." },
             "currency": { "type": "string", "enum": ["TL", "USD", "FX"], "default": "TL" },
             "bank_types_named": { "$ref": "#/definitions/bankTypesNamed" },
             "bank_types_raw": { "type": "array", "items": { "type": "string" }, "description": "Escape hatch: raw numeric codes. Discouraged — harness warns. Use bank_types_named." },
@@ -174,6 +184,15 @@
             "op": { "const": "growth" },
             "window": { "type": "integer", "enum": [4, 13, 52] },
             "mode": { "type": "string", "enum": ["yoy", "annualized"] }
+          }
+        },
+        {
+          "additionalProperties": false,
+          "required": ["op", "window"],
+          "properties": {
+            "op": { "const": "rolling_sum" },
+            "window": { "type": "integer", "minimum": 2 },
+            "scale": { "type": "number", "default": 1, "description": "Multiplier on the sum — 1/window turns it into a rolling average (e.g. 13-month average assets)." }
           }
         },
         {

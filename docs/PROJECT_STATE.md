@@ -113,6 +113,17 @@ latest-period** trigger, and **13 banks auto-discover** new quarters from their
 IR page (no hand-added URL needed) — see [ADMIN.md](ADMIN.md) §Auto-discovery.
 Setup in [OPERATIONS.md](OPERATIONS.md) / [ADMIN.md](ADMIN.md).
 
+The **Profitability** tab (`/profitability`) carries a **NIM components**
+decomposition replicating the BBVA "NIM components of private banks" chart from
+the monthly bulletin: eight interest income/expense buckets
+(`income_statement` items 1–14 / 16–22) as % of 13-month-average total assets,
+as annual stacked bars (plus a current-year YTD-annualized bar — actuals, not
+BBVA's forecast) and a monthly trailing-12-month view, switchable across bank
+groups ("Private" = deposit codes 10008+10010, the BBVA definition; verified to
+0.1pp). Data layer `web/app/lib/nim-components.ts` + `nimComponentsRaw()` in
+`metrics.ts`; guarded by the `profitability.nim_components_private` chart spec.
+See [METRICS.md](METRICS.md) §16.
+
 A **Liquidity** tab (`/liquidity`) adapts the BBVA "Banking Sector Outlook"
 liquidity section: TL & FC loan/deposit ratios and TL deposit growth split
 Public (state) vs Private (private + foreign), deposit dollarization, net CBRT

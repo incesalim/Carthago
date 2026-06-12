@@ -203,6 +203,61 @@ def test_pick_point_prefix_and_last_and_none():
 
 
 # ---------------------------------------------------------------------------
+# monthly resolver — item_orders (positional, summed) selection
+# ---------------------------------------------------------------------------
+
+class RecordingRunner:
+    """Returns canned rows and records the SQL/params it was asked for."""
+
+    label = "fake"
+
+    def __init__(self, rows: list[dict]):
+        self.rows = rows
+        self.last_sql: str | None = None
+        self.last_params: list | None = None
+
+    def query(self, sql: str, params: list) -> list[dict]:
+        self.last_sql, self.last_params = sql, params
+        return self.rows
+
+
+def test_resolve_monthly_item_orders_sums_per_period():
+    runner = RecordingRunner([{"d": "2024-11", "v": 100.0}, {"d": "2024-12", "v": 123.0}])
+    loc = {
+        "table": "income_statement", "item_orders": [1, 6],
+        "column": "amount_total", "bank_types_named": ["DEPOSIT_PRIVATE"],
+    }
+    out = v.resolve_monthly(loc, runner)
+    assert out == {"2024-11": 100.0, "2024-12": 123.0}
+    assert "SUM(amount_total)" in runner.last_sql
+    assert "item_order IN (1,6)" in runner.last_sql
+    assert "GROUP BY year, month" in runner.last_sql
+    # named type resolved through the MONTHLY namespace; currency defaults TL
+    assert runner.last_params == ["TL", "10008"]
+
+
+def test_resolve_monthly_item_orders_rejects_non_ints():
+    # item_orders are inlined into IN(...) — anything but ints must raise
+    # (injection guard), including bools (a Python int subclass).
+    for bad in (["1; DROP TABLE x"], [1.5], [True], []):
+        loc = {
+            "table": "income_statement", "item_orders": bad,
+            "column": "amount_total", "bank_types_named": ["DEPOSIT_PRIVATE"],
+        }
+        with pytest.raises(ValueError, match="item_orders|unsupported"):
+            v.resolve_monthly(loc, RecordingRunner([]))
+
+
+def test_resolve_monthly_income_statement_column_allowlist():
+    loc = {
+        "table": "income_statement", "item_orders": [1],
+        "column": "evil_col", "bank_types_named": ["DEPOSIT_PRIVATE"],
+    }
+    with pytest.raises(ValueError, match="unsupported table/column"):
+        v.resolve_monthly(loc, RecordingRunner([]))
+
+
+# ---------------------------------------------------------------------------
 # validation + inliner + bank-type namespaces
 # ---------------------------------------------------------------------------
 

@@ -1,0 +1,247 @@
+"use client";
+
+/**
+ * Signed stacked bar chart for the NIM decomposition: income buckets stack
+ * above zero, expense buckets below (values arrive already signed), with a
+ * "Net NIM" line overlay. Mirrors the Garanti BBVA Research chart style —
+ * in annual mode each sizeable segment carries its value label.
+ */
+import {
+  Bar,
+  CartesianGrid,
+  ComposedChart,
+  LabelList,
+  Legend,
+  Line,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import { useChartTheme, tooltipStyles } from "@/app/lib/chart-theme";
+import type { NimBarPoint, NimKey } from "@/app/lib/nim-components";
+
+export interface NimSeriesDef {
+  key: NimKey;
+  label: string;
+}
+
+interface Props {
+  data: NimBarPoint[];
+  series: NimSeriesDef[];
+  /** annual: wide bars + in-segment labels; monthly: dense TTM bars. */
+  mode: "annual" | "monthly";
+  height?: number;
+}
+
+// Component palette — 8 buckets exceed the 6-slot theme palette, and the BBVA
+// reading (warm income hues vs cool/muted expense hues) is specific to this
+// chart, so the colours live here. Keyed by NimKey, light/dark variants.
+const FILLS: Record<"light" | "dark", Record<NimKey, string>> = {
+  light: {
+    cust_loans: "#1e3a8a",
+    banks_cb: "#60a5fa",
+    securities: "#43a047",
+    other_inc: "#f59e0b",
+    dep_exp: "#facc15",
+    interbank_exp: "#06b6d4",
+    debt_exp: "#8b5cf6",
+    other_exp: "#9ca3af",
+  },
+  dark: {
+    cust_loans: "#5b8def",
+    banks_cb: "#93c5fd",
+    securities: "#4ade80",
+    other_inc: "#fbbf24",
+    dep_exp: "#fde047",
+    interbank_exp: "#22d3ee",
+    debt_exp: "#a78bfa",
+    other_exp: "#9ca3af",
+  },
+};
+
+const nf = (v: number, d: number) =>
+  new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: d,
+    maximumFractionDigits: d,
+  }).format(v);
+
+/** Black or white label text depending on the segment fill's luminance. */
+function labelColor(hexFill: string): string {
+  const r = parseInt(hexFill.slice(1, 3), 16);
+  const g = parseInt(hexFill.slice(3, 5), 16);
+  const b = parseInt(hexFill.slice(5, 7), 16);
+  return 0.299 * r + 0.587 * g + 0.114 * b > 150 ? "#1f2937" : "#ffffff";
+}
+
+// LabelList custom-content props (Recharts passes more; these are what we use).
+interface SegmentLabelProps {
+  x?: number | string;
+  y?: number | string;
+  width?: number | string;
+  height?: number | string;
+  value?: unknown;
+}
+
+/** In-segment value label — skipped when the segment is too short to fit. */
+function segmentLabel(fill: string) {
+  const Label = (props: SegmentLabelProps) => {
+    const x = Number(props.x);
+    const y = Number(props.y);
+    const width = Number(props.width);
+    const height = Number(props.height);
+    const value = Number(props.value);
+    if (!Number.isFinite(value) || Math.abs(height) < 13 || width < 30) {
+      return null;
+    }
+    return (
+      <text
+        x={x + width / 2}
+        y={y + height / 2}
+        textAnchor="middle"
+        dominantBaseline="central"
+        fontSize={10}
+        fill={labelColor(fill)}
+      >
+        {nf(value, 1)}%
+      </text>
+    );
+  };
+  Label.displayName = "NimSegmentLabel";
+  return Label;
+}
+
+export default function NimComponentsChart({
+  data,
+  series,
+  mode,
+  height = 380,
+}: Props) {
+  const t = useChartTheme();
+  const tt = tooltipStyles(t);
+  const fills = FILLS[t.palette[0] === "#7a0d2e" ? "light" : "dark"];
+  const netColor = t.palette[0];
+
+  const order = (key: string) =>
+    key === "net" ? series.length : series.findIndex((s) => s.key === key);
+
+  return (
+    <div style={{ height }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <ComposedChart
+          data={data}
+          stackOffset="sign"
+          margin={{ top: 10, right: 20, left: 10, bottom: 30 }}
+          barCategoryGap={mode === "annual" ? "28%" : "12%"}
+        >
+          <CartesianGrid strokeDasharray="3 3" stroke={t.grid} />
+          <XAxis
+            dataKey="x"
+            tick={{ fontSize: 11, fill: t.axis }}
+            tickMargin={6}
+            minTickGap={30}
+            axisLine={{ stroke: t.grid }}
+            tickLine={{ stroke: t.grid }}
+          />
+          <YAxis
+            tick={{ fontSize: 11, fill: t.axis }}
+            tickFormatter={(v) => `${nf(Number(v), 0)}%`}
+            axisLine={{ stroke: t.grid }}
+            tickLine={{ stroke: t.grid }}
+          />
+          <ReferenceLine y={0} stroke={t.reference} />
+          <Tooltip
+            {...tt}
+            itemSorter={(item) => order(String(item.dataKey))}
+            formatter={(value, name) => [
+              value == null ? "—" : `${nf(Number(value), 2)}%`,
+              name,
+            ]}
+            labelFormatter={(l) => String(l)}
+          />
+          <Legend
+            wrapperStyle={{ fontSize: 11, paddingTop: 4 }}
+            content={() => (
+              // Render straight from `series` so the legend order matches the
+              // stack; Recharts 3 otherwise reorders it.
+              <ul
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  justifyContent: "center",
+                  gap: "2px 14px",
+                  listStyle: "none",
+                  margin: 0,
+                  padding: 0,
+                }}
+              >
+                {series.map((s) => (
+                  <li
+                    key={s.key}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 5,
+                      color: t.axis,
+                    }}
+                  >
+                    <span
+                      style={{
+                        display: "inline-block",
+                        width: 11,
+                        height: 11,
+                        borderRadius: 2,
+                        background: fills[s.key],
+                      }}
+                    />
+                    {s.label}
+                  </li>
+                ))}
+                <li
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 5,
+                    color: t.axis,
+                  }}
+                >
+                  <span
+                    style={{
+                      display: "inline-block",
+                      width: 14,
+                      borderTop: `2px solid ${netColor}`,
+                    }}
+                  />
+                  Net NIM
+                </li>
+              </ul>
+            )}
+          />
+          {series.map((s) => (
+            <Bar
+              key={s.key}
+              dataKey={s.key}
+              name={s.label}
+              stackId="nim"
+              fill={fills[s.key]}
+              isAnimationActive={false}
+            >
+              {mode === "annual" && (
+                <LabelList dataKey={s.key} content={segmentLabel(fills[s.key])} />
+              )}
+            </Bar>
+          ))}
+          <Line
+            dataKey="net"
+            name="Net NIM"
+            stroke={netColor}
+            strokeWidth={2}
+            dot={mode === "annual" ? { r: 3, fill: netColor } : false}
+            isAnimationActive={false}
+          />
+        </ComposedChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
