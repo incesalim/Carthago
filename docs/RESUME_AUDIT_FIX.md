@@ -45,6 +45,25 @@ display-only, validator doesn't cover them, low priority.
   via `scripts/reextract_pl.py` (replaces ONLY profit_loss for one partition in
   prod DB + D1, no fleet loop, no other tables touched) → 62 clean rows.
 
+## Image-only partitions — ALL 11 LOADED 2026-06-12:
+The /admin "failed extraction" set (11 partitions, success=0) were reports that
+publish their financial-statement PAGES as scanned images (no text layer) while
+the rest of the PDF is text — so the extractor got nothing. NOT image-only as
+documents; only the statement pages. Loaded by hand-transcribing from the user's
+screenshots via `scripts/load_partition.py` (re-extracts the text statements,
+overlays the manual ones, validates, pushes). Each balance sheet validated to 0
+(TL+FC=Total, parent=Σchildren, Σromans=TOTAL, assets=liab); each P&L reconciled
+through the BDDK formula chain and gated by a new cross-check: P&L net profit
+(DÖNEM NET / Grubun Kârı for consolidated) must equal BS equity 16.6.2 (or 14.6.2
+for participation banks). Data in `data/manual_statements.json`.
+  FIBA 2022Q1 cons+uncons, 2023Q3 cons, 2024Q1 cons, 2025Q1 uncons, 2025Q2 uncons,
+  2025Q3 cons+uncons; TFKB 2022Q3 cons (participation, XIV equity); TSKB 2026Q1
+  uncons; ISCTR 2025Q1 cons (₺4.3T group).
+RESULT: failed_extractions 11→0 (967/967 succeed), BS validation 0 fleet-wide.
+Note: user's OCR'd PDFs had unreliable digits (12→11 etc.) — screenshots + the
+validator/foot-checks were the accurate path; OCR P&L used only where its
+identity chain self-reconciled.
+
 ## Still open (validator doesn't cover these):
 - 49 off-balance truncated-label rows — cosmetic.
 - FOLLOW-UP: make validation push always-full (the coverage-erosion bug).
