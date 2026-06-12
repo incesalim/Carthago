@@ -355,6 +355,11 @@ def _locate_equity_pages(pdf, pdf_path: str,
         found.append((i, period_type))
         if len(found) == 2:
             break
+    # Enforce distinct period_types.  BRSA standard order: current then prior.
+    # If the detector assigned the same type to both pages (CARİ DÖNEM label
+    # absent from first page, present on second, etc.), fall back to positional.
+    if len(found) == 2 and found[0][1] == found[1][1]:
+        found = [(found[0][0], 'current'), (found[1][0], 'prior')]
     return found
 
 
@@ -392,6 +397,17 @@ def upsert(conn: sqlite3.Connection, bank: str, period: str,
     )
     if not report.rows:
         return 0
+    # Deduplicate by (period_type, order) — keep last occurrence.  Guards
+    # against the unlikely but possible case of duplicate rows from the extractor.
+    seen: dict[tuple, int] = {}
+    deduped = []
+    for r in report.rows:
+        key = (r.period_type, r.order)
+        if key in seen:
+            deduped[seen[key]] = r  # type: ignore[index]
+        else:
+            seen[key] = len(deduped)
+            deduped.append(r)
     conn.executemany(
         'INSERT INTO bank_audit_equity_change '
         '(bank_ticker, period, kind, period_type, item_order, hierarchy, item_name, '
@@ -409,6 +425,6 @@ def upsert(conn: sqlite3.Connection, bank: str, period: str,
           r.profit_reserves, r.prior_period_profit_loss, r.period_net_profit_loss,
           r.total_equity, r.minority_interest, r.total_equity_incl_minority,
           r.source_page)
-         for r in report.rows],
+         for r in deduped],
     )
-    return len(report.rows)
+    return len(deduped)
