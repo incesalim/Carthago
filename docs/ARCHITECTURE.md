@@ -30,7 +30,7 @@ machine is involved in the production data flow.
                                        Cloudflare D1 (bddk-data)
                                                     │
                                                     ▼
-                                       web/ — Next.js 15 + OpenNext
+                                       web/ — Next.js 16 + OpenNext
                                        Deployed to Cloudflare Workers
 ```
 
@@ -47,7 +47,7 @@ machine is involved in the production data flow.
 | **D1 sync** | `scripts/push_to_d1.py` | incremental push via wrangler |
 | **Edge database** | Cloudflare D1 (`bddk-data`) | SQLite at the edge, ~1.6M rows |
 | **PDF storage** | Cloudflare R2 (`bddk-audit-reports`) | ~2.2 GB, ~970 quarterly PDFs |
-| **Dashboard** | `web/` | Next.js 15 + OpenNext + Recharts on Cloudflare Workers |
+| **Dashboard** | `web/` | Next.js 16 + OpenNext + Recharts (charts) + d3-force (/ownership network layout) on Cloudflare Workers |
 | **Read cache** | Cloudflare KV (`NEXT_INC_CACHE_KV`) | 12h data cache for D1 reads (`cachedAll` → `unstable_cache`) |
 | **Admin panel** | `web/app/admin/`, `web/app/api/admin/` | password-gated control center: data health, refresh triggers, traffic |
 | **Quality gates** | `.github/workflows/ci.yml`, `pyproject.toml`, `tests/` | ruff + pytest + eslint + tsc on every PR |
@@ -158,10 +158,14 @@ prerender the data pages at build time, which queries D1 against the empty
 build-time DB and fails. Caching the *data* (not the page) avoids that. `/admin`
 is intentionally uncached (auth-gated + shows live pipeline status).
 
-The `/ownership` sector graph is built server-side off one cached
-`kap_ownership` query (`sectorOwnership()` in `web/app/lib/kap.ts`); all
-interaction (zoom, focus, tooltips) is client-side on the serialized graph, so
-clicking around costs zero extra D1 reads.
+The `/ownership` sector graph is built server-side off two cached queries
+(`sectorOwnership()` in `web/app/lib/kap.ts` for the graph, `bankSummaries()`
+for asset-based node sizing — fail-soft to uniform sizes). The force-directed
+layout (d3-force, `web/app/lib/ownership-force.ts`) runs synchronously in a
+`useMemo` with seeded positions and a seeded random source, so the server
+render and client hydration agree; all interaction (zoom, ego-highlighting,
+focus, tooltips) is client-side on the serialized graph, so clicking around
+costs zero extra D1 reads.
 
 For local dev, `web/next.config.ts` calls `initOpenNextCloudflareForDev()` so
 `next dev` resolves the D1/KV bindings against the local wrangler/miniflare
