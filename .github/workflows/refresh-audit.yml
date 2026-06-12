@@ -140,6 +140,13 @@ jobs:
         # standalone audit DB so push_to_d1 has fresh stage rows to send.
         run: python scripts/build_bank_audit_stages.py --db data/bank_audit.db
 
+      - name: Revalidate all partitions (recompute bank_audit_validation)
+        # Cheap pure-stored-row recompute so the coverage matrix + /banks badges
+        # reflect the CURRENT validator across the whole corpus, not just freshly
+        # re-extracted banks. Bumps validated_at → the push below ships them all,
+        # and the snapshot upload makes them durable.
+        run: python scripts/revalidate_audit_db.py --db data/bank_audit.db
+
       - name: Audit data-quality check (alert-only)
         # Flags silent extraction errors — a quarter whose lines are identical to
         # the prior one (period-shift, the Eximbank fingerprint), a balance sheet
