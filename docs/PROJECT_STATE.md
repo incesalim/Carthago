@@ -7,15 +7,18 @@ coverage or known issues change.
 > → this file → [OPERATIONS.md](OPERATIONS.md). Metric definitions in
 > [METRICS.md](METRICS.md).
 >
-> Last verified: 2026-06-11 (balance-sheet repair pushed live: -6 corruption
-> eliminated, validation-failing BS partitions 68→17, 261 partitions improved
-> in D1; residual = documented genuine-source defects + override candidates +
-> off-balance/P&L footnote leaks. See docs/RESUME_AUDIT_FIX.md).
-> Prior: audit rework Phases 0–4 COMPLETE + R1/R2 recovery
-> pass: identity-gated dropped-row recovery and TSKB split-digit repair pushed
-> to D1 — fleet now 898/966 partitions fully identity-clean (was 801). 68
-> residual failing partitions are documented per-bank quirks + image-only PDFs,
-> all ⚠-flagged. Phase 5 refactor pending; see docs/AUDIT_REWORK_PLAN.md).
+> Last verified: 2026-06-12 — **audit financials COMPLETE**: balance-sheet
+> validation **0 failures fleet-wide**, **failed extractions 0 (967/967 succeed)**.
+> Path: 68→0 BS failures via identity-gated extractor fixes + curated cell
+> overrides (data/audit_overrides.json, scripts/apply_overrides.py); ISCTR 2024Q4
+> P&L letter-spacing fixed in the extractor (_detect_pl_ncols); and the 11
+> "failed extraction" partitions — reports whose statement PAGES are scanned
+> images (FIBA 2022Q1/2023Q3/2024Q1/2025Q1-Q2-Q3, TFKB 2022Q3, TSKB 2026Q1 uncons,
+> ISCTR 2025Q1 cons) — hand-transcribed from screenshots via
+> scripts/load_partition.py (data/manual_statements.json), each BS validated to 0
+> and each P&L cross-checked to BS equity. Residual: 49 off-balance cosmetic
+> labels; IFRS-9 NPL/Stage footnotes still missing for some image partitions
+> (separate table — see docs/MISSING_AUDIT_DATA.md). See docs/RESUME_AUDIT_FIX.md.
 
 ---
 

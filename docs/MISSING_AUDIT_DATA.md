@@ -2,6 +2,24 @@
 
 _Generated from the local DB + R2. Coverage: this lists every (bank, period, kind) cell that is missing financial-tables and/or IFRS-9 Stage 1/2/3 data, for report kinds the bank actually files._
 
+> ## STATUS 2026-06-12 — financials (BS + income statement) COMPLETE
+> - **Balance-sheet validation: 0 failures fleet-wide. Failed extractions: 0 (967/967 succeed).**
+> - **Section 0b (the 68→17 BS survivors): ALL RESOLVED** — identity-gated extractor
+>   fixes + curated cell overrides (`data/audit_overrides.json`, `scripts/apply_overrides.py`).
+> - **Section 0 + the FIBA/TFKB/ISCTR/TSKB "financials" rows in Section 2: RESOLVED** —
+>   these reports publish their statement PAGES as scanned images; the
+>   balance sheet + income statement were hand-transcribed from screenshots via
+>   `scripts/load_partition.py` (`data/manual_statements.json`), each BS validated
+>   to 0 and each P&L cross-checked to BS equity. (FIBA 2022Q1 cons+uncons,
+>   2023Q3 cons, 2024Q1 cons, 2025Q1/Q2 uncons, 2025Q3 cons+uncons; TFKB 2022Q3
+>   cons; TSKB 2026Q1 uncons; ISCTR 2025Q1 cons.)
+> - **STILL OPEN:** the **IFRS-9 NPL / Stage 1-2-3 footnote** for those image
+>   partitions (a separate table — often also image-only), plus the
+>   "NPL/Stage only" rows in Section 2, and the "Need a document" cells in
+>   Section 1 (no usable PDF in R2). The sections below are kept for that
+>   remaining NPL/Stage + missing-document work.
+
+The original tallies (now partly resolved — see status block):
 - **Need a document** (no usable PDF in R2 — unpublished, or our URL serves a summary): 11 cells
 - **Extractor fix needed** (full PDF is in R2, parser fails): 19 cells
 
