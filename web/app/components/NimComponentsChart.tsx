@@ -151,8 +151,11 @@ export default function NimComponentsChart({
 }: Props) {
   const t = useChartTheme();
   const tt = tooltipStyles(t);
-  const fills = FILLS[t.palette[0] === "#7a0d2e" ? "light" : "dark"];
-  const netColor = t.palette[0];
+  const isLight = t.palette[0] === "#7a0d2e";
+  const fills = FILLS[isLight ? "light" : "dark"];
+  // Brighter than the brand maroon — the line crosses the navy loans band
+  // for most of its length and needs the extra contrast (plus the halo below).
+  const netColor = isLight ? "#e11d48" : "#fb7185";
 
   const sign: Record<string, 1 | -1> = Object.fromEntries(
     NIM_SERIES.map((s) => [s.key, s.sign]),
@@ -344,12 +347,29 @@ export default function NimComponentsChart({
               )}
             </Bar>
           ))}
+          {/* Halo under the net line: card-background casing keeps the line
+              legible over the dark loans band and the yellow deposits band. */}
+          <Line
+            dataKey="net"
+            stroke={t.tooltipBg}
+            strokeWidth={5}
+            strokeOpacity={0.9}
+            dot={false}
+            activeDot={false}
+            legendType="none"
+            tooltipType="none"
+            isAnimationActive={false}
+          />
           <Line
             dataKey="net"
             name="Net NIM"
             stroke={netColor}
-            strokeWidth={2}
-            dot={mode === "annual" ? { r: 3, fill: netColor } : false}
+            strokeWidth={2.25}
+            dot={
+              mode === "annual"
+                ? { r: 3.5, fill: netColor, stroke: t.tooltipBg, strokeWidth: 1.5 }
+                : false
+            }
             isAnimationActive={false}
           />
         </ComposedChart>
