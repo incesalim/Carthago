@@ -19,19 +19,22 @@ for the full script index.
    re-extract dispatches it as `bank` + `period`.)
 3. **`build_bank_audit_stages.py`** — roll the per-section `bank_audit_credit_quality` rows up
    into the derived `bank_audit_stages` view (S1/S2/S3 amounts + ECL + coverage).
-4. **`check_audit_quality.py --alert`** — 8 alert-only anomaly checks (never blocks): stale
+4. **`revalidate_audit_db.py`** — recompute `bank_audit_validation` for the WHOLE corpus from
+   stored rows (cheap), so the matrix + `/banks` badges reflect the current validator
+   everywhere, not just freshly re-extracted banks. Bumps `validated_at` → step 6 ships them.
+5. **`check_audit_quality.py --alert`** — 8 alert-only anomaly checks (never blocks): stale
    period, balance, coverage, npl_drop, capital, liquidity, structure, ecl → Telegram/Discord.
-5. **`push_to_d1.py --db data/bank_audit.db --only-tables bank_audit_*`** — windowed sync of
+6. **`push_to_d1.py --db data/bank_audit.db --only-tables bank_audit_*`** — windowed sync of
    the row tables + `bank_audit_validation` to D1 (last 168h, idempotent).
-6. **`sync_audit_expected.py --push`** — rebuild the coverage spine (`bank_audit_expected`,
+7. **`sync_audit_expected.py --push`** — rebuild the coverage spine (`bank_audit_expected`,
    `bank_audit_statement_types`, `bank_audit_coverage`) for the `/admin` matrix from the
    profile census + stored rows; a **full-rebuild** D1 push (DELETE + insert-all), no R2 write.
-7. **Snapshot** — VACUUM + gzip → upload `state/bank_audit.db.gz` (+ dated history, keep 7).
+8. **Snapshot** — VACUUM + gzip → upload `state/bank_audit.db.gz` (+ dated history, keep 7).
 
-The coverage rollup reads `bank_audit_validation`, so its `error` cells are only as current as
-that table. The loader writes validation at extraction time, so re-extracted partitions are
-current; to surface a **validator-logic change** across the whole corpus at once, run
-`revalidate_audit_db.py` (recompute all) before `sync_audit_expected.py`.
+Step 4 makes the coverage rollup's `error` cells self-maintaining: it reads
+`bank_audit_validation`, which the corpus-wide revalidate keeps current with the validator and
+the snapshot then persists. (For an ad-hoc local recompute, run `revalidate_audit_db.py` then
+`sync_audit_expected.py --push`.)
 
 The R2 snapshot is **last-writer-wins**, so any out-of-band write must guard against a
 concurrent CI run (`scripts/audit_d1.guard_against_ci_writers()`) and the manual lanes write D1 + the
