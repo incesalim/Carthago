@@ -15,9 +15,9 @@ Validators run per (bank, period, kind):
   - OCI hierarchy sums + III=I+II + OCI.I == P&L net
   - capital adequacy (CET1<=Tier1<=Total, CAR=capital/RWA)
   - liquidity ratios (plausibility bands)
-  - credit quality per-section totals + npl_brsa gross-prov=net + cross-section
+  - credit quality per-section totals + cross-section (gross-prov=net removed: collective provisioning)
   - stages (total sums, coverage, NPL=100% fingerprint)
-  - NPL movement (opening + flows = closing)
+  - NPL movement (opening + flows = closing; skips rows with NULL write_offs/sold/transfers_out)
   - loans by sector (Σ top-level sectors = total)
 """
 from __future__ import annotations
