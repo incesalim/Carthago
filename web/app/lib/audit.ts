@@ -263,6 +263,37 @@ export async function profitLossMultiPeriod(
   return out;
 }
 
+/** Full P&L rows for one bank across multiple periods, keyed by period.
+ *  Unlike `profitLossMultiPeriod` this keeps `item_name` (the Sankey's sign
+ *  normalization needs the "(-)" contra marker) and returns a plain object so
+ *  it can cross the RSC boundary into a client component. */
+export async function profitLossRowsMultiPeriod(
+  ticker: string,
+  kind: "consolidated" | "unconsolidated",
+  periods: string[],
+): Promise<Record<string, PlRow[]>> {
+  if (periods.length === 0) return {};
+  const db = await getDB();
+  const placeholders = periods.map(() => "?").join(",");
+  const { results } = await db
+    .prepare(
+      `SELECT period, item_order, hierarchy, item_name, footnote, amount
+       FROM bank_audit_profit_loss
+       WHERE bank_ticker = ? AND kind = ?
+         AND period IN (${placeholders})
+         AND hierarchy != ''
+       ORDER BY period, item_order`,
+    )
+    .bind(ticker, kind, ...periods)
+    .all<PlRow & { period: string }>();
+  const out: Record<string, PlRow[]> = {};
+  for (const r of results) {
+    const { period, ...row } = r;
+    (out[period] ??= []).push(row);
+  }
+  return out;
+}
+
 /**
  * Time series of a specific BS line for one bank.
  * Matches `item_name` exactly. Returns (period, amount_total) tuples.

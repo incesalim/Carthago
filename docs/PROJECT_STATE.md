@@ -188,6 +188,19 @@ A qualitative-data layer feeds two tabs from the `news_items` table
 
 ## Known issues / pending work
 
+- **P&L flow Sankey shipped (2026-06-12)** — on `/banks/[ticker]` (Income
+  Statement view, above the table): a hand-rolled SVG Sankey of the selected
+  period's P&L, YTD as reported. Pure derivation + layout in
+  `web/app/lib/pl-sankey.ts` (unit-tested — vitest is now in `web/`, `npm run
+  test`, wired into CI), card shell `PlSankeySection.tsx` with client-side
+  period pills, renderer `PlSankeyChart.tsx`. Contra lines normalized to
+  magnitudes (same rule as the tables — handles the paren-negative banks);
+  genuinely negative items (VI. trading, XVI. monetary position, tax credits)
+  are re-routed across their subtotal (red ribbons) with the filed figure
+  always in the label; tax is derived as XVII−XIX (XVIII is sign-ambiguous).
+  Internal-sum checks gate rendering: ≤0.5% silent, ≤5% amber note, >5%
+  suppressed. Data via `profitLossRowsMultiPeriod()` in `web/app/lib/audit.ts`
+  (fetched only when `statement=is`).
 - **TEFAS funds lane shipped (2026-06-11)** — `tefas_*` aggregates in D1,
   `/funds` tab live. Caveats by design: investor counts double-count people
   holding several funds; GYF/GSYF excluded from time series (not daily-priced);
