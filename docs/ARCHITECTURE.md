@@ -158,6 +158,16 @@ prerender the data pages at build time, which queries D1 against the empty
 build-time DB and fails. Caching the *data* (not the page) avoids that. `/admin`
 is intentionally uncached (auth-gated + shows live pipeline status).
 
+The `/ownership` sector graph is built server-side off one cached
+`kap_ownership` query (`sectorOwnership()` in `web/app/lib/kap.ts`); all
+interaction (zoom, focus, tooltips) is client-side on the serialized graph, so
+clicking around costs zero extra D1 reads.
+
+For local dev, `web/next.config.ts` calls `initOpenNextCloudflareForDev()` so
+`next dev` resolves the D1/KV bindings against the local wrangler/miniflare
+state — seed tables with `npx wrangler d1 execute bddk-data --local --file …`
+to work on data pages offline.
+
 ## Admin control center
 
 A password-gated `/admin` route (see [ADMIN.md](ADMIN.md)) surfaces data-freshness

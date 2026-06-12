@@ -47,3 +47,20 @@ export async function bankOwnership(ticker: string): Promise<KapOwnershipRow[]> 
     [ticker],
   );
 }
+
+export type KapOwnershipRowWithBank = KapOwnershipRow & { bank_ticker: string };
+
+/**
+ * Ownership + subsidiary rows for EVERY bank in one query (~330 rows) —
+ * feeds buildOwnershipGraph() for the /ownership sector network.
+ */
+export async function sectorOwnership(): Promise<KapOwnershipRowWithBank[]> {
+  return cachedAll<KapOwnershipRowWithBank>(
+    `SELECT bank_ticker, item, seq, holder, share_tl, ratio_pct, voting_pct,
+            as_of, currency, activity, relation
+     FROM kap_ownership
+     WHERE item IN ('shareholder', 'indirect_shareholder', 'subsidiary', 'free_float')
+     ORDER BY bank_ticker, item, seq`,
+    [],
+  );
+}

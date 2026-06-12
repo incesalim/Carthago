@@ -197,6 +197,19 @@ A qualitative-data layer feeds two tabs from the `news_items` table
   Formu (cards hidden); `as_of` filing dates can be years old
   (structure-change driven). Possible follow-up: ownership taxonomy
   cross-check vs `bank_types`.
+- **Interactive ownership visualization shipped (2026-06-12)** — two views off
+  the same `kap_ownership` data: an interactive radial map on `/banks/[ticker]`
+  (shareholders fan the top arc, §7 subsidiaries the bottom; hover tooltip,
+  click-to-pin details panel; `OwnershipRadial.tsx`) and a sector-wide
+  `/ownership` network tab (banks on a circle grouped by BDDK type; only
+  entities shared across ≥2 banks drawn inside — Treasury/TVF/BKM/Takasbank/
+  KGF/… — plus bank-to-bank stakes as dashed arrows, e.g. İş → TSKB/Arap Türk,
+  Ziraat → Ziraat Katılım; wheel-zoom/drag-pan, click a bank to focus its fan,
+  `?focus=TICKER` deep links). Cross-bank identity is exact-match alias
+  normalization in `web/app/lib/ownership-graph.ts` (Turkish-aware case fold;
+  the İş pension fund name contains "İŞ BANKASI" — never substring-match).
+  All custom SVG, no new deps; one new all-banks query `sectorOwnership()` in
+  `web/app/lib/kap.ts`.
 - **Audit rework Phases 3–4 complete (2026-06-11).** Fleet history repaired in
   7 gated batches (28 banks + ALBRK/BURGAN re-repair in batch 7 after the §4
   CI chunk backfills clobbered Monday's fix via last-writer-wins on the R2
