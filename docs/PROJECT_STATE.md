@@ -212,13 +212,17 @@ A qualitative-data layer feeds two tabs from the `news_items` table
   the same `kap_ownership` data: an interactive radial map on `/banks/[ticker]`
   (shareholders fan the top arc, §7 subsidiaries the bottom; hover tooltip,
   click-to-pin details panel; `OwnershipRadial.tsx`) and a sector-wide
-  `/ownership` network tab (banks on a circle grouped by BDDK type; default
-  "All holdings" view fans every bank's ~212 non-shared holdings outward
-  behind it with zoom-revealed labels, toggle to "Shared only"; entities
-  shared across ≥2 banks drawn inside — Treasury/TVF/BKM/Takasbank/KGF/… —
-  plus bank-to-bank stakes as dashed arrows, e.g. İş → TSKB/Arap Türk,
-  Ziraat → Ziraat Katılım; wheel-zoom/drag-pan, click a bank to focus its fan,
-  `?focus=TICKER&view=shared` deep links). Cross-bank identity is exact-match alias
+  `/ownership` network tab. Default "All holdings" view is a force-directed
+  layout (d3-force, precomputed deterministically server+client so hydration
+  agrees; `web/app/lib/ownership-force.ts`): banks anchored loosely to a
+  type-ordered ring and sized by latest total assets (`bankSummaries()`,
+  fail-soft to uniform), each bank's ~212 non-shared holdings settle as
+  organic clusters, shared entities (Treasury/TVF/BKM/Takasbank/KGF/…) pulled
+  between their banks, bank-to-bank stakes as dashed arrows (İş → TSKB/Arap
+  Türk, Ziraat → Ziraat Katılım). Hover highlights the ego-network and fades
+  the rest; labels have halo strokes and holding names appear on hover/zoom;
+  "Shared only" toggle keeps the quiet structural ring; wheel-zoom/drag-pan
+  with animated reset; `?focus=TICKER&view=shared` deep links. Cross-bank identity is exact-match alias
   normalization in `web/app/lib/ownership-graph.ts` (Turkish-aware case fold;
   the İş pension fund name contains "İŞ BANKASI" — never substring-match).
   All custom SVG, no new deps; one new all-banks query `sectorOwnership()` in

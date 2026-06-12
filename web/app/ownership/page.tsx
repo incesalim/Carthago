@@ -14,6 +14,7 @@ import { PageHeader } from "@/app/components/ui";
 import OwnershipNetwork from "@/app/components/OwnershipNetwork";
 import { sectorOwnership } from "@/app/lib/kap";
 import { buildOwnershipGraph } from "@/app/lib/ownership-graph";
+import { bankSummaries } from "@/app/lib/audit";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,17 @@ export default async function OwnershipPage({ searchParams }: Props) {
   const rows = await sectorOwnership();
   const graph = buildOwnershipGraph(rows);
 
+  // Latest total assets per bank sizes the network's bank nodes. Fail-soft:
+  // the graph is still fully usable with uniform node sizes (e.g. in a local
+  // dev DB without the audit tables).
+  let assets: Record<string, number | null> = {};
+  try {
+    const summaries = await bankSummaries();
+    assets = Object.fromEntries(summaries.map((s) => [s.bank_ticker, s.total_assets]));
+  } catch {
+    // keep {}
+  }
+
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
       <PageHeader
@@ -36,6 +48,7 @@ export default async function OwnershipPage({ searchParams }: Props) {
       />
       <OwnershipNetwork
         graph={graph}
+        assets={assets}
         initialFocus={sp.focus?.toUpperCase()}
         initialView={sp.view}
       />
