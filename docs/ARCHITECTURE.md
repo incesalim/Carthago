@@ -50,7 +50,7 @@ machine is involved in the production data flow.
 | **Dashboard** | `web/` | Next.js 16 + OpenNext + Recharts (charts) + d3-force (/ownership network layout) on Cloudflare Workers |
 | **Read cache** | Cloudflare KV (`NEXT_INC_CACHE_KV`) | 12h data cache for D1 reads (`cachedAll` → `unstable_cache`) |
 | **Admin panel** | `web/app/admin/`, `web/app/api/admin/` | password-gated control center: data health, refresh triggers, traffic |
-| **Quality gates** | `.github/workflows/ci.yml`, `pyproject.toml`, `tests/` | ruff + pytest + eslint + tsc on every PR |
+| **Quality gates** | `.github/workflows/ci.yml`, `pyproject.toml`, `tests/` | ruff + pytest + eslint + tsc + vitest on every PR |
 | **Schema migrations** | `web/migrations/` | hand-authored, version-controlled; applied via `wrangler d1 migrations apply` on deploy |
 
 ## Workflows
@@ -117,8 +117,9 @@ extractions spike.
 
 ### CI — `.github/workflows/ci.yml`
 On every PR (and master push): Python `ruff` + `pytest` and web `eslint` +
-`tsc`. Dependency updates come via `.github/dependabot.yml` (pip / npm /
-github-actions, weekly).
+`tsc` + `vitest` (`npm run test` — unit tests for pure lib code, e.g.
+`app/lib/pl-sankey.test.ts`). Dependency updates come via
+`.github/dependabot.yml` (pip / npm / github-actions, weekly).
 
 ## Why the SQLite snapshot exists
 

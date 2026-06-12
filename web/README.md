@@ -1,6 +1,6 @@
 # Turkish Banking Dashboard (web)
 
-Next.js 15 + OpenNext + Recharts dashboard deployed to Cloudflare Workers.
+Next.js 16 + OpenNext + Recharts dashboard deployed to Cloudflare Workers.
 Reads directly from Cloudflare D1.
 
 Production: <https://turkish-banking-dashboard.incesalim10.workers.dev>
@@ -10,10 +10,23 @@ Production: <https://turkish-banking-dashboard.incesalim10.workers.dev>
 ```bash
 npm install
 npm run dev          # http://localhost:3000 — hot reload
+npm run test         # vitest — unit tests for pure lib code (app/lib/*.test.ts)
 ```
 
-`npm run dev` runs against the **remote** D1 binding configured in
-`wrangler.jsonc`, so local + production read identical data.
+`npm run dev` runs against the **local miniflare** D1 (`.wrangler/state/`),
+which starts empty — pages that query unseeded tables 500 with
+`no such table`. Seed the tables you need before testing:
+
+```bash
+# schema (run each migration file)
+npx wrangler d1 execute DB --local --file=migrations/0001_baseline_schema.sql
+# data — export rows from remote, convert to INSERTs, load:
+npx wrangler d1 execute DB --remote --json --command "SELECT … LIMIT …" > rows.json
+npx wrangler d1 execute DB --local --file=seed.sql
+```
+
+`npm run preview` (full Workers runtime) is broken on Windows — verify
+deployed behavior live after pushing instead.
 
 ## Deploy
 
@@ -31,29 +44,28 @@ Both can be run manually too.
 
 ```
 app/
-├── page.tsx                  # Overview — 8 KPIs + summary charts
-├── credit/                   # Loan growth, currency split, consumer mix, SME
-├── deposits/                 # Total / TL / FX deposits, maturity, LDR
-├── asset-quality/            # NPL by group, consumer + commercial NPL ratios
-├── capital/                  # CAR, equity, leverage, RWA density
-├── profitability/            # ROE, ROA, NIM, efficiency, fee mix
+├── page.tsx                  # Overview — KPIs + summary charts
+├── credit/ deposits/ asset-quality/ capital/ profitability/ liquidity/
+│                             # Monthly-bulletin sector views
 ├── weekly/                   # BDDK weekly bulletin growth charts
-├── rates/                    # TCMB EVDS — rates corridor, FX, sterilization
-├── banks/                    # Index + per-bank drill-down (BS + P&L tables)
+├── rates/ economy/           # TCMB EVDS — rates corridor, FX, macro outlook
+├── banks/                    # Index + per-bank drill-down (BS + P&L tables,
+│                             #   P&L flow Sankey, ownership radial, stages)
+├── cross-bank/               # Cross-bank heatmap (ROE/ROA/NIM/cost-income…)
 ├── sector/                   # Top-level sector views (Total Assets, ratios)
-├── components/
-│   ├── Nav.tsx
-│   ├── TrendChart.tsx        # Multi-line time series (Recharts)
-│   ├── TimeSeriesChart.tsx   # Single-bank time series with multiple Y formats
-│   ├── BarByBank.tsx         # Horizontal bar comparing groups at latest period
-│   └── StackedArea.tsx       # Stacked composition (level + % share)
-└── lib/
-    ├── db.ts                 # D1 binding helper via @opennextjs/cloudflare
-    ├── metrics.ts            # SQL helpers — every dashboard query lives here
-    └── audit.ts              # Per-bank audit-report queries (bank_audit_*)
+├── ownership/                # Sector-wide KAP ownership network
+├── digital/ funds/           # TBB digital-banking stats, TEFAS fund market
+├── news/ disclosures/ regulation/ admin/
+├── components/               # Charts + cards (design system in ui/)
+└── lib/                      # One module per data domain — every D1 query
+    ├── db.ts                 #   lives here, never in a page file
+    ├── metrics.ts            #   monthly/weekly bulletin queries
+    ├── audit.ts              #   per-bank audit-report queries (bank_audit_*)
+    ├── pl-sankey.ts          #   pure P&L Sankey derivation (+ .test.ts)
+    └── …                     #   kap/ownership-*, heatmap, funds, digital, …
 ```
 
-Every page is a Server Component. Routes call helpers from `app/lib/metrics.ts`
+Every page is a Server Component. Routes call helpers from `app/lib/*`
 which run D1 queries server-side; results stream to client charts.
 
 ## Adding a new chart
@@ -80,5 +92,5 @@ Never put SQL strings inside a page file — keep them centralized in
 
 `AGENTS.md` and `CLAUDE.md` carry per-folder guidance for AI assistants
 (read the relevant Next.js docs in `node_modules/next/dist/docs/`
-before generating Next.js code — this codebase pins Next 15.5 + Tailwind
+before generating Next.js code — this codebase pins Next 16 + Tailwind
 v4 + OpenNext, which differ from older training data).
