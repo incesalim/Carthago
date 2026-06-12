@@ -777,13 +777,45 @@ def check_npl_movement(rows: list[dict]) -> ValidationResult:
 # Loans by sector validation
 # ===========================================================================
 
-# Top-level sector keys (parents that aggregate sub-sectors). Summing only these
-# avoids double-counting sub-rows like agri_farming, mfg_mining, svc_trade, etc.
-_SECTOR_TOP_LEVEL = frozenset({"agri_total", "mfg_total", "construction", "svc_total", "other"})
+# Each sector group has a preferred aggregate key and a set of sub-keys.
+# If the aggregate is absent but sub-keys are present, sum the sub-keys instead
+# (some banks skip the sub-total row and only print the detail lines).
+_SECTOR_GROUPS: list[tuple[str, frozenset]] = [
+    ("agri_total",  frozenset({"agri_farming", "agri_fishery", "agri_forestry", "agri_other"})),
+    ("mfg_total",   frozenset({"mfg_mining", "mfg_production", "mfg_utilities", "mfg_other"})),
+    ("svc_total",   frozenset({"svc_trade", "svc_hospitality", "svc_transport", "svc_financial",
+                               "svc_realestate", "svc_professional", "svc_health",
+                               "svc_education", "svc_other"})),
+]
+_SECTOR_STANDALONE = frozenset({"construction", "other"})
+
+
+def _resolved_top_level(cur_rows: list[dict]) -> list[dict]:
+    """Return sector rows that together cover the non-total, non-overlapping sectors.
+
+    For each group (agri/mfg/svc): use the group-total row if present, otherwise
+    use the individual sub-sector rows.  Standalone sectors (construction, other)
+    are always included if present.
+    """
+    by_sector = {r["sector"]: r for r in cur_rows if r.get("sector")}
+    result = []
+    for total_key, subs in _SECTOR_GROUPS:
+        if total_key in by_sector:
+            result.append(by_sector[total_key])
+        else:
+            result.extend(by_sector[k] for k in subs if k in by_sector)
+    for key in _SECTOR_STANDALONE:
+        if key in by_sector:
+            result.append(by_sector[key])
+    return result
 
 
 def check_loans_by_sector(rows: list[dict]) -> ValidationResult:
-    """Loans by sector: sum of top-level sectors ≈ total row, per amount column."""
+    """Loans by sector: sum of top-level sectors ≈ total row, per amount column.
+
+    Falls back to sub-sector rows when a group aggregate (agri_total, mfg_total,
+    svc_total) is absent — some banks omit the sub-total line but print the detail.
+    """
     res = ValidationResult()
     cur = [r for r in rows if r.get("period_type") == "current"]
     if not cur:
@@ -793,7 +825,7 @@ def check_loans_by_sector(rows: list[dict]) -> ValidationResult:
     if total_row is None:
         res.add_skip()
         return res
-    top_rows = [r for r in cur if r.get("sector") in _SECTOR_TOP_LEVEL]
+    top_rows = _resolved_top_level(cur)
     if not top_rows:
         res.add_skip()
         return res
