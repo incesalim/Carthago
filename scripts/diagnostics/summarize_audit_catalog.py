@@ -17,7 +17,7 @@ from collections import Counter
 from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8")
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 CATALOG = REPO_ROOT / "build" / "audit_templates_catalog.json"
 SUMMARY = REPO_ROOT / "build" / "audit_templates_summary.txt"
 REGISTRY = REPO_ROOT / "build" / "audit_templates_registry.json"
