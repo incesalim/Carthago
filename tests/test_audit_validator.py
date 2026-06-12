@@ -476,6 +476,14 @@ def test_npl_movement_broken_fails():
     assert any(f["check"] == "npl_movement" for f in res.failures)
 
 
+def test_npl_movement_null_key_cols_skips():
+    # NULL write_offs / sold / transfers_out → skip rather than false-fail
+    # (columns not extracted → can't verify the equation)
+    for null_col in ("write_offs", "sold", "transfers_out"):
+        res = v.check_npl_movement([_npl_row(**{null_col: None})])
+        assert res.failed == 0 and res.skipped > 0, f"expected skip for NULL {null_col}"
+
+
 # --- Loans by sector validation -------------------------------------------
 
 def _sector_row(sector, s2, s3, ecl, period_type="current"):
