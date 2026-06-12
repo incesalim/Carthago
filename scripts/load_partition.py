@@ -39,17 +39,45 @@ GZ = REPO / "data" / "bank_audit.db.gz"
 MAN = REPO / "data" / "manual_statements.json"
 SNAP = "state/bank_audit.db.gz"
 
-_FIELD = {"assets": "bs_assets", "liabilities": "bs_liabilities", "off_balance": "off_balance"}
+_FIELD = {"assets": "bs_assets", "liabilities": "bs_liabilities",
+          "off_balance": "off_balance", "profit_loss": "profit_loss"}
 
 
 def _rows_to_statementrows(rows: list[dict]) -> list[StatementRow]:
     out = []
     for i, r in enumerate(rows, 1):
-        out.append(StatementRow(
-            order=i, hierarchy=r["h"], name=r["name"], footnote=None,
-            cur_tl=r.get("tl"), cur_fc=r.get("fc"), cur_total=r.get("total"),
-            pri_tl=None, pri_fc=None, pri_total=None))
+        if "amount" in r:  # profit_loss: single-column
+            out.append(StatementRow(order=i, hierarchy=r["h"], name=r["name"], footnote=None,
+                                    cur_amount=r.get("amount")))
+        else:  # balance sheet: TL / FC / Total
+            out.append(StatementRow(
+                order=i, hierarchy=r["h"], name=r["name"], footnote=None,
+                cur_tl=r.get("tl"), cur_fc=r.get("fc"), cur_total=r.get("total")))
     return out
+
+
+def _pl_bottomline_check(conn, b, p, k) -> int:
+    """Cross-check: the P&L period net profit (last 'DÖNEM NET' roman row) must
+    equal the balance-sheet equity row 16.6.2 (Dönem Net Kâr veya Zararı). The
+    structural validator doesn't cover P&L, so this is the income-statement gate."""
+    # candidate P&L "net profit" amounts — total (XXV) and, for consolidated, the
+    # group share (25.1, which is what lands in BS equity 16.6.2; total = group + minority).
+    cands = [r[0] for r in conn.execute(
+        "SELECT amount FROM bank_audit_profit_loss WHERE bank_ticker=? AND period=? AND kind=? "
+        "AND (item_name LIKE '%DÖNEM NET KAR%' OR item_name LIKE '%DÖNEM NET KÂR%' "
+        "     OR item_name LIKE '%NET PERIOD PROFIT%' OR item_name LIKE '%DÖNEM KÂRI%' "
+        "     OR item_name LIKE '%Grubun%' OR item_name LIKE '%Group%')",
+        (b, p, k)) if r[0] is not None]
+    bs_net = conn.execute(
+        "SELECT amount_total FROM bank_audit_balance_sheet WHERE bank_ticker=? AND period=? AND kind=? "
+        "AND statement='liabilities' AND hierarchy='16.6.2'", (b, p, k)).fetchone()
+    if cands and bs_net and bs_net[0] is not None:
+        if any(abs(c - bs_net[0]) <= 1 for c in cands):
+            print(f"    [pl] bottom line OK: P&L net = BS 16.6.2 ({bs_net[0]:,.0f})")
+            return 0
+        print(f"    [pl] BOTTOM-LINE MISMATCH: P&L net {cands} vs BS 16.6.2 {bs_net[0]:,.0f}")
+        return 1
+    return 0
 
 
 def _revalidate(conn, b, p, k) -> int:
@@ -108,6 +136,7 @@ def main() -> int:
     with sqlite3.connect(str(DB)) as conn:
         upsert_report(conn, b, p, k, rep, key)
         fails = _revalidate(conn, b, p, k)
+        fails += _pl_bottomline_check(conn, b, p, k)
         conn.commit()
     print(f"[lp] validation failures: {fails}")
     if fails:
