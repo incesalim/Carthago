@@ -516,3 +516,18 @@ def test_loans_by_sector_fails():
     ]
     res = v.check_loans_by_sector(rows)
     assert res.failed > 0
+
+
+def test_loans_by_sector_fallback_to_subs():
+    # agri_total absent — should sum agri_farming + agri_fishery instead
+    rows = [
+        _sector_row("agri_farming",  6, 3, 1),
+        _sector_row("agri_fishery",  4, 2, 1),
+        _sector_row("mfg_total",    20, 10, 6),
+        _sector_row("construction",  5,  3, 2),
+        _sector_row("svc_total",    30, 15, 9),
+        _sector_row("other",         5,  2, 1),
+        _sector_row("total",        70, 35, 20),
+    ]
+    res = v.check_loans_by_sector(rows)
+    assert res.failed == 0, res.failures
