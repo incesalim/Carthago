@@ -18,7 +18,7 @@ import { buildOwnershipGraph } from "@/app/lib/ownership-graph";
 export const dynamic = "force-dynamic";
 
 interface Props {
-  searchParams: Promise<{ focus?: string }>;
+  searchParams: Promise<{ focus?: string; view?: string }>;
 }
 
 export default async function OwnershipPage({ searchParams }: Props) {
@@ -34,7 +34,11 @@ export default async function OwnershipPage({ searchParams }: Props) {
         description="Shareholders, subsidiaries and cross-bank stakes from each bank's KAP Genel Bilgi Formu — shared entities link banks; stakes filed years ago persist until the structure changes"
         className="mb-6"
       />
-      <OwnershipNetwork graph={graph} initialFocus={sp.focus?.toUpperCase()} />
+      <OwnershipNetwork
+        graph={graph}
+        initialFocus={sp.focus?.toUpperCase()}
+        initialView={sp.view}
+      />
     </main>
   );
 }

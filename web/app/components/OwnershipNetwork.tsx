@@ -17,11 +17,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   layoutNetwork,
-  NETWORK_SIZE,
+  trimLabel,
+  type NetworkLeafNode,
+  type NetworkMode,
   type OwnershipGraph,
   type GraphLeaf,
 } from "@/app/lib/ownership-graph";
-import { RadialFanView } from "./OwnershipRadial";
+import { LeafPanel, RadialFanView } from "./OwnershipRadial";
 import { seriesColor, useChartTheme } from "@/app/lib/chart-theme";
 import { BANK_TYPE_BADGE_LABELS, bankDisplayName } from "@/app/lib/bank_names";
 import { fmtPct } from "@/app/lib/ownership-format";
@@ -33,22 +35,25 @@ interface ViewBox {
   h: number;
 }
 
-const INITIAL_VB: ViewBox = { x: 0, y: 0, w: NETWORK_SIZE, h: NETWORK_SIZE };
-
 interface Props {
   graph: OwnershipGraph;
   initialFocus?: string;
+  initialView?: string;
 }
 
-export default function OwnershipNetwork({ graph, initialFocus }: Props) {
+export default function OwnershipNetwork({ graph, initialFocus, initialView }: Props) {
   const t = useChartTheme();
   const validFocus = (f: string | null | undefined) =>
     f && graph.banks.some((b) => b.ticker === f) ? f : null;
   const [focus, setFocus] = useState<string | null>(() => validFocus(initialFocus));
+  const [view, setView] = useState<NetworkMode>(
+    initialView === "shared" ? "shared" : "all",
+  );
   const [hover, setHover] = useState<string | null>(null);
   const [selectedShared, setSelectedShared] = useState<string | null>(null);
+  const [selectedLeaf, setSelectedLeaf] = useState<NetworkLeafNode | null>(null);
 
-  const layout = useMemo(() => layoutNetwork(graph), [graph]);
+  const layout = useMemo(() => layoutNetwork(graph, view), [graph, view]);
   const bankPos = useMemo(
     () => new Map(layout.banks.map((b) => [b.ticker, b])),
     [layout],
@@ -57,14 +62,30 @@ export default function OwnershipNetwork({ graph, initialFocus }: Props) {
     () => new Map(graph.sharedHolders.map((s) => [s.key, s])),
     [graph],
   );
+  const leafById = useMemo(
+    () => new Map(layout.leaves.map((l) => [`l:${l.ticker}:${l.leaf.id}`, l])),
+    [layout],
+  );
 
   // ----- overview zoom/pan (viewBox manipulation, no library) --------------
-  const [vb, setVb] = useState<ViewBox>(INITIAL_VB);
+  const [vb, setVb] = useState<ViewBox>({
+    x: 0,
+    y: 0,
+    w: layout.size,
+    h: layout.size,
+  });
+  // The two view modes use different canvas sizes — re-frame on switch
+  // (state-adjust-during-render pattern, not an effect).
+  const [vbSize, setVbSize] = useState(layout.size);
+  if (vbSize !== layout.size) {
+    setVbSize(layout.size);
+    setVb({ x: 0, y: 0, w: layout.size, h: layout.size });
+  }
   const svgRef = useRef<SVGSVGElement | null>(null);
   const dragRef = useRef<{ px: number; py: number; moved: number } | null>(null);
   const lastDragMoved = useRef(0);
   const wasDrag = () => lastDragMoved.current > 4;
-  const isZoomed = vb.x !== 0 || vb.y !== 0 || vb.w !== NETWORK_SIZE;
+  const isZoomed = vb.x !== 0 || vb.y !== 0 || vb.w !== layout.size;
 
   // Native non-passive wheel listener — React's synthetic onWheel is passive,
   // so preventDefault (needed to stop page scroll) would warn. Re-attach when
@@ -73,6 +94,7 @@ export default function OwnershipNetwork({ graph, initialFocus }: Props) {
   useEffect(() => {
     const svg = svgRef.current;
     if (!svg) return;
+    const size = layout.size;
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
       const rect = svg.getBoundingClientRect();
@@ -80,7 +102,7 @@ export default function OwnershipNetwork({ graph, initialFocus }: Props) {
       setVb((cur) => {
         const sx = cur.x + ((e.clientX - rect.left) / rect.width) * cur.w;
         const sy = cur.y + ((e.clientY - rect.top) / rect.height) * cur.h;
-        const w = Math.min(Math.max(cur.w * factor, NETWORK_SIZE * 0.4), NETWORK_SIZE * 2.5);
+        const w = Math.min(Math.max(cur.w * factor, size * 0.18), size * 2.5);
         return {
           x: sx - ((sx - cur.x) * w) / cur.w,
           y: sy - ((sy - cur.y) * w) / cur.h,
@@ -91,7 +113,7 @@ export default function OwnershipNetwork({ graph, initialFocus }: Props) {
     };
     svg.addEventListener("wheel", onWheel, { passive: false });
     return () => svg.removeEventListener("wheel", onWheel);
-  }, [focus]);
+  }, [focus, layout.size]);
 
   const onPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
     if (e.button !== 0) return;
@@ -119,15 +141,28 @@ export default function OwnershipNetwork({ graph, initialFocus }: Props) {
     dragRef.current = null;
   };
 
+  const syncUrl = (nextFocus: string | null, nextView: NetworkMode) => {
+    const params = new URLSearchParams();
+    if (nextView !== "all") params.set("view", nextView);
+    if (nextFocus) params.set("focus", nextFocus);
+    const qs = params.toString();
+    window.history.replaceState(null, "", qs ? `?${qs}` : window.location.pathname);
+  };
+
   const changeFocus = (next: string | null) => {
     setFocus(next);
     setSelectedShared(null);
+    setSelectedLeaf(null);
     setHover(null);
-    window.history.replaceState(
-      null,
-      "",
-      next ? `?focus=${next}` : window.location.pathname,
-    );
+    syncUrl(next, view);
+  };
+
+  const changeView = (next: NetworkMode) => {
+    setView(next);
+    setSelectedShared(null);
+    setSelectedLeaf(null);
+    setHover(null);
+    syncUrl(focus, next);
   };
 
   // ----- focus mode -------------------------------------------------------
@@ -207,14 +242,33 @@ export default function OwnershipNetwork({ graph, initialFocus }: Props) {
   const subColor = t.palette[2];
   const bankEdgeColor = t.palette[3];
   const c = layout.size / 2;
-  const hoveredBank = hover ? bankPos.get(hover) : null;
+  const hoveredBank = hover && !hover.includes(":") ? bankPos.get(hover) : null;
+  const hoveredLeaf = hover?.startsWith("l:") ? (leafById.get(hover) ?? null) : null;
   const selShared = selectedShared
     ? layout.shared.find((s) => s.key === selectedShared)
     : null;
+  // Leaf labels only appear once zoomed in enough to read them.
+  const showLeafLabels = vb.w < layout.size * 0.55;
 
   return (
     <div>
       <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+        <div className="flex gap-1 rounded-lg border bg-muted p-0.5">
+          {(["all", "shared"] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => changeView(m)}
+              className={`px-2 py-0.5 rounded-md transition ${
+                view === m
+                  ? "bg-card shadow-sm font-medium text-foreground"
+                  : "hover:text-foreground"
+              }`}
+            >
+              {m === "all" ? "All holdings" : "Shared only"}
+            </button>
+          ))}
+        </div>
         {Object.entries(BANK_TYPE_BADGE_LABELS).map(([code, label]) => (
           <span key={code} className="inline-flex items-center gap-1.5">
             <span
@@ -231,11 +285,26 @@ export default function OwnershipNetwork({ graph, initialFocus }: Props) {
           />
           Shared entity
         </span>
-        <span className="ml-auto">scroll to zoom · drag to pan · click a bank to focus</span>
+        {view === "all" && (
+          <>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="inline-block size-2 rounded-full" style={{ background: holderColor }} />
+              Shareholder
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="inline-block size-2 rounded-full" style={{ background: subColor }} />
+              Subsidiary
+            </span>
+          </>
+        )}
+        <span className="ml-auto">
+          scroll to zoom{view === "all" ? " (zoom in for names)" : ""} · drag to pan ·
+          click a bank to focus
+        </span>
         {isZoomed && (
           <button
             type="button"
-            onClick={() => setVb(INITIAL_VB)}
+            onClick={() => setVb({ x: 0, y: 0, w: layout.size, h: layout.size })}
             className="rounded border border-border px-1.5 py-0.5 hover:text-foreground"
           >
             Reset view
@@ -275,9 +344,69 @@ export default function OwnershipNetwork({ graph, initialFocus }: Props) {
             height={vb.h}
             fill="transparent"
             onClick={() => {
-              if (!wasDrag()) setSelectedShared(null);
+              if (!wasDrag()) {
+                setSelectedShared(null);
+                setSelectedLeaf(null);
+              }
             }}
           />
+
+          {/* Per-bank holdings, fanned outward behind each bank (combined view) */}
+          {view === "all" &&
+            layout.leaves.map((l) => {
+              const id = `l:${l.ticker}:${l.leaf.id}`;
+              const bank = bankPos.get(l.ticker);
+              const active =
+                hover === id || selectedLeaf === l || hover === l.ticker;
+              const color = l.leaf.kind === "holder" ? holderColor : subColor;
+              return (
+                <g
+                  key={id}
+                  className="cursor-pointer"
+                  onMouseEnter={() => setHover(id)}
+                  onMouseLeave={() => setHover(null)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (wasDrag()) return;
+                    setSelectedShared(null);
+                    setSelectedLeaf(selectedLeaf === l ? null : l);
+                  }}
+                >
+                  {bank && (
+                    <line
+                      x1={bank.x}
+                      y1={bank.y}
+                      x2={l.x}
+                      y2={l.y}
+                      stroke={color}
+                      strokeWidth={active ? 1.2 : 0.6}
+                      strokeOpacity={active ? 0.7 : 0.18}
+                    />
+                  )}
+                  <circle
+                    cx={l.x}
+                    cy={l.y}
+                    r={active ? l.r + 1.5 : l.r}
+                    fill={color}
+                    fillOpacity={active ? 1 : 0.7}
+                  />
+                  {(showLeafLabels || active) && (
+                    <text
+                      x={l.labelX}
+                      y={l.labelY}
+                      dy={l.anchor === "middle" ? (l.y < c ? "0" : "0.8em") : "0.32em"}
+                      textAnchor={l.anchor}
+                      fontSize={8}
+                      className={
+                        active ? "fill-foreground font-medium" : "fill-muted-foreground"
+                      }
+                    >
+                      {trimLabel(l.leaf.label, 26)}
+                    </text>
+                  )}
+                </g>
+              );
+            })}
 
           {/* Shared-entity spokes */}
           {layout.shared.map((s) =>
@@ -426,6 +555,30 @@ export default function OwnershipNetwork({ graph, initialFocus }: Props) {
             </div>
           </div>
         )}
+
+        {/* Leaf hover tooltip (combined view) */}
+        {hoveredLeaf && (
+          <div
+            className="pointer-events-none absolute z-10 w-56 rounded-md border border-border bg-card px-3 py-2 text-xs shadow-md"
+            style={{
+              left: `${((hoveredLeaf.x - vb.x) / vb.w) * 100}%`,
+              top: `${((hoveredLeaf.y - vb.y) / vb.h) * 100}%`,
+              transform: `translate(${hoveredLeaf.x > c ? "-104%" : "12px"}, -50%)`,
+            }}
+          >
+            <div className="font-medium text-foreground">{hoveredLeaf.leaf.fullName}</div>
+            <div className="text-muted-foreground">
+              {hoveredLeaf.leaf.kind === "holder" ? "Shareholder of" : "Held by"}{" "}
+              {bankDisplayName(hoveredLeaf.ticker)} ·{" "}
+              <span className="tabular-nums">{fmtPct(hoveredLeaf.leaf.ratioPct)}</span>
+            </div>
+            {hoveredLeaf.leaf.activity && (
+              <div className="mt-0.5 text-muted-foreground line-clamp-2">
+                {hoveredLeaf.leaf.activity}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Shared-entity panel */}
@@ -447,6 +600,28 @@ export default function OwnershipNetwork({ graph, initialFocus }: Props) {
               </button>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Pinned holding panel (combined view) */}
+      {selectedLeaf && (
+        <div className="mt-2 border-t border-border px-1 pt-3 text-xs">
+          <div className="mb-1 text-muted-foreground">
+            {selectedLeaf.leaf.kind === "holder" ? "Shareholder of" : "Holding of"}{" "}
+            <button
+              type="button"
+              onClick={() => changeFocus(selectedLeaf.ticker)}
+              className="text-foreground underline-offset-2 hover:underline"
+            >
+              {bankDisplayName(selectedLeaf.ticker)} →
+            </button>
+          </div>
+          <LeafPanel
+            leaf={selectedLeaf.leaf}
+            sharedLookup={(key) => sharedByKey.get(key)}
+            onBankRefClick={(next) => changeFocus(next)}
+            focusTicker={selectedLeaf.ticker}
+          />
         </div>
       )}
     </div>
