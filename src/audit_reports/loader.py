@@ -4,7 +4,7 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
-from .credit_quality import CreditQualityReport, upsert as _upsert_cq
+from . import registry
 from .extractor import BankReport, extract
 
 
@@ -65,36 +65,45 @@ def upsert_report(
             pl_rows,
         )
 
-    # Credit-quality rows ride along on the BankReport when extractor.extract
-    # populates them. Persist via the shared upsert so both sync paths go
-    # through one code path.
-    cq_rep = CreditQualityReport(pdf_path=pdf_path, rows=getattr(rep, 'credit_quality', []) or [])
-    cq_count = _upsert_cq(conn, bank_ticker, period, kind, cq_rep)
-
-    # Bank-profile metadata (branches + personnel). Stored in its own table.
-    bp = getattr(rep, 'bank_profile', None)
-    if bp is not None and not getattr(bp, 'is_empty', lambda: True)():
-        from .bank_profile import upsert_profile as _upsert_bp
-        _upsert_bp(conn, bank_ticker, period, kind, bp)
-
-    # Loans-by-sector + NPL movement ride along on the BankReport too.
+    # Footnote / §4 sub-statements. Each extractor module exposes the same
+    # contract — upsert(conn, bank, period, kind, report) -> int|None — and the
+    # report rides along on the BankReport (a rows list or a full report object).
+    # Driving them from one table keeps the loader uniform: adding a statement
+    # type is a new persister entry, not another bespoke block. (Construction
+    # still differs per extractor; that's the next uniformity step.)
+    from .credit_quality import CreditQualityReport, upsert as _upsert_cq
     from .loans_by_sector import LoansBySectorReport, upsert as _upsert_lbs
-    lbs_rep = LoansBySectorReport(pdf_path=pdf_path, rows=getattr(rep, 'loans_by_sector', []) or [])
-    lbs_count = _upsert_lbs(conn, bank_ticker, period, kind, lbs_rep)
-
     from .npl_movement import NplMovementReport, upsert as _upsert_nplm
-    nplm_rep = NplMovementReport(pdf_path=pdf_path, rows=getattr(rep, 'npl_movement', []) or [])
-    nplm_count = _upsert_nplm(conn, bank_ticker, period, kind, nplm_rep)
-
-    # §4 risk-management ratios. extract() attaches full report objects; rebuild
-    # an empty one if the scan was skipped/failed so the upsert still clears stale rows.
     from .capital_adequacy import CapitalReport, upsert as _upsert_cap
-    cap_rep = getattr(rep, 'capital', None) or CapitalReport(pdf_path=pdf_path)
-    cap_count = _upsert_cap(conn, bank_ticker, period, kind, cap_rep)
-
     from .liquidity import LiquidityReport, upsert as _upsert_liq
-    liq_rep = getattr(rep, 'liquidity', None) or LiquidityReport(pdf_path=pdf_path)
-    liq_count = _upsert_liq(conn, bank_ticker, period, kind, liq_rep)
+    from .bank_profile import upsert_profile as _upsert_bp
+
+    # (counts key, build report from rep, upsert fn, skip when empty)
+    persisters = [
+        ('credit_quality',  lambda: CreditQualityReport(pdf_path=pdf_path, rows=getattr(rep, 'credit_quality', []) or []),  _upsert_cq,  False),
+        ('loans_by_sector', lambda: LoansBySectorReport(pdf_path=pdf_path, rows=getattr(rep, 'loans_by_sector', []) or []), _upsert_lbs, False),
+        ('npl_movement',    lambda: NplMovementReport(pdf_path=pdf_path, rows=getattr(rep, 'npl_movement', []) or []),      _upsert_nplm, False),
+        # §4 ratios: extract() attaches a full report object; rebuild an empty one
+        # if the scan was skipped/failed so the upsert still clears stale rows.
+        ('capital',         lambda: getattr(rep, 'capital', None) or CapitalReport(pdf_path=pdf_path),                     _upsert_cap, False),
+        ('liquidity',       lambda: getattr(rep, 'liquidity', None) or LiquidityReport(pdf_path=pdf_path),                 _upsert_liq, False),
+        # profile is INSERT OR REPLACE (no delete) — skip when empty so a failed
+        # re-extract doesn't wipe a previously-captured branches/personnel row.
+        ('profile',         lambda: getattr(rep, 'bank_profile', None),                                                    _upsert_bp,  True),
+    ]
+    counts = {
+        'bs_assets': len(rep.bs_assets),
+        'bs_liabilities': len(rep.bs_liabilities),
+        'off_balance': len(rep.off_balance),
+        'profit_loss': len(rep.profit_loss),
+    }
+    for key, build, upsert_fn, skip_if_empty in persisters:
+        report = build()
+        if skip_if_empty and (report is None or getattr(report, 'is_empty', lambda: True)()):
+            continue
+        n = upsert_fn(conn, bank_ticker, period, kind, report)
+        if n is not None:
+            counts[key] = n
 
     # Structural validation (internal-sum identities) — persisted per
     # statement so crons/dashboard can see WHICH partitions are trustworthy.
@@ -104,18 +113,6 @@ def upsert_report(
         upsert_validation(conn, bank_ticker, period, kind, validate_report(rep))
     except Exception:
         pass
-
-    counts = {
-        'bs_assets': len(rep.bs_assets),
-        'bs_liabilities': len(rep.bs_liabilities),
-        'off_balance': len(rep.off_balance),
-        'profit_loss': len(rep.profit_loss),
-        'credit_quality': cq_count,
-        'loans_by_sector': lbs_count,
-        'npl_movement': nplm_count,
-        'capital': cap_count,
-        'liquidity': liq_count,
-    }
 
     # Extractions log row (idempotent via REPLACE)
     cur.execute(
@@ -127,8 +124,8 @@ def upsert_report(
             bank_ticker, period, kind, pdf_path,
             counts['bs_assets'], counts['bs_liabilities'],
             counts['off_balance'], counts['profit_loss'],
-            counts['credit_quality'],
-            1 if all(c >= 20 for c in [counts['bs_assets'], counts['bs_liabilities'], counts['profit_loss']]) else 0,
+            counts.get('credit_quality', 0),
+            1 if registry.success_from_counts(counts) else 0,
         ),
     )
     conn.commit()
