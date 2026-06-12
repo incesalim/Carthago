@@ -105,21 +105,23 @@ export default function CoverageMatrix() {
 
   async function reextract(bank: string, period: string) {
     if (busy) return;
-    // The audit workflow currently re-runs the bank's latest period; per-period
-    // targeting (for ${period}) lands in the period-targeted follow-up.
-    if (!window.confirm(`Re-extract ${bank} now? (Re-runs the latest period, not ${period} specifically.)`))
+    if (
+      !window.confirm(
+        `Re-extract ${bank} ${period}? Re-runs the extractor on the stored PDF and replaces the rows.`,
+      )
+    )
       return;
     setBusy(true);
     try {
       const res = await fetch("/api/admin/dispatch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ workflow: AUDIT_WORKFLOW, bank }),
+        body: JSON.stringify({ workflow: AUDIT_WORKFLOW, bank, period }),
       });
       const body = (await res.json().catch(() => ({}))) as { error?: string };
       if (res.ok) {
-        toast.success(`Triggered re-extract for ${bank}`, {
-          description: "Period-targeted re-extraction lands in a follow-up.",
+        toast.success(`Triggered re-extract for ${bank} ${period}`, {
+          description: "Coverage refreshes after the run completes.",
         });
         setOpen(null);
       } else {
