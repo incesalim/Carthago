@@ -478,19 +478,44 @@ export interface NetworkSharedNode {
   y: number;
 }
 
+/** A non-shared holding drawn in the combined ("all") view, clustered in an
+ *  outward wedge behind its bank. */
+export interface NetworkLeafNode {
+  ticker: string;
+  leaf: GraphLeaf;
+  x: number;
+  y: number;
+  r: number;
+  labelX: number;
+  labelY: number;
+  anchor: "start" | "middle" | "end";
+}
+
 export interface NetworkLayout {
   size: number;
   banks: NetworkBankNode[];
   shared: NetworkSharedNode[];
+  /** Empty in "shared" mode. */
+  leaves: NetworkLeafNode[];
 }
 
+export type NetworkMode = "shared" | "all";
+
 export const NETWORK_SIZE = 1000;
-const NETWORK_R = 340;
+/** The combined view needs head-room outside the bank circle for the leaf
+ *  wedges (up to ~6 rings × 24px for the densest banks). */
+const SIZE_BY_MODE: Record<NetworkMode, number> = { shared: 1000, all: 1320 };
+const R_BY_MODE: Record<NetworkMode, number> = { shared: 340, all: 420 };
 /** Type-group order around the circle: State, Private, Foreign, Part., D&I. */
 const GROUP_ORDER = ["10006", "10005", "10007", "10003", "10004"];
 
-export function layoutNetwork(graph: OwnershipGraph): NetworkLayout {
-  const c = NETWORK_SIZE / 2;
+export function layoutNetwork(
+  graph: OwnershipGraph,
+  mode: NetworkMode = "shared",
+): NetworkLayout {
+  const size = SIZE_BY_MODE[mode];
+  const R = R_BY_MODE[mode];
+  const c = size / 2;
   const ordered = [...graph.banks].sort((a, b) => {
     const ga = GROUP_ORDER.indexOf(a.typeCode ?? "");
     const gb = GROUP_ORDER.indexOf(b.typeCode ?? "");
@@ -501,10 +526,24 @@ export function layoutNetwork(graph: OwnershipGraph): NetworkLayout {
   const banks: NetworkBankNode[] = ordered.map((b, i) => {
     const rad = -Math.PI / 2 + (2 * Math.PI * i) / ordered.length;
     angleOf.set(b.ticker, rad);
-    const x = c + NETWORK_R * Math.cos(rad);
-    const y = c + NETWORK_R * Math.sin(rad);
+    const x = c + R * Math.cos(rad);
+    const y = c + R * Math.sin(rad);
     const cos = Math.cos(rad);
-    const labelDist = NETWORK_R + 22;
+    // In "all" mode the outside belongs to the leaf wedges, so bank names move
+    // to the inside of the circle (anchored away from the center clutter).
+    const labelDist = mode === "all" ? R - 20 : R + 22;
+    const anchor: NetworkBankNode["anchor"] =
+      mode === "all"
+        ? cos > 0.2
+          ? "end"
+          : cos < -0.2
+            ? "start"
+            : "middle"
+        : cos < -0.2
+          ? "end"
+          : cos > 0.2
+            ? "start"
+            : "middle";
     return {
       ticker: b.ticker,
       name: b.name,
@@ -516,9 +555,49 @@ export function layoutNetwork(graph: OwnershipGraph): NetworkLayout {
       y,
       labelX: c + labelDist * Math.cos(rad),
       labelY: c + labelDist * Math.sin(rad),
-      anchor: cos < -0.2 ? "end" : cos > 0.2 ? "start" : "middle",
+      anchor,
     };
   });
+
+  // Combined view: every holding that isn't drawn elsewhere (shared entities
+  // sit in the interior, bank stakes are arrows, "Diğer" is noise) fans
+  // outward behind its bank, ring by ring, biggest stakes innermost.
+  const leaves: NetworkLeafNode[] = [];
+  if (mode === "all") {
+    const halfSpan = (Math.PI / ordered.length) * 0.78;
+    for (const b of ordered) {
+      const theta = angleOf.get(b.ticker)!;
+      const own = [...b.holders, ...b.subs]
+        .filter((l) => !l.sharedKey && !l.bankRef && !l.isOther)
+        .sort((x2, y2) => (y2.ratioPct ?? -1) - (x2.ratioPct ?? -1));
+      let idx = 0;
+      for (let ring = 0; idx < own.length; ring++) {
+        const radius = R + 30 + ring * 24;
+        const cap = Math.max(3, Math.floor((2 * halfSpan * radius) / 13));
+        const batch = own.slice(idx, idx + cap);
+        idx += batch.length;
+        batch.forEach((leaf, j) => {
+          const a = theta + halfSpan * ((2 * (j + 0.5)) / batch.length - 1);
+          const x = c + radius * Math.cos(a);
+          const y = c + radius * Math.sin(a);
+          const ratio = Math.min(Math.max(leaf.ratioPct ?? 0, 0), 100);
+          const r = 2.5 + 5 * Math.sqrt(ratio / 100);
+          const cos = Math.cos(a);
+          const labelDist = radius + r + 5;
+          leaves.push({
+            ticker: b.ticker,
+            leaf,
+            x,
+            y,
+            r,
+            labelX: c + labelDist * Math.cos(a),
+            labelY: c + labelDist * Math.sin(a),
+            anchor: cos < -0.15 ? "end" : cos > 0.15 ? "start" : "middle",
+          });
+        });
+      }
+    }
+  }
 
   // Shared entities sit between the center and the angular centroid of their
   // banks; near-zero centroids (banks on opposite sides) fall back to a small
@@ -541,7 +620,7 @@ export function layoutNetwork(graph: OwnershipGraph): NetworkLayout {
       x = c + 90 * Math.cos(a);
       y = c + 90 * Math.sin(a);
     } else {
-      const reach = NETWORK_R * (0.35 + 0.18 * Math.min(len / tickers.length, 1));
+      const reach = R * (0.35 + 0.18 * Math.min(len / tickers.length, 1));
       x = c + (vx / len) * reach;
       y = c + (vy / len) * reach;
     }
@@ -571,5 +650,5 @@ export function layoutNetwork(graph: OwnershipGraph): NetworkLayout {
     }
   }
 
-  return { size: NETWORK_SIZE, banks, shared };
+  return { size, banks, shared, leaves };
 }

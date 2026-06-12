@@ -254,7 +254,7 @@ export function RadialFanView({
             />
           ) : selected ? (
             <LeafPanel
-              placed={selected}
+              leaf={selected.leaf}
               sharedLookup={sharedLookup}
               onBankRefClick={onBankRefClick}
               focusTicker={ticker}
@@ -306,18 +306,17 @@ function CenterPanel({
   );
 }
 
-function LeafPanel({
-  placed,
+export function LeafPanel({
+  leaf,
   sharedLookup,
   onBankRefClick,
   focusTicker,
 }: {
-  placed: PlacedLeaf;
+  leaf: GraphLeaf;
   sharedLookup?: (key: string) => SharedHolder | undefined;
   onBankRefClick?: (ticker: string) => void;
   focusTicker: string;
 }) {
-  const leaf = placed.leaf;
   const shared = leaf.sharedKey && sharedLookup ? sharedLookup(leaf.sharedKey) : undefined;
   const otherLinks = shared?.links.filter((l) => l.ticker !== focusTicker) ?? [];
 
