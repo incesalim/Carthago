@@ -81,6 +81,35 @@ def _oci_rows(conn, bank, period, kind):
                 (bank, period, kind))]
 
 
+def _cf_rows(conn, bank, period, kind):
+    if not _has_table(conn, "bank_audit_cash_flow"):
+        return []
+    return [dict(zip(("hierarchy", "item_name", "amount"), r))
+            for r in conn.execute(
+                "SELECT hierarchy, item_name, amount FROM bank_audit_cash_flow "
+                "WHERE bank_ticker=? AND period=? AND kind=? ORDER BY item_order",
+                (bank, period, kind))]
+
+
+def _equity_rows(conn, bank, period, kind):
+    if not _has_table(conn, "bank_audit_equity_change"):
+        return []
+    cols = (
+        "hierarchy", "item_name", "period_type",
+        "paid_in_capital", "share_premium", "share_cancellation_profits",
+        "other_capital_reserves",
+        "oci_not_reclassified_1", "oci_not_reclassified_2", "oci_not_reclassified_3",
+        "oci_reclassified_1", "oci_reclassified_2", "oci_reclassified_3",
+        "profit_reserves", "prior_period_profit_loss", "period_net_profit_loss",
+        "total_equity", "minority_interest", "total_equity_incl_minority",
+    )
+    return [dict(zip(cols, r))
+            for r in conn.execute(
+                f"SELECT {','.join(cols)} FROM bank_audit_equity_change "
+                "WHERE bank_ticker=? AND period=? AND kind=? ORDER BY period_type, item_order",
+                (bank, period, kind))]
+
+
 def _capital_rows(conn, bank, period, kind):
     if not _has_table(conn, "bank_audit_capital"):
         return []
@@ -174,11 +203,10 @@ def main() -> int:
     parts_query = "SELECT DISTINCT bank_ticker, period, kind FROM bank_audit_balance_sheet"
     for tbl in ("bank_audit_credit_quality", "bank_audit_stages",
                 "bank_audit_capital", "bank_audit_liquidity",
-                "bank_audit_npl_movement", "bank_audit_loans_by_sector"):
+                "bank_audit_npl_movement", "bank_audit_loans_by_sector",
+                "bank_audit_oci", "bank_audit_cash_flow", "bank_audit_equity_change"):
         if _has_table(conn, tbl):
             parts_query += f" UNION SELECT bank_ticker, period, kind FROM {tbl}"
-    if _has_table(conn, "bank_audit_oci"):
-        parts_query += " UNION SELECT bank_ticker, period, kind FROM bank_audit_oci"
 
     parts = conn.execute(parts_query).fetchall()
     failed_parts = 0
@@ -188,6 +216,8 @@ def main() -> int:
         off_bs = _bs_rows(conn, bank, period, kind, "off_balance")
         pl     = _pl_rows(conn, bank, period, kind)
         oci    = _oci_rows(conn, bank, period, kind)
+        cf     = _cf_rows(conn, bank, period, kind)
+        eq     = _equity_rows(conn, bank, period, kind)
 
         results: dict[str, v.ValidationResult] = {
             "assets":      v.validate_statement(assets),
@@ -196,6 +226,9 @@ def main() -> int:
             "profit_loss": v.check_profit_loss(pl, liab),
             "off_balance": v.validate_off_balance(off_bs),
             "oci":         v.check_oci(oci, pl),
+            "cash_flow":   v.check_cash_flow(cf),
+            "equity_change": v.check_equity_change(eq, oci_rows=oci,
+                                                    liabilities=liab, period=period),
         }
 
         # Capital — skip known false-positive banks/partitions

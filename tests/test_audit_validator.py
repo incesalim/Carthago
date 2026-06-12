@@ -531,3 +531,170 @@ def test_loans_by_sector_fallback_to_subs():
     ]
     res = v.check_loans_by_sector(rows)
     assert res.failed == 0, res.failures
+
+
+# --- Cash flow validation -------------------------------------------------
+
+def _cf_row(h, name, amount, scale=1000):
+    return {"hierarchy": h, "item_name": name, "amount": amount * scale}
+
+
+def _clean_cf():
+    """Minimal cash flow satisfying the roman chain V=I+II+III+IV, VII=V+VI.
+    I=100 (ops), II=−30 (inv), III=20 (fin), IV=−5 (FX) → V=85; VI=15 (opening) → VII=100."""
+    return [
+        _cf_row("A.", "NAKİT AKIŞLARI (İŞLETME)", 0),
+        _cf_row("1.1", "Faiz Gelirleri", 200),
+        _cf_row("1.2", "Faiz Giderleri", -100),
+        _cf_row("I.", "İŞLETME FAALİYETLERİNDEN SAĞLANAN NET NAKİT", 100),
+        _cf_row("B.", "YATIRIM FAALİYETLERİ", 0),
+        _cf_row("2.1", "Satın Alınan Menkul Kıymetler", -30),
+        _cf_row("II.", "YATIRIM FAALİYETLERİNDEN KULLANILAN NAKİT", -30),
+        _cf_row("C.", "FİNANSMAN FAALİYETLERİ", 0),
+        _cf_row("3.1", "İhraç Edilen Borçlanma Araçları", 20),
+        _cf_row("III.", "FİNANSMAN FAALİYETLERİNDEN SAĞLANAN NAKİT", 20),
+        _cf_row("IV.", "KUR FARKLARININ NAKİT VE NAKİT BENZERLERİNE ETKİSİ", -5),
+        _cf_row("V.", "NAKİT VE NAKİT BENZERLERİNDEKİ NET ARTIS/AZALIS", 85),
+        _cf_row("VI.", "DÖNEM BAŞI NAKİT VE NAKİT BENZERLERİ", 15),
+        _cf_row("VII.", "DÖNEM SONU NAKİT VE NAKİT BENZERLERİ", 100),
+    ]
+
+
+def test_cf_clean_passes():
+    res = v.check_cash_flow(_clean_cf())
+    assert res.failed == 0, res.failures
+    assert res.passed >= 2  # two roman chain checks pass
+
+
+def test_cf_chain_v_broken_fails():
+    rows = _clean_cf()
+    for r in rows:
+        if r["hierarchy"] == "V.":
+            r["amount"] = 999 * 1000
+    res = v.check_cash_flow(rows)
+    assert any(f["check"] == "cf_chain" for f in res.failures)
+
+
+def test_cf_missing_roman_skips():
+    rows = [r for r in _clean_cf() if r["hierarchy"] not in ("III.", "IV.")]
+    res = v.check_cash_flow(rows)
+    assert res.failed == 0 and res.skipped >= 1
+
+
+def test_cf_empty_skips():
+    res = v.check_cash_flow([])
+    assert res.failed == 0 and res.skipped >= 1
+
+
+# --- Statement of changes in equity validation ----------------------------
+
+def _eq_row(h, name, components, total, period_type="current"):
+    """14-col equity row: 13 components + total_equity (no minority cols)."""
+    assert len(components) == 13, f"expected 13 components, got {len(components)}"
+    fields = [
+        "paid_in_capital", "share_premium", "share_cancellation_profits",
+        "other_capital_reserves",
+        "oci_not_reclassified_1", "oci_not_reclassified_2", "oci_not_reclassified_3",
+        "oci_reclassified_1", "oci_reclassified_2", "oci_reclassified_3",
+        "profit_reserves", "prior_period_profit_loss", "period_net_profit_loss",
+    ]
+    row = {"hierarchy": h, "item_name": name, "period_type": period_type,
+           "total_equity": total * 1000,
+           "minority_interest": None, "total_equity_incl_minority": None}
+    for f, v_val in zip(fields, components):
+        row[f] = v_val * 1000
+    return row
+
+
+def _clean_equity_current():
+    """Minimal equity-change for current period (14-col, Q4).
+    I. Opening 100; II. period changes 0; III=I+II=100; IV. comprehensive income 20;
+    VI. dividends -10; closing = III+IV+VI = 110.
+    Row IV is the comprehensive income → OCI cross-check: IV.total == OCI.III.
+    """
+    return [
+        _eq_row("I.",  "Dönem Başı Bakiye",                 [10,2,0,1, 1,0,0, 0,0,0, 30,20,36], 100),
+        _eq_row("II.", "Dönem İçi Değişiklikler",           [ 0,0,0,0, 0,0,0, 0,0,0,  0, 0, 0],   0),
+        _eq_row("III.","Ara Toplam (I+II)",                 [10,2,0,1, 1,0,0, 0,0,0, 30,20,36], 100),
+        _eq_row("IV.", "Toplam Kapsamlı Gelir/Gider",       [ 0,0,0,0, 0,0,0, 0,0,0,  0, 0,20],  20),
+        _eq_row("VI.", "Temettü Ödemeleri",                 [ 0,0,0,0, 0,0,0, 0,0,0,-10, 0, 0], -10),
+        _eq_row("",    "Dönem Sonu Bakiyesi (I+...+XI)",    [10,2,0,1, 1,0,0, 0,0,0, 20,20,56], 110),
+    ]
+
+
+def _clean_equity_prior():
+    """Prior-period page (same structure, different values).
+    I. Opening 84; III=84; IV. comprehensive 16; closing = 100.
+    Q4 open/close: current I.total (100) == prior closing (100) ✓.
+    """
+    return [
+        _eq_row("I.",  "Dönem Başı Bakiye",               [10,2,0,1, 1,0,0, 0,0,0, 25,15,30],  84, "prior"),
+        _eq_row("II.", "Dönem İçi Değişiklikler",         [ 0,0,0,0, 0,0,0, 0,0,0,  0, 0, 0],   0, "prior"),
+        _eq_row("III.","Ara Toplam (I+II)",               [10,2,0,1, 1,0,0, 0,0,0, 25,15,30],  84, "prior"),
+        _eq_row("IV.", "Toplam Kapsamlı Gelir/Gider",     [ 0,0,0,0, 0,0,0, 0,0,0,  0, 0,16],  16, "prior"),
+        _eq_row("",    "Dönem Sonu Bakiyesi (I+...+XI)",  [10,2,0,1, 1,0,0, 0,0,0, 25,15,46], 100, "prior"),
+    ]
+
+
+def test_equity_change_clean_passes():
+    rows = _clean_equity_current() + _clean_equity_prior()
+    # OCI III = 20 matches current row IV (comprehensive income);
+    # BS equity at "XVI." (roman top-level) so _path returns (16,), len=1 ✓
+    oci = [_oci_row("III.", "TOPLAM KAPSAMLI GELİR", 20)]
+    liab = [_row("XVI.", "TOPLAM ÖZKAYNAKLAR", 70, 40, 110)]
+    res = v.check_equity_change(rows, oci_rows=oci, liabilities=liab, period="2024Q4")
+    assert res.failed == 0, res.failures
+    assert res.passed >= 3
+
+
+def test_equity_change_row_sum_fails():
+    rows = _clean_equity_current()
+    # break row I: total doesn't match component sum (100 → 999)
+    rows[0] = dict(rows[0], total_equity=999 * 1000)
+    res = v.check_equity_change(rows)
+    assert any(f["check"] == "eq_row_sum" for f in res.failures)
+
+
+def test_equity_change_col_chain_fails():
+    rows = _clean_equity_current()
+    # break III: III.total ≠ I.total + II.total (I=100, II=0, III should be 100)
+    rows[2] = dict(rows[2], total_equity=999 * 1000)
+    res = v.check_equity_change(rows)
+    assert any(f["check"] == "eq_col_chain" for f in res.failures)
+
+
+def test_equity_change_oci_cross_fails():
+    rows = _clean_equity_current()
+    # OCI III = 999 ≠ equity row IV total (20)
+    oci = [_oci_row("III.", "TOPLAM KAPSAMLI GELİR", 999)]
+    res = v.check_equity_change(rows, oci_rows=oci)
+    assert any(f["check"] == "eq_oci_cross" for f in res.failures)
+
+
+def test_equity_change_bs_cross_fails():
+    rows = _clean_equity_current()
+    # "XVI." → _path returns (16,), len=1 → matcher picks it up; 999k ≠ 110k closing
+    liab = [_row("XVI.", "TOPLAM ÖZKAYNAKLAR", 50, 50, 999)]
+    res = v.check_equity_change(rows, liabilities=liab)
+    assert any(f["check"] == "eq_bs_cross" for f in res.failures)
+
+
+def test_equity_change_open_close_q4_fails():
+    cur = _clean_equity_current()
+    pri = _clean_equity_prior()
+    # current opening (row I, total=100) != prior closing (total=100 by default — change to 90)
+    pri[-1] = dict(pri[-1], total_equity=90 * 1000)
+    rows = cur + pri
+    res = v.check_equity_change(rows, period="2024Q4")
+    assert any(f["check"] == "eq_open_close" for f in res.failures)
+
+
+def test_equity_change_open_close_interim_skips():
+    rows = _clean_equity_current() + _clean_equity_prior()
+    res = v.check_equity_change(rows, period="2024Q3")
+    assert not any(f["check"] == "eq_open_close" for f in res.failures)
+
+
+def test_equity_change_empty_skips():
+    res = v.check_equity_change([])
+    assert res.failed == 0 and res.skipped >= 1
