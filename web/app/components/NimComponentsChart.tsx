@@ -20,7 +20,11 @@ import {
   YAxis,
 } from "recharts";
 import { useChartTheme, tooltipStyles } from "@/app/lib/chart-theme";
-import type { NimBarPoint, NimKey } from "@/app/lib/nim-components";
+import { NIM_SERIES, type NimBarPoint, type NimKey } from "@/app/lib/nim-components";
+
+// Topmost positive segment — the net-total label rides on it so its `y` is
+// the top of the income stack.
+const TOP_INCOME_KEY = NIM_SERIES.filter((s) => s.sign === 1).at(-1)!.key;
 
 export interface NimSeriesDef {
   key: NimKey;
@@ -112,6 +116,33 @@ function segmentLabel(fill: string) {
   return Label;
 }
 
+/** Net-NIM total floated above each bar. Attached to the TOPMOST income
+ * segment with dataKey="net", so `y` is the top of the positive stack while
+ * `value` is the bar's net total. */
+function netTotalLabel(color: string) {
+  const Label = (props: SegmentLabelProps) => {
+    const x = Number(props.x);
+    const y = Number(props.y);
+    const width = Number(props.width);
+    const value = Number(props.value);
+    if (!Number.isFinite(value) || !Number.isFinite(x)) return null;
+    return (
+      <text
+        x={x + width / 2}
+        y={y - 7}
+        textAnchor="middle"
+        fontSize={11}
+        fontWeight={600}
+        fill={color}
+      >
+        {nf(value, 1)}%
+      </text>
+    );
+  };
+  Label.displayName = "NimNetTotalLabel";
+  return Label;
+}
+
 export default function NimComponentsChart({
   data,
   series,
@@ -132,7 +163,7 @@ export default function NimComponentsChart({
         <ComposedChart
           data={data}
           stackOffset="sign"
-          margin={{ top: 10, right: 20, left: 10, bottom: 30 }}
+          margin={{ top: mode === "annual" ? 22 : 10, right: 20, left: 10, bottom: 30 }}
           barCategoryGap={mode === "annual" ? "28%" : "12%"}
         >
           <CartesianGrid strokeDasharray="3 3" stroke={t.grid} />
@@ -229,6 +260,9 @@ export default function NimComponentsChart({
             >
               {mode === "annual" && (
                 <LabelList dataKey={s.key} content={segmentLabel(fills[s.key])} />
+              )}
+              {mode === "annual" && s.key === TOP_INCOME_KEY && (
+                <LabelList dataKey="net" content={netTotalLabel(netColor)} />
               )}
             </Bar>
           ))}
