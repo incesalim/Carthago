@@ -264,6 +264,147 @@ def rows_from_statement_rows(stmt_rows) -> list[dict]:
     } for r in stmt_rows]
 
 
+def rows_from_pl_statement_rows(stmt_rows) -> list[dict]:
+    """Adapt extractor.StatementRow P&L objects to validator dicts ({hierarchy,
+    item_name, amount}) — the single-column income-statement shape, matching a
+    bank_audit_profit_loss SELECT."""
+    return [{"hierarchy": r.hierarchy, "item_name": r.name, "amount": r.cur_amount}
+            for r in stmt_rows]
+
+
+# --- P&L (income statement) validation ------------------------------------
+# The BDDK income statement is a fixed roman chain — each subtotal row literally
+# prints its own formula. Roles are fixed by TEMPLATE POSITION: romans II and
+# IX–XII are deductions; everything else adds with its stored sign. Two corpus
+# realities make a naive ±1 chain false-fail, so the check is built around them:
+#
+#  1. Storage convention is NOT uniform — even within one statement. Most banks
+#     store a deduction as a positive magnitude (the line prints "(-)"); the
+#     participation/parenthesised-negative banks (ING, KLNMA, TFKB) store it as a
+#     negative; and a genuine ECL *recovery* is a negative that must ADD back.
+#     TFKB even mixes the two (II positive, IX–XII negative) in one statement.
+#     So a deduction identity passes if EITHER reading foots — subtract the
+#     magnitude (−|x|) OR subtract the stored value (−x). Same idea as the tax ±.
+#  2. Stray roman rows — a title line ("III. STATEMENT OF PROFIT OR LOSS") above
+#     the body, or a footnote roman below it — would shadow a real subtotal. We
+#     take the subtotal amounts from the longest contiguous strictly-increasing
+#     run of roman rows (the statement body) and ignore out-of-sequence strays.
+#   (target roman ordinal, [source roman ordinals])
+_PL_DEDUCTIONS = frozenset({2, 9, 10, 11, 12})
+_PL_CHAIN = [
+    (3,  [1, 2]),               # III  = I − II
+    (8,  [3, 4, 5, 6, 7]),      # VIII = III+IV+V+VI+VII
+    (13, [8, 9, 10, 11, 12]),   # XIII = VIII−IX−X−XI−XII
+    (17, [13, 14, 15, 16]),     # XVII = XIII+XIV+XV+XVI
+    (25, [19, 24]),             # XXV  = XIX+XXIV
+]
+# XIX = XVII ± XVIII handled apart: the tax provision XVIII prints "(±)" and is
+# genuinely signed (usually expense, occasionally benefit), so XIX may land on
+# either side of the pre-tax figure by XVIII's magnitude.
+_PL_NET_RX = re.compile(
+    r"DÖNEM NET KAR|DÖNEM NET KÂR|NET PERIOD PROFIT|DÖNEM KÂRI|Grubun|Group", re.I)
+
+
+def _pl_spine(pl_rows: list[dict]) -> dict[int, float]:
+    """Roman subtotals as {ordinal: amount}, taken from the longest contiguous
+    strictly-increasing-ordinal run of roman-form rows — the statement body.
+    Discards out-of-sequence strays (title/footnote rows, captured "1 OCAK…"
+    header fragments) that would otherwise shadow a real subtotal."""
+    seq: list[tuple[int, float]] = []
+    for r in pl_rows:
+        h = (r.get("hierarchy") or "").strip()
+        if not _ROMAN_RX.match(h):     # roman-form only; a numeric "1" never a subtotal
+            continue
+        a = r.get("amount")
+        o = _roman_to_int(h.rstrip("."))
+        if o is not None and a is not None:
+            seq.append((o, a))
+    best: list[tuple[int, float]] = []
+    cur: list[tuple[int, float]] = []
+    for o, a in seq:
+        if cur and o <= cur[-1][0]:
+            if len(cur) > len(best):
+                best = cur
+            cur = []
+        cur.append((o, a))
+    if len(cur) > len(best):
+        best = cur
+    return {o: a for o, a in best}
+
+
+def check_pl_chain(pl_rows: list[dict]) -> ValidationResult:
+    """The income-statement roman identities (III=I−II … XXV=XIX+XXIV). An
+    identity runs only when its target and ALL its source romans are present, so
+    a P&L missing optional rows skips rather than false-fails. Deduction
+    identities accept either storage convention (see module note)."""
+    res = ValidationResult()
+    amt = _pl_spine(pl_rows)
+    for target, sources in _PL_CHAIN:
+        if target not in amt or any(s not in amt for s in sources):
+            res.add_skip()
+            continue
+        base = sum(amt[s] for s in sources if s not in _PL_DEDUCTIONS)
+        ded = [amt[s] for s in sources if s in _PL_DEDUCTIONS]
+        tol = _tol(amt[target], base=3.0, rel=5e-5)
+        if not ded:
+            actual = base
+            ok = abs(actual - amt[target]) <= tol
+        else:
+            actual = base + sum(-abs(v) for v in ded)            # magnitude reading
+            actual_signed = base + sum(-v for v in ded)          # stored-sign reading
+            ok = min(abs(actual - amt[target]), abs(actual_signed - amt[target])) <= tol
+        if ok:
+            res.add_pass()
+        else:
+            res.add_fail("pl_chain", f"roman {target} identity",
+                         expected=amt[target], actual=actual)
+    # XIX = XVII ± XVIII (tax line genuinely signed → accept either direction)
+    if 19 in amt and 17 in amt:
+        tax = abs(amt.get(18, 0.0))
+        tol = _tol(amt[19], base=3.0, rel=5e-5)
+        if min(abs(amt[19] - (amt[17] - tax)), abs(amt[19] - (amt[17] + tax))) <= tol:
+            res.add_pass()
+        else:
+            res.add_fail("pl_chain", "roman 19 identity",
+                         expected=amt[19], actual=amt[17] - tax)
+    else:
+        res.add_skip()
+    return res
+
+
+def check_pl_bottomline(pl_rows: list[dict], liabilities: list[dict]) -> ValidationResult:
+    """The income statement's net profit (XXV, or the group share 25.1 for a
+    consolidated report) must equal the balance-sheet equity row 16.6.2 — or
+    14.6.2 for participation banks (equity at XIV.)."""
+    res = ValidationResult()
+    cands = [r["amount"] for r in pl_rows
+             if r.get("amount") is not None and _PL_NET_RX.search(r.get("item_name") or "")]
+    bs_net = next((r.get("amount_total") for r in liabilities
+                   if _path(r.get("hierarchy")) in ((16, 6, 2), (14, 6, 2))
+                   and r.get("amount_total") is not None), None)
+    if not cands or bs_net is None:
+        res.add_skip()
+        return res
+    if any(abs(c - bs_net) <= _tol(bs_net, base=3.0, rel=1e-5) for c in cands):
+        res.add_pass()
+    else:
+        res.add_fail("pl_bottomline", "P&L net vs BS equity (16.6.2/14.6.2)",
+                     expected=bs_net, actual=cands[0])
+    return res
+
+
+def check_profit_loss(pl_rows: list[dict], liabilities: list[dict] | None = None) -> ValidationResult:
+    """P&L structural checks: the roman identity chain, plus (when the BS
+    liabilities rows are supplied) net profit = balance-sheet equity. The BS
+    parent=Σchildren machinery is deliberately NOT used — P&L deduction lines
+    carry "(-)" labels but additive signs, which would false-fail it."""
+    res = ValidationResult()
+    res.merge(check_pl_chain(pl_rows))
+    if liabilities is not None:
+        res.merge(check_pl_bottomline(pl_rows, liabilities))
+    return res
+
+
 def upsert_validation(conn, bank: str, period: str, kind: str,
                       results: dict[str, ValidationResult]) -> None:
     """Persist per-statement results; replaces the partition idempotently."""
@@ -279,11 +420,13 @@ def upsert_validation(conn, bank: str, period: str, kind: str,
 
 
 def validate_report(rep) -> dict[str, ValidationResult]:
-    """Validate one extracted BankReport (assets, liabilities, cross)."""
+    """Validate one extracted BankReport (assets, liabilities, cross, P&L)."""
     assets = rows_from_statement_rows(rep.bs_assets)
     liabilities = rows_from_statement_rows(rep.bs_liabilities)
+    pl = rows_from_pl_statement_rows(rep.profit_loss)
     return {
         "assets": validate_statement(assets),
         "liabilities": validate_statement(liabilities),
         "cross": check_cross_statement(assets, liabilities),
+        "profit_loss": check_profit_loss(pl, liabilities),
     }

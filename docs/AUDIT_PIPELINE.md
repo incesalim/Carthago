@@ -24,7 +24,7 @@ for the full script index.
 7. **Snapshot** — VACUUM + gzip → upload `state/bank_audit.db.gz` (+ dated history, keep 7).
 
 The R2 snapshot is **last-writer-wins**, so any out-of-band write must guard against a
-concurrent CI run (`d1_sync._guard_against_ci_writers()`) and the manual lanes write D1 + the
+concurrent CI run (`scripts/audit_d1.guard_against_ci_writers()`) and the manual lanes write D1 + the
 local DB only where possible.
 
 ## Statement types (each is a registry entry — `src/audit_reports/registry.py`)
@@ -65,8 +65,9 @@ Use this when the cron extraction is wrong or a statement page is unreadable. Ev
    `scripts/audit_correct.py overlay-statement --bank … --period … --kind …` — it re-extracts
    the text statements and overlays the manual ones. The balance sheet is validated to 0 and
    the P&L net is cross-checked to BS equity before push.
-6. **Validator logic changed** — `scripts/revalidate_all.py` recomputes
-   `bank_audit_validation` from stored rows (no re-extraction) and pushes validation only.
+6. **Validator logic changed** — `scripts/revalidate_audit_db.py --db <db>` recomputes
+   `bank_audit_validation` from stored rows (balance sheet + P&L, no re-extraction); push
+   with `scripts/push_to_d1.py --db <db> --only-tables bank_audit_validation`.
 
 After any repair, confirm on D1: `bank_audit_validation` failing partitions and the
 `/admin` coverage matrix should reflect the fix; `bank_audit_extractions.success` flips to 1
