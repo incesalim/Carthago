@@ -32,6 +32,10 @@ on:
         description: "Restrict to one or more tickers (comma-separated, e.g. AKBNK). Blank = all banks."
         type: string
         default: ""
+      period:
+        description: "Re-extract a single quarter, e.g. 2024Q4 (forces re-extraction of the existing R2 PDF; pair with bank)."
+        type: string
+        default: ""
 
 # Read-only on git — the audit snapshot lives in R2, not git.
 permissions:
@@ -115,11 +119,20 @@ jobs:
           # A per-bank trigger means "grab this bank's freshly published quarter",
           # so restrict to its latest period. All-banks / scheduled runs stay full.
           LATEST: ${{ inputs.bank && '--latest-period' || '' }}
+          # Forwarded via env (never interpolated) so the dispatch input is one
+          # quoted argument and can't inject shell. Validated YYYYQn by the route.
+          PERIOD: ${{ inputs.period }}
         run: |
           args=(--db data/bank_audit.db --workers 16)
-          [ -n "$NO_SCRAPE" ] && args+=("$NO_SCRAPE")
           [ -n "$BANK" ] && args+=(--only-bank "$BANK")
-          [ -n "$LATEST" ] && args+=("$LATEST")
+          if [ -n "$PERIOD" ]; then
+            # Targeted re-extract: re-run one quarter from its existing R2 PDF
+            # (force overrides the already-done skip; no scrape needed).
+            args+=(--periods "$PERIOD" --force --no-scrape)
+          else
+            [ -n "$NO_SCRAPE" ] && args+=("$NO_SCRAPE")
+            [ -n "$LATEST" ] && args+=("$LATEST")
+          fi
           python scripts/sync_audit_reports.py "${args[@]}"
 
       - name: Rebuild bank_audit_stages from credit-quality

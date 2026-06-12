@@ -236,6 +236,7 @@ def _worker_extract(args):
 def extract_from_r2(
     workers: int, db_path: Path = DB_PATH, only: set[str] | None = None,
     latest_period: bool = False, periods: set[str] | None = None,
+    force: bool = False,
 ) -> dict[str, int]:
     db_path.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(str(db_path)) as conn:
@@ -250,8 +251,14 @@ def extract_from_r2(
     if latest_period:
         pdfs = _restrict_to_latest_period(pdfs)
     done = already_extracted(db_path)
-    todo = [(t, p, k, key) for (t, p, k, key) in pdfs if (t, p, k) not in done]
-    print(f"[extract] {len(pdfs)} in R2 · {len(done)} already done · {len(todo)} to extract")
+    if force:
+        # Re-extract even already-done partitions (upsert_report replaces them).
+        # Targeted re-runs from the admin coverage matrix rely on this.
+        todo = list(pdfs)
+        print(f"[extract] {len(pdfs)} in R2 · force re-extract (ignoring {len(done)} already done)")
+    else:
+        todo = [(t, p, k, key) for (t, p, k, key) in pdfs if (t, p, k) not in done]
+        print(f"[extract] {len(pdfs)} in R2 · {len(done)} already done · {len(todo)} to extract")
     if not todo:
         return {"ok": 0, "fail": 0}
 
@@ -304,6 +311,13 @@ def main():
                     help="restrict to each bank's newest quarter only (across "
                          "all kinds). Pair with --only-bank to grab just the "
                          "report a bank has freshly published.")
+    ap.add_argument("--periods", type=str, default="",
+                    help="restrict extraction to one or more quarters "
+                         "(comma-separated 'YYYYQn', e.g. 2024Q4). Pair with "
+                         "--only-bank + --force for a targeted re-extraction.")
+    ap.add_argument("--force", action="store_true",
+                    help="re-extract even partitions already in the DB (upsert "
+                         "replaces them). Without this, done partitions are skipped.")
     ap.add_argument("--db", type=str, default=str(DB_PATH),
                     help="SQLite DB to upsert extracted rows into (default "
                          "data/bddk_data.db). The standalone audit pipeline "
@@ -330,6 +344,17 @@ def main():
     if args.latest_period:
         print("[filter] restricting to each bank's latest period only")
 
+    periods: set[str] | None = None
+    if args.periods.strip():
+        periods = {p.strip().upper() for p in args.periods.split(",") if p.strip()}
+        bad = sorted(p for p in periods
+                     if not (len(p) == 6 and p[:4].isdigit() and p[4] == "Q" and p[5] in "1234"))
+        if bad:
+            sys.exit(f"[error] bad --periods value(s): {', '.join(bad)} (want YYYYQn, e.g. 2024Q4)")
+        print(f"[filter] restricting to period(s): {', '.join(sorted(periods))}")
+    if args.force:
+        print("[filter] force re-extraction (already-done partitions included)")
+
     t0 = time.time()
     scrape_counts: dict[str, int] = {}
     extract_counts: dict[str, int] = {}
@@ -342,7 +367,7 @@ def main():
         cpu_workers = min(args.workers, (os.cpu_count() or 4))
         extract_counts = extract_from_r2(
             workers=cpu_workers, db_path=db_path, only=only,
-            latest_period=args.latest_period)
+            latest_period=args.latest_period, periods=periods, force=args.force)
     print(f"\ntotal {time.time() - t0:.1f}s")
 
     # Systemic-failure guard: make the run exit non-zero (→ CI failure email +

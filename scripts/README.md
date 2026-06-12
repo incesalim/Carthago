@@ -42,7 +42,7 @@ audit lane and its repair playbook are in [`docs/AUDIT_PIPELINE.md`](../docs/AUD
 The weekly path is: **`sync_audit_reports` → `build_bank_audit_stages` → `check_audit_quality` → `push_to_d1` → snapshot**.
 | Script | Purpose | Run by | Class |
 |---|---|---|---|
-| `sync_audit_reports.py` | THE audit entry: scrape new PDFs → R2 → extract pending → `bank_audit.db`. `--only-bank`, `--latest-period`, `--periods`, `--no-scrape`. | `refresh-audit.yml` | pipeline |
+| `sync_audit_reports.py` | THE audit entry: scrape new PDFs → R2 → extract pending → `bank_audit.db`. `--only-bank`, `--latest-period`, `--periods`, `--no-scrape`, `--force` (re-extract already-done partitions — backs the admin matrix's per-cell re-extract). | `refresh-audit.yml` | pipeline |
 | `build_bank_audit_stages.py` | Consolidate credit-quality rows → `bank_audit_stages`. | `refresh-audit.yml` | pipeline |
 | `check_audit_quality.py` | 8 alert-only anomaly checks (stale/balance/coverage/npl_drop/capital/liquidity/structure/ecl). | `refresh-audit.yml`, `backfill-audit.yml` | pipeline |
 | `seed_audit_db.py` | Bootstrap `bank_audit.db` from the bulletin snapshot on first run. | `refresh-audit.yml` (bootstrap) | pipeline |

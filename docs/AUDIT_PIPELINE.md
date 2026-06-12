@@ -13,7 +13,10 @@ for the full script index.
 2. **`sync_audit_reports.py`** — scrape any newly published PDFs to R2
    (`bddk-audit-reports/<ticker>/<TICKER>_<period>_<kind>.pdf`), then extract every PDF that
    isn't already in `bank_audit_extractions` → `bank_audit.db`. 49/52 weeks this is a cheap
-   no-op. Flags: `--only-bank`, `--periods`, `--latest-period`, `--no-scrape`, `--workers`.
+   no-op. Flags: `--only-bank`, `--periods`, `--latest-period`, `--no-scrape`, `--force`, `--workers`.
+   (`--periods YYYYQn --force` re-extracts a specific quarter even if already done — the
+   `period` `workflow_dispatch` input wires this, and the `/admin` matrix's per-cell
+   re-extract dispatches it as `bank` + `period`.)
 3. **`build_bank_audit_stages.py`** — roll the per-section `bank_audit_credit_quality` rows up
    into the derived `bank_audit_stages` view (S1/S2/S3 amounts + ECL + coverage).
 4. **`check_audit_quality.py --alert`** — 8 alert-only anomaly checks (never blocks): stale
