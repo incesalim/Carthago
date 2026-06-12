@@ -65,6 +65,8 @@ surface `error`/`missing` cells in the matrix but never flip `success`. All type
 | Off-balance sheet | `bank_audit_balance_sheet` (statement='off_balance') | — | TL+FC=Total row triplets only; hierarchy-sum skipped (off-balance uses I./II./III. top-level with non-contiguous 1.x sub-items) (`off_balance`) |
 | Income statement (P&L) | `bank_audit_profit_loss` | ✓ | identity chain + net = BS equity 16.6.2 / 14.6.2 (`profit_loss`) |
 | Other comprehensive income (OCI) | `bank_audit_oci` | — | `III = I + II`; 2.x subtree sums; **OCI row I = P&L net** (`oci`) |
+| Statement of changes in equity | `bank_audit_equity_change` | — | row-sum (total_equity≈Σ13 cols); col chain III=I+II, closing=III+IV+…+XI; OCI cross (IV.total==OCI.III); BS equity cross (0.5% tol); opening==prior-closing Q4 only (`equity_change`) |
+| Cash flow statement | `bank_audit_cash_flow` | — | hierarchy subtree sums; roman chain **V=I+II+III+IV**, **VII=V+VI** (`cash_flow`) |
 | Credit quality / IFRS-9 | `bank_audit_credit_quality` | — | per-section total=S1+S2+S3; coverage∈[0,1]; cross-section reconciliations (`credit_quality`) — note: gross−prov=net check removed (BRSA provision rows include collective reserves) |
 | IFRS-9 stages (derived) | `bank_audit_stages` | — | total_ecl=ΣSx_ecl; coverage∈[0,1]; **stage3==total fingerprint** (`stages`) |
 | Loans by sector | `bank_audit_loans_by_sector` | — | Σ top-level sectors ≈ total row; falls back to sub-sector sums when group aggregate (agri_total/mfg_total/svc_total) is absent (`loans_by_sector`) |

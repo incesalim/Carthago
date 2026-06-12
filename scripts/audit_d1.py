@@ -35,7 +35,9 @@ DB = REPO / "data" / "bank_audit.db"
 GZ = REPO / "data" / "bank_audit.db.gz"
 SNAP = "state/bank_audit.db.gz"
 AUDIT_TABLES = [
-    "bank_audit_balance_sheet", "bank_audit_profit_loss", "bank_audit_credit_quality",
+    "bank_audit_balance_sheet", "bank_audit_profit_loss", "bank_audit_oci",
+    "bank_audit_cash_flow", "bank_audit_equity_change",
+    "bank_audit_credit_quality",
     "bank_audit_profile", "bank_audit_loans_by_sector", "bank_audit_npl_movement",
     "bank_audit_stages", "bank_audit_capital", "bank_audit_liquidity",
     "bank_audit_validation", "bank_audit_extractions",

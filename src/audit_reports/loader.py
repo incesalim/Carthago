@@ -32,6 +32,10 @@ def upsert_report(
         'DELETE FROM bank_audit_oci WHERE bank_ticker=? AND period=? AND kind=?',
         (bank_ticker, period, kind),
     )
+    cur.execute(
+        'DELETE FROM bank_audit_cash_flow WHERE bank_ticker=? AND period=? AND kind=?',
+        (bank_ticker, period, kind),
+    )
 
     # Insert balance sheet rows (3 statements: assets / liabilities / off_balance)
     bs_rows = []
@@ -84,6 +88,21 @@ def upsert_report(
             oci_rows,
         )
 
+    # Cash flow (single-column, same shape as OCI)
+    cf_rows = []
+    for r in getattr(rep, 'cash_flow', []):
+        cf_rows.append((
+            bank_ticker, period, kind, r.order,
+            r.hierarchy, r.name, r.footnote, r.cur_amount,
+        ))
+    if cf_rows:
+        cur.executemany(
+            'INSERT INTO bank_audit_cash_flow '
+            '(bank_ticker, period, kind, item_order, hierarchy, item_name, footnote, amount) '
+            'VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            cf_rows,
+        )
+
     # Footnote / §4 sub-statements. Each extractor module exposes the same
     # contract — upsert(conn, bank, period, kind, report) -> int|None — and the
     # report rides along on the BankReport (a rows list or a full report object).
@@ -96,6 +115,7 @@ def upsert_report(
     from .capital_adequacy import CapitalReport, upsert as _upsert_cap
     from .liquidity import LiquidityReport, upsert as _upsert_liq
     from .bank_profile import upsert_profile as _upsert_bp
+    from .equity_change import EquityChangeReport, upsert as _upsert_eq
 
     # (counts key, build report from rep, upsert fn, skip when empty)
     persisters = [
@@ -109,6 +129,7 @@ def upsert_report(
         # profile is INSERT OR REPLACE (no delete) — skip when empty so a failed
         # re-extract doesn't wipe a previously-captured branches/personnel row.
         ('profile',         lambda: getattr(rep, 'bank_profile', None),                                                    _upsert_bp,  True),
+        ('equity_change',   lambda: getattr(rep, 'equity_change', None) or EquityChangeReport(pdf_path=pdf_path),          _upsert_eq,  False),
     ]
     counts = {
         'bs_assets': len(rep.bs_assets),
@@ -116,6 +137,7 @@ def upsert_report(
         'off_balance': len(rep.off_balance),
         'profit_loss': len(rep.profit_loss),
         'oci': len(getattr(rep, 'other_comprehensive_income', [])),
+        'cash_flow': len(getattr(rep, 'cash_flow', [])),
     }
     for key, build, upsert_fn, skip_if_empty in persisters:
         report = build()
@@ -130,7 +152,8 @@ def upsert_report(
     # Isolated: a validator bug must never sink the extraction itself.
     try:
         from .validator import upsert_validation, validate_report
-        upsert_validation(conn, bank_ticker, period, kind, validate_report(rep))
+        upsert_validation(conn, bank_ticker, period, kind,
+                          validate_report(rep, period=period))
     except Exception:
         pass
 
@@ -138,14 +161,17 @@ def upsert_report(
     cur.execute(
         'INSERT OR REPLACE INTO bank_audit_extractions '
         '(bank_ticker, period, kind, pdf_path, rows_bs_assets, rows_bs_liabilities, '
-        ' rows_off_balance, rows_profit_loss, rows_credit_quality, rows_oci, success) '
-        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        ' rows_off_balance, rows_profit_loss, rows_credit_quality, rows_oci, '
+        ' rows_cash_flow, rows_equity_change, success) '
+        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         (
             bank_ticker, period, kind, pdf_path,
             counts['bs_assets'], counts['bs_liabilities'],
             counts['off_balance'], counts['profit_loss'],
             counts.get('credit_quality', 0),
             counts.get('oci', 0),
+            counts.get('cash_flow', 0),
+            counts.get('equity_change', 0),
             1 if registry.success_from_counts(counts) else 0,
         ),
     )

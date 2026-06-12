@@ -430,13 +430,16 @@ def upsert_validation(conn, bank: str, period: str, kind: str,
          for stmt, r in results.items()])
 
 
-def validate_report(rep) -> dict[str, ValidationResult]:
-    """Validate one extracted BankReport (assets, liabilities, cross, P&L, off-balance, OCI)."""
+def validate_report(rep, period: str | None = None) -> dict[str, ValidationResult]:
+    """Validate one extracted BankReport (all statement types)."""
     assets = rows_from_statement_rows(rep.bs_assets)
     liabilities = rows_from_statement_rows(rep.bs_liabilities)
     off_balance = rows_from_statement_rows(rep.off_balance)
     pl = rows_from_pl_statement_rows(rep.profit_loss)
     oci = rows_from_pl_statement_rows(getattr(rep, "other_comprehensive_income", []))
+    cf = rows_from_pl_statement_rows(getattr(rep, "cash_flow", []))
+    eq_rep = getattr(rep, "equity_change", None)
+    eq_rows = rows_from_equity_rows(eq_rep) if eq_rep else []
     return {
         "assets": validate_statement(assets),
         "liabilities": validate_statement(liabilities),
@@ -444,6 +447,9 @@ def validate_report(rep) -> dict[str, ValidationResult]:
         "profit_loss": check_profit_loss(pl, liabilities),
         "off_balance": validate_off_balance(off_balance),
         "oci": check_oci(oci, pl),
+        "cash_flow": check_cash_flow(cf),
+        "equity_change": check_equity_change(eq_rows, oci_rows=oci,
+                                              liabilities=liabilities, period=period),
     }
 
 
@@ -849,4 +855,271 @@ def check_loans_by_sector(rows: list[dict]) -> ValidationResult:
         any_check = True
     if not any_check:
         res.add_skip()
+    return res
+
+
+# ===========================================================================
+# Cash flow statement validation
+# ===========================================================================
+
+# Cash flow identity chain (roman ordinals → sources).
+# V = I+II+III+IV  and  VII = V+VI.
+_CF_CHAIN = [
+    (5, [1, 2, 3, 4]),   # V  = I+II+III+IV  (net cash before FX/opening)
+    (7, [5, 6]),          # VII = V+VI         (closing = net + opening)
+]
+
+
+def check_cash_flow(cf_rows: list[dict]) -> ValidationResult:
+    """Cash flow: numeric hierarchy sums (1.1.x trees) + roman chain V=I+II+III+IV, VII=V+VI."""
+    res = ValidationResult()
+    if not cf_rows:
+        res.add_skip()
+        return res
+    # Hierarchy tree sums (1.1=Σ1.1.x, 1.2=Σ1.2.x, 2.x, 3.x sub-trees)
+    cf_adapted = [{"hierarchy": r.get("hierarchy"), "item_name": r.get("item_name"),
+                   "amount_total": r.get("amount")} for r in cf_rows]
+    res.merge(check_hierarchy_sums(cf_adapted))
+    # Roman chain (reuse _pl_spine — cash flow roman rows I–VII follow same pattern)
+    amt = _pl_spine(cf_rows)
+    for target, sources in _CF_CHAIN:
+        if target not in amt or any(s not in amt for s in sources):
+            res.add_skip()
+            continue
+        expected = sum(amt[s] for s in sources)
+        tol = _tol(amt[target], base=3.0, rel=5e-5)
+        if abs(amt[target] - expected) <= tol:
+            res.add_pass()
+        else:
+            res.add_fail("cf_chain", f"CF roman {target} identity",
+                         expected=expected, actual=amt[target])
+    return res
+
+
+# ===========================================================================
+# Statement of changes in equity validation
+# ===========================================================================
+
+_EQ_CLOSING_RX = re.compile(r'BAK[Iİ]YE|BALANCE', re.I)
+_EQ_EQUITY_RX  = re.compile(r'(?:ÖZKAYNAK|OZKAYNAK|SHAREHOLDER|EQUITY)', re.I)
+
+
+def rows_from_equity_rows(report) -> list[dict]:
+    """Adapt EquityChangeReport rows to flat dicts for the validator."""
+    if report is None:
+        return []
+    return [{"hierarchy": r.hierarchy, "item_name": r.name,
+             "period_type": r.period_type, "source_page": r.source_page,
+             "paid_in_capital": r.paid_in_capital,
+             "share_premium": r.share_premium,
+             "share_cancellation_profits": r.share_cancellation_profits,
+             "other_capital_reserves": r.other_capital_reserves,
+             "oci_not_reclassified_1": r.oci_not_reclassified_1,
+             "oci_not_reclassified_2": r.oci_not_reclassified_2,
+             "oci_not_reclassified_3": r.oci_not_reclassified_3,
+             "oci_reclassified_1": r.oci_reclassified_1,
+             "oci_reclassified_2": r.oci_reclassified_2,
+             "oci_reclassified_3": r.oci_reclassified_3,
+             "profit_reserves": r.profit_reserves,
+             "prior_period_profit_loss": r.prior_period_profit_loss,
+             "period_net_profit_loss": r.period_net_profit_loss,
+             "total_equity": r.total_equity,
+             "minority_interest": r.minority_interest,
+             "total_equity_incl_minority": r.total_equity_incl_minority}
+            for r in report.rows]
+
+
+def _eq_closing(rows: list[dict]) -> dict | None:
+    """Return the closing-balance row (hierarchy=='' and BAKIYE/BALANCE name), or last row."""
+    for r in reversed(rows):
+        if not r.get("hierarchy") and _EQ_CLOSING_RX.search(r.get("item_name") or ""):
+            return r
+    if rows:
+        return rows[-1]
+    return None
+
+
+def _eq_roman(rows: list[dict], ordinal: int) -> dict | None:
+    """Return the first row whose hierarchy is the given roman ordinal."""
+    for r in rows:
+        h = (r.get("hierarchy") or "").strip()
+        m = re.match(r'^([IVX]+)\.?$', h)
+        if m and _roman_to_int(m.group(1)) == ordinal:
+            return r
+    return None
+
+
+def check_equity_change(eq_rows: list[dict],
+                        oci_rows: list[dict] | None = None,
+                        liabilities: list[dict] | None = None,
+                        period: str | None = None) -> ValidationResult:
+    """Statement of changes in equity structural checks.
+
+    Per page (current + prior):
+      - row-sum re-verification: total_equity ≈ Σ(first 13 components)
+      - total_equity column chain: III = I + II; closing = III + IV + … + XI
+    Cross-checks (skip when anchor missing):
+      - row IV total_equity == OCI III amount (total comprehensive income)
+      - closing total_equity == BS liabilities equity (matched by label)
+      - opening == prior-closing, only for Q4 partitions
+    """
+    res = ValidationResult()
+    if not eq_rows:
+        res.add_skip()
+        return res
+
+    cur_rows  = [r for r in eq_rows if r.get("period_type") == "current"]
+    pri_rows  = [r for r in eq_rows if r.get("period_type") == "prior"]
+
+    _COL_FIELDS = [
+        "paid_in_capital", "share_premium", "share_cancellation_profits",
+        "other_capital_reserves",
+        "oci_not_reclassified_1", "oci_not_reclassified_2", "oci_not_reclassified_3",
+        "oci_reclassified_1", "oci_reclassified_2", "oci_reclassified_3",
+        "profit_reserves", "prior_period_profit_loss", "period_net_profit_loss",
+    ]
+
+    def _check_page(rows: list[dict], ptype: str) -> None:
+        if not rows:
+            res.add_skip()
+            return
+        # Row-sum re-verification
+        for r in rows:
+            total = r.get("total_equity")
+            if total is None:
+                res.add_skip()
+                continue
+            comp = [r.get(f) for f in _COL_FIELDS if r.get(f) is not None]
+            if not comp:
+                res.add_skip()
+                continue
+            tol = max(len(comp) * 3.0, abs(total) * 5e-5)
+            if abs(sum(comp) - total) <= tol:
+                res.add_pass()
+            else:
+                name = r.get("item_name", "")[:50]
+                res.add_fail("eq_row_sum", f"{ptype} row '{name}': total ≠ Σ components",
+                             expected=total, actual=sum(comp))
+        # Column chain on total_equity: III = I + II
+        r1 = _eq_roman(rows, 1)
+        r2 = _eq_roman(rows, 2)
+        r3 = _eq_roman(rows, 3)
+        if r1 and r2 and r3:
+            t1 = r1.get("total_equity")
+            t2 = r2.get("total_equity")
+            t3 = r3.get("total_equity")
+            if t1 is not None and t2 is not None and t3 is not None:
+                tol = _tol(t3, base=3.0, rel=5e-5)
+                if abs((t1 + t2) - t3) <= tol:
+                    res.add_pass()
+                else:
+                    res.add_fail("eq_col_chain", f"{ptype}: III = I + II (total_equity col)",
+                                 expected=t3, actual=t1 + t2)
+            else:
+                res.add_skip()
+        else:
+            res.add_skip()
+        # Closing chain: closing ≈ III + IV + … + XI (sum of romans 3..11)
+        closing = _eq_closing(rows)
+        if closing:
+            cl_total = closing.get("total_equity")
+            roman_sum = 0.0
+            found_any = False
+            for ord_n in range(3, 12):
+                rx = _eq_roman(rows, ord_n)
+                if rx and rx.get("total_equity") is not None:
+                    roman_sum += rx["total_equity"]
+                    found_any = True
+            if cl_total is not None and found_any:
+                tol = _tol(abs(cl_total), base=10.0, rel=5e-5)
+                if abs(roman_sum - cl_total) <= tol:
+                    res.add_pass()
+                else:
+                    res.add_fail("eq_col_chain",
+                                 f"{ptype}: closing = III+IV+…+XI (total_equity col)",
+                                 expected=cl_total, actual=roman_sum)
+            else:
+                res.add_skip()
+        else:
+            res.add_skip()
+
+    _check_page(cur_rows, "current")
+    _check_page(pri_rows, "prior")
+
+    # Cross-check: row IV total_equity == OCI III amount
+    if oci_rows:
+        r4 = _eq_roman(cur_rows, 4)
+        oci_roman: dict[int, float] = {}
+        for r in oci_rows:
+            h = (r.get("hierarchy") or "").strip()
+            m = re.match(r'^([IVX]+)\.?$', h)
+            if m:
+                o = _roman_to_int(m.group(1))
+                a = r.get("amount")
+                if o is not None and a is not None:
+                    oci_roman.setdefault(o, a)
+        oci_iii = oci_roman.get(3)
+        r4_total = r4.get("total_equity") if r4 else None
+        if r4_total is not None and oci_iii is not None:
+            tol = _tol(abs(oci_iii), base=3.0, rel=1e-4)
+            if abs(r4_total - oci_iii) <= tol:
+                res.add_pass()
+            else:
+                res.add_fail("eq_oci_cross",
+                             "equity row IV total == OCI III (total comprehensive income)",
+                             expected=oci_iii, actual=r4_total)
+        else:
+            res.add_skip()
+    else:
+        res.add_skip()
+
+    # Cross-check: closing total_equity ≈ BS equity (matched by label)
+    if liabilities:
+        closing = _eq_closing(cur_rows)
+        cl_total = closing.get("total_equity") if closing else None
+        bs_eq = next(
+            (r.get("amount_total") for r in liabilities
+             if r.get("amount_total") is not None
+             and _EQ_EQUITY_RX.search(r.get("item_name") or "")
+             and (p := _path(r.get("hierarchy"))) is not None
+             and len(p) == 1),
+            None,
+        )
+        if cl_total is not None and bs_eq is not None:
+            tol = _tol(abs(bs_eq), base=100.0, rel=0.005)
+            if abs(cl_total - bs_eq) <= tol:
+                res.add_pass()
+            else:
+                res.add_fail("eq_bs_cross",
+                             "equity closing total == BS equity (0.5% tolerance)",
+                             expected=bs_eq, actual=cl_total)
+        else:
+            res.add_skip()
+    else:
+        res.add_skip()
+
+    # Cross-check: current opening == prior closing (Q4 partitions only)
+    is_q4 = period is not None and period.endswith("Q4")
+    if is_q4 and cur_rows and pri_rows:
+        # Row I of current = opening balance
+        r1_cur = _eq_roman(cur_rows, 1)
+        cl_pri = _eq_closing(pri_rows)
+        if r1_cur and cl_pri:
+            op = r1_cur.get("total_equity")
+            cl = cl_pri.get("total_equity")
+            if op is not None and cl is not None:
+                tol = _tol(abs(cl), base=100.0, rel=1e-4)
+                if abs(op - cl) <= tol:
+                    res.add_pass()
+                else:
+                    res.add_fail("eq_open_close",
+                                 "current opening (row I) == prior closing (Q4)",
+                                 expected=cl, actual=op)
+            else:
+                res.add_skip()
+        else:
+            res.add_skip()
+    else:
+        res.add_skip()
+
     return res

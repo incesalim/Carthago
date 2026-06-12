@@ -7,15 +7,15 @@ coverage or known issues change.
 > → this file → [OPERATIONS.md](OPERATIONS.md). Metric definitions in
 > [METRICS.md](METRICS.md).
 >
-> Last verified: 2026-06-12 — **audit validator fleet complete**: all 12
-> statement types now have structural validators; 975 partitions revalidated;
-> coverage matrix 11 700 cells: **8 696 ok / 42 manual / 225 error / 2 737
-> missing** (missing = statement type not yet extracted for that partition).
-> Error breakdown by type: npl_movement 87, loans_by_sector 66, off_balance 20,
-> oci 16, stages 13, profit_loss 12, credit_quality 5, balance-sheet 4, capital 2.
-> All errors reflect genuine extraction gaps — not validator false positives
-> (false positives for NULL-flow npl_movement rows and absent group-aggregate
-> loans_by_sector rows were fixed and re-deployed in the same pass).
+> Last verified: 2026-06-12 — **cash flow + equity-change extractors added**:
+> 14 statement types in the registry (2 new: `cash_flow` sort_order=38,
+> `equity_change` sort_order=36). Both `is_core=False` with structural validators
+> (CF roman chain V=I+II+III+IV / VII=V+VI; equity row-sum + col-chain + OCI cross
+> + BS equity cross). Fleet backfill pending (separate session) — all 975 partitions
+> show `missing` for both types until re-extracted.
+> **Prior state (2026-06-12):** audit validator fleet complete across 12 types;
+> 975 partitions revalidated; coverage matrix 11 700 cells: 8 696 ok / 42 manual /
+> 225 error / 2 737 missing.
 
 ---
 
@@ -196,6 +196,17 @@ A qualitative-data layer feeds two tabs from the `news_items` table
 
 ## Known issues / pending work
 
+- **Cash flow + equity-change extractors added (2026-06-12).** Two new statement
+  types added to the audit lane: `bank_audit_cash_flow` (sort_order=38, single-amount
+  column like OCI, roman chain V=I+II+III+IV / VII=V+VI) and `bank_audit_equity_change`
+  (sort_order=36, wide fixed-column table, 14-col unconsolidated / 16-col consolidated,
+  `period_type` = current/prior). Both `is_core=False`. Structural validators added for
+  both; unit-test suite now 57 tests. Migration `0010_cash_flow_equity_change.sql` adds
+  both tables + 2 extractions-log columns. Extractor modules: `equity_change.py` (new,
+  pdfplumber/fitz dual-vote, positional column mapping, row-gate); `extractor.py` +
+  `loader.py` updated. D1 plumbing: push_to_d1, audit_d1, refresh-audit.yml all updated.
+  **Fleet backfill pending** (separate session, `backfill_extraction.py` 5-bank chunks);
+  all 975 partitions show `missing` for both types until backfilled.
 - **All-statement validators complete (2026-06-12).** Six-phase plan shipped:
   OCI extraction + validator (Phase 1); off-balance structural validator (Phase 2);
   §4 capital + liquidity validators surfaced to the coverage matrix (Phase 3);
@@ -214,7 +225,7 @@ A qualitative-data layer feeds two tabs from the `news_items` table
   Off-balance: 20 partitions across 7 banks (ALNTF column-alignment, TEB year-end
   format, ZIRAAT 2025Q4/2026Q1 new). ISCTR 2025Q1/Q2 capital CAR=100.0 = 2 genuine
   extraction errors. Dashboard surfacing of §4 capital/liquidity cross-bank view
-  remains an open follow-up. Unit-test suite: 45 tests passing (`pytest`).
+  remains an open follow-up.
 - **P&L flow Sankey shipped (2026-06-12)** — on `/banks/[ticker]` (Income
   Statement view, above the table): a hand-rolled SVG Sankey of the selected
   period's P&L, YTD as reported. Pure derivation + layout in

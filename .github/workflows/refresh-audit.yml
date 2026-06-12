@@ -169,7 +169,7 @@ jobs:
         # bank_audit_* tables; everything else is owned by the bulletin pipeline.
         run: >
           python scripts/push_to_d1.py --db data/bank_audit.db --hours 168
-          --only-tables bank_audit_balance_sheet,bank_audit_profit_loss,bank_audit_oci,bank_audit_credit_quality,bank_audit_profile,bank_audit_loans_by_sector,bank_audit_npl_movement,bank_audit_stages,bank_audit_capital,bank_audit_liquidity,bank_audit_extractions,bank_audit_validation
+          --only-tables bank_audit_balance_sheet,bank_audit_profit_loss,bank_audit_oci,bank_audit_cash_flow,bank_audit_equity_change,bank_audit_credit_quality,bank_audit_profile,bank_audit_loans_by_sector,bank_audit_npl_movement,bank_audit_stages,bank_audit_capital,bank_audit_liquidity,bank_audit_extractions,bank_audit_validation
 
       - name: Sync coverage spine to D1 (expected universe + registry + rollup)
         env:

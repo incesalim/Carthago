@@ -68,6 +68,63 @@ CREATE INDEX IF NOT EXISTS idx_bank_oci_bank_period
   ON bank_audit_oci(bank_ticker, period);
 
 
+-- Cash flow statement — single-column format like P&L/OCI (current period only).
+-- Hierarchy: A./B./C. section headers (no values, not stored); numerics
+-- 1.1…1.2.10, 2.x, 3.x; romans I.–VII. Follows the equity-change pages.
+CREATE TABLE IF NOT EXISTS bank_audit_cash_flow (
+    bank_ticker TEXT NOT NULL,
+    period      TEXT NOT NULL,
+    kind        TEXT NOT NULL,
+    item_order  INTEGER NOT NULL,
+    hierarchy   TEXT,
+    item_name   TEXT NOT NULL,
+    footnote    TEXT,
+    amount      REAL,
+    PRIMARY KEY (bank_ticker, period, kind, item_order)
+);
+
+CREATE INDEX IF NOT EXISTS idx_bank_cf_bank_period
+  ON bank_audit_cash_flow(bank_ticker, period);
+
+
+-- Statement of changes in equity — wide BRSA template.
+-- 14 value columns (unconsolidated) or 16 (consolidated: +minority +grand total).
+-- Two pages per report: period_type 'current' | 'prior'. Amounts in thousand TRY.
+-- Column mapping is positional by modal token count clamped to {14, 16};
+-- every accepted row satisfies total_equity ≈ Σ(13 components).
+CREATE TABLE IF NOT EXISTS bank_audit_equity_change (
+    bank_ticker                TEXT NOT NULL,
+    period                     TEXT NOT NULL,
+    kind                       TEXT NOT NULL,
+    period_type                TEXT NOT NULL,
+    item_order                 INTEGER NOT NULL,
+    hierarchy                  TEXT,
+    item_name                  TEXT NOT NULL,
+    paid_in_capital            REAL,
+    share_premium              REAL,
+    share_cancellation_profits REAL,
+    other_capital_reserves     REAL,
+    oci_not_reclassified_1     REAL,
+    oci_not_reclassified_2     REAL,
+    oci_not_reclassified_3     REAL,
+    oci_reclassified_1         REAL,
+    oci_reclassified_2         REAL,
+    oci_reclassified_3         REAL,
+    profit_reserves            REAL,
+    prior_period_profit_loss   REAL,
+    period_net_profit_loss     REAL,
+    total_equity               REAL,
+    minority_interest          REAL,
+    total_equity_incl_minority REAL,
+    source_page                INTEGER,
+    extracted_at               TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (bank_ticker, period, kind, period_type, item_order)
+);
+
+CREATE INDEX IF NOT EXISTS idx_bank_eq_bank_period
+  ON bank_audit_equity_change(bank_ticker, period);
+
+
 CREATE TABLE IF NOT EXISTS bank_audit_extractions (
     bank_ticker          TEXT NOT NULL,
     period               TEXT NOT NULL,
@@ -404,6 +461,9 @@ _COLUMN_MIGRATIONS: list[tuple[str, str, str]] = [
     ("bank_audit_extractions", "rows_credit_quality", "INTEGER"),
     # Added 2026-06-12: OCI (Other Comprehensive Income) extraction.
     ("bank_audit_extractions", "rows_oci", "INTEGER"),
+    # Added 2026-06-12: cash flow + equity-change extraction.
+    ("bank_audit_extractions", "rows_cash_flow", "INTEGER"),
+    ("bank_audit_extractions", "rows_equity_change", "INTEGER"),
 ]
 
 

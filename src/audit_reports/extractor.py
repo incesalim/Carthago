@@ -364,6 +364,10 @@ class BankReport:
     # liquidity.py) carrying rows + source_page; persisted by upsert_report.
     capital: object = None
     liquidity: object = None
+    # Cash flow statement — single-column like OCI (current period only).
+    cash_flow: list[StatementRow] = field(default_factory=list)
+    # Statement of changes in equity — wide BRSA template, two pages.
+    equity_change: object = None
 
 
 def _split_label(label: str) -> tuple[str, str, str]:
@@ -959,6 +963,34 @@ def _locate_oci_page(pdf, pl_page_idx_1: int | None) -> int | None:
     return None
 
 
+def _locate_cash_flow_page(pdf, start_page_idx_1: int | None) -> int | None:
+    """Find the cash flow statement page.
+
+    Searches pages start+1 … start+8 for the cash flow anchor keywords, then
+    confirms the page has at least 2 numeric data rows. The cash flow follows
+    the two equity-change pages (which follow OCI, which follows P&L).
+    """
+    if start_page_idx_1 is None:
+        return None
+    _CF_NORMS = ("NAKITAKIS", "STATEMENTOFCASHFLOWS", "CASHFLOWSTATEMENT",
+                 "STATEMENTOFCASHFLOW")
+    for i in range(start_page_idx_1 + 1, min(start_page_idx_1 + 9, len(pdf.pages) + 1)):
+        page = pdf.pages[i - 1]
+        text = page.extract_text() or ""
+        norm = _norm(text)
+        if not any(kw in norm for kw in _CF_NORMS):
+            continue
+        # Require at least 2 numeric data rows (hierarchy-preceded lines)
+        data_rows = sum(
+            1 for ln in text.split("\n")
+            if re.match(r'^\s*(?:[IVX]+\.|[A-Z]\.|[0-9]+[.\s])', ln)
+            and re.search(r'\d{3,}', ln)
+        )
+        if data_rows >= 2:
+            return i
+    return None
+
+
 def extract(pdf_path: str | Path) -> BankReport:
     """Parse one BRSA-format audit report. Returns a BankReport with rows populated."""
     pdf_path = str(pdf_path)
@@ -1060,6 +1092,27 @@ def extract(pdf_path: str | Path) -> BankReport:
                     rep.other_comprehensive_income.append(StatementRow(
                         order=order, hierarchy=h, name=name, footnote=fn,
                         cur_amount=vals[0], pri_amount=vals[oci_n // 2],
+                    ))
+            # Equity-change pages follow OCI (or P&L when OCI is absent).
+            try:
+                from .equity_change import extract_from_pdf as _extract_eq
+                rep.equity_change = _extract_eq(pdf, pdf_path, oci_page or loc.get('pl'))
+            except Exception:
+                rep.equity_change = None
+            # Cash flow follows the equity-change pages. Use the OCI anchor as
+            # the search window start when equity extraction failed to locate pages.
+            _eq_last = None
+            if rep.equity_change and getattr(rep.equity_change, 'rows', []):
+                _eq_last = max((r.source_page for r in rep.equity_change.rows), default=None)
+            cf_start = _eq_last or oci_page or loc.get('pl')
+            cf_page = _locate_cash_flow_page(pdf, cf_start)
+            if cf_page:
+                cf_n = _detect_pl_ncols(pdf_path, cf_page)
+                for order, (label, vals) in enumerate(_parse_page(pdf_path, cf_page, cf_n), 1):
+                    h, name, fn = _split_label(label)
+                    rep.cash_flow.append(StatementRow(
+                        order=order, hierarchy=h, name=name, footnote=fn,
+                        cur_amount=vals[0], pri_amount=vals[cf_n // 2],
                     ))
     return rep
 
