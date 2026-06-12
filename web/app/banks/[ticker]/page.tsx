@@ -29,6 +29,7 @@ import { newsByTicker } from "@/app/lib/news";
 import { bankOwnership } from "@/app/lib/kap";
 import BankCard from "@/app/components/BankCard";
 import OwnershipCard from "@/app/components/OwnershipCard";
+import OwnershipRadial from "@/app/components/OwnershipRadial";
 import SubsidiariesCard from "@/app/components/SubsidiariesCard";
 import CopyTableButton from "@/app/components/CopyTableButton";
 import {
@@ -324,6 +325,9 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
 
       {/* Ownership structure from the KAP Genel Bilgi Formu (weekly refresh) */}
       <OwnershipCard rows={ownership} />
+
+      {/* Interactive radial map: shareholders → bank → subsidiaries */}
+      <OwnershipRadial ticker={ticker} rows={ownership} />
 
       {/* Subsidiaries / financial investments (same form, §7) */}
       <SubsidiariesCard rows={ownership} />

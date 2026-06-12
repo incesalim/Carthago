@@ -21,6 +21,7 @@ const TABS = [
   { href: "/rates", label: "Rates" },
   { href: "/banks", label: "Banks" },
   { href: "/cross-bank", label: "Compare" },
+  { href: "/ownership", label: "Ownership" },
   { href: "/regulation", label: "Regulation" },
   { href: "/news", label: "News" },
 ];

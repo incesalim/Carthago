@@ -9,7 +9,14 @@ const eslintConfig = [
   ...nextCoreWebVitals,
   ...nextTypescript,
   {
-    ignores: [".next/**", "out/**", "build/**", ".open-next/**", "next-env.d.ts"],
+    ignores: [
+      ".next/**",
+      "out/**",
+      "build/**",
+      ".open-next/**",
+      ".wrangler/**",
+      "next-env.d.ts",
+    ],
   },
 ];
 
