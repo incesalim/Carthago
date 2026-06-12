@@ -1019,11 +1019,24 @@ def extract(pdf_path: str | Path) -> BankReport:
                     pri_tl=vals[3], pri_fc=vals[4], pri_total=vals[5],
                 ))
         if 'off_bs' in loc:
-            for order, (label, vals) in enumerate(_parse_page(pdf_path, loc['off_bs'], 6), 1):
+            _off_order = 0
+            for label, vals in _parse_page(pdf_path, loc['off_bs'], 6):
                 h, name, fn = _split_label(label)
+                cur_tot = vals[2]
+                # Drop section-level rows (depth-1: single roman or letter) that
+                # have a suspiciously small non-zero total — these are table-header
+                # lines whose column positions happen to align with date fragments
+                # (e.g. "31.03.2022 31.12.2021" → 31.03 / 202 / 2 in the TL/FC/
+                # Total slots) and section-reference numbers ("III-a-2,3" → 105/4/
+                # 305).  All legitimate depth-1 section totals for any Turkish bank
+                # are in at least the millions of TRY.
+                if (h and re.fullmatch(r'[IVX]+\.|[A-Z]\.', h)
+                        and cur_tot is not None and 0 < abs(cur_tot) < 1_000):
+                    continue
+                _off_order += 1
                 rep.off_balance.append(StatementRow(
-                    order=order, hierarchy=h, name=name, footnote=fn,
-                    cur_tl=vals[0], cur_fc=vals[1], cur_total=vals[2],
+                    order=_off_order, hierarchy=h, name=name, footnote=fn,
+                    cur_tl=vals[0], cur_fc=vals[1], cur_total=cur_tot,
                     pri_tl=vals[3], pri_fc=vals[4], pri_total=vals[5],
                 ))
         if 'pl' in loc:
