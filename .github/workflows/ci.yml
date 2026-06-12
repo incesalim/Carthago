@@ -31,7 +31,7 @@ jobs:
         run: pytest
 
   web:
-    name: Web — eslint + tsc
+    name: Web — eslint + tsc + vitest
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults:
@@ -50,3 +50,5 @@ jobs:
         run: npm run lint
       - name: Type-check
         run: npx tsc --noEmit
+      - name: Unit tests
+        run: npm run test

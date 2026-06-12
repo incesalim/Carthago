@@ -21,6 +21,7 @@ import {
   balanceSheetMultiPeriod,
   balanceSheetLineNames,
   profitLossMultiPeriod,
+  profitLossRowsMultiPeriod,
   bankProfile,
   bankStagesLatest,
   validationByPeriod,
@@ -30,6 +31,7 @@ import { bankOwnership } from "@/app/lib/kap";
 import BankCard from "@/app/components/BankCard";
 import OwnershipCard from "@/app/components/OwnershipCard";
 import OwnershipRadial from "@/app/components/OwnershipRadial";
+import PlSankeySection from "@/app/components/PlSankeySection";
 import SubsidiariesCard from "@/app/components/SubsidiariesCard";
 import CopyTableButton from "@/app/components/CopyTableButton";
 import {
@@ -198,11 +200,14 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   ).sort().reverse();
   const periods = pickPeriods(allPeriods, view, 4);
 
-  const [bsPivot, bsNames, plPivot, kapItems, profile, stages, validation, ownership] =
+  const [bsPivot, bsNames, plPivot, plRows, kapItems, profile, stages, validation, ownership] =
     await Promise.all([
       balanceSheetMultiPeriod(ticker, kind, periods),
       balanceSheetLineNames(ticker, kind, periods),
       profitLossMultiPeriod(ticker, kind, periods),
+      statement === "is"
+        ? profitLossRowsMultiPeriod(ticker, kind, periods)
+        : Promise.resolve({}),
       newsByTicker(ticker, 12),
       bankProfile(ticker),
       bankStagesLatest(ticker, kind),
@@ -432,7 +437,10 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
       </section>
       )}
 
-      {/* Income Statement */}
+      {/* Income Statement — flow Sankey above the standardized table */}
+      {statement === "is" && (
+        <PlSankeySection rowsByPeriod={plRows} periods={periods} />
+      )}
       {statement === "is" && (
       <section className="group rounded-lg border bg-card shadow-sm overflow-hidden">
         <div className="px-5 py-3 border-b bg-muted flex items-center justify-between">
