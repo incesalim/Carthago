@@ -70,7 +70,7 @@ def _pl_bottomline_check(conn, b, p, k) -> int:
         (b, p, k)) if r[0] is not None]
     bs_net = conn.execute(
         "SELECT amount_total FROM bank_audit_balance_sheet WHERE bank_ticker=? AND period=? AND kind=? "
-        "AND statement='liabilities' AND hierarchy='16.6.2'", (b, p, k)).fetchone()
+        "AND statement='liabilities' AND hierarchy IN ('16.6.2','14.6.2')", (b, p, k)).fetchone()
     if cands and bs_net and bs_net[0] is not None:
         if any(abs(c - bs_net[0]) <= 1 for c in cands):
             print(f"    [pl] bottom line OK: P&L net = BS 16.6.2 ({bs_net[0]:,.0f})")
