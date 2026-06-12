@@ -733,7 +733,13 @@ def check_stages(rows: list[dict]) -> ValidationResult:
 # ===========================================================================
 
 def check_npl_movement(rows: list[dict]) -> ValidationResult:
-    """NPL movement: opening + flows = closing, per BRSA group (III/IV/V)."""
+    """NPL movement: opening + flows = closing, per BRSA group (III/IV/V).
+
+    Skip a group row when write_offs, sold, or transfers_out is NULL: those
+    columns are often not extracted (extractor gap) and treating them as 0
+    causes false failures when they are genuinely non-zero in the report.
+    fx_diff is treated as 0 when NULL — it's absent in most BRSA formats.
+    """
     res = ValidationResult()
     cur = [r for r in rows if r.get("period_type") == "current"]
     if not cur:
@@ -745,12 +751,16 @@ def check_npl_movement(rows: list[dict]) -> ValidationResult:
         if op is None or cl is None:
             res.add_skip()
             continue
+        # Can't verify the equation when key flow columns are missing
+        if r.get("write_offs") is None or r.get("sold") is None or r.get("transfers_out") is None:
+            res.add_skip()
+            continue
         additions   = r.get("additions")    or 0.0
         t_in        = r.get("transfers_in") or 0.0
-        t_out       = r.get("transfers_out") or 0.0
+        t_out       = r["transfers_out"]
         collections = r.get("collections")  or 0.0
-        writeoffs   = r.get("write_offs")   or 0.0
-        sold        = r.get("sold")         or 0.0
+        writeoffs   = r["write_offs"]
+        sold        = r["sold"]
         fx          = r.get("fx_diff")      or 0.0
         implied = op + additions + t_in - t_out - collections - writeoffs - sold + fx
         tol = _tol(abs(cl), base=100.0, rel=0.002)
