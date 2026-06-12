@@ -256,6 +256,17 @@ def validate_statement(rows: list[dict]) -> ValidationResult:
     return res
 
 
+def validate_off_balance(rows: list[dict]) -> ValidationResult:
+    """Off-balance row triplets only.
+
+    Off-balance sheets use I./II./III. roman top-level rows with sub-items
+    numbered 1.x / 1.x.y that skip intermediate aggregation levels (e.g.
+    there is no '1.1' row bridging 'I.' and '1.1.1'). This makes the generic
+    parent=Σchildren check fire spuriously.  Only TL+FC=Total is reliable.
+    """
+    return check_row_triplets(rows)
+
+
 def rows_from_statement_rows(stmt_rows) -> list[dict]:
     """Adapt extractor.StatementRow objects to validator dicts."""
     return [{
@@ -431,7 +442,7 @@ def validate_report(rep) -> dict[str, ValidationResult]:
         "liabilities": validate_statement(liabilities),
         "cross": check_cross_statement(assets, liabilities),
         "profit_loss": check_profit_loss(pl, liabilities),
-        "off_balance": validate_statement(off_balance),
+        "off_balance": validate_off_balance(off_balance),
         "oci": check_oci(oci, pl),
     }
 

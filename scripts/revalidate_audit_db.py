@@ -195,7 +195,7 @@ def main() -> int:
             "liabilities": v.validate_statement(liab),
             "cross":       v.check_cross_statement(assets, liab),
             "profit_loss": v.check_profit_loss(pl, liab),
-            "off_balance": v.validate_statement(off_bs),
+            "off_balance": v.validate_off_balance(off_bs),
             "oci":         v.check_oci(oci, pl),
         }
 
