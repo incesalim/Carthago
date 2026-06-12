@@ -74,7 +74,19 @@ SYNC_TABLES = [
     "tefas_category_daily",
     "tefas_allocation_daily",
     "tefas_top_funds",
+    "bank_audit_expected",
+    "bank_audit_statement_types",
+    "bank_audit_coverage",
 ]
+
+# Precomputed rollups with no per-row timestamp: scripts/sync_audit_expected.py
+# rebuilds them wholesale, so the push clears the D1 table and re-inserts every
+# row (a `--hours` window doesn't apply). Pushed only when named in --only-tables.
+_FULL_REBUILD = {
+    "bank_audit_expected",
+    "bank_audit_statement_types",
+    "bank_audit_coverage",
+}
 
 BATCH_SIZE = 100  # rows per INSERT statement (default for skinny tables)
 # news_items can carry multi-KB body_text per row — batch much smaller so a
@@ -99,7 +111,12 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int) -> list[str]:
     cols = [c[1] for c in conn.execute(f"PRAGMA table_info({table})")]
     col_list = ",".join(cols)
 
-    if "downloaded_at" in cols:
+    # Full-rebuild rollups: push every row, prefixed by a DELETE so D1 can't keep
+    # rows for partitions that are no longer expected (idempotent re-sync).
+    full_rebuild = table in _FULL_REBUILD
+    if full_rebuild:
+        where = ""
+    elif "downloaded_at" in cols:
         where = f"WHERE downloaded_at >= datetime('now', '-{hours} hours')"
     elif table == "news_items":
         where = f"WHERE fetched_at >= datetime('now', '-{hours} hours')"
@@ -133,10 +150,13 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int) -> list[str]:
         return [f"-- {table}: no time column, skipped"]
 
     n = conn.execute(f"SELECT COUNT(*) FROM {table} {where}").fetchone()[0]
-    if n == 0:
+    if n == 0 and not full_rebuild:
         return [f"-- {table}: no rows in last {hours}h"]
 
-    out: list[str] = [f"-- {table}: {n} rows from last {hours}h"]
+    if full_rebuild:
+        out: list[str] = [f"-- {table}: full rebuild, {n} rows", f"DELETE FROM {table};"]
+    else:
+        out = [f"-- {table}: {n} rows from last {hours}h"]
     batch: list[str] = []
     batch_size = BATCH_SIZE_PER_TABLE.get(table, BATCH_SIZE)
     repair = table in _MOJIBAKE_TABLES
