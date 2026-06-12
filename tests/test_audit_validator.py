@@ -126,6 +126,136 @@ def test_upsert_validation_roundtrip():
     assert n == 1
 
 
+# --- P&L (income statement) validation ------------------------------------
+
+def _pl(h, name, amount, scale=1000):
+    """Single-column income-statement row (amount ×1000 for corpus scale)."""
+    return {"hierarchy": h, "item_name": name, "amount": amount * scale}
+
+
+def _clean_pl():
+    """Minimal BDDK income statement satisfying the full roman chain:
+    I=200, II=50 → III=150; +IV..VII(65) → VIII=215; −IX..XII(55) → XIII=160;
+    +XIV..XVI(0) → XVII=160; +XVIII(tax −30) → XIX=130; +XXIV(0) → XXV=130."""
+    return [
+        _pl("I.", "FAİZ GELİRLERİ", 200),
+        _pl("II.", "FAİZ GİDERLERİ (-)", 50),
+        _pl("III.", "NET FAİZ GELİRİ", 150),
+        _pl("IV.", "NET ÜCRET VE KOMİSYON GELİRLERİ", 10),
+        _pl("V.", "TEMETTÜ GELİRLERİ", 20),
+        _pl("VI.", "TİCARİ KÂR/ZARAR (Net)", 30),
+        _pl("VII.", "DİĞER FAALİYET GELİRLERİ", 5),
+        _pl("VIII.", "FAALİYET GELİRLERİ TOPLAMI", 215),
+        _pl("IX.", "BEKLENEN ZARAR KARŞILIKLARI (-)", 40),
+        _pl("X.", "DİĞER KARŞILIKLAR (-)", 10),
+        _pl("XI.", "PERSONEL GİDERLERİ (-)", 5),
+        _pl("XII.", "DİĞER FAALİYET GİDERLERİ (-)", 0),
+        _pl("XIII.", "NET FAALİYET KÂRI/ZARARI", 160),
+        _pl("XIV.", "BİRLEŞME İŞLEMİ SONRASI GELİR", 0),
+        _pl("XV.", "ÖZKAYNAK YÖNTEMİ UYGULANAN ORTAKLIK", 0),
+        _pl("XVI.", "NET PARASAL POZİSYON KÂRI/ZARARI", 0),
+        _pl("XVII.", "VERGİ ÖNCESİ KÂR/ZARAR", 160),
+        _pl("XVIII.", "VERGİ KARŞILIĞI (±)", 30),   # positive magnitude (tax expense)
+        _pl("XIX.", "SÜRDÜRÜLEN FAALİYETLER DÖNEM NET K/Z", 130),
+        _pl("XXIV.", "DURDURULAN FAALİYETLER DÖNEM NET K/Z", 0),
+        _pl("XXV.", "DÖNEM NET KÂR/ZARARI", 130),
+    ]
+
+
+def test_clean_pl_chain_passes():
+    res = v.check_pl_chain(_clean_pl())
+    assert res.failed == 0, res.failures
+    assert res.passed == 6  # all six roman identities run and foot
+
+
+def test_pl_full_passes_with_bottomline():
+    li = [_row("16.6.2", "Net Dönem Kârı/Zararı", 70, 60, 130)]
+    res = v.check_profit_loss(_clean_pl(), li)
+    assert res.failed == 0, res.failures
+    assert res.passed == 7  # 6 chain + 1 bottom-line
+
+
+def test_pl_broken_subtotal_fails():
+    rows = _clean_pl()
+    for r in rows:  # corrupt VIII — a dropped or mis-summed operating-income line
+        if r["hierarchy"] == "VIII.":
+            r["amount"] = 999 * 1000
+    res = v.check_pl_chain(rows)
+    assert any(f["check"] == "pl_chain" and "8" in f["node"] for f in res.failures)
+
+
+def test_pl_bottomline_mismatch_fails():
+    li = [_row("16.6.2", "Net Dönem Kârı/Zararı", 50, 40, 90)]  # BS equity ≠ P&L net 130
+    res = v.check_pl_bottomline(_clean_pl(), li)
+    assert res.failed == 1
+
+
+def test_pl_participation_equity_numeral():
+    """Participation banks carry equity at XIV. → net profit row 14.6.2."""
+    li = [_row("14.6.2", "Net Dönem Kârı/Zararı", 70, 60, 130)]
+    res = v.check_pl_bottomline(_clean_pl(), li)
+    assert res.failed == 0
+
+
+def test_pl_paren_negative_deduction_storage_passes():
+    """ING/KLNMA-style: a deduction roman stored as a parenthesised NEGATIVE.
+    −abs lands on the same contribution as the positive-magnitude convention."""
+    rows = _clean_pl()
+    for r in rows:  # store interest expense (II) and ECL (IX) as negatives
+        if r["hierarchy"] in ("II.", "IX.", "X.", "XI.", "XII."):
+            r["amount"] = -abs(r["amount"])
+    res = v.check_pl_chain(rows)
+    assert res.failed == 0, res.failures
+
+
+def test_pl_tax_benefit_direction_passes():
+    """A net tax BENEFIT (XIX > XVII) — the ± tax step accepts either side."""
+    rows = _clean_pl()
+    for r in rows:
+        if r["hierarchy"] == "XIX.":
+            r["amount"] = 190 * 1000   # 160 pre-tax + 30 benefit
+    res = v.check_pl_chain(rows)
+    assert all(f["node"] != "roman 19 identity" for f in res.failures), res.failures
+
+
+def test_pl_numeric_artifact_does_not_shadow_roman():
+    """A junk numeric "1" row (a captured "1 OCAK…" period-header fragment) must
+    NOT shadow roman I — collection is restricted to roman-form hierarchies."""
+    rows = [{"hierarchy": "1", "item_name": "OCAK", "amount": 0.0}] + _clean_pl()
+    res = v.check_pl_chain(rows)
+    assert res.failed == 0, res.failures
+
+
+def test_pl_roman_title_row_does_not_shadow_subtotal():
+    """A roman-form TITLE row ('III. STATEMENT OF PROFIT OR LOSS', stray note
+    number as amount) above the body must not shadow the real III — the spine
+    keeps the longest in-sequence run."""
+    rows = [{"hierarchy": "III.", "item_name": "STATEMENT OF PROFIT OR LOSS", "amount": 202.0}] + _clean_pl()
+    res = v.check_pl_chain(rows)
+    assert res.failed == 0, res.failures
+
+
+def test_pl_mixed_convention_passes():
+    """TFKB-style: interest expense II stored as a positive magnitude, but the
+    IX–XII expense block stored parenthesised-NEGATIVE in the same statement.
+    Accept-either foots both the II identity and the XIII identity."""
+    rows = _clean_pl()
+    for r in rows:
+        if r["hierarchy"] in ("IX.", "X.", "XI.", "XII."):
+            r["amount"] = -abs(r["amount"])   # paren-negative block; II stays positive
+    res = v.check_pl_chain(rows)
+    assert res.failed == 0, res.failures
+
+
+def test_pl_incomplete_chain_skips_not_fails():
+    """A P&L missing optional source romans skips the affected identity rather
+    than false-failing (VIII loses its IV–VII sources)."""
+    rows = [r for r in _clean_pl() if r["hierarchy"] not in ("IV.", "V.", "VI.", "VII.")]
+    res = v.check_pl_chain(rows)
+    assert res.failed == 0, res.failures
+    assert res.skipped >= 1
+
+
 def test_structure_check_reads_validation_table():
     import check_audit_quality as q
     conn = sqlite3.connect(":memory:")
