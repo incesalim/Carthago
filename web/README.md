@@ -25,8 +25,22 @@ npx wrangler d1 execute DB --remote --json --command "SELECT … LIMIT …" > ro
 npx wrangler d1 execute DB --local --file=seed.sql
 ```
 
-`npm run preview` (full Workers runtime) is broken on Windows — verify
-deployed behavior live after pushing instead.
+Seeding gotchas / shortcuts:
+
+- The local SQLite mirror `../data/bddk_data.db` is usually a faster seed
+  source than remote export: dump `CREATE TABLE` + `INSERT`s for just the
+  tables the page under test reads.
+- **Include FK-referenced tables in the seed** (e.g. `income_statement` /
+  `balance_sheet` reference `bank_types`) — otherwise the DDL fails with
+  `no such table` mid-file and the whole seed silently no-ops.
+- Server-rendered numbers can be asserted **without a browser**: client
+  components' props are embedded verbatim in the RSC payload of the HTML,
+  so `curl localhost:3000/<page>` and grep for a known value (works against
+  the live workers.dev URL too — handy for post-deploy checks).
+
+`npm run preview` (full Workers runtime) is broken on Windows — and when it
+does build, it can 500 every route with zero error output. Don't fight it;
+verify with `npm run dev` locally and live after pushing.
 
 ## Deploy
 
