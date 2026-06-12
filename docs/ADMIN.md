@@ -23,7 +23,21 @@ health**, **manual refresh triggers**, and **site traffic** into one view.
 | GitHub Actions client | `web/app/lib/github.ts` |
 | Web Analytics client | `web/app/lib/cf-analytics.ts` |
 | Page + panels + login form | `web/app/admin/{page,PipelinePanel,TrafficPanel,LoginForm}.tsx` |
-| Runs / dispatch endpoints | `web/app/api/admin/{runs,dispatch}/route.ts` |
+| Coverage matrix + drawer | `web/app/admin/coverage/{CoverageMatrix,CoverageDrawer,status}.{tsx,ts}` |
+| Coverage queries | `web/app/lib/coverage.ts` |
+| Runs / dispatch / coverage endpoints | `web/app/api/admin/{runs,dispatch,coverage}/route.ts` |
+
+### Coverage matrix
+
+For each statement type × bank × period (×kind), a cell shows
+**ok / manual / error / missing**: present and valid, hand-corrected, present but
+failing a structural identity check, or expected-but-absent. Click a cell for the
+drawer — extraction counts/note, the failing validator identities (`failed_detail`),
+a "needs manual transcription" hint when a PDF exists but no rows were extracted, and
+a per-bank re-extract trigger. Data comes from `bank_audit_coverage` /
+`bank_audit_expected` / `bank_audit_statement_types`, rebuilt each `refresh-audit.yml`
+run by `scripts/sync_audit_expected.py`. The matrix is empty until the first run after
+migration `0008` applies.
 
 ## Setup
 
