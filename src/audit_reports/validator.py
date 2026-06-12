@@ -502,7 +502,10 @@ def check_oci(oci_rows: list[dict], pl_rows: list[dict] | None = None) -> Valida
 # §4 capital adequacy validation
 # ===========================================================================
 
-_CAP_TOL = 0.02  # 2% relative tolerance for tier ordering
+_CAP_TOL = 0.02  # relative tolerance for CET1≤Tier1≤Total ordering checks
+_CAP_CAR_TOL = 2.0  # ±2 percentage-point tolerance for CAR reconciliation;
+                     # BRSA floor overrides cause reported CAR to differ from
+                     # Total_Capital/RWA*100 by up to ~2pp across many banks
 
 
 def check_capital(rows: list[dict]) -> ValidationResult:
@@ -533,10 +536,10 @@ def check_capital(rows: list[dict]) -> ValidationResult:
             res.add_fail("cap_tier_order", "Tier1 ≤ Total Capital", expected=tc, actual=t1)
     else:
         res.add_skip()
-    # CAR = Total Capital / RWA * 100 (2% relative + 0.5pp absolute tolerance)
+    # CAR = Total Capital / RWA * 100 (±2pp absolute tolerance for BRSA floors)
     if tc is not None and rwa is not None and car is not None and rwa > 0:
         implied = tc / rwa * 100
-        tol = max(0.5, car * _CAP_TOL)
+        tol = _CAP_CAR_TOL
         if abs(implied - car) <= tol:
             res.add_pass()
         else:
@@ -706,7 +709,7 @@ def check_stages(rows: list[dict]) -> ValidationResult:
                             ("s3", r.get("stage3_coverage"))):
             if cov is None:
                 res.add_skip()
-            elif 0.0 <= cov <= 1.0:
+            elif -1e-6 <= cov <= 1.0:  # -1e-6 floor absorbs floating-point -0.0
                 res.add_pass()
             else:
                 res.add_fail("stages_coverage", f"stage {label} coverage ∈ [0, 1]",

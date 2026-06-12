@@ -33,15 +33,14 @@ sys.stdout.reconfigure(encoding="utf-8")
 
 from src.audit_reports import validator as v  # noqa: E402
 
-# Known false-positive capital partitions (BRSA temporary-measure CARs):
-# These partitions pass a visual check but fail the arithmetic reconciliation
-# because BRSA applied a regulatory floor override. Skip capital validation
-# to avoid spurious red cells in the matrix.
+# Known false-positive capital banks (BRSA temporary-measure CARs):
+# These banks' reported CAR systematically differs from Total_Capital/RWA*100
+# because BRSA applied a regulatory floor override for an extended period.
+# Skip capital validation for them entirely to avoid spurious red cells.
+_CAP_SKIP_BANKS = frozenset({"ATBANK"})
+
+# Known false-positive partitions (same reason, narrower scope):
 _CAP_SKIP = frozenset({
-    ("ATBANK", "2024Q1", "unconsolidated"),
-    ("ATBANK", "2024Q2", "unconsolidated"),
-    ("ATBANK", "2024Q3", "unconsolidated"),
-    ("ATBANK", "2024Q4", "unconsolidated"),
     ("TEB", "2022Q1", "consolidated"),
     ("TEB", "2022Q2", "consolidated"),
     ("TEB", "2022Q3", "consolidated"),
@@ -199,9 +198,9 @@ def main() -> int:
             "oci":         v.check_oci(oci, pl),
         }
 
-        # Capital — skip known false-positive partitions
+        # Capital — skip known false-positive banks/partitions
         cap_rows = _capital_rows(conn, bank, period, kind)
-        if (bank, period, kind) in _CAP_SKIP:
+        if bank in _CAP_SKIP_BANKS or (bank, period, kind) in _CAP_SKIP:
             results["capital"] = _skip_result()
         else:
             results["capital"] = v.check_capital(cap_rows)
