@@ -154,8 +154,94 @@ export default function NimComponentsChart({
   const fills = FILLS[t.palette[0] === "#7a0d2e" ? "light" : "dark"];
   const netColor = t.palette[0];
 
-  const order = (key: string) =>
-    key === "net" ? series.length : series.findIndex((s) => s.key === key);
+  const sign: Record<string, 1 | -1> = Object.fromEntries(
+    NIM_SERIES.map((s) => [s.key, s.sign]),
+  );
+  const incomeSeries = series.filter((s) => sign[s.key] === 1);
+  const expenseSeries = series.filter((s) => sign[s.key] === -1);
+
+  // Grouped tooltip: income block, expense block (each with a subtotal),
+  // then Net NIM — the default flat name:value list is unreadable with
+  // nine series.
+  const renderTooltip = ({
+    active,
+    payload,
+    label,
+  }: {
+    active?: boolean;
+    payload?: ReadonlyArray<{ payload?: unknown }>;
+    label?: unknown;
+  }) => {
+    if (!active || !payload?.length) return null;
+    const row = payload[0].payload as NimBarPoint;
+    const sum = (defs: NimSeriesDef[]) =>
+      defs.reduce((acc, s) => acc + (row[s.key] ?? 0), 0);
+
+    const line = (s: NimSeriesDef) => (
+      <div
+        key={s.key}
+        style={{ display: "flex", alignItems: "center", gap: 6 }}
+      >
+        <span
+          style={{
+            display: "inline-block",
+            width: 9,
+            height: 9,
+            borderRadius: 2,
+            background: fills[s.key],
+            flex: "none",
+          }}
+        />
+        <span style={{ color: t.axis }}>{s.label}</span>
+        <span style={{ marginLeft: "auto", paddingLeft: 16, fontVariantNumeric: "tabular-nums" }}>
+          {nf(row[s.key], 2)}%
+        </span>
+      </div>
+    );
+
+    const subtotal = (text: string, value: number) => (
+      <div
+        style={{
+          display: "flex",
+          fontWeight: 600,
+          marginTop: 2,
+          paddingTop: 2,
+          borderTop: `1px solid ${t.tooltipBorder}`,
+        }}
+      >
+        <span>{text}</span>
+        <span style={{ marginLeft: "auto", paddingLeft: 16, fontVariantNumeric: "tabular-nums" }}>
+          {nf(value, 2)}%
+        </span>
+      </div>
+    );
+
+    return (
+      <div style={{ ...tt.contentStyle, minWidth: 230, lineHeight: 1.7 }}>
+        <div style={tt.labelStyle}>{String(label)}</div>
+        {incomeSeries.map(line)}
+        {subtotal("Interest income", sum(incomeSeries))}
+        <div style={{ height: 6 }} />
+        {expenseSeries.map(line)}
+        {subtotal("Interest expense", sum(expenseSeries))}
+        <div
+          style={{
+            display: "flex",
+            fontWeight: 700,
+            color: netColor,
+            marginTop: 6,
+            paddingTop: 4,
+            borderTop: `2px solid ${t.tooltipBorder}`,
+          }}
+        >
+          <span>Net NIM</span>
+          <span style={{ marginLeft: "auto", paddingLeft: 16, fontVariantNumeric: "tabular-nums" }}>
+            {nf(row.net, 2)}%
+          </span>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div style={{ height }}>
@@ -182,15 +268,7 @@ export default function NimComponentsChart({
             tickLine={{ stroke: t.grid }}
           />
           <ReferenceLine y={0} stroke={t.reference} />
-          <Tooltip
-            {...tt}
-            itemSorter={(item) => order(String(item.dataKey))}
-            formatter={(value, name) => [
-              value == null ? "—" : `${nf(Number(value), 2)}%`,
-              name,
-            ]}
-            labelFormatter={(l) => String(l)}
-          />
+          <Tooltip cursor={{ fill: t.cursor }} content={renderTooltip} />
           <Legend
             wrapperStyle={{ fontSize: 11, paddingTop: 4 }}
             content={() => (
