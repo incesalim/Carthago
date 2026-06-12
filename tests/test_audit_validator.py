@@ -398,24 +398,17 @@ def test_credit_quality_section_total_fails():
     assert any(f["check"] == "cq_section_total" for f in res.failures)
 
 
-def test_credit_quality_npl_net_passes():
-    rows = [
-        _cq_row("npl_brsa_gross",     150, 200, 150, 500),  # 150+200+150=500
-        _cq_row("npl_brsa_provision", 40,  100,  60, 200),  # 40+100+60=200
-        _cq_row("npl_brsa_net",       110, 100,  90, 300),  # 110+100+90=300; 500-200=300
-    ]
-    res = v.check_credit_quality(rows)
-    assert res.failed == 0, res.failures
-
-
-def test_credit_quality_npl_net_fails():
+def test_credit_quality_npl_net_rows_dont_fail():
+    # cq_npl_net check removed: BRSA provision rows include general/collective reserves
+    # so the identity gross-prov=net is unreliable across bank presentation formats.
+    # Section total checks (S1+S2+S3=total) still run for each section.
     rows = [
         _cq_row("npl_brsa_gross",     150, 200, 150, 500),
         _cq_row("npl_brsa_provision", 40,  100,  60, 200),
-        _cq_row("npl_brsa_net",       110, 100,  90, 200),  # wrong total: 500-200=300, not 200
+        _cq_row("npl_brsa_net",       110, 100,  90, 200),  # totals match S1+S2+S3; net≠gross-prov but no check
     ]
     res = v.check_credit_quality(rows)
-    assert any(f["check"] == "cq_npl_net" for f in res.failures)
+    assert not any(f.get("check") == "cq_npl_net" for f in res.failures)
 
 
 # --- Stages validation ----------------------------------------------------
