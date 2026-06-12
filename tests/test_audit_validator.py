@@ -267,3 +267,251 @@ def test_structure_check_reads_validation_table():
     assert len(issues) == 1 and "Y 2026Q1" in issues[0]
     # absent table degrades gracefully
     assert q._structure(sqlite3.connect(":memory:")) == []
+
+
+# --- OCI (Other Comprehensive Income) validation --------------------------
+
+def _oci_row(h, name, amount, scale=1000):
+    return {"hierarchy": h, "item_name": name, "amount": amount * scale}
+
+
+def _clean_oci():
+    """Minimal valid OCI statement: I.=P&L net, II.=OCI total, III.=I+II."""
+    return [
+        _oci_row("I.",   "Dönem Kârı/Zararı",               130),
+        _oci_row("II.",  "Diğer Kapsamlı Gelir/Gider",       -20),
+        _oci_row("2.1.", "Kâr veya Zarara Sınıflandırılmayan", -15),
+        _oci_row("2.1.1.", "Aktüeryal Kazanç/Kayıplar",      -15),
+        _oci_row("2.2.", "Kâr veya Zarara Sınıflandırılan",   -5),
+        _oci_row("2.2.1.", "Kur Çevrim Farkları",             -5),
+        _oci_row("III.", "TOPLAM KAPSAMLI GELİR/GİDER",       110),
+    ]
+
+
+def test_oci_clean_passes():
+    pl = _clean_pl()
+    res = v.check_oci(_clean_oci(), pl)
+    assert res.failed == 0, res.failures
+    assert res.passed >= 3  # hierarchy sums + chain + cross-check
+
+
+def test_oci_chain_broken_fails():
+    oci = _clean_oci()
+    for r in oci:
+        if r["hierarchy"] == "III.":
+            r["amount"] = 999 * 1000  # wrong total
+    res = v.check_oci(oci)
+    assert any(f["check"] == "oci_chain" for f in res.failures)
+
+
+def test_oci_cross_check_mismatch_fails():
+    """OCI.I ≠ P&L XXV → fail oci_cross."""
+    oci = _clean_oci()
+    for r in oci:
+        if r["hierarchy"] == "I.":
+            r["amount"] = 999 * 1000  # mismatch P&L net
+    pl = _clean_pl()
+    res = v.check_oci(oci, pl)
+    assert any(f["check"] == "oci_cross" for f in res.failures)
+
+
+def test_oci_empty_skips():
+    res = v.check_oci([])
+    assert res.failed == 0 and res.skipped >= 1
+
+
+# --- Capital adequacy validation ------------------------------------------
+
+def _cap_row(**kw):
+    defaults = {
+        "period_type": "current",
+        "cet1_capital": 80_000, "tier1_capital": 100_000,
+        "total_capital": 120_000, "total_rwa": 750_000,
+        "capital_adequacy_ratio": 16.0,
+    }
+    defaults.update(kw)
+    return defaults
+
+
+def test_capital_clean_passes():
+    res = v.check_capital([_cap_row()])
+    assert res.failed == 0, res.failures
+
+
+def test_capital_cet1_exceeds_tier1_fails():
+    res = v.check_capital([_cap_row(cet1_capital=120_000, tier1_capital=100_000)])
+    assert any(f["check"] == "cap_tier_order" for f in res.failures)
+
+
+def test_capital_car_mismatch_fails():
+    # Total 120k / RWA 750k * 100 = 16.0%, but we report 20.0%
+    res = v.check_capital([_cap_row(capital_adequacy_ratio=20.0)])
+    assert any(f["check"] == "cap_car_reconcile" for f in res.failures)
+
+
+def test_capital_no_current_row_skips():
+    res = v.check_capital([_cap_row(period_type="prior")])
+    assert res.passed == 0 and res.failed == 0
+
+
+# --- Liquidity validation -------------------------------------------------
+
+def _liq_row(**kw):
+    defaults = {"period_type": "current",
+                "leverage_ratio": 8.5, "lcr_total": 145.0, "nsfr": 112.0}
+    defaults.update(kw)
+    return defaults
+
+
+def test_liquidity_clean_passes():
+    res = v.check_liquidity([_liq_row()])
+    assert res.failed == 0, res.failures
+
+
+def test_liquidity_leverage_out_of_band_fails():
+    res = v.check_liquidity([_liq_row(leverage_ratio=35.0)])
+    assert any(f["check"] == "liq_leverage_band" for f in res.failures)
+
+
+def test_liquidity_lcr_implausibly_low_fails():
+    res = v.check_liquidity([_liq_row(lcr_total=30.0)])
+    assert any(f["check"] == "liq_ratio_low" for f in res.failures)
+
+
+# --- Credit quality validation --------------------------------------------
+
+def _cq_row(section, s1, s2, s3, tot, period_type="current"):
+    return {"section": section, "period_type": period_type,
+            "stage1_amount": s1 * 1000, "stage2_amount": s2 * 1000,
+            "stage3_amount": s3 * 1000, "total_amount": tot * 1000}
+
+
+def test_credit_quality_section_total_passes():
+    rows = [_cq_row("loans_ecl", 100, 50, 30, 180)]
+    res = v.check_credit_quality(rows)
+    assert res.failed == 0, res.failures
+
+
+def test_credit_quality_section_total_fails():
+    rows = [_cq_row("loans_ecl", 100, 50, 30, 250)]  # total wrong
+    res = v.check_credit_quality(rows)
+    assert any(f["check"] == "cq_section_total" for f in res.failures)
+
+
+def test_credit_quality_npl_net_passes():
+    rows = [
+        _cq_row("npl_brsa_gross",     150, 200, 150, 500),  # 150+200+150=500
+        _cq_row("npl_brsa_provision", 40,  100,  60, 200),  # 40+100+60=200
+        _cq_row("npl_brsa_net",       110, 100,  90, 300),  # 110+100+90=300; 500-200=300
+    ]
+    res = v.check_credit_quality(rows)
+    assert res.failed == 0, res.failures
+
+
+def test_credit_quality_npl_net_fails():
+    rows = [
+        _cq_row("npl_brsa_gross",     150, 200, 150, 500),
+        _cq_row("npl_brsa_provision", 40,  100,  60, 200),
+        _cq_row("npl_brsa_net",       110, 100,  90, 200),  # wrong total: 500-200=300, not 200
+    ]
+    res = v.check_credit_quality(rows)
+    assert any(f["check"] == "cq_npl_net" for f in res.failures)
+
+
+# --- Stages validation ----------------------------------------------------
+
+def _stage_row(**kw):
+    defaults = {
+        "period_type": "current",
+        "stage1_amount": 500_000, "stage2_amount": 100_000,
+        "stage3_amount":  50_000, "total_amount":  650_000,
+        "stage1_ecl": 4_000, "stage2_ecl": 8_000, "stage3_ecl": 40_000,
+        "total_ecl": 52_000,
+        "stage1_coverage": 0.008, "stage2_coverage": 0.08,
+        "stage3_coverage": 0.80,
+    }
+    defaults.update(kw)
+    return defaults
+
+
+def test_stages_clean_passes():
+    res = v.check_stages([_stage_row()])
+    assert res.failed == 0, res.failures
+
+
+def test_stages_total_amount_fails():
+    res = v.check_stages([_stage_row(total_amount=999_000)])
+    assert any(f["check"] == "stages_total_amount" for f in res.failures)
+
+
+def test_stages_coverage_out_of_range_fails():
+    res = v.check_stages([_stage_row(stage3_coverage=1.42)])
+    assert any(f["check"] == "stages_coverage" for f in res.failures)
+
+
+def test_stages_npl100_fingerprint_fails():
+    """stage3 == total (S1+S2≈0) is the broken-extraction fingerprint."""
+    res = v.check_stages([_stage_row(
+        stage1_amount=0, stage2_amount=0,
+        stage3_amount=650_000, total_amount=650_000,
+    )])
+    assert any(f["check"] == "stages_npl100" for f in res.failures)
+
+
+# --- NPL movement validation ----------------------------------------------
+
+def _npl_row(**kw):
+    defaults = {
+        "group_code": "III", "period_type": "current",
+        "opening_balance": 100_000, "additions": 30_000,
+        "transfers_in": 0, "transfers_out": 0,
+        "collections": 10_000, "write_offs": 5_000,
+        "sold": 0, "fx_diff": 0,
+        "closing_balance": 115_000,  # 100+30-10-5 = 115
+    }
+    defaults.update(kw)
+    return defaults
+
+
+def test_npl_movement_clean_passes():
+    res = v.check_npl_movement([_npl_row()])
+    assert res.failed == 0, res.failures
+
+
+def test_npl_movement_broken_fails():
+    res = v.check_npl_movement([_npl_row(closing_balance=200_000)])
+    assert any(f["check"] == "npl_movement" for f in res.failures)
+
+
+# --- Loans by sector validation -------------------------------------------
+
+def _sector_row(sector, s2, s3, ecl, period_type="current"):
+    return {"sector": sector, "period_type": period_type,
+            "stage2_amount": s2 * 1000, "stage3_amount": s3 * 1000,
+            "ecl_amount": ecl * 1000}
+
+
+def test_loans_by_sector_passes():
+    rows = [
+        _sector_row("agri_total", 10, 5, 3),
+        _sector_row("mfg_total", 20, 10, 6),
+        _sector_row("construction", 5, 3, 2),
+        _sector_row("svc_total", 30, 15, 9),
+        _sector_row("other", 5, 2, 1),
+        _sector_row("total", 70, 35, 21),
+    ]
+    res = v.check_loans_by_sector(rows)
+    assert res.failed == 0, res.failures
+
+
+def test_loans_by_sector_fails():
+    rows = [
+        _sector_row("agri_total", 10, 5, 3),
+        _sector_row("mfg_total", 20, 10, 6),
+        _sector_row("construction", 5, 3, 2),
+        _sector_row("svc_total", 30, 15, 9),
+        _sector_row("other", 5, 2, 1),
+        _sector_row("total", 999, 999, 999),  # wrong totals
+    ]
+    res = v.check_loans_by_sector(rows)
+    assert res.failed > 0

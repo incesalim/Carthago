@@ -420,13 +420,394 @@ def upsert_validation(conn, bank: str, period: str, kind: str,
 
 
 def validate_report(rep) -> dict[str, ValidationResult]:
-    """Validate one extracted BankReport (assets, liabilities, cross, P&L)."""
+    """Validate one extracted BankReport (assets, liabilities, cross, P&L, off-balance, OCI)."""
     assets = rows_from_statement_rows(rep.bs_assets)
     liabilities = rows_from_statement_rows(rep.bs_liabilities)
+    off_balance = rows_from_statement_rows(rep.off_balance)
     pl = rows_from_pl_statement_rows(rep.profit_loss)
+    oci = rows_from_pl_statement_rows(getattr(rep, "other_comprehensive_income", []))
     return {
         "assets": validate_statement(assets),
         "liabilities": validate_statement(liabilities),
         "cross": check_cross_statement(assets, liabilities),
         "profit_loss": check_profit_loss(pl, liabilities),
+        "off_balance": validate_statement(off_balance),
+        "oci": check_oci(oci, pl),
     }
+
+
+# ===========================================================================
+# OCI (Other Comprehensive Income) validation
+# ===========================================================================
+
+def check_oci(oci_rows: list[dict], pl_rows: list[dict] | None = None) -> ValidationResult:
+    """OCI: numeric hierarchy sums (2.1/2.2 trees) + roman chain III=I+II +
+    cross-check OCI.I == P&L net (row XXV)."""
+    res = ValidationResult()
+    if not oci_rows:
+        res.add_skip()
+        return res
+    # check_hierarchy_sums expects "amount_total" — adapt the single-column OCI rows
+    oci_adapted = [{"hierarchy": r.get("hierarchy"), "item_name": r.get("item_name"),
+                    "amount_total": r.get("amount")} for r in oci_rows]
+    res.merge(check_hierarchy_sums(oci_adapted))
+    # Roman chain III = I + II  (the TOPLAM KAPSAMLI GELİR row)
+    roman_amt: dict[int, float] = {}
+    for r in oci_rows:
+        h = (r.get("hierarchy") or "").strip()
+        if not _ROMAN_RX.match(h):
+            continue
+        a = r.get("amount")
+        o = _roman_to_int(h.rstrip("."))
+        if o is not None and a is not None:
+            roman_amt.setdefault(o, a)
+    if 1 in roman_amt and 2 in roman_amt and 3 in roman_amt:
+        expected = roman_amt[1] + roman_amt[2]
+        tol = _tol(roman_amt[3], base=3.0, rel=5e-5)
+        if abs(roman_amt[3] - expected) <= tol:
+            res.add_pass()
+        else:
+            res.add_fail("oci_chain", "OCI III = I + II",
+                         expected=expected, actual=roman_amt[3])
+    else:
+        res.add_skip()
+    # Cross-check: OCI.I must equal P&L net (XXV / row 25)
+    if pl_rows is not None:
+        oci_i = roman_amt.get(1)
+        pl_net = _pl_spine(pl_rows).get(25)
+        if oci_i is not None and pl_net is not None:
+            tol = _tol(pl_net, base=3.0, rel=1e-5)
+            if abs(oci_i - pl_net) <= tol:
+                res.add_pass()
+            else:
+                res.add_fail("oci_cross", "OCI.I == P&L XXV (net profit)",
+                             expected=pl_net, actual=oci_i)
+        else:
+            res.add_skip()
+    return res
+
+
+# ===========================================================================
+# §4 capital adequacy validation
+# ===========================================================================
+
+_CAP_TOL = 0.02  # 2% relative tolerance for tier ordering
+
+
+def check_capital(rows: list[dict]) -> ValidationResult:
+    """Capital adequacy: CET1 ≤ Tier1 ≤ Total Capital, and CAR = Total/RWA*100."""
+    res = ValidationResult()
+    cur = next((r for r in rows if r.get("period_type") == "current"), None)
+    if cur is None:
+        res.add_skip()
+        return res
+    cet1 = cur.get("cet1_capital")
+    t1   = cur.get("tier1_capital")
+    tc   = cur.get("total_capital")
+    rwa  = cur.get("total_rwa")
+    car  = cur.get("capital_adequacy_ratio")
+    # CET1 ≤ Tier1
+    if cet1 is not None and t1 is not None:
+        if cet1 <= t1 * (1 + _CAP_TOL):
+            res.add_pass()
+        else:
+            res.add_fail("cap_tier_order", "CET1 ≤ Tier1", expected=t1, actual=cet1)
+    else:
+        res.add_skip()
+    # Tier1 ≤ Total Capital
+    if t1 is not None and tc is not None:
+        if t1 <= tc * (1 + _CAP_TOL):
+            res.add_pass()
+        else:
+            res.add_fail("cap_tier_order", "Tier1 ≤ Total Capital", expected=tc, actual=t1)
+    else:
+        res.add_skip()
+    # CAR = Total Capital / RWA * 100 (2% relative + 0.5pp absolute tolerance)
+    if tc is not None and rwa is not None and car is not None and rwa > 0:
+        implied = tc / rwa * 100
+        tol = max(0.5, car * _CAP_TOL)
+        if abs(implied - car) <= tol:
+            res.add_pass()
+        else:
+            res.add_fail("cap_car_reconcile", "CAR = Total Capital / RWA * 100",
+                         expected=implied, actual=car)
+    else:
+        res.add_skip()
+    # CAR within plausible band [5, 80]
+    if car is not None:
+        if 5 <= car <= 80:
+            res.add_pass()
+        else:
+            res.add_fail("cap_car_band", "CAR plausible band [5, 80]%",
+                         expected=12.0, actual=car)
+    else:
+        res.add_skip()
+    return res
+
+
+# ===========================================================================
+# §4 liquidity validation
+# ===========================================================================
+
+def check_liquidity(rows: list[dict]) -> ValidationResult:
+    """Liquidity ratios: leverage < 30%, LCR/NSFR within plausible bands."""
+    res = ValidationResult()
+    cur = next((r for r in rows if r.get("period_type") == "current"), None)
+    if cur is None:
+        res.add_skip()
+        return res
+    lev  = cur.get("leverage_ratio")
+    lcr  = cur.get("lcr_total")
+    nsfr = cur.get("nsfr")
+    if lev is not None:
+        if 0 < lev < 30:
+            res.add_pass()
+        else:
+            res.add_fail("liq_leverage_band", "leverage ∈ (0, 30)%",
+                         expected=5.0, actual=lev)
+    else:
+        res.add_skip()
+    for name, val in (("LCR", lcr), ("NSFR", nsfr)):
+        if val is None:
+            res.add_skip()
+            continue
+        if not (0 < val < 2000):
+            res.add_fail("liq_ratio_band", f"{name} ∈ (0, 2000)%",
+                         expected=100.0, actual=val)
+        elif val < 50:
+            # sub-50% LCR is the fingerprint of a mis-grabbed value
+            res.add_fail("liq_ratio_low", f"{name} {val:.1f}% implausibly low",
+                         expected=100.0, actual=val)
+        else:
+            res.add_pass()
+    return res
+
+
+# ===========================================================================
+# IFRS-9 credit-quality validation
+# ===========================================================================
+
+def _nonnull_sum(*vals: float | None) -> float | None:
+    """Sum of values; returns None if ALL are None, else treats None as 0."""
+    non_none = [v for v in vals if v is not None]
+    return sum(non_none) if non_none else None
+
+
+def check_credit_quality(rows: list[dict]) -> ValidationResult:
+    """Credit quality: per section total=S1+S2+S3, and npl_brsa gross−prov=net.
+    Cross-section: loans_amounts.total ≈ loans_by_stage(S1+S2)+npl_brsa_gross(S3)."""
+    res = ValidationResult()
+    by_sect: dict[str, dict] = {}
+    for r in rows:
+        if r.get("period_type") == "current":
+            by_sect[r.get("section") or ""] = r
+    if not by_sect:
+        res.add_skip()
+        return res
+    # Per section: total = S1 + S2 + S3 (when all four are non-null)
+    for sect, r in by_sect.items():
+        s1  = r.get("stage1_amount")
+        s2  = r.get("stage2_amount")
+        s3  = r.get("stage3_amount")
+        tot = r.get("total_amount")
+        if s1 is None or s2 is None or s3 is None or tot is None:
+            res.add_skip()
+            continue
+        expected = s1 + s2 + s3
+        tol = _tol(tot, base=3.0, rel=5e-5)
+        if abs(expected - tot) <= tol:
+            res.add_pass()
+        else:
+            res.add_fail("cq_section_total", f"{sect}: total = S1+S2+S3",
+                         expected=tot, actual=expected)
+    # npl_brsa: gross − provision = net
+    gross_r = by_sect.get("npl_brsa_gross")
+    prov_r  = by_sect.get("npl_brsa_provision")
+    net_r   = by_sect.get("npl_brsa_net")
+    if gross_r and prov_r and net_r:
+        g = gross_r.get("total_amount")
+        p = prov_r.get("total_amount")
+        n = net_r.get("total_amount")
+        if g is not None and p is not None and n is not None:
+            expected = g - p
+            tol = _tol(abs(n), base=3.0, rel=5e-5)
+            if abs(expected - n) <= tol:
+                res.add_pass()
+            else:
+                res.add_fail("cq_npl_net", "npl_brsa: gross − provision = net",
+                             expected=expected, actual=n)
+        else:
+            res.add_skip()
+    else:
+        res.add_skip()
+    # Cross-section: loans_amounts.total ≈ loans_by_stage(S1+S2) + npl_brsa_gross(S3)
+    la   = by_sect.get("loans_amounts")
+    lbs  = by_sect.get("loans_by_stage")
+    nplg = by_sect.get("npl_brsa_gross")
+    if la and lbs and nplg:
+        la_tot  = la.get("total_amount")
+        lbs_s12 = _nonnull_sum(lbs.get("stage1_amount"), lbs.get("stage2_amount"))
+        nplg_tot = nplg.get("total_amount")
+        if la_tot and lbs_s12 is not None and nplg_tot is not None:
+            expected = lbs_s12 + nplg_tot
+            tol = _tol(la_tot, base=1000.0, rel=0.005)
+            if abs(la_tot - expected) <= tol:
+                res.add_pass()
+            else:
+                res.add_fail("cq_cross_amounts",
+                             "loans_amounts ≈ loans_by_stage(S1+S2) + npl_brsa_gross(S3)",
+                             expected=expected, actual=la_tot)
+        else:
+            res.add_skip()
+    else:
+        res.add_skip()
+    return res
+
+
+# ===========================================================================
+# IFRS-9 stages (derived table) validation
+# ===========================================================================
+
+def check_stages(rows: list[dict]) -> ValidationResult:
+    """Stages: total sums (amounts + ECL), coverage ∈ [0,1], no NPL=100% fingerprint."""
+    res = ValidationResult()
+    cur = [r for r in rows if r.get("period_type") == "current"]
+    if not cur:
+        res.add_skip()
+        return res
+    for r in cur:
+        s1   = r.get("stage1_amount")
+        s2   = r.get("stage2_amount")
+        s3   = r.get("stage3_amount")
+        tot  = r.get("total_amount")
+        e1   = r.get("stage1_ecl")
+        e2   = r.get("stage2_ecl")
+        e3   = r.get("stage3_ecl")
+        etot = r.get("total_ecl")
+        # total_amount = S1 + S2 + S3
+        if s1 is not None and s2 is not None and s3 is not None and tot is not None:
+            expected = s1 + s2 + s3
+            tol = _tol(tot, base=3.0, rel=5e-5)
+            if abs(expected - tot) <= tol:
+                res.add_pass()
+            else:
+                res.add_fail("stages_total_amount", "total_amount = S1+S2+S3",
+                             expected=tot, actual=expected)
+        else:
+            res.add_skip()
+        # total_ecl = E1 + E2 + E3
+        if e1 is not None and e2 is not None and e3 is not None and etot is not None:
+            expected = e1 + e2 + e3
+            tol = _tol(abs(etot), base=3.0, rel=5e-5)
+            if abs(expected - etot) <= tol:
+                res.add_pass()
+            else:
+                res.add_fail("stages_total_ecl", "total_ecl = E1+E2+E3",
+                             expected=etot, actual=expected)
+        else:
+            res.add_skip()
+        # Coverage ∈ [0, 1] per stage
+        for label, cov in (("s1", r.get("stage1_coverage")),
+                            ("s2", r.get("stage2_coverage")),
+                            ("s3", r.get("stage3_coverage"))):
+            if cov is None:
+                res.add_skip()
+            elif 0.0 <= cov <= 1.0:
+                res.add_pass()
+            else:
+                res.add_fail("stages_coverage", f"stage {label} coverage ∈ [0, 1]",
+                             expected=0.5, actual=cov)
+        # NPL=100% fingerprint: stage3 ≈ total while S1+S2 ≈ 0 → broken extraction
+        if (s1 is not None and s2 is not None and s3 is not None
+                and tot is not None and abs(tot) > 0):
+            if abs(s3) >= abs(tot) * 0.999 and abs(s1 + s2) < abs(tot) * 0.001:
+                res.add_fail("stages_npl100",
+                             "stage3 == total (S1+S2 ≈ 0): broken extraction fingerprint",
+                             expected=abs(tot) * 0.5, actual=s3)
+            else:
+                res.add_pass()
+        else:
+            res.add_skip()
+    return res
+
+
+# ===========================================================================
+# NPL movement validation
+# ===========================================================================
+
+def check_npl_movement(rows: list[dict]) -> ValidationResult:
+    """NPL movement: opening + flows = closing, per BRSA group (III/IV/V)."""
+    res = ValidationResult()
+    cur = [r for r in rows if r.get("period_type") == "current"]
+    if not cur:
+        res.add_skip()
+        return res
+    for r in cur:
+        op = r.get("opening_balance")
+        cl = r.get("closing_balance")
+        if op is None or cl is None:
+            res.add_skip()
+            continue
+        additions   = r.get("additions")    or 0.0
+        t_in        = r.get("transfers_in") or 0.0
+        t_out       = r.get("transfers_out") or 0.0
+        collections = r.get("collections")  or 0.0
+        writeoffs   = r.get("write_offs")   or 0.0
+        sold        = r.get("sold")         or 0.0
+        fx          = r.get("fx_diff")      or 0.0
+        implied = op + additions + t_in - t_out - collections - writeoffs - sold + fx
+        tol = _tol(abs(cl), base=100.0, rel=0.002)
+        if abs(implied - cl) <= tol:
+            res.add_pass()
+        else:
+            grp = r.get("group_code") or ""
+            res.add_fail("npl_movement", f"group {grp}: opening + flows = closing",
+                         expected=cl, actual=implied)
+    return res
+
+
+# ===========================================================================
+# Loans by sector validation
+# ===========================================================================
+
+# Top-level sector keys (parents that aggregate sub-sectors). Summing only these
+# avoids double-counting sub-rows like agri_farming, mfg_mining, svc_trade, etc.
+_SECTOR_TOP_LEVEL = frozenset({"agri_total", "mfg_total", "construction", "svc_total", "other"})
+
+
+def check_loans_by_sector(rows: list[dict]) -> ValidationResult:
+    """Loans by sector: sum of top-level sectors ≈ total row, per amount column."""
+    res = ValidationResult()
+    cur = [r for r in rows if r.get("period_type") == "current"]
+    if not cur:
+        res.add_skip()
+        return res
+    total_row = next((r for r in cur if r.get("sector") == "total"), None)
+    if total_row is None:
+        res.add_skip()
+        return res
+    top_rows = [r for r in cur if r.get("sector") in _SECTOR_TOP_LEVEL]
+    if not top_rows:
+        res.add_skip()
+        return res
+    any_check = False
+    for col in ("stage2_amount", "stage3_amount", "ecl_amount"):
+        tot_val = total_row.get(col)
+        if tot_val is None:
+            res.add_skip()
+            continue
+        col_vals = [r.get(col) for r in top_rows if r.get(col) is not None]
+        if not col_vals:
+            res.add_skip()
+            continue
+        sector_sum = sum(col_vals)
+        tol = _tol(abs(tot_val), base=1000.0, rel=0.005)
+        if abs(sector_sum - tot_val) <= tol:
+            res.add_pass()
+        else:
+            res.add_fail("loans_sector_total", f"{col}: Σ top-level sectors ≠ total",
+                         expected=tot_val, actual=sector_sum)
+        any_check = True
+    if not any_check:
+        res.add_skip()
+    return res

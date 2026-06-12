@@ -56,6 +56,7 @@ SYNC_TABLES = [
     "weekly_series",
     "bank_audit_balance_sheet",
     "bank_audit_profit_loss",
+    "bank_audit_oci",
     "bank_audit_credit_quality",
     "bank_audit_profile",
     "bank_audit_loans_by_sector",
@@ -139,7 +140,7 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int) -> list[str]:
         # corresponding extractor writes here without touching
         # bank_audit_extractions). Filter on the local timestamp directly.
         where = f"WHERE extracted_at >= datetime('now', '-{hours} hours')"
-    elif table in ("bank_audit_balance_sheet", "bank_audit_profit_loss"):
+    elif table in ("bank_audit_balance_sheet", "bank_audit_profit_loss", "bank_audit_oci"):
         # Pull rows whose (bank_ticker, period, kind) was extracted recently
         where = (
             "WHERE (bank_ticker, period, kind) IN ("

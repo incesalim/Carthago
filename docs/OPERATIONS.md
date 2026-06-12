@@ -59,7 +59,7 @@ python scripts/build_bank_audit_stages.py --db data/bank_audit.db
 # Push new rows to D1 (requires CLOUDFLARE_API_TOKEN)
 python scripts/push_to_d1.py --hours 168                      # bulletin/EVDS lane
 python scripts/push_to_d1.py --db data/bank_audit.db --hours 168 \
-    --only-tables bank_audit_balance_sheet,bank_audit_profit_loss,bank_audit_credit_quality,bank_audit_profile,bank_audit_loans_by_sector,bank_audit_npl_movement,bank_audit_stages,bank_audit_extractions
+    --only-tables bank_audit_balance_sheet,bank_audit_profit_loss,bank_audit_oci,bank_audit_credit_quality,bank_audit_profile,bank_audit_loans_by_sector,bank_audit_npl_movement,bank_audit_stages,bank_audit_capital,bank_audit_liquidity,bank_audit_extractions,bank_audit_validation
 ```
 
 > First-time local audit run: seed the standalone DB from the combined one

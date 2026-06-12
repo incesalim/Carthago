@@ -52,6 +52,22 @@ CREATE INDEX IF NOT EXISTS idx_bank_pl_item_name
   ON bank_audit_profit_loss(item_name);
 
 
+CREATE TABLE IF NOT EXISTS bank_audit_oci (
+    bank_ticker TEXT NOT NULL,
+    period      TEXT NOT NULL,
+    kind        TEXT NOT NULL,
+    item_order  INTEGER NOT NULL,
+    hierarchy   TEXT,
+    item_name   TEXT NOT NULL,
+    footnote    TEXT,
+    amount      REAL,
+    PRIMARY KEY (bank_ticker, period, kind, item_order)
+);
+
+CREATE INDEX IF NOT EXISTS idx_bank_oci_bank_period
+  ON bank_audit_oci(bank_ticker, period);
+
+
 CREATE TABLE IF NOT EXISTS bank_audit_extractions (
     bank_ticker          TEXT NOT NULL,
     period               TEXT NOT NULL,
@@ -63,6 +79,7 @@ CREATE TABLE IF NOT EXISTS bank_audit_extractions (
     rows_off_balance     INTEGER,
     rows_profit_loss     INTEGER,
     rows_credit_quality  INTEGER,
+    rows_oci             INTEGER,
     success              INTEGER NOT NULL DEFAULT 1,
     note                 TEXT,
     PRIMARY KEY (bank_ticker, period, kind)
@@ -385,6 +402,8 @@ _COLUMN_MIGRATIONS: list[tuple[str, str, str]] = [
     # extractor. Without this, old snapshots in R2 crash inside
     # src/audit_reports/loader.py:upsert_report.
     ("bank_audit_extractions", "rows_credit_quality", "INTEGER"),
+    # Added 2026-06-12: OCI (Other Comprehensive Income) extraction.
+    ("bank_audit_extractions", "rows_oci", "INTEGER"),
 ]
 
 
