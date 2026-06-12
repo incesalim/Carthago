@@ -22,6 +22,7 @@ import {
   type BadgeProps,
   type StatProps,
 } from "@/app/components/ui";
+import CoverageMatrix from "./coverage/CoverageMatrix";
 import LoginForm from "./LoginForm";
 import PipelinePanel from "./PipelinePanel";
 import TrafficPanel from "./TrafficPanel";
@@ -219,6 +220,8 @@ export default async function AdminPage({
           )}
         </Section>
       )}
+
+      <CoverageMatrix />
 
       <PipelinePanel />
 
