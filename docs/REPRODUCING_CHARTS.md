@@ -50,8 +50,12 @@ The new way makes a **machine-readable chart spec** the durable artifact, and a
 ### Series locators (where the data is)
 
 - **`evds`** → `{ code, years_back }`
-- **`bddk_monthly`** → `{ table, item_name, column, currency, bank_types_named, table_number?, annualize? }`
-  (tables: `balance_sheet` / `loans` / `deposits` / `financial_ratios`)
+- **`bddk_monthly`** → `{ table, item_name | item_orders, column, currency, bank_types_named, table_number?, annualize? }`
+  (tables: `balance_sheet` / `loans` / `deposits` / `financial_ratios` / `income_statement`).
+  Exactly one of `item_name` (exact Turkish label) or `item_orders` (list of
+  integer `item_order` positions, **SUMMED** per period — e.g.
+  `income_statement` interest buckets `[1, 6]`; positions are stable while
+  labels carry footnote suffixes)
 - **`bddk_weekly`** → `{ category, item_id, currency, bank_types_named }`
 - **`derived`** → no locator; its values come entirely from a transform that
   references sibling series by `key`.
@@ -75,6 +79,7 @@ must be **declared earlier** in the `series` list (forward refs / cycles raise).
 | `{ "op": "sum_series", "keys": ["a","b"] }` | element-wise sum by date |
 | `{ "op": "ratio", "numerator": "n", "denominator": "d", "scale": 100 }` | `n/d*scale` |
 | `{ "op": "growth", "window": 13, "mode": "annualized" }` | rolling growth (`yoy` = simple; `annualized` = `(v/prev)^(52/window)−1`) |
+| `{ "op": "rolling_sum", "window": 13, "scale": 0.0769 }` | trailing sum over `window` observations × `scale` (`scale = 1/window` → rolling average, e.g. 13-month average assets) |
 | `{ "op": "derive", "formula": <AST> }` | safe arithmetic AST (below) |
 
 `derive` is a **JSON AST, never an eval'd string** — leaves are `{"ref": "<key>"}`

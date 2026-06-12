@@ -10,14 +10,17 @@ import {
   ratioNonInterestCoverage,
   ratioFeesToOpex,
   evdsSeries,
+  nimComponentsRaw,
   latestPeriod,
   PRIMARY_BANK_TYPES,
   BANK_TYPES,
   BANK_TYPE_LABELS,
   type TimeSeriesRow,
 } from "@/app/lib/metrics";
+import { buildNimDatasets } from "@/app/lib/nim-components";
 import { PageHeader } from "@/app/components/ui";
 import TrendChart from "@/app/components/TrendChart";
+import NimComponentsSection from "@/app/components/NimComponentsSection";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +28,7 @@ export default async function ProfitabilityPage() {
   const [
     roe, roa, nim,
     opex, fees, coverage, feesOpex,
-    cpiRaw,
+    cpiRaw, nimRows,
   ] = await Promise.all([
     ratioRoe(PRIMARY_BANK_TYPES),
     ratioRoa(PRIMARY_BANK_TYPES),
@@ -36,7 +39,13 @@ export default async function ProfitabilityPage() {
     ratioFeesToOpex(PRIMARY_BANK_TYPES),
     // CPI 2025=100 — TP.FG.J0 (2003=100) died at the Jan-2026 TUIK rebase
     evdsSeries("TP.TUKFIY2025.GENEL", 10),
+    nimComponentsRaw(),
   ]);
+
+  const nimDatasets = buildNimDatasets(nimRows);
+  const nimThrough = nimRows.length > 0
+    ? `${nimRows[nimRows.length - 1].year}-${String(nimRows[nimRows.length - 1].month).padStart(2, "0")}`
+    : undefined;
 
   // Build CPI 12m-rolling-average YoY from monthly CPI levels
   type Cpi = { period_date: string; value: number };
@@ -115,6 +124,15 @@ export default async function ProfitabilityPage() {
           yFormat="pct"
           decimals={2}
         />
+        <div className="space-y-1">
+          <NimComponentsSection datasets={nimDatasets} dataThrough={nimThrough} />
+          <p className="text-xs text-muted-foreground">
+            Replicates Garanti BBVA Research &ldquo;NIM components of private banks&rdquo;:
+            BDDK monthly income-statement interest items (income 1–14, expense 16–22)
+            over 13-month average total assets. Private = domestic-private + foreign
+            deposit banks.
+          </p>
+        </div>
       </section>
 
       <section className="space-y-4">

@@ -255,5 +255,119 @@
       { "code": "TP.TIG08", "label": "Unemployment Rate (SA %)", "category": "macro", "freq": "monthly" },
       { "code": "TP.TIG06", "label": "Labour Force Participation Rate (SA %)", "category": "macro", "freq": "monthly" }
     ]
+  },
+  {
+    "id": "profitability.nim_components_private",
+    "title": "NIM components of private banks (annualized, % of avg total assets)",
+    "source": {
+      "report": "Garanti BBVA Research — Türkiye Banking Sector Outlook",
+      "page": "NIM components of private banks",
+      "as_of": "2026-03"
+    },
+    "placement": { "tab": "profitability", "section": "Margins" },
+    "unit": "%",
+    "format": "pct",
+    "decimals": 2,
+    "chart": "NimComponentsChart",
+    "series": [
+      {
+        "key": "cust_p",
+        "label": "Customer-loan interest, domestic private (YTD)",
+        "source": "bddk_monthly",
+        "locator": { "table": "income_statement", "item_orders": [1, 6], "column": "amount_total", "bank_types_named": ["DEPOSIT_PRIVATE"] },
+        "transform": []
+      },
+      {
+        "key": "cust_f",
+        "label": "Customer-loan interest, foreign deposit (YTD)",
+        "source": "bddk_monthly",
+        "locator": { "table": "income_statement", "item_orders": [1, 6], "column": "amount_total", "bank_types_named": ["DEPOSIT_FOREIGN"] },
+        "transform": []
+      },
+      {
+        "key": "cust",
+        "label": "Customer-loan interest, private (YTD)",
+        "source": "derived",
+        "transform": [{ "op": "sum_series", "keys": ["cust_p", "cust_f"] }]
+      },
+      {
+        "key": "dep_p",
+        "label": "Deposit interest expense, domestic private (YTD)",
+        "source": "bddk_monthly",
+        "locator": { "table": "income_statement", "item_orders": [16], "column": "amount_total", "bank_types_named": ["DEPOSIT_PRIVATE"] },
+        "transform": []
+      },
+      {
+        "key": "dep_f",
+        "label": "Deposit interest expense, foreign deposit (YTD)",
+        "source": "bddk_monthly",
+        "locator": { "table": "income_statement", "item_orders": [16], "column": "amount_total", "bank_types_named": ["DEPOSIT_FOREIGN"] },
+        "transform": []
+      },
+      {
+        "key": "dep",
+        "label": "Deposit interest expense, private (YTD)",
+        "source": "derived",
+        "transform": [{ "op": "sum_series", "keys": ["dep_p", "dep_f"] }]
+      },
+      {
+        "key": "ta_p",
+        "label": "Total assets, domestic private",
+        "source": "bddk_monthly",
+        "locator": { "table": "balance_sheet", "item_name": "TOPLAM AKTİFLER", "column": "amount_total", "bank_types_named": ["DEPOSIT_PRIVATE"] },
+        "transform": []
+      },
+      {
+        "key": "ta_f",
+        "label": "Total assets, foreign deposit",
+        "source": "bddk_monthly",
+        "locator": { "table": "balance_sheet", "item_name": "TOPLAM AKTİFLER", "column": "amount_total", "bank_types_named": ["DEPOSIT_FOREIGN"] },
+        "transform": []
+      },
+      {
+        "key": "ta_avg13",
+        "label": "13-month average total assets, private",
+        "source": "derived",
+        "transform": [
+          { "op": "sum_series", "keys": ["ta_p", "ta_f"] },
+          { "op": "rolling_sum", "window": 13, "scale": 0.07692307692307693 }
+        ]
+      },
+      {
+        "key": "cust_nim",
+        "label": "Customer loans / avg assets (%)",
+        "source": "derived",
+        "transform": [{ "op": "ratio", "numerator": "cust", "denominator": "ta_avg13" }]
+      },
+      {
+        "key": "dep_nim",
+        "label": "Deposit expense / avg assets (%)",
+        "source": "derived",
+        "transform": [{ "op": "ratio", "numerator": "dep", "denominator": "ta_avg13" }]
+      }
+    ],
+    "verify": [
+      {
+        "series": "cust_nim",
+        "date": "2024-12",
+        "value": 14.05,
+        "tolerance": 0.15,
+        "tolerance_unit": "pp"
+      },
+      {
+        "series": "dep_nim",
+        "date": "2024-12",
+        "value": 13.86,
+        "tolerance": 0.15,
+        "tolerance_unit": "pp"
+      },
+      {
+        "series": "cust_nim",
+        "date": "2022-12",
+        "value": 7.64,
+        "tolerance": 0.15,
+        "tolerance_unit": "pp"
+      }
+    ]
   }
 ]

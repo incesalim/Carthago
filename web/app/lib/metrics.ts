@@ -22,6 +22,7 @@
  * banks alone are 10009.
  */
 import { cachedAll } from "./db";
+import type { NimComponentRow } from "./nim-components";
 
 // ---------------------------------------------------------------------------
 // Bank-type taxonomy
@@ -439,6 +440,66 @@ export async function depositMaturityMix(
          AND bank_type_code = ?
        ORDER BY year, month`,
     [bankType],
+  );
+}
+
+// ---------------------------------------------------------------------------
+// NIM components — income_statement interest buckets + total assets
+// ---------------------------------------------------------------------------
+
+/** Bank-type codes the NIM-components chart can aggregate (see NIM_GROUPS in
+ * nim-components.ts — "Private" in the BBVA sense is 10008+10010 summed). */
+export const NIM_BANK_CODES = [
+  "10001", // Sector
+  "10003", // Participation
+  "10004", // Dev & Inv
+  "10008", // Deposit · domestic private
+  "10009", // Deposit · state
+  "10010", // Deposit · foreign
+];
+
+/**
+ * Raw inputs for the NIM-components decomposition: cumulative-YTD interest
+ * income/expense buckets (income_statement, million TL) and month-end total
+ * assets, per (year, month, bank_type_code). Bucket → item_order mapping is
+ * documented in nim-components.ts. Expense buckets are stored POSITIVE here;
+ * the shaping layer negates them.
+ */
+export async function nimComponentsRaw(
+  bankCodes: string[] = NIM_BANK_CODES,
+): Promise<NimComponentRow[]> {
+  const placeholders = bankCodes.map(() => "?").join(",");
+  // CTE names must NOT shadow the tables they read (D1 "circular reference").
+  return cachedAll<NimComponentRow>(
+    `WITH inc AS (
+         SELECT year, month, bank_type_code,
+           SUM(CASE WHEN item_order IN (1,6)        THEN amount_total END) AS cust_loans,
+           SUM(CASE WHEN item_order IN (7,8)        THEN amount_total END) AS banks_cb,
+           SUM(CASE WHEN item_order IN (9,10,11,12) THEN amount_total END) AS securities,
+           SUM(CASE WHEN item_order IN (13,14)      THEN amount_total END) AS other_inc,
+           SUM(CASE WHEN item_order = 16            THEN amount_total END) AS dep_exp,
+           SUM(CASE WHEN item_order IN (17,18)      THEN amount_total END) AS interbank_exp,
+           SUM(CASE WHEN item_order IN (19,20)      THEN amount_total END) AS debt_exp,
+           SUM(CASE WHEN item_order IN (21,22)      THEN amount_total END) AS other_exp
+         FROM income_statement
+         WHERE currency = 'TL'
+           AND bank_type_code IN (${placeholders})
+         GROUP BY year, month, bank_type_code
+       ),
+       ast AS (
+         SELECT year, month, bank_type_code, amount_total AS assets
+         FROM balance_sheet
+         WHERE currency = 'TL'
+           AND item_name = 'TOPLAM AKTİFLER'
+           AND bank_type_code IN (${placeholders})
+       )
+       SELECT inc.*, ast.assets
+       FROM inc
+       JOIN ast ON ast.year = inc.year
+              AND ast.month = inc.month
+              AND ast.bank_type_code = inc.bank_type_code
+       ORDER BY inc.year, inc.month, inc.bank_type_code`,
+    [...bankCodes, ...bankCodes],
   );
 }
 
