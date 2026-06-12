@@ -1,9 +1,10 @@
 name: Refresh audit reports
 
-# Standalone bank audit-report pipeline — fully decoupled from the BDDK
-# bulletin / EVDS refresh. Banks publish quarterly BRSA audit PDFs on their
-# IR sites; this scrapes new ones to R2, extracts them, and pushes the
-# bank_audit_* tables to D1.
+# Bank audit-report EXTRACTION — dispatch-only (admin-triggered). Acquisition
+# (discover + download new PDFs → R2) is automated separately in acquire-audit.yml;
+# extraction is run by hand from the /admin panel (Pipeline "Audit reports" card,
+# or the coverage matrix's per-cell re-extract). This job extracts PDFs from R2,
+# runs the validators, and pushes the bank_audit_* tables to D1.
 #
 # Decoupled by design:
 #   - Own staging DB:        data/bank_audit.db (NOT the shared bddk_data.db)
@@ -15,13 +16,10 @@ name: Refresh audit reports
 # of tables (bank_audit_*) with idempotent INSERT OR REPLACE.
 #
 # When to run:
-#   - Sunday 04:00 UTC. Banks publish quarterly, but a weekly check picks up
-#     new reports promptly the week a bank publishes. 49 of 52 weeks this is a
-#     cheap no-op (every PDF already in R2, every report already extracted).
-#   - Manually from the Actions tab.
+#   - Manually only — from the /admin panel or the Actions tab. There is no
+#     schedule: extraction is a managed step (review the coverage matrix after).
+#     acquire-audit.yml runs weekly to keep new PDFs flowing into R2.
 on:
-  schedule:
-    - cron: "0 4 * * 0"
   workflow_dispatch:
     inputs:
       skip_scrape:

@@ -49,6 +49,14 @@ rows + ~460 bank-profile rows). PDFs themselves live in R2 at
 recognized phrasing — 16 of 31 banks currently parsed; the remaining 15
 use phrasings not yet covered by the regex patterns.
 
+**Acquisition vs extraction (2026-06-12)**: only acquisition is automated —
+`acquire-audit.yml` (weekly) discovers + downloads new PDFs to R2, refreshes the
+`/admin` coverage matrix, and pings Telegram. **Extraction is admin-managed**:
+`refresh-audit.yml` is dispatch-only, triggered from the matrix's per-cell
+Re-extract or the Pipeline "Extract audit reports" card. The coverage matrix
+(statement type × bank × period) is the control surface — a new quarter appears
+as a `missing` cell to extract.
+
 **§4 capital/liquidity (2026-06-10)**: full-fleet history backfilled via
 `backfill-audit.yml` in 5-bank chunks (`ALL` exceeds the 180-min job timeout).
 Per-bank §4 filing quirks and their fixes are catalogued in
@@ -76,9 +84,9 @@ The **weekly** bulletin numbers the same groups differently — see METRICS.md �
 | Bytes | Where | Mutated by |
 |---|---|---|
 | `evds_series`, `balance_sheet`, `weekly_series`, `bank_audit_*`, … | Cloudflare D1 (`bddk-data`) | weekly + daily cron |
-| `<ticker>/<TICKER>_<period>_<kind>.pdf` | Cloudflare R2 (`bddk-audit-reports`) | audit cron when banks publish |
+| `<ticker>/<TICKER>_<period>_<kind>.pdf` | Cloudflare R2 (`bddk-audit-reports`) | `acquire-audit.yml` (weekly) when banks publish |
 | `state/bddk_data.db.gz` | Cloudflare R2 (same bucket) | bulletin/EVDS cron (bulletin lane snapshot) |
-| `state/bank_audit.db.gz` | Cloudflare R2 (same bucket) | audit cron (audit lane snapshot) |
+| `state/bank_audit.db.gz` | Cloudflare R2 (same bucket) | `refresh-audit.yml` (admin-triggered extraction) — the audit-lane snapshot writer |
 | `state/history/<lane>-YYYYMMDD.db.gz` | Cloudflare R2 (same bucket) | every cron — dated backup, last 7 kept |
 | Next.js page-data cache | Cloudflare KV (`NEXT_INC_CACHE_KV`) | dashboard render (12h TTL on D1 reads) |
 | `data/banks/audit_report_urls.json` | git | hand-edited via PR |

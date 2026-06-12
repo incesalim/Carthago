@@ -1,0 +1,128 @@
+name: Acquire audit reports
+
+# Audit-report ACQUISITION — the only automated part of the audit lane. Banks
+# publish quarterly BRSA PDFs on their IR sites; this discovers + downloads any
+# new ones to R2 and refreshes the /admin coverage matrix so they appear as
+# "missing" (acquired, not yet extracted). It does NOT extract — extraction is
+# managed by hand from /admin (refresh-audit.yml).
+#
+# Decoupled by design:
+#   - Reuses the bddk-audit concurrency group, so it NEVER runs at the same time
+#     as the extraction workflow. acquire only READS the DB snapshot (to compute
+#     coverage row counts) and never re-uploads it, so it cannot clobber
+#     state/bank_audit.db.gz even in theory.
+#   - Touches only the PDF bucket (scrape) and the three coverage tables in D1.
+#
+# When to run:
+#   - Sunday 04:00 UTC (weekly check; banks publish quarterly, 49/52 weeks a
+#     cheap no-op). Manually from the Actions tab or /admin Pipeline panel.
+on:
+  schedule:
+    - cron: "0 4 * * 0"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bddk-audit
+  cancel-in-progress: false
+
+jobs:
+  acquire:
+    name: Discover + scrape new audit PDFs → R2
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      PYTHONIOENCODING: utf-8
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Fetch audit snapshot from R2 (read-only — for coverage row counts)
+        # Same bootstrap as refresh-audit.yml: pull the standalone audit snapshot
+        # (or seed from the bulletin snapshot on first run). Read-only here — we
+        # never re-upload it, so the coverage sync sees accurate stored-row counts
+        # without risking the snapshot.
+        run: |
+          python - <<'PY'
+          import gzip, shutil, pathlib, subprocess, sys
+          from src.audit_reports import r2_storage
+          gz = pathlib.Path("data/bank_audit.db.gz")
+          db = pathlib.Path("data/bank_audit.db")
+          gz.parent.mkdir(parents=True, exist_ok=True)
+          if r2_storage.exists("state/bank_audit.db.gz"):
+              size = r2_storage.download_to("state/bank_audit.db.gz", gz)
+              print(f"Pulled state/bank_audit.db.gz from R2 ({size/1e6:.1f} MB)")
+              with gzip.open(gz, "rb") as s, open(db, "wb") as d:
+                  shutil.copyfileobj(s, d)
+              print(f"Decompressed to {db.stat().st_size/1e6:.1f} MB")
+          elif r2_storage.exists("state/bddk_data.db.gz"):
+              print("No audit snapshot yet — bootstrapping from state/bddk_data.db.gz")
+              bgz = pathlib.Path("data/bddk_data.db.gz")
+              bdb = pathlib.Path("data/bddk_data.db")
+              r2_storage.download_to("state/bddk_data.db.gz", bgz)
+              with gzip.open(bgz, "rb") as s, open(bdb, "wb") as d:
+                  shutil.copyfileobj(s, d)
+              subprocess.run(
+                  [sys.executable, "scripts/seed_audit_db.py",
+                   "--from", str(bdb), "--to", str(db)],
+                  check=True,
+              )
+          else:
+              print("No snapshot in R2 at all — coverage row counts start empty.")
+          PY
+
+      - name: Setup Node (for wrangler)
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
+      - name: Scrape new audit PDFs to R2 (discover + download; no extraction)
+        # --no-extract: acquisition only. Idempotent — skips PDFs already in R2.
+        # Writes the new-PDF count to new_count.txt for the notify step.
+        run: >
+          python scripts/sync_audit_reports.py --db data/bank_audit.db
+          --no-extract --workers 16 --new-count-file new_count.txt
+
+      - name: Refresh coverage spine in D1 (so new PDFs show as "missing")
+        # D1-only full rebuild of bank_audit_expected/_statement_types/_coverage.
+        # No R2 snapshot write. With the R2∪profiles universe, freshly-acquired
+        # PDFs appear as missing + pdf_present = ready to extract from /admin.
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: python scripts/sync_audit_expected.py --db data/bank_audit.db --push
+
+      - name: Notify if new reports were acquired
+        if: success()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+        run: |
+          NEW=$(cat new_count.txt 2>/dev/null || echo 0)
+          if [ "$NEW" -gt 0 ]; then
+            python scripts/notify.py "🆕 acquire-audit: $NEW new audit PDF(s) in R2 — extract them at /admin (coverage matrix)."
+          else
+            echo "No new audit PDFs this run."
+          fi
+
+      - name: Alert on failure
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+        run: python scripts/notify.py "❌ ${{ github.workflow }} failed — ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

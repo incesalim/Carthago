@@ -177,20 +177,32 @@ async function evdsSource(db: DB): Promise<SourceHealth> {
 }
 
 async function auditSource(db: DB): Promise<SourceHealth> {
-  const agg = await safeFirst<{ latest: string | null; last_refresh: string | null; n: number }>(
+  const agg = await safeFirst<{
+    latest: string | null;
+    last_refresh: string | null;
+    n: number;
+    failed: number;
+  }>(
     db,
-    "SELECT MAX(period) AS latest, MAX(extracted_at) AS last_refresh, COUNT(*) AS n FROM bank_audit_extractions",
+    "SELECT MAX(period) AS latest, MAX(extracted_at) AS last_refresh, COUNT(*) AS n, " +
+      "SUM(CASE WHEN success=0 THEN 1 ELSE 0 END) AS failed FROM bank_audit_extractions",
   );
-  const ageHours = hoursSince(agg?.last_refresh);
+  // Extraction is admin-triggered (no schedule), so audit freshness isn't
+  // time-based — health = whether every extracted partition succeeded.
+  // Acquisition (acquire-audit.yml, weekly) keeps new PDFs flowing; the coverage
+  // matrix is where "what's missing" is surfaced and acted on.
+  const n = agg?.n ?? 0;
+  const status: FreshnessStatus =
+    n === 0 ? "unknown" : (agg?.failed ?? 0) > 0 ? "late" : "fresh";
   return {
     key: "audit",
     label: "Audit reports",
     latestPeriod: agg?.latest ?? null,
     lastRefresh: agg?.last_refresh ?? null,
-    rowCount: agg?.n ?? null,
-    ageHours,
+    rowCount: n,
+    ageHours: hoursSince(agg?.last_refresh),
     cadenceHours: WEEK,
-    status: statusFor(ageHours, WEEK),
+    status,
   };
 }
 

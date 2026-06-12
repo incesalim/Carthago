@@ -90,21 +90,26 @@ Saturday 03:00 UTC. BDDK bulletins + EVDS + TBB digital + KAP + TEFAS:
    `kap_ownership` and the `tefas_*` tables too)
 4. VACUUM + re-gzip + upload the snapshot back to R2
 
-### Audit reports — `.github/workflows/refresh-audit.yml`
-Sunday 04:00 UTC. Standalone audit pipeline on its own DB + snapshot:
-1. Pull `state/bank_audit.db.gz` from R2 (first run: bootstrap
-   `data/bank_audit.db` from the bulletin snapshot via `seed_audit_db.py`,
-   so it doesn't re-extract every PDF)
-2. `scripts/sync_audit_reports.py --db data/bank_audit.db` — scrape new bank
-   IR PDFs to R2, pull pending PDFs, extract, upsert. URLs come from
-   `data/banks/audit_report_urls.json`; 13 banks also auto-discover new quarters
-   from their IR page (`src/audit_reports/discovery.py`). Accepts
-   `--only-bank TICKER` / `--latest-period` for targeted runs (the /admin
-   per-bank trigger passes these via the workflow's `bank` input)
-3. `scripts/build_bank_audit_stages.py --db data/bank_audit.db` — rebuild the
-   derived Stage 1/2/3 table
-4. `scripts/push_to_d1.py --db data/bank_audit.db --only-tables bank_audit_*`
-5. VACUUM + re-gzip + upload `state/bank_audit.db.gz` back to R2
+### Audit reports — two workflows, one `bddk-audit` lane
+Standalone audit pipeline on its own DB + snapshot. **Acquisition is automated;
+extraction is admin-triggered** (they share the concurrency group, so never overlap).
+
+**`acquire-audit.yml`** (Sunday 04:00 UTC) — the only scheduled part:
+1. Pull `state/bank_audit.db.gz` (read-only, for coverage row counts)
+2. `scripts/sync_audit_reports.py --no-extract` — scrape new bank IR PDFs to R2.
+   URLs from `data/banks/audit_report_urls.json`; 13 banks also auto-discover new
+   quarters from their IR page (`src/audit_reports/discovery.py`)
+3. `scripts/sync_audit_expected.py --push` — refresh the coverage matrix (new PDFs
+   appear as `missing`); notify Telegram on new reports. **Never writes the snapshot.**
+
+**`refresh-audit.yml`** (dispatch-only, from /admin) — extraction:
+1. Pull/seed `data/bank_audit.db`
+2. `scripts/sync_audit_reports.py` — extract pending PDFs from R2 (or `--only-bank`
+   / `--periods … --force` for a targeted re-extract, passed via the workflow's
+   `bank`/`period` inputs from the /admin coverage matrix)
+3. `build_bank_audit_stages.py` → `revalidate_audit_db.py` → `check_audit_quality.py`
+4. `push_to_d1.py --only-tables bank_audit_*` + `sync_audit_expected.py --push`
+5. VACUUM + re-gzip + upload `state/bank_audit.db.gz` (the snapshot WRITER)
 
 ### Deploy — `.github/workflows/deploy-cloudflare.yml`
 On push touching `web/**`. Applies D1 migrations (`wrangler d1 migrations

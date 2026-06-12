@@ -318,6 +318,9 @@ def main():
     ap.add_argument("--force", action="store_true",
                     help="re-extract even partitions already in the DB (upsert "
                          "replaces them). Without this, done partitions are skipped.")
+    ap.add_argument("--new-count-file", type=str, default="",
+                    help="write the count of newly-scraped PDFs to this file "
+                         "(so acquire-audit.yml can notify when new reports land).")
     ap.add_argument("--db", type=str, default=str(DB_PATH),
                     help="SQLite DB to upsert extracted rows into (default "
                          "data/bddk_data.db). The standalone audit pipeline "
@@ -361,6 +364,8 @@ def main():
     if not args.no_scrape:
         scrape_counts = scrape_to_r2(
             workers=args.workers, only=only, latest_period=args.latest_period)
+    if args.new_count_file:
+        Path(args.new_count_file).write_text(str(scrape_counts.get("new", 0)), encoding="utf-8")
     if not args.no_extract:
         # Extraction is CPU-bound (pdfplumber/fitz) — cap at min(workers, cpu_count)
         import os

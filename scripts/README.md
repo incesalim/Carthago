@@ -38,15 +38,19 @@ audit lane and its repair playbook are in [`docs/AUDIT_PIPELINE.md`](../docs/AUD
 | `summarize_regulations.py` | LLM (Kimi) weekly regulation briefing → `regulation_briefings`. | `summarize-regulations.yml` | pipeline |
 | `ingest_policy_baseline.py` | Ingest TCMB annual Monetary-Policy PDF as briefing baseline. | by hand, ~annually | operational |
 
-## Audit lane — pipeline (the cron path)
-The weekly path is: **`sync_audit_reports` → `build_bank_audit_stages` → `check_audit_quality` → `push_to_d1` → snapshot**.
+## Audit lane — pipeline
+Two lanes (same `bddk-audit` concurrency group): **acquisition is scheduled, extraction is
+admin-triggered.** Acquire (`acquire-audit.yml`, weekly): `sync_audit_reports --no-extract` →
+`sync_audit_expected --push` → notify. Extract (`refresh-audit.yml`, dispatch-only):
+`sync_audit_reports` → `build_bank_audit_stages` → `revalidate_audit_db` → `check_audit_quality`
+→ `push_to_d1` → `sync_audit_expected --push` → snapshot.
 | Script | Purpose | Run by | Class |
 |---|---|---|---|
-| `sync_audit_reports.py` | THE audit entry: scrape new PDFs → R2 → extract pending → `bank_audit.db`. `--only-bank`, `--latest-period`, `--periods`, `--no-scrape`, `--force` (re-extract already-done partitions — backs the admin matrix's per-cell re-extract). | `refresh-audit.yml` | pipeline |
+| `sync_audit_reports.py` | THE audit entry: scrape new PDFs → R2 (`--no-extract` = acquire) and/or extract pending → `bank_audit.db`. `--only-bank`, `--latest-period`, `--periods`, `--no-scrape`, `--force` (re-extract already-done — backs the matrix re-extract), `--new-count-file` (new-PDF count for the acquire notify). | `acquire-audit.yml` (scrape), `refresh-audit.yml` (extract) | pipeline |
 | `build_bank_audit_stages.py` | Consolidate credit-quality rows → `bank_audit_stages`. | `refresh-audit.yml` | pipeline |
 | `check_audit_quality.py` | 8 alert-only anomaly checks (stale/balance/coverage/npl_drop/capital/liquidity/structure/ecl). | `refresh-audit.yml`, `backfill-audit.yml` | pipeline |
-| `seed_audit_db.py` | Bootstrap `bank_audit.db` from the bulletin snapshot on first run. | `refresh-audit.yml` (bootstrap) | pipeline |
-| `sync_audit_expected.py` | Build `bank_audit_expected` + `bank_audit_statement_types` + `bank_audit_coverage` (the /admin coverage matrix spine). | `refresh-audit.yml` | pipeline |
+| `seed_audit_db.py` | Bootstrap `bank_audit.db` from the bulletin snapshot on first run. | both audit workflows (bootstrap) | pipeline |
+| `sync_audit_expected.py` | Build `bank_audit_expected` (profile census ∪ R2 PDFs) + `bank_audit_statement_types` + `bank_audit_coverage` (the /admin coverage matrix spine). `--push` = full-rebuild D1 push, no R2 write. | `acquire-audit.yml`, `refresh-audit.yml`; by hand | pipeline |
 
 ## Audit lane — operational (backfills + manual corrections)
 | Script | Purpose | Run by | Class |
@@ -54,7 +58,6 @@ The weekly path is: **`sync_audit_reports` → `build_bank_audit_stages` → `ch
 | `backfill_extraction.py` | Re-extract named banks from R2 → clear D1 partitions → push → snapshot. Shared D1/R2 helpers live in `scripts/audit_d1.py`. | `backfill-audit.yml`; by hand | operational |
 | `audit_correct.py` | Unified manual-correction CLI: `overlay-statement` (hand-transcribed `manual_statements.json`), `override-cells` (`audit_overrides.json`), `reextract-pl`. Validate-to-0 → push one partition. | by hand | operational |
 | `revalidate_audit_db.py` | Recompute `bank_audit_validation` from stored rows (balance sheet + P&L, no re-extraction); push validation only. | by hand after a validator change | operational |
-| `sync_audit_expected.py` | Build the coverage spine (`bank_audit_expected` / `bank_audit_statement_types` / `bank_audit_coverage`) from the profile census + stored rows; `--push` rebuilds the three tables on D1 (no R2 snapshot). Feeds the `/admin` coverage matrix. | `refresh-audit.yml`; by hand | pipeline |
 | `push_from_scratch.py` | Push pre-extracted rows from `fleet_scratch.db` → D1 (no re-extraction). | by hand (large repair) | operational |
 | `discover_audit_urls.py` | Scan bank IR pages for new quarterly report URLs. | by hand, quarterly | operational |
 | `compute_bank_metrics.py` | Derive a per-bank KPI snapshot from audit data. | by hand | operational |

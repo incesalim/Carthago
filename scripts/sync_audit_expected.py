@@ -48,9 +48,16 @@ _STMT_TO_KEY = {
 }
 
 
-def _expected_universe() -> dict[tuple[str, str, str], dict]:
-    """{(bank, period, kind): {bank_type, language, equity_numeral}} from the
-    profile census — the authoritative list of partitions we expect to hold."""
+def _expected_universe(
+    pdfs: set[tuple[str, str, str]] | None = None,
+) -> dict[tuple[str, str, str], dict]:
+    """{(bank, period, kind): {bank_type, language, equity_numeral}} — the
+    partitions we expect to hold. This is the profile census
+    (data/audit_profiles.json) UNIONED with every PDF currently in R2, so a
+    freshly-acquired quarter that isn't profiled yet still appears in the matrix
+    (as missing + pdf_present, i.e. "acquired, not yet extracted"). R2-only
+    entries carry bare metadata until the census is regenerated. When `pdfs` is
+    None (offline/--no-r2 dry-run) the universe is profiles-only."""
     profiles = json.loads(PROFILES.read_text(encoding="utf-8"))
     out: dict[tuple[str, str, str], dict] = {}
     for pk, prof in profiles.items():
@@ -62,6 +69,8 @@ def _expected_universe() -> dict[tuple[str, str, str], dict]:
             "language": prof.get("language"),
             "equity_numeral": eq,
         }
+    for bpk in pdfs or ():
+        out.setdefault(bpk, {"bank_type": None, "language": None, "equity_numeral": None})
     return out
 
 
@@ -121,7 +130,6 @@ def _cell_status(rows: int, min_rows: int, has_validator: bool,
 
 
 def build(conn: sqlite3.Connection, use_r2: bool):
-    expected = _expected_universe()
     manual = _manual_cells()
     validation = _validation(conn)
     counts = {st.key: _counts_for(conn, st) for st in registry.REGISTRY}
@@ -141,6 +149,10 @@ def build(conn: sqlite3.Connection, use_r2: bool):
             print(f"[sync] R2: {len(pdfs)} audit PDFs")
         except Exception as e:  # noqa: BLE001 — R2 optional for local dry-runs
             print(f"[sync] R2 unavailable ({type(e).__name__}); pdf_present via has-rows fallback")
+
+    # Expected universe = profile census ∪ R2 PDFs, so acquired-but-unextracted
+    # partitions surface in the matrix (R2-only → bare metadata, status missing).
+    expected = _expected_universe(pdfs)
 
     def pdf_present(bpk) -> int:
         if pdfs is not None:
