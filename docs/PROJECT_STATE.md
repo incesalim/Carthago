@@ -175,6 +175,20 @@ reserves − net errors) and every figure were verified to the report's
 Apr-2026 summary table. Five `economy.bop_*` chart-specs anchor daily
 verification. See [METRICS.md](METRICS.md) §14.
 
+An **Economic Growth** sub-page (`/economy/economic-growth`, also linked from
+the Economy header) reproduces the Albaraka «Ekonomik Büyüme» quarterly GDP
+report off **19 new TÜİK national-accounts series** (`TP.GSYIH*.HY.ZH`
+expenditure + `*.IFK.ZH` production chain-volume indices, `macro`/quarterly):
+GDP-growth KPIs, Şekil 1 (y/y), the **growth-contributions** decomposition
+(Şekil 2, derived — consumption/investment/exports contributions match the
+cover exactly), Şekil 3 sectoral, Şekil 6 government, and both y/y tables
+(production full; expenditure aggregates). EVDS gaps are flagged in-page and
+in METRICS §14: the q/q **seasonally-adjusted** GDP line, the expenditure
+**detail** (Şekil 4/5 durable/investment breakdowns), and the
+calendar-adjusted production variant live only in TÜİK's Excel — a future
+scraper lane, not yet wired. Two `economy.growth_*` chart-specs anchor
+verification.
+
 A **Digital** tab (`/digital`) surfaces the TBB quarterly digital/internet/mobile
 banking statistics (`tbb_digital_stats`, sector-wide): channel adoption (active
 mobile vs internet customers; mobile-only/both/internet-only usage), quarterly

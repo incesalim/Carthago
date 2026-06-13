@@ -63,6 +63,12 @@ export default async function EconomyPage() {
         dataThrough={dataThrough}
       >
         <Link
+          href="/economy/economic-growth"
+          className="rounded-md border border-border px-2.5 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+        >
+          Economic Growth →
+        </Link>
+        <Link
           href="/economy/balance-of-payments"
           className="rounded-md border border-border px-2.5 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-accent"
         >

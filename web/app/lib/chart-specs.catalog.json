@@ -494,5 +494,70 @@
       { "code": "TP.ODEAYRSUNUM6.Q136", "label": "Other Investment, net (USD m)", "kind": "monthly" },
       { "code": "TP.ODEAYRSUNUM6.Q204", "label": "Reserve Assets (USD m)", "kind": "monthly" }
     ]
+  },
+  {
+    "id": "economy.growth_expenditure",
+    "title": "GDP by expenditure — component growth (y/y %, chain vol.)",
+    "source": { "report": "Albaraka — Ekonomik Büyüme", "page": "Expenditure table", "as_of": "2026-Q1" },
+    "placement": { "tab": "economy", "section": "Economic Growth" },
+    "unit": "%",
+    "format": "pct",
+    "decimals": 1,
+    "chart": "table",
+    "series": [
+      { "key": "cons", "label": "Household consumption", "source": "evds", "locator": { "code": "TP.GSYIH20.HY.ZH", "years_back": 10 }, "transform": [{ "op": "growth", "window": 4, "mode": "yoy" }] },
+      { "key": "gov", "label": "Government consumption", "source": "evds", "locator": { "code": "TP.GSYIH21.HY.ZH", "years_back": 10 }, "transform": [{ "op": "growth", "window": 4, "mode": "yoy" }] },
+      { "key": "inv", "label": "Gross fixed capital formation", "source": "evds", "locator": { "code": "TP.GSYIH22.HY.ZH", "years_back": 10 }, "transform": [{ "op": "growth", "window": 4, "mode": "yoy" }] },
+      { "key": "exp", "label": "Exports", "source": "evds", "locator": { "code": "TP.GSYIH24.HY.ZH", "years_back": 10 }, "transform": [{ "op": "growth", "window": 4, "mode": "yoy" }] },
+      { "key": "imp", "label": "Imports", "source": "evds", "locator": { "code": "TP.GSYIH25.HY.ZH", "years_back": 10 }, "transform": [{ "op": "growth", "window": 4, "mode": "yoy" }] }
+    ],
+    "verify": [
+      { "series": "cons", "date": "2026-01", "value": 4.8, "tolerance": 0.2, "tolerance_unit": "pp" },
+      { "series": "gov", "date": "2026-01", "value": 2.1, "tolerance": 0.2, "tolerance_unit": "pp" },
+      { "series": "inv", "date": "2026-01", "value": 3.0, "tolerance": 0.2, "tolerance_unit": "pp" },
+      { "series": "exp", "date": "2026-01", "value": -12.7, "tolerance": 0.3, "tolerance_unit": "pp" },
+      { "series": "imp", "date": "2026-01", "value": -2.0, "tolerance": 0.3, "tolerance_unit": "pp" }
+    ],
+    "registry_additions": [
+      { "code": "TP.GSYIH20.HY.ZH", "label": "Household Consumption (chain vol.)", "kind": "quarterly" },
+      { "code": "TP.GSYIH21.HY.ZH", "label": "Government Consumption (chain vol.)", "kind": "quarterly" },
+      { "code": "TP.GSYIH22.HY.ZH", "label": "Gross Fixed Capital Formation (chain vol.)", "kind": "quarterly" },
+      { "code": "TP.GSYIH24.HY.ZH", "label": "Exports of Goods & Services (chain vol.)", "kind": "quarterly" },
+      { "code": "TP.GSYIH25.HY.ZH", "label": "Imports of Goods & Services (chain vol.)", "kind": "quarterly" }
+    ]
+  },
+  {
+    "id": "economy.growth_production",
+    "title": "GDP by production — sectoral growth (y/y %, chain vol., unadjusted)",
+    "source": { "report": "Albaraka — Ekonomik Büyüme", "page": "Production table", "as_of": "2026-Q1" },
+    "placement": { "tab": "economy", "section": "Economic Growth" },
+    "unit": "%",
+    "format": "pct",
+    "decimals": 1,
+    "chart": "table",
+    "series": [
+      { "key": "agri", "label": "Agriculture", "source": "evds", "locator": { "code": "TP.GSYIH01.IFK.ZH", "years_back": 10 }, "transform": [{ "op": "growth", "window": 4, "mode": "yoy" }] },
+      { "key": "constr", "label": "Construction", "source": "evds", "locator": { "code": "TP.GSYIH04.IFK.ZH", "years_back": 10 }, "transform": [{ "op": "growth", "window": 4, "mode": "yoy" }] },
+      { "key": "ict", "label": "Information & communication", "source": "evds", "locator": { "code": "TP.GSYIH06.IFK.ZH", "years_back": 10 }, "transform": [{ "op": "growth", "window": 4, "mode": "yoy" }] },
+      { "key": "finance", "label": "Finance & insurance", "source": "evds", "locator": { "code": "TP.GSYIH07.IFK.ZH", "years_back": 10 }, "transform": [{ "op": "growth", "window": 4, "mode": "yoy" }] },
+      { "key": "realestate", "label": "Real estate", "source": "evds", "locator": { "code": "TP.GSYIH08.IFK.ZH", "years_back": 10 }, "transform": [{ "op": "growth", "window": 4, "mode": "yoy" }] },
+      { "key": "taxes", "label": "Taxes less subsidies", "source": "evds", "locator": { "code": "TP.GSYIH13.IFK.ZH", "years_back": 10 }, "transform": [{ "op": "growth", "window": 4, "mode": "yoy" }] }
+    ],
+    "verify": [
+      { "series": "agri", "date": "2026-01", "value": 4.6, "tolerance": 0.3, "tolerance_unit": "pp" },
+      { "series": "constr", "date": "2026-01", "value": 3.2, "tolerance": 0.3, "tolerance_unit": "pp" },
+      { "series": "ict", "date": "2026-01", "value": 9.5, "tolerance": 0.3, "tolerance_unit": "pp" },
+      { "series": "finance", "date": "2026-01", "value": 3.5, "tolerance": 0.3, "tolerance_unit": "pp" },
+      { "series": "realestate", "date": "2026-01", "value": 3.0, "tolerance": 0.3, "tolerance_unit": "pp" },
+      { "series": "taxes", "date": "2026-01", "value": 2.0, "tolerance": 0.3, "tolerance_unit": "pp" }
+    ],
+    "registry_additions": [
+      { "code": "TP.GSYIH01.IFK.ZH", "label": "GVA: Agriculture (chain vol.)", "kind": "quarterly" },
+      { "code": "TP.GSYIH04.IFK.ZH", "label": "GVA: Construction (chain vol.)", "kind": "quarterly" },
+      { "code": "TP.GSYIH06.IFK.ZH", "label": "GVA: Information & Communication (chain vol.)", "kind": "quarterly" },
+      { "code": "TP.GSYIH07.IFK.ZH", "label": "GVA: Finance & Insurance (chain vol.)", "kind": "quarterly" },
+      { "code": "TP.GSYIH08.IFK.ZH", "label": "GVA: Real Estate (chain vol.)", "kind": "quarterly" },
+      { "code": "TP.GSYIH13.IFK.ZH", "label": "Taxes less Subsidies (chain vol.)", "kind": "quarterly" }
+    ]
   }
 ]

@@ -109,6 +109,38 @@ SERIES: list[Series] = [
     Series("TP.GSYIH26.HY.ZH", "GDP (chain-linked volume index)",    "macro", evds.FREQ_QUARTERLY),
     Series("TP.GSYIH26.HY.CF", "GDP (current prices, TL thousand)",  "macro", evds.FREQ_QUARTERLY),
 
+    # ------------------------------------------------------------------
+    # National-accounts detail — feeds the /economy/economic-growth page
+    # (Albaraka "Ekonomik Büyüme" quarterly report). TUIK 2021-ref-year
+    # chain-linked volume indices (raw/unadjusted); the page computes y/y
+    # from the level (v[t]/v[t-4]-1) and the Şekil 2 growth-contributions.
+    # Codes verified against the report's y/y table. NOTE: EVDS carries only
+    # the top-level expenditure aggregates (not durable/construction detail)
+    # and only the unadjusted production index (the calendar-adjusted variant
+    # TUIK headlines on a few sub-sectors is Excel-only — see METRICS.md §14).
+    # ------------------------------------------------------------------
+    # Expenditure method (bie_gsyhhyhe)
+    Series("TP.GSYIH20.HY.ZH", "Household Consumption (chain vol.)",         "macro", evds.FREQ_QUARTERLY),
+    Series("TP.GSYIH21.HY.ZH", "Government Consumption (chain vol.)",        "macro", evds.FREQ_QUARTERLY),
+    Series("TP.GSYIH22.HY.ZH", "Gross Fixed Capital Formation (chain vol.)", "macro", evds.FREQ_QUARTERLY),
+    Series("TP.GSYIH24.HY.ZH", "Exports of Goods & Services (chain vol.)",   "macro", evds.FREQ_QUARTERLY),
+    Series("TP.GSYIH25.HY.ZH", "Imports of Goods & Services (chain vol.)",   "macro", evds.FREQ_QUARTERLY),
+    # Production method / kind of economic activity (bie_gsyhifkhe)
+    Series("TP.GSYIH01.IFK.ZH", "GVA: Agriculture (chain vol.)",                 "macro", evds.FREQ_QUARTERLY),
+    Series("TP.GSYIH02.IFK.ZH", "GVA: Industry (chain vol.)",                    "macro", evds.FREQ_QUARTERLY),
+    Series("TP.GSYIH03.IFK.ZH", "GVA: Manufacturing (chain vol.)",               "macro", evds.FREQ_QUARTERLY),
+    Series("TP.GSYIH04.IFK.ZH", "GVA: Construction (chain vol.)",                "macro", evds.FREQ_QUARTERLY),
+    Series("TP.GSYIH05.IFK.ZH", "GVA: Services (chain vol.)",                    "macro", evds.FREQ_QUARTERLY),
+    Series("TP.GSYIH06.IFK.ZH", "GVA: Information & Communication (chain vol.)", "macro", evds.FREQ_QUARTERLY),
+    Series("TP.GSYIH07.IFK.ZH", "GVA: Finance & Insurance (chain vol.)",         "macro", evds.FREQ_QUARTERLY),
+    Series("TP.GSYIH08.IFK.ZH", "GVA: Real Estate (chain vol.)",                 "macro", evds.FREQ_QUARTERLY),
+    Series("TP.GSYIH09.IFK.ZH", "GVA: Professional/Admin/Support (chain vol.)",  "macro", evds.FREQ_QUARTERLY),
+    Series("TP.GSYIH10.IFK.ZH", "GVA: Public Admin/Education/Health (chain vol.)", "macro", evds.FREQ_QUARTERLY),
+    Series("TP.GSYIH11.IFK.ZH", "GVA: Other Services (chain vol.)",              "macro", evds.FREQ_QUARTERLY),
+    Series("TP.GSYIH12.IFK.ZH", "GVA: Sectoral Total (chain vol.)",              "macro", evds.FREQ_QUARTERLY),
+    Series("TP.GSYIH13.IFK.ZH", "Taxes less Subsidies (chain vol.)",             "macro", evds.FREQ_QUARTERLY),
+    Series("TP.GSYIH26.IFK.ZH", "GDP at purchaser prices (chain vol., prod.)",   "macro", evds.FREQ_QUARTERLY),
+
     # Industrial production (TURKSTAT, SA + calendar adjusted, 2021=100)
     Series("TP.TSANAYMT2021.Y1", "Industrial Production (SA, 2021=100)", "macro", evds.FREQ_MONTHLY),
 
