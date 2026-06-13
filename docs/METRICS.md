@@ -798,6 +798,9 @@ transfers, payments, gender, age) are continuous across the full history.
 |---|---|---|
 | Active customers — mobile vs internet | `mobile`/`internet` total, `aktif_musteri_sayisi` | I / persons |
 | Active individuals by channel usage | mobile-only / both / internet-only | I / persons (digital, individual) |
+| Registered customer base by channel | `mobile`/`internet` total, `sistemde_kayitli_en_az_bir_kez_login_olmus_musteri_sayisi` | I / persons |
+| Net new registered customers per quarter | QoQ Δ of the registered base (derived; `quarterlyDeltas`) | I / persons |
+| Product applications via mobile | `kredi_basvurusu` / `kredi_karti_ve_ek_kart_basvurusu` (mobile total) | II / count |
 | Money-transfer volume per quarter | mobile vs internet grand total | III.1 / volume (₺ trn) |
 | Money-transfer count per quarter | mobile vs internet grand total | III.1 / count |
 | Bill-payment count per quarter | mobile vs internet `fatura_odemeleri` | III.2 / count |
