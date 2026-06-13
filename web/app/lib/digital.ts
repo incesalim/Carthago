@@ -60,6 +60,35 @@ export async function digitalSeries(specs: Spec[], scale = 1): Promise<TrendPoin
   }));
 }
 
+/**
+ * Per-series quarter-over-quarter change. Groups `points` by series
+ * (`bank_type_code`), orders each by period, and emits value[t] − value[t−1] —
+ * i.e. the net change that quarter. The first quarter of each series is dropped
+ * (nothing to difference against). Used to turn the cumulative registered base
+ * (a stock TBB reports) into "net new customers per quarter" (a flow it doesn't).
+ */
+export function quarterlyDeltas(points: TrendPoint[]): TrendPoint[] {
+  const bySeries = new Map<string, TrendPoint[]>();
+  for (const p of points) {
+    if (!bySeries.has(p.bank_type_code)) bySeries.set(p.bank_type_code, []);
+    bySeries.get(p.bank_type_code)!.push(p);
+  }
+  const out: TrendPoint[] = [];
+  for (const series of bySeries.values()) {
+    const sorted = [...series].sort((a, b) => a.period.localeCompare(b.period));
+    for (let i = 1; i < sorted.length; i++) {
+      const prev = sorted[i - 1].value;
+      const cur = sorted[i].value;
+      out.push({
+        period: sorted[i].period,
+        bank_type_code: sorted[i].bank_type_code,
+        value: prev == null || cur == null ? null : cur - prev,
+      });
+    }
+  }
+  return out;
+}
+
 // Most series share this conversion: thousands → millions, or bn TL → trn TL.
 export const SCALE_K_TO_M = 1 / 1000;
 export const SCALE_BN_TO_TRN = 1 / 1000;
@@ -99,6 +128,23 @@ export const CHANNEL_LABELS: Record<string, string> = {
   mobile: "Mobile banking",
   internet: "Internet banking",
 };
+
+// ── Acquisition ──────────────────────────────────────────────────────────────
+
+/**
+ * Registered customer base by channel — TBB's "registered in the system &
+ * logged in at least once" count (sector total). This is the cumulative
+ * installed base; differencing it (see `quarterlyDeltas`) gives net new
+ * customers per quarter. NB: a customer registered at N banks counts N times,
+ * so this is a per-bank registered base summed across the sector, not a unique
+ * head-count — read the *trend* and the *net adds*, not the absolute level.
+ */
+export const REGISTERED_BY_CHANNEL: Spec[] = [
+  sp("mobile", "mobile", "total", "I", "persons_thousands",
+     "sistemde_kayitli_en_az_bir_kez_login_olmus_musteri_sayisi"),
+  sp("internet", "internet", "total", "I", "persons_thousands",
+     "sistemde_kayitli_en_az_bir_kez_login_olmus_musteri_sayisi"),
+];
 
 // ── Transactions ─────────────────────────────────────────────────────────────
 

@@ -11,11 +11,13 @@
  */
 import {
   digitalSeries,
+  quarterlyDeltas,
   SCALE_K_TO_M,
   SCALE_BN_TO_TRN,
   CHANNEL_USE,
   CHANNEL_USE_LABELS,
   ACTIVE_BY_CHANNEL,
+  REGISTERED_BY_CHANNEL,
   CHANNEL_LABELS,
   TRANSFER_VOLUME,
   TRANSFER_COUNT,
@@ -55,6 +57,7 @@ export default async function DigitalPage() {
   const [
     channelUse,
     activeByChannel,
+    registeredByChannel,
     transferVolume,
     transferCount,
     billCount,
@@ -63,12 +66,17 @@ export default async function DigitalPage() {
   ] = await Promise.all([
     digitalSeries(CHANNEL_USE, SCALE_K_TO_M),
     digitalSeries(ACTIVE_BY_CHANNEL, SCALE_K_TO_M),
+    digitalSeries(REGISTERED_BY_CHANNEL, SCALE_K_TO_M),
     digitalSeries(TRANSFER_VOLUME, SCALE_BN_TO_TRN),
     digitalSeries(TRANSFER_COUNT, SCALE_K_TO_M),
     digitalSeries(BILL_COUNT, SCALE_K_TO_M),
     digitalSeries(GENDER, SCALE_K_TO_M),
     digitalSeries(AGE, SCALE_K_TO_M),
   ]);
+
+  // Net new registered customers per quarter — the registered base is a stock;
+  // its quarter-over-quarter change is the acquisition flow TBB doesn't report.
+  const netAdds = quarterlyDeltas(registeredByChannel);
 
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
@@ -97,6 +105,29 @@ export default async function DigitalPage() {
             title="Active individuals by channel usage (millions)"
             yFormat="raw"
             decimals={0}
+          />
+        </div>
+      </Section>
+
+      <Section
+        title="Acquisition"
+        subtitle="Registered customer base (registered in the system and logged in at least once) and the net change each quarter. TBB reports the base as a quarter-end stock; net adds are derived as its quarter-over-quarter change. Counts are per-bank registrations summed across the sector — a customer registered at several banks counts several times — so read the trend and the net adds, not the absolute level."
+      >
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <TrendChart
+            data={registeredByChannel}
+            seriesLabels={CHANNEL_LABELS}
+            title="Registered customer base by channel (millions)"
+            yFormat="raw"
+            decimals={0}
+          />
+          <TrendChart
+            data={netAdds}
+            seriesLabels={CHANNEL_LABELS}
+            title="Net new registered customers per quarter (millions)"
+            yFormat="raw"
+            decimals={1}
+            zeroLine
           />
         </div>
       </Section>
