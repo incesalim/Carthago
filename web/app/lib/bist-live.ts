@@ -20,26 +20,35 @@ export interface LiveQuote {
   asOf: number; // regularMarketTime, unix seconds
 }
 
-interface YahooChart {
-  chart?: {
-    result?: Array<{
-      meta?: { regularMarketPrice?: number; regularMarketTime?: number };
-    }>;
-  };
-}
+interface SparkEntry { timestamp?: number[]; close?: (number | null)[] }
 
 const TTL_MS = 60_000;
 const TIMEOUT_MS = 2500;
-const _mem = new Map<string, { quote: LiveQuote; exp: number }>();
+// Per-isolate cache; nulls are cached too so a delisted/failed symbol isn't
+// re-fetched every render within the TTL.
+const _mem = new Map<string, { quote: LiveQuote | null; exp: number }>();
 
-async function fetchOne(symbol: string): Promise<LiveQuote | null> {
-  const now = Date.now();
-  const hit = _mem.get(symbol);
-  if (hit && hit.exp > now) return hit.quote;
+/** Latest close + its timestamp from a spark entry (skip Yahoo's trailing nulls). */
+function parseSpark(e?: SparkEntry): LiveQuote | null {
+  if (!e?.close || !e.timestamp) return null;
+  for (let i = e.close.length - 1; i >= 0; i--) {
+    const c = e.close[i];
+    if (typeof c === "number" && Number.isFinite(c) && c > 0) {
+      const ts = e.timestamp[i];
+      return { price: c, asOf: typeof ts === "number" ? ts : Math.floor(Date.now() / 1000) };
+    }
+  }
+  return null;
+}
+
+/** One batched spark request for all symbols (`.IS` appended). Never throws. */
+async function fetchSpark(symbols: string[]): Promise<Map<string, LiveQuote>> {
+  const out = new Map<string, LiveQuote>();
   try {
+    const list = symbols.map((s) => `${s}.IS`).join(",");
     const url =
-      `https://query1.finance.yahoo.com/v8/finance/chart/` +
-      `${encodeURIComponent(symbol)}.IS?range=1d&interval=1d`;
+      `https://query1.finance.yahoo.com/v8/finance/spark` +
+      `?symbols=${encodeURIComponent(list)}&range=1d&interval=1m`;
     // `cf` is a Cloudflare Workers fetch extension → CDN edge cache, NOT KV.
     const init: RequestInit & { cf?: { cacheTtl: number; cacheEverything: boolean } } = {
       cache: "no-store",
@@ -51,39 +60,47 @@ async function fetchOne(symbol: string): Promise<LiveQuote | null> {
       },
     };
     const res = await fetch(url, init);
-    if (!res.ok) return null;
-    const data = (await res.json()) as YahooChart;
-    const meta = data?.chart?.result?.[0]?.meta;
-    const price = meta?.regularMarketPrice;
-    const asOf = meta?.regularMarketTime;
-    if (
-      typeof price !== "number" || !Number.isFinite(price) || price <= 0 ||
-      typeof asOf !== "number"
-    ) {
-      return null;
+    if (!res.ok) return out;
+    const data = (await res.json()) as Record<string, SparkEntry>;
+    for (const sym of symbols) {
+      const q = parseSpark(data[`${sym}.IS`]);
+      if (q) out.set(sym, q);
     }
-    const quote: LiveQuote = { price, asOf };
-    _mem.set(symbol, { quote, exp: now + TTL_MS });
-    return quote;
+    return out;
   } catch {
-    return null; // timeout / network / parse → fall back to the stored close
+    return out; // timeout / network / parse → callers fall back to the stored close
   }
 }
 
 /**
  * Latest Yahoo quotes for bare symbols (bank ticker or index code; ".IS" is
- * appended). Symbols that fail are omitted — the caller falls back to D1.
+ * appended). ONE spark request per call regardless of symbol count, so the
+ * cross-bank page (11 banks) isn't throttled by a burst of per-symbol fetches.
+ * Symbols that fail are omitted — the caller falls back to the stored D1 close.
  * `BIST_LIVE_DISABLED=1` returns an empty map (prod kill switch, no deploy).
  */
 export async function liveQuotes(symbols: string[]): Promise<Map<string, LiveQuote>> {
   const out = new Map<string, LiveQuote>();
-  if (process.env.BIST_LIVE_DISABLED === "1") return out;
-  await Promise.all(
-    symbols.map(async (sym) => {
-      const q = await fetchOne(sym);
-      if (q) out.set(sym, q);
-    }),
-  );
+  if (process.env.BIST_LIVE_DISABLED === "1" || symbols.length === 0) return out;
+
+  const now = Date.now();
+  const misses: string[] = [];
+  for (const s of symbols) {
+    const hit = _mem.get(s);
+    if (hit && hit.exp > now) {
+      if (hit.quote) out.set(s, hit.quote);
+    } else {
+      misses.push(s);
+    }
+  }
+  if (misses.length) {
+    const fetched = await fetchSpark(misses);
+    for (const s of misses) {
+      const q = fetched.get(s) ?? null;
+      _mem.set(s, { quote: q, exp: now + TTL_MS });
+      if (q) out.set(s, q);
+    }
+  }
   return out;
 }
 
