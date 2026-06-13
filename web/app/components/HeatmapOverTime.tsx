@@ -15,6 +15,7 @@ import {
   formatMetricValue,
 } from "@/app/lib/heatmap-normalize";
 import BankTypeBadge from "@/app/components/BankTypeBadge";
+import HeatmapLegend from "@/app/components/HeatmapLegend";
 
 export interface HeatmapTimeRow {
   ticker: string;
@@ -45,28 +46,62 @@ function shortPeriod(p: string): string {
   return `Q${m[2]} ’${m[1].slice(2)}`;
 }
 
+// How the color rank is computed — the same raw values, ranked over a
+// different population. "panel" ranks every bank-quarter together (good for
+// "who is worst overall"); "bank" ranks each bank against its OWN history so a
+// single bank's trajectory uses the full ramp (good for spotting that bank
+// deteriorating); "period" ranks banks within each quarter (a clean
+// cross-section per column).
+type ScaleMode = "panel" | "bank" | "period";
+
+const SCALE_LABELS: Record<ScaleMode, string> = {
+  panel: "Whole panel",
+  bank: "Per bank",
+  period: "Per quarter",
+};
+
 export default function HeatmapOverTime({ metrics, banks, periods, panel }: Props) {
   const [metricKey, setMetricKey] = useState<MetricKey>("npl_ratio");
+  const [scaleMode, setScaleMode] = useState<ScaleMode>("panel");
   const metric = metrics.find((m) => m.key === metricKey) ?? metrics[0];
   const ci = metrics.findIndex((m) => m.key === metric.key);
 
-  // Raw value + 0..1 score per (ticker|period), scored across the whole panel.
+  // Raw value + 0..1 score per (ticker|period). The score's population depends
+  // on scaleMode: the whole panel, or per-bank / per-quarter groups normalized
+  // independently so each group spans the full color range.
   const { rawByKey, scoreByKey } = useMemo(() => {
-    const values = panel.map((c) => c.raw[ci]);
-    const scores = normalizeColumn(values, metric.direction);
     const rawMap = new Map<string, number | null>();
     const scoreMap = new Map<string, number | null>();
-    panel.forEach((c, i) => {
-      const key = `${c.ticker}|${c.period}`;
-      rawMap.set(key, c.raw[ci]);
-      scoreMap.set(key, scores[i]);
-    });
+    panel.forEach((c) => rawMap.set(`${c.ticker}|${c.period}`, c.raw[ci]));
+
+    if (scaleMode === "panel") {
+      const scores = normalizeColumn(panel.map((c) => c.raw[ci]), metric.direction);
+      panel.forEach((c, i) => scoreMap.set(`${c.ticker}|${c.period}`, scores[i]));
+    } else {
+      const groups = new Map<string, PanelCell[]>();
+      for (const c of panel) {
+        const g = scaleMode === "bank" ? c.ticker : c.period;
+        (groups.get(g) ?? groups.set(g, []).get(g)!).push(c);
+      }
+      for (const cells of groups.values()) {
+        const scores = normalizeColumn(cells.map((c) => c.raw[ci]), metric.direction);
+        cells.forEach((c, i) => scoreMap.set(`${c.ticker}|${c.period}`, scores[i]));
+      }
+    }
     return { rawByKey: rawMap, scoreByKey: scoreMap };
-  }, [panel, ci, metric.direction]);
+  }, [panel, ci, metric.direction, scaleMode]);
+
+  const dirWord =
+    metric.direction === "neutral" ? "higher = darker" : "green = better, red = worse";
+  const caption = {
+    panel: `Each cell ranked against every bank-quarter — ${dirWord}.`,
+    bank: `Each bank ranked against its own history — ${dirWord}.`,
+    period: `Banks ranked within each quarter — ${dirWord}.`,
+  }[scaleMode];
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <label htmlFor="heatmap-metric" className="text-xs font-medium text-muted-foreground">
           Metric
         </label>
@@ -82,9 +117,32 @@ export default function HeatmapOverTime({ metrics, banks, periods, panel }: Prop
             </option>
           ))}
         </select>
-        <span className="text-[11px] text-muted-foreground">
-          Color compares each cell against the whole panel — darker = more extreme.
-        </span>
+
+        <span className="mx-1 hidden h-5 w-px bg-border sm:block" />
+
+        <span className="text-xs font-medium text-muted-foreground">Color scale</span>
+        <div className="inline-flex items-center gap-0.5 rounded-lg border border-border bg-card p-0.5">
+          {(["panel", "bank", "period"] as ScaleMode[]).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => setScaleMode(mode)}
+              aria-pressed={scaleMode === mode}
+              className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                scaleMode === mode
+                  ? "bg-accent text-foreground"
+                  : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+              }`}
+            >
+              {SCALE_LABELS[mode]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <span className="text-[11px] text-muted-foreground">{caption}</span>
+        <HeatmapLegend mode={metric.direction === "neutral" ? "neutral" : "directional"} />
       </div>
 
       <div className="overflow-auto rounded-lg border border-border bg-card">
