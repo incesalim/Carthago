@@ -288,6 +288,11 @@ A qualitative-data layer feeds two tabs from the `news_items` table
   Cloudflare's **edge cache + per-isolate memory, never KV** (the 12h KV window
   guards the write cap), 2.5 s timeout, kill switch `BIST_LIVE_DISABLED=1`.
   Not real-time (paid feed); this is a request-time read overlay — no D1 writes.
+  **Market ticker (2026-06-13):** a scrolling live strip on `/economy` + `/news`
+  (`MarketTicker.tsx`) — BIST indices, USD/TRY, EUR/TRY, Brent, gold $/oz +
+  derived gram-gold ₺, each with day-change %. One batched Yahoo `spark` request
+  (`getMarketTicker()` → `rawQuotes`); client polls `/api/market-ticker` every
+  60 s; hidden on failure / kill switch.
 - **Cash flow + equity-change extractors shipped; deep-fixed + fleet re-extracted (2026-06-13).**
   Two statement types: `bank_audit_cash_flow` (sort_order=38) and `bank_audit_equity_change`
   (sort_order=36). Root-cause fixes (commits b8b1c51, 8a91444): equity locator now uses the
