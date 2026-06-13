@@ -127,14 +127,28 @@ export async function heatmapPanel(kind: string = DEFAULT_KIND): Promise<BankMet
       [kind, ...BS_ASSET_ROMAN_HIERARCHIES],
     ),
     // B — stage ratios (one row per bank/period already); guard divide-by-zero.
+    // Broken-breakdown guard: a handful of historical partitions captured only
+    // the stage-3 (NPL) sub-table — total_amount was set equal to stage3_amount
+    // with stage1/stage2 left null. There `total_amount` is the NPL stock, not
+    // the loan base, so stage3/total would render a nonsense NPL = 100% and the
+    // provision ratio sits on the wrong denominator. No real bank has 100% of
+    // loans in stage 3, so the signature (stage1 & stage2 null, total = stage3)
+    // reliably flags these; null both ratios rather than show a wrong one.
+    // (stage2_share is already null there — stage2_amount is null. npl_coverage
+    // = stage3_coverage is stored independently of total_amount, so it stays.)
     cachedAll<RowStages>(
       `SELECT bank_ticker, period,
-              CASE WHEN total_amount > 0 THEN stage3_amount * 1.0 / total_amount END AS npl_ratio,
+              CASE WHEN total_amount > 0 AND NOT brk THEN stage3_amount * 1.0 / total_amount END AS npl_ratio,
               CASE WHEN total_amount > 0 THEN stage2_amount * 1.0 / total_amount END AS stage2_share,
               stage3_coverage AS npl_coverage,
-              CASE WHEN total_amount > 0 THEN total_ecl * 1.0 / total_amount END AS provision_intensity
-         FROM bank_audit_stages
-        WHERE kind = ? AND period_type = 'current'`,
+              CASE WHEN total_amount > 0 AND NOT brk THEN total_ecl * 1.0 / total_amount END AS provision_intensity
+         FROM (
+           SELECT *,
+                  (stage1_amount IS NULL AND stage2_amount IS NULL
+                   AND total_amount = stage3_amount) AS brk
+             FROM bank_audit_stages
+            WHERE kind = ? AND period_type = 'current'
+         )`,
       [kind],
     ),
     // C — P&L pivot by BRSA hierarchy (labels vary TR/EN, codes don't).
