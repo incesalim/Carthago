@@ -619,5 +619,56 @@
       { "code": "TP.KB.GEL021", "label": "Special Consumption Tax (ÖTV total) (TL)", "kind": "monthly" },
       { "code": "TP.KB.GEL033", "label": "VAT on Imports (TL)", "kind": "monthly" }
     ]
+  },
+  {
+    "id": "economy.inflation_headline",
+    "title": "Inflation — CPI, core-C, PPI (y/y %)",
+    "source": { "report": "Albaraka — Enflasyon", "page": "Şekil 1 + table", "as_of": "2026-05" },
+    "placement": { "tab": "economy", "section": "Inflation" },
+    "unit": "%",
+    "format": "pct",
+    "decimals": 1,
+    "chart": "TimeSeriesChart",
+    "series": [
+      { "key": "cpi", "label": "CPI (y/y)", "source": "evds", "locator": { "code": "TP.TUKFIY2025.GENEL", "years_back": 9 }, "transform": [{ "op": "growth", "window": 12, "mode": "yoy" }] },
+      { "key": "core", "label": "Core C (y/y)", "source": "evds", "locator": { "code": "TP.FE25.OKTG04", "years_back": 9 }, "transform": [{ "op": "growth", "window": 12, "mode": "yoy" }] },
+      { "key": "ppi", "label": "PPI Yİ-ÜFE (y/y)", "source": "evds", "locator": { "code": "TP.TUFE1YI.T1", "years_back": 9 }, "transform": [{ "op": "growth", "window": 12, "mode": "yoy" }] }
+    ],
+    "verify": [
+      { "series": "cpi", "date": "2026-05", "value": 32.61, "tolerance": 0.2, "tolerance_unit": "pp" },
+      { "series": "core", "date": "2026-05", "value": 30.44, "tolerance": 0.2, "tolerance_unit": "pp" },
+      { "series": "ppi", "date": "2026-05", "value": 28.93, "tolerance": 0.2, "tolerance_unit": "pp" }
+    ],
+    "registry_additions": [
+      { "code": "TP.FE25.OKTG04", "label": "CPI Core C (excl. energy/food/alc-tob/gold)", "kind": "monthly" },
+      { "code": "TP.TUFE1YI.T1", "label": "PPI Yİ-ÜFE General (domestic PPI)", "kind": "monthly" }
+    ]
+  },
+  {
+    "id": "economy.inflation_components_mm",
+    "title": "Inflation — CPI groups & PPI sectors (monthly %)",
+    "source": { "report": "Albaraka — Enflasyon", "page": "Şekil 2–6", "as_of": "2026-05" },
+    "placement": { "tab": "economy", "section": "Inflation" },
+    "unit": "%",
+    "format": "pct",
+    "decimals": 1,
+    "chart": "BopFlowChart",
+    "series": [
+      { "key": "clothing", "label": "Clothing m/m", "source": "evds", "locator": { "code": "TP.TUKFIY2025.03", "years_back": 9 }, "transform": [{ "op": "growth", "window": 1, "mode": "yoy" }] },
+      { "key": "food", "label": "Food m/m", "source": "evds", "locator": { "code": "TP.TUKFIY2025.01", "years_back": 9 }, "transform": [{ "op": "growth", "window": 1, "mode": "yoy" }] },
+      { "key": "coreC_mm", "label": "Core C m/m", "source": "evds", "locator": { "code": "TP.FE25.OKTG04", "years_back": 9 }, "transform": [{ "op": "growth", "window": 1, "mode": "yoy" }] },
+      { "key": "ppi_elec", "label": "PPI electricity & gas m/m", "source": "evds", "locator": { "code": "TP.TUFE1YI.T118", "years_back": 9 }, "transform": [{ "op": "growth", "window": 1, "mode": "yoy" }] }
+    ],
+    "verify": [
+      { "series": "clothing", "date": "2026-05", "value": 11.29, "tolerance": 0.2, "tolerance_unit": "pp" },
+      { "series": "food", "date": "2026-05", "value": -0.48, "tolerance": 0.2, "tolerance_unit": "pp" },
+      { "series": "coreC_mm", "date": "2026-05", "value": 2.92, "tolerance": 0.2, "tolerance_unit": "pp" },
+      { "series": "ppi_elec", "date": "2026-05", "value": 12.04, "tolerance": 0.2, "tolerance_unit": "pp" }
+    ],
+    "registry_additions": [
+      { "code": "TP.TUKFIY2025.03", "label": "CPI 03 Clothing & footwear (2025=100)", "kind": "monthly" },
+      { "code": "TP.TUKFIY2025.01", "label": "CPI 01 Food & non-alcoholic beverages (2025=100)", "kind": "monthly" },
+      { "code": "TP.TUFE1YI.T118", "label": "PPI Electricity, gas, steam & A/C", "kind": "monthly" }
+    ]
   }
 ]

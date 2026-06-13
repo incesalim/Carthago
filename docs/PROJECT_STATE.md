@@ -190,6 +190,24 @@ calendar-adjusted production variant live only in TÜİK's Excel — a future
 scraper lane, not yet wired. Two `economy.growth_*` chart-specs anchor
 verification.
 
+A **Budget** sub-page (`/economy/budget`) reproduces the Albaraka «Bütçe
+Görünümü» monthly report off **23 new `TP.KB.GEL*/GID*` central-government
+budget series** (EVDS cat 1503 — *distinct* from the cash general-budget
+`GEN*` codes, which are ~117 bn off): 12m balance/primary/tax KPIs, Şekil 1
+(12m balance+primary), Şekil 5 (monthly balance), Şekil 4 (revenue y/y),
+Şekil 2/3 expenditure & tax category bars, and the 17-row table. Balance /
+primary / non-tax are derived (`GEL001−GID001/−GID002/−GEL003`), all matching
+the report's Apr-2026 table. Two `economy.budget_*` chart-specs.
+
+An **Inflation** sub-page (`/economy/inflation`) reproduces the Albaraka
+«Enflasyon» monthly report off **28 new TÜİK CPI (2025=100) + PPI (Yİ-ÜFE)
+series** (`inflation`/monthly): CPI/core-C/PPI KPIs + Şekil 1, core A/B/C/D
+table (m/m, cumulative, y/y, 12m-avg), Şekil 4/5 (clothing & electricity m/m),
+Şekil 2/3 CPI-group & PPI-sector m/m, and the monthly-history table. EVDS gaps
+flagged in-page: Şekil 2/3 weighted **contributions** (need TÜİK weights →
+shown as m/m) and the PPI **Main-Industrial-Groupings** table (TÜİK-Excel
+only). Two `economy.inflation_*` chart-specs.
+
 A **Digital** tab (`/digital`) surfaces the TBB quarterly digital/internet/mobile
 banking statistics (`tbb_digital_stats`, sector-wide): channel adoption (active
 mobile vs internet customers; mobile-only/both/internet-only usage), quarterly

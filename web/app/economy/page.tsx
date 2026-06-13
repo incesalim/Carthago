@@ -93,6 +93,12 @@ export default async function EconomyPage() {
         >
           Budget →
         </Link>
+        <Link
+          href="/economy/inflation"
+          className="rounded-md border border-border px-2.5 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+        >
+          Inflation →
+        </Link>
       </PageHeader>
 
       <Section

@@ -988,6 +988,38 @@ no direct EVDS series; all reproduce the report's Apr-2026 table exactly
 `economy.budget_*` chart-specs (one exercising the `derive`+`rolling_sum`
 chain) anchor the daily verification.
 
+### Inflation sub-page (`/economy/inflation`)
+
+Reproduces the Albaraka **«Enflasyon»** monthly report from TÜİK CPI (2025=100)
+and domestic PPI (Yİ-ÜFE) series in EVDS. Data layer:
+`web/app/lib/inflation.ts`. All inputs are monthly index levels; every metric
+is a scale-invariant derivation: **m/m** = `v/v[-1]−1`, **y/y** = `v/v[-12]−1`,
+**cumulative-since-Dec** = `v/Dec[-1]−1`, **12-month-average y/y** = ratio of
+trailing-12m index averages (the exact TÜİK convention — *not* the mean of 12
+monthly y/y figures, which is ~0.1 pp off).
+
+| Element | Series |
+|---|---|
+| KPIs / Şekil 1 | CPI `TP.TUKFIY2025.GENEL`, Core C `TP.FE25.OKTG04`, PPI `TP.TUFE1YI.T1` (y/y) |
+| Şekil 6 core | `TP.FE25.OKTG04` (m/m + y/y) |
+| Core table A/B/C/D | `TP.FE25.OKTG02/03/04/05` |
+| Şekil 4 clothing | `TP.TUKFIY2025.03` (m/m) |
+| Şekil 5 electricity & gas | `TP.TUFE1YI.T118` (m/m) |
+| Şekil 2 CPI groups | `TP.TUKFIY2025.01–13` (m/m) |
+| Şekil 3 PPI sectors | `TP.TUFE1YI.T{16,6,49,52,61,64,73,79,93,30,28,114}` (m/m) |
+| Table 1 history | GENEL + T1 (m/m, y/y) |
+
+**Gotchas:** Core **C** (`OKTG04`, excl. energy/food/alc-tob/gold) is the
+headline "çekirdek". CPI 2025=100 levels are ≈116–129 while the PPI
+`TP.TUFE1YI.*` family is still 2003-base (≈5454) — never compare levels, but
+all %-derivations are scale-invariant. **Two coverage gaps (TÜİK-Excel only,
+not in EVDS, flagged in-page):** (1) Şekil 2/3 plot weighted **contributions**
+(need group weights) → the page shows **m/m % per group** instead; (2) the PPI
+**Main-Industrial-Groupings** table (intermediate/durable/energy/capital
+goods) — only the Yurtiçi-ÜFE header maps. 28 new series in `evds_series`
+(category `inflation`/monthly); two `economy.inflation_*` chart-specs anchor
+verification.
+
 ## 15. TEFAS fund-market statistics
 
 Source: **TEFAS** (Turkey Electronic Fund Trading Platform, tefas.gov.tr) —

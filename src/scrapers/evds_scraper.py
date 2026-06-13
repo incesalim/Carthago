@@ -227,6 +227,52 @@ SERIES: list[Series] = [
     Series("TP.KB.GID116", "Capital Transfers (TL)",                   "macro", evds.FREQ_MONTHLY),
     Series("TP.KB.GID131", "Lending / Borç Verme (TL)",                "macro", evds.FREQ_MONTHLY),
     Series("TP.KB.GID152", "Interest Expenditure (TL)",                "macro", evds.FREQ_MONTHLY),
+
+    # ------------------------------------------------------------------
+    # Inflation detail — feeds the /economy/inflation page (Albaraka
+    # "Enflasyon" monthly report). TÜİK CPI 2025=100 core + COICOP groups
+    # and the Yİ-ÜFE (domestic PPI) NACE family. All monthly index levels;
+    # the page derives m/m, y/y, cumulative-since-Dec, and 12m-avg (ratio of
+    # trailing-12m index averages). NOTE: CPI 2025=100 levels ≈116–129 while
+    # the PPI TP.TUFE1YI.* family is still 2003-base (≈5454) — % derivations
+    # are scale-invariant so this only matters for raw-level charts (none).
+    # Şekil 2/3 plot weighted CONTRIBUTIONS (need TÜİK group weights, not in
+    # EVDS) → the page shows m/m % per group instead. Verified to the report.
+    # ------------------------------------------------------------------
+    # CPI 2025=100 core (özel kapsamlı) indices
+    Series("TP.FE25.OKTG02", "CPI Core A (excl. seasonal, 2025=100)",                  "inflation", evds.FREQ_MONTHLY),
+    Series("TP.FE25.OKTG03", "CPI Core B (excl. unproc. food/energy/alc-tob/gold)",    "inflation", evds.FREQ_MONTHLY),
+    Series("TP.FE25.OKTG04", "CPI Core C (excl. energy/food/alc-tob/gold)",            "inflation", evds.FREQ_MONTHLY),
+    Series("TP.FE25.OKTG05", "CPI Core D (excl. unproc. food/alc-tob)",                "inflation", evds.FREQ_MONTHLY),
+    # CPI 2025=100 COICOP main groups
+    Series("TP.TUKFIY2025.01", "CPI 01 Food & non-alcoholic beverages",   "inflation", evds.FREQ_MONTHLY),
+    Series("TP.TUKFIY2025.02", "CPI 02 Alcoholic beverages & tobacco",    "inflation", evds.FREQ_MONTHLY),
+    Series("TP.TUKFIY2025.03", "CPI 03 Clothing & footwear",              "inflation", evds.FREQ_MONTHLY),
+    Series("TP.TUKFIY2025.04", "CPI 04 Housing, water, electricity, gas", "inflation", evds.FREQ_MONTHLY),
+    Series("TP.TUKFIY2025.05", "CPI 05 Furnishings & household equipment","inflation", evds.FREQ_MONTHLY),
+    Series("TP.TUKFIY2025.06", "CPI 06 Health",                           "inflation", evds.FREQ_MONTHLY),
+    Series("TP.TUKFIY2025.07", "CPI 07 Transport",                        "inflation", evds.FREQ_MONTHLY),
+    Series("TP.TUKFIY2025.08", "CPI 08 Information & communication",       "inflation", evds.FREQ_MONTHLY),
+    Series("TP.TUKFIY2025.09", "CPI 09 Recreation, sports & culture",     "inflation", evds.FREQ_MONTHLY),
+    Series("TP.TUKFIY2025.10", "CPI 10 Education services",               "inflation", evds.FREQ_MONTHLY),
+    Series("TP.TUKFIY2025.11", "CPI 11 Restaurants & accommodation",      "inflation", evds.FREQ_MONTHLY),
+    Series("TP.TUKFIY2025.12", "CPI 12 Insurance & financial services",   "inflation", evds.FREQ_MONTHLY),
+    Series("TP.TUKFIY2025.13", "CPI 13 Personal care & misc",             "inflation", evds.FREQ_MONTHLY),
+    # Yİ-ÜFE (domestic PPI) — headline + NACE sub-sectors (2003-base)
+    Series("TP.TUFE1YI.T1",   "PPI Yİ-ÜFE General (domestic PPI)",        "inflation", evds.FREQ_MONTHLY),
+    Series("TP.TUFE1YI.T118", "PPI Electricity, gas, steam & A/C",        "inflation", evds.FREQ_MONTHLY),
+    Series("TP.TUFE1YI.T16",  "PPI Food products",                        "inflation", evds.FREQ_MONTHLY),
+    Series("TP.TUFE1YI.T6",   "PPI Crude petroleum & natural gas",        "inflation", evds.FREQ_MONTHLY),
+    Series("TP.TUFE1YI.T49",  "PPI Coke & refined petroleum",             "inflation", evds.FREQ_MONTHLY),
+    Series("TP.TUFE1YI.T52",  "PPI Chemicals & chemical products",        "inflation", evds.FREQ_MONTHLY),
+    Series("TP.TUFE1YI.T61",  "PPI Rubber & plastic products",            "inflation", evds.FREQ_MONTHLY),
+    Series("TP.TUFE1YI.T64",  "PPI Other non-metallic mineral products",  "inflation", evds.FREQ_MONTHLY),
+    Series("TP.TUFE1YI.T73",  "PPI Basic metals",                         "inflation", evds.FREQ_MONTHLY),
+    Series("TP.TUFE1YI.T79",  "PPI Fabricated metal products",            "inflation", evds.FREQ_MONTHLY),
+    Series("TP.TUFE1YI.T93",  "PPI Electrical equipment",                 "inflation", evds.FREQ_MONTHLY),
+    Series("TP.TUFE1YI.T30",  "PPI Textiles",                             "inflation", evds.FREQ_MONTHLY),
+    Series("TP.TUFE1YI.T28",  "PPI Tobacco products",                     "inflation", evds.FREQ_MONTHLY),
+    Series("TP.TUFE1YI.T114", "PPI Other manufactured goods",             "inflation", evds.FREQ_MONTHLY),
 ]
 
 
