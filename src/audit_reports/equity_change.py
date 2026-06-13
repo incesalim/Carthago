@@ -317,16 +317,26 @@ def _parse_equity_page(pdf_path: str, page_idx_1: int, period_type: str,
     # Pick the path with more accepted rows
     best = rows_fz if len(rows_fz) > len(rows_pp) else rows_pp
     # Mid-page split: some PDFs print both the current and prior equity tables on
-    # a single page.  Detect this by finding a closing row (hierarchy='', name
-    # matches BAKIYE/BALANCE) that is NOT the last accepted row.  If found, assign
-    # period_type='prior' (opposite of the detected type) to all rows after the
-    # closing row and renumber their orders from 1.
+    # a single page, so every row arrives tagged with the same period_type.  We
+    # split them and re-tag the second block with the opposite period.
     opposite = 'prior' if period_type == 'current' else 'current'
     split_idx: int | None = None
+    # (a) Preferred signal: the current table's closing row ("Dönem Sonu
+    #     Bakiyesi", hierarchy='') sitting somewhere other than the last row.
     for idx, r in enumerate(best):
         if not r.hierarchy and _CLOSING_RX.search(r.name) and idx < len(best) - 1:
             split_idx = idx
             break
+    # (b) Fallback: some banks (e.g. TEB) omit the current table's closing row, so
+    #     the only marker that a second table has begun is the roman sequence
+    #     restarting — a second row opening with "I." after the first.  Split
+    #     immediately before it.  (A normal single-table page has just one "I.",
+    #     so this never fires spuriously.)
+    if split_idx is None and best and best[0].hierarchy == 'I.':
+        for idx in range(1, len(best)):
+            if best[idx].hierarchy == 'I.':
+                split_idx = idx - 1
+                break
     if split_idx is not None:
         for new_ord, r in enumerate(best[split_idx + 1:], start=1):
             r.period_type = opposite
@@ -342,23 +352,36 @@ def _locate_equity_pages(pdf, pdf_path: str,
                          after_page: int | None) -> list[tuple[int, str]]:
     """Return list of (page_idx_1, period_type) for up to 2 equity pages.
 
-    Searches pages after_page+1 … after_page+6 for the equity anchor.
-    Requires ≥3 lines with ≥10 numeric tokens (the wide table) to confirm.
-    period_type is detected from CARİ/ÖNCEKİ DÖNEM in the page text.
+    The statement of changes in equity is the ONLY BRSA statement laid out as a
+    WIDE table (14 value columns unconsolidated, 16 consolidated); every other
+    statement carries ≤6.  We therefore detect it by that fingerprint — ≥3 lines
+    each with ≥10 numeric value tokens — rather than by its title anchor.  The
+    anchor is unreliable: ODEA renders the title in an image the text layer never
+    exposes (the only anchor hit is the table of contents, which has no data),
+    and Ziraat writes "ÖZKAYNAKLAR DEĞİŞİM" → normalised ``OZKAYNAKLARDEGISIM``,
+    which doesn't contain the ``OZKAYNAKDEGISIM`` anchor.
+
+    Scanning starts just after the OCI/P&L page (equity always immediately
+    follows them) and stops as soon as the run of wide pages ends, so it never
+    reaches the wide footnote tables (interest-rate sensitivity, maturity gap)
+    deeper in the report.  period_type is taken from CARİ/ÖNCEKİ DÖNEM when
+    present, else positional (first=current, second=prior).
     """
     if after_page is None:
         return []
     found: list[tuple[int, str]] = []
-    for i in range(after_page + 1, min(after_page + 7, len(pdf.pages) + 1)):
-        if i > len(pdf.pages):
-            break
+    n_pages = len(pdf.pages)
+    for i in range(after_page + 1, n_pages + 1):
         text = pdf.pages[i - 1].extract_text() or ''
-        norm = _norm(text)
-        if not any(kw in norm for kw in _EQ_ANCHORS):
-            continue
-        # Confirm: ≥3 lines with ≥10 numeric tokens
+        # The wide-table fingerprint: ≥3 lines carrying ≥10 numeric tokens.
         wide_rows = sum(1 for ln in text.split('\n') if _count_value_tokens(ln) >= 10)
         if wide_rows < 3:
+            if found:
+                break                 # the run of equity pages has ended
+            # Equity sits within a few pages of OCI; bound the scan so a report
+            # whose equity is image-only (unrecoverable) doesn't sweep 150 pages.
+            if i - after_page > 12:
+                break
             continue
         period_type = 'current'
         if _PRIOR_RX.search(text):
