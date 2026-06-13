@@ -50,7 +50,7 @@ import pdfplumber
 
 from .extractor import (
     HIERARCHY_PAT, NUM_PAT, _FOOTNOTE_RX, _LINE_HIER_RX, _norm,
-    extract_page_text_repaired, parse_num,
+    _fitz_page_text, extract_page_text_repaired, parse_num,
 )
 
 try:
@@ -477,7 +477,10 @@ def _locate_equity_pages(pdf, pdf_path: str,
     found: list[tuple[int, str]] = []
     n_pages = len(pdf.pages)
     for i in range(after_page + 1, n_pages + 1):
-        text = pdf.pages[i - 1].extract_text() or ''
+        # fitz text (fast, ~50× over pdfplumber) for the page scan; same y-bucketed
+        # line structure, so the wide-fingerprint count is equivalent.
+        text = (_fitz_page_text(pdf_path, i - 1) if (_HAS_FITZ and pdf_path)
+                else (pdf.pages[i - 1].extract_text() or ''))
         # The wide-table fingerprint: ≥3 lines carrying ≥10 numeric tokens.
         wide_rows = sum(1 for ln in text.split('\n') if _count_value_tokens(ln) >= 10)
         if wide_rows < 3:
@@ -488,10 +491,16 @@ def _locate_equity_pages(pdf, pdf_path: str,
             if i - after_page > 12:
                 break
             continue
+        # period_type from the pdfplumber rendering of this (found) page only —
+        # its column-flatten keeps "Prior/Current Period" contiguous, which the
+        # period regex needs. fitz's word-interleaving can split them and flip a
+        # reversed-order page (GARAN prints prior-then-current). Reading just the
+        # 1-2 found pages with pdfplumber is cheap and keeps this engine-stable.
+        ptext = pdf.pages[i - 1].extract_text() or ''
         period_type = 'current'
-        if _PRIOR_RX.search(text):
+        if _PRIOR_RX.search(ptext):
             period_type = 'prior'
-        elif _CURRENT_RX.search(text):
+        elif _CURRENT_RX.search(ptext):
             period_type = 'current'
         elif found:
             # Second matched page defaults to prior
@@ -520,8 +529,11 @@ def extract_from_pdf(pdf, pdf_path: str, after_page: int | None) -> EquityChange
         return rep
     # Determine column count from the first (widest) page
     try:
-        with pdfplumber.open(pdf_path) as _pdf2:
-            first_text = _pdf2.pages[pages[0][0] - 1].extract_text() or ''
+        if _HAS_FITZ:
+            first_text = _fitz_page_text(pdf_path, pages[0][0] - 1)
+        else:
+            with pdfplumber.open(pdf_path) as _pdf2:
+                first_text = _pdf2.pages[pages[0][0] - 1].extract_text() or ''
     except Exception:
         first_text = ''
     lines = first_text.split('\n')

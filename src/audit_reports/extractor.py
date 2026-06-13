@@ -678,12 +678,14 @@ def _locate_pages(pdf: pdfplumber.PDF) -> dict[str, int]:
         return False
     pdf_path = pdf.stream.name if hasattr(pdf, 'stream') else None
     for i, page in enumerate(pdf.pages, 1):
-        text_pp = page.extract_text() or ''
-        # Always combine pdfplumber + fitz text when available. Some banks
-        # (e.g. Akbank 2026Q1) render item names as absolutely-positioned text
-        # that pdfplumber's column-flatten drops but fitz captures cleanly.
-        text_fz = _fitz_page_text(pdf_path, i - 1) if (_HAS_FITZ and pdf_path) else ''
-        text = text_pp + '\n' + text_fz
+        # Fitz text only — ~50× faster than pdfplumber's extract_text (which
+        # dominated page-location time) and a SUPERSET for anchor detection: it
+        # captures the absolutely-positioned text pdfplumber's column-flatten drops
+        # (e.g. Akbank 2026Q1). pdfplumber is used only when fitz is unavailable.
+        if _HAS_FITZ and pdf_path:
+            text = _fitz_page_text(pdf_path, i - 1)
+        else:
+            text = page.extract_text() or ''
         norm_full = _norm(text)
         norm_lines = [_norm(ln) for ln in text.split('\n')]
         for kind, (pat, keywords, supports) in matchers.items():
@@ -937,6 +939,16 @@ def _detect_pl_ncols(pdf_path: str, page_idx_1: int) -> int:
     return max(2, min(4, n))
 
 
+def _page_text(pdf, page_idx_1: int) -> str:
+    """Page text for ANCHOR detection — fitz when available (~50× faster than
+    pdfplumber's extract_text, which dominated page-location time; and a superset
+    for anchor text), else pdfplumber. Used by the page locators, not the parsers."""
+    pdf_path = pdf.stream.name if hasattr(pdf, 'stream') else None
+    if _HAS_FITZ and pdf_path:
+        return _fitz_page_text(pdf_path, page_idx_1 - 1)
+    return pdf.pages[page_idx_1 - 1].extract_text() or ''
+
+
 def _locate_oci_page(pdf, pl_page_idx_1: int | None) -> int | None:
     """Find the OCI (Other Comprehensive Income) statement page.
 
@@ -948,8 +960,7 @@ def _locate_oci_page(pdf, pl_page_idx_1: int | None) -> int | None:
         return None
     _OCI_NORMS = ("KAPSAMLIGELIR", "KAPSAMLIKAZAN", "COMPREHENSIVEINCOME", "KAPSAMLIGEL")
     for i in range(pl_page_idx_1 + 1, min(pl_page_idx_1 + 5, len(pdf.pages) + 1)):
-        page = pdf.pages[i - 1]
-        text = page.extract_text() or ""
+        text = _page_text(pdf, i)
         norm = _norm(text)
         if not any(kw in norm for kw in _OCI_NORMS):
             continue
@@ -977,8 +988,7 @@ def _locate_cash_flow_page(pdf, start_page_idx_1: int | None) -> int | None:
     # Equity-change pages must NOT be confused with cash flow pages.
     _EQ_NORMS = ("OZKAYNAKDEGISIM", "CHANGESINSHAREHOLDERS", "CHANGESINEQUITY")
     for i in range(start_page_idx_1 + 1, min(start_page_idx_1 + 9, len(pdf.pages) + 1)):
-        page = pdf.pages[i - 1]
-        text = page.extract_text() or ""
+        text = _page_text(pdf, i)
         norm = _norm(text)
         if not any(kw in norm for kw in _CF_NORMS):
             continue
