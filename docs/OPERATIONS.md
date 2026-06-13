@@ -236,6 +236,20 @@ seed on capital actions** (bonus/rights issues, splits) — re-run the standalon
 quoteSummary pull and update the JSON, or trust the live refresh if it resolves.
 QNBFB is intentionally absent (delisted float on Yahoo → no price → no cap).
 
+**Live price overlay (request-time, NOT the cron).** `web/app/lib/bist-live.ts`
+fetches the latest (delayed ~15-min) Yahoo price when `/banks/[ticker]`,
+`/cross-bank`, or `/economy` render, and overlays it on the stored EOD figures.
+This is **separate from the daily cron** and writes nothing to D1. It does NOT
+use the Next/KV data cache (that would breach the ~1k KV-writes/day cap) — it
+relies on Cloudflare's edge cache (`cf.cacheTtl=60`) + a per-isolate in-memory
+TTL, with a 2.5 s timeout and silent fallback to the stored close.
+- **Disable it without a deploy:** set the Worker var `BIST_LIVE_DISABLED=1`
+  (`wrangler secret put BIST_LIVE_DISABLED` or a `vars` entry) → pages fall back
+  to the stored EOD prices. Use this if Yahoo ever rate-limits the Worker egress.
+- **Monitoring:** if pages feel slow, check the edge cache is engaging (repeated
+  loads within 60 s should not re-hit Yahoo) and watch KV writes stay flat (the
+  overlay must never add KV writes).
+
 ### Change the D1 schema (migrations)
 
 The schema source of truth is the hand-authored, version-controlled files in

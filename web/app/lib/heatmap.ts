@@ -21,6 +21,7 @@
 import { cachedAll } from "./db";
 import { BS_ASSET_ROMAN_HIERARCHIES } from "./standard_lines";
 import type { Direction } from "./heatmap-normalize";
+import type { LiveQuote } from "./bist-live";
 
 export type MetricKey =
   | "total_assets"
@@ -123,7 +124,10 @@ interface RowEquity { bank_ticker: string; period: string; equity: number | null
  * the nine performance metrics. Cached at the query level (12h KV via
  * cachedAll); the merge + derivation is cheap CPU.
  */
-export async function heatmapPanel(kind: string = DEFAULT_KIND): Promise<BankMetricRow[]> {
+export async function heatmapPanel(
+  kind: string = DEFAULT_KIND,
+  live?: Map<string, LiveQuote>,
+): Promise<BankMetricRow[]> {
   const romanPlaceholders = BS_ASSET_ROMAN_HIERARCHIES.map(() => "?").join(",");
 
   const [assets, stages, pl, equity, closes, shares] = await Promise.all([
@@ -328,6 +332,14 @@ export async function heatmapPanel(kind: string = DEFAULT_KIND): Promise<BankMet
   // NIM are still YTD flows annualized by 4/quarter over period-end assets, and
   // Cost/Income is a ratio of two YTD flows. Missing inputs (or non-positive
   // denominators) leave the cell null.
+  // Most-recent period per bank — live prices only overlay this row (the
+  // snapshot + the last over-time point); history stays on quarter-end closes.
+  const latestPeriodByBank = new Map<string, string>();
+  for (const row of map.values()) {
+    const cur = latestPeriodByBank.get(row.bank_ticker);
+    if (!cur || row.period > cur) latestPeriodByBank.set(row.bank_ticker, row.period);
+  }
+
   for (const row of map.values()) {
     const key = `${row.bank_ticker}|${row.period}`;
     const p = plByKey.get(key);
@@ -352,8 +364,12 @@ export async function heatmapPanel(kind: string = DEFAULT_KIND): Promise<BankMet
       row.cost_income = Math.abs(opex) / Math.abs(grossOp);
 
     // Market valuation (listed banks only; null otherwise). Market cap (TL) =
-    // quarter-end close × shares. Audit amounts are thousand TL → ×1000.
-    const close = closeByKey.get(key) ?? null;
+    // price × shares. Audit amounts are thousand TL → ×1000. The latest period
+    // uses the live (delayed) price when a quote is supplied; otherwise (and for
+    // all historical rows) the quarter-end close.
+    const liveQ = live?.get(row.bank_ticker);
+    const isLatest = latestPeriodByBank.get(row.bank_ticker) === row.period;
+    const close = (liveQ && isLatest ? liveQ.price : closeByKey.get(key)) ?? null;
     const sh = sharesByTicker.get(row.bank_ticker) ?? null;
     const mktcap = close != null && sh != null && sh > 0 ? close * sh : null;
     const eqRaw = equityByKey.get(key) ?? null;

@@ -29,6 +29,7 @@ import {
 import { newsByTicker } from "@/app/lib/news";
 import { bankOwnership } from "@/app/lib/kap";
 import { bistValuation, bistPriceHistory } from "@/app/lib/bist";
+import { liveQuotes, applyLivePrice, formatAsOf } from "@/app/lib/bist-live";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
 import BankCard from "@/app/components/BankCard";
 import OwnershipCard from "@/app/components/OwnershipCard";
@@ -211,7 +212,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   ).sort().reverse();
   const periods = pickPeriods(allPeriods, view, 4);
 
-  const [bsPivot, bsNames, plPivot, plRows, kapItems, profile, stages, validation, ownership, valuation, priceHistory] =
+  const [bsPivot, bsNames, plPivot, plRows, kapItems, profile, stages, validation, ownership, valuationBase, priceHistory, liveMap] =
     await Promise.all([
       balanceSheetMultiPeriod(ticker, kind, periods),
       balanceSheetLineNames(ticker, kind, periods),
@@ -226,7 +227,13 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
       bankOwnership(ticker),
       bistValuation(ticker, kind),
       bistPriceHistory(ticker, 8),
+      liveQuotes([ticker]),
     ]);
+
+  // Overlay the latest (delayed) Yahoo price on the stored valuation; if the
+  // live fetch returned nothing, keep the stored EOD figures untouched.
+  const liveQ = liveMap.get(ticker);
+  const valuation = valuationBase && liveQ ? applyLivePrice(valuationBase, liveQ) : valuationBase;
 
   // ⚠ on a period column = that quarter's extraction failed one or more
   // internal-sum identity checks (TL+FC=Total, parent=Σchildren, TOTAL=Σromans,
@@ -347,7 +354,10 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
         <Section
           title="Market & Valuation"
           description={
-            `BIST: ${ticker} · close ${valuation.period_date}` +
+            `BIST: ${ticker} · ` +
+            (valuation.isLive && valuation.asOf
+              ? `⏱ ${formatAsOf(valuation.asOf)}`
+              : `close ${valuation.period_date}`) +
             (valuation.fundamentalsPeriod
               ? ` · P/B & P/E vs ${valuation.fundamentalsPeriod} audited figures`
               : "")
