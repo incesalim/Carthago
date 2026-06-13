@@ -930,6 +930,37 @@ states the exact definition. All 21 detail codes (`TP.ODEAYRSUNUM6.*`,
 `TP.HARICCARIACIK.K4/K7/K9`) are in `evds_series` (category `macro`); five
 `economy.bop_*` chart-specs anchor the daily verification.
 
+### Economic Growth sub-page (`/economy/economic-growth`)
+
+Reproduces the Albaraka **«Ekonomik Büyüme»** quarterly GDP report from TÜİK
+national accounts (2021 reference year, **chain-linked volume indices**,
+quarterly). Data layer: `web/app/lib/growth.ts`. y/y growth is computed from
+the index **level** (`v[t]/v[t−4] − 1`) — these are index series, not
+pre-computed %.
+
+| Figure / element | Series / derivation |
+|---|---|
+| KPIs | GDP y/y from `TP.GSYIH26.HY.ZH`; nominal ₺ from `…HY.CF` ÷1e9 (quarter + trailing-4Q) |
+| Şekil 1 GDP growth (y/y) | `TP.GSYIH26.HY.ZH` y/y |
+| Şekil 2 contributions (pp) | derived: `contribᵢ = (realᵢ[t] − realᵢ[t−4]) / GDP_real[t−4] × 100`, imports subtract, **inventories = residual** (GDP y/y − Σ). Components `TP.GSYIH20/21/22/24/25.HY.ZH` |
+| Şekil 3 sectoral (y/y) | `TP.GSYIH01/02/04/05.IFK.ZH` |
+| Şekil 6 government (y/y) | `TP.GSYIH21.HY.ZH` |
+| Production table (14 rows) | `TP.GSYIH01..13.IFK.ZH` |
+| Expenditure table (6 aggregates) | `TP.GSYIH20/21/22/24/25/26.HY.ZH` |
+
+Contributions were validated against the report's cover (consumption +3.4,
+investment +0.8, exports −2.9 pp — exact). Two `economy.growth_*` chart-specs
+anchor the daily verification.
+
+**EVDS coverage gaps (NOT wired — would need a TÜİK national-accounts Excel
+scraper):** the seasonally-/calendar-adjusted GDP index (Şekil 1's **q/q**
+line); the expenditure **detail** (durable/semi-/non-durable consumption =
+Şekil 5; construction/machinery/other investment = Şekil 4, and the matching
+table sub-rows); and the **calendar-adjusted** production variant — EVDS
+carries only the unadjusted index, so a few production rows (industry,
+manufacturing, services, public admin) differ from TÜİK's headline by up to
+~1.5 pp while the GDP total matches exactly.
+
 ## 15. TEFAS fund-market statistics
 
 Source: **TEFAS** (Turkey Electronic Fund Trading Platform, tefas.gov.tr) —
