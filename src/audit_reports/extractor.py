@@ -974,11 +974,18 @@ def _locate_cash_flow_page(pdf, start_page_idx_1: int | None) -> int | None:
         return None
     _CF_NORMS = ("NAKITAKIS", "STATEMENTOFCASHFLOWS", "CASHFLOWSTATEMENT",
                  "STATEMENTOFCASHFLOW")
+    # Equity-change pages must NOT be confused with cash flow pages.
+    _EQ_NORMS = ("OZKAYNAKDEGISIM", "CHANGESINSHAREHOLDERS", "CHANGESINEQUITY")
     for i in range(start_page_idx_1 + 1, min(start_page_idx_1 + 9, len(pdf.pages) + 1)):
         page = pdf.pages[i - 1]
         text = page.extract_text() or ""
         norm = _norm(text)
         if not any(kw in norm for kw in _CF_NORMS):
+            continue
+        # Skip pages dominated by an equity-change anchor — these are mis-detections
+        # caused by banks that combine equity and CF content on the same page or by
+        # the equity extractor missing its pages and leaving us pointing at them.
+        if any(kw in norm for kw in _EQ_NORMS):
             continue
         # Require at least 2 numeric data rows (hierarchy-preceded lines)
         data_rows = sum(
