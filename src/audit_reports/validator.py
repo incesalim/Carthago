@@ -949,6 +949,18 @@ def _eq_roman(rows: list[dict], ordinal: int) -> dict | None:
     return None
 
 
+def _eq_grand(r: dict | None) -> float | None:
+    """The equity total to compare against statement-level TOTALS (BS equity, OCI
+    total comprehensive income). For consolidated those totals INCLUDE minority, so
+    use the grand total (total_equity_incl_minority); for unconsolidated that column
+    is NULL and total_equity is already the total. (The internal column chain still
+    uses parent total_equity — it's a within-column identity.)"""
+    if r is None:
+        return None
+    g = r.get("total_equity_incl_minority")
+    return g if g is not None else r.get("total_equity")
+
+
 def check_equity_change(eq_rows: list[dict],
                         oci_rows: list[dict] | None = None,
                         liabilities: list[dict] | None = None,
@@ -1059,7 +1071,7 @@ def check_equity_change(eq_rows: list[dict],
                 if o is not None and a is not None:
                     oci_roman.setdefault(o, a)
         oci_iii = oci_roman.get(3)
-        r4_total = r4.get("total_equity") if r4 else None
+        r4_total = _eq_grand(r4)
         if r4_total is not None and oci_iii is not None:
             tol = _tol(abs(oci_iii), base=3.0, rel=1e-4)
             if abs(r4_total - oci_iii) <= tol:
@@ -1076,7 +1088,7 @@ def check_equity_change(eq_rows: list[dict],
     # Cross-check: closing total_equity ≈ BS equity (matched by label)
     if liabilities:
         closing = _eq_closing(cur_rows)
-        cl_total = closing.get("total_equity") if closing else None
+        cl_total = _eq_grand(closing)
         bs_eq = next(
             (r.get("amount_total") for r in liabilities
              if r.get("amount_total") is not None

@@ -50,7 +50,8 @@ import pdfplumber
 
 from .extractor import (
     HIERARCHY_PAT, NUM_PAT, _FOOTNOTE_RX, _LINE_HIER_RX, _norm,
-    _fitz_page_text, extract_page_text_repaired, parse_num,
+    _fitz_page_text, _fitz_page_count, _safe_repaired_text,
+    extract_page_text_repaired, parse_num,
 )
 
 try:
@@ -347,24 +348,79 @@ def _eq_split(line: str) -> tuple[str | None, str]:
     return None, ''
 
 
+_YEAR_RX = re.compile(r'(?<!\d)(20[12]\d)(?!\d)')
+
+
+def _block1_period_for_split(pdf_path: str, page_idx_1: int) -> str:
+    """For a single page carrying BOTH period blocks, return block1's period
+    ('current' | 'prior'). BRSA standard is current-then-prior (block1='current'),
+    but some banks print prior-then-current (GARAN, KUVEYT). Detect the reversed
+    case robustly: the report's CURRENT period is the LATEST year on the page; if
+    that latest year appears AFTER block1's closing-balance line (i.e. in block2),
+    the page is reversed and block1 is 'prior'. This is title-immune (the title
+    year sits before the closing) and works for annual AND interim. Defaults to
+    'current' when undetermined (the standard order)."""
+    text = _fitz_page_text(pdf_path, page_idx_1 - 1) if _HAS_FITZ else ''
+    years = [int(m.group(1)) for m in _YEAR_RX.finditer(text)]
+    if not years:
+        return 'current'
+    lines = text.split('\n')
+    close_i = next((i for i, ln in enumerate(lines)
+                    if _EQ_CLOSING_FORMULA_RX.search(ln)), None)
+    if close_i is None:
+        return 'current'
+    after = '\n'.join(lines[close_i + 1:])
+    return 'prior' if str(max(years)) in after else 'current'
+
+
+def _dedup_roman_rows(rows: list[EquityChangeRow]) -> list[EquityChangeRow]:
+    """Drop spurious positional-inference duplicates. The checklist walk can label a
+    markerless sub/blank row as the next main roman even when that roman ALSO appears
+    later with its own marker (ZIRAAT: III.=0 inferred + III.=471M real). The real
+    row carries a label; the inferred one is nameless — so, per period block, when a
+    main roman (I.–XI.) appears more than once, keep the labelled row(s) and drop the
+    nameless one(s) (if all nameless, keep the first). Then renumber item_order."""
+    from collections import Counter, defaultdict
+    main = set(_EQ_ROW_SEQ)
+    groups: dict[tuple, list[int]] = defaultdict(list)
+    for i, r in enumerate(rows):
+        if r.hierarchy in main:
+            groups[(r.period_type, r.hierarchy)].append(i)
+    drop: set[int] = set()
+    for idxs in groups.values():
+        if len(idxs) <= 1:
+            continue
+        named = [i for i in idxs if (rows[i].name or '').strip()]
+        if named:
+            drop.update(i for i in idxs if i not in named)
+        else:
+            drop.update(idxs[1:])
+    out = [r for i, r in enumerate(rows) if i not in drop]
+    cnt: Counter = Counter()
+    for r in out:
+        cnt[r.period_type] += 1
+        r.order = cnt[r.period_type]
+    return out
+
+
 def _parse_equity_page(pdf_path: str, page_idx_1: int, period_type: str,
                        n_cols: int) -> list[EquityChangeRow]:
-    """Parse one equity-change page into EquityChangeRow objects."""
-    # Try pdfplumber-repaired path first, then fitz
-    rows_pp: list[EquityChangeRow] = []
-    rows_fz: list[EquityChangeRow] = []
+    """Parse one equity-change page into EquityChangeRow objects.
 
-    for use_fitz in (False, True) if _HAS_FITZ else (False,):
+    Tries up to three line reconstructions and keeps whichever admits the most
+    rows:
+      • pdfplumber layout-repaired text — the proven extractor for banks whose
+        wide table neither fitz method parses (GARAN/AKBNK interleave the two
+        periods with side-footnotes that only pdfplumber's x-clustering separates).
+        Guarded by _safe_repaired_text: on a poison PDF it returns None and is
+        skipped (VAKBN 2025Q4 hangs pdfminer ~2 min; fitz reads it in 30 ms).
+      • fitz block/line grouping (_fitz_page_lines) — fitz's own segmentation.
+      • fitz y-coordinate bucketing (_fitz_page_text) — rebuilds a visual row from
+        cells fitz scatters across block/lines; parses VAKBN's table where
+        block/line grouping yields zero wide rows."""
+
+    def _parse_lines(lines: list[str]) -> list[EquityChangeRow]:
         result: list[EquityChangeRow] = []
-        if use_fitz:
-            lines = _fitz_page_lines(pdf_path, page_idx_1 - 1)
-        else:
-            try:
-                with pdfplumber.open(pdf_path) as pdf:
-                    lines = extract_page_text_repaired(pdf.pages[page_idx_1 - 1]).split('\n')
-            except Exception:
-                lines = []
-
         order = 0
         last_ri = -1            # index in _EQ_ROW_SEQ of the last main roman seen
         for line in lines:
@@ -413,18 +469,25 @@ def _parse_equity_page(pdf_path: str, page_idx_1: int, period_type: str,
                 total_equity_incl_minority=cols[15] if n_cols == 16 else None,
             )
             result.append(row)
+        return result
 
-        if use_fitz:
-            rows_fz = result
-        else:
-            rows_pp = result
+    candidates: list[list[EquityChangeRow]] = []
+    pp_text = _safe_repaired_text(pdf_path, page_idx_1)   # None on a poison PDF
+    if pp_text:
+        candidates.append(_parse_lines(pp_text.split('\n')))
+    if _HAS_FITZ:
+        candidates.append(_parse_lines(_fitz_page_lines(pdf_path, page_idx_1 - 1)))
+        candidates.append(_parse_lines(_fitz_page_text(pdf_path, page_idx_1 - 1).split('\n')))
+    if not candidates:
+        candidates.append([])
 
-    # Pick the path with more accepted rows
-    best = rows_fz if len(rows_fz) > len(rows_pp) else rows_pp
+    # Keep whichever reconstruction admitted the most rows.
+    best = max(candidates, key=len)
     # Mid-page split: some PDFs print both the current and prior equity tables on
-    # a single page, so every row arrives tagged with the same period_type.  We
-    # split them and re-tag the second block with the opposite period.
-    opposite = 'prior' if period_type == 'current' else 'current'
+    # a single page, so every row arrives tagged with the same period_type.  Find
+    # the boundary, then label each block by the dates on the page (not the located
+    # period_type, which the period regex can flip for standard current-then-prior
+    # banks).
     split_idx: int | None = None
     # (a) Preferred signal: the current table's closing row ("Dönem Sonu
     #     Bakiyesi", hierarchy='') sitting somewhere other than the last row.
@@ -443,10 +506,14 @@ def _parse_equity_page(pdf_path: str, page_idx_1: int, period_type: str,
                 split_idx = idx - 1
                 break
     if split_idx is not None:
-        for new_ord, r in enumerate(best[split_idx + 1:], start=1):
-            r.period_type = opposite
-            r.order = new_ord
-    return best
+        block1 = _block1_period_for_split(pdf_path, page_idx_1)
+        block2 = 'prior' if block1 == 'current' else 'current'
+        for r in best[:split_idx + 1]:
+            r.period_type = block1
+        for r in best[split_idx + 1:]:
+            r.period_type = block2
+    # Drop spurious positional-inference roman duplicates and renumber.
+    return _dedup_roman_rows(best)
 
 
 # ---------------------------------------------------------------------------
@@ -475,7 +542,11 @@ def _locate_equity_pages(pdf, pdf_path: str,
     if after_page is None:
         return []
     found: list[tuple[int, str]] = []
-    n_pages = len(pdf.pages)
+    # Page count via fitz when available — `len(pdf.pages)` triggers the pdfminer
+    # page-tree hang on poison PDFs (e.g. VAKBN 2025Q4).
+    n_pages = (_fitz_page_count(pdf_path) if (_HAS_FITZ and pdf_path) else None)
+    if n_pages is None:
+        n_pages = len(pdf.pages)
     for i in range(after_page + 1, n_pages + 1):
         # fitz text (fast, ~50× over pdfplumber) for the page scan; same y-bucketed
         # line structure, so the wide-fingerprint count is equivalent.
@@ -491,12 +562,16 @@ def _locate_equity_pages(pdf, pdf_path: str,
             if i - after_page > 12:
                 break
             continue
-        # period_type from the pdfplumber rendering of this (found) page only —
-        # its column-flatten keeps "Prior/Current Period" contiguous, which the
-        # period regex needs. fitz's word-interleaving can split them and flip a
-        # reversed-order page (GARAN prints prior-then-current). Reading just the
-        # 1-2 found pages with pdfplumber is cheap and keeps this engine-stable.
-        ptext = pdf.pages[i - 1].extract_text() or ''
+        # period_type from the CARİ/ÖNCEKİ DÖNEM header on this (found) page.
+        # pdfplumber's column-flatten keeps the header line contiguous (the proven
+        # signal); on a poison PDF it returns None and we fall back to fitz's
+        # y-bucketed text. Reversed-order pages (GARAN/KUVEYT print prior then
+        # current) are mid-page-split and get their period reassigned downstream by
+        # _block1_period_for_split, so a header miss here is corrected later.
+        ptext = _safe_repaired_text(pdf_path, i)
+        if ptext is None:
+            ptext = (_fitz_page_text(pdf_path, i - 1) if (_HAS_FITZ and pdf_path)
+                     else (pdf.pages[i - 1].extract_text() or ''))
         period_type = 'current'
         if _PRIOR_RX.search(ptext):
             period_type = 'prior'
