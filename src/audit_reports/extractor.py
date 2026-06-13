@@ -998,50 +998,71 @@ def _locate_cash_flow_page(pdf, start_page_idx_1: int | None) -> int | None:
     return None
 
 
-def extract(pdf_path: str | Path) -> BankReport:
-    """Parse one BRSA-format audit report. Returns a BankReport with rows populated."""
+def extract(pdf_path: str | Path, only: set[str] | None = None) -> BankReport:
+    """Parse one BRSA-format audit report. Returns a BankReport with rows populated.
+
+    `only` restricts work to a subset of statement types — used by the targeted
+    single-statement re-extraction path so a one-lane fix doesn't re-run all 14
+    extractors per PDF. Valid names: bs_assets, bs_liabilities, off_balance,
+    profit_loss, oci, equity_change, cash_flow, credit_quality, bank_profile,
+    loans_by_sector, npl_movement, capital, liquidity. The page-location chain a
+    requested statement depends on is always run (e.g. only={'cash_flow'} still
+    locates P&L/OCI/equity to find the cash-flow page). `only=None` is unchanged —
+    a full extract, identical to before."""
+    def _want(name: str) -> bool:
+        return only is None or name in only
+
     pdf_path = str(pdf_path)
     rep = BankReport(pdf_path=pdf_path)
     with pdfplumber.open(pdf_path) as pdf:
+        # The six "deep-scan" extractors below are independent of the statement
+        # lane and each sweep most of the PDF — skipping them is the bulk of the
+        # speed-up when only a statement (e.g. equity_change) is wanted.
         # Run credit-quality scan first, on the same open PDF. Isolated try
         # so a failure in the credit-quality pass can't sink the BS/PL extract.
-        try:
-            from .credit_quality import extract_from_pdf as _extract_cq
-            rep.credit_quality = _extract_cq(pdf, pdf_path).rows
-        except Exception:
-            rep.credit_quality = []
+        if _want('credit_quality'):
+            try:
+                from .credit_quality import extract_from_pdf as _extract_cq
+                rep.credit_quality = _extract_cq(pdf, pdf_path).rows
+            except Exception:
+                rep.credit_quality = []
         # Bank profile (branches + personnel) from the qualitative section.
         # Independently isolated.
-        try:
-            from .bank_profile import extract_profile_from_pdf as _extract_bp
-            rep.bank_profile = _extract_bp(pdf)
-        except Exception:
-            rep.bank_profile = None
+        if _want('bank_profile'):
+            try:
+                from .bank_profile import extract_profile_from_pdf as _extract_bp
+                rep.bank_profile = _extract_bp(pdf)
+            except Exception:
+                rep.bank_profile = None
         # Loans-by-sector (Stage 2 / Stage 3 / ECL per sector).
-        try:
-            from .loans_by_sector import extract_from_pdf as _extract_lbs
-            rep.loans_by_sector = _extract_lbs(pdf, pdf_path).rows
-        except Exception:
-            rep.loans_by_sector = []
+        if _want('loans_by_sector'):
+            try:
+                from .loans_by_sector import extract_from_pdf as _extract_lbs
+                rep.loans_by_sector = _extract_lbs(pdf, pdf_path).rows
+            except Exception:
+                rep.loans_by_sector = []
         # NPL gross-amount roll-forward.
-        try:
-            from .npl_movement import extract_from_pdf as _extract_nplm
-            rep.npl_movement = _extract_nplm(pdf, pdf_path).rows
-        except Exception:
-            rep.npl_movement = []
+        if _want('npl_movement'):
+            try:
+                from .npl_movement import extract_from_pdf as _extract_nplm
+                rep.npl_movement = _extract_nplm(pdf, pdf_path).rows
+            except Exception:
+                rep.npl_movement = []
         # Capital adequacy (§4.1) and liquidity/leverage (§4.6/4.7).
-        try:
-            from .capital_adequacy import extract_from_pdf as _extract_cap
-            rep.capital = _extract_cap(pdf, pdf_path)
-        except Exception:
-            rep.capital = None
-        try:
-            from .liquidity import extract_from_pdf as _extract_liq
-            rep.liquidity = _extract_liq(pdf, pdf_path)
-        except Exception:
-            rep.liquidity = None
+        if _want('capital'):
+            try:
+                from .capital_adequacy import extract_from_pdf as _extract_cap
+                rep.capital = _extract_cap(pdf, pdf_path)
+            except Exception:
+                rep.capital = None
+        if _want('liquidity'):
+            try:
+                from .liquidity import extract_from_pdf as _extract_liq
+                rep.liquidity = _extract_liq(pdf, pdf_path)
+            except Exception:
+                rep.liquidity = None
         loc = _locate_pages(pdf)
-        if 'bs_assets' in loc:
+        if 'bs_assets' in loc and _want('bs_assets'):
             for order, (label, vals) in enumerate(_parse_page(pdf_path, loc['bs_assets'], 6), 1):
                 h, name, fn = _split_label(label)
                 rep.bs_assets.append(StatementRow(
@@ -1049,7 +1070,7 @@ def extract(pdf_path: str | Path) -> BankReport:
                     cur_tl=vals[0], cur_fc=vals[1], cur_total=vals[2],
                     pri_tl=vals[3], pri_fc=vals[4], pri_total=vals[5],
                 ))
-        if 'bs_liab' in loc:
+        if 'bs_liab' in loc and _want('bs_liabilities'):
             for order, (label, vals) in enumerate(_parse_page(pdf_path, loc['bs_liab'], 6), 1):
                 h, name, fn = _split_label(label)
                 rep.bs_liabilities.append(StatementRow(
@@ -1057,7 +1078,7 @@ def extract(pdf_path: str | Path) -> BankReport:
                     cur_tl=vals[0], cur_fc=vals[1], cur_total=vals[2],
                     pri_tl=vals[3], pri_fc=vals[4], pri_total=vals[5],
                 ))
-        if 'off_bs' in loc:
+        if 'off_bs' in loc and _want('off_balance'):
             _off_order = 0
             for label, vals in _parse_page(pdf_path, loc['off_bs'], 6):
                 h, name, fn = _split_label(label)
@@ -1083,16 +1104,21 @@ def extract(pdf_path: str | Path) -> BankReport:
             # for current/prior). Detect the structure and take the cumulative
             # current (col 0) and cumulative prior (col n//2), not the last two.
             pl_n = _detect_pl_ncols(pdf_path, loc['pl'])
-            for order, (label, vals) in enumerate(_parse_page(pdf_path, loc['pl'], pl_n), 1):
-                h, name, fn = _split_label(label)
-                rep.profit_loss.append(StatementRow(
-                    order=order, hierarchy=h, name=name, footnote=fn,
-                    cur_amount=vals[0], pri_amount=vals[pl_n // 2],
-                ))
-            # OCI always follows the P&L page. Use the same ncol detection since
-            # OCI shares the P&L single-value-column structure.
-            oci_page = _locate_oci_page(pdf, loc['pl'])
-            if oci_page:
+            if _want('profit_loss'):
+                for order, (label, vals) in enumerate(_parse_page(pdf_path, loc['pl'], pl_n), 1):
+                    h, name, fn = _split_label(label)
+                    rep.profit_loss.append(StatementRow(
+                        order=order, hierarchy=h, name=name, footnote=fn,
+                        cur_amount=vals[0], pri_amount=vals[pl_n // 2],
+                    ))
+            # OCI always follows the P&L page (same single-value-column structure).
+            # Its page is ALSO the after-anchor for equity + cash flow, so locate it
+            # whenever any of OCI / equity_change / cash_flow is wanted; store OCI
+            # rows only when OCI itself is wanted.
+            oci_page = (_locate_oci_page(pdf, loc['pl'])
+                        if (_want('oci') or _want('equity_change') or _want('cash_flow'))
+                        else None)
+            if oci_page and _want('oci'):
                 oci_n = _detect_pl_ncols(pdf_path, oci_page)
                 for order, (label, vals) in enumerate(_parse_page(pdf_path, oci_page, oci_n), 1):
                     h, name, fn = _split_label(label)
@@ -1100,35 +1126,42 @@ def extract(pdf_path: str | Path) -> BankReport:
                         order=order, hierarchy=h, name=name, footnote=fn,
                         cur_amount=vals[0], pri_amount=vals[oci_n // 2],
                     ))
-            # Equity-change pages follow OCI (or P&L when OCI is absent).
-            try:
-                from .equity_change import extract_from_pdf as _extract_eq
-                rep.equity_change = _extract_eq(pdf, pdf_path, oci_page or loc.get('pl'))
-            except Exception:
-                rep.equity_change = None
-            # Cash flow follows the equity-change pages. Use the OCI anchor as
-            # the search window start when equity extraction failed to locate pages.
-            _eq_last = None
-            if rep.equity_change and getattr(rep.equity_change, 'rows', []):
-                _eq_last = max((r.source_page for r in rep.equity_change.rows), default=None)
-            cf_start = _eq_last or oci_page or loc.get('pl')
-            cf_page = _locate_cash_flow_page(pdf, cf_start)
-            if cf_page:
-                # The cash flow statement ALWAYS carries exactly two value columns
-                # (current + prior, cumulative) — for annual AND interim reports
-                # alike, since CF is only ever reported year-to-date.  We must NOT
-                # use _detect_pl_ncols here: it is tuned for the P&L (4 columns on
-                # interim) and misreads the CF page's parenthesised date headers
-                # "(31/12/2024) (31/12/2023)" as a 4-column layout, which then makes
-                # _parse_page reject every 2-value data row (AKBNK/ING annual → 0
-                # rows).  Pin to 2 so both columns are picked directly.
-                cf_n = 2
-                for order, (label, vals) in enumerate(_parse_page(pdf_path, cf_page, cf_n), 1):
-                    h, name, fn = _split_label(label)
-                    rep.cash_flow.append(StatementRow(
-                        order=order, hierarchy=h, name=name, footnote=fn,
-                        cur_amount=vals[0], pri_amount=vals[1],
-                    ))
+            # Equity-change pages follow OCI (or P&L when OCI is absent). Equity rows
+            # are also the cash-flow page anchor (_eq_last), so run the extractor when
+            # equity OR cash_flow is wanted; store on rep only when equity is wanted.
+            eq_report = None
+            if _want('equity_change') or _want('cash_flow'):
+                try:
+                    from .equity_change import extract_from_pdf as _extract_eq
+                    eq_report = _extract_eq(pdf, pdf_path, oci_page or loc.get('pl'))
+                except Exception:
+                    eq_report = None
+                if _want('equity_change'):
+                    rep.equity_change = eq_report
+            # Cash flow follows the equity-change pages. Use the OCI anchor as the
+            # search window start when equity extraction failed to locate pages.
+            if _want('cash_flow'):
+                _eq_last = None
+                if eq_report and getattr(eq_report, 'rows', []):
+                    _eq_last = max((r.source_page for r in eq_report.rows), default=None)
+                cf_start = _eq_last or oci_page or loc.get('pl')
+                cf_page = _locate_cash_flow_page(pdf, cf_start)
+                if cf_page:
+                    # The cash flow statement ALWAYS carries exactly two value columns
+                    # (current + prior, cumulative) — for annual AND interim reports
+                    # alike, since CF is only ever reported year-to-date.  We must NOT
+                    # use _detect_pl_ncols here: it is tuned for the P&L (4 columns on
+                    # interim) and misreads the CF page's parenthesised date headers
+                    # "(31/12/2024) (31/12/2023)" as a 4-column layout, which then makes
+                    # _parse_page reject every 2-value data row (AKBNK/ING annual → 0
+                    # rows).  Pin to 2 so both columns are picked directly.
+                    cf_n = 2
+                    for order, (label, vals) in enumerate(_parse_page(pdf_path, cf_page, cf_n), 1):
+                        h, name, fn = _split_label(label)
+                        rep.cash_flow.append(StatementRow(
+                            order=order, hierarchy=h, name=name, footnote=fn,
+                            cur_amount=vals[0], pri_amount=vals[1],
+                        ))
     return rep
 
 
