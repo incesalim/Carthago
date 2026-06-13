@@ -13,6 +13,7 @@
 import Link from "next/link";
 import { getEconomyData, BBVA_BASELINE } from "@/app/lib/economy";
 import { bistIndexHistory, type PricePoint } from "@/app/lib/bist";
+import { liveQuotes, type LiveQuote } from "@/app/lib/bist-live";
 import { latestPeriod } from "@/app/lib/metrics";
 import { PageHeader } from "@/app/components/ui";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
@@ -57,6 +58,25 @@ export default async function EconomyPage() {
     Object.entries(bistIdx).map(([label, pts]) => [label, rebase100(pts)]),
   );
   const hasBist = Object.values(bistRebased).some((s) => s.length > 0);
+
+  // Append a live (delayed) final point to each rebased index series, in the
+  // same rebased scale (live level ÷ the series' base × 100). No-op on failure.
+  const idxLabel: Record<string, string> = { XU100: "BIST 100", XBANK: "BIST Banks" };
+  const liveIdx: Map<string, LiveQuote> = hasBist
+    ? await liveQuotes(["XU100", "XBANK"])
+    : new Map();
+  let bistLivePoint = false;
+  for (const [sym, q] of liveIdx) {
+    const label = idxLabel[sym];
+    const base = label ? bistIdx[label]?.find((p) => p.value)?.value : undefined;
+    const series = label ? bistRebased[label] : undefined;
+    if (!base || !series || series.length === 0) continue;
+    series.push({ period_date: new Date(q.asOf * 1000).toISOString().slice(0, 10), value: (q.price / base) * 100 });
+    bistLivePoint = true;
+  }
+  const bistSubtitle =
+    "Borsa İstanbul benchmark vs the banking sector, rebased to 100 — does the banks index lead or lag the broad market? (Yahoo Finance, daily close" +
+    (bistLivePoint ? " · last point live, ~15-min delayed)" : ".)");
 
   const dataThrough = latestPeriod(
     d.gdpGrowth,
@@ -222,7 +242,7 @@ export default async function EconomyPage() {
       {hasBist && (
         <Section
           title="Equity Markets (BIST)"
-          subtitle="Borsa İstanbul benchmark vs the banking sector, rebased to 100 — does the banks index lead or lag the broad market? (Yahoo Finance, daily close.)"
+          subtitle={bistSubtitle}
         >
           <TimeSeriesChart
             series={bistRebased}

@@ -14,6 +14,8 @@ import {
   type MetricKey,
 } from "@/app/lib/heatmap";
 import { normalizeColumn } from "@/app/lib/heatmap-normalize";
+import { listedBistTickers } from "@/app/lib/bist";
+import { liveQuotes } from "@/app/lib/bist-live";
 import {
   BANK_NAMES,
   BANK_TYPE_BY_TICKER,
@@ -42,7 +44,14 @@ function groupMeta(ticker: string) {
 }
 
 export default async function CrossBankPage() {
-  const [panel, period] = await Promise.all([heatmapPanel(), latestCommonPeriod()]);
+  // Live (delayed) quotes for the listed banks → P/B & P/E on the snapshot +
+  // the last over-time point reflect the latest price (graceful fallback to the
+  // quarter-end close if Yahoo is unreachable).
+  const [live, period] = await Promise.all([
+    listedBistTickers().then(liveQuotes),
+    latestCommonPeriod(),
+  ]);
+  const panel = await heatmapPanel(undefined, live);
 
   // ---- Snapshot: rows at the latest common quarter, scored per column. ------
   const snapRows = period ? panel.filter((r) => r.period === period) : [];
@@ -89,8 +98,9 @@ export default async function CrossBankPage() {
   // YYYY-MM); format it inline instead.
   const q = period ? Number(/Q([1-4])$/.exec(period)?.[1]) : null;
   const year = period?.slice(0, 4);
+  const liveNote = live.size ? " · P/B & P/E live (~15-min delayed)" : "";
   const description = period
-    ? `Individual banks ranked vs peers across the full performance set · Snapshot: Q${q} ${year} · ${snapRows.length} of ${banks.length} banks reporting`
+    ? `Individual banks ranked vs peers across the full performance set · Snapshot: Q${q} ${year} · ${snapRows.length} of ${banks.length} banks reporting${liveNote}`
     : "Individual banks ranked vs peers across the full performance set";
 
   return (

@@ -280,6 +280,14 @@ A qualitative-data layer feeds two tabs from the `news_items` table
   only (others blank). The per-bank P/B/P/E reuse single-ticker helpers in
   `bank-fundamentals.ts` rather than refactoring `heatmapPanel`, kept identical
   to avoid regressing the shipped ROE.
+  **Live overlay (2026-06-13):** all three surfaces overlay the latest (delayed
+  ~15-min) Yahoo price at render time (`web/app/lib/bist-live.ts`) — per-bank
+  price/market-cap/P/B/P/E/yield with an "as of HH:MM" label, cross-bank snapshot
+  P/B/P/E, and a live final point on the `/economy` index chart. Price-linear
+  rescale (`applyLivePrice`); graceful fallback to the stored close. Cached on
+  Cloudflare's **edge cache + per-isolate memory, never KV** (the 12h KV window
+  guards the write cap), 2.5 s timeout, kill switch `BIST_LIVE_DISABLED=1`.
+  Not real-time (paid feed); this is a request-time read overlay — no D1 writes.
 - **Cash flow + equity-change extractors shipped; deep-fixed + fleet re-extracted (2026-06-13).**
   Two statement types: `bank_audit_cash_flow` (sort_order=38) and `bank_audit_equity_change`
   (sort_order=36). Root-cause fixes (commits b8b1c51, 8a91444): equity locator now uses the

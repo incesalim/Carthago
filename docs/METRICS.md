@@ -1202,3 +1202,17 @@ the same audited equity / `ttmNet` used elsewhere. The Snapshot view (latest
 common quarter) is point-in-time exact; the Over-time view uses **current**
 shares (no historical share counts), so deep-history ratios are approximate
 across capital actions. Listed banks only — the unlisted majority render "—".
+
+**Live overlay (delayed Yahoo, `web/app/lib/bist-live.ts`).** All three surfaces
+overlay the *latest* Yahoo price at page-render time: `/banks/[ticker]` price +
+market cap + P/B/P/E/yield (label "⏱ as of HH:MM · ~15-min delayed", or "last
+close DD Mon" when the market is shut); `/cross-bank` snapshot P/B & P/E (live
+price replaces the quarter-end close on the latest period only); `/economy`
+indices (a live final point appended to each rebased series). It's ~15-min
+delayed during BIST hours and the last close otherwise — **not** real-time
+(that needs a paid feed). Everything is price-linear: `applyLivePrice` rescales
+market cap/P/B/P/E by `r = live/stored` and yield by `1/r`. **Caching is
+deliberately NOT KV** (the 12h `cachedAll` window guards the ~1k KV-writes/day
+cap): the fetch uses Cloudflare's edge cache (`cf.cacheTtl`) + a 60 s per-isolate
+in-memory map, with a 2.5 s timeout and graceful fallback to the stored close on
+any failure. Kill switch: `BIST_LIVE_DISABLED=1`.

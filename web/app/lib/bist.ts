@@ -21,6 +21,16 @@ interface PriceRow { period_date: string; close_price: number | null }
 interface DivRow { ex_date: string; amount: number | null }
 interface ShareRow { shares_outstanding: number | null; as_of: string | null }
 
+/** The BIST-listed universe with a market cap (one row per bank in bist_shares).
+ *  Used to scope the live-quote fetch on /cross-bank. */
+export async function listedBistTickers(): Promise<string[]> {
+  const rows = await cachedAll<{ symbol: string }>(
+    `SELECT symbol FROM bist_shares ORDER BY symbol`,
+    [],
+  );
+  return rows.map((r) => r.symbol);
+}
+
 /** Daily close history for one symbol (bank ticker or index code). */
 export async function bistPriceHistory(
   symbol: string,
@@ -64,6 +74,8 @@ export interface BistValuation {
   pe: number | null;        // price / TTM earnings
   dividendYield: number | null; // fraction (0.05 = 5%)
   fundamentalsPeriod: string | null; // quarter behind P/B & P/E, e.g. "2026Q1"
+  asOf?: number;   // set when a live price was overlaid (regularMarketTime, unix s)
+  isLive?: boolean; // true when price/ratios reflect a live Yahoo quote
 }
 
 /**
