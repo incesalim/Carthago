@@ -65,6 +65,15 @@ _CURRENT_RX  = re.compile(r'CAR[Iİ]\s*D[OÖ]NEM|CURRENT\s*PERIOD', re.I)
 _PRIOR_RX    = re.compile(r'[OÖ]NCES?\s*D[OÖ]NEM|[OÖ]NCES?[İI]\s*D[OÖ]NEM|PRIOR\s*PERIOD|PREVIOUS\s*PERIOD', re.I)
 _EQ_ANCHORS  = ("OZKAYNAKDEGISIM", "OZKAYNAKDEĞIŞIM", "CHANGESINSHAREHOLDERS",
                 "CHANGESINEQUITY", "STATEMENTOFCHANGES")
+_DASH_RUN_RX = re.compile(r'-{2,}')
+
+
+def _norm_dashes(line: str) -> str:
+    """A run of 2+ dashes is a zero cell rendered as "--" (DenizBank). NUM_PAT
+    only recognises a lone space-padded "-" as a zero, so collapse each "--" run
+    to " - " — otherwise the zero columns are dropped and the row mis-aligns
+    (DENIZ → only 14 of its 16 tokens survived, every row failed the sum gate)."""
+    return _DASH_RUN_RX.sub(' - ', line)
 
 
 # ---------------------------------------------------------------------------
@@ -111,7 +120,7 @@ class EquityChangeReport:
 
 def _count_value_tokens(line: str) -> int:
     """Count numeric value tokens on a line, stripping the leading hierarchy marker."""
-    masked = _FOOTNOTE_RX.sub(lambda m: " " * len(m.group()), line)
+    masked = _FOOTNOTE_RX.sub(lambda m: " " * len(m.group()), _norm_dashes(line))
     hier_m = _LINE_HIER_RX.match(masked)
     if hier_m:
         masked = masked[hier_m.end():]
@@ -128,15 +137,17 @@ def _modal_ncols(lines: list[str], min_tokens: int = 10) -> int:
     if not counts:
         return 14
     modal = max(counts, key=counts.__getitem__)
-    # Clamp to known templates
-    if modal >= 15:
+    # Clamp to known templates. Only ≥16 is the consolidated 16-col layout; a
+    # modal of 15 is a 14-col row with a duplicated trailing total (EMLAK), not a
+    # 16-col table — rounding it up to 16 made the 14-col gate reject every row.
+    if modal >= 16:
         return 16
     return 14
 
 
 def _parse_row_tokens(line: str) -> list[float | None] | None:
     """Extract all value tokens from a line as floats. Returns None if <2 tokens."""
-    masked = _FOOTNOTE_RX.sub(lambda m: " " * len(m.group()), line)
+    masked = _FOOTNOTE_RX.sub(lambda m: " " * len(m.group()), _norm_dashes(line))
     hier_m = _LINE_HIER_RX.match(masked)
     if hier_m:
         masked = masked[hier_m.end():]
