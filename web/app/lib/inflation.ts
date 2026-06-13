@@ -57,7 +57,21 @@ const PPI_SECTORS = [
   { code: "TP.TUFE1YI.T49", label: "Coke & petroleum" },
 ];
 
-const CODES = [...Object.values(C), ...CPI_GROUPS.map((g) => g.code), ...PPI_SECTORS.map((g) => g.code)];
+// PPI Main Industrial Groupings — TÜİK detail not in EVDS (ingested as TUIK.* by src/tuik).
+const PPI_MIG = [
+  { code: "TUIK.PPI.MIG_INTERMEDIATE", label: "Intermediate goods" },
+  { code: "TUIK.PPI.MIG_DURABLE", label: "Durable consumer goods" },
+  { code: "TUIK.PPI.MIG_NONDUR", label: "Non-durable consumer goods" },
+  { code: "TUIK.PPI.MIG_ENERGY", label: "Energy" },
+  { code: "TUIK.PPI.MIG_CAPITAL", label: "Capital goods" },
+];
+
+const CODES = [
+  ...Object.values(C),
+  ...CPI_GROUPS.map((g) => g.code),
+  ...PPI_SECTORS.map((g) => g.code),
+  ...PPI_MIG.map((g) => g.code),
+];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 // ---------------------------------------------------------------------------
@@ -114,6 +128,12 @@ export interface CoreRow {
   avg12: number | null;
 }
 
+export interface MigRow {
+  label: string;
+  mm: number | null;
+  yy: number | null;
+}
+
 // ---------------------------------------------------------------------------
 // Loader
 // ---------------------------------------------------------------------------
@@ -131,6 +151,8 @@ export interface InflationData {
   s3: BarRow[]; // PPI sector m/m
   table1: Table1Row[];
   core: CoreRow[];
+  mig: MigRow[]; // PPI Main Industrial Groupings (TÜİK detail)
+  hasMig: boolean;
 }
 
 const T1_MONTHS = 17;
@@ -190,5 +212,11 @@ export async function getInflationData(yearsBack = 9): Promise<InflationData> {
       coreRow("C — core (headline)", C.coreC),
       coreRow("D — excl. unproc. food", C.coreD),
     ],
+    mig: PPI_MIG.map((m) => ({
+      label: m.label,
+      mm: latest(mom(g(m.code))),
+      yy: latest(yoy(g(m.code))),
+    })),
+    hasMig: (g("TUIK.PPI.MIG_ENERGY")?.length ?? 0) > 0,
   };
 }

@@ -42,6 +42,14 @@ const C = {
   otherServ: "TP.GSYIH11.IFK.ZH",
   gva: "TP.GSYIH12.IFK.ZH",
   taxes: "TP.GSYIH13.IFK.ZH",
+  // TÜİK detail not in EVDS (ingested into evds_series as TUIK.* by src/tuik)
+  consDurable: "TUIK.NA.CONS_DURABLE",
+  consSemidur: "TUIK.NA.CONS_SEMIDUR",
+  consNondur: "TUIK.NA.CONS_NONDUR",
+  consServices: "TUIK.NA.CONS_SERVICES",
+  gfcfConstruction: "TUIK.NA.GFCF_CONSTRUCTION",
+  gfcfMachinery: "TUIK.NA.GFCF_MACHINERY",
+  gfcfOther: "TUIK.NA.GFCF_OTHER",
 } as const;
 
 const CODES = Object.values(C);
@@ -149,7 +157,10 @@ export interface GrowthData {
   s1: Record<string, Point[]>; // GDP y/y line
   s2: BarRow[]; // contributions (stacked) + gdp line
   s3: BarRow[]; // sectoral grouped bars
+  s4inv: BarRow[]; // investment detail (TÜİK) grouped bars
+  s5cons: BarRow[]; // consumption detail (TÜİK) grouped bars
   s6: BarRow[]; // government grouped bars
+  hasTuik: boolean; // TÜİK detail present in D1
   expTable: GrowthTable;
   prodTable: GrowthTable;
 }
@@ -186,7 +197,25 @@ export async function getGrowthData(yearsBack = 10): Promise<GrowthData> {
       ],
       QBARS,
     ),
+    s4inv: barRowsQ(
+      [
+        { key: "construction", rows: yoy(s[C.gfcfConstruction] ?? []) },
+        { key: "machinery", rows: yoy(s[C.gfcfMachinery] ?? []) },
+        { key: "other", rows: yoy(s[C.gfcfOther] ?? []) },
+      ],
+      QBARS,
+    ),
+    s5cons: barRowsQ(
+      [
+        { key: "durable", rows: yoy(s[C.consDurable] ?? []) },
+        { key: "semidur", rows: yoy(s[C.consSemidur] ?? []) },
+        { key: "nondur", rows: yoy(s[C.consNondur] ?? []) },
+        { key: "services", rows: yoy(s[C.consServices] ?? []) },
+      ],
+      QBARS,
+    ),
     s6: barRowsQ([{ key: "gov", rows: yoy(s[C.gov] ?? []) }], QBARS),
+    hasTuik: (s[C.consDurable]?.length ?? 0) > 0,
 
     expTable: buildTable(
       s,

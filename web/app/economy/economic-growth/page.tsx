@@ -196,8 +196,39 @@ export default async function EconomicGrowthPage() {
 
       <Section
         title="Expenditure Side"
-        subtitle="Demand components, y/y %. Government consumption growth shown below; the full table covers the top-level aggregates."
+        subtitle="Demand components, y/y %. Consumption-by-durability and investment-by-type come from TÜİK's national-accounts detail (not in EVDS); government and the aggregates from EVDS."
       >
+        {d.hasTuik && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <ChartCard title="Şekil 5 · Private Consumption by Durability (y/y %)">
+              <BopFlowChart
+                data={d.s5cons}
+                grouped
+                bars={[
+                  { key: "durable", label: "Durable", fill: MAROON },
+                  { key: "semidur", label: "Semi-durable", fill: NAVY },
+                  { key: "nondur", label: "Non-durable", fill: ORANGE },
+                  { key: "services", label: "Services", fill: GREY },
+                ] satisfies BarSeries[]}
+                unit="%"
+                height={320}
+              />
+            </ChartCard>
+            <ChartCard title="Şekil 4 · Investment by Type (y/y %)">
+              <BopFlowChart
+                data={d.s4inv}
+                grouped
+                bars={[
+                  { key: "construction", label: "Construction", fill: NAVY },
+                  { key: "machinery", label: "Machinery & equipment", fill: ORANGE },
+                  { key: "other", label: "Other assets", fill: GREY },
+                ] satisfies BarSeries[]}
+                unit="%"
+                height={320}
+              />
+            </ChartCard>
+          </div>
+        )}
         <ChartCard title="Şekil 6 · Government Consumption (y/y %)">
           <BopFlowChart
             data={d.s6}
@@ -209,7 +240,7 @@ export default async function EconomicGrowthPage() {
         </ChartCard>
         <YoyTable
           table={d.expTable}
-          note="EVDS carries only the top-level expenditure aggregates. The report's sub-detail — durable / semi-durable / non-durable consumption (Şekil 5) and construction / machinery / other investment (Şekil 4) — is published only in TÜİK's national-accounts Excel, not EVDS, and is not yet wired here."
+          note="Top-level expenditure aggregates from EVDS. The durable/semi/non-durable consumption (Şekil 5) and construction/machinery/other investment (Şekil 4) detail above is ingested from TÜİK's national-accounts Excel (chain-volume index, 2009=100; y/y derived)."
         />
       </Section>
 
