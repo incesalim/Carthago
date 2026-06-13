@@ -419,7 +419,7 @@ def _parse_equity_page(pdf_path: str, page_idx_1: int, period_type: str,
         cells fitz scatters across block/lines; parses VAKBN's table where
         block/line grouping yields zero wide rows."""
 
-    def _parse_lines(lines: list[str]) -> list[EquityChangeRow]:
+    def _parse_with(lines: list[str], nc: int) -> list[EquityChangeRow]:
         result: list[EquityChangeRow] = []
         order = 0
         last_ri = -1            # index in _EQ_ROW_SEQ of the last main roman seen
@@ -431,7 +431,7 @@ def _parse_equity_page(pdf_path: str, page_idx_1: int, period_type: str,
             tokens = _parse_row_tokens(line)
             if tokens is None:
                 continue
-            fitted = _try_fit(tokens, n_cols)
+            fitted = _try_fit(tokens, nc)
             if fitted is None:
                 continue
             # Checklist walk: a wide data row that fits but carries no marker AND no
@@ -465,11 +465,14 @@ def _parse_equity_page(pdf_path: str, page_idx_1: int, period_type: str,
                 prior_period_profit_loss=cols[11],
                 period_net_profit_loss=cols[12],
                 total_equity=cols[13],
-                minority_interest=cols[14] if n_cols == 16 else None,
-                total_equity_incl_minority=cols[15] if n_cols == 16 else None,
+                minority_interest=cols[14] if nc == 16 else None,
+                total_equity_incl_minority=cols[15] if nc == 16 else None,
             )
             result.append(row)
         return result
+
+    def _parse_lines(lines: list[str]) -> list[EquityChangeRow]:
+        return _parse_with(lines, n_cols)
 
     candidates: list[list[EquityChangeRow]] = []
     pp_text = _safe_repaired_text(pdf_path, page_idx_1)   # None on a poison PDF
@@ -491,8 +494,16 @@ def _parse_equity_page(pdf_path: str, page_idx_1: int, period_type: str,
     split_idx: int | None = None
     # (a) Preferred signal: the current table's closing row ("Dönem Sonu
     #     Bakiyesi", hierarchy='') sitting somewhere other than the last row.
+    #     It must come AFTER the table body (a III.–XI. row): the opening balance
+    #     ("Önceki Dönem Sonu Bakiyesi"/"Beginning") also has hierarchy='' and
+    #     matches _CLOSING_RX, but no body precedes it — so a single-period page
+    #     whose opening lost its "I." marker (VAKBN) is no longer mis-split.
+    _seen_body = False
     for idx, r in enumerate(best):
-        if not r.hierarchy and _CLOSING_RX.search(r.name) and idx < len(best) - 1:
+        if r.hierarchy in _EQ_ROW_SEQ[2:]:        # III. … XI.
+            _seen_body = True
+        if (_seen_body and not r.hierarchy and _CLOSING_RX.search(r.name)
+                and idx < len(best) - 1):
             split_idx = idx
             break
     # (b) Fallback: some banks (e.g. TEB) omit the current table's closing row, so
@@ -602,17 +613,20 @@ def extract_from_pdf(pdf, pdf_path: str, after_page: int | None) -> EquityChange
     pages = _locate_equity_pages(pdf, pdf_path, after_page)
     if not pages:
         return rep
-    # Determine column count from the first (widest) page
-    try:
-        if _HAS_FITZ:
-            first_text = _fitz_page_text(pdf_path, pages[0][0] - 1)
-        else:
-            with pdfplumber.open(pdf_path) as _pdf2:
-                first_text = _pdf2.pages[pages[0][0] - 1].extract_text() or ''
-    except Exception:
-        first_text = ''
-    lines = first_text.split('\n')
-    n_cols = _modal_ncols(lines)
+    # Column count (14 unconsolidated / 16 consolidated) from the first equity
+    # page. Prefer pdfplumber's layout-repaired text: its per-row token counts are
+    # accurate, whereas fitz's y-bucketed text can over-count (AKBNK 2025 uncons:
+    # 14 real columns, but fitz yields 16 → the whole table was matched against a
+    # 16-col template and every row rejected). Fall back to fitz when pdfplumber
+    # can't read the PDF (poison) or is unavailable.
+    first_text = _safe_repaired_text(pdf_path, pages[0][0])
+    if not first_text:
+        try:
+            first_text = (_fitz_page_text(pdf_path, pages[0][0] - 1) if _HAS_FITZ
+                          else '')
+        except Exception:
+            first_text = ''
+    n_cols = _modal_ncols(first_text.split('\n'))
     for page_idx_1, period_type in pages:
         rows = _parse_equity_page(pdf_path, page_idx_1, period_type, n_cols)
         rep.rows.extend(rows)
