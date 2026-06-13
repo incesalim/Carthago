@@ -559,5 +559,65 @@
       { "code": "TP.GSYIH08.IFK.ZH", "label": "GVA: Real Estate (chain vol.)", "kind": "quarterly" },
       { "code": "TP.GSYIH13.IFK.ZH", "label": "Taxes less Subsidies (chain vol.)", "kind": "quarterly" }
     ]
+  },
+  {
+    "id": "economy.budget_balances",
+    "title": "Central-government budget — balance, primary balance, tax revenue (12m, ₺ bn)",
+    "source": { "report": "Albaraka — Bütçe Görünümü", "page": "Şekil 1 + table", "as_of": "2026-04" },
+    "placement": { "tab": "economy", "section": "Central Government Budget" },
+    "unit": "TL bn",
+    "format": "bn",
+    "decimals": 0,
+    "chart": "TimeSeriesChart",
+    "series": [
+      { "key": "rev", "label": "Revenues", "source": "evds", "locator": { "code": "TP.KB.GEL001", "years_back": 9 }, "transform": [] },
+      { "key": "exp", "label": "Expenditure", "source": "evds", "locator": { "code": "TP.KB.GID001", "years_back": 9 }, "transform": [] },
+      { "key": "primexp", "label": "Primary expenditure", "source": "evds", "locator": { "code": "TP.KB.GID002", "years_back": 9 }, "transform": [] },
+      { "key": "balance12", "label": "Budget balance (12m)", "source": "derived", "transform": [{ "op": "derive", "formula": { "op": "sub", "args": [{ "ref": "rev" }, { "ref": "exp" }] } }, { "op": "rolling_sum", "window": 12, "scale": 0.000001 }] },
+      { "key": "primary12", "label": "Primary balance (12m)", "source": "derived", "transform": [{ "op": "derive", "formula": { "op": "sub", "args": [{ "ref": "rev" }, { "ref": "primexp" }] } }, { "op": "rolling_sum", "window": 12, "scale": 0.000001 }] },
+      { "key": "tax12", "label": "Tax revenue (12m)", "source": "evds", "locator": { "code": "TP.KB.GEL003", "years_back": 9 }, "transform": [{ "op": "rolling_sum", "window": 12, "scale": 0.000001 }] }
+    ],
+    "verify": [
+      { "series": "balance12", "date": "2026-04", "value": -1672.4, "tolerance": 6 },
+      { "series": "primary12", "date": "2026-04", "value": 791.1, "tolerance": 6 },
+      { "series": "tax12", "date": "2026-04", "value": 12611.9, "tolerance": 12 }
+    ],
+    "registry_additions": [
+      { "code": "TP.KB.GEL001", "label": "Central Govt Budget Revenues (TL)", "kind": "monthly" },
+      { "code": "TP.KB.GEL003", "label": "Central Govt Tax Revenues (TL)", "kind": "monthly" },
+      { "code": "TP.KB.GID001", "label": "Central Govt Budget Expenditures (TL)", "kind": "monthly" },
+      { "code": "TP.KB.GID002", "label": "Primary (Non-Interest) Expenditure (TL)", "kind": "monthly" }
+    ]
+  },
+  {
+    "id": "economy.budget_revenue_components",
+    "title": "Central-government budget — tax components (monthly, ₺ million)",
+    "source": { "report": "Albaraka — Bütçe Görünümü", "page": "Table + Şekil 3", "as_of": "2026-04" },
+    "placement": { "tab": "economy", "section": "Central Government Budget" },
+    "unit": "TL million",
+    "format": "mn",
+    "decimals": 0,
+    "chart": "table",
+    "series": [
+      { "key": "income", "label": "Income tax", "source": "evds", "locator": { "code": "TP.KB.GEL005", "years_back": 9 }, "transform": [{ "op": "scale", "factor": 0.001 }] },
+      { "key": "corp", "label": "Corporate tax", "source": "evds", "locator": { "code": "TP.KB.GEL010", "years_back": 9 }, "transform": [{ "op": "scale", "factor": 0.001 }] },
+      { "key": "domvat", "label": "Domestic VAT", "source": "evds", "locator": { "code": "TP.KB.GEL018", "years_back": 9 }, "transform": [{ "op": "scale", "factor": 0.001 }] },
+      { "key": "sct", "label": "Special consumption tax", "source": "evds", "locator": { "code": "TP.KB.GEL021", "years_back": 9 }, "transform": [{ "op": "scale", "factor": 0.001 }] },
+      { "key": "impvat", "label": "VAT on imports", "source": "evds", "locator": { "code": "TP.KB.GEL033", "years_back": 9 }, "transform": [{ "op": "scale", "factor": 0.001 }] }
+    ],
+    "verify": [
+      { "series": "income", "date": "2026-04", "value": 321313, "tolerance": 150 },
+      { "series": "corp", "date": "2026-04", "value": 33407, "tolerance": 80 },
+      { "series": "domvat", "date": "2026-04", "value": 144751, "tolerance": 120 },
+      { "series": "sct", "date": "2026-04", "value": 125153, "tolerance": 120 },
+      { "series": "impvat", "date": "2026-04", "value": 189829, "tolerance": 120 }
+    ],
+    "registry_additions": [
+      { "code": "TP.KB.GEL005", "label": "Income Tax (TL)", "kind": "monthly" },
+      { "code": "TP.KB.GEL010", "label": "Corporate Tax (TL)", "kind": "monthly" },
+      { "code": "TP.KB.GEL018", "label": "Domestic VAT (TL)", "kind": "monthly" },
+      { "code": "TP.KB.GEL021", "label": "Special Consumption Tax (ÖTV total) (TL)", "kind": "monthly" },
+      { "code": "TP.KB.GEL033", "label": "VAT on Imports (TL)", "kind": "monthly" }
+    ]
   }
 ]

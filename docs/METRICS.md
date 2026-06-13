@@ -961,6 +961,33 @@ carries only the unadjusted index, so a few production rows (industry,
 manufacturing, services, public admin) differ from TÜİK's headline by up to
 ~1.5 pp while the GDP total matches exactly.
 
+### Central-Government Budget sub-page (`/economy/budget`)
+
+Reproduces the Albaraka **«Bütçe Görünümü»** monthly report from the TÜİK/
+Treasury **central-government budget** (merkezi yönetim bütçesi) in EVDS
+(cat 1503: `bie_kbmgel` revenues + `bie_kbmgid` expenses). Data layer:
+`web/app/lib/budget.ts`. EVDS values scale **÷1e3 → million TL** (the report
+table) and **÷1e6 → bn TL** (figures/KPIs). **Distinct from the cash
+general-budget `TP.KB.GEN34/35/39`** already in the registry — those are
+~117 bn off the central-government balance at 12m; do not conflate them.
+
+| Element | Series / derivation |
+|---|---|
+| KPIs (12m) | balance / primary / tax revenue (rolling 12m) |
+| Şekil 1 budget & primary (12m) | derived **balance = GEL001 − GID001**, **primary = GEL001 − GID002** |
+| Şekil 5 monthly balance | derived balance (monthly) |
+| Şekil 4 revenue growth (y/y, 3m MA) | tax `GEL003`; **non-tax = GEL001 − GEL003** |
+| Şekil 3 tax mix (this month vs year ago) | `GEL005/010/018/021/033/035/036`, petrol-gas ÖTV `GEL022` |
+| Şekil 2 expenditure mix | `GID003/008/014/026/110/116/131` |
+| Table (17 rows) | the GEL/GID codes above + GID001/002/152, derived balances |
+
+The three derivations (budget balance, primary balance, non-tax revenues) have
+no direct EVDS series; all reproduce the report's Apr-2026 table exactly
+(balance 12m −1,672,375; primary +791,101; tax 12,611,906 mn TL). 23 new
+`TP.KB.GEL*/GID*` series in `evds_series` (`macro`/monthly); two
+`economy.budget_*` chart-specs (one exercising the `derive`+`rolling_sum`
+chain) anchor the daily verification.
+
 ## 15. TEFAS fund-market statistics
 
 Source: **TEFAS** (Turkey Electronic Fund Trading Platform, tefas.gov.tr) —
@@ -1095,3 +1122,42 @@ Private sub-cuts (10008 / 10010), State deposit (10009), Participation
 (10003), Dev & Inv (10004), Sector (10001). {10008,10010,10009} ∪ 10003 ∪
 10004 partitions the sector. For composite groups a period is emitted only
 when every member code has data.
+
+## 17. BIST equity-market data + valuation (/economy, /banks/[ticker])
+
+Borsa İstanbul daily EOD via the **Yahoo Finance chart API**
+(`query1.finance.yahoo.com/v8/finance/chart/{symbol}`, keyless). Turkish symbol
+= `<ticker>.IS`; indices use the index code (`XU100.IS`, `XBANK.IS`). Ingested
+by `src/scrapers/bist_scraper.py` into three D1 tables (see migration
+`0012_bist.sql`): `bist_prices` (daily OHLCV, banks + indices), `bist_dividends`
+(cash dividend events, banks only), `bist_shares` (shares outstanding per bank).
+
+**Universe.** Derived at runtime from `data/banks/bddk_bank_list.json` — the
+banks with `listed: true` + a `bist_ticker` (11 banks). **QNBFB** is listed but
+its float is ~0.12% and Yahoo carries no tradeable price for `QNBFB.IS`, so it
+yields no rows and no valuation (omitted from `bist_shares.json`).
+
+**Index chart (/economy).** XU100 and XBANK levels **rebased to 100** at the
+window start (`rebase100()` in the page) so the banking sector's relative
+performance against the broad market is directly comparable.
+
+**Valuation (/banks/[ticker]).** Combines the market price with *audited*
+fundamentals (`web/app/lib/bank-fundamentals.ts`, methodology shared with the
+`/cross-bank` ROE in `heatmap.ts`). Audit amounts are **thousand TL** → ×1000 to
+compare against a TL market cap.
+
+| Metric | Definition |
+|---|---|
+| **Market cap** | latest close × `shares_outstanding` (TL) |
+| **P/B** | market cap ÷ period-end **book equity** (label-matched on any roman line — `%ZKAYNAK%`/`%EQUITY%` — so participation banks at XIV. resolve) |
+| **P/E** | market cap ÷ **TTM net income** (YTD P&L de-cumulated to single quarters, trailing four summed; telescopes to `YTD(latest)+FY(prior)−YTD(same q prior yr)`, robust to YTD-vs-3-month column quirks) |
+| **Dividend yield** | trailing-12m `bist_dividends` per share ÷ latest close |
+| **1y change** | latest close ÷ close nearest (latest − 365d) − 1 |
+
+Sanity (GARAN, Jun-2026): close ₺135.9 × 4.2bn = ₺570.8bn market cap; ÷ ₺451.3bn
+equity = **P/B 1.26×**; ÷ ₺118.6bn TTM net income = **P/E 4.8×**.
+
+**Shares maintenance.** `bist_shares` is best-effort refreshed each run from
+Yahoo `quoteSummary` (cookie+crumb handshake) and falls back to the committed
+`data/banks/bist_shares.json` seed; refresh the seed on capital actions
+(bonus/rights issues). See [OPERATIONS.md](OPERATIONS.md) §BIST equity market.
