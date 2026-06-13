@@ -315,7 +315,23 @@ def _parse_equity_page(pdf_path: str, page_idx_1: int, period_type: str,
             rows_pp = result
 
     # Pick the path with more accepted rows
-    return rows_fz if len(rows_fz) > len(rows_pp) else rows_pp
+    best = rows_fz if len(rows_fz) > len(rows_pp) else rows_pp
+    # Mid-page split: some PDFs print both the current and prior equity tables on
+    # a single page.  Detect this by finding a closing row (hierarchy='', name
+    # matches BAKIYE/BALANCE) that is NOT the last accepted row.  If found, assign
+    # period_type='prior' (opposite of the detected type) to all rows after the
+    # closing row and renumber their orders from 1.
+    opposite = 'prior' if period_type == 'current' else 'current'
+    split_idx: int | None = None
+    for idx, r in enumerate(best):
+        if not r.hierarchy and _CLOSING_RX.search(r.name) and idx < len(best) - 1:
+            split_idx = idx
+            break
+    if split_idx is not None:
+        for new_ord, r in enumerate(best[split_idx + 1:], start=1):
+            r.period_type = opposite
+            r.order = new_ord
+    return best
 
 
 # ---------------------------------------------------------------------------
