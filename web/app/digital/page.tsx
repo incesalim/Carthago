@@ -18,6 +18,8 @@ import {
   CHANNEL_USE_LABELS,
   ACTIVE_BY_CHANNEL,
   REGISTERED_BY_CHANNEL,
+  APPLICATIONS,
+  APPLICATION_LABELS,
   CHANNEL_LABELS,
   TRANSFER_VOLUME,
   TRANSFER_COUNT,
@@ -58,6 +60,7 @@ export default async function DigitalPage() {
     channelUse,
     activeByChannel,
     registeredByChannel,
+    applications,
     transferVolume,
     transferCount,
     billCount,
@@ -67,6 +70,7 @@ export default async function DigitalPage() {
     digitalSeries(CHANNEL_USE, SCALE_K_TO_M),
     digitalSeries(ACTIVE_BY_CHANNEL, SCALE_K_TO_M),
     digitalSeries(REGISTERED_BY_CHANNEL, SCALE_K_TO_M),
+    digitalSeries(APPLICATIONS, SCALE_K_TO_M),
     digitalSeries(TRANSFER_VOLUME, SCALE_BN_TO_TRN),
     digitalSeries(TRANSFER_COUNT, SCALE_K_TO_M),
     digitalSeries(BILL_COUNT, SCALE_K_TO_M),
@@ -111,7 +115,7 @@ export default async function DigitalPage() {
 
       <Section
         title="Acquisition"
-        subtitle="Registered customer base (registered in the system and logged in at least once) and the net change each quarter. TBB reports the base as a quarter-end stock; net adds are derived as its quarter-over-quarter change. Counts are per-bank registrations summed across the sector — a customer registered at several banks counts several times — so read the trend and the net adds, not the absolute level."
+        subtitle="The registered base and how it grows, plus the demand funnel feeding it. The base is TBB's quarter-end stock (registered and logged in at least once); net adds are its quarter-over-quarter change. Base counts are per-bank registrations summed across the sector — a customer registered at several banks counts several times — so read the trend and net adds, not the absolute level. Application counts are mobile only (internet is now under 1% of applications)."
       >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <TrendChart
@@ -130,6 +134,14 @@ export default async function DigitalPage() {
             zeroLine
           />
         </div>
+        <TrendChart
+          data={applications}
+          seriesLabels={APPLICATION_LABELS}
+          title="Product applications via mobile per quarter (millions)"
+          yFormat="raw"
+          decimals={1}
+          height={320}
+        />
       </Section>
 
       <Section
