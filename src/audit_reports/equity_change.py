@@ -185,20 +185,35 @@ def _row_gate(vals: list[float | None], n_cols: int) -> bool:
 
 
 def _try_fit(tokens: list[float | None], n_cols: int) -> list[float | None] | None:
-    """Try to fit `tokens` into exactly `n_cols` by first-n or last-n window."""
+    """Fit `tokens` into exactly `n_cols`, accepting only a gate-passing alignment.
+
+    Three shapes occur in real reports:
+      • exactly n_cols                → use as-is;
+      • more than n_cols (a surplus token — EMLAK prints the period-end total
+        twice)                        → try the first-n and last-n windows;
+      • exactly n_cols-1 (a component column rendered fully blank — no value, not
+        even a dash — so it never tokenises; AKBNK's comprehensive-income row IV)
+                                      → insert a 0.0 at each position and take the
+        one the row-sum gate admits. The gate (Σcomponents == total; for 16-col
+        also total+minority == grand) is discriminating, so only the real slot
+        passes — this can only recover an otherwise-dropped row, never re-shape a
+        row that already fits.
+    """
     if len(tokens) == n_cols:
-        if _row_gate(tokens, n_cols):
-            return tokens
-        return None
+        return tokens if _row_gate(tokens, n_cols) else None
     if len(tokens) > n_cols:
-        # Try first-n
         first = tokens[:n_cols]
         if _row_gate(first, n_cols):
             return first
-        # Try last-n
         last = tokens[-n_cols:]
         if _row_gate(last, n_cols):
             return last
+        return None
+    if len(tokens) == n_cols - 1:
+        for ins in range(n_cols):
+            cand = tokens[:ins] + [0.0] + tokens[ins:]
+            if _row_gate(cand, n_cols):
+                return cand
     return None
 
 
@@ -264,6 +279,74 @@ def _fitz_page_lines(pdf_path: str, page_idx_0: int) -> list[str]:
         return []
 
 
+# ---------------------------------------------------------------------------
+# Checklist-anchored row admission
+# ---------------------------------------------------------------------------
+# BRSA equity-change tables are rigidly standardised: every report — Turkish OR
+# English — carries the SAME fixed rows in the same order. We admit a line as a
+# data row only when it bears one of these known markers (or is the closing
+# balance), anchoring on the marker rather than guessing from line shape. The
+# marker is language-neutral, so admission survives English labels (GARAN) and
+# footnote text bleeding into a row ("The accompanying notes … VI. Capital
+# Increase …", which buried the marker and made the old line-start matcher drop
+# rows VI/VII/VIII/XI).
+_EQ_ROMANS = ('I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI')
+_EQ_SUBS = ('2.1', '2.2', '11.1', '11.2', '11.3')
+_EQ_MARKERS = set(_EQ_ROMANS) | set(_EQ_SUBS)
+# The main roman chain in order (with dots, as stored in `hierarchy`) — the fixed
+# "checklist" used to infer a row whose marker the text layer dropped.
+_EQ_ROW_SEQ = tuple(r + '.' for r in _EQ_ROMANS)
+# The closing balance prints its own roman formula that always sums THROUGH XI,
+# e.g. "(III+IV+…+X+XI)" / "(I+II+III+…+X+XI)". This must NOT match the new-balance
+# row III's "(I+II)" — so the formula is required to reach XI.
+_EQ_CLOSING_FORMULA_RX = re.compile(r'\(\s*[IVX][IVX0-9.+\s…]*XI')
+
+
+def _eq_is_closing(line: str) -> bool:
+    """True for the prefix-less closing row ("Dönem Sonu Bakiyesi" / "Balances at
+    end of the period (III+IV+…+XI)"). Only consulted when no marker was found, so
+    the opening "I. Balances at Beginning" (which carries marker I.) is never
+    mistaken for it — which is why matching the otherwise-ambiguous word
+    "Balance/Bakiye" is safe here."""
+    head = line[:80]
+    return bool(_EQ_CLOSING_FORMULA_RX.search(head) or _CLOSING_RX.search(head))
+
+
+# A marker glued to its label with no space ("VIII.Convertible", "VI.İç"). The
+# trailing '.' is mandatory so an English word that merely starts with a roman
+# letter ("Income", "Internal", "Increase") is NOT mistaken for marker "I.".
+_EQ_GLUED_RX = re.compile(r'^([IVX]{1,5}|\d{1,2}\.\d{1,2})\.(.+)$')
+
+
+def _eq_split(line: str) -> tuple[str | None, str]:
+    """Return (marker, label) for an equity-table row, or (None, '') to skip.
+
+    marker is the normalised BRSA marker ('VI.', '2.1', …) found among the first
+    few whitespace tokens — even when footnote words precede it, and even when it
+    is glued to its label. The closing row returns (None, <label>). Value
+    extraction is unaffected: `_parse_row_tokens` finds the numeric tokens
+    regardless of any leading words."""
+    toks = line.split()
+    for i, tok in enumerate(toks[:6]):
+        marker_core, rest = None, ''
+        core = tok.strip('().,')
+        if core in _EQ_MARKERS:                 # exact token: "VI." "2.1" "11.1"
+            marker_core = core
+        else:
+            m = _EQ_GLUED_RX.match(tok)          # glued: "VIII.Convertible"
+            if m and m.group(1) in _EQ_MARKERS:
+                marker_core, rest = m.group(1), m.group(2)
+        if marker_core is None:
+            continue
+        marker = marker_core + '.' if marker_core in _EQ_ROMANS else marker_core
+        after = (rest + ' ' + ' '.join(toks[i + 1:])).strip()
+        label = _NUM_RX.sub('', after).rstrip('()-, ').strip()
+        return marker, label
+    if _eq_is_closing(line):
+        return None, _NUM_RX.sub('', line).rstrip('()-, ').strip()
+    return None, ''
+
+
 def _parse_equity_page(pdf_path: str, page_idx_1: int, period_type: str,
                        n_cols: int) -> list[EquityChangeRow]:
     """Parse one equity-change page into EquityChangeRow objects."""
@@ -283,19 +366,30 @@ def _parse_equity_page(pdf_path: str, page_idx_1: int, period_type: str,
                 lines = []
 
         order = 0
+        last_ri = -1            # index in _EQ_ROW_SEQ of the last main roman seen
         for line in lines:
             line = line.strip()
             if not line:
                 continue
-            h, name = _split_label_eq(line)
-            if not name:
-                continue
+            marker, name = _eq_split(line)
             tokens = _parse_row_tokens(line)
             if tokens is None:
                 continue
             fitted = _try_fit(tokens, n_cols)
             if fitted is None:
                 continue
+            # Checklist walk: a wide data row that fits but carries no marker AND no
+            # label is a row whose marker the text layer dropped (GARAN prints its
+            # current-period IV. "Total Comprehensive Income" as values only). The
+            # row order is fixed, so it must be the next main roman after the last
+            # one seen. (The closing row is excluded — it returns a non-empty label.)
+            if marker is None and not name and 0 <= last_ri < len(_EQ_ROW_SEQ) - 1:
+                marker = _EQ_ROW_SEQ[last_ri + 1]
+            if marker is None and not name:
+                continue
+            if marker in _EQ_ROW_SEQ:        # reset on each block (second I. → 0)
+                last_ri = _EQ_ROW_SEQ.index(marker)
+            h = marker or ''
             order += 1
             cols = fitted
             row = EquityChangeRow(
