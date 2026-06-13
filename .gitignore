@@ -58,6 +58,9 @@ data/external_reports/
 # EVDS HTTP response cache (rebuilt on demand)
 data/evds_cache/
 
+# BIST (Yahoo) HTTP response cache (rebuilt on demand)
+data/bist_cache/
+
 # Per-bank audit-report PDFs — 2 GB+ of bank-published PDFs.
 # Kept local only; structured rows live in bddk_data.db (bank_audit_* tables).
 # URL config IS committed (data/banks/audit_report_urls.json) so the pipeline

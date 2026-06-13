@@ -78,6 +78,9 @@ SYNC_TABLES = [
     "tefas_category_daily",
     "tefas_allocation_daily",
     "tefas_top_funds",
+    "bist_prices",
+    "bist_dividends",
+    "bist_shares",
     "bank_audit_expected",
     "bank_audit_statement_types",
     "bank_audit_coverage",
@@ -98,6 +101,7 @@ BATCH_SIZE = 100  # rows per INSERT statement (default for skinny tables)
 BATCH_SIZE_PER_TABLE = {
     "news_items": 10,
     "regulation_briefings": 1,  # categories_json + raw_response are large per row
+    "bist_prices": 200,  # skinny OHLCV rows — bigger batches speed the backfill push
 }
 
 # Stand-in for newline chars in generated SQL literals (see fetch_recent).

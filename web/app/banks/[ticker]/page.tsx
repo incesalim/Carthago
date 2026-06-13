@@ -15,7 +15,7 @@
  * Raw `item_name` from the database is never displayed.
  */
 import Link from "next/link";
-import { PageHeader } from "@/app/components/ui";
+import { PageHeader, Section, Stat } from "@/app/components/ui";
 import {
   bankPeriods,
   balanceSheetMultiPeriod,
@@ -28,6 +28,8 @@ import {
 } from "@/app/lib/audit";
 import { newsByTicker } from "@/app/lib/news";
 import { bankOwnership } from "@/app/lib/kap";
+import { bistValuation, bistPriceHistory } from "@/app/lib/bist";
+import TimeSeriesChart from "@/app/components/TimeSeriesChart";
 import BankCard from "@/app/components/BankCard";
 import OwnershipCard from "@/app/components/OwnershipCard";
 import OwnershipRadial from "@/app/components/OwnershipRadial";
@@ -165,6 +167,15 @@ function sumHierarchies(
   });
 }
 
+const nfmt = (v: number, d = 2) =>
+  new Intl.NumberFormat("en-US", { minimumFractionDigits: d, maximumFractionDigits: d }).format(v);
+
+/** Market cap (TL) → "₺570.8B" / "₺1.05T". */
+function fmtMarketCap(tl: number): string {
+  if (tl >= 1e12) return `₺${nfmt(tl / 1e12, 2)}T`;
+  return `₺${nfmt(tl / 1e9, 1)}B`;
+}
+
 /** Element-wise add of two parallel arrays of (number | null). */
 function addArrays(a: (number | null)[], b: (number | null)[]): (number | null)[] {
   return a.map((av, i) => {
@@ -200,7 +211,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   ).sort().reverse();
   const periods = pickPeriods(allPeriods, view, 4);
 
-  const [bsPivot, bsNames, plPivot, plRows, kapItems, profile, stages, validation, ownership] =
+  const [bsPivot, bsNames, plPivot, plRows, kapItems, profile, stages, validation, ownership, valuation, priceHistory] =
     await Promise.all([
       balanceSheetMultiPeriod(ticker, kind, periods),
       balanceSheetLineNames(ticker, kind, periods),
@@ -213,6 +224,8 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
       bankStagesLatest(ticker, kind),
       validationByPeriod(ticker, kind),
       bankOwnership(ticker),
+      bistValuation(ticker, kind),
+      bistPriceHistory(ticker, 8),
     ]);
 
   // ⚠ on a period column = that quarter's extraction failed one or more
@@ -327,6 +340,61 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
         stages={stages}
         latestPeriod={periods[0] ?? null}
       />
+
+      {/* BIST market data + valuation (Yahoo close × audited equity/earnings).
+          Only listed banks return a valuation; others render nothing. */}
+      {valuation && (
+        <Section
+          title="Market & Valuation"
+          description={
+            `BIST: ${ticker} · close ${valuation.period_date}` +
+            (valuation.fundamentalsPeriod
+              ? ` · P/B & P/E vs ${valuation.fundamentalsPeriod} audited figures`
+              : "")
+          }
+          className="mb-6"
+        >
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            <Stat
+              label="Price"
+              value={`₺${nfmt(valuation.price, 2)}`}
+              hint={
+                valuation.changePct1y != null
+                  ? `${valuation.changePct1y >= 0 ? "+" : ""}${nfmt(valuation.changePct1y, 1)}% · 1y`
+                  : undefined
+              }
+              tone={
+                valuation.changePct1y == null
+                  ? "neutral"
+                  : valuation.changePct1y >= 0
+                    ? "positive"
+                    : "negative"
+              }
+            />
+            <Stat
+              label="Market Cap"
+              value={valuation.marketCap != null ? fmtMarketCap(valuation.marketCap) : "—"}
+            />
+            <Stat label="P/B" value={valuation.pb != null ? `${nfmt(valuation.pb, 2)}×` : "—"} />
+            <Stat label="P/E" value={valuation.pe != null ? `${nfmt(valuation.pe, 1)}×` : "—"} />
+            <Stat
+              label="Dividend Yield"
+              value={valuation.dividendYield != null ? `${nfmt(valuation.dividendYield * 100, 2)}%` : "—"}
+            />
+          </div>
+          {priceHistory.length > 0 && (
+            <div className="mt-4">
+              <TimeSeriesChart
+                series={{ [`${ticker} share price`]: priceHistory }}
+                title="Share price (daily close, ₺)"
+                yFormat="fx"
+                decimals={2}
+                height={280}
+              />
+            </div>
+          )}
+        </Section>
+      )}
 
       {/* Ownership structure from the KAP Genel Bilgi Formu (weekly refresh) */}
       <OwnershipCard rows={ownership} />

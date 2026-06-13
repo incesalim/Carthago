@@ -7,14 +7,22 @@
  * BBVA's published baseline scenario table for context.
  *
  * Out of scope (no data source here): CDS spreads, OIS pricing and
- * sovereign yield curves (Bloomberg), BIST indices, the GDP nowcast and
- * the FCI composite (BBVA-proprietary), and foreigners' positioning flows.
+ * sovereign yield curves (Bloomberg), the GDP nowcast and the FCI composite
+ * (BBVA-proprietary), and foreigners' positioning flows.
  */
 import Link from "next/link";
 import { getEconomyData, BBVA_BASELINE } from "@/app/lib/economy";
+import { bistIndexHistory, type PricePoint } from "@/app/lib/bist";
 import { latestPeriod } from "@/app/lib/metrics";
 import { PageHeader } from "@/app/components/ui";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
+
+/** Rebase a level series to 100 at the first point, for cross-index comparison. */
+function rebase100(pts: PricePoint[]): PricePoint[] {
+  const base = pts.find((p) => p.value)?.value;
+  if (!base) return pts;
+  return pts.map((p) => ({ period_date: p.period_date, value: (p.value / base) * 100 }));
+}
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +52,11 @@ function Grid({ children }: { children: React.ReactNode }) {
 
 export default async function EconomyPage() {
   const d = await getEconomyData();
+  const bistIdx = await bistIndexHistory(8);
+  const bistRebased = Object.fromEntries(
+    Object.entries(bistIdx).map(([label, pts]) => [label, rebase100(pts)]),
+  );
+  const hasBist = Object.values(bistRebased).some((s) => s.length > 0);
 
   const dataThrough = latestPeriod(
     d.gdpGrowth,
@@ -73,6 +86,12 @@ export default async function EconomyPage() {
           className="rounded-md border border-border px-2.5 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-accent"
         >
           Balance of Payments →
+        </Link>
+        <Link
+          href="/economy/budget"
+          className="rounded-md border border-border px-2.5 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+        >
+          Budget →
         </Link>
       </PageHeader>
 
@@ -193,6 +212,21 @@ export default async function EconomyPage() {
           />
         </Grid>
       </Section>
+
+      {hasBist && (
+        <Section
+          title="Equity Markets (BIST)"
+          subtitle="Borsa İstanbul benchmark vs the banking sector, rebased to 100 — does the banks index lead or lag the broad market? (Yahoo Finance, daily close.)"
+        >
+          <TimeSeriesChart
+            series={bistRebased}
+            title="BIST 100 vs Banks (rebased to 100)"
+            yFormat="raw"
+            decimals={0}
+            height={340}
+          />
+        </Section>
+      )}
 
       <Section
         title="Fiscal Stance"
