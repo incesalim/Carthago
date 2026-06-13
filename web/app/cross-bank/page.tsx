@@ -98,7 +98,9 @@ export default async function CrossBankPage() {
   // YYYY-MM); format it inline instead.
   const q = period ? Number(/Q([1-4])$/.exec(period)?.[1]) : null;
   const year = period?.slice(0, 4);
-  const liveNote = live.size ? " · P/B & P/E live (~15-min delayed)" : "";
+  const liveNote = live.size
+    ? " · P/B & P/E live (~15-min delayed)"
+    : " · P/B & P/E at last close";
   const description = period
     ? `Individual banks ranked vs peers across the full performance set · Snapshot: Q${q} ${year} · ${snapRows.length} of ${banks.length} banks reporting${liveNote}`
     : "Individual banks ranked vs peers across the full performance set";

@@ -1198,17 +1198,22 @@ Yahoo `quoteSummary` (cookie+crumb handshake) and falls back to the committed
 columns (neutral color — cheap/expensive isn't good/bad). Market cap per
 (bank, period) = the **quarter-end close** (last trading day inside the calendar
 quarter, via a `ROW_NUMBER()` window over `bist_prices`) × shares, divided by
-the same audited equity / `ttmNet` used elsewhere. The Snapshot view (latest
-common quarter) is point-in-time exact; the Over-time view uses **current**
-shares (no historical share counts), so deep-history ratios are approximate
-across capital actions. Listed banks only — the unlisted majority render "—".
+the same audited equity / `ttmNet` used elsewhere. **The latest period uses the
+freshest price** — live Yahoo quote → else the latest stored EOD close → else
+quarter-end — so the Snapshot shows a current P/B/P/E (not a months-old
+quarter-end one); historical over-time rows keep their own quarter-end close
+(point-in-time). Current shares are used throughout (no historical counts), so
+deep-history ratios are approximate across capital actions. Listed banks only —
+the unlisted majority render "—".
 
 **Live overlay (delayed Yahoo, `web/app/lib/bist-live.ts`).** All three surfaces
 overlay the *latest* Yahoo price at page-render time: `/banks/[ticker]` price +
 market cap + P/B/P/E/yield (label "⏱ as of HH:MM · ~15-min delayed", or "last
 close DD Mon" when the market is shut); `/cross-bank` snapshot P/B & P/E (live
-price replaces the quarter-end close on the latest period only); `/economy`
-indices (a live final point appended to each rebased series). It's ~15-min
+price on the latest period, else the latest stored close); `/economy`
+indices (a live final point appended to each rebased series). Quotes come in one
+batched Yahoo `spark` request (not N per-symbol fetches — a burst of 11 gets the
+Cloudflare egress IP rate-limited). It's ~15-min
 delayed during BIST hours and the last close otherwise — **not** real-time
 (that needs a paid feed). Everything is price-linear: `applyLivePrice` rescales
 market cap/P/B/P/E by `r = live/stored` and yield by `1/r`. **Caching is
