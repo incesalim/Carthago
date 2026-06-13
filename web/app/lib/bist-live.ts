@@ -20,7 +20,12 @@ export interface LiveQuote {
   asOf: number; // regularMarketTime, unix seconds
 }
 
-interface SparkEntry { timestamp?: number[]; close?: (number | null)[] }
+interface SparkEntry {
+  timestamp?: number[];
+  close?: (number | null)[];
+  chartPreviousClose?: number;
+  previousClose?: number | null;
+}
 
 const TTL_MS = 60_000;
 const TIMEOUT_MS = 2500;
@@ -100,6 +105,60 @@ export async function liveQuotes(symbols: string[]): Promise<Map<string, LiveQuo
       _mem.set(s, { quote: q, exp: now + TTL_MS });
       if (q) out.set(s, q);
     }
+  }
+  return out;
+}
+
+// --- Generic (any Yahoo symbol) quotes, with prior close — for the market ticker.
+export interface RawQuote { price: number; prevClose: number | null; asOf: number }
+
+const _memRaw = new Map<string, { quote: RawQuote | null; exp: number }>();
+
+/**
+ * Latest quote + prior close for ARBITRARY Yahoo symbols (no ".IS" appended) —
+ * e.g. `BZ=F` (Brent), `GC=F` (gold), `USDTRY=X`, `XU100.IS`. One batched spark
+ * request; per-symbol in-memory + edge cache; never throws.
+ */
+export async function rawQuotes(symbols: string[]): Promise<Map<string, RawQuote>> {
+  const out = new Map<string, RawQuote>();
+  if (process.env.BIST_LIVE_DISABLED === "1" || symbols.length === 0) return out;
+  const now = Date.now();
+  const misses: string[] = [];
+  for (const s of symbols) {
+    const hit = _memRaw.get(s);
+    if (hit && hit.exp > now) {
+      if (hit.quote) out.set(s, hit.quote);
+    } else {
+      misses.push(s);
+    }
+  }
+  if (!misses.length) return out;
+  try {
+    const url =
+      `https://query1.finance.yahoo.com/v8/finance/spark` +
+      `?symbols=${encodeURIComponent(misses.join(","))}&range=1d&interval=1m`;
+    const init: RequestInit & { cf?: { cacheTtl: number; cacheEverything: boolean } } = {
+      cache: "no-store",
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+      cf: { cacheTtl: 60, cacheEverything: true },
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; bddk-analysis/1.0)",
+        Accept: "application/json",
+      },
+    };
+    const res = await fetch(url, init);
+    const data = res.ok ? ((await res.json()) as Record<string, SparkEntry>) : {};
+    for (const s of misses) {
+      const e = data[s];
+      const base = parseSpark(e);
+      const q: RawQuote | null = base
+        ? { price: base.price, prevClose: (e?.chartPreviousClose ?? e?.previousClose) ?? null, asOf: base.asOf }
+        : null;
+      _memRaw.set(s, { quote: q, exp: now + TTL_MS });
+      if (q) out.set(s, q);
+    }
+  } catch {
+    /* leave misses unresolved → caller falls back / hides the item */
   }
   return out;
 }

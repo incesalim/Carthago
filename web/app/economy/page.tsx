@@ -14,8 +14,10 @@ import Link from "next/link";
 import { getEconomyData, BBVA_BASELINE } from "@/app/lib/economy";
 import { bistIndexHistory, type PricePoint } from "@/app/lib/bist";
 import { liveQuotes, type LiveQuote } from "@/app/lib/bist-live";
+import { getMarketTicker } from "@/app/lib/market-ticker";
 import { latestPeriod } from "@/app/lib/metrics";
 import { PageHeader } from "@/app/components/ui";
+import MarketTicker from "@/app/components/MarketTicker";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
 
 /** Rebase a level series to 100 at the first point, for cross-index comparison. */
@@ -53,6 +55,7 @@ function Grid({ children }: { children: React.ReactNode }) {
 
 export default async function EconomyPage() {
   const d = await getEconomyData();
+  const ticker = await getMarketTicker();
   const bistIdx = await bistIndexHistory(8);
   const bistRebased = Object.fromEntries(
     Object.entries(bistIdx).map(([label, pts]) => [label, rebase100(pts)]),
@@ -89,6 +92,7 @@ export default async function EconomyPage() {
 
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
+      {ticker.length > 0 && <MarketTicker items={ticker} />}
       <PageHeader
         eyebrow="Adapted from BBVA / Garanti BBVA Research"
         title="Economy"

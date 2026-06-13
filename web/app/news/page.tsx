@@ -12,6 +12,8 @@
  */
 import Link from "next/link";
 import { latestPress } from "@/app/lib/news";
+import { getMarketTicker } from "@/app/lib/market-ticker";
+import MarketTicker from "@/app/components/MarketTicker";
 import PressFeed from "./PressFeed";
 
 export const dynamic = "force-dynamic";
@@ -23,11 +25,12 @@ function fmtDate(iso: string): string {
 }
 
 export default async function NewsPage() {
-  const items = await latestPress(160);
+  const [items, ticker] = await Promise.all([latestPress(160), getMarketTicker()]);
   const latest = items[0]?.published_at;
 
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-6">
+      {ticker.length > 0 && <MarketTicker items={ticker} />}
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">Sector News</h1>
         <p className="text-sm text-muted-foreground">

@@ -1221,3 +1221,13 @@ deliberately NOT KV** (the 12h `cachedAll` window guards the ~1k KV-writes/day
 cap): the fetch uses Cloudflare's edge cache (`cf.cacheTtl`) + a 60 s per-isolate
 in-memory map, with a 2.5 s timeout and graceful fallback to the stored close on
 any failure. Kill switch: `BIST_LIVE_DISABLED=1`.
+
+**Market ticker (`/economy`, `/news`).** A scrolling "flowing data" strip
+(`web/app/components/MarketTicker.tsx`) of BIST indices (XU100 / Banks / 30),
+FX (USD/TRY, EUR/TRY), and commodities (Brent `BZ=F`, gold `GC=F` $/oz, plus a
+derived **gram gold ₺** = $/oz ÷ 31.1035 × USD/TRY), each with a day-change %.
+Data: `getMarketTicker()` (`web/app/lib/market-ticker.ts`) → one batched
+`rawQuotes` spark request (arbitrary Yahoo symbols, no `.IS` append). Server-
+rendered, then the client polls `GET /api/market-ticker` every 60 s (edge-cached
+so polls don't re-hit Yahoo). Hidden entirely when the fetch fails or
+`BIST_LIVE_DISABLED=1`.
