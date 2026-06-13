@@ -146,6 +146,22 @@ export const REGISTERED_BY_CHANNEL: Spec[] = [
      "sistemde_kayitli_en_az_bir_kez_login_olmus_musteri_sayisi"),
 ];
 
+/**
+ * Product applications submitted through digital channels per quarter (TBB
+ * section II) — the demand-side / top-of-funnel signal. Mobile only: internet
+ * applications are now <0.5% of the total, so a mobile cut tells the real story
+ * (and avoids a near-zero internet line). Loan vs credit-card applications.
+ */
+export const APPLICATIONS: Spec[] = [
+  sp("loan", "mobile", "total", "II", "count_thousands", "kredi_basvurusu"),
+  sp("card", "mobile", "total", "II", "count_thousands",
+     "kredi_karti_ve_ek_kart_basvurusu"),
+];
+export const APPLICATION_LABELS: Record<string, string> = {
+  loan: "Loan applications",
+  card: "Card applications",
+};
+
 // ── Transactions ─────────────────────────────────────────────────────────────
 
 /** Money-transfer grand total (III.1) — internet vs mobile, by unit. */
