@@ -17,6 +17,7 @@ import { Fragment, useMemo, useState } from "react";
 import type { MetricDef, MetricKey } from "@/app/lib/heatmap";
 import { scoreToColor, formatMetricValue } from "@/app/lib/heatmap-normalize";
 import BankTypeBadge from "@/app/components/BankTypeBadge";
+import HeatmapLegend from "@/app/components/HeatmapLegend";
 
 export interface HeatmapBankRow {
   ticker: string;
@@ -135,7 +136,16 @@ export default function HeatmapGrid({ metrics, rows, groupOrder }: Props) {
   );
 
   return (
-    <div className="overflow-auto rounded-lg border border-border bg-card">
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <p className="text-[11px] text-muted-foreground">
+          {sortMetric == null
+            ? "Grouped by bank type, sized by assets · click a metric to rank every bank by it"
+            : "Ranked by the highlighted metric · click it again to regroup by type"}
+        </p>
+        <HeatmapLegend mode="both" />
+      </div>
+      <div className="overflow-auto rounded-lg border border-border bg-card">
       <div
         className="grid min-w-max"
         style={{
@@ -172,6 +182,7 @@ export default function HeatmapGrid({ metrics, rows, groupOrder }: Props) {
         {(sortMetric == null ? grouped.flatMap((g) => g.banks) : sortedRows).map(
           renderRow,
         )}
+      </div>
       </div>
     </div>
   );
