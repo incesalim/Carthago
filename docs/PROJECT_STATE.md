@@ -7,15 +7,24 @@ coverage or known issues change.
 > → this file → [OPERATIONS.md](OPERATIONS.md). Metric definitions in
 > [METRICS.md](METRICS.md).
 >
-> Last verified: 2026-06-13 — **equity-change + cash-flow extraction bugs fixed**:
-> Fleet backfill complete (975 partitions × 14 types). Post-backfill revalidation
-> found two systematic extractor bugs: (1) ~170 equity_change partitions (AKTIF,
-> KUVEYT, VAKIFK, FIBA, ANADOLU, EMLAK, ICBCT, PASHA) had both current+prior tables
-> on one PDF page, all rows labeled 'current' — fixed in `equity_change.py` by
-> mid-page closing-row split; (2) ~347 CF partitions (15 banks incl. ATBANK, ING,
-> TEB, ZIRAAT, ZIRAATK) had equity rows stored as cash flow (equity extractor missed
-> pages, CF search found equity pages) — fixed in `extractor.py` by excluding
-> equity-anchor pages from CF search. Targeted re-extraction of 20 banks running.
+> Last verified: 2026-06-13 — **equity/CF deep-fixed + full fleet re-extracted +
+> coverage matrix restored.** Post-backfill diagnosis found the earlier "two bug"
+> fix was a band-aid; the real root causes were: (1) the equity-page **locator
+> gated on a fragile title anchor** → missed ODEA (image-only title) / Ziraat
+> ("ÖZKAYNAKLAR DEĞİŞİM") — now detects by the wide-table fingerprint (≥3 lines
+> ≥10 tokens); (2) **cash flow used the P&L column detector** → misread annual CF
+> date-headers as 4 cols → 0 CF rows fleet-wide — now pinned to 2 cols; (3) mid-page
+> split missed TEB (no closing row) — added roman-restart split; (4) DENIZ `--`
+> double-dash zeros + EMLAK 15→16 col mis-clamp (commits b8b1c51, 8a91444). Whole
+> fleet (31 banks, 975 PDFs) re-extracted **sequentially** (never concurrent — that
+> races the R2 snapshot), 11 manual image-only partitions restored + 25 overrides
+> re-applied, revalidated, pushed, snapshot uploaded. Result: **CF 0 contamination
+> fleet-wide** (was 14 banks), CF 839/975 pass; DENIZ 0→1152 / EMLAK 0→1085 equity
+> rows; **coverage matrix RESTORED** (D1 spine tables had been 0 rows — sync had never
+> run post-schema-work). OPEN follow-ups (non-core): equity_change **vertical-chain**
+> ~732 fails (PRE-EXISTING; validated `_try_fit` n−1-token insertion fix recovers most
+> banks but GARAN-class closing-row issue remains; needs a re-extract to apply);
+> 136 CF cf_chain fails; FIBA 2023Q3 cons manual-P&L transcription typo (unpushed).
 > **Prior: 2026-06-12 — cash flow + equity-change extractors added**:
 > 14 statement types in the registry (2 new: `cash_flow` sort_order=38,
 > `equity_change` sort_order=36). Both `is_core=False` with structural validators
@@ -204,14 +213,24 @@ A qualitative-data layer feeds two tabs from the `news_items` table
 
 ## Known issues / pending work
 
-- **Cash flow + equity-change extractors shipped (2026-06-12/13).** Two new statement
-  types: `bank_audit_cash_flow` (sort_order=38, roman chain V=I+II+III+IV / VII=V+VI)
-  and `bank_audit_equity_change` (sort_order=36, 14/16-col wide table, period_type
-  current/prior). Fleet backfill complete (all 975 partitions). Two extraction bugs
-  found and fixed (2026-06-13): (1) mid-page equity split for 8 banks where both
-  current+prior tables were on one page; (2) equity-anchor exclusion in CF search for
-  15 banks where equity rows were stored as CF. Targeted re-extraction of 20 banks
-  running; post-fix revalidation + sync_audit_expected --push pending.
+- **Cash flow + equity-change extractors shipped; deep-fixed + fleet re-extracted (2026-06-13).**
+  Two statement types: `bank_audit_cash_flow` (sort_order=38) and `bank_audit_equity_change`
+  (sort_order=36). Root-cause fixes (commits b8b1c51, 8a91444): equity locator now uses the
+  wide-table fingerprint not the title anchor; CF pinned to 2 value columns (the P&L detector
+  misread annual CF date-headers as 4 cols → 0 rows fleet-wide); TEB roman-restart mid-page
+  split; DENIZ `--` zeros + EMLAK 15→14 col clamp. Whole fleet re-extracted sequentially,
+  manual partitions restored, revalidated, pushed, matrix synced. **CF 0 contamination
+  fleet-wide; coverage matrix restored.**
+  - **OPEN (non-core follow-ups):** equity_change **vertical-chain** (`eq_col_chain`) fails
+    on ~732 partitions — PRE-EXISTING; movement rows (esp. IV comprehensive income) lose a
+    blank column → dropped. A validated `_try_fit` fix (insert 0 at the gate-satisfying
+    position when a row has n_cols−1 tokens) recovers most banks; GARAN-class consolidated
+    (closing row undetected) is a separate deeper issue. Applying needs a fleet re-extract
+    (no fast equity-only path; 8a91444's dash/clamp is currently only on DENIZ/EMLAK data).
+    Also: 136 CF `cf_chain` identity failures; FIBA 2023Q3 cons manual-P&L transcription
+    typo left it unpushed (needs source re-check). **Re-extract lesson:** add
+    `maxtasksperchild` (ProcessPool workers leaked memory → chunk 6 slowed 10×); never run
+    concurrent chunks (R2 snapshot race).
 - **All-statement validators complete (2026-06-12).** Six-phase plan shipped:
   OCI extraction + validator (Phase 1); off-balance structural validator (Phase 2);
   §4 capital + liquidity validators surfaced to the coverage matrix (Phase 3);
