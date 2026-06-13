@@ -10,6 +10,7 @@
  * sovereign yield curves (Bloomberg), BIST indices, the GDP nowcast and
  * the FCI composite (BBVA-proprietary), and foreigners' positioning flows.
  */
+import Link from "next/link";
 import { getEconomyData, BBVA_BASELINE } from "@/app/lib/economy";
 import { latestPeriod } from "@/app/lib/metrics";
 import { PageHeader } from "@/app/components/ui";
@@ -60,7 +61,14 @@ export default async function EconomyPage() {
         title="Economy"
         description="Growth · labor · inflation & policy · external balance · fiscal — TCMB EVDS (TURKSTAT, CBRT, Treasury)"
         dataThrough={dataThrough}
-      />
+      >
+        <Link
+          href="/economy/balance-of-payments"
+          className="rounded-md border border-border px-2.5 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+        >
+          Balance of Payments →
+        </Link>
+      </PageHeader>
 
       <Section
         title="Growth & Activity"

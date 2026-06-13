@@ -899,6 +899,37 @@ unemployment Apr-26 = 8.2% — all match the published BBVA/TURKSTAT/CBRT
 figures; `scripts/verify_chart_spec.py` re-checks daily in the healthcheck
 (rolling sums supported via the `rolling_sum` transform op).
 
+### Balance of Payments sub-page (`/economy/balance-of-payments`)
+
+Reproduces the Albaraka Türk **«Ödemeler Dengesi»** monthly report (10
+figures + summary table) from TCMB BoP statistics. Data layer:
+`web/app/lib/bop.ts`; charts `TimeSeriesChart` (lines) and `BopFlowChart`
+(signed-stacked bars + optional right-axis / dotted overlay). All raw
+series are monthly USD m; "12m rolling" panels use a trailing-12-month sum
+÷ 1,000 → USD bn. Codes verified to the report's Apr-2026 summary table.
+
+| Figure | Series / derivation |
+|---|---|
+| Şekil 1 Current account (12m) | `TP.ODANA6.Q01`; ex-energy `TP.HARICCARIACIK.K9`; core `…K10` |
+| Şekil 2 Goods & tourism (12m) | goods `TP.ODANA6.Q04`; net travel `TP.ODEAYRSUNUM6.Q41` |
+| Şekil 3 Capital inflows (monthly) | FDI `…Q108`, portfolio `…Q119`, loans `…Q157`, trade credits `…Q188` (net liab. incurred) |
+| Şekil 4 Direct investment | real estate `…Q113`; **other = Q108 − Q113**; 12m line = roll12(`…Q108`) |
+| Şekil 5 Portfolio | equity & fund shares `…Q212`, debt securities `…Q123`; 12m line = roll12(`…Q119`) |
+| Şekil 6 Loans by borrower | banks `…Q166`, general govt `…Q171`, other sectors `…Q179` |
+| Şekil 7 Trade credits (12m) | `…Q188` |
+| Şekil 8 Currency & deposits (12m) | net asset acq. `…Q138`; net liab. incurred `…Q143` |
+| Şekil 9 Net errors & omissions (12m) | `TP.ODANA6.Q31` |
+| Şekil 10 Financing of the deficit | need = `Q01`; **net foreign inv. = Q102 + Q114 + Q136**; **reserves − errors = Q204 − Q31** (dotted) |
+
+**Financing identity** (Şekil 10, BPM6, signs as published): current account
+≡ net foreign investment + (reserve assets − net errors). Apr-2026 reconciles
+to −5.70 ≈ −19.19 + 13.48 (USD bn). The «net foreign investment» line is the
+clean FDI+portfolio+other-investment net total; the source deck's right-side
+annotation on this line uses a slightly wider grouping, so the dashboard label
+states the exact definition. All 21 detail codes (`TP.ODEAYRSUNUM6.*`,
+`TP.HARICCARIACIK.K4/K7/K9`) are in `evds_series` (category `macro`); five
+`economy.bop_*` chart-specs anchor the daily verification.
+
 ## 15. TEFAS fund-market statistics
 
 Source: **TEFAS** (Turkey Electronic Fund Trading Platform, tefas.gov.tr) —
