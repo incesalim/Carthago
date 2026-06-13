@@ -1,0 +1,18 @@
+{
+  "_note": "Shares outstanding per BIST-listed bank, used for market cap = close × shares. Seeded from Yahoo quoteSummary defaultKeyStatistics.sharesOutstanding. The scraper refreshes these best-effort each run; this file is the committed fallback. Refresh on capital actions (bonus/rights issues). QNBFB is omitted — its float is ~0.12% and Yahoo carries no tradeable price for QNBFB.IS, so no market cap can be formed.",
+  "source": "yahoo:quoteSummary/defaultKeyStatistics",
+  "as_of": "2026-06-13",
+  "shares": {
+    "AKBNK": 5200000000,
+    "GARAN": 4200000000,
+    "ISCTR": 24999970000,
+    "YKBNK": 8447051000,
+    "VAKBN": 9915921523,
+    "HALKB": 7184778041,
+    "SKBNK": 2500000000,
+    "ICBCT": 860000000,
+    "ALBRK": 2500000000,
+    "TSKB": 2800000000,
+    "KLNMA": 10000000000
+  }
+}

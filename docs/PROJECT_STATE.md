@@ -46,6 +46,7 @@ coverage or known issues change.
 | `tbb_digital_stats` | TBB quarterly digital-banking report | 2019-Q1 → present | quarterly (Mar/Jun/Sep/Dec) |
 | `kap_ownership` | KAP Genel Bilgi Formu §5 + §7 subsidiaries (kap.org.tr) | current state per bank (`as_of` = filing date) | weekly full replace; 30/31 banks (ATBANK files no form); subsidiaries grid only on the full form (~15 banks) |
 | `tefas_manager_daily`, `tefas_category_daily`, `tefas_allocation_daily`, `tefas_top_funds` | TEFAS fund-market JSON API (tefas.gov.tr) | rolling ~5 years (API rejects older start dates) → present | daily T+1, trading days; aggregated at ingest (no per-fund rows) |
+| `bist_prices`, `bist_dividends`, `bist_shares` | Borsa İstanbul via Yahoo Finance chart API | 2014-06 → present | daily EOD (~1-day lag); 11 listed banks + XU100/XBANK indices (QNBFB delisted on Yahoo — no data) |
 | `bank_audit_balance_sheet` (assets / liabilities / off-balance) | BRSA quarterly PDFs | 2022-Q1 → 2026-Q1 | per-bank |
 | `bank_audit_profit_loss` | BRSA quarterly PDFs | same | per-bank |
 | `bank_audit_credit_quality` | BRSA PDFs, IFRS 9 footnotes | same | per-bank, per-section |
@@ -112,7 +113,7 @@ The **weekly** bulletin numbers the same groups differently — see METRICS.md �
 Two independent ingestion lanes (separate staging DB + R2 snapshot +
 concurrency group), so audit failures can't stall the bulletin pipeline:
 
-- `.github/workflows/refresh-evds-daily.yml` — Sun–Fri 05:00 UTC. EVDS scrape → D1. Also carries the non-critical TBB / KAP / TEFAS steps of `refresh.py` (TEFAS re-fetches a trailing 7-day window daily — self-heals T+1 lag, holidays and revisions).
+- `.github/workflows/refresh-evds-daily.yml` — Sun–Fri 05:00 UTC. EVDS scrape → D1. Also carries the non-critical BIST / TBB / KAP / TEFAS steps of `refresh.py` (BIST re-fetches a trailing 35-day window daily — self-heals the EOD ~1-day lag, holidays and late closes; TEFAS re-fetches a trailing 7-day window daily).
 - `.github/workflows/refresh-bddk-bulletins.yml` — Sat 02:00 UTC. Monthly + weekly bulletins (no EVDS, no audit) → D1.
 - `.github/workflows/refresh-data.yml` — Sat 03:00 UTC. Monthly + weekly + EVDS + TBB digital-banking (quarterly) + KAP ownership structure + TEFAS fund market → D1. *(Audit removed — now its own workflow.)* TBB, KAP and TEFAS are non-critical steps in `refresh.py` (an outage won't abort the BDDK refresh); they ride the bulletin lane's snapshot, so no new lane. KAP details in [OPERATIONS.md](OPERATIONS.md) §KAP ownership; TEFAS in §TEFAS fund market.
 - `.github/workflows/backfill-tefas.yml` — manual dispatch only. Resumable ~5-year TEFAS history backfill (the API rejects start dates older than 5 years; 28-day windows, rate-limited ≈2–2.5 h; re-dispatch with the same `from` to resume — completed windows are skipped via `tefas_fetch_log`).
@@ -238,6 +239,25 @@ A qualitative-data layer feeds two tabs from the `news_items` table
 
 ## Known issues / pending work
 
+- **BIST equity-market lane shipped (2026-06-13).** Daily EOD prices for the 11
+  BIST-listed banks + the XU100 / XBANK indices via the Yahoo Finance chart API
+  (keyless, headless) → `bist_prices` / `bist_dividends` / `bist_shares` in D1
+  (12y backfill, 2014→present). Source: `src/scrapers/bist_client.py` +
+  `bist_scraper.py`; rides the daily EVDS workflow (non-critical step in
+  `refresh.py`). Universe derived from `data/banks/bddk_bank_list.json`
+  (`listed && bist_ticker`) — never hardcoded. Surfaced: an "Equity Markets"
+  rebased XU100-vs-XBANK chart on `/economy`, and a "Market & Valuation" section
+  on `/banks/[ticker]` (price chart + market cap, P/B, P/E, dividend yield).
+  Valuation combines Yahoo close × shares with the *audited* book equity (label-
+  matched, so participation banks at roman XIV. resolve) and TTM net income
+  (de-cumulated, telescoping — same methodology as `/cross-bank` ROE; see
+  `web/app/lib/bank-fundamentals.ts`). Caveats: QNBFB has ~0.12% float and is
+  delisted on Yahoo → no price/valuation (omitted from `bist_shares.json`);
+  `bist_shares` is best-effort refreshed from Yahoo `quoteSummary` each run with
+  the committed JSON as fallback — refresh the seed on capital actions. Open:
+  P/B & P/E reuse single-ticker helpers rather than refactoring `heatmapPanel`
+  (kept identical to avoid regressing the shipped ROE); a cross-bank valuation
+  column on the `/cross-bank` heatmap is a possible follow-up.
 - **Cash flow + equity-change extractors shipped; deep-fixed + fleet re-extracted (2026-06-13).**
   Two statement types: `bank_audit_cash_flow` (sort_order=38) and `bank_audit_equity_change`
   (sort_order=36). Root-cause fixes (commits b8b1c51, 8a91444): equity locator now uses the

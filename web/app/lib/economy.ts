@@ -8,10 +8,11 @@
  * GDP, and the ex-ante real policy rate (funding rate deflated by the
  * 12-month-ahead market inflation expectation).
  *
- * Out of scope (no data source here): CDS / OIS / sovereign curves and
- * BIST indices (Bloomberg), the GDP nowcast and FCI (BBVA-proprietary),
- * foreigners' positioning (CBRT securities stats not ingested), and
- * BBVA's scenario sensitivities.
+ * Out of scope (no data source here): CDS / OIS / sovereign curves
+ * (Bloomberg), the GDP nowcast and FCI (BBVA-proprietary), foreigners'
+ * positioning (CBRT securities stats not ingested), and BBVA's scenario
+ * sensitivities. (BIST index levels now come from bist.ts / Yahoo — see the
+ * "Equity Markets" section on /economy.)
  */
 import { evdsMulti, type EvdsRow } from "@/app/lib/metrics";
 

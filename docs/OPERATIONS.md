@@ -207,6 +207,35 @@ healthcheck watches `MAX(date)` in `tefas_manager_daily` with a 120 h
 threshold; one benign alert can fire during multi-day religious holidays
 (no trading days → no new data).
 
+### BIST equity market (daily + one-time backfill)
+
+The daily crons refresh `bist_prices` / `bist_dividends` / `bist_shares` (a
+non-critical step in `refresh.py` → `python -m src.scrapers.bist_scraper`): each
+run re-fetches a trailing **35-day window** for the 11 listed banks + the XU100 /
+XBANK indices from the Yahoo Finance chart API and upserts, so the EOD ~1-day
+lag, market holidays and late closes self-heal. Source data + universe rules in
+[METRICS.md](METRICS.md) §17.
+
+**One-time / re-backfill.** To (re)load deep history:
+
+```bash
+python -m src.scrapers.bist_scraper --backfill   # ~12 years, all symbols
+python scripts/push_to_d1.py --hours 8760 --only-tables bist_prices,bist_dividends,bist_shares
+```
+
+The `bist_*` tables must exist in D1 first (migration `0012_bist.sql`, applied
+by the deploy workflow). For a full backfill, pull the R2 snapshot first and
+upload it back afterwards (same pattern as the EVDS workflow) so the cron's
+working copy carries the history — otherwise D1 keeps the deep history but the
+R2 snapshot only rebuilds the trailing 35-day window.
+
+**Shares outstanding.** `bist_shares` drives market cap (P/B, P/E). The scraper
+refreshes it best-effort each run from Yahoo `quoteSummary` (cookie+crumb) and
+falls back to the committed `data/banks/bist_shares.json` seed. **Refresh the
+seed on capital actions** (bonus/rights issues, splits) — re-run the standalone
+quoteSummary pull and update the JSON, or trust the live refresh if it resolves.
+QNBFB is intentionally absent (delisted float on Yahoo → no price → no cap).
+
 ### Change the D1 schema (migrations)
 
 The schema source of truth is the hand-authored, version-controlled files in
