@@ -1161,3 +1161,12 @@ equity = **P/B 1.26×**; ÷ ₺118.6bn TTM net income = **P/E 4.8×**.
 Yahoo `quoteSummary` (cookie+crumb handshake) and falls back to the committed
 `data/banks/bist_shares.json` seed; refresh the seed on capital actions
 (bonus/rights issues). See [OPERATIONS.md](OPERATIONS.md) §BIST equity market.
+
+**Cross-bank (`/cross-bank`).** `heatmapPanel` also emits **P/B** and **P/E**
+columns (neutral color — cheap/expensive isn't good/bad). Market cap per
+(bank, period) = the **quarter-end close** (last trading day inside the calendar
+quarter, via a `ROW_NUMBER()` window over `bist_prices`) × shares, divided by
+the same audited equity / `ttmNet` used elsewhere. The Snapshot view (latest
+common quarter) is point-in-time exact; the Over-time view uses **current**
+shares (no historical share counts), so deep-history ratios are approximate
+across capital actions. Listed banks only — the unlisted majority render "—".

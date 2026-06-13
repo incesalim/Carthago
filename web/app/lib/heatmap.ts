@@ -31,13 +31,15 @@ export type MetricKey =
   | "roe"
   | "roa"
   | "nim"
-  | "cost_income";
+  | "cost_income"
+  | "pb"
+  | "pe";
 
 export interface MetricDef {
   key: MetricKey;
   label: string;
   short: string;
-  unit: "pct" | "trn" | "bn" | "raw";
+  unit: "pct" | "trn" | "bn" | "raw" | "mult";
   decimals: number;
   direction: Direction;
 }
@@ -54,7 +56,13 @@ export const METRIC_DEFS: MetricDef[] = [
   { key: "roe",                 label: "ROE (TTM)",           short: "ROE",        unit: "pct", decimals: 1, direction: "higher_better" },
   { key: "roa",                 label: "ROA",                 short: "ROA",        unit: "pct", decimals: 2, direction: "higher_better" },
   { key: "nim",                 label: "NIM (annualized)",    short: "NIM",        unit: "pct", decimals: 2, direction: "higher_better" },
-  { key: "cost_income",         label: "Cost / Income",       short: "Cost/Inc",   unit: "pct", decimals: 1, direction: "higher_worse" },
+  { key: "cost_income",         label: "Cost / Income",       short: "Cost/Inc",   unit: "pct",  decimals: 1, direction: "higher_worse" },
+  // Market valuation (listed banks only — blank for the unlisted majority).
+  // Neutral coloring: cheap/expensive isn't good/bad. Snapshot uses the
+  // quarter-end close; over-time uses current shares (no historical share
+  // counts), so deep-history P/B/P/E is approximate across capital actions.
+  { key: "pb",                  label: "Price / Book",        short: "P/B",        unit: "mult", decimals: 2, direction: "neutral" },
+  { key: "pe",                  label: "Price / Earnings",    short: "P/E",        unit: "mult", decimals: 1, direction: "neutral" },
 ];
 
 export interface BankMetricRow {
@@ -69,6 +77,8 @@ export interface BankMetricRow {
   roa: number | null;
   nim: number | null;
   cost_income: number | null;
+  pb: number | null;
+  pe: number | null;
 }
 
 const DEFAULT_KIND = "unconsolidated";
@@ -116,7 +126,7 @@ interface RowEquity { bank_ticker: string; period: string; equity: number | null
 export async function heatmapPanel(kind: string = DEFAULT_KIND): Promise<BankMetricRow[]> {
   const romanPlaceholders = BS_ASSET_ROMAN_HIERARCHIES.map(() => "?").join(",");
 
-  const [assets, stages, pl, equity] = await Promise.all([
+  const [assets, stages, pl, equity, closes, shares] = await Promise.all([
     // A — total assets: sum of the BS asset Roman subtotals I.–X. (= bankSummaries).
     cachedAll<RowAssets>(
       `SELECT bank_ticker, period, SUM(amount_total) AS total_assets
@@ -184,6 +194,30 @@ export async function heatmapPanel(kind: string = DEFAULT_KIND): Promise<BankMet
         GROUP BY bank_ticker, period`,
       [kind],
     ),
+    // E — quarter-end close per (bank, quarter): the close on the last trading
+    // day inside each calendar quarter, keyed to the audit period format YYYYQN.
+    // Drives market cap for P/B & P/E. (kind-independent — prices aren't split
+    // by consolidation.)
+    cachedAll<{ bank_ticker: string; period: string; close_price: number }>(
+      `SELECT symbol AS bank_ticker, quarter AS period, close_price FROM (
+         SELECT symbol, close_price,
+                strftime('%Y', period_date) || 'Q' ||
+                  ((CAST(strftime('%m', period_date) AS INTEGER) + 2) / 3) AS quarter,
+                ROW_NUMBER() OVER (
+                  PARTITION BY symbol,
+                    strftime('%Y', period_date) || 'Q' ||
+                      ((CAST(strftime('%m', period_date) AS INTEGER) + 2) / 3)
+                  ORDER BY period_date DESC) AS rn
+           FROM bist_prices
+          WHERE kind = 'bank' AND close_price IS NOT NULL
+       ) WHERE rn = 1`,
+      [],
+    ),
+    // F — shares outstanding per listed bank (for market cap = close × shares).
+    cachedAll<{ bank_ticker: string; shares_outstanding: number | null }>(
+      `SELECT symbol AS bank_ticker, shares_outstanding FROM bist_shares`,
+      [],
+    ),
   ]);
 
   const map = new Map<string, BankMetricRow>();
@@ -196,6 +230,7 @@ export async function heatmapPanel(kind: string = DEFAULT_KIND): Promise<BankMet
         total_assets: null, npl_ratio: null, stage2_share: null,
         npl_coverage: null, provision_intensity: null,
         roe: null, roa: null, nim: null, cost_income: null,
+        pb: null, pe: null,
       };
       map.set(key, row);
     }
@@ -221,6 +256,12 @@ export async function heatmapPanel(kind: string = DEFAULT_KIND): Promise<BankMet
     equityByKey.set(`${r.bank_ticker}|${r.period}`, r.equity);
     ensure(r.bank_ticker, r.period);
   }
+  // Market valuation inputs (listed banks only). closeByKey is the quarter-end
+  // close per (bank, period); sharesByTicker is current shares outstanding.
+  const closeByKey = new Map<string, number>();
+  for (const r of closes) closeByKey.set(`${r.bank_ticker}|${r.period}`, r.close_price);
+  const sharesByTicker = new Map<string, number>();
+  for (const r of shares) if (r.shares_outstanding) sharesByTicker.set(r.bank_ticker, r.shares_outstanding);
 
   // --- Trailing-twelve-month ROE -------------------------------------------
   // ROE = (sum of the last 4 quarters' net income) / (average equity over the
@@ -251,18 +292,27 @@ export async function heatmapPanel(kind: string = DEFAULT_KIND): Promise<BankMet
     const prev = b.get(ord - 1)?.ytd ?? null;
     return prev == null ? null : cur - prev;
   };
-  const ttmRoe = (ticker: string, period: string): number | null => {
+  // Trailing-4-quarter net income (thousand TL). Needs a contiguous window; a
+  // gap (or the bank's earliest quarters) returns null rather than guessing.
+  // Shared by ROE (÷ avg equity) and P/E (market cap ÷ this).
+  const ttmNet = (ticker: string, period: string): number | null => {
     const b = byBank.get(ticker);
     const ord = ordOf(period);
     if (!b || ord == null) return null;
-    // Need a contiguous 4-quarter income window; a gap (or the bank's earliest
-    // quarters) leaves ROE null rather than guessing.
     let ttm = 0;
     for (let k = 0; k < 4; k++) {
       const s = singleQ(b, ord - k);
       if (s == null) return null;
       ttm += s;
     }
+    return ttm;
+  };
+  const ttmRoe = (ticker: string, period: string): number | null => {
+    const b = byBank.get(ticker);
+    const ord = ordOf(period);
+    if (!b || ord == null) return null;
+    const ttm = ttmNet(ticker, period);
+    if (ttm == null) return null;
     // Average equity over the 5 trailing quarter-ends (those present, ≥2).
     const eqs: number[] = [];
     for (let k = 0; k < 5; k++) {
@@ -300,6 +350,16 @@ export async function heatmapPanel(kind: string = DEFAULT_KIND): Promise<BankMet
     // stored as negatives); abs both so Cost/Income is a clean positive ratio.
     if (opex != null && grossOp != null && Math.abs(grossOp) > 0)
       row.cost_income = Math.abs(opex) / Math.abs(grossOp);
+
+    // Market valuation (listed banks only; null otherwise). Market cap (TL) =
+    // quarter-end close × shares. Audit amounts are thousand TL → ×1000.
+    const close = closeByKey.get(key) ?? null;
+    const sh = sharesByTicker.get(row.bank_ticker) ?? null;
+    const mktcap = close != null && sh != null && sh > 0 ? close * sh : null;
+    const eqRaw = equityByKey.get(key) ?? null;
+    const ttm = ttmNet(row.bank_ticker, row.period);
+    if (mktcap != null && eqRaw != null && eqRaw > 0) row.pb = mktcap / (eqRaw * 1000);
+    if (mktcap != null && ttm != null && ttm > 0) row.pe = mktcap / (ttm * 1000);
   }
 
   return [...map.values()];
