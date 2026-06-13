@@ -190,6 +190,43 @@ SERIES: list[Series] = [
     Series("TP.KB.GEN34", "General Budget Primary Balance (TL thousand)", "macro", evds.FREQ_MONTHLY),
     Series("TP.KB.GEN35", "General Budget Balance (TL thousand)",         "macro", evds.FREQ_MONTHLY),
     Series("TP.KB.GEN39", "General Budget Cash Balance (TL thousand)",    "macro", evds.FREQ_MONTHLY),
+
+    # ------------------------------------------------------------------
+    # Central Government Budget (Merkezi Yönetim Bütçesi) — feeds the
+    # /economy/budget page (Albaraka "Bütçe Görünümü" monthly report).
+    # Hazine ve Maliye Bakanlığı, accrual; EVDS cat 1503 (bie_kbmgel
+    # revenues + bie_kbmgid expenses). Monthly, native unit = TL → ÷1e6
+    # for bn TL. DISTINCT from the cash GENEL BÜTÇE GEN34/35/39 above
+    # (those are ~117 bn off at 12m). Budget balance / primary balance /
+    # non-tax revenues have no direct series — derived in budget.ts
+    # (GEL001−GID001, GEL001−GID002, GEL001−GEL003). Verified to the
+    # report's Apr-2026 table.
+    # ------------------------------------------------------------------
+    # Revenues (bie_kbmgel)
+    Series("TP.KB.GEL001", "Central Govt Budget Revenues (TL)",        "macro", evds.FREQ_MONTHLY),
+    Series("TP.KB.GEL003", "Central Govt Tax Revenues (TL)",           "macro", evds.FREQ_MONTHLY),
+    Series("TP.KB.GEL005", "Income Tax (TL)",                          "macro", evds.FREQ_MONTHLY),
+    Series("TP.KB.GEL010", "Corporate Tax (TL)",                       "macro", evds.FREQ_MONTHLY),
+    Series("TP.KB.GEL016", "Motor Vehicle Tax (TL)",                   "macro", evds.FREQ_MONTHLY),
+    Series("TP.KB.GEL018", "Domestic VAT (TL)",                        "macro", evds.FREQ_MONTHLY),
+    Series("TP.KB.GEL021", "Special Consumption Tax (ÖTV total) (TL)", "macro", evds.FREQ_MONTHLY),
+    Series("TP.KB.GEL022", "ÖTV — Petroleum & Natural Gas (TL)",       "macro", evds.FREQ_MONTHLY),
+    Series("TP.KB.GEL033", "VAT on Imports (TL)",                      "macro", evds.FREQ_MONTHLY),
+    Series("TP.KB.GEL035", "Stamp Duty (TL)",                          "macro", evds.FREQ_MONTHLY),
+    Series("TP.KB.GEL036", "Fees / Harçlar (TL)",                      "macro", evds.FREQ_MONTHLY),
+    Series("TP.KB.GEL038", "Enterprise & Property Income (TL)",        "macro", evds.FREQ_MONTHLY),
+    Series("TP.KB.GEL061", "Interest, Shares & Fines (TL)",            "macro", evds.FREQ_MONTHLY),
+    # Expenditures (bie_kbmgid)
+    Series("TP.KB.GID001", "Central Govt Budget Expenditures (TL)",    "macro", evds.FREQ_MONTHLY),
+    Series("TP.KB.GID002", "Primary (Non-Interest) Expenditure (TL)",  "macro", evds.FREQ_MONTHLY),
+    Series("TP.KB.GID003", "Personnel Expenditure (TL)",               "macro", evds.FREQ_MONTHLY),
+    Series("TP.KB.GID008", "Social Security State Premium (TL)",       "macro", evds.FREQ_MONTHLY),
+    Series("TP.KB.GID014", "Goods & Services Purchases (TL)",          "macro", evds.FREQ_MONTHLY),
+    Series("TP.KB.GID026", "Current Transfers (TL)",                   "macro", evds.FREQ_MONTHLY),
+    Series("TP.KB.GID110", "Capital Expenditure (TL)",                 "macro", evds.FREQ_MONTHLY),
+    Series("TP.KB.GID116", "Capital Transfers (TL)",                   "macro", evds.FREQ_MONTHLY),
+    Series("TP.KB.GID131", "Lending / Borç Verme (TL)",                "macro", evds.FREQ_MONTHLY),
+    Series("TP.KB.GID152", "Interest Expenditure (TL)",                "macro", evds.FREQ_MONTHLY),
 ]
 
 
