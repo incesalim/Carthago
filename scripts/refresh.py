@@ -107,6 +107,11 @@ def main():
         _run_step("TBB digital-banking update",
                    [sys.executable, "scripts/update_tbb_digital.py"],
                    critical=False)
+        # Monthly remote-vs-branch acquisition report (separate publication). The
+        # workbook is cumulative, so one fetch refreshes the full history.
+        _run_step("TBB acquisition update",
+                   [sys.executable, "scripts/update_tbb_acquisition.py"],
+                   critical=False)
     if not args.skip_kap:
         # Ownership structure from KAP Genel Bilgi Formu pages. Non-critical:
         # a KAP outage must not abort the core BDDK refresh; per-bank parse

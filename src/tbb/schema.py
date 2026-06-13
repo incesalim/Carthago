@@ -31,9 +31,31 @@ CREATE INDEX IF NOT EXISTS idx_tbb_digital_period
   ON tbb_digital_stats(period);
 """
 
+# TBB "Uzaktan ve Şubeden Müşteri Edinim İstatistikleri" — monthly remote (digital)
+# vs branch (non-digital) customer-acquisition counts. See src/tbb/acquisition.py.
+ACQ_DDL = """
+CREATE TABLE IF NOT EXISTS tbb_acquisition_stats (
+    period        TEXT NOT NULL,   -- 'YYYY-MM' (monthly)
+    entity_type   TEXT NOT NULL,   -- 'individual' | 'merchant' | 'legal'
+    method        TEXT NOT NULL,   -- remote_application|remote_rep|bulk|remote_courier|branch
+    method_tr     TEXT NOT NULL,   -- Turkish header label
+    value         REAL,
+    downloaded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (period, entity_type, method)
+);
+
+CREATE INDEX IF NOT EXISTS idx_tbb_acq_lookup
+  ON tbb_acquisition_stats(entity_type, method, period);
+"""
+
 
 def init_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(DDL)
+    conn.commit()
+
+
+def init_acquisition_schema(conn: sqlite3.Connection) -> None:
+    conn.executescript(ACQ_DDL)
     conn.commit()
 
 

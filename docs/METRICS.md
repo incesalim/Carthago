@@ -46,6 +46,7 @@ dashboard.
 | BDDK — raw JSON (weekly) | Cache of every weekly API response | — | `raw_weekly_responses` | same |
 | TCMB EVDS v3 | Interest rates, FX, CPI, reserves | Daily/Weekly/Monthly | evds3.tcmb.gov.tr/igmevdsms-dis | cached in `evds_series` via [evds_scraper.py](../src/scrapers/evds_scraper.py) |
 | TBB digital-banking report | Sector digital/internet/mobile banking stats | Quarterly | `tbb_digital_stats`; tbb.org.tr `.xls`/`.xlsx` workbook | 2019-Q1 → latest, via [update_tbb_digital.py](../scripts/update_tbb_digital.py) (see §13) |
+| TBB acquisition report | Remote (digital) vs branch customer acquisition | Monthly | `tbb_acquisition_stats`; tbb.org.tr `.xlsx` workbook | 2021-05 → latest, via [update_tbb_acquisition.py](../scripts/update_tbb_acquisition.py) (see §13) |
 
 All monetary BDDK values are in **million TL** unless noted. Table 5 (Sectoral
 Loans) is an exception — published in **thousand TL**.
@@ -806,6 +807,33 @@ transfers, payments, gender, age) are continuous across the full history.
 | Bill-payment count per quarter | mobile vs internet `fatura_odemeleri` | III.2 / count |
 | Active individuals by gender | Kadın / Erkek (TOPLAM) | II / persons (digital) |
 | Active individuals by age group | 0–17 … 66+ (TOPLAM) | III / persons (digital) |
+| Customers acquired per month — digital vs branch | derived from `tbb_acquisition_stats` (see §13.1) | acquisition / persons |
+| Digital share of new customers (%) | derived: remote ÷ (remote + branch) | acquisition / % |
+
+### 13.1 Remote vs branch customer acquisition (`tbb_acquisition_stats`)
+
+A **separate monthly** TBB report — *"Uzaktan ve Şubeden Müşteri Edinim
+İstatistikleri"* — distinct from the quarterly digital report above. It exists
+because of the 2021 *Uzaktan Kimlik Tespiti* (remote e-KYC) regulation and reports,
+per month, how many customers member banks acquired **remotely** (without a branch
+visit) vs **at a branch**. Sector-wide; no per-bank breakdown. Ingestion:
+[`src/tbb/acquisition.py`](../src/tbb/acquisition.py) driven by
+[`scripts/update_tbb_acquisition.py`](../scripts/update_tbb_acquisition.py). Each
+monthly workbook is **cumulative** (full history Mayıs 2021 → latest), so one fetch
+refreshes everything. Surfaces in the **"Customer acquisition — digital vs branch"**
+section of `/digital` ([`web/app/lib/acquisition.ts`](../web/app/lib/acquisition.ts)).
+
+| Dimension | Values | Notes |
+|---|---|---|
+| `period` | `YYYY-MM` | Monthly. |
+| `entity_type` | `individual` \| `merchant` \| `legal` | Gerçek Kişiler / Gerçek Kişi Tacirler / Tüzel Kişiler. Merchant & legal only reported from **2024-07**. |
+| `method` | `branch` · `remote_rep` · `remote_courier` · `bulk` · `remote_application` | `branch` = finalised in person; `remote_rep` = video call with a representative; `remote_courier` = online application, ID confirmed by courier/field staff; `bulk` = bulk onboarding (payroll/corporate). `remote_application` is **intake** (a funnel count, not a finalised customer) — exclude it from acquisition/share figures. |
+| `value` | persons (raw count) | The dashboard rescales to thousands. |
+
+**"Digital" = branch-free finalisation** = `remote_rep + remote_courier + bulk`;
+`branch` is non-digital. **Definition break:** individual-panel definitions were
+refined as of **Ocak 2023** (the series continues). Around 2025–26 digital acquisition
+overtook branch for individuals (e.g. 2026-04: ~834k remote vs ~570k branch).
 
 ## 14. Economy tab (macro)
 

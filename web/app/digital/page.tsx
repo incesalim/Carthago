@@ -29,6 +29,11 @@ import {
   AGE,
   AGE_LABELS,
 } from "@/app/lib/digital";
+import {
+  acquisitionData,
+  CHANNEL_LABELS as ACQ_CHANNEL_LABELS,
+  METHOD_LABELS as ACQ_METHOD_LABELS,
+} from "@/app/lib/acquisition";
 import { latestPeriod } from "@/app/lib/metrics";
 import { PageHeader } from "@/app/components/ui";
 import TrendChart from "@/app/components/TrendChart";
@@ -82,6 +87,9 @@ export default async function DigitalPage() {
   // its quarter-over-quarter change is the acquisition flow TBB doesn't report.
   const netAdds = quarterlyDeltas(registeredByChannel);
 
+  // Remote-vs-branch acquisition (separate monthly TBB report) — individuals.
+  const acq = await acquisitionData("individual");
+
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
       <PageHeader
@@ -114,7 +122,7 @@ export default async function DigitalPage() {
       </Section>
 
       <Section
-        title="Acquisition"
+        title="Digital customer base"
         subtitle="The registered base and how it grows, plus the demand funnel feeding it. The base is TBB's quarter-end stock (registered and logged in at least once); net adds are its quarter-over-quarter change. Base counts are per-bank registrations summed across the sector — a customer registered at several banks counts several times — so read the trend and net adds, not the absolute level. Application counts are mobile only (internet is now under 1% of applications)."
       >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -140,6 +148,36 @@ export default async function DigitalPage() {
           title="Product applications via mobile per quarter (millions)"
           yFormat="raw"
           decimals={1}
+          height={320}
+        />
+      </Section>
+
+      <Section
+        title="Customer acquisition — digital vs branch"
+        subtitle="From TBB's separate monthly “Uzaktan ve Şubeden Müşteri Edinim” report: how many individuals each month became customers remotely — without visiting a branch — vs at a branch. “Remotely” combines the three branch-free finalisation methods (a video call with a representative, courier ID confirmation, and bulk payroll/corporate onboarding); “branch” is in-person. Remote-application intake (a funnel count, not finalised customers) is excluded. Series start May 2021 (the remote-ID regulation); definitions were refined in Jan 2023. Individuals only — merchant and legal-entity data exists from Jul 2024."
+      >
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <TrendChart
+            data={acq.byChannel}
+            seriesLabels={ACQ_CHANNEL_LABELS}
+            title="New individual customers per month (thousands)"
+            yFormat="raw"
+            decimals={0}
+          />
+          <TrendChart
+            data={acq.share}
+            seriesLabels={ACQ_CHANNEL_LABELS}
+            title="Share of new customers by channel (%)"
+            yFormat="pct"
+            decimals={0}
+          />
+        </div>
+        <TrendChart
+          data={acq.byMethod}
+          seriesLabels={ACQ_METHOD_LABELS}
+          title="New individual customers by acquisition method (thousands per month)"
+          yFormat="raw"
+          decimals={0}
           height={320}
         />
       </Section>
