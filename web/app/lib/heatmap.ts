@@ -130,7 +130,7 @@ export async function heatmapPanel(
 ): Promise<BankMetricRow[]> {
   const romanPlaceholders = BS_ASSET_ROMAN_HIERARCHIES.map(() => "?").join(",");
 
-  const [assets, stages, pl, equity, closes, shares] = await Promise.all([
+  const [assets, stages, pl, equity, closes, shares, latestCloses] = await Promise.all([
     // A — total assets: sum of the BS asset Roman subtotals I.–X. (= bankSummaries).
     cachedAll<RowAssets>(
       `SELECT bank_ticker, period, SUM(amount_total) AS total_assets
@@ -222,6 +222,18 @@ export async function heatmapPanel(
       `SELECT symbol AS bank_ticker, shares_outstanding FROM bist_shares`,
       [],
     ),
+    // G — the single latest stored EOD close per bank. The snapshot's "current"
+    // P/B & P/E use this (reliable, ~1-day fresh) rather than the months-old
+    // quarter-end close, with the live Yahoo price overlaid on top when present.
+    cachedAll<{ bank_ticker: string; close_price: number }>(
+      `SELECT bank_ticker, close_price FROM (
+         SELECT symbol AS bank_ticker, close_price,
+                ROW_NUMBER() OVER (PARTITION BY symbol ORDER BY period_date DESC) AS rn
+           FROM bist_prices
+          WHERE kind = 'bank' AND close_price IS NOT NULL
+       ) WHERE rn = 1`,
+      [],
+    ),
   ]);
 
   const map = new Map<string, BankMetricRow>();
@@ -266,6 +278,8 @@ export async function heatmapPanel(
   for (const r of closes) closeByKey.set(`${r.bank_ticker}|${r.period}`, r.close_price);
   const sharesByTicker = new Map<string, number>();
   for (const r of shares) if (r.shares_outstanding) sharesByTicker.set(r.bank_ticker, r.shares_outstanding);
+  const latestCloseByTicker = new Map<string, number>();
+  for (const r of latestCloses) latestCloseByTicker.set(r.bank_ticker, r.close_price);
 
   // --- Trailing-twelve-month ROE -------------------------------------------
   // ROE = (sum of the last 4 quarters' net income) / (average equity over the
@@ -364,12 +378,16 @@ export async function heatmapPanel(
       row.cost_income = Math.abs(opex) / Math.abs(grossOp);
 
     // Market valuation (listed banks only; null otherwise). Market cap (TL) =
-    // price × shares. Audit amounts are thousand TL → ×1000. The latest period
-    // uses the live (delayed) price when a quote is supplied; otherwise (and for
-    // all historical rows) the quarter-end close.
+    // price × shares. Audit amounts are thousand TL → ×1000. Price precedence:
+    //  • latest period → live (delayed) quote → latest stored EOD close → q-end
+    //  • historical periods → that quarter's quarter-end close (point-in-time)
     const liveQ = live?.get(row.bank_ticker);
     const isLatest = latestPeriodByBank.get(row.bank_ticker) === row.period;
-    const close = (liveQ && isLatest ? liveQ.price : closeByKey.get(key)) ?? null;
+    const close = (
+      isLatest
+        ? (liveQ?.price ?? latestCloseByTicker.get(row.bank_ticker) ?? closeByKey.get(key))
+        : closeByKey.get(key)
+    ) ?? null;
     const sh = sharesByTicker.get(row.bank_ticker) ?? null;
     const mktcap = close != null && sh != null && sh > 0 ? close * sh : null;
     const eqRaw = equityByKey.get(key) ?? null;
