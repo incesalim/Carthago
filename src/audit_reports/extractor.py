@@ -27,6 +27,100 @@ try:
 except ImportError:
     _HAS_FITZ = False
 
+
+# --- fitz-based page count (immune to the pdfminer page-tree hang) -------------
+# pdfplumber's `pdf.pages` forces pdfminer to resolve the whole page tree via
+# object streams. A few BRSA PDFs (e.g. VAKBN 2025Q4 — 159 pages, 273 /ObjStm)
+# make that resolution pathological: pdfminer never returns, while fitz reads the
+# same file in ~30 ms. So wherever we only need a page COUNT we use fitz, and the
+# page locators + equity lane take their text from fitz too — keeping them clear
+# of the hang. (The BS/P&L parsers still use pdfplumber's layout-repaired text;
+# they are out of the equity/cash-flow re-extraction path.)
+def _fitz_page_count(pdf_path: str) -> int | None:
+    """Page count via fitz (instant, immune to the pdfminer page-tree hang)."""
+    if not _HAS_FITZ:
+        return None
+    try:
+        doc = fitz.open(pdf_path)
+        n = doc.page_count
+        doc.close()
+        return n
+    except Exception:
+        return None
+
+
+def _n_pages(pdf) -> int:
+    """Number of pages of an open pdfplumber PDF — via fitz when we can resolve the
+    path (avoids the pdfminer `pdf.pages` enumeration that hangs on poison PDFs),
+    else pdfplumber's own count."""
+    path = pdf.stream.name if hasattr(pdf, 'stream') else None
+    if _HAS_FITZ and path:
+        n = _fitz_page_count(path)
+        if n is not None:
+            return n
+    return len(pdf.pages)
+
+
+# --- guarded pdfplumber layout-repaired text ---------------------------------
+# pdfplumber's column-flattened text is the proven extractor for some banks whose
+# wide equity table neither fitz reconstruction parses (GARAN/AKBNK print the two
+# periods with interleaved side-footnotes that only pdfplumber's x-clustering
+# separates). But materialising pdfplumber pages forces pdfminer's page-tree
+# resolution, which is pathological on poison PDFs (VAKBN 2025Q4: ~2 min, vs 30 ms
+# in fitz). So we run the pdfplumber read under a watchdog: if it doesn't return
+# within the budget the PDF is remembered as poison and every later call skips it
+# (the caller then uses a fitz reconstruction). Only the FIRST access to a poison
+# PDF pays the timeout, and the abandoned worker thread is pure-Python pdfminer —
+# it finishes (~2 min) and exits on its own, so the leak is bounded, not forever.
+_PDFPLUMBER_POISON: set[str] = set()
+
+
+def _run_with_timeout(fn, timeout: float):
+    """Run fn() in a daemon thread; return (True, result) or (False, None) on
+    timeout. A timed-out thread is abandoned (no interrupt hook for pdfminer)."""
+    import threading
+    box: dict = {}
+
+    def work():
+        try:
+            box['r'] = fn()
+        except BaseException as e:  # noqa: BLE001
+            box['e'] = e
+
+    t = threading.Thread(target=work, daemon=True)
+    t.start()
+    t.join(timeout)
+    if t.is_alive():
+        return (False, None)
+    if 'e' in box:
+        raise box['e']
+    return (True, box.get('r'))
+
+
+def _safe_repaired_text(pdf_path: str, page_idx_1: int, timeout: float = 35.0) -> str | None:
+    """Layout-repaired pdfplumber text for ONE page, or None if pdfplumber can't
+    enumerate this PDF's pages within `timeout` (poison — cached per process).
+    Closes only the stream (pdfplumber.close() would re-enumerate after flush)."""
+    if pdf_path in _PDFPLUMBER_POISON:
+        return None
+
+    def _work():
+        pdf = pdfplumber.open(pdf_path)
+        try:
+            return extract_page_text_repaired(pdf.pages[page_idx_1 - 1])
+        finally:
+            try:
+                if not getattr(pdf, 'stream_is_external', False) and getattr(pdf, 'stream', None):
+                    pdf.stream.close()
+            except Exception:
+                pass
+
+    ok, txt = _run_with_timeout(_work, timeout)
+    if not ok:
+        _PDFPLUMBER_POISON.add(pdf_path)
+        return None
+    return txt
+
 # Match a numeric token. Handles both EN and TR thousands/decimal conventions:
 #   EN:  1,234,567.89
 #   TR:  1.234.567,89
@@ -677,7 +771,9 @@ def _locate_pages(pdf: pdfplumber.PDF) -> dict[str, int]:
                     return True
         return False
     pdf_path = pdf.stream.name if hasattr(pdf, 'stream') else None
-    for i, page in enumerate(pdf.pages, 1):
+    # Iterate page indices via fitz's count when available — touching `pdf.pages`
+    # to enumerate would trigger the pdfminer page-tree hang on poison PDFs.
+    for i in range(1, _n_pages(pdf) + 1):
         # Fitz text only — ~50× faster than pdfplumber's extract_text (which
         # dominated page-location time) and a SUPERSET for anchor detection: it
         # captures the absolutely-positioned text pdfplumber's column-flatten drops
@@ -685,7 +781,7 @@ def _locate_pages(pdf: pdfplumber.PDF) -> dict[str, int]:
         if _HAS_FITZ and pdf_path:
             text = _fitz_page_text(pdf_path, i - 1)
         else:
-            text = page.extract_text() or ''
+            text = pdf.pages[i - 1].extract_text() or ''
         norm_full = _norm(text)
         norm_lines = [_norm(ln) for ln in text.split('\n')]
         for kind, (pat, keywords, supports) in matchers.items():
@@ -697,6 +793,11 @@ def _locate_pages(pdf: pdfplumber.PDF) -> dict[str, int]:
             if not any(s in norm_full for s in supports):
                 continue
             out[kind] = i
+            break
+        # All target statements located — stop scanning. BRSA statements all sit
+        # in the first ~25 pages; without this the loop scanned every page (159 on
+        # VAKBN), re-opening the PDF with fitz each time (~6 s wasted per report).
+        if len(out) == len(matchers):
             break
     return out
 
@@ -959,7 +1060,7 @@ def _locate_oci_page(pdf, pl_page_idx_1: int | None) -> int | None:
     if pl_page_idx_1 is None:
         return None
     _OCI_NORMS = ("KAPSAMLIGELIR", "KAPSAMLIKAZAN", "COMPREHENSIVEINCOME", "KAPSAMLIGEL")
-    for i in range(pl_page_idx_1 + 1, min(pl_page_idx_1 + 5, len(pdf.pages) + 1)):
+    for i in range(pl_page_idx_1 + 1, min(pl_page_idx_1 + 5, _n_pages(pdf) + 1)):
         text = _page_text(pdf, i)
         norm = _norm(text)
         if not any(kw in norm for kw in _OCI_NORMS):
@@ -987,7 +1088,7 @@ def _locate_cash_flow_page(pdf, start_page_idx_1: int | None) -> int | None:
                  "STATEMENTOFCASHFLOW")
     # Equity-change pages must NOT be confused with cash flow pages.
     _EQ_NORMS = ("OZKAYNAKDEGISIM", "CHANGESINSHAREHOLDERS", "CHANGESINEQUITY")
-    for i in range(start_page_idx_1 + 1, min(start_page_idx_1 + 9, len(pdf.pages) + 1)):
+    for i in range(start_page_idx_1 + 1, min(start_page_idx_1 + 9, _n_pages(pdf) + 1)):
         text = _page_text(pdf, i)
         norm = _norm(text)
         if not any(kw in norm for kw in _CF_NORMS):
@@ -1024,7 +1125,8 @@ def extract(pdf_path: str | Path, only: set[str] | None = None) -> BankReport:
 
     pdf_path = str(pdf_path)
     rep = BankReport(pdf_path=pdf_path)
-    with pdfplumber.open(pdf_path) as pdf:
+    pdf = pdfplumber.open(pdf_path)
+    try:
         # The six "deep-scan" extractors below are independent of the statement
         # lane and each sweep most of the PDF — skipping them is the bulk of the
         # speed-up when only a statement (e.g. equity_change) is wanted.
@@ -1113,8 +1215,11 @@ def extract(pdf_path: str | Path, only: set[str] | None = None) -> BankReport:
             # Interim income statements can carry 4 columns (cumulative + 3-month
             # for current/prior). Detect the structure and take the cumulative
             # current (col 0) and cumulative prior (col n//2), not the last two.
-            pl_n = _detect_pl_ncols(pdf_path, loc['pl'])
+            # Only needed when P&L itself is wanted — skipping it keeps the
+            # equity_change/cash_flow lanes off pdfplumber (and so off the pdfminer
+            # page-tree hang on poison PDFs).
             if _want('profit_loss'):
+                pl_n = _detect_pl_ncols(pdf_path, loc['pl'])
                 for order, (label, vals) in enumerate(_parse_page(pdf_path, loc['pl'], pl_n), 1):
                     h, name, fn = _split_label(label)
                     rep.profit_loss.append(StatementRow(
@@ -1172,6 +1277,20 @@ def extract(pdf_path: str | Path, only: set[str] | None = None) -> BankReport:
                             order=order, hierarchy=h, name=name, footnote=fn,
                             cur_amount=vals[0], pri_amount=vals[1],
                         ))
+    finally:
+        # Release the file WITHOUT calling pdf.close(): close() first flush_cache()s
+        # (which delattrs every cached property) and then iterates `self.pages` to
+        # close each page — forcing pdfminer's page-tree resolution. That resolution
+        # hangs on poison PDFs whose page objects live in many compressed object
+        # streams (VAKBN 2025Q4: 159 pages, 273 /ObjStm — fitz reads it in 30 ms,
+        # pdfminer takes 2 min). The fitz-based locators + equity lane never
+        # materialise pdfplumber pages, so there are no Page objects to close; just
+        # shut the underlying stream. The doc/cache are garbage-collected with `pdf`.
+        try:
+            if not getattr(pdf, 'stream_is_external', False) and getattr(pdf, 'stream', None):
+                pdf.stream.close()
+        except Exception:
+            pass
     return rep
 
 

@@ -104,10 +104,12 @@ def main() -> int:
     counts = {"ok": 0, "fail": 0, "rows": 0}
     with tempfile.TemporaryDirectory(prefix="bddk_reext_") as td:
         work = [(t, p, k, key, statement, td) for (t, p, k, key) in pdfs]
-        # max_tasks_per_child recycles workers so pdfplumber/fitz memory growth
-        # (which slowed a prior long run 10×) can't accumulate.
+        # NOTE: no max_tasks_per_child — on Windows it can DEADLOCK the pool at a
+        # recycle boundary (hung a fleet run at ~task 400). Single-statement
+        # extraction is light (the six deep-scan extractors are skipped), so worker
+        # memory doesn't grow enough to need recycling anyway.
         with sqlite3.connect(str(DB)) as conn, \
-             ProcessPoolExecutor(max_workers=args.workers, max_tasks_per_child=50) as ex:
+             ProcessPoolExecutor(max_workers=args.workers) as ex:
             futs = [ex.submit(_worker, w) for w in work]
             done = 0
             for fut in as_completed(futs):
