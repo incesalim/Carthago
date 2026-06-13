@@ -124,6 +124,36 @@ SERIES: list[Series] = [
     Series("TP.HARICCARIACIK.K8",  "Current Account ex Gold (USD m)",          "macro", evds.FREQ_MONTHLY),
     Series("TP.HARICCARIACIK.K10", "Current Account ex Gold & Energy (USD m)", "macro", evds.FREQ_MONTHLY),
 
+    # ------------------------------------------------------------------
+    # Balance-of-payments detail — feeds the /economy/balance-of-payments
+    # page (Albaraka "Ödemeler Dengesi" monthly report). Gold/energy
+    # sub-balances come from bie_hariccariacik; the financial-account and
+    # services detail from the BPM6 detailed presentation (bie_odeayrsunum6).
+    # All monthly, USD million; the page rolls 12m and divides by 1000 for
+    # bn$. Codes verified against the report's summary table (Apr-2026).
+    # ------------------------------------------------------------------
+    Series("TP.HARICCARIACIK.K4", "Non-Monetary Gold Balance (USD m)", "macro", evds.FREQ_MONTHLY),
+    Series("TP.HARICCARIACIK.K7", "Energy Balance (USD m)",            "macro", evds.FREQ_MONTHLY),
+    Series("TP.HARICCARIACIK.K9", "Current Account ex Energy (USD m)", "macro", evds.FREQ_MONTHLY),
+    Series("TP.ODEAYRSUNUM6.Q20",  "Services Balance (USD m)",                       "macro", evds.FREQ_MONTHLY),
+    Series("TP.ODEAYRSUNUM6.Q41",  "Travel Balance, net (USD m)",                    "macro", evds.FREQ_MONTHLY),
+    Series("TP.ODEAYRSUNUM6.Q102", "Direct Investment, net (USD m)",                 "macro", evds.FREQ_MONTHLY),
+    Series("TP.ODEAYRSUNUM6.Q108", "Direct Investment — net liab. incurred (USD m)", "macro", evds.FREQ_MONTHLY),
+    Series("TP.ODEAYRSUNUM6.Q113", "FDI Real Estate — net liab. (USD m)",            "macro", evds.FREQ_MONTHLY),
+    Series("TP.ODEAYRSUNUM6.Q114", "Portfolio Investment, net (USD m)",              "macro", evds.FREQ_MONTHLY),
+    Series("TP.ODEAYRSUNUM6.Q119", "Portfolio — net liab. incurred (USD m)",         "macro", evds.FREQ_MONTHLY),
+    Series("TP.ODEAYRSUNUM6.Q212", "Portfolio liab. — Equity & fund shares (USD m)", "macro", evds.FREQ_MONTHLY),
+    Series("TP.ODEAYRSUNUM6.Q123", "Portfolio liab. — Debt securities (USD m)",      "macro", evds.FREQ_MONTHLY),
+    Series("TP.ODEAYRSUNUM6.Q136", "Other Investment, net (USD m)",                  "macro", evds.FREQ_MONTHLY),
+    Series("TP.ODEAYRSUNUM6.Q157", "Loans — net liab. incurred, total (USD m)",      "macro", evds.FREQ_MONTHLY),
+    Series("TP.ODEAYRSUNUM6.Q166", "Loans liab. — Banks (USD m)",                    "macro", evds.FREQ_MONTHLY),
+    Series("TP.ODEAYRSUNUM6.Q171", "Loans liab. — General Government (USD m)",       "macro", evds.FREQ_MONTHLY),
+    Series("TP.ODEAYRSUNUM6.Q179", "Loans liab. — Other Sectors (USD m)",            "macro", evds.FREQ_MONTHLY),
+    Series("TP.ODEAYRSUNUM6.Q188", "Trade Credits — net liab. incurred (USD m)",     "macro", evds.FREQ_MONTHLY),
+    Series("TP.ODEAYRSUNUM6.Q138", "Currency & Deposits — net asset acq. (USD m)",   "macro", evds.FREQ_MONTHLY),
+    Series("TP.ODEAYRSUNUM6.Q143", "Currency & Deposits — net liab. incurred (USD m)", "macro", evds.FREQ_MONTHLY),
+    Series("TP.ODEAYRSUNUM6.Q204", "Reserve Assets (USD m)",                         "macro", evds.FREQ_MONTHLY),
+
     # Fiscal — Treasury general budget, cash based (monthly, TL thousand)
     Series("TP.KB.GEN34", "General Budget Primary Balance (TL thousand)", "macro", evds.FREQ_MONTHLY),
     Series("TP.KB.GEN35", "General Budget Balance (TL thousand)",         "macro", evds.FREQ_MONTHLY),

@@ -369,5 +369,130 @@
         "tolerance_unit": "pp"
       }
     ]
+  },
+  {
+    "id": "economy.bop_core_balances_12m",
+    "title": "Current Account — headline, ex-energy & core (12m rolling, USD bn)",
+    "source": { "report": "Albaraka — Ödemeler Dengesi", "page": "Şekil 1", "as_of": "2026-04" },
+    "placement": { "tab": "economy", "section": "Balance of Payments" },
+    "unit": "USD bn",
+    "format": "bn",
+    "decimals": 1,
+    "chart": "TimeSeriesChart",
+    "series": [
+      { "key": "ca", "label": "Current account", "source": "evds", "locator": { "code": "TP.ODANA6.Q01", "years_back": 9 }, "transform": [{ "op": "rolling_sum", "window": 12, "scale": 0.001 }] },
+      { "key": "exenergy", "label": "ex energy", "source": "evds", "locator": { "code": "TP.HARICCARIACIK.K9", "years_back": 9 }, "transform": [{ "op": "rolling_sum", "window": 12, "scale": 0.001 }] },
+      { "key": "core", "label": "Core (ex gold & energy)", "source": "evds", "locator": { "code": "TP.HARICCARIACIK.K10", "years_back": 9 }, "transform": [{ "op": "rolling_sum", "window": 12, "scale": 0.001 }] }
+    ],
+    "verify": [
+      { "series": "ca", "date": "2026-04", "value": -36.984, "tolerance": 0.6 },
+      { "series": "exenergy", "date": "2026-04", "value": 9.9, "tolerance": 0.6 },
+      { "series": "core", "date": "2026-04", "value": 29.445, "tolerance": 0.6 }
+    ],
+    "registry_additions": [
+      { "code": "TP.HARICCARIACIK.K9", "label": "Current Account ex Energy (USD m)", "kind": "monthly" }
+    ]
+  },
+  {
+    "id": "economy.bop_goods_tourism_12m",
+    "title": "Goods balance & net tourism (12m rolling, USD bn)",
+    "source": { "report": "Albaraka — Ödemeler Dengesi", "page": "Şekil 2", "as_of": "2026-04" },
+    "placement": { "tab": "economy", "section": "Balance of Payments" },
+    "unit": "USD bn",
+    "format": "bn",
+    "decimals": 1,
+    "chart": "TimeSeriesChart",
+    "series": [
+      { "key": "goods", "label": "Trade balance (goods)", "source": "evds", "locator": { "code": "TP.ODANA6.Q04", "years_back": 9 }, "transform": [{ "op": "rolling_sum", "window": 12, "scale": 0.001 }] },
+      { "key": "travel", "label": "Net tourism (travel)", "source": "evds", "locator": { "code": "TP.ODEAYRSUNUM6.Q41", "years_back": 9 }, "transform": [{ "op": "rolling_sum", "window": 12, "scale": 0.001 }] }
+    ],
+    "verify": [
+      { "series": "goods", "date": "2026-04", "value": -74.767, "tolerance": 0.6 },
+      { "series": "travel", "date": "2026-04", "value": 51.534, "tolerance": 0.6 }
+    ],
+    "registry_additions": [
+      { "code": "TP.ODEAYRSUNUM6.Q41", "label": "Travel Balance, net (USD m)", "kind": "monthly" }
+    ]
+  },
+  {
+    "id": "economy.bop_currency_deposits_12m",
+    "title": "Currency & deposits — asset acquisition vs liabilities (12m rolling, USD bn)",
+    "source": { "report": "Albaraka — Ödemeler Dengesi", "page": "Şekil 8", "as_of": "2026-04" },
+    "placement": { "tab": "economy", "section": "Balance of Payments" },
+    "unit": "USD bn",
+    "format": "bn",
+    "decimals": 1,
+    "chart": "TimeSeriesChart",
+    "series": [
+      { "key": "assets", "label": "Net acquisition of assets", "source": "evds", "locator": { "code": "TP.ODEAYRSUNUM6.Q138", "years_back": 9 }, "transform": [{ "op": "rolling_sum", "window": 12, "scale": 0.001 }] },
+      { "key": "liab", "label": "Net incurrence of liabilities", "source": "evds", "locator": { "code": "TP.ODEAYRSUNUM6.Q143", "years_back": 9 }, "transform": [{ "op": "rolling_sum", "window": 12, "scale": 0.001 }] }
+    ],
+    "verify": [
+      { "series": "assets", "date": "2026-04", "value": 13.72, "tolerance": 0.6 },
+      { "series": "liab", "date": "2026-04", "value": 1.122, "tolerance": 0.6 }
+    ],
+    "registry_additions": [
+      { "code": "TP.ODEAYRSUNUM6.Q138", "label": "Currency & Deposits — net asset acq. (USD m)", "kind": "monthly" },
+      { "code": "TP.ODEAYRSUNUM6.Q143", "label": "Currency & Deposits — net liab. incurred (USD m)", "kind": "monthly" }
+    ]
+  },
+  {
+    "id": "economy.bop_capital_inflows_monthly",
+    "title": "Capital inflows — FDI / portfolio / loans / trade credits (monthly, USD bn)",
+    "source": { "report": "Albaraka — Ödemeler Dengesi", "page": "Şekil 3", "as_of": "2026-04" },
+    "placement": { "tab": "economy", "section": "Balance of Payments" },
+    "unit": "USD bn",
+    "format": "bn",
+    "decimals": 1,
+    "chart": "BopFlowChart",
+    "series": [
+      { "key": "fdi", "label": "Direct investment", "source": "evds", "locator": { "code": "TP.ODEAYRSUNUM6.Q108", "years_back": 9 }, "transform": [{ "op": "scale", "factor": 0.001 }] },
+      { "key": "portfolio", "label": "Portfolio investment", "source": "evds", "locator": { "code": "TP.ODEAYRSUNUM6.Q119", "years_back": 9 }, "transform": [{ "op": "scale", "factor": 0.001 }] },
+      { "key": "loans", "label": "Loans", "source": "evds", "locator": { "code": "TP.ODEAYRSUNUM6.Q157", "years_back": 9 }, "transform": [{ "op": "scale", "factor": 0.001 }] },
+      { "key": "trade", "label": "Trade credits", "source": "evds", "locator": { "code": "TP.ODEAYRSUNUM6.Q188", "years_back": 9 }, "transform": [{ "op": "scale", "factor": 0.001 }] }
+    ],
+    "verify": [
+      { "series": "fdi", "date": "2026-04", "value": 1.087, "tolerance": 0.3 },
+      { "series": "portfolio", "date": "2026-04", "value": 6.421, "tolerance": 0.3 },
+      { "series": "loans", "date": "2026-04", "value": 4.962, "tolerance": 0.3 },
+      { "series": "trade", "date": "2026-04", "value": 0.578, "tolerance": 0.3 }
+    ],
+    "registry_additions": [
+      { "code": "TP.ODEAYRSUNUM6.Q108", "label": "Direct Investment — net liab. incurred (USD m)", "kind": "monthly" },
+      { "code": "TP.ODEAYRSUNUM6.Q119", "label": "Portfolio — net liab. incurred (USD m)", "kind": "monthly" },
+      { "code": "TP.ODEAYRSUNUM6.Q157", "label": "Loans — net liab. incurred, total (USD m)", "kind": "monthly" },
+      { "code": "TP.ODEAYRSUNUM6.Q188", "label": "Trade Credits — net liab. incurred (USD m)", "kind": "monthly" }
+    ]
+  },
+  {
+    "id": "economy.bop_financing_monthly",
+    "title": "Financing of the current account — need / net foreign investment / reserves−errors (monthly, USD bn)",
+    "source": { "report": "Albaraka — Ödemeler Dengesi", "page": "Şekil 10", "as_of": "2026-04" },
+    "placement": { "tab": "economy", "section": "Balance of Payments" },
+    "unit": "USD bn",
+    "format": "bn",
+    "decimals": 1,
+    "chart": "BopFlowChart",
+    "series": [
+      { "key": "need", "label": "Financing requirement (current account)", "source": "evds", "locator": { "code": "TP.ODANA6.Q01", "years_back": 9 }, "transform": [{ "op": "scale", "factor": 0.001 }] },
+      { "key": "fdi_n", "label": "FDI net", "source": "evds", "locator": { "code": "TP.ODEAYRSUNUM6.Q102", "years_back": 9 }, "transform": [{ "op": "scale", "factor": 0.001 }] },
+      { "key": "port_n", "label": "Portfolio net", "source": "evds", "locator": { "code": "TP.ODEAYRSUNUM6.Q114", "years_back": 9 }, "transform": [{ "op": "scale", "factor": 0.001 }] },
+      { "key": "other_n", "label": "Other investment net", "source": "evds", "locator": { "code": "TP.ODEAYRSUNUM6.Q136", "years_back": 9 }, "transform": [{ "op": "scale", "factor": 0.001 }] },
+      { "key": "nfi", "label": "Net foreign investment", "source": "derived", "transform": [{ "op": "sum_series", "keys": ["fdi_n", "port_n", "other_n"] }] },
+      { "key": "res", "label": "Reserve assets", "source": "evds", "locator": { "code": "TP.ODEAYRSUNUM6.Q204", "years_back": 9 }, "transform": [{ "op": "scale", "factor": 0.001 }] },
+      { "key": "neo", "label": "Net errors", "source": "evds", "locator": { "code": "TP.ODANA6.Q31", "years_back": 9 }, "transform": [{ "op": "scale", "factor": 0.001 }] },
+      { "key": "resneo", "label": "Reserves − net errors", "source": "derived", "transform": [{ "op": "derive", "formula": { "op": "sub", "args": [{ "ref": "res" }, { "ref": "neo" }] } }] }
+    ],
+    "verify": [
+      { "series": "need", "date": "2026-04", "value": -5.695, "tolerance": 0.3 },
+      { "series": "nfi", "date": "2026-04", "value": -19.189, "tolerance": 0.4 },
+      { "series": "resneo", "date": "2026-04", "value": 13.483, "tolerance": 0.4 }
+    ],
+    "registry_additions": [
+      { "code": "TP.ODEAYRSUNUM6.Q102", "label": "Direct Investment, net (USD m)", "kind": "monthly" },
+      { "code": "TP.ODEAYRSUNUM6.Q114", "label": "Portfolio Investment, net (USD m)", "kind": "monthly" },
+      { "code": "TP.ODEAYRSUNUM6.Q136", "label": "Other Investment, net (USD m)", "kind": "monthly" },
+      { "code": "TP.ODEAYRSUNUM6.Q204", "label": "Reserve Assets (USD m)", "kind": "monthly" }
+    ]
   }
 ]

@@ -164,6 +164,17 @@ baseline-scenario table. Fed by a `macro` EVDS block (GDP, IP, labor, BoP,
 budget — 15 new series incl. CPI 2025=100, which replaces the dead 2003=100
 index). See [METRICS.md](METRICS.md) §14.
 
+A **Balance of Payments** sub-page (`/economy/balance-of-payments`, linked
+from the Economy header) reproduces the Albaraka «Ödemeler Dengesi» monthly
+report 1:1 — 3 headline-balance KPIs, 10 figures (Şekil 1–10) and the
+summary table — off **21 new BoP detail series** (`TP.ODEAYRSUNUM6.*`
+financial-account/services detail + `TP.HARICCARIACIK.K4/K7/K9` gold/energy
+balances; all `macro`/monthly). Signed-stacked-bar charts via the new
+`BopFlowChart`; the Şekil 10 financing identity (CA ≡ net foreign inv. +
+reserves − net errors) and every figure were verified to the report's
+Apr-2026 summary table. Five `economy.bop_*` chart-specs anchor daily
+verification. See [METRICS.md](METRICS.md) §14.
+
 A **Digital** tab (`/digital`) surfaces the TBB quarterly digital/internet/mobile
 banking statistics (`tbb_digital_stats`, sector-wide): channel adoption (active
 mobile vs internet customers; mobile-only/both/internet-only usage), quarterly
