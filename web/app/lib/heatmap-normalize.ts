@@ -86,7 +86,7 @@ export function scoreToColor(score: number | null, neutral = false): string {
  */
 export function formatMetricValue(
   value: number | null,
-  unit: "pct" | "trn" | "bn" | "raw",
+  unit: "pct" | "trn" | "bn" | "raw" | "mult",
   decimals: number,
 ): string {
   if (value == null || !Number.isFinite(value)) return "—";
@@ -101,6 +101,8 @@ export function formatMetricValue(
       return `₺${nf.format(value / 1e9)} trn`;
     case "bn":
       return `₺${nf.format(value / 1e6)} bn`;
+    case "mult":
+      return `${nf.format(value)}×`;
     default:
       return nf.format(value);
   }

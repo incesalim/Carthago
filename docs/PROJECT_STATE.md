@@ -254,10 +254,14 @@ A qualitative-data layer feeds two tabs from the `news_items` table
   `web/app/lib/bank-fundamentals.ts`). Caveats: QNBFB has ~0.12% float and is
   delisted on Yahoo → no price/valuation (omitted from `bist_shares.json`);
   `bist_shares` is best-effort refreshed from Yahoo `quoteSummary` each run with
-  the committed JSON as fallback — refresh the seed on capital actions. Open:
-  P/B & P/E reuse single-ticker helpers rather than refactoring `heatmapPanel`
-  (kept identical to avoid regressing the shipped ROE); a cross-bank valuation
-  column on the `/cross-bank` heatmap is a possible follow-up.
+  the committed JSON as fallback — refresh the seed on capital actions.
+  `/cross-bank` now also carries **P/B and P/E columns** (neutral coloring;
+  snapshot uses the quarter-end close, over-time uses current shares so deep
+  history is approximate across capital actions) — `heatmapPanel` computes them
+  from `bist_prices`/`bist_shares` + the shared `ttmNet` helper; listed banks
+  only (others blank). The per-bank P/B/P/E reuse single-ticker helpers in
+  `bank-fundamentals.ts` rather than refactoring `heatmapPanel`, kept identical
+  to avoid regressing the shipped ROE.
 - **Cash flow + equity-change extractors shipped; deep-fixed + fleet re-extracted (2026-06-13).**
   Two statement types: `bank_audit_cash_flow` (sort_order=38) and `bank_audit_equity_change`
   (sort_order=36). Root-cause fixes (commits b8b1c51, 8a91444): equity locator now uses the
