@@ -89,6 +89,8 @@ def main():
                         help="skip the KAP ownership-structure refresh")
     parser.add_argument("--skip-tefas", action="store_true",
                         help="skip the TEFAS fund-market refresh")
+    parser.add_argument("--skip-tuik", action="store_true",
+                        help="skip the TÜİK national-accounts/PPI-detail refresh")
     args = parser.parse_args()
 
     start = datetime.now()
@@ -122,6 +124,15 @@ def main():
         # workbook is cumulative, so one fetch refreshes the full history.
         _run_step("TBB acquisition update",
                    [sys.executable, "scripts/update_tbb_acquisition.py"],
+                   critical=False)
+    if not args.skip_tuik:
+        # TÜİK national-accounts + PPI detail EVDS doesn't carry (GDP expenditure
+        # detail, PPI Main Industrial Groupings, CPI weights) → evds_series TUIK.*.
+        # Bulletin Excel via the veriportali theme tree. Non-critical: a TÜİK
+        # outage must not abort the core refresh; data is monthly/quarterly so the
+        # next cron self-heals. Rides the EVDS lane (its evds_series snapshot/push).
+        _run_step("TÜİK detail update",
+                   [sys.executable, "scripts/update_tuik.py"],
                    critical=False)
     if not args.skip_kap:
         # Ownership structure from KAP Genel Bilgi Formu pages. Non-critical:

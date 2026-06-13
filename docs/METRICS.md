@@ -1020,6 +1020,38 @@ goods) — only the Yurtiçi-ÜFE header maps. 28 new series in `evds_series`
 (category `inflation`/monthly); two `economy.inflation_*` chart-specs anchor
 verification.
 
+### TÜİK direct-detail lane (fills part of the EVDS gaps above)
+
+Some report data is published only by TÜİK, not EVDS. The `src/tuik/` lane
+pulls it deterministically (no API/LLM) and stores it in the **shared
+`evds_series` table** under `TUIK.*` codes, so the whole access path
+(`evdsMulti`, `push_to_d1`, the chart-spec verifier) works unchanged.
+
+**Access recipe** (see `reference_tuik_data_access` memory): a cookie session
+on `veriportali.tuik.gov.tr` (`/<lang>/statistical-themes` → sets `NSC_ESNS`
+→ `/api/<lang>/data/statistical-themes` with Referer/Origin/X-Requested-With)
+returns the theme tree whose leaf `url`s are the exact
+`/api/<lang>/data/downloads?t=i&p=<encoded>` **.xls** URLs (OLE2/BIFF → xlrd,
+the TBB pattern). The SDMX `nsiws.tuik.gov.tr/rest` endpoint 401s; the
+`data.tuik.gov.tr/Bulten` pages are JS-only — both avoided.
+
+| Filled | TÜİK table → codes | Page |
+|---|---|---|
+| Şekil 5 consumption detail | "Household final consumption by durability…" → `TUIK.NA.CONS_{DURABLE,SEMIDUR,NONDUR,SERVICES}` (chain-vol index, quarterly) | growth |
+| Şekil 4 investment detail | "Gross fixed capital formation in chain linked…" → `TUIK.NA.GFCF_{CONSTRUCTION,MACHINERY,OTHER}` | growth |
+| Inflation PPI MIG table | "Domestic PPI — Main Industrial Groupings (2003=100)" → `TUIK.PPI.MIG_*` (index, monthly) | inflation |
+| (context) CPI group weights | "Weights for main groups…" → `TUIK.WEIGHT.CPI_01..13` (annual) | — |
+
+All store the raw index level; the pages derive y/y, m/m (verified to the
+report: consumption durable −0.22 / services 2.15, investment construction
+3.26 / machinery 3.01; PPI MIG energy m/m 6.60). Wired into `refresh.py` as a
+**non-critical** step (`--skip-tuik`), runs **in CI** on the EVDS lane and rides
+its `evds_series` push. Two `economy.{growth_tuik_detail,inflation_ppi_mig}`
+chart-specs anchor it. **Still on the EVDS fallback (not filled):** GDP q/q SA
+line + calendar-adjusted production (messy interleaved-annual Excel) and exact
+weighted contributions for Şekil 2/3 (TÜİK's only contribution table is a
+lagged single-month snapshot; weight×m/m is approximate) — Şekil 2/3 keep m/m.
+
 ## 15. TEFAS fund-market statistics
 
 Source: **TEFAS** (Turkey Electronic Fund Trading Platform, tefas.gov.tr) —

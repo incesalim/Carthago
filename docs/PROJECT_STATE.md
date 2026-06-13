@@ -208,6 +208,19 @@ flagged in-page: Şekil 2/3 weighted **contributions** (need TÜİK weights →
 shown as m/m) and the PPI **Main-Industrial-Groupings** table (TÜİK-Excel
 only). Two `economy.inflation_*` chart-specs.
 
+A **TÜİK direct-detail lane** (`src/tuik/`, run by `update_tuik.py` as a
+non-critical step in `refresh.py`/the EVDS workflow) fills part of those gaps
+with data EVDS doesn't carry, ingested into the shared `evds_series` table as
+`TUIK.*` codes (so no new table/migration/reader): **GDP expenditure detail**
+(consumption-by-durability → Şekil 5, GFCF-by-type → Şekil 4) and the **PPI
+Main-Industrial-Groupings** table on /economy/inflation. Deterministic .xls
+download via the veriportali cookie-session theme tree (the verified recipe is
+in METRICS §14 + the `reference_tuik_data_access` memory); values match the
+reports exactly. Pages gate the new charts on data presence (`hasTuik`/`hasMig`)
+so they appear once CI populates D1. Still on the EVDS fallback: GDP q/q SA line,
+calendar-adjusted production, and exact Şekil 2/3 contributions (TÜİK's
+contribution table is a lagged single-month snapshot). Two `economy.*` specs.
+
 A **Digital** tab (`/digital`) surfaces the TBB quarterly digital/internet/mobile
 banking statistics (`tbb_digital_stats`, sector-wide): channel adoption (active
 mobile vs internet customers; mobile-only/both/internet-only usage), quarterly

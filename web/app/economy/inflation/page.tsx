@@ -168,6 +168,34 @@ export default async function InflationPage() {
             decimals={1}
           />
         </Grid>
+        {d.hasMig && (
+          <div className="space-y-2">
+            <div className="overflow-x-auto rounded-lg border border-border">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-accent/40 text-left">
+                    <th className="px-3 py-2 font-medium text-muted-foreground">Main Industrial Grouping</th>
+                    <th className="px-3 py-2 text-right font-medium text-muted-foreground">Monthly</th>
+                    <th className="px-3 py-2 text-right font-medium text-muted-foreground">Annual</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {d.mig.map((r) => (
+                    <tr key={r.label} className="border-b border-border/60 last:border-0">
+                      <td className="px-3 py-1.5 text-foreground">{r.label}</td>
+                      <td className={cell(r.mm)}>{pct(r.mm)}</td>
+                      <td className={cell(r.yy)}>{pct(r.yy)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Producer prices by Main Industrial Grouping — ingested from TÜİK&apos;s
+              bulletin (Domestic PPI MIG, 2003=100; m/m and y/y derived). Not in EVDS.
+            </p>
+          </div>
+        )}
       </Section>
 
       <Section

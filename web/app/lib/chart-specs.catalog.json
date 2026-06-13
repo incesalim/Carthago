@@ -670,5 +670,58 @@
       { "code": "TP.TUKFIY2025.01", "label": "CPI 01 Food & non-alcoholic beverages (2025=100)", "kind": "monthly" },
       { "code": "TP.TUFE1YI.T118", "label": "PPI Electricity, gas, steam & A/C", "kind": "monthly" }
     ]
+  },
+  {
+    "id": "economy.growth_tuik_detail",
+    "title": "GDP expenditure detail — consumption & investment (y/y %, TÜİK)",
+    "source": { "report": "Albaraka — Ekonomik Büyüme", "page": "Şekil 4–5", "as_of": "2026-Q1" },
+    "placement": { "tab": "economy", "section": "Economic Growth" },
+    "unit": "%",
+    "format": "pct",
+    "decimals": 1,
+    "chart": "BopFlowChart",
+    "series": [
+      { "key": "cons_durable", "label": "Durable consumption", "source": "evds", "locator": { "code": "TUIK.NA.CONS_DURABLE", "years_back": 10 }, "transform": [{ "op": "growth", "window": 4, "mode": "yoy" }] },
+      { "key": "cons_services", "label": "Services consumption", "source": "evds", "locator": { "code": "TUIK.NA.CONS_SERVICES", "years_back": 10 }, "transform": [{ "op": "growth", "window": 4, "mode": "yoy" }] },
+      { "key": "gfcf_construction", "label": "Construction investment", "source": "evds", "locator": { "code": "TUIK.NA.GFCF_CONSTRUCTION", "years_back": 10 }, "transform": [{ "op": "growth", "window": 4, "mode": "yoy" }] },
+      { "key": "gfcf_machinery", "label": "Machinery investment", "source": "evds", "locator": { "code": "TUIK.NA.GFCF_MACHINERY", "years_back": 10 }, "transform": [{ "op": "growth", "window": 4, "mode": "yoy" }] }
+    ],
+    "verify": [
+      { "series": "cons_durable", "date": "2026-01", "value": -0.22, "tolerance": 0.3, "tolerance_unit": "pp" },
+      { "series": "cons_services", "date": "2026-01", "value": 2.15, "tolerance": 0.3, "tolerance_unit": "pp" },
+      { "series": "gfcf_construction", "date": "2026-01", "value": 3.26, "tolerance": 0.3, "tolerance_unit": "pp" },
+      { "series": "gfcf_machinery", "date": "2026-01", "value": 3.01, "tolerance": 0.3, "tolerance_unit": "pp" }
+    ],
+    "registry_additions": [
+      { "code": "TUIK.NA.CONS_DURABLE", "label": "Consumption: durable goods (chain vol.)", "kind": "quarterly" },
+      { "code": "TUIK.NA.CONS_SERVICES", "label": "Consumption: services (chain vol.)", "kind": "quarterly" },
+      { "code": "TUIK.NA.GFCF_CONSTRUCTION", "label": "Investment: construction (chain vol.)", "kind": "quarterly" },
+      { "code": "TUIK.NA.GFCF_MACHINERY", "label": "Investment: machinery & equipment (chain vol.)", "kind": "quarterly" }
+    ]
+  },
+  {
+    "id": "economy.inflation_ppi_mig",
+    "title": "PPI Main Industrial Groupings (monthly %, TÜİK)",
+    "source": { "report": "Albaraka — Enflasyon", "page": "Table 2-left", "as_of": "2026-05" },
+    "placement": { "tab": "economy", "section": "Inflation" },
+    "unit": "%",
+    "format": "pct",
+    "decimals": 1,
+    "chart": "table",
+    "series": [
+      { "key": "intermediate", "label": "Intermediate goods m/m", "source": "evds", "locator": { "code": "TUIK.PPI.MIG_INTERMEDIATE", "years_back": 10 }, "transform": [{ "op": "growth", "window": 1, "mode": "yoy" }] },
+      { "key": "energy", "label": "Energy m/m", "source": "evds", "locator": { "code": "TUIK.PPI.MIG_ENERGY", "years_back": 10 }, "transform": [{ "op": "growth", "window": 1, "mode": "yoy" }] },
+      { "key": "capital", "label": "Capital goods m/m", "source": "evds", "locator": { "code": "TUIK.PPI.MIG_CAPITAL", "years_back": 10 }, "transform": [{ "op": "growth", "window": 1, "mode": "yoy" }] }
+    ],
+    "verify": [
+      { "series": "intermediate", "date": "2026-05", "value": 2.94, "tolerance": 0.2, "tolerance_unit": "pp" },
+      { "series": "energy", "date": "2026-05", "value": 6.6, "tolerance": 0.2, "tolerance_unit": "pp" },
+      { "series": "capital", "date": "2026-05", "value": 1.58, "tolerance": 0.2, "tolerance_unit": "pp" }
+    ],
+    "registry_additions": [
+      { "code": "TUIK.PPI.MIG_INTERMEDIATE", "label": "PPI MIG: intermediate goods", "kind": "monthly" },
+      { "code": "TUIK.PPI.MIG_ENERGY", "label": "PPI MIG: energy", "kind": "monthly" },
+      { "code": "TUIK.PPI.MIG_CAPITAL", "label": "PPI MIG: capital goods", "kind": "monthly" }
+    ]
   }
 ]
