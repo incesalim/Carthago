@@ -1114,12 +1114,20 @@ def extract(pdf_path: str | Path) -> BankReport:
             cf_start = _eq_last or oci_page or loc.get('pl')
             cf_page = _locate_cash_flow_page(pdf, cf_start)
             if cf_page:
-                cf_n = _detect_pl_ncols(pdf_path, cf_page)
+                # The cash flow statement ALWAYS carries exactly two value columns
+                # (current + prior, cumulative) — for annual AND interim reports
+                # alike, since CF is only ever reported year-to-date.  We must NOT
+                # use _detect_pl_ncols here: it is tuned for the P&L (4 columns on
+                # interim) and misreads the CF page's parenthesised date headers
+                # "(31/12/2024) (31/12/2023)" as a 4-column layout, which then makes
+                # _parse_page reject every 2-value data row (AKBNK/ING annual → 0
+                # rows).  Pin to 2 so both columns are picked directly.
+                cf_n = 2
                 for order, (label, vals) in enumerate(_parse_page(pdf_path, cf_page, cf_n), 1):
                     h, name, fn = _split_label(label)
                     rep.cash_flow.append(StatementRow(
                         order=order, hierarchy=h, name=name, footnote=fn,
-                        cur_amount=vals[0], pri_amount=vals[cf_n // 2],
+                        cur_amount=vals[0], pri_amount=vals[1],
                     ))
     return rep
 
