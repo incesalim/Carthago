@@ -72,6 +72,7 @@ SYNC_TABLES = [
     "news_items",
     "regulation_briefings",
     "tbb_digital_stats",
+    "tbb_acquisition_stats",
     "kap_ownership",
     "tefas_manager_daily",
     "tefas_category_daily",
