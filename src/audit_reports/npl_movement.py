@@ -137,19 +137,19 @@ _GROUPS_RX = re.compile(
 # Three trailing numbers (the III / IV / V column values per row). Accept
 # digits with TR/EN thousand-separators, "-" for nil, and parenthesised
 # negatives.
+# A nil cell is printed as one OR MORE dashes (BRSA uses "--" as well as "-",
+# and en/em variants) — accept a run of them, else a trailing "--" column drops
+# the whole row (e.g. FIBA's "transfers out … 565.308 --"), nulling that flow
+# column and making the validator skip an otherwise-balancing roll-forward.
+_NUM_TOKEN = r"(?:\(?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?\)?|[-–—]+)"
 _THREE_NUMS_TAIL = re.compile(
-    r"(?P<n3>(?:\(?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?\)?|-))"
-    r"\s+"
-    r"(?P<n4>(?:\(?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?\)?|-))"
-    r"\s+"
-    r"(?P<n5>(?:\(?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?\)?|-))"
-    r"\s*$"
+    rf"(?P<n3>{_NUM_TOKEN})\s+(?P<n4>{_NUM_TOKEN})\s+(?P<n5>{_NUM_TOKEN})\s*$"
 )
 
 
 def _parse_amount(s: str) -> float | None:
     s = s.strip()
-    if s in ("-", "—", "–", ""):
+    if not s or all(c in "-–—" for c in s):  # "", "-", "--", "—" … → nil
         return 0.0
     return parse_num(s)
 
@@ -313,24 +313,27 @@ def extract_from_pdf(
 ) -> NplMovementReport:
     """Scan the PDF for the NPL gross-amount movement table.
 
-    `skip_pages` defaults to 60 because the NPL footnote is consistently
-    deep in the credit-risk section — typically pages 80–140 of the
-    audit report. Scanning earlier pages is wasted text-extraction
-    cost.
+    `skip_pages` defaults to 60 because the NPL footnote is usually deep in the
+    credit-risk section (pages ~80–140 of an annual report); scanning earlier is
+    wasted text-extraction cost. But shorter INTERIM reports place the table
+    earlier (e.g. FIBA 2026Q1 at page 56), so if the deep pass finds nothing we
+    retry from a lower floor (25 — still safely past the BS/P&L/CF statements).
+    The retry only runs on the otherwise-empty case, so passing reports are
+    unaffected (strict superset).
     """
     rep = NplMovementReport(pdf_path=pdf_path)
-    for i, page in enumerate(pdf.pages, 1):
-        if i <= skip_pages:
-            continue
-        text = page.extract_text() or ""
-        if not (_HEADING_RX.search(text) and _GROUPS_RX.search(text)):
-            continue
-        rows = _extract_from_block(i, text)
-        if rows:
-            rep.rows.extend(rows)
-            # The table is rarely repeated — once we've found it on one
-            # page we stop scanning. This saves time on big PDFs.
-            break
+    for lo in sorted({skip_pages, 25}, reverse=True):
+        for i, page in enumerate(pdf.pages, 1):
+            if i <= lo:
+                continue
+            text = page.extract_text() or ""
+            if not (_HEADING_RX.search(text) and _GROUPS_RX.search(text)):
+                continue
+            rows = _extract_from_block(i, text)
+            if rows:
+                rep.rows.extend(rows)
+                # The table is rarely repeated — stop once found.
+                return rep
     return rep
 
 

@@ -41,6 +41,7 @@ from src.audit_reports.equity_change import (  # noqa: E402
     EquityChangeReport, upsert as _upsert_equity,
 )
 from src.audit_reports.oci import OCIReport, upsert as _upsert_oci  # noqa: E402
+from src.audit_reports.npl_movement import NplMovementReport, upsert as _upsert_npl  # noqa: E402
 from scripts.revalidate_audit_db import revalidate_partition  # noqa: E402
 from scripts.sync_audit_reports import list_r2_pdfs, _restrict_to_latest_period  # noqa: E402
 from scripts.audit_d1 import DB, pull_snapshot, push_partitions, push_snapshot  # noqa: E402
@@ -50,6 +51,7 @@ STATEMENT_TABLE = {
     "equity_change": "bank_audit_equity_change",
     "oci": "bank_audit_oci",
     "cash_flow": "bank_audit_cash_flow",
+    "npl_movement": "bank_audit_npl_movement",
 }
 
 
@@ -73,6 +75,8 @@ def _worker(args):
         n = len(getattr(rep, "other_comprehensive_income", []) or [])
     elif statement == "cash_flow":
         n = len(getattr(rep, "cash_flow", []) or [])
+    elif statement == "npl_movement":
+        n = len(getattr(rep, "npl_movement", []) or [])
     else:
         eq = getattr(rep, "equity_change", None)
         n = len(eq.rows) if eq and getattr(eq, "rows", None) else 0
@@ -99,6 +103,10 @@ def _upsert(conn, statement, bank, period, kind, rep) -> int:
                 [(bank, period, kind, r.order, r.hierarchy, r.name, r.footnote, r.cur_amount)
                  for r in rows])
         return len(rows)
+    if statement == "npl_movement":
+        report = NplMovementReport(pdf_path=rep.pdf_path,
+                                   rows=getattr(rep, "npl_movement", []) or [])
+        return _upsert_npl(conn, bank, period, kind, report)
     raise ValueError(f"upsert not wired for statement {statement!r}")
 
 
