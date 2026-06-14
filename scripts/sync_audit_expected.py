@@ -171,6 +171,11 @@ def build(conn: sqlite3.Connection, use_r2: bool):
             cf = validation.get((b, p, k, st.validation_statement), 0) if st.has_validator else 0
             is_manual = (b, p, k, st.key) in manual
             status = _cell_status(rows, min_rows, st.has_validator, cf, is_manual)
+            # Annual-only statements (e.g. loans-by-sector): the table simply isn't
+            # disclosed in interim reports, so an empty interim cell is NOT missing —
+            # it's not-applicable. (A bank that DOES disclose interim has rows → ok/error.)
+            if status == "missing" and st.annual_only and not p.upper().endswith("Q4"):
+                status = "not_expected"
             coverage_rows.append((b, p, k, st.key, status, rows, cf, int(is_manual), present))
 
     type_rows = [(m["key"], m["label"], m["table"], m["statement"],

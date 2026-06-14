@@ -25,6 +25,8 @@ class StatementType:
     has_validator: bool           # structural validator writes bank_audit_validation for it
     validation_statement: str | None  # the `statement` value in bank_audit_validation (if validated)
     sort_order: int
+    annual_only: bool = False     # disclosed only in the Q4 (annual) report (e.g. loans-by-sector);
+    #                               interim cells with no data are N/A in the matrix, not "missing"
 
 
 # Order: core financials first, then footnote/§4 tables. sort_order drives the UI.
@@ -68,7 +70,7 @@ REGISTRY: list[StatementType] = [
     StatementType("loans_by_sector", "Loans by sector",
                   "bank_audit_loans_by_sector", None, "loans_by_sector",
                   is_core=False, present_min_rows=1, has_validator=True,
-                  validation_statement="loans_by_sector", sort_order=70),
+                  validation_statement="loans_by_sector", sort_order=70, annual_only=True),
     StatementType("npl_movement", "NPL movement",
                   "bank_audit_npl_movement", None, "npl_movement",
                   is_core=False, present_min_rows=1, has_validator=True,
