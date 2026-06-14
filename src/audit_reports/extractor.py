@@ -1272,11 +1272,20 @@ def extract(pdf_path: str | Path, only: set[str] | None = None) -> BankReport:
                     # _parse_page reject every 2-value data row (AKBNK/ING annual → 0
                     # rows).  Pin to 2 so both columns are picked directly.
                     cf_n = 2
-                    for order, (label, vals) in enumerate(_parse_page(pdf_path, cf_page, cf_n), 1):
+                    # FITZ-ONLY: pdfplumber adds no accuracy on the cash-flow page
+                    # (fitz >= pdfplumber in testing) but costs a full PDF re-open
+                    # (~225 ms) + the poison-PDF hang risk. Fall back to the
+                    # both-engines parser only if fitz yields nothing, so no bank
+                    # that only pdfplumber can read regresses to 0 rows.
+                    cf_text = _fitz_page_text(pdf_path, cf_page - 1) if _HAS_FITZ else ''
+                    cf_parsed = _parse_rows(_fitz_merge_rows(cf_text, cf_n), cf_n) if cf_text else []
+                    if not cf_parsed:
+                        cf_parsed = _parse_page(pdf_path, cf_page, cf_n)
+                    for order, (label, vals) in enumerate(cf_parsed, 1):
                         h, name, fn = _split_label(label)
                         rep.cash_flow.append(StatementRow(
                             order=order, hierarchy=h, name=name, footnote=fn,
-                            cur_amount=vals[0], pri_amount=vals[1],
+                            cur_amount=vals[0], pri_amount=vals[1] if len(vals) > 1 else None,
                         ))
     finally:
         # Release the file WITHOUT calling pdf.close(): close() first flush_cache()s

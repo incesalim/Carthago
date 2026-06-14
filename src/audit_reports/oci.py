@@ -21,7 +21,6 @@ from .extractor import (
     _detect_pl_ncols,
     _fitz_merge_rows,
     _fitz_page_text,
-    _parse_page,
     _parse_rows,
     _safe_repaired_text,
     _split_label,
@@ -109,27 +108,25 @@ def extract_oci(pdf_path: str, oci_page: int) -> OCIReport:
     """Validation-guided OCI extraction from an already-located OCI page."""
     n0 = _detect_pl_ncols(pdf_path, oci_page)
 
-    # Candidate reconstructions: pdfplumber-repaired + fitz, each at the detected
-    # template and the {2, 4} alternates. n=2 is the common correct OCI layout the
-    # P&L-tuned detector mis-reads as 4 on interim reports.
+    # FITZ-ONLY: read the page once with fitz and try each column template; the
+    # validation-guided selection (below) picks the right one. pdfplumber adds no
+    # accuracy on OCI (a narrow single-column table fitz reads cleanly — verified:
+    # fitz validated every sample bank, pdfplumber never uniquely won) and costs a
+    # full PDF re-open (~225 ms) plus the poison-PDF hang risk, so it's dropped.
+    # The detector mis-reads OCI as 4-col on interim reports; n=2 is the fix.
     texts: list[str] = []
-    pp = _safe_repaired_text(pdf_path, oci_page)
-    if pp:
-        texts.append(pp)
     if _HAS_FITZ:
         fz = _fitz_page_text(pdf_path, oci_page - 1)
         if fz:
             texts.append(fz)
+    if not texts:  # no fitz available → pdfplumber so the parser still works
+        pp = _safe_repaired_text(pdf_path, oci_page)
+        if pp:
+            texts.append(pp)
     n_templates = sorted({n0, 2, 4})
     candidates: list[list[StatementRow]] = [
         _parse_oci_with(t, n) for t in texts for n in n_templates
     ]
-    # Candidate C: the current shared parser at the detected n — guarantees the
-    # result is never worse than today's behaviour before scoring.
-    try:
-        candidates.append(_rows_from_parsed(_parse_page(pdf_path, oci_page, n0), n0))
-    except Exception:
-        pass
     candidates = [c for c in candidates if c]
     if not candidates:
         return OCIReport(pdf_path=pdf_path)

@@ -49,6 +49,7 @@ from scripts.audit_d1 import DB, pull_snapshot, push_partitions, push_snapshot  
 STATEMENT_TABLE = {
     "equity_change": "bank_audit_equity_change",
     "oci": "bank_audit_oci",
+    "cash_flow": "bank_audit_cash_flow",
 }
 
 
@@ -70,6 +71,8 @@ def _worker(args):
                 f"extract:{type(e).__name__}:{str(e)[:60]}", None, str(dest))
     if statement == "oci":
         n = len(getattr(rep, "other_comprehensive_income", []) or [])
+    elif statement == "cash_flow":
+        n = len(getattr(rep, "cash_flow", []) or [])
     else:
         eq = getattr(rep, "equity_change", None)
         n = len(eq.rows) if eq and getattr(eq, "rows", None) else 0
@@ -84,6 +87,18 @@ def _upsert(conn, statement, bank, period, kind, rep) -> int:
         report = OCIReport(pdf_path=rep.pdf_path,
                            rows=getattr(rep, "other_comprehensive_income", []) or [])
         return _upsert_oci(conn, bank, period, kind, report)
+    if statement == "cash_flow":
+        rows = getattr(rep, "cash_flow", []) or []
+        conn.execute('DELETE FROM bank_audit_cash_flow WHERE bank_ticker=? AND period=? AND kind=?',
+                     (bank, period, kind))
+        if rows:
+            conn.executemany(
+                'INSERT INTO bank_audit_cash_flow '
+                '(bank_ticker, period, kind, item_order, hierarchy, item_name, footnote, amount) '
+                'VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                [(bank, period, kind, r.order, r.hierarchy, r.name, r.footnote, r.cur_amount)
+                 for r in rows])
+        return len(rows)
     raise ValueError(f"upsert not wired for statement {statement!r}")
 
 
