@@ -53,6 +53,9 @@ from .extractor import (
     _fitz_page_text, _fitz_page_count, _safe_repaired_text,
     extract_page_text_repaired, parse_num,
 )
+# Self-contained equity validators reused to SCORE reconstruction candidates
+# (validator.py imports only stdlib → no circular import).
+from .validator import _eq_roman as _v_eq_roman, _eq_closing as _v_eq_closing
 
 try:
     import fitz as _fitz
@@ -403,6 +406,61 @@ def _dedup_roman_rows(rows: list[EquityChangeRow]) -> list[EquityChangeRow]:
     return out
 
 
+# --- validation-guided candidate scoring -----------------------------------
+# The reconstruction candidates are scored by whether their column chain CLOSES
+# (closing.total_equity ≈ Σ romans III..XI, and I+II=III when present) rather than
+# by raw row count, so the parser self-selects the reconstruction that VALIDATES.
+# Reuses the validator's own helpers so "the parser agrees with the validator."
+_EQ_MIN_REAL_ROWS = 4   # a real page has ≥ opening, III, IV, closing with real totals
+
+
+def _eq_score_dicts(rows: list["EquityChangeRow"]) -> list[dict]:
+    return [{"hierarchy": r.hierarchy, "item_name": r.name,
+             "total_equity": r.total_equity,
+             "total_equity_incl_minority": r.total_equity_incl_minority}
+            for r in rows]
+
+
+def _eq_chain_closes(d: list[dict]) -> bool:
+    """True iff closing.total_equity ≈ Σ(romans III..XI) — the self-contained
+    eq_col_chain identity, computed on candidate dicts (no DB). Guards against a
+    degenerate parse: the closing total must be a REAL number (>1.0), not 0==0."""
+    closing = _v_eq_closing(d)
+    r3 = _v_eq_roman(d, 3)
+    if closing is None or r3 is None:
+        return False
+    cl = closing.get("total_equity")
+    if cl is None or abs(cl) <= 1.0:
+        return False
+    roman_sum, found = 0.0, False
+    for o in range(3, 12):
+        rx = _v_eq_roman(d, o)
+        if rx and rx.get("total_equity") is not None:
+            roman_sum += rx["total_equity"]
+            found = True
+    if not found or abs(roman_sum - cl) > max(10.0, abs(cl) * 5e-5):
+        return False
+    r1, r2 = _v_eq_roman(d, 1), _v_eq_roman(d, 2)   # also require I+II=III when present
+    if r1 and r2:
+        t1, t2, t3 = r1.get("total_equity"), r2.get("total_equity"), r3.get("total_equity")
+        if None not in (t1, t2, t3) and abs((t1 + t2) - t3) > max(3.0, abs(t3) * 5e-5):
+            return False
+    return True
+
+
+def _eq_candidate_score(rows: list["EquityChangeRow"]) -> tuple[int, int, int]:
+    """Lexicographic (validates_and_substantial, n_real_rows, n_rows) — higher is
+    better. tier-1 (first element 1) requires the chain to close AND enough rows
+    carrying a non-trivial total, so a near-empty parse that trivially satisfies
+    0==0 stays tier-0."""
+    if not rows:
+        return (0, 0, 0)
+    n_real = sum(1 for r in rows
+                 if r.total_equity is not None and abs(r.total_equity) > 1.0)
+    tier1 = 1 if (n_real >= _EQ_MIN_REAL_ROWS and _eq_chain_closes(_eq_score_dicts(rows))) else 0
+    return (tier1, n_real, len(rows))
+
+
 def _parse_equity_page(pdf_path: str, page_idx_1: int, period_type: str,
                        n_cols: int) -> list[EquityChangeRow]:
     """Parse one equity-change page into EquityChangeRow objects.
@@ -471,21 +529,41 @@ def _parse_equity_page(pdf_path: str, page_idx_1: int, period_type: str,
             result.append(row)
         return result
 
-    def _parse_lines(lines: list[str]) -> list[EquityChangeRow]:
-        return _parse_with(lines, n_cols)
-
-    candidates: list[list[EquityChangeRow]] = []
+    # The line reconstructions, kept so we can re-parse with the other column
+    # template (below) if nothing validates at the primary n_cols.
+    recons: list[list[str]] = []
     pp_text = _safe_repaired_text(pdf_path, page_idx_1)   # None on a poison PDF
     if pp_text:
-        candidates.append(_parse_lines(pp_text.split('\n')))
+        recons.append(pp_text.split('\n'))
     if _HAS_FITZ:
-        candidates.append(_parse_lines(_fitz_page_lines(pdf_path, page_idx_1 - 1)))
-        candidates.append(_parse_lines(_fitz_page_text(pdf_path, page_idx_1 - 1).split('\n')))
-    if not candidates:
-        candidates.append([])
+        recons.append(_fitz_page_lines(pdf_path, page_idx_1 - 1))
+        recons.append(_fitz_page_text(pdf_path, page_idx_1 - 1).split('\n'))
+    if not recons:
+        recons.append([])
 
-    # Keep whichever reconstruction admitted the most rows.
-    best = max(candidates, key=len)
+    candidates: list[list[EquityChangeRow]] = [_parse_with(lines, n_cols) for lines in recons]
+    # Self-gated both-template search: if NO candidate's column chain validates at
+    # the detected n_cols, the template may be wrong for this bank — also parse each
+    # reconstruction with the OTHER template (14↔16) and let the scorer pick. This
+    # runs ONLY for partitions that don't already validate, so it can't touch the
+    # clean set; it can only turn a chain-failure into a chain-closing parse.
+    if not any(_eq_candidate_score(c)[0] == 1 for c in candidates):
+        other = 16 if n_cols == 14 else 14
+        candidates += [_parse_with(lines, other) for lines in recons]
+
+    # Hybrid selection: prefer the reconstruction whose column chain VALIDATES
+    # (closing ≈ Σ romans III..XI), falling back to most-rows when none clearly
+    # validates — so the parser self-selects the correct engine/template instead
+    # of guessing by row count, WITHOUT regressing the partitions that pass today.
+    scored = [(_eq_candidate_score(c), c) for c in candidates]
+    validating = [(s, c) for (s, c) in scored if s[0] == 1]
+    fullest = max(len(c) for c in candidates)
+    if validating:
+        win_s, win_c = max(validating, key=lambda sc: sc[0])
+        # Don't trade a much-fuller parse for a marginally-shorter validating one.
+        best = win_c if win_s[2] >= fullest - 2 else max(candidates, key=len)
+    else:
+        best = max(candidates, key=len)   # exactly the previous behaviour
     # Mid-page split: some PDFs print both the current and prior equity tables on
     # a single page, so every row arrives tagged with the same period_type.  Find
     # the boundary, then label each block by the dates on the page (not the located

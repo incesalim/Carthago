@@ -8,9 +8,16 @@ between minutes-to-an-hour and ~3.5 hrs).
 
   python scripts/reextract_statement.py --statement equity_change --banks ALL
   python scripts/reextract_statement.py --statement equity_change --banks AKBNK,GARAN --dry-run
+  # fast iterate loop — re-extract only what's failing, validate inline:
+  python scripts/reextract_statement.py --statement equity_change --only-failing --dry-run
 
-Post-step (unchanged, run after this): revalidate_audit_db.py → push_to_d1
---only-tables bank_audit_validation → sync_audit_expected.py --push.
+Validation is computed INLINE per partition by default (recomputes the whole
+partition from stored rows, persists bank_audit_validation, prints live [vFAIL]
+lines) — so a separate revalidate_audit_db.py pass is NOT needed for touched
+partitions. Pass --no-inline-validate to skip it (then run revalidate_audit_db.py
+→ push_to_d1 --only-tables bank_audit_validation → sync_audit_expected.py --push).
+The non-dry-run push includes bank_audit_validation when validated inline; run
+sync_audit_expected.py --push afterward to refresh the coverage matrix.
 """
 from __future__ import annotations
 
@@ -28,10 +35,12 @@ sys.path.insert(0, str(REPO))
 sys.stdout.reconfigure(encoding="utf-8")
 
 from src.audit_reports import r2_storage  # noqa: E402
+from src.audit_reports import validator as _validator  # noqa: E402
 from src.audit_reports.extractor import extract  # noqa: E402
 from src.audit_reports.equity_change import (  # noqa: E402
     EquityChangeReport, upsert as _upsert_equity,
 )
+from scripts.revalidate_audit_db import revalidate_partition  # noqa: E402
 from scripts.sync_audit_reports import list_r2_pdfs, _restrict_to_latest_period  # noqa: E402
 from scripts.audit_d1 import DB, pull_snapshot, push_partitions, push_snapshot  # noqa: E402
 
@@ -78,6 +87,12 @@ def main() -> int:
     ap.add_argument("--latest-period", action="store_true")
     ap.add_argument("--dry-run", action="store_true",
                     help="re-extract + upsert LOCAL db only; no D1 push / snapshot")
+    ap.add_argument("--only-failing", action="store_true",
+                    help="re-extract ONLY partitions currently failing this statement's "
+                         "validation (reads bank_audit_validation in the LOCAL db)")
+    ap.add_argument("--no-inline-validate", action="store_true",
+                    help="skip inline per-partition validation (fall back to the separate "
+                         "revalidate_audit_db.py step)")
     args = ap.parse_args()
     statement = args.statement
     table = STATEMENT_TABLE[statement]
@@ -95,13 +110,25 @@ def main() -> int:
         pdfs = [(t, p, k, key) for (t, p, k, key) in pdfs if p.upper() in periods]
     if args.latest_period:
         pdfs = _restrict_to_latest_period(pdfs)
+    if args.only_failing:
+        # Intersect with the partitions that currently FAIL this statement's
+        # validation (local db — populated by a prior inline run or revalidate).
+        with sqlite3.connect(str(DB)) as _c:
+            failing = {(t.upper(), p.upper(), k) for (t, p, k) in _c.execute(
+                "SELECT bank_ticker, period, kind FROM bank_audit_validation "
+                "WHERE statement=? AND checks_failed>0", (statement,))}
+        pdfs = [(t, p, k, key) for (t, p, k, key) in pdfs
+                if (t.upper(), p.upper(), k) in failing]
+        print(f"[reext] --only-failing -> {len(pdfs)} failing {statement} partition(s)",
+              flush=True)
     print(f"[reext] statement={statement} table={table} pdfs={len(pdfs)} "
           f"workers={args.workers}{' (dry-run)' if args.dry_run else ''}", flush=True)
     if not pdfs:
         print("[reext] nothing to do"); return 0
 
     touched: list[tuple[str, str, str]] = []
-    counts = {"ok": 0, "fail": 0, "rows": 0}
+    counts = {"ok": 0, "fail": 0, "rows": 0, "vok": 0, "vfail": 0}
+    inline = not args.no_inline_validate
     with tempfile.TemporaryDirectory(prefix="bddk_reext_") as td:
         work = [(t, p, k, key, statement, td) for (t, p, k, key) in pdfs]
         # NOTE: no max_tasks_per_child — on Windows it can DEADLOCK the pool at a
@@ -126,20 +153,42 @@ def main() -> int:
                 touched.append((t, p, k))
                 counts["ok"] += 1
                 counts["rows"] += n
+                # Inline validation: recompute the WHOLE partition from stored rows
+                # (the just-upserted statement + the others already in the db) and
+                # persist it, so failures surface DURING the run and the separate
+                # revalidate_audit_db.py pass is unnecessary for touched partitions.
+                if inline:
+                    results = revalidate_partition(conn, t, p, k)
+                    _validator.upsert_validation(conn, t, p, k, results)
+                    eqr = results.get(statement)
+                    if eqr is not None and eqr.failed:
+                        counts["vfail"] += 1
+                        chk = eqr.failures[0].get("check", "?") if eqr.failures else "?"
+                        print(f"  [vFAIL] {t:<8} {p} {k:<14} {statement} "
+                              f"P{eqr.passed}/F{eqr.failed}/S{eqr.skipped} {chk}", flush=True)
+                    elif eqr is not None:
+                        counts["vok"] += 1
                 if done % 50 == 0:
                     conn.commit()
-                    print(f"  [{done}/{len(work)}] last {t} {p} {k} rows={n} ({secs:.0f}s)", flush=True)
+                    tally = f" vpass={counts['vok']} vfail={counts['vfail']}" if inline else ""
+                    print(f"  [{done}/{len(work)}] last {t} {p} {k} rows={n} ({secs:.0f}s){tally}",
+                          flush=True)
                 try:
                     Path(path).unlink()
                 except OSError:
                     pass
             conn.commit()
-    print(f"[reext] ok={counts['ok']} fail={counts['fail']} rows={counts['rows']}", flush=True)
+    vtally = f" | validated: pass={counts['vok']} FAIL={counts['vfail']}" if inline else ""
+    print(f"[reext] ok={counts['ok']} fail={counts['fail']} rows={counts['rows']}{vtally}",
+          flush=True)
 
     if args.dry_run:
         print("[reext] dry-run — no D1 push / snapshot", flush=True)
         return 0
-    push_partitions(touched, db_path=DB, window_hours=24, tables=[table])
+    # Push the validation rows too when computed inline, so the dashboard/matrix
+    # reflect the fresh pass/fail without a separate revalidate+push.
+    push_tables = [table] + (["bank_audit_validation"] if inline else [])
+    push_partitions(touched, db_path=DB, window_hours=24, tables=push_tables)
     push_snapshot(DB)
     print("[reext] done", flush=True)
     return 0
