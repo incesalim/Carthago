@@ -40,6 +40,7 @@ from src.audit_reports.extractor import extract  # noqa: E402
 from src.audit_reports.equity_change import (  # noqa: E402
     EquityChangeReport, upsert as _upsert_equity,
 )
+from src.audit_reports.oci import OCIReport, upsert as _upsert_oci  # noqa: E402
 from scripts.revalidate_audit_db import revalidate_partition  # noqa: E402
 from scripts.sync_audit_reports import list_r2_pdfs, _restrict_to_latest_period  # noqa: E402
 from scripts.audit_d1 import DB, pull_snapshot, push_partitions, push_snapshot  # noqa: E402
@@ -47,6 +48,7 @@ from scripts.audit_d1 import DB, pull_snapshot, push_partitions, push_snapshot  
 # statement key → its D1/SQLite table. Only the per-table-upsert-able lanes.
 STATEMENT_TABLE = {
     "equity_change": "bank_audit_equity_change",
+    "oci": "bank_audit_oci",
 }
 
 
@@ -66,8 +68,11 @@ def _worker(args):
     except Exception as e:  # noqa: BLE001
         return (ticker, period, kind, False, 0, time.time() - t0,
                 f"extract:{type(e).__name__}:{str(e)[:60]}", None, str(dest))
-    eq = getattr(rep, "equity_change", None)
-    n = len(eq.rows) if eq and getattr(eq, "rows", None) else 0
+    if statement == "oci":
+        n = len(getattr(rep, "other_comprehensive_income", []) or [])
+    else:
+        eq = getattr(rep, "equity_change", None)
+        n = len(eq.rows) if eq and getattr(eq, "rows", None) else 0
     return (ticker, period, kind, True, n, time.time() - t0, "", rep, str(dest))
 
 
@@ -75,6 +80,10 @@ def _upsert(conn, statement, bank, period, kind, rep) -> int:
     if statement == "equity_change":
         report = getattr(rep, "equity_change", None) or EquityChangeReport(pdf_path=rep.pdf_path)
         return _upsert_equity(conn, bank, period, kind, report)
+    if statement == "oci":
+        report = OCIReport(pdf_path=rep.pdf_path,
+                           rows=getattr(rep, "other_comprehensive_income", []) or [])
+        return _upsert_oci(conn, bank, period, kind, report)
     raise ValueError(f"upsert not wired for statement {statement!r}")
 
 

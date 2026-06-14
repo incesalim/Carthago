@@ -1234,13 +1234,14 @@ def extract(pdf_path: str | Path, only: set[str] | None = None) -> BankReport:
                         if (_want('oci') or _want('equity_change') or _want('cash_flow'))
                         else None)
             if oci_page and _want('oci'):
-                oci_n = _detect_pl_ncols(pdf_path, oci_page)
-                for order, (label, vals) in enumerate(_parse_page(pdf_path, oci_page, oci_n), 1):
-                    h, name, fn = _split_label(label)
-                    rep.other_comprehensive_income.append(StatementRow(
-                        order=order, hierarchy=h, name=name, footnote=fn,
-                        cur_amount=vals[0], pri_amount=vals[oci_n // 2],
-                    ))
+                # Validation-guided OCI parse (multi-engine, picks the chain that
+                # closes — fixes the n_cols mis-detection that yielded 0/garbage
+                # rows). Isolated so an OCI failure can't sink P&L/equity/CF.
+                try:
+                    from .oci import extract_oci
+                    rep.other_comprehensive_income = extract_oci(pdf_path, oci_page).rows
+                except Exception:
+                    rep.other_comprehensive_income = []
             # Equity-change pages follow OCI (or P&L when OCI is absent). Equity rows
             # are also the cash-flow page anchor (_eq_last), so run the extractor when
             # equity OR cash_flow is wanted; store on rep only when equity is wanted.
