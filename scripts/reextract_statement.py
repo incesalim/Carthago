@@ -45,6 +45,7 @@ from src.audit_reports.npl_movement import NplMovementReport, upsert as _upsert_
 from src.audit_reports.loans_by_sector import (  # noqa: E402
     LoansBySectorReport, upsert as _upsert_lbs,
 )
+from src.audit_reports.bank_profile import upsert_profile as _upsert_bp  # noqa: E402
 from scripts.revalidate_audit_db import revalidate_partition  # noqa: E402
 from scripts.sync_audit_reports import list_r2_pdfs, _restrict_to_latest_period  # noqa: E402
 from scripts.audit_d1 import DB, pull_snapshot, push_partitions, push_snapshot  # noqa: E402
@@ -56,6 +57,7 @@ STATEMENT_TABLE = {
     "cash_flow": "bank_audit_cash_flow",
     "npl_movement": "bank_audit_npl_movement",
     "loans_by_sector": "bank_audit_loans_by_sector",
+    "bank_profile": "bank_audit_profile",
 }
 
 
@@ -83,6 +85,9 @@ def _worker(args):
         n = len(getattr(rep, "npl_movement", []) or [])
     elif statement == "loans_by_sector":
         n = len(getattr(rep, "loans_by_sector", []) or [])
+    elif statement == "bank_profile":
+        bp = getattr(rep, "bank_profile", None)
+        n = 0 if (bp is None or bp.is_empty()) else 1
     else:
         eq = getattr(rep, "equity_change", None)
         n = len(eq.rows) if eq and getattr(eq, "rows", None) else 0
@@ -117,6 +122,15 @@ def _upsert(conn, statement, bank, period, kind, rep) -> int:
         report = LoansBySectorReport(pdf_path=rep.pdf_path,
                                      rows=getattr(rep, "loans_by_sector", []) or [])
         return _upsert_lbs(conn, bank, period, kind, report)
+    if statement == "bank_profile":
+        bp = getattr(rep, "bank_profile", None)
+        # Mirror the loader's skip-if-empty: don't write an all-NULL row for a bank
+        # that doesn't disclose (it stays 'missing'). bank_profile has no validator,
+        # so --only-failing can't select it — re-extract by --banks instead.
+        if bp is None or bp.is_empty():
+            return 0
+        _upsert_bp(conn, bank, period, kind, bp)
+        return 1
     raise ValueError(f"upsert not wired for statement {statement!r}")
 
 
