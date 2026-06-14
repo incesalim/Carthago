@@ -1,0 +1,103 @@
+name: Re-extract one statement
+
+# Targeted single-statement re-extract via scripts/reextract_statement.py: pull
+# snapshot → re-extract ONLY the named statement for the selected partitions →
+# inline-validate → push that table + bank_audit_validation to D1 → re-upload the
+# snapshot → refresh the coverage matrix. The non-destructive guard means passing
+# partitions are left untouched (only failing/missing/empty are rewritten), so this
+# never regresses correct data — including the frozen BS/P&L. Manual only.
+#
+# Note on --only-failing: it selects checks_failed>0, which EXCLUDES "empty"
+# partitions (0 rows → validation skipped, checks_failed=0). For a statement that
+# is broadly un-extracted (e.g. OCI), leave only_failing OFF so the empties are
+# re-extracted too; the guard still skips the genuinely-passing ones.
+on:
+  workflow_dispatch:
+    inputs:
+      statement:
+        description: "Statement lane to re-extract (e.g. oci, equity_change)"
+        type: string
+        required: true
+        default: "oci"
+      banks:
+        description: "Tickers (comma-separated) or ALL"
+        type: string
+        default: "ALL"
+      periods:
+        description: "Quarters (comma-separated YYYYQn, e.g. 2026Q1); blank = all"
+        type: string
+        default: ""
+      only_failing:
+        description: "Only partitions currently FAILING validation (excludes empties — leave off for broadly-empty statements)"
+        type: boolean
+        default: false
+      dry_run:
+        description: "Re-extract locally only; skip the D1 push + snapshot upload"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+# Share the audit lane so this can't race the weekly refresh / a backfill (same R2
+# snapshot). One audit job at a time.
+concurrency:
+  group: bddk-audit
+  cancel-in-progress: false
+
+jobs:
+  reextract:
+    name: Re-extract statement → D1 + snapshot
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      PYTHONIOENCODING: utf-8
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Setup Node (for wrangler / D1 push)
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
+      - name: Re-extract (→ inline-validate → push table + validation → snapshot)
+        # Inputs forwarded via env (never interpolated into the command line) so a
+        # dispatch input is one quoted argument and can't inject shell.
+        env:
+          STATEMENT: ${{ inputs.statement }}
+          BANKS: ${{ inputs.banks }}
+          PERIODS: ${{ inputs.periods }}
+          ONLY_FAILING: ${{ inputs.only_failing && '--only-failing' || '' }}
+          DRY: ${{ inputs.dry_run && '--dry-run' || '' }}
+        run: |
+          args=(--statement "$STATEMENT" --banks "$BANKS")
+          [ -n "$PERIODS" ] && args+=(--periods "$PERIODS")
+          [ -n "$ONLY_FAILING" ] && args+=("$ONLY_FAILING")
+          [ -n "$DRY" ] && args+=("$DRY")
+          python scripts/reextract_statement.py "${args[@]}"
+
+      - name: Refresh coverage matrix (/admin)
+        if: ${{ !inputs.dry_run }}
+        run: python scripts/sync_audit_expected.py --push
+
+      - name: Audit data-quality check (alert-only)
+        if: ${{ !inputs.dry_run }}
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+        run: python scripts/check_audit_quality.py --db data/bank_audit.db --alert
