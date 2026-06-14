@@ -22,9 +22,11 @@ coverage or known issues change.
 > gains an `oci` lane; new `.github/workflows/reextract-statement.yml` (workflow_dispatch)
 > ships it (statement=oci, periods=2026Q1, only_failing OFF — empties are
 > `checks_failed=0`/skipped, so `--only-failing` would miss them; the non-destructive
-> guard still skips passing). Commits `cf5c4e7`, `8f320ce`. OPEN: ALBRK validates the
-> chain but drops a wrapped sub-row (2.2.2) so its hierarchy sub-tree is short — per-bank
-> follow-up; extend to pre-2026 once 2026 confirms.
+> guard still skips passing). Commits `cf5c4e7`, `8f320ce`. **Shipped to D1+R2 (run
+> 27500669011): 55 OCI partitions → 52 pass, was ~1.** Tail of 3: ALBRK cons+uncons
+> (chain validates but drops the wrapped sub-row 2.2.2 → hierarchy sub-tree short) and
+> TSKB uncons (P&L page is image-only → `pl=None` → no OCI page → empty; genuine
+> OCR/manual gap). OPEN: those 3, and extend OCI to pre-2026 periods.
 >
 > Prior: 2026-06-14 — **re-extraction is now NON-DESTRUCTIVE: it can never
 > overwrite correct data.** `loader.upsert_report` skips writing any statement whose
