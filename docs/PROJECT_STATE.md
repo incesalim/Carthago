@@ -178,8 +178,13 @@ D1 (~159k balance-sheet rows + ~59k P&L rows + ~7.4k IFRS 9 credit-quality
 rows + ~460 bank-profile rows). PDFs themselves live in R2 at
 `bddk-audit-reports/<ticker>/<TICKER>_<period>_<kind>.pdf`. Bank profile
 (branches + personnel) is extracted where the bank discloses it in a
-recognized phrasing — 16 of 31 banks currently parsed; the remaining 15
-use phrasings not yet covered by the regex patterns.
+recognized phrasing — **20 of 31 banks parsed** (2026-06-14: broadened the regex —
+domestic-only / bare-total branch forms + "personeli"/"çalışan" personnel →
+recovered EMLAK/FIBA/KUVEYT/ODEA; `bank_profile` wired as a `reextract-statement.yml`
+lane). The remaining ~11 are a **per-bank-phrasing long tail** — some disclose with
+yet-other wording (ISCTR/ALBRK/ING — each needs its own pattern), some are
+development/policy banks that may not disclose a branch network at all
+(EXIM/TSKB/KLNMA). Low priority (a size indicator, not core financial data).
 
 **Acquisition vs extraction (2026-06-12)**: only acquisition is automated —
 `acquire-audit.yml` (weekly) discovers + downloads new PDFs to R2, refreshes the
