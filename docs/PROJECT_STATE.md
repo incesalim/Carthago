@@ -7,7 +7,26 @@ coverage or known issues change.
 > → this file → [OPERATIONS.md](OPERATIONS.md). Metric definitions in
 > [METRICS.md](METRICS.md).
 >
-> Last verified: 2026-06-14 — **re-extraction is now NON-DESTRUCTIVE: it can never
+> Last verified: 2026-06-14 — **OCI ("Diğer Kapsamlı Gelir") extraction fixed with the
+> validation-guided approach.** OCI was barely extracted (53 of 55 2026 partitions had
+> ZERO rows): the P&L-tuned column detector reads a 2-column interim OCI page as 4
+> columns, so the shared `_parse_page` returned 0 / garbage rows. New
+> `src/audit_reports/oci.py` mirrors the equity "new approach" — read the located OCI
+> page with pdfplumber + fitz at n∈{detected,2,4} and keep the reconstruction whose
+> **roman chain validates** (III = I + II) rather than the most-rows one. n=2 wins for
+> interim; multi-engine recovers banks one engine fragments (TEB needs fitz). Sample of
+> 14 (empties + partials): **12/14 now pass `check_oci`, up from ~0** (the locator was
+> already fine post-fitz-changes — the DB's "empties" were stale). Strictly ADDITIVE:
+> never touches the frozen `_parse_page`/`_detect_pl_ncols`; the `extract()` call-site
+> swap is isolated to the OCI block (BS/P&L/equity/CF byte-unchanged). `reextract_statement.py`
+> gains an `oci` lane; new `.github/workflows/reextract-statement.yml` (workflow_dispatch)
+> ships it (statement=oci, periods=2026Q1, only_failing OFF — empties are
+> `checks_failed=0`/skipped, so `--only-failing` would miss them; the non-destructive
+> guard still skips passing). Commits `cf5c4e7`, `8f320ce`. OPEN: ALBRK validates the
+> chain but drops a wrapped sub-row (2.2.2) so its hierarchy sub-tree is short — per-bank
+> follow-up; extend to pre-2026 once 2026 confirms.
+>
+> Prior: 2026-06-14 — **re-extraction is now NON-DESTRUCTIVE: it can never
 > overwrite correct data.** `loader.upsert_report` skips writing any statement whose
 > stored data already PASSES validation (`bank_audit_validation`: `checks_failed=0 &
 > checks_passed>0`) — assets+liabilities protected as a pair (they cross-check),
