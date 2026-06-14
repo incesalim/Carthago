@@ -528,45 +528,65 @@ _CAP_CAR_TOL = 2.0  # ±2 percentage-point tolerance for CAR reconciliation;
 
 
 def check_capital(rows: list[dict]) -> ValidationResult:
-    """Capital adequacy: CET1 ≤ Tier1 ≤ Total Capital, and CAR = Total/RWA*100."""
+    """Capital adequacy — RECONCILE the table (not just orderings):
+      composition: Tier1 = CET1 + AT1 ; Total Capital = Tier1 + Tier2
+      sub-ratios:  cet1_ratio = CET1/RWA ; tier1_ratio = Tier1/RWA ; CAR = Total/RWA
+      plus a CAR plausibility band [5, 80]%.
+    An optional component (AT1 / Tier2) is treated as 0 when NULL, but the
+    composition PASSES only when the identity then ties — a genuinely-missed
+    NON-zero component won't tie → SKIP, never a false pass/fail."""
     res = ValidationResult()
     cur = next((r for r in rows if r.get("period_type") == "current"), None)
     if cur is None:
         res.add_skip()
         return res
     cet1 = cur.get("cet1_capital")
+    at1  = cur.get("additional_tier1_capital")
     t1   = cur.get("tier1_capital")
+    t2   = cur.get("tier2_capital")
     tc   = cur.get("total_capital")
     rwa  = cur.get("total_rwa")
-    car  = cur.get("capital_adequacy_ratio")
-    # CET1 ≤ Tier1
-    if cet1 is not None and t1 is not None:
-        if cet1 <= t1 * (1 + _CAP_TOL):
+    cet1r = cur.get("cet1_ratio")
+    t1r   = cur.get("tier1_ratio")
+    car   = cur.get("capital_adequacy_ratio")
+
+    def _composition(parent, base, opt, label):
+        # parent = base + opt (opt None → 0, but PASS only when it ties)
+        if base is None or parent is None:
+            res.add_skip()
+            return
+        tol = _tol(abs(parent), base=1000.0, rel=1e-3)
+        implied = base + (opt or 0.0)
+        if abs(implied - parent) <= tol:
+            res.add_pass()
+        elif base > parent + tol:
+            # base ALONE exceeds the parent — a non-negative optional component
+            # can't fix that, so it's a real fail even if opt is unknown.
+            res.add_fail("cap_composition", label, expected=parent, actual=base)
+        elif opt is None:
+            res.add_skip()   # missed optional component — can't fail confidently
+        else:
+            res.add_fail("cap_composition", label, expected=parent, actual=implied)
+
+    _composition(t1, cet1, at1, "Tier1 = CET1 + AT1")
+    _composition(tc, t1, t2, "Total Capital = Tier1 + Tier2")
+
+    def _ratio(reported, num, label):
+        # reported sub-ratio must equal num / RWA * 100 (±2pp, as for CAR)
+        if reported is None or num is None or rwa is None or rwa <= 0:
+            res.add_skip()
+            return
+        implied = num / rwa * 100
+        if abs(implied - reported) <= _CAP_CAR_TOL:
             res.add_pass()
         else:
-            res.add_fail("cap_tier_order", "CET1 ≤ Tier1", expected=t1, actual=cet1)
-    else:
-        res.add_skip()
-    # Tier1 ≤ Total Capital
-    if t1 is not None and tc is not None:
-        if t1 <= tc * (1 + _CAP_TOL):
-            res.add_pass()
-        else:
-            res.add_fail("cap_tier_order", "Tier1 ≤ Total Capital", expected=tc, actual=t1)
-    else:
-        res.add_skip()
-    # CAR = Total Capital / RWA * 100 (±2pp absolute tolerance for BRSA floors)
-    if tc is not None and rwa is not None and car is not None and rwa > 0:
-        implied = tc / rwa * 100
-        tol = _CAP_CAR_TOL
-        if abs(implied - car) <= tol:
-            res.add_pass()
-        else:
-            res.add_fail("cap_car_reconcile", "CAR = Total Capital / RWA * 100",
-                         expected=implied, actual=car)
-    else:
-        res.add_skip()
-    # CAR within plausible band [5, 80]
+            res.add_fail("cap_ratio_reconcile", label, expected=implied, actual=reported)
+
+    _ratio(cet1r, cet1, "CET1 ratio = CET1 / RWA * 100")
+    _ratio(t1r, t1, "Tier1 ratio = Tier1 / RWA * 100")
+    _ratio(car, tc, "CAR = Total Capital / RWA * 100")
+
+    # CAR within plausible band [5, 80]%
     if car is not None:
         if 5 <= car <= 80:
             res.add_pass()
