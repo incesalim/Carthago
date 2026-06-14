@@ -35,7 +35,7 @@ from pathlib import Path
 
 import pdfplumber
 
-from .extractor import parse_num
+from .extractor import _HAS_FITZ, _fitz_page_text, _n_pages, parse_num
 
 
 # ---------------------------------------------------------------------------
@@ -162,20 +162,19 @@ class LoansBySectorReport:
 # ---------------------------------------------------------------------------
 def _parse_amount(s: str) -> float | None:
     s = s.strip()
-    if s in ("-", "—", "–", ""):
+    if not s or all(c in "-–—" for c in s):  # "", "-", "--", "—" … → nil
         return 0.0
     return parse_num(s)
 
 
 # Three numbers in a row, separated by whitespace, optionally with commas
-# inside numbers and an optional leading footnote ref like "(1)".
+# inside numbers and an optional leading footnote ref like "(1)". A nil cell is
+# one OR MORE dashes ("--" as well as "-", en/em variants) — accept a run, else a
+# trailing "--" drops the row (e.g. FIBA's "Balıkçılık -- -- --" got merged with
+# the next line and grabbed the wrong sector's numbers → Σ sectors ≠ total → fail).
+_NUM_TOKEN = r"(?:\(?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?\)?|[-–—]+)"
 _THREE_NUMS_TAIL = re.compile(
-    r"(?P<n1>(?:\(?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?\)?|-))"
-    r"\s+"
-    r"(?P<n2>(?:\(?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?\)?|-))"
-    r"\s+"
-    r"(?P<n3>(?:\(?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?\)?|-))"
-    r"\s*$"
+    rf"(?P<n1>{_NUM_TOKEN})\s+(?P<n2>{_NUM_TOKEN})\s+(?P<n3>{_NUM_TOKEN})\s*$"
 )
 
 
@@ -199,6 +198,10 @@ def _merge_wrapped_labels(lines: list[str]) -> list[str]:
         # (avoid swallowing the end of a sentence).
         looks_like_label_head = (
             not cur_has_num
+            # An all-nil row ("Balıkçılık -- -- --") has no digits but IS a
+            # complete row — don't treat it as a label-head and merge it with the
+            # next line (that grabbed the next sector's total → Σ ≠ total → fail).
+            and not _THREE_NUMS_TAIL.search(cur.strip())
             and len(cur.strip()) <= 80
             and not cur.strip().endswith((".", ":", ";", "."))
         )
@@ -317,11 +320,15 @@ def extract_from_pdf(
     in Turkish audit reports, ~60-100 in English ones), never in the
     early statement pages.
     """
+    # Scan + parse with fitz (the engine the statement locators use) — faster and
+    # poison-hang-safe, consistent with the OCI/CF/NPL lanes; fitz's row text
+    # parses identically here. Falls back to pdfplumber text only without fitz.
     rep = LoansBySectorReport(pdf_path=pdf_path)
-    for i, page in enumerate(pdf.pages, 1):
-        if i <= skip_pages:
-            continue
-        text = page.extract_text() or ""
+    use_fitz = _HAS_FITZ and bool(pdf_path)
+    n_pages = _n_pages(pdf) if use_fitz else len(pdf.pages)
+    for i in range(skip_pages + 1, n_pages + 1):
+        text = (_fitz_page_text(pdf_path, i - 1) if use_fitz
+                else (pdf.pages[i - 1].extract_text() or ""))
         if not _page_has_sector_heading(text):
             continue
         rep.rows.extend(_extract_section(i, text))
