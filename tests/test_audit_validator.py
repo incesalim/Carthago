@@ -339,14 +339,29 @@ def test_capital_clean_passes():
 
 
 def test_capital_cet1_exceeds_tier1_fails():
+    # CET1 alone > Tier1 is impossible (CET1 is part of Tier1) → composition fail
+    # even with AT1 unknown.
     res = v.check_capital([_cap_row(cet1_capital=120_000, tier1_capital=100_000)])
-    assert any(f["check"] == "cap_tier_order" for f in res.failures)
+    assert any(f["check"] == "cap_composition" for f in res.failures)
 
 
 def test_capital_car_mismatch_fails():
     # Total 120k / RWA 750k * 100 = 16.0%, but we report 20.0%
     res = v.check_capital([_cap_row(capital_adequacy_ratio=20.0)])
-    assert any(f["check"] == "cap_car_reconcile" for f in res.failures)
+    assert any(f["check"] == "cap_ratio_reconcile" for f in res.failures)
+
+
+def test_capital_total_not_tier1_plus_tier2_fails():
+    # Tier1 100k + Tier2 50k = 150k, but Total says 120k → composition fail
+    res = v.check_capital([_cap_row(tier2_capital=50_000, total_capital=120_000,
+                                    capital_adequacy_ratio=16.0)])
+    assert any(f["check"] == "cap_composition" for f in res.failures)
+
+
+def test_capital_subratio_reconcile_fails():
+    # tier1_ratio reported 20% but Tier1 100k / RWA 750k = 13.3% → reconcile fail
+    res = v.check_capital([_cap_row(tier1_ratio=20.0)])
+    assert any(f["check"] == "cap_ratio_reconcile" for f in res.failures)
 
 
 def test_capital_no_current_row_skips():
