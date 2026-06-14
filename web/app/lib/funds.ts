@@ -64,7 +64,8 @@ export function aumStack(rows: MonthlyTypeRow[]): StackPoint[] {
     if (!byPeriod.has(r.period)) byPeriod.set(r.period, { period: r.period });
     byPeriod.get(r.period)![r.fon_tipi] = (r.aum_try ?? 0) * TL_TO_TRN;
   }
-  return [...byPeriod.values()].sort((a, b) => a.period.localeCompare(b.period));
+  return [...byPeriod.values()].sort((a, b) =>
+    String(a.period).localeCompare(String(b.period)));
 }
 
 /** Long-form per-type series for TrendChart (investors in millions, or fund counts). */
@@ -124,7 +125,8 @@ export async function categoryStack(fonTipi: string): Promise<StackPoint[]> {
     const key = MAIN_CATEGORIES.has(r.category) ? r.category : "rest";
     p[key] = (Number(p[key]) || 0) + (r.aum_try ?? 0) * TL_TO_TRN;
   }
-  return [...byPeriod.values()].sort((a, b) => a.period.localeCompare(b.period));
+  return [...byPeriod.values()].sort((a, b) =>
+    String(a.period).localeCompare(String(b.period)));
 }
 
 // ── Portfolio allocation (AUM-weighted asset mix) ───────────────────────────
@@ -183,7 +185,8 @@ export async function allocationStack(fonTipi: string): Promise<StackPoint[]> {
     // the percent stack doesn't fold — the distortion is < 1pp of the mix.
     p[key] = Math.max(0, (Number(p[key]) || 0) + (r.pct ?? 0));
   }
-  return [...byPeriod.values()].sort((a, b) => a.period.localeCompare(b.period));
+  return [...byPeriod.values()].sort((a, b) =>
+    String(a.period).localeCompare(String(b.period)));
 }
 
 // ── Real (CPI-deflated) AUM index ───────────────────────────────────────────

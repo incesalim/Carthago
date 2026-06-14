@@ -12,6 +12,7 @@
 import {
   digitalSeries,
   quarterlyDeltas,
+  pivotWide,
   SCALE_K_TO_M,
   SCALE_BN_TO_TRN,
   CHANNEL_USE,
@@ -36,7 +37,20 @@ import {
 } from "@/app/lib/acquisition";
 import { latestPeriod } from "@/app/lib/metrics";
 import { PageHeader } from "@/app/components/ui";
+import { ChartCard } from "@/app/components/ui/chart-card";
 import TrendChart from "@/app/components/TrendChart";
+import StackedArea from "@/app/components/StackedArea";
+import BopFlowChart from "@/app/components/BopFlowChart";
+
+// Build a StackedArea/BopFlowChart `series` list from a {code: label} map,
+// preserving order (= stack/legend order).
+const seriesOf = (labels: Record<string, string>) =>
+  Object.entries(labels).map(([key, label]) => ({ key, label }));
+
+// Theme palette[0]/[1] (light/dark) so the mobile/internet grouped bars match
+// the mobile/internet lines elsewhere on the page.
+const MOBILE_FILL = { light: "#7a0d2e", dark: "#f0608a" };
+const INTERNET_FILL = { light: "#1f4068", dark: "#6f9fe0" };
 
 export const dynamic = "force-dynamic";
 
@@ -111,12 +125,13 @@ export default async function DigitalPage() {
             yFormat="raw"
             decimals={0}
           />
-          <TrendChart
-            data={channelUse}
-            seriesLabels={CHANNEL_USE_LABELS}
-            title="Active individuals by channel usage (millions)"
-            yFormat="raw"
-            decimals={0}
+          <StackedArea
+            data={pivotWide(channelUse)}
+            series={seriesOf(CHANNEL_USE_LABELS)}
+            title="Active individuals by channel usage (% of total)"
+            decimals={1}
+            percentStack
+            colorKeys
           />
         </div>
       </Section>
@@ -133,22 +148,25 @@ export default async function DigitalPage() {
             yFormat="raw"
             decimals={0}
           />
-          <TrendChart
-            data={netAdds}
-            seriesLabels={CHANNEL_LABELS}
-            title="Net new registered customers per quarter (millions)"
-            yFormat="raw"
-            decimals={1}
-            zeroLine
-          />
+          <ChartCard title="Net new registered customers per quarter (millions)">
+            <BopFlowChart
+              data={pivotWide(netAdds, "x")}
+              bars={[
+                { key: "mobile", label: CHANNEL_LABELS.mobile, fill: MOBILE_FILL },
+                { key: "internet", label: CHANNEL_LABELS.internet, fill: INTERNET_FILL },
+              ]}
+              grouped
+              decimals={1}
+            />
+          </ChartCard>
         </div>
-        <TrendChart
-          data={applications}
-          seriesLabels={APPLICATION_LABELS}
+        <StackedArea
+          data={pivotWide(applications)}
+          series={seriesOf(APPLICATION_LABELS)}
           title="Product applications via mobile per quarter (millions)"
-          yFormat="raw"
           decimals={1}
           height={320}
+          colorKeys
         />
       </Section>
 
@@ -164,21 +182,22 @@ export default async function DigitalPage() {
             yFormat="raw"
             decimals={0}
           />
-          <TrendChart
-            data={acq.share}
-            seriesLabels={ACQ_CHANNEL_LABELS}
+          <StackedArea
+            data={pivotWide(acq.byChannel)}
+            series={seriesOf(ACQ_CHANNEL_LABELS)}
             title="Share of new customers by channel (%)"
-            yFormat="pct"
             decimals={0}
+            percentStack
+            colorKeys
           />
         </div>
-        <TrendChart
-          data={acq.byMethod}
-          seriesLabels={ACQ_METHOD_LABELS}
+        <StackedArea
+          data={pivotWide(acq.byMethod)}
+          series={seriesOf(ACQ_METHOD_LABELS)}
           title="New individual customers by acquisition method (thousands per month)"
-          yFormat="raw"
           decimals={0}
           height={320}
+          colorKeys
         />
       </Section>
 
@@ -187,19 +206,19 @@ export default async function DigitalPage() {
         subtitle="Quarterly money-transfer and bill-payment activity. Mobile dominates both value and volume."
       >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <TrendChart
-            data={transferVolume}
-            seriesLabels={CHANNEL_LABELS}
+          <StackedArea
+            data={pivotWide(transferVolume)}
+            series={seriesOf(CHANNEL_LABELS)}
             title="Money-transfer volume per quarter (₺ trillion)"
-            yFormat="raw"
             decimals={1}
+            colorKeys
           />
-          <TrendChart
-            data={transferCount}
-            seriesLabels={CHANNEL_LABELS}
+          <StackedArea
+            data={pivotWide(transferCount)}
+            series={seriesOf(CHANNEL_LABELS)}
             title="Money-transfer count per quarter (millions)"
-            yFormat="raw"
             decimals={0}
+            colorKeys
           />
         </div>
         <TrendChart
@@ -217,19 +236,19 @@ export default async function DigitalPage() {
         subtitle="Demographics of active individual digital customers (internet + mobile combined)."
       >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <TrendChart
-            data={gender}
-            seriesLabels={GENDER_LABELS}
-            title="Active individuals by gender (millions)"
-            yFormat="raw"
-            decimals={0}
+          <StackedArea
+            data={pivotWide(gender)}
+            series={seriesOf(GENDER_LABELS)}
+            title="Active individuals by gender (% of total)"
+            decimals={1}
+            percentStack
+            colorKeys
           />
-          <TrendChart
-            data={age}
-            seriesLabels={AGE_LABELS}
+          <StackedArea
+            data={pivotWide(age)}
+            series={seriesOf(AGE_LABELS)}
             title="Active individuals by age group (millions)"
-            yFormat="raw"
-            decimals={0}
+            decimals={1}
           />
         </div>
       </Section>
