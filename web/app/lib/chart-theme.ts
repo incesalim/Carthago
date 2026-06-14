@@ -67,16 +67,34 @@ const BANK_TYPE_COLOR_INDEX: Record<string, number> = {
 };
 
 /**
- * Stroke colour for a series. Known bank-type codes map to their fixed slot;
- * any other key (synthetic segment codes, EVDS labels) falls back to its
- * positional index, which is stable within a single chart.
+ * Fixed slots for the /digital tab's synthetic acquisition series, so a series
+ * keeps one colour across the tab's line, share and by-method charts. Without
+ * this, `branch` lands on slot 0 (maroon) in the by-method stack but slot 1
+ * (navy) in the digital-vs-branch line/share — the same word in two colours.
+ * Here the remote (digital) side reads warm (maroon/orange/purple) and branch
+ * reads navy — the navy the line/share charts already use.
+ */
+const DIGITAL_SERIES_COLOR_INDEX: Record<string, number> = {
+  digital: 0, // remote/digital aggregate — maroon
+  branch: 1, // branch (non-digital) — navy, everywhere
+  remote_rep: 0, // largest remote method — shares the digital maroon
+  remote_courier: 3, // orange
+  bulk: 4, // purple
+};
+
+/**
+ * Stroke colour for a series. Known bank-type codes (and the /digital tab's
+ * acquisition keys) map to their fixed slot; any other key (synthetic segment
+ * codes, EVDS labels) falls back to its positional index, which is stable
+ * within a single chart.
  */
 export function seriesColor(
   t: ChartTheme,
   key: string,
   fallbackIndex: number,
 ): string {
-  const idx = BANK_TYPE_COLOR_INDEX[key] ?? fallbackIndex;
+  const idx =
+    BANK_TYPE_COLOR_INDEX[key] ?? DIGITAL_SERIES_COLOR_INDEX[key] ?? fallbackIndex;
   return t.palette[idx % t.palette.length];
 }
 

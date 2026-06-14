@@ -28,10 +28,10 @@ interface Row {
 const REMOTE_METHODS = ["remote_rep", "remote_courier", "bulk"] as const;
 
 export interface AcquisitionData {
-  /** Digital vs branch, finalised customers per quarter (thousands). Feed this to
-   *  a percent-stacked chart to get the channel share — no separate field needed. */
+  /** Digital vs branch, finalised customers — trailing 3-month sum (thousands).
+   *  Feed this to a percent-stacked chart to get the channel share. */
   byChannel: TrendPoint[];
-  /** The individual methods per quarter (thousands) — composition detail. */
+  /** The individual methods, trailing 3-month sum (thousands) — composition detail. */
   byMethod: TrendPoint[];
 }
 
@@ -53,20 +53,20 @@ const pt = (period: string, code: string, value: number | null): TrendPoint => (
   value,
 });
 
-// Monthly "YYYY-MM" → its quarter-end month label ("YYYY-03|06|09|12"), so the
-// axis matches the rest of the tab's quarterly periods.
-function quarterEnd(period: string): string {
+// Shift a "YYYY-MM" period by `delta` months.
+function addMonths(period: string, delta: number): string {
   const [y, mm] = period.split("-").map(Number);
-  const end = Math.ceil(mm / 3) * 3;
-  return `${y}-${String(end).padStart(2, "0")}`;
+  const idx = y * 12 + (mm - 1) + delta;
+  return `${Math.floor(idx / 12)}-${String((idx % 12) + 1).padStart(2, "0")}`;
 }
 
 /**
  * Load the remote-vs-branch acquisition series for one customer type
- * (default individuals — the headline). The source is monthly and noisy, so the
- * rows are **aggregated to calendar quarters** (each channel/method summed over
- * the quarter's months). Returns digital-vs-branch totals (feed a percent-stack
- * for the channel share) and the per-method breakdown.
+ * (default individuals — the headline). The source is monthly and noisy, so each
+ * point is a **trailing 3-month sum** (the month plus the prior two) — smoothing
+ * the jitter while keeping monthly cadence and the latest month. Returns
+ * digital-vs-branch totals (feed a percent-stack for the channel share) and the
+ * per-method breakdown.
  */
 export async function acquisitionData(
   entity: "individual" | "merchant" | "legal" = "individual",
@@ -78,39 +78,39 @@ export async function acquisitionData(
     [entity],
   );
 
-  // Sum each method over each calendar quarter, tracking which months landed in
-  // it. Only complete (3-month) quarters are emitted, so the partial leading
-  // quarter (data starts May 2021) and the in-progress trailing quarter don't
-  // show an artificially low total.
-  const byQuarter = new Map<string, { months: Set<string>; sums: Record<string, number> }>();
+  // Monthly map: period → { method: value }.
+  const byMonth = new Map<string, Record<string, number>>();
   for (const r of rows) {
     if (r.value == null) continue;
-    const q = quarterEnd(r.period);
-    let e = byQuarter.get(q);
+    let e = byMonth.get(r.period);
     if (!e) {
-      e = { months: new Set(), sums: {} };
-      byQuarter.set(q, e);
+      e = {};
+      byMonth.set(r.period, e);
     }
-    e.months.add(r.period);
-    e.sums[r.method] = (e.sums[r.method] ?? 0) + r.value;
+    e[r.method] = (e[r.method] ?? 0) + r.value;
   }
 
   const byChannel: TrendPoint[] = [];
   const byMethod: TrendPoint[] = [];
-  const quarters = Array.from(byQuarter.entries())
-    .filter(([, e]) => e.months.size === 3)
-    .sort((a, b) => a[0].localeCompare(b[0]));
+  for (const period of Array.from(byMonth.keys()).sort()) {
+    // Trailing 3-month window ending at `period`; skip until it's complete (the
+    // first two months, May–Jun 2021, have no full window).
+    const window = [addMonths(period, -2), addMonths(period, -1), period];
+    if (!window.every((mp) => byMonth.has(mp))) continue;
 
-  for (const [q, e] of quarters) {
-    const m = e.sums;
-    const branch = m["branch"] ?? 0;
-    const digital = REMOTE_METHODS.reduce((s, k) => s + (m[k] ?? 0), 0);
+    const sums: Record<string, number> = {};
+    for (const mp of window) {
+      const e = byMonth.get(mp)!;
+      for (const k in e) sums[k] = (sums[k] ?? 0) + e[k];
+    }
+    const branch = sums["branch"] ?? 0;
+    const digital = REMOTE_METHODS.reduce((s, k) => s + (sums[k] ?? 0), 0);
 
-    byChannel.push(pt(q, "digital", digital / 1000));
-    byChannel.push(pt(q, "branch", branch / 1000));
+    byChannel.push(pt(period, "digital", digital / 1000));
+    byChannel.push(pt(period, "branch", branch / 1000));
 
     for (const k of ["branch", ...REMOTE_METHODS]) {
-      if (m[k] != null) byMethod.push(pt(q, k, m[k] / 1000));
+      if (sums[k] != null) byMethod.push(pt(period, k, sums[k] / 1000));
     }
   }
 
