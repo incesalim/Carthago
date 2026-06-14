@@ -723,5 +723,60 @@
       { "code": "TUIK.PPI.MIG_ENERGY", "label": "PPI MIG: energy", "kind": "monthly" },
       { "code": "TUIK.PPI.MIG_CAPITAL", "label": "PPI MIG: capital goods", "kind": "monthly" }
     ]
+  },
+  {
+    "id": "economy.foreign_trade_balance",
+    "title": "Foreign trade — exports / imports / balance (12m rolling, USD bn)",
+    "source": { "report": "Albaraka — Dış Ticaret Dengesi", "page": "Şekil 1-3", "as_of": "2022-Q2" },
+    "placement": { "tab": "economy", "section": "Foreign Trade" },
+    "unit": "USD bn",
+    "format": "bn",
+    "decimals": 0,
+    "chart": "TimeSeriesChart",
+    "series": [
+      { "key": "exports", "label": "Exports", "source": "evds", "locator": { "code": "TP.IHRACATBEC.9999", "years_back": 16 }, "transform": [{ "op": "rolling_sum", "window": 12, "scale": 0.000001 }] },
+      { "key": "imports", "label": "Imports", "source": "evds", "locator": { "code": "TP.ITHALATBEC.9999", "years_back": 16 }, "transform": [{ "op": "rolling_sum", "window": 12, "scale": 0.000001 }] },
+      { "key": "balance", "label": "Trade balance", "source": "derived", "transform": [{ "op": "derive", "formula": { "op": "sub", "args": [{ "ref": "exports" }, { "ref": "imports" }] } }] }
+    ],
+    "verify": [
+      { "series": "exports", "date": "2022-06", "value": 246.0, "tolerance": 1.0 },
+      { "series": "imports", "date": "2022-06", "value": 322.6, "tolerance": 1.0 },
+      { "series": "balance", "date": "2022-06", "value": -76.6, "tolerance": 1.0 }
+    ],
+    "registry_additions": [
+      { "code": "TP.IHRACATBEC.9999", "label": "Exports, total (customs, USD k)", "kind": "monthly" },
+      { "code": "TP.ITHALATBEC.9999", "label": "Imports, total (customs, USD k)", "kind": "monthly" }
+    ]
+  },
+  {
+    "id": "economy.foreign_trade_detail",
+    "title": "Foreign trade — BEC groups, terms of trade, energy deficit",
+    "source": { "report": "Albaraka — Dış Ticaret Dengesi", "page": "Şekil 5-8", "as_of": "2022-Q2" },
+    "placement": { "tab": "economy", "section": "Foreign Trade" },
+    "unit": "mixed",
+    "format": "bn",
+    "decimals": 1,
+    "chart": "TimeSeriesChart",
+    "series": [
+      { "key": "exp_inter", "label": "Exports — intermediate (12m bn)", "source": "evds", "locator": { "code": "TP.IHRACATBEC.2", "years_back": 16 }, "transform": [{ "op": "rolling_sum", "window": 12, "scale": 0.000001 }] },
+      { "key": "imp_inter", "label": "Imports — intermediate (12m bn)", "source": "evds", "locator": { "code": "TP.ITHALATBEC.2", "years_back": 16 }, "transform": [{ "op": "rolling_sum", "window": 12, "scale": 0.000001 }] },
+      { "key": "energy_def", "label": "Energy deficit (12m bn)", "source": "evds", "locator": { "code": "TP.HARICCARIACIK.K7", "years_back": 16 }, "transform": [{ "op": "rolling_sum", "window": 12, "scale": 0.001 }] },
+      { "key": "uv_exp", "label": "Export unit value", "source": "evds", "locator": { "code": "TP.DT.IH.FIY.D01.2010", "years_back": 16 }, "transform": [] },
+      { "key": "uv_imp", "label": "Import unit value", "source": "evds", "locator": { "code": "TP.DT.IT.FIY.D01.2010", "years_back": 16 }, "transform": [] },
+      { "key": "terms", "label": "Terms of trade (%)", "source": "derived", "transform": [{ "op": "ratio", "numerator": "uv_exp", "denominator": "uv_imp", "scale": 100 }] }
+    ],
+    "verify": [
+      { "series": "exp_inter", "date": "2022-06", "value": 129.2, "tolerance": 1.0 },
+      { "series": "imp_inter", "date": "2022-06", "value": 260.3, "tolerance": 1.0 },
+      { "series": "energy_def", "date": "2022-06", "value": -67.69, "tolerance": 1.0 },
+      { "series": "terms", "date": "2022-06", "value": 76.55, "tolerance": 0.6 }
+    ],
+    "registry_additions": [
+      { "code": "TP.IHRACATBEC.2", "label": "Exports — Intermediate goods (BEC, USD k)", "kind": "monthly" },
+      { "code": "TP.ITHALATBEC.2", "label": "Imports — Intermediate goods (BEC, USD k)", "kind": "monthly" },
+      { "code": "TP.DT.IH.FIY.D01.2010", "label": "Export Unit-Value Index (BEC, 2015=100)", "kind": "monthly" },
+      { "code": "TP.DT.IT.FIY.D01.2010", "label": "Import Unit-Value Index (BEC, 2015=100)", "kind": "monthly" },
+      { "code": "TP.BRENTPETROL.EUBP", "label": "Brent Crude, European spot FOB (USD/bbl)", "kind": "monthly" }
+    ]
   }
 ]

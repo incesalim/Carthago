@@ -1055,6 +1055,33 @@ line + calendar-adjusted production (messy interleaved-annual Excel) and exact
 weighted contributions for Şekil 2/3 (TÜİK's only contribution table is a
 lagged single-month snapshot; weight×m/m is approximate) — Şekil 2/3 keep m/m.
 
+### Foreign Trade sub-page (`/economy/foreign-trade`)
+
+Reproduces the Albaraka **«Dış Ticaret Dengesi»** report from TÜİK customs-trade
+series in EVDS. Data layer: `web/app/lib/foreign-trade.ts`. **Unit traps:** the
+BEC trade flows (`TP.IHRACATBEC.*` / `TP.ITHALATBEC.*`) are USD **thousand**
+(÷1e6 → bn$); the energy balance `TP.HARICCARIACIK.K7` is USD **million**
+(÷1e3 → bn$) — do not mix. "Annualised" panels are trailing-12m rolling sums.
+
+| Figure | Series / derivation |
+|---|---|
+| KPIs | trailing-3-month `…BEC.9999` exports/imports; deficit = imp − exp |
+| Şekil 1 balance + ex-energy | `bal = roll12(IHRACATBEC.9999) − roll12(ITHALATBEC.9999)`; ex-energy `= bal − roll12(K7)/1e3` |
+| Şekil 2-3 exports/imports + growth | `…BEC.9999` (12m level + y/y) |
+| Şekil 4 coverage | `exports/imports × 100` (12m) |
+| Şekil 5 terms of trade | `TP.DT.IH.FIY.D01.2010 / TP.DT.IT.FIY.D01.2010 × 100` (unit-value indices, 2015=100) |
+| Şekil 6-7 by BEC group | `…BEC.1/.2/.3` (investment/intermediate/consumption) |
+| Şekil 8 energy deficit + Brent | `roll12(K7)/1e3` + `TP.BRENTPETROL.EUBP` (monthly avg) |
+
+Verified to the report's Q2-2022 vintage (exports 246.0, imports 322.6, balance
+−76.6, coverage 76.3, terms 76.55, energy deficit −67.69 exact). 11 new EVDS
+series (`macro`/monthly; K7 already ingested); two `economy.foreign_trade_*`
+chart-specs (one exercises `derive`, one `ratio`) anchor it at 2022-06.
+**Not reproduced (flagged in-page):** the «Çekirdek Denge» core-balance line (an
+Albaraka-internal construction — `tb − K7 − K4` gives the wrong sign, ~8 bn off;
+proprietary) and the HS-chapter («Fasıl») tables Şekil 9 (TÜİK's dynamic
+foreign-trade DB only — not in EVDS, nor the TÜİK theme-tree Excel downloads).
+
 ## 15. TEFAS fund-market statistics
 
 Source: **TEFAS** (Turkey Electronic Fund Trading Platform, tefas.gov.tr) —
