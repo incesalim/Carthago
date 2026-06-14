@@ -7,7 +7,22 @@ coverage or known issues change.
 > → this file → [OPERATIONS.md](OPERATIONS.md). Metric definitions in
 > [METRICS.md](METRICS.md).
 >
-> Last verified: 2026-06-14 — **Engine strategy is now per-statement: fitz-only for OCI +
+> Last verified: 2026-06-14 — **NPL-movement extraction fixed (28 → 64 pass on 2025Q4+2026Q1;
+> all-periods running).** NPL movement (`bank_audit_npl_movement`, regex footnote extractor) was
+> 195/974. A 2025Q4-vs-2026Q1 diagnostic found three GENERIC bugs (not per-bank work): (1)
+> `skip_pages=60` hid the table in shorter interim reports (FIBA 2026Q1 at p56 < 60) — added a
+> low-floor (25) retry that only runs when the deep pass finds nothing (strict superset); (2)
+> `_THREE_NUMS_TAIL`/`_parse_amount` rejected `--` (double-dash nil) — a trailing `--` dropped the
+> whole `transfers_out` row → NULL column → validator skipped an otherwise-balancing roll-forward;
+> (3) **`check_npl_movement` rewritten**: it blanket-skipped on NULL write_offs/sold/transfers_out,
+> but many banks simply OMIT a genuinely-zero row (KUVEYT has no write-offs) — now treats NULL flow
+> columns as 0 and PASSES only when the roll-forward TIES (a missed NON-zero column won't tie → stays
+> SKIP; never a false pass/fail). Two-quarter D1: 2025Q4 17→32, 2026Q1 11→32; no pass→fail regressions
+> (one skip→fail, DENIZ, is a real non-reconciling roll-forward surfaced). npl_movement wired into
+> `reextract_statement.py`; commit `ac439fd`. Remaining tail: image-only stubs (ALBRK/ALNTF/EXIM/ODEA/
+> TSKB) + genuine identity fails (TEB/KLNMA/PASHA/HALKB) + has-rows-but-don't-tie skips.
+>
+> Prior: 2026-06-14 — **Engine strategy is now per-statement: fitz-only for OCI +
 > cash flow, multi-engine kept for equity.** Measured that the multi-engine model
 > (read a page with pdfplumber AND fitz) costs a full PDF re-open (~225 ms/page, ~60× the
 > fitz-only cost) + the poison-PDF hang risk. It only earns that on EQUITY — pdfplumber's
