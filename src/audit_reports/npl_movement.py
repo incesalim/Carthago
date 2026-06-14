@@ -322,20 +322,19 @@ def extract_from_pdf(
     unaffected (strict superset).
     """
     rep = NplMovementReport(pdf_path=pdf_path)
-    # SCAN with fitz (the page locators' engine — ~17× faster than scanning every
-    # page with pdfplumber's extract_text, which dominated this footnote lane's
-    # runtime). Once a page matches the heading + group-header, PARSE it with
-    # pdfplumber's extract_text — the row regexes/taxonomy were tuned to that text
-    # layout, so the parse output is byte-identical to before (no regression).
+    # FITZ-ONLY: scan AND parse with fitz (the engine the statement locators use)
+    # — ~17× faster than pdfplumber's extract_text on every page (which dominated
+    # this footnote lane's runtime) and never touches pdf.pages (so no pdfminer
+    # poison-hang). fitz's row text parses identically through _extract_from_block
+    # here (verified). Falls back to pdfplumber text only when fitz is unavailable.
     use_fitz = _HAS_FITZ and bool(pdf_path)
     n_pages = _n_pages(pdf) if use_fitz else len(pdf.pages)
     for lo in sorted({skip_pages, 25}, reverse=True):
         for i in range(lo + 1, n_pages + 1):
-            scan_text = (_fitz_page_text(pdf_path, i - 1) if use_fitz
-                         else (pdf.pages[i - 1].extract_text() or ""))
-            if not (_HEADING_RX.search(scan_text) and _GROUPS_RX.search(scan_text)):
+            text = (_fitz_page_text(pdf_path, i - 1) if use_fitz
+                    else (pdf.pages[i - 1].extract_text() or ""))
+            if not (_HEADING_RX.search(text) and _GROUPS_RX.search(text)):
                 continue
-            text = (pdf.pages[i - 1].extract_text() or "") if use_fitz else scan_text
             rows = _extract_from_block(i, text)
             if rows:
                 rep.rows.extend(rows)
