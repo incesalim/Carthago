@@ -192,6 +192,46 @@ def _skip_result() -> v.ValidationResult:
     return res
 
 
+def revalidate_partition(conn, bank: str, period: str, kind: str) -> dict[str, "v.ValidationResult"]:
+    """Recompute ALL validation checks for one partition from its STORED rows
+    (no PDF re-read). Returns the per-statement results dict — the caller persists
+    it via `validator.upsert_validation`. Shared by the full revalidate pass and
+    by reextract_statement.py's inline validation, so the two stay byte-identical."""
+    assets = _bs_rows(conn, bank, period, kind, "assets")
+    liab   = _bs_rows(conn, bank, period, kind, "liabilities")
+    off_bs = _bs_rows(conn, bank, period, kind, "off_balance")
+    pl     = _pl_rows(conn, bank, period, kind)
+    oci    = _oci_rows(conn, bank, period, kind)
+    cf     = _cf_rows(conn, bank, period, kind)
+    eq     = _equity_rows(conn, bank, period, kind)
+
+    results: dict[str, v.ValidationResult] = {
+        "assets":      v.validate_statement(assets),
+        "liabilities": v.validate_statement(liab),
+        "cross":       v.check_cross_statement(assets, liab),
+        "profit_loss": v.check_profit_loss(pl, liab),
+        "off_balance": v.validate_off_balance(off_bs),
+        "oci":         v.check_oci(oci, pl),
+        "cash_flow":   v.check_cash_flow(cf),
+        "equity_change": v.check_equity_change(eq, oci_rows=oci,
+                                                liabilities=liab, period=period),
+    }
+
+    # Capital — skip known false-positive banks/partitions
+    cap_rows = _capital_rows(conn, bank, period, kind)
+    if bank in _CAP_SKIP_BANKS or (bank, period, kind) in _CAP_SKIP:
+        results["capital"] = _skip_result()
+    else:
+        results["capital"] = v.check_capital(cap_rows)
+
+    results["liquidity"]      = v.check_liquidity(_liquidity_rows(conn, bank, period, kind))
+    results["credit_quality"] = v.check_credit_quality(_cq_rows(conn, bank, period, kind))
+    results["stages"]         = v.check_stages(_stages_rows(conn, bank, period, kind))
+    results["npl_movement"]   = v.check_npl_movement(_npl_movement_rows(conn, bank, period, kind))
+    results["loans_by_sector"] = v.check_loans_by_sector(_loans_sector_rows(conn, bank, period, kind))
+    return results
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--db", default=str(REPO / "data" / "bank_audit.db"))
@@ -211,39 +251,7 @@ def main() -> int:
     parts = conn.execute(parts_query).fetchall()
     failed_parts = 0
     for n, (bank, period, kind) in enumerate(sorted(parts), 1):
-        assets = _bs_rows(conn, bank, period, kind, "assets")
-        liab   = _bs_rows(conn, bank, period, kind, "liabilities")
-        off_bs = _bs_rows(conn, bank, period, kind, "off_balance")
-        pl     = _pl_rows(conn, bank, period, kind)
-        oci    = _oci_rows(conn, bank, period, kind)
-        cf     = _cf_rows(conn, bank, period, kind)
-        eq     = _equity_rows(conn, bank, period, kind)
-
-        results: dict[str, v.ValidationResult] = {
-            "assets":      v.validate_statement(assets),
-            "liabilities": v.validate_statement(liab),
-            "cross":       v.check_cross_statement(assets, liab),
-            "profit_loss": v.check_profit_loss(pl, liab),
-            "off_balance": v.validate_off_balance(off_bs),
-            "oci":         v.check_oci(oci, pl),
-            "cash_flow":   v.check_cash_flow(cf),
-            "equity_change": v.check_equity_change(eq, oci_rows=oci,
-                                                    liabilities=liab, period=period),
-        }
-
-        # Capital — skip known false-positive banks/partitions
-        cap_rows = _capital_rows(conn, bank, period, kind)
-        if bank in _CAP_SKIP_BANKS or (bank, period, kind) in _CAP_SKIP:
-            results["capital"] = _skip_result()
-        else:
-            results["capital"] = v.check_capital(cap_rows)
-
-        results["liquidity"]      = v.check_liquidity(_liquidity_rows(conn, bank, period, kind))
-        results["credit_quality"] = v.check_credit_quality(_cq_rows(conn, bank, period, kind))
-        results["stages"]         = v.check_stages(_stages_rows(conn, bank, period, kind))
-        results["npl_movement"]   = v.check_npl_movement(_npl_movement_rows(conn, bank, period, kind))
-        results["loans_by_sector"] = v.check_loans_by_sector(_loans_sector_rows(conn, bank, period, kind))
-
+        results = revalidate_partition(conn, bank, period, kind)
         v.upsert_validation(conn, bank, period, kind, results)
         if any(r.failed for r in results.values()):
             failed_parts += 1
