@@ -19,11 +19,15 @@ coverage or known issues change.
 > (`oci.py`) drops its pdfplumber candidates (keeps the validation-guided n-template select;
 > pdfplumber only as a no-fitz fallback) and the CF block (`extractor.py`) parses with fitz,
 > falling back to the both-engines parser only if fitz yields 0 rows. `reextract_statement.py`
-> gains a `cash_flow` lane. Commit `c83eaaa`; CF 2026 re-extracted on CI (run 27503112692) to
-> recover the AKBNK stale empties — OCI not re-shipped (data identical-validity; the
-> non-destructive guard would skip the 52 passing anyway). The dropped-sub-row tail
-> (ALBRK OCI 2.2.2 / the 4 CF banks' 2.2) is the real open lever — a shared `_parse_rows`
-> limitation, engine-independent.
+> gains a `cash_flow` lane (commit `c83eaaa`). **Re-extracted ALL periods fleet-wide
+> (2022Q1→2026Q1): OCI 62 → 881 / 975 pass; cash flow 802 → 813 / 975.** OCI's jump is because
+> ~94% were broken across all years (same n_cols bug); CF moved little — already healthy, the +11
+> is recovered stale empties, its 135 fails are the dropped-sub-row tail. Also fixed `--only-failing`
+> (commit `3d028b0`): now means NOT-passing (`checks_failed>0 OR checks_passed=0`) so it catches the
+> stale empties (was failed-only, which skipped them) → a fleet re-extract downloads only the bad
+> partitions (CF: 173 not 975); workflow defaults it true. Remaining tail — OCI 78 / CF 135 fails +
+> ~16/27 empties — is the dropped-sub-row issue (ALBRK OCI 2.2.2 / the CF banks' 2.2 — shared
+> `_parse_rows`, engine-independent) plus image-only/no-PDF partitions.
 >
 > Prior: 2026-06-14 — **OCI ("Diğer Kapsamlı Gelir") extraction fixed with the
 > validation-guided approach.** OCI was barely extracted (53 of 55 2026 partitions had
