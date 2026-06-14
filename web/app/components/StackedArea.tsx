@@ -11,11 +11,12 @@ import {
   YAxis,
 } from "recharts";
 import { ChartCard } from "@/app/components/ui/chart-card";
-import { useChartTheme, tooltipStyles } from "@/app/lib/chart-theme";
+import { useChartTheme, tooltipStyles, seriesColor } from "@/app/lib/chart-theme";
 
 export interface StackPoint {
-  period: string;
-  [series: string]: string | number;
+  // Wide row: the x-axis field (recharts reads it via dataKey="period") plus one
+  // value per series. `null` marks a gap and is handled at render time.
+  [series: string]: string | number | null;
 }
 
 type FormatKind = "pct" | "trn" | "bn" | "raw";
@@ -29,6 +30,10 @@ interface Props {
   height?: number;
   /** Render as percent stack (each point sums to 100%). */
   percentStack?: boolean;
+  /** Colour each series by its key via `seriesColor` (matches TrendChart /
+   *  BopFlowChart) instead of the warm/cool layering order. Use when the same
+   *  series also appears as a line on the page so colours stay consistent. */
+  colorKeys?: boolean;
 }
 
 // Stacked areas read best when the brand red leads but warm/cool alternate.
@@ -56,11 +61,15 @@ export default function StackedArea({
   decimals = 1,
   height = 320,
   percentStack = false,
+  colorKeys = false,
 }: Props) {
   const t = useChartTheme();
   const tt = tooltipStyles(t);
   const fmt = formatters[percentStack ? "pct" : yFormat];
-  const colorAt = (i: number) => t.palette[ORDER[i % ORDER.length] % t.palette.length];
+  const colorAt = (i: number) =>
+    colorKeys
+      ? seriesColor(t, series[i].key, i)
+      : t.palette[ORDER[i % ORDER.length] % t.palette.length];
 
   return (
     <ChartCard title={title}>

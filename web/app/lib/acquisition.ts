@@ -28,10 +28,9 @@ interface Row {
 const REMOTE_METHODS = ["remote_rep", "remote_courier", "bulk"] as const;
 
 export interface AcquisitionData {
-  /** Digital vs branch, finalised customers per month (thousands). */
+  /** Digital vs branch, finalised customers per month (thousands). Feed this to
+   *  a percent-stacked chart to get the channel share — no separate field needed. */
   byChannel: TrendPoint[];
-  /** Digital vs branch as a share of the month's finalised customers (%). */
-  share: TrendPoint[];
   /** The individual methods per month (thousands) — composition detail. */
   byMethod: TrendPoint[];
 }
@@ -79,26 +78,19 @@ export async function acquisitionData(
   }
 
   const byChannel: TrendPoint[] = [];
-  const share: TrendPoint[] = [];
   const byMethod: TrendPoint[] = [];
 
   for (const [period, m] of byPeriod) {
     const branch = m["branch"] ?? 0;
     const digital = REMOTE_METHODS.reduce((s, k) => s + (m[k] ?? 0), 0);
-    const total = branch + digital;
 
     byChannel.push(pt(period, "digital", digital / 1000));
     byChannel.push(pt(period, "branch", branch / 1000));
-
-    if (total > 0) {
-      share.push(pt(period, "digital", (digital / total) * 100));
-      share.push(pt(period, "branch", (branch / total) * 100));
-    }
 
     for (const k of ["branch", ...REMOTE_METHODS]) {
       if (m[k] != null) byMethod.push(pt(period, k, m[k] / 1000));
     }
   }
 
-  return { byChannel, share, byMethod };
+  return { byChannel, byMethod };
 }

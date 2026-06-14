@@ -42,8 +42,9 @@ export interface OverlayLine {
 }
 
 interface Props {
-  /** Wide rows: { x: "01/24", <barKey>: number, <lineKey>: number }. */
-  data: Array<Record<string, number | string>>;
+  /** Wide rows: { x: "01/24", <barKey>: number, <lineKey>: number }. `null`
+   *  marks a gap (a bar/line skips that point). */
+  data: Array<Record<string, number | string | null>>;
   bars: BarSeries[];
   line?: OverlayLine;
   /** false → signed stacked bars (default); true → grouped side-by-side. */

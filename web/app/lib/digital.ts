@@ -89,6 +89,25 @@ export function quarterlyDeltas(points: TrendPoint[]): TrendPoint[] {
   return out;
 }
 
+/**
+ * Pivot long-form `TrendPoint[]` into the wide, one-row-per-period shape that
+ * `StackedArea` and `BopFlowChart` expect. `xKey` is the period field name —
+ * `"period"` for StackedArea, `"x"` for BopFlowChart. Rows are sorted by period.
+ */
+export function pivotWide(
+  points: TrendPoint[],
+  xKey: "period" | "x" = "period",
+): Array<Record<string, string | number | null>> {
+  const byPeriod = new Map<string, Record<string, string | number | null>>();
+  for (const p of points) {
+    if (!byPeriod.has(p.period)) byPeriod.set(p.period, { [xKey]: p.period });
+    byPeriod.get(p.period)![p.bank_type_code] = p.value;
+  }
+  return Array.from(byPeriod.values()).sort((a, b) =>
+    String(a[xKey]).localeCompare(String(b[xKey])),
+  );
+}
+
 // Most series share this conversion: thousands → millions, or bn TL → trn TL.
 export const SCALE_K_TO_M = 1 / 1000;
 export const SCALE_BN_TO_TRN = 1 / 1000;
