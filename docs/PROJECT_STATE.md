@@ -7,7 +7,20 @@ coverage or known issues change.
 > → this file → [OPERATIONS.md](OPERATIONS.md). Metric definitions in
 > [METRICS.md](METRICS.md).
 >
-> Last verified: 2026-06-14 — **NPL-movement extraction fixed fleet-wide: 195 → 515 / 974 pass.** NPL movement (`bank_audit_npl_movement`, regex footnote extractor) was
+> Last verified: 2026-06-14 — **loans-by-sector fixed: 99 → 135 pass.** The sector breakdown
+> is an **annual-only disclosure** for most banks (absent from interim reports — confirmed: FIBA
+> 2026Q1 has no sector heading on any page, both engines; every interim quarter is ~all-empty in
+> D1). So "99/975" was misleading — the real target is the ~310 Q4 partitions; the ~665 interim
+> empties are genuine. The Q4 fail bug (e.g. FIBA 2025Q4): an all-nil sub-sector row
+> ("Balıkçılık -- -- --") has no DIGITS, so `_merge_wrapped_labels` treated it as a label-head and
+> merged it with the next line ("Sanayi 787.928…" = the manufacturing TOTAL), giving fishery the
+> wrong sector's value → Σ ≠ total → fail (and wrong data). Fixes: don't merge a line that already
+> matches the 3-value pattern; accept `--` runs as nil; scan+parse with fitz (commit `bda5c2a`).
+> Shipped the 4 Q4 quarters (interim has no table to re-extract): each now ~33–35/58. 99 → **135**
+> pass, no pass→fail regressions. Remaining Q4 fails (~5/quarter) are per-bank layout/disclosure.
+> `loans_by_sector` wired into `reextract_statement.py` (5th lane).
+>
+> Prior: 2026-06-14 — **NPL-movement extraction fixed fleet-wide: 195 → 515 / 974 pass.** NPL movement (`bank_audit_npl_movement`, regex footnote extractor) was
 > 195/974. A 2025Q4-vs-2026Q1 diagnostic found three GENERIC bugs (not per-bank work): (1)
 > `skip_pages=60` hid the table in shorter interim reports (FIBA 2026Q1 at p56 < 60) — added a
 > low-floor (25) retry that only runs when the deep pass finds nothing (strict superset); (2)
@@ -201,7 +214,7 @@ statement is self-validated (internal-sum / roll-forward / cross identities); th
 | `capital` | 840 | 2 | 133 | §4 backfilled (skips = bank-type N/A) |
 | `liquidity` | 945 | 0 | 30 | §4 backfilled |
 | `npl_movement` | **515** | 126 | 334 | fixed 2026-06-14 (was 195); 3 generic bugs + fitz-only |
-| `loans_by_sector` | 99 | 66 | 810 | **biggest open gap** (next candidate) |
+| `loans_by_sector` | **135** | 36 | 804 | fixed 2026-06-14 (was 99); **annual-only** disclosure → most skips are genuine (interim has no table); ceiling ≈ Q4 partitions |
 
 OCI/CF/NPL were fixed this way: a recent-vs-older-quarter diagnostic → small generic
 fixes → ship via `reextract-statement.yml`. Residual fails are genuine per-bank
@@ -412,12 +425,12 @@ A qualitative-data layer feeds two tabs from the `news_items` table
 ## Known issues / pending work
 
 - **Audit extraction — open gaps after the 2026-06-14 lane overhaul.** OCI (→881),
-  cash-flow (→813) and NPL-movement (→515) were fixed this session (see the
-  audit-lane validation-status table). Still open: **`loans_by_sector` 99/975** — the
-  biggest remaining gap (broadly empty/skip; the obvious next target for the same
-  recent-vs-older-quarter diagnostic → small generic fixes → `reextract-statement.yml`);
-  **`equity_change`** vertical-chain tail (~355 fail, pre-existing); and the genuine
-  per-bank tails on OCI/CF/NPL — non-reconciling disclosures + image-only PDFs (the same
+  cash-flow (→813), NPL-movement (→515) and loans-by-sector (→135) were fixed this session
+  (see the audit-lane validation-status table). `loans_by_sector` is now at its realistic
+  ceiling — the sector breakdown is an **annual-only disclosure**, so most of its "skips"
+  are genuine (interim reports have no table). Still open: **`equity_change`** vertical-chain
+  tail (~355 fail, pre-existing — the largest remaining lane gap); and the genuine per-bank
+  tails on OCI/CF/NPL/loans — non-reconciling disclosures + image-only PDFs (the same
   image-only banks recur: ALBRK/ALNTF/EXIM/ODEA/TSKB), which are real gaps, not extractor
   bugs. Re-extraction is now **non-destructive** (the guard skips passing partitions), so
   any future fix can only improve the corpus.
