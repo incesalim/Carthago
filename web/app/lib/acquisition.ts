@@ -28,10 +28,10 @@ interface Row {
 const REMOTE_METHODS = ["remote_rep", "remote_courier", "bulk"] as const;
 
 export interface AcquisitionData {
-  /** Digital vs branch, finalised customers per month (thousands). Feed this to
+  /** Digital vs branch, finalised customers per quarter (thousands). Feed this to
    *  a percent-stacked chart to get the channel share — no separate field needed. */
   byChannel: TrendPoint[];
-  /** The individual methods per month (thousands) — composition detail. */
+  /** The individual methods per quarter (thousands) — composition detail. */
   byMethod: TrendPoint[];
 }
 
@@ -53,11 +53,20 @@ const pt = (period: string, code: string, value: number | null): TrendPoint => (
   value,
 });
 
+// Monthly "YYYY-MM" → its quarter-end month label ("YYYY-03|06|09|12"), so the
+// axis matches the rest of the tab's quarterly periods.
+function quarterEnd(period: string): string {
+  const [y, mm] = period.split("-").map(Number);
+  const end = Math.ceil(mm / 3) * 3;
+  return `${y}-${String(end).padStart(2, "0")}`;
+}
+
 /**
  * Load the remote-vs-branch acquisition series for one customer type
- * (default individuals — the headline). Aggregates the per-method rows into
- * digital vs branch totals, a digital/branch percentage split, and keeps the
- * per-method breakdown for a composition chart.
+ * (default individuals — the headline). The source is monthly and noisy, so the
+ * rows are **aggregated to calendar quarters** (each channel/method summed over
+ * the quarter's months). Returns digital-vs-branch totals (feed a percent-stack
+ * for the channel share) and the per-method breakdown.
  */
 export async function acquisitionData(
   entity: "individual" | "merchant" | "legal" = "individual",
@@ -69,26 +78,39 @@ export async function acquisitionData(
     [entity],
   );
 
-  // Group by period → { method: value }.
-  const byPeriod = new Map<string, Record<string, number>>();
+  // Sum each method over each calendar quarter, tracking which months landed in
+  // it. Only complete (3-month) quarters are emitted, so the partial leading
+  // quarter (data starts May 2021) and the in-progress trailing quarter don't
+  // show an artificially low total.
+  const byQuarter = new Map<string, { months: Set<string>; sums: Record<string, number> }>();
   for (const r of rows) {
     if (r.value == null) continue;
-    if (!byPeriod.has(r.period)) byPeriod.set(r.period, {});
-    byPeriod.get(r.period)![r.method] = r.value;
+    const q = quarterEnd(r.period);
+    let e = byQuarter.get(q);
+    if (!e) {
+      e = { months: new Set(), sums: {} };
+      byQuarter.set(q, e);
+    }
+    e.months.add(r.period);
+    e.sums[r.method] = (e.sums[r.method] ?? 0) + r.value;
   }
 
   const byChannel: TrendPoint[] = [];
   const byMethod: TrendPoint[] = [];
+  const quarters = Array.from(byQuarter.entries())
+    .filter(([, e]) => e.months.size === 3)
+    .sort((a, b) => a[0].localeCompare(b[0]));
 
-  for (const [period, m] of byPeriod) {
+  for (const [q, e] of quarters) {
+    const m = e.sums;
     const branch = m["branch"] ?? 0;
     const digital = REMOTE_METHODS.reduce((s, k) => s + (m[k] ?? 0), 0);
 
-    byChannel.push(pt(period, "digital", digital / 1000));
-    byChannel.push(pt(period, "branch", branch / 1000));
+    byChannel.push(pt(q, "digital", digital / 1000));
+    byChannel.push(pt(q, "branch", branch / 1000));
 
     for (const k of ["branch", ...REMOTE_METHODS]) {
-      if (m[k] != null) byMethod.push(pt(period, k, m[k] / 1000));
+      if (m[k] != null) byMethod.push(pt(q, k, m[k] / 1000));
     }
   }
 
