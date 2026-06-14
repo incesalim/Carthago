@@ -7,7 +7,25 @@ coverage or known issues change.
 > → this file → [OPERATIONS.md](OPERATIONS.md). Metric definitions in
 > [METRICS.md](METRICS.md).
 >
-> Last verified: 2026-06-14 — **OCI ("Diğer Kapsamlı Gelir") extraction fixed with the
+> Last verified: 2026-06-14 — **Engine strategy is now per-statement: fitz-only for OCI +
+> cash flow, multi-engine kept for equity.** Measured that the multi-engine model
+> (read a page with pdfplumber AND fitz) costs a full PDF re-open (~225 ms/page, ~60× the
+> fitz-only cost) + the poison-PDF hang risk. It only earns that on EQUITY — pdfplumber's
+> x-clustering uniquely separates the wide interleaved-footnote banks (GARAN/AKBNK → 0 rows
+> fitz-only). On OCI + cash flow (narrow tables) pdfplumber adds **zero** accuracy: verified
+> via `--force` re-extract on 2026 — OCI fitz-only **17/19 == multi-engine** (only ALBRK
+> fails, under both engines), CF fitz-only **15/23** with the 8 fails pre-existing
+> dropped-sub-row banks (FIBA/KUVEYT/SKBNK/TEB) AND **AKBNK recovered from empty**. So OCI
+> (`oci.py`) drops its pdfplumber candidates (keeps the validation-guided n-template select;
+> pdfplumber only as a no-fitz fallback) and the CF block (`extractor.py`) parses with fitz,
+> falling back to the both-engines parser only if fitz yields 0 rows. `reextract_statement.py`
+> gains a `cash_flow` lane. Commit `c83eaaa`; CF 2026 re-extracted on CI (run 27503112692) to
+> recover the AKBNK stale empties — OCI not re-shipped (data identical-validity; the
+> non-destructive guard would skip the 52 passing anyway). The dropped-sub-row tail
+> (ALBRK OCI 2.2.2 / the 4 CF banks' 2.2) is the real open lever — a shared `_parse_rows`
+> limitation, engine-independent.
+>
+> Prior: 2026-06-14 — **OCI ("Diğer Kapsamlı Gelir") extraction fixed with the
 > validation-guided approach.** OCI was barely extracted (53 of 55 2026 partitions had
 > ZERO rows): the P&L-tuned column detector reads a 2-column interim OCI page as 4
 > columns, so the shared `_parse_page` returned 0 / garbage rows. New
