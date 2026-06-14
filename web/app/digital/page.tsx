@@ -172,13 +172,13 @@ export default async function DigitalPage() {
 
       <Section
         title="Customer acquisition — digital vs branch"
-        subtitle="From TBB's separate monthly “Uzaktan ve Şubeden Müşteri Edinim” report: how many individuals each quarter became customers remotely — without visiting a branch — vs at a branch. “Remotely” combines the three branch-free finalisation methods (a video call with a representative, courier ID confirmation, and bulk payroll/corporate onboarding); “branch” is in-person. Remote-application intake (a funnel count, not finalised customers) is excluded. The monthly source is aggregated to calendar quarters (complete quarters only, 2021-Q3 onward); the remote-ID regulation began May 2021 and definitions were refined in Jan 2023. Individuals only — merchant and legal-entity data exists from Jul 2024."
+        subtitle="From TBB's separate monthly “Uzaktan ve Şubeden Müşteri Edinim” report: how many individuals became customers remotely — without visiting a branch — vs at a branch. “Remotely” combines the three branch-free finalisation methods (a video call with a representative, courier ID confirmation, and bulk payroll/corporate onboarding); “branch” is in-person. Remote-application intake (a funnel count, not finalised customers) is excluded. Each point is a trailing 3-month sum (the month plus the prior two), smoothing the monthly noise while keeping monthly cadence; the first two months (May–Jun 2021) have no full window. The remote-ID regulation began May 2021 and definitions were refined in Jan 2023. Individuals only — merchant and legal-entity data exists from Jul 2024."
       >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <TrendChart
             data={acq.byChannel}
             seriesLabels={ACQ_CHANNEL_LABELS}
-            title="New individual customers per quarter (thousands)"
+            title="New individual customers, trailing 3 months (thousands)"
             yFormat="raw"
             decimals={0}
           />
@@ -194,7 +194,7 @@ export default async function DigitalPage() {
         <StackedArea
           data={pivotWide(acq.byMethod)}
           series={seriesOf(ACQ_METHOD_LABELS)}
-          title="New individual customers by acquisition method (thousands per quarter)"
+          title="New individual customers by acquisition method (thousands, trailing 3 months)"
           decimals={0}
           height={320}
           colorKeys
@@ -249,6 +249,7 @@ export default async function DigitalPage() {
             series={seriesOf(AGE_LABELS)}
             title="Active individuals by age group (millions)"
             decimals={1}
+            colorKeys
           />
         </div>
       </Section>
