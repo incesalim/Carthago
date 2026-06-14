@@ -13,7 +13,7 @@ Validators run per (bank, period, kind):
   - P&L roman chain + net == BS equity
   - off-balance (same BS checks)
   - OCI hierarchy sums + III=I+II + OCI.I == P&L net
-  - capital adequacy (CET1<=Tier1<=Total, CAR=capital/RWA)
+  - capital adequacy (Tier1=CET1+AT1, Total=Tier1+Tier2; ratios=component/RWA)
   - liquidity ratios (plausibility bands)
   - credit quality per-section totals + cross-section (gross-prov=net removed: collective provisioning)
   - stages (total sums, coverage, NPL=100% fingerprint)
@@ -114,11 +114,13 @@ def _capital_rows(conn, bank, period, kind):
     if not _has_table(conn, "bank_audit_capital"):
         return []
     return [dict(zip(
-        ("period_type", "cet1_capital", "tier1_capital", "total_capital",
-         "total_rwa", "capital_adequacy_ratio"), r))
+        ("period_type", "cet1_capital", "additional_tier1_capital", "tier1_capital",
+         "tier2_capital", "total_capital", "total_rwa",
+         "cet1_ratio", "tier1_ratio", "capital_adequacy_ratio"), r))
             for r in conn.execute(
-                "SELECT period_type, cet1_capital, tier1_capital, total_capital, "
-                "       total_rwa, capital_adequacy_ratio "
+                "SELECT period_type, cet1_capital, additional_tier1_capital, tier1_capital, "
+                "       tier2_capital, total_capital, total_rwa, "
+                "       cet1_ratio, tier1_ratio, capital_adequacy_ratio "
                 "FROM bank_audit_capital WHERE bank_ticker=? AND period=? AND kind=?",
                 (bank, period, kind))]
 

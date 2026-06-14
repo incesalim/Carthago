@@ -216,8 +216,8 @@ statement is self-validated (internal-sum / roll-forward / cross identities); th
 | `equity_change` | 610 | 355 | 10 | hardened; vertical-chain tail still open |
 | `credit_quality` | 939 | 5 | 31 | |
 | `stages` | 949 | 13 | 13 | |
-| `capital` | 840 | 2 | 133 | §4 backfilled (skips = bank-type N/A) |
-| `liquidity` | 945 | 0 | 30 | §4 backfilled |
+| `capital` | 816 | **26** | 133 | validator **hardened 2026-06-15** (was 2 fail): now reconciles composition (Tier1=CET1+AT1, Total=Tier1+Tier2) + sub-ratios (CET1/Tier1/CAR = component÷RWA), not just orderings. The 26 fails are **real §4 mis-extractions** (AT1/Tier2 dropped → read 0; total↔Tier2 / RWA↔total column-slips): ICBCT, QNBFB, TSKB, ISCTR, SKBNK, AKTIF |
+| `liquidity` | 945 | 0 | 30 | §4 backfilled; **band-only** validator (leverage/LCR/NSFR plausibility) — table stores ratios only, no HQLA/outflow components to reconcile |
 | `npl_movement` | **515** | 126 | 334 | fixed 2026-06-14 (was 195); 3 generic bugs + fitz-only |
 | `loans_by_sector` | **135** | 36 | 804 | fixed 2026-06-14 (was 99); **annual-only** disclosure → most skips are genuine (interim has no table); ceiling ≈ Q4 partitions |
 
@@ -512,6 +512,23 @@ A qualitative-data layer feeds two tabs from the `news_items` table
   format, ZIRAAT 2025Q4/2026Q1 new). ISCTR 2025Q1/Q2 capital CAR=100.0 = 2 genuine
   extraction errors. Dashboard surfacing of §4 capital/liquidity cross-bank view
   remains an open follow-up.
+- **Capital validator hardened (2026-06-15).** `check_capital` previously only
+  checked orderings (CET1≤Tier1≤Total, always true) + CAR=Total/RWA, so a
+  mis-extracted component passed silently. It now reconciles the whole table:
+  composition (Tier1=CET1+AT1, Total=Tier1+Tier2; optional AT1/Tier2 treated as 0
+  but passing only when it ties — and a base alone exceeding the parent hard-fails)
+  + sub-ratios (cet1_ratio=CET1/RWA, tier1_ratio=Tier1/RWA, CAR=Total/RWA, ±2pp).
+  Required `revalidate_audit_db._capital_rows` to also read AT1/Tier2/cet1_ratio/
+  tier1_ratio. Revalidated + pushed to D1 → 26 capital cells now `error` (was 2),
+  all **genuine §4 extraction bugs**, not validator over-strictness:
+  - **AT1 dropped** (read 0 while Tier1>CET1): ICBCT, QNBFB 2022–23, SKBNK, TSKB
+  - **Tier2 dropped** (read 0 while Total>Tier1): QNBFB 2025–26, SKBNK
+  - **column-slip**: ISCTR 2023Q3/2024Q3 `total_capital==tier2`; ISCTR 2025Q1/Q2
+    cons `total_rwa==total_capital`
+  → **OPEN follow-up: fix the §4 capital extractor** (AT1/Tier2 row capture +
+  total/RWA column alignment) for these banks. **Liquidity validator is at its
+  ceiling** (band-only) — making it reconcile needs extracting LCR/NSFR component
+  sub-tables (HQLA, net outflows), a separate task.
 - **P&L flow Sankey shipped (2026-06-12)** — on `/banks/[ticker]` (Income
   Statement view, above the table): a hand-rolled SVG Sankey of the selected
   period's P&L, YTD as reported. Pure derivation + layout in
