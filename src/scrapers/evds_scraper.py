@@ -273,6 +273,26 @@ SERIES: list[Series] = [
     Series("TP.TUFE1YI.T30",  "PPI Textiles",                             "inflation", evds.FREQ_MONTHLY),
     Series("TP.TUFE1YI.T28",  "PPI Tobacco products",                     "inflation", evds.FREQ_MONTHLY),
     Series("TP.TUFE1YI.T114", "PPI Other manufactured goods",             "inflation", evds.FREQ_MONTHLY),
+
+    # ------------------------------------------------------------------
+    # Foreign trade (TÜİK customs, general trade system) — feeds the
+    # /economy/foreign-trade page (Albaraka "Dış Ticaret Dengesi"). BEC
+    # trade flows are USD THOUSAND (÷1e6 for bn$); unit-value indices are
+    # 2015=100; Brent is USD/bbl. The page rolls 12m and derives trade
+    # balance / coverage / terms-of-trade. Energy balance for Şekil 8 reuses
+    # the already-ingested TP.HARICCARIACIK.K7. Verified to the report (Q2-22).
+    # ------------------------------------------------------------------
+    Series("TP.IHRACATBEC.9999", "Exports, total (customs, USD k)",            "macro", evds.FREQ_MONTHLY),
+    Series("TP.ITHALATBEC.9999", "Imports, total (customs, USD k)",            "macro", evds.FREQ_MONTHLY),
+    Series("TP.IHRACATBEC.1",    "Exports — Investment goods (BEC, USD k)",    "macro", evds.FREQ_MONTHLY),
+    Series("TP.IHRACATBEC.2",    "Exports — Intermediate goods (BEC, USD k)",  "macro", evds.FREQ_MONTHLY),
+    Series("TP.IHRACATBEC.3",    "Exports — Consumption goods (BEC, USD k)",   "macro", evds.FREQ_MONTHLY),
+    Series("TP.ITHALATBEC.1",    "Imports — Investment goods (BEC, USD k)",    "macro", evds.FREQ_MONTHLY),
+    Series("TP.ITHALATBEC.2",    "Imports — Intermediate goods (BEC, USD k)",  "macro", evds.FREQ_MONTHLY),
+    Series("TP.ITHALATBEC.3",    "Imports — Consumption goods (BEC, USD k)",   "macro", evds.FREQ_MONTHLY),
+    Series("TP.DT.IH.FIY.D01.2010", "Export Unit-Value Index (BEC, 2015=100)", "macro", evds.FREQ_MONTHLY),
+    Series("TP.DT.IT.FIY.D01.2010", "Import Unit-Value Index (BEC, 2015=100)", "macro", evds.FREQ_MONTHLY),
+    Series("TP.BRENTPETROL.EUBP",   "Brent Crude, European spot FOB (USD/bbl)", "macro", evds.FREQ_MONTHLY),
 ]
 
 

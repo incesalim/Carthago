@@ -350,6 +350,18 @@ so they appear once CI populates D1. Still on the EVDS fallback: GDP q/q SA line
 calendar-adjusted production, and exact Şekil 2/3 contributions (TÜİK's
 contribution table is a lagged single-month snapshot). Two `economy.*` specs.
 
+A **Foreign Trade** sub-page (`/economy/foreign-trade`) reproduces the Albaraka
+«Dış Ticaret Dengesi» report off **11 new EVDS customs-trade series**
+(`TP.IHRACATBEC.*`/`TP.ITHALATBEC.*` flows in USD thousand, unit-value indices,
+Brent `TP.BRENTPETROL.EUBP`; `macro`/monthly): trade balance + ex-energy,
+exports/imports (level + growth), coverage ratio, terms of trade, trade by BEC
+group, and the energy deficit vs Brent. Verified to the report's Q2-2022 values
+(exports 246.0, imports 322.6, energy deficit −67.69 exact). Two
+`economy.foreign_trade_*` specs (using `derive`/`ratio`). Flagged in-page (not
+reproduced): the «Çekirdek Denge» core line (Albaraka-internal, doesn't
+reconcile) and the HS-chapter «Fasıl» tables (TÜİK dynamic-DB only — not in EVDS
+or the TÜİK theme-tree Excel).
+
 A **Digital** tab (`/digital`) surfaces the TBB quarterly digital/internet/mobile
 banking statistics (`tbb_digital_stats`, sector-wide): channel adoption (active
 mobile vs internet customers; mobile-only/both/internet-only usage), quarterly

@@ -123,6 +123,12 @@ export default async function EconomyPage() {
         >
           Inflation →
         </Link>
+        <Link
+          href="/economy/foreign-trade"
+          className="rounded-md border border-border px-2.5 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+        >
+          Foreign Trade →
+        </Link>
       </PageHeader>
 
       <Section
