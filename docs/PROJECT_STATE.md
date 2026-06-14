@@ -217,7 +217,7 @@ statement is self-validated (internal-sum / roll-forward / cross identities); th
 | `credit_quality` | 939 | 5 | 31 | |
 | `stages` | 949 | 13 | 13 | |
 | `capital` | 816 | **26** | 133 | validator **hardened 2026-06-15** (was 2 fail): now reconciles composition (Tier1=CET1+AT1, Total=Tier1+Tier2) + sub-ratios (CET1/Tier1/CAR = component÷RWA), not just orderings. The 26 fails are **real §4 mis-extractions** (AT1/Tier2 dropped → read 0; total↔Tier2 / RWA↔total column-slips): ICBCT, QNBFB, TSKB, ISCTR, SKBNK, AKTIF |
-| `liquidity` | 945 | 0 | 30 | §4 backfilled; **band-only** validator (leverage/LCR/NSFR plausibility) — table stores ratios only, no HQLA/outflow components to reconcile |
+| `liquidity` | 945 | 0 | 30 | §4 backfilled; per-partition validator is **band-only** (ratios only, nothing to reconcile). Validated instead by a **within-bank time-series outlier scan** (`check_audit_quality._liquidity_outliers`, ≥8× = order-of-magnitude slip; covers `lcr_fc`, which the band check never read). **Verdict 2026-06-15: leverage / LCR / NSFR clean fleet-wide; only error = FIBA `lcr_fc` 2024Q1 unco + 2024Q2 unco/cons (~1.1 vs the bank's ~430)** |
 | `npl_movement` | **515** | 126 | 334 | fixed 2026-06-14 (was 195); 3 generic bugs + fitz-only |
 | `loans_by_sector` | **135** | 36 | 804 | fixed 2026-06-14 (was 99); **annual-only** disclosure → most skips are genuine (interim has no table); ceiling ≈ Q4 partitions |
 
