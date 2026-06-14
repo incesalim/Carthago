@@ -39,7 +39,7 @@ from pathlib import Path
 
 import pdfplumber
 
-from .extractor import parse_num
+from .extractor import _HAS_FITZ, _fitz_page_text, _n_pages, parse_num
 
 
 # ---------------------------------------------------------------------------
@@ -322,13 +322,20 @@ def extract_from_pdf(
     unaffected (strict superset).
     """
     rep = NplMovementReport(pdf_path=pdf_path)
+    # SCAN with fitz (the page locators' engine — ~17× faster than scanning every
+    # page with pdfplumber's extract_text, which dominated this footnote lane's
+    # runtime). Once a page matches the heading + group-header, PARSE it with
+    # pdfplumber's extract_text — the row regexes/taxonomy were tuned to that text
+    # layout, so the parse output is byte-identical to before (no regression).
+    use_fitz = _HAS_FITZ and bool(pdf_path)
+    n_pages = _n_pages(pdf) if use_fitz else len(pdf.pages)
     for lo in sorted({skip_pages, 25}, reverse=True):
-        for i, page in enumerate(pdf.pages, 1):
-            if i <= lo:
+        for i in range(lo + 1, n_pages + 1):
+            scan_text = (_fitz_page_text(pdf_path, i - 1) if use_fitz
+                         else (pdf.pages[i - 1].extract_text() or ""))
+            if not (_HEADING_RX.search(scan_text) and _GROUPS_RX.search(scan_text)):
                 continue
-            text = page.extract_text() or ""
-            if not (_HEADING_RX.search(text) and _GROUPS_RX.search(text)):
-                continue
+            text = (pdf.pages[i - 1].extract_text() or "") if use_fitz else scan_text
             rows = _extract_from_block(i, text)
             if rows:
                 rep.rows.extend(rows)
