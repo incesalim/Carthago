@@ -62,6 +62,18 @@ _PAT_TR_AKBNK = re.compile(
     rf"yurt\s+çapında\s+{_NUM}\s+şube.{{0,80}}yurt[\s-]?dışında\s+{_NUM}\s+şube",
     re.IGNORECASE | re.DOTALL,
 )
+# Turkish — domestic-only: "yurt içinde 35 şubesi" with NO "yurt dışında" clause
+# (FIBA, ALNTF…). Tried after the combined pattern, so banks with both still get both.
+_PAT_TR_DOMESTIC = re.compile(
+    rf"yurt[\s-]?içi(?:nde|ndeki)?\s+(?:toplam\s+)?{_NUM}\s+şube",
+    re.IGNORECASE,
+)
+# Turkish — bare total with no domestic/foreign split: "itibarıyla Grup 458 şubesi"
+# (KUVEYT). Anchored on the date+subject context to avoid matching a stray "X şube".
+_PAT_TR_SUBE_TOTAL = re.compile(
+    rf"itibar[ıi]yla\s+(?:Banka|Grup|Bankas[ıi]|Katılım\s+Bankas[ıi])['’]?\s*\w*\s+{_NUM}\s+şube",
+    re.IGNORECASE,
+)
 # Turkish — "genel toplamda X şubesi" / "toplam X şubesi" — explicit total
 # (ZIRAAT writes both: "toplam 24 şube" (foreign-only count!) AND
 # "genel toplamda 1.769 şubesinin", so "genel toplamda" must win).
@@ -92,6 +104,11 @@ _PAT_TR_PERSONNEL = re.compile(
     rf"personel\s+sayısı(?:\s+ise)?\s+{_NUM}",
     re.IGNORECASE,
 )
+# Turkish — "X personeli" (KUVEYT "7,565 personeli") and "X çalışan[ı]" (FIBA
+# "toplam 1.571 çalışan") — number BEFORE the noun (so it can't catch the
+# "PERSONEL GİDERLERİ <amount>" expense lines, where the number comes after).
+_PAT_TR_PERSONELI = re.compile(rf"{_NUM}\s+personel(?:i|e)\b", re.IGNORECASE)
+_PAT_TR_CALISAN = re.compile(rf"(?:toplam\s+)?{_NUM}\s+çalışan", re.IGNORECASE)
 # Turkish — ZIRAAT split: "yurt içi çalışan sayısı 25.642, yurt dışı çalışan sayısı 101"
 _PAT_TR_PERSONNEL_SPLIT = re.compile(
     rf"yurt\s+içi\s+çalışan\s+sayısı\s+{_NUM}.{{0,30}}yurt\s+dışı\s+çalışan\s+sayısı\s+{_NUM}",
@@ -161,6 +178,11 @@ def extract_profile_from_pdf(
         if m:
             profile.branches_domestic = _parse_int(m.group(1))
             profile.branches_foreign = _parse_int(m.group(2))
+    # Turkish domestic-only: "yurt içinde X şubesi" with no foreign clause (FIBA).
+    if profile.branches_domestic is None:
+        m = _PAT_TR_DOMESTIC.search(text)
+        if m:
+            profile.branches_domestic = _parse_int(m.group(1))
 
     # Total: prefer "genel toplamda" (ZIRAAT) > "olmak üzere toplam" (VAKBN).
     if profile.branches_total is None:
@@ -169,6 +191,11 @@ def extract_profile_from_pdf(
             profile.branches_total = _parse_int(m.group(1))
     if profile.branches_total is None:
         m = _PAT_TR_TOPLAM.search(text)
+        if m:
+            profile.branches_total = _parse_int(m.group(1))
+    # Bare total with no domestic/foreign split: "itibarıyla Grup 458 şubesi" (KUVEYT).
+    if profile.branches_total is None and profile.branches_domestic is None:
+        m = _PAT_TR_SUBE_TOTAL.search(text)
         if m:
             profile.branches_total = _parse_int(m.group(1))
     # Derive total if missing but both components present.
@@ -195,6 +222,15 @@ def extract_profile_from_pdf(
     # Standard Turkish "personel sayısı X".
     if profile.personnel is None:
         m = _PAT_TR_PERSONNEL.search(text)
+        if m:
+            profile.personnel = _parse_int(m.group(1))
+    # Turkish "X personeli" (KUVEYT) / "X çalışan" (FIBA).
+    if profile.personnel is None:
+        m = _PAT_TR_PERSONELI.search(text)
+        if m:
+            profile.personnel = _parse_int(m.group(1))
+    if profile.personnel is None:
+        m = _PAT_TR_CALISAN.search(text)
         if m:
             profile.personnel = _parse_int(m.group(1))
     # English "X employees".
