@@ -42,6 +42,9 @@ SAMPLE = [
     ("YKBNK", "2025Q1", "consolidated",   "oci",    "oci-lane"),
 ]
 
+# Partitions whose full OCR line reconstruction is dumped for diagnosis.
+DUMP = {("ISCTR", "2025Q2", "consolidated"), ("HSBC", "2025Q1", "consolidated")}
+
 # --- OCR (RapidOCR = PP-OCR models on onnxruntime; no paddle/torch) ---------
 _OCR = None
 
@@ -164,6 +167,12 @@ def run_one(conn, b, p, k, target, ftype):
 
         # OCR each equity page, monkeypatch readers to feed OCR into the parser
         ocr_by_page = {pg: ocr_page_lines(P, pg - 1) for pg, _pt in eqp}
+        if (b, p, k) in DUMP:
+            pg0 = eqp[0][0]
+            print(f"\n--- OCR lines for {b} {p} {k} page {pg0} ({len(ocr_by_page[pg0])} lines) ---", flush=True)
+            for ln in ocr_by_page[pg0]:
+                print("   |", ln[:115], flush=True)
+            print("--- end OCR lines ---\n", flush=True)
         real_srt, real_fpt, real_fpl = ec._safe_repaired_text, ec._fitz_page_text, ec._fitz_page_lines
 
         def patched_srt(path, idx1, timeout=35.0):
@@ -197,8 +206,19 @@ def run_one(conn, b, p, k, target, ftype):
         "SELECT hierarchy,item_name,amount FROM bank_audit_oci WHERE bank_ticker=? AND period=? AND kind=? "
         "ORDER BY item_order", (b, p, k))]
     res = v.check_equity_change(eq, oci_rows=oci, liabilities=liab, period=p)
-    status = "PASS" if res.failed == 0 else "FAIL:" + (res.failures[0].get("check", "?") if res.failures else "?")
-    detail = f"rows={len(rows)} P{res.passed}/F{res.failed}/S{res.skipped}"
+    # A REAL pass = the chain checks actually ran AND passed (not skipped because
+    # OCR produced no rows). 0-row results are NO-ROWS, never PASS.
+    if len(rows) < 4:
+        status = "NO-ROWS"
+    elif res.failed == 0 and res.passed > 0:
+        status = "PASS"
+    else:
+        status = "FAIL:" + (res.failures[0].get("check", "?") if res.failures else "skip")
+    ol = ocr_by_page[eqp[0][0]]
+    nwide = sum(1 for ln in ol if ec._count_value_tokens(ln) >= 8)
+    samp = next((ln for ln in ol if ec._count_value_tokens(ln) >= 8), "")
+    detail = (f"rows={len(rows)} ocrlines={len(ol)} wide={nwide} "
+              f"P{res.passed}/F{res.failed} | {samp[:72]}")
     return (b, p, k, ftype, status, detail)
 
 
