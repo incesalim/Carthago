@@ -236,6 +236,45 @@ def _liquidity_bands(conn: sqlite3.Connection) -> list[str]:
     return out
 
 
+# A liquidity ratio is reconciliation-free (the table stores no components), so
+# the only structural check is consistency with the SAME bank's other periods:
+# a decimal/wrong-cell slip throws a value off by an order of magnitude (e.g.
+# FIBA lcr_fc read 1.08 when the bank runs ~430). 8x is well above genuine
+# ratio volatility (an FX-heavy bank like EXIM swings ~5x and is real) so this
+# stays high-precision. Critically it also covers lcr_fc, which the band check
+# and the per-partition validator never read.
+LIQ_OUTLIER_FACTOR = 8.0
+LIQ_MIN_POINTS = 5  # need a stable within-bank baseline
+
+
+def _liquidity_outliers(conn: sqlite3.Connection) -> list[str]:
+    if not _has_table(conn, "bank_audit_liquidity"):
+        return []
+    import statistics as _st
+    out = []
+    metrics = ("leverage_ratio", "lcr_total", "lcr_fc", "nsfr")
+    series: dict[tuple, list] = {}
+    rows = conn.execute(
+        f"SELECT bank_ticker, period, kind, {','.join(metrics)} "
+        "FROM bank_audit_liquidity WHERE period_type='current'").fetchall()
+    for bank, period, kind, *vals in rows:
+        for m, v in zip(metrics, vals):
+            if v is not None:
+                series.setdefault((bank, kind, m), []).append((period, v))
+    for (bank, kind, m), pts in series.items():
+        if len(pts) < LIQ_MIN_POINTS:
+            continue
+        med = _st.median([v for _, v in pts])
+        if med <= 0:
+            continue
+        for period, v in pts:
+            r = v / med
+            if r > LIQ_OUTLIER_FACTOR or r < 1 / LIQ_OUTLIER_FACTOR:
+                out.append(f"liquidity {bank} {period} {kind}: {m} {v:g} is "
+                           f"{r:.2g}x the bank's median {med:g} — likely a mis-grabbed value")
+    return out
+
+
 # ECL sanity: corrupted parses show up as values like -6 / 63 / 89 (the dipnot
 # ref "(6)" read as a value). Real ECL on a bank with a >10bn-TL balance sheet
 # is never under 100 thousand TL.
@@ -330,7 +369,8 @@ def check(db: Path) -> list[str]:
     try:
         return (_stale_periods(conn) + _balance(conn) + _coverage(conn)
                 + _npl_collapse(conn) + _capital_consistency(conn)
-                + _liquidity_bands(conn) + _structure(conn) + _ecl_sanity(conn))
+                + _liquidity_bands(conn) + _liquidity_outliers(conn)
+                + _structure(conn) + _ecl_sanity(conn))
     finally:
         conn.close()
 
