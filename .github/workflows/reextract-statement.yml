@@ -7,10 +7,11 @@ name: Re-extract one statement
 # partitions are left untouched (only failing/missing/empty are rewritten), so this
 # never regresses correct data — including the frozen BS/P&L. Manual only.
 #
-# Note on --only-failing: it selects checks_failed>0, which EXCLUDES "empty"
-# partitions (0 rows → validation skipped, checks_failed=0). For a statement that
-# is broadly un-extracted (e.g. OCI), leave only_failing OFF so the empties are
-# re-extracted too; the guard still skips the genuinely-passing ones.
+# only_failing selects partitions NOT currently passing = failing (checks_failed>0)
+# OR empty/un-validated (checks_passed=0, e.g. 0 rows → validation skipped). It
+# therefore catches the stale empties too, so it's the efficient default for a
+# fleet re-extract: only the bad partitions are downloaded/parsed, the proven-passing
+# rest are skipped entirely. (Leave it OFF only to force-touch every partition.)
 on:
   workflow_dispatch:
     inputs:
@@ -28,9 +29,9 @@ on:
         type: string
         default: ""
       only_failing:
-        description: "Only partitions currently FAILING validation (excludes empties — leave off for broadly-empty statements)"
+        description: "Only partitions NOT passing validation (failing OR empty) — efficient default; skips the proven-passing rest"
         type: boolean
-        default: false
+        default: true
       dry_run:
         description: "Re-extract locally only; skip the D1 push + snapshot upload"
         type: boolean
