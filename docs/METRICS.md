@@ -807,8 +807,8 @@ transfers, payments, gender, age) are continuous across the full history.
 | Bill-payment count per quarter | mobile vs internet `fatura_odemeleri` | III.2 / count |
 | Active individuals by gender | Kadın / Erkek (TOPLAM) | II / persons (digital) |
 | Active individuals by age group | 0–17 … 66+ (TOPLAM) | III / persons (digital) |
-| Customers acquired per month — digital vs branch | derived from `tbb_acquisition_stats` (see §13.1) | acquisition / persons |
-| Digital share of new customers (%) | derived: remote ÷ (remote + branch) | acquisition / % |
+| Customers acquired per quarter — digital vs branch | derived from `tbb_acquisition_stats`, monthly→quarterly (see §13.1) | acquisition / persons |
+| Digital share of new customers (%) | derived: remote ÷ (remote + branch), quarterly | acquisition / % |
 
 ### 13.1 Remote vs branch customer acquisition (`tbb_acquisition_stats`)
 
@@ -832,8 +832,11 @@ section of `/digital` ([`web/app/lib/acquisition.ts`](../web/app/lib/acquisition
 
 **"Digital" = branch-free finalisation** = `remote_rep + remote_courier + bulk`;
 `branch` is non-digital. **Definition break:** individual-panel definitions were
-refined as of **Ocak 2023** (the series continues). Around 2025–26 digital acquisition
-overtook branch for individuals (e.g. 2026-04: ~834k remote vs ~570k branch).
+refined as of **Ocak 2023** (the series continues). The monthly series is noisy, so
+the dashboard **aggregates it to calendar quarters** (`acquisitionData()` sums each
+channel/method per quarter, keeping only complete 3-month quarters — 2021-Q3 onward).
+The digital share of individual acquisition rose from ~29% (2021-Q3) to a ~60% peak
+(2024-Q4 / 2025-Q1), overtaking branch around 2023.
 
 ## 14. Economy tab (macro)
 
