@@ -89,6 +89,38 @@ def _lines_from_boxes(boxes, y_tol=8):
     return out
 
 
+import re  # noqa: E402
+
+# OCR confuses I/l/1/L — normalise the first token of a row back to its BRSA
+# roman marker. (Observed: VI→VL, VII→VIL, VIII→VIl, XI→XL, I→1.)
+_ROMAN_FIX = {
+    "1": "I", "l": "I", "ll": "II", "lll": "III", "lV": "IV",
+    "Vl": "VI", "VL": "VI",
+    "Vll": "VII", "VIL": "VII", "VlI": "VII", "VlL": "VII",
+    "VIl": "VIII", "Vlll": "VIII", "VllI": "VIII", "VIIl": "VIII", "VlII": "VIII",
+    "lX": "IX", "1X": "IX", "Ix": "IX",
+    "Xl": "XI", "XL": "XI", "X1": "XI",
+}
+_OPENING_RX = re.compile(
+    r'^(Beginning Balance|Balances? at Beginn|[OÖ]nceki D[oö]nem Sonu Bak|D[oö]nem Ba[sş]i Bak)', re.I)
+
+
+def _fix_ocr_markers(lines: list[str]) -> list[str]:
+    out = []
+    for ln in lines:
+        s = ln.strip()
+        toks = s.split()
+        if toks:
+            t0 = toks[0].rstrip(".)").lstrip("(")
+            if t0 in _ROMAN_FIX:
+                toks[0] = _ROMAN_FIX[t0] + "."
+                s = " ".join(toks)
+            elif _OPENING_RX.match(s) and t0 not in ("I", "II", "III"):
+                s = "I. " + s          # opening row that lost its marker
+        out.append(s)
+    return out
+
+
 def ocr_page_lines(pdf_path: str, page_idx_0: int, dpi=250) -> list[str]:
     doc = fitz.open(pdf_path)
     pix = doc[page_idx_0].get_pixmap(dpi=dpi)
@@ -97,7 +129,7 @@ def ocr_page_lines(pdf_path: str, page_idx_0: int, dpi=250) -> list[str]:
         p = Path(td) / "page.png"
         pix.save(str(p))
         boxes = _ocr_raw(str(p))
-    return _lines_from_boxes(boxes)
+    return _fix_ocr_markers(_lines_from_boxes(boxes))
 
 
 # --- validation helpers (mirror revalidate_partition) ----------------------
