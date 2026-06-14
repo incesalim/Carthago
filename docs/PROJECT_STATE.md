@@ -7,7 +7,25 @@ coverage or known issues change.
 > → this file → [OPERATIONS.md](OPERATIONS.md). Metric definitions in
 > [METRICS.md](METRICS.md).
 >
-> Last verified: 2026-06-14 — **equity_change 2025/26 hardened (fails 205 → 79) +
+> Last verified: 2026-06-14 — **re-extraction is now NON-DESTRUCTIVE: it can never
+> overwrite correct data.** `loader.upsert_report` skips writing any statement whose
+> stored data already PASSES validation (`bank_audit_validation`: `checks_failed=0 &
+> checks_passed>0`) — assets+liabilities protected as a pair (they cross-check),
+> every other statement per-statement; failing/missing statements are still re-extracted.
+> So a plain re-run, a `--force` re-extract, OR a full backfill can only *improve* the
+> DB, never regress a validated partition. Escape hatch: `force=True`
+> (`sync_audit_reports.py --force-overwrite`, `reextract_statement.py --force`). Bonus —
+> `upsert_report` now records validation by **revalidating from the STORED rows**
+> (`revalidate_partition`, all 14 statement types) instead of the in-memory report
+> (which covered only 8), so the recorded verdict always matches what's in the DB.
+> Regression test `tests/test_upsert_guard.py`; touched `loader.py`, `validator.py`
+> (`statement_passes`), `reextract_statement.py`, `sync_audit_reports.py`. Separately,
+> re-pushed the `/admin` coverage matrix: the D1 spine tables
+> (`bank_audit_expected`/`_statement_types`/`_coverage`) had silently gone to 0 again
+> (a `sync_audit_expected.py --push` D1 write that didn't land — the full-rebuild
+> clears-then-inserts and prints "done" regardless), now 975/14/13650 + R2 refreshed.
+>
+> Prior: 2026-06-14 — **equity_change 2025/26 hardened (fails 205 → 79) +
 > self-validating fast iterate loop; committed to fitz.** (1) A few BRSA PDFs (e.g.
 > VAKBN 2025Q4: 159 pages, 273 `/ObjStm`) made pdfplumber's page-tree resolution hang
 > ~2 min — the equity re-extract wedged on it. Locators now take page COUNT + text from

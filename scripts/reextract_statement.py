@@ -93,6 +93,9 @@ def main() -> int:
     ap.add_argument("--no-inline-validate", action="store_true",
                     help="skip inline per-partition validation (fall back to the separate "
                          "revalidate_audit_db.py step)")
+    ap.add_argument("--force", action="store_true",
+                    help="overwrite even partitions whose stored data already PASSES this "
+                         "statement's validation (default: leave correct data untouched)")
     args = ap.parse_args()
     statement = args.statement
     table = STATEMENT_TABLE[statement]
@@ -127,7 +130,7 @@ def main() -> int:
         print("[reext] nothing to do"); return 0
 
     touched: list[tuple[str, str, str]] = []
-    counts = {"ok": 0, "fail": 0, "rows": 0, "vok": 0, "vfail": 0}
+    counts = {"ok": 0, "fail": 0, "rows": 0, "vok": 0, "vfail": 0, "keep": 0}
     inline = not args.no_inline_validate
     with tempfile.TemporaryDirectory(prefix="bddk_reext_") as td:
         work = [(t, p, k, key, statement, td) for (t, p, k, key) in pdfs]
@@ -145,6 +148,12 @@ def main() -> int:
                 if not ok:
                     counts["fail"] += 1
                     print(f"  [FAIL] {t:<8} {p} {k:<14} {err}", flush=True)
+                    continue
+                # Non-destructive: never overwrite data that already validates
+                # (--only-failing already excludes these, but the guard makes a
+                # plain re-extract safe too). --force overrides.
+                if not args.force and _validator.statement_passes(conn, t, p, k, statement):
+                    counts["keep"] += 1
                     continue
                 _upsert(conn, statement, t, p, k, rep)
                 conn.execute(
@@ -179,7 +188,8 @@ def main() -> int:
                     pass
             conn.commit()
     vtally = f" | validated: pass={counts['vok']} FAIL={counts['vfail']}" if inline else ""
-    print(f"[reext] ok={counts['ok']} fail={counts['fail']} rows={counts['rows']}{vtally}",
+    keptt = f" kept={counts['keep']}" if counts['keep'] else ""
+    print(f"[reext] ok={counts['ok']} fail={counts['fail']}{keptt} rows={counts['rows']}{vtally}",
           flush=True)
 
     if args.dry_run:

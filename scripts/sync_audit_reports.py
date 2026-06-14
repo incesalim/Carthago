@@ -236,8 +236,12 @@ def _worker_extract(args):
 def extract_from_r2(
     workers: int, db_path: Path = DB_PATH, only: set[str] | None = None,
     latest_period: bool = False, periods: set[str] | None = None,
-    force: bool = False,
+    force: bool = False, overwrite_correct: bool = False,
 ) -> dict[str, int]:
+    # `force` re-extracts already-done partitions; `overwrite_correct` additionally
+    # lets the upsert overwrite statements whose stored data already validates.
+    # Default (overwrite_correct=False) is non-destructive: re-extraction can fix
+    # failing/missing statements but never replaces correct data with worse data.
     db_path.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(str(db_path)) as conn:
         init_schema(conn)
@@ -277,7 +281,7 @@ def extract_from_r2(
                     counts["fail"] += 1
                     print(f"  [FAIL] {ticker:<8} {period} {kind:<14} {err}", flush=True)
                     continue
-                upsert_report(conn, ticker, period, kind, rep, key)
+                upsert_report(conn, ticker, period, kind, rep, key, force=overwrite_correct)
                 tag = "OK" if (bsa >= 20 and bsl >= 20 and pl >= 20) else "WARN"
                 counts["ok"] += 1
                 print(
@@ -318,6 +322,10 @@ def main():
     ap.add_argument("--force", action="store_true",
                     help="re-extract even partitions already in the DB (upsert "
                          "replaces them). Without this, done partitions are skipped.")
+    ap.add_argument("--force-overwrite", action="store_true",
+                    help="also overwrite statements whose stored data already PASSES "
+                         "validation (default: re-extraction leaves correct data "
+                         "untouched, only fixing failing/missing statements).")
     ap.add_argument("--new-count-file", type=str, default="",
                     help="write the count of newly-scraped PDFs to this file "
                          "(so acquire-audit.yml can notify when new reports land).")
@@ -372,7 +380,8 @@ def main():
         cpu_workers = min(args.workers, (os.cpu_count() or 4))
         extract_counts = extract_from_r2(
             workers=cpu_workers, db_path=db_path, only=only,
-            latest_period=args.latest_period, periods=periods, force=args.force)
+            latest_period=args.latest_period, periods=periods, force=args.force,
+            overwrite_correct=args.force_overwrite)
     print(f"\ntotal {time.time() - t0:.1f}s")
 
     # Systemic-failure guard: make the run exit non-zero (→ CI failure email +

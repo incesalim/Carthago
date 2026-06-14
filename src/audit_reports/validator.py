@@ -430,6 +430,19 @@ def upsert_validation(conn, bank: str, period: str, kind: str,
          for stmt, r in results.items()])
 
 
+def statement_passes(conn, bank: str, period: str, kind: str, statement: str) -> bool:
+    """True iff the stored validation for this (partition, statement) is clean —
+    at least one check passed and none failed. This is the "is this data already
+    correct?" signal used to protect validated rows from being overwritten by a
+    re-extract (a partition with no validation row, or one that only skipped, is
+    NOT considered passing — re-extraction proceeds normally)."""
+    row = conn.execute(
+        "SELECT checks_passed, checks_failed FROM bank_audit_validation "
+        "WHERE bank_ticker=? AND period=? AND kind=? AND statement=?",
+        (bank, period, kind, statement)).fetchone()
+    return bool(row and row[1] == 0 and row[0] > 0)
+
+
 def validate_report(rep, period: str | None = None) -> dict[str, ValidationResult]:
     """Validate one extracted BankReport (all statement types)."""
     assets = rows_from_statement_rows(rep.bs_assets)
