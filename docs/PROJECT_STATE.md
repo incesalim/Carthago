@@ -7,8 +7,7 @@ coverage or known issues change.
 > → this file → [OPERATIONS.md](OPERATIONS.md). Metric definitions in
 > [METRICS.md](METRICS.md).
 >
-> Last verified: 2026-06-14 — **NPL-movement extraction fixed (28 → 64 pass on 2025Q4+2026Q1;
-> all-periods running).** NPL movement (`bank_audit_npl_movement`, regex footnote extractor) was
+> Last verified: 2026-06-14 — **NPL-movement extraction fixed fleet-wide: 195 → 515 / 974 pass.** NPL movement (`bank_audit_npl_movement`, regex footnote extractor) was
 > 195/974. A 2025Q4-vs-2026Q1 diagnostic found three GENERIC bugs (not per-bank work): (1)
 > `skip_pages=60` hid the table in shorter interim reports (FIBA 2026Q1 at p56 < 60) — added a
 > low-floor (25) retry that only runs when the deep pass finds nothing (strict superset); (2)
@@ -19,8 +18,14 @@ coverage or known issues change.
 > columns as 0 and PASSES only when the roll-forward TIES (a missed NON-zero column won't tie → stays
 > SKIP; never a false pass/fail). Two-quarter D1: 2025Q4 17→32, 2026Q1 11→32; no pass→fail regressions
 > (one skip→fail, DENIZ, is a real non-reconciling roll-forward surfaced). npl_movement wired into
-> `reextract_statement.py`; commit `ac439fd`. Remaining tail: image-only stubs (ALBRK/ALNTF/EXIM/ODEA/
-> TSKB) + genuine identity fails (TEB/KLNMA/PASHA/HALKB) + has-rows-but-don't-tie skips.
+> `reextract_statement.py`; commits `ac439fd`/`3f56200`. **Also moved the lane to FITZ** — it had been
+> scanning every page with pdfplumber's `extract_text` (~17× slower; an all-periods run was ~80 min and
+> risked the 120-min timeout). Now scans+parses with fitz like the statement locators (verified
+> strictly ≥ pdfplumber across 23 local PDFs — even recovers ISCTR/TFKB rows pdfplumber drops); an
+> all-periods re-extract is now ~6 min. **All periods re-extracted (only_failing): 195 → 515 / 974
+> pass.** Remaining tail (no generic fix reaches it): 126 genuine non-reconciling roll-forwards
+> (TEB/KLNMA/PASHA/HALKB…) + 334 empty/skip = image-only stubs (ALBRK/ALNTF/EXIM/ODEA/TSKB, like OCI/CF)
+> + has-rows-but-don't-tie column skips (per-bank Phase-2 taxonomy, deferred).
 >
 > Prior: 2026-06-14 — **Engine strategy is now per-statement: fitz-only for OCI +
 > cash flow, multi-engine kept for equity.** Measured that the multi-engine model
