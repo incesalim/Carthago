@@ -7,7 +7,29 @@ coverage or known issues change.
 > → this file → [OPERATIONS.md](OPERATIONS.md). Metric definitions in
 > [METRICS.md](METRICS.md).
 >
-> Last verified: 2026-06-13 — **equity/CF deep-fixed + full fleet re-extracted +
+> Last verified: 2026-06-14 — **equity_change 2025/26 hardened (fails 205 → 79) +
+> self-validating fast iterate loop; committed to fitz.** (1) A few BRSA PDFs (e.g.
+> VAKBN 2025Q4: 159 pages, 273 `/ObjStm`) made pdfplumber's page-tree resolution hang
+> ~2 min — the equity re-extract wedged on it. Locators now take page COUNT + text from
+> **fitz** (30 ms vs 2 min); `extract()` shuts the stream instead of `pdf.close()` (which
+> re-enumerates pages). VAKBN equity-only: **124 s hang → 0.7 s.** (2) Equity parse keeps
+> the reconstruction whose **column chain VALIDATES** among pdfplumber + 2 fitz engines
+> (validation-guided, not max-rows), with a both-template (14/16) retry gated to failing
+> pages. (3) `n_cols` detected from pdfplumber text (fitz over-counts → AKBNK/BURGAN uncons
+> 1→17 rows). (4) mid-page split closing must follow the table body (fixed VAKBN current↔prior
+> flip). Commits `753d885`, `e0d301e`, `ec7f073`. **Self-validating loop:**
+> `reextract_statement.py` validates each partition INLINE (factored `revalidate_partition`),
+> prints live `[vFAIL]`, pushes `bank_audit_validation`; new `--only-failing` re-extracts ONLY
+> the failing set → edit→measure dropped ~10 min → ~2 min. **2025/26 equity: 206/285 clean
+> (shipped D1+R2), 79 flagged** as a per-bank follow-up. OCR/table-tool exploration done (OCR
+> *does* recover the corrupted text — letter-spacing/numbers clean — but feeding our column
+> parser needs a grid-reconstruction layer; `pdfplumber.extract_tables` ~4 min/page) →
+> **committed to fitz** (already primary: fitz locators + 2 of 3 equity candidates; pdfplumber
+> stays a thin fallback for interleaved-footnote banks GARAN/AKBNK + BS/P&L). The 79 split
+> into corrupted-text (OCR), clean-but-mis-gridded (grid), and genuine gaps (HSBC, BS-side, no
+> tool fixes); `scripts/_eq_failreport.py` lists them.
+>
+> **Prior: 2026-06-13 — equity/CF deep-fixed + full fleet re-extracted +
 > coverage matrix restored.** Post-backfill diagnosis found the earlier "two bug"
 > fix was a band-aid; the real root causes were: (1) the equity-page **locator
 > gated on a fragile title anchor** → missed ODEA (image-only title) / Ziraat
