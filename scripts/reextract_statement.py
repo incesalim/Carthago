@@ -112,8 +112,10 @@ def main() -> int:
     ap.add_argument("--dry-run", action="store_true",
                     help="re-extract + upsert LOCAL db only; no D1 push / snapshot")
     ap.add_argument("--only-failing", action="store_true",
-                    help="re-extract ONLY partitions currently failing this statement's "
-                         "validation (reads bank_audit_validation in the LOCAL db)")
+                    help="re-extract ONLY partitions NOT currently passing this statement's "
+                         "validation — i.e. failing (checks_failed>0) OR empty/un-validated "
+                         "(checks_passed=0, e.g. 0 rows → validation skipped). Reads "
+                         "bank_audit_validation in the LOCAL db. Skips the proven-passing rest.")
     ap.add_argument("--no-inline-validate", action="store_true",
                     help="skip inline per-partition validation (fall back to the separate "
                          "revalidate_audit_db.py step)")
@@ -138,15 +140,20 @@ def main() -> int:
     if args.latest_period:
         pdfs = _restrict_to_latest_period(pdfs)
     if args.only_failing:
-        # Intersect with the partitions that currently FAIL this statement's
-        # validation (local db — populated by a prior inline run or revalidate).
+        # Intersect with the partitions NOT currently passing this statement's
+        # validation = failing (checks_failed>0) OR empty/un-validated
+        # (checks_passed=0 — e.g. 0 rows extracted → validation skipped). The
+        # latter is essential: a broadly-empty statement (OCI/CF stale empties)
+        # has checks_failed=0, so a failed-only filter would skip exactly the
+        # partitions that most need re-extracting. Proven-passing partitions
+        # (checks_failed=0 AND checks_passed>0) are left out.
         with sqlite3.connect(str(DB)) as _c:
-            failing = {(t.upper(), p.upper(), k) for (t, p, k) in _c.execute(
+            todo = {(t.upper(), p.upper(), k) for (t, p, k) in _c.execute(
                 "SELECT bank_ticker, period, kind FROM bank_audit_validation "
-                "WHERE statement=? AND checks_failed>0", (statement,))}
+                "WHERE statement=? AND (checks_failed>0 OR checks_passed=0)", (statement,))}
         pdfs = [(t, p, k, key) for (t, p, k, key) in pdfs
-                if (t.upper(), p.upper(), k) in failing]
-        print(f"[reext] --only-failing -> {len(pdfs)} failing {statement} partition(s)",
+                if (t.upper(), p.upper(), k) in todo]
+        print(f"[reext] --only-failing -> {len(pdfs)} not-passing {statement} partition(s)",
               flush=True)
     print(f"[reext] statement={statement} table={table} pdfs={len(pdfs)} "
           f"workers={args.workers}{' (dry-run)' if args.dry_run else ''}", flush=True)
