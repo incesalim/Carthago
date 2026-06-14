@@ -156,6 +156,7 @@ coverage or known issues change.
 | `bank_audit_profile` | BRSA PDFs, qualitative section | same | branches + personnel where disclosed |
 | `bank_audit_capital` | BRSA PDFs, §4.1 capital adequacy | same — **fully backfilled 2026-06-10** (31/31 banks, ~1.7k rows) | CET1/Tier1/Tier2/Total/RWA + CET1/Tier1/CAR ratios, per period_type |
 | `bank_audit_liquidity` | BRSA PDFs, §4.6/4.7 | same — **fully backfilled 2026-06-10** (31/31 banks, ~1.8k rows) | LCR (total/FC), NSFR, leverage ratio, per period_type |
+| `bank_audit_oci`, `_cash_flow`, `_equity_change`, `_npl_movement`, `_stages`, `_loans_by_sector` | BRSA PDFs (statement pages + IFRS-9/credit footnotes) | 2022-Q1 → 2026-Q1 | per-bank; per-lane pass rates in the validation-status table below |
 | `bank_audit_extractions` | extraction log | one row per PDF | 974 rows (954 ok / 20 partial) |
 | `bank_types`, `table_definitions`, `download_log` | metadata | — | — |
 
@@ -182,6 +183,29 @@ Per-bank §4 filing quirks and their fixes are catalogued in
 capital-quality flags are bank-reported BRSA temporary-measure CARs
 (ATBANK 2024, TEB consolidated 2022) — false positives, not parse errors.
 Dashboard surfacing (e.g. cross-bank CAR/LCR view) is an open follow-up.
+
+**Audit-lane validation status** (D1, 2026-06-14; /~975 partitions). Every extracted
+statement is self-validated (internal-sum / roll-forward / cross identities); the
+`/admin` coverage matrix and the non-destructive re-extract guard both key off this.
+
+| Lane | pass | fail | skip | notes |
+|---|---|---|---|---|
+| `assets` / `liabilities` / `cross` | 970–974 | ≤4 | 1 | **BS frozen** (correct — don't re-extract) |
+| `off_balance` | 948 | 18 | 9 | cosmetic-label tail |
+| `profit_loss` | 964 | 10 | 1 | **frozen** (correct) |
+| `oci` | **881** | 78 | 16 | fixed 2026-06-14 (was ~62); validation-guided, fitz-only |
+| `cash_flow` | **813** | 135 | 27 | fitz-only; 135 = dropped-sub-row tail |
+| `equity_change` | 610 | 355 | 10 | hardened; vertical-chain tail still open |
+| `credit_quality` | 939 | 5 | 31 | |
+| `stages` | 949 | 13 | 13 | |
+| `capital` | 840 | 2 | 133 | §4 backfilled (skips = bank-type N/A) |
+| `liquidity` | 945 | 0 | 30 | §4 backfilled |
+| `npl_movement` | **515** | 126 | 334 | fixed 2026-06-14 (was 195); 3 generic bugs + fitz-only |
+| `loans_by_sector` | 99 | 66 | 810 | **biggest open gap** (next candidate) |
+
+OCI/CF/NPL were fixed this way: a recent-vs-older-quarter diagnostic → small generic
+fixes → ship via `reextract-statement.yml`. Residual fails are genuine per-bank
+non-reconciling disclosures + image-only PDFs, not extractor bugs.
 
 ## Bank-type taxonomy
 
@@ -221,6 +245,8 @@ concurrency group), so audit failures can't stall the bulletin pipeline:
 - `.github/workflows/refresh-data.yml` — Sat 03:00 UTC. Monthly + weekly + EVDS + TBB digital-banking (quarterly) + KAP ownership structure + TEFAS fund market → D1. *(Audit removed — now its own workflow.)* TBB, KAP and TEFAS are non-critical steps in `refresh.py` (an outage won't abort the BDDK refresh); they ride the bulletin lane's snapshot, so no new lane. KAP details in [OPERATIONS.md](OPERATIONS.md) §KAP ownership; TEFAS in §TEFAS fund market.
 - `.github/workflows/backfill-tefas.yml` — manual dispatch only. Resumable ~5-year TEFAS history backfill (the API rejects start dates older than 5 years; 28-day windows, rate-limited ≈2–2.5 h; re-dispatch with the same `from` to resume — completed windows are skipped via `tefas_fetch_log`).
 - `.github/workflows/refresh-audit.yml` — Sun 04:00 UTC. Audit-report sync + extract → `bank_audit_*` → D1. Own DB `data/bank_audit.db`, own snapshot `state/bank_audit.db.gz`, own group `bddk-audit`. Manual dispatch takes optional `bank` / `skip_scrape` inputs (the /admin per-bank trigger uses `bank` → `--only-bank … --latest-period`). After extraction it runs `scripts/check_audit_quality.py --alert` (alert-only): flags a quarter whose lines are identical to the prior one (period-shift), a balance sheet that doesn't balance, or missing rows → Telegram/Discord, never blocking the push.
+- `.github/workflows/reextract-statement.yml` — manual dispatch. Targeted single-statement re-extract via `scripts/reextract_statement.py`: pull snapshot → re-extract ONE lane (`oci`/`cash_flow`/`equity_change`/`npl_movement`) for the selected partitions → inline-validate → push that table + `bank_audit_validation` to D1 → snapshot → refresh coverage matrix. Shares the `bddk-audit` group. Inputs: `statement`, `banks`, `periods` (blank=all), `only_failing` (default true — selects `checks_failed>0 OR checks_passed=0`, so it catches the stale empties and skips the proven-passing rest), `dry_run`. This is the lane used to fix OCI/CF/NPL fleet-wide.
+- `.github/workflows/backfill-audit.yml` — manual dispatch. Full re-extract (all statements) of named banks via `backfill_extraction.py` (`ALL` exceeds the timeout → 5-bank chunks).
 - `.github/workflows/deploy-cloudflare.yml` — on push to `web/**`. Apply D1 migrations + build + deploy dashboard.
 - `.github/workflows/healthcheck.yml` — daily 06:00 UTC. D1 freshness check → Telegram/Discord alert if stale. Also runs `scripts/verify_chart_spec.py --alert`: re-resolves every reproduced chart in `web/app/lib/chart-specs.catalog.json` against D1 and alerts if a series goes blank (0 rows) or drifts past its `verify[]` anchor. See [REPRODUCING_CHARTS.md](REPRODUCING_CHARTS.md).
 - `.github/workflows/ci.yml` — on PRs. ruff + pytest + eslint + tsc + vitest. (Dependency bumps via `dependabot.yml`.)
@@ -373,6 +399,16 @@ A qualitative-data layer feeds two tabs from the `news_items` table
 
 ## Known issues / pending work
 
+- **Audit extraction — open gaps after the 2026-06-14 lane overhaul.** OCI (→881),
+  cash-flow (→813) and NPL-movement (→515) were fixed this session (see the
+  audit-lane validation-status table). Still open: **`loans_by_sector` 99/975** — the
+  biggest remaining gap (broadly empty/skip; the obvious next target for the same
+  recent-vs-older-quarter diagnostic → small generic fixes → `reextract-statement.yml`);
+  **`equity_change`** vertical-chain tail (~355 fail, pre-existing); and the genuine
+  per-bank tails on OCI/CF/NPL — non-reconciling disclosures + image-only PDFs (the same
+  image-only banks recur: ALBRK/ALNTF/EXIM/ODEA/TSKB), which are real gaps, not extractor
+  bugs. Re-extraction is now **non-destructive** (the guard skips passing partitions), so
+  any future fix can only improve the corpus.
 - **BIST equity-market lane shipped (2026-06-13).** Daily EOD prices for the 11
   BIST-listed banks + the XU100 / XBANK indices via the Yahoo Finance chart API
   (keyless, headless) → `bist_prices` / `bist_dividends` / `bist_shares` in D1
