@@ -476,12 +476,20 @@ def test_npl_movement_broken_fails():
     assert any(f["check"] == "npl_movement" for f in res.failures)
 
 
-def test_npl_movement_null_key_cols_skips():
-    # NULL write_offs / sold / transfers_out → skip rather than false-fail
-    # (columns not extracted → can't verify the equation)
-    for null_col in ("write_offs", "sold", "transfers_out"):
-        res = v.check_npl_movement([_npl_row(**{null_col: None})])
-        assert res.failed == 0 and res.skipped > 0, f"expected skip for NULL {null_col}"
+def test_npl_movement_null_col_that_ties_passes():
+    # A flow column absent from the disclosure (NULL) that is genuinely 0 — the
+    # roll-forward ties with it as 0 → PASS (the bank simply omitted a zero row),
+    # not a false skip. closing 120 = 100 + 30 - 10 - 0(write_offs).
+    res = v.check_npl_movement([_npl_row(write_offs=None, closing_balance=120_000)])
+    assert res.passed == 1 and res.failed == 0 and res.skipped == 0, res.failures
+
+
+def test_npl_movement_null_col_that_breaks_tie_skips():
+    # NULL flow column where treating it as 0 does NOT tie → could be a genuinely
+    # non-zero value the extractor missed → SKIP, never a false fail.
+    # (base ties only with write_offs=5000; nulling it leaves implied 120 ≠ 115.)
+    res = v.check_npl_movement([_npl_row(write_offs=None)])
+    assert res.failed == 0 and res.skipped == 1, res.failures
 
 
 # --- Loans by sector validation -------------------------------------------
