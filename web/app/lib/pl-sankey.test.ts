@@ -176,6 +176,17 @@ describe("fallbacks and degradation", () => {
     expect(g.nodes).toHaveLength(0);
   });
 
+  it("ignores a stray duplicate roman (footnote fragment) and uses the real subtotal", () => {
+    // ZIRAAT/BURGAN bug: a "IV. = 1" fragment captured BEFORE the real IV. line.
+    // "First wins" read the stray (1) and the flow couldn't balance; larger-
+    // magnitude-wins keeps the real subtotal so the chart renders.
+    const stray: PlRow = { item_order: 0, hierarchy: "IV.", item_name: "(IV.)", footnote: null, amount: 1 };
+    const g = buildPlSankey([stray, ...plainBank()]);
+    expect(g.renderable).toBe(true);
+    expect(g.worstPctDiff).toBeLessThan(0.005);
+    expect(linkValue(g, "net_fees", "gross_op")).toBe(120); // real IV., not the stray 1
+  });
+
   it("warns but renders between 0.5% and 5%", () => {
     const g = buildPlSankey(plainBank({ VIII: 660 })); // ~1.5% off
     expect(g.renderable).toBe(true);
