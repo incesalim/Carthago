@@ -1,7 +1,7 @@
 [tool.ruff]
 target-version = "py312"
 # JS app, data, and vendored dirs aren't Python we lint.
-extend-exclude = ["web", "data", ".venv", "scripts/backfills"]
+extend-exclude = ["web", "data", ".venv"]
 
 [tool.ruff.lint]
 # Start conservative: catch real breakage (syntax + undefined names) so CI is
