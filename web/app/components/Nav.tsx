@@ -41,6 +41,7 @@ const TABS: NavItem[] = [
   { href: "/regulation", label: "Regulation" },
   { href: "/news", label: "News" },
   { href: "/pipeline", label: "Pipeline" },
+  { href: "/admin", label: "Admin" },
 ];
 
 function isActive(pathname: string, href: string) {
