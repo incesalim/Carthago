@@ -77,6 +77,11 @@ data/fleet_scratch.db
 data/_anomalies_*.txt
 data/run_*.cmd
 
+# Economy chart-reproduction diagnostics — source-report PDFs + page-image crops
+# pulled while building the /economy pages. Local-only; the dashboard data lives in
+# D1 (evds_series etc.), not these. Kept on disk, out of git.
+data/albaraka_*/
+
 # Reports
 reports/**/*.pdf
 reports/**/*.html

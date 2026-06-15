@@ -16,7 +16,7 @@ machine involvement is required for routine refreshes.
 | Manual / admin only | `refresh-audit.yml` | Audit-report **extraction**: PDFs from R2 → `bank_audit_*` → D1 + snapshot. Triggered from `/admin` (Pipeline "Extract audit reports" card or the coverage matrix's per-cell Re-extract). No schedule — extraction is reviewed, not automated |
 | Manual only | `backfill-tefas.yml` | One-time (re-runnable) ~5-year TEFAS fund-market history backfill (API cap) — resumable via `tefas_fetch_log` (re-dispatch with the same `from` date) |
 | Manual only | `backfill-audit.yml` | Re-extract already-ingested audit PDFs after an extractor fix (extraction skips `success=1`, so history never self-heals) → clear D1 partitions → push → snapshot. **Never run `banks=ALL`** — it exceeds the 180-min job timeout mid-extraction; dispatch ~5-bank chunks sequentially (the `bddk-audit` concurrency group queues them) |
-| Manual only | `reextract-statement.yml` | Targeted **single-statement** re-extract (`reextract_statement.py`): one lane (`oci` / `cash_flow` / `equity_change` / `npl_movement`) for selected `periods`/`banks` → inline-validate → push that table + `bank_audit_validation` → snapshot → refresh matrix. `only_failing=true` (default) processes only NOT-passing partitions (`checks_failed>0 OR checks_passed=0` — catches stale empties); the non-destructive guard skips passing ones, so it can only improve. **Preferred over `backfill-audit.yml` for a single-lane fix** — one lane on fitz, no full-extract timeout (an all-periods lane run is ~6–10 min). How OCI/CF/NPL were fixed fleet-wide |
+| Manual only | `reextract-statement.yml` | Targeted **single-statement** re-extract (`reextract_statement.py`): one lane (`oci` / `cash_flow` / `equity_change` / `npl_movement` / `loans_by_sector` / `bank_profile` / `credit_quality`) for selected `periods`/`banks` → inline-validate → push that table + `bank_audit_validation` → snapshot → refresh matrix. `only_failing=true` (default) processes only NOT-passing partitions (`checks_failed>0 OR checks_passed=0` — catches stale empties); the non-destructive guard skips passing ones, so it can only improve. **`force=true`** overwrites even passing partitions — needed when the defect is in a **derived** table (e.g. `credit_quality` passes but its derived `bank_audit_stages` fails, so `only_failing` wouldn't select it); the `credit_quality` lane also rebuilds `bank_audit_stages` after the run. **Preferred over `backfill-audit.yml` for a single-lane fix** — one lane on fitz, no full-extract timeout (an all-periods lane run is ~6–10 min). How OCI/CF/NPL/loans_by_stage were fixed fleet-wide |
 | Daily 06:00 UTC | `healthcheck.yml` | D1 freshness check → Telegram/Discord alert if stale/failing |
 | On push touching `web/**` | `deploy-cloudflare.yml` | Apply D1 migrations, build OpenNext bundle, deploy to Workers |
 | On every PR | `ci.yml` | ruff + pytest + eslint + tsc + vitest quality gates |
@@ -27,6 +27,26 @@ workflow → Run workflow**.
 The bulletin/EVDS workflows and the audit workflow run on **separate storage
 lanes** (different staging DB, R2 snapshot, and concurrency group), so they
 don't serialize against each other and an audit failure can't stall bulletins.
+
+### Two staging DBs (and the spine-table guard)
+
+There are **two** local SQLite staging DBs, each with its own R2 snapshot:
+
+| DB | Holds | R2 snapshot | Lane |
+|---|---|---|---|
+| `data/bddk_data.db` | BDDK monthly/weekly + EVDS + news + TBB + KAP + TEFAS + BIST | `state/bddk_data.db.gz` | `bddk-pipeline` |
+| `data/bank_audit.db` | the `bank_audit_*` tables (PDF extraction) | `state/bank_audit.db.gz` | `bddk-audit` |
+
+Both lanes push to the **same D1**, writing a disjoint set of tables. The catch:
+the coverage-matrix **spine tables** (`bank_audit_coverage` / `bank_audit_expected`
+/ `bank_audit_statement_types`) are **full-rebuild** — `push_to_d1.py` issues
+`DELETE FROM <t>; INSERT …` from the local copy, not a time-windowed upsert. Those
+tables are only populated in `bank_audit.db` (by `sync_audit_expected.py`); in
+`bddk_data.db` they exist but are **empty**. A daily news/EVDS push from
+`bddk_data.db` would therefore `DELETE` the spine and insert nothing — **wiping the
+/admin coverage matrix**. The guard: `push_to_d1.fetch_recent` now **skips a
+full-rebuild table when the local copy is empty** (it never emits the wiping
+`DELETE`). See *Troubleshooting → coverage matrix blank* for the restore recipe.
 
 ## Manual operations (rare)
 
@@ -334,3 +354,19 @@ switch `/admin` to Cloudflare Access). Full setup: [ADMIN.md](ADMIN.md).
 - **Cron didn't run on Saturday** — GitHub Actions sometimes delays
   free-tier crons by up to a few hours. Trigger manually for faster
   turnaround.
+- **/admin coverage matrix went blank** — the full-rebuild spine tables were
+  wiped in D1 (historically by a push from the wrong staging DB; now guarded —
+  see *Two staging DBs*). Restore from a checkout with R2+CF creds:
+  ```bash
+  python -c "from scripts.audit_d1 import pull_snapshot; pull_snapshot(guard=False)"
+  python scripts/sync_audit_expected.py --db data/bank_audit.db --push
+  ```
+  (pull the fresh audit snapshot → rebuild + push the matrix; ~13.6k cells.)
+- **Audit data-quality alerts** — each audit run ends with
+  `check_audit_quality.py --alert`. Beyond the per-partition validators it runs
+  **within-bank outlier** checks for the reconciliation-free tables:
+  `_liquidity_outliers` (a ratio ≥8× off the bank's own median = a decimal/wrong-cell
+  slip; covers `lcr_fc`, which the band check never reads) and
+  `_off_balance_consistency` (TOTAL/Σromans jumping off the bank's median = a dropped
+  roman section). A flag is a real extraction error, not a false positive — fix the
+  extractor, then re-extract that lane.

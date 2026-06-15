@@ -7,7 +7,31 @@ coverage or known issues change.
 > → this file → [OPERATIONS.md](OPERATIONS.md). Metric definitions in
 > [METRICS.md](METRICS.md).
 >
-> Last verified: 2026-06-14 — **loans-by-sector fixed: 99 → 135 pass.** The sector breakdown
+> Last verified: 2026-06-15 — **audit validators hardened + NPL=100% fixed end-to-end (43/45);
+> coverage-matrix wipe footgun guarded.** Audited every §4/§5 validator (a green check ≠ correct
+> data): `check_capital` rewritten to **reconcile the table** — composition `Tier1=CET1+AT1`,
+> `Total=Tier1+Tier2` + sub-ratios `CET1/Tier1/CAR = component÷RWA` — surfacing **26** real
+> AT1/Tier2-dropped / total↔Tier2 / RWA↔total column-slip mis-extractions the old orderings-only
+> check passed silently. `check_stages` NPL=100% fingerprint now fires on **NULL** stage1/2 (the
+> actual broken shape, which had been scoring green) — surfacing **45** partitions. Liquidity &
+> off-balance get **within-bank time-series outlier** checks in `check_audit_quality.py`
+> (`_liquidity_outliers` ≥8×, covers `lcr_fc`; `_off_balance_consistency` TOTAL/Σromans) since their
+> per-partition validators are band-only / horizontal-only. Then **root-caused and fixed the
+> NPL=100% data**: `credit_quality` missed the §7.2 Stage-1/2 `loans_by_stage` table on
+> column-split / no-space layouts (İşbank EN coordinate-rebuild; ANADOLU wrapped header → anchor on
+> the Stage-2 header; TSKB ~4px label/number y-offset → 5.5px cluster). `credit_quality` wired into
+> `reextract_statement.py` (rebuilds the **derived** `bank_audit_stages` + a `force` input for
+> derived-table defects); CI run repaired **43/45** (npl100 45→2; FIBA + TFKB image-only remain).
+> **Infra:** `push_to_d1` now refuses to emit a wiping `DELETE` for a full-rebuild spine table when
+> the local copy is empty — the daily news/EVDS push from `bddk_data.db` (empty spine) had been
+> blanking the /admin coverage matrix; restored to 13,650 cells. **Web:** coverage matrix bank/date
+> filters + cons/unco "both" mode; removed the redundant Audit-extraction & Structural-validation
+> admin panels (folded into the matrix); per-bank ⚠ scoped to the displayed statement; per-bank
+> default → **Quarterly**, controls moved above the table, `scroll={false}`; pl-sankey reads the real
+> roman subtotal (ZIRAAT/BURGAN stray "=1" fragment). Docs + `ARCHITECTURE.md` refreshed (the
+> two-DB / spine-guard footgun); `data/albaraka_*` gitignored, `prof_test.html` removed.
+>
+> Prior: 2026-06-14 — **loans-by-sector fixed: 99 → 135 pass.** The sector breakdown
 > is an **annual-only disclosure** for most banks (absent from interim reports — confirmed: FIBA
 > 2026Q1 has no sector heading on any page, both engines; every interim quarter is ~all-empty in
 > D1). So "99/975" was misleading — the real target is the ~310 Q4 partitions; the ~665 interim

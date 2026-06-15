@@ -68,6 +68,24 @@ the bulletin/EVDS workflows. Their only shared sink is D1, where they write a
 **disjoint** set of tables (`bank_audit_*` vs everything else) with idempotent
 `INSERT OR REPLACE`.
 
+**Most tables sync incrementally** (a time-windowed `INSERT OR REPLACE`), but the
+coverage-matrix **spine** — `bank_audit_coverage` / `bank_audit_expected` /
+`bank_audit_statement_types` — is **full-rebuild**: `push_to_d1.py` emits
+`DELETE FROM <t>; INSERT …` from the local copy, because those rows are computed
+wholesale by `sync_audit_expected.py` (no per-row timestamp). This is the one place
+the shared-D1 design has a footgun: the spine tables are only populated in
+`bank_audit.db`; in `bddk_data.db` they're created-but-empty, so a daily news/EVDS
+push from the bulletin lane would `DELETE` the spine and insert nothing — **wiping
+the /admin coverage matrix** even though the audit lane never ran. The guard:
+`push_to_d1.fetch_recent` **skips a full-rebuild table whose local copy is empty**,
+so a push can never wipe a table it has no rows for. (Recovery recipe in
+[OPERATIONS.md](OPERATIONS.md) → Troubleshooting.)
+
+One audit table is **derived, not extracted**: `bank_audit_stages` is built from
+`bank_audit_credit_quality` (Stage-1/2 loan amounts + the BRSA NPL Stage-3 +
+ECLs) by `scripts/build_bank_audit_stages.py`. So re-extracting `credit_quality`
+must **rebuild stages** afterward — the audit + reextract workflows do this.
+
 ### Daily — `.github/workflows/refresh-evds-daily.yml`
 Sun–Fri 05:00 UTC. EVDS scraper (fresh FX / rates / sterilization data in D1
 within 24h) plus the non-critical TBB / KAP / TEFAS steps of `refresh.py`
@@ -110,6 +128,17 @@ extraction is admin-triggered** (they share the concurrency group, so never over
 3. `build_bank_audit_stages.py` → `revalidate_audit_db.py` → `check_audit_quality.py`
 4. `push_to_d1.py --only-tables bank_audit_*` + `sync_audit_expected.py --push`
 5. VACUUM + re-gzip + upload `state/bank_audit.db.gz` (the snapshot WRITER)
+
+**`reextract-statement.yml`** (dispatch-only) — targeted **single-statement** fix
+on the same lane. Re-extracts one statement (`oci` / `cash_flow` / `equity_change`
+/ `npl_movement` / `loans_by_sector` / `bank_profile` / `credit_quality`) for the
+selected banks/periods via `scripts/reextract_statement.py`, inline-validates, and
+pushes only that table + `bank_audit_validation` + a fresh snapshot. The
+**non-destructive guard** leaves passing partitions untouched (`only_failing=true`
+re-touches only the not-passing ones); `force=true` overrides it for
+derived-table defects (a partition can pass `credit_quality` yet fail the derived
+`bank_audit_stages`). This is how OCI/CF/NPL/loans_by_stage were fixed fleet-wide
+without re-running the frozen BS/P&L extraction.
 
 ### Deploy — `.github/workflows/deploy-cloudflare.yml`
 On push touching `web/**`. Applies D1 migrations (`wrangler d1 migrations
