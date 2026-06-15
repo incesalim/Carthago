@@ -90,6 +90,13 @@ Use this when the cron extraction is wrong or a statement page is unreadable. Ev
 A worked example of the manual-transcription path at scale is the 2026-06-12 balance-sheet
 ECL fix, recorded in [RESUME_AUDIT_FIX.md](RESUME_AUDIT_FIX.md).
 
+The quickest entry for a single bad cell is the **/admin coverage matrix**: click the cell
+→ **Force re-extract this cell** dispatches `reextract-statement.yml` for just that
+`(bank, period, kind, statement)` with `--force` — it overwrites that one statement even if
+it currently passes, while broad/fleet re-extracts keep the non-destructive guard. It's the
+UI form of step 2's targeted re-extract. For a deterministic BS/P&L Δ, prefer step 4 (cell
+override): a re-extract reproduces the same rows, so it won't move the discrepancy.
+
 1. **Diagnose** — `scripts/diagnostics/diag_partition.py BANK PERIOD KIND` dumps the stored
    rows + raw PDF lines and shows which identity breaks.
 2. **Extractor bug (affects many partitions)** — fix the extractor, then gate the fix:

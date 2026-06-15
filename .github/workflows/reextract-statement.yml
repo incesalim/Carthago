@@ -28,6 +28,10 @@ on:
         description: "Quarters (comma-separated YYYYQn, e.g. 2026Q1); blank = all"
         type: string
         default: ""
+      kind:
+        description: "Restrict to one kind (consolidated/unconsolidated); blank = both. Used by the /admin single-cell re-extract"
+        type: string
+        default: ""
       only_failing:
         description: "Only partitions NOT passing validation (failing OR empty) — efficient default; skips the proven-passing rest"
         type: boolean
@@ -86,12 +90,14 @@ jobs:
           STATEMENT: ${{ inputs.statement }}
           BANKS: ${{ inputs.banks }}
           PERIODS: ${{ inputs.periods }}
+          KIND: ${{ inputs.kind }}
           ONLY_FAILING: ${{ inputs.only_failing && '--only-failing' || '' }}
           FORCE: ${{ inputs.force && '--force' || '' }}
           DRY: ${{ inputs.dry_run && '--dry-run' || '' }}
         run: |
           args=(--statement "$STATEMENT" --banks "$BANKS")
           [ -n "$PERIODS" ] && args+=(--periods "$PERIODS")
+          [ -n "$KIND" ] && args+=(--kind "$KIND")
           [ -n "$ONLY_FAILING" ] && args+=("$ONLY_FAILING")
           [ -n "$FORCE" ] && args+=("$FORCE")
           [ -n "$DRY" ] && args+=("$DRY")

@@ -6,7 +6,9 @@ import { Badge, Section } from "@/app/components/ui";
 import CoverageDrawer, { type OpenCell } from "./CoverageDrawer";
 import { STATUS_CELL, STATUS_LABEL, STATUS_VARIANT, STATUSES } from "./status";
 
-const AUDIT_WORKFLOW = "refresh-audit.yml";
+// Local copy (don't import github.ts into the client bundle). The single-cell
+// re-extract workflow — forces just the clicked (bank, period, kind, statement).
+const REEXTRACT_WORKFLOW = "reextract-statement.yml";
 type ConcreteKind = "unconsolidated" | "consolidated";
 type Mode = ConcreteKind | "both";
 
@@ -144,11 +146,13 @@ export default function CoverageMatrix() {
     return t;
   }, [grid, visibleBanks, visiblePeriods]);
 
-  async function reextract(bank: string, period: string) {
+  async function reextract(bank: string, period: string, kind: string, statement: string) {
     if (busy) return;
     if (
       !window.confirm(
-        `Re-extract ${bank} ${period}? Re-runs the extractor on the stored PDF and replaces the rows.`,
+        `Re-extract this one cell — ${bank} ${period} ${kind}, ${statement}? ` +
+          `Re-runs the extractor on the stored PDF and overwrites just this statement's ` +
+          `rows (force — even if it currently passes). Other cells are untouched.`,
       )
     )
       return;
@@ -157,11 +161,11 @@ export default function CoverageMatrix() {
       const res = await fetch("/api/admin/dispatch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ workflow: AUDIT_WORKFLOW, bank, period }),
+        body: JSON.stringify({ workflow: REEXTRACT_WORKFLOW, bank, period, kind, statement }),
       });
       const body = (await res.json().catch(() => ({}))) as { error?: string };
       if (res.ok) {
-        toast.success(`Triggered re-extract for ${bank} ${period}`, {
+        toast.success(`Triggered re-extract for ${bank} ${period} · ${statement}`, {
           description: "Coverage refreshes after the run completes.",
         });
         setOpen(null);

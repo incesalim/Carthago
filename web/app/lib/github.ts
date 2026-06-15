@@ -62,6 +62,22 @@ const ALLOWED = new Set(WORKFLOWS.map((w) => w.file));
 export const AUDIT_WORKFLOW = "refresh-audit.yml";
 
 /**
+ * Targeted single-cell re-extract (the coverage-matrix per-cell button). Takes
+ * statement + banks + periods + kind + force; not in WORKFLOWS because it needs
+ * a statement (it's not a blind "trigger" like the others), but it IS dispatchable.
+ */
+export const REEXTRACT_WORKFLOW = "reextract-statement.yml";
+
+/** Statement-type keys the coverage matrix uses (registry keys) — validated
+ *  server-side before being forwarded as the `statement` dispatch input. */
+export const STATEMENT_TYPES = new Set<string>([
+  "balance_sheet_assets", "balance_sheet_liabilities", "profit_loss",
+  "other_comprehensive_income", "equity_change", "cash_flow", "off_balance",
+  "credit_quality", "stages", "loans_by_sector", "npl_movement",
+  "capital", "liquidity", "profile",
+]);
+
+/**
  * Tickers the audit pipeline knows about — mirrors the keys of
  * data/banks/audit_report_urls.json (which isn't bundled into the Worker).
  * Used both to populate the admin panel's bank picker and to validate the
