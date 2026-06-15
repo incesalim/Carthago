@@ -24,6 +24,7 @@ from __future__ import annotations
 import argparse
 import os
 import sqlite3
+import subprocess
 import sys
 import tempfile
 import time
@@ -46,6 +47,9 @@ from src.audit_reports.loans_by_sector import (  # noqa: E402
     LoansBySectorReport, upsert as _upsert_lbs,
 )
 from src.audit_reports.bank_profile import upsert_profile as _upsert_bp  # noqa: E402
+from src.audit_reports.credit_quality import (  # noqa: E402
+    CreditQualityReport, upsert as _upsert_cq,
+)
 from scripts.revalidate_audit_db import revalidate_partition  # noqa: E402
 from scripts.sync_audit_reports import list_r2_pdfs, _restrict_to_latest_period  # noqa: E402
 from scripts.audit_d1 import DB, pull_snapshot, push_partitions, push_snapshot  # noqa: E402
@@ -58,6 +62,11 @@ STATEMENT_TABLE = {
     "npl_movement": "bank_audit_npl_movement",
     "loans_by_sector": "bank_audit_loans_by_sector",
     "bank_profile": "bank_audit_profile",
+    # credit_quality feeds the DERIVED bank_audit_stages table — re-extracting it
+    # requires a build_bank_audit_stages.py rebuild + stages revalidation after the
+    # run (see _rebuild_stages_after below). Target by --banks --force, not
+    # --only-failing: the broken partitions FAIL on `stages`, not `credit_quality`.
+    "credit_quality": "bank_audit_credit_quality",
 }
 
 
@@ -88,6 +97,8 @@ def _worker(args):
     elif statement == "bank_profile":
         bp = getattr(rep, "bank_profile", None)
         n = 0 if (bp is None or bp.is_empty()) else 1
+    elif statement == "credit_quality":
+        n = len(getattr(rep, "credit_quality", []) or [])
     else:
         eq = getattr(rep, "equity_change", None)
         n = len(eq.rows) if eq and getattr(eq, "rows", None) else 0
@@ -131,6 +142,10 @@ def _upsert(conn, statement, bank, period, kind, rep) -> int:
             return 0
         _upsert_bp(conn, bank, period, kind, bp)
         return 1
+    if statement == "credit_quality":
+        report = CreditQualityReport(pdf_path=rep.pdf_path,
+                                     rows=getattr(rep, "credit_quality", []) or [])
+        return _upsert_cq(conn, bank, period, kind, report)
     raise ValueError(f"upsert not wired for statement {statement!r}")
 
 
@@ -255,12 +270,28 @@ def main() -> int:
     print(f"[reext] ok={counts['ok']} fail={counts['fail']}{keptt} rows={counts['rows']}{vtally}",
           flush=True)
 
-    if args.dry_run:
-        print("[reext] dry-run — no D1 push / snapshot", flush=True)
-        return 0
     # Push the validation rows too when computed inline, so the dashboard/matrix
     # reflect the fresh pass/fail without a separate revalidate+push.
     push_tables = [table] + (["bank_audit_validation"] if inline else [])
+    # credit_quality feeds the DERIVED bank_audit_stages table. Rebuild it from the
+    # fresh rows, then re-validate the touched partitions so `stages` reflects the
+    # new loans_by_stage (the inline pass above saw the pre-rebuild stages). Done
+    # before the dry-run return so a dry-run still verifies the stages locally.
+    if statement == "credit_quality" and touched:
+        subprocess.run(
+            [sys.executable, str(REPO / "scripts" / "build_bank_audit_stages.py"),
+             "--db", str(DB)], check=True)
+        with sqlite3.connect(str(DB)) as conn:
+            for t, p, k in touched:
+                _validator.upsert_validation(conn, t, p, k, revalidate_partition(conn, t, p, k))
+            conn.commit()
+        push_tables.append("bank_audit_stages")
+        print(f"[reext] rebuilt bank_audit_stages + revalidated {len(touched)} partition(s)",
+              flush=True)
+
+    if args.dry_run:
+        print("[reext] dry-run — no D1 push / snapshot", flush=True)
+        return 0
     push_partitions(touched, db_path=DB, window_hours=24, tables=push_tables)
     push_snapshot(DB)
     print("[reext] done", flush=True)
