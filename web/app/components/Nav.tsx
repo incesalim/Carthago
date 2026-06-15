@@ -4,12 +4,15 @@ import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import { ChevronDown, ChevronRight, Menu, X } from "lucide-react";
 import { cn } from "@/app/lib/cn";
 import { ThemeToggle } from "./ui/theme-toggle";
 import logo from "@/public/logo.png";
 
-const TABS = [
+type NavChild = { href: string; label: string };
+type NavItem = { href: string; label: string; children?: NavChild[] };
+
+const TABS: NavItem[] = [
   { href: "/", label: "Overview" },
   { href: "/credit", label: "Credit" },
   { href: "/deposits", label: "Deposits" },
@@ -21,7 +24,17 @@ const TABS = [
   { href: "/liquidity", label: "Liquidity" },
   { href: "/digital", label: "Digital" },
   { href: "/funds", label: "Funds" },
-  { href: "/economy", label: "Economy" },
+  {
+    href: "/economy",
+    label: "Economy",
+    children: [
+      { href: "/economy/economic-growth", label: "Economic Growth" },
+      { href: "/economy/balance-of-payments", label: "Balance of Payments" },
+      { href: "/economy/budget", label: "Budget" },
+      { href: "/economy/inflation", label: "Inflation" },
+      { href: "/economy/foreign-trade", label: "Foreign Trade" },
+    ],
+  },
   { href: "/rates", label: "Rates" },
   { href: "/banks", label: "Banks" },
   { href: "/cross-bank", label: "Compare" },
@@ -33,6 +46,11 @@ const TABS = [
 
 function isActive(pathname: string, href: string) {
   if (href === "/") return pathname === "/";
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+// True when the current route is the section root or any page beneath it.
+function inSection(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -69,28 +87,103 @@ function NavLinks({
   pathname: string;
   onNavigate?: () => void;
 }) {
+  // Explicit per-group expand overrides; absent groups fall back to "open when
+  // the current route is inside the section".
+  const [openGroups, setOpenGroups] = React.useState<Record<string, boolean>>({});
+
+  const toggleGroup = (href: string) =>
+    setOpenGroups((prev) => ({
+      ...prev,
+      [href]: !(prev[href] ?? inSection(pathname, href)),
+    }));
+
   return (
     <nav
       aria-label="Primary"
       className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-3 py-3"
     >
       {TABS.map((t) => {
-        const active = isActive(pathname, t.href);
+        if (!t.children) {
+          const active = isActive(pathname, t.href);
+          return (
+            <Link
+              key={t.href}
+              href={t.href}
+              aria-current={active ? "page" : undefined}
+              onClick={onNavigate}
+              className={cn(
+                "rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                active
+                  ? "bg-accent text-foreground"
+                  : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
+              )}
+            >
+              {t.label}
+            </Link>
+          );
+        }
+
+        const sectionActive = inSection(pathname, t.href);
+        const parentActive = pathname === t.href;
+        const isOpen = openGroups[t.href] ?? sectionActive;
+
         return (
-          <Link
-            key={t.href}
-            href={t.href}
-            aria-current={active ? "page" : undefined}
-            onClick={onNavigate}
-            className={cn(
-              "rounded-md px-3 py-2 text-sm font-medium transition-colors",
-              active
-                ? "bg-accent text-foreground"
-                : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
+          <div key={t.href}>
+            <div className="flex items-center gap-1">
+              <Link
+                href={t.href}
+                aria-current={parentActive ? "page" : undefined}
+                onClick={onNavigate}
+                className={cn(
+                  "flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                  parentActive
+                    ? "bg-accent text-foreground"
+                    : sectionActive
+                      ? "text-foreground hover:bg-accent/60"
+                      : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
+                )}
+              >
+                {t.label}
+              </Link>
+              <button
+                type="button"
+                aria-label={`${isOpen ? "Collapse" : "Expand"} ${t.label} section`}
+                aria-expanded={isOpen}
+                onClick={() => toggleGroup(t.href)}
+                className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {isOpen ? (
+                  <ChevronDown className="size-4" />
+                ) : (
+                  <ChevronRight className="size-4" />
+                )}
+              </button>
+            </div>
+
+            {isOpen && (
+              <div className="mt-0.5 ml-4 flex flex-col gap-0.5 border-l border-border pl-2">
+                {t.children.map((c) => {
+                  const childActive = isActive(pathname, c.href);
+                  return (
+                    <Link
+                      key={c.href}
+                      href={c.href}
+                      aria-current={childActive ? "page" : undefined}
+                      onClick={onNavigate}
+                      className={cn(
+                        "rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors",
+                        childActive
+                          ? "bg-accent text-foreground"
+                          : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
+                      )}
+                    >
+                      {c.label}
+                    </Link>
+                  );
+                })}
+              </div>
             )}
-          >
-            {t.label}
-          </Link>
+          </div>
         );
       })}
     </nav>
