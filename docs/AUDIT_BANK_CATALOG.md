@@ -16,7 +16,8 @@ batch 7).
 The full-fleet backfill (`backfill-audit.yml`, run in 5-bank chunks — `ALL`
 exceeds the 180-min job timeout) is the census that completes this table;
 `scripts/check_audit_quality.py` flags any bank whose layout we haven't
-handled (CET1 ≤ Tier1 ≤ Total, CAR ≈ Total/RWA ×100, ratio bands).
+handled (capital composition + ratio reconcile, liquidity/off-balance outliers —
+see *Validators* below).
 
 ## Report structure (all banks)
 
@@ -288,6 +289,38 @@ Census of 975 report profiles across 31 banks (regenerated from data/audit_profi
 6. **Push gap**: new table must be in BOTH `push_to_d1.SYNC_TABLES` and the
    `--only-tables` list, and in `backfill_extraction.AUDIT_TABLES`; D1 schema
    self-heals via `_ensure_d1_schema()` (migration 0004 is the canonical DDL).
+
+## Validators (2026-06-15 hardening)
+
+A green validator ≠ correct data: a check can structurally evade the very defect it
+targets (see `feedback_verify_validators_against_data`). Each audit validator was
+audited against the corpus and tightened:
+
+- **Capital** (`validator.check_capital`) — was orderings-only (CET1≤Tier1≤Total,
+  always true) so a mis-extracted component passed silently. Now **reconciles the
+  table**: composition `Tier1 = CET1 + AT1` and `Total = Tier1 + Tier2` (optional
+  AT1/Tier2 treated as 0 but passing only when it ties; the base alone exceeding the
+  parent is a hard fail), plus sub-ratios `cet1_ratio = CET1/RWA`, `tier1_ratio =
+  Tier1/RWA`, `CAR = Total/RWA` (±2pp). Surfaced 26 real mis-extractions (AT1/Tier2
+  dropped to 0; total↔Tier2 / RWA↔total column slips) that the old check passed.
+  GOTCHA: the deployment reader `revalidate_audit_db._capital_rows` must SELECT every
+  column the check uses or it silently skips.
+- **Stages** (`validator.check_stages`) — the NPL=100% fingerprint (stage3≈total,
+  S1+S2≈0) required `stage1`/`stage2` non-null, but the broken shape has them NULL
+  (`loans_by_stage` missing), so it **skipped all 45 broken partitions** which then
+  scored green on the ECL/coverage sub-checks. Now NULL counts as 0 (a real bank
+  never has ~100% of loans in stage 3). The fix is end-to-end: the `credit_quality`
+  extractor now captures `loans_by_stage` on column-split/no-space layouts →
+  **43/45 repaired** (npl100 45→2; FIBA + TFKB image-only remain).
+- **Liquidity** & **Off-balance** — reconciliation-free per partition (liquidity
+  stores only ratios; off-balance skips hierarchy levels). The per-partition
+  validators are band-only / horizontal-only (a ceiling). Real validation is a
+  **within-bank time-series outlier scan** in `check_audit_quality.py`:
+  `_liquidity_outliers` (value ≥8× off the bank's own median = a decimal/wrong-cell
+  slip; covers `lcr_fc`, which the band check never reads) and
+  `_off_balance_consistency` (TOTAL/Σromans jumping off the bank's median = a dropped
+  roman section). A stable per-bank offset is structural and stays clean; only a jump
+  flags. Alert-only (cron), not a matrix-status change.
 
 ## Related docs
 

@@ -71,6 +71,18 @@
 - Squished text layers drop ALL spaces (TSKB/QNBFB/ALBRK some quarters) —
   match with `\s*`, anchor on `_norm()` (A–Z only, Turkish-folded, digits
   stripped — "Tier 1"/"Tier I" both → TIER).
+- **Column-split layouts** (a wide footnote table rendered so each *cell* lands
+  on its own line in `extract_text()`, and the Total label sits a few px above
+  its numbers — İşbank EN report, also ANADOLU/TSKB `loans_by_stage`). Line-mode
+  text then yields a "Total" row with too few numbers and the row parser rejects
+  it. Fix: **rebuild visual rows from word coordinates** — cluster
+  `page.extract_words()` by `top` within a tolerance (~5–6px, under the row
+  pitch) and feed the reassembled lines through the *same* parser as a fallback,
+  only on a page carrying the table's anchor that parsed empty (the passing fleet
+  pays nothing). Anchor on the table-specific header (the Stage-2 "Yakın
+  İzlemedeki" / "Loans Under Close Monitoring" — the Stage-1 header often wraps
+  and won't match). Pattern: `credit_quality._coord_clustered_lines` +
+  `_extract_loans_by_stage_from_page`.
 - Split-digit text layers detach leading digits ("5 86.339.528"); repaired in
   `extract_page_text_repaired`, but TSKB 2025 quarters are still damaged.
 - Some PDFs have **no text layer** at all on statement pages (ISCTR 2025Q1
