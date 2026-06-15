@@ -58,9 +58,9 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <div className="flex min-h-full flex-col">
+          <div className="flex min-h-full flex-col lg:flex-row">
             <Nav />
-            <div className="flex-1">{children}</div>
+            <div className="min-w-0 flex-1">{children}</div>
           </div>
           <Toaster />
         </ThemeProvider>
