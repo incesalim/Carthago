@@ -66,9 +66,11 @@ bddk_analysis/
 ├── requirements.txt                ← Python deps (ingestion only)
 ├── .env, .env.example, .gitignore
 │
-├── docs/                           ← canonical docs (read these)
+├── docs/                           ← canonical docs — start at docs/README.md
+│   ├── README.md                   ← doc index + reading order
 │   ├── ARCHITECTURE.md
-│   ├── PROJECT_STATE.md
+│   ├── PROJECT_STATE.md            ← current state (dated history → CHANGELOG.md)
+│   ├── CHANGELOG.md
 │   ├── METRICS.md
 │   ├── OPERATIONS.md
 │   └── ADMIN.md                    ← /admin control-panel setup

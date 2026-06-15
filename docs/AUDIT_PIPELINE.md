@@ -87,6 +87,8 @@ Capital validation is **skipped** (not red) for these entries.
 ## Repair playbook
 Use this when the cron extraction is wrong or a statement page is unreadable. Every path
 **validates the partition to 0 before pushing** and clears the D1 partition before re-push.
+A worked example of the manual-transcription path at scale is the 2026-06-12 balance-sheet
+ECL fix, recorded in [RESUME_AUDIT_FIX.md](RESUME_AUDIT_FIX.md).
 
 1. **Diagnose** — `scripts/diagnostics/diag_partition.py BANK PERIOD KIND` dumps the stored
    rows + raw PDF lines and shows which identity breaks.
