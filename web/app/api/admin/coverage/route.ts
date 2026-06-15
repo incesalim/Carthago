@@ -12,6 +12,8 @@ import { coverageCellDetail, coverageGrid, statementTypes } from "@/app/lib/cove
 export const dynamic = "force-dynamic";
 
 const KINDS = new Set(["consolidated", "unconsolidated"]);
+// The grid additionally accepts "both" (returns both kinds, each cell tagged).
+const GRID_KINDS = new Set(["consolidated", "unconsolidated", "both"]);
 
 export async function GET(req: Request) {
   const gate = await requireAdminOr403();
@@ -32,7 +34,7 @@ export async function GET(req: Request) {
   const type = url.searchParams.get("type");
   const kind = url.searchParams.get("kind");
   if (type && kind) {
-    if (!KINDS.has(kind)) {
+    if (!GRID_KINDS.has(kind)) {
       return Response.json({ error: "unknown kind" }, { status: 400 });
     }
     return Response.json({ types, grid: await coverageGrid(type, kind) });
