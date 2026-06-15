@@ -110,9 +110,21 @@ interface LineIndex {
 function indexRows(rows: PlRow[]): LineIndex {
   const byCode = new Map<string, { amount: number | null; name: string }>();
   for (const r of rows) {
-    // First occurrence wins — duplicated codes (current vs prior columns are
-    // already separated upstream; dupes here would be extraction noise).
-    if (!byCode.has(r.hierarchy)) byCode.set(r.hierarchy, { amount: r.amount, name: r.item_name ?? "" });
+    // Larger magnitude wins among duplicated codes. Some extractions capture a
+    // footnote-reference fragment as a roman row with a tiny value (ZIRAAT
+    // "IV. = 1", BURGAN "III. = 1") BEFORE the real subtotal; the old "first wins"
+    // then read the stray and the flow couldn't balance (it suppressed even though
+    // the real P&L reconciles). Strays are page/footnote fragments (~1); real
+    // subtotals are large, so keeping the larger-magnitude occurrence picks the
+    // real line. (Genuinely-missing lines — e.g. VAKBN's absent roman VI — are a
+    // separate, real gap and stay suppressed.)
+    const prev = byCode.get(r.hierarchy);
+    if (
+      !prev ||
+      (r.amount != null && (prev.amount == null || Math.abs(r.amount) > Math.abs(prev.amount)))
+    ) {
+      byCode.set(r.hierarchy, { amount: r.amount, name: r.item_name ?? "" });
+    }
   }
   return {
     get: (h) => byCode.get(h)?.amount ?? null,
