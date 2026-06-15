@@ -466,6 +466,16 @@ def test_stages_npl100_fingerprint_fails():
     assert any(f["check"] == "stages_npl100" for f in res.failures)
 
 
+def test_stages_npl100_fingerprint_fires_on_null_stages():
+    """The REAL broken shape has stage1/stage2 absent (loans_by_stage missing),
+    not zero — the fingerprint must still fire (NULL counts as 0)."""
+    res = v.check_stages([_stage_row(
+        stage1_amount=None, stage2_amount=None,
+        stage3_amount=650_000, total_amount=650_000,
+    )])
+    assert any(f["check"] == "stages_npl100" for f in res.failures)
+
+
 # --- NPL movement validation ----------------------------------------------
 
 def _npl_row(**kw):

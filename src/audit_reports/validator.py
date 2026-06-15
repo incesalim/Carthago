@@ -753,15 +753,24 @@ def check_stages(rows: list[dict]) -> ValidationResult:
             else:
                 res.add_fail("stages_coverage", f"stage {label} coverage ∈ [0, 1]",
                              expected=0.5, actual=cov)
-        # NPL=100% fingerprint: stage3 ≈ total while S1+S2 ≈ 0 → broken extraction
-        if (s1 is not None and s2 is not None and s3 is not None
-                and tot is not None and abs(tot) > 0):
-            if abs(s3) >= abs(tot) * 0.999 and abs(s1 + s2) < abs(tot) * 0.001:
+        # NPL=100% fingerprint: stage3 ≈ total while S1+S2 ≈ 0 → broken extraction.
+        # NULL stage1/stage2 count as 0 HERE: the real broken shape is a derived
+        # row built from only the NPL line (loans_by_stage missing), so the
+        # stage-1/2 cells are absent, not zero — requiring them non-null let every
+        # such partition skip the very check meant to catch it. A real bank never
+        # has ~100% of loans in stage 3, so firing on (s3≈total, s1+s2≈0) is safe.
+        # We only PASS when s1/s2 are actually present (genuinely not-broken); a
+        # partial row that isn't the broken shape still SKIPS.
+        if s3 is not None and tot is not None and abs(tot) > 0:
+            s12 = (s1 or 0.0) + (s2 or 0.0)
+            if abs(s3) >= abs(tot) * 0.999 and abs(s12) < abs(tot) * 0.001:
                 res.add_fail("stages_npl100",
                              "stage3 == total (S1+S2 ≈ 0): broken extraction fingerprint",
                              expected=abs(tot) * 0.5, actual=s3)
-            else:
+            elif s1 is not None and s2 is not None:
                 res.add_pass()
+            else:
+                res.add_skip()
         else:
             res.add_skip()
     return res
