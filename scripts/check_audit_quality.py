@@ -53,7 +53,12 @@ import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO))
 sys.stdout.reconfigure(encoding="utf-8")
+
+# Reuse the validator's canonical grand-total / Σ-romans logic so the off-balance
+# vertical check can't drift from the BS one.
+from src.audit_reports.validator import _statement_total  # noqa: E402
 
 BALANCE_TOL = 0.005       # 0.5%
 DUP_FRACTION = 0.95       # >=95% of line items identical to prior quarter
@@ -68,6 +73,14 @@ MIN_PL_ROWS = 15
 # (ATBANK/ICBCT sit at ~0% legitimately).
 NPL_COLLAPSE_PRIOR_MIN = 0.01   # prior-quarter NPL ratio >= 1%
 NPL_COLLAPSE_CUR_MAX = 0.001    # current-quarter NPL ratio < 0.1%
+# Off-balance vertical consistency: total/Σromans. The per-partition validator
+# deliberately skips TOTAL=Σromans for off-balance (some banks carry a STABLE
+# structural gap — derivative notionals outside the I/II/III romans — so a flat
+# tolerance false-positives). Flag only when a partition's ratio jumps off the
+# SAME bank's median ratio: a stable gap stays clean, a dropped roman section
+# spikes the ratio (e.g. ATBANK 2025Q4 total 8x Σromans).
+OFFBAL_MIN_POINTS = 5
+OFFBAL_RATIO_DEV = 0.5
 
 _TOT_ASSETS = re.compile(r"(TOPLAM\s+AKT[İI]F|AKT[İI]F\s+TOPLAM|VARLIKLAR\s+TOPLAM|TOPLAM\s+VARLIK|TOTAL\s+ASSETS)", re.I)
 _TOT_LIAB = re.compile(r"(TOPLAM\s+PAS[İI]F|PAS[İI]F\s+TOPLAM|TOPLAM\s+KAYNAK|TOPLAM\s+Y[ÜU]K[ÜU]ML[ÜU]L[ÜU]K|TOTAL\s+LIABILITIES|TOTAL\s+EQUITY\s+AND\s+LIABILITIES|TOTAL\s+SHAREHOLDERS)", re.I)
@@ -347,6 +360,44 @@ def _ecl_sanity(conn: sqlite3.Connection) -> list[str]:
     return out
 
 
+def _off_balance_consistency(conn: sqlite3.Connection) -> list[str]:
+    """Off-balance grand total vs Σ roman sections, validated within-bank. The
+    TOTAL=Σromans identity isn't a per-partition off-balance check (stable
+    structural gaps would false-fail), so flag a partition only when its
+    total/Σromans ratio deviates from the bank's own median by >OFFBAL_RATIO_DEV —
+    a sudden jump = a dropped roman section / wrong total; a stable offset = the
+    bank's structure, left alone."""
+    if not _has_table(conn, "bank_audit_balance_sheet"):
+        return []
+    import statistics as _st
+    from collections import defaultdict
+    series: dict[tuple, list] = defaultdict(list)
+    keys = conn.execute(
+        "SELECT DISTINCT bank_ticker, period, kind FROM bank_audit_balance_sheet "
+        "WHERE statement='off_balance'").fetchall()
+    for bank, period, kind in keys:
+        rows = [
+            {"hierarchy": h, "item_name": n, "amount_total": a}
+            for h, n, a in conn.execute(
+                "SELECT hierarchy, item_name, amount_total FROM bank_audit_balance_sheet "
+                "WHERE bank_ticker=? AND period=? AND kind=? AND statement='off_balance' "
+                "ORDER BY item_order", (bank, period, kind))
+        ]
+        total, romans = _statement_total(rows)
+        if total and romans and romans != 0:
+            series[(bank, kind)].append((period, total / romans))
+    out = []
+    for (bank, kind), pts in series.items():
+        if len(pts) < OFFBAL_MIN_POINTS:
+            continue
+        med = _st.median([r for _, r in pts])
+        for period, r in pts:
+            if abs(r - med) > OFFBAL_RATIO_DEV:
+                out.append(f"offbal    {bank} {period} {kind}: TOTAL/Σromans={r:.2f} "
+                           f"vs bank median {med:.2f} — a roman section likely dropped")
+    return out
+
+
 def _structure(conn: sqlite3.Connection) -> list[str]:
     """Partitions whose extraction-time identity validation failed (see
     src/audit_reports/validator.py). Summarized per partition — the per-check
@@ -370,6 +421,7 @@ def check(db: Path) -> list[str]:
         return (_stale_periods(conn) + _balance(conn) + _coverage(conn)
                 + _npl_collapse(conn) + _capital_consistency(conn)
                 + _liquidity_bands(conn) + _liquidity_outliers(conn)
+                + _off_balance_consistency(conn)
                 + _structure(conn) + _ecl_sanity(conn))
     finally:
         conn.close()

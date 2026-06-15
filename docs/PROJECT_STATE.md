@@ -209,13 +209,13 @@ statement is self-validated (internal-sum / roll-forward / cross identities); th
 | Lane | pass | fail | skip | notes |
 |---|---|---|---|---|
 | `assets` / `liabilities` / `cross` | 970–974 | ≤4 | 1 | **BS frozen** (correct — don't re-extract) |
-| `off_balance` | 948 | 18 | 9 | cosmetic-label tail |
+| `off_balance` | 948 | 18 | 9 | per-partition validator is **horizontal-only** (TL+FC=Total; parent=Σchildren / TOTAL=Σromans skipped because off-balance skips hierarchy levels → would false-fail). Vertical structure validated **alert-only** via `check_audit_quality._off_balance_consistency` (within-bank total/Σromans ratio outlier — a stable per-bank gap is structural, a jump = dropped section). 2026-06-15: 3 real errors flagged (ATBANK 2025Q4 8×, EMLAK 2022Q4 total≈0, ISCTR 2025Q4 2×); DENIZ's stable ~5% gap correctly ignored |
 | `profit_loss` | 964 | 10 | 1 | **frozen** (correct) |
 | `oci` | **881** | 78 | 16 | fixed 2026-06-14 (was ~62); validation-guided, fitz-only |
 | `cash_flow` | **813** | 135 | 27 | fitz-only; 135 = dropped-sub-row tail |
 | `equity_change` | 610 | 355 | 10 | hardened; vertical-chain tail still open |
-| `credit_quality` | 939 | 5 | 31 | |
-| `stages` | 949 | 13 | 13 | |
+| `credit_quality` | 939 | 5 | 31 | **good** — real reconciliation (section total=S1+S2+S3 + cross-section loans≈S12+NPL); skips gross−prov=net (BRSA collective-reserve noise). 5 fails genuine (DENIZ, TFKB) |
+| `stages` | 904 | **58** | 13 | NPL=100% fingerprint **hardened 2026-06-15**: it required stage1/stage2 non-null, but the real broken shape has them NULL (loans_by_stage missing) → it skipped all 45 broken partitions, which showed **green**. Now NULL counts as 0 → +45 surfaced as error (TSKB 17, ANADOLU 14, ISCTR 6, QNBFB 6, FIBA 1, TFKB 1). Validator fix makes the matrix honest; **upstream loans_by_stage re-extraction is the real cure** |
 | `capital` | 816 | **26** | 133 | validator **hardened 2026-06-15** (was 2 fail): now reconciles composition (Tier1=CET1+AT1, Total=Tier1+Tier2) + sub-ratios (CET1/Tier1/CAR = component÷RWA), not just orderings. The 26 fails are **real §4 mis-extractions** (AT1/Tier2 dropped → read 0; total↔Tier2 / RWA↔total column-slips): ICBCT, QNBFB, TSKB, ISCTR, SKBNK, AKTIF |
 | `liquidity` | 945 | 0 | 30 | §4 backfilled; per-partition validator is **band-only** (ratios only, nothing to reconcile). Validated instead by a **within-bank time-series outlier scan** (`check_audit_quality._liquidity_outliers`, ≥8× = order-of-magnitude slip; covers `lcr_fc`, which the band check never read). **Verdict 2026-06-15: leverage / LCR / NSFR clean fleet-wide; only error = FIBA `lcr_fc` 2024Q1 unco + 2024Q2 unco/cons (~1.1 vs the bank's ~430)** |
 | `npl_movement` | **515** | 126 | 334 | fixed 2026-06-14 (was 195); 3 generic bugs + fitz-only |
