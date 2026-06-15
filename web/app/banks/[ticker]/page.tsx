@@ -237,11 +237,28 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
 
   // ⚠ on a period column = that quarter's extraction failed one or more
   // internal-sum identity checks (TL+FC=Total, parent=Σchildren, TOTAL=Σromans,
-  // assets=liabilities+equity) — treat its figures with care.
+  // assets=liabilities+equity) — treat its figures with care. Scoped to the
+  // statement(s) the DISPLAYED table shows: a footnote failure (stages, equity,
+  // cash-flow) must not flag the Balance Sheet if its own figures are clean.
+  const WARN_STATEMENTS: Record<string, string[]> = {
+    bs: ["assets", "liabilities", "cross"],
+    is: ["profit_loss"],
+  };
   const periodWarning = (p: string): string | null => {
-    const v = validation.get(p);
-    if (!v || v.checks_failed === 0) return null;
-    return `${v.checks_failed} of ${v.checks_failed + v.checks_passed} internal-sum checks failed for this quarter's extraction — figures may be incomplete or misread.`;
+    const byStmt = validation.get(p);
+    if (!byStmt) return null;
+    let failed = 0;
+    let passed = 0;
+    for (const s of WARN_STATEMENTS[statement] ?? []) {
+      const c = byStmt.get(s);
+      if (c) {
+        failed += c.checks_failed;
+        passed += c.checks_passed;
+      }
+    }
+    if (failed === 0) return null;
+    const label = statement === "bs" ? "balance sheet" : "income statement";
+    return `${failed} of ${failed + passed} internal-sum checks failed for this quarter's ${label} extraction — figures may be incomplete or misread.`;
   };
   const anyWarning = periods.some((p) => periodWarning(p) !== null);
 

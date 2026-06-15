@@ -180,20 +180,35 @@ export interface ValidationCell {
 export async function validationByPeriod(
   ticker: string,
   kind: "consolidated" | "unconsolidated",
-): Promise<Map<string, ValidationCell>> {
+): Promise<Map<string, Map<string, ValidationCell>>> {
+  // Keyed period → statement → cell (NOT summed across statements): a table view
+  // must flag only the statement(s) it displays. Summing would mark the Balance
+  // Sheet column ⚠ when an unrelated footnote (stages / equity / cash-flow) fails
+  // even though assets/liabilities are clean.
   try {
     const db = await getDB();
     const { results } = await db
       .prepare(
-        `SELECT period, SUM(checks_failed) AS checks_failed,
-                SUM(checks_passed) AS checks_passed
+        `SELECT period, statement, checks_failed, checks_passed
          FROM bank_audit_validation
-         WHERE bank_ticker = ? AND kind = ?
-         GROUP BY period`,
+         WHERE bank_ticker = ? AND kind = ?`,
       )
       .bind(ticker, kind)
-      .all<ValidationCell>();
-    return new Map(results.map((r: ValidationCell) => [r.period, r]));
+      .all<{ period: string; statement: string; checks_failed: number; checks_passed: number }>();
+    const byPeriod = new Map<string, Map<string, ValidationCell>>();
+    for (const r of results) {
+      let m = byPeriod.get(r.period);
+      if (!m) {
+        m = new Map();
+        byPeriod.set(r.period, m);
+      }
+      m.set(r.statement, {
+        period: r.period,
+        checks_failed: r.checks_failed,
+        checks_passed: r.checks_passed,
+      });
+    }
+    return byPeriod;
   } catch {
     return new Map();
   }
