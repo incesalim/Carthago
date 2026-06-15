@@ -195,7 +195,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   if (allPeriodMeta.length === 0) notFound();
 
   const kind = (sp.kind as "consolidated" | "unconsolidated") ?? "unconsolidated";
-  const view = (sp.view as "annual" | "quarterly") ?? "annual";
+  const view = (sp.view as "annual" | "quarterly") ?? "quarterly";
   const statement = (sp.statement as "bs" | "is") ?? "bs";
   // Helper to build URLs that preserve the other two params.
   const url = (overrides: Partial<{ view: string; kind: string; statement: string }>) => {
@@ -309,55 +309,6 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
         </Link>
       </PageHeader>
 
-      {/* Three toggle groups: statement / period view / consolidation kind */}
-      <div className="mb-6 flex flex-wrap gap-3 items-center">
-        <div className="flex gap-1 rounded-lg border bg-muted p-1">
-          {(["bs", "is"] as const).map((s) => (
-            <Link
-              key={s}
-              href={url({ statement: s })}
-              className={`px-3 py-1 text-xs rounded-md transition ${
-                s === statement
-                  ? "bg-card shadow-sm font-medium text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {s === "bs" ? "Balance Sheet" : "Income Statement"}
-            </Link>
-          ))}
-        </div>
-        <div className="flex gap-1 rounded-lg border bg-muted p-1">
-          {(["annual", "quarterly"] as const).map((v) => (
-            <Link
-              key={v}
-              href={url({ view: v })}
-              className={`px-3 py-1 text-xs rounded-md transition ${
-                v === view
-                  ? "bg-card shadow-sm font-medium text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {v === "annual" ? "Annual" : "Quarterly"}
-            </Link>
-          ))}
-        </div>
-        <div className="flex gap-1 rounded-lg border bg-muted p-1">
-          {(["unconsolidated", "consolidated"] as const).map((k) => (
-            <Link
-              key={k}
-              href={url({ kind: k })}
-              className={`px-3 py-1 text-xs rounded-md transition ${
-                k === kind
-                  ? "bg-card shadow-sm font-medium text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {k === "consolidated" ? "Consolidated" : "Bank-only"}
-            </Link>
-          ))}
-        </div>
-      </div>
-
       {/* Bank-card summary: branches, personnel, TFRS 9 stage + coverage */}
       <BankCard
         profile={profile}
@@ -468,6 +419,56 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
             ))}
           </ul>
         )}
+      </div>
+
+      {/* Statement controls — sit directly above the statement table they drive:
+          statement (BS/IS) · period view (annual/quarterly) · consolidation kind */}
+      <div className="mb-3 flex flex-wrap gap-3 items-center">
+        <div className="flex gap-1 rounded-lg border bg-muted p-1">
+          {(["bs", "is"] as const).map((s) => (
+            <Link
+              key={s}
+              href={url({ statement: s })}
+              className={`px-3 py-1 text-xs rounded-md transition ${
+                s === statement
+                  ? "bg-card shadow-sm font-medium text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {s === "bs" ? "Balance Sheet" : "Income Statement"}
+            </Link>
+          ))}
+        </div>
+        <div className="flex gap-1 rounded-lg border bg-muted p-1">
+          {(["annual", "quarterly"] as const).map((v) => (
+            <Link
+              key={v}
+              href={url({ view: v })}
+              className={`px-3 py-1 text-xs rounded-md transition ${
+                v === view
+                  ? "bg-card shadow-sm font-medium text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {v === "annual" ? "Annual" : "Quarterly"}
+            </Link>
+          ))}
+        </div>
+        <div className="flex gap-1 rounded-lg border bg-muted p-1">
+          {(["unconsolidated", "consolidated"] as const).map((k) => (
+            <Link
+              key={k}
+              href={url({ kind: k })}
+              className={`px-3 py-1 text-xs rounded-md transition ${
+                k === kind
+                  ? "bg-card shadow-sm font-medium text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {k === "consolidated" ? "Consolidated" : "Bank-only"}
+            </Link>
+          ))}
+        </div>
       </div>
 
       {/* Balance Sheet — single table, assets and liabilities together */}
