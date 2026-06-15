@@ -16,6 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://carthago.app"),
   title: {
     default: "Carthago · Turkish Banking Sector",
     template: "%s · Carthago",
