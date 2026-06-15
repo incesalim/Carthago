@@ -57,6 +57,8 @@ admin-triggered.** Acquire (`acquire-audit.yml`, weekly): `sync_audit_reports --
 |---|---|---|---|
 | `backfill_extraction.py` | Re-extract named banks from R2 → clear D1 partitions → push → snapshot. Shared D1/R2 helpers live in `scripts/audit_d1.py`. | `backfill-audit.yml`; by hand | operational |
 | `audit_correct.py` | Unified manual-correction CLI: `overlay-statement` (hand-transcribed `manual_statements.json`), `override-cells` (`audit_overrides.json`), `reextract-pl`. Validate-to-0 → push one partition. | by hand | operational |
+| `reextract_statement.py` | Fleet (or `--banks`) re-extract of ONE non-core statement type (`oci`/`cash_flow`/`equity_change`/`npl_movement`/`loans_by_sector`/`credit_quality`/`bank_profile`); inline-validates, `--only-failing`, `--force`. | `reextract-statement.yml`; by hand | operational |
+| `reextract_pl.py` | Re-extract ONLY `profit_loss` for ONE `(bank, period, kind)` partition — single-PDF repair, not a fleet tool (also exposed as the `audit_correct reextract-pl` sub-command). | by hand | operational |
 | `revalidate_audit_db.py` | Recompute `bank_audit_validation` from stored rows (all 12 statement types — BS, P&L, OCI, off-balance, capital, liquidity, credit_quality, stages, npl_movement, loans_by_sector; no re-extraction); push validation only. | by hand after a validator change | operational |
 | `push_from_scratch.py` | Push pre-extracted rows from `fleet_scratch.db` → D1 (no re-extraction). | by hand (large repair) | operational |
 | `discover_audit_urls.py` | Scan bank IR pages for new quarterly report URLs. | by hand, quarterly | operational |
