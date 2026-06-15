@@ -23,6 +23,21 @@ export const metadata: Metadata = {
   },
   description:
     "Carthago — Turkish banking sector & economy dashboard. BDDK monthly + weekly aggregates on Cloudflare D1.",
+  openGraph: {
+    type: "website",
+    siteName: "Carthago",
+    title: "Carthago · Turkish Banking Sector",
+    description:
+      "Turkish banking sector & economy dashboard — BDDK monthly + weekly aggregates, audited bank financials, and macro series.",
+    url: "https://carthago.app",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Carthago · Turkish Banking Sector",
+    description:
+      "Turkish banking sector & economy dashboard — BDDK monthly + weekly aggregates, audited bank financials, and macro series.",
+  },
 };
 
 export default function RootLayout({
