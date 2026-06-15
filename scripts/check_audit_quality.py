@@ -46,6 +46,7 @@ stops the pipeline. --strict exits non-zero on anomalies (handy locally / tests)
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import sqlite3
 import subprocess
@@ -427,6 +428,95 @@ def check(db: Path) -> list[str]:
         conn.close()
 
 
+# --- Delta alerting -------------------------------------------------------
+# The full anomaly list is a large, slow-moving backlog of known issues, so
+# alerting it on every run (incl. every per-cell re-extract) is pure noise. We
+# alert only on what CHANGED vs a baseline persisted in R2.
+
+BASELINE_KEY = "state/audit_anomaly_baseline.json"
+_FP_NUM = re.compile(r"[-+]?\d[\d.,]*%?")
+
+
+def _fingerprint(anomaly: str) -> str:
+    """Stable identity for an anomaly line, ignoring volatile numbers in the detail.
+    The head ('<category> <bank> <period> <kind>') is kept verbatim — periods like
+    2022Q4 live there — and only the detail after the first ':' is number-stripped,
+    so a value nudge (e.g. CAR 18.92% → 18.90%) is NOT a new anomaly while a
+    different partition / statement / check still is."""
+    head, sep, detail = anomaly.partition(":")
+    key = " ".join(head.split())
+    if sep:
+        key += " :: " + " ".join(_FP_NUM.sub("#", detail).split())
+    return key
+
+
+def _load_baseline() -> set[str] | None:
+    """Baseline fingerprints from R2 — empty set if the file doesn't exist yet
+    (first run), or None if R2 is unavailable/errored (caller falls back to a full
+    alert so a real regression is never silently dropped)."""
+    try:
+        from src.audit_reports import r2_storage
+        if not r2_storage.exists(BASELINE_KEY):
+            return set()
+        data = json.loads(r2_storage.download_bytes(BASELINE_KEY).decode("utf-8"))
+        return set(data.get("fingerprints", []))
+    except Exception as e:  # noqa: BLE001
+        print(f"[quality] baseline load failed ({e}); falling back to full alert",
+              file=sys.stderr)
+        return None
+
+
+def _save_baseline(fingerprints: set[str]) -> None:
+    try:
+        from datetime import datetime, timezone
+        from src.audit_reports import r2_storage
+        body = json.dumps(
+            {"fingerprints": sorted(fingerprints),
+             "updated_at": datetime.now(timezone.utc).isoformat()},
+            ensure_ascii=False).encode("utf-8")
+        r2_storage.upload_bytes(body, BASELINE_KEY, content_type="application/json")
+    except Exception as e:  # noqa: BLE001
+        print(f"[quality] baseline save failed ({e})", file=sys.stderr)
+
+
+def _notify(msg: str) -> None:
+    try:
+        subprocess.run([sys.executable, str(REPO / "scripts" / "notify.py"), msg], check=False)
+    except Exception as e:  # noqa: BLE001
+        print(f"[quality] notify failed: {e}", file=sys.stderr)
+
+
+def _legacy_alert(anomalies: list[str]) -> None:
+    head = anomalies[:20]
+    more = f"\n…and {len(anomalies) - 20} more" if len(anomalies) > 20 else ""
+    _notify(f"⚠️ Audit data-quality: {len(anomalies)} anomaly(ies)\n" + "\n".join(head) + more)
+
+
+def alert_delta(anomalies: list[str]) -> None:
+    """Alert only on anomalies NEW or RESOLVED vs the R2 baseline; quiet otherwise.
+    First run seeds the baseline silently (so the standing backlog isn't re-blasted)."""
+    cur = {_fingerprint(a): a for a in anomalies}
+    baseline = _load_baseline()
+    if baseline is None:  # R2 unavailable — don't go silent on a real backlog
+        _legacy_alert(anomalies)
+        return
+    new = [cur[fp] for fp in cur if fp not in baseline]
+    resolved = baseline - set(cur)
+    if not baseline:
+        print(f"[quality] seeded baseline with {len(cur)} anomaly(ies); not alerting", flush=True)
+    elif new:
+        head = new[:15]
+        more = f"\n…and {len(new) - 15} more new" if len(new) > 15 else ""
+        res = f", {len(resolved)} resolved" if resolved else ""
+        _notify(f"🟡 Audit data-quality changed: {len(new)} new ({len(cur)} total){res}\n"
+                + "\n".join(head) + more)
+    elif resolved:
+        _notify(f"✅ {len(resolved)} audit anomaly(ies) resolved; {len(cur)} remain")
+    else:
+        print(f"[quality] no change vs baseline ({len(cur)} anomalies); not alerting", flush=True)
+    _save_baseline(set(cur))
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--db", default=str(REPO / "data" / "bank_audit.db"))
@@ -447,13 +537,7 @@ def main() -> int:
     for a in anomalies:
         print("  -", a)
     if args.alert:
-        head = anomalies[:20]
-        more = f"\n…and {len(anomalies)-20} more" if len(anomalies) > 20 else ""
-        msg = f"⚠️ Audit data-quality: {len(anomalies)} anomaly(ies)\n" + "\n".join(head) + more
-        try:
-            subprocess.run([sys.executable, str(REPO / "scripts" / "notify.py"), msg], check=False)
-        except Exception as e:  # noqa: BLE001
-            print(f"[quality] notify failed: {e}", file=sys.stderr)
+        alert_delta(anomalies)
     return 1 if args.strict else 0
 
 
