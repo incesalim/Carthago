@@ -40,7 +40,11 @@ coverage matrix as **missing** for you to extract.
   npl_movement, capital, liquidity; profile has presence-only sanity). `is_core=False` types
   (everything except assets/liabilities/P&L) surface `error`/`missing` cells but never flip
   `success`. New columns appear automatically when a new quarter is acquired (the expected
-  universe is the profile census **∪** the R2 PDF list).
+  universe is the profile census **∪** the R2 PDF list). **Filters:** a bank search
+  (comma/space-separated terms, substring — `GARAN, AK` shows both families), a From/To
+  period range, and a kind control with a third **both** mode that stacks each bank's
+  consolidated + unconsolidated rows so you can compare them at a glance (the legend tally
+  reflects the filtered view).
 - **Cell drawer** — extraction counts/note, the failing validator identities (`failed_detail`),
   and a context hint: a PDF-present *missing* cell with **no extraction row** says "acquired, not
   yet extracted — click Re-extract"; one that's been extracted but has an empty statement says
