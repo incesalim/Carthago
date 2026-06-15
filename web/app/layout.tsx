@@ -16,8 +16,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Turkish Banking Sector Dashboard",
-  description: "BDDK monthly + weekly aggregates on Cloudflare D1",
+  title: {
+    default: "Carthago · Turkish Banking Sector",
+    template: "%s · Carthago",
+  },
+  description:
+    "Carthago — Turkish banking sector & economy dashboard. BDDK monthly + weekly aggregates on Cloudflare D1.",
 };
 
 export default function RootLayout({

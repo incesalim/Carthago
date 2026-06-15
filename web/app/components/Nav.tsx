@@ -41,7 +41,8 @@ export default function Nav() {
       <div className="flex items-center gap-2 px-4 py-2.5 sm:px-6 lg:px-8">
         <Link
           href="/"
-          className="mr-2 flex shrink-0 items-center gap-2 font-semibold tracking-tight text-foreground"
+          aria-label="Carthago — home"
+          className="mr-2 flex shrink-0 items-center gap-2 text-foreground"
         >
           <Image
             src={logo}
@@ -52,7 +53,12 @@ export default function Nav() {
             unoptimized
             className="size-7 shrink-0 object-contain dark:brightness-0 dark:invert"
           />
-          <span className="hidden sm:inline">Banking Sector</span>
+          <span className="hidden flex-col leading-none sm:flex">
+            <span className="text-[15px] font-semibold tracking-tight">Carthago</span>
+            <span className="mt-0.5 hidden text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground lg:block">
+              Turkish Banking Sector
+            </span>
+          </span>
         </Link>
 
         <div className="flex flex-1 flex-wrap items-center gap-0.5">
