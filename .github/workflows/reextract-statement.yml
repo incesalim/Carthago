@@ -32,6 +32,10 @@ on:
         description: "Only partitions NOT passing validation (failing OR empty) — efficient default; skips the proven-passing rest"
         type: boolean
         default: true
+      force:
+        description: "Overwrite even partitions whose THIS statement already passes (needed when the defect is in a DERIVED table — credit_quality passes but its derived stages fails). Use with --banks, turn only_failing OFF"
+        type: boolean
+        default: false
       dry_run:
         description: "Re-extract locally only; skip the D1 push + snapshot upload"
         type: boolean
@@ -83,11 +87,13 @@ jobs:
           BANKS: ${{ inputs.banks }}
           PERIODS: ${{ inputs.periods }}
           ONLY_FAILING: ${{ inputs.only_failing && '--only-failing' || '' }}
+          FORCE: ${{ inputs.force && '--force' || '' }}
           DRY: ${{ inputs.dry_run && '--dry-run' || '' }}
         run: |
           args=(--statement "$STATEMENT" --banks "$BANKS")
           [ -n "$PERIODS" ] && args+=(--periods "$PERIODS")
           [ -n "$ONLY_FAILING" ] && args+=("$ONLY_FAILING")
+          [ -n "$FORCE" ] && args+=("$FORCE")
           [ -n "$DRY" ] && args+=("$DRY")
           python scripts/reextract_statement.py "${args[@]}"
 
