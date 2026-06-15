@@ -2,12 +2,14 @@
 
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 import { useChartTheme, tooltipStyles } from "@/app/lib/chart-theme";
+import { formatters } from "@/app/lib/chart-format";
 
 interface Point {
   period: string;
   value: number;
 }
 
+// Sparkline only offers a subset of the shared format kinds.
 type FormatKind = "pct" | "trn" | "raw";
 
 interface Props {
@@ -19,19 +21,6 @@ interface Props {
   /** Decimal places for the formatted value. */
   decimals?: number;
 }
-
-// en-US locale: comma thousands separator + dot decimal (e.g. 1,234,567.89).
-const nf = (v: number, d: number) =>
-  new Intl.NumberFormat("en-US", {
-    minimumFractionDigits: d,
-    maximumFractionDigits: d,
-  }).format(v);
-
-const formatters: Record<FormatKind, (v: number, d: number) => string> = {
-  pct: (v, d) => `${nf(v, d)}%`,
-  trn: (v, d) => `₺${nf(v / 1_000_000, d)} trn`,
-  raw: (v, d) => nf(v, d),
-};
 
 export default function Sparkline({
   data,

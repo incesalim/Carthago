@@ -9,7 +9,7 @@ import { useState } from "react";
 import { ChartCard } from "@/app/components/ui/chart-card";
 import NimComponentsChart, {
   type NimSeriesDef,
-} from "@/app/components/NimComponentsChart";
+} from "./NimComponentsChart";
 import {
   DEFAULT_NIM_GROUP,
   NIM_GROUPS,

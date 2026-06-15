@@ -26,7 +26,7 @@ import { useChartTheme } from "@/app/lib/chart-theme";
 import { PIPELINE_EDGES, PIPELINE_NODES, type PipelineEdge } from "@/app/lib/pipeline-graph";
 import { computeLayout } from "@/app/lib/pipeline-layout";
 import type { PipelineStatusMap } from "@/app/lib/pipeline-status";
-import { pipelineNodeTypes, type PNodeData, type RunBadge } from "./pipeline-nodes";
+import { pipelineNodeTypes, type PNodeData, type RunBadge } from "./PipelineNodes";
 
 interface RawRun {
   workflowFile: string;

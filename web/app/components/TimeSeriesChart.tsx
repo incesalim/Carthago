@@ -18,6 +18,7 @@ import {
 } from "recharts";
 import { ChartCard } from "@/app/components/ui/chart-card";
 import { useChartTheme, tooltipStyles, seriesColor } from "@/app/lib/chart-theme";
+import { nf } from "@/app/lib/chart-format";
 
 interface Point {
   period_date: string;
@@ -32,13 +33,6 @@ interface Props {
   decimals?: number;
   height?: number;
 }
-
-// en-US locale: comma thousands separator + dot decimal (e.g. 1,234,567.89).
-const nf = (v: number, d: number) =>
-  new Intl.NumberFormat("en-US", {
-    minimumFractionDigits: d,
-    maximumFractionDigits: d,
-  }).format(v);
 
 const formatters = {
   pct: (v: number, d: number) => `${nf(v, d)}%`,

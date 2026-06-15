@@ -12,23 +12,11 @@ import {
   WEEKLY_BANK_TYPES,
   WEEKLY_BANK_TYPE_LABELS,
 } from "@/app/lib/metrics";
-import { PageHeader } from "@/app/components/ui";
+import { PageHeader, Section } from "@/app/components/ui";
 import TrendChart from "@/app/components/TrendChart";
 import type { WeeklyRow } from "@/app/lib/metrics";
 
 export const dynamic = "force-dynamic";
-
-function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
-  return (
-    <section className="space-y-4">
-      <div className="space-y-0.5">
-        <h2 className="text-base font-semibold text-foreground">{title}</h2>
-        {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
-      </div>
-      <div className="space-y-4">{children}</div>
-    </section>
-  );
-}
 
 // TrendChart expects `period: string`. weeklyGrowth/weeklySeries return rows
 // with `period: string` (date) already — but the TrendChart format wants
@@ -141,7 +129,7 @@ export default async function WeeklyPage() {
         </div>
       </Section>
 
-      <Section title="Currency & Ownership Differentiators" subtitle="How 4-week momentum splits across currency and public-vs-private banks (sector only for currency).">
+      <Section title="Currency & Ownership Differentiators" description="How 4-week momentum splits across currency and public-vs-private banks (sector only for currency).">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <TrendChart
             data={tlVsFx}
@@ -165,7 +153,7 @@ export default async function WeeklyPage() {
         </div>
       </Section>
 
-      <Section title="Consumer Segments" subtitle="13-week annualized growth per product, sector only — cards & GPL drive cycle.">
+      <Section title="Consumer Segments" description="13-week annualized growth per product, sector only — cards & GPL drive cycle.">
         <TrendChart
           data={consumerSegments}
           seriesLabels={{
@@ -182,7 +170,7 @@ export default async function WeeklyPage() {
         />
       </Section>
 
-      <Section title="SME vs Commercial" subtitle="Cycle-leading indicators for non-household credit growth.">
+      <Section title="SME vs Commercial" description="Cycle-leading indicators for non-household credit growth.">
         <TrendChart
           data={smeVsCommercial}
           seriesLabels={{ SME: "SME", COMMERCIAL: "Commercial (incl. corp.)" }}

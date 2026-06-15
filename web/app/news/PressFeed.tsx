@@ -8,7 +8,7 @@
  */
 import { useMemo, useState } from "react";
 import { type NewsItem } from "@/app/lib/news";
-import { topicTag, type Tag } from "@/app/lib/newsTags";
+import { topicTag, type Tag } from "@/app/lib/news-tags";
 
 function fmtDate(iso: string): string {
   const d = new Date(iso);

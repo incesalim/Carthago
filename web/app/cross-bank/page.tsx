@@ -22,9 +22,9 @@ import {
   BANK_TYPE_BADGE_LABELS,
 } from "@/app/lib/bank_names";
 import { PageHeader } from "@/app/components/ui";
-import HeatmapView from "@/app/components/HeatmapView";
-import type { HeatmapBankRow } from "@/app/components/HeatmapGrid";
-import type { HeatmapTimeRow, PanelCell } from "@/app/components/HeatmapOverTime";
+import HeatmapView from "./HeatmapView";
+import type { HeatmapBankRow } from "./HeatmapGrid";
+import type { HeatmapTimeRow, PanelCell } from "./HeatmapOverTime";
 
 export const dynamic = "force-dynamic";
 

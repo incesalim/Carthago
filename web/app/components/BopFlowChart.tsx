@@ -24,6 +24,7 @@ import {
   YAxis,
 } from "recharts";
 import { useChartTheme, tooltipStyles } from "@/app/lib/chart-theme";
+import { nf } from "@/app/lib/chart-format";
 
 export interface BarSeries {
   key: string;
@@ -64,12 +65,6 @@ const FALLBACK_FILLS: Array<{ light: string; dark: string }> = [
   { light: "#f5c518", dark: "#fbd34d" }, // amber
   { light: "#1f4068", dark: "#6f9fe0" }, // navy
 ];
-
-const nf = (v: number, d: number) =>
-  new Intl.NumberFormat("en-US", {
-    minimumFractionDigits: d,
-    maximumFractionDigits: d,
-  }).format(v);
 
 export default function BopFlowChart({
   data,

@@ -20,6 +20,7 @@ import {
   YAxis,
 } from "recharts";
 import { useChartTheme, tooltipStyles } from "@/app/lib/chart-theme";
+import { nf } from "@/app/lib/chart-format";
 import { NIM_SERIES, type NimBarPoint, type NimKey } from "@/app/lib/nim-components";
 
 // Topmost positive segment — the net-total label rides on it so its `y` is
@@ -64,12 +65,6 @@ const FILLS: Record<"light" | "dark", Record<NimKey, string>> = {
     other_exp: "#9ca3af",
   },
 };
-
-const nf = (v: number, d: number) =>
-  new Intl.NumberFormat("en-US", {
-    minimumFractionDigits: d,
-    maximumFractionDigits: d,
-  }).format(v);
 
 /** Black or white label text depending on the segment fill's luminance. */
 function labelColor(hexFill: string): string {

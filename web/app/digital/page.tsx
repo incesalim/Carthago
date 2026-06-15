@@ -36,7 +36,7 @@ import {
   METHOD_LABELS as ACQ_METHOD_LABELS,
 } from "@/app/lib/acquisition";
 import { latestPeriod } from "@/app/lib/metrics";
-import { PageHeader } from "@/app/components/ui";
+import { PageHeader, Section } from "@/app/components/ui";
 import { ChartCard } from "@/app/components/ui/chart-card";
 import TrendChart from "@/app/components/TrendChart";
 import StackedArea from "@/app/components/StackedArea";
@@ -53,26 +53,6 @@ const MOBILE_FILL = { light: "#7a0d2e", dark: "#f0608a" };
 const INTERNET_FILL = { light: "#1f4068", dark: "#6f9fe0" };
 
 export const dynamic = "force-dynamic";
-
-function Section({
-  title,
-  subtitle,
-  children,
-}: {
-  title: string;
-  subtitle?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="space-y-4">
-      <div className="space-y-0.5">
-        <h2 className="text-base font-semibold text-foreground">{title}</h2>
-        {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
-      </div>
-      <div className="space-y-4">{children}</div>
-    </section>
-  );
-}
 
 export default async function DigitalPage() {
   const [
@@ -115,7 +95,7 @@ export default async function DigitalPage() {
 
       <Section
         title="Adoption"
-        subtitle="Active customers by channel. Mobile has all but replaced internet banking — most individuals now bank mobile-only."
+        description="Active customers by channel. Mobile has all but replaced internet banking — most individuals now bank mobile-only."
       >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <TrendChart
@@ -138,7 +118,7 @@ export default async function DigitalPage() {
 
       <Section
         title="Digital customer base"
-        subtitle="The registered base and how it grows, plus the demand funnel feeding it. The base is TBB's quarter-end stock (registered and logged in at least once); net adds are its quarter-over-quarter change. Base counts are per-bank registrations summed across the sector — a customer registered at several banks counts several times — so read the trend and net adds, not the absolute level. Application counts are mobile only (internet is now under 1% of applications)."
+        description="The registered base and how it grows, plus the demand funnel feeding it. The base is TBB's quarter-end stock (registered and logged in at least once); net adds are its quarter-over-quarter change. Base counts are per-bank registrations summed across the sector — a customer registered at several banks counts several times — so read the trend and net adds, not the absolute level. Application counts are mobile only (internet is now under 1% of applications)."
       >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <TrendChart
@@ -172,7 +152,7 @@ export default async function DigitalPage() {
 
       <Section
         title="Customer acquisition — digital vs branch"
-        subtitle="From TBB's separate monthly “Uzaktan ve Şubeden Müşteri Edinim” report: how many individuals became customers remotely — without visiting a branch — vs at a branch. “Remotely” combines the three branch-free finalisation methods (a video call with a representative, courier ID confirmation, and bulk payroll/corporate onboarding); “branch” is in-person. Remote-application intake (a funnel count, not finalised customers) is excluded. Each point is a trailing 3-month sum (the month plus the prior two), smoothing the monthly noise while keeping monthly cadence; the first two months (May–Jun 2021) have no full window. The remote-ID regulation began May 2021 and definitions were refined in Jan 2023. Individuals only — merchant and legal-entity data exists from Jul 2024."
+        description="From TBB's separate monthly “Uzaktan ve Şubeden Müşteri Edinim” report: how many individuals became customers remotely — without visiting a branch — vs at a branch. “Remotely” combines the three branch-free finalisation methods (a video call with a representative, courier ID confirmation, and bulk payroll/corporate onboarding); “branch” is in-person. Remote-application intake (a funnel count, not finalised customers) is excluded. Each point is a trailing 3-month sum (the month plus the prior two), smoothing the monthly noise while keeping monthly cadence; the first two months (May–Jun 2021) have no full window. The remote-ID regulation began May 2021 and definitions were refined in Jan 2023. Individuals only — merchant and legal-entity data exists from Jul 2024."
       >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <TrendChart
@@ -203,7 +183,7 @@ export default async function DigitalPage() {
 
       <Section
         title="Transactions"
-        subtitle="Quarterly money-transfer and bill-payment activity. Mobile dominates both value and volume."
+        description="Quarterly money-transfer and bill-payment activity. Mobile dominates both value and volume."
       >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <StackedArea
@@ -233,7 +213,7 @@ export default async function DigitalPage() {
 
       <Section
         title="Who banks digitally"
-        subtitle="Demographics of active individual digital customers (internet + mobile combined)."
+        description="Demographics of active individual digital customers (internet + mobile combined)."
       >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <StackedArea

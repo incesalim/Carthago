@@ -15,7 +15,7 @@ import {
   formatMetricValue,
 } from "@/app/lib/heatmap-normalize";
 import BankTypeBadge from "@/app/components/BankTypeBadge";
-import HeatmapLegend from "@/app/components/HeatmapLegend";
+import HeatmapLegend from "./HeatmapLegend";
 
 export interface HeatmapTimeRow {
   ticker: string;

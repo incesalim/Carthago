@@ -10,7 +10,7 @@
  */
 import Link from "next/link";
 import { getInflationData, type Table1Row, type CoreRow } from "@/app/lib/inflation";
-import { PageHeader, Stat } from "@/app/components/ui";
+import { PageHeader, Section, Stat } from "@/app/components/ui";
 import { ChartCard } from "@/app/components/ui/chart-card";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
 import BopFlowChart, { type BarSeries } from "@/app/components/BopFlowChart";
@@ -19,26 +19,6 @@ export const dynamic = "force-dynamic";
 
 const MAROON = { light: "#9c1f2f", dark: "#d65a5a" };
 const GREEN = { light: "#3f7d3f", dark: "#6bbf6b" };
-
-function Section({
-  title,
-  subtitle,
-  children,
-}: {
-  title: string;
-  subtitle?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="space-y-4">
-      <div className="space-y-0.5">
-        <h2 className="text-base font-semibold text-foreground">{title}</h2>
-        {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
-      </div>
-      <div className="space-y-4">{children}</div>
-    </section>
-  );
-}
 
 function Grid({ children }: { children: React.ReactNode }) {
   return <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">{children}</div>;
@@ -79,7 +59,7 @@ export default async function InflationPage() {
 
       <Section
         title="Headline & Core Inflation"
-        subtitle="Annual CPI, core-C and producer-price inflation. Core C strips out energy, food, alcohol-tobacco and gold — the cleanest read on underlying trend."
+        description="Annual CPI, core-C and producer-price inflation. Core C strips out energy, food, alcohol-tobacco and gold — the cleanest read on underlying trend."
       >
         <Grid>
           <TimeSeriesChart
@@ -126,7 +106,7 @@ export default async function InflationPage() {
 
       <Section
         title="Consumer Prices by Group"
-        subtitle={`Monthly % change by COICOP main group, ${d.asOfLabel}. The report plots weighted contributions to monthly inflation; shown here as each group's m/m change (TÜİK group weights aren't published in EVDS) — leaders & signs match, magnitudes scale by weight.`}
+        description={`Monthly % change by COICOP main group, ${d.asOfLabel}. The report plots weighted contributions to monthly inflation; shown here as each group's m/m change (TÜİK group weights aren't published in EVDS) — leaders & signs match, magnitudes scale by weight.`}
       >
         <Grid>
           <ChartCard title="Şekil 2 · CPI Groups (monthly % change)">
@@ -149,7 +129,7 @@ export default async function InflationPage() {
 
       <Section
         title="Producer Prices (Yİ-ÜFE)"
-        subtitle={`Domestic PPI by NACE sub-sector, monthly % change, ${d.asOfLabel}. Energy and refining swings dominate producer-cost pressure.`}
+        description={`Domestic PPI by NACE sub-sector, monthly % change, ${d.asOfLabel}. Energy and refining swings dominate producer-cost pressure.`}
       >
         <Grid>
           <ChartCard title="Şekil 3 · PPI Sub-sectors (monthly % change)">
@@ -200,7 +180,7 @@ export default async function InflationPage() {
 
       <Section
         title="Monthly History"
-        subtitle="CPI (TÜFE) and PPI (Yİ-ÜFE), monthly and annual % change."
+        description="CPI (TÜFE) and PPI (Yİ-ÜFE), monthly and annual % change."
       >
         <div className="overflow-x-auto rounded-lg border border-border">
           <table className="w-full text-sm">

@@ -27,6 +27,7 @@ import {
 import { latestPeriod } from "@/app/lib/metrics";
 import {
   PageHeader,
+  Section,
   Table,
   TableBody,
   TableCell,
@@ -39,26 +40,6 @@ import StackedArea from "@/app/components/StackedArea";
 import CopyTableButton from "@/app/components/CopyTableButton";
 
 export const dynamic = "force-dynamic";
-
-function Section({
-  title,
-  subtitle,
-  children,
-}: {
-  title: string;
-  subtitle?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="space-y-4">
-      <div className="space-y-0.5">
-        <h2 className="text-base font-semibold text-foreground">{title}</h2>
-        {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
-      </div>
-      <div className="space-y-4">{children}</div>
-    </section>
-  );
-}
 
 const nf0 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
 const nf1 = new Intl.NumberFormat("en-US", {
@@ -138,7 +119,7 @@ export default async function FundsPage() {
 
       <Section
         title="Fund market size"
-        subtitle="Month-end AUM. Real-estate (GYF) and venture-capital (GSYF) funds are excluded from trends — they aren't priced daily."
+        description="Month-end AUM. Real-estate (GYF) and venture-capital (GSYF) funds are excluded from trends — they aren't priced daily."
       >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <StackedArea
@@ -160,7 +141,7 @@ export default async function FundsPage() {
 
       <Section
         title="Where mutual-fund money went"
-        subtitle="Mutual-fund (YAT) AUM by fund category, from fund names. Money-market and hedge (serbest) funds absorbed the deposit migration of recent years."
+        description="Mutual-fund (YAT) AUM by fund category, from fund names. Money-market and hedge (serbest) funds absorbed the deposit migration of recent years."
       >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <StackedArea
@@ -182,7 +163,7 @@ export default async function FundsPage() {
 
       <Section
         title="What mutual funds hold"
-        subtitle="AUM-weighted portfolio allocation of mutual funds (YAT), rolled up from TEFAS's ~55 instrument fields. Deposits, repo and money-market instruments dominate."
+        description="AUM-weighted portfolio allocation of mutual funds (YAT), rolled up from TEFAS's ~55 instrument fields. Deposits, repo and money-market instruments dominate."
       >
         <StackedArea
           data={allocation}
@@ -196,7 +177,7 @@ export default async function FundsPage() {
 
       <Section
         title="Investors"
-        subtitle="Investor accounts per fund type (people holding several funds are counted once per fund) and the number of priced funds."
+        description="Investor accounts per fund type (people holding several funds are counted once per fund) and the number of priced funds."
       >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <TrendChart
@@ -218,7 +199,7 @@ export default async function FundsPage() {
 
       <Section
         title="Largest funds"
-        subtitle="Top funds by AUM on the latest trading day."
+        description="Top funds by AUM on the latest trading day."
       >
         <div className="space-y-6">
           <TopFundsTable

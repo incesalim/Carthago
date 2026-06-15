@@ -27,23 +27,11 @@ import {
   type WeeklyRow,
   type EvdsRow,
 } from "@/app/lib/metrics";
-import { PageHeader } from "@/app/components/ui";
+import { PageHeader, Section } from "@/app/components/ui";
 import TrendChart from "@/app/components/TrendChart";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
 
 export const dynamic = "force-dynamic";
-
-function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
-  return (
-    <section className="space-y-4">
-      <div className="space-y-0.5">
-        <h2 className="text-base font-semibold text-foreground">{title}</h2>
-        {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
-      </div>
-      <div className="space-y-4">{children}</div>
-    </section>
-  );
-}
 
 // Long-form rows → TrendChart points (structurally identical; keeps types tidy).
 function toTrend(rows: (TimeSeriesRow | WeeklyRow)[]): { period: string; bank_type_code: string; value: number }[] {
@@ -134,7 +122,7 @@ export default async function LiquidityPage() {
 
       <Section
         title="TL Funding"
-        subtitle="Loan-to-deposit pressure and deposit momentum on the TL book. Public = state banks; Private = private + foreign banks (BBVA framing)."
+        description="Loan-to-deposit pressure and deposit momentum on the TL book. Public = state banks; Private = private + foreign banks (BBVA framing)."
       >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <TrendChart
@@ -166,7 +154,7 @@ export default async function LiquidityPage() {
 
       <Section
         title="FC & Dollarization"
-        subtitle="Foreign-currency funding pressure and households' appetite for FC savings vs TL."
+        description="Foreign-currency funding pressure and households' appetite for FC savings vs TL."
       >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <TrendChart
@@ -194,7 +182,7 @@ export default async function LiquidityPage() {
 
       <Section
         title="CBRT Liquidity & Reserves"
-        subtitle="System TL liquidity stance and the central bank's FX reserve buffer."
+        description="System TL liquidity stance and the central bank's FX reserve buffer."
       >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <TrendChart
@@ -216,7 +204,7 @@ export default async function LiquidityPage() {
 
       <Section
         title="Macro Backdrop"
-        subtitle="Real appreciation eases financial conditions and supports the appetite for TL savings."
+        description="Real appreciation eases financial conditions and supports the appetite for TL savings."
       >
         <TimeSeriesChart
           series={reerSeries}

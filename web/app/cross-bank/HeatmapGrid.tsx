@@ -17,7 +17,7 @@ import { Fragment, useMemo, useState } from "react";
 import type { MetricDef, MetricKey } from "@/app/lib/heatmap";
 import { scoreToColor, formatMetricValue } from "@/app/lib/heatmap-normalize";
 import BankTypeBadge from "@/app/components/BankTypeBadge";
-import HeatmapLegend from "@/app/components/HeatmapLegend";
+import HeatmapLegend from "./HeatmapLegend";
 
 export interface HeatmapBankRow {
   ticker: string;

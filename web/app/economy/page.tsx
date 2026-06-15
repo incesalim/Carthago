@@ -16,7 +16,7 @@ import { bistIndexHistory, type PricePoint } from "@/app/lib/bist";
 import { liveQuotes, type LiveQuote } from "@/app/lib/bist-live";
 import { getMarketTicker } from "@/app/lib/market-ticker";
 import { latestPeriod } from "@/app/lib/metrics";
-import { PageHeader } from "@/app/components/ui";
+import { PageHeader, Section } from "@/app/components/ui";
 import MarketTicker from "@/app/components/MarketTicker";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
 
@@ -28,26 +28,6 @@ function rebase100(pts: PricePoint[]): PricePoint[] {
 }
 
 export const dynamic = "force-dynamic";
-
-function Section({
-  title,
-  subtitle,
-  children,
-}: {
-  title: string;
-  subtitle?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="space-y-4">
-      <div className="space-y-0.5">
-        <h2 className="text-base font-semibold text-foreground">{title}</h2>
-        {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
-      </div>
-      <div className="space-y-4">{children}</div>
-    </section>
-  );
-}
 
 function Grid({ children }: { children: React.ReactNode }) {
   return <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">{children}</div>;
@@ -133,7 +113,7 @@ export default async function EconomyPage() {
 
       <Section
         title="Growth & Activity"
-        subtitle="GDP grew 3.6% in 2025 on domestic demand; industrial momentum stays weak while services hold up (report pp. 29–30)."
+        description="GDP grew 3.6% in 2025 on domestic demand; industrial momentum stays weak while services hold up (report pp. 29–30)."
       >
         <Grid>
           <TimeSeriesChart
@@ -153,7 +133,7 @@ export default async function EconomyPage() {
 
       <Section
         title="Labor Market"
-        subtitle="Headline unemployment is historically low, but participation has been sliding — the report flags worsening employment quality (p. 31)."
+        description="Headline unemployment is historically low, but participation has been sliding — the report flags worsening employment quality (p. 31)."
       >
         <Grid>
           <TimeSeriesChart
@@ -176,7 +156,7 @@ export default async function EconomyPage() {
 
       <Section
         title="Inflation & Monetary Policy"
-        subtitle="Disinflation decelerated even before the conflict — monthly CPI persistently above 2% with unanchored expectations (pp. 32–33, 39)."
+        description="Disinflation decelerated even before the conflict — monthly CPI persistently above 2% with unanchored expectations (pp. 32–33, 39)."
       >
         <Grid>
           <TimeSeriesChart
@@ -215,7 +195,7 @@ export default async function EconomyPage() {
 
       <Section
         title="Lira & External Balance"
-        subtitle="External balance was worsening before the conflict; every 10% rise in energy prices costs ~0.3–0.4% of GDP on the current account (pp. 35, 41)."
+        description="External balance was worsening before the conflict; every 10% rise in energy prices costs ~0.3–0.4% of GDP on the current account (pp. 35, 41)."
       >
         <Grid>
           <TimeSeriesChart
@@ -252,7 +232,7 @@ export default async function EconomyPage() {
       {hasBist && (
         <Section
           title="Equity Markets (BIST)"
-          subtitle={bistSubtitle}
+          description={bistSubtitle}
         >
           <TimeSeriesChart
             series={bistRebased}
@@ -266,7 +246,7 @@ export default async function EconomyPage() {
 
       <Section
         title="Fiscal Stance"
-        subtitle="Cash primary balance back in surplus gives room for fiscal maneuver against the conflict shock (p. 34). Treasury general budget, 12m rolling."
+        description="Cash primary balance back in surplus gives room for fiscal maneuver against the conflict shock (p. 34). Treasury general budget, 12m rolling."
       >
         <TimeSeriesChart
           series={{
@@ -283,7 +263,7 @@ export default async function EconomyPage() {
 
       <Section
         title="BBVA Baseline Scenario"
-        subtitle={`${BBVA_BASELINE.source} (${BBVA_BASELINE.asOf}). Forecasts assume a short-lived conflict; biases are to higher inflation and weaker growth if it lasts.`}
+        description={`${BBVA_BASELINE.source} (${BBVA_BASELINE.asOf}). Forecasts assume a short-lived conflict; biases are to higher inflation and weaker growth if it lasts.`}
       >
         <div className="overflow-x-auto rounded-lg border border-border">
           <table className="w-full text-sm">

@@ -15,7 +15,7 @@ import {
   BANK_TYPE_LABELS,
   type TimeSeriesRow,
 } from "@/app/lib/metrics";
-import { PageHeader } from "@/app/components/ui";
+import { PageHeader, Section } from "@/app/components/ui";
 import { getDB } from "@/app/lib/db";
 import BarByBank from "@/app/components/BarByBank";
 import TrendChart from "@/app/components/TrendChart";
@@ -58,18 +58,6 @@ async function nplAmount(bankTypes: string[]): Promise<TimeSeriesRow[]> {
     .bind(...bankTypes, ...bankTypes)
     .all<TimeSeriesRow>();
   return results;
-}
-
-function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
-  return (
-    <section className="space-y-4">
-      <div className="space-y-0.5">
-        <h2 className="text-base font-semibold text-foreground">{title}</h2>
-        {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
-      </div>
-      <div className="space-y-4">{children}</div>
-    </section>
-  );
 }
 
 // Reshape `consumerNplRatios` rows into long-form TrendChart input keyed by
@@ -145,7 +133,7 @@ export default async function AssetQualityPage() {
         </div>
       </Section>
 
-      <Section title="Coverage & Stock" subtitle="Provisions over gross NPL + absolute NPL stock.">
+      <Section title="Coverage & Stock" description="Provisions over gross NPL + absolute NPL stock.">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <TrendChart
             data={coverageAll}
@@ -164,7 +152,7 @@ export default async function AssetQualityPage() {
         </div>
       </Section>
 
-      <Section title="Consumer NPL Breakdown" subtitle="Where household-credit deterioration is concentrated — derived from BDDK Table 4 sub-segments, sector only.">
+      <Section title="Consumer NPL Breakdown" description="Where household-credit deterioration is concentrated — derived from BDDK Table 4 sub-segments, sector only.">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <StackedArea
             data={cMix.map((r) => ({
@@ -199,7 +187,7 @@ export default async function AssetQualityPage() {
         </div>
       </Section>
 
-      <Section title="Commercial NPL by Segment" subtitle="SME vs commercial-total vs derived non-SME, weekly BDDK bulletin (sector).">
+      <Section title="Commercial NPL by Segment" description="SME vs commercial-total vs derived non-SME, weekly BDDK bulletin (sector).">
         <TrendChart
           data={commercialToTrendRows(commRatios)}
           seriesLabels={{
