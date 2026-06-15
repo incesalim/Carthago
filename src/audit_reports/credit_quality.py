@@ -949,14 +949,17 @@ _STAGE12_S1_PHRASE = re.compile(
     # rows of extract_text() output (VAKIFK, TFKB). Fall back to the universal
     # BRSA section title "Birinci ve İkinci Grup Krediler" — every Turkish
     # bank uses it.
-    r"(?:Standart\s+Nitelikli"
-    r"|Standard\s+[Ll]oans?"
-    r"|Performing\s+Loans?"
-    r"|Birinci\s+ve\s+İkinci\s+Grup)",
+    # \s* (not \s+): some banks' PDFs tokenise words with NO inter-word spaces
+    # ("StandardLoans", "LoansUnderCloseMonitoring") — İşbank EN, TSKB. The
+    # zero-or-more keeps spaced reports matching while allowing the glued form.
+    r"(?:Standart\s*Nitelikli"
+    r"|Standard\s*[Ll]oans?"
+    r"|Performing\s*Loans?"
+    r"|Birinci\s*ve\s*İkinci\s*Grup)",
     re.IGNORECASE,
 )
 _STAGE12_S2_PHRASE = re.compile(
-    r"(?:Yakın\s+İzlemedeki|Loans?\s+Under\s+(?:Close\s+Monitor|Follow)|Close\s+Monitor)",
+    r"(?:Yak[ıi]n\s*İzlemedeki|Loans?\s*Under\s*(?:Close\s*Monitor|Follow)|Close\s*Monitor)",
     re.IGNORECASE,
 )
 # GARAN-style: Stage 1 + Stage 2 disclosed as ROW labels with TL/FC columns.
@@ -973,6 +976,57 @@ _STAGE12_TOTAL_ROW = re.compile(
     r"^\s*(?:Toplam|Total)\s",
     re.IGNORECASE,
 )
+# Cheap, space-tolerant signals that a page carries the section-7.2 stage table —
+# used only to decide whether the coordinate fallback is worth running. pdfplumber
+# concatenates words without spaces on column-split layouts ("Standard Loans" →
+# "StandardLoans"), so the real spaced anchors miss; these allow zero whitespace.
+# BOTH a Stage-1 AND a Stage-2 column signal must be present (the prose mentions
+# "standard loans" on many pages of an English report — requiring the Stage-2
+# header too restricts the expensive coord pass to the actual table page). The
+# strict S1/S2 anchors still gate the actual parse on the coord-rebuilt text.
+_STAGE12_LOOSE_S1 = re.compile(
+    r"(?:Standar[dt]\s*(?:Nitelik|Loan)|Performing\s*Loan|Birinci\s*ve\s*İkinci)",
+    re.IGNORECASE,
+)
+_STAGE12_LOOSE_S2 = re.compile(
+    r"(?:Yak[ıi]n\s*İzleme|İzlemedeki|Close\s*Monitor|Follow\s*-?up)",
+    re.IGNORECASE,
+)
+
+
+def _coord_clustered_lines(page, y_tol: float = 3.5) -> list[str]:
+    """Rebuild visual rows by clustering words on their y-coordinate.
+
+    Some banks (İşbank's English report is the worst) lay the section-7.2 stage
+    table out so that pdfplumber/fitz line-mode text puts each CELL on its own
+    line and splits a row's label from its numbers by ~2px. extract_text() then
+    yields a "Total" row with <3 numbers, which the line parser rejects. Grouping
+    words within `y_tol` px of one another rebuilds the real row
+    ("Total 1,298,595,790 64,059,342 …") so the existing parser reads it. Used
+    only as a fallback on pages that DO carry the stage anchors but parsed empty,
+    so the passing fleet pays nothing."""
+    try:
+        words = page.extract_words()
+    except Exception:
+        return []
+    if not words:
+        return []
+    words.sort(key=lambda w: (w["top"], w["x0"]))
+    lines: list[list] = []
+    cur: list = []
+    base: float | None = None
+    for w in words:
+        if base is None or w["top"] - base <= y_tol:
+            cur.append(w)
+            if base is None:
+                base = w["top"]
+        else:
+            lines.append(cur)
+            cur = [w]
+            base = w["top"]
+    if cur:
+        lines.append(cur)
+    return [" ".join(x["text"] for x in sorted(ln, key=lambda w: w["x0"])) for ln in lines]
 
 
 def _extract_loans_by_stage_from_page(page_num: int, page_text: str) -> list[StageRow]:
@@ -1293,7 +1347,15 @@ def extract_from_pdf(
         # BRSA section 7.2 "Standart Nitelikli ve Yakın İzlemedeki" loan
         # amounts. Gives Stage 1 + Stage 2 portfolio balances for every bank
         # (combined with npl_brsa_gross's Stage 3 = full stage breakdown).
-        rep.rows.extend(_extract_loans_by_stage_from_page(i, text))
+        lbs = _extract_loans_by_stage_from_page(i, text)
+        if not lbs and _STAGE12_LOOSE_S1.search(text) and _STAGE12_LOOSE_S2.search(text):
+            # Column-split layout (İşbank EN etc.): pdfplumber line-mode broke the
+            # Total row apart and dropped inter-word spaces, so the strict anchors
+            # miss. Retry on rows rebuilt from word coordinates (properly spaced).
+            coord_text = "\n".join(_coord_clustered_lines(page))
+            if coord_text:
+                lbs = _extract_loans_by_stage_from_page(i, coord_text)
+        rep.rows.extend(lbs)
         # Stage 1 + Stage 2 ECL provisions from the same section 7.2.
         # Completes per-stage coverage ratio coverage for every bank.
         rep.rows.extend(_extract_stage12_ecl_from_page(i, text))
