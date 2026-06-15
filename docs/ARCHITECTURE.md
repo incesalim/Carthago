@@ -63,6 +63,11 @@ failure in one can't stall the other:
 | BDDK bulletins + EVDS | `data/bddk_data.db` | `state/bddk_data.db.gz` | `bddk-pipeline` |
 | Bank audit reports | `data/bank_audit.db` | `state/bank_audit.db.gz` | `bddk-audit` |
 
+> The whole topology — sources → these workflows → D1/R2/KV → dashboard pages,
+> with the two lanes banded apart — is visualized interactively on the **`/pipeline`**
+> tab (React Flow; storage nodes show live D1 row counts + freshness, workflow nodes
+> their last GitHub Actions run). Source of truth: `web/app/lib/pipeline-graph.ts`.
+
 The two lanes share no snapshot, so the audit workflow runs in parallel with
 the bulletin/EVDS workflows. Their only shared sink is D1, where they write a
 **disjoint** set of tables (`bank_audit_*` vs everything else) with idempotent

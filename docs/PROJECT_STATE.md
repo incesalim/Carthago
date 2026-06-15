@@ -436,6 +436,21 @@ ROE/ROA/NIM/Cost-Income derived from a P&L pivot by BRSA hierarchy (net profit
 over equity (BS liab `XVI.`), with YTD flows annualized × (4/quarter). Rank +
 color logic is the pure, client-safe `heatmap-normalize.ts`.
 
+A **Pipeline** tab (`/pipeline`) visualizes the whole data lineage as an
+interactive node graph (React Flow / `@xyflow/react`): external sources →
+ingestion workflows → Cloudflare D1/R2/KV → dashboard pages, with the two
+ingestion lanes (`bddk-pipeline` vs `bddk-audit`) banded apart and shared infra
+(snapshots, cache, CI/CD, monitoring) below. Storage/source nodes carry **live**
+D1 row counts + freshness (server-rendered via `getPipelineStatus()`, reusing
+`admin-health.ts` + graceful COUNT/MAX extensions, 12h `cachedAll`); workflow
+nodes show their last GitHub Actions run, fetched client-side from the public,
+**edge-cached** `/api/pipeline/runs` (`max-age=300`, never KV — keeps the daily
+free-tier KV write cap safe) and degrading to neutral badges when
+`GITHUB_DISPATCH_TOKEN` is absent. The topology is a hand-authored, pure data
+model (`web/app/lib/pipeline-graph.ts`) with a deterministic layered layout
+(`pipeline-layout.ts`, no dagre/elkjs); keep it in sync with this file +
+[ARCHITECTURE.md](ARCHITECTURE.md) when the pipeline changes.
+
 A qualitative-data layer feeds two tabs from the `news_items` table
 (`scripts/sync_news.py`, daily cron):
 

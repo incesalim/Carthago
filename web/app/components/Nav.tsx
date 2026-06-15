@@ -26,6 +26,7 @@ const TABS = [
   { href: "/ownership", label: "Ownership" },
   { href: "/regulation", label: "Regulation" },
   { href: "/news", label: "News" },
+  { href: "/pipeline", label: "Pipeline" },
 ];
 
 function isActive(pathname: string, href: string) {
