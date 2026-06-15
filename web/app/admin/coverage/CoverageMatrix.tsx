@@ -7,7 +7,13 @@ import CoverageDrawer, { type OpenCell } from "./CoverageDrawer";
 import { STATUS_CELL, STATUS_LABEL, STATUS_VARIANT, STATUSES } from "./status";
 
 const AUDIT_WORKFLOW = "refresh-audit.yml";
-type Kind = "unconsolidated" | "consolidated";
+type ConcreteKind = "unconsolidated" | "consolidated";
+type Mode = ConcreteKind | "both";
+
+const KIND_TAG: Record<ConcreteKind, string> = {
+  consolidated: "cons",
+  unconsolidated: "unco",
+};
 
 interface TypeRow {
   key: string;
@@ -20,6 +26,7 @@ interface TypeRow {
 interface Cell {
   bank_ticker: string;
   period: string;
+  kind: string;
   status: string;
   row_count: number;
   checks_failed: number;
@@ -32,25 +39,33 @@ interface Grid {
   cells: Cell[];
 }
 
+const fmtPeriod = (p: string) => p.replace("20", "’");
+
 export default function CoverageMatrix() {
   const [types, setTypes] = useState<TypeRow[]>([]);
   const [type, setType] = useState<string>("");
-  const [kind, setKind] = useState<Kind>("unconsolidated");
-  // Keyed by type|kind so a fetched grid only shows for its selection — avoids a
+  const [mode, setMode] = useState<Mode>("unconsolidated");
+  // Keyed by type|mode so a fetched grid only shows for its selection — avoids a
   // synchronous loading reset in the effect (a lint error in this repo).
   const [loaded, setLoaded] = useState<{ key: string; grid: Grid } | null>(null);
   const [open, setOpen] = useState<OpenCell | null>(null);
   const [busy, setBusy] = useState(false);
 
+  // Filters. fromP/toP are "" when unbounded (earliest / latest) so no effect is
+  // needed to seed them off the loaded grid.
+  const [bankQuery, setBankQuery] = useState("");
+  const [fromP, setFromP] = useState("");
+  const [toP, setToP] = useState("");
+
   // Grid fetch is event-driven (selection handlers + a mount-only initial load),
   // not a reactive effect — fetching in response to state changes from an effect
   // trips react-hooks/set-state-in-effect. fetchGrid is stable ([] deps).
-  const fetchGrid = useCallback(async (t: string, k: Kind) => {
+  const fetchGrid = useCallback(async (t: string, m: Mode) => {
     if (!t) return;
-    const key = `${t}|${k}`;
+    const key = `${t}|${m}`;
     try {
       const res = await fetch(
-        `/api/admin/coverage?type=${encodeURIComponent(t)}&kind=${k}`,
+        `/api/admin/coverage?type=${encodeURIComponent(t)}&kind=${m}`,
         { cache: "no-store" },
       );
       const b = (await res.json()) as { grid?: Grid };
@@ -78,30 +93,56 @@ export default function CoverageMatrix() {
 
   const selectType = (t: string) => {
     setType(t);
-    void fetchGrid(t, kind);
+    void fetchGrid(t, mode);
   };
-  const selectKind = (k: Kind) => {
-    setKind(k);
-    void fetchGrid(type, k);
+  const selectMode = (m: Mode) => {
+    setMode(m);
+    void fetchGrid(type, m);
   };
 
-  const grid = loaded && loaded.key === `${type}|${kind}` ? loaded.grid : null;
+  const grid = loaded && loaded.key === `${type}|${mode}` ? loaded.grid : null;
   const loading = type !== "" && grid == null;
 
   const lookup = useMemo(() => {
     const m = new Map<string, Cell>();
-    grid?.cells.forEach((c) => m.set(`${c.bank_ticker}|${c.period}`, c));
+    grid?.cells.forEach((c) => m.set(`${c.bank_ticker}|${c.period}|${c.kind}`, c));
     return m;
   }, [grid]);
 
   const activeType = types.find((t) => t.key === type);
+  const kindsToShow: ConcreteKind[] =
+    mode === "both" ? ["consolidated", "unconsolidated"] : [mode];
 
-  // Status tally for the active grid (legend counts).
+  // --- Filters ---------------------------------------------------------------
+  const visibleBanks = useMemo(() => {
+    const terms = bankQuery
+      .toLowerCase()
+      .split(/[\s,]+/)
+      .filter(Boolean);
+    const banks = grid?.banks ?? [];
+    if (terms.length === 0) return banks;
+    return banks.filter((b) => terms.some((t) => b.toLowerCase().includes(t)));
+  }, [grid, bankQuery]);
+
+  const visiblePeriods = useMemo(() => {
+    return (grid?.periods ?? []).filter(
+      (p) => (!fromP || p >= fromP) && (!toP || p <= toP),
+    );
+  }, [grid, fromP, toP]);
+
+  // Status tally over the currently-visible cells (legend counts react to filters).
   const tally = useMemo(() => {
     const t: Record<string, number> = {};
-    grid?.cells.forEach((c) => (t[c.status] = (t[c.status] ?? 0) + 1));
+    if (!grid) return t;
+    const bankSet = new Set(visibleBanks);
+    const periodSet = new Set(visiblePeriods);
+    grid.cells.forEach((c) => {
+      if (bankSet.has(c.bank_ticker) && periodSet.has(c.period)) {
+        t[c.status] = (t[c.status] ?? 0) + 1;
+      }
+    });
     return t;
-  }, [grid]);
+  }, [grid, visibleBanks, visiblePeriods]);
 
   async function reextract(bank: string, period: string) {
     if (busy) return;
@@ -136,6 +177,44 @@ export default function CoverageMatrix() {
 
   const core = types.filter((t) => t.is_core);
   const footnote = types.filter((t) => !t.is_core);
+  const allPeriods = grid?.periods ?? [];
+
+  function cellButton(bank: string, period: string, k: ConcreteKind) {
+    const c = lookup.get(`${bank}|${period}|${k}`);
+    const status = c?.status ?? "not_expected";
+    const sc = STATUS_CELL[status] ?? STATUS_CELL.not_expected;
+    const title = c
+      ? `${STATUS_LABEL[status]} — ${c.row_count} rows${
+          c.checks_failed ? `, ${c.checks_failed} failed` : ""
+        }${c.is_manual ? ", manual" : ""}`
+      : "no data";
+    return (
+      <button
+        type="button"
+        title={title}
+        disabled={!c}
+        onClick={() =>
+          c &&
+          setOpen({
+            bank,
+            period,
+            kind: k,
+            type,
+            typeLabel: activeType?.label ?? type,
+            status,
+            pdfPresent: !!c.pdf_present,
+            hasValidator: !!activeType?.has_validator,
+            validationStatement: activeType?.statement ?? type,
+          })
+        }
+        className={`flex h-5 w-6 items-center justify-center rounded ${sc.cls} ${
+          c ? "cursor-pointer hover:ring-1 hover:ring-ring" : "opacity-40"
+        }`}
+      >
+        {sc.glyph}
+      </button>
+    );
+  }
 
   return (
     <Section
@@ -143,16 +222,16 @@ export default function CoverageMatrix() {
       description="Per statement type × bank × period: what we have, what's missing, what failed validation"
       actions={
         <div className="inline-flex overflow-hidden rounded-md border border-border">
-          {(["unconsolidated", "consolidated"] as Kind[]).map((k) => (
+          {(["unconsolidated", "consolidated", "both"] as Mode[]).map((m) => (
             <button
-              key={k}
+              key={m}
               type="button"
-              onClick={() => selectKind(k)}
+              onClick={() => selectMode(m)}
               className={`px-2.5 py-1 text-xs ${
-                kind === k ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"
+                mode === m ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"
               }`}
             >
-              {k}
+              {m}
             </button>
           ))}
         </div>
@@ -178,6 +257,69 @@ export default function CoverageMatrix() {
         ))}
       </div>
 
+      {/* Filters: bank search + period range */}
+      <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-[11px]">
+        <label className="inline-flex items-center gap-1.5">
+          <span className="text-muted-foreground">Bank</span>
+          <input
+            type="text"
+            value={bankQuery}
+            onChange={(e) => setBankQuery(e.target.value)}
+            placeholder="e.g. GARAN, AK"
+            className="h-6 w-40 rounded border border-border bg-background px-2 text-[11px] outline-none focus:ring-1 focus:ring-ring"
+          />
+        </label>
+        <label className="inline-flex items-center gap-1.5">
+          <span className="text-muted-foreground">From</span>
+          <select
+            value={fromP}
+            onChange={(e) => setFromP(e.target.value)}
+            className="h-6 rounded border border-border bg-background px-1 text-[11px] outline-none focus:ring-1 focus:ring-ring"
+          >
+            <option value="">earliest</option>
+            {allPeriods.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="inline-flex items-center gap-1.5">
+          <span className="text-muted-foreground">To</span>
+          <select
+            value={toP}
+            onChange={(e) => setToP(e.target.value)}
+            className="h-6 rounded border border-border bg-background px-1 text-[11px] outline-none focus:ring-1 focus:ring-ring"
+          >
+            <option value="">latest</option>
+            {allPeriods.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </select>
+        </label>
+        {(bankQuery || fromP || toP) && (
+          <button
+            type="button"
+            onClick={() => {
+              setBankQuery("");
+              setFromP("");
+              setToP("");
+            }}
+            className="text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+          >
+            clear
+          </button>
+        )}
+        {grid && (
+          <span className="text-muted-foreground">
+            {visibleBanks.length}/{grid.banks.length} banks · {visiblePeriods.length}/
+            {allPeriods.length} periods
+          </span>
+        )}
+      </div>
+
       {/* Legend */}
       <div className="mb-3 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
         {STATUSES.filter((s) => tally[s]).map((s) => (
@@ -195,6 +337,8 @@ export default function CoverageMatrix() {
           No coverage data yet — populated by the next <code>refresh-audit.yml</code> run after
           migration 0008 applies.
         </p>
+      ) : visibleBanks.length === 0 || visiblePeriods.length === 0 ? (
+        <p className="text-xs text-muted-foreground">No banks or periods match the current filters.</p>
       ) : (
         <div className="overflow-x-auto rounded-md border border-border">
           <table className="border-collapse text-[11px]">
@@ -203,59 +347,42 @@ export default function CoverageMatrix() {
                 <th className="sticky left-0 z-10 bg-muted/60 px-2 py-1 text-left font-medium">
                   Bank
                 </th>
-                {grid.periods.map((p) => (
+                {visiblePeriods.map((p) => (
                   <th key={p} className="px-1 py-1 text-center font-medium text-muted-foreground">
-                    {p.replace("20", "’")}
+                    {fmtPeriod(p)}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {grid.banks.map((bank) => (
-                <tr key={bank} className="border-t border-border/60">
-                  <td className="sticky left-0 z-10 bg-background px-2 py-0.5 font-medium">
-                    {bank}
-                  </td>
-                  {grid.periods.map((period) => {
-                    const c = lookup.get(`${bank}|${period}`);
-                    const status = c?.status ?? "not_expected";
-                    const sc = STATUS_CELL[status] ?? STATUS_CELL.not_expected;
-                    const title = c
-                      ? `${STATUS_LABEL[status]} — ${c.row_count} rows${
-                          c.checks_failed ? `, ${c.checks_failed} failed` : ""
-                        }${c.is_manual ? ", manual" : ""}`
-                      : "no data";
-                    return (
+              {visibleBanks.map((bank) =>
+                kindsToShow.map((k, i) => (
+                  <tr
+                    key={`${bank}|${k}`}
+                    className={
+                      i === 0 ? "border-t-2 border-border" : "border-t border-dashed border-border/40"
+                    }
+                  >
+                    <td className="sticky left-0 z-10 whitespace-nowrap bg-background px-2 py-0.5 font-medium">
+                      {mode === "both" ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className={i === 0 ? "" : "opacity-0"}>{bank}</span>
+                          <span className="text-[10px] font-normal text-muted-foreground">
+                            {KIND_TAG[k]}
+                          </span>
+                        </span>
+                      ) : (
+                        bank
+                      )}
+                    </td>
+                    {visiblePeriods.map((period) => (
                       <td key={period} className="p-0.5 text-center">
-                        <button
-                          type="button"
-                          title={title}
-                          disabled={!c}
-                          onClick={() =>
-                            c &&
-                            setOpen({
-                              bank,
-                              period,
-                              kind,
-                              type,
-                              typeLabel: activeType?.label ?? type,
-                              status,
-                              pdfPresent: !!c.pdf_present,
-                              hasValidator: !!activeType?.has_validator,
-                              validationStatement: activeType?.statement ?? type,
-                            })
-                          }
-                          className={`flex h-5 w-6 items-center justify-center rounded ${sc.cls} ${
-                            c ? "cursor-pointer hover:ring-1 hover:ring-ring" : "opacity-40"
-                          }`}
-                        >
-                          {sc.glyph}
-                        </button>
+                        {cellButton(bank, period, k)}
                       </td>
-                    );
-                  })}
-                </tr>
-              ))}
+                    ))}
+                  </tr>
+                )),
+              )}
             </tbody>
           </table>
         </div>

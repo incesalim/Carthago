@@ -19,6 +19,7 @@ export interface StatementTypeRow {
 export interface CoverageCell {
   bank_ticker: string;
   period: string;
+  kind: string; // 'consolidated' | 'unconsolidated'
   status: string; // 'not_expected' | 'missing' | 'error' | 'manual' | 'ok'
   row_count: number;
   checks_failed: number;
@@ -75,20 +76,32 @@ export async function statementTypes(): Promise<StatementTypeRow[]> {
   }
 }
 
-/** Every coverage cell for one statement type + kind, plus the distinct bank /
- *  period axes the client pivots into a grid. */
+/** Every coverage cell for one statement type, plus the distinct bank / period
+ *  axes the client pivots into a grid. `kind` is one of consolidated /
+ *  unconsolidated, or "both" to return both (each cell carries its own kind so
+ *  the client can stack the two as paired rows). */
 export async function coverageGrid(type: string, kind: string): Promise<CoverageGrid> {
   try {
     const db = await getDB();
-    const { results } = await db
-      .prepare(
-        `SELECT bank_ticker, period, status, row_count, checks_failed, is_manual, pdf_present
-         FROM bank_audit_coverage
-         WHERE statement_type = ? AND kind = ?
-         ORDER BY bank_ticker, period`,
-      )
-      .bind(type, kind)
-      .all<CoverageCell>();
+    const both = kind === "both";
+    const stmt = both
+      ? db
+          .prepare(
+            `SELECT bank_ticker, period, kind, status, row_count, checks_failed, is_manual, pdf_present
+             FROM bank_audit_coverage
+             WHERE statement_type = ?
+             ORDER BY bank_ticker, period, kind`,
+          )
+          .bind(type)
+      : db
+          .prepare(
+            `SELECT bank_ticker, period, kind, status, row_count, checks_failed, is_manual, pdf_present
+             FROM bank_audit_coverage
+             WHERE statement_type = ? AND kind = ?
+             ORDER BY bank_ticker, period`,
+          )
+          .bind(type, kind);
+    const { results } = await stmt.all<CoverageCell>();
     const cells = results as CoverageCell[];
     const banks = [...new Set(cells.map((r) => r.bank_ticker))].sort();
     // Periods sort lexically — 'YYYYQn' is already chronological.
