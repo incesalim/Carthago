@@ -1,9 +1,11 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/app/lib/cn";
 import { ThemeToggle } from "./ui/theme-toggle";
+import logo from "@/public/logo.png";
 
 const TABS = [
   { href: "/", label: "Overview" },
@@ -41,8 +43,16 @@ export default function Nav() {
           href="/"
           className="mr-2 flex shrink-0 items-center gap-2 font-semibold tracking-tight text-foreground"
         >
-          <span className="grid size-6 place-items-center rounded-md bg-primary text-[13px] font-bold text-primary-foreground">
-            ₺
+          <span className="grid size-7 shrink-0 place-items-center overflow-hidden rounded-md bg-white ring-1 ring-border">
+            <Image
+              src={logo}
+              alt=""
+              width={28}
+              height={28}
+              priority
+              unoptimized
+              className="size-full object-contain"
+            />
           </span>
           <span className="hidden sm:inline">Banking Sector</span>
         </Link>
