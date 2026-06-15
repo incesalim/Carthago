@@ -2,7 +2,8 @@
  * Admin health — read-only D1 queries that answer "is the data fresh and did
  * the scrapers work?". Each source reports its latest data period, when it was
  * last ingested, a row count, and a freshness status derived from the expected
- * refresh cadence. Plus audit-extraction success/failure detail.
+ * refresh cadence. (Audit extraction / structural-validation detail lives in the
+ * coverage matrix — see app/lib/coverage.ts — not here.)
  *
  * Every query is wrapped so a missing table/column (e.g. evds_series isn't in
  * web/migrations) degrades to "unknown" instead of breaking the page.
@@ -27,37 +28,8 @@ export interface SourceHealth {
   note?: string;
 }
 
-export interface ExtractionFailure {
-  bank_ticker: string;
-  period: string;
-  kind: string;
-  note: string | null;
-  extracted_at: string | null;
-}
-
-export interface ExtractionHealth {
-  total: number;
-  success: number;
-  failed: number;
-  failures: ExtractionFailure[];
-}
-
-export interface ValidationBankHealth {
-  bank_ticker: string;
-  partitions: number;
-  failed_partitions: number;
-  checks_failed: number;
-}
-
-export interface ValidationHealth {
-  banks: ValidationBankHealth[];
-  totalFailedPartitions: number;
-}
-
 export interface HealthReport {
   sources: SourceHealth[];
-  extraction: ExtractionHealth;
-  validation: ValidationHealth;
 }
 
 type DB = Awaited<ReturnType<typeof getDB>>;
@@ -206,64 +178,9 @@ async function auditSource(db: DB): Promise<SourceHealth> {
   };
 }
 
-async function extractionHealth(db: DB): Promise<ExtractionHealth> {
-  const counts = await safeFirst<{ total: number; success: number; failed: number }>(
-    db,
-    "SELECT COUNT(*) AS total, " +
-      "SUM(CASE WHEN success=1 THEN 1 ELSE 0 END) AS success, " +
-      "SUM(CASE WHEN success=0 THEN 1 ELSE 0 END) AS failed " +
-      "FROM bank_audit_extractions",
-  );
-  let failures: ExtractionFailure[] = [];
-  try {
-    const { results } = await db
-      .prepare(
-        "SELECT bank_ticker, period, kind, note, extracted_at " +
-          "FROM bank_audit_extractions WHERE success=0 " +
-          "ORDER BY extracted_at DESC LIMIT 50",
-      )
-      .all<ExtractionFailure>();
-    failures = results ?? [];
-  } catch {
-    failures = [];
-  }
-  return {
-    total: counts?.total ?? 0,
-    success: counts?.success ?? 0,
-    failed: counts?.failed ?? 0,
-    failures,
-  };
-}
-
-async function validationHealth(db: DB): Promise<ValidationHealth> {
-  // bank_audit_validation lands with the Phase-3 backfill (rework plan) —
-  // degrade to an empty section until then.
-  try {
-    const { results } = await db
-      .prepare(
-        "SELECT bank_ticker, " +
-          "COUNT(DISTINCT period || '|' || kind) AS partitions, " +
-          "COUNT(DISTINCT CASE WHEN checks_failed > 0 THEN period || '|' || kind END) AS failed_partitions, " +
-          "SUM(checks_failed) AS checks_failed " +
-          "FROM bank_audit_validation GROUP BY bank_ticker " +
-          "ORDER BY checks_failed DESC, bank_ticker",
-      )
-      .all<ValidationBankHealth>();
-    const banks = results ?? [];
-    return {
-      banks,
-      totalFailedPartitions: banks.reduce(
-        (s: number, b: ValidationBankHealth) => s + (b.failed_partitions ?? 0), 0),
-    };
-  } catch {
-    return { banks: [], totalFailedPartitions: 0 };
-  }
-}
-
-
 export async function getHealthReport(): Promise<HealthReport> {
   const db = await getDB();
-  const [monthly, weekly, evds, audit, news, regulation, extraction] = await Promise.all([
+  const [monthly, weekly, evds, audit, news, regulation] = await Promise.all([
     monthlySource(db),
     simpleSource(db, {
       key: "weekly",
@@ -291,9 +208,7 @@ export async function getHealthReport(): Promise<HealthReport> {
       refreshCol: "fetched_at",
       cadenceHours: WEEK,
     }),
-    extractionHealth(db),
   ]);
-  const validation = await validationHealth(db);
 
-  return { sources: [monthly, weekly, evds, audit, news, regulation], extraction, validation };
+  return { sources: [monthly, weekly, evds, audit, news, regulation] };
 }
