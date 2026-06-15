@@ -7,7 +7,6 @@ import { usePathname } from "next/navigation";
 import { ChevronDown, ChevronRight, Menu, X } from "lucide-react";
 import { cn } from "@/app/lib/cn";
 import { ThemeToggle } from "./ui/theme-toggle";
-import logo from "@/public/logo.png";
 
 type NavChild = { href: string; label: string };
 type NavItem = { href: string; label: string; children?: NavChild[] };
@@ -62,7 +61,7 @@ function Brand() {
       className="flex shrink-0 items-center gap-2 text-foreground"
     >
       <Image
-        src={logo}
+        src="/logo.png"
         alt=""
         width={28}
         height={28}

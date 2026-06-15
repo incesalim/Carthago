@@ -1,8 +1,12 @@
 """OCI validation-guided scorer (src/audit_reports/oci.py): the chain identity
 III = I + II is the tier-1 signal, with a degenerate guard on row I (net profit,
 never ~0) so a near-empty 0==0 parse can't win."""
-from src.audit_reports.extractor import StatementRow
-from src.audit_reports.oci import _oci_candidate_score, _oci_chain_closes, _oci_romans
+import pytest
+
+pytest.importorskip("pdfplumber")  # CI installs minimal deps; oci/extractor need pdfplumber
+
+from src.audit_reports.extractor import StatementRow  # noqa: E402
+from src.audit_reports.oci import _oci_candidate_score, _oci_chain_closes, _oci_romans  # noqa: E402
 
 
 def _row(order: int, h: str, name: str, amt: float) -> StatementRow:

@@ -3,9 +3,13 @@ overwrite a statement whose stored data already passes validation. It may still
 fix failing/missing statements, and force=True overrides the guard entirely."""
 import sqlite3
 
-from src.audit_reports.extractor import BankReport
-from src.audit_reports.loader import upsert_report
-from src.audit_reports.schema import init_schema
+import pytest
+
+pytest.importorskip("pdfplumber")  # CI installs minimal deps; extractor/loader need pdfplumber
+
+from src.audit_reports.extractor import BankReport  # noqa: E402
+from src.audit_reports.loader import upsert_report  # noqa: E402
+from src.audit_reports.schema import init_schema  # noqa: E402
 
 B, P, K = "TEST", "2025Q1", "consolidated"
 
