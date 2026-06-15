@@ -429,6 +429,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
             <Link
               key={s}
               href={url({ statement: s })}
+              scroll={false}
               className={`px-3 py-1 text-xs rounded-md transition ${
                 s === statement
                   ? "bg-card shadow-sm font-medium text-foreground"
@@ -444,6 +445,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
             <Link
               key={v}
               href={url({ view: v })}
+              scroll={false}
               className={`px-3 py-1 text-xs rounded-md transition ${
                 v === view
                   ? "bg-card shadow-sm font-medium text-foreground"
@@ -459,6 +461,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
             <Link
               key={k}
               href={url({ kind: k })}
+              scroll={false}
               className={`px-3 py-1 text-xs rounded-md transition ${
                 k === kind
                   ? "bg-card shadow-sm font-medium text-foreground"
