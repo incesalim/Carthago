@@ -1,5 +1,8 @@
 # AUDIT BALANCE-SHEET FIX — COMPLETE (2026-06-12)
 
+> **Historical — closed incident.** Kept as the closure record and a reference for
+> similar repairs. For the live audit process see [AUDIT_PIPELINE.md](AUDIT_PIPELINE.md).
+
 Production D1: **balance-sheet validation failures = 0 fleet-wide** (was 68),
 `-6` ECL corruption = 0, **validation covers all 975 partitions**. The final
 10 flagged partitions were each cleared by hand-transcribing the legible PDF

@@ -1,5 +1,9 @@
 # Audit-report extraction rework — plan
 
+> **Historical — this rework is complete.** Kept for context; the live process it
+> produced is documented in [AUDIT_EXTRACTION_GUIDE.md](AUDIT_EXTRACTION_GUIDE.md)
+> and [AUDIT_PIPELINE.md](AUDIT_PIPELINE.md).
+>
 > Status (2026-06-11): **Phases 0–4 COMPLETE** — census (975 PDFs), identity
 > validator (bank_audit_validation in D1), evidence dry-run (800 improved /
 > 9 explained regressions), batchwise repair (7 gated batches, 30 banks,
