@@ -37,6 +37,11 @@ per-cell **Re-extract**). No schedule.
 4. **`revalidate_audit_db.py`** — recompute `bank_audit_validation` corpus-wide from stored
    rows so the matrix + `/banks` badges reflect the current validator everywhere.
 5. **`check_audit_quality.py --alert`** — alert-only anomaly checks → Telegram/Discord.
+   **Delta-based:** it diffs the current anomaly set against a baseline in R2
+   (`state/audit_anomaly_baseline.json`) and pings ONLY on new/resolved anomalies — so a
+   routine run or a single-cell re-extract that changes nothing stays silent (the standing
+   backlog isn't re-blasted). First run seeds the baseline quietly; an R2 error falls back
+   to a full-list alert.
 6. **`push_to_d1.py --only-tables bank_audit_*`** — windowed sync of the row tables +
    `bank_audit_validation` to D1.
 7. **`sync_audit_expected.py --push`** — rebuild the coverage spine (full D1 push, no R2 write).

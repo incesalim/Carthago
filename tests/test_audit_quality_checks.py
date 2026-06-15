@@ -149,3 +149,25 @@ def test_ecl_flags_vanished_rows():
     _big_bank_quarter(c, "F", "2026Q1", [])  # rows dropped by the parser
     issues = q._ecl_sanity(c)
     assert any("F 2026Q1" in i and "missing" in i for i in issues)
+
+
+# --- delta-alert fingerprint ------------------------------------------------
+
+def test_fingerprint_ignores_value_nudges():
+    # Same partition + check, only the numbers differ → same fingerprint, so a
+    # value drift never reads as a new anomaly.
+    a = "structure AKBNK 2022Q4 consolidated: assets — 2 identity check(s) failed (59 passed)"
+    b = "structure AKBNK 2022Q4 consolidated: assets — 3 identity check(s) failed (58 passed)"
+    assert q._fingerprint(a) == q._fingerprint(b)
+    e = "capital   ATBANK 2024Q1 unconsolidated: CAR 18.92% != capital/RWA 17.35%"
+    f = "capital   ATBANK 2024Q1 unconsolidated: CAR 18.90% != capital/RWA 17.30%"
+    assert q._fingerprint(e) == q._fingerprint(f)
+
+
+def test_fingerprint_distinguishes_identity():
+    base = "structure AKBNK 2022Q4 consolidated: assets — 2 identity check(s) failed (59 passed)"
+    other_kind = "structure AKBNK 2022Q4 unconsolidated: assets — 2 identity check(s) failed (59 passed)"
+    other_stmt = "structure AKBNK 2022Q4 consolidated: equity_change — 4 identity check(s) failed (35 passed)"
+    other_period = "structure AKBNK 2026Q1 consolidated: assets — 2 identity check(s) failed (59 passed)"
+    fps = {q._fingerprint(x) for x in (base, other_kind, other_stmt, other_period)}
+    assert len(fps) == 4  # period lives in the (non-stripped) head, so it's preserved
