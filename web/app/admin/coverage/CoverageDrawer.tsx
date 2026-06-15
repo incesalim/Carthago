@@ -64,7 +64,7 @@ export default function CoverageDrawer({
 }: {
   open: OpenCell | null;
   onClose: () => void;
-  onReextract: (bank: string, period: string) => void;
+  onReextract: (bank: string, period: string, kind: string, statement: string) => void;
   reextractBusy: boolean;
 }) {
   const [detail, setDetail] = useState<Detail | null>(null);
@@ -225,15 +225,15 @@ export default function CoverageDrawer({
             className="w-full"
             size="sm"
             disabled={reextractBusy || !open.pdfPresent}
-            onClick={() => onReextract(open.bank, open.period)}
+            onClick={() => onReextract(open.bank, open.period, open.kind, open.type)}
           >
-            {reextractBusy ? "Triggering…" : `Re-extract ${open.bank} ${open.period}`}
+            {reextractBusy ? "Triggering…" : `Force re-extract this cell`}
           </Button>
-          {!open.pdfPresent && (
-            <p className="mt-1 text-center text-[11px] text-muted-foreground">
-              No PDF in R2 to re-extract.
-            </p>
-          )}
+          <p className="mt-1 text-center text-[11px] text-muted-foreground">
+            {open.pdfPresent
+              ? `Re-extracts only ${open.typeLabel} (${open.kind}) for ${open.bank} ${open.period}, overwriting it even if it passes.`
+              : "No PDF in R2 to re-extract."}
+          </p>
         </div>
       </div>
     </div>

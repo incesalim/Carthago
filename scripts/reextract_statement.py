@@ -50,11 +50,15 @@ from src.audit_reports.bank_profile import upsert_profile as _upsert_bp  # noqa:
 from src.audit_reports.credit_quality import (  # noqa: E402
     CreditQualityReport, upsert as _upsert_cq,
 )
+from src.audit_reports.capital_adequacy import (  # noqa: E402
+    CapitalReport, upsert as _upsert_cap,
+)
+from src.audit_reports.liquidity import LiquidityReport, upsert as _upsert_liq  # noqa: E402
 from scripts.revalidate_audit_db import revalidate_partition  # noqa: E402
 from scripts.sync_audit_reports import list_r2_pdfs, _restrict_to_latest_period  # noqa: E402
 from scripts.audit_d1 import DB, pull_snapshot, push_partitions, push_snapshot  # noqa: E402
 
-# statement key → its D1/SQLite table. Only the per-table-upsert-able lanes.
+# statement key (extractor `only=` token) → its D1/SQLite table.
 STATEMENT_TABLE = {
     "equity_change": "bank_audit_equity_change",
     "oci": "bank_audit_oci",
@@ -64,10 +68,35 @@ STATEMENT_TABLE = {
     "bank_profile": "bank_audit_profile",
     # credit_quality feeds the DERIVED bank_audit_stages table — re-extracting it
     # requires a build_bank_audit_stages.py rebuild + stages revalidation after the
-    # run (see _rebuild_stages_after below). Target by --banks --force, not
-    # --only-failing: the broken partitions FAIL on `stages`, not `credit_quality`.
+    # run (see below). Target by --banks --force, not --only-failing: the broken
+    # partitions FAIL on `stages`, not `credit_quality`.
     "credit_quality": "bank_audit_credit_quality",
+    # §4 ratio tables.
+    "capital": "bank_audit_capital",
+    "liquidity": "bank_audit_liquidity",
+    # Core statements — used by the single-cell re-extract (the /admin per-cell
+    # button forces just this one table; broad/fleet runs keep the guard). assets,
+    # liabilities and off_balance share one table, keyed by the `statement` column.
+    "bs_assets": "bank_audit_balance_sheet",
+    "bs_liabilities": "bank_audit_balance_sheet",
+    "off_balance": "bank_audit_balance_sheet",
+    "profit_loss": "bank_audit_profit_loss",
 }
+
+# UI / registry statement-type key → the extractor `only=` token above, so the
+# /admin coverage matrix (and the reextract-statement workflow) can pass its own
+# keys. `stages` is derived from credit_quality — re-extracting credit_quality
+# rebuilds it (see the stages-rebuild block in main()).
+ALIASES = {
+    "other_comprehensive_income": "oci",
+    "profile": "bank_profile",
+    "balance_sheet_assets": "bs_assets",
+    "balance_sheet_liabilities": "bs_liabilities",
+    "stages": "credit_quality",
+}
+
+# token → the name used in bank_audit_validation.statement (differs only for BS).
+VALIDATOR_NAME = {"bs_assets": "assets", "bs_liabilities": "liabilities"}
 
 
 def _worker(args):
@@ -99,6 +128,18 @@ def _worker(args):
         n = 0 if (bp is None or bp.is_empty()) else 1
     elif statement == "credit_quality":
         n = len(getattr(rep, "credit_quality", []) or [])
+    elif statement == "bs_assets":
+        n = len(getattr(rep, "bs_assets", []) or [])
+    elif statement == "bs_liabilities":
+        n = len(getattr(rep, "bs_liabilities", []) or [])
+    elif statement == "off_balance":
+        n = len(getattr(rep, "off_balance", []) or [])
+    elif statement == "profit_loss":
+        n = len(getattr(rep, "profit_loss", []) or [])
+    elif statement == "capital":
+        n = 0 if getattr(rep, "capital", None) is None else 1
+    elif statement == "liquidity":
+        n = 0 if getattr(rep, "liquidity", None) is None else 1
     else:
         eq = getattr(rep, "equity_change", None)
         n = len(eq.rows) if eq and getattr(eq, "rows", None) else 0
@@ -146,14 +187,56 @@ def _upsert(conn, statement, bank, period, kind, rep) -> int:
         report = CreditQualityReport(pdf_path=rep.pdf_path,
                                      rows=getattr(rep, "credit_quality", []) or [])
         return _upsert_cq(conn, bank, period, kind, report)
+    if statement == "capital":
+        report = getattr(rep, "capital", None) or CapitalReport(pdf_path=rep.pdf_path)
+        return _upsert_cap(conn, bank, period, kind, report)
+    if statement == "liquidity":
+        report = getattr(rep, "liquidity", None) or LiquidityReport(pdf_path=rep.pdf_path)
+        return _upsert_liq(conn, bank, period, kind, report)
+    if statement in ("bs_assets", "bs_liabilities", "off_balance"):
+        # assets / liabilities / off_balance share bank_audit_balance_sheet, keyed by
+        # the `statement` column — delete + insert only this one. Mirrors loader.py.
+        stmt_name = {"bs_assets": "assets", "bs_liabilities": "liabilities",
+                     "off_balance": "off_balance"}[statement]
+        attr = {"bs_assets": "bs_assets", "bs_liabilities": "bs_liabilities",
+                "off_balance": "off_balance"}[statement]
+        rows = getattr(rep, attr, None) or []
+        conn.execute(
+            "DELETE FROM bank_audit_balance_sheet "
+            "WHERE bank_ticker=? AND period=? AND kind=? AND statement=?",
+            (bank, period, kind, stmt_name))
+        if rows:
+            conn.executemany(
+                "INSERT INTO bank_audit_balance_sheet "
+                "(bank_ticker, period, kind, statement, item_order, hierarchy, item_name, "
+                " footnote, amount_tl, amount_fc, amount_total) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                [(bank, period, kind, stmt_name, r.order, r.hierarchy, r.name, r.footnote,
+                  r.cur_tl, r.cur_fc, r.cur_total) for r in rows])
+        return len(rows)
+    if statement == "profit_loss":
+        rows = getattr(rep, "profit_loss", []) or []
+        conn.execute("DELETE FROM bank_audit_profit_loss "
+                     "WHERE bank_ticker=? AND period=? AND kind=?", (bank, period, kind))
+        if rows:
+            conn.executemany(
+                "INSERT INTO bank_audit_profit_loss "
+                "(bank_ticker, period, kind, item_order, hierarchy, item_name, footnote, amount) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                [(bank, period, kind, r.order, r.hierarchy, r.name, r.footnote, r.cur_amount)
+                 for r in rows])
+        return len(rows)
     raise ValueError(f"upsert not wired for statement {statement!r}")
 
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--statement", required=True, choices=list(STATEMENT_TABLE))
+    ap.add_argument("--statement", required=True,
+                    choices=list(STATEMENT_TABLE) + list(ALIASES))
     ap.add_argument("--banks", default="ALL", help="ALL or comma-separated tickers")
     ap.add_argument("--periods", default="", help="comma-separated YYYYQn (optional)")
+    ap.add_argument("--kind", default="", choices=["", "consolidated", "unconsolidated"],
+                    help="restrict to one kind (default: both) — used by the single-cell path")
     ap.add_argument("--workers", type=int, default=min(8, (os.cpu_count() or 4)))
     ap.add_argument("--latest-period", action="store_true")
     ap.add_argument("--dry-run", action="store_true",
@@ -170,8 +253,10 @@ def main() -> int:
                     help="overwrite even partitions whose stored data already PASSES this "
                          "statement's validation (default: leave correct data untouched)")
     args = ap.parse_args()
-    statement = args.statement
+    statement = ALIASES.get(args.statement, args.statement)
     table = STATEMENT_TABLE[statement]
+    vname = VALIDATOR_NAME.get(statement, statement)  # name in bank_audit_validation
+    kind = args.kind.strip() or None
     banks = (None if args.banks.strip().upper() == "ALL"
              else {b.strip().upper() for b in args.banks.split(",") if b.strip()})
     periods = {p.strip().upper() for p in args.periods.split(",") if p.strip()} or None
@@ -184,6 +269,8 @@ def main() -> int:
         pdfs = [(t, p, k, key) for (t, p, k, key) in pdfs if t.upper() in banks]
     if periods:
         pdfs = [(t, p, k, key) for (t, p, k, key) in pdfs if p.upper() in periods]
+    if kind:
+        pdfs = [(t, p, k, key) for (t, p, k, key) in pdfs if k == kind]
     if args.latest_period:
         pdfs = _restrict_to_latest_period(pdfs)
     if args.only_failing:
@@ -197,7 +284,7 @@ def main() -> int:
         with sqlite3.connect(str(DB)) as _c:
             todo = {(t.upper(), p.upper(), k) for (t, p, k) in _c.execute(
                 "SELECT bank_ticker, period, kind FROM bank_audit_validation "
-                "WHERE statement=? AND (checks_failed>0 OR checks_passed=0)", (statement,))}
+                "WHERE statement=? AND (checks_failed>0 OR checks_passed=0)", (vname,))}
         pdfs = [(t, p, k, key) for (t, p, k, key) in pdfs
                 if (t.upper(), p.upper(), k) in todo]
         print(f"[reext] --only-failing -> {len(pdfs)} not-passing {statement} partition(s)",
@@ -230,7 +317,7 @@ def main() -> int:
                 # Non-destructive: never overwrite data that already validates
                 # (--only-failing already excludes these, but the guard makes a
                 # plain re-extract safe too). --force overrides.
-                if not args.force and _validator.statement_passes(conn, t, p, k, statement):
+                if not args.force and _validator.statement_passes(conn, t, p, k, vname):
                     counts["keep"] += 1
                     continue
                 _upsert(conn, statement, t, p, k, rep)
@@ -247,7 +334,7 @@ def main() -> int:
                 if inline:
                     results = revalidate_partition(conn, t, p, k)
                     _validator.upsert_validation(conn, t, p, k, results)
-                    eqr = results.get(statement)
+                    eqr = results.get(vname)
                     if eqr is not None and eqr.failed:
                         counts["vfail"] += 1
                         chk = eqr.failures[0].get("check", "?") if eqr.failures else "?"
