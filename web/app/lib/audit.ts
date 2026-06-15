@@ -130,9 +130,23 @@ export async function profitLoss(
   return results;
 }
 
+// Expected-credit-loss contra rows: "Expected Credit Losses (-)" /
+// "Beklenen Zarar Karşılıkları (-)" / Şekerbank's "Expected Losses (-)".
+const _ECL_RE = /(EXPECTEDCREDITLOSS|BEKLENENZARAR|EXPECTEDLOSS)/;
+function isEclLabel(name: string | null): boolean {
+  return _ECL_RE.test((name ?? "").toUpperCase().replace(/\s+/g, ""));
+}
+
 /** Balance-sheet rows for one bank across multiple periods.
  *  Returned shape: "<statement>::<hierarchy>" → period → amount_total.
- *  Used by the per-bank page to render a multi-column standardized table. */
+ *  Used by the per-bank page to render a multi-column standardized table.
+ *
+ *  ECL contra-rows are routed to synthetic per-section keys `assets::1.1.ecl`
+ *  (cash) and `assets::2.ecl` (loans/amortized cost): their real hierarchy code
+ *  varies by template (1.1.4 / 2.5 for conventional banks, 2.4 for participation
+ *  banks — where it would otherwise overwrite the "Other Financial Assets" line),
+ *  so keying by section lets the standard catalog show ECL for every bank without
+ *  the 2.4 collision. */
 export async function balanceSheetMultiPeriod(
   ticker: string,
   kind: "consolidated" | "unconsolidated",
@@ -152,16 +166,39 @@ export async function balanceSheetMultiPeriod(
     .bind(ticker, kind, ...periods)
     .all<{ statement: string; period: string; hierarchy: string; item_name: string; amount_total: number | null }>();
   const out = new Map<string, Map<string, number | null>>();
-  for (const r of results) {
-    const key = `${r.statement}::${r.hierarchy}`;
+  const addTo = (key: string, period: string, v: number | null) => {
     if (!out.has(key)) out.set(key, new Map());
-    // Contra lines ("Expected Credit Losses (-)") are stored as the filing
-    // prints them: positive magnitude for most banks, NEGATIVE for the banks
-    // that parenthesize the value itself (ING/KLNMA/PASHA/TFKB). Normalize to
-    // the magnitude — the displayed label already carries the "(-)".
+    out.get(key)!.set(period, v);
+  };
+  for (const r of results) {
+    // ECL contra-rows render as their own per-section line, keyed by section so a
+    // participation bank's ECL never overwrites the 2.4 "Other Financial Assets"
+    // line. Detection is by HIERARCHY (many banks — e.g. AKBNK — store BS rows
+    // with blank item_name, which is why the catalog keys by hierarchy at all):
+    //   1.1.4 → cash-section ECL;  2.5 → loan-section ECL (conventional template).
+    // Participation banks put loan ECL at 2.4 (no 2.5), colliding with "Other" —
+    // disambiguate THAT one by label (their rows are labelled "Beklenen Zarar…";
+    // a conventional 2.4 "Other" is blank or non-ECL, so it's left untouched).
+    if (r.statement === "assets") {
+      const h = r.hierarchy.replace(/\.$/, "");
+      const eclKey =
+        h === "1.1.4" ? "assets::1.1.ecl"
+        : h === "2.5" ? "assets::2.ecl"
+        : h === "2.4" && isEclLabel(r.item_name) ? "assets::2.ecl"
+        : null;
+      if (eclKey) {
+        const prev = out.get(eclKey)?.get(r.period) ?? 0;
+        addTo(eclKey, r.period, (prev ?? 0) + (r.amount_total == null ? 0 : Math.abs(r.amount_total)));
+        continue;
+      }
+    }
+    // Contra lines are stored as the filing prints them: positive magnitude for
+    // most banks, NEGATIVE for the banks that parenthesize the value itself
+    // (ING/KLNMA/PASHA/TFKB). Normalize to the magnitude — the displayed label
+    // already carries the "(-)".
     const contra = /\(\s*-\s*\)/.test(r.item_name ?? "");
     const v = r.amount_total == null ? null : contra ? Math.abs(r.amount_total) : r.amount_total;
-    out.get(key)!.set(r.period, v);
+    addTo(`${r.statement}::${r.hierarchy}`, r.period, v);
   }
   return out;
 }
