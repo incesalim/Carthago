@@ -994,7 +994,7 @@ _STAGE12_LOOSE_S2 = re.compile(
 )
 
 
-def _coord_clustered_lines(page, y_tol: float = 3.5) -> list[str]:
+def _coord_clustered_lines(page, y_tol: float = 5.5) -> list[str]:
     """Rebuild visual rows by clustering words on their y-coordinate.
 
     Some banks (İşbank's English report is the worst) lay the section-7.2 stage
@@ -1041,10 +1041,15 @@ def _extract_loans_by_stage_from_page(page_num: int, page_text: str) -> list[Sta
     """
     if not page_text:
         return []
-    # The page must reference BOTH Stage 1 and Stage 2 column-header phrases.
+    # The Stage-2 header ("Yakın İzlemedeki" / "Loans Under Close Monitoring") is
+    # the table-specific anchor: the Stage-1 "Standart Nitelikli" header is wrapped
+    # across visual lines with the other column headers interleaved (ANADOLU p53),
+    # so requiring BOTH would skip the table. S2 alone is safe — a prose page that
+    # merely says "close monitoring" can't produce a Toplam row that clears the
+    # 3–5-number + Stage1≥1bn + Stage1>Stage2 sanity gates below.
     s1_match = _STAGE12_S1_PHRASE.search(page_text)
     s2_match = _STAGE12_S2_PHRASE.search(page_text)
-    has_section_header = s1_match is not None and s2_match is not None
+    has_section_header = s2_match is not None
     # GARAN-style fallback markers (inline "(Stage 1)" / "(Stage 2)" rows).
     has_garan_markers = (
         re.search(r"Performing\s+Loans?\s*\(\s*Stage\s*1\s*\)", page_text, re.IGNORECASE) is not None
@@ -1075,7 +1080,8 @@ def _extract_loans_by_stage_from_page(page_num: int, page_text: str) -> list[Sta
     # column-headers usually appear within ~5 lines of each other).
     scan_starts: list[int] = []
     if has_section_header:
-        first_pos = min(s1_match.start(), s2_match.start())
+        first_pos = (s2_match.start() if s1_match is None
+                     else min(s1_match.start(), s2_match.start()))
         scan_starts.append(_char_to_line(first_pos))
     for hdr_line in scan_starts:
         # Scan up to 40 lines after the section heading for one or two Toplam
@@ -1348,10 +1354,14 @@ def extract_from_pdf(
         # amounts. Gives Stage 1 + Stage 2 portfolio balances for every bank
         # (combined with npl_brsa_gross's Stage 3 = full stage breakdown).
         lbs = _extract_loans_by_stage_from_page(i, text)
-        if not lbs and _STAGE12_LOOSE_S1.search(text) and _STAGE12_LOOSE_S2.search(text):
+        if not lbs and (_STAGE12_LOOSE_S1.search(text) or _STAGE12_LOOSE_S2.search(text)):
             # Column-split layout (İşbank EN etc.): pdfplumber line-mode broke the
             # Total row apart and dropped inter-word spaces, so the strict anchors
-            # miss. Retry on rows rebuilt from word coordinates (properly spaced).
+            # miss. Trigger on EITHER a Stage-1 or Stage-2 page signal — on some
+            # banks (ANADOLU p53) one of the two column headers doesn't survive
+            # extract_text intact. The strict S1/S2 anchors + numeric sanity still
+            # gate the actual parse on the coord-rebuilt text, so a prose page that
+            # merely mentions "izlemedeki" yields nothing.
             coord_text = "\n".join(_coord_clustered_lines(page))
             if coord_text:
                 lbs = _extract_loans_by_stage_from_page(i, coord_text)
