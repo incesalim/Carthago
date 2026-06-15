@@ -43,17 +43,15 @@ export default function Nav() {
           href="/"
           className="mr-2 flex shrink-0 items-center gap-2 font-semibold tracking-tight text-foreground"
         >
-          <span className="grid size-7 shrink-0 place-items-center overflow-hidden rounded-md bg-white ring-1 ring-border">
-            <Image
-              src={logo}
-              alt=""
-              width={28}
-              height={28}
-              priority
-              unoptimized
-              className="size-full object-contain"
-            />
-          </span>
+          <Image
+            src={logo}
+            alt=""
+            width={28}
+            height={28}
+            priority
+            unoptimized
+            className="size-7 shrink-0 object-contain dark:brightness-0 dark:invert"
+          />
           <span className="hidden sm:inline">Banking Sector</span>
         </Link>
 
