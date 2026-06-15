@@ -159,8 +159,16 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int) -> list[str]:
         return [f"-- {table}: no time column, skipped"]
 
     n = conn.execute(f"SELECT COUNT(*) FROM {table} {where}").fetchone()[0]
-    if n == 0 and not full_rebuild:
-        return [f"-- {table}: no rows in last {hours}h"]
+    if n == 0:
+        # Never emit a bare DELETE for a full-rebuild table when the LOCAL copy is
+        # empty — that WIPES D1. The daily crons push from data/bddk_data.db, where
+        # the bank_audit_* spine tables (coverage/expected/statement_types) exist
+        # but are empty (only the audit pipeline's bank_audit.db populates them via
+        # sync_audit_expected). Without this guard a daily news/EVDS push DELETEs
+        # the whole coverage matrix and inserts nothing.
+        return [f"-- {table}: 0 local rows — skip"
+                + (" (full-rebuild: refusing to wipe D1)" if full_rebuild
+                   else f" in last {hours}h")]
 
     if full_rebuild:
         out: list[str] = [f"-- {table}: full rebuild, {n} rows", f"DELETE FROM {table};"]
