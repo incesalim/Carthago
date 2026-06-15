@@ -11,7 +11,7 @@
  */
 import Link from "next/link";
 import { getGrowthData, type GrowthTable } from "@/app/lib/growth";
-import { PageHeader, Stat } from "@/app/components/ui";
+import { PageHeader, Section, Stat } from "@/app/components/ui";
 import { ChartCard } from "@/app/components/ui/chart-card";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
 import BopFlowChart, { type BarSeries, type OverlayLine } from "@/app/components/BopFlowChart";
@@ -27,26 +27,6 @@ const DBLUE = { light: "#1f4068", dark: "#3b6ea5" };
 const GREEN = { light: "#0f7b6c", dark: "#34c9b0" };
 const NAVY = { light: "#1f4068", dark: "#6f9fe0" };
 const INK = { light: "#171717", dark: "#ededed" };
-
-function Section({
-  title,
-  subtitle,
-  children,
-}: {
-  title: string;
-  subtitle?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="space-y-4">
-      <div className="space-y-0.5">
-        <h2 className="text-base font-semibold text-foreground">{title}</h2>
-        {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
-      </div>
-      <div className="space-y-4">{children}</div>
-    </section>
-  );
-}
 
 const pct1 = (v: number | null) =>
   v == null
@@ -143,7 +123,7 @@ export default async function EconomicGrowthPage() {
 
       <Section
         title="GDP Growth & Contributions"
-        subtitle="GDP grew 2.5% y/y in 2026-Q1 (q/q +0.1% on TÜİK's seasonally-adjusted series — not carried in EVDS). Private consumption drove the expansion (+3.4 pp) while the −12.7% export slump subtracted −2.9 pp."
+        description="GDP grew 2.5% y/y in 2026-Q1 (q/q +0.1% on TÜİK's seasonally-adjusted series — not carried in EVDS). Private consumption drove the expansion (+3.4 pp) while the −12.7% export slump subtracted −2.9 pp."
       >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <TimeSeriesChart
@@ -172,7 +152,7 @@ export default async function EconomicGrowthPage() {
 
       <Section
         title="Production Side"
-        subtitle="Gross value added by activity, y/y %. Construction and services led; industry and agriculture lagged. Figures use the unadjusted chain-volume index (see table note)."
+        description="Gross value added by activity, y/y %. Construction and services led; industry and agriculture lagged. Figures use the unadjusted chain-volume index (see table note)."
       >
         <ChartCard title="Şekil 3 · Sectoral Growth (y/y %)">
           <BopFlowChart
@@ -196,7 +176,7 @@ export default async function EconomicGrowthPage() {
 
       <Section
         title="Expenditure Side"
-        subtitle="Demand components, y/y %. Consumption-by-durability and investment-by-type come from TÜİK's national-accounts detail (not in EVDS); government and the aggregates from EVDS."
+        description="Demand components, y/y %. Consumption-by-durability and investment-by-type come from TÜİK's national-accounts detail (not in EVDS); government and the aggregates from EVDS."
       >
         {d.hasTuik && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

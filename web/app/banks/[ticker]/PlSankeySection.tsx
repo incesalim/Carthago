@@ -10,7 +10,7 @@
  */
 import { useMemo, useState } from "react";
 import { ChartCard } from "@/app/components/ui/chart-card";
-import PlSankeyChart from "@/app/components/PlSankeyChart";
+import PlSankeyChart from "./PlSankeyChart";
 import { buildPlSankey } from "@/app/lib/pl-sankey";
 import type { PlRow } from "@/app/lib/audit";
 

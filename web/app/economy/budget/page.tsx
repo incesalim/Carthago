@@ -9,7 +9,7 @@
  */
 import Link from "next/link";
 import { getBudgetData, type TableRow } from "@/app/lib/budget";
-import { PageHeader, Stat } from "@/app/components/ui";
+import { PageHeader, Section, Stat } from "@/app/components/ui";
 import { ChartCard } from "@/app/components/ui/chart-card";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
 import BopFlowChart, { type BarSeries } from "@/app/components/BopFlowChart";
@@ -18,26 +18,6 @@ export const dynamic = "force-dynamic";
 
 const ORANGE = { light: "#e8833a", dark: "#f0a35e" };
 const MAROON = { light: "#9c1f2f", dark: "#d65a5a" };
-
-function Section({
-  title,
-  subtitle,
-  children,
-}: {
-  title: string;
-  subtitle?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="space-y-4">
-      <div className="space-y-0.5">
-        <h2 className="text-base font-semibold text-foreground">{title}</h2>
-        {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
-      </div>
-      <div className="space-y-4">{children}</div>
-    </section>
-  );
-}
 
 const nf0 = (v: number) => new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(v);
 
@@ -85,7 +65,7 @@ export default async function BudgetPage() {
 
       <Section
         title="Budget Balance"
-        subtitle="Annualised (trailing-12-month) central-government balance. The headline deficit widened on softer tax intake while the primary balance stays in surplus."
+        description="Annualised (trailing-12-month) central-government balance. The headline deficit widened on softer tax intake while the primary balance stays in surplus."
       >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <TimeSeriesChart
@@ -105,7 +85,7 @@ export default async function BudgetPage() {
 
       <Section
         title="Revenues"
-        subtitle={`Tax-revenue growth has slipped below headline inflation. Tax lines compared ${d.barLabels.now} vs ${d.barLabels.prev}.`}
+        description={`Tax-revenue growth has slipped below headline inflation. Tax lines compared ${d.barLabels.now} vs ${d.barLabels.prev}.`}
       >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <TimeSeriesChart
@@ -130,7 +110,7 @@ export default async function BudgetPage() {
 
       <Section
         title="Expenditures"
-        subtitle={`Current transfers and personnel dominate spending. Expenditure lines compared ${d.barLabels.now} vs ${d.barLabels.prev}.`}
+        description={`Current transfers and personnel dominate spending. Expenditure lines compared ${d.barLabels.now} vs ${d.barLabels.prev}.`}
       >
         <ChartCard title={`Şekil 2 · Expenditures by Type (₺ bn, ${d.barLabels.now} vs ${d.barLabels.prev})`}>
           <BopFlowChart
@@ -148,7 +128,7 @@ export default async function BudgetPage() {
 
       <Section
         title="Summary"
-        subtitle={`Monthly and trailing-12-month figures, ₺ million — ${d.asOfLabel} vs. one year earlier.`}
+        description={`Monthly and trailing-12-month figures, ₺ million — ${d.asOfLabel} vs. one year earlier.`}
       >
         <BudgetTable rows={d.table} now={d.barLabels.now} prev={d.barLabels.prev} />
         <p className="text-xs text-muted-foreground">

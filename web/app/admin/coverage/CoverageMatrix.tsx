@@ -220,6 +220,7 @@ export default function CoverageMatrix() {
     <Section
       title="Coverage matrix"
       description="Per statement type × bank × period: what we have, what's missing, what failed validation"
+      contentClassName=""
       actions={
         <div className="inline-flex overflow-hidden rounded-md border border-border">
           {(["unconsolidated", "consolidated", "both"] as Mode[]).map((m) => (

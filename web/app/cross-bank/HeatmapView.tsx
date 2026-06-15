@@ -8,11 +8,11 @@
  */
 import { useState } from "react";
 import type { MetricDef } from "@/app/lib/heatmap";
-import HeatmapGrid, { type HeatmapBankRow } from "@/app/components/HeatmapGrid";
+import HeatmapGrid, { type HeatmapBankRow } from "./HeatmapGrid";
 import HeatmapOverTime, {
   type HeatmapTimeRow,
   type PanelCell,
-} from "@/app/components/HeatmapOverTime";
+} from "./HeatmapOverTime";
 
 interface Props {
   metrics: MetricDef[];

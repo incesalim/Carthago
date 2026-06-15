@@ -10,7 +10,7 @@
  */
 import Link from "next/link";
 import { getForeignTradeData } from "@/app/lib/foreign-trade";
-import { PageHeader, Stat } from "@/app/components/ui";
+import { PageHeader, Section, Stat } from "@/app/components/ui";
 import { ChartCard } from "@/app/components/ui/chart-card";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
 import BopFlowChart, { type BarSeries, type OverlayLine } from "@/app/components/BopFlowChart";
@@ -19,18 +19,6 @@ export const dynamic = "force-dynamic";
 
 const MAROON = { light: "#9c1f2f", dark: "#d65a5a" };
 const INK = { light: "#171717", dark: "#ededed" };
-
-function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
-  return (
-    <section className="space-y-4">
-      <div className="space-y-0.5">
-        <h2 className="text-base font-semibold text-foreground">{title}</h2>
-        {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
-      </div>
-      <div className="space-y-4">{children}</div>
-    </section>
-  );
-}
 
 function Grid({ children }: { children: React.ReactNode }) {
   return <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">{children}</div>;
@@ -66,7 +54,7 @@ export default async function ForeignTradePage() {
 
       <Section
         title="Trade Balance"
-        subtitle="Annualised (trailing-12-month) customs trade balance, USD bn. The ex-energy line strips out the energy bill — the dominant swing factor."
+        description="Annualised (trailing-12-month) customs trade balance, USD bn. The ex-energy line strips out the energy bill — the dominant swing factor."
       >
         <Grid>
           <TimeSeriesChart series={d.s1} title="Şekil 1 · Trade Balance (12m rolling, USD bn)" yFormat="raw" decimals={1} />
@@ -76,7 +64,7 @@ export default async function ForeignTradePage() {
 
       <Section
         title="Exports & Imports"
-        subtitle="Annualised level (USD bn) and annual growth. Imports run well above exports — the structural trade gap."
+        description="Annualised level (USD bn) and annual growth. Imports run well above exports — the structural trade gap."
       >
         <Grid>
           <TimeSeriesChart series={d.levels} title="Şekil 2–3 · Exports & Imports (12m rolling, USD bn)" yFormat="raw" decimals={0} />
@@ -86,7 +74,7 @@ export default async function ForeignTradePage() {
 
       <Section
         title="By Product Group (BEC)"
-        subtitle="Broad Economic Categories, annualised USD bn. Intermediate goods (mostly energy & inputs) dominate imports; consumption goods lead exports."
+        description="Broad Economic Categories, annualised USD bn. Intermediate goods (mostly energy & inputs) dominate imports; consumption goods lead exports."
       >
         <Grid>
           <TimeSeriesChart series={d.becExp} title="Şekil 6 · Exports by BEC Group (12m, USD bn)" yFormat="raw" decimals={0} />
@@ -96,7 +84,7 @@ export default async function ForeignTradePage() {
 
       <Section
         title="Terms of Trade & Energy"
-        subtitle="Terms of trade = export unit-value ÷ import unit-value (2015=100). The energy deficit tracks Brent — the report's clearest single driver of the trade gap."
+        description="Terms of trade = export unit-value ÷ import unit-value (2015=100). The energy deficit tracks Brent — the report's clearest single driver of the trade gap."
       >
         <Grid>
           <TimeSeriesChart series={d.terms} title="Şekil 5 · Terms of Trade (%)" yFormat="rate" decimals={1} />

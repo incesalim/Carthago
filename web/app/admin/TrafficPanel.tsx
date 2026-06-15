@@ -38,7 +38,7 @@ export default async function TrafficPanel() {
   }
 
   return (
-    <Section title="Traffic" description={`Cloudflare Web Analytics — last ${t.rangeDays} days`}>
+    <Section title="Traffic" description={`Cloudflare Web Analytics — last ${t.rangeDays} days`} contentClassName="">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <Stat label="Page views" value={nf.format(t.pageViews)} />
         <Stat label="Visits" value={nf.format(t.visits)} />

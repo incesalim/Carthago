@@ -17,7 +17,7 @@ import {
   BANK_TYPE_LABELS,
   type TimeSeriesRow,
 } from "@/app/lib/metrics";
-import { PageHeader } from "@/app/components/ui";
+import { PageHeader, Section } from "@/app/components/ui";
 import BarByBank from "@/app/components/BarByBank";
 import TrendChart from "@/app/components/TrendChart";
 import StackedArea from "@/app/components/StackedArea";
@@ -37,18 +37,6 @@ function demandShare(total: TimeSeriesRow[], demand: TimeSeriesRow[]): TimeSerie
     });
   }
   return out;
-}
-
-function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
-  return (
-    <section className="space-y-4">
-      <div className="space-y-0.5">
-        <h2 className="text-base font-semibold text-foreground">{title}</h2>
-        {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
-      </div>
-      <div className="space-y-4">{children}</div>
-    </section>
-  );
 }
 
 export default async function DepositsPage() {
@@ -130,7 +118,7 @@ export default async function DepositsPage() {
         </div>
       </Section>
 
-      <Section title="Demand vs. Term" subtitle="Demand share of deposits and full maturity ladder.">
+      <Section title="Demand vs. Term" description="Demand share of deposits and full maturity ladder.">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <TrendChart
             data={demandSec}
@@ -186,7 +174,7 @@ export default async function DepositsPage() {
         </div>
       </Section>
 
-      <Section title="Currency Breakdown" subtitle="TL vs FX deposits — dollarization signal.">
+      <Section title="Currency Breakdown" description="TL vs FX deposits — dollarization signal.">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <TrendChart
             data={tlSec}
@@ -212,7 +200,7 @@ export default async function DepositsPage() {
         </div>
       </Section>
 
-      <Section title="Loan-to-Deposit Ratio" subtitle="Bank-group LDR — funding pressure indicator.">
+      <Section title="Loan-to-Deposit Ratio" description="Bank-group LDR — funding pressure indicator.">
         <TrendChart
           data={ldr}
           seriesLabels={BANK_TYPE_LABELS}

@@ -117,6 +117,7 @@ export default function PipelinePanel() {
     <Section
       title="Pipeline"
       description="Scraper workflows — status and manual triggers"
+      contentClassName=""
       actions={
         <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
           {loading ? "Refreshing…" : "Refresh"}

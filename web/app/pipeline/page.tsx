@@ -8,7 +8,7 @@
  * Actions run client-side. See docs/ARCHITECTURE.md for the textual version.
  */
 import { PageHeader } from "@/app/components/ui";
-import PipelineFlow from "@/app/components/PipelineFlow";
+import PipelineFlow from "./PipelineFlow";
 import { getPipelineStatus, type PipelineStatusMap } from "@/app/lib/pipeline-status";
 
 export const dynamic = "force-dynamic";

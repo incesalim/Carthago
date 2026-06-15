@@ -16,13 +16,12 @@ import {
 } from "recharts";
 import { ChartCard } from "@/app/components/ui/chart-card";
 import { useChartTheme, tooltipStyles } from "@/app/lib/chart-theme";
+import { formatters, type FormatKind } from "@/app/lib/chart-format";
 
 interface Row {
   bank_type_code: string;
   value: number;
 }
-
-type FormatKind = "pct" | "trn" | "bn" | "raw";
 
 interface Props {
   data: Row[];
@@ -33,19 +32,6 @@ interface Props {
   height?: number;
 }
 
-// en-US locale: comma thousands separator + dot decimal (e.g. 1,234,567.89).
-const nf = (v: number, d: number) =>
-  new Intl.NumberFormat("en-US", {
-    minimumFractionDigits: d,
-    maximumFractionDigits: d,
-  }).format(v);
-
-const formatters: Record<FormatKind, (v: number, d: number) => string> = {
-  pct: (v, d) => `${nf(v, d)}%`,
-  trn: (v, d) => `₺${nf(v / 1_000_000, d)} trn`,
-  bn: (v, d) => `₺${nf(v / 1_000, d)} bn`,
-  raw: (v, d) => nf(v, d),
-};
 
 export default function BarByBank({
   data,

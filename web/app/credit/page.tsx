@@ -22,7 +22,7 @@ import {
   BANK_TYPE_LABELS,
   type TimeSeriesRow,
 } from "@/app/lib/metrics";
-import { PageHeader } from "@/app/components/ui";
+import { PageHeader, Section } from "@/app/components/ui";
 import BarByBank from "@/app/components/BarByBank";
 import TrendChart from "@/app/components/TrendChart";
 import StackedArea from "@/app/components/StackedArea";
@@ -93,7 +93,7 @@ export default async function CreditPage() {
         dataThrough={latestPeriod(loansSector, yoyAll)}
       />
 
-      <Section title="Total Credit Growth" subtitle="Sector level + cross-sectional and time-series growth.">
+      <Section title="Total Credit Growth" description="Sector level + cross-sectional and time-series growth.">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <TrendChart
             data={loansSector}
@@ -132,7 +132,7 @@ export default async function CreditPage() {
         </div>
       </Section>
 
-      <Section title="Currency Breakdown" subtitle="FX exposure stays moderate; TL drives sector growth.">
+      <Section title="Currency Breakdown" description="FX exposure stays moderate; TL drives sector growth.">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <TrendChart
             data={tlSec}
@@ -158,7 +158,7 @@ export default async function CreditPage() {
         </div>
       </Section>
 
-      <Section title="Consumer Credit" subtitle="Composition of household lending — cards & GPL drive the bulk.">
+      <Section title="Consumer Credit" description="Composition of household lending — cards & GPL drive the bulk.">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <StackedArea
             data={consMix.map((r: { period: string; housing: number | null; auto: number | null; gpl: number | null; cards: number | null }) => ({
@@ -198,7 +198,7 @@ export default async function CreditPage() {
         </div>
       </Section>
 
-      <Section title="Consumer Segments" subtitle="Per-product growth — cards & GPL drive the headline number.">
+      <Section title="Consumer Segments" description="Per-product growth — cards & GPL drive the headline number.">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <TrendChart
             data={consYoYLong}
@@ -228,7 +228,7 @@ export default async function CreditPage() {
         </div>
       </Section>
 
-      <Section title="SME & Public vs. Private" subtitle="Public bank lending vs. private bank lending — the clearest sector signal.">
+      <Section title="SME & Public vs. Private" description="Public bank lending vs. private bank lending — the clearest sector signal.">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <TrendChart
             data={smeYoY}
@@ -304,17 +304,5 @@ export default async function CreditPage() {
         </div>
       </Section>
     </main>
-  );
-}
-
-function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
-  return (
-    <section className="space-y-4">
-      <div className="space-y-0.5">
-        <h2 className="text-base font-semibold text-foreground">{title}</h2>
-        {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
-      </div>
-      <div className="space-y-4">{children}</div>
-    </section>
   );
 }

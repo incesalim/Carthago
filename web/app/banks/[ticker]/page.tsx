@@ -31,11 +31,11 @@ import { bankOwnership } from "@/app/lib/kap";
 import { bistValuation, bistPriceHistory } from "@/app/lib/bist";
 import { liveQuotes, applyLivePrice, formatAsOf } from "@/app/lib/bist-live";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
-import BankCard from "@/app/components/BankCard";
+import BankCard from "./BankCard";
 import OwnershipCard from "@/app/components/OwnershipCard";
 import OwnershipRadial from "@/app/components/OwnershipRadial";
-import PlSankeySection from "@/app/components/PlSankeySection";
-import SubsidiariesCard from "@/app/components/SubsidiariesCard";
+import PlSankeySection from "./PlSankeySection";
+import SubsidiariesCard from "./SubsidiariesCard";
 import CopyTableButton from "@/app/components/CopyTableButton";
 import {
   BS_ASSET_LINES,
@@ -331,6 +331,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
               : "")
           }
           className="mb-6"
+          contentClassName=""
         >
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
             <Stat

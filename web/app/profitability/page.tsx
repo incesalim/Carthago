@@ -20,7 +20,7 @@ import {
 import { buildNimDatasets } from "@/app/lib/nim-components";
 import { PageHeader } from "@/app/components/ui";
 import TrendChart from "@/app/components/TrendChart";
-import NimComponentsSection from "@/app/components/NimComponentsSection";
+import NimComponentsSection from "./NimComponentsSection";
 
 export const dynamic = "force-dynamic";
 

@@ -7,11 +7,11 @@
  * (eager-loaded by the server page — TCMB/BDDK don't publish daily, so the
  * payload stays small). Falls back to the summary + an "open original"
  * link when no body was scraped. Each card carries a source pill and a
- * derived topical pill (see lib/newsTags).
+ * derived topical pill (see lib/news-tags).
  */
 import { useEffect, useState } from "react";
 import { sourceLabel, type NewsItem } from "@/app/lib/news";
-import { sourceTag, topicTag, type Tag } from "@/app/lib/newsTags";
+import { sourceTag, topicTag, type Tag } from "@/app/lib/news-tags";
 
 const SOURCE_DESCRIPTIONS: Record<"tcmb" | "bddk", string> = {
   tcmb: "Central Bank of Türkiye — monetary policy + market operations press releases (English).",

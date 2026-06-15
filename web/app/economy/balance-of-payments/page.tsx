@@ -10,7 +10,7 @@
 import Link from "next/link";
 import { getBopData } from "@/app/lib/bop";
 import { latestPeriod } from "@/app/lib/metrics";
-import { PageHeader, Stat } from "@/app/components/ui";
+import { PageHeader, Section, Stat } from "@/app/components/ui";
 import { ChartCard } from "@/app/components/ui/chart-card";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
 import BopFlowChart, { type BarSeries, type OverlayLine } from "@/app/components/BopFlowChart";
@@ -23,26 +23,6 @@ const MAROON = { light: "#9c1f2f", dark: "#d65a5a" };
 const GREY = { light: "#9ca3af", dark: "#9ca3af" };
 const AMBER = { light: "#f5c518", dark: "#fbd34d" };
 const INK = { light: "#171717", dark: "#ededed" };
-
-function Section({
-  title,
-  subtitle,
-  children,
-}: {
-  title: string;
-  subtitle?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="space-y-4">
-      <div className="space-y-0.5">
-        <h2 className="text-base font-semibold text-foreground">{title}</h2>
-        {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
-      </div>
-      <div className="space-y-4">{children}</div>
-    </section>
-  );
-}
 
 function Grid({ children }: { children: React.ReactNode }) {
   return <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">{children}</div>;
@@ -104,7 +84,7 @@ export default async function BalanceOfPaymentsPage() {
 
       <Section
         title="Current Account"
-        subtitle="Annualised (trailing-12-month) balances, USD bn. The core balance strips out the volatile gold and energy bills; net tourism is the main services offset to the goods deficit."
+        description="Annualised (trailing-12-month) balances, USD bn. The core balance strips out the volatile gold and energy bills; net tourism is the main services offset to the goods deficit."
       >
         <Grid>
           <TimeSeriesChart
@@ -124,7 +104,7 @@ export default async function BalanceOfPaymentsPage() {
 
       <Section
         title="Capital Inflows & Financial Account"
-        subtitle="Monthly financing flows on a net-incurrence-of-liabilities basis (inflows into Türkiye), USD bn. Bars stack above/below zero; Şekil 4 & 5 add the 12-month cumulative on the right axis."
+        description="Monthly financing flows on a net-incurrence-of-liabilities basis (inflows into Türkiye), USD bn. Bars stack above/below zero; Şekil 4 & 5 add the 12-month cumulative on the right axis."
       >
         <Grid>
           <ChartCard title="Şekil 3 · Capital Inflows (monthly, USD bn)">
@@ -177,7 +157,7 @@ export default async function BalanceOfPaymentsPage() {
 
       <Section
         title="Trade Credits, Deposits & Errors"
-        subtitle="Annualised (trailing-12-month) flows, USD bn. Currency & deposits split into residents' asset acquisition abroad vs. liabilities incurred to non-residents."
+        description="Annualised (trailing-12-month) flows, USD bn. Currency & deposits split into residents' asset acquisition abroad vs. liabilities incurred to non-residents."
       >
         <Grid>
           <TimeSeriesChart
@@ -203,7 +183,7 @@ export default async function BalanceOfPaymentsPage() {
 
       <Section
         title="Financing of the Current-Account Deficit"
-        subtitle="Şekil 10 · Monthly, USD bn. Identity: current account ≡ net foreign investment + (reserves − net errors). Net foreign investment = FDI + portfolio + other investment (net); the residual is reserve change less net errors."
+        description="Şekil 10 · Monthly, USD bn. Identity: current account ≡ net foreign investment + (reserves − net errors). Net foreign investment = FDI + portfolio + other investment (net); the residual is reserve change less net errors."
       >
         <ChartCard title="Şekil 10 · Financing of the Current Account (monthly, USD bn)">
           <BopFlowChart
@@ -222,7 +202,7 @@ export default async function BalanceOfPaymentsPage() {
 
       <Section
         title="Summary"
-        subtitle={`Monthly and trailing-12-month cumulative balances, USD million — ${d.asOfLabel} vs. one year earlier.`}
+        description={`Monthly and trailing-12-month cumulative balances, USD million — ${d.asOfLabel} vs. one year earlier.`}
       >
         <div className="overflow-x-auto rounded-lg border border-border">
           <table className="w-full text-sm">
