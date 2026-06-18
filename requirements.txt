@@ -4,8 +4,8 @@
 
 # Web Scraping (BDDK monthly + weekly bulletins, bank IR PDFs, EVDS)
 requests>=2.34.2
-selenium>=4.44.0
-beautifulsoup4>=4.14.3
+selenium>=4.45.0
+beautifulsoup4>=4.15.0
 lxml>=6.1.1
 webdriver-manager>=4.1.2
 
@@ -20,14 +20,14 @@ openpyxl>=3.1.5      # .xlsx (newer TBB digital-banking workbooks)
 xlrd>=2.0.2          # legacy .xls / BIFF (older TBB digital-banking workbooks)
 
 # Database
-sqlalchemy>=2.0.50
+sqlalchemy>=2.0.51
 
 # Audit-report PDF extraction
-pdfplumber>=0.11.9
+pdfplumber>=0.11.10
 pymupdf>=1.27.2.3
 
 # Cloudflare R2 (S3-compatible) for audit-report PDF storage
-boto3>=1.43.24
+boto3>=1.43.33
 
 # Utilities
 python-dotenv>=1.2.2
