@@ -38,7 +38,6 @@ export default async function InflationPage() {
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
       <PageHeader
-        eyebrow="Adapted from Albaraka — Enflasyon"
         title="Inflation"
         description="TÜİK consumer (TÜFE) and producer (Yİ-ÜFE) prices: headline, core, and the group/sector breakdown. y/y, m/m and core indices derived from the index level."
         dataThrough={d.latestPeriod}
@@ -216,10 +215,10 @@ export default async function InflationPage() {
           </table>
         </div>
         <p className="text-xs text-muted-foreground">
-          Source: TÜİK (TurkStat) CPI &amp; domestic PPI via EVDS. Adapted from
-          Albaraka Türk «Enflasyon» report. The producer-price Main Industrial
-          Groupings breakdown (intermediate / durable / energy / capital goods)
-          is published only in TÜİK&apos;s bulletin, not EVDS — not shown here.{" "}
+          Source: TÜİK (TurkStat) CPI &amp; domestic PPI via EVDS. The
+          producer-price Main Industrial Groupings breakdown (intermediate /
+          durable / energy / capital goods) is published only in TÜİK&apos;s
+          bulletin, not EVDS — not shown here.{" "}
           <Link href="/economy/budget" className="text-primary hover:underline">
             Budget →
           </Link>

@@ -89,7 +89,6 @@ export default async function EconomicGrowthPage() {
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
       <PageHeader
-        eyebrow="Adapted from Albaraka — Ekonomik Büyüme"
         title="Economic Growth"
         description="TÜİK quarterly national accounts: GDP growth, expenditure-side contributions, and sectoral (production-side) growth. Chain-linked volume indices; y/y from the index level."
         dataThrough={d.latestPeriod}
@@ -226,8 +225,7 @@ export default async function EconomicGrowthPage() {
       </Section>
 
       <p className="text-xs text-muted-foreground">
-        Source: TÜİK (TurkStat) quarterly national accounts via EVDS. Adapted
-        from Albaraka Türk «Ekonomik Büyüme» report.{" "}
+        Source: TÜİK (TurkStat) quarterly national accounts via EVDS.{" "}
         <Link href="/economy/balance-of-payments" className="text-primary hover:underline">
           Balance of Payments →
         </Link>

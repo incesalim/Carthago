@@ -127,7 +127,7 @@ export default async function ProfitabilityPage() {
         <div className="space-y-1">
           <NimComponentsSection datasets={nimDatasets} dataThrough={nimThrough} />
           <p className="text-xs text-muted-foreground">
-            Replicates Garanti BBVA Research &ldquo;NIM components of private banks&rdquo;:
+            NIM components of private banks:
             BDDK monthly income-statement interest items (income 1–14, expense 16–22)
             over 13-month average total assets. Private = domestic-private + foreign
             deposit banks.
