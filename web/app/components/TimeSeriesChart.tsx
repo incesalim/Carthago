@@ -54,11 +54,10 @@ export default function TimeSeriesChart({
   const t = useChartTheme();
   const tt = tooltipStyles(t);
   const fmt = formatters[yFormat];
-  // x-axis tick formatter; tooltip keeps the full date in "date" mode (so daily
-  // series show the day), but both collapse to the quarter in "quarter" mode.
+  // x-axis ticks are always YYYY-MM (or the quarter); the tooltip label is
+  // resolved below once we can inspect the data's cadence.
   const isQuarter = xFormat === "quarter";
   const fmtTick = isQuarter ? fmtQuarter : (v: string) => v.slice(0, 7);
-  const fmtLabel = isQuarter ? fmtQuarter : (v: string) => v;
   const labels = Object.keys(series);
   // Hovering a legend item emphasises that line and fades the rest;
   // right-clicking pins the isolation until right-clicked again.
@@ -79,6 +78,19 @@ export default function TimeSeriesChart({
   const data = Array.from(byDate.values()).sort((a, b) =>
     String(a.period_date).localeCompare(String(b.period_date)),
   );
+
+  // Tooltip label: quarters in "quarter" mode; otherwise the full date for a
+  // genuinely daily series (FX, share price), but collapsed to YYYY-MM when
+  // every point sits on a month-start — the "-01" day is redundant noise on
+  // monthly/quarterly series.
+  const allMonthStart =
+    data.length > 0 &&
+    data.every((d) => String(d.period_date).slice(8, 10) === "01");
+  const fmtLabel = isQuarter
+    ? fmtQuarter
+    : allMonthStart
+      ? (v: string) => v.slice(0, 7)
+      : (v: string) => v;
 
   return (
     <ChartCard title={title}>
