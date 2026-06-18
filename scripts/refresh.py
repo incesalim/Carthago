@@ -80,6 +80,9 @@ def main():
                         help="git add/commit/push the new bddk_data.db.gz snapshot")
     parser.add_argument("--skip-monthly", action="store_true")
     parser.add_argument("--skip-weekly", action="store_true")
+    parser.add_argument("--skip-nonbank", action="store_true",
+                        help="skip the BDDK non-bank sector (leasing/factoring/"
+                             "financing/VYŞ) refresh")
     parser.add_argument("--skip-evds", action="store_true")
     parser.add_argument("--skip-bist", action="store_true",
                         help="skip the BIST equity prices/indices refresh")
@@ -102,6 +105,14 @@ def main():
     if not args.skip_weekly:
         _run_step("Weekly update",
                    [sys.executable, "scripts/update_weekly.py"])
+    if not args.skip_nonbank:
+        # BDDK non-bank financial sectors (BultenAylikBdmk): leasing, factoring,
+        # financing companies, VYŞ asset management. Sibling of the monthly bank
+        # bulletin; incremental (latest+1 → now). Non-critical: a BDDK-portal
+        # outage here must not abort the core bank refresh — next cron self-heals.
+        _run_step("Non-bank sector update",
+                   [sys.executable, "scripts/update_nonbank.py"],
+                   critical=False)
     if not args.skip_evds:
         _run_step("EVDS update",
                    [sys.executable, "-m", "src.scrapers.evds_scraper"])
