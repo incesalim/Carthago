@@ -8,57 +8,20 @@ import {
   consumerNplMix,
   consumerNplRatios,
   commercialNplRatios,
+  weeklySeries,
   latestPerBank,
   latestPeriod,
   PRIMARY_BANK_TYPES,
-  BANK_TYPES,
+  WEEKLY_BANK_TYPES,
   BANK_TYPE_LABELS,
   type TimeSeriesRow,
 } from "@/app/lib/metrics";
 import { PageHeader, Section } from "@/app/components/ui";
-import { getDB } from "@/app/lib/db";
 import BarByBank from "@/app/components/BarByBank";
 import TrendChart from "@/app/components/TrendChart";
 import StackedArea from "@/app/components/StackedArea";
 
 export const dynamic = "force-dynamic";
-
-/** Gross NPL level — derived as total_loans × (npl_ratio / 100).
- * The "Toplam Krediler" row's npl_amount column is NULL in this dataset
- * (only sub-segments carry the absolute value), so we synthesize the
- * stock from the ratio × total. Result is in million TL. */
-async function nplAmount(bankTypes: string[]): Promise<TimeSeriesRow[]> {
-  const db = await getDB();
-  const placeholders = bankTypes.map(() => "?").join(",");
-  const { results } = await db
-    .prepare(
-      // CTE must NOT be named `loans` — D1's SQLite resolves a self-named CTE's
-      // inner `FROM loans` to the CTE itself and rejects it as a circular
-      // reference. Use a neutral name (`loan_totals`).
-      `WITH loan_totals AS (
-         SELECT year, month, bank_type_code, total_amount
-         FROM loans
-         WHERE item_name = 'Toplam Krediler' AND currency = 'TL'
-           AND bank_type_code IN (${placeholders})
-       ), ratio AS (
-         SELECT year, month, bank_type_code, ratio_value
-         FROM financial_ratios
-         WHERE table_number = 15
-           AND item_name = 'Takipteki Alacaklar (Brüt) / Toplam Nakdi Krediler (%)'
-           AND bank_type_code IN (${placeholders})
-       )
-       SELECT
-         l.year || '-' || PRINTF('%02d', l.month) AS period,
-         l.bank_type_code,
-         l.total_amount * r.ratio_value / 100.0 AS value
-       FROM loan_totals l
-       JOIN ratio r ON r.year = l.year AND r.month = l.month AND r.bank_type_code = l.bank_type_code
-       ORDER BY l.year, l.month, l.bank_type_code`,
-    )
-    .bind(...bankTypes, ...bankTypes)
-    .all<TimeSeriesRow>();
-  return results;
-}
 
 // Reshape `consumerNplRatios` rows into long-form TrendChart input keyed by
 // a synthetic "bank_type_code" per segment (so we get one line per segment).
@@ -88,8 +51,8 @@ function commercialToTrendRows(
 }
 
 export default async function AssetQualityPage() {
-  const sector = [BANK_TYPES.SECTOR];
-  const groups = PRIMARY_BANK_TYPES.filter((c) => c !== BANK_TYPES.SECTOR);
+  const sector = [WEEKLY_BANK_TYPES.SECTOR];
+  const groups = PRIMARY_BANK_TYPES.filter((c) => c !== "10001");
 
   const [
     nplAll, nplByBank, coverageAll, gross,
@@ -98,7 +61,9 @@ export default async function AssetQualityPage() {
     ratioNpl(PRIMARY_BANK_TYPES),
     latestPerBank(ratioNpl, groups),
     ratioCoverage(PRIMARY_BANK_TYPES),
-    nplAmount(sector),
+    // Real reported NPL stock from the weekly bulletin (2.0.1), in place of the
+    // old loans × npl_ratio synthesis.
+    weeklySeries("takipteki_alacaklar", "2.0.1", "TOTAL", sector, 156),
     consumerNplMix(),
     consumerNplRatios(),
     commercialNplRatios(),
@@ -144,8 +109,8 @@ export default async function AssetQualityPage() {
           />
           <TrendChart
             data={gross}
-            seriesLabels={{ [BANK_TYPES.SECTOR]: "Gross NPL" }}
-            title="Gross NPL — Level (sector, TL bn)"
+            seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "Gross NPL" }}
+            title="Gross NPL — Level (sector, TL bn · weekly)"
             yFormat="bn"
             decimals={0}
           />

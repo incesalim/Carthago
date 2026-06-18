@@ -978,6 +978,18 @@ export async function weeklyGrowth(
   return out;
 }
 
+// Thin 52-week (≈ YoY) wrappers so weekly growth plugs into `latestPerBank`,
+// which expects a `(bankTypes?) => Promise<TimeSeriesRow[]>` fetcher. Used by
+// the "latest by group" bars on /credit and /deposits, now that those pages
+// source loans/deposits from the weekly bulletin. WeeklyRow is structurally a
+// TimeSeriesRow; passing `bankTypes` through (undefined → weeklyGrowth default)
+// keeps the optional-param signature `latestPerBank` requires.
+export const weeklyTotalLoansYoY = (bankTypes?: string[]) =>
+  weeklyGrowth("krediler", "1.0.1", "TOTAL", 52, bankTypes, 104);
+
+export const weeklyTotalDepositsYoY = (bankTypes?: string[]) =>
+  weeklyGrowth("mevduat", "4.0.1", "TOTAL", 52, bankTypes, 104);
+
 // ---------------------------------------------------------------------------
 // Liquidity — public-vs-private cuts of the weekly bulletin (BBVA framing)
 //

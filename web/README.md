@@ -60,8 +60,8 @@ Both can be run manually too.
 app/
 ├── page.tsx                  # Overview — KPIs + summary charts
 ├── credit/ deposits/ asset-quality/ capital/ profitability/ liquidity/
-│                             # Monthly-bulletin sector views
-├── weekly/                   # BDDK weekly bulletin growth charts
+│                             # Sector topic views — weekly bulletin folded into
+│                             #   credit/deposits/asset-quality; ratios stay monthly
 ├── rates/ economy/           # TCMB EVDS — rates corridor, FX, macro outlook
 ├── banks/                    # Index + per-bank drill-down (BS + P&L tables,
 │                             #   P&L flow Sankey, ownership radial, stages)
