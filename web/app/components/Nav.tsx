@@ -19,7 +19,6 @@ const TABS: NavItem[] = [
   { href: "/capital", label: "Capital" },
   { href: "/profitability", label: "Profitability" },
   { href: "/sector/ratios", label: "Ratios" },
-  { href: "/weekly", label: "Weekly" },
   { href: "/liquidity", label: "Liquidity" },
   { href: "/digital", label: "Digital" },
   { href: "/funds", label: "Funds" },

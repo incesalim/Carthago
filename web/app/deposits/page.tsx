@@ -1,20 +1,28 @@
 /**
  * Deposits tab — total, growth, demand share, maturity composition.
+ *
+ * Levels / growth / demand-share / currency split are sourced from the BDDK
+ * *weekly* bulletin (`weekly_series`); the full maturity ladder (`depositMaturityMix`,
+ * weekly carries only demand/time/KKM, not the ≤1m…>12m buckets) and the LDR ratio
+ * (`ratioLdr`, a published BDDK ratio) stay on the monthly tables. Total demand has no
+ * single weekly line — it is summed from the three depositor-type demand components
+ * (real-persons 4.0.3 + commercial 4.0.6 + official 4.0.9). Growth: monthly YoY → weekly
+ * 52w; the old monthly MoM chart → weekly 4w annualized.
  */
 import {
-  totalDeposits,
-  demandDeposits,
-  totalDepositsYoY,
-  totalDepositsMoM,
+  weeklySeries,
+  weeklyGrowth,
+  weeklyTotalDepositsYoY,
   depositMaturityMix,
-  tlDeposits,
-  fxDeposits,
   ratioLdr,
   latestPerBank,
   latestPeriod,
   PRIMARY_BANK_TYPES,
   BANK_TYPES,
   BANK_TYPE_LABELS,
+  WEEKLY_BANK_TYPES,
+  WEEKLY_BANK_TYPE_LABELS,
+  type WeeklyRow,
   type TimeSeriesRow,
 } from "@/app/lib/metrics";
 import { PageHeader, Section } from "@/app/components/ui";
@@ -24,58 +32,83 @@ import StackedArea from "@/app/components/StackedArea";
 
 export const dynamic = "force-dynamic";
 
-function demandShare(total: TimeSeriesRow[], demand: TimeSeriesRow[]): TimeSeriesRow[] {
+const MEVDUAT = "mevduat";
+const TOTAL = "4.0.1";
+// Demand ("Vadesiz") is split by depositor type in the weekly feed; sum the three.
+const DEMAND_PARTS = ["4.0.3", "4.0.6", "4.0.9"];
+
+/** Demand share = demand / total per period (×100). */
+function demandShare(total: WeeklyRow[], demand: WeeklyRow[]): TimeSeriesRow[] {
   const totalMap = new Map(total.map((r) => [r.period + "|" + r.bank_type_code, r.value]));
   const out: TimeSeriesRow[] = [];
   for (const r of demand) {
     const t = totalMap.get(r.period + "|" + r.bank_type_code);
     if (t == null || r.value == null || t === 0) continue;
-    out.push({
-      period: r.period,
-      bank_type_code: r.bank_type_code,
-      value: (r.value * 100) / t,
-    });
+    out.push({ period: r.period, bank_type_code: r.bank_type_code, value: (r.value * 100) / t });
   }
   return out;
 }
 
+/** Sum several weekly series element-wise by (period, bank_type_code). */
+function sumWeekly(parts: WeeklyRow[][]): WeeklyRow[] {
+  const byKey = new Map<string, WeeklyRow>();
+  for (const rows of parts) {
+    for (const r of rows) {
+      if (r.value == null) continue;
+      const k = r.period + "|" + r.bank_type_code;
+      const cur = byKey.get(k);
+      if (cur) cur.value += r.value;
+      else byKey.set(k, { period: r.period, bank_type_code: r.bank_type_code, value: r.value });
+    }
+  }
+  return Array.from(byKey.values()).sort((a, b) =>
+    a.period === b.period
+      ? a.bank_type_code.localeCompare(b.bank_type_code)
+      : a.period.localeCompare(b.period),
+  );
+}
+
 export default async function DepositsPage() {
-  const sector = [BANK_TYPES.SECTOR];
-  const groups = PRIMARY_BANK_TYPES.filter((c) => c !== BANK_TYPES.SECTOR);
+  const all = Object.values(WEEKLY_BANK_TYPES);
+  const sector = [WEEKLY_BANK_TYPES.SECTOR];
+  const groups = all.filter((c) => c !== WEEKLY_BANK_TYPES.SECTOR);
 
   const [
-    depSector, demandSec,
-    yoyAll, momSec, yoyByBank, mix,
-    tlSec, fxSec, ldr,
+    depSector, yoyAll, mom4Sector, yoyByBank,
+    demandParts,
+    tlSec, fxSec,
+    mix, ldr,
   ] = await Promise.all([
-    totalDeposits(sector),
-    demandDeposits(sector),
-    totalDepositsYoY(PRIMARY_BANK_TYPES),
-    totalDepositsMoM(sector),
-    latestPerBank(totalDepositsYoY, groups),
+    weeklySeries(MEVDUAT, TOTAL, "TOTAL", sector, 156),
+    weeklyGrowth(MEVDUAT, TOTAL, "TOTAL", 52, all, 104),
+    weeklyGrowth(MEVDUAT, TOTAL, "TOTAL", 4, sector, 104),
+    latestPerBank(weeklyTotalDepositsYoY, groups),
+    Promise.all(DEMAND_PARTS.map((id) => weeklySeries(MEVDUAT, id, "TOTAL", sector, 156))),
+    weeklySeries(MEVDUAT, TOTAL, "TL", sector, 156),
+    weeklySeries(MEVDUAT, TOTAL, "FX", sector, 156),
     depositMaturityMix(BANK_TYPES.SECTOR),
-    tlDeposits(sector),
-    fxDeposits(sector),
     ratioLdr(PRIMARY_BANK_TYPES),
   ]);
 
+  const demandSec = sumWeekly(demandParts);
   const dShare = demandShare(depSector, demandSec);
+
   // FX share = FX / (TL + FX) per period
-  const tlMap = new Map(tlSec.map((r: TimeSeriesRow) => [r.period, r.value]));
+  const tlMap = new Map(tlSec.map((r) => [r.period, r.value]));
   const fxShare: TimeSeriesRow[] = [];
   for (const r of fxSec) {
     const t = tlMap.get(r.period);
     if (t == null || r.value == null) continue;
     const total = t + r.value;
     if (total <= 0) continue;
-    fxShare.push({ period: r.period, bank_type_code: BANK_TYPES.SECTOR, value: (r.value * 100) / total });
+    fxShare.push({ period: r.period, bank_type_code: WEEKLY_BANK_TYPES.SECTOR, value: (r.value * 100) / total });
   }
 
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
       <PageHeader
         title="Deposits"
-        description="Sector aggregate + group breakdown · BDDK monthly bulletin"
+        description="Sector aggregate + group breakdown · BDDK weekly bulletin (maturity ladder & LDR: monthly)"
         dataThrough={latestPeriod(depSector, yoyAll)}
       />
 
@@ -83,14 +116,14 @@ export default async function DepositsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <TrendChart
             data={depSector}
-            seriesLabels={{ [BANK_TYPES.SECTOR]: "Sector" }}
+            seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "Sector" }}
             title="Total Deposits — Level (sector)"
             yFormat="trn"
             decimals={2}
           />
           <TrendChart
             data={yoyAll}
-            seriesLabels={BANK_TYPE_LABELS}
+            seriesLabels={WEEKLY_BANK_TYPE_LABELS}
             title="Deposit Growth YoY (%) by group"
             yFormat="pct"
             decimals={1}
@@ -100,17 +133,17 @@ export default async function DepositsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="lg:col-span-2">
             <TrendChart
-              data={momSec}
-              seriesLabels={{ [BANK_TYPES.SECTOR]: "Sector" }}
-              title="Deposit Growth MoM (%) — sector"
+              data={mom4Sector}
+              seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "Sector" }}
+              title="Deposit Growth 4w (annualized %) — sector"
               yFormat="pct"
-              decimals={2}
+              decimals={1}
               zeroLine
             />
           </div>
           <BarByBank
             data={yoyByBank}
-            labels={BANK_TYPE_LABELS}
+            labels={WEEKLY_BANK_TYPE_LABELS}
             title={`Deposit YoY by group · ${yoyByBank[0]?.period ?? ""}`}
             format="pct"
             decimals={1}
@@ -118,18 +151,18 @@ export default async function DepositsPage() {
         </div>
       </Section>
 
-      <Section title="Demand vs. Term" description="Demand share of deposits and full maturity ladder.">
+      <Section title="Demand vs. Term" description="Weekly demand share + the monthly maturity ladder.">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <TrendChart
             data={demandSec}
-            seriesLabels={{ [BANK_TYPES.SECTOR]: "Demand" }}
+            seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "Demand" }}
             title="Demand Deposits — Level"
             yFormat="trn"
             decimals={2}
           />
           <TrendChart
             data={dShare}
-            seriesLabels={{ [BANK_TYPES.SECTOR]: "Demand share" }}
+            seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "Demand share" }}
             title="Demand Share of Total Deposits (%)"
             yFormat="pct"
             decimals={1}
@@ -144,7 +177,7 @@ export default async function DepositsPage() {
               { key: "maturity_6_12m", label: "6-12m" },
               { key: "maturity_over_12m", label: ">12m" },
             ]}
-            title="Maturity Composition (sector)"
+            title="Maturity Composition (sector · monthly)"
             yFormat="trn"
             decimals={1}
           />
@@ -160,12 +193,12 @@ export default async function DepositsPage() {
               { key: "maturity_6_12m", label: "6-12m" },
               { key: "maturity_over_12m", label: ">12m" },
             ]}
-            title="Maturity Composition — Share (%)"
+            title="Maturity Composition — Share (% · monthly)"
             percentStack
           />
           <TrendChart
-            data={yoyAll.filter((r: TimeSeriesRow) => r.bank_type_code === BANK_TYPES.SECTOR)}
-            seriesLabels={{ [BANK_TYPES.SECTOR]: "Sector deposits" }}
+            data={yoyAll.filter((r) => r.bank_type_code === WEEKLY_BANK_TYPES.SECTOR)}
+            seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "Sector deposits" }}
             title="Deposit YoY — sector"
             yFormat="pct"
             decimals={1}
@@ -178,21 +211,21 @@ export default async function DepositsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <TrendChart
             data={tlSec}
-            seriesLabels={{ [BANK_TYPES.SECTOR]: "TL Deposits" }}
+            seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "TL Deposits" }}
             title="TL Deposits — Level (sector)"
             yFormat="trn"
             decimals={2}
           />
           <TrendChart
             data={fxSec}
-            seriesLabels={{ [BANK_TYPES.SECTOR]: "FX Deposits" }}
+            seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "FX Deposits" }}
             title="FX Deposits — Level (TL equivalent)"
             yFormat="trn"
             decimals={2}
           />
           <TrendChart
             data={fxShare}
-            seriesLabels={{ [BANK_TYPES.SECTOR]: "FX share" }}
+            seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "FX share" }}
             title="FX Share of Total Deposits (%)"
             yFormat="pct"
             decimals={1}
@@ -200,7 +233,7 @@ export default async function DepositsPage() {
         </div>
       </Section>
 
-      <Section title="Loan-to-Deposit Ratio" description="Bank-group LDR — funding pressure indicator.">
+      <Section title="Loan-to-Deposit Ratio" description="Bank-group LDR — funding pressure indicator (monthly).">
         <TrendChart
           data={ldr}
           seriesLabels={BANK_TYPE_LABELS}
