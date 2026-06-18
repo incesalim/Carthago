@@ -293,6 +293,21 @@ SERIES: list[Series] = [
     Series("TP.DT.IH.FIY.D01.2010", "Export Unit-Value Index (BEC, 2015=100)", "macro", evds.FREQ_MONTHLY),
     Series("TP.DT.IT.FIY.D01.2010", "Import Unit-Value Index (BEC, 2015=100)", "macro", evds.FREQ_MONTHLY),
     Series("TP.BRENTPETROL.EUBP",   "Brent Crude, European spot FOB (USD/bbl)", "macro", evds.FREQ_MONTHLY),
+
+    # ------------------------------------------------------------------
+    # Non-resident securities portfolio (weekly, Friday) — TCMB "Yurt Dışı
+    # Yerleşikler Menkul Kıymet İstatistikleri" (datagroup bie_mknethar).
+    # The dataset behind the widely-cited weekly foreign-flows chart. All
+    # USD MILLION; net-transaction series (M7/M8) are the WEEKLY flow (net
+    # buy +, net sell −), stock series (M1/M2) are holdings. Verified against
+    # the press chart: M7 2026-06-12 = −117.8 ("sold $118m equities"),
+    # 2026-06-05 = −856.9 (the −857 bar). History from 11-09-2020. Feeds
+    # /economy/balance-of-payments (lib/portfolio-flows.ts).
+    # ------------------------------------------------------------------
+    Series("TP.MKNETHAR.M7", "Non-residents Net Equity Transactions (weekly, USD m)", "macro", evds.FREQ_WEEKLY),
+    Series("TP.MKNETHAR.M8", "Non-residents Net GDDS Transactions (weekly, USD m)",   "macro", evds.FREQ_WEEKLY),
+    Series("TP.MKNETHAR.M1", "Non-residents Equity Holdings (stock, USD m)",          "macro", evds.FREQ_WEEKLY),
+    Series("TP.MKNETHAR.M2", "Non-residents GDDS Holdings (stock, USD m)",            "macro", evds.FREQ_WEEKLY),
 ]
 
 

@@ -180,7 +180,13 @@ balances; all `macro`/monthly). Signed-stacked-bar charts via the new
 `BopFlowChart`; the Şekil 10 financing identity (CA ≡ net foreign inv. +
 reserves − net errors) and every figure were verified to the report's
 Apr-2026 summary table. Five `economy.bop_*` chart-specs anchor daily
-verification. See [METRICS.md](METRICS.md) §14.
+verification. See [METRICS.md](METRICS.md) §14. The same page also carries a
+**Foreign Portfolio Flows — Weekly** section (data layer
+`web/app/lib/portfolio-flows.ts`): non-residents' weekly net equity/GDDS
+transactions + holdings off **4 new weekly TCMB series** (`TP.MKNETHAR.M7/M8/M1/M2`,
+datagroup `bie_mknethar`, USD m) — the dataset behind the widely-cited weekly
+foreign-flows chart, verified to the press numbers (M7 12-Jun-26 = −117.8 ≙
+"sold $118m equities").
 
 An **Economic Growth** sub-page (`/economy/economic-growth`, also linked from
 the Economy header) reproduces the Albaraka «Ekonomik Büyüme» quarterly GDP
