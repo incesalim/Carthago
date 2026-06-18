@@ -52,10 +52,86 @@ export default function StackedArea({
   const t = useChartTheme();
   const tt = tooltipStyles(t);
   const fmt = formatters[percentStack ? "pct" : yFormat];
+
+  // Drop series that are effectively zero everywhere (e.g. Dev&Inv deposits) so
+  // they don't clutter the legend with an invisible sliver. Relative threshold
+  // keeps it scale-/format-independent; fall back to all series if every one
+  // would be filtered (all-zero data).
+  const maxAbs = data.reduce(
+    (m, d) => series.reduce((mm, s) => Math.max(mm, Math.abs(Number(d[s.key]) || 0)), m),
+    0,
+  );
+  const visible = series.filter((s) =>
+    data.some((d) => Math.abs(Number(d[s.key]) || 0) > maxAbs * 1e-6),
+  );
+  const shown = visible.length > 0 ? visible : series;
+
   const colorAt = (i: number) =>
     colorKeys
-      ? seriesColor(t, series[i].key, i)
+      ? seriesColor(t, shown[i].key, i)
       : t.palette[ORDER[i % ORDER.length] % t.palette.length];
+
+  const renderTooltip = ({
+    active,
+    payload,
+    label,
+  }: {
+    active?: boolean;
+    payload?: ReadonlyArray<{ payload?: Record<string, number | string> }>;
+    label?: unknown;
+  }) => {
+    if (!active || !payload?.length) return null;
+    const row = payload[0]?.payload ?? {};
+    const total = shown.reduce((sum, s) => sum + (Number(row[s.key]) || 0), 0);
+    return (
+      <div style={{ ...tt.contentStyle, minWidth: 180, lineHeight: 1.7 }}>
+        <div style={tt.labelStyle}>{String(label)}</div>
+        {shown.map((s, i) => {
+          const v = Number(row[s.key]) || 0;
+          const display = percentStack
+            ? `${nf(total > 0 ? (v / total) * 100 : 0, decimals)}%`
+            : fmt(v, decimals);
+          return (
+            <div key={s.key} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span
+                style={{
+                  display: "inline-block",
+                  width: 9,
+                  height: 9,
+                  borderRadius: 2,
+                  background: colorAt(i),
+                  flex: "none",
+                }}
+              />
+              <span style={{ color: t.axis }}>{s.label}</span>
+              <span style={{ marginLeft: "auto", paddingLeft: 16, fontVariantNumeric: "tabular-nums" }}>
+                {display}
+              </span>
+            </div>
+          );
+        })}
+        {!percentStack && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              marginTop: 3,
+              paddingTop: 3,
+              borderTop: `1px solid ${t.tooltipBorder}`,
+              fontWeight: 600,
+            }}
+          >
+            <span style={{ width: 9, flex: "none" }} />
+            <span style={{ color: t.tooltipText }}>Total</span>
+            <span style={{ marginLeft: "auto", paddingLeft: 16, fontVariantNumeric: "tabular-nums" }}>
+              {fmt(total, decimals)}
+            </span>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <ChartCard title={title}>
@@ -79,33 +155,11 @@ export default function StackedArea({
               axisLine={{ stroke: t.grid }}
               tickLine={{ stroke: t.grid }}
             />
-            <Tooltip
-              {...tt}
-              // Order tooltip rows by `series` (= stack + legend order); Recharts
-              // otherwise uses its own internal series order.
-              itemSorter={(item) => series.findIndex((s) => s.key === String(item.dataKey))}
-              formatter={(value, name, item) => {
-                if (value == null) return ["—", name];
-                if (percentStack) {
-                  // stackOffset="expand" only normalises the drawn areas — the
-                  // tooltip value is still the raw level, so compute each
-                  // bucket's share of the period total here.
-                  const row = (item?.payload ?? {}) as Record<string, number>;
-                  const total = series.reduce(
-                    (sum, s) => sum + (Number(row[s.key]) || 0),
-                    0,
-                  );
-                  const share = total > 0 ? (Number(value) / total) * 100 : 0;
-                  return [`${nf(share, decimals)}%`, name];
-                }
-                return [fmt(Number(value), decimals), name];
-              }}
-              labelFormatter={(l) => String(l)}
-            />
+            <Tooltip content={renderTooltip} />
             <Legend
               wrapperStyle={{ fontSize: 11 }}
               content={() => (
-                // Render straight from `series` so the legend order matches the
+                // Render straight from `shown` so the legend order matches the
                 // stack (bottom→top); Recharts otherwise reorders it.
                 <ul
                   style={{
@@ -118,7 +172,7 @@ export default function StackedArea({
                     padding: 0,
                   }}
                 >
-                  {series.map((s, i) => (
+                  {shown.map((s, i) => (
                     <li
                       key={s.key}
                       style={{
@@ -143,7 +197,7 @@ export default function StackedArea({
                 </ul>
               )}
             />
-            {series.map((s, i) => (
+            {shown.map((s, i) => (
               <Area
                 key={s.key}
                 type="monotone"
