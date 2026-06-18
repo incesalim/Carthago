@@ -130,6 +130,7 @@ export default async function EconomicGrowthPage() {
             series={d.s1}
             title="Şekil 1 · GDP Growth (y/y %, chain-linked volume)"
             yFormat="pct"
+            xFormat="quarter"
             decimals={1}
           />
           <ChartCard title="Şekil 2 · Contributions to GDP Growth (y/y, pp)">

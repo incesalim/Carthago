@@ -14,6 +14,10 @@ export const nf = (v: number, d: number) =>
     maximumFractionDigits: d,
   }).format(v);
 
+/** "2026-01-01" → "2026-Q1" (quarterly period start at month 01/04/07/10). */
+export const fmtQuarter = (d: string) =>
+  `${String(d).slice(0, 4)}-Q${Math.floor((Number(String(d).slice(5, 7)) - 1) / 3) + 1}`;
+
 export type FormatKind = "pct" | "trn" | "bn" | "raw";
 
 export const formatters: Record<FormatKind, (v: number, d: number) => string> = {

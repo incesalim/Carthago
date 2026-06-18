@@ -18,7 +18,7 @@ import {
 } from "recharts";
 import { ChartCard } from "@/app/components/ui/chart-card";
 import { useChartTheme, tooltipStyles, seriesColor } from "@/app/lib/chart-theme";
-import { nf } from "@/app/lib/chart-format";
+import { nf, fmtQuarter } from "@/app/lib/chart-format";
 
 interface Point {
   period_date: string;
@@ -30,6 +30,8 @@ interface Props {
   series: Record<string, Point[]>;
   title?: string;
   yFormat?: "pct" | "rate" | "raw" | "fx";
+  /** x-axis tick/tooltip label style. "date" → YYYY-MM (default), "quarter" → YYYY-Qn. */
+  xFormat?: "date" | "quarter";
   decimals?: number;
   height?: number;
 }
@@ -45,12 +47,18 @@ export default function TimeSeriesChart({
   series,
   title,
   yFormat = "raw",
+  xFormat = "date",
   decimals = 2,
   height = 320,
 }: Props) {
   const t = useChartTheme();
   const tt = tooltipStyles(t);
   const fmt = formatters[yFormat];
+  // x-axis tick formatter; tooltip keeps the full date in "date" mode (so daily
+  // series show the day), but both collapse to the quarter in "quarter" mode.
+  const isQuarter = xFormat === "quarter";
+  const fmtTick = isQuarter ? fmtQuarter : (v: string) => v.slice(0, 7);
+  const fmtLabel = isQuarter ? fmtQuarter : (v: string) => v;
   const labels = Object.keys(series);
   // Hovering a legend item emphasises that line and fades the rest;
   // right-clicking pins the isolation until right-clicked again.
@@ -83,7 +91,7 @@ export default function TimeSeriesChart({
               dataKey="period_date"
               tick={{ fontSize: 11, fill: t.axis }}
               minTickGap={40}
-              tickFormatter={(v) => String(v).slice(0, 7)}
+              tickFormatter={(v) => fmtTick(String(v))}
               axisLine={{ stroke: t.grid }}
               tickLine={{ stroke: t.grid }}
             />
@@ -96,7 +104,7 @@ export default function TimeSeriesChart({
             <Tooltip
               {...tt}
               formatter={(v, name) => [v == null ? "—" : fmt(Number(v), decimals), name]}
-              labelFormatter={(l) => String(l)}
+              labelFormatter={(l) => fmtLabel(String(l))}
               itemSorter={(item) =>
                 typeof item.value === "number" ? -item.value : 0
               }
