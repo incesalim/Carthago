@@ -16,6 +16,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import json
 import sqlite3
 import sys
 import time
@@ -33,7 +34,7 @@ from src.news.loader import (  # noqa: E402
     upsert_items,
 )
 from src.news.schema import init_schema  # noqa: E402
-from src.news.sources import bddk, kap, press, tcmb  # noqa: E402
+from src.news.sources import bddk, google_news, kap, press, tcmb  # noqa: E402
 
 DB_PATH = REPO_ROOT / "data" / "bddk_data.db"
 
@@ -44,6 +45,11 @@ def main():
     ap.add_argument("--tcmb-only", action="store_true")
     ap.add_argument("--bddk-only", action="store_true")
     ap.add_argument("--press-only", action="store_true")
+    ap.add_argument("--google-only", action="store_true")
+    ap.add_argument("--google-max-decode", type=int, default=google_news.MAX_DECODE_PER_RUN,
+                    help="Cap on Google News redirect-token decodes per run "
+                         f"(default {google_news.MAX_DECODE_PER_RUN}); the rest "
+                         "are picked up on subsequent runs")
     ap.add_argument("--kap-days", type=int, default=90,
                     help="KAP look-back window in days (default 90)")
     ap.add_argument("--tcmb-years-back", type=int, default=5,
@@ -69,10 +75,11 @@ def main():
     with sqlite3.connect(str(DB_PATH)) as conn:
         init_schema(conn)
 
-    only_one = args.kap_only or args.tcmb_only or args.bddk_only or args.press_only
+    only_one = (args.kap_only or args.tcmb_only or args.bddk_only
+                or args.press_only or args.google_only)
 
     t0 = time.time()
-    totals = {"kap": 0, "tcmb": 0, "bddk": 0, "press": 0}
+    totals = {"kap": 0, "tcmb": 0, "bddk": 0, "press": 0, "google_news": 0}
 
     if not only_one or args.kap_only:
         print("[kap] fetching...")
@@ -133,6 +140,34 @@ def main():
                   + (f"; purged {purged} rows from removed feeds" if purged else ""))
         except Exception as e:
             print(f"[press] FAILED: {type(e).__name__}: {e}", flush=True)
+
+    if not only_one or args.google_only:
+        print("[google] fetching...")
+        try:
+            # news_items is the decode cache: skip items already resolved to a
+            # real publisher URL, so we only ever decode new (or still-google)
+            # links and never clobber a good URL.
+            with sqlite3.connect(str(DB_PATH)) as conn:
+                init_schema(conn)
+                decoded_ids = {
+                    row[0] for row in conn.execute(
+                        "SELECT external_id FROM news_items WHERE source = 'google_news' "
+                        "AND url NOT LIKE 'https://news.google.com/%'"
+                    )
+                }
+            items = google_news.fetch(decoded_ids=decoded_ids, max_decode=args.google_max_decode)
+            with sqlite3.connect(str(DB_PATH)) as conn:
+                init_schema(conn)
+                upsert_items(conn, items)
+                # Self-heal: drop google_news rows whose outlet is now also a
+                # press feed (added after the item was stored), so the same
+                # outlet isn't shown on both tabs.
+                purged = _delete_overlapping_google(conn)
+            totals["google_news"] = len(items)
+            print(f"[google] upserted {len(items):>4d} google-news items"
+                  + (f"; purged {purged} rows now covered by press" if purged else ""))
+        except Exception as e:
+            print(f"[google] FAILED: {type(e).__name__}: {e}", flush=True)
 
     # Body backfill — incremental: only fetch detail pages for rows that
     # don't yet have a body cached. Cheap on first run after the column
@@ -203,6 +238,36 @@ def _delete_unconfigured_press(conn: sqlite3.Connection) -> int:
         return 0
     conn.executemany(
         "DELETE FROM news_items WHERE source = 'press' AND external_id = ?",
+        [(eid,) for eid in to_delete],
+    )
+    conn.commit()
+    return len(to_delete)
+
+
+def _delete_overlapping_google(conn: sqlite3.Connection) -> int:
+    """Delete google_news rows whose publisher host is now covered by a press
+    feed. The scraper already skips these hosts for new items; this purges
+    anything stored before the press feed was added, so an outlet never appears
+    on both /news and /news/google."""
+    hosts = {google_news._host(u) for u in press.feed_urls()}
+    hosts.discard(None)
+    if not hosts:
+        return 0
+    rows = conn.execute(
+        "SELECT external_id, raw_json FROM news_items WHERE source = 'google_news'"
+    ).fetchall()
+    to_delete = []
+    for ext_id, raw in rows:
+        try:
+            host = (json.loads(raw) or {}).get("host") if raw else None
+        except (json.JSONDecodeError, TypeError):
+            host = None
+        if host and host in hosts:
+            to_delete.append(ext_id)
+    if not to_delete:
+        return 0
+    conn.executemany(
+        "DELETE FROM news_items WHERE source = 'google_news' AND external_id = ?",
         [(eid,) for eid in to_delete],
     )
     conn.commit()

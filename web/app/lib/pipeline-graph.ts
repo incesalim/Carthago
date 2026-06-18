@@ -61,6 +61,7 @@ export const PIPELINE_NODES: PipelineNode[] = [
   { id: "src-yahoo", kind: "source", layer: "source", lane: "bulletin", label: "Yahoo Finance", sublabel: "chart API · BIST prices/indices", statusKey: "bist" },
   { id: "src-rss-reg", kind: "source", layer: "source", lane: "bulletin", label: "TCMB / BDDK feeds", sublabel: "press releases + board decisions", statusKey: "regulation" },
   { id: "src-rss-press", kind: "source", layer: "source", lane: "bulletin", label: "Financial-media RSS", sublabel: "Bloomberg HT, Dünya, Ekonomim, AA, NTV", statusKey: "news" },
+  { id: "src-rss-google", kind: "source", layer: "source", lane: "bulletin", label: "Google News", sublabel: "topic-scoped search RSS · long-tail outlets", statusKey: "news" },
 
   // ── Bulletin lane · ingestion (workflows) ──────────────────────────────
   { id: "wf-evds-daily", kind: "workflow", layer: "ingestion", lane: "bulletin", label: "refresh-evds-daily", sublabel: "Sun–Fri 05:00 · EVDS + BIST/TBB/KAP/TEFAS", workflowFile: "refresh-evds-daily.yml" },
@@ -79,7 +80,7 @@ export const PIPELINE_NODES: PipelineNode[] = [
   { id: "store-d1-kap", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · kap_ownership", sublabel: "shareholders + §7 subsidiaries", statusKey: "kap" },
   { id: "store-d1-tefas", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · tefas_*", sublabel: "manager / category / allocation / top_funds", statusKey: "tefas" },
   { id: "store-d1-bist", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · bist_*", sublabel: "bist_prices · bist_dividends · bist_shares", statusKey: "bist" },
-  { id: "store-d1-news", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · news_items", sublabel: "regulation + press", statusKey: "news" },
+  { id: "store-d1-news", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · news_items", sublabel: "regulation + press + Google News", statusKey: "news" },
 
   // ── Audit lane · sources ───────────────────────────────────────────────
   { id: "src-ir-pdf", kind: "source", layer: "source", lane: "audit", label: "Bank IR / BRSA PDFs", sublabel: "31 banks · +13 auto-discover quarters", statusKey: "audit" },
@@ -163,6 +164,7 @@ export const PIPELINE_EDGES: PipelineEdge[] = [
   { source: "src-rss-reg", target: "wf-news-daily" },
   { source: "src-rss-reg", target: "wf-summarize" },
   { source: "src-rss-press", target: "wf-news-daily" },
+  { source: "src-rss-google", target: "wf-news-daily" },
 
   // bulletin workflows → D1 stores
   { source: "wf-evds-daily", target: "store-d1-evds" },

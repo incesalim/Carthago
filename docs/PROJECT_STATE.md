@@ -307,20 +307,32 @@ model (`web/app/lib/pipeline-graph.ts`) with a deterministic layered layout
 (`pipeline-layout.ts`, no dagre/elkjs); keep it in sync with this file +
 [ARCHITECTURE.md](ARCHITECTURE.md) when the pipeline changes.
 
-A qualitative-data layer feeds two tabs from the `news_items` table
+A qualitative-data layer feeds three tabs from the `news_items` table
 (`scripts/sync_news.py`, daily cron):
 
 - **/regulation** — primary regulator feeds: TCMB press releases + BDDK board
   decisions, with a weekly AI thematic briefing. Per-bank KAP disclosures
   surface on each bank's page.
-- **/news** — banking-sector *journalism* aggregated from TR financial-media
-  RSS feeds (Bloomberg HT, Dünya, Ekonomim, AA, NTV) via
+- **/news** (Sector Press) — banking-sector *journalism* aggregated from TR
+  financial-media RSS feeds (Bloomberg HT, Dünya, Ekonomim, AA, NTV) via
   `src/news/sources/press.py`, keyword-filtered to banking-relevant items
   (`source='press'`). Feed list is hand-edited in `data/news/press_feeds.json`.
   Only headline + link + snippet are stored (no full body); cards link out.
   Removing a feed there purges its stored items on the next cron (a one-time
   manual D1 delete clears what was already pushed). Hürriyet was dropped — its
   RSS froze a stale Oct-2024 block.
+- **/news/google** (Google News) — the long tail of regional/trade outlets, via
+  topic-scoped Google News *search* RSS feeds (`src/news/sources/google_news.py`,
+  `source='google_news'`; topics in `data/news/google_news_topics.json`). Reuses
+  the press banking-relevance filter; publisher names come from the RSS
+  `<source url>` tag, and outlets already on /news are skipped (no duplicates).
+  Google News links are `news.google.com` redirect tokens — resolved to real
+  publisher URLs via the `googlenewsdecoder` library, **serially and only for
+  new items** (Google 429s parallel/volume decoding). `news_items` is the decode
+  cache: a stable id from the RSS `<guid>` means each run only decodes the
+  handful of new items (capped by `--google-max-decode`, default 60), so the
+  rate-limit never bites; a decode failure keeps the still-clickable google link
+  and retries next run.
 
 ## Known issues / pending work
 

@@ -11,9 +11,10 @@ import sqlite3
 
 DDL = """
 CREATE TABLE IF NOT EXISTS news_items (
-    source        TEXT NOT NULL,            -- 'kap' | 'tcmb' | 'bddk'
+    source        TEXT NOT NULL,            -- 'kap'|'tcmb'|'bddk'|'press'|'google_news'
     external_id   TEXT NOT NULL,            -- source-stable id (KAP disclosureIndex,
-                                            --   TCMB ANO code, BDDK Duyuru id)
+                                            --   TCMB ANO code, BDDK Duyuru id,
+                                            --   press/google_news link or guid hash)
     published_at  TEXT NOT NULL,            -- ISO-8601 UTC; if source provides
                                             --   only date, '00:00:00' is used
     ticker        TEXT,                     -- BIST ticker if applicable (KAP)
