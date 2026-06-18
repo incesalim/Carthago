@@ -933,6 +933,27 @@ states the exact definition. All 21 detail codes (`TP.ODEAYRSUNUM6.*`,
 `TP.HARICCARIACIK.K4/K7/K9`) are in `evds_series` (category `macro`); five
 `economy.bop_*` chart-specs anchor the daily verification.
 
+**Foreign Portfolio Flows — Weekly** (same page, data layer
+`web/app/lib/portfolio-flows.ts`): the dataset behind the widely-cited weekly
+"foreigners net bought/sold $X of equities" chart. Source is TCMB **«Yurt Dışı
+Yerleşikler Menkul Kıymet İstatistikleri»** (EVDS datagroup `bie_mknethar`,
+**weekly, Friday, USD million**), distinct from — and more timely than — the
+monthly BoP portfolio line above. The net-transaction series are already the
+weekly net flow (net buy +, net sell −); no de-cumulation. Four series in
+`evds_series` (category `macro`, freq weekly):
+
+| Series | Meaning |
+|---|---|
+| `TP.MKNETHAR.M7` | Net **equity** transactions (weekly flow) — the headline bar chart |
+| `TP.MKNETHAR.M8` | Net **GDDS** (govt domestic debt securities / DİBS) transactions |
+| `TP.MKNETHAR.M1` | Equity **holdings** (stock) |
+| `TP.MKNETHAR.M2` | GDDS **holdings** (stock) |
+
+Verified against the press chart: `M7` 2026-06-12 = −117.8 ("sold $118m
+equities"), 2026-06-05 = −856.9 (the −857 bar), 2026-04-17 = +579.4 (+579).
+History from 11-09-2020. Weekly bars show the last 110 weeks; holdings ÷ 1,000
+→ USD bn.
+
 ### Economic Growth sub-page (`/economy/economic-growth`)
 
 Reproduces the Albaraka **«Ekonomik Büyüme»** quarterly GDP report from TÜİK

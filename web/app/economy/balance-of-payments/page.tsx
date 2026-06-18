@@ -9,6 +9,7 @@
  */
 import Link from "next/link";
 import { getBopData } from "@/app/lib/bop";
+import { getPortfolioFlowsData } from "@/app/lib/portfolio-flows";
 import { latestPeriod } from "@/app/lib/metrics";
 import { PageHeader, Section, Stat } from "@/app/components/ui";
 import { ChartCard } from "@/app/components/ui/chart-card";
@@ -45,7 +46,7 @@ const tone = (v: number | null) =>
   v == null ? "neutral" : v < 0 ? "negative" : "positive";
 
 export default async function BalanceOfPaymentsPage() {
-  const d = await getBopData();
+  const [d, pf] = await Promise.all([getBopData(), getPortfolioFlowsData()]);
   const dataThrough = latestPeriod(
     d.s1["Current account"] ?? [],
     d.s9["Net errors & omissions"] ?? [],
@@ -152,6 +153,52 @@ export default async function BalanceOfPaymentsPage() {
               unit=" bn"
             />
           </ChartCard>
+        </Grid>
+      </Section>
+
+      <Section
+        title="Foreign Portfolio Flows — Weekly (TCMB securities statistics)"
+        description="Non-residents' weekly net transactions in Borsa İstanbul equities and government domestic debt securities (GDDS / DİBS), net buy +, net sell −, and their total holdings. Week-ending Friday, USD. Source: TCMB «Yurt Dışı Yerleşikler Menkul Kıymet İstatistikleri» — the dataset behind the widely-cited weekly foreign-flows chart, and more timely than the monthly BoP portfolio line (Şekil 5) above."
+      >
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <Stat
+            label="Net equity flow · last week"
+            value={nfInt(pf.netEquityLatest)}
+            hint={`USD mn · ${pf.asOfLabel}`}
+            tone={tone(pf.netEquityLatest)}
+          />
+          <Stat
+            label="Net bond (GDDS) flow · last week"
+            value={nfInt(pf.netGddsLatest)}
+            hint={`USD mn · ${pf.asOfLabel}`}
+            tone={tone(pf.netGddsLatest)}
+          />
+          <Stat
+            label="Foreign equity holdings"
+            value={nf2(pf.equityHoldings)}
+            hint={`USD bn · ${pf.asOfLabel}`}
+            tone="neutral"
+          />
+        </div>
+        <Grid>
+          <ChartCard title="Weekly Net Securities Flows (USD mn)">
+            <BopFlowChart
+              data={pf.flows}
+              bars={[
+                { key: "equity", label: "Equity", fill: MAROON },
+                { key: "bonds", label: "Govt bonds (DİBS)", fill: ORANGE },
+              ] satisfies BarSeries[]}
+              unit=" mn"
+              decimals={0}
+              height={360}
+            />
+          </ChartCard>
+          <TimeSeriesChart
+            series={pf.holdings}
+            title="Non-resident Holdings (USD bn)"
+            yFormat="raw"
+            decimals={1}
+          />
         </Grid>
       </Section>
 
