@@ -46,7 +46,14 @@ const TABS: NavItem[] = [
   { href: "/cross-bank", label: "Compare" },
   { href: "/ownership", label: "Ownership" },
   { href: "/regulation", label: "Regulation" },
-  { href: "/news", label: "News" },
+  {
+    href: "/news",
+    label: "News",
+    children: [
+      { href: "/news", label: "Sector Press" },
+      { href: "/news/google", label: "Google News" },
+    ],
+  },
   { href: "/pipeline", label: "Pipeline" },
   { href: "/admin", label: "Admin" },
 ];

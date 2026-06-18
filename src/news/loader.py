@@ -8,7 +8,7 @@ from dataclasses import asdict, dataclass
 
 @dataclass
 class NewsItem:
-    source: str            # 'kap' | 'tcmb' | 'bddk'
+    source: str            # 'kap' | 'tcmb' | 'bddk' | 'press' | 'google_news'
     external_id: str       # source-stable id
     published_at: str      # ISO-8601 UTC
     title: str

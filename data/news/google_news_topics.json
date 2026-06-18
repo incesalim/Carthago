@@ -1,0 +1,12 @@
+{
+  "_note": "Topic queries for the Google News long-tail lane (source='google_news' in news_items). Each entry becomes a Google News SEARCH RSS feed (https://news.google.com/rss/search?q=...&hl=tr&gl=TR&ceid=TR:tr). Items are kept only if banking-relevant (same keyword filter as press, src/news/sources/press.py) and their publisher host is NOT already a press feed (no duplicate outlets). The news.google.com redirect link is resolved to the real publisher URL via googlenewsdecoder, serially and only for new items. Hand-edited via PR, like press_feeds.json.",
+  "_verified": "2026-06-18",
+  "_removed": {},
+  "topics": [
+    {"name": "bankacilik-sektoru", "query": "Türkiye bankacılık sektörü", "language": "tr", "enabled": true},
+    {"name": "bddk", "query": "BDDK bankacılık", "language": "tr", "enabled": true},
+    {"name": "mevduat-kredi-faiz", "query": "mevduat kredi faiz banka", "language": "tr", "enabled": true},
+    {"name": "katilim-bankaciligi", "query": "katılım bankacılığı faizsiz finans", "language": "tr", "enabled": true},
+    {"name": "kredi-derecelendirme", "query": "Türk bankaları kredi notu derecelendirme", "language": "tr", "enabled": true}
+  ]
+}

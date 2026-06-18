@@ -59,7 +59,7 @@ jobs:
               print("No snapshot in R2 yet — starting from empty DB.")
           PY
 
-      - name: Sync news (KAP + TCMB + BDDK)
+      - name: Sync news (KAP + TCMB + BDDK + press + Google News)
         run: python scripts/sync_news.py
 
       - name: Setup Node (for wrangler)

@@ -275,6 +275,12 @@ def enabled_outlets() -> set[str]:
     return {f.get("outlet", f.get("name", "")) for f in _load_feeds()}
 
 
+def feed_urls() -> list[str]:
+    """RSS URLs of the currently-enabled press feeds. The google_news source
+    uses their hosts to skip outlets already covered here (no duplicate cards)."""
+    return [f["url"] for f in _load_feeds() if f.get("url")]
+
+
 def fetch(request_timeout: int = 25, max_retries: int = 2) -> list[NewsItem]:
     """Fetch + filter all configured press feeds. Resilient: a feed that
     fails to fetch/parse is logged and skipped. Returns items newest-first,

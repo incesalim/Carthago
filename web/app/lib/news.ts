@@ -12,7 +12,7 @@
  */
 import { cachedAll } from "./db";
 
-export type NewsSource = "kap" | "tcmb" | "bddk" | "press";
+export type NewsSource = "kap" | "tcmb" | "bddk" | "press" | "google_news";
 
 export interface NewsItem {
   source: NewsSource;
@@ -32,6 +32,7 @@ const SOURCE_LABELS: Record<NewsSource, string> = {
   tcmb: "TCMB",
   bddk: "BDDK",
   press: "Press",
+  google_news: "Google News",
 };
 
 export function sourceLabel(s: string): string {
@@ -74,6 +75,22 @@ export async function latestPress(limit = 120): Promise<NewsItem[]> {
               title, summary, url, language
        FROM news_items
        WHERE source = 'press'
+       ORDER BY published_at DESC
+       LIMIT ?`,
+    [limit],
+  );
+}
+
+/** Latest Google News long-tail items (source='google_news'). `category` holds
+ *  the publisher outlet (from the RSS <source url> tag). `url` is the resolved
+ *  publisher link (falls back to the google redirect if a decode is pending).
+ *  No body_text — these link out. */
+export async function latestGoogleNews(limit = 160): Promise<NewsItem[]> {
+  return cachedAll<NewsItem>(
+    `SELECT source, external_id, published_at, ticker, category,
+              title, summary, url, language
+       FROM news_items
+       WHERE source = 'google_news'
        ORDER BY published_at DESC
        LIMIT ?`,
     [limit],
