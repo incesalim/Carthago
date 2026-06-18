@@ -30,7 +30,6 @@ export default async function BudgetPage() {
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
       <PageHeader
-        eyebrow="Adapted from Albaraka — Bütçe Görünümü"
         title="Central Government Budget"
         description="Treasury (Hazine ve Maliye Bakanlığı) central-government budget: the annualised balance, revenue & expenditure mix, and the monthly detail. Values in ₺ bn unless noted."
         dataThrough={d.latestPeriod}
@@ -133,7 +132,7 @@ export default async function BudgetPage() {
         <BudgetTable rows={d.table} now={d.barLabels.now} prev={d.barLabels.prev} />
         <p className="text-xs text-muted-foreground">
           Source: TÜİK / Treasury (Hazine ve Maliye Bakanlığı) central-government
-          budget via EVDS. Adapted from Albaraka Türk «Bütçe Görünümü» report.{" "}
+          budget via EVDS.{" "}
           <Link href="/economy/balance-of-payments" className="text-primary hover:underline">
             Balance of Payments →
           </Link>

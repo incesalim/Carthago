@@ -33,7 +33,6 @@ export default async function ForeignTradePage() {
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
       <PageHeader
-        eyebrow="Adapted from Albaraka — Dış Ticaret Dengesi"
         title="Foreign Trade"
         description="TÜİK customs-trade statistics: the trade balance, exports & imports, coverage ratio, terms of trade, trade by product group, and the energy deficit. Values in USD bn unless noted."
         dataThrough={d.latestPeriod}
@@ -101,11 +100,10 @@ export default async function ForeignTradePage() {
 
       <p className="text-xs text-muted-foreground">
         Source: TÜİK (TurkStat) foreign-trade statistics + Brent via TCMB EVDS.
-        Adapted from Albaraka Türk «Dış Ticaret Dengesi» report. Two report
-        elements are not reproduced: the «Çekirdek Denge» (core balance) line, an
-        Albaraka-internal construction that doesn&apos;t reconcile from EVDS
-        primitives; and the HS-chapter («Fasıl») trade tables (Şekil 9), which
-        live only in TÜİK&apos;s dynamic foreign-trade database, not EVDS.{" "}
+        Two elements are not shown: the «Çekirdek Denge» (core balance) line,
+        which doesn&apos;t reconcile from EVDS primitives; and the HS-chapter
+        («Fasıl») trade tables, which live only in TÜİK&apos;s dynamic
+        foreign-trade database, not EVDS.{" "}
         <Link href="/economy/balance-of-payments" className="text-primary hover:underline">
           Balance of Payments →
         </Link>

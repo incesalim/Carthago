@@ -55,7 +55,6 @@ export default async function BalanceOfPaymentsPage() {
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
       <PageHeader
-        eyebrow="Adapted from Albaraka — Ödemeler Dengesi"
         title="Balance of Payments"
         description="TCMB balance-of-payments statistics: current account, financial-account flows, and the financing of the current-account deficit. Values in USD bn unless noted."
         dataThrough={dataThrough}
@@ -295,8 +294,7 @@ export default async function BalanceOfPaymentsPage() {
           </table>
         </div>
         <p className="text-xs text-muted-foreground">
-          Source: TCMB (CBRT) balance-of-payments statistics via EVDS. Adapted
-          from Albaraka Türk «Ödemeler Dengesi» monthly report.{" "}
+          Source: TCMB (CBRT) balance-of-payments statistics via EVDS.{" "}
           <Link href="/economy" className="text-primary hover:underline">
             ← Back to Economy
           </Link>

@@ -114,7 +114,6 @@ export default async function LiquidityPage() {
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
       <PageHeader
-        eyebrow="Adapted from BBVA / Garanti BBVA Research"
         title="Liquidity"
         description="TL & FC funding · dollarization · CBRT reserves and funding — BDDK weekly bulletin + TCMB EVDS"
         dataThrough={latestPeriod(tlLtd, fcLtd, dollarization, netFunding)}
@@ -122,7 +121,7 @@ export default async function LiquidityPage() {
 
       <Section
         title="TL Funding"
-        description="Loan-to-deposit pressure and deposit momentum on the TL book. Public = state banks; Private = private + foreign banks (BBVA framing)."
+        description="Loan-to-deposit pressure and deposit momentum on the TL book. Public = state banks; Private = private + foreign banks."
       >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <TrendChart

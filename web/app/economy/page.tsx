@@ -74,7 +74,6 @@ export default async function EconomyPage() {
     <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
       {ticker.length > 0 && <MarketTicker items={ticker} />}
       <PageHeader
-        eyebrow="Adapted from BBVA / Garanti BBVA Research"
         title="Economy"
         description="Growth · labor · inflation & policy · external balance · fiscal — TCMB EVDS (TURKSTAT, CBRT, Treasury)"
         dataThrough={dataThrough}
