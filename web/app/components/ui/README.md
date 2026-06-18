@@ -32,7 +32,8 @@ utility so light/dark stay correct:
 - **`Section`** — labelled content block with optional heading row.
 - **`Stat`** — KPI tile: `label`, `value`, `hint`, `tone`, optional sparkline child.
 - **`Card`** (+ `CardHeader/Title/Description/Content/Footer`) — generic surface.
-- **`ChartCard`** — card chrome shared by every chart (`title`, `description`, `action`).
+- **`ChartCard`** — card chrome shared by every chart (`title`, `description`, `action`). Auto-renders `ChartExport` (Copy-image / PNG-download buttons) in the header; tags the surface with `data-chart-card` (capture target) and the title with `data-chart-title` (filename).
+- **`ChartExport`** — hover-revealed Copy-to-clipboard / PNG-download controls. Rasterises the nearest `[data-chart-card]` with `modern-screenshot` (lazy-imported on click); resolves the export background from the card's `oklch` token via a canvas round-trip so PNGs are theme-correct. Add `data-chart-no-export` to any node inside the card you want excluded from the image.
 - **`Badge`** — pill with `default/secondary/outline/positive/negative/warning/info`.
 - **`Button`** (+ `buttonVariants`) — `default/secondary/outline/ghost/destructive/link` × `sm/default/lg/icon`.
 - **`Table`** (+ `TableHeader/Body/Row/Head/Cell`) — token-styled, horizontally scrollable.
@@ -44,7 +45,8 @@ utility so light/dark stay correct:
 Recharts can't read CSS variables from SVG attributes, so chart colours come
 from `useChartTheme()` (`app/lib/chart-theme.ts`), which returns the
 theme-correct `palette`, grid/axis/cursor colours, and a `tooltipStyles()`
-helper. All chart wrappers use `ChartCard`.
+helper. All chart wrappers use `ChartCard`, so every chart gets the
+Copy-image / PNG-download controls for free (see `ChartExport` above).
 
 ## Helper
 
