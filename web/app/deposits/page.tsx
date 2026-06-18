@@ -68,18 +68,36 @@ function sumWeekly(parts: WeeklyRow[][]): WeeklyRow[] {
   );
 }
 
+/** Pivot long-form weekly rows into wide {period, [code]: value} rows for StackedArea. */
+function pivotByCode(rows: WeeklyRow[], codes: string[]): Record<string, string | number>[] {
+  const byPeriod = new Map<string, Record<string, string | number>>();
+  for (const r of rows) {
+    let row = byPeriod.get(r.period);
+    if (!row) {
+      row = { period: r.period };
+      for (const c of codes) row[c] = 0;
+      byPeriod.set(r.period, row);
+    }
+    row[r.bank_type_code] = r.value ?? 0;
+  }
+  return Array.from(byPeriod.values()).sort((a, b) =>
+    String(a.period).localeCompare(String(b.period)),
+  );
+}
+
 export default async function DepositsPage() {
   const all = Object.values(WEEKLY_BANK_TYPES);
   const sector = [WEEKLY_BANK_TYPES.SECTOR];
   const groups = all.filter((c) => c !== WEEKLY_BANK_TYPES.SECTOR);
 
   const [
-    depSector, yoyAll, mom4Sector, yoyByBank,
+    depSector, depByGroup, yoyAll, mom4Sector, yoyByBank,
     demandParts,
     tlSec, fxSec,
     mix, ldr,
   ] = await Promise.all([
     weeklySeries(MEVDUAT, TOTAL, "TOTAL", sector, 156),
+    weeklySeries(MEVDUAT, TOTAL, "TOTAL", groups, 156),
     weeklyGrowth(MEVDUAT, TOTAL, "TOTAL", 52, all, 104),
     weeklyGrowth(MEVDUAT, TOTAL, "TOTAL", 4, sector, 104),
     latestPerBank(weeklyTotalDepositsYoY, groups),
@@ -92,6 +110,18 @@ export default async function DepositsPage() {
 
   const demandSec = sumWeekly(demandParts);
   const dShare = demandShare(depSector, demandSec);
+
+  // Deposit level composition by ownership group — the 5 weekly groups partition
+  // the sector total exactly. Stacked largest-first; colorKeys matches the colours
+  // of the by-group YoY line chart below.
+  const depByGroupWide = pivotByCode(depByGroup, groups);
+  const groupSeries = [
+    WEEKLY_BANK_TYPES.STATE,
+    WEEKLY_BANK_TYPES.PRIVATE,
+    WEEKLY_BANK_TYPES.FOREIGN,
+    WEEKLY_BANK_TYPES.PARTICIPATION,
+    WEEKLY_BANK_TYPES.DEV_INV,
+  ].map((code) => ({ key: code, label: WEEKLY_BANK_TYPE_LABELS[code] }));
 
   // FX share = FX / (TL + FX) per period
   const tlMap = new Map(tlSec.map((r) => [r.period, r.value]));
@@ -114,12 +144,13 @@ export default async function DepositsPage() {
 
       <Section title="Total Deposits Growth">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <TrendChart
-            data={depSector}
-            seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "Sector" }}
-            title="Total Deposits — Level (sector)"
+          <StackedArea
+            data={depByGroupWide}
+            series={groupSeries}
+            title="Total Deposits — Level by group (sector, ₺ trn)"
             yFormat="trn"
             decimals={2}
+            colorKeys
           />
           <TrendChart
             data={yoyAll}
