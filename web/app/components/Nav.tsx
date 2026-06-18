@@ -23,6 +23,14 @@ const TABS: NavItem[] = [
   { href: "/digital", label: "Digital" },
   { href: "/funds", label: "Funds" },
   {
+    href: "/non-bank",
+    label: "Non-Bank",
+    children: [
+      { href: "/non-bank", label: "Overview" },
+      { href: "/non-bank/share-of-banking", label: "Share of Banking" },
+    ],
+  },
+  {
     href: "/economy",
     label: "Economy",
     children: [
