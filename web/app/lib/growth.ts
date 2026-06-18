@@ -18,6 +18,7 @@
 import { evdsMulti, type EvdsRow } from "@/app/lib/metrics";
 import { type Point } from "@/app/lib/economy";
 import { type BarRow } from "@/app/lib/bop";
+import { fmtQuarter } from "@/app/lib/chart-format";
 
 const C = {
   gdpZH: "TP.GSYIH26.HY.ZH", // GDP chain-vol index (raw)
@@ -58,12 +59,6 @@ const CODES = Object.values(C);
 // Pure helpers
 // ---------------------------------------------------------------------------
 
-/** "2026-01-01" → "Q1 26". */
-function quarterLabel(d: string): string {
-  const q = Math.floor((Number(d.slice(5, 7)) - 1) / 3) + 1;
-  return `Q${q} ${d.slice(2, 4)}`;
-}
-
 /** y/y % change of a quarterly index (lag 4). */
 function yoy(rows: EvdsRow[]): Point[] {
   const out: Point[] = [];
@@ -83,7 +78,7 @@ function barRowsQ(cols: { key: string; rows: Point[] }[], n: number): BarRow[] {
   const window = dates.slice(-n);
   const maps = cols.map((c) => ({ key: c.key, m: new Map(c.rows.map((r) => [r.period_date, r.value])) }));
   return window.map((d) => {
-    const row: BarRow = { x: quarterLabel(d) };
+    const row: BarRow = { x: fmtQuarter(d) };
     for (const { key, m } of maps) {
       const v = m.get(d);
       if (v !== undefined) row[key] = v;
@@ -113,7 +108,7 @@ function contributions(s: Record<string, EvdsRow[]>, n: number): BarRow[] {
     const gyoy = (G.get(d)! / g0 - 1) * 100;
     const res = gyoy - (c + gg + ii + xx + mm); // inventories ≈ residual
     out.push({
-      x: quarterLabel(d),
+      x: fmtQuarter(d),
       consumption: c, government: gg, investment: ii,
       inventories: res, exports: xx, imports: mm, gdp: gyoy,
     });
@@ -142,14 +137,14 @@ function buildTable(
       values: quarters.map((q) => (y.has(q) ? round1(y.get(q)!) : null)),
     };
   });
-  return { quarters: quarters.map(quarterLabel), rows };
+  return { quarters: quarters.map(fmtQuarter), rows };
 }
 
 // ---------------------------------------------------------------------------
 // Loader
 // ---------------------------------------------------------------------------
 export interface GrowthData {
-  asOfLabel: string; // "Q1 2026"
+  asOfLabel: string; // "2026-Q1"
   latestPeriod: string; // "2026-01" for the data-through badge
   gdpYoY: number | null;
   nominalQ: number | null; // ₺ trillion, this quarter
@@ -173,14 +168,13 @@ export async function getGrowthData(yearsBack = 10): Promise<GrowthData> {
   const gdpY = yoy(s[C.gdpZH] ?? []);
   const cf = s[C.gdpCF] ?? [];
   const latest = gdpY.at(-1)?.period_date ?? "";
-  const q = latest ? Math.floor((Number(latest.slice(5, 7)) - 1) / 3) + 1 : 0;
 
   const nominalQ = cf.at(-1) ? cf.at(-1)!.value / 1e9 : null;
   const nominalAnnual =
     cf.length >= 4 ? cf.slice(-4).reduce((a, r) => a + r.value, 0) / 1e9 : null;
 
   return {
-    asOfLabel: latest ? `Q${q} ${latest.slice(0, 4)}` : "",
+    asOfLabel: latest ? fmtQuarter(latest) : "",
     latestPeriod: latest ? latest.slice(0, 7) : "",
     gdpYoY: gdpY.at(-1)?.value ?? null,
     nominalQ,
