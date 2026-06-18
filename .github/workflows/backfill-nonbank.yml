@@ -1,0 +1,124 @@
+name: Backfill non-bank sectors
+
+# One-time (re-runnable, idempotent) historical backfill of the BDDK non-bank
+# financial-sector lane (leasing / factoring / financing). ~6 years × 12 months
+# × 3 sectors ≈ 220 requests at ~0.5 s spacing ≈ 5–10 min. INSERT OR REPLACE
+# keyed on (sector_code, year, month, item_order), so re-running is safe.
+#
+# Default start year is 2020 (where the banking aggregate in D1 begins, which is
+# all the /non-bank "share of banking" view needs); pass an earlier year to go
+# back to 2008.
+#
+# Apply the D1 migration (0013) BEFORE dispatching — the deploy-cloudflare
+# workflow applies it on any push touching web/**; the D1 push here fails on a
+# missing remote table otherwise.
+on:
+  workflow_dispatch:
+    inputs:
+      from_year:
+        description: "Backfill start year (default 2020 = banking-aggregate horizon; 2008 = full BDDK history)"
+        required: false
+        default: "2020"
+      sectors:
+        description: "Comma-separated sector codes"
+        required: false
+        default: "leasing,factoring,financing"
+
+permissions:
+  contents: read
+
+# Hold the shared pipeline group for the whole run so the daily/weekly crons
+# can't race this job on the R2 snapshot (they queue behind it).
+concurrency:
+  group: bddk-pipeline
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      PYTHONIOENCODING: utf-8
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Setup Node (for wrangler)
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
+      - name: Fetch SQLite snapshot from R2 + decompress
+        run: |
+          python - <<'PY'
+          import gzip, shutil, pathlib
+          from src.audit_reports import r2_storage
+          gz  = pathlib.Path("data/bddk_data.db.gz")
+          db  = pathlib.Path("data/bddk_data.db")
+          gz.parent.mkdir(parents=True, exist_ok=True)
+          if r2_storage.exists("state/bddk_data.db.gz"):
+              size = r2_storage.download_to("state/bddk_data.db.gz", gz)
+              print(f"Pulled state/bddk_data.db.gz from R2 ({size/1e6:.1f} MB)")
+              with gzip.open(gz, "rb") as s, open(db, "wb") as d:
+                  shutil.copyfileobj(s, d)
+              print(f"Decompressed to {db.stat().st_size/1e6:.1f} MB")
+          else:
+              print("No snapshot in R2 yet — starting from empty DB.")
+          PY
+
+      - name: Run non-bank backfill
+        run: >
+          python scripts/update_nonbank.py
+          --backfill ${{ inputs.from_year }}
+          --sectors "${{ inputs.sectors }}"
+
+      - name: Push non-bank rows to Cloudflare D1
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        # Wide window — the whole backfill is fresh (downloaded_at = now), and
+        # --only-tables keeps this scoped to the non-bank table.
+        run: python scripts/push_to_d1.py --hours 720 --only-tables nonbank_balance_sheet
+
+      - name: VACUUM + gzip snapshot
+        run: |
+          python - <<'PY'
+          import gzip, shutil, sqlite3, pathlib
+          db = pathlib.Path("data/bddk_data.db")
+          gz = pathlib.Path("data/bddk_data.db.gz")
+          c = sqlite3.connect(db)
+          c.execute("VACUUM")
+          c.close()
+          with open(db, "rb") as s, gzip.open(gz, "wb", compresslevel=9) as d:
+              shutil.copyfileobj(s, d)
+          print(f"{gz.name}: {gz.stat().st_size/1e6:.1f} MB")
+          PY
+
+      - name: Upload new SQLite snapshot back to R2
+        run: |
+          python - <<'PY'
+          from src.audit_reports import r2_storage
+          import pathlib
+          gz = pathlib.Path("data/bddk_data.db.gz")
+          size = r2_storage.upload_file(gz, "state/bddk_data.db.gz")
+          print(f"Uploaded {size/1e6:.1f} MB to R2 state/bddk_data.db.gz")
+          PY
+
+      - name: Alert on failure
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+        run: python scripts/notify.py "❌ ${{ github.workflow }} failed — ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
