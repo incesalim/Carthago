@@ -120,6 +120,7 @@ export default async function EconomyPage() {
             series={{ "GDP growth (y/y)": d.gdpGrowth }}
             title="GDP Growth (y/y %, chain-linked volume, quarterly)"
             yFormat="pct"
+            xFormat="quarter"
             decimals={1}
           />
           <TimeSeriesChart
