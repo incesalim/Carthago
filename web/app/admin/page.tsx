@@ -19,6 +19,7 @@ import {
 import CoverageMatrix from "./coverage/CoverageMatrix";
 import LoginForm from "./LoginForm";
 import PipelinePanel from "./PipelinePanel";
+import PurgeCacheButton from "./PurgeCacheButton";
 import TrafficPanel from "./TrafficPanel";
 
 export const dynamic = "force-dynamic";
@@ -99,7 +100,11 @@ export default async function AdminPage({
         </form>
       </PageHeader>
 
-      <Section title="Data health" description="Freshness per source, against expected refresh cadence">
+      <Section
+        title="Data health"
+        description="Freshness per source, against expected refresh cadence"
+        actions={<PurgeCacheButton />}
+      >
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {sources.map((s) => (
             <SourceCard key={s.key} s={s} />

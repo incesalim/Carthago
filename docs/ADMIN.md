@@ -22,10 +22,10 @@ health**, **manual refresh triggers**, and **site traffic** into one view.
 | D1 health queries | `web/app/lib/admin-health.ts` |
 | GitHub Actions client | `web/app/lib/github.ts` |
 | Web Analytics client | `web/app/lib/cf-analytics.ts` |
-| Page + panels + login form | `web/app/admin/{page,PipelinePanel,TrafficPanel,LoginForm}.tsx` |
+| Page + panels + login form | `web/app/admin/{page,PipelinePanel,TrafficPanel,PurgeCacheButton,LoginForm}.tsx` |
 | Coverage matrix + drawer | `web/app/admin/coverage/{CoverageMatrix,CoverageDrawer,status}.{tsx,ts}` |
 | Coverage queries | `web/app/lib/coverage.ts` |
-| Runs / dispatch / coverage endpoints | `web/app/api/admin/{runs,dispatch,coverage}/route.ts` |
+| Runs / dispatch / coverage / purge-cache endpoints | `web/app/api/admin/{runs,dispatch,coverage,purge-cache}/route.ts` |
 
 ### Managing audit reports (the intended workflow)
 
@@ -58,6 +58,27 @@ rebuilt by `scripts/sync_audit_expected.py` (in both the acquire and extract wor
 
 Audit **health** in the data-health cards is no longer time-based (extraction isn't scheduled):
 it reads `fresh` when every extracted partition succeeded, else `late`.
+
+## Purge cache (making a refresh show up immediately)
+
+The **Purge cache** button in the Data-health section header clears the dashboard's
+KV cache so a just-refreshed source appears in the graphs right away.
+
+Why it's needed: D1 reads are cached ~12h in KV (`cachedAll` → `unstable_cache`,
+`DATA_REVALIDATE_SECONDS` in `web/app/lib/db.ts`) to keep repeat page views off D1.
+So when a manual refresh lands a new bulletin / EVDS / weekly row in D1, the charts
+keep serving the pre-refresh render until that window rolls over. The data isn't
+missing — only the cached page is stale.
+
+The button drops the cached entries (`POST /api/admin/purge-cache`); pages then
+re-read D1 lazily on the next view. The endpoint deletes the `NEXT_INC_CACHE_KV`
+namespace in batched, cursor-paginated rounds (the client loops until done) — that
+namespace also accumulates orphaned entries from past deploys (OpenNext keys by
+build id and never GCs old builds), so a purge can clear thousands of keys and
+also cleans that cruft. No tag cache is configured, so `revalidateTag` is a no-op
+here; deleting the KV entries directly is the lever. Safe — it only clears a cache,
+and the Workers Paid plan has no KV write-cap concern on repopulation. A `web/**`
+deploy also busts the cache (new build id → new keys) but needs a code push.
 
 ## Setup
 
