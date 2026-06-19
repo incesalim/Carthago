@@ -31,7 +31,19 @@ database the Python pipeline writes.
 
 ## Local dev & deploy
 - `npm run dev` — local dev (seed a local D1 first; see [the local-dev notes](../docs/OPERATIONS.md)).
-- `npm run build` — production build; must stay green (CI gates deploy).
+- `npm run build` — production build; must stay green (CI gates deploy). **Pinned to
+  `next build --webpack`, NOT Turbopack** — see the warning below.
 - `npm run lint` / `npm run test` (vitest).
-- Deploy: `npm run deploy` (OpenNext → Cloudflare). `npm run preview` is known-broken on
-  Windows — verify live after deploy. Stack detail: [../docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md).
+- Deploy: `npm run deploy` (OpenNext → Cloudflare; OpenNext runs `npm run build` for the
+  app build). `npm run preview` is known-broken on Windows — verify live after deploy
+  (`curl` a few routes — a Turbopack regression returns 500 on **every** page while CI
+  still reports the deploy "success"). Stack detail: [../docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md).
+
+> ⚠️ **Keep the `--webpack` flag.** Next 16 defaults `next build` to Turbopack, which
+> names server SSR chunks with square brackets (`server/chunks/ssr/[root-of-the-server]__….js`).
+> The OpenNext Cloudflare Worker runtime can't resolve those bracketed filenames at load
+> time → `ChunkLoadError` on a shared root chunk → HTTP 500 on every route. The build and
+> deploy commands both exit 0, so CI shows green; only a live request reveals it. Building
+> with webpack (numeric chunk names) is the fix. Don't drop `--webpack` from the `build`
+> script (and don't let a deps PR re-introduce a Turbopack-only build) until OpenNext
+> Cloudflare resolves bracketed Turbopack chunk names.
