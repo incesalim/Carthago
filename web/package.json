@@ -17,9 +17,9 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "d3-force": "^3.0.0",
-    "lucide-react": "^1.17.0",
+    "lucide-react": "^1.21.0",
     "modern-screenshot": "^4.5.4",
-    "next": "^16.2.7",
+    "next": "^16.2.9",
     "next-themes": "^0.4.6",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
@@ -32,14 +32,14 @@
     "@opennextjs/cloudflare": "^1.19.11",
     "@tailwindcss/postcss": "^4",
     "@types/d3-force": "^3.0.10",
-    "@types/node": "^25",
+    "@types/node": "^26",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
-    "eslint": "^9.39.4",
-    "eslint-config-next": "^16.2.7",
+    "eslint": "^10.5.0",
+    "eslint-config-next": "^16.2.9",
     "tailwindcss": "^4",
     "typescript": "^6",
-    "vitest": "^3.2.4",
-    "wrangler": "^4.98.0"
+    "vitest": "^4.1.9",
+    "wrangler": "^4.103.0"
   }
 }
