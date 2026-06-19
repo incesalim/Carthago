@@ -286,6 +286,30 @@ via `commercialNplRatios` in
 [`web/app/lib/metrics.ts`](../web/app/lib/metrics.ts). Both are surfaced
 on the Asset Quality page.
 
+### Valuation metrics (Valuation tab) — [`web/app/lib/valuation.ts`](../web/app/lib/valuation.ts)
+
+Forward scenario + intrinsic valuation for listed banks. All rates are
+fractions, all amounts thousand TL (per-share = × 1000 ÷ shares). Equity-side
+models only — DCF/FCF is inappropriate for banks (regulated leverage). Pure,
+unit-tested (`valuation.test.ts`); recomputed live client-side. Seeds assembled
+server-side in [`valuation-data.ts`](../web/app/lib/valuation-data.ts), presets in
+[`valuation-presets.ts`](../web/app/lib/valuation-presets.ts).
+
+| Metric | Formula | Notes |
+|---|---|---|
+| Cost of equity (COE) | `rf + β·ERP + CRP` | CAPM, **nominal TRY**. rf = CBRT funding proxy (EVDS `TP.APIFON4`); β = OLS of weekly bank vs XU100 returns from `bist_prices` (≥30 obs, else sector default 1.0); CRP = optional country premium |
+| Sustainable growth (g) | `ROE · (1 − payout)` | retention × return |
+| Justified P/B | `(ROE − g) / (COE − g)` | warranted multiple; null when COE ≤ g |
+| Starting ROE | `TTM net income / avg trailing-5-quarter equity` | same basis as `/cross-bank` heatmap ROE; falls back to TTM ÷ period-end equity |
+| Residual income value | `B₀ + Σ PV[(ROEₜ − COE)·Bₜ₋₁] + PV(terminal)` | clean-surplus roll-forward, linear ROE fade to terminal; terminal = Gordon at g_T (ω=0) or Ohlson AR(1) decay (ω>0) |
+| Two-stage DDM | `Σ PV(Dₜ) + PV(D_N(1+g_T)/(COE−g_T))` | dividends = payout × net income; stage-1 growth → terminal growth |
+| Implied P/B | `residual-income value ÷ B₀` | fade-aware intrinsic multiple |
+| Equity beta | `cov(r_bank, r_index) / var(r_index)` | weekly returns; `bankBeta` in `valuation-data.ts` |
+| Peer P/B-vs-ROE fit | OLS `P/B = a + b·ROE` across listed banks | residual ranks rich/cheap; `regressPbOnRoe` |
+
+Caveat: book/earnings are TAS-29 hyperinflation-restated, so absolute fair
+values are indicative; the durable driver is the real (ROE − COE) spread.
+
 ---
 
 ## 9. EVDS macro & interest rate series

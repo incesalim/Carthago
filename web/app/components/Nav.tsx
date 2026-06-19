@@ -44,6 +44,7 @@ const TABS: NavItem[] = [
   { href: "/rates", label: "Rates" },
   { href: "/banks", label: "Banks" },
   { href: "/cross-bank", label: "Compare" },
+  { href: "/valuation", label: "Valuation" },
   { href: "/ownership", label: "Ownership" },
   { href: "/regulation", label: "Regulation" },
   {
