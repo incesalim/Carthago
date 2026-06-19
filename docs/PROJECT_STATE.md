@@ -7,7 +7,7 @@ coverage or known issues change.
 > → this file → [OPERATIONS.md](OPERATIONS.md). Metric definitions in
 > [METRICS.md](METRICS.md).
 >
-> Last verified: 2026-06-15. Dated change history → [CHANGELOG.md](CHANGELOG.md).
+> Last verified: 2026-06-19. Dated change history → [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
@@ -291,6 +291,27 @@ ROE/ROA/NIM/Cost-Income derived from a P&L pivot by BRSA hierarchy (net profit
 `XXV.`→`XIX.`, net interest `III.`, opex `XI.`+`XII.`, gross op profit `VIII.`)
 over equity (BS liab `XVI.`), with YTD flows annualized × (4/quarter). Rank +
 color logic is the pure, client-safe `heatmap-normalize.ts`.
+
+A **Valuation** tab (`/valuation`) does forward scenario projection + intrinsic
+valuation for the listed banks. It's standalone (no changes to `/banks` or
+`/cross-bank`). DCF/FCF is inappropriate for banks (leverage is regulated, not a
+policy choice), so it uses the equity-side models: a multi-stage **residual
+income** model `V₀ = B₀ + Σ PV[(ROEₜ − COE)·Bₜ₋₁] + PV(terminal)` with a linear
+ROE fade and a Gordon (ω=0) or Ohlson-decay (ω>0) terminal, a **two-stage DDM**,
+and the **justified P/B** identity `(ROE − g)/(COE − g)`, g = ROE·(1−payout). Cost
+of equity is CAPM, **nominal TRY**: `rf + β·ERP + CRP`, β from weekly
+bank-vs-XU100 returns (`bist_prices`, ≥30 obs else a sector-default 1.0), rf a CBRT
+funding-rate proxy (`evds_series` TP.APIFON4). The maths are a pure, unit-tested
+module (`web/app/lib/valuation.ts`, 19 vitest cases) so the page **recomputes live
+in the browser** as the user drags sliders; Base/Bull/Bear presets seed editable
+assumptions (`valuation-presets.ts`). The server pre-fetches a compact per-bank
+seed for all listed banks at once (`valuation-data.ts`: book + TTM ROE on the
+heatmap basis, market cap, β, rf — reusing `bankFundamentals`/`bistValuation`
+read-only), so the bank selector swaps with zero round-trips. Also a cross-bank
+**P/B-vs-ROE regression scatter** + justified-vs-actual ranking (client-side,
+under a scenario toggle). Caveat surfaced in-UI: book/earnings are TAS-29
+hyperinflation-restated, so absolute fair values are indicative — the durable
+driver is the real (ROE − COE) spread; lean on the cross-peer comparison.
 
 A **Pipeline** tab (`/pipeline`) visualizes the whole data lineage as an
 interactive node graph (React Flow / `@xyflow/react`): external sources →

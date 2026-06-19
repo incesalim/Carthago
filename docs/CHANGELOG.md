@@ -3,7 +3,24 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-06-15 — **audit validators hardened + NPL=100% fixed end-to-end (43/45);
+Last verified: 2026-06-19 — **/valuation tab: scenario projections & intrinsic valuation.** New
+standalone top-level tab (no changes to `/banks` or `/cross-bank`) that values the listed banks with
+the equity-side models appropriate for banks (DCF/FCF is wrong — bank leverage is regulated):
+**residual income** `V₀ = B₀ + Σ PV[(ROEₜ − COE)·Bₜ₋₁] + PV(terminal)` with a linear ROE fade and a
+Gordon (ω=0) or Ohlson-decay (ω>0) terminal, a **two-stage DDM**, and the **justified P/B** identity
+`(ROE − g)/(COE − g)`. Cost of equity is CAPM, **nominal TRY**: `rf + β·ERP + CRP`, with β from weekly
+bank-vs-XU100 returns (`bist_prices`, ≥30 obs else a sector-default 1.0) and rf a CBRT funding-rate
+proxy (`evds_series` TP.APIFON4). All maths live in a pure, unit-tested module
+(`web/app/lib/valuation.ts`, 19 vitest cases) so the page **recomputes live in the browser** as the
+user edits sliders — Base/Bull/Bear presets seed editable assumptions. The server pre-fetches a compact
+per-bank "seed" (`web/app/lib/valuation-data.ts`: book + TTM ROE on the heatmap basis, market, β, rf)
+for all listed banks at once, so the bank selector swaps with zero round-trips. Also a cross-bank
+**P/B-vs-ROE regression scatter** + justified-vs-actual ranking (client-side, under a scenario toggle).
+Prominent TAS-29 hyperinflation caveat: the model is nominal; the durable driver is the real (ROE−COE)
+spread. Reuses `bankFundamentals`/`bistValuation`/`bist_prices` read-only. Nav gains one "Valuation"
+entry; existing tabs untouched.
+
+Prior: 2026-06-15 — **audit validators hardened + NPL=100% fixed end-to-end (43/45);
 coverage-matrix wipe footgun guarded.** Audited every §4/§5 validator (a green check ≠ correct
 data): `check_capital` rewritten to **reconcile the table** — composition `Tier1=CET1+AT1`,
 `Total=Tier1+Tier2` + sub-ratios `CET1/Tier1/CAR = component÷RWA` — surfacing **26** real
