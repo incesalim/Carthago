@@ -1,19 +1,23 @@
 "use client";
 
 /**
- * Export controls for a chart card: copy the chart image to the clipboard, or
- * download it as a PNG.
+ * Header controls for a chart card: copy the chart image to the clipboard,
+ * download it as a PNG, or pop the chart up large in the centre of the screen.
  *
  * Render it anywhere inside a card carrying `data-chart-card` (see ChartCard) —
- * the buttons climb to that element via `closest()` and rasterise it, so no ref
- * threading is needed and ChartCard stays a plain server component. They mirror
+ * the buttons climb to that element via `closest()`, so no ref threading is
+ * needed and ChartCard stays a plain server component. They mirror
  * CopyTableButton's look (hover-revealed pills via the parent's `group` class).
  *
- * The captured node is the whole card (title + chart). The export library is
- * lazy-imported on click so it never lands in the initial bundle.
+ * Copy/PNG rasterise the whole card (title + chart); the export library is
+ * lazy-imported on click so it never lands in the initial bundle. Expand
+ * re-parents the *live* card node into a centred modal so Recharts re-measures
+ * and the chart stays interactive (tooltips, legend hover/pin) at the larger
+ * size — the card is restored to its exact slot on close.
  */
-import { useState } from "react";
-import { Check, Clipboard, Download } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { Check, Clipboard, Download, Maximize2, Minimize2, X } from "lucide-react";
 import { toast } from "sonner";
 
 const BTN =
@@ -67,6 +71,60 @@ export default function ChartExport() {
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
 
+  // Centre-screen popup. We move the *real* card DOM into the modal (rather than
+  // cloning) so Recharts' ResponsiveContainer re-measures and the chart stays
+  // live. A comment placeholder marks the card's original slot for restoration.
+  const [expanded, setExpanded] = useState(false);
+  const cardRef = useRef<HTMLElement | null>(null);
+  const placeholderRef = useRef<Comment | null>(null);
+
+  function closeExpand() {
+    const card = cardRef.current;
+    const ph = placeholderRef.current;
+    // Restore the card to its slot *before* unmounting the modal, so React only
+    // ever removes the now-empty mount — never the card itself.
+    if (card && ph?.parentNode) {
+      ph.parentNode.insertBefore(card, ph);
+      ph.remove();
+    }
+    cardRef.current = null;
+    placeholderRef.current = null;
+    setExpanded(false);
+  }
+
+  function openExpand(e: React.MouseEvent<HTMLButtonElement>) {
+    if (expanded) return;
+    const card = cardOf(e);
+    if (!card?.parentNode) return;
+    const ph = document.createComment("chart-expand");
+    card.parentNode.insertBefore(ph, card);
+    cardRef.current = card;
+    placeholderRef.current = ph;
+    setExpanded(true);
+  }
+
+  // The mount lands in the DOM during commit (before paint), so appending the
+  // card here — instead of in an effect — avoids an empty-modal flash. Stable
+  // identity keeps it from re-firing on Copy/PNG re-renders while open.
+  const mountRef = useCallback((el: HTMLDivElement | null) => {
+    if (el && cardRef.current) el.appendChild(cardRef.current);
+  }, []);
+
+  // Esc-to-close + lock body scroll while the popup is open.
+  useEffect(() => {
+    if (!expanded) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeExpand();
+    };
+    window.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [expanded]);
+
   async function onDownload(e: React.MouseEvent<HTMLButtonElement>) {
     const card = cardOf(e);
     if (!card || busy) return;
@@ -110,33 +168,80 @@ export default function ChartExport() {
   }
 
   return (
-    <div data-chart-no-export="" className="flex items-center gap-1">
-      <button
-        type="button"
-        onClick={onCopy}
-        disabled={busy}
-        aria-label="Copy chart image to clipboard"
-        title="Copy image"
-        className={BTN}
-      >
-        {copied ? (
-          <Check className="size-3" aria-hidden />
-        ) : (
-          <Clipboard className="size-3" aria-hidden />
+    <>
+      <div data-chart-no-export="" className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={onCopy}
+          disabled={busy}
+          aria-label="Copy chart image to clipboard"
+          title="Copy image"
+          className={BTN}
+        >
+          {copied ? (
+            <Check className="size-3" aria-hidden />
+          ) : (
+            <Clipboard className="size-3" aria-hidden />
+          )}
+          {copied ? "Copied" : "Copy"}
+        </button>
+        <button
+          type="button"
+          onClick={onDownload}
+          disabled={busy}
+          aria-label="Download chart as PNG"
+          title="Download PNG"
+          className={BTN}
+        >
+          <Download className="size-3" aria-hidden />
+          {busy ? "…" : "PNG"}
+        </button>
+        <button
+          type="button"
+          onClick={expanded ? closeExpand : openExpand}
+          aria-label={expanded ? "Close expanded chart" : "Expand chart to centre of screen"}
+          title={expanded ? "Restore" : "Expand"}
+          className={BTN}
+        >
+          {expanded ? (
+            <Minimize2 className="size-3" aria-hidden />
+          ) : (
+            <Maximize2 className="size-3" aria-hidden />
+          )}
+          {expanded ? "Restore" : "Expand"}
+        </button>
+      </div>
+
+      {expanded &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-8"
+            role="dialog"
+            aria-modal="true"
+          >
+            <button
+              type="button"
+              aria-label="Close"
+              onClick={closeExpand}
+              className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+            />
+            <div className="relative w-full max-w-5xl">
+              <button
+                type="button"
+                onClick={closeExpand}
+                aria-label="Close expanded chart"
+                title="Close"
+                className="absolute -top-10 right-0 z-10 inline-flex size-8 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm transition-colors hover:text-foreground"
+              >
+                <X className="size-4" aria-hidden />
+              </button>
+              {/* The live card is moved in here by mountRef; capped to the
+                  viewport so tall charts scroll rather than overflow. */}
+              <div ref={mountRef} className="max-h-[90vh] w-full overflow-auto" />
+            </div>
+          </div>,
+          document.body,
         )}
-        {copied ? "Copied" : "Copy"}
-      </button>
-      <button
-        type="button"
-        onClick={onDownload}
-        disabled={busy}
-        aria-label="Download chart as PNG"
-        title="Download PNG"
-        className={BTN}
-      >
-        <Download className="size-3" aria-hidden />
-        {busy ? "…" : "PNG"}
-      </button>
-    </div>
+    </>
   );
 }
