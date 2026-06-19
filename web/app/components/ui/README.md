@@ -32,8 +32,8 @@ utility so light/dark stay correct:
 - **`Section`** — labelled content block with optional heading row.
 - **`Stat`** — KPI tile: `label`, `value`, `hint`, `tone`, optional sparkline child.
 - **`Card`** (+ `CardHeader/Title/Description/Content/Footer`) — generic surface.
-- **`ChartCard`** — card chrome shared by every chart (`title`, `description`, `action`). Auto-renders `ChartExport` (Copy-image / PNG-download buttons) in the header; tags the surface with `data-chart-card` (capture target) and the title with `data-chart-title` (filename).
-- **`ChartExport`** — hover-revealed Copy-to-clipboard / PNG-download controls. Rasterises the nearest `[data-chart-card]` with `modern-screenshot` (lazy-imported on click); resolves the export background from the card's `oklch` token via a canvas round-trip so PNGs are theme-correct. Add `data-chart-no-export` to any node inside the card you want excluded from the image.
+- **`ChartCard`** — card chrome shared by every chart (`title`, `description`, `action`). Auto-renders `ChartExport` (Copy-image / PNG-download / Expand buttons) in the header; tags the surface with `data-chart-card` (capture + expand target) and the title with `data-chart-title` (filename).
+- **`ChartExport`** — hover-revealed Copy-to-clipboard / PNG-download / **Expand** controls. Copy/PNG rasterise the nearest `[data-chart-card]` with `modern-screenshot` (lazy-imported on click); the export background is resolved from the card's `oklch` token via a canvas round-trip so PNGs are theme-correct. Expand re-parents the *live* card node into a centred portal modal (backdrop / ✕ / Esc to close) so Recharts re-measures and the chart stays interactive at the larger size; the card is restored to its exact slot on close. Add `data-chart-no-export` to any node inside the card you want excluded from the image.
 - **`Badge`** — pill with `default/secondary/outline/positive/negative/warning/info`.
 - **`Button`** (+ `buttonVariants`) — `default/secondary/outline/ghost/destructive/link` × `sm/default/lg/icon`.
 - **`Table`** (+ `TableHeader/Body/Row/Head/Cell`) — token-styled, horizontally scrollable.
