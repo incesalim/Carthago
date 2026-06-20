@@ -479,13 +479,17 @@ A qualitative-data layer feeds three tabs from the `news_items` table
   the largest buckets are npl_movement (87, NULL key-flow columns — extractor
   label-variant gaps) and loans_by_sector (66, mainly YKBNK no-breakdown + FIBA
   agri_fishery double-count + HSBC missing `other`). OCI: the 16 YKBNK Q2/Q3
-  partitions that captured P&L rows are **FIXED (2026-06-20)** — `_locate_oci_page`
-  now skips P&L pages (the BRSA combined-title "…VE DİĞER KAPSAMLI GELİR TABLOSU"
-  made the locator stop on YKBNK's quarter-only P&L twin; it now skips any candidate
-  carrying an interest/profit-share income anchor, window widened pl+1→pl+6) and the
-  affected partitions + ~15 recoverable empties (GARAN/FIBA/ISCTR/TFKB/TSKB, where
-  P&L parsed but the OCI page was past the old window) were re-extracted via
-  `reextract-statement.yml`.
+  partitions that captured P&L rows are **FIXED (2026-06-20, all 34 YKBNK pass;
+  OCI 881→897/975)** — `_locate_oci_page` now skips P&L pages (the BRSA combined
+  title "…VE DİĞER KAPSAMLI GELİR TABLOSU" made the locator stop on YKBNK's
+  quarter-only P&L twin; it now rejects any candidate carrying an interest/
+  profit-share income anchor, window widened pl+1→pl+6), shipped via
+  `reextract-statement.yml`. **Still open:** the 16 OCI empties are a *separate*
+  root cause — GARAN ×7 is the wide-interleaved-table layout (fitz reads its OCI
+  page as 0 roman rows, like the GARAN/AKBNK equity case → needs pdfplumber
+  x-clustering, not a locator tweak), and FIBA/ISCTR/TSKB are image-only PDFs whose
+  P&L was hand-transcribed (`_locate_pages` returns no P&L → no OCI). Plus the 62
+  cosmetic dropped-leaf fails (ALBRK 2.2.2 ×34 etc.).
   Off-balance: 20 partitions across 7 banks (ALNTF column-alignment, TEB year-end
   format, ZIRAAT 2025Q4/2026Q1 new). ISCTR 2025Q1/Q2 capital CAR=100.0 = 2 genuine
   extraction errors. Dashboard surfacing of §4 capital/liquidity cross-bank view
