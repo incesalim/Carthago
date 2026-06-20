@@ -3,7 +3,21 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-06-21 — **P&L coverage-matrix errors: 8 of 10 fixed via overrides; 2 are genuine
+Last verified: 2026-06-21 — **P&L coverage matrix now 0 errors: the last 2 resolved.** Closed the two
+`profit_loss` failures previously left flagged. **QNBFB 2023Q1 uncons was recoverable after all**: the
+period net profit `6.632.553` had been misplaced into the XX (discontinued-income) row while XIX held
+garbage `(4.678.663)` and XXV was blank — the **statement of changes in equity** (`period_net_profit_loss`
+on the Total-Comprehensive-Income row, reconciling 6.632.553 − OCI 1.764.044 = TCI 4.868.509) gave the
+authoritative net, confirming no discontinued ops and that XIX = XVII+|XVIII| (the tax is a benefit). Fixed
+with 3 `profit_loss` overrides (XIX `6.632.553`, XX `0`, XXV `6.632.553`); the prior period shows the same
+misplacement, corroborating. **ICBCT 2023Q2 cons is a genuine immaterial source defect** (printed VIII is
+358 / 0.013% above the sum of its individually-correct components; the bank's chain foots from VIII on, so
+no cell is wrong) — added a curated `_PL_SKIP` exception in `revalidate_audit_db.py` (mirrors the existing
+`_CAP_SKIP`), keeping the data faithful to the PDF while suppressing the spurious red cell. Verified live:
+`profit_loss` matrix errors **2→0** (core statements assets/liabilities/P&L all clean); the remaining 719
+errors are all non-core footnote statements (equity_change 340, cash_flow 135, npl_movement 126, …).
+
+Prior: 2026-06-21 — **P&L coverage-matrix errors: 8 of 10 fixed via overrides; 2 are genuine
 source defects.** All 10 `profit_loss` failures were the `pl_chain` roman-identity check. Triaged each
 against its PDF: **8 partitions / 10 cells** were recoverable single-cell extraction artifacts, fixed
 with `profit_loss` overrides (chain-forced + PDF-verified): **AKTIF 2023Q3 & 2025Q2** dividend row V
