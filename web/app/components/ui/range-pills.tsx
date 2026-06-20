@@ -1,14 +1,15 @@
 "use client";
 
 /**
- * Compact date-range selector (1Y / 3Y / 5Y / YTD / All) for a chart card
- * header. Drop into ChartCard's `action` slot via the useDateRange hook.
+ * Compact date-range selector (1Y / 3Y / 5Y / YTD / All) — the single global
+ * chart range control, rendered once in the page header (see
+ * `web/app/components/range-context.tsx`).
  *
- * Marked `data-chart-no-export` so the PNG/Copy capture (chart-export.tsx)
- * leaves the pills out of the exported image. Renders nothing when there's
- * at most one applicable range (no choice to offer).
+ * Styled as one unified segmented control (a single bordered container with
+ * inner segments) so it reads as a distinct filter widget rather than blending
+ * in with neighbouring outline buttons (e.g. the section-nav links on the
+ * Economy hub). Renders nothing when there's at most one range to offer.
  */
-import { Button } from "./button";
 import { cn } from "@/app/lib/cn";
 import type { RangeKey } from "@/app/lib/chart-range";
 
@@ -25,19 +26,30 @@ export function RangePills({
 }) {
   if (ranges.length <= 1) return null;
   return (
-    <div data-chart-no-export="" className={cn("flex items-center gap-0.5", className)}>
+    <div
+      data-chart-no-export=""
+      role="group"
+      aria-label="Chart date range"
+      className={cn(
+        "inline-flex items-center gap-0.5 rounded-lg border border-border bg-card p-0.5",
+        className,
+      )}
+    >
       {ranges.map((r) => (
-        <Button
+        <button
           key={r}
           type="button"
-          size="sm"
-          variant={active === r ? "default" : "outline"}
-          className="h-6 px-2 text-[11px] font-medium"
           aria-pressed={active === r}
           onClick={() => onSelect(r)}
+          className={cn(
+            "rounded-md px-2 py-0.5 text-xs font-medium transition-colors",
+            active === r
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:bg-accent hover:text-foreground",
+          )}
         >
           {r}
-        </Button>
+        </button>
       ))}
     </div>
   );
