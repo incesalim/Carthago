@@ -7,7 +7,7 @@ coverage or known issues change.
 > → this file → [OPERATIONS.md](OPERATIONS.md). Metric definitions in
 > [METRICS.md](METRICS.md); meta-knowledge about banking metrics (which are
 > disclosed, standardized across banks, on a regular cadence, and reproducible
-> from our data) in [BANKING_METRICS.md](BANKING_METRICS.md) — a 139-metric
+> from our data) in [BANKING_METRICS.md](BANKING_METRICS.md) — a 153-metric
 > registry (`data/metric_knowledge/`, CLI `scripts/metric_knowledge.py`).
 >
 > Last verified: 2026-06-19. Dated change history → [CHANGELOG.md](CHANGELOG.md).
