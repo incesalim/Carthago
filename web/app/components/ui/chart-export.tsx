@@ -285,8 +285,12 @@ export default function ChartExport() {
                 <X className="size-4" aria-hidden />
               </button>
               {/* The live card is moved in here by mountRef; capped to the
-                  viewport so tall charts scroll rather than overflow. */}
-              <div ref={mountRef} className="max-h-[90vh] w-full overflow-auto" />
+                  viewport so tall charts scroll vertically rather than overflow.
+                  X is clipped, not auto: the chart is always width-responsive, so
+                  a horizontal scrollbar is never needed — but a tooltip rendering
+                  at the chart edge momentarily overflows the width, and `auto`
+                  would flash a horizontal scrollbar for that one frame. */}
+              <div ref={mountRef} className="max-h-[90vh] w-full overflow-x-hidden overflow-y-auto" />
             </div>
           </div>,
           document.body,
