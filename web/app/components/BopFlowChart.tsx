@@ -23,7 +23,9 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { ChartData } from "@/app/components/ui/chart-csv";
 import { useChartTheme, tooltipStyles } from "@/app/lib/chart-theme";
+import { wideToTable } from "@/app/lib/chart-csv";
 import { nf } from "@/app/lib/chart-format";
 
 export interface BarSeries {
@@ -135,115 +137,126 @@ export default function BopFlowChart({
     );
   };
 
+  const csvSeries = line ? [...bars, { key: line.key, label: line.label }] : bars;
+
   return (
-    <div style={{ height }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart
-          data={data}
-          stackOffset={grouped ? undefined : "sign"}
-          margin={{ top: 10, right: line?.rightAxis ? 12 : 20, left: 6, bottom: 28 }}
-          barCategoryGap={grouped ? "16%" : "18%"}
-        >
-          <CartesianGrid strokeDasharray="3 3" stroke={t.grid} />
-          <XAxis
-            dataKey="x"
-            tick={{ fontSize: 10, fill: t.axis }}
-            tickMargin={6}
-            minTickGap={18}
-            axisLine={{ stroke: t.grid }}
-            tickLine={{ stroke: t.grid }}
-          />
-          <YAxis
-            yAxisId="left"
-            tick={{ fontSize: 11, fill: t.axis }}
-            tickFormatter={(v) => nf(Number(v), 0)}
-            axisLine={{ stroke: t.grid }}
-            tickLine={{ stroke: t.grid }}
-          />
-          {line?.rightAxis && (
+    <>
+      <ChartData
+        table={wideToTable(
+          data,
+          { key: "x", label: "Period" },
+          csvSeries.map((s) => ({ key: s.key, label: s.label })),
+        )}
+      />
+      <div style={{ height }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart
+            data={data}
+            stackOffset={grouped ? undefined : "sign"}
+            margin={{ top: 10, right: line?.rightAxis ? 12 : 20, left: 6, bottom: 28 }}
+            barCategoryGap={grouped ? "16%" : "18%"}
+          >
+            <CartesianGrid strokeDasharray="3 3" stroke={t.grid} />
+            <XAxis
+              dataKey="x"
+              tick={{ fontSize: 10, fill: t.axis }}
+              tickMargin={6}
+              minTickGap={18}
+              axisLine={{ stroke: t.grid }}
+              tickLine={{ stroke: t.grid }}
+            />
             <YAxis
-              yAxisId="right"
-              orientation="right"
+              yAxisId="left"
               tick={{ fontSize: 11, fill: t.axis }}
               tickFormatter={(v) => nf(Number(v), 0)}
               axisLine={{ stroke: t.grid }}
               tickLine={{ stroke: t.grid }}
             />
-          )}
-          <ReferenceLine y={0} yAxisId="left" stroke={t.reference} />
-          <Tooltip cursor={{ fill: t.cursor }} content={renderTooltip} />
-          <Legend
-            wrapperStyle={{ fontSize: 11, paddingTop: 4 }}
-            content={() => (
-              <ul
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  justifyContent: "center",
-                  gap: "2px 14px",
-                  listStyle: "none",
-                  margin: 0,
-                  padding: 0,
-                }}
-              >
-                {bars.map((s, i) => (
-                  <li
-                    key={s.key}
-                    style={{ display: "inline-flex", alignItems: "center", gap: 5, color: t.axis }}
-                  >
-                    <span
-                      style={{
-                        display: "inline-block",
-                        width: 11,
-                        height: 11,
-                        borderRadius: 2,
-                        background: fillOf(s, i),
-                      }}
-                    />
-                    {s.label}
-                  </li>
-                ))}
-                {line && (
-                  <li style={{ display: "inline-flex", alignItems: "center", gap: 5, color: t.axis }}>
-                    <span
-                      style={{
-                        display: "inline-block",
-                        width: 14,
-                        borderTop: `2px ${line.dotted ? "dotted" : "solid"} ${lineColor}`,
-                      }}
-                    />
-                    {line.label}
-                  </li>
-                )}
-              </ul>
+            {line?.rightAxis && (
+              <YAxis
+                yAxisId="right"
+                orientation="right"
+                tick={{ fontSize: 11, fill: t.axis }}
+                tickFormatter={(v) => nf(Number(v), 0)}
+                axisLine={{ stroke: t.grid }}
+                tickLine={{ stroke: t.grid }}
+              />
             )}
-          />
-          {bars.map((s, i) => (
-            <Bar
-              key={s.key}
-              yAxisId="left"
-              dataKey={s.key}
-              name={s.label}
-              stackId={grouped ? undefined : "bop"}
-              fill={fillOf(s, i)}
-              isAnimationActive={false}
+            <ReferenceLine y={0} yAxisId="left" stroke={t.reference} />
+            <Tooltip cursor={{ fill: t.cursor }} content={renderTooltip} />
+            <Legend
+              wrapperStyle={{ fontSize: 11, paddingTop: 4 }}
+              content={() => (
+                <ul
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    justifyContent: "center",
+                    gap: "2px 14px",
+                    listStyle: "none",
+                    margin: 0,
+                    padding: 0,
+                  }}
+                >
+                  {bars.map((s, i) => (
+                    <li
+                      key={s.key}
+                      style={{ display: "inline-flex", alignItems: "center", gap: 5, color: t.axis }}
+                    >
+                      <span
+                        style={{
+                          display: "inline-block",
+                          width: 11,
+                          height: 11,
+                          borderRadius: 2,
+                          background: fillOf(s, i),
+                        }}
+                      />
+                      {s.label}
+                    </li>
+                  ))}
+                  {line && (
+                    <li style={{ display: "inline-flex", alignItems: "center", gap: 5, color: t.axis }}>
+                      <span
+                        style={{
+                          display: "inline-block",
+                          width: 14,
+                          borderTop: `2px ${line.dotted ? "dotted" : "solid"} ${lineColor}`,
+                        }}
+                      />
+                      {line.label}
+                    </li>
+                  )}
+                </ul>
+              )}
             />
-          ))}
-          {line && (
-            <Line
-              yAxisId={line.rightAxis ? "right" : "left"}
-              dataKey={line.key}
-              name={line.label}
-              stroke={lineColor}
-              strokeWidth={2}
-              strokeDasharray={line.dotted ? "2 3" : undefined}
-              dot={false}
-              isAnimationActive={false}
-              connectNulls
-            />
-          )}
-        </ComposedChart>
-      </ResponsiveContainer>
-    </div>
+            {bars.map((s, i) => (
+              <Bar
+                key={s.key}
+                yAxisId="left"
+                dataKey={s.key}
+                name={s.label}
+                stackId={grouped ? undefined : "bop"}
+                fill={fillOf(s, i)}
+                isAnimationActive={false}
+              />
+            ))}
+            {line && (
+              <Line
+                yAxisId={line.rightAxis ? "right" : "left"}
+                dataKey={line.key}
+                name={line.label}
+                stroke={lineColor}
+                strokeWidth={2}
+                strokeDasharray={line.dotted ? "2 3" : undefined}
+                dot={false}
+                isAnimationActive={false}
+                connectNulls
+              />
+            )}
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+    </>
   );
 }

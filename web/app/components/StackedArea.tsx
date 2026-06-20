@@ -11,7 +11,9 @@ import {
   YAxis,
 } from "recharts";
 import { ChartCard } from "@/app/components/ui/chart-card";
+import { ChartData } from "@/app/components/ui/chart-csv";
 import { useChartTheme, tooltipStyles, seriesColor } from "@/app/lib/chart-theme";
+import { wideToTable } from "@/app/lib/chart-csv";
 import { nf, formatters, type FormatKind } from "@/app/lib/chart-format";
 
 export interface StackPoint {
@@ -135,6 +137,9 @@ export default function StackedArea({
 
   return (
     <ChartCard title={title}>
+      <ChartData
+        table={wideToTable(data, { key: "period", label: "Period" }, shown)}
+      />
       <div style={{ height }}>
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} stackOffset={percentStack ? "expand" : "none"}
