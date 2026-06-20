@@ -57,6 +57,7 @@ export default async function CapitalPage() {
               title="Capital Adequacy Ratio (%) — by group"
               yFormat="pct"
               decimals={1}
+              range={{ default: "3Y" }}
             />
           </div>
           <BarByBank
@@ -81,6 +82,7 @@ export default async function CapitalPage() {
             title="Total Equity — Level (sector)"
             yFormat="trn"
             decimals={2}
+            range={{ default: "3Y" }}
           />
           <TrendChart
             data={equityYoYSec}
@@ -89,6 +91,7 @@ export default async function CapitalPage() {
             yFormat="pct"
             decimals={1}
             zeroLine
+            range={{ default: "3Y" }}
           />
           <TrendChart
             data={lev}
@@ -96,6 +99,7 @@ export default async function CapitalPage() {
             title="Liabilities / Equity (%)"
             yFormat="pct"
             decimals={0}
+            range={{ default: "3Y" }}
           />
         </div>
       </section>
@@ -116,6 +120,7 @@ export default async function CapitalPage() {
             title="RWA Net / Gross (%)"
             yFormat="pct"
             decimals={1}
+            range={{ default: "3Y" }}
           />
           <TrendChart
             data={offBsDeriv}
@@ -123,6 +128,7 @@ export default async function CapitalPage() {
             title="Off-Balance-Sheet Derivatives / Total Assets (%)"
             yFormat="pct"
             decimals={1}
+            range={{ default: "3Y" }}
           />
         </div>
       </section>

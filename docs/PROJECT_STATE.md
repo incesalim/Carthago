@@ -147,6 +147,19 @@ latest-period** trigger, and **13 banks auto-discover** new quarters from their
 IR page (no hand-added URL needed) — see [ADMIN.md](ADMIN.md) §Auto-discovery.
 Setup in [OPERATIONS.md](OPERATIONS.md) / [ADMIN.md](ADMIN.md).
 
+Every chart card (`web/app/components/ui/chart-card.tsx`) carries hover-revealed
+header controls — **Copy** image, **PNG** download, **CSV** download, and
+**Expand** to a centred popup. A **date-range selector** (1Y / 3Y / 5Y / YTD /
+All) is being **piloted** on long-history charts: it's a pure **client-side**
+display zoom over data the page already ships (no refetch), opt-in per chart via
+the `range` prop on `TrendChart` / `TimeSeriesChart` / `StackedArea`. Buttons
+whose window exceeds the data's span auto-hide; CSV/PNG export the visible
+window. Pilot pages: `/banks/[ticker]` share price (default 1Y), `/rates`
+(1Y), `/capital` trends (3Y), `/economy/balance-of-payments` Şekil 1/2/7/8/9
+(3Y). Logic in `web/app/lib/chart-range.ts` (+ vitest) and the
+`web/app/lib/use-date-range.tsx` hook; `BopFlowChart`/`BarByBank` are out of
+scope (fixed report windows / snapshots).
+
 The **Non-Bank** tab (`/non-bank`) covers the BDDK-supervised non-bank lenders
 that compete with bank credit — financial leasing, factoring, and financing
 companies — from the BDDK non-bank monthly bulletin (`nonbank_balance_sheet`).

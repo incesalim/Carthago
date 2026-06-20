@@ -369,6 +369,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
                 yFormat="fx"
                 decimals={2}
                 height={280}
+                range={{ default: "1Y" }}
               />
             </div>
           )}

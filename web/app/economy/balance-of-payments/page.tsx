@@ -92,12 +92,14 @@ export default async function BalanceOfPaymentsPage() {
             title="Şekil 1 · Current Account (12m rolling, USD bn)"
             yFormat="raw"
             decimals={1}
+            range={{ default: "3Y" }}
           />
           <TimeSeriesChart
             series={d.s2}
             title="Şekil 2 · Goods & Tourism (12m rolling, USD bn)"
             yFormat="raw"
             decimals={1}
+            range={{ default: "3Y" }}
           />
         </Grid>
       </Section>
@@ -211,18 +213,21 @@ export default async function BalanceOfPaymentsPage() {
             title="Şekil 7 · Trade Credits (12m rolling, USD bn)"
             yFormat="raw"
             decimals={1}
+            range={{ default: "3Y" }}
           />
           <TimeSeriesChart
             series={d.s8}
             title="Şekil 8 · Currency & Deposits (12m rolling, USD bn)"
             yFormat="raw"
             decimals={1}
+            range={{ default: "3Y" }}
           />
           <TimeSeriesChart
             series={d.s9}
             title="Şekil 9 · Net Errors & Omissions (12m rolling, USD bn)"
             yFormat="raw"
             decimals={1}
+            range={{ default: "3Y" }}
           />
         </Grid>
       </Section>
