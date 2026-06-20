@@ -99,12 +99,14 @@ export default async function RatesPage() {
           title="Rate Corridor — Policy + ON + Effective Funding (%)"
           yFormat="pct"
           decimals={2}
+          range={{ default: "1Y" }}
         />
         <TimeSeriesChart
           series={byLabel(FX)}
           title="Exchange Rates — USD &amp; EUR"
           yFormat="fx"
           decimals={2}
+          range={{ default: "1Y" }}
         />
       </div>
 
@@ -114,12 +116,14 @@ export default async function RatesPage() {
           title="Lending &amp; Deposit Rates (weekly survey, %)"
           yFormat="pct"
           decimals={2}
+          range={{ default: "1Y" }}
         />
         <TimeSeriesChart
           series={byLabel(STERIL)}
           title="CBRT Sterilization Channels (TL bn)"
           yFormat="raw"
           decimals={0}
+          range={{ default: "1Y" }}
         />
       </div>
     </main>
