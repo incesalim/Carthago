@@ -10,7 +10,6 @@
  * sovereign yield curves (Bloomberg), the GDP nowcast and the FCI composite
  * (BBVA-proprietary), and foreigners' positioning flows.
  */
-import Link from "next/link";
 import { getEconomyData, BBVA_BASELINE } from "@/app/lib/economy";
 import { bistIndexHistory, type PricePoint } from "@/app/lib/bist";
 import { liveQuotes, type LiveQuote } from "@/app/lib/bist-live";
@@ -78,38 +77,7 @@ export default async function EconomyPage() {
         description="Growth · labor · inflation & policy · external balance · fiscal — TCMB EVDS (TURKSTAT, CBRT, Treasury)"
         rangeSelector
         dataThrough={dataThrough}
-      >
-        <Link
-          href="/economy/economic-growth"
-          className="rounded-md border border-border px-2.5 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-        >
-          Economic Growth →
-        </Link>
-        <Link
-          href="/economy/balance-of-payments"
-          className="rounded-md border border-border px-2.5 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-        >
-          Balance of Payments →
-        </Link>
-        <Link
-          href="/economy/budget"
-          className="rounded-md border border-border px-2.5 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-        >
-          Budget →
-        </Link>
-        <Link
-          href="/economy/inflation"
-          className="rounded-md border border-border px-2.5 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-        >
-          Inflation →
-        </Link>
-        <Link
-          href="/economy/foreign-trade"
-          className="rounded-md border border-border px-2.5 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-        >
-          Foreign Trade →
-        </Link>
-      </PageHeader>
+      />
 
       <Section
         title="Growth & Activity"
