@@ -158,7 +158,7 @@ export default function PipelinePanel() {
                   <span className="truncate text-sm font-semibold text-foreground">{w.label}</span>
                   <Badge variant={badge.variant}>{badge.label}</Badge>
                 </div>
-                <p className="mt-0.5 truncate text-xs text-muted-foreground">{w.description}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">{w.description}</p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {run ? (
                     <>
