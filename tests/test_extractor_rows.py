@@ -222,6 +222,41 @@ def test_comma_for_dot_markers_normalized():
     assert _parse_rows("17,740,253 20,077,174 37,817,427 14,741,143 13,757,005 28,498,148 notes", 6) == []
 
 
+def test_long_two_col_oci_line_kept():
+    # ALBRK/ANADOLU/VAKBN OCI line 2.2.2 ("…Valuation/Reclassification of
+    # Financial Assets Measured at Fair Value through Other Comprehensive
+    # Income") merges back to a ~167-char label and was silently dropped by the
+    # flat 150-char anti-header cap. The 2-column statements never accrete a
+    # phantom header that long, so the cap is relaxed for them — the row stays.
+    text = ("2.2.2 Income/Expenses from Valuation and/or Reclassification of "
+            "Financial Assets Measured at Financial Assets Measured at Fair Value "
+            "through Other Comprehensive Income (206.113) (49.051)")
+    assert len(text.split("(206.113)")[0]) > 150  # guard: it really is long
+    rows = _parse_rows(text, 2)
+    assert len(rows) == 1
+    assert rows[0][0].startswith("2.2.2")
+    assert rows[0][1] == [-206113.0, -49051.0]
+
+
+def test_long_label_cap_is_strict_for_six_col_only():
+    # A keyword-free label in the 150–200 band: the n_cols-gated cap rejects it
+    # on the wide statements (frozen BS path keeps its strict 150 limit) but
+    # keeps it on the 2-column path (where the verbose OCI line lives).
+    label = "I. " + ("Spurious Wide Header Fragment " * 6)  # ~180 chars, no keywords
+    assert 150 < len(label.rstrip()) <= 200
+    assert _parse_rows(label + " " + VALUES_6, 6) == []
+    kept = _parse_rows(label + " 123 456", 2)
+    assert len(kept) == 1 and kept[0][1] == [123.0, 456.0]
+
+
+def test_excessively_long_two_col_label_still_rejected():
+    # The 2-col cap is relaxed, not removed: a genuinely runaway (>200-char)
+    # label is still treated as noise.
+    runaway = "1.1 " + ("Very Long Spurious Header " * 12) + "123 456"
+    assert len(runaway.split("123")[0]) > 200
+    assert _parse_rows(runaway, 2) == []
+
+
 def test_squished_off_balance_rows_survive_header_filter():
     # ISCTR off-balance: real data rows that contain "BALANCESHEET" squished —
     # the header filter must not eat them (it did, briefly, between the QNBFB

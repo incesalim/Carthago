@@ -599,8 +599,18 @@ def _parse_rows(text: str, n_cols: int) -> list[tuple[str, list[float | None]]]:
         # Reject labels that look like page-/section-headers rather than BS rows.
         # AKBNK has a section header "I. 31 ARALIK 2025 TARİHİ İTİBARIYLA
         # KONSOLİDE OLMAYAN BİLANÇO ..." that the wrap-merge sometimes splices
-        # together with the page-column header until 6 numbers accumulate.
-        if len(label) > 150:
+        # together with the page-column header until 6 numbers accumulate. That
+        # phantom-header splice only happens on the wide 6-column statements
+        # (balance sheet / off-balance), so keep the strict 150-char cap there —
+        # the frozen BS path is unaffected. The 2-column statements never accrete
+        # a header that long, yet a few banks (ALBRK, ANADOLU, VAKBN) print a
+        # genuinely verbose OCI line item — "2.2.2 Income/Expenses from Valuation
+        # …/Reclassification of Financial Assets Measured at Fair Value through
+        # Other Comprehensive Income" runs to ~167 chars — which a flat 150 cap
+        # silently dropped. Give the narrow statements headroom (real line items
+        # top out near 134 chars; the keyword/date regexes above still catch any
+        # spliced header well before 200).
+        if len(label) > (150 if n_cols >= 6 else 200):
             continue
         if re.search(
             r'(?:\d+\s+(?:Aralık|Ocak|Şubat|Mart|Nisan|Mayıs|Haziran|Temmuz|'
