@@ -478,8 +478,8 @@ A qualitative-data layer feeds three tabs from the `news_items` table
   absent. Remaining 225 error cells are extraction issues, not validator bugs —
   the largest buckets are npl_movement (87, NULL key-flow columns — extractor
   label-variant gaps) and loans_by_sector (66, mainly YKBNK no-breakdown + FIBA
-  agri_fishery double-count + HSBC missing `other`). OCI: **two fixes 2026-06-20
-  took the lane 881→938/975 pass.** (1) `_locate_oci_page` now skips P&L pages —
+  agri_fishery double-count + HSBC missing `other`). OCI: **three fixes 2026-06-20
+  took the lane 881→946/975 pass.** (1) `_locate_oci_page` now skips P&L pages —
   the BRSA combined title "…VE DİĞER KAPSAMLI GELİR TABLOSU" made the locator stop
   on YKBNK's quarter-only P&L twin (it captured the income statement as OCI for 16
   partitions); it now rejects any candidate carrying an interest/profit-share
@@ -490,11 +490,21 @@ A qualitative-data layer feeds three tabs from the `news_items` table
   pass finds nothing, and `extract_oci` adds pdfplumber candidates when no fitz
   candidate validates — both gated on fitz failing so the fast path is untouched.
   Recovered all 7 GARAN empties **and** ~34 dropped-leaf fails (fitz was
-  fragmenting sub-rows pdfplumber reads). Shipped via `reextract-statement.yml`.
-  **Remaining 37 are genuine:** 9 empties = FIBA/ISCTR/TFKB/TSKB **image-only PDFs**
-  (P&L hand-transcribed, no parseable OCI page); 28 fails = 25 cosmetic dropped-leaf
-  (totals foot, one sub-line short on odd-layout/image-quality pages) + 3 cross-
-  mismatch + 2 chain (ATBANK date-header noise, KLNMA).
+  fragmenting sub-rows pdfplumber reads). (3) **coordinate reconstruction**
+  (`_coord_oci_text` + `_fitz_visual_rows`) for sub-rows whose label/value/marker
+  print on different physical lines — a value on its own line ABOVE a marker-only
+  line (ALNTF 2.2.2), or a wrapped-label continuation below; rebuilds rows from
+  fitz word x/y and feeds clean lines to the text parser. Added ONLY when no
+  candidate foots the sub-trees AND only if the coord candidate ITSELF fully
+  validates (chain+hierarchy), so it can't displace a correct parse — recovered 8
+  (ALNTF ×5, ATBANK 2025Q2, SKBNK 2022Q4, KUVEYT 2024Q2), zero regression.
+  **Remaining 29 are genuine:** 9 empties = FIBA/ISCTR/TFKB/TSKB **image-only PDFs**
+  (P&L hand-transcribed, no parseable OCI page); 20 fails = the residual cosmetic
+  tail (totals + I/II/III + 2.1/2.2 parents all correct, one leaf short):
+  DENIZ/ING/QNBFB *multi*-wrap leaves (consecutive wrapped rows the single-row
+  coord pass doesn't fully reassemble), VAKBN 2.2.1→2.1.1 digit misread,
+  TSKB/VAKIFK value column-slips, + 3 cross-mismatch + 2 chain (ATBANK date-header
+  noise, KLNMA). All validation-gated, so safe-but-unfixed.
   Off-balance: 20 partitions across 7 banks (ALNTF column-alignment, TEB year-end
   format, ZIRAAT 2025Q4/2026Q1 new). ISCTR 2025Q1/Q2 capital CAR=100.0 = 2 genuine
   extraction errors. Dashboard surfacing of §4 capital/liquidity cross-bank view
