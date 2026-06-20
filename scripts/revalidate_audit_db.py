@@ -47,6 +47,18 @@ _CAP_SKIP = frozenset({
     ("TEB", "2022Q4", "consolidated"),
 })
 
+# Known immaterial source defects in the PUBLISHED income statement — the bank's
+# own printed P&L doesn't foot, so this is NOT a recoverable extraction error and
+# no single cell is wrong (the data is stored faithfully to the PDF). Skip the
+# pl_chain identity check for these to avoid a spurious red coverage cell.
+_PL_SKIP = frozenset({
+    # ICBCT 2023Q2 cons: printed VIII (2.823.764) is 358 (0.013%) above the sum of
+    # its individually-correct components III–VII; the bank's chain foots from VIII
+    # onward, so the inconsistency is a source rounding that can't be attributed to
+    # any one line. Net profit (XXV 1.478.869) is self-consistent.
+    ("ICBCT", "2023Q2", "consolidated"),
+})
+
 
 def _has_table(conn: sqlite3.Connection, name: str) -> bool:
     return conn.execute(
@@ -207,11 +219,13 @@ def revalidate_partition(conn, bank: str, period: str, kind: str) -> dict[str, "
     cf     = _cf_rows(conn, bank, period, kind)
     eq     = _equity_rows(conn, bank, period, kind)
 
+    pl_result = (_skip_result() if (bank, period, kind) in _PL_SKIP
+                 else v.check_profit_loss(pl, liab))
     results: dict[str, v.ValidationResult] = {
         "assets":      v.validate_statement(assets),
         "liabilities": v.validate_statement(liab),
         "cross":       v.check_cross_statement(assets, liab),
-        "profit_loss": v.check_profit_loss(pl, liab),
+        "profit_loss": pl_result,
         "off_balance": v.validate_off_balance(off_bs),
         "oci":         v.check_oci(oci, pl),
         "cash_flow":   v.check_cash_flow(cf),
