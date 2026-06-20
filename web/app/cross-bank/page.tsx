@@ -14,6 +14,7 @@ import {
   type MetricKey,
 } from "@/app/lib/heatmap";
 import { normalizeColumn } from "@/app/lib/heatmap-normalize";
+import { marketSharePanel, leagueTable, hhiSeries } from "@/app/lib/market-share";
 import { listedBistTickers } from "@/app/lib/bist";
 import { liveQuotes } from "@/app/lib/bist-live";
 import {
@@ -23,6 +24,7 @@ import {
 } from "@/app/lib/bank_names";
 import { PageHeader } from "@/app/components/ui";
 import HeatmapView from "./HeatmapView";
+import MarketShareSection from "./MarketShareSection";
 import type { HeatmapBankRow } from "./HeatmapGrid";
 import type { HeatmapTimeRow, PanelCell } from "./HeatmapOverTime";
 
@@ -47,11 +49,17 @@ export default async function CrossBankPage() {
   // Live (delayed) quotes for the listed banks → P/B & P/E on the snapshot +
   // the last over-time point reflect the latest price (graceful fallback to the
   // quarter-end close if Yahoo is unreachable).
-  const [live, period] = await Promise.all([
+  const [live, period, sharePanel] = await Promise.all([
     listedBistTickers().then(liveQuotes),
     latestCommonPeriod(),
+    marketSharePanel(),
   ]);
   const panel = await heatmapPanel(undefined, live);
+
+  // Competitive dynamics: asset-size league table + sector HHI at the snapshot
+  // quarter (same period the snapshot heatmap uses).
+  const league = period ? leagueTable(sharePanel, period) : [];
+  const hhiLatest = period ? hhiSeries(sharePanel).find((h) => h.period === period) ?? null : null;
 
   // ---- Snapshot: rows at the latest common quarter, scored per column. ------
   const snapRows = period ? panel.filter((r) => r.period === period) : [];
@@ -109,11 +117,14 @@ export default async function CrossBankPage() {
     <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-6">
       <PageHeader title="Compare" description={description} />
       {period ? (
-        <HeatmapView
-          metrics={METRIC_DEFS}
-          snapshot={{ period, rows: snapshotRows }}
-          timePanel={{ banks, periods, panel: panelCells }}
-        />
+        <>
+          <HeatmapView
+            metrics={METRIC_DEFS}
+            snapshot={{ period, rows: snapshotRows }}
+            timePanel={{ banks, periods, panel: panelCells }}
+          />
+          <MarketShareSection league={league} hhi={hhiLatest} period={period} />
+        </>
       ) : (
         <p className="text-sm text-muted-foreground">No per-bank audit data available yet.</p>
       )}

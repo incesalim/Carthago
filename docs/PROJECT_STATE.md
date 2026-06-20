@@ -299,17 +299,32 @@ A **Compare** tab (`/cross-bank`) is a cross-bank performance heatmap built
 entirely off the per-bank `bank_audit_*` tables (the monthly BDDK tables are
 group aggregates only). It puts individual banks side by side across the full
 performance set — total assets, NPL ratio, Stage-2 share, NPL coverage,
-provision intensity, ROE, ROA, NIM, Cost/Income — each cell colored by the
+provision intensity, cost of risk, ROE, ROA, NIM, PPOP/assets, loan yield,
+deposit cost, loan–deposit spread, Cost/Income — each cell colored by the
 bank's rank vs peers (green better / red worse; a neutral `--info` ramp for
 size). Two views: **Snapshot** (banks × metrics at the latest common quarter,
 grouped by BDDK type or sortable by any metric column) and **Over time** (banks
 × quarters for one selected metric, scored across the whole panel to surface
 trends). The data layer (`web/app/lib/heatmap.ts`) builds one cached panel from
-four queries: assets = BS roman I.–X. sum; stage ratios from `bank_audit_stages`;
+its queries: assets = BS roman I.–X. sum; stage ratios from `bank_audit_stages`;
 ROE/ROA/NIM/Cost-Income derived from a P&L pivot by BRSA hierarchy (net profit
 `XXV.`→`XIX.`, net interest `III.`, opex `XI.`+`XII.`, gross op profit `VIII.`)
 over equity (BS liab `XVI.`), with YTD flows annualized × (4/quarter). Rank +
 color logic is the pure, client-safe `heatmap-normalize.ts`.
+
+The **margin engine** (2026-06-20) adds the *drivers* behind NIM, on a TTM basis
+(matching ROE): **loan yield** (interest on loans, P&L `1.1`, ÷ 5-pt avg gross
+loans, BS asset `2.1`), **deposit cost** (interest on deposits, P&L `2.1`, ÷ 5-pt
+avg deposits, BS liab `I.`), their **spread**, **cost of risk** (TTM ECL
+provisions `IX.` ÷ avg gross loans), and **PPOP/assets** (gross operating profit
+less opex, ÷ avg assets) — all per bank, in the same `heatmapPanel`. A
+**Market share & concentration** block (`web/app/lib/market-share.ts` +
+`MarketShareSection.tsx`) sits below the heatmap: an asset-size league table with
+q/q rank moves and each bank's share of assets/loans/deposits, plus the sector
+HHI. Shares are of the **reporting banks** that quarter (~98% of sector) — bank ÷
+Σ-reporting, not the BDDK aggregate (avoids the unit/timing + bank-type
+double-count traps). The same margins + share trend surface as a **Performance**
+section on `/banks/[ticker]` (`ProfitabilitySection.tsx`).
 
 A **Valuation** tab (`/valuation`) does forward scenario projection + intrinsic
 valuation for the listed banks. It's standalone (no changes to `/banks` or
@@ -376,6 +391,16 @@ A qualitative-data layer feeds three tabs from the `news_items` table
 
 ## Known issues / pending work
 
+- **"Drivers behind the outcomes" data gaps (2026-06-20).** Tier-A margin engine +
+  market share shipped (see Dashboard §Compare). Deferred lanes with full
+  source/schema/extractor sketches in
+  [knowledge/data-gaps-roadmap.md](knowledge/data-gaps-roadmap.md): **FX net open
+  position** + **interest-rate repricing/maturity gap** (both in §4 market-risk
+  footnotes, currently unstructured in `other_data` — need deterministic
+  extractors), **credit-ratings history** (agency press + KAP, an events table),
+  and the **sovereign yield curve / real rate** (EVDS subset buildable; CDS/OIS
+  out of scope). Registry ids: `fx_net_open_position`, `repricing_gap`,
+  `credit_rating`, `sovereign_yield_curve`.
 - **Audit extraction — open gaps after the 2026-06-14 lane overhaul.** OCI (→881),
   cash-flow (→813), NPL-movement (→515) and loans-by-sector (→135) were fixed this session
   (see the audit-lane validation-status table). `loans_by_sector` is now at its realistic

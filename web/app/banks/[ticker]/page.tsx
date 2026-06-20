@@ -28,11 +28,14 @@ import {
 } from "@/app/lib/audit";
 import { newsByTicker } from "@/app/lib/news";
 import { bankOwnership } from "@/app/lib/kap";
+import { heatmapPanel } from "@/app/lib/heatmap";
+import { marketSharePanel, bankShareSeries } from "@/app/lib/market-share";
 import { bistValuation, bistPriceHistory } from "@/app/lib/bist";
 import { liveQuotes, applyLivePrice, formatAsOf } from "@/app/lib/bist-live";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
 import BankCard from "./BankCard";
 import BankSectionNav from "./BankSectionNav";
+import ProfitabilitySection from "./ProfitabilitySection";
 import OwnershipCard from "@/app/components/OwnershipCard";
 import OwnershipRadial from "@/app/components/OwnershipRadial";
 import PlSankeySection from "./PlSankeySection";
@@ -213,7 +216,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   ).sort().reverse();
   const periods = pickPeriods(allPeriods, view, 4);
 
-  const [bsPivot, bsNames, plPivot, plRows, kapItems, profile, stages, validation, ownership, valuationBase, priceHistory, liveMap] =
+  const [bsPivot, bsNames, plPivot, plRows, kapItems, profile, stages, validation, ownership, valuationBase, priceHistory, liveMap, heatmap, sharePanel] =
     await Promise.all([
       balanceSheetMultiPeriod(ticker, kind, periods),
       balanceSheetLineNames(ticker, kind, periods),
@@ -229,7 +232,25 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
       bistValuation(ticker, kind),
       bistPriceHistory(ticker, 8),
       liveQuotes([ticker]),
+      // Fleet-wide derived metrics + market share (both cached); filtered to this
+      // ticker below. heatmapPanel carries the margin engine, marketSharePanel the
+      // competitive shares — same source of truth as /cross-bank.
+      heatmapPanel(kind),
+      marketSharePanel(kind),
     ]);
+
+  // Profitability & margins section inputs — this bank's rows, oldest→newest.
+  const perfRows = heatmap
+    .filter((r) => r.bank_ticker === ticker)
+    .sort((a, b) => (a.period < b.period ? -1 : 1));
+  const shareRows = bankShareSeries(sharePanel, ticker);
+  const perfLatest = perfRows[perfRows.length - 1];
+  const hasPerf =
+    !!perfLatest &&
+    [
+      perfLatest.roe, perfLatest.nim, perfLatest.loan_yield, perfLatest.deposit_cost,
+      perfLatest.spread, perfLatest.cost_of_risk, perfLatest.ppop_ratio, perfLatest.cost_income,
+    ].some((v) => v != null);
 
   // Overlay the latest (delayed) Yahoo price on the stored valuation; if the
   // live fetch returned nothing, keep the stored EOD figures untouched.
@@ -301,6 +322,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   const hasOwnership = ownership.length > 0;
   const navSections = [
     { id: "overview", label: "Overview" },
+    ...(hasPerf ? [{ id: "performance", label: "Performance" }] : []),
     { id: "financials", label: "Financials" },
     ...(hasOwnership ? [{ id: "ownership", label: "Ownership" }] : []),
     { id: "disclosures", label: "Disclosures" },
@@ -394,6 +416,16 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
           )}
         </Section>
       </div>
+
+      {/* ── Performance ───────────────────────────────────────────────────
+          Derived analytics: margin bridge (yield − cost = spread), cost of
+          risk, PPOP, and competitive market share. The "drivers behind" the
+          levels in the statements below. */}
+      {hasPerf && (
+        <div id="performance" className="scroll-mt-24 mb-8">
+          <ProfitabilitySection rows={perfRows} shareRows={shareRows} />
+        </div>
+      )}
 
       {/* ── Financials ────────────────────────────────────────────────────
           The page's core: standardized BS / IS tables + statement controls. */}
