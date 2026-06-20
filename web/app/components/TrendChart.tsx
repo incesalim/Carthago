@@ -17,7 +17,9 @@ import {
   YAxis,
 } from "recharts";
 import { ChartCard } from "@/app/components/ui/chart-card";
+import { ChartData } from "@/app/components/ui/chart-csv";
 import { useChartTheme, tooltipStyles, seriesColor } from "@/app/lib/chart-theme";
+import { wideToTable } from "@/app/lib/chart-csv";
 import { formatters, type FormatKind } from "@/app/lib/chart-format";
 
 export interface TrendPoint {
@@ -83,6 +85,13 @@ export default function TrendChart({
 
   return (
     <ChartCard title={title}>
+      <ChartData
+        table={wideToTable(
+          wide,
+          { key: "period", label: "Period" },
+          codes.map((c) => ({ key: c, label: seriesLabels[c] })),
+        )}
+      />
       {/* Right-click is a pin/unpin gesture here — keep the browser menu out. */}
       <div style={{ height }} onContextMenu={(e) => e.preventDefault()}>
         <ResponsiveContainer width="100%" height="100%">

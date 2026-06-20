@@ -15,6 +15,7 @@ import {
   YAxis,
 } from "recharts";
 import { ChartCard } from "@/app/components/ui/chart-card";
+import { ChartData } from "@/app/components/ui/chart-csv";
 import { useChartTheme, tooltipStyles } from "@/app/lib/chart-theme";
 import { formatters, type FormatKind } from "@/app/lib/chart-format";
 
@@ -60,6 +61,12 @@ export default function BarByBank({
 
   return (
     <ChartCard title={title}>
+      <ChartData
+        table={{
+          columns: ["Group", "Value"],
+          rows: ordered.map((r) => [r.label, r.value]),
+        }}
+      />
       <div style={{ height }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart

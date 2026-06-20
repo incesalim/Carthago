@@ -6,6 +6,7 @@ export * from "./badge";
 export * from "./button";
 export * from "./card";
 export * from "./chart-card";
+export * from "./chart-csv";
 export * from "./delta-badge";
 export * from "./page-header";
 export * from "./section";

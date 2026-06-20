@@ -2,7 +2,8 @@
 
 /**
  * Header controls for a chart card: copy the chart image to the clipboard,
- * download it as a PNG, or pop the chart up large in the centre of the screen.
+ * download it as a PNG, download the underlying data as a CSV, or pop the chart
+ * up large in the centre of the screen.
  *
  * Render it anywhere inside a card carrying `data-chart-card` (see ChartCard) —
  * the buttons climb to that element via `closest()`, so no ref threading is
@@ -14,11 +15,17 @@
  * re-parents the *live* card node into a centred modal so Recharts re-measures
  * and the chart stays interactive (tooltips, legend hover/pin) at the larger
  * size — the card is restored to its exact slot on close.
+ *
+ * The CSV pill only appears when the card contains a `[data-chart-csv]` payload
+ * (charts stamp one via `<ChartData>`, see chart-csv.tsx); we detect it in a
+ * post-mount effect so SSR/first paint omit the pill and there's no hydration
+ * mismatch.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Check, Clipboard, Download, Maximize2, Minimize2, X } from "lucide-react";
+import { Check, Clipboard, Download, Maximize2, Minimize2, Sheet, X } from "lucide-react";
 import { toast } from "sonner";
+import { toCsv, type ChartTable } from "@/app/lib/chart-csv";
 
 const BTN =
   "inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-0.5 text-[11px] text-muted-foreground opacity-0 transition-opacity hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100 disabled:opacity-50";
@@ -70,6 +77,16 @@ function cardOf(e: React.MouseEvent<HTMLButtonElement>): HTMLElement | null {
 export default function ChartExport() {
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
+
+  // CSV pill: only shown when the card carries a `[data-chart-csv]` payload.
+  // Detect it after mount (the chart sibling is in the DOM by then) so the
+  // server render — which can't see the sibling — matches the first client pass.
+  const barRef = useRef<HTMLDivElement | null>(null);
+  const [hasCsv, setHasCsv] = useState(false);
+  useEffect(() => {
+    const card = barRef.current?.closest<HTMLElement>("[data-chart-card]");
+    setHasCsv(!!card?.querySelector("[data-chart-csv]"));
+  }, []);
 
   // Centre-screen popup. We move the *real* card DOM into the modal (rather than
   // cloning) so Recharts' ResponsiveContainer re-measures and the chart stays
@@ -167,9 +184,33 @@ export default function ChartExport() {
     }
   }
 
+  function onCsv(e: React.MouseEvent<HTMLButtonElement>) {
+    const card = cardOf(e);
+    const json = card?.querySelector("[data-chart-csv]")?.textContent;
+    if (!json) return;
+    try {
+      const table = JSON.parse(json) as ChartTable;
+      const title = card!
+        .querySelector<HTMLElement>("[data-chart-title]")
+        ?.textContent?.trim();
+      const blob = new Blob([toCsv(table)], {
+        type: "text/csv;charset=utf-8",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${slugify(title ?? "chart")}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("chart CSV export failed", err);
+      toast.error("Could not export the chart data.");
+    }
+  }
+
   return (
     <>
-      <div data-chart-no-export="" className="flex items-center gap-1">
+      <div ref={barRef} data-chart-no-export="" className="flex items-center gap-1">
         <button
           type="button"
           onClick={onCopy}
@@ -196,6 +237,18 @@ export default function ChartExport() {
           <Download className="size-3" aria-hidden />
           {busy ? "…" : "PNG"}
         </button>
+        {hasCsv && (
+          <button
+            type="button"
+            onClick={onCsv}
+            aria-label="Download chart data as CSV"
+            title="Download CSV"
+            className={BTN}
+          >
+            <Sheet className="size-3" aria-hidden />
+            CSV
+          </button>
+        )}
         <button
           type="button"
           onClick={expanded ? closeExpand : openExpand}

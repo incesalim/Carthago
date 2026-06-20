@@ -17,7 +17,9 @@ import {
   YAxis,
 } from "recharts";
 import { ChartCard } from "@/app/components/ui/chart-card";
+import { ChartData } from "@/app/components/ui/chart-csv";
 import { useChartTheme, tooltipStyles, seriesColor } from "@/app/lib/chart-theme";
+import { wideToTable } from "@/app/lib/chart-csv";
 import { nf, fmtQuarter } from "@/app/lib/chart-format";
 
 interface Point {
@@ -94,6 +96,13 @@ export default function TimeSeriesChart({
 
   return (
     <ChartCard title={title}>
+      <ChartData
+        table={wideToTable(
+          data,
+          { key: "period_date", label: "Date" },
+          labels.map((l) => ({ key: l, label: l })),
+        )}
+      />
       {/* Right-click is a pin/unpin gesture here — keep the browser menu out. */}
       <div style={{ height }} onContextMenu={(e) => e.preventDefault()}>
         <ResponsiveContainer width="100%" height="100%">
