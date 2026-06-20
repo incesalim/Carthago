@@ -41,6 +41,19 @@ GZ = REPO / "data" / "bank_audit.db.gz"
 OVR = REPO / "data" / "audit_overrides.json"
 SNAP = "state/bank_audit.db.gz"
 
+# Audit tables that carry their OWN extracted_at (not keyed off
+# bank_audit_extractions) — push_to_d1 filters them on it directly, so the
+# override push must bump it to keep them inside the --hours window.
+_SELF_TS_TABLES = (
+    "bank_audit_credit_quality", "bank_audit_profile", "bank_audit_loans_by_sector",
+    "bank_audit_npl_movement", "bank_audit_stages", "bank_audit_capital",
+    "bank_audit_liquidity",
+)
+
+
+def _has_col(conn: sqlite3.Connection, table: str, col: str) -> bool:
+    return any(r[1] == col for r in conn.execute(f"PRAGMA table_info({table})"))
+
 
 def _apply_one(conn: sqlite3.Connection, o: dict) -> str:
     b, p, k = o["bank_ticker"], o["period"], o["kind"]
@@ -94,16 +107,15 @@ def _apply_one(conn: sqlite3.Connection, o: dict) -> str:
 
 
 def _revalidate_partition(conn, b, p, k):
+    # Recompute ALL statement validations from stored rows, not just assets/
+    # liabilities/cross. upsert_validation deletes the whole partition's
+    # validation rows before re-inserting, so a partial dict would silently drop
+    # off_balance / P&L / OCI / … rows — and an off_balance override (the first
+    # of its kind) would never clear its own failure. Delegate to the shared
+    # full revalidator so this stays byte-identical to the cron pass.
     from src.audit_reports import validator as v
-    def rows(stmt):
-        return [dict(zip(("hierarchy", "item_name", "amount_tl", "amount_fc", "amount_total"), r))
-                for r in conn.execute(
-                    "SELECT hierarchy,item_name,amount_tl,amount_fc,amount_total FROM bank_audit_balance_sheet "
-                    "WHERE bank_ticker=? AND period=? AND kind=? AND statement=? ORDER BY item_order",
-                    (b, p, k, stmt))]
-    a, li = rows("assets"), rows("liabilities")
-    res = {"assets": v.validate_statement(a), "liabilities": v.validate_statement(li),
-           "cross": v.check_cross_statement(a, li)}
+    from scripts.revalidate_audit_db import revalidate_partition
+    res = revalidate_partition(conn, b, p, k)
     v.upsert_validation(conn, b, p, k, res)
     return sum(r.failed for r in res.values())
 
@@ -127,12 +139,22 @@ def main() -> int:
         for o in overrides:
             print("  ", _apply_one(conn, o))
             parts.add((o["bank_ticker"], o["period"], o["kind"]))
-        # re-validate each touched partition + bump extracted_at for the push window
+        # re-validate each touched partition + bump every timestamp the narrow
+        # --hours push keys off, so it re-ships EVERYTHING the D1 partition-clear
+        # below removes. Without this the clear wipes the self-timestamped tables
+        # (capital/liquidity/stages/…) from D1 — their extracted_at predates the
+        # push window, so push_to_d1 won't restore them. The BS-family rides
+        # bank_audit_extractions.extracted_at; validation rides validated_at
+        # (refreshed inside _revalidate_partition).
         for b, p, k in sorted(parts):
             f = _revalidate_partition(conn, b, p, k)
             print(f"  revalidate {b} {p} {k}: {f} failures")
             conn.execute("UPDATE bank_audit_extractions SET extracted_at=CURRENT_TIMESTAMP "
                          "WHERE bank_ticker=? AND period=? AND kind=?", (b, p, k))
+            for tbl in _SELF_TS_TABLES:
+                if _has_col(conn, tbl, "extracted_at"):
+                    conn.execute(f"UPDATE {tbl} SET extracted_at=CURRENT_TIMESTAMP "
+                                 "WHERE bank_ticker=? AND period=? AND kind=?", (b, p, k))
         conn.commit()
 
     if args.dry_run or args.no_push:
