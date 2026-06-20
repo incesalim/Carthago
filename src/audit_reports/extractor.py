@@ -887,6 +887,63 @@ def _fitz_page_text(pdf_path: str, page_idx_0: int) -> str:
         return ""
 
 
+def _fitz_visual_rows(pdf_path: str, page_idx_0: int) -> list[list[tuple[float, float, str]]]:
+    """Word tokens grouped into visual rows by y, each row sorted by x with digit
+    fragments merged — the SAME bucketing as `_fitz_page_text` but KEEPING each
+    token's (x0, x1, text) coordinates instead of flattening to a string.
+
+    The OCI coordinate reconstruction ([[oci]]) uses this to reassemble rows whose
+    hierarchy marker, label and values land on different physical lines (wrapped
+    labels, or a value sitting on its own line above the marker)."""
+    if not _HAS_FITZ:
+        return []
+    try:
+        doc = fitz.open(pdf_path)
+        page = doc[page_idx_0]
+        words = page.get_text("words")  # (x0,y0,x1,y1, word, block, line, word_no)
+        doc.close()
+    except Exception:
+        return []
+    if not words:
+        return []
+    rows: dict[int, list[tuple[float, float, str]]] = defaultdict(list)
+    for w in words:
+        rows[int(round(w[1]))].append((w[0], w[2], w[4]))
+    sorted_keys = sorted(rows.keys())
+    merged: dict[int, list[tuple[float, float, str]]] = {}
+    last_key = None
+    for k in sorted_keys:
+        if last_key is not None and k - last_key <= 3:
+            merged[last_key].extend(rows[k])
+        else:
+            merged[k] = list(rows[k])
+            last_key = k
+    out: list[list[tuple[float, float, str]]] = []
+    for y in sorted(merged.keys()):
+        ws = sorted(merged[y], key=lambda t: t[0])
+        tokens: list[tuple[float, float, str]] = []
+        i = 0
+        while i < len(ws):
+            x0, x1, text = ws[i]
+            j = i + 1
+            while j < len(ws):
+                nx0, nx1, ntext = ws[j]
+                gap = nx0 - x1
+                if re.match(r'^\d{1,2}$', text) and re.match(r'^[\d.,]', ntext) and gap < 4:
+                    text, x1 = text + ntext, nx1
+                    j += 1
+                    continue
+                if text and re.match(r'^\d', text[-1]) and re.match(r'^[.,]\d', ntext) and gap < 4:
+                    text, x1 = text + ntext, nx1
+                    j += 1
+                    continue
+                break
+            tokens.append((x0, x1, text))
+            i = j
+        out.append(tokens)
+    return out
+
+
 def _fitz_merge_rows(text: str, n_cols: int) -> str:
     """Some banks (e.g. Akbank 2026Q1) split each row across multiple physical
     lines: label on one line, N values across the next 1–2 lines. Re-join them
