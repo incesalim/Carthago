@@ -478,8 +478,14 @@ A qualitative-data layer feeds three tabs from the `news_items` table
   absent. Remaining 225 error cells are extraction issues, not validator bugs —
   the largest buckets are npl_movement (87, NULL key-flow columns — extractor
   label-variant gaps) and loans_by_sector (66, mainly YKBNK no-breakdown + FIBA
-  agri_fishery double-count + HSBC missing `other`). OCI: 16 partitions from YKBNK
-  where the OCI extractor accidentally captures P&L rows (extractor fix deferred).
+  agri_fishery double-count + HSBC missing `other`). OCI: the 16 YKBNK Q2/Q3
+  partitions that captured P&L rows are **FIXED (2026-06-20)** — `_locate_oci_page`
+  now skips P&L pages (the BRSA combined-title "…VE DİĞER KAPSAMLI GELİR TABLOSU"
+  made the locator stop on YKBNK's quarter-only P&L twin; it now skips any candidate
+  carrying an interest/profit-share income anchor, window widened pl+1→pl+6) and the
+  affected partitions + ~15 recoverable empties (GARAN/FIBA/ISCTR/TFKB/TSKB, where
+  P&L parsed but the OCI page was past the old window) were re-extracted via
+  `reextract-statement.yml`.
   Off-balance: 20 partitions across 7 banks (ALNTF column-alignment, TEB year-end
   format, ZIRAAT 2025Q4/2026Q1 new). ISCTR 2025Q1/Q2 capital CAR=100.0 = 2 genuine
   extraction errors. Dashboard surfacing of §4 capital/liquidity cross-bank view
