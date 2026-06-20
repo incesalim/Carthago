@@ -21,7 +21,7 @@ import { ChartData } from "@/app/components/ui/chart-csv";
 import { useChartTheme, tooltipStyles, seriesColor } from "@/app/lib/chart-theme";
 import { wideToTable } from "@/app/lib/chart-csv";
 import { nf, fmtQuarter } from "@/app/lib/chart-format";
-import { useDateRange, type RangeOptions } from "@/app/lib/use-date-range";
+import { useRangeFilter } from "@/app/lib/use-date-range";
 
 interface Point {
   period_date: string;
@@ -37,10 +37,6 @@ interface Props {
   xFormat?: "date" | "quarter";
   decimals?: number;
   height?: number;
-  /** Date-range selector (1Y/3Y/5Y/YTD/All) in the card header. On by default
-   *  (3Y); pass `{ default: "1Y" }` etc. to change, or `{ enabled: false }` to
-   *  hide it on a chart where a window makes no sense. */
-  range?: RangeOptions;
 }
 
 const formatters = {
@@ -57,19 +53,16 @@ export default function TimeSeriesChart({
   xFormat = "date",
   decimals = 2,
   height = 320,
-  range,
 }: Props) {
   const t = useChartTheme();
   const tt = tooltipStyles(t);
   const fmt = formatters[yFormat];
 
-  // Optional client-side date-range zoom. Series are per-label arrays, so we
-  // window each one with the shared predicate during the pivot below; the hook
-  // reads the min/max across all points to size the buttons.
-  const { control, predicate } = useDateRange(
+  // Window to the dashboard's global date range. Series are per-label arrays,
+  // so we apply the shared predicate to each one during the pivot below.
+  const { predicate } = useRangeFilter(
     Object.values(series).flat(),
     (p) => p.period_date,
-    range ?? { default: "3Y" },
   );
   // x-axis ticks are always YYYY-MM (or the quarter); the tooltip label is
   // resolved below once we can inspect the data's cadence.
@@ -111,7 +104,7 @@ export default function TimeSeriesChart({
       : (v: string) => v;
 
   return (
-    <ChartCard title={title} action={control}>
+    <ChartCard title={title}>
       <ChartData
         table={wideToTable(
           data,

@@ -90,6 +90,7 @@ export default async function DigitalPage() {
         eyebrow="TBB — Banks Association of Türkiye"
         title="Digital Banking"
         description="Sector-wide adoption, transaction volumes and demographics across internet & mobile banking — TBB quarterly digital-banking statistics."
+        rangeSelector
         dataThrough={latestPeriod(activeByChannel, transferVolume, gender)}
       />
 

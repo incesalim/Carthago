@@ -28,6 +28,7 @@ export default async function NonBankPage() {
       <PageHeader
         title="Non-Bank Financial Institutions"
         description="BDDK-supervised non-bank lenders that compete with banks for credit: financial leasing, factoring, and financing companies. Aggregate sector balance sheets from the BDDK monthly bulletin (BultenAylikBdmk), in Million TL."
+        rangeSelector
         dataThrough={d.asOfPeriod || undefined}
       />
 

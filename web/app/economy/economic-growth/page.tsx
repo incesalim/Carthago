@@ -91,6 +91,7 @@ export default async function EconomicGrowthPage() {
       <PageHeader
         title="Economic Growth"
         description="TÜİK quarterly national accounts: GDP growth, expenditure-side contributions, and sectoral (production-side) growth. Chain-linked volume indices; y/y from the index level."
+        rangeSelector
         dataThrough={d.latestPeriod}
       >
         <Link

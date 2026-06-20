@@ -114,6 +114,7 @@ export default async function FundsPage() {
         eyebrow="TEFAS — Turkey Electronic Fund Trading Platform"
         title="Funds"
         description="Sector-wide fund-market statistics: assets under management, fund categories, portfolio allocation and investor counts across mutual, pension and exchange-traded funds."
+        rangeSelector
         dataThrough={latestPeriod(monthly)}
       />
 

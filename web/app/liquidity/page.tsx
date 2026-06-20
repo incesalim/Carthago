@@ -116,6 +116,7 @@ export default async function LiquidityPage() {
       <PageHeader
         title="Liquidity"
         description="TL & FC funding · dollarization · CBRT reserves and funding — BDDK weekly bulletin + TCMB EVDS"
+        rangeSelector
         dataThrough={latestPeriod(tlLtd, fcLtd, dollarization, netFunding)}
       />
 

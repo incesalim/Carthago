@@ -28,6 +28,7 @@ export default async function ShareOfBankingPage() {
       <PageHeader
         title="Share of Banking"
         description="How much of banking business is done by non-bank lenders. Non-bank sectors (leasing, factoring, financing) measured against the BDDK banking-sector aggregate — both from BDDK, both Million TL, so the comparison is same-source and apples-to-apples."
+        rangeSelector
         dataThrough={d.asOfPeriod || undefined}
       />
 

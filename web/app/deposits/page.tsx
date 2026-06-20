@@ -139,6 +139,7 @@ export default async function DepositsPage() {
       <PageHeader
         title="Deposits"
         description="Sector aggregate + group breakdown · BDDK weekly bulletin (maturity ladder & LDR: monthly)"
+        rangeSelector
         dataThrough={latestPeriod(depSector, yoyAll)}
       />
 

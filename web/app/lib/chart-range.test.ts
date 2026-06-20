@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applicableRanges, lowerBound, DEFAULT_RANGES } from "./chart-range";
+import { lowerBound } from "./chart-range";
 
 describe("lowerBound", () => {
   it("shifts the year for trailing windows, keeping the date width", () => {
@@ -28,33 +28,8 @@ describe("lowerBound", () => {
     expect("2026-01-15" >= ytd).toBe(true);
     expect("2025-12-31" >= ytd).toBe(false);
   });
-});
 
-describe("applicableRanges", () => {
-  it("drops windows longer than the data span", () => {
-    // ~2 years of data → 5Y and 3Y are dead, 1Y is useful.
-    const r = applicableRanges("2024-06", "2026-06", DEFAULT_RANGES);
-    expect(r).toContain("1Y");
-    expect(r).toContain("YTD");
-    expect(r).toContain("All");
-    expect(r).not.toContain("5Y");
-    expect(r).not.toContain("3Y");
-  });
-
-  it("does not show a trailing window that duplicates All", () => {
-    // Exactly ~5 years → '5Y' would equal 'All', so hide it.
-    const r = applicableRanges("2021-06-20", "2026-06-20", DEFAULT_RANGES);
-    expect(r).not.toContain("5Y");
-    expect(r).toContain("3Y");
-    expect(r).toContain("1Y");
-  });
-
-  it("keeps every trailing window for a long daily series", () => {
-    const r = applicableRanges("2018-01-02", "2026-06-20", DEFAULT_RANGES);
-    expect(r).toEqual(DEFAULT_RANGES);
-  });
-
-  it("returns the offered ranges unchanged when span is unknown", () => {
-    expect(applicableRanges("", "", DEFAULT_RANGES)).toEqual(DEFAULT_RANGES);
+  it("falls back to no bound for a non-ISO / unparseable period", () => {
+    expect(lowerBound("FY2026", "1Y")).toBe("");
   });
 });

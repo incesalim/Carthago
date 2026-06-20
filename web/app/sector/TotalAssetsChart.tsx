@@ -14,6 +14,7 @@ import {
   YAxis,
 } from "recharts";
 import { useChartTheme, tooltipStyles } from "@/app/lib/chart-theme";
+import { useRangeFilter } from "@/app/lib/use-date-range";
 
 interface Row {
   period: string;
@@ -23,8 +24,9 @@ interface Row {
 export default function TotalAssetsChart({ data }: { data: Row[] }) {
   const t = useChartTheme();
   const tt = tooltipStyles(t);
-  // DB stores values in million TL → display as trillion TL
-  const formatted = data.map((d) => ({ ...d, total_trn: d.total / 1_000_000 }));
+  // Window to the dashboard's global date range, then display million → trillion TL.
+  const { filtered } = useRangeFilter(data, (d) => d.period);
+  const formatted = filtered.map((d) => ({ ...d, total_trn: d.total / 1_000_000 }));
   const stroke = t.palette[0];
 
   return (

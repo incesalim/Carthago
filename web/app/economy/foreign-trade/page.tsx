@@ -35,6 +35,7 @@ export default async function ForeignTradePage() {
       <PageHeader
         title="Foreign Trade"
         description="TÜİK customs-trade statistics: the trade balance, exports & imports, coverage ratio, terms of trade, trade by product group, and the energy deficit. Values in USD bn unless noted."
+        rangeSelector
         dataThrough={d.latestPeriod}
       >
         <Link

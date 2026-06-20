@@ -40,6 +40,7 @@ export default async function InflationPage() {
       <PageHeader
         title="Inflation"
         description="TÜİK consumer (TÜFE) and producer (Yİ-ÜFE) prices: headline, core, and the group/sector breakdown. y/y, m/m and core indices derived from the index level."
+        rangeSelector
         dataThrough={d.latestPeriod}
       >
         <Link

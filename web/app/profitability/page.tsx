@@ -85,6 +85,7 @@ export default async function ProfitabilityPage() {
       <PageHeader
         title="Profitability"
         description="ROE / ROA / NIM · annualized (YTD × 12 / month) · BDDK Table 15"
+        rangeSelector
         dataThrough={latestPeriod(roe, roa, nim)}
       />
 

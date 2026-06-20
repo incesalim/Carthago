@@ -44,6 +44,7 @@ export default async function SectorPage() {
       <PageHeader
         eyebrow="Banking Sector"
         title="Total Assets"
+        rangeSelector
         dataThrough={latest?.period}
         description={
           <>

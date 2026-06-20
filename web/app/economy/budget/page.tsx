@@ -32,6 +32,7 @@ export default async function BudgetPage() {
       <PageHeader
         title="Central Government Budget"
         description="Treasury (Hazine ve Maliye Bakanlığı) central-government budget: the annualised balance, revenue & expenditure mix, and the monthly detail. Values in ₺ bn unless noted."
+        rangeSelector
         dataThrough={d.latestPeriod}
       >
         <Link

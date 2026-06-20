@@ -76,6 +76,7 @@ export default async function EconomyPage() {
       <PageHeader
         title="Economy"
         description="Growth · labor · inflation & policy · external balance · fiscal — TCMB EVDS (TURKSTAT, CBRT, Treasury)"
+        rangeSelector
         dataThrough={dataThrough}
       >
         <Link
