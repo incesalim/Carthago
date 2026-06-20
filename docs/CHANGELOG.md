@@ -17,7 +17,13 @@ P&L failures **10→2**. The remaining two are **genuine source inconsistencies*
 reconcile, so they stay flagged: **ICBCT 2023Q2** (printed VIII is 358 above the sum of its
 individually-correct components — moving it just relocates the gap to XIII) and **QNBFB 2023Q1**
 (printed XIX `(4.678.663)` doesn't reconcile with XVII±XVIII `3.084.793`, and the discontinued-ops
-section is internally broken). No code change — extends `data/audit_overrides.json` only.
+section is internally broken). **Also closed a stale-matrix gap**: the `/admin` coverage matrix reads
+per-cell status from the `bank_audit_coverage` rollup (a roll-up of `bank_audit_validation` rebuilt
+only by `sync_audit_expected.py` in the cron), which `apply_overrides.py` never refreshed — so an
+override cleared the validation failure but the matrix kept the stale `error` until the next cron.
+`apply_overrides.py` now rebuilds + pushes the coverage spine after its table push (overridden cells
+become `manual`/`ok` immediately). Ran it for the live fix: P&L matrix errors **10→2**, and the
+KUVEYT off-balance cell finally flips error→manual.
 
 Prior: 2026-06-20 — **KUVEYT off-balance B-row fix + apply_overrides D1-wipe footgun guarded.**
 KUVEYT 2025Q1 unconsolidated **off-balance** showed red in the coverage matrix: the
