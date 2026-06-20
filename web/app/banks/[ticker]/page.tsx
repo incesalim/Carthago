@@ -32,6 +32,7 @@ import { bistValuation, bistPriceHistory } from "@/app/lib/bist";
 import { liveQuotes, applyLivePrice, formatAsOf } from "@/app/lib/bist-live";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
 import BankCard from "./BankCard";
+import BankSectionNav from "./BankSectionNav";
 import OwnershipCard from "@/app/components/OwnershipCard";
 import OwnershipRadial from "@/app/components/OwnershipRadial";
 import PlSankeySection from "./PlSankeySection";
@@ -295,6 +296,16 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
     (l) => l.hierarchy.startsWith(equityRomanPrefix) || l.hierarchy.startsWith(equityDotPrefix),
   );
 
+  // In-page jump-nav: only list groups that actually render (the ownership
+  // group is conditional on having a KAP form), so every anchor resolves.
+  const hasOwnership = ownership.length > 0;
+  const navSections = [
+    { id: "overview", label: "Overview" },
+    { id: "financials", label: "Financials" },
+    ...(hasOwnership ? [{ id: "ownership", label: "Ownership" }] : []),
+    { id: "disclosures", label: "Disclosures" },
+  ];
+
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
       <PageHeader
@@ -310,289 +321,317 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
         </Link>
       </PageHeader>
 
-      {/* Bank-card summary: branches, personnel, TFRS 9 stage + coverage */}
-      <BankCard
-        profile={profile}
-        stages={stages}
-        latestPeriod={periods[0] ?? null}
-      />
+      {/* Sticky in-page jump-nav: Overview · Financials · Ownership · Disclosures */}
+      <BankSectionNav sections={navSections} />
 
-      {/* BIST market data + valuation (Yahoo close × audited equity/earnings).
-          Only listed banks return a valuation; others render nothing. */}
-      {valuation && (
-        <Section
-          title="Market & Valuation"
-          description={
-            `BIST: ${ticker} · ` +
-            (valuation.isLive && valuation.asOf
-              ? `⏱ ${formatAsOf(valuation.asOf)}`
-              : `close ${valuation.period_date}`) +
-            (valuation.fundamentalsPeriod
-              ? ` · P/B & P/E vs ${valuation.fundamentalsPeriod} audited figures`
-              : "")
-          }
-          className="mb-6"
-          contentClassName=""
-        >
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-            <Stat
-              label="Price"
-              value={`₺${nfmt(valuation.price, 2)}`}
-              hint={
-                valuation.changePct1y != null
-                  ? `${valuation.changePct1y >= 0 ? "+" : ""}${nfmt(valuation.changePct1y, 1)}% · 1y`
-                  : undefined
+      {/* ── Overview ──────────────────────────────────────────────────────
+          At-a-glance profile + (listed banks) BIST market & valuation. */}
+      <div id="overview" className="scroll-mt-24 mb-8">
+        <Section title="Overview" contentClassName="">
+          {/* Bank-card summary: branches, personnel, TFRS 9 stage + coverage */}
+          <BankCard
+            profile={profile}
+            stages={stages}
+            latestPeriod={periods[0] ?? null}
+          />
+
+          {/* BIST market data + valuation (Yahoo close × audited equity/earnings).
+              Only listed banks return a valuation; others render nothing. */}
+          {valuation && (
+            <Section
+              title="Market & Valuation"
+              description={
+                `BIST: ${ticker} · ` +
+                (valuation.isLive && valuation.asOf
+                  ? `⏱ ${formatAsOf(valuation.asOf)}`
+                  : `close ${valuation.period_date}`) +
+                (valuation.fundamentalsPeriod
+                  ? ` · P/B & P/E vs ${valuation.fundamentalsPeriod} audited figures`
+                  : "")
               }
-              tone={
-                valuation.changePct1y == null
-                  ? "neutral"
-                  : valuation.changePct1y >= 0
-                    ? "positive"
-                    : "negative"
-              }
-            />
-            <Stat
-              label="Market Cap"
-              value={valuation.marketCap != null ? fmtMarketCap(valuation.marketCap) : "—"}
-            />
-            <Stat label="P/B" value={valuation.pb != null ? `${nfmt(valuation.pb, 2)}×` : "—"} />
-            <Stat label="P/E" value={valuation.pe != null ? `${nfmt(valuation.pe, 1)}×` : "—"} />
-            <Stat
-              label="Dividend Yield"
-              value={valuation.dividendYield != null ? `${nfmt(valuation.dividendYield * 100, 2)}%` : "—"}
-            />
-          </div>
-          {priceHistory.length > 0 && (
-            <div className="mt-4">
-              <TimeSeriesChart
-                series={{ [`${ticker} share price`]: priceHistory }}
-                title="Share price (daily close, ₺)"
-                yFormat="fx"
-                decimals={2}
-                height={280}              />
-            </div>
+              className="mb-6"
+              contentClassName=""
+            >
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                <Stat
+                  label="Price"
+                  value={`₺${nfmt(valuation.price, 2)}`}
+                  hint={
+                    valuation.changePct1y != null
+                      ? `${valuation.changePct1y >= 0 ? "+" : ""}${nfmt(valuation.changePct1y, 1)}% · 1y`
+                      : undefined
+                  }
+                  tone={
+                    valuation.changePct1y == null
+                      ? "neutral"
+                      : valuation.changePct1y >= 0
+                        ? "positive"
+                        : "negative"
+                  }
+                />
+                <Stat
+                  label="Market Cap"
+                  value={valuation.marketCap != null ? fmtMarketCap(valuation.marketCap) : "—"}
+                />
+                <Stat label="P/B" value={valuation.pb != null ? `${nfmt(valuation.pb, 2)}×` : "—"} />
+                <Stat label="P/E" value={valuation.pe != null ? `${nfmt(valuation.pe, 1)}×` : "—"} />
+                <Stat
+                  label="Dividend Yield"
+                  value={valuation.dividendYield != null ? `${nfmt(valuation.dividendYield * 100, 2)}%` : "—"}
+                />
+              </div>
+              {priceHistory.length > 0 && (
+                <div className="mt-4">
+                  <TimeSeriesChart
+                    series={{ [`${ticker} share price`]: priceHistory }}
+                    title="Share price (daily close, ₺)"
+                    yFormat="fx"
+                    decimals={2}
+                    height={280}              />
+                </div>
+              )}
+            </Section>
           )}
         </Section>
-      )}
+      </div>
 
-      {/* Ownership structure from the KAP Genel Bilgi Formu (weekly refresh) */}
-      <OwnershipCard rows={ownership} />
-
-      {/* Interactive radial map: shareholders → bank → subsidiaries */}
-      <OwnershipRadial ticker={ticker} rows={ownership} />
-
-      {/* Subsidiaries / financial investments (same form, §7) */}
-      <SubsidiariesCard rows={ownership} />
-
-      {/* Recent KAP disclosures */}
-      <div className="mb-6 rounded-xl border border-border bg-card p-4 shadow-sm">
-        <div className="text-sm font-medium text-foreground mb-3 flex items-baseline justify-between">
-          <span>Recent KAP disclosures</span>
-          {kapItems.length > 0 && (
-            <Link
-              href={`/disclosures?ticker=${ticker}`}
-              className="text-xs text-muted-foreground hover:text-foreground"
-            >
-              all {ticker} →
-            </Link>
-          )}
-        </div>
-        {kapItems.length === 0 ? (
-          <div className="text-xs text-muted-foreground italic">No disclosures cached.</div>
-        ) : (
-          <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-2">
-            {kapItems.map((it) => (
-              <li key={it.external_id} className="text-xs">
-                <a
-                  href={it.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block hover:bg-accent -mx-1 px-1 py-1 rounded transition"
+      {/* ── Financials ────────────────────────────────────────────────────
+          The page's core: standardized BS / IS tables + statement controls. */}
+      <div id="financials" className="scroll-mt-24 mb-8">
+        <Section title="Financials" contentClassName="">
+          {/* Statement controls — sit directly above the statement table they drive:
+              statement (BS/IS) · period view (annual/quarterly) · consolidation kind */}
+          <div className="mb-3 flex flex-wrap gap-3 items-center">
+            <div className="flex gap-1 rounded-lg border bg-muted p-1">
+              {(["bs", "is"] as const).map((s) => (
+                <Link
+                  key={s}
+                  href={url({ statement: s })}
+                  scroll={false}
+                  className={`px-3 py-1 text-xs rounded-md transition ${
+                    s === statement
+                      ? "bg-card shadow-sm font-medium text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
                 >
-                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground tabular-nums">
-                    {new Date(it.published_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                  </div>
-                  <div className="text-foreground leading-snug line-clamp-2">
-                    {it.title}
-                  </div>
-                </a>
-              </li>
-            ))}
-          </ul>
-        )}
+                  {s === "bs" ? "Balance Sheet" : "Income Statement"}
+                </Link>
+              ))}
+            </div>
+            <div className="flex gap-1 rounded-lg border bg-muted p-1">
+              {(["annual", "quarterly"] as const).map((v) => (
+                <Link
+                  key={v}
+                  href={url({ view: v })}
+                  scroll={false}
+                  className={`px-3 py-1 text-xs rounded-md transition ${
+                    v === view
+                      ? "bg-card shadow-sm font-medium text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {v === "annual" ? "Annual" : "Quarterly"}
+                </Link>
+              ))}
+            </div>
+            <div className="flex gap-1 rounded-lg border bg-muted p-1">
+              {(["unconsolidated", "consolidated"] as const).map((k) => (
+                <Link
+                  key={k}
+                  href={url({ kind: k })}
+                  scroll={false}
+                  className={`px-3 py-1 text-xs rounded-md transition ${
+                    k === kind
+                      ? "bg-card shadow-sm font-medium text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {k === "consolidated" ? "Consolidated" : "Bank-only"}
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* Balance Sheet — single table, assets and liabilities together */}
+          {statement === "bs" && (
+          <section className="group mb-6 rounded-lg border bg-card shadow-sm overflow-hidden">
+            <div className="px-5 py-3 border-b bg-muted flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-foreground">Balance Sheet</h2>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-muted-foreground">All numbers in TL thousands</span>
+                <CopyTableButton />
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead className="text-muted-foreground">
+                  <tr className="border-b">
+                    <th className="text-left py-2 pl-3 pr-3 font-medium">Breakdown</th>
+                    {periods.map((p) => (
+                      <th key={p} className="text-right py-2 pl-2 pr-3 font-medium tabular-nums">
+                        {periodToDate(p)}
+                        {periodWarning(p) && (
+                          <span title={periodWarning(p)!} className="ml-1 cursor-help text-amber-600">⚠</span>
+                        )}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {BS_ASSET_LINES.map((line) => (
+                    <Row
+                      key={line.id}
+                      label={resolveBsLineLabel("assets", line.hierarchy, bsNames, line.label)}
+                      values={valuesForLine(line, bsPivot, periods, "assets")}
+                      bold={line.bold}
+                      depth={indentLevel(line.hierarchy)}
+                    />
+                  ))}
+                  <Row label="Total Assets" values={totalAssets} bold divider />
+                  {liabPreEquity.map((line) => (
+                    <Row
+                      key={line.id}
+                      label={line.label}
+                      values={valuesForLine(line, bsPivot, periods, "liabilities")}
+                      bold={line.bold}
+                      depth={indentLevel(line.hierarchy)}
+                    />
+                  ))}
+                  <Row label="Total Liabilities" values={totalLiab} bold divider />
+                  {equityBlock.map((line) => (
+                    <Row
+                      key={line.id}
+                      label={line.label}
+                      values={valuesForLine(line, bsPivot, periods, "liabilities")}
+                      bold={line.bold}
+                      depth={indentLevel(line.hierarchy)}
+                    />
+                  ))}
+                  <Row label="Total Liabilities & Equity" values={totalLE} bold divider />
+                </tbody>
+              </table>
+            </div>
+          </section>
+          )}
+
+          {/* Income Statement — flow Sankey above the standardized table */}
+          {statement === "is" && (
+            <PlSankeySection rowsByPeriod={plRows} periods={periods} />
+          )}
+          {statement === "is" && (
+          <section className="group rounded-lg border bg-card shadow-sm overflow-hidden">
+            <div className="px-5 py-3 border-b bg-muted flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-foreground">Income Statement</h2>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-muted-foreground">All numbers in TL thousands</span>
+                <CopyTableButton />
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead className="text-muted-foreground">
+                  <tr className="border-b">
+                    <th className="text-left py-2 pl-3 pr-3 font-medium">Breakdown</th>
+                    {periods.map((p) => (
+                      <th key={p} className="text-right py-2 pl-2 pr-3 font-medium tabular-nums">
+                        {periodToDate(p)}
+                        {periodWarning(p) && (
+                          <span title={periodWarning(p)!} className="ml-1 cursor-help text-amber-600">⚠</span>
+                        )}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {PL_LINES.map((line) => (
+                    <Row
+                      key={line.id}
+                      label={line.label}
+                      values={valuesForLine(line, plPivot, periods, "")}
+                      bold={line.bold}
+                      divider={line.bold}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+          )}
+
+          <p className="text-[11px] text-muted-foreground mt-3">
+            Lines aligned by BRSA hierarchy code. &quot;--&quot; indicates the line was not
+            reported for that period or did not extract. &quot;Total Assets&quot;,
+            &quot;Total Liabilities&quot;, and &quot;Total Liabilities &amp; Equity&quot;
+            are computed as sums of the Roman-numeral rows. Lines labelled
+            &quot;(-)&quot; are deductions shown as magnitudes.
+            {anyWarning && (
+              <> <span className="text-amber-600">⚠</span> marks a period whose
+              extraction failed internal-sum validation (TL+FC=Total,
+              subtotal=Σcomponents) — treat those figures with care.</>
+            )}
+          </p>
+        </Section>
       </div>
 
-      {/* Statement controls — sit directly above the statement table they drive:
-          statement (BS/IS) · period view (annual/quarterly) · consolidation kind */}
-      <div className="mb-3 flex flex-wrap gap-3 items-center">
-        <div className="flex gap-1 rounded-lg border bg-muted p-1">
-          {(["bs", "is"] as const).map((s) => (
-            <Link
-              key={s}
-              href={url({ statement: s })}
-              scroll={false}
-              className={`px-3 py-1 text-xs rounded-md transition ${
-                s === statement
-                  ? "bg-card shadow-sm font-medium text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {s === "bs" ? "Balance Sheet" : "Income Statement"}
-            </Link>
-          ))}
+      {/* ── Ownership & structure ─────────────────────────────────────────
+          KAP Genel Bilgi Formu: ≥5% holders, radial map, §7 subsidiaries. */}
+      {hasOwnership && (
+        <div id="ownership" className="scroll-mt-24 mb-8">
+          <Section title="Ownership" contentClassName="">
+            {/* Ownership structure from the KAP Genel Bilgi Formu (weekly refresh) */}
+            <OwnershipCard rows={ownership} />
+
+            {/* Interactive radial map: shareholders → bank → subsidiaries */}
+            <OwnershipRadial ticker={ticker} rows={ownership} />
+
+            {/* Subsidiaries / financial investments (same form, §7) */}
+            <SubsidiariesCard rows={ownership} />
+          </Section>
         </div>
-        <div className="flex gap-1 rounded-lg border bg-muted p-1">
-          {(["annual", "quarterly"] as const).map((v) => (
-            <Link
-              key={v}
-              href={url({ view: v })}
-              scroll={false}
-              className={`px-3 py-1 text-xs rounded-md transition ${
-                v === view
-                  ? "bg-card shadow-sm font-medium text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {v === "annual" ? "Annual" : "Quarterly"}
-            </Link>
-          ))}
-        </div>
-        <div className="flex gap-1 rounded-lg border bg-muted p-1">
-          {(["unconsolidated", "consolidated"] as const).map((k) => (
-            <Link
-              key={k}
-              href={url({ kind: k })}
-              scroll={false}
-              className={`px-3 py-1 text-xs rounded-md transition ${
-                k === kind
-                  ? "bg-card shadow-sm font-medium text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {k === "consolidated" ? "Consolidated" : "Bank-only"}
-            </Link>
-          ))}
-        </div>
+      )}
+
+      {/* ── Disclosures ───────────────────────────────────────────────────
+          Recent KAP filings (cached); link out to the full disclosures tab. */}
+      <div id="disclosures" className="scroll-mt-24 mb-8">
+        <Section title="Disclosures" contentClassName="">
+          <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+            <div className="text-sm font-medium text-foreground mb-3 flex items-baseline justify-between">
+              <span>Recent KAP disclosures</span>
+              {kapItems.length > 0 && (
+                <Link
+                  href={`/disclosures?ticker=${ticker}`}
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                >
+                  all {ticker} →
+                </Link>
+              )}
+            </div>
+            {kapItems.length === 0 ? (
+              <div className="text-xs text-muted-foreground italic">No disclosures cached.</div>
+            ) : (
+              <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-2">
+                {kapItems.map((it) => (
+                  <li key={it.external_id} className="text-xs">
+                    <a
+                      href={it.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block hover:bg-accent -mx-1 px-1 py-1 rounded transition"
+                    >
+                      <div className="text-[10px] uppercase tracking-wide text-muted-foreground tabular-nums">
+                        {new Date(it.published_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      </div>
+                      <div className="text-foreground leading-snug line-clamp-2">
+                        {it.title}
+                      </div>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </Section>
       </div>
-
-      {/* Balance Sheet — single table, assets and liabilities together */}
-      {statement === "bs" && (
-      <section className="group mb-6 rounded-lg border bg-card shadow-sm overflow-hidden">
-        <div className="px-5 py-3 border-b bg-muted flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-foreground">Balance Sheet</h2>
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] text-muted-foreground">All numbers in TL thousands</span>
-            <CopyTableButton />
-          </div>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead className="text-muted-foreground">
-              <tr className="border-b">
-                <th className="text-left py-2 pl-3 pr-3 font-medium">Breakdown</th>
-                {periods.map((p) => (
-                  <th key={p} className="text-right py-2 pl-2 pr-3 font-medium tabular-nums">
-                    {periodToDate(p)}
-                    {periodWarning(p) && (
-                      <span title={periodWarning(p)!} className="ml-1 cursor-help text-amber-600">⚠</span>
-                    )}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {BS_ASSET_LINES.map((line) => (
-                <Row
-                  key={line.id}
-                  label={resolveBsLineLabel("assets", line.hierarchy, bsNames, line.label)}
-                  values={valuesForLine(line, bsPivot, periods, "assets")}
-                  bold={line.bold}
-                  depth={indentLevel(line.hierarchy)}
-                />
-              ))}
-              <Row label="Total Assets" values={totalAssets} bold divider />
-              {liabPreEquity.map((line) => (
-                <Row
-                  key={line.id}
-                  label={line.label}
-                  values={valuesForLine(line, bsPivot, periods, "liabilities")}
-                  bold={line.bold}
-                  depth={indentLevel(line.hierarchy)}
-                />
-              ))}
-              <Row label="Total Liabilities" values={totalLiab} bold divider />
-              {equityBlock.map((line) => (
-                <Row
-                  key={line.id}
-                  label={line.label}
-                  values={valuesForLine(line, bsPivot, periods, "liabilities")}
-                  bold={line.bold}
-                  depth={indentLevel(line.hierarchy)}
-                />
-              ))}
-              <Row label="Total Liabilities & Equity" values={totalLE} bold divider />
-            </tbody>
-          </table>
-        </div>
-      </section>
-      )}
-
-      {/* Income Statement — flow Sankey above the standardized table */}
-      {statement === "is" && (
-        <PlSankeySection rowsByPeriod={plRows} periods={periods} />
-      )}
-      {statement === "is" && (
-      <section className="group rounded-lg border bg-card shadow-sm overflow-hidden">
-        <div className="px-5 py-3 border-b bg-muted flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-foreground">Income Statement</h2>
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] text-muted-foreground">All numbers in TL thousands</span>
-            <CopyTableButton />
-          </div>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead className="text-muted-foreground">
-              <tr className="border-b">
-                <th className="text-left py-2 pl-3 pr-3 font-medium">Breakdown</th>
-                {periods.map((p) => (
-                  <th key={p} className="text-right py-2 pl-2 pr-3 font-medium tabular-nums">
-                    {periodToDate(p)}
-                    {periodWarning(p) && (
-                      <span title={periodWarning(p)!} className="ml-1 cursor-help text-amber-600">⚠</span>
-                    )}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {PL_LINES.map((line) => (
-                <Row
-                  key={line.id}
-                  label={line.label}
-                  values={valuesForLine(line, plPivot, periods, "")}
-                  bold={line.bold}
-                  divider={line.bold}
-                />
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-      )}
-
-      <p className="text-[11px] text-muted-foreground mt-3">
-        Lines aligned by BRSA hierarchy code. &quot;--&quot; indicates the line was not
-        reported for that period or did not extract. &quot;Total Assets&quot;,
-        &quot;Total Liabilities&quot;, and &quot;Total Liabilities &amp; Equity&quot;
-        are computed as sums of the Roman-numeral rows. Lines labelled
-        &quot;(-)&quot; are deductions shown as magnitudes.
-        {anyWarning && (
-          <> <span className="text-amber-600">⚠</span> marks a period whose
-          extraction failed internal-sum validation (TL+FC=Total,
-          subtotal=Σcomponents) — treat those figures with care.</>
-        )}
-      </p>
     </main>
   );
 }
