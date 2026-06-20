@@ -29,6 +29,9 @@ function pad(period: string): string {
 export function lowerBound(maxPeriod: string, range: RangeKey): string {
   if (range === "All" || !maxPeriod) return "";
   const year = Number(maxPeriod.slice(0, 4));
+  // Guard non-ISO / unparseable periods: no year → no bound (show everything)
+  // rather than risk a lexicographic cut that empties the chart.
+  if (!Number.isFinite(year)) return "";
   if (range === "YTD") return `${year}-01`; // Jan of the latest data year
   return `${year - YEARS_BACK[range]}${maxPeriod.slice(4)}`;
 }

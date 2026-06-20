@@ -150,15 +150,17 @@ Setup in [OPERATIONS.md](OPERATIONS.md) / [ADMIN.md](ADMIN.md).
 Every chart card (`web/app/components/ui/chart-card.tsx`) carries hover-revealed
 header controls — **Copy** image, **PNG** download, **CSV** download, and
 **Expand** to a centred popup. A **date-range selector** (1Y / 3Y / 5Y / YTD /
-All) is being **piloted** on long-history charts: it's a pure **client-side**
-display zoom over data the page already ships (no refetch), opt-in per chart via
-the `range` prop on `TrendChart` / `TimeSeriesChart` / `StackedArea`. Buttons
-whose window exceeds the data's span auto-hide; CSV/PNG export the visible
-window. Pilot pages: `/banks/[ticker]` share price (default 1Y), `/rates`
-(1Y), `/capital` trends (3Y), `/economy/balance-of-payments` Şekil 1/2/7/8/9
-(3Y). Logic in `web/app/lib/chart-range.ts` (+ vitest) and the
-`web/app/lib/use-date-range.tsx` hook; `BopFlowChart`/`BarByBank` are out of
-scope (fixed report windows / snapshots).
+All) is **on by default** for every time-series chart — `TrendChart`,
+`TimeSeriesChart`, and `StackedArea`. It's a pure **client-side** display zoom
+over data the page already ships (no refetch). Default window is **3Y**, except
+daily market/rate charts (`/rates`, `/banks/[ticker]` share price) which default
+to **1Y**; pass `range={{ default: … }}` to change a chart's initial window or
+`range={{ enabled: false }}` to hide the selector. Buttons whose window exceeds
+the data's span auto-hide (a short series shows only the windows that fit), and
+CSV/PNG export the visible window. Logic in `web/app/lib/chart-range.ts`
+(+ vitest) and the `web/app/lib/use-date-range.tsx` hook; UI in
+`web/app/components/ui/range-pills.tsx`. `BopFlowChart`/`BarByBank` are out of
+scope (fixed report windows / single-period snapshots).
 
 The **Non-Bank** tab (`/non-bank`) covers the BDDK-supervised non-bank lenders
 that compete with bank credit — financial leasing, factoring, and financing
