@@ -1054,16 +1054,30 @@ def _locate_oci_page(pdf, pl_page_idx_1: int | None) -> int | None:
     """Find the OCI (Other Comprehensive Income) statement page.
 
     The OCI always follows the P&L page in BRSA reports. Searches the next
-    1-4 pages after P&L for the OCI anchor keywords, then confirms the page
+    1-6 pages after P&L for the OCI anchor keywords, then confirms the page
     has at least two numeric data rows (not just a section-title page).
+
+    BRSA titles the income statement "KÂR VEYA ZARAR VE DİĞER KAPSAMLI GELİR
+    TABLOSU", so the OCI keyword also appears on the P&L page(s). Banks that
+    print the P&L twice — cumulative period-to-date AND quarter-only columns,
+    e.g. Yapı Kredi interim reports — leave a second P&L page sitting between
+    the located P&L and the real OCI. Such a page carries the OCI keyword and
+    plenty of roman rows, so it would be wrongly returned. Skip any candidate
+    that also carries P&L income anchors (interest / profit-share income); the
+    genuine OCI page never lists those.
     """
     if pl_page_idx_1 is None:
         return None
     _OCI_NORMS = ("KAPSAMLIGELIR", "KAPSAMLIKAZAN", "COMPREHENSIVEINCOME", "KAPSAMLIGEL")
-    for i in range(pl_page_idx_1 + 1, min(pl_page_idx_1 + 5, _n_pages(pdf) + 1)):
+    _PL_NORMS = ("INTERESTINCOME", "INTERSTINCOME", "FAIZGELIRLERI",
+                 "PROFITSHAREINCOME", "KARPAYIGELIRLERI", "NETINTERESTINCOME")
+    for i in range(pl_page_idx_1 + 1, min(pl_page_idx_1 + 7, _n_pages(pdf) + 1)):
         text = _page_text(pdf, i)
         norm = _norm(text)
         if not any(kw in norm for kw in _OCI_NORMS):
+            continue
+        # A P&L (or its quarter-only twin) carries an income anchor — not OCI.
+        if any(kw in norm for kw in _PL_NORMS):
             continue
         # Require at least 2 numeric data rows (roman-preceded lines with 3+ digits)
         data_rows = sum(
