@@ -172,6 +172,14 @@ def main() -> int:
     _retry_wrangler(sqlp, "D1 override clear")
     subprocess.run([sys.executable, str(REPO / "scripts" / "push_to_d1.py"),
                     "--db", str(DB), "--hours", "1", "--only-tables", ",".join(AUDIT_TABLES)], check=True)
+    # Rebuild + push the coverage spine (bank_audit_coverage/expected/statement_types).
+    # The /admin matrix reads its per-cell status from bank_audit_coverage — a rollup of
+    # bank_audit_validation that's regenerated ONLY here and by the refresh-audit cron, not
+    # by the table push above. Without this an override clears the validation failure but the
+    # matrix keeps showing the stale error until the next cron. Runs before the snapshot so
+    # the uploaded DB carries the fresh spine too.
+    subprocess.run([sys.executable, str(REPO / "scripts" / "sync_audit_expected.py"),
+                    "--db", str(DB), "--push"], check=True)
     with sqlite3.connect(str(DB)) as c:
         c.execute("VACUUM")
     with open(DB, "rb") as s, gzip.open(GZ, "wb", compresslevel=6) as d:
