@@ -12,6 +12,7 @@ ADDITIVE: uses the extractor's shared parsers READ-ONLY; it never modifies
 """
 from __future__ import annotations
 
+import re
 import sqlite3
 from dataclasses import dataclass, field
 
@@ -21,6 +22,7 @@ from .extractor import (
     _detect_pl_ncols,
     _fitz_merge_rows,
     _fitz_page_text,
+    _fitz_visual_rows,
     _parse_rows,
     _safe_repaired_text,
     _split_label,
@@ -28,6 +30,12 @@ from .extractor import (
 from .validator import _roman_to_int, _tol, check_hierarchy_sums
 
 _OCI_MIN_REAL_ROWS = 3
+
+# Coordinate-reconstruction token classes (a leading hierarchy marker, a numeric
+# value possibly parenthesised, a "-"/"--" nil cell).
+_COORD_MARK = re.compile(r'^(?:[IVXL]+\.|\d+(?:\.\d+)*\.?)$')
+_COORD_VAL = re.compile(r'^\(?-?[\d][\d.,]*\)?$')
+_COORD_NIL = re.compile(r'^-{1,2}$')
 
 
 @dataclass
@@ -104,6 +112,79 @@ def _oci_candidate_score(rows: list[StatementRow]) -> tuple[int, int, int, int]:
     return (tier1, hier, n_real, len(rows))
 
 
+def _coord_oci_text(pdf_path: str, oci_page: int) -> str:
+    """Rebuild the OCI rows from fitz word COORDINATES, reassembling rows whose
+    hierarchy marker, label and values landed on different physical lines, then
+    emit one clean "marker label v1 v2" line per logical row for the normal text
+    parser to consume.
+
+    Handles the two BRSA-interim pathologies the line-based parser drops:
+      • a wrapped label whose continuation / values sit on the line(s) BELOW the
+        marker (e.g. DENIZ 2.1.4 "… Diğer Kapsamlı" / "Unsurları -- 15.039");
+      • a value on its own line ABOVE a marker-only line (ALNTF 2.2.2: "(43,619)"
+        above "2.2.2 …Giderleri (62,374)") — the marker comes AFTER its current
+        value, so a line parser can't see them as one row.
+
+    Walks visual rows top→bottom. A non-marker row FILLS the current logical row
+    while it is still value-INCOMPLETE (< ncol cells, nils counted); once complete
+    its trailing label/value fragments BUFFER and prepend to the NEXT marker. Stops
+    at roman III (the OCI total is the last row) so footers/notes can't bleed in.
+    Values are emitted left→right by x, so the current-period column precedes the
+    prior-period one regardless of which physical line each came from."""
+    vrows = _fitz_visual_rows(pdf_path, oci_page - 1)
+    if not vrows:
+        return ""
+    classified: list[tuple[str | None, str, list[tuple[float, str]]]] = []
+    for toks in vrows:
+        if not toks:
+            continue
+        marker: str | None = None
+        start = 0
+        if _COORD_MARK.match(toks[0][2]):
+            marker, start = toks[0][2], 1
+        label: list[str] = []
+        vals: list[tuple[float, str]] = []
+        for x0, _x1, t in toks[start:]:
+            (vals.append((x0, t)) if (_COORD_VAL.match(t) or _COORD_NIL.match(t))
+             else label.append(t))
+        classified.append((marker, ' '.join(label).strip(), vals))
+    # Column count = number of value cells on the roman "I." row (period net
+    # profit — always fully populated). Falls back to 2.
+    ncol = 2
+    for m, _l, v in classified:
+        if m and m.rstrip('.') == 'I' and v:
+            ncol = len(v)
+            break
+
+    logical: list[dict] = []
+    buf_label: list[str] = []
+    buf_vals: list[tuple[float, str]] = []
+    for marker, label, vals in classified:
+        if marker:
+            lab = ' '.join(buf_label + ([label] if label else [])).strip()
+            logical.append({'m': marker, 'l': lab, 'v': list(buf_vals) + vals})
+            buf_label, buf_vals = [], []
+            if marker.rstrip('.') == 'III':
+                break  # OCI total is the last row — ignore any trailing notes
+        else:
+            cur = logical[-1] if logical else None
+            if cur is not None and len(cur['v']) < ncol and (vals or label):
+                if vals:
+                    cur['v'].extend(vals)
+                if label:
+                    cur['l'] = (cur['l'] + ' ' + label).strip()
+            else:  # current row complete (or none yet) → belongs to the NEXT marker
+                if vals:
+                    buf_vals.extend(vals)
+                if label:
+                    buf_label.append(label)
+    lines = []
+    for r in logical:
+        vs = ' '.join(t for _, t in sorted(r['v'], key=lambda z: z[0]))
+        lines.append(f"{r['m']} {r['l']} {vs}".strip())
+    return '\n'.join(lines)
+
+
 def extract_oci(pdf_path: str, oci_page: int) -> OCIReport:
     """Validation-guided OCI extraction from an already-located OCI page."""
     n0 = _detect_pl_ncols(pdf_path, oci_page)
@@ -132,6 +213,17 @@ def extract_oci(pdf_path: str, oci_page: int) -> OCIReport:
         pp = _safe_repaired_text(pdf_path, oci_page)
         if pp:
             candidates += _cands_from(pp)
+    # COORDINATE RECONSTRUCTION: when no candidate yet foots the 2.1/2.2 sub-trees
+    # (hierarchy_sum fail — a leaf row dropped because its label/value wrapped to
+    # another physical line, or its marker prints below its value), rebuild rows
+    # from word coordinates. Added ONLY if it itself FULLY validates (chain AND
+    # hierarchy, score tier 2) — a coincidental all-sums-foot on wrong data is
+    # effectively impossible — so it can never displace a correct parse or corrupt
+    # the proven-passing partitions; at worst it changes nothing.
+    if not any(_oci_candidate_score(c)[1] == 1 for c in candidates):
+        for c in _cands_from(_coord_oci_text(pdf_path, oci_page)):
+            if _oci_candidate_score(c)[1] == 1:
+                candidates.append(c)
     if not candidates:
         return OCIReport(pdf_path=pdf_path)
 
