@@ -29,9 +29,14 @@ export type MetricKey =
   | "stage2_share"
   | "npl_coverage"
   | "provision_intensity"
+  | "cost_of_risk"
   | "roe"
   | "roa"
   | "nim"
+  | "ppop_ratio"
+  | "loan_yield"
+  | "deposit_cost"
+  | "spread"
   | "cost_income"
   | "pb"
   | "pe";
@@ -54,9 +59,24 @@ export const METRIC_DEFS: MetricDef[] = [
   { key: "stage2_share",        label: "Stage-2 share",       short: "Stage 2",    unit: "pct", decimals: 2, direction: "higher_worse" },
   { key: "npl_coverage",        label: "NPL coverage",        short: "Coverage",   unit: "pct", decimals: 1, direction: "higher_better" },
   { key: "provision_intensity", label: "Provision intensity", short: "Provisions", unit: "pct", decimals: 2, direction: "neutral" },
+  // Cost of risk (TTM credit-provision flow ÷ avg gross loans) — the income-
+  // statement counterpart to the balance-sheet provision-intensity stock.
+  { key: "cost_of_risk",        label: "Cost of risk (TTM)",  short: "CoR",        unit: "pct", decimals: 2, direction: "higher_worse" },
   { key: "roe",                 label: "ROE (TTM)",           short: "ROE",        unit: "pct", decimals: 1, direction: "higher_better" },
   { key: "roa",                 label: "ROA",                 short: "ROA",        unit: "pct", decimals: 2, direction: "higher_better" },
   { key: "nim",                 label: "NIM (annualized)",    short: "NIM",        unit: "pct", decimals: 2, direction: "higher_better" },
+  // Margin engine — the drivers behind NIM. TTM interest flows over 5-point
+  // average balances (same basis as ROE), so they read on a trailing-year basis
+  // rather than the annualized-YTD NIM. Loan yield = interest on loans (P&L 1.1)
+  // ÷ avg gross loans (BS asset 2.1); deposit cost = interest on deposits (P&L
+  // 2.1) ÷ avg deposits (BS liability I.); spread is the gap. Yield/cost are
+  // neutral (high yield ↔ riskier book; high cost ↔ funding mix), spread is the
+  // edge. PPOP = gross operating profit (VIII) − opex, the pre-provision earning
+  // power, over avg assets.
+  { key: "ppop_ratio",          label: "PPOP / assets (TTM)", short: "PPOP",       unit: "pct", decimals: 2, direction: "higher_better" },
+  { key: "loan_yield",          label: "Loan yield (TTM)",    short: "Yield",      unit: "pct", decimals: 1, direction: "neutral" },
+  { key: "deposit_cost",        label: "Deposit cost (TTM)",  short: "Dep cost",   unit: "pct", decimals: 1, direction: "neutral" },
+  { key: "spread",              label: "Loan–deposit spread", short: "Spread",     unit: "pct", decimals: 1, direction: "higher_better" },
   { key: "cost_income",         label: "Cost / Income",       short: "Cost/Inc",   unit: "pct",  decimals: 1, direction: "higher_worse" },
   // Market valuation (listed banks only — blank for the unlisted majority).
   // Neutral coloring: cheap/expensive isn't good/bad. Snapshot uses the
@@ -74,9 +94,14 @@ export interface BankMetricRow {
   stage2_share: number | null;
   npl_coverage: number | null;
   provision_intensity: number | null;
+  cost_of_risk: number | null;
   roe: number | null;
   roa: number | null;
   nim: number | null;
+  ppop_ratio: number | null;
+  loan_yield: number | null;
+  deposit_cost: number | null;
+  spread: number | null;
   cost_income: number | null;
   pb: number | null;
   pe: number | null;
@@ -116,8 +141,10 @@ interface RowPl {
   bank_ticker: string; period: string;
   net_profit: number | null; net_interest: number | null;
   opex: number | null; gross_op_profit: number | null;
+  ii_loans: number | null; ie_deposits: number | null; ecl_prov: number | null;
 }
 interface RowEquity { bank_ticker: string; period: string; equity: number | null }
+interface RowBalance { bank_ticker: string; period: string; amount: number | null }
 
 /**
  * Full panel: one row per (bank, period) across every available quarter, with
@@ -130,7 +157,7 @@ export async function heatmapPanel(
 ): Promise<BankMetricRow[]> {
   const romanPlaceholders = BS_ASSET_ROMAN_HIERARCHIES.map(() => "?").join(",");
 
-  const [assets, stages, pl, equity, closes, shares, latestCloses] = await Promise.all([
+  const [assets, stages, pl, equity, closes, shares, latestCloses, loanRows, depositRows] = await Promise.all([
     // A — total assets: sum of the BS asset Roman subtotals I.–X. (= bankSummaries).
     cachedAll<RowAssets>(
       `SELECT bank_ticker, period, SUM(amount_total) AS total_assets
@@ -165,7 +192,11 @@ export async function heatmapPanel(
          )`,
       [kind],
     ),
-    // C — P&L pivot by BRSA hierarchy (labels vary TR/EN, codes don't).
+    // C — P&L pivot by BRSA hierarchy (labels vary TR/EN, codes don't). The
+    // margin lines are numeric sub-codes, stable across deposit/participation
+    // templates (see standard_lines.ts PL_LINES): 1.1 = interest on loans
+    // (Kredilerden Alınan Faizler), 2.1 = interest on deposits (Mevduata Verilen
+    // Faizler), IX. = expected-credit-loss provisions. All amounts are YTD.
     cachedAll<RowPl>(
       `SELECT bank_ticker, period,
               COALESCE(MAX(CASE WHEN hierarchy = 'XXV.' THEN amount END),
@@ -173,7 +204,10 @@ export async function heatmapPanel(
               MAX(CASE WHEN hierarchy = 'III.' THEN amount END)            AS net_interest,
               MAX(CASE WHEN hierarchy = 'XI.'  THEN amount END)
                 + MAX(CASE WHEN hierarchy = 'XII.' THEN amount END)        AS opex,
-              MAX(CASE WHEN hierarchy = 'VIII.' THEN amount END)           AS gross_op_profit
+              MAX(CASE WHEN hierarchy = 'VIII.' THEN amount END)           AS gross_op_profit,
+              MAX(CASE WHEN hierarchy = '1.1'  THEN amount END)            AS ii_loans,
+              MAX(CASE WHEN hierarchy = '2.1'  THEN amount END)            AS ie_deposits,
+              MAX(CASE WHEN hierarchy = 'IX.'  THEN amount END)            AS ecl_prov
          FROM bank_audit_profit_loss
         WHERE kind = ?
         GROUP BY bank_ticker, period`,
@@ -234,6 +268,26 @@ export async function heatmapPanel(
        ) WHERE rn = 1`,
       [],
     ),
+    // H — gross loans per (bank, period): BS asset sub-item 2.1 ("Loans"), the
+    // denominator for loan yield + cost of risk. Stable hierarchy across the
+    // deposit/participation templates. Narrow scan (one hierarchy).
+    cachedAll<RowBalance>(
+      `SELECT bank_ticker, period, MAX(amount_total) AS amount
+         FROM bank_audit_balance_sheet
+        WHERE kind = ? AND statement = 'assets' AND hierarchy = '2.1'
+        GROUP BY bank_ticker, period`,
+      [kind],
+    ),
+    // I — customer deposits per (bank, period): BS liability Roman I. ("Deposits
+    // / Funds Collected"), the cost-of-funds denominator. Roman I. is deposits
+    // for both deposit and participation banks.
+    cachedAll<RowBalance>(
+      `SELECT bank_ticker, period, MAX(amount_total) AS amount
+         FROM bank_audit_balance_sheet
+        WHERE kind = ? AND statement = 'liabilities' AND hierarchy = 'I.'
+        GROUP BY bank_ticker, period`,
+      [kind],
+    ),
   ]);
 
   const map = new Map<string, BankMetricRow>();
@@ -244,8 +298,10 @@ export async function heatmapPanel(
       row = {
         bank_ticker: ticker, period,
         total_assets: null, npl_ratio: null, stage2_share: null,
-        npl_coverage: null, provision_intensity: null,
-        roe: null, roa: null, nim: null, cost_income: null,
+        npl_coverage: null, provision_intensity: null, cost_of_risk: null,
+        roe: null, roa: null, nim: null,
+        ppop_ratio: null, loan_yield: null, deposit_cost: null, spread: null,
+        cost_income: null,
         pb: null, pe: null,
       };
       map.set(key, row);
@@ -270,6 +326,17 @@ export async function heatmapPanel(
   const equityByKey = new Map<string, number | null>();
   for (const r of equity) {
     equityByKey.set(`${r.bank_ticker}|${r.period}`, r.equity);
+    ensure(r.bank_ticker, r.period);
+  }
+  // Margin-engine balance denominators (gross loans, deposits) per (bank, period).
+  const loansByKey = new Map<string, number | null>();
+  for (const r of loanRows) {
+    loansByKey.set(`${r.bank_ticker}|${r.period}`, r.amount);
+    ensure(r.bank_ticker, r.period);
+  }
+  const depositsByKey = new Map<string, number | null>();
+  for (const r of depositRows) {
+    depositsByKey.set(`${r.bank_ticker}|${r.period}`, r.amount);
     ensure(r.bank_ticker, r.period);
   }
   // Market valuation inputs (listed banks only). closeByKey is the quarter-end
@@ -342,6 +409,75 @@ export async function heatmapPanel(
     return avgEq > 0 ? ttm / avgEq : null;
   };
 
+  // --- Margin engine (loan yield / deposit cost / spread / CoR / PPOP) -------
+  // Same trailing-year basis as ROE: TTM interest/provision FLOWS (YTD lines
+  // de-cumulated to single quarters, last 4 summed) over 5-point average
+  // BALANCES. One record per (bank, ord) holds every margin input so the generic
+  // ttmFlow/avgStock helpers below can read any field. ppop (a flow) is
+  // pre-computed = gross operating profit (VIII) − |opex| (XI+XII), both YTD.
+  interface MarginRec {
+    iiLoans: number | null;    // YTD interest on loans (P&L 1.1)
+    ieDeposits: number | null; // YTD interest on deposits (P&L 2.1)
+    eclProv: number | null;    // YTD ECL provisions (P&L IX.)
+    ppop: number | null;       // YTD pre-provision operating profit (VIII − |opex|)
+    loans: number | null;      // gross loans stock (BS asset 2.1)
+    deposits: number | null;   // deposits stock (BS liability I.)
+    assets: number | null;     // total assets stock
+  }
+  const marginByBank = new Map<string, Map<number, MarginRec>>();
+  for (const row of map.values()) {
+    const ord = ordOf(row.period);
+    if (ord == null) continue;
+    const key = `${row.bank_ticker}|${row.period}`;
+    const p = plByKey.get(key);
+    const grossOp = p?.gross_op_profit ?? null;
+    const opex = p?.opex ?? null;
+    const ppop = grossOp != null && opex != null ? grossOp - Math.abs(opex) : null;
+    let b = marginByBank.get(row.bank_ticker);
+    if (!b) { b = new Map(); marginByBank.set(row.bank_ticker, b); }
+    b.set(ord, {
+      iiLoans: p?.ii_loans ?? null,
+      ieDeposits: p?.ie_deposits ?? null,
+      eclProv: p?.ecl_prov ?? null,
+      ppop,
+      loans: loansByKey.get(key) ?? null,
+      deposits: depositsByKey.get(key) ?? null,
+      assets: row.total_assets,
+    });
+  }
+  // De-cumulate one YTD field to a single quarter (Q1 is already one quarter).
+  const singleQField = (b: Map<number, MarginRec>, ord: number, f: (r: MarginRec) => number | null): number | null => {
+    const cur = b.get(ord) ? f(b.get(ord)!) : null;
+    if (cur == null) return null;
+    if (ord % 4 === 0) return cur;
+    const prevR = b.get(ord - 1);
+    const prev = prevR ? f(prevR) : null;
+    return prev == null ? null : cur - prev;
+  };
+  // Trailing-4-quarter sum of a YTD field; null on any gap in the window.
+  const ttmFlow = (b: Map<number, MarginRec> | undefined, ord: number | null, f: (r: MarginRec) => number | null): number | null => {
+    if (!b || ord == null) return null;
+    let t = 0;
+    for (let k = 0; k < 4; k++) {
+      const s = singleQField(b, ord - k, f);
+      if (s == null) return null;
+      t += s;
+    }
+    return t;
+  };
+  // Average of a stock field over the 5 trailing quarter-ends present (≥2).
+  const avgStock = (b: Map<number, MarginRec> | undefined, ord: number | null, f: (r: MarginRec) => number | null): number | null => {
+    if (!b || ord == null) return null;
+    const xs: number[] = [];
+    for (let k = 0; k < 5; k++) {
+      const r = b.get(ord - k);
+      const v = r ? f(r) : null;
+      if (v != null && v > 0) xs.push(v);
+    }
+    if (xs.length < 2) return null;
+    return xs.reduce((s, x) => s + x, 0) / xs.length;
+  };
+
   // Derive the metrics. ROE uses TTM net income / average equity (above). ROA /
   // NIM are still YTD flows annualized by 4/quarter over period-end assets, and
   // Cost/Income is a ratio of two YTD flows. Missing inputs (or non-positive
@@ -376,6 +512,30 @@ export async function heatmapPanel(
     // stored as negatives); abs both so Cost/Income is a clean positive ratio.
     if (opex != null && grossOp != null && Math.abs(grossOp) > 0)
       row.cost_income = Math.abs(opex) / Math.abs(grossOp);
+
+    // Margin engine — TTM flows / avg balances, stored as FRACTIONS (the "pct"
+    // formatter ×100s them, like roe/nim). cost_of_risk takes the magnitude of
+    // the annual provision flow (sign convention varies by bank; net releases
+    // are rare). Each leaves the cell null on any missing input.
+    const mb = marginByBank.get(row.bank_ticker);
+    const mord = ordOf(row.period);
+    const ttmIiLoans = ttmFlow(mb, mord, (r) => r.iiLoans);
+    const ttmIeDep = ttmFlow(mb, mord, (r) => r.ieDeposits);
+    const ttmEcl = ttmFlow(mb, mord, (r) => r.eclProv);
+    const ttmPpop = ttmFlow(mb, mord, (r) => r.ppop);
+    const avgLoans = avgStock(mb, mord, (r) => r.loans);
+    const avgDeposits = avgStock(mb, mord, (r) => r.deposits);
+    const avgAssets = avgStock(mb, mord, (r) => r.assets);
+    if (ttmIiLoans != null && avgLoans != null && avgLoans > 0)
+      row.loan_yield = ttmIiLoans / avgLoans;
+    if (ttmIeDep != null && avgDeposits != null && avgDeposits > 0)
+      row.deposit_cost = ttmIeDep / avgDeposits;
+    if (row.loan_yield != null && row.deposit_cost != null)
+      row.spread = row.loan_yield - row.deposit_cost;
+    if (ttmEcl != null && avgLoans != null && avgLoans > 0)
+      row.cost_of_risk = Math.abs(ttmEcl) / avgLoans;
+    if (ttmPpop != null && avgAssets != null && avgAssets > 0)
+      row.ppop_ratio = ttmPpop / avgAssets;
 
     // Market valuation (listed banks only; null otherwise). Market cap (TL) =
     // price × shares. Audit amounts are thousand TL → ×1000. Price precedence:

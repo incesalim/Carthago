@@ -313,7 +313,7 @@
       "availability": "voluntary",
       "cadence": "quarterly",
       "standard_across_banks": false,
-      "reproducible": "partial",
+      "reproducible": "derived",
       "source_datasets": [
         "bank_audit"
       ],
@@ -322,7 +322,8 @@
         "deposit_cost",
         "nim_reported"
       ],
-      "caveats": "Differs from NIM (no benefit of non-interest-bearing funding). Yields/costs not broken out in BRSA statements → approximate."
+      "derivation": "loan_yield − deposit_cost (both TTM). Surfaced as 'Loan–deposit spread' on /cross-bank + /banks/[ticker]. web/app/lib/heatmap.ts spread.",
+      "caveats": "A loan-deposit spread, not the full IEA/IBL spread; differs from NIM (no non-interest-bearing-funding benefit). Yields/costs ARE broken out at BRSA P&L 1.1/2.1. Built 2026-06-20."
     },
     {
       "id": "loan_yield",
@@ -339,7 +340,7 @@
       "availability": "voluntary",
       "cadence": "quarterly",
       "standard_across_banks": false,
-      "reproducible": "partial",
+      "reproducible": "derived",
       "source_datasets": [
         "bank_audit"
       ],
@@ -347,7 +348,8 @@
         "interest_income",
         "loans_gross"
       ],
-      "caveats": "Loan-only interest income is a P&L sub-line (footnote granularity), not always cleanly separable."
+      "derivation": "TTM interest on loans (P&L 1.1 Kredilerden Alınan Faizler, YTD de-cumulated, last 4Q) / 5-point average gross loans (BS asset 2.1). web/app/lib/heatmap.ts loan_yield.",
+      "caveats": "BRSA P&L line 1.1 is a stable sub-code across deposit/participation templates, so loan interest IS cleanly separable. Built 2026-06-20."
     },
     {
       "id": "deposit_cost",
@@ -364,7 +366,7 @@
       "availability": "voluntary",
       "cadence": "quarterly",
       "standard_across_banks": false,
-      "reproducible": "partial",
+      "reproducible": "derived",
       "source_datasets": [
         "bank_audit"
       ],
@@ -372,7 +374,8 @@
         "interest_expense",
         "deposits"
       ],
-      "caveats": "Deposit-only interest expense is a P&L sub-line; granularity varies."
+      "derivation": "TTM interest on deposits (P&L 2.1 Mevduata Verilen Faizler, YTD de-cumulated, last 4Q) / 5-point average deposits (BS liability I.). web/app/lib/heatmap.ts deposit_cost.",
+      "caveats": "BRSA P&L line 2.1 is a stable sub-code across templates. Deposit-only (not all-in funding) cost. Built 2026-06-20."
     },
     {
       "id": "securities_yield",
@@ -2012,7 +2015,8 @@
         "net_cost_of_risk",
         "loans_gross"
       ],
-      "caveats": "Banks differ on gross vs net of recoveries and currency-impact adjustments.",
+      "derivation": "TTM ECL provisions (P&L IX., magnitude) / 5-point average gross loans (BS asset 2.1). web/app/lib/heatmap.ts cost_of_risk.",
+      "caveats": "Banks differ on gross vs net of recoveries and currency-impact adjustments. Our figure is gross ECL provisions (line IX.), not adjusted for FX impact.",
       "examples": [
         {
           "bank": "GARAN",
@@ -4679,6 +4683,277 @@
         "total_assets"
       ],
       "caveats": "Garanti highlights ~56% (bank-only 58%) vs sector ~50% (1Q26)."
+    },
+    {
+      "id": "ppop_ratio",
+      "name_en": "Pre-provision operating profit / assets",
+      "name_tr": "Karşılık Öncesi Kâr / Aktif",
+      "aliases": [
+        "PPOP/assets",
+        "pre-provision RoA"
+      ],
+      "group": "profitability",
+      "definition": "Pre-provision operating profit / average total assets, trailing twelve months — underlying earning power before credit costs.",
+      "unit": "%",
+      "formula": "ppop / avg_total_assets",
+      "frameworks": [
+        "market"
+      ],
+      "level": "bank",
+      "availability": "mandatory",
+      "cadence": "quarterly",
+      "standard_across_banks": true,
+      "reproducible": "derived",
+      "source_datasets": [
+        "bank_audit"
+      ],
+      "decomposes_into": [
+        "ppop",
+        "total_assets"
+      ],
+      "derivation": "TTM (VIII Gross Operating Profit − |XI+XII opex|) / 5-point average total assets. web/app/lib/heatmap.ts ppop_ratio.",
+      "caveats": "Shown on /cross-bank + /banks/[ticker] on a TTM basis (NIM/ROA there are annualized-YTD). Built 2026-06-20."
+    },
+    {
+      "id": "market_share_assets",
+      "name_en": "Market share — total assets",
+      "name_tr": "Pazar Payı — Toplam Aktif",
+      "group": "market_position",
+      "definition": "A bank's total assets as a share of the reporting banks' combined assets that quarter.",
+      "unit": "%",
+      "formula": "bank_assets / Σ reporting_banks_assets",
+      "frameworks": [
+        "market"
+      ],
+      "level": "bank",
+      "availability": "mandatory",
+      "cadence": "quarterly",
+      "standard_across_banks": true,
+      "reproducible": "derived",
+      "source_datasets": [
+        "bank_audit"
+      ],
+      "related": [
+        "total_assets",
+        "hhi"
+      ],
+      "derivation": "Per period, bank assets (Σ BS asset Romans I.–X.) ÷ sum across reporting banks. web/app/lib/market-share.ts.",
+      "caveats": "Denominator is the ~32 audited banks (~98% of sector), not the BDDK sector aggregate — 'share of reporting banks'. Built 2026-06-20."
+    },
+    {
+      "id": "market_share_loans",
+      "name_en": "Market share — loans",
+      "name_tr": "Pazar Payı — Krediler",
+      "group": "market_position",
+      "definition": "A bank's gross loans as a share of the reporting banks' combined loans that quarter.",
+      "unit": "%",
+      "formula": "bank_loans / Σ reporting_banks_loans",
+      "frameworks": [
+        "market"
+      ],
+      "level": "bank",
+      "availability": "mandatory",
+      "cadence": "quarterly",
+      "standard_across_banks": true,
+      "reproducible": "derived",
+      "source_datasets": [
+        "bank_audit"
+      ],
+      "related": [
+        "loans_gross",
+        "hhi"
+      ],
+      "derivation": "Bank gross loans (BS asset 2.1) ÷ sum across reporting banks per period. web/app/lib/market-share.ts.",
+      "caveats": "Share of reporting banks (~98% of sector). Built 2026-06-20."
+    },
+    {
+      "id": "market_share_deposits",
+      "name_en": "Market share — deposits",
+      "name_tr": "Pazar Payı — Mevduat",
+      "group": "market_position",
+      "definition": "A bank's deposits as a share of the reporting banks' combined deposits that quarter.",
+      "unit": "%",
+      "formula": "bank_deposits / Σ reporting_banks_deposits",
+      "frameworks": [
+        "market"
+      ],
+      "level": "bank",
+      "availability": "mandatory",
+      "cadence": "quarterly",
+      "standard_across_banks": true,
+      "reproducible": "derived",
+      "source_datasets": [
+        "bank_audit"
+      ],
+      "related": [
+        "deposits",
+        "hhi"
+      ],
+      "derivation": "Bank deposits (BS liability I.) ÷ sum across reporting banks per period. web/app/lib/market-share.ts.",
+      "caveats": "Share of reporting banks (~98% of sector). Built 2026-06-20."
+    },
+    {
+      "id": "hhi",
+      "name_en": "Herfindahl–Hirschman index",
+      "name_tr": "Yoğunlaşma Endeksi (HHI)",
+      "aliases": [
+        "HHI",
+        "concentration index"
+      ],
+      "group": "market_position",
+      "definition": "Sum of squared market shares (×10,000) across reporting banks — sector concentration. <1500 unconcentrated, 1500–2500 moderate, >2500 concentrated.",
+      "unit": "index",
+      "formula": "Σ (share_i)^2 × 10000",
+      "frameworks": [
+        "market"
+      ],
+      "level": "sector",
+      "availability": "mandatory",
+      "cadence": "quarterly",
+      "standard_across_banks": true,
+      "reproducible": "derived",
+      "source_datasets": [
+        "bank_audit"
+      ],
+      "related": [
+        "market_share_assets",
+        "market_share_loans",
+        "market_share_deposits"
+      ],
+      "derivation": "Computed for assets/loans/deposits from the market-share panel. web/app/lib/market-share.ts hhiSeries().",
+      "caveats": "Over the reporting-bank universe; excludes the ~2% of sector outside the audited set. Built 2026-06-20."
+    },
+    {
+      "id": "fx_net_open_position",
+      "name_en": "FX net open position",
+      "name_tr": "Yabancı Para Net Genel Pozisyon",
+      "aliases": [
+        "NOP",
+        "net open position",
+        "YP net pozisyon"
+      ],
+      "group": "balance_sheet",
+      "definition": "On- plus off-balance-sheet foreign-currency assets minus FC liabilities (net of FX derivatives) — the bank's net currency exposure.",
+      "unit": "TL mn",
+      "formula": "(fc_assets + fc_offbs_long) − (fc_liabilities + fc_offbs_short)",
+      "frameworks": [
+        "brsa",
+        "market"
+      ],
+      "level": "bank",
+      "availability": "mandatory",
+      "cadence": "quarterly",
+      "standard_across_banks": true,
+      "reproducible": "no",
+      "source_datasets": [
+        "bank_audit"
+      ],
+      "related": [
+        "repricing_gap"
+      ],
+      "derivation": "GROUNDWORK ONLY — disclosed in the §4 market-risk footnote (currency-risk table) + the off-balance/derivatives tables, currently captured unstructured in other_data. See docs/knowledge/data-gaps-roadmap.md.",
+      "caveats": "Not yet extracted into a structured table; needs a §4 currency-risk extractor (deterministic pdfplumber/fitz, no LLM)."
+    },
+    {
+      "id": "repricing_gap",
+      "name_en": "Interest-rate repricing gap",
+      "name_tr": "Faiz Yeniden Fiyatlama Boşluğu",
+      "aliases": [
+        "repricing gap",
+        "maturity gap",
+        "interest-rate sensitivity gap"
+      ],
+      "group": "liquidity_funding",
+      "definition": "Rate-sensitive assets minus rate-sensitive liabilities by repricing/maturity bucket (<1m, 1–3m, …) — interest-rate and liquidity mismatch.",
+      "unit": "TL mn",
+      "formula": "rate_sensitive_assets_bucket − rate_sensitive_liabilities_bucket",
+      "frameworks": [
+        "brsa",
+        "market"
+      ],
+      "level": "bank",
+      "availability": "mandatory",
+      "cadence": "quarterly",
+      "standard_across_banks": true,
+      "reproducible": "no",
+      "source_datasets": [
+        "bank_audit"
+      ],
+      "related": [
+        "fx_net_open_position",
+        "deposits",
+        "loans_gross"
+      ],
+      "derivation": "GROUNDWORK ONLY — §4 interest-rate-risk and liquidity-gap footnote schedules. See docs/knowledge/data-gaps-roadmap.md.",
+      "caveats": "Narrative footnote table; not extracted. Asset/liability maturity ladders also live here."
+    },
+    {
+      "id": "credit_rating",
+      "name_en": "Issuer credit rating",
+      "name_tr": "Kredi Notu",
+      "aliases": [
+        "credit rating",
+        "issuer rating",
+        "rating action"
+      ],
+      "group": "franchise",
+      "definition": "Long-term issuer/credit rating and outlook from an agency (Fitch, Moody's, S&P, JCR Eurasia, SAHA).",
+      "unit": "grade",
+      "formula": "n/a (categorical scale)",
+      "frameworks": [
+        "market"
+      ],
+      "level": "bank",
+      "availability": "third_party",
+      "cadence": "adhoc",
+      "standard_across_banks": false,
+      "nonstandard_reasons": [
+        "provider_varies"
+      ],
+      "reproducible": "no",
+      "source_datasets": [
+        "external"
+      ],
+      "disclosure_channels": [
+        "third_party",
+        "kap"
+      ],
+      "related": [
+        "sovereign_yield_curve"
+      ],
+      "derivation": "GROUNDWORK ONLY — agency press releases / KAP rating disclosures, modelled as a per-bank rating-action events table. See docs/knowledge/data-gaps-roadmap.md.",
+      "caveats": "Scales differ by agency; the sovereign ceiling caps most TR bank ratings."
+    },
+    {
+      "id": "sovereign_yield_curve",
+      "name_en": "Sovereign yield curve / real rate",
+      "name_tr": "Devlet Tahvili Getiri Eğrisi / Reel Faiz",
+      "aliases": [
+        "yield curve",
+        "benchmark bond yield",
+        "real rate"
+      ],
+      "group": "macro",
+      "definition": "Turkish government bond benchmark yields by tenor and the implied real rate (nominal − expected inflation).",
+      "unit": "%",
+      "formula": "benchmark_yield_tenor; real = nominal − cpi_expectation",
+      "frameworks": [
+        "market"
+      ],
+      "level": "macro",
+      "availability": "third_party",
+      "cadence": "daily",
+      "standard_across_banks": true,
+      "reproducible": "partial",
+      "source_datasets": [
+        "evds",
+        "external"
+      ],
+      "related": [
+        "credit_rating"
+      ],
+      "derivation": "GROUNDWORK ONLY — some benchmark yields are in EVDS; the full curve + CDS/OIS are market data (paywalled). See docs/knowledge/data-gaps-roadmap.md.",
+      "caveats": "CDS and OIS stay out of scope (Bloomberg/OTC). Real rate derivable once a benchmark-yield series lands."
     }
   ]
 }
