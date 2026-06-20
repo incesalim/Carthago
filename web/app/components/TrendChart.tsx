@@ -21,7 +21,7 @@ import { ChartData } from "@/app/components/ui/chart-csv";
 import { useChartTheme, tooltipStyles, seriesColor } from "@/app/lib/chart-theme";
 import { wideToTable } from "@/app/lib/chart-csv";
 import { formatters, type FormatKind } from "@/app/lib/chart-format";
-import { useDateRange, type RangeOptions } from "@/app/lib/use-date-range";
+import { useRangeFilter } from "@/app/lib/use-date-range";
 
 export interface TrendPoint {
   period: string;
@@ -40,10 +40,6 @@ interface Props {
   /** Show a horizontal line at y=0 (useful for growth rates). */
   zeroLine?: boolean;
   height?: number;
-  /** Date-range selector (1Y/3Y/5Y/YTD/All) in the card header. On by default
-   *  (3Y); pass `{ default: "1Y" }` etc. to change, or `{ enabled: false }` to
-   *  hide it on a chart where a window makes no sense. */
-  range?: RangeOptions;
 }
 
 
@@ -60,7 +56,6 @@ export default function TrendChart({
   decimals = 2,
   zeroLine = false,
   height = 320,
-  range,
 }: Props) {
   const t = useChartTheme();
   const tt = tooltipStyles(t);
@@ -70,12 +65,8 @@ export default function TrendChart({
   const [pinned, setPinned] = useState<string | null>(null);
   const active = hovered ?? pinned;
 
-  // Optional client-side date-range zoom (filter the rows before pivoting).
-  const { filtered, control } = useDateRange(
-    data,
-    (r) => r.period,
-    range ?? { default: "3Y" },
-  );
+  // Window to the dashboard's global date range (filter rows before pivoting).
+  const { filtered } = useRangeFilter(data, (r) => r.period);
 
   // Pivot long → wide: { period, "10001": v, "10003": v, ... }
   // Order series by BANK_GROUP_ORDER (by label); unknown labels keep their order.
@@ -97,7 +88,7 @@ export default function TrendChart({
   const fmt = formatters[yFormat];
 
   return (
-    <ChartCard title={title} action={control}>
+    <ChartCard title={title}>
       <ChartData
         table={wideToTable(
           wide,

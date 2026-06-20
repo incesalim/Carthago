@@ -15,7 +15,7 @@ import { ChartData } from "@/app/components/ui/chart-csv";
 import { useChartTheme, tooltipStyles, seriesColor } from "@/app/lib/chart-theme";
 import { wideToTable } from "@/app/lib/chart-csv";
 import { nf, formatters, type FormatKind } from "@/app/lib/chart-format";
-import { useDateRange, type RangeOptions } from "@/app/lib/use-date-range";
+import { useRangeFilter } from "@/app/lib/use-date-range";
 
 export interface StackPoint {
   // Wide row: the x-axis field (recharts reads it via dataKey="period") plus one
@@ -36,10 +36,6 @@ interface Props {
    *  BopFlowChart) instead of the warm/cool layering order. Use when the same
    *  series also appears as a line on the page so colours stay consistent. */
   colorKeys?: boolean;
-  /** Date-range selector (1Y/3Y/5Y/YTD/All) in the card header. On by default
-   *  (3Y); pass `{ default: "1Y" }` etc. to change, or `{ enabled: false }` to
-   *  hide it on a chart where a window makes no sense. */
-  range?: RangeOptions;
 }
 
 // Stacked areas read best when the brand red leads but warm/cool alternate.
@@ -55,21 +51,16 @@ export default function StackedArea({
   height = 320,
   percentStack = false,
   colorKeys = false,
-  range,
 }: Props) {
   const t = useChartTheme();
   const tt = tooltipStyles(t);
   const fmt = formatters[percentStack ? "pct" : yFormat];
 
-  // Optional client-side date-range zoom. Everything below (near-zero hide,
-  // percent-stack totals, the rendered chart and the CSV payload) is computed
-  // over `filtered`, so the window re-derives consistently — a series that's
+  // Window to the dashboard's global date range. Everything below (near-zero
+  // hide, percent-stack totals, the rendered chart and the CSV payload) is
+  // computed over `filtered`, so the window re-derives consistently — a series
   // near-zero only in old years correctly reappears when zoomed in.
-  const { filtered, control } = useDateRange(
-    data,
-    (r) => String(r.period),
-    range ?? { default: "3Y" },
-  );
+  const { filtered } = useRangeFilter(data, (r) => String(r.period));
 
   // Drop series that are effectively zero everywhere (e.g. Dev&Inv deposits) so
   // they don't clutter the legend with an invisible sliver. Relative threshold
@@ -152,7 +143,7 @@ export default function StackedArea({
   };
 
   return (
-    <ChartCard title={title} action={control}>
+    <ChartCard title={title}>
       <ChartData
         table={wideToTable(filtered, { key: "period", label: "Period" }, shown)}
       />

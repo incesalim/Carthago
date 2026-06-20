@@ -148,17 +148,18 @@ IR page (no hand-added URL needed) — see [ADMIN.md](ADMIN.md) §Auto-discovery
 Setup in [OPERATIONS.md](OPERATIONS.md) / [ADMIN.md](ADMIN.md).
 
 Every chart card (`web/app/components/ui/chart-card.tsx`) carries hover-revealed
-header controls — **Copy** image, **PNG** download, **CSV** download, and
-**Expand** to a centred popup. A **date-range selector** (1Y / 3Y / 5Y / YTD /
-All) is **on by default** for every time-series chart — `TrendChart`,
-`TimeSeriesChart`, and `StackedArea`. It's a pure **client-side** display zoom
-over data the page already ships (no refetch). Default window is **3Y**, except
-daily market/rate charts (`/rates`, `/banks/[ticker]` share price) which default
-to **1Y**; pass `range={{ default: … }}` to change a chart's initial window or
-`range={{ enabled: false }}` to hide the selector. Buttons whose window exceeds
-the data's span auto-hide (a short series shows only the windows that fit), and
-CSV/PNG export the visible window. Logic in `web/app/lib/chart-range.ts`
-(+ vitest) and the `web/app/lib/use-date-range.tsx` hook; UI in
+icon-only header controls — **Copy** image, **PNG** download, **CSV** download,
+and **Expand** to a centred popup. A single **global date-range selector**
+(1Y / 3Y / 5Y / YTD / All) sits in the page header on chart pages (the
+`rangeSelector` prop on `PageHeader`) and windows **every** time-series chart on
+the page at once — `TrendChart`, `TimeSeriesChart`, `StackedArea`, and the
+`/sector` total-assets area. It's a pure **client-side** display zoom over data
+the page already ships (no refetch). Default **3Y**; the choice is shared
+app-wide via a React context in the root layout (`RangeProvider` in
+`web/app/components/range-context.tsx`), so it persists across tab navigation and
+resets on a hard reload. CSV/PNG export the visible window. Helpers in
+`web/app/lib/chart-range.ts` (+ vitest) and the `useRangeFilter` hook
+(`web/app/lib/use-date-range.tsx`); pills UI in
 `web/app/components/ui/range-pills.tsx`. `BopFlowChart`/`BarByBank` are out of
 scope (fixed report windows / single-period snapshots).
 

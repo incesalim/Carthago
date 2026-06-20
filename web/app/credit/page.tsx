@@ -157,6 +157,7 @@ export default async function CreditPage() {
       <PageHeader
         title="Credit"
         description="Loan growth · currency split · consumer mix · SME · public vs. private — BDDK weekly bulletin (card split & SME size-mix: monthly)"
+        rangeSelector
         dataThrough={latestPeriod(loansSector, yoyAll)}
       />
 

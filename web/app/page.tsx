@@ -111,6 +111,7 @@ export default async function OverviewPage() {
         eyebrow="Banking Sector"
         title="Overview"
         description="BDDK monthly bulletin · sector aggregate · live D1 query"
+        rangeSelector
         dataThrough={latestPeriod(assets, npl, car, roe)}
       />
 

@@ -28,7 +28,7 @@ export function ChartCard({
       className={cn("group p-4 transition-shadow hover:shadow-md", className)}
     >
       <div className="mb-3 flex items-start justify-between gap-3">
-        <div className="space-y-0.5">
+        <div className="min-w-0 space-y-0.5">
           {title && (
             <div data-chart-title="" className="text-sm font-medium text-foreground">
               {title}

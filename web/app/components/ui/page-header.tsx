@@ -1,6 +1,7 @@
 import * as React from "react";
 import { cn } from "@/app/lib/cn";
 import { Badge } from "./badge";
+import { GlobalRangeSelector } from "@/app/components/range-context";
 
 export interface PageHeaderProps {
   title: React.ReactNode;
@@ -12,6 +13,9 @@ export interface PageHeaderProps {
    * "Data through …" badge on the right. Accepts 'YYYY-MM' or 'YYYY-MM-DD'.
    */
   dataThrough?: string;
+  /** Show the global chart date-range selector (1Y/3Y/5Y/YTD/All) on the right.
+   *  Set on pages that render time-series charts. */
+  rangeSelector?: boolean;
   /** Right-aligned actions (filters, buttons). */
   children?: React.ReactNode;
   className?: string;
@@ -36,6 +40,7 @@ export function PageHeader({
   description,
   eyebrow,
   dataThrough,
+  rangeSelector,
   children,
   className,
 }: PageHeaderProps) {
@@ -59,7 +64,7 @@ export function PageHeader({
           <p className="max-w-2xl text-sm text-muted-foreground">{description}</p>
         )}
       </div>
-      {(dataThrough || children) && (
+      {(dataThrough || rangeSelector || children) && (
         <div className="flex flex-wrap items-center gap-2">
           {dataThrough && (
             <Badge variant="secondary" title={`Latest data point: ${dataThrough}`}>
@@ -70,6 +75,7 @@ export function PageHeader({
               Data through {formatPeriod(dataThrough)}
             </Badge>
           )}
+          {rangeSelector && <GlobalRangeSelector />}
           {children}
         </div>
       )}

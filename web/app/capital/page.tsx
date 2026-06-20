@@ -42,6 +42,7 @@ export default async function CapitalPage() {
       <PageHeader
         title="Capital"
         description="Capital adequacy + equity + leverage · BDDK · regulatory min CAR = 12%"
+        rangeSelector
         dataThrough={latestPeriod(carAll, equity, lev)}
       />
 
@@ -56,9 +57,7 @@ export default async function CapitalPage() {
               seriesLabels={BANK_TYPE_LABELS}
               title="Capital Adequacy Ratio (%) — by group"
               yFormat="pct"
-              decimals={1}
-              range={{ default: "3Y" }}
-            />
+              decimals={1}            />
           </div>
           <BarByBank
             data={carByBank}
@@ -81,26 +80,20 @@ export default async function CapitalPage() {
             seriesLabels={{ [BANK_TYPES.SECTOR]: "Equity" }}
             title="Total Equity — Level (sector)"
             yFormat="trn"
-            decimals={2}
-            range={{ default: "3Y" }}
-          />
+            decimals={2}          />
           <TrendChart
             data={equityYoYSec}
             seriesLabels={{ [BANK_TYPES.SECTOR]: "Equity YoY" }}
             title="Equity Growth YoY (%)"
             yFormat="pct"
             decimals={1}
-            zeroLine
-            range={{ default: "3Y" }}
-          />
+            zeroLine          />
           <TrendChart
             data={lev}
             seriesLabels={BANK_TYPE_LABELS}
             title="Liabilities / Equity (%)"
             yFormat="pct"
-            decimals={0}
-            range={{ default: "3Y" }}
-          />
+            decimals={0}          />
         </div>
       </section>
 
@@ -119,17 +112,13 @@ export default async function CapitalPage() {
             seriesLabels={BANK_TYPE_LABELS}
             title="RWA Net / Gross (%)"
             yFormat="pct"
-            decimals={1}
-            range={{ default: "3Y" }}
-          />
+            decimals={1}          />
           <TrendChart
             data={offBsDeriv}
             seriesLabels={BANK_TYPE_LABELS}
             title="Off-Balance-Sheet Derivatives / Total Assets (%)"
             yFormat="pct"
-            decimals={1}
-            range={{ default: "3Y" }}
-          />
+            decimals={1}          />
         </div>
       </section>
     </main>

@@ -57,6 +57,7 @@ export default async function BalanceOfPaymentsPage() {
       <PageHeader
         title="Balance of Payments"
         description="TCMB balance-of-payments statistics: current account, financial-account flows, and the financing of the current-account deficit. Values in USD bn unless noted."
+        rangeSelector
         dataThrough={dataThrough}
       />
 
@@ -91,16 +92,12 @@ export default async function BalanceOfPaymentsPage() {
             series={d.s1}
             title="Şekil 1 · Current Account (12m rolling, USD bn)"
             yFormat="raw"
-            decimals={1}
-            range={{ default: "3Y" }}
-          />
+            decimals={1}          />
           <TimeSeriesChart
             series={d.s2}
             title="Şekil 2 · Goods & Tourism (12m rolling, USD bn)"
             yFormat="raw"
-            decimals={1}
-            range={{ default: "3Y" }}
-          />
+            decimals={1}          />
         </Grid>
       </Section>
 
@@ -212,23 +209,17 @@ export default async function BalanceOfPaymentsPage() {
             series={d.s7}
             title="Şekil 7 · Trade Credits (12m rolling, USD bn)"
             yFormat="raw"
-            decimals={1}
-            range={{ default: "3Y" }}
-          />
+            decimals={1}          />
           <TimeSeriesChart
             series={d.s8}
             title="Şekil 8 · Currency & Deposits (12m rolling, USD bn)"
             yFormat="raw"
-            decimals={1}
-            range={{ default: "3Y" }}
-          />
+            decimals={1}          />
           <TimeSeriesChart
             series={d.s9}
             title="Şekil 9 · Net Errors & Omissions (12m rolling, USD bn)"
             yFormat="raw"
-            decimals={1}
-            range={{ default: "3Y" }}
-          />
+            decimals={1}          />
         </Grid>
       </Section>
 

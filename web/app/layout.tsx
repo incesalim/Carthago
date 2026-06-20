@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Nav from "./components/Nav";
+import { RangeProvider } from "./components/range-context";
 import { ThemeProvider } from "./components/ui/theme-provider";
 import { Toaster } from "./components/ui/toaster";
 
@@ -58,10 +59,12 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <div className="flex min-h-full flex-col lg:flex-row">
-            <Nav />
-            <div className="min-w-0 flex-1">{children}</div>
-          </div>
+          <RangeProvider>
+            <div className="flex min-h-full flex-col lg:flex-row">
+              <Nav />
+              <div className="min-w-0 flex-1">{children}</div>
+            </div>
+          </RangeProvider>
           <Toaster />
         </ThemeProvider>
       </body>

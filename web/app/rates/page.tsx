@@ -75,6 +75,7 @@ export default async function RatesPage() {
         eyebrow="TCMB EVDS"
         title="Rates & Macro"
         description="Daily snapshots · cached in D1, refreshed weekly with the BDDK pipeline"
+        rangeSelector
         dataThrough={latestPeriod(...Object.values(data))}
       />
 
@@ -98,16 +99,12 @@ export default async function RatesPage() {
           series={byLabel(RATE_CORRIDOR)}
           title="Rate Corridor — Policy + ON + Effective Funding (%)"
           yFormat="pct"
-          decimals={2}
-          range={{ default: "1Y" }}
-        />
+          decimals={2}        />
         <TimeSeriesChart
           series={byLabel(FX)}
           title="Exchange Rates — USD &amp; EUR"
           yFormat="fx"
-          decimals={2}
-          range={{ default: "1Y" }}
-        />
+          decimals={2}        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -115,16 +112,12 @@ export default async function RatesPage() {
           series={byLabel(LENDING)}
           title="Lending &amp; Deposit Rates (weekly survey, %)"
           yFormat="pct"
-          decimals={2}
-          range={{ default: "1Y" }}
-        />
+          decimals={2}        />
         <TimeSeriesChart
           series={byLabel(STERIL)}
           title="CBRT Sterilization Channels (TL bn)"
           yFormat="raw"
-          decimals={0}
-          range={{ default: "1Y" }}
-        />
+          decimals={0}        />
       </div>
     </main>
   );

@@ -74,6 +74,7 @@ export default async function AssetQualityPage() {
       <PageHeader
         title="Asset Quality"
         description="NPL ratio + coverage · sub-segment NPL ratios · BDDK Tables 4, 5, 15 + weekly bulletin"
+        rangeSelector
         dataThrough={latestPeriod(nplAll, coverageAll)}
       />
 

@@ -28,7 +28,7 @@ import { toast } from "sonner";
 import { toCsv, type ChartTable } from "@/app/lib/chart-csv";
 
 const BTN =
-  "inline-flex items-center gap-1 rounded-md border border-border bg-card px-2 py-0.5 text-[11px] text-muted-foreground opacity-0 transition-opacity hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100 disabled:opacity-50";
+  "inline-flex items-center justify-center rounded-md border border-border bg-card p-1.5 text-muted-foreground opacity-0 transition-opacity hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100 disabled:opacity-50";
 
 function slugify(s: string): string {
   return (
@@ -216,15 +216,14 @@ export default function ChartExport() {
           onClick={onCopy}
           disabled={busy}
           aria-label="Copy chart image to clipboard"
-          title="Copy image"
+          title={copied ? "Copied" : "Copy image"}
           className={BTN}
         >
           {copied ? (
-            <Check className="size-3" aria-hidden />
+            <Check className="size-3.5" aria-hidden />
           ) : (
-            <Clipboard className="size-3" aria-hidden />
+            <Clipboard className="size-3.5" aria-hidden />
           )}
-          {copied ? "Copied" : "Copy"}
         </button>
         <button
           type="button"
@@ -234,8 +233,7 @@ export default function ChartExport() {
           title="Download PNG"
           className={BTN}
         >
-          <Download className="size-3" aria-hidden />
-          {busy ? "…" : "PNG"}
+          <Download className="size-3.5" aria-hidden />
         </button>
         {hasCsv && (
           <button
@@ -245,8 +243,7 @@ export default function ChartExport() {
             title="Download CSV"
             className={BTN}
           >
-            <Sheet className="size-3" aria-hidden />
-            CSV
+            <Sheet className="size-3.5" aria-hidden />
           </button>
         )}
         <button
@@ -257,11 +254,10 @@ export default function ChartExport() {
           className={BTN}
         >
           {expanded ? (
-            <Minimize2 className="size-3" aria-hidden />
+            <Minimize2 className="size-3.5" aria-hidden />
           ) : (
-            <Maximize2 className="size-3" aria-hidden />
+            <Maximize2 className="size-3.5" aria-hidden />
           )}
-          {expanded ? "Restore" : "Expand"}
         </button>
       </div>
 

@@ -301,6 +301,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
         eyebrow={ticker}
         title={bankDisplayName(ticker)}
         description="Standardized per-bank financials from quarterly BRSA reports"
+        rangeSelector
         dataThrough={allPeriods[0]}
         className="mb-6"
       >
@@ -368,9 +369,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
                 title="Share price (daily close, ₺)"
                 yFormat="fx"
                 decimals={2}
-                height={280}
-                range={{ default: "1Y" }}
-              />
+                height={280}              />
             </div>
           )}
         </Section>
