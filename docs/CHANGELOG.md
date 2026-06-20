@@ -3,7 +3,23 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-06-20 — **KUVEYT off-balance B-row fix + apply_overrides D1-wipe footgun guarded.**
+Last verified: 2026-06-21 — **P&L coverage-matrix errors: 8 of 10 fixed via overrides; 2 are genuine
+source defects.** All 10 `profit_loss` failures were the `pl_chain` roman-identity check. Triaged each
+against its PDF: **8 partitions / 10 cells** were recoverable single-cell extraction artifacts, fixed
+with `profit_loss` overrides (chain-forced + PDF-verified): **AKTIF 2023Q3 & 2025Q2** dividend row V
+(extractor grabbed the 2nd period column — `325→3.194`, `661→1.015` — the real value had leaked into
+the label); **KUVEYT 2022Q3** row X (dipnot `5.4.7` leaked as `7` → `532.730`); **ODEA 2022Q4 &
+2023Q4** row XXIV (source copy-down artifact: prints net profit in XXIV though discontinued XX–XXIII
+all nil → `0`); **TSKB 2025Q3** XIX (`2.372.570→9.285.218`, forced by XVII−XVIII and = the
+net-vs-equity-verified XXV); **YKBNK 2022Q2 & 2023Q4** XVII/XVIII (current-period cells garbled, prior
+column leaked into label → `24.519.994`/`5.338.991`, `85.028.901`/`17.018.737`). Verified live:
+P&L failures **10→2**. The remaining two are **genuine source inconsistencies** no single-cell fix can
+reconcile, so they stay flagged: **ICBCT 2023Q2** (printed VIII is 358 above the sum of its
+individually-correct components — moving it just relocates the gap to XIII) and **QNBFB 2023Q1**
+(printed XIX `(4.678.663)` doesn't reconcile with XVII±XVIII `3.084.793`, and the discontinued-ops
+section is internally broken). No code change — extends `data/audit_overrides.json` only.
+
+Prior: 2026-06-20 — **KUVEYT off-balance B-row fix + apply_overrides D1-wipe footgun guarded.**
 KUVEYT 2025Q1 unconsolidated **off-balance** showed red in the coverage matrix: the
 `B. EMANET VE REHİNLİ KIYMETLER (IV+V+VI)` subtotal row was column-shifted (a spurious
 `1.147.624.728` in the TL slot pushed TP→FC and YP→Total, dropping the printed Total + label) so
