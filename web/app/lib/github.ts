@@ -17,27 +17,37 @@ export interface WorkflowDef {
   description: string;
 }
 
-/** Allow-list of dispatchable workflows (also used to label runs). */
+/**
+ * Allow-list of dispatchable workflows (also used to label runs).
+ *
+ * Descriptions name every data lane each cron actually pulls — not just the
+ * headline one. The daily/weekly refreshes both run `scripts/refresh.py`, which
+ * orchestrates nine scrapers; the daily run does everything except the BDDK
+ * monthly/weekly bulletins, so BIST, TEFAS, KAP, TBB, TÜİK and the non-bank
+ * sector all refresh daily even though older labels only said "TCMB rates / FX".
+ */
 export const WORKFLOWS: WorkflowDef[] = [
   {
     file: "refresh-bddk-bulletins.yml",
     label: "BDDK bulletins",
-    description: "Monthly + weekly bulletins → D1",
+    description: "Monthly + weekly BDDK bulletins → D1 · weekly (Sat)",
   },
   {
     file: "refresh-data.yml",
     label: "Full refresh",
-    description: "Monthly + weekly + EVDS → D1",
+    description:
+      "Full weekly sweep: bulletins + EVDS + BIST + TEFAS + KAP + TBB + TÜİK + non-bank → D1 · weekly (Sat)",
   },
   {
     file: "refresh-evds-daily.yml",
-    label: "EVDS (daily)",
-    description: "TCMB rates / FX → D1",
+    label: "EVDS + daily lanes",
+    description:
+      "Daily (all but bulletins): EVDS macro/FX + BIST + TEFAS + KAP ownership + TBB digital + TÜİK + non-bank → D1",
   },
   {
     file: "acquire-audit.yml",
     label: "Acquire audit PDFs",
-    description: "Discover + download new audit PDFs → R2 (no extraction)",
+    description: "Discover + download new audit PDFs → R2 (no extraction) · weekly (Sun)",
   },
   {
     file: "refresh-audit.yml",
@@ -47,12 +57,17 @@ export const WORKFLOWS: WorkflowDef[] = [
   {
     file: "refresh-news-daily.yml",
     label: "News (daily)",
-    description: "KAP / TCMB / BDDK announcements → D1",
+    description: "KAP + TCMB + BDDK announcements + press + Google News → D1 · daily",
   },
   {
     file: "summarize-regulations.yml",
     label: "Regulation summaries",
-    description: "Weekly LLM regulation briefing → D1",
+    description: "Weekly LLM regulation briefing → D1 · weekly (Sun)",
+  },
+  {
+    file: "healthcheck.yml",
+    label: "Health check",
+    description: "Daily data-freshness + chart-spec verification → Telegram alerts (read-only)",
   },
 ];
 
