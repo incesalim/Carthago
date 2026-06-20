@@ -3,7 +3,25 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-06-19 — **/valuation tab: scenario projections & intrinsic valuation.** New
+Last verified: 2026-06-20 — **KUVEYT off-balance B-row fix + apply_overrides D1-wipe footgun guarded.**
+KUVEYT 2025Q1 unconsolidated **off-balance** showed red in the coverage matrix: the
+`B. EMANET VE REHİNLİ KIYMETLER (IV+V+VI)` subtotal row was column-shifted (a spurious
+`1.147.624.728` in the TL slot pushed TP→FC and YP→Total, dropping the printed Total + label) so
+`TL+FC≠Total` failed `validate_off_balance`. The data was otherwise fully present and correct
+(grand total `12.244.706.334` and every section I–VI footed). Fixed with the **first off_balance
+entry** in `data/audit_overrides.json` (TP `4.727.468.981` / YP `6.748.778.307` / Total
+`11.476.247.288`, verified against the PDF + grand-total−A). Applying it exposed two latent
+`scripts/apply_overrides.py` bugs the BS-only overrides never hit: (1) `_revalidate_partition`
+recomputed only assets/liabilities/cross, but `upsert_validation` deletes the whole partition's
+validation rows first — so it silently dropped off_balance/P&L/OCI/… and the override never cleared
+its own failure; now delegates to `revalidate_audit_db.revalidate_partition` (all statements,
+cron-identical). (2) The broad D1 partition-clear spans all 14 audit tables, but the narrow
+`--hours 1` re-push only ships tables it timestamp-bumped — the self-`extracted_at` tables
+(capital/liquidity/stages/credit_quality/loans_by_sector/npl_movement/profile, whose §4 data
+predates the window) were **deleted from D1 and not restored**; now their `extracted_at` is bumped
+per touched partition. Verified live: off_balance `66/0` green, capital/liquidity/stages intact.
+
+Prior: 2026-06-19 — **/valuation tab: scenario projections & intrinsic valuation.** New
 standalone top-level tab (no changes to `/banks` or `/cross-bank`) that values the listed banks with
 the equity-side models appropriate for banks (DCF/FCF is wrong — bank leverage is regulated):
 **residual income** `V₀ = B₀ + Σ PV[(ROEₜ − COE)·Bₜ₋₁] + PV(terminal)` with a linear ROE fade and a
