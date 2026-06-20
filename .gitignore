@@ -71,8 +71,9 @@ data/audit_reports/
 scripts/_weekly_catalogue.json
 
 # Audit repair-campaign byproducts (scratch / regenerable; see docs/AUDIT_PIPELINE.md)
+# NB: data/metric_knowledge/ is NOT scratch — it's the committed banking-metric
+# knowledge registry (hand-curated reference data; see docs/BANKING_METRICS.md).
 data/eye/
-data/metric_knowledge/
 data/fleet_scratch.db
 data/_anomalies_*.txt
 data/run_*.cmd
