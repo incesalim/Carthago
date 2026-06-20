@@ -40,7 +40,9 @@ interface Props {
   /** Show a horizontal line at y=0 (useful for growth rates). */
   zeroLine?: boolean;
   height?: number;
-  /** Opt in to the date-range selector (1Y/3Y/5Y/YTD/All) in the card header. */
+  /** Date-range selector (1Y/3Y/5Y/YTD/All) in the card header. On by default
+   *  (3Y); pass `{ default: "1Y" }` etc. to change, or `{ enabled: false }` to
+   *  hide it on a chart where a window makes no sense. */
   range?: RangeOptions;
 }
 
@@ -72,7 +74,7 @@ export default function TrendChart({
   const { filtered, control } = useDateRange(
     data,
     (r) => r.period,
-    range ?? { enabled: false },
+    range ?? { default: "3Y" },
   );
 
   // Pivot long → wide: { period, "10001": v, "10003": v, ... }

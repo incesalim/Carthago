@@ -3,8 +3,9 @@
 /**
  * Client-side date-range zoom for chart components. Pages already ship the full
  * history to the browser, so a range button is a pure display filter — no server
- * refetch. Opt-in: pass an options object to enable, omit to leave the chart
- * untouched.
+ * refetch. The chart components turn it on by default (see their `range` prop);
+ * pass `{ enabled: false }` to opt a chart out, or `{ default }` to set the
+ * initial window.
  *
  * Returns both shapes a chart might need:
  *   - `filtered`   — the row array windowed to the active range (TrendChart,

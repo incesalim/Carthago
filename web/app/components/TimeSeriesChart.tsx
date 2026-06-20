@@ -37,7 +37,9 @@ interface Props {
   xFormat?: "date" | "quarter";
   decimals?: number;
   height?: number;
-  /** Opt in to the date-range selector (1Y/3Y/5Y/YTD/All) in the card header. */
+  /** Date-range selector (1Y/3Y/5Y/YTD/All) in the card header. On by default
+   *  (3Y); pass `{ default: "1Y" }` etc. to change, or `{ enabled: false }` to
+   *  hide it on a chart where a window makes no sense. */
   range?: RangeOptions;
 }
 
@@ -67,7 +69,7 @@ export default function TimeSeriesChart({
   const { control, predicate } = useDateRange(
     Object.values(series).flat(),
     (p) => p.period_date,
-    range ?? { enabled: false },
+    range ?? { default: "3Y" },
   );
   // x-axis ticks are always YYYY-MM (or the quarter); the tooltip label is
   // resolved below once we can inspect the data's cadence.

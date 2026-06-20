@@ -36,7 +36,9 @@ interface Props {
    *  BopFlowChart) instead of the warm/cool layering order. Use when the same
    *  series also appears as a line on the page so colours stay consistent. */
   colorKeys?: boolean;
-  /** Opt in to the date-range selector (1Y/3Y/5Y/YTD/All) in the card header. */
+  /** Date-range selector (1Y/3Y/5Y/YTD/All) in the card header. On by default
+   *  (3Y); pass `{ default: "1Y" }` etc. to change, or `{ enabled: false }` to
+   *  hide it on a chart where a window makes no sense. */
   range?: RangeOptions;
 }
 
@@ -66,7 +68,7 @@ export default function StackedArea({
   const { filtered, control } = useDateRange(
     data,
     (r) => String(r.period),
-    range ?? { enabled: false },
+    range ?? { default: "3Y" },
   );
 
   // Drop series that are effectively zero everywhere (e.g. Dev&Inv deposits) so
