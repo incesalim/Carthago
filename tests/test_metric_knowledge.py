@@ -29,7 +29,7 @@ def test_enum_parity_with_schema():
     schema = json.loads(mk.SCHEMA.read_text(encoding="utf-8"))
     props = schema["definitions"]["metric"]["properties"]
     for field, valid in mk.ENUMS.items():
-        if field in ("source_datasets", "frameworks"):  # array-typed enums
+        if field in mk.ARRAY_ENUMS:  # array-typed enums
             schema_enum = set(props[field]["items"]["enum"])
         else:
             schema_enum = set(props[field]["enum"])
@@ -108,7 +108,39 @@ def test_breadth_and_new_groups_present():
     metrics = mk.load()
     groups = {m["group"] for m in metrics}
     assert {"efficiency", "valuation"} <= groups
-    assert len(metrics) >= 100  # comprehensive, not a 35-metric seed
+    assert len(metrics) >= 145  # comprehensive, incl. the non-financial expansion
+    assert sum(1 for m in metrics if m["group"] == "franchise") >= 18
     # Valuation metrics are honestly un-reproducible (no market data).
     val = [m for m in metrics if m["group"] == "valuation"]
     assert val and all(m["reproducible"] == "no" for m in val)
+
+
+# The "not structured" axes: the non-financial groups model WHY a metric isn't
+# comparable (nonstandard_reasons) and WHERE it's published (disclosure_channels).
+NONFIN_GROUPS = {"franchise", "market_position", "esg"}
+
+
+def test_new_array_enums_valid():
+    for m in mk.load():
+        for r in m.get("nonstandard_reasons", []):
+            assert r in mk.ENUMS["nonstandard_reasons"], f"{m['id']} bad reason {r!r}"
+        for c in m.get("disclosure_channels", []):
+            assert c in mk.ENUMS["disclosure_channels"], f"{m['id']} bad channel {c!r}"
+
+
+def test_unstructured_metrics_are_documented():
+    # Every voluntary, non-comparable non-financial metric must carry the new
+    # knowledge: the structured reason(s) it isn't standard, and where it's disclosed.
+    for m in mk.load():
+        if (m["availability"] == "voluntary" and m["standard_across_banks"] is False
+                and m["group"] in NONFIN_GROUPS):
+            assert m.get("nonstandard_reasons"), f"{m['id']} missing nonstandard_reasons"
+            assert m.get("disclosure_channels"), f"{m['id']} missing disclosure_channels"
+
+
+def test_nonstandard_reasons_imply_non_comparable():
+    # A reason for non-comparability shouldn't be attached to a "standard" metric.
+    for m in mk.load():
+        if m.get("nonstandard_reasons"):
+            assert m["standard_across_banks"] is False, \
+                f"{m['id']} has nonstandard_reasons but is marked standard_across_banks"

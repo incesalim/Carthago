@@ -102,6 +102,22 @@
 
         "derivation": { "type": "string", "description": "How to compute it from our fields (hierarchy codes / sections / transforms)." },
         "caveats": { "type": "string" },
+
+        "nonstandard_reasons": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["definition_varies", "window_varies", "peer_set_varies", "methodology_varies", "provider_varies", "cadence_irregular", "scope_varies", "not_disclosed"] },
+          "description": "Structured taxonomy of WHY a metric is not comparable like-for-like across banks (only meaningful when standard_across_banks is false). definition_varies = each bank defines the metric differently; window_varies = trailing window differs (e.g. 'active' = last 3m vs 12m); peer_set_varies = market-share denominator/peer group differs; methodology_varies = survey/measurement methodology differs; provider_varies = third-party scales differ; cadence_irregular = published ad hoc; scope_varies = solo vs consolidated or segment scope differs; not_disclosed = not published in a usable form."
+        },
+        "disclosure_channels": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["investor_deck", "earnings_press", "sustainability_report", "annual_report", "kap", "third_party", "regulatory", "none"] },
+          "description": "Where the metric tends to be disclosed. investor_deck = earnings/IR presentation; earnings_press = press release / material-event filing; sustainability_report = standalone sustainability report; annual_report = integrated/annual report; kap = KAP disclosure; third_party = rating agency / data provider (BKM, MSCI, Dealogic...); regulatory = BRSA/BDDK statements & tables; none = not publicly disclosed."
+        },
+        "definition_variants": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Free-text: concrete examples of how the definition/label differs across banks (the human detail behind nonstandard_reasons)."
+        },
         "spec_ids": { "type": "array", "items": { "type": "string" }, "description": "chart-specs.catalog.json ids that operationalize this metric, if any." },
         "examples": {
           "type": "array",

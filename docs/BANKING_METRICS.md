@@ -73,6 +73,25 @@ The reason this layer exists (the point that prompted it):
 
 The registry makes that difference queryable instead of tribal knowledge.
 
+### Modelling the "not structured" metrics
+
+For the non-financial families (`franchise`, `market_position`, `esg`) the
+interesting knowledge isn't a value — it's *why* the metric resists comparison and
+*where* it surfaces. Three fields capture that as structured, queryable data rather
+than buried prose:
+
+| Field | What it captures |
+|---|---|
+| **nonstandard_reasons** | The structured taxonomy of *why* it isn't comparable: `definition_varies`, `window_varies` (e.g. "active" = last 3m vs 12m), `peer_set_varies` (market-share denominator), `methodology_varies`, `provider_varies`, `cadence_irregular`, `scope_varies` (solo vs consolidated), `not_disclosed`. Only attached when `standard_across_banks` is false. |
+| **disclosure_channels** | *Where* it tends to be published: `investor_deck`, `earnings_press`, `sustainability_report`, `annual_report`, `kap`, `third_party` (rating agency / BKM / Dealogic), `regulatory`, `none`. |
+| **definition_variants** | Free-text: concrete examples of how the definition/label differs across banks (the human detail behind `nonstandard_reasons`). |
+
+So "which customer metrics are non-comparable because each bank picks its own
+*active* window, and where do they show up?" becomes a query
+(`--reason window_varies`, `--channel investor_deck`) instead of folklore. These are
+**knowledge-only** — no per-bank values are harvested; `examples` stay reserved for
+the few figures we've cross-checked.
+
 ## Querying it
 
 ```bash
@@ -83,21 +102,29 @@ python scripts/metric_knowledge.py --group asset_quality
 python scripts/metric_knowledge.py --reproducible direct,derived
 python scripts/metric_knowledge.py --source bddk_weekly
 python scripts/metric_knowledge.py --framework ifrs9  # by definitional framework
+python scripts/metric_knowledge.py --unstructured     # non-comparable metrics + why (reasons tally)
+python scripts/metric_knowledge.py --reason window_varies   # by reason it isn't standard
+python scripts/metric_knowledge.py --channel sustainability_report  # by where it's disclosed
+python scripts/metric_knowledge.py --show active_digital_customers  # full knowledge dump
 python scripts/metric_knowledge.py --tree roe         # decomposition tree
 python scripts/metric_knowledge.py --validate         # integrity check (CI-friendly)
 ```
 
 `--tree roe` prints the DuPont bridge; `--tree net_income` walks revenue → NII →
-interest income/expense, opex, provisions and tax.
+interest income/expense, opex, provisions and tax. `--unstructured` lists every
+non-comparable metric with its reason codes and a tally; `--show <id>` dumps one
+metric's full knowledge (definition, variants, reasons, channels, examples).
 
-Current snapshot (v4, **139 metrics** across 13 groups): **82 / 139** reproducible
-from audit reports — up from 70 now that the per-bank §4 capital/liquidity
-extractors have merged (CAR/CET1/Tier1/RWA from `bank_audit_capital`, LCR/NSFR/
-leverage from `bank_audit_liquidity`). The metrics we still can't get at all
-cluster in **valuation** (P/B, P/E, market cap, EPS, dividend yield — need BIST
-price data), **franchise/customer** (active digital customers, NPS, payroll/POS —
-bank-defined, no fixed cadence), and **esg** (third-party ratings, financed
-emissions). Run `--not-reproducible` for the full list with the reason on each.
+Current snapshot (v5, **153 metrics** across 13 groups): **82 / 153** reproducible
+from audit reports. The metrics we still can't get at all cluster in **valuation**
+(P/B, P/E, market cap, EPS, dividend yield — need BIST price data), **franchise /
+customer** (active/registered digital customers, NPS, payroll, cards, ATM/POS,
+merchant, SME/agri customers — bank-defined, no fixed cadence) and **esg**
+(third-party ratings, financed emissions, net-zero targets, gender). The
+non-financial families are now modelled with `nonstandard_reasons` /
+`disclosure_channels` (see above) so the *reason* they're non-comparable is itself
+queryable. Run `--not-reproducible` or `--unstructured` for the full list with the
+reason on each.
 
 ## How it was seeded & how to extend it
 
@@ -113,11 +140,29 @@ equity 271bn match the deck exactly; ROE/ROA match within ~0.2pp for HALKB & YKB
 The same `examples` also expose where a metric is *not* comparable: active digital
 customers reads 15.5 / 16.8 / 15.9 / 7.5 mn across four banks on four definitions.
 
+**v5 (knowledge-only, no data harvested):** deepened the non-financial families.
+`franchise` grew 9 → 20 (added registered digital customers, ATM / POS-terminal /
+total / credit / debit cards, merchant count, mobile-app rating, employee count,
+SME & agri customers) and `esg` 5 → 8 (women on board, net-zero target, ESG-linked
+loans). Every voluntary, non-comparable franchise / market-position / esg metric now
+carries `nonstandard_reasons` + `disclosure_channels` + `definition_variants`, so the
+non-standardisation is structured rather than free-text. No per-bank `examples` were
+added (deliberately knowledge-only). A `test_unstructured_metrics_are_documented`
+guard keeps the coverage honest.
+
 To extend: add an entry to `registry.json` conforming to `schema.json`, run
 `python scripts/metric_knowledge.py --validate`, link `spec_ids` if it maps to a
 reproduced chart, and `decomposes_into` / `related` to wire it into the graph.
 Keep the helper's `ENUMS` in sync with the schema —
-`tests/test_metric_knowledge.py::test_enum_parity_with_schema` enforces it.
+`tests/test_metric_knowledge.py::test_enum_parity_with_schema` enforces it (it reads
+`mk.ARRAY_ENUMS` for the array-typed enums).
+
+> **Open follow-up — valuation:** the 8 `valuation` entries still say
+> `reproducible: no` / `source: external`, but the **BIST lane** (`bist_prices` +
+> audited equity) now makes market cap / P-B / P-E / dividend yield derivable. A
+> refresh there needs a new `bist` value in the `source_datasets` enum and an update
+> to `test_breadth_and_new_groups_present` (which currently pins valuation to
+> `reproducible == "no"`). Left out of the v5 non-financial pass on purpose.
 
 > **Done (§4 extractors merged):** per-bank capital/liquidity is now extracted into
 > `bank_audit_capital` (cet1/tier1/tier2/total capital, total_rwa, cet1/tier1/CAR

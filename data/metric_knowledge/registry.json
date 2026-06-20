@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 5,
   "axes": {
     "group": "profitability | income | balance_sheet | growth | asset_quality | capital | liquidity_funding | efficiency | valuation | franchise | market_position | esg | macro",
     "level": "bank | group (BDDK bank-type aggregate) | sector | macro",
@@ -8,7 +8,10 @@
     "standard_across_banks": "true if comparable like-for-like across banks; false if each bank defines it differently",
     "reproducible": "direct (stored field) | derived (formula over stored fields) | partial (approx / wrong level or cadence) | no",
     "source_datasets": "bank_audit | bddk_monthly | bddk_weekly | evds | tbb_digital | external | none",
-    "structure": "formula = math expression; frameworks = basel_iii|ifrs9|tfrs|brsa|market|management|none; decomposes_into / related = metric-id links (reproducible_from_audit is derived by scripts/metric_knowledge.py)"
+    "structure": "formula = math expression; frameworks = basel_iii|ifrs9|tfrs|brsa|market|management|none; decomposes_into / related = metric-id links (reproducible_from_audit is derived by scripts/metric_knowledge.py)",
+    "nonstandard_reasons": "definition_varies | window_varies | peer_set_varies | methodology_varies | provider_varies | cadence_irregular | scope_varies | not_disclosed — WHY a metric isn't comparable like-for-like across banks (when standard_across_banks is false)",
+    "disclosure_channels": "investor_deck | earnings_press | sustainability_report | annual_report | kap | third_party | regulatory | none — where the metric tends to be published",
+    "definition_variants": "free-text: concrete examples of how the definition/label differs across banks"
   },
   "metrics": [
     {
@@ -3054,6 +3057,19 @@
       ],
       "aliases": [
         "ISCep customers"
+      ],
+      "nonstandard_reasons": [
+        "definition_varies",
+        "window_varies"
+      ],
+      "disclosure_channels": [
+        "investor_deck",
+        "earnings_press"
+      ],
+      "definition_variants": [
+        "'active' window differs across banks: last 1m / 3m / 12m",
+        "some count log-ins, others any transacting customer",
+        "'digital' = mobile+internet for some, mobile-only headline for others"
       ]
     },
     {
@@ -3061,7 +3077,7 @@
       "name_en": "Total active customers",
       "name_tr": "Toplam Aktif Müşteri",
       "group": "franchise",
-      "definition": "Total active banking customers (all channels).",
+      "definition": "Total active banking customers across all channels (a franchise-size headline).",
       "unit": "count (mn)",
       "frameworks": [
         "management"
@@ -3074,7 +3090,28 @@
       "source_datasets": [
         "none"
       ],
-      "caveats": "Bank-defined; not disclosed on a fixed cadence or consistent basis."
+      "caveats": "Bank-defined; not disclosed on a fixed cadence or consistent basis. Watch the registered-vs-active distinction.",
+      "aliases": [
+        "total customers",
+        "customer base"
+      ],
+      "related": [
+        "active_digital_customers",
+        "registered_digital_customers"
+      ],
+      "nonstandard_reasons": [
+        "definition_varies",
+        "window_varies",
+        "scope_varies"
+      ],
+      "disclosure_channels": [
+        "investor_deck"
+      ],
+      "definition_variants": [
+        "'active' threshold differs (any product held vs transacted in a window)",
+        "individual-only vs incl. corporate/SME",
+        "registered vs active conflated by some banks"
+      ]
     },
     {
       "id": "digital_penetration",
@@ -3097,7 +3134,18 @@
       "related": [
         "active_digital_customers"
       ],
-      "caveats": "Deck cites e.g. >95% of credit cards sold digitally; definitions vary by bank."
+      "caveats": "Deck cites e.g. >95% of credit cards sold digitally; definitions vary by bank.",
+      "nonstandard_reasons": [
+        "definition_varies",
+        "scope_varies"
+      ],
+      "disclosure_channels": [
+        "investor_deck"
+      ],
+      "definition_variants": [
+        "numerator basis differs: digitally-active customers, digital share of transactions, or digital share of product sales",
+        "denominator = active customers vs total customers"
+      ]
     },
     {
       "id": "mobile_active_customers",
@@ -3120,7 +3168,18 @@
       "related": [
         "active_digital_customers"
       ],
-      "caveats": "TBB publishes mobile vs internet at SECTOR level; per-bank is IR-only."
+      "caveats": "TBB publishes mobile vs internet at SECTOR level; per-bank is IR-only.",
+      "nonstandard_reasons": [
+        "definition_varies",
+        "window_varies"
+      ],
+      "disclosure_channels": [
+        "investor_deck"
+      ],
+      "definition_variants": [
+        "mobile-only vs mobile+tablet app",
+        "active window differs"
+      ]
     },
     {
       "id": "credit_card_share",
@@ -3140,7 +3199,22 @@
       "source_datasets": [
         "external"
       ],
-      "caveats": "Sourced from BKM (card-scheme body), which we don't ingest."
+      "caveats": "Sourced from BKM (card-scheme body), which we don't ingest.",
+      "aliases": [
+        "card market share"
+      ],
+      "nonstandard_reasons": [
+        "definition_varies",
+        "peer_set_varies"
+      ],
+      "disclosure_channels": [
+        "investor_deck",
+        "third_party"
+      ],
+      "definition_variants": [
+        "issuing volume vs acquiring volume vs outstanding balances vs number of cards",
+        "share of total cards vs share of turnover; peer set differs"
+      ]
     },
     {
       "id": "pos_volume",
@@ -3160,7 +3234,23 @@
       "source_datasets": [
         "external"
       ],
-      "caveats": "BKM/IR disclosure; not in our datasets."
+      "caveats": "BKM/IR disclosure; not in our datasets.",
+      "aliases": [
+        "acquiring volume",
+        "payment volume"
+      ],
+      "nonstandard_reasons": [
+        "definition_varies",
+        "scope_varies"
+      ],
+      "disclosure_channels": [
+        "investor_deck",
+        "third_party"
+      ],
+      "definition_variants": [
+        "acquiring (merchant) volume vs issuing (cardholder) spend",
+        "physical POS only vs incl. e-commerce / virtual POS"
+      ]
     },
     {
       "id": "payroll_customers",
@@ -3179,7 +3269,21 @@
       "reproducible": "no",
       "source_datasets": [
         "none"
-      ]
+      ],
+      "aliases": [
+        "salary customers"
+      ],
+      "nonstandard_reasons": [
+        "definition_varies",
+        "cadence_irregular"
+      ],
+      "disclosure_channels": [
+        "investor_deck"
+      ],
+      "definition_variants": [
+        "count of payroll customers vs payroll market share vs salary-inflow volume"
+      ],
+      "caveats": "Disclosed irregularly; a stickiness / low-cost-deposit proxy. Bank-defined."
     },
     {
       "id": "nps",
@@ -3202,7 +3306,21 @@
       "source_datasets": [
         "none"
       ],
-      "caveats": "Survey-based, methodology differs by bank/vendor."
+      "caveats": "Survey-based, methodology differs by bank/vendor.",
+      "nonstandard_reasons": [
+        "methodology_varies",
+        "provider_varies",
+        "cadence_irregular"
+      ],
+      "disclosure_channels": [
+        "investor_deck",
+        "sustainability_report"
+      ],
+      "definition_variants": [
+        "survey vendor & sample differ (in-house vs Ipsos/Nielsen)",
+        "overall NPS vs segment/journey NPS",
+        "a rank ('#1 in NPS') reported instead of the score"
+      ]
     },
     {
       "id": "branches_personnel",
@@ -3222,7 +3340,390 @@
       "source_datasets": [
         "bank_audit"
       ],
-      "derivation": "bank_audit_profile (qualitative section). Extracted for ~16/31 banks; rest use unparsed phrasings."
+      "derivation": "bank_audit_profile (qualitative section). Extracted for ~16/31 banks; rest use unparsed phrasings.",
+      "aliases": [
+        "branch count",
+        "headcount",
+        "number of branches"
+      ],
+      "disclosure_channels": [
+        "regulatory",
+        "investor_deck",
+        "annual_report"
+      ],
+      "related": [
+        "employee_count",
+        "atm_count"
+      ]
+    },
+    {
+      "id": "registered_digital_customers",
+      "name_en": "Registered digital customers",
+      "name_tr": "Kayıtlı Dijital Müşteri",
+      "group": "franchise",
+      "definition": "Customers enrolled in digital channels (cumulative sign-ups), distinct from active users.",
+      "unit": "count (mn)",
+      "frameworks": [
+        "management"
+      ],
+      "level": "bank",
+      "availability": "voluntary",
+      "cadence": "adhoc",
+      "standard_across_banks": false,
+      "reproducible": "no",
+      "source_datasets": [
+        "none"
+      ],
+      "related": [
+        "active_digital_customers"
+      ],
+      "nonstandard_reasons": [
+        "definition_varies",
+        "scope_varies"
+      ],
+      "disclosure_channels": [
+        "investor_deck"
+      ],
+      "definition_variants": [
+        "registered/enrolled vs active conflated",
+        "cumulative sign-ups vs current enrolled base"
+      ],
+      "caveats": "Often quoted alongside (and confused with) active digital customers; a larger, looser number."
+    },
+    {
+      "id": "atm_count",
+      "name_en": "ATM count",
+      "name_tr": "ATM Sayısı",
+      "group": "franchise",
+      "definition": "Number of ATMs / self-service machines in the network.",
+      "unit": "count",
+      "frameworks": [
+        "management"
+      ],
+      "level": "bank",
+      "availability": "voluntary",
+      "cadence": "quarterly",
+      "standard_across_banks": false,
+      "reproducible": "no",
+      "source_datasets": [
+        "none"
+      ],
+      "related": [
+        "branches_personnel"
+      ],
+      "nonstandard_reasons": [
+        "definition_varies",
+        "scope_varies"
+      ],
+      "disclosure_channels": [
+        "investor_deck",
+        "annual_report"
+      ],
+      "definition_variants": [
+        "ATMs only vs incl. cash-recycling machines / kiosks",
+        "owned vs shared-network"
+      ],
+      "caveats": "Sometimes in the audit qualitative profile, but not a standardized statement line."
+    },
+    {
+      "id": "pos_terminal_count",
+      "name_en": "POS terminal count",
+      "name_tr": "POS Cihaz Sayısı",
+      "group": "franchise",
+      "definition": "Number of physical POS terminals deployed at merchants.",
+      "unit": "count",
+      "frameworks": [
+        "management"
+      ],
+      "level": "bank",
+      "availability": "voluntary",
+      "cadence": "adhoc",
+      "standard_across_banks": false,
+      "reproducible": "no",
+      "source_datasets": [
+        "external"
+      ],
+      "related": [
+        "merchant_count",
+        "pos_volume"
+      ],
+      "nonstandard_reasons": [
+        "definition_varies",
+        "scope_varies"
+      ],
+      "disclosure_channels": [
+        "investor_deck",
+        "third_party"
+      ],
+      "definition_variants": [
+        "physical POS only vs incl. virtual / softPOS",
+        "installed vs active terminals"
+      ],
+      "caveats": "BKM/IR disclosure; we don't ingest it."
+    },
+    {
+      "id": "total_cards",
+      "name_en": "Total cards in force",
+      "name_tr": "Toplam Kart Sayısı",
+      "group": "franchise",
+      "definition": "Total payment cards in force (credit + debit + prepaid).",
+      "unit": "count (mn)",
+      "frameworks": [
+        "management"
+      ],
+      "level": "bank",
+      "availability": "voluntary",
+      "cadence": "adhoc",
+      "standard_across_banks": false,
+      "reproducible": "no",
+      "source_datasets": [
+        "external"
+      ],
+      "related": [
+        "credit_cards_issued",
+        "debit_cards_issued"
+      ],
+      "nonstandard_reasons": [
+        "definition_varies",
+        "scope_varies"
+      ],
+      "disclosure_channels": [
+        "investor_deck",
+        "third_party"
+      ],
+      "definition_variants": [
+        "total cards vs active cards",
+        "incl./excl. virtual & prepaid"
+      ],
+      "caveats": "BKM card-scheme data; not in our datasets."
+    },
+    {
+      "id": "credit_cards_issued",
+      "name_en": "Credit cards in force",
+      "name_tr": "Kredi Kartı Sayısı",
+      "group": "franchise",
+      "definition": "Credit cards in force.",
+      "unit": "count (mn)",
+      "frameworks": [
+        "management"
+      ],
+      "level": "bank",
+      "availability": "voluntary",
+      "cadence": "adhoc",
+      "standard_across_banks": false,
+      "reproducible": "no",
+      "source_datasets": [
+        "external"
+      ],
+      "related": [
+        "total_cards",
+        "credit_card_share"
+      ],
+      "nonstandard_reasons": [
+        "definition_varies"
+      ],
+      "disclosure_channels": [
+        "investor_deck",
+        "third_party"
+      ],
+      "definition_variants": [
+        "cards in force vs active cards vs new issuance in period"
+      ],
+      "caveats": "BKM/IR; not ingested."
+    },
+    {
+      "id": "debit_cards_issued",
+      "name_en": "Debit cards in force",
+      "name_tr": "Banka Kartı Sayısı",
+      "group": "franchise",
+      "definition": "Debit cards in force.",
+      "unit": "count (mn)",
+      "frameworks": [
+        "management"
+      ],
+      "level": "bank",
+      "availability": "voluntary",
+      "cadence": "adhoc",
+      "standard_across_banks": false,
+      "reproducible": "no",
+      "source_datasets": [
+        "external"
+      ],
+      "related": [
+        "total_cards"
+      ],
+      "nonstandard_reasons": [
+        "definition_varies"
+      ],
+      "disclosure_channels": [
+        "investor_deck",
+        "third_party"
+      ],
+      "definition_variants": [
+        "in force vs active"
+      ],
+      "caveats": "BKM/IR; not ingested."
+    },
+    {
+      "id": "merchant_count",
+      "name_en": "Merchant / acquiring count",
+      "name_tr": "Üye İşyeri Sayısı",
+      "group": "franchise",
+      "definition": "Number of merchants / member businesses in the acquiring network.",
+      "unit": "count",
+      "frameworks": [
+        "management"
+      ],
+      "level": "bank",
+      "availability": "voluntary",
+      "cadence": "adhoc",
+      "standard_across_banks": false,
+      "reproducible": "no",
+      "source_datasets": [
+        "none"
+      ],
+      "related": [
+        "pos_terminal_count",
+        "pos_volume"
+      ],
+      "nonstandard_reasons": [
+        "definition_varies",
+        "scope_varies"
+      ],
+      "disclosure_channels": [
+        "investor_deck",
+        "third_party"
+      ],
+      "definition_variants": [
+        "merchants vs member businesses (üye işyeri) vs active merchants"
+      ],
+      "caveats": "IR/BKM; bank-defined."
+    },
+    {
+      "id": "mobile_app_rating",
+      "name_en": "Mobile-app store rating",
+      "name_tr": "Mobil Uygulama Puanı",
+      "group": "franchise",
+      "definition": "Public app-store rating of the bank's mobile app.",
+      "unit": "score (1-5)",
+      "frameworks": [
+        "management"
+      ],
+      "level": "bank",
+      "availability": "third_party",
+      "cadence": "adhoc",
+      "standard_across_banks": false,
+      "reproducible": "no",
+      "source_datasets": [
+        "external"
+      ],
+      "related": [
+        "mobile_active_customers"
+      ],
+      "nonstandard_reasons": [
+        "provider_varies",
+        "methodology_varies"
+      ],
+      "disclosure_channels": [
+        "third_party"
+      ],
+      "definition_variants": [
+        "iOS App Store vs Google Play rating",
+        "rating vs #downloads vs MAU cited"
+      ],
+      "caveats": "From app stores; banks cite their better platform. Not in our datasets."
+    },
+    {
+      "id": "employee_count",
+      "name_en": "Employee count",
+      "name_tr": "Personel Sayısı",
+      "group": "franchise",
+      "definition": "Total number of employees (FTE / headcount).",
+      "unit": "count",
+      "frameworks": [
+        "brsa"
+      ],
+      "level": "bank",
+      "availability": "mandatory",
+      "cadence": "quarterly",
+      "standard_across_banks": true,
+      "reproducible": "partial",
+      "source_datasets": [
+        "bank_audit"
+      ],
+      "related": [
+        "branches_personnel"
+      ],
+      "disclosure_channels": [
+        "regulatory",
+        "investor_deck",
+        "annual_report"
+      ],
+      "derivation": "bank_audit qualitative profile (same source as branches_personnel); partially extracted.",
+      "caveats": "Regulatory profile figure; standardized but only partially parsed today."
+    },
+    {
+      "id": "sme_customers",
+      "name_en": "SME customers",
+      "name_tr": "KOBİ Müşteri Sayısı",
+      "group": "franchise",
+      "definition": "Number of SME customers served (a franchise-breadth / inclusion headline).",
+      "unit": "count (mn)",
+      "frameworks": [
+        "management"
+      ],
+      "level": "bank",
+      "availability": "voluntary",
+      "cadence": "adhoc",
+      "standard_across_banks": false,
+      "reproducible": "no",
+      "source_datasets": [
+        "none"
+      ],
+      "nonstandard_reasons": [
+        "definition_varies",
+        "scope_varies"
+      ],
+      "disclosure_channels": [
+        "investor_deck",
+        "sustainability_report"
+      ],
+      "definition_variants": [
+        "SME definition (turnover threshold) differs by bank",
+        "customers vs active borrowers"
+      ],
+      "caveats": "Bank-defined SME boundary; not standardized."
+    },
+    {
+      "id": "agri_customers",
+      "name_en": "Agricultural customers",
+      "name_tr": "Tarım / Çiftçi Müşteri Sayısı",
+      "group": "franchise",
+      "definition": "Number of agricultural / farmer customers (a financial-inclusion headline, esp. state banks).",
+      "unit": "count (mn)",
+      "frameworks": [
+        "management"
+      ],
+      "level": "bank",
+      "availability": "voluntary",
+      "cadence": "adhoc",
+      "standard_across_banks": false,
+      "reproducible": "no",
+      "source_datasets": [
+        "none"
+      ],
+      "nonstandard_reasons": [
+        "definition_varies",
+        "scope_varies"
+      ],
+      "disclosure_channels": [
+        "investor_deck",
+        "sustainability_report"
+      ],
+      "definition_variants": [
+        "farmers vs agri-SMEs vs agri-loan borrowers"
+      ],
+      "caveats": "Prominent for Ziraat/Halkbank; bank-defined scope."
     },
     {
       "id": "loan_market_share",
@@ -3269,6 +3770,20 @@
           "unit": "%",
           "source": "Halkbank 1Q26 deck (SME, #1)"
         }
+      ],
+      "nonstandard_reasons": [
+        "peer_set_varies",
+        "scope_varies",
+        "cadence_irregular"
+      ],
+      "disclosure_channels": [
+        "investor_deck",
+        "earnings_press"
+      ],
+      "definition_variants": [
+        "peer set differs: vs sector, vs private banks, vs deposit banks",
+        "TL-only vs total loans; solo vs consolidated",
+        "segment cuts (SME #1, retail #2) cited selectively"
       ]
     },
     {
@@ -3293,7 +3808,18 @@
       "related": [
         "deposits"
       ],
-      "caveats": "Same cadence/peer-set caveat as loan_market_share. Deck cites TL demand-deposit share gains."
+      "caveats": "Same cadence/peer-set caveat as loan_market_share. Deck cites TL demand-deposit share gains.",
+      "nonstandard_reasons": [
+        "peer_set_varies",
+        "scope_varies"
+      ],
+      "disclosure_channels": [
+        "investor_deck"
+      ],
+      "definition_variants": [
+        "total deposits vs TL vs demand deposits vs SME deposits",
+        "peer set differs (sector vs private banks)"
+      ]
     },
     {
       "id": "npl_market_share",
@@ -3317,7 +3843,18 @@
       "related": [
         "npl_ratio"
       ],
-      "caveats": "Deck: NPL market share 14.4%, improved 360bp since 2024 (1Q26)."
+      "caveats": "Deck: NPL market share 14.4%, improved 360bp since 2024 (1Q26).",
+      "nonstandard_reasons": [
+        "peer_set_varies",
+        "scope_varies"
+      ],
+      "disclosure_channels": [
+        "investor_deck"
+      ],
+      "definition_variants": [
+        "share of sector NPL stock vs share of new NPL inflow",
+        "peer set differs"
+      ]
     },
     {
       "id": "asset_market_share",
@@ -3342,7 +3879,16 @@
       "related": [
         "total_assets"
       ],
-      "caveats": "Bank assets (audit, quarterly) ÷ sector assets (bddk_monthly 10001) — cleanly computable."
+      "caveats": "Bank assets (audit, quarterly) / sector assets (bddk_monthly 10001) is cleanly computable BY US vs the whole sector; banks themselves cite it against varying peer bases.",
+      "nonstandard_reasons": [
+        "peer_set_varies"
+      ],
+      "disclosure_channels": [
+        "investor_deck"
+      ],
+      "definition_variants": [
+        "vs whole sector (our derivation) vs vs deposit banks vs vs private banks"
+      ]
     },
     {
       "id": "subsidiary_aum",
@@ -3362,7 +3908,20 @@
       "source_datasets": [
         "none"
       ],
-      "caveats": "IR disclosure (AK Portföy AuM 1,416 bn; pension 452 bn / 19.3% share; leasing 12.4%), not statement lines."
+      "caveats": "IR disclosure (AK Portföy AuM 1,416 bn; pension 452 bn / 19.3% share; leasing 12.4%), not statement lines.",
+      "nonstandard_reasons": [
+        "definition_varies",
+        "scope_varies",
+        "cadence_irregular"
+      ],
+      "disclosure_channels": [
+        "investor_deck",
+        "annual_report"
+      ],
+      "definition_variants": [
+        "which subsidiaries are included differs (asset mgmt, pension, leasing, brokerage, factoring)",
+        "AuM vs market share vs revenue contribution"
+      ]
     },
     {
       "id": "league_table_position",
@@ -3382,7 +3941,24 @@
       "source_datasets": [
         "external"
       ],
-      "caveats": "From data providers (e.g. Dealogic) / IR; we don't ingest. Deck: 46% share in private-sector bond issuance (1Q26)."
+      "caveats": "From data providers (e.g. Dealogic) / IR; we don't ingest. Deck: 46% share in private-sector bond issuance (1Q26).",
+      "aliases": [
+        "DCM/ECM rankings"
+      ],
+      "nonstandard_reasons": [
+        "provider_varies",
+        "peer_set_varies",
+        "cadence_irregular"
+      ],
+      "disclosure_channels": [
+        "investor_deck",
+        "third_party"
+      ],
+      "definition_variants": [
+        "league-table provider differs (Dealogic, Bloomberg, Refinitiv)",
+        "product scope (DCM only vs all-bonds vs M&A) differs",
+        "domestic vs international issuance"
+      ]
     },
     {
       "id": "esg_ratings",
@@ -3402,7 +3978,24 @@
       "source_datasets": [
         "external"
       ],
-      "caveats": "Different providers, different scales; published by rating agencies. Deck p27."
+      "caveats": "Different providers, different scales; published by rating agencies. Deck p27.",
+      "aliases": [
+        "sustainability rating",
+        "MSCI ESG rating"
+      ],
+      "nonstandard_reasons": [
+        "provider_varies",
+        "methodology_varies"
+      ],
+      "disclosure_channels": [
+        "third_party",
+        "sustainability_report",
+        "investor_deck"
+      ],
+      "definition_variants": [
+        "MSCI AAA-CCC, Sustainalytics risk score (lower=better), CDP A-D, S&P Global 0-100 — not comparable scales",
+        "banks cite whichever provider scores them best"
+      ]
     },
     {
       "id": "sustainable_finance_volume",
@@ -3422,7 +4015,25 @@
       "source_datasets": [
         "none"
       ],
-      "caveats": "Bank-defined taxonomy; IR/sustainability-report disclosure."
+      "caveats": "Bank-defined taxonomy; IR/sustainability-report disclosure.",
+      "aliases": [
+        "green finance",
+        "sustainable financing"
+      ],
+      "nonstandard_reasons": [
+        "definition_varies",
+        "scope_varies",
+        "cadence_irregular"
+      ],
+      "disclosure_channels": [
+        "sustainability_report",
+        "investor_deck"
+      ],
+      "definition_variants": [
+        "cumulative since a base year vs annual flow",
+        "bank-defined green taxonomy (no common standard)",
+        "incl./excl. sustainability-linked (use-of-proceeds vs KPI-linked)"
+      ]
     },
     {
       "id": "financed_emissions",
@@ -3442,7 +4053,23 @@
       "source_datasets": [
         "none"
       ],
-      "caveats": "Methodology (PCAF) evolving; sustainability-report only."
+      "caveats": "Methodology (PCAF) evolving; sustainability-report only.",
+      "aliases": [
+        "Scope 3 category 15",
+        "PCAF emissions"
+      ],
+      "nonstandard_reasons": [
+        "methodology_varies",
+        "scope_varies"
+      ],
+      "disclosure_channels": [
+        "sustainability_report"
+      ],
+      "definition_variants": [
+        "sector/portfolio coverage differs (which books are measured)",
+        "PCAF data-quality score / data vintage differs",
+        "absolute tCO2e vs intensity (per TL lent)"
+      ]
     },
     {
       "id": "green_bond_issuance",
@@ -3462,7 +4089,24 @@
       "source_datasets": [
         "external"
       ],
-      "caveats": "Deal-level IR/KAP disclosure (deck p21: IFC gender-equality digital bond)."
+      "caveats": "Deal-level IR/KAP disclosure (deck p21: IFC gender-equality digital bond).",
+      "aliases": [
+        "ESG bond",
+        "sustainability-linked bond"
+      ],
+      "nonstandard_reasons": [
+        "definition_varies",
+        "cadence_irregular"
+      ],
+      "disclosure_channels": [
+        "earnings_press",
+        "kap",
+        "investor_deck"
+      ],
+      "definition_variants": [
+        "green vs social vs sustainability vs SLB lumped or split",
+        "single deal vs cumulative program size"
+      ]
     },
     {
       "id": "gender_diversity",
@@ -3482,7 +4126,130 @@
       "source_datasets": [
         "none"
       ],
-      "caveats": "Sustainability-report disclosure; scope (workforce vs board) varies."
+      "caveats": "Sustainability-report disclosure; scope (workforce vs board) varies.",
+      "aliases": [
+        "women in workforce",
+        "women in management"
+      ],
+      "related": [
+        "women_on_board"
+      ],
+      "nonstandard_reasons": [
+        "scope_varies",
+        "methodology_varies"
+      ],
+      "disclosure_channels": [
+        "sustainability_report",
+        "annual_report"
+      ],
+      "definition_variants": [
+        "scope differs: total workforce vs management vs senior management vs board",
+        "headcount share vs new-hire share"
+      ]
+    },
+    {
+      "id": "women_on_board",
+      "name_en": "Women on board",
+      "name_tr": "Yönetim Kurulunda Kadın Oranı",
+      "group": "esg",
+      "definition": "Share of women on the board of directors.",
+      "unit": "%",
+      "frameworks": [
+        "management"
+      ],
+      "level": "bank",
+      "availability": "voluntary",
+      "cadence": "annual",
+      "standard_across_banks": false,
+      "reproducible": "no",
+      "source_datasets": [
+        "none"
+      ],
+      "related": [
+        "gender_diversity"
+      ],
+      "nonstandard_reasons": [
+        "scope_varies"
+      ],
+      "disclosure_channels": [
+        "sustainability_report",
+        "annual_report",
+        "kap"
+      ],
+      "definition_variants": [
+        "full board vs board committees",
+        "count vs %"
+      ],
+      "caveats": "Board membership is in KAP filings, but the % is a reported sustainability figure."
+    },
+    {
+      "id": "net_zero_target",
+      "name_en": "Net-zero / emission target",
+      "name_tr": "Net Sıfır Hedefi",
+      "group": "esg",
+      "definition": "Stated net-zero / emission-reduction commitment (target year & scope).",
+      "unit": "year/scope",
+      "frameworks": [
+        "management"
+      ],
+      "level": "bank",
+      "availability": "voluntary",
+      "cadence": "adhoc",
+      "standard_across_banks": false,
+      "reproducible": "no",
+      "source_datasets": [
+        "none"
+      ],
+      "related": [
+        "financed_emissions"
+      ],
+      "nonstandard_reasons": [
+        "definition_varies",
+        "scope_varies"
+      ],
+      "disclosure_channels": [
+        "sustainability_report"
+      ],
+      "definition_variants": [
+        "operational (Scope 1-2) vs financed (Scope 3) net-zero",
+        "target year differs (2050 / 2053 / ...)",
+        "absolute vs intensity reduction"
+      ],
+      "caveats": "A commitment, not a measured value; scope & base year vary widely."
+    },
+    {
+      "id": "esg_linked_loans",
+      "name_en": "ESG / sustainability-linked loans",
+      "name_tr": "Sürdürülebilirliğe Bağlı Krediler",
+      "group": "esg",
+      "definition": "ESG / sustainability-linked loans extended (KPI-linked pricing or use-of-proceeds green loans).",
+      "unit": "TL bn",
+      "frameworks": [
+        "management"
+      ],
+      "level": "bank",
+      "availability": "voluntary",
+      "cadence": "annual",
+      "standard_across_banks": false,
+      "reproducible": "no",
+      "source_datasets": [
+        "none"
+      ],
+      "related": [
+        "sustainable_finance_volume"
+      ],
+      "nonstandard_reasons": [
+        "definition_varies"
+      ],
+      "disclosure_channels": [
+        "sustainability_report",
+        "investor_deck"
+      ],
+      "definition_variants": [
+        "use-of-proceeds green loans vs KPI-linked SLLs",
+        "cumulative vs annual"
+      ],
+      "caveats": "Overlaps sustainable_finance_volume; bank-defined taxonomy."
     },
     {
       "id": "macro_policy_rate",
