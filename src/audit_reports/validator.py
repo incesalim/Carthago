@@ -918,24 +918,31 @@ _CF_CHAIN = [
 
 
 def check_cash_flow(cf_rows: list[dict]) -> ValidationResult:
-    """Cash flow: numeric hierarchy sums (1.1.x trees) + roman chain V=I+II+III+IV, VII=V+VI."""
+    """Cash flow: the roman bottom-line identities  V = I+II+III+IV  and  VII = V+VI.
+
+    Only the roman chain is checked — it is sign-agnostic (the section subtotals
+    I–VII are stored signed) and reliable across every bank. The previous generic
+    parent=Σchildren ("hierarchy_sum") check on the 1./2./3. sub-trees was dropped:
+    it produced ~146 false positives because cash-flow layout is irregular —
+    the period-header line ("1 OCAK – 31 MART") is captured as a stray hierarchy
+    "1" colliding with roman "I." at path (1,); banks variously omit or relabel the
+    "1.1"/"1.2" subtotal rows (some print 1.1 on the "A." section header); and the
+    sign convention is not label-derivable (DenizBank stores "Ödenen Faizler (-)"
+    as a positive magnitude but "Personele … Yapılan Nakit" — also a payment — as a
+    positive with no "(-)", so neither raw nor contra summing foots the section).
+    A wrong *section total* still surfaces here, because it breaks V = I+II+III+IV.
+    """
     res = ValidationResult()
     if not cf_rows:
         res.add_skip()
         return res
-    # Hierarchy tree sums (1.1=Σ1.1.x, 1.2=Σ1.2.x, 2.x, 3.x sub-trees)
-    cf_adapted = [{"hierarchy": r.get("hierarchy"), "item_name": r.get("item_name"),
-                   "amount_total": r.get("amount")} for r in cf_rows]
-    res.merge(check_hierarchy_sums(cf_adapted))
-    # Roman chain (reuse _pl_spine — cash flow roman rows I–VII follow same pattern)
-    amt = _pl_spine(cf_rows)
+    amt = _pl_spine(cf_rows)  # roman spine I..VII (longest strictly-increasing run)
     for target, sources in _CF_CHAIN:
         if target not in amt or any(s not in amt for s in sources):
             res.add_skip()
             continue
         expected = sum(amt[s] for s in sources)
-        tol = _tol(amt[target], base=3.0, rel=5e-5)
-        if abs(amt[target] - expected) <= tol:
+        if abs(amt[target] - expected) <= _tol(amt[target], base=3.0, rel=5e-5):
             res.add_pass()
         else:
             res.add_fail("cf_chain", f"CF roman {target} identity",

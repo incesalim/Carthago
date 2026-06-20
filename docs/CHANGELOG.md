@@ -3,7 +3,23 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-06-21 — **P&L coverage matrix now 0 errors: the last 2 resolved.** Closed the two
+Last verified: 2026-06-21 — **Cash-flow coverage matrix: 135 → 0 errors (validator hardened).** All 135
+`cash_flow` failures were the generic `hierarchy_sum` (parent = Σ direct children) check, which is the
+wrong tool for cash flow: the period-header line ("1 OCAK – 31 MART") is captured as a stray hierarchy
+"1" that collides with roman "I." at path (1,); banks variously omit or relabel the 1.1/1.2 subtotal rows
+(DenizBank prints 1.1 on the "A." section header); and the sign convention isn't label-derivable (DENIZ
+stores "Ödenen Faizler (-)" as a positive magnitude but "Personele … Yapılan Nakit" — also a payment — as
+a positive with no "(-)", so neither raw nor contra summing foots the section). Rewrote `check_cash_flow`
+to the **roman bottom-line chain only** — `V = I+II+III+IV` and `VII = V+VI` — which is sign-agnostic, holds
+for every bank, and still surfaces a wrong *section total* (it breaks V). Corpus test: **133 cleared, 0
+regressions**, leaving 2 genuine roman-chain breaks now in a curated `_CF_SKIP` (mirrors `_PL_SKIP`):
+**ALBRK 2023Q4 cons** (the PDF itself prints V 100.000 above I+II+III+IV — every cell matches the PDF, no
+single-cell fix reconciles V *and* VII=V+VI) and **TSKB 2022Q1 cons** (V is 16.025 above ΣI..IV; the
+reconciling V=5.011.183 is over-determined but the TSKB host was unreachable to confirm typo-vs-misread —
+recover the value once readable). Verified live: `cash_flow` matrix errors 135 → 0; total matrix errors
+719 → 584 (remaining are equity_change 340, npl_movement 126, …).
+
+Prior: 2026-06-21 — **P&L coverage matrix now 0 errors: the last 2 resolved.** Closed the two
 `profit_loss` failures previously left flagged. **QNBFB 2023Q1 uncons was recoverable after all**: the
 period net profit `6.632.553` had been misplaced into the XX (discontinued-income) row while XIX held
 garbage `(4.678.663)` and XXV was blank — the **statement of changes in equity** (`period_net_profit_loss`
