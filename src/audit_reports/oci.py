@@ -107,27 +107,31 @@ def _oci_candidate_score(rows: list[StatementRow]) -> tuple[int, int, int, int]:
 def extract_oci(pdf_path: str, oci_page: int) -> OCIReport:
     """Validation-guided OCI extraction from an already-located OCI page."""
     n0 = _detect_pl_ncols(pdf_path, oci_page)
+    n_templates = sorted({n0, 2, 4})
 
-    # FITZ-ONLY: read the page once with fitz and try each column template; the
-    # validation-guided selection (below) picks the right one. pdfplumber adds no
-    # accuracy on OCI (a narrow single-column table fitz reads cleanly — verified:
-    # fitz validated every sample bank, pdfplumber never uniquely won) and costs a
-    # full PDF re-open (~225 ms) plus the poison-PDF hang risk, so it's dropped.
-    # The detector mis-reads OCI as 4-col on interim reports; n=2 is the fix.
-    texts: list[str] = []
+    def _cands_from(text: str) -> list[list[StatementRow]]:
+        return [c for c in (_parse_oci_with(text, n) for n in n_templates) if c]
+
+    # FITZ-FIRST: read the page once with fitz and try each column template; the
+    # validation-guided selection (below) picks the right one. fitz reads the
+    # narrow single-column OCI table cleanly for the vast majority of banks and
+    # costs no extra PDF re-open. The detector mis-reads OCI as 4-col on interim
+    # reports; n=2 is the fix.
+    candidates: list[list[StatementRow]] = []
     if _HAS_FITZ:
         fz = _fitz_page_text(pdf_path, oci_page - 1)
         if fz:
-            texts.append(fz)
-    if not texts:  # no fitz available → pdfplumber so the parser still works
+            candidates += _cands_from(fz)
+    # PDFPLUMBER FALLBACK: wide-interleaved-table banks (GARAN/AKBNK) present a
+    # combined "…Profit or Loss AND Other Comprehensive Income" page that fitz
+    # linearizes into garbage; only pdfplumber's x-clustering layout-repair
+    # separates the period columns. Add it when fitz produced nothing OR nothing
+    # that validates — so the fitz-only fast path (and its ~225 ms/page saving) is
+    # preserved for every bank fitz reads correctly.
+    if not any(_oci_candidate_score(c)[0] == 1 for c in candidates):
         pp = _safe_repaired_text(pdf_path, oci_page)
         if pp:
-            texts.append(pp)
-    n_templates = sorted({n0, 2, 4})
-    candidates: list[list[StatementRow]] = [
-        _parse_oci_with(t, n) for t in texts for n in n_templates
-    ]
-    candidates = [c for c in candidates if c]
+            candidates += _cands_from(pp)
     if not candidates:
         return OCIReport(pdf_path=pdf_path)
 

@@ -1075,27 +1075,45 @@ def _locate_oci_page(pdf, pl_page_idx_1: int | None) -> int | None:
     plenty of roman rows, so it would be wrongly returned. Skip any candidate
     that also carries P&L income anchors (interest / profit-share income); the
     genuine OCI page never lists those.
+
+    Wide-interleaved-table banks (GARAN/AKBNK) present a combined "…Profit or Loss
+    AND Other Comprehensive Income" page whose title and rows fitz scatters so the
+    OCI keyword / roman rows go undetected. When the fast fitz pass finds nothing,
+    a second pass over the same window uses pdfplumber's layout-repaired text.
     """
     if pl_page_idx_1 is None:
         return None
     _OCI_NORMS = ("KAPSAMLIGELIR", "KAPSAMLIKAZAN", "COMPREHENSIVEINCOME", "KAPSAMLIGEL")
     _PL_NORMS = ("INTERESTINCOME", "INTERSTINCOME", "FAIZGELIRLERI",
                  "PROFITSHAREINCOME", "KARPAYIGELIRLERI", "NETINTERESTINCOME")
-    for i in range(pl_page_idx_1 + 1, min(pl_page_idx_1 + 7, _n_pages(pdf) + 1)):
-        text = _page_text(pdf, i)
+
+    def _is_oci_page(text: str) -> bool:
         norm = _norm(text)
         if not any(kw in norm for kw in _OCI_NORMS):
-            continue
+            return False
         # A P&L (or its quarter-only twin) carries an income anchor — not OCI.
         if any(kw in norm for kw in _PL_NORMS):
-            continue
+            return False
         # Require at least 2 numeric data rows (roman-preceded lines with 3+ digits)
         data_rows = sum(
             1 for ln in text.split("\n")
             if re.match(r'^\s*[IVX]+[.\s]', ln) and re.search(r'\d{3,}', ln)
         )
-        if data_rows >= 2:
+        return data_rows >= 2
+
+    lo, hi = pl_page_idx_1 + 1, min(pl_page_idx_1 + 7, _n_pages(pdf) + 1)
+    # Pass 1: fitz (fast) — covers the vast majority of banks.
+    for i in range(lo, hi):
+        if _is_oci_page(_page_text(pdf, i)):
             return i
+    # Pass 2: pdfplumber layout-repaired text for the wide-table banks. Only
+    # reached when the fitz pass found nothing, so the fast path is unchanged.
+    pdf_path = pdf.stream.name if hasattr(pdf, 'stream') else None
+    if pdf_path:
+        for i in range(lo, hi):
+            pp = _safe_repaired_text(pdf_path, i)
+            if pp and _is_oci_page(pp):
+                return i
     return None
 
 
