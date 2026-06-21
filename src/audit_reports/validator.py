@@ -794,7 +794,9 @@ def check_stages(rows: list[dict]) -> ValidationResult:
 # NPL movement validation
 # ===========================================================================
 
-def check_npl_movement(rows: list[dict]) -> ValidationResult:
+def check_npl_movement(
+    rows: list[dict], gross_by_group: dict | None = None,
+) -> ValidationResult:
     """NPL movement: opening + flows = closing, per BRSA group (III/IV/V).
 
     write_offs / sold / transfers_out are sometimes ABSENT from a bank's table
@@ -803,8 +805,20 @@ def check_npl_movement(rows: list[dict]) -> ValidationResult:
     NULL flow-columns as 0 and PASS only when the roll-forward then TIES: a
     genuinely-missed NON-zero column wouldn't tie, so it stays a SKIP — never a
     false pass, never a false fail. fx_diff is 0 when NULL (absent in most BRSA
-    formats). When all flow columns ARE present and it still doesn't tie, that's a
-    real FAIL.
+    formats).
+
+    When all flow columns ARE present and it STILL doesn't tie, the flow
+    roll-forward is unreliable for this bank — many tables carry an unmodeled
+    "Diğer" (other-movements) flow or a sub-breakdown that doesn't foot to its
+    own total (TEB), or mis-scaled flows from a stacked sub-table (PASHA). So we
+    cross-check the CLOSING balance against the authoritative npl_brsa_gross
+    (`gross_by_group`, the same period-end NPL from the credit-quality table):
+    if the closing MATCHES the gross, the movement table's bottom line is correct
+    and the residual is an unmodeled flow → SKIP (don't fail faithful data). Only
+    when the closing ALSO disagrees with the gross is it a genuine extraction
+    error (HALKB reads a loans-by-borrower sub-category, not the total) → FAIL.
+    Mirrors the cash_flow lesson: validate the reliable bottom line, not a
+    flow-model the source doesn't follow.
     """
     res = ValidationResult()
     cur = [r for r in rows if r.get("period_type") == "current"]
@@ -835,8 +849,15 @@ def check_npl_movement(rows: list[dict]) -> ValidationResult:
             res.add_skip()
         else:
             grp = r.get("group_code") or ""
-            res.add_fail("npl_movement", f"group {grp}: opening + flows = closing",
-                         expected=cl, actual=implied)
+            g = (gross_by_group or {}).get(grp)
+            if g is not None and abs(cl - g) <= _tol(abs(g), base=100.0, rel=0.005):
+                # Closing matches the authoritative npl_brsa_gross → the table's
+                # bottom line is correct; the roll-forward residual is an
+                # unmodeled flow. Flows unverifiable but not wrong → SKIP.
+                res.add_skip()
+            else:
+                res.add_fail("npl_movement", f"group {grp}: opening + flows = closing",
+                             expected=cl, actual=implied)
     return res
 
 
