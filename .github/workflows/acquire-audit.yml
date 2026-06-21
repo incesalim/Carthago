@@ -97,17 +97,6 @@ jobs:
           python scripts/sync_audit_reports.py --db data/bank_audit.db
           --no-extract --workers 16 --new-count-file new_count.txt
 
-      - name: Revalidate from the snapshot's stored rows (current validator code)
-        # The spine's per-cell status is a rollup of bank_audit_validation. The R2
-        # snapshot carries the validation rows AS WRITTEN when it was last uploaded,
-        # so rebuilding the spine straight from it would resurrect stale failures any
-        # time the validator code or a curated skip changed since that upload (e.g.
-        # an override/_PL_SKIP/_CF_SKIP landed but no refresh-audit run re-uploaded
-        # the snapshot yet). Recompute validation from the snapshot's DATA rows with
-        # THIS checkout's code first — cheap (pure SQLite, no PDF) — so the spine
-        # always reflects current code, not the snapshot's frozen verdicts.
-        run: python scripts/revalidate_audit_db.py --db data/bank_audit.db
-
       - name: Refresh coverage spine in D1 (so new PDFs show as "missing")
         # D1-only full rebuild of bank_audit_expected/_statement_types/_coverage.
         # No R2 snapshot write. With the R2∪profiles universe, freshly-acquired
