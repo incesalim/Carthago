@@ -3,7 +3,20 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-06-21 — **credit_quality extractor is now fitz-only (~30× faster) + fixed a CI regression
+Last verified: 2026-06-21 — **Fixed `_merge_split_digits` over-merge (ALNTF negative-NPL + ICBCT garble).**
+While checking the `stages` matrix cells, found ALNTF 2023Q4 uncons had a *negative* NPL gross (−729,420):
+the extractor read the net row `13 11,390 20,218` as `131 / 1,390` because `_merge_split_digits` fused the
+two separate Group-III/IV values `13 11,390` → `1311,390` (an invalid 4-digit leading group). With net wrong,
+the closing balance stopped footing `gross=prov+net`, the identity override skipped, and largest-magnitude
+grabbed the `Tahsilat (−)` collections row. Fix: only merge a split digit when the combined leading group
+stays ≤3 digits — a true split (`3 34,098`→`334,098`) always does, fusing two values overflows. Now ALNTF
+reads gross 398,935 / net 31,621 (foots), and it ALSO fixes ICBCT 2023Q2 (provision `25 127,385`→garbled
+`251/27,385` → correct `25/127,385`) and likely other banks fleet-wide. 170 tests pass; sample re-checked
+(TFKB true-splits still merge, no regressions). NOT applied to stored data until a re-extract. Separately
+confirmed the other `stages` reds are PRE-EXISTING, not from the prior re-extract (HALKB consolidated picks
+the wrong one of several III/IV/V sub-tables — same hard multi-table class as ALBRK/QNBFB, left documented).
+
+Prior: 2026-06-21 — **credit_quality extractor is now fitz-only (~30× faster) + fixed a CI regression
 I'd missed.** Replaced pdfplumber with fitz (PyMuPDF) in `credit_quality.py`: `extract_from_pdf` opens the PDF
 itself via fitz and reconstructs each row by y-clustering `get_text("words")` at 5.5px (`_fitz_clustered_lines`,
 which subsumes the old column-split coordinate fallback), feeding the SAME pdfplumber-tuned parsers unchanged.
