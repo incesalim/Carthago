@@ -49,11 +49,14 @@ from .extractor import _HAS_FITZ, _fitz_page_text, _n_pages, parse_num
 _SECTOR_LABELS: list[tuple[str, str]] = [
     # --- Agriculture group -------------------------------------------------
     ("farming and stockbreeding", "agri_farming"),
+    ("farming and raising livestock", "agri_farming"),  # YKBNK wording
     ("çiftçilik ve hayvancılık", "agri_farming"),
     ("forestry", "agri_forestry"),
     ("ormancılık", "agri_forestry"),
     ("fishery", "agri_fishery"),
+    ("fishing", "agri_fishery"),                         # YKBNK wording
     ("balıkçılık", "agri_fishery"),
+    ("agricultural", "agri_total"),                      # YKBNK wording ("Agricultural")
     ("agriculture", "agri_total"),
     ("tarım", "agri_total"),
     # --- Manufacturing group ----------------------------------------------
@@ -123,7 +126,12 @@ _LABEL_RX = re.compile(
 # later) and the deposit-side breakdowns.
 _HEADING_PATTERNS = [
     re.compile(
-        r"(?:Information\s+(?:by|on)\s+(?:major\s+)?sectors?|"
+        # YKBNK titles the cash-loan table "Information according to sectors and
+        # counterparties" — "according to" is folded in below so the broad
+        # "Information …" alt covers it WITHOUT also matching the risk-profile
+        # table "2.8. Risk profile according to sectors and counterparties" (no
+        # "Information" prefix) or the equity-investment one (excluded separately).
+        r"(?:Information\s+(?:by|on|according\s+to)\s+(?:major\s+)?sectors?|"
         r"major\s+sectors?\s+(?:or|and)\s+type\s+of\s+counterparties?|"
         r"sectoral\s+concentration\s+of\s+(?:cash\s+)?loans?|"
         r"Önemli\s+Sektörlere|"
@@ -137,6 +145,14 @@ _NONCASH_HINTS = re.compile(
     r"(non[\s-]?cash|gayri\s*nakdi|sectoral\s+risk\s+concentration\s+of\s+non[\s-]?cash)",
     re.IGNORECASE,
 )
+# WRONG table: "Information on sectors and the carrying amounts of (consolidated)
+# investments" is the equity-participations-by-sector footnote, NOT loans — it
+# matches the broad "Information on sectors" alt above and (e.g. for YKBNK, where
+# the real loans table reads "according to sectors and counterparties") gets
+# grabbed instead. Exclude any page whose sector heading is about carrying
+# amounts of investments.
+_WRONG_TABLE_HINTS = re.compile(
+    r"carrying\s+amounts?\s+of\s+(?:consolidated\s+)?investments", re.IGNORECASE)
 
 
 @dataclass
@@ -297,8 +313,8 @@ def _extract_section(page_idx: int, text: str) -> list[SectorRow]:
 
 
 def _page_has_sector_heading(text: str) -> bool:
-    if _NONCASH_HINTS.search(text):
-        # Page is about non-cash loans, not what we want here.
+    if _NONCASH_HINTS.search(text) or _WRONG_TABLE_HINTS.search(text):
+        # Page is about non-cash loans or investments-by-sector, not what we want.
         return False
     return any(rx.search(text) for rx in _HEADING_PATTERNS)
 
