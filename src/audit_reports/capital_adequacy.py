@@ -30,7 +30,7 @@ from pathlib import Path
 
 import pdfplumber
 
-from .extractor import parse_num
+from .extractor import _HAS_FITZ, parse_num
 
 
 # ---------------------------------------------------------------------------
@@ -206,29 +206,79 @@ def _trailing_two_tokens(line: str) -> list[str]:
     return collected
 
 
-def extract_from_pdf(pdf: pdfplumber.PDF, pdf_path: str = "") -> CapitalReport:
-    rep = CapitalReport(pdf_path=pdf_path)
-    n = len(pdf.pages)
-    # Locate the section start.
-    start = None
-    for i in range(min(_SKIP_PAGES, n), n):
-        if any(rx.search(pdf.pages[i].extract_text() or "") for rx in _START_RX):
-            start = i
-            break
-    if start is None:
-        return rep
-    rep.source_page = start + 1
-
+def _parse_section_fitz(pdf_path: str, start: int, n: int) -> tuple[dict, dict, list]:
+    """Wide-table fallback: FIBA renders the §4 table with the value on a
+    different baseline from its (often wrapped) label — pdfplumber drops the
+    label onto a value-less line. Here each label line is matched on a tight
+    y-cluster, then its value is taken from the number tokens in a y-window
+    [y-3, y+12] (values sit on or just below the label's first line; the row
+    above is excluded), so wrapped labels still pair with the right row."""
+    if not _HAS_FITZ:
+        return {}, {}, []
+    import fitz
+    try:
+        doc = fitz.open(pdf_path)
+    except Exception:
+        return {}, {}, []
     current: dict[str, float | None] = {}
     prior: dict[str, float | None] = {}
-    # `total_capital` can appear twice (an intermediate "sum of Tier I+II" line
-    # plus the final own-funds line before RWA, e.g. QNBFB). Collect all and pick
-    # the largest — the regulatory total capital is the final, largest figure.
     tc_candidates: list[tuple[float, float | None]] = []
     end_seen = False
     for i in range(start, min(n, start + _MAX_SECTION_PAGES)):
-        text = pdf.pages[i].extract_text() or ""
-        for raw in text.splitlines():
+        words = doc[i].get_text("words")
+        # tight y-clusters for the LABEL text (so we read each printed line)
+        rows: list[tuple[float, list[tuple[float, str]]]] = []
+        for w in sorted(words, key=lambda w: (w[1], w[0])):
+            if rows and w[1] - rows[-1][0] <= 3.0:
+                rows[-1][1].append((w[0], w[4]))
+            else:
+                rows.append((w[1], [(w[0], w[4])]))
+        for y, toks in rows:
+            label = _repair_split_digits(" ".join(t for _, t in sorted(toks)).strip())
+            if not label:
+                continue
+            for fld, is_ratio, rxs in _FIELD_RX:
+                if fld != "total_capital" and fld in current:
+                    continue
+                if not any(rx.match(label) for rx in rxs):
+                    continue
+                window = sorted(w for w in words if y - 3 <= w[1] <= y + 12
+                                and (_NUM_TOKEN.match(w[4]) or w[4] in _NIL))
+                num_toks = _trailing_two_tokens(" ".join(w[4] for w in window))
+                if not num_toks:
+                    break
+                parse = _parse_ratio if is_ratio else parse_num
+                cur = parse(num_toks[0])
+                if cur is None or (is_ratio and not (_RATIO_BAND[0] < cur < _RATIO_BAND[1])):
+                    break
+                pri = parse(num_toks[1]) if len(num_toks) > 1 else None
+                if is_ratio and pri is not None and not (_RATIO_BAND[0] < pri < _RATIO_BAND[1]):
+                    pri = None
+                if fld == "total_capital":
+                    tc_candidates.append((cur, pri))
+                else:
+                    current[fld] = cur
+                    prior[fld] = pri
+                break
+            if current and any(rx.search(label) for rx in _END_RX):
+                end_seen = True
+        if end_seen:
+            break
+    doc.close()
+    return current, prior, tc_candidates
+
+
+def _parse_section(get_lines, start: int, n: int) -> tuple[dict, dict, list]:
+    """Walk the §4 section from `start`, matching each field's label and reading
+    the trailing two numbers. `get_lines(i)` supplies page i's text lines (from
+    pdfplumber or the fitz fallback). total_capital is collected as candidates
+    (an intermediate 'Tier I+II' line plus the final own-funds line)."""
+    current: dict[str, float | None] = {}
+    prior: dict[str, float | None] = {}
+    tc_candidates: list[tuple[float, float | None]] = []
+    end_seen = False
+    for i in range(start, min(n, start + _MAX_SECTION_PAGES)):
+        for raw in get_lines(i):
             ln = _repair_split_digits(raw.strip())
             if not ln:
                 continue
@@ -264,6 +314,30 @@ def extract_from_pdf(pdf: pdfplumber.PDF, pdf_path: str = "") -> CapitalReport:
                 end_seen = True
         if end_seen:
             break
+    return current, prior, tc_candidates
+
+
+def extract_from_pdf(pdf: pdfplumber.PDF, pdf_path: str = "") -> CapitalReport:
+    rep = CapitalReport(pdf_path=pdf_path)
+    n = len(pdf.pages)
+    # Locate the section start.
+    start = None
+    for i in range(min(_SKIP_PAGES, n), n):
+        if any(rx.search(pdf.pages[i].extract_text() or "") for rx in _START_RX):
+            start = i
+            break
+    if start is None:
+        return rep
+    rep.source_page = start + 1
+
+    current, prior, tc_candidates = _parse_section(
+        lambda i: (pdf.pages[i].extract_text() or "").splitlines(), start, n)
+    # Wide-table fallback: some banks (FIBA) render the §4 table so the value sits
+    # a few px off the label's baseline, so pdfplumber's line-clustering drops the
+    # label onto its own value-less line and nothing parses. Re-run off fitz words
+    # clustered with a wider y-tolerance, which re-pairs label + value.
+    if not current and pdf_path and _HAS_FITZ:
+        current, prior, tc_candidates = _parse_section_fitz(pdf_path, start, n)
 
     if tc_candidates:
         best_cur, best_pri = max(tc_candidates, key=lambda t: t[0])
