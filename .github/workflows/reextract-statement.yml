@@ -103,6 +103,15 @@ jobs:
           [ -n "$DRY" ] && args+=("$DRY")
           python scripts/reextract_statement.py "${args[@]}"
 
+      - name: Revalidate all partitions (current validator code) before the spine
+        # reextract_statement.py inline-validates only the touched partition; the
+        # rest keep the pulled snapshot's stored verdicts. Recompute the whole
+        # corpus from stored rows with THIS checkout's code so the spine reflects
+        # current validators/curated skips, not the snapshot's frozen ones (cheap,
+        # pure SQLite). Mirrors the same guard in acquire-audit.yml.
+        if: ${{ !inputs.dry_run }}
+        run: python scripts/revalidate_audit_db.py --db data/bank_audit.db
+
       - name: Refresh coverage matrix (/admin)
         if: ${{ !inputs.dry_run }}
         run: python scripts/sync_audit_expected.py --push

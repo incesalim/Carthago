@@ -17,7 +17,13 @@ regressions**, leaving 2 genuine roman-chain breaks now in a curated `_CF_SKIP` 
 single-cell fix reconciles V *and* VII=V+VI) and **TSKB 2022Q1 cons** (V is 16.025 above ΣI..IV; the
 reconciling V=5.011.183 is over-determined but the TSKB host was unreachable to confirm typo-vs-misread —
 recover the value once readable). Verified live: `cash_flow` matrix errors 135 → 0; total matrix errors
-719 → 584 (remaining are equity_change 340, npl_movement 126, …).
+719 → 584 (remaining are equity_change 340, npl_movement 126, …). **Spine-revert guard**: the
+`acquire-audit` cron rebuilds the coverage spine straight from the R2 snapshot's *stored* validation, so
+after a validator-code change (skip/`check_cash_flow` rewrite) that wasn't followed by a snapshot
+re-upload, it resurrected the old failures — observed cash_flow snapping back to 135 a few hours later.
+Fixed by re-uploading the snapshot with corrected validation AND adding a `revalidate_audit_db` step before
+the spine rebuild in both `acquire-audit.yml` and `reextract-statement.yml`, so the spine always reflects
+the current checkout's validators, not the snapshot's frozen verdicts.
 
 Prior: 2026-06-21 — **P&L coverage matrix now 0 errors: the last 2 resolved.** Closed the two
 `profit_loss` failures previously left flagged. **QNBFB 2023Q1 uncons was recoverable after all**: the
