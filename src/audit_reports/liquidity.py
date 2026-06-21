@@ -37,6 +37,9 @@ _RN = r"(?:\d+\.?\s*)?"
 # Turkish dotted/dotless-I casing: İ→i, I→ı (then .lower() handles Ş/Ç/… and ASCII)
 # so UPPER-CASE labels (TFKB) fold to the same form the patterns use.
 _TR_LOWER = str.maketrans("İI", "iı")
+# Prose leverage (older FIBA): "…kaldıraç oranı <date> itibarıyla %6,06…".
+_PROSE_LEV_RX = re.compile(
+    r"kaldıraç\s+oran[ıi][^.]{0,110}?itibar[ıi]yla\s*%\s*([\d.,]+)", re.IGNORECASE)
 # EN labels use \s* between words: TSKB's 2023–2024 squished text layer drops
 # inter-word spaces ("LiquidityCoverageRatio(%)") — same class capital_adequacy
 # handles. Turkish squish has not been observed; TR patterns keep \s+.
@@ -172,6 +175,16 @@ def extract_from_pdf(pdf: pdfplumber.PDF, pdf_path: str = "") -> LiquidityReport
     if not (lcr and nsfr and lev) and pdf_path and _HAS_FITZ:
         flcr, fnsfr, flev = _scan(lambda i: _fitz_lines(pdf_path, i), scan_start, scan_end)
         lcr, nsfr, lev = (lcr or flcr), (nsfr or fnsfr), (lev or flev)
+    # Prose fallback (older FIBA): the §4.7 table lists only the leverage exposure
+    # components, and the ratio itself is stated in a sentence — "…hesaplamış
+    # olduğu konsolide kaldıraç oranı 31 Mart 2022 itibarıyla %6,06…". Anchor on
+    # "itibarıyla %…" so the regulatory "%3" minimum ("oranını %3 olarak") is not
+    # matched.
+    if not lev:
+        prose = " ".join(pdf.pages[i].extract_text() or "" for i in range(scan_start, scan_end))
+        m = _PROSE_LEV_RX.search(prose)
+        if m:
+            lev = [[m.group(1)]]
 
     cur = LiquidityRow(period_type="current")
     pri = LiquidityRow(period_type="prior")
