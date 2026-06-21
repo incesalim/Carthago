@@ -3,7 +3,18 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-06-21 — **CORRECTION: DENIZ 2025Q4 `npl_brsa_gross` is a real extraction bug, not a
+Last verified: 2026-06-21 — **Audited my own curated skips: un-skipped the ones hiding wrong/unverified data.**
+Prompted by the DENIZ mis-diagnosis, re-examined every validator skip added this session against one rule —
+a skip is justified ONLY when the data is verified faithful to the PDF and the SOURCE itself doesn't foot,
+NEVER to hide a wrong/garbled/unverified extraction. Removed: **`_CQ_SKIP` (TFKB ×3)** — its `loans_ecl` is
+genuinely garbled (cross-contaminated from adjacent ECL tables), so it must stay FLAGGED; and **`_CF_SKIP`
+TSKB 2022Q1** — its V doesn't reconcile and the IR host was unreachable, so the skip rested on an unverified
+reconstruction. Kept (re-verified against the PDF, every cell matches, source genuinely doesn't foot):
+**`_CF_SKIP` ALBRK 2023Q4** (V 18.477.034 vs ΣI..IV 18.377.034, V+VI=VII holds) and **`_PL_SKIP` ICBCT
+2023Q2** (VIII 358 above ΣIII..VII). Net: credit_quality flags 5 (DENIZ ×2 extraction bug + TFKB ×3 garbled),
+cash_flow flags TSKB. Matrix shows more errors — all genuine; nothing wrong is hidden.
+
+Prior: 2026-06-21 — **CORRECTION: DENIZ 2025Q4 `npl_brsa_gross` is a real extraction bug, not a
 "definitional gap" — reverted the tolerance I wrongly widened.** Earlier today I attributed DENIZ 2025Q4's
 `cq_cross_amounts` failure to IFRS-stage-3 ≠ BRSA-NPL and widened the band 0.5%→1.5%. That was wrong: the
 stored `npl_brsa_gross` (III 25,450,423 / IV 17,601,970 / V 18,396,348 = 61.4bn) is the **"Dönem İçinde
