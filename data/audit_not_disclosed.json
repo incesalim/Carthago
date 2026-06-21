@@ -1,0 +1,7 @@
+{
+  "_doc": "Cells the coverage matrix should show as N/A (not_expected) instead of 'missing': partitions whose report genuinely does NOT disclose a given statement (verified against the PDF — never used to hide an extraction gap for data that IS printed). statement='*' = every NON-CORE lane this partition is missing (core BS/PL/cross always stay flagged). Entries are applied only when the cell is otherwise 'missing'.",
+  "not_disclosed": [
+    {"bank": "TSKB", "period": "2026Q1", "kind": "unconsolidated", "statement": "*", "note": "14-page brief interim filing — none of the §4/footnote tables are disclosed"},
+    {"bank": "ICBCT", "period": "2023Q4", "kind": "consolidated", "statement": "*", "note": "9-page brief consolidated filing — no §4/footnote tables (no capital/liquidity/etc. terms in the PDF)"}
+  ]
+}
