@@ -89,14 +89,20 @@ def extract_from_pdf(pdf: pdfplumber.PDF, pdf_path: str = "") -> LiquidityReport
         if any(rx.search(pdf.pages[i].extract_text() or "") for rx in _START_RX):
             start = i
             break
-    if start is None:
-        return rep
-    rep.source_page = start + 1
+    # Fallback: AKTIF (and other small banks) disclose the LCR as PROSE — there's
+    # no "Yüksek Kaliteli Likit Varlıklar" table header for _START_RX to find —
+    # but they still print the leverage / LCR / NSFR data rows. Rather than give
+    # up, scan the whole footnote range for the (specific, "(%)"-/number-gated)
+    # data-row anchors.
+    fallback = start is None
+    scan_start = min(_SKIP_PAGES, n) if fallback else start
+    scan_end = n if fallback else min(n, start + _MAX_SCAN_FROM_START)
+    rep.source_page = None if fallback else start + 1
 
     lcr: list[list[str]] = []
     nsfr: list[list[str]] = []
     lev: list[list[str]] = []
-    for i in range(start, min(n, start + _MAX_SCAN_FROM_START)):
+    for i in range(scan_start, scan_end):
         for raw in (pdf.pages[i].extract_text() or "").splitlines():
             ln = _repair_split_digits(raw.strip())
             if not ln:
