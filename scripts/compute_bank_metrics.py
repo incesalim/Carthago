@@ -201,6 +201,9 @@ def compute_one(
     npl_gross = g[4] if g else None
     npl_provision = p[4] if p else None
     npl_net = n[4] if n else None
+    # For npl_brsa_* sections the stage1/2/3 columns are BRSA NPL GROUPS III/IV/V
+    # (substandard/doubtful/loss), NOT IFRS stages — see credit_quality.py
+    # NPL_GROUP_SECTIONS. g[1]/g[2]/g[3] are columns stage1/2/3 = groups III/IV/V.
     npl_group3 = g[1] if g else None
     npl_group4 = g[2] if g else None
     npl_group5 = g[3] if g else None

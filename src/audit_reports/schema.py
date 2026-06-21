@@ -164,6 +164,12 @@ CREATE TABLE IF NOT EXISTS bank_audit_credit_quality (
     section          TEXT NOT NULL,
     period_type      TEXT NOT NULL,           -- 'current' | 'prior'
     source_page      INTEGER,
+    -- stage1/2/3_amount are POSITIONAL columns whose meaning is SECTION-DEPENDENT:
+    --   most sections  -> IFRS-9 Stage 1 / 2 / 3
+    --   npl_brsa_*     -> BRSA NPL groups III / IV / V (substandard/doubtful/loss),
+    --                     all sub-buckets of IFRS Stage 3. The Stage-3 figure for
+    --                     these is total_amount (=III+IV+V), NEVER stage1_amount.
+    -- See src/audit_reports/credit_quality.py NPL_GROUP_SECTIONS.
     stage1_amount    REAL,
     stage2_amount    REAL,
     stage3_amount    REAL,
