@@ -280,8 +280,26 @@ def _extract_from_block(page_idx: int, text: str) -> list[NplGroupRow]:
         n3 = _parse_amount(m.group("n3"))
         n4 = _parse_amount(m.group("n4"))
         n5 = _parse_amount(m.group("n5"))
-        # New block starts when we see opening_balance.
-        if key == "opening_balance":
+        # New block starts when we see an opening_balance row — OR, for banks like
+        # HALKB whose movement block carries the prior-period close at the TOP
+        # under the SAME "…period end balance" label as the closing, when we hit
+        # such an end-balance row with no active block. Without this the real
+        # total block is skipped (its opening reads as a closing) and a later
+        # loans-by-borrower sub-category block wins (closing 9.440.946 instead of
+        # the correct total 16.582.889). The bare "Current/Prior Period <nums>"
+        # YKBNK labels (no "end balance" phrase) are excluded so that lane is
+        # unaffected, and the flush below only emits blocks that got real data.
+        # English-only phrase on purpose: HALKB (an English report) labels the
+        # carried-forward opening "Current period end balance". Turkish reports
+        # label their opening "Önceki Dönem Sonu Bakiyesi" (→ opening_balance,
+        # handled above) and reuse a bare "Dönem Sonu Bakiyesi" across many
+        # sub-tables — matching that here mis-started blocks (AKTIF regression).
+        starts_block = key == "opening_balance" or (
+            key == "closing_balance" and cur is None and not block_done
+            and re.search(r"period end balance|balance at the end of the period",
+                          line_stripped, re.IGNORECASE)
+        )
+        if starts_block:
             _flush()
             period_idx += 1
             if period_idx >= len(period_sequence):
@@ -294,6 +312,11 @@ def _extract_from_block(page_idx: int, text: str) -> list[NplGroupRow]:
                 "V":   NplGroupRow(group_code="V",   period_type=pt, page=page_idx),
             }
             block_done = False
+            # This row is the block's OPENING, whatever label it matched.
+            setattr(cur["III"], "opening_balance", n3)
+            setattr(cur["IV"],  "opening_balance", n4)
+            setattr(cur["V"],   "opening_balance", n5)
+            continue
         if cur is None or block_done:
             # block_done: net_balance has fired, the table proper has ended.
             # Any further matches on this page belong to a sub-table (FX-only
