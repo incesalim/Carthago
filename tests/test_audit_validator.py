@@ -426,6 +426,45 @@ def test_credit_quality_npl_net_rows_dont_fail():
     assert not any(f.get("check") == "cq_npl_net" for f in res.failures)
 
 
+def test_npl_brsa_sections_flagged_as_group_basis():
+    # The stage1/2/3 columns mean BRSA groups III/IV/V (NOT IFRS stages) only for
+    # the npl_brsa_* sections; everything else is a real IFRS stage.
+    from src.audit_reports.credit_quality import stage_columns_are_brsa_groups
+    assert stage_columns_are_brsa_groups("npl_brsa_gross")
+    assert stage_columns_are_brsa_groups("npl_brsa_provision")
+    assert not stage_columns_are_brsa_groups("loans_ecl")
+    assert not stage_columns_are_brsa_groups("loans_by_stage")
+    assert not stage_columns_are_brsa_groups("loans_amounts")
+
+
+def test_build_stages_maps_npl_group_total_to_stage3_not_group_iii():
+    """Lock the convention that the derived Stage-3 amount comes from the
+    npl_brsa_gross TOTAL (III+IV+V), never from its stage1_amount (Group III).
+    Guards against anyone re-reading npl_brsa.stage1 as IFRS Stage 1."""
+    from scripts.build_bank_audit_stages import _SQL_AGG
+    conn = sqlite3.connect(":memory:")
+    init_schema(conn)
+    # Distinct values so a Group-III-as-Stage-3 mistake can't coincidentally pass.
+    conn.executemany(
+        "INSERT INTO bank_audit_credit_quality "
+        "(bank_ticker,period,kind,section,period_type,stage1_amount,stage2_amount,stage3_amount,total_amount) "
+        "VALUES (?,?,?,?,?,?,?,?,?)",
+        [
+            ("X", "2025Q1", "unconsolidated", "loans_by_stage", "current", 1000, 200, None, 1200),
+            # npl_brsa_gross: stage1=Group III=30, IV=20, V=10, TOTAL=60
+            ("X", "2025Q1", "unconsolidated", "npl_brsa_gross", "current", 30, 20, 10, 60),
+        ],
+    )
+    conn.commit()
+    row = conn.execute(_SQL_AGG).fetchone()
+    # columns: bank,period,kind,period_type, s1_amt, s2_amt, s3_amt, s1_ecl, s2_ecl, s3_ecl
+    s1_amt, s2_amt, s3_amt = row[4], row[5], row[6]
+    assert s1_amt == 1000          # IFRS Stage 1 from loans_by_stage, not an NPL group
+    assert s2_amt == 200
+    assert s3_amt == 60            # NPL total (III+IV+V) — NOT Group III (30)
+    assert s3_amt != 30, "Stage-3 must be the npl_brsa TOTAL, never Group III"
+
+
 # --- Stages validation ----------------------------------------------------
 
 def _stage_row(**kw):

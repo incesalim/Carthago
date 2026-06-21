@@ -3,7 +3,19 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-06-21 — **Credit-quality coverage matrix: 5 → 0 errors.** Two distinct causes.
+Last verified: 2026-06-21 — **Credit-quality column-semantics trap documented + test-locked.** The
+`bank_audit_credit_quality` table reuses three positional columns `stage1/2/3_amount` whose meaning is
+*section-dependent*: for most sections they are IFRS-9 Stage 1/2/3, but for the **`npl_brsa_*` sections they
+are BRSA NPL groups III/IV/V** (substandard/doubtful/loss) — all sub-buckets of IFRS Stage 3, so reading
+`npl_brsa_gross.stage1_amount` as "Stage 1" would be wrong. Audited every consumer and confirmed **none**
+does: `build_bank_audit_stages` takes Stage 3 from `npl_brsa_gross.total_amount`, `compute_bank_metrics`
+reads the split but labels it `npl_group3/4/5`, the validator checks III+IV+V=total, and the web reads only
+the derived `bank_audit_stages`. Made the convention explicit and durable rather than renaming the shared
+columns (which would mislabel the loan sections): added `NPL_GROUP_SECTIONS` + `stage_columns_are_brsa_groups()`
+in `credit_quality.py`, a schema comment, a `compute_bank_metrics` pointer, and two guard tests that lock
+"derived Stage-3 = npl_brsa TOTAL, never Group III". Docs/tests only — no data or schema change.
+
+Prior: 2026-06-21 — **Credit-quality coverage matrix: 5 → 0 errors.** Two distinct causes.
 **DENizBank 2025Q4 (cons + uncons), `cq_cross_amounts`**: the check `loans_amounts.total ≈ loans_by_stage(S1+S2)
 + npl_brsa_gross(S3)` is a CROSS-FRAMEWORK approximation — it assumes IFRS-9 stage-3 loans ≈ BRSA NPL gross,
 but those legitimately diverge (DENIZ's stage-3 55.0bn vs NPL 63.4bn, both verified in the PDF, a 0.7–0.9%

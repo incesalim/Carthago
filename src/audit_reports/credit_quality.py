@@ -214,6 +214,35 @@ def _merge_split_digits(line: str) -> str:
 #
 # Given a chunk of text that PRECEDES a Stage-header on the same page, pick
 # a section label. Order matters — more-specific patterns first.
+# ---------------------------------------------------------------------------
+# COLUMN SEMANTICS — read before touching stage1/2/3_amount.
+#
+# bank_audit_credit_quality reuses three POSITIONAL columns (stage1_amount,
+# stage2_amount, stage3_amount) across every section, but their meaning is
+# SECTION-DEPENDENT:
+#
+#   • Most sections (loans_ecl, loans_by_stage, loans_amounts, loans_ecl_brsa,
+#     cash_ecl, amortised_cost_ecl, non_cash_ecl, …) → IFRS-9 STAGE 1 / 2 / 3.
+#
+#   • The npl_brsa_* sections → BRSA non-performing GROUPS III / IV / V
+#     (substandard / doubtful / loss). These are NOT IFRS stages — all three
+#     are sub-buckets of IFRS Stage 3. The Stage-3 figure is the npl_brsa
+#     TOTAL (= III+IV+V), never stage1_amount.
+#
+# So NEVER read npl_brsa_*.stage1_amount as "Stage 1". The derived
+# bank_audit_stages table maps npl_brsa_gross.total_amount → Stage 3 (see
+# scripts/build_bank_audit_stages.py); compute_bank_metrics labels the split
+# npl_group3/4/5; a guard test in tests/test_audit_validator.py locks this.
+NPL_GROUP_SECTIONS: frozenset[str] = frozenset(
+    {"npl_brsa_gross", "npl_brsa_net", "npl_brsa_provision"})
+
+
+def stage_columns_are_brsa_groups(section: str) -> bool:
+    """True iff this section's stage1/2/3_amount hold BRSA NPL groups III/IV/V
+    (sub-buckets of IFRS Stage 3) rather than IFRS-9 stages."""
+    return section in NPL_GROUP_SECTIONS
+
+
 _SECTION_PATTERNS: list[tuple[str, re.Pattern]] = [
     ("cash_ecl", re.compile(
         r"(?:Expected\s+credit\s+loss(?:es)?\s+for\s+cash"
