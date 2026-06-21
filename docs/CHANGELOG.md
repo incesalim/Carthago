@@ -3,7 +3,21 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-06-21 — **npl_movement: PASHA roll-forward ties once outflow columns are magnitudes
+Last verified: 2026-06-21 — **off_balance 17→0 and OCI 19→0 (coverage matrix: those two lanes cleared).**
+*off_balance:* curated per-cell overrides (no re-extraction) — TEB's `(III-2)` cross-reference letter-spacing
+truncated the III. derivatives TL/FC to junk across 8 quarters (restored from the 3.1+3.2 children); BURGAN/
+EMLAK/ISCTR single garbled cells; and ALNTF's cross-ref-annotated rows (`III-a-3,i`) that the pdfplumber
+off_balance parser mis-aligns — fitz-read the correct TL/FC/Total for every flagged row off the off_balance
+page, Total-cross-checked, 89 rows over 6 partitions. *OCI:* `check_oci` now drops the noisy deep `2.1.x/2.2.x`
+sum (net-of-tax rounding + omitted immaterial lines — the cash_flow lesson) and keeps the reliable roman chain
+III=I+II + section sums (I=Σ1.x, II=Σ2.x) + OCI.I==P&L-net cross; `apply_overrides` gained `oci`/`oci_replace`
+support; EXIM/FIBA/QNBFB had the WRONG statement captured (equity stmt + balance sheet) → full fitz re-read;
+KLNMA read II/2.1 from the prior column (correct II = III−I = 33,128); ISCTR 2025Q2 wrong-table + PDF now 404
+→ removed (no valid OCI → skipped); ATBANK 2023Q4 `_OCI_SKIP` (source sign typo: prints III `(307.687)` vs
+I+II `+307.687`). Five audit lanes now 0 in D1: assets/liabilities aside, **credit_quality, stages,
+npl_movement, off_balance, OCI all clear**.
+
+Prior: 2026-06-21 — **npl_movement: PASHA roll-forward ties once outflow columns are magnitudes
 (fixes the last 10).** PASHA prints the always-outflow rows in parentheses — `Tahsilat (-) (8.115)` — which the
 extractor stores as −8.115, so the validator's `− collections` became `− (−8.115)` = +8.115 (double negative)
 and the roll-forward didn't tie (it then failed the gross cross-check too, because PASHA's gross is separately
