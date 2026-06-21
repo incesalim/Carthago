@@ -3,7 +3,20 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-06-21 — **Credit-quality column-semantics trap documented + test-locked.** The
+Last verified: 2026-06-21 — **CORRECTION: DENIZ 2025Q4 `npl_brsa_gross` is a real extraction bug, not a
+"definitional gap" — reverted the tolerance I wrongly widened.** Earlier today I attributed DENIZ 2025Q4's
+`cq_cross_amounts` failure to IFRS-stage-3 ≠ BRSA-NPL and widened the band 0.5%→1.5%. That was wrong: the
+stored `npl_brsa_gross` (III 25,450,423 / IV 17,601,970 / V 18,396,348 = 61.4bn) is the **"Dönem İçinde
+İntikal (+)"** row of the NPL *movement* table — period inflows, a FLOW — not the **"Dönem Sonu Bakiyesi"**
+closing balance (15,094,901 / 17,730,782 / 19,458,398 = **52,284,081**), which equals the IFRS Stage-3 figure
+exactly. So there is no gap; the extractor grabbed the wrong row on this long roll-forward layout (provision
+and net rows are correct). Reverted the band to 0.5% so the bug stays flagged. `npl_brsa_gross` for DENIZ
+2025Q4 (cons + uncons) is overstated and feeds an overstated NPL-gross metric; the derived `bank_audit_stages`
+Stage-3 is unaffected (it prefers `loans_amounts.S3`). OPEN: fix the extractor's gross-row selection (anchor
+the closing-balance row immediately above provision, not an earlier movement row) + re-extract the affected
+credit_quality. Clean detector (`gross ≈ loans_amounts.S3`) flags only these 2; broader scope unverified.
+
+Prior: 2026-06-21 — **Credit-quality column-semantics trap documented + test-locked.** The
 `bank_audit_credit_quality` table reuses three positional columns `stage1/2/3_amount` whose meaning is
 *section-dependent*: for most sections they are IFRS-9 Stage 1/2/3, but for the **`npl_brsa_*` sections they
 are BRSA NPL groups III/IV/V** (substandard/doubtful/loss) — all sub-buckets of IFRS Stage 3, so reading
