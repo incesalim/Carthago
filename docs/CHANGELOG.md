@@ -3,7 +3,19 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-06-21 — **capital 26→0, cash_flow 1→0, loans_by_sector 36→21.** *capital:* apply_overrides
+Last verified: 2026-06-21 — **loans_by_sector 21→0 — coverage matrix now clean except equity_change.** Rewrote
+the sector parse to x-coordinate column alignment (`_extract_section_xy`): align each row's numbers to the
+Stage 2 / Stage 3 header columns by word x-position, so it reads a gross-Loans column before the stages and
+provision/ECL columns after (QNBFB's 5-column table where "3 trailing numbers" grabbed the dash/ECL cols),
+recognises "(Second/Third Stage)" + Turkish İkinci/Üçüncü, and `_pick_total` keeps the total that foots when a
+page carries two tables (ICBCT). The extractor now keeps whichever parse (aligned vs legacy text) FOOTS better,
+so it can't regress a bank the old parser read right (verified on AKBNK/GARAN/HALKB/DENIZ/TSKB). Plus sector
+wordings (Hotel/Real-estate-renting/Education/Independent-business, Manufacturing-Industry→production), the
+"unconsolidated investments" wrong-table exclusion, and a `\d{1,4}` leading group for the "1466,551" typo.
+Re-extracted YKBNK+QNBFB+EXIM+ICBCT+BURGAN+KLNMA; YKBNK interim-unco stale rows cleared. **With this, every
+audit lane is 0 except equity_change (340).**
+
+Prior: 2026-06-21 — **capital 26→0, cash_flow 1→0, loans_by_sector 36→21.** *capital:* apply_overrides
 now patches `bank_audit_capital`; the 26 §4 mis-extractions were recovered from the capital identities (the
 passing ratio checks pin the kept components, so the missing one is exactly the gap) and PDF-confirmed — AT1
 dropped→Tier1−CET1, Tier2 dropped/slipped→Total−Tier1, AKTIF total→Tier1+Tier2, ISCTR 2025Q1/Q2 RWA
