@@ -46,6 +46,24 @@ from src.audit_reports.schema import init_schema  # noqa: E402
 PROFILES = REPO / "data" / "audit_profiles.json"
 MANUAL = REPO / "data" / "manual_statements.json"
 OVERRIDES = REPO / "data" / "audit_overrides.json"
+NOT_DISCLOSED = REPO / "data" / "audit_not_disclosed.json"
+
+
+def _load_not_disclosed() -> tuple[set, set]:
+    """Curated 'genuinely not disclosed in the PDF' cells → shown as N/A, not
+    missing. Returns (specific {(b,p,k,stmt)}, all-noncore {(b,p,k)} for '*')."""
+    try:
+        entries = json.loads(NOT_DISCLOSED.read_text(encoding="utf-8"))["not_disclosed"]
+    except Exception:
+        return set(), set()
+    specific, all_noncore = set(), set()
+    for e in entries:
+        key = (e["bank"], e["period"], e["kind"])
+        if e.get("statement") == "*":
+            all_noncore.add(key)
+        else:
+            specific.add((*key, e["statement"]))
+    return specific, all_noncore
 COVERAGE_TABLES = ["bank_audit_expected", "bank_audit_statement_types", "bank_audit_coverage"]
 
 # Manual-overlay statement names → registry key.
@@ -194,6 +212,7 @@ def build(conn: sqlite3.Connection, use_r2: bool):
             return 1 if bpk in pdfs else 0
         return 1 if bpk in extracted else 0   # fallback: extracted ⇒ the PDF existed
 
+    nd_specific, nd_all_noncore = _load_not_disclosed()
     expected_rows, coverage_rows = [], []
     for bpk, meta in sorted(expected.items()):
         b, p, k = bpk
@@ -210,6 +229,13 @@ def build(conn: sqlite3.Connection, use_r2: bool):
             # disclosed in interim reports, so an empty interim cell is NOT missing —
             # it's not-applicable. (A bank that DOES disclose interim has rows → ok/error.)
             if status == "missing" and st.annual_only and not p.upper().endswith("Q4"):
+                status = "not_expected"
+            # Curated: this partition's report genuinely doesn't disclose the lane
+            # (verified vs PDF) — a brief interim/summary filing. '*' covers every
+            # NON-CORE lane; core BS/PL/cross always stay flagged.
+            if status == "missing" and (
+                    (b, p, k, st.key) in nd_specific
+                    or (not st.is_core and (b, p, k) in nd_all_noncore)):
                 status = "not_expected"
             coverage_rows.append((b, p, k, st.key, status, rows, cf, int(is_manual), present))
 
