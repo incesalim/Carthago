@@ -1084,7 +1084,9 @@ def _fitz_clustered_lines(page, y_tol: float = 5.5) -> list[str]:
     return [" ".join(t[4] for t in sorted(ln, key=lambda w: w[0])) for ln in lines]
 
 
-def _extract_loans_by_stage_from_page(page_num: int, page_text: str) -> list[StageRow]:
+def _extract_loans_by_stage_from_page(
+    page_num: int, page_text: str, allow_total_drop: bool = False,
+) -> list[StageRow]:
     """Capture Stage 1 / Stage 2 loan AMOUNTS from BRSA section 7.2.
 
     Algorithm:
@@ -1093,6 +1095,13 @@ def _extract_loans_by_stage_from_page(page_num: int, page_text: str) -> list[Sta
       2. Within the next ~40 lines after the title, locate the Toplam / Total
          row of the data table.
       3. Track Cari Dönem / Önceki Dönem context within that block.
+
+    `allow_total_drop` (used only by the document-level fallback in
+    `extract_from_pdf` when the normal pass finds NO loans_by_stage anywhere)
+    drops a trailing Toplam-total column = Stage 1 + ΣYakın, e.g. FIBA p63
+    "Toplam 1.008.524 629.760 1.638.284" (1.638.284 = 1.008.524 + 629.760).
+    It is OFF by default because rescuing such rows can let an earlier wrong
+    sub-table win the dedup over the real §7.2 table (regressed TEB/ODEA/HSBC).
     """
     if not page_text:
         return []
@@ -1175,14 +1184,8 @@ def _extract_loans_by_stage_from_page(page_num: int, page_text: str) -> list[Sta
                 continue
             stage1 = vals[0]
             rest = vals[1:]
-            # Some banks append a Toplam (total) column = Stage 1 + ΣYakın sub-cols,
-            # e.g. FIBA p63 "Toplam 1.008.524 629.760 1.638.284" (1.638.284 =
-            # 1.008.524 + 629.760). Counting that total as another Stage-2 sub-column
-            # doubles Stage 2 and trips the S1>S2 gate → the table is dropped and the
-            # bank looks 100% NPL. Drop a trailing value that equals S1 + Σ(the cols
-            # before it). Banks whose last column is a real Yakın sub-type (AKBNK's
-            # 4-col Toplam) don't satisfy this, so they're unaffected.
-            if len(rest) >= 2 and rest[-1] is not None and stage1 is not None:
+            if (allow_total_drop and len(rest) >= 2
+                    and rest[-1] is not None and stage1 is not None):
                 body_sum = sum(v for v in rest[:-1] if v is not None)
                 if abs(rest[-1] - (stage1 + body_sum)) <= max(1000.0, 0.005 * abs(rest[-1])):
                     rest = rest[:-1]
@@ -1423,10 +1426,12 @@ def extract_from_pdf(
     # path to the regex path per-PDF (see below).
     npl_tmpl: list[StageRow] = []
     npl_regex: list[StageRow] = []
+    page_texts: list[tuple[int, str]] = []  # for the loans_by_stage fallback
     doc = fitz.open(pdf_path)
     try:
         for i, page in enumerate(doc, 1):
             text = "\n".join(_fitz_clustered_lines(page))
+            page_texts.append((i, text))
             # Stock tables (movement-table end-row) — primary signal.
             if (_STAGE_HEADER_EN.search(text) or _STAGE_HEADER_TR.search(text)
                     or _STAGE_HEADER_TR_3COL.search(text)):
@@ -1456,6 +1461,18 @@ def extract_from_pdf(
             rep.rows.extend(_extract_stage12_ecl_from_page(i, text))
     finally:
         doc.close()
+
+    # Document-level fallback: if NO loans_by_stage was found by the strict pass
+    # (e.g. FIBA, whose only §7.2 Toplam is "[S1, S2, Total]" and gets dropped
+    # because the Total inflates Stage 2 past Stage 1), re-scan allowing the
+    # trailing-total column to be dropped. Gated on "found nothing" so it can
+    # never override a bank that already has a valid table (TEB/ODEA/HSBC, where
+    # enabling the drop unconditionally let an earlier wrong sub-table win).
+    if not any(r.section == "loans_by_stage" for r in rep.rows):
+        for i, text in page_texts:
+            rep.rows.extend(
+                _extract_loans_by_stage_from_page(i, text, allow_total_drop=True)
+            )
 
     # Choose the NPL source: template if it found a gross row, else regex.
     tmpl_has_gross = any(r.section == "npl_brsa_gross" for r in npl_tmpl)
