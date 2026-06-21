@@ -202,9 +202,20 @@ def _merge_split_digits(line: str) -> str:
     incorrectly merge the trailing digit of a date or label into the next
     number, e.g. '...2024 6.124.453 ...' would become '...20246.124.453...'
     which the tokenizer reads as 46,124,453 (AKBNK p64 prior period).
+
+    It must also NOT fuse two SEPARATE column values. A TRUE split keeps the
+    combined leading group ≤3 digits ('3 34,098' -> '334,098'); fusing two real
+    values overflows it ('13 11,390' -> '1311,390', which mis-parses as 131 /
+    1,390 — the ALNTF NPL net row: Group III 13 + Group IV 11,390). So only merge
+    when standalone-digits + the group's leading segment stay ≤3 digits.
     """
-    # '1 95,170,209' -> '195,170,209'  (standalone digit, space, digit-group)
-    line = re.sub(r"(?<!\d)(\d{1,2})\s+(?=\d{1,3}[.,]\d{3})", r"\1", line)
+    # '1 95,170,209' -> '195,170,209'  (standalone digit, space, digit-group), but
+    # only when the merged leading group stays ≤3 digits (else it's two values).
+    def _join(m: "re.Match[str]") -> str:
+        lead, seg = m.group(1), m.group(2)
+        return lead + seg if len(lead) + len(seg) <= 3 else m.group(0)
+
+    line = re.sub(r"(?<!\d)(\d{1,2})\s+(\d{1,3})(?=[.,]\d{3})", _join, line)
     # '1 ,553,507'   -> '1,553,507'    (standalone digit, leading-separator)
     line = re.sub(r"(?<!\d)(\d{1,2})\s+([.,]\d{3})", r"\1\2", line)
     return line
