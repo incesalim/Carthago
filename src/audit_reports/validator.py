@@ -686,12 +686,13 @@ def check_credit_quality(rows: list[dict]) -> ValidationResult:
         nplg_tot = nplg.get("total_amount")
         if la_tot and lbs_s12 is not None and nplg_tot is not None:
             expected = lbs_s12 + nplg_tot
-            # 1.5% band: this is a CROSS-FRAMEWORK approximation (IFRS total ≈ IFRS
-            # performing S1+S2 + BRSA NPL gross), and IFRS stage-3 ≠ BRSA "donuk
-            # alacak" — banks legitimately diverge by up to ~1% (DenizBank 2025Q4 is
-            # 0.7–0.9%, every other partition ≤0.15%). A genuinely mis-extracted table
-            # is off by far more, so the wider band only drops definitional false reds.
-            tol = _tol(la_tot, base=1000.0, rel=0.015)
+            # 0.5% band. IFRS stage-3 loans and BRSA NPL gross (Σ groups III/IV/V)
+            # are the same closing balance and DO match this tightly for clean
+            # extractions — a larger gap means a mis-extracted npl_brsa_gross (e.g.
+            # grabbing the "Dönem İçinde İntikal" inflow row of the NPL *movement*
+            # table instead of "Dönem Sonu Bakiyesi"), which must stay flagged, not
+            # be tolerated away.
+            tol = _tol(la_tot, base=1000.0, rel=0.005)
             if abs(la_tot - expected) <= tol:
                 res.add_pass()
             else:
