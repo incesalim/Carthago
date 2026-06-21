@@ -3,7 +3,20 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-06-21 — **off_balance 17→0 and OCI 19→0 (coverage matrix: those two lanes cleared).**
+Last verified: 2026-06-21 — **capital 26→0, cash_flow 1→0, loans_by_sector 36→21.** *capital:* apply_overrides
+now patches `bank_audit_capital`; the 26 §4 mis-extractions were recovered from the capital identities (the
+passing ratio checks pin the kept components, so the missing one is exactly the gap) and PDF-confirmed — AT1
+dropped→Tier1−CET1, Tier2 dropped/slipped→Total−Tier1, AKTIF total→Tier1+Tier2, ISCTR 2025Q1/Q2 RWA
+column-slip→real RWA (2,724,016,639 from the §4 table) + recomputed ratios. *cash_flow:* TSKB 2022Q1 cons
+`_CF_SKIP` — PDF read confirms every roman matches the print but the source's V line is a typo (V 5,027,208 ≠
+I+II+III+IV 5,011,183; VII foots with the derived V). *loans_by_sector:* YKBNK (22) extracted the WRONG table
+(capital/equity rows) — the locator missed "Information ACCORDING TO sectors and counterparties" and
+false-matched the risk-profile + investments tables; fixed locator + YKBNK sector wordings, re-extracted
+(annual-cons cleared). Remaining 21 are per-bank multi-column structures (QNBFB 5-col dash layout, YKBNK
+unco gaps, EXIM/ICBCT/BURGAN/KLNMA) needing x-coordinate column alignment — the lowest-priority lane.
+**Only non-equity_change errors left: loans_by_sector 21.**
+
+Prior: 2026-06-21 — **off_balance 17→0 and OCI 19→0 (coverage matrix: those two lanes cleared).**
 *off_balance:* curated per-cell overrides (no re-extraction) — TEB's `(III-2)` cross-reference letter-spacing
 truncated the III. derivatives TL/FC to junk across 8 quarters (restored from the 3.1+3.2 children); BURGAN/
 EMLAK/ISCTR single garbled cells; and ALNTF's cross-ref-annotated rows (`III-a-3,i`) that the pdfplumber
