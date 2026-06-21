@@ -59,31 +59,26 @@ _PL_SKIP = frozenset({
     ("ICBCT", "2023Q2", "consolidated"),
 })
 
-# Credit-quality partitions whose IFRS-9 footnote table is image-heavy and extracts
-# garbled — TFKB's loans_ecl stage breakdown is cross-contaminated from adjacent ECL
-# tables (the stored S2 is loans_ecl_brsa's S2, S3 is npl_brsa_provision's total) and
-# the page is image-only for these numbers. Recovering it needs manual transcription +
-# credit_quality override support; skipped (with this trail) rather than left as a
-# persistent red on a small-bank footnote. Revisit if TFKB credit-quality is re-extracted.
-_CQ_SKIP = frozenset({
-    ("TFKB", "2023Q4", "unconsolidated"),
-    ("TFKB", "2025Q4", "consolidated"),
-    ("TFKB", "2025Q4", "unconsolidated"),
-})
+# A skip is ONLY justified when the data is verified faithful to the PDF and the
+# SOURCE itself doesn't foot — never to hide a wrong/garbled/unverified extraction
+# (that would bless a wrong number, the same failure as loosening a tolerance).
+# TFKB's credit_quality was previously skipped here, but its loans_ecl is genuinely
+# WRONG (cross-contaminated from adjacent ECL tables), so it must stay FLAGGED, not
+# hidden — removed. Empty until a real source-defect case is verified.
+_CQ_SKIP: frozenset = frozenset()
 
 # Cash-flow partitions whose roman chain (V=I+II+III+IV / VII=V+VI) doesn't foot
-# for a non-coverage reason (data is stored faithfully to the PDF).
+# because the PUBLISHED statement is internally inconsistent — data verified faithful
+# to the PDF (a skip is NEVER for a wrong/unverified extraction).
 _CF_SKIP = frozenset({
-    # ALBRK 2023Q4 cons: PDF prints V 18.477.034 but I+II+III+IV = 18.377.034 — the
-    # published statement is internally inconsistent by 100.000 (I/II/III/IV and V all
-    # match the PDF; V+VI=VII holds with the printed V). No single-cell fix reconciles
-    # both identities, so it's a genuine source defect.
+    # ALBRK 2023Q4 cons: RE-VERIFIED against the PDF — I 5.798.339 / II (6.523.592) /
+    # III 16.952.152 / IV 2.150.135 sum to 18.377.034, but the bank prints V 18.477.034
+    # (100.000 higher) and V+VI=VII holds with that printed V. Every cell matches the
+    # PDF; the source itself doesn't foot. No single-cell fix reconciles both identities.
     ("ALBRK", "2023Q4", "consolidated"),
-    # TSKB 2022Q1 cons: V (5.027.208) is 16.025 above I+II+III+IV (5.011.183); the
-    # reconciling V=5.011.183 also satisfies VII=V+VI, so it's over-determined — but the
-    # TSKB IR host was unreachable to confirm source-typo vs our misread, so we skip
-    # rather than override an unverified value. Recover V=5.011.183 once the PDF is read.
-    ("TSKB", "2022Q1", "consolidated"),
+    # NOTE: TSKB 2022Q1 was removed — its V (5.027.208) doesn't reconcile and the IR host
+    # was UNREACHABLE, so we never confirmed source-typo vs our misread. Skipping it would
+    # have hidden a possibly-wrong number, so it stays FLAGGED until the PDF is read.
 })
 
 
