@@ -255,7 +255,12 @@ def extract_from_pdf(pdf: pdfplumber.PDF, pdf_path: str = "") -> CapitalReport:
                         current[fld] = cur
                         prior[fld] = pri
                     break
-            if any(rx.search(ln) for rx in _END_RX):
+            # Only treat the CAR-ratio line as the section end AFTER some component
+            # has been read — ALNTF's §4 opens with an intro "…Sermaye Yeterliliği
+            # Standart Oranına İlişkin Açıklamalar" on the start page, which matches
+            # _END_RX and otherwise stops the scan before the component rows (on the
+            # next page) are ever reached, yielding 0 rows.
+            if current and any(rx.search(ln) for rx in _END_RX):
                 end_seen = True
         if end_seen:
             break
