@@ -3,7 +3,18 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-06-21 — **Fixed HALKB consolidated NPL (2 cells) + ICBCT 2024Q3 ECL (2 cells).** HALKB
+Last verified: 2026-06-21 — **Fixed a regression I introduced: FIBA total-column drop broke TEB/ODEA/HSBC/ISCTR
+loans_by_stage (stages 9→12).** The earlier FIBA fix dropped a trailing Toplam-total column unconditionally;
+that *rescued* previously-rejected rows, and an earlier wrong sub-table then won the dedup over the real §7.2
+table (TEB Stage-2 amount fell 26,235,157 → 1,415,068 → coverage >1). My 53-PDF sample didn't include the
+regressed banks. Fix: the total-column drop is now OFF by default and runs only as a DOCUMENT-LEVEL fallback in
+`extract_from_pdf` — re-scanning with the drop enabled ONLY when the strict pass found no `loans_by_stage`
+anywhere (so it can never override a bank that already has a valid table). FIBA still reads (1,008,524 /
+629,760) via the fallback; TEB back to (307,188,304 / 26,235,157). The ECL filter relaxation (ICBCT/PASHA/
+ATBANK) was NOT the cause and is kept — it only affects tiny-S2 banks and can't produce coverage>1. 170 tests
+pass. Lesson: validate extractor changes against the actual failing partitions, not just a convenience sample.
+
+Prior: 2026-06-21 — **Fixed HALKB consolidated NPL (2 cells) + ICBCT 2024Q3 ECL (2 cells).** HALKB
 cons NPL gross was stuck at 32,415,173 because its template `gross_label "Current period end balance"` matches
 a loans-to-individuals/corporates SUB-category, not total NPL — and HALKB has no explicit total-gross row (only
 "Current period (Net)" + "Provisions"). Removed HALKB's `npl_movement` template so the regex path's
