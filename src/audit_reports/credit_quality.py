@@ -36,7 +36,7 @@ import sqlite3
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import pdfplumber
+import fitz  # PyMuPDF — ~85× faster than pdfplumber for text; credit_quality is fitz-only
 
 from .extractor import NUM_PAT as _NUM_PAT_STR
 from .extractor import parse_num
@@ -1039,39 +1039,38 @@ _STAGE12_LOOSE_S2 = re.compile(
 )
 
 
-def _coord_clustered_lines(page, y_tol: float = 5.5) -> list[str]:
-    """Rebuild visual rows by clustering words on their y-coordinate.
+def _fitz_clustered_lines(page, y_tol: float = 5.5) -> list[str]:
+    """Rebuild visual rows from a fitz page by clustering words on y-coordinate.
 
-    Some banks (İşbank's English report is the worst) lay the section-7.2 stage
-    table out so that pdfplumber/fitz line-mode text puts each CELL on its own
-    line and splits a row's label from its numbers by ~2px. extract_text() then
-    yields a "Total" row with <3 numbers, which the line parser rejects. Grouping
-    words within `y_tol` px of one another rebuilds the real row
-    ("Total 1,298,595,790 64,059,342 …") so the existing parser reads it. Used
-    only as a fallback on pages that DO carry the stage anchors but parsed empty,
-    so the passing fleet pays nothing."""
-    try:
-        words = page.extract_words()
-    except Exception:
-        return []
+    fitz's line-mode get_text() puts each CELL on its own line (label split from
+    its numbers), which the row parsers reject. Grouping words within `y_tol` px
+    rebuilds the real row ("Dönem Sonu Bakiyesi 16.063.819 19.187.412 …") so the
+    existing pdfplumber-tuned parsers read it unchanged. This is the SAME 5.5px
+    clustering the old pdfplumber `extract_words()` fallback used — credit_quality
+    is now fitz-only (≈85× faster), and this clustering also subsumes the old
+    column-split coordinate fallback, so no pdfplumber path remains.
+
+    fitz `get_text("words")` yields (x0, y0, x1, y1, word, block, line, word_no).
+    """
+    words = page.get_text("words")
     if not words:
         return []
-    words.sort(key=lambda w: (w["top"], w["x0"]))
+    words = sorted(words, key=lambda w: (w[1], w[0]))  # by y0, then x0
     lines: list[list] = []
     cur: list = []
     base: float | None = None
     for w in words:
-        if base is None or w["top"] - base <= y_tol:
+        if base is None or w[1] - base <= y_tol:
             cur.append(w)
             if base is None:
-                base = w["top"]
+                base = w[1]
         else:
             lines.append(cur)
             cur = [w]
-            base = w["top"]
+            base = w[1]
     if cur:
         lines.append(cur)
-    return [" ".join(x["text"] for x in sorted(ln, key=lambda w: w["x0"])) for ln in lines]
+    return [" ".join(t[4] for t in sorted(ln, key=lambda w: w[0])) for ln in lines]
 
 
 def _extract_loans_by_stage_from_page(page_num: int, page_text: str) -> list[StageRow]:
@@ -1352,14 +1351,16 @@ def _infer_ticker(pdf_path: str) -> str:
 
 
 def extract_from_pdf(
-    pdf: pdfplumber.PDF, pdf_path: str = "", bank_ticker: str = "",
+    pdf=None, pdf_path: str = "", bank_ticker: str = "",
 ) -> CreditQualityReport:
-    """Scan an already-open pdfplumber.PDF for IFRS 9 stage tables.
+    """Scan a PDF for IFRS-9 stage tables — FITZ-ONLY (≈85× faster than pdfplumber).
 
-    Prefer this over `extract` when the caller already has the PDF open —
-    pdfplumber's open() costs ~5–15s on a typical audit report, and the main
-    `extractor.extract` pipeline also opens the same PDF. Sharing one handle
-    halves per-PDF cost in the sync_audit_reports worker.
+    `pdf` is accepted for backward compatibility with the shared-handle call site
+    in `extractor.extract`, but is IGNORED: credit_quality opens the PDF itself via
+    fitz from `pdf_path` and reconstructs each row by clustering words on their
+    y-coordinate (`_fitz_clustered_lines`), which the existing row parsers consume
+    unchanged. fitz word-clustering subsumes the old column-split coordinate
+    fallback, so no pdfplumber path remains.
 
     `bank_ticker` selects the per-bank template registry entry (see
     data/banks/audit_templates.json). If empty, we infer it from the
@@ -1368,52 +1369,47 @@ def extract_from_pdf(
     """
     if not bank_ticker:
         bank_ticker = _infer_ticker(pdf_path)
+    if not pdf_path:
+        return CreditQualityReport(pdf_path=pdf_path)  # fitz needs a path
     template = _template_for(bank_ticker)
     rep = CreditQualityReport(pdf_path=pdf_path)
     # NPL rows are collected separately so we can fall back from the template
     # path to the regex path per-PDF (see below).
     npl_tmpl: list[StageRow] = []
     npl_regex: list[StageRow] = []
-    for i, page in enumerate(pdf.pages, 1):
-        text = page.extract_text() or ""
-        # Stock tables (movement-table end-row) — primary signal.
-        if (_STAGE_HEADER_EN.search(text) or _STAGE_HEADER_TR.search(text)
-                or _STAGE_HEADER_TR_3COL.search(text)):
-            rep.rows.extend(_extract_from_page(i, text))
-        # P&L expense decomposition — fallback signal for banks that omit
-        # the stock table. Cheap to check — just look for the row-pattern.
-        rep.rows.extend(_extract_pl_expense_from_page(i, text))
-        # BRSA NPL classification (III/IV/V groups). Run BOTH the template path
-        # (precise — anchors on this bank's known labels) and the regex path
-        # (language-agnostic — matches Karşılık/Provision and Dönem Sonu/Balance
-        # generically). We prefer the template result, but fall back to the
-        # regex result when the template yields nothing — e.g. a bank switching
-        # report language between periods (BURGAN went EN→TR), a provision-row
-        # label that drifted, or a gross row on a later page than the first
-        # III/IV/V header. This guarantees we never regress a bank to zero NPL
-        # rows just because its template entry is stale.
-        if template is not None:
-            npl_tmpl.extend(_extract_npl_brsa_via_template(i, text, template))
-        npl_regex.extend(_extract_npl_brsa_from_page(i, text))
-        # BRSA section 7.2 "Standart Nitelikli ve Yakın İzlemedeki" loan
-        # amounts. Gives Stage 1 + Stage 2 portfolio balances for every bank
-        # (combined with npl_brsa_gross's Stage 3 = full stage breakdown).
-        lbs = _extract_loans_by_stage_from_page(i, text)
-        if not lbs and (_STAGE12_LOOSE_S1.search(text) or _STAGE12_LOOSE_S2.search(text)):
-            # Column-split layout (İşbank EN etc.): pdfplumber line-mode broke the
-            # Total row apart and dropped inter-word spaces, so the strict anchors
-            # miss. Trigger on EITHER a Stage-1 or Stage-2 page signal — on some
-            # banks (ANADOLU p53) one of the two column headers doesn't survive
-            # extract_text intact. The strict S1/S2 anchors + numeric sanity still
-            # gate the actual parse on the coord-rebuilt text, so a prose page that
-            # merely mentions "izlemedeki" yields nothing.
-            coord_text = "\n".join(_coord_clustered_lines(page))
-            if coord_text:
-                lbs = _extract_loans_by_stage_from_page(i, coord_text)
-        rep.rows.extend(lbs)
-        # Stage 1 + Stage 2 ECL provisions from the same section 7.2.
-        # Completes per-stage coverage ratio coverage for every bank.
-        rep.rows.extend(_extract_stage12_ecl_from_page(i, text))
+    doc = fitz.open(pdf_path)
+    try:
+        for i, page in enumerate(doc, 1):
+            text = "\n".join(_fitz_clustered_lines(page))
+            # Stock tables (movement-table end-row) — primary signal.
+            if (_STAGE_HEADER_EN.search(text) or _STAGE_HEADER_TR.search(text)
+                    or _STAGE_HEADER_TR_3COL.search(text)):
+                rep.rows.extend(_extract_from_page(i, text))
+            # P&L expense decomposition — fallback signal for banks that omit
+            # the stock table. Cheap to check — just look for the row-pattern.
+            rep.rows.extend(_extract_pl_expense_from_page(i, text))
+            # BRSA NPL classification (III/IV/V groups). Run BOTH the template path
+            # (precise — anchors on this bank's known labels) and the regex path
+            # (language-agnostic — matches Karşılık/Provision and Dönem Sonu/Balance
+            # generically). We prefer the template result, but fall back to the
+            # regex result when the template yields nothing — e.g. a bank switching
+            # report language between periods (BURGAN went EN→TR), a provision-row
+            # label that drifted, or a gross row on a later page than the first
+            # III/IV/V header. This guarantees we never regress a bank to zero NPL
+            # rows just because its template entry is stale.
+            if template is not None:
+                npl_tmpl.extend(_extract_npl_brsa_via_template(i, text, template))
+            npl_regex.extend(_extract_npl_brsa_from_page(i, text))
+            # BRSA section 7.2 "Standart Nitelikli ve Yakın İzlemedeki" loan
+            # amounts — Stage 1 + Stage 2 portfolio balances (combined with
+            # npl_brsa_gross's Stage 3 = full stage breakdown). The y-clustered
+            # fitz text already rebuilds the İşbank-style column-split rows that
+            # used to need a separate coordinate fallback.
+            rep.rows.extend(_extract_loans_by_stage_from_page(i, text))
+            # Stage 1 + Stage 2 ECL provisions from the same section 7.2.
+            rep.rows.extend(_extract_stage12_ecl_from_page(i, text))
+    finally:
+        doc.close()
 
     # Choose the NPL source: template if it found a gross row, else regex.
     tmpl_has_gross = any(r.section == "npl_brsa_gross" for r in npl_tmpl)
@@ -1442,12 +1438,9 @@ def extract_from_pdf(
 
 
 def extract(pdf_path: str | Path, bank_ticker: str = "") -> CreditQualityReport:
-    """Open the PDF and run the stage-table extractor. Convenience wrapper
-    around `extract_from_pdf` for callers that don't already have a PDF handle.
-    """
-    pdf_path = str(pdf_path)
-    with pdfplumber.open(pdf_path) as pdf:
-        return extract_from_pdf(pdf, pdf_path, bank_ticker=bank_ticker)
+    """Run the (fitz-only) stage-table extractor on a PDF path. Thin wrapper —
+    `extract_from_pdf` opens the PDF itself via fitz."""
+    return extract_from_pdf(None, str(pdf_path), bank_ticker=bank_ticker)
 
 
 # ---------------------------------------------------------------------------

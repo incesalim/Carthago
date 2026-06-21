@@ -3,7 +3,21 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-06-21 — **Fixed the NPL gross-row extractor (the İntikal mis-grab); rejected a noisy
+Last verified: 2026-06-21 — **credit_quality extractor is now fitz-only (~30× faster) + fixed a CI regression
+I'd missed.** Replaced pdfplumber with fitz (PyMuPDF) in `credit_quality.py`: `extract_from_pdf` opens the PDF
+itself via fitz and reconstructs each row by y-clustering `get_text("words")` at 5.5px (`_fitz_clustered_lines`,
+which subsumes the old column-split coordinate fallback), feeding the SAME pdfplumber-tuned parsers unchanged.
+Per-PDF credit-quality extraction drops from ~16s to ~0.5–1.3s; the `extract(only={credit_quality})` re-extract
+path is ~0.8s/PDF (pdfplumber.open was 0.1s anyway). Validated fitz vs pdfplumber on 40 PDFs: identical on the
+primary sections for ~all banks, and fitz **recovers data pdfplumber couldn't** — most importantly it reads
+**TFKB's tables** I'd wrongly called "image-only" (loans_ecl garbage `1475` → correct `501475`), so TFKB will
+extract on re-extract, not stay flagged. Divergences are confined to a secondary section (`loans_ecl_brsa`)
+and genuinely hard multi-table layouts (ALBRK/QNBFB), where neither engine is clearly right — not regressions.
+Also fixed **CI red since 3e6f3a8**: the `stage_columns_are_brsa_groups` guard test imports `credit_quality`
+(PDF engine, absent from CI's minimal deps); added `pytest.importorskip("pdfplumber"/"fitz")` per the existing
+pattern. Code stored unchanged until a re-extract. 170 tests pass.
+
+Prior: 2026-06-21 — **Fixed the NPL gross-row extractor (the İntikal mis-grab); rejected a noisy
 validator after verifying it would false-positive.** Root cause of DENIZ 2025Q4: `_extract_npl_brsa_from_page`
 collects gross candidates above the "Karşılık (-)" provision row and picks the **largest magnitude** (a
 heuristic for ISCTR's customer-segment sub-rows). In DenizBank's NPL *movement* table the "Dönem İçinde
