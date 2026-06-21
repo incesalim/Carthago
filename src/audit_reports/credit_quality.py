@@ -1174,7 +1174,19 @@ def _extract_loans_by_stage_from_page(page_num: int, page_text: str) -> list[Sta
             if not (vals[0] is not None and vals[0] >= 1_000_000):
                 continue
             stage1 = vals[0]
-            stage2 = sum(v for v in vals[1:] if v is not None) or None
+            rest = vals[1:]
+            # Some banks append a Toplam (total) column = Stage 1 + ΣYakın sub-cols,
+            # e.g. FIBA p63 "Toplam 1.008.524 629.760 1.638.284" (1.638.284 =
+            # 1.008.524 + 629.760). Counting that total as another Stage-2 sub-column
+            # doubles Stage 2 and trips the S1>S2 gate → the table is dropped and the
+            # bank looks 100% NPL. Drop a trailing value that equals S1 + Σ(the cols
+            # before it). Banks whose last column is a real Yakın sub-type (AKBNK's
+            # 4-col Toplam) don't satisfy this, so they're unaffected.
+            if len(rest) >= 2 and rest[-1] is not None and stage1 is not None:
+                body_sum = sum(v for v in rest[:-1] if v is not None)
+                if abs(rest[-1] - (stage1 + body_sum)) <= max(1000.0, 0.005 * abs(rest[-1])):
+                    rest = rest[:-1]
+            stage2 = sum(v for v in rest if v is not None) or None
             if stage2 is not None and stage1 <= stage2:
                 continue
             key = (page_num, current_period)
@@ -1290,6 +1302,18 @@ def _extract_stage12_ecl_from_page(page_num: int, page_text: str) -> list[StageR
     """
     if not page_text:
         return []
+
+    # Some banks wrap the long Stage-1 label across two print lines — AKBNK
+    # consolidated p61: "12 Aylık Beklenen Zarar" / "Karşılığı 9.108.092 …" — so
+    # no single line carries the full "…Zarar Karşılığı" anchor and the per-line
+    # candidate scan below would miss the balance table, leaving only the p82 P&L
+    # charge table (whose Stage-1 net is NEGATIVE) to feed the derived coverage.
+    # Re-join the wrap so the row parser sees the data row intact. (Unconsolidated
+    # prints it on one line, so this is a no-op there.)
+    page_text = re.sub(
+        r"(Beklenen\s+(?:Kredi\s+)?Zarar(?:ı|ları)?)[ \t]*\n[ \t]*(Karşılığı\b)",
+        r"\1 \2", page_text, flags=re.IGNORECASE,
+    )
 
     # Both rows must be present on the same page (= same sub-table block).
     s1_row_match = _ECL_S1_ROW_PAT.search(page_text)

@@ -3,7 +3,23 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-06-21 — **Fixed TEB `loans_by_stage` wrong-table grab (6 `stages` cells).** TEB's
+Last verified: 2026-06-21 — **Fixed AKBNK consolidated ECL (3 cells) + FIBA npl100 (1 cell).** AKBNK cons
+showed a *negative* Stage-1 ECL (−336,199) because its §7.2 balance table wraps the label across two lines
+(`12 Aylık Beklenen Zarar` / `Karşılığı 9.108.092 …`), so the per-line anchor missed it and the extractor fell
+to the p82 P&L *charge* table (Stage-1 net is negative). Added a targeted label-unwrap in
+`_extract_stage12_ecl_from_page` (re-join `…Zarar` + `Karşılığı …`); cons now reads the real balance
+(9.1M/9.2M/12.4M across 2024Q1/Q2/2026Q1), uncons unchanged. FIBA looked 100% NPL because its §7.2 Toplam is
+`[S1, S2, Total]` (1,008,524 / 629,760 / **1,638,284**=S1+S2) and `loans_by_stage` counted the Total as another
+Yakın sub-column → S2>S1 → table dropped → no Stage-1/2 amounts. Now drops a trailing column equal to S1+Σ(prior
+cols); FIBA reads S1=1,008,524 / S2=629,760. 170 tests pass, 53-PDF sample clean. Session arc: `stages` 19→~5.
+**Genuinely hard/blocked tail (3 banks, documented not forced):** ICBCT 2024Q3 — §7.2 is a 4-col
+[curr-S1,curr-S2,prior-S1,prior-S2] layout the "sum-after-S1" model misreads (per-bank column-model change,
+high regression risk); HALKB consolidated — multi-table NPL with no explicit gross row (gross = "Current period
+(Net)" 40,335,090 + "Provisions" 41,218,767 = 81,553,857, but a 32.4M sub-table on an earlier page wins the
+dedup — ALBRK/QNBFB class); PASHA 2024Q4 — source PDF URL is dead (cons URL literally "consolidated", uncons
+404), can't download to fix, and cov 1.18 may be a genuine tiny-S2 over-provision.
+
+Prior: 2026-06-21 — **Fixed TEB `loans_by_stage` wrong-table grab (6 `stages` cells).** TEB's
 Stage-1 amount equalled its Stage-2 amount (e.g. 2,124,190 == 2,124,190) → coverage >1. Cause: the
 `loans_by_stage` sanity gate allowed `stage1 == stage2`, so a total-first AGING-analysis Toplam row on an
 earlier page (TEB p80 `Toplam 2,124,190 946,654 1,177,536`, where 2,124,190 = 946,654+1,177,536) passed and,
