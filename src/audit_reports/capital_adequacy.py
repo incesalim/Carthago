@@ -114,7 +114,9 @@ _FIELD_RX = [(f, is_ratio, [re.compile(p, re.IGNORECASE) for p in pats])
 # "before deductions" CET1 line, which sits at the top of the components table.
 _START_RX = [re.compile(p, re.IGNORECASE) for p in [
     rf"(?:Common|Core)\s*Equity\s*{_TI}\s*[Cc]apital\s*[Bb]efore",
-    r"İndirimler\s+Öncesi\s+Çekirdek\s+Sermaye",
+    # \s* not \s+: ANADOLU's text layer squishes this header
+    # ("İndirimler ÖncesiÇekirdekSermaye") even though the rows below keep spaces.
+    r"İndirimler\s*Öncesi\s*Çekirdek\s*Sermaye",
     r"Components\s+of\s+(?:the\s+)?total\s+capital",
 ]]
 _END_RX = [re.compile(p, re.IGNORECASE) for p in [
