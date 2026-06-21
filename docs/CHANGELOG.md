@@ -3,7 +3,18 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-06-21 — **Fixed a regression I introduced: FIBA total-column drop broke TEB/ODEA/HSBC/ISCTR
+Last verified: 2026-06-21 — **npl_movement: map the consolidated "Kur farkı" FX-translation row (fixes DENIZ
++ similar).** The NPL roll-forward (opening + flows = closing) failed for many CONSOLIDATED partitions because
+those reports add a currency-translation flow row the solo reports omit, and the extractor's `fx_diff` labels
+only matched "Foreign currency differences" / "Yabancı para çevrim farkları" — not the common "Kur farkı" /
+"Kur farkları" (DENIZ/TEB). Added those + "Kur değişiminin etkisi" / "Exchange rate differences". DENIZ 2025Q4
+cons now ties exactly (gIII Kur farkı 416.936 closed the −416.936 gap; gIV 341.136). Validated across the
+sample: 0 FX-involved new-fails (the row is only added where it genuinely exists, so it can't un-tie a bank
+that already balanced). 170 tests pass. Remaining npl_movement reds are separate issues (HALKB cons reads a
+loans-by-borrower SUB-category not the total — same multi-table class as its npl_brsa; PASHA garbled tiny
+closings; TEB gV residual) — to be worked next.
+
+Prior: 2026-06-21 — **Fixed a regression I introduced: FIBA total-column drop broke TEB/ODEA/HSBC/ISCTR
 loans_by_stage (stages 9→12).** The earlier FIBA fix dropped a trailing Toplam-total column unconditionally;
 that *rescued* previously-rejected rows, and an earlier wrong sub-table then won the dedup over the real §7.2
 table (TEB Stage-2 amount fell 26,235,157 → 1,415,068 → coverage >1). My 53-PDF sample didn't include the
