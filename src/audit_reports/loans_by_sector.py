@@ -84,6 +84,8 @@ _SECTOR_LABELS: list[tuple[str, str]] = [
     ("wholesale and retail trade", "svc_trade"),
     ("toptan ve perakende ticaret", "svc_trade"),
     ("accommodation and dining", "svc_hospitality"),
+    ("hotel, food and beverage services", "svc_hospitality"),  # YKBNK wording
+    ("hotel and restaurant services", "svc_hospitality"),
     ("otel ve lokanta hizmetleri", "svc_hospitality"),
     ("transportation and telecommunication", "svc_transport"),
     ("transportation and telecom", "svc_transport"),
@@ -92,10 +94,13 @@ _SECTOR_LABELS: list[tuple[str, str]] = [
     ("mali kuruluşlar", "svc_financial"),
     ("real estate and rental services", "svc_realestate"),
     ("real estate and rental", "svc_realestate"),
+    ("real estate and renting", "svc_realestate"),  # YKBNK wording ("renting")
     ("gayrimenkul ve kira", "svc_realestate"),
     ("professional services", "svc_professional"),
+    ("independent business services", "svc_professional"),  # QNBFB wording
     ("serbest meslek hizmetleri", "svc_professional"),
     ("educational services", "svc_education"),
+    ("education services", "svc_education"),  # YKBNK wording ("Education" not "Educational")
     ("eğitim hizmetleri", "svc_education"),
     ("health and social services", "svc_health"),
     ("sağlık ve sosyal hizmetler", "svc_health"),
@@ -154,7 +159,7 @@ _NONCASH_HINTS = re.compile(
 # grabbed instead. Exclude any page whose sector heading is about carrying
 # amounts of investments.
 _WRONG_TABLE_HINTS = re.compile(
-    r"carrying\s+amounts?\s+of\s+(?:consolidated\s+)?investments", re.IGNORECASE)
+    r"carrying\s+amounts?\s+of\s+(?:(?:un)?consolidated\s+)?investments", re.IGNORECASE)
 
 
 @dataclass
@@ -190,7 +195,12 @@ def _parse_amount(s: str) -> float | None:
 # one OR MORE dashes ("--" as well as "-", en/em variants) — accept a run, else a
 # trailing "--" drops the row (e.g. FIBA's "Balıkçılık -- -- --" got merged with
 # the next line and grabbed the wrong sector's numbers → Σ sectors ≠ total → fail).
-_NUM_TOKEN = r"(?:\(?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?\)?|[-–—]+)"
+# Leading group is \d{1,4} not \d{1,3}: a few reports print a missing-separator
+# typo like "1466,551" (= 1.466.551) — with \d{1,3} the regex matches only the
+# "466,551" suffix and silently drops the leading digit (ICBCT 2025Q4 Hizmetler).
+# For well-formed numbers the leading group is still bounded by the next
+# separator, so this only ever helps (and reads bare 4-digit numbers correctly).
+_NUM_TOKEN = r"(?:\(?\d{1,4}(?:[.,]\d{3})*(?:[.,]\d+)?\)?|[-–—]+)"
 _THREE_NUMS_TAIL = re.compile(
     rf"(?P<n1>{_NUM_TOKEN})\s+(?P<n2>{_NUM_TOKEN})\s+(?P<n3>{_NUM_TOKEN})\s*$"
 )
