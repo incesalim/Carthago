@@ -3,7 +3,21 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-06-21 — **Fixed AKBNK consolidated ECL (3 cells) + FIBA npl100 (1 cell).** AKBNK cons
+Last verified: 2026-06-21 — **Fixed HALKB consolidated NPL (2 cells) + ICBCT 2024Q3 ECL (2 cells).** HALKB
+cons NPL gross was stuck at 32,415,173 because its template `gross_label "Current period end balance"` matches
+a loans-to-individuals/corporates SUB-category, not total NPL — and HALKB has no explicit total-gross row (only
+"Current period (Net)" + "Provisions"). Removed HALKB's `npl_movement` template so the regex path's
+gross=provision+net identity computes the correct total (Q4 81,553,857 = 41,218,767 + 40,335,090; Q3
+72,347,865). ICBCT 2024Q3 §7.2 is a 4-col [curr-S1, curr-S2, prior-S1, prior-S2] layout; its tiny current S2
+ECL ("…Önemli Artış - 55 - 209.830") was skipped by the `_parse_first_nonzero` ≥1000 footnote filter, so the
+parser fell through to the prior-period 209.830 → coverage 413. Relaxed the filter to also accept a bare ≥10
+non-parenthesised value (footnote refs stay parenthesised); ICBCT S2 ECL now 55 (cov 0.108), and it also
+recovers ATBANK 2022Q2's S2 ECL 691 (was dropped). 170 tests pass, 53-PDF sample diff = only those 3 (all
+improvements). Session arc on `stages`: 19 → 1. **Last remaining: PASHA 2024Q4 — source PDF URL is dead (cons
+URL literally "consolidated", uncons 404s); can't download to verify whether its cov 1.18 is a genuine tiny-S2
+over-provision or a mis-extraction. Blocked on data availability, not extraction.**
+
+Prior: 2026-06-21 — **Fixed AKBNK consolidated ECL (3 cells) + FIBA npl100 (1 cell).** AKBNK cons
 showed a *negative* Stage-1 ECL (−336,199) because its §7.2 balance table wraps the label across two lines
 (`12 Aylık Beklenen Zarar` / `Karşılığı 9.108.092 …`), so the per-line anchor missed it and the extractor fell
 to the p82 P&L *charge* table (Stage-1 net is negative). Added a targeted label-unwrap in
