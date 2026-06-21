@@ -246,7 +246,10 @@ def _parse_section_fitz(pdf_path: str, start: int, n: int) -> tuple[dict, dict, 
                     continue
                 window = sorted(w for w in words if y - 3 <= w[1] <= y + 12
                                 and (_NUM_TOKEN.match(w[4]) or w[4] in _NIL))
-                num_toks = _trailing_two_tokens(" ".join(w[4] for w in window))
+                # _repair_split_digits: TFKB's interim splits the leading digit of
+                # every figure ("1 4,988,678" = 14,988,678) — rejoin in x-order.
+                num_toks = _trailing_two_tokens(
+                    _repair_split_digits(" ".join(w[4] for w in window)))
                 if not num_toks:
                     break
                 parse = _parse_ratio if is_ratio else parse_num
@@ -328,6 +331,21 @@ def extract_from_pdf(pdf: pdfplumber.PDF, pdf_path: str = "") -> CapitalReport:
         if any(rx.search(pdf.pages[i].extract_text() or "") for rx in _START_RX):
             start = i
             break
+    # fitz fallback for the locator too: TFKB's interim text layer mangles the
+    # header so badly under pdfplumber that even the \s*-tolerant anchor misses
+    # it — fitz reads the same page cleanly (the components then come via
+    # _parse_section_fitz below).
+    if start is None and pdf_path and _HAS_FITZ:
+        import fitz
+        try:
+            doc = fitz.open(pdf_path)
+            for i in range(min(_SKIP_PAGES, n), n):
+                if any(rx.search(doc[i].get_text()) for rx in _START_RX):
+                    start = i
+                    break
+            doc.close()
+        except Exception:
+            pass
     if start is None:
         return rep
     rep.source_page = start + 1
@@ -336,10 +354,29 @@ def extract_from_pdf(pdf: pdfplumber.PDF, pdf_path: str = "") -> CapitalReport:
         lambda i: (pdf.pages[i].extract_text() or "").splitlines(), start, n)
     # Wide-table fallback: some banks (FIBA) render the §4 table so the value sits
     # a few px off the label's baseline, so pdfplumber's line-clustering drops the
-    # label onto its own value-less line and nothing parses. Re-run off fitz words
-    # clustered with a wider y-tolerance, which re-pairs label + value.
-    if not current and pdf_path and _HAS_FITZ:
-        current, prior, tc_candidates = _parse_section_fitz(pdf_path, start, n)
+    # label onto its own value-less line and nothing parses. Also TFKB's interim,
+    # whose squished text layer lets pdfplumber pick up only some rows (the total/
+    # RWA pages read but the CET1 page doesn't). Re-run off fitz words clustered
+    # with a wider y-tolerance when the result is empty OR missing the CET1 anchor,
+    # and keep it if it read more rows.
+    if pdf_path and _HAS_FITZ and (not current or "cet1_capital" not in current):
+        fcur, fpri, ftc = _parse_section_fitz(pdf_path, start, n)
+        if not current:
+            current, prior, tc_candidates = fcur, fpri, ftc  # FIBA: pdfplumber empty
+        else:
+            # TFKB interim: pdfplumber read the total/RWA pages but squished the
+            # CET1 page — FILL only the unambiguously-labelled fields it missed.
+            # NOT additional_tier1 / tier2: the fitz wide-table pass mis-pairs
+            # those (it grabbed the prior-period CET1 as AT1), and they'd break
+            # the composition check — better left null than wrong.
+            _MERGE_OK = {"cet1_capital", "tier1_capital", "total_rwa",
+                         "cet1_ratio", "tier1_ratio", "capital_adequacy_ratio"}
+            for k in _MERGE_OK:
+                if k in fcur:
+                    current.setdefault(k, fcur[k])
+                    prior.setdefault(k, fpri.get(k))
+            if not tc_candidates:
+                tc_candidates = ftc
 
     if tc_candidates:
         best_cur, best_pri = max(tc_candidates, key=lambda t: t[0])
