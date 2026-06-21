@@ -3,7 +3,19 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-06-21 — **npl_movement: cross-check the closing against npl_brsa_gross instead of trusting
+Last verified: 2026-06-21 — **npl_movement: HALKB reads the correct total closing (fixes 15).** HALKB's English
+movement table carries the prior-period close at the TOP under the same "Current period end balance" label as
+the closing, so the extractor read it as a closing and skipped the real total block — grabbing a later
+loans-by-borrower SUB-category (closing 9,440,946 vs the correct total 16,582,889 = gross). Fix: in
+`_extract_from_block`, an English "…period end balance" row with no active block STARTS the block as its
+opening. Restricted to the English phrase on purpose — Turkish reports label their opening "Önceki Dönem Sonu
+Bakiyesi" (already handled) and reuse a bare "Dönem Sonu Bakiyesi" across many sub-tables (matching that
+regressed AKTIF). HALKB now reads 16,582,889/27,051,112/37,919,856 (= gross) → cross-check SKIPs; AKTIF still
+passes (3/3), 170 tests pass, sample clean. **Remaining: PASHA (10) — its npl_brsa_GROSS gIV is stuck at
+33,610 for 5 quarters (2024Q4→2025Q4), a stale credit_quality value the cross-check correctly surfaces while
+the movement varies and ties internally; the root issue is the gross, not the movement — separate fix.**
+
+Prior: 2026-06-21 — **npl_movement: cross-check the closing against npl_brsa_gross instead of trusting
 the flow roll-forward (clears faithful TEB/PASHA).** Going one-by-one through the residual, TEB's table turned
 out to be FAITHFULLY extracted — its movement closing equals the authoritative npl_brsa_gross exactly
 (1,879,803 / 1,475,189 / 976,947) — but the flow roll-forward doesn't tie because the source carries an
