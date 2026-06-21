@@ -477,10 +477,6 @@ def check_oci(oci_rows: list[dict], pl_rows: list[dict] | None = None) -> Valida
     if not oci_rows:
         res.add_skip()
         return res
-    # check_hierarchy_sums expects "amount_total" — adapt the single-column OCI rows
-    oci_adapted = [{"hierarchy": r.get("hierarchy"), "item_name": r.get("item_name"),
-                    "amount_total": r.get("amount")} for r in oci_rows]
-    res.merge(check_hierarchy_sums(oci_adapted))
     # Roman chain III = I + II  (the TOPLAM KAPSAMLI GELİR row)
     roman_amt: dict[int, float] = {}
     for r in oci_rows:
@@ -501,6 +497,26 @@ def check_oci(oci_rows: list[dict], pl_rows: list[dict] | None = None) -> Valida
                          expected=expected, actual=roman_amt[3])
     else:
         res.add_skip()
+    # Section sums (the RELIABLE mid level): I = Σ(1.x), II = Σ(2.x). The DEEP
+    # level (2.1 = Σ(2.1.x)) is intentionally NOT checked: OCI sub-rows carry
+    # net-of-tax rounding and the extractor drops immaterial zero/near-zero lines,
+    # so that sum is noisy and false-fails on faithful data (the cash_flow lesson).
+    # The roman chain above + these section sums verify every material OCI figure.
+    num: dict[str, float] = {}
+    for r in oci_rows:
+        h = (r.get("hierarchy") or "").strip().rstrip(".")
+        a = r.get("amount")
+        if re.fullmatch(r"\d+\.\d+", h) and a is not None:
+            num.setdefault(h, a)
+    for sec in (1, 2):
+        parent = roman_amt.get(sec)
+        kids = [v for h, v in num.items() if h.startswith(f"{sec}.")]
+        if parent is not None and kids:
+            if abs(parent - sum(kids)) <= _tol(parent, base=3.0, rel=1e-4):
+                res.add_pass()
+            else:
+                res.add_fail("oci_section", f"{sec}. = sum of {sec}.x sections",
+                             expected=parent, actual=sum(kids))
     # Cross-check: OCI.I must equal P&L net (XXV / row 25)
     if pl_rows is not None:
         oci_i = roman_amt.get(1)

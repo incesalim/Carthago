@@ -1739,6 +1739,235 @@
    "amount_fc": 0,
    "amount_total": 0,
    "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+  },
+  {
+   "bank_ticker": "EXIM",
+   "period": "2023Q1",
+   "kind": "unconsolidated",
+   "statement": "oci_replace",
+   "rows": [
+    {
+     "hierarchy": "III",
+     "item_name": "TOTAL COMPREHENSIVE INCOME (I+II) 1.806.816 1.239.",
+     "amount": 1806816
+    }
+   ],
+   "note": "OCI extractor captured wrong/garbled table; full fitz re-read of the OCI statement"
+  },
+  {
+   "bank_ticker": "FIBA",
+   "period": "2022Q2",
+   "kind": "consolidated",
+   "statement": "oci_replace",
+   "rows": [
+    {
+     "hierarchy": "I",
+     "item_name": "DÖNEM KARI/ZARARI 1.217.677 175.066",
+     "amount": 1217677
+    },
+    {
+     "hierarchy": "II",
+     "item_name": "DİĞER KAPSAMLI GELİRLER 685.689 2.754",
+     "amount": 685689
+    },
+    {
+     "hierarchy": "2.1",
+     "item_name": "Kar veya Zararda Yeniden Sınıflandırılmayacaklar (",
+     "amount": -54
+    },
+    {
+     "hierarchy": "2.1.3",
+     "item_name": "Tanımlanmış Fayda Planları Yeniden Ölçüm Kazançlar",
+     "amount": -73
+    },
+    {
+     "hierarchy": "2.1.5",
+     "item_name": "Kâr veya Zararda Yeniden Sınıflandırılmayacak Diğe",
+     "amount": 19
+    },
+    {
+     "hierarchy": "2.2",
+     "item_name": "Kâr veya Zararda Yeniden Sınıflandırılacaklar 685.",
+     "amount": 685743
+    },
+    {
+     "hierarchy": "2.2.2",
+     "item_name": "Gelirleri/Giderleri 733.982 4.145",
+     "amount": 733982
+    },
+    {
+     "hierarchy": "2.2.6",
+     "item_name": "Kâr veya Zararda Yeniden Sınıflandırılacak Diğer K",
+     "amount": -48239
+    },
+    {
+     "hierarchy": "III",
+     "item_name": "TOPLAM KAPSAMLI GELİR (I+II) 1.903.366 177.820",
+     "amount": 1903366
+    }
+   ],
+   "note": "OCI extractor captured wrong/garbled table; full fitz re-read of the OCI statement"
+  },
+  {
+   "bank_ticker": "QNBFB",
+   "period": "2025Q1",
+   "kind": "consolidated",
+   "statement": "oci_replace",
+   "rows": [
+    {
+     "hierarchy": "I",
+     "item_name": "CURRENT PERIOD PROFIT/LOSS 11,190,139 9,864,528",
+     "amount": 11190139
+    },
+    {
+     "hierarchy": "II",
+     "item_name": "OTHER COMPREHENSIVE INCOME (2,263,311) 1,383,245",
+     "amount": -2263311
+    },
+    {
+     "hierarchy": "2.1",
+     "item_name": "Other Income/Expense Items Not Reclassified Throug",
+     "amount": 210
+    },
+    {
+     "hierarchy": "2.1.3",
+     "item_name": "Defined Benefit Plans' Actuarial Income/Expense 32",
+     "amount": 321
+    },
+    {
+     "hierarchy": "2.1.4",
+     "item_name": "Other Income/Expense Items not Reclassified to Pro",
+     "amount": -15
+    },
+    {
+     "hierarchy": "2.1.5",
+     "item_name": "Tax Related Other Comprehensive Income Items Not R",
+     "amount": -96
+    },
+    {
+     "hierarchy": "2.2",
+     "item_name": "Other Income/Expense Items Reclassified to Profit ",
+     "amount": -2263521
+    },
+    {
+     "hierarchy": "2.2.2",
+     "item_name": "Income/Expenses from Valuation and/or Reclassifica",
+     "amount": -5487771
+    },
+    {
+     "hierarchy": "2.2.3",
+     "item_name": "Income/losses from Cash Flow Hedges 2,249,422 1,84",
+     "amount": 2249422
+    },
+    {
+     "hierarchy": "2.2.6",
+     "item_name": "Tax Related Other Comprehensive Income Items Recla",
+     "amount": 974828
+    },
+    {
+     "hierarchy": "III",
+     "item_name": "TOTAL COMPREHENSIVE INCOME (I+II) 8,926,828 11,247",
+     "amount": 8926828
+    }
+   ],
+   "note": "OCI extractor captured wrong/garbled table; full fitz re-read of the OCI statement"
+  },
+  {
+   "bank_ticker": "QNBFB",
+   "period": "2025Q1",
+   "kind": "unconsolidated",
+   "statement": "oci_replace",
+   "rows": [
+    {
+     "hierarchy": "I",
+     "item_name": "CURRENT PERIOD PROFIT/LOSS 11,187,871 9,863,545",
+     "amount": 11187871
+    },
+    {
+     "hierarchy": "II",
+     "item_name": "OTHER COMPREHENSIVE INCOME (2,263,311) 1,383,245",
+     "amount": -2263311
+    },
+    {
+     "hierarchy": "2.1",
+     "item_name": "Other Income/Expense Items not Reclassified to Pro",
+     "amount": 210
+    },
+    {
+     "hierarchy": "2.1.3",
+     "item_name": "Defined Benefit Plans' Actuarial Income/Loss 321 (",
+     "amount": 321
+    },
+    {
+     "hierarchy": "2.1.4",
+     "item_name": "Other Income/Expense Items not Reclassified to Pro",
+     "amount": -15
+    },
+    {
+     "hierarchy": "2.1.5",
+     "item_name": "Tax Related Other Comprehensive Income Items Not R",
+     "amount": -96
+    },
+    {
+     "hierarchy": "2.2",
+     "item_name": "Other Income/Expense Items Reclassified to Profit ",
+     "amount": -2263521
+    },
+    {
+     "hierarchy": "2.2.2",
+     "item_name": "Income/Expenses from Valuation and/or Reclassifica",
+     "amount": -5475666
+    },
+    {
+     "hierarchy": "2.2.3",
+     "item_name": "Income/Expense from Cash Flow Hedges 2,080,710 1,8",
+     "amount": 2080710
+    },
+    {
+     "hierarchy": "2.2.5",
+     "item_name": "Other Income/Expense Items Reclassified to Profit ",
+     "amount": 112948
+    },
+    {
+     "hierarchy": "2.2.6",
+     "item_name": "Tax Related Other Comprehensive Income Items Recla",
+     "amount": 1018487
+    },
+    {
+     "hierarchy": "III",
+     "item_name": "TOTAL COMPREHENSIVE INCOME (I+II) 8,924,560 11,246",
+     "amount": 8924560
+    }
+   ],
+   "note": "OCI extractor captured wrong/garbled table; full fitz re-read of the OCI statement"
+  },
+  {
+   "bank_ticker": "ISCTR",
+   "period": "2025Q2",
+   "kind": "unconsolidated",
+   "statement": "oci_replace",
+   "rows": [],
+   "note": "OCI extractor captured the EQUITY statement (Beginning Balance / Profit Distribution / Dividend Paid), not the OCI statement; report PDF now 404 so it cannot be re-read — removed the wrong-table rows (no valid OCI for this partition -> shown as skipped, not wrong data kept)"
+  },
+  {
+   "bank_ticker": "KLNMA",
+   "period": "2022Q2",
+   "kind": "unconsolidated",
+   "statement": "oci",
+   "hierarchy": "II.",
+   "item_name": "DİĞER KAPSAMLI GELİRLER",
+   "amount": 33128,
+   "note": "extractor read II + 2.1 from the PRIOR column; correct current II = III - I = 766,297 - 733,169 = 33,128 (= 2.2, 2.1=0); roman III=I+II + section II=2.1+2.2 now foot, cross (I==P&L net) already passed"
+  },
+  {
+   "bank_ticker": "KLNMA",
+   "period": "2022Q2",
+   "kind": "unconsolidated",
+   "statement": "oci",
+   "hierarchy": "2.1",
+   "item_name": "Kar veya Zarara Yeniden Sınıflandırılmayacaklar",
+   "amount": 0,
+   "note": "current 2.1 is blank in the source (stored 660 was the prior column)"
   }
  ]
 }

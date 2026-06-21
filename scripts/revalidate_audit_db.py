@@ -81,6 +81,16 @@ _CF_SKIP = frozenset({
     # have hidden a possibly-wrong number, so it stays FLAGGED until the PDF is read.
 })
 
+# OCI partitions whose roman chain III=I+II doesn't foot because the PUBLISHED
+# statement is internally inconsistent — data verified faithful to the PDF.
+_OCI_SKIP = frozenset({
+    # ATBANK 2023Q4 unconsolidated: the real OCI statement is extracted faithfully
+    # (I 156.657 / II 151.030, every 2.x line matches the PDF), but the bank PRINTS
+    # "III. TOPLAM KAPSAMLI GELİR (I+II) (307.687)" — parenthesised NEGATIVE — while
+    # I+II = +307.687. A source sign typo on the total line; no cell fix reconciles it.
+    ("ATBANK", "2023Q4", "unconsolidated"),
+})
+
 
 def _has_table(conn: sqlite3.Connection, name: str) -> bool:
     return conn.execute(
@@ -251,7 +261,8 @@ def revalidate_partition(conn, bank: str, period: str, kind: str) -> dict[str, "
         "cross":       v.check_cross_statement(assets, liab),
         "profit_loss": pl_result,
         "off_balance": v.validate_off_balance(off_bs),
-        "oci":         v.check_oci(oci, pl),
+        "oci":         (_skip_result() if (bank, period, kind) in _OCI_SKIP
+                        else v.check_oci(oci, pl)),
         "cash_flow":   cf_result,
         "equity_change": v.check_equity_change(eq, oci_rows=oci,
                                                 liabilities=liab, period=period),

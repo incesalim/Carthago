@@ -58,6 +58,19 @@ def _has_col(conn: sqlite3.Connection, table: str, col: str) -> bool:
 def _apply_one(conn: sqlite3.Connection, o: dict) -> str:
     b, p, k = o["bank_ticker"], o["period"], o["kind"]
     st = o["statement"]
+    if st == "oci_replace":
+        # Whole-table replacement for partitions where the OCI extractor captured
+        # the WRONG statement (EXIM/etc. grabbed the equity statement + balance
+        # sheet). Delete the garbage rows and insert the fitz-read OCI rows. `rows`
+        # = [{hierarchy, item_name, amount}, ...] in statement order.
+        conn.execute("DELETE FROM bank_audit_oci WHERE bank_ticker=? AND period=? AND kind=?",
+                     (b, p, k))
+        for i, r in enumerate(o["rows"], 1):
+            conn.execute(
+                "INSERT INTO bank_audit_oci (bank_ticker,period,kind,item_order,hierarchy,item_name,amount) "
+                "VALUES (?,?,?,?,?,?,?)",
+                (b, p, k, i, r["hierarchy"], r.get("item_name", r["hierarchy"]), r["amount"]))
+        return f"OCI replace {b} {p} {k} ({len(o['rows'])} rows)"
     h = o["hierarchy"]
     if st == "profit_loss":
         row = conn.execute(
@@ -75,6 +88,25 @@ def _apply_one(conn: sqlite3.Connection, o: dict) -> str:
             "INSERT INTO bank_audit_profit_loss (bank_ticker,period,kind,item_order,hierarchy,item_name,amount) "
             "VALUES (?,?,?,?,?,?,?)", (b, p, k, nxt, h, o.get("item_name", h), o["amount"]))
         return f"PL insert {b} {p} {k} {h}={o['amount']:,.0f}"
+    if st == "oci":
+        # bank_audit_oci is single-column (amount = current period). Match by
+        # hierarchy; update in place, else insert a (possibly dropped) sub-row so
+        # a parent's children sum correctly.
+        row = conn.execute(
+            "SELECT item_order FROM bank_audit_oci WHERE bank_ticker=? AND period=? "
+            "AND kind=? AND hierarchy=?", (b, p, k, h)).fetchone()
+        if row:
+            conn.execute(
+                "UPDATE bank_audit_oci SET amount=?, item_name=? "
+                "WHERE bank_ticker=? AND period=? AND kind=? AND item_order=?",
+                (o["amount"], o.get("item_name", h), b, p, k, row[0]))
+            return f"OCI update {b} {p} {k} {h}={o['amount']:,.0f}"
+        nxt = (conn.execute("SELECT COALESCE(MAX(item_order),0)+1 FROM bank_audit_oci "
+                            "WHERE bank_ticker=? AND period=? AND kind=?", (b, p, k)).fetchone()[0])
+        conn.execute(
+            "INSERT INTO bank_audit_oci (bank_ticker,period,kind,item_order,hierarchy,item_name,amount) "
+            "VALUES (?,?,?,?,?,?,?)", (b, p, k, nxt, h, o.get("item_name", h), o["amount"]))
+        return f"OCI insert {b} {p} {k} {h}={o['amount']:,.0f}"
     # balance sheet
     row = conn.execute(
         "SELECT item_order FROM bank_audit_balance_sheet WHERE bank_ticker=? AND period=? "
