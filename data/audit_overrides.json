@@ -1968,6 +1968,274 @@
    "item_name": "Kar veya Zarara Yeniden Sınıflandırılmayacaklar",
    "amount": 0,
    "note": "current 2.1 is blank in the source (stored 660 was the prior column)"
+  },
+  {
+   "bank_ticker": "AKTIF",
+   "period": "2026Q1",
+   "kind": "consolidated",
+   "statement": "capital",
+   "fields": {
+    "total_capital": 18333158
+   },
+   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+  },
+  {
+   "bank_ticker": "ICBCT",
+   "period": "2025Q2",
+   "kind": "unconsolidated",
+   "statement": "capital",
+   "fields": {
+    "additional_tier1_capital": 3861130
+   },
+   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+  },
+  {
+   "bank_ticker": "ICBCT",
+   "period": "2025Q3",
+   "kind": "unconsolidated",
+   "statement": "capital",
+   "fields": {
+    "additional_tier1_capital": 4057690
+   },
+   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+  },
+  {
+   "bank_ticker": "ICBCT",
+   "period": "2025Q4",
+   "kind": "unconsolidated",
+   "statement": "capital",
+   "fields": {
+    "additional_tier1_capital": 4265800
+   },
+   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+  },
+  {
+   "bank_ticker": "ICBCT",
+   "period": "2026Q1",
+   "kind": "unconsolidated",
+   "statement": "capital",
+   "fields": {
+    "additional_tier1_capital": 4474680
+   },
+   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+  },
+  {
+   "bank_ticker": "ISCTR",
+   "period": "2023Q3",
+   "kind": "unconsolidated",
+   "statement": "capital",
+   "fields": {
+    "tier2_capital": 47975127
+   },
+   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+  },
+  {
+   "bank_ticker": "ISCTR",
+   "period": "2024Q3",
+   "kind": "unconsolidated",
+   "statement": "capital",
+   "fields": {
+    "tier2_capital": 59313366
+   },
+   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+  },
+  {
+   "bank_ticker": "ISCTR",
+   "period": "2025Q1",
+   "kind": "consolidated",
+   "statement": "capital",
+   "fields": {
+    "total_rwa": 2724016639,
+    "cet1_ratio": 12.45,
+    "tier1_ratio": 13.94,
+    "capital_adequacy_ratio": 15.65
+   },
+   "note": "RWA column-slip (stored 426,340,238.0~=total); real RWA 2,724,016,639 from §4 table; ratios recomputed (cet1/t1/tc over RWA)"
+  },
+  {
+   "bank_ticker": "ISCTR",
+   "period": "2025Q2",
+   "kind": "consolidated",
+   "statement": "capital",
+   "fields": {
+    "total_rwa": 2876514556,
+    "cet1_ratio": 13.03,
+    "tier1_ratio": 14.51,
+    "capital_adequacy_ratio": 16.08
+   },
+   "note": "RWA column-slip (stored 462,607,923.0~=total); real RWA 2,876,514,556 from §4 table; ratios recomputed (cet1/t1/tc over RWA)"
+  },
+  {
+   "bank_ticker": "QNBFB",
+   "period": "2022Q1",
+   "kind": "consolidated",
+   "statement": "capital",
+   "fields": {
+    "additional_tier1_capital": 7689045
+   },
+   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+  },
+  {
+   "bank_ticker": "QNBFB",
+   "period": "2022Q2",
+   "kind": "consolidated",
+   "statement": "capital",
+   "fields": {
+    "additional_tier1_capital": 8751225
+   },
+   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+  },
+  {
+   "bank_ticker": "QNBFB",
+   "period": "2022Q3",
+   "kind": "consolidated",
+   "statement": "capital",
+   "fields": {
+    "additional_tier1_capital": 9714495
+   },
+   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+  },
+  {
+   "bank_ticker": "QNBFB",
+   "period": "2022Q4",
+   "kind": "consolidated",
+   "statement": "capital",
+   "fields": {
+    "additional_tier1_capital": 9815715
+   },
+   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+  },
+  {
+   "bank_ticker": "QNBFB",
+   "period": "2023Q1",
+   "kind": "consolidated",
+   "statement": "capital",
+   "fields": {
+    "additional_tier1_capital": 10055430
+   },
+   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+  },
+  {
+   "bank_ticker": "QNBFB",
+   "period": "2023Q2",
+   "kind": "consolidated",
+   "statement": "capital",
+   "fields": {
+    "additional_tier1_capital": 13557128
+   },
+   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+  },
+  {
+   "bank_ticker": "QNBFB",
+   "period": "2025Q1",
+   "kind": "unconsolidated",
+   "statement": "capital",
+   "fields": {
+    "tier2_capital": 22898191
+   },
+   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+  },
+  {
+   "bank_ticker": "QNBFB",
+   "period": "2025Q2",
+   "kind": "unconsolidated",
+   "statement": "capital",
+   "fields": {
+    "tier2_capital": 24394057
+   },
+   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+  },
+  {
+   "bank_ticker": "QNBFB",
+   "period": "2025Q3",
+   "kind": "unconsolidated",
+   "statement": "capital",
+   "fields": {
+    "tier2_capital": 24355763
+   },
+   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+  },
+  {
+   "bank_ticker": "QNBFB",
+   "period": "2025Q4",
+   "kind": "unconsolidated",
+   "statement": "capital",
+   "fields": {
+    "tier2_capital": 25598368
+   },
+   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+  },
+  {
+   "bank_ticker": "QNBFB",
+   "period": "2026Q1",
+   "kind": "unconsolidated",
+   "statement": "capital",
+   "fields": {
+    "tier2_capital": 28731739
+   },
+   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+  },
+  {
+   "bank_ticker": "SKBNK",
+   "period": "2022Q4",
+   "kind": "unconsolidated",
+   "statement": "capital",
+   "fields": {
+    "additional_tier1_capital": 16233,
+    "tier2_capital": 2344759
+   },
+   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+  },
+  {
+   "bank_ticker": "SKBNK",
+   "period": "2025Q4",
+   "kind": "unconsolidated",
+   "statement": "capital",
+   "fields": {
+    "additional_tier1_capital": 8585373,
+    "tier2_capital": 4511856
+   },
+   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+  },
+  {
+   "bank_ticker": "TSKB",
+   "period": "2022Q1",
+   "kind": "consolidated",
+   "statement": "capital",
+   "fields": {
+    "additional_tier1_capital": 2916300
+   },
+   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+  },
+  {
+   "bank_ticker": "TSKB",
+   "period": "2022Q2",
+   "kind": "consolidated",
+   "statement": "capital",
+   "fields": {
+    "additional_tier1_capital": 3313400
+   },
+   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+  },
+  {
+   "bank_ticker": "TSKB",
+   "period": "2022Q3",
+   "kind": "consolidated",
+   "statement": "capital",
+   "fields": {
+    "additional_tier1_capital": 3688000
+   },
+   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+  },
+  {
+   "bank_ticker": "TSKB",
+   "period": "2023Q1",
+   "kind": "consolidated",
+   "statement": "capital",
+   "fields": {
+    "additional_tier1_capital": 3816000
+   },
+   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
   }
  ]
 }

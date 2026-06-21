@@ -71,6 +71,22 @@ def _apply_one(conn: sqlite3.Connection, o: dict) -> str:
                 "VALUES (?,?,?,?,?,?,?)",
                 (b, p, k, i, r["hierarchy"], r.get("item_name", r["hierarchy"]), r["amount"]))
         return f"OCI replace {b} {p} {k} ({len(o['rows'])} rows)"
+    if st == "capital":
+        # Per-column patch of the CURRENT-period §4 capital row. `fields` =
+        # {column: value} for the dropped/column-slipped components (AT1, Tier2,
+        # total, RWA, ratios). Columns whitelisted to the capital schema.
+        allowed = {"cet1_capital", "additional_tier1_capital", "tier1_capital",
+                   "tier2_capital", "total_capital", "total_rwa", "cet1_ratio",
+                   "tier1_ratio", "capital_adequacy_ratio"}
+        cols = [c for c in o["fields"] if c in allowed]
+        if not cols:
+            return f"capital SKIP {b} {p} {k} (no valid columns)"
+        sets = ", ".join(f"{c}=?" for c in cols)
+        vals = [o["fields"][c] for c in cols]
+        conn.execute(
+            f"UPDATE bank_audit_capital SET {sets} WHERE bank_ticker=? AND period=? "
+            "AND kind=? AND period_type='current'", (*vals, b, p, k))
+        return f"capital update {b} {p} {k} {dict((c, o['fields'][c]) for c in cols)}"
     h = o["hierarchy"]
     if st == "profit_loss":
         row = conn.execute(
