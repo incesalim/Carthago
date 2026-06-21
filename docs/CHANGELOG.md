@@ -3,7 +3,22 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-06-21 — **Audited my own curated skips: un-skipped the ones hiding wrong/unverified data.**
+Last verified: 2026-06-21 — **Fixed the NPL gross-row extractor (the İntikal mis-grab); rejected a noisy
+validator after verifying it would false-positive.** Root cause of DENIZ 2025Q4: `_extract_npl_brsa_from_page`
+collects gross candidates above the "Karşılık (-)" provision row and picks the **largest magnitude** (a
+heuristic for ISCTR's customer-segment sub-rows). In DenizBank's NPL *movement* table the "Dönem İçinde
+İntikal" inflow (63.4bn) outweighs the "Dönem Sonu Bakiyesi" closing balance (55.0bn), so largest-magnitude
+grabbed the flow. Fix: after computing net, **prefer the gross candidate that foots `gross = provision + net`
+within 1%** (the closing balance is the only row that does; a movement row doesn't) and fall back to
+largest-magnitude otherwise. Verified on the PDFs: DENIZ now extracts the 55.0bn closing (was 63.4bn);
+**ISCTR is byte-identical** (no regression on the sub-row case). I then drafted a `gross = provision + net`
+validator to catch the mis-grab corpus-wide, measured it, and **rejected it** — it flags ~200 partitions
+including AKBNK 2024Q4 whose gross is *correct* (it sits 4% above prov+net because BRSA provision/net bundle
+general/collateral reserves; the identity is genuinely noisy, exactly why it was removed historically). No
+reliable corpus-wide NPL-gross check exists; the mis-grab is prevented at extraction and cross-checked (where
+`loans_amounts` exists) by `cq_cross_amounts`. Code-only — DB unchanged until a re-extract.
+
+Prior: 2026-06-21 — **Audited my own curated skips: un-skipped the ones hiding wrong/unverified data.**
 Prompted by the DENIZ mis-diagnosis, re-examined every validator skip added this session against one rule —
 a skip is justified ONLY when the data is verified faithful to the PDF and the SOURCE itself doesn't foot,
 NEVER to hide a wrong/garbled/unverified extraction. Removed: **`_CQ_SKIP` (TFKB ×3)** — its `loans_ecl` is

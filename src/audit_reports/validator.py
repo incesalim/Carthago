@@ -703,6 +703,14 @@ def check_credit_quality(rows: list[dict]) -> ValidationResult:
             res.add_skip()
     else:
         res.add_skip()
+    # NOTE: a `gross = provision + net` check was considered to catch the NPL
+    # gross mis-grab corpus-wide, but REJECTED — the identity is genuinely noisy
+    # (BRSA provision/net rows fold in general/collective reserves and collateral,
+    # so e.g. AKBNK 2024Q4 has a CORRECT gross yet sits 4% above prov+net). It
+    # would have flagged ~200 partitions, many correct. The mis-grab is instead
+    # prevented at extraction time (credit_quality picks the gross row that foots
+    # gross=provision+net within 1%) and cross-checked, where loans_amounts exists,
+    # by cq_cross_amounts above. There is no reliable corpus-wide NPL-gross check.
     return res
 
 

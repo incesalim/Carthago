@@ -915,6 +915,22 @@ def _extract_npl_brsa_from_page(page_num: int, page_text: str) -> list[StageRow]
             clean = [x for x in v if x is not None]
             return sum(clean) if clean else None
 
+        # Prefer the gross candidate satisfying the closing-balance identity
+        # gross = provision + net. The period-end balance ("Dönem Sonu Bakiyesi")
+        # is the ONLY row that foots it; a movement/inflow row ("Dönem İçinde
+        # İntikal") sums larger and wins the magnitude pick above — the DENIZ
+        # 2025Q4 mis-grab where the NPL *movement* table's inflow (63.4bn) beat the
+        # 55bn closing balance. Override only when a candidate foots within 1%, so a
+        # bank whose provision bundles general reserves keeps the historical pick.
+        _net_tot = _sum_or_none(net) if net is not None else None
+        _prov_tot = _sum_or_none(prov)
+        if _net_tot is not None and _prov_tot is not None and gross_candidates:
+            _target = _prov_tot + _net_tot
+            _best = min(gross_candidates,
+                        key=lambda c: abs(sum(x for x in c if x is not None) - _target))
+            if abs(sum(x for x in _best if x is not None) - _target) <= max(1000.0, 0.01 * abs(_target)):
+                gross = _best
+
         if gross is not None:
             out.append(StageRow(
                 section="npl_brsa_gross", period_type=current_period, page=page_num,
