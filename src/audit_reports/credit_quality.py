@@ -1347,7 +1347,14 @@ def _extract_stage12_ecl_from_page(page_num: int, page_text: str) -> list[StageR
             v = parse_num(tok)
             if v is None or v == 0:
                 continue
-            if re.search(r"\d[.,]\d{3}", tok) or abs(v) >= 1000:
+            # Accept a thousands-separated / >=1000 value, OR a bare >=10 value
+            # that isn't parenthesised. The latter rescues a tiny CURRENT-period
+            # column — ICBCT 2024Q3 cons S2 ECL "55" in "…Önemli Artış - 55 -
+            # 209.830" ([curr-S1, curr-S2, prior-S1, prior-S2]); the >=1000 floor
+            # alone would skip 55 and fall through to the prior-period 209.830.
+            # Parenthesised tokens stay rejected (footnote refs, "(1. Aşama)").
+            if (re.search(r"\d[.,]\d{3}", tok) or abs(v) >= 1000
+                    or (abs(v) >= 10 and "(" not in tok and ")" not in tok)):
                 return v
         return None
 

@@ -185,12 +185,7 @@
   },
   "HALKB": {
     "_lang": "en",
-    "npl_movement": {
-      "gross_label": "Current period end balance",
-      "provision_label": "Provisions",
-      "net_label": "Net balance on balance sheet",
-      "aliases": ["Balance at the end of the period", "Provision", "Net balance in the balance sheet"]
-    },
+    "_npl_movement_note": "no npl_movement template: HALKB's 'Current period end balance' label matches a loans-to-individuals/corporates SUB-category (= 32,415,173), not total NPL. The regex path computes the correct total via the gross=provision+net identity (Q4 2025: 81,553,857 = 41,218,767 + 40,335,090); the template direct-label match cannot reach a total because HALKB has no explicit total-gross row (only Net + Provisions).",
     "loans_by_stage": {"toplam_label": "Total"},
     "ecl_brsa": {
       "s1_label": "12 Months Expected Loss Provision",
