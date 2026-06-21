@@ -17,13 +17,17 @@ regressions**, leaving 2 genuine roman-chain breaks now in a curated `_CF_SKIP` 
 single-cell fix reconciles V *and* VII=V+VI) and **TSKB 2022Q1 cons** (V is 16.025 above ΣI..IV; the
 reconciling V=5.011.183 is over-determined but the TSKB host was unreachable to confirm typo-vs-misread —
 recover the value once readable). Verified live: `cash_flow` matrix errors 135 → 0; total matrix errors
-719 → 584 (remaining are equity_change 340, npl_movement 126, …). **Spine-revert guard**: the
-`acquire-audit` cron rebuilds the coverage spine straight from the R2 snapshot's *stored* validation, so
-after a validator-code change (skip/`check_cash_flow` rewrite) that wasn't followed by a snapshot
-re-upload, it resurrected the old failures — observed cash_flow snapping back to 135 a few hours later.
-Fixed by re-uploading the snapshot with corrected validation AND adding a `revalidate_audit_db` step before
-the spine rebuild in both `acquire-audit.yml` and `reextract-statement.yml`, so the spine always reflects
-the current checkout's validators, not the snapshot's frozen verdicts.
+719 → 584 (remaining are equity_change 340, npl_movement 126, …). **Spine-revert root-cause fix**: the
+coverage matrix reads the `bank_audit_coverage` rollup, derived from `bank_audit_validation` — which is a
+*cache* of (validator code × data), carried frozen in the R2 snapshot. Any process that rebuilt the rollup
+from a pulled snapshot's stored verdicts resurrected failures already fixed by a validator-code change; the
+`acquire-audit` cron did exactly that and snapped cash_flow back to 135 a few hours after the fix. Rather
+than make every caller remember to revalidate first, `sync_audit_expected.py` now **recomputes validation
+from the stored data rows with the current code before building the spine** (extracted
+`revalidate_audit_db.revalidate_all`) and pushes the fresh `bank_audit_validation` alongside the coverage
+tables — so the matrix is correct *by construction* for every caller (acquire-audit, reextract,
+apply_overrides, manual). Proven with a fault-injection test (corrupt the stored verdicts → sync self-heals
+the spine to 0). Removed the now-redundant per-workflow revalidate steps.
 
 Prior: 2026-06-21 — **P&L coverage matrix now 0 errors: the last 2 resolved.** Closed the two
 `profit_loss` failures previously left flagged. **QNBFB 2023Q1 uncons was recoverable after all**: the

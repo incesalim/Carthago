@@ -265,12 +265,11 @@ def revalidate_partition(conn, bank: str, period: str, kind: str) -> dict[str, "
     return results
 
 
-def main() -> int:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--db", default=str(REPO / "data" / "bank_audit.db"))
-    args = ap.parse_args()
-    conn = sqlite3.connect(args.db)
-
+def revalidate_all(conn, progress: bool = False) -> tuple[int, int]:
+    """Recompute + persist bank_audit_validation for EVERY partition from its stored
+    data rows with the current validator code. Returns (n_partitions, n_failing).
+    Shared by this script's CLI and by sync_audit_expected (so the coverage spine is
+    always built from current-code verdicts, never the snapshot's frozen ones)."""
     # Union all table sources so even partitions without BS data get checked
     # (in practice all extracted partitions have BS rows, but be safe).
     parts_query = "SELECT DISTINCT bank_ticker, period, kind FROM bank_audit_balance_sheet"
@@ -288,11 +287,19 @@ def main() -> int:
         v.upsert_validation(conn, bank, period, kind, results)
         if any(r.failed for r in results.values()):
             failed_parts += 1
-        if n % 200 == 0:
+        if progress and n % 200 == 0:
             print(f"[revalidate] {n}/{len(parts)}", flush=True)
-
     conn.commit()
-    print(f"[revalidate] {len(parts)} partitions revalidated; "
+    return len(parts), failed_parts
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--db", default=str(REPO / "data" / "bank_audit.db"))
+    args = ap.parse_args()
+    conn = sqlite3.connect(args.db)
+    total, failed_parts = revalidate_all(conn, progress=True)
+    print(f"[revalidate] {total} partitions revalidated; "
           f"{failed_parts} with failing identity checks")
     return 0
 

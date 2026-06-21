@@ -1,5 +1,14 @@
 """Build the coverage spine for the /admin audit matrix and (optionally) push it
-to D1 — no R2 snapshot, no re-extraction. Three tables, all rebuilt wholesale:
+to D1 — no R2 snapshot, no re-extraction.
+
+Validation is recomputed from the stored data rows with the CURRENT validator code
+first (see `_refresh_validation`), so the spine is always derived from current-code
+verdicts rather than the verdicts frozen in whatever R2 snapshot the caller pulled.
+This makes the matrix correct by construction for every caller and is the durable fix
+for the "stale snapshot reverts the rollup" class of bug. The freshly-recomputed
+bank_audit_validation is pushed alongside the three coverage tables.
+
+Three coverage tables, all rebuilt wholesale:
 
   bank_audit_expected         what the corpus SHOULD hold (data/audit_profiles.json
                               keys), overlaid with whether the PDF is in R2.
@@ -109,6 +118,31 @@ def _counts_for(conn: sqlite3.Connection, st) -> dict[tuple[str, str, str], int]
         return {}
 
 
+def _refresh_validation(conn: sqlite3.Connection) -> None:
+    """Recompute + persist bank_audit_validation from the stored data rows with the
+    CURRENT validator code, BEFORE the spine is derived from it.
+
+    The coverage spine's per-cell status is a rollup of bank_audit_validation. That
+    table is carried in the R2 snapshot frozen at upload time, so a spine rebuilt
+    straight from a pulled snapshot resurrects failures already fixed by a validator
+    change made since (a check rewrite, a curated _PL_SKIP/_CF_SKIP) — exactly the
+    revert that snapped cash_flow back from 0 to 135. Recomputing here makes the spine
+    correct by construction for EVERY caller (acquire-audit, reextract, apply_overrides,
+    manual), instead of relying on each to remember to revalidate first. Pure SQLite,
+    no PDF. Best-effort: a DB without the audit data tables, or an import failure,
+    leaves the stored verdicts in place."""
+    try:
+        from scripts.revalidate_audit_db import revalidate_all
+    except Exception as e:  # noqa: BLE001
+        print(f"[sync] revalidate unavailable ({type(e).__name__}); using stored verdicts")
+        return
+    try:
+        n, failed = revalidate_all(conn)
+        print(f"[sync] revalidated {n} partitions with current code ({failed} failing)")
+    except Exception as e:  # noqa: BLE001
+        print(f"[sync] revalidate skipped ({type(e).__name__}); using stored verdicts")
+
+
 def _validation(conn: sqlite3.Connection) -> dict[tuple[str, str, str, str], int]:
     try:
         return {(b, p, k, s): cf for b, p, k, s, cf in conn.execute(
@@ -130,6 +164,7 @@ def _cell_status(rows: int, min_rows: int, has_validator: bool,
 
 
 def build(conn: sqlite3.Connection, use_r2: bool):
+    _refresh_validation(conn)  # spine is derived from current-code verdicts, not the snapshot's frozen ones
     manual = _manual_cells()
     validation = _validation(conn)
     counts = {st.key: _counts_for(conn, st) for st in registry.REGISTRY}
@@ -226,9 +261,12 @@ def main() -> int:
         from scripts.audit_d1 import ensure_d1_schema
         ensure_d1_schema()  # create the three tables on D1 if a deploy hasn't yet
         print("[sync] pushing to D1 (full rebuild)…")
+        # Push the freshly-recomputed validation too (its validated_at was just
+        # bumped) so the /admin drill-down matches the rollup the matrix shows.
         subprocess.run(
             [sys.executable, str(REPO / "scripts" / "push_to_d1.py"), "--db", args.db,
-             "--hours", "1", "--only-tables", ",".join(COVERAGE_TABLES)], check=True)
+             "--hours", "1", "--only-tables", ",".join([*COVERAGE_TABLES, "bank_audit_validation"])],
+            check=True)
         print("[sync] done")
     else:
         print("[sync] local only — pass --push to write D1")
