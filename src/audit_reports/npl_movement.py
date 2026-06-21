@@ -91,9 +91,18 @@ _ROW_LABELS: list[tuple[str, str]] = [
     ("debt sale", "sold"),
     ("satılan", "sold"),
     ("sold", "sold"),
-    # FX revaluation differential
+    # FX revaluation differential. Consolidated reports add a currency-translation
+    # flow row to the NPL roll-forward that solo reports omit (the roll-forward
+    # then ties exactly — DENIZ cons gIII Kur farkı 416.936 closed the -416.936
+    # gap). Banks word it differently: "Kur farkı"/"Kur farkları" (DENIZ/TEB),
+    # "Yabancı para çevrim farkları", English "Foreign currency differences".
     ("foreign currency differences", "fx_diff"),
+    ("foreign currency difference", "fx_diff"),
+    ("exchange rate differences", "fx_diff"),
     ("yabancı para çevrim farkları", "fx_diff"),
+    ("kur değişiminin etkisi", "fx_diff"),
+    ("kur farkları", "fx_diff"),
+    ("kur farkı", "fx_diff"),
     # Provision
     ("provisions (-)", "provision"),
     ("provision (-)", "provision"),
