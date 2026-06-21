@@ -3,7 +3,19 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-06-21 — **Fixed `_merge_split_digits` over-merge (ALNTF negative-NPL + ICBCT garble).**
+Last verified: 2026-06-21 — **Fixed TEB `loans_by_stage` wrong-table grab (6 `stages` cells).** TEB's
+Stage-1 amount equalled its Stage-2 amount (e.g. 2,124,190 == 2,124,190) → coverage >1. Cause: the
+`loans_by_stage` sanity gate allowed `stage1 == stage2`, so a total-first AGING-analysis Toplam row on an
+earlier page (TEB p80 `Toplam 2,124,190 946,654 1,177,536`, where 2,124,190 = 946,654+1,177,536) passed and,
+being earlier, won the dedup over the real §7.2 table on p100. A real Stage-1 (standard) portfolio is always
+≫ Stage-2 (watch), never equal — tightened the gate to STRICT `stage1 > stage2`. TEB now reads the correct
+S1=302,536,751 / S2=25,869,678 (uncons). 170 tests pass; sample re-checked (all real tables keep S1>S2, no
+regressions). Remaining `stages` reds after this + re-extract are harder/ambiguous, left documented: AKBNK
+consolidated Stage-1 ECL prints `(336.199)` negative and the stages FOOT to total (faithful to PDF, but the
+unconsolidated is +8.7M → likely a net-change/wrong cons table); ICBCT 2024Q3 garbage S2 amount (image-heavy);
+HALKB consolidated multi-table NPL (ALBRK/QNBFB class); PASHA/FIBA singletons.
+
+Prior: 2026-06-21 — **Fixed `_merge_split_digits` over-merge (ALNTF negative-NPL + ICBCT garble).**
 While checking the `stages` matrix cells, found ALNTF 2023Q4 uncons had a *negative* NPL gross (−729,420):
 the extractor read the net row `13 11,390 20,218` as `131 / 1,390` because `_merge_split_digits` fused the
 two separate Group-III/IV values `13 11,390` → `1311,390` (an invalid 4-digit leading group). With net wrong,

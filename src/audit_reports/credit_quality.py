@@ -1162,16 +1162,20 @@ def _extract_loans_by_stage_from_page(page_num: int, page_text: str) -> list[Sta
             # Sanity gate: Stage 1 column must be:
             #  * non-null
             #  * in magnitude range (>1 bn TL = >10^6 thousand TL)
-            #  * larger than the sum of the Stage 2 sub-columns — Stage 1 is
-            #    always the dominant portfolio. ECL provision Total rows
-            #    violate this (Stage 2 ECL usually > Stage 1 ECL) and would
-            #    otherwise pollute the result, e.g. YKBNK p96's ECL "Total
-            #    7.48B 20.55B".
+            #  * STRICTLY larger than the sum of the Stage 2 sub-columns — Stage 1
+            #    (standard performing) is always the dominant portfolio, S1 ≫ S2.
+            #    ECL provision Total rows violate this (Stage 2 ECL usually > Stage 1
+            #    ECL), e.g. YKBNK p96's ECL "Total 7.48B 20.55B". Strict (>, not ≥)
+            #    also rejects a total-first AGING-analysis Toplam row whose first
+            #    column equals the sum of its buckets, e.g. TEB p80 "Toplam
+            #    2,124,190 946,654 1,177,536" (2,124,190 = 946,654+1,177,536) which
+            #    otherwise yields the spurious S1==S2 and, being on an earlier page,
+            #    wins the dedup over the real §7.2 table.
             if not (vals[0] is not None and vals[0] >= 1_000_000):
                 continue
             stage1 = vals[0]
             stage2 = sum(v for v in vals[1:] if v is not None) or None
-            if stage2 is not None and stage1 < stage2:
+            if stage2 is not None and stage1 <= stage2:
                 continue
             key = (page_num, current_period)
             if key in seen:
