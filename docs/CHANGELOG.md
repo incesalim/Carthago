@@ -3,7 +3,17 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-06-21 — **npl_movement: HALKB reads the correct total closing (fixes 15).** HALKB's English
+Last verified: 2026-06-21 — **npl_movement: PASHA roll-forward ties once outflow columns are magnitudes
+(fixes the last 10).** PASHA prints the always-outflow rows in parentheses — `Tahsilat (-) (8.115)` — which the
+extractor stores as −8.115, so the validator's `− collections` became `− (−8.115)` = +8.115 (double negative)
+and the roll-forward didn't tie (it then failed the gross cross-check too, because PASHA's gross is separately
+stale). Fix: `check_npl_movement` now takes `abs()` of the four always-outflow columns (transfers_out,
+collections, write_offs, sold) — positive values are unchanged so banks that already tie are unaffected; PASHA
+now ties (33.610 + 17 − 19.031 − 8.115 = 6.481 = closing). Sample: 75 pass / **0 fail** / 65 skip, 170 tests
+pass. **This closes npl_movement: 126 → 0 across the session (FX row + closing-vs-gross cross-check + HALKB
+total-block + PASHA outflow-magnitude).**
+
+Prior: 2026-06-21 — **npl_movement: HALKB reads the correct total closing (fixes 15).** HALKB's English
 movement table carries the prior-period close at the TOP under the same "Current period end balance" label as
 the closing, so the extractor read it as a closing and skipped the real total block — grabbing a later
 loans-by-borrower SUB-category (closing 9,440,946 vs the correct total 16,582,889 = gross). Fix: in

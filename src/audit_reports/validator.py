@@ -838,6 +838,15 @@ def check_npl_movement(
         writeoffs   = r.get("write_offs")    or 0.0
         sold        = r.get("sold")          or 0.0
         fx          = r.get("fx_diff")       or 0.0
+        # The always-outflow columns are magnitudes the roll-forward SUBTRACTS.
+        # Most banks print them positive ("Tahsilat (-) 829.970"); some print the
+        # value itself in parentheses ("Tahsilat (-) (8.115)") which the extractor
+        # stores as a negative — and `- (-8.115)` would then ADD it (PASHA's
+        # roll-forward wouldn't tie). Take the magnitude so both conventions
+        # subtract correctly; positive values are unchanged, so banks that already
+        # tie are unaffected.
+        t_out, collections, writeoffs, sold = (
+            abs(t_out), abs(collections), abs(writeoffs), abs(sold))
         implied = op + additions + t_in - t_out - collections - writeoffs - sold + fx
         tol = _tol(abs(cl), base=100.0, rel=0.002)
         if abs(implied - cl) <= tol:
