@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import re
 import sqlite3
+from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -64,6 +65,7 @@ _SECTOR_LABELS: list[tuple[str, str]] = [
     ("madencilik ve taşocakçılığı", "mfg_mining"),
     ("madencilik", "mfg_mining"),
     ("production", "mfg_production"),
+    ("manufacturing industry", "mfg_production"),  # QNBFB: the İmalat sub, NOT the group total (which is "Manufacturing")
     ("imalat sanayi", "mfg_production"),
     ("i̇malat sanayi", "mfg_production"),
     ("electricity, gas and water", "mfg_utilities"),
@@ -234,6 +236,149 @@ def _merge_wrapped_labels(lines: list[str]) -> list[str]:
     return out
 
 
+def _xy_lines(pdf_path: str, page_idx_0: int, ytol: float = 3.0
+              ) -> list[list[tuple[float, float, str]]]:
+    """Page words clustered into rows by y. Each row is a list of (x0, x1, text)
+    sorted left-to-right. Adjacent single-digit fragments are merged (fitz
+    occasionally splits a leading digit off a number)."""
+    if not _HAS_FITZ:
+        return []
+    import fitz
+    try:
+        doc = fitz.open(pdf_path)
+        words = doc[page_idx_0].get_text("words")
+        doc.close()
+    except Exception:
+        return []
+    if not words:
+        return []
+    buckets: dict[int, list[tuple[float, float, str]]] = defaultdict(list)
+    for w in words:
+        buckets[int(round(w[1]))].append((w[0], w[2], w[4]))
+    keys = sorted(buckets)
+    merged: dict[int, list[tuple[float, float, str]]] = {}
+    last = None
+    for k in keys:
+        if last is not None and k - last <= ytol:
+            merged[last].extend(buckets[k])
+        else:
+            merged[k] = list(buckets[k])
+            last = k
+    out: list[list[tuple[float, float, str]]] = []
+    for y in sorted(merged):
+        ws = sorted(merged[y], key=lambda t: t[0])
+        toks: list[tuple[float, float, str]] = []
+        i = 0
+        while i < len(ws):
+            x0, x1, t = ws[i]
+            j = i + 1
+            while j < len(ws):
+                nx0, nx1, nt = ws[j]
+                if re.match(r"^\d{1,2}$", t) and re.match(r"^[\d.,]", nt) and nx0 - x1 < 4:
+                    t, x1 = t + nt, nx1
+                    j += 1
+                else:
+                    break
+            toks.append((x0, x1, t))
+            i = j
+        out.append(toks)
+    return out
+
+
+def _stage_col_x(lines: list[list[tuple[float, float, str]]]) -> tuple[float | None, float | None]:
+    """Right-edge x of the Stage 2 and Stage 3 column headers (leftmost pair —
+    the loan columns sit left of any provision/ECL columns labelled the same)."""
+    def clean(t: str) -> str:
+        return t.lower().strip("().:%–-—* ")
+    s2 = s3 = None
+    for row in lines:
+        for i, (x0, x1, t) in enumerate(row):
+            c = clean(t)
+            x = x1
+            if c in ("stage2", "2.aşama", "2aşama"):
+                pass
+            elif c in ("stage", "aşama") and i + 1 < len(row):
+                n = clean(row[i + 1][2])
+                if n == "2":
+                    x, c = row[i + 1][1], "stage2"
+                elif n == "3":
+                    x, c = row[i + 1][1], "stage3"
+                else:
+                    continue
+            elif c in ("second", "ikinci", "i̇kinci") and i + 1 < len(row) \
+                    and clean(row[i + 1][2]) in ("stage", "aşama"):
+                # EXIM-style "(Second Stage)" / "İkinci Aşama"
+                x, c = row[i + 1][1], "stage2"
+            elif c in ("third", "üçüncü", "uçuncu") and i + 1 < len(row) \
+                    and clean(row[i + 1][2]) in ("stage", "aşama"):
+                x, c = row[i + 1][1], "stage3"
+            elif c in ("stage3", "3.aşama", "3aşama"):
+                c = "stage3"
+            else:
+                continue
+            if c == "stage2" and (s2 is None or x < s2):
+                s2 = x
+            elif c == "stage3" and (s3 is None or x < s3):
+                s3 = x
+    return s2, s3
+
+
+def _extract_section_xy(page_idx: int, lines: list[list[tuple[float, float, str]]]
+                        ) -> list[SectorRow] | None:
+    """Column-aware extraction: align each row's numbers to the Stage 2 / Stage 3
+    header columns by x-position. Robust to banks that add a gross-Loans column
+    before the stages or provision/ECL columns after (QNBFB's 5-column layout),
+    which the trailing-3-numbers heuristic mis-reads. Returns None (→ caller falls
+    back to the text parser) when the stage headers can't be located."""
+    s2x, s3x = _stage_col_x(lines)
+    if s2x is None or s3x is None or abs(s2x - s3x) < 8:
+        return None
+    rows: list[SectorRow] = []
+    period_type = "current"
+    seen_current = False
+    for row in lines:
+        text = " ".join(t for _, _, t in row).strip()
+        low = text.lower()
+        if re.search(r"\bcurrent\s+period\b|\bcari\s+dönem\b", low):
+            period_type, seen_current = "current", True
+            continue
+        if re.search(r"\bprior\s+period\b|\bönceki\s+dönem\b", low):
+            if seen_current:
+                period_type = "prior"
+            continue
+        clean = re.sub(r"^(?:\(\w\)|[\w.]{1,5})[.\)]\s+", "", text)
+        clean = re.sub(r"^\(\d+\)\s+", "", clean)
+        sector_key = None
+        for lbl, key in _SECTOR_LABELS_SORTED:
+            if clean.lower().startswith(lbl):
+                sector_key = key
+                break
+        if sector_key is None:
+            continue
+        # numbers with their right-edge x (skip the label tokens)
+        nums = [(_parse_amount(t), x1) for _x0, x1, t in row if re.fullmatch(_NUM_TOKEN, t)]
+        nums = [(v, x) for v, x in nums if v is not None]
+        if not nums:
+            continue
+
+        def nearest(anchor: float, other: float):
+            best, bestd = None, 1e9
+            for v, x in nums:
+                d = abs(x - anchor)
+                if d < bestd and d <= abs(x - other):  # closer to this column than the other
+                    best, bestd = v, d
+            return best
+
+        s2v = nearest(s2x, s3x)
+        s3v = nearest(s3x, s2x)
+        rows.append(SectorRow(
+            sector=sector_key, stage2_amount=s2v, stage3_amount=s3v,
+            ecl_amount=None, period_type=period_type, page=page_idx,
+            raw_label=clean[:60],
+        ))
+    return rows or None
+
+
 def _extract_section(page_idx: int, text: str) -> list[SectorRow]:
     """Pull every (sector, n1, n2, n3) tuple from this page's text.
 
@@ -342,25 +487,94 @@ def extract_from_pdf(
     rep = LoansBySectorReport(pdf_path=pdf_path)
     use_fitz = _HAS_FITZ and bool(pdf_path)
     n_pages = _n_pages(pdf) if use_fitz else len(pdf.pages)
+    # Build BOTH parses — x-coordinate column alignment (handles gross-Loans-first
+    # and provision/ECL columns, e.g. QNBFB's 5-column table) and the legacy
+    # trailing-3-numbers text parser — then keep whichever FOOTS better (Σ
+    # top-level sectors ≈ total). This guarantees the new aligner never regresses
+    # a bank the text parser already read correctly.
+    xy_rows: list[SectorRow] = []
+    txt_rows: list[SectorRow] = []
     for i in range(skip_pages + 1, n_pages + 1):
         text = (_fitz_page_text(pdf_path, i - 1) if use_fitz
                 else (pdf.pages[i - 1].extract_text() or ""))
         if not _page_has_sector_heading(text):
             continue
-        rep.rows.extend(_extract_section(i, text))
-    # Dedupe: keep first occurrence of each (sector, period_type). When the
-    # same table appears twice (consolidated reports sometimes do), the
-    # first hit is the primary disclosure; later ones are usually sub-views.
-    seen: set[tuple[str, str]] = set()
-    deduped: list[SectorRow] = []
-    for r in rep.rows:
-        key = (r.sector, r.period_type)
-        if key in seen:
-            continue
-        seen.add(key)
-        deduped.append(r)
-    rep.rows = deduped
+        if use_fitz:
+            xy = _extract_section_xy(i, _xy_lines(pdf_path, i - 1))
+            if xy:
+                xy_rows.extend(xy)
+        txt_rows.extend(_extract_section(i, text))
+
+    def _dedupe(rows: list[SectorRow]) -> list[SectorRow]:
+        # Keep the first occurrence of each (sector, period_type) — EXCEPT 'total':
+        # a page can carry two sector tables (e.g. ICBCT's loans then a second
+        # breakdown), each ending in its own "Toplam", so keep every total and let
+        # _pick_total choose the one that foots with the captured sectors.
+        seen: set[tuple[str, str]] = set()
+        out: list[SectorRow] = []
+        for idx, r in enumerate(rows):
+            key = (r.sector, r.period_type, idx) if r.sector == "total" else (r.sector, r.period_type)
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append(r)
+        return _pick_total(out)
+
+    xy_d, txt_d = _dedupe(xy_rows), _dedupe(txt_rows)
+    rep.rows = xy_d if (xy_d and _foot_error(xy_d) <= _foot_error(txt_d)) else txt_d
     return rep
+
+
+def _pick_total(rows: list[SectorRow]) -> list[SectorRow]:
+    """When several current-period 'total' rows survive (multi-table page), keep
+    the one whose stage2+stage3 best match the sum of the top-level sectors and
+    drop the rest. No-op for the usual single-total table."""
+    totals = [r for r in rows if r.sector == "total" and r.period_type == "current"]
+    if len(totals) <= 1:
+        return rows
+    from .validator import _resolved_top_level
+    cur = [{"sector": r.sector, "stage2_amount": r.stage2_amount,
+            "stage3_amount": r.stage3_amount}
+           for r in rows if r.period_type == "current" and r.sector != "total"]
+    top = _resolved_top_level(cur)
+    sums = {c: sum(r[c] for r in top if r.get(c) is not None)
+            for c in ("stage2_amount", "stage3_amount")}
+
+    def err(t: SectorRow) -> float:
+        e = 0.0
+        for c in ("stage2_amount", "stage3_amount"):
+            tv = getattr(t, c)
+            if tv is not None:
+                e += abs((tv or 0) - sums[c]) / max(1.0, abs(tv) or 1.0)
+        return e
+
+    best = min(totals, key=err)
+    drop = {id(t) for t in totals if t is not best}
+    return [r for r in rows if id(r) not in drop]
+
+
+def _foot_error(rows: list[SectorRow]) -> float:
+    """Relative error of Σ top-level sectors vs the total row (avg over the
+    stage2/stage3 columns) — used to pick the better of two parses. Big sentinel
+    when there's no total row to check against."""
+    from .validator import _resolved_top_level
+    cur = [{"sector": r.sector, "stage2_amount": r.stage2_amount,
+            "stage3_amount": r.stage3_amount}
+           for r in rows if r.period_type == "current"]
+    total = next((r for r in cur if r["sector"] == "total"), None)
+    if total is None:
+        return 1e18
+    top = _resolved_top_level(cur)
+    if not top:
+        return 1e18
+    errs = []
+    for col in ("stage2_amount", "stage3_amount"):
+        tv = total.get(col)
+        if tv is None:
+            continue
+        sv = sum(r[col] for r in top if r.get(col) is not None)
+        errs.append(abs(sv - tv) / max(1.0, abs(tv)))
+    return sum(errs) / len(errs) if errs else 1e18
 
 
 def extract(pdf_path: str | Path) -> LoansBySectorReport:
