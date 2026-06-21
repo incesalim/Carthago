@@ -76,9 +76,14 @@ _CF_SKIP = frozenset({
     # (100.000 higher) and V+VI=VII holds with that printed V. Every cell matches the
     # PDF; the source itself doesn't foot. No single-cell fix reconciles both identities.
     ("ALBRK", "2023Q4", "consolidated"),
-    # NOTE: TSKB 2022Q1 was removed — its V (5.027.208) doesn't reconcile and the IR host
-    # was UNREACHABLE, so we never confirmed source-typo vs our misread. Skipping it would
-    # have hidden a possibly-wrong number, so it stays FLAGGED until the PDF is read.
+    # TSKB 2022Q1 cons: NOW CONFIRMED against the PDF (p18) — every roman matches the
+    # printed statement (I 7.717.884 / II (1.406.045) / III (1.462.683) / IV 162.027 /
+    # V 5.027.208 / VI 3.661.118 / VII 8.672.302). I+II+III+IV = 5.011.183 ≠ the printed
+    # V 5.027.208 (off 16.025), and VII = 8.672.302 foots with the DERIVED V (5.011.183),
+    # not the printed one — a source typo on the V line. Faithful extraction, source
+    # doesn't foot; no single-cell fix reconciles both identities. (Earlier left flagged
+    # because the IR host was unreachable; the PDF is now read and confirms the typo.)
+    ("TSKB", "2022Q1", "consolidated"),
 })
 
 # OCI partitions whose roman chain III=I+II doesn't foot because the PUBLISHED
