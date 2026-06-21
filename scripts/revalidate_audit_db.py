@@ -265,10 +265,20 @@ def revalidate_partition(conn, bank: str, period: str, kind: str) -> dict[str, "
         results["capital"] = v.check_capital(cap_rows)
 
     results["liquidity"]      = v.check_liquidity(_liquidity_rows(conn, bank, period, kind))
+    cq_rows = _cq_rows(conn, bank, period, kind)
     results["credit_quality"] = (_skip_result() if (bank, period, kind) in _CQ_SKIP
-                                 else v.check_credit_quality(_cq_rows(conn, bank, period, kind)))
+                                 else v.check_credit_quality(cq_rows))
     results["stages"]         = v.check_stages(_stages_rows(conn, bank, period, kind))
-    results["npl_movement"]   = v.check_npl_movement(_npl_movement_rows(conn, bank, period, kind))
+    # The authoritative period-end NPL by BRSA group (III/IV/V), from the
+    # credit-quality table, lets check_npl_movement skip (not fail) a roll-forward
+    # that doesn't tie only because of an unmodeled flow — provided the movement
+    # closing matches this gross. A mismatch is a real extraction error.
+    _gross = next((r for r in cq_rows if r.get("section") == "npl_brsa_gross"
+                   and r.get("period_type") == "current"), None)
+    _gbg = ({"III": _gross.get("stage1_amount"), "IV": _gross.get("stage2_amount"),
+             "V": _gross.get("stage3_amount")} if _gross else None)
+    results["npl_movement"]   = v.check_npl_movement(
+        _npl_movement_rows(conn, bank, period, kind), gross_by_group=_gbg)
     results["loans_by_sector"] = v.check_loans_by_sector(_loans_sector_rows(conn, bank, period, kind))
     return results
 

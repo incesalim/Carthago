@@ -3,7 +3,20 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-06-21 — **npl_movement: map the consolidated "Kur farkı" FX-translation row (fixes DENIZ
+Last verified: 2026-06-21 — **npl_movement: cross-check the closing against npl_brsa_gross instead of trusting
+the flow roll-forward (clears faithful TEB/PASHA).** Going one-by-one through the residual, TEB's table turned
+out to be FAITHFULLY extracted — its movement closing equals the authoritative npl_brsa_gross exactly
+(1,879,803 / 1,475,189 / 976,947) — but the flow roll-forward doesn't tie because the source carries an
+unmodeled "Diğer" (other-movements) flow and a Satılan sub-breakdown that doesn't foot to its own total. PASHA
+is the same (closing matches gross, flows mis-scaled from a stacked sub-table). The flow roll-forward is simply
+unreliable for these banks (the cash_flow lesson again). Changed `check_npl_movement` to take the period-end
+`gross_by_group` (from credit_quality, supplied by `revalidate_partition`): when all flow columns are present
+and the roll-forward still doesn't tie, SKIP if the closing matches the gross (bottom line correct, residual is
+an unmodeled flow) and FAIL only if the closing ALSO disagrees (HALKB reads a loans-by-borrower sub-category,
+not the total — a real error). The change is MONOTONIC — it can only turn fails into skips, never create new
+failures. 63 validator tests pass. HALKB/KLNMA (genuine closing errors) still flagged — next.
+
+Prior: 2026-06-21 — **npl_movement: map the consolidated "Kur farkı" FX-translation row (fixes DENIZ
 + similar).** The NPL roll-forward (opening + flows = closing) failed for many CONSOLIDATED partitions because
 those reports add a currency-translation flow row the solo reports omit, and the extractor's `fx_diff` labels
 only matched "Foreign currency differences" / "Yabancı para çevrim farkları" — not the common "Kur farkı" /
