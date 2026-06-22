@@ -52,6 +52,7 @@ export const BS_ASSET_LINES: StandardLine[] = [
   { id: "loans",                   label: "Loans",                                                           hierarchy: "2.1" },
   { id: "lease_recv",              label: "Lease Receivables",                                               hierarchy: "2.2" },
   { id: "factoring_recv",          label: "Factoring Receivables",                                           hierarchy: "2.3" },
+  { id: "securities_amc",          label: "Securities at Amortized Cost",                                    hierarchy: "2.3" },
   { id: "other_amort_cost",        label: "Other Financial Assets at Amortized Cost",                        hierarchy: "2.4" },
   { id: "ecl_loans",               label: "Expected Credit Losses (-)",                                      hierarchy: "2.ecl" },
   { id: "held_for_sale",           label: "Held-for-Sale and Discontinued Operations Assets (Net)",          hierarchy: "III." },

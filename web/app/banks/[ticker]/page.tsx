@@ -50,7 +50,6 @@ import {
   BS_LIAB_LINES_PARTICIPATION,
   BS_LIAB_ROMAN_HIERARCHIES_PARTICIPATION,
   BS_EQUITY_HIERARCHY_PARTICIPATION,
-  resolveBsLineLabel,
   PL_LINES,
   indentLevel,
   type StandardLine,
@@ -510,23 +509,32 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
                   </tr>
                 </thead>
                 <tbody>
-                  {BS_ASSET_LINES
-                    // Layout B (participation banks, Garanti): code 2.4 IS the ECL,
-                    // remapped to 2.ecl (audit.ts) and rendered by the ecl_loans row.
-                    // The other_amort_cost line at 2.4 is then empty and would draw a
-                    // redundant second "Expected Credit Losses (-)" row (it gets
-                    // relabelled to ECL too) — drop it so there's a single ECL line.
-                    .filter((line) => !(line.id === "other_amort_cost" &&
-                      /beklenen\s*zarar|expected\s*credit/i.test(bsNames.get("assets::2.4") ?? "")))
-                    .map((line) => (
-                    <Row
-                      key={line.id}
-                      label={resolveBsLineLabel("assets", line.hierarchy, bsNames, line.label)}
-                      values={valuesForLine(line, bsPivot, periods, "assets")}
-                      bold={line.bold}
-                      depth={indentLevel(line.hierarchy)}
-                    />
-                  ))}
+                  {(() => {
+                    // Standard, uniform layout for every bank. Asset code 2.3 holds
+                    // Factoring (deposit layout) OR Securities at Amortized Cost
+                    // (participation / Garanti); 2.4 holds Other OR the ECL (which
+                    // audit.ts remaps to 2.ecl). Keep BOTH the Factoring and Securities
+                    // rows always present — the one that doesn't apply to this bank
+                    // renders blank rather than being relabelled or dropped (which had
+                    // caused inconsistent labels + a duplicate ECL row).
+                    const n23 = bsNames.get("assets::2.3") ?? "";
+                    const n24 = bsNames.get("assets::2.4") ?? "";
+                    const layoutB = /beklenen\s*zarar|expected\s*credit/i.test(n24)
+                      || (!/fakto?ring/i.test(n23) && /menkul|securit|amorti[sz]|maliyet|itfa/i.test(n23));
+                    return BS_ASSET_LINES.map((line) => {
+                      const blank = (line.id === "factoring_recv" && layoutB)
+                                 || (line.id === "securities_amc" && !layoutB);
+                      return (
+                        <Row
+                          key={line.id}
+                          label={line.label}
+                          values={blank ? periods.map(() => null) : valuesForLine(line, bsPivot, periods, "assets")}
+                          bold={line.bold}
+                          depth={indentLevel(line.hierarchy)}
+                        />
+                      );
+                    });
+                  })()}
                   <Row label="Total Assets" values={totalAssets} bold divider />
                   {liabPreEquity.map((line) => (
                     <Row
