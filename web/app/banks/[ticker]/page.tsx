@@ -510,7 +510,15 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
                   </tr>
                 </thead>
                 <tbody>
-                  {BS_ASSET_LINES.map((line) => (
+                  {BS_ASSET_LINES
+                    // Layout B (participation banks, Garanti): code 2.4 IS the ECL,
+                    // remapped to 2.ecl (audit.ts) and rendered by the ecl_loans row.
+                    // The other_amort_cost line at 2.4 is then empty and would draw a
+                    // redundant second "Expected Credit Losses (-)" row (it gets
+                    // relabelled to ECL too) — drop it so there's a single ECL line.
+                    .filter((line) => !(line.id === "other_amort_cost" &&
+                      /beklenen\s*zarar|expected\s*credit/i.test(bsNames.get("assets::2.4") ?? "")))
+                    .map((line) => (
                     <Row
                       key={line.id}
                       label={resolveBsLineLabel("assets", line.hierarchy, bsNames, line.label)}
