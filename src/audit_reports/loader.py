@@ -1,11 +1,34 @@
 """Load extracted BankReport records into the SQLite database."""
 from __future__ import annotations
 
+import re
 import sqlite3
 from pathlib import Path
 
 from . import registry
 from .extractor import BankReport, extract
+
+# A few banks' source PDFs print sub-item hierarchy codes with a trailing dot
+# ("1.1." / "2.1." — KUVEYT, partially ALBRK / EXIM / ICBCT) where the BRSA standard
+# (and every other bank) is "1.1" / "2.1". The extractor captures them verbatim, but
+# the per-bank Financials table and the cross-bank heatmap key on the EXACT code and
+# then can't match those rows, so the numbers silently vanish from the UI. Normalise
+# the KEY on write — but ONLY for the catalog-driven, displayed statements (assets,
+# liabilities, profit_loss): strip a trailing dot from a multi-level NUMERIC code;
+# Roman codes ("I.", "XVI."), single-level codes ("1.") and synthetic suffixes
+# ("1.1.ecl") are left intact. off_balance is EXCLUDED on purpose — its sub-items are
+# dotted as a convention across ~19 banks (24k rows), it isn't rendered through the
+# catalog, and its indentation derives from the code, so its dots are kept. oci /
+# cash_flow are likewise left alone (not keyed by the UI). Values are never touched.
+_HIER_TRAILING_DOT = re.compile(r"^(\d+(?:\.\d+)+)\.$")
+_NORMALIZE_HIER = frozenset({"assets", "liabilities", "profit_loss"})
+
+
+def _canon_hier(statement: str, h: str | None) -> str | None:
+    if statement not in _NORMALIZE_HIER or not h:
+        return h
+    m = _HIER_TRAILING_DOT.match(h)
+    return m.group(1) if m else h
 
 
 def upsert_report(
@@ -66,7 +89,7 @@ def upsert_report(
                 'INSERT INTO bank_audit_balance_sheet '
                 '(bank_ticker, period, kind, statement, item_order, hierarchy, item_name, footnote, amount_tl, amount_fc, amount_total) '
                 'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                [(bank_ticker, period, kind, stmt_name, r.order, r.hierarchy, r.name,
+                [(bank_ticker, period, kind, stmt_name, r.order, _canon_hier(stmt_name, r.hierarchy), r.name,
                   r.footnote, r.cur_tl, r.cur_fc, r.cur_total) for r in rows],
             )
         counts[ckey] = len(rows)
@@ -87,7 +110,7 @@ def upsert_report(
                 f'INSERT INTO {table} '
                 '(bank_ticker, period, kind, item_order, hierarchy, item_name, footnote, amount) '
                 'VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-                [(bank_ticker, period, kind, r.order, r.hierarchy, r.name, r.footnote, r.cur_amount)
+                [(bank_ticker, period, kind, r.order, _canon_hier(stmt_name, r.hierarchy), r.name, r.footnote, r.cur_amount)
                  for r in rows],
             )
         counts[ckey] = len(rows)
