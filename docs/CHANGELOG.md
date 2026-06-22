@@ -3,7 +3,29 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-06-22 — **NPL/Stage-3 blind spot closed — the matrix stops hiding dropped columns.**
+Last verified: 2026-06-22 — **Validator blind-spot audit — hardened 3 more lanes against silently-dropped columns.**
+After the stages fix, audited every validator for the same skip-on-null pattern (a missing number `add_skip()`'d, so
+the cell passed green `ok`). Three more lanes had it; cash_flow/P&L/OCI are safe (interlocked, cross-anchored chains)
+and BS is triangulated, so they were left alone.
+- *npl_movement:* a group reported with movement flows but opening/closing balance NULL → roll-forward skipped. Now
+  FAILS `npl_movement_balance_missing`. Extractor (+121/−18): English balance labels ("Balance at the End of the
+  Period"), date-keyed balance rows ("31 Aralık 2024 Bakiyesi" → position-assigned), scoped wrapped-transfer merge,
+  bare-digit token. Filled ~86 of ~100 cells (ALNTF/AKBNK fully; EXIM 17→3, ODEA 17→1, BURGAN unco fully).
+- *capital:* total_rwa/CAR NULL on a present §4 table → every reconcile skipped. Now FAILS `cap_rwa_missing` (RWA is
+  the non-derivable denominator); `cap_car_missing` only when CAR is *also* non-derivable (RWA+total_capital absent) —
+  a derivable CAR stays `ok`. Extractor (+109/−29): fitz line fallback (gated on RWA-absent → passing banks untouched)
+  + CAR derivation. Filled 54 of 55 RWA cells (EMLAK/TFKB/TEB/FIBA/VAKBN/ANADOLU/ATBANK/HSBC).
+- *loans_by_sector:* sector rows present but TOTAL row or all sector amount columns dropped → footing skipped. Now
+  FAILS `loans_sector_total_missing` / `loans_sector_columns_missing`. Extractor (+88): ATBANK discloses per-sector
+  stages correctly (fixed a Stage-3 wrapped-header bug) but genuinely has NO total → `_LBS_SKIP` verified-N/A; ALNTF
+  uses the legacy pre-IFRS-9 schema (no per-sector stages — the old code FABRICATED stage3 from the row index) →
+  detect + store 0 rows + not_disclosed. 0 errors.
+Net: ~170 cells filled, matrix now reflects "every column populated". Honestly-flagged residual tail (long-tail
+interim-format variants, now visible as `error` instead of hidden): npl_movement 14 (BURGAN cons interim Q1/Q2/Q3
+'23-'25, EXIM unco recent interim, ODEA 2022Q1, QNBFB 2025Q3), capital 3 (EMLAK CET1 underread 2022Q1, total/RWA
+column-swap 2025Q1). Guard tests added for all three checks.
+
+Prior: 2026-06-22 — **NPL/Stage-3 blind spot closed — the matrix stops hiding dropped columns.**
 Spotted via the Compare heatmap: EMLAK's NPL ratio was blank for 10 straight quarters (2023Q4→2026Q1) while
 its `stages` cells read green `ok`. Root cause was two-layered:
 - *Validator blind spot:* `check_stages` **skipped** every Stage-3 check when `stage3` was null, so a silently-
