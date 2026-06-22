@@ -510,6 +510,27 @@ def test_stages_npl100_fingerprint_fails():
     assert any(f["check"] == "stages_npl100" for f in res.failures)
 
 
+def test_stages_dropped_stage3_fails():
+    """S1/S2 captured but S3 NULL (total == S1+S2) = silently-dropped NPL column.
+    Must FAIL, not skip — this is the blind spot that hid EMLAK's missing NPL for
+    10 quarters while the cell read 'ok'."""
+    res = v.check_stages([_stage_row(
+        stage1_amount=500_000, stage2_amount=100_000,
+        stage3_amount=None, total_amount=600_000,
+        stage3_ecl=None, total_ecl=None, stage3_coverage=None,
+    )])
+    assert any(f["check"] == "stages_stage3_missing" for f in res.failures)
+
+
+def test_stages_genuine_zero_npl_passes():
+    """A real zero-NPL bank stores S3 = 0 (not NULL) — must NOT trip the
+    dropped-column check (0 is captured data, NULL is a missing column)."""
+    res = v.check_stages([_stage_row(
+        stage3_amount=0, total_amount=600_000, stage3_ecl=0, stage3_coverage=0.0,
+    )])
+    assert not any(f["check"] == "stages_stage3_missing" for f in res.failures)
+
+
 def test_stages_npl100_fingerprint_fires_on_null_stages():
     """The REAL broken shape has stage1/stage2 absent (loans_by_stage missing),
     not zero — the fingerprint must still fire (NULL counts as 0)."""

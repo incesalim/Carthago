@@ -803,6 +803,18 @@ def check_stages(rows: list[dict]) -> ValidationResult:
                 res.add_skip()
         else:
             res.add_skip()
+        # Dropped Stage-3 (NPL) column: S1/S2 captured but S3 is NULL — the
+        # NPL/Stage-3 line was never read. A genuine zero-NPL bank stores S3 = 0,
+        # not NULL, and `total` then equals S1+S2 with no Stage-3 contribution, so
+        # a NULL S3 beside present S1/S2 is a silently-dropped column, not an empty
+        # bucket. FAIL (not skip) so the gap surfaces in the coverage matrix as
+        # 'error' instead of passing 'ok' on the checks that don't need S3 — the
+        # blind spot that hid EMLAK's missing NPL for 10 quarters while the cell
+        # read green. Distinct from npl100, which fires when S3 is PRESENT but ≈ total.
+        if s3 is None and s1 is not None and s2 is not None and tot is not None:
+            res.add_fail("stages_stage3_missing",
+                         "S3 (NPL) null while S1/S2 captured — dropped Stage-3 column",
+                         expected=tot, actual=s1 + s2)
     return res
 
 

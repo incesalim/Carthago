@@ -607,12 +607,21 @@ def _extract_pl_expense_from_page(page_num: int, page_text: str) -> list[StageRo
 #   "III. Grup / IV. Grup / V. Grup"     (Turkish — VAKBN, AKBNK, TEB, ...)
 #   "III.Group / IV.Group / V.Group"     (TSKB — no space)
 #   "III. Group: / IV. Group: / V. Group:" (SKBNK — colons)
+#   "III. Aşama / IV. Aşama / V. Aşama"  (ODEA — labels the BRSA severity
+#                                         buckets "Aşama"; the Roman III/IV/V
+#                                         prefix + "Tahsil İmkanı Sınırlı /
+#                                         Tahsili Şüpheli / Zarar Niteliğindeki"
+#                                         sub-labels make these the SAME Group
+#                                         III/IV/V NPL buckets, NOT IFRS stages
+#                                         (which use Arabic "Aşama 1/2/3")).
 # The space between "Group" and the Roman numeral is \s* (not \s+) because
-# pdfplumber sometimes renders the header with no space ("GroupIII").
+# pdfplumber sometimes renders the header with no space ("GroupIII"). "Aşama"
+# is accepted ONLY in the numeral-FIRST form (III. Aşama) so we never collide
+# with the Arabic IFRS-stage header "1. Aşama / 2. Aşama / 3. Aşama".
 _NPL_HEADER_PAT = re.compile(
-    r"(?:Group\s*III|III\.?\s*(?:Group|Grup):?)"
-    r"\s*(?:Group\s*IV|IV\.?\s*(?:Group|Grup):?)"
-    r"\s*(?:Group\s*V|V\.?\s*(?:Group|Grup):?)",
+    r"(?:Group\s*III|III\.?\s*(?:Group|Grup|Aşama):?)"
+    r"\s*(?:Group\s*IV|IV\.?\s*(?:Group|Grup|Aşama):?)"
+    r"\s*(?:Group\s*V|V\.?\s*(?:Group|Grup|Aşama):?)",
     re.IGNORECASE,
 )
 
@@ -648,9 +657,9 @@ _NPL_PROVISION_ROW = re.compile(
 # Group↔numeral gap is \s* (pdfplumber may drop it); the gaps BETWEEN the
 # three group tokens stay \s+ so we don't match a single run-together word.
 _NPL_HEADER_LINE = re.compile(
-    r"^\s*(?:Group\s*III|III\.?\s*(?:Group|Grup):?)"
-    r"\s+(?:Group\s*IV|IV\.?\s*(?:Group|Grup):?)"
-    r"\s+(?:Group\s*V|V\.?\s*(?:Group|Grup):?)",
+    r"^\s*(?:Group\s*III|III\.?\s*(?:Group|Grup|Aşama):?)"
+    r"\s+(?:Group\s*IV|IV\.?\s*(?:Group|Grup|Aşama):?)"
+    r"\s+(?:Group\s*V|V\.?\s*(?:Group|Grup|Aşama):?)",
     re.IGNORECASE,
 )
 # A row qualifies as "data" if it has at least 3 numeric tokens with thousands
@@ -672,28 +681,51 @@ _NPL_FC_ONLY_HEADING = re.compile(
     re.IGNORECASE,
 )
 
+# A BRSA-footnote sub-section heading. Used as the scan boundary when deciding
+# whether an FC-only banner governs a given table block: the banner is printed
+# ONCE above the FC sub-section, but that sub-section can hold two III/IV/V
+# tables (Cari Dönem + Önceki Dönem), each with its own header. We must keep
+# walking back past the inner header(s) to the banner, stopping only at the next
+# *different* sub-section heading. Two heading styles occur in BRSA reports and
+# BOTH must be recognised — otherwise the FC banner's scope leaks past the next
+# sub-section into the following table (AKBNK/ALNTF mislabelled their "(iv)"
+# customer-group NPL table as FC-only, dropping its valid prior gross):
+#   * lettered, trailing-paren:     "h.2)" / "j.3)" / "ğ)" / "h)"
+#   * roman/letter/digit, fully parenthesised:  "(iii)" / "(iv)" / "(v)" / "(a)"
+_NPL_SUBSECTION_HEADING = re.compile(
+    r"^\s*(?:"
+    r"[a-zçğıiöşü]{1,2}(?:\.\d+)?\)\s"                          # h.2)  ğ)  j.3)
+    r"|\(\s*(?:[ivxlcdm]{1,4}|[a-zçğıiöşü]{1,2}|\d{1,2})\s*\)"  # (iii) (iv) (a) (1)
+    r")",
+    re.IGNORECASE,
+)
+
 
 def _is_fc_only_block(lines: list[str], header_idxs: list[int], anchor_idx: int) -> bool:
     """True when the III/IV/V table block containing `anchor_idx` is the FC-only
     sub-table (heading 'in foreign currencies' / 'yabancı para olarak
     kullandırılan').
 
-    The block starts at the nearest III/IV/V header above the anchor; the
-    section heading typically sits a few lines above that header, so we scan
-    from `header − 6` down to the anchor row. Shared by BOTH the regex and the
-    template NPL extractors so neither emits the small FC-only subset (5-20% of
-    total NPL) as the total Stage-3 balance — e.g. DENIZ/FIBA 2026Q1 where the
-    FC-only table reports only a few thousand TL against a ~5-6% real NPL.
+    The FC-only banner ("Yabancı para olarak kullandırılan…") is printed ONCE,
+    above the whole FC sub-section — but that sub-section often contains TWO
+    III/IV/V tables (Cari Dönem then Önceki Dönem), each with its own III/IV/V
+    header. The previous logic only looked a few lines above the nearest header,
+    so the SECOND (Önceki Dönem) FC table escaped detection and its tiny FC-only
+    total shadowed the real Stage-3 via the (section, period_type) dedup
+    (EMLAK 2023Q4+, ODEA 2025Q4, VAKIFK FC tables). We therefore walk backward
+    from the anchor across any number of inner III/IV/V headers and stop only at
+    the next *different* lettered sub-section heading ("h.2)" / "j.4)" / "ğ)"):
+    if we meet the FC banner first, the block is FC-only.
     """
-    block_start = 0
-    for hi in header_idxs:
-        if hi < anchor_idx:
-            block_start = hi
-        else:
-            break
-    for j in range(max(0, block_start - 6), anchor_idx):
-        if _NPL_FC_ONLY_HEADING.search(lines[j]):
+    for j in range(anchor_idx - 1, -1, -1):
+        ln = lines[j]
+        if _NPL_FC_ONLY_HEADING.search(ln):
             return True
+        # A new lettered sub-section heading ends the FC sub-section — but only
+        # if it is NOT itself the FC banner (the banner also starts with a
+        # letter-paren, e.g. "h.3) Yabancı para…", and is caught above first).
+        if _NPL_SUBSECTION_HEADING.match(ln):
+            return False
     return False
 
 
@@ -860,8 +892,6 @@ def _extract_npl_brsa_from_page(page_num: int, page_text: str) -> list[StageRow]
             continue
         current_period = _period_for_provision(i)
         nums = _NUM.findall(stripped)
-        if len(nums) < 3:
-            continue
         # Find the bounds of this provision's block: from the prev provision
         # (exclusive) to the next provision (exclusive), additionally clipped
         # by III/IV/V header_idxs so we never cross a table boundary.
@@ -871,6 +901,35 @@ def _extract_npl_brsa_from_page(page_num: int, page_text: str) -> list[StageRow]
         next_header = min((h for h in header_idxs if h > i), default=len(lines))
         block_lo = max(prev_prov, prev_header) + 1
         block_hi = min(next_prov, next_header)
+        # A few degenerate PDFs (VAKIFK 2023Q2 current-period) render the
+        # provision row's three values on a SEPARATE y-band just ABOVE the
+        # "Karşılık (-)" label, so the label line itself carries <3 tokens and
+        # the block would be skipped entirely — losing an otherwise-clean gross
+        # (Stage-3) closing-balance row below the gross-label line. When the
+        # label line is under-populated, absorb numeric tokens from the
+        # immediately-preceding BARE-numeric orphan line(s) — within this block,
+        # no recognised label, all-numeric. `prov_top` records the highest
+        # orphan consumed so the gross back-walk starts ABOVE it (never mistakes
+        # the orphan provision values for the gross row).
+        prov_top = i
+        if len(nums) < 3:
+            absorbed: list[str] = []
+            for j in range(i - 1, block_lo - 1, -1):
+                cand = lines[j].strip()
+                # Stop at any line carrying letters (a labelled row: gross /
+                # net / movement) — the orphan is pure digits + separators.
+                if re.search(r"[A-Za-zÇĞİÖŞÜçğıöşü]", cand):
+                    break
+                cnums = _NUM.findall(cand)
+                if not cnums:
+                    break
+                absorbed = cnums + absorbed
+                prov_top = j
+                if len(nums) + len(absorbed) >= 3:
+                    break
+            nums = absorbed + nums
+        if len(nums) < 3:
+            continue
         # The row label "Karşılık (-)" / "Provision (-)" already encodes that
         # values are deductions. Some banks (KLNMA / PASHA) ALSO write the
         # numbers in accounting parentheses, so parse_num returns negatives —
@@ -887,7 +946,9 @@ def _extract_npl_brsa_from_page(page_num: int, page_text: str) -> list[StageRow]
         # whose values sum to the LARGEST magnitude: the parent row equals
         # the sum of its sub-rows so it always has the largest values.
         gross_candidates: list[list[float | None]] = []
-        for j in range(i - 1, block_lo - 1, -1):
+        # Start above any orphan provision lines we absorbed (prov_top ≤ i) so
+        # the orphan's bare values can't be mistaken for the gross row.
+        for j in range(prov_top - 1, block_lo - 1, -1):
             cand = lines[j].strip()
             if not _NPL_DATA_ROW_FILTER.search(cand):
                 continue
@@ -1474,16 +1535,32 @@ def extract_from_pdf(
                 _extract_loans_by_stage_from_page(i, text, allow_total_drop=True)
             )
 
-    # Choose the NPL source: template if it found a gross row, else regex.
+    # Choose the NPL source. Prefer the template (precise, label-anchored) — but
+    # only when it captured the CURRENT-period gross, the analytically critical
+    # Stage-3 figure. A template can partially succeed: it anchors gross→
+    # provision→net by exact labels, so a single period whose provision row is
+    # split across y-bands (VAKIFK 2023Q2 current "Karşılık (-)") or whose label
+    # drifted yields ONLY the other period's gross — and, since the old rule used
+    # template the moment it found ANY gross, that lone wrong-period row
+    # suppressed the more-complete regex result and the dedup dropped the real
+    # current Stage-3. So: use the template iff it has a CURRENT gross; else,
+    # if the regex path found a current gross the template missed, use regex.
+    def _has_current_gross(rows: list[StageRow]) -> bool:
+        return any(r.section == "npl_brsa_gross" and r.period_type == "current"
+                   for r in rows)
+
     tmpl_has_gross = any(r.section == "npl_brsa_gross" for r in npl_tmpl)
-    if tmpl_has_gross:
+    use_template = tmpl_has_gross and (
+        _has_current_gross(npl_tmpl) or not _has_current_gross(npl_regex))
+    if use_template:
         rep.rows.extend(npl_tmpl)
     else:
         if template is not None and npl_regex:
             _log.warning(
-                "%s: template NPL extraction found no gross row; using regex "
-                "fallback (template may be stale — check labels in "
-                "audit_templates.json).", bank_ticker or _infer_ticker(pdf_path),
+                "%s: template NPL extraction missing the current-period gross "
+                "row; using regex fallback (template may be stale or the "
+                "provision row is split — check labels in audit_templates.json).",
+                bank_ticker or _infer_ticker(pdf_path),
             )
         rep.rows.extend(npl_regex)
     # Keep the first row per (section, period_type); later same-key matches are
