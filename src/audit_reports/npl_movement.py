@@ -152,7 +152,9 @@ _HEADING_RX = re.compile(
 )
 # Group-column header (3 columns, Roman III/IV/V or Group/Grup variants).
 _GROUPS_RX = re.compile(
-    r"(?:III\.\s*(?:Group|Grup).{0,80}?IV\.\s*(?:Group|Grup).{0,80}?V\.\s*(?:Group|Grup)|"
+    # ODEA labels the III/IV/V NPL groups "III. Aşama / IV. Aşama / V. Aşama"
+    # (Stage, not Grup) — same buckets, different word.
+    r"(?:III\.\s*(?:Group|Grup|Aşama).{0,80}?IV\.\s*(?:Group|Grup|Aşama).{0,80}?V\.\s*(?:Group|Grup|Aşama)|"
     r"Group\s*III.{0,80}?Group\s*IV.{0,80}?Group\s*V)",
     re.IGNORECASE | re.DOTALL,
 )
