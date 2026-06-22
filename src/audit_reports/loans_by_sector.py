@@ -75,6 +75,7 @@ _SECTOR_LABELS: list[tuple[str, str]] = [
     # The Turkish "Sanayi" sometimes appears as a group header (sum-row);
     # we still capture it under a distinct key so it's separable.
     ("manufacturing", "mfg_total"),
+    ("industry", "mfg_total"),  # ISCTR's sector-2 parent is "Industry", not "Manufacturing"
     ("sanayi", "mfg_total"),
     # --- Construction (no sub) --------------------------------------------
     ("construction", "construction"),
@@ -140,8 +141,15 @@ _HEADING_PATTERNS = [
         # "Information" prefix) or the equity-investment one (excluded separately).
         r"(?:Information\s+(?:by|on|according\s+to)\s+(?:major\s+)?sectors?|"
         r"major\s+sectors?\s+(?:or|and)\s+type\s+of\s+counterparties?|"
+        # ISCTR/SKBNK: "Information According to (Type of) Counterparty of/and
+        # (Major) Sectors" — counterparty between "according to" and "sectors".
+        r"Information\s+according\s+to\s+(?:type\s+of\s+)?counterpart\w*\s+(?:of|and)\s+(?:major\s+)?sectors?|"
+        # ISCTR/EMLAK/ALBRK header variant "(Significant/Major) Sectors / Counterparty"
+        # — ALBRK prints it bare ("Sectors / Counterparties"), prefix optional.
+        r"(?:significant\s+|major\s+)?sectors?\s*/\s*counter|"
         r"sectoral\s+concentration\s+of\s+(?:cash\s+)?loans?|"
-        r"Önemli\s+Sektörlere|"
+        # "Önemli Sektörler" (EMLAK "…Sektörler/Karşı Taraflar") + "…Sektörlere".
+        r"Önemli\s+Sektörler|"
         r"sektörlere?\s+göre\s+kırılım)",
         re.IGNORECASE,
     ),
@@ -358,6 +366,9 @@ def _extract_section_xy(page_idx: int, lines: list[list[tuple[float, float, str]
             continue
         clean = re.sub(r"^(?:\(\w\)|[\w.]{1,5})[.\)]\s+", "", text)
         clean = re.sub(r"^\(\d+\)\s+", "", clean)
+        # VAKIFK/ANADOLU/TFKB number their sector rows "1 Tarım" / "2.2 İmalat"
+        # — a bare index with NO trailing dot, which the rules above leave intact.
+        clean = re.sub(r"^\d+(?:\.\d+)*\s+", "", clean)
         sector_key = None
         for lbl, key in _SECTOR_LABELS_SORTED:
             if clean.lower().startswith(lbl):
@@ -428,6 +439,8 @@ def _extract_section(page_idx: int, text: str) -> list[SectorRow]:
         ln_clean = re.sub(r"^(?:\(\w\)|\w{1,3})[\.\)]\s+", "", ln)
         # Strip leading footnote refs
         ln_clean = re.sub(r"^\(\d+\)\s+", "", ln_clean)
+        # TFKB numbers its rows "1 Tarım" / "2.2 İmalat" — a bare index, no dot.
+        ln_clean = re.sub(r"^\d+(?:\.\d+)*\s+", "", ln_clean)
         # Attempt to locate three trailing numbers
         m_nums = _THREE_NUMS_TAIL.search(ln_clean)
         if not m_nums:
@@ -468,8 +481,8 @@ def _extract_section(page_idx: int, text: str) -> list[SectorRow]:
 
 
 def _page_has_sector_heading(text: str) -> bool:
-    if _NONCASH_HINTS.search(text) or _WRONG_TABLE_HINTS.search(text):
-        # Page is about non-cash loans or investments-by-sector, not what we want.
+    if _WRONG_TABLE_HINTS.search(text):
+        # Page is the investments-by-sector footnote, not what we want.
         return False
     return any(rx.search(text) for rx in _HEADING_PATTERNS)
 
@@ -509,8 +522,16 @@ def extract_from_pdf(
                 else (pdf.pages[i - 1].extract_text() or ""))
         if not _page_has_sector_heading(text):
             continue
-        if use_fitz:
-            xy = _extract_section_xy(i, _xy_lines(pdf_path, i - 1))
+        lines = _xy_lines(pdf_path, i - 1) if use_fitz else None
+        # Non-cash sector table: skip — UNLESS the page also carries the cash
+        # table's Stage 2/3 LOAN columns. ANADOLU mentions "gayri nakdi krediler"
+        # in a sector ROW of the cash table, which must not exclude the page.
+        if _NONCASH_HINTS.search(text):
+            s2, s3 = _stage_col_x(lines) if lines else (None, None)
+            if s2 is None or s3 is None:
+                continue
+        if use_fitz and lines is not None:
+            xy = _extract_section_xy(i, lines)
             if xy:
                 xy_rows.extend(xy)
         txt_rows.extend(_extract_section(i, text))
