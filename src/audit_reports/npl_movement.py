@@ -141,6 +141,11 @@ _HEADING_RX = re.compile(
     r"(?:Movements?\s+in\s+non[-\s]?performing\s+loans?(?:\s+groups?)?|"
     r"movements?\s+of\s+(?:total\s+)?non[-\s]?performing\s+loans?|"
     r"information\s+on\s+the\s+movement\s+of\s+(?:total\s+)?non[-\s]?performing\s+loans?|"
+    # TSKB unconsolidated titles the movement table "Information on TOTAL
+    # non-performing loans (net)" — the "total" keeps it off the plain
+    # "Information on non-performing loans (net)" sub-category table; GROUPS +
+    # the flow-row labels in _extract_from_block screen out any false hit.
+    r"information\s+on\s+total\s+non[-\s]?performing\s+loans?|"
     r"(?:toplam\s+)?donuk\s+alacak\s+hareketlerine|"
     r"takipteki\s+kredilerin\s+hareketleri)",
     re.IGNORECASE,
