@@ -9352,6 +9352,200 @@
           "amount": 3465341
         }
       ]
+    },
+    {
+      "bank": "FIBA",
+      "period": "2023Q3",
+      "kind": "consolidated",
+      "statement": "cash_flow",
+      "total_name": "Dönem Sonundaki Nakit ve Nakde Eşdeğer Varlıklar",
+      "rows": [
+        {
+          "h": "A.",
+          "name": "BANKACILIK FAALİYETLERİNE İLİŞKİN NAKİT AKIŞLARI",
+          "amount": null
+        },
+        {
+          "h": "1.1",
+          "name": "Bankacılık Faaliyet Konusu Aktif ve Pasiflerdeki Değişim Öncesi Faaliyet Kârı",
+          "amount": 4909538
+        },
+        {
+          "h": "1.1.1",
+          "name": "Alınan Faizler (+)",
+          "amount": 6882775
+        },
+        {
+          "h": "1.1.2",
+          "name": "Ödenen Faizler (-)",
+          "amount": -6547020
+        },
+        {
+          "h": "1.1.3",
+          "name": "Alınan Ücret ve Komisyonlar (+)",
+          "amount": 2930859
+        },
+        {
+          "h": "1.1.4",
+          "name": "Elde Edilen Diğer Kazançlar (+)",
+          "amount": 8298398
+        },
+        {
+          "h": "1.1.5",
+          "name": "Zarar Olarak Muhasebeleştirilen Donuk Alacaklardan Tahsilatlar (+)",
+          "amount": 349449
+        },
+        {
+          "h": "1.1.6",
+          "name": "Personele ve Hizmet Tedarik Edenlere Yapılan Nakit Ödemeler (-)",
+          "amount": -2800804
+        },
+        {
+          "h": "1.1.7",
+          "name": "Ödenen Vergiler (-)",
+          "amount": -240742
+        },
+        {
+          "h": "1.1.8",
+          "name": "Diğer (+/-)",
+          "amount": -3963377
+        },
+        {
+          "h": "1.2",
+          "name": "Bankacılık Faaliyetleri Konusu Varlık ve Yükümlülüklerdeki Değişim",
+          "amount": 5983220
+        },
+        {
+          "h": "1.2.1",
+          "name": "Gerçeğe Uygun Değer Farkı K/Z a Yansıtılan FV larda Net (Artış) Azalış (+/-)",
+          "amount": -871506
+        },
+        {
+          "h": "1.2.2",
+          "name": "Bankalar Hesabındaki Net (Artış) Azalış (+/-)",
+          "amount": -2344665
+        },
+        {
+          "h": "1.2.3",
+          "name": "Kredilerdeki Net (Artış) Azalış (+/-)",
+          "amount": -7124735
+        },
+        {
+          "h": "1.2.4",
+          "name": "Diğer Varlıklarda Net (Artış) Azalış (+/-)",
+          "amount": -295015
+        },
+        {
+          "h": "1.2.5",
+          "name": "Bankaların Mevduatlarında Net Artış (Azalış) (+/-)",
+          "amount": 228446
+        },
+        {
+          "h": "1.2.6",
+          "name": "Diğer Mevduatlarda Net Artış (Azalış) (+/-)",
+          "amount": 10378866
+        },
+        {
+          "h": "1.2.7",
+          "name": "Alınan Kredilerdeki Net Artış (Azalış) (+/-)",
+          "amount": -538233
+        },
+        {
+          "h": "1.2.8",
+          "name": "Vadesi Gelmiş Borçlarda Net Artış (Azalış) (+/-)",
+          "amount": null
+        },
+        {
+          "h": "1.2.9",
+          "name": "Diğer Borçlarda Net Artış (Azalış) (+/-)",
+          "amount": 6550062
+        },
+        {
+          "h": "I.",
+          "name": "Bankacılık Faaliyetlerinden Kaynaklanan Net Nakit Akışı",
+          "amount": 10892758
+        },
+        {
+          "h": "B.",
+          "name": "YATIRIM FAALİYETLERİNE İLİŞKİN NAKİT AKIŞLARI",
+          "amount": null
+        },
+        {
+          "h": "II.",
+          "name": "Yatırım Faaliyetlerinden Kaynaklanan Net Nakit Akışı",
+          "amount": -3822479
+        },
+        {
+          "h": "2.1",
+          "name": "Satın Alınan Menkuller ve Gayrimenkuller",
+          "amount": -139640
+        },
+        {
+          "h": "2.2",
+          "name": "Elden Çıkarılan Menkul ve Gayrimenkuller",
+          "amount": 52113
+        },
+        {
+          "h": "2.3",
+          "name": "Elde Edilen Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılan Finansal Varlıklar",
+          "amount": -2648043
+        },
+        {
+          "h": "2.4",
+          "name": "Satın Alınan İtfa Edilmiş Maliyeti ile Ölçülen Finansal Varlıklar",
+          "amount": -635920
+        },
+        {
+          "h": "2.5",
+          "name": "Diğer (+/-)",
+          "amount": -330421
+        },
+        {
+          "h": "C.",
+          "name": "FİNANSMAN FAALİYETLERİNE İLİŞKİN NAKİT AKIŞLARI",
+          "amount": null
+        },
+        {
+          "h": "III.",
+          "name": "Finansman Faaliyetlerinden Sağlanan Net Nakit",
+          "amount": -4832643
+        },
+        {
+          "h": "3.1",
+          "name": "Krediler ve İhraç Edilen Menkul Değerlerden Kaynaklanan Nakit",
+          "amount": -4810878
+        },
+        {
+          "h": "3.2",
+          "name": "Kiralamaya İlişkin Ödemeler (-)",
+          "amount": -26079
+        },
+        {
+          "h": "3.3",
+          "name": "Diğer (+/-)",
+          "amount": 4314
+        },
+        {
+          "h": "IV.",
+          "name": "Yabancı Para Çevrim Farklarının Nakit ve Nakde Eşdeğer Varlıklar Üzerindeki Etkisi (+/-)",
+          "amount": 5483122
+        },
+        {
+          "h": "V.",
+          "name": "Nakit ve Nakde Eşdeğer Varlıklardaki Net Artış (Azalış) (+/-)",
+          "amount": 7720758
+        },
+        {
+          "h": "VI.",
+          "name": "Dönem Başındaki Nakit ve Nakde Eşdeğer Varlıklar",
+          "amount": 15333648
+        },
+        {
+          "h": "VII.",
+          "name": "Dönem Sonundaki Nakit ve Nakde Eşdeğer Varlıklar",
+          "amount": 23054406
+        }
+      ]
     }
   ]
 }
