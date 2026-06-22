@@ -59,10 +59,14 @@ def _load_not_disclosed() -> tuple[set, set]:
     specific, all_noncore = set(), set()
     for e in entries:
         key = (e["bank"], e["period"], e["kind"])
-        if e.get("statement") == "*":
+        st = e.get("statement")
+        if st == "*":
             all_noncore.add(key)
+        elif isinstance(st, list):
+            for s in st:
+                specific.add((*key, s))
         else:
-            specific.add((*key, e["statement"]))
+            specific.add((*key, st))
     return specific, all_noncore
 COVERAGE_TABLES = ["bank_audit_expected", "bank_audit_statement_types", "bank_audit_coverage"]
 
