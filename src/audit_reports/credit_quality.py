@@ -614,14 +614,29 @@ def _extract_pl_expense_from_page(page_num: int, page_text: str) -> list[StageRo
 #                                         sub-labels make these the SAME Group
 #                                         III/IV/V NPL buckets, NOT IFRS stages
 #                                         (which use Arabic "Aşama 1/2/3")).
+#   "Group III Group IV. Group V" / "Group III Group IV, Group V"  (BURGAN cons
+#                                         2022Q1/Q2 — the source text layer
+#                                         appends a stray '.' or ',' AFTER the
+#                                         middle Roman numeral on the NPL-
+#                                         movement table's header, so the
+#                                         numeral-LAST "Group <num>" branch must
+#                                         tolerate a trailing [.,]. Without it
+#                                         _NPL_HEADER_PAT failed on the whole
+#                                         page and the real total NPL table
+#                                         (movement: Balance/Specific Provision/
+#                                         Net) was never scanned — only the
+#                                         clean-header FC-only + borrower-type
+#                                         tables on the *following* page matched).
 # The space between "Group" and the Roman numeral is \s* (not \s+) because
 # pdfplumber sometimes renders the header with no space ("GroupIII"). "Aşama"
 # is accepted ONLY in the numeral-FIRST form (III. Aşama) so we never collide
-# with the Arabic IFRS-stage header "1. Aşama / 2. Aşama / 3. Aşama".
+# with the Arabic IFRS-stage header "1. Aşama / 2. Aşama / 3. Aşama". The
+# trailing [.,]? on the numeral-LAST form stays a single optional punctuation
+# char (not a digit), so it can't swallow the IFRS "1./2./3." header either.
 _NPL_HEADER_PAT = re.compile(
-    r"(?:Group\s*III|III\.?\s*(?:Group|Grup|Aşama):?)"
-    r"\s*(?:Group\s*IV|IV\.?\s*(?:Group|Grup|Aşama):?)"
-    r"\s*(?:Group\s*V|V\.?\s*(?:Group|Grup|Aşama):?)",
+    r"(?:Group\s*III[.,]?|III\.?\s*(?:Group|Grup|Aşama):?)"
+    r"\s*(?:Group\s*IV[.,]?|IV\.?\s*(?:Group|Grup|Aşama):?)"
+    r"\s*(?:Group\s*V[.,]?|V\.?\s*(?:Group|Grup|Aşama):?)",
     re.IGNORECASE,
 )
 
@@ -657,9 +672,9 @@ _NPL_PROVISION_ROW = re.compile(
 # Group↔numeral gap is \s* (pdfplumber may drop it); the gaps BETWEEN the
 # three group tokens stay \s+ so we don't match a single run-together word.
 _NPL_HEADER_LINE = re.compile(
-    r"^\s*(?:Group\s*III|III\.?\s*(?:Group|Grup|Aşama):?)"
-    r"\s+(?:Group\s*IV|IV\.?\s*(?:Group|Grup|Aşama):?)"
-    r"\s+(?:Group\s*V|V\.?\s*(?:Group|Grup|Aşama):?)",
+    r"^\s*(?:Group\s*III[.,]?|III\.?\s*(?:Group|Grup|Aşama):?)"
+    r"\s+(?:Group\s*IV[.,]?|IV\.?\s*(?:Group|Grup|Aşama):?)"
+    r"\s+(?:Group\s*V[.,]?|V\.?\s*(?:Group|Grup|Aşama):?)",
     re.IGNORECASE,
 )
 # A row qualifies as "data" if it has at least 3 numeric tokens with thousands
