@@ -1187,10 +1187,18 @@ def _locate_cash_flow_page(pdf, start_page_idx_1: int | None) -> int | None:
                  "STATEMENTOFCASHFLOW")
     # Equity-change pages must NOT be confused with cash flow pages.
     _EQ_NORMS = ("OZKAYNAKDEGISIM", "CHANGESINSHAREHOLDERS", "CHANGESINEQUITY")
+    # Content fallback: some reports (EXIM, English) carry the CF data rows on a
+    # page whose text omits the "Statement of Cash Flows" title (it sits in a
+    # running header that pdfplumber drops). The CF statement is uniquely the page
+    # that pairs an operating-activities section with an investing-activities one.
+    _cf_op = re.compile(r"operating\s+(?:activit|profit)|i[şs]letme\s+faaliyet|"
+                        r"bankac[ıi]l[ıi]k\s+faaliyet|esas\s+faaliyet", re.IGNORECASE)
+    _cf_inv = re.compile(r"investing\s+activit|yat[ıi]r[ıi]m\s+faaliyet", re.IGNORECASE)
     for i in range(start_page_idx_1 + 1, min(start_page_idx_1 + 9, _n_pages(pdf) + 1)):
         text = _page_text(pdf, i)
         norm = _norm(text)
-        if not any(kw in norm for kw in _CF_NORMS):
+        if not (any(kw in norm for kw in _CF_NORMS)
+                or (_cf_op.search(text) and _cf_inv.search(text))):
             continue
         # Skip pages dominated by an equity-change anchor — these are mis-detections
         # caused by banks that combine equity and CF content on the same page or by
