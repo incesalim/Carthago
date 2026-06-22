@@ -96,6 +96,23 @@ _OCI_SKIP = frozenset({
     ("ATBANK", "2023Q4", "unconsolidated"),
 })
 
+# loans-by-sector partitions whose Σ-sectors=total footing is GENUINELY uncheckable
+# because of how the bank discloses the table — verified against the PDF (a skip is
+# NEVER for a dropped/wrong extraction). ATBANK prints the IFRS-9 sector table
+# (Stage-2 "İkinci Aşama" / Stage-3 "Üçüncü Aşama" columns, faithfully extracted per
+# sector) but omits the closing "Toplam" row entirely — the table ends at "Diğer" and
+# the next page goes straight to the provision-movement note — so there is no total to
+# foot against. (ALNTF, the other gap, uses the legacy past-due schema with NO
+# Stage-2/Stage-3 by sector; the extractor now skips that page, leaving 0 rows → the
+# validator skips naturally and the cell is marked not_expected in
+# data/audit_not_disclosed.json. So ALNTF needs no entry here.)
+_LBS_SKIP = frozenset({
+    ("ATBANK", "2022Q4", "consolidated"), ("ATBANK", "2022Q4", "unconsolidated"),
+    ("ATBANK", "2023Q4", "consolidated"), ("ATBANK", "2023Q4", "unconsolidated"),
+    ("ATBANK", "2024Q4", "consolidated"), ("ATBANK", "2024Q4", "unconsolidated"),
+    ("ATBANK", "2025Q4", "consolidated"), ("ATBANK", "2025Q4", "unconsolidated"),
+})
+
 
 def _has_table(conn: sqlite3.Connection, name: str) -> bool:
     return conn.execute(
@@ -295,7 +312,9 @@ def revalidate_partition(conn, bank: str, period: str, kind: str) -> dict[str, "
              "V": _gross.get("stage3_amount")} if _gross else None)
     results["npl_movement"]   = v.check_npl_movement(
         _npl_movement_rows(conn, bank, period, kind), gross_by_group=_gbg)
-    results["loans_by_sector"] = v.check_loans_by_sector(_loans_sector_rows(conn, bank, period, kind))
+    results["loans_by_sector"] = (
+        _skip_result() if (bank, period, kind) in _LBS_SKIP
+        else v.check_loans_by_sector(_loans_sector_rows(conn, bank, period, kind)))
     return results
 
 

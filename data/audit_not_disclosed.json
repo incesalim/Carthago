@@ -8,6 +8,14 @@
     {"bank": "FIBA", "period": "2023Q3", "kind": "consolidated", "statement": ["npl_movement", "credit_quality", "stages"], "note": "Q3 interim abbreviates the credit-risk footnotes (no NPL-movement / stage tables, prose only)"},
     {"bank": "FIBA", "period": "2024Q1", "kind": "consolidated", "statement": ["npl_movement", "credit_quality", "stages"], "note": "Q1 interim abbreviates the credit-risk footnotes (no NPL-movement / stage tables, prose only)"},
     {"bank": "FIBA", "period": "2025Q3", "kind": "consolidated", "statement": ["npl_movement", "credit_quality", "stages"], "note": "Q3 interim abbreviates the credit-risk footnotes (no NPL-movement / stage tables, prose only)"},
-    {"bank": "FIBA", "period": "2025Q3", "kind": "unconsolidated", "statement": ["npl_movement", "credit_quality", "stages"], "note": "Q3 interim abbreviates the credit-risk footnotes (no NPL-movement / stage tables, prose only)"}
+    {"bank": "FIBA", "period": "2025Q3", "kind": "unconsolidated", "statement": ["npl_movement", "credit_quality", "stages"], "note": "Q3 interim abbreviates the credit-risk footnotes (no NPL-movement / stage tables, prose only)"},
+    {"bank": "ALNTF", "period": "2022Q4", "kind": "consolidated", "statement": "loans_by_sector", "note": "Sector table uses the legacy pre-IFRS-9 schema (Değer Kaybına Uğramış / Tahsili Gecikmiş / Değer Ayarlamaları / Karşılıklar) — it does NOT break Stage-2/Stage-3 out by sector, so this Stage-by-sector lane is genuinely not disclosed. Extractor skips the page rather than fabricate stage values."},
+    {"bank": "ALNTF", "period": "2022Q4", "kind": "unconsolidated", "statement": "loans_by_sector", "note": "Legacy past-due sector schema, no Stage-2/Stage-3 by sector (see consolidated)."},
+    {"bank": "ALNTF", "period": "2023Q4", "kind": "consolidated", "statement": "loans_by_sector", "note": "Legacy past-due sector schema, no Stage-2/Stage-3 by sector (see 2022Q4)."},
+    {"bank": "ALNTF", "period": "2023Q4", "kind": "unconsolidated", "statement": "loans_by_sector", "note": "Legacy past-due sector schema, no Stage-2/Stage-3 by sector (see 2022Q4)."},
+    {"bank": "ALNTF", "period": "2024Q4", "kind": "consolidated", "statement": "loans_by_sector", "note": "Legacy past-due sector schema, no Stage-2/Stage-3 by sector (see 2022Q4)."},
+    {"bank": "ALNTF", "period": "2024Q4", "kind": "unconsolidated", "statement": "loans_by_sector", "note": "Legacy past-due sector schema, no Stage-2/Stage-3 by sector (see 2022Q4)."},
+    {"bank": "ALNTF", "period": "2025Q4", "kind": "consolidated", "statement": "loans_by_sector", "note": "Legacy past-due sector schema, no Stage-2/Stage-3 by sector (see 2022Q4)."},
+    {"bank": "ALNTF", "period": "2025Q4", "kind": "unconsolidated", "statement": "loans_by_sector", "note": "Legacy past-due sector schema, no Stage-2/Stage-3 by sector (see 2022Q4)."}
   ]
 }
