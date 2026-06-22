@@ -50,6 +50,14 @@
   --warning: oklch(0.62 0.13 70);
   --info: oklch(0.55 0.13 248);
 
+  /* Cross-bank heatmap ramp — tuned independently of the semantic +/- tones:
+     a purer green (less olive than --positive), a slightly softer red, and a
+     low-chroma slate for the neutral (size / valuation) columns so they read as
+     plain "intensity" instead of a competing third hue. */
+  --heat-pos: oklch(0.64 0.15 150);
+  --heat-neg: oklch(0.62 0.17 27);
+  --heat-neutral: oklch(0.6 0.02 255);
+
   /* Categorical chart palette (brand-led). */
   --chart-1: #7a0d2e;
   --chart-2: #1f4068;
@@ -89,6 +97,10 @@
   --negative: oklch(0.68 0.18 22);
   --warning: oklch(0.78 0.14 78);
   --info: oklch(0.7 0.13 248);
+
+  --heat-pos: oklch(0.72 0.15 152);
+  --heat-neg: oklch(0.7 0.17 25);
+  --heat-neutral: oklch(0.7 0.02 255);
 
   --chart-1: #f0608a;
   --chart-2: #6f9fe0;

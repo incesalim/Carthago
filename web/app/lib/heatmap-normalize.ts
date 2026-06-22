@@ -58,24 +58,28 @@ export function normalizeColumn(
 /**
  * Map a 0..1 score to a theme-aware CSS color string.
  *  - directional (default): green above the midpoint, red below, intensity
- *    growing with distance from 0.5. Mix % capped at 70 so --foreground text
- *    stays legible on the strongest cells.
- *  - neutral: a single-hue --info ramp (size / ambiguous metrics aren't
- *    good-or-bad, so no green↔red).
- * Null score → "transparent" (the cell renders a muted "—").
+ *    growing with distance from 0.5. Mix % capped low (≤42) so mid-rank cells
+ *    stay near-white and only genuine leaders/laggards read strongly — the grid
+ *    breathes instead of flooding, and --foreground text stays legible.
+ *  - neutral: a quiet low-chroma slate ramp (size / valuation metrics aren't
+ *    good-or-bad, so no green↔red — and deliberately NOT a saturated hue, so it
+ *    doesn't compete with the directional columns).
+ * Uses the dedicated --heat-* tokens (purer green / softer red / slate), which
+ * track light & dark via globals.css. Null score → "transparent" (cell shows a
+ * muted "—").
  */
 export function scoreToColor(score: number | null, neutral = false): string {
   if (score == null) return "transparent";
   if (neutral) {
-    const pct = Math.min(55, Math.max(0, score * 55));
-    return `color-mix(in oklch, var(--info) ${pct}%, var(--card))`;
+    const pct = Math.min(30, Math.max(0, score * 30));
+    return `color-mix(in oklch, var(--heat-neutral) ${pct}%, var(--card))`;
   }
   if (score >= 0.5) {
-    const pct = Math.min(70, (score - 0.5) * 140);
-    return `color-mix(in oklch, var(--positive) ${pct}%, var(--card))`;
+    const pct = Math.min(42, (score - 0.5) * 84);
+    return `color-mix(in oklch, var(--heat-pos) ${pct}%, var(--card))`;
   }
-  const pct = Math.min(70, (0.5 - score) * 140);
-  return `color-mix(in oklch, var(--negative) ${pct}%, var(--card))`;
+  const pct = Math.min(42, (0.5 - score) * 84);
+  return `color-mix(in oklch, var(--heat-neg) ${pct}%, var(--card))`;
 }
 
 /**
