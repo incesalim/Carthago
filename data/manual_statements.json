@@ -11084,11 +11084,109 @@
           "total": 82035253
         },
         {
+          "h": "1.1",
+          "name": "Teminat Mektupları",
+          "tl": null,
+          "fc": null,
+          "total": 811129
+        },
+        {
+          "h": "1.1.3",
+          "name": "Diğer Teminat Mektupları",
+          "tl": null,
+          "fc": null,
+          "total": 811129
+        },
+        {
+          "h": "1.2",
+          "name": "Banka Kredileri",
+          "tl": null,
+          "fc": null,
+          "total": 129806
+        },
+        {
+          "h": "1.2.1",
+          "name": "İthalat Kabul Kredileri",
+          "tl": null,
+          "fc": null,
+          "total": 129806
+        },
+        {
+          "h": "1.3",
+          "name": "Akreditifler",
+          "tl": null,
+          "fc": null,
+          "total": 109700
+        },
+        {
+          "h": "1.3.1",
+          "name": "Belgeli Akreditifler",
+          "tl": null,
+          "fc": null,
+          "total": 109700
+        },
+        {
           "h": "I.",
           "name": "GARANTİ VE KEFALETLER",
           "tl": null,
           "fc": null,
           "total": 1050635
+        },
+        {
+          "h": "2.1",
+          "name": "Cayılamaz Taahhütler",
+          "tl": null,
+          "fc": null,
+          "total": 8975357
+        },
+        {
+          "h": "2.1.1",
+          "name": "Vadeli Aktif Değerler Alım Satım Taahhütleri",
+          "tl": null,
+          "fc": null,
+          "total": 6211561
+        },
+        {
+          "h": "2.1.4",
+          "name": "Kul. Gar. Kredi Tahsis Taahhütleri",
+          "tl": null,
+          "fc": null,
+          "total": 2395471
+        },
+        {
+          "h": "2.1.7",
+          "name": "Çekler İçin Ödeme Taahhütleri",
+          "tl": null,
+          "fc": null,
+          "total": 322960
+        },
+        {
+          "h": "2.1.8",
+          "name": "İhracat Taahhütlerinden Kaynaklanan Vergi ve Fon Yükümlülükleri",
+          "tl": null,
+          "fc": null,
+          "total": 11193
+        },
+        {
+          "h": "2.1.9",
+          "name": "Kredi Kartı Harcama Limit Taahhütleri",
+          "tl": null,
+          "fc": null,
+          "total": 28760
+        },
+        {
+          "h": "2.1.10",
+          "name": "Kredi Kartları ve Bankacılık Hizmetlerine İlişkin Promosyon Uyg. Taah.",
+          "tl": null,
+          "fc": null,
+          "total": 15
+        },
+        {
+          "h": "2.1.13",
+          "name": "Diğer Cayılamaz Taahhütler",
+          "tl": null,
+          "fc": null,
+          "total": 5397
         },
         {
           "h": "II.",
@@ -11112,11 +11210,81 @@
           "total": 414045297
         },
         {
+          "h": "4.1",
+          "name": "Müşteri Fon ve Portföy Mevcutları",
+          "tl": null,
+          "fc": null,
+          "total": 2626347
+        },
+        {
+          "h": "4.2",
+          "name": "Emanete Alınan Menkul Değerler",
+          "tl": null,
+          "fc": null,
+          "total": 3998406
+        },
+        {
+          "h": "4.3",
+          "name": "Tahsile Alınan Çekler",
+          "tl": null,
+          "fc": null,
+          "total": 1284595
+        },
+        {
+          "h": "4.4",
+          "name": "Tahsile Alınan Ticari Senetler",
+          "tl": null,
+          "fc": null,
+          "total": 135046
+        },
+        {
+          "h": "4.7",
+          "name": "Diğer Emanet Kıymetler",
+          "tl": null,
+          "fc": null,
+          "total": 15256899
+        },
+        {
           "h": "IV.",
           "name": "EMANET KIYMETLER",
           "tl": null,
           "fc": null,
           "total": 23301293
+        },
+        {
+          "h": "5.1",
+          "name": "Menkul Kıymetler",
+          "tl": null,
+          "fc": null,
+          "total": 648287
+        },
+        {
+          "h": "5.2",
+          "name": "Teminat Senetleri",
+          "tl": null,
+          "fc": null,
+          "total": 479154
+        },
+        {
+          "h": "5.3",
+          "name": "Emtia",
+          "tl": null,
+          "fc": null,
+          "total": 129682
+        },
+        {
+          "h": "5.5",
+          "name": "Gayrimenkul",
+          "tl": null,
+          "fc": null,
+          "total": 36918120
+        },
+        {
+          "h": "5.6",
+          "name": "Diğer Rehinli Kıymetler",
+          "tl": null,
+          "fc": null,
+          "total": 352568761
         },
         {
           "h": "V.",
@@ -11599,10 +11767,52 @@
         },
         {
           "h": "I.",
-          "name": "GARANTİ VE KEFALETLER",
+          "name": "GARANTİ ve KEFALETLER",
           "tl": null,
           "fc": null,
           "total": 1273563
+        },
+        {
+          "h": "1.1",
+          "name": "Teminat Mektupları",
+          "tl": null,
+          "fc": null,
+          "total": 1115875
+        },
+        {
+          "h": "1.1.3",
+          "name": "Diğer Teminat Mektupları",
+          "tl": null,
+          "fc": null,
+          "total": 1115875
+        },
+        {
+          "h": "1.2",
+          "name": "Banka Kredileri",
+          "tl": null,
+          "fc": null,
+          "total": 55231
+        },
+        {
+          "h": "1.2.1",
+          "name": "İthalat Kabul Kredileri",
+          "tl": null,
+          "fc": null,
+          "total": 55231
+        },
+        {
+          "h": "1.3",
+          "name": "Akreditifler",
+          "tl": null,
+          "fc": null,
+          "total": 102457
+        },
+        {
+          "h": "1.3.1",
+          "name": "Belgeli Akreditifler",
+          "tl": null,
+          "fc": null,
+          "total": 102457
         },
         {
           "h": "II.",
@@ -11610,6 +11820,62 @@
           "tl": null,
           "fc": null,
           "total": 18490806
+        },
+        {
+          "h": "2.1",
+          "name": "Cayılamaz Taahhütler",
+          "tl": null,
+          "fc": null,
+          "total": 18490806
+        },
+        {
+          "h": "2.1.1",
+          "name": "Vadeli Aktif Değerler Alım Satım Taahhütleri",
+          "tl": null,
+          "fc": null,
+          "total": 10116375
+        },
+        {
+          "h": "2.1.4",
+          "name": "Kul. Gar. Kredi Tahsis Taahhütleri",
+          "tl": null,
+          "fc": null,
+          "total": 7201008
+        },
+        {
+          "h": "2.1.7",
+          "name": "Çekler İçin Ödeme Taahhütleri",
+          "tl": null,
+          "fc": null,
+          "total": 684908
+        },
+        {
+          "h": "2.1.8",
+          "name": "İhracat Taahhütlerinden Kaynaklanan Vergi ve Fon Yükümlülükleri",
+          "tl": null,
+          "fc": null,
+          "total": 96855
+        },
+        {
+          "h": "2.1.9",
+          "name": "Kredi Kartı Harcama Limit Taahhütleri",
+          "tl": null,
+          "fc": null,
+          "total": 377009
+        },
+        {
+          "h": "2.1.10",
+          "name": "Kredi Kartları ve Bankacılık Hizmetlerine İlişkin Promosyon Uyg. Taah.",
+          "tl": null,
+          "fc": null,
+          "total": 23
+        },
+        {
+          "h": "2.1.13",
+          "name": "Diğer Cayılamaz Taahhütler",
+          "tl": null,
+          "fc": null,
+          "total": 14628
         },
         {
           "h": "III.",
@@ -11633,11 +11899,81 @@
           "total": 122868368
         },
         {
+          "h": "4.1",
+          "name": "Müşteri Fon ve Portföy Mevcutları",
+          "tl": null,
+          "fc": null,
+          "total": 15342472
+        },
+        {
+          "h": "4.2",
+          "name": "Emanete Alınan Menkul Değerler",
+          "tl": null,
+          "fc": null,
+          "total": 11497985
+        },
+        {
+          "h": "4.3",
+          "name": "Tahsile Alınan Çekler",
+          "tl": null,
+          "fc": null,
+          "total": 7212634
+        },
+        {
+          "h": "4.4",
+          "name": "Tahsile Alınan Ticari Senetler",
+          "tl": null,
+          "fc": null,
+          "total": 298349
+        },
+        {
+          "h": "4.7",
+          "name": "Diğer Emanet Kıymetler",
+          "tl": null,
+          "fc": null,
+          "total": 88516928
+        },
+        {
           "h": "V.",
           "name": "REHİNLİ KIYMETLER",
           "tl": null,
           "fc": null,
           "total": 794086881
+        },
+        {
+          "h": "5.1",
+          "name": "Menkul Kıymetler",
+          "tl": null,
+          "fc": null,
+          "total": 2405942
+        },
+        {
+          "h": "5.2",
+          "name": "Teminat Senetleri",
+          "tl": null,
+          "fc": null,
+          "total": 262000
+        },
+        {
+          "h": "5.3",
+          "name": "Emtia",
+          "tl": null,
+          "fc": null,
+          "total": 630006
+        },
+        {
+          "h": "5.5",
+          "name": "Gayrimenkul",
+          "tl": null,
+          "fc": null,
+          "total": 26675039
+        },
+        {
+          "h": "5.6",
+          "name": "Diğer Rehinli Kıymetler",
+          "tl": null,
+          "fc": null,
+          "total": 764113894
         },
         {
           "h": "VI.",
