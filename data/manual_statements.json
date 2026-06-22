@@ -5294,12 +5294,12 @@
         {
           "h": "IV.",
           "name": "NET ÜCRET VE KOMİSYON GELİRLERİ/GİDERLERİ",
-          "amount": 2720314
+          "amount": 2720914
         },
         {
           "h": "4.1",
           "name": "Alınan Ücret ve Komisyonlar",
-          "amount": 2889181
+          "amount": 2889781
         },
         {
           "h": "4.1.1",
@@ -5329,7 +5329,7 @@
         {
           "h": "V.",
           "name": "TEMETTÜ GELİRLERİ",
-          "amount": 24757
+          "amount": null
         },
         {
           "h": "VI.",
@@ -5379,7 +5379,7 @@
         {
           "h": "XII.",
           "name": "DİĞER FAALİYET GİDERLERİ (-)",
-          "amount": 1601581
+          "amount": 1601181
         },
         {
           "h": "XIII.",
