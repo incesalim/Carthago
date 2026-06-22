@@ -376,10 +376,17 @@ def test_capital_dropped_rwa_fails():
     assert any(f["check"] == "cap_rwa_missing" for f in res.failures)
 
 
-def test_capital_dropped_car_fails():
-    # CAR is the headline of every §4 table; NULL = dropped column → FAIL not skip.
-    res = v.check_capital([_cap_row(capital_adequacy_ratio=None)])
+def test_capital_dropped_car_not_derivable_fails():
+    # CAR null AND total_capital null = not derivable → dropped column → FAIL.
+    res = v.check_capital([_cap_row(capital_adequacy_ratio=None, total_capital=None)])
     assert any(f["check"] == "cap_car_missing" for f in res.failures)
+
+
+def test_capital_car_derivable_skips():
+    # CAR null but RWA + total_capital present → CAR = TC/RWA computable, cell
+    # complete → must NOT false-fail (banks that simply don't print the ratio line).
+    res = v.check_capital([_cap_row(capital_adequacy_ratio=None)])
+    assert not any(f["check"] == "cap_car_missing" for f in res.failures)
 
 
 # --- Liquidity validation -------------------------------------------------

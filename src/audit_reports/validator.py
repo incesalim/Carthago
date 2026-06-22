@@ -609,16 +609,18 @@ def check_capital(rows: list[dict]) -> ValidationResult:
         else:
             res.add_fail("cap_car_band", "CAR plausible band [5, 80]%",
                          expected=12.0, actual=car)
-    else:
-        # CAR is the headline of every BRSA §4 capital table — a present table
-        # (cur not None, ≥ min_rows) with a NULL CAR is a dropped column, not
-        # optional data. Every ratio reconcile + the band SKIP when CAR/RWA are
-        # null, so without this the cell passes green 'ok' on zero checks.
+    elif tc is None or rwa is None:
+        # CAR null is a dropped column UNLESS it's derivable from total_capital +
+        # RWA (both present → the cell is complete and CAR = TC/RWA*100 is
+        # computable). Fail only when it can't be derived; otherwise the band just
+        # can't run, but the cell is whole. (RWA-None also trips cap_rwa_missing.)
         res.add_fail("cap_car_missing",
-                     "capital_adequacy_ratio dropped (mandatory on §4 table)",
+                     "CAR dropped and not derivable (total_capital/RWA also NULL)",
                      expected=0.0, actual=0.0)
-    # Total RWA is the mandatory denominator of every §4 table; NULL = a dropped
-    # column (cet1/tier1/CAR reconciles all skip without it).
+    else:
+        res.add_skip()  # CAR not stored but derivable from total_capital + RWA → complete
+    # Total RWA is the mandatory, non-derivable denominator of every §4 table; NULL
+    # = a dropped column (every cet1/tier1/CAR reconcile skips without it).
     if rwa is None:
         res.add_fail("cap_rwa_missing", "total_rwa dropped (mandatory on §4 table)",
                      expected=0.0, actual=0.0)
