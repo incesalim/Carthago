@@ -532,6 +532,16 @@ def extract_from_pdf(
                 continue
         if use_fitz and lines is not None:
             xy = _extract_section_xy(i, lines)
+            # GARAN unconsolidated splits the table: the stage-column HEADER sits on
+            # this page but the sector ROWS are on the next (which has no heading, so
+            # it's skipped). If this heading page has stage columns but yielded no
+            # rows, retry with the next page's lines appended so they align to this
+            # page's columns.
+            if not xy and i < n_pages:
+                s2, s3 = _stage_col_x(lines)
+                if s2 is not None and s3 is not None:
+                    xy = _extract_section_xy(i, lines + _xy_lines(pdf_path, i))
+                    txt_rows.extend(_extract_section(i + 1, _fitz_page_text(pdf_path, i)))
             if xy:
                 xy_rows.extend(xy)
         txt_rows.extend(_extract_section(i, text))
