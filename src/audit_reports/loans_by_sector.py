@@ -166,8 +166,24 @@ _NONCASH_HINTS = re.compile(
 # the real loans table reads "according to sectors and counterparties") gets
 # grabbed instead. Exclude any page whose sector heading is about carrying
 # amounts of investments.
+#
+# WRONG table #2: the BRSA-standard "Risk Profile by Sectors or Counterparties"
+# (TR "Sektörlere veya Karşı Taraflara Göre Risk Profili") is the credit-RISK-CLASS
+# exposure breakdown — a 14-column matrix of receivable categories (Central
+# Governments, Banks, Corporate, Retail …) ending in TL / FC / Total columns, NOT
+# the loans-by-stage table. For English ISCTR reports its bare label line
+# "Sectors/Counterparty (*)" matches the slash-form heading alt above and gets
+# grabbed *instead* of the genuine "Miscellaneous Information According to Type of
+# Counterparty of Major Sectors" table (which has the Stage 2 / Stage 3 / ECL
+# columns) — the text parser then stores the trailing TL/FC/Total numbers as
+# stages → Σ sectors ≈ 2× total → footing fails. This exposure table never carries
+# Stage 2/3 columns, so excluding any page that titles itself "Risk Profile … by
+# sectors" is safe and never drops a real loans-by-stage page.
 _WRONG_TABLE_HINTS = re.compile(
-    r"carrying\s+amounts?\s+of\s+(?:(?:un)?consolidated\s+)?investments", re.IGNORECASE)
+    r"carrying\s+amounts?\s+of\s+(?:(?:un)?consolidated\s+)?investments|"
+    r"risk\s+profile\s+(?:by|according\s+to|of)\b[^\n]{0,40}?\bsector|"
+    r"sektörlere?\s+veya\s+karşı\s+tara[^\n]{0,30}?\brisk\s+profili",
+    re.IGNORECASE)
 
 
 @dataclass
