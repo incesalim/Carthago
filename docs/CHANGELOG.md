@@ -3,7 +3,30 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-06-22 — **Coverage matrix: capital, liquidity, npl_movement, loans_by_sector, stages,
+Last verified: 2026-06-22 — **Coverage matrix: ALL non-profile/non-equity cells now 0 missing.** The image-only
+tail (27 cells across 11 partitions) was cleared by **OCR transcription** — these statement pages are disclosed,
+just scanned, so they're transcribed, never marked N/A:
+- Built `scripts/ocr_statement.py` (easyocr CPU; clusters rows by y, aligns numbers to value-column x; col0 =
+  current period) + `scripts/load_partitions_batch.py` (pull snapshot once → overlay manual statements for many
+  partitions → revalidate each → push + sync + upload once).
+- **Every transcribed value is cross-checked against the statement's own arithmetic identities** (OCI I+II=III,
+  II=2.1+2.2; cash_flow I=1.1+1.2, V=I+II+III+IV, VII=V+VI; off_balance A=I+II+III, B=IV+V+VI, TOPLAM=A+B) and
+  re-read on any mismatch — nothing is stored blind. The identities caught real errors: FIBA 2023Q3 off_balance
+  had been read off the prior-period column; ISCTR's scanned image content is offset from the page text-title
+  layer; an OCR digit-slip on a CF sub-item. off_balance is stored Total-column-only (tl/fc null; ≥10 rows incl
+  sub-items per the lane's present_min_rows).
+- Done in parallel by per-partition subagents: FIBA 2022Q1 c/u, 2023Q3 c, 2024Q1 c, 2025Q3 c/u (oci+cash_flow+
+  off_balance); ISCTR 2025Q1 c, 2025Q2 u (oci+cash_flow); TFKB 2022Q3 c; ALBRK 2025Q4 c cash_flow; ATBANK
+  2025Q4 c off_balance. ALBRK/ATBANK/TFKB turned out to be TEXT pages the locator had missed (ALBRK's English CF
+  page header-bleeds "STATEMENT OF CHANGES IN EQUITY"). Loaded cells show as 'manual'.
+- *loans_by_sector — ISCTR wrong-table fix (6 annual partitions):* the corpus re-validation surfaced Σ sectors
+  ≈ 2× total because ISCTR's English reports carry two same-taxonomy sector tables and the parser grabbed the
+  credit-risk-class "Risk Profile by Sectors or Counterparties" matrix (TL/FC/Total cols, no stages) instead of
+  the genuine "Major Sectors" Stage-2/Stage-3/ECL table. `_WRONG_TABLE_HINTS` extended to skip "Risk Profile …
+  by sectors" (EN+TR); GARAN/AKBNK/YKBNK/VAKBN verified non-regressed.
+- Remaining matrix gaps: **profile 389** (deferred to last) and **equity_change 42** (out of scope).
+
+Prior: 2026-06-22 — **Coverage matrix: capital, liquidity, npl_movement, loans_by_sector, stages,
 credit_quality all driven to 0 missing.** A lane-by-lane push of real extractor fixes (no skips hiding wrong
 data; everything validated, no regressions):
 - *capital 47→0:* end-marker gated on a component being read first (ALNTF intro line); fitz wide-table fallback
