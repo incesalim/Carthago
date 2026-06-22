@@ -3,7 +3,25 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-06-22 — **Coverage matrix: ALL non-profile/non-equity cells now 0 missing.** The image-only
+Last verified: 2026-06-22 — **NPL/Stage-3 blind spot closed — the matrix stops hiding dropped columns.**
+Spotted via the Compare heatmap: EMLAK's NPL ratio was blank for 10 straight quarters (2023Q4→2026Q1) while
+its `stages` cells read green `ok`. Root cause was two-layered:
+- *Validator blind spot:* `check_stages` **skipped** every Stage-3 check when `stage3` was null, so a silently-
+  dropped NPL column still passed (S1+S2=total foots) and the coverage rollup turned "no failures" into `ok`.
+  Hardened it to **fail** on the dropped-column signature — S1/S2 present but S3 null — distinguishing it from a
+  genuine zero-NPL bank (which stores S3 = 0, not null). Guard tests added. The matrix now shows these as `error`
+  instead of green.
+- *Extractor gaps (npl_brsa → Stage-3), four distinct causes:* EMLAK 2023Q4+ (a populated FC-only sub-table
+  escaped `_is_fc_only_block`, so the template path emitted a tiny FC row and suppressed the correct regex);
+  ODEA 2025Q4 ("III. Aşama" header vs "Grup"); VAKIFK 2023Q2 (source text-layer split the provision row);
+  BURGAN cons 2022Q1/Q2 (a stray trailing `.`/`,` after the middle "Group IV" numeral failed the whole-page
+  header match). All 20 cells (EMLAK 16, ODEA 1, VAKIFK 1, BURGAN 2) now capture a sane Stage-3 (gross=net+prov
+  holds); re-extracted via reextract-statement.yml (force, derived-stages rebuild); no-regression verified
+  byte-identical. Heatmap NPL-blanks 14 → 3, the 3 remaining all verified not-disclosed (FIBA 2022Q1/2025Q3,
+  TSKB 2026Q1 interim). Lesson: the coverage matrix tracks "a present, self-consistent statement", NOT "every
+  column populated" — a check that skips on null can't see a column that should have been there.
+
+Prior: 2026-06-22 — **Coverage matrix: ALL non-profile/non-equity cells now 0 missing.** The image-only
 tail (27 cells across 11 partitions) was cleared by **OCR transcription** — these statement pages are disclosed,
 just scanned, so they're transcribed, never marked N/A:
 - Built `scripts/ocr_statement.py` (easyocr CPU; clusters rows by y, aligns numbers to value-column x; col0 =
