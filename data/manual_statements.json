@@ -9546,6 +9546,4842 @@
           "amount": 23054406
         }
       ]
+    },
+    {
+      "bank": "ALBRK",
+      "period": "2025Q4",
+      "kind": "consolidated",
+      "statement": "cash_flow",
+      "total_name": "Cash and Cash Equivalents at the End of the Period",
+      "rows": [
+        {
+          "h": "A.",
+          "name": "CASH FLOWS FROM BANKING OPERATIONS",
+          "amount": null
+        },
+        {
+          "h": "1.1",
+          "name": "Operating Profit Before Changes In Operating Assets And Liabilities",
+          "amount": -1805063
+        },
+        {
+          "h": "1.1.1",
+          "name": "Profit Share Income Received",
+          "amount": 59611226
+        },
+        {
+          "h": "1.1.2",
+          "name": "Profit Share Expense Paid",
+          "amount": -55378902
+        },
+        {
+          "h": "1.1.3",
+          "name": "Dividend Received",
+          "amount": 3110
+        },
+        {
+          "h": "1.1.4",
+          "name": "Fees and Commissions Received",
+          "amount": 5210621
+        },
+        {
+          "h": "1.1.5",
+          "name": "Other Income",
+          "amount": 2584160
+        },
+        {
+          "h": "1.1.6",
+          "name": "Collections from Previously Written Off Loans",
+          "amount": 513019
+        },
+        {
+          "h": "1.1.7",
+          "name": "Payments to Personnel and Service Suppliers",
+          "amount": -7949462
+        },
+        {
+          "h": "1.1.8",
+          "name": "Taxes Paid",
+          "amount": -1218171
+        },
+        {
+          "h": "1.1.9",
+          "name": "Others",
+          "amount": -5180664
+        },
+        {
+          "h": "1.2",
+          "name": "Changes In Operating Assets And Liabilities",
+          "amount": -15787625
+        },
+        {
+          "h": "1.2.1",
+          "name": "Net (Increase) Decrease in Financial Assets at Fair Value Through Profit or Loss",
+          "amount": -3895490
+        },
+        {
+          "h": "1.2.2",
+          "name": "Net (Increase) Decrease in Due From Banks and Other Financial Institutions",
+          "amount": -23292860
+        },
+        {
+          "h": "1.2.3",
+          "name": "Net (Increase) Decrease in Loans",
+          "amount": -77342575
+        },
+        {
+          "h": "1.2.4",
+          "name": "Net (Increase) Decrease in Other Assets",
+          "amount": -4065929
+        },
+        {
+          "h": "1.2.5",
+          "name": "Net Increase (Decrease) in Bank Deposits",
+          "amount": -1008439
+        },
+        {
+          "h": "1.2.6",
+          "name": "Net Increase (Decrease) in Other Deposits",
+          "amount": 69602200
+        },
+        {
+          "h": "1.2.7",
+          "name": "Net Increase (Decrease) in Financial Liabilities Measured at Financial Assets at Fair Value Through Profit or Loss",
+          "amount": null
+        },
+        {
+          "h": "1.2.8",
+          "name": "Net Increase (Decrease) in Funds Borrowed",
+          "amount": 1705530
+        },
+        {
+          "h": "1.2.9",
+          "name": "Net Increase (Decrease) in Matured Payables",
+          "amount": null
+        },
+        {
+          "h": "1.2.10",
+          "name": "Net Increase (Decrease) in Other Liabilities",
+          "amount": 22509938
+        },
+        {
+          "h": "I.",
+          "name": "Net Cash Flow From Banking Operations",
+          "amount": -17592688
+        },
+        {
+          "h": "B.",
+          "name": "CASH FLOWS FROM INVESTING ACTIVITIES",
+          "amount": null
+        },
+        {
+          "h": "II.",
+          "name": "Net cash flow from investing activities",
+          "amount": -14021001
+        },
+        {
+          "h": "2.1",
+          "name": "Cash Paid For Acquisition of Investments, Associates and Subsidiaries",
+          "amount": -22500
+        },
+        {
+          "h": "2.2",
+          "name": "Cash Obtained From Disposal of Investments, Associates and Subsidiaries",
+          "amount": null
+        },
+        {
+          "h": "2.3",
+          "name": "Purchases of Property and Equipment",
+          "amount": -2043573
+        },
+        {
+          "h": "2.4",
+          "name": "Disposals of Property and Equipment",
+          "amount": 1015290
+        },
+        {
+          "h": "2.5",
+          "name": "Purchase of Financial Assets at Fair Value Through Other Comprehensive Income",
+          "amount": -23592031
+        },
+        {
+          "h": "2.6",
+          "name": "Sale of Financial Assets at Fair Value Through Other Comprehensive Income",
+          "amount": 11131607
+        },
+        {
+          "h": "2.7",
+          "name": "Purchase of Financial Assets Measured at Amortised Cost",
+          "amount": -2158419
+        },
+        {
+          "h": "2.8",
+          "name": "Sale of Financial Assets Measured at Amortised Cost",
+          "amount": 1648625
+        },
+        {
+          "h": "2.9",
+          "name": "Other",
+          "amount": null
+        },
+        {
+          "h": "C.",
+          "name": "CASH FLOWS FROM FINANCING ACTIVITIES",
+          "amount": null
+        },
+        {
+          "h": "III.",
+          "name": "Net Cash Flow From Financing Activities",
+          "amount": 40775172
+        },
+        {
+          "h": "3.1",
+          "name": "Cash Obtained from Funds Borrowed and Securities Issued",
+          "amount": 1069051917
+        },
+        {
+          "h": "3.2",
+          "name": "Cash Used for Repayment of Funds Borrowed and Securities Issued",
+          "amount": -1027498614
+        },
+        {
+          "h": "3.3",
+          "name": "Issued Capital Instruments",
+          "amount": null
+        },
+        {
+          "h": "3.4",
+          "name": "Dividends Paid",
+          "amount": -431045
+        },
+        {
+          "h": "3.5",
+          "name": "Leases Paid",
+          "amount": -347086
+        },
+        {
+          "h": "3.6",
+          "name": "Other",
+          "amount": null
+        },
+        {
+          "h": "IV.",
+          "name": "Effect of Change in Foreign Exchange Rate on Cash and Cash Equivalents",
+          "amount": 5443818
+        },
+        {
+          "h": "V.",
+          "name": "Net (Decrease) Increase in Cash and Cash Equivalents",
+          "amount": 14605301
+        },
+        {
+          "h": "VI.",
+          "name": "Cash and Cash Equivalents at the Beginning of the Period",
+          "amount": 39723087
+        },
+        {
+          "h": "VII.",
+          "name": "Cash and Cash Equivalents at the End of the Period",
+          "amount": 54328388
+        }
+      ]
+    },
+    {
+      "bank": "ATBANK",
+      "period": "2025Q4",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "total_name": "BİLANÇO DIŞI HESAPLAR TOPLAMI (A+B)",
+      "rows": [
+        {
+          "h": "A",
+          "name": "BİLANÇO DIŞI YÜKÜMLÜLÜKLER (I+II+III)",
+          "tl": null,
+          "fc": null,
+          "total": 29299741
+        },
+        {
+          "h": "I",
+          "name": "GARANTİ VE KEFALETLER",
+          "tl": null,
+          "fc": null,
+          "total": 28591271
+        },
+        {
+          "h": "1.1",
+          "name": "Teminat Mektupları",
+          "tl": null,
+          "fc": null,
+          "total": 19026656
+        },
+        {
+          "h": "1.1.1",
+          "name": "Devlet İhale Kanunu Kapsamına Girenler",
+          "tl": null,
+          "fc": null,
+          "total": 96272
+        },
+        {
+          "h": "1.1.2",
+          "name": "Dış Ticaret İşlemleri Dolayısıyla Verilenler",
+          "tl": null,
+          "fc": null,
+          "total": 14612981
+        },
+        {
+          "h": "1.1.3",
+          "name": "Diğer Teminat Mektupları",
+          "tl": null,
+          "fc": null,
+          "total": 4317403
+        },
+        {
+          "h": "1.2",
+          "name": "Banka Kredileri",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "1.2.1",
+          "name": "İthalat Kabul Kredileri",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "1.2.2",
+          "name": "Diğer Banka Kabulleri",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "1.3",
+          "name": "Akreditifler",
+          "tl": null,
+          "fc": null,
+          "total": 8930252
+        },
+        {
+          "h": "1.3.1",
+          "name": "Belgeli Akreditifler",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "1.3.2",
+          "name": "Diğer Akreditifler",
+          "tl": null,
+          "fc": null,
+          "total": 8930252
+        },
+        {
+          "h": "1.4",
+          "name": "Garanti Verilen Prefinansmanlar",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "1.5",
+          "name": "Cirolar",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "1.5.1",
+          "name": "T.C. Merkez Bankasına Cirolar",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "1.5.2",
+          "name": "Diğer Cirolar",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "1.6",
+          "name": "Menkul Kıy. İh. Satın Alma Garantilerimizden",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "1.7",
+          "name": "Faktoring Garantilerinden",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "1.8",
+          "name": "Diğer Garantilerimizden",
+          "tl": null,
+          "fc": null,
+          "total": 634363
+        },
+        {
+          "h": "1.9",
+          "name": "Diğer Kefaletlerimizden",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "II",
+          "name": "TAAHHÜTLER",
+          "tl": null,
+          "fc": null,
+          "total": 708470
+        },
+        {
+          "h": "2.1",
+          "name": "Cayılamaz Taahhütler",
+          "tl": null,
+          "fc": null,
+          "total": 172777
+        },
+        {
+          "h": "2.1.1",
+          "name": "Vadeli, Aktif Değerler Alım-Satım Taahhütleri",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "2.1.2",
+          "name": "Vadeli, Mevduat Alım-Satım Taahhütleri",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "2.1.3",
+          "name": "İştir. ve Bağ. Ort. Ser. İşt. Taahhütleri",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "2.1.4",
+          "name": "Kul. Gar. Kredi Tahsis Taahhütleri",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "2.1.5",
+          "name": "Men. Kıy. İhr. Aracılık Taahhütleri",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "2.1.6",
+          "name": "Zorunlu Karşılık Ödeme Taahhüdü",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "2.1.7",
+          "name": "Çekler İçin Ödeme Taahhütlerimiz",
+          "tl": null,
+          "fc": null,
+          "total": 1176
+        },
+        {
+          "h": "2.1.8",
+          "name": "İhracat Taahhütlerinden Kaynaklanan Vergi ve Fon Yükümlülükleri",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "2.1.9",
+          "name": "Kredi Kartı Harcama Limit Taahhütleri",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "2.1.10",
+          "name": "Kredi Kartları ve Bankacılık Hizmetlerine İlişkin Promosyon Uyg. Taah.",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "2.1.11",
+          "name": "Açığa Menkul Kıymet Satış Taahhütlerinden Alacaklar",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "2.1.12",
+          "name": "Açığa Menkul Kıymet Satış Taahhütlerinden Borçlar",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "2.1.13",
+          "name": "Diğer Cayılamaz Taahhütler",
+          "tl": null,
+          "fc": null,
+          "total": 171601
+        },
+        {
+          "h": "2.2",
+          "name": "Cayılabilir Taahhütler",
+          "tl": null,
+          "fc": null,
+          "total": 535693
+        },
+        {
+          "h": "2.2.1",
+          "name": "Cayılabilir Kredi Tahsis Taahhütleri",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "2.2.2",
+          "name": "Diğer Cayılabilir Taahhütler",
+          "tl": null,
+          "fc": null,
+          "total": 535693
+        },
+        {
+          "h": "III",
+          "name": "TÜREV FİNANSAL ARAÇLAR",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "3.1",
+          "name": "Riskten Korunma Amaçlı Türev Finansal Araçlar",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "3.1.1",
+          "name": "Gerçeğe Uygun Değer Riskinden Korunma Amaçlı İşlemler",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "3.1.2",
+          "name": "Nakit Akış Riskinden Korunma Amaçlı İşlemler",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "3.1.3",
+          "name": "Yurtdışındaki Net Yatırım Riskinden Korunma Amaçlı İşlemler",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "3.2",
+          "name": "Alım Satım Amaçlı İşlemler",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "3.2.1",
+          "name": "Vadeli Döviz Alım-Satım İşlemleri",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "3.2.1.1",
+          "name": "Vadeli Döviz Alım İşlemleri",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "3.2.1.2",
+          "name": "Vadeli Döviz Satım İşlemleri",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "3.2.2",
+          "name": "Para ve Faiz Swap İşlemleri",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "3.2.2.1",
+          "name": "Swap Para Alım İşlemleri",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "3.2.2.2",
+          "name": "Swap Para Satım İşlemleri",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "3.2.2.3",
+          "name": "Swap Faiz Alım İşlemleri",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "3.2.2.4",
+          "name": "Swap Faiz Satım İşlemleri",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "3.2.3",
+          "name": "Para, Faiz ve Menkul Değer Opsiyonları",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "3.2.3.1",
+          "name": "Para Alım Opsiyonları",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "3.2.3.2",
+          "name": "Para Satım Opsiyonları",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "3.2.3.3",
+          "name": "Faiz Alım Opsiyonları",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "3.2.3.4",
+          "name": "Faiz Satım Opsiyonları",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "3.2.3.5",
+          "name": "Menkul Değerler Alım Opsiyonları",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "3.2.3.6",
+          "name": "Menkul Değerler Satım Opsiyonları",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "3.2.4",
+          "name": "Futures Para İşlemleri",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "3.2.4.1",
+          "name": "Futures Para Alım İşlemleri",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "3.2.4.2",
+          "name": "Futures Para Satım İşlemleri",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "3.2.5",
+          "name": "Futures Faiz Alım-Satım İşlemleri",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "3.2.5.1",
+          "name": "Futures Faiz Alım İşlemleri",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "3.2.5.2",
+          "name": "Futures Faiz Satım İşlemleri",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "3.2.6",
+          "name": "Diğer",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "B",
+          "name": "EMANET VE REHİNLİ KIYMETLER (IV+V+VI)",
+          "tl": null,
+          "fc": null,
+          "total": 29525767
+        },
+        {
+          "h": "IV",
+          "name": "EMANET KIYMETLER",
+          "tl": null,
+          "fc": null,
+          "total": 243263
+        },
+        {
+          "h": "4.1",
+          "name": "Müşteri Fon ve Portföy Mevcutları",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "4.2",
+          "name": "Emanete Alınan Menkul Değerler",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "4.3",
+          "name": "Tahsile Alınan Çekler",
+          "tl": null,
+          "fc": null,
+          "total": 17763
+        },
+        {
+          "h": "4.4",
+          "name": "Tahsile Alınan Ticari Senetler",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "4.5",
+          "name": "Tahsile Alınan Diğer Kıymetler",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "4.6",
+          "name": "İhracına Aracı Olunan Kıymetler",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "4.7",
+          "name": "Diğer Emanet Kıymetler",
+          "tl": null,
+          "fc": null,
+          "total": 225500
+        },
+        {
+          "h": "4.8",
+          "name": "Emanet Kıymet Alanlar",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "V",
+          "name": "REHİNLİ KIYMETLER",
+          "tl": null,
+          "fc": null,
+          "total": 29282504
+        },
+        {
+          "h": "5.1",
+          "name": "Menkul Kıymetler",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "5.2",
+          "name": "Teminat Senetleri",
+          "tl": null,
+          "fc": null,
+          "total": 897689
+        },
+        {
+          "h": "5.3",
+          "name": "Emtia",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "5.4",
+          "name": "Varant",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "5.5",
+          "name": "Gayrimenkul",
+          "tl": null,
+          "fc": null,
+          "total": 1143260
+        },
+        {
+          "h": "5.6",
+          "name": "Diğer Rehinli Kıymetler",
+          "tl": null,
+          "fc": null,
+          "total": 27241555
+        },
+        {
+          "h": "5.7",
+          "name": "Rehinli Kıymet Alanlar",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "VI",
+          "name": "KABUL EDİLEN AVALLER VE KEFALETLER",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "TOPLAM",
+          "name": "BİLANÇO DIŞI HESAPLAR TOPLAMI (A+B)",
+          "tl": null,
+          "fc": null,
+          "total": 58825508
+        }
+      ]
+    },
+    {
+      "bank": "FIBA",
+      "period": "2022Q1",
+      "kind": "consolidated",
+      "statement": "oci",
+      "total_name": "TOPLAM KAPSAMLI GELİR (I+II)",
+      "rows": [
+        {
+          "h": "I.",
+          "name": "DÖNEM KARI/ZARARI",
+          "amount": 346521
+        },
+        {
+          "h": "II.",
+          "name": "DİĞER KAPSAMLI GELİRLER",
+          "amount": 539564
+        },
+        {
+          "h": "2.1",
+          "name": "Kar veya Zararda Yeniden Sınıflandırılmayacaklar",
+          "amount": -57
+        },
+        {
+          "h": "2.1.1",
+          "name": "Maddi Duran Varlıklar Yeniden Değerleme Artışları/Azalışları",
+          "amount": null
+        },
+        {
+          "h": "2.1.2",
+          "name": "Maddi Olmayan Duran Varlıklar Yeniden Değerleme Artışları/Azalışları",
+          "amount": null
+        },
+        {
+          "h": "2.1.3",
+          "name": "Tanımlanmış Fayda Planları Yeniden Ölçüm Kazançları/Kayıpları",
+          "amount": -70
+        },
+        {
+          "h": "2.1.4",
+          "name": "Diğer Kar veya Zarar Olarak Yeniden Sınıflandırılmayacak Diğer Kapsamlı Gelir Unsurları",
+          "amount": null
+        },
+        {
+          "h": "2.1.5",
+          "name": "Kar veya Zararda Yeniden Sınıflandırılmayacak Diğer Kapsamlı Gelire İlişkin Vergiler",
+          "amount": 13
+        },
+        {
+          "h": "2.2",
+          "name": "Kar veya Zararda Yeniden Sınıflandırılacaklar",
+          "amount": 539621
+        },
+        {
+          "h": "2.2.1",
+          "name": "Yabancı Para Çevrim Farkları",
+          "amount": null
+        },
+        {
+          "h": "2.2.2",
+          "name": "Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılan Finansal Varlıkların Değerleme ve/veya Sınıflandırma Gelirleri/Giderleri",
+          "amount": 579050
+        },
+        {
+          "h": "2.2.3",
+          "name": "Nakit Akış Riskinden Korunma Gelirleri/Giderleri",
+          "amount": null
+        },
+        {
+          "h": "2.2.4",
+          "name": "Yurtdışındaki İşletmeye İlişkin Yatırım Riskinden Korunma Gelirleri/Giderleri",
+          "amount": null
+        },
+        {
+          "h": "2.2.5",
+          "name": "Diğer Kar veya Zarar Olarak Yeniden Sınıflandırılacak Diğer Kapsamlı Gelir Unsurları",
+          "amount": null
+        },
+        {
+          "h": "2.2.6",
+          "name": "Kar veya Zararda Yeniden Sınıflandırılacak Diğer Kapsamlı Gelire İlişkin Vergiler",
+          "amount": -39429
+        },
+        {
+          "h": "III.",
+          "name": "TOPLAM KAPSAMLI GELİR (I+II)",
+          "amount": 886085
+        }
+      ]
+    },
+    {
+      "bank": "FIBA",
+      "period": "2022Q1",
+      "kind": "consolidated",
+      "statement": "cash_flow",
+      "total_name": "Dönem Sonundaki Nakit ve Nakde Eşdeğer Varlıklar",
+      "rows": [
+        {
+          "h": "A.",
+          "name": "BANKACILIK FAALİYETLERİNE İLİŞKİN NAKİT AKIMLARI",
+          "amount": null
+        },
+        {
+          "h": "1.1",
+          "name": "Bankacılık Faaliyet Konusu Varlık ve Yükümlülüklerdeki Değişim Öncesi Faaliyet Kârı",
+          "amount": 39413
+        },
+        {
+          "h": "1.1.1",
+          "name": "Alınan Faizler (+)",
+          "amount": 786745
+        },
+        {
+          "h": "1.1.2",
+          "name": "Ödenen Faizler (-)",
+          "amount": -848929
+        },
+        {
+          "h": "1.1.3",
+          "name": "Alınan Temettüler (+)",
+          "amount": 160000
+        },
+        {
+          "h": "1.1.4",
+          "name": "Alınan Ücret ve Komisyonlar (+)",
+          "amount": 134700
+        },
+        {
+          "h": "1.1.5",
+          "name": "Elde Edilen Diğer Kazançlar (+)",
+          "amount": 598892
+        },
+        {
+          "h": "1.1.6",
+          "name": "Zarar Olarak Muhasebeleştirilen Donuk Alacaklardan Tahsilatlar (+)",
+          "amount": 317522
+        },
+        {
+          "h": "1.1.7",
+          "name": "Personele ve Hizmet Tedarik Edenlere Yapılan Nakit Ödemeler (-)",
+          "amount": -369860
+        },
+        {
+          "h": "1.1.8",
+          "name": "Ödenen Vergiler (-)",
+          "amount": -196827
+        },
+        {
+          "h": "1.1.9",
+          "name": "Diğer (+/-)",
+          "amount": -542830
+        },
+        {
+          "h": "1.2",
+          "name": "Bankacılık Faaliyetleri Konusu Varlık ve Yükümlülüklerdeki Değişim",
+          "amount": 2650560
+        },
+        {
+          "h": "1.2.1",
+          "name": "Gerçeğe Uygun Değer Farkı K/Z'a Yansıtılan FV'larda Net (Artış) Azalış (+/-)",
+          "amount": 68528
+        },
+        {
+          "h": "1.2.2",
+          "name": "Bankalar Hesabındaki Net (Artış) Azalış (+/-)",
+          "amount": -18454
+        },
+        {
+          "h": "1.2.3",
+          "name": "Kredilerdeki Net (Artış) Azalış (+/-)",
+          "amount": -3253654
+        },
+        {
+          "h": "1.2.4",
+          "name": "Diğer Varlıklarda Net (Artış) Azalış (+/-)",
+          "amount": -172833
+        },
+        {
+          "h": "1.2.5",
+          "name": "Bankaların Mevduatlarında Net Artış (Azalış) (+/-)",
+          "amount": 1720277
+        },
+        {
+          "h": "1.2.6",
+          "name": "Diğer Mevduatlarda Net Artış (Azalış) (+/-)",
+          "amount": 3481378
+        },
+        {
+          "h": "1.2.7",
+          "name": "Gerçeğe Uygun Değer Farkı K/Z'a Yansıtılan FV'lerde Net Artış (Azalış) (+/-)",
+          "amount": null
+        },
+        {
+          "h": "1.2.8",
+          "name": "Alınan Kredilerdeki Net Artış (Azalış) (+/-)",
+          "amount": -94609
+        },
+        {
+          "h": "1.2.9",
+          "name": "Vadesi Gelmiş Borçlarda Net Artış (Azalış) (+/-)",
+          "amount": null
+        },
+        {
+          "h": "1.2.10",
+          "name": "Diğer Borçlarda Net Artış (Azalış) (+/-)",
+          "amount": 919927
+        },
+        {
+          "h": "I.",
+          "name": "Bankacılık Faaliyetlerinden Kaynaklanan Net Nakit Akışı (+/-)",
+          "amount": 2689973
+        },
+        {
+          "h": "B.",
+          "name": "YATIRIM FAALİYETLERİNE İLİŞKİN NAKİT AKIMLARI",
+          "amount": null
+        },
+        {
+          "h": "II.",
+          "name": "Yatırım Faaliyetlerinden Kaynaklanan Net Nakit Akımı (+/-)",
+          "amount": -1508855
+        },
+        {
+          "h": "2.3",
+          "name": "Satın Alınan Menkuller ve Gayrimenkuller (-)",
+          "amount": -68372
+        },
+        {
+          "h": "2.4",
+          "name": "Elden Çıkarılan Menkul ve Gayrimenkuller (+)",
+          "amount": 138158
+        },
+        {
+          "h": "2.5",
+          "name": "Elde Edilen Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılan Finansal Varlıklar (-)",
+          "amount": -1465370
+        },
+        {
+          "h": "2.7",
+          "name": "Satın Alınan İtfa Edilmiş Maliyeti ile Ölçülen Finansal Varlıklar (-)",
+          "amount": -441651
+        },
+        {
+          "h": "2.9",
+          "name": "Diğer (+/-)",
+          "amount": 328380
+        },
+        {
+          "h": "C.",
+          "name": "FİNANSMAN FAALİYETLERİNE İLİŞKİN NAKİT AKIMLARI",
+          "amount": null
+        },
+        {
+          "h": "III.",
+          "name": "Finansman Faaliyetlerinden Sağlanan Net Nakit (+/-)",
+          "amount": -544575
+        },
+        {
+          "h": "3.2",
+          "name": "Krediler ve İhraç Edilen Menkul Değerlerden Kaynaklanan Nakit Çıkışı (-)",
+          "amount": -540604
+        },
+        {
+          "h": "3.5",
+          "name": "Kiralamaya İlişkin Ödemeler (-)",
+          "amount": -5145
+        },
+        {
+          "h": "3.6",
+          "name": "Diğer (+/-)",
+          "amount": 1174
+        },
+        {
+          "h": "IV.",
+          "name": "Yabancı Para Çevrim Farklarının Nakit ve Nakde Eşdeğer Varlıklar Üzerindeki Etkisi (+/-)",
+          "amount": 1105906
+        },
+        {
+          "h": "V.",
+          "name": "Nakit ve Nakde Eşdeğer Varlıklardaki Net Artış (Azalış) (I+II+III+IV)",
+          "amount": 1742449
+        },
+        {
+          "h": "VI.",
+          "name": "Dönem Başındaki Nakit ve Nakde Eşdeğer Varlıklar (+)",
+          "amount": 11641085
+        },
+        {
+          "h": "VII.",
+          "name": "Dönem Sonundaki Nakit ve Nakde Eşdeğer Varlıklar (V+VI)",
+          "amount": 13383534
+        }
+      ]
+    },
+    {
+      "bank": "FIBA",
+      "period": "2022Q1",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "total_name": "BİLANÇO DIŞI HESAPLAR TOPLAMI (A+B)",
+      "rows": [
+        {
+          "h": "A.",
+          "name": "BİLANÇO DIŞI YÜKÜMLÜLÜKLER (I+II+III)",
+          "tl": null,
+          "fc": null,
+          "total": 82035253
+        },
+        {
+          "h": "I.",
+          "name": "GARANTİ ve KEFALETLER",
+          "tl": null,
+          "fc": null,
+          "total": 1050635
+        },
+        {
+          "h": "1.1",
+          "name": "Teminat Mektupları",
+          "tl": null,
+          "fc": null,
+          "total": 811129
+        },
+        {
+          "h": "1.2",
+          "name": "Banka Kredileri",
+          "tl": null,
+          "fc": null,
+          "total": 129806
+        },
+        {
+          "h": "II.",
+          "name": "TAAHHÜTLER",
+          "tl": null,
+          "fc": null,
+          "total": 8975357
+        },
+        {
+          "h": "III.",
+          "name": "TÜREV FİNANSAL ARAÇLAR",
+          "tl": null,
+          "fc": null,
+          "total": 72009261
+        },
+        {
+          "h": "B.",
+          "name": "EMANET VE REHİNLİ KIYMETLER (IV+V+VI)",
+          "tl": null,
+          "fc": null,
+          "total": 414045297
+        },
+        {
+          "h": "IV.",
+          "name": "EMANET KIYMETLER",
+          "tl": null,
+          "fc": null,
+          "total": 23301293
+        },
+        {
+          "h": "V.",
+          "name": "REHİNLİ KIYMETLER",
+          "tl": null,
+          "fc": null,
+          "total": 390744004
+        },
+        {
+          "h": "VI.",
+          "name": "KABUL EDİLEN AVALLER VE KEFALETLER",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "",
+          "name": "BİLANÇO DIŞI HESAPLAR TOPLAMI (A+B)",
+          "tl": null,
+          "fc": null,
+          "total": 496080550
+        }
+      ]
+    },
+    {
+      "bank": "FIBA",
+      "period": "2022Q1",
+      "kind": "unconsolidated",
+      "statement": "oci",
+      "total_name": "TOPLAM KAPSAMLI GELİR (I+II)",
+      "rows": [
+        {
+          "h": "I.",
+          "name": "DÖNEM KARI/ZARARI",
+          "amount": 343182
+        },
+        {
+          "h": "II.",
+          "name": "DİĞER KAPSAMLI GELİRLER",
+          "amount": 542096
+        },
+        {
+          "h": "2.1",
+          "name": "Kar veya Zararda Yeniden Sınıflandırılmayacaklar",
+          "amount": 2475
+        },
+        {
+          "h": "2.1.1",
+          "name": "Maddi Duran Varlıklar Yeniden Değerleme Artışları/Azalışları",
+          "amount": null
+        },
+        {
+          "h": "2.1.2",
+          "name": "Maddi Olmayan Duran Varlıklar Yeniden Değerleme Artışları/Azalışları",
+          "amount": null
+        },
+        {
+          "h": "2.1.3",
+          "name": "Tanımlanmış Fayda Planları Yeniden Ölçüm Kazançları/Kayıpları",
+          "amount": null
+        },
+        {
+          "h": "2.1.4",
+          "name": "Diğer Kar veya Zarar Olarak Yeniden Sınıflandırılmayacak Diğer Kapsamlı Gelir Unsurları",
+          "amount": 2475
+        },
+        {
+          "h": "2.1.5",
+          "name": "Kar veya Zararda Yeniden Sınıflandırılmayacak Diğer Kapsamlı Gelire İlişkin Vergiler",
+          "amount": null
+        },
+        {
+          "h": "2.2",
+          "name": "Kar veya Zararda Yeniden Sınıflandırılacaklar",
+          "amount": 539621
+        },
+        {
+          "h": "2.2.1",
+          "name": "Yabancı Para Çevrim Farkları",
+          "amount": null
+        },
+        {
+          "h": "2.2.2",
+          "name": "Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılan Finansal Varlıkların Değerleme ve/veya Sınıflandırma Gelirleri/Giderleri",
+          "amount": 579050
+        },
+        {
+          "h": "2.2.3",
+          "name": "Nakit Akış Riskinden Korunma Gelirleri/Giderleri",
+          "amount": null
+        },
+        {
+          "h": "2.2.4",
+          "name": "Yurtdışındaki İşletmeye İlişkin Yatırım Riskinden Korunma Gelirleri/Giderleri",
+          "amount": null
+        },
+        {
+          "h": "2.2.5",
+          "name": "Diğer Kar veya Zarar Olarak Yeniden Sınıflandırılacak Diğer Kapsamlı Gelir Unsurları",
+          "amount": null
+        },
+        {
+          "h": "2.2.6",
+          "name": "Kar veya Zararda Yeniden Sınıflandırılacak Diğer Kapsamlı Gelire İlişkin Vergiler",
+          "amount": -39429
+        },
+        {
+          "h": "III.",
+          "name": "TOPLAM KAPSAMLI GELİR (I+II)",
+          "amount": 885278
+        }
+      ]
+    },
+    {
+      "bank": "FIBA",
+      "period": "2022Q1",
+      "kind": "unconsolidated",
+      "statement": "cash_flow",
+      "total_name": "Dönem Sonundaki Nakit ve Nakde Eşdeğer Varlıklar",
+      "rows": [
+        {
+          "h": "A.",
+          "name": "BANKACILIK FAALİYETLERİNE İLİŞKİN NAKİT AKIMLARI",
+          "amount": null
+        },
+        {
+          "h": "1.1",
+          "name": "Bankacılık Faaliyet Konusu Varlık ve Yükümlülüklerdeki Değişim Öncesi Faaliyet Kârı",
+          "amount": 82141
+        },
+        {
+          "h": "1.1.1",
+          "name": "Alınan Faizler (+)",
+          "amount": 786545
+        },
+        {
+          "h": "1.1.2",
+          "name": "Ödenen Faizler (-)",
+          "amount": -848972
+        },
+        {
+          "h": "1.1.3",
+          "name": "Alınan Temettüler (+)",
+          "amount": 160000
+        },
+        {
+          "h": "1.1.4",
+          "name": "Alınan Ücret ve Komisyonlar (+)",
+          "amount": 129140
+        },
+        {
+          "h": "1.1.5",
+          "name": "Elde Edilen Diğer Kazançlar (+)",
+          "amount": 596646
+        },
+        {
+          "h": "1.1.6",
+          "name": "Zarar Olarak Muhasebeleştirilen Donuk Alacaklardan Tahsilatlar (+)",
+          "amount": 317522
+        },
+        {
+          "h": "1.1.7",
+          "name": "Personele ve Hizmet Tedarik Edenlere Yapılan Nakit Ödemeler (-)",
+          "amount": -354229
+        },
+        {
+          "h": "1.1.8",
+          "name": "Ödenen Vergiler (-)",
+          "amount": -195966
+        },
+        {
+          "h": "1.1.9",
+          "name": "Diğer (+/-)",
+          "amount": -508545
+        },
+        {
+          "h": "1.2",
+          "name": "Bankacılık Faaliyetleri Konusu Varlık ve Yükümlülüklerdeki Değişim",
+          "amount": 2657065
+        },
+        {
+          "h": "1.2.1",
+          "name": "Gerçeğe Uygun Değer Farkı K/Z'a Yansıtılan FV'larda Net (Artış) Azalış (+/-)",
+          "amount": 74070
+        },
+        {
+          "h": "1.2.2",
+          "name": "Bankalar Hesabındaki Net (Artış) Azalış (+/-)",
+          "amount": -18454
+        },
+        {
+          "h": "1.2.3",
+          "name": "Kredilerdeki Net (Artış) Azalış (+/-)",
+          "amount": -3253454
+        },
+        {
+          "h": "1.2.4",
+          "name": "Diğer Varlıklarda Net (Artış) Azalış (+/-)",
+          "amount": -175396
+        },
+        {
+          "h": "1.2.5",
+          "name": "Bankaların Mevduatlarında Net Artış (Azalış) (+/-)",
+          "amount": 1720313
+        },
+        {
+          "h": "1.2.6",
+          "name": "Diğer Mevduatlarda Net Artış (Azalış) (+/-)",
+          "amount": 3481414
+        },
+        {
+          "h": "1.2.7",
+          "name": "Gerçeğe Uygun Değer Farkı K/Z'a Yansıtılan FV'lerde Net Artış (Azalış) (+/-)",
+          "amount": null
+        },
+        {
+          "h": "1.2.8",
+          "name": "Alınan Kredilerdeki Net (Artış) Azalış (+/-)",
+          "amount": -94609
+        },
+        {
+          "h": "1.2.9",
+          "name": "Vadesi Gelmiş Borçlarda Net Artış (Azalış) (+/-)",
+          "amount": null
+        },
+        {
+          "h": "1.2.10",
+          "name": "Diğer Borçlarda Net Artış (Azalış) (+/-)",
+          "amount": 923181
+        },
+        {
+          "h": "I.",
+          "name": "Bankacılık Faaliyetlerinden Kaynaklanan Net Nakit Akışı (+/-)",
+          "amount": 2739206
+        },
+        {
+          "h": "B.",
+          "name": "YATIRIM FAALİYETLERİNE İLİŞKİN NAKİT AKIMLARI",
+          "amount": null
+        },
+        {
+          "h": "II.",
+          "name": "Yatırım Faaliyetlerinden Kaynaklanan Net Nakit Akımı (+/-)",
+          "amount": -1558091
+        },
+        {
+          "h": "2.3",
+          "name": "Satın Alınan Menkuller ve Gayrimenkuller (-)",
+          "amount": -68372
+        },
+        {
+          "h": "2.4",
+          "name": "Elden Çıkarılan Menkul ve Gayrimenkuller (+)",
+          "amount": 91403
+        },
+        {
+          "h": "2.5",
+          "name": "Elde Edilen Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılan Finansal Varlıklar (-)",
+          "amount": -1465370
+        },
+        {
+          "h": "2.7",
+          "name": "Satın Alınan İtfa Edilmiş Maliyeti ile Ölçülen Finansal Varlıklar (-)",
+          "amount": -441651
+        },
+        {
+          "h": "2.9",
+          "name": "Diğer (+/-)",
+          "amount": 325899
+        },
+        {
+          "h": "C.",
+          "name": "FİNANSMAN FAALİYETLERİNE İLİŞKİN NAKİT AKIŞLARI",
+          "amount": null
+        },
+        {
+          "h": "III.",
+          "name": "Finansman Faaliyetlerinden Sağlanan Net Nakit (+/-)",
+          "amount": -544575
+        },
+        {
+          "h": "3.2",
+          "name": "Krediler ve İhraç Edilen Menkul Değerlerden Kaynaklanan Nakit Çıkışı (-)",
+          "amount": -540604
+        },
+        {
+          "h": "3.5",
+          "name": "Kiralamaya İlişkin Ödemeler (-)",
+          "amount": -5145
+        },
+        {
+          "h": "3.6",
+          "name": "Diğer (+/-)",
+          "amount": 1174
+        },
+        {
+          "h": "IV.",
+          "name": "Yabancı Para Çevrim Farklarının Nakit ve Nakde Eşdeğer Varlıklar Üzerindeki Etkisi (+/-)",
+          "amount": 1105907
+        },
+        {
+          "h": "V.",
+          "name": "Nakit ve Nakde Eşdeğer Varlıklardaki Net Artış (Azalış) (I+II+III+IV)",
+          "amount": 1742447
+        },
+        {
+          "h": "VI.",
+          "name": "Dönem Başındaki Nakit ve Nakde Eşdeğer Varlıklar (+)",
+          "amount": 11641075
+        },
+        {
+          "h": "VII.",
+          "name": "Dönem Sonundaki Nakit ve Nakde Eşdeğer Varlıklar (V+VI)",
+          "amount": 13383522
+        }
+      ]
+    },
+    {
+      "bank": "FIBA",
+      "period": "2022Q1",
+      "kind": "unconsolidated",
+      "statement": "off_balance",
+      "total_name": "BİLANÇO DIŞI HESAPLAR TOPLAMI (A+B)",
+      "rows": [
+        {
+          "h": "A.",
+          "name": "BİLANÇO DIŞI YÜKÜMLÜLÜKLER (I+II+III)",
+          "tl": null,
+          "fc": null,
+          "total": 82035253
+        },
+        {
+          "h": "I.",
+          "name": "GARANTİ VE KEFALETLER",
+          "tl": null,
+          "fc": null,
+          "total": 1050635
+        },
+        {
+          "h": "II.",
+          "name": "TAAHHÜTLER",
+          "tl": null,
+          "fc": null,
+          "total": 8975357
+        },
+        {
+          "h": "III.",
+          "name": "TÜREV FİNANSAL ARAÇLAR",
+          "tl": null,
+          "fc": null,
+          "total": 72009261
+        },
+        {
+          "h": "B.",
+          "name": "EMANET VE REHİNLİ KIYMETLER (IV+V+VI)",
+          "tl": null,
+          "fc": null,
+          "total": 414045297
+        },
+        {
+          "h": "IV.",
+          "name": "EMANET KIYMETLER",
+          "tl": null,
+          "fc": null,
+          "total": 23301293
+        },
+        {
+          "h": "V.",
+          "name": "REHİNLİ KIYMETLER",
+          "tl": null,
+          "fc": null,
+          "total": 390744004
+        },
+        {
+          "h": "VI.",
+          "name": "KABUL EDİLEN AVALLER VE KEFALETLER",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "",
+          "name": "BİLANÇO DIŞI HESAPLAR TOPLAMI (A+B)",
+          "tl": null,
+          "fc": null,
+          "total": 496080550
+        }
+      ]
+    },
+    {
+      "bank": "FIBA",
+      "period": "2023Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "total_name": "BİLANÇO DIŞI HESAPLAR TOPLAMI (A+B)",
+      "rows": [
+        {
+          "h": "A.",
+          "name": "BİLANÇO DIŞI YÜKÜMLÜLÜKLER (I+II+III)",
+          "tl": null,
+          "fc": null,
+          "total": 160959471
+        },
+        {
+          "h": "I.",
+          "name": "GARANTİ ve KEFALETLER",
+          "tl": null,
+          "fc": null,
+          "total": 775048
+        },
+        {
+          "h": "1.1",
+          "name": "Teminat Mektupları",
+          "tl": null,
+          "fc": null,
+          "total": 709778
+        },
+        {
+          "h": "1.1.3",
+          "name": "Diğer Teminat Mektupları",
+          "tl": null,
+          "fc": null,
+          "total": 709778
+        },
+        {
+          "h": "1.3",
+          "name": "Akreditifler",
+          "tl": null,
+          "fc": null,
+          "total": 65270
+        },
+        {
+          "h": "1.3.1",
+          "name": "Belgeli Akreditifler",
+          "tl": null,
+          "fc": null,
+          "total": 65270
+        },
+        {
+          "h": "II.",
+          "name": "TAAHHÜTLER",
+          "tl": null,
+          "fc": null,
+          "total": 17625906
+        },
+        {
+          "h": "2.1",
+          "name": "Cayılamaz Taahhütler",
+          "tl": null,
+          "fc": null,
+          "total": 17625906
+        },
+        {
+          "h": "2.1.1",
+          "name": "Vadeli Aktif Değerler Alım Satım Taahhütleri",
+          "tl": null,
+          "fc": null,
+          "total": 12146540
+        },
+        {
+          "h": "2.1.4",
+          "name": "Kul. Gar. Kredi Tahsis Taahhütleri",
+          "tl": null,
+          "fc": null,
+          "total": 4718434
+        },
+        {
+          "h": "2.1.7",
+          "name": "Çekler İçin Ödeme Taahhütleri",
+          "tl": null,
+          "fc": null,
+          "total": 344028
+        },
+        {
+          "h": "2.1.8",
+          "name": "İhracat Taahhütlerinden Kaynaklanan Vergi ve Fon Yükümlülükleri",
+          "tl": null,
+          "fc": null,
+          "total": 48578
+        },
+        {
+          "h": "2.1.9",
+          "name": "Kredi Kartı Harcama Limit Taahhütleri",
+          "tl": null,
+          "fc": null,
+          "total": 355269
+        },
+        {
+          "h": "2.1.12",
+          "name": "Diğer Cayılamaz Taahhütler",
+          "tl": null,
+          "fc": null,
+          "total": 13055
+        },
+        {
+          "h": "III.",
+          "name": "TÜREV FİNANSAL ARAÇLAR",
+          "tl": null,
+          "fc": null,
+          "total": 142558517
+        },
+        {
+          "h": "B.",
+          "name": "EMANET VE REHİNLİ KIYMETLER (IV+V+VI)",
+          "tl": null,
+          "fc": null,
+          "total": 720138506
+        },
+        {
+          "h": "IV.",
+          "name": "EMANET KIYMETLER",
+          "tl": null,
+          "fc": null,
+          "total": 78826716
+        },
+        {
+          "h": "V.",
+          "name": "REHİNLİ KIYMETLER",
+          "tl": null,
+          "fc": null,
+          "total": 641311790
+        },
+        {
+          "h": "VI.",
+          "name": "KABUL EDİLEN AVALLER VE KEFALETLER",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "",
+          "name": "BİLANÇO DIŞI HESAPLAR TOPLAMI (A+B)",
+          "tl": null,
+          "fc": null,
+          "total": 881097977
+        }
+      ]
+    },
+    {
+      "bank": "FIBA",
+      "period": "2024Q1",
+      "kind": "consolidated",
+      "statement": "oci",
+      "total_name": "TOPLAM KAPSAMLI GELİR (I+II)",
+      "rows": [
+        {
+          "h": "I.",
+          "name": "DÖNEM KARI/ZARARI",
+          "amount": 2035160
+        },
+        {
+          "h": "II.",
+          "name": "DİĞER KAPSAMLI GELİRLER",
+          "amount": 103896
+        },
+        {
+          "h": "2.1",
+          "name": "Kar veya Zararda Yeniden Sınıflandırılmayacaklar",
+          "amount": 258766
+        },
+        {
+          "h": "2.1.1",
+          "name": "Maddi Duran Varlıklar Yeniden Değerleme Artışları/Azalışları",
+          "amount": null
+        },
+        {
+          "h": "2.1.2",
+          "name": "Maddi Olmayan Duran Varlıklar Yeniden Değerleme Artışları/Azalışları",
+          "amount": null
+        },
+        {
+          "h": "2.1.3",
+          "name": "Tanımlanmış Fayda Planları Yeniden Ölçüm Kazançları/Kayıpları",
+          "amount": 716
+        },
+        {
+          "h": "2.1.4",
+          "name": "Diğer Kar veya Zarar Olarak Yeniden Sınıflandırılmayacak Diğer Kapsamlı Gelir Unsurları",
+          "amount": 258265
+        },
+        {
+          "h": "2.1.5",
+          "name": "Kar veya Zararda Yeniden Sınıflandırılmayacak Diğer Kapsamlı Gelire İlişkin Vergiler",
+          "amount": -215
+        },
+        {
+          "h": "2.2",
+          "name": "Kar veya Zararda Yeniden Sınıflandırılacaklar",
+          "amount": -154870
+        },
+        {
+          "h": "2.2.1",
+          "name": "Yabancı Para Çevrim Farkları",
+          "amount": null
+        },
+        {
+          "h": "2.2.2",
+          "name": "Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılan Finansal Varlıkların Değerleme ve/veya Sınıflandırma Gelirleri/Giderleri",
+          "amount": -220424
+        },
+        {
+          "h": "2.2.3",
+          "name": "Nakit Akış Riskinden Korunma Gelirleri/Giderleri",
+          "amount": null
+        },
+        {
+          "h": "2.2.4",
+          "name": "Yurtdışındaki İşletmeye İlişkin Yatırım Riskinden Korunma Gelirleri/Giderleri",
+          "amount": null
+        },
+        {
+          "h": "2.2.5",
+          "name": "Diğer Kar veya Zarar Olarak Yeniden Sınıflandırılacak Diğer Kapsamlı Gelir Unsurları",
+          "amount": -794
+        },
+        {
+          "h": "2.2.6",
+          "name": "Kar veya Zararda Yeniden Sınıflandırılacak Diğer Kapsamlı Gelire İlişkin Vergiler",
+          "amount": 66348
+        },
+        {
+          "h": "III.",
+          "name": "TOPLAM KAPSAMLI GELİR (I+II)",
+          "amount": 2139056
+        }
+      ]
+    },
+    {
+      "bank": "FIBA",
+      "period": "2024Q1",
+      "kind": "consolidated",
+      "statement": "cash_flow",
+      "total_name": "Dönem Sonundaki Nakit ve Nakde Eşdeğer Varlıklar",
+      "rows": [
+        {
+          "h": "A.",
+          "name": "BANKACILIK FAALİYETLERİNE İLİŞKİN NAKİT AKIMLARI",
+          "amount": null
+        },
+        {
+          "h": "1.1",
+          "name": "Bankacılık Faaliyet Konusu Varlık ve Yükümlülüklerdeki Değişim Öncesi Faaliyet Kârı",
+          "amount": 2643921
+        },
+        {
+          "h": "1.1.1",
+          "name": "Alınan Faizler (+)",
+          "amount": 6144406
+        },
+        {
+          "h": "1.1.2",
+          "name": "Ödenen Faizler (-)",
+          "amount": -4760165
+        },
+        {
+          "h": "1.1.3",
+          "name": "Alınan Temettüler (+)",
+          "amount": 243013
+        },
+        {
+          "h": "1.1.4",
+          "name": "Alınan Ücret ve Komisyonlar (+)",
+          "amount": 979117
+        },
+        {
+          "h": "1.1.5",
+          "name": "Elde Edilen Diğer Kazançlar (+)",
+          "amount": 3715247
+        },
+        {
+          "h": "1.1.6",
+          "name": "Zarar Olarak Muhasebeleştirilen Donuk Alacaklardan Tahsilatlar (+)",
+          "amount": 123290
+        },
+        {
+          "h": "1.1.7",
+          "name": "Personele ve Hizmet Tedarik Edenlere Yapılan Nakit Ödemeler (-)",
+          "amount": -1593398
+        },
+        {
+          "h": "1.1.8",
+          "name": "Ödenen Vergiler (-)",
+          "amount": 8172
+        },
+        {
+          "h": "1.1.9",
+          "name": "Diğer (+/-)",
+          "amount": -2215761
+        },
+        {
+          "h": "1.2",
+          "name": "Bankacılık Faaliyetleri Konusu Varlık ve Yükümlülüklerdeki Değişim",
+          "amount": 2585910
+        },
+        {
+          "h": "1.2.1",
+          "name": "Gerçeğe Uygun Değer Farkı K/Z'a Yansıtılan FV'larda Net (Artış) Azalış (+/-)",
+          "amount": 1846564
+        },
+        {
+          "h": "1.2.2",
+          "name": "Bankalar Hesabındaki Net (Artış) Azalış (+/-)",
+          "amount": -2356634
+        },
+        {
+          "h": "1.2.3",
+          "name": "Kredilerdeki Net (Artış) Azalış (+/-)",
+          "amount": -3095635
+        },
+        {
+          "h": "1.2.4",
+          "name": "Diğer Varlıklarda Net (Artış) Azalış (+/-)",
+          "amount": -292175
+        },
+        {
+          "h": "1.2.5",
+          "name": "Bankaların Mevduatlarında Net Artış (Azalış) (+/-)",
+          "amount": 6536979
+        },
+        {
+          "h": "1.2.6",
+          "name": "Diğer Mevduatlarda Net Artış (Azalış) (+/-)",
+          "amount": -1669335
+        },
+        {
+          "h": "1.2.7",
+          "name": "Gerçeğe Uygun Değer Farkı K/Z'a Yansıtılan FV'lerde Net Artış (Azalış) (+/-)",
+          "amount": null
+        },
+        {
+          "h": "1.2.8",
+          "name": "Alınan Kredilerdeki Net Artış (Azalış) (+/-)",
+          "amount": -165959
+        },
+        {
+          "h": "1.2.9",
+          "name": "Vadesi Gelmiş Borçlarda Net Artış (Azalış) (+/-)",
+          "amount": null
+        },
+        {
+          "h": "1.2.10",
+          "name": "Diğer Borçlarda Net Artış (Azalış) (+/-)",
+          "amount": 1782105
+        },
+        {
+          "h": "I.",
+          "name": "Bankacılık Faaliyetlerinden Kaynaklanan Net Nakit Akışı (+/-)",
+          "amount": 5229831
+        },
+        {
+          "h": "B.",
+          "name": "YATIRIM FAALİYETLERİNE İLİŞKİN NAKİT AKIMLARI",
+          "amount": null
+        },
+        {
+          "h": "II.",
+          "name": "Yatırım Faaliyetlerinden Kaynaklanan Net Nakit Akımı (+/-)",
+          "amount": -5403928
+        },
+        {
+          "h": "2.1",
+          "name": "İktisap Edilen İştirakler, Bağlı Ortaklıklar ve Birlikte Kontrol Edilen Ortaklıklar (İş Ortaklıkları) (-)",
+          "amount": -43432
+        },
+        {
+          "h": "2.3",
+          "name": "Satın Alınan Menkul ve Gayrimenkuller (-)",
+          "amount": -60662
+        },
+        {
+          "h": "2.4",
+          "name": "Elden Çıkarılan Menkul ve Gayrimenkuller (+)",
+          "amount": 65611
+        },
+        {
+          "h": "2.5",
+          "name": "Elde Edilen Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılan Finansal Varlıklar (-)",
+          "amount": -5271208
+        },
+        {
+          "h": "2.7",
+          "name": "Satın Alınan İtfa Edilmiş Maliyeti ile Ölçülen Finansal Varlıklar (-)",
+          "amount": 33477
+        },
+        {
+          "h": "2.9",
+          "name": "Diğer (+/-)",
+          "amount": -127714
+        },
+        {
+          "h": "C.",
+          "name": "FİNANSMAN FAALİYETLERİNE İLİŞKİN NAKİT AKIMLARI",
+          "amount": null
+        },
+        {
+          "h": "III.",
+          "name": "Finansman Faaliyetlerinden Sağlanan Net Nakit (+/-)",
+          "amount": -16049
+        },
+        {
+          "h": "3.5",
+          "name": "Kiralamaya İlişkin Ödemeler (-)",
+          "amount": -19896
+        },
+        {
+          "h": "3.6",
+          "name": "Diğer (+/-)",
+          "amount": 3847
+        },
+        {
+          "h": "IV.",
+          "name": "Yabancı Para Çevrim Farklarının Nakit ve Nakde Eşdeğer Varlıklar Üzerindeki Etkisi (+/-)",
+          "amount": 1872014
+        },
+        {
+          "h": "V.",
+          "name": "Nakit ve Nakde Eşdeğer Varlıklardaki Net Artış (Azalış) (I+II+III+IV)",
+          "amount": 1681868
+        },
+        {
+          "h": "VI.",
+          "name": "Dönem Başındaki Nakit ve Nakde Eşdeğer Varlıklar (+)",
+          "amount": 19377572
+        },
+        {
+          "h": "VII.",
+          "name": "Dönem Sonundaki Nakit ve Nakde Eşdeğer Varlıklar (V+VI)",
+          "amount": 21059440
+        }
+      ]
+    },
+    {
+      "bank": "FIBA",
+      "period": "2024Q1",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "total_name": "BİLANÇO DIŞI HESAPLAR TOPLAMI (A+B)",
+      "rows": [
+        {
+          "h": "A.",
+          "name": "BİLANÇO DIŞI YÜKÜMLÜLÜKLER (I+II+III)",
+          "tl": null,
+          "fc": null,
+          "total": 275056256
+        },
+        {
+          "h": "I.",
+          "name": "GARANTİ VE KEFALETLER",
+          "tl": null,
+          "fc": null,
+          "total": 1273563
+        },
+        {
+          "h": "II.",
+          "name": "TAAHHÜTLER",
+          "tl": null,
+          "fc": null,
+          "total": 18490806
+        },
+        {
+          "h": "III.",
+          "name": "TÜREV FİNANSAL ARAÇLAR",
+          "tl": null,
+          "fc": null,
+          "total": 255291887
+        },
+        {
+          "h": "B.",
+          "name": "EMANET VE REHİNLİ KIYMETLER (IV+V+VI)",
+          "tl": null,
+          "fc": null,
+          "total": 916955249
+        },
+        {
+          "h": "IV.",
+          "name": "EMANET KIYMETLER",
+          "tl": null,
+          "fc": null,
+          "total": 122868368
+        },
+        {
+          "h": "V.",
+          "name": "REHİNLİ KIYMETLER",
+          "tl": null,
+          "fc": null,
+          "total": 794086881
+        },
+        {
+          "h": "VI.",
+          "name": "KABUL EDİLEN AVALLER VE KEFALETLER",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "",
+          "name": "BİLANÇO DIŞI HESAPLAR TOPLAMI (A+B)",
+          "tl": null,
+          "fc": null,
+          "total": 1192011505
+        }
+      ]
+    },
+    {
+      "bank": "FIBA",
+      "period": "2025Q3",
+      "kind": "consolidated",
+      "statement": "oci",
+      "total_name": "TOPLAM KAPSAMLI GELİR (I+II)",
+      "rows": [
+        {
+          "h": "I.",
+          "name": "DÖNEM KARI/ZARARI",
+          "amount": 4692141
+        },
+        {
+          "h": "II.",
+          "name": "DİĞER KAPSAMLI GELİRLER",
+          "amount": -304682
+        },
+        {
+          "h": "2.1",
+          "name": "Kar veya Zararda Yeniden Sınıflandırılmayacaklar",
+          "amount": -358212
+        },
+        {
+          "h": "2.1.1",
+          "name": "Maddi Duran Varlıklar Yeniden Değerleme Artışları/Azalışları",
+          "amount": null
+        },
+        {
+          "h": "2.1.2",
+          "name": "Maddi Olmayan Duran Varlıklar Yeniden Değerleme Artışları/Azalışları",
+          "amount": null
+        },
+        {
+          "h": "2.1.3",
+          "name": "Tanımlanmış Fayda Planları Yeniden Ölçüm Kazançları/Kayıpları",
+          "amount": 182
+        },
+        {
+          "h": "2.1.4",
+          "name": "Diğer Kar veya Zarar Olarak Yeniden Sınıflandırılmayacak Diğer Kapsamlı Gelir Unsurları",
+          "amount": -358339
+        },
+        {
+          "h": "2.1.5",
+          "name": "Kar veya Zararda Yeniden Sınıflandırılmayacak Diğer Kapsamlı Gelire İlişkin Vergiler",
+          "amount": -55
+        },
+        {
+          "h": "2.2",
+          "name": "Kar veya Zararda Yeniden Sınıflandırılacaklar",
+          "amount": 53530
+        },
+        {
+          "h": "2.2.1",
+          "name": "Yabancı Para Çevrim Farkları",
+          "amount": null
+        },
+        {
+          "h": "2.2.2",
+          "name": "Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılan Finansal Varlıkların Değerleme ve/veya Sınıflandırma Gelirleri/Giderleri",
+          "amount": 70545
+        },
+        {
+          "h": "2.2.3",
+          "name": "Nakit Akış Riskinden Korunma Gelirleri/Giderleri",
+          "amount": null
+        },
+        {
+          "h": "2.2.4",
+          "name": "Yurtdışındaki İşletmeye İlişkin Yatırım Riskinden Korunma Gelirleri/Giderleri",
+          "amount": null
+        },
+        {
+          "h": "2.2.5",
+          "name": "Diğer Kar veya Zarar Olarak Yeniden Sınıflandırılacak Diğer Kapsamlı Gelir Unsurları",
+          "amount": 1363
+        },
+        {
+          "h": "2.2.6",
+          "name": "Kar veya Zararda Yeniden Sınıflandırılacak Diğer Kapsamlı Gelire İlişkin Vergiler",
+          "amount": -18378
+        },
+        {
+          "h": "III.",
+          "name": "TOPLAM KAPSAMLI GELİR (I+II)",
+          "amount": 4387459
+        }
+      ]
+    },
+    {
+      "bank": "FIBA",
+      "period": "2025Q3",
+      "kind": "consolidated",
+      "statement": "cash_flow",
+      "total_name": "Dönem Sonundaki Nakit ve Nakde Eşdeğer Varlıklar",
+      "rows": [
+        {
+          "h": "1.1",
+          "name": "Bankacılık Faaliyet Konusu Varlık ve Yükümlülüklerdeki Değişim Öncesi Faaliyet Kârı",
+          "amount": 4107181
+        },
+        {
+          "h": "1.1.1",
+          "name": "Alınan Faizler (+)",
+          "amount": 31123145
+        },
+        {
+          "h": "1.1.2",
+          "name": "Ödenen Faizler (-)",
+          "amount": -22026161
+        },
+        {
+          "h": "1.1.3",
+          "name": "Alınan Temettüler (+)",
+          "amount": 310000
+        },
+        {
+          "h": "1.1.4",
+          "name": "Alınan Ücret ve Komisyonlar (+)",
+          "amount": 3401952
+        },
+        {
+          "h": "1.1.5",
+          "name": "Elde Edilen Diğer Kazançlar (+)",
+          "amount": 2274904
+        },
+        {
+          "h": "1.1.6",
+          "name": "Zarar Olarak Muhasebeleştirilen Donuk Alacaklardan Tahsilatlar (+)",
+          "amount": 742752
+        },
+        {
+          "h": "1.1.7",
+          "name": "Personele ve Hizmet Tedarik Edenlere Yapılan Nakit Ödemeler (-)",
+          "amount": -6720787
+        },
+        {
+          "h": "1.1.8",
+          "name": "Ödenen Vergiler (-)",
+          "amount": -696687
+        },
+        {
+          "h": "1.1.9",
+          "name": "Diğer (+/-)",
+          "amount": -4301937
+        },
+        {
+          "h": "1.2",
+          "name": "Bankacılık Faaliyetleri Konusu Varlık ve Yükümlülüklerdeki Değişim",
+          "amount": -1544910
+        },
+        {
+          "h": "1.2.1",
+          "name": "Gerçeğe Uygun Değer Farkı K/Z'a Yansıtılan FV'larda Net (Artış) Azalış (+/-)",
+          "amount": -582059
+        },
+        {
+          "h": "1.2.2",
+          "name": "Bankalar Hesabındaki Net (Artış) Azalış (+/-)",
+          "amount": -6652287
+        },
+        {
+          "h": "1.2.3",
+          "name": "Kredilerdeki Net (Artış) Azalış (+/-)",
+          "amount": -10515343
+        },
+        {
+          "h": "1.2.4",
+          "name": "Diğer Varlıklarda Net (Artış) Azalış (+/-)",
+          "amount": -838925
+        },
+        {
+          "h": "1.2.5",
+          "name": "Bankaların Mevduatlarında Net Artış (Azalış) (+/-)",
+          "amount": -1001346
+        },
+        {
+          "h": "1.2.6",
+          "name": "Diğer Mevduatlarda Net Artış (Azalış) (+/-)",
+          "amount": 9763996
+        },
+        {
+          "h": "1.2.7",
+          "name": "Gerçeğe Uygun Değer Farkı K/Z'a Yansıtılan FV'lerde Net Artış (Azalış) (+/-)",
+          "amount": null
+        },
+        {
+          "h": "1.2.8",
+          "name": "Alınan Kredilerdeki Net Artış (Azalış) (+/-)",
+          "amount": 554681
+        },
+        {
+          "h": "1.2.9",
+          "name": "Vadesi Gelmiş Borçlarda Net Artış (Azalış) (+/-)",
+          "amount": null
+        },
+        {
+          "h": "1.2.10",
+          "name": "Diğer Borçlarda Net Artış (Azalış) (+/-)",
+          "amount": 7726373
+        },
+        {
+          "h": "I.",
+          "name": "Bankacılık Faaliyetlerinden Kaynaklanan Net Nakit Akışı (+/-)",
+          "amount": 2562271
+        },
+        {
+          "h": "II.",
+          "name": "Yatırım Faaliyetlerinden Kaynaklanan Net Nakit Akımı (+/-)",
+          "amount": -13399364
+        },
+        {
+          "h": "2.1",
+          "name": "İktisap Edilen İştirakler, Bağlı Ortaklıklar ve Birlikte Kontrol Edilen Ortaklıklar (İş Ortaklıkları) (-)",
+          "amount": 38000
+        },
+        {
+          "h": "2.3",
+          "name": "Satın Alınan Menkuller ve Gayrimenkuller (-)",
+          "amount": -527838
+        },
+        {
+          "h": "2.4",
+          "name": "Elden Çıkarılan Menkul ve Gayrimenkuller (+)",
+          "amount": 64132
+        },
+        {
+          "h": "2.5",
+          "name": "Elde Edilen Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılan Finansal Varlıklar (-)",
+          "amount": -11914592
+        },
+        {
+          "h": "2.7",
+          "name": "Satın Alınan İtfa Edilmiş Maliyeti ile Ölçülen Finansal Varlıklar (-)",
+          "amount": -2166593
+        },
+        {
+          "h": "2.8",
+          "name": "Satılan İtfa Edilmiş Maliyeti ile Ölçülen Finansal Varlıklar (+)",
+          "amount": 1233884
+        },
+        {
+          "h": "2.9",
+          "name": "Diğer (+/-)",
+          "amount": -126357
+        },
+        {
+          "h": "III.",
+          "name": "Finansman Faaliyetlerinden Sağlanan Net Nakit (+/-)",
+          "amount": -1214291
+        },
+        {
+          "h": "3.2",
+          "name": "Krediler ve İhraç Edilen Menkul Değerlerden Kaynaklanan Nakit Çıkışı (-)",
+          "amount": -209273
+        },
+        {
+          "h": "3.4",
+          "name": "Temettü Ödemeleri (-)",
+          "amount": -892609
+        },
+        {
+          "h": "3.5",
+          "name": "Kiralamaya İlişkin Ödemeler (-)",
+          "amount": -112409
+        },
+        {
+          "h": "IV.",
+          "name": "Yabancı Para Çevrim Farklarının Nakit ve Nakde Eşdeğer Varlıklar Üzerindeki Etkisi (+/-)",
+          "amount": 12558745
+        },
+        {
+          "h": "V.",
+          "name": "Nakit ve Nakde Eşdeğer Varlıklardaki Net Artış (Azalış) (I+II+III+IV)",
+          "amount": 507361
+        },
+        {
+          "h": "VI.",
+          "name": "Dönem Başındaki Nakit ve Nakde Eşdeğer Varlıklar (+)",
+          "amount": 19025996
+        },
+        {
+          "h": "VII.",
+          "name": "Dönem Sonundaki Nakit ve Nakde Eşdeğer Varlıklar (V+VI)",
+          "amount": 19533357
+        }
+      ]
+    },
+    {
+      "bank": "FIBA",
+      "period": "2025Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "total_name": "BİLANÇO DIŞI HESAPLAR TOPLAMI (A+B)",
+      "rows": [
+        {
+          "h": "A.",
+          "name": "BİLANÇO DIŞI YÜKÜMLÜLÜKLER (I+II+III)",
+          "tl": null,
+          "fc": null,
+          "total": 336791910
+        },
+        {
+          "h": "I.",
+          "name": "GARANTİ ve KEFALETLER",
+          "tl": null,
+          "fc": null,
+          "total": 1125262
+        },
+        {
+          "h": "1.1",
+          "name": "Teminat Mektupları",
+          "tl": null,
+          "fc": null,
+          "total": 1117110
+        },
+        {
+          "h": "1.3",
+          "name": "Akreditifler",
+          "tl": null,
+          "fc": null,
+          "total": 8152
+        },
+        {
+          "h": "II.",
+          "name": "TAAHHÜTLER",
+          "tl": null,
+          "fc": null,
+          "total": 37658931
+        },
+        {
+          "h": "2.1",
+          "name": "Cayılamaz Taahhütler",
+          "tl": null,
+          "fc": null,
+          "total": 37658931
+        },
+        {
+          "h": "III.",
+          "name": "TÜREV FİNANSAL ARAÇLAR",
+          "tl": null,
+          "fc": null,
+          "total": 298007717
+        },
+        {
+          "h": "B.",
+          "name": "EMANET VE REHİNLİ KIYMETLER (IV+V+VI)",
+          "tl": null,
+          "fc": null,
+          "total": 1533086992
+        },
+        {
+          "h": "IV.",
+          "name": "EMANET KIYMETLER",
+          "tl": null,
+          "fc": null,
+          "total": 254903802
+        },
+        {
+          "h": "V.",
+          "name": "REHİNLİ KIYMETLER",
+          "tl": null,
+          "fc": null,
+          "total": 1278183190
+        },
+        {
+          "h": "VI.",
+          "name": "KABUL EDİLEN AVALLER VE KEFALETLER",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "",
+          "name": "BİLANÇO DIŞI HESAPLAR TOPLAMI (A+B)",
+          "tl": null,
+          "fc": null,
+          "total": 1869878902
+        }
+      ]
+    },
+    {
+      "bank": "FIBA",
+      "period": "2025Q3",
+      "kind": "unconsolidated",
+      "statement": "oci",
+      "total_name": "TOPLAM KAPSAMLI GELİR (I+II)",
+      "rows": [
+        {
+          "h": "I.",
+          "name": "DÖNEM KARI/ZARARI",
+          "amount": 4501547
+        },
+        {
+          "h": "II.",
+          "name": "DİĞER KAPSAMLI GELİRLER",
+          "amount": -306172
+        },
+        {
+          "h": "2.1",
+          "name": "Kar veya Zararda Yeniden Sınıflandırılmayacaklar",
+          "amount": -358339
+        },
+        {
+          "h": "2.1.1",
+          "name": "Maddi Duran Varlıklar Yeniden Değerleme Artışları/Azalışları",
+          "amount": null
+        },
+        {
+          "h": "2.1.2",
+          "name": "Maddi Olmayan Duran Varlıklar Yeniden Değerleme Artışları/Azalışları",
+          "amount": null
+        },
+        {
+          "h": "2.1.3",
+          "name": "Tanımlanmış Fayda Planları Yeniden Ölçüm Kazançları/Kayıpları",
+          "amount": null
+        },
+        {
+          "h": "2.1.4",
+          "name": "Diğer Kâr veya Zarar Olarak Yeniden Sınıflandırılmayacak Diğer Kapsamlı Gelir Unsurları",
+          "amount": -358339
+        },
+        {
+          "h": "2.1.5",
+          "name": "Kâr veya Zararda Yeniden Sınıflandırılmayacak Diğer Kapsamlı Gelire İlişkin Vergiler",
+          "amount": null
+        },
+        {
+          "h": "2.2",
+          "name": "Kâr veya Zararda Yeniden Sınıflandırılacaklar",
+          "amount": 52167
+        },
+        {
+          "h": "2.2.1",
+          "name": "Yabancı Para Çevirim Farkları",
+          "amount": null
+        },
+        {
+          "h": "2.2.2",
+          "name": "Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılan Finansal Varlıkların Değerleme ve/veya Sınıflandırma Gelirleri/Giderleri",
+          "amount": 70545
+        },
+        {
+          "h": "2.2.3",
+          "name": "Nakit Akış Riskinden Korunma Gelirleri/Giderleri",
+          "amount": null
+        },
+        {
+          "h": "2.2.4",
+          "name": "Yurtdışındaki İşletmeye İlişkin Yatırım Riskinden Korunma Gelirleri/Giderleri",
+          "amount": null
+        },
+        {
+          "h": "2.2.5",
+          "name": "Diğer Kâr veya Zarar Olarak Yeniden Sınıflandırılacak Diğer Kapsamlı Gelir Unsurları",
+          "amount": null
+        },
+        {
+          "h": "2.2.6",
+          "name": "Kâr veya Zararda Yeniden Sınıflandırılacak Diğer Kapsamlı Gelire İlişkin Vergiler",
+          "amount": -18378
+        },
+        {
+          "h": "III.",
+          "name": "TOPLAM KAPSAMLI GELİR (I+II)",
+          "amount": 4195375
+        }
+      ]
+    },
+    {
+      "bank": "FIBA",
+      "period": "2025Q3",
+      "kind": "unconsolidated",
+      "statement": "cash_flow",
+      "total_name": "Dönem Sonundaki Nakit ve Nakde Eşdeğer Varlıklar",
+      "rows": [
+        {
+          "h": "1.1",
+          "name": "Bankacılık Faaliyet Konusu Varlık ve Yükümlülüklerdeki Değişim Öncesi Faaliyet Kârı",
+          "amount": 3930085
+        },
+        {
+          "h": "1.1.1",
+          "name": "Alınan Faizler (+)",
+          "amount": 31121041
+        },
+        {
+          "h": "1.1.2",
+          "name": "Ödenen Faizler (-)",
+          "amount": -22079151
+        },
+        {
+          "h": "1.1.3",
+          "name": "Alınan Temettüler (+)",
+          "amount": 513000
+        },
+        {
+          "h": "1.1.4",
+          "name": "Alınan Ücret ve Komisyonlar (+)",
+          "amount": 3096855
+        },
+        {
+          "h": "1.1.5",
+          "name": "Elde Edilen Diğer Kazançlar (+)",
+          "amount": 1861720
+        },
+        {
+          "h": "1.1.6",
+          "name": "Zarar Olarak Muhasebeleştirilen Donuk Alacaklardan Tahsilatlar (+)",
+          "amount": 742752
+        },
+        {
+          "h": "1.1.7",
+          "name": "Personele ve Hizmet Tedarik Edilenlere Yapılan Nakit Ödemeler (-)",
+          "amount": -6443932
+        },
+        {
+          "h": "1.1.8",
+          "name": "Ödenen Vergiler (-)",
+          "amount": -620587
+        },
+        {
+          "h": "1.1.9",
+          "name": "Diğer (+/-)",
+          "amount": -4261613
+        },
+        {
+          "h": "1.2",
+          "name": "Bankacılık Faaliyetleri Konusu Varlık ve Yükümlülüklerdeki Değişim",
+          "amount": -1491967
+        },
+        {
+          "h": "1.2.1",
+          "name": "Gerçeğe Uygun Değer Farkı K/Z'a Yansıtılan FV'lardaki Net (Artış) Azalış (+/-)",
+          "amount": -476439
+        },
+        {
+          "h": "1.2.2",
+          "name": "Bankalar Hesabındaki Net (Artış) Azalış (+/-)",
+          "amount": -6652287
+        },
+        {
+          "h": "1.2.3",
+          "name": "Kredilerdeki Net (Artış) Azalış (+/-)",
+          "amount": -10526945
+        },
+        {
+          "h": "1.2.4",
+          "name": "Diğer Varlıklarda Net (Artış) Azalış (+/-)",
+          "amount": -696039
+        },
+        {
+          "h": "1.2.5",
+          "name": "Bankaların Mevduatlarında Net Artış (Azalış) (+/-)",
+          "amount": -1001346
+        },
+        {
+          "h": "1.2.6",
+          "name": "Diğer Mevduatlarda Net Artış (Azalış) (+/-)",
+          "amount": 9934403
+        },
+        {
+          "h": "1.2.7",
+          "name": "Gerçeğe Uygun Değer Farkı K/Z'a Yansıtılan FV'lerde Net Artış (Azalış) (+/-)",
+          "amount": null
+        },
+        {
+          "h": "1.2.8",
+          "name": "Alınan Kredilerdeki Net Artış (Azalış) (+/-)",
+          "amount": 554681
+        },
+        {
+          "h": "1.2.9",
+          "name": "Vadesi Gelmiş Borçlarda Net Artış (Azalış) (+/-)",
+          "amount": null
+        },
+        {
+          "h": "1.2.10",
+          "name": "Diğer Borçlardaki Net Artış (Azalış) (+/-)",
+          "amount": 7372005
+        },
+        {
+          "h": "I.",
+          "name": "Bankacılık Faaliyetlerinden Kaynaklanan Net Nakit Akışı (+/-)",
+          "amount": 2438118
+        },
+        {
+          "h": "2.1",
+          "name": "İktisap Edilen İştirakler, Bağlı Ortaklıklar ve Birlikte Kontrol Edilen Ortaklıklar (İş Ortaklıkları) (-)",
+          "amount": -388000
+        },
+        {
+          "h": "2.2",
+          "name": "Elden Çıkarılan İştirakler, Bağlı Ortaklıklar ve Birlikte Kontrol Edilen Ortaklıklar (İş Ortaklıkları) (+)",
+          "amount": null
+        },
+        {
+          "h": "2.3",
+          "name": "Satın Alınan Menkuller ve Gayrimenkuller (-)",
+          "amount": -210110
+        },
+        {
+          "h": "2.4",
+          "name": "Elden Çıkarılan Menkul ve Gayrimenkuller (+)",
+          "amount": 64132
+        },
+        {
+          "h": "2.5",
+          "name": "Elde Edilen Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılan Finansal Varlıklar (-)",
+          "amount": -11914592
+        },
+        {
+          "h": "2.6",
+          "name": "Elden Çıkarılan Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılan Finansal Varlıklar (+)",
+          "amount": null
+        },
+        {
+          "h": "2.7",
+          "name": "Satın Alınan İtfa Edilmiş Maliyeti ile Ölçülen Finansal Varlıklar (-)",
+          "amount": -2166593
+        },
+        {
+          "h": "2.8",
+          "name": "Satılan İtfa Edilmiş Maliyeti ile Ölçülen Finansal Varlıklar (+)",
+          "amount": 1233884
+        },
+        {
+          "h": "2.9",
+          "name": "Diğer (+/-)",
+          "amount": 101908
+        },
+        {
+          "h": "II.",
+          "name": "Yatırım Faaliyetlerinden Kaynaklanan Net Nakit Akışı (+/-)",
+          "amount": -13279371
+        },
+        {
+          "h": "3.1",
+          "name": "Krediler ve İhraç Edilen Menkul Değerlerden Sağlanan Nakit (+)",
+          "amount": null
+        },
+        {
+          "h": "3.2",
+          "name": "Krediler ve İhraç Edilen Menkul Değerlerden Kaynaklanan Nakit Çıkışı (-)",
+          "amount": -209273
+        },
+        {
+          "h": "3.3",
+          "name": "İhraç Edilen Sermaye Araçları (+)",
+          "amount": null
+        },
+        {
+          "h": "3.4",
+          "name": "Temettü Ödemeleri (-)",
+          "amount": -892609
+        },
+        {
+          "h": "3.5",
+          "name": "Kiralamaya İlişkin Ödemeler (-)",
+          "amount": -110695
+        },
+        {
+          "h": "3.6",
+          "name": "Diğer (+/-)",
+          "amount": null
+        },
+        {
+          "h": "III.",
+          "name": "Finansman Faaliyetlerinden Sağlanan Net Nakit (+/-)",
+          "amount": -1212577
+        },
+        {
+          "h": "IV.",
+          "name": "Yabancı Para Çevirim Farklarının Nakit ve Nakde Eşdeğer Varlıklar Üzerindeki Etkisi (+/-)",
+          "amount": 12558743
+        },
+        {
+          "h": "V.",
+          "name": "Nakit ve Nakde Eşdeğer Varlıklardaki Net Artış (I+II+III+IV)",
+          "amount": 504913
+        },
+        {
+          "h": "VI.",
+          "name": "Dönem Başındaki Nakit ve Nakde Eşdeğer Varlıklar (+)",
+          "amount": 19025996
+        },
+        {
+          "h": "VII.",
+          "name": "Dönem Sonundaki Nakit ve Nakde Eşdeğer Varlıklar (V+VI)",
+          "amount": 19530909
+        }
+      ]
+    },
+    {
+      "bank": "FIBA",
+      "period": "2025Q3",
+      "kind": "unconsolidated",
+      "statement": "off_balance",
+      "total_name": "BİLANÇO DIŞI HESAPLAR TOPLAMI (A+B)",
+      "rows": [
+        {
+          "h": "A.",
+          "name": "BİLANÇO DIŞI YÜKÜMLÜLÜKLER (I+II+III)",
+          "tl": null,
+          "fc": null,
+          "total": 336791910
+        },
+        {
+          "h": "I.",
+          "name": "GARANTİ ve KEFALETLER",
+          "tl": null,
+          "fc": null,
+          "total": 1125262
+        },
+        {
+          "h": "1.1",
+          "name": "Teminat Mektupları",
+          "tl": null,
+          "fc": null,
+          "total": 1117110
+        },
+        {
+          "h": "1.1.1",
+          "name": "Devlet İhale Kanunu Kapsamına Girenler",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "1.1.2",
+          "name": "Dış Ticaret İşlemleri Dolayısıyla Verilenler",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "1.1.3",
+          "name": "Diğer Teminat Mektupları",
+          "tl": null,
+          "fc": null,
+          "total": 1117110
+        },
+        {
+          "h": "1.2",
+          "name": "Banka Kredileri",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "1.2.1",
+          "name": "İthalat Kabul Kredileri",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "1.2.2",
+          "name": "Diğer Banka Kabulleri",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "1.3",
+          "name": "Akreditifler",
+          "tl": null,
+          "fc": null,
+          "total": 8152
+        },
+        {
+          "h": "1.3.1",
+          "name": "Belgeli Akreditifler",
+          "tl": null,
+          "fc": null,
+          "total": 8152
+        },
+        {
+          "h": "1.3.2",
+          "name": "Diğer Akreditifler",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "1.4",
+          "name": "Garanti Verilen Prefinansmanlar",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "1.5",
+          "name": "Cirolar",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "1.5.1",
+          "name": "T.C. Merkez Bankasına Cirolar",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "1.5.2",
+          "name": "Diğer Cirolar",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "1.6",
+          "name": "Menkul Kıy. İh. Satın Alma Garantilerimizden",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "1.7",
+          "name": "Faktoring Garantilerinden",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "1.8",
+          "name": "Diğer Garantilerimizden",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "1.9",
+          "name": "Diğer Kefaletlerimizden",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "II.",
+          "name": "TAAHHÜTLER",
+          "tl": null,
+          "fc": null,
+          "total": 37658931
+        },
+        {
+          "h": "2.1",
+          "name": "Cayılamaz Taahhütler",
+          "tl": null,
+          "fc": null,
+          "total": 37658931
+        },
+        {
+          "h": "2.1.1",
+          "name": "Vadeli Aktif Değerler Alım Satım Taahhütleri",
+          "tl": null,
+          "fc": null,
+          "total": 23837531
+        },
+        {
+          "h": "2.1.2",
+          "name": "Vadeli Mevduat Alım Satım Taahhütleri",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "2.1.3",
+          "name": "İştir. ve Bağ. Ort. Ser. İşt. Taahhütleri",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "2.1.4",
+          "name": "Kul. Gar. Kredi Tahsis Taahhütleri",
+          "tl": null,
+          "fc": null,
+          "total": 10188055
+        },
+        {
+          "h": "2.1.5",
+          "name": "Men. Kıy. İhr. Aracılık Taahhütleri",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "2.1.6",
+          "name": "Zorunlu Karşılık Ödeme Taahhüdü",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "2.1.7",
+          "name": "Çekler İçin Ödeme Taahhütleri",
+          "tl": null,
+          "fc": null,
+          "total": 645326
+        },
+        {
+          "h": "2.1.8",
+          "name": "İhracat Taahhütlerinden Kaynaklanan Vergi ve Fon Yükümlülükleri",
+          "tl": null,
+          "fc": null,
+          "total": 201542
+        },
+        {
+          "h": "2.1.9",
+          "name": "Kredi Kartı Harcama Limit Taahhütleri",
+          "tl": null,
+          "fc": null,
+          "total": 2768229
+        },
+        {
+          "h": "2.1.10",
+          "name": "Kredi Kartları ve Bankacılık Hizmetlerine İlişkin Promosyon Uyg. Taah.",
+          "tl": null,
+          "fc": null,
+          "total": 253
+        },
+        {
+          "h": "2.1.11",
+          "name": "Açığa Menkul Kıymet Satış Taahhütlerinden Alacaklar",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "2.1.12",
+          "name": "Açığa Menkul Kıymet Satış Taahhütlerinden Borçlar",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "2.1.13",
+          "name": "Diğer Cayılamaz Taahhütler",
+          "tl": null,
+          "fc": null,
+          "total": 17995
+        },
+        {
+          "h": "2.2",
+          "name": "Cayılabilir Taahhütler",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "2.2.1",
+          "name": "Cayılabilir Kredi Tahsis Taahhütleri",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "2.2.2",
+          "name": "Diğer Cayılabilir Taahhütler",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "III.",
+          "name": "TÜREV FİNANSAL ARAÇLAR",
+          "tl": null,
+          "fc": null,
+          "total": 298007717
+        },
+        {
+          "h": "3.1",
+          "name": "Riskten Korunma Amaçlı Türev Finansal Araçlar",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "3.1.1",
+          "name": "Gerçeğe Uygun Değer Riskinden Korunma Amaçlı İşlemler",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "3.1.2",
+          "name": "Nakit Akış Riskinden Korunma Amaçlı İşlemler",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "3.1.3",
+          "name": "Yurtdışındaki Net Yatırım Riskinden Korunma Amaçlı İşlemler",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "3.2",
+          "name": "Alım Satım Amaçlı İşlemler",
+          "tl": null,
+          "fc": null,
+          "total": 298007717
+        },
+        {
+          "h": "3.2.1",
+          "name": "Vadeli Döviz Alım-Satım İşlemleri",
+          "tl": null,
+          "fc": null,
+          "total": 50681471
+        },
+        {
+          "h": "3.2.1.1",
+          "name": "Vadeli Döviz Alım İşlemleri",
+          "tl": null,
+          "fc": null,
+          "total": 25683209
+        },
+        {
+          "h": "3.2.1.2",
+          "name": "Vadeli Döviz Satım İşlemleri",
+          "tl": null,
+          "fc": null,
+          "total": 24998262
+        },
+        {
+          "h": "3.2.2",
+          "name": "Para ve Faiz Swap İşlemleri",
+          "tl": null,
+          "fc": null,
+          "total": 114876206
+        },
+        {
+          "h": "3.2.2.1",
+          "name": "Swap Para Alım İşlemleri",
+          "tl": null,
+          "fc": null,
+          "total": 51114121
+        },
+        {
+          "h": "3.2.2.2",
+          "name": "Swap Para Satım İşlemleri",
+          "tl": null,
+          "fc": null,
+          "total": 48892085
+        },
+        {
+          "h": "3.2.2.3",
+          "name": "Swap Faiz Alım İşlemleri",
+          "tl": null,
+          "fc": null,
+          "total": 7435000
+        },
+        {
+          "h": "3.2.2.4",
+          "name": "Swap Faiz Satım İşlemleri",
+          "tl": null,
+          "fc": null,
+          "total": 7435000
+        },
+        {
+          "h": "3.2.3",
+          "name": "Para, Faiz ve Menkul Değer Opsiyonları",
+          "tl": null,
+          "fc": null,
+          "total": 130433945
+        },
+        {
+          "h": "3.2.3.1",
+          "name": "Para Alım Opsiyonları",
+          "tl": null,
+          "fc": null,
+          "total": 65146057
+        },
+        {
+          "h": "3.2.3.2",
+          "name": "Para Satım Opsiyonları",
+          "tl": null,
+          "fc": null,
+          "total": 65287888
+        },
+        {
+          "h": "3.2.3.3",
+          "name": "Faiz Alım Opsiyonları",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "3.2.3.4",
+          "name": "Faiz Satım Opsiyonları",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "3.2.3.5",
+          "name": "Menkul Değerler Alım Opsiyonları",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "3.2.3.6",
+          "name": "Menkul Değerler Satım Opsiyonları",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "3.2.4",
+          "name": "Futures Para İşlemleri",
+          "tl": null,
+          "fc": null,
+          "total": 381800
+        },
+        {
+          "h": "3.2.4.1",
+          "name": "Futures Para Alım İşlemleri",
+          "tl": null,
+          "fc": null,
+          "total": 186781
+        },
+        {
+          "h": "3.2.4.2",
+          "name": "Futures Para Satım İşlemleri",
+          "tl": null,
+          "fc": null,
+          "total": 195019
+        },
+        {
+          "h": "3.2.5",
+          "name": "Futures Faiz Alım-Satım İşlemleri",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "3.2.5.1",
+          "name": "Futures Faiz Alım İşlemleri",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "3.2.5.2",
+          "name": "Futures Faiz Satım İşlemleri",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "3.2.6",
+          "name": "Diğer",
+          "tl": null,
+          "fc": null,
+          "total": 1634295
+        },
+        {
+          "h": "B.",
+          "name": "EMANET VE REHİNLİ KIYMETLER (IV+V+VI)",
+          "tl": null,
+          "fc": null,
+          "total": 1533086992
+        },
+        {
+          "h": "IV.",
+          "name": "EMANET KIYMETLER",
+          "tl": null,
+          "fc": null,
+          "total": 254903802
+        },
+        {
+          "h": "4.1",
+          "name": "Müşteri Fon ve Portföy Mevcutları",
+          "tl": null,
+          "fc": null,
+          "total": 40045189
+        },
+        {
+          "h": "4.2",
+          "name": "Emanete Alınan Menkul Değerler",
+          "tl": null,
+          "fc": null,
+          "total": 26352909
+        },
+        {
+          "h": "4.3",
+          "name": "Tahsile Alınan Çekler",
+          "tl": null,
+          "fc": null,
+          "total": 10469997
+        },
+        {
+          "h": "4.4",
+          "name": "Tahsile Alınan Ticari Senetler",
+          "tl": null,
+          "fc": null,
+          "total": 37468920
+        },
+        {
+          "h": "4.5",
+          "name": "Tahsile Alınan Diğer Kıymetler",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "4.6",
+          "name": "İhracına Aracı Olunan Kıymetler",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "4.7",
+          "name": "Diğer Emanet Kıymetler",
+          "tl": null,
+          "fc": null,
+          "total": 140566787
+        },
+        {
+          "h": "4.8",
+          "name": "Emanet Kıymet Alanlar",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "V.",
+          "name": "REHİNLİ KIYMETLER",
+          "tl": null,
+          "fc": null,
+          "total": 1278183190
+        },
+        {
+          "h": "5.1",
+          "name": "Menkul Kıymetler",
+          "tl": null,
+          "fc": null,
+          "total": 13192717
+        },
+        {
+          "h": "5.2",
+          "name": "Teminat Senetleri",
+          "tl": null,
+          "fc": null,
+          "total": 98296
+        },
+        {
+          "h": "5.3",
+          "name": "Emtia",
+          "tl": null,
+          "fc": null,
+          "total": 1085180
+        },
+        {
+          "h": "5.4",
+          "name": "Varant",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "5.5",
+          "name": "Gayrimenkul",
+          "tl": null,
+          "fc": null,
+          "total": 30101582
+        },
+        {
+          "h": "5.6",
+          "name": "Diğer Rehinli Kıymetler",
+          "tl": null,
+          "fc": null,
+          "total": 1233705415
+        },
+        {
+          "h": "5.7",
+          "name": "Rehinli Kıymet Alanlar",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "VI.",
+          "name": "KABUL EDİLEN AVALLER VE KEFALETLER",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "",
+          "name": "BİLANÇO DIŞI HESAPLAR TOPLAMI (A+B)",
+          "tl": null,
+          "fc": null,
+          "total": 1869878902
+        }
+      ]
+    },
+    {
+      "bank": "ISCTR",
+      "period": "2025Q1",
+      "kind": "consolidated",
+      "statement": "oci",
+      "total_name": "TOTAL COMPREHENSIVE INCOME (I+II)",
+      "rows": [
+        {
+          "h": "I",
+          "name": "PROFIT/LOSS FOR THE PERIOD",
+          "amount": 17406933
+        },
+        {
+          "h": "II",
+          "name": "OTHER COMPREHENSIVE INCOME",
+          "amount": -483879
+        },
+        {
+          "h": "2.1",
+          "name": "Other comprehensive income that will not be reclassified to profit or loss",
+          "amount": 869542
+        },
+        {
+          "h": "2.1.1",
+          "name": "Revaluation Surplus on Tangible Assets",
+          "amount": 344995
+        },
+        {
+          "h": "2.1.2",
+          "name": "Revaluation Surplus on Intangible Assets",
+          "amount": 0
+        },
+        {
+          "h": "2.1.3",
+          "name": "Gains/(Losses) on remeasurements of Defined Benefit Plans",
+          "amount": -43332
+        },
+        {
+          "h": "2.1.4",
+          "name": "Other Income/Expense Items of Other Comprehensive Income not to be Reclassified to Profit Or Loss",
+          "amount": 357653
+        },
+        {
+          "h": "2.1.5",
+          "name": "Taxes Relating To Components Of Other Comprehensive Income not to be Reclassified To Profit Or Loss",
+          "amount": 210226
+        },
+        {
+          "h": "2.2",
+          "name": "Other Income/Expense Items not be Reclassified to Profit or Loss",
+          "amount": -1353421
+        },
+        {
+          "h": "2.2.1",
+          "name": "Exchange Differences on Translation",
+          "amount": 2759659
+        },
+        {
+          "h": "2.2.2",
+          "name": "Valuation and/or Reclassification Profit or Loss from Financial Assets at Fair Value through Other Comprehensive Income",
+          "amount": -9127357
+        },
+        {
+          "h": "2.2.3",
+          "name": "Income/(Loss) Related with Cash Flow Hedges",
+          "amount": 0
+        },
+        {
+          "h": "2.2.4",
+          "name": "Income/(Loss) Related with Hedges of Net Investments in Foreign Operations",
+          "amount": -2011710
+        },
+        {
+          "h": "2.2.5",
+          "name": "Other Income/Expense Items of Other Comprehensive Income to be Reclassified to Other Profit or Loss",
+          "amount": 3990250
+        },
+        {
+          "h": "2.2.6",
+          "name": "Taxes Relating To Components Of Other Comprehensive Income to be Reclassified To Profit Or Loss",
+          "amount": 3035737
+        },
+        {
+          "h": "III",
+          "name": "TOTAL COMPREHENSIVE INCOME (I+II)",
+          "amount": 16923054
+        }
+      ]
+    },
+    {
+      "bank": "ISCTR",
+      "period": "2025Q1",
+      "kind": "consolidated",
+      "statement": "cash_flow",
+      "total_name": "Cash and cash equivalents at end of the period",
+      "rows": [
+        {
+          "h": "1.1",
+          "name": "Operating Profit Before Changes in Operating Assets and Liabilities",
+          "amount": 19539223
+        },
+        {
+          "h": "1.1.1",
+          "name": "Interest Received",
+          "amount": 174407082
+        },
+        {
+          "h": "1.1.2",
+          "name": "Interest Paid",
+          "amount": -157569305
+        },
+        {
+          "h": "1.1.3",
+          "name": "Dividend Received",
+          "amount": 34155
+        },
+        {
+          "h": "1.1.4",
+          "name": "Fees and Commissions Received",
+          "amount": 33101024
+        },
+        {
+          "h": "1.1.5",
+          "name": "Other Income",
+          "amount": 25045590
+        },
+        {
+          "h": "1.1.6",
+          "name": "Collections from Previously Written Off Loans and Other Receivables",
+          "amount": 2373644
+        },
+        {
+          "h": "1.1.7",
+          "name": "Cash Payments to Personnel and Service Suppliers",
+          "amount": -31477618
+        },
+        {
+          "h": "1.1.8",
+          "name": "Taxes Paid",
+          "amount": -5422105
+        },
+        {
+          "h": "1.1.9",
+          "name": "Other",
+          "amount": -20953244
+        },
+        {
+          "h": "1.2",
+          "name": "Changes in Operating Assets and Liabilities",
+          "amount": 80554492
+        },
+        {
+          "h": "1.2.1",
+          "name": "Net (Increase) / Decrease in Financial Assets at Fair Value Through Profit or Loss",
+          "amount": -1058212
+        },
+        {
+          "h": "1.2.2",
+          "name": "Net (Increase) / Decrease in Due From Banks",
+          "amount": -54269239
+        },
+        {
+          "h": "1.2.3",
+          "name": "Net (Increase) / Decrease in Loans",
+          "amount": -107029212
+        },
+        {
+          "h": "1.2.4",
+          "name": "Net (Increase) / Decrease in Other Assets",
+          "amount": -24805908
+        },
+        {
+          "h": "1.2.5",
+          "name": "Net Increase / (Decrease) in Bank Deposits",
+          "amount": 14301158
+        },
+        {
+          "h": "1.2.6",
+          "name": "Net Increase / (Decrease) in Other Deposits",
+          "amount": 223471131
+        },
+        {
+          "h": "1.2.7",
+          "name": "Net Increase/ (Decrease) in Financial Liabilities at Fair Value Through Profit or Loss",
+          "amount": null
+        },
+        {
+          "h": "1.2.8",
+          "name": "Net Increase / (Decrease) in Funds Borrowed",
+          "amount": 47436920
+        },
+        {
+          "h": "1.2.9",
+          "name": "Net Increase / (Decrease) in Matured Payables",
+          "amount": null
+        },
+        {
+          "h": "1.2.10",
+          "name": "Net Increase / (Decrease) in Other Liabilities",
+          "amount": -17492146
+        },
+        {
+          "h": "I",
+          "name": "Net Cash Provided From Banking Operations",
+          "amount": 100093715
+        },
+        {
+          "h": "II",
+          "name": "Net Cash Provided from Investing Activities",
+          "amount": -41265867
+        },
+        {
+          "h": "2.1",
+          "name": "Cash Paid for the Purchase of Associates, Subsidiaries and Jointly Controlled Entities (Joint Ventures)",
+          "amount": -3718317
+        },
+        {
+          "h": "2.2",
+          "name": "Cash Obtained from Sale of Associates, Subsidiaries and Jointly Controlled Entities (Joint Ventures)",
+          "amount": null
+        },
+        {
+          "h": "2.3",
+          "name": "Cash Paid for the Purchase of Tangible Asset",
+          "amount": -1581280
+        },
+        {
+          "h": "2.4",
+          "name": "Cash Obtained from the Sale of Tangible Asset",
+          "amount": 5781385
+        },
+        {
+          "h": "2.5",
+          "name": "Cash Paid for Purchase of Financial Assets at Fair Value Through Other Comprehensive Income",
+          "amount": -80900644
+        },
+        {
+          "h": "2.6",
+          "name": "Cash Obtained from Sale of Financial Assets at Fair Value Through Other Comprehensive Income",
+          "amount": 39222015
+        },
+        {
+          "h": "2.7",
+          "name": "Cash Paid for Purchase of Financial Assets Measured at Amortised Cost",
+          "amount": -15957604
+        },
+        {
+          "h": "2.8",
+          "name": "Cash Obtained from Sale of Financial Assets Measured at Amortised Cost (*)",
+          "amount": 17275628
+        },
+        {
+          "h": "2.9",
+          "name": "Other",
+          "amount": -1387050
+        },
+        {
+          "h": "III",
+          "name": "Net cash provided from financing activities",
+          "amount": -2983765
+        },
+        {
+          "h": "3.1",
+          "name": "Cash obtained from funds borrowed and securities issued",
+          "amount": 36508604
+        },
+        {
+          "h": "3.2",
+          "name": "Cash used for repayment of funds borrowed and securities issued",
+          "amount": -34916600
+        },
+        {
+          "h": "3.3",
+          "name": "Equity Instruments",
+          "amount": null
+        },
+        {
+          "h": "3.4",
+          "name": "Dividends Paid",
+          "amount": -3870790
+        },
+        {
+          "h": "3.5",
+          "name": "Payments for Finance Leases",
+          "amount": -704979
+        },
+        {
+          "h": "3.6",
+          "name": "Other",
+          "amount": null
+        },
+        {
+          "h": "IV",
+          "name": "Effect of change in foreign exchange rate on cash and cash equivalents",
+          "amount": 9091896
+        },
+        {
+          "h": "V",
+          "name": "Net increase in cash and cash equivalents",
+          "amount": 64935979
+        },
+        {
+          "h": "VI",
+          "name": "Cash and cash equivalents at beginning of the period",
+          "amount": 395130686
+        },
+        {
+          "h": "VII",
+          "name": "Cash and cash equivalents at end of the period",
+          "amount": 460066665
+        }
+      ]
+    },
+    {
+      "bank": "ISCTR",
+      "period": "2025Q2",
+      "kind": "unconsolidated",
+      "statement": "oci",
+      "rows": [
+        {
+          "h": "I.",
+          "name": "PROFIT/LOSS FOR THE PERIOD",
+          "amount": 29789846
+        },
+        {
+          "h": "II.",
+          "name": "OTHER COMPREHENSIVE INCOME",
+          "amount": 16675342
+        },
+        {
+          "h": "2.1",
+          "name": "Other comprehensive income that will not be reclassified to profit or loss",
+          "amount": 7409207
+        },
+        {
+          "h": "2.1.1",
+          "name": "Revaluation Surplus on Tangible Assets",
+          "amount": 4593980
+        },
+        {
+          "h": "2.1.2",
+          "name": "Revaluation Surplus on Intangible Assets",
+          "amount": null
+        },
+        {
+          "h": "2.1.3",
+          "name": "Gains/(Losses) on remeasurements of Defined Benefit Plans",
+          "amount": null
+        },
+        {
+          "h": "2.1.4",
+          "name": "Other Income/Expense Items of Other Comprehensive Income not to be Reclassified to Profit Or Loss",
+          "amount": 3369814
+        },
+        {
+          "h": "2.1.5",
+          "name": "Taxes Relating To Components Of Other Comprehensive Income not to be Reclassified To Profit Or Loss",
+          "amount": -554587
+        },
+        {
+          "h": "2.2",
+          "name": "Other Income/Expense Items not be Reclassified to Profit or Loss",
+          "amount": 9266135
+        },
+        {
+          "h": "2.2.1",
+          "name": "Exchange Differences on Translation",
+          "amount": 6430673
+        },
+        {
+          "h": "2.2.2",
+          "name": "Valuation and/or Reclassification Profit or Loss from Financial Assets at Fair Value through Other Comprehensive Income",
+          "amount": -1961365
+        },
+        {
+          "h": "2.2.3",
+          "name": "Income/(Loss) Related with Cash Flow Hedges",
+          "amount": null
+        },
+        {
+          "h": "2.2.4",
+          "name": "Income/(Loss) Related with Hedges of Net Investments in Foreign Operations",
+          "amount": -4690320
+        },
+        {
+          "h": "2.2.5",
+          "name": "Other Income/Expense Items of Other Comprehensive Income to be Reclassified to Other Profit or Loss",
+          "amount": 7419299
+        },
+        {
+          "h": "2.2.6",
+          "name": "Taxes Relating To Components Of Other Comprehensive Income to be Reclassified To Profit Or Loss",
+          "amount": 2067848
+        },
+        {
+          "h": "III.",
+          "name": "TOTAL COMPREHENSIVE INCOME (I+II)",
+          "amount": 46465188
+        }
+      ]
+    },
+    {
+      "bank": "ISCTR",
+      "period": "2025Q2",
+      "kind": "unconsolidated",
+      "statement": "cash_flow",
+      "rows": [
+        {
+          "h": "1.1",
+          "name": "Operating Profit Before Changes in Operating Assets and Liabilities",
+          "amount": 6082453
+        },
+        {
+          "h": "1.1.1",
+          "name": "Interest Received",
+          "amount": 332693528
+        },
+        {
+          "h": "1.1.2",
+          "name": "Interest Paid",
+          "amount": -325399085
+        },
+        {
+          "h": "1.1.3",
+          "name": "Dividend Received",
+          "amount": 197342
+        },
+        {
+          "h": "1.1.4",
+          "name": "Fees and Commissions Received",
+          "amount": 70542532
+        },
+        {
+          "h": "1.1.5",
+          "name": "Other Income",
+          "amount": 6483175
+        },
+        {
+          "h": "1.1.6",
+          "name": "Collections from Previously Written Off Loans and Other Receivables",
+          "amount": 5014451
+        },
+        {
+          "h": "1.1.7",
+          "name": "Cash Payments to Personnel and Service Suppliers",
+          "amount": -56924711
+        },
+        {
+          "h": "1.1.8",
+          "name": "Taxes Paid",
+          "amount": -4558280
+        },
+        {
+          "h": "1.1.9",
+          "name": "Other",
+          "amount": -21966499
+        },
+        {
+          "h": "1.2",
+          "name": "Changes in Operating Assets and Liabilities",
+          "amount": 11551824
+        },
+        {
+          "h": "1.2.1",
+          "name": "Net (Increase) / Decrease in Financial Assets at Fair Value Through Profit or Loss",
+          "amount": 34
+        },
+        {
+          "h": "1.2.2",
+          "name": "Net (Increase) / Decrease in Due From Banks",
+          "amount": -105428060
+        },
+        {
+          "h": "1.2.3",
+          "name": "Net (Increase) / Decrease in Loans",
+          "amount": -244954584
+        },
+        {
+          "h": "1.2.4",
+          "name": "Net (Increase) / Decrease in Other Assets",
+          "amount": -19826234
+        },
+        {
+          "h": "1.2.5",
+          "name": "Net Increase / (Decrease) in Bank Deposits",
+          "amount": 569039
+        },
+        {
+          "h": "1.2.6",
+          "name": "Net Increase / (Decrease) in Other Deposits",
+          "amount": 384498482
+        },
+        {
+          "h": "1.2.7",
+          "name": "Net Increase/ (Decrease) in Financial Liabilities at Fair Value Through Profit or Loss",
+          "amount": null
+        },
+        {
+          "h": "1.2.8",
+          "name": "Net Increase / (Decrease) in Funds Borrowed",
+          "amount": -19327060
+        },
+        {
+          "h": "1.2.9",
+          "name": "Net Increase / (Decrease) in Matured Payables",
+          "amount": null
+        },
+        {
+          "h": "1.2.10",
+          "name": "Net Increase / (Decrease) in Other Liabilities",
+          "amount": 16020207
+        },
+        {
+          "h": "I.",
+          "name": "Net Cash Provided From Banking Operations",
+          "amount": 17634277
+        },
+        {
+          "h": "II.",
+          "name": "Net Cash Provided from Investing Activities",
+          "amount": -15356250
+        },
+        {
+          "h": "2.1",
+          "name": "Cash Paid for the Purchase of Associates, Subsidiaries and Jointly Controlled Entities (Joint Ventures)",
+          "amount": -3877569
+        },
+        {
+          "h": "2.2",
+          "name": "Cash Obtained from Sale of Associates, Subsidiaries and Jointly Controlled Entities (Joint Ventures)",
+          "amount": null
+        },
+        {
+          "h": "2.3",
+          "name": "Cash Paid for the Purchase of Tangible Asset",
+          "amount": -3783683
+        },
+        {
+          "h": "2.4",
+          "name": "Cash Obtained from the Sale of Tangible Asset",
+          "amount": 279100
+        },
+        {
+          "h": "2.5",
+          "name": "Cash Paid for Purchase of Financial Assets at Fair Value Through Other Comprehensive Income",
+          "amount": -145927609
+        },
+        {
+          "h": "2.6",
+          "name": "Cash Obtained from Sale of Financial Assets at Fair Value Through Other Comprehensive Income",
+          "amount": 115539370
+        },
+        {
+          "h": "2.7",
+          "name": "Cash Paid for Purchase of Financial Assets Measured at Amortised Cost",
+          "amount": -30385082
+        },
+        {
+          "h": "2.8",
+          "name": "Cash Obtained from Sale of Financial Assets Measured at Amortised Cost (*)",
+          "amount": 46893354
+        },
+        {
+          "h": "2.9",
+          "name": "Other",
+          "amount": 5905869
+        },
+        {
+          "h": "III.",
+          "name": "Net cash provided from financing activities",
+          "amount": 21530967
+        },
+        {
+          "h": "3.1",
+          "name": "Cash obtained from funds borrowed and securities issued",
+          "amount": 78098929
+        },
+        {
+          "h": "3.2",
+          "name": "Cash used for repayment of funds borrowed and securities issued",
+          "amount": -50535011
+        },
+        {
+          "h": "3.3",
+          "name": "Equity Instruments",
+          "amount": null
+        },
+        {
+          "h": "3.4",
+          "name": "Dividends Paid",
+          "amount": -4475968
+        },
+        {
+          "h": "3.5",
+          "name": "Payments for Finance Leases",
+          "amount": -1556983
+        },
+        {
+          "h": "3.6",
+          "name": "Other",
+          "amount": null
+        },
+        {
+          "h": "IV.",
+          "name": "Effect of change in foreign exchange rate on cash and cash equivalents",
+          "amount": 3451154
+        },
+        {
+          "h": "V.",
+          "name": "Net increase in cash and cash equivalents",
+          "amount": 27260148
+        },
+        {
+          "h": "VI.",
+          "name": "Cash and cash equivalents at beginning of the period",
+          "amount": 355029322
+        },
+        {
+          "h": "VII.",
+          "name": "Cash and cash equivalents at end of the period",
+          "amount": 382289470
+        }
+      ]
+    },
+    {
+      "bank": "TFKB",
+      "period": "2022Q3",
+      "kind": "consolidated",
+      "statement": "oci",
+      "total_name": "TOPLAM KAPSAMLI GELİR (I+II)",
+      "rows": [
+        {
+          "h": "I.",
+          "name": "DÖNEM KARI/ZARARI",
+          "amount": 2135185
+        },
+        {
+          "h": "II.",
+          "name": "DİĞER KAPSAMLI GELİRLER",
+          "amount": 867872
+        },
+        {
+          "h": "2.1",
+          "name": "Kar veya Zararda Yeniden Sınıflandırılmayacaklar",
+          "amount": -1877
+        },
+        {
+          "h": "2.1.1",
+          "name": "Maddi Duran Varlıklar Yeniden Değerleme Artışları/Azalışları",
+          "amount": null
+        },
+        {
+          "h": "2.1.2",
+          "name": "Maddi Olmayan Duran Varlıklar Yeniden Değerleme Artışları/Azalışları",
+          "amount": null
+        },
+        {
+          "h": "2.1.3",
+          "name": "Tanımlanmış Fayda Planları Yeniden Ölçüm Kazançları/Kayıpları",
+          "amount": null
+        },
+        {
+          "h": "2.1.4",
+          "name": "Diğer Kâr veya Zarar Olarak Yeniden Sınıflandırılmayacak Diğer Kapsamlı Gelir Unsurları",
+          "amount": null
+        },
+        {
+          "h": "2.1.5",
+          "name": "Kâr veya Zararda Yeniden Sınıflandırılmayacak Diğer Kapsamlı Gelire İlişkin Vergiler",
+          "amount": -1877
+        },
+        {
+          "h": "2.2",
+          "name": "Kâr veya Zararda Yeniden Sınıflandırılacaklar",
+          "amount": 869749
+        },
+        {
+          "h": "2.2.1",
+          "name": "Yabancı Para Çevirim Farkları",
+          "amount": null
+        },
+        {
+          "h": "2.2.2",
+          "name": "Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılan Finansal Varlıkların Değerleme ve/veya Sınıflandırma Gelirleri/Giderleri",
+          "amount": 1161893
+        },
+        {
+          "h": "2.2.3",
+          "name": "Nakit Akış Riskinden Korunma Gelirleri/Giderleri",
+          "amount": null
+        },
+        {
+          "h": "2.2.4",
+          "name": "Yurtdışındaki İşletmeye İlişkin Yatırım Riskinden Korunma Gelirleri/Giderleri",
+          "amount": null
+        },
+        {
+          "h": "2.2.5",
+          "name": "Diğer Kâr veya Zarar Olarak Yeniden Sınıflandırılacak Diğer Kapsamlı Gelir Unsurları",
+          "amount": null
+        },
+        {
+          "h": "2.2.6",
+          "name": "Kâr veya Zararda Yeniden Sınıflandırılacak Diğer Kapsamlı Gelire İlişkin Vergiler",
+          "amount": -292144
+        },
+        {
+          "h": "III.",
+          "name": "TOPLAM KAPSAMLI GELİR (I+II)",
+          "amount": 3003057
+        }
+      ]
+    },
+    {
+      "bank": "TFKB",
+      "period": "2022Q3",
+      "kind": "consolidated",
+      "statement": "cash_flow",
+      "total_name": "Dönem Sonundaki Nakit ve Nakde Eşdeğer Varlıklar",
+      "rows": [
+        {
+          "h": "A.",
+          "name": "BANKACILIK FAALİYETLERİNE İLİŞKİN NAKİT AKIŞLARI",
+          "amount": null
+        },
+        {
+          "h": "1.1",
+          "name": "Bankacılık Faaliyet Konusu Varlık ve Yükümlülüklerdeki Değişim Öncesi Faaliyet Kârı",
+          "amount": 1619558
+        },
+        {
+          "h": "1.1.1",
+          "name": "Alınan Kâr Payları",
+          "amount": 6657503
+        },
+        {
+          "h": "1.1.2",
+          "name": "Ödenen Kâr Payları",
+          "amount": -4144336
+        },
+        {
+          "h": "1.1.3",
+          "name": "Alınan Temettüler",
+          "amount": 799
+        },
+        {
+          "h": "1.1.4",
+          "name": "Alınan Ücret ve Komisyonlar",
+          "amount": 648839
+        },
+        {
+          "h": "1.1.5",
+          "name": "Elde Edilen Diğer Kazançlar",
+          "amount": 190484
+        },
+        {
+          "h": "1.1.6",
+          "name": "Zarar Olarak Muhasebeleştirilen Donuk Alacaklardan Tahsilatlar",
+          "amount": 529175
+        },
+        {
+          "h": "1.1.7",
+          "name": "Personele ve Hizmet Tedarik Edenlere Yapılan Nakit Ödemeler",
+          "amount": -1268234
+        },
+        {
+          "h": "1.1.8",
+          "name": "Ödenen Vergiler",
+          "amount": -1156123
+        },
+        {
+          "h": "1.1.9",
+          "name": "Diğer",
+          "amount": 161451
+        },
+        {
+          "h": "1.2",
+          "name": "Bankacılık Faaliyetleri Konusu Varlık ve Yükümlülüklerdeki Değişim",
+          "amount": 5552161
+        },
+        {
+          "h": "1.2.1",
+          "name": "Gerçeğe Uygun Değer Farkı K/Z'a Yansıtılan FV'larda Net (Artış) Azalış",
+          "amount": 638657
+        },
+        {
+          "h": "1.2.2",
+          "name": "Bankalar Hesabındaki Net (Artış) Azalış",
+          "amount": 1040214
+        },
+        {
+          "h": "1.2.3",
+          "name": "Kredilerdeki Net (Artış) Azalış",
+          "amount": -11217380
+        },
+        {
+          "h": "1.2.4",
+          "name": "Diğer Varlıklarda Net (Artış) Azalış",
+          "amount": -444363
+        },
+        {
+          "h": "1.2.5",
+          "name": "Bankalardan Toplanan Fonlarda Net Artış (Azalış)",
+          "amount": 1514316
+        },
+        {
+          "h": "1.2.6",
+          "name": "Diğer Toplanan Fonlarda Net Artış (Azalış)",
+          "amount": 15812581
+        },
+        {
+          "h": "1.2.7",
+          "name": "Gerçeğe Uygun Değer Farkı K/Z'a Yansıtılan FY'lerde Net Artış (Azalış)",
+          "amount": null
+        },
+        {
+          "h": "1.2.8",
+          "name": "Alınan Kredilerdeki Net Artış (Azalış)",
+          "amount": -503943
+        },
+        {
+          "h": "1.2.9",
+          "name": "Vadesi Gelmiş Borçlarda Net Artış (Azalış)",
+          "amount": null
+        },
+        {
+          "h": "1.2.10",
+          "name": "Diğer Borçlarda Net Artış (Azalış)",
+          "amount": -1287921
+        },
+        {
+          "h": "I.",
+          "name": "Bankacılık Faaliyetlerinden Kaynaklanan Net Nakit Akışı",
+          "amount": 7171719
+        },
+        {
+          "h": "B.",
+          "name": "YATIRIM FAALİYETLERİNE İLİŞKİN NAKİT AKIŞLARI",
+          "amount": null
+        },
+        {
+          "h": "II.",
+          "name": "Yatırım Faaliyetlerinden Kaynaklanan Net Nakit Akışı",
+          "amount": -2703522
+        },
+        {
+          "h": "2.1",
+          "name": "İktisap Edilen İştirakler, Bağlı Ortaklıklar ve Birlikte Kontrol Edilen Ortaklıklar (İş Ortaklıkları)",
+          "amount": null
+        },
+        {
+          "h": "2.2",
+          "name": "Elden Çıkarılan İştirakler, Bağlı Ortaklıklar ve Birlikte Kontrol Edilen Ortaklıklar (İş Ortaklıkları)",
+          "amount": null
+        },
+        {
+          "h": "2.3",
+          "name": "Satın Alınan Menkul ve Gayrimenkuller",
+          "amount": -157502
+        },
+        {
+          "h": "2.4",
+          "name": "Elden Çıkarılan Menkul ve Gayrimenkuller",
+          "amount": 894
+        },
+        {
+          "h": "2.5",
+          "name": "Elde Edilen Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılan Finansal Varlıklar",
+          "amount": -3121243
+        },
+        {
+          "h": "2.6",
+          "name": "Elden Çıkarılan Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılan Finansal Varlıklar",
+          "amount": 4384329
+        },
+        {
+          "h": "2.7",
+          "name": "Satın Alınan İtfa Edilmiş Maliyeti ile Ölçülen Finansal Varlıklar",
+          "amount": -4710000
+        },
+        {
+          "h": "2.8",
+          "name": "Satılan İtfa Edilmiş Maliyeti ile Ölçülen Finansal Varlıklar",
+          "amount": 900000
+        },
+        {
+          "h": "2.9",
+          "name": "Diğer",
+          "amount": null
+        },
+        {
+          "h": "C.",
+          "name": "FİNANSMAN FAALİYETLERİNE İLİŞKİN NAKİT AKIŞLARI",
+          "amount": null
+        },
+        {
+          "h": "III.",
+          "name": "Finansman Faaliyetlerinden Sağlanan Net Nakit",
+          "amount": 628385
+        },
+        {
+          "h": "3.1",
+          "name": "Krediler ve İhraç Edilen Menkul Değerlerden Sağlanan Nakit",
+          "amount": 10650000
+        },
+        {
+          "h": "3.2",
+          "name": "Krediler ve İhraç Edilen Menkul Değerlerden Kaynaklanan Nakit Çıkışı",
+          "amount": -9893336
+        },
+        {
+          "h": "3.3",
+          "name": "İhraç Edilen Sermaye Araçları",
+          "amount": null
+        },
+        {
+          "h": "3.4",
+          "name": "Temettü Ödemeleri",
+          "amount": null
+        },
+        {
+          "h": "3.5",
+          "name": "Kiralamaya İlişkin Ödemeler",
+          "amount": -128328
+        },
+        {
+          "h": "3.6",
+          "name": "Diğer",
+          "amount": 49
+        },
+        {
+          "h": "IV.",
+          "name": "Yabancı Para Çevrim Farklarının Nakit ve Nakde Eşdeğer Varlıklar Üzerindeki Etkisi",
+          "amount": 4375705
+        },
+        {
+          "h": "V.",
+          "name": "Nakit ve Nakde Eşdeğer Varlıklardaki Net Artış",
+          "amount": 9472287
+        },
+        {
+          "h": "VI.",
+          "name": "Dönem Başındaki Nakit ve Nakde Eşdeğer Varlıklar",
+          "amount": 13279840
+        },
+        {
+          "h": "VII.",
+          "name": "Dönem Sonundaki Nakit ve Nakde Eşdeğer Varlıklar",
+          "amount": 22752127
+        }
+      ]
+    },
+    {
+      "bank": "TFKB",
+      "period": "2022Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "total_name": "BİLANÇO DIŞI HESAPLAR TOPLAMI (A+B)",
+      "rows": [
+        {
+          "h": "A.",
+          "name": "BİLANÇO DIŞI YÜKÜMLÜLÜKLER (I+II+III)",
+          "tl": null,
+          "fc": null,
+          "total": 84223248
+        },
+        {
+          "h": "I.",
+          "name": "GARANTİ ve KEFALETLER",
+          "tl": null,
+          "fc": null,
+          "total": 17592637
+        },
+        {
+          "h": "1.1",
+          "name": "Teminat Mektupları",
+          "tl": null,
+          "fc": null,
+          "total": 13598217
+        },
+        {
+          "h": "1.1.1",
+          "name": "Devlet İhale Kanunu Kapsamına Girenler",
+          "tl": null,
+          "fc": null,
+          "total": 192896
+        },
+        {
+          "h": "1.1.2",
+          "name": "Dış Ticaret İşlemleri Dolayısıyla Verilenler",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "1.1.3",
+          "name": "Diğer Teminat Mektupları",
+          "tl": null,
+          "fc": null,
+          "total": 13405321
+        },
+        {
+          "h": "1.2",
+          "name": "Banka Kredileri",
+          "tl": null,
+          "fc": null,
+          "total": 838363
+        },
+        {
+          "h": "1.2.1",
+          "name": "İthalat Kabul Kredileri",
+          "tl": null,
+          "fc": null,
+          "total": 649101
+        },
+        {
+          "h": "1.2.2",
+          "name": "Diğer Banka Kabulleri",
+          "tl": null,
+          "fc": null,
+          "total": 189262
+        },
+        {
+          "h": "1.3",
+          "name": "Akreditifler",
+          "tl": null,
+          "fc": null,
+          "total": 3156057
+        },
+        {
+          "h": "1.3.1",
+          "name": "Belgeli Akreditifler",
+          "tl": null,
+          "fc": null,
+          "total": 3156057
+        },
+        {
+          "h": "1.3.2",
+          "name": "Diğer Akreditifler",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "1.4",
+          "name": "Garanti Verilen Prefinansmanlar",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "1.5",
+          "name": "Cirolar",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "1.5.1",
+          "name": "T.C. Merkez Bankasına Cirolar",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "1.5.2",
+          "name": "Diğer Cirolar",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "1.6",
+          "name": "Diğer Garantilerimizden",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "1.7",
+          "name": "Diğer Kefaletlerimizden",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "II.",
+          "name": "TAAHHÜTLER",
+          "tl": null,
+          "fc": null,
+          "total": 6761219
+        },
+        {
+          "h": "2.1",
+          "name": "Cayılamaz Taahhütler",
+          "tl": null,
+          "fc": null,
+          "total": 6761219
+        },
+        {
+          "h": "2.1.1",
+          "name": "Vadeli Aktif Değerler Alım-Satım Taahhütleri",
+          "tl": null,
+          "fc": null,
+          "total": 2149763
+        },
+        {
+          "h": "2.1.2",
+          "name": "İştir. ve Bağ. Ort. Ser. İşt. Taahhütleri",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "2.1.3",
+          "name": "Kul. Gar. Kredi Tahsis Taahhütleri",
+          "tl": null,
+          "fc": null,
+          "total": 76
+        },
+        {
+          "h": "2.1.4",
+          "name": "Men. Kıy. İhr. Aracılık Taahhütleri",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "2.1.5",
+          "name": "Zorunlu Karşılık Ödeme Taahhüdü",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "2.1.6",
+          "name": "Çekler İçin Ödeme Taahhütleri",
+          "tl": null,
+          "fc": null,
+          "total": 980800
+        },
+        {
+          "h": "2.1.7",
+          "name": "İhracat Taahhütlerinden Kaynaklanan Vergi ve Fon Yükümlülükleri",
+          "tl": null,
+          "fc": null,
+          "total": 69182
+        },
+        {
+          "h": "2.1.8",
+          "name": "Kredi Kartı Harcama Limit Taahhütleri",
+          "tl": null,
+          "fc": null,
+          "total": 2751093
+        },
+        {
+          "h": "2.1.9",
+          "name": "Kredi Kartları ve Bankacılık Hizmetlerine İlişkin Promosyon Uyg. Taah.",
+          "tl": null,
+          "fc": null,
+          "total": 5195
+        },
+        {
+          "h": "2.1.10",
+          "name": "Açığa Menkul Kıymet Satış Taahhütlerinden Alacaklar",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "2.1.11",
+          "name": "Açığa Menkul Kıymet Satış Taahhütlerinden Borçlar",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "2.1.12",
+          "name": "Diğer Cayılamaz Taahhütler",
+          "tl": null,
+          "fc": null,
+          "total": 805110
+        },
+        {
+          "h": "2.2",
+          "name": "Cayılabilir Taahhütler",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "2.2.1",
+          "name": "Cayılabilir Kredi Tahsis Taahhütleri",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "2.2.2",
+          "name": "Diğer Cayılabilir Taahhütler",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "III.",
+          "name": "TÜREV FİNANSAL ARAÇLAR",
+          "tl": null,
+          "fc": null,
+          "total": 59869392
+        },
+        {
+          "h": "3.1",
+          "name": "Riskten Korunma Amaçlı Türev Finansal Araçlar",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "3.1.1",
+          "name": "Gerçeğe Uygun Değer Riskinden Korunma Amaçlı İşlemler",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "3.1.2",
+          "name": "Nakit Akış Riskinden Korunma Amaçlı İşlemler",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "3.1.3",
+          "name": "Yurtdışındaki Net Yatırım Riskinden Korunma Amaçlı İşlemler",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "3.2",
+          "name": "Alım Satım Amaçlı Türev Finansal Araçlar",
+          "tl": null,
+          "fc": null,
+          "total": 59869392
+        },
+        {
+          "h": "3.2.1",
+          "name": "Vadeli Alım-Satım İşlemleri",
+          "tl": null,
+          "fc": null,
+          "total": 57630984
+        },
+        {
+          "h": "3.2.1.1",
+          "name": "Vadeli Döviz Alım İşlemleri",
+          "tl": null,
+          "fc": null,
+          "total": 28042180
+        },
+        {
+          "h": "3.2.1.2",
+          "name": "Vadeli Döviz Satım İşlemleri",
+          "tl": null,
+          "fc": null,
+          "total": 29588804
+        },
+        {
+          "h": "3.2.2",
+          "name": "Diğer Vadeli Alım-Satım İşlemleri",
+          "tl": null,
+          "fc": null,
+          "total": 2238408
+        },
+        {
+          "h": "3.3",
+          "name": "Diğer",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "B.",
+          "name": "EMANET VE REHİNLİ KIYMETLER (IV+V+VI)",
+          "tl": null,
+          "fc": null,
+          "total": 970549755
+        },
+        {
+          "h": "IV.",
+          "name": "EMANET KIYMETLER",
+          "tl": null,
+          "fc": null,
+          "total": 34288050
+        },
+        {
+          "h": "4.1",
+          "name": "Müşteri Fon ve Portföy Mevcutları",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "4.2",
+          "name": "Emanete Alınan Menkul Değerler",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "4.3",
+          "name": "Tahsile Alınan Çekler",
+          "tl": null,
+          "fc": null,
+          "total": 6569859
+        },
+        {
+          "h": "4.4",
+          "name": "Tahsile Alınan Ticari Senetler",
+          "tl": null,
+          "fc": null,
+          "total": 1738960
+        },
+        {
+          "h": "4.5",
+          "name": "Tahsile Alınan Diğer Kıymetler",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "4.6",
+          "name": "İhracına Aracı Olunan Kıymetler",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "4.7",
+          "name": "Diğer Emanet Kıymetler",
+          "tl": null,
+          "fc": null,
+          "total": 10484346
+        },
+        {
+          "h": "4.8",
+          "name": "Emanet Kıymet Alanlar",
+          "tl": null,
+          "fc": null,
+          "total": 15494885
+        },
+        {
+          "h": "V.",
+          "name": "REHİNLİ KIYMETLER",
+          "tl": null,
+          "fc": null,
+          "total": 935934821
+        },
+        {
+          "h": "5.1",
+          "name": "Menkul Kıymetler",
+          "tl": null,
+          "fc": null,
+          "total": 61062
+        },
+        {
+          "h": "5.2",
+          "name": "Teminat Senetleri",
+          "tl": null,
+          "fc": null,
+          "total": 319140684
+        },
+        {
+          "h": "5.3",
+          "name": "Emtia",
+          "tl": null,
+          "fc": null,
+          "total": 27923360
+        },
+        {
+          "h": "5.4",
+          "name": "Varant",
+          "tl": null,
+          "fc": null,
+          "total": null
+        },
+        {
+          "h": "5.5",
+          "name": "Gayrimenkul",
+          "tl": null,
+          "fc": null,
+          "total": 68560833
+        },
+        {
+          "h": "5.6",
+          "name": "Diğer Rehinli Kıymetler",
+          "tl": null,
+          "fc": null,
+          "total": 520000519
+        },
+        {
+          "h": "5.7",
+          "name": "Rehinli Kıymet Alanlar",
+          "tl": null,
+          "fc": null,
+          "total": 248363
+        },
+        {
+          "h": "VI.",
+          "name": "KABUL EDİLEN AVALLER VE KEFALETLER",
+          "tl": null,
+          "fc": null,
+          "total": 326884
+        },
+        {
+          "h": "",
+          "name": "BİLANÇO DIŞI HESAPLAR TOPLAMI (A+B)",
+          "tl": null,
+          "fc": null,
+          "total": 1054773003
+        }
+      ]
     }
   ]
 }
