@@ -54,6 +54,11 @@ _ROW_LABELS: list[tuple[str, str]] = [
     ("prior period ending balance", "opening_balance"),
     ("prior period end balance", "opening_balance"),
     ("balances at end of prior period", "opening_balance"),
+    # EXIM (English convenience translation) opens the roll-forward with
+    # "Balance at the Beginning of the Period" — distinct from the closing
+    # "Balance at the End of the Period" (below). Without it the opening row
+    # was dropped (block started on Additions) → opening_balance NULL.
+    ("balance at the beginning of the period", "opening_balance"),
     # ALBRK opens the roll-forward with the *prior* period's closing line; it
     # must out-rank the generic "closing balance" → closing_balance via the
     # longest-prefix sort.
@@ -63,6 +68,13 @@ _ROW_LABELS: list[tuple[str, str]] = [
     # Closing — must come BEFORE "balance" prefixes for longest-first.
     ("current period ending balance", "closing_balance"),
     ("current period end balance", "closing_balance"),
+    # EXIM / BURGAN / AKBNK (English convenience translations) close the
+    # roll-forward with "Balance at the End of the Period" — the singular
+    # "the period" form was the only balance label missing from this list, so
+    # the closing row was dropped fleet-wide for every English report using it
+    # (closing_balance NULL while flows captured). Distinct from the EXIM
+    # opening "Balance at the Beginning of the Period" (above).
+    ("balance at the end of the period", "closing_balance"),
     ("balances at end of period", "closing_balance"),
     ("end of period balance", "closing_balance"),
     ("dönem sonu bakiyesi", "closing_balance"),
@@ -75,12 +87,20 @@ _ROW_LABELS: list[tuple[str, str]] = [
     ("diğer donuk alacak hesaplarından giriş", "transfers_in"),
     ("transfer from other npl categories", "transfers_in"),
     ("transfers from other categories of loans under non-performing", "transfers_in"),
+    ("transfers from other categories of non-performing", "transfers_in"),
     ("transfers from other categories", "transfers_in"),
+    # EXIM wording ("Transfers from Non-performing Loans Accounts").
+    ("transfers from non-performing loans accounts", "transfers_in"),
+    ("transfers from non-performing loans", "transfers_in"),
     # Transfers out
     ("diğer donuk alacak hesaplarına çıkış", "transfers_out"),
     ("transfer to other npl categories", "transfers_out"),
     ("transfers to other categories of loans under non-performing", "transfers_out"),
+    ("transfers to other categories of non-performing", "transfers_out"),
     ("transfers to other categories", "transfers_out"),
+    # EXIM wording ("Transfers to Other Non-Performing Loans [Accounts]" — the
+    # trailing "Accounts" wraps to the next line, so match the leading phrase).
+    ("transfers to other non-performing loans", "transfers_out"),
     # Collections
     ("dönem içinde tahsilat", "collections"),
     ("collections during the period", "collections"),
@@ -119,6 +139,11 @@ _ROW_LABELS: list[tuple[str, str]] = [
     # Net balance
     ("net balance on balance sheet", "net_balance"),
     ("net balance at the balance sheet", "net_balance"),
+    # AKBNK (English) wording; EXIM wording ("Net Balance Sheet Amount"). These
+    # close the movement block → fire block_done so the FX-only NPL sub-table
+    # that follows on the same page can't overwrite the closing/provision.
+    ("net balance at balance sheet", "net_balance"),
+    ("net balance sheet amount", "net_balance"),
     ("bilançodaki net bakiyesi", "net_balance"),
     # YKBNK-style bare period labels — opening = "Prior Period <nums>",
     # closing = "Current Period <nums>". Listed last so longest-first
@@ -167,9 +192,47 @@ _GROUPS_RX = re.compile(
 # and en/em variants) — accept a run of them, else a trailing "--" column drops
 # the whole row (e.g. FIBA's "transfers out … 565.308 --"), nulling that flow
 # column and making the validator skip an otherwise-balancing roll-forward.
-_NUM_TOKEN = r"(?:\(?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?\)?|[-–—]+)"
+# Two numeric forms: grouped (thousands-separated, "639.907") and a bare digit
+# run ("3553"). The bare-run form is REQUIRED for the occasional small flow a
+# bank prints without a separator — EXIM 2023Q2 transfers_in "- 3553 -" was
+# dropped (its group IV roll-forward then short by exactly that 3.553), nulling
+# transfers_in for the whole table. Grouped is tried first so "639.907" still
+# parses as 639,907 (not a bare 639 followed by ".907").
+_NUM_TOKEN = (
+    r"(?:\(?\d{1,3}(?:[.,]\d{3})+(?:[.,]\d+)?\)?"  # grouped: 1.234 / 1,234.5
+    r"|\(?\d+(?:[.,]\d+)?\)?"                        # bare run: 3553 / 12.5
+    r"|[-–—]+)"
+)
 _THREE_NUMS_TAIL = re.compile(
     rf"(?P<n3>{_NUM_TOKEN})\s+(?P<n4>{_NUM_TOKEN})\s+(?P<n5>{_NUM_TOKEN})\s*$"
+)
+
+# Date-keyed balance rows. ODEA and ALNTF (and similar) don't label the opening
+# / closing rows "Önceki/Dönem Sonu Bakiyesi" — they print the period-end DATE
+# itself as the row head, optionally followed by "Bakiyesi"/"Balance":
+#   ODEA:  "31 Aralık 2024 Bakiyesi 33.851 31.423 1.134.089"   (opening)
+#          "31 Aralık 2025 Bakiyesi 72.116 22.101 1.101.665"   (closing)
+#   ALNTF: "31 Aralık 2024 103,885 209,960 144,837"            (opening, no word)
+#          "31 Aralık 2025 248,901 26,905 397,047"             (closing, no word)
+# There is no opening/closing WORD to disambiguate, so the position decides:
+# the date-balance row that comes BEFORE Additions = opening, the one AFTER all
+# the flows (just before the provision/net rows) = closing. We only treat a
+# bare date-row as a balance when _match_row_label returned None (so a labelled
+# "Önceki Dönem Sonu Bakiyesi: 31 Aralık 2023" still wins as opening_balance via
+# the taxonomy) and the row carries the III/IV/V numbers.
+_TR_MONTHS = (
+    r"ocak|şubat|subat|mart|nisan|mayıs|mayis|haziran|temmuz|"
+    r"ağustos|agustos|eylül|eylul|ekim|kasım|kasim|aralık|aralik"
+)
+_EN_MONTHS = (
+    r"january|february|march|april|may|june|july|august|"
+    r"september|october|november|december"
+)
+_DATE_BALANCE_RX = re.compile(
+    rf"^\(?(?:\d{{1,2}}\s+(?:{_TR_MONTHS}|{_EN_MONTHS})\s+\d{{4}}|"
+    rf"\d{{1,2}}[./]\d{{1,2}}[./]\d{{4}})"
+    r"(?:\s+bakiyesi|\s+balance)?\b",
+    re.IGNORECASE,
 )
 
 
@@ -225,27 +288,49 @@ def _match_row_label(text: str) -> str | None:
     return None
 
 
+# A wrapped TRANSFER label, two observed shapes (both English convenience
+# translations) where the long "Transfers from/to Other Categories of
+# Non-performing Loans (+/-)" label breaks across lines, stranding its numbers:
+#
+#   BURGAN:  "Transfers from Other Categories of Non-performing"   (head, no nums)
+#            "Loans (+) - 230,763 185,197"                         (Loans + nums)
+#
+#   AKBNK:   "Transfers from Other Categories of Non-"             (head, no nums)
+#            "- 1.771.188 327.354"                                 (bare nums)
+#            "Performing Loans (+)"                                (label tail)
+#
+# Either way the head is a numberless "Transfers from/to … Non[-performing]"
+# line; the row's numbers are on the VERY NEXT line (a "Loans …" line or a bare
+# 3-number line). We merge head + that number line into one matchable transfer
+# row. Anchoring on the "transfers from/to … non" head keeps this from ever
+# touching a standalone "Prior Period" label (which a broad numberless-head
+# merge wrongly joined onto the restructured-loans sub-table → GARAN/TSKB
+# opening corruption). Any leftover label tail ("Performing Loans (+)") matches
+# no row label and is harmlessly ignored.
+_TRANSFER_WRAP_HEAD_RX = re.compile(
+    r"transfers?\s+(?:from|to)\b.*\bnon[-\s]?(?:performing)?\s*$", re.IGNORECASE
+)
+
+
 def _merge_wrapped_labels(lines: list[str]) -> list[str]:
-    """Same row-wrap merge as loans_by_sector: a numberless short line
-    followed by a 3-number line is merged into one logical row."""
+    """Merge a transfer row whose label wrapped above its numbers; narrowly
+    scoped to the "Transfers from/to … Non[-performing]" head (see
+    _TRANSFER_WRAP_HEAD_RX) so it can't disturb other rows."""
     out: list[str] = []
     i = 0
     while i < len(lines):
         cur = lines[i]
-        if not cur.strip():
-            out.append(cur)
-            i += 1
-            continue
-        cur_has_num = bool(re.search(r"\d", cur))
-        looks_like_label_head = (
-            not cur_has_num
-            and len(cur.strip()) <= 80
-            and not cur.strip().endswith((".", ":", ";"))
-        )
-        if looks_like_label_head and i + 1 < len(lines):
-            nxt = lines[i + 1]
-            if _THREE_NUMS_TAIL.search(nxt.strip()):
-                out.append(cur.strip() + " " + nxt.strip())
+        cur_s = cur.strip()
+        if (i + 1 < len(lines)
+                and not re.search(r"\d", cur_s)
+                and _TRANSFER_WRAP_HEAD_RX.search(cur_s)):
+            nxt = lines[i + 1].strip()
+            # The numbers are on the next line — either a "Loans (…) <nums>"
+            # continuation (BURGAN) or a bare 3-number line (AKBNK).
+            if _THREE_NUMS_TAIL.search(nxt) and (
+                    re.match(r"^loans?\b", nxt, re.IGNORECASE)
+                    or _THREE_NUMS_TAIL.match(nxt)):
+                out.append(cur_s + " " + nxt)
                 i += 2
                 continue
         out.append(cur)
@@ -267,12 +352,18 @@ def _extract_from_block(page_idx: int, text: str) -> list[NplGroupRow]:
     extracting on this page so later sub-tables (e.g. FX-only NPL on the
     same page) don't contaminate the closing/provision values.
     """
-    lines = text.splitlines()
+    # Merge the wrapped transfer-label heads onto their number line first:
+    # BURGAN / AKBNK / TSKB (English) wrap the long transfer labels across lines
+    # ("Transfers from Other Categories of Non-performing" / "Loans (+) …"), so
+    # transfers_in / transfers_out were dropped (NULL) and the roll-forward
+    # couldn't tie. _merge_wrapped_labels is narrowly scoped to that head only.
+    lines = _merge_wrapped_labels(text.splitlines())
     out: list[NplGroupRow] = []
     period_sequence = ["current", "prior"]
     period_idx = -1
     cur: dict[str, NplGroupRow] | None = None
     block_done = False  # True after net_balance: lock cur until next opening
+    seen_additions = False  # within the current block — disambiguates date rows
 
     def _flush():
         nonlocal cur
@@ -292,6 +383,15 @@ def _extract_from_block(page_idx: int, text: str) -> list[NplGroupRow]:
         if not line_stripped:
             continue
         key = _match_row_label(line_stripped)
+        # ODEA / ALNTF print the opening & closing rows as bare period-end DATES
+        # ("31 Aralık 2024 …" / "31 Aralık 2025 …") with no opening/closing WORD,
+        # so the taxonomy can't match them. Fall back to the date-balance
+        # detector and let POSITION decide: a date-row before Additions is the
+        # opening; after the flows it's the closing. Only when no taxonomy label
+        # matched, so a labelled "Önceki Dönem Sonu Bakiyesi: 31 Aralık 2023"
+        # still wins as opening_balance.
+        if key is None and _DATE_BALANCE_RX.match(line_stripped):
+            key = "closing_balance" if seen_additions else "opening_balance"
         if key is None:
             continue
         m = _THREE_NUMS_TAIL.search(line_stripped)
@@ -338,6 +438,7 @@ def _extract_from_block(page_idx: int, text: str) -> list[NplGroupRow]:
                 "V":   NplGroupRow(group_code="V",   period_type=pt, page=page_idx),
             }
             block_done = False
+            seen_additions = key == "additions"
             start_key = "opening_balance" if start_as_opening else key
             setattr(cur["III"], start_key, n3)
             setattr(cur["IV"],  start_key, n4)
@@ -348,6 +449,8 @@ def _extract_from_block(page_idx: int, text: str) -> list[NplGroupRow]:
             # Any further matches on this page belong to a sub-table (FX-only
             # NPL, related-party loans, etc.) — don't pollute cur.
             continue
+        if key == "additions":
+            seen_additions = True
         # Store outflows as positive magnitudes — ALNTF prints them parenthesised
         # (negative); the roll-forward (and other banks) treat them as positive.
         if key in _OUTFLOW_KEYS:

@@ -185,6 +185,72 @@ _WRONG_TABLE_HINTS = re.compile(
     r"sektörlere?\s+veya\s+karşı\s+tara[^\n]{0,30}?\brisk\s+profili",
     re.IGNORECASE)
 
+# LEGACY (pre-IFRS-9) sector table: a handful of banks (e.g. ALNTF) still print the
+# old BRSA "Önemli Sektörlere … Muhtelif Bilgiler" schema whose loan columns are
+#   Değer Kaybına Uğramış | Tahsili Gecikmiş | Değer Ayarlamaları | Karşılıklar
+# (Impaired / Past-due / Value-adjustments / Provisions) — there is NO
+# "İkinci Aşama" (Stage 2) / "Üçüncü Aşama" (Stage 3) column at all, so the bank
+# does NOT disclose Stage-2/Stage-3 by sector. The trailing-3-numbers text parser
+# happily maps those legacy columns onto stage2/stage3 and leaks the leading row
+# index (1, 1.1, 2 …) into stage3 → fabricated data that can never foot. We detect
+# this header and SKIP the page so no fabricated stage values are stored (the cell
+# is then genuinely "not disclosed" in the form this lane tracks). Guarded to fire
+# only when the past-due header is present AND no IFRS-9 stage header/column exists,
+# so it never drops a real Stage-2/Stage-3 table.
+# "Tahsili Gecikmiş" (past-due) column header — the y-bucketed reconstruction can
+# split it across wrapped header rows ("… Tahsili Değer" / "… Gecikmiş Ayarlamaları"),
+# so match the two words independently within the sector header band rather than
+# requiring adjacency.
+_PASTDUE_TAHSILI = re.compile(r"\btahsili\b", re.IGNORECASE)
+_PASTDUE_GECIKMIS = re.compile(r"gecikmiş", re.IGNORECASE)
+_IFRS9_STAGE_HDR = re.compile(
+    r"i̇?kinci\s+aşama|üçüncü\s+aşama|second\s+stage|third\s+stage|stage\s*[23]\b",
+    re.IGNORECASE)
+
+
+_SECTOR_HDR_RX = re.compile(
+    r"önemli\s+sektörler\s*/\s*karşı|sektörler\s*/\s*karşı\s+taraflar", re.IGNORECASE)
+
+
+def _sector_table_slice(text: str) -> str:
+    """Just the sector-table region — the column-header band around
+    "Önemli Sektörler / Karşı Taraflar" through its closing TOPLAM/Toplam. Keeps the
+    IFRS-9-vs-legacy header test off the UNRELATED provision-movement table that
+    follows on the same page (it carries "Üçüncü/İkinci Aşama Karşılıkları" rows that
+    would otherwise mask the legacy sector schema). The y-bucketed reconstruction can
+    wrap the multi-word column headers ("Değer Kaybına / Tahsili / Değer") onto the
+    line ABOVE the "Önemli Sektörler" label, so include a small lead-in window."""
+    m = _SECTOR_HDR_RX.search(text)
+    if not m:
+        return text
+    start = m.start()
+    lead = text.rfind("\n", 0, m.start())
+    for _ in range(3):  # back up to ~3 wrapped header lines above the label
+        if lead < 0:
+            break
+        prev = text.rfind("\n", 0, lead)
+        # stop if we hit a line with digits (a data row, not a header word)
+        if re.search(r"\d", text[prev + 1: lead]):
+            break
+        start = prev + 1  # include this header-word line
+        lead = prev
+    seg = text[start:]
+    tm = re.search(r"\btoplam\b", seg, re.IGNORECASE)
+    return seg[: tm.end()] if tm else seg
+
+
+def _is_legacy_pastdue_table(text: str, lines=None) -> bool:
+    """True when the page's sector table is the legacy past-due schema (no IFRS-9
+    stage columns). Decided on the sector-table region only: it carries the
+    "Tahsili Gecikmiş" past-due column header AND no Stage-2/Stage-3 header — so the
+    bank does not disclose stages by sector. (The page-wide x-anchor test is NOT
+    used here: a provision-movement table later on the page legitimately carries
+    "Üçüncü Aşama" rows, which the region slice excludes but x-anchors would not.)"""
+    seg = _sector_table_slice(text)
+    if not (_PASTDUE_TAHSILI.search(seg) and _PASTDUE_GECIKMIS.search(seg)):
+        return False
+    return not _IFRS9_STAGE_HDR.search(seg)
+
 
 @dataclass
 class SectorRow:
@@ -325,6 +391,15 @@ def _stage_col_x(lines: list[list[tuple[float, float, str]]]) -> tuple[float | N
     def clean(t: str) -> str:
         return t.lower().strip("().:%–-—* ")
     s2 = s3 = None
+    # Fallback anchor for a LONE Stage-3 word whose "Aşama"/"Stage" partner wrapped
+    # onto a different y-clustered header row (ATBANK prints "Temerrüt (Üçüncü" on one
+    # line and "Aşama)" on the next, so "üçüncü" has no adjacent "aşama"). Kept
+    # deliberately narrow — only Stage-3, only used when Stage-2 IS already located by
+    # the adjacent-pair scan and the lone token sits to the RIGHT of it (Stage-3 is
+    # always the right-hand loan column) — so it recovers ATBANK's wrapped header
+    # without ever switching a bank whose s2x is genuinely absent (DENIZ/VAKBN/TFKB)
+    # from the text parser onto the x-aligner.
+    s3_lone = None
     for row in lines:
         for i, (x0, x1, t) in enumerate(row):
             c = clean(t)
@@ -349,11 +424,20 @@ def _stage_col_x(lines: list[list[tuple[float, float, str]]]) -> tuple[float | N
             elif c in ("stage3", "3.aşama", "3aşama"):
                 c = "stage3"
             else:
+                if c in ("third", "üçüncü", "uçuncu", "temerrüt"):
+                    # "Temerrüt" (= Default) / "Üçüncü" anchor Stage-3; record the
+                    # LEFTMOST as a fallback used only below.
+                    if s3_lone is None or x1 < s3_lone:
+                        s3_lone = x1
                 continue
             if c == "stage2" and (s2 is None or x < s2):
                 s2 = x
             elif c == "stage3" and (s3 is None or x < s3):
                 s3 = x
+    # Recover a wrapped Stage-3 header only when Stage-2 was located AND the lone
+    # Stage-3 token is to its right (the genuine ATBANK wrap), never otherwise.
+    if s3 is None and s2 is not None and s3_lone is not None and s3_lone > s2:
+        s3 = s3_lone
     return s2, s3
 
 
@@ -539,6 +623,10 @@ def extract_from_pdf(
         if not _page_has_sector_heading(text):
             continue
         lines = _xy_lines(pdf_path, i - 1) if use_fitz else None
+        # Legacy past-due schema (no IFRS-9 Stage 2/3 columns, e.g. ALNTF): the
+        # bank doesn't disclose stages by sector — skip rather than fabricate.
+        if _is_legacy_pastdue_table(text, lines):
+            continue
         # Non-cash sector table: skip — UNLESS the page also carries the cash
         # table's Stage 2/3 LOAN columns. ANADOLU mentions "gayri nakdi krediler"
         # in a sector ROW of the cash table, which must not exclude the page.
