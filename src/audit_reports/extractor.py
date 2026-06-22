@@ -1144,6 +1144,12 @@ def _locate_oci_page(pdf, pl_page_idx_1: int | None) -> int | None:
     _PL_NORMS = ("INTERESTINCOME", "INTERSTINCOME", "FAIZGELIRLERI",
                  "PROFITSHAREINCOME", "KARPAYIGELIRLERI", "NETINTERESTINCOME")
 
+    # The equity-change statement carries the OCI keyword in a COLUMN header but
+    # is not the OCI statement — exclude it (EXIM's equity page would otherwise win
+    # over the real OCI page, whose rows aren't roman-prefixed; see below).
+    _EQ_NORMS = ("OZKAYNAKDEGISIM", "CHANGESINEQUITY", "CHANGESINSHAREHOLDERS",
+                 "BALANCESATBEGINNING", "BALANCESATENDOF")
+
     def _is_oci_page(text: str) -> bool:
         norm = _norm(text)
         if not any(kw in norm for kw in _OCI_NORMS):
@@ -1151,10 +1157,15 @@ def _locate_oci_page(pdf, pl_page_idx_1: int | None) -> int | None:
         # A P&L (or its quarter-only twin) carries an income anchor — not OCI.
         if any(kw in norm for kw in _PL_NORMS):
             return False
-        # Require at least 2 numeric data rows (roman-preceded lines with 3+ digits)
+        if any(kw in norm for kw in _EQ_NORMS):
+            return False
+        # Require at least 2 labelled numeric data rows. NOT roman-only: EXIM's
+        # English OCI page numbers items "1.5.2 …" or leaves them unprefixed
+        # ("Revaluation Surplus on Tangible Assets …"), so a roman-only count was 0
+        # and the page was skipped in favour of the (roman-prefixed) equity page.
         data_rows = sum(
             1 for ln in text.split("\n")
-            if re.match(r'^\s*[IVX]+[.\s]', ln) and re.search(r'\d{3,}', ln)
+            if re.search(r'\d{3,}', ln) and re.search(r'[A-Za-zÇĞİÖŞÜçğıöşü]{3,}', ln)
         )
         return data_rows >= 2
 
