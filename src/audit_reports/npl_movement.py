@@ -54,6 +54,10 @@ _ROW_LABELS: list[tuple[str, str]] = [
     ("prior period ending balance", "opening_balance"),
     ("prior period end balance", "opening_balance"),
     ("balances at end of prior period", "opening_balance"),
+    # ALBRK opens the roll-forward with the *prior* period's closing line; it
+    # must out-rank the generic "closing balance" → closing_balance via the
+    # longest-prefix sort.
+    ("closing balance of prior period", "opening_balance"),
     ("beginning balance", "opening_balance"),
     ("opening balance", "opening_balance"),
     # Closing — must come BEFORE "balance" prefixes for longest-first.
@@ -87,6 +91,8 @@ _ROW_LABELS: list[tuple[str, str]] = [
     ("write down/write-offs", "write_offs"),
     ("write-offs", "write_offs"),
     ("write offs", "write_offs"),
+    # ALBRK folds cure-to-standard and write-off into one outflow row.
+    ("transfers to standard loans and write off", "write_offs"),
     # Sold
     ("debt sale", "sold"),
     ("satılan", "sold"),
@@ -112,6 +118,7 @@ _ROW_LABELS: list[tuple[str, str]] = [
     ("karşılık", "provision"),
     # Net balance
     ("net balance on balance sheet", "net_balance"),
+    ("net balance at the balance sheet", "net_balance"),
     ("bilançodaki net bakiyesi", "net_balance"),
     # YKBNK-style bare period labels — opening = "Prior Period <nums>",
     # closing = "Current Period <nums>". Listed last so longest-first
@@ -121,6 +128,9 @@ _ROW_LABELS: list[tuple[str, str]] = [
     ("current period", "closing_balance"),
 ]
 _ROW_LABELS_SORTED = sorted(_ROW_LABELS, key=lambda kv: -len(kv[0]))
+# Reductions to the NPL stock — stored as positive magnitudes regardless of how
+# a bank signs them in the PDF.
+_OUTFLOW_KEYS = {"transfers_out", "collections", "write_offs", "sold"}
 
 
 # Heading detector — the page must mention NPL movement / hareket explicitly.
@@ -129,7 +139,7 @@ _ROW_LABELS_SORTED = sorted(_ROW_LABELS, key=lambda kv: -len(kv[0]))
 # "movement of non-performing total") are observed.
 _HEADING_RX = re.compile(
     r"(?:Movements?\s+in\s+non[-\s]?performing\s+loans?(?:\s+groups?)?|"
-    r"movement\s+of\s+(?:total\s+)?non[-\s]?performing\s+loans?|"
+    r"movements?\s+of\s+(?:total\s+)?non[-\s]?performing\s+loans?|"
     r"information\s+on\s+the\s+movement\s+of\s+(?:total\s+)?non[-\s]?performing\s+loans?|"
     r"(?:toplam\s+)?donuk\s+alacak\s+hareketlerine|"
     r"takipteki\s+kredilerin\s+hareketleri)",
@@ -263,7 +273,10 @@ def _extract_from_block(page_idx: int, text: str) -> list[NplGroupRow]:
             return
         for code in ("III", "IV", "V"):
             row = cur[code]
-            if row.opening_balance is not None or row.closing_balance is not None:
+            # Emit a block that captured real data. Opening/closing anchor the
+            # usual tables; additions/net_balance cover ALNTF's opening-less one.
+            if any(getattr(row, f) is not None for f in
+                   ("opening_balance", "closing_balance", "additions", "net_balance")):
                 out.append(row)
         cur = None
 
@@ -294,11 +307,17 @@ def _extract_from_block(page_idx: int, text: str) -> list[NplGroupRow]:
         # label their opening "Önceki Dönem Sonu Bakiyesi" (→ opening_balance,
         # handled above) and reuse a bare "Dönem Sonu Bakiyesi" across many
         # sub-tables — matching that here mis-started blocks (AKTIF regression).
-        starts_block = key == "opening_balance" or (
+        start_as_opening = key == "opening_balance" or (
             key == "closing_balance" and cur is None and not block_done
             and re.search(r"period end balance|balance at the end of the period",
                           line_stripped, re.IGNORECASE)
         )
+        # ALNTF omits the opening row entirely — the movement table opens straight
+        # on "Dönem İçinde İntikal (+)" (additions). Start a block on the first
+        # additions row when none is active, assigning it to its OWN field (not
+        # opening), so the flows + net balance are still captured.
+        start_as_flow = key == "additions" and cur is None and not block_done
+        starts_block = start_as_opening or start_as_flow
         if starts_block:
             _flush()
             period_idx += 1
@@ -312,16 +331,20 @@ def _extract_from_block(page_idx: int, text: str) -> list[NplGroupRow]:
                 "V":   NplGroupRow(group_code="V",   period_type=pt, page=page_idx),
             }
             block_done = False
-            # This row is the block's OPENING, whatever label it matched.
-            setattr(cur["III"], "opening_balance", n3)
-            setattr(cur["IV"],  "opening_balance", n4)
-            setattr(cur["V"],   "opening_balance", n5)
+            start_key = "opening_balance" if start_as_opening else key
+            setattr(cur["III"], start_key, n3)
+            setattr(cur["IV"],  start_key, n4)
+            setattr(cur["V"],   start_key, n5)
             continue
         if cur is None or block_done:
             # block_done: net_balance has fired, the table proper has ended.
             # Any further matches on this page belong to a sub-table (FX-only
             # NPL, related-party loans, etc.) — don't pollute cur.
             continue
+        # Store outflows as positive magnitudes — ALNTF prints them parenthesised
+        # (negative); the roll-forward (and other banks) treat them as positive.
+        if key in _OUTFLOW_KEYS:
+            n3, n4, n5 = (abs(x) if x is not None else None for x in (n3, n4, n5))
         setattr(cur["III"], key, n3)
         setattr(cur["IV"],  key, n4)
         setattr(cur["V"],   key, n5)
