@@ -610,7 +610,18 @@ def check_capital(rows: list[dict]) -> ValidationResult:
             res.add_fail("cap_car_band", "CAR plausible band [5, 80]%",
                          expected=12.0, actual=car)
     else:
-        res.add_skip()
+        # CAR is the headline of every BRSA §4 capital table — a present table
+        # (cur not None, ≥ min_rows) with a NULL CAR is a dropped column, not
+        # optional data. Every ratio reconcile + the band SKIP when CAR/RWA are
+        # null, so without this the cell passes green 'ok' on zero checks.
+        res.add_fail("cap_car_missing",
+                     "capital_adequacy_ratio dropped (mandatory on §4 table)",
+                     expected=0.0, actual=0.0)
+    # Total RWA is the mandatory denominator of every §4 table; NULL = a dropped
+    # column (cet1/tier1/CAR reconciles all skip without it).
+    if rwa is None:
+        res.add_fail("cap_rwa_missing", "total_rwa dropped (mandatory on §4 table)",
+                     expected=0.0, actual=0.0)
     return res
 
 
@@ -856,6 +867,20 @@ def check_npl_movement(
     for r in cur:
         op = r.get("opening_balance")
         cl = r.get("closing_balance")
+        # Dropped opening/closing balance: this group IS reported (it has a row in
+        # `cur`) and carries movement flows, but its opening and/or closing balance
+        # is NULL — the balance column was dropped in extraction, not a genuinely
+        # omitted (zero) group, which has no row at all. The roll-forward can't run,
+        # so the old code SKIPPED and the cell passed green 'ok'. Fail so it surfaces.
+        if (op is None or cl is None) and any(
+                r.get(k) is not None for k in
+                ("additions", "transfers_in", "transfers_out",
+                 "collections", "write_offs", "sold")):
+            res.add_fail("npl_movement_balance_missing",
+                         f"group {r.get('group_code') or ''}: opening/closing dropped "
+                         "(movement flows present, balance NULL)",
+                         expected=(cl if cl is not None else (op or 0.0)), actual=0.0)
+            continue
         if op is None or cl is None:
             res.add_skip()
             continue
@@ -947,12 +972,22 @@ def check_loans_by_sector(rows: list[dict]) -> ValidationResult:
         res.add_skip()
         return res
     total_row = next((r for r in cur if r.get("sector") == "total"), None)
+    sectors = [r for r in cur if r.get("sector") and r.get("sector") != "total"]
     if total_row is None:
-        res.add_skip()
+        # Sector detail present but no TOTAL row → the total was dropped (the BRSA
+        # sector table always carries a Toplam); the footing can't run. Fail so the
+        # unverifiable cell doesn't read 'ok'; skip only when there's no sector data.
+        if sectors:
+            res.add_fail("loans_sector_total_missing",
+                         "TOTAL row dropped (sector rows present)", expected=0.0, actual=0.0)
+        else:
+            res.add_skip()
         return res
     top_rows = _resolved_top_level(cur)
     if not top_rows:
-        res.add_skip()
+        res.add_fail("loans_sector_detail_missing",
+                     "sector detail dropped (total present, no sector rows)",
+                     expected=0.0, actual=0.0)
         return res
     any_check = False
     for col in ("stage2_amount", "stage3_amount"):  # ecl_amount excluded: collective provisioning ≠ sector-exact
@@ -973,7 +1008,11 @@ def check_loans_by_sector(rows: list[dict]) -> ValidationResult:
                          expected=tot_val, actual=sector_sum)
         any_check = True
     if not any_check:
-        res.add_skip()
+        # Total + sector rows both present, but every amount column is NULL on one
+        # side → the columns were dropped; the footing never ran. Fail, don't skip.
+        res.add_fail("loans_sector_columns_missing",
+                     "no checkable amount column (total or sector cols all NULL)",
+                     expected=0.0, actual=0.0)
     return res
 
 
