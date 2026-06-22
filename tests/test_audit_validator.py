@@ -369,6 +369,19 @@ def test_capital_no_current_row_skips():
     assert res.passed == 0 and res.failed == 0
 
 
+def test_capital_dropped_rwa_fails():
+    # Total RWA is the mandatory §4 denominator; NULL = dropped column. Must FAIL,
+    # not skip — every ratio reconcile skips without it, so it would pass 'ok'.
+    res = v.check_capital([_cap_row(total_rwa=None)])
+    assert any(f["check"] == "cap_rwa_missing" for f in res.failures)
+
+
+def test_capital_dropped_car_fails():
+    # CAR is the headline of every §4 table; NULL = dropped column → FAIL not skip.
+    res = v.check_capital([_cap_row(capital_adequacy_ratio=None)])
+    assert any(f["check"] == "cap_car_missing" for f in res.failures)
+
+
 # --- Liquidity validation -------------------------------------------------
 
 def _liq_row(**kw):
@@ -582,6 +595,23 @@ def test_npl_movement_null_col_that_breaks_tie_skips():
     assert res.failed == 0 and res.skipped == 1, res.failures
 
 
+def test_npl_movement_dropped_closing_fails():
+    # opening + flows present but closing NULL = dropped closing column (the bank
+    # reported this group; a genuinely-omitted group has no row at all). Must FAIL,
+    # not skip — the blind spot that masked AKBNK's dropped closing column.
+    res = v.check_npl_movement([_npl_row(closing_balance=None)])
+    assert any(f["check"] == "npl_movement_balance_missing" for f in res.failures)
+
+
+def test_npl_movement_empty_group_skips():
+    # No balances AND no flows = a genuinely empty/omitted group → skip, not fail.
+    res = v.check_npl_movement([_npl_row(
+        opening_balance=None, closing_balance=None, additions=None,
+        transfers_in=None, transfers_out=None, collections=None,
+        write_offs=None, sold=None)])
+    assert res.failed == 0 and res.skipped == 1
+
+
 # --- Loans by sector validation -------------------------------------------
 
 def _sector_row(sector, s2, s3, ecl, period_type="current"):
@@ -629,6 +659,28 @@ def test_loans_by_sector_fallback_to_subs():
     ]
     res = v.check_loans_by_sector(rows)
     assert res.failed == 0, res.failures
+
+
+def test_loans_by_sector_dropped_total_fails():
+    # Sector detail present but no TOTAL row = dropped total; footing can't run.
+    rows = [_sector_row("agri_total", 10, 5, 3), _sector_row("mfg_total", 20, 10, 6),
+            _sector_row("svc_total", 30, 15, 9)]
+    res = v.check_loans_by_sector(rows)
+    assert any(f["check"] == "loans_sector_total_missing" for f in res.failures)
+
+
+def test_loans_by_sector_dropped_sector_cols_fails():
+    # Total present but every sector row's amount columns NULL = dropped detail →
+    # footing never runs → FAIL not skip.
+    rows = [
+        {"sector": "agri_total", "period_type": "current",
+         "stage2_amount": None, "stage3_amount": None, "ecl_amount": None},
+        {"sector": "mfg_total", "period_type": "current",
+         "stage2_amount": None, "stage3_amount": None, "ecl_amount": None},
+        _sector_row("total", 70, 35, 21),
+    ]
+    res = v.check_loans_by_sector(rows)
+    assert any(f["check"] == "loans_sector_columns_missing" for f in res.failures)
 
 
 # --- Cash flow validation -------------------------------------------------
