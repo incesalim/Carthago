@@ -40,7 +40,8 @@ MAN = REPO / "data" / "manual_statements.json"
 SNAP = "state/bank_audit.db.gz"
 
 _FIELD = {"assets": "bs_assets", "liabilities": "bs_liabilities",
-          "off_balance": "off_balance", "profit_loss": "profit_loss"}
+          "off_balance": "off_balance", "profit_loss": "profit_loss",
+          "oci": "other_comprehensive_income", "cash_flow": "cash_flow"}
 
 
 def _rows_to_statementrows(rows: list[dict]) -> list[StatementRow]:

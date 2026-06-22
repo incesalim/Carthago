@@ -76,6 +76,8 @@ _STMT_TO_KEY = {
     "liabilities": "balance_sheet_liabilities",
     "off_balance": "off_balance",
     "profit_loss": "profit_loss",
+    "oci": "other_comprehensive_income",
+    "cash_flow": "cash_flow",
 }
 
 
