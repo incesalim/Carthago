@@ -3,7 +3,29 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-06-21 — **loans_by_sector 21→0 — coverage matrix now clean except equity_change.** Rewrote
+Last verified: 2026-06-22 — **Coverage matrix: capital, liquidity, npl_movement, loans_by_sector, stages,
+credit_quality all driven to 0 missing.** A lane-by-lane push of real extractor fixes (no skips hiding wrong
+data; everything validated, no regressions):
+- *capital 47→0:* end-marker gated on a component being read first (ALNTF intro line); fitz wide-table fallback
+  with a y-window so values offset from wrapped labels still pair (FIBA); `\s*` start anchor + fitz locator
+  fallback + digit-split repair on the fitz value window + a field-merge whitelist {cet1/tier1/rwa/ratios}
+  (ANADOLU/TFKB squished interim).
+- *liquidity 30→0:* whole-report fallback when the LCR table header is absent (AKTIF prose LCR); Turkish
+  İ→i / I→ı folding (TFKB UPPERCASE labels); fitz wide-table + nil-row skip + per-ratio gap-fill; a prose
+  leverage fallback anchored on "itibarıyla %…" (older FIBA states leverage only in a sentence).
+- *npl_movement 131→0:* plural "Movements of…" + ALBRK label variants; ALNTF opening-less table (start on
+  additions, outflows stored as positive magnitudes); TSKB unco "Information on TOTAL non-performing loans";
+  ODEA "III./IV./V. Aşama" groups.
+- *loans_by_sector 58→0:* bare-number sector strip ("1 Tarım"); non-cash exclusion gated on the cash stage
+  columns (ANADOLU); heading variants (ISCTR/SKBNK/EMLAK/ALBRK); "Industry"→mfg_total; GARAN unco split-page.
+- *stages + credit_quality:* the residuals were all FIBA Q1/Q3 interim, which (verified) omit the III/IV/V
+  NPL-movement AND IFRS-9 stage tables entirely (prose only — FIBA prints them only in Q2/Q4).
+Added **data/audit_not_disclosed.json** (+ sync support, statement may be a list) so verified-not-disclosed
+cells show as N/A, never to hide a printed-but-unextracted table. Remaining non-equity tail: cash_flow 26,
+oci 10, off_balance 8 (each ≈6 are FIBA Q1/Q3 image-only STATEMENT pages — disclosed but scanned — plus a few
+scattered per-bank extractor gaps), 3 stray BS/PL, and profile 389 (deferred to last).
+
+Prior: 2026-06-21 — **loans_by_sector 21→0 — coverage matrix now clean except equity_change.** Rewrote
 the sector parse to x-coordinate column alignment (`_extract_section_xy`): align each row's numbers to the
 Stage 2 / Stage 3 header columns by word x-position, so it reads a gross-Loans column before the stages and
 provision/ECL columns after (QNBFB's 5-column table where "3 trailing numbers" grabbed the dash/ECL cols),
