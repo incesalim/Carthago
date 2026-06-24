@@ -391,6 +391,22 @@ A qualitative-data layer feeds three tabs from the `news_items` table
 
 ## Known issues / pending work
 
+- **Seeking-Alpha-style statement viewer shipped (2026-06-24).** The `/banks/[ticker]`
+  Financials section gains a **Cash Flow** tab (alongside Balance Sheet / Income
+  Statement), an **Absolute / YoY Growth** view toggle, and a **TTM** column (income
+  statement + cash flow, quarterly view only — suppressed in annual where TTM == the
+  Q4 YTD column). All server-rendered via URL params (`statement=bs|is|cf`,
+  `mode=abs|yoy`), no new client component. Cash flow has **no canonical line catalog**
+  (codes/labels vary per bank, ~26 image-only partitions), so it renders the stored
+  rows verbatim from the latest non-gap period — section letters A./B./C. + roman
+  I.–VII. subtotals bold, depth from `indentLevel`; empty → a "not available" note.
+  Data via new `cashFlowMultiPeriod` / `cashFlowRowsMultiPeriod` in `web/app/lib/audit.ts`
+  (try/catch-guarded — a missing/un-migrated CF table never 500s). YoY compares each
+  cell to the same quarter a year earlier on the **displayed (YTD) values**; TTM
+  de-cumulates. De-cumulation/TTM/YoY math extracted to a shared, unit-tested
+  `web/app/lib/period-math.ts` (`ordOf`, `periodFromOrd`, `singleQuarter`, `ttmEndingAt`,
+  `yoyPct`; `bank-fundamentals.ts` now imports it). TL only (no currency selector);
+  inline sparklines + latest-left/right ordering were explicitly out of scope.
 - **"Drivers behind the outcomes" data gaps (2026-06-20).** Tier-A margin engine +
   market share shipped (see Dashboard §Compare). Deferred lanes with full
   source/schema/extractor sketches in

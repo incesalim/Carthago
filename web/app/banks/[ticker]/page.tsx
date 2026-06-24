@@ -1,18 +1,23 @@
 /**
  * /banks/[ticker] — per-bank drill-down.
  *
- * Standardized financial tables (Balance Sheet + Income Statement) in a
- * Yahoo-Finance-style layout: single continuous table, period-end dates
- * as column headers, computed subtotals (Total Assets, Total Liabilities,
- * Total Liabilities + Equity, plus P&L subtotals) shown in bold. Missing
- * values render as "--".
+ * Standardized financial statements (Balance Sheet / Income Statement / Cash
+ * Flow) in a Yahoo-Finance-style layout: single continuous table, period-end
+ * dates as column headers, computed subtotals (Total Assets, Total Liabilities,
+ * Total Liabilities + Equity, plus P&L subtotals) shown in bold. Missing values
+ * render as "--".
  *
- * View modes:
- *   ?view=annual    — most recent Q4s (default, comparable year-end data)
- *   ?view=quarterly — most recent quarters (sequential)
+ * Controls (URL params, server-rendered):
+ *   ?statement=bs|is|cf — which statement
+ *   ?mode=abs|yoy       — absolute TL, or YoY % vs the same quarter a year earlier
+ *   ?view=annual        — most recent Q4s (comparable year-end data)
+ *   ?view=quarterly     — most recent quarters (sequential); adds a leading TTM
+ *                         column for the income statement + cash flow
+ *   ?kind=consolidated|unconsolidated
  *
- * Lines map to BRSA hierarchy codes — see web/app/lib/standard_lines.ts.
- * Raw `item_name` from the database is never displayed.
+ * BS/IS lines map to BRSA hierarchy codes (see web/app/lib/standard_lines.ts) and
+ * the raw `item_name` is never displayed. Cash flow has no canonical catalog
+ * (codes/labels vary per bank), so it renders the stored rows verbatim.
  */
 import Link from "next/link";
 import { PageHeader, Section, Stat } from "@/app/components/ui";
@@ -22,10 +27,14 @@ import {
   balanceSheetLineNames,
   profitLossMultiPeriod,
   profitLossRowsMultiPeriod,
+  cashFlowMultiPeriod,
+  cashFlowRowsMultiPeriod,
   bankProfile,
   bankStagesLatest,
   validationByPeriod,
+  type CashFlowRow,
 } from "@/app/lib/audit";
+import { ordOf, ttmEndingAt, yoyPct } from "@/app/lib/period-math";
 import { newsByTicker } from "@/app/lib/news";
 import { bankOwnership } from "@/app/lib/kap";
 import { heatmapPanel } from "@/app/lib/heatmap";
@@ -61,11 +70,15 @@ export const dynamic = "force-dynamic";
 
 interface Props {
   params: Promise<{ ticker: string }>;
-  searchParams: Promise<{ view?: string; kind?: string; statement?: string }>;
+  searchParams: Promise<{ view?: string; kind?: string; statement?: string; mode?: string }>;
 }
 
 const NF = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
 const fmtTl = (v: number | null | undefined) => (v == null ? "--" : NF.format(v));
+
+/** YoY-growth cell: signed percentage, one decimal. "--" when underivable. */
+const PF = new Intl.NumberFormat("en-US", { maximumFractionDigits: 1, signDisplay: "exceptZero" });
+const fmtPct = (v: number | null | undefined) => (v == null ? "--" : `${PF.format(v)}%`);
 
 /** "2025Q4" → "12/31/2025" (Yahoo-style period-end date). */
 function periodToDate(period: string): string {
@@ -98,12 +111,14 @@ interface RowProps {
   divider?: boolean;
   /** Indent depth 0/1/2 — drives left padding + text muting. */
   depth?: number;
+  /** Cell formatter — `fmtTl` (default) for absolute TL, `fmtPct` for YoY %. */
+  format?: (v: number | null | undefined) => string;
 }
 
 /** Tailwind padding by indent depth (0 = top-level, 1 = sub, 2 = sub-sub). */
 const INDENT_PL = ["pl-3", "pl-7", "pl-12"];
 
-function Row({ label, values, bold, divider, depth = 0 }: RowProps) {
+function Row({ label, values, bold, divider, depth = 0, format = fmtTl }: RowProps) {
   const pl = INDENT_PL[Math.min(depth, INDENT_PL.length - 1)];
   const muted = depth >= 2;
   return (
@@ -127,48 +142,54 @@ function Row({ label, values, bold, divider, depth = 0 }: RowProps) {
             bold ? "font-semibold text-foreground" : muted ? "text-muted-foreground" : "text-foreground"
           }`}
         >
-          {fmtTl(v)}
+          {format(v)}
         </td>
       ))}
     </tr>
   );
 }
 
-/** Helper to pull a line's value for each period from the pivot map. */
-function valuesForLine(
+type PeriodSeries = Map<string, number | null>;
+
+/** A line's raw period→value series from the pivot map (over every queried
+ *  period — the mode/TTM transform reads prior-year periods from it). */
+function lineSeries(
+  pivot: Map<string, PeriodSeries>,
   line: StandardLine,
-  pivot: Map<string, Map<string, number | null>>,
-  periods: string[],
   statement: string,
-): (number | null | undefined)[] {
+): PeriodSeries {
   const key = statement ? `${statement}::${line.hierarchy}` : line.hierarchy;
-  const periodMap = pivot.get(key) ?? new Map();
-  return periods.map((p) => periodMap.get(p) ?? null);
+  return pivot.get(key) ?? new Map();
 }
 
-/** Sum non-null values across a list of BRSA hierarchy codes per period.
+/** Sum non-null values across a list of BRSA hierarchy codes, per period.
  *  Used for synthetic Total Assets / Total Liabilities rows — pass the
  *  Roman-numeral parent codes (BS_ASSET_ROMAN_HIERARCHIES etc.) to avoid
  *  double-counting sub-items that are also displayed individually. */
-function sumHierarchies(
+function sumSeries(
+  pivot: Map<string, PeriodSeries>,
   hierarchies: string[],
-  pivot: Map<string, Map<string, number | null>>,
-  periods: string[],
   statement: string,
-): (number | null)[] {
-  return periods.map((p) => {
+): PeriodSeries {
+  const allPeriods = new Set<string>();
+  for (const h of hierarchies) {
+    const m = pivot.get(`${statement}::${h}`);
+    if (m) for (const p of m.keys()) allPeriods.add(p);
+  }
+  const out: PeriodSeries = new Map();
+  for (const p of allPeriods) {
     let total = 0;
     let any = false;
     for (const h of hierarchies) {
-      const key = `${statement}::${h}`;
-      const v = pivot.get(key)?.get(p);
+      const v = pivot.get(`${statement}::${h}`)?.get(p);
       if (v != null) {
         total += v;
         any = true;
       }
     }
-    return any ? total : null;
-  });
+    out.set(p, any ? total : null);
+  }
+  return out;
 }
 
 const nfmt = (v: number, d = 2) =>
@@ -178,15 +199,6 @@ const nfmt = (v: number, d = 2) =>
 function fmtMarketCap(tl: number): string {
   if (tl >= 1e12) return `₺${nfmt(tl / 1e12, 2)}T`;
   return `₺${nfmt(tl / 1e9, 1)}B`;
-}
-
-/** Element-wise add of two parallel arrays of (number | null). */
-function addArrays(a: (number | null)[], b: (number | null)[]): (number | null)[] {
-  return a.map((av, i) => {
-    const bv = b[i];
-    if (av == null && bv == null) return null;
-    return (av ?? 0) + (bv ?? 0);
-  });
 }
 
 export default async function BankDetailPage({ params, searchParams }: Props) {
@@ -199,13 +211,15 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
 
   const kind = (sp.kind as "consolidated" | "unconsolidated") ?? "unconsolidated";
   const view = (sp.view as "annual" | "quarterly") ?? "quarterly";
-  const statement = (sp.statement as "bs" | "is") ?? "bs";
-  // Helper to build URLs that preserve the other two params.
-  const url = (overrides: Partial<{ view: string; kind: string; statement: string }>) => {
+  const statement = (sp.statement as "bs" | "is" | "cf") ?? "bs";
+  const mode = (sp.mode as "abs" | "yoy") ?? "abs";
+  // Helper to build URLs that preserve the other params.
+  const url = (overrides: Partial<{ view: string; kind: string; statement: string; mode: string }>) => {
     const params = new URLSearchParams({
       view: overrides.view ?? view,
       kind: overrides.kind ?? kind,
       statement: overrides.statement ?? statement,
+      mode: overrides.mode ?? mode,
     });
     return `/banks/${ticker}?${params.toString()}`;
   };
@@ -214,15 +228,31 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
     new Set(allPeriodMeta.filter((p) => p.kind === kind).map((p) => p.period)),
   ).sort().reverse();
   const periods = pickPeriods(allPeriods, view, 4);
+  // YoY needs each displayed period's prior-year same quarter; TTM needs the
+  // trailing quarters (incl. one before the earliest for de-cumulation), and
+  // a YoY-of-TTM needs another year back. Query a generous trailing window —
+  // 8 quarters before the oldest displayed period covers all of them — but
+  // never ask for a period the bank doesn't have. Display still uses `periods`.
+  const dispOrds = periods.map(ordOf).filter((o): o is number => o != null);
+  const latestOrd = dispOrds.length ? Math.max(...dispOrds) : null;
+  const floorOrd = (dispOrds.length ? Math.min(...dispOrds) : 0) - 8;
+  const queryPeriods = allPeriods.filter((p) => {
+    const o = ordOf(p);
+    return o != null && o >= floorOrd && latestOrd != null && o <= latestOrd;
+  });
 
-  const [bsPivot, bsNames, plPivot, plRows, kapItems, profile, stages, validation, ownership, valuationBase, priceHistory, liveMap, heatmap, sharePanel] =
+  const [bsPivot, bsNames, plPivot, plRows, cfPivot, cfRows, kapItems, profile, stages, validation, ownership, valuationBase, priceHistory, liveMap, heatmap, sharePanel] =
     await Promise.all([
-      balanceSheetMultiPeriod(ticker, kind, periods),
+      balanceSheetMultiPeriod(ticker, kind, queryPeriods),
       balanceSheetLineNames(ticker, kind, periods),
-      profitLossMultiPeriod(ticker, kind, periods),
+      profitLossMultiPeriod(ticker, kind, queryPeriods),
       statement === "is"
         ? profitLossRowsMultiPeriod(ticker, kind, periods)
         : Promise.resolve({}),
+      cashFlowMultiPeriod(ticker, kind, queryPeriods),
+      statement === "cf"
+        ? cashFlowRowsMultiPeriod(ticker, kind, periods)
+        : Promise.resolve({} as Record<string, CashFlowRow[]>),
       newsByTicker(ticker, 12),
       bankProfile(ticker),
       bankStagesLatest(ticker, kind),
@@ -264,6 +294,12 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   const WARN_STATEMENTS: Record<string, string[]> = {
     bs: ["assets", "liabilities", "cross"],
     is: ["profit_loss"],
+    cf: ["cash_flow"],
+  };
+  const STATEMENT_LABEL: Record<string, string> = {
+    bs: "balance sheet",
+    is: "income statement",
+    cf: "cash flow statement",
   };
   const periodWarning = (p: string): string | null => {
     const byStmt = validation.get(p);
@@ -278,10 +314,69 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
       }
     }
     if (failed === 0) return null;
-    const label = statement === "bs" ? "balance sheet" : "income statement";
+    const label = STATEMENT_LABEL[statement] ?? statement;
     return `${failed} of ${failed + passed} internal-sum checks failed for this quarter's ${label} extraction — figures may be incomplete or misread.`;
   };
   const anyWarning = periods.some((p) => periodWarning(p) !== null);
+
+  // ── Column derivation ─────────────────────────────────────────────────────
+  // Display mode: absolute TL (stored value) or YoY % growth vs the same quarter
+  // a year earlier. A leading TTM column (trailing-twelve-month) is shown for the
+  // income statement + cash flow in quarterly view only (at Q4 annual view, TTM
+  // equals the Q4 YTD column). P&L and cash flow are YTD-cumulative within the
+  // year, so TTM de-cumulates; the balance sheet is point-in-time (no TTM).
+  const showTtm = statement !== "bs" && view === "quarterly";
+  const colCount = periods.length + (showTtm ? 1 : 0);
+  const formatCell = mode === "yoy" ? fmtPct : fmtTl;
+  // Turn a raw period→value series into the cells the table renders.
+  const cells = (series: PeriodSeries): (number | null | undefined)[] => {
+    const byOrd = new Map<number, number>();
+    for (const [p, v] of series) {
+      const o = ordOf(p);
+      if (o != null && v != null) byOrd.set(o, v);
+    }
+    const cell = (p: string): number | null => {
+      if (mode === "abs") return series.get(p) ?? null;
+      const o = ordOf(p);
+      return o == null ? null : yoyPct(byOrd.get(o) ?? null, byOrd.get(o - 4) ?? null);
+    };
+    const row = periods.map(cell);
+    if (!showTtm || latestOrd == null) return row;
+    const ttm =
+      mode === "abs"
+        ? ttmEndingAt(byOrd, latestOrd)
+        : yoyPct(ttmEndingAt(byOrd, latestOrd), ttmEndingAt(byOrd, latestOrd - 4));
+    return [ttm, ...row];
+  };
+  const cellsForLine = (
+    line: StandardLine,
+    pivot: Map<string, PeriodSeries>,
+    stmt: string,
+  ): (number | null | undefined)[] => cells(lineSeries(pivot, line, stmt));
+  const blankCells = (): (number | null | undefined)[] => Array(colCount).fill(null);
+  const unitLabel = mode === "yoy" ? "Year-over-year % change" : "All numbers in TL thousands";
+  // Shared table header row — a leading "TTM" column when applicable, then the
+  // period-end dates. Reused across the BS / IS / CF tables.
+  const periodHeaderRow = (
+    <tr className="border-b">
+      <th className="text-left py-2 pl-3 pr-3 font-medium">Breakdown</th>
+      {showTtm && (
+        <th className="text-right py-2 pl-2 pr-3 font-medium tabular-nums">TTM</th>
+      )}
+      {periods.map((p) => (
+        <th key={p} className="text-right py-2 pl-2 pr-3 font-medium tabular-nums">
+          {periodToDate(p)}
+          {periodWarning(p) && (
+            <span title={periodWarning(p)!} className="ml-1 cursor-help text-amber-600">⚠</span>
+          )}
+        </th>
+      ))}
+    </tr>
+  );
+  // Cash flow has no canonical line catalog (codes/labels vary per bank), so we
+  // render the stored rows from the latest displayed period that has any (the
+  // newest non-gap statement). Empty → the CF branch shows a "not available" note.
+  const cfTemplate = periods.map((p) => cfRows[p]).find((r) => r && r.length) ?? [];
 
   // Participation banks (BDDK type 10003) file a different BRSA liabilities
   // layout — equity at XIV., not XVI., with fewer roman items — so they need a
@@ -301,11 +396,10 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
 
   // Computed totals. Sum BRSA Roman-numeral parents — never sub-items
   // (e.g. "2.1 Loans" is inside "II. Amortized Cost"; including both would
-  // double-count). Equity is summed separately.
-  const totalAssets = sumHierarchies(BS_ASSET_ROMAN_HIERARCHIES, bsPivot, periods, "assets");
-  const totalLiab = sumHierarchies(liabRomans, bsPivot, periods, "liabilities");
-  const equityValues = sumHierarchies([equityHierarchy], bsPivot, periods, "liabilities");
-  const totalLE = addArrays(totalLiab, equityValues);
+  // double-count). Equity is summed separately; Total L&E folds it back in.
+  const totalAssets = cells(sumSeries(bsPivot, BS_ASSET_ROMAN_HIERARCHIES, "assets"));
+  const totalLiab = cells(sumSeries(bsPivot, liabRomans, "liabilities"));
+  const totalLE = cells(sumSeries(bsPivot, [...liabRomans, equityHierarchy], "liabilities"));
 
   // Split the liability catalog at the equity boundary so the synthetic
   // "Total Liabilities" subtotal slots in *before* the equity block.
@@ -431,10 +525,10 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
       <div id="financials" className="scroll-mt-24 mb-8">
         <Section title="Financials" contentClassName="">
           {/* Statement controls — sit directly above the statement table they drive:
-              statement (BS/IS) · period view (annual/quarterly) · consolidation kind */}
+              statement (BS/IS/CF) · view (absolute/YoY) · period (annual/quarterly) · kind */}
           <div className="mb-3 flex flex-wrap gap-3 items-center">
             <div className="flex gap-1 rounded-lg border bg-muted p-1">
-              {(["bs", "is"] as const).map((s) => (
+              {(["bs", "is", "cf"] as const).map((s) => (
                 <Link
                   key={s}
                   href={url({ statement: s })}
@@ -445,7 +539,23 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  {s === "bs" ? "Balance Sheet" : "Income Statement"}
+                  {s === "bs" ? "Balance Sheet" : s === "is" ? "Income Statement" : "Cash Flow"}
+                </Link>
+              ))}
+            </div>
+            <div className="flex gap-1 rounded-lg border bg-muted p-1">
+              {(["abs", "yoy"] as const).map((m) => (
+                <Link
+                  key={m}
+                  href={url({ mode: m })}
+                  scroll={false}
+                  className={`px-3 py-1 text-xs rounded-md transition ${
+                    m === mode
+                      ? "bg-card shadow-sm font-medium text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {m === "abs" ? "Absolute" : "YoY Growth"}
                 </Link>
               ))}
             </div>
@@ -489,25 +599,13 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
             <div className="px-5 py-3 border-b bg-muted flex items-center justify-between">
               <h2 className="text-sm font-semibold text-foreground">Balance Sheet</h2>
               <div className="flex items-center gap-2">
-                <span className="text-[11px] text-muted-foreground">All numbers in TL thousands</span>
+                <span className="text-[11px] text-muted-foreground">{unitLabel}</span>
                 <CopyTableButton />
               </div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
-                <thead className="text-muted-foreground">
-                  <tr className="border-b">
-                    <th className="text-left py-2 pl-3 pr-3 font-medium">Breakdown</th>
-                    {periods.map((p) => (
-                      <th key={p} className="text-right py-2 pl-2 pr-3 font-medium tabular-nums">
-                        {periodToDate(p)}
-                        {periodWarning(p) && (
-                          <span title={periodWarning(p)!} className="ml-1 cursor-help text-amber-600">⚠</span>
-                        )}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
+                <thead className="text-muted-foreground">{periodHeaderRow}</thead>
                 <tbody>
                   {(() => {
                     // Standard, uniform layout for every bank. Asset code 2.3 holds
@@ -528,34 +626,37 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
                         <Row
                           key={line.id}
                           label={line.label}
-                          values={blank ? periods.map(() => null) : valuesForLine(line, bsPivot, periods, "assets")}
+                          values={blank ? blankCells() : cellsForLine(line, bsPivot, "assets")}
                           bold={line.bold || indentLevel(line.hierarchy) === 0}
                           depth={indentLevel(line.hierarchy)}
+                          format={formatCell}
                         />
                       );
                     });
                   })()}
-                  <Row label="Total Assets" values={totalAssets} bold divider />
+                  <Row label="Total Assets" values={totalAssets} bold divider format={formatCell} />
                   {liabPreEquity.map((line) => (
                     <Row
                       key={line.id}
                       label={line.label}
-                      values={valuesForLine(line, bsPivot, periods, "liabilities")}
+                      values={cellsForLine(line, bsPivot, "liabilities")}
                       bold={line.bold || indentLevel(line.hierarchy) === 0}
                       depth={indentLevel(line.hierarchy)}
+                      format={formatCell}
                     />
                   ))}
-                  <Row label="Total Liabilities" values={totalLiab} bold divider />
+                  <Row label="Total Liabilities" values={totalLiab} bold divider format={formatCell} />
                   {equityBlock.map((line) => (
                     <Row
                       key={line.id}
                       label={line.label}
-                      values={valuesForLine(line, bsPivot, periods, "liabilities")}
+                      values={cellsForLine(line, bsPivot, "liabilities")}
                       bold={line.bold || indentLevel(line.hierarchy) === 0}
                       depth={indentLevel(line.hierarchy)}
+                      format={formatCell}
                     />
                   ))}
-                  <Row label="Total Liabilities & Equity" values={totalLE} bold divider />
+                  <Row label="Total Liabilities & Equity" values={totalLE} bold divider format={formatCell} />
                 </tbody>
               </table>
             </div>
@@ -571,33 +672,22 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
             <div className="px-5 py-3 border-b bg-muted flex items-center justify-between">
               <h2 className="text-sm font-semibold text-foreground">Income Statement</h2>
               <div className="flex items-center gap-2">
-                <span className="text-[11px] text-muted-foreground">All numbers in TL thousands</span>
+                <span className="text-[11px] text-muted-foreground">{unitLabel}</span>
                 <CopyTableButton />
               </div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
-                <thead className="text-muted-foreground">
-                  <tr className="border-b">
-                    <th className="text-left py-2 pl-3 pr-3 font-medium">Breakdown</th>
-                    {periods.map((p) => (
-                      <th key={p} className="text-right py-2 pl-2 pr-3 font-medium tabular-nums">
-                        {periodToDate(p)}
-                        {periodWarning(p) && (
-                          <span title={periodWarning(p)!} className="ml-1 cursor-help text-amber-600">⚠</span>
-                        )}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
+                <thead className="text-muted-foreground">{periodHeaderRow}</thead>
                 <tbody>
                   {PL_LINES.map((line) => (
                     <Row
                       key={line.id}
                       label={line.label}
-                      values={valuesForLine(line, plPivot, periods, "")}
+                      values={cellsForLine(line, plPivot, "")}
                       bold={line.bold}
                       divider={line.bold}
+                      format={formatCell}
                     />
                   ))}
                 </tbody>
@@ -606,12 +696,70 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
           </section>
           )}
 
+          {/* Cash Flow — rendered from the stored rows (no canonical catalog;
+              codes/labels vary per bank). Empty → "not available" note. */}
+          {statement === "cf" && (
+            cfTemplate.length === 0 ? (
+              <section className="rounded-lg border bg-card shadow-sm px-5 py-4 text-xs text-muted-foreground">
+                Cash flow statement not available for these periods.
+              </section>
+            ) : (
+            <section className="group rounded-lg border bg-card shadow-sm overflow-hidden">
+              <div className="px-5 py-3 border-b bg-muted flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-foreground">Cash Flow</h2>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] text-muted-foreground">{unitLabel}</span>
+                  <CopyTableButton />
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead className="text-muted-foreground">{periodHeaderRow}</thead>
+                  <tbody>
+                    {cfTemplate.map((r, i) => {
+                      const isSection = /^[A-Z]\.$/.test(r.hierarchy); // A./B./C. headers
+                      const isRoman = /^[IVXLCDM]+\.$/.test(r.hierarchy); // I.–VII. subtotals
+                      return (
+                        <Row
+                          key={`${i}-${r.hierarchy}`}
+                          label={r.item_name}
+                          values={cells(cfPivot.get(r.hierarchy) ?? new Map())}
+                          bold={isSection || isRoman}
+                          divider={isRoman}
+                          depth={indentLevel(r.hierarchy)}
+                          format={formatCell}
+                        />
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+            )
+          )}
+
           <p className="text-[11px] text-muted-foreground mt-3">
             Lines aligned by BRSA hierarchy code. &quot;--&quot; indicates the line was not
-            reported for that period or did not extract. &quot;Total Assets&quot;,
-            &quot;Total Liabilities&quot;, and &quot;Total Liabilities &amp; Equity&quot;
-            are computed as sums of the Roman-numeral rows. Lines labelled
-            &quot;(-)&quot; are deductions shown as magnitudes.
+            reported for that period or did not extract.
+            {statement === "bs" && (
+              <> &quot;Total Assets&quot;, &quot;Total Liabilities&quot;, and
+              &quot;Total Liabilities &amp; Equity&quot; are computed as sums of the
+              Roman-numeral rows. Lines labelled &quot;(-)&quot; are deductions shown as
+              magnitudes.</>
+            )}
+            {statement === "cf" && (
+              <> Cash-flow lines are shown with their reported labels (no standardized
+              catalog — codes and labels vary by bank); amounts are cumulative
+              year-to-date.</>
+            )}
+            {mode === "yoy" && (
+              <> Cells show year-over-year % change vs the same quarter one year
+              earlier; &quot;--&quot; where the prior-year period is unavailable.</>
+            )}
+            {showTtm && (
+              <> &quot;TTM&quot; is the trailing twelve months ending the latest quarter
+              (de-cumulated from the year-to-date figures).</>
+            )}
             {anyWarning && (
               <> <span className="text-amber-600">⚠</span> marks a period whose
               extraction failed internal-sum validation (TL+FC=Total,
