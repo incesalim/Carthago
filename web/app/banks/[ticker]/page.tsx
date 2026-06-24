@@ -663,10 +663,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
           </section>
           )}
 
-          {/* Income Statement — flow Sankey above the standardized table */}
-          {statement === "is" && (
-            <PlSankeySection rowsByPeriod={plRows} periods={periods} />
-          )}
+          {/* Income Statement — standardized table, with the P&L flow Sankey below it */}
           {statement === "is" && (
           <section className="group rounded-lg border bg-card shadow-sm overflow-hidden">
             <div className="px-5 py-3 border-b bg-muted flex items-center justify-between">
@@ -694,6 +691,11 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
               </table>
             </div>
           </section>
+          )}
+          {statement === "is" && (
+            <div className="mt-6">
+              <PlSankeySection rowsByPeriod={plRows} periods={periods} />
+            </div>
           )}
 
           {/* Cash Flow — rendered from the stored rows (no canonical catalog;
