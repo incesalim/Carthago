@@ -15,9 +15,9 @@
  *                         column for the income statement + cash flow
  *   ?kind=consolidated|unconsolidated
  *
- * BS/IS lines map to BRSA hierarchy codes (see web/app/lib/standard_lines.ts) and
- * the raw `item_name` is never displayed. Cash flow has no canonical catalog
- * (codes/labels vary per bank), so it renders the stored rows verbatim.
+ * All three statements map to BRSA hierarchy codes (see
+ * web/app/lib/standard_lines.ts) with canonical English labels — the raw
+ * `item_name` is never displayed, so banks are comparable line-for-line.
  */
 import Link from "next/link";
 import { PageHeader, Section, Stat } from "@/app/components/ui";
@@ -28,11 +28,9 @@ import {
   profitLossMultiPeriod,
   profitLossRowsMultiPeriod,
   cashFlowMultiPeriod,
-  cashFlowRowsMultiPeriod,
   bankProfile,
   bankStagesLatest,
   validationByPeriod,
-  type CashFlowRow,
 } from "@/app/lib/audit";
 import { ordOf, ttmEndingAt, yoyPct } from "@/app/lib/period-math";
 import { newsByTicker } from "@/app/lib/news";
@@ -60,6 +58,8 @@ import {
   BS_LIAB_ROMAN_HIERARCHIES_PARTICIPATION,
   BS_EQUITY_HIERARCHY_PARTICIPATION,
   PL_LINES,
+  CF_LINES,
+  CF_ROMAN_HIERARCHIES,
   indentLevel,
   type StandardLine,
 } from "@/app/lib/standard_lines";
@@ -241,7 +241,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
     return o != null && o >= floorOrd && latestOrd != null && o <= latestOrd;
   });
 
-  const [bsPivot, bsNames, plPivot, plRows, cfPivot, cfRows, kapItems, profile, stages, validation, ownership, valuationBase, priceHistory, liveMap, heatmap, sharePanel] =
+  const [bsPivot, bsNames, plPivot, plRows, cfPivot, kapItems, profile, stages, validation, ownership, valuationBase, priceHistory, liveMap, heatmap, sharePanel] =
     await Promise.all([
       balanceSheetMultiPeriod(ticker, kind, queryPeriods),
       balanceSheetLineNames(ticker, kind, periods),
@@ -250,9 +250,6 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
         ? profitLossRowsMultiPeriod(ticker, kind, periods)
         : Promise.resolve({}),
       cashFlowMultiPeriod(ticker, kind, queryPeriods),
-      statement === "cf"
-        ? cashFlowRowsMultiPeriod(ticker, kind, periods)
-        : Promise.resolve({} as Record<string, CashFlowRow[]>),
       newsByTicker(ticker, 12),
       bankProfile(ticker),
       bankStagesLatest(ticker, kind),
@@ -373,10 +370,13 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
       ))}
     </tr>
   );
-  // Cash flow has no canonical line catalog (codes/labels vary per bank), so we
-  // render the stored rows from the latest displayed period that has any (the
-  // newest non-gap statement). Empty → the CF branch shows a "not available" note.
-  const cfTemplate = periods.map((p) => cfRows[p]).find((r) => r && r.length) ?? [];
+  // Cash flow renders from the CF_LINES catalog (codes are consistent across
+  // banks). True only if some displayed period actually has CF data — else the
+  // CF branch shows a "not available" note instead of an all-"--" table.
+  const hasCfData = periods.some((p) => {
+    for (const m of cfPivot.values()) if (m.get(p) != null) return true;
+    return false;
+  });
 
   // Participation banks (BDDK type 10003) file a different BRSA liabilities
   // layout — equity at XIV., not XVI., with fewer roman items — so they need a
@@ -698,10 +698,10 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
             </div>
           )}
 
-          {/* Cash Flow — rendered from the stored rows (no canonical catalog;
-              codes/labels vary per bank). Empty → "not available" note. */}
+          {/* Cash Flow — standardized via the CF_LINES catalog (BRSA hierarchy
+              codes are consistent across banks). Empty → "not available" note. */}
           {statement === "cf" && (
-            cfTemplate.length === 0 ? (
+            !hasCfData ? (
               <section className="rounded-lg border bg-card shadow-sm px-5 py-4 text-xs text-muted-foreground">
                 Cash flow statement not available for these periods.
               </section>
@@ -718,21 +718,28 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
                 <table className="w-full text-xs">
                   <thead className="text-muted-foreground">{periodHeaderRow}</thead>
                   <tbody>
-                    {cfTemplate.map((r, i) => {
-                      const isSection = /^[A-Z]\.$/.test(r.hierarchy); // A./B./C. headers
-                      const isRoman = /^[IVXLCDM]+\.$/.test(r.hierarchy); // I.–VII. subtotals
-                      return (
+                    {CF_LINES.map((line) =>
+                      line.header ? (
+                        <tr key={line.id} className="border-t border-border bg-muted">
+                          <td
+                            colSpan={colCount + 1}
+                            className="py-1.5 pl-3 pr-3 text-xs font-semibold text-foreground"
+                          >
+                            {line.label}
+                          </td>
+                        </tr>
+                      ) : (
                         <Row
-                          key={`${i}-${r.hierarchy}`}
-                          label={r.item_name}
-                          values={cells(cfPivot.get(r.hierarchy) ?? new Map())}
-                          bold={isSection || isRoman}
-                          divider={isRoman}
-                          depth={indentLevel(r.hierarchy)}
+                          key={line.id}
+                          label={line.label}
+                          values={cellsForLine(line, cfPivot, "")}
+                          bold={line.bold}
+                          divider={CF_ROMAN_HIERARCHIES.includes(line.hierarchy)}
+                          depth={indentLevel(line.hierarchy)}
                           format={formatCell}
                         />
-                      );
-                    })}
+                      ),
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -750,9 +757,9 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
               magnitudes.</>
             )}
             {statement === "cf" && (
-              <> Cash-flow lines are shown with their reported labels (no standardized
-              catalog — codes and labels vary by bank); amounts are cumulative
-              year-to-date.</>
+              <> Section totals (Roman numerals) follow the BRSA chain
+              V&nbsp;=&nbsp;I+II+III+IV and VII&nbsp;=&nbsp;V+VI; amounts are
+              cumulative year-to-date.</>
             )}
             {mode === "yoy" && (
               <> Cells show year-over-year % change vs the same quarter one year

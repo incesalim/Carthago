@@ -396,12 +396,18 @@ A qualitative-data layer feeds three tabs from the `news_items` table
   Statement), an **Absolute / YoY Growth** view toggle, and a **TTM** column (income
   statement + cash flow, quarterly view only — suppressed in annual where TTM == the
   Q4 YTD column). All server-rendered via URL params (`statement=bs|is|cf`,
-  `mode=abs|yoy`), no new client component. Cash flow has **no canonical line catalog**
-  (codes/labels vary per bank, ~26 image-only partitions), so it renders the stored
-  rows verbatim from the latest non-gap period — section letters A./B./C. + roman
-  I.–VII. subtotals bold, depth from `indentLevel`; empty → a "not available" note.
-  Data via new `cashFlowMultiPeriod` / `cashFlowRowsMultiPeriod` in `web/app/lib/audit.ts`
-  (try/catch-guarded — a missing/un-migrated CF table never 500s). YoY compares each
+  `mode=abs|yoy`), no new client component. **All three statements are standardized**
+  (canonical English labels keyed by BRSA hierarchy code, raw `item_name` never shown,
+  banks comparable line-for-line) — **Cash Flow standardized 2026-06-24** via a
+  `CF_LINES` catalog in `standard_lines.ts` (the cash-flow hierarchy codes 1.1.x /
+  1.2.x / 2.x / 3.x + romans I.–VII. are consistent across all 31 banks; only labels
+  varied). Labels are the official BRSA English wording (sourced from GARAN, an
+  English filer); `cashFlowMultiPeriod` strips trailing dots (KUVEYT-class) at read
+  time to match the catalog; stray period-header rows (`"1"`/`"31"`, `A./B./C.`) and
+  the verbatim render path were dropped. Synthetic Operating/Investing/Financing
+  section headers; empty → "not available" note. `cashFlowMultiPeriod` in
+  `web/app/lib/audit.ts` is try/catch-guarded — a missing/un-migrated CF table never
+  500s. YoY compares each
   cell to the same quarter a year earlier on the **displayed (YTD) values**; TTM
   de-cumulates. De-cumulation/TTM/YoY math extracted to a shared, unit-tested
   `web/app/lib/period-math.ts` (`ordOf`, `periodFromOrd`, `singleQuarter`, `ttmEndingAt`,

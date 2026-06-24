@@ -23,6 +23,10 @@ export interface StandardLine {
   /** Render bold — used for category subtotals (Roman numerals at indent 0)
    *  and P&L subtotal rows (Net Interest Income, Pre-tax Profit, etc.). */
   bold?: boolean;
+  /** Visual-only section title (no value cells) — used for the cash-flow
+   *  Operating / Investing / Financing section headers, which most banks don't
+   *  file as data rows. The `hierarchy` is a sentinel that never matches data. */
+  header?: boolean;
 }
 
 /** Visual indent level derived from a hierarchy code.
@@ -254,4 +258,72 @@ export const PL_LINES: StandardLine[] = [
 
   // XXV. Total Net Period Profit (XX-XXIV are discontinued-ops detail — skipped)
   { id: "net_profit_total",       label: "Net Period Profit / (Loss) (XIX + XXIV)",              hierarchy: "XXV.",   bold: true },
+];
+
+/** Cash-flow roman subtotals/totals — I.–VII. (sections + bottom-line chain
+ *  V=I+II+III+IV, VII=V+VI). Rendered bold with a top border. */
+export const CF_ROMAN_HIERARCHIES = ["I.", "II.", "III.", "IV.", "V.", "VI.", "VII."];
+
+/** Cash Flow Statement — standardized like the BS/IS catalogs. Codes follow the
+ *  BRSA "Nakit Akış Tablosu" and are consistent across every bank; only the
+ *  labels (Turkish/English) varied, so the raw item_name is never shown. Labels
+ *  are the official BRSA English wording (from an English-filing bank). The
+ *  three section headers are visual-only (`header: true`) — most banks file no
+ *  A./B./C. data row, so the section totals (I./II./III.) delimit the sections.
+ *  Within a section the order is detail rows → section total (some banks print
+ *  the total at the top; we render by code, so display order is our choice). */
+export const CF_LINES: StandardLine[] = [
+  // ── A. Operating activities ──────────────────────────────────────────────
+  { id: "cf_op_hdr",   label: "Operating Activities",                                       hierarchy: "§op",  header: true },
+  { id: "cf_1_1",      label: "Operating Profit Before Changes in Operating Assets & Liabilities", hierarchy: "1.1", bold: true },
+  { id: "cf_1_1_1",    label: "Interest / Profit Share Received",                           hierarchy: "1.1.1" },
+  { id: "cf_1_1_2",    label: "Interest / Profit Share Paid",                               hierarchy: "1.1.2" },
+  { id: "cf_1_1_3",    label: "Dividends Received",                                         hierarchy: "1.1.3" },
+  { id: "cf_1_1_4",    label: "Fees and Commissions Received",                              hierarchy: "1.1.4" },
+  { id: "cf_1_1_5",    label: "Other Income",                                               hierarchy: "1.1.5" },
+  { id: "cf_1_1_6",    label: "Collections from Previously Written-off Receivables",        hierarchy: "1.1.6" },
+  { id: "cf_1_1_7",    label: "Cash Payments to Personnel and Service Suppliers",           hierarchy: "1.1.7" },
+  { id: "cf_1_1_8",    label: "Taxes Paid",                                                 hierarchy: "1.1.8" },
+  { id: "cf_1_1_9",    label: "Other",                                                      hierarchy: "1.1.9" },
+  { id: "cf_1_2",      label: "Changes in Operating Assets and Liabilities",                hierarchy: "1.2", bold: true },
+  { id: "cf_1_2_1",    label: "Net Change in Financial Assets at FVTPL",                    hierarchy: "1.2.1" },
+  { id: "cf_1_2_2",    label: "Net Change in Due from Banks",                               hierarchy: "1.2.2" },
+  { id: "cf_1_2_3",    label: "Net Change in Loans",                                        hierarchy: "1.2.3" },
+  { id: "cf_1_2_4",    label: "Net Change in Other Assets",                                 hierarchy: "1.2.4" },
+  { id: "cf_1_2_5",    label: "Net Change in Bank Deposits / Funds Collected from Banks",   hierarchy: "1.2.5" },
+  { id: "cf_1_2_6",    label: "Net Change in Other Deposits / Funds Collected",             hierarchy: "1.2.6" },
+  { id: "cf_1_2_7",    label: "Net Change in Financial Liabilities at FVTPL",               hierarchy: "1.2.7" },
+  { id: "cf_1_2_8",    label: "Net Change in Funds Borrowed",                               hierarchy: "1.2.8" },
+  { id: "cf_1_2_9",    label: "Net Change in Matured Payables",                             hierarchy: "1.2.9" },
+  { id: "cf_1_2_10",   label: "Net Change in Other Liabilities",                            hierarchy: "1.2.10" },
+  { id: "cf_I",        label: "Net Cash Flow from Banking Operations",                      hierarchy: "I.",  bold: true },
+
+  // ── B. Investing activities ──────────────────────────────────────────────
+  { id: "cf_inv_hdr",  label: "Investing Activities",                                       hierarchy: "§inv", header: true },
+  { id: "cf_2_1",      label: "Cash Paid for Purchase of Associates, Subsidiaries & Joint Ventures", hierarchy: "2.1" },
+  { id: "cf_2_2",      label: "Cash from Sale of Associates, Subsidiaries & Joint Ventures", hierarchy: "2.2" },
+  { id: "cf_2_3",      label: "Purchases of Tangible / Intangible Assets",                  hierarchy: "2.3" },
+  { id: "cf_2_4",      label: "Sales of Tangible / Intangible Assets",                      hierarchy: "2.4" },
+  { id: "cf_2_5",      label: "Cash Paid for Purchase of Financial Assets at FVOCI",        hierarchy: "2.5" },
+  { id: "cf_2_6",      label: "Cash from Sale of Financial Assets at FVOCI",                hierarchy: "2.6" },
+  { id: "cf_2_7",      label: "Cash Paid for Purchase of Financial Assets at Amortized Cost", hierarchy: "2.7" },
+  { id: "cf_2_8",      label: "Cash from Sale of Financial Assets at Amortized Cost",       hierarchy: "2.8" },
+  { id: "cf_2_9",      label: "Other",                                                      hierarchy: "2.9" },
+  { id: "cf_II",       label: "Net Cash Flow from Investing Activities",                    hierarchy: "II.", bold: true },
+
+  // ── C. Financing activities ──────────────────────────────────────────────
+  { id: "cf_fin_hdr",  label: "Financing Activities",                                       hierarchy: "§fin", header: true },
+  { id: "cf_3_1",      label: "Cash from Funds Borrowed and Securities Issued",             hierarchy: "3.1" },
+  { id: "cf_3_2",      label: "Cash Used for Repayment of Funds Borrowed and Securities Issued", hierarchy: "3.2" },
+  { id: "cf_3_3",      label: "Equity Instruments Issued",                                  hierarchy: "3.3" },
+  { id: "cf_3_4",      label: "Dividends Paid",                                             hierarchy: "3.4" },
+  { id: "cf_3_5",      label: "Payments for Financial Leases",                              hierarchy: "3.5" },
+  { id: "cf_3_6",      label: "Other",                                                      hierarchy: "3.6" },
+  { id: "cf_III",      label: "Net Cash Flow from Financing Activities",                    hierarchy: "III.", bold: true },
+
+  // ── Bottom line ──────────────────────────────────────────────────────────
+  { id: "cf_IV",       label: "Effect of Exchange Rate Changes on Cash & Cash Equivalents", hierarchy: "IV.", bold: true },
+  { id: "cf_V",        label: "Net Increase / (Decrease) in Cash & Cash Equivalents (I+II+III+IV)", hierarchy: "V.", bold: true },
+  { id: "cf_VI",       label: "Cash & Cash Equivalents at Beginning of Period",             hierarchy: "VI.", bold: true },
+  { id: "cf_VII",      label: "Cash & Cash Equivalents at End of Period (V+VI)",            hierarchy: "VII.", bold: true },
 ];
