@@ -529,7 +529,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
                           key={line.id}
                           label={line.label}
                           values={blank ? periods.map(() => null) : valuesForLine(line, bsPivot, periods, "assets")}
-                          bold={line.bold}
+                          bold={line.bold || indentLevel(line.hierarchy) === 0}
                           depth={indentLevel(line.hierarchy)}
                         />
                       );
@@ -541,7 +541,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
                       key={line.id}
                       label={line.label}
                       values={valuesForLine(line, bsPivot, periods, "liabilities")}
-                      bold={line.bold}
+                      bold={line.bold || indentLevel(line.hierarchy) === 0}
                       depth={indentLevel(line.hierarchy)}
                     />
                   ))}
@@ -551,7 +551,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
                       key={line.id}
                       label={line.label}
                       values={valuesForLine(line, bsPivot, periods, "liabilities")}
-                      bold={line.bold}
+                      bold={line.bold || indentLevel(line.hierarchy) === 0}
                       depth={indentLevel(line.hierarchy)}
                     />
                   ))}
