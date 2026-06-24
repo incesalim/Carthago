@@ -15,6 +15,7 @@
  * get TL before dividing a TL market cap.
  */
 import { cachedAll } from "./db";
+import { ordOf, ttmEndingAt } from "./period-math";
 
 export interface BankFundamentals {
   /** Most recent quarter with a non-null equity reading, e.g. "2026Q1". */
@@ -27,11 +28,6 @@ export interface BankFundamentals {
 
 interface EquityRow { period: string; equity: number | null }
 interface PlRow { period: string; net_profit: number | null }
-
-const ordOf = (period: string): number | null => {
-  const m = /^(\d{4})Q([1-4])$/.exec(period);
-  return m ? Number(m[1]) * 4 + (Number(m[2]) - 1) : null;
-};
 
 export async function bankFundamentals(
   ticker: string,
@@ -74,19 +70,7 @@ export async function bankFundamentals(
     const ord = ordOf(r.period);
     if (ord != null && r.net_profit != null) ytdByOrd.set(ord, r.net_profit);
   }
-  const singleQ = (ord: number): number | null => {
-    const cur = ytdByOrd.get(ord);
-    if (cur == null) return null;
-    if (ord % 4 === 0) return cur; // Q1 YTD is already one quarter
-    const prev = ytdByOrd.get(ord - 1);
-    return prev == null ? null : cur - prev;
-  };
-  let ttm: number | null = 0;
-  for (let k = 0; k < 4; k++) {
-    const sq = singleQ(latest.ord - k);
-    if (sq == null) { ttm = null; break; }
-    ttm += sq;
-  }
+  const ttm = ttmEndingAt(ytdByOrd, latest.ord);
 
   return { period: latest.period, equity: latest.equity, ttmNetIncome: ttm };
 }
