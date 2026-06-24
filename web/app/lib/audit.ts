@@ -38,17 +38,6 @@ export interface PlRow {
   amount: number | null;
 }
 
-export interface CashFlowRow {
-  item_order: number;
-  /** BRSA hierarchy code, stored VERBATIM for cash flow (section letters
-   *  "A."/"B."/"C.", romans "I.".."VII.", or sub-items "1.1") — unlike the
-   *  balance sheet / P&L, cash-flow codes are not normalized to a UI key. */
-  hierarchy: string;
-  item_name: string;
-  footnote: string | null;
-  amount: number | null;
-}
-
 /** Listing of all banks with audit-data coverage, each carrying its latest
  *  total assets so the index can size-rank within type groups. Cached via KV
  *  (`cachedAll`) — the balance-sheet sum scans many rows, so we don't want it
@@ -357,8 +346,16 @@ export async function profitLossRowsMultiPeriod(
   return out;
 }
 
+// A multi-level NUMERIC cash-flow code printed with a trailing dot ("1.1." /
+// "1.2.10.") — KUVEYT/ALBRK/EXIM/ICBCT in some periods. Mirrors the loader's
+// `_canon_hier`; cash_flow is NOT normalized on write, so we strip it on read so
+// the CF_LINES catalog ("1.1", "1.2.10") matches. Roman codes ("I."), single-
+// level ("1.") and the stray date-header rows ("1"/"31") are left untouched.
+const _CF_TRAILING_DOT = /^\d+(?:\.\d+)+\.$/;
+
 /** Cash-flow rows for one bank across multiple periods.
- *  Returned shape: hierarchy → period → amount (mirrors profitLossMultiPeriod).
+ *  Returned shape: hierarchy → period → amount (mirrors profitLossMultiPeriod),
+ *  keyed by the catalog code (trailing dot stripped from numeric sub-items).
  *  Cash-flow amounts are YTD-cumulative within the year, like the P&L.
  *  Wrapped in try/catch: cash flow has image-only gaps for some banks/periods,
  *  and the table may be absent on a not-yet-migrated local D1 — never 500. */
@@ -383,46 +380,13 @@ export async function cashFlowMultiPeriod(
       .all<{ period: string; hierarchy: string; amount: number | null }>();
     const out = new Map<string, Map<string, number | null>>();
     for (const r of results) {
-      if (!out.has(r.hierarchy)) out.set(r.hierarchy, new Map());
-      out.get(r.hierarchy)!.set(r.period, r.amount);
+      const h = _CF_TRAILING_DOT.test(r.hierarchy) ? r.hierarchy.slice(0, -1) : r.hierarchy;
+      if (!out.has(h)) out.set(h, new Map());
+      out.get(h)!.set(r.period, r.amount);
     }
     return out;
   } catch {
     return new Map();
-  }
-}
-
-/** Full cash-flow rows for one bank, keyed by period, in source order.
- *  Unlike `cashFlowMultiPeriod` this keeps `item_name` — cash flow has no
- *  canonical English line catalog (codes/labels vary per bank), so the page
- *  renders the stored item_name directly. Try/catch-guarded like the pivot. */
-export async function cashFlowRowsMultiPeriod(
-  ticker: string,
-  kind: "consolidated" | "unconsolidated",
-  periods: string[],
-): Promise<Record<string, CashFlowRow[]>> {
-  if (periods.length === 0) return {};
-  try {
-    const db = await getDB();
-    const placeholders = periods.map(() => "?").join(",");
-    const { results } = await db
-      .prepare(
-        `SELECT period, item_order, hierarchy, item_name, footnote, amount
-         FROM bank_audit_cash_flow
-         WHERE bank_ticker = ? AND kind = ?
-           AND period IN (${placeholders})
-         ORDER BY period, item_order`,
-      )
-      .bind(ticker, kind, ...periods)
-      .all<CashFlowRow & { period: string }>();
-    const out: Record<string, CashFlowRow[]> = {};
-    for (const r of results) {
-      const { period, ...row } = r;
-      (out[period] ??= []).push(row);
-    }
-    return out;
-  } catch {
-    return {};
   }
 }
 
