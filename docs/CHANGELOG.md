@@ -3,7 +3,27 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-06-22 — **Validator blind-spot audit — hardened 3 more lanes against silently-dropped columns.**
+Last verified: 2026-06-24 — **Per-bank balance sheet: uniform layout, single ECL, durable trailing-dot key fix, bold top-level rows.**
+KUVEYT's amortized-cost sub-items rendered blank because its source PDF prints sub-item hierarchy codes with a
+trailing dot ("1.1." vs the standard "1.1"), and the Financials table + cross-bank heatmap key on the EXACT code.
+Four fixes, all deployed + verified live:
+- *Uniform amortized-cost layout (`standard_lines.ts`, `page.tsx`):* every bank now renders the same rows — Loans,
+  Lease, Factoring, **Securities at Amortized Cost**, Other, Expected Credit Losses — blank where a bank lacks a line.
+  Replaces the per-bank relabeling (`resolveBsLineLabel`, dropped) that made labels inconsistent and produced a
+  duplicate "--" ECL row for participation banks + Garanti (their code 2.4 IS the ECL, already shown via the 2.ecl
+  remap). Both Factoring and Securities are always present; the one not applicable to a bank renders blank.
+- *Durable trailing-dot normalization (`loader._canon_hier` + `scripts/normalize_hierarchy_keys.py`):* the loader now
+  strips a trailing dot from multi-level numeric codes on every write — but ONLY for the catalog-displayed statements
+  (assets, liabilities, profit_loss). off_balance is excluded (its sub-items are dotted as a convention across ~19
+  banks / 24k rows, not UI-keyed, indentation derives from the code); oci/cash_flow untouched. The script backfilled
+  the existing R2 snapshot + live D1 identically (idempotent). Fixed KUVEYT plus ALBRK, EXIM, KLNMA, ICBCT, which had
+  the same defect partially. Values never touched, only the key string. D1 now 0 dotted assets/liab/PL, off_balance
+  23,120 preserved.
+- *Bold top-level rows (`page.tsx`):* a top-level BRSA Roman BS row is now always bold (section-header styling), so
+  leaf top-level items — Held-for-Sale (III.), PPE (V.), Intangibles (VI.), tax assets, Other (X.) — no longer fold
+  into the section above them. Sub-items stay indented. P&L unchanged (catalog/divider-driven).
+
+Prior: 2026-06-22 — **Validator blind-spot audit — hardened 3 more lanes against silently-dropped columns.**
 After the stages fix, audited every validator for the same skip-on-null pattern (a missing number `add_skip()`'d, so
 the cell passed green `ok`). Three more lanes had it; cash_flow/P&L/OCI are safe (interlocked, cross-anchored chains)
 and BS is triangulated, so they were left alone.
