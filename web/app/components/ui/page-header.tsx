@@ -48,6 +48,12 @@ export function PageHeader({
     <header
       className={cn(
         "flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between",
+        // Pin the header (with the global range selector) to the top while
+        // scrolling, so the date-range control stays reachable on long chart
+        // pages. Scoped to lg+: there the left sidebar owns the layout and
+        // nothing sits at top-0, whereas below lg the mobile nav bar is the
+        // sticky top-0 element and a sticky header would collide with it.
+        "lg:sticky lg:top-0 lg:z-20 lg:-mx-8 lg:bg-background/90 lg:px-8 lg:py-3 lg:backdrop-blur",
         className,
       )}
     >
