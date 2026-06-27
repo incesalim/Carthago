@@ -34,6 +34,7 @@ import {
 } from "@/app/lib/audit";
 import { ordOf, ttmEndingAt, yoyPct } from "@/app/lib/period-math";
 import { newsByTicker } from "@/app/lib/news";
+import { earningsByTicker, kindLabel } from "@/app/lib/earnings";
 import { bankOwnership } from "@/app/lib/kap";
 import { heatmapPanel } from "@/app/lib/heatmap";
 import { marketSharePanel, bankShareSeries } from "@/app/lib/market-share";
@@ -241,7 +242,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
     return o != null && o >= floorOrd && latestOrd != null && o <= latestOrd;
   });
 
-  const [bsPivot, bsNames, plPivot, plRows, cfPivot, kapItems, profile, stages, validation, ownership, valuationBase, priceHistory, liveMap, heatmap, sharePanel] =
+  const [bsPivot, bsNames, plPivot, plRows, cfPivot, kapItems, profile, stages, validation, ownership, valuationBase, priceHistory, liveMap, heatmap, sharePanel, earnings] =
     await Promise.all([
       balanceSheetMultiPeriod(ticker, kind, queryPeriods),
       balanceSheetLineNames(ticker, kind, periods),
@@ -263,6 +264,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
       // competitive shares — same source of truth as /cross-bank.
       heatmapPanel(kind),
       marketSharePanel(kind),
+      earningsByTicker(ticker, 24),
     ]);
 
   // Profitability & margins section inputs — this bank's rows, oldest→newest.
@@ -418,6 +420,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
     ...(hasPerf ? [{ id: "performance", label: "Performance" }] : []),
     { id: "financials", label: "Financials" },
     ...(hasOwnership ? [{ id: "ownership", label: "Ownership" }] : []),
+    ...(earnings.length > 0 ? [{ id: "earnings", label: "Earnings" }] : []),
     { id: "disclosures", label: "Disclosures" },
   ];
 
@@ -797,6 +800,45 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
 
             {/* Subsidiaries / financial investments (same form, §7) */}
             <SubsidiariesCard rows={ownership} />
+          </Section>
+        </div>
+      )}
+
+      {/* ── Earnings & presentations ──────────────────────────────────────
+          Results-filing dates (KAP) + investor-presentation decks (IR site). */}
+      {earnings.length > 0 && (
+        <div id="earnings" className="scroll-mt-24 mb-8">
+          <Section title="Earnings & Presentations" contentClassName="">
+            <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+              <div className="text-sm font-medium text-foreground mb-3 flex items-baseline justify-between">
+                <span>Quarterly results filings &amp; presentation decks</span>
+                <Link href="/earnings" className="text-xs text-muted-foreground hover:text-foreground">
+                  all banks →
+                </Link>
+              </div>
+              <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-2">
+                {earnings.map((e) => (
+                  <li key={`${e.source}-${e.external_id}`} className="text-xs">
+                    <a
+                      href={e.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block hover:bg-accent -mx-1 px-1 py-1 rounded transition"
+                    >
+                      <div className="text-[10px] uppercase tracking-wide text-muted-foreground tabular-nums flex items-center gap-1.5">
+                        <span className={e.kind === "presentation_deck" ? "text-indigo-600 dark:text-indigo-300 font-semibold" : "text-[#7a0d2e] dark:text-[#e7b3c2] font-semibold"}>
+                          {kindLabel(e.kind)}
+                        </span>
+                        {e.period && <span className="text-foreground">{e.period.slice(4)} {e.period.slice(0, 4)}</span>}
+                      </div>
+                      <div className="text-foreground leading-snug line-clamp-2">
+                        {e.title}
+                      </div>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </Section>
         </div>
       )}
