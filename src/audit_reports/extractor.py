@@ -829,14 +829,25 @@ def _fitz_page_text(pdf_path: str, page_idx_0: int) -> str:
     try:
         doc = fitz.open(pdf_path)
         page = doc[page_idx_0]
-        # get_text("words") returns (x0, y0, x1, y1, "text", block, line, word)
+        # get_text("words") returns (x0, y0, x1, y1, "text", block, line, word) with
+        # bboxes in the page's UN-rotated space. On a /Rotate 90/270 page (e.g.
+        # GARAN/AKBNK render their landscape equity statement that way) the visual
+        # columns then share a y and the rows share an x, so y-bucketing scrambles
+        # the table into garbage. Map each bbox through the page's rotation_matrix
+        # into DISPLAY space first; rotation_matrix is identity when rotation==0, so
+        # the (vast majority of) upright pages are byte-for-byte unchanged.
         words = page.get_text("words")
+        rot_m = page.rotation_matrix if page.rotation else None
         doc.close()
         if not words:
             return ""
         rows: dict[int, list[tuple[float, float, str]]] = defaultdict(list)
         for w in words:
             x0, y0, x1, _y1, text = w[0], w[1], w[2], w[3], w[4]
+            if rot_m is not None:
+                r = (fitz.Rect(x0, y0, x1, w[3]) * rot_m)
+                r.normalize()
+                x0, y0, x1 = r.x0, r.y0, r.x1
             y_key = int(round(y0))
             rows[y_key].append((x0, x1, text))
         # Merge close y-buckets (within 3px) into single rows
@@ -1384,7 +1395,7 @@ def extract(pdf_path: str | Path, only: set[str] | None = None) -> BankReport:
             if _want('equity_change') or _want('cash_flow'):
                 try:
                     from .equity_change import extract_from_pdf as _extract_eq
-                    eq_report = _extract_eq(pdf, pdf_path, oci_page or loc.get('pl'))
+                    eq_report = _extract_eq(pdf_path, oci_page or loc.get('pl'))
                 except Exception:
                     eq_report = None
                 if _want('equity_change'):

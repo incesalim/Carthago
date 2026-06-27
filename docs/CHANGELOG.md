@@ -3,7 +3,22 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-06-27 — **equity_change round 3: mid-split chaining + n-2 column recovery (107 → ~91).**
+Last verified: 2026-06-27 — **equity_change is now fitz-only (pdfplumber removed); rotation was the real GARAN/AKBNK blocker.**
+The equity extractor kept pdfplumber purely as the reader for GARAN/AKBNK, whose "wide interleaved table only
+pdfplumber's x-clustering separates". The actual cause: those banks render the equity statement on a **`/Rotate 90`
+landscape page**, and `fitz.get_text("words")` returns word bboxes in the page's UN-rotated space — so the visual
+columns share a y and y-bucketing scrambles the table into garbage (duplicated values, headers merged into value
+rows). pdfplumber applied the rotation; fitz (as used) didn't. Fix: map each word bbox through `page.rotation_matrix`
+into display space in `_fitz_page_text` before y-bucketing (identity when rotation==0, so upright pages are
+byte-for-byte unchanged). Then dropped pdfplumber from the equity path entirely — the `pp_text` reconstruction, the
+`_safe_repaired_text` marker/n_cols reads, the `pdf.pages` fallbacks, the import, and the dead `pdf` parameter
+(`extract_from_pdf`/`_locate_equity_pages` now take only `pdf_path`). Verified: **GARAN/AKBNK rotated pages recover
+to 34 rows, 41/0 pass** (were 0 rows under naive fitz-only); a 11-bank × 4-quarter `--force` sample shows **0 clean
+regressions**; the shared `_fitz_page_text` rotation change leaves NPL (and other fitz consumers) unaffected (6/6
+pass). Removes the pdfminer poison-PDF watchdog from the equity lane. (OCI still uses a pdfplumber GARAN/AKBNK
+fallback — same rotation root cause — left for a follow-up.)
+
+Prior: 2026-06-27 — **equity_change round 3: mid-split chaining + n-2 column recovery (107 → ~91).**
 Two more residual causes after rounds 1–2 (343→107 in prod). (a) **Mid-page-split swap the year heuristic missed:**
 ANADOLU prints both period tables on one page in prior-then-current order, but the period year appears only in the page
 header — `_block1_period_for_split` looks for the latest year *after* the closing row, finds none, and defaults to
