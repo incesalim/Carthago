@@ -63,7 +63,11 @@ export default function BankSectionNav({ sections }: { sections: NavSection[] })
   return (
     <nav
       aria-label="Sections"
-      className="sticky top-14 z-30 -mx-4 mb-6 border-b border-border bg-background/95 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:-mx-6 sm:px-6 lg:top-0 lg:-mx-8 lg:px-8"
+      // Mobile/tablet: self-stick just below the mobile nav bar (top-14).
+      // lg+: not self-sticky — the page wraps this and the PageHeader in one
+      // sticky group so they pin stacked (header on top, this nav directly
+      // below) instead of both grabbing top-0 and overlapping.
+      className="sticky top-14 z-30 -mx-4 mb-6 border-b border-border bg-background/95 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:-mx-6 sm:px-6 lg:static lg:-mx-8 lg:px-8"
     >
       <div className="flex w-fit gap-1 rounded-lg border bg-muted p-1">
         {sections.map((s) => (
