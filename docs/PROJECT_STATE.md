@@ -10,7 +10,7 @@ coverage or known issues change.
 > from our data) in [BANKING_METRICS.md](BANKING_METRICS.md) — a 153-metric
 > registry (`data/metric_knowledge/`, CLI `scripts/metric_knowledge.py`).
 >
-> Last verified: 2026-06-19. Dated change history → [CHANGELOG.md](CHANGELOG.md).
+> Last verified: 2026-06-26. Dated change history → [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
@@ -413,6 +413,11 @@ A qualitative-data layer feeds three tabs from the `news_items` table
   `web/app/lib/period-math.ts` (`ordOf`, `periodFromOrd`, `singleQuarter`, `ttmEndingAt`,
   `yoyPct`; `bank-fundamentals.ts` now imports it). TL only (no currency selector);
   inline sparklines + latest-left/right ordering were explicitly out of scope.
+- **Pinned page header (2026-06-26).** The page header that carries the global
+  1Y/3Y/5Y/YTD/All chart-range selector (`web/app/components/ui/page-header.tsx`) is now
+  `position: sticky` at `top-0` on `lg+` (frosted `bg/90` + `backdrop-blur`), so the range
+  control stays reachable on long chart pages. Below `lg` it stays static — the mobile nav
+  bar owns `top-0` there.
 - **"Drivers behind the outcomes" data gaps (2026-06-20).** Tier-A margin engine +
   market share shipped (see Dashboard §Compare). Deferred lanes with full
   source/schema/extractor sketches in
@@ -549,7 +554,7 @@ A qualitative-data layer feeds three tabs from the `news_items` table
   ceiling** (band-only) — making it reconcile needs extracting LCR/NSFR component
   sub-tables (HQLA, net outflows), a separate task.
 - **P&L flow Sankey shipped (2026-06-12)** — on `/banks/[ticker]` (Income
-  Statement view, above the table): a hand-rolled SVG Sankey of the selected
+  Statement view, below the table since 2026-06-24): a hand-rolled SVG Sankey of the selected
   period's P&L, YTD as reported. Pure derivation + layout in
   `web/app/lib/pl-sankey.ts` (unit-tested — vitest is now in `web/`, `npm run
   test`, wired into CI), card shell `PlSankeySection.tsx` with client-side

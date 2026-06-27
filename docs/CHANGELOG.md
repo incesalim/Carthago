@@ -3,7 +3,34 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-06-24 — **Per-bank balance sheet: uniform layout, single ECL, durable trailing-dot key fix, bold top-level rows.**
+Last verified: 2026-06-26 — **Pinned the page header (chart date-range selector) on scroll.**
+The global 1Y/3Y/5Y/YTD/All chart-range control lives in the page header (`web/app/components/ui/page-header.tsx`),
+which scrolled off the top on long chart pages. The header is now `position: sticky` at `top-0` on `lg+`, with a
+frosted band (`bg/90` + `backdrop-blur`) that bleeds to the content gutter so charts scroll cleanly underneath.
+Scoped to `lg+` on purpose — below `lg` the mobile nav bar owns `top-0`, so a sticky header there would collide.
+
+Prior: 2026-06-24 — **Seeking-Alpha-style statement viewer — Cash Flow tab, standardized statements, YoY + TTM.**
+The `/banks/[ticker]` Financials section now reads like Seeking Alpha's statement viewer. All server-rendered via URL
+params (`statement=bs|is|cf`, `mode=abs|yoy`), no new client component; TL only (no currency selector, no inline
+sparklines — explicitly out of scope).
+- *Cash Flow tab + view toggles (`page.tsx`, `audit.ts`, `period-math.ts`):* a new **Cash Flow** tab alongside
+  Balance Sheet / Income Statement, an **Absolute / YoY Growth** toggle (YoY compares each cell to the same quarter
+  a year earlier on the displayed YTD values), and a **TTM** column for the income statement + cash flow (quarterly
+  view only — suppressed in annual, where TTM == the Q4 YTD column; de-cumulated). De-cumulation/TTM/YoY math
+  extracted to a shared, unit-tested `web/app/lib/period-math.ts` (`ordOf`, `periodFromOrd`, `singleQuarter`,
+  `ttmEndingAt`, `yoyPct`); `bank-fundamentals.ts` now imports it. `cashFlowMultiPeriod` in `audit.ts` is
+  try/catch-guarded so a missing/un-migrated CF table never 500s.
+- *Cash Flow standardized (`standard_lines.ts`):* CF now renders from a canonical `CF_LINES` catalog — official BRSA
+  English labels keyed by hierarchy code (sourced from GARAN, an English filer; Islamic dual-labels for participation
+  banks) — exactly like the Balance Sheet and Income Statement, so the raw per-bank `item_name` is no longer shown and
+  banks are comparable line-for-line. A D1 audit confirmed the CF hierarchy codes (1.1.x / 1.2.x / 2.x / 3.x detail +
+  I.–VII. roman section totals) are consistent across all 31 banks; only labels varied. The verbatim render path was
+  dropped; `cashFlowMultiPeriod` strips trailing dots (KUVEYT-class) at read time to match the catalog. Reconciles
+  exactly for AKBNK + ALBRK (participation): I+II+III+IV = V, V+VI = VII.
+- *P&L Sankey moved below the table (`page.tsx`):* the Income-Statement-view Sankey now renders beneath the
+  standardized table instead of above it — table first, flow diagram second.
+
+Prior: 2026-06-24 — **Per-bank balance sheet: uniform layout, single ECL, durable trailing-dot key fix, bold top-level rows.**
 KUVEYT's amortized-cost sub-items rendered blank because its source PDF prints sub-item hierarchy codes with a
 trailing dot ("1.1." vs the standard "1.1"), and the Financials table + cross-bank heatmap key on the EXACT code.
 Four fixes, all deployed + verified live:
