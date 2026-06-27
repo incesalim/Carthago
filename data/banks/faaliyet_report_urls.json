@@ -1,46 +1,79 @@
 {
   "_doc": "Curated source URLs for bank Faaliyet Raporlari (annual/activity reports). Franchise lane (src/faaliyet). Per bank: name, ir_page (investor-relations landing), and reports{<fiscal_year>:{tr:<url>, en:<url?>}}. Annual cadence (FY ending 31 Dec). ir_page is seeded from audit_report_urls.json; the per-year report URLs MUST be curated by hand (banks publish the annual report on a different page than the quarterly BRSA statements, and naming changes each year). Point tr/en at the standalone Faaliyet Raporu PDF, NOT the Surdurulebilirlik (sustainability) report.",
   "_updated": "2026-06-27",
+  "_coverage": "25/31 banks have a validated FY2024 report URL. Remaining 6 gaps: TFKB (retail; FY2024 link inactive on site — only FY2025 published) and HSBC (wholesale; .vsf-only) need manual lookup; KLNMA / AKTIF / PASHA / ATBANK are development/investment/trade-finance banks with no retail franchise, so this lane yields little/nothing for them (low priority).",
   "banks": {
     "AKBNK": {
       "name": "Akbank T.A.Ş.",
       "ir_page": "https://www.akbankinvestorrelations.com/",
-      "reports": {}
+      "reports": {
+        "2024": {
+          "tr": "https://www.akbankinvestorrelations.com/tr/images/pdf/akbank-2024-entegre-faaliyet-raporu.pdf"
+        }
+      }
     },
     "YKBNK": {
       "name": "Yapı ve Kredi Bankası A.Ş.",
       "ir_page": "https://www.yapikrediinvestorrelations.com/",
-      "reports": {}
+      "reports": {
+        "2024": {
+          "tr": "https://www.yapikrediinvestorrelations.com/tr/images/pdf/faaliyet-raporlari/2024/yk_faaliyet_raporu_2024.pdf"
+        }
+      }
     },
     "HALKB": {
       "name": "Türkiye Halk Bankası A.Ş.",
       "ir_page": "https://www.halkbank.com.tr/en/investor-relations/financial-information/financial-reports.html",
-      "reports": {}
+      "reports": {
+        "2024": {
+          "tr": "https://www.halkbank.com.tr/content/dam/corporate-website/tr/dokumanlar/yatirimci-iliskileri/faaliyet-raporlari/2024-Entegre-Faaliyet-Raporu.pdf"
+        }
+      }
     },
     "VAKBN": {
       "name": "Türkiye Vakıflar Bankası T.A.O.",
       "ir_page": "https://www.vakifbank.com.tr/tr/bankamiz/yatirimci-iliskileri/finansal-bilgiler",
-      "reports": {}
+      "reports": {
+        "2024": {
+          "tr": "https://vbassets.vakifbank.com.tr/bankamiz/yatirimci-iliskileri/Entegre%20Faaliyet%20Raporlar%C4%B1/entegre-faaliyet-raporu-2024.pdf"
+        }
+      }
     },
     "ICBCT": {
       "name": "ICBC Turkey Bank A.Ş.",
       "ir_page": "https://www.icbc.com.tr/tr/yatirimci-iliskileri/faaliyet-raporlari/Finansal-Bilgiler/132/0/0",
-      "reports": {}
+      "reports": {
+        "2024": {
+          "tr": "https://www.icbc.com.tr/tr/images/pdf/konsolide_2024.pdf"
+        }
+      }
     },
     "QNBFB": {
       "name": "QNB Bank A.Ş. (formerly QNB Finansbank)",
       "ir_page": "https://www.qnb.com.tr/en/investor-relations/financial-information",
-      "reports": {}
+      "reports": {
+        "2024": {
+          "tr": "https://www.qnbfinansbank.com/medium/document-file-4393.vsf"
+        }
+      }
     },
     "SKBNK": {
       "name": "Şekerbank T.A.Ş.",
       "ir_page": "https://www.sekerbank.com.tr/en/about-us/investor-relations/financial-statements",
-      "reports": {}
+      "reports": {
+        "2024": {
+          "tr": "https://cdn.sekerbank.com.tr/uploads/1/685/3f6aab08-560c-45c1-97c4-875aa42196c1.pdf"
+        }
+      }
     },
     "ALBRK": {
       "name": "Albaraka Türk Katılım Bankası A.Ş.",
       "ir_page": "https://www.albaraka.com.tr/en/investor-relations/financial-information/independent-audit-reports",
-      "reports": {}
+      "reports": {
+        "2024": {
+          "tr": "https://www.albaraka.com.tr/documents/yatirimci-iliskileri/faaliyet-raporlari/2024-yili-entegre-faaliyet-raporu.pdf"
+        }
+      }
     },
     "KLNMA": {
       "name": "Türkiye Kalkınma ve Yatırım Bankası A.Ş.",
@@ -50,47 +83,83 @@
     "ISCTR": {
       "name": "Türkiye İş Bankası A.Ş.",
       "ir_page": "https://www.isbank.com.tr/en/about-us/financial-statements",
-      "reports": {}
+      "reports": {
+        "2024": {
+          "tr": "https://storage.fintables.com/media/uploads/kap-attachments/%C4%B0%C5%9F%20Bankas%C4%B1%202024%20Entegre%20Faaliyet%20Raporu.pdf"
+        }
+      }
     },
     "TSKB": {
       "name": "Türkiye Sınai Kalkınma Bankası A.Ş.",
       "ir_page": "https://www.tskb.com.tr/en/investor-relations/financial-information",
-      "reports": {}
+      "reports": {
+        "2024": {
+          "tr": "https://www.tskb.com.tr/uploads/file/tskb-2024-entegre-faaliyet-raporu.pdf"
+        }
+      }
     },
     "ZIRAAT": {
       "name": "T.C. Ziraat Bankası A.Ş.",
       "ir_page": "https://www.ziraatbank.com.tr/tr/yatirimci-iliskileri/finansal-bilgiler/denetim-raporu-ve-mali-tablolar",
-      "reports": {}
+      "reports": {
+        "2024": {
+          "tr": "https://www.ziraatbank.com.tr/tr/yatirimci-iliskileri-ZB/finansal-bilgiler/Documents/2024_entegre_faaliyet_raporu.pdf"
+        }
+      }
     },
     "DENIZ": {
       "name": "Denizbank A.Ş.",
       "ir_page": "https://www.denizbank.com",
-      "reports": {}
+      "reports": {
+        "2024": {
+          "tr": "https://storage.fintables.com/media/uploads/kap-attachments/DenizBank%20EFR%202024.pdf"
+        }
+      }
     },
     "TEB": {
       "name": "Türk Ekonomi Bankası A.Ş.",
       "ir_page": "https://www.teb.com.tr/teb-hakkinda/bagimsiz-denetim-raporu-ve-finansal-tablolar/",
-      "reports": {}
+      "reports": {
+        "2024": {
+          "tr": "https://www.teb.com.tr/UPLOAD/PDF/2024/Faaliyet-raporlari/TEB-Faaliyet-Raporu-2024.pdf"
+        }
+      }
     },
     "ING": {
       "name": "ING Bank A.Ş.",
       "ir_page": "https://www.ing.com.tr/tr/ing/yatirimci-iliskileri/finansal-raporlar/bagimsiz-denetim-raporlari",
-      "reports": {}
+      "reports": {
+        "2024": {
+          "tr": "https://www.ing.com.tr/F/Documents/pdf/ING_FR24TR.pdf"
+        }
+      }
     },
     "FIBA": {
       "name": "Fibabanka A.Ş.",
       "ir_page": "https://www.fibabanka.com.tr/hakkimizda/yatirimci-iliskileri/mali-tablolarimiz",
-      "reports": {}
+      "reports": {
+        "2024": {
+          "tr": "https://www.fibabanka.com.tr/docs/default-source/faaliyet-raporlar%C4%B1-6/fba_frat_2024_uyg56-sikistirildi.pdf?sfvrsn=6753409c_3"
+        }
+      }
     },
     "BURGAN": {
       "name": "Burgan Bank A.Ş.",
       "ir_page": "https://www.burgan.com.tr/en/financial-reports",
-      "reports": {}
+      "reports": {
+        "2024": {
+          "tr": "https://www.burgan.com.tr/uploads/2025/6/brg_frae_uyg_uyg13_tam-compressed-67f9ee2a-3ca8-4adf-b38a-10c4a29d9511.pdf"
+        }
+      }
     },
     "ODEA": {
       "name": "Odea Bank A.Ş.",
       "ir_page": "https://www.odeabank.com.tr/yatirimci-iliskileri/raporlar",
-      "reports": {}
+      "reports": {
+        "2024": {
+          "tr": "https://www.odeabank.com.tr/medium/document-file-1206.vsf"
+        }
+      }
     },
     "ATBANK": {
       "name": "Arap Türk Bankası A.Ş.",
@@ -100,7 +169,11 @@
     "KUVEYT": {
       "name": "Kuveyt Türk Katılım Bankası A.Ş.",
       "ir_page": "https://www.kuveytturk.com.tr/yatirimci-iliskileri/finansal-bilgiler/denetim-raporlari",
-      "reports": {}
+      "reports": {
+        "2024": {
+          "en": "https://www.kuveytturk.com.tr/medium/2024-integrated-annual-report-2875.pdf"
+        }
+      }
     },
     "TFKB": {
       "name": "Türkiye Finans Katılım Bankası A.Ş.",
@@ -110,22 +183,38 @@
     "VAKIFK": {
       "name": "Vakıf Katılım Bankası A.Ş.",
       "ir_page": "https://www.vakifkatilim.com.tr/tr/hakkimizda/yatirimci-iliskileri/raporlar/bagimsiz-denetim-raporlari",
-      "reports": {}
+      "reports": {
+        "2024": {
+          "tr": "https://storage.fintables.com/media/uploads/kap-attachments/Vak%C4%B1f%20Kat%C4%B1l%C4%B1m%20Bankas%C4%B1%20A.%C5%9E._6mZBAqa.pdf"
+        }
+      }
     },
     "ZIRAATK": {
       "name": "Ziraat Katılım Bankası A.Ş.",
       "ir_page": "https://www.ziraatkatilim.com.tr/yatirimci-iliskileri/finansal-bilgileri",
-      "reports": {}
+      "reports": {
+        "2024": {
+          "tr": "https://www.ziraatkatilim.com.tr/sites/default/files/media-file/Entegre_Faaliyet_Raporu.pdf"
+        }
+      }
     },
     "EMLAK": {
       "name": "Türkiye Emlak Katılım Bankası A.Ş.",
       "ir_page": "https://www.emlakkatilim.com.tr/tr/yatirimci-iliskileri/finansal-bilgiler/bagimsiz-denetim-raporlari",
-      "reports": {}
+      "reports": {
+        "2024": {
+          "tr": "https://asset.emlakkatilim.com.tr/documents/yatirimci-iliskileri/finansal-bilgiler/faaliyet-raporlari/faaliyet-raporu-2024.pdf"
+        }
+      }
     },
     "EXIM": {
       "name": "Türk Eximbank",
       "ir_page": "https://www.eximbank.gov.tr/en/financial-informations/financial-audit-reports/brsa",
-      "reports": {}
+      "reports": {
+        "2024": {
+          "tr": "https://eximbank.gov.tr/interaktif-faaliyet-raporlari/2024/files/tr-eximbank.pdf"
+        }
+      }
     },
     "AKTIF": {
       "name": "Aktif Yatırım Bankası A.Ş.",
@@ -145,17 +234,29 @@
     "ANADOLU": {
       "name": "Anadolubank A.Ş.",
       "ir_page": "https://www.anadolubank.com.tr/hakkimizda/yatirimci-iliskileri/denetim-raporlari",
-      "reports": {}
+      "reports": {
+        "2024": {
+          "en": "https://www.anadolubank.com.tr/images/uploads/files/ENG_Faaliyet-Raporu-31.12.2024_imzali.pdf"
+        }
+      }
     },
     "ALNTF": {
       "name": "Alternatifbank A.Ş.",
       "ir_page": "https://www.alternatifbank.com.tr/hakkimizda/yatirimci-iliskileri/raporlar/finansal-raporlar",
-      "reports": {}
+      "reports": {
+        "2024": {
+          "tr": "https://www.alternatifbank.com.tr/uploads/20250320152055172779.pdf"
+        }
+      }
     },
     "GARAN": {
       "name": "Türkiye Garanti Bankası A.Ş.",
       "ir_page": "https://www.garantibbvainvestorrelations.com/",
-      "reports": {}
+      "reports": {
+        "2024": {
+          "en": "https://www.garantibbvainvestorrelations.com/en/images/pdf/GarantiBBVA-2024-integrated-annual-report.pdf"
+        }
+      }
     }
   }
 }
