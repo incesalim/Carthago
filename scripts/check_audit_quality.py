@@ -211,18 +211,34 @@ def _capital_consistency(conn: sqlite3.Connection) -> list[str]:
     out = []
     rows = conn.execute(
         "SELECT bank_ticker, period, kind, cet1_capital, tier1_capital, "
-        "       total_capital, total_rwa, capital_adequacy_ratio "
+        "       total_capital, total_rwa, capital_adequacy_ratio, "
+        "       cet1_ratio, tier1_ratio "
         "FROM bank_audit_capital WHERE period_type='current'").fetchall()
-    for bank, period, kind, cet1, t1, tc, rwa, car in rows:
+    for bank, period, kind, cet1, t1, tc, rwa, car, cet1r, t1r in rows:
         tag = f"capital   {bank} {period} {kind}:"
         if cet1 and t1 and cet1 > t1 * (1 + CAP_REL_TOL):
             out.append(f"{tag} CET1 {cet1:,.0f} > Tier1 {t1:,.0f}")
         if t1 and tc and t1 > tc * (1 + CAP_REL_TOL):
             out.append(f"{tag} Tier1 {t1:,.0f} > Total capital {tc:,.0f}")
-        if tc and rwa and car:
-            implied = tc / rwa * 100
-            if abs(implied - car) > max(0.5, car * 0.05):
-                out.append(f"{tag} CAR {car:.2f}% != capital/RWA {implied:.2f}%")
+        # Reconcile the bank's OWN reported ratios to EACH OTHER, not the reported
+        # CAR to printed capital/RWA. Many banks publish a BDDK forbearance-adjusted
+        # regulatory ratio (the "Geçici madde" transitional measures — fixed-FX RWA
+        # etc.), so printed total_capital / total_rwa legitimately does NOT divide to
+        # the printed CAR (ATBANK runs a ~1.5pp gap every quarter — a true false
+        # positive under the old check). The RWA each reported ratio implies
+        # (capital_i / ratio_i) must agree, though; a real column-slip (wrong RWA or
+        # a mis-parsed capital component) breaks that mutual consistency, a
+        # forbearance gap does not. Real RWA/total drops are caught upstream by the
+        # extraction-time validator (cap_composition / cap_rwa_missing).
+        # 8% band: a real column-slip (wrong RWA/component) throws an implied RWA
+        # off by tens of % (EMLAK 2025Q1's slipped total_capital → ~4×). A bank
+        # that publishes a forbearance-adjusted CAR but raw CET1/Tier1 ratios
+        # (ICBCT/ANADOLU) sits at ~3–5% — real reporting basis, not a parse error —
+        # so the band stays above it to avoid re-introducing that false positive.
+        implied = [c / r * 100 for c, r in ((tc, car), (t1, t1r), (cet1, cet1r)) if c and r]
+        if len(implied) >= 2 and (hi := max(implied)) > 0 and (hi - min(implied)) / hi > 0.08:
+            out.append(f"{tag} reported ratios imply inconsistent RWA "
+                       f"({min(implied):,.0f}–{hi:,.0f}) — a capital component or ratio mis-parsed")
         if car is not None and not (5 <= car <= 80):
             out.append(f"{tag} CAR {car} out of plausible band")
     return out

@@ -123,10 +123,14 @@ def _apply_one(conn: sqlite3.Connection, o: dict) -> str:
             "INSERT INTO bank_audit_oci (bank_ticker,period,kind,item_order,hierarchy,item_name,amount) "
             "VALUES (?,?,?,?,?,?,?)", (b, p, k, nxt, h, o.get("item_name", h), o["amount"]))
         return f"OCI insert {b} {p} {k} {h}={o['amount']:,.0f}"
-    # balance sheet
+    # balance sheet. Match trailing-dot-insensitively: the loader normalises
+    # "1.3.2." → "1.3.2" (see normalize_hierarchy_keys.py), so an override
+    # authored against the pre-normalisation key ("1.3.2.") would otherwise miss
+    # the stored "1.3.2" row and INSERT a phantom duplicate — double-counting it
+    # under its parent (the EXIM 2024Q4 1.3 hierarchy_sum break on re-apply).
     row = conn.execute(
         "SELECT item_order FROM bank_audit_balance_sheet WHERE bank_ticker=? AND period=? "
-        "AND kind=? AND statement=? AND hierarchy=?", (b, p, k, st, h)).fetchone()
+        "AND kind=? AND statement=? AND rtrim(hierarchy,'.')=rtrim(?,'.')", (b, p, k, st, h)).fetchone()
     if row:
         conn.execute(
             "UPDATE bank_audit_balance_sheet SET amount_tl=?, amount_fc=?, amount_total=?, item_name=? "

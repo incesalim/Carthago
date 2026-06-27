@@ -17,7 +17,8 @@ def _conn() -> sqlite3.Connection:
 
 def _ins_capital(c, **kw):
     cols = ["bank_ticker", "period", "kind", "period_type", "cet1_capital",
-            "tier1_capital", "total_capital", "total_rwa", "capital_adequacy_ratio"]
+            "tier1_capital", "total_capital", "total_rwa", "capital_adequacy_ratio",
+            "cet1_ratio", "tier1_ratio"]
     vals = [kw.get(k) for k in cols]
     c.execute(f"INSERT INTO bank_audit_capital ({','.join(cols)}) "
               f"VALUES ({','.join('?' for _ in cols)})", vals)
@@ -42,14 +43,39 @@ def test_capital_clean_passes():
     assert q._capital_consistency(c) == []
 
 
-def test_capital_flags_tier_order_and_car_mismatch():
+def test_capital_flags_tier_order():
     c = _conn()
     _ins_capital(c, bank_ticker="Y", period="2026Q1", kind="unconsolidated",
                  period_type="current", cet1_capital=500, tier1_capital=400,
-                 total_capital=520, total_rwa=2500, capital_adequacy_ratio=30.0)
+                 total_capital=520, total_rwa=2500, capital_adequacy_ratio=20.8)
     issues = q._capital_consistency(c)
-    assert any("CET1" in i for i in issues)   # 500 > 400
-    assert any("CAR" in i for i in issues)    # 30.0 != 20.8
+    assert any("CET1" in i for i in issues)   # 500 > 400 (CET1 ⊆ Tier1)
+
+
+def test_capital_flags_inconsistent_reported_ratios():
+    # A real column-slip: the reported ratios imply different RWAs (CAR→3095,
+    # tier1_ratio→1680, cet1_ratio→2500), so a capital component or ratio is
+    # mis-parsed. This replaces the old CAR-vs-printed-RWA reconcile.
+    c = _conn()
+    _ins_capital(c, bank_ticker="Y2", period="2026Q1", kind="unconsolidated",
+                 period_type="current", cet1_capital=400, tier1_capital=420,
+                 total_capital=520, total_rwa=2500, capital_adequacy_ratio=16.8,
+                 cet1_ratio=16.0, tier1_ratio=25.0)
+    assert any("inconsistent RWA" in i for i in q._capital_consistency(c))
+
+
+def test_capital_forbearance_ratios_not_flagged():
+    # ATBANK 2024Q1: printed total_capital/total_rwa = 2,208,637/12,726,290 =
+    # 17.35%, but the bank reports a BDDK forbearance-adjusted CAR 18.92 (and CET1
+    # ratio 18.23). The old printed-RWA reconcile false-flagged this every quarter;
+    # the reported ratios are mutually consistent (each → ~11.66m RWA), so the
+    # forbearance-aware check must stay silent.
+    c = _conn()
+    _ins_capital(c, bank_ticker="ATBANK", period="2024Q1", kind="unconsolidated",
+                 period_type="current", cet1_capital=2120404, tier1_capital=2120404,
+                 total_capital=2208637, total_rwa=12726290, capital_adequacy_ratio=18.92,
+                 cet1_ratio=18.23, tier1_ratio=18.23)
+    assert q._capital_consistency(c) == []
 
 
 def test_liquidity_clean_passes():

@@ -22,6 +22,13 @@ def test_parse_ratio_handles_tr_and_en_and_percent_placement():
     assert _parse_ratio("11,71%") == 11.71     # trailing % (AKBNK)
     assert _parse_ratio("%5.50") == 5.5        # leading % (TEB)
     assert _parse_ratio("1,016.79") == 1016.79  # EN thousands + decimal
+    # TR thousands + decimal: an FC LCR can exceed 1000 ("1.158,00" = 1158.00).
+    # The rightmost separator is the decimal, so the format is inferred not
+    # assumed EN — the old code stripped commas and read this as 1.158 (the FIBA
+    # lcr_fc bug).
+    assert _parse_ratio("1.158,00") == 1158.0
+    assert _parse_ratio("1.080,24") == 1080.24
+    assert _parse_ratio("938,87") == 938.87     # sub-1000 TR decimal, unchanged
     assert _parse_ratio("-") is None
     assert _parse_ratio("") is None
 
