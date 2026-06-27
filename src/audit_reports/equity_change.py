@@ -233,6 +233,28 @@ def _try_fit(tokens: list[float | None], n_cols: int) -> list[float | None] | No
             cand = tokens[:ins] + [0.0] + tokens[ins:]
             if _row_gate(cand, n_cols):
                 return cand
+    if len(tokens) == n_cols - 2:
+        # Two component columns rendered fully blank (ANADOLU's consolidated
+        # comprehensive-income row IV drops both prior-period-P&L and a reserve
+        # column → 14 tokens in a 16-col table → dropped → its total left out of
+        # Σromans → eq_col_chain fails). Place two 0.0s at every column pair; the
+        # dual row-gate (Σcomponents==total AND total+minority==grand) admits only
+        # an alignment that lands the totals correctly, and the inserts are zeros
+        # so they can't perturb any captured value.
+        #
+        # CAVEAT: on a letter-spacing-corrupted text layer (ISCTR's image-only
+        # quarters, ~2 rows) the looser 2-blank search can false-pass the gate and
+        # recover a mis-aligned row. Those partitions are sparse-but-"passing"
+        # (checks skip), so the non-destructive skip-if-passing guard and the
+        # --only-failing re-extract lane both leave them untouched — n-2 only ever
+        # runs on a partition deliberately being re-extracted (failing/--force).
+        for a in range(n_cols - 1):
+            for b in range(a + 1, n_cols):
+                cand, it = [], iter(tokens)
+                for pos in range(n_cols):
+                    cand.append(0.0 if pos in (a, b) else next(it))
+                if _row_gate(cand, n_cols):
+                    return cand
     return None
 
 
@@ -610,7 +632,20 @@ def _parse_equity_page(pdf_path: str, page_idx_1: int, period_type: str,
                 split_idx = idx - 1
                 break
     if split_idx is not None:
-        block1 = _block1_period_for_split(pdf_path, page_idx_1)
+        # Order signal, value-based first: in prior-then-current order block1
+        # (prior) CLOSES where block2 (current) OPENS, so the period totals chain
+        # (block1.closing == block2.opening). Robust where the year-text heuristic
+        # can't read the order — ANADOLU prints the period year only in the page
+        # header, never beside the closing row, so _block1_period_for_split
+        # defaulted to 'current' and swapped its prior-first page. Two years of
+        # movement separate block1.closing from block2.opening under the standard
+        # current-then-prior order, so this never false-fires there.
+        c1 = best[split_idx].total_equity
+        o2 = best[split_idx + 1].total_equity if split_idx + 1 < len(best) else None
+        if c1 and o2 is not None and abs(c1 - o2) <= abs(c1) * 1e-4:
+            block1 = 'prior'
+        else:
+            block1 = _block1_period_for_split(pdf_path, page_idx_1)
         block2 = 'prior' if block1 == 'current' else 'current'
         for r in best[:split_idx + 1]:
             r.period_type = block1

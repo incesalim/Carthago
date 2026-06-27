@@ -3,7 +3,24 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-06-27 — **equity_change round 2: two more period-assignment bugs (168 → ~98).**
+Last verified: 2026-06-27 — **equity_change round 3: mid-split chaining + n-2 column recovery (107 → ~91).**
+Two more residual causes after rounds 1–2 (343→107 in prod). (a) **Mid-page-split swap the year heuristic missed:**
+ANADOLU prints both period tables on one page in prior-then-current order, but the period year appears only in the page
+header — `_block1_period_for_split` looks for the latest year *after* the closing row, finds none, and defaults to
+"current", swapping the periods. Fix: a value-based order signal — in prior-then-current order block1 (prior) CLOSES
+where block2 (current) OPENS, so `block1.closing == block2.opening`; two years of movement separate them under the
+standard order, so it never false-fires. ANADOLU current closing went 4,407,500 (prior year) → 6,903,091 (= BS equity).
+(b) **n-2 dropped column:** ANADOLU's consolidated comprehensive-income row IV renders two component columns fully blank
+(14 tokens in a 16-col table), so `_try_fit` dropped it and its total fell out of Σromans (`eq_col_chain` fail).
+Extended `_try_fit` to insert two 0.0s, gated by the dual row-gate (Σcomponents==total AND total+minority==grand).
+Decisive testing on the correct round-2 base (an earlier attempt was confounded by a pre-round-2 base): **+16 cleared
+(ANADOLU, TSKB, …), 0 clean-data regressions.** The n-2 search *can* mis-recover ISCTR's letter-spacing-corrupted
+image-only quarters (sparse, ~2 rows), but those are F=0/"passing" and so excluded by `--only-failing` + the
+non-destructive skip-if-passing guard — n-2 only ever runs on a partition deliberately re-extracted. Applied to prod
+via the reextract-statement CI lane. Remaining ~91 are genuine per-bank column misalignment / sub-1% chain near-misses
+(TSKB) / image-only quarters.
+
+Prior: 2026-06-27 — **equity_change round 2: two more period-assignment bugs (168 → ~98).**
 After the prior-first "Önceki Dönem" fix (below, 343→168), the next-biggest offenders were still period swaps from two
 other causes. (a) **Current page mislabeled prior:** the current matrix's header says "Cari Dönem" but its OPENING row
 reads "Önceki Dönem Sonu Bakiyesi" (prior-period END = this table's opening); the marker test checked `_PRIOR_RX`
