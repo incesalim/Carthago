@@ -1,0 +1,49 @@
+{
+  "_doc": "Per-bank quarterly investor/earnings presentation deck PDFs from IR sites. Mirrors audit_report_urls.json but single-kind ('presentation'). Static URLs ARE the shipped data; for banks in src/earnings/presentations.PRESENTATION_BANKS the IR page is additionally scanned to auto-discover newer quarters (validated by scripts/diagnostics/validate_presentation_discovery.py). Period keys are 'YYYYQn' (Turkish interim decks are cumulative: 1H=Q2, 9M=Q3, full-year=Q4).",
+  "_updated": "2026-06-27",
+  "_deferred": {
+    "ISCTR": "IR 'earnings-presentation-webcast' page serves a single date-less 'latest' PDF (IsbankEarningsPresentation.pdf) — no period-stable historical URLs; revisit with the browser MCP.",
+    "HALKB/VAKBN/QNBFB/TSKB/ALBRK/SKBNK": "Not yet seeded — expand by fetching each IR 'Presentations' archive page (main manual cost of this lane)."
+  },
+  "banks": {
+    "GARAN": {
+      "name": "Türkiye Garanti Bankası A.Ş.",
+      "ir_page": "https://www.garantibbvainvestorrelations.com/en/financial-information/earnings-presentations/Earnings-Presentations/293/0/0",
+      "urls": {
+        "presentation": {
+          "2025Q1": "https://www.garantibbvainvestorrelations.com/en/images/pdf/1Q25_BRSA_Consolidated_Earnings_Presentation.pdf",
+          "2025Q2": "https://www.garantibbvainvestorrelations.com/en/images/pdf/2Q25_BRSA_Consolidated_Earnings_Presentation.pdf",
+          "2025Q3": "https://www.garantibbvainvestorrelations.com/en/images/pdf/3Q25_BRSA_Consolidated_Earnings_Presentation.pdf",
+          "2025Q4": "https://www.garantibbvainvestorrelations.com/en/images/pdf/4Q25_BRSA_Consolidated_Earnings_Presentation.pdf",
+          "2026Q1": "https://www.garantibbvainvestorrelations.com/en/images/pdf/1Q26_BRSA_Consolidated_Earnings_Presentation.pdf"
+        }
+      }
+    },
+    "AKBNK": {
+      "name": "Akbank T.A.Ş.",
+      "ir_page": "https://www.akbankinvestorrelations.com/en/publications/webcast-list/Events-webcasts/526/0/0",
+      "urls": {
+        "presentation": {
+          "2025Q1": "https://www.akbankinvestorrelations.com/en/images/pdf/earning-presentation/akbank_earnings_presentation_1q2025.pdf",
+          "2025Q2": "https://www.akbankinvestorrelations.com/en/images/pdf/earning-presentation/akbank_earnings_presentation_2q2025.pdf",
+          "2025Q3": "https://www.akbankinvestorrelations.com/en/images/pdf/earning-presentation/akbank_earnings_presentation_3q2025.pdf",
+          "2025Q4": "https://www.akbankinvestorrelations.com/en/images/pdf/earning-presentation/akbank_earnings_presentation_4q2025.pdf",
+          "2026Q1": "https://www.akbankinvestorrelations.com/en/images/pdf/earning-presentation/akbank_earnings_presentation_1q2026.pdf"
+        }
+      }
+    },
+    "YKBNK": {
+      "name": "Yapı ve Kredi Bankası A.Ş.",
+      "ir_page": "https://www.yapikrediinvestorrelations.com/en/financial-information/financial-information-reports-year-document-list/Earnings-Presentations/48/0/0",
+      "urls": {
+        "presentation": {
+          "2025Q1": "https://www.yapikrediinvestorrelations.com/en/images/pdf/earning-presentation/2025/yapi_kredi_1q25_earnings_presentation.pdf",
+          "2025Q2": "https://www.yapikrediinvestorrelations.com/en/images/pdf/earning-presentation/2025/yapi_kredi_1h25_earnings_presentation.pdf",
+          "2025Q3": "https://www.yapikrediinvestorrelations.com/en/images/pdf/earning-presentation/2025/yapi_kredi_9m25_earnings_presentation.pdf",
+          "2025Q4": "https://www.yapikrediinvestorrelations.com/en/images/pdf/earning-presentation/2025/yapi_kredi_2025_earnings_presentation.pdf",
+          "2026Q1": "https://www.yapikrediinvestorrelations.com/en/images/pdf/earning-presentation/2026/yapi_kredi_1q26_earnings_presentation.pdf"
+        }
+      }
+    }
+  }
+}

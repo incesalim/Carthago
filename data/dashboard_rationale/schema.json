@@ -1,0 +1,108 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://bddk.local/dashboard_rationale/schema.json",
+  "title": "Dashboard editorial rationale",
+  "description": "The 'why' layer for the Carthago dashboard: for each tab, the one analyst question it answers, its place in the sector-story spine (story sequence) and its editorial weight (priority tier); for each chart, the role it plays (headline/supporting/depth) and the audit verdict. The third vertex of the knowledge triangle, above data/metric_knowledge/registry.json (metric meta-knowledge) and web/app/lib/chart-specs.catalog.json (reproduced charts). Grounds the IA in CAMELS + CBRT/IMF FSR ordering + IMF FSIs + the Garanti-BBVA monthly Banking Sector Outlook. See docs/knowledge/sector-story-spine.md (framework) and docs/knowledge/dashboard-audit.md (dated audit). STRATEGY ONLY: holds the intended editorial role as data; renders nothing.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "generated", "axes", "spine", "tabs"],
+  "properties": {
+    "version": { "type": "integer" },
+    "generated": { "type": "string", "description": "Date this rationale snapshot was authored (YYYY-MM-DD)." },
+    "audience": { "type": "string", "description": "Who the dashboard is optimized for." },
+    "frameworks": { "type": "array", "items": { "type": "string" }, "description": "The established authorities the spine is grounded in." },
+    "axes": {
+      "type": "object",
+      "description": "Human-readable glossary of each classification axis and its allowed values (kept in sync with the enums below).",
+      "additionalProperties": true
+    },
+    "spine": { "type": "array", "items": { "$ref": "#/definitions/spine_theme" } },
+    "tabs": { "type": "array", "items": { "$ref": "#/definitions/tab" } }
+  },
+
+  "definitions": {
+    "spine_theme": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "theme", "story_sequence", "tier", "tabs"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^S[0-9]{1,2}$", "description": "Story-sequence id, S0..S15." },
+        "theme": { "type": "string" },
+        "story_sequence": { "type": "integer" },
+        "tier": { "type": "string", "enum": ["T0", "T1", "T2", "T3", "T4"] },
+        "camels": { "type": "array", "items": { "type": "string", "enum": ["C", "A", "M", "E", "L", "S", "-"] } },
+        "fsr_section": { "type": "string" },
+        "fsi": { "type": "array", "items": { "type": "string" }, "description": "IMF Financial Soundness Indicators surfaced by this theme (core unless tagged)." },
+        "bbva_section": { "type": ["string", "null"] },
+        "tabs": { "type": "array", "items": { "type": "string" }, "description": "tab_ids that carry this theme." },
+        "note": { "type": "string" }
+      }
+    },
+
+    "tab": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tab_id", "route", "in_nav", "nav_group", "title", "guiding_question", "spine_ref", "story_sequence", "priority_tier"],
+      "properties": {
+        "tab_id": { "type": "string", "pattern": "^[a-z0-9_.-]+$" },
+        "route": { "type": "string", "description": "Next.js route; must exist (Nav.tsx for in-nav, the app tree otherwise)." },
+        "in_nav": { "type": "boolean", "description": "Linked in web/app/components/Nav.tsx?" },
+        "nav_group": { "type": "string", "enum": ["sector", "banks", "markets", "more", "none"] },
+        "title": { "type": "string" },
+        "guiding_question": { "type": "string", "description": "THE one analyst-framed question the tab answers. If it needs two sentences the tab does two jobs (split-candidate)." },
+        "analyst_takeaway": { "type": "string", "description": "The conclusion / decision the tab should leave the reader with. Distinct from the question." },
+        "spine_ref": { "type": "string", "description": "S# from the spine." },
+        "story_sequence": { "type": "integer" },
+        "priority_tier": { "type": "string", "enum": ["T0", "T1", "T2", "T3", "T4"] },
+        "primary_metrics": { "type": "array", "items": { "type": "string" }, "description": "registry.json metric ids that head this tab (may be empty for structural/adjacency tabs the registry doesn't cover)." },
+        "camels": { "type": "array", "items": { "type": "string", "enum": ["C", "A", "M", "E", "L", "S", "-"] } },
+        "fsr_section": { "type": "string" },
+        "fsi": { "type": "array", "items": { "type": "string" } },
+        "bbva_section": { "type": ["string", "null"] },
+        "data_sources": { "type": "array", "items": { "type": "string", "enum": ["bank_audit", "bddk_monthly", "bddk_weekly", "evds", "tbb_digital", "bist", "tefas", "kap", "external", "none"] } },
+        "depends_on": { "type": "array", "items": { "type": "string" } },
+        "feeds": { "type": "array", "items": { "type": "string" } },
+        "reading_prereqs": { "type": "string" },
+        "known_gaps": { "type": "array", "items": { "type": "string" } },
+        "audit_verdict": { "type": "string", "enum": ["keep", "reorder", "merge", "split", "relocate", "clarify_purpose", "promote", "demote", "add_missing", "add_to_nav"] },
+        "audit_notes": { "type": "string" },
+        "future_narrative_hook": { "type": "string", "description": "One line of the story this tab will eventually tell. Captured as data; rendered NOWHERE this round (the inert seam to a future narrative layer)." },
+        "charts": { "type": "array", "items": { "$ref": "#/definitions/chart" } }
+      }
+    },
+
+    "chart": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["chart_id", "title", "scroll_index", "class"],
+      "properties": {
+        "chart_id": { "type": "string" },
+        "title": { "type": "string" },
+        "section": { "type": "string" },
+        "scroll_index": { "type": "integer", "description": "Top-to-bottom position within the tab (1-based)." },
+        "component": { "type": "string", "description": "React component / visual type." },
+        "data_fn": { "type": "string", "description": "lib function / EVDS code / D1 source feeding it." },
+        "unit": { "type": "string" },
+        "metric_ids": { "type": "array", "items": { "type": "string" }, "description": "registry.json ids (when a clean one exists)." },
+        "catalog_spec_id": { "type": ["string", "null"], "description": "chart-specs.catalog.json id when reproduced/verified." },
+        "class": { "type": "string", "enum": ["headline", "supporting", "depth", "cut_candidate", "orphan"] },
+        "rubric": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "7-criterion score; criterion 1 dominates.",
+          "properties": {
+            "question_fit": { "type": "integer", "minimum": 0, "maximum": 2 },
+            "standard_view": { "type": "integer", "minimum": 0, "maximum": 2 },
+            "comparable_reproducible": { "type": "integer", "minimum": 0, "maximum": 2 },
+            "decision_relevance": { "type": "integer", "minimum": 0, "maximum": 2 },
+            "non_redundant": { "type": "integer", "minimum": 0, "maximum": 2 },
+            "scroll_earned": { "type": "boolean" },
+            "sourced": { "type": "boolean" }
+          }
+        },
+        "audit_verdict": { "type": "string", "enum": ["keep", "reorder", "merge", "split", "relocate", "clarify_purpose", "promote", "demote", "add_missing", "add_to_nav"] },
+        "audit_notes": { "type": "string" }
+      }
+    }
+  }
+}
