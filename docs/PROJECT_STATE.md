@@ -26,6 +26,7 @@ coverage or known issues change.
 | `kap_ownership` | KAP Genel Bilgi Formu §5 + §7 subsidiaries (kap.org.tr) | current state per bank (`as_of` = filing date) | weekly full replace; 30/31 banks (ATBANK files no form); subsidiaries grid only on the full form (~15 banks) |
 | `tefas_manager_daily`, `tefas_category_daily`, `tefas_allocation_daily`, `tefas_top_funds` | TEFAS fund-market JSON API (tefas.gov.tr) | rolling ~5 years (API rejects older start dates) → present | daily T+1, trading days; aggregated at ingest (no per-fund rows) |
 | `bist_prices`, `bist_dividends`, `bist_shares` | Borsa İstanbul via Yahoo Finance chart API | 2014-06 → present | daily EOD (~1-day lag); 11 listed banks + XU100/XBANK indices (QNBFB delisted on Yahoo — no data) |
+| `faaliyet_franchise` | Bank annual reports (Faaliyet Raporu PDFs) | annual (FY ending 31 Dec) | branch / employee / ATM / POS / merchant / customer / card counts; deterministic regex+coordinate extraction with confidence flags + read-only `bank_audit_profile` cross-check. **Lane shipped; coverage pending per-bank URL curation in `data/banks/faaliyet_report_urls.json` + the `backfill-faaliyet` run** |
 | `bank_audit_balance_sheet` (assets / liabilities / off-balance) | BRSA quarterly PDFs | 2022-Q1 → 2026-Q1 | per-bank |
 | `bank_audit_profit_loss` | BRSA quarterly PDFs | same | per-bank |
 | `bank_audit_credit_quality` | BRSA PDFs, IFRS 9 footnotes | same | per-bank, per-section |
@@ -76,7 +77,7 @@ statement is self-validated (internal-sum / roll-forward / cross identities); th
 | `profit_loss` | 964 | 10 | 1 | **frozen** (correct) |
 | `oci` | 959 | **0** | 16 | **2026-06-21: 19→0.** `check_oci` drops the noisy deep `2.1.x/2.2.x` sum (net-of-tax rounding + omitted immaterial lines — cash_flow lesson), keeps roman chain III=I+II + section sums (I=Σ1.x, II=Σ2.x) + OCI.I==P&L-net cross. `apply_overrides` gained `oci`/`oci_replace`; EXIM/FIBA/QNBFB had the WRONG statement captured (equity+BS) → full fitz re-read; KLNMA prior-column mis-read fixed; ISCTR 2025Q2 wrong-table + PDF-404 → removed; ATBANK 2023Q4 `_OCI_SKIP` (source sign typo) |
 | `cash_flow` | 947 | **0** | 28 | fitz-only; roman-chain-only validator (135→0 on 2026-06-21). Last 1 cleared 2026-06-21: TSKB 2022Q1 cons `_CF_SKIP` — PDF-confirmed source typo (printed V 5,027,208 ≠ I+II+III+IV 5,011,183; VII foots with the derived V) |
-| `equity_change` | 610 | 355 | 10 | hardened; vertical-chain tail still open |
+| `equity_change` | ~794 | ~168 | 10 | hardened. **2026-06-27: 343→~168.** Root cause for ~52% of the tail was a current/prior **period swap**: `_PRIOR_RX` matched "Önce/Öncesi Dönem" but not "Önceki Dönem" (the standard term), so a bank printing its prior-period matrix FIRST (HSBC) had that page default to `current` → enforce-distinct fallback swapped the periods positionally → stored "current" = prior-year matrix (closing ≠ BS equity, OCI row ≠ OCI statement). One-line regex fix → **HSBC 34/34, +184 of 352 cleared fleet-wide, 0 regressions**. Remaining ~168 = dropped roman rows / blank closing-row totals (`eq_col_chain`), still open |
 | `credit_quality` | 939 | 5 | 31 | **good** — real reconciliation (section total=S1+S2+S3 + cross-section loans≈S12+NPL); skips gross−prov=net (BRSA collective-reserve noise). 5 fails genuine (DENIZ, TFKB) |
 | `stages` | 967 | **0** | 8 | NPL=100% **fixed end-to-end 2026-06-15**; residual 15 cleared 2026-06-21 (credit_quality fitz migration + per-bank `loans_by_stage` cluster fixes). (1) Validator: the NPL=100% fingerprint required stage1/stage2 non-null but the broken shape has them NULL → it skipped all 45, which showed green; now NULL counts as 0 → 45 surfaced. (2) Extractor (`credit_quality.loans_by_stage`): captured the §7.2 Stage-1/2 table on 3 column-split variants (İşbank EN/no-space coord fallback; ANADOLU wrapped header → Stage-2-only anchor; TSKB label/number y-offset → 5.5px cluster). Re-extracted 6 banks → rebuilt derived stages → **43 of 45 repaired** (npl100 45→2). Remaining 2 = FIBA + TFKB image-only quarters |
 | `capital` | 842 | **0** | 133 | validator **hardened 2026-06-15** (composition Tier1=CET1+AT1, Total=Tier1+Tier2 + sub-ratios CET1/Tier1/CAR=component÷RWA). **2026-06-21: 26→0** via `audit_overrides.json` (apply_overrides now patches `bank_audit_capital`): the failures were real §4 mis-extractions recovered from the identities (passing ratios confirm the kept components) + PDF-confirmed — AT1 dropped→Tier1−CET1 (ICBCT/QNBFB/TSKB), Tier2 dropped/slipped→Total−Tier1 (QNBFB/ISCTR/SKBNK), AKTIF total misread→Tier1+Tier2, ISCTR 2025Q1/Q2 RWA column-slip→real RWA + ratios. **2026-06-27: EMLAK 2022Q1 cons/uncon AT1 (Türkiye-Varlık-Fonu instrument) dropped → derived from Tier1−CET1; EMLAK 2025Q1 cons RWA read into total_capital → restored ÖZKAYNAK 28,781,229 + RWA 125,508,698 (22.93%=reported CAR). Also the alert-only `check_audit_quality` capital reconcile was made forbearance-aware: banks reporting a BDDK transitional-adjusted CAR (ATBANK, ICBCT, ANADOLU — printed capital/RWA ≠ reported ratio) no longer false-fail; it now reconciles the bank's OWN reported ratios to each other (8% band) instead of to printed RWA** |
@@ -126,6 +127,7 @@ concurrency group), so audit failures can't stall the bulletin pipeline:
 - `.github/workflows/refresh-data.yml` — Sat 03:00 UTC. Monthly + weekly + EVDS + TBB digital-banking (quarterly) + KAP ownership structure + TEFAS fund market → D1. *(Audit removed — now its own workflow.)* TBB, KAP and TEFAS are non-critical steps in `refresh.py` (an outage won't abort the BDDK refresh); they ride the bulletin lane's snapshot, so no new lane. KAP details in [OPERATIONS.md](OPERATIONS.md) §KAP ownership; TEFAS in §TEFAS fund market.
 - `.github/workflows/backfill-tefas.yml` — manual dispatch only. Resumable ~5-year TEFAS history backfill (the API rejects start dates older than 5 years; 28-day windows, rate-limited ≈2–2.5 h; re-dispatch with the same `from` to resume — completed windows are skipped via `tefas_fetch_log`).
 - `.github/workflows/backfill-nonbank.yml` — manual dispatch only. One-time historical backfill of the non-bank sector lane (leasing/factoring/financing) from `from_year` (default 2020 = banking-aggregate horizon) → now (~5–10 min). The incremental refresh rides `refresh-bddk-bulletins.yml` / `refresh-data.yml` (non-critical `update_nonbank.py` step in `refresh.py`); this workflow is only for the initial history load. Apply migration 0013 (via a `web/**` deploy) before dispatching.
+- `.github/workflows/refresh-presentations-weekly.yml` — Sat 06:00 UTC. `scripts/update_presentations.py` → `bank_earnings` (IR presentation decks) → D1 (`--only-tables=bank_earnings`). Bulletin lane (`bddk-pipeline` group), rides the shared snapshot. Tier-1 results filings instead ride the daily `refresh-news-daily.yml` (classified in `sync_news.py`). Apply migration 0015 (via a `web/**` deploy) before the first push.
 - `.github/workflows/refresh-audit.yml` — Sun 04:00 UTC. Audit-report sync + extract → `bank_audit_*` → D1. Own DB `data/bank_audit.db`, own snapshot `state/bank_audit.db.gz`, own group `bddk-audit`. Manual dispatch takes optional `bank` / `skip_scrape` inputs (the /admin per-bank trigger uses `bank` → `--only-bank … --latest-period`). After extraction it runs `scripts/check_audit_quality.py --alert` (alert-only): flags a quarter whose lines are identical to the prior one (period-shift), a balance sheet that doesn't balance, or missing rows → Telegram/Discord, never blocking the push.
 - `.github/workflows/reextract-statement.yml` — manual dispatch. Targeted single-statement re-extract via `scripts/reextract_statement.py`: pull snapshot → re-extract ONE lane (`oci`/`cash_flow`/`equity_change`/`npl_movement`) for the selected partitions → inline-validate → push that table + `bank_audit_validation` to D1 → snapshot → refresh coverage matrix. Shares the `bddk-audit` group. Inputs: `statement`, `banks`, `periods` (blank=all), `only_failing` (default true — selects `checks_failed>0 OR checks_passed=0`, so it catches the stale empties and skips the proven-passing rest), `dry_run`. This is the lane used to fix OCI/CF/NPL fleet-wide.
 - `.github/workflows/backfill-audit.yml` — manual dispatch. Full re-extract (all statements) of named banks via `backfill_extraction.py` (`ALL` exceeds the timeout → 5-bank chunks).
@@ -388,6 +390,30 @@ A qualitative-data layer feeds three tabs from the `news_items` table
   handful of new items (capped by `--google-max-decode`, default 60), so the
   rate-limit never bites; a decode failure keeps the still-clickable google link
   and retries next run.
+
+A separate **earnings lane** (`bank_earnings` table, migration 0015,
+`src/earnings/`) feeds **/earnings** and an "Earnings & Presentations" block on
+each `/banks/[ticker]` page:
+
+- **Tier 1 — results-filing calendar (`source='kap'`).** `src/earnings/from_kap.py`
+  classifies the KAP disclosures already in `news_items` (no new network) into
+  `results_filing` events — when each bank filed its quarterly financial report —
+  deriving the quarter from KAP's structured `year`/`period`/`ruleType` fields.
+  Verified against the live feed: Turkish banks file **only** their financial
+  reports on KAP, **not** earnings-call invites or investor-presentation decks, so
+  the `call`/`presentation_filing`/`webcast_replay` kinds exist in the schema but
+  stay empty. Runs as a step in `scripts/sync_news.py` (daily news cron) — no new
+  workflow.
+- **Tier 2 — investor-presentation decks (`source='ir'`).** `scripts/update_presentations.py`
+  emits one `presentation_deck` per quarter from `data/banks/investor_presentation_urls.json`,
+  augmented by IR-page auto-discovery (`src/earnings/presentations.py`, reusing the
+  audit-lane discovery engine; `PRESENTATION_BANKS` = GARAN/AKBNK/YKBNK validated
+  via `scripts/diagnostics/validate_presentation_discovery.py`). Seeded for the 3
+  bellwethers (İşbank serves only a date-less "latest" PDF; HALKB/VAKBN/QNBFB/TSKB/
+  ALBRK/SKBNK not yet seeded). Runs weekly via `.github/workflows/refresh-presentations-weekly.yml`.
+- **Not built:** earnings-call transcripts/audio — no free, deterministic feed
+  exists for Turkish banks (third-party transcripts are paywalled/ToS-gray; webcasts
+  are streaming-only). Out of scope given the no-paid-vendor / no-LLM-API constraints.
 
 ## Known issues / pending work
 
