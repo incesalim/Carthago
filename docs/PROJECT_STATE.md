@@ -10,7 +10,7 @@ coverage or known issues change.
 > from our data) in [BANKING_METRICS.md](BANKING_METRICS.md) — a 153-metric
 > registry (`data/metric_knowledge/`, CLI `scripts/metric_knowledge.py`).
 >
-> Last verified: 2026-06-26. Dated change history → [CHANGELOG.md](CHANGELOG.md).
+> Last verified: 2026-06-27. Dated change history → [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
@@ -417,7 +417,9 @@ A qualitative-data layer feeds three tabs from the `news_items` table
   1Y/3Y/5Y/YTD/All chart-range selector (`web/app/components/ui/page-header.tsx`) is now
   `position: sticky` at `top-0` on `lg+` (frosted `bg/90` + `backdrop-blur`), so the range
   control stays reachable on long chart pages. Below `lg` it stays static — the mobile nav
-  bar owns `top-0` there.
+  bar owns `top-0` there. On `/banks/[ticker]` the header and the sticky section-nav are
+  wrapped in one pinned group so they stack (header on top, nav below) instead of colliding
+  at `top-0` (`sticky={false}` on the header; nav `lg:static`; 2026-06-27).
 - **"Drivers behind the outcomes" data gaps (2026-06-20).** Tier-A margin engine +
   market share shipped (see Dashboard §Compare). Deferred lanes with full
   source/schema/extractor sketches in
