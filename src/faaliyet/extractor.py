@@ -1,22 +1,25 @@
 """Deterministic franchise-stat extractor for bank annual reports (Faaliyet Raporları).
 
-Franchise statistics (branch / employee / ATM / POS / merchant / customer / card
-counts) cluster in a report's front-matter "Rakamlarla / Bir Bakışta / Öne Çıkan
-Göstergeler / At a Glance / Key Figures" infographic and recur in the MD&A prose.
-Two complementary, fully deterministic passes — NO LLM:
+Extracts only the operational statistics the BRSA audited statements do NOT
+carry — ATM / POS / merchant / customer / card counts. Branches and employees
+are deliberately out of scope: they're already sourced from the audit reports'
+qualitative section (``audit_reports/bank_profile.py`` → ``bank_audit_profile``),
+so this lane defers to that and never re-extracts them.
+
+These stats cluster in a report's front-matter "Rakamlarla / Bir Bakışta / Öne
+Çıkan Göstergeler / At a Glance / Key Figures" infographic. Two complementary,
+fully deterministic passes — NO LLM:
 
   Pass A — prose regex (primary): anchored ``<label> … <number>`` /
-           ``<number> … <noun>`` patterns, the proven style of
-           ``audit_reports/bank_profile.py``.
+           ``<number> … <noun>`` patterns.
   Pass B — coordinate anchor (secondary fill): for a metric still missing, find
            the anchor token's word-box and take the nearest numeric token in the
            same / adjacent row (infographics stack a big number over its label).
            Reuses the y-bucketing of ``audit_reports/loans_by_sector._xy_lines``.
 
 Every value ships with a ``confidence`` flag and a ``raw_snippet``; sanity bands
-+ branch footing drop implausible captures; the loader adds a read-only
-cross-check against ``bank_audit_profile``. Values are never treated as silent
-truth — registry availability is only flipped once a fleet backfill validates.
+drop implausible captures. Values are never treated as silent truth — registry
+availability is only flipped once a fleet backfill validates.
 """
 from __future__ import annotations
 
@@ -35,22 +38,17 @@ except ImportError:  # pragma: no cover - fitz is a hard dep in CI/local
     _HAS_FITZ = False
 
 
-# Canonical metric keys this lane emits.
+# Canonical metric keys this lane emits. Branch/employee counts are NOT here —
+# they come from bank_audit_profile (the audit lane), not annual reports.
 METRIC_KEYS = (
-    "branch_total", "branch_domestic", "branch_foreign",
-    "employee_count",
     "atm_count", "pos_count", "merchant_count",
     "customer_total", "customer_active", "customer_digital",
     "cards_credit", "cards_debit", "cards_total",
 )
 
-# Absolute-person sanity bands (value rescaled to raw persons before checking).
-# Out-of-band captures are dropped — the bank_profile.py discipline.
+# Absolute-person sanity bands (value rescaled to raw counts before checking).
+# Out-of-band captures are dropped.
 ABS_BANDS: dict[str, tuple[float, float]] = {
-    "branch_total":     (1, 9_999),
-    "branch_domestic":  (1, 9_999),
-    "branch_foreign":   (0, 999),
-    "employee_count":   (50, 500_000),
     "atm_count":        (1, 25_000),
     "pos_count":        (1, 5_000_000),
     "merchant_count":   (1, 5_000_000),
@@ -121,7 +119,7 @@ class FranchiseStat:
     metric_key: str
     value: float
     unit: str = "count"
-    period_type: str = "current"           # 'current' | 'prior'
+    period_type: str = "current"           # 'current' | 'prior' (reserved)
     source_page: int | None = None         # 1-based
     source_lang: str | None = None         # 'tr' | 'en'
     anchor: str | None = None
@@ -163,39 +161,9 @@ def _a(metric: str, pattern: str, lang: str, conf: str = "high") -> _Anchor:
     return _Anchor(metric, re.compile(pattern, re.IGNORECASE | re.DOTALL), lang, conf)
 
 
-# Branch domestic/foreign split — ported (not imported) from bank_profile.py so a
-# change here can never perturb the frozen audit extractors. These multi-group
-# patterns are handled specially (they fill two/three metrics at once).
-_BR_EN_TOTAL_DOM_FOR = re.compile(
-    rf"(?P<tot>{_NUM})\s+branches\s+consisting\s+of\s+(?P<dom>{_NUM})\s+domestic\s+(?:and\s+)?(?P<for>{_NUM})\s+foreign",
-    re.IGNORECASE | re.DOTALL)
-_BR_EN_DOM_FOR = re.compile(
-    rf"(?P<dom>{_NUM})\s+domestic\s+branches?(?:\s*,\s*and\s*|\s*,\s*|\s+and\s+)(?P<for>{_NUM})\s+foreign\s+branches?",
-    re.IGNORECASE | re.DOTALL)
-_BR_TR_AKBNK = re.compile(
-    rf"yurt\s+çapında\s+(?P<dom>{_NUM})\s+şube.{{0,80}}yurt[\s-]?dışında\s+(?P<for>{_NUM})\s+şube",
-    re.IGNORECASE | re.DOTALL)
-_BR_TR_COMBINED = re.compile(
-    rf"yurt[\s-]?içi(?:nde|ndeki)?\s+(?:toplam\s+)?(?P<dom>{_NUM})"
-    rf"(?:\s*\([^)]*\))?\s*(?:ve|,)?\s*"
-    rf"yurt[\s-]?dışı(?:nda|ndaki)?\s+(?:toplam\s+)?(?P<for>{_NUM})",
-    re.IGNORECASE | re.DOTALL)
-_BR_TR_DOMESTIC = re.compile(
-    rf"yurt[\s-]?içi(?:nde|ndeki)?\s+(?:toplam\s+)?(?P<dom>{_NUM})\s+şube", re.IGNORECASE)
-_BR_TR_GENEL_TOPLAM = re.compile(rf"genel\s+toplamda\s+(?P<tot>{_NUM})\s+şube", re.IGNORECASE)
-
-# Single-value anchors: each yields named group 'num' (+ optional 'suf').
+# Single-value anchors: each yields named group 'num' (+ optional 'suf'). Ordered
+# specific→generic; first match per metric wins.
 _ANCHORS: list[_Anchor] = [
-    # --- branches (total / infographic) ----------------------------------
-    _a("branch_total", rf"(?:toplam\s+)?şube\s+say[ıi]s[ıi]\D{{0,12}}(?P<num>{_NUM})", "tr", "high"),
-    _a("branch_total", rf"(?:number\s+of\s+branches|total\s+branches)\D{{0,12}}(?P<num>{_NUM})", "en", "high"),
-    _a("branch_total", rf"(?P<num>{_NUM})\s+(?:adet\s+)?şube\b", "tr", "medium"),
-    # --- employees -------------------------------------------------------
-    _a("employee_count", rf"personel\s+say[ıi]s[ıi](?:\s+ise)?\D{{0,8}}(?P<num>{_NUM})", "tr", "high"),
-    _a("employee_count", rf"çalışan\s+say[ıi]s[ıi]\D{{0,8}}(?P<num>{_NUM})", "tr", "high"),
-    _a("employee_count", rf"(?:number\s+of\s+employees|headcount)\D{{0,10}}(?P<num>{_NUM})", "en", "high"),
-    _a("employee_count", rf"(?P<num>{_NUM})\s+(?:personel(?:i|e)?|çalışan)\b", "tr", "medium"),
-    _a("employee_count", rf"\b(?P<num>{_NUM})\s+(?:employees|staff\s+members)\b", "en", "medium"),
     # --- ATM -------------------------------------------------------------
     _a("atm_count", rf"ATM\s+(?:say[ıi]s[ıi]|aded[ıi])\D{{0,10}}(?P<num>{_NUM})", "tr", "high"),
     _a("atm_count", rf"(?:number\s+of\s+ATMs?)\D{{0,10}}(?P<num>{_NUM})", "en", "high"),
@@ -229,16 +197,17 @@ _ANCHORS: list[_Anchor] = [
 # Coordinate-anchor keywords per metric (Pass B). Lowercased substring match on a
 # word cluster; the nearest numeric token in the same/adjacent row is taken.
 _COORD_KEYWORDS: dict[str, tuple[str, ...]] = {
-    "branch_total":  ("şube", "branch"),
-    "employee_count": ("personel", "çalışan", "employee"),
     "atm_count":     ("atm",),
     "pos_count":     ("pos",),
     "merchant_count": ("üye işyeri", "üye iş yeri", "merchant"),
     "customer_total": ("müşteri", "customer"),
 }
 
-# Reject an employee match that is really the "personel giderleri" expense line.
-_EMPLOYEE_NEG = re.compile(r"personel\s+gider", re.IGNORECASE)
+
+def _norm(s: str) -> str:
+    """Lowercase + drop the combining dot Python adds when lowercasing Turkish
+    'İ' (lowercasing "İ" yields "i" + U+0307), so ASCII-ish keyword substrings match."""
+    return s.lower().replace("̇", "")
 
 
 def _detect_lang(text: str) -> str:
@@ -249,98 +218,33 @@ def _detect_lang(text: str) -> str:
     return "en" if en_hits > tr_hits else "tr"
 
 
-def _prior_after(text: str, end: int, lang: str) -> FranchiseStat | None:
-    """A comparative in parens right after a value: '646 (2024: 651)' → 651."""
-    tail = text[end:end + 40]
-    m = re.match(rf"\s*\((?:[^):]*:)?\s*(?P<num>{_NUM})\s*(?:kişi|adet)?\)", tail)
-    if not m:
-        return None
-    parsed = parse_count(m.group("num"), None, lang)
-    if parsed is None:
-        return None
-    val, unit = parsed
-    return FranchiseStat("", val, unit, period_type="prior")
+def _in_band(metric: str, value: float, unit: str) -> bool:
+    lo, hi = ABS_BANDS.get(metric, (0, float("inf")))
+    return lo <= _abs_value(value, unit) <= hi
 
 
 def extract_stats_from_text(text: str, page: int | None = None, lang: str = "tr"
                             ) -> list[FranchiseStat]:
     """Pass A — pull franchise stats from a block of page text. First match per
-    metric wins (anchors are ordered specific→generic). Returns current-period
-    stats (+ prior comparative for branch/employee when present)."""
+    metric wins (anchors are ordered specific→generic)."""
     out: list[FranchiseStat] = []
     found: set[str] = set()
-
-    def _emit(metric: str, value: float, unit: str, anchor: str, conf: str,
-              span: tuple[int, int], prior_metric: bool = False) -> None:
-        if metric in found:
-            return
-        if not _in_band(metric, value, unit):
-            return
-        snippet = text[max(0, span[0] - 30):span[1] + 30].replace("\n", " ").strip()
-        out.append(FranchiseStat(metric, value, unit, "current", page, lang, anchor, snippet, conf))
-        found.add(metric)
-        if prior_metric:
-            pr = _prior_after(text, span[1], lang)
-            if pr and _in_band(metric, pr.value, pr.unit):
-                pr.metric_key, pr.source_page, pr.source_lang = metric, page, lang
-                out.append(pr)
-
-    # --- branches: domestic/foreign split first (fills 2-3 metrics) -------
-    dom = for_ = tot = None
-    dom_span = None
-    for rx in (_BR_EN_TOTAL_DOM_FOR, _BR_EN_DOM_FOR, _BR_TR_AKBNK, _BR_TR_COMBINED):
-        m = rx.search(text)
-        if m:
-            gd = m.groupdict()
-            dom = parse_count(gd["dom"], None, lang)
-            for_ = parse_count(gd["for"], None, lang)
-            if "tot" in gd and gd["tot"]:
-                tot = parse_count(gd["tot"], None, lang)
-            dom_span = m.span()
-            break
-    if dom is None:
-        m = _BR_TR_DOMESTIC.search(text)
-        if m:
-            dom = parse_count(m.group("dom"), None, lang)
-            dom_span = m.span()
-    if tot is None:
-        m = _BR_TR_GENEL_TOPLAM.search(text)
-        if m:
-            tot = parse_count(m.group("tot"), None, lang)
-    if dom:
-        _emit("branch_domestic", dom[0], dom[1], "domestic", "high", dom_span or (0, 0))
-    if for_:
-        _emit("branch_foreign", for_[0], for_[1], "foreign", "high", dom_span or (0, 0))
-    if tot is None and dom and for_:
-        tot = (dom[0] + for_[0], "count")
-    if tot:
-        _emit("branch_total", tot[0], tot[1], "branch total", "high", dom_span or (0, 0),
-              prior_metric=True)
-
-    # --- single-value anchors --------------------------------------------
     for anc in _ANCHORS:
         if anc.metric in found:
             continue
         for m in anc.rx.finditer(text):
-            if anc.metric == "employee_count" and _EMPLOYEE_NEG.search(
-                    text[max(0, m.start() - 20):m.start() + 20]):
-                continue
             parsed = parse_count(m.group("num"), m.groupdict().get("suf"), lang)
             if parsed is None:
                 continue
             val, unit = parsed
             if not _in_band(anc.metric, val, unit):
                 continue
-            prior = anc.metric in ("branch_total", "employee_count")
-            _emit(anc.metric, val, unit, anc.rx.pattern[:24], anc.conf, m.span(), prior_metric=prior)
+            snippet = text[max(0, m.start() - 30):m.end() + 30].replace("\n", " ").strip()
+            out.append(FranchiseStat(anc.metric, val, unit, "current", page, lang,
+                                     anc.rx.pattern[:24], snippet, anc.conf))
+            found.add(anc.metric)
             break
-
     return out
-
-
-def _in_band(metric: str, value: float, unit: str) -> bool:
-    lo, hi = ABS_BANDS.get(metric, (0, float("inf")))
-    return lo <= _abs_value(value, unit) <= hi
 
 
 # ---------------------------------------------------------------------------
@@ -401,12 +305,14 @@ def extract_stats_from_words(rows: list[list[tuple[float, float, str]]],
         best: tuple[float, str] | None = None
         best_d = 1e9
         for ri, row in enumerate(rows):
-            line = " ".join(t for _, _, t in row).lower()
+            line = _norm(" ".join(t for _, _, t in row))
             if not any(k in line for k in kws):
                 continue
-            # anchor x-centre = midpoint of the keyword tokens on this row
+            # anchor x-centre = midpoint of the keyword tokens on this row. A
+            # multi-word keyword ("üye işyeri") is split across tokens, so a token
+            # counts when it overlaps any keyword either way.
             kw_xs = [(x0 + x1) / 2.0 for x0, x1, t in row
-                     if any(k in t.lower() for k in kws)]
+                     if any(_norm(t) in k or k in _norm(t) for k in kws)]
             ax = sum(kw_xs) / len(kw_xs) if kw_xs else 0.0
             for nri, xc, tok in numbers:
                 if abs(nri - ri) > 1:            # same / adjacent row only
@@ -464,14 +370,11 @@ def extract_from_pdf(pdf: pdfplumber.PDF, pdf_path: str = "",
 
     # Pass A — per page so we can record source_page; first match per metric wins.
     found: dict[str, FranchiseStat] = {}
-    prior: list[FranchiseStat] = []
     for i, txt in enumerate(page_texts):
         if not txt.strip():
             continue
         for s in extract_stats_from_text(txt, page=i + 1, lang=rep.report_lang):
-            if s.period_type == "prior":
-                prior.append(s)
-            elif s.metric_key not in found:
+            if s.metric_key not in found:
                 found[s.metric_key] = s
 
     # Pass B — coordinate fill for still-missing coord-supported metrics.
@@ -487,18 +390,8 @@ def extract_from_pdf(pdf: pdfplumber.PDF, pdf_path: str = "",
                     found[s.metric_key] = s
                     missing.discard(s.metric_key)
 
-    stats = list(found.values()) + [p for p in prior if p.metric_key in found]
-    rep.stats = _foot_branches(stats)
+    rep.stats = list(found.values())
     return rep
-
-
-def _foot_branches(stats: list[FranchiseStat]) -> list[FranchiseStat]:
-    """Boost branch_total to 'high' when domestic+foreign reconcile to it."""
-    cur = {s.metric_key: s for s in stats if s.period_type == "current"}
-    d, f, t = cur.get("branch_domestic"), cur.get("branch_foreign"), cur.get("branch_total")
-    if d and f and t and abs((d.value + f.value) - t.value) <= 1:
-        t.confidence = "high"
-    return stats
 
 
 def extract(pdf_path: str | Path, fiscal_year: int | None = None) -> FranchiseReport:

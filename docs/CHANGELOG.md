@@ -38,16 +38,16 @@ that double-counted on re-apply. All five verified against a fresh prod snapshot
 collateral) before the live push; +13 guard tests.
 
 Prior: 2026-06-27 — **Added the Faaliyet-raporları (bank annual report) franchise lane + `/franchise` tab.**
-A new, fully separate ingestion lane (`src/faaliyet/`) that deterministically extracts franchise & operational
-statistics — branch / employee / ATM / POS / merchant / customer / card counts — from banks' annual-report PDFs (the
-same IR pages the audit lane already tracks). No LLM: a prose-regex pass (ported from `bank_profile.py`, not imported)
-plus a word-coordinate anchor pass for infographic tiles, with suffix-aware number parsing (the `1.769` vs `1,769`
-trap), per-metric sanity bands, branch footing, and a **read-only** `bank_audit_profile` cross-check that flags
-disagreements — the audit/BS/P&L tables stay frozen. Stores a tall `faaliyet_franchise` fact table + a
+A new, fully separate ingestion lane (`src/faaliyet/`) that deterministically extracts the operational statistics the
+audited statements don't carry — ATM / POS / merchant / customer / card counts — from banks' annual-report PDFs (the
+same IR pages the audit lane already tracks). Branches & employees stay sourced from the audit reports'
+`bank_audit_profile`, so this lane has no overlap with them. No LLM: a prose-regex pass plus a word-coordinate anchor
+pass for infographic tiles, with suffix-aware number parsing (the `1.769` vs `1,769` trap) and per-metric sanity
+bands + confidence flags — the audit/BS/P&L tables stay frozen. Stores a tall `faaliyet_franchise` fact table + a
 `faaliyet_extractions` coverage log (migration `0014`), pushed to D1 via `push_to_d1` and refreshed incrementally
 (non-critical) by `refresh.py`; the fleet backfill is `backfill-faaliyet.yml` (resumable, 5-bank push chunks). Wired
-into the `/pipeline` graph + status, the metric-knowledge registry (new `faaliyet` source on 13 franchise metrics;
-11 bumped `no`→`partial`), and a new `/franchise` dashboard tab. Ships with 20 offline extractor unit tests.
+into the `/pipeline` graph + status, the metric-knowledge registry (new `faaliyet` source on 11 franchise metrics,
+bumped `no`→`partial`), and a new `/franchise` dashboard tab. Ships with offline extractor unit tests.
 **Not yet live:** the per-bank annual-report URLs in `data/banks/faaliyet_report_urls.json` are an empty skeleton
 (seeded with IR pages) — curating them + applying migration `0014` + dispatching the backfill populates the tab.
 

@@ -3342,8 +3342,7 @@
       "standard_across_banks": true,
       "reproducible": "partial",
       "source_datasets": [
-        "bank_audit",
-        "faaliyet"
+        "bank_audit"
       ],
       "derivation": "bank_audit_profile (qualitative section). Extracted for ~16/31 banks; rest use unparsed phrasings.",
       "aliases": [
@@ -3658,8 +3657,7 @@
       "standard_across_banks": true,
       "reproducible": "partial",
       "source_datasets": [
-        "bank_audit",
-        "faaliyet"
+        "bank_audit"
       ],
       "related": [
         "branches_personnel"
@@ -4850,15 +4848,18 @@
       "availability": "mandatory",
       "cadence": "quarterly",
       "standard_across_banks": true,
-      "reproducible": "no",
+      "reproducible": "direct",
       "source_datasets": [
         "bank_audit"
       ],
       "related": [
         "repricing_gap"
       ],
-      "derivation": "GROUNDWORK ONLY — disclosed in the §4 market-risk footnote (currency-risk table) + the off-balance/derivatives tables, currently captured unstructured in other_data. See docs/knowledge/data-gaps-roadmap.md.",
-      "caveats": "Not yet extracted into a structured table; needs a §4 currency-risk extractor (deterministic pdfplumber/fitz, no LLM)."
+      "derivation": "Extracted by src/audit_reports/fx_position.py from the §4 currency-risk footnote into bank_audit_fx_position — one row per currency (EUR/USD/OTHER/TOTAL) × period_type. net_position = net_on_balance + net_off_balance (the YP net genel pozisyon).",
+      "caveats": "Per-bank quarterly; present in ~99% of reports. Surfaced on /market-risk and the cross-bank heatmap as FX net open position / regulatory capital.",
+      "spec_ids": [
+        "market-risk.fx_nop_to_capital"
+      ]
     },
     {
       "id": "repricing_gap",
@@ -4881,7 +4882,7 @@
       "availability": "mandatory",
       "cadence": "quarterly",
       "standard_across_banks": true,
-      "reproducible": "no",
+      "reproducible": "direct",
       "source_datasets": [
         "bank_audit"
       ],
@@ -4890,8 +4891,11 @@
         "deposits",
         "loans_gross"
       ],
-      "derivation": "GROUNDWORK ONLY — §4 interest-rate-risk and liquidity-gap footnote schedules. See docs/knowledge/data-gaps-roadmap.md.",
-      "caveats": "Narrative footnote table; not extracted. Asset/liability maturity ladders also live here."
+      "derivation": "Extracted by src/audit_reports/repricing.py from the §4 interest-rate-risk footnote into bank_audit_repricing — one row per bucket (lt_1m/1_3m/3_12m/1_5y/gt_5y/non_sensitive/total) × period_type. gap = reported total repricing position; cumulative_gap is the running sum over dated buckets.",
+      "caveats": "Per-bank quarterly; present in ~81% of reports — participation banks word it as profit-share-rate risk and often omit the gap table (validated N/A). Surfaced on /market-risk.",
+      "spec_ids": [
+        "market-risk.repricing_gap_1y"
+      ]
     },
     {
       "id": "credit_rating",

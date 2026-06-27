@@ -83,7 +83,7 @@ export const PIPELINE_NODES: PipelineNode[] = [
   { id: "store-d1-tbb", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · tbb_*", sublabel: "tbb_digital_stats · tbb_acquisition_stats", statusKey: "tbb_digital" },
   { id: "store-d1-kap", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · kap_ownership", sublabel: "shareholders + §7 subsidiaries", statusKey: "kap" },
   { id: "store-d1-tefas", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · tefas_*", sublabel: "manager / category / allocation / top_funds", statusKey: "tefas" },
-  { id: "store-d1-faaliyet", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · faaliyet_franchise", sublabel: "branch / employee / ATM / customer / card counts", statusKey: "faaliyet" },
+  { id: "store-d1-faaliyet", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · faaliyet_franchise", sublabel: "ATM / POS / merchant / customer / card counts", statusKey: "faaliyet" },
   { id: "store-d1-bist", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · bist_*", sublabel: "bist_prices · bist_dividends · bist_shares", statusKey: "bist" },
   { id: "store-d1-news", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · news_items", sublabel: "regulation + press + Google News", statusKey: "news" },
   { id: "store-d1-earnings", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · bank_earnings", sublabel: "KAP results filings + IR presentation decks" },

@@ -64,7 +64,7 @@ export default async function FranchisePage() {
       <PageHeader
         eyebrow="Faaliyet Raporları — bank annual reports"
         title="Franchise"
-        description="Operational footprint — branches, employees, ATMs, customers and cards — disclosed in banks' annual reports and extracted deterministically. Branch and employee counts are cross-checked against the audited bank profile."
+        description="Operational footprint — ATMs, POS terminals, merchants, customers and cards — disclosed in banks' annual reports and extracted deterministically. (Branch and employee counts come from the audited financials, not this lane.)"
         dataThrough={coverage.max_year ? String(coverage.max_year) : undefined}
       />
 
@@ -94,9 +94,9 @@ export default async function FranchisePage() {
               <TableRow>
                 <TableHead>Bank</TableHead>
                 <TableHead className="w-16 text-right">Year</TableHead>
-                <TableHead className="text-right">Branches</TableHead>
-                <TableHead className="text-right">Employees</TableHead>
                 <TableHead className="text-right">ATMs</TableHead>
+                <TableHead className="text-right">POS</TableHead>
+                <TableHead className="text-right">Merchants</TableHead>
                 <TableHead className="text-right">Active customers</TableHead>
                 <TableHead className="text-right">Cards</TableHead>
               </TableRow>
@@ -115,9 +115,9 @@ export default async function FranchisePage() {
                   <TableCell className="text-right tabular-nums text-muted-foreground">
                     {r.fiscal_year}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums">{intCell(r.branch_total)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{intCell(r.employee_count)}</TableCell>
                   <TableCell className="text-right tabular-nums">{intCell(r.atm_count)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{intCell(r.pos_count)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{intCell(r.merchant_count)}</TableCell>
                   <TableCell className="text-right tabular-nums">
                     {mnCell(r.customer_active ?? r.customer_total)}
                   </TableCell>

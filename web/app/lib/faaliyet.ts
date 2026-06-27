@@ -20,9 +20,9 @@ function pivot(metric: string, alias: string): string {
 export interface FranchiseRow {
   bank_ticker: string;
   fiscal_year: number;
-  branch_total: number | null;
-  employee_count: number | null;
   atm_count: number | null;
+  pos_count: number | null;
+  merchant_count: number | null;
   customer_active: number | null;
   customer_total: number | null;
   cards_total: number | null;
@@ -39,9 +39,9 @@ export async function latestFranchiseByBank(): Promise<FranchiseRow[]> {
         GROUP BY bank_ticker
      )
      SELECT f.bank_ticker, f.fiscal_year,
-            ${pivot("branch_total", "branch_total")},
-            ${pivot("employee_count", "employee_count")},
             ${pivot("atm_count", "atm_count")},
+            ${pivot("pos_count", "pos_count")},
+            ${pivot("merchant_count", "merchant_count")},
             ${pivot("customer_active", "customer_active")},
             ${pivot("customer_total", "customer_total")},
             ${pivot("cards_total", "cards_total")},
@@ -50,7 +50,7 @@ export async function latestFranchiseByBank(): Promise<FranchiseRow[]> {
        JOIN latest l ON f.bank_ticker = l.bank_ticker AND f.fiscal_year = l.fy
       WHERE f.period_type = 'current'
       GROUP BY f.bank_ticker, f.fiscal_year
-      ORDER BY branch_total DESC NULLS LAST, f.bank_ticker`,
+      ORDER BY atm_count DESC NULLS LAST, f.bank_ticker`,
   );
 }
 
