@@ -33,6 +33,8 @@ coverage or known issues change.
 | `bank_audit_profile` | BRSA PDFs, qualitative section | same | branches + personnel where disclosed |
 | `bank_audit_capital` | BRSA PDFs, §4.1 capital adequacy | same — **fully backfilled 2026-06-10** (31/31 banks, ~1.7k rows) | CET1/Tier1/Tier2/Total/RWA + CET1/Tier1/CAR ratios, per period_type |
 | `bank_audit_liquidity` | BRSA PDFs, §4.6/4.7 | same — **fully backfilled 2026-06-10** (31/31 banks, ~1.8k rows) | LCR (total/FC), NSFR, leverage ratio, per period_type |
+| `bank_audit_fx_position` | BRSA PDFs, §4 currency-risk footnote | same — **extractor shipped 2026-06-27; CI backfill pending** | FX net open position per currency (EUR/USD/OTHER/TOTAL) × period_type; net_position = net_on + net_off (~99% coverage). Powers `/market-risk` |
+| `bank_audit_repricing` | BRSA PDFs, §4 interest-rate-risk footnote | same — **extractor shipped 2026-06-27; CI backfill pending** | Repricing gap per bucket (lt_1m…gt_5y/non_sensitive/total) × period_type (~81% coverage; participation banks omit → validated N/A) |
 | `bank_audit_oci`, `_cash_flow`, `_equity_change`, `_npl_movement`, `_stages`, `_loans_by_sector` | BRSA PDFs (statement pages + IFRS-9/credit footnotes) | 2022-Q1 → 2026-Q1 | per-bank; per-lane pass rates in the validation-status table below |
 | `bank_audit_extractions` | extraction log | one row per PDF | 974 rows (954 ok / 20 partial) |
 | `bank_types`, `table_definitions`, `download_log` | metadata | — | — |

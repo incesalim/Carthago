@@ -54,6 +54,8 @@ from src.audit_reports.capital_adequacy import (  # noqa: E402
     CapitalReport, upsert as _upsert_cap,
 )
 from src.audit_reports.liquidity import LiquidityReport, upsert as _upsert_liq  # noqa: E402
+from src.audit_reports.fx_position import FxReport, upsert as _upsert_fx  # noqa: E402
+from src.audit_reports.repricing import RepricingReport, upsert as _upsert_rp  # noqa: E402
 from scripts.revalidate_audit_db import revalidate_partition  # noqa: E402
 from scripts.sync_audit_reports import list_r2_pdfs, _restrict_to_latest_period  # noqa: E402
 from scripts.audit_d1 import DB, pull_snapshot, push_partitions, push_snapshot  # noqa: E402
@@ -74,6 +76,9 @@ STATEMENT_TABLE = {
     # §4 ratio tables.
     "capital": "bank_audit_capital",
     "liquidity": "bank_audit_liquidity",
+    # §4 market-risk (CAMELS "S").
+    "fx_position": "bank_audit_fx_position",
+    "repricing": "bank_audit_repricing",
     # Core statements — used by the single-cell re-extract (the /admin per-cell
     # button forces just this one table; broad/fleet runs keep the guard). assets,
     # liabilities and off_balance share one table, keyed by the `statement` column.
@@ -140,6 +145,12 @@ def _worker(args):
         n = 0 if getattr(rep, "capital", None) is None else 1
     elif statement == "liquidity":
         n = 0 if getattr(rep, "liquidity", None) is None else 1
+    elif statement == "fx_position":
+        fx = getattr(rep, "fx_position", None)
+        n = len(fx.rows) if fx and getattr(fx, "rows", None) else 0
+    elif statement == "repricing":
+        rp = getattr(rep, "repricing", None)
+        n = len(rp.rows) if rp and getattr(rp, "rows", None) else 0
     else:
         eq = getattr(rep, "equity_change", None)
         n = len(eq.rows) if eq and getattr(eq, "rows", None) else 0
@@ -193,6 +204,12 @@ def _upsert(conn, statement, bank, period, kind, rep) -> int:
     if statement == "liquidity":
         report = getattr(rep, "liquidity", None) or LiquidityReport(pdf_path=rep.pdf_path)
         return _upsert_liq(conn, bank, period, kind, report)
+    if statement == "fx_position":
+        report = getattr(rep, "fx_position", None) or FxReport(pdf_path=rep.pdf_path)
+        return _upsert_fx(conn, bank, period, kind, report)
+    if statement == "repricing":
+        report = getattr(rep, "repricing", None) or RepricingReport(pdf_path=rep.pdf_path)
+        return _upsert_rp(conn, bank, period, kind, report)
     if statement in ("bs_assets", "bs_liabilities", "off_balance"):
         # assets / liabilities / off_balance share bank_audit_balance_sheet, keyed by
         # the `statement` column — delete + insert only this one. Mirrors loader.py.

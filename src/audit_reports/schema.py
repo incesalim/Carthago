@@ -378,6 +378,59 @@ CREATE INDEX IF NOT EXISTS idx_bank_liquidity_bank_period
   ON bank_audit_liquidity(bank_ticker, period);
 
 
+-- FX net open position (BRSA §4 "Currency risk" footnote). One row per
+-- (bank, period, kind, period_type, currency) where currency ∈ EUR/USD/GBP/
+-- OTHER/TOTAL. Amounts in thousand TRY; negatives stored negative. The bank's
+-- overall FX net open position ("YP net genel pozisyon") is net_position =
+-- net_on_balance + net_off_balance. Footing (Σ currencies = TOTAL;
+-- net_on_balance = assets − liab) checked in validator.py.
+CREATE TABLE IF NOT EXISTS bank_audit_fx_position (
+    bank_ticker        TEXT NOT NULL,
+    period             TEXT NOT NULL,
+    kind               TEXT NOT NULL,
+    period_type        TEXT NOT NULL,        -- 'current' | 'prior'
+    currency           TEXT NOT NULL,        -- 'EUR' | 'USD' | 'GBP' | 'OTHER' | 'TOTAL'
+    on_bs_assets       REAL,
+    on_bs_liab         REAL,
+    net_on_balance     REAL,                 -- net balance-sheet position (assets − liab)
+    net_off_balance    REAL,                 -- net off-balance / derivatives position
+    off_bs_receivable  REAL,                 -- derivative financial instruments — receivable leg
+    off_bs_payable     REAL,                 -- derivative financial instruments — payable leg
+    net_position       REAL,                 -- net_on_balance + net_off_balance (YP net genel pozisyon)
+    source_page        INTEGER,
+    extracted_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (bank_ticker, period, kind, period_type, currency)
+);
+
+CREATE INDEX IF NOT EXISTS idx_bank_fx_bank_period
+  ON bank_audit_fx_position(bank_ticker, period);
+
+
+-- Interest-rate repricing / maturity gap (BRSA §4 "Interest-rate risk"
+-- footnote). One row per (bank, period, kind, period_type, bucket) where bucket
+-- ∈ lt_1m / 1_3m / 3_12m / 1_5y / gt_5y / non_sensitive / total (standard
+-- 7-column template). `gap` is the reported total repricing position (on + off
+-- balance); `cumulative_gap` is the running sum over the dated buckets. Footing
+-- (Σ buckets = total; RSA total = RSL total) checked in validator.py.
+CREATE TABLE IF NOT EXISTS bank_audit_repricing (
+    bank_ticker            TEXT NOT NULL,
+    period                 TEXT NOT NULL,
+    kind                   TEXT NOT NULL,
+    period_type            TEXT NOT NULL,    -- 'current' | 'prior'
+    bucket                 TEXT NOT NULL,    -- lt_1m|1_3m|3_12m|1_5y|gt_5y|non_sensitive|total
+    rate_sensitive_assets  REAL,
+    rate_sensitive_liab    REAL,
+    gap                    REAL,
+    cumulative_gap         REAL,
+    source_page            INTEGER,
+    extracted_at           TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (bank_ticker, period, kind, period_type, bucket)
+);
+
+CREATE INDEX IF NOT EXISTS idx_bank_repricing_bank_period
+  ON bank_audit_repricing(bank_ticker, period);
+
+
 -- Structural-validation results per extracted statement (see
 -- src/audit_reports/validator.py and docs/AUDIT_REWORK_PLAN.md). One row per
 -- (bank, period, kind, statement); statement is 'assets' | 'liabilities' |
@@ -470,6 +523,10 @@ _COLUMN_MIGRATIONS: list[tuple[str, str, str]] = [
     # Added 2026-06-12: cash flow + equity-change extraction.
     ("bank_audit_extractions", "rows_cash_flow", "INTEGER"),
     ("bank_audit_extractions", "rows_equity_change", "INTEGER"),
+    # Added 2026-06-27: §4 market-risk (FX net open position + interest-rate
+    # repricing gap) extraction.
+    ("bank_audit_extractions", "rows_fx_position", "INTEGER"),
+    ("bank_audit_extractions", "rows_repricing", "INTEGER"),
 ]
 
 

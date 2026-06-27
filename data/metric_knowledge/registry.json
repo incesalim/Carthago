@@ -4856,10 +4856,7 @@
         "repricing_gap"
       ],
       "derivation": "Extracted by src/audit_reports/fx_position.py from the §4 currency-risk footnote into bank_audit_fx_position — one row per currency (EUR/USD/OTHER/TOTAL) × period_type. net_position = net_on_balance + net_off_balance (the YP net genel pozisyon).",
-      "caveats": "Per-bank quarterly; present in ~99% of reports. Surfaced on /market-risk and the cross-bank heatmap as FX net open position / regulatory capital.",
-      "spec_ids": [
-        "market-risk.fx_nop_to_capital"
-      ]
+      "caveats": "Per-bank quarterly; present in ~99% of reports. Surfaced on /market-risk and the cross-bank heatmap as FX net open position / regulatory capital."
     },
     {
       "id": "repricing_gap",
@@ -4892,10 +4889,7 @@
         "loans_gross"
       ],
       "derivation": "Extracted by src/audit_reports/repricing.py from the §4 interest-rate-risk footnote into bank_audit_repricing — one row per bucket (lt_1m/1_3m/3_12m/1_5y/gt_5y/non_sensitive/total) × period_type. gap = reported total repricing position; cumulative_gap is the running sum over dated buckets.",
-      "caveats": "Per-bank quarterly; present in ~81% of reports — participation banks word it as profit-share-rate risk and often omit the gap table (validated N/A). Surfaced on /market-risk.",
-      "spec_ids": [
-        "market-risk.repricing_gap_1y"
-      ]
+      "caveats": "Per-bank quarterly; present in ~81% of reports — participation banks word it as profit-share-rate risk and often omit the gap table (validated N/A). Surfaced on /market-risk."
     },
     {
       "id": "credit_rating",

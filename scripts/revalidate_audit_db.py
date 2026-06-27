@@ -254,6 +254,34 @@ def _loans_sector_rows(conn, bank, period, kind):
                 (bank, period, kind))]
 
 
+def _fx_position_rows(conn, bank, period, kind):
+    if not _has_table(conn, "bank_audit_fx_position"):
+        return []
+    return [dict(zip(
+        ("period_type", "currency", "on_bs_assets", "on_bs_liab",
+         "net_on_balance", "net_off_balance", "off_bs_receivable",
+         "off_bs_payable", "net_position"), r))
+            for r in conn.execute(
+                "SELECT period_type, currency, on_bs_assets, on_bs_liab, "
+                "       net_on_balance, net_off_balance, off_bs_receivable, "
+                "       off_bs_payable, net_position "
+                "FROM bank_audit_fx_position WHERE bank_ticker=? AND period=? AND kind=?",
+                (bank, period, kind))]
+
+
+def _repricing_rows(conn, bank, period, kind):
+    if not _has_table(conn, "bank_audit_repricing"):
+        return []
+    return [dict(zip(
+        ("period_type", "bucket", "rate_sensitive_assets", "rate_sensitive_liab",
+         "gap", "cumulative_gap"), r))
+            for r in conn.execute(
+                "SELECT period_type, bucket, rate_sensitive_assets, rate_sensitive_liab, "
+                "       gap, cumulative_gap "
+                "FROM bank_audit_repricing WHERE bank_ticker=? AND period=? AND kind=?",
+                (bank, period, kind))]
+
+
 def _skip_result() -> v.ValidationResult:
     res = v.ValidationResult()
     res.add_skip()
@@ -315,6 +343,8 @@ def revalidate_partition(conn, bank: str, period: str, kind: str) -> dict[str, "
     results["loans_by_sector"] = (
         _skip_result() if (bank, period, kind) in _LBS_SKIP
         else v.check_loans_by_sector(_loans_sector_rows(conn, bank, period, kind)))
+    results["fx_position"]    = v.check_fx_position(_fx_position_rows(conn, bank, period, kind))
+    results["repricing"]      = v.check_repricing(_repricing_rows(conn, bank, period, kind))
     return results
 
 
@@ -328,6 +358,7 @@ def revalidate_all(conn, progress: bool = False) -> tuple[int, int]:
     parts_query = "SELECT DISTINCT bank_ticker, period, kind FROM bank_audit_balance_sheet"
     for tbl in ("bank_audit_credit_quality", "bank_audit_stages",
                 "bank_audit_capital", "bank_audit_liquidity",
+                "bank_audit_fx_position", "bank_audit_repricing",
                 "bank_audit_npl_movement", "bank_audit_loans_by_sector",
                 "bank_audit_oci", "bank_audit_cash_flow", "bank_audit_equity_change"):
         if _has_table(conn, tbl):
