@@ -191,8 +191,10 @@
         "duration_of_assets_and_liabs(encouraged)"
       ],
       "bbva_section": "FX sensitivity, securities MtM",
-      "tabs": [],
-      "note": "UNHOMED. No tab owns CAMELS 'S'. FX dollarization is scattered on liquidity; securities MtM only per-bank. Ties to data-gaps-roadmap Tier B (fx_net_open_position, repricing_gap). P0."
+      "tabs": [
+        "market-risk"
+      ],
+      "note": "HOMED 2026-06-27 (was the audit's P0). New /market-risk tab off bank_audit_fx_position + bank_audit_repricing (deterministic §4 extractors) + securities MtM from existing OCI/BS."
     },
     {
       "id": "S9",
@@ -3793,6 +3795,190 @@
           "audit_verdict": "keep",
           "unit": "TL bn",
           "scroll_index": 8
+        }
+      ]
+    },
+    {
+      "tab_id": "market-risk",
+      "route": "/market-risk",
+      "in_nav": true,
+      "nav_group": "markets",
+      "title": "Market Risk",
+      "guiding_question": "How exposed is the sector to FX and interest-rate shocks — net open FX position, repricing gap, and securities mark-to-market?",
+      "analyst_takeaway": "The CAMELS 'S' vital: FX net open position vs capital (well-hedged or not), the interest-rate repricing gap, and the AFS/FVOCI securities reserve — the market-risk lens a dollarized banking system lives or dies by.",
+      "spine_ref": "S8",
+      "story_sequence": 8,
+      "priority_tier": "T1",
+      "primary_metrics": [
+        "fx_net_open_position",
+        "repricing_gap",
+        "securities_mtm"
+      ],
+      "camels": [
+        "S"
+      ],
+      "fsr_section": "Market / FX / interest-rate risk",
+      "fsi": [
+        "net_open_fx_position_to_capital",
+        "duration_of_assets_and_liabs(encouraged)"
+      ],
+      "bbva_section": "FX sensitivity, securities MtM",
+      "data_sources": [
+        "bank_audit"
+      ],
+      "depends_on": [
+        "rates",
+        "capital"
+      ],
+      "feeds": [
+        "cross-bank"
+      ],
+      "reading_prereqs": "Rates (the shock source) + Capital (the buffer the position is sized against).",
+      "known_gaps": [
+        "Repricing gap ~81% coverage — participation banks word it as profit-share rate and often omit it (validated N/A)",
+        "Sector view aggregates 'of reporting banks' (per-bank audit, no monthly sector FX-NOP series)"
+      ],
+      "audit_verdict": "add_missing",
+      "audit_notes": "NEW tab (2026-06-27) resolving the audit's P0 'CAMELS S unhomed'. Off the new bank_audit_fx_position + bank_audit_repricing extractors; securities MtM reuses bank_audit_oci/BS. Placed in Markets & Macro next to Rates.",
+      "future_narrative_hook": "FX position well inside the NOP limit; the repricing gap is where a rate move bites NIM.",
+      "charts": [
+        {
+          "chart_id": "market-risk.fx_net_open_position_capital",
+          "title": "FX net open position / capital (%)",
+          "section": "FX exposure",
+          "component": "TrendChart",
+          "data_fn": "fxNetOpenPosition()+bank_audit_capital",
+          "class": "headline",
+          "rubric": {
+            "question_fit": 2,
+            "standard_view": 2,
+            "comparable_reproducible": 2,
+            "decision_relevance": 2,
+            "non_redundant": 2,
+            "scroll_earned": true,
+            "sourced": true
+          },
+          "audit_verdict": "keep",
+          "unit": "%",
+          "metric_ids": [
+            "fx_net_open_position"
+          ],
+          "scroll_index": 1
+        },
+        {
+          "chart_id": "market-risk.fx_position_by_currency_eur_usd_other",
+          "title": "FX position by currency (EUR/USD/Other)",
+          "section": "FX exposure",
+          "component": "StackedArea",
+          "data_fn": "fxByCurrency()",
+          "class": "supporting",
+          "rubric": {
+            "question_fit": 1,
+            "standard_view": 1,
+            "comparable_reproducible": 2,
+            "decision_relevance": 1,
+            "non_redundant": 1,
+            "scroll_earned": true,
+            "sourced": true
+          },
+          "audit_verdict": "keep",
+          "unit": "TL bn",
+          "metric_ids": [
+            "fx_net_open_position"
+          ],
+          "scroll_index": 2
+        },
+        {
+          "chart_id": "market-risk.cross_bank_fx_nop_capital",
+          "title": "Cross-bank FX NOP / capital",
+          "section": "FX exposure",
+          "component": "BarByBank",
+          "data_fn": "fxNetOpenPosition(latest)",
+          "class": "supporting",
+          "rubric": {
+            "question_fit": 1,
+            "standard_view": 1,
+            "comparable_reproducible": 2,
+            "decision_relevance": 1,
+            "non_redundant": 1,
+            "scroll_earned": true,
+            "sourced": true
+          },
+          "audit_verdict": "keep",
+          "unit": "%",
+          "metric_ids": [
+            "fx_net_open_position"
+          ],
+          "scroll_index": 3
+        },
+        {
+          "chart_id": "market-risk.repricing_gap_ladder_by_bucket",
+          "title": "Repricing gap ladder by bucket",
+          "section": "Interest-rate sensitivity",
+          "component": "BopFlowChart",
+          "data_fn": "repricingGap()",
+          "class": "headline",
+          "rubric": {
+            "question_fit": 2,
+            "standard_view": 2,
+            "comparable_reproducible": 2,
+            "decision_relevance": 2,
+            "non_redundant": 2,
+            "scroll_earned": true,
+            "sourced": true
+          },
+          "audit_verdict": "keep",
+          "unit": "TL bn",
+          "metric_ids": [
+            "repricing_gap"
+          ],
+          "scroll_index": 4
+        },
+        {
+          "chart_id": "market-risk.cumulative_1y_repricing_gap_assets",
+          "title": "Cumulative 1y repricing gap / assets (%)",
+          "section": "Interest-rate sensitivity",
+          "component": "TrendChart",
+          "data_fn": "repricingGap(cumulative)",
+          "class": "supporting",
+          "rubric": {
+            "question_fit": 1,
+            "standard_view": 1,
+            "comparable_reproducible": 2,
+            "decision_relevance": 1,
+            "non_redundant": 1,
+            "scroll_earned": true,
+            "sourced": true
+          },
+          "audit_verdict": "keep",
+          "unit": "%",
+          "metric_ids": [
+            "repricing_gap"
+          ],
+          "scroll_index": 5
+        },
+        {
+          "chart_id": "market-risk.securities_revaluation_reserve_equity",
+          "title": "Securities revaluation reserve / equity (%)",
+          "section": "Securities mark-to-market",
+          "component": "TrendChart",
+          "data_fn": "securitiesMtm()",
+          "class": "supporting",
+          "rubric": {
+            "question_fit": 1,
+            "standard_view": 1,
+            "comparable_reproducible": 2,
+            "decision_relevance": 1,
+            "non_redundant": 1,
+            "scroll_earned": true,
+            "sourced": true
+          },
+          "audit_verdict": "keep",
+          "unit": "%",
+          "metric_ids": [
+            "securities_mtm"
+          ],
+          "scroll_index": 6
         }
       ]
     },

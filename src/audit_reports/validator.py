@@ -681,6 +681,77 @@ def _nonnull_sum(*vals: float | None) -> float | None:
     return sum(non_none) if non_none else None
 
 
+def check_fx_position(rows: list[dict]) -> ValidationResult:
+    """Currency-risk (§4) footing — current period only:
+      column: Σ per-currency rows = TOTAL (assets, liab, net BS, net off, net pos)
+      row:    net balance position = assets − liab ; net position = net BS + net off
+    All values from the one printed table, so footing is exact; tolerant only of
+    rounding. Skips (never false-fails) when a field is absent."""
+    res = ValidationResult()
+    cur = {r.get("currency"): r for r in rows if r.get("period_type") == "current"}
+    if not cur or "TOTAL" not in cur:
+        res.add_skip()
+        return res
+    parts = [c for c in cur if c != "TOTAL"]
+    tot = cur["TOTAL"]
+    for fld in ("on_bs_assets", "on_bs_liab", "net_on_balance",
+                "net_off_balance", "net_position"):
+        tv = tot.get(fld)
+        if tv is None or not parts or any(cur[c].get(fld) is None for c in parts):
+            res.add_skip()
+            continue
+        s = sum(cur[c][fld] for c in parts)
+        if abs(s - tv) <= _tol(abs(tv), base=2.0, rel=5e-3):
+            res.add_pass()
+        else:
+            res.add_fail("fx_footing", f"Σ currencies = TOTAL ({fld})", expected=tv, actual=s)
+    for code, r in cur.items():
+        a, l, non = r.get("on_bs_assets"), r.get("on_bs_liab"), r.get("net_on_balance")
+        if a is not None and l is not None and non is not None:
+            if abs((a - l) - non) <= _tol(abs(non), base=2.0, rel=5e-3):
+                res.add_pass()
+            else:
+                res.add_fail("fx_net_bs", f"{code}: assets−liab = net BS", expected=non, actual=a - l)
+        noff, npos = r.get("net_off_balance"), r.get("net_position")
+        if non is not None and noff is not None and npos is not None:
+            if abs((non + noff) - npos) <= _tol(abs(npos), base=2.0, rel=5e-3):
+                res.add_pass()
+            else:
+                res.add_fail("fx_net_pos", f"{code}: net BS + net off = net pos", expected=npos, actual=non + noff)
+    return res
+
+
+def check_repricing(rows: list[dict]) -> ValidationResult:
+    """Interest-rate repricing (§4) footing — current period only:
+      column:  Σ per-bucket rows = total (RSA, RSL, gap)
+      balance: total RSA = total RSL (the schedule foots to the balance sheet)
+    Skips when absent (participation banks that don't disclose the table)."""
+    res = ValidationResult()
+    cur = {r.get("bucket"): r for r in rows if r.get("period_type") == "current"}
+    if not cur or "total" not in cur:
+        res.add_skip()
+        return res
+    parts = [b for b in cur if b != "total"]
+    tot = cur["total"]
+    for fld in ("rate_sensitive_assets", "rate_sensitive_liab", "gap"):
+        tv = tot.get(fld)
+        if tv is None or not parts or any(cur[b].get(fld) is None for b in parts):
+            res.add_skip()
+            continue
+        s = sum(cur[b][fld] for b in parts)
+        if abs(s - tv) <= _tol(abs(tv), base=2.0, rel=5e-3):
+            res.add_pass()
+        else:
+            res.add_fail("rp_footing", f"Σ buckets = total ({fld})", expected=tv, actual=s)
+    rsa, rsl = tot.get("rate_sensitive_assets"), tot.get("rate_sensitive_liab")
+    if rsa is not None and rsl is not None:
+        if abs(rsa - rsl) <= _tol(abs(rsa), base=2.0, rel=5e-3):
+            res.add_pass()
+        else:
+            res.add_fail("rp_balance", "total RSA = total RSL", expected=rsa, actual=rsl)
+    return res
+
+
 def check_credit_quality(rows: list[dict]) -> ValidationResult:
     """Credit quality: per section total=S1+S2+S3.
     Cross-section: loans_amounts.total ≈ loans_by_stage(S1+S2)+npl_brsa_gross(S3).
