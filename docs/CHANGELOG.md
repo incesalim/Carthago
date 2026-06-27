@@ -16,7 +16,12 @@ byte-for-byte unchanged). Then dropped pdfplumber from the equity path entirely 
 to 34 rows, 41/0 pass** (were 0 rows under naive fitz-only); a 11-bank × 4-quarter `--force` sample shows **0 clean
 regressions**; the shared `_fitz_page_text` rotation change leaves NPL (and other fitz consumers) unaffected (6/6
 pass). Removes the pdfminer poison-PDF watchdog from the equity lane. (OCI still uses a pdfplumber GARAN/AKBNK
-fallback — same rotation root cause — left for a follow-up.)
+fallback — same rotation root cause — left for a follow-up.) **Applied to prod (91→85).** A full `--force`
+re-extract converged the real failures (91→85) but also over-extracted ISCTR's letter-spacing-corrupted image-only
+quarters into partial-failing rows (transient 118 — `--force` re-ran them where `--only-failing`+skip-if-passing
+would have excluded them). Followed with a **<14-row incomplete-parse guard** (complete statements carry ≥22 rows
+across two periods; the broken parses top out at 9 — a clean gap) so a corrupted/incomplete parse stays empty/skip
+instead of emitting wrong rows → ISCTR back to skip-passing, equity 85, verified live.
 
 Prior: 2026-06-27 — **equity_change round 3: mid-split chaining + n-2 column recovery (107 → ~91).**
 Two more residual causes after rounds 1–2 (343→107 in prod). (a) **Mid-page-split swap the year heuristic missed:**
