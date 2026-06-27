@@ -752,6 +752,16 @@ def extract_from_pdf(pdf_path: str, after_page: int | None) -> EquityChangeRepor
     for page_idx_1, period_type in pages:
         rows = _parse_equity_page(pdf_path, page_idx_1, period_type, n_cols)
         rep.rows.extend(rows)
+    # Corrupted/image-only guard: a letter-spacing-corrupted text layer (ISCTR's
+    # image-only quarters) yields only a handful of partial rows — opening /
+    # new-balance / closing, with the IV-XI movement rows lost — that pass the
+    # row-gate but form an INCOMPLETE statement. Emitting them is worse than
+    # nothing: it flips a sparse-"passing" (all-checks-skip) partition into
+    # partial-failing. A complete statement (even a failing one) carries ≥22 rows
+    # across its two periods; the broken parses top out at 9, so <14 is always a
+    # corrupted/incomplete parse — drop it so the partition stays empty/skip.
+    if 0 < len(rep.rows) < 14:
+        rep.rows = []
     return rep
 
 
