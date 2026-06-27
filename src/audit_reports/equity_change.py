@@ -46,12 +46,9 @@ import sqlite3
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import pdfplumber
-
 from .extractor import (
     HIERARCHY_PAT, NUM_PAT, _FOOTNOTE_RX, _LINE_HIER_RX, _norm,
-    _fitz_page_text, _fitz_page_count, _safe_repaired_text,
-    extract_page_text_repaired, parse_num,
+    _fitz_page_text, _fitz_page_count, parse_num,
 )
 # Self-contained equity validators reused to SCORE reconstruction candidates
 # (validator.py imports only stdlib → no circular import).
@@ -502,17 +499,14 @@ def _parse_equity_page(pdf_path: str, page_idx_1: int, period_type: str,
                        n_cols: int) -> list[EquityChangeRow]:
     """Parse one equity-change page into EquityChangeRow objects.
 
-    Tries up to three line reconstructions and keeps whichever admits the most
-    rows:
-      • pdfplumber layout-repaired text — the proven extractor for banks whose
-        wide table neither fitz method parses (GARAN/AKBNK interleave the two
-        periods with side-footnotes that only pdfplumber's x-clustering separates).
-        Guarded by _safe_repaired_text: on a poison PDF it returns None and is
-        skipped (VAKBN 2025Q4 hangs pdfminer ~2 min; fitz reads it in 30 ms).
+    Tries two fitz line reconstructions and keeps whichever admits the most rows
+    (fitz-only — no pdfplumber):
       • fitz block/line grouping (_fitz_page_lines) — fitz's own segmentation.
       • fitz y-coordinate bucketing (_fitz_page_text) — rebuilds a visual row from
         cells fitz scatters across block/lines; parses VAKBN's table where
-        block/line grouping yields zero wide rows."""
+        block/line grouping yields zero wide rows, AND (now rotation-aware) the
+        GARAN/AKBNK landscape /Rotate-90 statements that previously only
+        pdfplumber's x-clustering could read."""
 
     def _parse_with(lines: list[str], nc: int) -> list[EquityChangeRow]:
         result: list[EquityChangeRow] = []
@@ -569,9 +563,6 @@ def _parse_equity_page(pdf_path: str, page_idx_1: int, period_type: str,
     # The line reconstructions, kept so we can re-parse with the other column
     # template (below) if nothing validates at the primary n_cols.
     recons: list[list[str]] = []
-    pp_text = _safe_repaired_text(pdf_path, page_idx_1)   # None on a poison PDF
-    if pp_text:
-        recons.append(pp_text.split('\n'))
     if _HAS_FITZ:
         recons.append(_fitz_page_lines(pdf_path, page_idx_1 - 1))
         recons.append(_fitz_page_text(pdf_path, page_idx_1 - 1).split('\n'))
@@ -659,7 +650,7 @@ def _parse_equity_page(pdf_path: str, page_idx_1: int, period_type: str,
 # Page location
 # ---------------------------------------------------------------------------
 
-def _locate_equity_pages(pdf, pdf_path: str,
+def _locate_equity_pages(pdf_path: str,
                          after_page: int | None) -> list[tuple[int, str]]:
     """Return list of (page_idx_1, period_type) for up to 2 equity pages.
 
@@ -681,16 +672,13 @@ def _locate_equity_pages(pdf, pdf_path: str,
     if after_page is None:
         return []
     found: list[tuple[int, str]] = []
-    # Page count via fitz when available — `len(pdf.pages)` triggers the pdfminer
-    # page-tree hang on poison PDFs (e.g. VAKBN 2025Q4).
-    n_pages = (_fitz_page_count(pdf_path) if (_HAS_FITZ and pdf_path) else None)
-    if n_pages is None:
-        n_pages = len(pdf.pages)
-    for i in range(after_page + 1, n_pages + 1):
+    # fitz-only (no pdfplumber): page count + page text from fitz. `len(pdf.pages)`
+    # also triggers the pdfminer page-tree hang on poison PDFs (VAKBN 2025Q4).
+    n_pages = (_fitz_page_count(pdf_path) if (_HAS_FITZ and pdf_path) else 0)
+    for i in range(after_page + 1, (n_pages or 0) + 1):
         # fitz text (fast, ~50× over pdfplumber) for the page scan; same y-bucketed
         # line structure, so the wide-fingerprint count is equivalent.
-        text = (_fitz_page_text(pdf_path, i - 1) if (_HAS_FITZ and pdf_path)
-                else (pdf.pages[i - 1].extract_text() or ''))
+        text = _fitz_page_text(pdf_path, i - 1)
         # The wide-table fingerprint: ≥3 lines carrying ≥10 numeric tokens.
         wide_rows = sum(1 for ln in text.split('\n') if _count_value_tokens(ln) >= 10)
         if wide_rows < 3:
@@ -709,10 +697,7 @@ def _locate_equity_pages(pdf, pdf_path: str,
         # Pages with NO period word at all (ALNTF prints bare date-keyed rows) stay
         # None and are resolved by year below. (Mid-page-split single pages are
         # reassigned downstream by _block1_period_for_split regardless.)
-        ptext = _safe_repaired_text(pdf_path, i)
-        if ptext is None:
-            ptext = (_fitz_page_text(pdf_path, i - 1) if (_HAS_FITZ and pdf_path)
-                     else (pdf.pages[i - 1].extract_text() or ''))
+        ptext = text  # the rotation-aware fitz text already read for the scan
         if _CURRENT_RX.search(ptext):
             period_type = 'current'
         elif _PRIOR_RX.search(ptext):
@@ -747,26 +732,22 @@ def _locate_equity_pages(pdf, pdf_path: str,
 # Public API
 # ---------------------------------------------------------------------------
 
-def extract_from_pdf(pdf, pdf_path: str, after_page: int | None) -> EquityChangeReport:
-    """Extract both equity-change pages from an open pdfplumber PDF."""
+def extract_from_pdf(pdf_path: str, after_page: int | None) -> EquityChangeReport:
+    """Extract both equity-change pages — fitz-only, by path (no pdfplumber)."""
     pdf_path = str(pdf_path)
     rep = EquityChangeReport(pdf_path=pdf_path)
-    pages = _locate_equity_pages(pdf, pdf_path, after_page)
+    pages = _locate_equity_pages(pdf_path, after_page)
     if not pages:
         return rep
     # Column count (14 unconsolidated / 16 consolidated) from the first equity
-    # page. Prefer pdfplumber's layout-repaired text: its per-row token counts are
-    # accurate, whereas fitz's y-bucketed text can over-count (AKBNK 2025 uncons:
-    # 14 real columns, but fitz yields 16 → the whole table was matched against a
-    # 16-col template and every row rejected). Fall back to fitz when pdfplumber
-    # can't read the PDF (poison) or is unavailable.
-    first_text = _safe_repaired_text(pdf_path, pages[0][0])
-    if not first_text:
-        try:
-            first_text = (_fitz_page_text(pdf_path, pages[0][0] - 1) if _HAS_FITZ
-                          else '')
-        except Exception:
-            first_text = ''
+    # page, off the rotation-aware fitz y-bucketed text. (Earlier the fitz count
+    # over-counted AKBNK 2025 unconsolidated as 16 — but that was the un-rotated
+    # /Rotate-90 garbling; with rotation applied the per-row token counts are
+    # accurate, so pdfplumber is no longer needed here.)
+    try:
+        first_text = _fitz_page_text(pdf_path, pages[0][0] - 1) if _HAS_FITZ else ''
+    except Exception:
+        first_text = ''
     n_cols = _modal_ncols(first_text.split('\n'))
     for page_idx_1, period_type in pages:
         rows = _parse_equity_page(pdf_path, page_idx_1, period_type, n_cols)
