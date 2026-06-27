@@ -410,9 +410,11 @@ each `/banks/[ticker]` page:
   emits one `presentation_deck` per quarter from `data/banks/investor_presentation_urls.json`,
   augmented by IR-page auto-discovery (`src/earnings/presentations.py`, reusing the
   audit-lane discovery engine; `PRESENTATION_BANKS` = GARAN/AKBNK/YKBNK validated
-  via `scripts/diagnostics/validate_presentation_discovery.py`). Seeded for the 3
-  bellwethers (İşbank serves only a date-less "latest" PDF; HALKB/VAKBN/QNBFB/TSKB/
-  ALBRK/SKBNK not yet seeded). Runs weekly via `.github/workflows/refresh-presentations-weekly.yml`.
+  via `scripts/diagnostics/validate_presentation_discovery.py`). Seeded for 6 banks:
+  GARAN/AKBNK/YKBNK with auto-discovery + HALKB/TSKB/SKBNK static (heterogeneous /
+  opaque filenames). Deferred: İşbank (date-less "latest" PDF), VAKBN (CDN blocks
+  automated URL verification), QNBFB/ALBRK (page 404 / apostrophe URLs). Runs weekly
+  via `.github/workflows/refresh-presentations-weekly.yml`.
 - **Not built:** earnings-call transcripts/audio — no free, deterministic feed
   exists for Turkish banks (third-party transcripts are paywalled/ToS-gray; webcasts
   are streaming-only). Out of scope given the no-paid-vendor / no-LLM-API constraints.
