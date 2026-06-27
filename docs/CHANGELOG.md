@@ -3,7 +3,16 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-06-26 — **Pinned the page header (chart date-range selector) on scroll.**
+Last verified: 2026-06-27 — **Fixed the pinned header colliding with the per-bank section-nav.**
+The 2026-06-26 header pin (below) made `PageHeader` sticky at `lg:top-0`, but `/banks/[ticker]` already pins its
+in-page section-nav (`BankSectionNav`) at `lg:top-0` (z-30) — so on scroll both grabbed the same slot and the
+higher-z nav painted over the top of the header, clipping the ticker eyebrow + bank-name title. Now the header and
+section-nav are wrapped in one `lg:sticky` group so they pin **stacked** (header on top, nav directly below, flush —
+no overlap). `PageHeader` gains a `sticky` prop (default true) that gates only its self-pinning, keeping its frosted
+band so it still works inside a parent sticky group; `BankSectionNav` switches `lg:top-0` → `lg:static` (mobile
+`top-14` sticky unchanged). Verified live on ISCTR (computed geometry: header y0–100, nav y100–152, wrapper pinned).
+
+Prior: 2026-06-26 — **Pinned the page header (chart date-range selector) on scroll.**
 The global 1Y/3Y/5Y/YTD/All chart-range control lives in the page header (`web/app/components/ui/page-header.tsx`),
 which scrolled off the top on long chart pages. The header is now `position: sticky` at `top-0` on `lg+`, with a
 frosted band (`bg/90` + `backdrop-blur`) that bleeds to the content gutter so charts scroll cleanly underneath.
