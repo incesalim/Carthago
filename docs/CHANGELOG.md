@@ -3,7 +3,21 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-06-27 — **equity_change: halved the failing tail with one fix (period swap on prior-first banks).**
+Last verified: 2026-06-27 — **equity_change round 2: two more period-assignment bugs (168 → ~98).**
+After the prior-first "Önceki Dönem" fix (below, 343→168), the next-biggest offenders were still period swaps from two
+other causes. (a) **Current page mislabeled prior:** the current matrix's header says "Cari Dönem" but its OPENING row
+reads "Önceki Dönem Sonu Bakiyesi" (prior-period END = this table's opening); the marker test checked `_PRIOR_RX`
+FIRST, so the current page matched prior and swapped (TSKB). Fix: check CURRENT first — only the current page header
+carries "Cari Dönem"; the prior page never does. This also closes a latent regression the "Önceki" fix introduced for
+current-first banks with that opening label. (b) **Marker-less pages:** ALNTF prints bare date-keyed rows with no
+Cari/Önceki word at all, and prior-first order, so the positional default swapped them. Fix: a year-based tiebreaker —
+the current table closes on the later period-end date, so the page with the larger max-year is current. Result:
+**ALNTF 32→0, TSKB 33→15, ICBCT 17→6 — +70 partitions cleared, 0 clean-data regressions** (verified `--force` on
+GARAN/DENIZ/YKBNK/VAKBN full-data partitions all still pass; the only `--force` fail was a near-empty image-only ISCTR
+partition that `--only-failing` skips). The cross-checks reconcile to BS equity, so the passes are genuine. Remaining
+~98 are genuine per-bank column misalignment / dropped roman rows / image-only quarters (ANADOLU 12, TSKB 15, …).
+
+Prior: 2026-06-27 — **equity_change: halved the failing tail with one fix (period swap on prior-first banks).**
 The `equity_change` lane had 343 failing partitions (the deferred tail from the sweep below). Re-extracting did NOT
 help — until the root cause surfaced: `_PRIOR_RX` (the current/prior page-marker regex) matched "Önce/Öncesi Dönem"
 but **not "Önceki Dönem"**, the standard BRSA term. Banks that print their prior-period matrix FIRST (HSBC: the 2023

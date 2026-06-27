@@ -76,6 +76,15 @@ _PRIOR_RX    = re.compile(r'[OÖ]NCE(?:K[İI]|S[İI]?)?\s*D[OÖ]NEM|PRIOR\s*PERI
 _EQ_ANCHORS  = ("OZKAYNAKDEGISIM", "OZKAYNAKDEĞIŞIM", "CHANGESINSHAREHOLDERS",
                 "CHANGESINEQUITY", "STATEMENTOFCHANGES")
 _DASH_RUN_RX = re.compile(r'-{2,}')
+_YEAR_RX = re.compile(r'\b(20\d\d)\b')
+
+
+def _max_year(text: str) -> int | None:
+    """The latest 20xx year on the page. The current equity table closes on the
+    later period-end date, so when the CARİ/ÖNCEKİ markers are absent (ALNTF
+    prints bare date-keyed rows) the page with the larger max-year is current."""
+    yrs = _YEAR_RX.findall(text or '')
+    return max(int(y) for y in yrs) if yrs else None
 
 
 def _norm_dashes(line: str) -> str:
@@ -657,32 +666,45 @@ def _locate_equity_pages(pdf, pdf_path: str,
             if i - after_page > 12:
                 break
             continue
-        # period_type from the CARİ/ÖNCEKİ DÖNEM header on this (found) page.
-        # pdfplumber's column-flatten keeps the header line contiguous (the proven
-        # signal); on a poison PDF it returns None and we fall back to fitz's
-        # y-bucketed text. Reversed-order pages (GARAN/KUVEYT print prior then
-        # current) are mid-page-split and get their period reassigned downstream by
-        # _block1_period_for_split, so a header miss here is corrected later.
+        # period_type from the CARİ/ÖNCEKİ DÖNEM header. Check CURRENT first: the
+        # current page's header says "Cari Dönem" but its OPENING row usually reads
+        # "Önceki Dönem Sonu Bakiyesi" (the prior-period END = this table's
+        # opening), so a PRIOR-first test mislabels the current page as prior
+        # (TSKB). The prior page carries "Önceki Dönem" but never "Cari Dönem".
+        # Pages with NO period word at all (ALNTF prints bare date-keyed rows) stay
+        # None and are resolved by year below. (Mid-page-split single pages are
+        # reassigned downstream by _block1_period_for_split regardless.)
         ptext = _safe_repaired_text(pdf_path, i)
         if ptext is None:
             ptext = (_fitz_page_text(pdf_path, i - 1) if (_HAS_FITZ and pdf_path)
                      else (pdf.pages[i - 1].extract_text() or ''))
-        period_type = 'current'
-        if _PRIOR_RX.search(ptext):
-            period_type = 'prior'
-        elif _CURRENT_RX.search(ptext):
+        if _CURRENT_RX.search(ptext):
             period_type = 'current'
-        elif found:
-            # Second matched page defaults to prior
+        elif _PRIOR_RX.search(ptext):
             period_type = 'prior'
-        found.append((i, period_type))
+        else:
+            period_type = None
+        found.append((i, period_type, _max_year(ptext)))
         if len(found) == 2:
             break
-    # Enforce distinct period_types.  BRSA standard order: current then prior.
-    # If the detector assigned the same type to both pages (CARİ DÖNEM label
-    # absent from first page, present on second, etc.), fall back to positional.
-    if len(found) == 2 and found[0][1] == found[1][1]:
-        found = [(found[0][0], 'current'), (found[1][0], 'prior')]
+    # Resolve the two pages' period_types. Priority: (1) distinct markers as read;
+    # (2) the later period-end YEAR is current (covers marker-less, prior-first
+    # layouts like ALNTF); (3) one known marker → the other is its complement;
+    # (4) positional (BRSA standard current-then-prior).
+    if len(found) == 2:
+        (p0, t0, y0), (p1, t1, y1) = found
+        if t0 and t1 and t0 != t1:
+            return [(p0, t0), (p1, t1)]
+        if y0 is not None and y1 is not None and y0 != y1:
+            return [(p0, 'current' if y0 > y1 else 'prior'),
+                    (p1, 'current' if y1 > y0 else 'prior')]
+        if t0 or t1:
+            cur_is_0 = (t0 == 'current') or (t1 == 'prior')
+            return [(p0, 'current' if cur_is_0 else 'prior'),
+                    (p1, 'prior' if cur_is_0 else 'current')]
+        return [(p0, 'current'), (p1, 'prior')]
+    if len(found) == 1:
+        return [(found[0][0], found[0][1] or 'current')]
     return found
 
 
