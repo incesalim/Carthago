@@ -3,7 +3,8 @@
   "_updated": "2026-06-27",
   "_deferred": {
     "ISCTR": "IR 'earnings-presentation-webcast' page serves a single date-less 'latest' PDF (IsbankEarningsPresentation.pdf) — no period-stable historical URLs; revisit with the browser MCP.",
-    "HALKB/VAKBN/QNBFB/TSKB/ALBRK/SKBNK": "Not yet seeded — expand by fetching each IR 'Presentations' archive page (main manual cost of this lane)."
+    "VAKBN": "Deck URLs gathered from the IR earnings-presentations page, but vbassets.vakifbank.com.tr blocks automated requests (curl/requests time out) so the links can't be programmatically verified — add after a manual browser check.",
+    "QNBFB/ALBRK": "Not yet seeded — QNB's IR presentations path 404'd; Albaraka deck URLs contain apostrophes that are fragile to encode. Revisit."
   },
   "banks": {
     "GARAN": {
@@ -42,6 +43,44 @@
           "2025Q3": "https://www.yapikrediinvestorrelations.com/en/images/pdf/earning-presentation/2025/yapi_kredi_9m25_earnings_presentation.pdf",
           "2025Q4": "https://www.yapikrediinvestorrelations.com/en/images/pdf/earning-presentation/2025/yapi_kredi_2025_earnings_presentation.pdf",
           "2026Q1": "https://www.yapikrediinvestorrelations.com/en/images/pdf/earning-presentation/2026/yapi_kredi_1q26_earnings_presentation.pdf"
+        }
+      }
+    },
+    "HALKB": {
+      "name": "Türkiye Halk Bankası A.Ş.",
+      "ir_page": "https://www.halkbank.com.tr/en/investor-relations/financial-information/presentations",
+      "urls": {
+        "presentation": {
+          "2025Q1": "https://www.halkbank.com.tr/content/dam/corporate-website/en/documents/investor-relations/earnings-presentation/2025/HALKB-Q1-25-ENG.pdf",
+          "2025Q2": "https://www.halkbank.com.tr/content/dam/corporate-website/en/documents/investor-relations/earnings-presentation/2025/halkb_q2_25_eng%20_copy.pdf",
+          "2025Q3": "https://www.halkbank.com.tr/content/dam/corporate-website/en/documents/investor-relations/earnings-presentation/2025/halkb_q3_25_eng.pdf",
+          "2025Q4": "https://www.halkbank.com.tr/content/dam/corporate-website/en/documents/investor-relations/earnings-presentation/2025/HALKB_Q4_25_ENG_.pdf",
+          "2026Q1": "https://www.halkbank.com.tr/content/dam/corporate-website/en/documents/investor-relations/earnings-presentation/2026/HALKB_Q1_26_.pdf"
+        }
+      }
+    },
+    "TSKB": {
+      "name": "Türkiye Sınai Kalkınma Bankası A.Ş.",
+      "ir_page": "https://www.tskb.com.tr/en/investor-relations/presentations",
+      "urls": {
+        "presentation": {
+          "2025Q1": "https://www.tskb.com.tr/uploads/file/tskb-earnings-presentation-1q25.pdf",
+          "2025Q2": "https://www.tskb.com.tr/uploads/file/tskb-earnings-presentation-2q25.pdf",
+          "2025Q3": "https://www.tskb.com.tr/uploads/file/tskb-earnings-presentation-3q25-final-son.pdf",
+          "2025Q4": "https://www.tskb.com.tr/uploads/file/tskb-earnings-presentation-4q25.pdf",
+          "2026Q1": "https://www.tskb.com.tr/uploads/file/tskb-earnings-presentation-1q26.pdf"
+        }
+      }
+    },
+    "SKBNK": {
+      "name": "Şekerbank T.A.Ş.",
+      "ir_page": "https://www.sekerbank.com.tr/en/about-us/investor-relations/ir-presentation",
+      "urls": {
+        "presentation": {
+          "2025Q1": "https://cdn.sekerbank.com.tr/uploads/1/304/89843aa5-fdbc-4602-8de4-cb010757aa40.pdf",
+          "2025Q3": "https://cdn.sekerbank.com.tr/uploads/229/Sekerbank-IR-Presentation_3Q25_EN.pdf",
+          "2025Q4": "https://cdn.sekerbank.com.tr/uploads/1/304/2c9d949f-dc8e-418c-b747-b3b9e9191a10.pdf",
+          "2026Q1": "https://cdn.sekerbank.com.tr/uploads/1/304/a2dbadce-7f96-4217-8dbf-74fb52aa9b8c.pdf"
         }
       }
     }
