@@ -167,7 +167,15 @@ def _parse_ratio(tok: str) -> float | None:
     if "," in t and "." not in t:
         t = t.replace(",", ".")            # 16,79 -> 16.79
     elif "," in t and "." in t:
-        t = t.replace(",", "")             # 1,016.79 -> 1016.79 (EN thousands)
+        # Both separators present: the RIGHTMOST one is the decimal separator.
+        # A ratio can exceed 1000 (an FC LCR of "1.158,00" = 1158.00%), so the
+        # format must be inferred, not assumed EN — blindly stripping commas read
+        # TR "1.158,00" as 1.158 (the FIBA lcr_fc bug). TR "1.158,00" (comma last)
+        # -> drop "." then ",→."; EN "1,016.79" (dot last) -> drop ",".
+        if t.rfind(",") > t.rfind("."):
+            t = t.replace(".", "").replace(",", ".")  # 1.158,00 -> 1158.00
+        else:
+            t = t.replace(",", "")                     # 1,016.79 -> 1016.79
     try:
         return float(t)
     except ValueError:

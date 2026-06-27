@@ -202,13 +202,19 @@ def _statement_total(rows: list[dict]) -> tuple[float | None, float | None]:
             if total_row is None or abs(r["amount_total"]) > abs(total_row):
                 total_row = r["amount_total"]
     romans = [r for r in rows if (p := _path(r.get("hierarchy"))) is not None and len(p) == 1]
-    # one row per roman ordinal (duplicates would double-count)
+    # one row per roman ordinal (duplicates would double-count). On a collision
+    # keep the LARGER-magnitude contribution: a stray page-header / bank-name row
+    # captured with a numeric hierarchy ("5", amount 0) must not displace the real
+    # section it shares an ordinal with — the ISCTR 2025Q4 off_balance case, where
+    # a header read as hierarchy "5" hid section V (5.97bn) from the roman sum.
     seen: dict[int, float] = {}
     for r in romans:
         amt = _contribution(r)
         if amt is None:
             continue
-        seen.setdefault(_path(r["hierarchy"])[0], amt)
+        ordn = _path(r["hierarchy"])[0]
+        if ordn not in seen or abs(amt) > abs(seen[ordn]):
+            seen[ordn] = amt
     roman_sum = sum(seen.values()) if seen else None
     return total_row, roman_sum
 

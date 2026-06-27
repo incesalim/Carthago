@@ -3,7 +3,28 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-06-27 — **Fixed the pinned header colliding with the per-bank section-nav.**
+Last verified: 2026-06-27 — **Audit data-integrity sweep: drove the non-equity anomaly backlog to 0.**
+`check_audit_quality.py` flagged 374 anomalies; 343 are the known-open `equity_change` vertical-chain tail (left
+as-is), and the remaining **31 non-equity ones were root-caused and fixed end-to-end** (D1 + R2). Five distinct
+bugs: **(1) `_parse_ratio` TR-thousands** — `1.158,00` (an FC LCR of 1158%) was read as `1.158` because the parser
+assumed EN format when both separators were present; now the rightmost separator is the decimal (fixed FIBA `lcr_fc`
+2024Q1/Q2, 3 partitions). **(2) capital CAR-reconcile was forbearance-blind** — banks publishing a BDDK
+transitional-adjusted CAR (ATBANK: printed capital/RWA 17.35% ≠ reported 18.92%) false-failed the `tc/RWA==CAR`
+check every quarter (8 partitions); replaced with a reported-ratios-mutually-consistent check (the RWA each implies
+must agree) at an 8% band, which tolerates forbearance but still catches column-slips. **(3) `npl_movement` opening
+dropped** — BURGAN-cons "Ending Balance of Prior Period", EXIM "Balance at the End of the Previous Period", ODEA
+date-glued "31 Aralık 2021Bakiyesi", and QNBFB's closing/provision + transfers_in label-wraps were unmatched, so the
+roll-forward couldn't tie (14 partitions); added the label variants + extended the wrapped-label merge + relaxed the
+date regex. **(4) `_statement_total` roman-ordinal collision** — a stray bank-name header captured as hierarchy `5`
+displaced the real section V from ISCTR 2025Q4 off_balance's Σromans; now the larger-magnitude row per ordinal wins.
+**(5) curated overrides** for EMLAK 2022Q1 AT1 (dropped Türkiye-Varlık-Fonu instrument), EMLAK 2025Q1 capital
+column-slip (RWA read into total_capital), ATBANK 2025Q4 off_balance dropped section I, EMLAK 2022Q4 off_balance
+mis-captured grand total — all PDF-verified. Also hardened `apply_overrides` to match BS rows
+trailing-dot-insensitively (`rtrim`), fixing a latent phantom-duplicate (EXIM 2024Q4 `1.3.2.` vs normalized `1.3.2`)
+that double-counted on re-apply. All five verified against a fresh prod snapshot (0 non-equity anomalies, no
+collateral) before the live push; +13 guard tests.
+
+Prior: 2026-06-27 — **Fixed the pinned header colliding with the per-bank section-nav.**
 The 2026-06-26 header pin (below) made `PageHeader` sticky at `lg:top-0`, but `/banks/[ticker]` already pins its
 in-page section-nav (`BankSectionNav`) at `lg:top-0` (z-30) — so on scroll both grabbed the same slot and the
 higher-z nav painted over the top of the header, clipping the ticker eyebrow + bank-name title. Now the header and

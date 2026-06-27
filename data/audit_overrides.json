@@ -78,12 +78,12 @@
    "period": "2024Q4",
    "kind": "unconsolidated",
    "statement": "assets",
-   "hierarchy": "1.3.2.",
+   "hierarchy": "1.3.2",
    "item_name": "Equity Securities",
    "amount_tl": 796469,
    "amount_fc": 3875399,
    "amount_total": 4671868,
-   "note": "source TL typo 746.469→796.469; forced by parent 1.3 TL (9.310.241+x=10.106.710) and row total 4.671.868-FC 3.875.399"
+   "note": "source TL typo 746.469→796.469; forced by parent 1.3 TL (9.310.241+x=10.106.710) and row total 4.671.868-FC 3.875.399 [hierarchy de-dotted to match normalized key]"
   },
   {
    "bank_ticker": "EXIM",
@@ -2236,6 +2236,62 @@
     "additional_tier1_capital": 3816000
    },
    "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+  },
+  {
+   "bank_ticker": "EMLAK",
+   "period": "2022Q1",
+   "kind": "consolidated",
+   "statement": "capital",
+   "fields": {
+    "additional_tier1_capital": 2862707
+   },
+   "note": "AT1 (Türkiye Varlık Fonu vadesiz/kâr-paysız ilave ana sermaye) dropped; Tier1=CET1+AT1 reconciles 2,169,272+2,862,707=5,031,979; ratios pass"
+  },
+  {
+   "bank_ticker": "EMLAK",
+   "period": "2022Q1",
+   "kind": "unconsolidated",
+   "statement": "capital",
+   "fields": {
+    "additional_tier1_capital": 2862707
+   },
+   "note": "AT1 dropped; Tier1=CET1+AT1 reconciles 2,195,806+2,862,707=5,058,513"
+  },
+  {
+   "bank_ticker": "EMLAK",
+   "period": "2025Q1",
+   "kind": "consolidated",
+   "statement": "capital",
+   "fields": {
+    "total_capital": 28781229,
+    "total_rwa": 125508698
+   },
+   "note": "column-slip: RWA 125,508,698 read into total_capital, total_rwa NULLed; ÖZKAYNAK=28,781,229; 28,781,229/125,508,698=22.93%=reported CAR"
+  },
+  {
+   "bank_ticker": "ATBANK",
+   "period": "2025Q4",
+   "kind": "unconsolidated",
+   "statement": "off_balance",
+   "hierarchy": "I.",
+   "item_name": "GARANTİ VE KEFALETLER",
+   "item_order": 2,
+   "amount_tl": 4665882,
+   "amount_fc": 23925389,
+   "amount_total": 28591271,
+   "note": "roman section I dropped (only A. parent + 1.x children captured); restores Σromans=32,640,859=total"
+  },
+  {
+   "bank_ticker": "EMLAK",
+   "period": "2022Q4",
+   "kind": "unconsolidated",
+   "statement": "off_balance",
+   "hierarchy": "",
+   "item_name": "BİLANÇO DIŞI HESAPLAR TOPLAMI",
+   "amount_tl": 343115512,
+   "amount_fc": 44595042,
+   "amount_total": 387710554,
+   "note": "grand-total row mis-captured (83,366,097 = two wrong cols summed); source TP 343,115,512 / YP 44,595,042 / Toplam 387,710,554 = Σromans"
   }
  ]
 }

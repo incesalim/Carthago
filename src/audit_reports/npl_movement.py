@@ -54,6 +54,15 @@ _ROW_LABELS: list[tuple[str, str]] = [
     ("prior period ending balance", "opening_balance"),
     ("prior period end balance", "opening_balance"),
     ("balances at end of prior period", "opening_balance"),
+    # BURGAN (consolidated, English) opens with "Ending Balance of Prior Period";
+    # EXIM (English) opens with "Balance at the End of the Previous Period". Both
+    # were unmatched → the block started on Additions (opening_balance NULL) while
+    # the closing "Balance at the End of the Period" still matched, so the
+    # roll-forward couldn't tie. The EXIM phrase is LONGER than the closing
+    # "balance at the end of the period" and they diverge at "previous" vs
+    # "period", so longest-first matching keeps the two distinct.
+    ("balance at the end of the previous period", "opening_balance"),
+    ("ending balance of prior period", "opening_balance"),
     # EXIM (English convenience translation) opens the roll-forward with
     # "Balance at the Beginning of the Period" — distinct from the closing
     # "Balance at the End of the Period" (below). Without it the opening row
@@ -129,14 +138,19 @@ _ROW_LABELS: list[tuple[str, str]] = [
     ("kur değişiminin etkisi", "fx_diff"),
     ("kur farkları", "fx_diff"),
     ("kur farkı", "fx_diff"),
-    # Provision
+    # Provision. BURGAN (English) heads the row "Specific Provision (-)", which
+    # doesn't START with "provision" so the generic prefixes missed it (provision
+    # column NULL); listed first for longest-match priority.
+    ("specific provisions (-)", "provision"),
+    ("specific provision (-)", "provision"),
     ("provisions (-)", "provision"),
     ("provision (-)", "provision"),
     ("karşılık (-)", "provision"),
     ("provisions", "provision"),
     ("provision", "provision"),
     ("karşılık", "provision"),
-    # Net balance
+    # Net balance. QNBFB pluralises it ("Net Balances on Balance Sheet").
+    ("net balances on balance sheet", "net_balance"),
     ("net balance on balance sheet", "net_balance"),
     ("net balance at the balance sheet", "net_balance"),
     # AKBNK (English) wording; EXIM wording ("Net Balance Sheet Amount"). These
@@ -231,7 +245,10 @@ _EN_MONTHS = (
 _DATE_BALANCE_RX = re.compile(
     rf"^\(?(?:\d{{1,2}}\s+(?:{_TR_MONTHS}|{_EN_MONTHS})\s+\d{{4}}|"
     rf"\d{{1,2}}[./]\d{{1,2}}[./]\d{{4}})"
-    r"(?:\s+bakiyesi|\s+balance)?\b",
+    # ODEA glues the word to the year with no space ("31 Aralık 2021Bakiyesi"), so
+    # the suffix space is optional (\s*); without it the \b after \d{4} fell
+    # between "1" and "B" (both word chars → no boundary) and the row was missed.
+    r"(?:\s*bakiyesi|\s*balance)?\b",
     re.IGNORECASE,
 )
 
@@ -325,14 +342,30 @@ def _merge_wrapped_labels(lines: list[str]) -> list[str]:
                 and not re.search(r"\d", cur_s)
                 and _TRANSFER_WRAP_HEAD_RX.search(cur_s)):
             nxt = lines[i + 1].strip()
-            # The numbers are on the next line — either a "Loans (…) <nums>"
-            # continuation (BURGAN) or a bare 3-number line (AKBNK).
+            # The numbers are on the next line — a "Loans (…) <nums>" continuation
+            # (BURGAN), a "Performing Loans (…) <nums>" continuation when the head
+            # split mid-word at "Non-|Performing" (QNBFB transfers_in), or a bare
+            # 3-number line (AKBNK).
             if _THREE_NUMS_TAIL.search(nxt) and (
-                    re.match(r"^loans?\b", nxt, re.IGNORECASE)
+                    re.match(r"^(?:performing\s+)?loans?\b", nxt, re.IGNORECASE)
                     or _THREE_NUMS_TAIL.match(nxt)):
                 out.append(cur_s + " " + nxt)
                 i += 2
                 continue
+        # A closing / provision / net balance label whose numbers wrapped to the
+        # NEXT line (QNBFB 2025Q3: "Current Period End Balance\n7,875,160 …",
+        # "Provision (-)\n5,721,521 …") — the label row carried no figures so the
+        # closing/provision/net columns were dropped (npl_movement_balance_missing).
+        # Scoped to those three keys (NOT opening — a numberless "Prior Period"
+        # head merged onto the restructured-loans sub-table corrupts GARAN/TSKB),
+        # and the next line must be PURELY the three numbers.
+        if (i + 1 < len(lines)
+                and not re.search(r"\d", cur_s)
+                and _match_row_label(cur_s) in {"closing_balance", "provision", "net_balance"}
+                and _THREE_NUMS_TAIL.match(lines[i + 1].strip())):
+            out.append(cur_s + " " + lines[i + 1].strip())
+            i += 2
+            continue
         out.append(cur)
         i += 1
     return out

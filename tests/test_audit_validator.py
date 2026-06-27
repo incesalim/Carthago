@@ -92,6 +92,21 @@ def test_statement_total_mismatch_fails():
     assert any(f["check"] == "statement_total" for f in res.failures)
 
 
+def test_statement_total_spurious_dup_ordinal_does_not_hide_section():
+    """A stray page-header row captured with a numeric hierarchy ('5', amount 0)
+    shares ordinal 5 with the real section V — the larger contribution must win so
+    V isn't dropped from Σromans (the ISCTR 2025Q4 off_balance false positive)."""
+    rows = [
+        _row("I.", "GUARANTEES", 0, 0, 100),
+        _row("5", "BANK NAME A.Ş. UNCONSOLIDATED STATEMENT", 0, 0, 0),  # stray header
+        _row("V.", "PLEDGED ITEMS", 0, 0, 600),
+        _row("", "TOTAL OFF-BALANCE (A+B)", 0, 0, 700),
+    ]
+    total, romans = v._statement_total(rows)
+    assert (total, romans) == (700_000, 700_000)  # 100 (I) + 600 (V), header ignored
+    assert v.check_statement_total(rows).failed == 0
+
+
 def test_cross_statement():
     a = [_row("", "TOTAL ASSETS", 60, 40, 100)]
     li_ok = [_row("", "TOTAL LIABILITIES AND EQUITY", 60, 40, 100)]
