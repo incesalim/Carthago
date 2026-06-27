@@ -2,9 +2,8 @@
   "_doc": "Per-bank quarterly investor/earnings presentation deck PDFs from IR sites. Mirrors audit_report_urls.json but single-kind ('presentation'). Static URLs ARE the shipped data; for banks in src/earnings/presentations.PRESENTATION_BANKS the IR page is additionally scanned to auto-discover newer quarters (validated by scripts/diagnostics/validate_presentation_discovery.py). Period keys are 'YYYYQn' (Turkish interim decks are cumulative: 1H=Q2, 9M=Q3, full-year=Q4).",
   "_updated": "2026-06-27",
   "_deferred": {
-    "ISCTR": "IR 'earnings-presentation-webcast' page serves a single date-less 'latest' PDF (IsbankEarningsPresentation.pdf) — no period-stable historical URLs; revisit with the browser MCP.",
-    "VAKBN": "Deck URLs gathered from the IR earnings-presentations page, but vbassets.vakifbank.com.tr blocks automated requests (curl/requests time out) so the links can't be programmatically verified — add after a manual browser check.",
-    "QNBFB/ALBRK": "Not yet seeded — QNB's IR presentations path 404'd; Albaraka deck URLs contain apostrophes that are fragile to encode. Revisit."
+    "ICBCT": "ICBC Turkey — no public English IR earnings-presentation archive found; the only listed bank without a seed.",
+    "_note": "All other listed banks seeded (10 banks). GARAN/AKBNK/YKBNK auto-discover newer quarters via PRESENTATION_BANKS; the rest are static (heterogeneous/opaque filenames — QNB .vsf, Albaraka apostrophes, İşbank JS dropdown — or per-quarter naming that drifts), so add new quarters by hand. All URLs browser-verified 200/206 on 2026-06-27."
   },
   "banks": {
     "GARAN": {
@@ -81,6 +80,57 @@
           "2025Q3": "https://cdn.sekerbank.com.tr/uploads/229/Sekerbank-IR-Presentation_3Q25_EN.pdf",
           "2025Q4": "https://cdn.sekerbank.com.tr/uploads/1/304/2c9d949f-dc8e-418c-b747-b3b9e9191a10.pdf",
           "2026Q1": "https://cdn.sekerbank.com.tr/uploads/1/304/a2dbadce-7f96-4217-8dbf-74fb52aa9b8c.pdf"
+        }
+      }
+    },
+    "VAKBN": {
+      "name": "Türkiye Vakıflar Bankası T.A.O.",
+      "ir_page": "https://www.vakifbank.com.tr/en/investor-relations/earnings-presentations",
+      "urls": {
+        "presentation": {
+          "2025Q1": "https://www.vakifbank.com.tr/documents/investor-relations/earnings%20presentation/1q25-earnings-presentation.pdf",
+          "2025Q2": "https://www.vakifbank.com.tr/documents/investor-relations/earnings%20presentation/1h25-earning-presentation.pdf",
+          "2025Q3": "https://www.vakifbank.com.tr/documents/investor-relations/earnings%20presentation/ep_brsa_3q25.pdf",
+          "2025Q4": "https://www.vakifbank.com.tr/documents/investor-relations/earnings%20presentation/vakifbank-4q25-earnings-presentation.pdf",
+          "2026Q1": "https://www.vakifbank.com.tr/documents/investor-relations/earnings%20presentation/1q26-earnings-presentation.pdf"
+        }
+      }
+    },
+    "QNBFB": {
+      "name": "QNB Bank A.Ş.",
+      "ir_page": "https://www.qnb.com.tr/en/investor-relations/financial-information",
+      "urls": {
+        "presentation": {
+          "2025Q1": "https://www.qnb.com.tr/medium/document-file-4258.vsf",
+          "2025Q2": "https://www.qnb.com.tr/medium/document-file-4338.vsf",
+          "2025Q3": "https://www.qnb.com.tr/medium/document-file-4502.vsf",
+          "2025Q4": "https://www.qnb.com.tr/medium/document-file-4507.vsf",
+          "2026Q1": "https://www.qnb.com.tr/medium/document-file-4600.vsf"
+        }
+      }
+    },
+    "ALBRK": {
+      "name": "Albaraka Türk Katılım Bankası A.Ş.",
+      "ir_page": "https://www.albaraka.com.tr/en/investor-relations/financial-information/presentations",
+      "urls": {
+        "presentation": {
+          "2025Q2": "https://www.albaraka.com.tr/documents/yatirimci-iliskileri/sunumlar/albaraka-turk-investor-presentation-h1'2025.pdf",
+          "2025Q3": "https://www.albaraka.com.tr/documents/yatirimci-iliskileri/sunumlar/2025/albaraka-turk-investor-presentation-q3''25.pdf",
+          "2025Q4": "https://www.albaraka.com.tr/documents/yatirimci-iliskileri/sunumlar/2026-2031/albaraka-turk-investor-presentation-2025_q4.pdf",
+          "2026Q1": "https://www.albaraka.com.tr/documents/yatirimci-iliskileri/sunumlar/2026-2031/albaraka-turk-investor-presentation-q1'26-end-final.pdf"
+        }
+      }
+    },
+    "ISCTR": {
+      "name": "Türkiye İş Bankası A.Ş.",
+      "ir_page": "https://www.isbank.com.tr/en/about-us/earnings-presentation-webcast",
+      "urls": {
+        "presentation": {
+          "2025Q1": "https://www.isbank.com.tr/contentmanagement/IsbankEarnings/pdf/IsbankEarningsPresentation1Q2025.pdf",
+          "2025Q2": "https://www.isbank.com.tr/contentmanagement/IsbankEarnings/pdf/IsbankEarningsPresentation2Q2025.pdf",
+          "2025Q3": "https://www.isbank.com.tr/contentmanagement/IsbankEarnings/pdf/IsbankEarningsPresentation3Q2025.pdf",
+          "2025Q4": "https://www.isbank.com.tr/contentmanagement/IsbankEarnings/pdf/IsbankEarningsPresentation4Q2025.pdf",
+          "2026Q1": "https://www.isbank.com.tr/contentmanagement/IsbankEarnings/pdf/IsbankEarningsPresentation1Q2026.pdf"
         }
       }
     }
