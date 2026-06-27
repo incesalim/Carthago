@@ -40,6 +40,7 @@ AUDIT_TABLES = [
     "bank_audit_credit_quality",
     "bank_audit_profile", "bank_audit_loans_by_sector", "bank_audit_npl_movement",
     "bank_audit_stages", "bank_audit_capital", "bank_audit_liquidity",
+    "bank_audit_fx_position", "bank_audit_repricing",
     "bank_audit_validation", "bank_audit_extractions",
 ]
 # Window passed to push_to_d1; the D1 partition-clear derives the same

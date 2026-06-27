@@ -38,12 +38,14 @@ import { earningsByTicker, kindLabel } from "@/app/lib/earnings";
 import { bankOwnership } from "@/app/lib/kap";
 import { heatmapPanel } from "@/app/lib/heatmap";
 import { marketSharePanel, bankShareSeries } from "@/app/lib/market-share";
+import { fxByCurrency, repricingLadder } from "@/app/lib/market-risk";
 import { bistValuation, bistPriceHistory } from "@/app/lib/bist";
 import { liveQuotes, applyLivePrice, formatAsOf } from "@/app/lib/bist-live";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
 import BankCard from "./BankCard";
 import BankSectionNav from "./BankSectionNav";
 import ProfitabilitySection from "./ProfitabilitySection";
+import MarketRiskSection from "./MarketRiskSection";
 import OwnershipCard from "@/app/components/OwnershipCard";
 import OwnershipRadial from "@/app/components/OwnershipRadial";
 import PlSankeySection from "./PlSankeySection";
@@ -242,7 +244,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
     return o != null && o >= floorOrd && latestOrd != null && o <= latestOrd;
   });
 
-  const [bsPivot, bsNames, plPivot, plRows, cfPivot, kapItems, profile, stages, validation, ownership, valuationBase, priceHistory, liveMap, heatmap, sharePanel, earnings] =
+  const [bsPivot, bsNames, plPivot, plRows, cfPivot, kapItems, profile, stages, validation, ownership, valuationBase, priceHistory, liveMap, heatmap, sharePanel, earnings, fxCcy, repLadder] =
     await Promise.all([
       balanceSheetMultiPeriod(ticker, kind, queryPeriods),
       balanceSheetLineNames(ticker, kind, periods),
@@ -265,6 +267,8 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
       heatmapPanel(kind),
       marketSharePanel(kind),
       earningsByTicker(ticker, 24),
+      fxByCurrency(kind, ticker),
+      repricingLadder(kind, ticker),
     ]);
 
   // Profitability & margins section inputs — this bank's rows, oldest→newest.
@@ -279,6 +283,10 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
       perfLatest.roe, perfLatest.nim, perfLatest.loan_yield, perfLatest.deposit_cost,
       perfLatest.spread, perfLatest.cost_of_risk, perfLatest.ppop_ratio, perfLatest.cost_income,
     ].some((v) => v != null);
+  // Market-risk (CAMELS S) section inputs.
+  const hasMarketRisk =
+    (!!perfLatest && (perfLatest.fx_nop != null || perfLatest.repricing_gap_1y != null)) ||
+    fxCcy.length > 0 || repLadder.data.length > 0;
 
   // Overlay the latest (delayed) Yahoo price on the stored valuation; if the
   // live fetch returned nothing, keep the stored EOD figures untouched.
@@ -418,6 +426,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   const navSections = [
     { id: "overview", label: "Overview" },
     ...(hasPerf ? [{ id: "performance", label: "Performance" }] : []),
+    ...(hasMarketRisk ? [{ id: "market-risk", label: "Market Risk" }] : []),
     { id: "financials", label: "Financials" },
     ...(hasOwnership ? [{ id: "ownership", label: "Ownership" }] : []),
     ...(earnings.length > 0 ? [{ id: "earnings", label: "Earnings" }] : []),
@@ -526,6 +535,14 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
       {hasPerf && (
         <div id="performance" className="scroll-mt-24 mb-8">
           <ProfitabilitySection rows={perfRows} shareRows={shareRows} />
+        </div>
+      )}
+
+      {/* ── Market risk (CAMELS S) ────────────────────────────────────────
+          FX net open position + interest-rate repricing gap from §4 footnotes. */}
+      {hasMarketRisk && (
+        <div id="market-risk" className="scroll-mt-24 mb-8">
+          <MarketRiskSection rows={perfRows} fxCcy={fxCcy} ladder={repLadder} />
         </div>
       )}
 

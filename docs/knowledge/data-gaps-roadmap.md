@@ -29,13 +29,27 @@ All on a **TTM / 5-point-average-balance** basis (matching the ROE convention,
 not the BDDK aggregate — same source for numerator and denominator avoids the
 audit-vs-bulletin unit/timing mismatch and the bank-type double-count trap.
 
+## Tier A.2 — SHIPPED 2026-06-27 (the §4 market-risk lane, formerly Tier B)
+
+The two market-risk gaps below were the dashboard audit's **P0** (CAMELS "S"
+unhomed). Both are now deterministic per-bank extractors in the audit lane,
+surfaced on the new `/market-risk` tab (spine S8).
+
+| Metric | Table / extractor | Definition |
+|---|---|---|
+| FX net open position | `bank_audit_fx_position` / `src/audit_reports/fx_position.py` | §4 currency-risk footnote, per currency (EUR/USD/OTHER/TOTAL); net_position = net_on_balance + net_off_balance. ~99% coverage. |
+| Interest-rate repricing gap | `bank_audit_repricing` / `src/audit_reports/repricing.py` | §4 interest-rate-risk footnote, per bucket (lt_1m…gt_5y/non_sensitive/total); gap = reported total position, cumulative_gap derived. ~81% coverage (participation banks omit). |
+
+Footing identities validated in `validator.py` (`check_fx_position` /
+`check_repricing`). The original Tier-B scoping is kept below for history.
+
 ## Tier B — GROUNDWORK ONLY (needs new extraction from reports we already ingest)
 
 The data lives in the quarterly BRSA PDFs but in **narrative §4 footnote tables**
 currently dumped unstructured into `other_data`. Deterministic extractors only
 (pdfplumber/fitz anchors — no LLM, per `feedback_extractors_no_api`).
 
-### FX net open position (`fx_net_open_position`)
+### FX net open position (`fx_net_open_position`) — ✅ SHIPPED (see Tier A.2)
 - **Why it matters:** the single biggest risk lens for TR banks; dollarization +
   the regulatory NOP limit. We hold the TL/FC split of *stocks* but not the *net*
   position (on + off balance, net of FX derivatives).
@@ -51,7 +65,7 @@ currently dumped unstructured into `other_data`. Deterministic extractors only
 - **Effort/risk:** medium. Table layout varies (per-currency columns vs rows);
   participation banks word it differently. Wire into `reextract_statement.py`.
 
-### Interest-rate repricing / maturity gap (`repricing_gap`)
+### Interest-rate repricing / maturity gap (`repricing_gap`) — ✅ SHIPPED (see Tier A.2)
 - **Why it matters:** asset-liability mismatch — how a rate move repriced the book;
   the duration story behind NIM moves.
 - **Source:** §4 interest-rate-risk footnote (faize duyarlılık) + the liquidity

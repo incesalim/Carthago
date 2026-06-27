@@ -458,6 +458,10 @@ class BankReport:
     # liquidity.py) carrying rows + source_page; persisted by upsert_report.
     capital: object = None
     liquidity: object = None
+    # §4 market-risk (CAMELS "S") — full report objects (fx_position.py /
+    # repricing.py) carrying rows + source_page; persisted by upsert_report.
+    fx_position: object = None
+    repricing: object = None
     # Cash flow statement — single-column like OCI (current period only).
     cash_flow: list[StatementRow] = field(default_factory=list)
     # Statement of changes in equity — wide BRSA template, two pages.
@@ -1291,6 +1295,19 @@ def extract(pdf_path: str | Path, only: set[str] | None = None) -> BankReport:
                 rep.liquidity = _extract_liq(pdf, pdf_path)
             except Exception:
                 rep.liquidity = None
+        # §4 market-risk: FX net open position + interest-rate repricing gap.
+        if _want('fx_position'):
+            try:
+                from .fx_position import extract_from_pdf as _extract_fx
+                rep.fx_position = _extract_fx(pdf, pdf_path)
+            except Exception:
+                rep.fx_position = None
+        if _want('repricing'):
+            try:
+                from .repricing import extract_from_pdf as _extract_rp
+                rep.repricing = _extract_rp(pdf, pdf_path)
+            except Exception:
+                rep.repricing = None
         loc = _locate_pages(pdf)
         if 'bs_assets' in loc and _want('bs_assets'):
             for order, (label, vals) in enumerate(_parse_page(pdf_path, loc['bs_assets'], 6), 1):
