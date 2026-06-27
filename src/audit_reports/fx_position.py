@@ -34,9 +34,11 @@ import sqlite3
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import pdfplumber
-
 from .extractor import _HAS_FITZ, parse_num
+
+# fitz-only: the §4 currency-risk table is a single narrow footnote — fitz word
+# clustering reads it faithfully and is far cheaper than pdfplumber per page,
+# which adds no accuracy here (per the project's per-statement engine strategy).
 
 # A numeric token (TR/EN, parenthesised negatives, leading/trailing %): mirrors
 # capital_adequacy._NUM_TOKEN. Nil dashes are kept as 0.0 (parse_num maps them).
@@ -149,7 +151,9 @@ def _label(tokens: list[tuple[float, str]]) -> str:
     return " ".join(t for _, t in tokens).strip()
 
 
-def extract_from_pdf(pdf: pdfplumber.PDF, pdf_path: str = "") -> FxReport:
+def extract_from_pdf(pdf: object = None, pdf_path: str = "") -> FxReport:
+    # `pdf` (a pdfplumber handle) is accepted for signature parity with the audit
+    # lane but unused — parsing is fitz-only via pdf_path.
     rep = FxReport(pdf_path=pdf_path)
     if not pdf_path or not _HAS_FITZ:
         return rep
@@ -220,9 +224,7 @@ def extract_from_pdf(pdf: pdfplumber.PDF, pdf_path: str = "") -> FxReport:
 
 
 def extract(pdf_path: str | Path) -> FxReport:
-    pdf_path = str(pdf_path)
-    with pdfplumber.open(pdf_path) as pdf:
-        return extract_from_pdf(pdf, pdf_path)
+    return extract_from_pdf(None, str(pdf_path))
 
 
 # ---------------------------------------------------------------------------
