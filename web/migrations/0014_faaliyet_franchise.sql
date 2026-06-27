@@ -1,8 +1,9 @@
 -- 0014_faaliyet_franchise
 -- Faaliyet Raporları (bank annual / activity reports) franchise lane — deterministic
--- pdfplumber/fitz extraction of franchise & operational statistics (branch /
--- employee / ATM / POS / merchant / customer / card counts) for the audited-bank
--- universe. Separate lane from bank_audit_* (BS/P&L are frozen). Mirrors
+-- pdfplumber/fitz extraction of the operational statistics the audited statements
+-- do NOT carry (ATM / POS / merchant / customer / card counts) for the audited-bank
+-- universe. Branches & employees stay in bank_audit_profile (the audit lane), not
+-- here. Separate lane from bank_audit_* (BS/P&L are frozen). Mirrors
 -- src/faaliyet/schema.py exactly (minus the staging-only faaliyet_fetch_log);
 -- composite PRIMARY KEYs match the SQLite staging tables so push_to_d1's
 -- INSERT OR REPLACE conflict-detection behaves identically. Idempotent.
@@ -10,9 +11,8 @@
 CREATE TABLE IF NOT EXISTS faaliyet_franchise (
     bank_ticker  TEXT NOT NULL,
     fiscal_year  INTEGER NOT NULL,                 -- FY ending 31 Dec
-    metric_key   TEXT NOT NULL,                    -- branch_total/_domestic/_foreign,
-                                                   -- employee_count, atm_count, pos_count,
-                                                   -- merchant_count, customer_total/_active/_digital,
+    metric_key   TEXT NOT NULL,                    -- atm_count, pos_count, merchant_count,
+                                                   -- customer_total/_active/_digital,
                                                    -- cards_credit/_debit/_total
     period_type  TEXT NOT NULL DEFAULT 'current',  -- 'current' | 'prior'
     value        REAL,                             -- numeric value in `unit`
