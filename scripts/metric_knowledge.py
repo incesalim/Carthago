@@ -47,7 +47,7 @@ ENUMS: dict[str, set[str]] = {
     "cadence": {"daily", "weekly", "monthly", "quarterly", "annual", "adhoc", "none"},
     "reproducible": {"direct", "derived", "partial", "no"},
     "source_datasets": {"bank_audit", "bddk_monthly", "bddk_weekly", "evds",
-                        "tbb_digital", "external", "none"},
+                        "tbb_digital", "faaliyet", "external", "none"},
     "frameworks": {"basel_iii", "ifrs9", "tfrs", "brsa", "market", "management", "none"},
     "nonstandard_reasons": {"definition_varies", "window_varies", "peer_set_varies",
                             "methodology_varies", "provider_varies", "cadence_irregular",

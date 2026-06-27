@@ -7,7 +7,7 @@
     "cadence": "daily | weekly | monthly | quarterly | annual | adhoc | none",
     "standard_across_banks": "true if comparable like-for-like across banks; false if each bank defines it differently",
     "reproducible": "direct (stored field) | derived (formula over stored fields) | partial (approx / wrong level or cadence) | no",
-    "source_datasets": "bank_audit | bddk_monthly | bddk_weekly | evds | tbb_digital | external | none",
+    "source_datasets": "bank_audit | bddk_monthly | bddk_weekly | evds | tbb_digital | faaliyet | external | none",
     "structure": "formula = math expression; frameworks = basel_iii|ifrs9|tfrs|brsa|market|management|none; decomposes_into / related = metric-id links (reproducible_from_audit is derived by scripts/metric_knowledge.py)",
     "nonstandard_reasons": "definition_varies | window_varies | peer_set_varies | methodology_varies | provider_varies | cadence_irregular | scope_varies | not_disclosed — WHY a metric isn't comparable like-for-like across banks (when standard_across_banks is false)",
     "disclosure_channels": "investor_deck | earnings_press | sustainability_report | annual_report | kap | third_party | regulatory | none — where the metric tends to be published",
@@ -3090,9 +3090,9 @@
       "availability": "voluntary",
       "cadence": "adhoc",
       "standard_across_banks": false,
-      "reproducible": "no",
+      "reproducible": "partial",
       "source_datasets": [
-        "none"
+        "faaliyet"
       ],
       "caveats": "Bank-defined; not disclosed on a fixed cadence or consistent basis. Watch the registered-vs-active distinction.",
       "aliases": [
@@ -3270,9 +3270,9 @@
       "availability": "voluntary",
       "cadence": "adhoc",
       "standard_across_banks": false,
-      "reproducible": "no",
+      "reproducible": "partial",
       "source_datasets": [
-        "none"
+        "faaliyet"
       ],
       "aliases": [
         "salary customers"
@@ -3374,9 +3374,9 @@
       "availability": "voluntary",
       "cadence": "adhoc",
       "standard_across_banks": false,
-      "reproducible": "no",
+      "reproducible": "partial",
       "source_datasets": [
-        "none"
+        "faaliyet"
       ],
       "related": [
         "active_digital_customers"
@@ -3408,9 +3408,9 @@
       "availability": "voluntary",
       "cadence": "quarterly",
       "standard_across_banks": false,
-      "reproducible": "no",
+      "reproducible": "partial",
       "source_datasets": [
-        "none"
+        "faaliyet"
       ],
       "related": [
         "branches_personnel"
@@ -3443,9 +3443,10 @@
       "availability": "voluntary",
       "cadence": "adhoc",
       "standard_across_banks": false,
-      "reproducible": "no",
+      "reproducible": "partial",
       "source_datasets": [
-        "external"
+        "external",
+        "faaliyet"
       ],
       "related": [
         "merchant_count",
@@ -3479,9 +3480,10 @@
       "availability": "voluntary",
       "cadence": "adhoc",
       "standard_across_banks": false,
-      "reproducible": "no",
+      "reproducible": "partial",
       "source_datasets": [
-        "external"
+        "external",
+        "faaliyet"
       ],
       "related": [
         "credit_cards_issued",
@@ -3515,9 +3517,10 @@
       "availability": "voluntary",
       "cadence": "adhoc",
       "standard_across_banks": false,
-      "reproducible": "no",
+      "reproducible": "partial",
       "source_datasets": [
-        "external"
+        "external",
+        "faaliyet"
       ],
       "related": [
         "total_cards",
@@ -3549,9 +3552,10 @@
       "availability": "voluntary",
       "cadence": "adhoc",
       "standard_across_banks": false,
-      "reproducible": "no",
+      "reproducible": "partial",
       "source_datasets": [
-        "external"
+        "external",
+        "faaliyet"
       ],
       "related": [
         "total_cards"
@@ -3582,9 +3586,9 @@
       "availability": "voluntary",
       "cadence": "adhoc",
       "standard_across_banks": false,
-      "reproducible": "no",
+      "reproducible": "partial",
       "source_datasets": [
-        "none"
+        "faaliyet"
       ],
       "related": [
         "pos_terminal_count",
@@ -3680,9 +3684,9 @@
       "availability": "voluntary",
       "cadence": "adhoc",
       "standard_across_banks": false,
-      "reproducible": "no",
+      "reproducible": "partial",
       "source_datasets": [
-        "none"
+        "faaliyet"
       ],
       "nonstandard_reasons": [
         "definition_varies",
@@ -3712,9 +3716,9 @@
       "availability": "voluntary",
       "cadence": "adhoc",
       "standard_across_banks": false,
-      "reproducible": "no",
+      "reproducible": "partial",
       "source_datasets": [
-        "none"
+        "faaliyet"
       ],
       "nonstandard_reasons": [
         "definition_varies",
@@ -4844,15 +4848,18 @@
       "availability": "mandatory",
       "cadence": "quarterly",
       "standard_across_banks": true,
-      "reproducible": "no",
+      "reproducible": "direct",
       "source_datasets": [
         "bank_audit"
       ],
       "related": [
         "repricing_gap"
       ],
-      "derivation": "GROUNDWORK ONLY — disclosed in the §4 market-risk footnote (currency-risk table) + the off-balance/derivatives tables, currently captured unstructured in other_data. See docs/knowledge/data-gaps-roadmap.md.",
-      "caveats": "Not yet extracted into a structured table; needs a §4 currency-risk extractor (deterministic pdfplumber/fitz, no LLM)."
+      "derivation": "Extracted by src/audit_reports/fx_position.py from the §4 currency-risk footnote into bank_audit_fx_position — one row per currency (EUR/USD/OTHER/TOTAL) × period_type. net_position = net_on_balance + net_off_balance (the YP net genel pozisyon).",
+      "caveats": "Per-bank quarterly; present in ~99% of reports. Surfaced on /market-risk and the cross-bank heatmap as FX net open position / regulatory capital.",
+      "spec_ids": [
+        "market-risk.fx_nop_to_capital"
+      ]
     },
     {
       "id": "repricing_gap",
@@ -4875,7 +4882,7 @@
       "availability": "mandatory",
       "cadence": "quarterly",
       "standard_across_banks": true,
-      "reproducible": "no",
+      "reproducible": "direct",
       "source_datasets": [
         "bank_audit"
       ],
@@ -4884,8 +4891,11 @@
         "deposits",
         "loans_gross"
       ],
-      "derivation": "GROUNDWORK ONLY — §4 interest-rate-risk and liquidity-gap footnote schedules. See docs/knowledge/data-gaps-roadmap.md.",
-      "caveats": "Narrative footnote table; not extracted. Asset/liability maturity ladders also live here."
+      "derivation": "Extracted by src/audit_reports/repricing.py from the §4 interest-rate-risk footnote into bank_audit_repricing — one row per bucket (lt_1m/1_3m/3_12m/1_5y/gt_5y/non_sensitive/total) × period_type. gap = reported total repricing position; cumulative_gap is the running sum over dated buckets.",
+      "caveats": "Per-bank quarterly; present in ~81% of reports — participation banks word it as profit-share-rate risk and often omit the gap table (validated N/A). Surfaced on /market-risk.",
+      "spec_ids": [
+        "market-risk.repricing_gap_1y"
+      ]
     },
     {
       "id": "credit_rating",

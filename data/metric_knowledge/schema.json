@@ -90,9 +90,9 @@
           "minItems": 1,
           "items": {
             "type": "string",
-            "enum": ["bank_audit", "bddk_monthly", "bddk_weekly", "evds", "tbb_digital", "external", "none"]
+            "enum": ["bank_audit", "bddk_monthly", "bddk_weekly", "evds", "tbb_digital", "faaliyet", "external", "none"]
           },
-          "description": "Which of our datasets carry (or would carry) this metric. bank_audit = per-bank BRSA quarterly statements; bddk_monthly/weekly = sector bulletins; evds = TCMB macro; tbb_digital = TBB sector digital stats; external = needs a source we don't ingest; none = unavailable."
+          "description": "Which of our datasets carry (or would carry) this metric. bank_audit = per-bank BRSA quarterly statements; bddk_monthly/weekly = sector bulletins; evds = TCMB macro; tbb_digital = TBB sector digital stats; faaliyet = per-bank annual-report (Faaliyet Raporu) franchise stats; external = needs a source we don't ingest; none = unavailable."
         },
 
         "reproducible_from_audit": {
