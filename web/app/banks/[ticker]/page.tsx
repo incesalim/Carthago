@@ -423,21 +423,27 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
 
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-      <PageHeader
-        eyebrow={ticker}
-        title={bankDisplayName(ticker)}
-        description="Standardized per-bank financials from quarterly BRSA reports"
-        rangeSelector
-        dataThrough={allPeriods[0]}
-        className="mb-6"
-      >
-        <Link href="/banks" className="text-sm text-muted-foreground hover:text-foreground">
-          ← All banks
-        </Link>
-      </PageHeader>
+      {/* Sticky page chrome (lg+): pin the header and the in-page jump-nav as one
+          stacked group — header on top, nav directly below — so neither overlaps
+          the other. The header opts out of its own sticky (sticky={false}) and is
+          pinned by this wrapper instead; on mobile the nav self-sticks at top-14. */}
+      <div className="lg:sticky lg:top-0 lg:z-30">
+        <PageHeader
+          eyebrow={ticker}
+          title={bankDisplayName(ticker)}
+          description="Standardized per-bank financials from quarterly BRSA reports"
+          rangeSelector
+          dataThrough={allPeriods[0]}
+          sticky={false}
+        >
+          <Link href="/banks" className="text-sm text-muted-foreground hover:text-foreground">
+            ← All banks
+          </Link>
+        </PageHeader>
 
-      {/* Sticky in-page jump-nav: Overview · Financials · Ownership · Disclosures */}
-      <BankSectionNav sections={navSections} />
+        {/* In-page jump-nav: Overview · Performance · Financials · Ownership · Disclosures */}
+        <BankSectionNav sections={navSections} />
+      </div>
 
       {/* ── Overview ──────────────────────────────────────────────────────
           At-a-glance profile + (listed banks) BIST market & valuation. */}

@@ -16,6 +16,14 @@ export interface PageHeaderProps {
   /** Show the global chart date-range selector (1Y/3Y/5Y/YTD/All) on the right.
    *  Set on pages that render time-series charts. */
   rangeSelector?: boolean;
+  /**
+   * Pin the header to the top on lg+ while scrolling (default true). Pass false
+   * on pages that nest the header inside their own sticky group, so it doesn't
+   * become a second element fighting for top-0 (e.g. /banks/[ticker], which
+   * stacks the header above a sticky section-nav). The frosted band is kept
+   * either way, so the header still works as part of a pinned group.
+   */
+  sticky?: boolean;
   /** Right-aligned actions (filters, buttons). */
   children?: React.ReactNode;
   className?: string;
@@ -41,6 +49,7 @@ export function PageHeader({
   eyebrow,
   dataThrough,
   rangeSelector,
+  sticky = true,
   children,
   className,
 }: PageHeaderProps) {
@@ -48,12 +57,17 @@ export function PageHeader({
     <header
       className={cn(
         "flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between",
+        // Frosted full-bleed band on lg+, so when the header is pinned (here or
+        // as part of a parent sticky group) scrolling content doesn't bleed
+        // through it.
+        "lg:-mx-8 lg:bg-background/90 lg:px-8 lg:py-3 lg:backdrop-blur",
         // Pin the header (with the global range selector) to the top while
         // scrolling, so the date-range control stays reachable on long chart
-        // pages. Scoped to lg+: there the left sidebar owns the layout and
-        // nothing sits at top-0, whereas below lg the mobile nav bar is the
-        // sticky top-0 element and a sticky header would collide with it.
-        "lg:sticky lg:top-0 lg:z-20 lg:-mx-8 lg:bg-background/90 lg:px-8 lg:py-3 lg:backdrop-blur",
+        // pages. Below lg the mobile nav bar owns the sticky top-0 slot, so this
+        // is lg-only. Pages with their own sticky sub-nav pass sticky={false}
+        // and pin the header via a shared wrapper instead (avoids two elements
+        // colliding at top-0 — see /banks/[ticker]).
+        sticky && "lg:sticky lg:top-0 lg:z-20",
         className,
       )}
     >
