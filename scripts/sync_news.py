@@ -33,6 +33,9 @@ from src.news.loader import (  # noqa: E402
     update_body,
     upsert_items,
 )
+from src.earnings.from_kap import events_from_kap  # noqa: E402
+from src.earnings.loader import upsert_events  # noqa: E402
+from src.earnings.schema import init_schema as init_earnings_schema  # noqa: E402
 from src.news.schema import init_schema  # noqa: E402
 from src.news.sources import bddk, google_news, kap, press, tcmb  # noqa: E402
 
@@ -92,6 +95,19 @@ def main():
             print(f"[kap]  upserted {len(items):>4d} bank disclosures (last {args.kap_days}d)")
         except Exception as e:
             print(f"[kap]  FAILED: {type(e).__name__}: {e}", flush=True)
+
+        # Earnings events (tier 1): classify the KAP disclosures just stored into
+        # results-filing events for the /earnings calendar. Pure reclassification
+        # over local rows — no network. (Banks don't file call/presentation
+        # invites on KAP, so only results filings are produced here.)
+        print("[earnings] classifying KAP disclosures...")
+        try:
+            with sqlite3.connect(str(DB_PATH)) as conn:
+                init_earnings_schema(conn)
+                n = upsert_events(conn, events_from_kap(conn))
+            print(f"[earnings] upserted {n:>4d} earnings events from KAP")
+        except Exception as e:
+            print(f"[earnings] FAILED: {type(e).__name__}: {e}", flush=True)
 
     if not only_one or args.tcmb_only:
         print("[tcmb] fetching...")

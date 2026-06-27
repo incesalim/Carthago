@@ -1,0 +1,161 @@
+{
+  "_doc": "Curated source URLs for bank Faaliyet Raporlari (annual/activity reports). Franchise lane (src/faaliyet). Per bank: name, ir_page (investor-relations landing), and reports{<fiscal_year>:{tr:<url>, en:<url?>}}. Annual cadence (FY ending 31 Dec). ir_page is seeded from audit_report_urls.json; the per-year report URLs MUST be curated by hand (banks publish the annual report on a different page than the quarterly BRSA statements, and naming changes each year). Point tr/en at the standalone Faaliyet Raporu PDF, NOT the Surdurulebilirlik (sustainability) report.",
+  "_updated": "2026-06-27",
+  "banks": {
+    "AKBNK": {
+      "name": "Akbank T.A.Ş.",
+      "ir_page": "https://www.akbankinvestorrelations.com/",
+      "reports": {}
+    },
+    "YKBNK": {
+      "name": "Yapı ve Kredi Bankası A.Ş.",
+      "ir_page": "https://www.yapikrediinvestorrelations.com/",
+      "reports": {}
+    },
+    "HALKB": {
+      "name": "Türkiye Halk Bankası A.Ş.",
+      "ir_page": "https://www.halkbank.com.tr/en/investor-relations/financial-information/financial-reports.html",
+      "reports": {}
+    },
+    "VAKBN": {
+      "name": "Türkiye Vakıflar Bankası T.A.O.",
+      "ir_page": "https://www.vakifbank.com.tr/tr/bankamiz/yatirimci-iliskileri/finansal-bilgiler",
+      "reports": {}
+    },
+    "ICBCT": {
+      "name": "ICBC Turkey Bank A.Ş.",
+      "ir_page": "https://www.icbc.com.tr/tr/yatirimci-iliskileri/faaliyet-raporlari/Finansal-Bilgiler/132/0/0",
+      "reports": {}
+    },
+    "QNBFB": {
+      "name": "QNB Bank A.Ş. (formerly QNB Finansbank)",
+      "ir_page": "https://www.qnb.com.tr/en/investor-relations/financial-information",
+      "reports": {}
+    },
+    "SKBNK": {
+      "name": "Şekerbank T.A.Ş.",
+      "ir_page": "https://www.sekerbank.com.tr/en/about-us/investor-relations/financial-statements",
+      "reports": {}
+    },
+    "ALBRK": {
+      "name": "Albaraka Türk Katılım Bankası A.Ş.",
+      "ir_page": "https://www.albaraka.com.tr/en/investor-relations/financial-information/independent-audit-reports",
+      "reports": {}
+    },
+    "KLNMA": {
+      "name": "Türkiye Kalkınma ve Yatırım Bankası A.Ş.",
+      "ir_page": "https://kalkinma.com.tr/yatirimci-iliskileri/finansal-raporlar/denetim-raporlari",
+      "reports": {}
+    },
+    "ISCTR": {
+      "name": "Türkiye İş Bankası A.Ş.",
+      "ir_page": "https://www.isbank.com.tr/en/about-us/financial-statements",
+      "reports": {}
+    },
+    "TSKB": {
+      "name": "Türkiye Sınai Kalkınma Bankası A.Ş.",
+      "ir_page": "https://www.tskb.com.tr/en/investor-relations/financial-information",
+      "reports": {}
+    },
+    "ZIRAAT": {
+      "name": "T.C. Ziraat Bankası A.Ş.",
+      "ir_page": "https://www.ziraatbank.com.tr/tr/yatirimci-iliskileri/finansal-bilgiler/denetim-raporu-ve-mali-tablolar",
+      "reports": {}
+    },
+    "DENIZ": {
+      "name": "Denizbank A.Ş.",
+      "ir_page": "https://www.denizbank.com",
+      "reports": {}
+    },
+    "TEB": {
+      "name": "Türk Ekonomi Bankası A.Ş.",
+      "ir_page": "https://www.teb.com.tr/teb-hakkinda/bagimsiz-denetim-raporu-ve-finansal-tablolar/",
+      "reports": {}
+    },
+    "ING": {
+      "name": "ING Bank A.Ş.",
+      "ir_page": "https://www.ing.com.tr/tr/ing/yatirimci-iliskileri/finansal-raporlar/bagimsiz-denetim-raporlari",
+      "reports": {}
+    },
+    "FIBA": {
+      "name": "Fibabanka A.Ş.",
+      "ir_page": "https://www.fibabanka.com.tr/hakkimizda/yatirimci-iliskileri/mali-tablolarimiz",
+      "reports": {}
+    },
+    "BURGAN": {
+      "name": "Burgan Bank A.Ş.",
+      "ir_page": "https://www.burgan.com.tr/en/financial-reports",
+      "reports": {}
+    },
+    "ODEA": {
+      "name": "Odea Bank A.Ş.",
+      "ir_page": "https://www.odeabank.com.tr/yatirimci-iliskileri/raporlar",
+      "reports": {}
+    },
+    "ATBANK": {
+      "name": "Arap Türk Bankası A.Ş.",
+      "ir_page": "https://www.atbank.com.tr/tr/banka-finansal-bilgileri",
+      "reports": {}
+    },
+    "KUVEYT": {
+      "name": "Kuveyt Türk Katılım Bankası A.Ş.",
+      "ir_page": "https://www.kuveytturk.com.tr/yatirimci-iliskileri/finansal-bilgiler/denetim-raporlari",
+      "reports": {}
+    },
+    "TFKB": {
+      "name": "Türkiye Finans Katılım Bankası A.Ş.",
+      "ir_page": "https://www.turkiyefinans.com.tr/tr-tr/yatirimci-iliskileri/finansal-raporlar/sayfalar/bagimsiz-denetim-raporlari.aspx",
+      "reports": {}
+    },
+    "VAKIFK": {
+      "name": "Vakıf Katılım Bankası A.Ş.",
+      "ir_page": "https://www.vakifkatilim.com.tr/tr/hakkimizda/yatirimci-iliskileri/raporlar/bagimsiz-denetim-raporlari",
+      "reports": {}
+    },
+    "ZIRAATK": {
+      "name": "Ziraat Katılım Bankası A.Ş.",
+      "ir_page": "https://www.ziraatkatilim.com.tr/yatirimci-iliskileri/finansal-bilgileri",
+      "reports": {}
+    },
+    "EMLAK": {
+      "name": "Türkiye Emlak Katılım Bankası A.Ş.",
+      "ir_page": "https://www.emlakkatilim.com.tr/tr/yatirimci-iliskileri/finansal-bilgiler/bagimsiz-denetim-raporlari",
+      "reports": {}
+    },
+    "EXIM": {
+      "name": "Türk Eximbank",
+      "ir_page": "https://www.eximbank.gov.tr/en/financial-informations/financial-audit-reports/brsa",
+      "reports": {}
+    },
+    "AKTIF": {
+      "name": "Aktif Yatırım Bankası A.Ş.",
+      "ir_page": "https://www.aktifbank.com.tr/hakkimizda/finansal-bilgiler/denetim-raporlari",
+      "reports": {}
+    },
+    "PASHA": {
+      "name": "Pasha Yatırım Bankası A.Ş.",
+      "ir_page": "https://www.pashabank.com.tr/tr/yatirimci-iliskileri/yillar-list/Bagimsiz-Denetim-Raporlari/48/0/0",
+      "reports": {}
+    },
+    "HSBC": {
+      "name": "HSBC Bank A.Ş.",
+      "ir_page": "https://www.hsbc.com.tr/hsbc-hakkinda/finansal-bilgiler/denetim-raporlari",
+      "reports": {}
+    },
+    "ANADOLU": {
+      "name": "Anadolubank A.Ş.",
+      "ir_page": "https://www.anadolubank.com.tr/hakkimizda/yatirimci-iliskileri/denetim-raporlari",
+      "reports": {}
+    },
+    "ALNTF": {
+      "name": "Alternatifbank A.Ş.",
+      "ir_page": "https://www.alternatifbank.com.tr/hakkimizda/yatirimci-iliskileri/raporlar/finansal-raporlar",
+      "reports": {}
+    },
+    "GARAN": {
+      "name": "Türkiye Garanti Bankası A.Ş.",
+      "ir_page": "https://www.garantibbvainvestorrelations.com/",
+      "reports": {}
+    }
+  }
+}

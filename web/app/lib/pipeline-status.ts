@@ -32,6 +32,7 @@ const DAY = 24;
 const WEEK = 24 * 7;
 const MONTH = 24 * 31;
 const QUARTER = 24 * 100;
+const YEAR = 24 * 400;
 
 function toneFor(status: FreshnessStatus): StatusTone {
   switch (status) {
@@ -100,6 +101,11 @@ const EXT_SOURCES: { key: string; sql: string; cadenceHours: number }[] = [
     key: "tefas",
     sql: "SELECT COUNT(*) AS n, MAX(downloaded_at) AS last_refresh, MAX(date) AS latest FROM tefas_manager_daily",
     cadenceHours: DAY,
+  },
+  {
+    key: "faaliyet",
+    sql: "SELECT COUNT(*) AS n, MAX(extracted_at) AS last_refresh, MAX(fiscal_year) AS latest FROM faaliyet_franchise",
+    cadenceHours: YEAR,
   },
 ];
 

@@ -33,6 +33,8 @@ WEB = ROOT / "web"
 
 sys.path.insert(0, str(ROOT))
 from src.audit_reports.schema import init_schema as _init_audit_schema  # noqa: E402
+from src.earnings.schema import init_schema as _init_earnings_schema    # noqa: E402
+from src.faaliyet.schema import init_schema as _init_faaliyet_schema    # noqa: E402
 from src.kap.schema import init_schema as _init_kap_schema              # noqa: E402
 from src.news._htmltext import fix_mojibake                            # noqa: E402
 from src.news.schema import init_schema as _init_news_schema            # noqa: E402
@@ -73,9 +75,12 @@ SYNC_TABLES = [
     "evds_series",
     "news_items",
     "regulation_briefings",
+    "bank_earnings",
     "tbb_digital_stats",
     "tbb_acquisition_stats",
     "kap_ownership",
+    "faaliyet_franchise",
+    "faaliyet_extractions",
     "tefas_manager_daily",
     "tefas_category_daily",
     "tefas_allocation_daily",
@@ -130,6 +135,8 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int) -> list[str]:
         where = f"WHERE downloaded_at >= datetime('now', '-{hours} hours')"
     elif table == "news_items":
         where = f"WHERE fetched_at >= datetime('now', '-{hours} hours')"
+    elif table == "bank_earnings":
+        where = f"WHERE fetched_at >= datetime('now', '-{hours} hours')"
     elif table == "regulation_briefings":
         where = f"WHERE fetched_at >= datetime('now', '-{hours} hours')"
     elif table == "bank_audit_extractions":
@@ -144,6 +151,8 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int) -> list[str]:
         "bank_audit_stages",
         "bank_audit_capital",
         "bank_audit_liquidity",
+        "faaliyet_franchise",
+        "faaliyet_extractions",
     ):
         # These tables have their own extracted_at column (the
         # corresponding extractor writes here without touching
@@ -274,6 +283,8 @@ def main() -> int:
     _init_kap_schema(conn)
     _init_tefas_schema(conn)
     _init_nonbank_schema(conn)
+    _init_faaliyet_schema(conn)
+    _init_earnings_schema(conn)
 
     allowed_tables = (
         {t.strip() for t in args.only_tables.split(",") if t.strip()}

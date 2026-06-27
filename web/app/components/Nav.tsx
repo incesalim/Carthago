@@ -36,6 +36,8 @@ const SECTIONS: NavSection[] = [
       { href: "/cross-bank", label: "Compare" },
       { href: "/valuation", label: "Valuation" },
       { href: "/ownership", label: "Ownership" },
+      { href: "/earnings", label: "Earnings" },
+      { href: "/franchise", label: "Franchise" },
     ],
   },
   {

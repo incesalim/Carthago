@@ -8,8 +8,9 @@ Steps (each can be skipped individually):
   5. TBB quarterly digital-banking refresh (non-critical).
   6. KAP ownership-structure refresh (non-critical).
   7. TEFAS fund-market refresh (non-critical).
-  8. VACUUM + gzip to data/bddk_data.db.gz.
-  9. Optional: git add / commit / push the new snapshot.
+  8. Faaliyet-raporları franchise refresh — incremental, non-critical.
+  9. VACUUM + gzip to data/bddk_data.db.gz.
+ 10. Optional: git add / commit / push the new snapshot.
 
 After this runs, scripts/push_to_d1.py syncs the changed rows up to
 Cloudflare D1 — which the production dashboard reads from.
@@ -92,6 +93,8 @@ def main():
                         help="skip the KAP ownership-structure refresh")
     parser.add_argument("--skip-tefas", action="store_true",
                         help="skip the TEFAS fund-market refresh")
+    parser.add_argument("--skip-faaliyet", action="store_true",
+                        help="skip the Faaliyet-raporları franchise refresh")
     parser.add_argument("--skip-tuik", action="store_true",
                         help="skip the TÜİK national-accounts/PPI-detail refresh")
     args = parser.parse_args()
@@ -159,6 +162,16 @@ def main():
         # self-heals on the next cron.
         _run_step("TEFAS funds update",
                    [sys.executable, "scripts/update_tefas.py"],
+                   critical=False)
+    if not args.skip_faaliyet:
+        # Bank annual-report (Faaliyet Raporu) franchise stats — incremental:
+        # only (bank, year) targets newly added to faaliyet_report_urls.json that
+        # aren't already success=1 are fetched, so this is a no-op once a year's
+        # reports are in. Annual cadence + R2 acquisition; the fleet backfill runs
+        # in backfill-faaliyet.yml. Non-critical: a bank-IR outage (or absent R2
+        # creds on a creds-less cron) must not abort the core BDDK refresh.
+        _run_step("Faaliyet franchise update",
+                   [sys.executable, "scripts/update_faaliyet.py"],
                    critical=False)
 
     vacuum()
