@@ -169,13 +169,16 @@ _ANCHORS: list[_Anchor] = [
     _a("atm_count", rf"(?:number\s+of\s+ATMs?)\D{{0,10}}(?P<num>{_NUM})", "en", "high"),
     _a("atm_count", rf"(?P<num>{_NUM})\s+(?:adet\s+)?(?:ATM|BTM)\b", "tr", "medium"),
     _a("atm_count", rf"(?P<num>{_NUM})\s+ATMs?\b", "en", "medium"),
-    # --- POS -------------------------------------------------------------
+    # --- POS (require an explicit device noun; "POS cirosu"/turnover is a TL
+    #     amount, not a count, so a bare "<n> POS" is too loose) --------------
     _a("pos_count", rf"POS\s+(?:terminali|cihaz[ıi]|say[ıi]s[ıi]|aded[ıi])\D{{0,10}}(?P<num>{_NUM})", "tr", "high"),
-    _a("pos_count", rf"(?P<num>{_NUM})\s+(?:adet\s+)?POS\b", "tr", "medium"),
+    _a("pos_count", rf"(?P<num>{_NUM})\s+(?:adet\s+)?POS\s+(?:terminali|cihaz[ıi])\b", "tr", "medium"),
     _a("pos_count", rf"(?P<num>{_NUM})\s+POS\s+(?:terminals?|devices?)\b", "en", "medium"),
-    # --- merchants -------------------------------------------------------
-    _a("merchant_count", rf"üye\s*i[şs]\s*yeri(?:\s+say[ıi]s[ıi])?\D{{0,10}}(?P<num>{_NUM})", "tr", "high"),
-    _a("merchant_count", rf"(?P<num>{_NUM})\s+üye\s*i[şs]\s*yeri", "tr", "medium"),
+    # --- merchants (label-before REQUIRES "sayısı" so a trailing "+%3.1"
+    #     growth figure can't be grabbed; number-before takes a scale suffix
+    #     for the common "647 bin üye iş yeri" form) ------------------------
+    _a("merchant_count", rf"üye\s*i[şs]\s*yeri\s+say[ıi]s[ıi]\D{{0,10}}(?P<num>{_NUM}){_SUF}", "tr", "high"),
+    _a("merchant_count", rf"(?P<num>{_NUM}){_SUF}\s+üye\s*i[şs]\s*yeri", "tr", "high"),
     _a("merchant_count", rf"(?P<num>{_NUM})\s+(?:member\s+)?merchants?\b", "en", "medium"),
     # --- customers (often "X milyon müşteri") ----------------------------
     _a("customer_active", rf"aktif\s+müşteri\s+say[ıi]s[ıi]\D{{0,10}}(?P<num>{_NUM}){_SUF}", "tr", "high"),
@@ -184,7 +187,9 @@ _ANCHORS: list[_Anchor] = [
     _a("customer_digital", rf"(?P<num>{_NUM}){_SUF}\s+dijital\s+müşteri", "tr", "medium"),
     _a("customer_digital", rf"(?P<num>{_NUM}){_SUF}\s+(?:active\s+)?digital\s+customers", "en", "medium"),
     _a("customer_total", rf"toplam\s+müşteri\s+say[ıi]s[ıi]\D{{0,10}}(?P<num>{_NUM}){_SUF}", "tr", "high"),
-    _a("customer_total", rf"(?P<num>{_NUM}){_SUF}\s+(?:toplam\s+)?müşteri(?:ye|si)?\b", "tr", "low"),
+    # number-before-noun: drop the dative "müşteriye" (almost always prose like
+    # "700 bin müşteriye uzanan", a sub-segment) — headline form is "<n> müşteri".
+    _a("customer_total", rf"(?P<num>{_NUM}){_SUF}\s+(?:toplam\s+)?müşteri(?:si)?\b", "tr", "low"),
     _a("customer_total", rf"(?P<num>{_NUM}){_SUF}\s+customers\b", "en", "low"),
     # --- cards (usually in millions) -------------------------------------
     _a("cards_credit", rf"kredi\s+kart[ıi]\s+say[ıi]s[ıi]\D{{0,10}}(?P<num>{_NUM}){_SUF}", "tr", "high"),
@@ -196,11 +201,13 @@ _ANCHORS: list[_Anchor] = [
 
 # Coordinate-anchor keywords per metric (Pass B). Lowercased substring match on a
 # word cluster; the nearest numeric token in the same/adjacent row is taken.
+# Coordinate anchoring is reserved for SHORT, DISTINCTIVE tile labels. POS and
+# customers are intentionally excluded: "pos" matches "POS Cirosu" (turnover) and
+# "müşteri"/"customer" appears in nearly every paragraph, so both steal stray
+# nearby numbers. Customer counts come from the prose "<n> milyon müşteri" anchor.
 _COORD_KEYWORDS: dict[str, tuple[str, ...]] = {
     "atm_count":     ("atm",),
-    "pos_count":     ("pos",),
     "merchant_count": ("üye işyeri", "üye iş yeri", "merchant"),
-    "customer_total": ("müşteri", "customer"),
 }
 
 

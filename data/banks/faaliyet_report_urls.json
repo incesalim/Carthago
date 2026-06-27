@@ -5,12 +5,20 @@
     "AKBNK": {
       "name": "Akbank T.A.Ş.",
       "ir_page": "https://www.akbankinvestorrelations.com/",
-      "reports": {}
+      "reports": {
+        "2024": {
+          "tr": "https://www.akbankinvestorrelations.com/tr/images/pdf/akbank-2024-entegre-faaliyet-raporu.pdf"
+        }
+      }
     },
     "YKBNK": {
       "name": "Yapı ve Kredi Bankası A.Ş.",
       "ir_page": "https://www.yapikrediinvestorrelations.com/",
-      "reports": {}
+      "reports": {
+        "2024": {
+          "tr": "https://www.yapikrediinvestorrelations.com/tr/images/pdf/faaliyet-raporlari/2024/yk_faaliyet_raporu_2024.pdf"
+        }
+      }
     },
     "HALKB": {
       "name": "Türkiye Halk Bankası A.Ş.",
@@ -155,7 +163,11 @@
     "GARAN": {
       "name": "Türkiye Garanti Bankası A.Ş.",
       "ir_page": "https://www.garantibbvainvestorrelations.com/",
-      "reports": {}
+      "reports": {
+        "2024": {
+          "en": "https://www.garantibbvainvestorrelations.com/en/images/pdf/GarantiBBVA-2024-integrated-annual-report.pdf"
+        }
+      }
     }
   }
 }
