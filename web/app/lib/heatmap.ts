@@ -38,6 +38,9 @@ export type MetricKey =
   | "deposit_cost"
   | "spread"
   | "cost_income"
+  | "cet1"
+  | "car"
+  | "lcr"
   | "fx_nop"
   | "repricing_gap_1y"
   | "pb"
@@ -80,6 +83,10 @@ export const METRIC_DEFS: MetricDef[] = [
   { key: "deposit_cost",        label: "Deposit cost (TTM)",  short: "Dep cost",   unit: "pct", decimals: 1, direction: "neutral" },
   { key: "spread",              label: "Loan–deposit spread", short: "Spread",     unit: "pct", decimals: 1, direction: "higher_better" },
   { key: "cost_income",         label: "Cost / Income",       short: "Cost/Inc",   unit: "pct",  decimals: 1, direction: "higher_worse" },
+  // Capital + liquidity (audited §4) — solvency/liquidity buffers; higher = stronger.
+  { key: "cet1",                label: "CET1 ratio (§4)",     short: "CET1",       unit: "pct", decimals: 1, direction: "higher_better" },
+  { key: "car",                 label: "CAR (§4)",            short: "CAR",        unit: "pct", decimals: 1, direction: "higher_better" },
+  { key: "lcr",                 label: "LCR (§4)",            short: "LCR",        unit: "pct", decimals: 0, direction: "higher_better" },
   // Market risk (CAMELS "S") — magnitude of exposure, so higher = more exposed.
   // FX NOP = |net open FX position| / regulatory capital (the regulatory NOP
   // ratio). Repricing gap ≤1y = |Σ rate-sensitive gap in the ≤1y buckets| /
@@ -111,6 +118,9 @@ export interface BankMetricRow {
   deposit_cost: number | null;
   spread: number | null;
   cost_income: number | null;
+  cet1: number | null;
+  car: number | null;
+  lcr: number | null;
   fx_nop: number | null;
   repricing_gap_1y: number | null;
   pb: number | null;
@@ -171,7 +181,7 @@ export async function heatmapPanel(
   const romanPlaceholders = BS_ASSET_ROMAN_HIERARCHIES.map(() => "?").join(",");
 
   const [assets, stages, pl, equity, closes, shares, latestCloses, loanRows, depositRows,
-         capRows, fxRows, rpRows] = await Promise.all([
+         capRows, fxRows, rpRows, liqRows] = await Promise.all([
     // A — total assets: sum of the BS asset Roman subtotals I.–X. (= bankSummaries).
     cachedAll<RowAssets>(
       `SELECT bank_ticker, period, SUM(amount_total) AS total_assets
@@ -302,10 +312,11 @@ export async function heatmapPanel(
         GROUP BY bank_ticker, period`,
       [kind],
     ),
-    // J — regulatory capital (§4) per (bank, period): the FX-NOP denominator.
-    cachedAll<{ bank_ticker: string; period: string; total_capital: number | null }>(
-      `SELECT bank_ticker, period, total_capital FROM bank_audit_capital
-        WHERE kind = ? AND period_type = 'current'`,
+    // J — regulatory capital (§4) per (bank, period): FX-NOP denominator + CET1 /
+    // CAR ratios (the heatmap columns the audit flagged as missing).
+    cachedAll<{ bank_ticker: string; period: string; total_capital: number | null; cet1_ratio: number | null; capital_adequacy_ratio: number | null }>(
+      `SELECT bank_ticker, period, total_capital, cet1_ratio, capital_adequacy_ratio
+         FROM bank_audit_capital WHERE kind = ? AND period_type = 'current'`,
       [kind],
     ),
     // K — FX net open position (TOTAL currency) per (bank, period).
@@ -317,6 +328,12 @@ export async function heatmapPanel(
     // L — repricing gap + RSA per (bank, period, bucket).
     cachedAll<{ bank_ticker: string; period: string; bucket: string; gap: number | null; rate_sensitive_assets: number | null }>(
       `SELECT bank_ticker, period, bucket, gap, rate_sensitive_assets FROM bank_audit_repricing
+        WHERE kind = ? AND period_type = 'current'`,
+      [kind],
+    ),
+    // M — liquidity (§4): LCR / NSFR per (bank, period).
+    cachedAll<{ bank_ticker: string; period: string; lcr_total: number | null; nsfr: number | null }>(
+      `SELECT bank_ticker, period, lcr_total, nsfr FROM bank_audit_liquidity
         WHERE kind = ? AND period_type = 'current'`,
       [kind],
     ),
@@ -334,6 +351,7 @@ export async function heatmapPanel(
         roe: null, roa: null, nim: null,
         ppop_ratio: null, loan_yield: null, deposit_cost: null, spread: null,
         cost_income: null,
+        cet1: null, car: null, lcr: null,
         fx_nop: null, repricing_gap_1y: null,
         pb: null, pe: null,
       };
@@ -375,7 +393,19 @@ export async function heatmapPanel(
   // Market-risk inputs (direct per bank/period from the §4 tables). Absolute
   // magnitude for the heatmap so higher = more exposed.
   const capByKey = new Map<string, number>();
-  for (const r of capRows) if (r.total_capital) capByKey.set(`${r.bank_ticker}|${r.period}`, r.total_capital);
+  const cet1ByKey = new Map<string, number>();
+  const carByKey = new Map<string, number>();
+  for (const r of capRows) {
+    const k = `${r.bank_ticker}|${r.period}`;
+    if (r.total_capital) capByKey.set(k, r.total_capital);
+    if (r.cet1_ratio != null) { cet1ByKey.set(k, r.cet1_ratio); ensure(r.bank_ticker, r.period); }
+    if (r.capital_adequacy_ratio != null) carByKey.set(k, r.capital_adequacy_ratio);
+  }
+  const lcrByKey = new Map<string, number>();
+  for (const r of liqRows) if (r.lcr_total != null) {
+    lcrByKey.set(`${r.bank_ticker}|${r.period}`, r.lcr_total);
+    ensure(r.bank_ticker, r.period);
+  }
   const fxNopByKey = new Map<string, number>();
   for (const r of fxRows) if (r.net_position != null) {
     fxNopByKey.set(`${r.bank_ticker}|${r.period}`, Math.abs(r.net_position));
@@ -607,6 +637,11 @@ export async function heatmapPanel(
     const ttm = ttmNet(row.bank_ticker, row.period);
     if (mktcap != null && eqRaw != null && eqRaw > 0) row.pb = mktcap / (eqRaw * 1000);
     if (mktcap != null && ttm != null && ttm > 0) row.pe = mktcap / (ttm * 1000);
+
+    // Capital + liquidity (audited §4) — ratios already in percent.
+    row.cet1 = cet1ByKey.get(key) ?? null;
+    row.car = carByKey.get(key) ?? null;
+    row.lcr = lcrByKey.get(key) ?? null;
 
     // Market risk (CAMELS "S") — exposure-magnitude ratios (percent).
     const capV = capByKey.get(key);

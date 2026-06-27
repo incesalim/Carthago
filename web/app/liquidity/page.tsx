@@ -27,6 +27,7 @@ import {
   type WeeklyRow,
   type EvdsRow,
 } from "@/app/lib/metrics";
+import { sectorLiquidityRatios, AUDIT_LIQUIDITY_LABELS } from "@/app/lib/audit-ratios";
 import { PageHeader, Section } from "@/app/components/ui";
 import TrendChart from "@/app/components/TrendChart";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
@@ -64,7 +65,7 @@ export default async function LiquidityPage() {
     depYoY, dep13w,
     depGrowthPubPriv,
     dollarization,
-    evds, reer,
+    evds, reer, liqRatios,
   ] = await Promise.all([
     // Loan-to-deposit ratios, public vs private
     weeklyOwnershipRatio(LOANS.category, LOANS.item_id, DEPOSITS.category, DEPOSITS.item_id, "TL"),
@@ -83,6 +84,8 @@ export default async function LiquidityPage() {
     ),
     // REER over a longer horizon to show the real-appreciation trend
     evdsSeries("TP.RK.T1.Y", 8),
+    // Audited §4 regulatory-liquidity ratios (LCR/NSFR/leverage), sector view
+    sectorLiquidityRatios(),
   ]);
 
   // TL deposit growth, sector — combine the two windows into one chart.
@@ -200,6 +203,20 @@ export default async function LiquidityPage() {
             decimals={0}
           />
         </div>
+      </Section>
+
+      <Section
+        title="Regulatory Liquidity (audited §4)"
+        description="LCR, NSFR and leverage from the quarterly BRSA reports — asset-weighted average across reporting banks. These Basel ratios aren't in the monthly bulletin; this is the per-bank §4 lane aggregated to the sector."
+      >
+        <TrendChart
+          data={liqRatios}
+          seriesLabels={AUDIT_LIQUIDITY_LABELS}
+          title="LCR / NSFR / Leverage (%) — sector, audited quarterly"
+          yFormat="pct"
+          decimals={0}
+          height={320}
+        />
       </Section>
 
       <Section

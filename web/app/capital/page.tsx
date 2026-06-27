@@ -14,6 +14,7 @@ import {
   BANK_TYPES,
   BANK_TYPE_LABELS,
 } from "@/app/lib/metrics";
+import { sectorCapitalRatios, AUDIT_CAPITAL_LABELS } from "@/app/lib/audit-ratios";
 import { PageHeader } from "@/app/components/ui";
 import BarByBank from "@/app/components/BarByBank";
 import TrendChart from "@/app/components/TrendChart";
@@ -26,7 +27,7 @@ export default async function CapitalPage() {
 
   const [
     carAll, carByBank, equity, equityYoYSec, lev,
-    rwa, offBsDeriv,
+    rwa, offBsDeriv, capRatios,
   ] = await Promise.all([
     ratioCar(PRIMARY_BANK_TYPES),
     latestPerBank(ratioCar, groups),
@@ -35,6 +36,7 @@ export default async function CapitalPage() {
     leverage(PRIMARY_BANK_TYPES),
     ratioRwaDensity(PRIMARY_BANK_TYPES),
     ratioOffBsDerivatives(PRIMARY_BANK_TYPES),
+    sectorCapitalRatios(),
   ]);
 
   return (
@@ -120,6 +122,25 @@ export default async function CapitalPage() {
             yFormat="pct"
             decimals={1}          />
         </div>
+      </section>
+
+      <section className="space-y-4">
+        <div className="space-y-0.5">
+          <h2 className="text-base font-semibold text-foreground">Capital composition (audited §4)</h2>
+          <p className="text-xs text-muted-foreground">
+            CET1 and Tier-1 ratios from the quarterly BRSA reports — aggregated Σ capital
+            ÷ Σ RWA across reporting banks. The monthly bulletin carries only total CAR;
+            CET1 is the Basel III / BBVA capital headline.
+          </p>
+        </div>
+        <TrendChart
+          data={capRatios}
+          seriesLabels={AUDIT_CAPITAL_LABELS}
+          title="CET1 / Tier-1 / Total CAR (%) — sector, audited quarterly"
+          yFormat="pct"
+          decimals={1}
+          height={320}
+        />
       </section>
     </main>
   );
