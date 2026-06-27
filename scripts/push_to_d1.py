@@ -70,6 +70,8 @@ SYNC_TABLES = [
     "bank_audit_stages",
     "bank_audit_capital",
     "bank_audit_liquidity",
+    "bank_audit_fx_position",
+    "bank_audit_repricing",
     "bank_audit_validation",
     "bank_audit_extractions",
     "evds_series",
@@ -151,6 +153,8 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int) -> list[str]:
         "bank_audit_stages",
         "bank_audit_capital",
         "bank_audit_liquidity",
+        "bank_audit_fx_position",
+        "bank_audit_repricing",
         "faaliyet_franchise",
         "faaliyet_extractions",
     ):

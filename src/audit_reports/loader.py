@@ -126,6 +126,8 @@ def upsert_report(
     from .npl_movement import NplMovementReport, upsert as _upsert_nplm
     from .capital_adequacy import CapitalReport, upsert as _upsert_cap
     from .liquidity import LiquidityReport, upsert as _upsert_liq
+    from .fx_position import FxReport, upsert as _upsert_fx
+    from .repricing import RepricingReport, upsert as _upsert_rp
     from .bank_profile import upsert_profile as _upsert_bp
     from .equity_change import EquityChangeReport, upsert as _upsert_eq
 
@@ -138,6 +140,8 @@ def upsert_report(
         # if the scan was skipped/failed so the upsert still clears stale rows.
         ('capital',         lambda: getattr(rep, 'capital', None) or CapitalReport(pdf_path=pdf_path),                     _upsert_cap, False),
         ('liquidity',       lambda: getattr(rep, 'liquidity', None) or LiquidityReport(pdf_path=pdf_path),                 _upsert_liq, False),
+        ('fx_position',     lambda: getattr(rep, 'fx_position', None) or FxReport(pdf_path=pdf_path),                      _upsert_fx, False),
+        ('repricing',       lambda: getattr(rep, 'repricing', None) or RepricingReport(pdf_path=pdf_path),                 _upsert_rp, False),
         # profile is INSERT OR REPLACE (no delete) — skip when empty so a failed
         # re-extract doesn't wipe a previously-captured branches/personnel row.
         ('profile',         lambda: getattr(rep, 'bank_profile', None),                                                    _upsert_bp,  True),
@@ -152,6 +156,8 @@ def upsert_report(
         'npl_movement':    'bank_audit_npl_movement',
         'capital':         'bank_audit_capital',
         'liquidity':       'bank_audit_liquidity',
+        'fx_position':     'bank_audit_fx_position',
+        'repricing':       'bank_audit_repricing',
         'equity_change':   'bank_audit_equity_change',
     }
     for key, build, upsert_fn, skip_if_empty in persisters:
@@ -188,8 +194,8 @@ def upsert_report(
         'INSERT OR REPLACE INTO bank_audit_extractions '
         '(bank_ticker, period, kind, pdf_path, rows_bs_assets, rows_bs_liabilities, '
         ' rows_off_balance, rows_profit_loss, rows_credit_quality, rows_oci, '
-        ' rows_cash_flow, rows_equity_change, success) '
-        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        ' rows_cash_flow, rows_equity_change, rows_fx_position, rows_repricing, success) '
+        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         (
             bank_ticker, period, kind, pdf_path,
             counts['bs_assets'], counts['bs_liabilities'],
@@ -198,6 +204,8 @@ def upsert_report(
             counts.get('oci', 0),
             counts.get('cash_flow', 0),
             counts.get('equity_change', 0),
+            counts.get('fx_position', 0),
+            counts.get('repricing', 0),
             1 if registry.success_from_counts(counts) else 0,
         ),
     )

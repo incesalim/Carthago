@@ -85,13 +85,15 @@ librarian.
 
 > Decisions for the owner. None executed this round.
 
-### P0 — structural
-- **Decide the home for CAMELS "S" (market-risk sensitivity).** Either a new
-  **Market Risk** tab (FX net open position + repricing/duration gap +
-  securities MtM) or an explicit, documented assignment of S-coverage across
-  Rates + Liquidity + per-bank securities, with the gap flagged rather than
-  silently absent. This unlocks the `data-gaps-roadmap.md` Tier-B work and is the
-  one true completeness hole in the spine.
+### P0 — structural ✅ RESOLVED 2026-06-27
+- **CAMELS "S" now has a home.** New **Market Risk** tab (spine S8, Markets &
+  Macro group) off two new deterministic §4 extractors —
+  `bank_audit_fx_position` (FX net open position, ~99% coverage) and
+  `bank_audit_repricing` (interest-rate repricing gap, ~81% — participation
+  banks omit it, validated N/A) — plus securities mark-to-market reused from
+  `bank_audit_oci`/BS. Closes the `data-gaps-roadmap.md` Tier-B items (now Tier
+  A.2). *Rollout remaining: full-history CI backfill, dashboard surfacing
+  (tab + per-bank section + heatmap columns), deploy.*
 
 ### P1 — completeness & comparability (FSI-core gaps)
 - **Surface sector LCR / NSFR** on Liquidity (data exists per-bank).

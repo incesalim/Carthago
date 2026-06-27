@@ -45,6 +45,7 @@ const SECTIONS: NavSection[] = [
     label: "Markets & Macro",
     items: [
       { href: "/rates", label: "Rates" },
+      { href: "/market-risk", label: "Market Risk" },
       { href: "/funds", label: "Funds" },
       {
         href: "/non-bank",
