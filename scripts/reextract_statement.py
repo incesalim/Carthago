@@ -56,6 +56,7 @@ from src.audit_reports.capital_adequacy import (  # noqa: E402
 from src.audit_reports.liquidity import LiquidityReport, upsert as _upsert_liq  # noqa: E402
 from src.audit_reports.fx_position import FxReport, upsert as _upsert_fx  # noqa: E402
 from src.audit_reports.repricing import RepricingReport, upsert as _upsert_rp  # noqa: E402
+from src.audit_reports.schema import init_schema  # noqa: E402
 from scripts.revalidate_audit_db import revalidate_partition  # noqa: E402
 from scripts.sync_audit_reports import list_r2_pdfs, _restrict_to_latest_period  # noqa: E402
 from scripts.audit_d1 import DB, pull_snapshot, push_partitions, push_snapshot  # noqa: E402
@@ -280,6 +281,13 @@ def main() -> int:
 
     if not args.dry_run:
         pull_snapshot(guard=True)
+
+    # Ensure any newly-added audit tables exist on the pulled snapshot DB. The
+    # R2 snapshot predates a new statement (e.g. fx_position/repricing), so the
+    # upsert's DELETE/INSERT would hit "no such table". init_schema is all
+    # CREATE ... IF NOT EXISTS (idempotent) — mirrors sync_audit_reports.py.
+    with sqlite3.connect(str(DB)) as _c:
+        init_schema(_c)
 
     pdfs = list_r2_pdfs()
     if banks:
