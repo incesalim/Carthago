@@ -3,7 +3,20 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-06-27 — **Audit data-integrity sweep: drove the non-equity anomaly backlog to 0.**
+Last verified: 2026-06-27 — **equity_change: halved the failing tail with one fix (period swap on prior-first banks).**
+The `equity_change` lane had 343 failing partitions (the deferred tail from the sweep below). Re-extracting did NOT
+help — until the root cause surfaced: `_PRIOR_RX` (the current/prior page-marker regex) matched "Önce/Öncesi Dönem"
+but **not "Önceki Dönem"**, the standard BRSA term. Banks that print their prior-period matrix FIRST (HSBC: the 2023
+page before the 2024 page) therefore had that page default to `current`; the enforce-distinct fallback then assigned
+the two periods positionally and **swapped them** — so the stored "current" matrix was actually the prior year (closing
+≠ BS equity, OCI row ≠ the OCI statement → both cross-checks failed on every period). Grounded on HSBC 2024Q4: stored
+closing 11,536,971 = the 2023 year-end, not the 2024 BS equity 16,974,242. One-line regex fix
+(`[OÖ]NCE(?:K[İI]|S[İI]?)?\s*D[OÖ]NEM`) → **HSBC 34/34 pass, and 184 of 352 failing partitions clear fleet-wide
+(~52%), 0 regressions** (28/28 sampled passing partitions still pass; `--only-failing` never touches passing data).
+Applied to D1 via the reextract-statement CI lane. The remaining ~168 are other issues (dropped roman rows / blank
+closing-row totals — e.g. ZIRAAT 2023Q1 `eq_col_chain`), still open.
+
+Prior: 2026-06-27 — **Audit data-integrity sweep: drove the non-equity anomaly backlog to 0.**
 `check_audit_quality.py` flagged 374 anomalies; 343 are the known-open `equity_change` vertical-chain tail (left
 as-is), and the remaining **31 non-equity ones were root-caused and fixed end-to-end** (D1 + R2). Five distinct
 bugs: **(1) `_parse_ratio` TR-thousands** — `1.158,00` (an FC LCR of 1158%) was read as `1.158` because the parser
@@ -23,6 +36,20 @@ mis-captured grand total — all PDF-verified. Also hardened `apply_overrides` t
 trailing-dot-insensitively (`rtrim`), fixing a latent phantom-duplicate (EXIM 2024Q4 `1.3.2.` vs normalized `1.3.2`)
 that double-counted on re-apply. All five verified against a fresh prod snapshot (0 non-equity anomalies, no
 collateral) before the live push; +13 guard tests.
+
+Prior: 2026-06-27 — **Added the Faaliyet-raporları (bank annual report) franchise lane + `/franchise` tab.**
+A new, fully separate ingestion lane (`src/faaliyet/`) that deterministically extracts franchise & operational
+statistics — branch / employee / ATM / POS / merchant / customer / card counts — from banks' annual-report PDFs (the
+same IR pages the audit lane already tracks). No LLM: a prose-regex pass (ported from `bank_profile.py`, not imported)
+plus a word-coordinate anchor pass for infographic tiles, with suffix-aware number parsing (the `1.769` vs `1,769`
+trap), per-metric sanity bands, branch footing, and a **read-only** `bank_audit_profile` cross-check that flags
+disagreements — the audit/BS/P&L tables stay frozen. Stores a tall `faaliyet_franchise` fact table + a
+`faaliyet_extractions` coverage log (migration `0014`), pushed to D1 via `push_to_d1` and refreshed incrementally
+(non-critical) by `refresh.py`; the fleet backfill is `backfill-faaliyet.yml` (resumable, 5-bank push chunks). Wired
+into the `/pipeline` graph + status, the metric-knowledge registry (new `faaliyet` source on 13 franchise metrics;
+11 bumped `no`→`partial`), and a new `/franchise` dashboard tab. Ships with 20 offline extractor unit tests.
+**Not yet live:** the per-bank annual-report URLs in `data/banks/faaliyet_report_urls.json` are an empty skeleton
+(seeded with IR pages) — curating them + applying migration `0014` + dispatching the backfill populates the tab.
 
 Prior: 2026-06-27 — **Fixed the pinned header colliding with the per-bank section-nav.**
 The 2026-06-26 header pin (below) made `PageHeader` sticky at `lg:top-0`, but `/banks/[ticker]` already pins its

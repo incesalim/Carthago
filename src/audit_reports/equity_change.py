@@ -66,7 +66,13 @@ except ImportError:
 _NUM_RX = re.compile(NUM_PAT)
 _CLOSING_RX = re.compile(r'BAK[Iİ]YE|BALANCE|BAK[IİIi]YES', re.I)
 _CURRENT_RX  = re.compile(r'CAR[Iİ]\s*D[OÖ]NEM|CURRENT\s*PERIOD', re.I)
-_PRIOR_RX    = re.compile(r'[OÖ]NCES?\s*D[OÖ]NEM|[OÖ]NCES?[İI]\s*D[OÖ]NEM|PRIOR\s*PERIOD|PREVIOUS\s*PERIOD', re.I)
+# "Önceki Dönem" (the standard BRSA term for prior period) MUST match — the old
+# pattern only covered "Önce(si) Dönem" and missed the "ki", so a bank that
+# prints its prior-period matrix FIRST (HSBC: 2023 page before the 2024 page)
+# had that page default to 'current' → the enforce-distinct fallback then swapped
+# the two periods positionally (stored "current" = the prior-year matrix, closing
+# ≠ BS equity). Accept Önce / Öncesi / Önceki.
+_PRIOR_RX    = re.compile(r'[OÖ]NCE(?:K[İI]|S[İI]?)?\s*D[OÖ]NEM|PRIOR\s*PERIOD|PREVIOUS\s*PERIOD', re.I)
 _EQ_ANCHORS  = ("OZKAYNAKDEGISIM", "OZKAYNAKDEĞIŞIM", "CHANGESINSHAREHOLDERS",
                 "CHANGESINEQUITY", "STATEMENTOFCHANGES")
 _DASH_RUN_RX = re.compile(r'-{2,}')
