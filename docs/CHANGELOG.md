@@ -3,7 +3,22 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-06-27 — **equity_change is now fitz-only (pdfplumber removed); rotation was the real GARAN/AKBNK blocker.**
+Last verified: 2026-06-28 — **pdfplumber removed from EVERY audit lane except the frozen BS/P&L `_parse_page`.**
+The loader opened `pdfplumber.open()` for every partition (shared with BS/P&L) and equity/OCI/etc. carried
+pdfplumber "fallbacks" that ran regardless — so a single-statement re-extract still loaded pdfplumber. Now every
+non-BS/P&L lane reads via fitz off `pdf_path`: the three page locators, npl_movement, loans_by_sector,
+credit_quality, fx_position, repricing, bank_profile, OCI (the GARAN/AKBNK fallback was the `/Rotate 90` issue the
+rotation-aware `_fitz_page_text` already fixes), cash flow, and **capital + liquidity** (fitz flat-text primary —
+the direct analog of pdfplumber's `extract_text` the parsers were tuned on — plus the clustered-line fill for
+letter-spaced pages and capital's window fallback). The loader no longer calls `pdfplumber.open()`; pdfplumber now
+runs ONLY inside `_parse_page` (BS/P&L) and `_detect_pl_ncols` (P&L), both untouched. Verified full-fleet
+(2024Q4+2026Q1 dry-run vs prod): BS/P&L raw extraction byte-identical, OCI/cash-flow/NPL 0 diffs, loans_by_sector
+behaviour-neutral; capital/liquidity clean apart from a handful of per-bank cells — TFKB LCR is a **correction**
+(prod stored the prior-period "Önceki Dönem" table as current; the report's "%17.4 azalış" prose confirms
+166.8→137.76), and ICBCT AT1 / QNBFB tier2 are the existing AT1/Tier2-drop class `apply_overrides` already handles.
+Code-level change only — existing prod data (correctly extracted) is untouched; future extractions are fitz-only.
+
+2026-06-27 — **equity_change is now fitz-only (pdfplumber removed); rotation was the real GARAN/AKBNK blocker.**
 The equity extractor kept pdfplumber purely as the reader for GARAN/AKBNK, whose "wide interleaved table only
 pdfplumber's x-clustering separates". The actual cause: those banks render the equity statement on a **`/Rotate 90`
 landscape page**, and `fitz.get_text("words")` returns word bboxes in the page's UN-rotated space — so the visual
