@@ -37,9 +37,8 @@ import sqlite3
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import pdfplumber
 
-from .extractor import _HAS_FITZ, _fitz_page_text, _n_pages, parse_num
+from .extractor import _HAS_FITZ, _fitz_page_count, _fitz_page_text, parse_num
 
 
 # ---------------------------------------------------------------------------
@@ -505,7 +504,6 @@ def _extract_from_block(page_idx: int, text: str) -> list[NplGroupRow]:
 
 
 def extract_from_pdf(
-    pdf: pdfplumber.PDF,
     pdf_path: str = "",
     skip_pages: int = 60,
 ) -> NplMovementReport:
@@ -523,14 +521,13 @@ def extract_from_pdf(
     # FITZ-ONLY: scan AND parse with fitz (the engine the statement locators use)
     # — ~17× faster than pdfplumber's extract_text on every page (which dominated
     # this footnote lane's runtime) and never touches pdf.pages (so no pdfminer
-    # poison-hang). fitz's row text parses identically through _extract_from_block
-    # here (verified). Falls back to pdfplumber text only when fitz is unavailable.
-    use_fitz = _HAS_FITZ and bool(pdf_path)
-    n_pages = _n_pages(pdf) if use_fitz else len(pdf.pages)
+    # poison-hang). fitz's row text parses identically through _extract_from_block.
+    if not (pdf_path and _HAS_FITZ):
+        return rep
+    n_pages = _fitz_page_count(pdf_path) or 0
     for lo in sorted({skip_pages, 25}, reverse=True):
         for i in range(lo + 1, n_pages + 1):
-            text = (_fitz_page_text(pdf_path, i - 1) if use_fitz
-                    else (pdf.pages[i - 1].extract_text() or ""))
+            text = _fitz_page_text(pdf_path, i - 1)
             if not (_HEADING_RX.search(text) and _GROUPS_RX.search(text)):
                 continue
             rows = _extract_from_block(i, text)
@@ -542,9 +539,7 @@ def extract_from_pdf(
 
 
 def extract(pdf_path: str | Path) -> NplMovementReport:
-    pdf_path = str(pdf_path)
-    with pdfplumber.open(pdf_path) as pdf:
-        return extract_from_pdf(pdf, pdf_path)
+    return extract_from_pdf(str(pdf_path))
 
 
 # ---------------------------------------------------------------------------

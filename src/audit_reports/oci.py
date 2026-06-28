@@ -24,7 +24,6 @@ from .extractor import (
     _fitz_page_text,
     _fitz_visual_rows,
     _parse_rows,
-    _safe_repaired_text,
     _split_label,
 )
 from .validator import _roman_to_int, _tol, check_hierarchy_sums
@@ -203,16 +202,11 @@ def extract_oci(pdf_path: str, oci_page: int) -> OCIReport:
         fz = _fitz_page_text(pdf_path, oci_page - 1)
         if fz:
             candidates += _cands_from(fz)
-    # PDFPLUMBER FALLBACK: wide-interleaved-table banks (GARAN/AKBNK) present a
-    # combined "…Profit or Loss AND Other Comprehensive Income" page that fitz
-    # linearizes into garbage; only pdfplumber's x-clustering layout-repair
-    # separates the period columns. Add it when fitz produced nothing OR nothing
-    # that validates — so the fitz-only fast path (and its ~225 ms/page saving) is
-    # preserved for every bank fitz reads correctly.
-    if not any(_oci_candidate_score(c)[0] == 1 for c in candidates):
-        pp = _safe_repaired_text(pdf_path, oci_page)
-        if pp:
-            candidates += _cands_from(pp)
+    # The wide-interleaved GARAN/AKBNK "…Profit or Loss AND Other Comprehensive
+    # Income" page used to need pdfplumber here — but that page is /Rotate-90
+    # landscape, and the rotation-aware _fitz_page_text now reads its columns
+    # cleanly (the garbling was un-rotated word bboxes, not a fitz limitation), so
+    # the fitz candidates above cover it. No pdfplumber.
     # COORDINATE RECONSTRUCTION: when no candidate yet foots the 2.1/2.2 sub-trees
     # (hierarchy_sum fail — a leaf row dropped because its label/value wrapped to
     # another physical line, or its marker prints below its value), rebuild rows

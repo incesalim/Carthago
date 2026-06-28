@@ -28,9 +28,8 @@ import sqlite3
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import pdfplumber
 
-from .extractor import _HAS_FITZ, parse_num
+from .extractor import _HAS_FITZ, _fitz_page_count, _fitz_page_text, parse_num
 
 
 # ---------------------------------------------------------------------------
@@ -366,88 +365,71 @@ def _parse_section(get_lines, start: int, n: int) -> tuple[dict, dict, list]:
     return current, prior, tc_candidates
 
 
-def extract_from_pdf(pdf: pdfplumber.PDF, pdf_path: str = "") -> CapitalReport:
+def extract_from_pdf(pdf_path: str = "") -> CapitalReport:
     rep = CapitalReport(pdf_path=pdf_path)
-    n = len(pdf.pages)
-    # Locate the section start.
+    if not (pdf_path and _HAS_FITZ):
+        return rep
+    n = _fitz_page_count(pdf_path) or 0
+    # Locate the §4 section start via fitz text (the engine the whole lane uses;
+    # reads even TFKB's letter-spaced interim header cleanly).
+    import fitz
     start = None
-    for i in range(min(_SKIP_PAGES, n), n):
-        if any(rx.search(pdf.pages[i].extract_text() or "") for rx in _START_RX):
-            start = i
-            break
-    # fitz fallback for the locator too: TFKB's interim text layer mangles the
-    # header so badly under pdfplumber that even the \s*-tolerant anchor misses
-    # it — fitz reads the same page cleanly (the components then come via
-    # _parse_section_fitz below).
-    if start is None and pdf_path and _HAS_FITZ:
-        import fitz
-        try:
-            doc = fitz.open(pdf_path)
-            for i in range(min(_SKIP_PAGES, n), n):
-                if any(rx.search(doc[i].get_text()) for rx in _START_RX):
-                    start = i
-                    break
-            doc.close()
-        except Exception:
-            pass
+    try:
+        doc = fitz.open(pdf_path)
+        for i in range(min(_SKIP_PAGES, n), n):
+            if any(rx.search(doc[i].get_text()) for rx in _START_RX):
+                start = i
+                break
+        doc.close()
+    except Exception:
+        pass
     if start is None:
         return rep
     rep.source_page = start + 1
 
+    # PRIMARY: fitz flat y-bucketed text — the direct analog of pdfplumber's
+    # extract_text this lane was tuned on (just the other engine), fed to the
+    # STANDARD label→trailing-two-numbers parser. No pdfplumber.
     current, prior, tc_candidates = _parse_section(
-        lambda i: (pdf.pages[i].extract_text() or "").splitlines(), start, n)
-    # Fitz fallback when pdfplumber's text layer fails some rows. Two distinct
-    # damage modes need two strategies:
-    #
-    #  (a) pdfplumber read NOTHING (FIBA): the §4 table renders the value a few px
-    #      off the label's baseline, so pdfplumber's line-clustering drops the
-    #      label onto its own value-less line. The wide-table WINDOW parser
-    #      (`_parse_section_fitz`) re-pairs label↔value across baselines.
-    #
-    #  (b) pdfplumber read the components but MISSED total_rwa / the ratios (TFKB:
-    #      a whole §4 page is letter-spaced — "T o p lam R isk A ğ ırlık lı" — and
-    #      the figures sit on separate baselines, so pdfplumber's line text is
-    #      value-less). Rebuilding the LINES off fitz words (label + its two
-    #      figures cluster back onto one baseline) lets the STANDARD parser pair
-    #      them. Preferred over the window parser, which mis-pairs the columns
-    #      (it grabbed the PRIOR-period RWA as current) — so only the components
-    #      pdfplumber missed are filled, and RWA/ratios come from the reliable
-    #      clustered-line parse.
-    need_fitz = not current or "total_rwa" not in current or "cet1_capital" not in current
-    if pdf_path and _HAS_FITZ and need_fitz:
-        if not current:
-            current, prior, tc_candidates = _parse_section_fitz(pdf_path, start, n)
-        else:
-            # Try the clustered-LINE parse first (TFKB: correct column pairing).
+        lambda i: _fitz_page_text(pdf_path, i).splitlines(), start, n)
+    # Fill rows the flat text dropped from tight y-CLUSTERED fitz lines: TFKB-class
+    # letter-spacing ("T o p lam R isk A ğ ırlık lı") puts the figures on separate
+    # baselines so the flat layer reads them value-less; the clusterer rebuilds
+    # label + its two figures onto one baseline so the standard parser pairs them.
+    need_cluster = not current or "total_rwa" not in current or "cet1_capital" not in current
+    if need_cluster:
+        try:
+            get_lines, fn, doc = _fitz_lines(pdf_path)
             try:
-                get_lines, fn, doc = _fitz_lines(pdf_path)
-            except Exception:
-                get_lines = None
-            if get_lines is not None:
-                try:
-                    fcur, fpri, ftc = _parse_section(get_lines, start, fn)
-                finally:
-                    doc.close()
-                for k, v in fcur.items():
-                    current.setdefault(k, v)
-                    prior.setdefault(k, fpri.get(k))
-                if not tc_candidates:
-                    tc_candidates = ftc
-            # FIBA-class still misses total_rwa here (its values sit off the
-            # label baseline, so clustered lines stay value-less) — fall back to
-            # the wide-table window parser, filling only the safe fields. NOT
-            # additional_tier1 / tier2: the window pass mis-pairs them (it can
-            # grab the prior-period CET1 as AT1), which would break composition.
-            if "total_rwa" not in current:
-                wcur, wpri, wtc = _parse_section_fitz(pdf_path, start, n)
-                _MERGE_OK = {"cet1_capital", "tier1_capital", "total_rwa",
-                             "cet1_ratio", "tier1_ratio", "capital_adequacy_ratio"}
-                for k in _MERGE_OK:
-                    if k in wcur:
-                        current.setdefault(k, wcur[k])
-                        prior.setdefault(k, wpri.get(k))
-                if not tc_candidates:
-                    tc_candidates = wtc
+                fcur, fpri, ftc = _parse_section(get_lines, start, fn)
+            finally:
+                doc.close()
+            for k, v in fcur.items():
+                current.setdefault(k, v)
+                prior.setdefault(k, fpri.get(k))
+            if not tc_candidates:
+                tc_candidates = ftc
+        except Exception:
+            pass
+    # FIBA-class: the §4 values render a few px off the label baseline, so even
+    # clustered lines can stay value-less — fall back to the wide-table WINDOW
+    # parser (`_parse_section_fitz`), which re-pairs label↔value across baselines.
+    # When clustered lines DID read components but missed total_rwa, fill only the
+    # safe fields (NOT additional_tier1 / tier2: the window pass can mis-pair them,
+    # e.g. grab the prior-period CET1 as AT1, breaking composition).
+    if not current or "total_rwa" not in current:
+        wcur, wpri, wtc = _parse_section_fitz(pdf_path, start, n)
+        if not current:
+            current, prior, tc_candidates = wcur, wpri, wtc
+        else:
+            _MERGE_OK = {"cet1_capital", "tier1_capital", "total_rwa",
+                         "cet1_ratio", "tier1_ratio", "capital_adequacy_ratio"}
+            for k in _MERGE_OK:
+                if k in wcur:
+                    current.setdefault(k, wcur[k])
+                    prior.setdefault(k, wpri.get(k))
+            if not tc_candidates:
+                tc_candidates = wtc
 
     if tc_candidates:
         best_cur, best_pri = max(tc_candidates, key=lambda t: t[0])
@@ -488,9 +470,7 @@ def extract_from_pdf(pdf: pdfplumber.PDF, pdf_path: str = "") -> CapitalReport:
 
 
 def extract(pdf_path: str | Path) -> CapitalReport:
-    pdf_path = str(pdf_path)
-    with pdfplumber.open(pdf_path) as pdf:
-        return extract_from_pdf(pdf, pdf_path)
+    return extract_from_pdf(str(pdf_path))
 
 
 # ---------------------------------------------------------------------------
