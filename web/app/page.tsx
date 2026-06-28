@@ -23,6 +23,8 @@ import BarByBank from "@/app/components/BarByBank";
 import TrendChart from "@/app/components/TrendChart";
 import Sparkline from "@/app/sector/ratios/Sparkline";
 import { PageHeader, Stat, DeltaBadge } from "@/app/components/ui";
+import Takeaway from "@/app/components/Takeaway";
+import { overviewInsights } from "@/app/lib/insights";
 import type { TimeSeriesRow } from "@/app/lib/metrics";
 
 export const dynamic = "force-dynamic";
@@ -105,6 +107,12 @@ export default async function OverviewPage() {
   const l = ldr.at(-1);
   const r = roe.at(-1);
 
+  // Deterministic "Sector Pulse" — computed live from the same series the cards
+  // show, so the lead can never drift from the numbers below it.
+  const pulse = overviewInsights({
+    assetsYoY, loansYoY, depositsYoY, npl, car, ldr, roe,
+  });
+
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
       <PageHeader
@@ -114,6 +122,8 @@ export default async function OverviewPage() {
         rangeSelector
         dataThrough={latestPeriod(assets, npl, car, roe)}
       />
+
+      <Takeaway data={pulse} />
 
       {/* Top row — size + growth */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
