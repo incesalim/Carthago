@@ -754,7 +754,7 @@ ANCHORS = {
 }
 
 
-def _locate_pages(pdf: pdfplumber.PDF) -> dict[str, int]:
+def _locate_pages(pdf_path: str) -> dict[str, int]:
     """Return 1-indexed page numbers for the four key statements.
 
     A line matches a 'kind' if its normalized form starts with one or more 'I'
@@ -784,18 +784,14 @@ def _locate_pages(pdf: pdfplumber.PDF) -> dict[str, int]:
                 if cnt >= min_rows:
                     return True
         return False
-    pdf_path = pdf.stream.name if hasattr(pdf, 'stream') else None
-    # Iterate page indices via fitz's count when available — touching `pdf.pages`
-    # to enumerate would trigger the pdfminer page-tree hang on poison PDFs.
-    for i in range(1, _n_pages(pdf) + 1):
+    # Iterate page indices via fitz's count — never materialise pdfplumber pages
+    # (the pdfminer page-tree enumeration hangs on poison PDFs).
+    for i in range(1, (_fitz_page_count(pdf_path) or 0) + 1):
         # Fitz text only — ~50× faster than pdfplumber's extract_text (which
         # dominated page-location time) and a SUPERSET for anchor detection: it
         # captures the absolutely-positioned text pdfplumber's column-flatten drops
-        # (e.g. Akbank 2026Q1). pdfplumber is used only when fitz is unavailable.
-        if _HAS_FITZ and pdf_path:
-            text = _fitz_page_text(pdf_path, i - 1)
-        else:
-            text = pdf.pages[i - 1].extract_text() or ''
+        # (e.g. Akbank 2026Q1).
+        text = _fitz_page_text(pdf_path, i - 1)
         norm_full = _norm(text)
         norm_lines = [_norm(ln) for ln in text.split('\n')]
         for kind, (pat, keywords, supports) in matchers.items():
@@ -1132,7 +1128,7 @@ def _page_text(pdf, page_idx_1: int) -> str:
     return pdf.pages[page_idx_1 - 1].extract_text() or ''
 
 
-def _locate_oci_page(pdf, pl_page_idx_1: int | None) -> int | None:
+def _locate_oci_page(pdf_path: str, pl_page_idx_1: int | None) -> int | None:
     """Find the OCI (Other Comprehensive Income) statement page.
 
     The OCI always follows the P&L page in BRSA reports. Searches the next
@@ -1149,9 +1145,9 @@ def _locate_oci_page(pdf, pl_page_idx_1: int | None) -> int | None:
     genuine OCI page never lists those.
 
     Wide-interleaved-table banks (GARAN/AKBNK) present a combined "…Profit or Loss
-    AND Other Comprehensive Income" page whose title and rows fitz scatters so the
-    OCI keyword / roman rows go undetected. When the fast fitz pass finds nothing,
-    a second pass over the same window uses pdfplumber's layout-repaired text.
+    AND Other Comprehensive Income" page on a /Rotate-90 landscape page; the
+    rotation-aware _fitz_page_text reads its anchor cleanly (it used to scatter
+    because fitz returns un-rotated word bboxes), so fitz alone locates every bank.
     """
     if pl_page_idx_1 is None:
         return None
@@ -1184,23 +1180,18 @@ def _locate_oci_page(pdf, pl_page_idx_1: int | None) -> int | None:
         )
         return data_rows >= 2
 
-    lo, hi = pl_page_idx_1 + 1, min(pl_page_idx_1 + 7, _n_pages(pdf) + 1)
-    # Pass 1: fitz (fast) — covers the vast majority of banks.
+    lo, hi = pl_page_idx_1 + 1, min(pl_page_idx_1 + 7, (_fitz_page_count(pdf_path) or 0) + 1)
+    # fitz reads the OCI anchor for every bank — including the wide-interleaved
+    # GARAN/AKBNK "…Profit or Loss AND Other Comprehensive Income" page, now that
+    # _fitz_page_text applies the page rotation (those are /Rotate-90 landscape
+    # pages; un-rotated word bboxes used to scatter the anchor).
     for i in range(lo, hi):
-        if _is_oci_page(_page_text(pdf, i)):
+        if _is_oci_page(_fitz_page_text(pdf_path, i - 1)):
             return i
-    # Pass 2: pdfplumber layout-repaired text for the wide-table banks. Only
-    # reached when the fitz pass found nothing, so the fast path is unchanged.
-    pdf_path = pdf.stream.name if hasattr(pdf, 'stream') else None
-    if pdf_path:
-        for i in range(lo, hi):
-            pp = _safe_repaired_text(pdf_path, i)
-            if pp and _is_oci_page(pp):
-                return i
     return None
 
 
-def _locate_cash_flow_page(pdf, start_page_idx_1: int | None) -> int | None:
+def _locate_cash_flow_page(pdf_path: str, start_page_idx_1: int | None) -> int | None:
     """Find the cash flow statement page.
 
     Searches pages start+1 … start+8 for the cash flow anchor keywords, then
@@ -1220,8 +1211,8 @@ def _locate_cash_flow_page(pdf, start_page_idx_1: int | None) -> int | None:
     _cf_op = re.compile(r"operating\s+(?:activit|profit)|i[şs]letme\s+faaliyet|"
                         r"bankac[ıi]l[ıi]k\s+faaliyet|esas\s+faaliyet", re.IGNORECASE)
     _cf_inv = re.compile(r"investing\s+activit|yat[ıi]r[ıi]m\s+faaliyet", re.IGNORECASE)
-    for i in range(start_page_idx_1 + 1, min(start_page_idx_1 + 9, _n_pages(pdf) + 1)):
-        text = _page_text(pdf, i)
+    for i in range(start_page_idx_1 + 1, min(start_page_idx_1 + 9, (_fitz_page_count(pdf_path) or 0) + 1)):
+        text = _fitz_page_text(pdf_path, i - 1)
         norm = _norm(text)
         if not (any(kw in norm for kw in _CF_NORMS)
                 or (_cf_op.search(text) and _cf_inv.search(text))):
@@ -1258,195 +1249,169 @@ def extract(pdf_path: str | Path, only: set[str] | None = None) -> BankReport:
 
     pdf_path = str(pdf_path)
     rep = BankReport(pdf_path=pdf_path)
-    pdf = pdfplumber.open(pdf_path)
-    try:
-        # The six "deep-scan" extractors below are independent of the statement
-        # lane and each sweep most of the PDF — skipping them is the bulk of the
-        # speed-up when only a statement (e.g. equity_change) is wanted.
-        # Run credit-quality scan first, on the same open PDF. Isolated try
-        # so a failure in the credit-quality pass can't sink the BS/PL extract.
-        if _want('credit_quality'):
-            try:
-                from .credit_quality import extract_from_pdf as _extract_cq
-                rep.credit_quality = _extract_cq(pdf, pdf_path).rows
-            except Exception:
-                rep.credit_quality = []
-        # Bank profile (branches + personnel) from the qualitative section.
-        # Independently isolated.
-        if _want('bank_profile'):
-            try:
-                from .bank_profile import extract_profile_from_pdf as _extract_bp
-                rep.bank_profile = _extract_bp(pdf)
-            except Exception:
-                rep.bank_profile = None
-        # Loans-by-sector (Stage 2 / Stage 3 / ECL per sector).
-        if _want('loans_by_sector'):
-            try:
-                from .loans_by_sector import extract_from_pdf as _extract_lbs
-                rep.loans_by_sector = _extract_lbs(pdf, pdf_path).rows
-            except Exception:
-                rep.loans_by_sector = []
-        # NPL gross-amount roll-forward.
-        if _want('npl_movement'):
-            try:
-                from .npl_movement import extract_from_pdf as _extract_nplm
-                rep.npl_movement = _extract_nplm(pdf, pdf_path).rows
-            except Exception:
-                rep.npl_movement = []
-        # Capital adequacy (§4.1) and liquidity/leverage (§4.6/4.7).
-        if _want('capital'):
-            try:
-                from .capital_adequacy import extract_from_pdf as _extract_cap
-                rep.capital = _extract_cap(pdf, pdf_path)
-            except Exception:
-                rep.capital = None
-        if _want('liquidity'):
-            try:
-                from .liquidity import extract_from_pdf as _extract_liq
-                rep.liquidity = _extract_liq(pdf, pdf_path)
-            except Exception:
-                rep.liquidity = None
-        # §4 market-risk: FX net open position + interest-rate repricing gap.
-        if _want('fx_position'):
-            try:
-                from .fx_position import extract_from_pdf as _extract_fx
-                rep.fx_position = _extract_fx(pdf, pdf_path)
-            except Exception:
-                rep.fx_position = None
-        if _want('repricing'):
-            try:
-                from .repricing import extract_from_pdf as _extract_rp
-                rep.repricing = _extract_rp(pdf, pdf_path)
-            except Exception:
-                rep.repricing = None
-        loc = _locate_pages(pdf)
-        if 'bs_assets' in loc and _want('bs_assets'):
-            for order, (label, vals) in enumerate(_parse_page(pdf_path, loc['bs_assets'], 6), 1):
-                h, name, fn = _split_label(label)
-                rep.bs_assets.append(StatementRow(
-                    order=order, hierarchy=h, name=name, footnote=fn,
-                    cur_tl=vals[0], cur_fc=vals[1], cur_total=vals[2],
-                    pri_tl=vals[3], pri_fc=vals[4], pri_total=vals[5],
-                ))
-        if 'bs_liab' in loc and _want('bs_liabilities'):
-            for order, (label, vals) in enumerate(_parse_page(pdf_path, loc['bs_liab'], 6), 1):
-                h, name, fn = _split_label(label)
-                rep.bs_liabilities.append(StatementRow(
-                    order=order, hierarchy=h, name=name, footnote=fn,
-                    cur_tl=vals[0], cur_fc=vals[1], cur_total=vals[2],
-                    pri_tl=vals[3], pri_fc=vals[4], pri_total=vals[5],
-                ))
-        if 'off_bs' in loc and _want('off_balance'):
-            _off_order = 0
-            for label, vals in _parse_page(pdf_path, loc['off_bs'], 6):
-                h, name, fn = _split_label(label)
-                cur_tot = vals[2]
-                # Drop section-level rows (depth-1: single roman or letter) that
-                # have a suspiciously small non-zero total — these are table-header
-                # lines whose column positions happen to align with date fragments
-                # (e.g. "31.03.2022 31.12.2021" → 31.03 / 202 / 2 in the TL/FC/
-                # Total slots) and section-reference numbers ("III-a-2,3" → 105/4/
-                # 305).  All legitimate depth-1 section totals for any Turkish bank
-                # are in at least the millions of TRY.
-                if (h and re.fullmatch(r'[IVX]+\.|[A-Z]\.', h)
-                        and cur_tot is not None and 0 < abs(cur_tot) < 1_000):
-                    continue
-                _off_order += 1
-                rep.off_balance.append(StatementRow(
-                    order=_off_order, hierarchy=h, name=name, footnote=fn,
-                    cur_tl=vals[0], cur_fc=vals[1], cur_total=cur_tot,
-                    pri_tl=vals[3], pri_fc=vals[4], pri_total=vals[5],
-                ))
-        if 'pl' in loc:
-            # Interim income statements can carry 4 columns (cumulative + 3-month
-            # for current/prior). Detect the structure and take the cumulative
-            # current (col 0) and cumulative prior (col n//2), not the last two.
-            # Only needed when P&L itself is wanted — skipping it keeps the
-            # equity_change/cash_flow lanes off pdfplumber (and so off the pdfminer
-            # page-tree hang on poison PDFs).
-            if _want('profit_loss'):
-                pl_n = _detect_pl_ncols(pdf_path, loc['pl'])
-                for order, (label, vals) in enumerate(_parse_page(pdf_path, loc['pl'], pl_n), 1):
-                    h, name, fn = _split_label(label)
-                    rep.profit_loss.append(StatementRow(
-                        order=order, hierarchy=h, name=name, footnote=fn,
-                        cur_amount=vals[0], pri_amount=vals[pl_n // 2],
-                    ))
-            # OCI always follows the P&L page (same single-value-column structure).
-            # Its page is ALSO the after-anchor for equity + cash flow, so locate it
-            # whenever any of OCI / equity_change / cash_flow is wanted; store OCI
-            # rows only when OCI itself is wanted.
-            oci_page = (_locate_oci_page(pdf, loc['pl'])
-                        if (_want('oci') or _want('equity_change') or _want('cash_flow'))
-                        else None)
-            if oci_page and _want('oci'):
-                # Validation-guided OCI parse (multi-engine, picks the chain that
-                # closes — fixes the n_cols mis-detection that yielded 0/garbage
-                # rows). Isolated so an OCI failure can't sink P&L/equity/CF.
-                try:
-                    from .oci import extract_oci
-                    rep.other_comprehensive_income = extract_oci(pdf_path, oci_page).rows
-                except Exception:
-                    rep.other_comprehensive_income = []
-            # Equity-change pages follow OCI (or P&L when OCI is absent). Equity rows
-            # are also the cash-flow page anchor (_eq_last), so run the extractor when
-            # equity OR cash_flow is wanted; store on rep only when equity is wanted.
-            eq_report = None
-            if _want('equity_change') or _want('cash_flow'):
-                try:
-                    from .equity_change import extract_from_pdf as _extract_eq
-                    eq_report = _extract_eq(pdf_path, oci_page or loc.get('pl'))
-                except Exception:
-                    eq_report = None
-                if _want('equity_change'):
-                    rep.equity_change = eq_report
-            # Cash flow follows the equity-change pages. Use the OCI anchor as the
-            # search window start when equity extraction failed to locate pages.
-            if _want('cash_flow'):
-                _eq_last = None
-                if eq_report and getattr(eq_report, 'rows', []):
-                    _eq_last = max((r.source_page for r in eq_report.rows), default=None)
-                cf_start = _eq_last or oci_page or loc.get('pl')
-                cf_page = _locate_cash_flow_page(pdf, cf_start)
-                if cf_page:
-                    # The cash flow statement ALWAYS carries exactly two value columns
-                    # (current + prior, cumulative) — for annual AND interim reports
-                    # alike, since CF is only ever reported year-to-date.  We must NOT
-                    # use _detect_pl_ncols here: it is tuned for the P&L (4 columns on
-                    # interim) and misreads the CF page's parenthesised date headers
-                    # "(31/12/2024) (31/12/2023)" as a 4-column layout, which then makes
-                    # _parse_page reject every 2-value data row (AKBNK/ING annual → 0
-                    # rows).  Pin to 2 so both columns are picked directly.
-                    cf_n = 2
-                    # FITZ-ONLY: pdfplumber adds no accuracy on the cash-flow page
-                    # (fitz >= pdfplumber in testing) but costs a full PDF re-open
-                    # (~225 ms) + the poison-PDF hang risk. Fall back to the
-                    # both-engines parser only if fitz yields nothing, so no bank
-                    # that only pdfplumber can read regresses to 0 rows.
-                    cf_text = _fitz_page_text(pdf_path, cf_page - 1) if _HAS_FITZ else ''
-                    cf_parsed = _parse_rows(_fitz_merge_rows(cf_text, cf_n), cf_n) if cf_text else []
-                    if not cf_parsed:
-                        cf_parsed = _parse_page(pdf_path, cf_page, cf_n)
-                    for order, (label, vals) in enumerate(cf_parsed, 1):
-                        h, name, fn = _split_label(label)
-                        rep.cash_flow.append(StatementRow(
-                            order=order, hierarchy=h, name=name, footnote=fn,
-                            cur_amount=vals[0], pri_amount=vals[1] if len(vals) > 1 else None,
-                        ))
-    finally:
-        # Release the file WITHOUT calling pdf.close(): close() first flush_cache()s
-        # (which delattrs every cached property) and then iterates `self.pages` to
-        # close each page — forcing pdfminer's page-tree resolution. That resolution
-        # hangs on poison PDFs whose page objects live in many compressed object
-        # streams (VAKBN 2025Q4: 159 pages, 273 /ObjStm — fitz reads it in 30 ms,
-        # pdfminer takes 2 min). The fitz-based locators + equity lane never
-        # materialise pdfplumber pages, so there are no Page objects to close; just
-        # shut the underlying stream. The doc/cache are garbage-collected with `pdf`.
+    # Every lane below reads via pdf_path with fitz. pdfplumber is opened ONLY
+    # inside _parse_page, for the frozen BS/P&L tables — so a single-statement
+    # re-extract that doesn't touch BS/P&L never loads pdfplumber at all (and so
+    # never risks the pdfminer page-tree hang on poison PDFs). The "deep-scan"
+    # extractors each sweep most of the PDF, so skipping them when `only` excludes
+    # them is the bulk of the single-statement speed-up.
+    if _want('credit_quality'):
         try:
-            if not getattr(pdf, 'stream_is_external', False) and getattr(pdf, 'stream', None):
-                pdf.stream.close()
+            from .credit_quality import extract_from_pdf as _extract_cq
+            rep.credit_quality = _extract_cq(pdf_path=pdf_path).rows
         except Exception:
-            pass
+            rep.credit_quality = []
+    # Bank profile (branches + personnel) from the qualitative section.
+    if _want('bank_profile'):
+        try:
+            from .bank_profile import extract_profile_from_pdf as _extract_bp
+            rep.bank_profile = _extract_bp(pdf_path)
+        except Exception:
+            rep.bank_profile = None
+    # Loans-by-sector (Stage 2 / Stage 3 / ECL per sector).
+    if _want('loans_by_sector'):
+        try:
+            from .loans_by_sector import extract_from_pdf as _extract_lbs
+            rep.loans_by_sector = _extract_lbs(pdf_path).rows
+        except Exception:
+            rep.loans_by_sector = []
+    # NPL gross-amount roll-forward.
+    if _want('npl_movement'):
+        try:
+            from .npl_movement import extract_from_pdf as _extract_nplm
+            rep.npl_movement = _extract_nplm(pdf_path).rows
+        except Exception:
+            rep.npl_movement = []
+    # Capital adequacy (§4.1) and liquidity/leverage (§4.6/4.7).
+    if _want('capital'):
+        try:
+            from .capital_adequacy import extract_from_pdf as _extract_cap
+            rep.capital = _extract_cap(pdf_path)
+        except Exception:
+            rep.capital = None
+    if _want('liquidity'):
+        try:
+            from .liquidity import extract_from_pdf as _extract_liq
+            rep.liquidity = _extract_liq(pdf_path)
+        except Exception:
+            rep.liquidity = None
+    # §4 market-risk: FX net open position + interest-rate repricing gap.
+    if _want('fx_position'):
+        try:
+            from .fx_position import extract_from_pdf as _extract_fx
+            rep.fx_position = _extract_fx(pdf_path=pdf_path)
+        except Exception:
+            rep.fx_position = None
+    if _want('repricing'):
+        try:
+            from .repricing import extract_from_pdf as _extract_rp
+            rep.repricing = _extract_rp(pdf_path=pdf_path)
+        except Exception:
+            rep.repricing = None
+    loc = _locate_pages(pdf_path)
+    if 'bs_assets' in loc and _want('bs_assets'):
+        for order, (label, vals) in enumerate(_parse_page(pdf_path, loc['bs_assets'], 6), 1):
+            h, name, fn = _split_label(label)
+            rep.bs_assets.append(StatementRow(
+                order=order, hierarchy=h, name=name, footnote=fn,
+                cur_tl=vals[0], cur_fc=vals[1], cur_total=vals[2],
+                pri_tl=vals[3], pri_fc=vals[4], pri_total=vals[5],
+            ))
+    if 'bs_liab' in loc and _want('bs_liabilities'):
+        for order, (label, vals) in enumerate(_parse_page(pdf_path, loc['bs_liab'], 6), 1):
+            h, name, fn = _split_label(label)
+            rep.bs_liabilities.append(StatementRow(
+                order=order, hierarchy=h, name=name, footnote=fn,
+                cur_tl=vals[0], cur_fc=vals[1], cur_total=vals[2],
+                pri_tl=vals[3], pri_fc=vals[4], pri_total=vals[5],
+            ))
+    if 'off_bs' in loc and _want('off_balance'):
+        _off_order = 0
+        for label, vals in _parse_page(pdf_path, loc['off_bs'], 6):
+            h, name, fn = _split_label(label)
+            cur_tot = vals[2]
+            # Drop section-level rows (depth-1: single roman or letter) that
+            # have a suspiciously small non-zero total — these are table-header
+            # lines whose column positions happen to align with date fragments
+            # (e.g. "31.03.2022 31.12.2021" → 31.03 / 202 / 2 in the TL/FC/
+            # Total slots) and section-reference numbers ("III-a-2,3" → 105/4/
+            # 305).  All legitimate depth-1 section totals for any Turkish bank
+            # are in at least the millions of TRY.
+            if (h and re.fullmatch(r'[IVX]+\.|[A-Z]\.', h)
+                    and cur_tot is not None and 0 < abs(cur_tot) < 1_000):
+                continue
+            _off_order += 1
+            rep.off_balance.append(StatementRow(
+                order=_off_order, hierarchy=h, name=name, footnote=fn,
+                cur_tl=vals[0], cur_fc=vals[1], cur_total=cur_tot,
+                pri_tl=vals[3], pri_fc=vals[4], pri_total=vals[5],
+            ))
+    if 'pl' in loc:
+        # Interim income statements can carry 4 columns (cumulative + 3-month
+        # for current/prior). Detect the structure and take the cumulative
+        # current (col 0) and cumulative prior (col n//2), not the last two.
+        if _want('profit_loss'):
+            pl_n = _detect_pl_ncols(pdf_path, loc['pl'])
+            for order, (label, vals) in enumerate(_parse_page(pdf_path, loc['pl'], pl_n), 1):
+                h, name, fn = _split_label(label)
+                rep.profit_loss.append(StatementRow(
+                    order=order, hierarchy=h, name=name, footnote=fn,
+                    cur_amount=vals[0], pri_amount=vals[pl_n // 2],
+                ))
+        # OCI always follows the P&L page (same single-value-column structure).
+        # Its page is ALSO the after-anchor for equity + cash flow, so locate it
+        # whenever any of OCI / equity_change / cash_flow is wanted; store OCI
+        # rows only when OCI itself is wanted.
+        oci_page = (_locate_oci_page(pdf_path, loc['pl'])
+                    if (_want('oci') or _want('equity_change') or _want('cash_flow'))
+                    else None)
+        if oci_page and _want('oci'):
+            # Validation-guided OCI parse (picks the chain that closes — fixes the
+            # n_cols mis-detection that yielded 0/garbage rows). Isolated so an
+            # OCI failure can't sink P&L/equity/CF.
+            try:
+                from .oci import extract_oci
+                rep.other_comprehensive_income = extract_oci(pdf_path, oci_page).rows
+            except Exception:
+                rep.other_comprehensive_income = []
+        # Equity-change pages follow OCI (or P&L when OCI is absent). Equity rows
+        # are also the cash-flow page anchor (_eq_last), so run the extractor when
+        # equity OR cash_flow is wanted; store on rep only when equity is wanted.
+        eq_report = None
+        if _want('equity_change') or _want('cash_flow'):
+            try:
+                from .equity_change import extract_from_pdf as _extract_eq
+                eq_report = _extract_eq(pdf_path, oci_page or loc.get('pl'))
+            except Exception:
+                eq_report = None
+            if _want('equity_change'):
+                rep.equity_change = eq_report
+        # Cash flow follows the equity-change pages. Use the OCI anchor as the
+        # search window start when equity extraction failed to locate pages.
+        if _want('cash_flow'):
+            _eq_last = None
+            if eq_report and getattr(eq_report, 'rows', []):
+                _eq_last = max((r.source_page for r in eq_report.rows), default=None)
+            cf_start = _eq_last or oci_page or loc.get('pl')
+            cf_page = _locate_cash_flow_page(pdf_path, cf_start)
+            if cf_page:
+                # The cash flow statement ALWAYS carries exactly two value columns
+                # (current + prior, cumulative) — for annual AND interim reports
+                # alike, since CF is only ever reported year-to-date.  We must NOT
+                # use _detect_pl_ncols here: it is tuned for the P&L (4 columns on
+                # interim) and misreads the CF page's parenthesised date headers
+                # "(31/12/2024) (31/12/2023)" as a 4-column layout, which then makes
+                # row-parsing reject every 2-value data row (AKBNK/ING annual → 0
+                # rows).  Pin to 2 so both columns are picked directly.
+                cf_n = 2
+                cf_text = _fitz_page_text(pdf_path, cf_page - 1) if _HAS_FITZ else ''
+                cf_parsed = _parse_rows(_fitz_merge_rows(cf_text, cf_n), cf_n) if cf_text else []
+                for order, (label, vals) in enumerate(cf_parsed, 1):
+                    h, name, fn = _split_label(label)
+                    rep.cash_flow.append(StatementRow(
+                        order=order, hierarchy=h, name=name, footnote=fn,
+                        cur_amount=vals[0], pri_amount=vals[1] if len(vals) > 1 else None,
+                    ))
     return rep
 
 

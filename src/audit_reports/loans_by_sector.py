@@ -34,9 +34,8 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import pdfplumber
 
-from .extractor import _HAS_FITZ, _fitz_page_text, _n_pages, parse_num
+from .extractor import _HAS_FITZ, _fitz_page_count, _fitz_page_text, parse_num
 
 
 # ---------------------------------------------------------------------------
@@ -593,7 +592,6 @@ PARENT_SECTORS = {"agri_total", "mfg_total", "construction", "svc_total", "other
 
 
 def extract_from_pdf(
-    pdf: pdfplumber.PDF,
     pdf_path: str = "",
     skip_pages: int = 30,
 ) -> LoansBySectorReport:
@@ -608,8 +606,9 @@ def extract_from_pdf(
     # poison-hang-safe, consistent with the OCI/CF/NPL lanes; fitz's row text
     # parses identically here. Falls back to pdfplumber text only without fitz.
     rep = LoansBySectorReport(pdf_path=pdf_path)
-    use_fitz = _HAS_FITZ and bool(pdf_path)
-    n_pages = _n_pages(pdf) if use_fitz else len(pdf.pages)
+    if not (pdf_path and _HAS_FITZ):
+        return rep
+    n_pages = _fitz_page_count(pdf_path) or 0
     # Build BOTH parses — x-coordinate column alignment (handles gross-Loans-first
     # and provision/ECL columns, e.g. QNBFB's 5-column table) and the legacy
     # trailing-3-numbers text parser — then keep whichever FOOTS better (Σ
@@ -618,11 +617,10 @@ def extract_from_pdf(
     xy_rows: list[SectorRow] = []
     txt_rows: list[SectorRow] = []
     for i in range(skip_pages + 1, n_pages + 1):
-        text = (_fitz_page_text(pdf_path, i - 1) if use_fitz
-                else (pdf.pages[i - 1].extract_text() or ""))
+        text = _fitz_page_text(pdf_path, i - 1)
         if not _page_has_sector_heading(text):
             continue
-        lines = _xy_lines(pdf_path, i - 1) if use_fitz else None
+        lines = _xy_lines(pdf_path, i - 1)
         # Legacy past-due schema (no IFRS-9 Stage 2/3 columns, e.g. ALNTF): the
         # bank doesn't disclose stages by sector — skip rather than fabricate.
         if _is_legacy_pastdue_table(text, lines):
@@ -634,7 +632,7 @@ def extract_from_pdf(
             s2, s3 = _stage_col_x(lines) if lines else (None, None)
             if s2 is None or s3 is None:
                 continue
-        if use_fitz and lines is not None:
+        if lines is not None:
             xy = _extract_section_xy(i, lines)
             # GARAN unconsolidated splits the table: the stage-column HEADER sits on
             # this page but the sector ROWS are on the next (which has no heading, so
@@ -724,9 +722,7 @@ def _foot_error(rows: list[SectorRow]) -> float:
 
 def extract(pdf_path: str | Path) -> LoansBySectorReport:
     """Convenience wrapper for callers that don't already have a PDF handle."""
-    pdf_path = str(pdf_path)
-    with pdfplumber.open(pdf_path) as pdf:
-        return extract_from_pdf(pdf, pdf_path)
+    return extract_from_pdf(str(pdf_path))
 
 
 # ---------------------------------------------------------------------------

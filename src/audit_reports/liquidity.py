@@ -21,10 +21,9 @@ import sqlite3
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import pdfplumber
 
 from .capital_adequacy import _parse_ratio, _repair_split_digits, _trailing_two_tokens
-from .extractor import _HAS_FITZ
+from .extractor import _HAS_FITZ, _fitz_page_count, _fitz_page_text
 
 _SKIP_PAGES = 12
 _MAX_SCAN_FROM_START = 26   # pages to scan once the LCR section begins; the
@@ -147,13 +146,15 @@ def _match(rxs, line: str) -> bool:
     return any(rx.match(line) for rx in rxs)
 
 
-def extract_from_pdf(pdf: pdfplumber.PDF, pdf_path: str = "") -> LiquidityReport:
+def extract_from_pdf(pdf_path: str = "") -> LiquidityReport:
     rep = LiquidityReport(pdf_path=pdf_path)
-    n = len(pdf.pages)
+    if not (pdf_path and _HAS_FITZ):
+        return rep
+    n = _fitz_page_count(pdf_path) or 0
     # Find where the liquidity section starts so we don't scan the whole report.
     start = None
     for i in range(min(_SKIP_PAGES, n), n):
-        if any(rx.search(pdf.pages[i].extract_text() or "") for rx in _START_RX):
+        if any(rx.search(_fitz_page_text(pdf_path, i)) for rx in _START_RX):
             start = i
             break
     # Fallback: AKTIF (and other small banks) disclose the LCR as PROSE — there's
@@ -166,13 +167,13 @@ def extract_from_pdf(pdf: pdfplumber.PDF, pdf_path: str = "") -> LiquidityReport
     scan_end = n if fallback else min(n, start + _MAX_SCAN_FROM_START)
     rep.source_page = None if fallback else start + 1
 
-    lcr, nsfr, lev = _scan(lambda i: (pdf.pages[i].extract_text() or "").splitlines(),
-                           scan_start, scan_end)
-    # Wide-table fallback: TFKB renders the LCR/NSFR rows so the value is offset
-    # from the (right-aligned) label and pdfplumber drops the label onto a
-    # value-less line — re-scan off fitz words clustered into lines and FILL only
-    # the ratios pdfplumber missed (TFKB interim yields NSFR but not LCR/leverage).
-    if not (lcr and nsfr and lev) and pdf_path and _HAS_FITZ:
+    # Primary: fitz flat y-bucketed text (the direct analog of pdfplumber's
+    # extract_text that the lane was tuned on — no pdfplumber). Then fill any row
+    # the flat text dropped from tight y-CLUSTERED fitz lines: TFKB letter-spaces
+    # the §4 page so its figures sit on separate baselines, which the flat layer
+    # drops but the clusterer rebuilds onto one line.
+    lcr, nsfr, lev = _scan(lambda i: _fitz_page_text(pdf_path, i).splitlines(), scan_start, scan_end)
+    if not (lcr and nsfr and lev):
         flcr, fnsfr, flev = _scan(lambda i: _fitz_lines(pdf_path, i), scan_start, scan_end)
         lcr, nsfr, lev = (lcr or flcr), (nsfr or fnsfr), (lev or flev)
     # Prose fallback (older FIBA): the §4.7 table lists only the leverage exposure
@@ -181,7 +182,7 @@ def extract_from_pdf(pdf: pdfplumber.PDF, pdf_path: str = "") -> LiquidityReport
     # "itibarıyla %…" so the regulatory "%3" minimum ("oranını %3 olarak") is not
     # matched.
     if not lev:
-        prose = " ".join(pdf.pages[i].extract_text() or "" for i in range(scan_start, scan_end))
+        prose = " ".join(_fitz_page_text(pdf_path, i) for i in range(scan_start, scan_end))
         m = _PROSE_LEV_RX.search(prose)
         if m:
             lev = [[m.group(1)]]
@@ -208,9 +209,7 @@ def extract_from_pdf(pdf: pdfplumber.PDF, pdf_path: str = "") -> LiquidityReport
 
 
 def extract(pdf_path: str | Path) -> LiquidityReport:
-    pdf_path = str(pdf_path)
-    with pdfplumber.open(pdf_path) as pdf:
-        return extract_from_pdf(pdf, pdf_path)
+    return extract_from_pdf(str(pdf_path))
 
 
 # ---------------------------------------------------------------------------

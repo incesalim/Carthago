@@ -30,7 +30,7 @@ import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
 
-import pdfplumber
+from .extractor import _HAS_FITZ, _fitz_page_count, _fitz_page_text
 
 # Numbers in audit reports use either "." or "," as thousands separator.
 # Some banks even mix conventions within the same document (Turkish text
@@ -139,16 +139,18 @@ class BankProfile:
 
 
 def extract_profile_from_pdf(
-    pdf: pdfplumber.PDF,
+    pdf_path: str = "",
     max_pages: int = 25,
 ) -> BankProfile:
     """Scan the first `max_pages` pages of an audit report for branch +
     personnel disclosures. Returns a BankProfile (possibly partially-filled)."""
     profile = BankProfile()
-    # Concatenate first N pages (qualitative section is always near the start).
-    text = ""
-    for page in pdf.pages[:max_pages]:
-        text += (page.extract_text() or "") + "\n"
+    if not (pdf_path and _HAS_FITZ):
+        return profile
+    # Concatenate first N pages (qualitative section is always near the start) —
+    # fitz text, same engine as every other lane (no pdfplumber).
+    n = min(max_pages, _fitz_page_count(pdf_path) or 0)
+    text = "".join(_fitz_page_text(pdf_path, i) + "\n" for i in range(n))
     if not text:
         return profile
 
@@ -271,7 +273,6 @@ if __name__ == "__main__":
     import sys
     sys.stdout.reconfigure(encoding="utf-8")
     path = sys.argv[1] if len(sys.argv) > 1 else "data/_tmp_akbnk_2025q4.pdf"
-    with pdfplumber.open(path) as pdf:
-        p = extract_profile_from_pdf(pdf)
+    p = extract_profile_from_pdf(path)
     print(f"{Path(path).name}: domestic={p.branches_domestic} foreign={p.branches_foreign} "
           f"total={p.branches_total} personnel={p.personnel}")
