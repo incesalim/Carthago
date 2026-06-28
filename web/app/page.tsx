@@ -13,13 +13,11 @@ import {
   totalAssetsYoY,
   totalLoansYoY,
   totalDepositsYoY,
-  latestPerBank,
   latestPeriod,
   PRIMARY_BANK_TYPES,
   BANK_TYPES,
   BANK_TYPE_LABELS,
 } from "@/app/lib/metrics";
-import BarByBank from "@/app/components/BarByBank";
 import TrendChart from "@/app/components/TrendChart";
 import Sparkline from "@/app/sector/ratios/Sparkline";
 import { PageHeader, Stat, DeltaBadge } from "@/app/components/ui";
@@ -80,11 +78,10 @@ const fmtTrn = (v: number | null | undefined) =>
 
 export default async function OverviewPage() {
   const sector = [BANK_TYPES.SECTOR];
-  const groupsExSector = PRIMARY_BANK_TYPES.filter((c) => c !== BANK_TYPES.SECTOR);
 
   const [
     assets, assetsYoY, loansYoY, depositsYoY, npl, car, ldr, roe,
-    loanYoYByBank, nplAllGroups,
+    loansYoYGroups, nplAllGroups, carGroups, roeGroups,
   ] = await Promise.all([
     totalAssets(sector),
     totalAssetsYoY(sector),
@@ -94,8 +91,11 @@ export default async function OverviewPage() {
     ratioCar(sector),
     ratioLdr(sector),
     ratioRoe(sector),
-    latestPerBank(totalLoansYoY, groupsExSector),
+    // By-group trends for the chart grid — one per CAMELS vital.
+    totalLoansYoY(PRIMARY_BANK_TYPES),
     ratioNpl(PRIMARY_BANK_TYPES),
+    ratioCar(PRIMARY_BANK_TYPES),
+    ratioRoe(PRIMARY_BANK_TYPES),
   ]);
 
   const a = assets.at(-1);
@@ -149,36 +149,35 @@ export default async function OverviewPage() {
                  series={roe} format="pct" decimals={1} />
       </div>
 
-      {/* Trend charts */}
+      {/* Vital-signs trends — one per CAMELS vital, by bank group, mirroring the
+          KPI digest above (re-curated against the sector-story spine). */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <TrendChart
-          data={assets}
-          seriesLabels={{ [BANK_TYPES.SECTOR]: "Total Assets" }}
-          title="Total Assets — Level (sector)"
-          yFormat="trn"
-          decimals={2}
+          data={loansYoYGroups}
+          seriesLabels={BANK_TYPE_LABELS}
+          title="Loan Growth YoY (%) — by group"
+          yFormat="pct"
+          decimals={1}
+          zeroLine
         />
         <TrendChart
           data={nplAllGroups}
           seriesLabels={BANK_TYPE_LABELS}
-          title="NPL Ratio — by bank group"
+          title="NPL Ratio (%) — by group"
           yFormat="pct"
           decimals={2}
         />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <BarByBank
-          data={loanYoYByBank}
-          labels={BANK_TYPE_LABELS}
-          title={`Loan Growth YoY by bank group · ${ly?.period ?? ""}`}
-          format="pct"
+        <TrendChart
+          data={carGroups}
+          seriesLabels={BANK_TYPE_LABELS}
+          title="Capital Adequacy (%) — by group"
+          yFormat="pct"
           decimals={1}
         />
         <TrendChart
-          data={loansYoY}
-          seriesLabels={{ [BANK_TYPES.SECTOR]: "Sector loans" }}
-          title="Loan Growth YoY — sector"
+          data={roeGroups}
+          seriesLabels={BANK_TYPE_LABELS}
+          title="ROE — Annualized (%) — by group"
           yFormat="pct"
           decimals={1}
           zeroLine
