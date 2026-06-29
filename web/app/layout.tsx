@@ -1,23 +1,31 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, Geist_Mono } from "next/font/google";
+import { IBM_Plex_Sans, IBM_Plex_Mono, Source_Serif_4 } from "next/font/google";
 import "./globals.css";
 import Nav from "./components/Nav";
 import { RangeProvider } from "./components/range-context";
 import { ThemeProvider } from "./components/ui/theme-provider";
 import { Toaster } from "./components/ui/toaster";
 
-// "Fresh / Flat" redesign uses Plus Jakarta Sans (geometric sans). The CSS
-// variable name stays `--font-geist-sans` so globals.css's `--font-sans`
-// mapping keeps working without churn elsewhere.
-const geistSans = Plus_Jakarta_Sans({
+// "Editorial" redesign: role-based typography. Plex Sans = body, Source Serif
+// 4 = headings (font-serif), Plex Mono = labels + all numbers (font-mono). The
+// CSS variable names stay `--font-geist-sans`/`--font-geist-mono` so globals.css
+// keeps mapping `--font-sans`/`--font-mono` without churn; serif is new.
+const geistSans = IBM_Plex_Sans({
   variable: "--font-geist-sans",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
+  weight: ["400", "500", "600", "700"],
 });
 
-const geistMono = Geist_Mono({
+const geistMono = IBM_Plex_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  weight: ["400", "500"],
+});
+
+const sourceSerif = Source_Serif_4({
+  variable: "--font-source-serif",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -54,7 +62,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} h-full`}
+      className={`${geistSans.variable} ${geistMono.variable} ${sourceSerif.variable} h-full`}
     >
       <body className="min-h-full bg-background font-sans text-foreground antialiased">
         <ThemeProvider

@@ -10,109 +10,117 @@
  * — it uses utilities like `bg-card`, `text-muted-foreground`, `border-border`,
  * `text-positive`, `bg-chart-1`, so light/dark stay consistent app-wide.
  *
- * Palette: "Fresh / Flat" system — cool off-white canvas, flat white cards, a
- * fresh blue brand accent (#2F6BED), generous radii, hairline borders, no
- * shadows. Hex values are the design-handoff targets; kept literal here for
- * fidelity (color-mix in the base layer converts them to oklch as needed).
+ * Palette: "Editorial" system — warm cream paper, navy ink, a DUAL accent
+ * (terracotta `--primary` for brand/eyebrows/links; navy `--data` for charts,
+ * KPI values and sparklines). Print-magazine feel: serif headings (Source
+ * Serif 4), mono labels + numbers (IBM Plex Mono), Plex Sans body. Hex values
+ * are the design-handoff targets; color-mix in the base layer converts them.
  */
 
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --radius: 1rem;                /* friendlier, flatter cards */
+  --radius: 0.625rem;            /* 10px editorial cards */
 
-  --background: #F4F6FA;         /* cool off-white canvas */
-  --foreground: #1A2230;         /* slate ink */
+  --background: #ECE8E0;         /* warm cream paper */
+  --foreground: #16243B;         /* navy ink */
 
-  --card: #FFFFFF;
+  --card: #FBFAF7;               /* near-white warm surface */
   --card-foreground: var(--foreground);
 
-  --popover: #FFFFFF;
+  --popover: #FBFAF7;
   --popover-foreground: var(--foreground);
 
-  --muted: #F0F3F7;              /* light fill: tracks / subtotal rows */
-  --muted-foreground: #6B7688;   /* secondary text */
+  --muted: #ECE8DF;              /* warm fill: subtotal rows / inner dividers */
+  --muted-foreground: #6A7384;   /* secondary text */
 
-  --accent: #EDF1F7;             /* neutral hover bg */
+  --accent: #EAE5DA;             /* warm hover bg */
   --accent-foreground: var(--foreground);
 
-  --secondary: #EDF1F7;
+  --secondary: #EAE5DA;
   --secondary-foreground: var(--foreground);
 
-  --border: #E8ECF2;             /* hairline */
-  --input: #E8ECF2;
-  --ring: #2F6BED;               /* focus ring = primary */
+  --border: #E2DCD0;             /* warm hairline */
+  --input: #E2DCD0;
+  --ring: #C2603A;               /* focus ring = brand */
 
-  /* Brand — fresh blue. */
-  --primary: #2F6BED;
-  --primary-foreground: #FFFFFF;
+  /* Brand — terracotta (eyebrows, links, "watch" tones, brand marks). */
+  --primary: #C2603A;
+  --primary-foreground: #FBFAF7;
 
-  /* Caption / axis tone — between muted-foreground and border. */
-  --faint: #9AA3B2;
+  /* Data accent — editorial navy (chart lines, KPI values, sparklines). */
+  --data: #1C3A60;
 
-  /* Data-semantic tones (used as text + as /10 tinted backgrounds). */
-  --positive: #12B886;
-  --negative: #FA5252;
-  --warning: #F59F00;
-  --info: #2F6BED;
+  /* Caption / axis tone. */
+  --faint: #9AA1AD;
+
+  /* Data-semantic tones (used as text + as /10–/15 tinted backgrounds). */
+  --positive: #2E7D5F;
+  --negative: #B23A3A;
+  --warning: #B07D1A;
+  --info: #1C3A60;
 
   /* Cross-bank heatmap ramp. */
-  --heat-pos: #12B886;
-  --heat-neg: #FA5252;
-  --heat-neutral: #8B98AD;
+  --heat-pos: #2E7D5F;
+  --heat-neg: #B23A3A;
+  --heat-neutral: #9AA1AD;
 
-  /* Categorical chart palette (fresh, blue-led). */
-  --chart-1: #2F6BED;
-  --chart-2: #15AABF;
-  --chart-3: #7C5CFC;
-  --chart-4: #F7A23B;
-  --chart-5: #F368A6;
-  --chart-6: #8B98AD;
+  /* Categorical chart palette — navy-led emphasis, warm/cool group spread. */
+  --chart-1: #1C3A60;   /* navy — sector / primary emphasis */
+  --chart-2: #3E6098;
+  --chart-3: #88A0C0;
+  --chart-4: #B98A5E;   /* warm tan */
+  --chart-5: #6E4B6E;   /* plum */
+  --chart-6: #9AA1AD;   /* gray */
 }
 
 .dark {
-  --background: #0F141C;         /* clean dark slate */
-  --foreground: #EAEEF4;
+  /* Dark editorial — warm charcoal paper, cream ink (the mock is light-only;
+     this is a cohesive companion so the theme toggle still works). */
+  --background: #181712;        /* warm near-black paper */
+  --foreground: #ECE8E0;        /* cream ink */
 
-  --card: #181F2A;
+  --card: #211F1A;
   --card-foreground: var(--foreground);
 
-  --popover: #181F2A;
+  --popover: #211F1A;
   --popover-foreground: var(--foreground);
 
-  --muted: #1B2330;
-  --muted-foreground: #93A0B4;
+  --muted: #2A2722;
+  --muted-foreground: #B0A893;
 
-  --accent: #1B2330;
+  --accent: #2F2C26;
   --accent-foreground: var(--foreground);
 
-  --secondary: #1B2330;
+  --secondary: #2F2C26;
   --secondary-foreground: var(--foreground);
 
-  --border: #232C3A;
-  --input: #232C3A;
-  --ring: #5B86F7;
+  --border: #36322B;
+  --input: #36322B;
+  --ring: #D7794F;
 
-  --primary: #5B86F7;
-  --primary-foreground: #0F141C;
+  --primary: #D7794F;           /* brightened terracotta */
+  --primary-foreground: #181712;
 
-  --faint: #5E6A7D;
+  --data: #7FA0C8;              /* brightened navy for dark charts */
 
-  --positive: #20C997;
-  --negative: #FF6B6B;
-  --warning: #FAB005;
-  --info: #5B86F7;
+  --faint: #8A8472;
 
-  --heat-pos: #20C997;
-  --heat-neg: #FF6B6B;
-  --heat-neutral: #9FB0C6;
+  --positive: #5BB58C;
+  --negative: #E0736B;
+  --warning: #D9A441;
+  --info: #7FA0C8;
 
-  --chart-1: #5B86F7;
-  --chart-2: #2BD4CC;
-  --chart-3: #9A7CFF;
-  --chart-4: #FBB454;
-  --chart-5: #FB85BE;
-  --chart-6: #9FB0C6;
+  --heat-pos: #5BB58C;
+  --heat-neg: #E0736B;
+  --heat-neutral: #A79F8E;
+
+  --chart-1: #7FA0C8;   /* navy emphasis (lightened) */
+  --chart-2: #9BB1D0;
+  --chart-3: #C2CEDF;
+  --chart-4: #D2A878;
+  --chart-5: #B391B3;
+  --chart-6: #A79F8E;
 }
 
 @theme inline {
@@ -134,6 +142,7 @@
   --color-ring: var(--ring);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-data: var(--data);
   --color-positive: var(--positive);
   --color-negative: var(--negative);
   --color-warning: var(--warning);
@@ -151,6 +160,7 @@
   --radius-xl: calc(var(--radius) + 4px);
 
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-source-serif), Georgia, Cambria, "Times New Roman", serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 

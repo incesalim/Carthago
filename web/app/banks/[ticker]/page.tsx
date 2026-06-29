@@ -625,7 +625,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
 
           {/* Balance Sheet — single table, assets and liabilities together */}
           {statement === "bs" && (
-          <section className="group mb-6 rounded-2xl border border-border bg-card overflow-hidden">
+          <section className="group mb-6 rounded-[10px] border border-border bg-card overflow-hidden">
             <div className="px-5 py-3 border-b bg-muted flex items-center justify-between">
               <h2 className="text-sm font-semibold text-foreground">Balance Sheet</h2>
               <div className="flex items-center gap-2">
@@ -695,7 +695,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
 
           {/* Income Statement — standardized table, with the P&L flow Sankey below it */}
           {statement === "is" && (
-          <section className="group rounded-2xl border border-border bg-card overflow-hidden">
+          <section className="group rounded-[10px] border border-border bg-card overflow-hidden">
             <div className="px-5 py-3 border-b bg-muted flex items-center justify-between">
               <h2 className="text-sm font-semibold text-foreground">Income Statement</h2>
               <div className="flex items-center gap-2">
@@ -732,11 +732,11 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
               codes are consistent across banks). Empty → "not available" note. */}
           {statement === "cf" && (
             !hasCfData ? (
-              <section className="rounded-2xl border border-border bg-card px-5 py-4 text-xs text-muted-foreground">
+              <section className="rounded-[10px] border border-border bg-card px-5 py-4 text-xs text-muted-foreground">
                 Cash flow statement not available for these periods.
               </section>
             ) : (
-            <section className="group rounded-2xl border border-border bg-card overflow-hidden">
+            <section className="group rounded-[10px] border border-border bg-card overflow-hidden">
               <div className="px-5 py-3 border-b bg-muted flex items-center justify-between">
                 <h2 className="text-sm font-semibold text-foreground">Cash Flow</h2>
                 <div className="flex items-center gap-2">

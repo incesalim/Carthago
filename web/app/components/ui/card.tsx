@@ -5,9 +5,9 @@ function Card({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       className={cn(
-        // Flat: no shadow — surfaces are separated by the hairline border and
-        // the canvas/card contrast. Friendlier 2xl radius.
-        "rounded-2xl border border-border bg-card text-card-foreground",
+        // Flat editorial surface — warm paper card, hairline border, no shadow,
+        // 10px radius.
+        "rounded-[10px] border border-border bg-card text-card-foreground",
         className,
       )}
       {...props}
@@ -22,7 +22,7 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
 function CardTitle({ className, ...props }: React.ComponentProps<"h3">) {
   return (
     <h3
-      className={cn("text-sm font-bold leading-none tracking-tight", className)}
+      className={cn("font-serif text-[15px] font-semibold leading-tight tracking-tight", className)}
       {...props}
     />
   );

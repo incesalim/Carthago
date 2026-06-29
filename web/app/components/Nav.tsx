@@ -114,8 +114,8 @@ function Brand() {
         className="size-7 shrink-0 object-contain dark:brightness-0 dark:invert"
       />
       <span className="flex flex-col leading-none">
-        <span className="text-[15px] font-semibold tracking-tight">Carthago</span>
-        <span className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+        <span className="font-serif text-xl font-semibold tracking-tight">Carthago</span>
+        <span className="mt-0.5 font-mono text-[8.5px] font-medium uppercase tracking-[0.14em] text-primary">
           Turkish Banking Sector
         </span>
       </span>
@@ -150,9 +150,9 @@ function NavLinks({
           aria-current={active ? "page" : undefined}
           onClick={onNavigate}
           className={cn(
-            "rounded-[10px] px-3 py-1.5 text-[13px] font-medium transition-colors",
+            "rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors",
             active
-              ? "bg-primary/10 font-semibold text-primary"
+              ? "font-semibold text-foreground"
               : "text-muted-foreground hover:bg-accent hover:text-foreground",
           )}
         >
@@ -173,9 +173,9 @@ function NavLinks({
             aria-current={parentActive ? "page" : undefined}
             onClick={onNavigate}
             className={cn(
-              "flex-1 rounded-[10px] px-3 py-1.5 text-[13px] font-medium transition-colors",
+              "flex-1 rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors",
               parentActive
-                ? "bg-primary/10 font-semibold text-primary"
+                ? "font-semibold text-foreground"
                 : sectionActive
                   ? "text-foreground hover:bg-accent"
                   : "text-muted-foreground hover:bg-accent hover:text-foreground",
@@ -209,9 +209,9 @@ function NavLinks({
                   aria-current={childActive ? "page" : undefined}
                   onClick={onNavigate}
                   className={cn(
-                    "rounded-[10px] px-3 py-1 text-[12px] font-medium transition-colors",
+                    "rounded-md px-3 py-1 text-[12px] font-medium transition-colors",
                     childActive
-                      ? "bg-primary/10 font-semibold text-primary"
+                      ? "font-semibold text-foreground"
                       : "text-muted-foreground hover:bg-accent hover:text-foreground",
                   )}
                 >
@@ -236,7 +236,7 @@ function NavLinks({
           className={cn("flex flex-col gap-0.5", i > 0 && "mt-2")}
         >
           {section.label && (
-            <div className="px-3 pb-0.5 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
+            <div className="px-3 pb-1 font-mono text-[9px] font-medium uppercase tracking-[0.14em] text-faint">
               {section.label}
             </div>
           )}
@@ -268,7 +268,7 @@ export default function Nav() {
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="sticky top-0 z-30 hidden h-screen w-56 shrink-0 flex-col border-r border-border bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/65 lg:flex">
+      <aside className="sticky top-0 z-30 hidden h-screen w-56 shrink-0 flex-col border-r border-border bg-card lg:flex">
         <div className="border-b border-border px-4 py-3">
           <Brand />
         </div>
@@ -279,7 +279,7 @@ export default function Nav() {
       </aside>
 
       {/* Mobile top bar */}
-      <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-border bg-background/80 px-4 py-2.5 backdrop-blur supports-[backdrop-filter]:bg-background/65 lg:hidden">
+      <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-border bg-card px-4 py-2.5 lg:hidden">
         <Brand />
         <div className="flex items-center gap-1">
           <ThemeToggle />

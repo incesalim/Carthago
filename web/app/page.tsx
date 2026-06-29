@@ -20,7 +20,7 @@ import {
 } from "@/app/lib/metrics";
 import TrendChart from "@/app/components/TrendChart";
 import Sparkline from "@/app/sector/ratios/Sparkline";
-import { PageHeader, Stat, DeltaBadge } from "@/app/components/ui";
+import { PageHeader, Section, Stat, DeltaBadge } from "@/app/components/ui";
 import Takeaway from "@/app/components/Takeaway";
 import { overviewInsights } from "@/app/lib/insights";
 import type { TimeSeriesRow } from "@/app/lib/metrics";
@@ -125,6 +125,11 @@ export default async function OverviewPage() {
 
       <Takeaway data={pulse} />
 
+      <Section
+        index="01"
+        title="Snapshot"
+        description="the aggregate that 32 banks roll up to · 18-month trend"
+      >
       {/* Top row — size + growth */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KpiCard label="Total Assets" value={fmtTrn(a?.value)} period={a?.period ?? "—"}
@@ -149,6 +154,14 @@ export default async function OverviewPage() {
                  series={roe} format="pct" decimals={1} />
       </div>
 
+      </Section>
+
+      <Section
+        index="02"
+        title="Sector dynamics"
+        description="growth, quality and returns by ownership group"
+        contentClassName=""
+      >
       {/* Vital-signs trends — one per CAMELS vital, by bank group, mirroring the
           KPI digest above (re-curated against the sector-story spine). */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -183,6 +196,7 @@ export default async function OverviewPage() {
           zeroLine
         />
       </div>
+      </Section>
     </main>
   );
 }
