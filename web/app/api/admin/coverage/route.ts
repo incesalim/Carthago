@@ -1,13 +1,20 @@
 /**
  * GET /api/admin/coverage — read the audit coverage matrix. Admin-gated.
  *   (no params)                  → { types }
+ *   ?summary=1                   → { types, summary, problems }
  *   ?type=<key>&kind=<kind>      → { types, grid }
  *   ?cell=BANK|PERIOD|KIND       → { detail }
  * Backed by the bank_audit_expected / _statement_types / _coverage tables
  * (scripts/sync_audit_expected.py). Read-only — re-extraction goes via /dispatch.
  */
 import { requireAdminOr403 } from "@/app/lib/admin-auth";
-import { coverageCellDetail, coverageGrid, statementTypes } from "@/app/lib/coverage";
+import {
+  coverageCellDetail,
+  coverageGrid,
+  coverageProblems,
+  coverageSummary,
+  statementTypes,
+} from "@/app/lib/coverage";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +35,15 @@ export async function GET(req: Request) {
     }
     const [bank, period, kind] = parts;
     return Response.json({ detail: await coverageCellDetail(bank, period, kind) });
+  }
+
+  if (url.searchParams.get("summary")) {
+    const [types, summary, problems] = await Promise.all([
+      statementTypes(),
+      coverageSummary(),
+      coverageProblems(),
+    ]);
+    return Response.json({ types, summary, problems });
   }
 
   const types = await statementTypes();

@@ -112,6 +112,63 @@ export async function coverageGrid(type: string, kind: string): Promise<Coverage
   }
 }
 
+/** Per (statement_type, kind, status) cell counts across the whole spine — the
+ *  feed for the summary table. One GROUP BY instead of one grid fetch per type. */
+export interface CoverageSummaryRow {
+  statement_type: string;
+  kind: string; // 'consolidated' | 'unconsolidated'
+  status: string;
+  n: number;
+}
+
+export async function coverageSummary(): Promise<CoverageSummaryRow[]> {
+  try {
+    const db = await getDB();
+    const { results } = await db
+      .prepare(
+        `SELECT statement_type, kind, status, COUNT(*) AS n
+         FROM bank_audit_coverage
+         GROUP BY statement_type, kind, status`,
+      )
+      .all<CoverageSummaryRow>();
+    return results;
+  } catch {
+    return [];
+  }
+}
+
+/** Every cell that needs attention (status error / missing) across all lanes —
+ *  the feed for the sidebar problem list. Errors first, then missing. */
+export interface ProblemCell {
+  statement_type: string;
+  bank_ticker: string;
+  period: string;
+  kind: string;
+  status: string; // 'error' | 'missing'
+  checks_failed: number;
+  pdf_present: number;
+  is_manual: number;
+  row_count: number;
+}
+
+export async function coverageProblems(): Promise<ProblemCell[]> {
+  try {
+    const db = await getDB();
+    const { results } = await db
+      .prepare(
+        `SELECT statement_type, bank_ticker, period, kind, status,
+                checks_failed, pdf_present, is_manual, row_count
+         FROM bank_audit_coverage
+         WHERE status IN ('error', 'missing')
+         ORDER BY statement_type, bank_ticker, period, kind`,
+      )
+      .all<ProblemCell>();
+    return results;
+  } catch {
+    return [];
+  }
+}
+
 /** Drill-down for one (bank, period, kind): the extraction log row, every
  *  validation statement (with failed_detail), and the per-type coverage. */
 export async function coverageCellDetail(

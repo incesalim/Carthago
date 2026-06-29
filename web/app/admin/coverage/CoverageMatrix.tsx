@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Badge, Section } from "@/app/components/ui";
 import CoverageDrawer, { type OpenCell } from "./CoverageDrawer";
-import { STATUS_CELL, STATUS_LABEL, STATUS_VARIANT, STATUSES } from "./status";
+import { STATUS_LABEL, STATUS_VARIANT } from "./status";
 
 // Local copy (don't import github.ts into the client bundle). The single-cell
 // re-extract workflow — forces just the clicked (bank, period, kind, statement).
@@ -12,7 +12,7 @@ const REEXTRACT_WORKFLOW = "reextract-statement.yml";
 type ConcreteKind = "unconsolidated" | "consolidated";
 type Mode = ConcreteKind | "both";
 
-const KIND_TAG: Record<ConcreteKind, string> = {
+const KIND_TAG: Record<string, string> = {
   consolidated: "cons",
   unconsolidated: "unco",
 };
@@ -25,126 +25,168 @@ interface TypeRow {
   has_validator: number;
   sort_order: number;
 }
-interface Cell {
+interface SummaryRow {
+  statement_type: string;
+  kind: string;
+  status: string;
+  n: number;
+}
+interface ProblemCell {
+  statement_type: string;
   bank_ticker: string;
   period: string;
   kind: string;
-  status: string;
-  row_count: number;
+  status: string; // 'error' | 'missing'
   checks_failed: number;
-  is_manual: number;
   pdf_present: number;
+  is_manual: number;
+  row_count: number;
 }
-interface Grid {
-  banks: string[];
-  periods: string[];
-  cells: Cell[];
-}
+
+// Status columns shown in the summary table, in priority order.
+const COLS = ["ok", "manual", "error", "missing", "not_expected"] as const;
+type Col = (typeof COLS)[number];
+type Counts = Partial<Record<string, number>>;
+
+// Cap the rendered problem list so a long missing tail (profile, repricing)
+// can't blow up the DOM — the count badge still reflects the true total.
+const LIST_CAP = 300;
 
 const fmtPeriod = (p: string) => p.replace("20", "’");
 
+function HealthBar({ rec }: { rec: Counts }) {
+  const total = COLS.reduce((s, c) => s + (rec[c] ?? 0), 0) || 1;
+  const seg = (c: Col, cls: string) => {
+    const v = rec[c] ?? 0;
+    return v > 0 ? <span className={cls} style={{ width: `${(v / total) * 100}%` }} /> : null;
+  };
+  return (
+    <span
+      className="flex h-2 w-full overflow-hidden rounded bg-muted"
+      title={COLS.filter((c) => rec[c]).map((c) => `${STATUS_LABEL[c]} ${rec[c]}`).join(" · ")}
+    >
+      {seg("ok", "bg-positive")}
+      {seg("manual", "bg-info")}
+      {seg("error", "bg-negative")}
+      {seg("missing", "bg-warning")}
+      {/* not_expected stays as the muted track */}
+    </span>
+  );
+}
+
 export default function CoverageMatrix() {
   const [types, setTypes] = useState<TypeRow[]>([]);
-  const [type, setType] = useState<string>("");
-  const [mode, setMode] = useState<Mode>("unconsolidated");
-  // Keyed by type|mode so a fetched grid only shows for its selection — avoids a
-  // synchronous loading reset in the effect (a lint error in this repo).
-  const [loaded, setLoaded] = useState<{ key: string; grid: Grid } | null>(null);
+  const [summary, setSummary] = useState<SummaryRow[]>([]);
+  const [problems, setProblems] = useState<ProblemCell[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const [mode, setMode] = useState<Mode>("both");
+  const [selected, setSelected] = useState<string | "all">("all");
+  const [show, setShow] = useState<"error" | "missing" | "both">("error");
+  const [bankQuery, setBankQuery] = useState("");
+
   const [open, setOpen] = useState<OpenCell | null>(null);
   const [busy, setBusy] = useState(false);
 
-  // Filters. fromP/toP are "" when unbounded (earliest / latest) so no effect is
-  // needed to seed them off the loaded grid.
-  const [bankQuery, setBankQuery] = useState("");
-  const [fromP, setFromP] = useState("");
-  const [toP, setToP] = useState("");
-
-  // Grid fetch is event-driven (selection handlers + a mount-only initial load),
-  // not a reactive effect — fetching in response to state changes from an effect
-  // trips react-hooks/set-state-in-effect. fetchGrid is stable ([] deps).
-  const fetchGrid = useCallback(async (t: string, m: Mode) => {
-    if (!t) return;
-    const key = `${t}|${m}`;
-    try {
-      const res = await fetch(
-        `/api/admin/coverage?type=${encodeURIComponent(t)}&kind=${m}`,
-        { cache: "no-store" },
-      );
-      const b = (await res.json()) as { grid?: Grid };
-      setLoaded({ key, grid: b.grid ?? { banks: [], periods: [], cells: [] } });
-    } catch {
-      toast.error("Failed to load coverage grid");
-    }
+  // One mount-only fetch: the whole spine aggregated server-side (counts + the
+  // error/missing cell list). All filtering below is client-side.
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/admin/coverage?summary=1", { cache: "no-store" });
+        const b = (await res.json()) as {
+          types?: TypeRow[];
+          summary?: SummaryRow[];
+          problems?: ProblemCell[];
+        };
+        if (cancelled) return;
+        setTypes(b.types ?? []);
+        setSummary(b.summary ?? []);
+        setProblems(b.problems ?? []);
+      } catch {
+        if (!cancelled) toast.error("Failed to load coverage summary");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  // Initial load: the type registry + the first core type's grid (mount only).
-  useEffect(() => {
-    fetch("/api/admin/coverage", { cache: "no-store" })
-      .then((r) => r.json())
-      .then((b: { types?: TypeRow[] }) => {
-        const t = b.types ?? [];
-        setTypes(t);
-        const first = (t.find((x) => x.is_core) ?? t[0])?.key;
-        if (first) {
-          setType(first);
-          void fetchGrid(first, "unconsolidated");
-        }
-      })
-      .catch(() => toast.error("Failed to load coverage types"));
-  }, [fetchGrid]);
+  const inMode = (k: string) => mode === "both" || k === mode;
 
-  const selectType = (t: string) => {
-    setType(t);
-    void fetchGrid(t, mode);
-  };
-  const selectMode = (m: Mode) => {
-    setMode(m);
-    void fetchGrid(type, m);
-  };
-
-  const grid = loaded && loaded.key === `${type}|${mode}` ? loaded.grid : null;
-  const loading = type !== "" && grid == null;
-
-  const lookup = useMemo(() => {
-    const m = new Map<string, Cell>();
-    grid?.cells.forEach((c) => m.set(`${c.bank_ticker}|${c.period}|${c.kind}`, c));
+  // Per-lane status counts for the current kind mode.
+  const byType = useMemo(() => {
+    const m = new Map<string, Counts>();
+    for (const r of summary) {
+      if (!inMode(r.kind)) continue;
+      const rec = m.get(r.statement_type) ?? {};
+      rec[r.status] = (rec[r.status] ?? 0) + r.n;
+      m.set(r.statement_type, rec);
+    }
     return m;
-  }, [grid]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [summary, mode]);
 
-  const activeType = types.find((t) => t.key === type);
-  const kindsToShow: ConcreteKind[] =
-    mode === "both" ? ["consolidated", "unconsolidated"] : [mode];
+  const ordered = useMemo(
+    () => [...types].sort((a, b) => b.is_core - a.is_core || a.sort_order - b.sort_order),
+    [types],
+  );
+  const coreTypes = ordered.filter((t) => t.is_core);
+  const footTypes = ordered.filter((t) => !t.is_core);
+  const labelOf = (key: string) => types.find((t) => t.key === key)?.label ?? key;
 
-  // --- Filters ---------------------------------------------------------------
-  const visibleBanks = useMemo(() => {
-    const terms = bankQuery
-      .toLowerCase()
-      .split(/[\s,]+/)
-      .filter(Boolean);
-    const banks = grid?.banks ?? [];
-    if (terms.length === 0) return banks;
-    return banks.filter((b) => terms.some((t) => b.toLowerCase().includes(t)));
-  }, [grid, bankQuery]);
+  const totals = useMemo(() => {
+    let error = 0;
+    let missing = 0;
+    for (const rec of byType.values()) {
+      error += rec.error ?? 0;
+      missing += rec.missing ?? 0;
+    }
+    return { error, missing };
+  }, [byType]);
 
-  const visiblePeriods = useMemo(() => {
-    return (grid?.periods ?? []).filter(
-      (p) => (!fromP || p >= fromP) && (!toP || p <= toP),
-    );
-  }, [grid, fromP, toP]);
-
-  // Status tally over the currently-visible cells (legend counts react to filters).
-  const tally = useMemo(() => {
-    const t: Record<string, number> = {};
-    if (!grid) return t;
-    const bankSet = new Set(visibleBanks);
-    const periodSet = new Set(visiblePeriods);
-    grid.cells.forEach((c) => {
-      if (bankSet.has(c.bank_ticker) && periodSet.has(c.period)) {
-        t[c.status] = (t[c.status] ?? 0) + 1;
-      }
+  // Sidebar list: filter by kind mode, selected lane, status toggle, bank search.
+  // Errors sort first, then by lane / bank / period.
+  const visibleProblems = useMemo(() => {
+    const terms = bankQuery.toLowerCase().split(/[\s,]+/).filter(Boolean);
+    const filtered = problems.filter((p) => {
+      if (!inMode(p.kind)) return false;
+      if (selected !== "all" && p.statement_type !== selected) return false;
+      if (show !== "both" && p.status !== show) return false;
+      if (terms.length && !terms.some((t) => p.bank_ticker.toLowerCase().includes(t))) return false;
+      return true;
     });
-    return t;
-  }, [grid, visibleBanks, visiblePeriods]);
+    filtered.sort((a, b) => {
+      if (a.status !== b.status) return a.status === "error" ? -1 : 1;
+      if (a.statement_type !== b.statement_type)
+        return a.statement_type.localeCompare(b.statement_type);
+      if (a.bank_ticker !== b.bank_ticker) return a.bank_ticker.localeCompare(b.bank_ticker);
+      return a.period.localeCompare(b.period);
+    });
+    return filtered;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [problems, mode, selected, show, bankQuery]);
+
+  const shown = visibleProblems.slice(0, LIST_CAP);
+  const overflow = visibleProblems.length - shown.length;
+
+  function openProblem(p: ProblemCell) {
+    const t = types.find((x) => x.key === p.statement_type);
+    setOpen({
+      bank: p.bank_ticker,
+      period: p.period,
+      kind: p.kind,
+      type: p.statement_type,
+      typeLabel: t?.label ?? p.statement_type,
+      status: p.status,
+      pdfPresent: !!p.pdf_present,
+      hasValidator: !!t?.has_validator,
+      validationStatement: t?.statement ?? p.statement_type,
+    });
+  }
 
   async function reextract(bank: string, period: string, kind: string, statement: string) {
     if (busy) return;
@@ -179,51 +221,198 @@ export default function CoverageMatrix() {
     }
   }
 
-  const core = types.filter((t) => t.is_core);
-  const footnote = types.filter((t) => !t.is_core);
-  const allPeriods = grid?.periods ?? [];
+  function Cnt({ rec, col }: { rec: Counts; col: Col }) {
+    const v = rec[col] ?? 0;
+    const tone =
+      v === 0
+        ? "text-muted-foreground/40"
+        : col === "error"
+          ? "text-negative font-semibold"
+          : col === "missing"
+            ? "text-warning"
+            : col === "ok"
+              ? "text-positive"
+              : "text-foreground";
+    return <span className={tone}>{v === 0 ? "·" : v}</span>;
+  }
 
-  function cellButton(bank: string, period: string, k: ConcreteKind) {
-    const c = lookup.get(`${bank}|${period}|${k}`);
-    const status = c?.status ?? "not_expected";
-    const sc = STATUS_CELL[status] ?? STATUS_CELL.not_expected;
-    const title = c
-      ? `${STATUS_LABEL[status]} — ${c.row_count} rows${
-          c.checks_failed ? `, ${c.checks_failed} failed` : ""
-        }${c.is_manual ? ", manual" : ""}`
-      : "no data";
+  function laneRow(t: TypeRow) {
+    const rec = byType.get(t.key) ?? {};
+    const isSel = selected === t.key;
+    const problemN = (rec.error ?? 0) + (rec.missing ?? 0);
     return (
-      <button
-        type="button"
-        title={title}
-        disabled={!c}
-        onClick={() =>
-          c &&
-          setOpen({
-            bank,
-            period,
-            kind: k,
-            type,
-            typeLabel: activeType?.label ?? type,
-            status,
-            pdfPresent: !!c.pdf_present,
-            hasValidator: !!activeType?.has_validator,
-            validationStatement: activeType?.statement ?? type,
-          })
-        }
-        className={`flex h-5 w-6 items-center justify-center rounded ${sc.cls} ${
-          c ? "cursor-pointer hover:ring-1 hover:ring-ring" : "opacity-40"
+      <tr
+        key={t.key}
+        onClick={() => setSelected(isSel ? "all" : t.key)}
+        className={`cursor-pointer border-t border-border/60 ${
+          isSel ? "bg-primary/10" : "hover:bg-muted/40"
         }`}
       >
-        {sc.glyph}
-      </button>
+        <td className="whitespace-nowrap py-1 pl-2 pr-3 font-medium">
+          {t.label}
+          {t.has_validator ? <span className="ml-1 text-positive">✓</span> : null}
+        </td>
+        <td className="px-2 text-right tabular-nums">
+          <Cnt rec={rec} col="ok" />
+        </td>
+        <td className="px-2 text-right tabular-nums">
+          <Cnt rec={rec} col="manual" />
+        </td>
+        <td className="px-2 text-right tabular-nums">
+          <Cnt rec={rec} col="error" />
+        </td>
+        <td className="px-2 text-right tabular-nums">
+          <Cnt rec={rec} col="missing" />
+        </td>
+        <td className="px-2 text-right tabular-nums text-muted-foreground">
+          <Cnt rec={rec} col="not_expected" />
+        </td>
+        <td className="w-28 px-2 py-1">
+          <span className="flex items-center gap-1.5">
+            <HealthBar rec={rec} />
+            {problemN === 0 && (rec.ok ?? 0) + (rec.manual ?? 0) > 0 ? (
+              <span className="text-positive">✓</span>
+            ) : null}
+          </span>
+        </td>
+      </tr>
     );
   }
+
+  const summaryTable = (
+    <div className="overflow-x-auto rounded-md border border-border">
+      <table className="w-full border-collapse text-[11px]">
+        <thead>
+          <tr className="bg-muted/60 text-[10px] uppercase tracking-wide text-muted-foreground">
+            <th className="py-1 pl-2 pr-3 text-left font-medium">Statement</th>
+            <th className="px-2 text-right font-medium">OK</th>
+            <th className="px-2 text-right font-medium">Manual</th>
+            <th className="px-2 text-right font-medium">Error</th>
+            <th className="px-2 text-right font-medium">Missing</th>
+            <th className="px-2 text-right font-medium">N/A</th>
+            <th className="px-2 text-left font-medium">Coverage</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td colSpan={7} className="bg-background px-2 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Core statements
+            </td>
+          </tr>
+          {coreTypes.map(laneRow)}
+          {footTypes.length > 0 && (
+            <tr>
+              <td colSpan={7} className="bg-background px-2 pt-3 pb-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Footnotes &amp; §4
+              </td>
+            </tr>
+          )}
+          {footTypes.map(laneRow)}
+        </tbody>
+      </table>
+    </div>
+  );
+
+  const sidebar = (
+    <aside className="flex w-full flex-col rounded-md border border-border lg:w-80 lg:shrink-0">
+      <div className="border-b border-border p-3">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold text-foreground">
+            Errors &amp; missing
+            {selected !== "all" && (
+              <span className="font-normal text-muted-foreground"> · {labelOf(selected)}</span>
+            )}
+          </p>
+          {selected !== "all" && (
+            <button
+              type="button"
+              onClick={() => setSelected("all")}
+              className="text-[11px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+            >
+              all lanes
+            </button>
+          )}
+        </div>
+
+        {/* status toggle */}
+        <div className="mt-2 inline-flex overflow-hidden rounded-md border border-border text-[11px]">
+          {(["error", "missing", "both"] as const).map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setShow(s)}
+              className={`px-2 py-0.5 capitalize ${
+                show === s ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"
+              }`}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+
+        <input
+          type="text"
+          value={bankQuery}
+          onChange={(e) => setBankQuery(e.target.value)}
+          placeholder="filter bank — e.g. GARAN, AK"
+          className="mt-2 h-6 w-full rounded border border-border bg-background px-2 text-[11px] outline-none focus:ring-1 focus:ring-ring"
+        />
+        <p className="mt-1.5 text-[11px] text-muted-foreground">
+          {visibleProblems.length} cell{visibleProblems.length === 1 ? "" : "s"}
+          {overflow > 0 ? ` · showing first ${LIST_CAP}` : ""} · click to inspect / re-extract
+        </p>
+      </div>
+
+      <div className="max-h-[28rem] overflow-y-auto p-2">
+        {shown.length === 0 ? (
+          <p className="px-1 py-6 text-center text-[11px] text-muted-foreground">
+            Nothing here — clean.
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-1">
+            {shown.map((p) => (
+              <li key={`${p.statement_type}|${p.bank_ticker}|${p.period}|${p.kind}`}>
+                <button
+                  type="button"
+                  onClick={() => openProblem(p)}
+                  className={`w-full rounded border px-2 py-1 text-left text-[11px] hover:ring-1 hover:ring-ring ${
+                    p.status === "error"
+                      ? "border-negative/30 bg-negative/5"
+                      : "border-warning/30 bg-warning/5"
+                  }`}
+                >
+                  <span className="flex items-center justify-between gap-2">
+                    <span className="truncate font-medium">{p.bank_ticker}</span>
+                    <span className="shrink-0 text-muted-foreground">
+                      {fmtPeriod(p.period)} · {KIND_TAG[p.kind] ?? p.kind}
+                    </span>
+                  </span>
+                  <span className="mt-0.5 flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
+                    <span className="truncate">
+                      {selected === "all" ? labelOf(p.statement_type) + " · " : ""}
+                      {p.status === "error"
+                        ? `${p.checks_failed} failed`
+                        : p.pdf_present
+                          ? "PDF ready"
+                          : "no PDF"}
+                    </span>
+                    <Badge variant={STATUS_VARIANT[p.status] ?? "secondary"}>
+                      {STATUS_LABEL[p.status] ?? p.status}
+                    </Badge>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </aside>
+  );
 
   return (
     <Section
       title="Coverage matrix"
-      description="Per statement type × bank × period: what we have, what's missing, what failed validation"
+      description="Per statement type: how many cells are OK, manual, failing validation, missing, or N/A — with every error & missing cell listed alongside"
       contentClassName=""
       actions={
         <div className="inline-flex overflow-hidden rounded-md border border-border">
@@ -231,7 +420,7 @@ export default function CoverageMatrix() {
             <button
               key={m}
               type="button"
-              onClick={() => selectMode(m)}
+              onClick={() => setMode(m)}
               className={`px-2.5 py-1 text-xs ${
                 mode === m ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"
               }`}
@@ -242,155 +431,32 @@ export default function CoverageMatrix() {
         </div>
       }
     >
-      {/* Type selector */}
-      <div className="mb-3 flex flex-wrap gap-1.5">
-        {[...core, ...footnote].map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            onClick={() => selectType(t.key)}
-            className={`rounded-full border px-2.5 py-0.5 text-[11px] ${
-              t.key === type
-                ? "border-primary bg-primary/10 text-primary"
-                : "border-border text-muted-foreground hover:text-foreground"
-            }`}
-            title={t.is_core ? "Core (gates extraction success)" : "Footnote / §4"}
-          >
-            {t.label}
-            {t.has_validator ? " ✓" : ""}
-          </button>
-        ))}
-      </div>
-
-      {/* Filters: bank search + period range */}
-      <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-[11px]">
-        <label className="inline-flex items-center gap-1.5">
-          <span className="text-muted-foreground">Bank</span>
-          <input
-            type="text"
-            value={bankQuery}
-            onChange={(e) => setBankQuery(e.target.value)}
-            placeholder="e.g. GARAN, AK"
-            className="h-6 w-40 rounded border border-border bg-background px-2 text-[11px] outline-none focus:ring-1 focus:ring-ring"
-          />
-        </label>
-        <label className="inline-flex items-center gap-1.5">
-          <span className="text-muted-foreground">From</span>
-          <select
-            value={fromP}
-            onChange={(e) => setFromP(e.target.value)}
-            className="h-6 rounded border border-border bg-background px-1 text-[11px] outline-none focus:ring-1 focus:ring-ring"
-          >
-            <option value="">earliest</option>
-            {allPeriods.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="inline-flex items-center gap-1.5">
-          <span className="text-muted-foreground">To</span>
-          <select
-            value={toP}
-            onChange={(e) => setToP(e.target.value)}
-            className="h-6 rounded border border-border bg-background px-1 text-[11px] outline-none focus:ring-1 focus:ring-ring"
-          >
-            <option value="">latest</option>
-            {allPeriods.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-          </select>
-        </label>
-        {(bankQuery || fromP || toP) && (
-          <button
-            type="button"
-            onClick={() => {
-              setBankQuery("");
-              setFromP("");
-              setToP("");
-            }}
-            className="text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-          >
-            clear
-          </button>
-        )}
-        {grid && (
-          <span className="text-muted-foreground">
-            {visibleBanks.length}/{grid.banks.length} banks · {visiblePeriods.length}/
-            {allPeriods.length} periods
-          </span>
-        )}
-      </div>
-
-      {/* Legend */}
-      <div className="mb-3 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-        {STATUSES.filter((s) => tally[s]).map((s) => (
-          <span key={s} className="inline-flex items-center gap-1">
-            <Badge variant={STATUS_VARIANT[s]}>{STATUS_LABEL[s]}</Badge>
-            {tally[s]}
-          </span>
-        ))}
-      </div>
-
       {loading ? (
         <p className="text-xs text-muted-foreground">Loading…</p>
-      ) : !grid || grid.banks.length === 0 ? (
+      ) : types.length === 0 ? (
         <p className="text-xs text-muted-foreground">
           No coverage data yet — populated by the next <code>refresh-audit.yml</code> run after
           migration 0008 applies.
         </p>
-      ) : visibleBanks.length === 0 || visiblePeriods.length === 0 ? (
-        <p className="text-xs text-muted-foreground">No banks or periods match the current filters.</p>
       ) : (
-        <div className="overflow-x-auto rounded-md border border-border">
-          <table className="border-collapse text-[11px]">
-            <thead>
-              <tr>
-                <th className="sticky left-0 z-10 bg-muted/60 px-2 py-1 text-left font-medium">
-                  Bank
-                </th>
-                {visiblePeriods.map((p) => (
-                  <th key={p} className="px-1 py-1 text-center font-medium text-muted-foreground">
-                    {fmtPeriod(p)}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {visibleBanks.map((bank) =>
-                kindsToShow.map((k, i) => (
-                  <tr
-                    key={`${bank}|${k}`}
-                    className={
-                      i === 0 ? "border-t-2 border-border" : "border-t border-dashed border-border/40"
-                    }
-                  >
-                    <td className="sticky left-0 z-10 whitespace-nowrap bg-background px-2 py-0.5 font-medium">
-                      {mode === "both" ? (
-                        <span className="inline-flex items-center gap-1.5">
-                          <span className={i === 0 ? "" : "opacity-0"}>{bank}</span>
-                          <span className="text-[10px] font-normal text-muted-foreground">
-                            {KIND_TAG[k]}
-                          </span>
-                        </span>
-                      ) : (
-                        bank
-                      )}
-                    </td>
-                    {visiblePeriods.map((period) => (
-                      <td key={period} className="p-0.5 text-center">
-                        {cellButton(bank, period, k)}
-                      </td>
-                    ))}
-                  </tr>
-                )),
-              )}
-            </tbody>
-          </table>
-        </div>
+        <>
+          <div className="mb-3 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+            <span>
+              <Badge variant="negative">{totals.error}</Badge> errors
+            </span>
+            <span>
+              <Badge variant="warning">{totals.missing}</Badge> missing
+            </span>
+            <span className="text-muted-foreground/70">
+              · click a row to filter the list · {KIND_TAG[mode] ?? mode} ✓ = has validator
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+            <div className="min-w-0 flex-1">{summaryTable}</div>
+            {sidebar}
+          </div>
+        </>
       )}
 
       <CoverageDrawer
