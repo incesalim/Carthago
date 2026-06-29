@@ -73,11 +73,11 @@ export function PageHeader({
     >
       <div className="space-y-1">
         {eyebrow && (
-          <div className="text-[11px] font-medium uppercase tracking-wider text-primary">
+          <div className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-primary">
             {eyebrow}
           </div>
         )}
-        <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
+        <h1 className="font-serif text-3xl font-semibold tracking-tight text-foreground">
           {title}
         </h1>
         {description && (

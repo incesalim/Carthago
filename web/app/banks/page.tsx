@@ -87,7 +87,7 @@ export default async function BanksPage() {
                     <Link
                       key={b.bank_ticker}
                       href={`/banks/${b.bank_ticker}`}
-                      className="block rounded-2xl border border-border bg-card p-4 transition-colors hover:border-primary/40"
+                      className="block rounded-[10px] border border-border bg-card p-4 transition-colors hover:border-primary/40"
                     >
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 min-w-0">

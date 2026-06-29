@@ -192,7 +192,7 @@ export function PageNode({ data }: NodeProps) {
 export function LaneBandNode({ data }: NodeProps) {
   const d = data as unknown as BandData;
   return (
-    <div className="pointer-events-none relative size-full rounded-2xl border border-dashed border-border/70 bg-muted/30">
+    <div className="pointer-events-none relative size-full rounded-[10px] border border-dashed border-border/70 bg-muted/30">
       <span className="absolute left-4 top-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
         {d.label}
       </span>
