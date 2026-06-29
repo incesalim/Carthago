@@ -63,7 +63,7 @@ export default function MarketShareSection({
         </div>
       )}
 
-      <div className="overflow-x-auto rounded-lg border bg-card shadow-sm">
+      <div className="overflow-x-auto rounded-2xl border border-border bg-card">
         <table className="w-full text-xs">
           <thead className="text-muted-foreground">
             <tr className="border-b bg-muted">

@@ -10,104 +10,109 @@
  * — it uses utilities like `bg-card`, `text-muted-foreground`, `border-border`,
  * `text-positive`, `bg-chart-1`, so light/dark stay consistent app-wide.
  *
- * Palette: cool-neutral base + brand maroon (#7a0d2e) as the primary accent.
+ * Palette: "Fresh / Flat" system — cool off-white canvas, flat white cards, a
+ * fresh blue brand accent (#2F6BED), generous radii, hairline borders, no
+ * shadows. Hex values are the design-handoff targets; kept literal here for
+ * fidelity (color-mix in the base layer converts them to oklch as needed).
  */
 
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --radius: 0.75rem;
+  --radius: 1rem;                /* friendlier, flatter cards */
 
-  --background: oklch(0.994 0.001 240);
-  --foreground: oklch(0.205 0.012 260);
+  --background: #F4F6FA;         /* cool off-white canvas */
+  --foreground: #1A2230;         /* slate ink */
 
-  --card: oklch(1 0 0);
+  --card: #FFFFFF;
   --card-foreground: var(--foreground);
 
-  --popover: oklch(1 0 0);
+  --popover: #FFFFFF;
   --popover-foreground: var(--foreground);
 
-  --muted: oklch(0.972 0.003 250);
-  --muted-foreground: oklch(0.515 0.012 258);
+  --muted: #F0F3F7;              /* light fill: tracks / subtotal rows */
+  --muted-foreground: #6B7688;   /* secondary text */
 
-  --accent: oklch(0.965 0.004 250);
+  --accent: #EDF1F7;             /* neutral hover bg */
   --accent-foreground: var(--foreground);
 
-  --secondary: oklch(0.965 0.004 250);
+  --secondary: #EDF1F7;
   --secondary-foreground: var(--foreground);
 
-  --border: oklch(0.918 0.004 255);
-  --input: oklch(0.918 0.004 255);
-  --ring: oklch(0.42 0.14 12);
+  --border: #E8ECF2;             /* hairline */
+  --input: #E8ECF2;
+  --ring: #2F6BED;               /* focus ring = primary */
 
-  /* Brand — Turkish maroon. */
-  --primary: oklch(0.42 0.14 12);
-  --primary-foreground: oklch(0.985 0.004 250);
+  /* Brand — fresh blue. */
+  --primary: #2F6BED;
+  --primary-foreground: #FFFFFF;
+
+  /* Caption / axis tone — between muted-foreground and border. */
+  --faint: #9AA3B2;
 
   /* Data-semantic tones (used as text + as /10 tinted backgrounds). */
-  --positive: oklch(0.585 0.13 158);
-  --negative: oklch(0.575 0.205 25);
-  --warning: oklch(0.62 0.13 70);
-  --info: oklch(0.55 0.13 248);
+  --positive: #12B886;
+  --negative: #FA5252;
+  --warning: #F59F00;
+  --info: #2F6BED;
 
-  /* Cross-bank heatmap ramp — tuned independently of the semantic +/- tones:
-     a purer green (less olive than --positive), a slightly softer red, and a
-     low-chroma slate for the neutral (size / valuation) columns so they read as
-     plain "intensity" instead of a competing third hue. */
-  --heat-pos: oklch(0.64 0.15 150);
-  --heat-neg: oklch(0.62 0.17 27);
-  --heat-neutral: oklch(0.6 0.02 255);
+  /* Cross-bank heatmap ramp. */
+  --heat-pos: #12B886;
+  --heat-neg: #FA5252;
+  --heat-neutral: #8B98AD;
 
-  /* Categorical chart palette (brand-led). */
-  --chart-1: #7a0d2e;
-  --chart-2: #1f4068;
-  --chart-3: #0f7b6c;
-  --chart-4: #a16500;
-  --chart-5: #5b1a8c;
-  --chart-6: #5a5a5a;
+  /* Categorical chart palette (fresh, blue-led). */
+  --chart-1: #2F6BED;
+  --chart-2: #15AABF;
+  --chart-3: #7C5CFC;
+  --chart-4: #F7A23B;
+  --chart-5: #F368A6;
+  --chart-6: #8B98AD;
 }
 
 .dark {
-  --background: oklch(0.175 0.008 265);
-  --foreground: oklch(0.955 0.004 250);
+  --background: #0F141C;         /* clean dark slate */
+  --foreground: #EAEEF4;
 
-  --card: oklch(0.213 0.01 265);
+  --card: #181F2A;
   --card-foreground: var(--foreground);
 
-  --popover: oklch(0.213 0.01 265);
+  --popover: #181F2A;
   --popover-foreground: var(--foreground);
 
-  --muted: oklch(0.255 0.01 265);
-  --muted-foreground: oklch(0.685 0.012 258);
+  --muted: #1B2330;
+  --muted-foreground: #93A0B4;
 
-  --accent: oklch(0.272 0.012 265);
+  --accent: #1B2330;
   --accent-foreground: var(--foreground);
 
-  --secondary: oklch(0.272 0.012 265);
+  --secondary: #1B2330;
   --secondary-foreground: var(--foreground);
 
-  --border: oklch(1 0 0 / 9%);
-  --input: oklch(1 0 0 / 13%);
-  --ring: oklch(0.68 0.16 8);
+  --border: #232C3A;
+  --input: #232C3A;
+  --ring: #5B86F7;
 
-  --primary: oklch(0.66 0.17 9);
-  --primary-foreground: oklch(0.18 0.01 265);
+  --primary: #5B86F7;
+  --primary-foreground: #0F141C;
 
-  --positive: oklch(0.7 0.15 160);
-  --negative: oklch(0.68 0.18 22);
-  --warning: oklch(0.78 0.14 78);
-  --info: oklch(0.7 0.13 248);
+  --faint: #5E6A7D;
 
-  --heat-pos: oklch(0.72 0.15 152);
-  --heat-neg: oklch(0.7 0.17 25);
-  --heat-neutral: oklch(0.7 0.02 255);
+  --positive: #20C997;
+  --negative: #FF6B6B;
+  --warning: #FAB005;
+  --info: #5B86F7;
 
-  --chart-1: #f0608a;
-  --chart-2: #6f9fe0;
-  --chart-3: #34c9b0;
-  --chart-4: #e0a23c;
-  --chart-5: #b07ee0;
-  --chart-6: #a3a3a3;
+  --heat-pos: #20C997;
+  --heat-neg: #FF6B6B;
+  --heat-neutral: #9FB0C6;
+
+  --chart-1: #5B86F7;
+  --chart-2: #2BD4CC;
+  --chart-3: #9A7CFF;
+  --chart-4: #FBB454;
+  --chart-5: #FB85BE;
+  --chart-6: #9FB0C6;
 }
 
 @theme inline {
@@ -119,6 +124,7 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
+  --color-faint: var(--faint);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-secondary: var(--secondary);

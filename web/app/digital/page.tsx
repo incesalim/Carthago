@@ -49,8 +49,8 @@ const seriesOf = (labels: Record<string, string>) =>
 
 // Theme palette[0]/[1] (light/dark) so the mobile/internet grouped bars match
 // the mobile/internet lines elsewhere on the page.
-const MOBILE_FILL = { light: "#7a0d2e", dark: "#f0608a" };
-const INTERNET_FILL = { light: "#1f4068", dark: "#6f9fe0" };
+const MOBILE_FILL = { light: "#2F6BED", dark: "#5B86F7" };
+const INTERNET_FILL = { light: "#15AABF", dark: "#2BD4CC" };
 
 export const dynamic = "force-dynamic";
 

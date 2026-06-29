@@ -323,9 +323,9 @@ export default function OwnershipNetwork({
               key={m}
               type="button"
               onClick={() => changeView(m)}
-              className={`px-2 py-0.5 rounded-md transition ${
+              className={`px-2 py-0.5 rounded-lg transition ${
                 view === m
-                  ? "bg-card shadow-sm font-medium text-foreground"
+                  ? "bg-primary/10 font-semibold text-primary"
                   : "hover:text-foreground"
               }`}
             >

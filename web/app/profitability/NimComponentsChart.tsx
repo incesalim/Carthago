@@ -146,7 +146,7 @@ export default function NimComponentsChart({
 }: Props) {
   const t = useChartTheme();
   const tt = tooltipStyles(t);
-  const isLight = t.palette[0] === "#7a0d2e";
+  const isLight = t.mode === "light";
   const fills = FILLS[isLight ? "light" : "dark"];
   // Brighter than the brand maroon — the line crosses the navy loans band
   // for most of its length and needs the extra contrast (plus the halo below).

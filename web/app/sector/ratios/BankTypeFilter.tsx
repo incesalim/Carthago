@@ -28,14 +28,14 @@ export default function BankTypeFilter({ active }: { active: string }) {
   }
 
   return (
-    <div className="inline-flex flex-wrap gap-1 rounded-lg border bg-muted p-1">
+    <div className="inline-flex flex-wrap gap-1 rounded-xl border border-border bg-card p-1">
       {OPTIONS.map((o) => (
         <button
           key={o.code}
           onClick={() => select(o.code)}
-          className={`px-3 py-1.5 text-sm rounded-md transition ${
+          className={`px-3 py-1.5 text-sm rounded-lg transition ${
             active === o.code
-              ? "bg-card shadow-sm font-medium text-foreground"
+              ? "bg-primary/10 font-semibold text-primary"
               : "text-muted-foreground hover:text-foreground"
           }`}
         >

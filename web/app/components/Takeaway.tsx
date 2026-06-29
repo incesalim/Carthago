@@ -22,7 +22,7 @@ export default function Takeaway({
 }) {
   if (!data.items.length) return null;
   return (
-    <section className="rounded-lg border border-border bg-card p-4 shadow-sm">
+    <section className="rounded-2xl border border-border bg-card p-4">
       <div className="mb-2 flex items-baseline justify-between gap-2">
         <h2 className="text-sm font-semibold text-foreground">{title}</h2>
         {data.asOf && (

@@ -29,7 +29,7 @@ export function Section({
         <div className="flex items-end justify-between gap-3">
           <div className="space-y-0.5">
             {title && (
-              <h2 className="text-base font-semibold tracking-tight text-foreground">
+              <h2 className="text-lg font-extrabold tracking-tight text-foreground">
                 {title}
               </h2>
             )}

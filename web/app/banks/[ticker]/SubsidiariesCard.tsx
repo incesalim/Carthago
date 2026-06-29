@@ -56,7 +56,7 @@ export default function SubsidiariesCard({ rows }: Props) {
   const asOf = fmtAsOf(subs[0]?.as_of);
 
   return (
-    <section className="mb-6 rounded-lg border bg-card shadow-sm overflow-hidden">
+    <section className="mb-6 rounded-2xl border border-border bg-card overflow-hidden">
       <div className="px-5 py-3 border-b bg-muted flex items-baseline justify-between">
         <h2 className="text-sm font-semibold text-foreground">
           Subsidiaries &amp; financial investments

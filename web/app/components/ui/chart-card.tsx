@@ -25,12 +25,12 @@ export function ChartCard({
   return (
     <Card
       data-chart-card=""
-      className={cn("group p-4 transition-shadow hover:shadow-md", className)}
+      className={cn("group p-4 transition-colors hover:border-primary/40", className)}
     >
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-0.5">
           {title && (
-            <div data-chart-title="" className="text-sm font-medium text-foreground">
+            <div data-chart-title="" className="text-sm font-bold text-foreground">
               {title}
             </div>
           )}

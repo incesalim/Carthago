@@ -34,7 +34,7 @@ function DisclosureCard({ item }: { item: NewsItem }) {
   // goes to the per-bank page. Two anchors instead of one nested in
   // another (which is invalid HTML and breaks Next.js hydration).
   return (
-    <div className="rounded-md border border-border border-l-4 border-l-[#7a0d2e] bg-card p-3 hover:bg-accent transition">
+    <div className="rounded-xl border border-border border-l-4 border-l-primary bg-card p-3 hover:bg-accent transition">
       <div className="flex items-baseline justify-between gap-2 text-[10px] text-muted-foreground uppercase tracking-wide mb-1">
         <span className="tabular-nums">{fmtDate(item.published_at)}</span>
         {item.ticker && (

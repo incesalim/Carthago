@@ -553,15 +553,15 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
           {/* Statement controls — sit directly above the statement table they drive:
               statement (BS/IS/CF) · view (absolute/YoY) · period (annual/quarterly) · kind */}
           <div className="mb-3 flex flex-wrap gap-3 items-center">
-            <div className="flex gap-1 rounded-lg border bg-muted p-1">
+            <div className="flex gap-1 rounded-xl border border-border bg-card p-1">
               {(["bs", "is", "cf"] as const).map((s) => (
                 <Link
                   key={s}
                   href={url({ statement: s })}
                   scroll={false}
-                  className={`px-3 py-1 text-xs rounded-md transition ${
+                  className={`px-3 py-1 text-xs rounded-lg transition ${
                     s === statement
-                      ? "bg-card shadow-sm font-medium text-foreground"
+                      ? "bg-primary/10 font-semibold text-primary"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
@@ -569,15 +569,15 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
                 </Link>
               ))}
             </div>
-            <div className="flex gap-1 rounded-lg border bg-muted p-1">
+            <div className="flex gap-1 rounded-xl border border-border bg-card p-1">
               {(["abs", "yoy"] as const).map((m) => (
                 <Link
                   key={m}
                   href={url({ mode: m })}
                   scroll={false}
-                  className={`px-3 py-1 text-xs rounded-md transition ${
+                  className={`px-3 py-1 text-xs rounded-lg transition ${
                     m === mode
-                      ? "bg-card shadow-sm font-medium text-foreground"
+                      ? "bg-primary/10 font-semibold text-primary"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
@@ -585,15 +585,15 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
                 </Link>
               ))}
             </div>
-            <div className="flex gap-1 rounded-lg border bg-muted p-1">
+            <div className="flex gap-1 rounded-xl border border-border bg-card p-1">
               {(["annual", "quarterly"] as const).map((v) => (
                 <Link
                   key={v}
                   href={url({ view: v })}
                   scroll={false}
-                  className={`px-3 py-1 text-xs rounded-md transition ${
+                  className={`px-3 py-1 text-xs rounded-lg transition ${
                     v === view
-                      ? "bg-card shadow-sm font-medium text-foreground"
+                      ? "bg-primary/10 font-semibold text-primary"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
@@ -601,15 +601,15 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
                 </Link>
               ))}
             </div>
-            <div className="flex gap-1 rounded-lg border bg-muted p-1">
+            <div className="flex gap-1 rounded-xl border border-border bg-card p-1">
               {(["unconsolidated", "consolidated"] as const).map((k) => (
                 <Link
                   key={k}
                   href={url({ kind: k })}
                   scroll={false}
-                  className={`px-3 py-1 text-xs rounded-md transition ${
+                  className={`px-3 py-1 text-xs rounded-lg transition ${
                     k === kind
-                      ? "bg-card shadow-sm font-medium text-foreground"
+                      ? "bg-primary/10 font-semibold text-primary"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
@@ -621,7 +621,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
 
           {/* Balance Sheet — single table, assets and liabilities together */}
           {statement === "bs" && (
-          <section className="group mb-6 rounded-lg border bg-card shadow-sm overflow-hidden">
+          <section className="group mb-6 rounded-2xl border border-border bg-card overflow-hidden">
             <div className="px-5 py-3 border-b bg-muted flex items-center justify-between">
               <h2 className="text-sm font-semibold text-foreground">Balance Sheet</h2>
               <div className="flex items-center gap-2">
@@ -691,7 +691,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
 
           {/* Income Statement — standardized table, with the P&L flow Sankey below it */}
           {statement === "is" && (
-          <section className="group rounded-lg border bg-card shadow-sm overflow-hidden">
+          <section className="group rounded-2xl border border-border bg-card overflow-hidden">
             <div className="px-5 py-3 border-b bg-muted flex items-center justify-between">
               <h2 className="text-sm font-semibold text-foreground">Income Statement</h2>
               <div className="flex items-center gap-2">
@@ -728,11 +728,11 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
               codes are consistent across banks). Empty → "not available" note. */}
           {statement === "cf" && (
             !hasCfData ? (
-              <section className="rounded-lg border bg-card shadow-sm px-5 py-4 text-xs text-muted-foreground">
+              <section className="rounded-2xl border border-border bg-card px-5 py-4 text-xs text-muted-foreground">
                 Cash flow statement not available for these periods.
               </section>
             ) : (
-            <section className="group rounded-lg border bg-card shadow-sm overflow-hidden">
+            <section className="group rounded-2xl border border-border bg-card overflow-hidden">
               <div className="px-5 py-3 border-b bg-muted flex items-center justify-between">
                 <h2 className="text-sm font-semibold text-foreground">Cash Flow</h2>
                 <div className="flex items-center gap-2">
@@ -826,7 +826,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
       {earnings.length > 0 && (
         <div id="earnings" className="scroll-mt-24 mb-8">
           <Section title="Earnings & Presentations" contentClassName="">
-            <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+            <div className="rounded-2xl border border-border bg-card p-4">
               <div className="text-sm font-medium text-foreground mb-3 flex items-baseline justify-between">
                 <span>Quarterly results filings &amp; presentation decks</span>
                 <Link href="/earnings" className="text-xs text-muted-foreground hover:text-foreground">
@@ -843,7 +843,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
                       className="block hover:bg-accent -mx-1 px-1 py-1 rounded transition"
                     >
                       <div className="text-[10px] uppercase tracking-wide text-muted-foreground tabular-nums flex items-center gap-1.5">
-                        <span className={e.kind === "presentation_deck" ? "text-indigo-600 dark:text-indigo-300 font-semibold" : "text-[#7a0d2e] dark:text-[#e7b3c2] font-semibold"}>
+                        <span className={e.kind === "presentation_deck" ? "text-indigo-600 dark:text-indigo-300 font-semibold" : "text-primary font-semibold"}>
                           {kindLabel(e.kind)}
                         </span>
                         {e.period && <span className="text-foreground">{e.period.slice(4)} {e.period.slice(0, 4)}</span>}
@@ -864,7 +864,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
           Recent KAP filings (cached); link out to the full disclosures tab. */}
       <div id="disclosures" className="scroll-mt-24 mb-8">
         <Section title="Disclosures" contentClassName="">
-          <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+          <div className="rounded-2xl border border-border bg-card p-4">
             <div className="text-sm font-medium text-foreground mb-3 flex items-baseline justify-between">
               <span>Recent KAP disclosures</span>
               {kapItems.length > 0 && (

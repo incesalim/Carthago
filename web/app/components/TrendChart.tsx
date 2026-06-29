@@ -6,10 +6,11 @@
  */
 import { useState } from "react";
 import {
+  Area,
   CartesianGrid,
+  ComposedChart,
   Legend,
   Line,
-  LineChart,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -47,6 +48,39 @@ interface Props {
 // ownership trio, then participation/dev). Series whose label isn't listed keep
 // their original order (single-series, TL/FX, consumer-segment charts, …).
 const BANK_GROUP_ORDER = ["Sector", "State", "Domestic", "Foreign", "Participation", "Dev & Inv"];
+
+/**
+ * End-dot: a small filled circle drawn at the series' last point only (r=0
+ * elsewhere so Recharts always gets a valid SVG element). Passed via the
+ * element form `dot={<EndDot … />}` — Recharts clones it per point, injecting
+ * `cx/cy/index/value`. `dim` mirrors the line opacity so an isolated series
+ * fades its dot too.
+ */
+function EndDot(props: {
+  cx?: number;
+  cy?: number;
+  index?: number;
+  value?: number | null;
+  color?: string;
+  bg?: string;
+  lastIndex?: number;
+  dim?: number;
+}) {
+  const { cx, cy, index, value, color, bg, lastIndex, dim = 1 } = props;
+  const show =
+    index === lastIndex && value != null && cx != null && cy != null;
+  return (
+    <circle
+      cx={cx}
+      cy={cy}
+      r={show ? 3 : 0}
+      fill={color}
+      fillOpacity={show ? dim : 0}
+      stroke={bg}
+      strokeWidth={show ? 1.5 : 0}
+    />
+  );
+}
 
 export default function TrendChart({
   data,
@@ -87,6 +121,8 @@ export default function TrendChart({
 
   const fmt = formatters[yFormat];
 
+  const lastIdx = wide.length - 1;
+
   return (
     <ChartCard title={title}>
       <ChartData
@@ -99,21 +135,22 @@ export default function TrendChart({
       {/* Right-click is a pin/unpin gesture here — keep the browser menu out. */}
       <div style={{ height }} onContextMenu={(e) => e.preventDefault()}>
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={wide} margin={{ top: 10, right: 20, left: 60, bottom: 30 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke={t.grid} />
+          <ComposedChart data={wide} margin={{ top: 10, right: 20, left: 60, bottom: 30 }}>
+            {/* Horizontal hairlines only — drop the vertical grid + axis lines. */}
+            <CartesianGrid vertical={false} stroke={t.grid} />
             <XAxis
               dataKey="period"
               tick={{ fontSize: 11, fill: t.axis }}
               tickMargin={6}
               minTickGap={30}
-              axisLine={{ stroke: t.grid }}
-              tickLine={{ stroke: t.grid }}
+              axisLine={false}
+              tickLine={false}
             />
             <YAxis
               tick={{ fontSize: 11, fill: t.axis }}
               tickFormatter={(v) => fmt(v, 0)}
-              axisLine={{ stroke: t.grid }}
-              tickLine={{ stroke: t.grid }}
+              axisLine={false}
+              tickLine={false}
             />
             {zeroLine && <ReferenceLine y={0} stroke={t.reference} strokeDasharray="3 3" />}
             <Tooltip
@@ -161,18 +198,24 @@ export default function TrendChart({
                           style={{
                             display: "inline-flex",
                             alignItems: "center",
-                            gap: 5,
-                            color: t.axis,
+                            gap: 6,
+                            color:
+                              seriesLabels[code] === "Sector" ? t.tooltipText : t.axis,
                             opacity: active && active !== code ? 0.4 : 1,
-                            fontWeight: pinned === code ? 600 : 400,
+                            fontWeight:
+                              pinned === code || seriesLabels[code] === "Sector"
+                                ? 600
+                                : 400,
                             cursor: "default",
                           }}
                         >
                           <span
                             style={{
                               display: "inline-block",
-                              width: 14,
-                              borderTop: `2px solid ${it.color ?? "currentColor"}`,
+                              width: 9,
+                              height: 9,
+                              borderRadius: 9999,
+                              background: it.color ?? "currentColor",
                             }}
                           />
                           {it.value}
@@ -183,20 +226,59 @@ export default function TrendChart({
                 );
               }}
             />
-            {codes.map((code, i) => (
-              <Line
-                key={code}
-                type="monotone"
-                dataKey={code}
-                name={seriesLabels[code]}
-                stroke={seriesColor(t, code, i)}
-                strokeWidth={active === code ? 2.75 : 1.75}
-                strokeOpacity={active && active !== code ? 0.18 : 1}
-                dot={false}
-                isAnimationActive={false}
-              />
-            ))}
-          </LineChart>
+            {codes.length === 1
+              ? (() => {
+                  // Lone series → a soft area fill under a primary line.
+                  const code = codes[0];
+                  const color = seriesColor(t, code, 0);
+                  const gid = `trend-area-${code.replace(/[^a-z0-9]/gi, "")}`;
+                  return (
+                    <>
+                      <defs>
+                        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={color} stopOpacity={0.12} />
+                          <stop offset="100%" stopColor={color} stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <Area
+                        type="monotone"
+                        dataKey={code}
+                        name={seriesLabels[code]}
+                        stroke={color}
+                        strokeWidth={2.5}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        fill={`url(#${gid})`}
+                        dot={<EndDot color={color} bg={t.tooltipBg} lastIndex={lastIdx} />}
+                        activeDot={{ r: 4 }}
+                        isAnimationActive={false}
+                      />
+                    </>
+                  );
+                })()
+              : codes.map((code, i) => {
+                  const color = seriesColor(t, code, i);
+                  // Emphasise the Sector aggregate; fade non-isolated lines.
+                  const base = seriesLabels[code] === "Sector" ? 2.5 : 2;
+                  const opacity = active && active !== code ? 0.18 : 1;
+                  return (
+                    <Line
+                      key={code}
+                      type="monotone"
+                      dataKey={code}
+                      name={seriesLabels[code]}
+                      stroke={color}
+                      strokeWidth={active === code ? base + 0.75 : base}
+                      strokeOpacity={opacity}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      dot={<EndDot color={color} bg={t.tooltipBg} lastIndex={lastIdx} dim={opacity} />}
+                      activeDot={{ r: 4 }}
+                      isAnimationActive={false}
+                    />
+                  );
+                })}
+          </ComposedChart>
         </ResponsiveContainer>
       </div>
     </ChartCard>
