@@ -33,23 +33,28 @@ Audit extraction is **not scheduled** — you run it from here. `acquire-audit.y
 downloads newly published PDFs into R2 by itself and pings Telegram; they then show up in the
 coverage matrix as **missing** for you to extract.
 
-- **Coverage matrix** — for each statement type × bank × period (×kind), a cell shows
-  **ok / manual / error / missing**: present and valid, hand-corrected, present but failing a
-  structural identity check, or expected-but-absent. All 12 statement types now have validators
-  (assets, liabilities, off-balance, P&L, OCI, credit_quality, stages, loans_by_sector,
-  npl_movement, capital, liquidity; profile has presence-only sanity). `is_core=False` types
-  (everything except assets/liabilities/P&L) surface `error`/`missing` cells but never flip
-  `success`. New columns appear automatically when a new quarter is acquired (the expected
-  universe is the profile census **∪** the R2 PDF list). **Filters:** a bank search
-  (comma/space-separated terms, substring — `GARAN, AK` shows both families), a From/To
-  period range, and a kind control with a third **both** mode that stacks each bank's
-  consolidated + unconsolidated rows so you can compare them at a glance (the legend tally
-  reflects the filtered view).
+- **Coverage matrix** — a **per-statement-type summary table** plus an **errors & missing
+  sidebar**, both fed by one `?summary=1` round-trip (`coverageSummary` + `coverageProblems`).
+  Each row is a statement type with its cell counts — **ok / manual / error / missing / N/A**
+  (present and valid, hand-corrected, present but failing a structural identity check,
+  expected-but-absent, or not expected) — and a coverage bar; rows are grouped **core** vs
+  **footnotes & §4** and a `✓` marks a type that has a validator. All 12 statement types have
+  validators (assets, liabilities, off-balance, P&L, OCI, credit_quality, stages,
+  loans_by_sector, npl_movement, capital, liquidity; profile has presence-only sanity).
+  The kind control (**unconsolidated / consolidated / both**) re-aggregates the counts; a
+  header tally shows total errors + missing for the current mode. Click a row to filter the
+  sidebar to that lane. New quarters fold into the counts automatically when acquired (the
+  expected universe is the profile census **∪** the R2 PDF list).
+- **Errors & missing sidebar** — lists every `error`/`missing` cell (the actionable ones) as
+  `bank · period · kind`, errors first, with a status toggle (**error / missing / both**,
+  defaulting to errors) and a bank-substring filter. The list is capped at 300 rendered rows
+  (the count badge still shows the true total) so the long missing tail (profile, repricing)
+  can't bloat the DOM. Click a cell to open the drawer.
 - **Cell drawer** — extraction counts/note, the failing validator identities (`failed_detail`),
   and a context hint: a PDF-present *missing* cell with **no extraction row** says "acquired, not
   yet extracted — click Re-extract"; one that's been extracted but has an empty statement says
   "likely scanned-image — hand-transcribe." The drawer's **Re-extract** dispatches
-  `refresh-audit.yml` for that `bank` + `period`.
+  `reextract-statement.yml` for just that `bank` + `period` + `kind` + statement.
 - **Pipeline panel** — two audit cards: **Acquire audit PDFs** (`acquire-audit.yml`, no inputs)
   and **Extract audit reports** (`refresh-audit.yml`, optional bank).
 
