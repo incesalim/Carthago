@@ -14,7 +14,7 @@ webdriver-manager>=4.1.2
 googlenewsdecoder>=0.1.7
 
 # Data Processing
-pandas>=3.0.4
+pandas>=3.0.3      # not >=3.0.4: 3.0.4 was yanked from PyPI; 3.0.3 is newest installable
 numpy>=2.5.0
 openpyxl>=3.1.5      # .xlsx (newer TBB digital-banking workbooks)
 xlrd>=2.0.2          # legacy .xls / BIFF (older TBB digital-banking workbooks)
