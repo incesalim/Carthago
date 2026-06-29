@@ -11,6 +11,8 @@
 import { useTheme } from "next-themes";
 
 export interface ChartTheme {
+  /** Active theme — use this instead of sniffing palette[0] for a light check. */
+  mode: "light" | "dark";
   /** Categorical series palette (matches --chart-1..6). */
   palette: string[];
   grid: string;
@@ -22,26 +24,30 @@ export interface ChartTheme {
   tooltipText: string;
 }
 
+// "Fresh / Flat" chart chrome — series mirror --chart-1..6, grid is a hairline
+// (--border), axis ticks are the faint caption tone (--faint).
 const LIGHT: ChartTheme = {
-  palette: ["#7a0d2e", "#1f4068", "#0f7b6c", "#a16500", "#5b1a8c", "#5a5a5a"],
-  grid: "#ececec",
-  axis: "#737373",
-  cursor: "rgba(0,0,0,0.04)",
-  reference: "#9ca3af",
+  mode: "light",
+  palette: ["#2F6BED", "#15AABF", "#7C5CFC", "#F7A23B", "#F368A6", "#8B98AD"],
+  grid: "#E8ECF2",
+  axis: "#9AA3B2",
+  cursor: "rgba(47,107,237,0.06)",
+  reference: "#9AA3B2",
   tooltipBg: "#ffffff",
-  tooltipBorder: "#e5e5e5",
-  tooltipText: "#171717",
+  tooltipBorder: "#E8ECF2",
+  tooltipText: "#1A2230",
 };
 
 const DARK: ChartTheme = {
-  palette: ["#f0608a", "#6f9fe0", "#34c9b0", "#e0a23c", "#b07ee0", "#a3a3a3"],
-  grid: "rgba(255,255,255,0.08)",
-  axis: "#9ca3af",
-  cursor: "rgba(255,255,255,0.06)",
-  reference: "#6b7280",
-  tooltipBg: "#1c1d22",
-  tooltipBorder: "rgba(255,255,255,0.14)",
-  tooltipText: "#ededed",
+  mode: "dark",
+  palette: ["#5B86F7", "#2BD4CC", "#9A7CFF", "#FBB454", "#FB85BE", "#9FB0C6"],
+  grid: "#232C3A",
+  axis: "#5E6A7D",
+  cursor: "rgba(91,134,247,0.10)",
+  reference: "#5E6A7D",
+  tooltipBg: "#181F2A",
+  tooltipBorder: "#232C3A",
+  tooltipText: "#EAEEF4",
 };
 
 /** Resolve the chart palette for the active theme (defaults to light pre-mount). */

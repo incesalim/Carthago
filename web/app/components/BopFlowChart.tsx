@@ -79,7 +79,7 @@ export default function BopFlowChart({
 }: Props) {
   const t = useChartTheme();
   const tt = tooltipStyles(t);
-  const isLight = t.palette[0] === "#7a0d2e";
+  const isLight = t.mode === "light";
   const variant = isLight ? "light" : "dark";
 
   const fillOf = (s: BarSeries, i: number) =>

@@ -31,7 +31,7 @@ export function RangePills({
       role="group"
       aria-label="Chart date range"
       className={cn(
-        "inline-flex items-center gap-0.5 rounded-lg border border-border bg-card p-0.5",
+        "inline-flex items-center gap-0.5 rounded-xl border border-border bg-card p-0.5",
         className,
       )}
     >
@@ -42,9 +42,9 @@ export function RangePills({
           aria-pressed={active === r}
           onClick={() => onSelect(r)}
           className={cn(
-            "rounded-md px-2 py-0.5 text-xs font-medium transition-colors",
+            "rounded-lg px-2 py-0.5 text-xs font-semibold transition-colors",
             active === r
-              ? "bg-primary text-primary-foreground"
+              ? "bg-primary/10 text-primary"
               : "text-muted-foreground hover:bg-accent hover:text-foreground",
           )}
         >

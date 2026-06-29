@@ -50,7 +50,7 @@ function BriefingWidget({
       </header>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {briefing.categories.map((cat) => (
-          <div key={cat.name} className="rounded-lg border border-border bg-card p-4 shadow-sm">
+          <div key={cat.name} className="rounded-2xl border border-border bg-card p-4">
             <h3 className="text-sm font-semibold text-foreground mb-2">{cat.name}</h3>
             <ul className="space-y-2">
               {cat.bullets.map((b, i) => (
