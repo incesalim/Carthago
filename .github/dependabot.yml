@@ -19,6 +19,11 @@ updates:
     groups:
       web-deps:
         patterns: ["*"]
+    ignore:
+      # eslint 10 is unsupported here: eslint-config-next 16 bundles
+      # eslint-plugin-react 7.37.5, which requires ESLint <= 9.7. Keep eslint ^9.
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
 
   # Pin/refresh GitHub Actions versions
   - package-ecosystem: "github-actions"
