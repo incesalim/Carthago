@@ -35,7 +35,7 @@ function fmtPeriod(p: string | null): string {
 }
 
 const KIND_STYLE: Record<EarningsKind, string> = {
-  results_filing: "border-l-[#7a0d2e] bg-[#7a0d2e]/10 text-[#7a0d2e] dark:text-[#e7b3c2]",
+  results_filing: "border-l-primary bg-primary/10 text-primary",
   presentation_deck: "border-l-indigo-600 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300",
   call: "border-l-emerald-600 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
   presentation_filing: "border-l-indigo-600 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300",

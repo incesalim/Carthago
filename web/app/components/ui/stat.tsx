@@ -33,16 +33,16 @@ export function Stat({
   className,
 }: StatProps) {
   return (
-    <Card className={cn("p-5 transition-shadow hover:shadow-md", className)}>
+    <Card className={cn("p-5 transition-colors hover:border-primary/40", className)}>
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
           {label}
         </span>
         {badge}
       </div>
       <div
         className={cn(
-          "mt-1.5 text-2xl font-semibold tabular-nums tracking-tight",
+          "mt-1.5 text-2xl font-bold tabular-nums tracking-tight",
           toneText[tone],
         )}
       >

@@ -150,10 +150,10 @@ function NavLinks({
           aria-current={active ? "page" : undefined}
           onClick={onNavigate}
           className={cn(
-            "rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors",
+            "rounded-[10px] px-3 py-1.5 text-[13px] font-medium transition-colors",
             active
-              ? "bg-accent text-foreground"
-              : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
+              ? "bg-primary/10 font-semibold text-primary"
+              : "text-muted-foreground hover:bg-accent hover:text-foreground",
           )}
         >
           {t.label}
@@ -173,12 +173,12 @@ function NavLinks({
             aria-current={parentActive ? "page" : undefined}
             onClick={onNavigate}
             className={cn(
-              "flex-1 rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors",
+              "flex-1 rounded-[10px] px-3 py-1.5 text-[13px] font-medium transition-colors",
               parentActive
-                ? "bg-accent text-foreground"
+                ? "bg-primary/10 font-semibold text-primary"
                 : sectionActive
-                  ? "text-foreground hover:bg-accent/60"
-                  : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
+                  ? "text-foreground hover:bg-accent"
+                  : "text-muted-foreground hover:bg-accent hover:text-foreground",
             )}
           >
             {t.label}
@@ -209,10 +209,10 @@ function NavLinks({
                   aria-current={childActive ? "page" : undefined}
                   onClick={onNavigate}
                   className={cn(
-                    "rounded-md px-3 py-1 text-[12px] font-medium transition-colors",
+                    "rounded-[10px] px-3 py-1 text-[12px] font-medium transition-colors",
                     childActive
-                      ? "bg-accent text-foreground"
-                      : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
+                      ? "bg-primary/10 font-semibold text-primary"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground",
                   )}
                 >
                   {c.label}
@@ -236,7 +236,7 @@ function NavLinks({
           className={cn("flex flex-col gap-0.5", i > 0 && "mt-2")}
         >
           {section.label && (
-            <div className="px-3 pb-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/60">
+            <div className="px-3 pb-0.5 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">
               {section.label}
             </div>
           )}

@@ -21,7 +21,7 @@ const NEUTRAL = "bg-neutral-100 text-neutral-600";
 const SOURCE_TAGS: Record<NewsSource, Tag> = {
   tcmb: { label: "TCMB", className: "bg-[#1f4068]/10 text-[#1f4068]" },
   bddk: { label: "BDDK", className: "bg-[#0f7b6c]/10 text-[#0f7b6c]" },
-  kap: { label: "KAP", className: "bg-[#7a0d2e]/10 text-[#7a0d2e]" },
+  kap: { label: "KAP", className: "bg-primary/10 text-primary" },
   press: { label: "Press", className: "bg-[#9a6700]/10 text-[#9a6700]" },
   google_news: { label: "Google News", className: "bg-[#3367d6]/10 text-[#3367d6]" },
 };

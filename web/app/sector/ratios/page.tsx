@@ -39,7 +39,7 @@ function KpiCard({ label, value, period, hint, series, format, decimals, goodDir
   const sparkData = series.map((r) => ({ period: r.period, value: r.value }));
   const deltaFormat = format === "trn" ? "trn" : format === "raw" ? "raw" : "pp";
   return (
-    <div className="rounded-lg border bg-card p-5 shadow-sm">
+    <div className="rounded-2xl border border-border bg-card p-5">
       <div className="flex items-center justify-between gap-2">
         <div className="text-xs uppercase tracking-wide text-muted-foreground">
           {label}
