@@ -38,7 +38,7 @@ import { earningsByTicker, kindLabel } from "@/app/lib/earnings";
 import { bankOwnership } from "@/app/lib/kap";
 import { heatmapPanel } from "@/app/lib/heatmap";
 import { marketSharePanel, bankShareSeries } from "@/app/lib/market-share";
-import { fxByCurrency, repricingLadder } from "@/app/lib/market-risk";
+import { bankMarketRiskDetail } from "@/app/lib/market-risk";
 import { bistValuation, bistPriceHistory } from "@/app/lib/bist";
 import { liveQuotes, applyLivePrice, formatAsOf } from "@/app/lib/bist-live";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
@@ -244,7 +244,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
     return o != null && o >= floorOrd && latestOrd != null && o <= latestOrd;
   });
 
-  const [bsPivot, bsNames, plPivot, plRows, cfPivot, kapItems, profile, stages, validation, ownership, valuationBase, priceHistory, liveMap, heatmap, sharePanel, earnings, fxCcy, repLadder] =
+  const [bsPivot, bsNames, plPivot, plRows, cfPivot, kapItems, profile, stages, validation, ownership, valuationBase, priceHistory, liveMap, heatmap, sharePanel, earnings, mrDetail] =
     await Promise.all([
       balanceSheetMultiPeriod(ticker, kind, queryPeriods),
       balanceSheetLineNames(ticker, kind, periods),
@@ -267,8 +267,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
       heatmapPanel(kind),
       marketSharePanel(kind),
       earningsByTicker(ticker, 24),
-      fxByCurrency(kind, ticker),
-      repricingLadder(kind, ticker),
+      bankMarketRiskDetail(kind, ticker),
     ]);
 
   // Profitability & margins section inputs — this bank's rows, oldest→newest.
@@ -285,8 +284,11 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
     ].some((v) => v != null);
   // Market-risk (CAMELS S) section inputs.
   const hasMarketRisk =
-    (!!perfLatest && (perfLatest.fx_nop != null || perfLatest.repricing_gap_1y != null)) ||
-    fxCcy.length > 0 || repLadder.data.length > 0;
+    (!!perfLatest &&
+      (perfLatest.fx_nop != null ||
+        perfLatest.repricing_gap_1y != null ||
+        perfLatest.lcr != null)) ||
+    mrDetail.hasData;
 
   // Overlay the latest (delayed) Yahoo price on the stored valuation; if the
   // live fetch returned nothing, keep the stored EOD figures untouched.
@@ -542,7 +544,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
           FX net open position + interest-rate repricing gap from §4 footnotes. */}
       {hasMarketRisk && (
         <div id="market-risk" className="scroll-mt-24 mb-8">
-          <MarketRiskSection rows={perfRows} fxCcy={fxCcy} ladder={repLadder} />
+          <MarketRiskSection rows={perfRows} detail={mrDetail} />
         </div>
       )}
 

@@ -31,6 +31,12 @@ const BUCKET_LABEL: Record<string, string> = {
   lt_1m: "≤1 month", "1_3m": "1–3 months", "3_12m": "3–12 months",
   "1_5y": "1–5 years", gt_5y: ">5 years", non_sensitive: "Non-rate-sensitive",
 };
+// The five rate-sensitive buckets shown as diverging bars (non-sensitive
+// excluded — it isn't a repricing signal), with compact labels.
+const RATE_BUCKETS = ["lt_1m", "1_3m", "3_12m", "1_5y", "gt_5y"];
+const SHORT_BUCKET_LABEL: Record<string, string> = {
+  lt_1m: "0–1M", "1_3m": "1–3M", "3_12m": "3–12M", "1_5y": "1–5Y", gt_5y: "5Y+",
+};
 
 interface FxRow {
   bank_ticker: string; period: string; currency: string;
@@ -171,4 +177,106 @@ export async function repricingLadder(
     x: BUCKET_LABEL[b], gap: byBucket.get(b)!,
   }));
   return { data, period };
+}
+
+/** One repricing bucket for the per-bank diverging-bar view. */
+export interface RepricingBucket {
+  label: string;
+  /** Signed net gap as % of total rate-sensitive assets (null if no denom). */
+  pct: number | null;
+  /** Signed net gap in ₺bn (for tooltips). */
+  gapBn: number;
+}
+/** One currency line for the per-bank FX net-open-position list. */
+export interface FxPositionItem {
+  label: string;
+  /** Signed net position as % of regulatory capital (null if no denom). */
+  pct: number | null;
+  /** Signed net position in ₺bn. */
+  netBn: number;
+}
+/** Per-bank §4 market-risk detail for the latest reported quarter. */
+export interface MarketRiskDetail {
+  period: string | null;
+  /** Diverging repricing-gap ladder (5 rate buckets) + cumulative ≤1y gap %. */
+  repricing: { buckets: RepricingBucket[]; gap1yPct: number | null };
+  /** FX net open position by currency (signed). */
+  fx: { items: FxPositionItem[] };
+  hasData: boolean;
+}
+
+/**
+ * Per-bank market-risk detail for the bank-detail "Market Risk" section:
+ * the interest-rate repricing gap as a diverging ladder (% of rate-sensitive
+ * assets) and the FX net open position by currency (% of regulatory capital).
+ * Each block reads its own latest reported quarter. Percentages share the same
+ * denominators as the sector ratios so the headline tiles reconcile.
+ */
+export async function bankMarketRiskDetail(
+  kind: string = DEFAULT_KIND,
+  ticker?: string,
+): Promise<MarketRiskDetail> {
+  const [fx, cap, rp] = await Promise.all([fxRows(kind), capRows(kind), rpRows(kind)]);
+  const myRp = ticker ? rp.filter((r) => r.bank_ticker === ticker) : rp;
+  const myFx = ticker ? fx.filter((r) => r.bank_ticker === ticker) : fx;
+  const rpPeriod = [...new Set(myRp.map((r) => r.period))].sort().at(-1) ?? null;
+  const fxPeriod = [...new Set(myFx.map((r) => r.period))].sort().at(-1) ?? null;
+
+  // ── Repricing ladder (latest rp quarter) ──
+  let rsa = 0;
+  const byBucket = new Map<string, number>();
+  if (rpPeriod) {
+    for (const r of myRp) {
+      if (r.period !== rpPeriod) continue;
+      if (r.bucket === "total") {
+        if (r.rate_sensitive_assets != null) rsa += r.rate_sensitive_assets;
+      } else if (r.gap != null) {
+        byBucket.set(r.bucket, (byBucket.get(r.bucket) ?? 0) + r.gap);
+      }
+    }
+  }
+  const buckets: RepricingBucket[] = RATE_BUCKETS.filter((b) => byBucket.has(b)).map((b) => ({
+    label: SHORT_BUCKET_LABEL[b],
+    gapBn: byBucket.get(b)! / TH_TO_BN,
+    pct: rsa > 0 ? (byBucket.get(b)! / rsa) * 100 : null,
+  }));
+  let gap1y = 0;
+  let gap1yAny = false;
+  for (const b of LE_1Y) {
+    const v = byBucket.get(b);
+    if (v != null) {
+      gap1y += v;
+      gap1yAny = true;
+    }
+  }
+  const gap1yPct = gap1yAny && rsa > 0 ? (gap1y / rsa) * 100 : null;
+
+  // ── FX net open position by currency (latest fx quarter) ──
+  const capV = fxPeriod
+    ? (ticker ? cap.filter((r) => r.bank_ticker === ticker) : cap)
+        .filter((r) => r.period === fxPeriod)
+        .reduce((s, r) => s + (r.total_capital ?? 0), 0)
+    : 0;
+  const byCcy = new Map<string, number>();
+  if (fxPeriod) {
+    for (const r of myFx) {
+      if (r.period !== fxPeriod || r.currency === "TOTAL" || r.net_position == null) continue;
+      const key = r.currency === "EUR" ? "EUR" : r.currency === "USD" ? "USD" : "Other";
+      byCcy.set(key, (byCcy.get(key) ?? 0) + r.net_position);
+    }
+  }
+  const items: FxPositionItem[] = ["USD", "EUR", "Other"]
+    .filter((k) => byCcy.has(k))
+    .map((k) => ({
+      label: k === "Other" ? "Other FC" : k,
+      netBn: byCcy.get(k)! / TH_TO_BN,
+      pct: capV > 0 ? (byCcy.get(k)! / capV) * 100 : null,
+    }));
+
+  return {
+    period: [rpPeriod, fxPeriod].filter(Boolean).sort().at(-1) ?? null,
+    repricing: { buckets, gap1yPct },
+    fx: { items },
+    hasData: buckets.length > 0 || items.length > 0,
+  };
 }
