@@ -140,14 +140,14 @@ export default function TrendChart({
             <CartesianGrid vertical={false} stroke={t.grid} />
             <XAxis
               dataKey="period"
-              tick={{ fontSize: 11, fill: t.axis }}
+              tick={{ fontSize: 11, fill: t.axis, fontFamily: "var(--font-geist-mono), monospace" }}
               tickMargin={6}
               minTickGap={30}
               axisLine={false}
               tickLine={false}
             />
             <YAxis
-              tick={{ fontSize: 11, fill: t.axis }}
+              tick={{ fontSize: 11, fill: t.axis, fontFamily: "var(--font-geist-mono), monospace" }}
               tickFormatter={(v) => fmt(v, 0)}
               axisLine={false}
               tickLine={false}

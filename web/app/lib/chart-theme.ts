@@ -24,30 +24,30 @@ export interface ChartTheme {
   tooltipText: string;
 }
 
-// "Fresh / Flat" chart chrome — series mirror --chart-1..6, grid is a hairline
-// (--border), axis ticks are the faint caption tone (--faint).
+// "Editorial" chart chrome — navy-led series (mirror --chart-1..6), warm
+// hairline grid, faint mono axis ticks, warm-paper tooltip.
 const LIGHT: ChartTheme = {
   mode: "light",
-  palette: ["#2F6BED", "#15AABF", "#7C5CFC", "#F7A23B", "#F368A6", "#8B98AD"],
-  grid: "#E8ECF2",
-  axis: "#9AA3B2",
-  cursor: "rgba(47,107,237,0.06)",
-  reference: "#9AA3B2",
-  tooltipBg: "#ffffff",
-  tooltipBorder: "#E8ECF2",
-  tooltipText: "#1A2230",
+  palette: ["#1C3A60", "#3E6098", "#88A0C0", "#B98A5E", "#6E4B6E", "#9AA1AD"],
+  grid: "#ECE8DF",
+  axis: "#9AA1AD",
+  cursor: "rgba(28,58,96,0.06)",
+  reference: "#9AA1AD",
+  tooltipBg: "#FBFAF7",
+  tooltipBorder: "#E2DCD0",
+  tooltipText: "#16243B",
 };
 
 const DARK: ChartTheme = {
   mode: "dark",
-  palette: ["#5B86F7", "#2BD4CC", "#9A7CFF", "#FBB454", "#FB85BE", "#9FB0C6"],
-  grid: "#232C3A",
-  axis: "#5E6A7D",
-  cursor: "rgba(91,134,247,0.10)",
-  reference: "#5E6A7D",
-  tooltipBg: "#181F2A",
-  tooltipBorder: "#232C3A",
-  tooltipText: "#EAEEF4",
+  palette: ["#7FA0C8", "#9BB1D0", "#C2CEDF", "#D2A878", "#B391B3", "#A79F8E"],
+  grid: "#36322B",
+  axis: "#8A8472",
+  cursor: "rgba(127,160,200,0.10)",
+  reference: "#8A8472",
+  tooltipBg: "#211F1A",
+  tooltipBorder: "#36322B",
+  tooltipText: "#ECE8E0",
 };
 
 /** Resolve the chart palette for the active theme (defaults to light pre-mount). */
@@ -64,12 +64,12 @@ export function useChartTheme(): ChartTheme {
  * distinct hues.
  */
 const BANK_TYPE_COLOR_INDEX: Record<string, number> = {
-  "10001": 5, // Sector — neutral grey (aggregate / reference)
-  "10007": 0, // Foreign
-  "10005": 1, // Private
-  "10006": 2, // State
-  "10003": 3, // Participation
-  "10004": 4, // Dev & Inv
+  "10001": 0, // Sector — navy emphasis (the aggregate the eye should track)
+  "10006": 1, // State
+  "10005": 2, // Private
+  "10007": 3, // Foreign
+  "10003": 4, // Participation
+  "10004": 5, // Dev & Inv — gray
 };
 
 /**

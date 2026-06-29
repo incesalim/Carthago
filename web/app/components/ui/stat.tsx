@@ -35,14 +35,14 @@ export function Stat({
   return (
     <Card className={cn("p-5 transition-colors hover:border-primary/40", className)}>
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <span className="font-mono text-[10px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
           {label}
         </span>
         {badge}
       </div>
       <div
         className={cn(
-          "mt-1.5 text-2xl font-bold tabular-nums tracking-tight",
+          "mt-2 font-mono text-2xl font-medium tabular-nums tracking-tight",
           toneText[tone],
         )}
       >

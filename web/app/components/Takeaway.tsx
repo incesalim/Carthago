@@ -1,20 +1,26 @@
 /**
- * Takeaway — the "perspective" callout that leads a tab. Renders a deterministic
- * TabTakeaway (from lib/insights.ts): a one-line headline + bullet insights,
- * each tone-coloured and linking to the tab that proves it. Server component
- * (no interactivity); computed live from D1, so it always matches the charts.
+ * Takeaway — "The Read": the editorial perspective callout that leads a tab.
+ * Renders a deterministic TabTakeaway (from lib/insights.ts) in the editorial
+ * frame: a terracotta left rail, a mono kicker, a serif lead paragraph, and a
+ * joined-cell grid of tone-coloured drivers that link to the tab proving each.
+ * Server component — computed live from D1, so it always matches the charts.
  */
 import Link from "next/link";
 import type { TabTakeaway } from "@/app/lib/insights";
 
-const TONE: Record<string, string> = {
-  positive: "text-emerald-600 dark:text-emerald-400",
-  warn: "text-amber-600 dark:text-amber-400",
+const TONE_TEXT: Record<string, string> = {
+  positive: "text-positive",
+  warn: "text-warning",
   neutral: "text-foreground",
+};
+const TONE_GLYPH: Record<string, string> = {
+  positive: "▲",
+  warn: "◆",
+  neutral: "●",
 };
 
 export default function Takeaway({
-  title = "Sector Pulse",
+  title = "The Read",
   data,
 }: {
   title?: string;
@@ -22,33 +28,46 @@ export default function Takeaway({
 }) {
   if (!data.items.length) return null;
   return (
-    <section className="rounded-2xl border border-border bg-card p-4">
-      <div className="mb-2 flex items-baseline justify-between gap-2">
-        <h2 className="text-sm font-semibold text-foreground">{title}</h2>
-        {data.asOf && (
-          <span className="text-[11px] tabular-nums text-muted-foreground">
-            {data.asOf} · computed from latest data
+    <section className="flex overflow-hidden rounded-[10px] border border-border bg-card">
+      <div className="w-1 shrink-0 bg-primary" aria-hidden />
+      <div className="min-w-0 flex-1 p-6">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <span className="inline-flex items-center gap-2.5">
+            <span className="font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-primary">
+              {title}
+            </span>
+            <span className="size-1 rounded-full bg-border" aria-hidden />
+            <span className="font-mono text-[10px] tracking-[0.04em] text-faint">
+              Carthago analysis
+            </span>
           </span>
-        )}
-      </div>
-      <p className="mb-3 text-sm leading-snug text-foreground">{data.headline}</p>
-      <ul className="space-y-1.5">
-        {data.items.map((it, i) => (
-          <li key={i} className="text-xs leading-snug">
-            <span className="mr-1 text-muted-foreground">•</span>
-            <span className={TONE[it.tone] ?? TONE.neutral}>{it.text}</span>
-            {it.href && (
-              <Link
-                href={it.href}
-                className="ml-1 text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-                aria-label="open the related tab"
+          {data.asOf && (
+            <span className="font-mono text-[11px] text-faint">{data.asOf} · computed</span>
+          )}
+        </div>
+        <p className="mb-5 max-w-3xl font-serif text-[21px] font-medium leading-[1.42] tracking-tight text-foreground">
+          {data.headline}
+        </p>
+        <div className="grid grid-cols-1 gap-px overflow-hidden rounded-[9px] border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
+          {data.items.map((it, i) => (
+            <div key={i} className="bg-card p-4 text-[12.5px] leading-[1.5] text-foreground">
+              <span
+                className={`mr-2 text-[10px] leading-none ${TONE_TEXT[it.tone] ?? TONE_TEXT.neutral}`}
+                aria-hidden
               >
-                →
-              </Link>
-            )}
-          </li>
-        ))}
-      </ul>
+                {TONE_GLYPH[it.tone] ?? TONE_GLYPH.neutral}
+              </span>
+              {it.text}
+              {it.href && (
+                <Link href={it.href} className="whitespace-nowrap font-semibold text-primary">
+                  {" "}
+                  →
+                </Link>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
     </section>
   );
 }

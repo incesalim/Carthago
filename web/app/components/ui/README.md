@@ -21,8 +21,11 @@ utility so light/dark stay correct:
 | `muted` / `muted-foreground` | `bg-muted` `text-muted-foreground` | secondary text, subtle fills |
 | `border` / `input` | `border-border` | hairlines, inputs (default border colour app-wide) |
 | `accent` | `bg-accent` | hover states |
-| `primary` | `bg-primary` `text-primary` | brand accent — fresh blue (`#2F6BED`) |
+| `primary` | `bg-primary` `text-primary` | brand accent — terracotta (`#C2603A`); eyebrows, links |
+| `data` | `text-data` | data accent — editorial navy (`#1C3A60`); charts, sparklines |
 | `faint` | `text-faint` | captions / chart axis labels (between muted-foreground and border) |
+
+**Typography (editorial):** headings + chart titles use `font-serif` (Source Serif 4); labels and **all numbers** use `font-mono` (IBM Plex Mono); body uses `font-sans` (IBM Plex Sans).
 | `positive` `negative` `warning` `info` | `text-positive`, `bg-warning/15`, … | data semantics (tint with `/10`–`/15`) |
 | `chart-1…6` | `bg-chart-1` | categorical chart series (mirrors `useChartTheme`) |
 | `--radius` | `rounded-md/lg/xl` | corner radii |
