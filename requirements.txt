@@ -14,8 +14,8 @@ webdriver-manager>=4.1.2
 googlenewsdecoder>=0.1.7
 
 # Data Processing
-pandas>=3.0.3
-numpy>=2.4.6
+pandas>=3.0.4
+numpy>=2.5.0
 openpyxl>=3.1.5      # .xlsx (newer TBB digital-banking workbooks)
 xlrd>=2.0.2          # legacy .xls / BIFF (older TBB digital-banking workbooks)
 
@@ -24,10 +24,10 @@ sqlalchemy>=2.0.51
 
 # Audit-report PDF extraction
 pdfplumber>=0.11.10
-pymupdf>=1.27.2.3
+pymupdf>=1.28.0
 
 # Cloudflare R2 (S3-compatible) for audit-report PDF storage
-boto3>=1.43.34
+boto3>=1.43.36
 
 # Utilities
 python-dotenv>=1.2.2
