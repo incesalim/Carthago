@@ -34,7 +34,7 @@ import {
 } from "@/app/lib/audit";
 import { ordOf, ttmEndingAt, yoyPct } from "@/app/lib/period-math";
 import { newsByTicker } from "@/app/lib/news";
-import { earningsByTicker, kindLabel } from "@/app/lib/earnings";
+import { earningsByTicker } from "@/app/lib/earnings";
 import { bankOwnership } from "@/app/lib/kap";
 import { heatmapPanel } from "@/app/lib/heatmap";
 import { marketSharePanel, bankShareSeries } from "@/app/lib/market-share";
@@ -46,10 +46,9 @@ import BankCard from "./BankCard";
 import BankSectionNav from "./BankSectionNav";
 import ProfitabilitySection from "./ProfitabilitySection";
 import MarketRiskSection from "./MarketRiskSection";
-import OwnershipCard from "@/app/components/OwnershipCard";
-import OwnershipRadial from "@/app/components/OwnershipRadial";
+import OwnershipSummary from "./OwnershipSummary";
+import EarningsDisclosures from "./EarningsDisclosures";
 import PlSankeySection from "./PlSankeySection";
-import SubsidiariesCard from "./SubsidiariesCard";
 import CopyTableButton from "@/app/components/CopyTableButton";
 import {
   BS_ASSET_LINES,
@@ -435,7 +434,6 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
     ...(hasMarketRisk ? [{ id: "market-risk", label: "Market Risk" }] : []),
     { id: "financials", label: "Financials" },
     ...(hasOwnership ? [{ id: "ownership", label: "Ownership" }] : []),
-    ...(earnings.length > 0 ? [{ id: "earnings", label: "Earnings" }] : []),
     { id: "disclosures", label: "Disclosures" },
   ];
 
@@ -810,102 +808,22 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
         </Section>
       </div>
 
-      {/* ── Ownership & structure ─────────────────────────────────────────
-          KAP Genel Bilgi Formu: ≥5% holders, radial map, §7 subsidiaries. */}
+      {/* ── Ownership ─────────────────────────────────────────────────────
+          Simplified KAP view (design mock): ≥5% shareholder bars + §7
+          subsidiary chips. */}
       {hasOwnership && (
         <div id="ownership" className="scroll-mt-24 mb-8">
           <Section title="Ownership" contentClassName="">
-            {/* Ownership structure from the KAP Genel Bilgi Formu (weekly refresh) */}
-            <OwnershipCard rows={ownership} />
-
-            {/* Interactive radial map: shareholders → bank → subsidiaries */}
-            <OwnershipRadial ticker={ticker} rows={ownership} />
-
-            {/* Subsidiaries / financial investments (same form, §7) */}
-            <SubsidiariesCard rows={ownership} />
+            <OwnershipSummary rows={ownership} />
           </Section>
         </div>
       )}
 
-      {/* ── Earnings & presentations ──────────────────────────────────────
-          Results-filing dates (KAP) + investor-presentation decks (IR site). */}
-      {earnings.length > 0 && (
-        <div id="earnings" className="scroll-mt-24 mb-8">
-          <Section title="Earnings & Presentations" contentClassName="">
-            <div className="rounded-2xl border border-border bg-card p-4">
-              <div className="text-sm font-medium text-foreground mb-3 flex items-baseline justify-between">
-                <span>Quarterly results filings &amp; presentation decks</span>
-                <Link href="/earnings" className="text-xs text-muted-foreground hover:text-foreground">
-                  all banks →
-                </Link>
-              </div>
-              <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-2">
-                {earnings.map((e) => (
-                  <li key={`${e.source}-${e.external_id}`} className="text-xs">
-                    <a
-                      href={e.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block hover:bg-accent -mx-1 px-1 py-1 rounded transition"
-                    >
-                      <div className="text-[10px] uppercase tracking-wide text-muted-foreground tabular-nums flex items-center gap-1.5">
-                        <span className={e.kind === "presentation_deck" ? "text-indigo-600 dark:text-indigo-300 font-semibold" : "text-primary font-semibold"}>
-                          {kindLabel(e.kind)}
-                        </span>
-                        {e.period && <span className="text-foreground">{e.period.slice(4)} {e.period.slice(0, 4)}</span>}
-                      </div>
-                      <div className="text-foreground leading-snug line-clamp-2">
-                        {e.title}
-                      </div>
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </Section>
-        </div>
-      )}
-
-      {/* ── Disclosures ───────────────────────────────────────────────────
-          Recent KAP filings (cached); link out to the full disclosures tab. */}
+      {/* ── Earnings & Disclosures ────────────────────────────────────────
+          Compact results/presentation list + recent KAP filings, side by side. */}
       <div id="disclosures" className="scroll-mt-24 mb-8">
-        <Section title="Disclosures" contentClassName="">
-          <div className="rounded-2xl border border-border bg-card p-4">
-            <div className="text-sm font-medium text-foreground mb-3 flex items-baseline justify-between">
-              <span>Recent KAP disclosures</span>
-              {kapItems.length > 0 && (
-                <Link
-                  href={`/disclosures?ticker=${ticker}`}
-                  className="text-xs text-muted-foreground hover:text-foreground"
-                >
-                  all {ticker} →
-                </Link>
-              )}
-            </div>
-            {kapItems.length === 0 ? (
-              <div className="text-xs text-muted-foreground italic">No disclosures cached.</div>
-            ) : (
-              <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-2">
-                {kapItems.map((it) => (
-                  <li key={it.external_id} className="text-xs">
-                    <a
-                      href={it.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block hover:bg-accent -mx-1 px-1 py-1 rounded transition"
-                    >
-                      <div className="text-[10px] uppercase tracking-wide text-muted-foreground tabular-nums">
-                        {new Date(it.published_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                      </div>
-                      <div className="text-foreground leading-snug line-clamp-2">
-                        {it.title}
-                      </div>
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+        <Section title="Earnings & Disclosures" contentClassName="">
+          <EarningsDisclosures earnings={earnings} disclosures={kapItems} ticker={ticker} />
         </Section>
       </div>
     </main>
