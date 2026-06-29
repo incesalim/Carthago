@@ -127,8 +127,12 @@ function Row({ label, values, bold, divider, depth = 0, format = fmtTl }: RowPro
   return (
     <tr
       className={
-        (bold ? "bg-muted " : "") +
-        (divider ? "border-t border-border " : "border-b border-border")
+        // Flat look (per the design handoff): only computed subtotal/total rows
+        // (`divider`) get the muted band + top border. Top-level lines stay bold
+        // on white — distinguished by weight + indent, not a shaded stripe.
+        divider
+          ? "bg-muted border-t border-border "
+          : "border-b border-border"
       }
     >
       <td
