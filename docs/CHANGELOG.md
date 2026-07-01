@@ -3,7 +3,20 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-06-28 — **pdfplumber removed from EVERY audit lane except the frozen BS/P&L `_parse_page`.**
+Last verified: 2026-07-02 — **Repo housekeeping after the folder-organization audit (no behaviour change).**
+Four dead one-off scripts moved to `scripts/archive/` (`_eq_failreport.py`, `ocr_statement.py`,
+`normalize_hierarchy_keys.py`, `load_partitions_batch.py` — referenced only in this changelog's history);
+`scripts/README.md` index reconciled with disk (added the missing `check_pipeline_graph_sync`,
+`metric_knowledge`, `update_nonbank`/`update_tbb_acquisition`/`update_tuik`/`update_faaliyet`/
+`update_presentations`, `load_partition`/`apply_overrides`, and diagnostics
+`validate_presentation_discovery` rows); vestigial `data/processed/` removed (no code references it;
+`data/raw/` kept — still a diagnostic default path); the five unused create-next-app starter SVGs deleted
+from `web/public/` (only `logo.png` is referenced); `docs/METRICS.md` no longer links the gitignored
+`scripts/_weekly_catalogue.json` as if committed. Audit verdict recorded in
+[knowledge/architecture-review-2026-07.md](knowledge/architecture-review-2026-07.md): tracked tree clean;
+the clutter was gitignored working-directory scratch.
+
+2026-06-28 — **pdfplumber removed from EVERY audit lane except the frozen BS/P&L `_parse_page`.**
 The loader opened `pdfplumber.open()` for every partition (shared with BS/P&L) and equity/OCI/etc. carried
 pdfplumber "fallbacks" that ran regardless — so a single-statement re-extract still loaded pdfplumber. Now every
 non-BS/P&L lane reads via fitz off `pdf_path`: the three page locators, npl_movement, loans_by_sector,

@@ -507,7 +507,8 @@ all 6 primary bank types (10001 + 10003–10007) × 3 currencies (TL/FX/TOTAL).
 | 6 | `bilanco_disi` | 4 | 6.0.1 Gayrinakdi Krediler · 6.0.3 Türev Finansal Araçlar |
 | 7 | `yp_pozisyon_saklama` | 45 | 7.0.1–7.0.45 Saklanan Menkul Değerler (custodial) |
 
-Full catalogue persisted at [`scripts/_weekly_catalogue.json`](../scripts/_weekly_catalogue.json).
+Full catalogue persisted at `scripts/_weekly_catalogue.json` (gitignored — regenerated
+locally by `scripts/update_weekly.py`).
 
 ### Helper functions
 
