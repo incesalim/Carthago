@@ -124,7 +124,7 @@ def _apply_one(conn: sqlite3.Connection, o: dict) -> str:
             "VALUES (?,?,?,?,?,?,?)", (b, p, k, nxt, h, o.get("item_name", h), o["amount"]))
         return f"OCI insert {b} {p} {k} {h}={o['amount']:,.0f}"
     # balance sheet. Match trailing-dot-insensitively: the loader normalises
-    # "1.3.2." → "1.3.2" (see normalize_hierarchy_keys.py), so an override
+    # "1.3.2." → "1.3.2" (see archive/normalize_hierarchy_keys.py), so an override
     # authored against the pre-normalisation key ("1.3.2.") would otherwise miss
     # the stored "1.3.2" row and INSERT a phantom duplicate — double-counting it
     # under its parent (the EXIM 2024Q4 1.3 hierarchy_sum break on re-apply).

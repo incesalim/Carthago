@@ -20,6 +20,8 @@ audit lane and its repair playbook are in [`docs/AUDIT_PIPELINE.md`](../docs/AUD
 | `healthcheck.py` | Daily D1 freshness check + audit-failure count. | `healthcheck.yml` | pipeline |
 | `verify_chart_spec.py` | Re-resolve every reproduced chart spec in D1 (regression catch). | `healthcheck.yml` | pipeline |
 | `_bank_types.py` | BDDK bank-type code taxonomy (library; no `__main__`). | imported by `verify_chart_spec`, tests | pipeline (lib) |
+| `check_pipeline_graph_sync.py` | Stdlib-only CI gate: every ingestion workflow ↔ `/pipeline` graph node stays in sync (both directions). | `ci.yml` | pipeline |
+| `metric_knowledge.py` | CLI over the banking-metrics knowledge registry (`data/metric_knowledge/registry.json`): list / show / validate. | by hand | operational |
 
 ## Bulletin / EVDS lane (BDDK monthly+weekly, EVDS, TBB, KAP, TEFAS)
 | Script | Purpose | Run by | Class |
@@ -30,6 +32,11 @@ audit lane and its repair playbook are in [`docs/AUDIT_PIPELINE.md`](../docs/AUD
 | `update_tbb_digital.py` | TBB quarterly digital-banking Excel → `tbb_digital_stats`. | `refresh.py` | pipeline |
 | `update_kap_ownership.py` | KAP Genel Bilgi Formu ownership → `kap_ownership`. | `refresh.py` | pipeline |
 | `update_tefas.py` | TEFAS fund-market daily / `--backfill`. | `refresh.py`; `backfill-tefas.yml` | pipeline |
+| `update_nonbank.py` | BDDK non-bank monthly bulletin (leasing / factoring / financing) → `nonbank_balance_sheet`. | `refresh.py`; `backfill-nonbank.yml` | pipeline |
+| `update_tbb_acquisition.py` | TBB monthly remote-vs-branch customer-acquisition stats → `tbb_acquisition_stats`. | `refresh.py` | pipeline |
+| `update_tuik.py` | TÜİK veriportali Excel detail (GDP expenditure, PPI MIG) → `evds_series` as `TUIK.*` codes. | `refresh.py` | pipeline |
+| `update_faaliyet.py` | Bank annual-report (faaliyet) franchise stats → `faaliyet_franchise`; `--backfill`. | `refresh.py`; `backfill-faaliyet.yml` | pipeline |
+| `update_presentations.py` | IR investor-presentation decks (static URLs + auto-discovery) → `bank_earnings`. | `refresh-presentations-weekly.yml` | pipeline |
 
 ## News / regulation lane
 | Script | Purpose | Run by | Class |
@@ -57,6 +64,8 @@ admin-triggered.** Acquire (`acquire-audit.yml`, weekly): `sync_audit_reports --
 |---|---|---|---|
 | `backfill_extraction.py` | Re-extract named banks from R2 → clear D1 partitions → push → snapshot. Shared D1/R2 helpers live in `scripts/audit_d1.py`. | `backfill-audit.yml`; by hand | operational |
 | `audit_correct.py` | Unified manual-correction CLI: `overlay-statement` (hand-transcribed `manual_statements.json`), `override-cells` (`audit_overrides.json`), `reextract-pl`. Validate-to-0 → push one partition. | by hand | operational |
+| `load_partition.py` | Impl behind `audit_correct overlay-statement`: load a hand-transcribed statement from `data/manual_statements.json` into one partition, validate, push. | via `audit_correct`; by hand | operational |
+| `apply_overrides.py` | Impl behind `audit_correct override-cells`: apply curated cell fixes from `data/audit_overrides.json` (BS/OCI/capital/… types), revalidate, push. | via `audit_correct`; by hand | operational |
 | `reextract_statement.py` | Fleet (or `--banks`) re-extract of ONE non-core statement type (`oci`/`cash_flow`/`equity_change`/`npl_movement`/`loans_by_sector`/`credit_quality`/`bank_profile`); inline-validates, `--only-failing`, `--force`. | `reextract-statement.yml`; by hand | operational |
 | `reextract_pl.py` | Re-extract ONLY `profit_loss` for ONE `(bank, period, kind)` partition — single-PDF repair, not a fleet tool (also exposed as the `audit_correct reextract-pl` sub-command). | by hand | operational |
 | `revalidate_audit_db.py` | Recompute `bank_audit_validation` from stored rows (all 12 statement types — BS, P&L, OCI, off-balance, capital, liquidity, credit_quality, stages, npl_movement, loans_by_sector; no re-extraction); push validation only. | by hand after a validator change | operational |
@@ -76,6 +85,7 @@ admin-triggered.** Acquire (`acquire-audit.yml`, weekly): `sync_audit_reports --
 | `diag_partition.py` | Dump one `(bank, period, kind)` statement + PDF line matches; show identity breaks. | diagnostic |
 | `validate_discovery.py` | Check IR-page auto-discovery against the hand-maintained config. | diagnostic |
 | `verify_stage_coverage.py` | Audit IFRS-9 stage coverage completeness. | diagnostic |
+| `validate_presentation_discovery.py` | Check IR-deck auto-discovery (GARAN/AKBNK/YKBNK) against the static URL config. | diagnostic |
 
 ## Backfills (`scripts/backfills/`)
 | Script | Purpose | Class |
@@ -87,6 +97,11 @@ admin-triggered.** Acquire (`acquire-audit.yml`, weekly): `sync_audit_reports --
 `extract_all_audit_reports.py`, `scrape_all_banks.py` (local-PDF flow, replaced by R2-based
 `sync_audit_reports`), `migrate_pdfs_to_r2.py` (one-time R2 migration), `reextract_all.py`
 (superseded by `backfill_extraction --banks ALL`), `validate_pl_fix.py` / `audit_extraction.py`
-(fix-verification), `generate_d1_migrations.py` (one-time D1 seed), and the historical data
+(fix-verification), `generate_d1_migrations.py` (one-time D1 seed), the historical data
 backfills `backfill_2020_2023.py` / `backfill_weekly_2020_2023.py` / `backfill_weekly_2y.py` /
-`update_db_2026.py`.
+`update_db_2026.py`, and the 2026-06 audit-repair one-offs: `_eq_failreport.py`
+(equity-change failure listing), `ocr_statement.py` (easyocr experiment for image-only
+statements — superseded by the manual-overlay path), `normalize_hierarchy_keys.py` (one-time
+trailing-dot hierarchy-key migration; the loader now normalises on write), and
+`load_partitions_batch.py` (batch variant of `load_partition` for the manual-transcription
+campaign).
