@@ -422,6 +422,18 @@ each `/banks/[ticker]` page:
 
 ## Known issues / pending work
 
+- **P&L Sankey paints dark palette in light mode (live, 2026-07-02).** Regression
+  from the Editorial theme: `web/app/banks/[ticker]/PlSankeyChart.tsx:209` sniffs
+  dark mode via `t.tooltipBg !== "#ffffff"`, but Editorial's light `tooltipBg` is
+  `#FBFAF7` → always "dark" → dark node/ribbon fills on every `/banks/[ticker]`
+  light-theme view. One-line fix when taken: `t.mode === "dark"` (the idiom
+  `NimComponentsChart`/`BopFlowChart` already use).
+- **Architecture review 2026-07-02 (report only, no code changed).** Live site +
+  web/ + pipeline surveyed post-Editorial; verdict sound, debt concentrated. The
+  ranked backlog (off-theme chart palettes ×4, uncached `audit.ts` reads on public
+  pages, CI silently skipping the fitz/pdfplumber test suite, `push_to_d1.py`
+  3-edit table registration, dead extractor code, Dependabot #90 lockfile) lives
+  in [knowledge/architecture-review-2026-07.md](knowledge/architecture-review-2026-07.md).
 - **Seeking-Alpha-style statement viewer shipped (2026-06-24).** The `/banks/[ticker]`
   Financials section gains a **Cash Flow** tab (alongside Balance Sheet / Income
   Statement), an **Absolute / YoY Growth** view toggle, and a **TTM** column (income
