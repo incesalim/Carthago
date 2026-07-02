@@ -176,6 +176,39 @@ class BDDKWeeklyAPIScraper:
             self.conn.close()
             self.conn = None
 
+    def heal_missing_totals(self) -> int:
+        """Reconstruct TOTAL rows the BDDK API omits where both TL and FX legs
+        exist. TOTAL ≡ TL + FX in the weekly bulletin (verified corpus-wide,
+        0 violations at 0.01 tolerance); e.g. private-bank SME loans
+        (1.0.11 / 10003) were published without the TOTAL column for
+        2024-10-25 … 2025-01-17. Healed rows get a fresh downloaded_at so
+        push_to_d1's incremental window picks them up. Returns rows inserted."""
+        cur = self.conn.execute(
+            """
+            INSERT INTO weekly_series
+                (period_date, category, item_id, item_name, bank_type_code, currency, value)
+            SELECT tl.period_date, tl.category, tl.item_id, tl.item_name,
+                   tl.bank_type_code, 'TOTAL', tl.value + fx.value
+            FROM weekly_series AS tl
+            JOIN weekly_series AS fx
+              ON fx.period_date = tl.period_date
+             AND fx.item_id = tl.item_id
+             AND fx.bank_type_code = tl.bank_type_code
+             AND fx.currency = 'FX'
+            WHERE tl.currency = 'TL'
+              AND tl.value IS NOT NULL
+              AND fx.value IS NOT NULL
+              AND NOT EXISTS (
+                  SELECT 1 FROM weekly_series AS t
+                  WHERE t.period_date = tl.period_date
+                    AND t.item_id = tl.item_id
+                    AND t.bank_type_code = tl.bank_type_code
+                    AND t.currency = 'TOTAL')
+            """
+        )
+        self.conn.commit()
+        return cur.rowcount
+
     # -------------------------------------------------------------------
     # Low-level API call
     # -------------------------------------------------------------------

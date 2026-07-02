@@ -23,6 +23,7 @@
  */
 import { cachedAll } from "./db";
 import type { NimComponentRow } from "./nim-components";
+import { computeWeeklyGrowth, type WeeklyGrowthInput } from "./weekly-growth";
 
 // ---------------------------------------------------------------------------
 // Bank-type taxonomy
@@ -933,8 +934,10 @@ export async function weeklySeries(
 
 /**
  * Annualized growth over a rolling window (4w/13w/52w).
- * SQL returns (value, prev_value); annualization (52/N exponent) computed
- * in TypeScript because D1 sandboxes block POWER().
+ * SQL returns the raw series; pairing + annualization happen in TypeScript
+ * (D1 sandboxes block POWER()). Pairing is by DATE, not row offset, so a
+ * hole in one group's history can't silently stretch the window — see
+ * computeWeeklyGrowth in weekly-growth.ts.
  */
 export async function weeklyGrowth(
   category: string,
@@ -945,37 +948,21 @@ export async function weeklyGrowth(
   weeksBack = 156,
 ): Promise<WeeklyRow[]> {
   const placeholders = bankTypes.map(() => "?").join(",");
-  const results = await cachedAll<{ period: string; bank_type_code: string; value: number; prev_value: number }>(
-    `WITH s AS (
-         SELECT
-           period_date, bank_type_code, value,
-           LAG(value, ?) OVER (PARTITION BY bank_type_code ORDER BY period_date) AS prev_value
-         FROM weekly_series
-         WHERE category = ? AND item_id = ? AND currency = ?
-           AND bank_type_code IN (${placeholders})
-       )
-       SELECT period_date AS period, bank_type_code, value, prev_value
-       FROM s
-       WHERE prev_value IS NOT NULL
+  // Fetch windowWeeks + 1 extra weeks of history so points near the start of
+  // the display window still find their comparison base.
+  const rows = await cachedAll<WeeklyGrowthInput>(
+    `SELECT period_date AS period, bank_type_code, value
+       FROM weekly_series
+       WHERE category = ? AND item_id = ? AND currency = ?
+         AND bank_type_code IN (${placeholders})
          AND period_date >= date('now', '-' || ? || ' days')
        ORDER BY period_date, bank_type_code`,
-    [windowWeeks, category, itemId, currency, ...bankTypes, weeksBack * 7],
+    [category, itemId, currency, ...bankTypes, (weeksBack + windowWeeks + 1) * 7],
   );
-
-  type Row = { period: string; bank_type_code: string; value: number; prev_value: number };
-  const rows = results as Row[];
-  const exponent = 52 / windowWeeks;
-  const out: WeeklyRow[] = [];
-  for (const r of rows) {
-    if (r.prev_value > 0) {
-      out.push({
-        period: r.period,
-        bank_type_code: r.bank_type_code,
-        value: (Math.pow(r.value / r.prev_value, exponent) - 1) * 100,
-      });
-    }
-  }
-  return out;
+  const cutoff = new Date(Date.now() - weeksBack * 7 * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+  return computeWeeklyGrowth(rows, windowWeeks, cutoff);
 }
 
 // Thin 52-week (≈ YoY) wrappers so weekly growth plugs into `latestPerBank`,
