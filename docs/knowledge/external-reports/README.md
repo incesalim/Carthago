@@ -25,6 +25,8 @@ blocks automated checks — confirmed via HTTP status, opens normally in a brows
 - **Financial Stability Report** (semiannual, May & Nov; latest Vol. 42, May 2026) 🟢
   - EN: https://www.tcmb.gov.tr/wps/wcm/connect/EN/TCMB+EN/Main+Menu/Publications/Reports/Financial+Stability+Report/
   - TR: https://www.tcmb.gov.tr/wps/wcm/connect/tr/tcmb+tr/main+menu/yayinlar/raporlar/finansal+istikrar+raporu
+  - Chart-by-chart reproducibility map of the 2026-I edition (which of its ~140 charts we can
+    build from our data): [`cbrt-fsr-2026-1-chart-inventory.md`](cbrt-fsr-2026-1-chart-inventory.md)
 - **Inflation Report** (quarterly; latest 2026-II, 14 May 2026) 🟢
   - EN: https://www.tcmb.gov.tr/wps/wcm/connect/EN/TCMB+EN/Main+Menu/Publications/Reports/Inflation+Report/
   - TR: https://www.tcmb.gov.tr/wps/wcm/connect/tr/tcmb+tr/main+menu/yayinlar/raporlar/enflasyon+raporu/
