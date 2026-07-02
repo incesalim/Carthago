@@ -105,6 +105,12 @@ def main():
     scraper = BDDKWeeklyAPIScraper(DB_PATH)
     scraper.open()
     try:
+        # Heal before the early-exit probe so historical gaps close even on
+        # runs where BDDK has published nothing new.
+        healed = scraper.heal_missing_totals()
+        if healed:
+            print(f"Healed {healed} missing TOTAL rows (TL+FX).", flush=True)
+
         anchor = datetime.today().date()
         tarih = anchor.strftime("%d.%m.%Y")
 
@@ -140,6 +146,11 @@ def main():
                         print(f"[{done:>5}/{total}] elapsed={elapsed/60:.1f}m "
                               f"eta={eta/60:.1f}m  rows={scraper.stats['rows_inserted']:,}",
                               flush=True)
+
+        healed = scraper.heal_missing_totals()
+        if healed:
+            print(f"Healed {healed} missing TOTAL rows (TL+FX) post-scrape.",
+                  flush=True)
 
         print(f"\nWeekly update complete. "
               f"Elapsed {(time.time()-t0)/60:.1f}m  "
