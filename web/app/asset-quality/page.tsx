@@ -20,6 +20,8 @@ import { PageHeader, Section } from "@/app/components/ui";
 import BarByBank from "@/app/components/BarByBank";
 import TrendChart from "@/app/components/TrendChart";
 import StackedArea from "@/app/components/StackedArea";
+import Takeaway from "@/app/components/Takeaway";
+import { assetQualityInsights } from "@/app/lib/insights";
 
 export const dynamic = "force-dynamic";
 
@@ -69,6 +71,19 @@ export default async function AssetQualityPage() {
     commercialNplRatios(),
   ]);
 
+  const SECTOR = "10001";
+  const consumerTrend = ratiosToTrendRows(cRatios);
+  const commercialTrend = commercialToTrendRows(commRatios);
+
+  // "The Read" — deterministic, computed from the same series the charts show.
+  const read = assetQualityInsights({
+    npl: nplAll.filter((r) => r.bank_type_code === SECTOR),
+    coverage: coverageAll.filter((r) => r.bank_type_code === SECTOR),
+    grossNpl: gross,
+    cardsNpl: consumerTrend.filter((r) => r.bank_type_code === "CARDS"),
+    smeNpl: commercialTrend.filter((r) => r.bank_type_code === "SME"),
+  });
+
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
       <PageHeader
@@ -78,7 +93,9 @@ export default async function AssetQualityPage() {
         dataThrough={latestPeriod(nplAll, coverageAll)}
       />
 
-      <Section title="NPL Ratio">
+      <Takeaway data={read} />
+
+      <Section index="01" title="NPL Ratio">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="lg:col-span-2">
             <TrendChart
@@ -99,7 +116,7 @@ export default async function AssetQualityPage() {
         </div>
       </Section>
 
-      <Section title="Coverage & Stock" description="Provisions over gross NPL + absolute NPL stock.">
+      <Section index="02" title="Coverage & Stock" description="Provisions over gross NPL + absolute NPL stock.">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <TrendChart
             data={coverageAll}
@@ -118,7 +135,7 @@ export default async function AssetQualityPage() {
         </div>
       </Section>
 
-      <Section title="Consumer NPL Breakdown" description="Where household-credit deterioration is concentrated — derived from BDDK Table 4 sub-segments, sector only.">
+      <Section index="03" title="Consumer NPL Breakdown" description="Where household-credit deterioration is concentrated — derived from BDDK Table 4 sub-segments, sector only.">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <StackedArea
             data={cMix.map((r) => ({
@@ -139,7 +156,7 @@ export default async function AssetQualityPage() {
             decimals={0}
           />
           <TrendChart
-            data={ratiosToTrendRows(cRatios)}
+            data={consumerTrend}
             seriesLabels={{
               HOUSING: "Housing",
               AUTO: "Auto",
@@ -153,9 +170,9 @@ export default async function AssetQualityPage() {
         </div>
       </Section>
 
-      <Section title="Commercial NPL by Segment" description="SME vs commercial-total vs derived non-SME, weekly BDDK bulletin (sector).">
+      <Section index="04" title="Commercial NPL by Segment" description="SME vs commercial-total vs derived non-SME, weekly BDDK bulletin (sector).">
         <TrendChart
-          data={commercialToTrendRows(commRatios)}
+          data={commercialTrend}
           seriesLabels={{
             SME: "SME",
             COMMERCIAL: "Commercial (all)",

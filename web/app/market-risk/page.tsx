@@ -18,6 +18,8 @@ import {
   repricingLadder,
   marketRiskLatestPeriod,
 } from "@/app/lib/market-risk";
+import Takeaway from "@/app/components/Takeaway";
+import { marketRiskInsights } from "@/app/lib/insights";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +34,9 @@ export default async function MarketRiskPage() {
     marketRiskLatestPeriod(),
   ]);
 
+  // "The Read" — deterministic, computed from the same series the charts show.
+  const read = marketRiskInsights({ nop, gap1y });
+
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
       <PageHeader
@@ -40,6 +45,8 @@ export default async function MarketRiskPage() {
         description="FX net open position and interest-rate repricing gap — per-bank BRSA §4 footnotes, aggregated across reporting banks (quarterly). Securities mark-to-market: coming soon."
         dataThrough={latest ?? undefined}
       />
+
+      <Takeaway data={read} />
 
       <Section
         title="FX exposure"
