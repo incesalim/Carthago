@@ -35,6 +35,10 @@ Checks (each yields offending (bank, period, kind)):
                     fingerprints of the dipnot-ref "(6)" being read as the value
                     (the ALBRK -6 bug); a quarter that LOSES its ECL rows while
                     the prior quarter had them is the row-drop variant.
+  9. pl_sign     — P&L deduction romans (II, IX–XII) whose stored sign flips
+                    within a bank/kind series. The chain check accepts either
+                    storage convention by design, so flips are invisible to it;
+                    they break YTD de-cumulation downstream unless abs()'d.
 
 Alert-only / non-blocking: prints a report and (with --alert) sends one
 Telegram/Discord summary via scripts/notify.py, then always exits 0 so it never
@@ -415,6 +419,44 @@ def _off_balance_consistency(conn: sqlite3.Connection) -> list[str]:
     return out
 
 
+def _pl_sign_convention(conn: sqlite3.Connection) -> list[str]:
+    """P&L deduction romans (II, IX–XII) whose stored SIGN flips within one
+    bank/kind series. The per-partition chain check deliberately accepts either
+    storage convention (positive magnitude vs parenthesised negative), so a
+    convention flip — a layout change, an extraction inconsistency, or a genuine
+    provision recovery — is invisible to it, yet corrupts any consumer that
+    de-cumulates YTD romans across the flip quarter without abs()-normalising.
+    Heuristic + alert-only: the standing flips live in the R2 anomaly baseline;
+    only a NEW flip pings."""
+    if not _has_table(conn, "bank_audit_profit_loss"):
+        return []
+    from collections import defaultdict
+    from src.audit_reports.validator import _pl_spine
+    series: dict[tuple, dict[int, list]] = defaultdict(lambda: defaultdict(list))
+    keys = conn.execute(
+        "SELECT DISTINCT bank_ticker, period, kind FROM bank_audit_profit_loss").fetchall()
+    for bank, period, kind in sorted(keys):
+        rows = [{"hierarchy": h, "item_name": n, "amount": a} for h, n, a in conn.execute(
+            "SELECT hierarchy, item_name, amount FROM bank_audit_profit_loss "
+            "WHERE bank_ticker=? AND period=? AND kind=? ORDER BY item_order",
+            (bank, period, kind))]
+        spine = _pl_spine(rows)
+        for o in (2, 9, 10, 11, 12):
+            if spine.get(o):  # zeros carry no sign information
+                series[(bank, kind)][o].append((period, spine[o]))
+    out = []
+    for (bank, kind), ords in sorted(series.items()):
+        for o, vals in sorted(ords.items()):
+            pos = [p for p, v in vals if v > 0]
+            neg = [p for p, v in vals if v < 0]
+            if pos and neg:
+                minority = pos if len(pos) <= len(neg) else neg
+                out.append(f"pl_sign   {bank} {kind}: roman {o} stored sign flips "
+                           f"({len(pos)}+/{len(neg)}−; minority e.g. {', '.join(minority[:3])}) "
+                           f"— de-cumulating consumers must abs()-normalise")
+    return out
+
+
 def _structure(conn: sqlite3.Connection) -> list[str]:
     """Partitions whose extraction-time identity validation failed (see
     src/audit_reports/validator.py). Summarized per partition — the per-check
@@ -439,7 +481,8 @@ def check(db: Path) -> list[str]:
                 + _npl_collapse(conn) + _capital_consistency(conn)
                 + _liquidity_bands(conn) + _liquidity_outliers(conn)
                 + _off_balance_consistency(conn)
-                + _structure(conn) + _ecl_sanity(conn))
+                + _structure(conn) + _ecl_sanity(conn)
+                + _pl_sign_convention(conn))
     finally:
         conn.close()
 

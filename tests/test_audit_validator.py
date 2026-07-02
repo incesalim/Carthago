@@ -262,6 +262,52 @@ def test_pl_mixed_convention_passes():
     assert res.failed == 0, res.failures
 
 
+def test_pl_spine_stray_mid_statement_keeps_tail():
+    """HSBC-style: 'XIV.' misparsed as hierarchy 'X' mid-statement. The stray
+    must drop out ALONE — the valid XV–XXV tail stays in the spine and all six
+    chain identities still run (the old contiguous-run spine severed the tail
+    and silently skipped XVII/XIX/XXV)."""
+    rows = _clean_pl()
+    i = next(k for k, r in enumerate(rows) if r["hierarchy"] == "XIV.")
+    rows.insert(i, {"hierarchy": "X", "item_name": "IV. BİRLEŞME İŞLEMİ SONRASINDA", "amount": 0.0})
+    res = v.check_pl_chain(rows)
+    assert res.failed == 0, res.failures
+    assert res.passed == 6
+
+
+def test_pl_bottomline_hierarchy_fallback_english_label():
+    """GARAN-style English template: 'NET PROFIT/LOSS (XIX+XXIV)' matches no
+    label pattern — the XXV row must still be found by hierarchy."""
+    rows = _clean_pl()
+    for r in rows:
+        r["item_name"] = {"XXV.": "NET PROFIT/LOSS (XIX+XXIV)"}.get(r["hierarchy"], "x")
+    li = [_row("16.6.2", "Net Dönem Kârı/Zararı", 70, 60, 130)]
+    res = v.check_pl_bottomline(rows, li)
+    assert res.passed == 1 and res.failed == 0, res.failures
+
+
+def test_pl_bottomline_hierarchy_fallback_empty_labels():
+    """AKBNK 2026Q1-style: every P&L label empty — hierarchy alone must carry
+    the net-profit cross-check."""
+    rows = _clean_pl()
+    for r in rows:
+        r["item_name"] = ""
+    li = [_row("16.6.2", "Net Dönem Kârı/Zararı", 70, 60, 130)]
+    res = v.check_pl_bottomline(rows, li)
+    assert res.passed == 1 and res.failed == 0, res.failures
+
+
+def test_pl_bottomline_hierarchy_fallback_still_fails_mismatch():
+    """The fallback widens REACH, not tolerance: a label-less XXV that doesn't
+    tie to BS equity still fails."""
+    rows = _clean_pl()
+    for r in rows:
+        r["item_name"] = ""
+    li = [_row("16.6.2", "Net Dönem Kârı/Zararı", 50, 40, 90)]
+    res = v.check_pl_bottomline(rows, li)
+    assert res.failed == 1
+
+
 def test_pl_incomplete_chain_skips_not_fails():
     """A P&L missing optional source romans skips the affected identity rather
     than false-failing (VIII loses its IV–VII sources)."""

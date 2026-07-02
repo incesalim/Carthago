@@ -2292,6 +2292,138 @@
    "amount_fc": 44595042,
    "amount_total": 387710554,
    "note": "grand-total row mis-captured (83,366,097 = two wrong cols summed); source TP 343,115,512 / YP 44,595,042 / Toplam 387,710,554 = Σromans"
+  },
+  {
+   "bank_ticker": "AKBNK",
+   "period": "2022Q1",
+   "kind": "unconsolidated",
+   "statement": "pl_rehier",
+   "renames": [
+    {
+     "from": "XXIV.",
+     "to": "XXV.",
+     "item_name": "NET INCOME/(LOSS) (XIX+XXIV)"
+    },
+    {
+     "from": "XXIII.",
+     "to": "XXIV.",
+     "item_name": "CURRENT PERIOD PROFIT/LOSS FROM DISCONTINUED OPERATIONS (XXII±XXIII)"
+    },
+    {
+     "from": "XXII.",
+     "to": "XXIII.",
+     "item_name": "TAX PROVISION FOR DISCONTINUED OPERATIONS (±)"
+    },
+    {
+     "from": "XXI.",
+     "to": "XXII.",
+     "item_name": "PROFIT/LOSS BEFORE TAX FROM DISCONTINUED OPERATIONS"
+    },
+    {
+     "from": "XX.",
+     "to": "XXI.",
+     "item_name": "EXPENSES FOR DISCONTINUED OPERATIONS (-)"
+    },
+    {
+     "from": "XIX.",
+     "to": "XX.",
+     "item_name": "INCOME FROM DISCONTINUED OPERATIONS"
+    },
+    {
+     "from": "XVIII.",
+     "to": "XIX.",
+     "item_name": "CURRENT PERIOD PROFIT/LOSS FROM CONTINUED OPERATIONS (XVII±XVIII)"
+    }
+   ],
+   "note": "extractor printed the (XVII±XVIII) subtotal under a second XVIII. and shifted every later roman by one (net income landed on XXIV., no XXV.); amounts verified - stored net ties BS 16.6.2 exactly; renames only, tail-first"
+  },
+  {
+   "bank_ticker": "AKBNK",
+   "period": "2022Q2",
+   "kind": "unconsolidated",
+   "statement": "pl_rehier",
+   "renames": [
+    {
+     "from": "XXIV.",
+     "to": "XXV.",
+     "item_name": "NET INCOME/(LOSS) (XIX+XXIV)"
+    },
+    {
+     "from": "XXIII.",
+     "to": "XXIV.",
+     "item_name": "CURRENT PERIOD PROFIT/LOSS FROM DISCONTINUED OPERATIONS (XXII±XXIII)"
+    },
+    {
+     "from": "XXII.",
+     "to": "XXIII.",
+     "item_name": "TAX PROVISION FOR DISCONTINUED OPERATIONS (±)"
+    },
+    {
+     "from": "XXI.",
+     "to": "XXII.",
+     "item_name": "PROFIT/LOSS BEFORE TAX FROM DISCONTINUED OPERATIONS"
+    },
+    {
+     "from": "XX.",
+     "to": "XXI.",
+     "item_name": "EXPENSES FOR DISCONTINUED OPERATIONS (-)"
+    },
+    {
+     "from": "XIX.",
+     "to": "XX.",
+     "item_name": "INCOME FROM DISCONTINUED OPERATIONS"
+    },
+    {
+     "from": "XVIII.",
+     "to": "XIX.",
+     "item_name": "CURRENT PERIOD PROFIT/LOSS FROM CONTINUED OPERATIONS (XVII±XVIII)"
+    }
+   ],
+   "note": "extractor printed the (XVII±XVIII) subtotal under a second XVIII. and shifted every later roman by one (net income landed on XXIV., no XXV.); amounts verified - stored net ties BS 16.6.2 exactly; renames only, tail-first"
+  },
+  {
+   "bank_ticker": "AKBNK",
+   "period": "2022Q3",
+   "kind": "unconsolidated",
+   "statement": "pl_rehier",
+   "renames": [
+    {
+     "from": "XXIV.",
+     "to": "XXV.",
+     "item_name": "NET INCOME/(LOSS) (XIX+XXIV)"
+    },
+    {
+     "from": "XXIII.",
+     "to": "XXIV.",
+     "item_name": "CURRENT PERIOD PROFIT/LOSS FROM DISCONTINUED OPERATIONS (XXII±XXIII)"
+    },
+    {
+     "from": "XXII.",
+     "to": "XXIII.",
+     "item_name": "TAX PROVISION FOR DISCONTINUED OPERATIONS (±)"
+    },
+    {
+     "from": "XXI.",
+     "to": "XXII.",
+     "item_name": "PROFIT/LOSS BEFORE TAX FROM DISCONTINUED OPERATIONS"
+    },
+    {
+     "from": "XX.",
+     "to": "XXI.",
+     "item_name": "EXPENSES FOR DISCONTINUED OPERATIONS (-)"
+    },
+    {
+     "from": "XIX.",
+     "to": "XX.",
+     "item_name": "INCOME FROM DISCONTINUED OPERATIONS"
+    },
+    {
+     "from": "XVIII.",
+     "to": "XIX.",
+     "item_name": "CURRENT PERIOD PROFIT/LOSS FROM CONTINUED OPERATIONS (XVII±XVIII)"
+    }
+   ],
+   "note": "extractor printed the (XVII±XVIII) subtotal under a second XVIII. and shifted every later roman by one (net income landed on XXIV., no XXV.); amounts verified - stored net ties BS 16.6.2 exactly; renames only, tail-first"
   }
  ]
 }
