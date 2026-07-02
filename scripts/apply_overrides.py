@@ -13,6 +13,14 @@ Override entry (data/audit_overrides.json "overrides" list):
         hierarchy, item_name, amount, note}
 Matched by (bank, period, kind, statement, hierarchy); the row is UPDATED in
 place, or INSERTED (at max item_order+1) if the parser dropped it.
+
+  P&L hierarchy renames: {bank_ticker, period, kind, statement: "pl_rehier",
+        renames: [{from, to, item_name}, ...], note}
+For partitions where the extractor mis-assigned roman ordinals (AKBNK 2022
+printed the "(XVII±XVIII)" subtotal under a second "XVIII." and shifted every
+later roman by one). Amounts and labels are correct — only `hierarchy` moves.
+Each rename matches (hierarchy=from AND item_name) exactly; author them
+tail-first so no step leaves two rows on one ordinal.
 """
 from __future__ import annotations
 
@@ -87,6 +95,20 @@ def _apply_one(conn: sqlite3.Connection, o: dict) -> str:
             f"UPDATE bank_audit_capital SET {sets} WHERE bank_ticker=? AND period=? "
             "AND kind=? AND period_type='current'", (*vals, b, p, k))
         return f"capital update {b} {p} {k} {dict((c, o['fields'][c]) for c in cols)}"
+    if st == "pl_rehier":
+        # Roman-ordinal renames for a tail the extractor shifted (amounts and
+        # labels faithful — only the hierarchy column moves). Matched by exact
+        # (hierarchy, item_name) so a duplicated ordinal ("XVIII." twice) is
+        # unambiguous; a rename that matches nothing is reported, not silent.
+        done, missed = [], []
+        for r in o["renames"]:
+            cur = conn.execute(
+                "UPDATE bank_audit_profit_loss SET hierarchy=? WHERE bank_ticker=? "
+                "AND period=? AND kind=? AND hierarchy=? AND item_name=?",
+                (r["to"], b, p, k, r["from"], r["item_name"]))
+            (done if cur.rowcount else missed).append(f"{r['from']}→{r['to']}")
+        out = f"PL rehier {b} {p} {k}: {', '.join(done)}"
+        return out + (f" (NO MATCH: {', '.join(missed)})" if missed else "")
     h = o["hierarchy"]
     if st == "profit_loss":
         row = conn.execute(

@@ -3,7 +3,31 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-07-02 — **Repo housekeeping after the folder-organization audit (no behaviour change).**
+Last verified: 2026-07-02 — **BS/P&L validator audit: two silent coverage holes closed, two data defects fixed, one new corpus check.**
+A recompute-from-stored-rows corpus audit confirmed the BS/P&L validators sound (3900/3900 statement results
+match a current-code recompute; the checks demonstrably catch prior-year-column capture and dropped romans on
+a stale sandbox DB) but found the strongest P&L cross-check silently skipping 21% of the corpus. Fixes:
+(1) `check_pl_bottomline` now finds the net-profit row by **hierarchy** (spine roman XXV + group-share 25.1)
+in addition to the label regex, which missed the English template ("NET PROFIT/LOSS" — GARAN/YKBNK/TSKB/EXIM/
+SKBNK/BURGAN), the participation word-order ("NET DÖNEM KARI/ZARARI" — ZIRAATK/ALBRK) and empty-label rows
+(AKBNK 2026Q1): never-ran 209→0, ~230 newly-run checks pass. (2) `_pl_spine` now takes the longest increasing
+**subsequence** of roman ordinals (was: longest contiguous run), so one misparsed roman (HSBC "XIV." stored as
+hierarchy "X", 28 partitions) no longer severs the XV–XXV tail from the chain (≤4-identity partitions 35→8).
+(3) The widened checks surfaced AKBNK 2022Q1–Q3 uncon P&L tails shifted one roman (net income on "XXIV.", no
+XXV — the XIX identity and the /banks Financials net-profit line both blank) → new `pl_rehier` override type
+renames the seven tail rows (amounts untouched; stored net ties BS 16.6.2 exactly), and TSKB 2022Q1 uncon whose
+PDF prints P&L net 605,861 but BS 16.6.2 605,673 (both extracted faithfully; source self-inconsistent) → new
+granular `_PL_BOTTOMLINE_SKIP` (chain identities stay guarded). Fleet after: P&L 974 pass / 0 fail / 1 skip;
+assets/liabilities/cross 975/0/0. (4) New alert-only `check_audit_quality` check `pl_sign`: P&L deduction romans
+(II, IX–XII) whose stored sign flips within a bank/kind series (19 standing series — BURGAN/DENIZ/QNBFB/TEB/
+TFKB/ICBCT/ALNTF era-style convention changes; baselined via the R2 anomaly delta). The per-partition chain
+check accepts either sign convention BY DESIGN, so flips are invisible to it, but they corrupt YTD
+de-cumulation: `heatmap.ts` cost-of-risk took `Math.abs` only AFTER the TTM difference, mixing conventions
+inside any window spanning a flip (BURGAN 2025Q2, DENIZ 2025Q1, QNBFB 2024Q1) → now normalises |IX.| at the
+YTD snapshot (as opex already did). Also recorded: local `data/bddk_data.db` audit tables are a stale May-2026
+sandbox (empty validation table) — probe against the pulled R2 snapshot (`data/bank_audit.db`), never it.
+
+2026-07-02 — **Repo housekeeping after the folder-organization audit (no behaviour change).**
 Four dead one-off scripts moved to `scripts/archive/` (`_eq_failreport.py`, `ocr_statement.py`,
 `normalize_hierarchy_keys.py`, `load_partitions_batch.py` — referenced only in this changelog's history);
 `scripts/README.md` index reconciled with disk (added the missing `check_pipeline_graph_sync`,

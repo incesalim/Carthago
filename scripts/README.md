@@ -55,7 +55,7 @@ admin-triggered.** Acquire (`acquire-audit.yml`, weekly): `sync_audit_reports --
 |---|---|---|---|
 | `sync_audit_reports.py` | THE audit entry: scrape new PDFs → R2 (`--no-extract` = acquire) and/or extract pending → `bank_audit.db`. `--only-bank`, `--latest-period`, `--periods`, `--no-scrape`, `--force` (re-extract already-done — backs the matrix re-extract), `--new-count-file` (new-PDF count for the acquire notify). | `acquire-audit.yml` (scrape), `refresh-audit.yml` (extract) | pipeline |
 | `build_bank_audit_stages.py` | Consolidate credit-quality rows → `bank_audit_stages`. | `refresh-audit.yml` | pipeline |
-| `check_audit_quality.py` | 8 alert-only anomaly checks (stale/balance/coverage/npl_drop/capital/liquidity/structure/ecl). | `refresh-audit.yml`, `backfill-audit.yml` | pipeline |
+| `check_audit_quality.py` | 9 alert-only anomaly checks (stale/balance/coverage/npl_drop/capital/liquidity/structure/ecl/pl_sign). | `refresh-audit.yml`, `backfill-audit.yml` | pipeline |
 | `seed_audit_db.py` | Bootstrap `bank_audit.db` from the bulletin snapshot on first run. | both audit workflows (bootstrap) | pipeline |
 | `sync_audit_expected.py` | Build `bank_audit_expected` (profile census ∪ R2 PDFs) + `bank_audit_statement_types` + `bank_audit_coverage` (the /admin coverage matrix spine). `--push` = full-rebuild D1 push, no R2 write. | `acquire-audit.yml`, `refresh-audit.yml`; by hand | pipeline |
 
@@ -65,7 +65,7 @@ admin-triggered.** Acquire (`acquire-audit.yml`, weekly): `sync_audit_reports --
 | `backfill_extraction.py` | Re-extract named banks from R2 → clear D1 partitions → push → snapshot. Shared D1/R2 helpers live in `scripts/audit_d1.py`. | `backfill-audit.yml`; by hand | operational |
 | `audit_correct.py` | Unified manual-correction CLI: `overlay-statement` (hand-transcribed `manual_statements.json`), `override-cells` (`audit_overrides.json`), `reextract-pl`. Validate-to-0 → push one partition. | by hand | operational |
 | `load_partition.py` | Impl behind `audit_correct overlay-statement`: load a hand-transcribed statement from `data/manual_statements.json` into one partition, validate, push. | via `audit_correct`; by hand | operational |
-| `apply_overrides.py` | Impl behind `audit_correct override-cells`: apply curated cell fixes from `data/audit_overrides.json` (BS/OCI/capital/… types), revalidate, push. | via `audit_correct`; by hand | operational |
+| `apply_overrides.py` | Impl behind `audit_correct override-cells`: apply curated cell fixes from `data/audit_overrides.json` (BS/OCI/capital/pl_rehier/… types), revalidate, push. | via `audit_correct`; by hand | operational |
 | `reextract_statement.py` | Fleet (or `--banks`) re-extract of ONE non-core statement type (`oci`/`cash_flow`/`equity_change`/`npl_movement`/`loans_by_sector`/`credit_quality`/`bank_profile`); inline-validates, `--only-failing`, `--force`. | `reextract-statement.yml`; by hand | operational |
 | `reextract_pl.py` | Re-extract ONLY `profit_loss` for ONE `(bank, period, kind)` partition — single-PDF repair, not a fleet tool (also exposed as the `audit_correct reextract-pl` sub-command). | by hand | operational |
 | `revalidate_audit_db.py` | Recompute `bank_audit_validation` from stored rows (all 12 statement types — BS, P&L, OCI, off-balance, capital, liquidity, credit_quality, stages, npl_movement, loans_by_sector; no re-extraction); push validation only. | by hand after a validator change | operational |

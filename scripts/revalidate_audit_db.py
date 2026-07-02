@@ -59,6 +59,18 @@ _PL_SKIP = frozenset({
     ("ICBCT", "2023Q2", "consolidated"),
 })
 
+# Same class, narrower blast radius: the P&L chain foots but the printed BS
+# equity line disagrees with the printed P&L net — skip ONLY the net=equity
+# cross-check (check_pl_bottomline), keeping the chain identities guarded.
+_PL_BOTTOMLINE_SKIP = frozenset({
+    # TSKB 2022Q1 unc: PDF p8 P&L prints XIX = XXV = 605.861 (XVII 821.861 −
+    # XVIII 216.000 foots exactly); PDF p6 BS prints 16.6 = 16.6.2 = 605.673.
+    # Both statements extracted faithfully; the SOURCE disagrees with itself by
+    # 188 and no single-cell fix reconciles both sides. (Same report carries the
+    # confirmed cash-flow source typo in _CF_SKIP.)
+    ("TSKB", "2022Q1", "unconsolidated"),
+})
+
 # A skip is ONLY justified when the data is verified faithful to the PDF and the
 # SOURCE itself doesn't foot — never to hide a wrong/garbled/unverified extraction
 # (that would bless a wrong number, the same failure as loosening a tolerance).
@@ -302,7 +314,8 @@ def revalidate_partition(conn, bank: str, period: str, kind: str) -> dict[str, "
     eq     = _equity_rows(conn, bank, period, kind)
 
     pl_result = (_skip_result() if (bank, period, kind) in _PL_SKIP
-                 else v.check_profit_loss(pl, liab))
+                 else v.check_profit_loss(
+                     pl, None if (bank, period, kind) in _PL_BOTTOMLINE_SKIP else liab))
     cf_result = (_skip_result() if (bank, period, kind) in _CF_SKIP
                  else v.check_cash_flow(cf))
     results: dict[str, v.ValidationResult] = {

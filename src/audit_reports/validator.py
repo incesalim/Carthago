@@ -323,10 +323,13 @@ _PL_NET_RX = re.compile(
 
 
 def _pl_spine(pl_rows: list[dict]) -> dict[int, float]:
-    """Roman subtotals as {ordinal: amount}, taken from the longest contiguous
-    strictly-increasing-ordinal run of roman-form rows — the statement body.
+    """Roman subtotals as {ordinal: amount}, taken from the longest strictly-
+    increasing-ordinal SUBSEQUENCE of roman-form rows — the statement body.
     Discards out-of-sequence strays (title/footnote rows, captured "1 OCAK…"
-    header fragments) that would otherwise shadow a real subtotal."""
+    header fragments) that would otherwise shadow a real subtotal. A subsequence
+    (not a contiguous run) so a single misparsed roman mid-statement — HSBC's
+    "XIV." read as hierarchy "X" — drops out alone instead of severing the
+    valid XV–XXV tail from the spine."""
     seq: list[tuple[int, float]] = []
     for r in pl_rows:
         h = (r.get("hierarchy") or "").strip()
@@ -336,17 +339,24 @@ def _pl_spine(pl_rows: list[dict]) -> dict[int, float]:
         o = _roman_to_int(h.rstrip("."))
         if o is not None and a is not None:
             seq.append((o, a))
-    best: list[tuple[int, float]] = []
-    cur: list[tuple[int, float]] = []
-    for o, a in seq:
-        if cur and o <= cur[-1][0]:
-            if len(cur) > len(best):
-                best = cur
-            cur = []
-        cur.append((o, a))
-    if len(cur) > len(best):
-        best = cur
-    return {o: a for o, a in best}
+    if not seq:
+        return {}
+    # Longest strictly-increasing subsequence (O(n²) — a P&L has ~25 romans).
+    # dp[j]+1 > dp[i] (strict) keeps the earliest predecessor achieving the
+    # length, so the contiguous body always beats an equal-length path through
+    # a stray title row.
+    dp = [1] * len(seq)
+    prev = [-1] * len(seq)
+    for i in range(len(seq)):
+        for j in range(i):
+            if seq[j][0] < seq[i][0] and dp[j] + 1 > dp[i]:
+                dp[i], prev[i] = dp[j] + 1, j
+    end = max(range(len(seq)), key=dp.__getitem__)
+    chosen: list[tuple[int, float]] = []
+    while end != -1:
+        chosen.append(seq[end])
+        end = prev[end]
+    return {o: a for o, a in reversed(chosen)}
 
 
 def check_pl_chain(pl_rows: list[dict]) -> ValidationResult:
@@ -392,10 +402,21 @@ def check_pl_chain(pl_rows: list[dict]) -> ValidationResult:
 def check_pl_bottomline(pl_rows: list[dict], liabilities: list[dict]) -> ValidationResult:
     """The income statement's net profit (XXV, or the group share 25.1 for a
     consolidated report) must equal the balance-sheet equity row 16.6.2 — or
-    14.6.2 for participation banks (equity at XIV.)."""
+    14.6.2 for participation banks (equity at XIV.).
+
+    Candidates come from the label regex AND from hierarchy (spine roman XXV +
+    row 25.1): the English template prints "NET PROFIT/LOSS", participation
+    banks "NET DÖNEM KARI/ZARARI", and some partitions lose labels entirely —
+    all invisible to a label regex, which silently skipped this check for 21%
+    of the corpus (2026-07 audit)."""
     res = ValidationResult()
     cands = [r["amount"] for r in pl_rows
              if r.get("amount") is not None and _PL_NET_RX.search(r.get("item_name") or "")]
+    spine = _pl_spine(pl_rows)
+    if 25 in spine:
+        cands.append(spine[25])
+    cands += [r["amount"] for r in pl_rows
+              if r.get("amount") is not None and _path(r.get("hierarchy")) == (25, 1)]
     bs_net = next((r.get("amount_total") for r in liabilities
                    if _path(r.get("hierarchy")) in ((16, 6, 2), (14, 6, 2))
                    and r.get("amount_total") is not None), None)

@@ -521,7 +521,12 @@ export async function heatmapPanel(
     b.set(ord, {
       iiLoans: p?.ii_loans ?? null,
       ieDeposits: p?.ie_deposits ?? null,
-      eclProv: p?.ecl_prov ?? null,
+      // |IX.| at the YTD snapshot, like opex above: several banks flip the
+      // stored sign of the provision line mid-history (paren-negative era vs
+      // positive-magnitude era — see check_audit_quality pl_sign). Taking the
+      // magnitude only after de-cumulation would mix conventions inside one
+      // TTM window and produce a garbage CoR for the 4 quarters around a flip.
+      eclProv: p?.ecl_prov != null ? Math.abs(p.ecl_prov) : null,
       ppop,
       loans: loansByKey.get(key) ?? null,
       deposits: depositsByKey.get(key) ?? null,
