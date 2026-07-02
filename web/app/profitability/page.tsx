@@ -7,8 +7,6 @@ import {
   ratioNim,
   ratioOpex,
   ratioFeesToRevenue,
-  ratioNonInterestCoverage,
-  ratioFeesToOpex,
   evdsSeries,
   nimComponentsRaw,
   latestPeriod,
@@ -21,13 +19,15 @@ import { buildNimDatasets } from "@/app/lib/nim-components";
 import { PageHeader } from "@/app/components/ui";
 import TrendChart from "@/app/components/TrendChart";
 import NimComponentsSection from "./NimComponentsSection";
+import Takeaway from "@/app/components/Takeaway";
+import { profitabilityInsights } from "@/app/lib/insights";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProfitabilityPage() {
   const [
     roe, roa, nim,
-    opex, fees, coverage, feesOpex,
+    opex, fees,
     cpiRaw, nimRows,
   ] = await Promise.all([
     ratioRoe(PRIMARY_BANK_TYPES),
@@ -35,8 +35,6 @@ export default async function ProfitabilityPage() {
     ratioNim(PRIMARY_BANK_TYPES),
     ratioOpex(PRIMARY_BANK_TYPES),
     ratioFeesToRevenue(PRIMARY_BANK_TYPES),
-    ratioNonInterestCoverage(PRIMARY_BANK_TYPES),
-    ratioFeesToOpex(PRIMARY_BANK_TYPES),
     // CPI 2025=100 — TP.FG.J0 (2003=100) died at the Jan-2026 TUIK rebase
     evdsSeries("TP.TUKFIY2025.GENEL", 10),
     nimComponentsRaw(),
@@ -80,6 +78,17 @@ export default async function ProfitabilityPage() {
     roePlusCpi.push({ period: c.period, bank_type_code: "CPI", value: c.value });
   }
 
+  // "The Read" — deterministic, computed from the same series the charts show.
+  const sectorOnly = (rows: TimeSeriesRow[]) =>
+    rows.filter((r) => r.bank_type_code === BANK_TYPES.SECTOR);
+  const read = profitabilityInsights({
+    roe: sectorOnly(roe),
+    roa: sectorOnly(roa),
+    nim: sectorOnly(nim),
+    opex: sectorOnly(opex),
+    cpi: cpiAvg.map((c) => ({ period: c.period, bank_type_code: "CPI", value: c.value })),
+  });
+
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
       <PageHeader
@@ -88,6 +97,8 @@ export default async function ProfitabilityPage() {
         rangeSelector
         dataThrough={latestPeriod(roe, roa, nim)}
       />
+
+      <Takeaway data={read} />
 
       <section className="space-y-4">
         <div className="space-y-0.5">
@@ -113,6 +124,32 @@ export default async function ProfitabilityPage() {
           height={300}
         />
       </section>
+
+      {cpiAvg.length > 0 && (
+        <section className="space-y-4">
+          <div className="space-y-0.5">
+            <h2 className="text-base font-semibold text-foreground">Real Returns</h2>
+            <p className="text-xs text-muted-foreground">
+              Sector / Private / State ROE alongside the 12-month rolling average of CPI YoY —
+              distance from inflation = real return. In a 28%+ CPI regime this is the
+              number that decides whether the sector earns its cost of capital.
+            </p>
+          </div>
+          <TrendChart
+            data={roePlusCpi}
+            seriesLabels={{
+              [BANK_TYPES.SECTOR]: "Sector ROE",
+              [BANK_TYPES.PRIVATE]: "Private ROE",
+              [BANK_TYPES.STATE]: "State ROE",
+              CPI: "CPI 12m avg",
+            }}
+            title="ROE (annualized) vs CPI 12m avg (%)"
+            yFormat="pct"
+            decimals={1}
+            height={340}
+          />
+        </section>
+      )}
 
       <section className="space-y-4">
         <div className="space-y-0.5">
@@ -143,7 +180,7 @@ export default async function ProfitabilityPage() {
             Operating cost intensity and fee-driven income contribution.
           </p>
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <TrendChart
             data={opex}
             seriesLabels={BANK_TYPE_LABELS}
@@ -158,47 +195,8 @@ export default async function ProfitabilityPage() {
             yFormat="pct"
             decimals={1}
           />
-          <TrendChart
-            data={coverage}
-            seriesLabels={BANK_TYPE_LABELS}
-            title="Non-Interest Income / Non-Interest Expense (%)"
-            yFormat="pct"
-            decimals={0}
-          />
         </div>
-        <TrendChart
-          data={feesOpex}
-          seriesLabels={BANK_TYPE_LABELS}
-          title="Fees & Commissions / OPEX (%) — fee-led cost coverage"
-          yFormat="pct"
-          decimals={0}
-        />
       </section>
-
-      {cpiAvg.length > 0 && (
-        <section className="space-y-4">
-          <div className="space-y-0.5">
-            <h2 className="text-base font-semibold text-foreground">Real Returns</h2>
-            <p className="text-xs text-muted-foreground">
-              Sector / Private / State ROE alongside the 12-month rolling average of CPI YoY —
-              distance from inflation = real return.
-            </p>
-          </div>
-          <TrendChart
-            data={roePlusCpi}
-            seriesLabels={{
-              [BANK_TYPES.SECTOR]: "Sector ROE",
-              [BANK_TYPES.PRIVATE]: "Private ROE",
-              [BANK_TYPES.STATE]: "State ROE",
-              CPI: "CPI 12m avg",
-            }}
-            title="ROE (annualized) vs CPI 12m avg (%)"
-            yFormat="pct"
-            decimals={1}
-            height={340}
-          />
-        </section>
-      )}
     </main>
   );
 }

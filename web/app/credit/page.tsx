@@ -26,6 +26,8 @@ import { PageHeader, Section } from "@/app/components/ui";
 import BarByBank from "@/app/components/BarByBank";
 import TrendChart from "@/app/components/TrendChart";
 import StackedArea from "@/app/components/StackedArea";
+import Takeaway from "@/app/components/Takeaway";
+import { creditInsights } from "@/app/lib/insights";
 
 export const dynamic = "force-dynamic";
 
@@ -145,6 +147,18 @@ export default async function CreditPage() {
   ]);
 
   const pubPrivSet = new Set<string>(pubPriv);
+
+  // "The Read" — deterministic, computed from the same series the charts show.
+  const read = creditInsights({
+    yoy: yoyAll.filter((r) => r.bank_type_code === WEEKLY_BANK_TYPES.SECTOR),
+    mom4: mom4Sector,
+    yoyState: yoyPubPriv.filter((r) => r.bank_type_code === WEEKLY_BANK_TYPES.STATE),
+    yoyPrivate: yoyPubPriv.filter((r) => r.bank_type_code === WEEKLY_BANK_TYPES.PRIVATE),
+    fxShare,
+    cardsYoY: consCards,
+    smeYoY: smeYoY.filter((r) => r.bank_type_code === WEEKLY_BANK_TYPES.SECTOR),
+  });
+
   const consMixSeries = [
     { key: "Housing", label: "Housing" },
     { key: "Auto", label: "Auto" },
@@ -161,30 +175,19 @@ export default async function CreditPage() {
         dataThrough={latestPeriod(loansSector, yoyAll)}
       />
 
-      <Section title="Total Credit Growth" description="Sector level + cross-sectional and short-window momentum.">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <TrendChart
-            data={loansSector}
-            seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "Sector" }}
-            title="Total Loans — Level (sector)"
-            yFormat="trn"
-            decimals={2}
-          />
-          <TrendChart
-            data={yoyAll}
-            seriesLabels={WEEKLY_BANK_TYPE_LABELS}
-            title="Loan Growth YoY (%) by group"
-            yFormat="pct"
-            decimals={1}
-            zeroLine
-          />
-        </div>
+      <Takeaway data={read} />
+
+      <Section
+        index="01"
+        title="Total Credit Growth"
+        description="Growth by ownership group + short-window momentum. Levels: see the Overview snapshot."
+      >
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="lg:col-span-2">
             <TrendChart
-              data={mom4Sector}
-              seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "Sector" }}
-              title="Loan Growth 4w (annualized %) — sector"
+              data={yoyAll}
+              seriesLabels={WEEKLY_BANK_TYPE_LABELS}
+              title="Loan Growth YoY (%) by group"
               yFormat="pct"
               decimals={1}
               zeroLine
@@ -198,23 +201,44 @@ export default async function CreditPage() {
             decimals={1}
           />
         </div>
+        <TrendChart
+          data={mom4Sector}
+          seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "Sector" }}
+          title="Loan Growth 4w (annualized %) — sector"
+          yFormat="pct"
+          decimals={1}
+          zeroLine
+          height={300}
+        />
       </Section>
 
-      <Section title="Currency Breakdown" description="FX exposure stays moderate; TL drives sector growth.">
+      <Section
+        index="02"
+        title="Public vs Private & Currency"
+        description="The clearest sector signal — who is driving the lending cycle, and in which currency."
+      >
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <TrendChart
-            data={tlSec}
-            seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "TL Loans" }}
-            title="TL Loans — Level"
-            yFormat="trn"
-            decimals={2}
+            data={yoyPubPriv}
+            seriesLabels={{
+              [WEEKLY_BANK_TYPES.PRIVATE]: "Private",
+              [WEEKLY_BANK_TYPES.STATE]: "State",
+            }}
+            title="Total Credit YoY — Public vs Private"
+            yFormat="pct"
+            decimals={1}
+            zeroLine
           />
           <TrendChart
-            data={fxSec}
-            seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "FX Loans" }}
-            title="FX Loans — Level (TL equivalent)"
-            yFormat="trn"
-            decimals={2}
+            data={tlYoyPubPriv}
+            seriesLabels={{
+              [WEEKLY_BANK_TYPES.PRIVATE]: "Private",
+              [WEEKLY_BANK_TYPES.STATE]: "State",
+            }}
+            title="TL Loans YoY — Public vs Private"
+            yFormat="pct"
+            decimals={1}
+            zeroLine
           />
           <TrendChart
             data={fxShare}
@@ -226,7 +250,7 @@ export default async function CreditPage() {
         </div>
       </Section>
 
-      <Section title="Consumer Credit" description="Composition of household lending — cards & GPL drive the bulk.">
+      <Section index="03" title="Consumer Credit" description="Composition of household lending — cards & GPL drive the bulk.">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <StackedArea
             data={consMix}
@@ -244,7 +268,7 @@ export default async function CreditPage() {
         </div>
       </Section>
 
-      <Section title="Consumer Segments" description="Per-product growth — cards & GPL drive the headline number.">
+      <Section index="04" title="Consumer Segments" description="Per-product growth — cards & GPL drive the headline number.">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <TrendChart
             data={consYoYLong}
@@ -274,7 +298,7 @@ export default async function CreditPage() {
         </div>
       </Section>
 
-      <Section title="SME & Public vs. Private" description="Public bank lending vs. private bank lending — the clearest sector signal.">
+      <Section index="05" title="SME Lending" description="The SME cycle vs the commercial book — level detail for the digger.">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <TrendChart
             data={smeYoY}
@@ -292,30 +316,6 @@ export default async function CreditPage() {
             data={smeVsCommercial}
             seriesLabels={{ SME: "SME", COMMERCIAL: "Commercial (incl. corp.)" }}
             title="SME vs Commercial — YoY Growth (%)"
-            yFormat="pct"
-            decimals={1}
-            zeroLine
-          />
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <TrendChart
-            data={yoyPubPriv}
-            seriesLabels={{
-              [WEEKLY_BANK_TYPES.PRIVATE]: "Private",
-              [WEEKLY_BANK_TYPES.STATE]: "State",
-            }}
-            title="Total Credit YoY — Public vs Private"
-            yFormat="pct"
-            decimals={1}
-            zeroLine
-          />
-          <TrendChart
-            data={tlYoyPubPriv}
-            seriesLabels={{
-              [WEEKLY_BANK_TYPES.PRIVATE]: "Private",
-              [WEEKLY_BANK_TYPES.STATE]: "State",
-            }}
-            title="TL Loans YoY — Public vs Private"
             yFormat="pct"
             decimals={1}
             zeroLine

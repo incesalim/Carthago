@@ -14,13 +14,10 @@
  */
 import {
   weeklyOwnershipRatio,
-  weeklyGrowth,
-  weeklyGrowthByOwnership,
   weeklyDollarization,
   evdsMulti,
   evdsSeries,
   latestPeriod,
-  WEEKLY_BANK_TYPES,
   LIQ_OWNERSHIP_LABELS,
   LIQ_DOLLARIZATION_LABELS,
   type TimeSeriesRow,
@@ -31,6 +28,8 @@ import { sectorLiquidityRatios, AUDIT_LIQUIDITY_LABELS } from "@/app/lib/audit-r
 import { PageHeader, Section } from "@/app/components/ui";
 import TrendChart from "@/app/components/TrendChart";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
+import Takeaway from "@/app/components/Takeaway";
+import { liquidityInsights } from "@/app/lib/insights";
 
 export const dynamic = "force-dynamic";
 
@@ -58,23 +57,15 @@ function sumByDate(sets: EvdsRow[][], scale = 1): { period_date: string; value: 
 export default async function LiquidityPage() {
   const LOANS = { category: "krediler", item_id: "1.0.1" };
   const DEPOSITS = { category: "mevduat", item_id: "4.0.1" };
-  const sector = [WEEKLY_BANK_TYPES.SECTOR];
 
   const [
     tlLtd, fcLtd,
-    depYoY, dep13w,
-    depGrowthPubPriv,
     dollarization,
     evds, reer, liqRatios,
   ] = await Promise.all([
     // Loan-to-deposit ratios, public vs private
     weeklyOwnershipRatio(LOANS.category, LOANS.item_id, DEPOSITS.category, DEPOSITS.item_id, "TL"),
     weeklyOwnershipRatio(LOANS.category, LOANS.item_id, DEPOSITS.category, DEPOSITS.item_id, "FX"),
-    // TL deposit growth, sector — YoY (52w) + 13w annualized
-    weeklyGrowth(DEPOSITS.category, DEPOSITS.item_id, "TL", 52, sector),
-    weeklyGrowth(DEPOSITS.category, DEPOSITS.item_id, "TL", 13, sector),
-    // TL deposit growth, public vs private (YoY)
-    weeklyGrowthByOwnership(DEPOSITS.category, DEPOSITS.item_id, "TL", 52),
     // Deposit dollarization (sector / public / private)
     weeklyDollarization(),
     // CBRT funding + reserves + residents' FC (EVDS, already in D1)
@@ -87,12 +78,6 @@ export default async function LiquidityPage() {
     // Audited §4 regulatory-liquidity ratios (LCR/NSFR/leverage), sector view
     sectorLiquidityRatios(),
   ]);
-
-  // TL deposit growth, sector — combine the two windows into one chart.
-  const tlDepGrowthSector = [
-    ...depYoY.map((r) => ({ period: r.period, bank_type_code: "YOY", value: r.value })),
-    ...dep13w.map((r) => ({ period: r.period, bank_type_code: "W13", value: r.value })),
-  ];
 
   // EVDS-derived series. APIFON3 is million TL → TrendChart "bn" divides by 1000.
   const netFunding = (evds["TP.APIFON3"] ?? []).map((r) => ({
@@ -114,6 +99,15 @@ export default async function LiquidityPage() {
   };
   const reerSeries = { "REER (CPI based, 2003=100)": toPoints(reer) };
 
+  // "The Read" — deterministic, computed from the same series the charts show.
+  const read = liquidityInsights({
+    tlLdrPublic: toTrend(tlLtd).filter((r) => r.bank_type_code === "PUBLIC"),
+    tlLdrPrivate: toTrend(tlLtd).filter((r) => r.bank_type_code === "PRIVATE"),
+    dollarization: toTrend(dollarization).filter((r) => r.bank_type_code === "SECTOR"),
+    netCbrtFunding: netFunding,
+    lcr: liqRatios.filter((r) => r.bank_type_code === "LCR"),
+  });
+
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
       <PageHeader
@@ -123,34 +117,18 @@ export default async function LiquidityPage() {
         dataThrough={latestPeriod(tlLtd, fcLtd, dollarization, netFunding)}
       />
 
+      <Takeaway data={read} />
+
       <Section
         title="TL Funding"
-        description="Loan-to-deposit pressure and deposit momentum on the TL book. Public = state banks; Private = private + foreign banks."
+        description="Loan-to-deposit pressure on the TL book — public vs private. Deposit growth detail lives on the Deposits tab."
       >
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <TrendChart
-            data={toTrend(tlLtd)}
-            seriesLabels={LIQ_OWNERSHIP_LABELS}
-            title="TL Loan / Deposit Ratio (%) — public vs private"
-            yFormat="pct"
-            decimals={0}
-          />
-          <TrendChart
-            data={tlDepGrowthSector}
-            seriesLabels={{ YOY: "YoY", W13: "13-week annualized" }}
-            title="TL Deposit Growth — sector (%)"
-            yFormat="pct"
-            decimals={1}
-            zeroLine
-          />
-        </div>
         <TrendChart
-          data={toTrend(depGrowthPubPriv)}
+          data={toTrend(tlLtd)}
           seriesLabels={LIQ_OWNERSHIP_LABELS}
-          title="TL Deposit Growth YoY (%) — public vs private"
+          title="TL Loan / Deposit Ratio (%) — public vs private"
           yFormat="pct"
-          decimals={1}
-          zeroLine
+          decimals={0}
           height={320}
         />
       </Section>

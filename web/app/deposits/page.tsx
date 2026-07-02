@@ -29,6 +29,8 @@ import { PageHeader, Section } from "@/app/components/ui";
 import BarByBank from "@/app/components/BarByBank";
 import TrendChart from "@/app/components/TrendChart";
 import StackedArea from "@/app/components/StackedArea";
+import Takeaway from "@/app/components/Takeaway";
+import { depositsInsights } from "@/app/lib/insights";
 
 export const dynamic = "force-dynamic";
 
@@ -94,7 +96,7 @@ export default async function DepositsPage() {
     depSector, depByGroup, yoyAll, mom4Sector, yoyByBank,
     demandParts,
     tlSec, fxSec,
-    mix, ldr,
+    mix, ldr, loansYoYSector,
   ] = await Promise.all([
     weeklySeries(MEVDUAT, TOTAL, "TOTAL", sector, 156),
     weeklySeries(MEVDUAT, TOTAL, "TOTAL", groups, 156),
@@ -106,6 +108,8 @@ export default async function DepositsPage() {
     weeklySeries(MEVDUAT, TOTAL, "FX", sector, 156),
     depositMaturityMix(BANK_TYPES.SECTOR),
     ratioLdr(PRIMARY_BANK_TYPES),
+    // Loan growth (sector) — only for the deposits-vs-loans funding-gap read.
+    weeklyGrowth("krediler", "1.0.1", "TOTAL", 52, sector, 104),
   ]);
 
   const demandSec = sumWeekly(demandParts);
@@ -134,6 +138,15 @@ export default async function DepositsPage() {
     fxShare.push({ period: r.period, bank_type_code: WEEKLY_BANK_TYPES.SECTOR, value: (r.value * 100) / total });
   }
 
+  // "The Read" — deterministic, computed from the same series the charts show.
+  const read = depositsInsights({
+    yoy: yoyAll.filter((r) => r.bank_type_code === WEEKLY_BANK_TYPES.SECTOR),
+    loansYoY: loansYoYSector,
+    fxShare,
+    demandShare: dShare,
+    ldr: ldr.filter((r) => r.bank_type_code === BANK_TYPES.SECTOR),
+  });
+
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
       <PageHeader
@@ -143,7 +156,9 @@ export default async function DepositsPage() {
         dataThrough={latestPeriod(depSector, yoyAll)}
       />
 
-      <Section title="Total Deposits Growth">
+      <Takeaway data={read} />
+
+      <Section index="01" title="Total Deposits Growth">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <StackedArea
             data={depByGroupWide}
@@ -183,15 +198,23 @@ export default async function DepositsPage() {
         </div>
       </Section>
 
-      <Section title="Demand vs. Term" description="Weekly demand share + the monthly maturity ladder.">
+      <Section
+        index="02"
+        title="Dollarization"
+        description="The BBVA deposit headline — FX share of the base. The public/private split lives on Liquidity."
+      >
+        <TrendChart
+          data={fxShare}
+          seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "FX share" }}
+          title="FX Share of Total Deposits (%)"
+          yFormat="pct"
+          decimals={1}
+          height={320}
+        />
+      </Section>
+
+      <Section index="03" title="Demand vs. Term" description="Weekly demand share (funding stickiness) + the monthly maturity ladder.">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <TrendChart
-            data={demandSec}
-            seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "Demand" }}
-            title="Demand Deposits — Level"
-            yFormat="trn"
-            decimals={2}
-          />
           <TrendChart
             data={dShare}
             seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "Demand share" }}
@@ -213,8 +236,6 @@ export default async function DepositsPage() {
             yFormat="trn"
             decimals={1}
           />
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <StackedArea
             data={mix}
             series={[
@@ -228,44 +249,10 @@ export default async function DepositsPage() {
             title="Maturity Composition — Share (% · monthly)"
             percentStack
           />
-          <TrendChart
-            data={yoyAll.filter((r) => r.bank_type_code === WEEKLY_BANK_TYPES.SECTOR)}
-            seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "Sector deposits" }}
-            title="Deposit YoY — sector"
-            yFormat="pct"
-            decimals={1}
-            zeroLine
-          />
         </div>
       </Section>
 
-      <Section title="Currency Breakdown" description="TL vs FX deposits — dollarization signal.">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <TrendChart
-            data={tlSec}
-            seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "TL Deposits" }}
-            title="TL Deposits — Level (sector)"
-            yFormat="trn"
-            decimals={2}
-          />
-          <TrendChart
-            data={fxSec}
-            seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "FX Deposits" }}
-            title="FX Deposits — Level (TL equivalent)"
-            yFormat="trn"
-            decimals={2}
-          />
-          <TrendChart
-            data={fxShare}
-            seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "FX share" }}
-            title="FX Share of Total Deposits (%)"
-            yFormat="pct"
-            decimals={1}
-          />
-        </div>
-      </Section>
-
-      <Section title="Loan-to-Deposit Ratio" description="Bank-group LDR — funding pressure indicator (monthly).">
+      <Section index="04" title="Loan-to-Deposit Ratio" description="Bank-group LDR — funding pressure indicator (monthly).">
         <TrendChart
           data={ldr}
           seriesLabels={BANK_TYPE_LABELS}

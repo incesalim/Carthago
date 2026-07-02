@@ -154,13 +154,26 @@ latest-period** trigger, and **13 banks auto-discover** new quarters from their
 IR page (no hand-added URL needed) — see [ADMIN.md](ADMIN.md) §Auto-discovery.
 Setup in [OPERATIONS.md](OPERATIONS.md) / [ADMIN.md](ADMIN.md).
 
+**"The Read" on every T1 tab (2026-07-02):** the deterministic insight engine
+(`web/app/lib/insights.ts`, no LLM — recomputed from the same series each page
+already fetches) now leads Credit, Deposits, Asset Quality, Capital,
+Profitability, Liquidity and Market Risk with a per-tab judgment callout
+(`<Takeaway>`), alongside the existing Overview "Sector Pulse". The same change
+applied the audit's editorial verdicts: public-vs-private and dollarization
+promoted to the top of Credit/Deposits, Real Returns and the audited CET1
+section promoted on Profitability/Capital, level-twin and duplicate charts cut
+(~14), the fee-ratio trio consolidated, and the orphan `/sector` root retired
+(redirects to `/`). Spec + phase tracker:
+[knowledge/display-study.md](knowledge/display-study.md) (phases 2–5 pending:
+real-terms twins, decompositions, sized scenarios, leagues, chronology).
+
 Every chart card (`web/app/components/ui/chart-card.tsx`) carries hover-revealed
 icon-only header controls — **Copy** image, **PNG** download, **CSV** download,
 and **Expand** to a centred popup. A single **global date-range selector**
 (1Y / 3Y / 5Y / YTD / All) sits in the page header on chart pages (the
 `rangeSelector` prop on `PageHeader`) and windows **every** time-series chart on
-the page at once — `TrendChart`, `TimeSeriesChart`, `StackedArea`, and the
-`/sector` total-assets area. It's a pure **client-side** display zoom over data
+the page at once — `TrendChart`, `TimeSeriesChart`, and `StackedArea`. It's a
+pure **client-side** display zoom over data
 the page already ships (no refetch). Default **3Y**; the choice is shared
 app-wide via a React context in the root layout (`RangeProvider` in
 `web/app/components/range-context.tsx`), so it persists across tab navigation and
@@ -195,10 +208,10 @@ groups ("Private" = deposit codes 10008+10010, the BBVA definition; verified to
 See [METRICS.md](METRICS.md) §16.
 
 A **Liquidity** tab (`/liquidity`) adapts the BBVA "Banking Sector Outlook"
-liquidity section: TL & FC loan/deposit ratios and TL deposit growth split
-Public (state) vs Private (private + foreign), deposit dollarization, net CBRT
-funding, gross reserves, residents' household FC savings, and REER. See
-[METRICS.md](METRICS.md) §12.
+liquidity section: TL & FC loan/deposit ratios split Public (state) vs Private
+(private + foreign), deposit dollarization, net CBRT funding, gross reserves,
+residents' household FC savings, audited §4 LCR/NSFR/leverage, and REER
+(deposit-growth detail lives on Deposits). See [METRICS.md](METRICS.md) §12.
 
 An **Economy** tab (`/economy`) adapts the Türkiye macro section of the BBVA
 "Türkiye Economic Outlook" (1Q26): GDP growth, industrial production, labor
