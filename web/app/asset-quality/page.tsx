@@ -16,12 +16,19 @@ import {
   BANK_TYPE_LABELS,
   type TimeSeriesRow,
 } from "@/app/lib/metrics";
-import { PageHeader, Section } from "@/app/components/ui";
+import { PageHeader, Section, Stat } from "@/app/components/ui";
 import BarByBank from "@/app/components/BarByBank";
 import TrendChart from "@/app/components/TrendChart";
 import StackedArea from "@/app/components/StackedArea";
 import Takeaway from "@/app/components/Takeaway";
 import { assetQualityInsights } from "@/app/lib/insights";
+import {
+  sectorStageShares,
+  STAGE_SHARE_LABELS,
+  nplFormationAnnual,
+  NPL_FORMATION_LABELS,
+  provisionMigrationScenarios,
+} from "@/app/lib/credit-risk";
 
 export const dynamic = "force-dynamic";
 
@@ -59,6 +66,7 @@ export default async function AssetQualityPage() {
   const [
     nplAll, nplByBank, coverageAll, gross,
     cMix, cRatios, commRatios,
+    stageShares, formation, migration,
   ] = await Promise.all([
     ratioNpl(PRIMARY_BANK_TYPES),
     latestPerBank(ratioNpl, groups),
@@ -69,6 +77,11 @@ export default async function AssetQualityPage() {
     consumerNplMix(),
     consumerNplRatios(),
     commercialNplRatios(),
+    // Forward-looking layer (audited §7): TFRS-9 staging, NPL roll-forward,
+    // and the Stage-2 migration scenario.
+    sectorStageShares(),
+    nplFormationAnnual(),
+    provisionMigrationScenarios(),
   ]);
 
   const SECTOR = "10001";
@@ -82,6 +95,7 @@ export default async function AssetQualityPage() {
     grossNpl: gross,
     cardsNpl: consumerTrend.filter((r) => r.bank_type_code === "CARDS"),
     smeNpl: commercialTrend.filter((r) => r.bank_type_code === "SME"),
+    stage2: stageShares.filter((r) => r.bank_type_code === "STAGE2"),
   });
 
   return (
@@ -116,7 +130,61 @@ export default async function AssetQualityPage() {
         </div>
       </Section>
 
-      <Section index="02" title="Coverage & Stock" description="Provisions over gross NPL + absolute NPL stock.">
+      {(stageShares.length > 0 || formation.length > 0) && (
+        <Section
+          index="02"
+          title="The forward indicators"
+          description="Where the NEXT NPLs come from — TFRS-9 Stage-2 migration and the NPL roll-forward, aggregated across reporting banks (audited quarterly, ~98% of sector)."
+        >
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {stageShares.length > 0 && (
+              <TrendChart
+                data={stageShares}
+                seriesLabels={STAGE_SHARE_LABELS}
+                title="TFRS-9 staging — % of gross loans (audited quarterly)"
+                yFormat="pct"
+                decimals={1}
+              />
+            )}
+            {formation.length > 0 && (
+              <TrendChart
+                data={formation}
+                seriesLabels={NPL_FORMATION_LABELS}
+                title="NPL roll-forward — formation vs exits (annual, ₺bn)"
+                yFormat="bn"
+                decimals={0}
+              />
+            )}
+          </div>
+          {migration.scenarios.length > 0 && (
+            <div className="space-y-2">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                {migration.scenarios.map((s) => (
+                  <Stat
+                    key={s.migratePct}
+                    label={`${s.migratePct}% of Stage-2 migrates`}
+                    value={`+₺${s.provisionBn.toFixed(0)}bn provisions`}
+                    hint={
+                      s.pctOfEclStock != null
+                        ? `+${s.pctOfEclStock.toFixed(1)}% of today's ECL stock`
+                        : undefined
+                    }
+                    tone={s.migratePct >= 20 ? "warning" : "neutral"}
+                  />
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Sizing device, not a forecast: migration provisioned at the current Stage-3
+                coverage rate ({migration.cov3 != null ? `${(migration.cov3 * 100).toFixed(0)}%` : "—"})
+                vs Stage-2 today ({migration.cov2 != null ? `${(migration.cov2 * 100).toFixed(0)}%` : "—"}),
+                Stage-2 book ₺{migration.stage2Bn?.toFixed(0)}bn · {migration.period}.
+              </p>
+            </div>
+          )}
+        </Section>
+      )}
+
+      <Section index="03" title="Coverage & Stock" description="Provisions over gross NPL + absolute NPL stock.">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <TrendChart
             data={coverageAll}
@@ -135,7 +203,7 @@ export default async function AssetQualityPage() {
         </div>
       </Section>
 
-      <Section index="03" title="Consumer NPL Breakdown" description="Where household-credit deterioration is concentrated — derived from BDDK Table 4 sub-segments, sector only.">
+      <Section index="04" title="Consumer NPL Breakdown" description="Where household-credit deterioration is concentrated — derived from BDDK Table 4 sub-segments, sector only.">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <StackedArea
             data={cMix.map((r) => ({
@@ -170,7 +238,7 @@ export default async function AssetQualityPage() {
         </div>
       </Section>
 
-      <Section index="04" title="Commercial NPL by Segment" description="SME vs commercial-total vs derived non-SME, weekly BDDK bulletin (sector).">
+      <Section index="05" title="Commercial NPL by Segment" description="SME vs commercial-total vs derived non-SME, weekly BDDK bulletin (sector).">
         <TrendChart
           data={commercialTrend}
           seriesLabels={{

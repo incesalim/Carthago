@@ -154,6 +154,22 @@ latest-period** trigger, and **13 banks auto-discover** new quarters from their
 IR page (no hand-added URL needed) — see [ADMIN.md](ADMIN.md) §Auto-discovery.
 Setup in [OPERATIONS.md](OPERATIONS.md) / [ADMIN.md](ADMIN.md).
 
+**Display-study phases 2–5 (2026-07-03):** real-terms convention
+(`web/app/lib/real-terms.ts` — nominal-vs-real twins on Credit/Deposits, exact
+Fisher deflation off TP.TUKFIY2025.GENEL), FX-adjusted credit growth
+(constant-USD/TRY, BBVA convention), Profitability "return equation" (ROA ×
+leverage = ROE + drivers), sized scenarios (NII sensitivity off the repricing
+ladder on /market-risk; CAR-buffer headroom on /capital; Stage-2 migration
+provision scenario on /asset-quality), share-shift Δpp y/y columns on the
+/cross-bank league, bank-page rank-in-field strip + per-bank Capital section,
+the forward-credit layer (`web/app/lib/credit-risk.ts` — sector TFRS-9 staging
++ annual NPL formation-vs-exits off the audit lanes), Nav in FSR story order
+(Digital → Markets & Macro, /disclosures orphan fixed), and clarify-purpose
+reframes on Ratios/Funds/Rates. Spec + per-phase records:
+[knowledge/display-study.md](knowledge/display-study.md). Deferred: 4b
+(/banks league + head-to-head picker), 5b (chronology lane, /digital
+compression).
+
 **"The Read" on every T1 tab (2026-07-02):** the deterministic insight engine
 (`web/app/lib/insights.ts`, no LLM — recomputed from the same series each page
 already fetches) now leads Credit, Deposits, Asset Quality, Capital,

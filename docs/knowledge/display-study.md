@@ -56,7 +56,8 @@ behind a fold.
 | **3** | Sized scenarios: NII sensitivity (±250/500bps × repricing ladder) + capital headroom (buffer drift + generation gap). Provision-need scenario MOVED to Phase 5 (needs the sector Stage-2 series first) | **SHIPPED 2026-07-03** |
 | **4** | Share-shift columns on the /cross-bank league (Δpp y/y); bank-page rank-in-field strip + per-bank Capital section (CAR/CET1/buffer/AT1-reliance + ranks). Cross-bank CAR/CET1/LCR/NOP columns were ALREADY live (market-risk lane) | **SHIPPED 2026-07-03** |
 | 4b | /banks league table w/ metric switcher + ownership-group cards; cross-bank 2–3-bank head-to-head picker (the mock's Compare) | deferred |
-| 5 | Structural: fold `/sector/ratios`; relocate+compress /digital; chronology lane (regulation+news+disclosures); rates transmission headline; funds/non-bank reframe; sector Stage-2 + NPL-formation headline (npl_movement) + provision-need scenario (Stage-2 × coverage, from Phase 3) | pending |
+| **5** | Forward-credit layer on /asset-quality (sector Stage-2/Stage-3 shares + annual NPL formation-vs-exits + Stage-2 migration provision scenario, new `lib/credit-risk.ts`); Nav restructure (Sector in FSR order, Digital → Markets & Macro, /disclosures orphan → By Bank); rates transmission headline; ratios + funds clarify-purpose reframes | **SHIPPED 2026-07-03** |
+| 5b | Chronology lane ("what changed": merged regulation + news + disclosures + rate decisions, tagged & dated); /digital 13→~4 chart compression | deferred |
 
 Already closed before this study (post-audit, keep): sector CET1/Tier-1 on
 /capital and sector LCR/NSFR on /liquidity (both via `web/app/lib/audit-ratios.ts`),
@@ -107,6 +108,25 @@ Market Risk tab (S8), Overview re-curation + Sector Pulse.
   straight-line quarters-to-floor (or "buffer holding"), and the capital
   generation gap (equity y/y − assets y/y). No new queries beyond
   `totalAssetsYoY(sector)`.
+
+## Phase-5 record (what changed, 2026-07-03)
+
+- `web/app/lib/credit-risk.ts` — sector aggregation "of reporting banks" over
+  `bank_audit_stages` (Stage-2/Stage-3 shares of gross loans, per-column
+  both-fields-present guards, ≥5-bank floor) and `bank_audit_npl_movement`
+  (annual Q4-YTD formation vs |collections|+|write-offs|+|sold| — Q4-only
+  avoids de-cumulation assumptions on interim YTD flows).
+- /asset-quality §02 "The forward indicators": staging chart + roll-forward
+  chart + the Stage-2→3 migration provision scenario (5/10/20% at current
+  cov3 − cov2, ₺bn and % of ECL stock, assumptions stated). Stage-2 share
+  feeds the tab Read (`assetQualityInsights` optional `stage2` input).
+- Nav: Sector group re-ordered to the FSR story (Credit → Deposits →
+  Liquidity → Asset Quality → Capital → Profitability); Digital relocated to
+  Markets & Macro; `/disclosures` added under By Bank (orphan fixed).
+- /rates: transmission chart promoted next to the corridor and retitled
+  ("policy cuts reach deposit pricing first").
+- /sector/ratios + /funds: purpose stated explicitly in the header (Table-15
+  by-bank-type scorecard; deposit-substitution channel).
 
 **Known follow-ups:** rationale.json still describes the pre-Phase-1 chart
 inventory (re-run the audit after Phase 5); the mock's Liquidity deletion is

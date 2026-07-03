@@ -113,7 +113,7 @@ export default async function FundsPage() {
       <PageHeader
         eyebrow="TEFAS — Turkey Electronic Fund Trading Platform"
         title="Funds"
-        description="Sector-wide fund-market statistics: assets under management, fund categories, portfolio allocation and investor counts across mutual, pension and exchange-traded funds."
+        description="The deposit-substitution channel: where household savings go when deposit rates fall. AUM, fund categories, portfolio allocation and investor counts across mutual, pension and exchange-traded funds (TEFAS) — read fund AUM growth against deposit growth on the Deposits tab."
         rangeSelector
         dataThrough={latestPeriod(monthly)}
       />

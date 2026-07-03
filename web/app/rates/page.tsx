@@ -94,6 +94,10 @@ export default async function RatesPage() {
                  asOf={eur?.period_date ?? "—"} />
       </div>
 
+      {/* Transmission first (display-study Phase 5): the strategist question is
+          not "where is the policy rate" but "how fast does it reach bank
+          pricing" — deposit rates reprice in weeks, loan rates with a lag; the
+          gap between the two lines IS the margin cycle. */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
         <TimeSeriesChart
           series={byLabel(RATE_CORRIDOR)}
@@ -101,17 +105,17 @@ export default async function RatesPage() {
           yFormat="pct"
           decimals={2}        />
         <TimeSeriesChart
-          series={byLabel(FX)}
-          title="Exchange Rates — USD &amp; EUR"
-          yFormat="fx"
+          series={byLabel(LENDING)}
+          title="Transmission — policy cuts reach deposit pricing first (weekly survey, %)"
+          yFormat="pct"
           decimals={2}        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <TimeSeriesChart
-          series={byLabel(LENDING)}
-          title="Lending &amp; Deposit Rates (weekly survey, %)"
-          yFormat="pct"
+          series={byLabel(FX)}
+          title="Exchange Rates — USD &amp; EUR"
+          yFormat="fx"
           decimals={2}        />
         <TimeSeriesChart
           series={byLabel(STERIL)}

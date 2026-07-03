@@ -17,15 +17,17 @@ const SECTIONS: NavSection[] = [
     id: "sector",
     label: "Sector",
     items: [
+      // FSR story order (spine S1→S7): size → credit → funding → liquidity →
+      // asset quality → solvency → earnings. Digital lives under Markets &
+      // Macro (structure/context, not a CAMELS vital — audit: relocate).
       { href: "/", label: "Overview" },
       { href: "/credit", label: "Credit" },
       { href: "/deposits", label: "Deposits" },
+      { href: "/liquidity", label: "Liquidity" },
       { href: "/asset-quality", label: "Asset Quality" },
       { href: "/capital", label: "Capital" },
       { href: "/profitability", label: "Profitability" },
       { href: "/sector/ratios", label: "Ratios" },
-      { href: "/liquidity", label: "Liquidity" },
-      { href: "/digital", label: "Digital" },
     ],
   },
   {
@@ -38,6 +40,7 @@ const SECTIONS: NavSection[] = [
       { href: "/ownership", label: "Ownership" },
       { href: "/earnings", label: "Earnings" },
       { href: "/franchise", label: "Franchise" },
+      { href: "/disclosures", label: "Disclosures" },
     ],
   },
   {
@@ -47,6 +50,7 @@ const SECTIONS: NavSection[] = [
       { href: "/rates", label: "Rates" },
       { href: "/market-risk", label: "Market Risk" },
       { href: "/funds", label: "Funds" },
+      { href: "/digital", label: "Digital" },
       {
         href: "/non-bank",
         label: "Non-Bank",
