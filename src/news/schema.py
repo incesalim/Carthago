@@ -1,7 +1,10 @@
 """SQLite + D1 schema for the qualitative-data layer.
 
-Two tables:
+Three synced tables:
 - `news_items` — one row per KAP/TCMB/BDDK disclosure or press release.
+- `news_item_banks` — bank-mention tags for press/google_news items
+  (one row per article × bank; see src/news/bank_tagger.py). Mirrored in
+  web/migrations/0018_news_item_banks.sql — keep the DDL byte-identical.
 - `regulation_briefings` — weekly Kimi-generated thematic summaries
   over recent TCMB+BDDK news items.
 """
@@ -35,6 +38,30 @@ CREATE INDEX IF NOT EXISTS idx_news_ticker
   ON news_items(ticker, published_at DESC);
 CREATE INDEX IF NOT EXISTS idx_news_source
   ON news_items(source, published_at DESC);
+
+-- Which bank(s) a press/google_news item mentions (Yahoo-style per-ticker
+-- news). Written by src/news/bank_tagger.py as a sync_news post-step;
+-- `fetched_at` drives push_to_d1's incremental sync (like news_items).
+CREATE TABLE IF NOT EXISTS news_item_banks (
+    source        TEXT NOT NULL,            -- FK half -> news_items(source, external_id)
+    external_id   TEXT NOT NULL,
+    ticker        TEXT NOT NULL,            -- canonical bank ticker (kap_company_map universe)
+    matched_in    TEXT NOT NULL,            -- 'title' | 'summary' (title = stronger signal)
+    fetched_at    TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (source, external_id, ticker)
+);
+
+CREATE INDEX IF NOT EXISTS idx_nib_ticker
+  ON news_item_banks(ticker);
+
+-- Shared staging-side outbox (created by the KAP/TEFAS/faaliyet lanes too;
+-- IF NOT EXISTS). bank_tagger queues junction-row DELETEs here when an alias
+-- change untags an item, so the INSERT OR REPLACE-only D1 push can't leave
+-- orphan tags remotely.
+CREATE TABLE IF NOT EXISTS d1_pending_deletes (
+    sql        TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 
 CREATE TABLE IF NOT EXISTS regulation_briefings (
     generated_at    TEXT NOT NULL PRIMARY KEY,

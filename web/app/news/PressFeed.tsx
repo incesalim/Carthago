@@ -7,8 +7,10 @@
  * original article — we store only headline + snippet, never the full body.
  */
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { type NewsItem } from "@/app/lib/news";
 import { topicTag, type Tag } from "@/app/lib/news-tags";
+import { bankDisplayName } from "@/app/lib/bank_names";
 
 function fmtDate(iso: string): string {
   const d = new Date(iso);
@@ -21,6 +23,47 @@ function Pill({ tag }: { tag: Tag }) {
     <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-medium ${tag.className}`}>
       {tag.label}
     </span>
+  );
+}
+
+/** Bank chips from the tagger (news_item_banks → comma-joined `tickers`).
+ *  The whole card is an <a>, so chips are spans that router.push instead of
+ *  nesting a second anchor. */
+function BankChips({ tickers }: { tickers: string }) {
+  const router = useRouter();
+  const all = tickers.split(",").filter(Boolean);
+  const shown = all.slice(0, 3);
+  return (
+    <>
+      {shown.map((t) => (
+        <span
+          key={t}
+          role="link"
+          tabIndex={0}
+          title={bankDisplayName(t)}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            router.push(`/banks/${t}`);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              e.stopPropagation();
+              router.push(`/banks/${t}`);
+            }
+          }}
+          className="inline-block rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary hover:bg-primary/20"
+        >
+          {t}
+        </span>
+      ))}
+      {all.length > shown.length && (
+        <span className="inline-block px-0.5 py-0.5 text-[10px] text-muted-foreground">
+          +{all.length - shown.length}
+        </span>
+      )}
+    </>
   );
 }
 
@@ -45,6 +88,7 @@ function PressCard({ item }: { item: NewsItem }) {
       )}
       <div className="mt-auto flex flex-wrap gap-1 pt-2">
         <Pill tag={topicTag(item.title)} />
+        {item.tickers && <BankChips tickers={item.tickers} />}
         <span className="ml-auto text-[10px] text-muted-foreground opacity-0 transition group-hover:opacity-100">
           open ↗
         </span>

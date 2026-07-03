@@ -3192,6 +3192,25 @@
           "scroll_index": 13
         },
         {
+          "chart_id": "banks.ticker.in_the_news",
+          "title": "In the News",
+          "section": "News",
+          "component": "BankNewsSection",
+          "data_fn": "pressNewsByBank()",
+          "class": "depth",
+          "rubric": {
+            "question_fit": 1,
+            "standard_view": 2,
+            "comparable_reproducible": 2,
+            "decision_relevance": 1,
+            "non_redundant": 2,
+            "scroll_earned": true,
+            "sourced": true
+          },
+          "audit_verdict": "keep",
+          "scroll_index": 14
+        },
+        {
           "chart_id": "banks.ticker.recent_kap_disclosures",
           "title": "Recent KAP disclosures",
           "section": "Disclosures",
@@ -3208,7 +3227,7 @@
             "sourced": true
           },
           "audit_verdict": "keep",
-          "scroll_index": 14
+          "scroll_index": 15
         }
       ]
     },

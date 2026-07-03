@@ -78,6 +78,7 @@ SYNC_TABLES = [
     "bank_audit_extractions",
     "evds_series",
     "news_items",
+    "news_item_banks",
     "regulation_briefings",
     "bank_earnings",
     "tbb_digital_stats",
@@ -139,11 +140,8 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int) -> list[str]:
         where = ""
     elif "downloaded_at" in cols:
         where = f"WHERE downloaded_at >= datetime('now', '-{hours} hours')"
-    elif table == "news_items":
-        where = f"WHERE fetched_at >= datetime('now', '-{hours} hours')"
-    elif table == "bank_earnings":
-        where = f"WHERE fetched_at >= datetime('now', '-{hours} hours')"
-    elif table == "regulation_briefings":
+    elif table in ("news_items", "news_item_banks", "bank_earnings",
+                   "regulation_briefings"):
         where = f"WHERE fetched_at >= datetime('now', '-{hours} hours')"
     elif table == "bank_audit_extractions":
         where = f"WHERE extracted_at >= datetime('now', '-{hours} hours')"

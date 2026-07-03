@@ -36,6 +36,7 @@ from src.news.loader import (  # noqa: E402
 from src.earnings.from_kap import events_from_kap  # noqa: E402
 from src.earnings.loader import upsert_events  # noqa: E402
 from src.earnings.schema import init_schema as init_earnings_schema  # noqa: E402
+from src.news.bank_tagger import retag_all  # noqa: E402
 from src.news.schema import init_schema  # noqa: E402
 from src.news.sources import bddk, google_news, kap, press, tcmb  # noqa: E402
 
@@ -184,6 +185,22 @@ def main():
                   + (f"; purged {purged} rows now covered by press" if purged else ""))
         except Exception as e:
             print(f"[google] FAILED: {type(e).__name__}: {e}", flush=True)
+
+    # Bank tagging: match press/google items to the bank(s) they mention
+    # (news_item_banks junction → per-bank "In the News"). Pure
+    # reclassification over local rows — no network (earnings pattern).
+    # Full pass every run, so bank_aliases.json edits apply retroactively.
+    if not only_one or args.press_only or args.google_only:
+        print("[tags] tagging press/google items with bank mentions...")
+        try:
+            with sqlite3.connect(str(DB_PATH)) as conn:
+                init_schema(conn)
+                stats = retag_all(conn)
+            print(f"[tags] {stats['tags']} bank tags on {stats['tagged_items']} "
+                  f"of {stats['items']} items "
+                  f"(+{stats['added']} / -{stats['removed']} this run)")
+        except Exception as e:
+            print(f"[tags] FAILED: {type(e).__name__}: {e}", flush=True)
 
     # Body backfill — incremental: only fetch detail pages for rows that
     # don't yet have a body cached. Cheap on first run after the column
