@@ -6,7 +6,7 @@
  * Securities mark-to-market (the third S-signal) is a documented fast-follow —
  * see web/app/lib/market-risk.ts.
  */
-import { PageHeader, Section } from "@/app/components/ui";
+import { PageHeader, Section, Stat } from "@/app/components/ui";
 import { ChartCard } from "@/app/components/ui/chart-card";
 import TrendChart from "@/app/components/TrendChart";
 import BopFlowChart from "@/app/components/BopFlowChart";
@@ -17,6 +17,7 @@ import {
   repricingGap1y,
   repricingLadder,
   marketRiskLatestPeriod,
+  niiSensitivity,
 } from "@/app/lib/market-risk";
 import Takeaway from "@/app/components/Takeaway";
 import { marketRiskInsights } from "@/app/lib/insights";
@@ -26,12 +27,13 @@ export const dynamic = "force-dynamic";
 const SECTOR = { SECTOR: "Sector (reporting banks)" };
 
 export default async function MarketRiskPage() {
-  const [nop, byCcy, gap1y, ladder, latest] = await Promise.all([
+  const [nop, byCcy, gap1y, ladder, latest, nii] = await Promise.all([
     fxNopToCapital(),
     fxByCurrency(),
     repricingGap1y(),
     repricingLadder(),
     marketRiskLatestPeriod(),
+    niiSensitivity(),
   ]);
 
   // "The Read" — deterministic, computed from the same series the charts show.
@@ -85,6 +87,25 @@ export default async function MarketRiskPage() {
           />
         </div>
       </Section>
+
+      {nii.scenarios.length > 0 && (
+        <Section
+          title="What a rate move does to NII"
+          description={`First-order one-year ΔNII from a parallel shift, off the ${nii.period ?? "latest"} sector repricing ladder (≤1y buckets, bucket midpoints). Assumes no repricing beta or behavioral offsets — a sizing device, not a forecast.`}
+        >
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {nii.scenarios.map((s) => (
+              <Stat
+                key={s.bps}
+                label={`${s.bps > 0 ? "+" : ""}${s.bps} bps`}
+                value={`${s.niiBn >= 0 ? "+" : "−"}₺${Math.abs(s.niiBn).toFixed(0)}bn`}
+                hint={s.pctRsa != null ? `${s.pctRsa >= 0 ? "+" : ""}${s.pctRsa.toFixed(2)}% of rate-sensitive assets` : undefined}
+                tone={s.niiBn >= 0 ? "positive" : "warning"}
+              />
+            ))}
+          </div>
+        </Section>
+      )}
     </main>
   );
 }

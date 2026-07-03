@@ -53,9 +53,9 @@ behind a fold.
 |---|---|---|
 | **1** | Reads on all T1 tabs (credit, deposits, asset-quality, capital, profitability, liquidity, market-risk) + audit-flagged reorders (credit pub/priv ↑, deposits dollarization ↑, profitability real-ROE ↑, capital CET1 ↑) + dedups (level twins, deposits sector-YoY dup, fee-ratio trio → 1, liquidity TL-deposit-growth dups) + retire `/sector` orphan (redirect → `/`) | **SHIPPED 2026-07-02** |
 | **2** | Real-terms convention (CPI-deflate helper + real twins) + decompositions (ROE equation, FX-adjusted credit growth) | **SHIPPED 2026-07-03** |
-| 3 | Sized scenarios: NII sensitivity (±100/250/500bps × repricing), provision-need (Stage-2 migration), capital headroom (buffer vs RWA growth) | pending |
+| **3** | Sized scenarios: NII sensitivity (±250/500bps × repricing ladder) + capital headroom (buffer drift + generation gap). Provision-need scenario MOVED to Phase 5 (needs the sector Stage-2 series first) | **SHIPPED 2026-07-03** |
 | 4 | Share-shift leagues; bank-page rank-in-field strip + Capital/Liquidity sections; /banks league table; cross-bank CAR/CET1/LCR columns + head-to-head picker | pending |
-| 5 | Structural: fold `/sector/ratios`; relocate+compress /digital; chronology lane (regulation+news+disclosures); rates transmission headline; funds/non-bank reframe; sector Stage-2 + NPL-formation headline (npl_movement) | pending |
+| 5 | Structural: fold `/sector/ratios`; relocate+compress /digital; chronology lane (regulation+news+disclosures); rates transmission headline; funds/non-bank reframe; sector Stage-2 + NPL-formation headline (npl_movement) + provision-need scenario (Stage-2 × coverage, from Phase 3) | pending |
 
 Already closed before this study (post-audit, keep): sector CET1/Tier-1 on
 /capital and sector LCR/NSFR on /liquidity (both via `web/app/lib/audit-ratios.ts`),
@@ -94,6 +94,18 @@ Market Risk tab (S8), Overview re-curation + Sector Pulse.
   ≈ ROE + NIM / fees-to-revenue / OPEX drivers, y/y DeltaBadges.
 - Sector NIM bridge: NOT rebuilt — the existing NimComponentsSection already
   is the margin decomposition (income/expense buckets over avg assets).
+
+## Phase-3 record (what changed, 2026-07-03)
+
+- `market-risk.ts niiSensitivity()`: first-order one-year ΔNII from parallel
+  shifts (−500/−250/+250/+500bps) off the latest sector repricing ladder —
+  Σ gap_b × Δr × (1 − bucket midpoint), ≤1y buckets only; assumptions stated on
+  the panel ("a sizing device, not a forecast"). Rendered as a Stat row on
+  /market-risk.
+- /capital "Headroom" panel: buffer over the 12% floor, 12-month drift (pp/yr),
+  straight-line quarters-to-floor (or "buffer holding"), and the capital
+  generation gap (equity y/y − assets y/y). No new queries beyond
+  `totalAssetsYoY(sector)`.
 
 **Known follow-ups:** rationale.json still describes the pre-Phase-1 chart
 inventory (re-run the audit after Phase 5); the mock's Liquidity deletion is
