@@ -33,7 +33,7 @@ import {
   validationByPeriod,
 } from "@/app/lib/audit";
 import { ordOf, ttmEndingAt, yoyPct } from "@/app/lib/period-math";
-import { newsByTicker } from "@/app/lib/news";
+import { newsByTicker, pressNewsByBank } from "@/app/lib/news";
 import { earningsByTicker } from "@/app/lib/earnings";
 import { bankOwnership } from "@/app/lib/kap";
 import { heatmapPanel } from "@/app/lib/heatmap";
@@ -48,6 +48,7 @@ import ProfitabilitySection from "./ProfitabilitySection";
 import MarketRiskSection from "./MarketRiskSection";
 import OwnershipSummary from "./OwnershipSummary";
 import EarningsDisclosures from "./EarningsDisclosures";
+import BankNewsSection from "./BankNewsSection";
 import PlSankeySection from "./PlSankeySection";
 import CopyTableButton from "@/app/components/CopyTableButton";
 import {
@@ -247,7 +248,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
     return o != null && o >= floorOrd && latestOrd != null && o <= latestOrd;
   });
 
-  const [bsPivot, bsNames, plPivot, plRows, cfPivot, kapItems, profile, stages, validation, ownership, valuationBase, priceHistory, liveMap, heatmap, sharePanel, earnings, mrDetail] =
+  const [bsPivot, bsNames, plPivot, plRows, cfPivot, kapItems, profile, stages, validation, ownership, valuationBase, priceHistory, liveMap, heatmap, sharePanel, earnings, mrDetail, bankNews] =
     await Promise.all([
       balanceSheetMultiPeriod(ticker, kind, queryPeriods),
       balanceSheetLineNames(ticker, kind, periods),
@@ -271,6 +272,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
       marketSharePanel(kind),
       earningsByTicker(ticker, 24),
       bankMarketRiskDetail(kind, ticker),
+      pressNewsByBank(ticker, 10),
     ]);
 
   // Profitability & margins section inputs — this bank's rows, oldest→newest.
@@ -457,6 +459,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   // In-page jump-nav: only list groups that actually render (the ownership
   // group is conditional on having a KAP form), so every anchor resolves.
   const hasOwnership = ownership.length > 0;
+  const hasBankNews = bankNews.length > 0;
   const navSections = [
     { id: "overview", label: "Overview" },
     ...(hasPerf ? [{ id: "performance", label: "Performance" }] : []),
@@ -464,6 +467,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
     ...(hasCapital ? [{ id: "capital", label: "Capital" }] : []),
     { id: "financials", label: "Financials" },
     ...(hasOwnership ? [{ id: "ownership", label: "Ownership" }] : []),
+    ...(hasBankNews ? [{ id: "news", label: "News" }] : []),
     { id: "disclosures", label: "Disclosures" },
   ];
 
@@ -917,6 +921,18 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
         <div id="ownership" className="scroll-mt-24 mb-8">
           <Section title="Ownership" contentClassName="">
             <OwnershipSummary rows={ownership} />
+          </Section>
+        </div>
+      )}
+
+      {/* ── In the News ───────────────────────────────────────────────────
+          Press + Google News items tagged with this bank (news_item_banks,
+          deterministic name→ticker matcher). Only renders when tagged items
+          exist, so quiet banks don't get an empty section. */}
+      {hasBankNews && (
+        <div id="news" className="scroll-mt-24 mb-8">
+          <Section title="In the News" contentClassName="">
+            <BankNewsSection items={bankNews} />
           </Section>
         </div>
       )}

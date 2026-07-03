@@ -25,6 +25,8 @@ export interface NewsItem {
   url: string;
   language: "tr" | "en";
   body_text?: string | null;     // full extracted body — only selected by newsBySource
+  tickers?: string | null;       // comma-joined bank tags (news_item_banks) —
+                                 // only selected by latestPress/latestGoogleNews
 }
 
 const SOURCE_LABELS: Record<NewsSource, string> = {
@@ -67,15 +69,22 @@ export async function newsBySource(
   );
 }
 
+/** Comma-joined bank tags for one item (news_item_banks junction, written by
+ *  src/news/bank_tagger.py). Scalar subquery — no GROUP BY needed. */
+const TICKERS_SUBQUERY = `(SELECT GROUP_CONCAT(b.ticker)
+          FROM news_item_banks b
+          WHERE b.source = n.source AND b.external_id = n.external_id) AS tickers`;
+
 /** Latest banking-sector press items (source='press'). `category` holds the
  *  outlet name (e.g. "Bloomberg HT"). No body_text — these link out. */
 export async function latestPress(limit = 120): Promise<NewsItem[]> {
   return cachedAll<NewsItem>(
-    `SELECT source, external_id, published_at, ticker, category,
-              title, summary, url, language
-       FROM news_items
-       WHERE source = 'press'
-       ORDER BY published_at DESC
+    `SELECT n.source, n.external_id, n.published_at, n.ticker, n.category,
+              n.title, n.summary, n.url, n.language,
+              ${TICKERS_SUBQUERY}
+       FROM news_items n
+       WHERE n.source = 'press'
+       ORDER BY n.published_at DESC
        LIMIT ?`,
     [limit],
   );
@@ -87,13 +96,33 @@ export async function latestPress(limit = 120): Promise<NewsItem[]> {
  *  No body_text — these link out. */
 export async function latestGoogleNews(limit = 160): Promise<NewsItem[]> {
   return cachedAll<NewsItem>(
-    `SELECT source, external_id, published_at, ticker, category,
-              title, summary, url, language
-       FROM news_items
-       WHERE source = 'google_news'
-       ORDER BY published_at DESC
+    `SELECT n.source, n.external_id, n.published_at, n.ticker, n.category,
+              n.title, n.summary, n.url, n.language,
+              ${TICKERS_SUBQUERY}
+       FROM news_items n
+       WHERE n.source = 'google_news'
+       ORDER BY n.published_at DESC
        LIMIT ?`,
     [limit],
+  );
+}
+
+/** Press + Google News items tagged with one bank (news_item_banks junction)
+ *  — the per-bank "In the News" feed on /banks/[ticker]. Cards link out. */
+export async function pressNewsByBank(
+  ticker: string,
+  limit = 8,
+): Promise<NewsItem[]> {
+  return cachedAll<NewsItem>(
+    `SELECT n.source, n.external_id, n.published_at, n.ticker, n.category,
+              n.title, n.summary, n.url, n.language
+       FROM news_item_banks b
+       JOIN news_items n
+         ON n.source = b.source AND n.external_id = b.external_id
+       WHERE b.ticker = ?
+       ORDER BY n.published_at DESC
+       LIMIT ?`,
+    [ticker.toUpperCase(), limit],
   );
 }
 

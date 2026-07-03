@@ -429,6 +429,20 @@ A qualitative-data layer feeds three tabs from the `news_items` table
   handful of new items (capped by `--google-max-decode`, default 60), so the
   rate-limit never bites; a decode failure keeps the still-clickable google link
   and retries next run.
+- **Per-bank tagging** (`news_item_banks`, migration 0018) — a sync_news
+  post-step (`src/news/bank_tagger.py`, pure-local like the earnings
+  classifier) matches every press/google item's title+summary against a
+  hand-curated alias map (`data/news/bank_aliases.json`, 31 canonical
+  tickers) and writes one junction row per article × bank — Yahoo-Finance
+  style per-ticker news, deterministic regex, no LLM. Turkish collision
+  traps are encoded as match modes: prefix aliases catch agglutinative
+  suffixes ("garanti bankas" → Bankası'nın) while word-bounded aliases stop
+  "teb"→tebliğ, "ing"→İngiltere, "yapı kredi"→yapı kredisi; matching is
+  dotless-ı-folded so ASCII caps ("ING", "GARANTI") still hit. The full
+  corpus is retagged every run (alias edits apply retroactively; removals
+  propagate via the `d1_pending_deletes` outbox). Surfaces as an
+  "In the News" section on `/banks/[ticker]` (`pressNewsByBank`) and bank
+  chips on /news + /news/google cards.
 
 A separate **earnings lane** (`bank_earnings` table, migration 0015,
 `src/earnings/`) feeds **/earnings** and an "Earnings & Presentations" block on

@@ -88,7 +88,7 @@ export const PIPELINE_NODES: PipelineNode[] = [
   { id: "store-d1-tefas", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · tefas_*", sublabel: "manager / category / allocation / top_funds", statusKey: "tefas" },
   { id: "store-d1-faaliyet", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · faaliyet_franchise", sublabel: "ATM / POS / merchant / customer / card counts", statusKey: "faaliyet" },
   { id: "store-d1-bist", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · bist_*", sublabel: "bist_prices · bist_dividends · bist_shares", statusKey: "bist" },
-  { id: "store-d1-news", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · news_items", sublabel: "regulation + press + Google News", statusKey: "news" },
+  { id: "store-d1-news", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · news_items", sublabel: "regulation + press + Google News · + per-bank tags", statusKey: "news" },
   { id: "store-d1-earnings", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · bank_earnings", sublabel: "KAP results filings + IR presentation decks" },
 
   // ── Audit lane · sources ───────────────────────────────────────────────
@@ -267,6 +267,8 @@ export const PIPELINE_EDGES: PipelineEdge[] = [
   { source: "store-d1-kap", target: "page-bank-detail" },
   { source: "store-d1-news", target: "page-regulation" },
   { source: "store-d1-news", target: "page-news" },
+  // per-bank "In the News" (news_item_banks tags → /banks/[ticker])
+  { source: "store-d1-news", target: "page-bank-detail" },
   { source: "store-d1-earnings", target: "page-earnings" },
   { source: "store-d1-earnings", target: "page-bank-detail" },
 
