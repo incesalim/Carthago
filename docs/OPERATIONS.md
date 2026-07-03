@@ -9,7 +9,7 @@ machine involvement is required for routine refreshes.
 
 | When | Workflow | What it does |
 |---|---|---|
-| Sun–Fri 05:00 UTC | `refresh-evds-daily.yml` | TCMB EVDS scrape (FX, rates, sterilization, …) + TBB/KAP/TEFAS non-critical steps → D1 |
+| Sun–Fri 05:00 UTC | `refresh-evds-daily.yml` | TCMB EVDS scrape (FX, rates, sterilization, …) + TBB/TKBB/KAP/TEFAS non-critical steps → D1 |
 | Saturday 02:00 UTC | `refresh-bddk-bulletins.yml` | Monthly + weekly BDDK bulletins (no EVDS, no audit) → D1 |
 | Saturday 03:00 UTC | `refresh-data.yml` | Monthly + weekly BDDK + EVDS → D1 |
 | Sunday 04:00 UTC | `acquire-audit.yml` | Audit-report **acquisition only**: discover + download new PDFs → R2, refresh the coverage matrix, notify on new reports (own `bddk-audit` group, read-only on the snapshot) |
@@ -34,7 +34,7 @@ There are **two** local SQLite staging DBs, each with its own R2 snapshot:
 
 | DB | Holds | R2 snapshot | Lane |
 |---|---|---|---|
-| `data/bddk_data.db` | BDDK monthly/weekly + EVDS + news + TBB + KAP + TEFAS + BIST | `state/bddk_data.db.gz` | `bddk-pipeline` |
+| `data/bddk_data.db` | BDDK monthly/weekly + EVDS + news + TBB + TKBB + KAP + TEFAS + BIST | `state/bddk_data.db.gz` | `bddk-pipeline` |
 | `data/bank_audit.db` | the `bank_audit_*` tables (PDF extraction) | `state/bank_audit.db.gz` | `bddk-audit` |
 
 Both lanes push to the **same D1**, writing a disjoint set of tables. The catch:
@@ -146,6 +146,42 @@ PY
 The `tbb_digital_stats` table must exist in D1 first (migration
 `0003_tbb_digital_stats.sql`, applied by the deploy workflow). Workbooks
 overlap and revise; `--all` processes oldest→newest so the latest figure wins.
+
+### TKBB participation-bank digital statistics
+
+Participation banks aren't TBB members; their digital stats come from TKBB's
+Veri Peteği portal, served by a Turboard BI instance
+(`https://veri-petegi.tkbb.org.tr`) whose JSON API is publicly readable — no
+auth, plain GETs (recipe in `src/tkbb/turboard.py`). Two lanes, both
+non-critical steps in `refresh.py` (skippable with `--skip-tkbb`):
+
+- **Quarterly digital stats** (`scripts/update_tkbb_digital.py` →
+  `tkbb_digital_stats`): active customers (total / channel-mix / province),
+  transaction volume & count (by channel / segment / category), 2020-Q1 →
+  present, RAW units (persons / count / TRY — the web layer scales). The
+  default run is **incremental with automatic backfill**: it enumerates the
+  live period-filter values (verbatim — TKBB's labels are inconsistently
+  spaced, never construct them), diffs against periods already in the DB, and
+  always re-fetches the newest stored period for revisions. On an empty table
+  that means the full ~25-quarter backfill in one run (~275 GETs, minutes).
+  `verify_dashboard()` fails loudly if TKBB rebuilds the dashboard (pinned
+  dashlet ids missing) and warns on title drift.
+- **Monthly remote-vs-branch acquisition** (`scripts/update_tkbb_acquisition.py`
+  → `tkbb_acquisition_stats`): the public dashboard exposes only a **rolling
+  last-12-months window** — each run upserts it and history accumulates
+  forward (from 2025-07). **Never delete rows**; there is no way to re-fetch
+  months that have left the window. Measure names (applications/customers) are
+  resolved from the live dashboard's measure aliases and fail loudly on drift.
+
+Tables must exist in D1 first (migration `0017_tkbb_stats.sql`). A manual
+wide-window push after a local run:
+
+```bash
+python scripts/push_to_d1.py --only-tables tkbb_digital_stats,tkbb_acquisition_stats --hours 8760
+```
+
+For a from-scratch rebuild, use the same R2 snapshot pull → run → push →
+re-upload sequence as the TBB backfill above (both updaters take `--db`).
 
 ### KAP ownership structure (weekly)
 

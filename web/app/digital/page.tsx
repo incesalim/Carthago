@@ -1,13 +1,15 @@
 /**
  * Digital Banking tab — TBB (Banks Association of Türkiye) quarterly digital,
- * internet & mobile banking statistics. Sector-wide (no per-bank breakdown):
- * customer adoption, transaction volumes & counts, and demographics of active
- * individual digital customers. Source: TBB "Dijital, İnternet ve Mobil
- * Bankacılık İstatistikleri" workbooks — see scripts/update_tbb_digital.py.
+ * internet & mobile banking statistics, plus TKBB (Participation Banks
+ * Association) equivalents for participation banks. Sector-wide (no per-bank
+ * breakdown): customer adoption, transaction volumes & counts, demographics,
+ * and participation-vs-banks comparisons. Sources: TBB "Dijital, İnternet ve
+ * Mobil Bankacılık İstatistikleri" workbooks (scripts/update_tbb_digital.py)
+ * and TKBB Veri Peteği Turboard dashboards (scripts/update_tkbb_digital.py).
  *
  * All figures are sector totals. Customer counts are point-in-time at quarter
- * end; transaction figures are quarterly flows. "Active" follows TBB's
- * definition (logged in / transacted within the period).
+ * end; transaction figures are quarterly flows. "Active" follows each
+ * association's own definition (logged in / transacted within the period).
  */
 import {
   digitalSeries,
@@ -35,6 +37,18 @@ import {
   CHANNEL_LABELS as ACQ_CHANNEL_LABELS,
   METHOD_LABELS as ACQ_METHOD_LABELS,
 } from "@/app/lib/acquisition";
+import {
+  tkbbSeries,
+  participationShare,
+  mobileOnlyShare,
+  tkbbVolumeByChannel,
+  tkbbAcquisitionLevels,
+  remoteShareComparison,
+  ACTIVE_TOTAL,
+  COMPARISON_LABELS,
+  ACQ_SERIES_LABELS as TKBB_ACQ_LABELS,
+  SCALE_PERSONS_TO_M,
+} from "@/app/lib/tkbb";
 import { latestPeriod } from "@/app/lib/metrics";
 import { PageHeader, Section } from "@/app/components/ui";
 import { ChartCard } from "@/app/components/ui/chart-card";
@@ -84,12 +98,23 @@ export default async function DigitalPage() {
   // Remote-vs-branch acquisition (separate monthly TBB report) — individuals.
   const acq = await acquisitionData("individual");
 
+  // Participation banks (TKBB Veri Peteği) — quarterly digital + monthly acquisition.
+  const [tkbbActive, tkbbShare, mobileShareCmp, tkbbVolume, tkbbAcq, remoteShareCmp] =
+    await Promise.all([
+      tkbbSeries(ACTIVE_TOTAL, SCALE_PERSONS_TO_M),
+      participationShare(),
+      mobileOnlyShare(),
+      tkbbVolumeByChannel(),
+      tkbbAcquisitionLevels(),
+      remoteShareComparison(acq.byChannel),
+    ]);
+
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
       <PageHeader
-        eyebrow="TBB — Banks Association of Türkiye"
+        eyebrow="TBB & TKBB — banking associations"
         title="Digital Banking"
-        description="Sector-wide adoption, transaction volumes and demographics across internet & mobile banking — TBB quarterly digital-banking statistics."
+        description="Sector-wide adoption, transaction volumes and demographics across internet & mobile banking — TBB quarterly statistics for banks, plus TKBB Veri Peteği data for participation banks."
         rangeSelector
         dataThrough={latestPeriod(activeByChannel, transferVolume, gender)}
       />
@@ -210,6 +235,66 @@ export default async function DigitalPage() {
           decimals={0}
           height={320}
         />
+      </Section>
+
+      <Section
+        title="Participation banks — digital adoption"
+        description="The participation-bank side of digital banking, from TKBB's Veri Peteği (quarterly since 2020). Counts are per-association: a customer of both a deposit bank and a participation bank appears in both TBB's and TKBB's figures, and each association applies its own “active” definition — read the shares as trends, not an exact census. TKBB reports all customer types combined (individual + corporate); the comparisons use TBB's matching all-customer basis."
+      >
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <TrendChart
+            data={tkbbActive}
+            seriesLabels={{ participation: "Active digital customers" }}
+            title="Active digital customers — participation banks (millions)"
+            yFormat="raw"
+            decimals={1}
+          />
+          <TrendChart
+            data={tkbbShare}
+            seriesLabels={{ share: "Participation share" }}
+            title="Participation banks' share of active digital customers (%)"
+            yFormat="raw"
+            decimals={1}
+          />
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <TrendChart
+            data={mobileShareCmp}
+            seriesLabels={COMPARISON_LABELS}
+            title="Mobile-only share of active digital customers (%)"
+            yFormat="raw"
+            decimals={1}
+          />
+          <StackedArea
+            data={pivotWide(tkbbVolume)}
+            series={seriesOf(CHANNEL_LABELS)}
+            title="Participation banks' digital transaction volume (₺ trillion / quarter)"
+            decimals={1}
+            colorKeys
+          />
+        </div>
+      </Section>
+
+      <Section
+        title="Participation banks — customer acquisition"
+        description="From TKBB's monthly “Uzaktan Müşteri Edinim” dashboard: participation-bank customers acquired remotely vs at a branch, as trailing 3-month sums. The public source exposes only a rolling 12-month window, which we accumulate — history builds forward from mid-2025. TKBB counts all customer types; the TBB comparison line is individuals only, so the levels aren't strictly comparable — the trend and the gap are the signal."
+      >
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <TrendChart
+            data={tkbbAcq}
+            seriesLabels={TKBB_ACQ_LABELS}
+            title="New participation-bank customers, trailing 3 months (thousands)"
+            yFormat="raw"
+            decimals={0}
+          />
+          <TrendChart
+            data={remoteShareCmp}
+            seriesLabels={COMPARISON_LABELS}
+            title="Acquired remotely — share of new customers (%)"
+            yFormat="raw"
+            decimals={0}
+          />
+        </div>
       </Section>
 
       <Section

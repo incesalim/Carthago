@@ -40,6 +40,8 @@ from src.news._htmltext import fix_mojibake                            # noqa: E
 from src.news.schema import init_schema as _init_news_schema            # noqa: E402
 from src.nonbank.schema import init_schema as _init_nonbank_schema      # noqa: E402
 from src.tefas.schema import init_schema as _init_tefas_schema          # noqa: E402
+from src.tkbb.schema import init_acquisition_schema as _init_tkbb_acq_schema  # noqa: E402
+from src.tkbb.schema import init_schema as _init_tkbb_schema            # noqa: E402
 
 # Tables whose text values get a final mojibake repair before D1 (Turkish text
 # from scrapers / LLM; "Ã/Å/Ä" only ever appear there as mis-encoding).
@@ -80,6 +82,8 @@ SYNC_TABLES = [
     "bank_earnings",
     "tbb_digital_stats",
     "tbb_acquisition_stats",
+    "tkbb_digital_stats",
+    "tkbb_acquisition_stats",
     "kap_ownership",
     "faaliyet_franchise",
     "faaliyet_extractions",
@@ -289,6 +293,8 @@ def main() -> int:
     _init_nonbank_schema(conn)
     _init_faaliyet_schema(conn)
     _init_earnings_schema(conn)
+    _init_tkbb_schema(conn)
+    _init_tkbb_acq_schema(conn)
 
     allowed_tables = (
         {t.strip() for t in args.only_tables.split(",") if t.strip()}

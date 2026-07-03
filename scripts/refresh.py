@@ -6,11 +6,12 @@ Steps (each can be skipped individually):
   3. EVDS refresh (TCMB macro / rate series).
   4. BIST equity prices/indices refresh via Yahoo (non-critical).
   5. TBB quarterly digital-banking refresh (non-critical).
-  6. KAP ownership-structure refresh (non-critical).
-  7. TEFAS fund-market refresh (non-critical).
-  8. Faaliyet-raporları franchise refresh — incremental, non-critical.
-  9. VACUUM + gzip to data/bddk_data.db.gz.
- 10. Optional: git add / commit / push the new snapshot.
+  6. TKBB participation-bank digital refresh (non-critical).
+  7. KAP ownership-structure refresh (non-critical).
+  8. TEFAS fund-market refresh (non-critical).
+  9. Faaliyet-raporları franchise refresh — incremental, non-critical.
+ 10. VACUUM + gzip to data/bddk_data.db.gz.
+ 11. Optional: git add / commit / push the new snapshot.
 
 After this runs, scripts/push_to_d1.py syncs the changed rows up to
 Cloudflare D1 — which the production dashboard reads from.
@@ -89,6 +90,8 @@ def main():
                         help="skip the BIST equity prices/indices refresh")
     parser.add_argument("--skip-tbb", action="store_true",
                         help="skip the TBB quarterly digital-banking refresh")
+    parser.add_argument("--skip-tkbb", action="store_true",
+                        help="skip the TKBB participation-bank digital refresh")
     parser.add_argument("--skip-kap", action="store_true",
                         help="skip the KAP ownership-structure refresh")
     parser.add_argument("--skip-tefas", action="store_true",
@@ -138,6 +141,19 @@ def main():
         # workbook is cumulative, so one fetch refreshes the full history.
         _run_step("TBB acquisition update",
                    [sys.executable, "scripts/update_tbb_acquisition.py"],
+                   critical=False)
+    if not args.skip_tkbb:
+        # Participation-bank digital stats from TKBB's Veri Peteği (Turboard
+        # JSON API). Incremental: fetches only quarters missing locally plus the
+        # newest stored one. Non-critical: a TKBB outage must not abort the core
+        # BDDK refresh — the next cron retries.
+        _run_step("TKBB digital-banking update",
+                   [sys.executable, "scripts/update_tkbb_digital.py"],
+                   critical=False)
+        # Monthly remote-vs-branch acquisition. The public dashboard exposes a
+        # rolling 12-month window; each run upserts it and history accumulates.
+        _run_step("TKBB acquisition update",
+                   [sys.executable, "scripts/update_tkbb_acquisition.py"],
                    critical=False)
     if not args.skip_tuik:
         # TÜİK national-accounts + PPI detail EVDS doesn't carry (GDP expenditure

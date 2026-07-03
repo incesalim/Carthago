@@ -23,10 +23,10 @@ audit lane and its repair playbook are in [`docs/AUDIT_PIPELINE.md`](../docs/AUD
 | `check_pipeline_graph_sync.py` | Stdlib-only CI gate: every ingestion workflow ↔ `/pipeline` graph node stays in sync (both directions). | `ci.yml` | pipeline |
 | `metric_knowledge.py` | CLI over the banking-metrics knowledge registry (`data/metric_knowledge/registry.json`): list / show / validate. | by hand | operational |
 
-## Bulletin / EVDS lane (BDDK monthly+weekly, EVDS, TBB, KAP, TEFAS)
+## Bulletin / EVDS lane (BDDK monthly+weekly, EVDS, TBB, TKBB, KAP, TEFAS)
 | Script | Purpose | Run by | Class |
 |---|---|---|---|
-| `refresh.py` | Orchestrator: monthly + weekly + EVDS + TBB + KAP + TEFAS → snapshot → R2. `--skip-*` flags. | `refresh-data.yml`, `refresh-bddk-bulletins.yml`, `refresh-evds-daily.yml` | pipeline |
+| `refresh.py` | Orchestrator: monthly + weekly + EVDS + TBB + TKBB + KAP + TEFAS → snapshot → R2. `--skip-*` flags. | `refresh-data.yml`, `refresh-bddk-bulletins.yml`, `refresh-evds-daily.yml` | pipeline |
 | `update_monthly.py` | Incremental monthly BDDK bulletin (latest month). | `refresh.py` | pipeline |
 | `update_weekly.py` | Rolling 13-week BDDK weekly refresh. | `refresh.py` | pipeline |
 | `update_tbb_digital.py` | TBB quarterly digital-banking Excel → `tbb_digital_stats`. | `refresh.py` | pipeline |
@@ -34,6 +34,8 @@ audit lane and its repair playbook are in [`docs/AUDIT_PIPELINE.md`](../docs/AUD
 | `update_tefas.py` | TEFAS fund-market daily / `--backfill`. | `refresh.py`; `backfill-tefas.yml` | pipeline |
 | `update_nonbank.py` | BDDK non-bank monthly bulletin (leasing / factoring / financing) → `nonbank_balance_sheet`. | `refresh.py`; `backfill-nonbank.yml` | pipeline |
 | `update_tbb_acquisition.py` | TBB monthly remote-vs-branch customer-acquisition stats → `tbb_acquisition_stats`. | `refresh.py` | pipeline |
+| `update_tkbb_digital.py` | TKBB participation-bank quarterly digital stats (Turboard JSON API) → `tkbb_digital_stats`; incremental, auto-backfills an empty table. | `refresh.py` | pipeline |
+| `update_tkbb_acquisition.py` | TKBB monthly remote-vs-branch acquisition (rolling 12-month window, accumulated) → `tkbb_acquisition_stats`. | `refresh.py` | pipeline |
 | `update_tuik.py` | TÜİK veriportali Excel detail (GDP expenditure, PPI MIG) → `evds_series` as `TUIK.*` codes. | `refresh.py` | pipeline |
 | `update_faaliyet.py` | Bank annual-report (faaliyet) franchise stats → `faaliyet_franchise`; `--backfill`. | `refresh.py`; `backfill-faaliyet.yml` | pipeline |
 | `update_presentations.py` | IR investor-presentation decks (static URLs + auto-discovery) → `bank_earnings`. | `refresh-presentations-weekly.yml` | pipeline |

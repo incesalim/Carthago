@@ -93,6 +93,16 @@ const EXT_SOURCES: { key: string; sql: string; cadenceHours: number }[] = [
     cadenceHours: MONTH,
   },
   {
+    key: "tkbb_digital",
+    sql: "SELECT COUNT(*) AS n, MAX(downloaded_at) AS last_refresh, MAX(period) AS latest FROM tkbb_digital_stats",
+    cadenceHours: QUARTER,
+  },
+  {
+    key: "tkbb_acq",
+    sql: "SELECT COUNT(*) AS n, MAX(downloaded_at) AS last_refresh, MAX(period) AS latest FROM tkbb_acquisition_stats",
+    cadenceHours: MONTH,
+  },
+  {
     key: "kap",
     sql: "SELECT COUNT(*) AS n, MAX(downloaded_at) AS last_refresh, MAX(as_of) AS latest FROM kap_ownership",
     cadenceHours: WEEK,
