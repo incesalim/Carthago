@@ -52,7 +52,7 @@ behind a fold.
 | Phase | Scope | Status |
 |---|---|---|
 | **1** | Reads on all T1 tabs (credit, deposits, asset-quality, capital, profitability, liquidity, market-risk) + audit-flagged reorders (credit pub/priv ↑, deposits dollarization ↑, profitability real-ROE ↑, capital CET1 ↑) + dedups (level twins, deposits sector-YoY dup, fee-ratio trio → 1, liquidity TL-deposit-growth dups) + retire `/sector` orphan (redirect → `/`) | **SHIPPED 2026-07-02** |
-| 2 | Real-terms convention (CPI-deflate helper + real twins) + decompositions (sector NIM bridge, ROE tree, FX-adjusted credit impulse) | pending |
+| **2** | Real-terms convention (CPI-deflate helper + real twins) + decompositions (ROE equation, FX-adjusted credit growth) | **SHIPPED 2026-07-03** |
 | 3 | Sized scenarios: NII sensitivity (±100/250/500bps × repricing), provision-need (Stage-2 migration), capital headroom (buffer vs RWA growth) | pending |
 | 4 | Share-shift leagues; bank-page rank-in-field strip + Capital/Liquidity sections; /banks league table; cross-bank CAR/CET1/LCR columns + head-to-head picker | pending |
 | 5 | Structural: fold `/sector/ratios`; relocate+compress /digital; chronology lane (regulation+news+disclosures); rates transmission headline; funds/non-bank reframe; sector Stage-2 + NPL-formation headline (npl_movement) | pending |
@@ -79,6 +79,21 @@ Market Risk tab (S8), Overview re-curation + Sector Pulse.
 - Liquidity: two TL-deposit-growth charts cut (Deposits owns deposit growth).
 - `/sector` root → `redirect("/")`; `TotalAssetsChart.tsx` deleted.
 - Net: ~14 charts removed, 0 data loss (all cuts were level-twins or dups).
+
+## Phase-2 record (what changed, 2026-07-03)
+
+- `web/app/lib/real-terms.ts` — `cpiYoYByMonth()` (TP.TUKFIY2025.GENEL levels →
+  y/y map by 'YYYY-MM') + `nominalVsReal()` (exact Fisher deflation, NOT g−π).
+  Honesty rule: weeks whose month has no published CPI are dropped from the
+  real line (no nowcast) — the real twin can end ~6 weeks behind nominal.
+- Credit §01: "nominal vs real" + "FX-adjusted (constant USD/TRY, 52w,
+  TP.DK.USD.A)" loan-growth charts — the BBVA headline credit metric. FX book
+  proxied all-USD (BDDK publishes TL-equivalent only; stated on the chart).
+- Deposits §01: "nominal vs real" deposit-growth chart.
+- Profitability: "The return equation" panel — ROA × leverage(assets/equity)
+  ≈ ROE + NIM / fees-to-revenue / OPEX drivers, y/y DeltaBadges.
+- Sector NIM bridge: NOT rebuilt — the existing NimComponentsSection already
+  is the margin decomposition (income/expense buckets over avg assets).
 
 **Known follow-ups:** rationale.json still describes the pre-Phase-1 chart
 inventory (re-run the audit after Phase 5); the mock's Liquidity deletion is

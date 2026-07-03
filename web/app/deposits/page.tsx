@@ -31,6 +31,7 @@ import TrendChart from "@/app/components/TrendChart";
 import StackedArea from "@/app/components/StackedArea";
 import Takeaway from "@/app/components/Takeaway";
 import { depositsInsights } from "@/app/lib/insights";
+import { cpiYoYByMonth, nominalVsReal, REAL_TERMS_LABELS } from "@/app/lib/real-terms";
 
 export const dynamic = "force-dynamic";
 
@@ -112,8 +113,13 @@ export default async function DepositsPage() {
     weeklyGrowth("krediler", "1.0.1", "TOTAL", 52, sector, 104),
   ]);
 
+  const cpiYoY = await cpiYoYByMonth();
+
   const demandSec = sumWeekly(demandParts);
   const dShare = demandShare(depSector, demandSec);
+  const yoySector = yoyAll.filter((r) => r.bank_type_code === WEEKLY_BANK_TYPES.SECTOR);
+  // Real-terms twin (Phase 2 convention): the y/y print deflated by CPI y/y.
+  const realVsNominal = nominalVsReal(yoySector, cpiYoY);
 
   // Deposit level composition by ownership group — the 5 weekly groups partition
   // the sector total exactly. Stacked largest-first; colorKeys matches the colours
@@ -140,7 +146,7 @@ export default async function DepositsPage() {
 
   // "The Read" — deterministic, computed from the same series the charts show.
   const read = depositsInsights({
-    yoy: yoyAll.filter((r) => r.bank_type_code === WEEKLY_BANK_TYPES.SECTOR),
+    yoy: yoySector,
     loansYoY: loansYoYSector,
     fxShare,
     demandShare: dShare,
@@ -178,16 +184,22 @@ export default async function DepositsPage() {
           />
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-2">
-            <TrendChart
-              data={mom4Sector}
-              seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "Sector" }}
-              title="Deposit Growth 4w (annualized %) — sector"
-              yFormat="pct"
-              decimals={1}
-              zeroLine
-            />
-          </div>
+          <TrendChart
+            data={realVsNominal}
+            seriesLabels={REAL_TERMS_LABELS}
+            title="Deposit Growth YoY — nominal vs real (sector, %)"
+            yFormat="pct"
+            decimals={1}
+            zeroLine
+          />
+          <TrendChart
+            data={mom4Sector}
+            seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "Sector" }}
+            title="Deposit Growth 4w (annualized %) — sector"
+            yFormat="pct"
+            decimals={1}
+            zeroLine
+          />
           <BarByBank
             data={yoyByBank}
             labels={WEEKLY_BANK_TYPE_LABELS}
