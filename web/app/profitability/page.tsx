@@ -7,6 +7,7 @@ import {
   ratioNim,
   ratioOpex,
   ratioFeesToRevenue,
+  leverage,
   evdsSeries,
   nimComponentsRaw,
   latestPeriod,
@@ -16,7 +17,7 @@ import {
   type TimeSeriesRow,
 } from "@/app/lib/metrics";
 import { buildNimDatasets } from "@/app/lib/nim-components";
-import { PageHeader } from "@/app/components/ui";
+import { PageHeader, Stat, DeltaBadge } from "@/app/components/ui";
 import TrendChart from "@/app/components/TrendChart";
 import NimComponentsSection from "./NimComponentsSection";
 import Takeaway from "@/app/components/Takeaway";
@@ -27,7 +28,7 @@ export const dynamic = "force-dynamic";
 export default async function ProfitabilityPage() {
   const [
     roe, roa, nim,
-    opex, fees,
+    opex, fees, lev,
     cpiRaw, nimRows,
   ] = await Promise.all([
     ratioRoe(PRIMARY_BANK_TYPES),
@@ -35,6 +36,7 @@ export default async function ProfitabilityPage() {
     ratioNim(PRIMARY_BANK_TYPES),
     ratioOpex(PRIMARY_BANK_TYPES),
     ratioFeesToRevenue(PRIMARY_BANK_TYPES),
+    leverage([BANK_TYPES.SECTOR]),
     // CPI 2025=100 — TP.FG.J0 (2003=100) died at the Jan-2026 TUIK rebase
     evdsSeries("TP.TUKFIY2025.GENEL", 10),
     nimComponentsRaw(),
@@ -89,6 +91,21 @@ export default async function ProfitabilityPage() {
     cpi: cpiAvg.map((c) => ({ period: c.period, bank_type_code: "CPI", value: c.value })),
   });
 
+  // "The return equation" — DuPont-lite: ROE ≈ ROA × (assets/equity). All from
+  // series already on the page + sector leverage; deltas are y/y (12 months).
+  const sectorRows = {
+    roe: sectorOnly(roe),
+    roa: sectorOnly(roa),
+    nim: sectorOnly(nim),
+    opex: sectorOnly(opex),
+    fees: sectorOnly(fees),
+  };
+  const latest = (s: TimeSeriesRow[]) => s.at(-1)?.value ?? null;
+  const yearAgo = (s: TimeSeriesRow[]) => s.at(-13)?.value ?? null;
+  const fmtPct = (v: number | null, d = 1) => (v == null ? "—" : `${v.toFixed(d)}%`);
+  // leverage series = liabilities/equity (%); assets/equity = 1 + L/E.
+  const levX = latest(lev) != null ? 1 + (latest(lev) as number) / 100 : null;
+
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
       <PageHeader
@@ -99,6 +116,56 @@ export default async function ProfitabilityPage() {
       />
 
       <Takeaway data={read} />
+
+      <section className="space-y-4">
+        <div className="space-y-0.5">
+          <h2 className="text-base font-semibold text-foreground">The return equation</h2>
+          <p className="text-xs text-muted-foreground">
+            ROE ≈ ROA × leverage; ROA is made of margin, fees and cost. Sector,
+            latest month · deltas are y/y in pp.
+          </p>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
+          <Stat
+            label="ROA · annualized"
+            value={fmtPct(latest(sectorRows.roa), 2)}
+            badge={<DeltaBadge curr={latest(sectorRows.roa)} prev={yearAgo(sectorRows.roa)} format="pp" decimals={2} />}
+          />
+          <Stat
+            label="× Leverage"
+            value={levX != null ? `${levX.toFixed(1)}×` : "—"}
+            hint="assets / equity"
+          />
+          <Stat
+            label="= ROE · annualized"
+            value={fmtPct(latest(sectorRows.roe))}
+            badge={<DeltaBadge curr={latest(sectorRows.roe)} prev={yearAgo(sectorRows.roe)} format="pp" decimals={1} />}
+          />
+          <Stat
+            label="NIM"
+            value={fmtPct(latest(sectorRows.nim), 2)}
+            badge={<DeltaBadge curr={latest(sectorRows.nim)} prev={yearAgo(sectorRows.nim)} format="pp" decimals={2} />}
+          />
+          <Stat
+            label="Fees / revenue"
+            value={fmtPct(latest(sectorRows.fees))}
+            badge={<DeltaBadge curr={latest(sectorRows.fees)} prev={yearAgo(sectorRows.fees)} format="pp" decimals={1} />}
+          />
+          <Stat
+            label="OPEX / avg assets"
+            value={fmtPct(latest(sectorRows.opex), 2)}
+            badge={
+              <DeltaBadge
+                curr={latest(sectorRows.opex)}
+                prev={yearAgo(sectorRows.opex)}
+                format="pp"
+                decimals={2}
+                goodDirection="down"
+              />
+            }
+          />
+        </div>
+      </section>
 
       <section className="space-y-4">
         <div className="space-y-0.5">

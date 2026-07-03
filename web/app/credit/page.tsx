@@ -17,10 +17,12 @@ import {
   smeBreakdown,
   latestPerBank,
   latestPeriod,
+  evdsSeries,
   WEEKLY_BANK_TYPES,
   WEEKLY_BANK_TYPE_LABELS,
   type WeeklyRow,
   type TimeSeriesRow,
+  type EvdsRow,
 } from "@/app/lib/metrics";
 import { PageHeader, Section } from "@/app/components/ui";
 import BarByBank from "@/app/components/BarByBank";
@@ -28,6 +30,7 @@ import TrendChart from "@/app/components/TrendChart";
 import StackedArea from "@/app/components/StackedArea";
 import Takeaway from "@/app/components/Takeaway";
 import { creditInsights } from "@/app/lib/insights";
+import { cpiYoYByMonth, nominalVsReal, REAL_TERMS_LABELS } from "@/app/lib/real-terms";
 
 export const dynamic = "force-dynamic";
 
@@ -85,6 +88,41 @@ function combineWeekly(parts: { code: string; rows: WeeklyRow[] }[]): TimeSeries
   );
 }
 
+/**
+ * FX-adjusted loan growth (BBVA convention, 52w): value BOTH periods' FX book
+ * at the BASE period's USD/TRY, so lira depreciation stops printing as credit
+ * growth. FX book proxied as all-USD (BDDK publishes TL-equivalent only).
+ */
+function fxAdjustedYoY(tl: WeeklyRow[], fx: WeeklyRow[], usd: EvdsRow[]): TimeSeriesRow[] {
+  const rateByDate = new Map(usd.map((r) => [r.period_date, r.value]));
+  const rateOnOrBefore = (d: string): number | null => {
+    const dt = new Date(d + "T00:00:00Z");
+    for (let i = 0; i < 10; i++) {
+      const v = rateByDate.get(dt.toISOString().slice(0, 10));
+      if (v != null && v > 0) return v;
+      dt.setUTCDate(dt.getUTCDate() - 1);
+    }
+    return null;
+  };
+  const tlByPeriod = new Map(tl.map((r) => [r.period, r.value]));
+  const fxSorted = fx.slice().sort((a, b) => a.period.localeCompare(b.period));
+  const out: TimeSeriesRow[] = [];
+  for (let i = 52; i < fxSorted.length; i++) {
+    const cur = fxSorted[i];
+    const base = fxSorted[i - 52];
+    const tlCur = tlByPeriod.get(cur.period);
+    const tlBase = tlByPeriod.get(base.period);
+    const rCur = rateOnOrBefore(cur.period);
+    const rBase = rateOnOrBefore(base.period);
+    if (tlCur == null || tlBase == null || rCur == null || rBase == null) continue;
+    const num = tlCur + (cur.value / rCur) * rBase;
+    const den = tlBase + base.value; // base FX book already at base rate
+    if (den <= 0) continue;
+    out.push({ period: cur.period, bank_type_code: "FXADJ", value: (num / den - 1) * 100 });
+  }
+  return out;
+}
+
 export default async function CreditPage() {
   const all = Object.values(WEEKLY_BANK_TYPES);
   const sector = [WEEKLY_BANK_TYPES.SECTOR];
@@ -124,8 +162,17 @@ export default async function CreditPage() {
     cardsSplit(),
     smeBreakdown(),
   ]);
+  const [cpiYoY, usdTry] = await Promise.all([cpiYoYByMonth(), evdsSeries("TP.DK.USD.A", 4)]);
 
   const fxShare = computeFxShare(tlSec, fxSec);
+  const yoySector = yoyAll.filter((r) => r.bank_type_code === WEEKLY_BANK_TYPES.SECTOR);
+  // Real-terms twin (Phase 2 convention): the y/y print deflated by CPI y/y.
+  const realVsNominal = nominalVsReal(yoySector, cpiYoY);
+  // FX-adjusted growth vs the nominal print — the BBVA headline credit metric.
+  const fxAdjVsNominal: TimeSeriesRow[] = [
+    ...yoySector.map((r) => ({ ...r, bank_type_code: "NOMINAL" })),
+    ...fxAdjustedYoY(tlSec, fxSec, usdTry),
+  ];
 
   const consMix = joinWeekly([
     { key: "Housing", rows: housingLvl },
@@ -150,7 +197,7 @@ export default async function CreditPage() {
 
   // "The Read" — deterministic, computed from the same series the charts show.
   const read = creditInsights({
-    yoy: yoyAll.filter((r) => r.bank_type_code === WEEKLY_BANK_TYPES.SECTOR),
+    yoy: yoySector,
     mom4: mom4Sector,
     yoyState: yoyPubPriv.filter((r) => r.bank_type_code === WEEKLY_BANK_TYPES.STATE),
     yoyPrivate: yoyPubPriv.filter((r) => r.bank_type_code === WEEKLY_BANK_TYPES.PRIVATE),
@@ -201,15 +248,32 @@ export default async function CreditPage() {
             decimals={1}
           />
         </div>
-        <TrendChart
-          data={mom4Sector}
-          seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "Sector" }}
-          title="Loan Growth 4w (annualized %) — sector"
-          yFormat="pct"
-          decimals={1}
-          zeroLine
-          height={300}
-        />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <TrendChart
+            data={realVsNominal}
+            seriesLabels={REAL_TERMS_LABELS}
+            title="Loan Growth YoY — nominal vs real (sector, %)"
+            yFormat="pct"
+            decimals={1}
+            zeroLine
+          />
+          <TrendChart
+            data={fxAdjVsNominal}
+            seriesLabels={{ NOMINAL: "Nominal", FXADJ: "FX-adjusted (constant USD/TRY)" }}
+            title="Loan Growth YoY — FX-adjusted (sector, %)"
+            yFormat="pct"
+            decimals={1}
+            zeroLine
+          />
+          <TrendChart
+            data={mom4Sector}
+            seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "Sector" }}
+            title="Loan Growth 4w (annualized %) — sector"
+            yFormat="pct"
+            decimals={1}
+            zeroLine
+          />
+        </div>
       </Section>
 
       <Section
