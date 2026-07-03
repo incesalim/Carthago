@@ -179,6 +179,60 @@ export async function repricingLadder(
   return { data, period };
 }
 
+/** One rate scenario for the NII-sensitivity panel. */
+export interface NiiScenario {
+  bps: number;
+  /** First-order ΔNII over a 1-year horizon, ₺bn. */
+  niiBn: number;
+  /** Same, as % of total rate-sensitive assets. */
+  pctRsa: number | null;
+}
+
+// Bucket midpoints in years — how far into the year the bucket reprices; the
+// position then earns/pays the new rate for the REMAINDER of the year.
+const BUCKET_MIDPOINT_Y: Record<string, number> = {
+  lt_1m: 1 / 24, "1_3m": 2 / 12, "3_12m": 7.5 / 12,
+};
+
+/**
+ * Sized scenario (display-study Phase 3): first-order ΔNII over one year from a
+ * parallel rate shift, off the latest quarter's sector repricing ladder.
+ * ΔNII ≈ Σ_{buckets ≤1y} gap_b × Δr × (1 − midpoint_b). Assumptions stated on
+ * the panel: parallel shift, no repricing beta / behavioral offsets, >1y
+ * buckets ignored (they reprice outside the horizon).
+ */
+export async function niiSensitivity(
+  kind: string = DEFAULT_KIND,
+  shiftsBps: number[] = [-500, -250, 250, 500],
+): Promise<{ period: string | null; scenarios: NiiScenario[] }> {
+  const rp = await rpRows(kind);
+  const periods = [...new Set(rp.map((r) => r.period))].sort();
+  const period = periods.at(-1) ?? null;
+  if (!period) return { period: null, scenarios: [] };
+  const byBucket = new Map<string, number>();
+  let rsa = 0;
+  for (const r of rp) {
+    if (r.period !== period) continue;
+    if (r.bucket === "total") {
+      if (r.rate_sensitive_assets != null) rsa += r.rate_sensitive_assets;
+    } else if (r.gap != null && BUCKET_MIDPOINT_Y[r.bucket] != null) {
+      byBucket.set(r.bucket, (byBucket.get(r.bucket) ?? 0) + r.gap);
+    }
+  }
+  const scenarios = shiftsBps.map((bps) => {
+    let nii = 0; // thousand TRY
+    for (const [bucket, gap] of byBucket) {
+      nii += gap * (bps / 10_000) * (1 - BUCKET_MIDPOINT_Y[bucket]);
+    }
+    return {
+      bps,
+      niiBn: nii / TH_TO_BN,
+      pctRsa: rsa > 0 ? (nii / rsa) * 100 : null,
+    };
+  });
+  return { period, scenarios };
+}
+
 /** One repricing bucket for the per-bank diverging-bar view. */
 export interface RepricingBucket {
   label: string;
