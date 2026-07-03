@@ -16,6 +16,8 @@ from __future__ import annotations
 
 import gzip
 import json as _json
+import os
+import re
 import shutil
 import sqlite3
 import subprocess
@@ -112,17 +114,123 @@ def partition_delete_sql(parts: list[tuple[str, str, str]],
     return "\n".join(stmts) + "\n"
 
 
+def _ddl_columns() -> dict[str, list[tuple[str, str, str | None]]]:
+    """{table: [(column, type, default_sql|None)]} for every table the canonical
+    schema defines — realised in a scratch in-memory SQLite via init_schema
+    (DDL **plus** _COLUMN_MIGRATIONS, the very columns the plain-DDL ensure kept
+    missing from D1) so column facts come from SQLite itself (PRAGMA
+    table_info), never from parsing SQL text."""
+    from src.audit_reports.schema import init_schema
+    conn = sqlite3.connect(":memory:")
+    init_schema(conn)
+    out: dict[str, list[tuple[str, str, str | None]]] = {}
+    for (tbl,) in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' "
+            "AND name NOT LIKE 'sqlite_%' ORDER BY name"):
+        out[tbl] = [(r[1], r[2], r[4])
+                    for r in conn.execute(f"PRAGMA table_info({tbl})")]
+    return out
+
+
+# A DEFAULT is carried over to the ALTER only when it's a plain literal —
+# SQLite refuses ALTER ... ADD COLUMN with a non-constant default (e.g. the
+# extracted_at/validated_at CURRENT_TIMESTAMP), so those columns are added
+# default-less (existing rows NULL; the pushes always supply values explicitly).
+_CONST_DEFAULT_RX = re.compile(r"[-+]?\d+(\.\d+)?|'(?:[^']|'')*'|NULL", re.I)
+
+
+def missing_column_alters(ddl_cols: dict[str, list[tuple[str, str, str | None]]],
+                          remote_cols: dict[str, set[str]]) -> list[str]:
+    """Add-only ALTER statements for columns the DDL has but remote D1 lacks.
+    Never drops or retypes; a remote-only column is left alone (pushes name
+    their columns explicitly, so extras are harmless)."""
+    alters = []
+    for tbl, cols in sorted(ddl_cols.items()):
+        have = remote_cols.get(tbl)
+        if have is None:
+            continue  # table absent remotely — the DDL apply just created it
+        for name, typ, dflt in cols:
+            if name in have:
+                continue
+            stmt = f"ALTER TABLE {tbl} ADD COLUMN {name} {typ}".rstrip()
+            if dflt is not None and _CONST_DEFAULT_RX.fullmatch(dflt.strip()):
+                stmt += f" DEFAULT {dflt.strip()}"
+            alters.append(stmt + ";")
+    return alters
+
+
+def _wrangler_json(sql: str, what: str) -> list[dict]:
+    """Run a semicolon-batched SQL string against remote D1 with --json and
+    return the per-statement result list (same order as the statements). MUST
+    go through --command: a --file import is processed as one batch and returns
+    a single summary object, not per-statement results. Exits after D1_RETRIES
+    failures — ensure runs BEFORE any partition clear, so aborting here is
+    always safer than discovering drift mid-push."""
+    from scripts.push_to_d1 import WEB
+    cmd = ["npx", "--yes", "wrangler", "d1", "execute", "bddk-data",
+           "--remote", "--json", f"--command={sql}"]
+    for attempt in range(1, D1_RETRIES + 1):
+        res = subprocess.run(cmd, cwd=str(WEB), shell=os.name == "nt",
+                             capture_output=True, text=True, encoding="utf-8")
+        if res.returncode == 0:
+            out = res.stdout
+            start = out.find("[")
+            if start >= 0:
+                try:
+                    return _json.JSONDecoder().raw_decode(out[start:])[0]
+                except ValueError:
+                    pass
+            print(f"[d1] {what}: unparseable wrangler output:\n{out[:500]}",
+                  flush=True)
+        else:
+            print(f"[d1] {what} failed (attempt {attempt}/{D1_RETRIES}):\n"
+                  f"{(res.stderr or res.stdout)[:500]}", flush=True)
+        if attempt < D1_RETRIES:
+            time.sleep(D1_RETRY_WAIT_S)
+    sys.exit(f"[d1] {what} failed after {D1_RETRIES} attempts")
+
+
+def _remote_table_columns(tables: list[str]) -> dict[str, set[str]]:
+    """Column names per table in remote D1 — one batched wrangler call of
+    PRAGMA table_info per table; results map back by statement order. Joined
+    on one line: the SQL travels as a --command argument through cmd.exe."""
+    sql = " ".join(f"PRAGMA table_info({t});" for t in tables)
+    results = _wrangler_json(sql, "D1 column probe")
+    if len(results) != len(tables):
+        sys.exit(f"[d1] column probe returned {len(results)} results for "
+                 f"{len(tables)} tables — refusing to guess the mapping")
+    return {t: {row["name"] for row in r.get("results", [])}
+            for t, r in zip(tables, results)}
+
+
 def ensure_d1_schema() -> None:
-    """Create any missing bank_audit_* tables in remote D1 before clear/push.
-    push_to_d1 only emits INSERT OR REPLACE — never CREATE — so a newly-added
-    table won't exist in D1 and the partition-clear's `DELETE FROM <missing>`
-    would error mid-batch (partial delete, no re-push = data loss). The schema
-    DDL is all CREATE ... IF NOT EXISTS, so applying it here is idempotent."""
+    """Create any missing bank_audit_* tables AND columns in remote D1 before
+    clear/push. push_to_d1 only emits INSERT OR REPLACE — never CREATE/ALTER —
+    so a newly-added table won't exist in D1 and the partition-clear's
+    `DELETE FROM <missing>` would error mid-batch (partial delete, no re-push =
+    data loss). The DDL is all CREATE ... IF NOT EXISTS, so applying it is
+    idempotent — but IF NOT EXISTS can't EVOLVE an existing table: a column
+    added to the DDL (rows_fx_position, 2026-06-27) never reached long-lived
+    deployments and the 2026-07-02 override push died mid-flight AFTER its
+    partition clear. So after the DDL pass, diff remote PRAGMA table_info
+    against the DDL's columns and ALTER TABLE ADD COLUMN the gaps (add-only;
+    never drops or retypes; non-constant defaults dropped from the ALTER)."""
     from src.audit_reports.schema import DDL
     sql_path = Path(tempfile.gettempdir()) / "d1_audit_schema.sql"
     sql_path.write_text(DDL, encoding="utf-8")
     print("[d1] ensuring bank_audit_* schema exists in D1")
     retry_wrangler(sql_path, "D1 schema ensure")
+    ddl_cols = _ddl_columns()
+    remote = _remote_table_columns(sorted(ddl_cols))
+    alters = missing_column_alters(ddl_cols, remote)
+    if not alters:
+        print("[d1] schema columns in sync")
+        return
+    print(f"[d1] adding {len(alters)} missing column(s) to D1:\n  "
+          + "\n  ".join(alters))
+    alter_path = Path(tempfile.gettempdir()) / "d1_schema_alters.sql"
+    alter_path.write_text("\n".join(alters) + "\n", encoding="utf-8")
+    retry_wrangler(alter_path, "D1 schema column add")
 
 
 def clear_d1_partitions(db_path: Path, window_hours: int,

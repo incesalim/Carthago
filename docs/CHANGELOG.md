@@ -3,7 +3,21 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-07-02 — **BS/P&L validator audit: two silent coverage holes closed, two data defects fixed, one new corpus check.**
+Last verified: 2026-07-03 — **`ensure_d1_schema` is now column-aware — D1 can no longer drift behind the snapshot schema.**
+Root cause of the 2026-07-02 override-push failure: `schema.py` evolves existing tables via `_COLUMN_MIGRATIONS`
+(+`init_schema`), which every LOCAL snapshot gets — but the D1-side `ensure_d1_schema` only applied the
+`CREATE TABLE IF NOT EXISTS` DDL, which cannot add columns, so remote `bank_audit_extractions` was missing the
+2026-06-27 market-risk counters (`rows_fx_position`/`rows_repricing`) and `push_to_d1` died mid-flight AFTER the
+partition clear. Now `ensure_d1_schema` realises the canonical schema (DDL **+** `_COLUMN_MIGRATIONS`) in a
+scratch in-memory SQLite, probes remote columns with one batched `PRAGMA table_info` wrangler call (`--command`,
+not `--file` — a file import returns one summary object, not per-statement results), and applies **add-only**
+`ALTER TABLE ADD COLUMN` for the gaps (never drops/retypes; non-constant defaults like `CURRENT_TIMESTAMP` are
+legal in a CREATE but not in an ALTER, so they're dropped from the added column). A probe/mapping failure aborts
+BEFORE any partition clear — strictly safer than the old mid-push death. Pure diff logic unit-tested
+(`tests/test_audit_d1_schema.py`, incident-shaped regression); verified live: probe parsed all 19 tables,
+remote reported in sync after the incident's two manual ALTERs.
+
+2026-07-02 — **BS/P&L validator audit: two silent coverage holes closed, two data defects fixed, one new corpus check.**
 A recompute-from-stored-rows corpus audit confirmed the BS/P&L validators sound (3900/3900 statement results
 match a current-code recompute; the checks demonstrably catch prior-year-column capture and dropped romans on
 a stale sandbox DB) but found the strongest P&L cross-check silently skipping 21% of the corpus. Fixes:
