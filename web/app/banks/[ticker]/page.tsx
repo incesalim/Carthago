@@ -298,6 +298,35 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   const liveQ = liveMap.get(ticker);
   const valuation = valuationBase && liveQ ? applyLivePrice(valuationBase, liveQ) : valuationBase;
 
+  // Rank-in-field (display-study Phase 4): this bank's place among the banks
+  // reporting the same quarter, per metric — the "are we winning?" context every
+  // number needs. Same panel as /cross-bank, so the ranks reconcile.
+  const rankOf = (
+    key: "total_assets" | "roe" | "nim" | "car" | "cet1" | "cost_income",
+    higherIsBetter = true,
+  ): { rank: number; n: number } | null => {
+    if (!perfLatest) return null;
+    const field = heatmap
+      .filter((r) => r.period === perfLatest.period && r[key] != null)
+      .sort((a, b) => (higherIsBetter ? (b[key] as number) - (a[key] as number) : (a[key] as number) - (b[key] as number)));
+    const i = field.findIndex((r) => r.bank_ticker === ticker);
+    return i === -1 ? null : { rank: i + 1, n: field.length };
+  };
+  const ord = (n: number) => {
+    const s = ["th", "st", "nd", "rd"];
+    const v = n % 100;
+    return `${n}${s[(v - 20) % 10] ?? s[v] ?? s[0]}`;
+  };
+  const rankChips = [
+    { label: "by assets", r: rankOf("total_assets") },
+    { label: "by ROE", r: rankOf("roe") },
+    { label: "by NIM", r: rankOf("nim") },
+    { label: "by cost / income", r: rankOf("cost_income", false) },
+  ].filter((c) => c.r != null) as Array<{ label: string; r: { rank: number; n: number } }>;
+
+  // Per-bank Capital section (the audit's add_missing gap) — audited §4 buffers.
+  const hasCapital = !!perfLatest && (perfLatest.car != null || perfLatest.cet1 != null);
+
   // ⚠ on a period column = that quarter's extraction failed one or more
   // internal-sum identity checks (TL+FC=Total, parent=Σchildren, TOTAL=Σromans,
   // assets=liabilities+equity) — treat its figures with care. Scoped to the
@@ -432,6 +461,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
     { id: "overview", label: "Overview" },
     ...(hasPerf ? [{ id: "performance", label: "Performance" }] : []),
     ...(hasMarketRisk ? [{ id: "market-risk", label: "Market Risk" }] : []),
+    ...(hasCapital ? [{ id: "capital", label: "Capital" }] : []),
     { id: "financials", label: "Financials" },
     ...(hasOwnership ? [{ id: "ownership", label: "Ownership" }] : []),
     { id: "disclosures", label: "Disclosures" },
@@ -465,6 +495,29 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
           At-a-glance profile + (listed banks) BIST market & valuation. */}
       <div id="overview" className="scroll-mt-24 mb-8">
         <Section title="Overview" contentClassName="">
+          {/* Rank-in-field strip: place among the banks reporting the same
+              quarter (same panel as /cross-bank, so the ranks reconcile). */}
+          {rankChips.length > 0 && (
+            <div className="mb-4 flex flex-wrap gap-2">
+              {rankChips.map((c) => (
+                <span
+                  key={c.label}
+                  className="inline-flex items-baseline gap-1.5 rounded-md border border-border bg-card px-2.5 py-1"
+                >
+                  <span className="font-mono text-sm font-semibold text-foreground">
+                    {ord(c.r.rank)}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">
+                    of {c.r.n} {c.label}
+                  </span>
+                </span>
+              ))}
+              <span className="self-center text-[11px] text-faint">
+                · among banks reporting {perfLatest?.period}
+              </span>
+            </div>
+          )}
+
           {/* Bank-card summary: branches, personnel, TFRS 9 stage + coverage */}
           <BankCard
             profile={profile}
@@ -547,6 +600,55 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
       {hasMarketRisk && (
         <div id="market-risk" className="scroll-mt-24 mb-8">
           <MarketRiskSection rows={perfRows} detail={mrDetail} />
+        </div>
+      )}
+
+      {/* ── Capital (audited §4) ──────────────────────────────────────────
+          Per-bank solvency buffers — the audit's add_missing gap. LCR lives in
+          the Market Risk tiles above; this block is the capital side. */}
+      {hasCapital && perfLatest && (
+        <div id="capital" className="scroll-mt-24 mb-8">
+          <Section
+            title="Capital"
+            description={`Audited §4 capital ratios · ${perfLatest.period} · buffer vs the 12% regulatory minimum (incl. buffers). Ranks are among banks reporting the quarter.`}
+            contentClassName=""
+          >
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <Stat
+                label="CAR"
+                value={perfLatest.car != null ? `${perfLatest.car.toFixed(1)}%` : "—"}
+                hint={rankOf("car") ? `${ord(rankOf("car")!.rank)} of ${rankOf("car")!.n}` : undefined}
+                tone={
+                  perfLatest.car == null
+                    ? "neutral"
+                    : perfLatest.car - 12 < 2
+                      ? "warning"
+                      : perfLatest.car - 12 >= 4
+                        ? "positive"
+                        : "neutral"
+                }
+              />
+              <Stat
+                label="Buffer over minimum"
+                value={perfLatest.car != null ? `${(perfLatest.car - 12).toFixed(1)}pp` : "—"}
+                hint="CAR − 12%"
+              />
+              <Stat
+                label="CET1"
+                value={perfLatest.cet1 != null ? `${perfLatest.cet1.toFixed(1)}%` : "—"}
+                hint={rankOf("cet1") ? `${ord(rankOf("cet1")!.rank)} of ${rankOf("cet1")!.n}` : undefined}
+              />
+              <Stat
+                label="AT1 / Tier-2 reliance"
+                value={
+                  perfLatest.car != null && perfLatest.cet1 != null
+                    ? `${(perfLatest.car - perfLatest.cet1).toFixed(1)}pp`
+                    : "—"
+                }
+                hint="CAR − CET1"
+              />
+            </div>
+          </Section>
         </div>
       )}
 

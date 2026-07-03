@@ -14,6 +14,18 @@ import type { LeagueEntry, HhiPoint } from "@/app/lib/market-share";
 
 const pct = (v: number | null, d = 2): string => (v == null ? "—" : `${(v * 100).toFixed(d)}%`);
 
+/** Signed pp share shift, tone-coloured (the strategist column: who is taking share). */
+function ShareShift({ pp }: { pp: number | null }) {
+  if (pp == null) return <span className="text-muted-foreground">—</span>;
+  if (Math.abs(pp) < 0.005) return <span className="text-muted-foreground">0.00pp</span>;
+  return (
+    <span className={pp > 0 ? "text-positive" : "text-negative"}>
+      {pp > 0 ? "+" : ""}
+      {pp.toFixed(2)}pp
+    </span>
+  );
+}
+
 /** US-DOJ concentration bands on the 0–10 000 HHI scale. */
 function hhiBand(h: number | null): string {
   if (h == null) return "—";
@@ -52,7 +64,7 @@ export default function MarketShareSection({
   return (
     <Section
       title="Market share & concentration"
-      description={`Asset-size league table · Q${q} ${year} · share of the ${league.length} banks reporting this quarter (~98% of sector). HHI = Σ share² (0–10 000).`}
+      description={`Asset-size league table · Q${q} ${year} · share of the ${league.length} banks reporting this quarter (~98% of sector). Δ y/y columns show who is TAKING share (pp vs 4 quarters ago). HHI = Σ share² (0–10 000).`}
       contentClassName=""
     >
       {hhi && (
@@ -71,7 +83,9 @@ export default function MarketShareSection({
               <th className="py-2 pr-3 text-left font-medium">Bank</th>
               <th className="py-2 pr-3 text-right font-medium">Assets share</th>
               <th className="py-2 pr-3 text-right font-medium">Loans share</th>
+              <th className="py-2 pr-3 text-right font-medium">Δ loans y/y</th>
               <th className="py-2 pr-3 text-right font-medium">Deposits share</th>
+              <th className="py-2 pr-3 text-right font-medium">Δ deposits y/y</th>
               <th className="py-2 pr-3 text-right font-medium">Δ rank q/q</th>
             </tr>
           </thead>
@@ -82,7 +96,13 @@ export default function MarketShareSection({
                 <td className="py-1.5 pr-3 font-medium text-foreground">{bankDisplayName(e.bank_ticker)}</td>
                 <td className="py-1.5 pr-3 text-right tabular-nums">{pct(e.assets_share)}</td>
                 <td className="py-1.5 pr-3 text-right tabular-nums">{pct(e.loans_share)}</td>
+                <td className="py-1.5 pr-3 text-right tabular-nums">
+                  <ShareShift pp={e.loans_share_yoy_pp} />
+                </td>
                 <td className="py-1.5 pr-3 text-right tabular-nums">{pct(e.deposits_share)}</td>
+                <td className="py-1.5 pr-3 text-right tabular-nums">
+                  <ShareShift pp={e.deposits_share_yoy_pp} />
+                </td>
                 <td className="py-1.5 pr-3 text-right tabular-nums">
                   <RankMove change={e.rank_change} />
                 </td>
