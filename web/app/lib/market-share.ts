@@ -185,26 +185,37 @@ export interface LeagueEntry {
   /** Rank improvement vs the prior quarter (+1 = climbed one place); null if the
    *  bank wasn't ranked last quarter. */
   rank_change: number | null;
+  /** Share SHIFT (display-study Phase 4): change vs 4 quarters ago, in pp of
+   *  the reporting-bank total. Null if the bank has no year-ago share. */
+  loans_share_yoy_pp: number | null;
+  deposits_share_yoy_pp: number | null;
 }
 
 /** League table for one period: banks ordered largest-first by assets, each
- *  carrying its quarter-over-quarter rank move. `rows` is a full share panel. */
+ *  carrying its quarter-over-quarter rank move and its year-over-year share
+ *  shift. `rows` is a full share panel. */
 export function leagueTable(rows: ShareRow[], period: string): LeagueEntry[] {
-  const priorPeriod = [...new Set(rows.map((r) => r.period))]
-    .filter((p) => p < period)
-    .sort()
-    .pop();
+  const allPeriods = [...new Set(rows.map((r) => r.period))].sort();
+  const priorPeriod = allPeriods.filter((p) => p < period).pop();
+  const idx = allPeriods.indexOf(period);
+  const yearAgoPeriod = idx >= 4 ? allPeriods[idx - 4] : undefined;
+
   const priorRank = new Map<string, number>();
-  if (priorPeriod) {
-    for (const r of rows) {
-      if (r.period === priorPeriod && r.assets_rank != null) priorRank.set(r.bank_ticker, r.assets_rank);
-    }
+  const yearAgoShare = new Map<string, { loans: number | null; deposits: number | null }>();
+  for (const r of rows) {
+    if (priorPeriod && r.period === priorPeriod && r.assets_rank != null)
+      priorRank.set(r.bank_ticker, r.assets_rank);
+    if (yearAgoPeriod && r.period === yearAgoPeriod)
+      yearAgoShare.set(r.bank_ticker, { loans: r.loans_share, deposits: r.deposits_share });
   }
   return rows
     .filter((r) => r.period === period && r.assets_rank != null)
     .sort((a, b) => (a.assets_rank ?? 0) - (b.assets_rank ?? 0))
     .map((r) => {
       const prev = priorRank.get(r.bank_ticker);
+      const base = yearAgoShare.get(r.bank_ticker);
+      const shiftPp = (now: number | null, then: number | null | undefined) =>
+        now != null && then != null ? (now - then) * 100 : null;
       return {
         bank_ticker: r.bank_ticker,
         assets: r.assets,
@@ -213,6 +224,8 @@ export function leagueTable(rows: ShareRow[], period: string): LeagueEntry[] {
         deposits_share: r.deposits_share,
         rank: r.assets_rank,
         rank_change: prev != null && r.assets_rank != null ? prev - r.assets_rank : null,
+        loans_share_yoy_pp: shiftPp(r.loans_share, base?.loans),
+        deposits_share_yoy_pp: shiftPp(r.deposits_share, base?.deposits),
       };
     });
 }

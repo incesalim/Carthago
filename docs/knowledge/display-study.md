@@ -54,7 +54,8 @@ behind a fold.
 | **1** | Reads on all T1 tabs (credit, deposits, asset-quality, capital, profitability, liquidity, market-risk) + audit-flagged reorders (credit pub/priv ↑, deposits dollarization ↑, profitability real-ROE ↑, capital CET1 ↑) + dedups (level twins, deposits sector-YoY dup, fee-ratio trio → 1, liquidity TL-deposit-growth dups) + retire `/sector` orphan (redirect → `/`) | **SHIPPED 2026-07-02** |
 | **2** | Real-terms convention (CPI-deflate helper + real twins) + decompositions (ROE equation, FX-adjusted credit growth) | **SHIPPED 2026-07-03** |
 | **3** | Sized scenarios: NII sensitivity (±250/500bps × repricing ladder) + capital headroom (buffer drift + generation gap). Provision-need scenario MOVED to Phase 5 (needs the sector Stage-2 series first) | **SHIPPED 2026-07-03** |
-| 4 | Share-shift leagues; bank-page rank-in-field strip + Capital/Liquidity sections; /banks league table; cross-bank CAR/CET1/LCR columns + head-to-head picker | pending |
+| **4** | Share-shift columns on the /cross-bank league (Δpp y/y); bank-page rank-in-field strip + per-bank Capital section (CAR/CET1/buffer/AT1-reliance + ranks). Cross-bank CAR/CET1/LCR/NOP columns were ALREADY live (market-risk lane) | **SHIPPED 2026-07-03** |
+| 4b | /banks league table w/ metric switcher + ownership-group cards; cross-bank 2–3-bank head-to-head picker (the mock's Compare) | deferred |
 | 5 | Structural: fold `/sector/ratios`; relocate+compress /digital; chronology lane (regulation+news+disclosures); rates transmission headline; funds/non-bank reframe; sector Stage-2 + NPL-formation headline (npl_movement) + provision-need scenario (Stage-2 × coverage, from Phase 3) | pending |
 
 Already closed before this study (post-audit, keep): sector CET1/Tier-1 on
