@@ -266,6 +266,7 @@ export function assetQualityInsights(d: {
   grossNpl: SeriesPoint[]; // weekly level
   cardsNpl: SeriesPoint[]; // consumer cards NPL ratio
   smeNpl: SeriesPoint[]; // SME NPL ratio
+  stage2?: SeriesPoint[]; // sector Stage-2 share of gross loans (audited quarterly)
 }): TabTakeaway {
   const period = asOf(d.npl);
   const items: Insight[] = [];
@@ -276,6 +277,15 @@ export function assetQualityInsights(d: {
     items.push({
       text: `NPL ratio ${pct(n, 2)}${nD != null ? ` (${ppStr(nD)} m/m)` : ""} — ${n < 3 ? "low by Turkish cycle standards" : n < 5 ? "mid-cycle" : "elevated"}.`,
       tone: nD != null && nD > 0.05 ? "warn" : nD != null && nD < -0.05 ? "positive" : "neutral",
+    });
+  }
+
+  const s2 = d.stage2 ? last(d.stage2) : null;
+  const s2D = d.stage2 ? deltaPp(d.stage2) : null;
+  if (s2 != null) {
+    items.push({
+      text: `Stage-2 loans — the pre-NPL watchlist — are ${pct(s2)} of the book${s2D != null ? ` (${ppStr(s2D)} q/q, ${s2D > 0.2 ? "migrating up" : s2D < -0.2 ? "easing" : "stable"})` : ""}.`,
+      tone: s2D != null && s2D > 0.2 ? "warn" : s2D != null && s2D < -0.2 ? "positive" : "neutral",
     });
   }
 

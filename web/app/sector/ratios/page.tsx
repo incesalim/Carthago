@@ -107,7 +107,10 @@ export default async function RatiosPage({
         dataThrough={latestPeriod(assets, npl, nim, ldr, roa, roe)}
         description={
           <>
-            BDDK monthly bulletin · {BANK_TYPE_LABELS[bankType]} ({bankType}) · queried live from D1
+            The official BDDK Table-15 scorecard <strong>by bank type</strong> — the one surface
+            where deposit / participation / development-investment groups are compared on the
+            regulator&apos;s own ratios. Sector-level trends live on Overview and the theme tabs.
+            · {BANK_TYPE_LABELS[bankType]} ({bankType}) · queried live from D1
           </>
         }
         className="mb-4"
