@@ -21,6 +21,7 @@ import BarByBank from "@/app/components/BarByBank";
 import TrendChart from "@/app/components/TrendChart";
 import Takeaway from "@/app/components/Takeaway";
 import { capitalInsights } from "@/app/lib/insights";
+import { withLlmHeadline } from "@/app/lib/read-headlines";
 
 export const dynamic = "force-dynamic";
 
@@ -74,7 +75,7 @@ export default async function CapitalPage() {
         dataThrough={latestPeriod(carAll, equity, lev)}
       />
 
-      <Takeaway data={read} />
+      <Takeaway data={await withLlmHeadline("capital", read)} />
 
       <section className="space-y-4">
         <div className="space-y-0.5">
