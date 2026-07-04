@@ -18,6 +18,10 @@ const TONE_GLYPH: Record<string, string> = {
   warn: "◆",
   neutral: "●",
 };
+// Literal class strings (Tailwind must see them verbatim) for spanning the last
+// cell to fill its row. Indexed by the number of columns to span.
+const SM_SPAN = ["", "sm:col-span-1", "sm:col-span-2"];
+const LG_SPAN = ["", "lg:col-span-1", "lg:col-span-2", "lg:col-span-3"];
 
 export default function Takeaway({
   title = "The Read",
@@ -27,6 +31,10 @@ export default function Takeaway({
   data: TabTakeaway;
 }) {
   if (!data.items.length) return null;
+  // Fill the last row so no empty grid slot shows the grey gap background: span
+  // the final driver across whatever columns are left over at each breakpoint.
+  const n = data.items.length;
+  const lastSpan = `${SM_SPAN[2 - ((n - 1) % 2)]} ${LG_SPAN[3 - ((n - 1) % 3)]}`;
   return (
     <section className="flex overflow-hidden rounded-[10px] border border-border bg-card">
       <div className="w-1 shrink-0 bg-primary" aria-hidden />
@@ -50,7 +58,12 @@ export default function Takeaway({
         </p>
         <div className="grid grid-cols-1 gap-px overflow-hidden rounded-[9px] border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
           {data.items.map((it, i) => (
-            <div key={i} className="bg-card p-4 text-[12.5px] leading-[1.5] text-foreground">
+            <div
+              key={i}
+              className={`bg-card p-4 text-[12.5px] leading-[1.5] text-foreground ${
+                i === n - 1 ? lastSpan : ""
+              }`}
+            >
               <span
                 className={`mr-2 text-[10px] leading-none ${TONE_TEXT[it.tone] ?? TONE_TEXT.neutral}`}
                 aria-hidden
