@@ -23,6 +23,13 @@ export interface StandardLine {
   /** Render bold — used for category subtotals (Roman numerals at indent 0)
    *  and P&L subtotal rows (Net Interest Income, Pre-tax Profit, etc.). */
   bold?: boolean;
+  /** Always-subtractive deduction (expense / ECL / commissions paid). Displayed
+   *  as a negative TL value across every financial table; the label omits the
+   *  "(-)" marker since the sign now carries it. BRSA banks store these with
+   *  inconsistent signs (some positive, some parenthesized-negative), so the
+   *  render folds the value to −|amount| — see the per-bank page's cellsForLine.
+   *  YoY-growth is still computed on the magnitude, so a rising expense reads +%. */
+  contra?: boolean;
   /** Visual-only section title (no value cells) — used for the cash-flow
    *  Operating / Investing / Financing section headers, which most banks don't
    *  file as data rows. The `hierarchy` is a sentinel that never matches data. */
@@ -49,7 +56,7 @@ export const BS_ASSET_LINES: StandardLine[] = [
   { id: "cash_cb",                 label: "Cash and Central Bank Balances",                                  hierarchy: "1.1.1" },
   { id: "banks",                   label: "Banks",                                                           hierarchy: "1.1.2" },
   { id: "money_market_recv",       label: "Money Market Placements",                                         hierarchy: "1.1.3" },
-  { id: "ecl_cash",                label: "Expected Credit Losses (-)",                                      hierarchy: "1.1.ecl" },
+  { id: "ecl_cash",                label: "Expected Credit Losses",                                          hierarchy: "1.1.ecl", contra: true },
   { id: "fvtpl",                   label: "Financial Assets at FVTPL",                                       hierarchy: "1.2" },
   { id: "fvoci",                   label: "Financial Assets at FVOCI",                                       hierarchy: "1.3" },
   { id: "derivatives",             label: "Derivative Financial Assets",                                     hierarchy: "1.4" },
@@ -59,7 +66,7 @@ export const BS_ASSET_LINES: StandardLine[] = [
   { id: "factoring_recv",          label: "Factoring Receivables",                                           hierarchy: "2.3" },
   { id: "securities_amc",          label: "Securities at Amortized Cost",                                    hierarchy: "2.3" },
   { id: "other_amort_cost",        label: "Other Financial Assets at Amortized Cost",                        hierarchy: "2.4" },
-  { id: "ecl_loans",               label: "Expected Credit Losses (-)",                                      hierarchy: "2.ecl" },
+  { id: "ecl_loans",               label: "Expected Credit Losses",                                          hierarchy: "2.ecl", contra: true },
   { id: "held_for_sale",           label: "Held-for-Sale and Discontinued Operations Assets (Net)",          hierarchy: "III." },
   { id: "subsidiaries",            label: "Investments in Subsidiaries and Associates",                      hierarchy: "IV.",   bold: true },
   { id: "associates",              label: "Associates (Net)",                                                hierarchy: "4.1" },
@@ -212,7 +219,7 @@ export const PL_LINES: StandardLine[] = [
   { id: "ii_securities",          label: "Interest from Securities Portfolio",                   hierarchy: "1.5" },
 
   // II. Interest Expense + breakdown
-  { id: "interest_expense",       label: "Interest / Profit Share Expense (-)",                  hierarchy: "II.",    bold: true },
+  { id: "interest_expense",       label: "Interest / Profit Share Expense",                      hierarchy: "II.",    bold: true, contra: true },
   { id: "ie_deposits",            label: "Interest on Deposits / Funds Collected",               hierarchy: "2.1" },
   { id: "ie_borrowings",          label: "Interest on Funds Borrowed",                           hierarchy: "2.2" },
   { id: "ie_money_market",        label: "Interest on Money Market Operations",                  hierarchy: "2.3" },
@@ -220,12 +227,12 @@ export const PL_LINES: StandardLine[] = [
   { id: "ie_lease",               label: "Lease Interest Expense",                               hierarchy: "2.5" },
 
   // III. Net Interest Income (subtotal)
-  { id: "net_interest",           label: "Net Interest / Profit Share Income (I - II)",          hierarchy: "III.",   bold: true },
+  { id: "net_interest",           label: "Net Interest / Profit Share Income (I + II)",          hierarchy: "III.",   bold: true },
 
   // IV. Net Fees & Commissions + breakdown
   { id: "net_fees",               label: "Net Fees & Commissions",                               hierarchy: "IV.",    bold: true },
   { id: "fees_received",          label: "Fees & Commissions Received",                          hierarchy: "4.1" },
-  { id: "fees_paid",              label: "Fees & Commissions Paid (-)",                          hierarchy: "4.2" },
+  { id: "fees_paid",              label: "Fees & Commissions Paid",                              hierarchy: "4.2",    contra: true },
 
   // V-VII. Other operating revenue lines
   { id: "dividend_income",        label: "Dividend Income",                                      hierarchy: "V.",     bold: true },
@@ -236,13 +243,13 @@ export const PL_LINES: StandardLine[] = [
   { id: "gross_op_profit",        label: "Gross Operating Profit (III+IV+V+VI+VII)",             hierarchy: "VIII.",  bold: true },
 
   // IX-XII. Provisions + operating expenses
-  { id: "ecl_provisions",         label: "Expected Credit Loss Provisions (-)",                  hierarchy: "IX.",    bold: true },
-  { id: "other_provisions",       label: "Other Provisions for Losses (-)",                      hierarchy: "X.",     bold: true },
-  { id: "personnel_expense",      label: "Personnel Expenses (-)",                               hierarchy: "XI.",    bold: true },
-  { id: "other_op_expense",       label: "Other Operating Expenses (-)",                         hierarchy: "XII.",   bold: true },
+  { id: "ecl_provisions",         label: "Expected Credit Loss Provisions",                      hierarchy: "IX.",    bold: true, contra: true },
+  { id: "other_provisions",       label: "Other Provisions for Losses",                          hierarchy: "X.",     bold: true, contra: true },
+  { id: "personnel_expense",      label: "Personnel Expenses",                                   hierarchy: "XI.",    bold: true, contra: true },
+  { id: "other_op_expense",       label: "Other Operating Expenses",                             hierarchy: "XII.",   bold: true, contra: true },
 
   // XIII. Net Operating Profit (subtotal)
-  { id: "net_op_profit",          label: "Net Operating Profit / (Loss) (VIII-IX-X-XI-XII)",     hierarchy: "XIII.",  bold: true },
+  { id: "net_op_profit",          label: "Net Operating Profit / (Loss) (VIII+IX+X+XI+XII)",     hierarchy: "XIII.",  bold: true },
 
   // XV-XVI. Other below-the-line items (XIV is merger surplus — skipped)
   { id: "equity_method",          label: "Profit / (Loss) from Equity-Method Subsidiaries",      hierarchy: "XV.",    bold: true },

@@ -372,14 +372,19 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   const colCount = periods.length + (showTtm ? 1 : 0);
   const formatCell = mode === "yoy" ? fmtPct : fmtTl;
   // Turn a raw period→value series into the cells the table renders.
-  const cells = (series: PeriodSeries): (number | null | undefined)[] => {
+  const cells = (series: PeriodSeries, contra = false): (number | null | undefined)[] => {
     const byOrd = new Map<number, number>();
     for (const [p, v] of series) {
       const o = ordOf(p);
       if (o != null && v != null) byOrd.set(o, v);
     }
+    // Deduction lines are carried as positive magnitudes (so YoY growth reads
+    // naturally — a rising expense is +%); the accounting sign is applied only
+    // to the absolute-TL display, never to the YoY %.
+    const signed = (v: number | null): number | null =>
+      v == null ? null : contra ? -v : v;
     const cell = (p: string): number | null => {
-      if (mode === "abs") return series.get(p) ?? null;
+      if (mode === "abs") return signed(series.get(p) ?? null);
       const o = ordOf(p);
       return o == null ? null : yoyPct(byOrd.get(o) ?? null, byOrd.get(o - 4) ?? null);
     };
@@ -387,7 +392,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
     if (!showTtm || latestOrd == null) return row;
     const ttm =
       mode === "abs"
-        ? ttmEndingAt(byOrd, latestOrd)
+        ? signed(ttmEndingAt(byOrd, latestOrd))
         : yoyPct(ttmEndingAt(byOrd, latestOrd), ttmEndingAt(byOrd, latestOrd - 4));
     return [ttm, ...row];
   };
@@ -395,7 +400,15 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
     line: StandardLine,
     pivot: Map<string, PeriodSeries>,
     stmt: string,
-  ): (number | null | undefined)[] => cells(lineSeries(pivot, line, stmt));
+  ): (number | null | undefined)[] => {
+    const raw = lineSeries(pivot, line, stmt);
+    // Fold contra lines to magnitude first — BRSA banks file them with either
+    // sign — so the display sign (applied in `cells`) is uniform fleet-wide.
+    const series: PeriodSeries = line.contra
+      ? new Map([...raw].map(([p, v]) => [p, v == null ? null : Math.abs(v)] as [string, number | null]))
+      : raw;
+    return cells(series, line.contra);
+  };
   const blankCells = (): (number | null | undefined)[] => Array(colCount).fill(null);
   const unitLabel = mode === "yoy" ? "Year-over-year % change" : "All numbers in TL thousands";
   // Shared table header row — a leading "TTM" column when applicable, then the
