@@ -44,7 +44,9 @@ call returned `HTTP 429: "Your project has exceeded its monthly spending cap"`**
 (AI Studio). Quality was good when it answered (flash-lite is tight and clean), but
 **the key is currently unusable** beyond a call or two. This is a *billing/quota*
 block, not a rate limit — to use Gemini we'd need to raise/reset the spending cap
-in Google AI Studio. Until then, treat Gemini as unavailable.
+in Google AI Studio. Until then, treat Gemini as unavailable. **Decision
+(2026-07-04): Gemini is EXCLUDED from the candidate set — the user won't lift the
+cap (won't pay). All further testing runs on Groq + Cerebras free models only.**
 
 ### 4. Avoid reasoning models that don't get their reasoning stripped
 - **`qwen/qwen3.6-27b` (Groq):** leaks `<think>` blocks, blows the 2048-token
@@ -92,15 +94,15 @@ Reliable + clean + good synthesis, roughly in order of how often they nailed the
 1. **`gpt-oss-120b`** — available on **both Cerebras and Groq** (nice for failover);
    consistently the fullest, most causal synthesis; clean numbers. Cerebras variant
    is dramatically faster.
-2. **`gemini-flash-lite-latest` / `gemini-3.1-flash-lite`** — excellent, tight — *once
-   the spending cap is sorted*.
+2. ~~**`gemini-flash-lite-latest` / `gemini-3.1-flash-lite`**~~ — **EXCLUDED** (not
+   free for us; cap will not be lifted). Was excellent/tight when it answered.
 3. **`cerebras/zai-glm-4.7`** — strong synthesis, clean; token-heavy/slower.
 4. **`cerebras/gemma-4-31b`** and **`groq/llama-3.3-70b-versatile`** — fast, clean,
    slightly less ambitious synthesis. Good "safe" picks.
 
 **Suggested pattern when we build it:** primary = `gpt-oss-120b` (Cerebras), fall
-through to `gpt-oss-120b` (Groq), then to a Gemini flash-lite, then to the
-deterministic template — each step also gated by the number-check. Costs nothing,
+through to `gpt-oss-120b` (Groq), then to another Groq/Cerebras instruct model
+(e.g. `llama-3.3-70b`), then to the deterministic template — each step also gated by the number-check. Costs nothing,
 removes single-provider risk. Optionally, since volume is free, generate from 2–3
 models and keep the one that passes the check and best matches the target length.
 
