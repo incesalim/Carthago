@@ -199,6 +199,25 @@ snapshot. All 8 tabs are wired (`reads.ts` computer + `withLlmHeadline` wrap per
 page); the 3-tier failover (Cerebras→Groq→gemma) is proven under Cerebras's
 5-req/min limit.
 
+**Telegram Q&A bot — text-to-SQL over D1 (2026-07-05):** a public Telegram bot
+that answers natural-language questions by generating **read-only SQL** against
+the live D1 and summarising the rows. Runs inside the Worker as a Next route
+(`web/app/api/telegram/webhook/route.ts`): Telegram POSTs each message, we verify
+the `X-Telegram-Bot-Api-Secret-Token` header, ACK 200, and process in
+`ctx.waitUntil`. The orchestrator (`web/app/lib/bot.ts`) rate-limits
+(`bot_usage`, migration 0020; per-chat + global daily caps), asks the free model
+(same Cerebras→Groq chain as "The Read", via `web/app/lib/llm.ts`) for SQL, gates
+it through `web/app/lib/bot-sql.ts` (single `SELECT`/`WITH` only, writes/DDL/
+multi-statement/denied-table rejected, row-capped — 29 vitest cases), executes,
+then summarises the rows; the reply always includes the **raw data table + the
+SQL** so the summary is checkable. The schema prompt
+(`web/app/lib/bot-schema.ts`) is the accuracy driver — it drills the per-bank
+(`bank_audit_*`, quarterly, thousand TL) vs sector-aggregate (`balance_sheet`
+etc., monthly, million TL) split and carries few-shot Q→SQL examples. Setup (bot
+token + webhook secret + LLM key as Worker secrets, then register the webhook via
+`scripts/setup_telegram_webhook.py`) in [TELEGRAM_BOT.md](TELEGRAM_BOT.md). This
+is separate from the outbound `scripts/notify.py` alert channel.
+
 **Ratios merged into the Overview Snapshot (2026-07-04):** the standalone
 `/sector/ratios` page (six KPI cards whose only distinct value was the
 bank-**type** filter, an audit "clarify_purpose" item) was first folded into

@@ -20,4 +20,16 @@ interface CloudflareEnv {
   CF_ANALYTICS_TOKEN?: string; // account API token with Analytics: Read
   CF_ANALYTICS_SITE_TAG?: string; // Web Analytics site tag
   CF_ACCOUNT_TAG?: string; // Cloudflare account id/tag
+
+  // --- Telegram Q&A bot (all `secret`s; see docs/TELEGRAM_BOT.md) ---
+  TELEGRAM_BOT_TOKEN?: string; // BotFather token
+  TELEGRAM_WEBHOOK_SECRET?: string; // matched against the setWebhook secret_token
+  // Free OpenAI-compatible LLM keys (same providers as the Python reads lane).
+  CEREBRAS_KEY?: string;
+  CEREBRAS_API_KEY?: string;
+  GROQ_API_KEY?: string;
+  GROQ_API_TOKEN?: string;
+  // Optional usage-cap overrides (defaults: 20 per chat, 300 global, per UTC day).
+  BOT_PER_CHAT_DAILY?: string;
+  BOT_GLOBAL_DAILY?: string;
 }
