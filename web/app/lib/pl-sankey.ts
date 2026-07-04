@@ -101,6 +101,15 @@ const CONTRA_RE = /\(\s*-\s*\)/;
  *  label lost its "(-)" marker (Turkish filings vary). */
 const DEDUCTION_CODES = new Set(["II.", "IX.", "X.", "XI.", "XII."]);
 
+/** Roman-numeral subtotal codes are stored dotted ("VI.") for every bank
+ *  except VAKBN, whose filing prints roman VI without the trailing dot ("VI")
+ *  and the extractor keeps it verbatim across all periods. The subtotal
+ *  lookups below key on the dotted form, so a bare roman code would drop that
+ *  line (VAKBN's net trading loss vanished → VIII/XIII overstated → the >5%
+ *  gate suppressed the chart every period). Canonicalize any all-roman code to
+ *  the dotted form; numeric sub-codes ("1.1", "4.2") are left untouched. */
+const canonHier = (h: string) => (/^[IVXLCDM]+$/.test(h) ? `${h}.` : h);
+
 interface LineIndex {
   get(h: string): number | null;
   /** Deduction magnitude: abs() when contra-labelled or a known deduction code. */
@@ -116,14 +125,14 @@ function indexRows(rows: PlRow[]): LineIndex {
     // then read the stray and the flow couldn't balance (it suppressed even though
     // the real P&L reconciles). Strays are page/footnote fragments (~1); real
     // subtotals are large, so keeping the larger-magnitude occurrence picks the
-    // real line. (Genuinely-missing lines — e.g. VAKBN's absent roman VI — are a
-    // separate, real gap and stay suppressed.)
-    const prev = byCode.get(r.hierarchy);
+    // real line.
+    const code = canonHier(r.hierarchy);
+    const prev = byCode.get(code);
     if (
       !prev ||
       (r.amount != null && (prev.amount == null || Math.abs(r.amount) > Math.abs(prev.amount)))
     ) {
-      byCode.set(r.hierarchy, { amount: r.amount, name: r.item_name ?? "" });
+      byCode.set(code, { amount: r.amount, name: r.item_name ?? "" });
     }
   }
   return {

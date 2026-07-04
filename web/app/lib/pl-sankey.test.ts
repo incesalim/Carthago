@@ -176,6 +176,21 @@ describe("fallbacks and degradation", () => {
     expect(g.nodes).toHaveLength(0);
   });
 
+  it("resolves a bare roman code stored without its trailing dot (VAKBN's VI)", () => {
+    // VAKBN files roman VI ("Net trading") without a trailing dot and the
+    // extractor keeps it verbatim. The dotted-key lookup used to drop the line,
+    // overstating VIII/XIII and suppressing the chart every period. VI = −50:
+    // VIII = 400+120+10−50+70 = 550; XIII = 150.
+    const dotless = plainBank({
+      VI: -50, VIII: 550, XIII: 150, XVI: 0, XVII: 155, XVIII: 31, XIX: 124, XXV: 124,
+    }).map((r) => (r.hierarchy === "VI." ? { ...r, hierarchy: "VI" } : r));
+    const g = buildPlSankey(dotless);
+    expect(g.renderable).toBe(true);
+    expect(g.worstPctDiff).toBeLessThanOrEqual(0.005);
+    expect(linkValue(g, "gross_op", "trading_loss")).toBe(50);
+    assertFluxConserved(g);
+  });
+
   it("ignores a stray duplicate roman (footnote fragment) and uses the real subtotal", () => {
     // ZIRAAT/BURGAN bug: a "IV. = 1" fragment captured BEFORE the real IV. line.
     // "First wins" read the stray (1) and the flow couldn't balance; larger-
