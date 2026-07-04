@@ -66,6 +66,15 @@ THINK_RE = re.compile(r"<think>.*?</think>", re.S | re.I)
 DASHES = "-‐‑‒–—"
 
 
+class _RateLimited(Exception):
+    """A 429 — retry the SAME provider (so we keep using the primary) rather than
+    immediately failing over."""
+
+    def __init__(self, retry_after: float | None = None):
+        super().__init__("rate limited")
+        self.retry_after = retry_after
+
+
 def _key(provider: dict) -> str | None:
     for env in provider["keys"]:
         if os.environ.get(env):
@@ -130,6 +139,13 @@ def _call(provider: dict, key: str, facts: str, headline: str, timeout: int = 60
         json=payload,
         timeout=timeout,
     )
+    if r.status_code == 429:
+        ra = r.headers.get("retry-after")
+        try:
+            retry_after = float(ra) if ra else None
+        except ValueError:
+            retry_after = None
+        raise _RateLimited(retry_after)
     if r.status_code != 200:
         raise RuntimeError(f"HTTP {r.status_code}: {r.text[:120]}")
     body = json.loads(r.content.decode("utf-8"))
@@ -146,11 +162,23 @@ def rewrite_headline(headline: str, items: list[str]) -> tuple[str | None, str |
         key = _key(provider)
         if not key:
             continue
-        try:
-            text = _call(provider, key, facts, headline)
-        except Exception as e:  # noqa: BLE001 — try next provider
-            print(f"    [{provider['name']}] error: {type(e).__name__}: {e}", flush=True)
-            continue
+        # Retry THIS provider on 429 (with backoff) before failing over, so the
+        # primary is used consistently rather than rate-limiting into a backup.
+        text: str | None = None
+        for attempt in range(3):
+            try:
+                text = _call(provider, key, facts, headline)
+                break
+            except _RateLimited as rl:
+                wait = min(rl.retry_after or 6.0 * (attempt + 1), 25.0)
+                print(f"    [{provider['name']}] 429 — waiting {wait:.0f}s "
+                      f"(attempt {attempt + 1}/3)", flush=True)
+                time.sleep(wait)
+            except Exception as e:  # noqa: BLE001 — non-429 error → next provider
+                print(f"    [{provider['name']}] error: {type(e).__name__}: {e}", flush=True)
+                break
+        if text is None:
+            continue  # persistently rate-limited or errored → next provider
         if not _well_formed(text):
             print(f"    [{provider['name']}] rejected: malformed/empty", flush=True)
             continue
