@@ -7,17 +7,25 @@
  * cuts follow BBVA's framing (Public = state banks; Private = private +
  * foreign banks) — see LIQ_OWNERSHIP in lib/metrics.ts.
  *
+ * Net international reserves are DERIVED here from the CBRT analytical balance
+ * sheet (FX assets TP.BL054 − FX liabilities TP.BL122, converted to USD) — this
+ * tracks the published NIR closely but the NIR-excluding-swaps split can't be
+ * isolated without a separate swap-stock series, so only one net line is shown.
+ *
  * Out of scope (no data source here): investment-fund volumes/flows & fund
- * dollarization (TEFAS), under-the-mattress gold stock and weekly reserve-flow
- * attribution (BBVA-proprietary estimates), the FCI composite (Bloomberg
- * inputs), and net-reserves-excluding-swaps (needs CBRT swap stock).
+ * dollarization (TEFAS lacks an FC-fund category), under-the-mattress gold stock
+ * and weekly reserve-flow attribution (BBVA-proprietary estimates), and the FCI
+ * composite (Bloomberg inputs).
  */
 import {
   weeklyOwnershipRatio,
+  weeklyGrowth,
+  weeklyGrowthByOwnership,
   weeklyDollarization,
   evdsMulti,
   evdsSeries,
   latestPeriod,
+  WEEKLY_BANK_TYPES,
   LIQ_OWNERSHIP_LABELS,
   LIQ_DOLLARIZATION_LABELS,
   type TimeSeriesRow,
@@ -60,17 +68,26 @@ export default async function LiquidityPage() {
 
   const [
     tlLtd, fcLtd,
+    tlGrowthYoY, tlGrowth13w, tlGrowthOwn,
     dollarization,
     evds, reer, liqRatios,
   ] = await Promise.all([
     // Loan-to-deposit ratios, public vs private
     weeklyOwnershipRatio(LOANS.category, LOANS.item_id, DEPOSITS.category, DEPOSITS.item_id, "TL"),
     weeklyOwnershipRatio(LOANS.category, LOANS.item_id, DEPOSITS.category, DEPOSITS.item_id, "FX"),
+    // TL deposit growth — sector YoY (52w) + 13-week annualized momentum, plus
+    // a public-vs-private 13w cut. Mirrors BBVA's two TL-deposit-growth panels.
+    weeklyGrowth(DEPOSITS.category, DEPOSITS.item_id, "TL", 52, [WEEKLY_BANK_TYPES.SECTOR]),
+    weeklyGrowth(DEPOSITS.category, DEPOSITS.item_id, "TL", 13, [WEEKLY_BANK_TYPES.SECTOR]),
+    weeklyGrowthByOwnership(DEPOSITS.category, DEPOSITS.item_id, "TL", 13),
     // Deposit dollarization (sector / public / private)
     weeklyDollarization(),
-    // CBRT funding + reserves + residents' FC (EVDS, already in D1)
+    // CBRT funding + reserves + residents' FC (EVDS, already in D1). BL054/BL122
+    // are the analytical-balance-sheet FX assets/liabilities for derived NIR;
+    // DK.USD.A converts them from TL to USD.
     evdsMulti(
-      ["TP.APIFON3", "TP.AB.TOPLAM", "TP.HPBITABLO4.4", "TP.HPBITABLO4.5", "TP.HPBITABLO4.7"],
+      ["TP.APIFON3", "TP.AB.TOPLAM", "TP.BL054", "TP.BL122", "TP.DK.USD.A",
+       "TP.HPBITABLO4.4", "TP.HPBITABLO4.5", "TP.HPBITABLO4.7"],
       3,
     ),
     // REER over a longer horizon to show the real-appreciation trend
@@ -86,9 +103,27 @@ export default async function LiquidityPage() {
     value: r.value,
   }));
 
+  // TL deposit growth — merge sector YoY + 13w annualized into one chart.
+  const tlDepGrowth = [
+    ...tlGrowthYoY.map((r) => ({ period: r.period, bank_type_code: "YOY", value: r.value })),
+    ...tlGrowth13w.map((r) => ({ period: r.period, bank_type_code: "W13", value: r.value })),
+  ];
+
   // Reserves & residents' FC are in USD millions → /1000 for USD bn.
-  const grossReserves = {
+  // Derived net international reserves: (FX assets − FX liabilities) from the
+  // CBRT analytical balance sheet (both TL thousand, weekly), converted to USD
+  // bn at the same-date USD/TRY. (BL054−BL122) / USDTRY / 1e6 = USD bn.
+  const usdMap = new Map((evds["TP.DK.USD.A"] ?? []).map((r) => [r.period_date, r.value]));
+  const bl122Map = new Map((evds["TP.BL122"] ?? []).map((r) => [r.period_date, r.value]));
+  const nir = (evds["TP.BL054"] ?? [])
+    .filter((r) => bl122Map.has(r.period_date) && usdMap.get(r.period_date))
+    .map((r) => ({
+      period_date: r.period_date,
+      value: (r.value - bl122Map.get(r.period_date)!) / usdMap.get(r.period_date)! / 1e6,
+    }));
+  const reserves = {
     "Gross reserves": toPoints(evds["TP.AB.TOPLAM"] ?? [], 1 / 1000),
+    "Net int'l reserves (derived)": nir,
   };
   const residentsFc = {
     "FX cash (USD + EUR)": sumByDate(
@@ -121,7 +156,7 @@ export default async function LiquidityPage() {
 
       <Section
         title="TL Funding"
-        description="Loan-to-deposit pressure on the TL book — public vs private. Deposit growth detail lives on the Deposits tab."
+        description="Loan-to-deposit pressure and TL deposit inflows — public vs private. Full maturity/demand breakdown lives on the Deposits tab."
       >
         <TrendChart
           data={toTrend(tlLtd)}
@@ -131,6 +166,24 @@ export default async function LiquidityPage() {
           decimals={0}
           height={320}
         />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <TrendChart
+            data={tlDepGrowth}
+            seriesLabels={{ YOY: "YoY", W13: "13-week annualized" }}
+            title="TL Deposit Growth — sector (YoY & 13w annualized, %)"
+            yFormat="pct"
+            decimals={0}
+            zeroLine
+          />
+          <TrendChart
+            data={toTrend(tlGrowthOwn)}
+            seriesLabels={LIQ_OWNERSHIP_LABELS}
+            title="TL Deposit Growth — public vs private (13w annualized, %)"
+            yFormat="pct"
+            decimals={0}
+            zeroLine
+          />
+        </div>
       </Section>
 
       <Section
@@ -163,7 +216,7 @@ export default async function LiquidityPage() {
 
       <Section
         title="CBRT Liquidity & Reserves"
-        description="System TL liquidity stance and the central bank's FX reserve buffer."
+        description="System TL liquidity stance and the central bank's FX reserve buffer. Net reserves are derived from the analytical balance sheet (FX assets − liabilities); the gap to gross is the sterilised FX (required reserves and swaps)."
       >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <TrendChart
@@ -175,8 +228,8 @@ export default async function LiquidityPage() {
             zeroLine
           />
           <TimeSeriesChart
-            series={grossReserves}
-            title="CBRT Gross International Reserves (USD bn)"
+            series={reserves}
+            title="CBRT International Reserves (USD bn) — gross vs derived net"
             yFormat="raw"
             decimals={0}
           />

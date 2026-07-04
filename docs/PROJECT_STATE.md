@@ -240,9 +240,26 @@ See [METRICS.md](METRICS.md) §16.
 
 A **Liquidity** tab (`/liquidity`) adapts the BBVA "Banking Sector Outlook"
 liquidity section: TL & FC loan/deposit ratios split Public (state) vs Private
-(private + foreign), deposit dollarization, net CBRT funding, gross reserves,
-residents' household FC savings, audited §4 LCR/NSFR/leverage, and REER
-(deposit-growth detail lives on Deposits). See [METRICS.md](METRICS.md) §12.
+(private + foreign), **TL deposit growth (sector YoY & 13w-annualized, plus a
+public-vs-private 13w cut)**, deposit dollarization, net CBRT funding,
+**gross _and_ derived net international reserves** (NIR = analytical-BS FX
+assets `TP.BL054` − FX liabilities `TP.BL122`, converted to USD; the gap to
+gross is sterilised FX — required reserves + swaps, not separable without a
+swap-stock series), residents' household FC savings, audited §4
+LCR/NSFR/leverage, and REER. See [METRICS.md](METRICS.md) §12.
+
+The **Rates & Macro** tab (`/rates`) additionally carries the BBVA margins page:
+a **TL deposit-rate maturity ladder** (`TP.TRY.MT01–05`, ≤1m…>12m), a **TL
+loan–deposit spread** (commercial ex-OD `TP.KTF18` − deposit `TP.TRY.MT06`),
+and an **FC loan–deposit spread** (USD/EUR: `TP.KTF17.USD/EUR` − `TP.USD/EUR.MT06`
+— 4 new weekly `rates` series added to the EVDS scraper and backfilled 2018→).
+
+Together these close the gap on the BBVA liquidity section: of its 17 charts we
+now render 3 already-built + 6 new (13 of 17 covered). The 4 not reproduced are
+BBVA-proprietary estimates with no public feed — under-the-mattress gold, the
+weekly reserve-flow attribution, and the FCI composite/decomposition; fund net
+flows and the mutual-fund-dollarization/FC-fund split need a TEFAS
+re-classification (no FC-fund category ingested).
 
 An **Economy** tab (`/economy`) adapts the Türkiye macro section of the BBVA
 "Türkiye Economic Outlook" (1Q26): GDP growth, industrial production, labor
