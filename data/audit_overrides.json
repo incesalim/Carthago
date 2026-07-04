@@ -2424,6 +2424,56 @@
     }
    ],
    "note": "extractor printed the (XVII±XVIII) subtotal under a second XVIII. and shifted every later roman by one (net income landed on XXIV., no XXV.); amounts verified - stored net ties BS 16.6.2 exactly; renames only, tail-first"
+  },
+  {
+   "bank_ticker": "AKBNK",
+   "period": "2022Q2",
+   "kind": "unconsolidated",
+   "statement": "profit_loss",
+   "hierarchy": "XV.",
+   "item_name": "INCOME/(LOSS) FROM INVESTMENTS IN SUBSIDIARIES CONSOLIDATED BASED ON EQUITY METHOD",
+   "amount": 1422380,
+   "note": "XV. equity-method subsidiary income misread as 0: its two-line label 'INCOME...SUBSIDIARIES CONSOLIDATED' / 'BASED ON EQUITY METHOD' straddles XIV's empty dash row in the PDF, so the parser paired XV with the dashes and dropped the 1.422.380 that follows 'BASED ON EQUITY METHOD'. XIV (merger surplus) is genuinely nil. XVII=XIII+XIV+XV+XVI now reconciles exactly (28.129.175)."
+  },
+  {
+   "bank_ticker": "AKBNK",
+   "period": "2022Q3",
+   "kind": "unconsolidated",
+   "statement": "profit_loss",
+   "hierarchy": "XV.",
+   "item_name": "INCOME/(LOSS) FROM INVESTMENTS IN SUBSIDIARIES CONSOLIDATED BASED ON EQUITY METHOD",
+   "amount": 2209610,
+   "note": "Same misread as 2022Q2 (XV equity-method income paired with XIV's dashes). Value 2.209.610 legible after 'BASED ON EQUITY METHOD'; XVII=XIII+XV reconciles exactly (50.613.306)."
+  },
+  {
+   "bank_ticker": "ANADOLU",
+   "period": "2022Q1",
+   "kind": "consolidated",
+   "statement": "profit_loss",
+   "hierarchy": "IV.",
+   "item_name": "NET ÜCRET VE KOMİSYON GELİRLERİ/GİDERLERİ",
+   "amount": 84249,
+   "note": "IV. net-fees roman subtotal dropped by the parser (children 4.1=98.452 / 4.2=14.203 kept); IV=4.1-4.2=84.249. VIII=III+IV+V+VI+VII now reconciles exactly (922.008)."
+  },
+  {
+   "bank_ticker": "ANADOLU",
+   "period": "2022Q2",
+   "kind": "consolidated",
+   "statement": "profit_loss",
+   "hierarchy": "IV.",
+   "item_name": "NET ÜCRET VE KOMİSYON GELİRLERİ/GİDERLERİ",
+   "amount": 176594,
+   "note": "IV. net-fees roman subtotal dropped (children 4.1=207.830 / 4.2=31.236 kept); IV=176.594. VIII reconciles exactly (1.841.318)."
+  },
+  {
+   "bank_ticker": "QNBFB",
+   "period": "2022Q2",
+   "kind": "consolidated",
+   "statement": "profit_loss",
+   "hierarchy": "VI.",
+   "item_name": "TRADING INCOME /(LOSS) (Net)",
+   "amount": -115160,
+   "note": "VI. net-trading roman subtotal dropped (children 6.1=186.467 / 6.3=3.044.842 kept; 6.2 derivatives also dropped). VI=VIII-(III+IV+V+VII)=-115.160 (net trading loss). VIII=17.330.731 and XIII now reconcile exactly."
   }
  ]
 }
