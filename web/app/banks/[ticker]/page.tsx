@@ -51,6 +51,7 @@ import EarningsDisclosures from "./EarningsDisclosures";
 import BankNewsSection from "./BankNewsSection";
 import PlSankeySection from "./PlSankeySection";
 import CopyTableButton from "@/app/components/CopyTableButton";
+import BankLogo from "@/app/components/BankLogo";
 import {
   BS_ASSET_LINES,
   BS_ASSET_ROMAN_HIERARCHIES,
@@ -493,7 +494,12 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
       <div className="lg:sticky lg:top-0 lg:z-30">
         <PageHeader
           eyebrow={ticker}
-          title={bankDisplayName(ticker)}
+          title={
+            <span className="inline-flex items-center gap-3">
+              <BankLogo ticker={ticker} name={bankDisplayName(ticker)} height={30} />
+              {bankDisplayName(ticker)}
+            </span>
+          }
           description="Standardized per-bank financials from quarterly BRSA reports"
           rangeSelector
           dataThrough={allPeriods[0]}
