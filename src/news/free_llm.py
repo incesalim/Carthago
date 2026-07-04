@@ -18,6 +18,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import time
 
 import requests
 
@@ -33,15 +34,32 @@ SYSTEM = (
     "ONLY the sentence — no preamble, no markdown, no reasoning."
 )
 
-# Ordered fallback chain. Each entry is OpenAI-compatible.
+# Ordered fallback chain. Each entry is OpenAI-compatible. `family` shares a rate
+# budget (both cerebras models draw on the same 5-req/min free tier); `min_gap`
+# is the seconds to leave between successive calls to that family so the PRIMARY
+# (Cerebras) never trips its own limit and we don't fall through to Groq/gemma.
 PROVIDERS = [
-    {"name": "cerebras/gpt-oss-120b", "base": "https://api.cerebras.ai/v1",
+    {"name": "cerebras/gpt-oss-120b", "family": "cerebras", "min_gap": 13.0,
+     "base": "https://api.cerebras.ai/v1",
      "model": "gpt-oss-120b", "keys": ["CEREBRAS_KEY", "CEREBRAS_API_KEY"]},
-    {"name": "groq/openai/gpt-oss-120b", "base": "https://api.groq.com/openai/v1",
+    {"name": "groq/openai/gpt-oss-120b", "family": "groq", "min_gap": 3.0,
+     "base": "https://api.groq.com/openai/v1",
      "model": "openai/gpt-oss-120b", "keys": ["GROQ_API_KEY", "GROQ_API_TOKEN"]},
-    {"name": "cerebras/gemma-4-31b", "base": "https://api.cerebras.ai/v1",
+    {"name": "cerebras/gemma-4-31b", "family": "cerebras", "min_gap": 13.0,
+     "base": "https://api.cerebras.ai/v1",
      "model": "gemma-4-31b", "keys": ["CEREBRAS_KEY", "CEREBRAS_API_KEY"]},
 ]
+
+# Per-family throttle so the primary is used consistently instead of rate-limiting
+# into failover. Cerebras free tier = 5 req/min → one call per ~12s (13s margin).
+_last_call: dict[str, float] = {}
+
+
+def _pace(family: str, min_gap: float) -> None:
+    wait = _last_call.get(family, 0.0) + min_gap - time.monotonic()
+    if wait > 0:
+        time.sleep(wait)
+    _last_call[family] = time.monotonic()
 
 NUM_RE = re.compile(r"-?\d+(?:\.\d+)?")
 THINK_RE = re.compile(r"<think>.*?</think>", re.S | re.I)
@@ -105,6 +123,7 @@ def _call(provider: dict, key: str, facts: str, headline: str, timeout: int = 60
             {"role": "user", "content": user},
         ],
     }
+    _pace(provider["family"], provider["min_gap"])
     r = requests.post(
         f"{provider['base']}/chat/completions",
         headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
