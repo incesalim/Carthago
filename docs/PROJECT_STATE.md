@@ -185,7 +185,7 @@ section promoted on Profitability/Capital, level-twin and duplicate charts cut
 [knowledge/display-study.md](knowledge/display-study.md) (phases 2–5 pending:
 real-terms twins, decompositions, sized scenarios, leagues, chronology).
 
-**"The Read" headline — LLM rewrite, Option 1 (2026-07-04, Overview live):** a
+**"The Read" headline — LLM rewrite, Option 1 (2026-07-04, all 8 tabs live):** a
 free model (Cerebras `gpt-oss-120b` → Groq `openai/gpt-oss-120b` → `gemma-4-31b`;
 chosen in [knowledge/free-model-eval-round3.md](knowledge/free-model-eval-round3.md))
 rewrites ONLY the one-sentence lead; the driver bullets stay deterministic. A
@@ -195,8 +195,9 @@ number-validates each rewrite, and upserts `read_headlines` (migration 0019) via
 wrangler. `web/app/lib/read-headlines.ts` shows the rewrite ONLY while its
 `det_hash` matches the live page and it invents no number — else the deterministic
 sentence, so it can never drift or go stale. Kimi still owns the regulations
-snapshot. Other 7 tabs extend mechanically (add a `reads.ts` computer + a one-line
-`withLlmHeadline` wrap per page).
+snapshot. All 8 tabs are wired (`reads.ts` computer + `withLlmHeadline` wrap per
+page); the 3-tier failover (Cerebras→Groq→gemma) is proven under Cerebras's
+5-req/min limit.
 
 **Ratios merged into the Overview Snapshot (2026-07-04):** the standalone
 `/sector/ratios` page (six KPI cards whose only distinct value was the
