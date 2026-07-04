@@ -126,6 +126,44 @@ describe("negative re-routing", () => {
     assertFluxConserved(g);
   });
 
+  it("adds a genuine expense reversal (negative deduction) back as a green inflow", () => {
+    // DENIZ/BURGAN case: X. "Other provisions" is a net write-back, stored
+    // NEGATIVE while personnel/interest stay positive. It must ADD to the flow,
+    // not be abs()-ed and subtracted. Real net op = 650 − (100 − 20 + 130 + 150)
+    // = 290, which reconciles exactly.
+    const g = buildPlSankey(
+      plainBank({ X: -20, XIII: 290, XVI: 0, XVII: 295, XVIII: 59, XIX: 236, XXV: 236 }),
+    );
+    expect(g.renderable).toBe(true);
+    expect(g.worstPctDiff).toBe(0);
+    const credit = g.nodes.find((n) => n.id === "other_prov_credit");
+    expect(credit?.kind).toBe("source");
+    expect(linkValue(g, "other_prov_credit", "gross_op")).toBe(20);
+    // It is NOT drawn as an outflow deduction.
+    expect(g.nodes.some((n) => n.id === "other_prov")).toBe(false);
+    expect(g.links.some((l) => l.source === "gross_op" && l.target === "other_prov")).toBe(false);
+    // Forward flow to net op reflects the credit.
+    expect(linkValue(g, "gross_op", "net_op")).toBe(290);
+    expect(g.notes.some((n) => n.includes("Provision reversal"))).toBe(true);
+    assertFluxConserved(g);
+  });
+
+  it("normalizes a reversal identically under the paren-negative convention", () => {
+    // Same economics as above but the bank stores expenses NEGATIVE (conv = −1);
+    // the write-back is then stored POSITIVE. The graph must come out the same.
+    const base = plainBank({ X: -20, XIII: 290, XVI: 0, XVII: 295, XVIII: 59, XIX: 236, XXV: 236 });
+    const flipped = base.map((r) =>
+      ["II.", "IX.", "X.", "XI.", "XII."].includes(r.hierarchy) && r.amount != null
+        ? { ...r, amount: -r.amount }
+        : r,
+    );
+    const a = buildPlSankey(base);
+    const b = buildPlSankey(flipped);
+    expect(b.renderable).toBe(true);
+    expect(b.links).toEqual(a.links);
+    expect(b.nodes.map((n) => [n.id, n.value])).toEqual(a.nodes.map((n) => [n.id, n.value]));
+  });
+
   it("draws a tax credit as an inflow to net profit", () => {
     // XVII = 100, XIX = 130 → tax = −30 (credit)
     const g = buildPlSankey(
@@ -202,11 +240,12 @@ describe("fallbacks and degradation", () => {
     expect(linkValue(g, "net_fees", "gross_op")).toBe(120); // real IV., not the stray 1
   });
 
-  it("warns but renders between 0.5% and 5%", () => {
-    const g = buildPlSankey(plainBank({ VIII: 660 })); // ~1.5% off
-    expect(g.renderable).toBe(true);
-    expect(g.worstPctDiff).toBeGreaterThan(0.005);
-    expect(g.notes.some((n) => n.includes("extraction noise"))).toBe(true);
+  it("suppresses a small (sub-5%) mismatch — exact reconciliation is required", () => {
+    const g = buildPlSankey(plainBank({ VIII: 660 })); // computed 650 vs filed 660, ~1.5%
+    expect(g.renderable).toBe(false);
+    expect(g.worstPctDiff).toBeGreaterThan(0);
+    expect(g.nodes).toHaveLength(0);
+    expect(g.notes.some((n) => n.includes("does not reconcile"))).toBe(true);
   });
 
   it("fails safe when core lines are missing", () => {

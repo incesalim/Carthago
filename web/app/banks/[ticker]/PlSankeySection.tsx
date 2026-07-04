@@ -62,14 +62,8 @@ export default function PlSankeySection({ rowsByPeriod, periods }: Props) {
       {graph.renderable ? (
         <>
           <PlSankeyChart graph={graph} ariaLabel={`P&L flow, ${periodLabel(active)}`} />
-          {(graph.notes.length > 0 || graph.worstPctDiff > 0.005) && (
+          {graph.notes.length > 0 && (
             <ul className="mt-2 space-y-0.5 text-[11px] text-muted-foreground">
-              {graph.worstPctDiff > 0.005 && (
-                <li>
-                  <span className="text-amber-600">⚠</span> Internal sums are off by up to{" "}
-                  {(graph.worstPctDiff * 100).toFixed(1)}% for this period&apos;s extraction.
-                </li>
-              )}
               {graph.notes.map((n, i) => (
                 <li key={i}>{n}</li>
               ))}
