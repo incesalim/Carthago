@@ -13,7 +13,7 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 50
     env:
       GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
       CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_KEY }}
@@ -32,15 +32,15 @@ jobs:
       - name: Install requests
         run: pip install requests
 
-      - name: Run free-model evaluation
+      - name: Run free-model reliability gauntlet
         run: python scripts/scratch_test_free_models.py
 
-      - name: Upload evaluation report
+      - name: Upload gauntlet report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: free-model-eval
+          name: free-model-gauntlet
           path: |
-            free_model_eval.md
-            free_model_eval.json
+            free_model_gauntlet.md
+            free_model_gauntlet.json
           if-no-files-found: warn
