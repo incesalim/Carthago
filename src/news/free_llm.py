@@ -103,7 +103,10 @@ def unknown_numbers(text: str, allowed: list[float]) -> list[str]:
         if k < len(text) and text[k] in DASHES and k + 1 < len(text) and text[k + 1].isalpha():
             continue
         n = float(m.group())
-        if not any(abs(n - a) < 0.01 or abs(abs(n) - a) < 0.01 for a in allowed):
+        # Match on MAGNITUDE: a fact printed negative (e.g. "-7.3pp real") that the
+        # model phrases positive ("7.3pp below inflation") is the same figure, not
+        # an invention. The deterministic bullets still carry the correct sign.
+        if not any(abs(abs(n) - abs(a)) < 0.01 for a in allowed):
             out.append(m.group())
     return out
 
