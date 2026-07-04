@@ -22,6 +22,7 @@ import TrendChart from "@/app/components/TrendChart";
 import NimComponentsSection from "./NimComponentsSection";
 import Takeaway from "@/app/components/Takeaway";
 import { profitabilityInsights } from "@/app/lib/insights";
+import { withLlmHeadline } from "@/app/lib/read-headlines";
 
 export const dynamic = "force-dynamic";
 
@@ -115,7 +116,7 @@ export default async function ProfitabilityPage() {
         dataThrough={latestPeriod(roe, roa, nim)}
       />
 
-      <Takeaway data={read} />
+      <Takeaway data={await withLlmHeadline("profitability", read)} />
 
       <section className="space-y-4">
         <div className="space-y-0.5">

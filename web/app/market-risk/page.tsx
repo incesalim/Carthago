@@ -21,6 +21,7 @@ import {
 } from "@/app/lib/market-risk";
 import Takeaway from "@/app/components/Takeaway";
 import { marketRiskInsights } from "@/app/lib/insights";
+import { withLlmHeadline } from "@/app/lib/read-headlines";
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +49,7 @@ export default async function MarketRiskPage() {
         dataThrough={latest ?? undefined}
       />
 
-      <Takeaway data={read} />
+      <Takeaway data={await withLlmHeadline("market-risk", read)} />
 
       <Section
         title="FX exposure"

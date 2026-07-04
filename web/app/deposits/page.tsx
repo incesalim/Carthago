@@ -31,6 +31,7 @@ import TrendChart from "@/app/components/TrendChart";
 import StackedArea from "@/app/components/StackedArea";
 import Takeaway from "@/app/components/Takeaway";
 import { depositsInsights } from "@/app/lib/insights";
+import { withLlmHeadline } from "@/app/lib/read-headlines";
 import { cpiYoYByMonth, nominalVsReal, REAL_TERMS_LABELS } from "@/app/lib/real-terms";
 
 export const dynamic = "force-dynamic";
@@ -162,7 +163,7 @@ export default async function DepositsPage() {
         dataThrough={latestPeriod(depSector, yoyAll)}
       />
 
-      <Takeaway data={read} />
+      <Takeaway data={await withLlmHeadline("deposits", read)} />
 
       <Section index="01" title="Total Deposits Growth">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

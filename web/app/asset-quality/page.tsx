@@ -22,6 +22,7 @@ import TrendChart from "@/app/components/TrendChart";
 import StackedArea from "@/app/components/StackedArea";
 import Takeaway from "@/app/components/Takeaway";
 import { assetQualityInsights } from "@/app/lib/insights";
+import { withLlmHeadline } from "@/app/lib/read-headlines";
 import {
   sectorStageShares,
   STAGE_SHARE_LABELS,
@@ -107,7 +108,7 @@ export default async function AssetQualityPage() {
         dataThrough={latestPeriod(nplAll, coverageAll)}
       />
 
-      <Takeaway data={read} />
+      <Takeaway data={await withLlmHeadline("asset-quality", read)} />
 
       <Section index="01" title="NPL Ratio">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

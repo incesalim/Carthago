@@ -40,6 +40,7 @@ import TrendChart from "@/app/components/TrendChart";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
 import Takeaway from "@/app/components/Takeaway";
 import { liquidityInsights } from "@/app/lib/insights";
+import { withLlmHeadline } from "@/app/lib/read-headlines";
 
 export const dynamic = "force-dynamic";
 
@@ -173,7 +174,7 @@ export default async function LiquidityPage() {
         dataThrough={latestPeriod(tlLtd, fcLtd, dollarization, netFunding)}
       />
 
-      <Takeaway data={read} />
+      <Takeaway data={await withLlmHeadline("liquidity", read)} />
 
       <Section
         title="TL Funding"

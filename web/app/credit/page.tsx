@@ -30,6 +30,7 @@ import TrendChart from "@/app/components/TrendChart";
 import StackedArea from "@/app/components/StackedArea";
 import Takeaway from "@/app/components/Takeaway";
 import { creditInsights } from "@/app/lib/insights";
+import { withLlmHeadline } from "@/app/lib/read-headlines";
 import { cpiYoYByMonth, nominalVsReal, REAL_TERMS_LABELS } from "@/app/lib/real-terms";
 
 export const dynamic = "force-dynamic";
@@ -222,7 +223,7 @@ export default async function CreditPage() {
         dataThrough={latestPeriod(loansSector, yoyAll)}
       />
 
-      <Takeaway data={read} />
+      <Takeaway data={await withLlmHeadline("credit", read)} />
 
       <Section
         index="01"
