@@ -1,0 +1,35 @@
+name: Test free models (manual, throwaway)
+
+# Manual-only smoke test of the free LLM providers (Groq / Cerebras / Google)
+# for the "The Read" headline rewrite. Keys live in repo secrets, so this can
+# only run in CI. Delete this workflow + scripts/scratch_test_free_models.py
+# once we've picked a model.
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      PYTHONIOENCODING: utf-8
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install requests
+        run: pip install requests
+
+      - name: Run free-model bake-off
+        run: python scripts/scratch_test_free_models.py
