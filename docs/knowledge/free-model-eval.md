@@ -18,6 +18,12 @@ lead ("The Read") that `web/app/lib/insights.ts` generates for each dashboard ta
 on 2026-07-04; the machine report from the second (with the corrected validator)
 is appended below.
 
+**→ Round 3 (reliability gauntlet):** repeated adversarial testing of the
+Groq + Cerebras finalists (invent-rate, format, stability, number-traps) is in
+[`free-model-eval-round3.md`](./free-model-eval-round3.md). Bottom line so far:
+`gpt-oss-120b` (Cerebras primary + Groq failover) at **0% real invent-rate**;
+`llama-4-scout` and `zai-glm-4.7` rejected.
+
 ---
 
 ## What we learned
