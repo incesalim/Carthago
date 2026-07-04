@@ -102,7 +102,9 @@ def upsert(rows: list[dict]) -> int:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--site", default=os.environ.get("SITE_URL", DEFAULT_SITE))
+    # `or` (not dict-default): the CI env sets SITE_URL to "" when the repo var
+    # is unset, which would otherwise slip past a get(...) default.
+    ap.add_argument("--site", default=os.environ.get("SITE_URL") or DEFAULT_SITE)
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--force", action="store_true",
                     help="Regenerate even if a tab's det_hash is unchanged.")
