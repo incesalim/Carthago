@@ -184,10 +184,15 @@ def unknown_numbers(text: str, allowed: set[float]) -> list[str]:
     claims — skipped."""
     out: list[str] = []
     for m in NUM_RE.finditer(text):
+        # digit glued to a label on the LEFT (Stage-2, CET1, Tier-2)
         j = m.start() - 1
         while j >= 0 and text[j] in DASHES:
             j -= 1
         if j >= 0 and text[j].isalpha():
+            continue
+        # digit glued to a label on the RIGHT via a hyphen (1-year, 3-month, 10-yr)
+        k = m.end()
+        if k < len(text) and text[k] in DASHES and k + 1 < len(text) and text[k + 1].isalpha():
             continue
         try:
             n = float(m.group())
