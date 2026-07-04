@@ -52,14 +52,13 @@ serves the *same model* at 0.8s and more consistently.
    so `cerebras/gpt-oss-120b`'s true invent-rate is **0%**. **The real integration's
    guardrail must do the same** — banking prose is full of label-bound digits.
 
-## Where this leaves us (evidence, not a final call)
+## Decision (2026-07-04)
 
-The data points clearly at **`gpt-oss-120b`**: **Cerebras as primary** (0% invention,
-0.8s, 94% on-length, best synthesis), **Groq's `openai/gpt-oss-120b` as failover**
-(identical model, different provider → single-model quality with provider redundancy),
-and **`cerebras/gemma-4-31b`** as a fast lightweight backup. Each step still gated by
-the number-check → deterministic template. No winner is *declared* — but if we ship
-Option 1, this is the stack the evidence supports.
+**Chosen: `gpt-oss-120b` on Cerebras** (0% invention, 0.8s, 94% on-length, best
+synthesis), with **Groq's `openai/gpt-oss-120b` as the free cross-provider failover**
+(identical model → single-model quality with provider redundancy), and
+**`cerebras/gemma-4-31b`** as a fast lightweight backup. Each step still gated by the
+number-check → deterministic template. Not yet wired into the dashboard.
 
 ---
 

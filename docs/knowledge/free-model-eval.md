@@ -14,9 +14,10 @@ lead ("The Read") that `web/app/lib/insights.ts` generates for each dashboard ta
 (**Option 1** — headline only; driver bullets stay deterministic). This is a
 *test*; nothing is wired into the dashboard yet.
 
-**No winner is declared.** This document is evidence, not a decision. Two CI runs
-on 2026-07-04; the machine report from the second (with the corrected validator)
-is appended below.
+**DECISION (2026-07-04): `gpt-oss-120b` on Cerebras is the chosen model** for The
+Read (Groq `openai/gpt-oss-120b` as the free cross-provider failover), after the
+three rounds documented here. The rest of this document is the supporting
+evidence. Not yet wired into the dashboard.
 
 **→ Round 3 (reliability gauntlet):** repeated adversarial testing of the
 Groq + Cerebras finalists (invent-rate, format, stability, number-traps) is in
