@@ -75,7 +75,7 @@ librarian.
 
 | Tab | Issue | Action |
 |---|---|---|
-| **Ratios (`/sector/ratios`)** | Six KPI cards overlapping Overview + Profitability; its ONLY distinct value is the bank-**type** filter. | ✅ resolved 2026-07-04 — folded into Overview as the "Ratios by bank type" section (index 03) with the bank-type switch; standalone page removed from Nav and redirects to `/#by-type`. |
+| **Ratios (`/sector/ratios`)** | Six KPI cards overlapping Overview + Profitability; its ONLY distinct value is the bank-**type** filter. | ✅ resolved 2026-07-04 — **merged into the Overview Snapshot (index 01)**, now one bank-type-switchable scorecard (size + growth + Table-15 vitals); standalone page removed from Nav and redirects to `/#by-type`. Sector Pulse lead stays sector. |
 | **Digital nav placement** | Strong TBB lane, but grouped under "Sector" between Profitability and Liquidity — it's structural context, not a CAMELS vital. | relocate to a structure/context group with Funds/Non-Bank. |
 | **Funds / Non-Bank banking-anchor** | Adjacency tabs whose link to *banking* (deposit substitution, disintermediation) is implicit. | Make the banking anchor explicit so each earns its place. |
 

@@ -2089,7 +2089,7 @@
       "route": "/#by-type",
       "in_nav": false,
       "nav_group": "sector",
-      "title": "Ratios by bank type (Overview section)",
+      "title": "Ratios (merged into the Overview Snapshot)",
       "guiding_question": "What does the BDDK's official ratio scorecard look like for a chosen bank-type aggregate?",
       "analyst_takeaway": "The regulator's Table-15 headline ratios, switchable across bank-type (Sector/State/Domestic/Foreign/Participation/Dev&Inv) — a like-for-like comparability surface.",
       "spine_ref": "S9",
@@ -2126,7 +2126,7 @@
         "No CAR or coverage in the scorecard (it stops at NPL/NIM/LDR/ROA/ROE)"
       ],
       "audit_verdict": "resolved",
-      "audit_notes": "RESOLVED 2026-07-04 — folded into Overview as the 'Ratios by bank type' section (index 03) carrying the bank-type filter. Standalone /sector/ratios page removed from Nav; it now redirects to /#by-type (preserving ?type=).",
+      "audit_notes": "RESOLVED 2026-07-04 — merged into the Overview Snapshot (index 01), now one bank-type-switchable scorecard (size + growth + Table-15 vitals: NPL/CAR/NIM/LDR/ROA/ROE) driven by ?type=. Sector Pulse lead stays sector. Standalone /sector/ratios page removed from Nav; redirects to /#by-type (preserving ?type=).",
       "future_narrative_hook": "Compare the vitals across state vs private vs participation banks at a glance.",
       "charts": [
         {
