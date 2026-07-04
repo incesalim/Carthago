@@ -18,6 +18,7 @@ Usage:
 """
 from __future__ import annotations
 
+import getpass
 import json
 import os
 import secrets
@@ -39,9 +40,13 @@ def _api(token: str, method: str, payload: dict | None = None) -> dict:
 
 
 def _token() -> str:
+    # Prefer the env var (for CI); otherwise prompt on a hidden input so the
+    # token never lands in shell history or the environment.
     t = os.environ.get("TELEGRAM_BOT_TOKEN")
     if not t:
-        sys.exit("TELEGRAM_BOT_TOKEN is not set.")
+        t = getpass.getpass("Bot token (input hidden): ").strip()
+    if not t:
+        sys.exit("No bot token provided.")
     return t
 
 
@@ -57,8 +62,10 @@ def main() -> int:
     if cmd == "set":
         secret = os.environ.get("TELEGRAM_WEBHOOK_SECRET")
         if not secret:
-            sys.exit("TELEGRAM_WEBHOOK_SECRET is not set (run `gen-secret` first, "
-                     "then `wrangler secret put TELEGRAM_WEBHOOK_SECRET` with the same value).")
+            secret = getpass.getpass("Webhook secret (input hidden): ").strip()
+        if not secret:
+            sys.exit("No webhook secret provided (must match the value you "
+                     "`wrangler secret put TELEGRAM_WEBHOOK_SECRET`).")
         worker = os.environ.get("WORKER_URL", DEFAULT_WORKER).rstrip("/")
         url = f"{worker}/api/telegram/webhook"
         resp = _api(token, "setWebhook", {
