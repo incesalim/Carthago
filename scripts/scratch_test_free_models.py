@@ -159,6 +159,7 @@ def allowed_numbers(sc: dict) -> set[float]:
 
 NUM_RE = re.compile(r"-?\d+(?:\.\d+)?")
 THINK_RE = re.compile(r"<think>.*?</think>", re.S | re.I)
+DASHES = "-‐‑‒–—"  # ascii + unicode hyphens/dashes
 
 
 def strip_reasoning(text: str) -> tuple[str, bool]:
@@ -172,14 +173,24 @@ def strip_reasoning(text: str) -> tuple[str, bool]:
 
 
 def check_numbers(text: str, allowed: set[float]) -> list[str]:
+    """Flag any numeric CLAIM whose value isn't a fact. Digits bound to a word or
+    label (Stage-2, CET1, Tier-2, Basel III) are NOT claims — skip them, or every
+    banking sentence trips a false positive."""
     unknown: list[str] = []
-    for tok in NUM_RE.findall(text):
+    for m in NUM_RE.finditer(text):
+        # look left past any dashes; if a letter precedes, the number is glued to
+        # a label (Stage-2, CET-1) rather than being a standalone quantity.
+        j = m.start() - 1
+        while j >= 0 and text[j] in DASHES:
+            j -= 1
+        if j >= 0 and text[j].isalpha():
+            continue
         try:
-            n = float(tok)
+            n = float(m.group())
         except ValueError:
             continue
         if not any(abs(n - a) < 0.01 or abs(abs(n) - a) < 0.01 for a in allowed):
-            unknown.append(tok)
+            unknown.append(m.group())
     return unknown
 
 
@@ -292,6 +303,11 @@ def render_md(results: dict, catalogues: dict, rl: dict, meta: dict) -> str:
              "(±0.01) or it is flagged `NEW#`. That is the exact guardrail the real "
              "integration relies on — a flagged output would be rejected and the "
              "deterministic template shown instead.\n")
+    L.append("> **Validator note:** the number-check ignores digits bound to a "
+             "label (Stage-2, CET1, Tier-2, Basel III) — only standalone "
+             "quantities count as claims. Learned the hard way: an earlier pass "
+             "flagged every model that wrote “Stage-2” as if it had invented a "
+             "number. The real integration must do the same.\n")
     L.append("**System prompt:**\n")
     L.append("```\n" + SYSTEM + "\n```\n")
     L.append("**Legend:** `✅` numbers clean · `⚠️ NEW#[…]` invented a number "
