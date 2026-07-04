@@ -125,8 +125,10 @@ Market Risk tab (S8), Overview re-curation + Sector Pulse.
   Markets & Macro; `/disclosures` added under By Bank (orphan fixed).
 - /rates: transmission chart promoted next to the corridor and retitled
   ("policy cuts reach deposit pricing first").
-- /sector/ratios + /funds: purpose stated explicitly in the header (Table-15
-  by-bank-type scorecard; deposit-substitution channel).
+- Table-15 by-bank-type scorecard + /funds: purpose stated explicitly in the
+  header (deposit-substitution channel). The scorecard was later folded into
+  Overview as the "Ratios by bank type" section (2026-07-04); /sector/ratios
+  retired.
 
 **Known follow-ups:** rationale.json still describes the pre-Phase-1 chart
 inventory (re-run the audit after Phase 5); the mock's Liquidity deletion is

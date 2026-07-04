@@ -2086,10 +2086,10 @@
     },
     {
       "tab_id": "sector.ratios",
-      "route": "/sector/ratios",
-      "in_nav": true,
+      "route": "/#by-type",
+      "in_nav": false,
       "nav_group": "sector",
-      "title": "Ratios",
+      "title": "Ratios by bank type (Overview section)",
       "guiding_question": "What does the BDDK's official ratio scorecard look like for a chosen bank-type aggregate?",
       "analyst_takeaway": "The regulator's Table-15 headline ratios, switchable across bank-type (Sector/State/Domestic/Foreign/Participation/Dev&Inv) — a like-for-like comparability surface.",
       "spine_ref": "S9",
@@ -2125,8 +2125,8 @@
       "known_gaps": [
         "No CAR or coverage in the scorecard (it stops at NPL/NIM/LDR/ROA/ROE)"
       ],
-      "audit_verdict": "clarify_purpose",
-      "audit_notes": "Six KPI cards that overlap Overview + Profitability. Its ONLY distinct value is the bank-TYPE filter. Reframe explicitly as the by-bank-type Table-15 scorecard, or fold into Overview/Profitability with a type switch.",
+      "audit_verdict": "resolved",
+      "audit_notes": "RESOLVED 2026-07-04 — folded into Overview as the 'Ratios by bank type' section (index 03) carrying the bank-type filter. Standalone /sector/ratios page removed from Nav; it now redirects to /#by-type (preserving ?type=).",
       "future_narrative_hook": "Compare the vitals across state vs private vs participation banks at a glance.",
       "charts": [
         {
@@ -6303,7 +6303,7 @@
         "NOT in Nav; single chart duplicates Overview's 'Total Assets — Level'"
       ],
       "audit_verdict": "merge",
-      "audit_notes": "Orphan one-chart page, not in Nav, redundant with Overview. The /sector/ratios child IS linked but the /sector root is a dangling page. Fold into Overview or remove.",
+      "audit_notes": "Orphan one-chart page, not in Nav, redundant with Overview. Redirects to Overview. The /sector/ratios child was folded into Overview (2026-07-04) and now redirects too.",
       "charts": [
         {
           "chart_id": "sector.total_assets_sector_tl_trn",

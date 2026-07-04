@@ -67,7 +67,7 @@ librarian.
 | Orphan | Detail | Action |
 |---|---|---|
 | **`/disclosures`** | Real KAP-feed page, **not in Nav** — reachable only via `/banks` links or direct URL. Undiscoverable. | add_to_nav (under News or By Bank) or fold into News. |
-| **`/sector` (root)** | Real single-chart Total-Assets page, **not in Nav**, duplicates Overview. The `/sector/ratios` child *is* linked; the root dangles. | merge into Overview / remove. |
+| **`/sector` (root)** | Real single-chart Total-Assets page, **not in Nav**, duplicates Overview. Redirects to Overview. The `/sector/ratios` child now redirects too (folded into Overview 2026-07-04). | ✅ resolved — both redirect to `/`. |
 | **Catalog spec `rates.cbrt_foreign_asset_share`** | Defined in `chart-specs.catalog.json` (placement tab `rates`, "CBRT Balance Sheet") but **not rendered** on `/rates`. | Build the chart or drop the spec — a catalog/UI drift. |
 | **"Off-BS derivatives / total assets"** | Lives under *Capital* but is a market-risk (S8) signal. | Relocate once S8 has a home. |
 
@@ -75,7 +75,7 @@ librarian.
 
 | Tab | Issue | Action |
 |---|---|---|
-| **Ratios (`/sector/ratios`)** | Six KPI cards overlapping Overview + Profitability; its ONLY distinct value is the bank-**type** filter. | clarify_purpose: reframe explicitly as the *by-bank-type Table-15 scorecard*, or fold into Overview/Profitability with a type switch. |
+| **Ratios (`/sector/ratios`)** | Six KPI cards overlapping Overview + Profitability; its ONLY distinct value is the bank-**type** filter. | ✅ resolved 2026-07-04 — folded into Overview as the "Ratios by bank type" section (index 03) with the bank-type switch; standalone page removed from Nav and redirects to `/#by-type`. |
 | **Digital nav placement** | Strong TBB lane, but grouped under "Sector" between Profitability and Liquidity — it's structural context, not a CAMELS vital. | relocate to a structure/context group with Funds/Non-Bank. |
 | **Funds / Non-Bank banking-anchor** | Adjacency tabs whose link to *banking* (deposit substitution, disintermediation) is implicit. | Make the banking anchor explicit so each earns its place. |
 
