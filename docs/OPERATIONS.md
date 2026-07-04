@@ -307,6 +307,33 @@ TTL, with a 2.5 s timeout and silent fallback to the stored close.
   loads within 60 s should not re-hit Yahoo) and watch KV writes stay flat (the
   overlay must never add KV writes).
 
+### Bank logos (rare — when a bank is added)
+
+Per-bank brand marks live as committed static PNGs in `web/public/logos/<TICKER>.png`
+and render on the `/banks` index cards + per-bank header via `BankLogo`
+(`web/app/components/BankLogo.tsx`). They are **not** in D1 — no cron, no runtime
+fetch (CSP-safe, offline-stable).
+
+```
+# Fetch any missing logos (skips those already present):
+python scripts/fetch_bank_logos.py
+# Re-fetch a specific bank (e.g. after a rebrand):
+python scripts/fetch_bank_logos.py --force GARAN
+```
+
+The fetcher sources each bank's own `apple-touch-icon`, falling back to curated
+Wikimedia / site-header logos (`WIKIMEDIA` / `OVERRIDES` in the script) for banks
+that expose no usable square mark. SVG sources are rasterised via Wikimedia's
+thumbnail renderer or the weserv proxy (no local SVG renderer needed). Every logo
+is trimmed to its natural aspect ratio; the UI renders them at a fixed height, so
+square marks and wide wordmarks line up. The script also regenerates
+`web/app/lib/bank-logos.generated.ts` (each committed logo's intrinsic
+`[width, height]`) — commit it alongside the PNGs so the UI never points at a
+missing file. Banks with no sourceable logo (a small tail — currently ATBANK,
+PASHA, TSKB) fall back to a neutral ticker chip; drop a hand-made square PNG at
+`web/public/logos/<TICKER>.png` and re-run `--renorm` to adopt it. Domain map:
+`data/banks/bank_logo_domains.json` (keep in sync with `bank_names.ts`).
+
 ### Change the D1 schema (migrations)
 
 The schema source of truth is the hand-authored, version-controlled files in

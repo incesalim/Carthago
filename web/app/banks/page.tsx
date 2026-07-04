@@ -11,6 +11,7 @@ import { bankSummaries, type BankSummary } from "@/app/lib/audit";
 import { BANK_NAMES, BANK_TYPE_BY_TICKER, BANK_TYPE_BADGE_LABELS } from "@/app/lib/bank_names";
 import { PageHeader } from "@/app/components/ui";
 import BankTypeBadge from "@/app/components/BankTypeBadge";
+import BankLogo from "@/app/components/BankLogo";
 
 export const dynamic = "force-dynamic";
 
@@ -90,15 +91,20 @@ export default async function BanksPage() {
                       className="block rounded-[10px] border border-border bg-card p-4 transition-colors hover:border-primary/40"
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="font-semibold truncate">{BANK_NAMES[b.bank_ticker] ?? b.bank_ticker}</span>
-                          {typeCode && (
-                            <BankTypeBadge code={typeCode} label={BANK_TYPE_BADGE_LABELS[typeCode]} />
-                          )}
-                        </div>
+                        <BankLogo
+                          ticker={b.bank_ticker}
+                          name={BANK_NAMES[b.bank_ticker]}
+                          height={20}
+                        />
                         <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-primary shrink-0">
                           {b.bank_ticker}
                         </span>
+                      </div>
+                      <div className="mt-2.5 flex items-center gap-2 min-w-0">
+                        <span className="font-semibold truncate">{BANK_NAMES[b.bank_ticker] ?? b.bank_ticker}</span>
+                        {typeCode && (
+                          <BankTypeBadge code={typeCode} label={BANK_TYPE_BADGE_LABELS[typeCode]} />
+                        )}
                       </div>
                       <div className="text-xs text-muted-foreground mt-1">
                         {b.periods} quarters · latest {b.latest_period}
