@@ -5,6 +5,9 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 // Order: Sector, then the deposit-ownership trio State / Domestic / Foreign,
 // then Participation and Dev & Inv. "Domestic" (10005 = Yerli Özel) reads
 // clearer than "Private" alongside Foreign (both are non-state/private).
+//
+// Drives the "Table-15 scorecard by bank type" section on Overview via a `?type=`
+// search param; the sector default omits the param entirely.
 const OPTIONS = [
   { code: "10001", label: "Sector" },
   { code: "10006", label: "State" },
@@ -24,7 +27,10 @@ export default function BankTypeFilter({ active }: { active: string }) {
     if (code === "10001") next.delete("type"); // default = sector → omit param
     else next.set("type", code);
     const qs = next.toString();
-    router.push(qs ? `${pathname}?${qs}` : pathname);
+    // Keep the scorecard in view across the re-render instead of jumping to the top.
+    router.push(qs ? `${pathname}?${qs}#by-type` : `${pathname}#by-type`, {
+      scroll: false,
+    });
   }
 
   return (

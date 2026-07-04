@@ -185,6 +185,15 @@ section promoted on Profitability/Capital, level-twin and duplicate charts cut
 [knowledge/display-study.md](knowledge/display-study.md) (phases 2–5 pending:
 real-terms twins, decompositions, sized scenarios, leagues, chronology).
 
+**Ratios folded into Overview (2026-07-04):** the standalone `/sector/ratios`
+page (six KPI cards whose only distinct value was the bank-**type** filter, an
+audit "clarify_purpose" item) is now the **"Ratios by bank type"** section
+(index 03) on Overview — the `BankTypeFilter` tabs drive the six Table-15 cards
+(Total Assets, NPL, NIM, LDR, ROA, ROE) via a `?type=` param that governs *only*
+that section (Snapshot + Sector Pulse stay sector-aggregate). Removed from Nav;
+`/sector/ratios` now redirects to `/#by-type` (preserving `?type=`). `Sparkline`
+and `BankTypeFilter` moved to `web/app/components/`.
+
 Every chart card (`web/app/components/ui/chart-card.tsx`) carries hover-revealed
 icon-only header controls — **Copy** image, **PNG** download, **CSV** download,
 and **Expand** to a centred popup. A single **global date-range selector**

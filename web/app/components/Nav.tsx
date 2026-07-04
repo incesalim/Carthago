@@ -27,7 +27,6 @@ const SECTIONS: NavSection[] = [
       { href: "/asset-quality", label: "Asset Quality" },
       { href: "/capital", label: "Capital" },
       { href: "/profitability", label: "Profitability" },
-      { href: "/sector/ratios", label: "Ratios" },
     ],
   },
   {

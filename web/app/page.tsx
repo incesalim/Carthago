@@ -2,12 +2,16 @@
  * Home / Overview tab.
  *
  * Sector-level KPI cards + bar chart of loan growth by bank type +
- * trend chart of NPL across groups + total-assets time series.
+ * trend chart of NPL across groups + total-assets time series, plus the
+ * by-bank-type Table-15 scorecard (formerly the standalone /sector/ratios page)
+ * folded in as a `?type=`-driven section.
  */
 import {
   ratioCar,
   ratioLdr,
+  ratioNim,
   ratioNpl,
+  ratioRoa,
   ratioRoe,
   totalAssets,
   totalAssetsYoY,
@@ -19,7 +23,8 @@ import {
   BANK_TYPE_LABELS,
 } from "@/app/lib/metrics";
 import TrendChart from "@/app/components/TrendChart";
-import Sparkline from "@/app/sector/ratios/Sparkline";
+import Sparkline from "@/app/components/Sparkline";
+import BankTypeFilter from "@/app/components/BankTypeFilter";
 import { PageHeader, Section, Stat, DeltaBadge } from "@/app/components/ui";
 import Takeaway from "@/app/components/Takeaway";
 import { overviewInsights } from "@/app/lib/insights";
@@ -76,12 +81,26 @@ const fmtPct = (v: number | null | undefined, d = 2) =>
 const fmtTrn = (v: number | null | undefined) =>
   v == null ? "—" : `₺${(v / 1_000_000).toFixed(2)} trn`;
 
-export default async function OverviewPage() {
+export default async function OverviewPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ type?: string }>;
+}) {
   const sector = [BANK_TYPES.SECTOR];
+
+  // Bank-type filter for the Table-15 scorecard section (BANK_TYPE_LABELS keys
+  // are exactly the six tabs BankTypeFilter offers). Defaults to Sector.
+  const params = await searchParams;
+  const bankType =
+    params.type && params.type in BANK_TYPE_LABELS
+      ? params.type
+      : BANK_TYPES.SECTOR;
+  const bt = [bankType];
 
   const [
     assets, assetsYoY, loansYoY, depositsYoY, npl, car, ldr, roe,
     loansYoYGroups, nplAllGroups, carGroups, roeGroups,
+    btAssets, btNpl, btNim, btLdr, btRoa, btRoe,
   ] = await Promise.all([
     totalAssets(sector),
     totalAssetsYoY(sector),
@@ -96,6 +115,13 @@ export default async function OverviewPage() {
     ratioNpl(PRIMARY_BANK_TYPES),
     ratioCar(PRIMARY_BANK_TYPES),
     ratioRoe(PRIMARY_BANK_TYPES),
+    // Table-15 scorecard for the selected bank type (defaults to sector).
+    totalAssets(bt),
+    ratioNpl(bt),
+    ratioNim(bt),
+    ratioLdr(bt),
+    ratioRoa(bt),
+    ratioRoe(bt),
   ]);
 
   const a = assets.at(-1);
@@ -106,6 +132,14 @@ export default async function OverviewPage() {
   const c = car.at(-1);
   const l = ldr.at(-1);
   const r = roe.at(-1);
+
+  // Latest point of each Table-15 scorecard series (selected bank type).
+  const bta = btAssets.at(-1);
+  const btn = btNpl.at(-1);
+  const btm = btNim.at(-1);
+  const btl = btLdr.at(-1);
+  const btra = btRoa.at(-1);
+  const btre = btRoe.at(-1);
 
   // Deterministic "Sector Pulse" — computed live from the same series the cards
   // show, so the lead can never drift from the numbers below it.
@@ -197,6 +231,35 @@ export default async function OverviewPage() {
         />
       </div>
       </Section>
+
+      {/* The by-bank-type Table-15 scorecard — folded in from the retired
+          /sector/ratios page. The filter drives ONLY this section (Snapshot +
+          Pulse above stay sector-aggregate); it's the one surface where the
+          deposit / participation / development-investment groups are compared
+          on the regulator's own ratios. */}
+      <div id="by-type" className="scroll-mt-24">
+      <Section
+        index="03"
+        title="Ratios by bank type"
+        description="the official BDDK Table-15 scorecard · deposit, participation and development-investment groups on the regulator's own ratios · queried live from D1"
+        actions={<BankTypeFilter active={bankType} />}
+      >
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+        <KpiCard label="Total Assets" value={fmtTrn(bta?.value)} period={bta?.period ?? "—"}
+                 series={btAssets} format="trn" decimals={2} />
+        <KpiCard label="NPL Ratio" value={fmtPct(btn?.value)} period={btn?.period ?? "—"}
+                 hint="Takipteki / Toplam Krediler" series={btNpl} format="pct" decimals={2} goodDirection="down" />
+        <KpiCard label="Net Interest Margin" value={fmtPct(btm?.value)} period={btm?.period ?? "—"}
+                 hint="annualized · NII / avg assets" series={btNim} format="pct" decimals={2} />
+        <KpiCard label="Loan / Deposit" value={fmtPct(btl?.value, 1)} period={btl?.period ?? "—"}
+                 series={btLdr} format="pct" decimals={1} goodDirection="neutral" />
+        <KpiCard label="ROA" value={fmtPct(btra?.value)} period={btra?.period ?? "—"}
+                 hint="annualized" series={btRoa} format="pct" decimals={2} />
+        <KpiCard label="ROE" value={fmtPct(btre?.value, 1)} period={btre?.period ?? "—"}
+                 hint="annualized" series={btRoe} format="pct" decimals={1} />
+      </div>
+      </Section>
+      </div>
     </main>
   );
 }
