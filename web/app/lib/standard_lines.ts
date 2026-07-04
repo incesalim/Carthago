@@ -48,6 +48,7 @@ export const BS_ASSET_LINES: StandardLine[] = [
   { id: "cash_eq",                 label: "Cash and Cash Equivalents",                                       hierarchy: "1.1" },
   { id: "cash_cb",                 label: "Cash and Central Bank Balances",                                  hierarchy: "1.1.1" },
   { id: "banks",                   label: "Banks",                                                           hierarchy: "1.1.2" },
+  { id: "money_market_recv",       label: "Money Market Placements",                                         hierarchy: "1.1.3" },
   { id: "ecl_cash",                label: "Expected Credit Losses (-)",                                      hierarchy: "1.1.ecl" },
   { id: "fvtpl",                   label: "Financial Assets at FVTPL",                                       hierarchy: "1.2" },
   { id: "fvoci",                   label: "Financial Assets at FVOCI",                                       hierarchy: "1.3" },
