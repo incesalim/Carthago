@@ -56,7 +56,11 @@ export function hasOnlyKnownNumbers(text: string, t: TabTakeaway): boolean {
     if (j >= 0 && /[a-zA-Z]/.test(text[j])) continue;
     // glued to a label on the RIGHT via a hyphen (1-year, 3-month)
     if (end < text.length && DASHES.includes(text[end]) && end + 1 < text.length && /[a-zA-Z]/.test(text[end + 1])) continue;
-    if (!allowed.some((a) => Math.abs(value - a) < 0.01 || Math.abs(Math.abs(value) - a) < 0.01)) {
+    // Match on MAGNITUDE: a fact printed negative that the rewrite phrases positive
+    // (e.g. "-7.3pp real" → "7.3pp below inflation") is the same figure, not an
+    // invention — the deterministic bullets still carry the sign. Must stay in sync
+    // with unknown_numbers() in src/news/free_llm.py.
+    if (!allowed.some((a) => Math.abs(Math.abs(value) - Math.abs(a)) < 0.01)) {
       return false;
     }
   }
