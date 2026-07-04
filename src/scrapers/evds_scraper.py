@@ -97,6 +97,14 @@ SERIES: list[Series] = [
     Series("TP.KTF18",    "Commercial Loan (ex cards & OD)", "rates", evds.FREQ_WEEKLY),
     Series("TP.KTFTUK01", "Consumer Loan (incl. overdraft)", "rates", evds.FREQ_WEEKLY),
 
+    # FC (USD/EUR) rates — for the BBVA liquidity FC interest-rate spread.
+    # Commercial-loan rate by currency (TL analogue = TP.KTF17) and the blended
+    # FC deposit rate (TL analogue = TP.TRY.MT06). Both weekly flow survey, %.
+    Series("TP.KTF17.USD", "USD Commercial Loan rate", "rates", evds.FREQ_WEEKLY),
+    Series("TP.KTF17.EUR", "EUR Commercial Loan rate", "rates", evds.FREQ_WEEKLY),
+    Series("TP.USD.MT06",  "USD Deposit rate (total)", "rates", evds.FREQ_WEEKLY),
+    Series("TP.EUR.MT06",  "EUR Deposit rate (total)", "rates", evds.FREQ_WEEKLY),
+
     # ------------------------------------------------------------------
     # Macro block — feeds the /economy tab (BBVA Türkiye Economic Outlook
     # adaptation). TP.FG.J0 (CPI 2003=100) died at the Jan-2026 TUIK

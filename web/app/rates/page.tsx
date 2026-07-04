@@ -6,6 +6,7 @@
 import { evdsMulti, latestPeriod } from "@/app/lib/metrics";
 import { PageHeader, Stat } from "@/app/components/ui";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
+import TrendChart from "@/app/components/TrendChart";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +35,29 @@ const LENDING = {
   "TP.TRY.MT06": "Deposit (TL)",
 };
 
+// TL deposit rates by maturity bucket (TCMB weekly flow survey) — mirrors the
+// BBVA liquidity section's deposit-cost ladder. MT06 above is the blended total.
+const DEP_MATURITY = {
+  "TP.TRY.MT01": "≤1m",
+  "TP.TRY.MT02": "1-3m",
+  "TP.TRY.MT03": "3-6m",
+  "TP.TRY.MT04": "6-12m",
+  "TP.TRY.MT05": ">12m",
+};
+
+// TL loan–deposit spread = commercial loan (excl. overdraft, KTF18) − blended
+// TL deposit (MT06). BBVA's "TL interest-rate spread"; goes negative when
+// deposit competition outruns loan pricing.
+const SPREAD_LOAN = "TP.KTF18";
+const SPREAD_DEPOSIT = "TP.TRY.MT06";
+
+// FC interest-rate spread = FC commercial-loan rate − FC deposit rate, per
+// currency (BBVA's "FC interest-rate spread"). USD and EUR shown separately.
+const FC_SPREADS = [
+  { key: "USD", loan: "TP.KTF17.USD", deposit: "TP.USD.MT06", label: "USD (loan − deposit)" },
+  { key: "EUR", loan: "TP.KTF17.EUR", deposit: "TP.EUR.MT06", label: "EUR (loan − deposit)" },
+] as const;
+
 const fmtPct = (v: number | undefined) => (v == null ? "—" : `${v.toFixed(2)}%`);
 const fmtFx  = (v: number | undefined) => (v == null ? "—" : `₺${v.toFixed(2)}`);
 
@@ -53,8 +77,30 @@ export default async function RatesPage() {
     ...Object.keys(FX),
     ...Object.keys(STERIL),
     ...Object.keys(LENDING),
+    ...Object.keys(DEP_MATURITY),
+    SPREAD_LOAN,
+    ...FC_SPREADS.flatMap((s) => [s.loan, s.deposit]),
   ];
   const data = await evdsMulti(allCodes, 5);
+
+  // Spread of a loan series minus a deposit series, aligned on the deposit
+  // survey's dates. Returns TrendPoints keyed by `code`.
+  const spreadOf = (loanCode: string, depCode: string, code: string) => {
+    const depMap = new Map((data[depCode] ?? []).map((r) => [r.period_date, r.value]));
+    return (data[loanCode] ?? [])
+      .filter((r) => depMap.has(r.period_date))
+      .map((r) => ({
+        period: r.period_date,
+        bank_type_code: code,
+        value: r.value - depMap.get(r.period_date)!,
+      }));
+  };
+
+  // TL loan–deposit spread.
+  const spread = spreadOf(SPREAD_LOAN, SPREAD_DEPOSIT, "SPREAD");
+  // FC loan–deposit spread (USD + EUR on one chart).
+  const fcSpread = FC_SPREADS.flatMap((s) => spreadOf(s.loan, s.deposit, s.key));
+  const fcSpreadLabels = Object.fromEntries(FC_SPREADS.map((s) => [s.key, s.label]));
 
   const byLabel = (group: Record<string, string>) => {
     const out: Record<string, { period_date: string; value: number }[]> = {};
@@ -109,6 +155,34 @@ export default async function RatesPage() {
           title="Transmission — policy cuts reach deposit pricing first (weekly survey, %)"
           yFormat="pct"
           decimals={2}        />
+      </div>
+
+      {/* Deposit-cost ladder + loan–deposit spreads — the BBVA liquidity
+          section's margin read: where the TL deposit curve sits by maturity,
+          and whether loans out-price deposits (positive spread) in TL and FC. */}
+      <TimeSeriesChart
+        series={byLabel(DEP_MATURITY)}
+        title="TL Deposit Rates by Maturity (weekly survey, %)"
+        yFormat="pct"
+        decimals={2}
+      />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+        <TrendChart
+          data={spread}
+          seriesLabels={{ SPREAD: "Commercial (ex-OD) − Deposit" }}
+          title="TL Loan–Deposit Spread (pp) — commercial vs deposit cost"
+          yFormat="pct"
+          decimals={2}
+          zeroLine
+        />
+        <TrendChart
+          data={fcSpread}
+          seriesLabels={fcSpreadLabels}
+          title="FC Loan–Deposit Spread (pp) — USD &amp; EUR commercial vs deposit"
+          yFormat="pct"
+          decimals={2}
+          zeroLine
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
