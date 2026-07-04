@@ -28,6 +28,7 @@ import BankTypeFilter from "@/app/components/BankTypeFilter";
 import { PageHeader, Section, Stat, DeltaBadge } from "@/app/components/ui";
 import Takeaway from "@/app/components/Takeaway";
 import { overviewInsights } from "@/app/lib/insights";
+import { withLlmHeadline } from "@/app/lib/read-headlines";
 import type { TimeSeriesRow } from "@/app/lib/metrics";
 
 export const dynamic = "force-dynamic";
@@ -149,6 +150,9 @@ export default async function OverviewPage({
     assetsYoY: sAssetsYoY, loansYoY: sLoansYoY, depositsYoY: sDepositsYoY,
     npl: sNpl, car: sCar, ldr: sLdr, roe: sRoe,
   });
+  // Option 1: show the LLM-rewritten lead when it matches these live facts,
+  // else the deterministic sentence (read-headlines.ts gates + falls back).
+  const read = await withLlmHeadline("overview", pulse);
 
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
@@ -160,7 +164,7 @@ export default async function OverviewPage({
         dataThrough={latestPeriod(assets, npl, car, roe)}
       />
 
-      <Takeaway data={pulse} />
+      <Takeaway data={read} />
 
       {/* Snapshot scorecard — the sector aggregate by default, switchable to any
           bank-type group via the filter. Merges the old sector snapshot and the
