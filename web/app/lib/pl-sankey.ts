@@ -10,13 +10,16 @@
  *
  * Sign handling
  * -------------
- * Contra lines ("… (-)" in the label: II., 2.x, 4.2, IX.–XII.) are stored as
- * the filing prints them — positive magnitude for most banks, NEGATIVE for the
- * paren-negative banks (ING/KLNMA/PASHA/TFKB/SKBNK/…). They are normalized to
- * magnitudes here, same rule as audit.ts `balanceSheetMultiPeriod`. Genuinely
- * signed lines (VI. trading, XV. equity-method, XVI. monetary position) keep
- * their stored sign. Tax (XVIII., "(±)") is sign-ambiguous across the two
- * storage conventions, so the tax CHARGE is derived from the unambiguous
+ * Expense lines (II., IX.–XII.) are stored as the filing prints them — positive
+ * magnitude for most banks, NEGATIVE for the paren-negative banks (ING/KLNMA/
+ * PASHA/TFKB/SKBNK/…). Rather than abs() them (which destroys a genuine reversal
+ * — a net ECL release or a provision write-back), the storage convention is read
+ * off a line that is always a real cost (personnel XI., then interest expense,
+ * then other opex) and each expense's SIGNED contribution to subtract is `conv ×
+ * stored`: positive = a real expense, negative = a credit that adds back.
+ * Genuinely signed income lines (VI. trading, XV. equity-method, XVI. monetary
+ * position) keep their stored sign. Tax (XVIII., "(±)") is sign-ambiguous across
+ * the two conventions, so the tax CHARGE is derived from the unambiguous
  * subtotals as XVII − XIX and only cross-checked against |XVIII|.
  *
  * Negative re-routing rule
@@ -26,8 +29,8 @@
  *   - a negative income item (trading loss, monetary loss, equity-method
  *     loss, negative net fees) becomes a red outflow ribbon LEAVING the
  *     subtotal it would have fed, alongside that stage's expense stack;
- *   - a negative expense (tax credit) becomes an inflow ribbon ENTERING the
- *     next subtotal.
+ *   - a negative expense (an expense reversal, or a tax credit) becomes a green
+ *     inflow ribbon ENTERING the subtotal it offsets.
  * A subtotal node's drawn thickness is therefore Σin = Σout (conserved by
  * construction), which can exceed the filed figure by the re-routed amount —
  * the LABEL always prints the filed figure, and `notes[]` explains the gap.
@@ -38,10 +41,14 @@
  *
  * Reconciliation
  * --------------
- * All statement identities are checked against the filed subtotals. Worst
- * relative diff ≤ 0.5 % → render silently; 0.5–5 % → render with a warning
- * note (ribbons anchor on component lines as filed — values are NEVER
- * scaled); > 5 % → `renderable: false`.
+ * EXACT match required. Every statement identity is checked against the filed
+ * subtotals; a diff within `noiseFloor` (0.1 % of interest income, to absorb
+ * thousand-level rounding and near-zero subtotals) counts as exact. Any diff
+ * that survives the noise floor is a real extraction gap — a dropped or
+ * mis-signed line — so the flow is suppressed (`renderable: false`) rather than
+ * drawn with numbers that don't add up; the table below it still shows the
+ * filed rows. Ribbons anchor on the component lines as filed — values are NEVER
+ * scaled.
  */
 import type { PlRow } from "./audit";
 
@@ -95,12 +102,6 @@ export interface PlSankeyResult {
 // Derivation
 // ---------------------------------------------------------------------------
 
-const CONTRA_RE = /\(\s*-\s*\)/;
-
-/** Hierarchy codes that are deductions by template even when the extracted
- *  label lost its "(-)" marker (Turkish filings vary). */
-const DEDUCTION_CODES = new Set(["II.", "IX.", "X.", "XI.", "XII."]);
-
 /** Roman-numeral subtotal codes are stored dotted ("VI.") for every bank
  *  except VAKBN, whose filing prints roman VI without the trailing dot ("VI")
  *  and the extractor keeps it verbatim across all periods. The subtotal
@@ -112,8 +113,6 @@ const canonHier = (h: string) => (/^[IVXLCDM]+$/.test(h) ? `${h}.` : h);
 
 interface LineIndex {
   get(h: string): number | null;
-  /** Deduction magnitude: abs() when contra-labelled or a known deduction code. */
-  mag(h: string): number | null;
 }
 
 function indexRows(rows: PlRow[]): LineIndex {
@@ -137,11 +136,6 @@ function indexRows(rows: PlRow[]): LineIndex {
   }
   return {
     get: (h) => byCode.get(h)?.amount ?? null,
-    mag: (h) => {
-      const e = byCode.get(h);
-      if (!e || e.amount == null) return null;
-      return CONTRA_RE.test(e.name) || DEDUCTION_CODES.has(h) ? Math.abs(e.amount) : e.amount;
-    },
   };
 }
 
@@ -152,10 +146,33 @@ export function buildPlSankey(rows: PlRow[]): PlSankeyResult {
   const ix = indexRows(rows);
   const notes: string[] = [];
 
+  // Sign convention for the deduction stack (II., IX.–XII.). Most banks store
+  // expense lines as positive magnitudes ("(-)" in the label); the paren-negative
+  // banks (ING/KLNMA/PASHA and the participation banks) store them NEGATIVE. The
+  // old rule blindly abs()-ed every deduction, which is wrong when a line is a
+  // genuine reversal — a net ECL RELEASE (BURGAN) or a provision write-back
+  // (DENIZ) is stored with the opposite sign and must be ADDED back, not
+  // subtracted; abs()-ing it double-counted the swing and the VIII→XIII identity
+  // failed by up to ~190%. Anchor the convention on a line that is ALWAYS a real
+  // cost — personnel (XI.) first, since participation banks (TFKB) have no
+  // interest expense II. — then interest expense, then other opex. `ded(h)`
+  // returns the amount to SUBTRACT: >0 a real expense, <0 a reversal/credit.
+  const convAnchor = ix.get("XI.") ?? ix.get("II.") ?? ix.get("XII.") ?? 0;
+  const conv = convAnchor < 0 ? -1 : 1;
+  const ded = (h: string): number | null => {
+    const v = ix.get(h);
+    return v == null ? null : conv * v;
+  };
+
   // --- normalized line values -------------------------------------------
   const interestIncome = ix.get("I.");
   const netInterestReported = ix.get("III.");
-  let interestExpense = ix.mag("II.");
+  // Interest / profit-share expense is ALWAYS a magnitude, never a reversal, and
+  // its storage sign is independent of the IX.–XII. block (TFKB stores II.
+  // positive while its operating deductions are negative), so take abs() here
+  // rather than the block's `conv`.
+  const iiRaw = ix.get("II.");
+  let interestExpense = iiRaw == null ? null : Math.abs(iiRaw);
   if (interestExpense == null && interestIncome != null && netInterestReported != null) {
     interestExpense = interestIncome - netInterestReported;
     notes.push("Interest expense derived as I. − III. (line missing from the extraction).");
@@ -168,10 +185,10 @@ export function buildPlSankey(rows: PlRow[]): PlSankeyResult {
   const trading = ix.get("VI.") ?? 0;
   const otherIncome = ix.get("VII.") ?? 0;
   const grossOpReported = ix.get("VIII.");
-  const ecl = ix.mag("IX.") ?? 0;
-  const otherProv = ix.mag("X.") ?? 0;
-  const personnel = ix.mag("XI.") ?? 0;
-  const otherOpex = ix.mag("XII.") ?? 0;
+  const ecl = ded("IX.") ?? 0;
+  const otherProv = ded("X.") ?? 0;
+  const personnel = ded("XI.") ?? 0;
+  const otherOpex = ded("XII.") ?? 0;
   const netOpReported = ix.get("XIII.");
   const merger = ix.get("XIV.") ?? 0;
   const equityMethod = ix.get("XV.") ?? 0;
@@ -233,7 +250,14 @@ export function buildPlSankey(rows: PlRow[]): PlSankeyResult {
     );
   }
 
-  if (worstPctDiff > 0.05) {
+  // Exact match required: the flow only renders when every statement identity
+  // reconciles to the filed subtotals (diffs within `noiseFloor` count as exact
+  // rounding). Anything that survives the noise floor is a real extraction gap —
+  // a dropped line or a mis-signed figure — so the chart is suppressed rather
+  // than drawn with numbers that don't add up. `worst.label` names the first
+  // failing identity in the note below the suppression message.
+  if (worstPctDiff > 0) {
+    const worst = checks.reduce((a, b) => (b.pctDiff > a.pctDiff ? b : a));
     return {
       nodes: [],
       links: [],
@@ -242,15 +266,9 @@ export function buildPlSankey(rows: PlRow[]): PlSankeyResult {
       renderable: false,
       notes: [
         ...notes,
-        "Internal-sum checks failed by more than 5% — flow chart suppressed; see the table below.",
+        `${worst.label} does not reconcile to the filed figure (off by ${(worst.pctDiff * 100).toFixed(1)}%) — flow chart suppressed; see the table below.`,
       ],
     };
-  }
-  if (worstPctDiff > 0.005) {
-    const worst = checks.reduce((a, b) => (b.pctDiff > a.pctDiff ? b : a));
-    notes.push(
-      `${worst.label} computed from line items differs from the filed figure by ${(worst.pctDiff * 100).toFixed(1)}% — extraction noise; ribbons use the line items as filed.`,
-    );
   }
 
   // --- graph construction --------------------------------------------------
@@ -337,11 +355,11 @@ export function buildPlSankey(rows: PlRow[]): PlSankeyResult {
     }
   }
 
-  const deductions: { id: string; label: string; value: number }[] = [
-    { id: "ecl", label: "Expected credit losses", value: ecl },
-    { id: "other_prov", label: "Other provisions", value: otherProv },
-    { id: "personnel", label: "Personnel expenses", value: personnel },
-    { id: "other_opex", label: "Other operating expenses", value: otherOpex },
+  const deductions: { id: string; label: string; value: number; credit: string }[] = [
+    { id: "ecl", label: "Expected credit losses", value: ecl, credit: "Net ECL release" },
+    { id: "other_prov", label: "Other provisions", value: otherProv, credit: "Provision reversal" },
+    { id: "personnel", label: "Personnel expenses", value: personnel, credit: "Personnel expense credit" },
+    { id: "other_opex", label: "Other operating expenses", value: otherOpex, credit: "Other operating credit" },
   ];
   let grossOut = grossRerouted;
   for (const d of deductions) {
@@ -349,6 +367,16 @@ export function buildPlSankey(rows: PlRow[]): PlSankeyResult {
       node({ id: d.id, label: d.label, column: 3, value: d.value, reported: d.value, kind: "deduction" });
       link(grossId, d.id, d.value);
       grossOut += d.value;
+    } else if (d.value < 0) {
+      // Genuine reversal (net release / write-back): a credit that ADDS to the
+      // running flow. Draw it as a green inflow to gross operating profit, like
+      // an income source — the node width then exceeds the filed VIII. by the
+      // reversal, matching the re-routed-loss convention.
+      const v = -d.value;
+      node({ id: `${d.id}_credit`, label: d.credit, column: 1, value: v, reported: d.value, kind: "source" });
+      link(`${d.id}_credit`, grossId, v);
+      grossIn += v;
+      notes.push(`${d.credit} shown as an inflow to Gross operating profit; node width exceeds the filed VIII. accordingly.`);
     }
   }
 
