@@ -370,19 +370,27 @@ export async function cashFlowMultiPeriod(
     const placeholders = periods.map(() => "?").join(",");
     const { results } = await db
       .prepare(
-        `SELECT period, hierarchy, amount
+        `SELECT period, hierarchy, item_name, amount
          FROM bank_audit_cash_flow
          WHERE bank_ticker = ? AND kind = ?
            AND period IN (${placeholders})
            AND hierarchy != ''`,
       )
       .bind(ticker, kind, ...periods)
-      .all<{ period: string; hierarchy: string; amount: number | null }>();
+      .all<{ period: string; hierarchy: string; item_name: string; amount: number | null }>();
     const out = new Map<string, Map<string, number | null>>();
     for (const r of results) {
       const h = _CF_TRAILING_DOT.test(r.hierarchy) ? r.hierarchy.slice(0, -1) : r.hierarchy;
+      // A few banks (e.g. DENIZ, FIBA) file always-outflow lines as a POSITIVE
+      // magnitude tagged "(-)" in the label instead of a signed negative; fold
+      // those to −|amount| so every bank's cash flow shows outflows negative and
+      // the displayed lines reconcile to their section subtotals. Genuinely
+      // bidirectional rows tagged "(+/-)" are left untouched — the regex matches
+      // a bare "(-)" only, not "(+/-)" or "(+)".
+      const contra = /\(\s*-\s*\)/.test(r.item_name ?? "");
+      const v = r.amount == null ? null : contra ? -Math.abs(r.amount) : r.amount;
       if (!out.has(h)) out.set(h, new Map());
-      out.get(h)!.set(r.period, r.amount);
+      out.get(h)!.set(r.period, v);
     }
     return out;
   } catch {
