@@ -13,11 +13,12 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     env:
       GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
       CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_KEY }}
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GIT_SHA: ${{ github.sha }}
       PYTHONIOENCODING: utf-8
     steps:
       - name: Checkout repo
@@ -31,5 +32,15 @@ jobs:
       - name: Install requests
         run: pip install requests
 
-      - name: Run free-model bake-off
+      - name: Run free-model evaluation
         run: python scripts/scratch_test_free_models.py
+
+      - name: Upload evaluation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: free-model-eval
+          path: |
+            free_model_eval.md
+            free_model_eval.json
+          if-no-files-found: warn
