@@ -88,7 +88,7 @@ Most IA confusion comes from conflating *where a theme sits in the story* with
 | S6 | Capital / solvency | Capital | T1 | C | Solvency | reg. capital/RWA; CET1/RWA; leverage (enc.) | CAR |
 | S7 | Profitability / earnings | Profitability | T1 | E (+M) | Profitability | ROA; ROE; int. margin/gross income; non-int. exp./gross income | NIM, real ROE, fees |
 | **S8** | **Sensitivity to market risk** | **— (unhomed)** | T1 | **S** | Market/FX/rate risk | net open FX position/capital; duration (enc.) | FX sensitivity, securities MtM |
-| S9 | CAMELS scorecard / ratios | Overview → "Ratios by bank type" section (folded in from the retired `/sector/ratios`) | T2 | all | (cross-cutting) | the core set as one surface, per bank type | (Table-15 recap) |
+| S9 | CAMELS scorecard / ratios | Overview → Snapshot (bank-type-switchable; merged in from the retired `/sector/ratios`) | T2 | all | (cross-cutting) | the core set as one surface, per bank type | (Table-15 recap) |
 | S10 | Bank-level comparison | Banks, Bank detail, Compare | T2 | per-bank | Dispersion & concentration | per-bank core set; HHI | (peer tables) |
 | S11 | Valuation | Valuation | T2 | — | Market discipline | (market data) | (valuation context) |
 | S12 | Ownership & governance | Ownership | T3 | M (proxy) | Structure/governance | (structural) | (ownership) |
@@ -120,7 +120,7 @@ dependencies, known gaps, per-chart roles, narrative hook) live in
 | Asset Quality | S5 · T1 | Is the credit actually good — and where is deterioration concentrated? | add_missing (Stage 2) |
 | Capital | S6 · T1 | Can the sector absorb losses — capital over the minimum, and why moving? | add_missing (CET1) |
 | Profitability | S7 · T1 | Is the sector earning its cost of capital — and what drives the margin? | merge (fee ratios) |
-| Ratios (Overview → "Ratios by bank type") | S9 · T2 | What does the official ratio scorecard look like per bank-type? | ✅ folded into Overview (2026-07-04) |
+| Ratios (Overview → Snapshot, bank-type switch) | S9 · T2 | What does the official ratio scorecard look like per bank-type? | ✅ merged into Overview Snapshot (2026-07-04) |
 | Liquidity | S4 · T1 | Can the sector fund itself — TL/FC pressure, dollarization, CBRT backdrop? | add_missing (LCR/NSFR) |
 | Digital | S13 · T3 | How fast is banking migrating to digital channels? | relocate (nav group) |
 

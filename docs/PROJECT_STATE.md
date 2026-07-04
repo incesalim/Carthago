@@ -185,14 +185,18 @@ section promoted on Profitability/Capital, level-twin and duplicate charts cut
 [knowledge/display-study.md](knowledge/display-study.md) (phases 2–5 pending:
 real-terms twins, decompositions, sized scenarios, leagues, chronology).
 
-**Ratios folded into Overview (2026-07-04):** the standalone `/sector/ratios`
-page (six KPI cards whose only distinct value was the bank-**type** filter, an
-audit "clarify_purpose" item) is now the **"Ratios by bank type"** section
-(index 03) on Overview — the `BankTypeFilter` tabs drive the six Table-15 cards
-(Total Assets, NPL, NIM, LDR, ROA, ROE) via a `?type=` param that governs *only*
-that section (Snapshot + Sector Pulse stay sector-aggregate). Removed from Nav;
-`/sector/ratios` now redirects to `/#by-type` (preserving `?type=`). `Sparkline`
-and `BankTypeFilter` moved to `web/app/components/`.
+**Ratios merged into the Overview Snapshot (2026-07-04):** the standalone
+`/sector/ratios` page (six KPI cards whose only distinct value was the
+bank-**type** filter, an audit "clarify_purpose" item) was first folded into
+Overview as a separate scorecard section, then **merged into the Snapshot itself
+(index 01)**. The Snapshot is now one `BankTypeFilter`-switchable scorecard —
+size + growth (Total Assets, Assets/Loan/Deposit YoY) plus the Table-15 ratio
+vitals (NPL, CAR, NIM, LDR, ROA, ROE) — driven by a `?type=` param; it defaults
+to Sector. The **"Sector Pulse" lead stays sector-aggregate** regardless of the
+selection (the insight copy reads "the sector"), so it's fed its own sector
+series. Removed from Nav; `/sector/ratios` redirects to `/#by-type` (the anchor
+now sits on the Snapshot, preserving `?type=`). `Sparkline` and `BankTypeFilter`
+moved to `web/app/components/`.
 
 Every chart card (`web/app/components/ui/chart-card.tsx`) carries hover-revealed
 icon-only header controls — **Copy** image, **PNG** download, **CSV** download,
