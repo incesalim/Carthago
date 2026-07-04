@@ -35,6 +35,7 @@ sys.path.insert(0, str(REPO))
 sys.stdout.reconfigure(encoding="utf-8")
 
 from src.news import free_llm  # noqa: E402
+from notify import notify  # noqa: E402  (scripts/ is sys.path[0] under `python scripts/…`)
 
 DEFAULT_SITE = "https://turkish-banking-dashboard.incesalim10.workers.dev"
 D1_NAME = "bddk-data"
@@ -100,6 +101,23 @@ def upsert(rows: list[dict]) -> int:
         path.unlink(missing_ok=True)
 
 
+def _notify_run(updates: list[dict], failed: list[str], unchanged: int,
+                dry_run: bool, upsert_ok: bool) -> None:
+    """One Telegram summary per run in which the LLM was actually invoked."""
+    lines = ["🧠 The Read — LLM run" + (" (dry-run)" if dry_run else "")]
+    if updates:
+        lines.append(f"✅ rewrote {len(updates)}:")
+        for u in updates:
+            lines.append(f"• {u['tab']} ({u['model']}): {u['headline']}")
+    if failed:
+        lines.append(f"⚠️ fallback (no valid rewrite): {', '.join(failed)}")
+    if unchanged:
+        lines.append(f"➖ unchanged: {unchanged}")
+    if updates and not dry_run and not upsert_ok:
+        lines.append("❌ D1 upsert FAILED")
+    notify("\n".join(lines))
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     # `or` (not dict-default): the CI env sets SITE_URL to "" when the repo var
@@ -116,19 +134,33 @@ def main() -> int:
     now = datetime.now(timezone.utc).isoformat(timespec="seconds")
 
     updates: list[dict] = []
+    failed: list[str] = []
+    unchanged = 0
     for rd in reads:
         tab, headline = rd["tab"], rd["headline"]
         items, det_hash = rd.get("items", []), rd["det_hash"]
         if not args.force and existing.get(tab) == det_hash:
             print(f"[{tab}] unchanged — skip", flush=True)
+            unchanged += 1
             continue
         new, model = free_llm.rewrite_headline(headline, items)
         if not new:
             print(f"[{tab}] no valid rewrite — leaving deterministic", flush=True)
+            failed.append(tab)
             continue
         print(f"[{tab}] via {model}: {new}", flush=True)
         updates.append({"tab": tab, "det_hash": det_hash, "headline": new,
                         "model": model, "generated_at": now})
+
+    # Write first (so the notification can report the upsert outcome).
+    upsert_ok, rc = True, 0
+    if updates and not args.dry_run:
+        rc = upsert(updates)
+        upsert_ok = rc == 0
+
+    # Notify iff the LLM actually ran (a purely no-op, all-unchanged run is silent).
+    if updates or failed:
+        _notify_run(updates, failed, unchanged, args.dry_run, upsert_ok)
 
     if not updates:
         print("[done] nothing to update.", flush=True)
@@ -136,9 +168,7 @@ def main() -> int:
     if args.dry_run:
         print(f"[dry-run] would upsert {len(updates)} row(s).", flush=True)
         return 0
-
-    rc = upsert(updates)
-    if rc != 0:
+    if not upsert_ok:
         print(f"[error] wrangler upsert failed ({rc})", file=sys.stderr)
         return rc
     print(f"[done] upserted {len(updates)} headline(s).", flush=True)
