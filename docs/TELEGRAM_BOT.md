@@ -68,11 +68,12 @@ You need a bot from [@BotFather](https://t.me/BotFather) (`/newbot` → token).
    change to `master` triggers `deploy-cloudflare.yml` (which also runs
    `wrangler d1 migrations apply`). Or deploy manually: `cd web && npm run deploy`.
 
-4. **Register the webhook** (points Telegram at the Worker):
+4. **Register the webhook** (points Telegram at the Worker). The script prompts
+   for the token + secret on a hidden input, so nothing lands in shell history
+   or the environment (or set `TELEGRAM_BOT_TOKEN` / `TELEGRAM_WEBHOOK_SECRET`
+   env vars to skip the prompts, e.g. in CI):
 
    ```bash
-   export TELEGRAM_BOT_TOKEN=...            # same token
-   export TELEGRAM_WEBHOOK_SECRET=...       # same secret as step 1/2
    python scripts/setup_telegram_webhook.py set
    python scripts/setup_telegram_webhook.py info   # verify url + pending_update_count
    ```
