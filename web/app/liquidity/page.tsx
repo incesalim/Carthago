@@ -8,9 +8,10 @@
  * foreign banks) — see LIQ_OWNERSHIP in lib/metrics.ts.
  *
  * Net international reserves are DERIVED here from the CBRT analytical balance
- * sheet (FX assets TP.BL054 − FX liabilities TP.BL122, converted to USD) — this
- * tracks the published NIR closely but the NIR-excluding-swaps split can't be
- * isolated without a separate swap-stock series, so only one net line is shown.
+ * sheet (FX assets TP.BL054 − FX liabilities TP.BL122, converted to USD), and
+ * split into with-/excluding-swaps using the CBRT swap stock
+ * (TP.SWAPTEKTAR.TOTALSTOKALIMYONLU): the derived net position includes buy-side
+ * swap FX (verified empirically), so net-excluding-swaps = NIR − swap stock.
  *
  * Out of scope (no data source here): investment-fund volumes/flows & fund
  * dollarization (TEFAS lacks an FC-fund category), under-the-mattress gold stock
@@ -84,9 +85,11 @@ export default async function LiquidityPage() {
     weeklyDollarization(),
     // CBRT funding + reserves + residents' FC (EVDS, already in D1). BL054/BL122
     // are the analytical-balance-sheet FX assets/liabilities for derived NIR;
-    // DK.USD.A converts them from TL to USD.
+    // DK.USD.A converts them from TL to USD; SWAPTEKTAR is the CBRT swap stock
+    // used to split NIR into with-/excluding-swaps.
     evdsMulti(
       ["TP.APIFON3", "TP.AB.TOPLAM", "TP.BL054", "TP.BL122", "TP.DK.USD.A",
+       "TP.SWAPTEKTAR.TOTALSTOKALIMYONLU",
        "TP.HPBITABLO4.4", "TP.HPBITABLO4.5", "TP.HPBITABLO4.7"],
       3,
     ),
@@ -112,7 +115,9 @@ export default async function LiquidityPage() {
   // Reserves & residents' FC are in USD millions → /1000 for USD bn.
   // Derived net international reserves: (FX assets − FX liabilities) from the
   // CBRT analytical balance sheet (both TL thousand, weekly), converted to USD
-  // bn at the same-date USD/TRY. (BL054−BL122) / USDTRY / 1e6 = USD bn.
+  // bn at the same-date USD/TRY. (BL054−BL122) / USDTRY / 1e6 = USD bn. This
+  // net position INCLUDES swap FX (verified: buy-side swap inflows lift it),
+  // so net-excluding-swaps = NIR − swap stock (USD m → bn).
   const usdMap = new Map((evds["TP.DK.USD.A"] ?? []).map((r) => [r.period_date, r.value]));
   const bl122Map = new Map((evds["TP.BL122"] ?? []).map((r) => [r.period_date, r.value]));
   const nir = (evds["TP.BL054"] ?? [])
@@ -121,9 +126,22 @@ export default async function LiquidityPage() {
       period_date: r.period_date,
       value: (r.value - bl122Map.get(r.period_date)!) / usdMap.get(r.period_date)! / 1e6,
     }));
+  // Swap stock (daily) → nearest-earlier value in USD bn for a given date.
+  const swapRows = evds["TP.SWAPTEKTAR.TOTALSTOKALIMYONLU"] ?? [];
+  const swapBnAt = (date: string): number => {
+    for (let i = swapRows.length - 1; i >= 0; i--) {
+      if (swapRows[i].period_date <= date) return swapRows[i].value / 1000;
+    }
+    return 0;
+  };
+  const nirExSwaps = nir.map((p) => ({
+    period_date: p.period_date,
+    value: p.value - swapBnAt(p.period_date),
+  }));
   const reserves = {
     "Gross reserves": toPoints(evds["TP.AB.TOPLAM"] ?? [], 1 / 1000),
-    "Net int'l reserves (derived)": nir,
+    "Net int'l reserves": nir,
+    "Net excl. swaps": nirExSwaps,
   };
   const residentsFc = {
     "FX cash (USD + EUR)": sumByDate(
@@ -216,7 +234,7 @@ export default async function LiquidityPage() {
 
       <Section
         title="CBRT Liquidity & Reserves"
-        description="System TL liquidity stance and the central bank's FX reserve buffer. Net reserves are derived from the analytical balance sheet (FX assets − liabilities); the gap to gross is the sterilised FX (required reserves and swaps)."
+        description="System TL liquidity stance and the central bank's FX reserve buffer. Net reserves are derived from the analytical balance sheet (FX assets − liabilities); gross − net is required-reserve FX, and net − net-excl-swaps is the CBRT swap stock."
       >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <TrendChart
@@ -229,7 +247,7 @@ export default async function LiquidityPage() {
           />
           <TimeSeriesChart
             series={reserves}
-            title="CBRT International Reserves (USD bn) — gross vs derived net"
+            title="CBRT International Reserves (USD bn) — gross, net, net excl. swaps"
             yFormat="raw"
             decimals={0}
           />

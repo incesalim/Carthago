@@ -242,10 +242,11 @@ A **Liquidity** tab (`/liquidity`) adapts the BBVA "Banking Sector Outlook"
 liquidity section: TL & FC loan/deposit ratios split Public (state) vs Private
 (private + foreign), **TL deposit growth (sector YoY & 13w-annualized, plus a
 public-vs-private 13w cut)**, deposit dollarization, net CBRT funding,
-**gross _and_ derived net international reserves** (NIR = analytical-BS FX
-assets `TP.BL054` − FX liabilities `TP.BL122`, converted to USD; the gap to
-gross is sterilised FX — required reserves + swaps, not separable without a
-swap-stock series), residents' household FC savings, audited §4
+**gross, net _and_ net-excluding-swaps international reserves** (NIR =
+analytical-BS FX assets `TP.BL054` − FX liabilities `TP.BL122`, converted to
+USD; NIR includes buy-side swap FX — verified empirically — so net-excl-swaps =
+NIR − CBRT swap stock `TP.SWAPTEKTAR.TOTALSTOKALIMYONLU`; gross − net is
+required-reserve FX), residents' household FC savings, audited §4
 LCR/NSFR/leverage, and REER. See [METRICS.md](METRICS.md) §12.
 
 The **Rates & Macro** tab (`/rates`) additionally carries the BBVA margins page:
