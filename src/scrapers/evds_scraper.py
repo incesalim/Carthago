@@ -74,11 +74,13 @@ SERIES: list[Series] = [
     Series("TP.BL054", "CBRT FX Assets (TL thousand)",      "cbrt", evds.FREQ_WEEKLY),
     Series("TP.BL122", "CBRT FX Liabilities (TL thousand)", "cbrt", evds.FREQ_WEEKLY),
 
-    # CBRT swap stock (total outstanding, buy side, USD m) — lets us split the
-    # derived NIR into with-/excluding-swaps. Empirically the buy-side swap FX
-    # inflates the analytical-BS net FX position (BL054−BL122), so
-    # NIR-ex-swaps = derived NIR − this stock. Daily since 2021.
-    Series("TP.SWAPTEKTAR.TOTALSTOKALIMYONLU", "CBRT Swap Stock, total outstanding (USD m)", "cbrt", evds.FREQ_DAILY),
+    # CBRT forward/swap short position (IMF reserve template §2.2.1, USD m,
+    # negative) — the off-balance-sheet FX the CBRT owes forward, dominated by
+    # swaps. The swap SPOT leg sits in BL054 (verified: net FX position moves
+    # with it), so net-reserves-excluding-swaps = derived NIR − |this|. Monthly.
+    # (This is the RIGHT swap measure; the domestic swap-auction stock
+    # TP.SWAPTEKTAR.* is far narrower and was ~0 for most of 2025.)
+    Series("TP.DOVVARNC.K15", "CBRT Forward/Swap Short Position (USD m)", "cbrt", evds.FREQ_MONTHLY),
 
     # Gold tons (CBRT books)
     Series("TP.BL0021", "Total Gold Reserves (grams)",         "cbrt", evds.FREQ_WEEKLY),
