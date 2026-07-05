@@ -31,6 +31,11 @@ jobs:
         # /pipeline topology (web/app/lib/pipeline-graph.ts) must reference every
         # .github/workflows/*.yml and vice versa. Stdlib-only, no extra deps.
         run: python scripts/check_pipeline_graph_sync.py
+      - name: Schema naming
+        # New D1 migrations (>= 0022) must follow docs/SCHEMA_CONVENTIONS.md
+        # (bank_ticker/amount_fc/snake_case/no reserved words/unique number).
+        # Stdlib-only. Existing tables are grandfathered.
+        run: python scripts/check_schema_naming.py
       - name: Pytest
         run: pytest
 
