@@ -202,19 +202,23 @@ page); the failover keeps the SAME model on two providers (Cerebras → Groq
 the same. Per-provider pacing + retry-on-429 keep the primary consistent under
 Cerebras's 5-req/min limit.
 
-**Presentation deck generator — PDF on demand (2026-07-05):**
-`scripts/generate_presentation.py` turns the deterministic reads into a
-board-style **PDF slide deck** (title + one slide per T1 tab + methodology),
-read-only off `GET /api/reads` so it never drifts from the site. Self-contained
-16:9 HTML in the editorial palette → PDF via a headless Chrome/Edge
-`--print-to-pdf` (auto-detected, no new dependency); output in `reports/`
-(gitignored). Flags: `--tabs` (subset/reorder), `--file` (offline), `--html-only`,
-`--open`, `--title`. Also wired into the dashboard: **/admin → Presentation →
-Generate PDF** opens `GET /api/presentation?print=1` (route + `web/app/lib/
-presentation-deck.ts`, the web twin of the CLI builder → `computeReads()` → deck
-HTML; browser print-to-PDF, since Workers can't run headless Chrome). Run recipe in
-[OPERATIONS.md](OPERATIONS.md) §Generate a presentation deck; admin flow in
-[ADMIN.md](ADMIN.md) §Presentation deck.
+**Presentation deck generator — PDF on demand (2026-07-05):** a board-style
+**PDF slide deck** of the sector Read — dark title slide, a **KPI vitals** slide
+(stat tiles), one slide per T1 tab (headline + driver bullets + an inline-SVG
+**trend chart**), and a methodology slide. Single source of truth is the Worker
+route `GET /api/presentation` (`web/app/api/presentation/route.ts` →
+`web/app/lib/presentation-data.ts`, which reuses the dashboard's **own**
+`metrics.ts` functions for the tiles/charts + the deterministic reads for the
+narrative → `web/app/lib/presentation-deck.ts` builds the 16:9 HTML in the
+editorial palette). **No drift** — same numbers the site plots. Two front doors:
+**/admin → Presentation → Generate PDF** (opens `?print=1` + the browser print
+dialog) and the CLI `scripts/generate_presentation.py` (a thin wrapper that
+fetches the route's HTML and prints it headlessly via Chrome/Edge for an
+unattended PDF in `reports/`, gitignored). Params/flags: `?tabs=`/`--tabs`
+(subset/reorder), `?title=`/`--title`, `--html-only`, `--file` (local HTML),
+`--open`. Workers can't run headless Chrome, so the browser does the PDF step.
+Recipe in [OPERATIONS.md](OPERATIONS.md) §Generate a presentation deck; admin
+flow in [ADMIN.md](ADMIN.md) §Presentation deck.
 
 **Telegram Q&A bot — text-to-SQL over D1 (2026-07-05):** a public Telegram bot
 that answers natural-language questions by generating **read-only SQL** against

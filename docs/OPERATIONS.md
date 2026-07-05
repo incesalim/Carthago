@@ -336,34 +336,36 @@ PASHA, TSKB) fall back to a neutral ticker chip; drop a hand-made square PNG at
 
 ### Generate a presentation deck (PDF)
 
-A one-command board-style "sector read-out" as a PDF slide deck:
+A one-command board-style "sector read-out" as a PDF slide deck — a dark title
+slide, a KPI vitals slide (stat tiles), one slide per T1 tab (headline + driver
+bullets + a trend chart), and a methodology slide:
 
 ```
-# Fetch the live reads → 16:9 HTML deck → PDF (reports/presentation-<date>.pdf):
+# Fetch the rendered deck → PDF (reports/presentation-<date>.pdf):
 python scripts/generate_presentation.py --open
-# Just the HTML (open it and Ctrl+P → Save as PDF):
+# Save the HTML only (open it and Ctrl+P → Save as PDF):
 python scripts/generate_presentation.py --html-only
-# A subset / reorder of sections, offline from a saved dump, custom output:
+# A subset / reorder of sections, custom title / output path:
 python scripts/generate_presentation.py --tabs overview,capital,profitability
-python scripts/generate_presentation.py --file reads.json --out ~/deck.pdf
+python scripts/generate_presentation.py --title "Q1 Board Pack" --out ~/deck.pdf
+# Print a local HTML you already have:
+python scripts/generate_presentation.py --file deck.html
 ```
 
-The generator (`scripts/generate_presentation.py`) is a **read-only consumer of
-`GET /api/reads`** — the same deterministic per-tab takeaways (headline + driver
-bullets) the dashboard shows — so the figures can never drift from the site (no
-LLM, no metric re-derivation). It builds a title slide + one slide per section
-(the 8 T1 tabs) + a methodology/closing slide in the dashboard's editorial
-palette, then renders to PDF via a **headless Chrome/Edge** `--print-to-pdf`
-(auto-detected; `--browser <path>` or `CHROME_PATH` to override — no new
-dependency). Output goes to `reports/` (gitignored). It touches nothing in D1 /
-R2 / the deployed app, so it's safe to run and re-run locally.
+The generator (`scripts/generate_presentation.py`) is a **thin wrapper**: it
+`GET`s the fully-rendered deck HTML from `/api/presentation` (the single source
+of truth — `web/app/lib/presentation-deck.ts` off
+`web/app/lib/presentation-data.ts`, which reuses the dashboard's **own**
+`metrics.ts` functions, so tiles and charts carry the site's exact numbers — no
+re-derivation, no drift), then prints it to PDF with a **headless Chrome/Edge**
+`--print-to-pdf` (auto-detected; `--browser <path>` or `CHROME_PATH` to override
+— no new dependency). The route can't produce a PDF itself (Workers can't run
+headless Chrome); this script is that render step. Output goes to `reports/`
+(gitignored). `--tabs` / `--title` pass straight through as query params.
 
-There's also an **in-dashboard button** for the no-CLI path: `/admin` →
-**Presentation** → **Generate PDF** opens the deck (`GET /api/presentation?print=1`)
-and the browser print dialog (Save as PDF). Same deck, rendered server-side by the
-Worker via `web/app/lib/presentation-deck.ts` (the web twin of this script); the
-browser does the PDF step since Workers can't run headless Chrome. See
-[ADMIN.md](ADMIN.md) §Presentation deck.
+The **in-dashboard button** does the same without the CLI: `/admin` →
+**Presentation** → **Generate PDF** opens `GET /api/presentation?print=1` and the
+browser print dialog (Save as PDF). See [ADMIN.md](ADMIN.md) §Presentation deck.
 
 ### Change the D1 schema (migrations)
 

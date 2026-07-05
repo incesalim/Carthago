@@ -13,8 +13,8 @@
  *
  * Returns already-public dashboard copy (same as /api/reads), so not admin-gated.
  */
-import { computeReads } from "@/app/lib/reads";
 import { buildDeckHtml, type DeckSection } from "@/app/lib/presentation-deck";
+import { presentationData } from "@/app/lib/presentation-data";
 
 export const dynamic = "force-dynamic";
 
@@ -24,16 +24,11 @@ export async function GET(req: Request) {
   const title = url.searchParams.get("title") ?? undefined;
   const tabsParam = url.searchParams.get("tabs");
 
-  const reads = await computeReads();
-  let sections: DeckSection[] = reads.map((r) => ({
-    tab: r.tab,
-    headline: r.takeaway.headline,
-    items: r.takeaway.items.map((i) => i.text),
-  }));
+  const data = await presentationData();
 
   if (tabsParam) {
-    const byTab = new Map(sections.map((s) => [s.tab, s]));
-    sections = tabsParam
+    const byTab = new Map(data.sections.map((s) => [s.tab, s]));
+    data.sections = tabsParam
       .split(",")
       .map((t) => t.trim())
       .filter(Boolean)
@@ -42,7 +37,7 @@ export async function GET(req: Request) {
   }
 
   const generatedAt = new Date().toISOString().slice(0, 10);
-  const html = buildDeckHtml(sections, { title, autoPrint, generatedAt });
+  const html = buildDeckHtml(data, { title, autoPrint, generatedAt });
 
   return new Response(html, {
     headers: {
