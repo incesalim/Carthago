@@ -144,6 +144,8 @@ export async function runAgent(env: StringEnv, db: Db, question: string): Promis
     { role: "user", content: question },
   ];
   const trace: { sql: string; result: string }[] = [];
+  let gotData = false; // a query has returned ≥1 row this session
+  let forced = false; // whether we've already pushed the model to query
 
   for (let step = 0; step < MAX_STEPS; step++) {
     let gen;
@@ -155,7 +157,22 @@ export async function runAgent(env: StringEnv, db: Db, question: string): Promis
 
     const sql = fencedSql(gen.text);
     if (!sql) {
-      // No query → this is the final answer to the user.
+      // A final answer that states figures / {placeholder}s but was NOT grounded
+      // in any query result is a hallucination — force the model to query (once).
+      const ungrounded = !gotData && (/\d{4,}/.test(gen.text) || /\{[a-z_]+\}/i.test(gen.text));
+      if (ungrounded && !forced) {
+        forced = true;
+        messages.push({ role: "assistant", content: gen.text });
+        messages.push({
+          role: "user",
+          content:
+            "You have not run any query, so you cannot know those figures — and never use " +
+            "{placeholder} tokens. Run the SQL that produces the answer FIRST (reply with a " +
+            "```sql block), then answer from its result.",
+        });
+        continue;
+      }
+      // No query needed → this is the final answer to the user.
       return { reply: finalize(gen.text) || "⚠️ I couldn't produce an answer. Please try rephrasing.", trace };
     }
 
@@ -172,6 +189,7 @@ export async function runAgent(env: StringEnv, db: Db, question: string): Promis
     try {
       const res = await db.prepare(san.sql).all<Record<string, unknown>>();
       const rows = (res.results ?? []).slice(0, ROW_CAP);
+      if (rows.length) gotData = true;
       trace.push({ sql: san.sql, result: `${rows.length} rows` });
       feedback = rows.length
         ? `Result (${rows.length} row${rows.length === 1 ? "" : "s"}):\n` +
