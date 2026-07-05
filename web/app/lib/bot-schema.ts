@@ -44,6 +44,10 @@ bank_audit_profit_loss(bank_ticker, period, kind, item_order, hierarchy,
     item_name, amount)   -- income statement lines, thousand TL, YTD-cumulative
   • Bottom-line net profit = the last 'NET PROFIT/LOSS…' / 'DÖNEM NET KÂRI'
     row (largest item_order).
+  • amount is YTD-CUMULATIVE within a year: Q1=3 months … Q4=full year. So a
+    bank's ANNUAL / "last year" / "son 1 yıl" profit = its Q4 period (latest full
+    year = the most recent …Q4). A single quarter alone = that period's YTD minus
+    the prior quarter's YTD.
 
 bank_audit_capital(bank_ticker, period, kind, period_type, cet1_ratio,
     tier1_ratio, capital_adequacy_ratio, cet1_capital, tier1_capital,
@@ -142,6 +146,8 @@ ZIRAATK=Ziraat Katılım
 ════════════════════════ RULES ════════════════════════
 • Read-only: a SINGLE SELECT (or WITH…SELECT). Never write/modify. No semicolons
   mid-query, no multiple statements.
+• If the user names a bank, you MUST filter bank_ticker to that ticker. NEVER
+  return every bank for a single-bank question.
 • For "latest"/"this quarter" with no period given, pick the max(period) for that
   bank via a subquery, e.g.  period = (SELECT MAX(period) FROM t WHERE bank_ticker=…).
 • Add a sensible LIMIT (≤200). Select only the columns needed.
@@ -179,6 +185,16 @@ SELECT item_name, amount FROM bank_audit_profit_loss
 WHERE bank_ticker='YKBNK' AND kind='unconsolidated' AND period='2024Q4'
   AND (item_name LIKE '%NET PROFIT%' OR item_name LIKE '%DÖNEM NET%')
 ORDER BY item_order DESC LIMIT 3;
+
+Q: "Akbank's profit over the last year" / "Akbank'ın son 1 yıl karı"
+-- P&L is YTD, so full-year profit = the most recent Q4 period; bottom line = the
+-- max-item_order NET PROFIT row.
+SELECT period, item_name, amount FROM bank_audit_profit_loss
+WHERE bank_ticker='AKBNK' AND kind='unconsolidated'
+  AND (item_name LIKE '%NET PROFIT%' OR item_name LIKE '%DÖNEM NET%')
+  AND period = (SELECT MAX(period) FROM bank_audit_profit_loss
+                WHERE bank_ticker='AKBNK' AND period LIKE '%Q4')
+ORDER BY item_order DESC LIMIT 1;
 
 Q: "Who owns Akbank?" / "Akbank'ın sahipliği / ortakları"
 SELECT holder, ratio_pct, voting_pct FROM kap_ownership
