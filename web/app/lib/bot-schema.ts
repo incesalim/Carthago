@@ -59,6 +59,9 @@ bank_audit_profit_loss(bank_ticker, period, kind, item_order, hierarchy,
     bank's ANNUAL / "last year" / "son 1 yıl" profit = its Q4 period (latest full
     year = the most recent …Q4). A single quarter alone = that period's YTD minus
     the prior quarter's YTD.
+  • A FEW reports have BLANK item_name (notably AKBNK 2026Q1 and 2022Q4). If your
+    '%XIX+XXIV%' net-profit query returns 0 rows but the period exists, the net
+    profit is the amount at MAX(item_order) for that bank/period/kind.
 
 bank_audit_capital(bank_ticker, period, kind, period_type, cet1_ratio,
     tier1_ratio, capital_adequacy_ratio, cet1_capital, tier1_capital,
