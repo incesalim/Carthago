@@ -117,9 +117,10 @@ news_items(source, external_id, published_at, ticker, title, summary, url,
 bank_earnings(source, ticker, period, event_date, title, url) — filing calendar.
 kap_ownership(bank_ticker, item, holder, ratio_pct, voting_pct, share_tl,
     activity, relation, as_of) — KAP register. ALWAYS filter by item (never mix):
-      'shareholder'          = DIRECT OWNERS (holder = owner; rows also include
-        'TOPLAM' total & 'DİĞER' other — exclude those for named owners). TR:
-        sahiplik / ortak / hissedar / sermaye yapısı / kim sahip.
+      'shareholder'          = DIRECT OWNERS (holder = owner name). Also carries a
+        'TOPLAM' row (total = 100%, EXCLUDE it) and usually 'DİĞER' (Other / free
+        float — KEEP it; it's the dispersed remainder, so the stakes sum to
+        ~100%). TR: sahiplik / ortak / hissedar / sermaye yapısı / kim sahip.
       'indirect_shareholder' = indirect owners.
       'subsidiary'           = the bank's OWN subsidiaries/affiliates (holder =
         subsidiary; has activity + relation='BAĞLI ORTAKLIK'). TR: iştirak(ler) /
@@ -181,8 +182,7 @@ ORDER BY item_order DESC LIMIT 3;
 
 Q: "Who owns Akbank?" / "Akbank'ın sahipliği / ortakları"
 SELECT holder, ratio_pct, voting_pct FROM kap_ownership
-WHERE bank_ticker='AKBNK' AND item='shareholder'
-  AND holder NOT IN ('TOPLAM','DİĞER')
+WHERE bank_ticker='AKBNK' AND item='shareholder' AND holder <> 'TOPLAM'
 ORDER BY ratio_pct DESC LIMIT 20;
 
 Q: "Akbank's subsidiaries" / "Akbank'ın iştirakleri"
