@@ -31,6 +31,19 @@ function intEnv(v: string | undefined, dflt: number): number {
   return Number.isFinite(n) && n > 0 ? n : dflt;
 }
 
+/**
+ * Add Turkish-style thousand separators ('.') to standalone integers of 5+
+ * digits (money amounts). Deterministic so the digits are never altered. The
+ * lookarounds skip anything adjacent to a digit/dot/comma, so years (2026),
+ * periods (2026Q1), decimals (40.75) and ratios are left alone; a leading '-'
+ * is preserved.
+ */
+function groupThousands(s: string): string {
+  return s.replace(/(?<![\d.,])\d{5,}(?![\d.,])/g, (m) =>
+    m.replace(/\B(?=(\d{3})+(?!\d))/g, "."),
+  );
+}
+
 const WELCOME = `👋 I'm the Turkish banking-sector bot. Ask about a bank or the sector and I'll query the database and answer.
 
 Try:
@@ -202,7 +215,9 @@ export async function handleUpdate(
 
     // Reply is plain in-chat text (the model lists rows one per line). Only if
     // the summary failed do we fall back to the raw table so there's an answer.
-    const out = clean ? escapeHtml(clean) : `<pre>${escapeHtml(formatTable(rows))}</pre>`;
+    const out = clean
+      ? escapeHtml(groupThousands(clean))
+      : `<pre>${escapeHtml(formatTable(rows))}</pre>`;
     await sendMessage(env, chatId, out);
   } catch (e) {
     console.error(`[bot] unhandled: ${e instanceof Error ? e.stack : e}`);
