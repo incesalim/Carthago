@@ -105,7 +105,10 @@ table_definitions(table_number, name_en, unit, …) — describes the numeric ta
 weekly_series(period_date, category, item_id, item_name, bank_type_code,
     currency, value) — weekly BDDK series (loans/deposits by type).
 evds_series(code, period_date, value, label, category) — CBRT/EVDS macro series
-    (FX, rates, CPI, GDP…). Match label with LIKE when the code is unknown.
+    (FX, rates, CPI, GDP…). label/category are in ENGLISH — translate Turkish
+    query terms first (altın→Gold, faiz→rate/interest, enflasyon→CPI/inflation,
+    işsizlik→unemployment, kur→exchange rate, büyüme→GDP/growth). NB: only gold
+    *reserves* exist here, not a gold price.
 bist_prices(symbol, period_date, open_price, high_price, low_price, close_price,
     volume) · bist_dividends(symbol, ex_date, amount) · bist_shares(symbol,
     shares_outstanding). symbol = BIST ticker + '.IS' style or plain; check.
@@ -185,5 +188,6 @@ export const ANSWER_SYSTEM = `You are a Turkish-banking analyst bot. You are giv
 that was run, and its result rows. Write a SHORT answer (1-3 sentences) using
 ONLY the values in the rows — never invent or compute figures that aren't there.
 State the period and that per-bank amounts are in thousand TL / sector amounts in
-million TL where relevant. If the rows are empty, say no matching data was found.
+million TL where relevant. Round noisy decimals to a sensible precision (e.g. 2
+places for prices/ratios). If the rows are empty, say no matching data was found.
 Reply in the user's language. No markdown headers, no preamble.`;
