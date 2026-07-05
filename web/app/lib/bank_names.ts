@@ -3,6 +3,11 @@
  * /banks/[ticker] (drill-down). Sourced from
  * data/banks/bddk_bank_list.json (committed config) — when adding a
  * new bank to the audit pipeline, mirror the name here.
+ *
+ * The in-D1 mirror of this map is the `banks` dimension table
+ * (migration 0021_banks_dimension.sql) — the single source of truth for
+ * cross-lane joins (ticker/bank_ticker/symbol) and for the text-to-SQL bot.
+ * Keep the two in sync: adding a bank here means adding a seed row there.
  */
 
 export const BANK_NAMES: Record<string, string> = {

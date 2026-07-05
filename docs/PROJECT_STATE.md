@@ -40,6 +40,7 @@ coverage or known issues change.
 | `bank_audit_oci`, `_cash_flow`, `_equity_change`, `_npl_movement`, `_stages`, `_loans_by_sector` | BRSA PDFs (statement pages + IFRS-9/credit footnotes) | 2022-Q1 → 2026-Q1 | per-bank; per-lane pass rates in the validation-status table below |
 | `bank_audit_extractions` | extraction log | one row per PDF | 974 rows (954 ok / 20 partial) |
 | `bank_types`, `table_definitions`, `download_log` | metadata | — | — |
+| `banks` (+ alias views `v_bist_prices` / `v_news_items` / `v_bank_earnings`) | dimension (migration 0021), seeded from `bddk_bank_list.json` + `bank_names.ts` | 31-bank audited universe | canonical per-bank identity + single join key across lanes (`ticker` == `bank_ticker` == `symbol`); the views alias each lane's id column to `bank_ticker`. Powers cross-lane joins + the text-to-SQL bot |
 
 **Quarterly audit reports**: 32 banks in URL config, ~974 PDFs extracted into
 D1 (~159k balance-sheet rows + ~59k P&L rows + ~7.4k IFRS 9 credit-quality
