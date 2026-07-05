@@ -374,6 +374,9 @@ The schema source of truth is the hand-authored, version-controlled files in
 
 1. Add a new numbered file, e.g. `web/migrations/0002_add_xyz.sql`, with the
    `CREATE TABLE IF NOT EXISTS …` / `ALTER TABLE … ADD COLUMN …` statements.
+   Follow the naming rules in [SCHEMA_CONVENTIONS.md](SCHEMA_CONVENTIONS.md)
+   (`bank_ticker` / `amount_fc` / snake_case / no reserved words / unique number)
+   — CI's `scripts/check_schema_naming.py` enforces them for migrations ≥ 0022.
    Mirror the change in the Python DDL (`src/*/schema.py` / scraper) so the
    staging SQLite matches.
 2. Commit + push. The deploy workflow runs `wrangler d1 migrations apply
