@@ -180,36 +180,29 @@ export async function handleUpdate(
     }
 
     // 4) Summarise the rows (grounded); the raw table below is the source of truth.
-    const table = formatTable(rows);
     let answer = "";
     try {
-      const payload = JSON.stringify(rows.slice(0, 30)).slice(0, 6000);
+      const payload = JSON.stringify(rows.slice(0, 50)).slice(0, 8000);
       const summ = await chatComplete(
         env,
         [
           { role: "system", content: ANSWER_SYSTEM },
           { role: "user", content: `Question: ${text}\nSQL: ${san.sql}\nRows (JSON):\n${payload}` },
         ],
-        { temperature: 0, maxTokens: 400 },
+        { temperature: 0, maxTokens: 900 },
       );
       answer = summ.text.trim();
     } catch {
-      // Summary is optional — the table alone is a complete, grounded answer.
+      // Summary is optional — fall back to the raw table below.
     }
 
     // Strip stray markdown the model may add — we render as HTML, not markdown,
     // so **bold** / `code` would show its literal markers.
     const clean = answer.replace(/\*+/g, "").replace(/`/g, "").trim();
 
-    // Show the data table only when it adds detail beyond the sentence
-    // (multi-row results) or when there's no sentence to fall back on. A
-    // single-row fact reads cleaner as just the sentence. SQL is shown only on
-    // failures/no-rows (handled above).
-    let out = clean ? escapeHtml(clean) : "";
-    if (rows.length > 1 || !clean) {
-      if (out) out += "\n\n";
-      out += `<pre>${escapeHtml(table)}</pre>`;
-    }
+    // Reply is plain in-chat text (the model lists rows one per line). Only if
+    // the summary failed do we fall back to the raw table so there's an answer.
+    const out = clean ? escapeHtml(clean) : `<pre>${escapeHtml(formatTable(rows))}</pre>`;
     await sendMessage(env, chatId, out);
   } catch (e) {
     console.error(`[bot] unhandled: ${e instanceof Error ? e.stack : e}`);
