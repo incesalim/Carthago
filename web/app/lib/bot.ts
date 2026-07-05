@@ -159,7 +159,10 @@ export async function runAgent(env: StringEnv, db: Db, question: string): Promis
     if (!sql) {
       // A final answer that states figures / {placeholder}s but was NOT grounded
       // in any query result is a hallucination — force the model to query (once).
-      const ungrounded = !gotData && (/\d{4,}/.test(gen.text) || /\{[a-z_]+\}/i.test(gen.text));
+      // Strip separators/whitespace first so a dot/comma/space-grouped number
+      // (43.520.620) still reads as a 4+ digit figure.
+      const digitsOnly = gen.text.replace(/[.,\s     ]/g, "");
+      const ungrounded = !gotData && (/\d{4,}/.test(digitsOnly) || /\{[a-z_]+\}/i.test(gen.text));
       if (ungrounded && !forced) {
         forced = true;
         messages.push({ role: "assistant", content: gen.text });
