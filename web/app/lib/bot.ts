@@ -38,8 +38,12 @@ function intEnv(v: string | undefined, dflt: number): number {
  * (8.06) and Turkish decimal commas (40,75) are left alone; a leading '-' is kept.
  */
 function groupThousands(s: string): string {
+  // Any thousands separator the model might use: ASCII space, comma, or a
+  // Unicode space (non-breaking, narrow no-break, thin, figure, punctuation).
   return s
-    .replace(/(?<![\d.,])(\d{1,3}(?:[ , ]\d{3})+)(?![\d])/g, (m) => m.replace(/[ , ]/g, ""))
+    .replace(/(?<![\d.,])(\d{1,3}(?:[ ,     ]\d{3})+)(?![\d])/g, (m) =>
+      m.replace(/[ ,     ]/g, ""),
+    )
     .replace(/(?<![\d.,])\d{5,}(?![\d.,])/g, (m) => m.replace(/\B(?=(\d{3})+(?!\d))/g, "."));
 }
 
