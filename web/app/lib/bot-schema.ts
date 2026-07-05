@@ -37,8 +37,11 @@ bank_audit_balance_sheet(bank_ticker, period, kind, statement, item_order,
   • statement IN ('assets','liabilities','off_balance'). item_name is the line
     label in the bank's OWN report language — English OR Turkish. hierarchy is a
     roman/number outline ('I.','II.','X.'…; '' for grand totals).
-  • Grand total assets = the row where item_name matches TOTAL ASSETS /
-    TOPLAM AKTİFLER / TOPLAM VARLIKLAR (usually the max item_order in 'assets').
+  • Grand total assets (or liabilities) = the LARGEST amount_total within that
+    statement — it's the sum of every line. Use MAX(amount_total) WHERE
+    statement='assets': robust and LABEL-INDEPENDENT. Do NOT match the total row
+    by text ('TOTAL ASSETS' etc.) — that label varies by bank/language and is
+    sometimes blank. (Text matching is only for a SPECIFIC line, e.g. loans.)
 
 bank_audit_profit_loss(bank_ticker, period, kind, item_order, hierarchy,
     item_name, amount)   -- income statement lines, thousand TL, YTD-cumulative
@@ -164,12 +167,15 @@ ZIRAATK=Ziraat Katılım
 
 ════════════════════════ EXAMPLES ════════════════════════
 Q: "Garanti's total assets latest quarter"
-SELECT period, item_name, amount_total FROM bank_audit_balance_sheet
+SELECT MAX(amount_total) AS total_assets FROM bank_audit_balance_sheet
 WHERE bank_ticker='GARAN' AND kind='unconsolidated' AND statement='assets'
-  AND (item_name LIKE '%TOTAL%ASSET%' OR item_name LIKE '%TOPLAM%AKT%'
-       OR item_name LIKE '%TOPLAM%VARLIK%')
-  AND period=(SELECT MAX(period) FROM bank_audit_balance_sheet WHERE bank_ticker='GARAN')
-LIMIT 5;
+  AND period=(SELECT MAX(period) FROM bank_audit_balance_sheet WHERE bank_ticker='GARAN');
+
+Q: "Rank banks by total assets" / "bankaları varlıklarına göre sırala"
+SELECT bank_ticker, MAX(amount_total) AS total_assets FROM bank_audit_balance_sheet
+WHERE statement='assets' AND kind='unconsolidated'
+  AND period=(SELECT MAX(period) FROM bank_audit_balance_sheet)
+GROUP BY bank_ticker ORDER BY total_assets DESC LIMIT 40;
 
 Q: "Rank banks by capital adequacy ratio this quarter"
 SELECT bank_ticker, capital_adequacy_ratio FROM bank_audit_capital
