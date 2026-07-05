@@ -218,7 +218,9 @@ export async function handleUpdate(
       if (invented.length) out += "\n\n<i>(figures approximate — see data below)</i>";
       out += "\n\n";
     }
-    out += `<pre>${escapeHtml(table)}</pre>\n<pre>${escapeHtml(san.sql)}</pre>`;
+    // Successful answers show just the data (the ground truth); the SQL is only
+    // surfaced on failures/no-rows, where it helps explain what went wrong.
+    out += `<pre>${escapeHtml(table)}</pre>`;
     await sendMessage(env, chatId, out);
   } catch (e) {
     console.error(`[bot] unhandled: ${e instanceof Error ? e.stack : e}`);
