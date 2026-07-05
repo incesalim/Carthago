@@ -94,9 +94,11 @@ Message the bot `/start` — it should reply with examples.
   aggregates (`balance_sheet`, `income_statement`, … monthly, million TL), plus
   macro (`evds_series`), BIST prices, ownership, news. The per-bank vs
   sector-aggregate split is the #1 thing the schema prompt drills.
-- **Accuracy**: the reply always shows the **raw result rows and the SQL**, so a
-  rounded/loose summary sentence is checkable against ground truth. Numbers in
-  the summary that don't appear in the rows get an "approximate" flag.
+- **Reply format**: plain in-chat text — a one-line answer for a single fact, or
+  one numbered item per line for a list/ranking (`bot.ts` + `ANSWER_SYSTEM`). The
+  generated SQL is shown only when a query fails or returns no rows; the raw data
+  table is shown only if the summary call itself fails. Both are diagnostic
+  fallbacks, not part of a normal answer.
 - **Groups**: Telegram bot privacy mode is ON by default, so in a group the bot
   only sees `/commands` and @mentions. Direct messages see all text. Turn
   privacy off via BotFather (`/setprivacy`) if you want it to read all group
