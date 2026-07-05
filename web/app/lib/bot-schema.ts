@@ -42,6 +42,11 @@ bank_audit_balance_sheet(bank_ticker, period, kind, statement, item_order,
     statement='assets': robust and LABEL-INDEPENDENT. Do NOT match the total row
     by text ('TOTAL ASSETS' etc.) — that label varies by bank/language and is
     sometimes blank. (Text matching is only for a SPECIFIC line, e.g. loans.)
+  • Deposits / funding ("mevduat", "toplanan fonlar") are in statement=
+    'liabilities' — usually the FIRST line: 'DEPOSITS'/'MEVDUAT' (deposit banks)
+    or 'FUNDS COLLECTED'/'TOPLANAN FONLAR' (participation banks). Only the
+    aggregate is stored — the current-vs-participation (cari/katılma) or maturity
+    sub-breakdown is NOT extracted per bank (it lives in report notes we skip).
 
 bank_audit_profit_loss(bank_ticker, period, kind, item_order, hierarchy,
     item_name, amount)   -- income statement lines, thousand TL, YTD-cumulative
