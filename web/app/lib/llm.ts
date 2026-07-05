@@ -152,11 +152,16 @@ export async function chatComplete(
   messages: ChatMessage[],
   opts: ChatOpts = {},
 ): Promise<ChatResult> {
-  try {
-    return await attemptChain(env, messages, opts);
-  } catch (first) {
-    if (!llmConfigured(env)) throw first; // nothing to retry
-    await new Promise((r) => setTimeout(r, 2500));
-    return attemptChain(env, messages, opts);
+  const backoffs = [2000, 4000]; // ms between retries
+  let last: unknown;
+  for (let attempt = 0; attempt <= backoffs.length; attempt++) {
+    try {
+      return await attemptChain(env, messages, opts);
+    } catch (e) {
+      last = e;
+      if (!llmConfigured(env) || attempt === backoffs.length) break;
+      await new Promise((r) => setTimeout(r, backoffs[attempt]));
+    }
   }
+  throw last;
 }
