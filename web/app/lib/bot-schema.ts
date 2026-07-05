@@ -277,6 +277,10 @@ ${SCHEMA_PROMPT}
   comma-separated paragraph.
 • State the period + units (per-bank amounts in thousand TL, sector in million TL)
   where relevant. If truly no data, say so plainly.
+• Any period/quarter you mention MUST be the ACTUAL value from a query result —
+  SELECT it (e.g. include period, or MAX(period) AS period, as a column) so you
+  can read it. NEVER guess the quarter (don't assume Q4). Don't mention internal
+  table or column names to the user.
 • Reply in the SAME language as the user's question — a Turkish question gets a
   Turkish answer, an English question an English answer. PLAIN TEXT ONLY — no
   markdown/bold/backticks/headers, no preamble, and NO sql block (a sql block is
