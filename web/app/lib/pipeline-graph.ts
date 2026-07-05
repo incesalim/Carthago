@@ -113,6 +113,7 @@ export const PIPELINE_NODES: PipelineNode[] = [
   { id: "store-r2-snap", kind: "store", layer: "storage", lane: "shared", label: "R2 · DB snapshots", sublabel: "state/*.db.gz + dated history (7 kept)" },
   { id: "store-kv", kind: "store", layer: "storage", lane: "shared", label: "KV · page cache", sublabel: "NEXT_INC_CACHE_KV · 12h TTL on D1 reads" },
   { id: "wf-healthcheck", kind: "workflow", layer: "page", lane: "shared", label: "healthcheck", sublabel: "daily 06:00 · freshness + chart-spec alert", workflowFile: "healthcheck.yml" },
+  { id: "wf-generate-reads", kind: "workflow", layer: "page", lane: "shared", label: "generate-reads", sublabel: "weekly · LLM rewrites 'The Read' headlines → read_headlines", workflowFile: "generate-reads.yml" },
 
   // ── Bulletin lane · pages ──────────────────────────────────────────────
   { id: "page-overview", kind: "page", layer: "page", lane: "bulletin", label: "Overview", sublabel: "/", href: "/" },
