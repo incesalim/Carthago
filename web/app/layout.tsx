@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { IBM_Plex_Sans, IBM_Plex_Mono, Source_Serif_4 } from "next/font/google";
 import "./globals.css";
 import Nav from "./components/Nav";
+import Beacon from "./components/Beacon";
 import { RangeProvider } from "./components/range-context";
 import { ThemeProvider } from "./components/ui/theme-provider";
 import { Toaster } from "./components/ui/toaster";
@@ -79,6 +80,7 @@ export default function RootLayout({
           </RangeProvider>
           <Toaster />
         </ThemeProvider>
+        <Beacon />
       </body>
     </html>
   );
