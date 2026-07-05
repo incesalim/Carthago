@@ -209,8 +209,12 @@ read-only off `GET /api/reads` so it never drifts from the site. Self-contained
 16:9 HTML in the editorial palette → PDF via a headless Chrome/Edge
 `--print-to-pdf` (auto-detected, no new dependency); output in `reports/`
 (gitignored). Flags: `--tabs` (subset/reorder), `--file` (offline), `--html-only`,
-`--open`, `--title`. Run recipe in [OPERATIONS.md](OPERATIONS.md) §Generate a
-presentation deck.
+`--open`, `--title`. Also wired into the dashboard: **/admin → Presentation →
+Generate PDF** opens `GET /api/presentation?print=1` (route + `web/app/lib/
+presentation-deck.ts`, the web twin of the CLI builder → `computeReads()` → deck
+HTML; browser print-to-PDF, since Workers can't run headless Chrome). Run recipe in
+[OPERATIONS.md](OPERATIONS.md) §Generate a presentation deck; admin flow in
+[ADMIN.md](ADMIN.md) §Presentation deck.
 
 **Telegram Q&A bot — text-to-SQL over D1 (2026-07-05):** a public Telegram bot
 that answers natural-language questions by generating **read-only SQL** against

@@ -358,6 +358,13 @@ palette, then renders to PDF via a **headless Chrome/Edge** `--print-to-pdf`
 dependency). Output goes to `reports/` (gitignored). It touches nothing in D1 /
 R2 / the deployed app, so it's safe to run and re-run locally.
 
+There's also an **in-dashboard button** for the no-CLI path: `/admin` →
+**Presentation** → **Generate PDF** opens the deck (`GET /api/presentation?print=1`)
+and the browser print dialog (Save as PDF). Same deck, rendered server-side by the
+Worker via `web/app/lib/presentation-deck.ts` (the web twin of this script); the
+browser does the PDF step since Workers can't run headless Chrome. See
+[ADMIN.md](ADMIN.md) §Presentation deck.
+
 ### Change the D1 schema (migrations)
 
 The schema source of truth is the hand-authored, version-controlled files in

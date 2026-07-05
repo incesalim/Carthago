@@ -9,6 +9,7 @@ import { relativeFromHours } from "@/app/lib/format-time";
 import {
   Badge,
   Button,
+  buttonVariants,
   Card,
   PageHeader,
   Section,
@@ -99,6 +100,33 @@ export default async function AdminPage({
           </Button>
         </form>
       </PageHeader>
+
+      <Section
+        title="Presentation"
+        description="A board-style PDF of the sector Read — title slide, one slide per tab, methodology. Opens the deck and the browser print dialog; choose “Save as PDF”."
+      >
+        <Card className="flex flex-wrap items-center gap-3 p-4">
+          <a
+            href="/api/presentation?print=1"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={buttonVariants({ variant: "default", size: "sm" })}
+          >
+            Generate PDF
+          </a>
+          <a
+            href="/api/presentation"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={buttonVariants({ variant: "outline", size: "sm" })}
+          >
+            Preview deck
+          </a>
+          <span className="text-xs text-muted-foreground">
+            Figures come straight from the live dashboard — nothing to configure.
+          </span>
+        </Card>
+      </Section>
 
       <Section
         title="Data health"
