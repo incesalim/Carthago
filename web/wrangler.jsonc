@@ -34,8 +34,8 @@
   "vars": {
     "CF_ACCESS_TEAM_DOMAIN": "",
     "CF_ACCESS_AUD": "",
-    "CF_ANALYTICS_SITE_TAG": "",
-    "CF_ACCOUNT_TAG": ""
+    "CF_ANALYTICS_SITE_TAG": "db5a28b26759487392e8f7947754edd8",
+    "CF_ACCOUNT_TAG": "fc990982b0035bafc9f08b1a98ae0664"
   },
   "observability": {
     "enabled": true
