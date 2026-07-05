@@ -26,7 +26,7 @@ health**, **manual refresh triggers**, and **site traffic** into one view.
 | Coverage matrix + drawer | `web/app/admin/coverage/{CoverageMatrix,CoverageDrawer,status}.{tsx,ts}` |
 | Coverage queries | `web/app/lib/coverage.ts` |
 | Runs / dispatch / coverage / purge-cache endpoints | `web/app/api/admin/{runs,dispatch,coverage,purge-cache}/route.ts` |
-| Presentation deck (route + HTML builder) | `web/app/api/presentation/route.ts`, `web/app/lib/presentation-deck.ts` |
+| Presentation deck (route + data + HTML builder) | `web/app/api/presentation/route.ts`, `web/app/lib/presentation-data.ts`, `web/app/lib/presentation-deck.ts` |
 
 ### Managing audit reports (the intended workflow)
 
@@ -73,16 +73,19 @@ The **Presentation** section has two buttons:
   the browser print dialog; choose **Save as PDF**.
 - **Preview deck** — opens the same deck without auto-printing, to view first.
 
-The route computes the same deterministic per-tab takeaways as `/api/reads`
-(`computeReads()` → headline + driver bullets for the 8 T1 tabs) and lays them out
-as a self-contained 16:9 HTML deck (title + one slide per tab + methodology) via
-`web/app/lib/presentation-deck.ts` — the **web twin** of the CLI builder in
-`scripts/generate_presentation.py`. The Worker runtime can't run headless Chrome,
-so the browser's print-to-PDF is the render step (the CLI script does it headlessly
-for a fully unattended PDF). Figures come straight from the live dashboard, so the
-deck can never drift; nothing to configure. Query params: `?tabs=a,b,c`
-(subset/reorder), `?title=…`. Not admin-gated — it returns already-public copy,
-same as `/api/reads`.
+The route assembles the deck via `web/app/lib/presentation-data.ts` — which
+reuses the dashboard's **own** `metrics.ts` functions (the same series the pages
+plot) plus the deterministic reads — and renders it with
+`web/app/lib/presentation-deck.ts`. The deck is a self-contained 16:9 HTML
+document: a dark title slide, a **KPI vitals** slide (stat tiles — assets/loans/
+deposits y/y, NPL, CAR, NIM, ROE, LDR), one slide per tab (headline + driver
+bullets + an **inline-SVG trend chart**), and a methodology slide. Because every
+figure and chart comes straight from the site's metric functions, the deck can't
+drift; nothing to configure. The Worker can't run headless Chrome, so the
+browser's print-to-PDF is the render step (the CLI `scripts/generate_presentation.py`
+just fetches this same HTML and prints it headlessly for an unattended PDF). Query
+params: `?tabs=a,b,c` (subset/reorder), `?title=…`, `?print=1`. Not admin-gated —
+it returns already-public copy, same as `/api/reads`.
 
 ## Purge cache (making a refresh show up immediately)
 
