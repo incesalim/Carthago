@@ -209,4 +209,5 @@ ONLY the values in the rows — never invent or compute figures that aren't ther
 State the period and that per-bank amounts are in thousand TL / sector amounts in
 million TL where relevant. Round noisy decimals to a sensible precision (e.g. 2
 places for prices/ratios). If the rows are empty, say no matching data was found.
-Reply in the user's language. No markdown headers, no preamble.`;
+Reply in the user's language, PLAIN TEXT ONLY — no markdown, no ** bold, no
+backticks, no headers, no preamble.`;

@@ -16,8 +16,6 @@ import {
   DEFAULT_ROW_CAP,
   extractSql,
   formatTable,
-  inventedNumbers,
-  numbersIn,
   sanitizeSelect,
 } from "./bot-sql";
 import { escapeHtml, sendMessage, type TgUpdate } from "./telegram";
@@ -95,18 +93,6 @@ async function rateLimit(
     return "The bot has hit its shared daily quota. Please try again tomorrow 🙏";
   }
   return null;
-}
-
-/** Collect every numeric value appearing in the result rows. */
-function allowedNumbers(rows: Record<string, unknown>[]): number[] {
-  const out: number[] = [];
-  for (const r of rows) {
-    for (const v of Object.values(r)) {
-      if (typeof v === "number") out.push(v);
-      else if (typeof v === "string") out.push(...numbersIn(v));
-    }
-  }
-  return out;
 }
 
 /** Entry point — process one Telegram update. Never throws. */
@@ -211,16 +197,19 @@ export async function handleUpdate(
       // Summary is optional — the table alone is a complete, grounded answer.
     }
 
-    let out = "";
-    if (answer) {
-      const invented = inventedNumbers(answer, [...allowedNumbers(rows), ...numbersIn(text)]);
-      out += escapeHtml(answer);
-      if (invented.length) out += "\n\n<i>(figures approximate — see data below)</i>";
-      out += "\n\n";
+    // Strip stray markdown the model may add — we render as HTML, not markdown,
+    // so **bold** / `code` would show its literal markers.
+    const clean = answer.replace(/\*+/g, "").replace(/`/g, "").trim();
+
+    // Show the data table only when it adds detail beyond the sentence
+    // (multi-row results) or when there's no sentence to fall back on. A
+    // single-row fact reads cleaner as just the sentence. SQL is shown only on
+    // failures/no-rows (handled above).
+    let out = clean ? escapeHtml(clean) : "";
+    if (rows.length > 1 || !clean) {
+      if (out) out += "\n\n";
+      out += `<pre>${escapeHtml(table)}</pre>`;
     }
-    // Successful answers show just the data (the ground truth); the SQL is only
-    // surfaced on failures/no-rows, where it helps explain what went wrong.
-    out += `<pre>${escapeHtml(table)}</pre>`;
     await sendMessage(env, chatId, out);
   } catch (e) {
     console.error(`[bot] unhandled: ${e instanceof Error ? e.stack : e}`);
