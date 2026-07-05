@@ -24,18 +24,21 @@ interface Provider {
 }
 
 // Ordered fallback chain. Each is OpenAI-compatible (`/chat/completions`).
+// Groq first: same gpt-oss-120b model as Cerebras but a much higher free-tier
+// rate limit (Cerebras is ~5 req/min), which matters because the agent loop
+// makes several calls per question. Falls back to Cerebras, then gemma.
 const PROVIDERS: Provider[] = [
-  {
-    name: "cerebras/gpt-oss-120b",
-    base: "https://api.cerebras.ai/v1",
-    model: "gpt-oss-120b",
-    keys: ["CEREBRAS_KEY", "CEREBRAS_API_KEY"],
-  },
   {
     name: "groq/openai/gpt-oss-120b",
     base: "https://api.groq.com/openai/v1",
     model: "openai/gpt-oss-120b",
     keys: ["GROQ_API_KEY", "GROQ_API_TOKEN"],
+  },
+  {
+    name: "cerebras/gpt-oss-120b",
+    base: "https://api.cerebras.ai/v1",
+    model: "gpt-oss-120b",
+    keys: ["CEREBRAS_KEY", "CEREBRAS_API_KEY"],
   },
   {
     name: "cerebras/gemma-4-31b",
