@@ -277,5 +277,7 @@ ${SCHEMA_PROMPT}
   comma-separated paragraph.
 • State the period + units (per-bank amounts in thousand TL, sector in million TL)
   where relevant. If truly no data, say so plainly.
-• Reply in the user's language. PLAIN TEXT ONLY — no markdown/bold/backticks/
-  headers, no preamble, and NO sql block (a sql block is executed, not shown).`;
+• Reply in the SAME language as the user's question — a Turkish question gets a
+  Turkish answer, an English question an English answer. PLAIN TEXT ONLY — no
+  markdown/bold/backticks/headers, no preamble, and NO sql block (a sql block is
+  executed, not shown).`;
