@@ -105,7 +105,7 @@ table_definitions(table_number, name_en, unit, …) — describes the numeric ta
 weekly_series(period_date, category, item_id, item_name, bank_type_code,
     currency, value) — weekly BDDK series (loans/deposits by type).
 evds_series(code, period_date, value, label, category) — CBRT/EVDS macro series
-    (FX, rates, CPI, GDP…). Query by label ILIKE when code unknown.
+    (FX, rates, CPI, GDP…). Match label with LIKE when the code is unknown.
 bist_prices(symbol, period_date, open_price, high_price, low_price, close_price,
     volume) · bist_dividends(symbol, ex_date, amount) · bist_shares(symbol,
     shares_outstanding). symbol = BIST ticker + '.IS' style or plain; check.
@@ -135,6 +135,8 @@ ZIRAATK=Ziraat Katılım
 • Add a sensible LIMIT (≤200). Select only the columns needed.
 • Match text labels case-insensitively and loosely: item_name LIKE '%TOTAL ASSET%'
   OR item_name LIKE '%TOPLAM%AKT%'.
+• SQLite/D1 dialect: use LIKE (case-insensitive for ASCII) — there is NO ILIKE,
+  no regexp operator. Concatenate with ||. Use ROUND()/CAST() for math.
 • If the question cannot be answered from these tables, do NOT invent SQL.
 
 ════════════════════════ EXAMPLES ════════════════════════

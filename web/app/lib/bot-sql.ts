@@ -47,6 +47,9 @@ export function sanitizeSelect(
 
   // Work on a comment-free copy for all safety checks.
   let sql = stripSqlComments(raw).trim();
+  // SQLite/D1 has no ILIKE; models emit it often. Rewriting to LIKE is safe
+  // (ILIKE would only ever error) and keeps the query working.
+  sql = sql.replace(/\bilike\b/gi, "LIKE");
   if (sql.length > MAX_SQL_LEN) {
     return { ok: false, error: "query too long" };
   }
