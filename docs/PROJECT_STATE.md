@@ -202,6 +202,16 @@ page); the failover keeps the SAME model on two providers (Cerebras → Groq
 the same. Per-provider pacing + retry-on-429 keep the primary consistent under
 Cerebras's 5-req/min limit.
 
+**Presentation deck generator — PDF on demand (2026-07-05):**
+`scripts/generate_presentation.py` turns the deterministic reads into a
+board-style **PDF slide deck** (title + one slide per T1 tab + methodology),
+read-only off `GET /api/reads` so it never drifts from the site. Self-contained
+16:9 HTML in the editorial palette → PDF via a headless Chrome/Edge
+`--print-to-pdf` (auto-detected, no new dependency); output in `reports/`
+(gitignored). Flags: `--tabs` (subset/reorder), `--file` (offline), `--html-only`,
+`--open`, `--title`. Run recipe in [OPERATIONS.md](OPERATIONS.md) §Generate a
+presentation deck.
+
 **Telegram Q&A bot — text-to-SQL over D1 (2026-07-05):** a public Telegram bot
 that answers natural-language questions by generating **read-only SQL** against
 the live D1 and summarising the rows. Runs inside the Worker as a Next route
