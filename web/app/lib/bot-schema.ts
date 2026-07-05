@@ -115,8 +115,16 @@ bist_prices(symbol, period_date, open_price, high_price, low_price, close_price,
 news_items(source, external_id, published_at, ticker, title, summary, url,
     language) — KAP/TCMB/BDDK news. news_item_banks links items→tickers.
 bank_earnings(source, ticker, period, event_date, title, url) — filing calendar.
-kap_ownership(bank_ticker, holder, ratio_pct, voting_pct, item, as_of) —
-    shareholders (item='ownership') & subsidiaries.
+kap_ownership(bank_ticker, item, holder, ratio_pct, voting_pct, share_tl,
+    activity, relation, as_of) — KAP register. ALWAYS filter by item (never mix):
+      'shareholder'          = DIRECT OWNERS (holder = owner; rows also include
+        'TOPLAM' total & 'DİĞER' other — exclude those for named owners). TR:
+        sahiplik / ortak / hissedar / sermaye yapısı / kim sahip.
+      'indirect_shareholder' = indirect owners.
+      'subsidiary'           = the bank's OWN subsidiaries/affiliates (holder =
+        subsidiary; has activity + relation='BAĞLI ORTAKLIK'). TR: iştirak(ler) /
+        bağlı ortaklık / iştirakleri.
+      'paid_in_capital','capital_ceiling' = capital figures (holder null).
 tefas_* (fund AUM/flows), tbb_*/tkbb_* (digital-banking & acquisition stats),
 nonbank_balance_sheet (leasing/factoring/financing sector).
 
@@ -170,6 +178,17 @@ SELECT item_name, amount FROM bank_audit_profit_loss
 WHERE bank_ticker='YKBNK' AND kind='unconsolidated' AND period='2024Q4'
   AND (item_name LIKE '%NET PROFIT%' OR item_name LIKE '%DÖNEM NET%')
 ORDER BY item_order DESC LIMIT 3;
+
+Q: "Who owns Akbank?" / "Akbank'ın sahipliği / ortakları"
+SELECT holder, ratio_pct, voting_pct FROM kap_ownership
+WHERE bank_ticker='AKBNK' AND item='shareholder'
+  AND holder NOT IN ('TOPLAM','DİĞER')
+ORDER BY ratio_pct DESC LIMIT 20;
+
+Q: "Akbank's subsidiaries" / "Akbank'ın iştirakleri"
+SELECT holder, ratio_pct, activity FROM kap_ownership
+WHERE bank_ticker='AKBNK' AND item='subsidiary'
+ORDER BY ratio_pct DESC LIMIT 100;
 `;
 
 /** System message for the SQL-generation call. */
