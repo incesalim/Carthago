@@ -196,8 +196,10 @@ wrangler. `web/app/lib/read-headlines.ts` shows the rewrite ONLY while its
 `det_hash` matches the live page and it invents no number — else the deterministic
 sentence, so it can never drift or go stale. Kimi still owns the regulations
 snapshot. All 8 tabs are wired (`reads.ts` computer + `withLlmHeadline` wrap per
-page); the 3-tier failover (Cerebras→Groq→gemma) is proven under Cerebras's
-5-req/min limit.
+page); the failover keeps the SAME model on two providers (Cerebras → Groq
+`gpt-oss-120b`) then the deterministic template, so a shown headline always sounds
+the same. Per-provider pacing + retry-on-429 keep the primary consistent under
+Cerebras's 5-req/min limit.
 
 **Telegram Q&A bot — text-to-SQL over D1 (2026-07-05):** a public Telegram bot
 that answers natural-language questions by generating **read-only SQL** against
