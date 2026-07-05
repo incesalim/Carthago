@@ -30,16 +30,17 @@ function intEnv(v: string | undefined, dflt: number): number {
 }
 
 /**
- * Add Turkish-style thousand separators ('.') to standalone integers of 5+
- * digits (money amounts). Deterministic so the digits are never altered. The
- * lookarounds skip anything adjacent to a digit/dot/comma, so years (2026),
- * periods (2026Q1), decimals (40.75) and ratios are left alone; a leading '-'
- * is preserved.
+ * Normalise money amounts to Turkish-style dot separators, deterministically so
+ * the digits are never altered. Step 1 collapses any separators the model added
+ * (space / comma / non-breaking space between digit-triples) to bare digits;
+ * step 2 dot-groups bare integers of 5+ digits. The lookarounds skip anything
+ * adjacent to a digit/dot/comma, so years (2026), periods (2026Q1), decimals
+ * (8.06) and Turkish decimal commas (40,75) are left alone; a leading '-' is kept.
  */
 function groupThousands(s: string): string {
-  return s.replace(/(?<![\d.,])\d{5,}(?![\d.,])/g, (m) =>
-    m.replace(/\B(?=(\d{3})+(?!\d))/g, "."),
-  );
+  return s
+    .replace(/(?<![\d.,])(\d{1,3}(?:[ , ]\d{3})+)(?![\d])/g, (m) => m.replace(/[ , ]/g, ""))
+    .replace(/(?<![\d.,])\d{5,}(?![\d.,])/g, (m) => m.replace(/\B(?=(\d{3})+(?!\d))/g, "."));
 }
 
 const WELCOME = `👋 I'm the Turkish banking-sector bot. Ask about a bank or the sector and I'll query the database and answer.

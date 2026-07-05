@@ -115,15 +115,11 @@ async function callProvider(
   }
 }
 
-/**
- * Run a chat completion through the provider fallback chain. Returns the first
- * provider that answers with non-empty text. Throws if every configured
- * provider errors (or none is configured).
- */
-export async function chatComplete(
+/** One pass over the provider fallback chain. */
+async function attemptChain(
   env: StringEnv,
   messages: ChatMessage[],
-  opts: ChatOpts = {},
+  opts: ChatOpts,
 ): Promise<ChatResult> {
   const errors: string[] = [];
   for (const p of PROVIDERS) {
@@ -140,4 +136,24 @@ export async function chatComplete(
   throw new Error(
     errors.length ? `all LLM providers failed — ${errors.join("; ")}` : "no LLM provider configured",
   );
+}
+
+/**
+ * Run a chat completion through the provider fallback chain. Since the agent
+ * loop makes several calls per question and the free tiers are rate-limited
+ * (Cerebras ~5/min), a whole-chain failure gets ONE retry after a short backoff
+ * to ride out transient 429s. Throws only if both passes fail.
+ */
+export async function chatComplete(
+  env: StringEnv,
+  messages: ChatMessage[],
+  opts: ChatOpts = {},
+): Promise<ChatResult> {
+  try {
+    return await attemptChain(env, messages, opts);
+  } catch (first) {
+    if (!llmConfigured(env)) throw first; // nothing to retry
+    await new Promise((r) => setTimeout(r, 2500));
+    return attemptChain(env, messages, opts);
+  }
 }
