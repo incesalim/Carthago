@@ -145,33 +145,31 @@ export async function runAgent(env: StringEnv, db: Db, question: string): Promis
   ];
   const trace: { sql: string; result: string }[] = [];
   let gotData = false; // a query has returned ≥1 row this session
-  let forced = false; // whether we've already pushed the model to query
 
   for (let step = 0; step < MAX_STEPS; step++) {
     let gen;
     try {
-      gen = await chatComplete(env, messages, { temperature: 0, maxTokens: 900 });
+      gen = await chatComplete(env, messages, { temperature: 0, maxTokens: 1400 });
     } catch {
       return { reply: "⚠️ The model is unavailable right now. Please try again shortly.", trace };
     }
 
     const sql = fencedSql(gen.text);
     if (!sql) {
-      // A final answer that states figures / {placeholder}s but was NOT grounded
-      // in any query result is a hallucination — force the model to query (once).
-      // Strip separators/whitespace first so a dot/comma/space-grouped number
-      // (43.520.620) still reads as a 4+ digit figure.
-      const digitsOnly = gen.text.replace(/[.,\s     ]/g, "");
+      // A final answer that states figures / {placeholder}s while NO query has
+      // returned data is a hallucination. NEVER show it - push the model back to
+      // querying and keep looping. (Strip separators first so a grouped number
+      // like 43.520.620 still reads as a 4+ digit figure.)
+      const digitsOnly = gen.text.replace(/[.,\s]/g, "");
       const ungrounded = !gotData && (/\d{4,}/.test(digitsOnly) || /\{[a-z_]+\}/i.test(gen.text));
-      if (ungrounded && !forced) {
-        forced = true;
+      if (ungrounded) {
         messages.push({ role: "assistant", content: gen.text });
         messages.push({
           role: "user",
           content:
-            "You have not run any query, so you cannot know those figures — and never use " +
-            "{placeholder} tokens. Run the SQL that produces the answer FIRST (reply with a " +
-            "```sql block), then answer from its result.",
+            "STOP - you have run no query, so those figures are invented and must NOT be shown. " +
+            "Reply with ONLY a ```sql block (a SELECT) that fetches the real data. Do not write " +
+            "any answer or {placeholder} until a query has returned results.",
         });
         continue;
       }
@@ -208,13 +206,17 @@ export async function runAgent(env: StringEnv, db: Db, question: string): Promis
     messages.push({ role: "user", content: feedback });
   }
 
+  if (!gotData) {
+    return { reply: "⚠️ I couldn't retrieve that reliably. Please try rephrasing.", trace };
+  }
+
   // Out of steps — force a final answer from what was gathered (no more queries).
   messages.push({
     role: "user",
     content: "Stop querying. Give your final plain-text answer now, based on the results so far. No sql block.",
   });
   try {
-    const gen = await chatComplete(env, messages, { temperature: 0, maxTokens: 900 });
+    const gen = await chatComplete(env, messages, { temperature: 0, maxTokens: 1400 });
     return { reply: finalize(gen.text) || "⚠️ I couldn't work that out. Please try rephrasing.", trace };
   } catch {
     return { reply: "⚠️ I couldn't work that out. Please try rephrasing.", trace };
