@@ -151,8 +151,10 @@ ZIRAATK=Ziraat Katılım
 • For "latest"/"this quarter" with no period given, pick the max(period) for that
   bank via a subquery, e.g.  period = (SELECT MAX(period) FROM t WHERE bank_ticker=…).
 • Add a sensible LIMIT (≤200). Select only the columns needed.
-• Match text labels case-insensitively and loosely: item_name LIKE '%TOTAL ASSET%'
-  OR item_name LIKE '%TOPLAM%AKT%'.
+• Match text labels case-insensitively AND allow for MISSING SPACES — some
+  extracted labels collapse spaces ('NETPROFIT/LOSS', 'TOTALASSETS'). Put '%'
+  BETWEEN words so both forms match: item_name LIKE '%NET%PROFIT%' (matches
+  'NET PROFIT' and 'NETPROFIT'), '%TOTAL%ASSET%', '%TOPLAM%AKT%'.
 • SQLite/D1 dialect: use LIKE (case-insensitive for ASCII) — there is NO ILIKE,
   no regexp operator. Concatenate with ||. Use ROUND()/CAST() for math.
 • If the question cannot be answered from these tables, do NOT invent SQL.
@@ -161,7 +163,7 @@ ZIRAATK=Ziraat Katılım
 Q: "Garanti's total assets latest quarter"
 SELECT period, item_name, amount_total FROM bank_audit_balance_sheet
 WHERE bank_ticker='GARAN' AND kind='unconsolidated' AND statement='assets'
-  AND (item_name LIKE '%TOTAL ASSET%' OR item_name LIKE '%TOPLAM%AKT%'
+  AND (item_name LIKE '%TOTAL%ASSET%' OR item_name LIKE '%TOPLAM%AKT%'
        OR item_name LIKE '%TOPLAM%VARLIK%')
   AND period=(SELECT MAX(period) FROM bank_audit_balance_sheet WHERE bank_ticker='GARAN')
 LIMIT 5;
@@ -183,7 +185,7 @@ ORDER BY period LIMIT 20;
 Q: "Yapı Kredi net profit in 2024Q4"
 SELECT item_name, amount FROM bank_audit_profit_loss
 WHERE bank_ticker='YKBNK' AND kind='unconsolidated' AND period='2024Q4'
-  AND (item_name LIKE '%NET PROFIT%' OR item_name LIKE '%DÖNEM NET%')
+  AND (item_name LIKE '%NET%PROFIT%' OR item_name LIKE '%DÖNEM%NET%')
 ORDER BY item_order DESC LIMIT 3;
 
 Q: "Akbank's profit over the last year" / "Akbank'ın son 1 yıl karı"
@@ -191,7 +193,7 @@ Q: "Akbank's profit over the last year" / "Akbank'ın son 1 yıl karı"
 -- max-item_order NET PROFIT row.
 SELECT period, item_name, amount FROM bank_audit_profit_loss
 WHERE bank_ticker='AKBNK' AND kind='unconsolidated'
-  AND (item_name LIKE '%NET PROFIT%' OR item_name LIKE '%DÖNEM NET%')
+  AND (item_name LIKE '%NET%PROFIT%' OR item_name LIKE '%DÖNEM%NET%')
   AND period = (SELECT MAX(period) FROM bank_audit_profit_loss
                 WHERE bank_ticker='AKBNK' AND period LIKE '%Q4')
 ORDER BY item_order DESC LIMIT 1;
