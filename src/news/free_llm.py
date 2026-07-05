@@ -1,8 +1,11 @@
 """Free OpenAI-compatible LLM client for the "The Read" headline rewrite.
 
 Fallback chain (chosen after the round-3 reliability gauntlet — see
-docs/knowledge/free-model-eval-round3.md):
-    Cerebras gpt-oss-120b  →  Groq openai/gpt-oss-120b  →  Cerebras gemma-4-31b
+docs/knowledge/free-model-eval-round3.md): the SAME model on two independent
+providers, then the deterministic template as the ultimate safety net (the caller
+keeps the deterministic headline when both fail — no different-model tier, so a
+shown LLM headline always sounds the same).
+    Cerebras gpt-oss-120b  →  Groq openai/gpt-oss-120b  →  (deterministic template)
 
 Every rewrite is number-validated: it may use ONLY numbers present in the
 deterministic facts. Digits bound to a label (Stage-2, CET1, 1-year) are not
@@ -34,10 +37,11 @@ SYSTEM = (
     "ONLY the sentence — no preamble, no markdown, no reasoning."
 )
 
-# Ordered fallback chain. Each entry is OpenAI-compatible. `family` shares a rate
-# budget (both cerebras models draw on the same 5-req/min free tier); `min_gap`
-# is the seconds to leave between successive calls to that family so the PRIMARY
-# (Cerebras) never trips its own limit and we don't fall through to Groq/gemma.
+# Ordered fallback chain — the SAME model (gpt-oss-120b) on two providers, so a
+# shown headline always sounds the same; if both fail the caller falls back to the
+# deterministic template. `family` shares a provider rate budget; `min_gap` is the
+# seconds between successive calls to that family so the PRIMARY (Cerebras, 5
+# req/min free tier) stays under its limit instead of failing over.
 PROVIDERS = [
     {"name": "cerebras/gpt-oss-120b", "family": "cerebras", "min_gap": 13.0,
      "base": "https://api.cerebras.ai/v1",
@@ -45,9 +49,6 @@ PROVIDERS = [
     {"name": "groq/openai/gpt-oss-120b", "family": "groq", "min_gap": 3.0,
      "base": "https://api.groq.com/openai/v1",
      "model": "openai/gpt-oss-120b", "keys": ["GROQ_API_KEY", "GROQ_API_TOKEN"]},
-    {"name": "cerebras/gemma-4-31b", "family": "cerebras", "min_gap": 13.0,
-     "base": "https://api.cerebras.ai/v1",
-     "model": "gemma-4-31b", "keys": ["CEREBRAS_KEY", "CEREBRAS_API_KEY"]},
 ]
 
 # Per-family throttle so the primary is used consistently instead of rate-limiting

@@ -56,9 +56,12 @@ serves the *same model* at 0.8s and more consistently.
 
 **Chosen: `gpt-oss-120b` on Cerebras** (0% invention, 0.8s, 94% on-length, best
 synthesis), with **Groq's `openai/gpt-oss-120b` as the free cross-provider failover**
-(identical model → single-model quality with provider redundancy), and
-**`cerebras/gemma-4-31b`** as a fast lightweight backup. Each step still gated by the
-number-check → deterministic template. Not yet wired into the dashboard.
+(identical model → single-model quality with provider redundancy), then the
+deterministic template. Each step gated by the number-check.
+
+*(Update 2026-07-05: an earlier `cerebras/gemma-4-31b` third tier was dropped — a
+different model gives an inconsistent voice, and Groq already covers the same model,
+so the deterministic template is the right ultimate fallback.)*
 
 ---
 
