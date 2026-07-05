@@ -69,6 +69,9 @@ bank_audit_stages(bank_ticker, period, kind, period_type,
     stage1_coverage, stage2_coverage, stage3_coverage)
   • IFRS 9 loan staging. Stage-3 = non-performing (NPL). coverage is a FRACTION
     (0.0083 = 0.83%). NPL ratio ≈ stage3_amount / total_amount.
+  • total_amount = GROSS LOAN BOOK (stage1+2+3). Use THIS for a bank's total
+    loans / "krediler" and for ranking banks by loans — it's structured, unlike
+    the label-fragile balance-sheet loans line. Filter period_type='current'.
 
 bank_audit_credit_quality(bank_ticker, period, kind, section, period_type,
     stage1_amount, stage2_amount, stage3_amount, total_amount)
@@ -176,6 +179,12 @@ SELECT bank_ticker, MAX(amount_total) AS total_assets FROM bank_audit_balance_sh
 WHERE statement='assets' AND kind='unconsolidated'
   AND period=(SELECT MAX(period) FROM bank_audit_balance_sheet)
 GROUP BY bank_ticker ORDER BY total_assets DESC LIMIT 40;
+
+Q: "Rank banks by loans" / "bankaları kredilere göre sırala"
+SELECT bank_ticker, total_amount AS loans FROM bank_audit_stages
+WHERE kind='unconsolidated' AND period_type='current'
+  AND period=(SELECT MAX(period) FROM bank_audit_stages)
+ORDER BY loans DESC LIMIT 40;
 
 Q: "Rank banks by capital adequacy ratio this quarter"
 SELECT bank_ticker, capital_adequacy_ratio FROM bank_audit_capital
