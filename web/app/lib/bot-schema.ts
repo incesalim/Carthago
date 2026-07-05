@@ -42,8 +42,11 @@ bank_audit_balance_sheet(bank_ticker, period, kind, statement, item_order,
 
 bank_audit_profit_loss(bank_ticker, period, kind, item_order, hierarchy,
     item_name, amount)   -- income statement lines, thousand TL, YTD-cumulative
-  • Bottom-line net profit = the last 'NET PROFIT/LOSS…' / 'DÖNEM NET KÂRI'
-    row (largest item_order).
+  • Bottom-line net profit = the row whose item_name contains the formula
+    '(XIX+XXIV)'. Match item_name LIKE '%XIX+XXIV%' — this reliably catches it
+    across English ('NET PROFIT/LOSS (XIX+XXIV)'), Turkish ('DÖNEM NET KARI/
+    ZARARI (XIX+XXIV)') and space-collapsed labels, and gives exactly one row per
+    bank. Prefer it over '%NET%PROFIT%'/'%DÖNEM%NET%' text matching.
   • amount is YTD-CUMULATIVE within a year: Q1=3 months … Q4=full year. So a
     bank's ANNUAL / "last year" / "son 1 yıl" profit = its Q4 period (latest full
     year = the most recent …Q4). A single quarter alone = that period's YTD minus
@@ -183,20 +186,23 @@ WHERE bank_ticker='AKBNK' AND kind='unconsolidated' AND period_type='current'
 ORDER BY period LIMIT 20;
 
 Q: "Yapı Kredi net profit in 2024Q4"
-SELECT item_name, amount FROM bank_audit_profit_loss
+SELECT amount FROM bank_audit_profit_loss
 WHERE bank_ticker='YKBNK' AND kind='unconsolidated' AND period='2024Q4'
-  AND (item_name LIKE '%NET%PROFIT%' OR item_name LIKE '%DÖNEM%NET%')
-ORDER BY item_order DESC LIMIT 3;
+  AND item_name LIKE '%XIX+XXIV%' LIMIT 1;
+
+Q: "Rank banks by net profit this quarter" / "bankaları kâra göre sırala"
+SELECT bank_ticker, amount AS net_profit FROM bank_audit_profit_loss
+WHERE kind='unconsolidated' AND item_name LIKE '%XIX+XXIV%'
+  AND period = (SELECT MAX(period) FROM bank_audit_profit_loss)
+ORDER BY net_profit DESC LIMIT 40;
 
 Q: "Akbank's profit over the last year" / "Akbank'ın son 1 yıl karı"
--- P&L is YTD, so full-year profit = the most recent Q4 period; bottom line = the
--- max-item_order NET PROFIT row.
-SELECT period, item_name, amount FROM bank_audit_profit_loss
-WHERE bank_ticker='AKBNK' AND kind='unconsolidated'
-  AND (item_name LIKE '%NET%PROFIT%' OR item_name LIKE '%DÖNEM%NET%')
+-- P&L is YTD → full-year profit = the most recent Q4 period.
+SELECT period, amount FROM bank_audit_profit_loss
+WHERE bank_ticker='AKBNK' AND kind='unconsolidated' AND item_name LIKE '%XIX+XXIV%'
   AND period = (SELECT MAX(period) FROM bank_audit_profit_loss
                 WHERE bank_ticker='AKBNK' AND period LIKE '%Q4')
-ORDER BY item_order DESC LIMIT 1;
+LIMIT 1;
 
 Q: "Who owns Akbank?" / "Akbank'ın sahipliği / ortakları"
 SELECT holder, ratio_pct, voting_pct FROM kap_ownership
