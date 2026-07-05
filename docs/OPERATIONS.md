@@ -334,6 +334,30 @@ PASHA, TSKB) fall back to a neutral ticker chip; drop a hand-made square PNG at
 `web/public/logos/<TICKER>.png` and re-run `--renorm` to adopt it. Domain map:
 `data/banks/bank_logo_domains.json` (keep in sync with `bank_names.ts`).
 
+### Generate a presentation deck (PDF)
+
+A one-command board-style "sector read-out" as a PDF slide deck:
+
+```
+# Fetch the live reads → 16:9 HTML deck → PDF (reports/presentation-<date>.pdf):
+python scripts/generate_presentation.py --open
+# Just the HTML (open it and Ctrl+P → Save as PDF):
+python scripts/generate_presentation.py --html-only
+# A subset / reorder of sections, offline from a saved dump, custom output:
+python scripts/generate_presentation.py --tabs overview,capital,profitability
+python scripts/generate_presentation.py --file reads.json --out ~/deck.pdf
+```
+
+The generator (`scripts/generate_presentation.py`) is a **read-only consumer of
+`GET /api/reads`** — the same deterministic per-tab takeaways (headline + driver
+bullets) the dashboard shows — so the figures can never drift from the site (no
+LLM, no metric re-derivation). It builds a title slide + one slide per section
+(the 8 T1 tabs) + a methodology/closing slide in the dashboard's editorial
+palette, then renders to PDF via a **headless Chrome/Edge** `--print-to-pdf`
+(auto-detected; `--browser <path>` or `CHROME_PATH` to override — no new
+dependency). Output goes to `reports/` (gitignored). It touches nothing in D1 /
+R2 / the deployed app, so it's safe to run and re-run locally.
+
 ### Change the D1 schema (migrations)
 
 The schema source of truth is the hand-authored, version-controlled files in
