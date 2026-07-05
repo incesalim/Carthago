@@ -32,4 +32,6 @@ interface CloudflareEnv {
   // Optional usage-cap overrides (defaults: 20 per chat, 300 global, per UTC day).
   BOT_PER_CHAT_DAILY?: string;
   BOT_GLOBAL_DAILY?: string;
+  // Enables the /api/admin/bot-ask test harness when set (else it 404s).
+  BOT_TEST_KEY?: string;
 }

@@ -10,18 +10,16 @@
  * free-tier LLM quota.
  */
 import type { StringEnv } from "./cf-env";
-import { chatComplete, llmConfigured } from "./llm";
-import { ANSWER_SYSTEM, SQL_SYSTEM } from "./bot-schema";
-import {
-  DEFAULT_ROW_CAP,
-  extractSql,
-  formatTable,
-  sanitizeSelect,
-} from "./bot-sql";
+import { chatComplete, llmConfigured, type ChatMessage } from "./llm";
+import { AGENT_SYSTEM } from "./bot-schema";
+import { DEFAULT_ROW_CAP, formatTable, sanitizeSelect } from "./bot-sql";
 import { escapeHtml, sendMessage, type TgUpdate } from "./telegram";
 
 const MAX_MSG_LEN = 500;
 const ROW_CAP = DEFAULT_ROW_CAP;
+const MAX_STEPS = 6; // max query/refine rounds the agent may take per question
+const MODEL_ROWS = 60; // rows fed back to the model after each query
+const MODEL_RESULT_CHARS = 6000; // cap on the result text handed back to the model
 
 /** The bound D1 handle, without needing the workers-types global in app code. */
 type Db = CloudflareEnv["DB"];
@@ -108,6 +106,95 @@ async function rateLimit(
   return null;
 }
 
+/** A ```sql fenced block (only) — the loop's signal that the model wants to run
+ *  a query, as opposed to giving its final plain-text answer. */
+function fencedSql(text: string): string | null {
+  const m = text.match(/```(?:sql)?\s*([\s\S]*?)```/i);
+  return m && m[1].trim() ? m[1].trim() : null;
+}
+
+/** Turn the model's final prose into an HTML-safe, thousand-separated reply. */
+function finalize(text: string): string {
+  const clean = text
+    .replace(/```[\s\S]*?```/g, "") // drop any stray code fence
+    .replace(/\*+/g, "")
+    .replace(/`/g, "")
+    .trim();
+  return clean ? escapeHtml(groupThousands(clean)) : "";
+}
+
+export interface AgentResult {
+  reply: string; // HTML reply for Telegram
+  trace: { sql: string; result: string }[]; // queries the model ran (for testing)
+}
+
+/**
+ * The agent loop: the model runs read-only SQL to explore + verify against the
+ * live DB, sees each result (or error / 0 rows) and self-corrects, then answers
+ * in prose. Every query is gated by sanitizeSelect (read-only) and row-capped.
+ */
+export async function runAgent(env: StringEnv, db: Db, question: string): Promise<AgentResult> {
+  const messages: ChatMessage[] = [
+    { role: "system", content: AGENT_SYSTEM },
+    { role: "user", content: question },
+  ];
+  const trace: { sql: string; result: string }[] = [];
+
+  for (let step = 0; step < MAX_STEPS; step++) {
+    let gen;
+    try {
+      gen = await chatComplete(env, messages, { temperature: 0, maxTokens: 900 });
+    } catch {
+      return { reply: "⚠️ The model is unavailable right now. Please try again shortly.", trace };
+    }
+
+    const sql = fencedSql(gen.text);
+    if (!sql) {
+      // No query → this is the final answer to the user.
+      return { reply: finalize(gen.text) || "⚠️ I couldn't produce an answer. Please try rephrasing.", trace };
+    }
+
+    // The model wants to run a query: record its turn, run it, feed the result back.
+    messages.push({ role: "assistant", content: gen.text });
+    const san = sanitizeSelect(sql, ROW_CAP);
+    if (!san.ok) {
+      trace.push({ sql, result: `rejected: ${san.error}` });
+      messages.push({ role: "user", content: `Query rejected (${san.error}). Fix the SQL and try again.` });
+      continue;
+    }
+
+    let feedback: string;
+    try {
+      const res = await db.prepare(san.sql).all<Record<string, unknown>>();
+      const rows = (res.results ?? []).slice(0, ROW_CAP);
+      trace.push({ sql: san.sql, result: `${rows.length} rows` });
+      feedback = rows.length
+        ? `Result (${rows.length} row${rows.length === 1 ? "" : "s"}):\n` +
+          formatTable(rows, MODEL_ROWS, 80).slice(0, MODEL_RESULT_CHARS)
+        : "Result: 0 rows. Inspect why — check the real labels/columns/values (labels " +
+          "vary by bank/language and some are blank) — then try a corrected query, or " +
+          "confirm the data truly isn't there.";
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "query failed";
+      trace.push({ sql: san.sql, result: `error: ${msg}` });
+      feedback = `Error: ${msg}. Fix the SQL and try again.`;
+    }
+    messages.push({ role: "user", content: feedback });
+  }
+
+  // Out of steps — force a final answer from what was gathered (no more queries).
+  messages.push({
+    role: "user",
+    content: "Stop querying. Give your final plain-text answer now, based on the results so far. No sql block.",
+  });
+  try {
+    const gen = await chatComplete(env, messages, { temperature: 0, maxTokens: 900 });
+    return { reply: finalize(gen.text) || "⚠️ I couldn't work that out. Please try rephrasing.", trace };
+  } catch {
+    return { reply: "⚠️ I couldn't work that out. Please try rephrasing.", trace };
+  }
+}
+
 /** Entry point — process one Telegram update. Never throws. */
 export async function handleUpdate(
   update: TgUpdate,
@@ -139,86 +226,9 @@ export async function handleUpdate(
       return;
     }
 
-    // 1) Natural language → SQL (or a plain-text answer for meta/greetings).
-    let gen;
-    try {
-      gen = await chatComplete(
-        env,
-        [
-          { role: "system", content: SQL_SYSTEM },
-          { role: "user", content: text },
-        ],
-        { temperature: 0, maxTokens: 700 },
-      );
-    } catch {
-      await sendMessage(env, chatId, "⚠️ The model is unavailable right now. Please try again shortly.", null);
-      return;
-    }
-
-    const sql = extractSql(gen.text);
-    if (!sql) {
-      // The model chose to answer in prose (greeting / capability / can't-answer).
-      await sendMessage(env, chatId, escapeHtml(gen.text.slice(0, 3500)));
-      return;
-    }
-
-    // 2) Gate the SQL.
-    const san = sanitizeSelect(sql, ROW_CAP);
-    if (!san.ok) {
-      await sendMessage(
-        env,
-        chatId,
-        `I couldn't build a safe query for that (${escapeHtml(san.error)}). Try rephrasing.\n\n<pre>${escapeHtml(sql)}</pre>`,
-      );
-      return;
-    }
-
-    // 3) Execute (read-only).
-    let rows: Record<string, unknown>[];
-    try {
-      const res = await db.prepare(san.sql).all<Record<string, unknown>>();
-      rows = (res.results ?? []).slice(0, ROW_CAP);
-    } catch (e) {
-      await sendMessage(
-        env,
-        chatId,
-        `The query failed: ${escapeHtml(e instanceof Error ? e.message : "error")}.\n\n<pre>${escapeHtml(san.sql)}</pre>`,
-      );
-      return;
-    }
-
-    if (!rows.length) {
-      await sendMessage(env, chatId, `No matching data.\n\n<pre>${escapeHtml(san.sql)}</pre>`);
-      return;
-    }
-
-    // 4) Summarise the rows (grounded); the raw table below is the source of truth.
-    let answer = "";
-    try {
-      const payload = JSON.stringify(rows.slice(0, 50)).slice(0, 8000);
-      const summ = await chatComplete(
-        env,
-        [
-          { role: "system", content: ANSWER_SYSTEM },
-          { role: "user", content: `Question: ${text}\nSQL: ${san.sql}\nRows (JSON):\n${payload}` },
-        ],
-        { temperature: 0, maxTokens: 900 },
-      );
-      answer = summ.text.trim();
-    } catch {
-      // Summary is optional — fall back to the raw table below.
-    }
-
-    // Strip stray markdown the model may add — we render as HTML, not markdown,
-    // so **bold** / `code` would show its literal markers.
-    const clean = answer.replace(/\*+/g, "").replace(/`/g, "").trim();
-
-    // Reply is plain in-chat text (the model lists rows one per line). Only if
-    // the summary failed do we fall back to the raw table so there's an answer.
-    const out = clean
-      ? escapeHtml(groupThousands(clean))
-      : `<pre>${escapeHtml(formatTable(rows))}</pre>`;
-    await sendMessage(env, chatId, out);
+    // The agent loop: the model explores the DB read-only, self-corrects, answers.
+    const { reply } = await runAgent(env, db, text);
+    await sendMessage(env, chatId, reply);
   } catch (e) {
     console.error(`[bot] unhandled: ${e instanceof Error ? e.stack : e}`);
     await sendMessage(env, chatId, "⚠️ Something went wrong handling that. Please try again.", null);
