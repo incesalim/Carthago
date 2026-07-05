@@ -31,6 +31,15 @@ describe("sanitizeSelect — accepts read-only queries", () => {
     expect(r.ok).toBe(true);
     if (r.ok) expect(r.sql).not.toContain(";");
   });
+
+  it("rewrites ILIKE → LIKE (SQLite has no ILIKE)", () => {
+    const r = sanitizeSelect("SELECT * FROM t WHERE item_name ILIKE '%net%'");
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.sql).toContain("LIKE");
+      expect(r.sql.toLowerCase()).not.toContain("ilike");
+    }
+  });
 });
 
 describe("sanitizeSelect — rejects writes and abuse", () => {
