@@ -2,6 +2,7 @@
  * Asset Quality tab — NPL ratio, NPL by bank, coverage, gross NPL level,
  * consumer NPL composition + ratios, commercial NPL ratios.
  */
+import type { Metadata } from "next";
 import {
   ratioNpl,
   ratioCoverage,
@@ -32,6 +33,12 @@ import {
 } from "@/app/lib/credit-risk";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Turkish Banks — Asset Quality & NPLs",
+  description: "Non-performing loans, Stage 2 and Stage 3 exposures and coverage ratios across Türkiye's banking sector and by bank.",
+  alternates: { canonical: "/asset-quality" },
+};
 
 // Reshape `consumerNplRatios` rows into long-form TrendChart input keyed by
 // a synthetic "bank_type_code" per segment (so we get one line per segment).

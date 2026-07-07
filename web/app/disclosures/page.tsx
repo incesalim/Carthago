@@ -9,6 +9,7 @@
  * TCMB + BDDK are macro / regulatory announcements. Two audiences,
  * two pages.
  */
+import type { Metadata } from "next";
 import Link from "next/link";
 import {
   newsBySource,
@@ -18,6 +19,12 @@ import {
 } from "@/app/lib/news";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Turkish Banks — KAP Disclosures",
+  description: "Latest KAP public disclosures from Turkish banks — material events, filings and financial reports.",
+  alternates: { canonical: "/disclosures" },
+};
 
 interface Props {
   searchParams: Promise<{ ticker?: string }>;

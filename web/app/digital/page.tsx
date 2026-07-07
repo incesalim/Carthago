@@ -11,6 +11,7 @@
  * end; transaction figures are quarterly flows. "Active" follows each
  * association's own definition (logged in / transacted within the period).
  */
+import type { Metadata } from "next";
 import {
   digitalSeries,
   quarterlyDeltas,
@@ -67,6 +68,12 @@ const MOBILE_FILL = { light: "#2F6BED", dark: "#5B86F7" };
 const INTERNET_FILL = { light: "#15AABF", dark: "#2BD4CC" };
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Turkish Digital & Mobile Banking",
+  description: "Digital, internet and mobile banking adoption in Türkiye — active users and remote vs branch acquisition from TBB data.",
+  alternates: { canonical: "/digital" },
+};
 
 export default async function DigitalPage() {
   const [

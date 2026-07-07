@@ -9,6 +9,7 @@
  * is decoded server-side at ingest). Outlets already covered on /news are
  * filtered out so the two tabs don't duplicate each other.
  */
+import type { Metadata } from "next";
 import Link from "next/link";
 import { latestGoogleNews } from "@/app/lib/news";
 import { getMarketTicker } from "@/app/lib/market-ticker";
@@ -16,6 +17,12 @@ import MarketTicker from "@/app/components/MarketTicker";
 import PressFeed from "../PressFeed";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Turkish Banking News — Google News",
+  description: "Google News coverage of the Turkish banking sector, tagged by bank.",
+  alternates: { canonical: "/news/google" },
+};
 
 function fmtDate(iso: string): string {
   const d = new Date(iso);

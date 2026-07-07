@@ -7,6 +7,7 @@
  * Data + derivations: app/lib/budget.ts (balance = revenues − expenditure,
  * primary = revenues − primary expenditure, non-tax = revenues − tax).
  */
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getBudgetData, type TableRow } from "@/app/lib/budget";
 import { PageHeader, Section, Stat } from "@/app/components/ui";
@@ -15,6 +16,12 @@ import TimeSeriesChart from "@/app/components/TimeSeriesChart";
 import BopFlowChart, { type BarSeries } from "@/app/components/BopFlowChart";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Turkey Central Government Budget",
+  description: "Türkiye's central-government budget — revenues, expenditures, balance and primary balance.",
+  alternates: { canonical: "/economy/budget" },
+};
 
 const ORANGE = { light: "#e8833a", dark: "#f0a35e" };
 const MAROON = { light: "#9c1f2f", dark: "#d65a5a" };

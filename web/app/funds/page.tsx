@@ -9,6 +9,7 @@
  * so daily sums would undercount — but appear in the largest-funds table.
  * Investor counts double-count people holding several funds.
  */
+import type { Metadata } from "next";
 import {
   monthlyByType,
   aumStack,
@@ -40,6 +41,12 @@ import StackedArea from "@/app/components/StackedArea";
 import CopyTableButton from "@/app/components/CopyTableButton";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Turkish Investment Funds (TEFAS)",
+  description: "Turkish mutual and investment funds from TEFAS — assets under management, flows and allocation by fund type.",
+  alternates: { canonical: "/funds" },
+};
 
 const nf0 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
 const nf1 = new Intl.NumberFormat("en-US", {

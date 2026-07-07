@@ -7,6 +7,7 @@
  * for one metric) are toggled client-side. All data + per-column scores are
  * computed server-side here, off the single cached heatmapPanel().
  */
+import type { Metadata } from "next";
 import {
   heatmapPanel,
   latestCommonPeriod,
@@ -29,6 +30,12 @@ import type { HeatmapBankRow } from "./HeatmapGrid";
 import type { HeatmapTimeRow, PanelCell } from "./HeatmapOverTime";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Turkish Banks Compared — Cross-Bank League",
+  description: "Compare Turkish banks head-to-head — market share, margins, cost of risk, capital and returns across the sector on one screen.",
+  alternates: { canonical: "/cross-bank" },
+};
 
 // Section order, top to bottom — same as /banks. 10006 State · 10005
 // Private·Domestic · 10007 Private·Foreign · 10003 Participation · 10004 Dev&Inv.

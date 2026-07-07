@@ -10,6 +10,7 @@
  * We store only headline + link + a short snippet; every card links out to
  * the original article at the source outlet.
  */
+import type { Metadata } from "next";
 import Link from "next/link";
 import { latestPress } from "@/app/lib/news";
 import { getMarketTicker } from "@/app/lib/market-ticker";
@@ -17,6 +18,12 @@ import MarketTicker from "@/app/components/MarketTicker";
 import PressFeed from "./PressFeed";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Turkish Banking News",
+  description: "Latest news on Türkiye's banking sector and individual banks, aggregated and tagged by bank.",
+  alternates: { canonical: "/news" },
+};
 
 function fmtDate(iso: string): string {
   const d = new Date(iso);

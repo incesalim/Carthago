@@ -8,6 +8,7 @@
  * (the report's weighted contributions need TÜİK weights not in EVDS); the
  * PPI Main-Industrial-Groupings table is TÜİK-Excel-only and not wired.
  */
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getInflationData, type Table1Row, type CoreRow } from "@/app/lib/inflation";
 import { PageHeader, Section, Stat } from "@/app/components/ui";
@@ -16,6 +17,12 @@ import TimeSeriesChart from "@/app/components/TimeSeriesChart";
 import BopFlowChart, { type BarSeries } from "@/app/components/BopFlowChart";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Turkey Inflation — CPI & PPI",
+  description: "Türkiye inflation — CPI, core inflation and producer prices (Yİ-ÜFE) from TÜİK.",
+  alternates: { canonical: "/economy/inflation" },
+};
 
 const MAROON = { light: "#9c1f2f", dark: "#d65a5a" };
 const GREEN = { light: "#3f7d3f", dark: "#6bbf6b" };

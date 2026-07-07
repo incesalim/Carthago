@@ -10,6 +10,7 @@
  * sovereign yield curves (Bloomberg), the GDP nowcast and the FCI composite
  * (BBVA-proprietary), and foreigners' positioning flows.
  */
+import type { Metadata } from "next";
 import { getEconomyData, BBVA_BASELINE } from "@/app/lib/economy";
 import { bistIndexHistory, type PricePoint } from "@/app/lib/bist";
 import { liveQuotes, type LiveQuote } from "@/app/lib/bist-live";
@@ -27,6 +28,12 @@ function rebase100(pts: PricePoint[]): PricePoint[] {
 }
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Turkish Economy — Macro Dashboard",
+  description: "Türkiye's macro backdrop for the banking sector — growth, inflation, budget, balance of payments and foreign trade from official data.",
+  alternates: { canonical: "/economy" },
+};
 
 function Grid({ children }: { children: React.ReactNode }) {
   return <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">{children}</div>;

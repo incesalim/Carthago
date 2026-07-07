@@ -11,6 +11,7 @@
  *
  * Pipeline: scripts/sync_news.py + scripts/update_presentations.py → D1 → here.
  */
+import type { Metadata } from "next";
 import Link from "next/link";
 import {
   earningsSummary,
@@ -22,6 +23,12 @@ import {
 } from "@/app/lib/earnings";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Turkish Banks — Earnings Calendar & IR",
+  description: "Earnings and results calendar for Türkiye's listed banks (KAP filings) plus investor-relations presentations.",
+  alternates: { canonical: "/earnings" },
+};
 
 function fmtDate(iso: string): string {
   const d = new Date(iso);

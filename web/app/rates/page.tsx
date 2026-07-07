@@ -3,12 +3,19 @@
  *
  * Cron-fed via scripts/refresh.py → src/scrapers/evds_scraper.py.
  */
+import type { Metadata } from "next";
 import { evdsMulti, latestPeriod } from "@/app/lib/metrics";
 import { PageHeader, Stat } from "@/app/components/ui";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
 import TrendChart from "@/app/components/TrendChart";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Turkish Banking — Interest Rates",
+  description: "Lending and deposit interest rates in Türkiye's banking sector from CBRT and BDDK data.",
+  alternates: { canonical: "/rates" },
+};
 
 const RATE_CORRIDOR = {
   "TP.PY.P02.1H": "Policy (1-week repo)",
