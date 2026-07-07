@@ -6,6 +6,7 @@
  * quarterly BS + P&L. Each per-bank page also surfaces its recent KAP
  * disclosures, and /disclosures (cross-bank) is reachable from the header link.
  */
+import type { Metadata } from "next";
 import Link from "next/link";
 import { bankSummaries, type BankSummary } from "@/app/lib/audit";
 import { BANK_NAMES, BANK_TYPE_BY_TICKER, BANK_TYPE_BADGE_LABELS } from "@/app/lib/bank_names";
@@ -14,6 +15,12 @@ import BankTypeBadge from "@/app/components/BankTypeBadge";
 import BankLogo from "@/app/components/BankLogo";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Turkish Banks — Financials & Profiles",
+  description: "Per-bank financials for every bank in Türkiye: balance sheet, income statement, capital, asset quality and profitability from audited BRSA reports.",
+  alternates: { canonical: "/banks" },
+};
 
 // Section order, top to bottom. Codes: 10006 State · 10005 Private·Domestic ·
 // 10007 Private·Foreign · 10003 Participation · 10004 Dev & Inv. Within each

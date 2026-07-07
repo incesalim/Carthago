@@ -19,6 +19,7 @@
  * and weekly reserve-flow attribution (BBVA-proprietary estimates), and the FCI
  * composite (Bloomberg inputs).
  */
+import type { Metadata } from "next";
 import {
   weeklyOwnershipRatio,
   weeklyGrowth,
@@ -43,6 +44,12 @@ import { liquidityInsights } from "@/app/lib/insights";
 import { withLlmHeadline } from "@/app/lib/read-headlines";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Turkish Banks — Liquidity & Funding",
+  description: "Liquidity and funding of Türkiye's banks: loan-to-deposit, LCR, FX liquidity and the deposit base from BDDK and BRSA data.",
+  alternates: { canonical: "/liquidity" },
+};
 
 // Long-form rows → TrendChart points (structurally identical; keeps types tidy).
 function toTrend(rows: (TimeSeriesRow | WeeklyRow)[]): { period: string; bank_type_code: string; value: number }[] {

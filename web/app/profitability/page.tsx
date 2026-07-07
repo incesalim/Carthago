@@ -1,6 +1,7 @@
 /**
  * Profitability tab — ROE, ROA, NIM (all annualized).
  */
+import type { Metadata } from "next";
 import {
   ratioRoe,
   ratioRoa,
@@ -25,6 +26,12 @@ import { profitabilityInsights } from "@/app/lib/insights";
 import { withLlmHeadline } from "@/app/lib/read-headlines";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Turkish Banks — Profitability (ROE, ROA, NIM)",
+  description: "Profitability of Turkish banks — return on equity, return on assets, net interest margin and pre-provision profit by bank and group.",
+  alternates: { canonical: "/profitability" },
+};
 
 export default async function ProfitabilityPage() {
   const [

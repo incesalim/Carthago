@@ -9,6 +9,7 @@
  * micro/small/medium mix (`smeBreakdown`). Growth windows: monthly YoY → weekly
  * 52w; the old monthly MoM chart → weekly 4w annualized momentum.
  */
+import type { Metadata } from "next";
 import {
   weeklySeries,
   weeklyGrowth,
@@ -34,6 +35,12 @@ import { withLlmHeadline } from "@/app/lib/read-headlines";
 import { cpiYoYByMonth, nominalVsReal, REAL_TERMS_LABELS } from "@/app/lib/real-terms";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Turkish Banking Sector — Loans & Credit",
+  description: "Loan growth and credit dynamics in Türkiye — TL vs FX, by sector and by bank type, from BDDK weekly and monthly data.",
+  alternates: { canonical: "/credit" },
+};
 
 const KREDI = "krediler";
 const TOTAL = "1.0.1";

@@ -3,6 +3,7 @@
  * Gated by requireAdmin() (Cloudflare Access JWT). Safe-by-default: until Access
  * is configured the header is absent and this renders a Forbidden card.
  */
+import type { Metadata } from "next";
 import { AdminAuthError, requireAdmin } from "@/app/lib/admin-auth";
 import { getHealthReport, type FreshnessStatus, type SourceHealth } from "@/app/lib/admin-health";
 import { relativeFromHours } from "@/app/lib/format-time";
@@ -24,6 +25,11 @@ import PurgeCacheButton from "./PurgeCacheButton";
 import TrafficPanel from "./TrafficPanel";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Admin",
+  robots: { index: false, follow: false },
+};
 
 const nf = new Intl.NumberFormat("en-US");
 

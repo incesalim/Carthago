@@ -9,6 +9,7 @@
  * cron). Dashboard reads the latest row from regulation_briefings — no
  * LLM calls on page load.
  */
+import type { Metadata } from "next";
 import Link from "next/link";
 import {
   latestRegulationBriefing,
@@ -20,6 +21,12 @@ import {
 import RawFeeds from "./RawFeeds";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Turkish Banking Regulation — BDDK & CBRT",
+  description: "Banking regulation in Türkiye — BDDK and CBRT rule changes, communiqués and decisions affecting the sector.",
+  alternates: { canonical: "/regulation" },
+};
 
 function fmtDate(iso: string): string {
   const d = new Date(iso);

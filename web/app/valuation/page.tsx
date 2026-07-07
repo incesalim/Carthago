@@ -7,6 +7,7 @@
  * the residual-income / DDM / justified-P/B maths live as the user edits
  * assumptions — no per-keystroke server round-trip. See web/app/lib/valuation.ts.
  */
+import type { Metadata } from "next";
 import { listedBistTickers } from "@/app/lib/bist";
 import { liveQuotes } from "@/app/lib/bist-live";
 import { tryRiskFree, valuationSeed, type ValuationSeed } from "@/app/lib/valuation-data";
@@ -15,6 +16,12 @@ import { PageHeader } from "@/app/components/ui";
 import ValuationView from "./ValuationView";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Turkish Bank Stocks — Valuation (BIST)",
+  description: "Valuation of listed Turkish banks on Borsa İstanbul — price/book, P/E, dividend yield and performance vs XU100 and XBANK.",
+  alternates: { canonical: "/valuation" },
+};
 
 // Bank-only basis, consistent with the /cross-bank "Compare" tab.
 const KIND = "unconsolidated" as const;

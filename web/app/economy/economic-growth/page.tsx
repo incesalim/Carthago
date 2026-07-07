@@ -9,6 +9,7 @@
  * and the calendar-adjusted production variant) is flagged in the page notes
  * — it would need a separate TÜİK Excel scraper.
  */
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getGrowthData, type GrowthTable } from "@/app/lib/growth";
 import { PageHeader, Section, Stat } from "@/app/components/ui";
@@ -17,6 +18,12 @@ import TimeSeriesChart from "@/app/components/TimeSeriesChart";
 import BopFlowChart, { type BarSeries, type OverlayLine } from "@/app/components/BopFlowChart";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Turkey Economic Growth — GDP",
+  description: "Türkiye GDP and economic growth — chain-volume series and year-on-year growth from TÜİK.",
+  alternates: { canonical: "/economy/economic-growth" },
+};
 
 const MAROON = { light: "#9c1f2f", dark: "#d65a5a" };
 const AMBER = { light: "#f5c518", dark: "#fbd34d" };

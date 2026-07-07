@@ -1,6 +1,7 @@
 /**
  * Capital tab — CAR, equity level + growth, leverage.
  */
+import type { Metadata } from "next";
 import {
   ratioCar,
   ratioRwaDensity,
@@ -24,6 +25,12 @@ import { capitalInsights } from "@/app/lib/insights";
 import { withLlmHeadline } from "@/app/lib/read-headlines";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Turkish Banks — Capital Adequacy (CAR)",
+  description: "Capital adequacy of Türkiye's banking sector: CAR/SYR, Tier 1 and leverage by bank and ownership group, from BRSA data.",
+  alternates: { canonical: "/capital" },
+};
 
 export default async function CapitalPage() {
   const sector = [BANK_TYPES.SECTOR];

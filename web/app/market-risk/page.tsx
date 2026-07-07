@@ -6,6 +6,7 @@
  * Securities mark-to-market (the third S-signal) is a documented fast-follow —
  * see web/app/lib/market-risk.ts.
  */
+import type { Metadata } from "next";
 import { PageHeader, Section, Stat } from "@/app/components/ui";
 import { ChartCard } from "@/app/components/ui/chart-card";
 import TrendChart from "@/app/components/TrendChart";
@@ -24,6 +25,12 @@ import { marketRiskInsights } from "@/app/lib/insights";
 import { withLlmHeadline } from "@/app/lib/read-headlines";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Turkish Banks — Market Risk (FX & Repricing)",
+  description: "Market-risk profile of Türkiye's banks — FX net open position and interest-rate repricing gaps from BRSA disclosures.",
+  alternates: { canonical: "/market-risk" },
+};
 
 const SECTOR = { SECTOR: "Sector (reporting banks)" };
 

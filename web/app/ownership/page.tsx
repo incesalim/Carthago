@@ -10,6 +10,7 @@
  * Holder names are matched across banks via Turkish-aware normalization plus
  * an exact-match alias map — see web/app/lib/ownership-graph.ts.
  */
+import type { Metadata } from "next";
 import { PageHeader } from "@/app/components/ui";
 import OwnershipNetwork from "@/app/components/OwnershipNetwork";
 import { sectorOwnership } from "@/app/lib/kap";
@@ -17,6 +18,12 @@ import { buildOwnershipGraph } from "@/app/lib/ownership-graph";
 import { bankSummaries } from "@/app/lib/audit";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Turkish Banks — Ownership & Subsidiaries",
+  description: "Ownership structure and subsidiaries of Türkiye's banks from KAP public disclosures — shareholders and group networks.",
+  alternates: { canonical: "/ownership" },
+};
 
 interface Props {
   searchParams: Promise<{ focus?: string; view?: string }>;

@@ -54,6 +54,29 @@ export const metadata: Metadata = {
   },
 };
 
+// Site-wide structured data. Organization + WebSite give search engines an
+// explicit identity for the site (name, publisher, canonical URL) instead of
+// inferring it — the same signals that help URL-categorization vendors and
+// improve how the site is represented in results.
+const orgJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "Carthago",
+  url: "https://carthago.app",
+  description:
+    "Data and analytics on the Turkish banking sector — audited BRSA bank financials, BDDK aggregates and macro context.",
+  logo: "https://carthago.app/icon.png",
+};
+
+const siteJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "Carthago · Turkish Banking Sector",
+  url: "https://carthago.app",
+  inLanguage: "en",
+  about: "Turkish banking sector data and analytics",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -66,6 +89,14 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} ${sourceSerif.variable} h-full`}
     >
       <body className="min-h-full bg-background font-sans text-foreground antialiased">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd) }}
+        />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

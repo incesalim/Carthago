@@ -19,6 +19,7 @@
  * web/app/lib/standard_lines.ts) with canonical English labels — the raw
  * `item_name` is never displayed, so banks are comparable line-for-line.
  */
+import type { Metadata } from "next";
 import Link from "next/link";
 import { PageHeader, Section, Stat } from "@/app/components/ui";
 import {
@@ -75,6 +76,20 @@ export const dynamic = "force-dynamic";
 interface Props {
   params: Promise<{ ticker: string }>;
   searchParams: Promise<{ view?: string; kind?: string; statement?: string; mode?: string }>;
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { ticker: rawTicker } = await params;
+  const ticker = rawTicker.toUpperCase();
+  const name = bankDisplayName(ticker);
+  const title = `${name} — Financials & Analysis`;
+  const description = `Audited BRSA financials for ${name} (${ticker}): balance sheet, income statement, cash flow, capital, asset quality and profitability — quarterly, from official Turkish banking-sector reports.`;
+  return {
+    title,
+    description,
+    alternates: { canonical: `/banks/${ticker}` },
+    openGraph: { title: `${title} · Carthago`, description, url: `https://carthago.app/banks/${ticker}` },
+  };
 }
 
 const NF = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });

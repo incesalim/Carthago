@@ -7,12 +7,19 @@
  *
  * Same-source comparison (both BDDK bulletins, Million TL). Data: app/lib/non-bank.ts.
  */
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getNonBankData } from "@/app/lib/non-bank";
 import { PageHeader, Section, Stat } from "@/app/components/ui";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Non-Bank Finance — Share of Banking",
+  description: "How large Türkiye's leasing, factoring and financing sector is relative to total bank assets.",
+  alternates: { canonical: "/non-bank/share-of-banking" },
+};
 
 const fmtTrn = (v: number | null) =>
   v == null ? "—" : `₺${new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v / 1_000_000)} trn`;

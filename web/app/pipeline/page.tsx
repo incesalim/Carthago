@@ -7,11 +7,18 @@
  * + row counts (server-rendered here); workflow nodes get their last GitHub
  * Actions run client-side. See docs/ARCHITECTURE.md for the textual version.
  */
+import type { Metadata } from "next";
 import { PageHeader } from "@/app/components/ui";
 import PipelineFlow from "./PipelineFlow";
 import { getPipelineStatus, type PipelineStatusMap } from "@/app/lib/pipeline-status";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Data Pipeline",
+  description: "Live data-lineage and pipeline status for the Carthago Turkish banking dashboard.",
+  alternates: { canonical: "/pipeline" },
+};
 
 export default async function PipelinePage() {
   let status: PipelineStatusMap = {};

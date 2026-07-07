@@ -30,8 +30,60 @@ import Takeaway from "@/app/components/Takeaway";
 import { overviewInsights } from "@/app/lib/insights";
 import { withLlmHeadline } from "@/app/lib/read-headlines";
 import type { TimeSeriesRow } from "@/app/lib/metrics";
+import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  // Absolute title bypasses the "· Carthago" template so the home page leads
+  // with the target phrase. This is the page that competes for "Turkish
+  // banking sector data".
+  title: {
+    absolute: "Turkish Banking Sector Data, Financials & Analytics — Carthago",
+  },
+  description:
+    "Live data on Türkiye's banking sector: 32 banks' audited BRSA financials, BDDK aggregates, capital adequacy, NPLs, liquidity, profitability and macro context — updated every quarter, free.",
+  keywords: [
+    "Turkish banking sector",
+    "Turkish banks data",
+    "BDDK data",
+    "BRSA bank financials",
+    "Türkiye banking",
+    "Turkish bank ratios",
+    "capital adequacy",
+    "non-performing loans",
+  ],
+  alternates: { canonical: "/" },
+  openGraph: {
+    title: "Turkish Banking Sector Data, Financials & Analytics",
+    description:
+      "32 banks' audited BRSA financials, BDDK aggregates and macro context for Türkiye's banking sector — updated quarterly, free.",
+    url: "https://carthago.app",
+  },
+};
+
+const datasetJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Dataset",
+  name: "Turkish Banking Sector Data",
+  description:
+    "Quarterly audited financials for Türkiye's banks (balance sheet, income statement, capital, asset quality, liquidity, profitability) from BRSA reports, plus BDDK sector aggregates and macro context.",
+  url: "https://carthago.app",
+  keywords: [
+    "Turkish banking sector",
+    "BDDK",
+    "BRSA",
+    "bank financials",
+    "Türkiye",
+  ],
+  isAccessibleForFree: true,
+  spatialCoverage: "Türkiye",
+  creator: {
+    "@type": "Organization",
+    name: "Carthago",
+    url: "https://carthago.app",
+  },
+};
 
 interface KpiCardProps {
   label: string;
@@ -156,6 +208,10 @@ export default async function OverviewPage({
 
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(datasetJsonLd) }}
+      />
       <PageHeader
         eyebrow="Banking Sector"
         title="Overview"

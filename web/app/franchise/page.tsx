@@ -9,6 +9,7 @@
  * low-confidence are marked. The table is empty until the annual-report URLs are
  * curated and the backfill (backfill-faaliyet.yml) has run.
  */
+import type { Metadata } from "next";
 import {
   latestFranchiseByBank,
   franchiseCoverage,
@@ -29,6 +30,12 @@ import {
 } from "@/app/components/ui";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Turkish Banks — Franchise & Market Share",
+  description: "Franchise strength and market share across Türkiye's banks — assets, loans and deposits share and concentration (HHI).",
+  alternates: { canonical: "/franchise" },
+};
 
 const nfInt = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
 const nfMn = new Intl.NumberFormat("en-US", {

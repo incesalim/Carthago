@@ -9,6 +9,7 @@
  * (real-persons 4.0.3 + commercial 4.0.6 + official 4.0.9). Growth: monthly YoY → weekly
  * 52w; the old monthly MoM chart → weekly 4w annualized.
  */
+import type { Metadata } from "next";
 import {
   weeklySeries,
   weeklyGrowth,
@@ -35,6 +36,12 @@ import { withLlmHeadline } from "@/app/lib/read-headlines";
 import { cpiYoYByMonth, nominalVsReal, REAL_TERMS_LABELS } from "@/app/lib/real-terms";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Turkish Banking Sector — Deposits",
+  description: "Deposit trends for Türkiye's banks — TL vs FX, by bank type, and deposit growth from BDDK weekly and monthly bulletins.",
+  alternates: { canonical: "/deposits" },
+};
 
 const MEVDUAT = "mevduat";
 const TOTAL = "4.0.1";

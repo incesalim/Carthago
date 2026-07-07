@@ -6,12 +6,19 @@
  * Data: app/lib/non-bank.ts (BDDK BultenAylikBdmk monthly bulletin). The
  * "Share of Banking" sub-page quantifies their penetration of bank business.
  */
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getNonBankData, type SectorLatest } from "@/app/lib/non-bank";
 import { PageHeader, Section, Stat } from "@/app/components/ui";
 import StackedArea from "@/app/components/StackedArea";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Turkish Non-Bank Financial Sector",
+  description: "Türkiye's non-bank financial sector — leasing, factoring and financing companies and their size relative to banks.",
+  alternates: { canonical: "/non-bank" },
+};
 
 const fmtTrn = (v: number | null) =>
   v == null ? "—" : `₺${new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v / 1_000_000)} trn`;

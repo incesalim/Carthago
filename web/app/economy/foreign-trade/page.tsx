@@ -8,6 +8,7 @@
  * line (Albaraka-internal) and the HS-chapter ("Fasıl") tables (TÜİK dynamic
  * DB only) are flagged below rather than approximated.
  */
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getForeignTradeData } from "@/app/lib/foreign-trade";
 import { PageHeader, Section, Stat } from "@/app/components/ui";
@@ -16,6 +17,12 @@ import TimeSeriesChart from "@/app/components/TimeSeriesChart";
 import BopFlowChart, { type BarSeries, type OverlayLine } from "@/app/components/BopFlowChart";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Turkey Foreign Trade",
+  description: "Türkiye's foreign trade — exports, imports and the trade balance by broad economic category.",
+  alternates: { canonical: "/economy/foreign-trade" },
+};
 
 const MAROON = { light: "#9c1f2f", dark: "#d65a5a" };
 const INK = { light: "#171717", dark: "#ededed" };

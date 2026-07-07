@@ -7,6 +7,7 @@
  * Data + derivations live in app/lib/bop.ts; all values are TCMB BoP, USD bn
  * unless the summary table (USD million). See METRICS.md § External balance.
  */
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getBopData } from "@/app/lib/bop";
 import { getPortfolioFlowsData } from "@/app/lib/portfolio-flows";
@@ -17,6 +18,12 @@ import TimeSeriesChart from "@/app/components/TimeSeriesChart";
 import BopFlowChart, { type BarSeries, type OverlayLine } from "@/app/components/BopFlowChart";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Turkey Balance of Payments",
+  description: "Türkiye's balance of payments — current account and capital and financial flows from CBRT data.",
+  alternates: { canonical: "/economy/balance-of-payments" },
+};
 
 // Source-report palette (orange / maroon / grey / amber), light & dark.
 const ORANGE = { light: "#e8833a", dark: "#f0a35e" };
