@@ -100,12 +100,14 @@ bddk_analysis/
 │   ├── scrape_all_banks.py
 │   └── backfills/
 │
-├── web/                            ← Next.js 15 + OpenNext (Cloudflare Workers)
+├── web/                            ← Next.js 16 + OpenNext (Cloudflare Workers)
 │   ├── app/                        ← routes
 │   │   ├── components/             ← TrendChart, BarByBank, StackedArea, …
 │   │   ├── lib/                    ← db.ts (D1 binding) · metrics.ts (SQL helpers)
 │   │   ├── credit/, deposits/, asset-quality/, capital/, profitability/
-│   │   ├── weekly/, rates/, banks/, sector/, liquidity/
+│   │   ├── rates/, liquidity/, market-risk/, cross-bank/, valuation/
+│   │   ├── banks/, ownership/, earnings/, franchise/, funds/, digital/
+│   │   ├── economy/, news/, regulation/, non-bank/, disclosures/, pipeline/
 │   │   ├── admin/, api/admin/      ← password-gated control center
 │   │   └── page.tsx                ← Overview
 │   ├── wrangler.jsonc, open-next.config.ts
@@ -126,7 +128,8 @@ bddk_analysis/
     ├── refresh-evds-daily.yml      ← Sun-Fri 05 UTC: EVDS only → D1
     ├── refresh-bddk-bulletins.yml  ← Sat 02 UTC: monthly + weekly bulletins → D1
     ├── refresh-data.yml            ← Sat 03 UTC: monthly + weekly + EVDS + TBB digital → D1
-    ├── refresh-audit.yml           ← Sun 04 UTC: audit PDFs → bank_audit_* → D1 (own lane)
+    ├── acquire-audit.yml           ← Sun 04 UTC: discover + download audit PDFs → R2 (own lane)
+    ├── refresh-audit.yml           ← manual only: audit PDFs → bank_audit_* → D1 (own lane)
     ├── refresh-news-daily.yml      ← daily: KAP/TCMB/BDDK news → D1
     ├── summarize-regulations.yml   ← weekly: LLM regulation briefing → D1
     ├── healthcheck.yml             ← daily: D1 freshness → Telegram/Discord alert
@@ -142,7 +145,8 @@ bddk_analysis/
 | **EVDS daily refresh** | Sun–Fri 05:00 UTC | `refresh-evds-daily.yml` |
 | **Weekly bulletins** | Saturday 02:00 UTC | `refresh-bddk-bulletins.yml` (monthly + weekly, no EVDS/audit) |
 | **Full weekly refresh** | Saturday 03:00 UTC | `refresh-data.yml` (monthly + weekly + EVDS + TBB digital + D1 push) |
-| **Audit-report scrape** | Sunday 04:00 UTC | `refresh-audit.yml` — own DB + R2 snapshot; new bank IR PDFs → R2 → extract → D1 |
+| **Audit-report acquisition** | Sunday 04:00 UTC | `acquire-audit.yml` — own DB + R2 snapshot; discovers + downloads new bank IR PDFs → R2, refreshes the coverage matrix |
+| **Audit-report extraction** | Manual / admin only | `refresh-audit.yml` — PDFs from R2 → `bank_audit_*` → D1. Deliberately not scheduled: you review the coverage matrix after |
 | **Health check** | Daily 06:00 UTC | `healthcheck.yml` — D1 freshness → alert if stale |
 | **CI quality gates** | Every PR | `ci.yml` — ruff + pytest + eslint + tsc |
 | **Cloudflare dashboard deploy** | Every push to `web/` | `deploy-cloudflare.yml` (migrate + build + deploy) |

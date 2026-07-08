@@ -1,13 +1,17 @@
 /**
  * Telegram bot orchestrator: turn a user's message into a grounded answer by
- * generating read-only SQL, running it against D1, and summarising the rows.
+ * generating read-only SQL, running it against D1, and answering from the rows.
  *
- * Flow: command? → rate-limit → LLM makes SQL (or a plain answer) → sanitize →
- * execute → LLM summarises rows → reply with the answer + the raw data + the SQL.
+ * Flow: command? → rate-limit → runAgent() — a LOOP (≤ MAX_STEPS rounds) in which
+ * the model emits a ```sql block, sees the rows (or the error, or "0 rows"), and
+ * self-corrects; when it emits plain text instead, that's the final answer. Reply
+ * is prose only — the SQL and raw rows are diagnostics, exposed solely through
+ * /api/admin/bot-ask. See docs/TELEGRAM_BOT.md.
  *
- * Public bot: every step is defensive. The SQL is gated by bot-sql.ts (writes
- * are impossible), and usage is capped per-chat and globally to protect the
- * free-tier LLM quota.
+ * Public bot: every step is defensive. The SQL is gated by bot-sql.ts (writes are
+ * impossible); a figure stated before any query returned rows is treated as a
+ * hallucination and never sent (see `gotData`); and usage is capped per-chat and
+ * globally to protect the free-tier LLM quota.
  */
 import type { StringEnv } from "./cf-env";
 import { chatComplete, llmConfigured, type ChatMessage } from "./llm";

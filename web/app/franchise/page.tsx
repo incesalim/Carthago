@@ -32,8 +32,8 @@ import {
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Turkish Banks — Franchise & Market Share",
-  description: "Franchise strength and market share across Türkiye's banks — assets, loans and deposits share and concentration (HHI).",
+  title: "Turkish Banks — Franchise & Operational Footprint",
+  description: "Branch, ATM, POS, merchant, customer and card counts across Türkiye's banks, extracted from their annual reports (Faaliyet Raporları).",
   alternates: { canonical: "/franchise" },
 };
 

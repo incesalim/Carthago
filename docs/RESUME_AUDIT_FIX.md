@@ -122,9 +122,23 @@ FIBA 2025Q4 + 2026Q1 (XII deferred tax), ATBANK 2022Q2 (16.7 minority interest).
 
 ---
 
-# RESUME: audit balance-sheet fix push (paused 2026-06-11)
+# Appendix — the resume plan as written on 2026-06-11 (⚠️ DO NOT RUN)
 
-## State when paused
+> **This is a transcript, not a runbook.** Every step below was executed and
+> completed on 2026-06-12; the outcome is the "COMPLETE" record at the top of this
+> file. It reads in the present tense ("Production D1 NOT yet updated", "To finish")
+> because that was true *then*. **Running these commands today would re-extract the
+> fleet and push over current production data.** It is kept only as a worked example
+> of how a corruption repair was sequenced — evidence dry-run first, push saved data
+> without re-extracting, revalidate, verify remote.
+>
+> The one item it lists as unwritten code — loader override support — **shipped**
+> (`data/audit_overrides.json` + `apply_overrides.py`; after applying overrides you
+> must run `sync_audit_expected.py --push`, see [OPERATIONS.md](OPERATIONS.md)).
+> Its "Still open" follow-up (make validation push always-full, the coverage-erosion
+> bug) was root-caused and fixed — the coverage spine now self-revalidates.
+
+## State when paused (2026-06-11 — since resolved)
 - **68 → ~16 failing partitions fixed in CODE** (committed to master, HEAD has
   11 identity-gated extractor fixes + regression fixes f3fcc74).
 - **Production D1 NOT yet updated** — still has the pre-existing ~51 corrupted
@@ -132,7 +146,7 @@ FIBA 2025Q4 + 2026Q1 (XII deferred tax), ATBANK 2022Q2 (16.7 minority interest).
 - A clean evidence dry-run was mid-extraction (~150/500 PDFs) into
   `data/fleet_scratch.db` when paused. **Resumable — do NOT clear scratch.**
 
-## To finish (resume sequence — NO full re-extraction)
+## To finish (the sequence that was followed on 2026-06-12 — NO full re-extraction)
 1. **Resume extraction** (skips already-done PDFs, continues from ~150):
    ```
    python scripts/fleet_evidence.py --only ALNTF,ANADOLU,ATBANK,BURGAN,EMLAK,EXIM,FIBA,HSBC,ICBCT,ISCTR,KLNMA,KUVEYT,ODEA,PASHA,QNBFB,SKBNK,TEB,TSKB,VAKBN,YKBNK,ZIRAATK --workers 8
@@ -162,3 +176,4 @@ FIBA 2025Q4 + 2026Q1 (XII deferred tax), ATBANK 2022Q2 (16.7 minority interest).
 already seeded with EMLAK XIV / EMLAK cash ECL / BURGAN I). Loader override
 support is NOT yet wired — that's the only code left to write for the readable
 long tail; do it before step 3 if you want those included.
+*(Resolved: override support shipped. See the appendix banner above.)*

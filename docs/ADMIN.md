@@ -27,6 +27,9 @@ health**, **manual refresh triggers**, and **site traffic** into one view.
 | Coverage queries | `web/app/lib/coverage.ts` |
 | Runs / dispatch / coverage / purge-cache endpoints | `web/app/api/admin/{runs,dispatch,coverage,purge-cache}/route.ts` |
 | Presentation deck (route + data + HTML builder) | `web/app/api/presentation/route.ts`, `web/app/lib/presentation-data.ts`, `web/app/lib/presentation-deck.ts` |
+| Telegram webhook self-register | `web/app/api/admin/telegram-register/route.ts` |
+| Telegram bot test harness (gated by `BOT_TEST_KEY`; 404s while unset) | `web/app/api/admin/bot-ask/route.ts` |
+| Web Analytics RUM beacon (rendered manually — see §3) | `web/app/components/Beacon.tsx` |
 
 ### Managing audit reports (the intended workflow)
 
@@ -135,6 +138,13 @@ Read**, then set:
 - vars `CF_ANALYTICS_SITE_TAG`, `CF_ACCOUNT_TAG` (in `web/wrangler.jsonc`)
 - secret `CF_ANALYTICS_TOKEN`
 
+> `CF_ANALYTICS_SITE_TAG` is **dual-purpose**: it's the key this panel queries against
+> *and* the token of the client RUM beacon. Do not turn on Cloudflare's "automatic"
+> (edge) injection expecting it to work — it does **not** fire on the OpenNext Worker
+> response, which is why the beacon is rendered by hand in
+> `web/app/components/Beacon.tsx`. If RUM reads 0 while the panel works, check that
+> component, not the Cloudflare dashboard toggle.
+
 ### 4. Cloudflare Access (optional — only on a custom domain)
 
 On `workers.dev`, Cloudflare Access can only gate the **whole** subdomain, which
@@ -181,7 +191,7 @@ triggering: some are JavaScript-rendered (AKBNK, GARAN, YKBNK, ISCTR, VAKBN,
 ICBCT, ALNTF), some serve opaque file-id URLs with no date (HSBC, KLNMA, ODEA,
 QNBFB), and a few don't validate cleanly yet (AKTIF, BURGAN, KUVEYT, SKBNK).
 
-**Adding / re-checking a bank:** run `python scripts/validate_discovery.py`
+**Adding / re-checking a bank:** run `python scripts/diagnostics/validate_discovery.py`
 (uses the config as a test oracle — a bank passes when it reproduces its latest
 period with no recent-period URL mismatch), then add the passing tickers to
 `DISCOVERY_BANKS`. Re-run it if a bank redesigns its IR page.

@@ -61,12 +61,24 @@ All 17 are visible as ⚠ on the dashboard and in /admin; none are silently
 wrong. They are correct candidates for OCR (the shattered/source-error ones)
 or a future per-filing layout pass (the wrap ones).
 
-## 0. Permanent gaps — statement pages have NO TEXT LAYER (2026-06-11 audit)
+## 0. Image-only statement pages — RESOLVED for financials (2026-06-11 audit; closed 2026-06-22)
+
+> **The "unfixable without OCR" premise below no longer holds.** The *extraction
+> pipeline* stays deterministic, but a **manual/OCR transcription route** was added
+> alongside it: statements are hand-transcribed (screenshot → `scripts/load_partition.py`)
+> into `data/manual_statements.json` — **56 statement overlays** today — with each
+> balance sheet validated to 0 and each P&L cross-checked to BS equity. Every partition
+> in the table below has its **financials filled by that route**; `scripts/archive/ocr_statement.py`
+> records the one-off OCR pass. What remained open was the IFRS-9 NPL / Stage footnote
+> for these partitions (often image-only too) — and that has since closed as well: the
+> `stages` lane is **967 pass / 0 fail** and `npl_movement` **641 / 0**.
+>
+> Kept below as the census of which reports are image-only, which is still true and still
+> the reason these cells need overlays rather than extraction.
 
 The files below are the banks' official uploads, re-checked against the live
 IR URLs — the statement pages are scans/images with no extractable text on
-either copy. Unfixable without OCR (pipeline stays deterministic). They show
-as missing on the dashboard, never as wrong numbers.
+either copy. They show as missing on the dashboard, never as wrong numbers.
 
 | Bank | Period(s) | Kind | Note |
 |---|---|---|---|
@@ -75,6 +87,14 @@ as missing on the dashboard, never as wrong numbers.
 | TSKB | 2026Q1 | unconsolidated | real report now live at the IR URL but its text layer shatters numbers into 4+ fragments — identity-gated repair can fix only ≤3; kept as gap rather than storing wrong values. (CONSOLIDATED 2026Q1: FILLED 2026-06-11 — clean PDF from live URL uploaded to R2 + extracted, 180 rows, 0 identity failures) |
 
 ## 1. Need a document — provide the full BRSA report PDF (or wait for publication)
+
+> ⚠️ **Not re-verified since 2026-06-12.** Some rows here have since been reclassified
+> as *brief interim filings* into `data/audit_not_disclosed.json` (e.g. TSKB 2026Q1
+> unconsolidated, ICBCT 2023Q4 consolidated) — those render as **N/A**, not missing, and
+> are no longer "need a document". The rest are plausibly still open. Re-check against
+> `/admin`'s coverage matrix (the live spine) before acting on this table; note this doc
+> says it is "generated from the local DB + R2" but **no regeneration script exists** —
+> it is hand-maintained.
 
 | Bank | Period | Kind | Missing | In R2? | Source / IR page |
 |---|---|---|---|---|---|
@@ -91,6 +111,15 @@ as missing on the dashboard, never as wrong numbers.
 | TSKB | 2026Q1 | unconsolidated | financials + NPL/Stage | 0.4MB (summary) | https://www.tskb.com.tr/uploads/file/tskb-bank-only-31032026.pdf |
 
 ## 2. Extractor fix needed — PDF already in R2, only parsing fails
+
+> **Status 2026-06-22: effectively cleared.** The NPL/Stage lanes this section tracks
+> now report **`stages` 967 pass / 0 fail** and **`npl_movement` 641 / 0** (see the
+> validation-status table in [PROJECT_STATE.md](PROJECT_STATE.md)) — the cross-page
+> TFKB layout, the ODEA spelled-out header and the FIBA locator were all fixed, and
+> the FIBA cells that genuinely aren't disclosed moved to `data/audit_not_disclosed.json`
+> (16 cells), where they render as **N/A** rather than *missing*. The one residue is
+> `credit_quality` at **939 / 5**. The table is kept as the record of what each defect
+> was and which PDF exposed it.
 
 | Bank | Period | Kind | Missing | PDF size | Note |
 |---|---|---|---|---|---|

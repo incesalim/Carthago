@@ -130,5 +130,9 @@ once assets/liabilities/P&L each have ≥20 rows.
 
 ## Genuinely unfixable inputs
 Reports the bank publishes as scans with no text layer (or that don't foot in the source)
-are tracked in [`docs/MISSING_AUDIT_DATA.md`](MISSING_AUDIT_DATA.md). Under the no-OCR rule
-these are filled only by manual transcription (step 5) or left flagged.
+are tracked in [`docs/MISSING_AUDIT_DATA.md`](MISSING_AUDIT_DATA.md). The no-OCR rule binds
+the **automated extractors** — they stay deterministic and never guess. Such reports are
+filled out-of-band by manual transcription (step 5) into `data/manual_statements.json`, which
+*may* use OCR as an authoring aid (`scripts/archive/ocr_statement.py`) because a human
+validates every figure before it lands; or they are left flagged. Cells the bank genuinely
+doesn't disclose belong in `data/audit_not_disclosed.json` (rendered N/A), not here.
