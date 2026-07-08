@@ -14,7 +14,7 @@
    layout (EXIM 9-col), and which §4/§5 tables exist per report with page
    numbers (`anchors` in the profiles JSON).
 2. **Profile the target table across the fleet** before assuming a layout:
-   `scripts/profile_audit_corpus.py` records where each anchor appears; for a
+   `scripts/diagnostics/profile_audit_corpus.py` records where each anchor appears; for a
    new footnote table, add its anchor needles to
    `src/audit_reports/profiler.py:FOOTNOTE_ANCHORS` and re-run the sweep —
    that yields coverage (which banks/quarters have it) and page locations for
@@ -44,12 +44,14 @@
 8. Tests: fixture-based, including **must-fail fixtures** (a corrupted row the
    validator must catch), importable under CI's minimal deps (no top-level
    pdfplumber in test modules — `pytest.importorskip`).
-9. New table = **five** registrations in the same change:
+9. New table = **six** registrations in the same change:
    `schema.py` DDL + `web/migrations/000X.sql` + `push_to_d1.SYNC_TABLES` +
    **`push_to_d1.fetch_recent` time-column mapping** +
    `backfill_extraction.AUDIT_TABLES` (catalogue failure-mode #6 — the
    missing time-column mapping silently skipped bank_audit_validation in
-   every Phase-3 push: "no time column, skipped").
+   every Phase-3 push: "no time column, skipped") + the naming rules in
+   [SCHEMA_CONVENTIONS.md](SCHEMA_CONVENTIONS.md), enforced by CI's
+   `scripts/check_schema_naming.py` for migrations ≥ 0022.
 
 ## Shipping
 
@@ -66,6 +68,19 @@
 
 ## Known traps (each cost us once)
 
+> **Engine:** new and changed extractors are **fitz (PyMuPDF) only** — ~60–85× faster
+> per page. `pdfplumber` survives in exactly three places: the frozen balance-sheet /
+> P&L `extractor.py`, `profiler.py`, and `src/faaliyet/extractor.py`. Don't extend it.
+> Several lanes still carry *comments* mentioning pdfplumber artifacts (split digits,
+> collapsed spaces); the repairs remain useful, the attribution is historical.
+
+- **`/Rotate 90` pages garble everything — check `page.rotation` FIRST.** On a rotated
+  page (GARAN/AKBNK landscape statements) fitz reports word bboxes in the page's
+  **un-rotated** space, so y-clustering shreds the table into garbage and the text
+  "looks corrupt" for no visible reason. Map each bbox through `page.rotation_matrix`
+  into display space before clustering (`rotation_matrix` is the identity when
+  `rotation == 0`, so the passing fleet pays nothing). See `extractor.py` (~L829) and
+  `equity_change.py`. Diagnose this *before* suspecting the text layer.
 - Dipnot refs `(6)` parse as −6; hierarchy tokens `1.1.4.` fragment into
   numbers; dates `31.12.2023` fragment into 3 tokens (QNBFB phantom header).
 - Squished text layers drop ALL spaces (TSKB/QNBFB/ALBRK some quarters) —
@@ -75,8 +90,9 @@
   on its own line in `extract_text()`, and the Total label sits a few px above
   its numbers — İşbank EN report, also ANADOLU/TSKB `loans_by_stage`). Line-mode
   text then yields a "Total" row with too few numbers and the row parser rejects
-  it. Fix: **rebuild visual rows from word coordinates** — cluster
-  `page.extract_words()` by `top` within a tolerance (~5–6px, under the row
+  it. Fix: **rebuild visual rows from word coordinates** — cluster fitz's
+  `page.get_text("words")` (→ `x0, y0, x1, y1, word, block, line, word_no`) by the
+  y-coordinate within a tolerance (~5–6px, under the row
   pitch) and feed the reassembled lines through the *same* parser as a fallback,
   only on a page carrying the table's anchor that parsed empty (the passing fleet
   pays nothing). Anchor on the table-specific header (the Stage-2 "Yakın
@@ -86,7 +102,11 @@
 - Split-digit text layers detach leading digits ("5 86.339.528"); repaired in
   `extract_page_text_repaired`, but TSKB 2025 quarters are still damaged.
 - Some PDFs have **no text layer** at all on statement pages (ISCTR 2025Q1
-  consolidated) — unextractable without OCR; protect with `--skip`.
+  consolidated) — unextractable by the deterministic pipeline; protect with `--skip`.
+  These are then filled **out-of-band**: hand-transcribe via `scripts/load_partition.py`
+  into `data/manual_statements.json` (56 overlays today; each BS validated to 0, each
+  P&L cross-checked to BS equity). Cells the bank simply doesn't disclose go to
+  `data/audit_not_disclosed.json` and render N/A. Census: [MISSING_AUDIT_DATA.md](MISSING_AUDIT_DATA.md).
 - FC-only sub-tables shadow the total table (the NPL Stage-3 bug) — always
   check whether a matched block is a currency-restricted fragment.
 - Prior-period columns may live in a separate table (EXIM §4) or as extra

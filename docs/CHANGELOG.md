@@ -3,7 +3,94 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-07-03 — **`ensure_d1_schema` is now column-aware — D1 can no longer drift behind the snapshot schema.**
+Last verified: 2026-07-08.
+
+2026-07-07 — **SEO / discoverability: the dashboard is now crawlable.**
+On-page work only. `web/app/robots.ts` + `web/app/sitemap.ts` expose a crawlable route list;
+every route gained `metadata` (title, description, `alternates.canonical`); JSON-LD structured
+data added to `layout.tsx` + `page.tsx`. Rationale, the manual Google Search Console / Bing
+verification steps (they can't be automated from CI), and the ranking strategy are recorded in
+`docs/knowledge/seo-and-search-console.md`. Off-page — backlinks — is the actual ranking lever
+and remains unstarted; the strategic review names distribution as the project's biggest gap.
+(Follow-up, found 2026-07-08: `/franchise`'s new metadata described market share + HHI, which
+live on `/cross-bank`; corrected to the operational-footprint copy the page actually renders.)
+
+2026-07-05 — **Public Telegram Q&A bot: text-to-SQL over D1, rebuilt as a self-correcting agent loop.**
+Shipped as a two-call pipeline (`bb3f44b`: question → SQL → rows → summary) and replaced the same day
+by `runAgent` (`b778ff9`), a loop of at most 6 query/refine rounds in which the model sees each
+result — or the SQL error, or `0 rows` — and self-corrects before answering. Runs inside the existing
+Worker; no new service. Migration **0020** adds `bot_usage` (per-chat + global daily caps).
+Every query passes `bot-sql.ts` (single `SELECT`/`WITH`, row-capped, writes/DDL/multi-statement
+rejected — 29 vitest cases), so a prompt-injected write is impossible.
+The hard problem was *ungrounded figures*, fixed in layers: a `gotData` guard rejects any answer
+stating a 4+ digit number or a `{placeholder}` before a query has returned rows and pushes the model
+back to querying (`8f7d92e`, `786b8d9`); grouped-number separators are stripped **before** that test
+so `43.520.620` still trips it (`cfc0941`, `970f792`); amounts are then re-grouped deterministically
+by `groupThousands()` rather than by the model, with lookarounds that spare years, periods, decimals
+and Turkish decimal commas (`30853b0`, `22d5421`). Also: answer in the question's language
+(`cd0ead3`); never guess the reporting quarter — `SELECT` it (`520f9fc`); replies are plain prose,
+the SQL and raw table demoted to diagnostics (`1ade91b`, `1118fc8`, `45976b5`).
+Provider chain flipped to **Groq-first** (`064bcf8`) — same `gpt-oss-120b` model, far higher free-tier
+rate limit, which matters because the loop makes several calls per question; this intentionally
+diverges from the Cerebras-first Python reads lane. Schema-prompt corrections along the way: SQLite
+has no `ILIKE` (`433911d`); net profit anchors on the (XIX+XXIV) formula, not fragile text
+(`139d332`); per-bank loans come from `bank_audit_stages.total_amount` (`4e4c2bd`); deposits live on
+the liabilities side (`925c81a`); grand totals via `MAX(amount_total)`, not label matching (`725b3ad`).
+Webhook can self-register from `/admin` (`eb6f97a`); the CLI prompts for token/secret on hidden input
+(`10a4888`). Setup + architecture: `docs/TELEGRAM_BOT.md`.
+
+2026-07-05 — **"The Read": LLM-rewritten headline per dashboard tab.**
+New weekly lane (`generate-reads.yml`, Sun 07:30 UTC) → `read_headlines` → D1. Live on the Overview
+first (`f2e0e5f`), then all 8 tabs (`4353bff`). Free providers only, no paid API. Hardening: retry the
+*same* provider on a 429 before failing over, so the primary stays primary (`eff15d0`); per-family
+pacing to respect Cerebras' ~5 req/min (`820c1b9`); a magnitude-matching number validator so a
+sign-flip isn't scored as an invented figure (`49a5815`); fall back to the prod URL when `SITE_URL`
+is the empty string, not merely unset (`128324a`); Telegram notification per run (`359aaa0`).
+The gemma tier was dropped once both providers served the same `gpt-oss-120b` (`34aa3de`); the chain
+now falls back to a deterministic template rather than a weaker model. Provider selection was decided
+by a throwaway bake-off, kept as `docs/knowledge/free-model-eval*.md` and then deleted from the tree
+(`c19b7c0` … `515e525`); Gemini was dropped for refusing to serve within a free cap (`44b1b1b`).
+
+2026-07-05 — **Presentation deck generator + banks dimension + schema-naming CI gate.**
+(a) One-command sector deck: reads → HTML → PDF (`90f717e`), an `/admin` "Generate presentation"
+button and deck route (`95fb7b2`), then a designed layout with KPI vitals and per-section trend
+charts (`3b42045`). Source of truth is `/api/presentation`, which reuses `metrics.ts` — so the deck
+cannot drift from the dashboard.
+(b) Migration **0021** adds a `banks` dimension table + cross-lane alias views (`496789c`).
+(c) New CI gate `scripts/check_schema_naming.py` + `docs/SCHEMA_CONVENTIONS.md` (`ba47e0f`): migrations
+**≥ 0022** must use `bank_ticker` / `amount_fc` / snake_case / no reserved words / unique number.
+Existing tables are grandfathered, so it currently enforces on zero files and emits drift notes only.
+Also `69c5513`: register `generate-reads.yml` in the pipeline graph, which its own CI guard demanded.
+
+2026-07-05 — **Cloudflare Web Analytics — beacon injected manually, because the edge won't.**
+Wired the analytics tags for the `/admin` traffic panel (`acc7ea9`), then found RUM stuck at 0: the
+beacon was absent from the live HTML because Cloudflare's *automatic* edge injection does not fire on
+the OpenNext Worker response. Fixed by rendering the snippet ourselves in
+`web/app/components/Beacon.tsx` (`f420f41`). The token is the non-secret `CF_ANALYTICS_SITE_TAG`,
+now **dual-purpose**: the client beacon's token and the key the traffic panel queries against. It
+renders nothing when unset, so `next dev` never pollutes production analytics.
+Also `0f1acd9`: real per-bank brand logos on `/banks` (static PNGs + `fetch_bank_logos.py`).
+
+2026-07-04 — **Audit / financials: five dropped P&L lines recovered, cash-flow signs normalized, P&L flow now reconciles exactly.**
+`9782a48` recovers 5 dropped/misread P&L lines, after which the whole fleet reconciles. The P&L flow
+Sankey now **requires exact reconciliation** and treats deductions sign-aware (`ac7fb4e`), with
+consistent signed negatives for deduction lines (`1389d4d`); cash-flow outflow lines are
+sign-normalized fleet-wide (`032ee0e`). Two rendering defects behind the same surface: VAKBN's P&L
+flow was blank because its hierarchy prints a **dotless** roman VI (`ad8ad2a`), and the `1.1.3 Money
+Market Placements` row was missing entirely (`d3c8652`).
+
+2026-07-04 — **Liquidity: IMF-template reserve lines + six more BBVA charts.**
+Net-reserves-excluding-swaps was computed off the wrong swap series; switched to the IMF-template
+forward/swap position (`813561d`) and added it as a third reserve line (`2869713`). Six further charts
+from the BBVA liquidity section rendered (`09cc469`), taking that section to 13 of 17 reproducible.
+
+2026-07-04 — **`/sector/ratios` retired; Overview Snapshot and Ratios merged into one switchable scorecard.**
+The standalone ratios page's only distinct value was the bank-**type** filter (a dashboard-audit
+"clarify_purpose" item), so it folded into the Overview (`1cbd1dd`, `b9a739c`) and now redirects.
+This removed a public route — noted here because nothing else records it. Also `389f393`: fill the
+last "The Read" grid row so no blank cell shows.
+
+2026-07-03 — **`ensure_d1_schema` is now column-aware — D1 can no longer drift behind the snapshot schema.**
 Root cause of the 2026-07-02 override-push failure: `schema.py` evolves existing tables via `_COLUMN_MIGRATIONS`
 (+`init_schema`), which every LOCAL snapshot gets — but the D1-side `ensure_d1_schema` only applied the
 `CREATE TABLE IF NOT EXISTS` DDL, which cannot add columns, so remote `bank_audit_extractions` was missing the

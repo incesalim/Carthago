@@ -9,15 +9,21 @@ machine involvement is required for routine refreshes.
 
 | When | Workflow | What it does |
 |---|---|---|
-| Sun–Fri 05:00 UTC | `refresh-evds-daily.yml` | TCMB EVDS scrape (FX, rates, sterilization, …) + TBB/TKBB/KAP/TEFAS non-critical steps → D1 |
+| Sun–Fri 05:00 UTC | `refresh-evds-daily.yml` | TCMB EVDS scrape (FX, rates, sterilization, …) + the non-critical BIST/TBB/TKBB/KAP/TEFAS/Faaliyet steps of `refresh.py` → D1 |
+| Daily 04:00 UTC | `refresh-news-daily.yml` | `sync_news.py` → `news_items` + `news_item_banks` (KAP filings, TCMB/BDDK announcements, bank press rooms, Google News) → D1 |
 | Saturday 02:00 UTC | `refresh-bddk-bulletins.yml` | Monthly + weekly BDDK bulletins (no EVDS, no audit) → D1 |
 | Saturday 03:00 UTC | `refresh-data.yml` | Monthly + weekly BDDK + EVDS → D1 |
+| Saturday 06:00 UTC | `refresh-presentations-weekly.yml` | `update_presentations.py` → `bank_earnings` (IR presentation decks) → D1 (`--only-tables=bank_earnings`). Bulletin lane (`bddk-pipeline` group). Tier-1 results filings ride `refresh-news-daily.yml` instead |
 | Sunday 04:00 UTC | `acquire-audit.yml` | Audit-report **acquisition only**: discover + download new PDFs → R2, refresh the coverage matrix, notify on new reports (own `bddk-audit` group, read-only on the snapshot) |
+| Sunday 06:00 UTC | `summarize-regulations.yml` | Weekly regulation briefing via Kimi → `regulation_briefings` → D1. **Needs the `KIMI_API_TOKEN` secret** (see Secrets) |
+| Sunday 07:30 UTC | `generate-reads.yml` | "The Read" — LLM-rewritten headline per dashboard tab → `read_headlines` → D1. Free providers with per-family pacing + magnitude-match number validation; falls back to a deterministic template |
 | Manual / admin only | `refresh-audit.yml` | Audit-report **extraction**: PDFs from R2 → `bank_audit_*` → D1 + snapshot. Triggered from `/admin` (Pipeline "Extract audit reports" card or the coverage matrix's per-cell Re-extract). No schedule — extraction is reviewed, not automated |
 | Manual only | `backfill-tefas.yml` | One-time (re-runnable) ~5-year TEFAS fund-market history backfill (API cap) — resumable via `tefas_fetch_log` (re-dispatch with the same `from` date) |
 | Manual only | `backfill-audit.yml` | Re-extract already-ingested audit PDFs after an extractor fix (extraction skips `success=1`, so history never self-heals) → clear D1 partitions → push → snapshot. **Never run `banks=ALL`** — it exceeds the 180-min job timeout mid-extraction; dispatch ~5-bank chunks sequentially (the `bddk-audit` concurrency group queues them) |
 | Manual only | `reextract-statement.yml` | Targeted **single-statement** re-extract (`reextract_statement.py`): one lane (`oci` / `cash_flow` / `equity_change` / `npl_movement` / `loans_by_sector` / `bank_profile` / `credit_quality`) for selected `periods`/`banks` → inline-validate → push that table + `bank_audit_validation` → snapshot → refresh matrix. `only_failing=true` (default) processes only NOT-passing partitions (`checks_failed>0 OR checks_passed=0` — catches stale empties); the non-destructive guard skips passing ones, so it can only improve. **`force=true`** overwrites even passing partitions — needed when the defect is in a **derived** table (e.g. `credit_quality` passes but its derived `bank_audit_stages` fails, so `only_failing` wouldn't select it); the `credit_quality` lane also rebuilds `bank_audit_stages` after the run. **Preferred over `backfill-audit.yml` for a single-lane fix** — one lane on fitz, no full-extract timeout (an all-periods lane run is ~6–10 min). How OCI/CF/NPL/loans_by_stage were fixed fleet-wide |
-| Daily 06:00 UTC | `healthcheck.yml` | D1 freshness check → Telegram/Discord alert if stale/failing |
+| Manual only | `backfill-nonbank.yml` | One-time historical backfill of the non-bank sector lane (leasing / factoring / financing) from `from_year` (default 2020) → now (~5–10 min). The incremental refresh rides `refresh.py`; this is only for the initial history load. Apply migration 0013 first (via a `web/**` deploy) |
+| Manual only | `backfill-faaliyet.yml` | Fleet backfill of the Faaliyet-raporu franchise lane (branches / personnel from annual-report PDFs) → `faaliyet_franchise` + `faaliyet_extractions`. The incremental refresh rides `refresh.py` |
+| Daily 06:00 UTC | `healthcheck.yml` | D1 freshness check + `verify_chart_spec.py` → Telegram/Discord alert if stale/failing |
 | On push touching `web/**` | `deploy-cloudflare.yml` | Apply D1 migrations, build OpenNext bundle, deploy to Workers |
 | On every PR | `ci.yml` | ruff + pytest + eslint + tsc + vitest quality gates |
 
@@ -107,8 +113,8 @@ To acquire before the next Sunday cron, trigger `acquire-audit.yml` manually
 (GitHub → Actions, or the /admin Pipeline "Acquire audit PDFs" card).
 
 To enable auto-discovery for more banks, run
-`python scripts/validate_discovery.py` (it checks discovery against the
-config) and add any passing ticker to `DISCOVERY_BANKS`. See
+`python scripts/diagnostics/validate_discovery.py` (it checks discovery against
+the config) and add any passing ticker to `DISCOVERY_BANKS`. See
 [ADMIN.md](ADMIN.md) §Auto-discovery.
 
 ### TBB digital-banking statistics (quarterly)
@@ -384,9 +390,9 @@ The schema source of truth is the hand-authored, version-controlled files in
    `d1_migrations` table. (`CREATE … IF NOT EXISTS` makes re-apply a no-op.)
 3. Test locally first: `cd web && npx wrangler d1 migrations apply bddk-data --local`.
 
-`scripts/generate_d1_migrations.py` is **data seeding only** (writes to
-`web/seeds/`, gitignored) — not schema. Routine row updates go through
-`push_to_d1.py`.
+`scripts/archive/generate_d1_migrations.py` was a one-time D1 seed (writes to
+`web/seeds/`, gitignored) — **not schema, and no longer part of any lane**.
+Routine row updates go through `push_to_d1.py`.
 
 ## Disaster recovery
 
@@ -417,28 +423,71 @@ Then re-run the relevant refresh workflow to push the restored rows to D1.
 
 ## Secrets
 
+> Kept honest by `scripts/check_docs_sync.py` (CI): every `secrets.X` / `vars.X` a
+> workflow reads must appear below, and every optional key of `CloudflareEnv` must
+> appear in this doc, [ADMIN.md](ADMIN.md), or [TELEGRAM_BOT.md](TELEGRAM_BOT.md).
+> An undocumented secret is a lane that dies silently on re-provision.
+
 GitHub repo → Settings → Secrets and variables → Actions:
 
 | Secret | Used by |
 |---|---|
-| `CLOUDFLARE_API_TOKEN` | wrangler (D1 push, dashboard deploy) |
-| `EVDS_API_KEY` | TCMB EVDS API |
+| `CLOUDFLARE_API_TOKEN` | wrangler (D1 push, dashboard deploy) — 13 workflows |
+| `EVDS_API_KEY` | TCMB EVDS API (`refresh-data.yml`, `refresh-evds-daily.yml`) |
 | `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` | audit-report PDFs in R2 |
+| `TELEGRAM_BOT_TOKEN` | `scripts/notify.py` — the ❌/🟡/🆕 alerts every workflow posts on failure |
+| `TELEGRAM_CHAT_ID` | ditto — the destination chat |
+| `ALERT_WEBHOOK_URL` | ditto — optional Discord/Slack webhook mirror of the same alerts |
+| `CEREBRAS_KEY` | "The Read" headline lane (`generate-reads.yml` → `src/news/free_llm.py`) |
+| `GROQ_API_KEY` | ditto — the other free provider |
+| `KIMI_API_TOKEN` | weekly regulation briefing (`summarize-regulations.yml`). ⚠️ **Name mismatch**: the repo secret is `KIMI_API_TOKEN`, but the workflow maps it to env `KIMI_API_KEY`, which is what `src/news/kimi.py` reads. Provision the *secret* under the token name |
 
-### Worker secrets (dashboard / `/admin`)
+Actions **variables** (same screen, "Variables" tab — not secrets):
+
+| Variable | Used by |
+|---|---|
+| `SITE_URL` | `generate-reads.yml` — the dashboard base URL "The Read" fetches; falls back to the prod URL when empty |
+
+### Worker secrets (dashboard / `/admin` / bot)
 
 Set on the Worker — Cloudflare → Workers & Pages → `turkish-banking-dashboard`
-→ Settings → Variables and Secrets (or `cd web && npx wrangler secret put NAME`):
+→ Settings → Variables and Secrets (or `cd web && npx wrangler secret put NAME`).
+Declared (and commented) in `web/cloudflare-env.d.ts`; all optional — each feature
+degrades gracefully when its key is unset:
 
 | Secret | Used by |
 |---|---|
 | `ADMIN_PASSWORD` | unlocks `/admin` (password login) — **required to open /admin** |
+| `ADMIN_DEV_BYPASS` | skips `/admin` auth for local dev — **never set in production** |
 | `GITHUB_DISPATCH_TOKEN` | `/admin` run status + trigger buttons (fine-grained PAT, Actions: read+write) |
 | `CF_ANALYTICS_TOKEN` | `/admin` traffic panel (optional) |
+| `TELEGRAM_BOT_TOKEN` | the Q&A bot's Telegram API calls |
+| `TELEGRAM_WEBHOOK_SECRET` | matched against the `setWebhook` secret_token on every update |
+| `GROQ_API_KEY` (or `GROQ_API_TOKEN`) | the bot's primary LLM provider |
+| `CEREBRAS_KEY` (or `CEREBRAS_API_KEY`) | the bot's fallback LLM provider |
+| `BOT_PER_CHAT_DAILY` / `BOT_GLOBAL_DAILY` | usage caps (defaults 20/chat, 300 global, per UTC day) |
+| `BOT_TEST_KEY` | enables `GET /api/admin/bot-ask` (the bot test harness); **404s while unset** |
 
-Non-secret vars live in `web/wrangler.jsonc`: `CF_ANALYTICS_SITE_TAG`,
-`CF_ACCOUNT_TAG`, and `CF_ACCESS_*` (only if you move to a custom domain and
+Bot detail: [TELEGRAM_BOT.md](TELEGRAM_BOT.md). Non-secret vars live in
+`web/wrangler.jsonc`: `CF_ANALYTICS_SITE_TAG` (dual-purpose — the traffic panel's
+query key *and* the client beacon's token), `CF_ACCOUNT_TAG`, and
+`CF_ACCESS_TEAM_DOMAIN` / `CF_ACCESS_AUD` (only if you move to a custom domain and
 switch `/admin` to Cloudflare Access). Full setup: [ADMIN.md](ADMIN.md).
+
+### Python environment variables
+
+Read by the pipeline scripts; none are required for a routine refresh, but they
+change behaviour when set. Only `EVDS_API_KEY` is in `.env.example`:
+
+| Var | Effect |
+|---|---|
+| `R2_BUCKET` / `R2_FAALIYET_BUCKET` | override the default R2 bucket names |
+| `EVDS_CACHE_DISABLED` / `BIST_CACHE_DISABLED` | bypass the local response cache (force a live fetch) |
+| `KIMI_API_KEY` | the regulation-briefing key — fed from the `KIMI_API_TOKEN` secret (see above) |
+| `KIMI_API_URL` / `KIMI_MODEL` | override the Kimi endpoint / model |
+| `SITE_URL` | base URL for `generate_read_headlines.py` and `generate_presentation.py` |
+| `WORKER_URL` | target Worker for `setup_telegram_webhook.py` |
+| `CHROME_PATH` | headless Chrome binary for the presentation-deck PDF render |
 
 ## Troubleshooting
 
@@ -447,9 +496,15 @@ switch `/admin` to Cloudflare Access). Full setup: [ADMIN.md](ADMIN.md).
   `(code, period_date)`).
 - **`sync_audit_reports.py` reports a 404** — bank rotated a URL on
   their IR site. Update the entry in `audit_report_urls.json`.
-- **D1 push errors `no such column`** — schema drift between local
-  SQLite and D1. Regenerate migrations with
-  `python scripts/generate_d1_migrations.py` and apply via wrangler.
+- **D1 push errors `no such column`** — schema drift between local SQLite and D1.
+  This should now **self-heal**: `ensure_d1_schema()` (`scripts/audit_d1.py`) has
+  been column-aware since 2026-07-03 — it diffs the canonical schema (DDL **plus**
+  `_COLUMN_MIGRATIONS`, realised in a scratch in-memory SQLite) against the remote
+  `PRAGMA table_info` and emits the missing `ALTER TABLE … ADD COLUMN`s before the
+  push. If you still see this, the column is missing from the canonical schema
+  itself — add it to `src/*/schema.py` (DDL or `_COLUMN_MIGRATIONS`), not to a
+  hand-written migration. Tables owned by `web/migrations/` (dashboard-side, not
+  written by the Python lanes) instead need a new numbered migration.
 - **Cron didn't run on Saturday** — GitHub Actions sometimes delays
   free-tier crons by up to a few hours. Trigger manually for faster
   turnaround.

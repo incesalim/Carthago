@@ -10,7 +10,7 @@ coverage or known issues change.
 > from our data) in [BANKING_METRICS.md](BANKING_METRICS.md) — a 153-metric
 > registry (`data/metric_knowledge/`, CLI `scripts/metric_knowledge.py`).
 >
-> Last verified: 2026-06-27. Dated change history → [CHANGELOG.md](CHANGELOG.md).
+> Last verified: 2026-07-08. Dated change history → [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
@@ -29,6 +29,9 @@ coverage or known issues change.
 | `tefas_manager_daily`, `tefas_category_daily`, `tefas_allocation_daily`, `tefas_top_funds` | TEFAS fund-market JSON API (tefas.gov.tr) | rolling ~5 years (API rejects older start dates) → present | daily T+1, trading days; aggregated at ingest (no per-fund rows) |
 | `bist_prices`, `bist_dividends`, `bist_shares` | Borsa İstanbul via Yahoo Finance chart API | 2014-06 → present | daily EOD (~1-day lag); 11 listed banks + XU100/XBANK indices (QNBFB delisted on Yahoo — no data) |
 | `faaliyet_franchise` | Bank annual reports (Faaliyet Raporu PDFs) | annual (FY ending 31 Dec) | ATM / POS / merchant / customer / card counts (the stats audit reports don't carry; branches & employees stay in `bank_audit_profile`); deterministic regex+coordinate extraction with confidence flags. **Lane shipped; coverage pending per-bank URL curation in `data/banks/faaliyet_report_urls.json` + the `backfill-faaliyet` run** |
+| `faaliyet_extractions` | per-PDF extraction ledger for the lane above | — | one row per annual report processed: success flag, rows written, confidence — the lane's audit trail |
+| `tbb_acquisition_stats` | TBB workbooks — remote-vs-branch customer acquisition | monthly | the **TBB** twin of `tkbb_acquisition_stats` above (deposit banks vs participation banks) |
+| `regulation_briefings` | BDDK/TCMB regulation text → weekly Kimi summary | weekly (Sun 06:00 UTC cron) | one briefing row per run; powers the regulation panel. Two categories stay unsourced by design — see [regulation_followups.md](regulation_followups.md) |
 | `bank_audit_balance_sheet` (assets / liabilities / off-balance) | BRSA quarterly PDFs | 2022-Q1 → 2026-Q1 | per-bank |
 | `bank_audit_profit_loss` | BRSA quarterly PDFs | same | per-bank |
 | `bank_audit_credit_quality` | BRSA PDFs, IFRS 9 footnotes | same | per-bank, per-section |
@@ -133,9 +136,11 @@ concurrency group), so audit failures can't stall the bulletin pipeline:
 - `.github/workflows/backfill-tefas.yml` — manual dispatch only. Resumable ~5-year TEFAS history backfill (the API rejects start dates older than 5 years; 28-day windows, rate-limited ≈2–2.5 h; re-dispatch with the same `from` to resume — completed windows are skipped via `tefas_fetch_log`).
 - `.github/workflows/backfill-nonbank.yml` — manual dispatch only. One-time historical backfill of the non-bank sector lane (leasing/factoring/financing) from `from_year` (default 2020 = banking-aggregate horizon) → now (~5–10 min). The incremental refresh rides `refresh-bddk-bulletins.yml` / `refresh-data.yml` (non-critical `update_nonbank.py` step in `refresh.py`); this workflow is only for the initial history load. Apply migration 0013 (via a `web/**` deploy) before dispatching.
 - `.github/workflows/refresh-presentations-weekly.yml` — Sat 06:00 UTC. `scripts/update_presentations.py` → `bank_earnings` (IR presentation decks) → D1 (`--only-tables=bank_earnings`). Bulletin lane (`bddk-pipeline` group), rides the shared snapshot. Tier-1 results filings instead ride the daily `refresh-news-daily.yml` (classified in `sync_news.py`). Apply migration 0015 (via a `web/**` deploy) before the first push.
-- `.github/workflows/refresh-audit.yml` — Sun 04:00 UTC. Audit-report sync + extract → `bank_audit_*` → D1. Own DB `data/bank_audit.db`, own snapshot `state/bank_audit.db.gz`, own group `bddk-audit`. Manual dispatch takes optional `bank` / `skip_scrape` inputs (the /admin per-bank trigger uses `bank` → `--only-bank … --latest-period`). After extraction it runs `scripts/check_audit_quality.py --alert` (alert-only): flags a quarter whose lines are identical to the prior one (period-shift), a balance sheet that doesn't balance, or missing rows → Telegram/Discord, never blocking the push.
+- `.github/workflows/refresh-audit.yml` — **manual dispatch only** (no schedule; extraction is admin-reviewed — the Sunday 04:00 UTC cron belongs to `acquire-audit.yml`, which only *acquires* PDFs). Audit-report extract → `bank_audit_*` → D1. Own DB `data/bank_audit.db`, own snapshot `state/bank_audit.db.gz`, own group `bddk-audit`. Dispatch takes optional `bank` / `skip_scrape` inputs (the /admin per-bank trigger uses `bank` → `--only-bank … --latest-period`). After extraction it runs `scripts/check_audit_quality.py --alert` (alert-only): flags a quarter whose lines are identical to the prior one (period-shift), a balance sheet that doesn't balance, or missing rows → Telegram/Discord, never blocking the push.
 - `.github/workflows/reextract-statement.yml` — manual dispatch. Targeted single-statement re-extract via `scripts/reextract_statement.py`: pull snapshot → re-extract ONE lane (`oci`/`cash_flow`/`equity_change`/`npl_movement`) for the selected partitions → inline-validate → push that table + `bank_audit_validation` to D1 → snapshot → refresh coverage matrix. Shares the `bddk-audit` group. Inputs: `statement`, `banks`, `periods` (blank=all), `only_failing` (default true — selects `checks_failed>0 OR checks_passed=0`, so it catches the stale empties and skips the proven-passing rest), `dry_run`. This is the lane used to fix OCI/CF/NPL fleet-wide.
 - `.github/workflows/backfill-audit.yml` — manual dispatch. Full re-extract (all statements) of named banks via `backfill_extraction.py` (`ALL` exceeds the timeout → 5-bank chunks).
+- `.github/workflows/backfill-faaliyet.yml` — manual dispatch. Fleet backfill of the Faaliyet-raporu franchise lane → `faaliyet_franchise` + `faaliyet_extractions`. The incremental refresh rides `refresh.py` (step 9, non-critical).
+- `.github/workflows/summarize-regulations.yml` — Sun 06:00 UTC. Weekly regulation briefing via Kimi → `regulation_briefings` → D1. Needs the `KIMI_API_TOKEN` repo secret, which the workflow maps to env `KIMI_API_KEY` (the name `src/news/kimi.py` reads) — see [OPERATIONS.md](OPERATIONS.md) §Secrets. Open follow-up in [regulation_followups.md](regulation_followups.md).
 - `.github/workflows/deploy-cloudflare.yml` — on push to `web/**`. Apply D1 migrations + build + deploy dashboard.
 - `.github/workflows/healthcheck.yml` — daily 06:00 UTC. D1 freshness check → Telegram/Discord alert if stale. Also runs `scripts/verify_chart_spec.py --alert`: re-resolves every reproduced chart in `web/app/lib/chart-specs.catalog.json` against D1 and alerts if a series goes blank (0 rows) or drifts past its `verify[]` anchor. See [REPRODUCING_CHARTS.md](REPRODUCING_CHARTS.md).
 - `.github/workflows/ci.yml` — on PRs. ruff + pytest + eslint + tsc + vitest. (Dependency bumps via `dependabot.yml`.)
@@ -226,18 +231,45 @@ the live D1 and summarising the rows. Runs inside the Worker as a Next route
 (`web/app/api/telegram/webhook/route.ts`): Telegram POSTs each message, we verify
 the `X-Telegram-Bot-Api-Secret-Token` header, ACK 200, and process in
 `ctx.waitUntil`. The orchestrator (`web/app/lib/bot.ts`) rate-limits
-(`bot_usage`, migration 0020; per-chat + global daily caps), asks the free model
-(same Cerebras→Groq chain as "The Read", via `web/app/lib/llm.ts`) for SQL, gates
-it through `web/app/lib/bot-sql.ts` (single `SELECT`/`WITH` only, writes/DDL/
-multi-statement/denied-table rejected, row-capped — 29 vitest cases), executes,
-then summarises the rows; the reply always includes the **raw data table + the
-SQL** so the summary is checkable. The schema prompt
-(`web/app/lib/bot-schema.ts`) is the accuracy driver — it drills the per-bank
+(`bot_usage`, migration 0020; per-chat + global daily caps), then runs an **agent
+loop** (`runAgent`, ≤ 6 query/refine rounds): the free model emits a ```sql block,
+which is gated through `web/app/lib/bot-sql.ts` (single `SELECT`/`WITH` only,
+writes/DDL/multi-statement/denied-table rejected, row-capped — 29 vitest cases) and
+executed; the rows — or the SQL error, or `0 rows` — go back to the model, which
+self-corrects until it answers in plain text. A figure stated before any query has
+returned rows is treated as a hallucination and **never sent** (the `gotData` guard).
+The reply is **prose only**: the SQL and the raw rows are diagnostics, exposed solely
+through `/api/admin/bot-ask`. The LLM chain (`web/app/lib/llm.ts`) is **Groq-first,
+then Cerebras** — deliberately *not* the Cerebras-first order of "The Read", because
+the loop makes several calls per question and Groq's free tier is far less
+rate-limited. The system prompt
+(`AGENT_SYSTEM` in `web/app/lib/bot-schema.ts`) drills the per-bank
 (`bank_audit_*`, quarterly, thousand TL) vs sector-aggregate (`balance_sheet`
-etc., monthly, million TL) split and carries few-shot Q→SQL examples. Setup (bot
-token + webhook secret + LLM key as Worker secrets, then register the webhook via
-`scripts/setup_telegram_webhook.py`) in [TELEGRAM_BOT.md](TELEGRAM_BOT.md). This
-is separate from the outbound `scripts/notify.py` alert channel.
+etc., monthly, million TL) split, forbids guessing a reporting period, and requires
+the answer be in the question's language. Its nested `SCHEMA_PROMPT` is orientation
+plus known-good hints rather than the bot's whole understanding of the data — the
+loop verifies labels and values against the live DB before answering, which is what
+makes it robust to gaps in that file. Setup (bot token + webhook secret + LLM key as
+Worker secrets, then register the webhook via `scripts/setup_telegram_webhook.py`) in
+[TELEGRAM_BOT.md](TELEGRAM_BOT.md). This is separate from the outbound
+`scripts/notify.py` alert channel.
+
+**SEO / discoverability (2026-07-07).** On-page work shipped: `web/app/robots.ts`
+and `web/app/sitemap.ts` (crawlable route list), per-page `metadata` (title,
+description, `alternates.canonical`) on every route, and JSON-LD structured data in
+`web/app/layout.tsx` + `web/app/page.tsx`. Rationale, the manual Google Search
+Console / Bing verification steps, and the ranking strategy are in
+[knowledge/seo-and-search-console.md](knowledge/seo-and-search-console.md).
+Off-page (backlinks) remains the real lever and is unstarted — the strategic review
+names distribution as the project's biggest gap.
+
+**Cloudflare Web Analytics (2026-07-05).** RUM is wired via a **manually rendered**
+beacon (`web/app/components/Beacon.tsx`), because Cloudflare's automatic edge
+injection does **not** fire on the OpenNext Worker response — verified the beacon was
+absent from the live HTML while RUM sat at 0. The beacon token is the non-secret
+`CF_ANALYTICS_SITE_TAG` var, which is therefore **dual-purpose**: the client beacon's
+token *and* the key the `/admin` Traffic panel queries against. It renders nothing
+when unset, so `next dev` never pollutes production analytics.
 
 **Ratios merged into the Overview Snapshot (2026-07-04):** the standalone
 `/sector/ratios` page (six KPI cards whose only distinct value was the
@@ -267,6 +299,15 @@ resets on a hard reload. CSV/PNG export the visible window. Helpers in
 (`web/app/lib/use-date-range.tsx`); pills UI in
 `web/app/components/ui/range-pills.tsx`. `BopFlowChart`/`BarByBank` are out of
 scope (fixed report windows / single-period snapshots).
+
+The **Franchise** tab (`/franchise`) shows each bank's operational footprint —
+ATMs, POS terminals, merchants, customers and cards — the stats the audited
+financials don't carry, extracted deterministically (regex + coordinates, with
+per-cell confidence flags) from annual reports into `faaliyet_franchise`; the
+per-PDF audit trail is `faaliyet_extractions`. Branch and employee counts
+deliberately come from `bank_audit_profile` instead, and are cross-checked against
+this lane. The table stays sparse until the per-bank URLs in
+`data/banks/faaliyet_report_urls.json` are curated and `backfill-faaliyet.yml` runs.
 
 The **Non-Bank** tab (`/non-bank`) covers the BDDK-supervised non-bank lenders
 that compete with bank credit — financial leasing, factoring, and financing
@@ -560,6 +601,17 @@ each `/banks/[ticker]` page:
 
 ## Known issues / pending work
 
+- **Audit-extractor `textops` / `locate` refactor never landed (Phase 5).** The
+  audit-quality rework is otherwise complete, but its last phase — extracting shared
+  `textops.py` (page-text repair, squish handling, `NUM_PAT` + dipnot token rules,
+  wrapped-row merging) and `locate.py` (anchor-based section location) out of
+  `extractor.py` — was never done. Neither module exists; the section extractors still
+  carry duplicated copies. **This is exactly the condition that produced the ECL
+  dipnot bug**, which lived in two extractors at once and corrupted 17 banks for ~4
+  years of quarters. Rescued here from
+  [AUDIT_REWORK_PLAN.md](AUDIT_REWORK_PLAN.md) §Phase 5 (archived), so the only
+  record of it isn't buried in a doc banner-marked *Historical*.
+
 - **Weekly SME gap healed + date-aware weekly growth (2026-07-02).** BDDK's weekly
   API omitted the TOTAL column of private-bank SME loans (`1.0.11` / weekly `10003`)
   for 13 weeks (2024-10-25 → 2025-01-17) while publishing the TL and FX legs,
@@ -615,15 +667,15 @@ each `/banks/[ticker]` page:
   wrapped in one pinned group so they stack (header on top, nav below) instead of colliding
   at `top-0` (`sticky={false}` on the header; nav `lg:static`; 2026-06-27).
 - **"Drivers behind the outcomes" data gaps (2026-06-20).** Tier-A margin engine +
-  market share shipped (see Dashboard §Compare). Deferred lanes with full
-  source/schema/extractor sketches in
-  [knowledge/data-gaps-roadmap.md](knowledge/data-gaps-roadmap.md): **FX net open
-  position** + **interest-rate repricing/maturity gap** (both in §4 market-risk
-  footnotes, currently unstructured in `other_data` — need deterministic
-  extractors), **credit-ratings history** (agency press + KAP, an events table),
-  and the **sovereign yield curve / real rate** (EVDS subset buildable; CDS/OIS
-  out of scope). Registry ids: `fx_net_open_position`, `repricing_gap`,
-  `credit_rating`, `sovereign_yield_curve`.
+  market share shipped (see Dashboard §Compare). **FX net open position** and
+  **interest-rate repricing/maturity gap** also **shipped 2026-06-29** — deterministic
+  fitz extractors over the §4 market-risk footnotes → `bank_audit_fx_position` /
+  `bank_audit_repricing` (migration 0016), powering `/market-risk`. Still deferred,
+  with full source/schema/extractor sketches in
+  [knowledge/data-gaps-roadmap.md](knowledge/data-gaps-roadmap.md):
+  **credit-ratings history** (agency press + KAP, an events table) and the
+  **sovereign yield curve / real rate** (EVDS subset buildable; CDS/OIS out of
+  scope). Registry ids: `credit_rating`, `sovereign_yield_curve`.
 - **Audit extraction — open gaps after the 2026-06-14 lane overhaul.** OCI (→881),
   cash-flow (→813), NPL-movement (→515) and loans-by-sector (→135) were fixed this session
   (see the audit-lane validation-status table). `loans_by_sector` is now at its realistic
@@ -745,8 +797,9 @@ each `/banks/[ticker]` page:
   - **Tier2 dropped** (read 0 while Total>Tier1): QNBFB 2025–26, SKBNK
   - **column-slip**: ISCTR 2023Q3/2024Q3 `total_capital==tier2`; ISCTR 2025Q1/Q2
     cons `total_rwa==total_capital`
-  → **OPEN follow-up: fix the §4 capital extractor** (AT1/Tier2 row capture +
-  total/RWA column alignment) for these banks. **Liquidity validator is at its
+  → **RESOLVED 2026-06-21**: the §4 capital extractor was fixed (AT1/Tier2 row
+  capture + total/RWA column alignment); the lane went 26 → **0** failing partitions
+  (see the validation-status table). **Liquidity validator is at its
   ceiling** (band-only) — making it reconcile needs extracting LCR/NSFR component
   sub-tables (HQLA, net outflows), a separate task.
 - **P&L flow Sankey shipped (2026-06-12)** — on `/banks/[ticker]` (Income

@@ -41,8 +41,15 @@ machine is involved in the production data flow.
 | **BDDK scrapers** | `src/scrapers/` | Python — monthly + weekly bulletins |
 | **EVDS client + scraper** | `src/scrapers/evds_client.py`, `evds_scraper.py` | TCMB EVDS v3 HTTP client |
 | **TBB digital-banking** | `src/tbb/` | Python — quarterly `.xls`/`.xlsx` workbook → tidy `tbb_digital_stats` |
+| **TKBB participation digital** | `src/tkbb/` | Python — TKBB Veri Peteği (Turboard JSON API) → `tkbb_digital_stats`, `tkbb_acquisition_stats` |
 | **TEFAS fund market** | `src/tefas/` | Python — rate-limited tefas.gov.tr JSON client → per-day sector aggregates in `tefas_*` (per-fund rows not persisted) |
-| **Audit-report extraction** | `src/audit_reports/` | pdfplumber + pymupdf with fallback |
+| **KAP ownership** | `src/kap/` | Python — KAP Genel Bilgi Formu §5 + §7 → `kap_ownership` (weekly full replace) |
+| **News + regulations** | `src/news/` | Python — KAP / TCMB / BDDK / press / Google News → `news_items`; free-LLM clients (`free_llm.py`, `kimi.py`) for "The Read" + `regulation_briefings` |
+| **Earnings calendar** | `src/earnings/` | Python — KAP results filings + IR presentation decks → `bank_earnings` |
+| **Franchise (annual reports)** | `src/faaliyet/` | Python — Faaliyet Raporu PDFs → `faaliyet_franchise`, `faaliyet_extractions` |
+| **Non-bank lenders** | `src/nonbank/` | Python — BDDK non-bank monthly bulletin → `nonbank_balance_sheet` |
+| **TÜİK tables** | `src/tuik/` | Python — veriportali cookie-session → `.xls` downloads (series EVDS lacks) |
+| **Audit-report extraction** | `src/audit_reports/` | **PyMuPDF (fitz) only** for every lane except the frozen balance-sheet / P&L extractor, which still uses pdfplumber. Don't extend pdfplumber — it's ~60× slower per page (see `docs/AUDIT_EXTRACTION_GUIDE.md`) |
 | **R2 wrapper** | `src/audit_reports/r2_storage.py` | boto3 against S3-compatible R2 |
 | **D1 sync** | `scripts/push_to_d1.py` | incremental push via wrangler |
 | **Edge database** | Cloudflare D1 (`bddk-data`) | SQLite at the edge, ~1.6M rows |
@@ -93,16 +100,19 @@ must **rebuild stages** afterward — the audit + reextract workflows do this.
 
 ### Daily — `.github/workflows/refresh-evds-daily.yml`
 Sun–Fri 05:00 UTC. EVDS scraper (fresh FX / rates / sterilization data in D1
-within 24h) plus the non-critical TBB / KAP / TEFAS steps of `refresh.py`
-(TEFAS re-fetches a trailing 7-day window daily). Saturday is skipped because
-the weekly workflow already covers everything.
+within 24h) plus the non-critical BIST / TBB / TKBB / KAP / TEFAS / Faaliyet steps
+of `refresh.py` (BIST re-fetches a trailing 35-day window daily, TEFAS a trailing
+7-day window). Saturday is skipped because the weekly workflow already covers
+everything. A separate daily job, `refresh-news-daily.yml` (04:00 UTC), refreshes
+`news_items`.
 
 ### Weekly bulletins — `.github/workflows/refresh-bddk-bulletins.yml`
 Saturday 02:00 UTC. Isolated BDDK-only refresh (monthly + weekly bulletins,
 `--skip-evds`, no audit). Catches the new week before `refresh-data.yml`.
 
 ### Weekly full — `.github/workflows/refresh-data.yml`
-Saturday 03:00 UTC. BDDK bulletins + EVDS + TBB digital + KAP + TEFAS:
+Saturday 03:00 UTC. BDDK bulletins + EVDS + BIST + TBB digital + TKBB participation
+digital + KAP + TEFAS + Faaliyet franchise:
 1. Decompress `state/bddk_data.db.gz` (pulled from R2) → `data/bddk_data.db`
 2. `scripts/refresh.py` — monthly + weekly + EVDS scrapes + TBB quarterly
    digital-banking refresh + KAP ownership + TEFAS fund market into SQLite

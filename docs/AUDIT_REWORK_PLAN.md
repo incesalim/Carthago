@@ -1,16 +1,24 @@
 # Audit-report extraction rework — plan
 
-> **Historical — this rework is complete.** Kept for context; the live process it
-> produced is documented in [AUDIT_EXTRACTION_GUIDE.md](AUDIT_EXTRACTION_GUIDE.md)
-> and [AUDIT_PIPELINE.md](AUDIT_PIPELINE.md).
+> **Historical — this rework is closed, with one phase never done.** Kept for context;
+> the live process it produced is documented in
+> [AUDIT_EXTRACTION_GUIDE.md](AUDIT_EXTRACTION_GUIDE.md) and
+> [AUDIT_PIPELINE.md](AUDIT_PIPELINE.md).
 >
-> Status (2026-06-11): **Phases 0–4 COMPLETE** — census (975 PDFs), identity
-> validator (bank_audit_validation in D1), evidence dry-run (800 improved /
-> 9 explained regressions), batchwise repair (7 gated batches, 30 banks,
-> TSKB excluded), dashboard ⚠ surfacing live. **Phase 5 remaining**: the
-> textops/locate refactor (guide already shipped:
-> AUDIT_EXTRACTION_GUIDE.md). Follow-ups: TSKB split-digit pass; the 165
-> identity-failing partitions on /admin as iterative fix targets.
+> Status (2026-06-11, re-verified 2026-07-08): **Phases 0–4 COMPLETE** — census
+> (975 PDFs), identity validator (bank_audit_validation in D1), evidence dry-run
+> (800 improved / 9 explained regressions), batchwise repair (7 gated batches,
+> 30 banks, TSKB excluded), dashboard ⚠ surfacing live.
+>
+> ⚠️ **Phase 5 was never done** — `src/audit_reports/textops.py` and `locate.py` do
+> not exist, and the section extractors still carry duplicated copies of the text
+> repair / anchor-location helpers. That is the exact condition that let the ECL
+> dipnot bug live in two extractors at once. Because this doc is archived, the item
+> has been **re-homed to [PROJECT_STATE.md](PROJECT_STATE.md) §Known issues** so it
+> stays visible; don't let it die here.
+>
+> Both original follow-ups are resolved: the TSKB split-digit pass landed, and the
+> 165 identity-failing partitions are down to ≤4 on the balance-sheet lane.
 
 ## Why (the lesson this plan encodes)
 

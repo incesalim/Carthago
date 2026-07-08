@@ -1,13 +1,17 @@
 /**
  * Free OpenAI-compatible chat client for the Cloudflare Worker (Telegram bot).
  *
- * Mirrors the Python headline generator's provider chain (src/news/free_llm.py):
- *   Cerebras gpt-oss-120b  →  Groq openai/gpt-oss-120b  →  Cerebras gemma-4-31b
- * but generalised to arbitrary chat completions and reading keys from the
- * Cloudflare env (secrets) rather than process.env.
+ * Provider chain (see PROVIDERS below):
+ *   Groq openai/gpt-oss-120b  →  Cerebras gpt-oss-120b  →  Cerebras gemma-4-31b
+ *
+ * Groq-first INTENTIONALLY diverges from the Python headline lane
+ * (src/news/free_llm.py), which is Cerebras-first and falls back to a
+ * deterministic template. That lane makes one call per run; the agent loop here
+ * makes several per question, so it needs the higher free-tier rate limit.
+ * Don't "resync" the two chains.
  *
  * Keys (set with `wrangler secret put` — see docs/TELEGRAM_BOT.md):
- *   CEREBRAS_KEY (or CEREBRAS_API_KEY), GROQ_API_KEY (or GROQ_API_TOKEN).
+ *   GROQ_API_KEY (or GROQ_API_TOKEN), CEREBRAS_KEY (or CEREBRAS_API_KEY).
  */
 import type { StringEnv } from "./cf-env";
 
