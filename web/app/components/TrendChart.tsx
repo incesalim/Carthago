@@ -155,11 +155,11 @@ export default function TrendChart({
             {zeroLine && <ReferenceLine y={0} stroke={t.reference} strokeDasharray="3 3" />}
             <Tooltip
               {...tt}
+              // Single hovered series, not the whole date column: resolve to the
+              // line nearest the cursor so the box shows one group's point.
+              shared={false}
               formatter={(v, name) => [v == null ? "—" : fmt(Number(v), decimals), name]}
               labelFormatter={(l) => String(l)}
-              itemSorter={(item) =>
-                typeof item.value === "number" ? -item.value : 0
-              }
             />
             <Legend
               verticalAlign="bottom"
@@ -250,7 +250,7 @@ export default function TrendChart({
                         strokeLinejoin="round"
                         fill={`url(#${gid})`}
                         dot={<EndDot color={color} bg={t.tooltipBg} lastIndex={lastIdx} />}
-                        activeDot={{ r: 4 }}
+                        activeDot={{ r: 4, fill: color, stroke: t.tooltipBg, strokeWidth: 1.5 }}
                         isAnimationActive={false}
                       />
                     </>
@@ -273,7 +273,7 @@ export default function TrendChart({
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       dot={<EndDot color={color} bg={t.tooltipBg} lastIndex={lastIdx} dim={opacity} />}
-                      activeDot={{ r: 4 }}
+                      activeDot={{ r: 4, fill: color, stroke: t.tooltipBg, strokeWidth: 1.5 }}
                       isAnimationActive={false}
                     />
                   );

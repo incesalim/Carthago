@@ -133,11 +133,11 @@ export default function TimeSeriesChart({
             />
             <Tooltip
               {...tt}
+              // Single hovered series, not the whole date column: resolve to the
+              // line nearest the cursor so the box shows one series' point.
+              shared={false}
               formatter={(v, name) => [v == null ? "—" : fmt(Number(v), decimals), name]}
               labelFormatter={(l) => fmtLabel(String(l))}
-              itemSorter={(item) =>
-                typeof item.value === "number" ? -item.value : 0
-              }
             />
             <Legend
               wrapperStyle={{ fontSize: 11 }}
@@ -188,20 +188,24 @@ export default function TimeSeriesChart({
                 </ul>
               )}
             />
-            {labels.map((label, i) => (
-              <Line
-                key={label}
-                type="monotone"
-                dataKey={label}
-                name={label}
-                stroke={seriesColor(t, label, i)}
-                strokeWidth={active === label ? 2.75 : 1.75}
-                strokeOpacity={active && active !== label ? 0.18 : 1}
-                dot={false}
-                connectNulls
-                isAnimationActive={false}
-              />
-            ))}
+            {labels.map((label, i) => {
+              const color = seriesColor(t, label, i);
+              return (
+                <Line
+                  key={label}
+                  type="monotone"
+                  dataKey={label}
+                  name={label}
+                  stroke={color}
+                  strokeWidth={active === label ? 2.75 : 1.75}
+                  strokeOpacity={active && active !== label ? 0.18 : 1}
+                  dot={false}
+                  activeDot={{ r: 4, fill: color, stroke: t.tooltipBg, strokeWidth: 1.5 }}
+                  connectNulls
+                  isAnimationActive={false}
+                />
+              );
+            })}
           </LineChart>
         </ResponsiveContainer>
       </div>
