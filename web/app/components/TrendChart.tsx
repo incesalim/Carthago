@@ -19,7 +19,8 @@ import {
 } from "recharts";
 import { ChartCard } from "@/app/components/ui/chart-card";
 import { ChartData } from "@/app/components/ui/chart-csv";
-import { useChartTheme, tooltipStyles, seriesColor } from "@/app/lib/chart-theme";
+import { NearestActiveDot, NearestSeriesTooltip } from "@/app/components/nearest-hover";
+import { useChartTheme, seriesColor } from "@/app/lib/chart-theme";
 import { wideToTable } from "@/app/lib/chart-csv";
 import { formatters, type FormatKind } from "@/app/lib/chart-format";
 import { useRangeFilter } from "@/app/lib/use-date-range";
@@ -92,7 +93,6 @@ export default function TrendChart({
   height = 320,
 }: Props) {
   const t = useChartTheme();
-  const tt = tooltipStyles(t);
   // Hovering a legend item emphasises that line and fades the rest;
   // right-clicking pins the isolation until right-clicked again.
   const [hovered, setHovered] = useState<string | null>(null);
@@ -153,13 +153,18 @@ export default function TrendChart({
               tickLine={false}
             />
             {zeroLine && <ReferenceLine y={0} stroke={t.reference} strokeDasharray="3 3" />}
+            {/* Nearest-series tooltip: one group's point, not the whole date
+                column (see nearest-hover.tsx on why `shared` can't do this). */}
             <Tooltip
-              {...tt}
-              // Single hovered series, not the whole date column: resolve to the
-              // line nearest the cursor so the box shows one group's point.
-              shared={false}
-              formatter={(v, name) => [v == null ? "—" : fmt(Number(v), decimals), name]}
-              labelFormatter={(l) => String(l)}
+              content={(p) => (
+                <NearestSeriesTooltip
+                  active={p.active}
+                  payload={p.payload}
+                  label={p.label}
+                  coordinate={p.coordinate}
+                  formatValue={(v) => fmt(v, decimals)}
+                />
+              )}
             />
             <Legend
               verticalAlign="bottom"
@@ -250,7 +255,7 @@ export default function TrendChart({
                         strokeLinejoin="round"
                         fill={`url(#${gid})`}
                         dot={<EndDot color={color} bg={t.tooltipBg} lastIndex={lastIdx} />}
-                        activeDot={{ r: 4, fill: color, stroke: t.tooltipBg, strokeWidth: 1.5 }}
+                        activeDot={false}
                         isAnimationActive={false}
                       />
                     </>
@@ -273,11 +278,18 @@ export default function TrendChart({
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       dot={<EndDot color={color} bg={t.tooltipBg} lastIndex={lastIdx} dim={opacity} />}
-                      activeDot={{ r: 4, fill: color, stroke: t.tooltipBg, strokeWidth: 1.5 }}
+                      activeDot={false}
                       isAnimationActive={false}
                     />
                   );
                 })}
+            {/* Single hover point on the nearest line. */}
+            <NearestActiveDot
+              rows={wide}
+              periodKey="period"
+              keys={codes}
+              colorFor={(k) => seriesColor(t, k, codes.indexOf(k))}
+            />
           </ComposedChart>
         </ResponsiveContainer>
       </div>
