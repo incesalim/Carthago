@@ -18,7 +18,8 @@ import {
 } from "recharts";
 import { ChartCard } from "@/app/components/ui/chart-card";
 import { ChartData } from "@/app/components/ui/chart-csv";
-import { useChartTheme, tooltipStyles, seriesColor } from "@/app/lib/chart-theme";
+import { NearestActiveDot, NearestSeriesTooltip } from "@/app/components/nearest-hover";
+import { useChartTheme, seriesColor } from "@/app/lib/chart-theme";
 import { wideToTable } from "@/app/lib/chart-csv";
 import { nf, fmtQuarter } from "@/app/lib/chart-format";
 import { useRangeFilter } from "@/app/lib/use-date-range";
@@ -55,7 +56,6 @@ export default function TimeSeriesChart({
   height = 320,
 }: Props) {
   const t = useChartTheme();
-  const tt = tooltipStyles(t);
   const fmt = formatters[yFormat];
 
   // Window to the dashboard's global date range. Series are per-label arrays,
@@ -131,13 +131,19 @@ export default function TimeSeriesChart({
               axisLine={{ stroke: t.grid }}
               tickLine={{ stroke: t.grid }}
             />
+            {/* Nearest-series tooltip: one line's point, not every series at the
+                hovered date (see nearest-hover.tsx on why `shared` can't do this). */}
             <Tooltip
-              {...tt}
-              // Single hovered series, not the whole date column: resolve to the
-              // line nearest the cursor so the box shows one series' point.
-              shared={false}
-              formatter={(v, name) => [v == null ? "—" : fmt(Number(v), decimals), name]}
-              labelFormatter={(l) => fmtLabel(String(l))}
+              content={(p) => (
+                <NearestSeriesTooltip
+                  active={p.active}
+                  payload={p.payload}
+                  label={p.label}
+                  coordinate={p.coordinate}
+                  formatValue={(v) => fmt(v, decimals)}
+                  formatLabel={(l) => fmtLabel(String(l))}
+                />
+              )}
             />
             <Legend
               wrapperStyle={{ fontSize: 11 }}
@@ -188,24 +194,28 @@ export default function TimeSeriesChart({
                 </ul>
               )}
             />
-            {labels.map((label, i) => {
-              const color = seriesColor(t, label, i);
-              return (
-                <Line
-                  key={label}
-                  type="monotone"
-                  dataKey={label}
-                  name={label}
-                  stroke={color}
-                  strokeWidth={active === label ? 2.75 : 1.75}
-                  strokeOpacity={active && active !== label ? 0.18 : 1}
-                  dot={false}
-                  activeDot={{ r: 4, fill: color, stroke: t.tooltipBg, strokeWidth: 1.5 }}
-                  connectNulls
-                  isAnimationActive={false}
-                />
-              );
-            })}
+            {labels.map((label, i) => (
+              <Line
+                key={label}
+                type="monotone"
+                dataKey={label}
+                name={label}
+                stroke={seriesColor(t, label, i)}
+                strokeWidth={active === label ? 2.75 : 1.75}
+                strokeOpacity={active && active !== label ? 0.18 : 1}
+                dot={false}
+                activeDot={false}
+                connectNulls
+                isAnimationActive={false}
+              />
+            ))}
+            {/* Single hover point on the nearest line. */}
+            <NearestActiveDot
+              rows={data}
+              periodKey="period_date"
+              keys={labels}
+              colorFor={(k) => seriesColor(t, k, labels.indexOf(k))}
+            />
           </LineChart>
         </ResponsiveContainer>
       </div>
