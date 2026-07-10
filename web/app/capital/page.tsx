@@ -17,7 +17,7 @@ import {
   BANK_TYPE_LABELS,
 } from "@/app/lib/metrics";
 import { sectorCapitalRatios, perBankCapital, AUDIT_CAPITAL_LABELS } from "@/app/lib/audit-ratios";
-import { PageHeader, Stat } from "@/app/components/ui";
+import { PageHeader, Section, Stat } from "@/app/components/ui";
 import BarByBank from "@/app/components/BarByBank";
 import CapitalByBank from "./CapitalByBank";
 import TrendChart from "@/app/components/TrendChart";
@@ -86,10 +86,7 @@ export default async function CapitalPage() {
 
       <Takeaway data={await withLlmHeadline("capital", read)} />
 
-      <section className="space-y-4">
-        <div className="space-y-0.5">
-          <h2 className="text-base font-semibold text-foreground">Capital Adequacy</h2>
-        </div>
+      <Section index="01" title="Capital Adequacy">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="lg:col-span-2">
             <TrendChart
@@ -107,19 +104,14 @@ export default async function CapitalPage() {
             decimals={1}
           />
         </div>
-      </section>
+      </Section>
 
       {buffer != null && (
-        <section className="space-y-4">
-          <div className="space-y-0.5">
-            <h2 className="text-base font-semibold text-foreground">Headroom</h2>
-            <p className="text-xs text-muted-foreground">
-              Where the buffer goes if the last 12 months simply repeat — a sizing
-              device (straight-line extrapolation), not a forecast. Capital generation
-              gap = equity growth − asset growth; negative means the balance sheet is
-              outgrowing its capital.
-            </p>
-          </div>
+        <Section
+          index="02"
+          title="Headroom"
+          description="Where the buffer goes if the last 12 months simply repeat — a sizing device (straight-line extrapolation), not a forecast. Capital generation gap = equity growth − asset growth; negative means the balance sheet is outgrowing its capital."
+        >
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <Stat
               label="Buffer over 12% minimum"
@@ -148,18 +140,14 @@ export default async function CapitalPage() {
               tone={genGap != null && genGap < 0 ? "warning" : "positive"}
             />
           </div>
-        </section>
+        </Section>
       )}
 
-      <section className="space-y-4">
-        <div className="space-y-0.5">
-          <h2 className="text-base font-semibold text-foreground">Capital composition (audited §4)</h2>
-          <p className="text-xs text-muted-foreground">
-            CET1 and Tier-1 ratios from the quarterly BRSA reports — aggregated Σ capital
-            ÷ Σ RWA across reporting banks. The monthly bulletin carries only total CAR;
-            CET1 is the Basel III / BBVA capital headline.
-          </p>
-        </div>
+      <Section
+        index="03"
+        title="Capital composition (audited §4)"
+        description="CET1 and Tier-1 ratios from the quarterly BRSA reports — aggregated Σ capital ÷ Σ RWA across reporting banks. The monthly bulletin carries only total CAR; CET1 is the Basel III / BBVA capital headline."
+      >
         <TrendChart
           data={capRatios}
           seriesLabels={AUDIT_CAPITAL_LABELS}
@@ -168,15 +156,15 @@ export default async function CapitalPage() {
           decimals={1}
           height={320}
         />
-      </section>
+      </Section>
 
-      <CapitalByBank period={byBankCap.period} rows={byBankCap.rows} />
+      <CapitalByBank index="04" period={byBankCap.period} rows={byBankCap.rows} />
 
-      <section className="space-y-4">
-        <div className="space-y-0.5">
-          <h2 className="text-base font-semibold text-foreground">Equity & Leverage</h2>
-          <p className="text-xs text-muted-foreground">Sector equity level, growth, and gearing.</p>
-        </div>
+      <Section
+        index="05"
+        title="Equity & Leverage"
+        description="Sector equity level, growth, and gearing."
+      >
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <TrendChart
             data={equity}
@@ -198,17 +186,13 @@ export default async function CapitalPage() {
             yFormat="pct"
             decimals={0}          />
         </div>
-      </section>
+      </Section>
 
-      <section className="space-y-4">
-        <div className="space-y-0.5">
-          <h2 className="text-base font-semibold text-foreground">Risk Density</h2>
-          <p className="text-xs text-muted-foreground">
-            How concentrated each group&apos;s balance-sheet risk is — lower RWA-net/gross
-            means more low-weight exposure (govt bonds, cash). Off-BS derivatives /
-            total assets shows derivative book size relative to balance sheet.
-          </p>
-        </div>
+      <Section
+        index="06"
+        title="Risk Density"
+        description="How concentrated each group's balance-sheet risk is — lower RWA-net/gross means more low-weight exposure (govt bonds, cash). Off-BS derivatives / total assets shows derivative book size relative to balance sheet."
+      >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <TrendChart
             data={rwa}
@@ -223,7 +207,7 @@ export default async function CapitalPage() {
             yFormat="pct"
             decimals={1}          />
         </div>
-      </section>
+      </Section>
 
     </main>
   );

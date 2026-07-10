@@ -45,9 +45,12 @@ function bufferTone(pp: number): string {
 }
 
 export default function CapitalByBank({
+  index,
   period,
   rows,
 }: {
+  /** Editorial section index (e.g. "04") — keeps the page numbering continuous. */
+  index?: string;
   period: string | null;
   rows: BankCapitalRow[];
 }) {
@@ -55,9 +58,14 @@ export default function CapitalByBank({
 
   return (
     <section className="space-y-3">
-      {/* Header — serif title + inline descriptor, "All banks" on the right. */}
+      {/* Header — mirrors the Section primitive: mono index + serif title. */}
       <div className="flex items-baseline justify-between gap-3">
         <div className="flex items-baseline gap-2.5">
+          {index && (
+            <span className="font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-faint">
+              {index}
+            </span>
+          )}
           <h2 className="font-serif text-xl font-semibold tracking-tight text-foreground">
             By bank
           </h2>
