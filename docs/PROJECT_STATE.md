@@ -162,6 +162,18 @@ latest-period** trigger, and **13 banks auto-discover** new quarters from their
 IR page (no hand-added URL needed) — see [ADMIN.md](ADMIN.md) §Auto-discovery.
 Setup in [OPERATIONS.md](OPERATIONS.md) / [ADMIN.md](ADMIN.md).
 
+**General redesign program (2026-07-10, in progress):** 5 phases, each deployed
+independently — A: surface+typography tokens (white cards `#FFFFFF`/`#26231C`,
+firmer borders, cooler-crimson `--negative`, mono-caps reserved for
+eyebrows/kicker/index; `chart-theme.ts` tooltip lockstep) ✅; B: chart legibility
+(direct end-of-line labels + hero-vs-grey-context on by-group lines, legend
+removed ≥520px, `annotations` prop); C: feed pages on-system + dark-safe
+news-tags; D: consistency (Section spine, `ui/segmented.tsx`, `TableCellNum`
+table consolidation, radii/spacing); E: finding-as-title lead charts off
+`lib/chart-findings.ts`. Plan + rationale:
+[knowledge/design-system-audit-2026-07-10.md](knowledge/design-system-audit-2026-07-10.md),
+[knowledge/design-critique-2026-07-10.md](knowledge/design-critique-2026-07-10.md).
+
 **Display-study phases 2–5 (2026-07-03):** real-terms convention
 (`web/app/lib/real-terms.ts` — nominal-vs-real twins on Credit/Deposits, exact
 Fisher deflation off TP.TUKFIY2025.GENEL), FX-adjusted credit growth

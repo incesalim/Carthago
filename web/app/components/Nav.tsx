@@ -238,7 +238,8 @@ function NavLinks({
           className={cn("flex flex-col gap-0.5", i > 0 && "mt-2")}
         >
           {section.label && (
-            <div className="px-3 pb-1 font-mono text-[9px] font-medium uppercase tracking-[0.14em] text-faint">
+            // Sentence-case sans — mono-caps is reserved for eyebrows/kickers/indices.
+            <div className="px-3 pb-1 text-[11px] font-medium text-faint">
               {section.label}
             </div>
           )}

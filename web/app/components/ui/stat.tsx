@@ -35,7 +35,8 @@ export function Stat({
   return (
     <Card className={cn("p-5 transition-colors hover:border-primary/40", className)}>
       <div className="flex items-center justify-between gap-2">
-        <span className="font-mono text-[10px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
+        {/* Sentence-case sans — mono-caps is reserved for eyebrows/kickers/indices. */}
+        <span className="text-[12.5px] font-medium text-muted-foreground">
           {label}
         </span>
         {badge}
