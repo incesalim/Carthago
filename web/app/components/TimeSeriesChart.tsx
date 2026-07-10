@@ -45,7 +45,12 @@ interface Point {
 interface Props {
   /** Map of seriesLabel → array of {period_date, value}. */
   series: Record<string, Point[]>;
+  /** Card headline — a finding sentence on lead charts (chart-findings.ts). */
   title?: string;
+  /** Card subtitle — the metric, units, period (when title is a finding). */
+  description?: React.ReactNode;
+  /** Mono source footer, e.g. "Source: TCMB EVDS". */
+  source?: React.ReactNode;
   yFormat?: Extract<FormatKind, "pct" | "rate" | "raw" | "fx">;
   /** x-axis tick/tooltip label style. "date" → YYYY-MM (default), "quarter" → YYYY-Qn. */
   xFormat?: "date" | "quarter";
@@ -61,6 +66,8 @@ interface Props {
 export default function TimeSeriesChart({
   series,
   title,
+  description,
+  source,
   yFormat = "raw",
   xFormat = "date",
   decimals = 2,
@@ -158,7 +165,7 @@ export default function TimeSeriesChart({
   );
 
   return (
-    <ChartCard title={title}>
+    <ChartCard title={title} description={description} source={source}>
       <ChartData
         table={wideToTable(
           data,

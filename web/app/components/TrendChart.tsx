@@ -53,7 +53,12 @@ interface Props {
   data: TrendPoint[];
   /** Map of bank_type_code → label shown in legend. */
   seriesLabels: Record<string, string>;
+  /** Card headline — a finding sentence on lead charts (chart-findings.ts). */
   title?: string;
+  /** Card subtitle — the metric, units, period (when title is a finding). */
+  description?: React.ReactNode;
+  /** Mono source footer, e.g. "Source: BDDK monthly bulletin". */
+  source?: React.ReactNode;
   yFormat?: FormatKind;
   decimals?: number;
   /** Show a horizontal line at y=0 (useful for growth rates). */
@@ -111,6 +116,8 @@ export default function TrendChart({
   data,
   seriesLabels,
   title,
+  description,
+  source,
   yFormat = "raw",
   decimals = 2,
   zeroLine = false,
@@ -195,7 +202,7 @@ export default function TrendChart({
   );
 
   return (
-    <ChartCard title={title}>
+    <ChartCard title={title} description={description} source={source}>
       <ChartData
         table={wideToTable(
           wide,
