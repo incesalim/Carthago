@@ -26,7 +26,12 @@ export interface StackPoint {
 interface Props {
   data: StackPoint[];
   series: { key: string; label: string }[];
+  /** Card headline — a finding sentence on lead charts (chart-findings.ts). */
   title?: string;
+  /** Card subtitle — the metric, units, period (when title is a finding). */
+  description?: React.ReactNode;
+  /** Mono source footer, e.g. "Source: BDDK weekly bulletin". */
+  source?: React.ReactNode;
   yFormat?: FormatKind;
   decimals?: number;
   height?: number;
@@ -46,6 +51,8 @@ export default function StackedArea({
   data,
   series,
   title,
+  description,
+  source,
   yFormat = "raw",
   decimals = 1,
   height = 320,
@@ -143,7 +150,7 @@ export default function StackedArea({
   };
 
   return (
-    <ChartCard title={title}>
+    <ChartCard title={title} description={description} source={source}>
       <ChartData
         table={wideToTable(filtered, { key: "period", label: "Period" }, shown)}
       />
