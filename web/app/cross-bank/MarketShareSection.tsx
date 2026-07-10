@@ -8,8 +8,19 @@
  *
  * Server component — pure presentation off leagueTable()/hhiSeries() output.
  */
-import { Section, Stat } from "@/app/components/ui";
+import {
+  Section,
+  Stat,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+  TableCellNum,
+} from "@/app/components/ui";
 import { bankDisplayName } from "@/app/lib/bank_names";
+import { nf } from "@/app/lib/chart-format";
 import type { LeagueEntry, HhiPoint } from "@/app/lib/market-share";
 
 const pct = (v: number | null, d = 2): string => (v == null ? "—" : `${(v * 100).toFixed(d)}%`);
@@ -33,8 +44,6 @@ function hhiBand(h: number | null): string {
   if (h <= 2500) return "Moderately concentrated";
   return "Concentrated";
 }
-
-const hhiInt = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
 
 /** Quarter-over-quarter rank move: ▲ climbed, ▼ fell, — flat/new. */
 function RankMove({ change }: { change: number | null }) {
@@ -69,48 +78,46 @@ export default function MarketShareSection({
     >
       {hhi && (
         <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <Stat label="Assets HHI" value={hhi.assets_hhi != null ? hhiInt.format(hhi.assets_hhi) : "—"} hint={hhiBand(hhi.assets_hhi)} />
-          <Stat label="Loans HHI" value={hhi.loans_hhi != null ? hhiInt.format(hhi.loans_hhi) : "—"} hint={hhiBand(hhi.loans_hhi)} />
-          <Stat label="Deposits HHI" value={hhi.deposits_hhi != null ? hhiInt.format(hhi.deposits_hhi) : "—"} hint={hhiBand(hhi.deposits_hhi)} />
+          <Stat label="Assets HHI" value={hhi.assets_hhi != null ? nf(hhi.assets_hhi, 0) : "—"} hint={hhiBand(hhi.assets_hhi)} />
+          <Stat label="Loans HHI" value={hhi.loans_hhi != null ? nf(hhi.loans_hhi, 0) : "—"} hint={hhiBand(hhi.loans_hhi)} />
+          <Stat label="Deposits HHI" value={hhi.deposits_hhi != null ? nf(hhi.deposits_hhi, 0) : "—"} hint={hhiBand(hhi.deposits_hhi)} />
         </div>
       )}
 
-      <div className="overflow-x-auto rounded-[10px] border border-border bg-card">
-        <table className="w-full text-xs">
-          <thead className="text-muted-foreground">
-            <tr className="border-b bg-muted">
-              <th className="py-2 pl-3 pr-2 text-left font-medium">#</th>
-              <th className="py-2 pr-3 text-left font-medium">Bank</th>
-              <th className="py-2 pr-3 text-right font-medium">Assets share</th>
-              <th className="py-2 pr-3 text-right font-medium">Loans share</th>
-              <th className="py-2 pr-3 text-right font-medium">Δ loans y/y</th>
-              <th className="py-2 pr-3 text-right font-medium">Deposits share</th>
-              <th className="py-2 pr-3 text-right font-medium">Δ deposits y/y</th>
-              <th className="py-2 pr-3 text-right font-medium">Δ rank q/q</th>
-            </tr>
-          </thead>
-          <tbody>
-            {league.map((e) => (
-              <tr key={e.bank_ticker} className="border-b border-border">
-                <td className="py-1.5 pl-3 pr-2 tabular-nums text-muted-foreground">{e.rank}</td>
-                <td className="py-1.5 pr-3 font-medium text-foreground">{bankDisplayName(e.bank_ticker)}</td>
-                <td className="py-1.5 pr-3 text-right tabular-nums">{pct(e.assets_share)}</td>
-                <td className="py-1.5 pr-3 text-right tabular-nums">{pct(e.loans_share)}</td>
-                <td className="py-1.5 pr-3 text-right tabular-nums">
-                  <ShareShift pp={e.loans_share_yoy_pp} />
-                </td>
-                <td className="py-1.5 pr-3 text-right tabular-nums">{pct(e.deposits_share)}</td>
-                <td className="py-1.5 pr-3 text-right tabular-nums">
-                  <ShareShift pp={e.deposits_share_yoy_pp} />
-                </td>
-                <td className="py-1.5 pr-3 text-right tabular-nums">
-                  <RankMove change={e.rank_change} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Table className="text-xs" wrapperClassName="rounded-[10px] border border-border bg-card">
+        <TableHeader>
+          <TableRow className="bg-muted/50">
+            <TableHead>#</TableHead>
+            <TableHead>Bank</TableHead>
+            <TableHead className="text-right">Assets share</TableHead>
+            <TableHead className="text-right">Loans share</TableHead>
+            <TableHead className="text-right">Δ loans y/y</TableHead>
+            <TableHead className="text-right">Deposits share</TableHead>
+            <TableHead className="text-right">Δ deposits y/y</TableHead>
+            <TableHead className="text-right">Δ rank q/q</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {league.map((e) => (
+            <TableRow key={e.bank_ticker}>
+              <TableCell className="py-1.5 tabular-nums text-muted-foreground">{e.rank}</TableCell>
+              <TableCell className="py-1.5 font-medium text-foreground">{bankDisplayName(e.bank_ticker)}</TableCell>
+              <TableCellNum className="py-1.5">{pct(e.assets_share)}</TableCellNum>
+              <TableCellNum className="py-1.5">{pct(e.loans_share)}</TableCellNum>
+              <TableCellNum className="py-1.5">
+                <ShareShift pp={e.loans_share_yoy_pp} />
+              </TableCellNum>
+              <TableCellNum className="py-1.5">{pct(e.deposits_share)}</TableCellNum>
+              <TableCellNum className="py-1.5">
+                <ShareShift pp={e.deposits_share_yoy_pp} />
+              </TableCellNum>
+              <TableCellNum className="py-1.5">
+                <RankMove change={e.rank_change} />
+              </TableCellNum>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </Section>
   );
 }

@@ -9,8 +9,21 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getNonBankData, type SectorLatest } from "@/app/lib/non-bank";
-import { PageHeader, Section, Stat } from "@/app/components/ui";
+import {
+  PageHeader,
+  Section,
+  Stat,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+  TableCellNum,
+  toneFor,
+} from "@/app/components/ui";
 import StackedArea from "@/app/components/StackedArea";
+import { nf } from "@/app/lib/chart-format";
 
 export const dynamic = "force-dynamic";
 
@@ -20,12 +33,9 @@ export const metadata: Metadata = {
   alternates: { canonical: "/non-bank" },
 };
 
-const fmtTrn = (v: number | null) =>
-  v == null ? "—" : `₺${new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v / 1_000_000)} trn`;
-const fmtBn = (v: number | null) =>
-  v == null ? "—" : `₺${new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(v / 1_000)} bn`;
-const fmtPct = (v: number | null, d = 1) =>
-  v == null ? "—" : `${new Intl.NumberFormat("en-US", { minimumFractionDigits: d, maximumFractionDigits: d }).format(v)}%`;
+const fmtTrn = (v: number | null) => (v == null ? "—" : `₺${nf(v / 1_000_000, 2)} trn`);
+const fmtBn = (v: number | null) => (v == null ? "—" : `₺${nf(v / 1_000, 0)} bn`);
+const fmtPct = (v: number | null, d = 1) => (v == null ? "—" : `${nf(v, d)}%`);
 
 export default async function NonBankPage() {
   const d = await getNonBankData();
@@ -87,40 +97,37 @@ export default async function NonBankPage() {
             title="By sector"
             description={`Snapshot at ${d.asOfLabel}. The lending book is the sector's amortized-cost financial assets (factoring receivables / lease receivables / financing loans). YoY is the change in total assets vs. a year earlier.`}
           >
-            <div className="overflow-x-auto rounded-lg border border-border">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-accent/40 text-left text-xs text-muted-foreground">
-                    <th className="px-3 py-2 font-medium">Sector</th>
-                    <th className="px-3 py-2 text-right font-medium">Assets (₺ bn)</th>
-                    <th className="px-3 py-2 text-right font-medium">Lending book (₺ bn)</th>
-                    <th className="px-3 py-2 text-right font-medium">Equity (₺ bn)</th>
-                    <th className="px-3 py-2 text-right font-medium">YoY assets</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {d.sectors.map((s: SectorLatest) => (
-                    <tr key={s.code} className="border-b border-border/60 last:border-0">
-                      <td className="px-3 py-2 text-foreground">{s.label}</td>
-                      <td className="px-3 py-2 text-right tabular-nums text-foreground">{fmtBn(s.assets)}</td>
-                      <td className="px-3 py-2 text-right tabular-nums text-foreground">{fmtBn(s.credit)}</td>
-                      <td className="px-3 py-2 text-right tabular-nums text-foreground">{fmtBn(s.equity)}</td>
-                      <td
-                        className={`px-3 py-2 text-right tabular-nums ${
-                          s.growthYoY == null
-                            ? "text-muted-foreground"
-                            : s.growthYoY < 0
-                              ? "text-negative"
-                              : "text-positive"
-                        }`}
-                      >
-                        {fmtPct(s.growthYoY)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table wrapperClassName="rounded-[10px] border border-border bg-card">
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead>Sector</TableHead>
+                  <TableHead className="text-right">Assets (₺ bn)</TableHead>
+                  <TableHead className="text-right">Lending book (₺ bn)</TableHead>
+                  <TableHead className="text-right">Equity (₺ bn)</TableHead>
+                  <TableHead className="text-right">YoY assets</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {d.sectors.map((s: SectorLatest) => (
+                  <TableRow key={s.code}>
+                    <TableCell>{s.label}</TableCell>
+                    <TableCellNum>{fmtBn(s.assets)}</TableCellNum>
+                    <TableCellNum>{fmtBn(s.credit)}</TableCellNum>
+                    <TableCellNum>{fmtBn(s.equity)}</TableCellNum>
+                    {/* Growth column: green genuinely means "good" here. */}
+                    <TableCellNum
+                      tone={
+                        s.growthYoY != null && s.growthYoY > 0
+                          ? "positive"
+                          : toneFor(s.growthYoY)
+                      }
+                    >
+                      {fmtPct(s.growthYoY)}
+                    </TableCellNum>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
             <p className="text-xs text-muted-foreground">
               Want the penetration view?{" "}
               <Link href="/non-bank/share-of-banking" className="text-primary hover:underline">

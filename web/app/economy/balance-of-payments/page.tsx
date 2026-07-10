@@ -12,10 +12,23 @@ import Link from "next/link";
 import { getBopData } from "@/app/lib/bop";
 import { getPortfolioFlowsData } from "@/app/lib/portfolio-flows";
 import { latestPeriod } from "@/app/lib/metrics";
-import { PageHeader, Section, Stat } from "@/app/components/ui";
+import {
+  PageHeader,
+  Section,
+  Stat,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+  TableCellNum,
+  toneFor,
+} from "@/app/components/ui";
 import { ChartCard } from "@/app/components/ui/chart-card";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
 import BopFlowChart, { type BarSeries, type OverlayLine } from "@/app/components/BopFlowChart";
+import { nf } from "@/app/lib/chart-format";
 
 export const dynamic = "force-dynamic";
 
@@ -36,18 +49,9 @@ function Grid({ children }: { children: React.ReactNode }) {
   return <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">{children}</div>;
 }
 
-const nf2 = (v: number | null) =>
-  v == null
-    ? "—"
-    : new Intl.NumberFormat("en-US", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      }).format(v);
+const nf2 = (v: number | null) => (v == null ? "—" : nf(v, 2));
 
-const nfInt = (v: number | null) =>
-  v == null
-    ? "—"
-    : new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(v);
+const nfInt = (v: number | null) => (v == null ? "—" : nf(v, 0));
 
 const tone = (v: number | null) =>
   v == null ? "neutral" : v < 0 ? "negative" : "positive";
@@ -253,49 +257,38 @@ export default async function BalanceOfPaymentsPage() {
         title="Summary"
         description={`Monthly and trailing-12-month cumulative balances, USD million — ${d.asOfLabel} vs. one year earlier.`}
       >
-        <div className="overflow-x-auto rounded-lg border border-border">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-accent/40 text-left">
-                <th className="px-3 py-2 font-medium text-muted-foreground" />
-                <th className="px-3 py-2 text-right font-medium text-muted-foreground" colSpan={2}>
-                  {d.asOfLabel}
-                </th>
-                <th className="px-3 py-2 text-right font-medium text-muted-foreground" colSpan={2}>
-                  year earlier
-                </th>
-              </tr>
-              <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                <th className="px-3 py-1.5 font-medium">USD million</th>
-                <th className="px-3 py-1.5 text-right font-medium">Monthly</th>
-                <th className="px-3 py-1.5 text-right font-medium">12-month</th>
-                <th className="px-3 py-1.5 text-right font-medium">Monthly</th>
-                <th className="px-3 py-1.5 text-right font-medium">12-month</th>
-              </tr>
-            </thead>
-            <tbody>
-              {d.table.map((r) => (
-                <tr key={r.label} className="border-b border-border/60 last:border-0">
-                  <td className="px-3 py-1.5 text-foreground">{r.label}</td>
-                  {r.cells.map((v, i) => (
-                    <td
-                      key={i}
-                      className={`px-3 py-1.5 text-right tabular-nums ${
-                        v == null
-                          ? "text-muted-foreground"
-                          : v < 0
-                            ? "text-negative"
-                            : "text-foreground"
-                      }`}
-                    >
-                      {nfInt(v)}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table wrapperClassName="rounded-[10px] border border-border bg-card">
+          <TableHeader>
+            <TableRow className="bg-muted/50">
+              <TableHead />
+              <TableHead className="text-right" colSpan={2}>
+                {d.asOfLabel}
+              </TableHead>
+              <TableHead className="text-right" colSpan={2}>
+                year earlier
+              </TableHead>
+            </TableRow>
+            <TableRow>
+              <TableHead>USD million</TableHead>
+              <TableHead className="text-right">Monthly</TableHead>
+              <TableHead className="text-right">12-month</TableHead>
+              <TableHead className="text-right">Monthly</TableHead>
+              <TableHead className="text-right">12-month</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {d.table.map((r) => (
+              <TableRow key={r.label}>
+                <TableCell className="py-1.5">{r.label}</TableCell>
+                {r.cells.map((v, i) => (
+                  <TableCellNum key={i} tone={toneFor(v)} className="py-1.5">
+                    {nfInt(v)}
+                  </TableCellNum>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
         <p className="text-xs text-muted-foreground">
           Source: TCMB (CBRT) balance-of-payments statistics via EVDS.{" "}
           <Link href="/economy" className="text-primary hover:underline">

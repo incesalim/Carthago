@@ -9,8 +9,21 @@
  */
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getBudgetData, type TableRow } from "@/app/lib/budget";
-import { PageHeader, Section, Stat } from "@/app/components/ui";
+import { getBudgetData, type TableRow as BudgetRow } from "@/app/lib/budget";
+import {
+  PageHeader,
+  Section,
+  Stat,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+  TableCellNum,
+  toneFor,
+} from "@/app/components/ui";
+import { nf } from "@/app/lib/chart-format";
 import { ChartCard } from "@/app/components/ui/chart-card";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
 import BopFlowChart, { type BarSeries } from "@/app/components/BopFlowChart";
@@ -26,10 +39,8 @@ export const metadata: Metadata = {
 const ORANGE = { light: "#e8833a", dark: "#f0a35e" };
 const MAROON = { light: "#9c1f2f", dark: "#d65a5a" };
 
-const nf0 = (v: number) => new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(v);
-
 /** "−₺1,672 bn" / "₺791 bn". */
-const bnTL = (v: number | null) => (v == null ? "—" : `${v < 0 ? "−" : ""}₺${nf0(Math.abs(v))} bn`);
+const bnTL = (v: number | null) => (v == null ? "—" : `${v < 0 ? "−" : ""}₺${nf(Math.abs(v), 0)} bn`);
 
 export default async function BudgetPage() {
   const d = await getBudgetData();
@@ -150,56 +161,44 @@ export default async function BudgetPage() {
   );
 }
 
-function BudgetTable({ rows, now, prev }: { rows: TableRow[]; now: string; prev: string }) {
-  const nf = (v: number | null) =>
-    v == null ? "—" : new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(v);
+function BudgetTable({ rows, now, prev }: { rows: BudgetRow[]; now: string; prev: string }) {
   return (
-    <div className="overflow-x-auto rounded-lg border border-border">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-border bg-accent/40 text-left">
-            <th className="px-3 py-2 font-medium text-muted-foreground" />
-            <th className="px-3 py-2 text-right font-medium text-muted-foreground" colSpan={2}>
-              {now}
-            </th>
-            <th className="px-3 py-2 text-right font-medium text-muted-foreground" colSpan={2}>
-              {prev}
-            </th>
-          </tr>
-          <tr className="border-b border-border text-left text-xs text-muted-foreground">
-            <th className="px-3 py-1.5 font-medium">₺ million</th>
-            <th className="px-3 py-1.5 text-right font-medium">Monthly</th>
-            <th className="px-3 py-1.5 text-right font-medium">12-month</th>
-            <th className="px-3 py-1.5 text-right font-medium">Monthly</th>
-            <th className="px-3 py-1.5 text-right font-medium">12-month</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => {
-            const strong = r.label === "Budget balance" || r.label === "Primary balance";
-            return (
-              <tr
-                key={r.label}
-                className={`border-b border-border/60 last:border-0 ${strong ? "bg-accent/30 font-semibold" : ""}`}
-              >
-                <td className={`px-3 py-1.5 text-foreground ${r.indent ? "pl-6 text-muted-foreground" : ""}`}>
-                  {r.label}
-                </td>
-                {r.cells.map((v, i) => (
-                  <td
-                    key={i}
-                    className={`px-3 py-1.5 text-right tabular-nums ${
-                      v == null ? "text-muted-foreground" : v < 0 ? "text-negative" : "text-foreground"
-                    }`}
-                  >
-                    {nf(v)}
-                  </td>
-                ))}
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+    <Table wrapperClassName="rounded-[10px] border border-border bg-card">
+      <TableHeader>
+        <TableRow className="bg-muted/50">
+          <TableHead />
+          <TableHead className="text-right" colSpan={2}>
+            {now}
+          </TableHead>
+          <TableHead className="text-right" colSpan={2}>
+            {prev}
+          </TableHead>
+        </TableRow>
+        <TableRow>
+          <TableHead>₺ million</TableHead>
+          <TableHead className="text-right">Monthly</TableHead>
+          <TableHead className="text-right">12-month</TableHead>
+          <TableHead className="text-right">Monthly</TableHead>
+          <TableHead className="text-right">12-month</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {rows.map((r) => {
+          const strong = r.label === "Budget balance" || r.label === "Primary balance";
+          return (
+            <TableRow key={r.label} className={strong ? "bg-accent/30 font-semibold" : undefined}>
+              <TableCell className={`py-1.5 ${r.indent ? "pl-6 text-muted-foreground" : ""}`}>
+                {r.label}
+              </TableCell>
+              {r.cells.map((v, i) => (
+                <TableCellNum key={i} tone={toneFor(v)} className="py-1.5">
+                  {v == null ? "—" : nf(v, 0)}
+                </TableCellNum>
+              ))}
+            </TableRow>
+          );
+        })}
+      </TableBody>
+    </Table>
   );
 }

@@ -11,7 +11,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getInflationData, type Table1Row, type CoreRow } from "@/app/lib/inflation";
-import { PageHeader, Section, Stat } from "@/app/components/ui";
+import {
+  PageHeader,
+  Section,
+  Stat,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+  TableCellNum,
+  toneFor,
+} from "@/app/components/ui";
+import { nf } from "@/app/lib/chart-format";
 import { ChartCard } from "@/app/components/ui/chart-card";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
 import BopFlowChart, { type BarSeries } from "@/app/components/BopFlowChart";
@@ -31,13 +44,7 @@ function Grid({ children }: { children: React.ReactNode }) {
   return <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">{children}</div>;
 }
 
-const pct = (v: number | null, d = 2) =>
-  v == null
-    ? "—"
-    : `${new Intl.NumberFormat("en-US", { minimumFractionDigits: d, maximumFractionDigits: d }).format(v)}%`;
-
-const cell = (v: number | null) =>
-  `px-3 py-1.5 text-right tabular-nums ${v == null ? "text-muted-foreground" : v < 0 ? "text-negative" : "text-foreground"}`;
+const pct = (v: number | null, d = 2) => (v == null ? "—" : `${nf(v, d)}%`);
 
 export default async function InflationPage() {
   const d = await getInflationData();
@@ -82,33 +89,31 @@ export default async function InflationPage() {
             decimals={1}
           />
         </Grid>
-        <div className="overflow-x-auto rounded-lg border border-border">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-accent/40 text-left">
-                <th className="px-3 py-2 font-medium text-muted-foreground">Core index</th>
-                <th className="px-3 py-2 text-right font-medium text-muted-foreground">Monthly</th>
-                <th className="px-3 py-2 text-right font-medium text-muted-foreground">Since Dec</th>
-                <th className="px-3 py-2 text-right font-medium text-muted-foreground">Annual</th>
-                <th className="px-3 py-2 text-right font-medium text-muted-foreground">12m avg</th>
-              </tr>
-            </thead>
-            <tbody>
-              {d.core.map((r: CoreRow) => (
-                <tr
-                  key={r.label}
-                  className={`border-b border-border/60 last:border-0 ${r.label.startsWith("C ") ? "bg-accent/30 font-semibold" : ""}`}
-                >
-                  <td className="px-3 py-1.5 text-foreground">{r.label}</td>
-                  <td className={cell(r.mm)}>{pct(r.mm)}</td>
-                  <td className={cell(r.cum)}>{pct(r.cum)}</td>
-                  <td className={cell(r.yy)}>{pct(r.yy)}</td>
-                  <td className={cell(r.avg12)}>{pct(r.avg12)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table wrapperClassName="rounded-[10px] border border-border bg-card">
+          <TableHeader>
+            <TableRow className="bg-muted/50">
+              <TableHead>Core index</TableHead>
+              <TableHead className="text-right">Monthly</TableHead>
+              <TableHead className="text-right">Since Dec</TableHead>
+              <TableHead className="text-right">Annual</TableHead>
+              <TableHead className="text-right">12m avg</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {d.core.map((r: CoreRow) => (
+              <TableRow
+                key={r.label}
+                className={r.label.startsWith("C ") ? "bg-accent/30 font-semibold" : undefined}
+              >
+                <TableCell className="py-1.5">{r.label}</TableCell>
+                <TableCellNum tone={toneFor(r.mm)} className="py-1.5">{pct(r.mm)}</TableCellNum>
+                <TableCellNum tone={toneFor(r.cum)} className="py-1.5">{pct(r.cum)}</TableCellNum>
+                <TableCellNum tone={toneFor(r.yy)} className="py-1.5">{pct(r.yy)}</TableCellNum>
+                <TableCellNum tone={toneFor(r.avg12)} className="py-1.5">{pct(r.avg12)}</TableCellNum>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </Section>
 
       <Section
@@ -157,26 +162,24 @@ export default async function InflationPage() {
         </Grid>
         {d.hasMig && (
           <div className="space-y-2">
-            <div className="overflow-x-auto rounded-lg border border-border">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-accent/40 text-left">
-                    <th className="px-3 py-2 font-medium text-muted-foreground">Main Industrial Grouping</th>
-                    <th className="px-3 py-2 text-right font-medium text-muted-foreground">Monthly</th>
-                    <th className="px-3 py-2 text-right font-medium text-muted-foreground">Annual</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {d.mig.map((r) => (
-                    <tr key={r.label} className="border-b border-border/60 last:border-0">
-                      <td className="px-3 py-1.5 text-foreground">{r.label}</td>
-                      <td className={cell(r.mm)}>{pct(r.mm)}</td>
-                      <td className={cell(r.yy)}>{pct(r.yy)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table wrapperClassName="rounded-[10px] border border-border bg-card">
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead>Main Industrial Grouping</TableHead>
+                  <TableHead className="text-right">Monthly</TableHead>
+                  <TableHead className="text-right">Annual</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {d.mig.map((r) => (
+                  <TableRow key={r.label}>
+                    <TableCell className="py-1.5">{r.label}</TableCell>
+                    <TableCellNum tone={toneFor(r.mm)} className="py-1.5">{pct(r.mm)}</TableCellNum>
+                    <TableCellNum tone={toneFor(r.yy)} className="py-1.5">{pct(r.yy)}</TableCellNum>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
             <p className="text-xs text-muted-foreground">
               Producer prices by Main Industrial Grouping — ingested from TÜİK&apos;s
               bulletin (Domestic PPI MIG, 2003=100; m/m and y/y derived). Not in EVDS.
@@ -189,39 +192,37 @@ export default async function InflationPage() {
         title="Monthly History"
         description="CPI (TÜFE) and PPI (Yİ-ÜFE), monthly and annual % change."
       >
-        <div className="overflow-x-auto rounded-lg border border-border">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-accent/40 text-left">
-                <th className="px-3 py-2 font-medium text-muted-foreground" />
-                <th className="px-3 py-2 text-right font-medium text-muted-foreground" colSpan={2}>
-                  CPI (TÜFE)
-                </th>
-                <th className="px-3 py-2 text-right font-medium text-muted-foreground" colSpan={2}>
-                  PPI (Yİ-ÜFE)
-                </th>
-              </tr>
-              <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                <th className="px-3 py-1.5 font-medium">Month</th>
-                <th className="px-3 py-1.5 text-right font-medium">m/m</th>
-                <th className="px-3 py-1.5 text-right font-medium">y/y</th>
-                <th className="px-3 py-1.5 text-right font-medium">m/m</th>
-                <th className="px-3 py-1.5 text-right font-medium">y/y</th>
-              </tr>
-            </thead>
-            <tbody>
-              {d.table1.map((r: Table1Row, i) => (
-                <tr key={r.month} className={`border-b border-border/60 last:border-0 ${i === 0 ? "bg-accent/30 font-semibold" : ""}`}>
-                  <td className="px-3 py-1.5 text-foreground">{r.month}</td>
-                  <td className={cell(r.cpiMM)}>{pct(r.cpiMM)}</td>
-                  <td className={cell(r.cpiYY)}>{pct(r.cpiYY)}</td>
-                  <td className={cell(r.ppiMM)}>{pct(r.ppiMM)}</td>
-                  <td className={cell(r.ppiYY)}>{pct(r.ppiYY)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table wrapperClassName="rounded-[10px] border border-border bg-card">
+          <TableHeader>
+            <TableRow className="bg-muted/50">
+              <TableHead />
+              <TableHead className="text-right" colSpan={2}>
+                CPI (TÜFE)
+              </TableHead>
+              <TableHead className="text-right" colSpan={2}>
+                PPI (Yİ-ÜFE)
+              </TableHead>
+            </TableRow>
+            <TableRow>
+              <TableHead>Month</TableHead>
+              <TableHead className="text-right">m/m</TableHead>
+              <TableHead className="text-right">y/y</TableHead>
+              <TableHead className="text-right">m/m</TableHead>
+              <TableHead className="text-right">y/y</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {d.table1.map((r: Table1Row, i) => (
+              <TableRow key={r.month} className={i === 0 ? "bg-accent/30 font-semibold" : undefined}>
+                <TableCell className="py-1.5">{r.month}</TableCell>
+                <TableCellNum tone={toneFor(r.cpiMM)} className="py-1.5">{pct(r.cpiMM)}</TableCellNum>
+                <TableCellNum tone={toneFor(r.cpiYY)} className="py-1.5">{pct(r.cpiYY)}</TableCellNum>
+                <TableCellNum tone={toneFor(r.ppiMM)} className="py-1.5">{pct(r.ppiMM)}</TableCellNum>
+                <TableCellNum tone={toneFor(r.ppiYY)} className="py-1.5">{pct(r.ppiYY)}</TableCellNum>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
         <p className="text-xs text-muted-foreground">
           Source: TÜİK (TurkStat) CPI &amp; domestic PPI via EVDS. The
           producer-price Main Industrial Groupings breakdown (intermediate /
