@@ -70,6 +70,48 @@ export async function sectorCapitalRatios(kind: string = DEFAULT_KIND): Promise<
   return out;
 }
 
+/** One bank's latest-quarter capital ratios (%), for the by-bank ranking. */
+export interface BankCapitalRow {
+  bank_ticker: string;
+  car: number | null;   // total capital ÷ RWA
+  tier1: number | null; // Tier-1 ÷ RWA
+  cet1: number | null;  // CET1 ÷ RWA
+}
+
+/**
+ * Per-bank CAR / Tier-1 / CET1 for the latest audited quarter, ranked by CAR
+ * (desc). Each ratio = its capital component ÷ that bank's total RWA — the same
+ * arithmetic as the sector aggregate, just not summed. Banks with no RWA are
+ * dropped (can't form a ratio). Powers the "By bank" capital-adequacy table.
+ */
+export async function perBankCapital(
+  kind: string = DEFAULT_KIND,
+): Promise<{ period: string | null; rows: BankCapitalRow[] }> {
+  const rows = await cachedAll<CapRow>(
+    `SELECT bank_ticker, period, cet1_capital, tier1_capital, total_capital, total_rwa
+       FROM bank_audit_capital
+      WHERE kind = ? AND period_type = 'current'
+        AND period = (SELECT MAX(period) FROM bank_audit_capital
+                       WHERE kind = ? AND period_type = 'current')`,
+    [kind, kind],
+  );
+  if (rows.length === 0) return { period: null, rows: [] };
+  const period = rows[0].period;
+  const pct = (n: number | null, rwa: number) => (n != null ? (n / rwa) * 100 : null);
+  const out: BankCapitalRow[] = [];
+  for (const r of rows) {
+    if (r.total_rwa == null || r.total_rwa <= 0) continue;
+    out.push({
+      bank_ticker: r.bank_ticker,
+      car: pct(r.total_capital, r.total_rwa),
+      tier1: pct(r.tier1_capital, r.total_rwa),
+      cet1: pct(r.cet1_capital, r.total_rwa),
+    });
+  }
+  out.sort((a, b) => (b.car ?? -Infinity) - (a.car ?? -Infinity));
+  return { period, rows: out };
+}
+
 /**
  * Sector LCR / NSFR / leverage (%), per quarter — asset-weighted average across
  * reporting banks (LCR/NSFR are ratios with no stored numerator, so a Σ/Σ isn't
