@@ -69,7 +69,7 @@ export default function BankSectionNav({ sections }: { sections: NavSection[] })
       // below) instead of both grabbing top-0 and overlapping.
       className="sticky top-14 z-30 -mx-4 mb-6 border-b border-border bg-background/95 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:-mx-6 sm:px-6 lg:static lg:-mx-8 lg:px-8"
     >
-      <div className="flex w-fit gap-1 rounded-xl border border-border bg-card p-1">
+      <div className="flex w-fit gap-1 rounded-[9px] border border-border bg-card p-[3px]">
         {sections.map((s) => (
           <a
             key={s.id}

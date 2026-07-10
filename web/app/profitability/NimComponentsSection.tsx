@@ -71,12 +71,12 @@ export default function NimComponentsSection({ datasets, dataThrough }: Props) {
       }
       action={
         <div className="flex flex-wrap items-center justify-end gap-2">
-          <div className="inline-flex items-center gap-0.5 rounded-lg border border-border bg-card p-0.5">
+          <div className="inline-flex items-center gap-0.5 rounded-[9px] border border-border bg-card p-[3px]">
             {NIM_GROUPS.map((g) =>
               pill(g.key === groupKey, g.label, () => setGroupKey(g.key)),
             )}
           </div>
-          <div className="inline-flex items-center gap-0.5 rounded-lg border border-border bg-card p-0.5">
+          <div className="inline-flex items-center gap-0.5 rounded-[9px] border border-border bg-card p-[3px]">
             {pill(view === "annual", "Annual", () => setView("annual"))}
             {pill(view === "monthly", "Monthly TTM", () => setView("monthly"))}
           </div>

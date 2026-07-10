@@ -121,7 +121,7 @@ export default function HeatmapOverTime({ metrics, banks, periods, panel }: Prop
         <span className="mx-1 hidden h-5 w-px bg-border sm:block" />
 
         <span className="text-xs font-medium text-muted-foreground">Color scale</span>
-        <div className="inline-flex items-center gap-0.5 rounded-lg border border-border bg-card p-0.5">
+        <div className="inline-flex items-center gap-0.5 rounded-[9px] border border-border bg-card p-[3px]">
           {(["panel", "bank", "period"] as ScaleMode[]).map((mode) => (
             <button
               key={mode}
@@ -145,7 +145,7 @@ export default function HeatmapOverTime({ metrics, banks, periods, panel }: Prop
         <HeatmapLegend mode={metric.direction === "neutral" ? "neutral" : "directional"} />
       </div>
 
-      <div className="overflow-auto rounded-lg border border-border bg-card">
+      <div className="overflow-auto rounded-[10px] border border-border bg-card">
         <div
           className="grid min-w-max"
           style={{

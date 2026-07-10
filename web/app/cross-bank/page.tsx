@@ -121,7 +121,7 @@ export default async function CrossBankPage() {
     : "Individual banks ranked vs peers across the full performance set";
 
   return (
-    <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-6">
+    <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
       <PageHeader title="Compare" description={description} />
       {period ? (
         <>

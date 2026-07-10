@@ -40,7 +40,7 @@ export default function PlSankeySection({ rowsByPeriod, periods }: Props) {
       title="P&L flow"
       description="Income through expenses to net profit — YTD cumulative as reported, TL thousands. Hover for exact figures."
       action={
-        <div className="inline-flex items-center gap-0.5 rounded-lg border border-border bg-card p-0.5">
+        <div className="inline-flex items-center gap-0.5 rounded-[9px] border border-border bg-card p-[3px]">
           {periods.map((p) => (
             <button
               key={p}

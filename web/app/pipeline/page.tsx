@@ -29,7 +29,7 @@ export default async function PipelinePage() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-6">
+    <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
       <PageHeader
         eyebrow="Data lineage"
         title="Pipeline"
