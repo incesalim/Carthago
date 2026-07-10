@@ -145,7 +145,7 @@ export default function HeatmapGrid({ metrics, rows, groupOrder }: Props) {
         </p>
         <HeatmapLegend mode="both" />
       </div>
-      <div className="overflow-auto rounded-lg border border-border bg-card">
+      <div className="overflow-auto rounded-[10px] border border-border bg-card">
       <div
         className="grid min-w-max"
         style={{

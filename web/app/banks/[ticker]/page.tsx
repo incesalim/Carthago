@@ -697,7 +697,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
           {/* Statement controls — sit directly above the statement table they drive:
               statement (BS/IS/CF) · view (absolute/YoY) · period (annual/quarterly) · kind */}
           <div className="mb-3 flex flex-wrap gap-3 items-center">
-            <div className="flex gap-1 rounded-xl border border-border bg-card p-1">
+            <div className="flex gap-1 rounded-[9px] border border-border bg-card p-[3px]">
               {(["bs", "is", "cf"] as const).map((s) => (
                 <Link
                   key={s}
@@ -713,7 +713,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
                 </Link>
               ))}
             </div>
-            <div className="flex gap-1 rounded-xl border border-border bg-card p-1">
+            <div className="flex gap-1 rounded-[9px] border border-border bg-card p-[3px]">
               {(["abs", "yoy"] as const).map((m) => (
                 <Link
                   key={m}
@@ -729,7 +729,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
                 </Link>
               ))}
             </div>
-            <div className="flex gap-1 rounded-xl border border-border bg-card p-1">
+            <div className="flex gap-1 rounded-[9px] border border-border bg-card p-[3px]">
               {(["annual", "quarterly"] as const).map((v) => (
                 <Link
                   key={v}
@@ -745,7 +745,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
                 </Link>
               ))}
             </div>
-            <div className="flex gap-1 rounded-xl border border-border bg-card p-1">
+            <div className="flex gap-1 rounded-[9px] border border-border bg-card p-[3px]">
               {(["unconsolidated", "consolidated"] as const).map((k) => (
                 <Link
                   key={k}

@@ -53,7 +53,7 @@ export default function MarketTicker({ items: initial }: { items: TickerItem[] }
   if (!items.length) return null;
 
   return (
-    <div className="bddk-ticker-wrap relative overflow-hidden rounded-lg border border-border bg-card">
+    <div className="bddk-ticker-wrap relative overflow-hidden rounded-[10px] border border-border bg-card">
       {/* edge fades */}
       <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-8 bg-gradient-to-r from-card to-transparent" />
       <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-8 bg-gradient-to-l from-card to-transparent" />

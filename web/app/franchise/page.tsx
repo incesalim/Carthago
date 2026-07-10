@@ -134,7 +134,7 @@ export default async function FranchisePage() {
             </TableBody>
           </Table>
         ) : (
-          <p className="rounded-lg border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground">
+          <p className="rounded-[10px] border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground">
             No annual-report franchise data has been extracted yet. Curate the
             report URLs in <code>data/banks/faaliyet_report_urls.json</code> and run
             the <code>backfill-faaliyet</code> workflow to populate this view.

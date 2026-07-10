@@ -42,7 +42,7 @@ export default function HeatmapView({ metrics, snapshot, timePanel }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="inline-flex items-center gap-0.5 rounded-lg border border-border bg-card p-0.5">
+      <div className="inline-flex items-center gap-0.5 rounded-[9px] border border-border bg-card p-[3px]">
         {tab("snapshot", "Snapshot")}
         {tab("time", "Over time")}
       </div>

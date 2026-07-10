@@ -123,7 +123,7 @@ export default async function RatesPage() {
   const cbrtCost = data["TP.APIFON4"]?.at(-1);
 
   return (
-    <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-6">
+    <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
       <PageHeader
         eyebrow="TCMB EVDS"
         title="Rates & Macro"
@@ -132,7 +132,7 @@ export default async function RatesPage() {
         dataThrough={latestPeriod(...Object.values(data))}
       />
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard label="Policy Rate"
                  value={fmtPct(policy?.value)}
                  asOf={policy?.period_date ?? "—"} />
@@ -151,7 +151,7 @@ export default async function RatesPage() {
           not "where is the policy rate" but "how fast does it reach bank
           pricing" — deposit rates reprice in weeks, loan rates with a lag; the
           gap between the two lines IS the margin cycle. */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <TimeSeriesChart
           series={byLabel(RATE_CORRIDOR)}
           title="Rate Corridor — Policy + ON + Effective Funding (%)"
@@ -173,7 +173,7 @@ export default async function RatesPage() {
         yFormat="pct"
         decimals={2}
       />
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <TrendChart
           data={spread}
           seriesLabels={{ SPREAD: "Commercial (ex-OD) − Deposit" }}

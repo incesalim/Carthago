@@ -188,7 +188,7 @@ export default function PipelineFlow({ status }: { status: PipelineStatusMap }) 
   const onNodeMouseLeave = useCallback(() => setHoverId(null), []);
 
   return (
-    <div className="h-[calc(100vh-13rem)] min-h-[560px] w-full overflow-hidden rounded-lg border border-border bg-background">
+    <div className="h-[calc(100vh-13rem)] min-h-[560px] w-full overflow-hidden rounded-[10px] border border-border bg-background">
       <ReactFlow
         nodes={nodes}
         edges={edges}
