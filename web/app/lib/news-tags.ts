@@ -15,15 +15,17 @@ export interface Tag {
   className: string;
 }
 
-const NEUTRAL = "bg-neutral-100 text-neutral-600";
+// All pill colours are semantic/chart TOKENS (never raw hex or Tailwind
+// pastels) so they adapt to dark mode with the rest of the theme.
+const NEUTRAL = "bg-muted text-muted-foreground";
 
-// Source pills reuse the per-source accent colors from the feed cards.
+// Source pills — one token family per regulator/feed.
 const SOURCE_TAGS: Record<NewsSource, Tag> = {
-  tcmb: { label: "TCMB", className: "bg-[#1f4068]/10 text-[#1f4068]" },
-  bddk: { label: "BDDK", className: "bg-[#0f7b6c]/10 text-[#0f7b6c]" },
+  tcmb: { label: "TCMB", className: "bg-info/10 text-info" },
+  bddk: { label: "BDDK", className: "bg-positive/10 text-positive" },
   kap: { label: "KAP", className: "bg-primary/10 text-primary" },
-  press: { label: "Press", className: "bg-[#9a6700]/10 text-[#9a6700]" },
-  google_news: { label: "Google News", className: "bg-[#3367d6]/10 text-[#3367d6]" },
+  press: { label: "Press", className: "bg-warning/15 text-warning" },
+  google_news: { label: "Google News", className: "bg-chart-2/15 text-chart-2" },
 };
 
 export function sourceTag(source: string): Tag {
@@ -38,31 +40,31 @@ export function sourceTag(source: string): Tag {
 const RULES: { test: RegExp; tag: Tag }[] = [
   // TCMB — monetary policy
   { test: /interest rate|policy committee|monetary policy|\bmpc\b|quantitative tightening|tightening measures|faiz/i,
-    tag: { label: "Monetary Policy", className: "bg-amber-100 text-amber-700" } },
+    tag: { label: "Monetary Policy", className: "bg-warning/15 text-warning" } },
   // Capital / macroprudential rules (before Liquidity so "Macroprudential
   // Framework and Liquidity Steps" lands here, not in Liquidity)
   { test: /macroprudential|capital adequacy|reserve requirement|securities maintenance|\bratios?\b|makro/i,
-    tag: { label: "Macroprudential", className: "bg-violet-100 text-violet-700" } },
+    tag: { label: "Macroprudential", className: "bg-chart-5/15 text-chart-5" } },
   // TCMB — liquidity / FX operations
   { test: /liquidity|likidite|\bswap\b|lira-settled|\bfx\b|foreign exchange|foreign currency|rediscount|forward|\brepo\b|protected (?:deposit|account)|yuvam/i,
-    tag: { label: "Liquidity & FX", className: "bg-sky-100 text-sky-700" } },
+    tag: { label: "Liquidity & FX", className: "bg-info/10 text-info" } },
   // Payments / open banking / systems (specific terms — not the bare words
   // "payment"/"system", which leak into "Repayments"/"Systemic"/"Balance of
   // Payments"). `ödeme` retained for BDDK payment-institution items.
   { test: /open banking|\bfast\b|payment system|electronic money|elektronik para|ödeme|digital turkish lira|interbank card|request-to-pay|center of payments|overlay service/i,
-    tag: { label: "Payments & Systems", className: "bg-teal-100 text-teal-700" } },
+    tag: { label: "Payments & Systems", className: "bg-chart-2/15 text-chart-2" } },
   // Reports / briefings / assembly notices (incl. Inflation Report briefings)
   { test: /inflation report|faaliyet raporu|\breport\b|briefing|general assembly|\brapor/i,
-    tag: { label: "Report", className: "bg-neutral-200 text-neutral-700" } },
+    tag: { label: "Report", className: NEUTRAL } },
   // BDDK — licensing
   { test: /faaliyet izni|kuruluş izni|kurulmasına izin/i,
-    tag: { label: "Licensing", className: "bg-emerald-100 text-emerald-700" } },
+    tag: { label: "Licensing", className: "bg-positive/10 text-positive" } },
   // BDDK — revocation / cancellation
   { test: /iptal/i,
-    tag: { label: "Revocation", className: "bg-rose-100 text-rose-700" } },
+    tag: { label: "Revocation", className: "bg-negative/10 text-negative" } },
   // BDDK — generic board decision (after the more specific BDDK rules)
   { test: /kurul kararı/i,
-    tag: { label: "Board Decision", className: "bg-indigo-100 text-indigo-700" } },
+    tag: { label: "Board Decision", className: "bg-primary/10 text-primary" } },
 ];
 
 export function topicTag(title: string): Tag {

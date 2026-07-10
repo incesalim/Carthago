@@ -74,7 +74,7 @@ function PressCard({ item }: { item: NewsItem }) {
       href={item.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="group flex h-full flex-col rounded-md border border-border bg-card p-3 transition hover:bg-accent hover:border-border/80"
+      className="group flex h-full flex-col rounded-[10px] border border-border bg-card p-3 transition hover:bg-accent hover:border-border/80"
     >
       <div className="mb-1 flex items-baseline justify-between gap-2 text-[10px] uppercase tracking-wide text-muted-foreground">
         <span className="font-medium text-foreground/80">{outlet}</span>

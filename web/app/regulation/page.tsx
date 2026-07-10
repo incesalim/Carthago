@@ -18,6 +18,7 @@ import {
   newsSourceSummary,
   type Briefing,
 } from "@/app/lib/news";
+import { PageHeader, Section } from "@/app/components/ui";
 import RawFeeds from "./RawFeeds";
 
 export const dynamic = "force-dynamic";
@@ -42,19 +43,16 @@ function BriefingWidget({
   sourceLookup: Map<string, { title: string; url: string; published_at: string }>;
 }) {
   return (
-    <section className="space-y-3">
-      <header className="flex items-baseline justify-between flex-wrap gap-2">
-        <div>
-          <h2 className="text-base font-semibold text-foreground">Current Regulatory Snapshot</h2>
-          <p className="text-xs text-muted-foreground">
-            AI-synthesized snapshot of macroprudential rules currently in force — grounded on TCMB&apos;s
-            annual Monetary Policy framework and updated with {briefing.item_count} recent TCMB &amp; BDDK releases
-          </p>
-        </div>
-        <div className="text-[11px] text-muted-foreground tabular-nums">
+    <Section
+      title="Current Regulatory Snapshot"
+      description={`AI-synthesized snapshot of macroprudential rules currently in force — grounded on TCMB's annual Monetary Policy framework and updated with ${briefing.item_count} recent TCMB & BDDK releases`}
+      actions={
+        <span className="text-[11px] text-muted-foreground tabular-nums">
           generated {fmtDate(briefing.generated_at)} · {briefing.model}
-        </div>
-      </header>
+        </span>
+      }
+      contentClassName=""
+    >
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {briefing.categories.map((cat) => (
           <div key={cat.name} className="rounded-[10px] border border-border bg-card p-4">
@@ -98,7 +96,7 @@ function BriefingWidget({
           </div>
         ))}
       </div>
-    </section>
+    </Section>
   );
 }
 
@@ -127,15 +125,21 @@ export default async function RegulationPage() {
   const tcmbStats = summary.find((s) => s.source === "tcmb");
   const bddkStats = summary.find((s) => s.source === "bddk");
 
+  const latestAny = [tcmbStats?.latest, bddkStats?.latest]
+    .filter((d): d is string => d != null)
+    .sort()
+    .at(-1);
+
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Regulation</h1>
-        <p className="text-sm text-muted-foreground">
-          Central-bank press releases (TCMB) and banking-regulator board decisions (BDDK) — refreshed daily,
-          thematic briefing refreshed weekly.
-        </p>
-        <div className="flex flex-wrap gap-4 text-xs text-muted-foreground pt-2">
+      <div className="space-y-2">
+        <PageHeader
+          eyebrow="TCMB · BDDK"
+          title="Regulation"
+          description="Central-bank press releases (TCMB) and banking-regulator board decisions (BDDK) — refreshed daily, thematic briefing refreshed weekly."
+          dataThrough={latestAny?.slice(0, 10)}
+        />
+        <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
           {tcmbStats && (
             <div>
               <span className="font-semibold text-foreground">TCMB</span> — {tcmbStats.total} items
@@ -159,12 +163,12 @@ export default async function RegulationPage() {
             Per-bank disclosures (KAP) →
           </Link>
         </div>
-      </header>
+      </div>
 
       {briefing && briefing.categories.length > 0 ? (
         <BriefingWidget briefing={briefing} sourceLookup={sourceLookup} />
       ) : briefing ? (
-        <section className="rounded-lg border border-dashed border-border bg-muted p-4 text-sm text-muted-foreground">
+        <section className="rounded-[10px] border border-dashed border-border bg-muted p-4 text-sm text-muted-foreground">
           <strong className="font-semibold">No regulatory rule changes detected in the past {briefing.window_days} days.</strong>
           {" "}The summarizer scanned {briefing.item_count} TCMB &amp; BDDK announcements
           on {fmtDate(briefing.generated_at)} but none qualified as a substantive
@@ -172,7 +176,7 @@ export default async function RegulationPage() {
           below show all administrative + market-commentary items.
         </section>
       ) : (
-        <section className="rounded-lg border border-dashed border-border bg-muted p-4 text-sm text-muted-foreground">
+        <section className="rounded-[10px] border border-dashed border-border bg-muted p-4 text-sm text-muted-foreground">
           <strong className="font-semibold">Weekly briefing not yet generated.</strong> The
           first thematic summary will land after the next Sunday cron run.
           Raw TCMB &amp; BDDK feeds are available below in the meantime.

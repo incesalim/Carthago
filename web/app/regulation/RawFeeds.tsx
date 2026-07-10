@@ -12,15 +12,17 @@
 import { useEffect, useState } from "react";
 import { sourceLabel, type NewsItem } from "@/app/lib/news";
 import { sourceTag, topicTag, type Tag } from "@/app/lib/news-tags";
+import { Section } from "@/app/components/ui";
 
 const SOURCE_DESCRIPTIONS: Record<"tcmb" | "bddk", string> = {
   tcmb: "Central Bank of Türkiye — monetary policy + market operations press releases (English).",
   bddk: "Banking Regulation and Supervision Agency — official announcements (Turkish).",
 };
 
+// Left-rail accents mirror the source-pill token families (see lib/news-tags).
 const SOURCE_BORDER: Record<string, string> = {
-  tcmb: "border-l-[#1f4068]",
-  bddk: "border-l-[#0f7b6c]",
+  tcmb: "border-l-info",
+  bddk: "border-l-positive",
 };
 
 function fmtDate(iso: string): string {
@@ -139,7 +141,7 @@ function FeedCard({ item, onOpen }: { item: NewsItem; onOpen: (it: NewsItem) => 
     <button
       type="button"
       onClick={() => onOpen(item)}
-      className={`block w-full text-left rounded-md border border-border border-l-4 ${SOURCE_BORDER[item.source] ?? ""} bg-card p-3 hover:bg-accent transition`}
+      className={`block w-full text-left rounded-[10px] border border-border border-l-4 ${SOURCE_BORDER[item.source] ?? ""} bg-card p-3 hover:bg-accent transition`}
     >
       <div className="flex items-baseline justify-between gap-2 text-[10px] text-muted-foreground uppercase tracking-wide mb-1">
         <span className="tabular-nums">{fmtDate(item.published_at)}</span>
@@ -166,7 +168,8 @@ function SourceColumn({
   return (
     <section className="space-y-3">
       <header className="space-y-0.5">
-        <h2 className="text-base font-semibold text-foreground">{sourceLabel(source)}</h2>
+        {/* Serif sub-head — one step below the Section title above. */}
+        <h3 className="font-serif text-base font-semibold text-foreground">{sourceLabel(source)}</h3>
         <p className="text-xs text-muted-foreground">{SOURCE_DESCRIPTIONS[source]}</p>
       </header>
       <div className="space-y-2">
@@ -281,18 +284,16 @@ export default function RawFeeds({ tcmb, bddk }: { tcmb: NewsItem[]; bddk: NewsI
   const [selected, setSelected] = useState<NewsItem | null>(null);
 
   return (
-    <section className="space-y-3">
-      <header className="space-y-0.5">
-        <h2 className="text-base font-semibold text-foreground">Raw feeds</h2>
-        <p className="text-xs text-muted-foreground">
-          Source items the briefing draws from. Click a card to read the content here.
-        </p>
-      </header>
+    <Section
+      title="Raw feeds"
+      description="Source items the briefing draws from. Click a card to read the content here."
+      contentClassName=""
+    >
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <SourceColumn source="tcmb" items={tcmb} onOpen={setSelected} />
         <SourceColumn source="bddk" items={bddk} onOpen={setSelected} />
       </div>
       <Drawer item={selected} onClose={() => setSelected(null)} />
-    </section>
+    </Section>
   );
 }
