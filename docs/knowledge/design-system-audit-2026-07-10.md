@@ -269,7 +269,33 @@ Every page shares the **foundations** (tokens, fonts, `PageHeader` where used, c
 - **Theme system done right**: semantic tokens, dual themes, chart theming that survives Recharts'
   SVG-attribute limitation.
 
-## 5. Gaps & design-pass candidates
+## 5. Chart craft vs the FT benchmark
+
+The stated chart benchmark is [ft-visual-journalism/](ft-visual-journalism) (FT house style — *not*
+a mandate to copy, a bar to measure against). Scoring the real charts (`TrendChart`,
+`ChartCard`, `chart-theme.ts`) against its eight house-style principles:
+
+| FT principle | Dashboard reality | Verdict |
+|---|---|---|
+| 1. **Title = the finding**, not the topic | Titles are topic+units ("Capital Adequacy Ratio (%) — by group"). The *finding* is stated at page level by **"The Read"**, never on the chart. | ✗ per-chart · ✓ at page |
+| 2. Subtitle carries metadata | `ChartCard` has a `description` slot, but charts fold units into the title string and leave the slot empty. | ~ merged into title |
+| 3. **Direct labelling** over legends | Draws an **end-dot** at each series' last point + emphasises Sector + hover/pin isolation — but still renders a **bottom legend** and no end-of-line *text* labels. | ~ partial |
+| 4. **Annotate on the chart** (event bands, callouts) | Only `zeroLine`/`ReferenceLine`. No shaded bands, no pointer-note callouts. | ✗ |
+| 5. Restraint: horizontal gridlines only, no axis line, no border | `TrendChart`: `CartesianGrid vertical={false}`, `axisLine={false} tickLine={false}` on both axes; card is the only frame. | ✓ strong |
+| 6. Disciplined palette + one highlight vs greyed context | Muted palette ✓; Sector line is heavied + hover fades others to 0.18 ✓ — but at rest the 5 group lines are equal-weight → the "spaghetti" the critique flags. | ~ partial |
+| 7. Source line at the bottom | `ChartCard source` footer exists but few charts pass it (economy folds source into the section description). | ~ under-used |
+| 8. Static-first / "makes its point without hover" | Good nearest-series tooltip, but by-group legibility still leans on hover. | ~ partial |
+| — Chart *selection* (Visual Vocabulary) | lines / bars / stacked / diverging / Sankey / heatmap / network — sits squarely in change-over-time · magnitude · ranking · deviation · part-to-whole · flow; no pies, no exotic forms. | ✓ on-vocabulary |
+| — "House style as tooling" (the FastCharts insight) | `ChartCard` + `chart-theme.ts` + the shared wrappers enforce one chart look regardless of who built the page — the exact pattern FT gets from FastCharts/`g-chartframe`. | ✓ already embodied |
+
+**Where it already meets FT:** gridline/axis restraint, muted palette, on-vocabulary chart choice,
+and — structurally — *house-style-as-tooling* (the single most transferable FT lesson) is baked in.
+**The three real gaps** — finding-as-title, direct end-of-line labels, and on-chart annotation —
+are the same "at-rest legibility" theme the [critique](design-critique-2026-07-10.md) raises as
+"spaghetti charts." All three design docs converge here: the charts are *clean* but don't yet
+*argue* on their own; the argument currently lives one level up, in "The Read."
+
+## 6. Gaps & design-pass candidates
 
 Ordered by structural impact (composition-level; the *visual* levers — surface layering, spaghetti
 charts, over-applied mono-caps — are in the companion [critique](design-critique-2026-07-10.md)):
