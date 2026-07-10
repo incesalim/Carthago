@@ -31,6 +31,7 @@ import TrendChart from "@/app/components/TrendChart";
 import StackedArea from "@/app/components/StackedArea";
 import Takeaway from "@/app/components/Takeaway";
 import { creditInsights } from "@/app/lib/insights";
+import { seriesFinding } from "@/app/lib/chart-findings";
 import { withLlmHeadline } from "@/app/lib/read-headlines";
 import { cpiYoYByMonth, nominalVsReal, REAL_TERMS_LABELS } from "@/app/lib/real-terms";
 
@@ -242,7 +243,12 @@ export default async function CreditPage() {
             <TrendChart
               data={yoyAll}
               seriesLabels={WEEKLY_BANK_TYPE_LABELS}
-              title="Loan Growth YoY (%) by group"
+              title={
+                seriesFinding(yoySector, { noun: "Loan growth", decimals: 1 }) ??
+                "Loan Growth YoY (%) by group"
+              }
+              description="Loan growth YoY, %, weekly · by ownership group"
+              source="Source: BDDK weekly bulletin"
               yFormat="pct"
               decimals={1}
               zeroLine

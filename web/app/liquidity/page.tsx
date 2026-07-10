@@ -41,6 +41,7 @@ import TrendChart from "@/app/components/TrendChart";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
 import Takeaway from "@/app/components/Takeaway";
 import { liquidityInsights } from "@/app/lib/insights";
+import { seriesFinding } from "@/app/lib/chart-findings";
 import { withLlmHeadline } from "@/app/lib/read-headlines";
 
 export const dynamic = "force-dynamic";
@@ -230,7 +231,12 @@ export default async function LiquidityPage() {
           <TrendChart
             data={toTrend(dollarization)}
             seriesLabels={LIQ_DOLLARIZATION_LABELS}
-            title="Deposit Dollarization — FC share of deposits (%)"
+            title={
+              seriesFinding(toTrend(dollarization).filter((r) => r.bank_type_code === "SECTOR"), { noun: "Deposit dollarization", decimals: 1 }) ??
+              "Deposit Dollarization — FC share of deposits (%)"
+            }
+            description="FC share of total deposits, %, weekly · sector / public / private"
+            source="Source: BDDK weekly bulletin"
             yFormat="pct"
             decimals={1}
           />

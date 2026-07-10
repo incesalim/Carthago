@@ -23,6 +23,7 @@ import TrendChart from "@/app/components/TrendChart";
 import StackedArea from "@/app/components/StackedArea";
 import Takeaway from "@/app/components/Takeaway";
 import { assetQualityInsights } from "@/app/lib/insights";
+import { seriesFinding } from "@/app/lib/chart-findings";
 import { withLlmHeadline } from "@/app/lib/read-headlines";
 import {
   sectorStageShares,
@@ -123,7 +124,12 @@ export default async function AssetQualityPage() {
             <TrendChart
               data={nplAll}
               seriesLabels={BANK_TYPE_LABELS}
-              title="NPL Ratio (%) — by group"
+              title={
+                seriesFinding(nplAll.filter((r) => r.bank_type_code === SECTOR), { noun: "The NPL ratio", decimals: 2 }) ??
+                "NPL Ratio (%) — by group"
+              }
+              description="Gross NPL / total loans, %, monthly · by ownership group"
+              source="Source: BDDK monthly bulletin"
               yFormat="pct"
               decimals={2}
             />

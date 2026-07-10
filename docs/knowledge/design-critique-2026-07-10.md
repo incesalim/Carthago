@@ -1,7 +1,11 @@
 # Design critique — carthago.app (2026-07-10)
 
-**Status:** ACTED ON — feeds the 5-phase general-redesign program approved 2026-07-10
-(Phase A shipped same day; see PROJECT_STATE.md §Dashboard for phase status). Originally an
+**Status:** ACTED ON — all 5 phases of the general-redesign program SHIPPED 2026-07-10/11
+(see PROJECT_STATE.md §Dashboard). Issue #1 → white cards + firmer borders; #2 → hero+grey
+lines with direct end-labels (legend dropped on wide plots); #3 → mono-caps reserved for
+eyebrows/kicker/index; #5 was a stale-cache artifact (verified resolved); #6 → crimson
+`--negative` split from terracotta, sparklines gained baseline+min/max, feed-page pills
+tokenized. #4 (density lane) intentionally NOT addressed — no user decision yet. Originally an
 honest visual read of the live site after the user said they were dissatisfied with the design.
 Pages reviewed live: `/` (Overview), `/banks`, `/banks/AKBNK`, light + dark themes.
 

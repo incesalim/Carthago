@@ -162,17 +162,24 @@ latest-period** trigger, and **13 banks auto-discover** new quarters from their
 IR page (no hand-added URL needed) — see [ADMIN.md](ADMIN.md) §Auto-discovery.
 Setup in [OPERATIONS.md](OPERATIONS.md) / [ADMIN.md](ADMIN.md).
 
-**General redesign program (2026-07-10, in progress):** 5 phases, each deployed
-independently — A: surface+typography tokens (white cards `#FFFFFF`/`#26231C`,
-firmer borders, cooler-crimson `--negative`, mono-caps reserved for
-eyebrows/kicker/index; `chart-theme.ts` tooltip lockstep) ✅; B: chart legibility
-(direct end-of-line labels + hero-vs-grey-context on by-group lines, legend
-removed ≥520px, `annotations` prop); C: feed pages on-system + dark-safe
-news-tags; D: consistency (Section spine, `ui/segmented.tsx`, `TableCellNum`
-table consolidation, radii/spacing); E: finding-as-title lead charts off
-`lib/chart-findings.ts`. Plan + rationale:
+**General redesign program (2026-07-10/11, ALL PHASES SHIPPED):** A: surface +
+typography tokens (white cards `#FFFFFF`/`#26231C`, firmer borders `#D8D1C2`/
+`#3E382E`, cooler-crimson `--negative` `#B03246`/`#E7788A`, mono-caps reserved
+for eyebrows/kicker/index; `chart-theme.ts` tooltip lockstep) ✅; B: chart
+legibility — `chart-end-labels.tsx` direct end-of-line labels (collision-resolved,
+hover/pin isolation) + hero-vs-grey-context on by-group lines, legend only
+<~500px, `annotations` prop, Sparkline baseline+min/max ✅; C: feed pages
+(/news ×2, /regulation, /earnings, /disclosures) on-system + token-based
+dark-safe news-tags ✅; D: Section spine on capital/profitability,
+`ui/segmented.tsx` single toggle idiom (`bg-primary/10 text-primary`),
+`TableCellNum`/`toneFor` + 7 hand-rolled tables consolidated, radii→10px/9px +
+space-y-8 normalization ✅; E: finding-as-title lead charts on the 8 Read tabs
+off `lib/chart-findings.ts` (deterministic, recomputed from chart rows — can't
+go stale) + source footers ✅. Plan + rationale:
 [knowledge/design-system-audit-2026-07-10.md](knowledge/design-system-audit-2026-07-10.md),
 [knowledge/design-critique-2026-07-10.md](knowledge/design-critique-2026-07-10.md).
+Known follow-up: the chart expand-modal doesn't re-measure to full modal width
+(pre-existing, matches pre-redesign behaviour).
 
 **Display-study phases 2–5 (2026-07-03):** real-terms convention
 (`web/app/lib/real-terms.ts` — nominal-vs-real twins on Credit/Deposits, exact
