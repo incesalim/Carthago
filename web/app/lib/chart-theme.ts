@@ -7,6 +7,10 @@
  * can't read CSS variables, so chart chrome is resolved here in JS against the
  * active next-themes theme. Series colours mirror the `--chart-*` token order
  * defined in globals.css.
+ *
+ * LOCKSTEP RULE: `tooltipBg`/`tooltipBorder` mirror `--card`/`--border` in
+ * globals.css — any change to those tokens MUST be applied here in the same
+ * commit, or tooltips/end-dot rings drift off the card surface.
  */
 import { useTheme } from "next-themes";
 
@@ -33,8 +37,8 @@ const LIGHT: ChartTheme = {
   axis: "#9AA1AD",
   cursor: "rgba(28,58,96,0.06)",
   reference: "#9AA1AD",
-  tooltipBg: "#FBFAF7",
-  tooltipBorder: "#E2DCD0",
+  tooltipBg: "#FFFFFF",
+  tooltipBorder: "#D8D1C2",
   tooltipText: "#16243B",
 };
 
@@ -45,8 +49,8 @@ const DARK: ChartTheme = {
   axis: "#8A8472",
   cursor: "rgba(127,160,200,0.10)",
   reference: "#8A8472",
-  tooltipBg: "#211F1A",
-  tooltipBorder: "#36322B",
+  tooltipBg: "#26231C",
+  tooltipBorder: "#3E382E",
   tooltipText: "#ECE8E0",
 };
 

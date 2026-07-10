@@ -25,10 +25,10 @@
   --background: #ECE8E0;         /* warm cream paper */
   --foreground: #16243B;         /* navy ink */
 
-  --card: #FBFAF7;               /* near-white warm surface */
+  --card: #FFFFFF;               /* pure-white card — lifts off the cream page */
   --card-foreground: var(--foreground);
 
-  --popover: #FBFAF7;
+  --popover: #FFFFFF;
   --popover-foreground: var(--foreground);
 
   --muted: #ECE8DF;              /* warm fill: subtotal rows / inner dividers */
@@ -40,8 +40,8 @@
   --secondary: #EAE5DA;
   --secondary-foreground: var(--foreground);
 
-  --border: #E2DCD0;             /* warm hairline */
-  --input: #E2DCD0;
+  --border: #D8D1C2;             /* warm hairline — firmer, so white cards read as objects */
+  --input: #D8D1C2;
   --ring: #C2603A;               /* focus ring = brand */
 
   /* Brand — terracotta (eyebrows, links, "watch" tones, brand marks). */
@@ -54,15 +54,17 @@
   /* Caption / axis tone. */
   --faint: #9AA1AD;
 
-  /* Data-semantic tones (used as text + as /10–/15 tinted backgrounds). */
+  /* Data-semantic tones (used as text + as /10–/15 tinted backgrounds).
+     --negative is a COOLER crimson than brand terracotta (--primary) on purpose,
+     so a red eyebrow/link and a negative number never read as the same hue. */
   --positive: #2E7D5F;
-  --negative: #B23A3A;
+  --negative: #B03246;
   --warning: #B07D1A;
   --info: #1C3A60;
 
   /* Cross-bank heatmap ramp. */
   --heat-pos: #2E7D5F;
-  --heat-neg: #B23A3A;
+  --heat-neg: #B03246;
   --heat-neutral: #9AA1AD;
 
   /* Categorical chart palette — navy-led emphasis, warm/cool group spread. */
@@ -80,10 +82,10 @@
   --background: #181712;        /* warm near-black paper */
   --foreground: #ECE8E0;        /* cream ink */
 
-  --card: #211F1A;
+  --card: #26231C;               /* lifted card — same figure-ground step as light */
   --card-foreground: var(--foreground);
 
-  --popover: #211F1A;
+  --popover: #26231C;
   --popover-foreground: var(--foreground);
 
   --muted: #2A2722;
@@ -95,8 +97,8 @@
   --secondary: #2F2C26;
   --secondary-foreground: var(--foreground);
 
-  --border: #36322B;
-  --input: #36322B;
+  --border: #3E382E;
+  --input: #3E382E;
   --ring: #D7794F;
 
   --primary: #D7794F;           /* brightened terracotta */
@@ -107,12 +109,12 @@
   --faint: #8A8472;
 
   --positive: #5BB58C;
-  --negative: #E0736B;
+  --negative: #E7788A;           /* cooler crimson (vs terracotta) — see light note */
   --warning: #D9A441;
   --info: #7FA0C8;
 
   --heat-pos: #5BB58C;
-  --heat-neg: #E0736B;
+  --heat-neg: #E7788A;
   --heat-neutral: #A79F8E;
 
   --chart-1: #7FA0C8;   /* navy emphasis (lightened) */

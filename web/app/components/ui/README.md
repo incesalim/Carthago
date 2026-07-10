@@ -25,7 +25,9 @@ utility so light/dark stay correct:
 | `data` | `text-data` | data accent — editorial navy (`#1C3A60`); charts, sparklines |
 | `faint` | `text-faint` | captions / chart axis labels (between muted-foreground and border) |
 
-**Typography (editorial):** headings + chart titles use `font-serif` (Source Serif 4); labels and **all numbers** use `font-mono` (IBM Plex Mono); body uses `font-sans` (IBM Plex Sans).
+**Typography (editorial):** headings + chart titles use `font-serif` (Source Serif 4); **all numbers** use `font-mono` (IBM Plex Mono); body uses `font-sans` (IBM Plex Sans). **Mono ALL-CAPS is reserved for exactly three roles** — page eyebrows, "The Read" kicker, and `Section` index numbers (plus the brand tagline in the logo lockup). Everything else (KPI labels, nav group labels, captions) is sentence-case sans.
+
+**Surfaces (redesign 2026-07):** cards are pure white (`--card #FFFFFF` light / `#26231C` dark) on the cream/charcoal page with a firmer hairline (`--border #D8D1C2` / `#3E382E`) — figure-ground comes from the surface step + border, **never shadows** (flat rule). `--negative` is a cooler crimson (`#B03246` / `#E7788A`), deliberately separated from brand terracotta. `chart-theme.ts` `tooltipBg/tooltipBorder` mirror `--card/--border` — change them in the same commit (lockstep rule).
 | `positive` `negative` `warning` `info` | `text-positive`, `bg-warning/15`, … | data semantics (tint with `/10`–`/15`) |
 | `chart-1…6` | `bg-chart-1` | categorical chart series (mirrors `useChartTheme`) |
 | `--radius` | `rounded-md/lg/xl` | corner radii |

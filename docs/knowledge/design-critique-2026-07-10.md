@@ -1,7 +1,8 @@
 # Design critique — carthago.app (2026-07-10)
 
-**Status:** Proposal / not acted on. An honest visual read of the live site after the user
-said they were dissatisfied with the design and asked for inspiration + a targeted critique.
+**Status:** ACTED ON — feeds the 5-phase general-redesign program approved 2026-07-10
+(Phase A shipped same day; see PROJECT_STATE.md §Dashboard for phase status). Originally an
+honest visual read of the live site after the user said they were dissatisfied with the design.
 Pages reviewed live: `/` (Overview), `/banks`, `/banks/AKBNK`, light + dark themes.
 
 ## Verdict
