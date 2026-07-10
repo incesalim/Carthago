@@ -17,6 +17,7 @@ import {
   newsSourceSummary,
   type NewsItem,
 } from "@/app/lib/news";
+import { PageHeader } from "@/app/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +42,7 @@ function DisclosureCard({ item }: { item: NewsItem }) {
   // goes to the per-bank page. Two anchors instead of one nested in
   // another (which is invalid HTML and breaks Next.js hydration).
   return (
-    <div className="rounded-xl border border-border border-l-4 border-l-primary bg-card p-3 hover:bg-accent transition">
+    <div className="rounded-[10px] border border-border border-l-4 border-l-primary bg-card p-3 hover:bg-accent transition">
       <div className="flex items-baseline justify-between gap-2 text-[10px] text-muted-foreground uppercase tracking-wide mb-1">
         <span className="tabular-nums">{fmtDate(item.published_at)}</span>
         {item.ticker && (
@@ -76,16 +77,15 @@ export default async function DisclosuresPage({ searchParams }: Props) {
   if (ticker) {
     const items = await newsByTicker(ticker, 200);
     return (
-      <main className="mx-auto w-full px-4 py-8 sm:px-6 lg:px-8 space-y-6 max-w-3xl">
-        <header className="space-y-1">
-          <div className="flex items-baseline gap-3">
-            <h1 className="text-2xl font-semibold tracking-tight">{ticker}</h1>
-            <span className="text-sm text-muted-foreground">disclosures</span>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            All KAP disclosures filed by {ticker}, newest first.
-          </p>
-          <div className="flex flex-wrap gap-4 text-xs text-muted-foreground pt-2">
+      <main className="mx-auto w-full px-4 py-8 sm:px-6 lg:px-8 space-y-8 max-w-3xl">
+        <div className="space-y-2">
+          <PageHeader
+            eyebrow="KAP"
+            title={`${ticker} disclosures`}
+            description={`All KAP disclosures filed by ${ticker}, newest first.`}
+            dataThrough={items[0]?.published_at?.slice(0, 10)}
+          />
+          <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
             <span>{items.length} items</span>
             <Link
               href={`/banks/${ticker}`}
@@ -100,7 +100,7 @@ export default async function DisclosuresPage({ searchParams }: Props) {
               ← all disclosures
             </Link>
           </div>
-        </header>
+        </div>
         <div className="space-y-2">
           {items.length === 0 ? (
             <div className="text-xs text-muted-foreground italic">
@@ -122,13 +122,15 @@ export default async function DisclosuresPage({ searchParams }: Props) {
   const kapStats = summary.find((s) => s.source === "kap");
 
   return (
-    <main className="mx-auto w-full px-4 py-8 sm:px-6 lg:px-8 space-y-6 max-w-4xl">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Bank Disclosures</h1>
-        <p className="text-sm text-muted-foreground">
-          BIST-listed banks&apos; filings on KAP (Kamuyu Aydınlatma Platformu) — refreshed daily.
-        </p>
-        <div className="flex flex-wrap gap-4 text-xs text-muted-foreground pt-2">
+    <main className="mx-auto w-full px-4 py-8 sm:px-6 lg:px-8 space-y-8 max-w-4xl">
+      <div className="space-y-2">
+        <PageHeader
+          eyebrow="KAP"
+          title="Bank Disclosures"
+          description="BIST-listed banks' filings on KAP (Kamuyu Aydınlatma Platformu) — refreshed daily."
+          dataThrough={kapStats?.latest?.slice(0, 10)}
+        />
+        <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
           {kapStats && (
             <div>
               <span className="font-semibold text-foreground">KAP</span>
@@ -152,7 +154,7 @@ export default async function DisclosuresPage({ searchParams }: Props) {
             Browse banks →
           </Link>
         </div>
-      </header>
+      </div>
       <div className="space-y-2">
         {items.length === 0 ? (
           <div className="text-xs text-muted-foreground italic">No disclosures cached yet.</div>
