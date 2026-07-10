@@ -5,6 +5,16 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-07-08.
 
+2026-07-10 — **Valuation tab hidden (archived, not deleted).** The `/valuation`
+tab was removed from the site at the user's request. Its code is preserved
+intact and un-routed under `web/app/_valuation/` (Next.js private folder — opts
+the whole subtree out of routing, so `/valuation` no longer serves, but the
+files stay in-tree and typechecked). The nav link (`web/app/components/Nav.tsx`)
+and the sitemap entry (`web/app/sitemap.ts`) were removed. Supporting libs
+(`valuation.ts`, `valuation-data.ts`, `valuation-presets.ts`) stay in
+`web/app/lib/`. Revival steps are in `web/app/_valuation/README.md`. The separate
+"Market & Valuation" panel on each bank's own page (`bistValuation`) is unaffected.
+
 2026-07-07 — **SEO / discoverability: the dashboard is now crawlable.**
 On-page work only. `web/app/robots.ts` + `web/app/sitemap.ts` expose a crawlable route list;
 every route gained `metadata` (title, description, `alternates.canonical`); JSON-LD structured

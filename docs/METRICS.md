@@ -291,7 +291,10 @@ via `commercialNplRatios` in
 [`web/app/lib/metrics.ts`](../web/app/lib/metrics.ts). Both are surfaced
 on the Asset Quality page.
 
-### Valuation metrics (Valuation tab) — [`web/app/lib/valuation.ts`](../web/app/lib/valuation.ts)
+### Valuation metrics (Valuation tab — archived/hidden 2026-07-10) — [`web/app/lib/valuation.ts`](../web/app/lib/valuation.ts)
+
+> The `/valuation` tab is hidden from the site (code preserved un-routed under
+> `web/app/_valuation/`). Metric definitions below are retained for revival.
 
 Forward scenario + intrinsic valuation for listed banks. All rates are
 fractions, all amounts thousand TL (per-share = × 1000 ÷ shares). Equity-side

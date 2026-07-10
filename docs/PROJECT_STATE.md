@@ -495,7 +495,11 @@ HHI. Shares are of the **reporting banks** that quarter (~98% of sector) — ban
 double-count traps). The same margins + share trend surface as a **Performance**
 section on `/banks/[ticker]` (`ProfitabilitySection.tsx`).
 
-A **Valuation** tab (`/valuation`) does forward scenario projection + intrinsic
+A **Valuation** tab (`/valuation`) — **archived/hidden since 2026-07-10** at the
+user's request. The code is preserved un-routed under `web/app/_valuation/`
+(Next.js private folder); nav link and sitemap entry were removed. See that
+folder's `README.md` to bring it back. Description below is retained for revival.
+It did forward scenario projection + intrinsic
 valuation for the listed banks. It's standalone (no changes to `/banks` or
 `/cross-bank`). DCF/FCF is inappropriate for banks (leverage is regulated, not a
 policy choice), so it uses the equity-side models: a multi-stage **residual
