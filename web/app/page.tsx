@@ -28,6 +28,7 @@ import BankTypeFilter from "@/app/components/BankTypeFilter";
 import { PageHeader, Section, Stat, DeltaBadge } from "@/app/components/ui";
 import Takeaway from "@/app/components/Takeaway";
 import { overviewInsights } from "@/app/lib/insights";
+import { seriesFinding } from "@/app/lib/chart-findings";
 import { withLlmHeadline } from "@/app/lib/read-headlines";
 import type { TimeSeriesRow } from "@/app/lib/metrics";
 import type { Metadata } from "next";
@@ -276,7 +277,12 @@ export default async function OverviewPage({
         <TrendChart
           data={loansYoYGroups}
           seriesLabels={BANK_TYPE_LABELS}
-          title="Loan Growth YoY (%) — by group"
+          title={
+            seriesFinding(sLoansYoY, { noun: "Loan growth", decimals: 1 }) ??
+            "Loan Growth YoY (%) — by group"
+          }
+          description="Loan growth YoY, %, monthly · by ownership group"
+          source="Source: BDDK monthly bulletin"
           yFormat="pct"
           decimals={1}
           zeroLine

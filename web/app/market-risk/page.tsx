@@ -22,6 +22,7 @@ import {
 } from "@/app/lib/market-risk";
 import Takeaway from "@/app/components/Takeaway";
 import { marketRiskInsights } from "@/app/lib/insights";
+import { seriesFinding } from "@/app/lib/chart-findings";
 import { withLlmHeadline } from "@/app/lib/read-headlines";
 
 export const dynamic = "force-dynamic";
@@ -66,7 +67,12 @@ export default async function MarketRiskPage() {
           <TrendChart
             data={nop}
             seriesLabels={SECTOR}
-            title="FX net open position / regulatory capital (%)"
+            title={
+              seriesFinding(nop.filter((r) => r.bank_type_code === "SECTOR"), { noun: "The FX net open position", decimals: 1 }) ??
+              "FX net open position / regulatory capital (%)"
+            }
+            description="FX net open position / regulatory capital, %, quarterly · Σ of reporting banks"
+            source="Source: BRSA quarterly filings (§4)"
             yFormat="pct"
             decimals={1}
             zeroLine

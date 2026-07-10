@@ -23,6 +23,7 @@ import CapitalByBank from "./CapitalByBank";
 import TrendChart from "@/app/components/TrendChart";
 import Takeaway from "@/app/components/Takeaway";
 import { capitalInsights } from "@/app/lib/insights";
+import { seriesFinding } from "@/app/lib/chart-findings";
 import { withLlmHeadline } from "@/app/lib/read-headlines";
 
 export const dynamic = "force-dynamic";
@@ -92,7 +93,12 @@ export default async function CapitalPage() {
             <TrendChart
               data={carAll}
               seriesLabels={BANK_TYPE_LABELS}
-              title="Capital Adequacy Ratio (%) — by group"
+              title={
+                seriesFinding(carSector, { noun: "Capital adequacy", decimals: 1 }) ??
+                "Capital Adequacy Ratio (%) — by group"
+              }
+              description="Capital adequacy ratio (SYR), %, monthly · by ownership group · regulatory minimum 12%"
+              source="Source: BDDK monthly bulletin"
               yFormat="pct"
               decimals={1}            />
           </div>

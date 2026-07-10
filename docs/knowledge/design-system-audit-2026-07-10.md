@@ -1,10 +1,13 @@
 # Design & style audit — Carthago (2026-07-10)
 
-**Status:** Reference / descriptive — now feeding the 5-phase general-redesign program approved
-2026-07-10 (phase status in PROJECT_STATE.md §Dashboard; §3/§5/§6 of this doc are the program's
-work-list). A code-grounded walkthrough of the site's design **language** and the **style of
-every one of the 34 pages**, plus a consistency map of where pages honour the system and where
-they drift. Companion to the subjective
+**Status:** Reference / descriptive. The 5-phase general-redesign program built from §3/§5/§6
+SHIPPED in full 2026-07-10/11 (PROJECT_STATE.md §Dashboard) — the drift table below documents
+the PRE-redesign state; most rows (heading spine, feed pages, tables, toggles, radii, spacing,
+mono-caps, raw tag colors, chart legend/labels) are now resolved. Still open: eyebrow usage is
+uneven, BopFlowChart keeps its own palette, per-page local formatters outside touched files,
+critique #4 (density lane). A code-grounded walkthrough of the site's design **language** and
+the **style of every one of the 34 pages**, plus a consistency map of where pages honoured the
+system and where they drifted. Companion to the subjective
 [design-critique-2026-07-10.md](design-critique-2026-07-10.md) (opinion/verdict on 3 live pages)
 and [ft-visual-journalism/](ft-visual-journalism) (chart references). This doc is the "what is
 actually there" inventory; the critique is the "what to change."

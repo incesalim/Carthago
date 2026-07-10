@@ -23,6 +23,7 @@ import TrendChart from "@/app/components/TrendChart";
 import NimComponentsSection from "./NimComponentsSection";
 import Takeaway from "@/app/components/Takeaway";
 import { profitabilityInsights } from "@/app/lib/insights";
+import { seriesFinding } from "@/app/lib/chart-findings";
 import { withLlmHeadline } from "@/app/lib/read-headlines";
 
 export const dynamic = "force-dynamic";
@@ -180,7 +181,12 @@ export default async function ProfitabilityPage() {
         <TrendChart
           data={roe}
           seriesLabels={BANK_TYPE_LABELS}
-          title="ROE — Annualized (%)"
+          title={
+            seriesFinding(roe.filter((r) => r.bank_type_code === BANK_TYPES.SECTOR), { noun: "ROE", decimals: 1 }) ??
+            "ROE — Annualized (%)"
+          }
+          description="Return on equity, %, annualized (YTD × 12/month) · by ownership group"
+          source="Source: BDDK monthly bulletin"
           yFormat="pct"
           decimals={1}
           zeroLine
