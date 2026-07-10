@@ -4,6 +4,12 @@
  * Multi-series line chart for irregular time-series (e.g. EVDS daily series
  * with non-bank-code identification). Simpler than TrendChart since we
  * don't need bank-type pivot.
+ *
+ * At-rest legibility (redesign phase B): wide plots carry direct end-of-line
+ * labels and drop the bottom legend; hover a label to isolate, right-click to
+ * pin. Lines keep their series colours by default — these series have no
+ * natural aggregate — but a `hero` prop can single one out as the navy hero
+ * over grey context. Narrow plots keep the legend.
  */
 import { useState } from "react";
 import {
@@ -19,9 +25,16 @@ import {
 import { ChartCard } from "@/app/components/ui/chart-card";
 import { ChartData } from "@/app/components/ui/chart-csv";
 import { NearestActiveDot, NearestSeriesTooltip } from "@/app/components/nearest-hover";
+import {
+  EndLabelLayer,
+  estimateEndLabelWidth,
+  lastPoint,
+  renderAnnotations,
+  type ChartAnnotation,
+} from "@/app/components/chart-end-labels";
 import { useChartTheme, seriesColor } from "@/app/lib/chart-theme";
 import { wideToTable } from "@/app/lib/chart-csv";
-import { nf, fmtQuarter } from "@/app/lib/chart-format";
+import { formatters, fmtQuarter, type FormatKind } from "@/app/lib/chart-format";
 import { useRangeFilter } from "@/app/lib/use-date-range";
 
 interface Point {
@@ -33,19 +46,17 @@ interface Props {
   /** Map of seriesLabel → array of {period_date, value}. */
   series: Record<string, Point[]>;
   title?: string;
-  yFormat?: "pct" | "rate" | "raw" | "fx";
+  yFormat?: Extract<FormatKind, "pct" | "rate" | "raw" | "fx">;
   /** x-axis tick/tooltip label style. "date" → YYYY-MM (default), "quarter" → YYYY-Qn. */
   xFormat?: "date" | "quarter";
   decimals?: number;
   height?: number;
+  /** Series label to emphasise as the navy hero over grey context (opt-in —
+   *  economy series have no natural aggregate, unlike bank groups). */
+  hero?: string;
+  /** On-chart annotations (dashed line + optional band + mono note). */
+  annotations?: ChartAnnotation[];
 }
-
-const formatters = {
-  pct: (v: number, d: number) => `${nf(v, d)}%`,
-  rate: (v: number, d: number) => nf(v, d),
-  fx: (v: number, d: number) => `₺${nf(v, d)}`,
-  raw: (v: number, d: number) => nf(v, d),
-};
 
 export default function TimeSeriesChart({
   series,
@@ -54,6 +65,8 @@ export default function TimeSeriesChart({
   xFormat = "date",
   decimals = 2,
   height = 320,
+  hero,
+  annotations,
 }: Props) {
   const t = useChartTheme();
   const fmt = formatters[yFormat];
@@ -69,11 +82,19 @@ export default function TimeSeriesChart({
   const isQuarter = xFormat === "quarter";
   const fmtTick = isQuarter ? fmtQuarter : (v: string) => v.slice(0, 7);
   const labels = Object.keys(series);
-  // Hovering a legend item emphasises that line and fades the rest;
-  // right-clicking pins the isolation until right-clicked again.
+  // Hovering an end-label (or legend item on narrow plots) emphasises that
+  // line and fades the rest; right-clicking pins the isolation.
   const [hovered, setHovered] = useState<string | null>(null);
   const [pinned, setPinned] = useState<string | null>(null);
   const active = hovered ?? pinned;
+
+  // Direct end-labels on wide plots; narrow plots fall back to the legend.
+  // Hysteresis (520 on / 490 off) so a border-straddling width doesn't flap.
+  const [labelsOn, setLabelsOn] = useState(true);
+  const handleResize = (w: number) => {
+    if (w >= 520) setLabelsOn(true);
+    else if (w < 490) setLabelsOn(false);
+  };
 
   // Pivot all series into a wide structure { period_date, label1: v, label2: v }
   const byDate = new Map<string, Record<string, number | string>>();
@@ -103,6 +124,39 @@ export default function TimeSeriesChart({
       ? (v: string) => v.slice(0, 7)
       : (v: string) => v;
 
+  // Hero-vs-context is opt-in here (no auto "Sector" — see header comment) and
+  // only with end-labels on, so the mobile legend keeps distinct colours.
+  const heroMode = labelsOn && hero != null && labels.length > 1;
+
+  const lineColor = (label: string, i: number): string =>
+    heroMode
+      ? label === hero
+        ? t.hero
+        : active === label
+          ? t.contextActive
+          : t.context
+      : seriesColor(t, label, i);
+
+  const labelInk = (label: string): string =>
+    heroMode
+      ? label === hero
+        ? t.hero
+        : active === label
+          ? t.contextActive
+          : t.inkMuted
+      : seriesColor(t, label, labels.indexOf(label));
+
+  const valueOnly = labels.length === 1;
+  const labelWidth = estimateEndLabelWidth(
+    labels
+      .map((l) => {
+        const lp = lastPoint(data, "period_date", l);
+        return lp ? { name: l, value: fmt(lp.value, decimals) } : null;
+      })
+      .filter((e): e is { name: string; value: string } => e != null),
+    valueOnly,
+  );
+
   return (
     <ChartCard title={title}>
       <ChartData
@@ -114,8 +168,16 @@ export default function TimeSeriesChart({
       />
       {/* Right-click is a pin/unpin gesture here — keep the browser menu out. */}
       <div style={{ height }} onContextMenu={(e) => e.preventDefault()}>
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 10, right: 20, left: 60, bottom: 30 }}>
+        <ResponsiveContainer width="100%" height="100%" onResize={handleResize}>
+          <LineChart
+            data={data}
+            margin={{
+              top: 10,
+              right: labelsOn ? labelWidth : 20,
+              left: 60,
+              bottom: labelsOn ? 8 : 30,
+            }}
+          >
             <CartesianGrid strokeDasharray="3 3" stroke={t.grid} />
             <XAxis
               dataKey="period_date"
@@ -131,6 +193,7 @@ export default function TimeSeriesChart({
               axisLine={{ stroke: t.grid }}
               tickLine={{ stroke: t.grid }}
             />
+            {renderAnnotations(annotations, data, "period_date", t)}
             {/* Nearest-series tooltip: one line's point, not every series at the
                 hovered date (see nearest-hover.tsx on why `shared` can't do this). */}
             <Tooltip
@@ -145,63 +208,75 @@ export default function TimeSeriesChart({
                 />
               )}
             />
-            <Legend
-              wrapperStyle={{ fontSize: 11 }}
-              content={({ payload }) => (
-                <ul
-                  style={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    justifyContent: "center",
-                    gap: "2px 14px",
-                    listStyle: "none",
-                    margin: 0,
-                    padding: 0,
-                  }}
-                >
-                  {(payload ?? []).map((it) => {
-                    const label = String(it.dataKey);
-                    return (
-                      <li
-                        key={label}
-                        onMouseEnter={() => setHovered(label)}
-                        onMouseLeave={() => setHovered(null)}
-                        onContextMenu={(e) => {
-                          e.preventDefault();
-                          setPinned((p) => (p === label ? null : label));
-                        }}
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 5,
-                          color: t.axis,
-                          opacity: active && active !== label ? 0.4 : 1,
-                          fontWeight: pinned === label ? 600 : 400,
-                          cursor: "default",
-                        }}
-                      >
-                        <span
-                          style={{
-                            display: "inline-block",
-                            width: 14,
-                            borderTop: `2px solid ${it.color ?? "currentColor"}`,
+            {!labelsOn && (
+              <Legend
+                wrapperStyle={{ fontSize: 11 }}
+                content={({ payload }) => (
+                  <ul
+                    style={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      justifyContent: "center",
+                      gap: "2px 14px",
+                      listStyle: "none",
+                      margin: 0,
+                      padding: 0,
+                    }}
+                  >
+                    {(payload ?? []).map((it) => {
+                      const label = String(it.dataKey);
+                      return (
+                        <li
+                          key={label}
+                          onMouseEnter={() => setHovered(label)}
+                          onMouseLeave={() => setHovered(null)}
+                          onContextMenu={(e) => {
+                            e.preventDefault();
+                            setPinned((p) => (p === label ? null : label));
                           }}
-                        />
-                        {it.value}
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            />
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 5,
+                            color: t.axis,
+                            opacity: active && active !== label ? 0.4 : 1,
+                            fontWeight: pinned === label ? 600 : 400,
+                            cursor: "default",
+                          }}
+                        >
+                          <span
+                            style={{
+                              display: "inline-block",
+                              width: 14,
+                              borderTop: `2px solid ${it.color ?? "currentColor"}`,
+                            }}
+                          />
+                          {it.value}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              />
+            )}
             {labels.map((label, i) => (
               <Line
                 key={label}
                 type="monotone"
                 dataKey={label}
                 name={label}
-                stroke={seriesColor(t, label, i)}
-                strokeWidth={active === label ? 2.75 : 1.75}
+                stroke={lineColor(label, i)}
+                strokeWidth={
+                  heroMode
+                    ? label === hero
+                      ? 2.5
+                      : active === label
+                        ? 2.25
+                        : 1.75
+                    : active === label
+                      ? 2.75
+                      : 1.75
+                }
                 strokeOpacity={active && active !== label ? 0.18 : 1}
                 dot={false}
                 activeDot={false}
@@ -209,12 +284,29 @@ export default function TimeSeriesChart({
                 isAnimationActive={false}
               />
             ))}
+            {labelsOn && (
+              <EndLabelLayer
+                rows={data}
+                periodKey="period_date"
+                keys={labels}
+                labelFor={(l) => l}
+                colorFor={labelInk}
+                lineColorFor={(l) => lineColor(l, labels.indexOf(l))}
+                formatValue={(v) => fmt(v, decimals)}
+                heroKey={heroMode ? hero : null}
+                active={active}
+                pinned={pinned}
+                onHover={setHovered}
+                onPinToggle={(l) => setPinned((p) => (p === l ? null : l))}
+                valueOnly={valueOnly}
+              />
+            )}
             {/* Single hover point on the nearest line. */}
             <NearestActiveDot
               rows={data}
               periodKey="period_date"
               keys={labels}
-              colorFor={(k) => seriesColor(t, k, labels.indexOf(k))}
+              colorFor={(k) => lineColor(k, labels.indexOf(k))}
             />
           </LineChart>
         </ResponsiveContainer>
