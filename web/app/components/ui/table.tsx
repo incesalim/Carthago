@@ -60,4 +60,44 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
   return <td className={cn("px-3 py-2 align-middle", className)} {...props} />;
 }
 
-export { Table, TableHeader, TableBody, TableRow, TableHead, TableCell };
+const numTone = {
+  neutral: "text-foreground",
+  positive: "text-positive",
+  negative: "text-negative",
+  muted: "text-muted-foreground",
+} as const;
+
+/**
+ * Numeric cell — right-aligned mono tabular figures, optionally tone-coloured
+ * (the shared idiom for every data table; sign-based tone via `toneFor`).
+ */
+function TableCellNum({
+  tone = "neutral",
+  className,
+  ...props
+}: React.ComponentProps<"td"> & { tone?: keyof typeof numTone }) {
+  return (
+    <td
+      className={cn(
+        "px-3 py-2 text-right align-middle font-mono tabular-nums",
+        numTone[tone],
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
+/**
+ * Sign → tone helper for TableCellNum: negatives red, everything else plain.
+ * Deliberately does NOT green positives — on dense tables that's noise (and
+ * "positive" isn't always good: CPI, costs). Pass tone="positive" explicitly
+ * where a green really carries meaning (e.g. growth columns).
+ */
+function toneFor(v: number | null | undefined): keyof typeof numTone {
+  if (v == null) return "muted";
+  if (v < 0) return "negative";
+  return "neutral";
+}
+
+export { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableCellNum, toneFor };

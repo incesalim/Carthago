@@ -16,7 +16,17 @@ import { bistIndexHistory, type PricePoint } from "@/app/lib/bist";
 import { liveQuotes, type LiveQuote } from "@/app/lib/bist-live";
 import { getMarketTicker } from "@/app/lib/market-ticker";
 import { latestPeriod } from "@/app/lib/metrics";
-import { PageHeader, Section } from "@/app/components/ui";
+import {
+  PageHeader,
+  Section,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+  TableCellNum,
+} from "@/app/components/ui";
 import MarketTicker from "@/app/components/MarketTicker";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
 
@@ -241,39 +251,34 @@ export default async function EconomyPage() {
         title="BBVA Baseline Scenario"
         description={`${BBVA_BASELINE.source} (${BBVA_BASELINE.asOf}). Forecasts assume a short-lived conflict; biases are to higher inflation and weaker growth if it lasts.`}
       >
-        <div className="overflow-x-auto rounded-lg border border-border">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-accent/40 text-left">
-                <th className="px-3 py-2 font-medium text-muted-foreground"></th>
-                {BBVA_BASELINE.years.map((y) => (
-                  <th key={y} className="px-3 py-2 text-right font-medium text-muted-foreground">
-                    {y}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {BBVA_BASELINE.rows.map((r) => (
-                <tr key={r.label} className="border-b border-border/60 last:border-0">
-                  <td className="px-3 py-1.5 text-foreground">{r.label}</td>
-                  {r.values.map((v, i) => (
-                    <td
-                      key={i}
-                      className={`px-3 py-1.5 text-right tabular-nums ${
-                        i === r.values.length - 1
-                          ? "font-semibold text-foreground"
-                          : "text-muted-foreground"
-                      }`}
-                    >
-                      {v}
-                    </td>
-                  ))}
-                </tr>
+        <Table wrapperClassName="rounded-[10px] border border-border bg-card">
+          <TableHeader>
+            <TableRow className="bg-muted/50">
+              <TableHead />
+              {BBVA_BASELINE.years.map((y) => (
+                <TableHead key={y} className="text-right">
+                  {y}
+                </TableHead>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {BBVA_BASELINE.rows.map((r) => (
+              <TableRow key={r.label}>
+                <TableCell className="py-1.5">{r.label}</TableCell>
+                {r.values.map((v, i) => (
+                  <TableCellNum
+                    key={i}
+                    tone={i === r.values.length - 1 ? "neutral" : "muted"}
+                    className={`py-1.5 ${i === r.values.length - 1 ? "font-semibold" : ""}`}
+                  >
+                    {v}
+                  </TableCellNum>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </Section>
     </main>
   );

@@ -12,10 +12,23 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getGrowthData, type GrowthTable } from "@/app/lib/growth";
-import { PageHeader, Section, Stat } from "@/app/components/ui";
+import {
+  PageHeader,
+  Section,
+  Stat,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+  TableCellNum,
+  toneFor,
+} from "@/app/components/ui";
 import { ChartCard } from "@/app/components/ui/chart-card";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
 import BopFlowChart, { type BarSeries, type OverlayLine } from "@/app/components/BopFlowChart";
+import { nf } from "@/app/lib/chart-format";
 
 export const dynamic = "force-dynamic";
 
@@ -36,55 +49,40 @@ const NAVY = { light: "#1f4068", dark: "#6f9fe0" };
 const INK = { light: "#171717", dark: "#ededed" };
 
 const pct1 = (v: number | null) =>
-  v == null
-    ? "—"
-    : `${v > 0 ? "+" : ""}${new Intl.NumberFormat("en-US", {
-        minimumFractionDigits: 1,
-        maximumFractionDigits: 1,
-      }).format(v)}%`;
+  v == null ? "—" : `${v > 0 ? "+" : ""}${nf(v, 1)}%`;
 
 function YoyTable({ table, note }: { table: GrowthTable; note?: string }) {
   return (
     <div className="space-y-2">
-      <div className="overflow-x-auto rounded-lg border border-border">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border bg-accent/40 text-left">
-              <th className="px-3 py-2 font-medium text-muted-foreground">y/y % change</th>
-              {table.quarters.map((q) => (
-                <th key={q} className="px-3 py-2 text-right font-medium text-muted-foreground">
-                  {q}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {table.rows.map((r) => {
-              const isGdp = r.label === "GDP";
-              return (
-                <tr
-                  key={r.label}
-                  className={`border-b border-border/60 last:border-0 ${isGdp ? "bg-accent/30 font-semibold" : ""}`}
-                >
-                  <td className={`px-3 py-1.5 text-foreground ${r.indent ? "pl-6 text-muted-foreground" : ""}`}>
-                    {r.label}
-                  </td>
-                  {r.values.map((v, i) => (
-                    <td
-                      key={i}
-                      className={`px-3 py-1.5 text-right tabular-nums ${
-                        v == null ? "text-muted-foreground" : v < 0 ? "text-negative" : "text-foreground"
-                      }`}
-                    >
-                      {v == null ? "—" : v.toFixed(1)}
-                    </td>
-                  ))}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      <Table wrapperClassName="rounded-[10px] border border-border bg-card">
+        <TableHeader>
+          <TableRow className="bg-muted/50">
+            <TableHead>y/y % change</TableHead>
+            {table.quarters.map((q) => (
+              <TableHead key={q} className="text-right">
+                {q}
+              </TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {table.rows.map((r) => {
+            const isGdp = r.label === "GDP";
+            return (
+              <TableRow key={r.label} className={isGdp ? "bg-accent/30 font-semibold" : undefined}>
+                <TableCell className={`py-1.5 ${r.indent ? "pl-6 text-muted-foreground" : ""}`}>
+                  {r.label}
+                </TableCell>
+                {r.values.map((v, i) => (
+                  <TableCellNum key={i} tone={toneFor(v)} className="py-1.5">
+                    {v == null ? "—" : v.toFixed(1)}
+                  </TableCellNum>
+                ))}
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
       {note && <p className="text-xs text-muted-foreground">{note}</p>}
     </div>
   );
