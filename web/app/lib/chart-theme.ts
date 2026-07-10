@@ -26,6 +26,15 @@ export interface ChartTheme {
   tooltipBg: string;
   tooltipBorder: string;
   tooltipText: string;
+  /** Hero line in hero+context mode (the series the eye should track). */
+  hero: string;
+  /** Context lines at rest — thin grey; clears the grid, sits behind the hero. */
+  context: string;
+  /** A context line when its end-label is hovered/pinned — darkened ink, NOT
+   *  the hero navy, so an isolated context line can't impersonate the hero. */
+  contextActive: string;
+  /** Muted text ink for direct end-labels (between axis tone and full ink). */
+  inkMuted: string;
 }
 
 // "Editorial" chart chrome — navy-led series (mirror --chart-1..6), warm
@@ -40,6 +49,10 @@ const LIGHT: ChartTheme = {
   tooltipBg: "#FFFFFF",
   tooltipBorder: "#D8D1C2",
   tooltipText: "#16243B",
+  hero: "#1C3A60",
+  context: "#A6ADB8",
+  contextActive: "#4C5568",
+  inkMuted: "#6A7384",
 };
 
 const DARK: ChartTheme = {
@@ -52,6 +65,10 @@ const DARK: ChartTheme = {
   tooltipBg: "#26231C",
   tooltipBorder: "#3E382E",
   tooltipText: "#ECE8E0",
+  hero: "#7FA0C8",
+  context: "#6B6455",
+  contextActive: "#C9C2B2",
+  inkMuted: "#B0A893",
 };
 
 /** Resolve the chart palette for the active theme (defaults to light pre-mount). */
