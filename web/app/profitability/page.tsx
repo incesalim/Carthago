@@ -18,7 +18,7 @@ import {
   type TimeSeriesRow,
 } from "@/app/lib/metrics";
 import { buildNimDatasets } from "@/app/lib/nim-components";
-import { PageHeader, Stat, DeltaBadge } from "@/app/components/ui";
+import { PageHeader, Section, Stat, DeltaBadge } from "@/app/components/ui";
 import TrendChart from "@/app/components/TrendChart";
 import NimComponentsSection from "./NimComponentsSection";
 import Takeaway from "@/app/components/Takeaway";
@@ -125,14 +125,11 @@ export default async function ProfitabilityPage() {
 
       <Takeaway data={await withLlmHeadline("profitability", read)} />
 
-      <section className="space-y-4">
-        <div className="space-y-0.5">
-          <h2 className="text-base font-semibold text-foreground">The return equation</h2>
-          <p className="text-xs text-muted-foreground">
-            ROE ≈ ROA × leverage; ROA is made of margin, fees and cost. Sector,
-            latest month · deltas are y/y in pp.
-          </p>
-        </div>
+      <Section
+        index="01"
+        title="The return equation"
+        description="ROE ≈ ROA × leverage; ROA is made of margin, fees and cost. Sector, latest month · deltas are y/y in pp."
+      >
         <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
           <Stat
             label="ROA · annualized"
@@ -173,13 +170,13 @@ export default async function ProfitabilityPage() {
             }
           />
         </div>
-      </section>
+      </Section>
 
-      <section className="space-y-4">
-        <div className="space-y-0.5">
-          <h2 className="text-base font-semibold text-foreground">Returns</h2>
-          <p className="text-xs text-muted-foreground">Return on equity & assets by bank group.</p>
-        </div>
+      <Section
+        index="02"
+        title="Returns"
+        description="Return on equity & assets by bank group."
+      >
         <TrendChart
           data={roe}
           seriesLabels={BANK_TYPE_LABELS}
@@ -198,18 +195,14 @@ export default async function ProfitabilityPage() {
           zeroLine
           height={300}
         />
-      </section>
+      </Section>
 
       {cpiAvg.length > 0 && (
-        <section className="space-y-4">
-          <div className="space-y-0.5">
-            <h2 className="text-base font-semibold text-foreground">Real Returns</h2>
-            <p className="text-xs text-muted-foreground">
-              Sector / Private / State ROE alongside the 12-month rolling average of CPI YoY —
-              distance from inflation = real return. In a 28%+ CPI regime this is the
-              number that decides whether the sector earns its cost of capital.
-            </p>
-          </div>
+        <Section
+          index="03"
+          title="Real Returns"
+          description="Sector / Private / State ROE alongside the 12-month rolling average of CPI YoY — distance from inflation = real return. In a 28%+ CPI regime this is the number that decides whether the sector earns its cost of capital."
+        >
           <TrendChart
             data={roePlusCpi}
             seriesLabels={{
@@ -223,13 +216,10 @@ export default async function ProfitabilityPage() {
             decimals={1}
             height={340}
           />
-        </section>
+        </Section>
       )}
 
-      <section className="space-y-4">
-        <div className="space-y-0.5">
-          <h2 className="text-base font-semibold text-foreground">Margins</h2>
-        </div>
+      <Section index="04" title="Margins">
         <TrendChart
           data={nim}
           seriesLabels={BANK_TYPE_LABELS}
@@ -246,15 +236,13 @@ export default async function ProfitabilityPage() {
             deposit banks.
           </p>
         </div>
-      </section>
+      </Section>
 
-      <section className="space-y-4">
-        <div className="space-y-0.5">
-          <h2 className="text-base font-semibold text-foreground">Cost Efficiency & Non-Interest Income</h2>
-          <p className="text-xs text-muted-foreground">
-            Operating cost intensity and fee-driven income contribution.
-          </p>
-        </div>
+      <Section
+        index="05"
+        title="Cost Efficiency & Non-Interest Income"
+        description="Operating cost intensity and fee-driven income contribution."
+      >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <TrendChart
             data={opex}
@@ -271,7 +259,7 @@ export default async function ProfitabilityPage() {
             decimals={1}
           />
         </div>
-      </section>
+      </Section>
     </main>
   );
 }

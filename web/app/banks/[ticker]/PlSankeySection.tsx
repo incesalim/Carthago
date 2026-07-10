@@ -49,7 +49,7 @@ export default function PlSankeySection({ rowsByPeriod, periods }: Props) {
               aria-pressed={p === active}
               className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                 p === active
-                  ? "bg-accent text-foreground"
+                  ? "bg-primary/10 font-semibold text-primary"
                   : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
               }`}
             >

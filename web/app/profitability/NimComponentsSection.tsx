@@ -53,7 +53,7 @@ export default function NimComponentsSection({ datasets, dataThrough }: Props) {
       aria-pressed={active}
       className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
         active
-          ? "bg-accent text-foreground"
+          ? "bg-primary/10 font-semibold text-primary"
           : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
       }`}
     >

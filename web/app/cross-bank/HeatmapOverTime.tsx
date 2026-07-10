@@ -130,7 +130,7 @@ export default function HeatmapOverTime({ metrics, banks, periods, panel }: Prop
               aria-pressed={scaleMode === mode}
               className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
                 scaleMode === mode
-                  ? "bg-accent text-foreground"
+                  ? "bg-primary/10 font-semibold text-primary"
                   : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
               }`}
             >

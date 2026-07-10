@@ -167,7 +167,7 @@ export default function HeatmapGrid({ metrics, rows, groupOrder }: Props) {
                 m.direction === "neutral" ? "" : ` (${directionArrow(m.direction)} = better)`
               }`}
               className={`sticky top-0 z-20 flex items-center justify-end gap-1 border-b border-l border-border px-2 py-2 text-right text-[11px] font-semibold uppercase tracking-wide transition-colors ${
-                active ? "bg-accent text-foreground" : "bg-muted text-muted-foreground hover:text-foreground"
+                active ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground hover:text-foreground"
               }`}
             >
               <span className="truncate">{m.short}</span>

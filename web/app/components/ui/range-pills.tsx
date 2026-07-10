@@ -44,7 +44,7 @@ export function RangePills({
           className={cn(
             "rounded-md px-3 py-1 text-xs font-medium transition-colors",
             active === r
-              ? "bg-muted font-semibold text-foreground"
+              ? "bg-primary/10 font-semibold text-primary"
               : "text-muted-foreground hover:bg-accent hover:text-foreground",
           )}
         >

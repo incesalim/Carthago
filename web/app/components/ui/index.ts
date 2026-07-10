@@ -10,6 +10,7 @@ export * from "./chart-csv";
 export * from "./delta-badge";
 export * from "./page-header";
 export * from "./section";
+export * from "./segmented";
 export * from "./separator";
 export * from "./skeleton";
 export * from "./stat";

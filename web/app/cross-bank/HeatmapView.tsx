@@ -32,7 +32,7 @@ export default function HeatmapView({ metrics, snapshot, timePanel }: Props) {
       aria-pressed={view === kind}
       className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
         view === kind
-          ? "bg-accent text-foreground"
+          ? "bg-primary/10 font-semibold text-primary"
           : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
       }`}
     >
