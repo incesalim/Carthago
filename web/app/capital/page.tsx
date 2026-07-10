@@ -16,9 +16,10 @@ import {
   BANK_TYPES,
   BANK_TYPE_LABELS,
 } from "@/app/lib/metrics";
-import { sectorCapitalRatios, AUDIT_CAPITAL_LABELS } from "@/app/lib/audit-ratios";
+import { sectorCapitalRatios, perBankCapital, AUDIT_CAPITAL_LABELS } from "@/app/lib/audit-ratios";
 import { PageHeader, Stat } from "@/app/components/ui";
 import BarByBank from "@/app/components/BarByBank";
+import CapitalByBank from "./CapitalByBank";
 import TrendChart from "@/app/components/TrendChart";
 import Takeaway from "@/app/components/Takeaway";
 import { capitalInsights } from "@/app/lib/insights";
@@ -38,7 +39,7 @@ export default async function CapitalPage() {
 
   const [
     carAll, carByBank, equity, equityYoYSec, lev,
-    rwa, offBsDeriv, capRatios, assetsYoYSec,
+    rwa, offBsDeriv, capRatios, assetsYoYSec, byBankCap,
   ] = await Promise.all([
     ratioCar(PRIMARY_BANK_TYPES),
     latestPerBank(ratioCar, groups),
@@ -49,6 +50,7 @@ export default async function CapitalPage() {
     ratioOffBsDerivatives(PRIMARY_BANK_TYPES),
     sectorCapitalRatios(),
     totalAssetsYoY(sector),
+    perBankCapital(),
   ]);
 
   // Headroom (display-study Phase 3): naive-extrapolation sizing of the CAR
@@ -167,6 +169,8 @@ export default async function CapitalPage() {
           height={320}
         />
       </section>
+
+      <CapitalByBank period={byBankCap.period} rows={byBankCap.rows} />
 
       <section className="space-y-4">
         <div className="space-y-0.5">
