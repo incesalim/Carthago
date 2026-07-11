@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Sans, IBM_Plex_Mono, Source_Serif_4 } from "next/font/google";
+import { Instrument_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import Nav from "./components/Nav";
 import Beacon from "./components/Beacon";
@@ -7,26 +7,21 @@ import { RangeProvider } from "./components/range-context";
 import { ThemeProvider } from "./components/ui/theme-provider";
 import { Toaster } from "./components/ui/toaster";
 
-// "Editorial" redesign: role-based typography. Plex Sans = body, Source Serif
-// 4 = headings (font-serif), Plex Mono = labels + all numbers (font-mono). The
-// CSS variable names stay `--font-geist-sans`/`--font-geist-mono` so globals.css
-// keeps mapping `--font-sans`/`--font-mono` without churn; serif is new.
-const geistSans = IBM_Plex_Sans({
+// "The Desk" typography: Instrument Sans (variable) carries both body and
+// display — hierarchy comes from weight/size, not a second family. Plex Mono
+// = labels + every figure. The CSS variable names stay
+// `--font-geist-sans`/`--font-geist-mono` so globals.css keeps mapping
+// `--font-sans`/`--font-mono` without churn; `--font-serif` now resolves to
+// the sans stack (the Desk has no serif register).
+const geistSans = Instrument_Sans({
   variable: "--font-geist-sans",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
 });
 
 const geistMono = IBM_Plex_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
-  weight: ["400", "500"],
-});
-
-const sourceSerif = Source_Serif_4({
-  variable: "--font-source-serif",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "500", "600"],
 });
 
 export const metadata: Metadata = {
@@ -86,7 +81,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} ${sourceSerif.variable} h-full`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full`}
     >
       <body className="min-h-full bg-background font-sans text-foreground antialiased">
         <script
@@ -106,7 +101,14 @@ export default function RootLayout({
           <RangeProvider>
             <div className="flex min-h-full flex-col lg:flex-row">
               <Nav />
-              <div className="min-w-0 flex-1">{children}</div>
+              {/* The document sheet: page content renders on a white sheet
+                  floating on the workspace ground (desktop); below lg the
+                  sheet goes full-bleed. */}
+              <div className="min-w-0 flex-1 lg:py-5 lg:pl-2 lg:pr-6">
+                <div className="min-h-full bg-card lg:rounded-[10px] lg:border lg:border-border lg:shadow-sheet">
+                  {children}
+                </div>
+              </div>
             </div>
           </RangeProvider>
           <Toaster />

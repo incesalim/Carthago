@@ -116,9 +116,9 @@ function Brand() {
         className="size-7 shrink-0 object-contain dark:brightness-0 dark:invert"
       />
       <span className="flex flex-col leading-none">
-        <span className="font-serif text-xl font-semibold tracking-tight">Carthago</span>
-        <span className="mt-0.5 font-mono text-[8.5px] font-medium uppercase tracking-[0.14em] text-primary">
-          Turkish Banking Sector
+        <span className="text-lg font-bold tracking-tight">Carthago</span>
+        <span className="mt-0.5 text-[10px] font-medium text-faint">
+          Turkish banking data
         </span>
       </span>
     </Link>
@@ -152,10 +152,12 @@ function NavLinks({
           aria-current={active ? "page" : undefined}
           onClick={onNavigate}
           className={cn(
-            "rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors",
+            // Quiet rail: plain text, no hover fill; the active route gets an
+            // ink bar on the left and full ink — nothing else competes.
+            "border-l-2 px-3 py-1 text-[13px] transition-colors",
             active
-              ? "font-semibold text-foreground"
-              : "text-muted-foreground hover:bg-accent hover:text-foreground",
+              ? "border-foreground font-semibold text-foreground"
+              : "border-transparent font-normal text-muted-foreground hover:text-foreground",
           )}
         >
           {t.label}
@@ -175,12 +177,12 @@ function NavLinks({
             aria-current={parentActive ? "page" : undefined}
             onClick={onNavigate}
             className={cn(
-              "flex-1 rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors",
+              "flex-1 border-l-2 px-3 py-1 text-[13px] transition-colors",
               parentActive
-                ? "font-semibold text-foreground"
+                ? "border-foreground font-semibold text-foreground"
                 : sectionActive
-                  ? "text-foreground hover:bg-accent"
-                  : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                  ? "border-transparent text-foreground"
+                  : "border-transparent font-normal text-muted-foreground hover:text-foreground",
             )}
           >
             {t.label}
@@ -190,7 +192,7 @@ function NavLinks({
             aria-label={`${isOpen ? "Collapse" : "Expand"} ${t.label} section`}
             aria-expanded={isOpen}
             onClick={() => toggleGroup(t.href)}
-            className="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="inline-flex size-6 shrink-0 items-center justify-center text-faint transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             {isOpen ? (
               <ChevronDown className="size-4" />
@@ -201,7 +203,7 @@ function NavLinks({
         </div>
 
         {isOpen && (
-          <div className="mt-0.5 ml-4 flex flex-col gap-0.5 border-l border-border pl-2">
+          <div className="mt-0.5 ml-4 flex flex-col gap-0.5">
             {t.children.map((c) => {
               const childActive = isActive(pathname, c.href);
               return (
@@ -211,10 +213,10 @@ function NavLinks({
                   aria-current={childActive ? "page" : undefined}
                   onClick={onNavigate}
                   className={cn(
-                    "rounded-md px-3 py-1 text-[12px] font-medium transition-colors",
+                    "border-l-2 px-3 py-0.5 text-[12px] transition-colors",
                     childActive
-                      ? "font-semibold text-foreground"
-                      : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                      ? "border-foreground font-semibold text-foreground"
+                      : "border-transparent font-normal text-muted-foreground hover:text-foreground",
                   )}
                 >
                   {c.label}
@@ -238,8 +240,8 @@ function NavLinks({
           className={cn("flex flex-col gap-0.5", i > 0 && "mt-2")}
         >
           {section.label && (
-            // Sentence-case sans — mono-caps is reserved for eyebrows/kickers/indices.
-            <div className="px-3 pb-1 text-[11px] font-medium text-faint">
+            // Mono-caps group label — the rail's only ornament.
+            <div className="px-3 pb-1.5 font-mono text-[9px] font-medium uppercase tracking-[0.12em] text-faint">
               {section.label}
             </div>
           )}
@@ -270,19 +272,20 @@ export default function Nav() {
 
   return (
     <>
-      {/* Desktop sidebar */}
-      <aside className="sticky top-0 z-30 hidden h-screen w-56 shrink-0 flex-col border-r border-border bg-card lg:flex">
-        <div className="border-b border-border px-4 py-3">
+      {/* Desktop rail — sits directly on the workspace ground; the sheet's own
+          edge provides the separation, so the rail carries no border or fill. */}
+      <aside className="sticky top-0 z-30 hidden h-screen w-52 shrink-0 flex-col bg-background lg:flex">
+        <div className="px-6 pb-2 pt-5">
           <Brand />
         </div>
         <NavLinks pathname={pathname} />
-        <div className="border-t border-border px-3 py-3">
+        <div className="mx-6 border-t border-border px-0 py-3">
           <ThemeToggle />
         </div>
       </aside>
 
       {/* Mobile top bar */}
-      <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-border bg-card px-4 py-2.5 lg:hidden">
+      <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-border bg-background px-4 py-2.5 lg:hidden">
         <Brand />
         <div className="flex items-center gap-1">
           <ThemeToggle />

@@ -10,119 +10,119 @@
  * — it uses utilities like `bg-card`, `text-muted-foreground`, `border-border`,
  * `text-positive`, `bg-chart-1`, so light/dark stay consistent app-wide.
  *
- * Palette: "Editorial" system — warm cream paper, navy ink, a DUAL accent
- * (terracotta `--primary` for brand/eyebrows/links; navy `--data` for charts,
- * KPI values and sparklines). Print-magazine feel: serif headings (Source
- * Serif 4), mono labels + numbers (IBM Plex Mono), Plex Sans body. Hex values
- * are the design-handoff targets; color-mix in the base layer converts them.
+ * Palette: "The Desk" system — a white document sheet (`--card`) on a cool
+ * paper workspace (`--background`), hairline rules instead of boxes, one
+ * functional blue (`--primary`) reserved for links/routes, navy (`--data`)
+ * as the chart hero, green/red strictly for data direction and amber for
+ * thresholds/representative flags. Type: Instrument Sans everywhere, IBM
+ * Plex Mono for labels + every figure. See web/DESIGN.md.
  */
 
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --radius: 0.625rem;            /* 10px editorial cards */
+  --radius: 0.5rem;              /* 8px — document, not app-chrome */
 
-  --background: #ECE8E0;         /* warm cream paper */
-  --foreground: #16243B;         /* navy ink */
+  --background: #F7F8F6;         /* app ground — cool paper workspace */
+  --foreground: #12161B;         /* ink */
 
-  --card: #FFFFFF;               /* pure-white card — lifts off the cream page */
+  --card: #FFFFFF;               /* the sheet — content lives on white */
   --card-foreground: var(--foreground);
 
   --popover: #FFFFFF;
   --popover-foreground: var(--foreground);
 
-  --muted: #ECE8DF;              /* warm fill: subtotal rows / inner dividers */
-  --muted-foreground: #6A7384;   /* secondary text */
+  --muted: #F1F2EE;              /* quiet fill: subtotal rows / inner dividers */
+  --muted-foreground: #68707A;   /* secondary text */
 
-  --accent: #EAE5DA;             /* warm hover bg */
+  --accent: #F0F2EE;             /* hover bg (kept subtle — Desk prefers text-only hover) */
   --accent-foreground: var(--foreground);
 
-  --secondary: #EAE5DA;
+  --secondary: #F0F2EE;
   --secondary-foreground: var(--foreground);
 
-  --border: #D8D1C2;             /* warm hairline — firmer, so white cards read as objects */
-  --input: #D8D1C2;
-  --ring: #C2603A;               /* focus ring = brand */
+  --border: #E1E3DD;             /* sheet edge + card hairlines */
+  --hair: #ECEDE8;               /* inner row hairlines — one step quieter */
+  --input: #E1E3DD;
+  --ring: #2757A8;               /* focus ring = link blue */
 
-  /* Brand — terracotta (eyebrows, links, "watch" tones, brand marks). */
-  --primary: #C2603A;
-  --primary-foreground: #FBFAF7;
+  /* Functional blue — links, routes, "go deeper" affordances ONLY. */
+  --primary: #2757A8;
+  --primary-foreground: #FFFFFF;
 
-  /* Data accent — editorial navy (chart lines, KPI values, sparklines). */
-  --data: #1C3A60;
+  /* Data accent — chart hero navy (lines, KPI values, sparklines). */
+  --data: #2B4E7E;
 
   /* Caption / axis tone. */
-  --faint: #9AA1AD;
+  --faint: #A0A7AE;
 
-  /* Data-semantic tones (used as text + as /10–/15 tinted backgrounds).
-     --negative is a COOLER crimson than brand terracotta (--primary) on purpose,
-     so a red eyebrow/link and a negative number never read as the same hue. */
-  --positive: #2E7D5F;
-  --negative: #B03246;
-  --warning: #B07D1A;
-  --info: #1C3A60;
+  /* Data-semantic tones (used as text + as /10–/15 tinted backgrounds). */
+  --positive: #187A53;
+  --negative: #C24847;
+  --warning: #B98514;             /* thresholds, representative-data flags */
+  --info: #2B4E7E;
 
   /* Cross-bank heatmap ramp. */
-  --heat-pos: #2E7D5F;
-  --heat-neg: #B03246;
-  --heat-neutral: #9AA1AD;
+  --heat-pos: #187A53;
+  --heat-neg: #C24847;
+  --heat-neutral: #A0A7AE;
 
-  /* Categorical chart palette — navy-led emphasis, warm/cool group spread. */
-  --chart-1: #1C3A60;   /* navy — sector / primary emphasis */
-  --chart-2: #3E6098;
-  --chart-3: #88A0C0;
-  --chart-4: #B98A5E;   /* warm tan */
-  --chart-5: #6E4B6E;   /* plum */
-  --chart-6: #9AA1AD;   /* gray */
+  /* Categorical chart palette — navy-led, cool spread + one amber. */
+  --chart-1: #2B4E7E;   /* navy — sector / hero */
+  --chart-2: #4E79B8;
+  --chart-3: #8FA8C8;
+  --chart-4: #B98514;   /* amber */
+  --chart-5: #7A5C8A;   /* muted plum */
+  --chart-6: #A0A7AE;   /* gray */
 }
 
 .dark {
-  /* Dark editorial — warm charcoal paper, cream ink (the mock is light-only;
-     this is a cohesive companion so the theme toggle still works). */
-  --background: #181712;        /* warm near-black paper */
-  --foreground: #ECE8E0;        /* cream ink */
+  /* Dark desk — cool graphite workspace, lifted sheet, same hierarchy. */
+  --background: #101318;        /* graphite ground */
+  --foreground: #E6E9E6;        /* paper ink */
 
-  --card: #26231C;               /* lifted card — same figure-ground step as light */
+  --card: #171B21;               /* lifted sheet — same figure-ground step as light */
   --card-foreground: var(--foreground);
 
-  --popover: #26231C;
+  --popover: #171B21;
   --popover-foreground: var(--foreground);
 
-  --muted: #2A2722;
-  --muted-foreground: #B0A893;
+  --muted: #1E232A;
+  --muted-foreground: #9AA3AD;
 
-  --accent: #2F2C26;
+  --accent: #1E232A;
   --accent-foreground: var(--foreground);
 
-  --secondary: #2F2C26;
+  --secondary: #1E232A;
   --secondary-foreground: var(--foreground);
 
-  --border: #3E382E;
-  --input: #3E382E;
-  --ring: #D7794F;
+  --border: #262C34;
+  --hair: #1F252C;
+  --input: #262C34;
+  --ring: #7FA3D8;
 
-  --primary: #D7794F;           /* brightened terracotta */
-  --primary-foreground: #181712;
+  --primary: #7FA3D8;           /* brightened link blue */
+  --primary-foreground: #101318;
 
-  --data: #7FA0C8;              /* brightened navy for dark charts */
+  --data: #7FA3D8;              /* brightened hero navy for dark charts */
 
-  --faint: #8A8472;
+  --faint: #6B747E;
 
-  --positive: #5BB58C;
-  --negative: #E7788A;           /* cooler crimson (vs terracotta) — see light note */
-  --warning: #D9A441;
-  --info: #7FA0C8;
+  --positive: #4FB98A;
+  --negative: #E0716B;
+  --warning: #D9A83F;
+  --info: #7FA3D8;
 
-  --heat-pos: #5BB58C;
-  --heat-neg: #E7788A;
-  --heat-neutral: #A79F8E;
+  --heat-pos: #4FB98A;
+  --heat-neg: #E0716B;
+  --heat-neutral: #8B939C;
 
-  --chart-1: #7FA0C8;   /* navy emphasis (lightened) */
-  --chart-2: #9BB1D0;
-  --chart-3: #C2CEDF;
-  --chart-4: #D2A878;
-  --chart-5: #B391B3;
-  --chart-6: #A79F8E;
+  --chart-1: #7FA3D8;   /* navy hero (lightened) */
+  --chart-2: #9BB4D8;
+  --chart-3: #C1CEDE;
+  --chart-4: #D9A83F;
+  --chart-5: #B092C0;
+  --chart-6: #8B939C;
 }
 
 @theme inline {
@@ -140,6 +140,7 @@
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-border: var(--border);
+  --color-hair: var(--hair);
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-primary: var(--primary);
@@ -162,7 +163,9 @@
   --radius-xl: calc(var(--radius) + 4px);
 
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-serif: var(--font-source-serif), Georgia, Cambria, "Times New Roman", serif;
+  /* The Desk has no serif register — legacy `font-serif` headings resolve to
+     the sans display face so every page converges without per-file churn. */
+  --font-serif: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
@@ -210,4 +213,16 @@
 /* Numeric tables read better with lining, tabular figures. */
 .tabular-nums {
   font-variant-numeric: tabular-nums;
+}
+
+/* The document sheet — whisper elevation, used once in the root layout. */
+.shadow-sheet {
+  box-shadow:
+    0 1px 2px rgba(18, 24, 32, 0.04),
+    0 8px 28px -18px rgba(18, 24, 32, 0.1);
+}
+.dark .shadow-sheet {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.3),
+    0 8px 28px -18px rgba(0, 0, 0, 0.5);
 }
