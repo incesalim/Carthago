@@ -21,7 +21,15 @@ import {
   type EarningsEvent,
   type EarningsKind,
 } from "@/app/lib/earnings";
-import { PageHeader } from "@/app/components/ui";
+import {
+  Colophon,
+  Depth,
+  DeskHeader,
+  SecHead,
+  Vital,
+  Vitals,
+} from "@/app/components/desk";
+import { monthLabel } from "@/app/lib/desk";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +43,14 @@ function fmtDate(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso.slice(0, 10);
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+/** ISO date → 'Jul 3' (short, for the vitals band). */
+function fmtDay(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso.slice(0, 10);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 function fmtPeriod(p: string | null): string {
@@ -91,15 +107,107 @@ export default async function EarningsPage() {
     .sort()
     .at(-1);
 
+  // ---- the brief's computed vitals (counts + dates from the same fetch) ----
+  const resultsEvents = events.filter((e) => e.kind === "results_filing");
+  const latestResult = resultsEvents[0] ?? null; // events are newest-first
+  const season =
+    resultsEvents
+      .map((e) => e.period)
+      .filter((p): p is string => p != null)
+      .sort()
+      .at(-1) ?? null;
+  const filedThisSeason = season
+    ? resultsEvents.filter((e) => e.period === season).length
+    : 0;
+  const resultsStats = summary.find((s) => s.kind === "results_filing");
+  const deckStats = summary.find((s) => s.kind === "presentation_deck");
+
   return (
-    <main className="mx-auto w-full px-4 py-8 sm:px-6 lg:px-8 space-y-8 max-w-[1440px]">
-      <div className="space-y-2">
-        <PageHeader
-          eyebrow="KAP filings · IR decks"
-          title="Earnings & Presentations"
-          description="When each BIST-listed bank filed its quarterly results (KAP), plus the quarterly investor-presentation decks from their IR sites. Earnings-call transcripts and audio are not freely available for Turkish banks, so they are not shown here."
-          dataThrough={latestAny?.slice(0, 10)}
+    <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
+      <DeskHeader
+        title="Earnings & Presentations"
+        record={
+          <>
+            Record <b className="font-normal text-foreground">{monthLabel(latestAny)}</b> · KAP
+            results filings · IR decks
+          </>
+        }
+        right="compiled, not written"
+      />
+
+      <SecHead
+        title="The vitals"
+        meta="recency · season · archive · coverage"
+        className="mb-2.5 mt-6"
+      />
+      <Vitals cols={5}>
+        <Vital
+          label="Latest results filing"
+          value={fmtDay(latestResult?.event_date)}
+          note={
+            latestResult ? (
+              <>
+                <Link
+                  href={`/banks/${latestResult.ticker}`}
+                  className="font-semibold text-primary"
+                >
+                  {latestResult.ticker}
+                </Link>{" "}
+                — {fmtPeriod(latestResult.period) || "quarterly"} financials on KAP
+              </>
+            ) : (
+              "no results filings cached yet"
+            )
+          }
         />
+        <Vital
+          label="Filed this season"
+          value={season ? String(filedThisSeason) : "—"}
+          note={
+            season
+              ? `${fmtPeriod(season)} results filings · of ${resultsStats?.banks ?? "—"} banks that file`
+              : "season = latest reported quarter"
+          }
+        />
+        <Vital
+          label="Results filings archived"
+          value={resultsStats ? resultsStats.total.toLocaleString("en-US") : "—"}
+          note={
+            resultsStats
+              ? `quarterly KAP filings across ${resultsStats.banks} banks`
+              : "quarterly KAP filings on record"
+          }
+        />
+        <Vital
+          label="IR decks collected"
+          value={deckStats ? deckStats.total.toLocaleString("en-US") : "—"}
+          note={
+            deckStats
+              ? `presentation PDFs from ${deckStats.banks} bank IR sites`
+              : "investor-presentation PDFs, linked out"
+          }
+        />
+        <Vital
+          label="Banks covered"
+          value={String(banks.length)}
+          note={
+            <>
+              KAP filings + IR decks — all filings at{" "}
+              <Link href="/disclosures" className="font-semibold text-primary">
+                /disclosures
+              </Link>
+            </>
+          }
+        />
+      </Vitals>
+
+      <Depth>
+        <p className="text-xs text-muted-foreground">
+          When each BIST-listed bank filed its quarterly results (KAP), plus the quarterly
+          investor-presentation decks from their IR sites. Earnings-call transcripts and audio
+          are not freely available for Turkish banks, so they are not shown here.
+        </p>
+
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
           {summary.map((s) => (
             <span key={s.kind}>
@@ -113,34 +221,36 @@ export default async function EarningsPage() {
             All KAP disclosures →
           </Link>
         </div>
-      </div>
 
-      {banks.length === 0 ? (
-        <div className="text-xs text-muted-foreground italic">No earnings data cached yet.</div>
-      ) : (
-        <div className="space-y-6">
-          {banks.map((ticker) => (
-            <section key={ticker} className="space-y-2">
-              <div className="flex items-baseline gap-3 border-b border-border pb-1">
-                <Link
-                  href={`/banks/${ticker}`}
-                  className="font-serif text-lg font-semibold tracking-tight hover:underline"
-                >
-                  {ticker}
-                </Link>
-                <span className="text-xs text-muted-foreground">
-                  {byBank.get(ticker)!.length} event{byBank.get(ticker)!.length === 1 ? "" : "s"}
-                </span>
-              </div>
-              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {byBank.get(ticker)!.map((e) => (
-                  <EventRow key={`${e.source}-${e.external_id}`} e={e} />
-                ))}
-              </div>
-            </section>
-          ))}
-        </div>
-      )}
+        {banks.length === 0 ? (
+          <div className="text-xs text-muted-foreground italic">No earnings data cached yet.</div>
+        ) : (
+          <div className="space-y-6">
+            {banks.map((ticker) => (
+              <section key={ticker} className="space-y-2">
+                <div className="flex items-baseline gap-3 border-b border-border pb-1">
+                  <Link
+                    href={`/banks/${ticker}`}
+                    className="font-serif text-lg font-semibold tracking-tight hover:underline"
+                  >
+                    {ticker}
+                  </Link>
+                  <span className="text-xs text-muted-foreground">
+                    {byBank.get(ticker)!.length} event{byBank.get(ticker)!.length === 1 ? "" : "s"}
+                  </span>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {byBank.get(ticker)!.map((e) => (
+                    <EventRow key={`${e.source}-${e.external_id}`} e={e} />
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        )}
+      </Depth>
+
+      <Colophon />
     </main>
   );
 }
