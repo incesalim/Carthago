@@ -1,6 +1,6 @@
 {
   "_doc": "Direct PDF URLs for quarterly BRSA Financial Reports per Turkish bank. Sourced from each bank's investor relations site. Filenames are heterogeneous; future quarters need re-scraping (see README).",
-  "_updated": "2026-05-27",
+  "_updated": "2026-07-11",
   "banks": {
     "AKBNK": {
       "name": "Akbank T.A.Ş.",
@@ -1286,6 +1286,121 @@
           "2025Q3": "https://www.garantibbvainvestorrelations.com/en/images/pdf/30_September_2025_Unconsolidated_Financial_Report.pdf",
           "2025Q4": "https://www.garantibbvainvestorrelations.com/en/images/pdf/31_December_2025_Unconsolidated_Financial_Report.pdf",
           "2026Q1": "https://www.garantibbvainvestorrelations.com/en/images/pdf/31_March_2026_Unconsolidated_Financial_Report.pdf"
+        }
+      }
+    },
+    "ENPARA": {
+      "name": "Enpara Bank A.Ş.",
+      "ir_page": "https://www.enpara.com/hakkimizda/finansal-raporlar",
+      "urls": {
+        "unconsolidated": {
+          "2024Q4": "https://www.enpara.com/docs/default-source/default-document-library/enpara-bank-konsolide-olmayan-bddk-finansal-rapor-31-12-2024.pdf?sfvrsn=46ca8feb_6",
+          "2025Q1": "https://www.enpara.com/docs/default-source/default-document-library/enpara-bank-konsolide-olmayan-bddk-finansal-rapor-31-03-2025.pdf?sfvrsn=a2ffac79_9",
+          "2025Q2": "https://www.enpara.com/docs/default-source/dg_assets/enpara-bank-30-06-2025-bddk-rapor.pdf?sfvrsn=22566e09_3",
+          "2025Q3": "https://www.enpara.com/docs/default-source/default-document-library/enpara-bank-30-09-2025-bddk-rapor.pdf?sfvrsn=14b76f8f_3",
+          "2025Q4": "https://www.enpara.com/docs/default-source/default-document-library/enpara-bddk-raporu-31-12-2025.pdf?sfvrsn=6ea38254_3",
+          "2026Q1": "https://www.enpara.com/docs/default-source/default-document-library/enparabank-bddk-raporu-31-03-2026.pdf?sfvrsn=4c7f9818_3"
+        }
+      }
+    },
+    "COLENDI": {
+      "name": "Colendi Bank A.Ş.",
+      "ir_page": "https://www.colendibank.com/kurumsal-bilgiler/",
+      "_note": "English editions (TR also published each quarter).",
+      "urls": {
+        "unconsolidated": {
+          "2025Q2": "https://www.colendibank.com/wp-content/uploads/2025/10/ENG-ColendiBank-A.S.-BDR-30.06.2025-Final.pdf",
+          "2025Q3": "https://www.colendibank.com/wp-content/uploads/2026/02/30.09.2025-%E2%80%93-Unconsolidated-Financial-Statements-and-the-Independent-Auditors-Review-Report.pdf",
+          "2025Q4": "https://www.colendibank.com/wp-content/uploads/2026/04/31.12.2025-%E2%80%93-Unconsolidated-Financial-Statements-and-the-Independent-Auditors-Review-Report.pdf",
+          "2026Q1": "https://www.colendibank.com/wp-content/uploads/2026/06/31.03.2026-%E2%80%93-Unconsolidated-Financial-Statements-and-the-Independent-Auditors-Review-Report.pdf"
+        }
+      }
+    },
+    "ZIRAATD": {
+      "name": "Ziraat Dinamik Banka A.Ş.",
+      "ir_page": "https://www.ziraatdinamik.com.tr/tr/yatirimci-iliskileri/finansal-bilgiler/denetim-raporu-ve-mali-tablolar",
+      "_note": "Full report = 'bagimsiz-denetim-raporu' file (~75pp); 'mali-tablolar' is a 7pp summary. 2025Q2 source PDF is corrupt on the IR site (served a non-PDF blob); 2024Q4/2025Q1 are KAP-only. Those three deferred — series starts 2025Q3.",
+      "urls": {
+        "unconsolidated": {
+          "2025Q3": "https://www.ziraatdinamik.com.tr/tr/hakkimizda-zb/Documents/ziraat-dinamik-banka-bagimsiz-denetim-raporu-30-09-2025.pdf",
+          "2025Q4": "https://www.ziraatdinamik.com.tr/tr/hakkimizda-zb/Documents/ziraat-dinamik-banka-bagimsiz-denetim-raporu-31-12-2025.pdf",
+          "2026Q1": "https://www.ziraatdinamik.com.tr/tr/hakkimizda-zb/Documents/ziraat-dinamik-banka-bagimsiz-denetim-raporu-31-03-2026.pdf"
+        }
+      }
+    },
+    "TOMK": {
+      "name": "T.O.M. Katılım Bankası A.Ş.",
+      "ir_page": "https://tombank.com.tr/kurumsal-bilgi-belgeler.html",
+      "urls": {
+        "unconsolidated": {
+          "2023Q3": "https://tombank.com.tr/assets/images/doc/denetim-raporlari/30092023.pdf",
+          "2023Q4": "https://tombank.com.tr/assets/images/doc/denetim-raporlari/31122023.pdf",
+          "2024Q1": "https://tombank.com.tr/assets/images/doc/denetim-raporlari/31032024.pdf",
+          "2024Q2": "https://tombank.com.tr/assets/images/doc/denetim-raporlari/30062024-tr.pdf",
+          "2024Q3": "https://tombank.com.tr/assets/images/doc/denetim-raporlari/30092024-tr.pdf",
+          "2024Q4": "https://tombank.com.tr/assets/images/doc/denetim-raporlari/31122024.pdf",
+          "2025Q1": "https://tombank.com.tr/assets/images/doc/denetim-raporlari/31032025.pdf",
+          "2025Q2": "https://tombank.com.tr/assets/images/doc/denetim-raporlari/30062025.pdf",
+          "2025Q3": "https://tombank.com.tr/assets/images/doc/denetim-raporlari/30092025-tr.pdf",
+          "2025Q4": "https://tombank.com.tr/assets/images/doc/denetim-raporlari/31122025.pdf",
+          "2026Q1": "https://tombank.com.tr/assets/images/doc/denetim-raporlari/31032026.pdf"
+        }
+      }
+    },
+    "DUNYAK": {
+      "name": "Dünya Katılım Bankası A.Ş.",
+      "ir_page": "https://dunyakatilim.com.tr/yatirimci-iliskileri",
+      "_note": "Server needs a Referer header (see sync_audit_reports.REFERERS).",
+      "urls": {
+        "unconsolidated": {
+          "2023Q4": "https://dunyakatilim.com.tr/content/files/uploads/1577/14-bagimsiz-denetim-31-12-2023-2.pdf",
+          "2024Q1": "https://dunyakatilim.com.tr/content/files/uploads/1577/13-bagimsiz-denetim-31-03-2024-1-2.pdf",
+          "2024Q2": "https://dunyakatilim.com.tr/content/files/uploads/1577/12-dunya-katilim-bankasi-30-06-2024-tr-solo-final-2.pdf",
+          "2024Q3": "https://dunyakatilim.com.tr/content/files/uploads/1577/11-dunya-katilim-bankasi-30-09-2024-tr-solo-2.pdf",
+          "2024Q4": "https://dunyakatilim.com.tr/content/files/uploads/1577/09-dunya-katilim-bankasi-as-31-12-2024-2.pdf",
+          "2025Q1": "https://dunyakatilim.com.tr/content/files/uploads/1577/07-dunya-katilim-bankasi-31-03-2025-tr-solo-2.pdf",
+          "2025Q2": "https://dunyakatilim.com.tr/content/files/uploads/1577/05-dunya-katilim-bankasi-30-06-2025-tr-solo-1.pdf",
+          "2025Q3": "https://dunyakatilim.com.tr/content/files/uploads/1577/03-dunya-katilim-bankasi-30-09-2025-tr-solo.pdf",
+          "2025Q4": "https://dunyakatilim.com.tr/content/files/uploads/1577/01-dunya-katilim-bankasi-31-12-2025-tr-solo.pdf",
+          "2026Q1": "https://dunyakatilim.com.tr/content/files/uploads/1577/00-01-31-mart-2026-bagimsiz-denetim-raporu-konsolide-olmayan.pdf"
+        },
+        "consolidated": {
+          "2024Q2": "https://dunyakatilim.com.tr/content/files/uploads/1577/12-2konsolide-finansal-tablolar-30-06-2024-1.pdf",
+          "2024Q4": "https://dunyakatilim.com.tr/content/files/uploads/1577/10-konsolide-finansal-tablolar-31-12-2024.pdf",
+          "2025Q1": "https://dunyakatilim.com.tr/content/files/uploads/1577/08-dunya-katilim-bankasi-31-03-2025-konsolide-1-1.pdf",
+          "2025Q2": "https://dunyakatilim.com.tr/content/files/uploads/1577/06-dunya-katilim-bankasi-30-06-2025-tr-konsolide-1.pdf",
+          "2025Q3": "https://dunyakatilim.com.tr/content/files/uploads/1577/04-dunya-katilim-bankasi-30-09-2025-tr-konsolide.pdf",
+          "2025Q4": "https://dunyakatilim.com.tr/content/files/uploads/1577/02-dunya-katilim-bankasi-31-12-2025-tr-konsolide.pdf",
+          "2026Q1": "https://dunyakatilim.com.tr/content/files/uploads/1577/00-01dunya-katilim-bankasi-31-03-2026-tr-konsolide.pdf"
+        }
+      }
+    },
+    "HAYATK": {
+      "name": "Hayat Finans Katılım Bankası A.Ş.",
+      "ir_page": "https://hayatfinans.com.tr/en/investor-relations/financial-information",
+      "_note": "English editions; getmedia GUID URLs.",
+      "urls": {
+        "unconsolidated": {
+          "2023Q1": "https://hayatfinans.com.tr/getmedia/99ef309f-b996-41fa-aded-a2624dc8aa26/hayat-finans-2023Q1-solo.pdf",
+          "2023Q2": "https://hayatfinans.com.tr/getmedia/41ef9c55-577f-4620-aaef-73151d549190/hayat-finans-2023Q2-solo.pdf",
+          "2023Q3": "https://hayatfinans.com.tr/getmedia/22e6976a-af3d-4e67-99d0-8962d1257385/hayat-finans-2023Q3-solo.pdf",
+          "2023Q4": "https://hayatfinans.com.tr/getmedia/5755ed4a-f4e6-4cec-a0eb-5f053d585490/hayat-finans-2023Q4-solo.pdf",
+          "2024Q1": "https://hayatfinans.com.tr/getmedia/055ba990-a122-4617-a467-f1a5181db1e9/hayat-finans-2024Q1-solo.pdf",
+          "2024Q2": "https://hayatfinans.com.tr/getmedia/f0e29916-7a09-48f9-b664-f7d7a584de62/hayat-finans-2024Q2-solo.pdf",
+          "2024Q3": "https://hayatfinans.com.tr/getmedia/4384a063-8ffa-4c57-a2f9-fb7432e7f7d0/hayat-finans-2024Q3-solo.pdf",
+          "2024Q4": "https://hayatfinans.com.tr/getmedia/7a140079-2eb8-4649-9b00-8996256f0a42/hayat-finans-2024Q4-solo.pdf",
+          "2025Q1": "https://hayatfinans.com.tr/getmedia/ad95681d-1a51-4e65-bea9-76b31dcc73d9/hayat-finans-2025Q1-solo.pdf",
+          "2025Q2": "https://hayatfinans.com.tr/getmedia/c2a6eb5f-9f84-4a3d-bae2-cd585d3fc462/hayat-finans-2025Q2-solo.pdf",
+          "2025Q3": "https://hayatfinans.com.tr/getmedia/a7cc6067-539a-40fe-888f-6f085892e9f7/hayat-finans-2025Q3-solo.pdf",
+          "2025Q4": "https://hayatfinans.com.tr/getmedia/315ea040-0537-427e-9612-775246da956c/hayat-finans-2025Q4-solo.pdf",
+          "2026Q1": "https://hayatfinans.com.tr/getmedia/01bb58a4-774a-484a-9b13-cce0b24f5eec/hayat-finans-2026Q1-solo.pdf"
+        },
+        "consolidated": {
+          "2025Q1": "https://hayatfinans.com.tr/getmedia/57d19ded-215a-411d-b4ff-72d692c51757/hayat-finans-2025Q1-konsolide.pdf",
+          "2025Q2": "https://hayatfinans.com.tr/getmedia/25039445-2a4c-439e-a1dd-1030f430badd/hayat-finans-2025Q2-konsolide.pdf",
+          "2025Q3": "https://hayatfinans.com.tr/getmedia/b5035f24-038f-4b62-9ad4-09275b83197f/hayat-finans-2025Q3-konsolide.pdf",
+          "2025Q4": "https://hayatfinans.com.tr/getmedia/dbf01ee7-c1d2-498a-a8b2-9602efda17d2/hayat-finans-2025Q4-konsolide.pdf",
+          "2026Q1": "https://hayatfinans.com.tr/getmedia/b33b2c6b-dd87-436d-92e8-26f0fb1beaaf/hayat-finans-2026Q1-konsolide.pdf"
         }
       }
     }

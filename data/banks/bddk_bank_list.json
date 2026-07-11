@@ -57,7 +57,7 @@
     {"name_tr": "TÜRKİYE İŞ BANKASI A.Ş.", "category": "Kamu Mevduat", "bist_ticker": "ISCTR", "listed": true, "note": "controlling shareholder structure mixed; BDDK classifies as Kamu in some periods"},
     {"name_tr": "TÜRKİYE VAKIFLAR BANKASI T.A.O.", "category": "Kamu Mevduat", "bist_ticker": "VAKBN", "listed": true},
     {"name_tr": "YAPI VE KREDİ BANKASI A.Ş.", "category": "Özel Mevduat", "bist_ticker": "YKBNK", "listed": true},
-    {"name_tr": "ZİRAAT DİNAMİK BANKA A.Ş.", "category": "Özel Mevduat", "is_digital": true, "listed": false},
+    {"name_tr": "ZİRAAT DİNAMİK BANKA A.Ş.", "category": "Kamu Mevduat", "is_digital": true, "listed": false, "note": "Ziraat (state) owned digital deposit bank"},
 
     {"name_tr": "AKTİF YATIRIM BANKASI A.Ş.", "category": "Kalkınma ve Yatırım", "listed": false},
     {"name_tr": "AYTEMİZ YATIRIM BANKASI A.Ş.", "category": "Kalkınma ve Yatırım", "listed": false},

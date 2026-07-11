@@ -18,12 +18,16 @@ export const BANK_NAMES: Record<string, string> = {
   ANADOLU: "Anadolubank",
   ATBANK: "Arap Türk Bankası",
   BURGAN: "Burgan Bank",
+  COLENDI: "Colendi Bank",
   DENIZ: "Denizbank",
+  DUNYAK: "Dünya Katılım",
   EMLAK: "Emlak Katılım",
+  ENPARA: "Enpara Bank",
   EXIM: "Türk Eximbank",
   FIBA: "Fibabanka",
   GARAN: "Garanti BBVA",
   HALKB: "Halkbank",
+  HAYATK: "Hayat Finans",
   HSBC: "HSBC Türkiye",
   ICBCT: "ICBC Turkey",
   ING: "ING Türkiye",
@@ -36,11 +40,13 @@ export const BANK_NAMES: Record<string, string> = {
   SKBNK: "Şekerbank",
   TEB: "TEB",
   TFKB: "Türkiye Finans",
+  TOMK: "T.O.M. Katılım",
   TSKB: "TSKB",
   VAKBN: "VakıfBank",
   VAKIFK: "Vakıf Katılım",
   YKBNK: "Yapı Kredi",
   ZIRAAT: "Ziraat Bankası",
+  ZIRAATD: "Ziraat Dinamik",
   ZIRAATK: "Ziraat Katılım",
 };
 
@@ -72,16 +78,20 @@ export function bankDisplayName(ticker: string): string {
 export const BANK_TYPE_BY_TICKER: Record<string, string> = {
   // State deposit (Kamu)
   ZIRAAT: "10006", HALKB: "10006", VAKBN: "10006",
+  ZIRAATD: "10006", // Ziraat Dinamik — state-owned digital deposit bank
   // Private domestic deposit (Özel)
   AKBNK: "10005", ISCTR: "10005", YKBNK: "10005",
   SKBNK: "10005", ANADOLU: "10005", FIBA: "10005",
+  COLENDI: "10005", // Colendi — domestic-private digital deposit bank
   // Foreign-owned deposit (Yabancı)
   GARAN: "10007", DENIZ: "10007", QNBFB: "10007", TEB: "10007",
   BURGAN: "10007", ALNTF: "10007", ODEA: "10007", ATBANK: "10007",
   HSBC: "10007", ING: "10007", ICBCT: "10007",
+  ENPARA: "10007", // Enpara — QNB (Qatar) owned digital deposit bank
   // Participation (Katılım)
   ALBRK: "10003", KUVEYT: "10003", TFKB: "10003",
   EMLAK: "10003", VAKIFK: "10003", ZIRAATK: "10003",
+  DUNYAK: "10003", HAYATK: "10003", TOMK: "10003",
   // Development & investment (Kalkınma ve Yatırım)
   TSKB: "10004", EXIM: "10004", KLNMA: "10004",
   AKTIF: "10004", PASHA: "10004",
