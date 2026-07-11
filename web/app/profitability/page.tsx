@@ -36,6 +36,7 @@ import { profitabilityInsights } from "@/app/lib/insights";
 import { seriesFinding } from "@/app/lib/chart-findings";
 import { withLlmHeadline } from "@/app/lib/read-headlines";
 import {
+  ChartRow,
   Colophon,
   Depth,
   DeskHeader,
@@ -338,29 +339,31 @@ export default async function ProfitabilityPage() {
           title="Returns"
           description="Return on equity & assets by bank group."
         >
-          <TrendChart
-            data={roe}
-            seriesLabels={BANK_TYPE_LABELS}
-            title={
-              seriesFinding(roe.filter((r) => r.bank_type_code === BANK_TYPES.SECTOR), { noun: "ROE", decimals: 1 }) ??
-              "ROE — Annualized (%)"
-            }
-            description="Return on equity, %, annualized (YTD × 12/month) · by ownership group"
-            source="Source: BDDK monthly bulletin"
-            yFormat="pct"
-            decimals={1}
-            zeroLine
-            height={300}
-          />
-          <TrendChart
-            data={roa}
-            seriesLabels={BANK_TYPE_LABELS}
-            title="ROA — Annualized (%)"
-            yFormat="pct"
-            decimals={2}
-            zeroLine
-            height={300}
-          />
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <TrendChart
+              data={roe}
+              seriesLabels={BANK_TYPE_LABELS}
+              title={
+                seriesFinding(roe.filter((r) => r.bank_type_code === BANK_TYPES.SECTOR), { noun: "ROE", decimals: 1 }) ??
+                "ROE — Annualized (%)"
+              }
+              description="Return on equity, %, annualized (YTD × 12/month) · by ownership group"
+              source="Source: BDDK monthly bulletin"
+              yFormat="pct"
+              decimals={1}
+              zeroLine
+              height={300}
+            />
+            <TrendChart
+              data={roa}
+              seriesLabels={BANK_TYPE_LABELS}
+              title="ROA — Annualized (%)"
+              yFormat="pct"
+              decimals={2}
+              zeroLine
+              height={300}
+            />
+          </div>
         </Section>
 
         {cpiAvg.length > 0 && (
@@ -369,30 +372,45 @@ export default async function ProfitabilityPage() {
             title="Real Returns"
             description="Sector / Private / State ROE alongside the 12-month rolling average of CPI YoY — distance from inflation = real return. In a 28%+ CPI regime this is the number that decides whether the sector earns its cost of capital."
           >
-            <TrendChart
+            <ChartRow
               data={roePlusCpi}
-              seriesLabels={{
+              labels={{
                 [BANK_TYPES.SECTOR]: "Sector ROE",
                 [BANK_TYPES.PRIVATE]: "Private ROE",
                 [BANK_TYPES.STATE]: "State ROE",
                 CPI: "CPI 12m avg",
               }}
-              title="ROE (annualized) vs CPI 12m avg (%)"
-              yFormat="pct"
-              decimals={1}
-              height={340}
-            />
+              deltaPeriods={12}
+              deltaLabel="12m"
+              fmt={(v) => `${v.toFixed(1)}%`}
+            >
+              <TrendChart
+                data={roePlusCpi}
+                seriesLabels={{
+                  [BANK_TYPES.SECTOR]: "Sector ROE",
+                  [BANK_TYPES.PRIVATE]: "Private ROE",
+                  [BANK_TYPES.STATE]: "State ROE",
+                  CPI: "CPI 12m avg",
+                }}
+                title="ROE (annualized) vs CPI 12m avg (%)"
+                yFormat="pct"
+                decimals={1}
+                height={340}
+              />
+            </ChartRow>
           </Section>
         )}
 
         <Section index="04" title="Margins">
-          <TrendChart
-            data={nim}
-            seriesLabels={BANK_TYPE_LABELS}
-            title="Net Interest Margin — Annualized (%)"
-            yFormat="pct"
-            decimals={2}
-          />
+          <ChartRow data={nim} labels={BANK_TYPE_LABELS} deltaPeriods={12} deltaLabel="12m" fmt={(v) => `${v.toFixed(2)}%`}>
+            <TrendChart
+              data={nim}
+              seriesLabels={BANK_TYPE_LABELS}
+              title="Net Interest Margin — Annualized (%)"
+              yFormat="pct"
+              decimals={2}
+            />
+          </ChartRow>
           <div className="space-y-1">
             <NimComponentsSection datasets={nimDatasets} dataThrough={nimThrough} />
             <p className="text-xs text-muted-foreground">

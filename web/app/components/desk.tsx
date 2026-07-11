@@ -393,6 +393,116 @@ export function Ahead({ items }: { items: AheadItem[] }) {
 }
 
 // ---------------------------------------------------------------------------
+// Chart row — a chart constrained to 2/3 width with a computed reading rail
+// ---------------------------------------------------------------------------
+
+interface SeriesRow {
+  period: string;
+  bank_type_code: string;
+  value: number | null;
+}
+
+/**
+ * Lay a lone chart out at two-thirds width with a computed side column —
+ * full-bleed width is reserved for hero charts (DESIGN.md). The rail is
+ * derived from the SAME rows the chart renders: one line per series (latest +
+ * change over `deltaPeriods`), or, for a single-series chart, its latest /
+ * change / window high / low.
+ */
+export function ChartRow({
+  data,
+  labels = {},
+  fmt,
+  deltaPeriods = 12,
+  deltaLabel = "12m",
+  children,
+}: {
+  data: SeriesRow[];
+  labels?: Record<string, string>;
+  /** Value formatter (defaults to 2-dp percent). */
+  fmt?: (v: number) => string;
+  /** How many trailing periods the Δ column spans (12 monthly ≈ 52 weekly ≈ 1y). */
+  deltaPeriods?: number;
+  deltaLabel?: string;
+  children: React.ReactNode;
+}) {
+  const f = fmt ?? ((v: number) => `${v.toFixed(2)}%`);
+  const byKey = new Map<string, { period: string; value: number }[]>();
+  for (const r of data) {
+    if (r.value == null) continue;
+    const arr = byKey.get(r.bank_type_code) ?? [];
+    arr.push({ period: r.period, value: r.value });
+    byKey.set(r.bank_type_code, arr);
+  }
+  for (const arr of byKey.values()) arr.sort((a, b) => (a.period < b.period ? -1 : 1));
+
+  const keys = [...byKey.keys()];
+  const latestPeriod = [...byKey.values()]
+    .map((arr) => arr.at(-1)?.period ?? "")
+    .sort()
+    .at(-1);
+
+  const rows: { name: string; value: string; delta: string }[] = [];
+  if (keys.length > 1) {
+    for (const k of keys) {
+      const arr = byKey.get(k)!;
+      const cur = arr.at(-1)!.value;
+      const ago = arr.at(-1 - deltaPeriods)?.value ?? null;
+      rows.push({
+        name: labels[k] ?? k,
+        value: f(cur),
+        delta: ago != null ? `${cur - ago >= 0 ? "+" : "−"}${f(Math.abs(cur - ago))}` : "—",
+      });
+    }
+    rows.sort((a, b) => parseFloat(b.value.replace(/[^\d.-]/g, "")) - parseFloat(a.value.replace(/[^\d.-]/g, "")));
+  } else if (keys.length === 1) {
+    const arr = byKey.get(keys[0])!;
+    const cur = arr.at(-1)!.value;
+    const ago = arr.at(-1 - deltaPeriods)?.value ?? null;
+    let hi = arr[0], lo = arr[0];
+    for (const p of arr) {
+      if (p.value > hi.value) hi = p;
+      if (p.value < lo.value) lo = p;
+    }
+    rows.push({ name: "Latest", value: f(cur), delta: "" });
+    if (ago != null)
+      rows.push({
+        name: `Δ ${deltaLabel}`,
+        value: `${cur - ago >= 0 ? "+" : "−"}${f(Math.abs(cur - ago)).replace(/^[+−-]/, "")}`,
+        delta: "",
+      });
+    rows.push({ name: "High", value: f(hi.value), delta: hi.period.slice(0, 7) });
+    rows.push({ name: "Low", value: f(lo.value), delta: lo.period.slice(0, 7) });
+  }
+
+  return (
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className="lg:col-span-2">{children}</div>
+      <div className="lg:pt-1">
+        <h5 className="mb-1 font-mono text-[8px] uppercase tracking-[0.1em] text-faint">
+          {keys.length > 1 ? `Latest · ${latestPeriod ?? ""} · Δ ${deltaLabel}` : `The read · ${latestPeriod ?? ""}`}
+        </h5>
+        <table className="w-full border-collapse">
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.name}>
+                <td className="border-b border-hair py-1.5 text-[12px] text-foreground">{r.name}</td>
+                <td className="border-b border-hair py-1.5 text-right font-mono text-[12px] font-semibold text-foreground">
+                  {r.value}
+                </td>
+                <td className="w-16 border-b border-hair py-1.5 text-right font-mono text-[10.5px] text-faint">
+                  {r.delta}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Depth divider + colophon
 // ---------------------------------------------------------------------------
 

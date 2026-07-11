@@ -39,6 +39,7 @@ import {
 import { sectorLiquidityRatios, AUDIT_LIQUIDITY_LABELS } from "@/app/lib/audit-ratios";
 import { Section } from "@/app/components/ui";
 import {
+  ChartRow,
   Colophon,
   Depth,
   DeskHeader,
@@ -56,6 +57,12 @@ import { seriesFinding } from "@/app/lib/chart-findings";
 import { withLlmHeadline } from "@/app/lib/read-headlines";
 
 export const dynamic = "force-dynamic";
+
+/** Record<label, {period_date, value}[]> (TimeSeriesChart shape) → long rows for ChartRow rails. */
+const tsRows = (s: Record<string, { period_date: string; value: number | null }[]>) =>
+  Object.entries(s).flatMap(([k, pts]) =>
+    pts.map((p) => ({ period: p.period_date, bank_type_code: k, value: p.value })),
+  );
 
 export const metadata: Metadata = {
   title: "Turkish Banks — Liquidity & Funding",
@@ -377,14 +384,16 @@ export default async function LiquidityPage() {
           title="TL Funding"
           description="Loan-to-deposit pressure and TL deposit inflows — public vs private. Full maturity/demand breakdown lives on the Deposits tab."
         >
-          <TrendChart
-            data={toTrend(tlLtd)}
-            seriesLabels={LIQ_OWNERSHIP_LABELS}
-            title="TL Loan / Deposit Ratio (%) — public vs private"
-            yFormat="pct"
-            decimals={0}
-            height={320}
-          />
+          <ChartRow data={toTrend(tlLtd)} labels={LIQ_OWNERSHIP_LABELS} deltaPeriods={52} deltaLabel="52w" fmt={(v) => `${v.toFixed(0)}%`}>
+            <TrendChart
+              data={toTrend(tlLtd)}
+              seriesLabels={LIQ_OWNERSHIP_LABELS}
+              title="TL Loan / Deposit Ratio (%) — public vs private"
+              yFormat="pct"
+              decimals={0}
+              height={320}
+            />
+          </ChartRow>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <TrendChart
               data={tlDepGrowth}
@@ -430,12 +439,14 @@ export default async function LiquidityPage() {
               decimals={1}
             />
           </div>
-          <TimeSeriesChart
-            series={residentsFc}
-            title="Residents' FC Savings — households (USD bn)"
-            yFormat="raw"
-            decimals={0}
-          />
+          <ChartRow data={tsRows(residentsFc)} deltaPeriods={52} deltaLabel="52w" fmt={(v) => `$${v.toFixed(0)}bn`}>
+            <TimeSeriesChart
+              series={residentsFc}
+              title="Residents' FC Savings — households (USD bn)"
+              yFormat="raw"
+              decimals={0}
+            />
+          </ChartRow>
         </Section>
 
         <Section
@@ -464,26 +475,30 @@ export default async function LiquidityPage() {
           title="Regulatory Liquidity (audited §4)"
           description="LCR, NSFR and leverage from the quarterly BRSA reports — asset-weighted average across reporting banks. These Basel ratios aren't in the monthly bulletin; this is the per-bank §4 lane aggregated to the sector."
         >
-          <TrendChart
-            data={liqRatios}
-            seriesLabels={AUDIT_LIQUIDITY_LABELS}
-            title="LCR / NSFR / Leverage (%) — sector, audited quarterly"
-            yFormat="pct"
-            decimals={0}
-            height={320}
-          />
+          <ChartRow data={liqRatios} labels={AUDIT_LIQUIDITY_LABELS} deltaPeriods={4} deltaLabel="4q" fmt={(v) => `${v.toFixed(0)}%`}>
+            <TrendChart
+              data={liqRatios}
+              seriesLabels={AUDIT_LIQUIDITY_LABELS}
+              title="LCR / NSFR / Leverage (%) — sector, audited quarterly"
+              yFormat="pct"
+              decimals={0}
+              height={320}
+            />
+          </ChartRow>
         </Section>
 
         <Section
           title="Macro Backdrop"
           description="Real appreciation eases financial conditions and supports the appetite for TL savings."
         >
-          <TimeSeriesChart
-            series={reerSeries}
-            title="Real Effective Exchange Rate (CPI based, 2003 = 100)"
-            yFormat="rate"
-            decimals={1}
-          />
+          <ChartRow data={tsRows(reerSeries)} deltaPeriods={12} deltaLabel="12m" fmt={(v) => v.toFixed(1)}>
+            <TimeSeriesChart
+              series={reerSeries}
+              title="Real Effective Exchange Rate (CPI based, 2003 = 100)"
+              yFormat="rate"
+              decimals={1}
+            />
+          </ChartRow>
         </Section>
       </Depth>
 

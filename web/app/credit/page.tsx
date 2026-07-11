@@ -27,6 +27,7 @@ import {
 } from "@/app/lib/metrics";
 import { Section } from "@/app/components/ui";
 import {
+  ChartRow,
   Colophon,
   Depth,
   DeskHeader,
@@ -602,22 +603,33 @@ export default async function CreditPage() {
               decimals={2}
             />
           </div>
-          <StackedArea
-            data={smeBreak.map((r: { period: string; micro: number | null; small: number | null; medium: number | null }) => ({
-              period: r.period,
-              Micro: r.micro ?? 0,
-              Small: r.small ?? 0,
-              Medium: r.medium ?? 0,
-            }))}
-            series={[
-              { key: "Micro", label: "Micro" },
-              { key: "Small", label: "Small" },
-              { key: "Medium", label: "Medium" },
-            ]}
-            title="SME Mix — Micro / Small / Medium (sector, TL bn · monthly)"
-            yFormat="bn"
-            decimals={0}
-          />
+          <ChartRow
+            data={smeBreak.flatMap((r: { period: string; micro: number | null; small: number | null; medium: number | null }) => [
+              { period: r.period, bank_type_code: "Micro", value: r.micro },
+              { period: r.period, bank_type_code: "Small", value: r.small },
+              { period: r.period, bank_type_code: "Medium", value: r.medium },
+            ])}
+            deltaPeriods={12}
+            deltaLabel="12m"
+            fmt={(v) => `₺${(v / 1_000).toFixed(0)}bn`}
+          >
+            <StackedArea
+              data={smeBreak.map((r: { period: string; micro: number | null; small: number | null; medium: number | null }) => ({
+                period: r.period,
+                Micro: r.micro ?? 0,
+                Small: r.small ?? 0,
+                Medium: r.medium ?? 0,
+              }))}
+              series={[
+                { key: "Micro", label: "Micro" },
+                { key: "Small", label: "Small" },
+                { key: "Medium", label: "Medium" },
+              ]}
+              title="SME Mix — Micro / Small / Medium (sector, TL bn · monthly)"
+              yFormat="bn"
+              decimals={0}
+            />
+          </ChartRow>
         </Section>
       </Depth>
 

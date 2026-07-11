@@ -28,6 +28,7 @@ import {
 } from "@/app/lib/metrics";
 import { Section } from "@/app/components/ui";
 import {
+  ChartRow,
   Colophon,
   Depth,
   DeskHeader,
@@ -394,14 +395,16 @@ export default async function DepositsPage() {
           title="Dollarization"
           description="The BBVA deposit headline — FX share of the base. The public/private split lives on Liquidity."
         >
-          <TrendChart
-            data={fxShare}
-            seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "FX share" }}
-            title="FX Share of Total Deposits (%)"
-            yFormat="pct"
-            decimals={1}
-            height={320}
-          />
+          <ChartRow data={fxShare} deltaPeriods={52} deltaLabel="52w" fmt={(v) => `${v.toFixed(1)}%`}>
+            <TrendChart
+              data={fxShare}
+              seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "FX share" }}
+              title="FX Share of Total Deposits (%)"
+              yFormat="pct"
+              decimals={1}
+              height={320}
+            />
+          </ChartRow>
         </Section>
 
         <Section index="03" title="Demand vs. Term" description="Weekly demand share (funding stickiness) + the monthly maturity ladder.">
@@ -444,14 +447,16 @@ export default async function DepositsPage() {
         </Section>
 
         <Section index="04" title="Loan-to-Deposit Ratio" description="Bank-group LDR — funding pressure indicator (monthly).">
-          <TrendChart
-            data={ldr}
-            seriesLabels={BANK_TYPE_LABELS}
-            title="LDR (%) — by group"
-            yFormat="pct"
-            decimals={0}
-            height={320}
-          />
+          <ChartRow data={ldr} labels={BANK_TYPE_LABELS} deltaPeriods={12} deltaLabel="12m" fmt={(v) => `${v.toFixed(0)}%`}>
+            <TrendChart
+              data={ldr}
+              seriesLabels={BANK_TYPE_LABELS}
+              title="LDR (%) — by group"
+              yFormat="pct"
+              decimals={0}
+              height={320}
+            />
+          </ChartRow>
         </Section>
       </Depth>
 

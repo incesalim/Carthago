@@ -37,6 +37,7 @@ import { capitalInsights } from "@/app/lib/insights";
 import { seriesFinding } from "@/app/lib/chart-findings";
 import { withLlmHeadline } from "@/app/lib/read-headlines";
 import {
+  ChartRow,
   Colophon,
   Depth,
   DeskHeader,
@@ -304,14 +305,16 @@ export default async function CapitalPage() {
           title="Capital composition (audited §4)"
           description="CET1 and Tier-1 ratios from the quarterly BRSA reports — aggregated Σ capital ÷ Σ RWA across reporting banks. The monthly bulletin carries only total CAR; CET1 is the Basel III / BBVA capital headline."
         >
-          <TrendChart
-            data={capRatios}
-            seriesLabels={AUDIT_CAPITAL_LABELS}
-            title="CET1 / Tier-1 / Total CAR (%) — sector, audited quarterly"
-            yFormat="pct"
-            decimals={1}
-            height={320}
-          />
+          <ChartRow data={capRatios} labels={AUDIT_CAPITAL_LABELS} deltaPeriods={4} deltaLabel="4q" fmt={(v) => `${v.toFixed(1)}%`}>
+            <TrendChart
+              data={capRatios}
+              seriesLabels={AUDIT_CAPITAL_LABELS}
+              title="CET1 / Tier-1 / Total CAR (%) — sector, audited quarterly"
+              yFormat="pct"
+              decimals={1}
+              height={320}
+            />
+          </ChartRow>
         </Section>
 
         <CapitalByBank index="04" period={byBankCap.period} rows={byBankCap.rows} />
