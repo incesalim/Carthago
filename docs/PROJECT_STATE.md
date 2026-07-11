@@ -43,11 +43,18 @@ coverage or known issues change.
 | `bank_audit_oci`, `_cash_flow`, `_equity_change`, `_npl_movement`, `_stages`, `_loans_by_sector` | BRSA PDFs (statement pages + IFRS-9/credit footnotes) | 2022-Q1 → 2026-Q1 | per-bank; per-lane pass rates in the validation-status table below |
 | `bank_audit_extractions` | extraction log | one row per PDF | 974 rows (954 ok / 20 partial) |
 | `bank_types`, `table_definitions`, `download_log` | metadata | — | — |
-| `banks` (+ alias views `v_bist_prices` / `v_news_items` / `v_bank_earnings`) | dimension (migration 0021), seeded from `bddk_bank_list.json` + `bank_names.ts` | 31-bank audited universe | canonical per-bank identity + single join key across lanes (`ticker` == `bank_ticker` == `symbol`); the views alias each lane's id column to `bank_ticker`. Powers cross-lane joins + the text-to-SQL bot |
+| `banks` (+ alias views `v_bist_prices` / `v_news_items` / `v_bank_earnings`) | dimension (migration 0021; +0022 new entrants), seeded from `bddk_bank_list.json` + `bank_names.ts` | 37-bank audited universe | canonical per-bank identity + single join key across lanes (`ticker` == `bank_ticker` == `symbol`); the views alias each lane's id column to `bank_ticker`. Powers cross-lane joins + the text-to-SQL bot |
 
-**Quarterly audit reports**: 32 banks in URL config, ~974 PDFs extracted into
+**Quarterly audit reports**: 37 banks in URL config, ~974 PDFs extracted into
 D1 (~159k balance-sheet rows + ~59k P&L rows + ~7.4k IFRS 9 credit-quality
-rows + ~460 bank-profile rows). PDFs themselves live in R2 at
+rows + ~460 bank-profile rows) for the 31 established banks. **6 new-entrant
+digital / participation banks were added to the config + `banks` dimension on
+2026-07-11** (Enpara, Colendi, Ziraat Dinamik + Dünya / Hayat Finans / T.O.M.
+Katılım — 59 verified text-PDF report-periods) and are **pending their first
+acquisition + extraction** (they surface on `/banks` only once
+`bank_audit_extractions` rows exist). Feasibility + per-bank sourcing:
+[knowledge/new-banks-coverage-gap-2026-07-11.md](knowledge/new-banks-coverage-gap-2026-07-11.md).
+PDFs themselves live in R2 at
 `bddk-audit-reports/<ticker>/<TICKER>_<period>_<kind>.pdf`. Bank profile
 (branches + personnel) is extracted where the bank discloses it in a
 recognized phrasing — **20 of 31 banks parsed** (2026-06-14: broadened the regex —

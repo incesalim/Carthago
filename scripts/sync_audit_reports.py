@@ -65,6 +65,7 @@ REFERERS = {
     "PASHA":  "https://www.pashabank.com.tr/tr/yatirimci-iliskileri",
     "AKTIF":  "https://www.aktifbank.com.tr/hakkimizda/finansal-bilgiler/denetim-raporlari",
     "VAKIFK": "https://www.vakifkatilim.com.tr/",
+    "DUNYAK": "https://dunyakatilim.com.tr/yatirimci-iliskileri",
 }
 
 def _restrict_to_latest_period(rows: list, t_idx: int = 0, p_idx: int = 1) -> list:
