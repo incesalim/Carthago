@@ -533,38 +533,39 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
           At-a-glance profile + (listed banks) BIST market & valuation. */}
       <div id="overview" className="scroll-mt-24 mb-8">
         <Section title="Overview" contentClassName="">
-          {/* Rank-in-field strip: place among the banks reporting the same
-              quarter (same panel as /cross-bank, so the ranks reconcile). */}
-          {rankChips.length > 0 && (
-            <div className="mb-4 flex flex-wrap gap-2">
-              {rankChips.map((c) => (
-                <span
-                  key={c.label}
-                  className="inline-flex items-baseline gap-1.5 rounded-md border border-border bg-card px-2.5 py-1"
-                >
-                  <span className="font-mono text-sm font-semibold text-foreground">
-                    {ord(c.r.rank)}
-                  </span>
-                  <span className="text-[11px] text-muted-foreground">
-                    of {c.r.n} {c.label}
-                  </span>
-                </span>
-              ))}
-              <span className="self-center text-[11px] text-faint">
-                · among banks reporting {perfLatest?.period}
-              </span>
-            </div>
-          )}
-
           {/* Composed hero band: profile (left) + market snapshot (right) —
               one screenful instead of three stacked full-width strips. */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
             <div className={valuation ? "lg:col-span-3" : "lg:col-span-5"}>
-              {/* Bank-card summary: branches, personnel, TFRS 9 stage + coverage */}
+              {/* Bank-card summary: branches, personnel, TFRS 9 stage +
+                  coverage. The rank-in-field chips (same panel as /cross-bank,
+                  so the ranks reconcile) fill the card's footer band. */}
               <BankCard
                 profile={profile}
                 stages={stages}
                 latestPeriod={periods[0] ?? null}
+                footer={
+                  rankChips.length > 0 ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      {rankChips.map((c) => (
+                        <span
+                          key={c.label}
+                          className="inline-flex items-baseline gap-1.5 rounded-md border border-border bg-background/60 px-2.5 py-1"
+                        >
+                          <span className="font-mono text-sm font-semibold text-foreground">
+                            {ord(c.r.rank)}
+                          </span>
+                          <span className="text-[11px] text-muted-foreground">
+                            of {c.r.n} {c.label}
+                          </span>
+                        </span>
+                      ))}
+                      <span className="text-[11px] text-faint">
+                        · among banks reporting {perfLatest?.period}
+                      </span>
+                    </div>
+                  ) : undefined
+                }
               />
             </div>
 

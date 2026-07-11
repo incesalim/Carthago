@@ -52,9 +52,12 @@ interface Props {
   stages: BankStages | null;
   /** Latest period covered by financial tables (used as fallback if stages is null). */
   latestPeriod?: string | null;
+  /** Bottom band (e.g. the rank-in-field chips) — fills the card when it sits
+   *  beside a taller sibling in the composed hero grid. */
+  footer?: React.ReactNode;
 }
 
-export default function BankCard({ profile, stages, latestPeriod }: Props) {
+export default function BankCard({ profile, stages, latestPeriod, footer }: Props) {
   const nplRatio =
     stages?.stage3_amount != null && stages?.total_amount
       ? stages.stage3_amount / stages.total_amount
@@ -65,7 +68,7 @@ export default function BankCard({ profile, stages, latestPeriod }: Props) {
   const period = stages?.period ?? profile?.period ?? latestPeriod ?? null;
 
   return (
-    <section className="h-full rounded-[10px] border border-border bg-card overflow-hidden">
+    <section className="flex h-full flex-col rounded-[10px] border border-border bg-card overflow-hidden">
       <div className="px-5 py-3 border-b bg-muted flex items-baseline justify-between">
         <h2 className="text-sm font-semibold text-foreground">Bank profile</h2>
         <span className="text-[11px] text-muted-foreground tabular-nums">
@@ -124,6 +127,10 @@ export default function BankCard({ profile, stages, latestPeriod }: Props) {
           </div>
         </div>
       </div>
+
+      {footer && (
+        <div className="mt-auto border-t border-border px-5 py-3">{footer}</div>
+      )}
     </section>
   );
 }
