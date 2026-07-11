@@ -66,6 +66,7 @@ export const PIPELINE_NODES: PipelineNode[] = [
   { id: "src-rss-press", kind: "source", layer: "source", lane: "bulletin", label: "Financial-media RSS", sublabel: "Bloomberg HT, Dünya, Ekonomim, AA, NTV", statusKey: "news" },
   { id: "src-rss-google", kind: "source", layer: "source", lane: "bulletin", label: "Google News", sublabel: "topic-scoped search RSS · long-tail outlets", statusKey: "news" },
   { id: "src-ir-presentations", kind: "source", layer: "source", lane: "bulletin", label: "Bank IR presentation decks", sublabel: "Garanti BBVA / Akbank / Yapı Kredi · quarterly PDF" },
+  { id: "src-advertised-rates", kind: "source", layer: "source", lane: "bulletin", label: "Rate comparison sites", sublabel: "doviz.com (loans) · hangikredi (deposits) · per-bank posted rates", statusKey: "advertised_rates" },
 
   // ── Bulletin lane · ingestion (workflows) ──────────────────────────────
   { id: "wf-evds-daily", kind: "workflow", layer: "ingestion", lane: "bulletin", label: "refresh-evds-daily", sublabel: "Sun–Fri 05:00 · EVDS + BIST/TBB/KAP/TEFAS", workflowFile: "refresh-evds-daily.yml" },
@@ -77,6 +78,7 @@ export const PIPELINE_NODES: PipelineNode[] = [
   { id: "wf-news-daily", kind: "workflow", layer: "ingestion", lane: "bulletin", label: "refresh-news-daily", sublabel: "daily 02:00 · sync_news.py", workflowFile: "refresh-news-daily.yml" },
   { id: "wf-summarize", kind: "workflow", layer: "ingestion", lane: "bulletin", label: "summarize-regulations", sublabel: "weekly Thu · LLM briefing", workflowFile: "summarize-regulations.yml" },
   { id: "wf-presentations", kind: "workflow", layer: "ingestion", lane: "bulletin", label: "refresh-presentations-weekly", sublabel: "Sat 06:00 · update_presentations.py", workflowFile: "refresh-presentations-weekly.yml" },
+  { id: "wf-advertised-rates", kind: "workflow", layer: "ingestion", lane: "bulletin", label: "refresh-advertised-rates", sublabel: "Mon 06:00 · src.rates.scraper → push_to_d1", workflowFile: "refresh-advertised-rates.yml" },
 
   // ── Bulletin lane · storage (D1) ───────────────────────────────────────
   { id: "store-d1-bulletin", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · bulletin tables", sublabel: "balance_sheet · income_statement · loans · deposits · ratios · weekly", statusKey: "monthly" },
@@ -90,6 +92,7 @@ export const PIPELINE_NODES: PipelineNode[] = [
   { id: "store-d1-bist", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · bist_*", sublabel: "bist_prices · bist_dividends · bist_shares", statusKey: "bist" },
   { id: "store-d1-news", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · news_items", sublabel: "regulation + press + Google News · + per-bank tags", statusKey: "news" },
   { id: "store-d1-earnings", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · bank_earnings", sublabel: "KAP results filings + IR presentation decks" },
+  { id: "store-d1-advertised-rates", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · bank_advertised_rates", sublabel: "per-bank posted loan + deposit rates · dated snapshots", statusKey: "advertised_rates" },
 
   // ── Audit lane · sources ───────────────────────────────────────────────
   { id: "src-ir-pdf", kind: "source", layer: "source", lane: "audit", label: "Bank IR / BRSA PDFs", sublabel: "31 banks · +13 auto-discover quarters", statusKey: "audit" },
@@ -182,6 +185,7 @@ export const PIPELINE_EDGES: PipelineEdge[] = [
   { source: "src-rss-google", target: "wf-news-daily" },
   { source: "src-kap", target: "wf-news-daily" },
   { source: "src-ir-presentations", target: "wf-presentations" },
+  { source: "src-advertised-rates", target: "wf-advertised-rates" },
 
   // bulletin workflows → D1 stores
   { source: "wf-evds-daily", target: "store-d1-evds" },
@@ -190,6 +194,7 @@ export const PIPELINE_EDGES: PipelineEdge[] = [
   { source: "wf-evds-daily", target: "store-d1-kap" },
   { source: "wf-evds-daily", target: "store-d1-tefas" },
   { source: "wf-evds-daily", target: "store-d1-bist" },
+  { source: "wf-advertised-rates", target: "store-d1-advertised-rates" },
   { source: "wf-bddk-bulletins", target: "store-d1-bulletin" },
   { source: "wf-bddk-bulletins", target: "store-d1-nonbank" },
   { source: "wf-refresh-data", target: "store-d1-bulletin" },
