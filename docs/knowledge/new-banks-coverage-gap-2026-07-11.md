@@ -251,21 +251,25 @@ A genuine 2-column report prints "-" for an empty prior (a counted value) so it 
 misfire. Verified: the single-column periods go P&L **2→~62 rows**; 2026Q1/2025Q4 validate
 **P7/F0**; the 2-col control (DUNYAK 2025Q3) + AKBNK 2026Q1 stay `ncols=2` unchanged;
 `test_extractor_rows`/`test_audit_validator` pass. Re-extracted via `backfill-audit.yml`
-(banks=DUNYAK) → **DUNYAK core-success 9→14**. All of Dünya's 2025 + 2026Q1 (the
-commercially-relevant recent quarters) now extract and, for the current quarters, validate.
+(banks=DUNYAK) → 9→14, then a local `backfill_extraction.py --banks DUNYAK` (see below)
+→ **DUNYAK core-success 9→15**. All of Dünya's 2025 + 2026Q1 (the commercially-relevant
+recent quarters) now extract and, for the current quarters, validate.
 
-  **Three residual DUNYAK partitions still fail** — all Dünya's *oldest* 2024 reports, all
-  three DISTINCT from the single-column fix (which worked):
-  1. **2024Q2 consolidated & 2024Q4 consolidated** — the source PDFs are **truncated**
-     (145 KB / 144 KB vs ~1.6 MB for a real consolidated report; `assets=0` even downloaded
-     fresh from a local IP). The balance-sheet pages simply aren't in the file. Not a bug —
-     the config URLs serve broken files. Fix = find alternative URLs (KAP filing / a
-     different Dünya filename); otherwise leave flagged.
-  2. **2024Q4 unconsolidated** — an anomalous **8.5 MB image-heavy** PDF. Extracts **clean
-     locally (pl=61, validates)** but CI's fitz can't read its text layer, so the
-     single-column detector doesn't fire there → `n_cols=2` → pl=2 on CI. R2 copy verified
-     clean + re-seeded. Fix = extract locally and push that one partition, or find a
-     text-based source URL. Low value (image-heavy 2024 year-end).
+  **2024Q4 unconsolidated — RESOLVED via local extract+push.** It's an anomalous **8.5 MB
+  image-heavy** PDF: it extracts clean locally (pl=61) but CI's fitz can't read its text
+  layer, so on CI the single-column detector didn't fire → `n_cols=2` → pl=2. Fixed by a
+  **local** `backfill_extraction.py --banks DUNYAK` (dry-run first confirmed all 15 good
+  partitions unchanged + 2024Q4u→pl=61, then the real push cleared+re-pushed DUNYAK to D1 +
+  snapshot). No collateral damage (AKBNK/GARAN and the other new banks unchanged; fleet
+  1031/1034). This is the [[reference_r2_token_scope_and_ci_ip]] local-seed pattern applied
+  to a CI-fitz limitation rather than a CI-IP block.
+
+  **Two residual DUNYAK partitions still fail** — both truncated source files:
+  - **2024Q2 consolidated & 2024Q4 consolidated** — the source PDFs are **truncated**
+    (145 KB / 144 KB vs ~1.6 MB for a real consolidated report; `assets=0` even downloaded
+    fresh from a local IP). The balance-sheet pages simply aren't in the file. Not a bug —
+    the config URLs serve broken files. Fix = find alternative URLs (KAP filing / a
+    different Dünya filename); otherwise leave flagged.
 
   *Sub-residual (validation-only, data correct):* **DUNYAK 2024Q1 + 2024Q4** — Dünya's
   oldest reports also have a **source roman-numbering shift** (pre-tax at XVI, tax at XVII,
