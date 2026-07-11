@@ -39,6 +39,7 @@ from src.kap.schema import init_schema as _init_kap_schema              # noqa: 
 from src.news._htmltext import fix_mojibake                            # noqa: E402
 from src.news.schema import init_schema as _init_news_schema            # noqa: E402
 from src.nonbank.schema import init_schema as _init_nonbank_schema      # noqa: E402
+from src.rates.schema import init_schema as _init_rates_schema          # noqa: E402
 from src.tefas.schema import init_schema as _init_tefas_schema          # noqa: E402
 from src.tkbb.schema import init_acquisition_schema as _init_tkbb_acq_schema  # noqa: E402
 from src.tkbb.schema import init_schema as _init_tkbb_schema            # noqa: E402
@@ -86,6 +87,7 @@ SYNC_TABLES = [
     "tkbb_digital_stats",
     "tkbb_acquisition_stats",
     "kap_ownership",
+    "bank_advertised_rates",
     "faaliyet_franchise",
     "faaliyet_extractions",
     "tefas_manager_daily",
@@ -293,6 +295,7 @@ def main() -> int:
     _init_earnings_schema(conn)
     _init_tkbb_schema(conn)
     _init_tkbb_acq_schema(conn)
+    _init_rates_schema(conn)
 
     allowed_tables = (
         {t.strip() for t in args.only_tables.split(",") if t.strip()}

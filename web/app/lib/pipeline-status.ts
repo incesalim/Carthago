@@ -117,6 +117,11 @@ const EXT_SOURCES: { key: string; sql: string; cadenceHours: number }[] = [
     sql: "SELECT COUNT(*) AS n, MAX(extracted_at) AS last_refresh, MAX(fiscal_year) AS latest FROM faaliyet_franchise",
     cadenceHours: YEAR,
   },
+  {
+    key: "advertised_rates",
+    sql: "SELECT COUNT(*) AS n, MAX(downloaded_at) AS last_refresh, MAX(snapshot_date) AS latest FROM bank_advertised_rates",
+    cadenceHours: WEEK,
+  },
 ];
 
 /** Audit D1 groups — extraction is admin-triggered, so health = "has rows". */
