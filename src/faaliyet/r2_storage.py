@@ -1,15 +1,22 @@
 """Cloudflare R2 storage for annual-report (Faaliyet Raporu) PDFs.
 
 Reuses the audit lane's boto3 client (``audit_reports.r2_storage.get_client`` —
-read-only import, the audit module is unchanged) but a SEPARATE bucket and key
-convention so the two report families never collide:
+read-only import, the audit module is unchanged) and, by default, its bucket
+(``bddk-audit-reports``): the R2 S3 access key in use is scoped to that one
+bucket, so a dedicated ``bddk-faaliyet-reports`` bucket is not reachable without
+widening the token. Collision is avoided by the key convention alone — the
+``_faaliyet.pdf`` suffix keeps these objects fully disjoint from audit reports
+(``<TICKER>_<period>_<kind>.pdf``), and the audit lane only ever touches keys it
+constructs from its own config (it never lists the bucket to pick extraction
+targets), so the two families coexist safely:
 
     <ticker_lower>/<TICKER>_<fiscal_year>_<lang>_faaliyet.pdf
 e.g. akbnk/AKBNK_2025_tr_faaliyet.pdf
 
-Bucket defaults to ``bddk-faaliyet-reports`` (override via R2_FAALIYET_BUCKET).
-All calls pass ``Bucket=`` explicitly, so nothing here depends on the audit
-lane's R2_BUCKET env var.
+To move to a dedicated bucket later, create it, grant the R2 token access
+(dashboard), and set R2_FAALIYET_BUCKET=bddk-faaliyet-reports. All calls pass
+``Bucket=`` explicitly, so nothing here depends on the audit lane's R2_BUCKET
+env var.
 """
 from __future__ import annotations
 
@@ -26,7 +33,7 @@ except ImportError:  # pragma: no cover
     _HAS_BOTO3 = False
 
 
-DEFAULT_BUCKET = "bddk-faaliyet-reports"
+DEFAULT_BUCKET = "bddk-audit-reports"
 
 
 def bucket() -> str:
