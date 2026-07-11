@@ -90,7 +90,7 @@ export function scoreToColor(score: number | null, neutral = false): string {
  */
 export function formatMetricValue(
   value: number | null,
-  unit: "pct" | "trn" | "bn" | "raw" | "mult",
+  unit: "pct" | "pts" | "trn" | "bn" | "raw" | "mult",
   decimals: number,
 ): string {
   if (value == null || !Number.isFinite(value)) return "—";
@@ -101,6 +101,10 @@ export function formatMetricValue(
   switch (unit) {
     case "pct":
       return `${nf.format(value * 100)}%`;
+    // Already in percentage POINTS (the audited §4 ratios are stored that way —
+    // CAR 15.5 means 15.5%). Multiplying again printed "1,553.0%".
+    case "pts":
+      return `${nf.format(value)}%`;
     case "trn":
       return `₺${nf.format(value / 1e9)} trn`;
     case "bn":

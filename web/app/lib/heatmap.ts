@@ -50,7 +50,9 @@ export interface MetricDef {
   key: MetricKey;
   label: string;
   short: string;
-  unit: "pct" | "trn" | "bn" | "raw" | "mult";
+  /** "pct" = stored as a FRACTION (0.155 → 15.5%); "pts" = stored in percentage
+   *  POINTS already (15.5 → 15.5%), which is how the audited §4 ratios arrive. */
+  unit: "pct" | "pts" | "trn" | "bn" | "raw" | "mult";
   decimals: number;
   direction: Direction;
 }
@@ -84,15 +86,15 @@ export const METRIC_DEFS: MetricDef[] = [
   { key: "spread",              label: "Loan–deposit spread", short: "Spread",     unit: "pct", decimals: 1, direction: "higher_better" },
   { key: "cost_income",         label: "Cost / Income",       short: "Cost/Inc",   unit: "pct",  decimals: 1, direction: "higher_worse" },
   // Capital + liquidity (audited §4) — solvency/liquidity buffers; higher = stronger.
-  { key: "cet1",                label: "CET1 ratio (§4)",     short: "CET1",       unit: "pct", decimals: 1, direction: "higher_better" },
-  { key: "car",                 label: "CAR (§4)",            short: "CAR",        unit: "pct", decimals: 1, direction: "higher_better" },
-  { key: "lcr",                 label: "LCR (§4)",            short: "LCR",        unit: "pct", decimals: 0, direction: "higher_better" },
+  { key: "cet1",                label: "CET1 ratio (§4)",     short: "CET1",       unit: "pts", decimals: 1, direction: "higher_better" },
+  { key: "car",                 label: "CAR (§4)",            short: "CAR",        unit: "pts", decimals: 1, direction: "higher_better" },
+  { key: "lcr",                 label: "LCR (§4)",            short: "LCR",        unit: "pts", decimals: 0, direction: "higher_better" },
   // Market risk (CAMELS "S") — magnitude of exposure, so higher = more exposed.
   // FX NOP = |net open FX position| / regulatory capital (the regulatory NOP
   // ratio). Repricing gap ≤1y = |Σ rate-sensitive gap in the ≤1y buckets| /
   // total assets — how much of the book reprices within a year, net.
-  { key: "fx_nop",              label: "FX net open pos. / capital", short: "FX NOP", unit: "pct", decimals: 1, direction: "higher_worse" },
-  { key: "repricing_gap_1y",    label: "Repricing gap ≤1y / assets", short: "Gap ≤1y", unit: "pct", decimals: 1, direction: "higher_worse" },
+  { key: "fx_nop",              label: "FX net open pos. / capital", short: "FX NOP", unit: "pts", decimals: 1, direction: "higher_worse" },
+  { key: "repricing_gap_1y",    label: "Repricing gap ≤1y / assets", short: "Gap ≤1y", unit: "pts", decimals: 1, direction: "higher_worse" },
   // Market valuation (listed banks only — blank for the unlisted majority).
   // Neutral coloring: cheap/expensive isn't good/bad. Snapshot uses the
   // quarter-end close; over-time uses current shares (no historical share
