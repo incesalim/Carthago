@@ -46,7 +46,6 @@ const STATIC_ROUTES: {
   { path: "/deposits", priority: 0.8, changeFrequency: "weekly" },
   { path: "/rates", priority: 0.7, changeFrequency: "weekly" },
   { path: "/market-risk", priority: 0.7, changeFrequency: "weekly" },
-  { path: "/franchise", priority: 0.7, changeFrequency: "weekly" },
   { path: "/ownership", priority: 0.6, changeFrequency: "monthly" },
   { path: "/disclosures", priority: 0.7, changeFrequency: "daily" },
   { path: "/earnings", priority: 0.7, changeFrequency: "weekly" },
