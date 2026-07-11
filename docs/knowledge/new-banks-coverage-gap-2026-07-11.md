@@ -240,16 +240,38 @@ Core-statement success (`bank_audit_extractions.success` = assets+liabilities+P&
 | HAYATK | 18 | 17 | 1 partition partial |
 | DUNYAK | 17 | 9 | **8 partitions: P&L under-parses** |
 
-**Residual per-bank tail (follow-up — the balance sheets are clean fleet-wide):**
-- **DUNYAK P&L** — on `2024Q1`, `2024Q4`, `2025Q4`, `2026Q1` (both kinds) the P&L
-  extracts only **~2 rows vs ~63** (BS assets/liabilities/off_balance all fine; verified
-  e.g. 2026Q1 solo BS 46/40/66 rows but P&L 2). Not a rotation/anchor-absent issue
-  (income-stmt markers present, `rotation=0`) — the P&L parser lands on the wrong
-  short table / mis-parses these specific PwC reports. Diagnose via
-  `scripts/diagnostics/diag_partition.py DUNYAK 2026Q1 unconsolidated`; fix in
-  `src/audit_reports/profit_loss.py` (fitz-only), then targeted re-extract via
-  `reextract-statement.yml`. **Impact: DUNYAK's latest-quarter margins/ROE won't
-  compute until fixed** — highest-value residual.
+**DUNYAK P&L — FIXED 2026-07-11** (`extractor.py`, commit e2f6140). Root cause: those
+Dünya reports print a **single-column** P&L (current period only, no prior comparative).
+`_detect_pl_ncols` couldn't represent 1 column (it assumes ≥2, and `NUM_PAT` counts the
+hierarchy marker "1.1" as a value, inflating every single-value row to 2), so it fell
+back to 2 → `_parse_rows` skipped every 1-number row → ~2 garbage rows → core-success
+gate failed. Fix = a marker/footnote-aware single-column detector (`_count_values` on
+clean fitz text; ≥70% single-value majority over ≥8 rows → `n_cols=1`; `pri_amount=None`).
+A genuine 2-column report prints "-" for an empty prior (a counted value) so it can't
+misfire. Verified: the single-column periods go P&L **2→~62 rows**; 2026Q1/2025Q4 validate
+**P7/F0**; the 2-col control (DUNYAK 2025Q3) + AKBNK 2026Q1 stay `ncols=2` unchanged;
+`test_extractor_rows`/`test_audit_validator` pass. Re-extracted via `backfill-audit.yml`
+(banks=DUNYAK) → **DUNYAK core-success 9→14**. All of Dünya's 2025 + 2026Q1 (the
+commercially-relevant recent quarters) now extract and, for the current quarters, validate.
+
+  **Three residual DUNYAK partitions still fail** — all Dünya's *oldest* 2024 reports, all
+  three DISTINCT from the single-column fix (which worked):
+  1. **2024Q2 consolidated & 2024Q4 consolidated** — the source PDFs are **truncated**
+     (145 KB / 144 KB vs ~1.6 MB for a real consolidated report; `assets=0` even downloaded
+     fresh from a local IP). The balance-sheet pages simply aren't in the file. Not a bug —
+     the config URLs serve broken files. Fix = find alternative URLs (KAP filing / a
+     different Dünya filename); otherwise leave flagged.
+  2. **2024Q4 unconsolidated** — an anomalous **8.5 MB image-heavy** PDF. Extracts **clean
+     locally (pl=61, validates)** but CI's fitz can't read its text layer, so the
+     single-column detector doesn't fire there → `n_cols=2` → pl=2 on CI. R2 copy verified
+     clean + re-seeded. Fix = extract locally and push that one partition, or find a
+     text-based source URL. Low value (image-heavy 2024 year-end).
+
+  *Sub-residual (validation-only, data correct):* **DUNYAK 2024Q1 + 2024Q4** — Dünya's
+  oldest reports also have a **source roman-numbering shift** (pre-tax at XVI, tax at XVII,
+  net at XIX; net = XVI−XVII = 130,222−28,745 = 101,477 ✓ extracts right) that trips the
+  validator's fixed-ordinal `pl_chain`. Same class as the AKBNK 2022Q1–Q3 shift → fix with
+  a `pl_rehier` override in `audit_overrides.json` (renames only; amounts already tie).
 - **HAYATK** — 1 partition partial; peripheral-lane alerts (npl_movement 0-pass across
   periods — participation banks often don't disclose the interim movement table;
   oci/equity_change 1-check near-misses).
