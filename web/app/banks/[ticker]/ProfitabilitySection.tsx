@@ -71,7 +71,8 @@ export default function ProfitabilitySection({
       description="Derived from the audited statements on a trailing-twelve-month basis — same figures as Compare. Market share is of the banks reporting each quarter (~98% of sector)."
       contentClassName=""
     >
-      {/* Margin bridge + earnings-quality stats (latest quarter). */}
+      {/* One latest-quarter scorecard: margins, earnings quality AND
+          competitive position together (was two separated stat strips). */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         <Stat label="ROE (TTM)" value={pct(latest.roe, 1)} />
         <Stat label="NIM (annualized)" value={pct(latest.nim)} />
@@ -85,25 +86,8 @@ export default function ProfitabilitySection({
         <Stat label="Cost of risk (TTM)" value={pct(latest.cost_of_risk)} />
         <Stat label="PPOP / assets (TTM)" value={pct(latest.ppop_ratio)} />
         <Stat label="Cost / income" value={pct(latest.cost_income, 1)} />
-      </div>
-
-      {hasMarginTrend && (
-        <div className="mt-4">
-          <TimeSeriesChart
-            series={{ "Loan yield": yieldSeries, "Deposit cost": costSeries }}
-            title="Margin bridge — loan yield vs deposit cost (TTM, %)"
-            yFormat="pct"
-            xFormat="quarter"
-            decimals={1}
-            height={280}
-          />
-        </div>
-      )}
-
-      {/* Competitive position. */}
-      {latestShare && (
-        <div className="mt-6">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {latestShare && (
+          <>
             <Stat
               label="Assets share"
               value={pct(latestShare.assets_share)}
@@ -111,9 +95,27 @@ export default function ProfitabilitySection({
             />
             <Stat label="Loans share" value={pct(latestShare.loans_share)} />
             <Stat label="Deposits share" value={pct(latestShare.deposits_share)} />
-          </div>
+          </>
+        )}
+      </div>
+
+      {/* The two trend charts share one row — no stacked full-width bands. */}
+      {(hasMarginTrend || hasShareTrend) && (
+        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {hasMarginTrend && (
+            <div className={hasShareTrend ? "" : "lg:col-span-2"}>
+              <TimeSeriesChart
+                series={{ "Loan yield": yieldSeries, "Deposit cost": costSeries }}
+                title="Margin bridge — loan yield vs deposit cost (TTM, %)"
+                yFormat="pct"
+                xFormat="quarter"
+                decimals={1}
+                height={280}
+              />
+            </div>
+          )}
           {hasShareTrend && (
-            <div className="mt-4">
+            <div className={hasMarginTrend ? "" : "lg:col-span-2"}>
               <TimeSeriesChart
                 series={{ Assets: aShare, Loans: lShare, Deposits: dShare }}
                 title="Market share of reporting banks (%)"

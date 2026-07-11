@@ -61,6 +61,9 @@ interface Props {
   hero?: string;
   /** On-chart annotations (dashed line + optional band + mono note). */
   annotations?: ChartAnnotation[];
+  /** Render the plot WITHOUT the ChartCard chrome — for composed cards that
+   *  already provide a surface/heading (no export pills in this mode). */
+  bare?: boolean;
 }
 
 export default function TimeSeriesChart({
@@ -74,6 +77,7 @@ export default function TimeSeriesChart({
   height = 320,
   hero,
   annotations,
+  bare = false,
 }: Props) {
   const t = useChartTheme();
   const fmt = formatters[yFormat];
@@ -164,8 +168,8 @@ export default function TimeSeriesChart({
     valueOnly,
   );
 
-  return (
-    <ChartCard title={title} description={description} source={source}>
+  const body = (
+    <>
       <ChartData
         table={wideToTable(
           data,
@@ -318,6 +322,13 @@ export default function TimeSeriesChart({
           </LineChart>
         </ResponsiveContainer>
       </div>
+    </>
+  );
+
+  if (bare) return body;
+  return (
+    <ChartCard title={title} description={description} source={source}>
+      {body}
     </ChartCard>
   );
 }
