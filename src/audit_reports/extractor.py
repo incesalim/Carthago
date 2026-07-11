@@ -1102,6 +1102,30 @@ def _detect_pl_ncols(pdf_path: str, page_idx_1: int) -> int:
         mode = Counter(counts).most_common(1)[0][0]
         return mode if mode % 2 == 0 else mode - 1  # an odd count = a footnote number
 
+    # Single-column P&L (no prior-period column): some banks print only the
+    # current period — e.g. Dünya Katılım's Q1/Q4 reports. `_mode_from` can't see
+    # this because NUM_PAT counts the hierarchy marker ("1.1") as a number, so
+    # every single-value row looks like it has 2. Use the marker/footnote-aware
+    # `_count_values` on the clean (never-shattered) fitz text: a ≥70% single-value
+    # majority over ≥8 data rows means ONE value column → return 1, so _parse_rows
+    # keeps those rows (n_cols=2 skips every 1-number row → only ~2 survive).
+    # A genuine 2-column report prints "-" for an empty prior, which counts as a
+    # value, so its rows carry 2 — this can't misfire onto them.
+    if _HAS_FITZ:
+        cvs = [
+            _count_values(s)
+            for s in (
+                ln.strip()
+                for ln in _fitz_merge_rows(
+                    _fitz_page_text(pdf_path, page_idx_1 - 1), 2
+                ).splitlines()
+            )
+            if HIERARCHY_PAT.match(s) or TOTAL_PAT.search(s)
+        ]
+        cvs = [c for c in cvs if c >= 1]
+        if len(cvs) >= 8 and sum(1 for c in cvs if c == 1) >= 0.7 * len(cvs):
+            return 1
+
     try:
         import pdfplumber as _pp
         with _pp.open(pdf_path) as pdf:
@@ -1356,7 +1380,9 @@ def extract(pdf_path: str | Path, only: set[str] | None = None) -> BankReport:
                 h, name, fn = _split_label(label)
                 rep.profit_loss.append(StatementRow(
                     order=order, hierarchy=h, name=name, footnote=fn,
-                    cur_amount=vals[0], pri_amount=vals[pl_n // 2],
+                    cur_amount=vals[0],
+                    # Single-column reports (pl_n == 1) carry no prior period.
+                    pri_amount=(vals[pl_n // 2] if pl_n >= 2 else None),
                 ))
         # OCI always follows the P&L page (same single-value-column structure).
         # Its page is ALSO the after-anchor for equity + cash flow, so locate it
