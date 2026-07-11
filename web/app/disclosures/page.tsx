@@ -17,7 +17,15 @@ import {
   newsSourceSummary,
   type NewsItem,
 } from "@/app/lib/news";
-import { PageHeader } from "@/app/components/ui";
+import {
+  Colophon,
+  Depth,
+  DeskHeader,
+  SecHead,
+  Vital,
+  Vitals,
+} from "@/app/components/desk";
+import { monthLabel } from "@/app/lib/desk";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +43,29 @@ function fmtDate(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso.slice(0, 10);
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+const DAY_MS = 86_400_000;
+
+/**
+ * Filings published within `days` of `anchor` (skips unparseable dates). The
+ * anchor is the feed's own newest filing, not wall-clock: the page reports the
+ * record it holds, so a stale feed reads as stale rather than as a quiet month.
+ */
+function countWithin(items: { published_at: string }[], days: number, anchor: number): number {
+  return items.filter((it) => {
+    const t = Date.parse(it.published_at);
+    return Number.isFinite(t) && anchor - t <= days * DAY_MS;
+  }).length;
+}
+
+/** 'YYYY-MM-DD…' → 'Jul 10'. */
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+function shortDate(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+  if (!m) return iso.slice(0, 10);
+  return `${MONTHS[Number(m[2]) - 1] ?? m[2]} ${Number(m[3])}`;
 }
 
 function DisclosureCard({ item }: { item: NewsItem }) {
@@ -76,40 +107,90 @@ export default async function DisclosuresPage({ searchParams }: Props) {
   // -- Per-ticker focused view -----------------------------------------------
   if (ticker) {
     const items = await newsByTicker(ticker, 200);
+    const latest = items[0]?.published_at;
+    const oldest = items.at(-1)?.published_at;
+
+    // ---- the brief's computed vitals — counts and dates from the fetched filings
+    const anchor = Date.parse(latest ?? "");
+    const base = Number.isFinite(anchor) ? anchor : 0;
+    const filings30 = countWithin(items, 30, base);
+    const withDocs = items.filter((it) => !!it.url).length;
+
     return (
-      <main className="mx-auto w-full px-4 py-8 sm:px-6 lg:px-8 space-y-8 max-w-[1440px]">
-        <div className="space-y-2">
-          <PageHeader
-            eyebrow="KAP"
-            title={`${ticker} disclosures`}
-            description={`All KAP disclosures filed by ${ticker}, newest first.`}
-            dataThrough={items[0]?.published_at?.slice(0, 10)}
+      <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
+        <DeskHeader
+          title={`${ticker} disclosures`}
+          record={
+            <>
+              Record <b className="font-normal text-foreground">{monthLabel(latest)}</b> · KAP filings,
+              refreshed daily · cards link out
+            </>
+          }
+          right="compiled, not written"
+        />
+
+        <div className="mt-2 flex flex-wrap gap-4 font-mono text-[9.5px] uppercase tracking-[0.05em]">
+          <Link href={`/banks/${ticker}`} className="font-semibold text-primary">
+            ← back to {ticker}
+          </Link>
+          <Link href="/disclosures" className="font-semibold text-primary">
+            ← all disclosures
+          </Link>
+        </div>
+
+        <SecHead
+          title="The vitals"
+          meta="volume · recency · span · documents"
+          className="mb-2.5 mt-6"
+        />
+        <Vitals cols={4}>
+          <Vital
+            label="30 days to the record"
+            value={String(filings30)}
+            unit="filings"
+            note={`of ${items.length} fetched for ${ticker} — counted back from ${shortDate(latest)}`}
           />
-          <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-            <span>{items.length} items</span>
-            <Link
-              href={`/banks/${ticker}`}
-              className="text-muted-foreground underline hover:text-foreground"
-            >
-              ← back to {ticker}
-            </Link>
-            <Link
-              href="/disclosures"
-              className="text-muted-foreground underline hover:text-foreground"
-            >
-              ← all disclosures
-            </Link>
+          <Vital
+            label="Most recent filing"
+            value={shortDate(latest)}
+            note={
+              items[0] ? (
+                <>
+                  newest of {items.length} fetched ·{" "}
+                  <Link href={`/banks/${ticker}`} className="font-semibold text-primary">
+                    /banks/{ticker}
+                  </Link>
+                </>
+              ) : (
+                "no filings cached yet"
+              )
+            }
+          />
+          <Vital
+            label="Filings fetched"
+            value={String(items.length)}
+            note={`newest first, capped at 200 · oldest held ${shortDate(oldest)}`}
+          />
+          <Vital
+            label="Documents"
+            value={String(withDocs)}
+            note="filings carrying a KAP document link — every card opens the original"
+          />
+        </Vitals>
+
+        <Depth>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {items.length === 0 ? (
+              <div className="text-xs text-muted-foreground italic">
+                No disclosures cached for {ticker} yet.
+              </div>
+            ) : (
+              items.map((it) => <DisclosureCard key={`${it.source}-${it.external_id}`} item={it} />)
+            )}
           </div>
-        </div>
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {items.length === 0 ? (
-            <div className="text-xs text-muted-foreground italic">
-              No disclosures cached for {ticker} yet.
-            </div>
-          ) : (
-            items.map((it) => <DisclosureCard key={`${it.source}-${it.external_id}`} item={it} />)
-          )}
-        </div>
+        </Depth>
+
+        <Colophon />
       </main>
     );
   }
@@ -120,48 +201,97 @@ export default async function DisclosuresPage({ searchParams }: Props) {
     newsSourceSummary(),
   ]);
   const kapStats = summary.find((s) => s.source === "kap");
+  const latest = items[0]?.published_at ?? kapStats?.latest;
+
+  // ---- the brief's computed vitals — counts and dates from the fetched filings
+  const anchor = Date.parse(items[0]?.published_at ?? "");
+  const base = Number.isFinite(anchor) ? anchor : 0;
+  const filings7 = countWithin(items, 7, base);
+  const filings30 = countWithin(items, 30, base);
+
+  // Distinct banks filing in the fetched window, and the bank behind the newest row.
+  const filers = new Set(items.map((it) => it.ticker).filter((t): t is string => !!t));
+  const topFiler = items[0]?.ticker ?? null;
+  const withDocs = items.filter((it) => !!it.url).length;
 
   return (
-    <main className="mx-auto w-full px-4 py-8 sm:px-6 lg:px-8 space-y-8 max-w-[1440px]">
-      <div className="space-y-2">
-        <PageHeader
-          eyebrow="KAP"
-          title="Bank Disclosures"
-          description="BIST-listed banks' filings on KAP (Kamuyu Aydınlatma Platformu) — refreshed daily."
-          dataThrough={kapStats?.latest?.slice(0, 10)}
+    <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
+      <DeskHeader
+        title="Bank Disclosures"
+        record={
+          <>
+            Record <b className="font-normal text-foreground">{monthLabel(latest)}</b> · KAP filings,
+            refreshed daily · cards link out to KAP
+          </>
+        }
+        right="compiled, not written"
+      />
+
+      <div className="mt-2 flex flex-wrap gap-4 font-mono text-[9.5px] uppercase tracking-[0.05em]">
+        <Link href="/regulation" className="font-semibold text-primary">
+          TCMB &amp; BDDK regulation →
+        </Link>
+        <Link href="/banks" className="font-semibold text-primary">
+          Browse banks →
+        </Link>
+      </div>
+
+      <SecHead
+        title="The vitals"
+        meta="volume · recency · filers · documents"
+        className="mb-2.5 mt-6"
+      />
+      <Vitals cols={4}>
+        <Vital
+          label="7 days to the record"
+          value={String(filings7)}
+          unit="filings"
+          note={`${filings30} in the 30 days to ${shortDate(items[0]?.published_at)} — counted from the fetched window`}
         />
-        <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-          {kapStats && (
-            <div>
-              <span className="font-semibold text-foreground">KAP</span>
-              {" — "}
-              {kapStats.total} items
-              {kapStats.latest && (
-                <span className="text-muted-foreground"> · latest {fmtDate(kapStats.latest)}</span>
-              )}
-            </div>
+        <Vital
+          label="Most recent filing"
+          value={shortDate(items[0]?.published_at)}
+          note={
+            topFiler ? (
+              <>
+                filed by{" "}
+                <Link href={`/banks/${topFiler}`} className="font-semibold text-primary">
+                  {topFiler}
+                </Link>{" "}
+                · newest of {items.length} fetched
+              </>
+            ) : (
+              "no filings in the fetched window"
+            )
+          }
+        />
+        <Vital
+          label="Banks disclosing"
+          value={String(filers.size)}
+          note={`distinct tickers across ${items.length} fetched filings`}
+        />
+        <Vital
+          label="Total documents"
+          value={kapStats ? String(kapStats.total) : String(withDocs)}
+          note={
+            kapStats?.latest
+              ? `KAP filings held in full — latest ${fmtDate(kapStats.latest)}`
+              : "filings carrying a KAP document link in the fetched window"
+          }
+        />
+      </Vitals>
+
+      <Depth>
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {items.length === 0 ? (
+            <div className="text-xs text-muted-foreground italic">No disclosures cached yet.</div>
+          ) : (
+            items.map((it) => <DisclosureCard key={`${it.source}-${it.external_id}`} item={it} />)
           )}
-          <Link
-            href="/regulation"
-            className="text-muted-foreground underline hover:text-foreground"
-          >
-            TCMB &amp; BDDK regulation →
-          </Link>
-          <Link
-            href="/banks"
-            className="text-muted-foreground underline hover:text-foreground"
-          >
-            Browse banks →
-          </Link>
         </div>
-      </div>
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-        {items.length === 0 ? (
-          <div className="text-xs text-muted-foreground italic">No disclosures cached yet.</div>
-        ) : (
-          items.map((it) => <DisclosureCard key={`${it.source}-${it.external_id}`} item={it} />)
-        )}
-      </div>
+      </Depth>
+
+      <Colophon />
     </main>
   );
 }

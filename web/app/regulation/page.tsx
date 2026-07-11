@@ -17,8 +17,19 @@ import {
   newsLookupBySourceIds,
   newsSourceSummary,
   type Briefing,
+  type NewsItem,
 } from "@/app/lib/news";
-import { PageHeader, Section } from "@/app/components/ui";
+import { topicTag } from "@/app/lib/news-tags";
+import { Section } from "@/app/components/ui";
+import {
+  Colophon,
+  Depth,
+  DeskHeader,
+  SecHead,
+  Vital,
+  Vitals,
+} from "@/app/components/desk";
+import { monthLabel } from "@/app/lib/desk";
 import RawFeeds from "./RawFeeds";
 
 export const dynamic = "force-dynamic";
@@ -33,6 +44,30 @@ function fmtDate(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso.slice(0, 10);
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+const DAY_MS = 86_400_000;
+
+/**
+ * Instruments published within `days` of `anchor` (skips unparseable dates).
+ * The anchor is the feed's own newest release, not wall-clock: the page reports
+ * the record it holds, so a stale feed reads as stale rather than as a quiet
+ * month at the regulators.
+ */
+function within(items: NewsItem[], days: number, anchor: number): NewsItem[] {
+  return items.filter((it) => {
+    const t = Date.parse(it.published_at);
+    return Number.isFinite(t) && anchor - t <= days * DAY_MS;
+  });
+}
+
+/** 'YYYY-MM-DD…' → 'Jul 10'. */
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+function shortDate(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+  if (!m) return iso.slice(0, 10);
+  return `${MONTHS[Number(m[2]) - 1] ?? m[2]} ${Number(m[3])}`;
 }
 
 function BriefingWidget({
@@ -130,60 +165,116 @@ export default async function RegulationPage() {
     .sort()
     .at(-1);
 
+  // ---- the brief's computed vitals — counts, dates and topics from the fetched feeds
+  const feeds = [...tcmb, ...bddk];
+  const anchor = Date.parse(latestAny ?? "");
+  const base = Number.isFinite(anchor) ? anchor : 0;
+  const win30 = within(feeds, 30, base);
+  const tcmb30 = within(tcmb, 30, base).length;
+  const bddk30 = within(bddk, 30, base).length;
+
+  // Which regulator published the newest instrument (ties → BDDK, the rule-setter).
+  const latestSource =
+    latestAny && bddkStats?.latest === latestAny
+      ? "BDDK"
+      : latestAny && tcmbStats?.latest === latestAny
+        ? "TCMB"
+        : null;
+  const otherLatest = latestSource === "BDDK" ? tcmbStats?.latest : bddkStats?.latest;
+
+  // Most active topic in the window — keyword rules in lib/news-tags (the stored
+  // `category` column is a constant, so the type is derived from the title).
+  const topicCounts = new Map<string, number>();
+  for (const it of win30.length > 0 ? win30 : feeds) {
+    const label = topicTag(it.title).label;
+    topicCounts.set(label, (topicCounts.get(label) ?? 0) + 1);
+  }
+  const topTopic = [...topicCounts.entries()].sort((a, b) => b[1] - a[1])[0];
+  const topicBasis = win30.length > 0 ? win30.length : feeds.length;
+
+  const tracked = (tcmbStats?.total ?? 0) + (bddkStats?.total ?? 0);
+
   return (
-    <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
-      <div className="space-y-2">
-        <PageHeader
-          eyebrow="TCMB · BDDK"
-          title="Regulation"
-          description="Central-bank press releases (TCMB) and banking-regulator board decisions (BDDK) — refreshed daily, thematic briefing refreshed weekly."
-          dataThrough={latestAny?.slice(0, 10)}
-        />
-        <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-          {tcmbStats && (
-            <div>
-              <span className="font-semibold text-foreground">TCMB</span> — {tcmbStats.total} items
-              {tcmbStats.latest && (
-                <span className="text-muted-foreground"> · latest {fmtDate(tcmbStats.latest)}</span>
-              )}
-            </div>
-          )}
-          {bddkStats && (
-            <div>
-              <span className="font-semibold text-foreground">BDDK</span> — {bddkStats.total} items
-              {bddkStats.latest && (
-                <span className="text-muted-foreground"> · latest {fmtDate(bddkStats.latest)}</span>
-              )}
-            </div>
-          )}
-          <Link
-            href="/banks"
-            className="text-muted-foreground underline hover:text-foreground"
-          >
-            Per-bank disclosures (KAP) →
-          </Link>
-        </div>
+    <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
+      <DeskHeader
+        title="Regulation"
+        record={
+          <>
+            Record <b className="font-normal text-foreground">{monthLabel(latestAny)}</b> · TCMB +
+            BDDK feeds, refreshed daily · briefing weekly
+          </>
+        }
+        right="compiled, not written"
+      />
+
+      <div className="mt-2 flex flex-wrap gap-4 font-mono text-[9.5px] uppercase tracking-[0.05em]">
+        <Link href="/banks" className="font-semibold text-primary">
+          Per-bank disclosures (KAP) →
+        </Link>
       </div>
 
-      {briefing && briefing.categories.length > 0 ? (
-        <BriefingWidget briefing={briefing} sourceLookup={sourceLookup} />
-      ) : briefing ? (
-        <section className="rounded-[10px] border border-dashed border-border bg-muted p-4 text-sm text-muted-foreground">
-          <strong className="font-semibold">No regulatory rule changes detected in the past {briefing.window_days} days.</strong>
-          {" "}The summarizer scanned {briefing.item_count} TCMB &amp; BDDK announcements
-          on {fmtDate(briefing.generated_at)} but none qualified as a substantive
-          rule change (caps, ratios, thresholds, or policy decisions). Raw feeds
-          below show all administrative + market-commentary items.
-        </section>
-      ) : (
-        <section className="rounded-[10px] border border-dashed border-border bg-muted p-4 text-sm text-muted-foreground">
-          <strong className="font-semibold">Weekly briefing not yet generated.</strong> The
-          first thematic summary will land after the next Sunday cron run.
-          Raw TCMB &amp; BDDK feeds are available below in the meantime.
-        </section>
-      )}
+      <SecHead
+        title="The vitals"
+        meta="volume · recency · topic · archive"
+        className="mb-2.5 mt-6"
+      />
+      <Vitals cols={4}>
+        <Vital
+          label="30 days to the record"
+          value={String(win30.length)}
+          unit="instruments"
+          note={`${tcmb30} TCMB · ${bddk30} BDDK — counted back from ${shortDate(latestAny)} in the fetched feeds`}
+        />
+        <Vital
+          label="Latest decision"
+          value={shortDate(latestAny)}
+          note={
+            latestSource
+              ? `published by ${latestSource}${
+                  otherLatest ? ` · ${latestSource === "BDDK" ? "TCMB" : "BDDK"} last ${shortDate(otherLatest)}` : ""
+                }`
+              : "no releases in the fetched feeds"
+          }
+        />
+        <Vital
+          label="Most active topic"
+          value={topTopic ? topTopic[0] : "—"}
+          note={
+            topTopic
+              ? `${topTopic[1]} of ${topicBasis} items — type derived from the title (keyword rules, lib/news-tags)`
+              : "no items to classify"
+          }
+        />
+        <Vital
+          label="Tracked items"
+          value={tracked > 0 ? String(tracked) : "—"}
+          note={`TCMB ${tcmbStats?.total ?? 0} · BDDK ${bddkStats?.total ?? 0} — every release held, not just the window`}
+        />
+      </Vitals>
 
-      <RawFeeds tcmb={tcmb} bddk={bddk} />
+      <Depth>
+        {briefing && briefing.categories.length > 0 ? (
+          <BriefingWidget briefing={briefing} sourceLookup={sourceLookup} />
+        ) : briefing ? (
+          <section className="rounded-[10px] border border-dashed border-border bg-muted p-4 text-sm text-muted-foreground">
+            <strong className="font-semibold">No regulatory rule changes detected in the past {briefing.window_days} days.</strong>
+            {" "}The summarizer scanned {briefing.item_count} TCMB &amp; BDDK announcements
+            on {fmtDate(briefing.generated_at)} but none qualified as a substantive
+            rule change (caps, ratios, thresholds, or policy decisions). Raw feeds
+            below show all administrative + market-commentary items.
+          </section>
+        ) : (
+          <section className="rounded-[10px] border border-dashed border-border bg-muted p-4 text-sm text-muted-foreground">
+            <strong className="font-semibold">Weekly briefing not yet generated.</strong> The
+            first thematic summary will land after the next Sunday cron run.
+            Raw TCMB &amp; BDDK feeds are available below in the meantime.
+          </section>
+        )}
+
+        <RawFeeds tcmb={tcmb} bddk={bddk} />
+      </Depth>
+
+      <Colophon />
     </main>
   );
 }

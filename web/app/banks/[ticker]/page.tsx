@@ -20,8 +20,11 @@
  * `item_name` is never displayed, so banks are comparable line-for-line.
  */
 import type { Metadata } from "next";
+import type { ReactElement } from "react";
 import Link from "next/link";
 import { Card, PageHeader, Section, Stat } from "@/app/components/ui";
+import { Colophon, SecHead, Vital, Vitals } from "@/app/components/desk";
+import { lastVal, signedPp, valAgo } from "@/app/lib/desk";
 import {
   bankPeriods,
   balanceSheetMultiPeriod,
@@ -345,6 +348,173 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   // Per-bank Capital section (the audit's add_missing gap) — audited §4 buffers.
   const hasCapital = !!perfLatest && (perfLatest.car != null || perfLatest.cet1 != null);
 
+  // ── The vitals band (DESIGN.md — the page's one signature element) ─────────
+  // Type-only cells computed from `perfRows` (the same heatmapPanel rows the
+  // Performance / Capital / Market-risk sections already read) — no new query.
+  // Units: car / cet1 / lcr arrive in percentage POINTS from the audited §4
+  // tables; roe / npl_ratio are FRACTIONS (×100 here); total_assets is in TL
+  // thousands. Notes are computed facts only (buffers, q/q deltas, ranks).
+  type VPt = { period: string; value: number };
+  const perfSeries = (
+    key: "total_assets" | "car" | "cet1" | "lcr" | "npl_ratio" | "roe",
+    scale = 1,
+  ): VPt[] =>
+    perfRows
+      .filter((r) => r[key] != null)
+      .map((r) => ({ period: r.period, value: (r[key] as number) * scale }));
+  const qoq = (s: VPt[]): number | null => {
+    const cur = lastVal(s);
+    const prev = valAgo(s, 1);
+    return cur != null && prev != null ? cur - prev : null;
+  };
+
+  const taNow = perfLatest?.total_assets ?? null;
+  // Big banks read in ₺trn, the long tail in ₺bn — same series, same scale as
+  // the headline so the sparkline and the figure agree.
+  const taTrn = taNow != null ? taNow / 1e9 : null;
+  const taUseTrn = taTrn != null && taTrn >= 1;
+  const assetsSeries = perfSeries("total_assets", taUseTrn ? 1 / 1e9 : 1 / 1e6);
+  const taAgo = valAgo(assetsSeries, 4);
+  const taLast = lastVal(assetsSeries);
+  const taYoY = taLast != null && taAgo != null && taAgo > 0 ? (taLast / taAgo - 1) * 100 : null;
+  const assetsRank = rankOf("total_assets");
+
+  const carSeries = perfSeries("car");
+  const carNow = perfLatest?.car ?? null;
+  const carBuffer = carNow != null ? carNow - 12 : null;
+  const carQoq = qoq(carSeries);
+
+  const cet1Series = perfSeries("cet1");
+  const cet1Now = perfLatest?.cet1 ?? null;
+  const at1T2 = carNow != null && cet1Now != null ? carNow - cet1Now : null;
+
+  const nplSeries = perfSeries("npl_ratio", 100);
+  const nplNow = perfLatest?.npl_ratio != null ? perfLatest.npl_ratio * 100 : null;
+  const nplQoq = qoq(nplSeries);
+
+  const roeSeries = perfSeries("roe", 100);
+  const roeNow = perfLatest?.roe != null ? perfLatest.roe * 100 : null;
+  const roeRank = rankOf("roe");
+
+  const lcrSeries = perfSeries("lcr");
+  const lcrNow = perfLatest?.lcr ?? null;
+
+  const vitalCells: (ReactElement | null)[] = [
+    taNow != null ? (
+      <Vital
+        key="assets"
+        label="Total assets"
+        value={taUseTrn ? (taTrn as number).toFixed(2) : (taNow / 1e6).toFixed(0)}
+        unit={taUseTrn ? "₺trn" : "₺bn"}
+        series={assetsSeries.slice(-8)}
+        format="raw"
+        decimals={taUseTrn ? 2 : 0}
+        note={
+          <>
+            {taYoY != null ? `${taYoY >= 0 ? "+" : "−"}${Math.abs(taYoY).toFixed(0)}% y/y` : "nominal, TL"}
+            {assetsRank && ` · ${ord(assetsRank.rank)} of ${assetsRank.n} by assets`}
+          </>
+        }
+      />
+    ) : null,
+    carNow != null ? (
+      <Vital
+        key="car"
+        label="CAR (§4)"
+        value={carNow.toFixed(1)}
+        unit="%"
+        series={carSeries.slice(-8)}
+        decimals={1}
+        note={
+          carBuffer != null && carBuffer < 2 ? (
+            <em className="not-italic font-semibold text-warning">
+              only {carBuffer.toFixed(1)}pp over the 12% minimum
+            </em>
+          ) : (
+            <>
+              {carBuffer != null && `${carBuffer.toFixed(1)}pp over the 12% minimum`}
+              {carQoq != null && ` · ${signedPp(carQoq, 1)} q/q`}
+            </>
+          )
+        }
+      />
+    ) : null,
+    cet1Now != null ? (
+      <Vital
+        key="cet1"
+        label="CET1 (§4)"
+        value={cet1Now.toFixed(1)}
+        unit="%"
+        series={cet1Series.slice(-8)}
+        decimals={1}
+        note={
+          at1T2 != null
+            ? `${at1T2.toFixed(1)}pp of the CAR is AT1 / Tier-2`
+            : "core equity over risk-weighted assets"
+        }
+      />
+    ) : null,
+    nplNow != null ? (
+      <Vital
+        key="npl"
+        label="NPL ratio"
+        value={nplNow.toFixed(2)}
+        unit="%"
+        series={nplSeries.slice(-8)}
+        decimals={2}
+        note={
+          nplQoq != null && nplQoq > 0.05 ? (
+            <em className="not-italic font-semibold text-negative">
+              {signedPp(nplQoq)} q/q · stage-3 / gross loans
+            </em>
+          ) : (
+            <>
+              {nplQoq != null && `${signedPp(nplQoq)} q/q · `}stage-3 / gross loans
+            </>
+          )
+        }
+      />
+    ) : null,
+    roeNow != null ? (
+      <Vital
+        key="roe"
+        label="ROE (TTM)"
+        value={roeNow.toFixed(1)}
+        unit="%"
+        series={roeSeries.slice(-8)}
+        decimals={1}
+        note={
+          <>
+            trailing 4 quarters ÷ avg equity
+            {roeRank && ` · ${ord(roeRank.rank)} of ${roeRank.n}`}
+          </>
+        }
+      />
+    ) : null,
+    lcrNow != null ? (
+      <Vital
+        key="lcr"
+        label="LCR (§4)"
+        value={lcrNow.toFixed(0)}
+        unit="%"
+        series={lcrSeries.slice(-8)}
+        decimals={0}
+        note={
+          lcrNow < 100 ? (
+            <em className="not-italic font-semibold text-warning">
+              {(lcrNow - 100).toFixed(0)}pp under the 100% minimum
+            </em>
+          ) : (
+            `+${(lcrNow - 100).toFixed(0)}pp over the 100% minimum`
+          )
+        }
+      />
+    ) : null,
+  ];
+  const vitals = vitalCells.filter((c): c is ReactElement => c !== null);
+  const vitalCols: 3 | 4 | 5 | 6 =
+    vitals.length >= 6 ? 6 : vitals.length === 5 ? 5 : vitals.length === 4 ? 4 : 3;
+
   // ⚠ on a period column = that quarter's extraction failed one or more
   // internal-sum identity checks (TL+FC=Total, parent=Σchildren, TOTAL=Σromans,
   // assets=liabilities+equity) — treat its figures with care. Scoped to the
@@ -528,6 +698,23 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
         {/* In-page jump-nav: Overview · Performance · Financials · Ownership · Disclosures */}
         <BankSectionNav sections={navSections} />
       </div>
+
+      {/* ── The vitals ────────────────────────────────────────────────────
+          The page's signature band (DESIGN.md): the six figures that decide
+          how this bank is read, computed from the audited quarterly panel the
+          sections below already use — level, sparkline, and one computed note. */}
+      {vitals.length >= 3 && (
+        <>
+          <SecHead
+            title="The vitals"
+            meta="audited quarterly · this bank"
+            className="mb-2.5 mt-6"
+          />
+          <Vitals cols={vitalCols} className="mb-8">
+            {vitals}
+          </Vitals>
+        </>
+      )}
 
       {/* ── Overview ──────────────────────────────────────────────────────
           At-a-glance profile + (listed banks) BIST market & valuation. */}
@@ -994,6 +1181,8 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
           <EarningsDisclosures earnings={earnings} disclosures={kapItems} ticker={ticker} />
         </Section>
       </div>
+
+      <Colophon />
     </main>
   );
 }
