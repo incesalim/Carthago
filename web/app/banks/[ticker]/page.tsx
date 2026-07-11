@@ -21,7 +21,7 @@
  */
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PageHeader, Section, Stat } from "@/app/components/ui";
+import { Card, PageHeader, Section, Stat } from "@/app/components/ui";
 import {
   bankPeriods,
   balanceSheetMultiPeriod,
@@ -556,70 +556,85 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
             </div>
           )}
 
-          {/* Bank-card summary: branches, personnel, TFRS 9 stage + coverage */}
-          <BankCard
-            profile={profile}
-            stages={stages}
-            latestPeriod={periods[0] ?? null}
-          />
+          {/* Composed hero band: profile (left) + market snapshot (right) —
+              one screenful instead of three stacked full-width strips. */}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+            <div className={valuation ? "lg:col-span-3" : "lg:col-span-5"}>
+              {/* Bank-card summary: branches, personnel, TFRS 9 stage + coverage */}
+              <BankCard
+                profile={profile}
+                stages={stages}
+                latestPeriod={periods[0] ?? null}
+              />
+            </div>
 
-          {/* BIST market data + valuation (Yahoo close × audited equity/earnings).
-              Only listed banks return a valuation; others render nothing. */}
-          {valuation && (
-            <Section
-              title="Market & Valuation"
-              description={
-                `BIST: ${ticker} · ` +
-                (valuation.isLive && valuation.asOf
-                  ? `⏱ ${formatAsOf(valuation.asOf)}`
-                  : `close ${valuation.period_date}`) +
-                (valuation.fundamentalsPeriod
-                  ? ` · P/B & P/E vs ${valuation.fundamentalsPeriod} audited figures`
-                  : "")
-              }
-              className="mb-6"
-              contentClassName=""
-            >
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-                <Stat
-                  label="Price"
-                  value={`₺${nfmt(valuation.price, 2)}`}
-                  hint={
-                    valuation.changePct1y != null
-                      ? `${valuation.changePct1y >= 0 ? "+" : ""}${nfmt(valuation.changePct1y, 1)}% · 1y`
-                      : undefined
-                  }
-                  tone={
-                    valuation.changePct1y == null
-                      ? "neutral"
-                      : valuation.changePct1y >= 0
-                        ? "positive"
-                        : "negative"
-                  }
-                />
-                <Stat
-                  label="Market Cap"
-                  value={valuation.marketCap != null ? fmtMarketCap(valuation.marketCap) : "—"}
-                />
-                <Stat label="P/B" value={valuation.pb != null ? `${nfmt(valuation.pb, 2)}×` : "—"} />
-                <Stat label="P/E" value={valuation.pe != null ? `${nfmt(valuation.pe, 1)}×` : "—"} />
-                <Stat
-                  label="Dividend Yield"
-                  value={valuation.dividendYield != null ? `${nfmt(valuation.dividendYield * 100, 2)}%` : "—"}
-                />
-              </div>
-              {priceHistory.length > 0 && (
-                <div className="mt-4">
-                  <TimeSeriesChart
-                    series={{ [`${ticker} share price`]: priceHistory }}
-                    title="Share price (daily close, ₺)"
-                    yFormat="fx"
-                    decimals={2}
-                    height={280}              />
+            {/* BIST market data + valuation (Yahoo close × audited equity/
+                earnings) as ONE composed card: price hero, compact multiples
+                strip, price history. Only listed banks get a valuation. */}
+            {valuation && (
+              <Card className="flex h-full flex-col overflow-hidden lg:col-span-2">
+                <div className="flex items-baseline justify-between border-b bg-muted px-5 py-3">
+                  <h3 className="text-sm font-semibold text-foreground">Market &amp; valuation</h3>
+                  <span className="text-[11px] text-muted-foreground tabular-nums">
+                    BIST: {ticker} ·{" "}
+                    {valuation.isLive && valuation.asOf
+                      ? `⏱ ${formatAsOf(valuation.asOf)}`
+                      : `close ${valuation.period_date}`}
+                  </span>
                 </div>
-              )}
-            </Section>
-          )}
+                <div className="flex flex-1 flex-col px-5 py-4">
+                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                    <span className="font-mono text-3xl font-medium tracking-tight text-foreground">
+                      ₺{nfmt(valuation.price, 2)}
+                    </span>
+                    {valuation.changePct1y != null && (
+                      <span
+                        className={`font-mono text-sm font-medium ${
+                          valuation.changePct1y >= 0 ? "text-positive" : "text-negative"
+                        }`}
+                      >
+                        {valuation.changePct1y >= 0 ? "+" : ""}
+                        {nfmt(valuation.changePct1y, 1)}% · 1y
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-3 grid grid-cols-4 gap-2 border-t border-border pt-3">
+                    {(
+                      [
+                        ["Mkt cap", valuation.marketCap != null ? fmtMarketCap(valuation.marketCap) : "—"],
+                        ["P/B", valuation.pb != null ? `${nfmt(valuation.pb, 2)}×` : "—"],
+                        ["P/E", valuation.pe != null ? `${nfmt(valuation.pe, 1)}×` : "—"],
+                        ["Div yield", valuation.dividendYield != null ? `${nfmt(valuation.dividendYield * 100, 2)}%` : "—"],
+                      ] as const
+                    ).map(([label, value]) => (
+                      <div key={label}>
+                        <div className="text-[11px] text-muted-foreground">{label}</div>
+                        <div className="font-mono text-sm font-semibold tabular-nums text-foreground">
+                          {value}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {priceHistory.length > 0 && (
+                    <div className="mt-3 border-t border-border pt-2">
+                      <TimeSeriesChart
+                        bare
+                        series={{ [`${ticker} share price`]: priceHistory }}
+                        yFormat="fx"
+                        decimals={2}
+                        height={172}
+                      />
+                    </div>
+                  )}
+                  {valuation.fundamentalsPeriod && (
+                    <p className="mt-auto pt-2 font-mono text-[9.5px] text-faint">
+                      P/B &amp; P/E vs {valuation.fundamentalsPeriod} audited figures · daily close, ₺
+                    </p>
+                  )}
+                </div>
+              </Card>
+            )}
+          </div>
         </Section>
       </div>
 
