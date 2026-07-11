@@ -223,8 +223,41 @@ run locally — that's a CI step). Tickers: `ENPARA`, `COLENDI`, `ZIRAATD`, `TOM
 Takasbank (SKIP — CCP/clearing bank); Ziraat Dinamik 2024Q4/2025Q1/2025Q2 (KAP-only /
 corrupt source).
 
-**Remaining step = extraction on CI** (heavy → not run locally per project rule): the
-6 banks are `missing + pdf_absent` until `acquire-audit.yml` scrapes their PDFs to R2
-and `refresh-audit.yml` extracts them. They surface on `/banks` + the coverage matrix
-only after `bank_audit_extractions` rows exist. Watch the matrix for the usual per-bank
-layout tail (participation equity at BS roman XIV.).
+**Extraction — DONE on CI 2026-07-11** (`acquire-audit` run 29151362902 →
+`refresh-audit` run 29151485825, both success). Deploy + CI green; migration 0022
+applied. All **59/59 PDFs acquired + extracted**; the banks are now live on `/banks`,
+`/cross-bank`, the coverage matrix and the Telegram bot.
+
+Core-statement success (`bank_audit_extractions.success` = assets+liabilities+P&L each
+≥20 rows), from D1:
+
+| Bank | PDFs | success | note |
+|---|---|---|---|
+| ENPARA | 6 | 6 | clean |
+| COLENDI | 4 | 4 | clean |
+| ZIRAATD | 3 | 3 | clean |
+| TOMK | 11 | 11 | clean |
+| HAYATK | 18 | 17 | 1 partition partial |
+| DUNYAK | 17 | 9 | **8 partitions: P&L under-parses** |
+
+**Residual per-bank tail (follow-up — the balance sheets are clean fleet-wide):**
+- **DUNYAK P&L** — on `2024Q1`, `2024Q4`, `2025Q4`, `2026Q1` (both kinds) the P&L
+  extracts only **~2 rows vs ~63** (BS assets/liabilities/off_balance all fine; verified
+  e.g. 2026Q1 solo BS 46/40/66 rows but P&L 2). Not a rotation/anchor-absent issue
+  (income-stmt markers present, `rotation=0`) — the P&L parser lands on the wrong
+  short table / mis-parses these specific PwC reports. Diagnose via
+  `scripts/diagnostics/diag_partition.py DUNYAK 2026Q1 unconsolidated`; fix in
+  `src/audit_reports/profit_loss.py` (fitz-only), then targeted re-extract via
+  `reextract-statement.yml`. **Impact: DUNYAK's latest-quarter margins/ROE won't
+  compute until fixed** — highest-value residual.
+- **HAYATK** — 1 partition partial; peripheral-lane alerts (npl_movement 0-pass across
+  periods — participation banks often don't disclose the interim movement table;
+  oci/equity_change 1-check near-misses).
+- **Peripheral-lane validation tail** (alert-only, non-blocking) across TOMK/ZIRAATD/
+  HAYATK: `capital` (1-check composition), `liquidity` (§4 layout variant), `stages`,
+  `loans_by_sector`, `npl_movement` — the same standing tail the 31 established banks
+  carry (see the validation-status table in PROJECT_STATE). Iterate as usual via
+  `reextract-statement.yml` / `audit_overrides.json`; none block the core financials.
+
+**Deferred (unchanged):** Adil Katılım, Fups Bank (no reports filed); Takasbank (SKIP);
+Ziraat Dinamik 2024Q4/2025Q1 (KAP-only) + 2025Q2 (corrupt source).
