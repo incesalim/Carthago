@@ -20,6 +20,7 @@
  * composite (Bloomberg inputs).
  */
 import type { Metadata } from "next";
+import Link from "next/link";
 import {
   weeklyOwnershipRatio,
   weeklyGrowth,
@@ -36,7 +37,17 @@ import {
   type EvdsRow,
 } from "@/app/lib/metrics";
 import { sectorLiquidityRatios, AUDIT_LIQUIDITY_LABELS } from "@/app/lib/audit-ratios";
-import { PageHeader, Section } from "@/app/components/ui";
+import { Section } from "@/app/components/ui";
+import {
+  Colophon,
+  Depth,
+  DeskHeader,
+  SecHead,
+  Vital,
+  Vitals,
+} from "@/app/components/desk";
+import { lastVal, monthLabel, signedPp, windowExtremes } from "@/app/lib/desk";
+import { GlobalRangeSelector } from "@/app/components/range-context";
 import TrendChart from "@/app/components/TrendChart";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
 import Takeaway from "@/app/components/Takeaway";
@@ -71,6 +82,35 @@ function sumByDate(sets: EvdsRow[][], scale = 1): { period_date: string; value: 
   return Array.from(acc.entries())
     .sort((a, b) => a[0].localeCompare(b[0]))
     .map(([period_date, v]) => ({ period_date, value: v * scale }));
+}
+
+/** '2026-03…' → 'Q1 2026' for the audited-quarter basis note. */
+function quarterLabel(p: string | null | undefined): string {
+  const m = p ? /^(\d{4})-(\d{2})/.exec(p) : null;
+  return m ? `Q${Math.ceil(Number(m[2]) / 3)} ${m[1]}` : "latest quarter";
+}
+
+/** Value ~a year (364 d) before the latest point, paired by DATE not row offset. */
+function valYearAgoByDate(s: { period: string; value: number | null }[]): number | null {
+  const last = s.at(-1)?.period;
+  if (!last) return null;
+  const d = new Date(last);
+  d.setUTCDate(d.getUTCDate() - 364);
+  const cut = d.toISOString().slice(0, 10);
+  for (let i = s.length - 1; i >= 0; i--) {
+    if (s[i].period <= cut) return s[i].value;
+  }
+  return null;
+}
+
+/** Trailing ~year of points (sparkline window for weekly/daily cadences). */
+function lastYearWindow<T extends { period: string }>(s: T[]): T[] {
+  const last = s.at(-1)?.period;
+  if (!last) return s;
+  const d = new Date(last);
+  d.setUTCDate(d.getUTCDate() - 364);
+  const cut = d.toISOString().slice(0, 10);
+  return s.filter((r) => r.period >= cut);
 }
 
 export default async function LiquidityPage() {
@@ -164,6 +204,31 @@ export default async function LiquidityPage() {
   };
   const reerSeries = { "REER (CPI based, 2003=100)": toPoints(reer) };
 
+  // ---- vitals — every figure computed from the series fetched above --------
+  const lcrS = liqRatios.filter((r) => r.bank_type_code === "LCR");
+  const nsfrS = liqRatios.filter((r) => r.bank_type_code === "NSFR");
+  const tlLdrPub = tlLtd.filter((r) => r.bank_type_code === "PUBLIC");
+  const tlLdrPriv = tlLtd.filter((r) => r.bank_type_code === "PRIVATE");
+  const dollSector = dollarization.filter((r) => r.bank_type_code === "SECTOR");
+  const netFundingBn = netFunding.map((r) => ({ period: r.period, value: r.value / 1000 }));
+
+  const lcrNow = lastVal(lcrS);
+  const nsfrNow = lastVal(nsfrS);
+  const pubNow = lastVal(tlLdrPub);
+  const privNow = lastVal(tlLdrPriv);
+  const dollNow = lastVal(dollSector);
+  const fundNow = lastVal(netFundingBn);
+
+  const lcrFloor = lcrNow != null ? lcrNow - 100 : null; // regulatory floor 100%
+  const nsfrFloor = nsfrNow != null ? nsfrNow - 100 : null; // regulatory floor 100%
+  const pubPrivGap = pubNow != null && privNow != null ? pubNow - privNow : null;
+  const privRange = windowExtremes(tlLdrPriv, 52);
+  const dollYearAgo = valYearAgoByDate(dollSector);
+  const dollYoY = dollNow != null && dollYearAgo != null ? dollNow - dollYearAgo : null;
+
+  const auditQ = quarterLabel(lcrS.at(-1)?.period ?? liqRatios.at(-1)?.period);
+  const recMonth = monthLabel(latestPeriod(tlLtd, fcLtd, dollarization, netFunding));
+
   // "The Read" — deterministic, computed from the same series the charts show.
   const read = liquidityInsights({
     tlLdrPublic: toTrend(tlLtd).filter((r) => r.bank_type_code === "PUBLIC"),
@@ -174,128 +239,255 @@ export default async function LiquidityPage() {
   });
 
   return (
-    <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
-      <PageHeader
+    <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
+      <DeskHeader
         title="Liquidity"
-        description="TL & FC funding · dollarization · CBRT reserves and funding — BDDK weekly bulletin + TCMB EVDS"
-        rangeSelector
-        dataThrough={latestPeriod(tlLtd, fcLtd, dollarization, netFunding)}
+        record={
+          <>
+            Record <b className="font-normal text-foreground">{recMonth}</b> · {auditQ} filings + weekly
+          </>
+        }
+        right="every figure computed from source series"
       />
 
-      <Takeaway data={await withLlmHeadline("liquidity", read)} />
-
-      <Section
-        title="TL Funding"
-        description="Loan-to-deposit pressure and TL deposit inflows — public vs private. Full maturity/demand breakdown lives on the Deposits tab."
-      >
-        <TrendChart
-          data={toTrend(tlLtd)}
-          seriesLabels={LIQ_OWNERSHIP_LABELS}
-          title="TL Loan / Deposit Ratio (%) — public vs private"
-          yFormat="pct"
+      {/* ── The vitals ─────────────────────────────────────────────────── */}
+      <SecHead
+        title="The vitals"
+        meta="weekly bulletin + evds + audited §4"
+        className="mb-2.5 mt-6"
+      />
+      <Vitals>
+        <Vital
+          label="LCR"
+          value={lcrNow != null ? lcrNow.toFixed(0) : "—"}
+          unit="%"
+          series={lcrS.slice(-13)}
           decimals={0}
-          height={320}
+          note={
+            lcrFloor != null ? (
+              <>
+                <b
+                  className={
+                    lcrFloor >= 0 ? "font-semibold text-positive" : "font-semibold text-negative"
+                  }
+                >
+                  {signedPp(lcrFloor, 0)}
+                </b>{" "}
+                vs the 100% floor · audited {auditQ}
+              </>
+            ) : undefined
+          }
         />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <TrendChart
-            data={tlDepGrowth}
-            seriesLabels={{ YOY: "YoY", W13: "13-week annualized" }}
-            title="TL Deposit Growth — sector (YoY & 13w annualized, %)"
-            yFormat="pct"
-            decimals={0}
-            zeroLine
-          />
-          <TrendChart
-            data={toTrend(tlGrowthOwn)}
-            seriesLabels={LIQ_OWNERSHIP_LABELS}
-            title="TL Deposit Growth — public vs private (13w annualized, %)"
-            yFormat="pct"
-            decimals={0}
-            zeroLine
-          />
-        </div>
-      </Section>
-
-      <Section
-        title="FC & Dollarization"
-        description="Foreign-currency funding pressure and households' appetite for FC savings vs TL."
-      >
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <TrendChart
-            data={toTrend(fcLtd)}
-            seriesLabels={LIQ_OWNERSHIP_LABELS}
-            title="FC Loan / Deposit Ratio (%) — public vs private"
-            yFormat="pct"
-            decimals={0}
-          />
-          <TrendChart
-            data={toTrend(dollarization)}
-            seriesLabels={LIQ_DOLLARIZATION_LABELS}
-            title={
-              seriesFinding(toTrend(dollarization).filter((r) => r.bank_type_code === "SECTOR"), { noun: "Deposit dollarization", decimals: 1 }) ??
-              "Deposit Dollarization — FC share of deposits (%)"
-            }
-            description="FC share of total deposits, %, weekly · sector / public / private"
-            source="Source: BDDK weekly bulletin"
-            yFormat="pct"
-            decimals={1}
-          />
-        </div>
-        <TimeSeriesChart
-          series={residentsFc}
-          title="Residents' FC Savings — households (USD bn)"
-          yFormat="raw"
+        <Vital
+          label="NSFR"
+          value={nsfrNow != null ? nsfrNow.toFixed(0) : "—"}
+          unit="%"
+          series={nsfrS.slice(-13)}
           decimals={0}
+          note={
+            nsfrFloor != null ? (
+              <>
+                <b
+                  className={
+                    nsfrFloor >= 0 ? "font-semibold text-positive" : "font-semibold text-negative"
+                  }
+                >
+                  {signedPp(nsfrFloor, 0)}
+                </b>{" "}
+                vs the 100% floor · audited {auditQ}
+              </>
+            ) : undefined
+          }
         />
-      </Section>
+        <Vital
+          label="TL loan / deposit — public"
+          value={pubNow != null ? pubNow.toFixed(1) : "—"}
+          unit="%"
+          series={lastYearWindow(tlLdrPub)}
+          decimals={1}
+          note={
+            pubPrivGap != null ? (
+              <>
+                {pubPrivGap >= 0
+                  ? `${pubPrivGap.toFixed(1)}pp above`
+                  : `${Math.abs(pubPrivGap).toFixed(1)}pp below`}{" "}
+                private
+              </>
+            ) : undefined
+          }
+        />
+        <Vital
+          label="TL loan / deposit — private"
+          value={privNow != null ? privNow.toFixed(1) : "—"}
+          unit="%"
+          series={lastYearWindow(tlLdrPriv)}
+          decimals={1}
+          note={
+            privRange ? (
+              <>
+                52w range {privRange.min.toFixed(0)}–{privRange.max.toFixed(0)}%
+              </>
+            ) : undefined
+          }
+        />
+        <Vital
+          label="FC share of deposits"
+          value={dollNow != null ? dollNow.toFixed(1) : "—"}
+          unit="%"
+          series={lastYearWindow(dollSector)}
+          decimals={1}
+          note={
+            dollYoY != null ? (
+              <>
+                <b
+                  className={
+                    dollYoY <= 0 ? "font-semibold text-positive" : "font-semibold text-negative"
+                  }
+                >
+                  {signedPp(dollYoY, 1)}
+                </b>{" "}
+                y/y{" "}
+                <Link href="/deposits" className="font-semibold text-primary">
+                  /deposits
+                </Link>
+              </>
+            ) : undefined
+          }
+        />
+        <Vital
+          label="Net CBRT funding"
+          value={fundNow != null ? fundNow.toFixed(0) : "—"}
+          unit="₺bn"
+          series={lastYearWindow(netFundingBn)}
+          format="raw"
+          decimals={0}
+          note={
+            fundNow != null ? (
+              <>{fundNow >= 0 ? "+ excess" : "− lack"} of TL liquidity in the system</>
+            ) : undefined
+          }
+        />
+      </Vitals>
 
-      <Section
-        title="CBRT Liquidity & Reserves"
-        description="System TL liquidity stance and the central bank's FX reserve buffer. Net reserves are derived from the analytical balance sheet (FX assets − liabilities); gross − net is required-reserve FX, and net − net-excl-swaps is the CBRT swap stock."
-      >
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* ── In depth — the evidence layer ──────────────────────────────── */}
+      <Depth action={<GlobalRangeSelector />}>
+        <Takeaway data={await withLlmHeadline("liquidity", read)} />
+
+        <Section
+          title="TL Funding"
+          description="Loan-to-deposit pressure and TL deposit inflows — public vs private. Full maturity/demand breakdown lives on the Deposits tab."
+        >
           <TrendChart
-            data={netFunding}
-            seriesLabels={{ NETFUND: "Net CBRT funding" }}
-            title="Net CBRT Funding (TL bn) — + excess / − lack of TL liquidity"
-            yFormat="bn"
+            data={toTrend(tlLtd)}
+            seriesLabels={LIQ_OWNERSHIP_LABELS}
+            title="TL Loan / Deposit Ratio (%) — public vs private"
+            yFormat="pct"
             decimals={0}
-            zeroLine
+            height={320}
           />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <TrendChart
+              data={tlDepGrowth}
+              seriesLabels={{ YOY: "YoY", W13: "13-week annualized" }}
+              title="TL Deposit Growth — sector (YoY & 13w annualized, %)"
+              yFormat="pct"
+              decimals={0}
+              zeroLine
+            />
+            <TrendChart
+              data={toTrend(tlGrowthOwn)}
+              seriesLabels={LIQ_OWNERSHIP_LABELS}
+              title="TL Deposit Growth — public vs private (13w annualized, %)"
+              yFormat="pct"
+              decimals={0}
+              zeroLine
+            />
+          </div>
+        </Section>
+
+        <Section
+          title="FC & Dollarization"
+          description="Foreign-currency funding pressure and households' appetite for FC savings vs TL."
+        >
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <TrendChart
+              data={toTrend(fcLtd)}
+              seriesLabels={LIQ_OWNERSHIP_LABELS}
+              title="FC Loan / Deposit Ratio (%) — public vs private"
+              yFormat="pct"
+              decimals={0}
+            />
+            <TrendChart
+              data={toTrend(dollarization)}
+              seriesLabels={LIQ_DOLLARIZATION_LABELS}
+              title={
+                seriesFinding(toTrend(dollarization).filter((r) => r.bank_type_code === "SECTOR"), { noun: "Deposit dollarization", decimals: 1 }) ??
+                "Deposit Dollarization — FC share of deposits (%)"
+              }
+              description="FC share of total deposits, %, weekly · sector / public / private"
+              source="Source: BDDK weekly bulletin"
+              yFormat="pct"
+              decimals={1}
+            />
+          </div>
           <TimeSeriesChart
-            series={reserves}
-            title="CBRT International Reserves (USD bn) — gross, net, net excl. swaps"
+            series={residentsFc}
+            title="Residents' FC Savings — households (USD bn)"
             yFormat="raw"
             decimals={0}
           />
-        </div>
-      </Section>
+        </Section>
 
-      <Section
-        title="Regulatory Liquidity (audited §4)"
-        description="LCR, NSFR and leverage from the quarterly BRSA reports — asset-weighted average across reporting banks. These Basel ratios aren't in the monthly bulletin; this is the per-bank §4 lane aggregated to the sector."
-      >
-        <TrendChart
-          data={liqRatios}
-          seriesLabels={AUDIT_LIQUIDITY_LABELS}
-          title="LCR / NSFR / Leverage (%) — sector, audited quarterly"
-          yFormat="pct"
-          decimals={0}
-          height={320}
-        />
-      </Section>
+        <Section
+          title="CBRT Liquidity & Reserves"
+          description="System TL liquidity stance and the central bank's FX reserve buffer. Net reserves are derived from the analytical balance sheet (FX assets − liabilities); gross − net is required-reserve FX, and net − net-excl-swaps is the CBRT swap stock."
+        >
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <TrendChart
+              data={netFunding}
+              seriesLabels={{ NETFUND: "Net CBRT funding" }}
+              title="Net CBRT Funding (TL bn) — + excess / − lack of TL liquidity"
+              yFormat="bn"
+              decimals={0}
+              zeroLine
+            />
+            <TimeSeriesChart
+              series={reserves}
+              title="CBRT International Reserves (USD bn) — gross, net, net excl. swaps"
+              yFormat="raw"
+              decimals={0}
+            />
+          </div>
+        </Section>
 
-      <Section
-        title="Macro Backdrop"
-        description="Real appreciation eases financial conditions and supports the appetite for TL savings."
-      >
-        <TimeSeriesChart
-          series={reerSeries}
-          title="Real Effective Exchange Rate (CPI based, 2003 = 100)"
-          yFormat="rate"
-          decimals={1}
-        />
-      </Section>
+        <Section
+          title="Regulatory Liquidity (audited §4)"
+          description="LCR, NSFR and leverage from the quarterly BRSA reports — asset-weighted average across reporting banks. These Basel ratios aren't in the monthly bulletin; this is the per-bank §4 lane aggregated to the sector."
+        >
+          <TrendChart
+            data={liqRatios}
+            seriesLabels={AUDIT_LIQUIDITY_LABELS}
+            title="LCR / NSFR / Leverage (%) — sector, audited quarterly"
+            yFormat="pct"
+            decimals={0}
+            height={320}
+          />
+        </Section>
+
+        <Section
+          title="Macro Backdrop"
+          description="Real appreciation eases financial conditions and supports the appetite for TL savings."
+        >
+          <TimeSeriesChart
+            series={reerSeries}
+            title="Real Effective Exchange Rate (CPI based, 2003 = 100)"
+            yFormat="rate"
+            decimals={1}
+          />
+        </Section>
+      </Depth>
+
+      <Colophon />
     </main>
   );
 }

@@ -10,6 +10,7 @@
  * 52w; the old monthly MoM chart → weekly 4w annualized.
  */
 import type { Metadata } from "next";
+import Link from "next/link";
 import {
   weeklySeries,
   weeklyGrowth,
@@ -17,7 +18,6 @@ import {
   depositMaturityMix,
   ratioLdr,
   latestPerBank,
-  latestPeriod,
   PRIMARY_BANK_TYPES,
   BANK_TYPES,
   BANK_TYPE_LABELS,
@@ -26,7 +26,17 @@ import {
   type WeeklyRow,
   type TimeSeriesRow,
 } from "@/app/lib/metrics";
-import { PageHeader, Section } from "@/app/components/ui";
+import { Section } from "@/app/components/ui";
+import {
+  Colophon,
+  Depth,
+  DeskHeader,
+  SecHead,
+  Vital,
+  Vitals,
+} from "@/app/components/desk";
+import { lastVal, monthLabel, signedPp, valAgo } from "@/app/lib/desk";
+import { GlobalRangeSelector } from "@/app/components/range-context";
 import BarByBank from "@/app/components/BarByBank";
 import TrendChart from "@/app/components/TrendChart";
 import StackedArea from "@/app/components/StackedArea";
@@ -48,6 +58,15 @@ const MEVDUAT = "mevduat";
 const TOTAL = "4.0.1";
 // Demand ("Vadesiz") is split by depositor type in the weekly feed; sum the three.
 const DEMAND_PARTS = ["4.0.3", "4.0.6", "4.0.9"];
+
+/** 'YYYY-MM-DD' → '04 Jul 2026' / '04 Jul' — the weekly record line. */
+function weekLabel(p: string | null | undefined, withYear = true): string {
+  const m = p ? /^\d{4}-\d{2}-(\d{2})/.exec(p) : null;
+  return m ? `${m[1]} ${monthLabel(p, withYear)}` : monthLabel(p, withYear);
+}
+
+const fmtPct = (v: number | null | undefined, d = 1) =>
+  v == null ? "—" : `${v.toFixed(d)}%`;
 
 /** Demand share = demand / total per period (×100). */
 function demandShare(total: WeeklyRow[], demand: WeeklyRow[]): TimeSeriesRow[] {
@@ -107,6 +126,7 @@ export default async function DepositsPage() {
     demandParts,
     tlSec, fxSec,
     mix, ldr, loansYoYSector,
+    tlYoySector,
   ] = await Promise.all([
     weeklySeries(MEVDUAT, TOTAL, "TOTAL", sector, 156),
     weeklySeries(MEVDUAT, TOTAL, "TOTAL", groups, 156),
@@ -120,6 +140,8 @@ export default async function DepositsPage() {
     ratioLdr(PRIMARY_BANK_TYPES),
     // Loan growth (sector) — only for the deposits-vs-loans funding-gap read.
     weeklyGrowth("krediler", "1.0.1", "TOTAL", 52, sector, 104),
+    // TL-only deposit growth — the vitals' de-dollarized read of the base.
+    weeklyGrowth(MEVDUAT, TOTAL, "TL", 52, sector, 104),
   ]);
 
   const cpiYoY = await cpiYoYByMonth();
@@ -153,141 +175,287 @@ export default async function DepositsPage() {
     fxShare.push({ period: r.period, bank_type_code: WEEKLY_BANK_TYPES.SECTOR, value: (r.value * 100) / total });
   }
 
+  const ldrSector = ldr.filter((r) => r.bank_type_code === BANK_TYPES.SECTOR);
+
   // "The Read" — deterministic, computed from the same series the charts show.
   const read = depositsInsights({
     yoy: yoySector,
     loansYoY: loansYoYSector,
     fxShare,
     demandShare: dShare,
-    ldr: ldr.filter((r) => r.bank_type_code === BANK_TYPES.SECTOR),
+    ldr: ldrSector,
   });
+  const readData = await withLlmHeadline("deposits", read);
+
+  // ---- the vitals — every figure computed from the series above -------------
+  const recWeek = weekLabel(depSector.at(-1)?.period);
+  const vsWeek = weekLabel(depSector.at(-2)?.period, false);
+
+  const depYoYNow = lastVal(yoySector);
+  const loansYoYNow = lastVal(loansYoYSector);
+  const fundingGap =
+    loansYoYNow != null && depYoYNow != null ? loansYoYNow - depYoYNow : null;
+
+  const tlYoYNow = lastVal(tlYoySector);
+  const mom4Now = lastVal(mom4Sector);
+
+  const fxShareNow = lastVal(fxShare);
+  const fxShare52 = valAgo(fxShare, 52);
+  const fxShareDelta = fxShareNow != null && fxShare52 != null ? fxShareNow - fxShare52 : null;
+
+  const dShareNow = lastVal(dShare);
+  const dShare52 = valAgo(dShare, 52);
+  const dShareDelta = dShareNow != null && dShare52 != null ? dShareNow - dShare52 : null;
+
+  const ldrNow = lastVal(ldrSector);
 
   return (
-    <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
-      <PageHeader
+    <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
+      <DeskHeader
         title="Deposits"
-        description="Sector aggregate + group breakdown · BDDK weekly bulletin (maturity ladder & LDR: monthly)"
-        rangeSelector
-        dataThrough={latestPeriod(depSector, yoyAll)}
+        record={
+          <>
+            Record <b className="font-normal text-foreground">W/E {recWeek}</b> · vs {vsWeek}
+          </>
+        }
+        right="every figure computed from source series"
       />
 
-      <Takeaway data={await withLlmHeadline("deposits", read)} />
-
-      <Section index="01" title="Total Deposits Growth">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <StackedArea
-            data={depByGroupWide}
-            series={groupSeries}
-            title="Total Deposits — Level by group (sector, ₺ trn)"
-            yFormat="trn"
-            decimals={2}
-            colorKeys
-          />
-          <TrendChart
-            data={yoyAll}
-            seriesLabels={WEEKLY_BANK_TYPE_LABELS}
-            title={
-              seriesFinding(yoySector, { noun: "Deposit growth", decimals: 1 }) ??
-              "Deposit Growth YoY (%) by group"
-            }
-            description="Deposit growth YoY, %, weekly · by ownership group"
-            source="Source: BDDK weekly bulletin"
-            yFormat="pct"
-            decimals={1}
-            zeroLine
-          />
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <TrendChart
-            data={realVsNominal}
-            seriesLabels={REAL_TERMS_LABELS}
-            title="Deposit Growth YoY — nominal vs real (sector, %)"
-            yFormat="pct"
-            decimals={1}
-            zeroLine
-          />
-          <TrendChart
-            data={mom4Sector}
-            seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "Sector" }}
-            title="Deposit Growth 4w (annualized %) — sector"
-            yFormat="pct"
-            decimals={1}
-            zeroLine
-          />
-          <BarByBank
-            data={yoyByBank}
-            labels={WEEKLY_BANK_TYPE_LABELS}
-            title={`Deposit YoY by group · ${yoyByBank[0]?.period ?? ""}`}
-            format="pct"
-            decimals={1}
-          />
-        </div>
-      </Section>
-
-      <Section
-        index="02"
-        title="Dollarization"
-        description="The BBVA deposit headline — FX share of the base. The public/private split lives on Liquidity."
-      >
-        <TrendChart
-          data={fxShare}
-          seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "FX share" }}
-          title="FX Share of Total Deposits (%)"
-          yFormat="pct"
+      {/* ── The vitals ─────────────────────────────────────────────────── */}
+      <SecHead
+        title="The vitals"
+        meta="equal weight · trailing 26 weeks"
+        className="mb-2.5 mt-6"
+      />
+      <Vitals>
+        <Vital
+          label="Deposit growth, 52w"
+          value={depYoYNow != null ? depYoYNow.toFixed(1) : "—"}
+          unit="%"
+          series={yoySector.slice(-26)}
           decimals={1}
-          height={320}
+          note={
+            fundingGap != null ? (
+              <>
+                loans {fmtPct(loansYoYNow)} —{" "}
+                <em
+                  className={
+                    fundingGap > 0
+                      ? "not-italic font-semibold text-negative"
+                      : "not-italic font-semibold text-positive"
+                  }
+                >
+                  {fundingGap > 0 ? "outrun" : "trail"} deposits by {Math.abs(fundingGap).toFixed(1)}pp
+                </em>{" "}
+                <Link href="/credit" className="font-semibold text-primary">
+                  /credit
+                </Link>
+              </>
+            ) : undefined
+          }
         />
-      </Section>
+        <Vital
+          label="4w momentum, ann."
+          value={mom4Now != null ? mom4Now.toFixed(1) : "—"}
+          unit="%"
+          series={mom4Sector.slice(-26)}
+          decimals={1}
+          note={
+            mom4Now != null && depYoYNow != null ? (
+              <>
+                {signedPp(mom4Now - depYoYNow, 1)} vs the 52w pace —{" "}
+                {mom4Now > depYoYNow ? "accelerating" : "cooling"}
+              </>
+            ) : undefined
+          }
+        />
+        <Vital
+          label="TL deposits, 52w"
+          value={tlYoYNow != null ? tlYoYNow.toFixed(1) : "—"}
+          unit="%"
+          series={tlYoySector.slice(-26)}
+          decimals={1}
+          note={
+            tlYoYNow != null && depYoYNow != null ? (
+              <>
+                {signedPp(tlYoYNow - depYoYNow, 1)} vs the total book — the TL leg{" "}
+                {tlYoYNow >= depYoYNow ? "outpaces" : "lags"} the headline
+              </>
+            ) : undefined
+          }
+        />
+        <Vital
+          label="FX share of deposits"
+          value={fxShareNow != null ? fxShareNow.toFixed(1) : "—"}
+          unit="%"
+          series={fxShare.slice(-26)}
+          decimals={1}
+          note={
+            <>
+              {fxShareDelta != null
+                ? `${signedPp(fxShareDelta, 1)} over 52w — ${fxShareDelta < 0 ? "de-dollarizing" : "re-dollarizing"}`
+                : "the dollarization tell"}{" "}
+              <Link href="/liquidity" className="font-semibold text-primary">
+                /liquidity
+              </Link>
+            </>
+          }
+        />
+        <Vital
+          label="Demand share"
+          value={dShareNow != null ? dShareNow.toFixed(1) : "—"}
+          unit="%"
+          series={dShare.slice(-26)}
+          decimals={1}
+          note={
+            dShareDelta != null ? (
+              <>
+                {signedPp(dShareDelta, 1)} over 52w — funding{" "}
+                {dShareDelta >= 0 ? "cheaper, less sticky in rate terms" : "termed out"}
+              </>
+            ) : undefined
+          }
+        />
+        <Vital
+          label="Loan / deposit"
+          value={ldrNow != null ? ldrNow.toFixed(1) : "—"}
+          unit="%"
+          series={ldrSector.slice(-13)}
+          decimals={1}
+          note={
+            <>
+              {ldrNow != null && ldrNow < 100 ? "below the 100% line" : "above the 100% line"}{" "}
+              (monthly){" "}
+              <Link href="/credit" className="font-semibold text-primary">
+                /credit
+              </Link>
+            </>
+          }
+        />
+      </Vitals>
 
-      <Section index="03" title="Demand vs. Term" description="Weekly demand share (funding stickiness) + the monthly maturity ladder.">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      {/* ── In depth — the evidence layer ──────────────────────────────── */}
+      <Depth action={<GlobalRangeSelector />}>
+        <Takeaway data={readData} />
+
+        <Section index="01" title="Total Deposits Growth">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <StackedArea
+              data={depByGroupWide}
+              series={groupSeries}
+              title="Total Deposits — Level by group (sector, ₺ trn)"
+              yFormat="trn"
+              decimals={2}
+              colorKeys
+            />
+            <TrendChart
+              data={yoyAll}
+              seriesLabels={WEEKLY_BANK_TYPE_LABELS}
+              title={
+                seriesFinding(yoySector, { noun: "Deposit growth", decimals: 1 }) ??
+                "Deposit Growth YoY (%) by group"
+              }
+              description="Deposit growth YoY, %, weekly · by ownership group"
+              source="Source: BDDK weekly bulletin"
+              yFormat="pct"
+              decimals={1}
+              zeroLine
+            />
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <TrendChart
+              data={realVsNominal}
+              seriesLabels={REAL_TERMS_LABELS}
+              title="Deposit Growth YoY — nominal vs real (sector, %)"
+              yFormat="pct"
+              decimals={1}
+              zeroLine
+            />
+            <TrendChart
+              data={mom4Sector}
+              seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "Sector" }}
+              title="Deposit Growth 4w (annualized %) — sector"
+              yFormat="pct"
+              decimals={1}
+              zeroLine
+            />
+            <BarByBank
+              data={yoyByBank}
+              labels={WEEKLY_BANK_TYPE_LABELS}
+              title={`Deposit YoY by group · ${yoyByBank[0]?.period ?? ""}`}
+              format="pct"
+              decimals={1}
+            />
+          </div>
+        </Section>
+
+        <Section
+          index="02"
+          title="Dollarization"
+          description="The BBVA deposit headline — FX share of the base. The public/private split lives on Liquidity."
+        >
           <TrendChart
-            data={dShare}
-            seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "Demand share" }}
-            title="Demand Share of Total Deposits (%)"
+            data={fxShare}
+            seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "FX share" }}
+            title="FX Share of Total Deposits (%)"
             yFormat="pct"
             decimals={1}
+            height={320}
           />
-          <StackedArea
-            data={mix}
-            series={[
-              { key: "demand", label: "Demand" },
-              { key: "maturity_1m", label: "≤1m" },
-              { key: "maturity_1_3m", label: "1-3m" },
-              { key: "maturity_3_6m", label: "3-6m" },
-              { key: "maturity_6_12m", label: "6-12m" },
-              { key: "maturity_over_12m", label: ">12m" },
-            ]}
-            title="Maturity Composition (sector · monthly)"
-            yFormat="trn"
-            decimals={1}
-          />
-          <StackedArea
-            data={mix}
-            series={[
-              { key: "demand", label: "Demand" },
-              { key: "maturity_1m", label: "≤1m" },
-              { key: "maturity_1_3m", label: "1-3m" },
-              { key: "maturity_3_6m", label: "3-6m" },
-              { key: "maturity_6_12m", label: "6-12m" },
-              { key: "maturity_over_12m", label: ">12m" },
-            ]}
-            title="Maturity Composition — Share (% · monthly)"
-            percentStack
-          />
-        </div>
-      </Section>
+        </Section>
 
-      <Section index="04" title="Loan-to-Deposit Ratio" description="Bank-group LDR — funding pressure indicator (monthly).">
-        <TrendChart
-          data={ldr}
-          seriesLabels={BANK_TYPE_LABELS}
-          title="LDR (%) — by group"
-          yFormat="pct"
-          decimals={0}
-          height={320}
-        />
-      </Section>
+        <Section index="03" title="Demand vs. Term" description="Weekly demand share (funding stickiness) + the monthly maturity ladder.">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <TrendChart
+              data={dShare}
+              seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "Demand share" }}
+              title="Demand Share of Total Deposits (%)"
+              yFormat="pct"
+              decimals={1}
+            />
+            <StackedArea
+              data={mix}
+              series={[
+                { key: "demand", label: "Demand" },
+                { key: "maturity_1m", label: "≤1m" },
+                { key: "maturity_1_3m", label: "1-3m" },
+                { key: "maturity_3_6m", label: "3-6m" },
+                { key: "maturity_6_12m", label: "6-12m" },
+                { key: "maturity_over_12m", label: ">12m" },
+              ]}
+              title="Maturity Composition (sector · monthly)"
+              yFormat="trn"
+              decimals={1}
+            />
+            <StackedArea
+              data={mix}
+              series={[
+                { key: "demand", label: "Demand" },
+                { key: "maturity_1m", label: "≤1m" },
+                { key: "maturity_1_3m", label: "1-3m" },
+                { key: "maturity_3_6m", label: "3-6m" },
+                { key: "maturity_6_12m", label: "6-12m" },
+                { key: "maturity_over_12m", label: ">12m" },
+              ]}
+              title="Maturity Composition — Share (% · monthly)"
+              percentStack
+            />
+          </div>
+        </Section>
+
+        <Section index="04" title="Loan-to-Deposit Ratio" description="Bank-group LDR — funding pressure indicator (monthly).">
+          <TrendChart
+            data={ldr}
+            seriesLabels={BANK_TYPE_LABELS}
+            title="LDR (%) — by group"
+            yFormat="pct"
+            decimals={0}
+            height={320}
+          />
+        </Section>
+      </Depth>
+
+      <Colophon />
     </main>
   );
 }
