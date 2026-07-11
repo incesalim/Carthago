@@ -111,6 +111,20 @@ def _abs_value(value: float, unit: str) -> float:
     return value * _SCALE.get(unit, 1.0)
 
 
+_YEAR_TOKEN = re.compile(r"^\(?(?:19|20)\d{2}\)?$")
+
+
+def _looks_like_year(raw: str | None) -> bool:
+    """True if a raw numeric token is a bare 4-digit year (1900-2099, no grouping
+    separator) — e.g. "2025". Franchise infographics sit next to the report year,
+    and a genuine count of ~2000 is written "2.025"/"2,025" (with a separator), so a
+    separator-less 4-digit year is never a real ATM/POS/merchant/customer/card
+    figure. Guards both passes against capturing the fiscal year as a count."""
+    if not raw:
+        return False
+    return bool(_YEAR_TOKEN.match(raw.strip()))
+
+
 # ---------------------------------------------------------------------------
 # Result types
 # ---------------------------------------------------------------------------
@@ -238,6 +252,8 @@ def extract_stats_from_text(text: str, page: int | None = None, lang: str = "tr"
         if anc.metric in found:
             continue
         for m in anc.rx.finditer(text):
+            if _looks_like_year(m.group("num")) and not m.groupdict().get("suf"):
+                continue                       # the report year, not a count
             parsed = parse_count(m.group("num"), m.groupdict().get("suf"), lang)
             if parsed is None:
                 continue
@@ -303,7 +319,7 @@ def extract_stats_from_words(rows: list[list[tuple[float, float, str]]],
     numbers: list[tuple[int, float, str]] = []  # (row_idx, x_centre, token)
     for ri, row in enumerate(rows):
         for x0, x1, t in row:
-            if _NUM_ONLY.match(t.strip()):
+            if _NUM_ONLY.match(t.strip()) and not _looks_like_year(t.strip()):
                 numbers.append((ri, (x0 + x1) / 2.0, t.strip()))
     for metric in want:
         kws = _COORD_KEYWORDS.get(metric, ())
