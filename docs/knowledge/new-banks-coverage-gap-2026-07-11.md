@@ -264,12 +264,25 @@ recent quarters) now extract and, for the current quarters, validate.
   1031/1034). This is the [[reference_r2_token_scope_and_ci_ip]] local-seed pattern applied
   to a CI-fitz limitation rather than a CI-IP block.
 
-  **Two residual DUNYAK partitions still fail** — both truncated source files:
-  - **2024Q2 consolidated & 2024Q4 consolidated** — the source PDFs are **truncated**
-    (145 KB / 144 KB vs ~1.6 MB for a real consolidated report; `assets=0` even downloaded
-    fresh from a local IP). The balance-sheet pages simply aren't in the file. Not a bug —
-    the config URLs serve broken files. Fix = find alternative URLs (KAP filing / a
-    different Dünya filename); otherwise leave flagged.
+  **2024Q2 + 2024Q4 consolidated — RESOLVED: they were never filed.** Their source PDFs
+  are truncated (145 KB / 144 KB vs ~1.6 MB; `assets=0` even fetched from a local IP).
+  Checking **BDDK's own audit-report registry** (BdrUyg — Dünya Katılım = institution code
+  **214**) settled it: Dünya filed **SOLO only** in 2024 (2024-03/06/09/12); its
+  **KONSOLIDE series officially begins 2025-03**. So no consolidated 2024 report exists —
+  the files on Dünya's website are spurious non-reports, and those two partitions should
+  never have been in our config. **No data lost**: the 2024Q2/Q4 *solo* reports (the only
+  type Dünya produced that year) extract cleanly.
+
+  Removed as invalid partitions (user-authorized): config entries, the 2 truncated R2
+  objects, and their D1 + snapshot rows; coverage spine rebuilt. → **DUNYAK 15/15**, fleet
+  1031/1032. Config's DUNYAK consolidated block now correctly starts at 2025Q1.
+
+  > **Lesson (generalizable):** a bank's own IR page can list files for reports it never
+  > actually filed. **BdrUyg is the authority on what exists** —
+  > `bddk.org.tr/BdrUyg/Home/SorguSonuc?KurulusTuru=1&EFTKodu=&RaporTipi=TÜMÜ&DonemYil=0&DonemAy=0`
+  > lists every bank (81) with each report as SOLO / KONSOLIDE / Yıllık per period, and a
+  > `DosyaIndir` link. Use it to validate a new bank's period×kind universe before wiring
+  > URLs — it would have prevented these two partitions entirely.
 
   *Sub-residual (validation-only, data correct):* **DUNYAK 2024Q1 + 2024Q4** — Dünya's
   oldest reports also have a **source roman-numbering shift** (pre-tax at XVI, tax at XVII,
