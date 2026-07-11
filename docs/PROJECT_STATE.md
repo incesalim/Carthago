@@ -173,7 +173,11 @@ hover/pin isolation) + hero-vs-grey-context on by-group lines, legend only
 dark-safe news-tags ✅; D: Section spine on capital/profitability,
 `ui/segmented.tsx` single toggle idiom (`bg-primary/10 text-primary`),
 `TableCellNum`/`toneFor` + 7 hand-rolled tables consolidated, radii→10px/9px +
-space-y-8 normalization ✅; E: finding-as-title lead charts on the 8 Read tabs
+space-y-8 normalization ✅ (follow-up 2026-07-11: the former "intentional
+narrows" — /banks/[ticker], /ownership, /earnings, /disclosures — widened to
+the standard `max-w-[1440px]` shell after user feedback on dead gutters;
+earnings/disclosures card lists became responsive grids; only /admin keeps
+6xl); E: finding-as-title lead charts on the 8 Read tabs
 off `lib/chart-findings.ts` (deterministic, recomputed from chart rows — can't
 go stale) + source footers ✅. Plan + rationale:
 [knowledge/design-system-audit-2026-07-10.md](knowledge/design-system-audit-2026-07-10.md),

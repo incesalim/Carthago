@@ -77,7 +77,7 @@ export default async function DisclosuresPage({ searchParams }: Props) {
   if (ticker) {
     const items = await newsByTicker(ticker, 200);
     return (
-      <main className="mx-auto w-full px-4 py-8 sm:px-6 lg:px-8 space-y-8 max-w-3xl">
+      <main className="mx-auto w-full px-4 py-8 sm:px-6 lg:px-8 space-y-8 max-w-[1440px]">
         <div className="space-y-2">
           <PageHeader
             eyebrow="KAP"
@@ -101,7 +101,7 @@ export default async function DisclosuresPage({ searchParams }: Props) {
             </Link>
           </div>
         </div>
-        <div className="space-y-2">
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {items.length === 0 ? (
             <div className="text-xs text-muted-foreground italic">
               No disclosures cached for {ticker} yet.
@@ -122,7 +122,7 @@ export default async function DisclosuresPage({ searchParams }: Props) {
   const kapStats = summary.find((s) => s.source === "kap");
 
   return (
-    <main className="mx-auto w-full px-4 py-8 sm:px-6 lg:px-8 space-y-8 max-w-4xl">
+    <main className="mx-auto w-full px-4 py-8 sm:px-6 lg:px-8 space-y-8 max-w-[1440px]">
       <div className="space-y-2">
         <PageHeader
           eyebrow="KAP"
@@ -155,7 +155,7 @@ export default async function DisclosuresPage({ searchParams }: Props) {
           </Link>
         </div>
       </div>
-      <div className="space-y-2">
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {items.length === 0 ? (
           <div className="text-xs text-muted-foreground italic">No disclosures cached yet.</div>
         ) : (
