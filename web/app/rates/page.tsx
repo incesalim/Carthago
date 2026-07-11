@@ -4,8 +4,20 @@
  * Cron-fed via scripts/refresh.py → src/scrapers/evds_scraper.py.
  */
 import type { Metadata } from "next";
+import Link from "next/link";
 import { evdsMulti, latestPeriod } from "@/app/lib/metrics";
-import { PageHeader, Stat } from "@/app/components/ui";
+import { Stat } from "@/app/components/ui";
+import { GlobalRangeSelector } from "@/app/components/range-context";
+import {
+  ChartRow,
+  Colophon,
+  Depth,
+  DeskHeader,
+  SecHead,
+  Vital,
+  Vitals,
+} from "@/app/components/desk";
+import { lastVal, monthLabel, signedPp, valAgo } from "@/app/lib/desk";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
 import TrendChart from "@/app/components/TrendChart";
 
@@ -68,6 +80,37 @@ const FC_SPREADS = [
 const fmtPct = (v: number | undefined) => (v == null ? "—" : `${v.toFixed(2)}%`);
 const fmtFx  = (v: number | undefined) => (v == null ? "—" : `₺${v.toFixed(2)}`);
 
+/** Record<label, {period_date, value}[]> (TimeSeriesChart shape) → long rows for ChartRow rails. */
+const tsRows = (s: Record<string, { period_date: string; value: number | null }[]>) =>
+  Object.entries(s).flatMap(([k, pts]) =>
+    pts.map((p) => ({ period: p.period_date, bank_type_code: k, value: p.value })),
+  );
+
+/** Trailing ~year of points, thinned to ≤60 (sparkline window for daily/weekly cadences). */
+function sparkWindow<T extends { period: string }>(s: T[]): T[] {
+  const last = s.at(-1)?.period;
+  if (!last) return s;
+  const d = new Date(last);
+  d.setUTCDate(d.getUTCDate() - 364);
+  const cut = d.toISOString().slice(0, 10);
+  const w = s.filter((r) => r.period >= cut);
+  const step = Math.max(1, Math.ceil(w.length / 60));
+  return w.filter((_, i) => i % step === 0 || i === w.length - 1);
+}
+
+/** Value ~a year (364 d) before the latest point, paired by DATE not row offset. */
+function valYearAgoByDate(s: { period: string; value: number | null }[]): number | null {
+  const last = s.at(-1)?.period;
+  if (!last) return null;
+  const d = new Date(last);
+  d.setUTCDate(d.getUTCDate() - 364);
+  const cut = d.toISOString().slice(0, 10);
+  for (let i = s.length - 1; i >= 0; i--) {
+    if (s[i].period <= cut) return s[i].value;
+  }
+  return null;
+}
+
 interface KpiCardProps {
   label: string;
   value: string;
@@ -116,94 +159,243 @@ export default async function RatesPage() {
     }
     return out;
   };
+  const depLadder = byLabel(DEP_MATURITY);
 
   const policy = data["TP.PY.P02.1H"]?.at(-1);
   const usd = data["TP.DK.USD.A"]?.at(-1);
   const eur = data["TP.DK.EUR.A"]?.at(-1);
   const cbrtCost = data["TP.APIFON4"]?.at(-1);
 
+  // ---- the brief's computed vitals -----------------------------------------
+  const pts = (code: string) =>
+    (data[code] ?? []).map((r) => ({ period: r.period_date, value: r.value }));
+
+  const policyS = pts("TP.PY.P02.1H");                 // daily
+  const fundS = pts("TP.APIFON4");                     // daily
+  const depS = pts("TP.TRY.MT06");                     // weekly survey
+  const loanS = pts("TP.KTF17");                       // weekly survey
+  const spreadS = spread.map((r) => ({ period: r.period, value: r.value })); // weekly
+  const usdS = pts("TP.DK.USD.A");                     // daily
+
+  const policyNow = lastVal(policyS);
+  const policyYrAgo = valYearAgoByDate(policyS);
+  const policyYoY = policyNow != null && policyYrAgo != null ? policyNow - policyYrAgo : null;
+  const fundNow = lastVal(fundS);
+  const fundGap = fundNow != null && policyNow != null ? fundNow - policyNow : null;
+  const depNow = lastVal(depS);
+  const dep13w = valAgo(depS, 13);
+  const depD13 = depNow != null && dep13w != null ? depNow - dep13w : null;
+  const loanNow = lastVal(loanS);
+  const loan13w = valAgo(loanS, 13);
+  const loanD13 = loanNow != null && loan13w != null ? loanNow - loan13w : null;
+  const spreadNow = lastVal(spreadS);
+  const usdNow = lastVal(usdS);
+  const usdYrAgo = valYearAgoByDate(usdS);
+  const usdYoY =
+    usdNow != null && usdYrAgo != null && usdYrAgo > 0 ? (usdNow / usdYrAgo - 1) * 100 : null;
+
+  const recMonth = monthLabel(latestPeriod(...Object.values(data)));
+
   return (
-    <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
-      <PageHeader
-        eyebrow="TCMB EVDS"
+    <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
+      <DeskHeader
         title="Rates & Macro"
-        description="Daily snapshots · cached in D1, refreshed weekly with the BDDK pipeline"
-        rangeSelector
-        dataThrough={latestPeriod(...Object.values(data))}
+        record={
+          <>
+            Record <b className="font-normal text-foreground">{recMonth}</b> · daily EVDS + weekly
+            survey
+          </>
+        }
+        right="every figure computed from source series"
       />
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard label="Policy Rate"
-                 value={fmtPct(policy?.value)}
-                 asOf={policy?.period_date ?? "—"} />
-        <KpiCard label="CBRT Funding Cost"
-                 value={fmtPct(cbrtCost?.value)}
-                 asOf={cbrtCost?.period_date ?? "—"} />
-        <KpiCard label="USD / TRY"
-                 value={fmtFx(usd?.value)}
-                 asOf={usd?.period_date ?? "—"} />
-        <KpiCard label="EUR / TRY"
-                 value={fmtFx(eur?.value)}
-                 asOf={eur?.period_date ?? "—"} />
-      </div>
-
-      {/* Transmission first (display-study Phase 5): the strategist question is
-          not "where is the policy rate" but "how fast does it reach bank
-          pricing" — deposit rates reprice in weeks, loan rates with a lag; the
-          gap between the two lines IS the margin cycle. */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <TimeSeriesChart
-          series={byLabel(RATE_CORRIDOR)}
-          title="Rate Corridor — Policy + ON + Effective Funding (%)"
-          yFormat="pct"
-          decimals={2}        />
-        <TimeSeriesChart
-          series={byLabel(LENDING)}
-          title="Transmission — policy cuts reach deposit pricing first (weekly survey, %)"
-          yFormat="pct"
-          decimals={2}        />
-      </div>
-
-      {/* Deposit-cost ladder + loan–deposit spreads — the BBVA liquidity
-          section's margin read: where the TL deposit curve sits by maturity,
-          and whether loans out-price deposits (positive spread) in TL and FC. */}
-      <TimeSeriesChart
-        series={byLabel(DEP_MATURITY)}
-        title="TL Deposit Rates by Maturity (weekly survey, %)"
-        yFormat="pct"
-        decimals={2}
+      {/* ── The vitals ─────────────────────────────────────────────────── */}
+      <SecHead
+        title="The vitals"
+        meta="daily corridor · weekly survey · computed spreads"
+        className="mb-2.5 mt-6"
       />
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <TrendChart
-          data={spread}
-          seriesLabels={{ SPREAD: "Commercial (ex-OD) − Deposit" }}
-          title="TL Loan–Deposit Spread (pp) — commercial vs deposit cost"
-          yFormat="pct"
-          decimals={2}
-          zeroLine
+      <Vitals cols={6}>
+        <Vital
+          label="Policy rate (1-week repo)"
+          value={policyNow != null ? policyNow.toFixed(2) : "—"}
+          unit="%"
+          series={sparkWindow(policyS)}
+          note={policyYoY != null ? <>{signedPp(policyYoY, 2)} y/y</> : undefined}
         />
-        <TrendChart
-          data={fcSpread}
-          seriesLabels={fcSpreadLabels}
-          title="FC Loan–Deposit Spread (pp) — USD &amp; EUR commercial vs deposit"
-          yFormat="pct"
-          decimals={2}
-          zeroLine
+        <Vital
+          label="CBRT effective funding"
+          value={fundNow != null ? fundNow.toFixed(2) : "—"}
+          unit="%"
+          series={sparkWindow(fundS)}
+          note={
+            fundGap != null ? (
+              <>
+                <b
+                  className={
+                    Math.abs(fundGap) <= 0.25
+                      ? "font-semibold text-positive"
+                      : "font-semibold text-foreground"
+                  }
+                >
+                  {signedPp(fundGap, 2)}
+                </b>{" "}
+                vs the policy rate
+              </>
+            ) : undefined
+          }
         />
-      </div>
+        <Vital
+          label="TL deposit rate (blended)"
+          value={depNow != null ? depNow.toFixed(2) : "—"}
+          unit="%"
+          series={sparkWindow(depS)}
+          note={
+            depD13 != null ? (
+              <>
+                {signedPp(depD13, 2)} over 13w{" "}
+                <Link href="/deposits" className="font-semibold text-primary">
+                  /deposits
+                </Link>
+              </>
+            ) : undefined
+          }
+        />
+        <Vital
+          label="Commercial loan rate"
+          value={loanNow != null ? loanNow.toFixed(2) : "—"}
+          unit="%"
+          series={sparkWindow(loanS)}
+          note={
+            loanD13 != null ? (
+              <>
+                {signedPp(loanD13, 2)} over 13w{" "}
+                <Link href="/credit" className="font-semibold text-primary">
+                  /credit
+                </Link>
+              </>
+            ) : undefined
+          }
+        />
+        <Vital
+          label="TL loan–deposit spread"
+          value={spreadNow != null ? spreadNow.toFixed(2) : "—"}
+          unit="pp"
+          series={sparkWindow(spreadS)}
+          note={
+            spreadNow != null ? (
+              <>
+                <b
+                  className={
+                    spreadNow >= 0 ? "font-semibold text-positive" : "font-semibold text-negative"
+                  }
+                >
+                  {spreadNow >= 0 ? "loans out-price deposits" : "deposits out-price loans"}
+                </b>{" "}
+                · commercial ex-OD − blended TL
+              </>
+            ) : undefined
+          }
+        />
+        <Vital
+          label="USD / TRY"
+          value={usdNow != null ? usdNow.toFixed(2) : "—"}
+          unit="₺"
+          series={sparkWindow(usdS)}
+          format="raw"
+          note={
+            usdYoY != null ? (
+              <>
+                <b className={usdYoY <= 0 ? "font-semibold text-positive" : "font-semibold text-negative"}>
+                  {usdYoY >= 0 ? "+" : "−"}
+                  {Math.abs(usdYoY).toFixed(1)}%
+                </b>{" "}
+                y/y TL depreciation
+              </>
+            ) : undefined
+          }
+        />
+      </Vitals>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <TimeSeriesChart
-          series={byLabel(FX)}
-          title="Exchange Rates — USD &amp; EUR"
-          yFormat="fx"
-          decimals={2}        />
-        <TimeSeriesChart
-          series={byLabel(STERIL)}
-          title="CBRT Sterilization Channels (TL bn)"
-          yFormat="raw"
-          decimals={0}        />
-      </div>
+      {/* ── In depth — the evidence layer ──────────────────────────────── */}
+      <Depth action={<GlobalRangeSelector />}>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <KpiCard label="Policy Rate"
+                   value={fmtPct(policy?.value)}
+                   asOf={policy?.period_date ?? "—"} />
+          <KpiCard label="CBRT Funding Cost"
+                   value={fmtPct(cbrtCost?.value)}
+                   asOf={cbrtCost?.period_date ?? "—"} />
+          <KpiCard label="USD / TRY"
+                   value={fmtFx(usd?.value)}
+                   asOf={usd?.period_date ?? "—"} />
+          <KpiCard label="EUR / TRY"
+                   value={fmtFx(eur?.value)}
+                   asOf={eur?.period_date ?? "—"} />
+        </div>
+
+        {/* Transmission first (display-study Phase 5): the strategist question is
+            not "where is the policy rate" but "how fast does it reach bank
+            pricing" — deposit rates reprice in weeks, loan rates with a lag; the
+            gap between the two lines IS the margin cycle. */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <TimeSeriesChart
+            series={byLabel(RATE_CORRIDOR)}
+            title="Rate Corridor — Policy + ON + Effective Funding (%)"
+            yFormat="pct"
+            decimals={2}        />
+          <TimeSeriesChart
+            series={byLabel(LENDING)}
+            title="Transmission — policy cuts reach deposit pricing first (weekly survey, %)"
+            yFormat="pct"
+            decimals={2}        />
+        </div>
+
+        {/* Deposit-cost ladder + loan–deposit spreads — the BBVA liquidity
+            section's margin read: where the TL deposit curve sits by maturity,
+            and whether loans out-price deposits (positive spread) in TL and FC. */}
+        <ChartRow data={tsRows(depLadder)} deltaPeriods={52} deltaLabel="52w">
+          <TimeSeriesChart
+            series={depLadder}
+            title="TL Deposit Rates by Maturity (weekly survey, %)"
+            yFormat="pct"
+            decimals={2}
+          />
+        </ChartRow>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <TrendChart
+            data={spread}
+            seriesLabels={{ SPREAD: "Commercial (ex-OD) − Deposit" }}
+            title="TL Loan–Deposit Spread (pp) — commercial vs deposit cost"
+            yFormat="pct"
+            decimals={2}
+            zeroLine
+          />
+          <TrendChart
+            data={fcSpread}
+            seriesLabels={fcSpreadLabels}
+            title="FC Loan–Deposit Spread (pp) — USD &amp; EUR commercial vs deposit"
+            yFormat="pct"
+            decimals={2}
+            zeroLine
+          />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <TimeSeriesChart
+            series={byLabel(FX)}
+            title="Exchange Rates — USD &amp; EUR"
+            yFormat="fx"
+            decimals={2}        />
+          <TimeSeriesChart
+            series={byLabel(STERIL)}
+            title="CBRT Sterilization Channels (TL bn)"
+            yFormat="raw"
+            decimals={0}        />
+        </div>
+      </Depth>
+
+      <Colophon />
     </main>
   );
 }

@@ -8,6 +8,7 @@
  * computed server-side here, off the single cached heatmapPanel().
  */
 import type { Metadata } from "next";
+import Link from "next/link";
 import {
   heatmapPanel,
   latestCommonPeriod,
@@ -23,7 +24,14 @@ import {
   BANK_TYPE_BY_TICKER,
   BANK_TYPE_BADGE_LABELS,
 } from "@/app/lib/bank_names";
-import { PageHeader } from "@/app/components/ui";
+import {
+  Colophon,
+  Depth,
+  DeskHeader,
+  SecHead,
+  Vital,
+  Vitals,
+} from "@/app/components/desk";
 import HeatmapView from "./HeatmapView";
 import MarketShareSection from "./MarketShareSection";
 import type { HeatmapBankRow } from "./HeatmapGrid";
@@ -52,6 +60,20 @@ function groupMeta(ticker: string) {
   };
 }
 
+/** '2026Q1' → 'Q1 2026' for the record line and vitals. */
+function quarterLabel(p: string | null | undefined): string {
+  const m = p ? /^(\d{4})Q([1-4])$/.exec(p) : null;
+  return m ? `Q${m[2]} ${m[1]}` : p || "—";
+}
+
+/** Median of the non-null values (null when empty). */
+function median(xs: number[]): number | null {
+  if (!xs.length) return null;
+  const s = [...xs].sort((a, b) => a - b);
+  const mid = s.length >> 1;
+  return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+}
+
 export default async function CrossBankPage() {
   // Live (delayed) quotes for the listed banks → P/B & P/E on the snapshot +
   // the last over-time point reflect the latest price (graceful fallback to the
@@ -66,7 +88,8 @@ export default async function CrossBankPage() {
   // Competitive dynamics: asset-size league table + sector HHI at the snapshot
   // quarter (same period the snapshot heatmap uses).
   const league = period ? leagueTable(sharePanel, period) : [];
-  const hhiLatest = period ? hhiSeries(sharePanel).find((h) => h.period === period) ?? null : null;
+  const hhiAll = hhiSeries(sharePanel);
+  const hhiLatest = period ? hhiAll.find((h) => h.period === period) ?? null : null;
 
   // ---- Snapshot: rows at the latest common quarter, scored per column. ------
   const snapRows = period ? panel.filter((r) => r.period === period) : [];
@@ -109,32 +132,162 @@ export default async function CrossBankPage() {
     raw: KEYS.map((k) => r[k]),
   }));
 
-  // ---- Header copy. Period is YYYYQN — never pass it to dataThrough (expects
-  // YYYY-MM); format it inline instead.
-  const q = period ? Number(/Q([1-4])$/.exec(period)?.[1]) : null;
-  const year = period?.slice(0, 4);
+  // ---- the brief's computed vitals — medians + named extremes of the same
+  // snapshot rows the heatmap scores (fractions in the panel → ×100 here). ----
+  type VitalKey = "roe" | "npl_ratio" | "nim";
+  const snapMedian = (key: VitalKey) =>
+    median(snapRows.map((r) => r[key]).filter((v): v is number => v != null));
+  const snapHighest = (key: VitalKey) => {
+    let top: { ticker: string; value: number } | null = null;
+    for (const r of snapRows) {
+      const v = r[key];
+      if (v != null && (top == null || v > top.value)) top = { ticker: r.bank_ticker, value: v };
+    }
+    return top;
+  };
+  // Median across the reporting fleet, per quarter — the vitals sparklines.
+  const medianSeries = (key: VitalKey) =>
+    periods
+      .map((p) => ({
+        period: p,
+        value: median(
+          panel.filter((r) => r.period === p).map((r) => r[key]).filter((v): v is number => v != null),
+        ),
+      }))
+      .filter((pt): pt is { period: string; value: number } => pt.value != null)
+      .map((pt) => ({ period: pt.period, value: pt.value * 100 }));
+
+  const roeMed = snapMedian("roe");
+  const nplMed = snapMedian("npl_ratio");
+  const nimMed = snapMedian("nim");
+  const roeTop = snapHighest("roe");
+  const nplTop = snapHighest("npl_ratio");
+  const nimTop = snapHighest("nim");
+  const leader = league[0] ?? null;
+  const hhiNow = hhiLatest?.assets_hhi ?? null;
+  const hhiSpark = hhiAll
+    .filter((h) => h.assets_hhi != null)
+    .map((h) => ({ period: h.period, value: h.assets_hhi as number }));
+
   const liveNote = live.size
     ? " · P/B & P/E live (~15-min delayed)"
     : " · P/B & P/E at last close";
-  const description = period
-    ? `Individual banks ranked vs peers across the full performance set · Snapshot: Q${q} ${year} · ${snapRows.length} of ${banks.length} banks reporting${liveNote}`
-    : "Individual banks ranked vs peers across the full performance set";
 
   return (
-    <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
-      <PageHeader title="Compare" description={description} />
-      {period ? (
-        <>
-          <HeatmapView
-            metrics={METRIC_DEFS}
-            snapshot={{ period, rows: snapshotRows }}
-            timePanel={{ banks, periods, panel: panelCells }}
-          />
-          <MarketShareSection league={league} hhi={hhiLatest} period={period} />
-        </>
-      ) : (
-        <p className="text-sm text-muted-foreground">No per-bank audit data available yet.</p>
-      )}
+    <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
+      <DeskHeader
+        title="Compare"
+        record={
+          <>
+            Record <b className="font-normal text-foreground">{quarterLabel(period)}</b> ·{" "}
+            {snapRows.length} of {banks.length} banks reporting{liveNote}
+          </>
+        }
+        right="every figure computed from source series"
+      />
+
+      <SecHead
+        title="The vitals"
+        meta="medians of the reporting banks · extremes named"
+        className="mb-2.5 mt-6"
+      />
+      <Vitals cols={6}>
+        <Vital
+          label="Banks compared"
+          value={period ? String(snapRows.length) : "—"}
+          note={
+            <>
+              of {banks.length} tracked — the directory at{" "}
+              <Link href="/banks" className="font-semibold text-primary">
+                /banks
+              </Link>
+            </>
+          }
+        />
+        <Vital
+          label="Median ROE (TTM)"
+          value={roeMed != null ? (roeMed * 100).toFixed(1) : "—"}
+          unit="%"
+          series={medianSeries("roe").slice(-13)}
+          decimals={1}
+          note={
+            roeTop ? (
+              <>
+                highest: {BANK_NAMES[roeTop.ticker] ?? roeTop.ticker} ({(roeTop.value * 100).toFixed(1)}%) ·{" "}
+                <Link href="/profitability" className="font-semibold text-primary">
+                  /profitability
+                </Link>
+              </>
+            ) : (
+              "TTM net income / 5-quarter avg equity"
+            )
+          }
+        />
+        <Vital
+          label="Median NPL ratio"
+          value={nplMed != null ? (nplMed * 100).toFixed(2) : "—"}
+          unit="%"
+          series={medianSeries("npl_ratio").slice(-13)}
+          note={
+            nplTop ? (
+              <>
+                highest: {BANK_NAMES[nplTop.ticker] ?? nplTop.ticker} ({(nplTop.value * 100).toFixed(2)}%) ·{" "}
+                <Link href="/asset-quality" className="font-semibold text-primary">
+                  /asset-quality
+                </Link>
+              </>
+            ) : (
+              "stage-3 / gross loans, audited"
+            )
+          }
+        />
+        <Vital
+          label="Median NIM (ann.)"
+          value={nimMed != null ? (nimMed * 100).toFixed(2) : "—"}
+          unit="%"
+          series={medianSeries("nim").slice(-13)}
+          note={
+            nimTop
+              ? `widest: ${BANK_NAMES[nimTop.ticker] ?? nimTop.ticker} (${(nimTop.value * 100).toFixed(2)}%)`
+              : "net interest income / period-end assets"
+          }
+        />
+        <Vital
+          label="Leader asset share"
+          value={leader?.assets_share != null ? (leader.assets_share * 100).toFixed(1) : "—"}
+          unit="%"
+          note={
+            leader
+              ? `${BANK_NAMES[leader.bank_ticker] ?? leader.bank_ticker} — rank 1 of ${league.length} by assets`
+              : "largest bank / reporting-bank total"
+          }
+        />
+        <Vital
+          label="Concentration (HHI)"
+          value={hhiNow != null ? hhiNow.toFixed(0) : "—"}
+          series={hhiSpark.slice(-13)}
+          format="raw"
+          decimals={0}
+          note="Σ share² × 10,000 — below 1,500 reads unconcentrated"
+        />
+      </Vitals>
+
+      <Depth>
+        {period ? (
+          <>
+            <HeatmapView
+              metrics={METRIC_DEFS}
+              snapshot={{ period, rows: snapshotRows }}
+              timePanel={{ banks, periods, panel: panelCells }}
+            />
+            <MarketShareSection league={league} hhi={hhiLatest} period={period} />
+          </>
+        ) : (
+          <p className="text-sm text-muted-foreground">No per-bank audit data available yet.</p>
+        )}
+      </Depth>
+
+      <Colophon />
     </main>
   );
 }

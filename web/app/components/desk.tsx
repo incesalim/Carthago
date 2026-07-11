@@ -114,17 +114,28 @@ export function SecHead({
 // Vitals band — the signature element
 // ---------------------------------------------------------------------------
 
+const VITALS_COLS: Record<number, string> = {
+  3: "sm:grid-cols-3 xl:grid-cols-3",
+  4: "sm:grid-cols-2 xl:grid-cols-4",
+  5: "sm:grid-cols-3 xl:grid-cols-5",
+  6: "sm:grid-cols-3 xl:grid-cols-6",
+};
+
 export function Vitals({
   children,
+  cols = 6,
   className,
 }: {
   children: React.ReactNode;
+  /** Cell count at xl (default 6) — pass the number of <Vital> children. */
+  cols?: 3 | 4 | 5 | 6;
   className?: string;
 }) {
   return (
     <div
       className={cn(
-        "grid grid-cols-2 border-b border-border border-t-2 border-t-foreground sm:grid-cols-3 xl:grid-cols-6",
+        "grid grid-cols-2 border-b border-border border-t-2 border-t-foreground",
+        VITALS_COLS[cols] ?? VITALS_COLS[6],
         className,
       )}
     >
