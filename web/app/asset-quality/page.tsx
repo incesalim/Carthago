@@ -11,13 +11,23 @@ import {
   commercialNplRatios,
   weeklySeries,
   latestPerBank,
-  latestPeriod,
   PRIMARY_BANK_TYPES,
   WEEKLY_BANK_TYPES,
   BANK_TYPE_LABELS,
   type TimeSeriesRow,
 } from "@/app/lib/metrics";
-import { PageHeader, Section, Stat } from "@/app/components/ui";
+import Link from "next/link";
+import { Section, Stat } from "@/app/components/ui";
+import { GlobalRangeSelector } from "@/app/components/range-context";
+import {
+  Colophon,
+  Depth,
+  DeskHeader,
+  SecHead,
+  Vital,
+  Vitals,
+} from "@/app/components/desk";
+import { lastVal, monthLabel, streak, valAgo } from "@/app/lib/desk";
 import BarByBank from "@/app/components/BarByBank";
 import TrendChart from "@/app/components/TrendChart";
 import StackedArea from "@/app/components/StackedArea";
@@ -97,25 +107,129 @@ export default async function AssetQualityPage() {
   const consumerTrend = ratiosToTrendRows(cRatios);
   const commercialTrend = commercialToTrendRows(commRatios);
 
+  // ---- the brief's computed vitals -----------------------------------------
+  const nplSector = nplAll.filter((r) => r.bank_type_code === SECTOR);
+  const covSector = coverageAll.filter((r) => r.bank_type_code === SECTOR);
+  const stage2 = stageShares.filter((r) => r.bank_type_code === "STAGE2");
+  const cardsNpl = consumerTrend.filter((r) => r.bank_type_code === "CARDS");
+  const smeNpl = commercialTrend.filter((r) => r.bank_type_code === "SME");
+
+  const nplNow = lastVal(nplSector);
+  const nplStreak = streak(nplSector, "up");
+  const covNow = lastVal(covSector);
+  const covD = covNow != null && covSector.at(-2)?.value != null ? covNow - (covSector.at(-2)!.value as number) : null;
+  const s2Now = lastVal(stage2);
+  const grossNow = lastVal(gross);
+  const grossAgo = valAgo(gross, 52);
+  const grossYoY = grossNow != null && grossAgo != null && grossAgo > 0 ? (grossNow / grossAgo - 1) * 100 : null;
+  const cardsNow = lastVal(cardsNpl);
+  const smeNow = lastVal(smeNpl);
+
   // "The Read" — deterministic, computed from the same series the charts show.
   const read = assetQualityInsights({
-    npl: nplAll.filter((r) => r.bank_type_code === SECTOR),
-    coverage: coverageAll.filter((r) => r.bank_type_code === SECTOR),
+    npl: nplSector,
+    coverage: covSector,
     grossNpl: gross,
-    cardsNpl: consumerTrend.filter((r) => r.bank_type_code === "CARDS"),
-    smeNpl: commercialTrend.filter((r) => r.bank_type_code === "SME"),
-    stage2: stageShares.filter((r) => r.bank_type_code === "STAGE2"),
+    cardsNpl,
+    smeNpl,
+    stage2,
   });
 
   return (
-    <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
-      <PageHeader
+    <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
+      <DeskHeader
         title="Asset Quality"
-        description="NPL ratio + coverage · sub-segment NPL ratios · BDDK Tables 4, 5, 15 + weekly bulletin"
-        rangeSelector
-        dataThrough={latestPeriod(nplAll, coverageAll)}
+        record={
+          <>
+            Record <b className="font-normal text-foreground">{monthLabel(nplSector.at(-1)?.period)}</b> · vs{" "}
+            {monthLabel(nplSector.at(-2)?.period, false)} · stages: quarterly filings
+          </>
+        }
+        right="every figure computed from source series"
       />
 
+      <SecHead
+        title="The vitals"
+        meta="level · direction · pipeline · cover"
+        className="mb-2.5 mt-6"
+      />
+      <Vitals>
+        <Vital
+          label="NPL ratio"
+          value={nplNow != null ? nplNow.toFixed(2) : "—"}
+          unit="%"
+          series={nplSector.slice(-13)}
+          note={
+            nplStreak >= 3 ? (
+              <em className="not-italic font-semibold text-negative">
+                {nplStreak} straight rises
+              </em>
+            ) : (
+              "broadly stable"
+            )
+          }
+        />
+        <Vital
+          label="Stage-2 share"
+          value={s2Now != null ? s2Now.toFixed(1) : "—"}
+          unit="%"
+          series={stage2.slice(-8)}
+          decimals={1}
+          note="the pre-NPL watchlist — audited quarterly"
+        />
+        <Vital
+          label="NPL coverage"
+          value={covNow != null ? covNow.toFixed(1) : "—"}
+          unit="%"
+          series={covSector.slice(-13)}
+          decimals={1}
+          note={
+            covD != null && covD < -0.3
+              ? "thinning as the stock grows"
+              : "provisions / gross NPL"
+          }
+        />
+        <Vital
+          label="Gross NPL stock, y/y"
+          value={grossYoY != null ? `+${grossYoY.toFixed(0)}` : "—"}
+          unit="%"
+          note={
+            nplNow != null && nplNow < 3 ? (
+              <>
+                fast off a low base — <Link href="/credit" className="font-semibold text-primary">/credit</Link> grows the denominator
+              </>
+            ) : (
+              "stock growth, weekly series"
+            )
+          }
+        />
+        <Vital
+          label="Card NPL"
+          value={cardsNow != null ? cardsNow.toFixed(1) : "—"}
+          unit="%"
+          series={cardsNpl.slice(-13)}
+          decimals={1}
+          note="consumer stress leads the cycle"
+        />
+        <Vital
+          label="SME NPL"
+          value={smeNow != null ? smeNow.toFixed(1) : "—"}
+          unit="%"
+          series={smeNpl.slice(-13)}
+          decimals={1}
+          note={
+            smeNow != null && nplNow != null && smeNow > 1.5 * nplNow ? (
+              <em className="not-italic font-semibold text-negative">
+                {(smeNow / nplNow).toFixed(1)}× the sector ratio
+              </em>
+            ) : (
+              "vs the sector book"
+            )
+          }
+        />
+      </Vitals>
+
+      <Depth action={<GlobalRangeSelector />}>
       <Takeaway data={await withLlmHeadline("asset-quality", read)} />
 
       <Section index="01" title="NPL Ratio">
@@ -266,6 +380,9 @@ export default async function AssetQualityPage() {
           height={320}
         />
       </Section>
+      </Depth>
+
+      <Colophon />
     </main>
   );
 }

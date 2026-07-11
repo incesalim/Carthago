@@ -10,6 +10,7 @@
  * 52w; the old monthly MoM chart → weekly 4w annualized momentum.
  */
 import type { Metadata } from "next";
+import Link from "next/link";
 import {
   weeklySeries,
   weeklyGrowth,
@@ -17,7 +18,6 @@ import {
   cardsSplit,
   smeBreakdown,
   latestPerBank,
-  latestPeriod,
   evdsSeries,
   WEEKLY_BANK_TYPES,
   WEEKLY_BANK_TYPE_LABELS,
@@ -25,7 +25,17 @@ import {
   type TimeSeriesRow,
   type EvdsRow,
 } from "@/app/lib/metrics";
-import { PageHeader, Section } from "@/app/components/ui";
+import { Section } from "@/app/components/ui";
+import {
+  Colophon,
+  Depth,
+  DeskHeader,
+  SecHead,
+  Vital,
+  Vitals,
+} from "@/app/components/desk";
+import { lastVal, monthLabel, signedPp, valAgo } from "@/app/lib/desk";
+import { GlobalRangeSelector } from "@/app/components/range-context";
 import BarByBank from "@/app/components/BarByBank";
 import TrendChart from "@/app/components/TrendChart";
 import StackedArea from "@/app/components/StackedArea";
@@ -51,6 +61,15 @@ const GPL = "1.0.6";
 const CARDS = "1.0.8";
 const SME = "1.0.11";
 const COMMERCIAL = "1.0.12";
+
+/** 'YYYY-MM-DD' → '04 Jul 2026' / '04 Jul' — the weekly record line. */
+function weekLabel(p: string | null | undefined, withYear = true): string {
+  const m = p ? /^\d{4}-\d{2}-(\d{2})/.exec(p) : null;
+  return m ? `${m[1]} ${monthLabel(p, withYear)}` : monthLabel(p, withYear);
+}
+
+const fmtPct = (v: number | null | undefined, d = 1) =>
+  v == null ? "—" : `${v.toFixed(d)}%`;
 
 /** FX share = fx / (tl + fx) per period (×100). */
 function computeFxShare(tl: WeeklyRow[], fx: WeeklyRow[]): TimeSeriesRow[] {
@@ -204,16 +223,61 @@ export default async function CreditPage() {
 
   const pubPrivSet = new Set<string>(pubPriv);
 
+  const yoyState = yoyPubPriv.filter((r) => r.bank_type_code === WEEKLY_BANK_TYPES.STATE);
+  const yoyPrivate = yoyPubPriv.filter((r) => r.bank_type_code === WEEKLY_BANK_TYPES.PRIVATE);
+  const smeSector = smeYoY.filter((r) => r.bank_type_code === WEEKLY_BANK_TYPES.SECTOR);
+
   // "The Read" — deterministic, computed from the same series the charts show.
   const read = creditInsights({
     yoy: yoySector,
     mom4: mom4Sector,
-    yoyState: yoyPubPriv.filter((r) => r.bank_type_code === WEEKLY_BANK_TYPES.STATE),
-    yoyPrivate: yoyPubPriv.filter((r) => r.bank_type_code === WEEKLY_BANK_TYPES.PRIVATE),
+    yoyState,
+    yoyPrivate,
     fxShare,
     cardsYoY: consCards,
-    smeYoY: smeYoY.filter((r) => r.bank_type_code === WEEKLY_BANK_TYPES.SECTOR),
+    smeYoY: smeSector,
   });
+  const readData = await withLlmHeadline("credit", read);
+
+  // ---- the vitals — every figure computed from the series above -------------
+  const recWeek = weekLabel(loansSector.at(-1)?.period);
+  const vsWeek = weekLabel(loansSector.at(-2)?.period, false);
+
+  const yoyNow = lastVal(yoySector);
+  const mom4Now = lastVal(mom4Sector);
+  const realSeries = realVsNominal.filter((r) => r.bank_type_code === "REAL");
+  const realNow = lastVal(realSeries);
+
+  const fxShareNow = lastVal(fxShare);
+  const fxShare52 = valAgo(fxShare, 52);
+  const fxShareDelta = fxShareNow != null && fxShare52 != null ? fxShareNow - fxShare52 : null;
+
+  const stateNow = lastVal(yoyState);
+  const privNow = lastVal(yoyPrivate);
+  const gapNow = stateNow != null && privNow != null ? stateNow - privNow : null;
+  const privByPeriod = new Map(yoyPrivate.map((r) => [r.period, r.value]));
+  // State − private gap, paired by date (row offsets are unsafe on weekly data).
+  const gapSeries: TimeSeriesRow[] = yoyState.flatMap((r) => {
+    const p = privByPeriod.get(r.period);
+    return p == null || r.value == null
+      ? []
+      : [{ period: r.period, bank_type_code: "GAP", value: r.value - p }];
+  });
+
+  const smeNow = lastVal(smeSector);
+  const commNow = lastVal(commercialYoY);
+
+  const cardsNow = lastVal(consCards);
+  const segReads: [string, number | null][] = [
+    ["housing", lastVal(consHousing)],
+    ["auto", lastVal(consAuto)],
+    ["general-purpose", lastVal(consGpl)],
+    ["retail cards", lastVal(consCards)],
+  ];
+  let fastestSeg: { name: string; v: number } | null = null;
+  for (const [name, v] of segReads) {
+    if (v != null && (fastestSeg == null || v > fastestSeg.v)) fastestSeg = { name, v };
+  }
 
   const consMixSeries = [
     { key: "Housing", label: "Housing" },
@@ -223,218 +287,341 @@ export default async function CreditPage() {
   ];
 
   return (
-    <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8 space-y-8">
-      <PageHeader
+    <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
+      <DeskHeader
         title="Credit"
-        description="Loan growth · currency split · consumer mix · SME · public vs. private — BDDK weekly bulletin (card split & SME size-mix: monthly)"
-        rangeSelector
-        dataThrough={latestPeriod(loansSector, yoyAll)}
+        record={
+          <>
+            Record <b className="font-normal text-foreground">W/E {recWeek}</b> · vs {vsWeek}
+          </>
+        }
+        right="every figure computed from source series"
       />
 
-      <Takeaway data={await withLlmHeadline("credit", read)} />
+      {/* ── The vitals ─────────────────────────────────────────────────── */}
+      <SecHead
+        title="The vitals"
+        meta="equal weight · trailing 26 weeks"
+        className="mb-2.5 mt-6"
+      />
+      <Vitals>
+        <Vital
+          label="Loan growth, 52w"
+          value={yoyNow != null ? yoyNow.toFixed(1) : "—"}
+          unit="%"
+          series={yoySector.slice(-26)}
+          decimals={1}
+          note={
+            realNow != null ? (
+              <>
+                ≈{" "}
+                <em
+                  className={
+                    realNow < 0
+                      ? "not-italic font-semibold text-negative"
+                      : "not-italic font-semibold text-positive"
+                  }
+                >
+                  {realNow >= 0 ? "+" : "−"}
+                  {Math.abs(realNow).toFixed(1)}% real
+                </em>{" "}
+                (CPI-deflated)
+              </>
+            ) : (
+              "real twin awaits the CPI print"
+            )
+          }
+        />
+        <Vital
+          label="4w momentum, ann."
+          value={mom4Now != null ? mom4Now.toFixed(1) : "—"}
+          unit="%"
+          series={mom4Sector.slice(-26)}
+          decimals={1}
+          note={
+            mom4Now != null && yoyNow != null ? (
+              <>
+                {signedPp(mom4Now - yoyNow, 1)} vs the 52w pace —{" "}
+                {mom4Now > yoyNow ? "accelerating" : "cooling"}
+              </>
+            ) : undefined
+          }
+        />
+        <Vital
+          label="FX share of loans"
+          value={fxShareNow != null ? fxShareNow.toFixed(1) : "—"}
+          unit="%"
+          series={fxShare.slice(-26)}
+          decimals={1}
+          note={
+            <>
+              {fxShareDelta != null ? `${signedPp(fxShareDelta, 1)} over 52w` : "share of the total book"}{" "}
+              <Link href="/deposits" className="font-semibold text-primary">
+                /deposits
+              </Link>
+            </>
+          }
+        />
+        <Vital
+          label="State − private gap"
+          value={gapNow != null ? `${gapNow >= 0 ? "+" : "−"}${Math.abs(gapNow).toFixed(1)}` : "—"}
+          unit="pp"
+          series={gapSeries.slice(-26)}
+          format="raw"
+          decimals={1}
+          note={
+            stateNow != null && privNow != null && gapNow != null ? (
+              <>
+                state {fmtPct(stateNow)} vs private {fmtPct(privNow)} —{" "}
+                {gapNow >= 0 ? "state banks lead the cycle" : "private banks lead the cycle"}
+              </>
+            ) : undefined
+          }
+        />
+        <Vital
+          label="SME growth, 52w"
+          value={smeNow != null ? smeNow.toFixed(1) : "—"}
+          unit="%"
+          series={smeSector.slice(-26)}
+          decimals={1}
+          note={
+            smeNow != null && commNow != null ? (
+              <>
+                {smeNow >= commNow ? "outpaces" : "trails"} commercial {fmtPct(commNow)} by{" "}
+                {Math.abs(smeNow - commNow).toFixed(1)}pp
+              </>
+            ) : undefined
+          }
+        />
+        <Vital
+          label="Retail cards, 52w"
+          value={cardsNow != null ? cardsNow.toFixed(1) : "—"}
+          unit="%"
+          series={consCards.slice(-26)}
+          decimals={1}
+          note={
+            fastestSeg ? (
+              fastestSeg.name === "retail cards" ? (
+                <>the fastest consumer segment</>
+              ) : (
+                <>
+                  fastest segment: {fastestSeg.name} at {fastestSeg.v.toFixed(1)}%
+                </>
+              )
+            ) : undefined
+          }
+        />
+      </Vitals>
 
-      <Section
-        index="01"
-        title="Total Credit Growth"
-        description="Growth by ownership group + short-window momentum. Levels: see the Overview snapshot."
-      >
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-2">
+      {/* ── In depth — the evidence layer ──────────────────────────────── */}
+      <Depth action={<GlobalRangeSelector />}>
+        <Takeaway data={readData} />
+
+        <Section
+          index="01"
+          title="Total Credit Growth"
+          description="Growth by ownership group + short-window momentum. Levels: see the Overview snapshot."
+        >
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="lg:col-span-2">
+              <TrendChart
+                data={yoyAll}
+                seriesLabels={WEEKLY_BANK_TYPE_LABELS}
+                title={
+                  seriesFinding(yoySector, { noun: "Loan growth", decimals: 1 }) ??
+                  "Loan Growth YoY (%) by group"
+                }
+                description="Loan growth YoY, %, weekly · by ownership group"
+                source="Source: BDDK weekly bulletin"
+                yFormat="pct"
+                decimals={1}
+                zeroLine
+              />
+            </div>
+            <BarByBank
+              data={yoyByBank}
+              labels={WEEKLY_BANK_TYPE_LABELS}
+              title={`Loan YoY by group · ${yoyByBank[0]?.period ?? ""}`}
+              format="pct"
+              decimals={1}
+            />
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <TrendChart
-              data={yoyAll}
-              seriesLabels={WEEKLY_BANK_TYPE_LABELS}
-              title={
-                seriesFinding(yoySector, { noun: "Loan growth", decimals: 1 }) ??
-                "Loan Growth YoY (%) by group"
-              }
-              description="Loan growth YoY, %, weekly · by ownership group"
-              source="Source: BDDK weekly bulletin"
+              data={realVsNominal}
+              seriesLabels={REAL_TERMS_LABELS}
+              title="Loan Growth YoY — nominal vs real (sector, %)"
+              yFormat="pct"
+              decimals={1}
+              zeroLine
+            />
+            <TrendChart
+              data={fxAdjVsNominal}
+              seriesLabels={{ NOMINAL: "Nominal", FXADJ: "FX-adjusted (constant USD/TRY)" }}
+              title="Loan Growth YoY — FX-adjusted (sector, %)"
+              yFormat="pct"
+              decimals={1}
+              zeroLine
+            />
+            <TrendChart
+              data={mom4Sector}
+              seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "Sector" }}
+              title="Loan Growth 4w (annualized %) — sector"
               yFormat="pct"
               decimals={1}
               zeroLine
             />
           </div>
-          <BarByBank
-            data={yoyByBank}
-            labels={WEEKLY_BANK_TYPE_LABELS}
-            title={`Loan YoY by group · ${yoyByBank[0]?.period ?? ""}`}
-            format="pct"
-            decimals={1}
-          />
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <TrendChart
-            data={realVsNominal}
-            seriesLabels={REAL_TERMS_LABELS}
-            title="Loan Growth YoY — nominal vs real (sector, %)"
-            yFormat="pct"
-            decimals={1}
-            zeroLine
-          />
-          <TrendChart
-            data={fxAdjVsNominal}
-            seriesLabels={{ NOMINAL: "Nominal", FXADJ: "FX-adjusted (constant USD/TRY)" }}
-            title="Loan Growth YoY — FX-adjusted (sector, %)"
-            yFormat="pct"
-            decimals={1}
-            zeroLine
-          />
-          <TrendChart
-            data={mom4Sector}
-            seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "Sector" }}
-            title="Loan Growth 4w (annualized %) — sector"
-            yFormat="pct"
-            decimals={1}
-            zeroLine
-          />
-        </div>
-      </Section>
+        </Section>
 
-      <Section
-        index="02"
-        title="Public vs Private & Currency"
-        description="The clearest sector signal — who is driving the lending cycle, and in which currency."
-      >
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <TrendChart
-            data={yoyPubPriv}
-            seriesLabels={{
-              [WEEKLY_BANK_TYPES.PRIVATE]: "Private",
-              [WEEKLY_BANK_TYPES.STATE]: "State",
-            }}
-            title="Total Credit YoY — Public vs Private"
-            yFormat="pct"
-            decimals={1}
-            zeroLine
-          />
-          <TrendChart
-            data={tlYoyPubPriv}
-            seriesLabels={{
-              [WEEKLY_BANK_TYPES.PRIVATE]: "Private",
-              [WEEKLY_BANK_TYPES.STATE]: "State",
-            }}
-            title="TL Loans YoY — Public vs Private"
-            yFormat="pct"
-            decimals={1}
-            zeroLine
-          />
-          <TrendChart
-            data={fxShare}
-            seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "FX share" }}
-            title="FX Share of Total Loans (%)"
-            yFormat="pct"
-            decimals={1}
-          />
-        </div>
-      </Section>
+        <Section
+          index="02"
+          title="Public vs Private & Currency"
+          description="The clearest sector signal — who is driving the lending cycle, and in which currency."
+        >
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <TrendChart
+              data={yoyPubPriv}
+              seriesLabels={{
+                [WEEKLY_BANK_TYPES.PRIVATE]: "Private",
+                [WEEKLY_BANK_TYPES.STATE]: "State",
+              }}
+              title="Total Credit YoY — Public vs Private"
+              yFormat="pct"
+              decimals={1}
+              zeroLine
+            />
+            <TrendChart
+              data={tlYoyPubPriv}
+              seriesLabels={{
+                [WEEKLY_BANK_TYPES.PRIVATE]: "Private",
+                [WEEKLY_BANK_TYPES.STATE]: "State",
+              }}
+              title="TL Loans YoY — Public vs Private"
+              yFormat="pct"
+              decimals={1}
+              zeroLine
+            />
+            <TrendChart
+              data={fxShare}
+              seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "FX share" }}
+              title="FX Share of Total Loans (%)"
+              yFormat="pct"
+              decimals={1}
+            />
+          </div>
+        </Section>
 
-      <Section index="03" title="Consumer Credit" description="Composition of household lending — cards & GPL drive the bulk.">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Section index="03" title="Consumer Credit" description="Composition of household lending — cards & GPL drive the bulk.">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <StackedArea
+              data={consMix}
+              series={consMixSeries}
+              title="Consumer Credit Mix — Level (sector)"
+              yFormat="trn"
+              decimals={2}
+            />
+            <StackedArea
+              data={consMix}
+              series={consMixSeries}
+              title="Consumer Credit Mix — Share (%)"
+              percentStack
+            />
+          </div>
+        </Section>
+
+        <Section index="04" title="Consumer Segments" description="Per-product growth — cards & GPL drive the headline number.">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <TrendChart
+              data={consYoYLong}
+              seriesLabels={{
+                HOUSING: "Housing",
+                AUTO: "Auto",
+                GPL: "Gen. Purpose",
+                CARDS: "Retail Cards",
+              }}
+              title="Consumer Segment YoY Growth (%)"
+              yFormat="pct"
+              decimals={1}
+              zeroLine
+            />
+            <TrendChart
+              data={cards.flatMap((r: { period: string; retail: number | null; corporate: number | null }) => {
+                const out: TimeSeriesRow[] = [];
+                if (r.retail    != null) out.push({ period: r.period, bank_type_code: "RETAIL",    value: r.retail });
+                if (r.corporate != null) out.push({ period: r.period, bank_type_code: "CORPORATE", value: r.corporate });
+                return out;
+              })}
+              seriesLabels={{ RETAIL: "Retail Cards", CORPORATE: "Corporate Cards" }}
+              title="Credit Cards — Retail vs Corporate (Level · monthly)"
+              yFormat="bn"
+              decimals={0}
+            />
+          </div>
+        </Section>
+
+        <Section index="05" title="SME Lending" description="The SME cycle vs the commercial book — level detail for the digger.">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <TrendChart
+              data={smeYoY}
+              seriesLabels={{
+                [WEEKLY_BANK_TYPES.SECTOR]: "Sector",
+                [WEEKLY_BANK_TYPES.PRIVATE]: "Private",
+                [WEEKLY_BANK_TYPES.STATE]: "State",
+              }}
+              title="SME Loan Growth YoY (%)"
+              yFormat="pct"
+              decimals={1}
+              zeroLine
+            />
+            <TrendChart
+              data={smeVsCommercial}
+              seriesLabels={{ SME: "SME", COMMERCIAL: "Commercial (incl. corp.)" }}
+              title="SME vs Commercial — YoY Growth (%)"
+              yFormat="pct"
+              decimals={1}
+              zeroLine
+            />
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <TrendChart
+              data={smeLevel.filter((r) => r.bank_type_code === WEEKLY_BANK_TYPES.SECTOR)}
+              seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "SME" }}
+              title="SME Loans — Level (sector)"
+              yFormat="trn"
+              decimals={2}
+            />
+            <TrendChart
+              data={smeLevel.filter((r) => pubPrivSet.has(r.bank_type_code))}
+              seriesLabels={{
+                [WEEKLY_BANK_TYPES.PRIVATE]: "Private",
+                [WEEKLY_BANK_TYPES.STATE]: "State",
+              }}
+              title="SME Loans — Public vs Private (Level)"
+              yFormat="trn"
+              decimals={2}
+            />
+          </div>
           <StackedArea
-            data={consMix}
-            series={consMixSeries}
-            title="Consumer Credit Mix — Level (sector)"
-            yFormat="trn"
-            decimals={2}
-          />
-          <StackedArea
-            data={consMix}
-            series={consMixSeries}
-            title="Consumer Credit Mix — Share (%)"
-            percentStack
-          />
-        </div>
-      </Section>
-
-      <Section index="04" title="Consumer Segments" description="Per-product growth — cards & GPL drive the headline number.">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <TrendChart
-            data={consYoYLong}
-            seriesLabels={{
-              HOUSING: "Housing",
-              AUTO: "Auto",
-              GPL: "Gen. Purpose",
-              CARDS: "Retail Cards",
-            }}
-            title="Consumer Segment YoY Growth (%)"
-            yFormat="pct"
-            decimals={1}
-            zeroLine
-          />
-          <TrendChart
-            data={cards.flatMap((r: { period: string; retail: number | null; corporate: number | null }) => {
-              const out: TimeSeriesRow[] = [];
-              if (r.retail    != null) out.push({ period: r.period, bank_type_code: "RETAIL",    value: r.retail });
-              if (r.corporate != null) out.push({ period: r.period, bank_type_code: "CORPORATE", value: r.corporate });
-              return out;
-            })}
-            seriesLabels={{ RETAIL: "Retail Cards", CORPORATE: "Corporate Cards" }}
-            title="Credit Cards — Retail vs Corporate (Level · monthly)"
+            data={smeBreak.map((r: { period: string; micro: number | null; small: number | null; medium: number | null }) => ({
+              period: r.period,
+              Micro: r.micro ?? 0,
+              Small: r.small ?? 0,
+              Medium: r.medium ?? 0,
+            }))}
+            series={[
+              { key: "Micro", label: "Micro" },
+              { key: "Small", label: "Small" },
+              { key: "Medium", label: "Medium" },
+            ]}
+            title="SME Mix — Micro / Small / Medium (sector, TL bn · monthly)"
             yFormat="bn"
             decimals={0}
           />
-        </div>
-      </Section>
+        </Section>
+      </Depth>
 
-      <Section index="05" title="SME Lending" description="The SME cycle vs the commercial book — level detail for the digger.">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <TrendChart
-            data={smeYoY}
-            seriesLabels={{
-              [WEEKLY_BANK_TYPES.SECTOR]: "Sector",
-              [WEEKLY_BANK_TYPES.PRIVATE]: "Private",
-              [WEEKLY_BANK_TYPES.STATE]: "State",
-            }}
-            title="SME Loan Growth YoY (%)"
-            yFormat="pct"
-            decimals={1}
-            zeroLine
-          />
-          <TrendChart
-            data={smeVsCommercial}
-            seriesLabels={{ SME: "SME", COMMERCIAL: "Commercial (incl. corp.)" }}
-            title="SME vs Commercial — YoY Growth (%)"
-            yFormat="pct"
-            decimals={1}
-            zeroLine
-          />
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <TrendChart
-            data={smeLevel.filter((r) => r.bank_type_code === WEEKLY_BANK_TYPES.SECTOR)}
-            seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "SME" }}
-            title="SME Loans — Level (sector)"
-            yFormat="trn"
-            decimals={2}
-          />
-          <TrendChart
-            data={smeLevel.filter((r) => pubPrivSet.has(r.bank_type_code))}
-            seriesLabels={{
-              [WEEKLY_BANK_TYPES.PRIVATE]: "Private",
-              [WEEKLY_BANK_TYPES.STATE]: "State",
-            }}
-            title="SME Loans — Public vs Private (Level)"
-            yFormat="trn"
-            decimals={2}
-          />
-        </div>
-        <StackedArea
-          data={smeBreak.map((r: { period: string; micro: number | null; small: number | null; medium: number | null }) => ({
-            period: r.period,
-            Micro: r.micro ?? 0,
-            Small: r.small ?? 0,
-            Medium: r.medium ?? 0,
-          }))}
-          series={[
-            { key: "Micro", label: "Micro" },
-            { key: "Small", label: "Small" },
-            { key: "Medium", label: "Medium" },
-          ]}
-          title="SME Mix — Micro / Small / Medium (sector, TL bn · monthly)"
-          yFormat="bn"
-          decimals={0}
-        />
-      </Section>
+      <Colophon />
     </main>
   );
 }

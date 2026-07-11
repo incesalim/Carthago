@@ -170,10 +170,13 @@ const Go = ({ href, children }: { href: string; children: ReactNode }) => (
   </Link>
 );
 
-/** '2026-03…' → 'Q1 2026' for the audited-quarter standings heading. */
+/** '2026Q1' (audit-lane format) or '2026-03…' → 'Q1 2026'. */
 function quarterLabel(p: string | null): string {
-  const m = p ? /^(\d{4})-(\d{2})/.exec(p) : null;
-  return m ? `Q${Math.ceil(Number(m[2]) / 3)} ${m[1]}` : "latest quarter";
+  if (!p) return "latest quarter";
+  const q = /^(\d{4})Q([1-4])$/.exec(p);
+  if (q) return `Q${q[2]} ${q[1]}`;
+  const m = /^(\d{4})-(\d{2})/.exec(p);
+  return m ? `Q${Math.ceil(Number(m[2]) / 3)} ${m[1]}` : p;
 }
 
 export default async function OverviewPage({
