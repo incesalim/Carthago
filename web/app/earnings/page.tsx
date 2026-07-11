@@ -92,7 +92,7 @@ export default async function EarningsPage() {
     .at(-1);
 
   return (
-    <main className="mx-auto w-full px-4 py-8 sm:px-6 lg:px-8 space-y-8 max-w-5xl">
+    <main className="mx-auto w-full px-4 py-8 sm:px-6 lg:px-8 space-y-8 max-w-[1440px]">
       <div className="space-y-2">
         <PageHeader
           eyebrow="KAP filings · IR decks"
@@ -132,7 +132,7 @@ export default async function EarningsPage() {
                   {byBank.get(ticker)!.length} event{byBank.get(ticker)!.length === 1 ? "" : "s"}
                 </span>
               </div>
-              <div className="grid gap-2 sm:grid-cols-2">
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {byBank.get(ticker)!.map((e) => (
                   <EventRow key={`${e.source}-${e.external_id}`} e={e} />
                 ))}

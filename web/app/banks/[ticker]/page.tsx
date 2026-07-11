@@ -501,7 +501,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   ];
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+    <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8">
       {/* Sticky page chrome (lg+): pin the header and the in-page jump-nav as one
           stacked group — header on top, nav directly below — so neither overlaps
           the other. The header opts out of its own sticky (sticky={false}) and is
