@@ -47,9 +47,13 @@ function intCell(v: number | null) {
   return v == null ? "—" : nfInt.format(Math.round(v));
 }
 
-/** Large customer/card counts shown in millions. */
+/** Large customer/card counts shown in millions. A value that rounds to "0.0 mn"
+ * (sub-50k) is never a real headline total for these banks — it's a sub-segment
+ * mis-capture — so show "—" rather than a meaningless "0.0 mn". */
 function mnCell(v: number | null) {
-  return v == null ? "—" : `${nfMn.format(v / 1e6)} mn`;
+  if (v == null) return "—";
+  const s = nfMn.format(v / 1e6);
+  return s === "0.0" ? "—" : `${s} mn`;
 }
 
 export default async function FranchisePage() {
