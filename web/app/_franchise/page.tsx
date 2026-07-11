@@ -1,4 +1,19 @@
 /**
+ * UNPUBLISHED 2026-07-12 — this route is parked in a private `_`-prefixed folder
+ * (Next does not route it; same pattern as `_valuation`) and is removed from the
+ * nav + sitemap. The franchise EXTRACTOR is not fit to publish: it concatenates
+ * the first 60 pages of a report and takes the first regex hit per metric, with
+ * no validation, so it samples stray numbers out of prose. Evidence: Akbank ATMs
+ * 6,210 (FY24) → 202 (FY25); İşbank 40–58 ATMs against ~1,100 branches (real:
+ * ~6,500); TSKB (an investment bank with no ATMs) "8"; Yapı Kredi customers
+ * 57.9mn → 3.0mn. ~75% of non-ATM values are wrong and the confidence flags do
+ * not correlate with correctness.
+ *
+ * Re-publish only once the rebuilt extractor lands with a validation gate:
+ * reconcile ATMs against bank_audit_profile.branches_total, enforce YoY
+ * consistency, target the "Bir Bakışta" infographic page rather than 60 pages of
+ * prose, and capture scale suffixes on every anchor. Publish only what passes.
+ *
  * Franchise tab — bank franchise & operational footprint (branches, employees,
  * ATMs, customers, cards) extracted deterministically from annual reports
  * (Faaliyet Raporları). Source: scripts/update_faaliyet.py → faaliyet_franchise.
