@@ -37,38 +37,38 @@ export interface ChartTheme {
   inkMuted: string;
 }
 
-// "Editorial" chart chrome — navy-led series (mirror --chart-1..6), warm
-// hairline grid, faint mono axis ticks, warm-paper tooltip.
+// "The Desk" chart chrome — navy hero + grey context (mirror --chart-1..6),
+// whisper hairline grid, faint mono axis ticks, white-sheet tooltip.
 const LIGHT: ChartTheme = {
   mode: "light",
-  palette: ["#1C3A60", "#3E6098", "#88A0C0", "#B98A5E", "#6E4B6E", "#9AA1AD"],
-  grid: "#ECE8DF",
-  axis: "#9AA1AD",
-  cursor: "rgba(28,58,96,0.06)",
-  reference: "#9AA1AD",
+  palette: ["#2B4E7E", "#4E79B8", "#8FA8C8", "#B98514", "#7A5C8A", "#A0A7AE"],
+  grid: "#ECEDE8",
+  axis: "#A0A7AE",
+  cursor: "rgba(43,78,126,0.06)",
+  reference: "#A0A7AE",
   tooltipBg: "#FFFFFF",
-  tooltipBorder: "#D8D1C2",
-  tooltipText: "#16243B",
-  hero: "#1C3A60",
-  context: "#A6ADB8",
-  contextActive: "#4C5568",
-  inkMuted: "#6A7384",
+  tooltipBorder: "#E1E3DD",
+  tooltipText: "#12161B",
+  hero: "#2B4E7E",
+  context: "#C0C8D1",
+  contextActive: "#454D57",
+  inkMuted: "#68707A",
 };
 
 const DARK: ChartTheme = {
   mode: "dark",
-  palette: ["#7FA0C8", "#9BB1D0", "#C2CEDF", "#D2A878", "#B391B3", "#A79F8E"],
-  grid: "#36322B",
-  axis: "#8A8472",
-  cursor: "rgba(127,160,200,0.10)",
-  reference: "#8A8472",
-  tooltipBg: "#26231C",
-  tooltipBorder: "#3E382E",
-  tooltipText: "#ECE8E0",
-  hero: "#7FA0C8",
-  context: "#6B6455",
-  contextActive: "#C9C2B2",
-  inkMuted: "#B0A893",
+  palette: ["#7FA3D8", "#9BB4D8", "#C1CEDE", "#D9A83F", "#B092C0", "#8B939C"],
+  grid: "#1F252C",
+  axis: "#6B747E",
+  cursor: "rgba(127,163,216,0.10)",
+  reference: "#6B747E",
+  tooltipBg: "#171B21",
+  tooltipBorder: "#262C34",
+  tooltipText: "#E6E9E6",
+  hero: "#7FA3D8",
+  context: "#4A525C",
+  contextActive: "#C9D2DC",
+  inkMuted: "#9AA3AD",
 };
 
 /** Resolve the chart palette for the active theme (defaults to light pre-mount). */

@@ -60,7 +60,7 @@ export function PageHeader({
         // Frosted full-bleed band on lg+, so when the header is pinned (here or
         // as part of a parent sticky group) scrolling content doesn't bleed
         // through it.
-        "lg:-mx-8 lg:bg-background/90 lg:px-8 lg:py-3 lg:backdrop-blur",
+        "lg:-mx-8 lg:bg-card/90 lg:px-8 lg:py-3 lg:backdrop-blur",
         // Pin the header (with the global range selector) to the top while
         // scrolling, so the date-range control stays reachable on long chart
         // pages. Below lg the mobile nav bar owns the sticky top-0 slot, so this
@@ -73,7 +73,8 @@ export function PageHeader({
     >
       <div className="space-y-1">
         {eyebrow && (
-          <div className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-primary">
+          // Desk eyebrows are quiet mono-caps — blue is reserved for links.
+          <div className="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-faint">
             {eyebrow}
           </div>
         )}
