@@ -85,7 +85,7 @@ export default async function FranchisePage() {
     }
     return { s, n };
   };
-  // Same sub-50k mis-capture guard as mnCell for the millions-scale figures.
+  // Drop sub-50k sub-segment mis-captures from the customer/card aggregates.
   const headline = (v: number | null) => (v != null && v >= 5e4 ? v : null);
   const atm = agg((r) => r.atm_count);
   const pos = agg((r) => r.pos_count);
@@ -203,7 +203,7 @@ export default async function FranchisePage() {
         <Section
           index="02"
           title="Latest franchise snapshot"
-          description="Most recent annual report per bank. Customer and card figures are headline totals in millions. Cells marked with a dot are low-confidence extractions pending review."
+          description="Most recent annual report per bank. Customer and card figures are the headline totals disclosed. Cells marked with a dot are low-confidence extractions pending review."
         >
           {hasData ? (
             <Table>
@@ -236,9 +236,9 @@ export default async function FranchisePage() {
                     <TableCell className="text-right tabular-nums">{intCell(r.pos_count)}</TableCell>
                     <TableCell className="text-right tabular-nums">{intCell(r.merchant_count)}</TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {mnCell(r.customer_active ?? r.customer_total)}
+                      {intCell(r.customer_active ?? r.customer_total)}
                     </TableCell>
-                    <TableCell className="text-right tabular-nums">{mnCell(r.cards_total)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{intCell(r.cards_total)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
