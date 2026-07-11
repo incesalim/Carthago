@@ -20,6 +20,7 @@ import Link from "next/link";
 import { Section, Stat } from "@/app/components/ui";
 import { GlobalRangeSelector } from "@/app/components/range-context";
 import {
+  ChartRow,
   Colophon,
   Depth,
   DeskHeader,
@@ -367,18 +368,25 @@ export default async function AssetQualityPage() {
       </Section>
 
       <Section index="05" title="Commercial NPL by Segment" description="SME vs commercial-total vs derived non-SME, weekly BDDK bulletin (sector).">
-        <TrendChart
+        <ChartRow
           data={commercialTrend}
-          seriesLabels={{
-            SME: "SME",
-            COMMERCIAL: "Commercial (all)",
-            NONSME: "Non-SME (derived)",
-          }}
-          title="Commercial NPL Ratio (%) — sector"
-          yFormat="pct"
-          decimals={2}
-          height={320}
-        />
+          labels={{ SME: "SME", COMMERCIAL: "Commercial (all)", NONSME: "Non-SME (derived)" }}
+          deltaPeriods={52}
+          deltaLabel="52w"
+        >
+          <TrendChart
+            data={commercialTrend}
+            seriesLabels={{
+              SME: "SME",
+              COMMERCIAL: "Commercial (all)",
+              NONSME: "Non-SME (derived)",
+            }}
+            title="Commercial NPL Ratio (%) — sector"
+            yFormat="pct"
+            decimals={2}
+            height={320}
+          />
+        </ChartRow>
       </Section>
       </Depth>
 
