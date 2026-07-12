@@ -18,6 +18,7 @@
  */
 import { cachedAll } from "./db";
 import { BS_ASSET_ROMAN_HIERARCHIES } from "./standard_lines";
+import { isPeerExcluded } from "./bank_names";
 
 const DEFAULT_KIND = "unconsolidated";
 
@@ -87,9 +88,15 @@ async function fleetBalances(kind: string): Promise<Map<string, { assets: number
     if (!r) { r = { assets: null, loans: null, deposits: null }; out.set(k, r); }
     return r;
   };
-  for (const r of assets) ensure(`${r.bank_ticker}|${r.period}`).assets = r.v;
-  for (const r of loans) ensure(`${r.bank_ticker}|${r.period}`).loans = r.v;
-  for (const r of deposits) ensure(`${r.bank_ticker}|${r.period}`).deposits = r.v;
+  // Peer-excluded banks never enter the fleet balances, so they can't appear in
+  // the share league, the asset ranks, or the sector HHI (all derived from this
+  // map). Takasbank's "assets" are member cash + collateral it merely custodies —
+  // counting them would seat it near the top of the league on money it doesn't
+  // own and inflate concentration. See PEER_EXCLUDED_TICKERS in bank_names.ts.
+  const keep = (t: string) => !isPeerExcluded(t);
+  for (const r of assets) if (keep(r.bank_ticker)) ensure(`${r.bank_ticker}|${r.period}`).assets = r.v;
+  for (const r of loans) if (keep(r.bank_ticker)) ensure(`${r.bank_ticker}|${r.period}`).loans = r.v;
+  for (const r of deposits) if (keep(r.bank_ticker)) ensure(`${r.bank_ticker}|${r.period}`).deposits = r.v;
   return out;
 }
 

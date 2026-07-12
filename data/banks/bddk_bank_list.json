@@ -70,6 +70,7 @@
     {"name_tr": "GSD YATIRIM BANKASI A.Ş.", "category": "Kalkınma ve Yatırım", "listed": false},
     {"name_tr": "HEDEF YATIRIM BANKASI A.Ş.", "category": "Kalkınma ve Yatırım", "listed": false},
     {"name_tr": "İLLER BANKASI A.Ş.", "category": "Kalkınma ve Yatırım", "listed": false, "note": "state municipal bank"},
+    {"name_tr": "İSTANBUL TAKAS VE SAKLAMA BANKASI A.Ş.", "category": "Kalkınma ve Yatırım", "listed": false, "note": "Takasbank — central securities settlement / clearing (CCP) + custody. Licensed as a dev&inv bank but is market infrastructure, not a lender: zero deposits, loans ~2.5% of assets. Carried in the data but EXCLUDED from peer ranking / market-share / HHI (see PEER_EXCLUDED_TICKERS in web/app/lib/bank_names.ts)"},
     {"name_tr": "MİSYON YATIRIM BANKASI A.Ş.", "category": "Kalkınma ve Yatırım", "listed": false},
     {"name_tr": "NUROL YATIRIM BANKASI A.Ş.", "category": "Kalkınma ve Yatırım", "listed": false},
     {"name_tr": "PASHA YATIRIM BANKASI A.Ş.", "category": "Kalkınma ve Yatırım", "listed": false},
