@@ -42,19 +42,19 @@ function Strip({ s, spec }: { s: PeerStat; spec: PeerFieldSpec }) {
       aria-label={`${spec.label}: ${s.value.toFixed(spec.decimals)}, median ${s.median.toFixed(spec.decimals)}, ${ordinal(s.rank)} of ${s.n}`}
       className="max-w-full"
     >
-      <line x1={x0} y1={base} x2={x1} y2={base} className="stroke-[--color-chart-6]" strokeWidth={3} strokeLinecap="round" />
-      <line x1={med} y1={base - 7} x2={med} y2={base + 7} className="stroke-warning" strokeWidth={1.6} />
-      <text x={med} y={base + 17} textAnchor="middle" className="fill-warning font-mono" fontSize={8}>
+      <line x1={x0} y1={base} x2={x1} y2={base} stroke="var(--chart-6)" strokeWidth={3} strokeLinecap="round" />
+      <line x1={med} y1={base - 7} x2={med} y2={base + 7} stroke="var(--warning)" strokeWidth={1.6} />
+      <text x={med} y={base + 17} textAnchor="middle" fill="var(--warning)" className="font-mono" fontSize={8}>
         MED {s.median.toFixed(spec.decimals)}
       </text>
-      <circle cx={me} cy={base} r={5} className="fill-data stroke-card" strokeWidth={1.5} />
-      <text x={me} y={base - 10} textAnchor="middle" className="fill-data font-mono font-semibold" fontSize={9.5}>
+      <circle cx={me} cy={base} r={5} fill="var(--data)" stroke="var(--card)" strokeWidth={1.5} />
+      <text x={me} y={base - 10} textAnchor="middle" fill="var(--data)" className="font-mono font-semibold" fontSize={9.5}>
         {s.value.toFixed(spec.decimals)}%
       </text>
-      <text x={x0} y={base + 17} className="fill-faint font-mono" fontSize={8}>
+      <text x={x0} y={base + 17} fill="var(--faint)" className="font-mono" fontSize={8}>
         {spec.lo}
       </text>
-      <text x={x1} y={base + 17} textAnchor="end" className="fill-faint font-mono" fontSize={8}>
+      <text x={x1} y={base + 17} textAnchor="end" fill="var(--faint)" className="font-mono" fontSize={8}>
         {spec.hi}
         {overflow ? "+" : ""}
       </text>

@@ -738,10 +738,15 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   if (assetsRank) identityItems.push({ k: "Rank", v: `#${assetsRank.rank} of ${assetsRank.n} by assets` });
   if (profile?.branches_total) identityItems.push({ k: "Branches", v: profile.branches_total.toLocaleString() });
   if (profile?.personnel) identityItems.push({ k: "Staff", v: profile.personnel.toLocaleString() });
+  // Largest disclosed shareholder — the same rows the Ownership section reads
+  // (item = "shareholder", minus the "Toplam" total line).
+  const topHolder = ownership
+    .filter((r) => r.item === "shareholder" && !/^toplam$/i.test((r.holder ?? "").trim()))
+    .sort((a, b) => (b.ratio_pct ?? 0) - (a.ratio_pct ?? 0))[0];
   identityItems.push({
     k: "Owner",
-    v: ownership.length > 0 && ownership[0].holder
-      ? `${ownership[0].holder}${ownership[0].ratio_pct != null ? ` ${ownership[0].ratio_pct.toFixed(1)}%` : ""}`
+    v: topHolder?.holder
+      ? `${topHolder.holder}${topHolder.ratio_pct != null ? ` ${topHolder.ratio_pct.toFixed(1)}%` : ""}`
       : "— not filed to KAP",
   });
   if (valuation?.pb != null) identityItems.push({ k: "Market", v: `BIST ${ticker} · P/B ${valuation.pb.toFixed(2)}×` });
