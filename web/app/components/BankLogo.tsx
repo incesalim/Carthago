@@ -25,16 +25,20 @@ interface Props {
   height?: number;
   /** Bank name, used for the image alt / placeholder title. */
   name?: string;
+  /** Cap the mark's width (default 6× height). Pass a small value where the
+   *  logos must line up as a uniform column — a wide wordmark then contains to
+   *  a shorter height instead of making the column ragged (see /banks). */
+  maxWidth?: number;
   className?: string;
 }
 
-export default function BankLogo({ ticker, height = 20, name, className }: Props) {
+export default function BankLogo({ ticker, height = 20, name, maxWidth, className }: Props) {
   const t = ticker.toUpperCase();
   const dims = BANK_LOGOS[t];
   const chipH = height + 8;
   // Cap width so a wide wordmark can't crowd out the surrounding layout; a
   // very wide mark then contains to a shorter height (still legible).
-  const maxW = Math.round(height * 6);
+  const maxW = maxWidth ?? Math.round(height * 6);
   const chip =
     "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-md " +
     "bg-white ring-1 ring-black/10 dark:ring-white/10";
