@@ -142,14 +142,36 @@ will otherwise assume the wrong mechanism.
   figure.** The NPL stock was never FX-adjusted, so that is apples-to-oranges. Compare
   like with like (both CPI-deflated), and cross-reference /credit separately.
 
-## If built
+## If built — the implementation map
 
-The bridge-style decomposition, ladder and attribution are new components; every chart
-and the migration scenarios reuse existing wiring (`ratioNpl`, `ratioCoverage`,
-`weeklySeries`, `sectorStageShares`, `nplFormationAnnual`,
-`provisionMigrationScenarios`). The genuinely new series is the **constant-book ratio** —
-two series the page already fetches, divided across a 52-week offset. No new
-extraction, no schema change.
+**No new series at all.** v2 needs nothing the page does not already fetch — the
+constant-book ratio that v1 invented is gone with it. What is needed is *exposure*:
+`credit-risk.ts` already aggregates stage amounts + ECL (only the shares are exported)
+and already reads the NPL movement table (only formation-vs-exits is exported).
+
+| Element | How |
+| --- | --- |
+| Header, section heads, vitals, colophon | `desk.tsx` — reuse |
+| Movers (segment NPL ratio, 52w ago → now) | `desk.tsx` `Movers` — its `{prev, curr, fmt}` shape fits exactly |
+| Flags with printed rules | `desk.tsx` `Flags showCleared` |
+| Migration sizing (5/10/20% → +₺63/127/253bn) | `desk.tsx` `Transmission`, replacing the boxed `Stat` cards |
+| Every carried-over chart | `TrendChart` / `StackedArea` / `BarByBank` — reuse |
+| **Attribution bars (SME nested in commercial)** | **promote** `app/credit/Attribution.tsx` → `app/components/Attribution.tsx` (2 routes now ⇒ belongs in `components/` per web/CLAUDE.md); add a `unit` prop — credit passes pp, asset-quality passes % share |
+| Generic series helpers | **move** `toMap` / `baseFor` / `deflate` / `sumSeries` / `contributions` / `trailingRun` out of `app/lib/credit.ts` → `app/lib/series.ts` (they are not credit-specific; `contributions()` already does the disjoint-reconciliation job) |
+| **The waterline** | **new**, route-local `app/asset-quality/Waterline.tsx` — hairlines and type, no Recharts |
+| **Formation vs exits** | **new**, route-local `app/asset-quality/FormationBars.tsx` — there is *no* grouped-bar component in the library (`BarByBank` is horizontal-by-bank; `TimeSeriesChart` has no bars), and the page currently draws four annual flows as *lines*, which is the wrong mark |
+
+Data in a new `app/lib/asset-quality.ts` (pure, mirroring `credit.ts`), with
+`asset-quality.test.ts` gating the three things that would silently rot:
+
+1. **Segment reconciliation == 100%** — the guard against the item-ID trap below.
+2. **Deflator invariance** — assert `ratio(N, L) == ratio(N/π, L/π)`. That test *is* the
+   documentation for why we do not claim an inflation dilution; it stops a future
+   session reintroducing the v1 mistake.
+3. **`exits == collections + write_offs + sold`**, and the disposal share.
+
+Also rewrite `assetQualityInsights()` in `insights.ts` — it currently leads with the
+ratio.
 
 Related: [[project_desk_redesign]], [[reference_design_system]],
 [[feedback_rationale_before_narrative]].
