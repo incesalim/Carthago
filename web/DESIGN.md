@@ -121,5 +121,12 @@ mono-caps group labels, ink active bar, no fills) + the sheet wrapper
 
 Design work starts from a named direction and this file — not inline tweaks.
 For a new direction, produce divergent prototypes on real data first (the
-mockup that chose this system: artifact "Carthago — The Desk, full sector
-suite"). Iterate by naming the defect, verify by screenshot against this file.
+mockup that chose this system: [The Desk, full sector
+suite](https://claude.ai/code/artifact/28b72bb4-fade-433b-a2dc-aff39e31860e)).
+Iterate by naming the defect, verify by screenshot against this file.
+
+**File the artefact.** Every mockup goes in `docs/design/mockups/` as
+`YYYY-MM-DD-<slug>.html` plus desktop/mobile screenshots, and gets a row in
+[`docs/design/MOCKUPS.md`](../docs/design/MOCKUPS.md) — the register of what was
+designed and whether it shipped — **in the same change**. Never put a mockup in
+`web/public/`: that directory is served, so it deploys to carthago.app.
