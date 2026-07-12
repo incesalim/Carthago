@@ -3,32 +3,27 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Carthago — Asset Quality tab redesign mockup</title>
+<title>Carthago — Asset Quality tab redesign mockup (v2)</title>
 <style>
-  :root{--ground:#f7f8f6;--sheet:#fff;--ink:#12161b;--muted:#68707a;--faint:#a0a7ae;--line:#e1e3dd;--hair:#ecede8;--wash:#f3f4f1;
-    --link:#2757a8;--data:#2b4e7e;--context:#c0c8d1;--green:#187a53;--red:#c24847;--amber:#b98514;
-    --shadow:0 1px 2px rgba(18,24,32,.04),0 12px 32px -22px rgba(18,24,32,.22);color-scheme:light}
-  [data-theme="dark"]{--ground:#101318;--sheet:#171b21;--ink:#e6e9e6;--muted:#9aa3ad;--faint:#6b747e;--line:#262c34;--hair:#1f252c;--wash:#1e232a;
-    --link:#7fa3d8;--data:#7fa3d8;--context:#4a525c;--green:#4fb98a;--red:#e0716b;--amber:#d9a83f;
-    --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 32px -22px rgba(0,0,0,.7);color-scheme:dark}
+  :root{--ground:#f7f8f6;--sheet:#fff;--ink:#12161b;--muted:#68707a;--faint:#a0a7ae;--line:#e1e3dd;--hair:#ecede8;--wash:#f3f4f1;--link:#2757a8;--data:#2b4e7e;--context:#c0c8d1;--green:#187a53;--red:#c24847;--amber:#b98514;--shadow:0 1px 2px rgba(18,24,32,.04),0 12px 32px -22px rgba(18,24,32,.22);color-scheme:light}
+  @media (prefers-color-scheme: dark){:root{--ground:#101318;--sheet:#171b21;--ink:#e6e9e6;--muted:#9aa3ad;--faint:#6b747e;--line:#262c34;--hair:#1f252c;--wash:#1e232a;--link:#7fa3d8;--data:#7fa3d8;--context:#4a525c;--green:#4fb98a;--red:#e0716b;--amber:#d9a83f;--shadow:0 1px 2px rgba(0,0,0,.3),0 12px 32px -22px rgba(0,0,0,.7);color-scheme:dark}}
+  :root[data-theme="dark"]{--ground:#101318;--sheet:#171b21;--ink:#e6e9e6;--muted:#9aa3ad;--faint:#6b747e;--line:#262c34;--hair:#1f252c;--wash:#1e232a;--link:#7fa3d8;--data:#7fa3d8;--context:#4a525c;--green:#4fb98a;--red:#e0716b;--amber:#d9a83f;--shadow:0 1px 2px rgba(0,0,0,.3),0 12px 32px -22px rgba(0,0,0,.7);color-scheme:dark}
+  :root[data-theme="light"]{--ground:#f7f8f6;--sheet:#fff;--ink:#12161b;--muted:#68707a;--faint:#a0a7ae;--line:#e1e3dd;--hair:#ecede8;--wash:#f3f4f1;--link:#2757a8;--data:#2b4e7e;--context:#c0c8d1;--green:#187a53;--red:#c24847;--amber:#b98514;--shadow:0 1px 2px rgba(18,24,32,.04),0 12px 32px -22px rgba(18,24,32,.22);color-scheme:light}
   *{box-sizing:border-box}
   body{margin:0;overflow-x:hidden;background:var(--ground);color:var(--ink);font-family:"Instrument Sans",Inter,"Segoe UI",Arial,sans-serif;font-size:14px}
   button{font:inherit;color:inherit}a{color:var(--link);text-decoration:none;font-weight:600}
   .mono{font-family:"IBM Plex Mono","SFMono-Regular",Consolas,monospace;font-variant-numeric:tabular-nums}
-  .neg{color:var(--red)}.pos{color:var(--green)}.warn{color:var(--amber)}.hide{display:none}
+  .neg{color:var(--red)}.pos{color:var(--green)}.warn{color:var(--amber)}
   .shell{display:grid;grid-template-columns:216px minmax(0,1fr);min-height:100vh}
   .rail{padding:25px 20px;border-right:1px solid var(--line)}
-  .brand strong{display:block;font-size:17px}.brand small{display:block;color:var(--faint);margin-top:2px;font-size:10px}
-  .brand{margin-bottom:30px}
+  .brand{margin-bottom:30px}.brand strong{display:block;font-size:17px}.brand small{display:block;color:var(--faint);margin-top:2px;font-size:10px}
   .nav-group{margin:20px 0 7px;color:var(--faint);font-size:9px;text-transform:uppercase;letter-spacing:.08em}
   .nav-item{position:relative;display:block;padding:6px 0;color:var(--muted);font-size:12.5px;font-weight:400}
   .nav-item.active{color:var(--ink);font-weight:650}
   .nav-item.active::before{content:"";position:absolute;left:-20px;top:6px;bottom:6px;width:2px;background:var(--ink)}
-  .icon-btn{width:32px;height:32px;display:inline-grid;place-items:center;border:1px solid var(--line);background:transparent;cursor:pointer;border-radius:5px}
-  .rail-bottom{position:fixed;left:20px;bottom:24px;display:flex;align-items:center;gap:9px;color:var(--muted)}
-  .workspace{padding:16px 18px 24px;min-width:0}
+  .workspace{padding:16px 18px 28px;min-width:0}
   .sheet{max-width:1440px;margin:0 auto;padding:28px 36px 24px;background:var(--sheet);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow)}
-  .mock-label{margin:-6px 0 18px;padding-bottom:9px;border-bottom:1px solid var(--hair);color:var(--amber);font-size:9px;text-transform:uppercase;letter-spacing:.09em}
+  .mock-label{margin:-6px 0 18px;padding-bottom:9px;border-bottom:1px solid var(--hair);color:var(--amber);font-size:9px;text-transform:uppercase;letter-spacing:.09em;line-height:1.6}
   .title-line{display:flex;align-items:baseline;gap:15px;flex-wrap:wrap}
   h1{margin:0;font-size:26px;letter-spacing:-.01em}
   .record,.compiled{color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.06em}
@@ -37,26 +32,35 @@
   .sechead h2{margin:0;font-size:14px}
   .sechead span{color:var(--faint);font-size:8.5px;text-transform:uppercase;letter-spacing:.07em}
   .sechead .right{margin-left:auto}
-  /* signature */
-  .sig{display:grid;grid-template-columns:minmax(0,7fr) minmax(250px,4fr);gap:40px;padding-top:14px;border-top:2px solid var(--ink)}
-  .chart{width:100%;height:auto}
-  .grid{stroke:var(--hair);stroke-width:1}
-  .zero{stroke:var(--faint);stroke-width:1;stroke-dasharray:2 2}
-  .gapfill{fill:var(--red);opacity:.10}
-  .s-hero{stroke:var(--data)}text.s-hero{fill:var(--data);stroke:none}circle.s-hero{fill:var(--data);stroke:none}
-  .s-cf{stroke:var(--red);stroke-dasharray:4 2.5}text.s-cf{fill:var(--red);stroke:none;stroke-dasharray:none}circle.s-cf{fill:var(--red);stroke:none}
-  .bracket{stroke:var(--red);stroke-width:1}
-  .gaplab{font-family:"IBM Plex Mono",Consolas,monospace;font-size:9px;font-weight:650;fill:var(--red)}
-  .ax{font-family:"IBM Plex Mono",Consolas,monospace;font-size:8px;fill:var(--faint)}
-  .endlab{font-family:"IBM Plex Mono",Consolas,monospace;font-size:8.5px;font-weight:600}
+  /* SIGNATURE — the waterline */
+  .sig{display:grid;grid-template-columns:minmax(0,7fr) minmax(260px,4fr);gap:40px;padding-top:16px;border-top:2px solid var(--ink)}
+  .wl{position:relative}
+  .wl-cap{color:var(--faint);font-size:8.5px;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px}
+  .wl-bar{display:flex;height:30px;overflow:hidden}
+  .wl-bar>span{position:relative;height:100%;border-right:1.5px solid var(--sheet)}
+  .wl-bar>span:last-child{border-right:0}
+  .wl-s1{background:var(--context)}
+  .wl-s2{background:var(--amber)}
+  .wl-s3{background:var(--red)}
+  .wl-bar i{position:absolute;left:8px;top:50%;transform:translateY(-50%);font-style:normal;font-size:9.5px;font-weight:650;font-family:"IBM Plex Mono",Consolas,monospace;color:var(--ink);white-space:nowrap}
+  .wl-bar.zoom{height:46px;margin-top:2px}
+  .wl-bar.zoom i{color:#fff;left:10px;font-size:10px}
+  .wl-cov{position:absolute;inset:0 auto 0 0;height:100%;background:rgba(18,22,27,.42)}
+  [data-theme="dark"] .wl-cov{background:rgba(0,0,0,.45)}
+  .wl-tick{position:absolute;margin-top:2px;padding-left:6px;border-left:1px solid var(--red);height:14px}
+  .wl-tick-l{position:absolute;left:-160px;top:1px;width:152px;text-align:right;color:var(--red);font-size:8.5px;font-weight:650;text-transform:uppercase;letter-spacing:.05em}
+  .wl-zoom{margin-top:34px;padding-top:14px;border-top:1px solid var(--hair)}
+  .wl-legend{display:flex;margin-top:7px;color:var(--muted);font-size:10.5px}
+  .wl-legend .right{margin-left:auto}
+  .wl-legend b{color:var(--ink)}
+  .wl-key{margin-top:9px;color:var(--faint);font-size:9px}
+  .k-solid,.k-open{display:inline-block;width:10px;height:8px;vertical-align:-1px;margin-right:2px}
+  .k-solid{background:rgba(18,22,27,.42)}
+  [data-theme="dark"] .k-solid{background:rgba(0,0,0,.45)}
+  .k-open{background:var(--amber)}
   .read .lede{margin:0 0 12px;font-size:19px;line-height:1.35;letter-spacing:-.01em}
-  .read p{margin:0;color:var(--muted);font-size:12.5px;line-height:1.55}
-  .read .rule{display:block;margin-top:12px;padding-top:10px;border-top:1px solid var(--hair);color:var(--faint);font-size:9px;text-transform:uppercase;letter-spacing:.06em;line-height:1.5}
-  .decomp{display:flex;gap:0;margin-top:14px;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair)}
-  .dc{flex:1;padding:9px 12px;border-right:1px solid var(--hair)}
-  .dc:first-child{padding-left:0}.dc:last-child{border-right:0}
-  .dc-k{color:var(--faint);font-size:8.5px;text-transform:uppercase;letter-spacing:.06em}
-  .dc-v{margin-top:3px;font-size:15px;font-weight:650}
+  .read p{margin:0 0 10px;color:var(--muted);font-size:12.5px;line-height:1.55}
+  .read .rule{display:block;margin-top:12px;padding-top:10px;border-top:1px solid var(--hair);color:var(--faint);font-size:9px;text-transform:uppercase;letter-spacing:.06em;line-height:1.55}
   /* vitals */
   .vitals{display:grid;grid-template-columns:repeat(6,1fr);margin-top:10px;border-top:2px solid var(--ink);border-bottom:1px solid var(--line)}
   .vital{min-width:0;padding:13px 14px 12px;border-right:1px solid var(--hair)}
@@ -64,44 +68,26 @@
   .vital.hero .vital-value{color:var(--red)}
   .vital-label{color:var(--muted);font-size:10.5px}
   .vital-value{margin-top:4px;font-size:22px;font-weight:650;white-space:nowrap}
+  .vital-value small{font-size:10px;font-weight:400;color:var(--faint);margin-left:2px}
   .sparkline{display:block;width:108px;height:26px;margin-top:6px}
   .sp{stroke:var(--context);stroke-width:1.3}.sp-hero{stroke:var(--red);stroke-width:1.6}
+  .zero{stroke:var(--faint);stroke-width:1;stroke-dasharray:2 2}
   .vital-note{margin-top:6px;color:var(--faint);font-size:9.5px;line-height:1.4}
   .vital-note b{color:var(--ink);font-weight:650}.vital-note b.neg{color:var(--red)}
-  /* ladder */
+  /* pipeline */
   .grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px}
-  .ladder{border-top:1px solid var(--ink);padding-top:12px}
-  .lad-bar{display:flex;height:26px;overflow:hidden}
-  .lad-seg{position:relative;display:block;height:100%;border-right:1.5px solid var(--sheet)}
-  .lad-seg:last-child{border-right:0}
-  .lad-seg i{position:absolute;left:6px;top:50%;transform:translateY(-50%);font-style:normal;font-size:9px;font-weight:650;font-family:"IBM Plex Mono",Consolas,monospace;color:#fff}
-  .lad-seg.st1{background:var(--context)}
-  .lad-seg.st1 i{color:var(--ink)}
-  .lad-seg.st2{background:var(--amber)}
-  .lad-seg.st3{background:var(--red)}
-  .lad-seg.st2 i,.lad-seg.st3 i{left:4px;font-size:8px}
-  .lad-head{display:grid;grid-template-columns:14px 1fr 62px 78px 116px;gap:8px;margin-top:12px;padding-bottom:5px;border-bottom:1px solid var(--line);color:var(--faint);font-size:8px;text-transform:uppercase;letter-spacing:.07em}
-  .lad-head span:nth-child(n+3){text-align:right}
-  .lad-row{display:grid;grid-template-columns:14px 1fr 62px 78px 116px;gap:8px;align-items:center;padding:9px 0;border-bottom:1px solid var(--hair)}
-  .lad-dot{width:9px;height:9px;border-radius:2px}
-  .lad-dot.st1{background:var(--context)}.lad-dot.st2{background:var(--amber)}.lad-dot.st3{background:var(--red)}
-  .lad-k{font-size:12px;font-weight:600}
-  .lad-k em{display:block;color:var(--faint);font-style:normal;font-size:9.5px;font-weight:400;margin-top:1px}
-  .lad-share,.lad-amt{text-align:right;font-size:12px}
-  .lad-amt{color:var(--muted);font-size:11px}
-  .lad-cov{display:flex;align-items:center;justify-content:flex-end;gap:7px}
-  .covbar{display:block;width:56px;height:6px;background:var(--hair)}
-  .covbar span{display:block;height:100%;background:var(--data)}
-  .lad-cov b{font-size:11px}.covna{color:var(--faint)}
-  /* formation */
+  .chart{width:100%;height:auto}
+  .grid{stroke:var(--hair);stroke-width:1}
+  .ax{font-family:"IBM Plex Mono",Consolas,monospace;font-size:8px;fill:var(--faint)}
+  .ax.net{fill:var(--red);font-weight:650}
   .bar-add{fill:var(--red)}.bar-exit{fill:var(--context)}
   .bar-val{font-family:"IBM Plex Mono",Consolas,monospace;font-size:9px;font-weight:650;fill:var(--red)}
   .bar-val.ctx{fill:var(--muted)}
-  .ax.net{fill:var(--red);font-weight:650}
-  .lg{font-size:9px;fill:var(--muted)}
-  .sw-add{fill:var(--red)}.sw-exit{fill:var(--context)}
+  .lg{font-size:9px;fill:var(--muted)}.sw-add{fill:var(--red)}.sw-exit{fill:var(--context)}
   .mig{display:grid;grid-template-columns:38px 1fr auto;gap:9px;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--hair);font-size:11.5px}
   .mig-k{font-weight:650}.mig-b{color:var(--muted);font-size:11px}.mig-v{font-weight:650;color:var(--amber)}
+  .note{color:var(--faint);font-size:9.5px;line-height:1.55}
+  .note b{color:var(--ink)}
   /* attribution */
   .ab-row{display:grid;grid-template-columns:96px minmax(0,1fr) 50px 140px;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--hair)}
   .ab-lab{font-size:12px;font-weight:600}
@@ -132,8 +118,12 @@
   .mv{display:grid;grid-template-columns:1fr 54px 54px 58px;gap:8px;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--hair);font-size:11.5px}
   .mv-l em{color:var(--faint);font-style:normal;font-size:9px;margin-left:5px}
   .mv-p{text-align:right;color:var(--faint);font-size:11px}
-  .mv-c{text-align:right;font-size:11.5px}
-  .mv-d{text-align:right;font-weight:650;font-size:11px}
+  .mv-c{text-align:right}.mv-d{text-align:right;font-weight:650;font-size:11px}
+  /* footnotes */
+  .fn{margin-top:26px;padding-top:12px;border-top:1px solid var(--hair);display:grid;grid-template-columns:1fr 1fr;gap:28px}
+  .fn h4{margin:0 0 4px;font-size:10.5px}
+  .fn p{margin:0;color:var(--faint);font-size:10px;line-height:1.6}
+  .fn b{color:var(--muted)}
   /* depth */
   .depth{margin-top:34px;padding-top:14px;border-top:2px solid var(--ink)}
   .depth-head{display:flex;align-items:baseline;gap:12px;margin-bottom:4px}
@@ -158,9 +148,10 @@
   @media(max-width:980px){
     .shell{grid-template-columns:1fr}.rail{display:none}.workspace{padding:0}
     .sheet{border:0;border-radius:0;padding:24px 20px}
-    .sig,.grid2,.carry{grid-template-columns:1fr;gap:24px}
+    .sig,.grid2,.carry,.fn{grid-template-columns:1fr;gap:24px}
     .compiled{display:none}
-    .decomp{flex-wrap:wrap}
+    .wl-tick-l{position:static;display:block;width:auto;text-align:left;margin-top:2px}
+    .wl-tick{border-left:0;padding-left:0;position:static;height:auto}
   }
   @media(max-width:700px){
     .vitals{grid-template-columns:1fr 1fr}
@@ -168,8 +159,7 @@
     .vital:nth-child(2n){border-right:0}.vital:nth-child(-n+2){border-top:0}.vital:nth-child(2n+1){padding-left:0}
     .ab-row,.ab-sum{grid-template-columns:80px minmax(0,1fr) 46px}
     .ab-meta,.ab-sum span:last-child{display:none}
-    .lad-head,.lad-row{grid-template-columns:12px 1fr 50px 96px}
-    .lad-head span:nth-child(4),.lad-amt{display:none}
+    .wl-bar i{font-size:8.5px;left:5px}
     .colophon{flex-wrap:wrap}
   }
 </style>
@@ -185,12 +175,11 @@
     <a class="nav-item" href="#">Banks</a><a class="nav-item" href="#">Compare</a>
     <div class="nav-group mono">More</div>
     <a class="nav-item" href="#">Regulations</a><a class="nav-item" href="#">News</a>
-    <div class="rail-bottom"><button class="icon-btn" id="theme" aria-label="Toggle theme">&#9788;</button><span class="mono" style="font-size:9px">Theme</span></div>
   </aside>
 
   <div class="workspace">
     <main class="sheet">
-      <div class="mock-label mono">Design artefact · redesign proposal · figures are REAL (BDDK W/E 03 Jul 2026 · stages 2026Q1 audited, n=37)</div>
+      <div class="mock-label mono">Design artefact · v2, corrected thesis · figures are REAL (BDDK W/E 03 Jul 2026 · TFRS-9 2026Q1 audited, n=37)</div>
 
       <div class="title-line">
         <h1>Asset Quality</h1>
@@ -198,180 +187,169 @@
         <span class="compiled mono">every figure computed from source series</span>
       </div>
 
-      <!-- SIGNATURE -->
       <div class="sechead">
-        <h2>The ratio is the denominator's story</h2>
-        <span class="mono">gross NPL ÷ loans · 52-week window</span>
-        <span class="mono right">shaded = what loan growth hides</span>
+        <h2>What the ratio doesn't print</h2>
+        <span class="mono">TFRS-9 staging · % of gross loans</span>
+        <span class="mono right">the tip is what gets quoted</span>
       </div>
       <div class="sig">
-        <div>
-          <svg viewBox="0 0 700 250" class="chart" role="img" aria-label="The printed NPL ratio of 2.90% against the constant-book ratio of 3.97%; the gap is the dilution from loan growth."><line x1="6" y1="228.0" x2="550.0" y2="228.0" class="grid"/><text x="8" y="225.0" class="ax">1.3%</text><line x1="6" y1="157.3" x2="550.0" y2="157.3" class="grid"/><text x="8" y="154.3" class="ax">2.3%</text><line x1="6" y1="86.7" x2="550.0" y2="86.7" class="grid"/><text x="8" y="83.7" class="ax">3.3%</text><line x1="6" y1="16.0" x2="550.0" y2="16.0" class="grid"/><text x="8" y="13.0" class="ax">4.3%</text><path d="M6.0 161.6 L11.3 163.3 L16.6 164.9 L21.8 164.0 L27.1 163.8 L32.4 161.5 L37.7 154.2 L43.0 152.8 L48.3 151.4 L53.5 150.3 L58.8 148.6 L64.1 148.1 L69.4 145.0 L74.7 144.3 L79.9 144.8 L85.2 146.2 L90.5 143.6 L95.8 144.4 L101.1 144.7 L106.3 145.5 L111.6 142.2 L116.9 141.8 L122.2 140.5 L127.5 141.6 L132.8 139.6 L138.0 137.3 L143.3 140.6 L148.6 145.0 L153.9 144.0 L159.2 140.8 L164.4 139.7 L169.7 137.3 L175.0 136.8 L180.3 132.6 L185.6 130.5 L190.9 129.0 L196.1 128.6 L201.4 128.3 L206.7 128.7 L212.0 128.3 L217.3 125.8 L222.5 127.4 L227.8 122.6 L233.1 118.4 L238.4 113.6 L243.7 113.9 L249.0 110.5 L254.2 108.1 L259.5 107.7 L264.8 108.0 L270.1 106.5 L275.4 105.1 L280.6 101.7 L285.9 101.9 L291.2 99.1 L296.5 98.2 L301.8 95.6 L307.0 96.3 L312.3 92.5 L317.6 92.5 L322.9 92.9 L328.2 94.2 L333.5 90.4 L338.7 89.5 L344.0 88.4 L349.3 87.9 L354.6 88.1 L359.9 81.8 L365.1 79.8 L370.4 76.6 L375.7 76.2 L381.0 71.0 L386.3 67.4 L391.6 66.2 L396.8 65.8 L402.1 64.7 L407.4 62.9 L412.7 63.2 L418.0 62.6 L423.2 63.3 L428.5 56.8 L433.8 54.7 L439.1 51.7 L444.4 51.8 L449.7 49.0 L454.9 49.0 L460.2 49.2 L465.5 47.0 L470.8 47.0 L476.1 48.4 L481.3 50.6 L486.6 52.3 L491.9 48.2 L497.2 50.2 L502.5 49.1 L507.7 49.8 L513.0 47.1 L518.3 45.2 L523.6 48.3 L528.9 44.5 L534.2 43.4 L539.4 42.7 L544.7 45.4 L550.0 40.5 L550.0 114.2 L544.7 117.5 L539.4 116.1 L534.2 117.8 L528.9 118.8 L523.6 122.2 L518.3 121.3 L513.0 122.7 L507.7 124.3 L502.5 124.7 L497.2 125.4 L491.9 125.3 L486.6 127.1 L481.3 127.8 L476.1 127.1 L470.8 128.2 L465.5 128.3 L460.2 129.9 L454.9 130.2 L449.7 130.5 L444.4 131.3 L439.1 131.9 L433.8 133.8 L428.5 136.4 L423.2 140.2 L418.0 139.7 L412.7 139.7 L407.4 139.1 L402.1 140.3 L396.8 141.3 L391.6 142.4 L386.3 141.5 L381.0 144.0 L375.7 147.3 L370.4 147.8 L365.1 149.4 L359.9 150.6 L354.6 154.1 L349.3 153.9 L344.0 155.0 L338.7 155.4 L333.5 156.7 L328.2 157.7 L322.9 158.7 L317.6 157.9 L312.3 158.2 L307.0 161.4 L301.8 160.6 L296.5 161.4 L291.2 162.4 L285.9 163.9 L280.6 163.3 L275.4 164.4 L270.1 165.9 L264.8 166.5 L259.5 166.7 L254.2 167.2 L249.0 168.9 L243.7 170.3 L238.4 171.0 L233.1 174.4 L227.8 175.2 L222.5 177.5 L217.3 177.5 L212.0 178.0 L206.7 177.5 L201.4 178.1 L196.1 178.8 L190.9 180.6 L185.6 180.7 L180.3 182.1 L175.0 184.9 L169.7 185.2 L164.4 186.6 L159.2 187.8 L153.9 190.0 L148.6 190.6 L143.3 188.2 L138.0 185.4 L132.8 186.4 L127.5 187.3 L122.2 187.2 L116.9 188.9 L111.6 189.5 L106.3 192.0 L101.1 192.0 L95.8 192.5 L90.5 192.7 L85.2 194.2 L79.9 193.1 L74.7 193.0 L69.4 193.4 L64.1 195.9 L58.8 194.4 L53.5 195.2 L48.3 195.6 L43.0 195.9 L37.7 196.6 L32.4 203.5 L27.1 163.8 L21.8 164.0 L16.6 164.9 L11.3 163.3 L6.0 161.6 Z" class="gapfill"/><path d="M6.0 161.6 L11.3 163.3 L16.6 164.9 L21.8 164.0 L27.1 163.8 L32.4 161.5 L37.7 154.2 L43.0 152.8 L48.3 151.4 L53.5 150.3 L58.8 148.6 L64.1 148.1 L69.4 145.0 L74.7 144.3 L79.9 144.8 L85.2 146.2 L90.5 143.6 L95.8 144.4 L101.1 144.7 L106.3 145.5 L111.6 142.2 L116.9 141.8 L122.2 140.5 L127.5 141.6 L132.8 139.6 L138.0 137.3 L143.3 140.6 L148.6 145.0 L153.9 144.0 L159.2 140.8 L164.4 139.7 L169.7 137.3 L175.0 136.8 L180.3 132.6 L185.6 130.5 L190.9 129.0 L196.1 128.6 L201.4 128.3 L206.7 128.7 L212.0 128.3 L217.3 125.8 L222.5 127.4 L227.8 122.6 L233.1 118.4 L238.4 113.6 L243.7 113.9 L249.0 110.5 L254.2 108.1 L259.5 107.7 L264.8 108.0 L270.1 106.5 L275.4 105.1 L280.6 101.7 L285.9 101.9 L291.2 99.1 L296.5 98.2 L301.8 95.6 L307.0 96.3 L312.3 92.5 L317.6 92.5 L322.9 92.9 L328.2 94.2 L333.5 90.4 L338.7 89.5 L344.0 88.4 L349.3 87.9 L354.6 88.1 L359.9 81.8 L365.1 79.8 L370.4 76.6 L375.7 76.2 L381.0 71.0 L386.3 67.4 L391.6 66.2 L396.8 65.8 L402.1 64.7 L407.4 62.9 L412.7 63.2 L418.0 62.6 L423.2 63.3 L428.5 56.8 L433.8 54.7 L439.1 51.7 L444.4 51.8 L449.7 49.0 L454.9 49.0 L460.2 49.2 L465.5 47.0 L470.8 47.0 L476.1 48.4 L481.3 50.6 L486.6 52.3 L491.9 48.2 L497.2 50.2 L502.5 49.1 L507.7 49.8 L513.0 47.1 L518.3 45.2 L523.6 48.3 L528.9 44.5 L534.2 43.4 L539.4 42.7 L544.7 45.4 L550.0 40.5" fill="none" class="s-cf" stroke-width="1.5"/><path d="M6.0 203.5 L11.3 196.6 L16.6 195.9 L21.8 195.6 L27.1 195.2 L32.4 194.4 L37.7 195.9 L43.0 195.2 L48.3 193.4 L53.5 193.0 L58.8 193.1 L64.1 194.2 L69.4 192.7 L74.7 192.5 L79.9 192.0 L85.2 192.0 L90.5 189.5 L95.8 188.9 L101.1 187.2 L106.3 187.3 L111.6 186.4 L116.9 185.4 L122.2 188.2 L127.5 190.6 L132.8 190.0 L138.0 187.8 L143.3 186.6 L148.6 185.2 L153.9 184.9 L159.2 182.1 L164.4 180.7 L169.7 180.6 L175.0 178.8 L180.3 178.1 L185.6 177.5 L190.9 178.0 L196.1 177.5 L201.4 177.5 L206.7 175.2 L212.0 174.4 L217.3 171.0 L222.5 170.3 L227.8 168.9 L233.1 167.2 L238.4 166.7 L243.7 166.5 L249.0 165.9 L254.2 164.2 L259.5 164.4 L264.8 163.3 L270.1 163.9 L275.4 162.4 L280.6 161.4 L285.9 160.6 L291.2 161.4 L296.5 158.2 L301.8 157.9 L307.0 158.7 L312.3 157.7 L317.6 156.7 L322.9 155.4 L328.2 155.0 L333.5 153.9 L338.7 154.1 L344.0 150.6 L349.3 149.4 L354.6 147.8 L359.9 147.3 L365.1 144.0 L370.4 141.5 L375.7 142.4 L381.0 141.3 L386.3 140.3 L391.6 139.1 L396.8 139.7 L402.1 139.7 L407.4 140.2 L412.7 136.4 L418.0 133.8 L423.2 131.9 L428.5 131.3 L433.8 130.5 L439.1 130.2 L444.4 129.9 L449.7 128.3 L454.9 128.2 L460.2 127.1 L465.5 127.8 L470.8 125.8 L476.1 127.1 L481.3 125.3 L486.6 125.4 L491.9 124.7 L497.2 124.3 L502.5 124.5 L507.7 122.7 L513.0 121.3 L518.3 122.2 L523.6 121.8 L528.9 118.8 L534.2 117.8 L539.4 116.1 L544.7 117.5 L550.0 114.2" fill="none" class="s-hero" stroke-width="2"/><circle cx="550.0" cy="40.5" r="2.4" class="s-cf dot"/><text x="557.0" y="41.5" class="endlab s-cf">At a constant book 3.97%</text><circle cx="550.0" cy="114.2" r="2.4" class="s-hero dot"/><text x="557.0" y="119.2" class="endlab s-hero">As printed 2.90%</text><line x1="524" y1="40.5" x2="524" y2="114.2" class="bracket"/><text x="518" y="80.3" text-anchor="end" class="gaplab">−1.06pp hidden</text><text x="6" y="245" class="ax">Jun 24</text><text x="550.0" y="245" class="ax" text-anchor="end">Jul 26</text></svg>
-          <div class="decomp">
-            <div class="dc"><div class="dc-k mono">Bad loans alone</div><div class="dc-v mono neg">+1.76pp</div></div>
-            <!-- NOT green. The denominator lowers the ratio, but that is dilution,
-                 not improvement — colouring it "good" is the exact misreading this
-                 page exists to prevent. Neutral ink; the reader draws the verdict. -->
-            <div class="dc"><div class="dc-k mono">The bigger book</div><div class="dc-v mono">−1.06pp</div></div>
-            <div class="dc"><div class="dc-k mono">Net ratio move</div><div class="dc-v mono neg">+0.70pp</div></div>
-            <div class="dc"><div class="dc-k mono">Printed / constant book</div><div class="dc-v mono">2.90% <span style="color:var(--faint)">/</span> <span class="neg">3.97%</span></div></div>
-          </div>
-        </div>
-        <div class="read">
-          <p class="lede">The NPL ratio prints <b class="mono">2.69%</b> and looks calm. The bad-loan <em>stock</em> grew <b class="neg mono">79.8%</b> — <b class="neg">34.9% in real terms</b>.</p>
-          <p>The ratio barely moved (+0.70pp) because its denominator is inflating. Bad loans alone would have pushed it to <b>3.97%</b>; a loan book growing 36.6% took <b>−1.06pp</b> back off. And that loan growth is not real credit — in real, constant-FX terms the book <b>shrank 2.1%</b>.</p>
-          <span class="rule mono">constant-book ratio = npl_stock(t) ÷ loans(t−52w) · both legs from the BDDK weekly bulletin · real terms deflated by TÜİK CPI (32.1%)</span>
-        </div>
-      </div>
+        
+  <div class="wl">
+    <!-- the whole book, to scale -->
+    <div class="wl-cap mono">The loan book · 2026Q1 audited · n=37</div>
+    <div class="wl-bar">
+      <span class="wl-s1" style="width:87.7%"><i>Stage 1 · performing · 87.7%</i></span>
+      <span class="wl-s2" style="width:9.2%"></span>
+      <span class="wl-s3" style="width:3.1%"></span>
+    </div>
+    <div class="wl-tick" style="left:96.9%">
+      <span class="wl-tick-l mono">the ratio prints only this →</span>
+    </div>
 
-      <!-- VITALS -->
-      <div class="sechead"><h2>The vitals</h2><span class="mono">stock · ratio · pipeline · cover</span></div>
-      <div class="vitals"><div class="vital hero">
-      <div class="vital-label">NPL stock, real y/y</div>
-      <div class="vital-value mono">34.9%</div>
-      <svg class="sparkline" viewBox="0 0 108 26" aria-hidden="true">
-        <line x1="0" y1="24.5" x2="108" y2="24.5" class="zero"/>
-        <path d="M0.0 5.5 L4.3 1.8 L8.6 3.2 L13.0 1.5 L17.3 1.6 L21.6 1.6 L25.9 2.0 L30.2 4.0 L34.6 6.9 L38.9 7.2 L43.2 8.0 L47.5 8.9 L51.8 9.5 L56.2 10.3 L60.5 12.0 L64.8 14.2 L69.1 16.3 L73.4 19.4 L77.8 20.6 L82.1 22.7 L86.4 22.1 L90.7 24.1 L95.0 23.6 L99.4 22.8 L103.7 23.6 L108.0 24.5" fill="none" class="sp-hero"/>
-      </svg>
-      <div class="vital-note">bad loans grew <b>34.9%</b> in real terms — the loan book grew just 3.3% real</div>
-    </div><div class="vital">
-      <div class="vital-label">NPL ratio, as printed</div>
-      <div class="vital-value mono">2.69%</div>
-      <svg class="sparkline" viewBox="0 0 108 26" aria-hidden="true">
-        
-        <path d="M0.0 24.5 L4.7 24.3 L9.4 21.4 L14.1 21.2 L18.8 20.8 L23.5 19.6 L28.2 19.0 L32.9 19.4 L37.6 17.6 L42.3 16.4 L47.0 14.5 L51.7 13.3 L56.3 12.7 L61.0 11.5 L65.7 10.7 L70.4 9.4 L75.1 7.4 L79.8 6.6 L84.5 5.8 L89.2 3.9 L93.9 3.5 L98.6 2.9 L103.3 2.3 L108.0 1.5" fill="none" class="sp"/>
-      </svg>
-      <div class="vital-note"><b class="neg">16 straight monthly rises</b> — from 2.09% a year ago</div>
-    </div><div class="vital">
-      <div class="vital-label">Ratio at a constant book</div>
-      <div class="vital-value mono">3.97%</div>
-      <svg class="sparkline" viewBox="0 0 108 26" aria-hidden="true">
-        
-        <path d="M0.0 23.7 L4.3 24.5 L8.6 17.9 L13.0 15.8 L17.3 12.8 L21.6 12.9 L25.9 10.1 L30.2 10.1 L34.6 10.3 L38.9 8.1 L43.2 8.1 L47.5 9.4 L51.8 11.7 L56.2 13.4 L60.5 9.2 L64.8 11.3 L69.1 10.1 L73.4 10.9 L77.8 8.2 L82.1 6.2 L86.4 9.4 L90.7 5.5 L95.0 4.5 L99.4 3.7 L103.7 6.4 L108.0 1.5" fill="none" class="sp"/>
-      </svg>
-      <div class="vital-note">what the ratio would print if the book had not grown — +1.06pp above the printed 2.90%</div>
-    </div><div class="vital">
-      <div class="vital-label">Problem loans, S2+S3</div>
-      <div class="vital-value mono">12.3%</div>
-      <svg class="sparkline" viewBox="0 0 108 26" aria-hidden="true">
-        
-        <path d="M0.0 1.5 L6.8 8.1 L13.5 11.6 L20.3 14.1 L27.0 20.5 L33.8 21.3 L40.5 22.3 L47.3 23.2 L54.0 24.5 L60.8 23.8 L67.5 21.7 L74.3 19.0 L81.0 18.1 L87.8 17.1 L94.5 15.1 L101.3 11.6 L108.0 8.3" fill="none" class="sp"/>
-      </svg>
-      <div class="vital-note"><b>4×</b> the headline NPL — the watchlist is the bigger book (2026Q1)</div>
-    </div><div class="vital">
-      <div class="vital-label">Stage-2 coverage</div>
-      <div class="vital-value mono">9.8%</div>
-      <svg class="sparkline" viewBox="0 0 108 26" aria-hidden="true">
-        
-        <path d="M0.0 11.3 L6.8 9.4 L13.5 5.7 L20.3 1.5 L27.0 2.5 L33.8 3.8 L40.5 2.8 L47.3 3.2 L54.0 5.5 L60.8 8.2 L67.5 11.7 L74.3 14.3 L81.0 16.1 L87.8 19.9 L94.5 22.6 L101.3 22.4 L108.0 24.5" fill="none" class="sp"/>
-      </svg>
-      <div class="vital-note">₺2,411bn watchlist at 9.8% cover, vs Stage 3 at 62.3%</div>
-    </div><div class="vital">
-      <div class="vital-label">SME NPL</div>
-      <div class="vital-value mono">3.85%</div>
-      <svg class="sparkline" viewBox="0 0 108 26" aria-hidden="true">
-        
-        <path d="M0.0 24.5 L4.3 23.6 L8.6 23.7 L13.0 21.0 L17.3 21.3 L21.6 21.6 L25.9 21.9 L30.2 20.4 L34.6 19.6 L38.9 19.6 L43.2 19.0 L47.5 17.6 L51.8 14.6 L56.2 15.1 L60.5 14.4 L64.8 13.9 L69.1 13.5 L73.4 11.7 L77.8 10.7 L82.1 9.6 L86.4 9.2 L90.7 7.5 L95.0 7.3 L99.4 7.2 L103.7 8.1 L108.0 1.5" fill="none" class="sp"/>
-      </svg>
-      <div class="vital-note">+1.14pp in 52w · stock +113% — the fastest book</div>
-    </div></div>
-
-      <!-- LADDER + FORMATION -->
-      <div class="sechead" style="margin-bottom:0"><h2>What the ratio does not print</h2><span class="mono">TFRS-9 staging · audited 2026Q1 · n=37 banks</span></div>
-      <div class="grid2" style="margin-top:12px">
-        <div>
-          <div class="ladder">
-    <div class="lad-bar"><span class="lad-seg st1" style="width:87.7%"><i>87.7%</i></span><span class="lad-seg st2" style="width:9.2%"><i>9.2%</i></span><span class="lad-seg st3" style="width:3.1%"><i>3.1%</i></span></div>
-    <div class="lad-head mono"><span></span><span>Stage</span><span>of loans</span><span>book</span><span>covered</span></div>
-    <div class="lad-row">
-        <span class="lad-dot st1"></span>
-        <span class="lad-k">Stage 1<em>performing</em></span>
-        <span class="lad-share mono">87.7%</span>
-        <span class="lad-amt mono">—</span>
-        <span class="lad-cov"><span class="covna mono">—</span></span>
-      </div><div class="lad-row">
-        <span class="lad-dot st2"></span>
-        <span class="lad-k">Stage 2<em>the watchlist</em></span>
-        <span class="lad-share mono">9.2%</span>
-        <span class="lad-amt mono">₺2,411bn</span>
-        <span class="lad-cov"><span class="covbar"><span style="width:9.8%"></span></span><b class="mono">9.8%</b></span>
-      </div><div class="lad-row">
-        <span class="lad-dot st3"></span>
-        <span class="lad-k">Stage 3<em>the NPL — what the ratio prints</em></span>
-        <span class="lad-share mono">3.1%</span>
-        <span class="lad-amt mono">₺817bn</span>
-        <span class="lad-cov"><span class="covbar"><span style="width:62.3%"></span></span><b class="mono">62.3%</b></span>
+    <!-- the problem book, magnified -->
+    <div class="wl-zoom">
+      <div class="wl-cap mono">The problem book, magnified · ₺3.23trn · 12.3% of loans</div>
+      <div class="wl-bar zoom">
+        <span class="wl-s2" style="width:74.69021065675341%">
+          <span class="wl-cov" style="width:9.8%"></span>
+          <i>Stage 2 — the watchlist</i>
+        </span>
+        <span class="wl-s3" style="width:25.309789343246592%">
+          <span class="wl-cov" style="width:62.3%"></span>
+          <i>Stage 3</i>
+        </span>
       </div>
+      <div class="wl-legend">
+        <span><b class="mono">₺2.41trn</b> Stage 2 · <b class="mono">9.8%</b> covered</span>
+        <span class="right"><b class="mono">₺0.82trn</b> Stage 3 · <b class="mono">62.3%</b> covered</span>
+      </div>
+      <div class="wl-key mono"><span class="k-solid"></span> provisions held (₺745bn · 23.1% of the problem book) &nbsp;·&nbsp; <span class="k-open"></span> carrying amount</div>
+    </div>
   </div>
-          <p style="margin:12px 0 0;color:var(--muted);font-size:11.5px;line-height:1.55">
-            What the headline calls "NPL" is Stage 3 — <b style="color:var(--ink)">3.1%</b> of the book.
-            The watchlist above it is <b style="color:var(--ink)">9.2%</b>, 3.0× larger.
-            Problem loans are <b style="color:var(--ink)">12.3%</b> — <b style="color:var(--ink)">4×</b> the printed ratio.
-          </p>
+        <div class="read">
+          <p class="lede">The headline NPL ratio is the <b class="neg">3.1%</b> tip. Loans the banks themselves classify as deteriorated are <b class="neg">12.3%</b> — <b class="neg">4×</b> as much.</p>
+          <p><b style="color:var(--ink)">75%</b> of that problem book is Stage 2 — the watchlist that never reaches the ratio. It carries <b style="color:var(--ink)">9.8%</b> cover against Stage 3's 62.3%.</p>
+          <p>Stage 2 is <em>not</em> impaired, so its lower cover is expected rather than a shortfall. What matters is that the pipeline behind the tip is still filling: formation ran <b style="color:var(--ink)">2.2×</b> last year, net <b style="color:var(--ink)">+₺404bn</b>.</p>
+          <span class="rule mono">problem loans = stage2 + stage3, both from the audited TFRS-9 filings · the 4× is 12.3% ÷ 3.1%, same source — never divided by the published ratio</span>
         </div>
+      </div>
+
+      <div class="sechead"><h2>The vitals</h2><span class="mono">stock · pipeline · cover</span></div>
+      <div class="vitals"><div class="vital hero">
+    <div class="vital-label">Problem loans, S2+S3</div>
+    <div class="vital-value mono">12.3%</div>
+    <svg class="sparkline" viewBox="0 0 108 26" aria-hidden="true">
+      
+      <path d="M0.0 1.5 L6.8 8.1 L13.5 11.6 L20.3 14.1 L27.0 20.5 L33.8 21.3 L40.5 22.3 L47.3 23.2 L54.0 24.5 L60.8 23.8 L67.5 21.7 L74.3 19.0 L81.0 18.1 L87.8 17.1 L94.5 15.1 L101.3 11.6 L108.0 8.3" fill="none" class="sp-hero"/>
+    </svg>
+    <div class="vital-note"><b class="neg">4×</b> the Stage-3 ratio the headline prints — ₺3.23trn of loans (2026Q1)</div>
+  </div><div class="vital">
+    <div class="vital-label">Cover on the problem book</div>
+    <div class="vital-value mono">23.1%</div>
+    <svg class="sparkline" viewBox="0 0 108 26" aria-hidden="true">
+      
+      <path d="M0.0 11.3 L6.8 9.4 L13.5 5.7 L20.3 1.5 L27.0 2.5 L33.8 3.8 L40.5 2.8 L47.3 3.2 L54.0 5.5 L60.8 8.2 L67.5 11.7 L74.3 14.3 L81.0 16.1 L87.8 19.9 L94.5 22.6 L101.3 22.4 L108.0 24.5" fill="none" class="sp"/>
+    </svg>
+    <div class="vital-note">Stage 2 at <b>9.8%</b> vs Stage 3 at <b>62.3%</b> — ₺745bn of provisions</div>
+  </div><div class="vital">
+    <div class="vital-label">NPL stock, real y/y</div>
+    <div class="vital-value mono">34.9%</div>
+    <svg class="sparkline" viewBox="0 0 108 26" aria-hidden="true">
+      <line x1="0" y1="24.5" x2="108" y2="24.5" class="zero"/>
+      <path d="M0.0 5.5 L4.3 1.8 L8.6 3.2 L13.0 1.5 L17.3 1.6 L21.6 1.6 L25.9 2.0 L30.2 4.0 L34.6 6.9 L38.9 7.2 L43.2 8.0 L47.5 8.9 L51.8 9.5 L56.2 10.3 L60.5 12.0 L64.8 14.2 L69.1 16.3 L73.4 19.4 L77.8 20.6 L82.1 22.7 L86.4 22.1 L90.7 24.1 L95.0 23.6 L99.4 22.8 L103.7 23.6 L108.0 24.5" fill="none" class="sp"/>
+    </svg>
+    <div class="vital-note">bad loans compounding — the loan book grew just 3.3% real</div>
+  </div><div class="vital">
+    <div class="vital-label">Net NPL formation</div>
+    <div class="vital-value mono">+404<small>₺bn</small></div>
+    <svg class="sparkline" viewBox="0 0 108 26" aria-hidden="true">
+      
+      <path d="M0.0 24.5 L36.0 22.8 L72.0 17.1 L108.0 1.5" fill="none" class="sp"/>
+    </svg>
+    <div class="vital-note">formation <b>2.2×</b> last year · exits are <b>77% collections</b></div>
+  </div><div class="vital">
+    <div class="vital-label">NPL ratio, as printed</div>
+    <div class="vital-value mono">2.69%</div>
+    <svg class="sparkline" viewBox="0 0 108 26" aria-hidden="true">
+      
+      <path d="M0.0 24.5 L4.7 24.3 L9.4 21.4 L14.1 21.2 L18.8 20.8 L23.5 19.6 L28.2 19.0 L32.9 19.4 L37.6 17.6 L42.3 16.4 L47.0 14.5 L51.7 13.3 L56.3 12.7 L61.0 11.5 L65.7 10.7 L70.4 9.4 L75.1 7.4 L79.8 6.6 L84.5 5.8 L89.2 3.9 L93.9 3.5 L98.6 2.9 L103.3 2.3 L108.0 1.5" fill="none" class="sp"/>
+    </svg>
+    <div class="vital-note"><b class="neg">16 straight monthly rises</b> — from 2.09% a year ago</div>
+  </div><div class="vital">
+    <div class="vital-label">SME NPL</div>
+    <div class="vital-value mono">3.85%</div>
+    <svg class="sparkline" viewBox="0 0 108 26" aria-hidden="true">
+      
+      <path d="M0.0 24.5 L4.3 23.6 L8.6 23.7 L13.0 21.0 L17.3 21.3 L21.6 21.6 L25.9 21.9 L30.2 20.4 L34.6 19.6 L38.9 19.6 L43.2 19.0 L47.5 17.6 L51.8 14.6 L56.2 15.1 L60.5 14.4 L64.8 13.9 L69.1 13.5 L73.4 11.7 L77.8 10.7 L82.1 9.6 L86.4 9.2 L90.7 7.5 L95.0 7.3 L99.4 7.2 L103.7 8.1 L108.0 1.5" fill="none" class="sp"/>
+    </svg>
+    <div class="vital-note">+1.14pp in 52w — SME drove <b>42.8%</b> of all new bad loans</div>
+  </div></div>
+
+      <div class="sechead"><h2>The pipeline behind the tip</h2><span class="mono">audited NPL roll-forward · annual · ₺bn</span></div>
+      <div class="grid2">
         <div>
-          <div class="sechead" style="margin:0 0 8px"><h2 style="font-size:12.5px">NPL formation vs exits</h2><span class="mono right">₺bn · audited, annual</span></div>
-          <svg viewBox="0 0 470 190" class="chart" role="img" aria-label="NPL formation versus exits by year; formation ₺673bn in 2025, 2.2x the prior year."><line x1="6" y1="156" x2="462" y2="156" class="grid"/><rect x="35.0" y="137.2" width="26" height="18.8" class="bar-add"/><rect x="65.0" y="138.1" width="26" height="17.9" class="bar-exit"/><text x="63.0" y="168.0" text-anchor="middle" class="ax">2022</text><text x="63.0" y="180.0" text-anchor="middle" class="ax net">+5</text><rect x="149.0" y="134.3" width="26" height="21.7" class="bar-add"/><rect x="179.0" y="140.4" width="26" height="15.6" class="bar-exit"/><text x="177.0" y="168.0" text-anchor="middle" class="ax">2023</text><text x="177.0" y="180.0" text-anchor="middle" class="ax net">+35</text><rect x="263.0" y="101.9" width="26" height="54.1" class="bar-add"/><rect x="293.0" y="125.7" width="26" height="30.3" class="bar-exit"/><text x="291.0" y="168.0" text-anchor="middle" class="ax">2024</text><text x="291.0" y="180.0" text-anchor="middle" class="ax net">+134</text><rect x="377.0" y="36.4" width="26" height="119.6" class="bar-add"/><rect x="407.0" y="108.2" width="26" height="47.8" class="bar-exit"/><text x="390.0" y="31.4" text-anchor="middle" class="bar-val">673</text><text x="420.0" y="103.2" text-anchor="middle" class="bar-val ctx">269</text><text x="405.0" y="168.0" text-anchor="middle" class="ax">2025</text><text x="405.0" y="180.0" text-anchor="middle" class="ax net">+404</text><text x="6" y="11" class="lg"><tspan class="sw-add">■</tspan> formation   <tspan class="sw-exit">■</tspan> exits   <tspan class="ax">₺bn · net below</tspan></text></svg>
-          <p style="margin:8px 0 12px;color:var(--muted);font-size:11.5px;line-height:1.55">
-            Formation is <b style="color:var(--ink)">2.2×</b> last year (₺304bn → ₺673bn), net <b style="color:var(--ink)">+₺404bn</b>.
-            Exits are <b style="color:var(--ink)">77% collections</b> — not write-offs or sales.
+          <svg viewBox="0 0 470 190" class="chart" role="img" aria-label="NPL formation versus exits by year; formation ₺673bn in 2025, 2.2 times the prior year, net plus ₺404bn."><line x1="6" y1="156" x2="462" y2="156" class="grid"/><rect x="35.0" y="137.2" width="26" height="18.8" class="bar-add"/><rect x="65.0" y="138.1" width="26" height="17.9" class="bar-exit"/><text x="63.0" y="168.0" text-anchor="middle" class="ax">2022</text><text x="63.0" y="180.0" text-anchor="middle" class="ax net">+5</text><rect x="149.0" y="134.3" width="26" height="21.7" class="bar-add"/><rect x="179.0" y="140.4" width="26" height="15.6" class="bar-exit"/><text x="177.0" y="168.0" text-anchor="middle" class="ax">2023</text><text x="177.0" y="180.0" text-anchor="middle" class="ax net">+35</text><rect x="263.0" y="101.9" width="26" height="54.1" class="bar-add"/><rect x="293.0" y="125.7" width="26" height="30.3" class="bar-exit"/><text x="291.0" y="168.0" text-anchor="middle" class="ax">2024</text><text x="291.0" y="180.0" text-anchor="middle" class="ax net">+134</text><rect x="377.0" y="36.4" width="26" height="119.6" class="bar-add"/><rect x="407.0" y="108.2" width="26" height="47.8" class="bar-exit"/><text x="390.0" y="31.4" text-anchor="middle" class="bar-val">673</text><text x="420.0" y="103.2" text-anchor="middle" class="bar-val ctx">269</text><text x="405.0" y="168.0" text-anchor="middle" class="ax">2025</text><text x="405.0" y="180.0" text-anchor="middle" class="ax net">+404</text><text x="6" y="11" class="lg"><tspan class="sw-add">■</tspan> formation   <tspan class="sw-exit">■</tspan> exits   <tspan class="ax">₺bn · net formation below</tspan></text></svg>
+          <p class="note" style="margin-top:8px">
+            Formation is <b>2.2×</b> last year (₺304bn → ₺673bn), net <b>+₺404bn</b>.
+            Exits are <b>77% collections</b> — not write-offs or sales.
             <em>The ratio is not being managed down; the book is genuinely deteriorating.</em>
           </p>
-          <div class="sechead" style="margin:0 0 4px"><h2 style="font-size:12.5px">If the watchlist migrates</h2><span class="mono right">sizing device — not a forecast</span></div>
+        </div>
+        <div>
+          <div class="sechead" style="margin:0 0 6px"><h2 style="font-size:12.5px">If the watchlist migrates</h2><span class="mono right">sizing device — not a forecast</span></div>
           <div class="mig">
-      <span class="mig-k mono">5%</span>
-      <span class="mig-b">of Stage 2 migrates</span>
-      <span class="mig-v mono">+₺63bn</span>
-    </div><div class="mig">
-      <span class="mig-k mono">10%</span>
-      <span class="mig-b">of Stage 2 migrates</span>
-      <span class="mig-v mono">+₺127bn</span>
-    </div><div class="mig">
-      <span class="mig-k mono">20%</span>
-      <span class="mig-b">of Stage 2 migrates</span>
-      <span class="mig-v mono">+₺253bn</span>
-    </div>
-          <p style="margin:8px 0 0;color:var(--faint);font-size:9.5px;line-height:1.5">
-            Migration provisioned at Stage 3's rate (62.3%) vs Stage 2 today (9.8%), on a ₺2,411bn book.
-            Stage 2 is <b>not</b> impaired — its lower cover is expected, not a shortfall.
+  <span class="mig-k mono">5%</span>
+  <span class="mig-b">of the watchlist migrates</span>
+  <span class="mig-v mono">+₺63bn</span>
+</div><div class="mig">
+  <span class="mig-k mono">10%</span>
+  <span class="mig-b">of the watchlist migrates</span>
+  <span class="mig-v mono">+₺127bn</span>
+</div><div class="mig">
+  <span class="mig-k mono">20%</span>
+  <span class="mig-b">of the watchlist migrates</span>
+  <span class="mig-v mono">+₺253bn</span>
+</div>
+          <p class="note" style="margin-top:9px">
+            Migration provisioned at Stage 3's rate (62.3%) against Stage 2 today (9.8%), on a ₺2.41trn book.
+            Stage 2 is <b>not</b> impaired — this is what migration would cost, <b>not a gap the banks owe</b>.
           </p>
         </div>
       </div>
 
-      <!-- ATTRIBUTION + MOVERS -->
       <div class="grid2" style="margin-top:26px;grid-template-columns:minmax(0,7fr) minmax(260px,4fr)">
         <div>
           <div class="sechead" style="margin-top:0"><h2>Where the new bad loans came from</h2><span class="mono">share of the ₺0.34trn increase · 52w</span></div>
           <div style="border-top:1px solid var(--ink)">
             <div class="ab-row">
-        <span class="ab-lab">Commercial</span>
-        <span class="ab-track"><span class="ab-fill nested" style="width:100.0%"><span class="ab-sme" style="width:70.3%"><i>SME 42.8%</i></span></span></span>
-        <span class="ab-val mono">60.9%</span>
-        <span class="ab-meta mono">2.27% NPL · +0.62pp</span>
-      </div><div class="ab-row">
-        <span class="ab-lab">Retail cards</span>
-        <span class="ab-track"><span class="ab-fill " style="width:35.8%"></span></span>
-        <span class="ab-val mono">21.8%</span>
-        <span class="ab-meta mono">5.18% NPL · +0.94pp</span>
-      </div><div class="ab-row">
-        <span class="ab-lab">Gen. purpose</span>
-        <span class="ab-track"><span class="ab-fill " style="width:28.1%"></span></span>
-        <span class="ab-val mono">17.1%</span>
-        <span class="ab-meta mono">5.83% NPL · +0.69pp</span>
-      </div><div class="ab-row">
-        <span class="ab-lab">Housing</span>
-        <span class="ab-track"><span class="ab-fill " style="width:0.2%"></span></span>
-        <span class="ab-val mono">0.1%</span>
-        <span class="ab-meta mono">0.17% NPL · +0.02pp</span>
-      </div><div class="ab-row">
-        <span class="ab-lab">Auto</span>
-        <span class="ab-track"><span class="ab-fill " style="width:0.2%"></span></span>
-        <span class="ab-val mono">0.1%</span>
-        <span class="ab-meta mono">1.13% NPL · +0.66pp</span>
-      </div>
+      <span class="ab-lab">Commercial</span>
+      <span class="ab-track"><span class="ab-fill nested" style="width:100.0%"><span class="ab-sme" style="width:70.3%"><i>SME 42.8%</i></span></span></span>
+      <span class="ab-val mono">60.9%</span>
+      <span class="ab-meta mono">2.27% NPL · +0.62pp</span>
+    </div><div class="ab-row">
+      <span class="ab-lab">Retail cards</span>
+      <span class="ab-track"><span class="ab-fill " style="width:35.8%"></span></span>
+      <span class="ab-val mono">21.8%</span>
+      <span class="ab-meta mono">5.18% NPL · +0.94pp</span>
+    </div><div class="ab-row">
+      <span class="ab-lab">Gen. purpose</span>
+      <span class="ab-track"><span class="ab-fill " style="width:28.1%"></span></span>
+      <span class="ab-val mono">17.1%</span>
+      <span class="ab-meta mono">5.83% NPL · +0.69pp</span>
+    </div><div class="ab-row">
+      <span class="ab-lab">Housing</span>
+      <span class="ab-track"><span class="ab-fill " style="width:0.2%"></span></span>
+      <span class="ab-val mono">0.1%</span>
+      <span class="ab-meta mono">0.17% NPL · +0.02pp</span>
+    </div><div class="ab-row">
+      <span class="ab-lab">Auto</span>
+      <span class="ab-track"><span class="ab-fill " style="width:0.2%"></span></span>
+      <span class="ab-val mono">0.1%</span>
+      <span class="ab-meta mono">1.13% NPL · +0.66pp</span>
+    </div>
             <div class="ab-sum">
               <span class="mono">Sector</span>
-              <span>segments reconcile to the NPL stock — SME is a cut of commercial (61% of its bad loans), not an addition</span>
+              <span>segments reconcile to the NPL stock — SME is a cut of commercial (61% of its bad loans on 36% of its lending), not an addition</span>
               <b class="mono">100%</b>
               <span class="mono">₺0.34trn added</span>
             </div>
@@ -381,60 +359,69 @@
           <div class="sechead" style="margin-top:0"><h2>Movers</h2><span class="mono right">NPL ratio · 52w</span></div>
           <div class="mv-head"><span>Segment</span><span>52w ago</span><span>Now</span><span>Δ</span></div>
           <div class="mv">
-      <span class="mv-l">SME<em>⊂ commercial</em></span>
-      <span class="mv-p mono">2.70%</span>
-      <span class="mv-c mono">3.85%</span>
-      <span class="mv-d mono neg">+1.14pp</span>
-    </div><div class="mv">
-      <span class="mv-l">Retail cards</span>
-      <span class="mv-p mono">4.24%</span>
-      <span class="mv-c mono">5.18%</span>
-      <span class="mv-d mono neg">+0.94pp</span>
-    </div><div class="mv">
-      <span class="mv-l">Gen. purpose</span>
-      <span class="mv-p mono">5.14%</span>
-      <span class="mv-c mono">5.83%</span>
-      <span class="mv-d mono neg">+0.69pp</span>
-    </div><div class="mv">
-      <span class="mv-l">Auto</span>
-      <span class="mv-p mono">0.46%</span>
-      <span class="mv-c mono">1.13%</span>
-      <span class="mv-d mono neg">+0.66pp</span>
-    </div><div class="mv">
-      <span class="mv-l">Commercial</span>
-      <span class="mv-p mono">1.65%</span>
-      <span class="mv-c mono">2.27%</span>
-      <span class="mv-d mono neg">+0.62pp</span>
-    </div><div class="mv">
-      <span class="mv-l">Housing</span>
-      <span class="mv-p mono">0.15%</span>
-      <span class="mv-c mono">0.17%</span>
-      <span class="mv-d mono neg">+0.02pp</span>
-    </div>
+  <span class="mv-l">SME<em>⊂ commercial</em></span>
+  <span class="mv-p mono">2.70%</span>
+  <span class="mv-c mono">3.85%</span>
+  <span class="mv-d mono neg">+1.14pp</span>
+</div><div class="mv">
+  <span class="mv-l">Retail cards</span>
+  <span class="mv-p mono">4.24%</span>
+  <span class="mv-c mono">5.18%</span>
+  <span class="mv-d mono neg">+0.94pp</span>
+</div><div class="mv">
+  <span class="mv-l">Gen. purpose</span>
+  <span class="mv-p mono">5.14%</span>
+  <span class="mv-c mono">5.83%</span>
+  <span class="mv-d mono neg">+0.69pp</span>
+</div><div class="mv">
+  <span class="mv-l">Auto</span>
+  <span class="mv-p mono">0.46%</span>
+  <span class="mv-c mono">1.13%</span>
+  <span class="mv-d mono neg">+0.66pp</span>
+</div><div class="mv">
+  <span class="mv-l">Commercial</span>
+  <span class="mv-p mono">1.65%</span>
+  <span class="mv-c mono">2.27%</span>
+  <span class="mv-d mono neg">+0.62pp</span>
+</div><div class="mv">
+  <span class="mv-l">Housing</span>
+  <span class="mv-p mono">0.15%</span>
+  <span class="mv-c mono">0.17%</span>
+  <span class="mv-d mono neg">+0.02pp</span>
+</div>
         </div>
       </div>
 
-      <!-- FLAGS -->
       <div class="sechead"><h2>Flags</h2><span class="mono">each prints the rule that raised it</span></div>
       <div class="flags"><div class="flag">
-      <span class="flag-dot neg"></span>
-      <span><span class="flag-t">Bad loans are compounding far faster than the book</span><span class="flag-b">Both CPI-deflated, like for like: the bad-loan stock grew <b>34.9%</b> in real terms against a loan book growing <b>3.3%</b>. The growing nominal denominator held the printed ratio <b>−1.06pp</b> below where the stock alone would put it. (On /credit the same book is <em>shrinking</em> 2.1% once the lira is also stripped — a further adjustment not applied to the NPL stock here.)</span><span class="flag-rule mono">npl_stock_real (34.9%) &gt; 11× loan_book_real (3.3%)</span></span>
-      <span class="flag-v mono neg">34.9% real</span>
-    </div><div class="flag">
-      <span class="flag-dot neg"></span>
-      <span><span class="flag-t">NPL ratio has risen every month for over a year</span><span class="flag-b">2.09% → 2.69%. Not a spike — a trend with no inflection yet.</span><span class="flag-rule mono">npl_ratio rising for 16 consecutive months</span></span>
-      <span class="flag-v mono neg">2.69%</span>
-    </div><div class="flag">
-      <span class="flag-dot neg"></span>
-      <span><span class="flag-t">NPL formation more than doubled</span><span class="flag-b">New NPLs of ₺673bn against ₺269bn of exits — net formation <b>+₺404bn</b>. And the exits are <b>77% collections</b>, not write-offs or sales: this is real deterioration, not the ratio being managed.</span><span class="flag-rule mono">formation(2025) / formation(2024) = 2.2×</span></span>
-      <span class="flag-v mono neg">₺673bn</span>
-    </div><div class="flag">
-      <span class="flag-dot warn"></span>
-      <span><span class="flag-t">The watchlist is thinly covered</span><span class="flag-b">Stage 2 is ₺2,411bn — 3.0× the Stage-3 book — and carries 9.8% cover against Stage 3's 62.3%. Stage 2 is <em>not</em> impaired, so lower cover is expected; the sizing below is what migration would cost, not a gap owed.</span><span class="flag-rule mono">stage2 / stage3 = 3.0× AND cov2 &lt; cov3 ÷ 5</span></span>
-      <span class="flag-v mono warn">9.8% / 62.3%</span>
-    </div></div>
+  <span class="flag-dot neg"></span>
+  <span><span class="flag-t">The watchlist is three times the NPL book, and thinly covered</span><span class="flag-b">Stage 2 is <b>₺2.41trn</b> against Stage 3's ₺0.82trn, and carries 9.8% cover versus 62.3%. Stage 2 is <em>not</em> impaired, so lower cover is expected — the sizing beside it is what migration would cost, not a shortfall owed.</span><span class="flag-rule mono">stage2 ÷ stage3 = 3.0× AND cov2 &lt; cov3 ÷ 5</span></span>
+  <span class="flag-v mono neg">9.8% / 62.3%</span>
+</div><div class="flag">
+  <span class="flag-dot neg"></span>
+  <span><span class="flag-t">NPL formation more than doubled — and it is not being written off</span><span class="flag-b">New NPLs of ₺673bn against ₺269bn of exits — net <b>+₺404bn</b>. Exits are <b>77% collections</b>, not write-offs or sales: the ratio is not being managed down, the book is genuinely deteriorating.</span><span class="flag-rule mono">formation(2025) ÷ formation(2024) = 2.2×</span></span>
+  <span class="flag-v mono neg">₺673bn</span>
+</div><div class="flag">
+  <span class="flag-dot neg"></span>
+  <span><span class="flag-t">Bad loans are compounding far faster than the book</span><span class="flag-b">Like for like, both CPI-deflated: the bad-loan stock grew <b>34.9%</b> in real terms against a loan book growing <b>3.3%</b>.</span><span class="flag-rule mono">npl_stock_real (34.9%) &gt; 11× loan_book_real (3.3%)</span></span>
+  <span class="flag-v mono neg">34.9% real</span>
+</div><div class="flag">
+  <span class="flag-dot warn"></span>
+  <span><span class="flag-t">The printed ratio has risen every month for over a year</span><span class="flag-b">2.09% → 2.69%. The ratio is registering the deterioration — slowly. It is the <em>level</em> that misleads, not the direction.</span><span class="flag-rule mono">npl_ratio rising for 16 consecutive months</span></span>
+  <span class="flag-v mono warn">2.69%</span>
+</div></div>
 
-      <!-- DEPTH -->
+      <div class="fn">
+        <div>
+          <h4>Why we do <em>not</em> claim inflation flatters the ratio</h4>
+          <p>An NPL ratio is <b>N ÷ L</b>. Deflate both legs by CPI and it is <b>unchanged</b> — a ratio is deflator-invariant. Only <b>real</b> book growth dilutes it, and that was just 3.3%: worth about <b>0.1pp</b>, not the 1pp a nominally-frozen-book counterfactual would suggest. A real bias does exist — the numerator is <b>stale</b> (a loan that defaulted two years ago sits at its origination principal) while the denominator reprices — but sizing it needs origination-vintage data we do not have, so we put no number on it.</p>
+        </div>
+        <div>
+          <h4>Two NPL ratios, one page</h4>
+          <p>The published ratio (BDDK monthly, <b>2.69%</b> @ May 26) and the ratio implied by the weekly bulletin (<b>2.90%</b> @ W/E 03 Jul 2026) differ by a stable <b>~0.10pp</b> — definitional, not noise. They are never mixed inside one calculation; the vitals quote the published figure and say so.</p>
+        </div>
+      </div>
+
       <div class="depth">
         <div class="depth-head">
           <h2>In depth</h2><span>carried over, reordered by question — nothing removed</span>
@@ -442,21 +429,21 @@
         </div>
 
         <section class="qsec">
-          <div class="qsec-head"><span class="qsec-ix mono">01</span><h3>Is the ratio telling the truth?</h3><p class="q">— the stock, the ratio, and the cover</p></div>
-          <div class="carry">
-            <div class="carry-item">Gross NPL — Level (sector, weekly)</div>
-            <div class="carry-item">Provisions / Gross NPL (%) — by group</div>
-            <div class="carry-note">Both carried over. The level chart now sits under the question it answers, beside the counterfactual above.</div>
-          </div>
-        </section>
-
-        <section class="qsec">
-          <div class="qsec-head"><span class="qsec-ix mono">02</span><h3>What is coming?</h3><p class="q">— the pipeline: staging, roll-forward, migration</p></div>
+          <div class="qsec-head"><span class="qsec-ix mono">01</span><h3>What is coming?</h3><p class="q">— the pipeline: staging, roll-forward, migration</p></div>
           <div class="carry">
             <div class="carry-item">TFRS-9 staging — % of gross loans (quarterly)</div>
             <div class="carry-item">NPL roll-forward — formation vs exits (annual)</div>
             <div class="carry-item">Stage-2 migration provision scenarios</div>
-            <div class="carry-note">All three carried over — they now sit beneath the ladder that states what they mean, instead of leading with a chart the reader must interpret unaided.</div>
+            <div class="carry-note">All three carried over. They now sit beneath the waterline that states what they mean, instead of leading with charts the reader must interpret unaided.</div>
+          </div>
+        </section>
+
+        <section class="qsec">
+          <div class="qsec-head"><span class="qsec-ix mono">02</span><h3>Is the stock or the ratio moving?</h3><p class="q">— the level, the ratio, and the cover</p></div>
+          <div class="carry">
+            <div class="carry-item">Gross NPL — Level (sector, weekly)</div>
+            <div class="carry-item">Provisions / Gross NPL (%) — by group</div>
+            <div class="carry-note">The stock chart leads: it is the fast-moving series. The ratio is a slow summary of it.</div>
           </div>
         </section>
 
@@ -466,7 +453,7 @@
             <div class="carry-item">Consumer NPL — Composition (sector, TL bn)</div>
             <div class="carry-item">Consumer NPL Ratio by Product (%)</div>
             <div class="carry-item">Commercial NPL Ratio (%) — SME / all / non-SME</div>
-            <div class="carry-note">SME gains the caption it never had: it is a <b>subset</b> of commercial (61% of commercial bad loans on 36% of its loans) — the lines are not additive.</div>
+            <div class="carry-note">SME gains the caption it never had: it is a <b>subset</b> of commercial (61% of commercial bad loans on 36% of its lending) — the lines are not additive.</div>
           </div>
         </section>
 
@@ -481,7 +468,7 @@
       </div>
 
       <footer class="colophon mono">
-        <span>Source BDDK weekly + monthly bulletin · BRSA audited §7 (TFRS-9) · TÜİK CPI</span>
+        <span>Source BDDK weekly + monthly bulletin · BRSA audited §7 (TFRS-9, unconsolidated, n=37) · TÜİK CPI</span>
         <span>Compiled, not written</span>
         <span>W/E 03 Jul 2026</span>
       </footer>
@@ -489,10 +476,11 @@
   </div>
 </div>
 <script>
-  const root=document.documentElement,b=document.getElementById('theme');
-  b.addEventListener('click',()=>{const dk=root.dataset.theme==='dark';root.dataset.theme=dk?'':'dark';b.innerHTML=dk?'&#9788;':'&#9790;';});
-  document.querySelectorAll('.range button').forEach(x=>x.addEventListener('click',()=>{
-    document.querySelectorAll('.range button').forEach(y=>y.classList.toggle('active',y===x));}));
+  document.querySelectorAll('.range button').forEach(function (x) {
+    x.addEventListener('click', function () {
+      document.querySelectorAll('.range button').forEach(function (y) { y.classList.toggle('active', y === x); });
+    });
+  });
 </script>
 </body>
 </html>
