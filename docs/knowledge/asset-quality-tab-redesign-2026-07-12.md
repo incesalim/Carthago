@@ -1,6 +1,41 @@
 # /asset-quality redesign — rationale + mockup
 
-**Date:** 2026-07-12 · **Status:** PROPOSED (mockup only — not built)
+**Date:** 2026-07-12 · **Status:** PROPOSED — **thesis CORRECTED, see below before building**
+
+> ## ⚠ Correction (2026-07-12, same day): the original headline was wrong
+>
+> The first version of this doc and the mockup led with *"the ratio is the
+> denominator's story — the growing loan book hides 1.06pp of NPL ratio."*
+> **That claim is overstated by ~10× and must not be built.**
+>
+> An NPL ratio is `N / L`. Deflate both legs by CPI and it is **unchanged** — a ratio
+> is deflator-invariant. Inflation therefore does *not* mechanically flatter it. What
+> dilutes it is the denominator growing in **real** terms, and that was only **+3.3%**.
+>
+> | Counterfactual | Ratio would be | "Hidden" |
+> | --- | --- | --- |
+> | Loan book frozen in **nominal** terms *(what the mockup used)* | 3.97% | 1.07pp |
+> | Loan book merely keeps pace with CPI (**0% real growth**) | 3.01% | **0.11pp** |
+>
+> A nominally-frozen book in a 32% inflation economy is not a baseline, it is a
+> fiction. The honest dilution is **~0.1pp**. Worse, the additive split is
+> order-dependent (Laspeyres −1.07pp / Paasche −0.59pp / Shapley −0.83pp) and the
+> mockup happened to use the convention most flattering to its own argument.
+>
+> There *is* a real inflation bias in Turkish NPL ratios — the numerator is **stale**
+> (a loan that defaulted two years ago sits at its origination principal) while the
+> denominator **refreshes** at today's prices. Sizing it needs origination-vintage
+> data we do not have. **Do not put a number on it.**
+>
+> **The corrected thesis is the iceberg** (§2 below), which is stronger anyway and
+> needs no counterfactual: what the ratio prints is Stage 3 at 3.1%; loans actually
+> classified as deteriorated are 12.3% — **4.0×** — and the watchlist carries 9.8%
+> cover against Stage 3's 62.3%. The pipeline behind it is still filling.
+>
+> The mockup HTML still renders the old signature panel (the two-ratio chart and the
+> +1.76 / −1.06 strip). **Both are superseded**; the implementation should lead with
+> the ladder + the roll-forward, and demote loan-growth dilution to a one-line
+> footnote at its honest size (~0.1pp).
 **Artefact:** [`docs/design/mockups/2026-07-12-asset-quality-tab.html`](../design/mockups/2026-07-12-asset-quality-tab.html) (+ desktop/mobile PNGs)
 **System:** The Desk ([web/DESIGN.md](../../web/DESIGN.md)) — a re-*think*, not a re-skin.
 
@@ -100,6 +135,15 @@ will otherwise assume the wrong mechanism.
 - **Do not colour the denominator effect green.** It lowers the ratio, but that is
   dilution, not improvement; green would smuggle in the exact misreading the page
   exists to prevent. Neutral ink.
+- **Never mix the two NPL-ratio bases in one argument.** The published ratio
+  (`financial_ratios` t15, monthly, 2.69% @ May) and the weekly-implied ratio
+  (`takipteki 2.0.1 ÷ krediler 1.0.1`, 2.90% @ 3 Jul) differ by a **stable ~0.10pp**
+  (0.06–0.11 across the last 8 month-ends) — it is definitional, not noise. The first
+  mockup printed 2.69% in the lede and 2.90% in its chart. Pick ONE basis per
+  arithmetic; show the other as context, labelled.
+- **"4× the headline" must be 12.3% ÷ 3.1%, both audited** — S2+S3 over S3 from the
+  same TFRS-9 source. Dividing by the *published* 2.69% mixes sources and inflates the
+  multiple to 4.6×.
 - **Do not compare CPI-deflated NPL growth against /credit's real constant-FX loan
   figure.** The NPL stock was never FX-adjusted, so that is apples-to-oranges. Compare
   like with like (both CPI-deflated), and cross-reference /credit separately.
