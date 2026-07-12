@@ -84,6 +84,7 @@ export function SecHead({
   meta,
   href,
   hrefLabel,
+  action,
   className,
 }: {
   title: React.ReactNode;
@@ -91,16 +92,19 @@ export function SecHead({
   meta?: React.ReactNode;
   href?: string;
   hrefLabel?: React.ReactNode;
+  /** A control that belongs to this section (bank-type switch, range pills). */
+  action?: React.ReactNode;
   className?: string;
 }) {
   return (
-    <div className={cn("flex items-baseline gap-2.5", className)}>
+    <div className={cn("flex flex-wrap items-baseline gap-x-3 gap-y-1", className)}>
       <h2 className="text-[13.5px] font-bold text-foreground">{title}</h2>
       {href && (
         <Link href={href} className="text-[11px] font-semibold text-primary">
           {hrefLabel ?? "→"}
         </Link>
       )}
+      {action}
       {meta && (
         <span className="ml-auto font-mono text-[8.5px] uppercase tracking-[0.07em] text-faint">
           {meta}
@@ -124,17 +128,22 @@ const VITALS_COLS: Record<number, string> = {
 export function Vitals({
   children,
   cols = 6,
+  /** Top rule: the ink two-pixel rule opens the brief's band; the evidence
+   *  layer's band repeats the same grid one step quieter. */
+  rule = "ink",
   className,
 }: {
   children: React.ReactNode;
   /** Cell count at xl (default 6) — pass the number of <Vital> children. */
   cols?: 3 | 4 | 5 | 6;
+  rule?: "ink" | "hair";
   className?: string;
 }) {
   return (
     <div
       className={cn(
-        "grid grid-cols-2 border-b border-border border-t-2 border-t-foreground",
+        "grid grid-cols-2 border-b border-border",
+        rule === "ink" ? "border-t-2 border-t-foreground" : "border-t border-t-hair",
         VITALS_COLS[cols] ?? VITALS_COLS[6],
         className,
       )}
@@ -149,6 +158,7 @@ export function Vital({
   value,
   unit,
   note,
+  peer,
   series,
   format = "pct",
   decimals = 2,
@@ -158,6 +168,8 @@ export function Vital({
   unit?: string;
   /** One computed line under the sparkline; may embed a route link. */
   note?: React.ReactNode;
+  /** Optional peer bar (see <PeerBar/>) — where this cell sits vs the sector. */
+  peer?: React.ReactNode;
   series?: { period: string; value: number | null }[];
   format?: "pct" | "trn" | "raw";
   decimals?: number;
@@ -178,7 +190,74 @@ export function Vital({
           />
         </div>
       )}
+      {peer}
       {note && <div className="mt-1.5 text-[9.5px] leading-snug text-faint">{note}</div>}
+    </div>
+  );
+}
+
+/**
+ * Where a group's value sits in the league of bank-type groups, with the sector
+ * marked. Navy fill = this group, grey tick = the sector — no new colour, and
+ * the scale is the observed spread across groups, not an invented axis.
+ */
+export function PeerBar({
+  value,
+  sector,
+  lo,
+  hi,
+  decimals = 1,
+}: {
+  value: number;
+  sector: number;
+  lo: number;
+  hi: number;
+  decimals?: number;
+}) {
+  const span = hi - lo || 1;
+  const pos = (v: number) => Math.max(0, Math.min(100, ((v - lo) / span) * 100));
+  return (
+    <div className="mt-1.5 flex items-center gap-1.5 font-mono text-[9px] text-faint">
+      <span className="relative h-[3px] flex-1 bg-muted">
+        <span
+          className="absolute inset-y-0 left-0 bg-data"
+          style={{ width: `${pos(value).toFixed(1)}%` }}
+        />
+        <span
+          className="absolute -top-[2px] -bottom-[2px] w-[1.5px] bg-context"
+          style={{ left: `${pos(sector).toFixed(1)}%` }}
+        />
+      </span>
+      <span className="whitespace-nowrap">sector {sector.toFixed(decimals)}</span>
+    </div>
+  );
+}
+
+/**
+ * Level figures above a band — the sizes the ratios are ratios *of* (assets and
+ * the three growth rates). One hairline row, no cells.
+ */
+export function Levels({
+  items,
+}: {
+  items: { k: string; v: string; unit?: string }[];
+}) {
+  return (
+    <div className="grid grid-cols-2 border-b border-hair sm:grid-cols-4">
+      {items.map((it) => (
+        <div
+          key={it.k}
+          className="border-r border-hair px-4 py-2.5 last:border-r-0 max-sm:odd:pl-0 sm:first:pl-0"
+        >
+          <div className="font-mono text-[8.5px] uppercase tracking-[0.07em] text-faint">
+            {it.k}
+          </div>
+          <div className="mt-0.5 font-mono text-[15px] font-semibold text-foreground">
+            {it.v}
+            {it.unit && <small className="ml-0.5 text-[9.5px] font-normal text-faint">{it.unit}</small>}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -509,6 +588,70 @@ export function ChartRow({
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+/**
+ * A chart's read, on one mono line under the mark: the hero series' latest and
+ * its change over `deltaPeriods`, plus the leading and trailing group. Computed
+ * from the SAME rows the chart renders, so a reader gets the finding without
+ * hovering — and a screenshot still carries it.
+ */
+export function ChartFoot({
+  data,
+  labels = {},
+  heroCode = "10001",
+  decimals = 1,
+  deltaPeriods = 12,
+  deltaLabel = "12m",
+}: {
+  data: SeriesRow[];
+  labels?: Record<string, string>;
+  heroCode?: string;
+  decimals?: number;
+  deltaPeriods?: number;
+  deltaLabel?: string;
+}) {
+  const byKey = new Map<string, { period: string; value: number }[]>();
+  for (const r of data) {
+    if (r.value == null) continue;
+    const arr = byKey.get(r.bank_type_code) ?? [];
+    arr.push({ period: r.period, value: r.value });
+    byKey.set(r.bank_type_code, arr);
+  }
+  for (const arr of byKey.values()) arr.sort((a, b) => (a.period < b.period ? -1 : 1));
+  if (!byKey.size) return null;
+
+  const f = (v: number) => v.toFixed(decimals);
+  const hero = byKey.get(heroCode);
+  const heroNow = hero?.at(-1)?.value ?? null;
+  const heroAgo = hero?.at(-1 - deltaPeriods)?.value ?? null;
+  const delta = heroNow != null && heroAgo != null ? heroNow - heroAgo : null;
+
+  const peers = [...byKey.entries()]
+    .filter(([code, arr]) => code !== heroCode && arr.length > 0)
+    .map(([code, arr]) => ({ code, value: arr.at(-1)!.value }))
+    .sort((a, b) => b.value - a.value);
+  const top = peers[0];
+  const bottom = peers.at(-1);
+
+  const items: { k: string; v: string }[] = [];
+  if (heroNow != null) items.push({ k: labels[heroCode] ?? "Sector", v: f(heroNow) });
+  if (delta != null)
+    items.push({ k: `Δ ${deltaLabel}`, v: `${delta >= 0 ? "+" : "−"}${f(Math.abs(delta))}` });
+  if (top) items.push({ k: "High", v: `${labels[top.code] ?? top.code} ${f(top.value)}` });
+  if (bottom && bottom !== top)
+    items.push({ k: "Low", v: `${labels[bottom.code] ?? bottom.code} ${f(bottom.value)}` });
+
+  return (
+    <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-[9px] text-faint">
+      {items.map((it) => (
+        <span key={it.k} className="flex items-baseline gap-1.5">
+          <span className="uppercase tracking-[0.07em]">{it.k}</span>
+          <b className="font-semibold text-foreground">{it.v}</b>
+        </span>
+      ))}
     </div>
   );
 }

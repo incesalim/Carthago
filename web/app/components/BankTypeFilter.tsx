@@ -33,16 +33,20 @@ export default function BankTypeFilter({ active }: { active: string }) {
     });
   }
 
+  // The Desk's control register: mono-caps text with an ink underline on the
+  // active tab — no pill, no fill, no blue (blue is a verb; this navigates
+  // nothing, it switches what the band below is showing).
   return (
-    <div className="inline-flex flex-wrap gap-1 rounded-[9px] border border-border bg-card p-[3px]">
+    <div className="inline-flex flex-wrap gap-px">
       {OPTIONS.map((o) => (
         <button
           key={o.code}
           onClick={() => select(o.code)}
-          className={`px-3 py-1.5 text-sm rounded-lg transition ${
+          aria-pressed={active === o.code}
+          className={`border-b-2 px-2 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.07em] transition-colors ${
             active === o.code
-              ? "bg-primary/10 font-semibold text-primary"
-              : "text-muted-foreground hover:text-foreground"
+              ? "border-foreground font-semibold text-foreground"
+              : "border-transparent text-faint hover:text-foreground"
           }`}
         >
           {o.label}

@@ -10,6 +10,12 @@ export interface ChartCardProps {
   action?: React.ReactNode;
   /** Editorial source line (e.g. "BDDK monthly bulletin") in a mono footer. */
   source?: React.ReactNode;
+  /**
+   * Drop the card surface: on a Desk page the chart sits directly on the sheet
+   * (DESIGN.md ground rule 1 — no boxes inside the sheet), with a finding title,
+   * a mono-caps sub-line and the footer as its only chrome.
+   */
+  plain?: boolean;
   className?: string;
   bodyClassName?: string;
   children: React.ReactNode;
@@ -21,10 +27,40 @@ export function ChartCard({
   description,
   action,
   source,
+  plain = false,
   className,
   bodyClassName,
   children,
 }: ChartCardProps) {
+  if (plain) {
+    return (
+      <div data-chart-card="" className={cn("group min-w-0", className)}>
+        <div className="mb-2 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            {title && (
+              <div
+                data-chart-title=""
+                className="text-[12.5px] font-semibold leading-snug text-foreground"
+              >
+                {title}
+              </div>
+            )}
+            {description && (
+              <div className="mt-0.5 font-mono text-[8.5px] uppercase tracking-[0.07em] text-faint">
+                {description}
+              </div>
+            )}
+          </div>
+          <div className="flex shrink-0 items-start gap-2">
+            {action}
+            <ChartExport />
+          </div>
+        </div>
+        <div className={bodyClassName}>{children}</div>
+        {source && <div className="mt-2 border-t border-hair pt-1.5">{source}</div>}
+      </div>
+    );
+  }
   return (
     <Card
       data-chart-card=""

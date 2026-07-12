@@ -93,6 +93,23 @@ data wiring (range selector, bank-type filters, findings-titles), and only lose
 chrome. Vitals notes and flags must be **computed from series the page already
 fetches** — no hand-written claims, no forecasts.
 
+**The evidence layer speaks the brief's language** (shipped 2026-07-12 on
+Overview; the pattern the other tabs follow). Below the `<Depth>` rule a page
+must not invent a second grid or re-introduce surfaces:
+
+- **No `Stat`/`Card` boxes.** A row of KPI cards becomes the page's own
+  `<Vitals rule="hair">` band — the *same cells* as the brief, re-rendered for
+  whatever the filter selects, with `<Levels>` carrying the level figures above
+  it and `<PeerBar>` marking where the sector sits in the league of groups.
+- **`<Takeaway variant="desk">`** — kicker, headline, hairline-ruled drivers.
+  The boxed variant survives only on tabs not yet converted.
+- **Charts sit on the sheet** (`<TrendChart plain …>`): finding title, mono-caps
+  sub-line, and `<ChartFoot>` under the mark (hero latest, Δ 12m, leading and
+  trailing group — computed from the rows the chart draws, so the finding
+  survives a screenshot). Two per row, so each spans three cells of the band.
+- **Controls are mono-caps with an ink underline** (`BankTypeFilter`), never
+  pills and never blue — blue is a verb, and switching a band navigates nowhere.
+
 ## Shell (do not re-implement per page)
 
 `app/layout.tsx` renders the workspace: quiet rail (`Nav.tsx` — plain text,

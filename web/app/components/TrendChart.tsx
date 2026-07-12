@@ -59,6 +59,8 @@ interface Props {
   description?: React.ReactNode;
   /** Mono source footer, e.g. "Source: BDDK monthly bulletin". */
   source?: React.ReactNode;
+  /** Render on the sheet without card chrome (Desk evidence layer). */
+  plain?: boolean;
   yFormat?: FormatKind;
   decimals?: number;
   /** Show a horizontal line at y=0 (useful for growth rates). */
@@ -118,6 +120,7 @@ export default function TrendChart({
   title,
   description,
   source,
+  plain = false,
   yFormat = "raw",
   decimals = 2,
   zeroLine = false,
@@ -202,7 +205,7 @@ export default function TrendChart({
   );
 
   return (
-    <ChartCard title={title} description={description} source={source}>
+    <ChartCard title={title} description={description} source={source} plain={plain}>
       <ChartData
         table={wideToTable(
           wide,
