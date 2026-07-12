@@ -32,13 +32,44 @@ function RealCell({ real }: { real: number | null }) {
   );
 }
 
-function Column({ title, rows }: { title: string; rows: CompRow[] }) {
+/** The trailing figure — whatever the lens asks for, so the control is never inert. */
+function LensCell({ r, lens }: { r: CompRow; lens: Lens }) {
+  if (lens === "abs") {
+    return (
+      <span className="font-mono text-[11.5px] tabular-nums text-muted-foreground">
+        {r.value >= 1e6
+          ? `₺${(r.value / 1e6).toFixed(r.value / 1e6 >= 100 ? 0 : 1)}bn`
+          : `₺${(r.value / 1e3).toFixed(0)}mn`}
+      </span>
+    );
+  }
+  if (lens === "yoy") return <RealCell real={r.nominal} />;
+  if (lens === "size") {
+    return (
+      <span className="font-mono text-[11.5px] tabular-nums text-faint">
+        {r.share.toFixed(1)}%
+      </span>
+    );
+  }
+  return <RealCell real={r.real} />;
+}
+
+const LENS_HEAD: Record<Lens, string> = {
+  abs: "share · ₺ as filed",
+  yoy: "share · nominal y/y",
+  real: "share · real y/y",
+  size: "share · % of assets",
+};
+
+export type Lens = "abs" | "yoy" | "real" | "size";
+
+function Column({ title, rows, lens }: { title: string; rows: CompRow[]; lens: Lens }) {
   return (
     <div>
       <div className="mb-1 flex items-baseline justify-between">
         <h3 className="font-mono text-[9px] uppercase tracking-[0.07em] text-faint">{title}</h3>
         <span className="font-mono text-[9px] uppercase tracking-[0.07em] text-faint">
-          share · real y/y
+          {LENS_HEAD[lens]}
         </span>
       </div>
       <div className="border-t-2 border-foreground">
@@ -69,8 +100,8 @@ function Column({ title, rows }: { title: string; rows: CompRow[] }) {
             <span className="w-12 text-right font-mono text-[12px] font-semibold tabular-nums text-foreground">
               {r.share.toFixed(1)}%
             </span>
-            <span className="w-14 text-right">
-              <RealCell real={r.real} />
+            <span className="w-16 text-right">
+              <LensCell r={r} lens={lens} />
             </span>
           </div>
         ))}
@@ -85,9 +116,13 @@ export default function BsShape({
   lead,
   meta,
   footnote,
+  lens = "real",
 }: {
   assets: CompRow[];
   funding: CompRow[];
+  /** The active lens — the composition's trailing column follows it, so the
+   *  control means the same thing above the table as it does below it. */
+  lens?: Lens;
   /** The one computed sentence. Null when the deflator or the prior year is absent. */
   lead: string | null;
   /** Mono-caps method line on the section head. */
@@ -103,8 +138,8 @@ export default function BsShape({
         <p className="mb-3.5 max-w-[92ch] text-[12.5px] leading-relaxed text-foreground">{lead}</p>
       )}
       <div className="grid gap-x-10 gap-y-6 lg:grid-cols-2">
-        <Column title="Assets — what it owns" rows={assets} />
-        <Column title="Funding — what pays for it" rows={funding} />
+        <Column title="Assets — what it owns" rows={assets} lens={lens} />
+        <Column title="Funding — what pays for it" rows={funding} lens={lens} />
       </div>
       <p className="mt-2 font-mono text-[9px] uppercase leading-relaxed tracking-[0.04em] text-faint">
         {footnote}
