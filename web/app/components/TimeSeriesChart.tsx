@@ -32,7 +32,7 @@ import {
   renderAnnotations,
   type ChartAnnotation,
 } from "@/app/components/chart-end-labels";
-import { useChartTheme, seriesColor } from "@/app/lib/chart-theme";
+import { useChartTheme, seriesColor, crosshairCursor } from "@/app/lib/chart-theme";
 import { wideToTable } from "@/app/lib/chart-csv";
 import { formatters, fmtQuarter, type FormatKind } from "@/app/lib/chart-format";
 import { useRangeFilter } from "@/app/lib/use-date-range";
@@ -208,6 +208,7 @@ export default function TimeSeriesChart({
             {/* Nearest-series tooltip: one line's point, not every series at the
                 hovered date (see nearest-hover.tsx on why `shared` can't do this). */}
             <Tooltip
+              cursor={crosshairCursor(t)}
               content={(p) => (
                 <NearestSeriesTooltip
                   active={p.active}

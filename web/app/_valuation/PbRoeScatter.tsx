@@ -19,7 +19,7 @@ import {
   YAxis,
 } from "recharts";
 import { ChartCard } from "@/app/components/ui";
-import { useChartTheme, tooltipStyles } from "@/app/lib/chart-theme";
+import { useChartTheme, tooltipStyles, crosshairCursor } from "@/app/lib/chart-theme";
 import { nf } from "@/app/lib/chart-format";
 import type { PbRoeRegression } from "@/app/lib/valuation";
 
@@ -98,7 +98,7 @@ export function PbRoeScatter({ points, regression, selected, onSelect }: Props) 
             />
             <Tooltip
               {...tt}
-              cursor={{ stroke: t.grid }}
+              cursor={crosshairCursor(t)}
               content={({ active, payload }) => {
                 if (!active || !payload?.length) return null;
                 const p = payload[0].payload as (typeof data)[number];

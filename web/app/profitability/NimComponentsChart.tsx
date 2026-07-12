@@ -19,7 +19,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { useChartTheme, tooltipStyles } from "@/app/lib/chart-theme";
+import { useChartTheme, tooltipStyles, crosshairCursor } from "@/app/lib/chart-theme";
 import { nf } from "@/app/lib/chart-format";
 import { NIM_SERIES, type NimBarPoint, type NimKey } from "@/app/lib/nim-components";
 
@@ -266,7 +266,7 @@ export default function NimComponentsChart({
             tickLine={{ stroke: t.grid }}
           />
           <ReferenceLine y={0} stroke={t.reference} />
-          <Tooltip cursor={{ fill: t.cursor }} content={renderTooltip} />
+          <Tooltip cursor={crosshairCursor(t)} content={renderTooltip} />
           <Legend
             wrapperStyle={{ fontSize: 11, paddingTop: 4 }}
             content={() => (

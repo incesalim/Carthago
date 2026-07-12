@@ -24,7 +24,7 @@ import {
   YAxis,
 } from "recharts";
 import { ChartData } from "@/app/components/ui/chart-csv";
-import { useChartTheme, tooltipStyles } from "@/app/lib/chart-theme";
+import { useChartTheme, tooltipStyles, crosshairCursor } from "@/app/lib/chart-theme";
 import { wideToTable } from "@/app/lib/chart-csv";
 import { nf } from "@/app/lib/chart-format";
 
@@ -183,7 +183,7 @@ export default function BopFlowChart({
               />
             )}
             <ReferenceLine y={0} yAxisId="left" stroke={t.reference} />
-            <Tooltip cursor={{ fill: t.cursor }} content={renderTooltip} />
+            <Tooltip cursor={crosshairCursor(t)} content={renderTooltip} />
             <Legend
               wrapperStyle={{ fontSize: 11, paddingTop: 4 }}
               content={() => (

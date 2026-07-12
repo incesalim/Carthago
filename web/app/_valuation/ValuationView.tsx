@@ -20,7 +20,7 @@ import {
   YAxis,
 } from "recharts";
 import { Badge, Button, ChartCard, Section, Stat } from "@/app/components/ui";
-import { useChartTheme, tooltipStyles } from "@/app/lib/chart-theme";
+import { useChartTheme, tooltipStyles, crosshairCursor } from "@/app/lib/chart-theme";
 import { nf } from "@/app/lib/chart-format";
 import {
   costOfEquity,
@@ -279,7 +279,11 @@ export default function ValuationView({ seeds }: { seeds: ValuationSeed[] }) {
                     axisLine={{ stroke: t.grid }}
                     tickLine={{ stroke: t.grid }}
                   />
-                  <Tooltip {...tt} formatter={(v) => [`${nf(Number(v), 1)}%`, "ROE"]} />
+                  <Tooltip
+                    {...tt}
+                    cursor={crosshairCursor(t)}
+                    formatter={(v) => [`${nf(Number(v), 1)}%`, "ROE"]}
+                  />
                   <ReferenceLine
                     y={result.coe * 100}
                     stroke={t.reference}
