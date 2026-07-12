@@ -21,7 +21,10 @@ export interface ChartTheme {
   palette: string[];
   grid: string;
   axis: string;
+  /** Band highlight behind the hovered category (bar charts). */
   cursor: string;
+  /** Hover crosshair — the vertical hairline dropped at the hovered date. */
+  crosshair: string;
   reference: string;
   tooltipBg: string;
   tooltipBorder: string;
@@ -45,6 +48,7 @@ const LIGHT: ChartTheme = {
   grid: "#ECEDE8",
   axis: "#A0A7AE",
   cursor: "rgba(43,78,126,0.06)",
+  crosshair: "#C9CDC5",
   reference: "#A0A7AE",
   tooltipBg: "#FFFFFF",
   tooltipBorder: "#E1E3DD",
@@ -61,6 +65,7 @@ const DARK: ChartTheme = {
   grid: "#1F252C",
   axis: "#6B747E",
   cursor: "rgba(127,163,216,0.10)",
+  crosshair: "#39424C",
   reference: "#6B747E",
   tooltipBg: "#171B21",
   tooltipBorder: "#262C34",
@@ -123,6 +128,18 @@ export function seriesColor(
   const idx =
     BANK_TYPE_COLOR_INDEX[key] ?? DIGITAL_SERIES_COLOR_INDEX[key] ?? fallbackIndex;
   return t.palette[idx % t.palette.length];
+}
+
+/**
+ * The hover crosshair: a vertical hairline at the hovered date, on every chart
+ * with a time axis. Recharts draws one by default but hard-codes `stroke:#ccc`,
+ * which is invisible against the dark sheet and too heavy against the light one
+ * — pass this to `<Tooltip cursor>` so the line is a Desk hairline in both.
+ * Bar charts keep the band highlight (`t.cursor`) instead: a line down the
+ * middle of a bar reads as a gridline, a band reads as "this column".
+ */
+export function crosshairCursor(t: ChartTheme) {
+  return { stroke: t.crosshair, strokeWidth: 1 } as const;
 }
 
 /** Shared Recharts tooltip styling for a given theme. */

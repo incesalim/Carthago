@@ -35,7 +35,7 @@ import {
   renderAnnotations,
   type ChartAnnotation,
 } from "@/app/components/chart-end-labels";
-import { useChartTheme, seriesColor } from "@/app/lib/chart-theme";
+import { useChartTheme, seriesColor, crosshairCursor } from "@/app/lib/chart-theme";
 import { wideToTable } from "@/app/lib/chart-csv";
 import { formatters, type FormatKind } from "@/app/lib/chart-format";
 import { useRangeFilter } from "@/app/lib/use-date-range";
@@ -246,6 +246,7 @@ export default function TrendChart({
             {/* Nearest-series tooltip: one group's point, not the whole date
                 column (see nearest-hover.tsx on why `shared` can't do this). */}
             <Tooltip
+              cursor={crosshairCursor(t)}
               content={(p) => (
                 <NearestSeriesTooltip
                   active={p.active}

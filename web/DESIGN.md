@@ -53,6 +53,14 @@ can't read CSS vars). Any token change lands in both files in the same commit.
 Charts: hero navy + grey context (`--context`), direct end-labels via
 `chart-end-labels.tsx`, hairline grid, no legend boxes.
 
+**Every chart with a time axis drops a hover crosshair** — one vertical hairline
+at the hovered date (`crosshairCursor(t)` from `chart-theme.ts`), so the reader
+can carry the tooltip's value back to the axis. Recharts draws one by default but
+hard-codes `#ccc`, which is off-palette on the light sheet and glaring on the
+dark one; pass the helper to `<Tooltip cursor>` instead of taking the default.
+Categorical bar charts (`BarByBank`) keep the band highlight (`t.cursor`): a line
+down the middle of a bar reads as a gridline, a band reads as "this column".
+
 **Comparison surfaces** (`/cross-bank`, `/banks`) add two rules of their own:
 
 - **Rank is not distance.** A rank-coloured cell hides how FAR apart two banks

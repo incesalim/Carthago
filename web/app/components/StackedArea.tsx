@@ -12,7 +12,12 @@ import {
 } from "recharts";
 import { ChartCard } from "@/app/components/ui/chart-card";
 import { ChartData } from "@/app/components/ui/chart-csv";
-import { useChartTheme, tooltipStyles, seriesColor } from "@/app/lib/chart-theme";
+import {
+  useChartTheme,
+  tooltipStyles,
+  seriesColor,
+  crosshairCursor,
+} from "@/app/lib/chart-theme";
 import { wideToTable } from "@/app/lib/chart-csv";
 import { nf, formatters, type FormatKind } from "@/app/lib/chart-format";
 import { useRangeFilter } from "@/app/lib/use-date-range";
@@ -177,7 +182,7 @@ export default function StackedArea({
               axisLine={{ stroke: t.grid }}
               tickLine={{ stroke: t.grid }}
             />
-            <Tooltip content={renderTooltip} />
+            <Tooltip cursor={crosshairCursor(t)} content={renderTooltip} />
             <Legend
               wrapperStyle={{ fontSize: 11 }}
               content={() => (

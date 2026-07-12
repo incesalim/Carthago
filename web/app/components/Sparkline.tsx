@@ -14,7 +14,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { useChartTheme, tooltipStyles } from "@/app/lib/chart-theme";
+import { useChartTheme, tooltipStyles, crosshairCursor } from "@/app/lib/chart-theme";
 import { formatters } from "@/app/lib/chart-format";
 
 interface Point {
@@ -78,6 +78,7 @@ export default function Sparkline({
             strokeDasharray="2 3"
           />
           <Tooltip
+            cursor={crosshairCursor(t)}
             contentStyle={tt.contentStyle}
             labelStyle={tt.labelStyle}
             itemStyle={tt.itemStyle}
