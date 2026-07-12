@@ -109,13 +109,17 @@ export interface PlSankeyResult {
  *  line (VAKBN's net trading loss vanished → VIII/XIII overstated → the >5%
  *  gate suppressed the chart every period). Canonicalize any all-roman code to
  *  the dotted form; numeric sub-codes ("1.1", "4.2") are left untouched. */
-const canonHier = (h: string) => (/^[IVXLCDM]+$/.test(h) ? `${h}.` : h);
+export const canonHier = (h: string) => (/^[IVXLCDM]+$/.test(h) ? `${h}.` : h);
 
-interface LineIndex {
+export interface LineIndex {
   get(h: string): number | null;
 }
 
-function indexRows(rows: PlRow[]): LineIndex {
+/** Filed P&L rows → hierarchy lookup, canonicalized and de-duplicated.
+ *  Exported so `pl-shape.ts` (the waterfall + the interest fan) reads the
+ *  statement through the SAME index — one place where the roman-code quirks and
+ *  the larger-magnitude-wins rule live. */
+export function indexRows(rows: PlRow[]): LineIndex {
   const byCode = new Map<string, { amount: number | null; name: string }>();
   for (const r of rows) {
     // Larger magnitude wins among duplicated codes. Some extractions capture a

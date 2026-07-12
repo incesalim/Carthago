@@ -9,7 +9,15 @@
  *
  * Controls (URL params, server-rendered):
  *   ?statement=bs|is|cf — which statement
- *   ?mode=abs|yoy       — absolute TL, or YoY % vs the same quarter a year earlier
+ *   ?mode=abs           — the filed figure, TL thousands
+ *   ?mode=yoy           — nominal YoY % vs the same quarter a year earlier
+ *   ?mode=real          — the same YoY DEFLATED by CPI (nominal | CPI | real |
+ *                         verdict). Under 30-40% inflation the nominal column
+ *                         says almost nothing: `realGrowth` DIVIDES, it does not
+ *                         subtract — 40% against 32% CPI is +6.1% real, not +8.
+ *   ?mode=size          — common-size: every line as a % of total assets (BS) or
+ *                         of interest income (IS), plus — on the balance sheet —
+ *                         the SECTOR MEDIAN share and this bank's gap to it.
  *   ?view=annual        — most recent Q4s (comparable year-end data)
  *   ?view=quarterly     — most recent quarters (sequential); adds a leading TTM
  *                         column for the income statement + cash flow
@@ -18,13 +26,19 @@
  * All three statements map to BRSA hierarchy codes (see
  * web/app/lib/standard_lines.ts) with canonical English labels — the raw
  * `item_name` is never displayed, so banks are comparable line-for-line.
+ *
+ * Above the table sits the SHAPE layer — the balance sheet as two composition
+ * columns (what it owns / what funds it, each line with its share and its REAL
+ * growth), the income statement as a waterfall (how the profit is built) or an
+ * interest-flow fan (where the money comes from and goes). Derived in
+ * `lib/bank-financials.ts` + `lib/pl-shape.ts`; both reconcile to the filing.
  */
 import type { Metadata } from "next";
 import type { ReactElement } from "react";
 import Link from "next/link";
 import { Card, PageHeader, Section, Stat } from "@/app/components/ui";
 import { Colophon, SecHead, Vital, Vitals, type MoverRow } from "@/app/components/desk";
-import { cpiFromIndex, lastVal, signedPp, valAgo } from "@/app/lib/desk";
+import { cpiFromIndex, lastVal, monthLabel, signedPp, valAgo } from "@/app/lib/desk";
 import {
   PEER_FIELDS,
   bankFlags,
@@ -32,6 +46,14 @@ import {
   peerStat,
   risingStreak,
 } from "@/app/lib/bank-brief";
+import {
+  balanceSheetLead,
+  compositionRows,
+  cpiForPeriod,
+  realRead,
+  type CompLine,
+  type StatementMode,
+} from "@/app/lib/bank-financials";
 import {
   Engine,
   Franchise,
@@ -50,7 +72,11 @@ import {
   cashFlowMultiPeriod,
   bankProfile,
   bankStagesLatest,
+  sectorLineShares,
   validationByPeriod,
+  SECTOR_TOTAL_ASSETS_KEY,
+  SECTOR_TOTAL_LE_KEY,
+  SECTOR_TOTAL_LIABILITIES_KEY,
 } from "@/app/lib/audit";
 import { ordOf, ttmEndingAt, yoyPct } from "@/app/lib/period-math";
 import { newsByTicker, pressNewsByBank } from "@/app/lib/news";
@@ -70,7 +96,8 @@ import MarketRiskSection from "./MarketRiskSection";
 import OwnershipSummary from "./OwnershipSummary";
 import EarningsDisclosures from "./EarningsDisclosures";
 import BankNewsSection from "./BankNewsSection";
-import PlSankeySection from "./PlSankeySection";
+import BsShape from "./BsShape";
+import IncomeShape from "./IncomeShape";
 import CopyTableButton from "@/app/components/CopyTableButton";
 import BankLogo from "@/app/components/BankLogo";
 import {
@@ -119,6 +146,25 @@ const fmtTl = (v: number | null | undefined) => (v == null ? "--" : NF.format(v)
 const PF = new Intl.NumberFormat("en-US", { maximumFractionDigits: 1, signDisplay: "exceptZero" });
 const fmtPct = (v: number | null | undefined) => (v == null ? "--" : `${PF.format(v)}%`);
 
+/** Common-size cell: an UNSIGNED share (the "+" of a signed formatter would read
+ *  as growth). Contra lines still print negative — the sign is the deduction. */
+const SF = new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 });
+const fmtShare = (v: number | null | undefined) => (v == null ? "--" : `${SF.format(v)}%`);
+
+/** The lens toggle — four readings of the same filed rows, one URL param. */
+const LENS_LABEL: Record<StatementMode, string> = {
+  abs: "Absolute",
+  yoy: "YoY Growth",
+  real: "Real YoY",
+  size: "Common-size",
+};
+const LENS_HINT: Record<StatementMode, string> = {
+  abs: "The figure as filed, TL thousands",
+  yoy: "Nominal % vs the same quarter a year earlier",
+  real: "That growth deflated by CPI — (1+nominal)/(1+CPI)−1, not a subtraction",
+  size: "Every line as a % of total assets (balance sheet) or interest income (income statement), against the sector median",
+};
+
 /** "2025Q4" → "12/31/2025" (Yahoo-style period-end date). */
 function periodToDate(period: string): string {
   const m = /^(\d{4})Q([1-4])$/.exec(period);
@@ -142,24 +188,41 @@ function pickPeriods(allPeriods: string[], view: "annual" | "quarterly", count =
   return allPeriods.slice(0, count);
 }
 
+/** One rendered table cell. The lens decides both the text AND its tone —
+ *  a real-growth verdict is green/red, a common-size gap past ±5pp is amber. */
+interface Cell {
+  text: string;
+  tone?: "pos" | "neg" | "warn" | "muted";
+}
+
+const TONE_CLASS: Record<NonNullable<Cell["tone"]>, string> = {
+  pos: "text-positive",
+  neg: "text-negative",
+  warn: "text-warning",
+  muted: "text-faint",
+};
+
 interface RowProps {
   label: string;
-  values: (number | null | undefined)[];
+  cells: Cell[];
   bold?: boolean;
   /** Optional extra top border (used for subtotal rows). */
   divider?: boolean;
   /** Indent depth 0/1/2 — drives left padding + text muting. */
   depth?: number;
-  /** Cell formatter — `fmtTl` (default) for absolute TL, `fmtPct` for YoY %. */
-  format?: (v: number | null | undefined) => string;
 }
 
 /** Tailwind padding by indent depth (0 = top-level, 1 = sub, 2 = sub-sub). */
 const INDENT_PL = ["pl-3", "pl-7", "pl-12"];
 
-function Row({ label, values, bold, divider, depth = 0, format = fmtTl }: RowProps) {
+function Row({ label, cells, bold, divider, depth = 0 }: RowProps) {
   const pl = INDENT_PL[Math.min(depth, INDENT_PL.length - 1)];
   const muted = depth >= 2;
+  const ink = bold
+    ? "font-semibold text-foreground"
+    : muted
+      ? "text-muted-foreground"
+      : "text-foreground";
   return (
     <tr
       className={
@@ -171,21 +234,15 @@ function Row({ label, values, bold, divider, depth = 0, format = fmtTl }: RowPro
           : "border-b border-border"
       }
     >
-      <td
-        className={`py-1.5 pr-3 ${pl} text-xs ${
-          bold ? "font-semibold text-foreground" : muted ? "text-muted-foreground" : "text-foreground"
-        }`}
-      >
-        {label}
-      </td>
-      {values.map((v, i) => (
+      <td className={`py-1.5 pr-3 ${pl} text-xs ${ink}`}>{label}</td>
+      {cells.map((c, i) => (
         <td
           key={i}
           className={`py-1.5 pl-2 pr-3 text-right text-xs tabular-nums ${
-            bold ? "font-semibold text-foreground" : muted ? "text-muted-foreground" : "text-foreground"
+            c.tone ? `${TONE_CLASS[c.tone]} ${bold ? "font-semibold" : ""}` : ink
           }`}
         >
-          {format(v)}
+          {c.text}
         </td>
       ))}
     </tr>
@@ -255,7 +312,17 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   const kind = (sp.kind as "consolidated" | "unconsolidated") ?? "unconsolidated";
   const view = (sp.view as "annual" | "quarterly") ?? "quarterly";
   const statement = (sp.statement as "bs" | "is" | "cf") ?? "bs";
-  const mode = (sp.mode as "abs" | "yoy") ?? "abs";
+  const rawMode = (sp.mode as StatementMode) ?? "abs";
+  // Common-size needs a denominator with meaning: total assets (balance sheet)
+  // or interest income (income statement). The cash-flow statement has neither —
+  // a % of "net change in cash" is noise, not a lens — so the Size option is not
+  // offered there, and a URL that asks for it lands back on the filed figures.
+  const mode: StatementMode =
+    rawMode === "size" && statement === "cf" ? "abs" : rawMode;
+  // Participation banks (BDDK type 10003) file a different BRSA liabilities
+  // layout — equity at XIV., not XVI. It decides the label catalog, the roman
+  // ranges AND which banks the sector median may be taken over.
+  const isParticipation = BANK_TYPE_BY_TICKER[ticker] === "10003";
   // Helper to build URLs that preserve the other params.
   const url = (overrides: Partial<{ view: string; kind: string; statement: string; mode: string }>) => {
     const params = new URLSearchParams({
@@ -284,7 +351,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
     return o != null && o >= floorOrd && latestOrd != null && o <= latestOrd;
   });
 
-  const [bsPivot, bsNames, plPivot, plRows, cfPivot, kapItems, profile, stages, validation, ownership, valuationBase, priceHistory, liveMap, heatmap, sharePanel, earnings, mrDetail, bankNews, cpiRaw] =
+  const [bsPivot, bsNames, plPivot, plRows, cfPivot, kapItems, profile, stages, validation, ownership, valuationBase, priceHistory, liveMap, heatmap, sharePanel, earnings, mrDetail, bankNews, cpiRaw, sectorShares] =
     await Promise.all([
       balanceSheetMultiPeriod(ticker, kind, queryPeriods),
       balanceSheetLineNames(ticker, kind, periods),
@@ -312,6 +379,12 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
       // The deflator — every "real terms" read on this page (real ROE, and the
       // Financials real-growth lens) comes off this one series.
       evdsSeries("TP.TUKFIY2025.GENEL", 10),
+      // The peer column of the common-size lens. ONE cached D1 select per
+      // (kind, latest period), shared by every bank page on that quarter — and
+      // only issued when the balance sheet is actually being read common-size.
+      statement === "bs" && mode === "size" && periods[0]
+        ? sectorLineShares(kind, periods[0], isParticipation ? "participation" : "deposit")
+        : Promise.resolve(null),
     ]);
 
   // Profitability & margins section inputs — this bank's rows, oldest→newest.
@@ -537,11 +610,6 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   const vitals = vitalCells.filter((c): c is ReactElement => c !== null);
   const vitalCols: 3 | 4 | 5 | 6 =
     vitals.length >= 6 ? 6 : vitals.length === 5 ? 5 : vitals.length === 4 ? 4 : 3;
-
-  // Participation banks file equity at roman XIV., not XVI. — match by the
-  // hierarchy the loader stores for their type (reference: the participation
-  // equity gotcha), not by numeral.
-  const isParticipation = BANK_TYPE_BY_TICKER[ticker] === "10003";
 
   // ── The brief (lib/bank-brief.ts) ─────────────────────────────────────────
   // All of it computed from `heatmap` (the fleet panel this page already
@@ -785,71 +853,199 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   };
   const anyWarning = periods.some((p) => periodWarning(p) !== null);
 
-  // ── Column derivation ─────────────────────────────────────────────────────
-  // Display mode: absolute TL (stored value) or YoY % growth vs the same quarter
-  // a year earlier. A leading TTM column (trailing-twelve-month) is shown for the
-  // income statement + cash flow in quarterly view only (at Q4 annual view, TTM
-  // equals the Q4 YTD column). P&L and cash flow are YTD-cumulative within the
-  // year, so TTM de-cumulates; the balance sheet is point-in-time (no TTM).
-  const showTtm = statement !== "bs" && view === "quarterly";
-  const colCount = periods.length + (showTtm ? 1 : 0);
-  const formatCell = mode === "yoy" ? fmtPct : fmtTl;
-  // Turn a raw period→value series into the cells the table renders.
-  const cells = (series: PeriodSeries, contra = false): (number | null | undefined)[] => {
+  // ── The lens ──────────────────────────────────────────────────────────────
+  // Four readings of the same filed rows, all off the same URL param so every one
+  // of them is server-rendered and shareable:
+  //   abs  — the filed figure (TL thousands)
+  //   yoy  — nominal % vs the same quarter a year earlier
+  //   real — that nominal y/y DEFLATED by CPI, plus a verdict word
+  //   size — common-size: % of total assets (BS) / of interest income (IS), and
+  //          on the balance sheet the SECTOR MEDIAN share and the gap to it
+  //
+  // A leading TTM column (trailing-twelve-month) is shown for the income statement
+  // + cash flow in quarterly view only (at Q4 annual view, TTM equals the Q4 YTD
+  // column). P&L and cash flow are YTD-cumulative within the year, so TTM
+  // de-cumulates; the balance sheet is point-in-time (no TTM).
+  const isReal = mode === "real";
+  const isSize = mode === "size";
+  const showTtm = statement !== "bs" && view === "quarterly" && !isReal;
+  const showPeers = isSize && statement === "bs" && sectorShares != null;
+  const latestPeriod = periods[0] ?? null;
+
+  // The deflator, matched to the quarter the table is read at.
+  const cpiPick = cpiForPeriod(cpi.yoy, latestPeriod);
+
+  // Common-size denominators, one per rendered column: total assets for the
+  // balance sheet, interest income for the income statement. Same roman-total
+  // arithmetic as the synthetic "Total Assets" row, so a share and the row it
+  // divides agree by construction.
+  const denomSeries: PeriodSeries =
+    statement === "bs"
+      ? sumSeries(bsPivot, BS_ASSET_ROMAN_HIERARCHIES, "assets")
+      : (plPivot.get("I.") ?? new Map());
+
+  const byOrdOf = (series: PeriodSeries): Map<number, number> => {
     const byOrd = new Map<number, number>();
     for (const [p, v] of series) {
       const o = ordOf(p);
       if (o != null && v != null) byOrd.set(o, v);
     }
-    // Deduction lines are carried as positive magnitudes (so YoY growth reads
-    // naturally — a rising expense is +%); the accounting sign is applied only
-    // to the absolute-TL display, never to the YoY %.
-    const signed = (v: number | null): number | null =>
-      v == null ? null : contra ? -v : v;
-    const cell = (p: string): number | null => {
-      if (mode === "abs") return signed(series.get(p) ?? null);
+    return byOrd;
+  };
+  // Absolute value per rendered column (TTM first when applicable). Deduction
+  // lines are carried as positive magnitudes upstream — the accounting sign is
+  // applied HERE, on the displayed figure, never to a growth rate.
+  const colsAbs = (series: PeriodSeries, contra: boolean): (number | null)[] => {
+    const byOrd = byOrdOf(series);
+    const signed = (v: number | null): number | null => (v == null ? null : contra ? -v : v);
+    const row = periods.map((p) => signed(series.get(p) ?? null));
+    if (!showTtm || latestOrd == null) return row;
+    return [signed(ttmEndingAt(byOrd, latestOrd)), ...row];
+  };
+  // Nominal y/y per rendered column — computed on the MAGNITUDE, so a rising
+  // expense reads +%.
+  const colsYoy = (series: PeriodSeries): (number | null)[] => {
+    const byOrd = byOrdOf(series);
+    const row = periods.map((p) => {
       const o = ordOf(p);
       return o == null ? null : yoyPct(byOrd.get(o) ?? null, byOrd.get(o - 4) ?? null);
-    };
-    const row = periods.map(cell);
+    });
     if (!showTtm || latestOrd == null) return row;
-    const ttm =
-      mode === "abs"
-        ? signed(ttmEndingAt(byOrd, latestOrd))
-        : yoyPct(ttmEndingAt(byOrd, latestOrd), ttmEndingAt(byOrd, latestOrd - 4));
-    return [ttm, ...row];
+    return [yoyPct(ttmEndingAt(byOrd, latestOrd), ttmEndingAt(byOrd, latestOrd - 4)), ...row];
   };
+  const denomCols = colsAbs(denomSeries, false);
+  const colsSize = (series: PeriodSeries, contra: boolean): (number | null)[] =>
+    colsAbs(series, contra).map((v, i) => {
+      const d = denomCols[i];
+      return v == null || d == null || d === 0 ? null : (v / d) * 100;
+    });
+
+  const numCells = (
+    vals: (number | null)[],
+    fmt: (v: number | null | undefined) => string,
+  ): Cell[] => vals.map((v) => ({ text: fmt(v) }));
+
+  /** The sector-median + gap pair, in the SAME display sign as the bank's own
+   *  share (the peer map carries contra lines as magnitudes, as the pivot does).
+   *  "--" whenever the peer set doesn't hold the line — never a fabricated 0. */
+  const peerCells = (key: string | null, own: number | null, contra: boolean): Cell[] => {
+    if (!showPeers) return [];
+    const raw = key == null ? undefined : sectorShares!.shares.get(key);
+    if (raw == null) return [{ text: "--", tone: "muted" }, { text: "--", tone: "muted" }];
+    const med = contra ? -raw : raw;
+    if (own == null) return [{ text: `${med.toFixed(1)}%` }, { text: "--", tone: "muted" }];
+    const gap = own - med;
+    return [
+      { text: `${med.toFixed(1)}%` },
+      {
+        text: `${gap >= 0 ? "+" : "−"}${Math.abs(gap).toFixed(1)}`,
+        tone: Math.abs(gap) >= 5 ? "warn" : undefined,
+      },
+    ];
+  };
+
+  /** The real lens: one row = nominal y/y | CPI y/y | real y/y | verdict, all at
+   *  the latest displayed period. `realGrowth` DIVIDES — (1+n)/(1+cpi)−1. */
+  const realCells = (series: PeriodSeries): Cell[] => {
+    const r = realRead(series, latestPeriod, cpiPick?.value ?? null);
+    const tone = r.real == null ? undefined : r.real > 3 ? "pos" : r.real < -3 ? "neg" : "warn";
+    return [
+      { text: fmtPct(r.nominal) },
+      { text: r.cpi == null ? "--" : `${PF.format(r.cpi)}%`, tone: "muted" },
+      { text: fmtPct(r.real), tone },
+      { text: r.verdict ?? "--", tone },
+    ];
+  };
+
+  /** Every lens, for one catalog line. Pass `peerKey: null` to withhold the peer
+   *  median — used for the two lines whose BRSA code is genuinely ambiguous
+   *  fleet-wide (asset 2.3 is Factoring for some banks, Securities at Amortized
+   *  Cost for others, and the banks that file it with a blank item_name can't be
+   *  told apart), so a median across them would compare unlike lines. */
   const cellsForLine = (
     line: StandardLine,
     pivot: Map<string, PeriodSeries>,
     stmt: string,
-  ): (number | null | undefined)[] => {
+    peerKey?: string | null,
+  ): Cell[] => {
     const raw = lineSeries(pivot, line, stmt);
     // Fold contra lines to magnitude first — BRSA banks file them with either
-    // sign — so the display sign (applied in `cells`) is uniform fleet-wide.
+    // sign — so the display sign is uniform fleet-wide.
     const series: PeriodSeries = line.contra
       ? new Map([...raw].map(([p, v]) => [p, v == null ? null : Math.abs(v)] as [string, number | null]))
       : raw;
-    return cells(series, line.contra);
+    if (isReal) return realCells(series);
+    if (isSize) {
+      const shares = colsSize(series, !!line.contra);
+      const key = peerKey === undefined ? `${stmt}::${line.hierarchy}` : peerKey;
+      return [...numCells(shares, fmtShare), ...peerCells(key, shares[0] ?? null, !!line.contra)];
+    }
+    if (mode === "yoy") return numCells(colsYoy(series), fmtPct);
+    return numCells(colsAbs(series, !!line.contra), fmtTl);
   };
-  const blankCells = (): (number | null | undefined)[] => Array(colCount).fill(null);
-  const unitLabel = mode === "yoy" ? "Year-over-year % change" : "All numbers in TL thousands";
-  // Shared table header row — a leading "TTM" column when applicable, then the
-  // period-end dates. Reused across the BS / IS / CF tables.
+  /** The lines whose peer median is withheld (see `cellsForLine`). */
+  const AMBIGUOUS_PEER_LINES = new Set(["factoring_recv", "securities_amc"]);
+
+  /** A synthetic subtotal row (Total Assets / Total Liabilities / Total L&E). */
+  const cellsForTotal = (series: PeriodSeries, peerKey: string): Cell[] => {
+    if (isReal) return realCells(series);
+    if (isSize) {
+      const shares = colsSize(series, false);
+      return [...numCells(shares, fmtShare), ...peerCells(peerKey, shares[0] ?? null, false)];
+    }
+    if (mode === "yoy") return numCells(colsYoy(series), fmtPct);
+    return numCells(colsAbs(series, false), fmtTl);
+  };
+
+  const colCount = isReal
+    ? 4
+    : periods.length + (showTtm ? 1 : 0) + (showPeers ? 2 : 0);
+  const blankCells = (): Cell[] => Array(colCount).fill({ text: "--" });
+  const unitLabel =
+    mode === "yoy"
+      ? "Year-over-year % change"
+      : isReal
+        ? "Year-over-year %, nominal and deflated"
+        : isSize
+          ? statement === "bs"
+            ? "% of total assets"
+            : "% of interest income"
+          : "All numbers in TL thousands";
+
+  // Shared table header row. The lens decides the columns: period-end dates
+  // (abs / yoy / size), plus the peer pair on a common-size balance sheet, or the
+  // nominal→CPI→real→verdict quartet for one quarter on the real lens.
   const periodHeaderRow = (
     <tr className="border-b">
       <th className="text-left py-2 pl-3 pr-3 font-medium">Breakdown</th>
-      {showTtm && (
-        <th className="text-right py-2 pl-2 pr-3 font-medium tabular-nums">TTM</th>
-      )}
-      {periods.map((p) => (
-        <th key={p} className="text-right py-2 pl-2 pr-3 font-medium tabular-nums">
-          {periodToDate(p)}
-          {periodWarning(p) && (
-            <span title={periodWarning(p)!} className="ml-1 cursor-help text-amber-600">⚠</span>
+      {isReal ? (
+        <>
+          <th className="text-right py-2 pl-2 pr-3 font-medium tabular-nums">Nominal y/y</th>
+          <th className="text-right py-2 pl-2 pr-3 font-medium tabular-nums">CPI y/y</th>
+          <th className="text-right py-2 pl-2 pr-3 font-medium tabular-nums">Real y/y</th>
+          <th className="text-right py-2 pl-2 pr-3 font-medium">Verdict</th>
+        </>
+      ) : (
+        <>
+          {showTtm && (
+            <th className="text-right py-2 pl-2 pr-3 font-medium tabular-nums">TTM</th>
           )}
-        </th>
-      ))}
+          {periods.map((p) => (
+            <th key={p} className="text-right py-2 pl-2 pr-3 font-medium tabular-nums">
+              {periodToDate(p)}
+              {periodWarning(p) && (
+                <span title={periodWarning(p)!} className="ml-1 cursor-help text-amber-600">⚠</span>
+              )}
+            </th>
+          ))}
+          {showPeers && (
+            <>
+              <th className="text-right py-2 pl-2 pr-3 font-medium tabular-nums">Sector median</th>
+              <th className="text-right py-2 pl-2 pr-3 font-medium tabular-nums">Gap (pp)</th>
+            </>
+          )}
+        </>
+      )}
     </tr>
   );
   // Cash flow renders from the CF_LINES catalog (codes are consistent across
@@ -878,9 +1074,12 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   // Computed totals. Sum BRSA Roman-numeral parents — never sub-items
   // (e.g. "2.1 Loans" is inside "II. Amortized Cost"; including both would
   // double-count). Equity is summed separately; Total L&E folds it back in.
-  const totalAssets = cells(sumSeries(bsPivot, BS_ASSET_ROMAN_HIERARCHIES, "assets"));
-  const totalLiab = cells(sumSeries(bsPivot, liabRomans, "liabilities"));
-  const totalLE = cells(sumSeries(bsPivot, [...liabRomans, equityHierarchy], "liabilities"));
+  const totalAssetsSeries = sumSeries(bsPivot, BS_ASSET_ROMAN_HIERARCHIES, "assets");
+  const totalLiabSeries = sumSeries(bsPivot, liabRomans, "liabilities");
+  const totalLeSeries = sumSeries(bsPivot, [...liabRomans, equityHierarchy], "liabilities");
+  const totalAssets = cellsForTotal(totalAssetsSeries, SECTOR_TOTAL_ASSETS_KEY);
+  const totalLiab = cellsForTotal(totalLiabSeries, SECTOR_TOTAL_LIABILITIES_KEY);
+  const totalLE = cellsForTotal(totalLeSeries, SECTOR_TOTAL_LE_KEY);
 
   // Split the liability catalog at the equity boundary so the synthetic
   // "Total Liabilities" subtotal slots in *before* the equity block.
@@ -890,6 +1089,44 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   const equityBlock = liabLines.filter(
     (l) => l.hierarchy.startsWith(equityRomanPrefix) || l.hierarchy.startsWith(equityDotPrefix),
   );
+
+  // ── The shape (balance sheet) ─────────────────────────────────────────────
+  // What this bank OWNS and what FUNDS it, as two composition columns — the read
+  // the table can't give: each roman parent's share of total assets and its REAL
+  // growth. The roman parents partition the balance sheet exactly, so the columns
+  // close to 100% (anything unaccounted lands in an explicit "Other" row); "of
+  // which Loans" is nested inside the amortized-cost parent and NOT re-counted.
+  const taLatest = latestPeriod ? (totalAssetsSeries.get(latestPeriod) ?? null) : null;
+  const assetLabelOf = (h: string) =>
+    BS_ASSET_LINES.find((l) => l.hierarchy === h)?.label ?? h;
+  const liabLabelOf = (h: string) => liabLines.find((l) => l.hierarchy === h)?.label ?? h;
+  const assetCompLines: CompLine[] = [
+    ...BS_ASSET_ROMAN_HIERARCHIES.map((h) => ({ hierarchy: h, label: assetLabelOf(h) })),
+    { hierarchy: "2.1", label: "Loans", sub: true },
+  ];
+  const fundingCompLines: CompLine[] = [
+    ...liabRomans.map((h) => ({ hierarchy: h, label: liabLabelOf(h) })),
+    { hierarchy: equityHierarchy, label: "Shareholders' Equity" },
+  ];
+  const shapeCpi = cpiPick?.value ?? null;
+  const assetComp =
+    latestPeriod && taLatest
+      ? compositionRows(bsPivot, "assets", assetCompLines, latestPeriod, taLatest, shapeCpi)
+      : [];
+  const fundingComp =
+    latestPeriod && taLatest
+      ? compositionRows(bsPivot, "liabilities", fundingCompLines, latestPeriod, taLatest, shapeCpi)
+      : [];
+  const shapeLead = balanceSheetLead(
+    realRead(totalAssetsSeries, latestPeriod, shapeCpi),
+    realRead(bsPivot.get("assets::2.1") ?? new Map(), latestPeriod, shapeCpi),
+    realRead(bsPivot.get("liabilities::I.") ?? new Map(), latestPeriod, shapeCpi),
+  );
+  const cpiNote = cpiPick
+    ? cpiPick.matched
+      ? `CPI y/y read at the quarter end (${monthLabel(cpiPick.month)}): ${cpiPick.value.toFixed(1)}% · real = (1+nominal)/(1+CPI)−1, a deflation, not a subtraction`
+      : `CPI y/y taken from the latest print (${monthLabel(cpiPick.month)}): ${cpiPick.value.toFixed(1)}% — the series does not yet reach ${latestPeriod ?? "this quarter"} · real = (1+nominal)/(1+CPI)−1`
+    : "CPI is not available for this quarter — real growth is left blank rather than guessed";
 
   // In-page jump-nav: only list groups that actually render (the ownership
   // group is conditional on having a KAP form), so every anchor resolves.
@@ -1159,11 +1396,26 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
       )}
 
       {/* ── Financials ────────────────────────────────────────────────────
-          The page's core: standardized BS / IS tables + statement controls. */}
+          The page's core: the SHAPE layer (composition / waterfall / flow) above
+          the standardized BS / IS / CF tables, with the lens + statement controls. */}
       <div id="financials" className="scroll-mt-24 mb-8">
         <Section title="Financials" contentClassName="">
+          {/* The shape — what the statement IS, before what it says. Balance sheet:
+              two composition columns. Income statement: the waterfall, or the
+              interest flow. Cash flow has no shape layer — just the table. */}
+          {statement === "bs" && (
+            <BsShape
+              assets={assetComp}
+              funding={fundingComp}
+              lead={shapeLead}
+              meta={`${latestPeriod ?? "—"} · share of total assets · real y/y`}
+              footnote={cpiNote}
+            />
+          )}
+          {statement === "is" && <IncomeShape rowsByPeriod={plRows} periods={periods} />}
+
           {/* Statement controls — sit directly above the statement table they drive:
-              statement (BS/IS/CF) · view (absolute/YoY) · period (annual/quarterly) · kind */}
+              statement (BS/IS/CF) · lens (abs/YoY/real/common-size) · period · kind */}
           <div className="mb-3 flex flex-wrap gap-3 items-center">
             <div className="flex gap-1 rounded-[9px] border border-border bg-card p-[3px]">
               {(["bs", "is", "cf"] as const).map((s) => (
@@ -1182,18 +1434,24 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
               ))}
             </div>
             <div className="flex gap-1 rounded-[9px] border border-border bg-card p-[3px]">
-              {(["abs", "yoy"] as const).map((m) => (
+              {/* The lens. Common-size is offered only where a denominator with
+                  meaning exists (total assets / interest income) — not on cash flow. */}
+              {(statement === "cf"
+                ? (["abs", "yoy", "real"] as const)
+                : (["abs", "yoy", "real", "size"] as const)
+              ).map((m) => (
                 <Link
                   key={m}
                   href={url({ mode: m })}
                   scroll={false}
+                  title={LENS_HINT[m]}
                   className={`px-3 py-1 text-xs rounded-lg transition ${
                     m === mode
                       ? "bg-primary/10 font-semibold text-primary"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  {m === "abs" ? "Absolute" : "YoY Growth"}
+                  {LENS_LABEL[m]}
                 </Link>
               ))}
             </div>
@@ -1264,44 +1522,51 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
                         <Row
                           key={line.id}
                           label={line.label}
-                          values={blank ? blankCells() : cellsForLine(line, bsPivot, "assets")}
+                          cells={
+                            blank
+                              ? blankCells()
+                              : cellsForLine(
+                                  line,
+                                  bsPivot,
+                                  "assets",
+                                  AMBIGUOUS_PEER_LINES.has(line.id) ? null : undefined,
+                                )
+                          }
                           bold={line.bold || indentLevel(line.hierarchy) === 0}
                           depth={indentLevel(line.hierarchy)}
-                          format={formatCell}
                         />
                       );
                     });
                   })()}
-                  <Row label="Total Assets" values={totalAssets} bold divider format={formatCell} />
+                  <Row label="Total Assets" cells={totalAssets} bold divider />
                   {liabPreEquity.map((line) => (
                     <Row
                       key={line.id}
                       label={line.label}
-                      values={cellsForLine(line, bsPivot, "liabilities")}
+                      cells={cellsForLine(line, bsPivot, "liabilities")}
                       bold={line.bold || indentLevel(line.hierarchy) === 0}
                       depth={indentLevel(line.hierarchy)}
-                      format={formatCell}
                     />
                   ))}
-                  <Row label="Total Liabilities" values={totalLiab} bold divider format={formatCell} />
+                  <Row label="Total Liabilities" cells={totalLiab} bold divider />
                   {equityBlock.map((line) => (
                     <Row
                       key={line.id}
                       label={line.label}
-                      values={cellsForLine(line, bsPivot, "liabilities")}
+                      cells={cellsForLine(line, bsPivot, "liabilities")}
                       bold={line.bold || indentLevel(line.hierarchy) === 0}
                       depth={indentLevel(line.hierarchy)}
-                      format={formatCell}
                     />
                   ))}
-                  <Row label="Total Liabilities & Equity" values={totalLE} bold divider format={formatCell} />
+                  <Row label="Total Liabilities & Equity" cells={totalLE} bold divider />
                 </tbody>
               </table>
             </div>
           </section>
           )}
 
-          {/* Income Statement — standardized table, with the P&L flow Sankey below it */}
+          {/* Income Statement — standardized table. The flow diagram no longer sits
+              below it: the waterfall + interest fan are the SHAPE layer above. */}
           {statement === "is" && (
           <section className="group rounded-[10px] border border-border bg-card overflow-hidden">
             <div className="px-5 py-3 border-b bg-muted flex items-center justify-between">
@@ -1319,21 +1584,15 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
                     <Row
                       key={line.id}
                       label={line.label}
-                      values={cellsForLine(line, plPivot, "")}
+                      cells={cellsForLine(line, plPivot, "")}
                       bold={line.bold}
                       divider={line.bold}
-                      format={formatCell}
                     />
                   ))}
                 </tbody>
               </table>
             </div>
           </section>
-          )}
-          {statement === "is" && (
-            <div className="mt-6">
-              <PlSankeySection rowsByPeriod={plRows} periods={periods} />
-            </div>
           )}
 
           {/* Cash Flow — standardized via the CF_LINES catalog (BRSA hierarchy
@@ -1370,11 +1629,10 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
                         <Row
                           key={line.id}
                           label={line.label}
-                          values={cellsForLine(line, cfPivot, "")}
+                          cells={cellsForLine(line, cfPivot, "")}
                           bold={line.bold}
                           divider={CF_ROMAN_HIERARCHIES.includes(line.hierarchy)}
                           depth={indentLevel(line.hierarchy)}
-                          format={formatCell}
                         />
                       ),
                     )}
@@ -1402,6 +1660,33 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
             {mode === "yoy" && (
               <> Cells show year-over-year % change vs the same quarter one year
               earlier; &quot;--&quot; where the prior-year period is unavailable.</>
+            )}
+            {isReal && (
+              <>
+                {" "}Real growth deflates the nominal rate:
+                {" "}(1&nbsp;+&nbsp;nominal)&nbsp;/&nbsp;(1&nbsp;+&nbsp;CPI)&nbsp;−&nbsp;1 —
+                a division, not a subtraction. Columns are the latest displayed
+                quarter ({latestPeriod ?? "—"}) against the same quarter a year
+                earlier. {cpiNote}. The verdict band is real&nbsp;&gt;&nbsp;+3%
+                growing, −3%&nbsp;to&nbsp;+3% standing still,
+                &lt;&nbsp;−3% shrinking.
+              </>
+            )}
+            {isSize && statement === "bs" && (
+              <>
+                {" "}Every line is shown as a % of total assets (the sum of the
+                Roman-numeral rows).{" "}
+                {showPeers && sectorShares
+                  ? `"Sector median" is the median share across the ${sectorShares.n} ${
+                      isParticipation ? "participation" : "deposit / development"
+                    } banks that filed ${latestPeriod} on the same BRSA template — the two templates put different line-items on the same Roman numeral, so a median across both would compare unlike lines. A peer that filed the quarter but not the line counts as zero. "Gap" is this bank's share minus that median, in percentage points; ±5pp or wider is marked amber. The median is withheld ("--") for Factoring Receivables and Securities at Amortized Cost: both are filed under code 2.3, and banks that leave the line unnamed cannot be told apart — so no peer set can be formed for them without guessing.`
+                  : "The sector median is unavailable for this quarter."}
+              </>
+            )}
+            {isSize && statement === "is" && (
+              <> Every line is shown as a % of interest / profit-share income
+              (BRSA line I.) — the denominator that makes two banks of different
+              size comparable line-for-line.</>
             )}
             {showTtm && (
               <> &quot;TTM&quot; is the trailing twelve months ending the latest quarter
