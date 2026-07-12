@@ -104,19 +104,33 @@ The lag list is not academic. The four worst-lagged licensing decisions are:
 | #10945 **Enpara Bank** — operating licence | 2024-08-15 | 2026-03-06 | **568d** | yes (onboarded 2026-07-11) |
 | #10997 **Colendi Bank** — operating licence | 2024-10-31 | 2026-03-06 | **491d** | yes (onboarded 2026-07-11) |
 | #10980 **Ziraat Dinamik** — operating licence | 2024-10-31 | 2026-03-06 | **491d** | yes (onboarded 2026-07-11) |
-| #10979 **FUPS Bank** — operating licence | 2024-10-31 | 2026-03-06 | **491d** | **no — absent** |
+| #10979 **FUPS Bank** — operating licence | 2024-10-31 | 2026-03-06 | **491d** | no — *licensed, files nothing* |
 
 **The regulator announces the bank universe, and this page was holding the
 announcement.** Enpara, Colendi and Ziraat Dinamik were licensed here; we onboarded
 them in a separate exercise 16 months later ([[project_new_banks_coverage_gap]]).
-And FUPS Bank — licensed on the same day as Colendi and Ziraat Dinamik — **is
-still not in `banks`.**
+The register named them **491–568 days** before we noticed.
 
-That makes the licensing register a *coverage-gap detector we already own*: a
-BDDK "faaliyet izni" decision naming an institution absent from `banks` is a
-computable flag, not a hand-written one. (Whether FUPS should be in the universe
-is a real question — it may not yet file monthly BDDK returns — but the page
-should be the thing that raises it.)
+That makes the licensing register a *lead indicator we already own*: a BDDK
+"faaliyet izni" decision naming an institution absent from `banks` is a computable
+flag, not a hand-written one.
+
+**But the rule needs two states, not one.** FUPS Bank — licensed the same day as
+Colendi and Ziraat Dinamik — is absent from `banks` **on purpose**: the 2026-07-11
+onboarding review assessed it and excluded it because it has **filed zero reports**
+(same for Adil Katılım, licensed Sep-2025, pre-launch). So a naive
+`licensed ∧ ticker ∉ banks` flag would fire a false alarm on a decision we already
+took. The honest rule tests filing status against the BDDK **BdrUyg** registry —
+the authority on what was actually filed:
+
+```
+licensed(faaliyet_izni) ∧ ticker ∉ banks
+    → filed(BdrUyg) ? coverage gap : watch item
+```
+
+*Licensed and filing* is a gap worth fixing; *licensed with no filings* is a
+quarterly re-check. FUPS is the second — and it is the case that proves the rule
+needs the distinction.
 
 ---
 
