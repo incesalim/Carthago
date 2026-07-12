@@ -1,7 +1,8 @@
 # /credit redesign — rationale + mockup
 
-**Date:** 2026-07-12 · **Status:** PROPOSED (mockup only — not built)
-**Artefact:** `web/public/artifacts/credit-tab-mockup.html` (+ `credit-tab-desktop.png`, `credit-tab-mobile.png`)
+**Date:** 2026-07-12 · **Status:** SHIPPED (`7ffa75a`)
+**Artefact:** [`docs/design/mockups/2026-07-12-credit-tab.html`](../design/mockups/2026-07-12-credit-tab.html) (+ desktop/mobile PNGs)
+**Code:** `web/app/lib/credit.ts` (+ tests), `web/app/credit/{page,Bridge,Attribution}.tsx`
 **System:** The Desk ([web/DESIGN.md](../../web/DESIGN.md)) — this is a re-*think*, not a re-skin.
 
 The mockup renders **real figures** pulled from D1 (BDDK weekly bulletin W/E 2026-07-03,
@@ -90,12 +91,33 @@ Same carry-over contract as every Desk conversion: **nothing analytical is delet
   the existing `fxAdjustedYoY`, and the single biggest modelling assumption in the bridge.
 - Auto (₺42.7bn) is ~0.2% of the book. It earns a flag, not a chart.
 
-## If built
+## As built (2026-07-12, `7ffa75a`)
 
-Bridge + attribution + flags are new components; the vitals and all Depth charts reuse
-existing wiring (`weeklySeries`, `weeklyGrowth`, `nominalVsReal`, `fxAdjustedYoY`,
-`creditInsights`). The one genuinely new series is `realFxAdj` — compose the two
-adjustments the page already computes; no new extraction, no new table.
+Bridge + Attribution are new route-local components; the vitals and every Depth chart
+reuse existing wiring (`weeklySeries`, `weeklyGrowth`, `nominalVsReal`, `creditInsights`).
+The one genuinely new series is `realFxAdj` — composing the two adjustments the page
+already computed. No new extraction, no new table, no schema change.
+
+The arithmetic moved into `web/app/lib/credit.ts` (pure, unit-tested). Two rules are
+gated by tests because they are the ones that would silently rot:
+
+- **the reconciliation** — segment contributions must sum to the sector print. This is
+  what makes the attribution bars evidence rather than decoration.
+- **drop, don't nowcast** — a week whose month has no published CPI is dropped from the
+  real lines. The page therefore states its own lag ("real legs at W/E 26 Jun").
+
+Live figures at ship (W/E 3 Jul 2026 nominal / 26 Jun real): nominal 36.6% →
+−7.1pp lira → 29.3% FX-adjusted → −31.4pp inflation (CPI 32.1%) → **−2.1% real**,
+negative 10 consecutive weeks.
+
+### Deliberately NOT done
+
+- The FX-book-is-all-USD proxy was **not** fixed — BDDK publishes the TL-equivalent
+  only, so a true currency split needs a new source. The assumption is now printed
+  under the bridge instead of being buried in a helper.
+- `showCleared` on `<Flags>` (printing the rules that did *not* fire) was left out: it
+  was an uncommitted change in a concurrent session's working tree, and this commit
+  stays self-contained. Worth adding once that lands.
 
 Related: [[project_desk_redesign]] (briefs for other pages was the named remainder),
 [[reference_design_system]], [[feedback_rationale_before_narrative]].

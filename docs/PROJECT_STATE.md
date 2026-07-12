@@ -185,6 +185,24 @@ latest-period** trigger, and **13 banks auto-discover** new quarters from their
 IR page (no hand-added URL needed) — see [ADMIN.md](ADMIN.md) §Auto-discovery.
 Setup in [OPERATIONS.md](OPERATIONS.md) / [ADMIN.md](ADMIN.md).
 
+**/credit rebuilt — the headline is mostly not credit (2026-07-12):** the page's
+biggest figure was 36.6% nominal loan growth; in a 32% CPI regime with a
+depreciating lira that is mostly not credit, and the page owned both corrections
+already without ever composing them. It now leads with a **bridge** (nominal →
+−lira → FX-adjusted → −inflation → real, constant FX): the loan book **shrank
+2.1%** in real constant-currency terms, negative 10 consecutive weeks. Adds
+**growth attribution** — the print decomposes into segment contributions that
+reconcile to it exactly (commercial +26.1pp, of which SME +12.2pp; cards +5.3,
+GPL +4.1, housing +1.1, auto −0.1) — with SME drawn *inside* commercial, because
+it is a ~36% cut of that book, not a peer. Flags print their rules (real
+contraction 10w, auto contraction 96w, unsecured retail above sector 91w). The
+arithmetic lives in `web/app/lib/credit.ts` (pure, unit-tested: the
+reconciliation and the drop-don't-nowcast CPI rule are both gated). CPI is
+monthly, so the real legs can trail the weekly print — they are dropped, never
+nowcast, and the page states the lag. Depth reordered by question; no chart
+removed. Rationale:
+[knowledge/credit-tab-redesign-2026-07-12.md](knowledge/credit-tab-redesign-2026-07-12.md).
+
 **General redesign program (2026-07-10/11, ALL PHASES SHIPPED):** A: surface +
 typography tokens (white cards `#FFFFFF`/`#26231C`, firmer borders `#D8D1C2`/
 `#3E382E`, cooler-crimson `--negative` `#B03246`/`#E7788A`, mono-caps reserved
