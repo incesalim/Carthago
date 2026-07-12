@@ -5,6 +5,14 @@
  * bank_audit_extractions tables. Filter by (bank_ticker, period, kind).
  */
 import { cachedAll, getDB } from "./db";
+import { BANK_TYPE_BY_TICKER, isPeerExcluded } from "./bank_names";
+import {
+  BS_ASSET_ROMAN_HIERARCHIES,
+  BS_EQUITY_HIERARCHY,
+  BS_EQUITY_HIERARCHY_PARTICIPATION,
+  BS_LIAB_ROMAN_HIERARCHIES,
+  BS_LIAB_ROMAN_HIERARCHIES_PARTICIPATION,
+} from "./standard_lines";
 
 export interface BankSummary {
   bank_ticker: string;
@@ -137,6 +145,22 @@ function isEclLabel(name: string | null): boolean {
   return _ECL_RE.test((name ?? "").toUpperCase().replace(/\s+/g, ""));
 }
 
+/** Synthetic per-section ECL key for an asset row, or null when the row is not
+ *  an ECL contra line. Detection is by HIERARCHY (many banks store BS rows with
+ *  a blank item_name):
+ *    1.1.4 → cash-section ECL;  2.5 → loan-section ECL (conventional template).
+ *  Participation banks put loan ECL at 2.4 (no 2.5), colliding with "Other" —
+ *  disambiguate THAT one by label. Shared by `balanceSheetMultiPeriod` and
+ *  `sectorLineShares` so a bank's own share and the peer median key identically. */
+function eclKeyOf(statement: string, hierarchy: string, itemName: string | null): string | null {
+  if (statement !== "assets") return null;
+  const h = hierarchy.replace(/\.$/, "");
+  if (h === "1.1.4") return "assets::1.1.ecl";
+  if (h === "2.5") return "assets::2.ecl";
+  if (h === "2.4" && isEclLabel(itemName)) return "assets::2.ecl";
+  return null;
+}
+
 /** Balance-sheet rows for one bank across multiple periods.
  *  Returned shape: "<statement>::<hierarchy>" → period → amount_total.
  *  Used by the per-bank page to render a multi-column standardized table.
@@ -173,24 +197,12 @@ export async function balanceSheetMultiPeriod(
   for (const r of results) {
     // ECL contra-rows render as their own per-section line, keyed by section so a
     // participation bank's ECL never overwrites the 2.4 "Other Financial Assets"
-    // line. Detection is by HIERARCHY (many banks — e.g. AKBNK — store BS rows
-    // with blank item_name, which is why the catalog keys by hierarchy at all):
-    //   1.1.4 → cash-section ECL;  2.5 → loan-section ECL (conventional template).
-    // Participation banks put loan ECL at 2.4 (no 2.5), colliding with "Other" —
-    // disambiguate THAT one by label (their rows are labelled "Beklenen Zarar…";
-    // a conventional 2.4 "Other" is blank or non-ECL, so it's left untouched).
-    if (r.statement === "assets") {
-      const h = r.hierarchy.replace(/\.$/, "");
-      const eclKey =
-        h === "1.1.4" ? "assets::1.1.ecl"
-        : h === "2.5" ? "assets::2.ecl"
-        : h === "2.4" && isEclLabel(r.item_name) ? "assets::2.ecl"
-        : null;
-      if (eclKey) {
-        const prev = out.get(eclKey)?.get(r.period) ?? 0;
-        addTo(eclKey, r.period, (prev ?? 0) + (r.amount_total == null ? 0 : Math.abs(r.amount_total)));
-        continue;
-      }
+    // line (see `eclKeyOf`).
+    const eclKey = eclKeyOf(r.statement, r.hierarchy, r.item_name);
+    if (eclKey) {
+      const prev = out.get(eclKey)?.get(r.period) ?? 0;
+      addTo(eclKey, r.period, (prev ?? 0) + (r.amount_total == null ? 0 : Math.abs(r.amount_total)));
+      continue;
     }
     // Contra lines are stored as the filing prints them: positive magnitude for
     // most banks, NEGATIVE for the banks that parenthesize the value itself
@@ -201,6 +213,137 @@ export async function balanceSheetMultiPeriod(
     addTo(`${r.statement}::${r.hierarchy}`, r.period, v);
   }
   return out;
+}
+
+/** Synthetic keys the common-size lens uses for its computed subtotal rows —
+ *  the median has to exist for them too, or the "Total Liabilities" row would
+ *  be the only line without a peer column. */
+export const SECTOR_TOTAL_ASSETS_KEY = "synthetic::total_assets";
+export const SECTOR_TOTAL_LIABILITIES_KEY = "synthetic::total_liabilities";
+export const SECTOR_TOTAL_LE_KEY = "synthetic::total_le";
+
+export interface SectorShares {
+  /** Pivot key ("<statement>::<hierarchy>") → MEDIAN share of total assets, %.
+   *  Contra lines (ECL) carry the MAGNITUDE, as the pivot does — the caller
+   *  applies the display sign from the line catalog. */
+  shares: Map<string, number>;
+  /** Peer banks the median was taken over. */
+  n: number;
+}
+
+/**
+ * Peer-median common-size shares for one (kind, period): every balance-sheet line
+ * as a % of total assets, medianed across the banks that filed the SAME quarter.
+ * Keyed exactly like `balanceSheetMultiPeriod`'s pivot, so the per-bank page can
+ * set its own share beside the field's.
+ *
+ * DENOMINATOR is total assets summed from the BRSA roman parents I.–X. — the same
+ * arithmetic the page uses for its own "Total Assets" row, so a bank's share and
+ * the median share are formed the same way.
+ *
+ * PEERS ARE TEMPLATE-SCOPED. Participation banks file a different BRSA liabilities
+ * layout (equity at XIV., not XVI.), so the same roman code means different things
+ * across the two templates — a median mixing them would compare deposits with
+ * subordinated debt. `family` therefore selects the participation banks or every
+ * other bank, and the caller prints the peer count. TAKAS is excluded, as it is
+ * from every other peer statistic (it is a clearing house, not a lender).
+ *
+ * A peer that filed the quarter but not the line counts as ZERO for that line —
+ * "most banks hold no factoring receivables" is the honest median, not "the
+ * median of the three banks that do".
+ *
+ * COST: one D1 SELECT per (kind, period, family), cached 12 h through `cachedAll`
+ * and shared by every bank page on that quarter — no per-bank fan-out. The scan
+ * is driven off the family's ticker list on purpose: the table's only usable index
+ * is (bank_ticker, period), so filtering on (kind, period) alone costs a FULL
+ * TABLE SCAN (measured: 181,608 rows read, ~150 ms), while the same query bound to
+ * the ~31 (or ~9) tickers of one template becomes that many index seeks (~5k rows).
+ */
+export async function sectorLineShares(
+  kind: "consolidated" | "unconsolidated",
+  period: string,
+  family: "participation" | "deposit",
+): Promise<SectorShares> {
+  const tickers = Object.keys(BANK_TYPE_BY_TICKER)
+    .filter((t) => !isPeerExcluded(t))
+    .filter((t) => (BANK_TYPE_BY_TICKER[t] === "10003") === (family === "participation"))
+    .sort();
+  if (tickers.length === 0) return { shares: new Map(), n: 0 };
+
+  const rows = await cachedAll<{
+    bank_ticker: string;
+    statement: string;
+    hierarchy: string;
+    item_name: string | null;
+    amount_total: number | null;
+  }>(
+    `SELECT bank_ticker, statement, hierarchy, item_name, amount_total
+       FROM bank_audit_balance_sheet
+      WHERE bank_ticker IN (${tickers.map(() => "?").join(",")})
+        AND period = ? AND kind = ?
+        AND statement IN ('assets','liabilities')
+        AND hierarchy != ''`,
+    [...tickers, period, kind],
+  );
+
+  // Pivot each peer exactly as the per-bank page pivots itself.
+  const byBank = new Map<string, Map<string, number>>();
+  for (const r of rows) {
+    const t = r.bank_ticker;
+    if (r.amount_total == null) continue;
+    let m = byBank.get(t);
+    if (!m) {
+      m = new Map();
+      byBank.set(t, m);
+    }
+    const eclKey = eclKeyOf(r.statement, r.hierarchy, r.item_name);
+    if (eclKey) {
+      m.set(eclKey, (m.get(eclKey) ?? 0) + Math.abs(r.amount_total));
+      continue;
+    }
+    const contra = /\(\s*-\s*\)/.test(r.item_name ?? "");
+    m.set(`${r.statement}::${r.hierarchy}`, contra ? Math.abs(r.amount_total) : r.amount_total);
+  }
+
+  const liabRomans =
+    family === "participation" ? BS_LIAB_ROMAN_HIERARCHIES_PARTICIPATION : BS_LIAB_ROMAN_HIERARCHIES;
+  const equityHierarchy =
+    family === "participation" ? BS_EQUITY_HIERARCHY_PARTICIPATION : BS_EQUITY_HIERARCHY;
+  const sumOf = (m: Map<string, number>, statement: string, hs: string[]): number =>
+    hs.reduce((s, h) => s + (m.get(`${statement}::${h}`) ?? 0), 0);
+
+  // Per-peer shares, then the median per key across every peer that filed.
+  const perKey = new Map<string, number[]>();
+  const push = (key: string, share: number) => {
+    const arr = perKey.get(key);
+    if (arr) arr.push(share);
+    else perKey.set(key, [share]);
+  };
+  const peers: Array<{ m: Map<string, number>; ta: number }> = [];
+  for (const m of byBank.values()) {
+    const ta = sumOf(m, "assets", BS_ASSET_ROMAN_HIERARCHIES);
+    if (ta > 0) peers.push({ m, ta });
+  }
+  // Every key ANY peer filed — a peer that didn't file it contributes a 0.
+  const allKeys = new Set<string>();
+  for (const p of peers) for (const k of p.m.keys()) allKeys.add(k);
+  for (const p of peers) {
+    for (const k of allKeys) push(k, ((p.m.get(k) ?? 0) / p.ta) * 100);
+    push(SECTOR_TOTAL_ASSETS_KEY, 100);
+    push(SECTOR_TOTAL_LIABILITIES_KEY, (sumOf(p.m, "liabilities", liabRomans) / p.ta) * 100);
+    push(
+      SECTOR_TOTAL_LE_KEY,
+      (sumOf(p.m, "liabilities", [...liabRomans, equityHierarchy]) / p.ta) * 100,
+    );
+  }
+
+  const shares = new Map<string, number>();
+  for (const [k, xs] of perKey) {
+    xs.sort((a, b) => a - b);
+    const mid = Math.floor(xs.length / 2);
+    shares.set(k, xs.length % 2 ? xs[mid] : (xs[mid - 1] + xs[mid]) / 2);
+  }
+  return { shares, n: peers.length };
 }
 
 export interface ValidationCell {
