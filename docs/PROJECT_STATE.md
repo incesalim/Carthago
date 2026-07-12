@@ -510,17 +510,46 @@ series sample the month-end trading day; GYF/GSYF (not daily-priced) are
 excluded from trends. Data layer `web/app/lib/funds.ts`. See
 [METRICS.md](METRICS.md) §15.
 
-A **Compare** tab (`/cross-bank`) is a cross-bank performance heatmap built
-entirely off the per-bank `bank_audit_*` tables (the monthly BDDK tables are
-group aggregates only). It puts individual banks side by side across the full
-performance set — total assets, NPL ratio, Stage-2 share, NPL coverage,
-provision intensity, cost of risk, ROE, ROA, NIM, PPOP/assets, loan yield,
-deposit cost, loan–deposit spread, Cost/Income — each cell colored by the
-bank's rank vs peers (green better / red worse; a neutral `--info` ramp for
-size). Two views: **Snapshot** (banks × metrics at the latest common quarter,
-grouped by BDDK type or sortable by any metric column) and **Over time** (banks
-× quarters for one selected metric, scored across the whole panel to surface
-trends). The data layer (`web/app/lib/heatmap.ts`) builds one cached panel from
+The **Banks** index (`/banks`) is a **register**, not a card wall: one hairline
+row per bank carrying size, share of the reporting total, ROE / NPL / NIM / CAR,
+and how much history is on file — searchable, and sortable on any column
+(`Register.tsx`, client). Grouping by type prints each group's asset subtotal,
+its share, and its **median** ratios, so a bank reads against its own peers
+rather than the sector. Flags are rules: an amber period marks a bank that has
+not filed the record quarter (its ratio cells show "—" rather than a stale
+quarter — mixing periods down a column would void the medians), a short history
+bar marks a recent entrant, and `clearing` marks a peer-excluded bank (Takasbank
+is a CCP, so it is carried but kept out of every share and concentration
+figure). No new extraction: `bankSummaries()` was already fetching `total_assets`
+and spending it only on the sort, and the ratio columns come from the same
+cached `heatmapPanel()` that `/cross-bank` runs on.
+
+A **Compare** tab (`/cross-bank`) is a **matchup sheet** built entirely off the
+per-bank `bank_audit_*` tables (the monthly BDDK tables are group aggregates
+only). Three controls drive it (`CompareBoard.tsx`, client): the **bench** —
+pick up to four banks; the **peer frame** — all banks / their types / majors
+₺500bn+, which is the population every axis, median and rank is computed over
+(the picks are always in it); and the **scorecard** — each of the 21 metrics as
+a ROW on a real value axis, with every peer a faint tick, the interquartile band
+shaded, the median marked and the picks as coloured dots. That axis is the
+point: a rank-coloured cell says "3rd of 34" but hides DISTANCE, so a bank 0.1pp
+behind the leader looked exactly as far away as one 10pp behind. Axes clip to
+the Tukey whiskers (q₁/q₃ ± 1.5×IQR) so one freak value can't flatten the field,
+with the clipped peers counted at the edge; a pick is never clipped out of view.
+Two picks turn the last column into a signed Δ; three or four give the set's
+spread. A deterministic **read** names who leads and where the set splits widest.
+Metrics carry a `family` (Scale · Asset quality · Returns · Margin engine ·
+Capital & liquidity · Market risk · Valuation) and a printed `rule` — the
+derivation, per DESIGN.md's automation-honesty rule.
+
+Underneath, in `<Depth>`, the evidence carries over: **Snapshot** (banks ×
+metrics at the record quarter — now one metric family at a time, with the picks
+pinned above an ink rule, since 21 columns meant 14 lived behind a horizontal
+scroll), **Over time** (banks × quarters for one metric), and the market-share
+league + HHI. Both grids are scoped to the peer frame, and the heat ramp is
+deliberately quiet (`scoreToColor` caps at 26%/12%) — the scorecard carries the
+comparison now, so colour only sorts the eye and the value is always printed.
+The data layer (`web/app/lib/heatmap.ts`) builds one cached panel from
 its queries: assets = BS roman I.–X. sum; stage ratios from `bank_audit_stages`;
 ROE/ROA/NIM/Cost-Income derived from a P&L pivot by BRSA hierarchy (net profit
 `XXV.`→`XIX.`, net interest `III.`, opex `XI.`+`XII.`, gross op profit `VIII.`)

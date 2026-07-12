@@ -44,13 +44,26 @@ do all the work; nothing is decorated.
 | `--hair` (row hairlines) | `#ECEDE8` | `#1F252C` |
 | `--primary` (links only) | `#2757A8` | `#7FA3D8` |
 | `--data` / chart hero | `#2B4E7E` | `#7FA3D8` |
+| `--context` (the non-hero mark) | `#C0C8D1` | `#4A525C` |
 | `--positive` / `--negative` | `#187A53` / `#C24847` | `#4FB98A` / `#E0716B` |
 | `--warning` (thresholds) | `#B98514` | `#D9A83F` |
 
 **LOCKSTEP RULE:** `app/lib/chart-theme.ts` mirrors these values in JS (Recharts
 can't read CSS vars). Any token change lands in both files in the same commit.
-Charts: hero navy + grey context (`context` #C0C8D1), direct end-labels via
+Charts: hero navy + grey context (`--context`), direct end-labels via
 `chart-end-labels.tsx`, hairline grid, no legend boxes.
+
+**Comparison surfaces** (`/cross-bank`, `/banks`) add two rules of their own:
+
+- **Rank is not distance.** A rank-coloured cell hides how FAR apart two banks
+  are. Where the page's job is to compare, put the metric on a real value axis
+  (the `/cross-bank` scorecard: peer ticks + IQR band + median + the picks as
+  dots) and let the grid be evidence, not argument. The heat ramp is therefore
+  deliberately quiet (`scoreToColor` caps at 26% / 12%).
+- **A rank needs a stated peer set.** Any rank, median or axis must name the
+  population it was computed over, and the reader must be able to change it
+  (the peer frame). Ranking a ₺11bn digital bank against a ₺8.7trn state bank
+  without saying so is a lie of omission.
 
 ## The two-layer page skeleton
 

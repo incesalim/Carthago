@@ -135,7 +135,9 @@ export default function Register({ rows, groups, latest, maxPeriods }: Props) {
             {rank != null && (
               <span className="w-5 shrink-0 text-right font-mono text-[10px] text-faint">{rank}</span>
             )}
-            <BankLogo ticker={r.ticker} name={r.name} height={16} />
+            <span className="flex w-8 shrink-0 justify-center">
+              <BankLogo ticker={r.ticker} name={r.name} height={14} maxWidth={26} />
+            </span>
             <span className="truncate text-[13px] font-medium text-foreground">{r.name}</span>
             <span className="font-mono text-[9px] text-faint">{r.ticker}</span>
             {!grouped && (
