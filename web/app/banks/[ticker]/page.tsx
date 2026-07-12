@@ -204,41 +204,58 @@ const TONE_CLASS: Record<NonNullable<Cell["tone"]>, string> = {
 interface RowProps {
   label: string;
   cells: Cell[];
-  bold?: boolean;
-  /** Optional extra top border (used for subtotal rows). */
+  /** A COMPUTED subtotal (Net interest income, Total assets, …) — the sums that
+   *  carry the argument. Ruled top and bottom. */
   divider?: boolean;
   /** Indent depth 0/1/2 — drives left padding + text muting. */
   depth?: number;
 }
 
 /** Tailwind padding by indent depth (0 = top-level, 1 = sub, 2 = sub-sub). */
-const INDENT_PL = ["pl-3", "pl-7", "pl-12"];
+const INDENT_PL = ["pl-0", "pl-6", "pl-10"];
 
-function Row({ label, cells, bold, divider, depth = 0 }: RowProps) {
+/**
+ * Three tiers, because the statement has three kinds of line — and the old table
+ * gave all of them the same weight and the same rule, which is what made it a wall:
+ *
+ *   SUBTOTAL   the sums (Net interest income, Gross operating profit, Total assets)
+ *              — bold ink, ruled above and below. These are the argument.
+ *   COMPONENT  a top-level line that feeds a sum (Interest income, Personnel
+ *              expenses) — medium weight, one faint hairline.
+ *   DETAIL     its breakdown (Interest from loans, Fees paid) — muted, smaller,
+ *              indented, and NO rule at all, so the breakdown reads as one cluster
+ *              hanging off its parent instead of thirty free-standing rows.
+ */
+function Row({ label, cells, divider, depth = 0 }: RowProps) {
   const pl = INDENT_PL[Math.min(depth, INDENT_PL.length - 1)];
-  const muted = depth >= 2;
-  const ink = bold
-    ? "font-semibold text-foreground"
-    : muted
-      ? "text-muted-foreground"
-      : "text-foreground";
+  const detail = depth >= 1 && !divider;
+
+  const rowCls = divider
+    ? "border-y border-foreground hover:bg-muted"
+    : detail
+      ? "hover:bg-muted"
+      : "border-b border-hair hover:bg-muted";
+
+  const labelCls = divider
+    ? "py-2 text-[12.5px] font-bold text-foreground"
+    : detail
+      ? "py-[3px] text-[11px] text-muted-foreground"
+      : "py-[5px] text-[12px] font-medium text-foreground";
+
+  const figCls = divider
+    ? "py-2 text-[12.5px] font-semibold text-foreground"
+    : detail
+      ? "py-[3px] text-[11px] text-muted-foreground"
+      : "py-[5px] text-[11.5px] text-foreground";
+
   return (
-    <tr
-      className={
-        // The Desk statement (DESIGN.md): hairlines and weight, never a shaded
-        // stripe. A computed subtotal closes with the ink rule the sheet uses
-        // for every other total.
-        divider
-          ? "border-b-2 border-t border-foreground/90 hover:bg-muted"
-          : "border-b border-hair hover:bg-muted"
-      }
-    >
-      <td className={`py-[5px] pr-3 ${pl} text-[12px] ${ink}`}>{label}</td>
+    <tr className={rowCls}>
+      <td className={`pr-3 ${pl} ${labelCls}`}>{label}</td>
       {cells.map((c, i) => (
         <td
           key={i}
-          className={`py-[5px] pl-4 text-right font-mono text-[11.5px] tabular-nums whitespace-nowrap ${
-            c.tone ? `${TONE_CLASS[c.tone]} ${bold ? "font-semibold" : ""}` : ink
+          className={`pl-4 text-right font-mono tabular-nums whitespace-nowrap ${figCls} ${
+            c.tone ? `${TONE_CLASS[c.tone]} ${divider ? "font-semibold" : ""}` : ""
           }`}
         >
           {c.text}
@@ -1568,34 +1585,31 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
                                   AMBIGUOUS_PEER_LINES.has(line.id) ? null : undefined,
                                 )
                           }
-                          bold={line.bold || indentLevel(line.hierarchy) === 0}
                           depth={indentLevel(line.hierarchy)}
                         />
                       );
                     });
                   })()}
-                  <Row label="Total Assets" cells={totalAssets} bold divider />
+                  <Row label="Total Assets" cells={totalAssets} divider />
                   <GroupRow label="Liabilities & equity — what pays for it" span={colCount + 1} />
                   {liabPreEquity.map((line) => (
                     <Row
                       key={line.id}
                       label={line.label}
                       cells={cellsForLine(line, bsPivot, "liabilities")}
-                      bold={line.bold || indentLevel(line.hierarchy) === 0}
                       depth={indentLevel(line.hierarchy)}
                     />
                   ))}
-                  <Row label="Total Liabilities" cells={totalLiab} bold divider />
+                  <Row label="Total Liabilities" cells={totalLiab} divider />
                   {equityBlock.map((line) => (
                     <Row
                       key={line.id}
                       label={line.label}
                       cells={cellsForLine(line, bsPivot, "liabilities")}
-                      bold={line.bold || indentLevel(line.hierarchy) === 0}
                       depth={indentLevel(line.hierarchy)}
                     />
                   ))}
-                  <Row label="Total Liabilities & Equity" cells={totalLE} bold divider />
+                  <Row label="Total Liabilities & Equity" cells={totalLE} divider />
                 </tbody>
               </table>
             </div>
@@ -1617,13 +1631,17 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
               <table className="w-full border-collapse">
                 <thead className="text-muted-foreground">{periodHeaderRow}</thead>
                 <tbody>
+                  {/* Only the six sums that close a block are subtotals; the rest are
+                      components with their breakdown nested under them. Passing
+                      `divider={line.bold}` (as this did) ruled EVERY top-level line —
+                      thirty identical bands, no hierarchy. */}
                   {PL_LINES.map((line) => (
                     <Row
                       key={line.id}
                       label={line.label}
                       cells={cellsForLine(line, plPivot, "")}
-                      bold={line.bold}
-                      divider={line.bold}
+                      divider={line.subtotal}
+                      depth={indentLevel(line.hierarchy)}
                     />
                   ))}
                 </tbody>
@@ -1654,10 +1672,10 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
                   <tbody>
                     {CF_LINES.map((line) =>
                       line.header ? (
-                        <tr key={line.id} className="border-t border-border bg-muted">
+                        <tr key={line.id}>
                           <td
                             colSpan={colCount + 1}
-                            className="py-1.5 pl-3 pr-3 text-xs font-semibold text-foreground"
+                            className="border-b border-border pb-1 pt-4 font-mono text-[8.5px] uppercase tracking-[0.1em] text-faint"
                           >
                             {line.label}
                           </td>
@@ -1667,7 +1685,6 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
                           key={line.id}
                           label={line.label}
                           cells={cellsForLine(line, cfPivot, "")}
-                          bold={line.bold}
                           divider={CF_ROMAN_HIERARCHIES.includes(line.hierarchy)}
                           depth={indentLevel(line.hierarchy)}
                         />
