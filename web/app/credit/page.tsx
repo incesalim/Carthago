@@ -1,6 +1,12 @@
 /**
- * Credit tab — loan growth, currency split, consumer mix, SME, public vs
- * private differentiator.
+ * Credit tab — the Desk brief above the carried-over evidence.
+ *
+ * The page's claim used to be its nominal loan print (36%+). In a 32% CPI
+ * regime with a depreciating lira that number is mostly not credit, and the
+ * page owned both corrections already — it just never composed them. It now
+ * leads with the bridge (nominal → −currency → −inflation → real), then says
+ * WHERE the growth came from (segment contributions, which reconcile to the
+ * headline exactly), then raises the computed flags. See app/lib/credit.ts.
  *
  * Sourced from the BDDK *weekly* bulletin (`weekly_series`) for every series the
  * weekly feed carries — fresher and denser than the monthly tables, at the cost
@@ -23,7 +29,6 @@ import {
   WEEKLY_BANK_TYPE_LABELS,
   type WeeklyRow,
   type TimeSeriesRow,
-  type EvdsRow,
 } from "@/app/lib/metrics";
 import { Section } from "@/app/components/ui";
 import {
@@ -31,11 +36,25 @@ import {
   Colophon,
   Depth,
   DeskHeader,
+  Flags,
+  Movers,
   SecHead,
   Vital,
   Vitals,
+  type Flag,
+  type MoverRow,
 } from "@/app/components/desk";
 import { lastVal, monthLabel, signedPp, valAgo } from "@/app/lib/desk";
+import {
+  contributions,
+  creditBridge,
+  deflate,
+  fxAdjustedGrowth,
+  sumSeries,
+  trailingRun,
+  trailingRunVs,
+  type Pt,
+} from "@/app/lib/credit";
 import { GlobalRangeSelector } from "@/app/components/range-context";
 import BarByBank from "@/app/components/BarByBank";
 import TrendChart from "@/app/components/TrendChart";
@@ -45,12 +64,15 @@ import { creditInsights } from "@/app/lib/insights";
 import { seriesFinding } from "@/app/lib/chart-findings";
 import { withLlmHeadline } from "@/app/lib/read-headlines";
 import { cpiYoYByMonth, nominalVsReal, REAL_TERMS_LABELS } from "@/app/lib/real-terms";
+import Bridge from "./Bridge";
+import Attribution from "./Attribution";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Turkish Banking Sector — Loans & Credit",
-  description: "Loan growth and credit dynamics in Türkiye — TL vs FX, by sector and by bank type, from BDDK weekly and monthly data.",
+  description:
+    "Loan growth and credit dynamics in Türkiye — nominal vs real and FX-adjusted, by segment, currency and bank type, from BDDK weekly and monthly data.",
   alternates: { canonical: "/credit" },
 };
 
@@ -69,8 +91,7 @@ function weekLabel(p: string | null | undefined, withYear = true): string {
   return m ? `${m[1]} ${monthLabel(p, withYear)}` : monthLabel(p, withYear);
 }
 
-const fmtPct = (v: number | null | undefined, d = 1) =>
-  v == null ? "—" : `${v.toFixed(d)}%`;
+const fmtPct = (v: number | null | undefined, d = 1) => (v == null ? "—" : `${v.toFixed(d)}%`);
 
 /** FX share = fx / (tl + fx) per period (×100). */
 function computeFxShare(tl: WeeklyRow[], fx: WeeklyRow[]): TimeSeriesRow[] {
@@ -111,45 +132,12 @@ function joinWeekly(
 }
 
 /** Combine several weekly series into long-form rows under synthetic codes. */
-function combineWeekly(parts: { code: string; rows: WeeklyRow[] }[]): TimeSeriesRow[] {
+function combineWeekly(parts: { code: string; rows: Pt[] }[]): TimeSeriesRow[] {
   return parts.flatMap(({ code, rows }) =>
-    rows.map((r) => ({ period: r.period, bank_type_code: code, value: r.value })),
+    rows.flatMap((r) =>
+      r.value == null ? [] : [{ period: r.period, bank_type_code: code, value: r.value }],
+    ),
   );
-}
-
-/**
- * FX-adjusted loan growth (BBVA convention, 52w): value BOTH periods' FX book
- * at the BASE period's USD/TRY, so lira depreciation stops printing as credit
- * growth. FX book proxied as all-USD (BDDK publishes TL-equivalent only).
- */
-function fxAdjustedYoY(tl: WeeklyRow[], fx: WeeklyRow[], usd: EvdsRow[]): TimeSeriesRow[] {
-  const rateByDate = new Map(usd.map((r) => [r.period_date, r.value]));
-  const rateOnOrBefore = (d: string): number | null => {
-    const dt = new Date(d + "T00:00:00Z");
-    for (let i = 0; i < 10; i++) {
-      const v = rateByDate.get(dt.toISOString().slice(0, 10));
-      if (v != null && v > 0) return v;
-      dt.setUTCDate(dt.getUTCDate() - 1);
-    }
-    return null;
-  };
-  const tlByPeriod = new Map(tl.map((r) => [r.period, r.value]));
-  const fxSorted = fx.slice().sort((a, b) => a.period.localeCompare(b.period));
-  const out: TimeSeriesRow[] = [];
-  for (let i = 52; i < fxSorted.length; i++) {
-    const cur = fxSorted[i];
-    const base = fxSorted[i - 52];
-    const tlCur = tlByPeriod.get(cur.period);
-    const tlBase = tlByPeriod.get(base.period);
-    const rCur = rateOnOrBefore(cur.period);
-    const rBase = rateOnOrBefore(base.period);
-    if (tlCur == null || tlBase == null || rCur == null || rBase == null) continue;
-    const num = tlCur + (cur.value / rCur) * rBase;
-    const den = tlBase + base.value; // base FX book already at base rate
-    if (den <= 0) continue;
-    out.push({ period: cur.period, bank_type_code: "FXADJ", value: (num / den - 1) * 100 });
-  }
-  return out;
 }
 
 export default async function CreditPage() {
@@ -162,7 +150,7 @@ export default async function CreditPage() {
   const [
     loansSector, tlSec, fxSec,
     yoyAll, mom4Sector, yoyByBank,
-    housingLvl, autoLvl, gplLvl, cardsLvl,
+    housingLvl, autoLvl, gplLvl, cardsLvl, smeLvlSec, commLvlSec,
     consHousing, consAuto, consGpl, consCards,
     smeYoY, commercialYoY,
     yoyPubPriv, tlYoyPubPriv,
@@ -179,6 +167,8 @@ export default async function CreditPage() {
     weeklySeries(KREDI, AUTO, "TOTAL", sector, 156),
     weeklySeries(KREDI, GPL, "TOTAL", sector, 156),
     weeklySeries(KREDI, CARDS, "TOTAL", sector, 156),
+    weeklySeries(KREDI, SME, "TOTAL", sector, 156),
+    weeklySeries(KREDI, COMMERCIAL, "TOTAL", sector, 156),
     weeklyGrowth(KREDI, HOUSING, "TOTAL", 52, sector, 104),
     weeklyGrowth(KREDI, AUTO, "TOTAL", 52, sector, 104),
     weeklyGrowth(KREDI, GPL, "TOTAL", 52, sector, 104),
@@ -195,13 +185,37 @@ export default async function CreditPage() {
 
   const fxShare = computeFxShare(tlSec, fxSec);
   const yoySector = yoyAll.filter((r) => r.bank_type_code === WEEKLY_BANK_TYPES.SECTOR);
-  // Real-terms twin (Phase 2 convention): the y/y print deflated by CPI y/y.
-  const realVsNominal = nominalVsReal(yoySector, cpiYoY);
-  // FX-adjusted growth vs the nominal print — the BBVA headline credit metric.
-  const fxAdjVsNominal: TimeSeriesRow[] = [
+
+  // ---- the bridge: nominal → −currency → −inflation → real ------------------
+  const fxAdjSeries = fxAdjustedGrowth(tlSec, fxSec, usdTry);
+  const realFxAdjSeries = deflate(fxAdjSeries, cpiYoY);
+  const bridge = creditBridge(yoySector, fxAdjSeries, cpiYoY);
+
+  // The hero chart: the three prints of the same book, on one axis. This
+  // subsumes the old standalone "FX-adjusted vs nominal" chart (both its series
+  // appear here) and adds the composed line neither twin showed.
+  const threePrints: TimeSeriesRow[] = [
     ...yoySector.map((r) => ({ ...r, bank_type_code: "NOMINAL" })),
-    ...fxAdjustedYoY(tlSec, fxSec, usdTry),
+    ...combineWeekly([
+      { code: "FXADJ", rows: fxAdjSeries },
+      { code: "REALFX", rows: realFxAdjSeries },
+    ]),
   ];
+  // Real-terms twin (Phase 2 convention) — kept as its own chart.
+  const realVsNominal = nominalVsReal(yoySector, cpiYoY);
+
+  // ---- attribution: where the headline came from ----------------------------
+  // Disjoint + exhaustive: housing + auto + GPL + cards + commercial reconciles
+  // to the BDDK sector total. SME is a CUT of commercial — never an addend.
+  const attrib = contributions(loansSector, [
+    { key: "commercial", label: "Commercial", rows: commLvlSec },
+    { key: "cards", label: "Retail cards", rows: cardsLvl },
+    { key: "gpl", label: "Gen. purpose", rows: gplLvl },
+    { key: "housing", label: "Housing", rows: housingLvl },
+    { key: "auto", label: "Auto", rows: autoLvl },
+  ]);
+  const smeCut = contributions(loansSector, [{ key: "sme", label: "SME", rows: smeLvlSec }]);
+  const smeContrib = smeCut.items[0] ?? null;
 
   const consMix = joinWeekly([
     { key: "Housing", rows: housingLvl },
@@ -217,16 +231,39 @@ export default async function CreditPage() {
     { code: "CARDS", rows: consCards },
   ]);
 
+  const smeSector = smeYoY.filter((r) => r.bank_type_code === WEEKLY_BANK_TYPES.SECTOR);
   const smeVsCommercial = combineWeekly([
-    { code: "SME", rows: smeYoY.filter((r) => r.bank_type_code === WEEKLY_BANK_TYPES.SECTOR) },
+    { code: "SME", rows: smeSector },
     { code: "COMMERCIAL", rows: commercialYoY },
   ]);
 
   const pubPrivSet = new Set<string>(pubPriv);
-
   const yoyState = yoyPubPriv.filter((r) => r.bank_type_code === WEEKLY_BANK_TYPES.STATE);
   const yoyPrivate = yoyPubPriv.filter((r) => r.bank_type_code === WEEKLY_BANK_TYPES.PRIVATE);
-  const smeSector = smeYoY.filter((r) => r.bank_type_code === WEEKLY_BANK_TYPES.SECTOR);
+
+  // Unsecured retail = the COMBINED cards + GPL book. Growth of the summed
+  // level — never the mean of two growth rates, which would weight a ₺2.5trn
+  // book like a ₺3.3trn one.
+  const unsecuredLvl = sumSeries(cardsLvl, gplLvl);
+  const unsecuredYoY = (() => {
+    const out: Pt[] = [];
+    const m = new Map(unsecuredLvl.map((r) => [r.period, r.value]));
+    for (const r of unsecuredLvl) {
+      if (r.value == null) continue;
+      for (const days of [364, 371, 357]) {
+        const base = m.get(
+          new Date(Date.parse(r.period + "T00:00:00Z") - days * 86_400_000)
+            .toISOString()
+            .slice(0, 10),
+        );
+        if (base != null && base > 0) {
+          out.push({ period: r.period, value: (Math.pow(r.value / base, 364 / days) - 1) * 100 });
+          break;
+        }
+      }
+    }
+    return out;
+  })();
 
   // "The Read" — deterministic, computed from the same series the charts show.
   const read = creditInsights({
@@ -246,8 +283,7 @@ export default async function CreditPage() {
 
   const yoyNow = lastVal(yoySector);
   const mom4Now = lastVal(mom4Sector);
-  const realSeries = realVsNominal.filter((r) => r.bank_type_code === "REAL");
-  const realNow = lastVal(realSeries);
+  const realFxNow = bridge.realFxAdj;
 
   const fxShareNow = lastVal(fxShare);
   const fxShare52 = valAgo(fxShare, 52);
@@ -267,18 +303,87 @@ export default async function CreditPage() {
 
   const smeNow = lastVal(smeSector);
   const commNow = lastVal(commercialYoY);
+  const unsecNow = lastVal(unsecuredYoY);
+  const unsecLevel = lastVal(unsecuredLvl);
 
+  // ---- flags — each prints the rule that raised it --------------------------
+  const realNegRun = trailingRun(realFxAdjSeries, (v) => v < 0);
+  const autoNegRun = trailingRun(consAuto, (v) => v < 0);
+  const cardsHotRun = trailingRunVs(consCards, yoySector, (v, o) => v > o);
+  const gplHotRun = trailingRunVs(consGpl, yoySector, (v, o) => v > o);
+  const unsecuredHotRun = Math.min(cardsHotRun, gplHotRun);
+  const autoNow = lastVal(consAuto);
   const cardsNow = lastVal(consCards);
-  const segReads: [string, number | null][] = [
-    ["housing", lastVal(consHousing)],
-    ["auto", lastVal(consAuto)],
-    ["general-purpose", lastVal(consGpl)],
-    ["retail cards", lastVal(consCards)],
+  const gplNow = lastVal(consGpl);
+
+  const flags: Flag[] = [
+    {
+      code: "real_credit_contraction",
+      active: realNegRun > 0 && realFxNow != null && realFxNow < 0,
+      rule: `real_fxadj(52w) < 0 for ${realNegRun}w`,
+      body: (
+        <>
+          Real, constant-FX credit is <b className="font-semibold text-negative">contracting</b> —{" "}
+          {fmtPct(realFxNow)} for {realNegRun} consecutive weeks. The {fmtPct(yoyNow)} nominal print
+          is lira and CPI.
+        </>
+      ),
+    },
+    {
+      code: "auto_contraction",
+      active: autoNegRun >= 8 && autoNow != null && autoNow < 0,
+      rule: `auto_yoy < 0 for ${autoNegRun}w`,
+      body: (
+        <>
+          Auto loans in sustained contraction — {fmtPct(autoNow)}, negative for {autoNegRun}{" "}
+          consecutive weeks. The book is small (
+          {autoLvl.at(-1)?.value != null ? `₺${((autoLvl.at(-1)!.value as number) / 1_000).toFixed(0)}bn` : "—"}
+          ), so it drags the headline by little.
+        </>
+      ),
+    },
+    {
+      code: "unsecured_retail_hot",
+      active: unsecuredHotRun >= 8,
+      rule: `cards_yoy > sector AND gpl_yoy > sector for ${unsecuredHotRun}w`,
+      body: (
+        <>
+          Unsecured retail is running above the sector — cards {fmtPct(cardsNow)} and general-purpose{" "}
+          {fmtPct(gplNow)} vs {fmtPct(yoyNow)}, for {unsecuredHotRun} consecutive weeks. Watch it in{" "}
+          <Link href="/asset-quality" className="font-semibold text-primary">
+            /asset-quality
+          </Link>
+          .
+        </>
+      ),
+    },
   ];
-  let fastestSeg: { name: string; v: number } | null = null;
-  for (const [name, v] of segReads) {
-    if (v != null && (fastestSeg == null || v > fastestSeg.v)) fastestSeg = { name, v };
-  }
+
+  // ---- movers — which book accelerated, vs 13 weeks ago ---------------------
+  const moverRows: MoverRow[] = (
+    [
+      ["Commercial", commercialYoY],
+      ["SME", smeSector],
+      ["Retail cards", consCards],
+      ["Gen. purpose", consGpl],
+      ["Housing", consHousing],
+      ["Auto", consAuto],
+    ] as [string, Pt[]][]
+  )
+    .map(([label, s]) => ({
+      label,
+      prev: valAgo(s as TimeSeriesRow[], 13),
+      curr: lastVal(s as TimeSeriesRow[]),
+      fmt: (v: number) => `${v.toFixed(1)}%`,
+      deltaDecimals: 1,
+      good: "neutral" as const,
+    }))
+    .filter((r) => r.curr != null)
+    .sort((a, b) => {
+      const da = a.curr != null && a.prev != null ? a.curr - a.prev : -Infinity;
+      const db = b.curr != null && b.prev != null ? b.curr - b.prev : -Infinity;
+      return db - da;
+    });
 
   const consMixSeries = [
     { key: "Housing", label: "Housing" },
@@ -286,6 +391,9 @@ export default async function CreditPage() {
     { key: "Gen. Purpose", label: "Gen. Purpose" },
     { key: "Retail Cards", label: "Retail Cards" },
   ];
+
+  const realWeek = weekLabel(bridge.asOfReal, false);
+  const headlinePct = bridge.nominal != null ? `${bridge.nominal.toFixed(1)}%` : "the headline";
 
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
@@ -299,50 +407,89 @@ export default async function CreditPage() {
         right="every figure computed from source series"
       />
 
-      {/* ── The vitals ─────────────────────────────────────────────────── */}
+      {/* ── The bridge — what the headline is worth ─────────────────────── */}
       <SecHead
-        title="The vitals"
-        meta="equal weight · trailing 26 weeks"
+        title="What the headline is worth"
+        meta="nominal → constant currency → constant prices · 52w"
+        action={
+          bridge.lagged ? (
+            <span className="font-mono text-[8.5px] uppercase tracking-[0.07em] text-faint">
+              real legs at W/E {realWeek} — CPI lags the weekly print
+            </span>
+          ) : undefined
+        }
         className="mb-2.5 mt-6"
       />
+      <div className="grid grid-cols-1 gap-8 border-t-2 border-foreground pt-4 lg:grid-cols-[minmax(0,7fr)_minmax(260px,4fr)]">
+        <Bridge bridge={bridge} />
+        <div className="self-center">
+          <p className="text-[19px] leading-snug tracking-tight text-foreground">
+            Nominal credit grew{" "}
+            <b className="font-mono font-semibold">{fmtPct(bridge.nominal)}</b>. Strip the lira and
+            the price level and the loan book{" "}
+            {realFxNow != null && realFxNow < 0 ? (
+              <b className="font-semibold text-negative">shrank {fmtPct(Math.abs(realFxNow))}</b>
+            ) : (
+              <b className="font-semibold text-positive">grew {fmtPct(realFxNow)}</b>
+            )}
+            .
+          </p>
+          <p className="mt-3 text-[12.5px] leading-relaxed text-muted-foreground">
+            {bridge.currencyPp != null && bridge.inflationPp != null ? (
+              <>
+                Of that print, {signedPp(bridge.currencyPp, 1)} is lira depreciation revaluing the FX
+                book and {signedPp(bridge.inflationPp, 1)} is inflation (CPI {fmtPct(bridge.cpi)}).
+                What remains is real volume — negative for {realNegRun} consecutive weeks.
+              </>
+            ) : (
+              <>The bridge awaits a CPI print.</>
+            )}
+          </p>
+          <p className="mt-3 border-t border-hair pt-2.5 font-mono text-[9px] uppercase leading-relaxed tracking-[0.06em] text-faint">
+            real_fxadj = (1 + fx_adjusted) ÷ (1 + cpi_yoy) − 1 · FX book held at the base week&apos;s
+            USD/TRY and proxied as all-USD
+          </p>
+        </div>
+      </div>
+
+      {/* ── The vitals ─────────────────────────────────────────────────── */}
+      <SecHead title="The vitals" meta="equal weight · trailing 26 weeks" className="mb-2.5 mt-8" />
       <Vitals>
         <Vital
-          label="Loan growth, 52w"
+          label="Real growth, constant FX"
+          value={
+            realFxNow != null
+              ? `${realFxNow < 0 ? "−" : ""}${Math.abs(realFxNow).toFixed(1)}` // typographic minus, as the gap vital
+              : "—"
+          }
+          unit="%"
+          series={realFxAdjSeries.slice(-26)}
+          decimals={1}
+          note={
+            realFxNow != null ? (
+              <>
+                the book{" "}
+                <em className="font-semibold not-italic text-negative">
+                  {realFxNow < 0 ? "shrank" : "grew"}
+                </em>{" "}
+                once lira and CPI are stripped — {realNegRun}w negative
+                {bridge.lagged ? ` · at W/E ${realWeek}` : ""}
+              </>
+            ) : (
+              "awaits the CPI print"
+            )
+          }
+        />
+        <Vital
+          label="Nominal growth, 52w"
           value={yoyNow != null ? yoyNow.toFixed(1) : "—"}
           unit="%"
           series={yoySector.slice(-26)}
           decimals={1}
           note={
-            realNow != null ? (
-              <>
-                ≈{" "}
-                <em
-                  className={
-                    realNow < 0
-                      ? "not-italic font-semibold text-negative"
-                      : "not-italic font-semibold text-positive"
-                  }
-                >
-                  {realNow >= 0 ? "+" : "−"}
-                  {Math.abs(realNow).toFixed(1)}% real
-                </em>{" "}
-                (CPI-deflated)
-              </>
-            ) : (
-              "real twin awaits the CPI print"
-            )
-          }
-        />
-        <Vital
-          label="4w momentum, ann."
-          value={mom4Now != null ? mom4Now.toFixed(1) : "—"}
-          unit="%"
-          series={mom4Sector.slice(-26)}
-          decimals={1}
-          note={
             mom4Now != null && yoyNow != null ? (
               <>
-                {signedPp(mom4Now - yoyNow, 1)} vs the 52w pace —{" "}
+                4w momentum {fmtPct(mom4Now)} ann. — {signedPp(mom4Now - yoyNow, 1)} vs the 52w pace,{" "}
                 {mom4Now > yoyNow ? "accelerating" : "cooling"}
               </>
             ) : undefined
@@ -356,7 +503,9 @@ export default async function CreditPage() {
           decimals={1}
           note={
             <>
-              {fxShareDelta != null ? `${signedPp(fxShareDelta, 1)} over 52w` : "share of the total book"}{" "}
+              {fxShareDelta != null
+                ? `${signedPp(fxShareDelta, 1)} over 52w`
+                : "share of the total book"}{" "}
               <Link href="/deposits" className="font-semibold text-primary">
                 /deposits
               </Link>
@@ -386,44 +535,134 @@ export default async function CreditPage() {
           series={smeSector.slice(-26)}
           decimals={1}
           note={
-            smeNow != null && commNow != null ? (
+            smeNow != null && commNow != null && smeContrib ? (
               <>
-                {smeNow >= commNow ? "outpaces" : "trails"} commercial {fmtPct(commNow)} by{" "}
-                {Math.abs(smeNow - commNow).toFixed(1)}pp
+                {signedPp(smeContrib.pp, 1)} of the {headlinePct} headline —{" "}
+                {smeNow >= commNow ? "outpaces" : "trails"} commercial {fmtPct(commNow)}
               </>
             ) : undefined
           }
         />
         <Vital
-          label="Retail cards, 52w"
-          value={cardsNow != null ? cardsNow.toFixed(1) : "—"}
+          label="Unsecured retail"
+          value={unsecNow != null ? unsecNow.toFixed(1) : "—"}
           unit="%"
-          series={consCards.slice(-26)}
+          series={unsecuredYoY.slice(-26)}
           decimals={1}
           note={
-            fastestSeg ? (
-              fastestSeg.name === "retail cards" ? (
-                <>the fastest consumer segment</>
-              ) : (
-                <>
-                  fastest segment: {fastestSeg.name} at {fastestSeg.v.toFixed(1)}%
-                </>
-              )
+            unsecLevel != null ? (
+              <>
+                cards + GPL as one book (₺{(unsecLevel / 1_000_000).toFixed(2)}trn) —{" "}
+                {unsecuredHotRun}w above the sector
+              </>
             ) : undefined
           }
         />
       </Vitals>
 
+      {/* ── Attribution — where the headline came from ──────────────────── */}
+      <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,7fr)_minmax(260px,4fr)]">
+        <div>
+          <SecHead
+            title={`Where the ${headlinePct} came from`}
+            meta="contribution to sector growth · 52w · pp of the headline"
+            className="mb-2.5"
+          />
+          <Attribution
+            items={attrib.items}
+            sumPp={attrib.sumPp}
+            nested={
+              smeContrib
+                ? { of: "commercial", label: "SME", pp: smeContrib.pp, level: smeContrib.level }
+                : undefined
+            }
+            totalLevel={lastVal(loansSector)}
+          />
+        </div>
+        <div>
+          <SecHead title="Movers" meta="52w growth · vs 13 weeks ago" className="mb-2.5" />
+          <Movers from="13w ago" to="Now" rows={moverRows} />
+        </div>
+      </div>
+
+      {/* ── Flags ──────────────────────────────────────────────────────── */}
+      <SecHead
+        title="Flags"
+        meta="each prints the rule that raised it"
+        className="mb-2.5 mt-8"
+      />
+      <Flags flags={flags} quietNote="No credit rule fired this week." />
+
       {/* ── In depth — the evidence layer ──────────────────────────────── */}
-      <Depth action={<GlobalRangeSelector />}>
+      <Depth
+        meta="carried over, reordered by question — nothing removed"
+        action={<GlobalRangeSelector />}
+      >
         <Takeaway data={readData} />
 
         <Section
           index="01"
-          title="Total Credit Growth"
-          description="Growth by ownership group + short-window momentum. Levels: see the Overview snapshot."
+          title="Is the growth real?"
+          description="The three prints of the same book on one axis. Nominal is where the reader starts; the composed line is what the book actually did."
         >
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            <div className="lg:col-span-2">
+              <TrendChart
+                data={threePrints}
+                seriesLabels={{
+                  NOMINAL: "Nominal",
+                  FXADJ: "FX-adjusted",
+                  REALFX: "Real, constant FX",
+                }}
+                title={
+                  seriesFinding(realFxAdjSeries as TimeSeriesRow[], {
+                    noun: "Real, constant-FX loan growth",
+                    decimals: 1,
+                  }) ?? "Loan growth 52w — nominal vs FX-adjusted vs real, constant FX"
+                }
+                description="Loan growth 52w, %, weekly · sector · the gap between the lines is the lira and the price level"
+                source="Source: BDDK weekly bulletin · TÜİK CPI · TCMB USD/TRY"
+                yFormat="pct"
+                decimals={1}
+                zeroLine
+              />
+            </div>
+            <TrendChart
+              data={mom4Sector}
+              seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "Sector" }}
+              title="Loan Growth 4w (annualized %) — sector"
+              yFormat="pct"
+              decimals={1}
+              zeroLine
+            />
+          </div>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <TrendChart
+              data={realVsNominal}
+              seriesLabels={REAL_TERMS_LABELS}
+              title="Loan Growth YoY — nominal vs real (sector, %)"
+              description="The CPI-deflated twin alone — it does not remove the currency effect."
+              yFormat="pct"
+              decimals={1}
+              zeroLine
+            />
+            <TrendChart
+              data={fxShare}
+              seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "FX share" }}
+              title="FX Share of Total Loans (%)"
+              description="How much of the book the currency adjustment is acting on."
+              yFormat="pct"
+              decimals={1}
+            />
+          </div>
+        </Section>
+
+        <Section
+          index="02"
+          title="Who is lending?"
+          description="The clearest sector signal — who is driving the lending cycle, and in which currency."
+        >
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <div className="lg:col-span-2">
               <TrendChart
                 data={yoyAll}
@@ -447,40 +686,7 @@ export default async function CreditPage() {
               decimals={1}
             />
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <TrendChart
-              data={realVsNominal}
-              seriesLabels={REAL_TERMS_LABELS}
-              title="Loan Growth YoY — nominal vs real (sector, %)"
-              yFormat="pct"
-              decimals={1}
-              zeroLine
-            />
-            <TrendChart
-              data={fxAdjVsNominal}
-              seriesLabels={{ NOMINAL: "Nominal", FXADJ: "FX-adjusted (constant USD/TRY)" }}
-              title="Loan Growth YoY — FX-adjusted (sector, %)"
-              yFormat="pct"
-              decimals={1}
-              zeroLine
-            />
-            <TrendChart
-              data={mom4Sector}
-              seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "Sector" }}
-              title="Loan Growth 4w (annualized %) — sector"
-              yFormat="pct"
-              decimals={1}
-              zeroLine
-            />
-          </div>
-        </Section>
-
-        <Section
-          index="02"
-          title="Public vs Private & Currency"
-          description="The clearest sector signal — who is driving the lending cycle, and in which currency."
-        >
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <TrendChart
               data={yoyPubPriv}
               seriesLabels={{
@@ -503,18 +709,15 @@ export default async function CreditPage() {
               decimals={1}
               zeroLine
             />
-            <TrendChart
-              data={fxShare}
-              seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "FX share" }}
-              title="FX Share of Total Loans (%)"
-              yFormat="pct"
-              decimals={1}
-            />
           </div>
         </Section>
 
-        <Section index="03" title="Consumer Credit" description="Composition of household lending — cards & GPL drive the bulk.">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Section
+          index="03"
+          title="Where is it going?"
+          description="The composition behind the attribution bars — cards & GPL drive the consumer book."
+        >
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <StackedArea
               data={consMix}
               series={consMixSeries}
@@ -529,10 +732,7 @@ export default async function CreditPage() {
               percentStack
             />
           </div>
-        </Section>
-
-        <Section index="04" title="Consumer Segments" description="Per-product growth — cards & GPL drive the headline number.">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <TrendChart
               data={consYoYLong}
               seriesLabels={{
@@ -547,12 +747,14 @@ export default async function CreditPage() {
               zeroLine
             />
             <TrendChart
-              data={cards.flatMap((r: { period: string; retail: number | null; corporate: number | null }) => {
-                const out: TimeSeriesRow[] = [];
-                if (r.retail    != null) out.push({ period: r.period, bank_type_code: "RETAIL",    value: r.retail });
-                if (r.corporate != null) out.push({ period: r.period, bank_type_code: "CORPORATE", value: r.corporate });
-                return out;
-              })}
+              data={cards.flatMap(
+                (r: { period: string; retail: number | null; corporate: number | null }) => {
+                  const out: TimeSeriesRow[] = [];
+                  if (r.retail != null) out.push({ period: r.period, bank_type_code: "RETAIL", value: r.retail });
+                  if (r.corporate != null) out.push({ period: r.period, bank_type_code: "CORPORATE", value: r.corporate });
+                  return out;
+                },
+              )}
               seriesLabels={{ RETAIL: "Retail Cards", CORPORATE: "Corporate Cards" }}
               title="Credit Cards — Retail vs Corporate (Level · monthly)"
               yFormat="bn"
@@ -561,8 +763,16 @@ export default async function CreditPage() {
           </div>
         </Section>
 
-        <Section index="05" title="SME Lending" description="The SME cycle vs the commercial book — level detail for the digger.">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Section
+          index="04"
+          title="SME — the engine inside commercial"
+          description={
+            smeContrib
+              ? `${signedPp(smeContrib.pp, 1)} of the headline. SME is a SUBSET of the commercial book, not a peer — the two lines below are not additive.`
+              : "SME is a subset of the commercial book, not a peer — the two lines below are not additive."
+          }
+        >
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <TrendChart
               data={smeYoY}
               seriesLabels={{
@@ -579,12 +789,13 @@ export default async function CreditPage() {
               data={smeVsCommercial}
               seriesLabels={{ SME: "SME", COMMERCIAL: "Commercial (incl. corp.)" }}
               title="SME vs Commercial — YoY Growth (%)"
+              description="SME is a cut of commercial — not additive."
               yFormat="pct"
               decimals={1}
               zeroLine
             />
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <TrendChart
               data={smeLevel.filter((r) => r.bank_type_code === WEEKLY_BANK_TYPES.SECTOR)}
               seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "SME" }}
@@ -604,22 +815,26 @@ export default async function CreditPage() {
             />
           </div>
           <ChartRow
-            data={smeBreak.flatMap((r: { period: string; micro: number | null; small: number | null; medium: number | null }) => [
-              { period: r.period, bank_type_code: "Micro", value: r.micro },
-              { period: r.period, bank_type_code: "Small", value: r.small },
-              { period: r.period, bank_type_code: "Medium", value: r.medium },
-            ])}
+            data={smeBreak.flatMap(
+              (r: { period: string; micro: number | null; small: number | null; medium: number | null }) => [
+                { period: r.period, bank_type_code: "Micro", value: r.micro },
+                { period: r.period, bank_type_code: "Small", value: r.small },
+                { period: r.period, bank_type_code: "Medium", value: r.medium },
+              ],
+            )}
             deltaPeriods={12}
             deltaLabel="12m"
             fmt={(v) => `₺${(v / 1_000).toFixed(0)}bn`}
           >
             <StackedArea
-              data={smeBreak.map((r: { period: string; micro: number | null; small: number | null; medium: number | null }) => ({
-                period: r.period,
-                Micro: r.micro ?? 0,
-                Small: r.small ?? 0,
-                Medium: r.medium ?? 0,
-              }))}
+              data={smeBreak.map(
+                (r: { period: string; micro: number | null; small: number | null; medium: number | null }) => ({
+                  period: r.period,
+                  Micro: r.micro ?? 0,
+                  Small: r.small ?? 0,
+                  Medium: r.medium ?? 0,
+                }),
+              )}
               series={[
                 { key: "Micro", label: "Micro" },
                 { key: "Small", label: "Small" },
