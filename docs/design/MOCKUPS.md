@@ -48,6 +48,14 @@ Each page of the site taken back to a mockup and rebuilt against the Desk brief.
 | Asset Quality tab | **PROPOSED** — not built · **premise CORRECTED, read the doc first**. The mockup's original headline ("the growing loan book hides 1.06pp of NPL ratio") is **overstated ~10× and must not be built**: an NPL ratio is deflator-invariant, so inflation does not flatter it — only *real* book growth (+3.3%) dilutes, worth **~0.1pp**, not 1.07pp. **Corrected thesis = the iceberg:** what the ratio prints is Stage 3 at **3.1%**; loans actually classified as deteriorated are **12.3% — 4.0×** — and the watchlist carries **9.8% cover** vs Stage 3's 62.3%. Pipeline still filling: formation **2.2×** (₺673bn, net +₺404bn), exits **77% collections** (so it is real deterioration, not disposals); stock **+34.9% real**; SME drove **42.8%** of new bad loans. Traps (takipteki item_ids ≠ krediler; two incompatible ratio bases) in the rationale: [knowledge](../knowledge/asset-quality-tab-redesign-2026-07-12.md) | [html](mockups/2026-07-12-asset-quality-tab.html) — *signature panel superseded* · [desktop](mockups/2026-07-12-asset-quality-tab-desktop.png) · [mobile](mockups/2026-07-12-asset-quality-tab-mobile.png) | [artifact](https://claude.ai/code/artifact/02583087-eae5-4b10-826c-dee7c9a32fd0) |
 | Liquidity tab | **PROPOSED** — not built. Premise: the page **derives** net reserves and the swap stock — the most careful arithmetic on the site — then draws them as one line among three and says nothing. Read out: gross **$159.7bn** → net **$52.2bn** → net excl. swaps **$34.5bn** (22% of the headline); **$107.5bn** of "gross" is the *banks'* own FX at the CBRT and **$17.7bn** is swapped in. Second finding, from two series the page never compares: residents hold **$138.3bn** in FX + gold, **3.1×** the CBRT's net reserves (same-date). Note the mark: a stacked decomposition would **lie** — the CBRT's own net FX is negative in 42 of 150 weeks (−$68.6bn at worst), so it is three lines with the gaps shaded | [html](mockups/2026-07-12-liquidity-tab.html) · [desktop](mockups/2026-07-12-liquidity-tab-desktop.png) · [mobile](mockups/2026-07-12-liquidity-tab-mobile.png) | [artifact](https://claude.ai/code/artifact/27299533-1ade-441e-8b18-a9617bf0b4a1) |
 
+## 2026-07-12 — chart-class redesigns
+
+Not a page — a *mark*. One chart component, taken apart wherever it appears.
+
+| Artefact | Status | Local | Link |
+|---|---|---|---|
+| The composition chart (`StackedArea` — 11 instances across credit, deposits, asset-quality, digital, non-bank) | **PROPOSED** — not built. Premise: the stack cannot draw its own headline. The deposits chart is titled "the book shrank **₺0.40 trn** in the week" — **1.3% of one band, ~3px** — while the shape it *does* draw (nominal ×2.86 since May 2023) is mostly the lira: deflated, the same book is **9.2% smaller** than it was, and every group shrank (State **−11.8%** real). Proposes four marks off the same four series — **mix** (100% share, inflation-neutral, the default), **levels** (kept, demoted, with its real twin named), a **Δ strip** (the title, drawn: State −0.46 vs the rest +0.06), a **nominal-vs-real index**, and **flat-baseline small multiples** (a stack gives only the bottom band a readable trend). Also fixes a real bug it found: the weekly bulletin's bank-type codes fall through the *monthly* palette map, so **State is painted in Dev & Inv's grey** and Domestic in Participation's purple — the same group is a different colour on the monthly charts. Interaction: a **readout rail** replaces the floating tooltip (populated at rest, never occluding) + the hover crosshair shipped in `1a88522` | [html](mockups/2026-07-12-composition-chart.html) · [desktop](mockups/2026-07-12-composition-chart-desktop.png) · [mobile](mockups/2026-07-12-composition-chart-mobile.png) | [artifact](https://claude.ai/code/artifact/59175350-27a4-4a90-b817-d30aaa3f2df2) |
+
 ## 2026-07-11 — the identity bake-off
 
 Seven whole-site identities, built as rival concepts and judged against each
@@ -89,6 +97,10 @@ Came out of the design critique (`docs/knowledge/design-critique-2026-07-10.md`,
 - **Compare, Regulations, Liquidity, Asset Quality** are mocked but unbuilt — four ready
   designs waiting on implementation. (Credit shipped 2026-07-12 `7ffa75a`; Deposits
   `d4de0e6`; Overview `e081959`.)
+- **The composition chart** is mocked but unbuilt — and one of its findings is a live bug:
+  the weekly charts paint each ownership group in another group's colour (`seriesColor()`
+  keys on a code whose meaning differs between the weekly and monthly bulletins). Cheap to
+  fix independently of the redesign.
 - **Five sector tabs still run the pre-contract evidence layer** (asset-quality,
   capital, profitability, market-risk, and the economy pages): boxed `Stat` cards,
   boxed `Takeaway`, charts in `ChartCard` chrome. `web/DESIGN.md` → "the evidence
