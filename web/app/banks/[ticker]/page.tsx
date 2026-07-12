@@ -262,6 +262,45 @@ function GroupRow({ label, span }: { label: string; span: number }) {
   );
 }
 
+/** A labelled control group — the label states what the control reaches. */
+function ControlGroup({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div className="mb-1 font-mono text-[8px] uppercase tracking-[0.12em] text-faint">{label}</div>
+      <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1">{children}</div>
+    </div>
+  );
+}
+
+/** Underlined text toggle — the Desk idiom (no pills, no fills). */
+function Toggle({
+  href,
+  on,
+  title,
+  children,
+}: {
+  href: string;
+  on: boolean;
+  title?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      scroll={false}
+      title={title}
+      aria-current={on ? "true" : undefined}
+      className={
+        on
+          ? "border-b-2 border-foreground pb-0.5 text-[12.5px] font-semibold text-foreground"
+          : "border-b-2 border-transparent pb-0.5 text-[12.5px] text-muted-foreground transition-colors hover:text-foreground"
+      }
+    >
+      {children}
+    </Link>
+  );
+}
+
 type PeriodSeries = Map<string, number | null>;
 
 /** A line's raw period→value series from the pivot map (over every queried
@@ -1419,6 +1458,48 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
       {tab === "financials" && (
       <div className="mb-8 mt-6">
         <Section title="Financials" contentClassName="">
+          {/* The controls, ABOVE the shape they drive — and grouped by scope, because
+              they do not all reach the same distance. Statement, basis and periods
+              re-read the filings, so they change the shape AND the table. The lens
+              is a way of *reading* the same rows: it now drives the composition's
+              trailing column too, so no control is inert on what sits above it. */}
+          <div className="mb-4 flex flex-wrap items-end gap-x-6 gap-y-3 border-b border-border pb-3">
+            <ControlGroup label="Statement">
+              {(["bs", "is", "cf"] as const).map((s2) => (
+                <Toggle key={s2} href={url({ statement: s2 })} on={s2 === statement}>
+                  {s2 === "bs" ? "Balance sheet" : s2 === "is" ? "Income statement" : "Cash flow"}
+                </Toggle>
+              ))}
+            </ControlGroup>
+
+            <ControlGroup label="Lens">
+              {(statement === "cf"
+                ? (["abs", "yoy", "real"] as const)
+                : (["abs", "yoy", "real", "size"] as const)
+              ).map((m) => (
+                <Toggle key={m} href={url({ mode: m })} on={m === mode} title={LENS_HINT[m]}>
+                  {LENS_LABEL[m]}
+                </Toggle>
+              ))}
+            </ControlGroup>
+
+            <ControlGroup label="Periods">
+              {(["quarterly", "annual"] as const).map((v) => (
+                <Toggle key={v} href={url({ view: v })} on={v === view}>
+                  {v === "annual" ? "Annual" : "Quarterly"}
+                </Toggle>
+              ))}
+            </ControlGroup>
+
+            <ControlGroup label="Basis">
+              {(["unconsolidated", "consolidated"] as const).map((k) => (
+                <Toggle key={k} href={url({ kind: k })} on={k === kind}>
+                  {k === "unconsolidated" ? "Bank-only" : "Consolidated"}
+                </Toggle>
+              ))}
+            </ControlGroup>
+          </div>
+
           {/* The shape — what the statement IS, before what it says. Balance sheet:
               two composition columns. Income statement: the waterfall, or the
               interest flow. Cash flow has no shape layer — just the table. */}
@@ -1426,87 +1507,22 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
             <BsShape
               assets={assetComp}
               funding={fundingComp}
+              lens={mode}
               lead={shapeLead}
               meta={`${latestPeriod ?? "—"} · share of total assets · real y/y`}
               footnote={cpiNote}
             />
           )}
-          {statement === "is" && <IncomeShape rowsByPeriod={plRows} periods={periods} />}
-
-          {/* Statement controls — sit directly above the statement table they drive:
-              statement (BS/IS/CF) · lens (abs/YoY/real/common-size) · period · kind */}
-          <div className="mb-3 flex flex-wrap gap-3 items-center">
-            <div className="flex gap-1 rounded-[9px] border border-border bg-card p-[3px]">
-              {(["bs", "is", "cf"] as const).map((s) => (
-                <Link
-                  key={s}
-                  href={url({ statement: s })}
-                  scroll={false}
-                  className={`px-3 py-1 text-xs rounded-lg transition ${
-                    s === statement
-                      ? "bg-primary/10 font-semibold text-primary"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {s === "bs" ? "Balance Sheet" : s === "is" ? "Income Statement" : "Cash Flow"}
-                </Link>
-              ))}
-            </div>
-            <div className="flex gap-1 rounded-[9px] border border-border bg-card p-[3px]">
-              {/* The lens. Common-size is offered only where a denominator with
-                  meaning exists (total assets / interest income) — not on cash flow. */}
-              {(statement === "cf"
-                ? (["abs", "yoy", "real"] as const)
-                : (["abs", "yoy", "real", "size"] as const)
-              ).map((m) => (
-                <Link
-                  key={m}
-                  href={url({ mode: m })}
-                  scroll={false}
-                  title={LENS_HINT[m]}
-                  className={`px-3 py-1 text-xs rounded-lg transition ${
-                    m === mode
-                      ? "bg-primary/10 font-semibold text-primary"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {LENS_LABEL[m]}
-                </Link>
-              ))}
-            </div>
-            <div className="flex gap-1 rounded-[9px] border border-border bg-card p-[3px]">
-              {(["annual", "quarterly"] as const).map((v) => (
-                <Link
-                  key={v}
-                  href={url({ view: v })}
-                  scroll={false}
-                  className={`px-3 py-1 text-xs rounded-lg transition ${
-                    v === view
-                      ? "bg-primary/10 font-semibold text-primary"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {v === "annual" ? "Annual" : "Quarterly"}
-                </Link>
-              ))}
-            </div>
-            <div className="flex gap-1 rounded-[9px] border border-border bg-card p-[3px]">
-              {(["unconsolidated", "consolidated"] as const).map((k) => (
-                <Link
-                  key={k}
-                  href={url({ kind: k })}
-                  scroll={false}
-                  className={`px-3 py-1 text-xs rounded-lg transition ${
-                    k === kind
-                      ? "bg-primary/10 font-semibold text-primary"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {k === "consolidated" ? "Consolidated" : "Bank-only"}
-                </Link>
-              ))}
-            </div>
-          </div>
+          {statement === "is" && (
+            <>
+              <IncomeShape rowsByPeriod={plRows} periods={periods} />
+              {mode !== "abs" && (
+                <p className="mt-1 font-mono text-[8.5px] uppercase tracking-[0.05em] text-faint">
+                  The bridge above reads the filed quarter in ₺ — the {LENS_LABEL[mode].toLowerCase()} lens applies to the statement below.
+                </p>
+              )}
+            </>
+          )}
 
           {/* Balance Sheet — single table, assets and liabilities together */}
           {statement === "bs" && (
