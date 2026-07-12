@@ -55,8 +55,16 @@ interface Props {
 
 type SortKey = "assets" | "roe" | "npl" | "nim" | "car" | "periods";
 
+/** ONE entry per body cell after the bank name — the header and the row are two
+ *  halves of the same column list, so they cannot drift apart. (They did: the
+ *  share cell had no header, which shifted every label one column left and made
+ *  the table print each bank's share under "ROE".)
+ *
+ *  `share` sorts by assets: share is assets ÷ a constant, so the orders are
+ *  identical, and giving it its own key would just let the two disagree. */
 const COLUMNS: { key: SortKey; label: string }[] = [
   { key: "assets", label: "Assets" },
+  { key: "assets", label: "Share" },
   { key: "roe", label: "ROE" },
   { key: "npl", label: "NPL" },
   { key: "nim", label: "NIM" },
@@ -298,7 +306,7 @@ export default function Register({ rows, groups, latest, maxPeriods }: Props) {
             <tr>
               <th className={`${head} pr-2.5 text-left text-faint`}>Bank</th>
               {COLUMNS.map((c) => (
-                <th key={c.key} className={`${head} px-2.5 text-right`}>
+                <th key={c.label} className={`${head} px-2.5 text-right`}>
                   <button
                     type="button"
                     onClick={() => clickSort(c.key)}
@@ -306,10 +314,9 @@ export default function Register({ rows, groups, latest, maxPeriods }: Props) {
                       sortKey === c.key ? "text-foreground" : "text-faint hover:text-foreground"
                     }`}
                   >
-                    {c.key === "assets" ? "Assets" : c.label}
-                    {c.key === "assets" ? "" : arrow(c.key)}
+                    {c.label}
+                    {arrow(c.key)}
                   </button>
-                  {c.key === "assets" && <span className="text-faint">{arrow("assets")}</span>}
                 </th>
               ))}
             </tr>
