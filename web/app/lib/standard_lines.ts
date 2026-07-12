@@ -71,6 +71,12 @@ export const BS_ASSET_LINES: StandardLine[] = [
   { id: "factoring_recv",          label: "Factoring Receivables",                                           hierarchy: "2.3" },
   { id: "securities_amc",          label: "Securities at Amortized Cost",                                    hierarchy: "2.3" },
   { id: "other_amort_cost",        label: "Other Financial Assets at Amortized Cost",                        hierarchy: "2.4" },
+  // The deposit-bank template files securities-at-amortized-cost HERE, under 2.4
+  // (2.3 is Factoring for them). Ziraat's ₺440bn of government paper lives on
+  // this line — so show the breakdown rather than leaving a blank
+  // "Securities at Amortized Cost" row that reads as if the bank held none.
+  { id: "govt_debt_amc",           label: "Government Debt Securities",                                      hierarchy: "2.4.1" },
+  { id: "other_fin_amc",           label: "Other Financial Assets",                                          hierarchy: "2.4.2" },
   { id: "ecl_loans",               label: "Expected Credit Losses",                                          hierarchy: "2.ecl", contra: true },
   { id: "held_for_sale",           label: "Held-for-Sale and Discontinued Operations Assets (Net)",          hierarchy: "III." },
   { id: "subsidiaries",            label: "Investments in Subsidiaries and Associates",                      hierarchy: "IV.",   bold: true },

@@ -53,6 +53,11 @@
   /* Data accent — chart hero navy (lines, KPI values, sparklines). */
   --data: #2B4E7E;
 
+  /* Context grey — the non-hero mark: chart context lines, the peer ticks on
+   * the /cross-bank scorecard strips, coverage meters. Mirrors `context` in
+   * app/lib/chart-theme.ts (LOCKSTEP). */
+  --context: #C0C8D1;
+
   /* Caption / axis tone. */
   --faint: #A0A7AE;
 
@@ -105,6 +110,7 @@
   --primary-foreground: #101318;
 
   --data: #7FA3D8;              /* brightened hero navy for dark charts */
+  --context: #4A525C;           /* context grey on the dark sheet (chart-theme) */
 
   --faint: #6B747E;
 
@@ -146,6 +152,7 @@
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-data: var(--data);
+  --color-context: var(--context);
   --color-positive: var(--positive);
   --color-negative: var(--negative);
   --color-warning: var(--warning);
