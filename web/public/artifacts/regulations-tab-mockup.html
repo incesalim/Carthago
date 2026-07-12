@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Carthago - Regulations tab mockup</title>
+  <style>
+    :root {
+      --ground: #f7f8f6;
+      --sheet: #fff;
+      --ink: #12161b;
+      --muted: #68707a;
+      --faint: #9da5ad;
+      --line: #e1e3dd;
+      --hair: #eceee9;
+      --wash: #f3f4f1;
+      --link: #2757a8;
+      --navy: #2b4e7e;
+      --green: #187a53;
+      --red: #c24847;
+      --amber: #a97608;
+      --shadow: 0 1px 2px rgba(18,24,32,.04), 0 12px 32px -22px rgba(18,24,32,.22);
+      color-scheme: light;
+    }
+    [data-theme="dark"] {
+      --ground: #101318;
+      --sheet: #171b21;
+      --ink: #e6e9e6;
+      --muted: #9aa3ad;
+      --faint: #6b747e;
+      --line: #2a3038;
+      --hair: #222830;
+      --wash: #1e232a;
+      --link: #7fa3d8;
+      --navy: #7fa3d8;
+      --green: #4fb98a;
+      --red: #e0716b;
+      --amber: #d9a83f;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px -22px rgba(0,0,0,.7);
+      color-scheme: dark;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; overflow-x: hidden; background: var(--ground); color: var(--ink); font-family: Inter, "Segoe UI", Arial, sans-serif; font-size: 14px; }
+    button, input { font: inherit; }
+    button { color: inherit; }
+    a { color: inherit; }
+    .mono { font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace; font-variant-numeric: tabular-nums; }
+    .shell { display: grid; grid-template-columns: 216px minmax(0, 1fr); min-height: 100vh; }
+    .rail { padding: 25px 20px; border-right: 1px solid var(--line); }
+    .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 33px; }
+    .brand img { width: 28px; height: 28px; object-fit: contain; }
+    [data-theme="dark"] .brand img { filter: invert(1); }
+    .brand strong { display: block; font-size: 17px; }
+    .brand small { display: block; color: var(--faint); margin-top: 2px; font-size: 10px; }
+    .nav-group { margin: 22px 0 8px; color: var(--faint); font-size: 9px; text-transform: uppercase; letter-spacing: .08em; }
+    .nav-item { position: relative; display: block; padding: 7px 0; color: var(--muted); text-decoration: none; font-size: 12.5px; }
+    .nav-item.active { color: var(--ink); font-weight: 650; }
+    .nav-item.active::before { content: ""; position: absolute; left: -20px; top: 7px; bottom: 7px; width: 2px; background: var(--ink); }
+    .rail-bottom { position: fixed; left: 20px; bottom: 24px; display: flex; align-items: center; gap: 10px; color: var(--muted); }
+    .icon-btn { width: 32px; height: 32px; display: inline-grid; place-items: center; border: 1px solid var(--line); background: transparent; cursor: pointer; border-radius: 5px; }
+    .workspace { padding: 16px 18px 24px; min-width: 0; }
+    .sheet { max-width: 1440px; min-height: calc(100vh - 40px); margin: 0 auto; padding: 29px 36px 24px; background: var(--sheet); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow); }
+    .mock-label { margin: -8px 0 18px; padding-bottom: 9px; border-bottom: 1px solid var(--hair); color: var(--amber); font-size: 9px; text-transform: uppercase; letter-spacing: .09em; }
+    .title-line { display: flex; align-items: baseline; gap: 15px; flex-wrap: wrap; }
+    h1 { margin: 0; font-size: 26px; letter-spacing: 0; }
+    .record { color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: .06em; }
+    .compiled { margin-left: auto; color: var(--faint); font-size: 9px; text-transform: uppercase; letter-spacing: .06em; }
+    .lede { max-width: 710px; margin: 8px 0 0; color: var(--muted); line-height: 1.5; font-size: 12.5px; }
+    .tabs { display: flex; gap: 22px; margin-top: 22px; border-bottom: 1px solid var(--line); }
+    .tab { border: 0; border-bottom: 2px solid transparent; background: none; padding: 0 0 9px; cursor: pointer; color: var(--muted); font-size: 12px; }
+    .tab.active { border-color: var(--ink); color: var(--ink); font-weight: 650; }
+    .vitals { display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 22px; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--line); }
+    .vital { min-width: 0; padding: 13px 16px 12px; border-right: 1px solid var(--hair); }
+    .vital:first-child { padding-left: 0; }
+    .vital:last-child { border-right: 0; }
+    .vital-label { color: var(--muted); font-size: 10.5px; }
+    .vital-value { margin-top: 4px; font-size: 23px; font-weight: 650; white-space: nowrap; }
+    .vital-value small { font-size: 10px; font-weight: 400; color: var(--faint); }
+    .vital-note { margin-top: 4px; color: var(--faint); font-size: 9.5px; line-height: 1.35; }
+    .section-head { display: flex; gap: 12px; align-items: baseline; margin: 26px 0 9px; }
+    .section-head h2 { margin: 0; font-size: 14px; }
+    .section-head span { color: var(--faint); font-size: 8.5px; text-transform: uppercase; letter-spacing: .07em; }
+    .section-head .right { margin-left: auto; }
+    .decision-grid { display: grid; grid-template-columns: minmax(0, 8fr) minmax(260px, 4fr); gap: 36px; }
+    .filters { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+    .filter { border: 1px solid var(--line); background: transparent; padding: 5px 9px; border-radius: 4px; color: var(--muted); font-size: 10.5px; cursor: pointer; }
+    .filter.active { background: var(--ink); color: var(--sheet); border-color: var(--ink); }
+    .search { margin-left: auto; width: 175px; border: 0; border-bottom: 1px solid var(--line); background: transparent; padding: 6px 2px; color: var(--ink); outline: none; font-size: 11px; }
+    .search:focus { border-color: var(--link); }
+    .changes { border-top: 1px solid var(--ink); }
+    .change-row { display: grid; grid-template-columns: 72px minmax(0, 1fr) 118px 90px 20px; gap: 13px; align-items: start; width: 100%; padding: 13px 4px; border: 0; border-bottom: 1px solid var(--hair); background: transparent; text-align: left; cursor: pointer; }
+    .change-row > span:nth-child(2) { min-width: 0; }
+    .change-row:hover { background: var(--wash); }
+    .date { font-size: 11px; font-weight: 650; }
+    .date small { display: block; color: var(--faint); margin-top: 3px; font-size: 8.5px; font-weight: 400; text-transform: uppercase; letter-spacing: .05em; }
+    .change-title { display: block; font-size: 12.5px; font-weight: 650; line-height: 1.35; }
+    .change-summary { display: block; margin-top: 4px; overflow-wrap: anywhere; color: var(--muted); font-size: 10.5px; line-height: 1.45; }
+    .tag { display: inline-block; padding: 3px 6px; border-radius: 3px; background: var(--wash); color: var(--muted); font-size: 9px; white-space: nowrap; }
+    .tag.bddk { color: var(--green); background: color-mix(in srgb, var(--green) 10%, transparent); }
+    .tag.tcmb { color: var(--navy); background: color-mix(in srgb, var(--navy) 10%, transparent); }
+    .impact { font-size: 10px; color: var(--muted); }
+    .impact b { display: block; margin-bottom: 5px; color: var(--ink); font-weight: 600; }
+    .dots { display: flex; gap: 3px; }
+    .dot { width: 14px; height: 3px; background: var(--line); }
+    .dot.on { background: var(--amber); }
+    .arrow { color: var(--link); font-size: 17px; }
+    .empty { display: none; padding: 30px 4px; color: var(--muted); border-bottom: 1px solid var(--hair); }
+    .agenda { border-top: 1px solid var(--ink); }
+    .agenda-item { display: grid; grid-template-columns: 45px 1fr; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--hair); }
+    .agenda-date { color: var(--amber); font-size: 10px; font-weight: 650; }
+    .agenda-title { display: block; font-size: 11.5px; font-weight: 600; line-height: 1.35; }
+    .agenda-note { display: block; margin-top: 3px; color: var(--faint); font-size: 9.5px; line-height: 1.4; }
+    .watchline { margin-top: 14px; padding: 10px 0; border-bottom: 1px solid var(--hair); color: var(--muted); font-size: 10.5px; line-height: 1.45; }
+    .watchline b { color: var(--ink); }
+    .source-table { width: 100%; border-collapse: collapse; border-top: 1px solid var(--ink); }
+    .source-table th { padding: 7px 8px; border-bottom: 1px solid var(--line); color: var(--faint); font-size: 8px; font-weight: 400; text-align: left; text-transform: uppercase; letter-spacing: .07em; }
+    .source-table td { padding: 10px 8px; border-bottom: 1px solid var(--hair); font-size: 11px; }
+    .source-table th:last-child, .source-table td:last-child { text-align: right; }
+    .source-table a { color: var(--link); text-decoration: none; }
+    .hidden { display: none !important; }
+    .colophon { margin-top: 32px; padding-top: 10px; border-top: 1px solid var(--line); display: flex; gap: 16px; color: var(--faint); font-size: 8px; text-transform: uppercase; letter-spacing: .06em; }
+    .colophon span:last-child { margin-left: auto; }
+    .overlay { position: fixed; inset: 0; z-index: 10; background: rgba(0,0,0,.28); opacity: 0; pointer-events: none; transition: opacity .18s; }
+    .overlay.open { opacity: 1; pointer-events: auto; }
+    .drawer { position: fixed; z-index: 11; top: 0; right: 0; width: min(520px, 100%); height: 100vh; padding: 28px 30px; background: var(--sheet); border-left: 1px solid var(--line); transform: translateX(100%); transition: transform .2s; overflow-y: auto; }
+    .drawer.open { transform: translateX(0); }
+    .drawer-close { float: right; }
+    .drawer-kicker { margin: 4px 44px 10px 0; color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: .07em; }
+    .drawer h2 { margin: 0 40px 11px 0; font-size: 21px; line-height: 1.25; }
+    .drawer p { color: var(--muted); line-height: 1.55; font-size: 12px; }
+    .drawer h3 { margin: 24px 0 7px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 12px; }
+    .impact-list { margin: 0; padding: 0; list-style: none; }
+    .impact-list li { display: grid; grid-template-columns: 110px 1fr; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--hair); font-size: 11px; }
+    .impact-list span:first-child { color: var(--faint); }
+    .source-link { display: inline-block; margin-top: 22px; color: var(--link); font-size: 11px; text-decoration: none; }
+    @media (max-width: 980px) {
+      .shell { grid-template-columns: 1fr; }
+      .rail { display: none; }
+      .workspace { padding: 0; }
+      .sheet { min-height: 100vh; border: 0; border-radius: 0; padding: 24px 20px; }
+      .decision-grid { grid-template-columns: 1fr; }
+      .compiled { display: none; }
+    }
+    @media (max-width: 700px) {
+      .vitals { grid-template-columns: 1fr 1fr; }
+      .vital:nth-child(2) { border-right: 0; }
+      .vital:nth-child(n+3) { border-top: 1px solid var(--hair); }
+      .vital:nth-child(3) { padding-left: 0; }
+      .change-row { grid-template-columns: 61px minmax(0, 1fr) 18px; }
+      .change-row > span:nth-child(3), .change-row .impact { display: none; }
+      .search { width: 100%; margin-left: 0; order: 2; }
+      .tabs { gap: 16px; overflow-x: auto; white-space: nowrap; }
+      .colophon { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="rail">
+      <div class="brand"><img src="../logo.png" alt=""><div><strong>Carthago</strong><small>Turkish banking data</small></div></div>
+      <div class="nav-group mono">Sector</div>
+      <a class="nav-item" href="#">Overview</a><a class="nav-item" href="#">Credit</a><a class="nav-item" href="#">Deposits</a><a class="nav-item" href="#">Liquidity</a><a class="nav-item" href="#">Asset Quality</a><a class="nav-item" href="#">Capital</a>
+      <div class="nav-group mono">By bank</div>
+      <a class="nav-item" href="#">Banks</a><a class="nav-item" href="#">Compare</a><a class="nav-item" href="#">Disclosures</a>
+      <div class="nav-group mono">More</div>
+      <a class="nav-item active" href="#">Regulations</a><a class="nav-item" href="#">News</a>
+      <div class="rail-bottom"><button class="icon-btn" id="theme" title="Toggle theme" aria-label="Toggle theme">&#9788;</button><span class="mono" style="font-size:9px">Theme</span></div>
+    </aside>
+
+    <div class="workspace">
+      <main class="sheet">
+        <div class="mock-label mono">Design artefact / sample data / not a live regulatory record</div>
+        <div class="title-line">
+          <h1>Regulations</h1>
+          <span class="record mono">Record 12 Jul 2026 &middot; TCMB + BDDK</span>
+          <span class="compiled mono">compiled, not written</span>
+        </div>
+        <p class="lede">The rulebook translated into deadlines and bank-level consequences. Start with what changed, who is exposed, and when action is due; open the primary instrument for the legal text.</p>
+
+        <nav class="tabs" aria-label="Regulations views">
+          <button class="tab active" data-view="changes">Change register <span class="mono">6</span></button>
+          <button class="tab" data-view="calendar">Implementation calendar <span class="mono">4</span></button>
+          <button class="tab" data-view="sources">Source archive <span class="mono">124</span></button>
+        </nav>
+
+        <section id="changes-view">
+          <div class="vitals">
+            <div class="vital"><div class="vital-label">Open implementation items</div><div class="vital-value mono">4</div><div class="vital-note">2 due within 30 days &middot; sample workflow state</div></div>
+            <div class="vital"><div class="vital-label">Most affected area</div><div class="vital-value mono">Liquidity</div><div class="vital-note">3 of 6 sampled changes touch funding or reserves</div></div>
+            <div class="vital"><div class="vital-label">Next effective date</div><div class="vital-value mono">15 Jul</div><div class="vital-note">sample deadline &middot; 3 days from artefact record</div></div>
+            <div class="vital"><div class="vital-label">Primary sources tracked</div><div class="vital-value mono">124 <small>items</small></div><div class="vital-note">TCMB 81 &middot; BDDK 43 &middot; illustrative totals</div></div>
+          </div>
+
+          <div class="decision-grid">
+            <section>
+              <div class="section-head"><h2>What changed</h2><span class="mono">ranked by effective date &middot; sample records</span></div>
+              <div class="filters">
+                <button class="filter active" data-filter="all">All</button><button class="filter" data-filter="bddk">BDDK</button><button class="filter" data-filter="tcmb">TCMB</button><button class="filter" data-filter="high">High impact</button>
+                <input class="search" id="search" aria-label="Search changes" placeholder="Search title or area">
+              </div>
+              <div class="changes" id="changes-list">
+                <button class="change-row" data-source="tcmb" data-impact="high" data-title="Reserve requirement framework update liquidity deposits" data-detail="reserve">
+                  <span class="date mono">15 Jul<small>Effective</small></span><span><span class="change-title">Reserve requirement framework update</span><span class="change-summary">Illustrative adjustment to reserve treatment across selected deposit categories.</span></span><span><span class="tag tcmb">TCMB</span></span><span class="impact"><b>High impact</b><span class="dots"><i class="dot on"></i><i class="dot on"></i><i class="dot on"></i></span></span><span class="arrow">&rsaquo;</span>
+                </button>
+                <button class="change-row" data-source="bddk" data-impact="high" data-title="Capital buffer reporting template capital reporting" data-detail="capital">
+                  <span class="date mono">31 Jul<small>First report</small></span><span><span class="change-title">Capital buffer reporting template</span><span class="change-summary">Sample reporting change separating management buffer from the regulatory floor.</span></span><span><span class="tag bddk">BDDK</span></span><span class="impact"><b>High impact</b><span class="dots"><i class="dot on"></i><i class="dot on"></i><i class="dot on"></i></span></span><span class="arrow">&rsaquo;</span>
+                </button>
+                <button class="change-row" data-source="bddk" data-impact="medium" data-title="Digital onboarding control amendments operations digital" data-detail="digital">
+                  <span class="date mono">01 Aug<small>Effective</small></span><span><span class="change-title">Digital onboarding control amendments</span><span class="change-summary">Illustrative revisions to remote identity checks and retained evidence.</span></span><span><span class="tag bddk">BDDK</span></span><span class="impact"><b>Medium</b><span class="dots"><i class="dot on"></i><i class="dot on"></i><i class="dot"></i></span></span><span class="arrow">&rsaquo;</span>
+                </button>
+                <button class="change-row" data-source="tcmb" data-impact="medium" data-title="FX liquidity facility terms market risk liquidity" data-detail="fx">
+                  <span class="date mono">05 Aug<small>Window opens</small></span><span><span class="change-title">FX liquidity facility terms</span><span class="change-summary">Sample change to eligible collateral and access conditions for participating banks.</span></span><span><span class="tag tcmb">TCMB</span></span><span class="impact"><b>Medium</b><span class="dots"><i class="dot on"></i><i class="dot on"></i><i class="dot"></i></span></span><span class="arrow">&rsaquo;</span>
+                </button>
+                <button class="change-row" data-source="bddk" data-impact="low" data-title="Consumer loan disclosure wording conduct credit" data-detail="consumer">
+                  <span class="date mono">15 Aug<small>Effective</small></span><span><span class="change-title">Consumer loan disclosure wording</span><span class="change-summary">Illustrative standardization of pre-contract cost and repricing disclosures.</span></span><span><span class="tag bddk">BDDK</span></span><span class="impact"><b>Low impact</b><span class="dots"><i class="dot on"></i><i class="dot"></i><i class="dot"></i></span></span><span class="arrow">&rsaquo;</span>
+                </button>
+                <button class="change-row" data-source="tcmb" data-impact="low" data-title="Payment system operating window payments" data-detail="payments">
+                  <span class="date mono">01 Sep<small>Effective</small></span><span><span class="change-title">Payment system operating window</span><span class="change-summary">Sample extension of settlement availability and revised incident notices.</span></span><span><span class="tag tcmb">TCMB</span></span><span class="impact"><b>Low impact</b><span class="dots"><i class="dot on"></i><i class="dot"></i><i class="dot"></i></span></span><span class="arrow">&rsaquo;</span>
+                </button>
+                <div class="empty" id="empty">No sample changes match this filter.</div>
+              </div>
+            </section>
+
+            <aside>
+              <div class="section-head"><h2>Action horizon</h2><span class="mono right">next 60 days</span></div>
+              <div class="agenda">
+                <div class="agenda-item"><span class="agenda-date mono">15 Jul</span><span><span class="agenda-title">Treasury &middot; confirm reserve mix</span><span class="agenda-note">Linked to sampled TCMB framework change.</span></span></div>
+                <div class="agenda-item"><span class="agenda-date mono">31 Jul</span><span><span class="agenda-title">Finance &middot; submit revised capital return</span><span class="agenda-note">Reporting owner assigned &middot; evidence pending.</span></span></div>
+                <div class="agenda-item"><span class="agenda-date mono">01 Aug</span><span><span class="agenda-title">Compliance &middot; deploy onboarding controls</span><span class="agenda-note">Policy, product and audit sign-off required.</span></span></div>
+                <div class="agenda-item"><span class="agenda-date mono">05 Aug</span><span><span class="agenda-title">Markets &middot; test facility eligibility</span><span class="agenda-note">Confirm collateral mapping before window opens.</span></span></div>
+              </div>
+              <div class="watchline"><b>Watch:</b> the next TCMB Monetary Policy Committee decision is shown here only when it creates an implementation or repricing dependency.</div>
+            </aside>
+          </div>
+        </section>
+
+        <section id="calendar-view" class="hidden">
+          <div class="section-head"><h2>Implementation calendar</h2><span class="mono">sample owner map &middot; July-September 2026</span></div>
+          <table class="source-table"><thead><tr><th>Date</th><th>Obligation</th><th>Owner</th><th>Status</th></tr></thead><tbody>
+            <tr><td class="mono">15 Jul</td><td>Reserve requirement framework update</td><td>Treasury</td><td><span class="tag" style="color:var(--amber)">In review</span></td></tr>
+            <tr><td class="mono">31 Jul</td><td>Capital buffer reporting template</td><td>Finance</td><td><span class="tag" style="color:var(--green)">On track</span></td></tr>
+            <tr><td class="mono">01 Aug</td><td>Digital onboarding controls</td><td>Compliance</td><td><span class="tag" style="color:var(--red)">At risk</span></td></tr>
+            <tr><td class="mono">05 Aug</td><td>FX facility eligibility test</td><td>Markets</td><td><span class="tag">Unassigned</span></td></tr>
+          </tbody></table>
+        </section>
+
+        <section id="sources-view" class="hidden">
+          <div class="section-head"><h2>Primary source archive</h2><span class="mono">traceability layer &middot; sample records</span></div>
+          <table class="source-table"><thead><tr><th>Published</th><th>Source</th><th>Instrument</th><th>Topic</th><th>Original</th></tr></thead><tbody>
+            <tr><td class="mono">10 Jul 2026</td><td><span class="tag tcmb">TCMB</span></td><td>Illustrative reserve requirement release</td><td>Liquidity</td><td><a href="#">Open &nearr;</a></td></tr>
+            <tr><td class="mono">08 Jul 2026</td><td><span class="tag bddk">BDDK</span></td><td>Illustrative capital reporting decision</td><td>Capital</td><td><a href="#">Open &nearr;</a></td></tr>
+            <tr><td class="mono">04 Jul 2026</td><td><span class="tag bddk">BDDK</span></td><td>Illustrative remote onboarding amendment</td><td>Digital</td><td><a href="#">Open &nearr;</a></td></tr>
+            <tr><td class="mono">01 Jul 2026</td><td><span class="tag tcmb">TCMB</span></td><td>Illustrative FX facility notice</td><td>Markets</td><td><a href="#">Open &nearr;</a></td></tr>
+          </tbody></table>
+        </section>
+
+        <footer class="colophon mono"><span>Sources TCMB + BDDK</span><span>Classification is a design sample</span><span>Always read the primary instrument</span></footer>
+      </main>
+    </div>
+  </div>
+
+  <div class="overlay" id="overlay"></div>
+  <aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-label="Regulation detail">
+    <button class="icon-btn drawer-close" id="drawer-close" aria-label="Close detail">&times;</button>
+    <div class="drawer-kicker mono" id="drawer-kicker">Sample record</div>
+    <h2 id="drawer-title">Reserve requirement framework update</h2>
+    <p id="drawer-summary">This panel demonstrates the proposed reading order: executive summary first, operational consequence second, and the primary instrument last.</p>
+    <h3>Bank impact</h3>
+    <ul class="impact-list"><li><span>Balance sheet</span><span>Liquidity allocation and marginal funding cost.</span></li><li><span>Teams</span><span>Treasury, ALM, Finance and Regulatory Reporting.</span></li><li><span>Effective</span><span class="mono" id="drawer-date">15 Jul 2026</span></li><li><span>Confidence</span><span>Analyst verified against primary source.</span></li></ul>
+    <h3>Required response</h3>
+    <p>Confirm exposure, assign an accountable owner, record the implementation decision, and attach evidence before the effective date.</p>
+    <a class="source-link" href="#">Open primary instrument &nearr;</a>
+  </aside>
+
+  <script>
+    const root = document.documentElement;
+    const themeButton = document.getElementById('theme');
+    themeButton.addEventListener('click', () => {
+      const dark = root.dataset.theme === 'dark';
+      root.dataset.theme = dark ? '' : 'dark';
+      themeButton.innerHTML = dark ? '&#9788;' : '&#9790;';
+    });
+
+    const views = { changes: 'changes-view', calendar: 'calendar-view', sources: 'sources-view' };
+    document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t === tab));
+      Object.entries(views).forEach(([name, id]) => document.getElementById(id).classList.toggle('hidden', name !== tab.dataset.view));
+    }));
+
+    let currentFilter = 'all';
+    const search = document.getElementById('search');
+    const rows = [...document.querySelectorAll('.change-row')];
+    function applyFilters() {
+      const query = search.value.trim().toLowerCase();
+      let shown = 0;
+      rows.forEach(row => {
+        const filterMatch = currentFilter === 'all' || row.dataset.source === currentFilter || row.dataset.impact === currentFilter;
+        const searchMatch = !query || row.dataset.title.includes(query);
+        const visible = filterMatch && searchMatch;
+        row.classList.toggle('hidden', !visible);
+        if (visible) shown++;
+      });
+      document.getElementById('empty').style.display = shown ? 'none' : 'block';
+    }
+    document.querySelectorAll('.filter').forEach(filter => filter.addEventListener('click', () => {
+      currentFilter = filter.dataset.filter;
+      document.querySelectorAll('.filter').forEach(f => f.classList.toggle('active', f === filter));
+      applyFilters();
+    }));
+    search.addEventListener('input', applyFilters);
+
+    const drawer = document.getElementById('drawer');
+    const overlay = document.getElementById('overlay');
+    function closeDrawer() { drawer.classList.remove('open'); overlay.classList.remove('open'); }
+    rows.forEach(row => row.addEventListener('click', () => {
+      document.getElementById('drawer-title').textContent = row.querySelector('.change-title').textContent;
+      document.getElementById('drawer-kicker').textContent = `${row.querySelector('.tag').textContent} / ${row.querySelector('.date small').textContent} / sample record`;
+      document.getElementById('drawer-date').textContent = `${row.querySelector('.date').childNodes[0].textContent.trim()} 2026`;
+      drawer.classList.add('open'); overlay.classList.add('open');
+    }));
+    document.getElementById('drawer-close').addEventListener('click', closeDrawer);
+    overlay.addEventListener('click', closeDrawer);
+    document.addEventListener('keydown', event => { if (event.key === 'Escape') closeDrawer(); });
+  </script>
+</body>
+</html>
