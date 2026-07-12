@@ -44,19 +44,32 @@ coverage or known issues change.
 | `bank_audit_oci`, `_cash_flow`, `_equity_change`, `_npl_movement`, `_stages`, `_loans_by_sector` | BRSA PDFs (statement pages + IFRS-9/credit footnotes) | 2022-Q1 → 2026-Q1 | per-bank; per-lane pass rates in the validation-status table below |
 | `bank_audit_extractions` | extraction log | one row per PDF | 974 rows (954 ok / 20 partial) |
 | `bank_types`, `table_definitions`, `download_log` | metadata | — | — |
-| `banks` (+ alias views `v_bist_prices` / `v_news_items` / `v_bank_earnings`) | dimension (migration 0021; +0022 new entrants), seeded from `bddk_bank_list.json` + `bank_names.ts` | 37-bank audited universe | canonical per-bank identity + single join key across lanes (`ticker` == `bank_ticker` == `symbol`); the views alias each lane's id column to `bank_ticker`. Powers cross-lane joins + the text-to-SQL bot |
+| `banks` (+ alias views `v_bist_prices` / `v_news_items` / `v_bank_earnings`) | dimension (migration 0021; +0022 new entrants; +0024 Takasbank), seeded from `bddk_bank_list.json` + `bank_names.ts` | 38-bank audited universe | canonical per-bank identity + single join key across lanes (`ticker` == `bank_ticker` == `symbol`); the views alias each lane's id column to `bank_ticker`. Powers cross-lane joins + the text-to-SQL bot. **One bank is carried but peer-excluded** — `TAKAS` (Takasbank), see below |
 
-**Quarterly audit reports**: 37 banks in URL config, ~974 PDFs extracted into
-D1 (~159k balance-sheet rows + ~59k P&L rows + ~7.4k IFRS 9 credit-quality
-rows + ~460 bank-profile rows) for the 31 established banks. **6 new-entrant
-digital / participation banks were added to the config + `banks` dimension on
-2026-07-11** (Enpara, Colendi, Ziraat Dinamik + Dünya / Hayat Finans / T.O.M.
-Katılım — 59 verified text-PDF report-periods) and are **pending their first
-acquisition + extraction** (they surface on `/banks` only once
-`bank_audit_extractions` rows exist). Feasibility + per-bank sourcing:
+**Quarterly audit reports**: **38 banks** in URL config; **1,048 PDFs extracted into D1,
+1,048 core-success (100%)**. The 6 new-entrant digital / participation banks (Enpara,
+Colendi, Ziraat Dinamik + Dünya / Hayat Finans / T.O.M. Katılım) were onboarded
+2026-07-11, and **Takasbank (`TAKAS`) 2026-07-12**. Feasibility + per-bank sourcing:
 [knowledge/new-banks-coverage-gap-2026-07-11.md](knowledge/new-banks-coverage-gap-2026-07-11.md).
 PDFs themselves live in R2 at
-`bddk-audit-reports/<ticker>/<TICKER>_<period>_<kind>.pdf`. Bank profile
+`bddk-audit-reports/<ticker>/<TICKER>_<period>_<kind>.pdf`.
+
+**Takasbank (`TAKAS`) — carried, but NOT a peer.** İstanbul Takas ve Saklama Bankası is
+BDDK-licensed as a development-and-investment bank and files standard quarterly BRSA
+reports (16 periods, 2022Q2→2026Q1), but it is Turkey's central securities-settlement /
+clearing (CCP) + custody institution — market infrastructure, not a lender: **zero
+deposits**, customer loans ~2.5% of assets, ~94% of the balance sheet in cash +
+placements (member cash and collateral it merely custodies), plus ~178bn TL of
+off-balance CCP guarantees. It is therefore **excluded from peer ranking, the
+market-share league and the sector HHI** — `PEER_EXCLUDED_TICKERS` in
+`web/app/lib/bank_names.ts`, enforced at the single choke point in `heatmap.ts`
+(`ensure`) and `market-share.ts` (`fleetBalances`). It keeps its own `/banks/TAKAS`
+page, where balance sheet / capital / liquidity ARE meaningful. Two sourcing quirks:
+its own IR site sits behind an **F5 WAF** that rejects non-browser requests (CI fails
+identically), so it is sourced from **BDDK's BdrUyg registry** (institution code 132,
+`unconsolidated_zip`); and BDDK omits its GlobalSign intermediate cert, so
+`fetch_pdf_bytes` verifies via `src/scrapers/_http.bddk_verify()` (**full verification,
+not a bypass**). 2022Q1 is omitted — broken font cmap (see AUDIT_BANK_CATALOG). Bank profile
 (branches + personnel) is extracted where the bank discloses it in a
 recognized phrasing — **20 of 31 banks parsed** (2026-06-14: broadened the regex —
 domestic-only / bare-total branch forms + "personeli"/"çalışan" personnel →
