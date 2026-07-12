@@ -44,7 +44,7 @@ certificate as "instruments", and the second vital — *"Latest decision — Jul
 rule/rate items to 187 everything-else; the feed does not distinguish, so neither
 does the page.
 
-**2. The rules are in the database, unread.**
+**2. The rules are readable, but never read.**
 
 `news_items.body_text` holds **258 of 264** TCMB releases (avg 2,639 chars). The
 bodies are not prose gestures — they carry the parameters, as tables. The
@@ -61,8 +61,15 @@ bodies are not prose gestures — they carry the parameters, as tables. The
 >
 > The reserve requirements according to new ratios will be **maintained on July 17, 2026**.
 
-Before value, after value, and the date it binds. The page renders this as a blue
-link labelled "Press Release on Macroprudential Framework".
+Before value, after value, and the date it binds.
+
+**To be exact about the defect** — `RawFeeds.tsx` ships a `MarkdownTable` renderer, so
+clicking that card opens a drawer that *does* display this table. The text is therefore
+**readable**. It is never **read**: the page never turns it into state, never compares
+32% to the 30% it replaced, never aggregates the 48 rate decisions into a path, and
+never lets any of it reach the top of the page. A reader who does not click learns
+nothing. The fix is not "surface the text" — the drawer already does — it is
+**parse the text into the page's own state**.
 
 The same is true of the rate decisions. Parsing `body_text` across the feed
 reconstructs **48 MPC decisions and 24 rate changes** — the entire cycle: 14% →
@@ -158,8 +165,70 @@ flag when a licensed institution is missing from `banks`.
 numbered decisions held; BDDK bodies present for only 162 of 603 items. A page
 that prints its own gaps is more trustworthy than one that prints a tidy count.
 
-**5. Depth** — the carry-over contract holds. The Kimi briefing and the raw TCMB
-+ BDDK feeds move down intact, restyled from boxed cards to hairline lists.
+**5. Depth** — one of the two existing sections survives; the other dissolves. See
+below, because this is the decision most likely to be got wrong.
+
+## The snapshot and the feed — do we still need them?
+
+The page has exactly two sections today: the **weekly snapshot** (the Kimi briefing,
+boxed cards) and the **raw feeds** (two 50-item card columns + a drawer). The
+carry-over contract says a redesign never deletes analytical content — but it does
+not say a page must state the same fact twice.
+
+### The feed: **keep it, and give it more than it has now**
+
+It is load-bearing, for three reasons:
+
+- It is the **only** place the 867 instruments live. Nothing else on the site holds them.
+- Its **drawer already renders the parameter tables** (`MarkdownTable` in
+  `RawFeeds.tsx`). That is the single best component on the page — the one place a
+  reader can see the rule in the regulator's own words. Deleting it would destroy the
+  page's only primary-source view.
+- Once the band cites its instruments, the archive becomes the **destination of every
+  citation**: "TCMB macropru · 1 Jul" has to land somewhere, and it lands here.
+
+What changes is its *shape*, not its existence. Two columns of news cards become one
+**archive table keyed on the decision date**, carrying the decision number, the
+publication lag, and an `is_instrument` mark — so the SSL certificate is visibly
+*present but not counted*, rather than silently inflating a headline. Worth noting: the
+current page fetches only **50 + 50 of 867**, and never says so.
+
+### The snapshot: **do not keep it as a section**
+
+Its two principal categories — *Monetary Policy Stance* and *Reserve Requirements* —
+are, after this redesign, **literally the band at the top of the page**. Printing them
+again 1,200px lower does not add evidence; it makes the page restate its own headline
+in weaker form. That is the duplication defect the per-bank redesign was built to kill.
+
+So it dissolves into the page rather than sitting in it:
+
+- its **regime bullets become the band** (with the figures re-sourced — see below);
+- its **licensing/structure output feeds the register**;
+- whatever it finds that **no cell models** (payments, open banking, structure) is
+  listed as a short *residue* — so the dissolve is lossless, and a category that keeps
+  reappearing there is the signal to promote it to a cell of its own;
+- its **provenance** (moonshot-v1-128k, 88 items, 330-day window, generated date) moves
+  to the colophon, where automation honesty requires it.
+
+### The rule that makes the dissolve safe: figures compiled, narrative written
+
+**The band's numbers must not come from the LLM.** Kimi's bullets are currently the only
+structured form of the regime — which is exactly why it is tempting to wire them
+straight into the signature band. Don't: that promotes an LLM's output to the boldest
+figure on the page, and one hallucinated ratio becomes the headline.
+
+Both figure sources are regular enough to parse deterministically:
+
+- the corridor sentence — *"keep the policy rate (the one-week repo auction rate) at 37
+  percent … overnight lending rate and the overnight borrowing rate at 40 percent and
+  35.5 percent"* — parses with one regex across all 48 releases;
+- the reserve-requirement table is a **markdown pipe table**, and `RawFeeds.tsx` already
+  contains a parser for exactly that shape (`isTableBlock` / `MarkdownTable`).
+
+So the numbers are **compiled from `body_text`**; the briefing keeps the prose and the
+coverage. This is the same split the rest of the site already honours
+([[feedback_extractors_no_api]] — extraction is deterministic; the free-model lane is
+for headlines, not figures) and it is what "compiled, not written" means on this page.
 
 ## What the first mockup got wrong
 
