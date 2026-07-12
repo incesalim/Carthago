@@ -225,25 +225,39 @@ function Row({ label, cells, bold, divider, depth = 0 }: RowProps) {
   return (
     <tr
       className={
-        // Flat look (per the design handoff): only computed subtotal/total rows
-        // (`divider`) get the muted band + top border. Top-level lines stay bold
-        // on white — distinguished by weight + indent, not a shaded stripe.
+        // The Desk statement (DESIGN.md): hairlines and weight, never a shaded
+        // stripe. A computed subtotal closes with the ink rule the sheet uses
+        // for every other total.
         divider
-          ? "bg-muted border-t border-border "
-          : "border-b border-border"
+          ? "border-b-2 border-t border-foreground/90 hover:bg-muted"
+          : "border-b border-hair hover:bg-muted"
       }
     >
-      <td className={`py-1.5 pr-3 ${pl} text-xs ${ink}`}>{label}</td>
+      <td className={`py-[5px] pr-3 ${pl} text-[12px] ${ink}`}>{label}</td>
       {cells.map((c, i) => (
         <td
           key={i}
-          className={`py-1.5 pl-2 pr-3 text-right text-xs tabular-nums ${
+          className={`py-[5px] pl-4 text-right font-mono text-[11.5px] tabular-nums whitespace-nowrap ${
             c.tone ? `${TONE_CLASS[c.tone]} ${bold ? "font-semibold" : ""}` : ink
           }`}
         >
           {c.text}
         </td>
       ))}
+    </tr>
+  );
+}
+
+/** Mono-caps band that splits the statement into its blocks (Assets · Funding). */
+function GroupRow({ label, span }: { label: string; span: number }) {
+  return (
+    <tr>
+      <td
+        colSpan={span}
+        className="border-b border-border pt-4 pb-1 font-mono text-[8.5px] uppercase tracking-[0.1em] text-faint"
+      >
+        {label}
+      </td>
     </tr>
   );
 }
@@ -1019,23 +1033,24 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   // Shared table header row. The lens decides the columns: period-end dates
   // (abs / yoy / size), plus the peer pair on a common-size balance sheet, or the
   // nominal→CPI→real→verdict quartet for one quarter on the real lens.
+  const TH = "py-2 pl-4 text-right font-mono text-[8.5px] font-normal uppercase tracking-[0.07em] text-faint whitespace-nowrap";
   const periodHeaderRow = (
-    <tr className="border-b">
-      <th className="text-left py-2 pl-3 pr-3 font-medium">Breakdown</th>
+    <tr className="border-b border-foreground">
+      <th className={`${TH} pl-0 text-left`}>Breakdown</th>
       {isReal ? (
         <>
-          <th className="text-right py-2 pl-2 pr-3 font-medium tabular-nums">Nominal y/y</th>
-          <th className="text-right py-2 pl-2 pr-3 font-medium tabular-nums">CPI y/y</th>
-          <th className="text-right py-2 pl-2 pr-3 font-medium tabular-nums">Real y/y</th>
-          <th className="text-right py-2 pl-2 pr-3 font-medium">Verdict</th>
+          <th className={TH}>Nominal y/y</th>
+          <th className={TH}>CPI y/y</th>
+          <th className={`${TH} text-foreground`}>Real y/y</th>
+          <th className={TH}>Verdict</th>
         </>
       ) : (
         <>
           {showTtm && (
-            <th className="text-right py-2 pl-2 pr-3 font-medium tabular-nums">TTM</th>
+            <th className={TH}>TTM</th>
           )}
           {periods.map((p) => (
-            <th key={p} className="text-right py-2 pl-2 pr-3 font-medium tabular-nums">
+            <th key={p} className={TH}>
               {periodToDate(p)}
               {periodWarning(p) && (
                 <span title={periodWarning(p)!} className="ml-1 cursor-help text-amber-600">⚠</span>
@@ -1044,8 +1059,8 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
           ))}
           {showPeers && (
             <>
-              <th className="text-right py-2 pl-2 pr-3 font-medium tabular-nums">Sector median</th>
-              <th className="text-right py-2 pl-2 pr-3 font-medium tabular-nums">Gap (pp)</th>
+              <th className={TH}>Sector median</th>
+              <th className={TH}>Gap (pp)</th>
             </>
           )}
         </>
@@ -1495,18 +1510,19 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
 
           {/* Balance Sheet — single table, assets and liabilities together */}
           {statement === "bs" && (
-          <section className="group mb-6 rounded-[10px] border border-border bg-card overflow-hidden">
-            <div className="px-5 py-3 border-b bg-muted flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-foreground">Balance Sheet</h2>
+          <section className="group mb-6">
+            <div className="flex items-baseline justify-between gap-3 pb-2">
+              <h2 className="text-[13.5px] font-bold text-foreground">Balance Sheet</h2>
               <div className="flex items-center gap-2">
-                <span className="text-[11px] text-muted-foreground">{unitLabel}</span>
+                <span className="font-mono text-[8.5px] uppercase tracking-[0.07em] text-faint">{unitLabel}</span>
                 <CopyTableButton />
               </div>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-xs">
+              <table className="w-full border-collapse">
                 <thead className="text-muted-foreground">{periodHeaderRow}</thead>
                 <tbody>
+                  <GroupRow label="Assets — what it owns" span={colCount + 1} />
                   {(() => {
                     // Standard, uniform layout for every bank. Asset code 2.3 holds
                     // Factoring (deposit layout) OR Securities at Amortized Cost
@@ -1543,6 +1559,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
                     });
                   })()}
                   <Row label="Total Assets" cells={totalAssets} bold divider />
+                  <GroupRow label="Liabilities & equity — what pays for it" span={colCount + 1} />
                   {liabPreEquity.map((line) => (
                     <Row
                       key={line.id}
@@ -1572,16 +1589,16 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
           {/* Income Statement — standardized table. The flow diagram no longer sits
               below it: the waterfall + interest fan are the SHAPE layer above. */}
           {statement === "is" && (
-          <section className="group rounded-[10px] border border-border bg-card overflow-hidden">
-            <div className="px-5 py-3 border-b bg-muted flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-foreground">Income Statement</h2>
+          <section className="group">
+            <div className="flex items-baseline justify-between gap-3 pb-2">
+              <h2 className="text-[13.5px] font-bold text-foreground">Income Statement</h2>
               <div className="flex items-center gap-2">
-                <span className="text-[11px] text-muted-foreground">{unitLabel}</span>
+                <span className="font-mono text-[8.5px] uppercase tracking-[0.07em] text-faint">{unitLabel}</span>
                 <CopyTableButton />
               </div>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-xs">
+              <table className="w-full border-collapse">
                 <thead className="text-muted-foreground">{periodHeaderRow}</thead>
                 <tbody>
                   {PL_LINES.map((line) => (
@@ -1607,16 +1624,16 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
                 Cash flow statement not available for these periods.
               </section>
             ) : (
-            <section className="group rounded-[10px] border border-border bg-card overflow-hidden">
-              <div className="px-5 py-3 border-b bg-muted flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-foreground">Cash Flow</h2>
+            <section className="group">
+              <div className="flex items-baseline justify-between gap-3 pb-2">
+                <h2 className="text-[13.5px] font-bold text-foreground">Cash Flow</h2>
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-muted-foreground">{unitLabel}</span>
+                  <span className="font-mono text-[8.5px] uppercase tracking-[0.07em] text-faint">{unitLabel}</span>
                   <CopyTableButton />
                 </div>
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full text-xs">
+                <table className="w-full border-collapse">
                   <thead className="text-muted-foreground">{periodHeaderRow}</thead>
                   <tbody>
                     {CF_LINES.map((line) =>

@@ -26,7 +26,10 @@ import {
 // ---------------------------------------------------------------------------
 
 function Strip({ s, spec }: { s: PeerStat; spec: PeerFieldSpec }) {
-  const W = 430, H = 40, x0 = 14, x1 = W - 14, base = 24;
+  // H must clear the two label rows: the value sits above the rule, the median
+  // and the axis ends below it. At H=40 the descenders of "MED 16.9" fell
+  // outside the viewBox and were clipped.
+  const W = 430, H = 50, x0 = 14, x1 = W - 14, base = 22;
   const clamp = (v: number) => Math.min(Math.max(v, spec.lo), spec.hi);
   const sc = (v: number) => x0 + ((clamp(v) - spec.lo) / (spec.hi - spec.lo)) * (x1 - x0);
   const me = sc(s.value);
@@ -48,7 +51,7 @@ function Strip({ s, spec }: { s: PeerStat; spec: PeerFieldSpec }) {
         MED {s.median.toFixed(spec.decimals)}
       </text>
       <circle cx={me} cy={base} r={5} fill="var(--data)" stroke="var(--card)" strokeWidth={1.5} />
-      <text x={me} y={base - 10} textAnchor="middle" fill="var(--data)" className="font-mono font-semibold" fontSize={9.5}>
+      <text x={me} y={base - 9} textAnchor="middle" fill="var(--data)" className="font-mono font-semibold" fontSize={9.5}>
         {s.value.toFixed(spec.decimals)}%
       </text>
       <text x={x0} y={base + 17} fill="var(--faint)" className="font-mono" fontSize={8}>
