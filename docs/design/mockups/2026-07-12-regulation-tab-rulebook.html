@@ -460,16 +460,17 @@ design proposal, not a live regulatory record — do not rely on it for complian
               <td class="p">31 Oct 24</td><td class="d">491d</td></tr>
           <tr><td class="m">Ziraat Dinamik <span class="tick">ZIRAATD</span><span>#10980</span></td>
               <td class="p">31 Oct 24</td><td class="d">491d</td></tr>
-          <tr><td class="m">FUPS Bank <span class="tick miss">not covered</span><span>#10979</span></td>
+          <tr><td class="m">FUPS Bank <span class="tick miss">licensed · not filing</span><span>#10979</span></td>
               <td class="p">31 Oct 24</td><td class="d">491d</td></tr>
         </tbody>
       </table>
-      <div class="flag" style="margin-top:12px">
-        <span class="id">!</span>
-        <p><b>FUPS Bank</b> holds a BDDK operating licence and does not appear in our
-          <code>banks</code> table. Three institutions licensed in the same batch —
-          Enpara, Colendi, Ziraat Dinamik — were onboarded by hand 16 months later.</p>
-        <span class="rule">licensed(faaliyet_izni) AND ticker NOT IN banks</span>
+      <div class="flag warn" style="margin-top:12px">
+        <span class="id">△</span>
+        <p>Enpara, Colendi and Ziraat Dinamik were <b>named here 491–568 days</b> before we
+          onboarded them by hand. <b>FUPS Bank</b> holds a licence from the same batch and
+          has <b>filed nothing</b> — so the rule needs two states, not one: <i>licensed and
+          filing</i> is a coverage gap; <i>licensed, no filings</i> is a watch item.</p>
+        <span class="rule">licensed(faaliyet_izni) ∧ ticker ∉ banks → filed(BdrUyg) ? gap : watch</span>
       </div>
     </div>
   </div>
