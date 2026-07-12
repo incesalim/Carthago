@@ -64,6 +64,8 @@ interface Props {
   /** Render the plot WITHOUT the ChartCard chrome — for composed cards that
    *  already provide a surface/heading (no export pills in this mode). */
   bare?: boolean;
+  /** Sit directly on the sheet: heading + mono sub-line + footer, no card. */
+  plain?: boolean;
 }
 
 export default function TimeSeriesChart({
@@ -78,6 +80,7 @@ export default function TimeSeriesChart({
   hero,
   annotations,
   bare = false,
+  plain = false,
 }: Props) {
   const t = useChartTheme();
   const fmt = formatters[yFormat];
@@ -328,7 +331,7 @@ export default function TimeSeriesChart({
 
   if (bare) return body;
   return (
-    <ChartCard title={title} description={description} source={source}>
+    <ChartCard title={title} description={description} source={source} plain={plain}>
       {body}
     </ChartCard>
   );
