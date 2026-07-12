@@ -44,6 +44,7 @@ Each page of the site taken back to a mockup and rebuilt against the Desk brief.
 | Compare — redesign proposal | **PROPOSED** — not built | — | [artifact](https://claude.ai/code/artifact/97ada54b-e315-4a80-80cc-c4d4716726c6) |
 | Regulations tab | **PROPOSED** — not built, never published | [html](mockups/2026-07-12-regulations-tab.html) · [desktop](mockups/2026-07-12-regulations-tab-desktop.png) · [mobile](mockups/2026-07-12-regulations-tab-mobile.png) | — |
 | Credit tab | **PROPOSED** — not built, never published. Premise: the headline is mostly *not* credit | [html](mockups/2026-07-12-credit-tab.html) · [desktop](mockups/2026-07-12-credit-tab-desktop.png) · [mobile](mockups/2026-07-12-credit-tab-mobile.png) | — |
+| Deposits tab | **PROPOSED** — not built. Premise: the page never states its own finding — **91.3% of the book reprices inside three months**. Brief gains Movers/Flags/Standings/Ahead (it had none); evidence layer converted to the Overview contract. Built on the live W/E 3 Jul 2026 series, extracted from the deployed page's RSC payload — no reconstructed numbers | [html](mockups/2026-07-12-deposits-tab.html) · [desktop](mockups/2026-07-12-deposits-tab-desktop.png) · [mobile](mockups/2026-07-12-deposits-tab-mobile.png) | [artifact](https://claude.ai/code/artifact/77a1403c-ef5a-4899-8605-e264b5ace793) |
 
 ## 2026-07-11 — the identity bake-off
 
