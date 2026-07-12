@@ -173,6 +173,7 @@ export default async function AssetQualityPage() {
   const loanYoY = growthSeries(loansTotal);
   const stockRealYoY = deflate(stockYoY, cpiYoY);
   const loanRealYoY = deflate(loanYoY, cpiYoY);
+  const stockNominalNow = lastVal(stockYoY as TimeSeriesRow[]);
   const stockRealNow = lastVal(stockRealYoY as TimeSeriesRow[]);
   const loanRealNow = lastVal(loanRealYoY as TimeSeriesRow[]);
 
@@ -679,14 +680,19 @@ export default async function AssetQualityPage() {
           description="The stock is the fast-moving series; the ratio is a slow summary of it."
         >
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {/* NOT a seriesFinding title. That helper renders values as a PERCENT
+                with pp deltas over a 12-POINT window (≈ a year of MONTHLY data).
+                This is a weekly ₺ level, so it printed "776,287%" and "+87,655pp"
+                in production. The finding belongs in the description, computed. */}
             <TrendChart
               data={gross}
               seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "Gross NPL" }}
-              title={
-                seriesFinding(gross, { noun: "The gross NPL stock", decimals: 0 }) ??
-                "Gross NPL — Level (sector, TL bn · weekly)"
+              title="Gross NPL — Level (sector, TL bn · weekly)"
+              description={
+                stockNominalNow != null && stockRealNow != null
+                  ? `The stock is growing ${fmtPct(stockNominalNow)} y/y — ${fmtPct(stockRealNow)} in real terms. The ratio is a slow summary of it.`
+                  : "Reported NPL stock, BDDK weekly bulletin"
               }
-              description="Reported NPL stock, BDDK weekly bulletin"
               source="Source: BDDK weekly bulletin"
               yFormat="bn"
               decimals={0}
