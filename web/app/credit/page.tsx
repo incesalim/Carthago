@@ -328,6 +328,7 @@ export default async function CreditPage() {
           is lira and CPI.
         </>
       ),
+      clear: <>Real, constant-FX growth is positive at {fmtPct(realFxNow)}.</>,
     },
     {
       code: "auto_contraction",
@@ -341,6 +342,7 @@ export default async function CreditPage() {
           ), so it drags the headline by little.
         </>
       ),
+      clear: <>Auto loans are growing at {fmtPct(autoNow)}.</>,
     },
     {
       code: "unsecured_retail_hot",
@@ -356,6 +358,7 @@ export default async function CreditPage() {
           .
         </>
       ),
+      clear: <>Neither cards nor general-purpose has outrun the sector for 8 straight weeks.</>,
     },
   ];
 
@@ -591,7 +594,11 @@ export default async function CreditPage() {
         meta="each prints the rule that raised it"
         className="mb-2.5 mt-8"
       />
-      <Flags flags={flags} quietNote="No credit rule fired this week." />
+      <Flags
+        flags={flags}
+        showCleared
+        quietNote="No credit rule fired this week."
+      />
 
       {/* ── In depth — the evidence layer ──────────────────────────────── */}
       <Depth

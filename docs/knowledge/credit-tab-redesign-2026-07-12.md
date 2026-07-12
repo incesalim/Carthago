@@ -115,9 +115,9 @@ negative 10 consecutive weeks.
 - The FX-book-is-all-USD proxy was **not** fixed — BDDK publishes the TL-equivalent
   only, so a true currency split needs a new source. The assumption is now printed
   under the bridge instead of being buried in a helper.
-- `showCleared` on `<Flags>` (printing the rules that did *not* fire) was left out: it
-  was an uncommitted change in a concurrent session's working tree, and this commit
-  stays self-contained. Worth adding once that lands.
+- Nothing else. `<Flags showCleared>` (printing the rules that did *not* fire, with what
+  each test measured) was briefly deferred while the component change was still
+  uncommitted in a concurrent session; it landed in `d4de0e6` and /credit now uses it.
 
 Related: [[project_desk_redesign]] (briefs for other pages was the named remainder),
 [[reference_design_system]], [[feedback_rationale_before_narrative]].
