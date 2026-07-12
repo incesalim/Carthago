@@ -46,10 +46,11 @@ coverage or known issues change.
 | `bank_types`, `table_definitions`, `download_log` | metadata | — | — |
 | `banks` (+ alias views `v_bist_prices` / `v_news_items` / `v_bank_earnings`) | dimension (migration 0021; +0022 new entrants; +0024 Takasbank), seeded from `bddk_bank_list.json` + `bank_names.ts` | 38-bank audited universe | canonical per-bank identity + single join key across lanes (`ticker` == `bank_ticker` == `symbol`); the views alias each lane's id column to `bank_ticker`. Powers cross-lane joins + the text-to-SQL bot. **One bank is carried but peer-excluded** — `TAKAS` (Takasbank), see below |
 
-**Quarterly audit reports**: **38 banks** in URL config; **1,048 PDFs extracted into D1,
-1,048 core-success (100%)**. The 6 new-entrant digital / participation banks (Enpara,
-Colendi, Ziraat Dinamik + Dünya / Hayat Finans / T.O.M. Katılım) were onboarded
-2026-07-11, and **Takasbank (`TAKAS`) 2026-07-12**. Feasibility + per-bank sourcing:
+**Quarterly audit reports**: **38 banks** in URL config; **1,050 PDFs extracted into D1,
+1,050 core-success (100%)**, and **every bank is current at 2026Q1** (zero banks behind).
+The 6 new-entrant digital / participation banks (Enpara, Colendi, Ziraat Dinamik + Dünya /
+Hayat Finans / T.O.M. Katılım) were onboarded 2026-07-11, and **Takasbank (`TAKAS`)
+2026-07-12**. Feasibility + per-bank sourcing:
 [knowledge/new-banks-coverage-gap-2026-07-11.md](knowledge/new-banks-coverage-gap-2026-07-11.md).
 PDFs themselves live in R2 at
 `bddk-audit-reports/<ticker>/<TICKER>_<period>_<kind>.pdf`.
