@@ -185,6 +185,27 @@ latest-period** trigger, and **13 banks auto-discover** new quarters from their
 IR page (no hand-added URL needed) — see [ADMIN.md](ADMIN.md) §Auto-discovery.
 Setup in [OPERATIONS.md](OPERATIONS.md) / [ADMIN.md](ADMIN.md).
 
+**/asset-quality rebuilt — the ratio prints the tip (2026-07-13):** the page led
+with "NPL ratio 2.69%", which is calm, and is the **tip**. What the ratio prints is
+Stage 3 (3.1% of the book); loans the banks themselves classify as deteriorated are
+**12.3% — 4x** — and three-quarters of that ₺3.2trn problem book is the **Stage-2
+watchlist** the ratio never shows, carrying **9.8% cover** against Stage 3's 62.3%.
+The brief now leads with the **waterline** (the whole book to scale, then the problem
+book magnified with provisions drawn inside each stage), then the **pipeline**:
+formation ran **2.2x** last year (₺673bn, net **+₺404bn**) and the exits are **77%
+collections**, not write-offs — so the ratio is *not* being managed down, the book is
+genuinely deteriorating. Attribution reconciles the ₺0.34trn of new bad loans to 100%
+(commercial 60.9%, of which **SME 42.8%**). Arithmetic in `web/app/lib/asset-quality.ts`.
+
+> **A claim we retracted, and now test against.** An earlier draft led with "the growing
+> loan book hides 1.06pp of NPL ratio". It does not: an NPL ratio is `N/L`, so deflating
+> both legs by CPI leaves it **unchanged** — a ratio is **deflator-invariant** and
+> inflation does not flatter it. That draft's counterfactual froze the book in *nominal*
+> terms, a fiction at 32% CPI; the honest dilution is **~0.1pp**, and it is now a footnote
+> at its true size. A deflator-invariance unit test pins this so the mistake cannot come
+> back. Rationale + the `takipteki` item_id trap (2.0.4 is **SME**, not housing):
+> [knowledge/asset-quality-tab-redesign-2026-07-12.md](knowledge/asset-quality-tab-redesign-2026-07-12.md).
+
 **/credit rebuilt — the headline is mostly not credit (2026-07-12):** the page's
 biggest figure was 36.6% nominal loan growth; in a 32% CPI regime with a
 depreciating lira that is mostly not credit, and the page owned both corrections
