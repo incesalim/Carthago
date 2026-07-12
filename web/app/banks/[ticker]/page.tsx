@@ -23,8 +23,24 @@ import type { Metadata } from "next";
 import type { ReactElement } from "react";
 import Link from "next/link";
 import { Card, PageHeader, Section, Stat } from "@/app/components/ui";
-import { Colophon, SecHead, Vital, Vitals } from "@/app/components/desk";
-import { lastVal, signedPp, valAgo } from "@/app/lib/desk";
+import { Colophon, SecHead, Vital, Vitals, type MoverRow } from "@/app/components/desk";
+import { cpiFromIndex, lastVal, signedPp, valAgo } from "@/app/lib/desk";
+import {
+  PEER_FIELDS,
+  bankFlags,
+  engineGate,
+  peerStat,
+  risingStreak,
+} from "@/app/lib/bank-brief";
+import {
+  Engine,
+  Franchise,
+  Identity,
+  MoversAndFlags,
+  WhereItStands,
+  type EngineRow,
+  type FundingSlice,
+} from "./BriefLayer";
 import {
   bankPeriods,
   balanceSheetMultiPeriod,
@@ -41,6 +57,7 @@ import { newsByTicker, pressNewsByBank } from "@/app/lib/news";
 import { earningsByTicker } from "@/app/lib/earnings";
 import { bankOwnership } from "@/app/lib/kap";
 import { heatmapPanel } from "@/app/lib/heatmap";
+import { evdsSeries } from "@/app/lib/metrics";
 import { marketSharePanel, bankShareSeries } from "@/app/lib/market-share";
 import { bankMarketRiskDetail } from "@/app/lib/market-risk";
 import { bistValuation, bistPriceHistory } from "@/app/lib/bist";
@@ -267,7 +284,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
     return o != null && o >= floorOrd && latestOrd != null && o <= latestOrd;
   });
 
-  const [bsPivot, bsNames, plPivot, plRows, cfPivot, kapItems, profile, stages, validation, ownership, valuationBase, priceHistory, liveMap, heatmap, sharePanel, earnings, mrDetail, bankNews] =
+  const [bsPivot, bsNames, plPivot, plRows, cfPivot, kapItems, profile, stages, validation, ownership, valuationBase, priceHistory, liveMap, heatmap, sharePanel, earnings, mrDetail, bankNews, cpiRaw] =
     await Promise.all([
       balanceSheetMultiPeriod(ticker, kind, queryPeriods),
       balanceSheetLineNames(ticker, kind, periods),
@@ -292,6 +309,9 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
       earningsByTicker(ticker, 24),
       bankMarketRiskDetail(kind, ticker),
       pressNewsByBank(ticker, 10),
+      // The deflator — every "real terms" read on this page (real ROE, and the
+      // Financials real-growth lens) comes off this one series.
+      evdsSeries("TP.TUKFIY2025.GENEL", 10),
     ]);
 
   // Profitability & margins section inputs — this bank's rows, oldest→newest.
@@ -344,6 +364,9 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
     { label: "by NIM", r: rankOf("nim") },
     { label: "by cost / income", r: rankOf("cost_income", false) },
   ].filter((c) => c.r != null) as Array<{ label: string; r: { rank: number; n: number } }>;
+
+  const carRank = rankOf("car");
+  const ciRank = rankOf("cost_income", false);
 
   // Per-bank Capital section (the audit's add_missing gap) — audited §4 buffers.
   const hasCapital = !!perfLatest && (perfLatest.car != null || perfLatest.cet1 != null);
@@ -515,6 +538,215 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   const vitalCols: 3 | 4 | 5 | 6 =
     vitals.length >= 6 ? 6 : vitals.length === 5 ? 5 : vitals.length === 4 ? 4 : 3;
 
+  // Participation banks file equity at roman XIV., not XVI. — match by the
+  // hierarchy the loader stores for their type (reference: the participation
+  // equity gotcha), not by numeral.
+  const isParticipation = BANK_TYPE_BY_TICKER[ticker] === "10003";
+
+  // ── The brief (lib/bank-brief.ts) ─────────────────────────────────────────
+  // All of it computed from `heatmap` (the fleet panel this page already
+  // fetches), the balance-sheet pivot, and the CPI deflator. Nothing new is
+  // queried; anything that doesn't resolve is simply not rendered.
+  const cpi = cpiFromIndex(
+    (cpiRaw as { period_date: string; value: number | null }[]).filter(
+      (r): r is { period_date: string; value: number } => r.value != null,
+    ),
+  );
+  const cpi12m = lastVal(cpi.avg12);
+  const cpiYoY = lastVal(cpi.yoy);
+  const realRoe = roeNow != null && cpi12m != null ? roeNow - cpi12m : null;
+
+  /** '2026Q1' → 'Q1 2026'; used for the movers header. */
+  const qLabel = (p: string | null): string => {
+    const m = p ? /^(\d{4})Q([1-4])$/.exec(p) : null;
+    return m ? `Q${m[2]} ${m[1]}` : "—";
+  };
+  const prevPeriod = perfRows[perfRows.length - 2]?.period ?? null;
+
+  // Where it stands — this bank as a dot on each metric's field distribution.
+  const peerStats = perfLatest
+    ? PEER_FIELDS.map((spec) => ({ spec, stat: peerStat(heatmap, ticker, perfLatest.period, spec) }))
+        .filter((x): x is { spec: (typeof PEER_FIELDS)[number]; stat: NonNullable<ReturnType<typeof peerStat>> } => x.stat != null)
+    : [];
+
+  // The engine — TTM margin ladder, or the gate that explains its absence.
+  const gate = engineGate(perfRows);
+  const pctOf = (v: number | null | undefined) => (v == null ? null : v * 100);
+  const engineRows: EngineRow[] = gate.ready
+    ? ([
+        { label: "Loan yield", note: "interest on loans ÷ avg gross loans", value: pctOf(perfLatest?.loan_yield), unit: "%", kind: "in", scale: 30 },
+        { label: "− Deposit cost", note: "interest on deposits ÷ avg deposits", value: pctOf(perfLatest?.deposit_cost), unit: "%", kind: "out", scale: 30 },
+        { label: "= Spread", value: pctOf(perfLatest?.spread), unit: "pp", kind: "total", scale: 30 },
+        { label: "Net interest margin", note: "on average assets", value: pctOf(perfLatest?.nim), unit: "%", kind: "sub", scale: 30 },
+        { label: "Pre-provision profit / assets", value: pctOf(perfLatest?.ppop_ratio), unit: "%", kind: "sub", scale: 30 },
+        { label: "− Cost of risk", value: pctOf(perfLatest?.cost_of_risk), unit: "%", kind: "sub", scale: 30 },
+        { label: "Cost / income", note: ciRank ? `${ord(ciRank.rank)} of ${ciRank.n}` : undefined, value: pctOf(perfLatest?.cost_income), unit: "%", kind: "sub", scale: 100 },
+        { label: "= ROE (TTM)", value: roeNow, unit: "%", kind: "total", scale: 50 },
+        { label: "− Inflation", note: "12-month-average CPI", value: cpi12m, unit: "%", kind: "out", scale: 50 },
+        { label: "= Real return on equity", value: realRoe, unit: "pp", kind: "total", scale: 50 },
+      ].filter((r) => r.value != null) as EngineRow[])
+    : [];
+
+  // Flags — the registry; each prints the rule it fired on.
+  const nplRises = risingStreak(nplSeries.map((p) => p.value));
+  const nplMedian = peerStats.find((p) => p.spec.key === "npl_ratio")?.stat.median ?? null;
+  const assetsQoqPct =
+    taLast != null && valAgo(assetsSeries, 1) != null && (valAgo(assetsSeries, 1) as number) > 0
+      ? (taLast / (valAgo(assetsSeries, 1) as number) - 1) * 100
+      : null;
+  const stage2Share =
+    stages?.stage2_amount != null && stages.total_amount != null && stages.total_amount > 0
+      ? (stages.stage2_amount / stages.total_amount) * 100
+      : null;
+
+  // Funding mix + productivity, from the balance sheet the Financials section
+  // already pivots. Deposits first — the mix bar's hero.
+  const latestBsPeriod = periods[0] ?? null;
+  const liabAt = (hierarchy: string): number | null =>
+    latestBsPeriod ? (bsPivot.get(`liabilities::${hierarchy}`)?.get(latestBsPeriod) ?? null) : null;
+  const depositsTl = liabAt(isParticipation ? "I." : "I.");
+  const equityTl = liabAt(isParticipation ? BS_EQUITY_HIERARCHY_PARTICIPATION : BS_EQUITY_HIERARCHY);
+  const loansTl = latestBsPeriod ? (bsPivot.get("assets::2.1")?.get(latestBsPeriod) ?? null) : null;
+  const ldr = depositsTl != null && depositsTl > 0 && loansTl != null ? (loansTl / depositsTl) * 100 : null;
+
+  const fundingSlices: FundingSlice[] = taNow
+    ? ([
+        { label: "Deposits", value: depositsTl, className: "bg-data" },
+        { label: "Money market", value: liabAt("III."), className: "bg-chart-2" },
+        { label: "Borrowed", value: liabAt("II."), className: "bg-chart-3" },
+        { label: "Issued", value: liabAt("IV."), className: "bg-chart-6" },
+        { label: "Equity", value: equityTl, className: "bg-warning" },
+      ].filter((s) => s.value != null && s.value > 0) as FundingSlice[])
+    : [];
+  if (fundingSlices.length > 0 && taNow) {
+    const named = fundingSlices.reduce((a, s) => a + s.value, 0);
+    if (taNow - named > 0) {
+      fundingSlices.push({ label: "Other", value: taNow - named, className: "bg-muted-foreground/30" });
+    }
+  }
+
+  const franchiseStats: Array<{ k: string; v: string; note?: string }> = [];
+  if (ldr != null) {
+    franchiseStats.push({ k: "Loan / deposit", v: `${ldr.toFixed(0)}%`, note: ldr < 100 ? "self-funded" : "leans on wholesale" });
+  }
+  if (profile?.branches_total && taNow) {
+    franchiseStats.push({
+      k: "Assets per branch",
+      v: `₺${(taNow / 1e6 / profile.branches_total).toFixed(1)}bn`,
+      note: `${profile.branches_total.toLocaleString()} branches`,
+    });
+  } else {
+    franchiseStats.push({ k: "Assets per branch", v: "—", note: "branch count not filed" });
+  }
+  if (profile?.personnel && taNow) {
+    franchiseStats.push({
+      k: "Assets per employee",
+      v: `₺${(taNow / 1e3 / profile.personnel).toFixed(0)}mn`,
+      note: `${profile.personnel.toLocaleString()} staff`,
+    });
+  }
+  if (taNow && equityTl && equityTl > 0) {
+    franchiseStats.push({ k: "Leverage", v: `${(taNow / equityTl).toFixed(1)}×`, note: "assets ÷ equity" });
+  }
+
+  const stageSummary =
+    stages && stages.total_amount ? (
+      <table className="w-full border-collapse">
+        <tbody>
+          {(
+            [
+              ["Stage 1 — performing", stages.stage1_amount, stages.stage1_ecl],
+              ["Stage 2 — watchlist", stages.stage2_amount, stages.stage2_ecl],
+              ["Stage 3 — NPL", stages.stage3_amount, stages.stage3_ecl],
+            ] as Array<[string, number | null, number | null]>
+          ).map(([label, amt, ecl]) => (
+            <tr key={label}>
+              <td className="border-b border-hair py-1.5 text-[12px] text-foreground">{label}</td>
+              <td className="border-b border-hair py-1.5 text-right font-mono text-[12px] font-semibold tabular-nums text-foreground">
+                {amt != null ? `₺${(amt / 1e6).toFixed(amt / 1e6 >= 100 ? 0 : 1)}bn` : "—"}
+              </td>
+              <td className="border-b border-hair py-1.5 pl-3 text-right font-mono text-[10.5px] text-faint">
+                {amt != null && stages.total_amount
+                  ? `${((amt / stages.total_amount) * 100).toFixed(1)}%`
+                  : "—"}
+                {ecl != null && amt != null && amt > 0 ? ` · ${((ecl / amt) * 100).toFixed(1)}% cover` : ""}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    ) : undefined;
+
+  const flags = bankFlags({
+    car: carNow,
+    carQoq,
+    carRank,
+    assetsQoqPct,
+    roe: roeNow,
+    cpi12m,
+    npl: nplNow,
+    nplRises,
+    nplMedian,
+    stage2Share,
+    costIncome: pctOf(perfLatest?.cost_income),
+    filings: gate.filings,
+    lcr: lcrNow,
+    ldr,
+  });
+
+  const spreadNow = pctOf(perfLatest?.spread);
+  const spreadPrev = pctOf(perfRows[perfRows.length - 2]?.spread);
+  const moverRows: MoverRow[] = (
+    [
+      carNow != null && carQoq != null
+        ? {
+            label: "Capital adequacy",
+            note: assetsQoqPct != null ? `while assets grew ${assetsQoqPct.toFixed(1)}% q/q` : undefined,
+            prev: carNow - carQoq,
+            curr: carNow,
+            fmt: (v: number) => `${v.toFixed(1)}%`,
+            deltaDecimals: 2,
+            good: "up" as const,
+          }
+        : null,
+      spreadNow != null && spreadPrev != null
+        ? { label: "Loan–deposit spread", prev: spreadPrev, curr: spreadNow, good: "up" as const }
+        : null,
+      nplNow != null && nplQoq != null
+        ? {
+            label: "NPL ratio",
+            note: nplRises >= 2 ? `${nplRises} consecutive rises` : undefined,
+            prev: nplNow - nplQoq,
+            curr: nplNow,
+            good: "down" as const,
+          }
+        : null,
+      roeNow != null && pctOf(perfRows[perfRows.length - 2]?.roe) != null
+        ? {
+            label: "ROE (TTM)",
+            prev: pctOf(perfRows[perfRows.length - 2]?.roe) as number,
+            curr: roeNow,
+            fmt: (v: number) => `${v.toFixed(1)}%`,
+            deltaDecimals: 1,
+            good: "up" as const,
+          }
+        : null,
+    ].filter(Boolean) as MoverRow[]
+  ).slice(0, 5);
+
+  const identityItems: Array<{ k: string; v: ReactElement | string }> = [];
+  if (assetsRank) identityItems.push({ k: "Rank", v: `#${assetsRank.rank} of ${assetsRank.n} by assets` });
+  if (profile?.branches_total) identityItems.push({ k: "Branches", v: profile.branches_total.toLocaleString() });
+  if (profile?.personnel) identityItems.push({ k: "Staff", v: profile.personnel.toLocaleString() });
+  identityItems.push({
+    k: "Owner",
+    v: ownership.length > 0 && ownership[0].holder
+      ? `${ownership[0].holder}${ownership[0].ratio_pct != null ? ` ${ownership[0].ratio_pct.toFixed(1)}%` : ""}`
+      : "— not filed to KAP",
+  });
+  if (valuation?.pb != null) identityItems.push({ k: "Market", v: `BIST ${ticker} · P/B ${valuation.pb.toFixed(2)}×` });
+  void cpiYoY;
+
   // ⚠ on a period column = that quarter's extraction failed one or more
   // internal-sum identity checks (TL+FC=Total, parent=Σchildren, TOTAL=Σromans,
   // assets=liabilities+equity) — treat its figures with care. Scoped to the
@@ -627,7 +859,6 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   // layout — equity at XIV., not XVI., with fewer roman items — so they need a
   // separate label catalog + roman ranges. Assets and the income statement
   // share the deposit-bank hierarchy, so only liabilities switch.
-  const isParticipation = BANK_TYPE_BY_TICKER[ticker] === "10003";
   const liabLines = isParticipation ? BS_LIAB_LINES_PARTICIPATION : BS_LIAB_LINES;
   const liabRomans = isParticipation
     ? BS_LIAB_ROMAN_HIERARCHIES_PARTICIPATION
@@ -703,6 +934,8 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
           The page's signature band (DESIGN.md): the six figures that decide
           how this bank is read, computed from the audited quarterly panel the
           sections below already use — level, sparkline, and one computed note. */}
+      {identityItems.length > 0 && <Identity items={identityItems} />}
+
       {vitals.length >= 3 && (
         <>
           <SecHead
@@ -710,11 +943,38 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
             meta="audited quarterly · this bank"
             className="mb-2.5 mt-6"
           />
-          <Vitals cols={vitalCols} className="mb-8">
-            {vitals}
-          </Vitals>
+          <Vitals cols={vitalCols}>{vitals}</Vitals>
         </>
       )}
+
+      {/* ── The brief ─────────────────────────────────────────────────────
+          Where this bank sits in the field, what moved, what the rules say,
+          what the balance sheet earns and what it is made of. Every sentence
+          is computed in lib/bank-brief.ts; a section whose inputs don't
+          resolve is omitted, and the engine states why. */}
+      <WhereItStands stats={peerStats} ctx={{ buffer: carBuffer, realRoe }} />
+
+      <MoversAndFlags
+        from={qLabel(prevPeriod)}
+        to={qLabel(perfLatest?.period ?? null)}
+        movers={moverRows}
+        flags={flags}
+      />
+
+      {(gate.ready || gate.reason) && (
+        <Engine gate={gate} rows={engineRows} chart={undefined} />
+      )}
+
+      {fundingSlices.length > 0 && taNow != null && (
+        <Franchise
+          assets={taNow}
+          funding={fundingSlices}
+          stats={franchiseStats}
+          stages={stageSummary}
+        />
+      )}
+
+      <div className="mb-8" />
 
       {/* ── Overview ──────────────────────────────────────────────────────
           At-a-glance profile + (listed banks) BIST market & valuation. */}
