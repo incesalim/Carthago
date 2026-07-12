@@ -315,8 +315,8 @@ design proposal, not a live regulatory record — do not rely on it for complian
   <circle cx="150.0" cy="13.2" r="2" fill="var(--data)"/>
 </svg>
       <div class="note">Held for <b>3 consecutive meetings</b>. Last change 22 Jan 2026,
-        <b>38 → 37</b>. Path drawn from 48 MPC releases.</div>
-      <div class="src">MPC · 11 Jun 2026</div>
+        <b>38 → 37</b>. Value from EVDS; path from 48 MPC releases — <b>they agree</b>.</div>
+      <div class="src">EVDS TP.PY.P02.1H ✓ MPC · 11 Jun</div>
     </div>
     <div class="vital">
       <div class="lab">O/N lending <span class="cap">ceiling</span></div>
@@ -508,10 +508,10 @@ design proposal, not a live regulatory record — do not rely on it for complian
         <span class="cap">the tests ran</span></div>
       <table class="clear">
         <tbody>
-          <tr><td class="ok">✓</td><td>No policy-rate change since 22 Jan 2026</td><td class="r">Δ policy ≠ 0</td></tr>
-          <tr><td class="ok">✓</td><td>Corridor width steady at 450bp</td><td class="r">Δ (lend − borrow)</td></tr>
-          <tr><td class="ok">✓</td><td>No TL reserve-requirement change in force window</td><td class="r">Δ RRR(TL)</td></tr>
-          <tr><td class="ok">✓</td><td>No licence revoked for a covered bank</td><td class="r">iptal ∧ ticker ∈ banks</td></tr>
+          <tr><td class="ok">✓</td><td>No policy-rate change in 3 meetings (since 22 Jan)</td><td class="r">Δ TP.PY.P02.1H</td></tr>
+          <tr><td class="ok">✓</td><td>O/N lending and borrowing “maintained” at the last MPC</td><td class="r">/maintained.*overnight/</td></tr>
+          <tr><td class="ok">✓</td><td>The 1 Jul release moved <b>FX</b> ratios only — no TL-deposit ratio in its table</td><td class="r">RRR table rows ∌ TL</td></tr>
+          <tr><td class="ok">✓</td><td>No licence revoked for a bank we cover</td><td class="r">iptal ∧ ticker ∈ banks</td></tr>
           <tr><td class="ok">✓</td><td>No BDDK instrument newer than the last TCMB rule</td><td class="r">max(bddk) &gt; max(tcmb)</td></tr>
         </tbody>
       </table>
@@ -523,9 +523,11 @@ design proposal, not a live regulatory record — do not rely on it for complian
       <table class="ahead">
         <tbody>
           <tr><td class="when">17 Jul</td><td><b>FX reserve ratios</b> maintained at 32% / 28%; the
-            2.5% additional TL reserve ends. <span class="cap">TCMB, 1 Jul</span></td></tr>
-          <tr><td class="when">23 Jul</td><td>Next MPC meeting — corridor held at 37% for three
-            meetings. <span class="cap">scheduled, not a forecast</span></td></tr>
+            2.5% additional TL reserve ends. <span class="cap">quoted from TCMB, 1 Jul</span></td></tr>
+          <tr><td class="when">—</td><td>Next MPC meeting: <b>we do not hold the calendar.</b> TCMB
+            publishes its meeting dates annually; nothing in <code>news_items</code> carries
+            them (0 rows). This row stays empty until that page is scraped — it will not be
+            guessed. <span class="cap">not held — needs a source</span></td></tr>
           <tr><td class="when">—</td><td>BDDK board decisions: no announced publication cadence.
             The last batch landed <b>Mar 2026</b>. <span class="cap">no schedule to state</span></td></tr>
         </tbody>
@@ -603,6 +605,43 @@ design proposal, not a live regulatory record — do not rely on it for complian
       </p>
     </div>
   </div>
+
+  <div class="sec" style="margin-top:30px">
+    <h2>How every block stays compiled</h2>
+    <span class="cap">the page is generated on refresh · nobody types a number into it</span>
+  </div>
+  <table class="mv">
+    <thead><tr><th>Block</th><th style="text-align:left">Filled by</th><th style="text-align:left">When the source changes shape, it prints…</th></tr></thead>
+    <tbody>
+      <tr><td class="m">Policy rate<span>the boldest figure on the page</span></td>
+        <td style="font-size:11.5px">EVDS <code>TP.PY.P02.1H</code> (daily, already refreshed) — <b>cross-checked</b> against the regex over 48 MPC bodies</td>
+        <td style="font-size:11.5px">the two disagree → <b>the cell refuses to print</b> and the refresh fails loudly. No silent stale number.</td></tr>
+      <tr><td class="m">O/N lending &amp; borrowing<span>corridor bounds</span></td>
+        <td style="font-size:11.5px">regex on the MPC body (<i>“…at 40 percent and 35.5 percent”</i>). <b>Better:</b> add the two EVDS series and treat prose as the check</td>
+        <td style="font-size:11.5px">no match → <b>“not stated in the last release”</b>, never the previous value dressed as current.</td></tr>
+      <tr><td class="m">Reserve ratios<span>the fragile one</span></td>
+        <td style="font-size:11.5px">the release's <b>markdown pipe table</b> — <code>RawFeeds.tsx</code> already parses this exact shape</td>
+        <td style="font-size:11.5px">a macropru release the parser can't read → cells go <b>stale-flagged with their as-of date</b>, and the verify job fails.</td></tr>
+      <tr><td class="m">Instrument vs. noise<span>the ✓/✕ count</span></td>
+        <td style="font-size:11.5px">keyword rules (as <code>news-tags.ts</code>) — the SSL cert, the journal and the MoU are the test set</td>
+        <td style="font-size:11.5px">three states, not two: rule / not-rule / <b>unclassified</b>, and the unclassified count is printed.</td></tr>
+      <tr><td class="m">Decision date &amp; number<span>the corrected clock</span></td>
+        <td style="font-size:11.5px">fixed regex on the BDDK title: <code>^\((\d\d)\.(\d\d)\.(\d{4}) - (\d+)\)</code></td>
+        <td style="font-size:11.5px">no parenthetical (570 of 603) → falls back to the publication date, <b>marked as such</b>.</td></tr>
+      <tr><td class="m">Licensed-bank flag<span>the coverage detector</span></td>
+        <td style="font-size:11.5px">institution name out of the decision title → match against <code>banks</code>; filing status from <b>BdrUyg</b></td>
+        <td style="font-size:11.5px">needs <b>no alias for a bank we've never seen</b> — an unmatched name <i>is</i> the signal. Filing status splits gap from watch.</td></tr>
+      <tr><td class="m">Binding date<span>“binds 17 Jul”</span></td>
+        <td style="font-size:11.5px">phrase regex over the body (<i>“maintained on…”</i>, <i>“enters into force…”</i>, <i>“yürürlüğe girer”</i>)</td>
+        <td style="font-size:11.5px">most releases don't state one → <b>“no binding date stated”</b>. This is the one field with no column today.</td></tr>
+      <tr><td class="m" style="opacity:.6">Next MPC meeting<span>not built</span></td>
+        <td style="font-size:11.5px">TCMB publishes an annual calendar. <b>We hold 0 rows of it.</b></td>
+        <td style="font-size:11.5px">the row stays <b>empty</b> until that page is scraped. It is not guessed.</td></tr>
+      <tr><td class="m">Residue &amp; prose<span>the only LLM surface</span></td>
+        <td style="font-size:11.5px">the weekly Kimi briefing — categories the band does <i>not</i> model</td>
+        <td style="font-size:11.5px">a bad week costs a <b>paragraph</b>, never a figure. No LLM output reaches the band.</td></tr>
+    </tbody>
+  </table>
 
   <div class="colophon">
     Compiled from news_items (867 TCMB + BDDK releases) in D1 · corridor and reserve

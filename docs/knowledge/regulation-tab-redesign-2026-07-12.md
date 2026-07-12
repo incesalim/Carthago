@@ -254,18 +254,73 @@ as a column today. So the new mockup shows the binding date where the body state
 it, and says plainly that extracting it fleet-wide is the extraction work this
 design implies.
 
+## How it stays automated
+
+The page it replaces is **fully compiled**: a daily cron scrapes TCMB + BDDK, a Sunday
+cron runs Kimi, and no human types anything. That is not a nice property to preserve —
+it is the *whole* property. A redesign that quietly needs a person to keep a rulebook
+current is not a redesign of this page; it is a different, worse page that happens to
+look better in a screenshot.
+
+So every block must name the job that fills it, **and what it prints when that job
+fails**. A cell that silently shows last month's ratio as though it were current is
+worse than the feed-counting page we are replacing — the old page was useless but honest.
+
+| Block | Filled by | On source change, prints |
+|---|---|---|
+| **Policy rate** | EVDS `TP.PY.P02.1H` (daily, already in D1, 1,961 obs) **cross-checked** against the regex over 48 MPC bodies | the two disagree → the cell **refuses to print**, refresh fails loudly |
+| **O/N lending / borrowing** | regex on the MPC body ("…at 40 percent and 35.5 percent"). *Better:* add the two EVDS series, demote prose to the check | no match → "not stated in the last release" — never the old value dressed as current |
+| **Reserve ratios** | the release's **markdown pipe table**; `RawFeeds.tsx` already parses this exact shape (`isTableBlock`/`MarkdownTable`) | unparseable macropru release → cells go **stale-flagged with their as-of date**, verify job fails |
+| **Instrument vs. noise** | keyword rules, as `news-tags.ts`. The SSL cert / journal / MoU are the regression set | three states, not two: rule / not-rule / **unclassified**, and the unclassified count is printed |
+| **Decision date + number** | fixed regex on the BDDK title `^\((\d\d)\.(\d\d)\.(\d{4}) - (\d+)\)` | no parenthetical (570 of 603) → falls back to publication date, **marked as such** |
+| **Licensed-bank flag** | institution name from the decision title → match `banks`; filing status from **BdrUyg** | needs **no alias for a bank we have never seen** — an unmatched name *is* the signal |
+| **Binding date** | phrase regex ("maintained on…", "enters into force…", "yürürlüğe girer") | most releases state none → "**no binding date stated**". The one field with no column today |
+| **Next MPC date** | — | **nothing. We hold 0 calendar rows.** The row stays empty until TCMB's calendar page is scraped |
+| **Residue + prose** | the weekly Kimi briefing — only the categories the band does *not* model | a bad week costs a **paragraph**, never a figure |
+
+### The reconciliation that makes the headline safe
+
+The policy rate is the boldest figure on the page, so it must not rest on one brittle
+regex. It doesn't have to: **EVDS `TP.PY.P02.1H` is already in D1** (daily, last
+2026-07-10) and reads **37%** — exactly what the regex pulls out of the 11 Jun release.
+Two independent sources, one from a structured API and one from prose, agreeing.
+
+So the design is: **EVDS is the value; the press release is the citation** (it supplies
+the decision date, the prior value and the link). The prose parse becomes a *check*, not
+the source — and a disagreement is a hard failure, not a shrug. That is the project's
+standing preference for reconciliation over bands ([[feedback_verify_validators_against_data]]),
+and it plugs straight into the existing chart-spec verification lane
+([[project_chart_spec_lane]]), which exists precisely to catch the silent-blank /
+silent-stale class of failure.
+
+### Two things I had to cut from my own mockup
+
+Writing this section is what caught them, which is the argument for writing it:
+
+- **"Next MPC meeting — 23 Jul" was invented.** We hold zero MPC-calendar rows. The row
+  now prints "not held — needs a source" instead of a plausible date. TCMB does publish
+  an annual calendar; scraping it is easy and is *not* done.
+- **Two "cleared" flags were unverifiable** ("corridor width steady at 450bp", "no TL
+  reserve-requirement change") — I could not compute either from what we hold. Replaced
+  with tests that do compute: the release literally contains the word *"maintained"* for
+  the overnight rates, and the 1 Jul table has no TL-deposit row.
+
 ## What building it would require
 
 | Need | Have it? | Work |
 |---|---|---|
-| Policy corridor + RRR parameters | **yes** — `regulation_briefings` bullets + `body_text` | promote to the brief; a small parser for the corridor |
-| Policy-rate path (48 decisions) | **yes** — parse `body_text` | one regex pass; consider persisting to a table |
+| Policy rate | **yes** — EVDS `TP.PY.P02.1H`, already refreshed daily | read it; reconcile against the prose parse |
+| O/N lending / borrowing | **not held** | add 2 EVDS series to the fetch list (cheap), or regex the MPC body |
+| RRR parameters | **yes** — the pipe table in `body_text` | a table parser; `RawFeeds.tsx` already has one to reuse |
+| Policy-rate path (48 decisions) | **yes** — parse `body_text` | one regex pass; persist so the chart isn't re-parsed per render |
 | Decision date + decision no. | **yes** — in the BDDK title | parse at ingest; store as columns |
-| Rule vs. non-rule classification | partly — `news-tags.ts` keywords | add an `is_instrument` rule; the SSL/journal/MoU cases are the test set |
-| Effective / binding date | **in the text, not a column** | extractor work — the honest gap |
-| Licensing → ticker link | **yes** — `bank_tagger.py`, `bank_aliases.json` | tag the licensing decisions; diff against `banks` |
+| Rule vs. non-rule classification | partly — `news-tags.ts` keywords | add `is_instrument` with an *unclassified* state; SSL/journal/MoU = the regression set |
+| Binding date | **in the text, not a column** | phrase regex + an explicit "not stated" — the honest gap |
+| Licensing → ticker link | **yes** — `banks` + BdrUyg for filing status | flag on *unmatched* name; no alias needed for an unseen bank |
+| **Next MPC date** | **no — 0 rows held** | scrape TCMB's published meeting calendar, or leave the row empty |
 
-None of it needs a new source. The page already receives everything above.
+Only one item needs a genuinely new source (the MPC calendar), and one needs two extra
+EVDS series. Everything else is already arriving; it is just not being read.
 
 ## Related
 
