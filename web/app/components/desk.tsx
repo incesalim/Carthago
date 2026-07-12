@@ -276,6 +276,8 @@ export interface MoverRow {
   fmt?: (v: number) => string;
   /** Delta decimals (pp). */
   deltaDecimals?: number;
+  /** Delta unit — "pp" for a ratio, e.g. "trn" when the row is a level. */
+  deltaUnit?: string;
   /** Which direction is good — colours the delta. */
   good?: "up" | "down" | "neutral";
 }
@@ -324,7 +326,9 @@ export function Movers({ from, to, rows }: { from: string; to: string; rows: Mov
                 {r.curr != null ? f(r.curr) : "—"}
               </td>
               <td className={cn("border-b border-hair py-1.5 pl-2 text-right font-mono text-[11.5px] font-semibold", tone)}>
-                {d != null ? `${d >= 0 ? "+" : "−"}${Math.abs(d).toFixed(r.deltaDecimals ?? 2)}pp` : "—"}
+                {d != null
+                  ? `${d >= 0 ? "+" : "−"}${Math.abs(d).toFixed(r.deltaDecimals ?? 2)}${r.deltaUnit ?? "pp"}`
+                  : "—"}
               </td>
             </tr>
           );
@@ -375,19 +379,64 @@ export interface Flag {
   code: string;
   active: boolean;
   body: React.ReactNode;
-  /** The literal rule, printed under the flag (automation honesty). */
+  /** The literal rule, printed whether the flag fires or not. */
   rule: string;
+  /** One line stating what the test measured when it did NOT fire. */
+  clear?: React.ReactNode;
 }
 
-export function Flags({ flags, quietNote }: { flags: Flag[]; quietNote?: string }) {
+export function Flags({
+  flags,
+  quietNote,
+  showCleared = false,
+}: {
+  flags: Flag[];
+  quietNote?: string;
+  /**
+   * Print the rules that did NOT fire, with their tests. Automation honesty: a
+   * quiet page should be evidence that the tests ran, not an absence of work.
+   * Each cleared rule needs a `clear` line saying what the test measured.
+   */
+  showCleared?: boolean;
+}) {
   const active = flags.filter((f) => f.active);
+  const cleared = flags.filter((f) => !f.active && f.clear);
+
+  const clearedList = showCleared && cleared.length > 0 && (
+    <>
+      <h5 className="mb-1 mt-3 font-mono text-[8px] uppercase tracking-[0.1em] text-faint">
+        Rules that did not fire
+      </h5>
+      <table className="w-full border-collapse">
+        <tbody>
+          {cleared.map((f) => (
+            <tr key={f.code}>
+              <td className="w-4 border-b border-hair py-1.5 align-top font-mono text-[10px] font-semibold text-positive">
+                ✓
+              </td>
+              <td className="border-b border-hair py-1.5 pr-2 text-[11.5px] leading-snug text-muted-foreground">
+                {f.clear}
+              </td>
+              <td className="border-b border-hair py-1.5 text-right align-top font-mono text-[8px] whitespace-nowrap text-faint">
+                {f.rule}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </>
+  );
+
   if (active.length === 0) {
     return (
-      <div className="flex gap-3 border-b border-hair py-2">
-        <span className="min-w-5 pt-0.5 font-mono text-[10px] font-semibold text-positive">—</span>
-        <p className="text-[12px] leading-relaxed">
-          <b className="font-semibold">No flags active.</b> {quietNote}
-        </p>
+      <div>
+        <div className="flex gap-3 border-b border-hair py-2">
+          <span className="min-w-5 pt-0.5 font-mono text-[10px] font-semibold text-positive">—</span>
+          <p className="text-[12px] leading-relaxed">
+            <b className="font-semibold">No flags active.</b> {quietNote}
+          </p>
+        </div>
+        {clearedList}
       </div>
     );
   }
@@ -404,6 +453,7 @@ export function Flags({ flags, quietNote }: { flags: Flag[]; quietNote?: string 
           </p>
         </div>
       ))}
+      {clearedList}
     </div>
   );
 }

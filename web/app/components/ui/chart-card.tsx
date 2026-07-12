@@ -57,7 +57,11 @@ export function ChartCard({
           </div>
         </div>
         <div className={bodyClassName}>{children}</div>
-        {source && <div className="mt-2 border-t border-hair pt-1.5">{source}</div>}
+        {source && (
+          <div className="mt-2 border-t border-hair pt-1.5 font-mono text-[9px] text-faint">
+            {source}
+          </div>
+        )}
       </div>
     );
   }
