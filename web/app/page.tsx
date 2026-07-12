@@ -7,9 +7,12 @@
  * note is computed from the same D1/EVDS series the charts read — compiled,
  * not written.
  *
- * Layer 2 ("In depth"): the pre-Desk evidence — the `?type=`-switchable
- * Table-15 snapshot scorecard and the by-group CAMELS trend charts — carried
- * over, restyled, not removed.
+ * Layer 2 ("In depth"): the same evidence, on the same grid. The read leads
+ * (deterministic pulse, no card); the Table-15 scorecard is the brief's OWN
+ * vitals band re-rendered for whichever ownership group `?type=` selects, with
+ * a peer bar marking where the sector sits; the by-group trend charts sit
+ * directly on the sheet, two per row — each spanning three cells of the band
+ * above it — under a computed foot line. No boxes, no second grid.
  */
 import Link from "next/link";
 import {
@@ -33,6 +36,7 @@ import { getMarketTicker } from "@/app/lib/market-ticker";
 import { BANK_NAMES } from "@/app/lib/bank_names";
 import {
   cpiFromIndex,
+  groupSpread,
   lastVal,
   monthLabel,
   signedPp,
@@ -42,11 +46,14 @@ import {
 } from "@/app/lib/desk";
 import {
   Ahead,
+  ChartFoot,
   Colophon,
   Depth,
   DeskHeader,
   Flags,
+  Levels,
   Movers,
+  PeerBar,
   SecHead,
   Standings,
   Tape,
@@ -59,9 +66,7 @@ import {
   type TransmissionItem,
 } from "@/app/components/desk";
 import TrendChart from "@/app/components/TrendChart";
-import Sparkline from "@/app/components/Sparkline";
 import BankTypeFilter from "@/app/components/BankTypeFilter";
-import { Section, Stat, DeltaBadge } from "@/app/components/ui";
 import { GlobalRangeSelector } from "@/app/components/range-context";
 import Takeaway from "@/app/components/Takeaway";
 import { overviewInsights } from "@/app/lib/insights";
@@ -114,50 +119,6 @@ const datasetJsonLd = {
   creator: { "@type": "Organization", name: "Carthago", url: "https://carthago.app" },
 };
 
-interface KpiCardProps {
-  label: string;
-  value: string;
-  period: string;
-  hint?: string;
-  series?: TimeSeriesRow[];
-  format?: "pct" | "trn" | "raw";
-  decimals?: number;
-  tone?: "neutral" | "positive" | "warn";
-  /** Direction that colours the period-over-period delta chip green. */
-  goodDirection?: "up" | "down" | "neutral";
-}
-
-function KpiCard({ label, value, period, hint, series, format, decimals, tone = "neutral", goodDirection = "up" }: KpiCardProps) {
-  const curr = series?.at(-1)?.value ?? null;
-  const prev = series?.at(-2)?.value ?? null;
-  const deltaFormat = format === "trn" ? "trn" : format === "raw" ? "raw" : "pp";
-  return (
-    <Stat
-      label={label}
-      value={value}
-      hint={`${period}${hint ? ` · ${hint}` : ""}`}
-      tone={tone === "warn" ? "warning" : tone}
-      badge={
-        <DeltaBadge
-          curr={curr}
-          prev={prev}
-          format={deltaFormat}
-          decimals={decimals ?? 2}
-          goodDirection={goodDirection}
-        />
-      }
-    >
-      {series && series.length > 0 && (
-        <Sparkline
-          data={series.map((r) => ({ period: r.period, value: r.value ?? 0 }))}
-          format={format}
-          decimals={decimals}
-        />
-      )}
-    </Stat>
-  );
-}
-
 const fmtPct = (v: number | null | undefined, d = 2) =>
   v == null ? "—" : `${v.toFixed(d)}%`;
 const fmtTrn = (v: number | null | undefined) =>
@@ -196,11 +157,12 @@ export default async function OverviewPage({
   const [
     // Sector vitals for the brief.
     sCar, sNpl, sNim, sLdr, sRoe, sRoa, sAssetsYoY, sLoansYoY, sDepositsYoY,
-    // By-group trends for the in-depth chart grid.
-    loansYoYGroups, nplAllGroups, carGroups, roeGroups,
+    // By-group series: the four in-depth charts, and the league spread each
+    // scorecard cell's peer bar is scaled against.
+    loansYoYGroups, nplAllGroups, carGroups, roeGroups, nimGroups, ldrGroups, roaGroups,
     // Standings + backdrop.
     league, ticker, cpiRaw, fundingRaw,
-    // In-depth snapshot scorecard for the selected bank type.
+    // In-depth scorecard for the selected bank type.
     assets, assetsYoY, loansYoY, depositsYoY, npl, car, nim, ldr, roa, roe,
   ] = await Promise.all([
     ratioCar(sector),
@@ -217,6 +179,9 @@ export default async function OverviewPage({
     ratioNpl(PRIMARY_BANK_TYPES),
     ratioCar(PRIMARY_BANK_TYPES),
     ratioRoe(PRIMARY_BANK_TYPES),
+    ratioNim(PRIMARY_BANK_TYPES),
+    ratioLdr(PRIMARY_BANK_TYPES),
+    ratioRoa(PRIMARY_BANK_TYPES),
 
     perBankCapital(),
     getMarketTicker().catch(() => []),
@@ -487,17 +452,31 @@ export default async function OverviewPage({
   });
   const read = await withLlmHeadline("overview", pulse);
 
-  // Latest point of each selected-type scorecard series.
-  const a = assets.at(-1);
-  const ay = assetsYoY.at(-1);
-  const ly = loansYoY.at(-1);
-  const dy = depositsYoY.at(-1);
-  const n = npl.at(-1);
-  const c = car.at(-1);
-  const m = nim.at(-1);
-  const l = ldr.at(-1);
-  const ra = roa.at(-1);
-  const re = roe.at(-1);
+  // ---- the scorecard = the brief's band, for the selected group ------------
+  // Same six vitals, same cell, same sparkline — only the group changes. Each
+  // cell's peer bar is scaled to the observed spread across ownership groups,
+  // with the sector marked, so a group reads against its league.
+  const isSector = bankType === BANK_TYPES.SECTOR;
+  const groupLabel = BANK_TYPE_LABELS[bankType] ?? "Sector";
+  const change12 = (s: TimeSeriesRow[]): string | null => {
+    const now = lastVal(s);
+    const ago = valAgo(s, 12);
+    return now != null && ago != null ? signedPp(now - ago, 1) : null;
+  };
+  const scorecard: {
+    label: string;
+    series: TimeSeriesRow[];
+    groups: TimeSeriesRow[];
+    sector: number | null;
+    decimals: number;
+  }[] = [
+    { label: "Capital adequacy", series: car, groups: carGroups, sector: carNow, decimals: 1 },
+    { label: "NPL ratio", series: npl, groups: nplAllGroups, sector: nplNow, decimals: 2 },
+    { label: "Net int. margin", series: nim, groups: nimGroups, sector: nimNow, decimals: 2 },
+    { label: "Loan / deposit", series: ldr, groups: ldrGroups, sector: ldrNow, decimals: 1 },
+    { label: "ROE, ann.", series: roe, groups: roeGroups, sector: roeNow, decimals: 1 },
+    { label: "ROA, ann.", series: roa, groups: roaGroups, sector: roaNow, decimals: 2 },
+  ];
 
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
@@ -674,86 +653,130 @@ export default async function OverviewPage({
         </div>
       </div>
 
-      {/* ── In depth — the evidence layer ──────────────────────────────── */}
+      {/* ── In depth — the evidence, on the brief's own grid ───────────── */}
       <Depth action={<GlobalRangeSelector />}>
-        <Takeaway data={read} />
+        <Takeaway data={read} variant="desk" />
 
+        {/* The scorecard IS the vitals band — one group at a time. */}
         <div id="by-type" className="scroll-mt-24">
-          <Section
+          <SecHead
             title="Snapshot scorecard"
-            description="the sector aggregate — or any bank-type group — on the regulator's Table-15 vitals · live D1"
-            actions={<BankTypeFilter active={bankType} />}
-          >
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <KpiCard label="Total Assets" value={fmtTrn(a?.value)} period={a?.period ?? "—"}
-                       series={assets} format="trn" decimals={2} />
-              <KpiCard label="Assets YoY" value={fmtPct(ay?.value, 1)} period={ay?.period ?? "—"}
-                       series={assetsYoY} format="pct" decimals={1} />
-              <KpiCard label="Loan Growth YoY" value={fmtPct(ly?.value, 1)} period={ly?.period ?? "—"}
-                       series={loansYoY} format="pct" decimals={1} />
-              <KpiCard label="Deposit Growth YoY" value={fmtPct(dy?.value, 1)} period={dy?.period ?? "—"}
-                       series={depositsYoY} format="pct" decimals={1} />
-            </div>
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-              <KpiCard label="NPL Ratio" value={fmtPct(n?.value)} period={n?.period ?? "—"}
-                       hint="Takipteki / Toplam Krediler" series={npl} format="pct" decimals={2} goodDirection="down" />
-              <KpiCard label="Capital Adequacy" value={fmtPct(c?.value, 1)} period={c?.period ?? "—"}
-                       hint="SYR · regulatory min 12%" series={car} format="pct" decimals={1} />
-              <KpiCard label="Net Interest Margin" value={fmtPct(m?.value)} period={m?.period ?? "—"}
-                       hint="annualized · NII / avg assets" series={nim} format="pct" decimals={2} />
-              <KpiCard label="Loan / Deposit" value={fmtPct(l?.value, 1)} period={l?.period ?? "—"}
-                       series={ldr} format="pct" decimals={1} goodDirection="neutral" />
-              <KpiCard label="ROA" value={fmtPct(ra?.value)} period={ra?.period ?? "—"}
-                       hint="annualized" series={roa} format="pct" decimals={2} />
-              <KpiCard label="ROE" value={fmtPct(re?.value, 1)} period={re?.period ?? "—"}
-                       hint="annualized" series={roe} format="pct" decimals={1} />
-            </div>
-          </Section>
+            action={<BankTypeFilter active={bankType} />}
+            meta={`table-15 vitals · ${groupLabel.toLowerCase()} · live d1`}
+            className="mb-2.5"
+          />
+          <Levels
+            items={[
+              { k: "Total assets", v: fmtTrn(assets.at(-1)?.value) },
+              { k: "Assets y/y", v: fmtPct(assetsYoY.at(-1)?.value, 1) },
+              { k: "Loan growth y/y", v: fmtPct(loansYoY.at(-1)?.value, 1) },
+              { k: "Deposit growth y/y", v: fmtPct(depositsYoY.at(-1)?.value, 1) },
+            ]}
+          />
+          <Vitals rule="hair">
+            {scorecard.map((v) => {
+              const now = lastVal(v.series);
+              const spread = groupSpread(v.groups);
+              const chg = change12(v.series);
+              return (
+                <Vital
+                  key={v.label}
+                  label={v.label}
+                  value={now != null ? now.toFixed(v.decimals) : "—"}
+                  unit="%"
+                  series={spark(v.series)}
+                  decimals={v.decimals}
+                  peer={
+                    !isSector && now != null && v.sector != null && spread ? (
+                      <PeerBar
+                        value={now}
+                        sector={v.sector}
+                        lo={spread.lo}
+                        hi={spread.hi}
+                        decimals={v.decimals}
+                      />
+                    ) : undefined
+                  }
+                  note={chg ? `12m ${chg}` : undefined}
+                />
+              );
+            })}
+          </Vitals>
+          <p className="mt-2 font-mono text-[8.5px] uppercase tracking-[0.07em] text-faint">
+            {isSector
+              ? "the sector aggregate — switch the group to read it against the league"
+              : "bar = this group across the league of ownership groups · grey tick = the sector"}
+          </p>
         </div>
 
-        <Section
-          title="Sector dynamics"
-          description="growth, quality and returns by ownership group"
-          contentClassName=""
-        >
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {/* Two charts per row — each spans three cells of the band above. */}
+        <div>
+          <SecHead
+            title="Sector dynamics"
+            meta="by ownership group · sector = the navy hero line"
+            className="mb-3"
+          />
+          <div className="grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
             <TrendChart
+              plain
               data={loansYoYGroups}
               seriesLabels={BANK_TYPE_LABELS}
               title={
                 seriesFinding(sLoansYoY, { noun: "Loan growth", decimals: 1 }) ??
-                "Loan Growth YoY (%) — by group"
+                "Loan growth YoY (%) — by group"
               }
-              description="Loan growth YoY, %, monthly · by ownership group"
-              source="Source: BDDK monthly bulletin"
+              description="loan growth y/y, %, monthly · BDDK monthly bulletin"
+              source={<ChartFoot data={loansYoYGroups} labels={BANK_TYPE_LABELS} decimals={1} />}
               yFormat="pct"
               decimals={1}
+              height={280}
               zeroLine
             />
             <TrendChart
+              plain
               data={nplAllGroups}
               seriesLabels={BANK_TYPE_LABELS}
-              title="NPL Ratio (%) — by group"
+              title={
+                seriesFinding(sNpl, { noun: "NPL ratio", decimals: 2 }) ??
+                "NPL ratio (%) — by group"
+              }
+              description="npl ratio, %, monthly · BDDK monthly bulletin"
+              source={<ChartFoot data={nplAllGroups} labels={BANK_TYPE_LABELS} decimals={2} />}
               yFormat="pct"
               decimals={2}
+              height={280}
             />
             <TrendChart
+              plain
               data={carGroups}
               seriesLabels={BANK_TYPE_LABELS}
-              title="Capital Adequacy (%) — by group"
+              title={
+                seriesFinding(sCar, { noun: "Capital adequacy", decimals: 1 }) ??
+                "Capital adequacy (%) — by group"
+              }
+              description="capital adequacy, %, monthly · regulatory minimum 12% · BDDK"
+              source={<ChartFoot data={carGroups} labels={BANK_TYPE_LABELS} decimals={1} />}
               yFormat="pct"
               decimals={1}
+              height={280}
             />
             <TrendChart
+              plain
               data={roeGroups}
               seriesLabels={BANK_TYPE_LABELS}
-              title="ROE — Annualized (%) — by group"
+              title={
+                seriesFinding(sRoe, { noun: "ROE", decimals: 1 }) ??
+                "ROE — annualized (%) — by group"
+              }
+              description="roe annualized, %, monthly · BDDK monthly bulletin"
+              source={<ChartFoot data={roeGroups} labels={BANK_TYPE_LABELS} decimals={1} />}
               yFormat="pct"
               decimals={1}
+              height={280}
               zeroLine
             />
           </div>
-        </Section>
+        </div>
       </Depth>
 
       <Colophon />

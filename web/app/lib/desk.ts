@@ -62,6 +62,25 @@ export const signedPp = (v: number, d = 2): string =>
   `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(d)}pp`;
 
 /**
+ * Latest value of each bank-type group in a long-form `{period, bank_type_code,
+ * value}` series — the spread the scorecard's peer bar scales against, so a
+ * group's cell reads against the league it belongs to and not an arbitrary axis.
+ */
+export function groupSpread(
+  rows: ReadonlyArray<{ period: string; bank_type_code: string; value: number | null }>,
+): { lo: number; hi: number } | null {
+  const latest = new Map<string, { period: string; value: number }>();
+  for (const r of rows) {
+    if (r.value == null) continue;
+    const cur = latest.get(r.bank_type_code);
+    if (!cur || r.period > cur.period) latest.set(r.bank_type_code, { period: r.period, value: r.value });
+  }
+  const vals = [...latest.values()].map((v) => v.value);
+  if (!vals.length) return null;
+  return { lo: Math.min(...vals), hi: Math.max(...vals) };
+}
+
+/**
  * Monthly CPI index levels (EVDS `TP.TUKFIY2025.GENEL`, `period_date` rows) →
  * y/y % and the 12-month rolling average of y/y (the deflator used for every
  * "real terms" read; same arithmetic as /profitability and /economy).
