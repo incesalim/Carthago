@@ -47,6 +47,19 @@ export type MetricKey =
   | "pb"
   | "pe";
 
+/** Metric families — the scorecard's row groups, top to bottom. */
+export const METRIC_FAMILIES = [
+  "Scale",
+  "Asset quality",
+  "Returns",
+  "Margin engine",
+  "Capital & liquidity",
+  "Market risk",
+  "Valuation",
+] as const;
+
+export type MetricFamily = (typeof METRIC_FAMILIES)[number];
+
 export interface MetricDef {
   key: MetricKey;
   label: string;
@@ -56,23 +69,31 @@ export interface MetricDef {
   unit: "pct" | "pts" | "trn" | "bn" | "raw" | "mult";
   decimals: number;
   direction: Direction;
+  /** Scorecard row group. */
+  family: MetricFamily;
+  /** How the number is MADE — printed under the metric name (automation
+   *  honesty, DESIGN.md rule 6). Mirrors the derivations documented above. */
+  rule: string;
+  /** Plot the strip's axis on a log scale — only for the wildly skewed
+   *  size metric, where a linear axis buries 30 banks against zero. */
+  log?: boolean;
 }
 
 /** Ordered — drives the heatmap columns + each column's good/bad direction.
  *  `total_assets` MUST stay first: the grid sizes-ranks within type groups by
  *  raw[indexOf total_assets]. */
 export const METRIC_DEFS: MetricDef[] = [
-  { key: "total_assets",        label: "Total assets",        short: "Assets",     unit: "bn",  decimals: 0, direction: "neutral" },
-  { key: "npl_ratio",           label: "NPL ratio",           short: "NPL",        unit: "pct", decimals: 2, direction: "higher_worse" },
-  { key: "stage2_share",        label: "Stage-2 share",       short: "Stage 2",    unit: "pct", decimals: 2, direction: "higher_worse" },
-  { key: "npl_coverage",        label: "NPL coverage",        short: "Coverage",   unit: "pct", decimals: 1, direction: "higher_better" },
-  { key: "provision_intensity", label: "Provision intensity", short: "Provisions", unit: "pct", decimals: 2, direction: "neutral" },
+  { key: "total_assets",        label: "Total assets",        short: "Assets",     unit: "bn",  decimals: 0, direction: "neutral",      family: "Scale",           log: true, rule: "Σ balance-sheet asset romans I.–X. · log axis" },
+  { key: "npl_ratio",           label: "NPL ratio",           short: "NPL",        unit: "pct", decimals: 2, direction: "higher_worse", family: "Asset quality",   rule: "stage-3 ÷ total loans (audited)" },
+  { key: "stage2_share",        label: "Stage-2 share",       short: "Stage 2",    unit: "pct", decimals: 2, direction: "higher_worse", family: "Asset quality",   rule: "stage-2 ÷ total loans" },
+  { key: "npl_coverage",        label: "NPL coverage",        short: "Coverage",   unit: "pct", decimals: 1, direction: "higher_better",family: "Asset quality",   rule: "stage-3 coverage, as filed" },
+  { key: "provision_intensity", label: "Provision intensity", short: "Provisions", unit: "pct", decimals: 2, direction: "neutral",      family: "Asset quality",   rule: "total ECL ÷ total loans" },
   // Cost of risk (TTM credit-provision flow ÷ avg gross loans) — the income-
   // statement counterpart to the balance-sheet provision-intensity stock.
-  { key: "cost_of_risk",        label: "Cost of risk (TTM)",  short: "CoR",        unit: "pct", decimals: 2, direction: "higher_worse" },
-  { key: "roe",                 label: "ROE (TTM)",           short: "ROE",        unit: "pct", decimals: 1, direction: "higher_better" },
-  { key: "roa",                 label: "ROA",                 short: "ROA",        unit: "pct", decimals: 2, direction: "higher_better" },
-  { key: "nim",                 label: "NIM (annualized)",    short: "NIM",        unit: "pct", decimals: 2, direction: "higher_better" },
+  { key: "cost_of_risk",        label: "Cost of risk (TTM)",  short: "CoR",        unit: "pct", decimals: 2, direction: "higher_worse", family: "Asset quality",   rule: "|TTM ECL flow| ÷ avg gross loans" },
+  { key: "roe",                 label: "ROE (TTM)",           short: "ROE",        unit: "pct", decimals: 1, direction: "higher_better",family: "Returns",         rule: "TTM net income ÷ 5-quarter avg equity" },
+  { key: "roa",                 label: "ROA",                 short: "ROA",        unit: "pct", decimals: 2, direction: "higher_better",family: "Returns",         rule: "YTD net income × 4/q ÷ period-end assets" },
+  { key: "nim",                 label: "NIM (annualized)",    short: "NIM",        unit: "pct", decimals: 2, direction: "higher_better",family: "Returns",         rule: "YTD net interest × 4/q ÷ period-end assets" },
   // Margin engine — the drivers behind NIM. TTM interest flows over 5-point
   // average balances (same basis as ROE), so they read on a trailing-year basis
   // rather than the annualized-YTD NIM. Loan yield = interest on loans (P&L 1.1)
@@ -81,27 +102,27 @@ export const METRIC_DEFS: MetricDef[] = [
   // neutral (high yield ↔ riskier book; high cost ↔ funding mix), spread is the
   // edge. PPOP = gross operating profit (VIII) − opex, the pre-provision earning
   // power, over avg assets.
-  { key: "ppop_ratio",          label: "PPOP / assets (TTM)", short: "PPOP",       unit: "pct", decimals: 2, direction: "higher_better" },
-  { key: "loan_yield",          label: "Loan yield (TTM)",    short: "Yield",      unit: "pct", decimals: 1, direction: "neutral" },
-  { key: "deposit_cost",        label: "Deposit cost (TTM)",  short: "Dep cost",   unit: "pct", decimals: 1, direction: "neutral" },
-  { key: "spread",              label: "Loan–deposit spread", short: "Spread",     unit: "pct", decimals: 1, direction: "higher_better" },
-  { key: "cost_income",         label: "Cost / Income",       short: "Cost/Inc",   unit: "pct",  decimals: 1, direction: "higher_worse" },
+  { key: "ppop_ratio",          label: "PPOP / assets (TTM)", short: "PPOP",       unit: "pct", decimals: 2, direction: "higher_better",family: "Returns",         rule: "TTM (gross op. profit − opex) ÷ avg assets" },
+  { key: "loan_yield",          label: "Loan yield (TTM)",    short: "Yield",      unit: "pct", decimals: 1, direction: "neutral",      family: "Margin engine",   rule: "TTM interest on loans (1.1) ÷ avg gross loans" },
+  { key: "deposit_cost",        label: "Deposit cost (TTM)",  short: "Dep cost",   unit: "pct", decimals: 1, direction: "neutral",      family: "Margin engine",   rule: "TTM interest on deposits (2.1) ÷ avg deposits" },
+  { key: "spread",              label: "Loan–deposit spread", short: "Spread",     unit: "pct", decimals: 1, direction: "higher_better",family: "Margin engine",   rule: "loan yield − deposit cost" },
+  { key: "cost_income",         label: "Cost / Income",       short: "Cost/Inc",   unit: "pct",  decimals: 1, direction: "higher_worse",family: "Margin engine",   rule: "|opex| ÷ |gross operating profit|" },
   // Capital + liquidity (audited §4) — solvency/liquidity buffers; higher = stronger.
-  { key: "cet1",                label: "CET1 ratio (§4)",     short: "CET1",       unit: "pts", decimals: 1, direction: "higher_better" },
-  { key: "car",                 label: "CAR (§4)",            short: "CAR",        unit: "pts", decimals: 1, direction: "higher_better" },
-  { key: "lcr",                 label: "LCR (§4)",            short: "LCR",        unit: "pts", decimals: 0, direction: "higher_better" },
+  { key: "cet1",                label: "CET1 ratio (§4)",     short: "CET1",       unit: "pts", decimals: 1, direction: "higher_better",family: "Capital & liquidity", rule: "audited §4, as filed" },
+  { key: "car",                 label: "CAR (§4)",            short: "CAR",        unit: "pts", decimals: 1, direction: "higher_better",family: "Capital & liquidity", rule: "audited §4, as filed" },
+  { key: "lcr",                 label: "LCR (§4)",            short: "LCR",        unit: "pts", decimals: 0, direction: "higher_better",family: "Capital & liquidity", rule: "audited §4, total LCR" },
   // Market risk (CAMELS "S") — magnitude of exposure, so higher = more exposed.
   // FX NOP = |net open FX position| / regulatory capital (the regulatory NOP
   // ratio). Repricing gap ≤1y = |Σ rate-sensitive gap in the ≤1y buckets| /
   // total assets — how much of the book reprices within a year, net.
-  { key: "fx_nop",              label: "FX net open pos. / capital", short: "FX NOP", unit: "pts", decimals: 1, direction: "higher_worse" },
-  { key: "repricing_gap_1y",    label: "Repricing gap ≤1y / assets", short: "Gap ≤1y", unit: "pts", decimals: 1, direction: "higher_worse" },
+  { key: "fx_nop",              label: "FX net open pos. / capital", short: "FX NOP", unit: "pts", decimals: 1, direction: "higher_worse", family: "Market risk", rule: "|net open FX position| ÷ regulatory capital" },
+  { key: "repricing_gap_1y",    label: "Repricing gap ≤1y / assets", short: "Gap ≤1y", unit: "pts", decimals: 1, direction: "higher_worse", family: "Market risk", rule: "|Σ gap in the ≤1y buckets| ÷ rate-sensitive assets" },
   // Market valuation (listed banks only — blank for the unlisted majority).
   // Neutral coloring: cheap/expensive isn't good/bad. Snapshot uses the
   // quarter-end close; over-time uses current shares (no historical share
   // counts), so deep-history P/B/P/E is approximate across capital actions.
-  { key: "pb",                  label: "Price / Book",        short: "P/B",        unit: "mult", decimals: 2, direction: "neutral" },
-  { key: "pe",                  label: "Price / Earnings",    short: "P/E",        unit: "mult", decimals: 1, direction: "neutral" },
+  { key: "pb",                  label: "Price / Book",        short: "P/B",        unit: "mult", decimals: 2, direction: "neutral", family: "Valuation", rule: "market cap ÷ equity · listed banks only" },
+  { key: "pe",                  label: "Price / Earnings",    short: "P/E",        unit: "mult", decimals: 1, direction: "neutral", family: "Valuation", rule: "market cap ÷ TTM net income · listed banks only" },
 ];
 
 export interface BankMetricRow {

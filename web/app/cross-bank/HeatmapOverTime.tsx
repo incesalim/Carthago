@@ -101,15 +101,18 @@ export default function HeatmapOverTime({ metrics, banks, periods, panel }: Prop
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <label htmlFor="heatmap-metric" className="text-xs font-medium text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <label
+          htmlFor="heatmap-metric"
+          className="font-mono text-[8.5px] uppercase tracking-[0.07em] text-faint"
+        >
           Metric
         </label>
         <select
           id="heatmap-metric"
           value={metricKey}
           onChange={(e) => setMetricKey(e.target.value as MetricKey)}
-          className="rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground"
+          className="border-b border-border bg-transparent pb-0.5 font-mono text-[10.5px] text-foreground"
         >
           {metrics.map((m) => (
             <option key={m.key} value={m.key}>
@@ -118,26 +121,24 @@ export default function HeatmapOverTime({ metrics, banks, periods, panel }: Prop
           ))}
         </select>
 
-        <span className="mx-1 hidden h-5 w-px bg-border sm:block" />
-
-        <span className="text-xs font-medium text-muted-foreground">Color scale</span>
-        <div className="inline-flex items-center gap-0.5 rounded-[9px] border border-border bg-card p-[3px]">
-          {(["panel", "bank", "period"] as ScaleMode[]).map((mode) => (
-            <button
-              key={mode}
-              type="button"
-              onClick={() => setScaleMode(mode)}
-              aria-pressed={scaleMode === mode}
-              className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-                scaleMode === mode
-                  ? "bg-primary/10 font-semibold text-primary"
-                  : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
-              }`}
-            >
-              {SCALE_LABELS[mode]}
-            </button>
-          ))}
-        </div>
+        <span className="ml-2 font-mono text-[8.5px] uppercase tracking-[0.07em] text-faint">
+          Colour scale
+        </span>
+        {(["panel", "bank", "period"] as ScaleMode[]).map((mode) => (
+          <button
+            key={mode}
+            type="button"
+            onClick={() => setScaleMode(mode)}
+            aria-pressed={scaleMode === mode}
+            className={`border-b-[1.5px] pb-0.5 font-mono text-[10.5px] transition-colors ${
+              scaleMode === mode
+                ? "border-foreground font-semibold text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {SCALE_LABELS[mode]}
+          </button>
+        ))}
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
@@ -145,7 +146,7 @@ export default function HeatmapOverTime({ metrics, banks, periods, panel }: Prop
         <HeatmapLegend mode={metric.direction === "neutral" ? "neutral" : "directional"} />
       </div>
 
-      <div className="overflow-auto rounded-[10px] border border-border bg-card">
+      <div className="overflow-auto">
         <div
           className="grid min-w-max"
           style={{
@@ -153,13 +154,13 @@ export default function HeatmapOverTime({ metrics, banks, periods, panel }: Prop
           }}
         >
           {/* Header */}
-          <div className="sticky left-0 top-0 z-30 border-b border-border bg-muted px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          <div className="sticky left-0 top-0 z-30 border-b border-foreground bg-card px-3 py-2 font-mono text-[8.5px] font-semibold uppercase tracking-[0.07em] text-faint">
             Bank
           </div>
           {periods.map((p) => (
             <div
               key={p}
-              className="sticky top-0 z-20 border-b border-l border-border bg-muted px-2 py-2 text-right text-[11px] font-medium tabular-nums text-muted-foreground"
+              className="sticky top-0 z-20 border-b border-foreground bg-card px-2 py-2 text-right font-mono text-[8.5px] font-semibold uppercase tracking-[0.07em] tabular-nums text-faint"
             >
               {shortPeriod(p)}
             </div>
@@ -168,11 +169,11 @@ export default function HeatmapOverTime({ metrics, banks, periods, panel }: Prop
           {/* Rows */}
           {banks.map((bank) => (
             <div key={bank.ticker} className="contents">
-              <div className="sticky left-0 z-10 flex items-center justify-between gap-2 border-b border-border bg-card px-3 py-1.5">
+              <div className="sticky left-0 z-10 flex items-center justify-between gap-2 border-b border-hair bg-card px-3 py-1.5">
                 <div className="min-w-0">
                   <div className="truncate text-xs font-medium text-foreground">{bank.name}</div>
                   <div className="mt-0.5 flex items-center gap-1.5">
-                    <span className="text-[10px] tabular-nums text-muted-foreground">{bank.ticker}</span>
+                    <span className="font-mono text-[10px] tabular-nums text-faint">{bank.ticker}</span>
                     <BankTypeBadge code={bank.groupCode} label={bank.groupLabel} />
                   </div>
                 </div>
@@ -187,9 +188,9 @@ export default function HeatmapOverTime({ metrics, banks, periods, panel }: Prop
                     key={p}
                     title={`${bank.name} · ${metric.label} · ${shortPeriod(p)}: ${text}`}
                     style={{ background: scoreToColor(score, metric.direction === "neutral") }}
-                    className="flex items-center justify-end border-b border-l border-border px-1.5 py-1.5 text-right text-[11px] tabular-nums text-foreground"
+                    className="flex items-center justify-end border-b border-hair px-1.5 py-1.5 text-right font-mono text-[11px] tabular-nums text-foreground"
                   >
-                    {text}
+                    {raw == null ? <span className="text-faint">—</span> : text}
                   </div>
                 );
               })}

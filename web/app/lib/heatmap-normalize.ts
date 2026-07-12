@@ -58,12 +58,18 @@ export function normalizeColumn(
 /**
  * Map a 0..1 score to a theme-aware CSS color string.
  *  - directional (default): green above the midpoint, red below, intensity
- *    growing with distance from 0.5. Mix % capped low (≤42) so mid-rank cells
- *    stay near-white and only genuine leaders/laggards read strongly — the grid
- *    breathes instead of flooding, and --foreground text stays legible.
+ *    growing with distance from 0.5.
  *  - neutral: a quiet low-chroma slate ramp (size / valuation metrics aren't
  *    good-or-bad, so no green↔red — and deliberately NOT a saturated hue, so it
  *    doesn't compete with the directional columns).
+ *
+ * The mix ceilings are deliberately LOW (26 / 12). The grid is the evidence
+ * layer now — the scorecard above it carries the comparison — so colour only
+ * has to sort the eye, not shout. At the old ceilings the grid was the loudest
+ * object on the site, and it was loud about an ordinal (DESIGN.md rule 3 keeps
+ * green/red for direction). The value is always printed in-cell, so nothing
+ * depends on reading the colour.
+ *
  * Uses the dedicated --heat-* tokens (purer green / softer red / slate), which
  * track light & dark via globals.css. Null score → "transparent" (cell shows a
  * muted "—").
@@ -71,15 +77,30 @@ export function normalizeColumn(
 export function scoreToColor(score: number | null, neutral = false): string {
   if (score == null) return "transparent";
   if (neutral) {
-    const pct = Math.min(30, Math.max(0, score * 30));
+    const pct = Math.min(12, Math.max(0, score * 12));
     return `color-mix(in oklch, var(--heat-neutral) ${pct}%, var(--card))`;
   }
-  if (score >= 0.5) {
-    const pct = Math.min(42, (score - 0.5) * 84);
-    return `color-mix(in oklch, var(--heat-pos) ${pct}%, var(--card))`;
-  }
-  const pct = Math.min(42, (0.5 - score) * 84);
-  return `color-mix(in oklch, var(--heat-neg) ${pct}%, var(--card))`;
+  const pct = Math.min(26, Math.abs(score - 0.5) * 52);
+  const tone = score >= 0.5 ? "var(--heat-pos)" : "var(--heat-neg)";
+  return `color-mix(in oklch, ${tone} ${pct}%, var(--card))`;
+}
+
+/** Median of the finite values (null when empty). */
+export function median(xs: (number | null)[]): number | null {
+  const s = xs.filter((v): v is number => v != null && Number.isFinite(v)).sort((a, b) => a - b);
+  if (!s.length) return null;
+  const i = s.length >> 1;
+  return s.length % 2 ? s[i] : (s[i - 1] + s[i]) / 2;
+}
+
+/** Linear-interpolated quantile (q in 0..1) over the finite values. */
+export function quantile(xs: (number | null)[], q: number): number | null {
+  const s = xs.filter((v): v is number => v != null && Number.isFinite(v)).sort((a, b) => a - b);
+  if (!s.length) return null;
+  const p = (s.length - 1) * q;
+  const lo = Math.floor(p);
+  const hi = Math.ceil(p);
+  return lo === hi ? s[lo] : s[lo] + (s[hi] - s[lo]) * (p - lo);
 }
 
 /**

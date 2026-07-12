@@ -1060,6 +1060,26 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   /** The lines whose peer median is withheld (see `cellsForLine`). */
   const AMBIGUOUS_PEER_LINES = new Set(["factoring_recv", "securities_amc"]);
 
+  /**
+   * Does this line exist in THIS bank's filing, in any displayed period?
+   *
+   * BRSA code 2.3 is Factoring on the deposit template and Securities-at-
+   * Amortized-Cost on the participation one, so exactly one of the two labels is
+   * always wrong for a given bank. The old table kept both rows and blanked the
+   * inapplicable one to "--".
+   *
+   * That blank invited exactly the wrong reading. Ziraat's "Securities at
+   * Amortized Cost" row was empty — but the bank holds ₺440bn of government paper
+   * at amortized cost; its template files it under 2.4.1 because 2.3 is taken by
+   * Factoring. Printing 0 there would have asserted the opposite of the truth.
+   * So: drop the row the bank doesn't file, and show the 2.4 breakdown (2.4.1
+   * Government Debt Securities / 2.4.2 Other) where the securities actually live.
+   */
+  const linePresent = (line: StandardLine, pivot: Map<string, PeriodSeries>, stmt: string): boolean => {
+    const series = lineSeries(pivot, line, stmt);
+    return periods.some((p) => series.get(p) != null);
+  };
+
   /** A synthetic subtotal row (Total Assets / Total Liabilities / Total L&E). */
   const cellsForTotal = (series: PeriodSeries, peerKey: string): Cell[] => {
     if (isReal) return realCells(series);
@@ -1074,7 +1094,6 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   const colCount = isReal
     ? 4
     : periods.length + (showTtm ? 1 : 0) + (showPeers ? 2 : 0);
-  const blankCells = (): Cell[] => Array(colCount).fill({ text: "--" });
   const unitLabel =
     mode === "yoy"
       ? "Year-over-year % change"
@@ -1568,27 +1587,27 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
                     const n24 = bsNames.get("assets::2.4") ?? "";
                     const layoutB = /beklenen\s*zarar|expected\s*credit/i.test(n24)
                       || (!/fakto?ring/i.test(n23) && /menkul|securit|amorti[sz]|maliyet|itfa/i.test(n23));
-                    return BS_ASSET_LINES.map((line) => {
-                      const blank = (line.id === "factoring_recv" && layoutB)
-                                 || (line.id === "securities_amc" && !layoutB);
-                      return (
-                        <Row
-                          key={line.id}
-                          label={line.label}
-                          cells={
-                            blank
-                              ? blankCells()
-                              : cellsForLine(
-                                  line,
-                                  bsPivot,
-                                  "assets",
-                                  AMBIGUOUS_PEER_LINES.has(line.id) ? null : undefined,
-                                )
-                          }
-                          depth={indentLevel(line.hierarchy)}
-                        />
-                      );
-                    });
+                    return BS_ASSET_LINES.filter((line) => {
+                      // The template-alternative row that this bank does not file.
+                      if (line.id === "factoring_recv" && layoutB) return false;
+                      if (line.id === "securities_amc" && !layoutB) return false;
+                      // A breakdown line the bank never filed (2.4.1 / 2.4.2 exist on
+                      // 28 of 36 banks) — a row of "--" says nothing.
+                      if (indentLevel(line.hierarchy) >= 2 && !linePresent(line, bsPivot, "assets")) return false;
+                      return true;
+                    }).map((line) => (
+                      <Row
+                        key={line.id}
+                        label={line.label}
+                        cells={cellsForLine(
+                          line,
+                          bsPivot,
+                          "assets",
+                          AMBIGUOUS_PEER_LINES.has(line.id) ? null : undefined,
+                        )}
+                        depth={indentLevel(line.hierarchy)}
+                      />
+                    ));
                   })()}
                   <Row label="Total Assets" cells={totalAssets} divider />
                   <GroupRow label="Liabilities & equity — what pays for it" span={colCount + 1} />
