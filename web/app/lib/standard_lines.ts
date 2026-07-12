@@ -23,6 +23,11 @@ export interface StandardLine {
   /** Render bold — used for category subtotals (Roman numerals at indent 0)
    *  and P&L subtotal rows (Net Interest Income, Pre-tax Profit, etc.). */
   bold?: boolean;
+  /** A COMPUTED subtotal (Net Interest Income, Gross Operating Profit, …) as
+   *  opposed to a top-level leaf (Dividend Income, Personnel Expenses). The
+   *  catalog used to bold both, which flattened the statement: the sums that
+   *  carry the argument looked exactly like the lines feeding them. */
+  subtotal?: boolean;
   /** Always-subtractive deduction (expense / ECL / commissions paid). Displayed
    *  as a negative TL value across every financial table; the label omits the
    *  "(-)" marker since the sign now carries it. BRSA banks store these with
@@ -227,7 +232,7 @@ export const PL_LINES: StandardLine[] = [
   { id: "ie_lease",               label: "Lease Interest Expense",                               hierarchy: "2.5" },
 
   // III. Net Interest Income (subtotal)
-  { id: "net_interest",           label: "Net Interest / Profit Share Income (I + II)",          hierarchy: "III.",   bold: true },
+  { id: "net_interest",           label: "Net Interest / Profit Share Income (I + II)",          hierarchy: "III.",   bold: true , subtotal: true },
 
   // IV. Net Fees & Commissions + breakdown
   { id: "net_fees",               label: "Net Fees & Commissions",                               hierarchy: "IV.",    bold: true },
@@ -240,7 +245,7 @@ export const PL_LINES: StandardLine[] = [
   { id: "other_op_income",        label: "Other Operating Income",                               hierarchy: "VII.",   bold: true },
 
   // VIII. Gross Operating Profit (subtotal)
-  { id: "gross_op_profit",        label: "Gross Operating Profit (III+IV+V+VI+VII)",             hierarchy: "VIII.",  bold: true },
+  { id: "gross_op_profit",        label: "Gross Operating Profit (III+IV+V+VI+VII)",             hierarchy: "VIII.",  bold: true , subtotal: true },
 
   // IX-XII. Provisions + operating expenses
   { id: "ecl_provisions",         label: "Expected Credit Loss Provisions",                      hierarchy: "IX.",    bold: true, contra: true },
@@ -249,23 +254,23 @@ export const PL_LINES: StandardLine[] = [
   { id: "other_op_expense",       label: "Other Operating Expenses",                             hierarchy: "XII.",   bold: true, contra: true },
 
   // XIII. Net Operating Profit (subtotal)
-  { id: "net_op_profit",          label: "Net Operating Profit / (Loss) (VIII+IX+X+XI+XII)",     hierarchy: "XIII.",  bold: true },
+  { id: "net_op_profit",          label: "Net Operating Profit / (Loss) (VIII+IX+X+XI+XII)",     hierarchy: "XIII.",  bold: true , subtotal: true },
 
   // XV-XVI. Other below-the-line items (XIV is merger surplus — skipped)
   { id: "equity_method",          label: "Profit / (Loss) from Equity-Method Subsidiaries",      hierarchy: "XV.",    bold: true },
   { id: "monetary_position",      label: "Net Monetary Position Profit / (Loss)",                hierarchy: "XVI.",   bold: true },
 
   // XVII. Pre-tax Profit (subtotal)
-  { id: "pretax_profit_cont",     label: "Pre-tax Profit / (Loss) from Continuing Operations",   hierarchy: "XVII.",  bold: true },
+  { id: "pretax_profit_cont",     label: "Pre-tax Profit / (Loss) from Continuing Operations",   hierarchy: "XVII.",  bold: true , subtotal: true },
 
   // XVIII. Tax
   { id: "tax_provision",          label: "Tax Provision on Continuing Operations (±)",           hierarchy: "XVIII.", bold: true },
 
   // XIX. Net Period Profit from continuing ops (subtotal)
-  { id: "net_profit_cont",        label: "Net Period Profit / (Loss) from Continuing Operations",hierarchy: "XIX.",   bold: true },
+  { id: "net_profit_cont",        label: "Net Period Profit / (Loss) from Continuing Operations",hierarchy: "XIX.",   bold: true , subtotal: true },
 
   // XXV. Total Net Period Profit (XX-XXIV are discontinued-ops detail — skipped)
-  { id: "net_profit_total",       label: "Net Period Profit / (Loss) (XIX + XXIV)",              hierarchy: "XXV.",   bold: true },
+  { id: "net_profit_total",       label: "Net Period Profit / (Loss) (XIX + XXIV)",              hierarchy: "XXV.",   bold: true , subtotal: true },
 ];
 
 /** Cash-flow roman subtotals/totals — I.–VII. (sections + bottom-line chain
