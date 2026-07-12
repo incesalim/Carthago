@@ -50,27 +50,17 @@ W/E 2026-07-03, BRSA audited §7 TFRS-9 to 2026Q1 n=37, TÜİK CPI).
 `/asset-quality` leads with **NPL ratio 2.69%** — a calm number. Three things in the
 page's own data say it is not calm, and the page never composes any of them.
 
-### 1. The ratio is the denominator's story
+### 1. The headline is the tip of an iceberg
 
-The bad-loan **stock** grew **+79.8% y/y** (**+34.9% in real terms**) while the printed
-ratio moved only **+0.70pp**. The ratio barely moved because its denominator is
-inflating:
+What the ratio prints is **Stage 3**. Loans the banks themselves classify as
+deteriorated are four times as much — see §2, which is now the page's lead.
 
-| | |
-| --- | --- |
-| NPL ratio, 52w ago | 2.21% |
-| Bad loans alone would have taken it to | **3.97%** (+1.76pp) |
-| A loan book growing 36.6% took back | **−1.06pp** |
-| Printed today | **2.90%** (weekly implied; 2.69% published) |
-
-**The growing book hides 1.06pp of NPL ratio.** And that loan growth is not real
-credit — [/credit](credit-tab-redesign-2026-07-12.md) showed the book *shrank 2.1%* in
-real, constant-FX terms. Like-for-like (both CPI-deflated): bad loans **+34.9%** real
-against a loan book **+3.3%** real.
-
-The page already half-knows this — it carries a "Gross NPL stock y/y" vital whose
-caption reads *"fast off a low base — /credit grows the denominator"*. That is the
-finding, demoted to a caption, on a vital with no sparkline.
+The bad-loan **stock** grew **+79.8% y/y (+34.9% real)** while the printed ratio moved
+only **+0.70pp**, so the ratio is a slow summary of a fast-moving stock. But note what
+this does **not** license: an NPL ratio is `N/L`, and deflating both legs by CPI leaves
+it **unchanged**, so inflation does *not* flatter it. Only **real** book growth dilutes,
+and that was +3.3% — worth **~0.1pp**. Lead with the stock and the pipeline, not with a
+counterfactual. (See the correction banner above for the arithmetic.)
 
 ### 2. What the ratio prints is the tip
 
@@ -98,27 +88,30 @@ will otherwise assume the wrong mechanism.
 
 ---
 
-## The redesign
+## The redesign (v2)
 
-1. **New signature — "The ratio is the denominator's story."** One chart, one axis, two
-   lines: the printed NPL ratio, and the **constant-book ratio**
-   (`npl_stock(t) ÷ loans(t−52w)` — today's bad loans against last year's book). The
-   shaded gap between them *is* the dilution. A numeric strip states the split:
-   bad loans **+1.76pp**, the bigger book **−1.06pp**, net **+0.70pp**.
-2. **The stress ladder** (new): the loan book as one bar — Stage 1 / 2 / 3 — with each
-   stage's book and coverage beside it. Makes "the tip vs the watchlist" and the
-   coverage asymmetry (9.8% vs 62.3%) visible at a glance.
-3. **Formation vs exits** promoted out of the chart bin, with the caption that kills the
-   disposal theory (77% collections).
+1. **Signature — the waterline.** The whole loan book to scale (Stage 1 87.7% /
+   Stage 2 9.2% / Stage 3 3.1%), with a tick marking Stage 3 alone: *the ratio prints
+   only this*. Beneath it the **problem book, magnified** (₺3.23trn), split Stage 2 (75%
+   of it) vs Stage 3 (25%), with **provisions held drawn inside each stage** — so the
+   9.8%-vs-62.3% coverage asymmetry is a picture, not a footnote. Needs no counterfactual.
+2. **Vitals** re-pointed to stock / pipeline / cover: problem loans 12.3% (hero), cover on
+   the problem book 23.1%, NPL stock +34.9% real, net formation +₺404bn, the published
+   ratio 2.69% (16 straight rises), SME NPL 3.85%.
+3. **The pipeline behind the tip** — formation vs exits as grouped bars, with the caption
+   that kills the disposal theory (77% collections), beside the migration sizing.
 4. **Attribution**: where the ₺0.34trn of new bad loans came from — commercial 60.9%
    (of which **SME 42.8%**), cards 21.8%, GPL 17.1%, housing 0.1%, auto 0.1%. Sums to
-   100%. SME is drawn *inside* commercial: it carries **61% of commercial bad loans on
-   36% of its loans**.
-5. **Flags** print their rules; **Movers** show each segment's NPL ratio Δ over 52w.
-6. **Depth reordered by question** — *Is the ratio telling the truth? → What is coming?
-   → Where is it? → Who holds it?* All existing charts carried over, none removed.
-   (This tab is also one of the five still on the pre-contract evidence layer — boxed
-   `Stat` cards and boxed `Takeaway` — so the conversion is due anyway.)
+   100%. SME is drawn *inside* commercial: **61% of commercial bad loans on 36% of its
+   lending**.
+5. **Flags** print their rules; **Movers** show each segment's NPL-ratio Δ over 52w.
+6. **Two footnotes carry the honesty**: why we do *not* claim inflation flatters the
+   ratio, and why the published (2.69%) and weekly-implied (2.90%) ratios are never
+   mixed inside one calculation.
+7. **Depth reordered by question** — *What is coming? → Is the stock or the ratio moving?
+   → Where is it? → Who holds it?* All existing charts carried over, none removed. (This
+   tab is also one of the five still on the pre-contract evidence layer — boxed `Stat`
+   cards and boxed `Takeaway` — so the conversion is due anyway.)
 
 ## Traps found while building this (read before implementing)
 
