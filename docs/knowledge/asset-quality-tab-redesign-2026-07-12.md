@@ -1,6 +1,6 @@
 # /asset-quality redesign — rationale + mockup
 
-**Date:** 2026-07-12 · **Status:** PROPOSED — **thesis CORRECTED, see below before building**
+**Date:** 2026-07-12 (v2 corrected 2026-07-13) · **Status:** PROPOSED — build v2, not v1
 
 > ## ⚠ Correction (2026-07-12, same day): the original headline was wrong
 >
@@ -32,10 +32,11 @@
 > classified as deteriorated are 12.3% — **4.0×** — and the watchlist carries 9.8%
 > cover against Stage 3's 62.3%. The pipeline behind it is still filling.
 >
-> The mockup HTML still renders the old signature panel (the two-ratio chart and the
-> +1.76 / −1.06 strip). **Both are superseded**; the implementation should lead with
-> the ladder + the roll-forward, and demote loan-growth dilution to a one-line
-> footnote at its honest size (~0.1pp).
+> **The mockup has been rebuilt (v2, 2026-07-13)** and now leads with the waterline:
+> the whole book to scale (Stage 1 / 2 / 3), then the problem book magnified with
+> provisions held drawn inside each stage. The two-ratio chart and the +1.76 / −1.06
+> strip are **gone**. Loan-growth dilution survives only as a footnote at its honest
+> size (~0.1pp), next to a footnote on the two ratio bases.
 **Artefact:** [`docs/design/mockups/2026-07-12-asset-quality-tab.html`](../design/mockups/2026-07-12-asset-quality-tab.html) (+ desktop/mobile PNGs)
 **System:** The Desk ([web/DESIGN.md](../../web/DESIGN.md)) — a re-*think*, not a re-skin.
 
