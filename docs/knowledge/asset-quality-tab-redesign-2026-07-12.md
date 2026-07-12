@@ -1,6 +1,6 @@
 # /asset-quality redesign — rationale + mockup
 
-**Date:** 2026-07-12 (v2 corrected 2026-07-13) · **Status:** PROPOSED — build v2, not v1
+**Date:** 2026-07-12 (v2 corrected 2026-07-13) · **Status:** **SHIPPED** as v2 (`ed39fd0`)
 
 > ## ⚠ Correction (2026-07-12, same day): the original headline was wrong
 >
@@ -142,7 +142,7 @@ will otherwise assume the wrong mechanism.
   figure.** The NPL stock was never FX-adjusted, so that is apples-to-oranges. Compare
   like with like (both CPI-deflated), and cross-reference /credit separately.
 
-## If built — the implementation map
+## As built (`ed39fd0`) — the implementation map
 
 **No new series at all.** v2 needs nothing the page does not already fetch — the
 constant-book ratio that v1 invented is gone with it. What is needed is *exposure*:
