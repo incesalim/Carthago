@@ -64,8 +64,8 @@ import { creditInsights } from "@/app/lib/insights";
 import { seriesFinding } from "@/app/lib/chart-findings";
 import { withLlmHeadline } from "@/app/lib/read-headlines";
 import { cpiYoYByMonth, nominalVsReal, REAL_TERMS_LABELS } from "@/app/lib/real-terms";
+import Attribution from "@/app/components/Attribution";
 import Bridge from "./Bridge";
-import Attribution from "./Attribution";
 
 export const dynamic = "force-dynamic";
 
@@ -572,14 +572,23 @@ export default async function CreditPage() {
             className="mb-2.5"
           />
           <Attribution
-            items={attrib.items}
-            sumPp={attrib.sumPp}
+            rows={attrib.items.map((c) => ({
+              key: c.key,
+              label: c.label,
+              value: c.pp,
+              meta: `₺${(c.level / 1_000_000).toFixed(2)}trn · ${c.growth.toFixed(1)}%`,
+            }))}
+            sum={attrib.sumPp}
             nested={
-              smeContrib
-                ? { of: "commercial", label: "SME", pp: smeContrib.pp, level: smeContrib.level }
+              smeContrib ? { of: "commercial", label: "SME", value: smeContrib.pp } : undefined
+            }
+            fmtValue={(v) => `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(1)}pp`}
+            reconciliation="contributions reconcile to the headline — SME is a cut of commercial, not an addition"
+            totalMeta={
+              lastVal(loansSector) != null
+                ? `₺${((lastVal(loansSector) as number) / 1_000_000).toFixed(2)}trn book`
                 : undefined
             }
-            totalLevel={lastVal(loansSector)}
           />
         </div>
         <div>
