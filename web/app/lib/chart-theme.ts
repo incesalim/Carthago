@@ -38,6 +38,11 @@ export interface ChartTheme {
   contextActive: string;
   /** Muted text ink for direct end-labels (between axis tone and full ink). */
   inkMuted: string;
+  /** Direction marks. Green/red state DATA DIRECTION only (DESIGN.md rule 3) —
+   *  never decoration. LOCKSTEP with --negative / --positive / --warning. */
+  negative: string;
+  positive: string;
+  warning: string;
 }
 
 // "The Desk" chart chrome — navy hero + grey context (mirror --chart-1..6),
@@ -57,6 +62,9 @@ const LIGHT: ChartTheme = {
   context: "#C0C8D1",
   contextActive: "#454D57",
   inkMuted: "#68707A",
+  negative: "#C24847",
+  positive: "#187A53",
+  warning: "#B98514",
 };
 
 const DARK: ChartTheme = {
@@ -74,6 +82,9 @@ const DARK: ChartTheme = {
   context: "#4A525C",
   contextActive: "#C9D2DC",
   inkMuted: "#9AA3AD",
+  negative: "#E0716B",
+  positive: "#4FB98A",
+  warning: "#D9A83F",
 };
 
 /** Resolve the chart palette for the active theme (defaults to light pre-mount). */

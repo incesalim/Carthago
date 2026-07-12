@@ -156,3 +156,170 @@ export const NPL_FORMATION_LABELS: Record<string, string> = {
   FORMATION: "New NPL formation (additions)",
   EXITS: "Exits (collections + write-offs + sales)",
 };
+
+// ---------------------------------------------------------------------------
+// /asset-quality — the stage ladder and the full roll-forward
+//
+// stageAgg() already computes the stage AMOUNTS and their ECL; only the shares
+// were ever exported. The asset-quality brief needs the amounts and the coverage
+// per stage, because the whole finding is that what the NPL ratio prints (Stage
+// 3) is the tip: Stage 2 is ~3x larger and carries a fraction of the cover.
+// ---------------------------------------------------------------------------
+
+export interface StageLadder {
+  period: string;
+  /** Reporting banks behind the aggregate. */
+  n: number;
+  /** Gross loans of the reporting banks (source units: TL thousands). */
+  total: number;
+  stage1Share: number;
+  stage2Share: number;
+  stage3Share: number;
+  /** Books, ₺bn. */
+  stage2Bn: number;
+  stage3Bn: number;
+  /** Provisions held (ECL), ₺bn. */
+  ecl2Bn: number;
+  ecl3Bn: number;
+  /** ECL ÷ stage amount, %. */
+  cov2: number;
+  cov3: number;
+  /** Stage 2 + Stage 3, % of gross loans — the whole problem book. */
+  problemShare: number;
+  /** Problem book ₺bn, and the provisions standing against it. */
+  problemBn: number;
+  provisionsBn: number;
+  /** Provisions ÷ problem book, %. */
+  problemCov: number;
+  /**
+   * problemShare ÷ stage3Share. BOTH legs come from the audited filings — never
+   * divide by the *published* BDDK ratio, which is a different basis (see the
+   * asset-quality rationale) and would inflate the multiple.
+   */
+  multipleOfPrinted: number;
+}
+
+export async function stageLadder(kind: string = DEFAULT_KIND): Promise<StageLadder | null> {
+  const rows = await stageAgg(kind);
+  const r = rows
+    .filter(
+      (x) =>
+        x.n >= 5 &&
+        x.total != null &&
+        x.total > 0 &&
+        x.s2 != null &&
+        x.s3 != null &&
+        x.ecl2 != null &&
+        x.ecl3 != null,
+    )
+    .at(-1);
+  if (!r) return null;
+
+  const total = r.total!;
+  const s2 = r.s2!;
+  const s3 = r.s3!;
+  const e2 = Math.abs(r.ecl2!);
+  const e3 = Math.abs(r.ecl3!);
+  const s1 = total - s2 - s3;
+
+  const stage2Share = (s2 / total) * 100;
+  const stage3Share = (s3 / total) * 100;
+  const problem = s2 + s3;
+  const provisions = e2 + e3;
+
+  return {
+    period: r.period,
+    n: r.n,
+    total,
+    stage1Share: (s1 / total) * 100,
+    stage2Share,
+    stage3Share,
+    stage2Bn: s2 / TH_TO_BN,
+    stage3Bn: s3 / TH_TO_BN,
+    ecl2Bn: e2 / TH_TO_BN,
+    ecl3Bn: e3 / TH_TO_BN,
+    cov2: s2 > 0 ? (e2 / s2) * 100 : 0,
+    cov3: s3 > 0 ? (e3 / s3) * 100 : 0,
+    problemShare: stage2Share + stage3Share,
+    problemBn: problem / TH_TO_BN,
+    provisionsBn: provisions / TH_TO_BN,
+    problemCov: problem > 0 ? (provisions / problem) * 100 : 0,
+    multipleOfPrinted: stage3Share > 0 ? (stage2Share + stage3Share) / stage3Share : 0,
+  };
+}
+
+export interface RollForwardYear {
+  year: string;
+  n: number;
+  /** All ₺bn. */
+  additions: number;
+  collections: number;
+  writeOffs: number;
+  sold: number;
+  exits: number;
+  /** additions − exits. */
+  net: number;
+  /** Collections as a share of exits, %. */
+  collectionShare: number;
+  /** Write-offs + sales as a share of exits, % — the "is the ratio being managed?" test. */
+  disposalShare: number;
+}
+
+/**
+ * The annual NPL roll-forward, split. `nplFormationAnnual` collapses the exits to
+ * a single number; the brief needs the split, because the obvious suspicion —
+ * that the ratio is held down by write-offs and NPL sales — is FALSE: exits run
+ * ~77% collections. Stating that is what stops a reader assuming the wrong
+ * mechanism.
+ *
+ * Q4 rows only: the audited movement tables are YTD flows, so Q4 = the full year.
+ */
+export async function nplRollForwardAnnual(
+  kind: string = DEFAULT_KIND,
+): Promise<RollForwardYear[]> {
+  const rows = await cachedAll<{
+    period: string;
+    additions: number | null;
+    collections: number | null;
+    write_offs: number | null;
+    sold: number | null;
+    n: number;
+  }>(
+    `SELECT period,
+            SUM(additions)   AS additions,
+            SUM(collections) AS collections,
+            SUM(write_offs)  AS write_offs,
+            SUM(sold)        AS sold,
+            COUNT(DISTINCT bank_ticker) AS n
+       FROM bank_audit_npl_movement
+      WHERE kind = ? AND period_type = 'current' AND period LIKE '%Q4'
+      GROUP BY period
+      ORDER BY period`,
+    [kind],
+  );
+
+  const out: RollForwardYear[] = [];
+  for (const r of rows) {
+    if (r.n < 5 || r.additions == null) continue;
+    // Reducing flows may be stored signed either way per bank layout — take
+    // magnitudes (they only ever reduce the NPL balance). Same rule as above.
+    const collections = Math.abs(r.collections ?? 0) / TH_TO_BN;
+    const writeOffs = Math.abs(r.write_offs ?? 0) / TH_TO_BN;
+    const sold = Math.abs(r.sold ?? 0) / TH_TO_BN;
+    const additions = r.additions / TH_TO_BN;
+    const exits = collections + writeOffs + sold;
+    out.push({
+      year: r.period.slice(0, 4),
+      n: r.n,
+      additions,
+      collections,
+      writeOffs,
+      sold,
+      exits,
+      net: additions - exits,
+      collectionShare: exits > 0 ? (collections / exits) * 100 : 0,
+      disposalShare: exits > 0 ? ((writeOffs + sold) / exits) * 100 : 0,
+    });
+  }
+  return out;
+}

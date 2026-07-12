@@ -261,39 +261,75 @@ export function depositsInsights(d: {
 
 /** Asset Quality — "is the credit good — where is deterioration concentrated?" */
 export function assetQualityInsights(d: {
-  npl: SeriesPoint[]; // sector NPL ratio, monthly
+  npl: SeriesPoint[]; // sector NPL ratio, monthly (BDDK published basis)
   coverage: SeriesPoint[]; // provisions / gross NPL
-  grossNpl: SeriesPoint[]; // weekly level
+  grossNpl: SeriesPoint[]; // weekly NPL stock level
   cardsNpl: SeriesPoint[]; // consumer cards NPL ratio
   smeNpl: SeriesPoint[]; // SME NPL ratio
   stage2?: SeriesPoint[]; // sector Stage-2 share of gross loans (audited quarterly)
+  /** The audited staging ladder — the iceberg the ratio does not print. */
+  ladder?: {
+    stage2Share: number;
+    stage3Share: number;
+    problemShare: number;
+    cov2: number;
+    cov3: number;
+    multipleOfPrinted: number;
+    period: string;
+  } | null;
+  /** The latest audited NPL roll-forward year. */
+  roll?: { additions: number; exits: number; net: number; collectionShare: number; year: string } | null;
+  formationMultiple?: number | null;
 }): TabTakeaway {
   const period = asOf(d.npl);
   const items: Insight[] = [];
 
   const n = last(d.npl);
   const nD = deltaPp(d.npl);
-  if (n != null) {
+  const L = d.ladder ?? null;
+
+  // Lead with the iceberg: what the ratio prints is the tip. NOT with the ratio's
+  // level, which reads "benign" and is the misreading this tab exists to prevent.
+  if (L) {
     items.push({
-      text: `NPL ratio ${pct(n, 2)}${nD != null ? ` (${ppStr(nD)} m/m)` : ""} — ${n < 3 ? "low by Turkish cycle standards" : n < 5 ? "mid-cycle" : "elevated"}.`,
-      tone: nD != null && nD > 0.05 ? "warn" : nD != null && nD < -0.05 ? "positive" : "neutral",
+      text:
+        `The ratio prints Stage 3 — ${pct(L.stage3Share)} of the book. Loans the banks themselves ` +
+        `classify as deteriorated are ${pct(L.problemShare)}, ${L.multipleOfPrinted.toFixed(1)}× as much (${L.period}).`,
+      tone: L.multipleOfPrinted >= 3 ? "warn" : "neutral",
+    });
+    items.push({
+      text:
+        `The Stage-2 watchlist is ${pct(L.stage2Share)} of loans at ${pct(L.cov2)} cover, against ` +
+        `Stage 3 at ${pct(L.cov3)} — lower cover is expected on a book that is not impaired, but it is where the next NPLs come from.`,
+      tone: L.cov2 < L.cov3 / 5 ? "warn" : "neutral",
     });
   }
 
-  const s2 = d.stage2 ? last(d.stage2) : null;
-  const s2D = d.stage2 ? deltaPp(d.stage2) : null;
-  if (s2 != null) {
+  // The pipeline, and the mechanism — because the obvious suspicion (the ratio is
+  // being written off) is FALSE, and saying so is worth an item.
+  if (d.roll && d.formationMultiple) {
+    const r = d.roll;
     items.push({
-      text: `Stage-2 loans — the pre-NPL watchlist — are ${pct(s2)} of the book${s2D != null ? ` (${ppStr(s2D)} q/q, ${s2D > 0.2 ? "migrating up" : s2D < -0.2 ? "easing" : "stable"})` : ""}.`,
-      tone: s2D != null && s2D > 0.2 ? "warn" : s2D != null && s2D < -0.2 ? "positive" : "neutral",
+      text:
+        `NPL formation ran ${d.formationMultiple.toFixed(1)}× the prior year in ${r.year} ` +
+        `(net +₺${Math.round(r.net)}bn), and exits are ${r.collectionShare.toFixed(0)}% collections — ` +
+        `not write-offs or sales. The book is genuinely deteriorating; the ratio is not being managed down.`,
+      tone: r.net > 0 && d.formationMultiple >= 1.5 ? "warn" : "neutral",
     });
   }
 
   const g = growthOver(d.grossNpl, 52);
   if (g != null) {
     items.push({
-      text: `The NPL stock is growing ${pct(g)} y/y — ${g > 40 ? "formation is running well ahead of the book" : "broadly with the book"} (ratios can stay flat while stock builds under 30%+ nominal loan growth).`,
+      text: `The NPL stock is growing ${pct(g)} y/y — the ratio is a slow summary of a fast-moving stock.`,
       tone: g > 60 ? "warn" : "neutral",
+    });
+  }
+
+  if (n != null) {
+    items.push({
+      text: `The published NPL ratio is ${pct(n, 2)}${nD != null ? ` (${ppStr(nD)} m/m)` : ""} — rising, but slowly.`,
+      tone: nD != null && nD > 0.05 ? "warn" : "neutral",
     });
   }
 
@@ -320,10 +356,15 @@ export function assetQualityInsights(d: {
     });
   }
 
-  const headline =
-    `Headline asset quality is ${n != null && n < 3 ? "still benign" : "under pressure"} — NPLs at ${pct(n, 2)} — ` +
-    `with coverage at ${pct(c)}${cD != null && cD < -0.3 ? " and slipping" : ""}; ` +
-    `the pockets to watch are ${cards != null && sme != null && cards >= sme ? "consumer cards" : "SME"} books.`;
+  const headline = L
+    ? `The ${pct(n, 2)} NPL ratio is the tip: loans classified as deteriorated are ${pct(L.problemShare)}, ` +
+      `${L.multipleOfPrinted.toFixed(1)}× what the headline prints, and ${pct(L.stage2Share)} of the book sits on a ` +
+      `watchlist carrying ${pct(L.cov2)} cover` +
+      (d.roll && d.formationMultiple
+        ? ` — with formation running ${d.formationMultiple.toFixed(1)}× and exits that are collections, not write-offs.`
+        : ".")
+    : `Headline NPLs at ${pct(n, 2)} with coverage at ${pct(c)}${cD != null && cD < -0.3 ? " and slipping" : ""}; ` +
+      `the audited staging ladder — where the next NPLs come from — is not yet available.`;
 
   return { asOf: period, headline, items };
 }
