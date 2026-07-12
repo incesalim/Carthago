@@ -44,7 +44,8 @@ Each page of the site taken back to a mockup and rebuilt against the Desk brief.
 | Compare — redesign proposal | **PROPOSED** — not built | — | [artifact](https://claude.ai/code/artifact/97ada54b-e315-4a80-80cc-c4d4716726c6) |
 | Regulations tab | **PROPOSED** — not built, never published | [html](mockups/2026-07-12-regulations-tab.html) · [desktop](mockups/2026-07-12-regulations-tab-desktop.png) · [mobile](mockups/2026-07-12-regulations-tab-mobile.png) | — |
 | Credit tab | **SHIPPED** — `7ffa75a`. Premise held: the headline is mostly *not* credit. Strip lira + CPI and the book **shrank 2.1%**. Built with the bridge, growth attribution (contributions reconcile to the print), SME nested inside commercial, and computed flags | [html](mockups/2026-07-12-credit-tab.html) · [desktop](mockups/2026-07-12-credit-tab-desktop.png) · [mobile](mockups/2026-07-12-credit-tab-mobile.png) | — |
-| Deposits tab | **PROPOSED** — not built. Premise: the page never states its own finding — **91.3% of the book reprices inside three months**. Brief gains Movers/Flags/Standings/Ahead (it had none); evidence layer converted to the Overview contract. Built on the live W/E 3 Jul 2026 series, extracted from the deployed page's RSC payload — no reconstructed numbers | [html](mockups/2026-07-12-deposits-tab.html) · [desktop](mockups/2026-07-12-deposits-tab-desktop.png) · [mobile](mockups/2026-07-12-deposits-tab-mobile.png) | [artifact](https://claude.ai/code/artifact/77a1403c-ef5a-4899-8605-e264b5ace793) |
+| Deposits tab | **SHIPPED** — `d4de0e6`. Premise held: the page never stated its own finding — **~91% of the book reprices inside three months**. Brief gained Movers/Flags/Standings/Ahead (it had none); evidence layer converted to the Overview contract; `Flags showCleared` added so a rule prints whether or not it fires | [html](mockups/2026-07-12-deposits-tab.html) · [desktop](mockups/2026-07-12-deposits-tab-desktop.png) · [mobile](mockups/2026-07-12-deposits-tab-mobile.png) | [artifact](https://claude.ai/code/artifact/77a1403c-ef5a-4899-8605-e264b5ace793) |
+| Liquidity tab | **PROPOSED** — not built. Premise: the page **derives** net reserves and the swap stock — the most careful arithmetic on the site — then draws them as one line among three and says nothing. Read out: gross **$159.7bn** → net **$52.2bn** → net excl. swaps **$34.5bn** (22% of the headline); **$107.5bn** of "gross" is the *banks'* own FX at the CBRT and **$17.7bn** is swapped in. Second finding, from two series the page never compares: residents hold **$138.3bn** in FX + gold, **3.1×** the CBRT's net reserves (same-date). Note the mark: a stacked decomposition would **lie** — the CBRT's own net FX is negative in 42 of 150 weeks (−$68.6bn at worst), so it is three lines with the gaps shaded | [html](mockups/2026-07-12-liquidity-tab.html) · [desktop](mockups/2026-07-12-liquidity-tab-desktop.png) · [mobile](mockups/2026-07-12-liquidity-tab-mobile.png) | [artifact](https://claude.ai/code/artifact/27299533-1ade-441e-8b18-a9617bf0b4a1) |
 
 ## 2026-07-11 — the identity bake-off
 
@@ -84,7 +85,12 @@ Came out of the design critique (`docs/knowledge/design-critique-2026-07-10.md`,
 
 ## Open design debt
 
-- **Compare, Regulations, Deposits** are mocked but unbuilt — three ready designs
-  waiting on implementation. (Credit was built on 2026-07-12, `7ffa75a`.)
+- **Compare, Regulations, Liquidity** are mocked but unbuilt — three ready designs
+  waiting on implementation. (Credit shipped 2026-07-12 `7ffa75a`; Deposits `d4de0e6`;
+  Overview `e081959`.)
+- **Five sector tabs still run the pre-contract evidence layer** (asset-quality,
+  capital, profitability, market-risk, and the economy pages): boxed `Stat` cards,
+  boxed `Takeaway`, charts in `ChartCard` chrome. `web/DESIGN.md` → "the evidence
+  layer speaks the brief's language" is the contract to convert them against.
 - Regulations and Credit exist **only** as local files; publish them if they need
   to be reviewed away from the repo.
