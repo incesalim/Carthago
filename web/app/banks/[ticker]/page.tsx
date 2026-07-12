@@ -36,7 +36,7 @@
 import type { Metadata } from "next";
 import type { ReactElement } from "react";
 import Link from "next/link";
-import { Card, PageHeader, Section, Stat } from "@/app/components/ui";
+import { PageHeader, Section, Stat } from "@/app/components/ui";
 import { Colophon, SecHead, Vital, Vitals, type MoverRow } from "@/app/components/desk";
 import { cpiFromIndex, lastVal, monthLabel, signedPp, valAgo } from "@/app/lib/desk";
 import {
@@ -89,9 +89,8 @@ import { bankMarketRiskDetail } from "@/app/lib/market-risk";
 import { bistValuation, bistPriceHistory } from "@/app/lib/bist";
 import { liveQuotes, applyLivePrice, formatAsOf } from "@/app/lib/bist-live";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
-import BankCard from "./BankCard";
-import BankSectionNav from "./BankSectionNav";
-import ProfitabilitySection from "./ProfitabilitySection";
+import { BankTabs, type BankTab } from "./BankTabs";
+import { MarginBridgeChart, MarketShareChart } from "./BankCharts";
 import MarketRiskSection from "./MarketRiskSection";
 import OwnershipSummary from "./OwnershipSummary";
 import EarningsDisclosures from "./EarningsDisclosures";
@@ -122,7 +121,7 @@ export const dynamic = "force-dynamic";
 
 interface Props {
   params: Promise<{ ticker: string }>;
-  searchParams: Promise<{ view?: string; kind?: string; statement?: string; mode?: string }>;
+  searchParams: Promise<{ view?: string; kind?: string; statement?: string; mode?: string; tab?: string }>;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -312,6 +311,12 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   const kind = (sp.kind as "consolidated" | "unconsolidated") ?? "unconsolidated";
   const view = (sp.view as "annual" | "quarterly") ?? "quarterly";
   const statement = (sp.statement as "bs" | "is" | "cf") ?? "bs";
+  // Each tab IS the page: the server renders one view, not all of them stacked.
+  // (The old jump-nav anchored into a single 6,700px document that stated most
+  // numbers twice — the brief said them, then the legacy cards said them again.)
+  const TAB_IDS: BankTab[] = ["desk", "financials", "risk", "ownership", "news"];
+  const tab: BankTab = TAB_IDS.includes(sp.tab as BankTab) ? (sp.tab as BankTab) : "desk";
+
   const rawMode = (sp.mode as StatementMode) ?? "abs";
   // Common-size needs a denominator with meaning: total assets (balance sheet)
   // or interest income (income statement). The cash-flow statement has neither —
@@ -326,6 +331,9 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   // Helper to build URLs that preserve the other params.
   const url = (overrides: Partial<{ view: string; kind: string; statement: string; mode: string }>) => {
     const params = new URLSearchParams({
+      // Every statement control lives on the Financials tab — carry the tab, or
+      // changing a lens would drop the reader back onto the Desk.
+      tab: "financials",
       view: overrides.view ?? view,
       kind: overrides.kind ?? kind,
       statement: overrides.statement ?? statement,
@@ -431,13 +439,9 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
     const v = n % 100;
     return `${n}${s[(v - 20) % 10] ?? s[v] ?? s[0]}`;
   };
-  const rankChips = [
-    { label: "by assets", r: rankOf("total_assets") },
-    { label: "by ROE", r: rankOf("roe") },
-    { label: "by NIM", r: rankOf("nim") },
-    { label: "by cost / income", r: rankOf("cost_income", false) },
-  ].filter((c) => c.r != null) as Array<{ label: string; r: { rank: number; n: number } }>;
-
+  // (The old rank chips are gone: the identity strip carries the assets rank and
+  // "Where it stands" places every other metric on the field's distribution —
+  // which is the same fact, said once, with the distance to the median attached.)
   const carRank = rankOf("car");
   const ciRank = rankOf("cost_income", false);
 
@@ -1132,19 +1136,45 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   // group is conditional on having a KAP form), so every anchor resolves.
   const hasOwnership = ownership.length > 0;
   const hasBankNews = bankNews.length > 0;
-  const navSections = [
-    { id: "overview", label: "Overview" },
-    ...(hasPerf ? [{ id: "performance", label: "Performance" }] : []),
-    ...(hasMarketRisk ? [{ id: "market-risk", label: "Market Risk" }] : []),
-    ...(hasCapital ? [{ id: "capital", label: "Capital" }] : []),
-    { id: "financials", label: "Financials" },
-    ...(hasOwnership ? [{ id: "ownership", label: "Ownership" }] : []),
-    ...(hasBankNews ? [{ id: "news", label: "News" }] : []),
-    { id: "disclosures", label: "Disclosures" },
+  // Tabs with nothing to say for this bank are not offered at all.
+  const hiddenTabs: BankTab[] = [
+    ...(hasMarketRisk || hasCapital ? [] : (["risk"] as BankTab[])),
+    ...(hasOwnership ? [] : (["ownership"] as BankTab[])),
+    ...(hasBankNews || earnings.length > 0 || kapItems.length > 0 ? [] : (["news"] as BankTab[])),
   ];
+  // What each tab holds — printed on the Desk as the way in, so nothing the old
+  // one-page layout carried is now hidden behind an unlabelled tab.
+  const tabIndex: Array<{ id: BankTab; h: string; p: string; go: string }> = [
+    {
+      id: "financials",
+      h: "Financials",
+      p: "Balance sheet · income statement · cash flow — as filed, y/y, real (CPI-deflated) or common-size against the sector. Plus the shape: composition, the profit waterfall and the interest flow.",
+      go: "3 statements · 4 lenses",
+    },
+    ...(hasMarketRisk || hasCapital
+      ? [{
+          id: "risk" as BankTab,
+          h: "Risk & Capital",
+          p: `FX net open position and the ≤1y repricing gap from the §4 footnotes${hasCapital ? ", with the audited capital stack and its buffer over the 12% minimum" : ""}.`,
+          go: "§4 footnotes",
+        }]
+      : []),
+    ...(hasOwnership
+      ? [{ id: "ownership" as BankTab, h: "Ownership", p: "Shareholders ≥5% and the §7 subsidiary grid, from the KAP Genel Bilgi Formu — re-scraped weekly.", go: "KAP" }]
+      : []),
+    ...(hasBankNews || earnings.length > 0 || kapItems.length > 0
+      ? [{
+          id: "news" as BankTab,
+          h: "News & Filings",
+          p: `Press coverage tagged to this bank, quarterly results decks and recent KAP disclosures.`,
+          go: `${bankNews.length + earnings.length + kapItems.length} items`,
+        }]
+      : []),
+  ];
+  const finQuery = `statement=${statement}&mode=${mode}&view=${view}&kind=${kind}`;
 
   return (
-    <main className="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8">
+    <main className="mx-auto w-full max-w-[1200px] px-4 py-8 sm:px-6 lg:px-8">
       {/* Sticky page chrome (lg+): pin the header and the in-page jump-nav as one
           stacked group — header on top, nav directly below — so neither overlaps
           the other. The header opts out of its own sticky (sticky={false}) and is
@@ -1168,14 +1198,17 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
           </Link>
         </PageHeader>
 
-        {/* In-page jump-nav: Overview · Performance · Financials · Ownership · Disclosures */}
-        <BankSectionNav sections={navSections} />
+        <BankTabs ticker={ticker} active={tab} hide={hiddenTabs} query={finQuery} />
       </div>
 
-      {/* ── The vitals ────────────────────────────────────────────────────
-          The page's signature band (DESIGN.md): the six figures that decide
-          how this bank is read, computed from the audited quarterly panel the
-          sections below already use — level, sparkline, and one computed note. */}
+      {/* ══ THE DESK ═══════════════════════════════════════════════════════
+          The brief: who this bank is, where it stands in the field, what moved,
+          what the rules say, what the balance sheet earns and what it is made
+          of. It REPLACES the old Overview / Performance / Capital cards — those
+          stated the same numbers a second time, which is what made this page
+          seven screens long. */}
+      {tab === "desk" && (
+      <>
       {identityItems.length > 0 && <Identity items={identityItems} />}
 
       {vitals.length >= 3 && (
@@ -1204,7 +1237,11 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
       />
 
       {(gate.ready || gate.reason) && (
-        <Engine gate={gate} rows={engineRows} chart={undefined} />
+        <Engine
+          gate={gate}
+          rows={engineRows}
+          chart={hasPerf ? <MarginBridgeChart rows={perfRows} /> : undefined}
+        />
       )}
 
       {fundingSlices.length > 0 && taNow != null && (
@@ -1213,135 +1250,101 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
           funding={fundingSlices}
           stats={franchiseStats}
           stages={stageSummary}
+          chart={shareRows.length > 1 ? <MarketShareChart rows={shareRows} /> : undefined}
         />
       )}
 
-      <div className="mb-8" />
-
-      {/* ── Overview ──────────────────────────────────────────────────────
-          At-a-glance profile + (listed banks) BIST market & valuation. */}
-      <div id="overview" className="scroll-mt-24 mb-8">
-        <Section title="Overview" contentClassName="">
-          {/* Composed hero band: profile (left) + market snapshot (right) —
-              one screenful instead of three stacked full-width strips. */}
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
-            <div className={valuation ? "lg:col-span-3" : "lg:col-span-5"}>
-              {/* Bank-card summary: branches, personnel, TFRS 9 stage +
-                  coverage. The rank-in-field chips (same panel as /cross-bank,
-                  so the ranks reconcile) fill the card's footer band. */}
-              <BankCard
-                profile={profile}
-                stages={stages}
-                latestPeriod={periods[0] ?? null}
-                footer={
-                  rankChips.length > 0 ? (
-                    <div className="flex flex-wrap items-center gap-2">
-                      {rankChips.map((c) => (
-                        <span
-                          key={c.label}
-                          className="inline-flex items-baseline gap-1.5 rounded-md border border-border bg-background/60 px-2.5 py-1"
-                        >
-                          <span className="font-mono text-sm font-semibold text-foreground">
-                            {ord(c.r.rank)}
-                          </span>
-                          <span className="text-[11px] text-muted-foreground">
-                            of {c.r.n} {c.label}
-                          </span>
-                        </span>
-                      ))}
-                      <span className="text-[11px] text-faint">
-                        · among banks reporting {perfLatest?.period}
-                      </span>
-                    </div>
-                  ) : undefined
-                }
-              />
-            </div>
-
-            {/* BIST market data + valuation (Yahoo close × audited equity/
-                earnings) as ONE composed card: price hero, compact multiples
-                strip, price history. Only listed banks get a valuation. */}
-            {valuation && (
-              <Card className="flex h-full flex-col overflow-hidden lg:col-span-2">
-                <div className="flex items-baseline justify-between border-b bg-muted px-5 py-3">
-                  <h3 className="text-sm font-semibold text-foreground">Market &amp; valuation</h3>
-                  <span className="text-[11px] text-muted-foreground tabular-nums">
-                    BIST: {ticker} ·{" "}
-                    {valuation.isLive && valuation.asOf
-                      ? `⏱ ${formatAsOf(valuation.asOf)}`
-                      : `close ${valuation.period_date}`}
+      {/* Market & valuation — the 11 listed banks only. The rest of the old
+          Overview card (branches, staff, stages, rank chips) is now stated once:
+          in the identity strip, the vitals and the franchise. */}
+      {valuation && (
+        <section className="mt-8">
+          <SecHead
+            title="What the market pays"
+            meta={`BIST ${ticker} · ${valuation.isLive && valuation.asOf ? formatAsOf(valuation.asOf) : `close ${valuation.period_date}`}`}
+            className="mb-2.5"
+          />
+          <div className="border-t-2 border-foreground">
+            <div className="grid gap-6 py-3 lg:grid-cols-[5fr_7fr]">
+              <div>
+                <div className="flex flex-wrap items-baseline gap-x-3">
+                  <span className="font-mono text-3xl font-semibold tracking-tight text-foreground">
+                    ₺{nfmt(valuation.price, 2)}
                   </span>
-                </div>
-                <div className="flex flex-1 flex-col px-5 py-4">
-                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                    <span className="font-mono text-3xl font-medium tracking-tight text-foreground">
-                      ₺{nfmt(valuation.price, 2)}
+                  {valuation.changePct1y != null && (
+                    <span
+                      className={`font-mono text-sm font-semibold ${
+                        valuation.changePct1y >= 0 ? "text-positive" : "text-negative"
+                      }`}
+                    >
+                      {valuation.changePct1y >= 0 ? "+" : ""}
+                      {nfmt(valuation.changePct1y, 1)}% · 1y
                     </span>
-                    {valuation.changePct1y != null && (
-                      <span
-                        className={`font-mono text-sm font-medium ${
-                          valuation.changePct1y >= 0 ? "text-positive" : "text-negative"
-                        }`}
-                      >
-                        {valuation.changePct1y >= 0 ? "+" : ""}
-                        {nfmt(valuation.changePct1y, 1)}% · 1y
-                      </span>
-                    )}
-                  </div>
-                  <div className="mt-3 grid grid-cols-4 gap-2 border-t border-border pt-3">
-                    {(
-                      [
-                        ["Mkt cap", valuation.marketCap != null ? fmtMarketCap(valuation.marketCap) : "—"],
-                        ["P/B", valuation.pb != null ? `${nfmt(valuation.pb, 2)}×` : "—"],
-                        ["P/E", valuation.pe != null ? `${nfmt(valuation.pe, 1)}×` : "—"],
-                        ["Div yield", valuation.dividendYield != null ? `${nfmt(valuation.dividendYield * 100, 2)}%` : "—"],
-                      ] as const
-                    ).map(([label, value]) => (
-                      <div key={label}>
-                        <div className="text-[11px] text-muted-foreground">{label}</div>
-                        <div className="font-mono text-sm font-semibold tabular-nums text-foreground">
-                          {value}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  {priceHistory.length > 0 && (
-                    <div className="mt-3 border-t border-border pt-2">
-                      <TimeSeriesChart
-                        bare
-                        series={{ [`${ticker} share price`]: priceHistory }}
-                        yFormat="fx"
-                        decimals={2}
-                        height={172}
-                      />
-                    </div>
-                  )}
-                  {valuation.fundamentalsPeriod && (
-                    <p className="mt-auto pt-2 font-mono text-[9.5px] text-faint">
-                      P/B &amp; P/E vs {valuation.fundamentalsPeriod} audited figures · daily close, ₺
-                    </p>
                   )}
                 </div>
-              </Card>
-            )}
+                <div className="mt-3 grid grid-cols-4 gap-3 border-t border-hair pt-3">
+                  {(
+                    [
+                      ["Mkt cap", valuation.marketCap != null ? fmtMarketCap(valuation.marketCap) : "—"],
+                      ["P/B", valuation.pb != null ? `${nfmt(valuation.pb, 2)}×` : "—"],
+                      ["P/E", valuation.pe != null ? `${nfmt(valuation.pe, 1)}×` : "—"],
+                      ["Div yield", valuation.dividendYield != null ? `${nfmt(valuation.dividendYield * 100, 2)}%` : "—"],
+                    ] as const
+                  ).map(([label, value]) => (
+                    <div key={label}>
+                      <div className="text-[10.5px] text-muted-foreground">{label}</div>
+                      <div className="font-mono text-sm font-semibold tabular-nums text-foreground">{value}</div>
+                    </div>
+                  ))}
+                </div>
+                {valuation.fundamentalsPeriod && (
+                  <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.05em] text-faint">
+                    P/B &amp; P/E vs {valuation.fundamentalsPeriod} audited figures · daily close
+                  </p>
+                )}
+              </div>
+              {priceHistory.length > 0 && (
+                <TimeSeriesChart
+                  bare
+                  series={{ [`${ticker} share price`]: priceHistory }}
+                  yFormat="fx"
+                  decimals={2}
+                  height={170}
+                />
+              )}
+            </div>
           </div>
-        </Section>
-      </div>
+        </section>
+      )}
 
-      {/* ── Performance ───────────────────────────────────────────────────
-          Derived analytics: margin bridge (yield − cost = spread), cost of
-          risk, PPOP, and competitive market share. The "drivers behind" the
-          levels in the statements below. */}
-      {hasPerf && (
-        <div id="performance" className="scroll-mt-24 mb-8">
-          <ProfitabilitySection rows={perfRows} shareRows={shareRows} />
+      {/* The way in to the other tabs — named with what they hold, so nothing the
+          old one-page layout carried is now hidden behind an unlabelled tab. */}
+      <section className="mt-9 border-t-2 border-foreground pt-2">
+        <div className="flex items-baseline gap-2.5">
+          <h2 className="text-[14.5px] font-bold text-foreground">In depth</h2>
+          <span className="ml-auto font-mono text-[8.5px] uppercase tracking-[0.07em] text-faint">
+            {tabIndex.length} more {tabIndex.length === 1 ? "view" : "views"} — same data, one click
+          </span>
         </div>
+        {tabIndex.map((d) => (
+          <Link
+            key={d.id}
+            href={d.id === "financials" ? `/banks/${ticker}?tab=financials&${finQuery}` : `/banks/${ticker}?tab=${d.id}`}
+            className="grid items-baseline gap-4 border-b border-hair py-2.5 lg:grid-cols-[minmax(110px,2fr)_minmax(200px,7fr)_auto]"
+          >
+            <h4 className="text-[12.5px] font-semibold text-primary">{d.h}</h4>
+            <p className="text-[11.5px] leading-snug text-muted-foreground">{d.p}</p>
+            <span className="whitespace-nowrap font-mono text-[9.5px] text-faint">{d.go}</span>
+          </Link>
+        ))}
+      </section>
+      </>
       )}
 
       {/* ── Market risk (CAMELS S) ────────────────────────────────────────
           FX net open position + interest-rate repricing gap from §4 footnotes. */}
-      {hasMarketRisk && (
-        <div id="market-risk" className="scroll-mt-24 mb-8">
+      {tab === "risk" && hasMarketRisk && (
+        <div className="mb-8 mt-6">
           <MarketRiskSection rows={perfRows} detail={mrDetail} />
         </div>
       )}
@@ -1349,8 +1352,8 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
       {/* ── Capital (audited §4) ──────────────────────────────────────────
           Per-bank solvency buffers — the audit's add_missing gap. LCR lives in
           the Market Risk tiles above; this block is the capital side. */}
-      {hasCapital && perfLatest && (
-        <div id="capital" className="scroll-mt-24 mb-8">
+      {tab === "risk" && hasCapital && perfLatest && (
+        <div className="mb-8">
           <Section
             title="Capital"
             description={`Audited §4 capital ratios · ${perfLatest.period} · buffer vs the 12% regulatory minimum (incl. buffers). Ranks are among banks reporting the quarter.`}
@@ -1398,7 +1401,8 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
       {/* ── Financials ────────────────────────────────────────────────────
           The page's core: the SHAPE layer (composition / waterfall / flow) above
           the standardized BS / IS / CF tables, with the lens + statement controls. */}
-      <div id="financials" className="scroll-mt-24 mb-8">
+      {tab === "financials" && (
+      <div className="mb-8 mt-6">
         <Section title="Financials" contentClassName="">
           {/* The shape — what the statement IS, before what it says. Balance sheet:
               two composition columns. Income statement: the waterfall, or the
@@ -1700,12 +1704,13 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
           </p>
         </Section>
       </div>
+      )}
 
       {/* ── Ownership ─────────────────────────────────────────────────────
           Simplified KAP view (design mock): ≥5% shareholder bars + §7
           subsidiary chips. */}
-      {hasOwnership && (
-        <div id="ownership" className="scroll-mt-24 mb-8">
+      {tab === "ownership" && hasOwnership && (
+        <div className="mb-8 mt-6">
           <Section title="Ownership" contentClassName="">
             <OwnershipSummary rows={ownership} />
           </Section>
@@ -1716,8 +1721,8 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
           Press + Google News items tagged with this bank (news_item_banks,
           deterministic name→ticker matcher). Only renders when tagged items
           exist, so quiet banks don't get an empty section. */}
-      {hasBankNews && (
-        <div id="news" className="scroll-mt-24 mb-8">
+      {tab === "news" && hasBankNews && (
+        <div className="mb-8 mt-6">
           <Section title="In the News" contentClassName="">
             <BankNewsSection items={bankNews} />
           </Section>
@@ -1726,11 +1731,13 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
 
       {/* ── Earnings & Disclosures ────────────────────────────────────────
           Compact results/presentation list + recent KAP filings, side by side. */}
-      <div id="disclosures" className="scroll-mt-24 mb-8">
-        <Section title="Earnings & Disclosures" contentClassName="">
-          <EarningsDisclosures earnings={earnings} disclosures={kapItems} ticker={ticker} />
-        </Section>
-      </div>
+      {tab === "news" && (
+        <div className="mb-8">
+          <Section title="Earnings & Disclosures" contentClassName="">
+            <EarningsDisclosures earnings={earnings} disclosures={kapItems} ticker={ticker} />
+          </Section>
+        </div>
+      )}
 
       <Colophon />
     </main>
