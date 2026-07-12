@@ -121,6 +121,23 @@ must not invent a second grid or re-introduce surfaces:
   tests that did *not* trip, with their thresholds (`/deposits`): a quiet page is
   evidence the tests ran, not an absence of work. Give each `Flag` a `clear` line
   saying what the test measured.
+- **A split that IS the page's frame gets a table.** `<Compare a b rows>`
+  (`/liquidity`: public vs private) — where the whole analysis rests on two
+  populations, print them side by side with the gap, instead of making the reader
+  infer it from four charts.
+
+**The mark has to fit the data, not the idea.** A decomposition that sums to a
+total is a stacked area — *unless a component can go negative*, in which case a
+stack silently misstates the total. `/liquidity`'s reserve buffer is the case in
+point: the CBRT's own net FX is negative for 42 of 150 weeks, so it is drawn as
+three lines (gross / net / net-excl-swaps) with the two gaps shaded and a zero
+line (`app/liquidity/ReserveBuffer.tsx`, Recharts range areas). Check the range
+of every component before choosing a stack.
+
+**Never mix cadences in one Δ column.** A weekly Movers table takes weekly rows
+only; a daily series (net CBRT funding) goes to the transmission, where its basis
+is stated. And pair the "prev" row off a SINGLE-series array — long-form rows
+(`{period, bank_type_code, value}`) put another group at `.at(-2)`, not last week.
 
 ## Shell (do not re-implement per page)
 

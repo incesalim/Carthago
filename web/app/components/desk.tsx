@@ -339,6 +339,84 @@ export function Movers({ from, to, rows }: { from: string; to: string; rows: Mov
 }
 
 // ---------------------------------------------------------------------------
+// Compare — two populations, one measure per row
+// ---------------------------------------------------------------------------
+
+export interface CompareRow {
+  label: string;
+  note?: string;
+  a: number | null;
+  b: number | null;
+  fmt?: (v: number) => string;
+  /** Decimals on the a−b gap. */
+  gapDecimals?: number;
+}
+
+/**
+ * Two named populations side by side (public vs private, TL vs FX …) with the
+ * gap computed. Where a page's whole analytical frame is a split, the split
+ * should be a table — not something the reader infers from four charts.
+ */
+export function Compare({
+  a,
+  b,
+  rows,
+}: {
+  /** Column headers, e.g. "Public" / "Private". */
+  a: string;
+  b: string;
+  rows: CompareRow[];
+}) {
+  const f = (r: CompareRow, v: number | null) =>
+    v == null ? "—" : (r.fmt ?? ((x: number) => `${x.toFixed(1)}%`))(v);
+  return (
+    <table className="w-full border-collapse">
+      <thead>
+        <tr>
+          {["Measure", a, b, "Gap"].map((h, i) => (
+            <th
+              key={h}
+              className={cn(
+                "border-b border-foreground pb-1.5 font-mono text-[8.5px] font-normal uppercase tracking-[0.07em] text-faint",
+                i === 0 ? "text-left" : "text-right",
+              )}
+            >
+              {h}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r) => {
+          const gap = r.a != null && r.b != null ? r.a - r.b : null;
+          return (
+            <tr key={r.label}>
+              <td className="border-b border-hair py-1.5 pr-2 text-[12.5px] text-foreground">
+                {r.label}
+                {r.note && (
+                  <span className="block text-[10px] text-faint">{r.note}</span>
+                )}
+              </td>
+              <td className="border-b border-hair py-1.5 pl-2 text-right font-mono text-[12px] font-semibold text-foreground">
+                {f(r, r.a)}
+              </td>
+              <td className="border-b border-hair py-1.5 pl-2 text-right font-mono text-[12px] font-semibold text-foreground">
+                {f(r, r.b)}
+              </td>
+              <td className="border-b border-hair py-1.5 pl-2 text-right font-mono text-[11px] text-faint">
+                {gap != null
+                  ? `${gap >= 0 ? "+" : "−"}${Math.abs(gap).toFixed(r.gapDecimals ?? 1)}pp`
+                  : "—"}
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Transmission — the backdrop → the banks
 // ---------------------------------------------------------------------------
 
