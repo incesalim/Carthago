@@ -38,6 +38,7 @@ export const BANK_NAMES: Record<string, string> = {
   PASHA: "Pasha Yatırım",
   QNBFB: "QNB",
   SKBNK: "Şekerbank",
+  TAKAS: "Takasbank",
   TEB: "TEB",
   TFKB: "Türkiye Finans",
   TOMK: "T.O.M. Katılım",
@@ -95,6 +96,7 @@ export const BANK_TYPE_BY_TICKER: Record<string, string> = {
   // Development & investment (Kalkınma ve Yatırım)
   TSKB: "10004", EXIM: "10004", KLNMA: "10004",
   AKTIF: "10004", PASHA: "10004",
+  TAKAS: "10004", // Takasbank — BDDK licenses the CCP/clearing bank here (peer-excluded)
 };
 
 /**
@@ -114,4 +116,27 @@ export const BANK_TYPE_BADGE_LABELS: Record<string, string> = {
 
 export function bankTypeCode(ticker: string): string | undefined {
   return BANK_TYPE_BY_TICKER[ticker.toUpperCase()];
+}
+
+/**
+ * Banks carried in the data but EXCLUDED from peer comparison, ranking and
+ * concentration stats (`/cross-bank` heatmap, market-share league, HHI).
+ *
+ * TAKAS (Takasbank) is Turkey's central securities-settlement / clearing / CCP
+ * and custody institution — BDDK licenses it as a development-and-investment
+ * bank, but it is not a lender. At 2026Q1 it reports **zero deposits**, customer
+ * loans of ~2.5% of assets, and ~94% of the balance sheet in cash + placements
+ * (member cash and collateral it merely holds), plus ~178bn TL of off-balance CCP
+ * guarantees. Ranking it against commercial and participation banks would make
+ * NIM / LDR / NPL / cost-of-risk meaningless (several divide by ~0) and would
+ * plant it near the top of the asset-size league on custody balances it doesn't
+ * own — distorting every peer rank and the sector HHI.
+ *
+ * It still gets its own `/banks/TAKAS` page, where balance sheet, capital and
+ * liquidity ARE meaningful. Present the bank; don't pretend it's comparable.
+ */
+export const PEER_EXCLUDED_TICKERS: ReadonlySet<string> = new Set(["TAKAS"]);
+
+export function isPeerExcluded(ticker: string): boolean {
+  return PEER_EXCLUDED_TICKERS.has(ticker.toUpperCase());
 }

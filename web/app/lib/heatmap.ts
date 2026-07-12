@@ -20,6 +20,7 @@
  */
 import { cachedAll } from "./db";
 import { BS_ASSET_ROMAN_HIERARCHIES } from "./standard_lines";
+import { isPeerExcluded } from "./bank_names";
 import type { Direction } from "./heatmap-normalize";
 import type { LiveQuote } from "./bist-live";
 
@@ -343,6 +344,11 @@ export async function heatmapPanel(
 
   const map = new Map<string, BankMetricRow>();
   const ensure = (ticker: string, period: string): BankMetricRow => {
+    // Peer-excluded banks (Takasbank — a clearing/CCP institution, not a lender)
+    // must never enter the panel: every rank, colour scale and peer percentile
+    // downstream is computed off this map. Hand callers a throwaway row so their
+    // writes land nowhere. See PEER_EXCLUDED_TICKERS in bank_names.ts.
+    if (isPeerExcluded(ticker)) return {} as BankMetricRow;
     const key = `${ticker}|${period}`;
     let row = map.get(key);
     if (!row) {

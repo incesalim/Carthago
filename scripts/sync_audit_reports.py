@@ -48,6 +48,7 @@ from src.audit_reports.discovery import discover_targets  # noqa: E402
 from src.audit_reports.extractor import extract  # noqa: E402
 from src.audit_reports.loader import upsert_report  # noqa: E402
 from src.audit_reports.schema import init_schema  # noqa: E402
+from src.scrapers._http import bddk_verify  # noqa: E402
 
 
 CONFIG = REPO_ROOT / "data" / "banks" / "audit_report_urls.json"
@@ -90,8 +91,13 @@ def fetch_pdf_bytes(url: str, ticker: str) -> tuple[bytes | None, str]:
     headers = dict(UA)
     if ticker in REFERERS:
         headers["Referer"] = REFERERS[ticker]
+    # BDDK serves only the leaf cert (no GlobalSign intermediate); browsers chase
+    # AIA, Python does not. Verify against certifi + the vendored intermediate —
+    # full verification, not a bypass. Used by the BdrUyg-sourced banks (TAKAS).
+    verify = bddk_verify() if "bddk.org.tr" in url else True
     try:
-        r = requests.get(url, headers=headers, timeout=120, allow_redirects=True)
+        r = requests.get(url, headers=headers, timeout=120, allow_redirects=True,
+                         verify=verify)
     except requests.RequestException as e:
         return None, f"err:{type(e).__name__}"
     if r.status_code != 200:
@@ -100,7 +106,7 @@ def fetch_pdf_bytes(url: str, ticker: str) -> tuple[bytes | None, str]:
     # VAKIFK CMS bug: PDFs wrapped in 27-byte Java ObjectOutputStream header
     if body[:4] == b"\xac\xed\x00\x05" and b"%PDF" in body[:64]:
         body = body[body.find(b"%PDF"):]
-    # ZIP-wrapped PDFs (some VAKBN solo files)
+    # ZIP-wrapped PDFs (some VAKBN solo files; every BdrUyg download)
     if body[:4] == b"PK\x03\x04":
         try:
             zf = zipfile.ZipFile(io.BytesIO(body))
@@ -109,7 +115,11 @@ def fetch_pdf_bytes(url: str, ticker: str) -> tuple[bytes | None, str]:
         pdf_names = [n for n in zf.namelist() if n.lower().endswith(".pdf")]
         if not pdf_names:
             return None, "no-pdf-in-zip"
-        body = zf.read(pdf_names[0])
+        # A BdrUyg zip bundles the financial report WITH the interim activity
+        # report ("… Aradönem Faaliyet Raporu.pdf"), which carries no statements
+        # and whose name can sort first. Prefer a non-activity PDF.
+        statements = [n for n in pdf_names if "faaliyet" not in n.lower()]
+        body = zf.read((statements or pdf_names)[0])
     if not body.startswith(b"%PDF"):
         return None, f"not-pdf:{body[:8]!r}"
     return body, "ok"

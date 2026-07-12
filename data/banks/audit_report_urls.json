@@ -1,6 +1,6 @@
 {
   "_doc": "Direct PDF URLs for quarterly BRSA Financial Reports per Turkish bank. Sourced from each bank's investor relations site. Filenames are heterogeneous; future quarters need re-scraping (see README).",
-  "_updated": "2026-07-11",
+  "_updated": "2026-07-12",
   "banks": {
     "AKBNK": {
       "name": "Akbank T.A.Ş.",
@@ -1399,6 +1399,31 @@
           "2025Q3": "https://hayatfinans.com.tr/getmedia/b5035f24-038f-4b62-9ad4-09275b83197f/hayat-finans-2025Q3-konsolide.pdf",
           "2025Q4": "https://hayatfinans.com.tr/getmedia/dbf01ee7-c1d2-498a-a8b2-9602efda17d2/hayat-finans-2025Q4-konsolide.pdf",
           "2026Q1": "https://hayatfinans.com.tr/getmedia/b33b2c6b-dd87-436d-92e8-26f0fb1beaaf/hayat-finans-2026Q1-konsolide.pdf"
+        }
+      }
+    },
+    "TAKAS": {
+      "name": "İstanbul Takas ve Saklama Bankası A.Ş. (Takasbank)",
+      "ir_page": "https://www.takasbank.com.tr/tr/hakkimizda/yatirimci-iliskileri/finansal-raporlar",
+      "_note": "Sourced from BDDK's BdrUyg registry (institution code 132), NOT the bank's own IR site — takasbank.com.tr sits behind an F5 WAF that rejects non-browser requests (CI would fail). BdrUyg serves a ZIP (kind unconsolidated_zip) bundling the financial report WITH an interim activity report; fetch_pdf_bytes prefers the non-'faaliyet' PDF. BDDK omits its GlobalSign intermediate cert, so fetch_pdf_bytes verifies via src/scrapers/_http.bddk_verify() (full verification, not a bypass). BdrUyg confirms SOLO-only filings, 2022-03..2026-03 — there is no consolidated report. 2022Q1 is OMITTED: its PDF has a broken font cmap (text layer returns raw glyph codes, a constant -29 shift, e.g. ')ø1$16$/ 9$5/,./$5' = 'FİNANSAL VARLIKLAR'), so the page anchors can't match; numbers are intact but labels are mojibake. PEER-EXCLUDED from ranking/market-share/HHI — see PEER_EXCLUDED_TICKERS in bank_names.ts.",
+      "urls": {
+        "unconsolidated_zip": {
+          "2022Q2": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-132-SOLO-2022-06.zip",
+          "2022Q3": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-132-SOLO-2022-09.zip",
+          "2022Q4": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-132-SOLO-2022-12.zip",
+          "2023Q1": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-132-SOLO-2023-03.zip",
+          "2023Q2": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-132-SOLO-2023-06.zip",
+          "2023Q3": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-132-SOLO-2023-09.zip",
+          "2023Q4": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-132-SOLO-2023-12.zip",
+          "2024Q1": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-132-SOLO-2024-03.zip",
+          "2024Q2": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-132-SOLO-2024-06.zip",
+          "2024Q3": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-132-SOLO-2024-09.zip",
+          "2024Q4": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-132-SOLO-2024-12.zip",
+          "2025Q1": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-132-SOLO-2025-03.zip",
+          "2025Q2": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-132-SOLO-2025-06.zip",
+          "2025Q3": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-132-SOLO-2025-09.zip",
+          "2025Q4": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-132-SOLO-2025-12.zip",
+          "2026Q1": "https://www.bddk.org.tr/BdrUyg/Home/DosyaIndir?raporUrl=~%2FDosya%2FBDREki-132-SOLO-2026-03.zip"
         }
       }
     }
