@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Carthago — Credit tab redesign mockup</title>
+  <style>
+    :root {
+      --ground: #f7f8f6; --sheet: #fff; --ink: #12161b; --muted: #68707a; --faint: #a0a7ae;
+      --line: #e1e3dd; --hair: #ecede8; --wash: #f3f4f1;
+      --link: #2757a8; --data: #2b4e7e; --context: #c0c8d1;
+      --green: #187a53; --red: #c24847; --amber: #b98514;
+      --shadow: 0 1px 2px rgba(18,24,32,.04), 0 12px 32px -22px rgba(18,24,32,.22);
+      color-scheme: light;
+    }
+    [data-theme="dark"] {
+      --ground: #101318; --sheet: #171b21; --ink: #e6e9e6; --muted: #9aa3ad; --faint: #6b747e;
+      --line: #262c34; --hair: #1f252c; --wash: #1e232a;
+      --link: #7fa3d8; --data: #7fa3d8; --context: #4a525c;
+      --green: #4fb98a; --red: #e0716b; --amber: #d9a83f;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px -22px rgba(0,0,0,.7);
+      color-scheme: dark;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; overflow-x: hidden; background: var(--ground); color: var(--ink);
+           font-family: "Instrument Sans", Inter, "Segoe UI", Arial, sans-serif; font-size: 14px; }
+    button { font: inherit; color: inherit; }
+    a { color: var(--link); text-decoration: none; font-weight: 600; }
+    .mono { font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace; font-variant-numeric: tabular-nums; }
+    .neg { color: var(--red); } .pos { color: var(--green); } .warn { color: var(--amber); }
+
+    .shell { display: grid; grid-template-columns: 216px minmax(0, 1fr); min-height: 100vh; }
+    .rail { padding: 25px 20px; border-right: 1px solid var(--line); }
+    .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 30px; }
+    .brand strong { display: block; font-size: 17px; }
+    .brand small { display: block; color: var(--faint); margin-top: 2px; font-size: 10px; }
+    .nav-group { margin: 20px 0 7px; color: var(--faint); font-size: 9px; text-transform: uppercase; letter-spacing: .08em; }
+    .nav-item { position: relative; display: block; padding: 6px 0; color: var(--muted); font-size: 12.5px; font-weight: 400; }
+    .nav-item.active { color: var(--ink); font-weight: 650; }
+    .nav-item.active::before { content: ""; position: absolute; left: -20px; top: 6px; bottom: 6px; width: 2px; background: var(--ink); }
+    .icon-btn { width: 32px; height: 32px; display: inline-grid; place-items: center; border: 1px solid var(--line); background: transparent; cursor: pointer; border-radius: 5px; }
+    .rail-bottom { position: fixed; left: 20px; bottom: 24px; display: flex; align-items: center; gap: 9px; color: var(--muted); }
+
+    .workspace { padding: 16px 18px 24px; min-width: 0; }
+    .sheet { max-width: 1440px; margin: 0 auto; padding: 28px 36px 24px; background: var(--sheet);
+             border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); }
+    .mock-label { margin: -6px 0 18px; padding-bottom: 9px; border-bottom: 1px solid var(--hair);
+                  color: var(--amber); font-size: 9px; text-transform: uppercase; letter-spacing: .09em; }
+
+    .title-line { display: flex; align-items: baseline; gap: 15px; flex-wrap: wrap; }
+    h1 { margin: 0; font-size: 26px; letter-spacing: -.01em; }
+    .record, .compiled { color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: .06em; }
+    .record b { font-weight: 400; color: var(--ink); }
+    .compiled { margin-left: auto; color: var(--faint); }
+
+    .sechead { display: flex; gap: 12px; align-items: baseline; margin: 26px 0 10px; }
+    .sechead h2 { margin: 0; font-size: 14px; }
+    .sechead span { color: var(--faint); font-size: 8.5px; text-transform: uppercase; letter-spacing: .07em; }
+    .sechead .right { margin-left: auto; }
+
+    /* ── the bridge: the new signature ─────────────────────────────── */
+    .bridge { display: grid; grid-template-columns: minmax(0,7fr) minmax(240px,4fr); gap: 40px;
+              padding-top: 14px; border-top: 2px solid var(--ink); }
+    .bridge-svg { width: 100%; height: auto; }
+    .grid { stroke: var(--hair); stroke-width: 1; }
+    .zero { stroke: var(--faint); stroke-width: 1; stroke-dasharray: 2 2; }
+    .conn { stroke: var(--faint); stroke-width: 1; stroke-dasharray: 2 2; }
+    .bar-hero { fill: var(--data); } .bar-ctx { fill: var(--context); }
+    .bar-cut { fill: var(--red); opacity: .28; }
+    .bar-neg { fill: var(--red); }
+    .bar-val { font-family: "IBM Plex Mono", Consolas, monospace; font-size: 11px; font-weight: 600; fill: var(--ink); }
+    .bar-val.neg { fill: var(--red); }
+    .bar-lab { font-size: 8.5px; fill: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+    .bar-sub { font-family: "IBM Plex Mono", Consolas, monospace; font-size: 8px; fill: var(--faint); }
+    .bridge-read { align-self: center; }
+    .bridge-read .lede { margin: 0 0 12px; font-size: 20px; line-height: 1.32; letter-spacing: -.01em; }
+    .bridge-read p { margin: 0; color: var(--muted); font-size: 12.5px; line-height: 1.55; }
+    .bridge-read .rule { display: block; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--hair);
+                         color: var(--faint); font-size: 9px; text-transform: uppercase; letter-spacing: .06em; }
+
+    /* ── vitals ────────────────────────────────────────────────────── */
+    .vitals { display: grid; grid-template-columns: repeat(6, 1fr); margin-top: 10px;
+              border-top: 2px solid var(--ink); border-bottom: 1px solid var(--line); }
+    .vital { min-width: 0; padding: 13px 14px 12px; border-right: 1px solid var(--hair); }
+    .vital:first-child { padding-left: 0; }
+    .vital:last-child { border-right: 0; }
+    .vital.hero .vital-value { color: var(--red); }
+    .vital-label { color: var(--muted); font-size: 10.5px; }
+    .vital-value { margin-top: 4px; font-size: 22px; font-weight: 650; white-space: nowrap; }
+    .sparkline { display: block; width: 108px; height: 26px; margin-top: 6px; }
+    .sp { stroke: var(--context); stroke-width: 1.3; }
+    .sp-hero { stroke: var(--red); stroke-width: 1.6; }
+    .vital-note { margin-top: 6px; color: var(--faint); font-size: 9.5px; line-height: 1.4; }
+    .vital-note b { color: var(--red); font-weight: 650; }
+
+    /* ── attribution ───────────────────────────────────────────────── */
+    .attrib { display: grid; grid-template-columns: minmax(0,7fr) minmax(250px,4fr); gap: 40px; }
+    .cbars { border-top: 1px solid var(--ink); }
+    .cbar-row { display: grid; grid-template-columns: 92px minmax(0,1fr) 56px 132px; gap: 12px;
+                align-items: center; padding: 9px 0; border-bottom: 1px solid var(--hair); }
+    .cbar-lab { font-size: 12px; font-weight: 600; }
+    .cbar-track { position: relative; height: 17px; }
+    .cbar-fill { position: relative; display: block; height: 100%; background: var(--data); }
+    .cbar-fill.neg { background: var(--red); }
+    /* Commercial carries SME inside it. Solid navy = the SME cut; the tint to its
+       right = the rest of commercial. The nesting is the point — it must be visible. */
+    .cbar-fill.nested { background: color-mix(in srgb, var(--data) 34%, var(--sheet)); }
+    .cbar-sme { position: absolute; inset: 0 auto 0 0; display: block; height: 100%;
+                background: var(--data); border-right: 1.5px solid var(--sheet); }
+    .cbar-sme i { position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
+                  color: #fff; font-style: normal; font-size: 9px; font-weight: 650;
+                  font-family: "IBM Plex Mono", Consolas, monospace; white-space: nowrap; }
+    [data-theme="dark"] .cbar-sme i { color: #0f1319; }
+    .cbar-val { font-size: 12.5px; font-weight: 650; text-align: right; }
+    .cbar-meta { color: var(--faint); font-size: 9.5px; text-align: right; }
+    .cbar-sum { display: grid; grid-template-columns: 92px minmax(0,1fr) 56px 132px; gap: 12px;
+                padding: 10px 0 0; color: var(--muted); font-size: 10px; }
+    .cbar-sum b { text-align: right; color: var(--ink); font-size: 12.5px; }
+    .cbar-sum span:last-child { text-align: right; }
+
+    .movers { border-top: 1px solid var(--ink); }
+    .mover { display: grid; grid-template-columns: 1fr 60px 58px; gap: 8px; padding: 8px 0;
+             border-bottom: 1px solid var(--hair); font-size: 11.5px; align-items: baseline; }
+    .mover-lab { color: var(--ink); }
+    .mover-now { text-align: right; color: var(--muted); font-size: 11px; }
+    .mover-acc { text-align: right; font-weight: 650; font-size: 11px; }
+
+    /* ── flags ─────────────────────────────────────────────────────── */
+    .flags { border-top: 1px solid var(--ink); }
+    .flag { display: grid; grid-template-columns: 8px minmax(0,1fr) auto; gap: 11px; align-items: start;
+            padding: 11px 0; border-bottom: 1px solid var(--hair); }
+    .flag-dot { width: 6px; height: 6px; margin-top: 5px; border-radius: 50%; background: var(--faint); }
+    .flag-dot.neg { background: var(--red); } .flag-dot.warn { background: var(--amber); }
+    .flag-t { display: block; font-size: 12px; font-weight: 600; line-height: 1.35; }
+    .flag-rule { display: block; margin-top: 3px; color: var(--faint); font-size: 9px; }
+    .flag-v { font-size: 12.5px; font-weight: 650; white-space: nowrap; }
+
+    /* ── depth ─────────────────────────────────────────────────────── */
+    .depth { margin-top: 34px; padding-top: 14px; border-top: 2px solid var(--ink); }
+    .depth-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 4px; }
+    .depth-head h2 { margin: 0; font-size: 15px; }
+    .depth-head span { color: var(--faint); font-size: 9px; text-transform: uppercase; letter-spacing: .06em; }
+    .depth-head .right { margin-left: auto; }
+    .range { display: inline-flex; border: 1px solid var(--line); border-radius: 5px; overflow: hidden; }
+    .range button { border: 0; background: transparent; padding: 4px 10px; color: var(--muted); font-size: 10.5px; cursor: pointer; }
+    .range button.active { background: var(--ink); color: var(--sheet); }
+
+    .qsec { margin-top: 22px; }
+    .qsec-head { display: flex; gap: 10px; align-items: baseline; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+    .qsec-ix { color: var(--faint); font-size: 9px; font-family: "IBM Plex Mono", Consolas, monospace; }
+    .qsec-head h3 { margin: 0; font-size: 13.5px; }
+    .qsec-head p { margin: 0; color: var(--muted); font-size: 11px; }
+    .qsec-head .q { color: var(--muted); font-size: 11.5px; font-style: italic; }
+    .charts { display: grid; gap: 26px 30px; margin-top: 16px; }
+    .charts.two { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .charts.wide { grid-template-columns: minmax(0,3fr) minmax(0,2fr); }
+    .chart { width: 100%; height: auto; }
+    .chart-t { font-size: 11.5px; font-weight: 650; margin-bottom: 2px; }
+    .chart-d { color: var(--faint); font-size: 9.5px; margin-bottom: 8px; }
+    .ax { font-family: "IBM Plex Mono", Consolas, monospace; font-size: 8px; fill: var(--faint); }
+    .endlab { font-family: "IBM Plex Mono", Consolas, monospace; font-size: 8.5px; font-weight: 600; }
+    .s-hero { stroke: var(--data); fill: none; } text.s-hero { fill: var(--data); stroke: none; }
+    .s-ctx { stroke: var(--context); fill: none; } text.s-ctx { fill: var(--muted); stroke: none; }
+    .s-ctx2 { stroke: var(--faint); fill: none; stroke-dasharray: 3 2; } text.s-ctx2 { fill: var(--faint); stroke: none; stroke-dasharray: none; }
+    circle.dot { stroke: none; } circle.s-hero { fill: var(--data); } circle.s-ctx { fill: var(--context); } circle.s-ctx2 { fill: var(--faint); }
+
+    .carry { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px 30px; margin-top: 16px; }
+    .carry-item { display: flex; align-items: baseline; gap: 9px; padding: 9px 0; border-bottom: 1px solid var(--hair);
+                  color: var(--muted); font-size: 11px; }
+    .carry-item::before { content: "▤"; color: var(--context); font-size: 10px; }
+    .carry-note { grid-column: 1 / -1; margin-top: 4px; color: var(--faint); font-size: 9.5px; line-height: 1.5; }
+
+    .colophon { margin-top: 34px; padding-top: 10px; border-top: 1px solid var(--line); display: flex; gap: 16px;
+                color: var(--faint); font-size: 8px; text-transform: uppercase; letter-spacing: .06em; }
+    .colophon span:last-child { margin-left: auto; }
+
+    @media (max-width: 1100px) {
+      .vitals { grid-template-columns: repeat(3, 1fr); }
+      .vital:nth-child(3n) { border-right: 0; }
+      .vital:nth-child(n+4) { border-top: 1px solid var(--hair); }
+      .vital:nth-child(4) { padding-left: 0; }
+    }
+    @media (max-width: 980px) {
+      .shell { grid-template-columns: 1fr; } .rail { display: none; }
+      .workspace { padding: 0; }
+      .sheet { border: 0; border-radius: 0; padding: 24px 20px; }
+      .bridge, .attrib, .charts.two, .charts.wide, .carry { grid-template-columns: 1fr; gap: 24px; }
+      .compiled { display: none; }
+    }
+    @media (max-width: 700px) {
+      .vitals { grid-template-columns: 1fr 1fr; }
+      .vital:nth-child(n) { border-right: 1px solid var(--hair); border-top: 1px solid var(--hair); padding-left: 14px; }
+      .vital:nth-child(2n) { border-right: 0; }
+      .vital:nth-child(-n+2) { border-top: 0; }
+      .vital:nth-child(2n+1) { padding-left: 0; }
+      .cbar-row { grid-template-columns: 78px minmax(0,1fr) 52px; }
+      .cbar-row .cbar-meta, .cbar-sum span:last-child { display: none; }
+      .cbar-sum { grid-template-columns: 78px minmax(0,1fr) 52px; }
+      .colophon { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+<div class="shell">
+  <aside class="rail">
+    <div class="brand"><div><strong>Carthago</strong><small>Turkish banking data</small></div></div>
+    <div class="nav-group mono">Sector</div>
+    <a class="nav-item" href="#">Overview</a>
+    <a class="nav-item active" href="#">Credit</a>
+    <a class="nav-item" href="#">Deposits</a>
+    <a class="nav-item" href="#">Liquidity</a>
+    <a class="nav-item" href="#">Asset Quality</a>
+    <a class="nav-item" href="#">Capital</a>
+    <div class="nav-group mono">By bank</div>
+    <a class="nav-item" href="#">Banks</a>
+    <a class="nav-item" href="#">Compare</a>
+    <div class="nav-group mono">More</div>
+    <a class="nav-item" href="#">Regulations</a>
+    <a class="nav-item" href="#">News</a>
+    <div class="rail-bottom">
+      <button class="icon-btn" id="theme" aria-label="Toggle theme">&#9788;</button>
+      <span class="mono" style="font-size:9px">Theme</span>
+    </div>
+  </aside>
+
+  <div class="workspace">
+    <main class="sheet">
+      <div class="mock-label mono">Design artefact · redesign proposal · figures are REAL (BDDK weekly, W/E 03 Jul 2026)</div>
+
+      <div class="title-line">
+        <h1>Credit</h1>
+        <span class="record mono">Record <b>W/E 03 Jul 2026</b> · vs 26 Jun</span>
+        <span class="compiled mono">every figure computed from source series</span>
+      </div>
+
+      <!-- ── THE BRIDGE — the new signature element ───────────────── -->
+      <div class="sechead">
+        <h2>What the headline is worth</h2>
+        <span class="mono">nominal → constant currency → constant prices</span>
+        <span class="mono right">52-week window</span>
+      </div>
+      <div class="bridge">
+        <svg class="bridge-svg" viewBox="0 0 640 192" role="img" aria-label="Nominal loan growth of 36.6% bridged down to -2.1% real constant-currency growth"><line x1="0" y1="132" x2="640" y2="132" class="zero"/><rect x="8" y="46.0" width="76" height="86.0" class="bar-ctx"/><text x="46" y="39.0" class="bar-val " text-anchor="middle">36.6%</text><text x="46" y="185" class="bar-lab" text-anchor="middle">Nominal 52w</text><rect x="134" y="46.0" width="76" height="17.2" class="bar-cut"/><text x="172" y="39.0" class="bar-val neg" text-anchor="middle">−7.3pp</text><line x1="84" y1="46.0" x2="134" y2="46.0" class="conn"/><line x1="210" y1="63.1" x2="260" y2="63.1" class="conn"/><text x="172" y="185" class="bar-lab" text-anchor="middle">Lira depreciation</text><rect x="260" y="63.1" width="76" height="68.9" class="bar-hero"/><text x="298" y="56.1" class="bar-val " text-anchor="middle">29.3%</text><text x="298" y="185" class="bar-lab" text-anchor="middle">FX-adjusted</text><rect x="386" y="63.1" width="76" height="73.8" class="bar-cut"/><text x="424" y="56.1" class="bar-val neg" text-anchor="middle">−31.4pp</text><line x1="336" y1="63.1" x2="386" y2="63.1" class="conn"/><line x1="462" y1="136.9" x2="512" y2="136.9" class="conn"/><text x="424" y="175" class="bar-lab" text-anchor="middle">Inflation</text><text x="424" y="186" class="bar-sub" text-anchor="middle">CPI 32.1%</text><rect x="512" y="132.0" width="76" height="4.9" class="bar-neg"/><text x="550" y="150.9" class="bar-val neg" text-anchor="middle">−2.1%</text><text x="550" y="185" class="bar-lab" text-anchor="middle">Real, constant FX</text></svg>
+        <div class="bridge-read">
+          <p class="lede">Nominal credit grew <b class="mono">36.6%</b>. Strip the lira and the price level and the loan book <b class="neg">shrank 2.1%</b>.</p>
+          <p>Of the 36.6% print, +7.3pp is lira depreciation revaluing the FX book and +31.4pp is inflation (CPI 32.1%). What remains is real volume — and it has been negative for 10 consecutive weeks.</p>
+          <span class="rule mono">rule: real_fxadj = (1 + fx_adjusted) ÷ (1 + cpi_yoy) − 1 · FX book valued at base-period USD/TRY</span>
+        </div>
+      </div>
+
+      <!-- ── VITALS ───────────────────────────────────────────────── -->
+      <div class="sechead">
+        <h2>The vitals</h2>
+        <span class="mono">equal weight · trailing 26 weeks</span>
+      </div>
+      <div class="vitals"><div class="vital hero">
+      <div class="vital-label">Real growth, constant FX</div>
+      <div class="vital-value mono">−2.1%</div>
+      <svg class="sparkline" viewBox="0 0 108 26" aria-hidden="true">
+        <line x1="0" y1="15.5" x2="108" y2="15.5" class="zero"/>
+        <path d="M0.0 6.0 L4.3 4.7 L8.6 4.2 L13.0 1.5 L17.3 4.3 L21.6 4.1 L25.9 5.4 L30.2 2.6 L34.6 5.9 L38.9 6.5 L43.2 6.2 L47.5 6.5 L51.8 8.9 L56.2 10.6 L60.5 10.5 L64.8 13.4 L69.1 16.8 L73.4 16.5 L77.8 18.2 L82.1 18.4 L86.4 18.4 L90.7 21.1 L95.0 21.5 L99.4 23.5 L103.7 24.5 L108.0 24.5" fill="none" class="sp-hero"/>
+      </svg>
+      <div class="vital-note">the book <b class="neg">shrank</b> once lira and CPI are stripped — negative 10 weeks running</div>
+    </div><div class="vital">
+      <div class="vital-label">Nominal growth, 52w</div>
+      <div class="vital-value mono">36.6%</div>
+      <svg class="sparkline" viewBox="0 0 108 26" aria-hidden="true">
+        
+        <path d="M0.0 3.0 L4.3 3.1 L8.6 1.5 L13.0 3.8 L17.3 3.6 L21.6 5.1 L25.9 2.4 L30.2 3.1 L34.6 4.2 L38.9 4.2 L43.2 4.6 L47.5 8.9 L51.8 10.9 L56.2 15.0 L60.5 12.7 L64.8 15.5 L69.1 15.2 L73.4 17.1 L77.8 16.7 L82.1 16.5 L86.4 19.1 L90.7 22.8 L95.0 21.0 L99.4 23.3 L103.7 24.5 L108.0 23.9" fill="none" class="sp"/>
+      </svg>
+      <div class="vital-note">4w momentum 40.6% ann. — +4.0pp vs the 52w pace</div>
+    </div><div class="vital">
+      <div class="vital-label">FX share of loans</div>
+      <div class="vital-value mono">36.1%</div>
+      <svg class="sparkline" viewBox="0 0 108 26" aria-hidden="true">
+        
+        <path d="M0.0 6.7 L4.3 5.7 L8.6 2.5 L13.0 1.5 L17.3 4.7 L21.6 6.5 L25.9 6.0 L30.2 6.5 L34.6 11.1 L38.9 15.1 L43.2 12.2 L47.5 14.9 L51.8 18.3 L56.2 15.1 L60.5 11.2 L64.8 14.9 L69.1 17.6 L73.4 13.3 L77.8 19.0 L82.1 17.3 L86.4 18.1 L90.7 18.0 L95.0 20.6 L99.4 20.1 L103.7 24.0 L108.0 24.5" fill="none" class="sp"/>
+      </svg>
+      <div class="vital-note">−2.6pp over 52w · see <a href="#">/deposits</a></div>
+    </div><div class="vital">
+      <div class="vital-label">State − private gap</div>
+      <div class="vital-value mono">−1.3pp</div>
+      <svg class="sparkline" viewBox="0 0 108 26" aria-hidden="true">
+        <line x1="0" y1="16.4" x2="108" y2="16.4" class="zero"/>
+        <path d="M0.0 9.7 L4.3 6.1 L8.6 7.4 L13.0 7.5 L17.3 13.7 L21.6 13.2 L25.9 11.2 L30.2 14.3 L34.6 14.0 L38.9 8.9 L43.2 13.8 L47.5 21.8 L51.8 24.4 L56.2 16.4 L60.5 16.8 L64.8 5.5 L69.1 1.5 L73.4 3.1 L77.8 9.5 L82.1 3.9 L86.4 3.1 L90.7 7.6 L95.0 12.8 L99.4 12.2 L103.7 15.0 L108.0 24.5" fill="none" class="sp"/>
+      </svg>
+      <div class="vital-note">state 35.6% vs private 36.9% — private banks lead the cycle</div>
+    </div><div class="vital">
+      <div class="vital-label">SME growth, 52w</div>
+      <div class="vital-value mono">49.5%</div>
+      <svg class="sparkline" viewBox="0 0 108 26" aria-hidden="true">
+        
+        <path d="M0.0 13.7 L4.3 14.7 L8.6 13.3 L13.0 16.8 L17.3 18.6 L21.6 14.0 L25.9 15.5 L30.2 15.8 L34.6 16.8 L38.9 15.2 L43.2 15.2 L47.5 17.4 L51.8 18.4 L56.2 24.5 L60.5 15.4 L64.8 17.5 L69.1 17.8 L73.4 19.9 L77.8 21.6 L82.1 14.6 L86.4 16.4 L90.7 20.4 L95.0 1.5 L99.4 4.4 L103.7 8.2 L108.0 8.1" fill="none" class="sp"/>
+      </svg>
+      <div class="vital-note">the fastest big book — +12.3pp of the 36.6% headline</div>
+    </div><div class="vital">
+      <div class="vital-label">Unsecured retail</div>
+      <div class="vital-value mono">46.5%</div>
+      <svg class="sparkline" viewBox="0 0 108 26" aria-hidden="true">
+        
+        <path d="M0.0 3.4 L4.3 7.5 L8.6 1.5 L13.0 4.1 L17.3 4.6 L21.6 5.9 L25.9 6.4 L30.2 1.5 L34.6 1.9 L38.9 2.5 L43.2 7.8 L47.5 4.4 L51.8 6.7 L56.2 7.2 L60.5 4.3 L64.8 8.2 L69.1 9.9 L73.4 10.7 L77.8 14.2 L82.1 14.1 L86.4 18.3 L90.7 24.5 L95.0 19.3 L99.4 19.4 L103.7 21.6 L108.0 18.9" fill="none" class="sp"/>
+      </svg>
+      <div class="vital-note">cards + GPL as one book (₺5.83trn) — above sector 91 weeks running</div>
+    </div></div>
+
+      <!-- ── ATTRIBUTION ──────────────────────────────────────────── -->
+      <div class="sechead">
+        <h2>Where the 36.6% came from</h2>
+        <span class="mono">contribution to sector growth · 52w · pp of the headline</span>
+        <span class="mono right">₺7.17trn of new credit</span>
+      </div>
+      <div class="attrib">
+        <div>
+          <div class="cbars">
+            <div class="cbar-row">
+        <span class="cbar-lab">Commercial</span>
+        <span class="cbar-track">
+          <span class="cbar-fill  nested" style="width:100.0%">
+            <span class="cbar-sme" style="width:46.9%"><i>SME +12.3pp</i></span>
+          </span>
+        </span>
+        <span class="cbar-val mono ">+26.1pp</span>
+        <span class="cbar-meta mono">₺20.07trn · 34.2%</span>
+      </div><div class="cbar-row">
+        <span class="cbar-lab">Retail cards</span>
+        <span class="cbar-track">
+          <span class="cbar-fill " style="width:20.4%">
+            
+          </span>
+        </span>
+        <span class="cbar-val mono ">+5.3pp</span>
+        <span class="cbar-meta mono">₺3.29trn · 46.6%</span>
+      </div><div class="cbar-row">
+        <span class="cbar-lab">Gen. purpose</span>
+        <span class="cbar-track">
+          <span class="cbar-fill " style="width:15.8%">
+            
+          </span>
+        </span>
+        <span class="cbar-val mono ">+4.1pp</span>
+        <span class="cbar-meta mono">₺2.54trn · 46.4%</span>
+      </div><div class="cbar-row">
+        <span class="cbar-lab">Housing</span>
+        <span class="cbar-track">
+          <span class="cbar-fill " style="width:4.3%">
+            
+          </span>
+        </span>
+        <span class="cbar-val mono ">+1.1pp</span>
+        <span class="cbar-meta mono">₺0.80trn · 37.3%</span>
+      </div><div class="cbar-row">
+        <span class="cbar-lab">Auto</span>
+        <span class="cbar-track">
+          <span class="cbar-fill neg" style="width:0.3%">
+            
+          </span>
+        </span>
+        <span class="cbar-val mono neg">−0.1pp</span>
+        <span class="cbar-meta mono">₺0.04trn · −27.5%</span>
+      </div>
+            <div class="cbar-sum">
+              <span class="mono">Sector</span>
+              <span>segment contributions reconcile to the headline — SME is a cut of Commercial, not an addition</span>
+              <b class="mono">+36.6pp</b>
+              <span class="mono">₺26.75trn book</span>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="sechead" style="margin-top:0">
+            <h2>Movers</h2><span class="mono right">52w growth · Δ vs 13 weeks ago</span>
+          </div>
+          <div class="movers"><div class="mover">
+      <span class="mover-lab">Auto</span>
+      <span class="mover-now mono">−27.5%</span>
+      <span class="mover-acc mono pos">+2.8pp</span>
+    </div><div class="mover">
+      <span class="mover-lab">Housing</span>
+      <span class="mover-now mono">37.3%</span>
+      <span class="mover-acc mono pos">+2.2pp</span>
+    </div><div class="mover">
+      <span class="mover-lab">Gen. purpose</span>
+      <span class="mover-now mono">46.4%</span>
+      <span class="mover-acc mono neg">−2.8pp</span>
+    </div><div class="mover">
+      <span class="mover-lab">Commercial</span>
+      <span class="mover-now mono">34.2%</span>
+      <span class="mover-acc mono neg">−5.0pp</span>
+    </div><div class="mover">
+      <span class="mover-lab">Retail cards</span>
+      <span class="mover-now mono">46.6%</span>
+      <span class="mover-acc mono neg">−5.6pp</span>
+    </div></div>
+        </div>
+      </div>
+
+      <!-- ── FLAGS ────────────────────────────────────────────────── -->
+      <div class="sechead">
+        <h2>Flags</h2>
+        <span class="mono">each prints the rule that raised it</span>
+      </div>
+      <div class="flags"><div class="flag">
+    <span class="flag-dot neg"></span>
+    <span><span class="flag-t">Real, constant-FX credit is contracting</span><span class="flag-rule mono">real_fxadj(52w) &lt; 0 for 10 consecutive weeks</span></span>
+    <span class="flag-v mono neg">−2.1%</span>
+  </div><div class="flag">
+    <span class="flag-dot neg"></span>
+    <span><span class="flag-t">Auto loans in sustained contraction</span><span class="flag-rule mono">auto_yoy &lt; 0 for 96 consecutive weeks</span></span>
+    <span class="flag-v mono neg">−27.5%</span>
+  </div><div class="flag">
+    <span class="flag-dot warn"></span>
+    <span><span class="flag-t">Unsecured retail running above the sector</span><span class="flag-rule mono">cards_yoy &gt; sector AND gpl_yoy &gt; sector for 91 weeks</span></span>
+    <span class="flag-v mono warn">46.6% / 46.4%</span>
+  </div></div>
+
+      <!-- ── DEPTH ────────────────────────────────────────────────── -->
+      <div class="depth">
+        <div class="depth-head">
+          <h2>In depth</h2>
+          <span>carried over, reordered by question — nothing removed</span>
+          <span class="right">
+            <span class="range">
+              <button>1y</button><button class="active">2y</button><button>3y</button>
+            </span>
+          </span>
+        </div>
+
+        <section class="qsec">
+          <div class="qsec-head">
+            <span class="qsec-ix mono">01</span>
+            <h3>Is the growth real?</h3>
+            <p class="q">— the three prints of the same book, on one axis</p>
+          </div>
+          <div class="charts wide">
+            <div>
+              <div class="chart-t">Loan growth 52w — nominal vs FX-adjusted vs real, constant FX (sector)</div>
+              <div class="chart-d">Weekly · BDDK bulletin, TÜİK CPI, TCMB USD/TRY · the gap between the lines IS the story</div>
+              <svg class="chart" viewBox="0 0 700 200" role="img" aria-label="Nominal vs FX-adjusted vs real constant-FX loan growth"><line x1="4" y1="180.0" x2="580.0" y2="180.0" class="grid"/><text x="6.0" y="177.0" class="ax">-37%</text><line x1="4" y1="123.3" x2="580.0" y2="123.3" class="grid"/><text x="6.0" y="120.3" class="ax">-7%</text><line x1="4" y1="66.7" x2="580.0" y2="66.7" class="grid"/><text x="6.0" y="63.7" class="ax">23%</text><line x1="4" y1="10.0" x2="580.0" y2="10.0" class="grid"/><text x="6.0" y="7.0" class="ax">53%</text><line x1="4" y1="109.9" x2="580.0" y2="109.9" class="zero"/><path d="M4.0 34.0 L9.6 32.5 L15.2 39.2 L20.8 37.5 L26.4 37.8 L32.0 39.2 L37.6 42.8 L43.1 42.1 L48.7 40.7 L54.3 39.8 L59.9 38.8 L65.5 34.8 L71.1 35.3 L76.7 35.1 L82.3 35.6 L87.9 35.4 L93.5 34.7 L99.1 36.3 L104.7 37.7 L110.3 39.1 L115.8 39.2 L121.4 39.9 L127.0 41.4 L132.6 43.0 L138.2 41.8 L143.8 40.4 L149.4 39.5 L155.0 41.1 L160.6 41.0 L166.2 40.7 L171.8 41.5 L177.4 40.8 L183.0 40.7 L188.5 40.3 L194.1 39.9 L199.7 38.1 L205.3 40.9 L210.9 41.7 L216.5 43.3 L222.1 41.9 L227.7 39.3 L233.3 41.6 L238.9 39.5 L244.5 37.0 L250.1 35.1 L255.7 36.8 L261.2 35.0 L266.8 35.0 L272.4 35.4 L278.0 36.2 L283.6 35.2 L289.2 36.1 L294.8 33.7 L300.4 33.1 L306.0 32.1 L311.6 32.7 L317.2 31.0 L322.8 30.5 L328.3 31.4 L333.9 32.0 L339.5 31.1 L345.1 34.3 L350.7 33.2 L356.3 32.6 L361.9 31.9 L367.5 33.1 L373.1 33.1 L378.7 31.5 L384.3 31.1 L389.9 30.1 L395.5 30.5 L401.0 29.9 L406.6 29.9 L412.2 27.1 L417.8 28.4 L423.4 28.8 L429.0 28.7 L434.6 28.1 L440.2 27.4 L445.8 27.5 L451.4 26.5 L457.0 28.0 L462.6 27.8 L468.2 28.8 L473.7 27.1 L479.3 27.5 L484.9 28.2 L490.5 28.2 L496.1 28.5 L501.7 31.3 L507.3 32.6 L512.9 35.3 L518.5 33.8 L524.1 35.6 L529.7 35.4 L535.3 36.7 L540.9 36.4 L546.4 36.3 L552.0 37.9 L557.6 40.4 L563.2 39.2 L568.8 40.7 L574.4 41.5 L580.0 41.1" fill="none" class="s-ctx" stroke-width="1.25"/><circle cx="580.0" cy="41.1" r="2.2" class="s-ctx dot"/><text x="586.0" y="44.1" class="endlab s-ctx">Nominal 36.6%</text><path d="M4.0 60.6 L9.6 62.3 L15.2 59.4 L20.8 58.3 L26.4 59.8 L32.0 57.6 L37.6 64.7 L43.1 56.3 L48.7 58.3 L54.3 60.1 L59.9 59.2 L65.5 58.1 L71.1 58.1 L76.7 57.5 L82.3 54.4 L87.9 55.7 L93.5 55.2 L99.1 55.7 L104.7 54.7 L110.3 53.5 L115.8 54.6 L121.4 55.1 L127.0 56.1 L132.6 55.6 L138.2 55.8 L143.8 56.9 L149.4 58.4 L155.0 57.5 L160.6 56.3 L166.2 55.5 L171.8 57.2 L177.4 56.6 L183.0 55.6 L188.5 55.8 L194.1 55.2 L199.7 55.2 L205.3 54.9 L210.9 54.3 L216.5 52.6 L222.1 55.1 L227.7 55.4 L233.3 55.6 L238.9 53.8 L244.5 54.1 L250.1 56.3 L255.7 55.3 L261.2 50.1 L266.8 52.1 L272.4 51.0 L278.0 51.8 L283.6 52.3 L289.2 53.6 L294.8 52.8 L300.4 54.2 L306.0 51.7 L311.6 50.9 L317.2 50.7 L322.8 51.0 L328.3 49.5 L333.9 49.5 L339.5 50.1 L345.1 50.0 L350.7 49.2 L356.3 51.8 L361.9 50.4 L367.5 50.0 L373.1 51.0 L378.7 50.9 L384.3 49.6 L389.9 49.3 L395.5 48.9 L401.0 49.2 L406.6 48.5 L412.2 48.8 L417.8 46.2 L423.4 47.2 L429.0 47.3 L434.6 47.1 L440.2 46.4 L445.8 45.7 L451.4 45.4 L457.0 44.3 L462.6 45.9 L468.2 45.8 L473.7 46.5 L479.3 44.9 L484.9 45.2 L490.5 45.5 L496.1 45.3 L501.7 45.5 L507.3 48.2 L512.9 49.2 L518.5 49.1 L524.1 48.0 L529.7 49.9 L535.3 49.7 L540.9 50.8 L546.4 50.4 L552.0 50.4 L557.6 52.0 L563.2 53.2 L568.8 54.3 L574.4 54.9 L580.0 54.9" fill="none" class="s-ctx2" stroke-width="1.25"/><circle cx="580.0" cy="54.9" r="2.2" class="s-ctx2 dot"/><text x="586.0" y="57.9" class="endlab s-ctx2">FX-adj. 29.3%</text><path d="M4.0 162.6 L9.6 163.5 L15.2 161.9 L20.8 161.3 L26.4 159.1 L32.0 157.8 L37.6 162.0 L43.1 148.5 L48.7 149.8 L54.3 150.9 L59.9 150.3 L65.5 140.1 L71.1 140.1 L76.7 139.6 L82.3 137.6 L87.9 135.7 L93.5 135.4 L99.1 135.7 L104.7 135.0 L110.3 133.4 L115.8 134.1 L121.4 134.5 L127.0 135.1 L132.6 133.1 L138.2 133.2 L143.8 134.0 L149.4 135.1 L155.0 134.4 L160.6 130.5 L166.2 130.0 L171.8 131.2 L177.4 130.7 L183.0 127.4 L188.5 127.5 L194.1 127.1 L199.7 127.1 L205.3 126.9 L210.9 122.7 L216.5 121.5 L222.1 123.2 L227.7 123.5 L233.3 122.4 L238.9 121.1 L244.5 121.3 L250.1 122.9 L255.7 121.9 L261.2 118.1 L266.8 119.6 L272.4 115.6 L278.0 116.1 L283.6 116.5 L289.2 117.5 L294.8 116.8 L300.4 117.4 L306.0 115.6 L311.6 115.0 L317.2 112.7 L322.8 113.0 L328.3 111.8 L333.9 111.9 L339.5 111.5 L345.1 111.4 L350.7 110.8 L356.3 112.7 L361.9 112.2 L367.5 111.9 L373.1 112.7 L378.7 112.6 L384.3 111.0 L389.9 110.8 L395.5 110.4 L401.0 110.7 L406.6 110.2 L412.2 107.8 L417.8 105.8 L423.4 106.6 L429.0 106.7 L434.6 106.2 L440.2 105.8 L445.8 105.2 L451.4 105.0 L457.0 103.8 L462.6 105.0 L468.2 104.9 L473.7 105.5 L479.3 104.2 L484.9 105.7 L490.5 106.0 L496.1 105.8 L501.7 106.0 L507.3 107.0 L512.9 107.8 L518.5 107.7 L524.1 109.0 L529.7 110.5 L535.3 110.4 L540.9 111.2 L546.4 111.3 L552.0 111.2 L557.6 112.4 L563.2 112.6 L568.8 113.5 L574.4 113.9 L580.0 113.9" fill="none" class="s-hero" stroke-width="1.9"/><circle cx="580.0" cy="113.9" r="2.2" class="s-hero dot"/><text x="586.0" y="116.9" class="endlab s-hero">Real, const. FX −2.1%</text><text x="4" y="195" class="ax">Jun 24</text><text x="580.0" y="195" class="ax" text-anchor="end">Jul 26</text></svg>
+            </div>
+            <div>
+              <div class="chart-t">Carried over from the current page</div>
+              <div class="chart-d">Same wiring, restyled — no analytical content removed</div>
+              <div class="carry" style="grid-template-columns:1fr">
+                <div class="carry-item">Loan Growth YoY (%) by ownership group</div>
+                <div class="carry-item">Loan YoY by group — latest bar</div>
+                <div class="carry-item">Loan Growth 4w (annualized %) — sector</div>
+                <div class="carry-item">Nominal vs real (CPI-deflated)</div>
+                <div class="carry-item">FX-adjusted (constant USD/TRY)</div>
+                <div class="carry-note">The two "twin" charts merge into the hero above; the group and momentum charts keep their place here.</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="qsec">
+          <div class="qsec-head">
+            <span class="qsec-ix mono">02</span>
+            <h3>Who is lending?</h3>
+            <p class="q">— ownership and currency, the sector's clearest signal</p>
+          </div>
+          <div class="charts two">
+            <div>
+              <div class="chart-t">Total credit 52w — state vs private</div>
+              <div class="chart-d">Private banks lead by +1.3pp — the cycle has changed hands</div>
+              <svg class="chart" viewBox="0 0 470 168" role="img" aria-label="Loan growth, state vs private"><line x1="4" y1="148.0" x2="374.0" y2="148.0" class="grid"/><text x="6.0" y="145.0" class="ax">19%</text><line x1="4" y1="102.0" x2="374.0" y2="102.0" class="grid"/><text x="6.0" y="99.0" class="ax">33%</text><line x1="4" y1="56.0" x2="374.0" y2="56.0" class="grid"/><text x="6.0" y="53.0" class="ax">47%</text><line x1="4" y1="10.0" x2="374.0" y2="10.0" class="grid"/><text x="6.0" y="7.0" class="ax">61%</text><path d="M4.0 116.5 L7.6 114.0 L11.2 126.0 L14.8 123.0 L18.4 124.8 L22.0 126.2 L25.6 133.5 L29.1 134.6 L32.7 132.1 L36.3 129.5 L39.9 129.3 L43.5 123.2 L47.1 127.2 L50.7 126.5 L54.3 124.7 L57.9 122.7 L61.5 122.4 L65.1 124.6 L68.7 125.0 L72.3 125.0 L75.8 123.7 L79.4 124.8 L83.0 122.8 L86.6 123.6 L90.2 120.7 L93.8 118.3 L97.4 111.9 L101.0 112.4 L104.6 111.0 L108.2 110.5 L111.8 108.5 L115.4 106.4 L119.0 105.1 L122.5 104.8 L126.1 102.5 L129.7 97.4 L133.3 102.6 L136.9 102.3 L140.5 104.0 L144.1 98.7 L147.7 95.1 L151.3 98.7 L154.9 95.3 L158.5 91.6 L162.1 88.3 L165.7 94.6 L169.2 91.1 L172.8 88.4 L176.4 87.5 L180.0 84.5 L183.6 80.9 L187.2 80.0 L190.8 76.8 L194.4 75.7 L198.0 72.4 L201.6 73.3 L205.2 69.3 L208.8 66.8 L212.3 69.1 L215.9 70.4 L219.5 66.4 L223.1 73.8 L226.7 72.4 L230.3 69.8 L233.9 67.4 L237.5 72.1 L241.1 73.0 L244.7 69.2 L248.3 65.5 L251.9 66.8 L255.5 69.1 L259.0 69.2 L262.6 65.6 L266.2 63.1 L269.8 66.8 L273.4 68.7 L277.0 66.6 L280.6 67.2 L284.2 66.9 L287.8 65.5 L291.4 64.4 L295.0 67.4 L298.6 69.2 L302.2 70.5 L305.7 67.5 L309.3 68.3 L312.9 69.0 L316.5 67.6 L320.1 69.7 L323.7 74.6 L327.3 77.8 L330.9 80.6 L334.5 77.8 L338.1 78.0 L341.7 77.6 L345.3 79.9 L348.9 80.7 L352.4 77.6 L356.0 82.4 L359.6 87.4 L363.2 86.7 L366.8 88.4 L370.4 90.2 L374.0 92.6" fill="none" class="s-ctx" stroke-width="1.25"/><circle cx="374.0" cy="92.6" r="2.2" class="s-ctx dot"/><text x="380.0" y="102.2" class="endlab s-ctx">State 35.6%</text><path d="M4.0 30.0 L7.6 23.4 L11.2 35.5 L14.8 32.4 L18.4 31.4 L22.0 35.7 L25.6 41.6 L29.1 41.1 L32.7 37.9 L36.3 36.4 L39.9 34.8 L43.5 29.2 L47.1 27.5 L50.7 23.6 L54.3 30.1 L57.9 32.3 L61.5 29.7 L65.1 34.1 L68.7 38.5 L72.3 44.4 L75.8 45.7 L79.4 46.8 L83.0 53.0 L86.6 59.9 L90.2 58.3 L93.8 56.6 L97.4 56.4 L101.0 64.5 L104.6 66.9 L108.2 65.2 L111.8 68.0 L115.4 68.8 L119.0 72.0 L122.5 69.8 L126.1 73.2 L129.7 70.9 L133.3 79.1 L136.9 82.9 L140.5 89.5 L144.1 87.0 L147.7 84.5 L151.3 89.7 L154.9 86.1 L158.5 80.4 L162.1 80.4 L165.7 80.5 L169.2 79.7 L172.8 82.3 L176.4 84.7 L180.0 92.2 L183.6 91.9 L187.2 96.0 L190.8 93.1 L194.4 91.6 L198.0 90.1 L201.6 91.2 L205.2 87.7 L208.8 87.5 L212.3 88.6 L215.9 89.0 L219.5 88.1 L223.1 92.5 L226.7 88.7 L230.3 88.8 L233.9 88.9 L237.5 88.9 L241.1 87.8 L244.7 84.9 L248.3 85.9 L251.9 82.2 L255.5 81.9 L259.0 78.8 L262.6 80.9 L266.2 72.0 L269.8 73.6 L273.4 73.3 L277.0 73.2 L280.6 71.6 L284.2 70.5 L287.8 71.2 L291.4 69.3 L295.0 72.2 L298.6 70.7 L302.2 72.3 L305.7 70.3 L309.3 69.5 L312.9 70.3 L316.5 71.7 L320.1 71.1 L323.7 71.7 L327.3 73.5 L330.9 80.7 L334.5 77.6 L338.1 83.9 L341.7 85.7 L345.3 87.2 L348.9 84.5 L352.4 84.4 L356.0 89.7 L359.6 92.2 L363.2 88.6 L366.8 90.7 L370.4 91.0 L374.0 88.2" fill="none" class="s-hero" stroke-width="1.9"/><circle cx="374.0" cy="88.2" r="2.2" class="s-hero dot"/><text x="380.0" y="91.2" class="endlab s-hero">Private 36.9%</text><text x="4" y="163" class="ax">Jun 24</text><text x="374.0" y="163" class="ax" text-anchor="end">Jul 26</text></svg>
+            </div>
+            <div>
+              <div class="chart-t">FX share of total loans (%)</div>
+              <div class="chart-d">−2.6pp over 52w — the book is de-dollarizing</div>
+              <svg class="chart" viewBox="0 0 470 168" role="img" aria-label="FX share of total loans"><line x1="4" y1="148.0" x2="374.0" y2="148.0" class="grid"/><text x="6.0" y="145.0" class="ax">36%</text><line x1="4" y1="102.0" x2="374.0" y2="102.0" class="grid"/><text x="6.0" y="99.0" class="ax">37%</text><line x1="4" y1="56.0" x2="374.0" y2="56.0" class="grid"/><text x="6.0" y="53.0" class="ax">38%</text><line x1="4" y1="10.0" x2="374.0" y2="10.0" class="grid"/><text x="6.0" y="7.0" class="ax">39%</text><path d="M4.0 130.5 L7.6 121.8 L11.2 126.7 L14.8 121.1 L18.4 108.6 L22.0 96.5 L25.6 86.0 L29.1 94.3 L32.7 92.0 L36.3 98.8 L39.9 86.7 L43.5 94.3 L47.1 99.9 L50.7 96.5 L54.3 97.3 L57.9 103.7 L61.5 105.2 L65.1 101.4 L68.7 107.9 L72.3 106.7 L75.8 107.9 L79.4 98.8 L83.0 101.8 L86.6 92.0 L90.2 105.2 L93.8 103.7 L97.4 103.3 L101.0 92.0 L104.6 81.1 L108.2 87.5 L111.8 73.9 L115.4 71.6 L119.0 66.4 L122.5 78.8 L126.1 58.1 L129.7 63.7 L133.3 36.2 L136.9 49.0 L140.5 43.7 L144.1 33.5 L147.7 29.8 L151.3 29.4 L154.9 36.9 L158.5 35.8 L162.1 42.2 L165.7 34.7 L169.2 41.5 L172.8 40.0 L176.4 30.5 L180.0 23.4 L183.6 25.2 L187.2 35.8 L190.8 34.3 L194.4 26.0 L198.0 29.0 L201.6 49.8 L205.2 40.0 L208.8 34.3 L212.3 39.6 L215.9 47.1 L219.5 42.6 L223.1 46.7 L226.7 44.5 L230.3 53.9 L233.9 56.6 L237.5 62.2 L241.1 50.9 L244.7 60.7 L248.3 75.0 L251.9 68.6 L255.5 73.5 L259.0 77.3 L262.6 84.5 L266.2 81.1 L269.8 79.2 L273.4 76.5 L277.0 84.8 L280.6 96.2 L284.2 94.7 L287.8 92.4 L291.4 85.2 L295.0 83.0 L298.6 90.1 L302.2 94.3 L305.7 93.1 L309.3 94.3 L312.9 104.5 L316.5 113.5 L320.1 107.1 L323.7 113.1 L327.3 120.7 L330.9 113.5 L334.5 104.8 L338.1 113.1 L341.7 119.2 L345.3 109.4 L348.9 122.2 L352.4 118.4 L356.0 120.3 L359.6 119.9 L363.2 126.0 L366.8 124.8 L370.4 133.5 L374.0 134.6" fill="none" class="s-hero" stroke-width="1.9"/><circle cx="374.0" cy="134.6" r="2.2" class="s-hero dot"/><text x="380.0" y="137.6" class="endlab s-hero">FX share 36.1%</text><text x="4" y="163" class="ax">Jul 24</text><text x="374.0" y="163" class="ax" text-anchor="end">Jul 26</text></svg>
+            </div>
+          </div>
+          <div class="carry">
+            <div class="carry-item">TL Loans YoY — Public vs Private</div>
+            <div class="carry-item">Loan growth by group — Foreign / Participation / Dev-Inv</div>
+          </div>
+        </section>
+
+        <section class="qsec">
+          <div class="qsec-head">
+            <span class="qsec-ix mono">03</span>
+            <h3>Where is it going?</h3>
+            <p class="q">— the composition behind the attribution bars</p>
+          </div>
+          <div class="carry">
+            <div class="carry-item">Consumer Credit Mix — Level (sector)</div>
+            <div class="carry-item">Consumer Credit Mix — Share (%)</div>
+            <div class="carry-item">Consumer Segment YoY Growth (%)</div>
+            <div class="carry-item">Credit Cards — Retail vs Corporate (monthly)</div>
+            <div class="carry-note">All four charts carried over unchanged. They now sit under the question they answer, beneath the attribution bars that quantify it.</div>
+          </div>
+        </section>
+
+        <section class="qsec">
+          <div class="qsec-head">
+            <span class="qsec-ix mono">04</span>
+            <h3>SME — the engine inside commercial</h3>
+            <p class="q">— +12.3pp of the headline, 36% of the commercial book</p>
+          </div>
+          <div class="carry">
+            <div class="carry-item">SME Loan Growth YoY (%) — sector / private / state</div>
+            <div class="carry-item">SME vs Commercial — YoY Growth (%)</div>
+            <div class="carry-item">SME Loans — Level (sector)</div>
+            <div class="carry-item">SME Loans — Public vs Private (Level)</div>
+            <div class="carry-item">SME Mix — Micro / Small / Medium (monthly)</div>
+            <div class="carry-note">The "SME vs Commercial" chart keeps its place but gains a caption: SME is a <b>subset</b> of commercial (36% of it), so the two lines are not additive — a nesting the current page never states.</div>
+          </div>
+        </section>
+      </div>
+
+      <footer class="colophon mono">
+        <span>Source BDDK weekly bulletin · TÜİK CPI · TCMB USD/TRY</span>
+        <span>Compiled, not written</span>
+        <span>W/E 03 Jul 2026</span>
+      </footer>
+    </main>
+  </div>
+</div>
+<script>
+  const root = document.documentElement;
+  const btn = document.getElementById('theme');
+  btn.addEventListener('click', () => {
+    const dark = root.dataset.theme === 'dark';
+    root.dataset.theme = dark ? '' : 'dark';
+    btn.innerHTML = dark ? '&#9788;' : '&#9790;';
+  });
+  document.querySelectorAll('.range button').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('.range button').forEach(x => x.classList.toggle('active', x === b));
+  }));
+</script>
+</body>
+</html>
