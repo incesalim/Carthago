@@ -32,6 +32,8 @@ interface Props {
   description?: React.ReactNode;
   /** Mono source footer, e.g. "Source: BDDK weekly bulletin". */
   source?: React.ReactNode;
+  /** Render on the sheet without card chrome (Desk evidence layer). */
+  plain?: boolean;
   yFormat?: FormatKind;
   decimals?: number;
   height?: number;
@@ -53,6 +55,7 @@ export default function StackedArea({
   title,
   description,
   source,
+  plain = false,
   yFormat = "raw",
   decimals = 1,
   height = 320,
@@ -150,7 +153,7 @@ export default function StackedArea({
   };
 
   return (
-    <ChartCard title={title} description={description} source={source}>
+    <ChartCard title={title} description={description} source={source} plain={plain}>
       <ChartData
         table={wideToTable(filtered, { key: "period", label: "Period" }, shown)}
       />

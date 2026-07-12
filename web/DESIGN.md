@@ -109,6 +109,10 @@ must not invent a second grid or re-introduce surfaces:
   survives a screenshot). Two per row, so each spans three cells of the band.
 - **Controls are mono-caps with an ink underline** (`BankTypeFilter`), never
   pills and never blue — blue is a verb, and switching a band navigates nowhere.
+- **A rule prints whether or not it fires.** `<Flags showCleared>` lists the
+  tests that did *not* trip, with their thresholds (`/deposits`): a quiet page is
+  evidence the tests ran, not an absence of work. Give each `Flag` a `clear` line
+  saying what the test measured.
 
 ## Shell (do not re-implement per page)
 
