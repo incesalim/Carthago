@@ -59,8 +59,6 @@ import { cpiYoYByMonth } from "@/app/lib/real-terms";
 import {
   sectorStageShares,
   STAGE_SHARE_LABELS,
-  nplFormationAnnual,
-  NPL_FORMATION_LABELS,
   provisionMigrationScenarios,
   stageLadder,
   nplRollForwardAnnual,
@@ -136,7 +134,7 @@ export default async function AssetQualityPage() {
     stockHousing, stockAuto, stockGpl, stockCards, stockCommercial, stockSme,
     loanHousing, loanAuto, loanGpl, loanCards, loanCommercial, loanSme,
     cMix, cRatios, commRatios,
-    stageShares, formation, migration, ladder, roll,
+    stageShares, migration, ladder, roll,
   ] = await Promise.all([
     ratioNpl(PRIMARY_BANK_TYPES),
     latestPerBank(ratioNpl, groups),
@@ -151,7 +149,6 @@ export default async function AssetQualityPage() {
     consumerNplRatios(),
     commercialNplRatios(),
     sectorStageShares(),
-    nplFormationAnnual(),
     provisionMigrationScenarios(),
     stageLadder(),
     nplRollForwardAnnual(),
@@ -644,7 +641,7 @@ export default async function AssetQualityPage() {
         meta="carried over, reordered by question — nothing removed"
         action={<GlobalRangeSelector />}
       >
-        <Takeaway data={await withLlmHeadline("asset-quality", read)} />
+        <Takeaway data={await withLlmHeadline("asset-quality", read)} variant="desk" />
 
         <Section
           index="01"
@@ -662,15 +659,7 @@ export default async function AssetQualityPage() {
                 decimals={1}
               />
             )}
-            {formation.length > 0 && (
-              <TrendChart
-                data={formation}
-                seriesLabels={NPL_FORMATION_LABELS}
-                title="NPL roll-forward — formation vs exits (annual, ₺bn)"
-                yFormat="bn"
-                decimals={0}
-              />
-            )}
+
           </div>
         </Section>
 
@@ -696,6 +685,7 @@ export default async function AssetQualityPage() {
               source="Source: BDDK weekly bulletin"
               yFormat="bn"
               decimals={0}
+              plain
             />
             <TrendChart
               data={coverageAll}
@@ -703,6 +693,7 @@ export default async function AssetQualityPage() {
               title="Provisions / Gross NPL (%) — by group"
               yFormat="pct"
               decimals={1}
+              plain
             />
           </div>
         </Section>
@@ -730,6 +721,7 @@ export default async function AssetQualityPage() {
               title="Consumer NPL — Composition (sector, TL bn)"
               yFormat="bn"
               decimals={0}
+              plain
             />
             <TrendChart
               data={consumerTrend}
@@ -742,6 +734,7 @@ export default async function AssetQualityPage() {
               title="Consumer NPL Ratio by Product (%)"
               yFormat="pct"
               decimals={2}
+              plain
             />
           </div>
           <ChartRow
@@ -766,6 +759,7 @@ export default async function AssetQualityPage() {
               yFormat="pct"
               decimals={2}
               height={320}
+              plain
             />
           </ChartRow>
         </Section>
@@ -784,6 +778,7 @@ export default async function AssetQualityPage() {
                 source="Source: BDDK monthly bulletin"
                 yFormat="pct"
                 decimals={2}
+                plain
               />
             </div>
             <BarByBank
@@ -792,6 +787,7 @@ export default async function AssetQualityPage() {
               title={`NPL by group · ${nplByBank[0]?.period ?? ""}`}
               format="pct"
               decimals={2}
+              plain
             />
           </div>
         </Section>

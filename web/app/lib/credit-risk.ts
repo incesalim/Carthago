@@ -112,50 +112,12 @@ export async function provisionMigrationScenarios(
   return { period: last.period, stage2Bn: last.s2 / TH_TO_BN, cov2, cov3, scenarios };
 }
 
-/**
- * Annual NPL roll-forward "of reporting banks": new formation (additions) vs
- * exits (collections + write-offs + sales), ₺bn. Q4 rows only — the audited
- * movement tables are YTD flows, so Q4 = the full year without de-cumulation
- * assumptions. Groups III+IV+V summed (all NPL buckets).
- */
-export async function nplFormationAnnual(kind: string = DEFAULT_KIND): Promise<TrendPoint[]> {
-  const rows = await cachedAll<{
-    period: string;
-    additions: number | null;
-    collections: number | null;
-    write_offs: number | null;
-    sold: number | null;
-    n: number;
-  }>(
-    `SELECT period,
-            SUM(additions)   AS additions,
-            SUM(collections) AS collections,
-            SUM(write_offs)  AS write_offs,
-            SUM(sold)        AS sold,
-            COUNT(DISTINCT bank_ticker) AS n
-       FROM bank_audit_npl_movement
-      WHERE kind = ? AND period_type = 'current' AND period LIKE '%Q4'
-      GROUP BY period
-      ORDER BY period`,
-    [kind],
-  );
-  const out: TrendPoint[] = [];
-  for (const r of rows) {
-    if (r.n < 5) continue;
-    if (r.additions != null)
-      out.push({ period: r.period, bank_type_code: "FORMATION", value: r.additions / TH_TO_BN });
-    // Reducing flows may be stored signed either way per bank layout — take
-    // magnitudes (they only ever reduce the NPL balance).
-    const exits = Math.abs(r.collections ?? 0) + Math.abs(r.write_offs ?? 0) + Math.abs(r.sold ?? 0);
-    out.push({ period: r.period, bank_type_code: "EXITS", value: exits / TH_TO_BN });
-  }
-  return out;
-}
-
-export const NPL_FORMATION_LABELS: Record<string, string> = {
-  FORMATION: "New NPL formation (additions)",
-  EXITS: "Exits (collections + write-offs + sales)",
-};
+// NOTE: nplFormationAnnual() + NPL_FORMATION_LABELS were REMOVED (2026-07-13).
+// They returned values already in ₺bn while the only caller charted them with
+// yFormat="bn", whose formatter divides by 1_000 again — so ₺673bn of NPL
+// formation rendered as "₺1 bn" on the live page. nplRollForwardAnnual() below
+// supersedes them: it returns the full split (collections / write-offs / sales),
+// which is what the brief needs, and /asset-quality draws it with FormationBars.
 
 // ---------------------------------------------------------------------------
 // /asset-quality — the stage ladder and the full roll-forward
