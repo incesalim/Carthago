@@ -1,6 +1,14 @@
 # /regulation v4 — "What changed": the changelog, and the model that gets checked
 
-**Date:** 2026-07-13 · **Status:** PROPOSED (artefact made, not built) ·
+**Date:** 2026-07-13 · **Status: SUPERSEDED** by [v5 — buildable](../design/mockups/2026-07-13-regulation-tab-v5-buildable.html) ·
+> **Why:** v4's artefact argued its own design *inside the page* — a block headed *“The model got
+> this wrong, and the citation caught it”*, and a paragraph explaining that *“a model you can check
+> is worth more than a parser that sees nothing.”* **None of that would ship.** In the built page a
+> model/parser conflict is not an essay, it is a **computed chip** on the offending row
+> (`✗ instrument: TL loans to SMEs, 5% → 4.5%`), and the caps table is simply authoritative.
+> **v5 is the same design with the commentary removed** — the page exactly as it would be built.
+> The reasoning lives here, in the knowledge doc, which is where it belongs.
+>
 **Artefact:** [claude.ai](https://claude.ai/code/artifact/a706157a-a633-4984-8e6d-6186a2175164) ·
 [html](../design/mockups/2026-07-13-regulation-tab-changelog-v4.html)
 **Supersedes:** [v3 — the rulebook](regulation-tab-redesign-v3-2026-07-13.md)
