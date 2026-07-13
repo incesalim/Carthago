@@ -1,32 +1,22 @@
 /**
- * CapitalByBank — the per-bank capital-adequacy ranking on /capital.
+ * CapitalByBank — the per-bank capital register on /capital.
  *
- * Editorial league table: each bank's total CAR is drawn as a horizontal bar
- * (coloured by ownership group, the same hue the sector charts use for that
- * group), followed by its Tier-1 and CET1 ratios and the buffer over the 12%
- * regulatory minimum. Ranked by CAR, best-capitalised first.
+ * The bar is the point: each bank's total capital drawn as CET1 (navy) plus the
+ * AT1 + Tier-2 stack (plum), against a 12% tick on the track. Read down the navy
+ * and you can see how much of the sector's "capital adequacy" is common equity
+ * and how much is instruments — 17 of 34 banks hold CET1 below the 12% they must
+ * meet in total. Sorted THINNEST COMMON EQUITY FIRST, because that is the
+ * finding; the meta line says so.
  *
- * Server component — pure presentation off perBankCapital(). Bar fill is scaled
- * against a fixed 25% ceiling (CAR_DOMAIN_MAX) rather than the max in the data,
- * so a handful of tiny specialist banks that run very high CAR don't compress
- * every deposit bank into a stub; their exact figure still shows in the label.
+ * Server component, on the sheet — no card (DESIGN.md ground rule 1).
  */
 import Link from "next/link";
-import { BANK_NAMES, BANK_TYPE_BY_TICKER } from "@/app/lib/bank_names";
+import { BANK_NAMES } from "@/app/lib/bank_names";
+import { SecHead } from "@/app/components/desk";
 import type { BankCapitalRow } from "@/app/lib/audit-ratios";
 
-const CAR_MIN = 12; // regulatory minimum CAR (%)
-const CAR_DOMAIN_MAX = 25; // bar-track ceiling; CAR ≥ this fills the track
-
-/** Ownership group → its fixed chart hue (theme-aware CSS var). Mirrors the
- *  BANK_TYPE_COLOR_INDEX slots in chart-theme.ts so a group keeps one colour. */
-const TYPE_COLOR: Record<string, string> = {
-  "10006": "var(--chart-2)", // State
-  "10005": "var(--chart-3)", // Private · Domestic
-  "10007": "var(--chart-4)", // Private · Foreign
-  "10003": "var(--chart-5)", // Participation
-  "10004": "var(--chart-6)", // Dev & Inv
-};
+const CAR_MIN = 12; // regulatory minimum total capital (%)
+const DOMAIN_MAX = 25; // bar-track ceiling; a few specialists run far above it
 
 const pctStr = (v: number | null, d = 1) => (v == null ? "—" : `${v.toFixed(d)}%`);
 
@@ -36,133 +26,114 @@ function quarterLabel(period: string | null): string {
   return m ? `Q${m[2]} ${m[1]}` : period;
 }
 
-/** Buffer colour — same thresholds as the page's "Buffer over 12%" Stat tile. */
-function bufferTone(pp: number): string {
-  if (pp < 0) return "text-negative";
-  if (pp < 2) return "text-warning";
-  if (pp >= 4) return "text-positive";
-  return "text-foreground";
-}
-
 export default function CapitalByBank({
-  index,
   period,
   rows,
 }: {
-  /** Editorial section index (e.g. "04") — keeps the page numbering continuous. */
-  index?: string;
   period: string | null;
   rows: BankCapitalRow[];
 }) {
   if (rows.length === 0) return null;
 
+  // thinnest common equity first — the register's whole argument
+  const ranked = [...rows].sort((a, b) => (a.cet1 ?? Infinity) - (b.cet1 ?? Infinity));
+  const thin = ranked.filter((b) => b.cet1 != null && b.cet1 < CAR_MIN).length;
+
   return (
-    <section className="space-y-3">
-      {/* Header — mirrors the Section primitive: mono index + serif title. */}
-      <div className="flex items-baseline justify-between gap-3">
-        <div className="flex items-baseline gap-2.5">
-          {index && (
-            <span className="font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-faint">
-              {index}
-            </span>
-          )}
-          <h2 className="font-serif text-xl font-semibold tracking-tight text-foreground">
-            By bank
-          </h2>
-          <span className="text-xs text-muted-foreground">
-            ranked by capital adequacy
-          </span>
-        </div>
-        <Link
-          href="/banks"
-          className="shrink-0 text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-        >
-          All banks →
-        </Link>
-      </div>
+    <div>
+      <SecHead
+        title="By bank"
+        href="/banks"
+        hrefLabel="all banks →"
+        meta={`common equity vs the hybrid stack · thinnest first · audited ${quarterLabel(period)}`}
+        className="mb-2.5"
+      />
+      <p className="mb-3 text-[12px] leading-relaxed text-muted-foreground">
+        <b className="font-semibold text-foreground">
+          {thin} of {ranked.length} banks
+        </b>{" "}
+        hold common equity below the 12% minimum they must meet in total. AT1 and Tier-2 count
+        toward that minimum, so this is not a breach — it is what the cushion is made of.
+      </p>
 
-      <div className="overflow-x-auto rounded-[10px] border border-border bg-card">
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="border-b border-border text-[11px] uppercase tracking-wide text-muted-foreground">
-              <th className="py-2.5 pl-4 pr-3 text-left font-medium">Bank</th>
-              <th className="py-2.5 pr-3 text-left font-medium">CAR</th>
-              <th className="py-2.5 pr-3 text-right font-medium">Tier 1</th>
-              <th className="py-2.5 pr-3 text-right font-medium">CET1</th>
-              <th className="py-2.5 pr-4 text-right font-medium">Buffer</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((b) => {
-              const code = BANK_TYPE_BY_TICKER[b.bank_ticker];
-              const color = TYPE_COLOR[code] ?? "var(--chart-6)";
-              const name = BANK_NAMES[b.bank_ticker] ?? b.bank_ticker;
-              const fill =
-                b.car == null ? 0 : Math.min(b.car / CAR_DOMAIN_MAX, 1) * 100;
-              const buffer = b.car == null ? null : b.car - CAR_MIN;
+      <table className="w-full border-collapse">
+        <thead>
+          <tr>
+            {["Bank", "CET1 + AT1/Tier-2", "CET1", "Tier 1", "CAR", "Buffer"].map((h, i) => (
+              <th
+                key={h}
+                className={`border-b border-foreground pb-1.5 font-mono text-[8.5px] font-normal uppercase tracking-[0.07em] text-faint ${
+                  i <= 1 ? "text-left" : "text-right"
+                }`}
+              >
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {ranked.map((b) => {
+            const name = BANK_NAMES[b.bank_ticker] ?? b.bank_ticker;
+            const cet1 = b.cet1 ?? 0;
+            const hybrid = b.car != null ? Math.max(0, b.car - cet1) : 0;
+            const w = (v: number) => `${Math.min(v / DOMAIN_MAX, 1) * 100}%`;
+            const buffer = b.car == null ? null : b.car - CAR_MIN;
+            const thinCet1 = b.cet1 != null && b.cet1 < CAR_MIN;
 
-              return (
-                <tr
-                  key={b.bank_ticker}
-                  className="group border-b border-border/70 last:border-0 hover:bg-muted/40"
+            return (
+              <tr key={b.bank_ticker} className="hover:bg-muted">
+                <td className="border-b border-hair py-1.5 pr-3 text-[12.5px]">
+                  <Link href={`/banks/${b.bank_ticker}`} className="font-medium text-foreground hover:text-primary">
+                    {name}
+                  </Link>
+                </td>
+                <td className="border-b border-hair py-1.5 pr-3">
+                  {/* the composition: common equity, then what was bought */}
+                  <span className="relative flex h-2 w-full min-w-[120px] bg-muted">
+                    <span className="h-full bg-data" style={{ width: w(cet1) }} />
+                    <span className="h-full bg-chart-5 opacity-70" style={{ width: w(hybrid) }} />
+                    {/* the 12% minimum, on the track */}
+                    <span
+                      className="absolute -top-0.5 -bottom-0.5 w-px bg-warning"
+                      style={{ left: w(CAR_MIN) }}
+                      aria-hidden
+                    />
+                  </span>
+                </td>
+                <td
+                  className={`border-b border-hair py-1.5 pl-2 text-right font-mono text-[12px] font-semibold tabular-nums ${
+                    thinCet1 ? "text-negative" : "text-foreground"
+                  }`}
                 >
-                  <td className="py-2.5 pl-4 pr-3">
-                    <Link
-                      href={`/banks/${b.bank_ticker}`}
-                      className="flex items-center gap-2.5"
-                    >
-                      <span
-                        className="size-2.5 shrink-0 rounded-[3px]"
-                        style={{ background: color }}
-                        aria-hidden
-                      />
-                      <span className="font-medium text-foreground group-hover:text-primary">
-                        {name}
-                      </span>
-                      <span className="text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
-                        ›
-                      </span>
-                    </Link>
-                  </td>
-                  <td className="py-2.5 pr-3">
-                    <div className="flex items-center gap-3">
-                      <div className="h-2 min-w-[80px] flex-1 rounded-full bg-muted">
-                        <div
-                          className="h-full rounded-full"
-                          style={{ width: `${fill}%`, background: color }}
-                        />
-                      </div>
-                      <span className="w-14 shrink-0 text-right font-mono tabular-nums text-foreground">
-                        {pctStr(b.car)}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="py-2.5 pr-3 text-right font-mono tabular-nums text-muted-foreground">
-                    {pctStr(b.tier1)}
-                  </td>
-                  <td className="py-2.5 pr-3 text-right font-mono tabular-nums text-muted-foreground">
-                    {pctStr(b.cet1)}
-                  </td>
-                  <td className="py-2.5 pr-4 text-right">
-                    {buffer == null ? (
-                      <span className="text-muted-foreground">—</span>
-                    ) : (
-                      <span className={`font-mono tabular-nums ${bufferTone(buffer)}`}>
-                        {buffer >= 0 ? "+" : "−"}
-                        {Math.abs(buffer).toFixed(1)}pp
-                      </span>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-4 py-2.5 text-[11px] text-muted-foreground">
-          <span>Source: BRSA quarterly filings · {quarterLabel(period)}</span>
-          <span>Buffer = CAR − 12% minimum</span>
-        </div>
+                  {pctStr(b.cet1)}
+                </td>
+                <td className="border-b border-hair py-1.5 pl-2 text-right font-mono text-[11.5px] tabular-nums text-faint">
+                  {pctStr(b.tier1)}
+                </td>
+                <td className="border-b border-hair py-1.5 pl-2 text-right font-mono text-[12px] tabular-nums text-foreground">
+                  {pctStr(b.car)}
+                </td>
+                <td className="border-b border-hair py-1.5 pl-2 text-right font-mono text-[11.5px] tabular-nums text-faint">
+                  {buffer == null
+                    ? "—"
+                    : `${buffer >= 0 ? "+" : "−"}${Math.abs(buffer).toFixed(1)}pp`}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[9px] uppercase tracking-[0.05em] text-faint">
+        <span>
+          <span className="mr-1 inline-block size-2 bg-data align-middle" aria-hidden /> CET1
+        </span>
+        <span>
+          <span className="mr-1 inline-block size-2 bg-chart-5 align-middle opacity-70" aria-hidden />
+          AT1 + Tier-2
+        </span>
+        <span>Track = 0–25% of RWA · tick = the 12% minimum</span>
+        <span>Source: BRSA quarterly filings · {quarterLabel(period)}</span>
       </div>
-    </section>
+    </div>
   );
 }

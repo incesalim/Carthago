@@ -139,6 +139,19 @@ only; a daily series (net CBRT funding) goes to the transmission, where its basi
 is stated. And pair the "prev" row off a SINGLE-series array — long-form rows
 (`{period, bank_type_code, value}`) put another group at `.at(-2)`, not last week.
 
+**Compare like with like — the same BASIS, not just the same cadence.** The same
+quantity often exists twice: sector CAR is 16.34% in the BDDK monthly bulletin and
+16.02% in the audited Σ/Σ filings. Subtracting one from the other (`/capital`: is
+the hybrid stack bigger than the buffer?) silently flatters or damns the answer.
+Compute both sides on one basis and print which.
+
+**Print the step, don't average it.** A twelve-month "drift" that spans a
+discontinuity is not a trend, and extrapolating it is arithmetic dressed as a
+forecast. `/capital` detects the break from the series (`detectStep` — a move
+3× the typical one), splits the year into the step and everything else, sizes the
+buffer against the POST-step slope, and names the window it used. When a page
+cannot attribute a break, it says so.
+
 ## Shell (do not re-implement per page)
 
 `app/layout.tsx` renders the workspace: quiet rail (`Nav.tsx` — plain text,

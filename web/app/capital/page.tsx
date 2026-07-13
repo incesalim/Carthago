@@ -28,24 +28,44 @@ import {
   BANK_TYPE_LABELS,
 } from "@/app/lib/metrics";
 import { sectorCapitalRatios, perBankCapital, AUDIT_CAPITAL_LABELS } from "@/app/lib/audit-ratios";
-import { Section, Stat } from "@/app/components/ui";
+import { BANK_NAMES } from "@/app/lib/bank_names";
 import BarByBank from "@/app/components/BarByBank";
 import CapitalByBank from "./CapitalByBank";
+import StepWaterfall from "./StepWaterfall";
 import TrendChart from "@/app/components/TrendChart";
+import StackedArea from "@/app/components/StackedArea";
 import Takeaway from "@/app/components/Takeaway";
 import { capitalInsights } from "@/app/lib/insights";
 import { seriesFinding } from "@/app/lib/chart-findings";
 import { withLlmHeadline } from "@/app/lib/read-headlines";
 import {
+  Ahead,
+  ChartFoot,
   ChartRow,
   Colophon,
   Depth,
   DeskHeader,
+  Flags,
+  Levels,
+  Movers,
   SecHead,
+  Standings,
+  Transmission,
   Vital,
   Vitals,
+  type Flag,
+  type MoverRow,
+  type StandingsGroup,
+  type TransmissionItem,
 } from "@/app/components/desk";
 import { lastVal, monthLabel, signedPp, valAgo } from "@/app/lib/desk";
+import {
+  capitalStack,
+  decompose12m,
+  detectStep,
+  postStepDrift,
+  quartersToFloor,
+} from "@/app/lib/capital";
 import { GlobalRangeSelector } from "@/app/components/range-context";
 
 export const dynamic = "force-dynamic";
@@ -89,16 +109,35 @@ export default async function CapitalPage() {
     perBankCapital(),
   ]);
 
-  // Headroom (display-study Phase 3): naive-extrapolation sizing of the CAR
-  // buffer — where does the floor land if the last 12 months' drift persists?
+  // ---- the step, not the drift --------------------------------------------
+  // Capital adequacy did not ease — it STEPPED: −2.92pp between Dec 2025 and Jan
+  // 2026, in every ownership group, the largest one-month move on record. The
+  // old headroom device extrapolated a 12-month average that straddles that
+  // discontinuity. So: detect the break from the series (rule, not a hand-picked
+  // date), split the year into the step and everything else, and size the buffer
+  // against the slope measured AFTER the break.
   const CAR_MIN = 12;
   const carSector = carAll.filter((r) => r.bank_type_code === BANK_TYPES.SECTOR);
   const carNow = carSector.at(-1)?.value ?? null;
-  const carYearAgo = carSector.at(-13)?.value ?? null;
   const buffer = carNow != null ? carNow - CAR_MIN : null;
-  const drift = carNow != null && carYearAgo != null ? carNow - carYearAgo : null; // pp per year
-  const quartersToFloor =
-    buffer != null && drift != null && drift < 0 ? (buffer / -drift) * 4 : null;
+
+  const step = detectStep(carSector, { window: 13, k: 3 });
+  const breakPeriod = step?.isBreak ? step.period : null;
+  const split = decompose12m(carSector, breakPeriod);
+  const post = postStepDrift(carSector, breakPeriod);
+
+  // The two levels the step sits between — the month before it, and the month
+  // it landed. (Not the latest value: that is a third number entirely.)
+  const stepIdx = breakPeriod ? carSector.findIndex((r) => r.period === breakPeriod) : -1;
+  const beforeStep = stepIdx > 0 ? (carSector[stepIdx - 1].value ?? null) : null;
+  const afterStep = stepIdx > 0 ? (carSector[stepIdx].value ?? null) : null;
+  // Drift used for sizing: post-step when there IS a break, else the plain 12m.
+  const drift = post?.perYear ?? split?.total ?? null;
+  const qtrsToFloor = quartersToFloor(carNow, drift, CAR_MIN);
+  const driftBasis = breakPeriod
+    ? `post-step · ${post?.months ?? 0}m since ${monthLabel(breakPeriod, false)}`
+    : "12-month drift";
+
   const eqG = equityYoYSec.at(-1)?.value ?? null;
   const asG = assetsYoYSec.at(-1)?.value ?? null;
   const genGap = eqG != null && asG != null ? eqG - asG : null;
@@ -131,6 +170,229 @@ export default async function CapitalPage() {
     equityYoY: equityYoYSec,
     leverage: levSector,
   });
+
+  // ---- what the buffer is made of -----------------------------------------
+  // All three components are positive and sum to total capital by construction,
+  // so this one legitimately draws as a stack (unlike /liquidity's reserves).
+  const stack = capitalStack(capRatios);
+  const stackNow = stack.at(-1) ?? null;
+  const hybrids = stackNow ? stackNow.at1 + stackNow.t2 : null;
+  const cet1Share = stackNow && stackNow.car > 0 ? (stackNow.cet1 / stackNow.car) * 100 : null;
+  const thinCet1 = byBankCap.rows.filter((b) => b.cet1 != null && b.cet1 < CAR_MIN).length;
+  // Compare like with like: the hybrid stack is AUDITED (Σ/Σ over the filings),
+  // so it must be set against the AUDITED buffer — not the monthly bulletin's
+  // CAR, which is a different basis (16.02% vs 16.34%) and would flatter it.
+  const auditBuffer = stackNow ? stackNow.car - CAR_MIN : null;
+
+  const fmtPct = (v: number | null | undefined, d = 1) =>
+    v == null ? "—" : `${v.toFixed(d)}%`;
+
+  // ---- movers: the MONTHLY record (the stack is audited quarterly) ---------
+  const mv = (s: { value: number | null }[]) => ({
+    prev: s.at(-2)?.value ?? null,
+    curr: s.at(-1)?.value ?? null,
+  });
+  const moverRows: MoverRow[] = [
+    { label: "Capital adequacy", ...mv(carSector), fmt: (v) => `${v.toFixed(2)}%`, good: "up" },
+    {
+      label: "RWA density", note: "rwa net ÷ gross",
+      ...mv(rwaSector), fmt: (v) => `${v.toFixed(1)}%`, deltaDecimals: 1, good: "neutral",
+    },
+    {
+      label: "Liabilities / equity", note: "gearing",
+      ...mv(levSector), fmt: (v) => `${v.toFixed(0)}%`, deltaDecimals: 0, good: "down",
+    },
+    {
+      label: "Equity growth, y/y", note: "the generation side",
+      ...mv(equityYoYSec), fmt: (v) => `${v.toFixed(1)}%`, deltaDecimals: 1, good: "up",
+    },
+  ];
+
+  // ---- the step → the ratio ------------------------------------------------
+  const transmission: TransmissionItem[] = [];
+  if (step?.isBreak && split) {
+    transmission.push({
+      k: monthLabel(step.period),
+      v: step.delta.toFixed(2),
+      unit: "pp",
+      effect: (
+        <>
+          Capital adequacy moved <b>{step.delta.toFixed(2)}pp in a single month</b> — against a
+          typical monthly move of {step.typical.toFixed(2)}pp, and{" "}
+          <b>every ownership group fell together</b>. This is a <b>step</b>, not a trend.
+        </>
+      ),
+    });
+    transmission.push({
+      k: "Ex-step",
+      v: `${split.rest >= 0 ? "+" : "−"}${Math.abs(split.rest).toFixed(2)}`,
+      unit: "pp",
+      effect: (
+        <>
+          The 12-month change is {signedPp(split.total, 2)} = the step ({signedPp(split.step, 2)})
+          plus everything else (<b>{signedPp(split.rest, 2)}</b>). Strip the step and the sector{" "}
+          <b>{split.rest >= 0 ? "added" : "lost"} capital</b> over the rest of the year.
+        </>
+      ),
+    });
+  }
+  if (auditBuffer != null && hybrids != null) {
+    transmission.push({
+      k: "The buffer",
+      v: auditBuffer.toFixed(2),
+      unit: `pp · audited ${auditQ}`,
+      effect: (
+        <>
+          Over the 12% minimum. The AT1 + Tier-2 stack is <b>{hybrids.toFixed(2)}pp</b> —{" "}
+          {hybrids > auditBuffer ? (
+            <>
+              <b>larger than the buffer itself</b>. Strip the instruments and the ratio is{" "}
+              {fmtPct(stackNow?.cet1, 2)}, below the minimum it must meet.
+            </>
+          ) : (
+            <>the cushion is more common equity than instruments.</>
+          )}{" "}
+          Both figures are audited — the monthly bulletin&rsquo;s CAR ({fmtPct(carNow, 2)}) is a
+          different basis.
+        </>
+      ),
+    });
+  }
+  if (drift != null && qtrsToFloor != null) {
+    transmission.push({
+      k: "Drift, sized",
+      v: `${drift >= 0 ? "+" : "−"}${Math.abs(drift).toFixed(2)}`,
+      unit: "pp/yr",
+      effect: (
+        <>
+          Measured <b>{driftBasis}</b>. At this pace the buffer reaches the floor in{" "}
+          <b>~{Math.round(qtrsToFloor)} quarters</b> — a sizing device, <b>not a forecast</b>, and
+          not the 12-month average a step would poison.
+        </>
+      ),
+    });
+  }
+  if (step?.isBreak) {
+    transmission.push({
+      k: "Attribution",
+      v: "—",
+      effect: (
+        <>
+          <b>We cannot source the step.</b> RWA density barely moved ({fmtPct(rwaNow)}), so it
+          arrived through the <b>capital</b> numerator rather than the risk mix — but no rule in
+          our window explains it. The page says so rather than guessing.{" "}
+          <Go href="/regulation">/regulation</Go>
+        </>
+      ),
+    });
+  }
+
+  // ---- flags ---------------------------------------------------------------
+  const flags: Flag[] = [
+    {
+      code: "structural-break",
+      active: !!step?.isBreak,
+      body: (
+        <>
+          <b className="font-semibold">Structural break</b> — CAR moved{" "}
+          {step ? step.delta.toFixed(2) : "—"}pp in one month ({monthLabel(step?.period ?? null)}),
+          against a typical {step ? step.typical.toFixed(2) : "—"}pp. A 12-month “drift” that spans
+          it is a step in disguise.
+        </>
+      ),
+      rule: "|Δ1m| > 3 × mean(|Δ1m|, 13m)",
+      clear: <>Trend — the largest monthly move is within 3× the typical one</>,
+    },
+    {
+      code: "hybrid-buffer",
+      active: hybrids != null && auditBuffer != null && hybrids > auditBuffer,
+      body: (
+        <>
+          <b className="font-semibold">Hybrid-funded buffer</b> — AT1 + Tier-2 ={" "}
+          {hybrids?.toFixed(2)}pp of RWA against a {auditBuffer?.toFixed(2)}pp buffer over the
+          minimum (both audited {auditQ}). Strip them and the ratio is{" "}
+          {fmtPct(stackNow?.cet1, 2)}, below the 12% it must meet.
+        </>
+      ),
+      rule: "at1 + tier2 > car_audited − 12",
+      clear: <>Buffer — more common equity than instruments</>,
+    },
+    {
+      code: "thin-cet1",
+      active: thinCet1 > byBankCap.rows.length * 0.25,
+      body: (
+        <>
+          <b className="font-semibold">Thin common equity</b> — {thinCet1} of{" "}
+          {byBankCap.rows.length} banks hold CET1 below the 12% total-capital minimum.
+        </>
+      ),
+      rule: "count(cet1 < 12%) > 25% of banks",
+      clear: <>Common equity — {thinCet1} banks below 12% CET1</>,
+    },
+    {
+      code: "generation-gap",
+      active: genGap != null && genGap < 0,
+      body: (
+        <>
+          <b className="font-semibold">Capital generation gap</b> — equity {fmtPct(eqG)} vs assets{" "}
+          {fmtPct(asG)} y/y: the balance sheet is outgrowing the capital that carries it.
+        </>
+      ),
+      rule: "equity_yoy − assets_yoy < 0",
+      clear:
+        genGap != null ? (
+          <>
+            Capital generation — equity {fmtPct(eqG)} y/y, {signedPp(genGap, 1)} vs assets
+          </>
+        ) : (
+          <>Capital generation — equity or asset growth not published this month</>
+        ),
+    },
+    {
+      code: "thin-buffer",
+      active: buffer != null && buffer < 2,
+      body: (
+        <>
+          <b className="font-semibold">Thin buffer</b> — {buffer?.toFixed(2)}pp over the 12%
+          minimum.
+        </>
+      ),
+      rule: "car − 12 < 2pp",
+      clear: <>Buffer — {buffer?.toFixed(2)}pp over the 12% minimum</>,
+    },
+  ];
+  const activeFlags = flags.filter((f) => f.active).length;
+
+  // ---- standings: the thin end of the register -----------------------------
+  const withCet1 = byBankCap.rows.filter((b) => b.cet1 != null && b.car != null);
+  const standings: StandingsGroup[] = [
+    {
+      heading: `Thinnest common equity — CET1 · ${auditQ}`,
+      rows: [...withCet1]
+        .sort((a, b) => (a.cet1 as number) - (b.cet1 as number))
+        .slice(0, 3)
+        .map((b, i) => ({
+          rank: i + 1,
+          name: BANK_NAMES[b.bank_ticker] ?? b.bank_ticker,
+          value: fmtPct(b.cet1, 2),
+          tone: "dn" as const,
+        })),
+    },
+    {
+      heading: "Most of the ratio bought — CAR − CET1",
+      rows: [...withCet1]
+        .sort(
+          (a, b) =>
+            ((b.car as number) - (b.cet1 as number)) - ((a.car as number) - (a.cet1 as number)),
+        )
+        .slice(0, 3)
+        .map((b, i) => ({
+          rank: i + 1,
+          name: BANK_NAMES[b.bank_ticker] ?? b.bank_ticker,
+          value: `${((b.car as number) - (b.cet1 as number)).toFixed(1)}pp`,
+        })),
+    },
+  ];
 
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
@@ -234,139 +496,351 @@ export default async function CapitalPage() {
         />
       </Vitals>
 
-      {/* ── In depth — the evidence layer ──────────────────────────────── */}
+      {/* ── Movers | The step → the ratio ──────────────────────────────── */}
+      <div className="mt-8 grid gap-x-10 gap-y-8 lg:grid-cols-[5fr_7fr]">
+        <div>
+          <SecHead title="Movers" meta={`${vsMonth} → ${monthLabel(carSector.at(-1)?.period, false)} · monthly`} className="mb-2.5" />
+          <Movers
+            from={vsMonth.toUpperCase()}
+            to={monthLabel(carSector.at(-1)?.period, false).toUpperCase()}
+            rows={moverRows}
+          />
+        </div>
+        <div>
+          <SecHead
+            title={step?.isBreak ? "The step → the ratio" : "The ratio → the balance sheet"}
+            meta="what actually happened · computed"
+            className="mb-2.5"
+          />
+          <Transmission items={transmission} />
+        </div>
+      </div>
+
+      {/* ── Flags | Standings | Ahead ──────────────────────────────────── */}
+      <div className="mt-8 grid gap-x-10 gap-y-8 lg:grid-cols-3">
+        <div>
+          <SecHead
+            title="Flags"
+            meta={`rule-based — ${activeFlags} of ${flags.length}`}
+            className="mb-2.5"
+          />
+          <Flags
+            flags={flags}
+            showCleared
+            quietNote="The break test, the hybrid stack, common equity, generation and the buffer are all below threshold."
+          />
+        </div>
+        <div>
+          <SecHead title="Standings" meta={`audited ${auditQ}`} href="/banks" hrefLabel="by bank →" className="mb-2.5" />
+          <Standings groups={standings} />
+        </div>
+        <div>
+          <SecHead title="Ahead" meta="schedule — not a forecast" className="mb-2.5" />
+          <Ahead
+            items={[
+              { when: "AUG ~12", what: <>BDDK monthly bulletin — June CAR</> },
+              {
+                when: "AUG–SEP",
+                what: <>BRSA Q2 filings — CET1, Tier-1 and RWA per bank</>,
+                href: "/earnings",
+              },
+              { when: "JUL 23", what: <>TCMB MPC — the rate that prices the AT1 stack</> },
+              {
+                when: "OPEN",
+                what: (
+                  <>
+                    The {monthLabel(step?.period ?? null, false)} step is{" "}
+                    <b className="font-semibold">unattributed</b> — no rule in our window
+                  </>
+                ),
+                href: "/regulation",
+              },
+            ]}
+          />
+        </div>
+      </div>
+
+      {/* ── In depth — the evidence, on the brief's own grid ───────────── */}
       <Depth action={<GlobalRangeSelector />}>
-        <Takeaway data={await withLlmHeadline("capital", read)} />
+        <Takeaway data={await withLlmHeadline("capital", read)} variant="desk" />
 
-        <Section index="01" title="Capital Adequacy">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div className="lg:col-span-2">
-              <TrendChart
-                data={carAll}
-                seriesLabels={BANK_TYPE_LABELS}
-                title={
-                  seriesFinding(carSector, { noun: "Capital adequacy", decimals: 1 }) ??
-                  "Capital Adequacy Ratio (%) — by group"
-                }
-                description="Capital adequacy ratio (SYR), %, monthly · by ownership group · regulatory minimum 12%"
-                source="Source: BDDK monthly bulletin"
-                yFormat="pct"
-                decimals={1}            />
-            </div>
-            <BarByBank
-              data={carByBank}
-              labels={BANK_TYPE_LABELS}
-              title={`CAR by group · ${carByBank[0]?.period ?? ""}`}
-              format="pct"
-              decimals={1}
+        {/* The step — what the page had been calling an "easing". */}
+        <div>
+          <SecHead
+            title={step?.isBreak ? "The step" : "Capital adequacy"}
+            meta={
+              step?.isBreak
+                ? `${monthLabel(step.period)} · every group · BDDK monthly bulletin`
+                : "by ownership group · BDDK monthly bulletin"
+            }
+            className="mb-2.5"
+          />
+          {step?.isBreak && split && (
+            <Levels
+              items={[
+                {
+                  k: monthLabel(carSector[stepIdx - 1]?.period ?? null),
+                  v: fmtPct(beforeStep, 2),
+                },
+                { k: monthLabel(step.period), v: fmtPct(afterStep, 2) },
+                { k: "The step", v: `${step.delta.toFixed(2)}pp` },
+                {
+                  k: monthLabel(carSector.at(-1)?.period ?? null),
+                  v: fmtPct(split.to, 2),
+                },
+              ]}
             />
+          )}
+          <div className="mt-6 grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
+            <TrendChart
+              plain
+              data={carAll}
+              seriesLabels={BANK_TYPE_LABELS}
+              title={
+                step?.isBreak
+                  ? `Every ownership group fell together in ${monthLabel(step.period, false)}`
+                  : (seriesFinding(carSector, { noun: "Capital adequacy", decimals: 1 }) ??
+                     "Capital adequacy — by group")
+              }
+              description="capital adequacy (syr), %, monthly · by group · regulatory minimum 12%"
+              source={
+                <ChartFoot data={carAll} labels={BANK_TYPE_LABELS} decimals={1} deltaPeriods={12} />
+              }
+              yFormat="pct"
+              decimals={1}
+              height={280}
+              annotations={
+                step?.isBreak
+                  ? [{ period: step.period, label: `${step.delta.toFixed(2)}pp` }]
+                  : undefined
+              }
+            />
+            {split && step?.isBreak ? (
+              <StepWaterfall
+                fromLabel={monthLabel(carSector.at(-13)?.period ?? null)}
+                toLabel={monthLabel(carSector.at(-1)?.period ?? null)}
+                from={split.from}
+                to={split.to}
+                step={split.step}
+                rest={split.rest}
+                stepLabel={`The ${monthLabel(step.period, false)} step`}
+                title="The year's decline is the step — the rest of the year added capital"
+                description="12-month change in CAR, pp · the one-off isolated from everything else"
+                source={
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-[9px] text-faint">
+                    <span>
+                      12M <b className="font-semibold text-foreground">{signedPp(split.total, 2)}</b>
+                    </span>
+                    <span>
+                      THE STEP{" "}
+                      <b className="font-semibold text-foreground">{signedPp(split.step, 2)}</b>
+                    </span>
+                    <span>
+                      EX-STEP{" "}
+                      <b className="font-semibold text-foreground">{signedPp(split.rest, 2)}</b>
+                    </span>
+                    <span>
+                      SIZED ON{" "}
+                      <b className="font-semibold text-foreground">
+                        {drift != null ? `${drift.toFixed(2)}pp/yr · ${driftBasis}` : "—"}
+                      </b>
+                    </span>
+                  </div>
+                }
+                height={280}
+              />
+            ) : (
+              <BarByBank
+                data={carByBank}
+                labels={BANK_TYPE_LABELS}
+                title={`CAR by group · ${carByBank[0]?.period ?? ""}`}
+                format="pct"
+                decimals={1}
+              />
+            )}
           </div>
-        </Section>
+          {step?.isBreak && (
+            <p className="mt-4 max-w-[96ch] text-[12px] leading-relaxed text-muted-foreground">
+              <b className="font-semibold text-foreground">Not attributed.</b> The step is in the
+              data, not in the explanation: no rule in our regulation window covers it, and RWA
+              density barely moved ({fmtPct(rwaNow)}), so it arrived through the capital numerator
+              rather than the risk mix. The buffer is therefore sized against the{" "}
+              <b className="font-semibold text-foreground">{driftBasis}</b> slope — extrapolating a
+              step would be arithmetic dressed as a forecast.
+            </p>
+          )}
+        </div>
 
-        {buffer != null && (
-          <Section
-            index="02"
-            title="Headroom"
-            description="Where the buffer goes if the last 12 months simply repeat — a sizing device (straight-line extrapolation), not a forecast. Capital generation gap = equity growth − asset growth; negative means the balance sheet is outgrowing its capital."
-          >
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <Stat
-                label="Buffer over 12% minimum"
-                value={`${buffer.toFixed(1)}pp`}
-                hint={`CAR ${carNow!.toFixed(1)}%`}
-                tone={buffer < 2 ? "warning" : buffer >= 4 ? "positive" : "neutral"}
-              />
-              <Stat
-                label="12-month drift"
-                value={drift != null ? `${drift >= 0 ? "+" : ""}${drift.toFixed(1)}pp / yr` : "—"}
-                tone={drift != null && drift < -0.5 ? "warning" : "neutral"}
-              />
-              <Stat
-                label="At current drift"
-                value={
-                  quartersToFloor != null
-                    ? `floor in ~${Math.round(quartersToFloor)} qtrs`
-                    : "buffer holding"
-                }
-                tone={quartersToFloor != null && quartersToFloor < 8 ? "warning" : "neutral"}
-              />
-              <Stat
-                label="Capital generation gap"
-                value={genGap != null ? `${genGap >= 0 ? "+" : ""}${genGap.toFixed(1)}pp` : "—"}
-                hint={eqG != null && asG != null ? `equity ${eqG.toFixed(0)}% vs assets ${asG.toFixed(0)}% y/y` : undefined}
-                tone={genGap != null && genGap < 0 ? "warning" : "positive"}
-              />
-            </div>
-          </Section>
-        )}
-
-        <Section
-          index="03"
-          title="Capital composition (audited §4)"
-          description="CET1 and Tier-1 ratios from the quarterly BRSA reports — aggregated Σ capital ÷ Σ RWA across reporting banks. The monthly bulletin carries only total CAR; CET1 is the Basel III / BBVA capital headline."
-        >
-          <ChartRow data={capRatios} labels={AUDIT_CAPITAL_LABELS} deltaPeriods={4} deltaLabel="4q" fmt={(v) => `${v.toFixed(1)}%`}>
-            <TrendChart
-              data={capRatios}
-              seriesLabels={AUDIT_CAPITAL_LABELS}
-              title="CET1 / Tier-1 / Total CAR (%) — sector, audited quarterly"
+        {/* What the buffer is made of — a stack IS the right mark here. */}
+        <div>
+          <SecHead
+            title="What the buffer is made of"
+            meta={`audited §4 · Σ component ÷ Σ RWA · ${auditQ}`}
+            className="mb-2.5"
+          />
+          <div className="grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
+            <StackedArea
+              plain
+              data={stack as unknown as Record<string, string | number | null>[]}
+              series={[
+                { key: "cet1", label: "CET1" },
+                { key: "at1", label: "AT1" },
+                { key: "t2", label: "Tier-2" },
+              ]}
+              title={
+                hybrids != null && buffer != null && hybrids > buffer
+                  ? "The cushion over the minimum is instruments, not common equity"
+                  : "Capital composition — CET1, AT1 and Tier-2"
+              }
+              description="capital stack, % of RWA, audited quarterly · sums to total capital"
+              source={
+                <div className="flex flex-wrap gap-x-4 gap-y-1">
+                  <span>
+                    CET1 <b className="font-semibold text-foreground">{fmtPct(stackNow?.cet1, 2)}</b>
+                  </span>
+                  <span>
+                    AT1 <b className="font-semibold text-foreground">{fmtPct(stackNow?.at1, 2)}</b>
+                  </span>
+                  <span>
+                    TIER-2 <b className="font-semibold text-foreground">{fmtPct(stackNow?.t2, 2)}</b>
+                  </span>
+                  <span>
+                    CET1 SHARE{" "}
+                    <b className="font-semibold text-foreground">
+                      {fmtPct(cet1Share, 0)} of capital
+                    </b>
+                  </span>
+                </div>
+              }
               yFormat="pct"
-              decimals={1}
-              height={320}
+              decimals={2}
+              height={280}
             />
-          </ChartRow>
-        </Section>
+            <ChartRow data={capRatios} labels={AUDIT_CAPITAL_LABELS} deltaPeriods={4} deltaLabel="4q" fmt={(v) => `${v.toFixed(1)}%`}>
+              <TrendChart
+                plain
+                data={capRatios}
+                seriesLabels={AUDIT_CAPITAL_LABELS}
+                title="CET1 / Tier-1 / total capital — the three ratios the filings print"
+                description="audited quarterly, % of RWA · sector · Σ component ÷ Σ RWA"
+                yFormat="pct"
+                decimals={1}
+                height={280}
+                hero="CET1"
+              />
+            </ChartRow>
+          </div>
+        </div>
 
-        <CapitalByBank index="04" period={byBankCap.period} rows={byBankCap.rows} />
+        <CapitalByBank period={byBankCap.period} rows={byBankCap.rows} />
 
-        <Section
-          index="05"
-          title="Equity & Leverage"
-          description="Sector equity level, growth, and gearing."
-        >
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Equity & leverage — the generation side. */}
+        <div>
+          <SecHead
+            title="Equity &amp; leverage"
+            meta="the generation side · level, growth, gearing"
+            className="mb-2.5"
+          />
+          <div className="grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
             <TrendChart
-              data={equity}
-              seriesLabels={{ [BANK_TYPES.SECTOR]: "Equity" }}
-              title="Total Equity — Level (sector)"
-              yFormat="trn"
-              decimals={2}          />
-            <TrendChart
+              plain
               data={equityYoYSec}
-              seriesLabels={{ [BANK_TYPES.SECTOR]: "Equity YoY" }}
-              title="Equity Growth YoY (%)"
+              seriesLabels={{ [BANK_TYPES.SECTOR]: "Equity y/y" }}
+              title={
+                genGap == null
+                  ? "Equity growth — sector"
+                  : genGap >= 0
+                    ? "Equity compounds faster than the balance sheet — generation is not the constraint"
+                    : "The balance sheet is outgrowing its equity"
+              }
+              description="equity growth y/y, %, monthly · sector"
+              source={
+                <ChartFoot
+                  data={equityYoYSec}
+                  labels={{ [BANK_TYPES.SECTOR]: "Equity y/y" }}
+                  decimals={1}
+                  deltaPeriods={12}
+                />
+              }
               yFormat="pct"
               decimals={1}
-              zeroLine          />
+              height={280}
+              zeroLine
+            />
             <TrendChart
+              plain
               data={lev}
               seriesLabels={BANK_TYPE_LABELS}
-              title="Liabilities / Equity (%)"
+              title="Gearing keeps climbing — the state banks lean hardest"
+              description="liabilities ÷ equity, %, monthly · by ownership group"
+              source={
+                <ChartFoot data={lev} labels={BANK_TYPE_LABELS} decimals={0} deltaPeriods={12} />
+              }
               yFormat="pct"
-              decimals={0}          />
+              decimals={0}
+              height={280}
+            />
           </div>
-        </Section>
-
-        <Section
-          index="06"
-          title="Risk Density"
-          description="How concentrated each group's balance-sheet risk is — lower RWA-net/gross means more low-weight exposure (govt bonds, cash). Off-BS derivatives / total assets shows derivative book size relative to balance sheet."
-        >
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="mt-6">
             <TrendChart
+              plain
+              data={equity}
+              seriesLabels={{ [BANK_TYPES.SECTOR]: "Equity" }}
+              title="Total equity — the level the ratios are struck on"
+              description="sector equity, ₺ trn, monthly"
+              source="Source: BDDK monthly bulletin"
+              yFormat="trn"
+              decimals={2}
+              height={260}
+            />
+          </div>
+        </div>
+
+        {/* Risk density — the denominator. */}
+        <div>
+          <SecHead
+            title="Risk density"
+            meta="what the RWA denominator is made of"
+            className="mb-2.5"
+          />
+          <div className="grid grid-cols-1 gap-x-10 gap-y-9 lg:grid-cols-2">
+            <TrendChart
+              plain
               data={rwa}
               seriesLabels={BANK_TYPE_LABELS}
-              title="RWA Net / Gross (%)"
+              title={
+                step?.isBreak
+                  ? "Risk density barely moved through the step — the fall came from capital, not the risk mix"
+                  : "RWA net / gross — by group"
+              }
+              description="rwa net ÷ gross, %, monthly · lower = more low-weight exposure"
+              source={
+                <ChartFoot data={rwa} labels={BANK_TYPE_LABELS} decimals={1} deltaPeriods={12} />
+              }
               yFormat="pct"
-              decimals={1}          />
+              decimals={1}
+              height={280}
+            />
             <TrendChart
+              plain
               data={offBsDeriv}
               seriesLabels={BANK_TYPE_LABELS}
-              title="Off-Balance-Sheet Derivatives / Total Assets (%)"
+              title="The derivative book is a foreign-bank story"
+              description="off-balance-sheet derivatives ÷ total assets, %, monthly · by group"
+              source={
+                <ChartFoot
+                  data={offBsDeriv}
+                  labels={BANK_TYPE_LABELS}
+                  decimals={1}
+                  deltaPeriods={12}
+                />
+              }
               yFormat="pct"
-              decimals={1}          />
+              decimals={1}
+              height={280}
+            />
           </div>
-        </Section>
+        </div>
       </Depth>
 
       <Colophon />
