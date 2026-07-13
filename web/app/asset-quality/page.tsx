@@ -646,21 +646,19 @@ export default async function AssetQualityPage() {
         <Section
           index="01"
           title="What is coming?"
-          description="The pipeline: TFRS-9 staging, the NPL roll-forward, and what a Stage-2 migration would cost."
+          description="How the watchlist has built up. The roll-forward and the migration sizing sit in the brief above."
         >
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            {stageShares.length > 0 && (
-              <TrendChart
-                data={stageShares}
-                seriesLabels={STAGE_SHARE_LABELS}
-                title="TFRS-9 staging — % of gross loans (audited quarterly)"
-                description="Stage 2 is the watchlist the NPL ratio never prints."
-                yFormat="pct"
-                decimals={1}
-              />
-            )}
-
-          </div>
+          {stageShares.length > 0 && (
+            <TrendChart
+              data={stageShares}
+              seriesLabels={STAGE_SHARE_LABELS}
+              title="TFRS-9 staging — % of gross loans (audited quarterly)"
+              description="Stage 2 is the watchlist the NPL ratio never prints."
+              yFormat="pct"
+              decimals={1}
+              plain
+            />
+          )}
         </Section>
 
         <Section
