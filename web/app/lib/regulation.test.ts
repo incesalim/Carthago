@@ -26,6 +26,7 @@ import {
   parseOvernight,
   parsePolicyRate,
   parseReserveChanges,
+  parseGrowthCaps,
   parseTerminated,
   rateChanges,
   reserveCellLabel,
@@ -393,5 +394,71 @@ describe("reserve cell labels", () => {
     const [short, long] = parseReserveChanges(MACROPRU_WITH_TABLE);
     expect(reserveCellLabel(short)).toBe("FX deposits · ≤1 month");
     expect(reserveCellLabel(long)).toBe("FX deposits · longer maturities");
+  });
+});
+
+// ── loan growth caps ─────────────────────────────────────────────────────────
+
+// Verbatim from the 18 Jun 2026 MPC Summary (ANO2026-24), which we hold in full.
+// The macroprudential release that SET these caps ships no table — we hold 342
+// characters of it. The summary is the only machine-readable statement of them.
+const MPC_SUMMARY_CAPS = [
+  "5. Consumer inflation was 45.9%.",
+  "6. In view of loan growth developments, the Central Bank of the Republic of Türkiye (CBRT) " +
+    "introduced changes to the reserve requirement regulation on May 23 to support the tight " +
+    "monetary stance and strengthen macro financial stability. Accordingly, growth limits imposed " +
+    "for eight-week periods were reduced from 4% to 3% in general purpose and vehicle loans " +
+    "extended to consumers, from 2% to 1% in overdraft account limits extended to consumers, " +
+    "from 5% to 4.5% in Turkish lira loans extended to SMEs, and from 3% to 2% in Turkish lira " +
+    "loans extended to non-SME enterprises.",
+  "7. The gross international reserves rose from 12% to 15% of GDP over the period.",
+].join("\n\n");
+
+describe("loan growth caps", () => {
+  it("reads all four caps out of the summary's prose", () => {
+    expect(parseGrowthCaps(MPC_SUMMARY_CAPS)).toEqual([
+      { label: "General-purpose & vehicle", prev: 4, next: 3 },
+      { label: "Consumer overdraft", prev: 2, next: 1 },
+      { label: "TL loans to SMEs", prev: 5, next: 4.5 },
+      { label: "TL loans to non-SMEs", prev: 3, next: 2 },
+    ]);
+  });
+
+  // The summary is 8,000 characters of macro prose. "from 12% to 15% of GDP" is
+  // in the very next paragraph, and a loose regex would call it a loan cap.
+  // REGRESSION, and the second time this exact trap has bitten: bounding the
+  // search with [^.] to "stay in the sentence" dies at the decimal in 4.5%, and
+  // silently returns TWO caps instead of four.
+  it("survives the decimal in 4.5% — returns four caps, not two", () => {
+    expect(parseGrowthCaps(MPC_SUMMARY_CAPS)).toHaveLength(4);
+  });
+
+  it("does not mistake unrelated prose for a cap", () => {
+    const caps = parseGrowthCaps(MPC_SUMMARY_CAPS);
+    expect(caps.some((c) => c.next === 15)).toBe(false);
+    expect(parseGrowthCaps("Reserves rose from 12% to 15% of GDP.")).toEqual([]);
+    expect(parseGrowthCaps(null)).toEqual([]);
+  });
+
+  // This is what hid the caps for three design iterations: the document that
+  // states them was classified as comms.
+  it("classifies the MPC Summary as a RULE when it carries the caps", () => {
+    expect(
+      classifyInstrument({
+        source: "tcmb",
+        title: "Summary of the Monetary Policy Committee Meeting",
+        body_text: MPC_SUMMARY_CAPS,
+      }),
+    ).toBe("rule");
+  });
+
+  it("still treats a Summary WITHOUT caps as comms", () => {
+    expect(
+      classifyInstrument({
+        source: "tcmb",
+        title: "Summary of the Monetary Policy Committee Meeting",
+        body_text: "The Committee reviewed the inflation outlook.",
+      }),
+    ).toBe("other");
   });
 });
