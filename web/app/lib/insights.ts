@@ -143,24 +143,63 @@ export function overviewInsights(d: {
 
 /** Credit — "how fast is credit growing, in what currency, to whom?" */
 export function creditInsights(d: {
-  yoy: SeriesPoint[]; // sector loan growth, 52w
+  yoy: SeriesPoint[]; // sector loan growth, 52w NOMINAL
   mom4: SeriesPoint[]; // 4w annualized momentum
   yoyState: SeriesPoint[];
   yoyPrivate: SeriesPoint[];
   fxShare: SeriesPoint[]; // weekly
   cardsYoY: SeriesPoint[];
   smeYoY: SeriesPoint[];
+  /**
+   * The bridge: nominal -> minus lira -> minus inflation -> real, constant FX.
+   * Without it this engine opened with "Credit expands 36.6% y/y ... confirming
+   * acceleration", which flatly CONTRADICTS the brief above it: the same book
+   * SHRANK 2.1% once the lira and the price level are stripped. The Read must not
+   * argue with the page it sits on.
+   */
+  bridge?: {
+    nominal: number | null;
+    realFxAdj: number | null;
+    currencyPp: number | null;
+    inflationPp: number | null;
+  } | null;
 }): TabTakeaway {
   const period = asOf(d.yoy);
   const items: Insight[] = [];
 
   const y = last(d.yoy);
   const m4 = last(d.mom4);
+  const b = d.bridge ?? null;
+  const real = b?.realFxAdj ?? null;
   const pace =
     y != null && m4 != null ? (m4 > y + 2 ? "accelerating" : m4 < y - 2 ? "cooling" : "steady") : null;
-  if (y != null) {
+
+  // Lead with what the book actually did, not with the nominal print.
+  if (real != null && y != null) {
     items.push({
-      text: `Loan growth ${pct(y)} y/y${m4 != null ? `; the 4-week pace (${pct(m4)}) says the trend is ${pace}` : ""}.`,
+      text:
+        `Nominal credit grows ${pct(y)} y/y — but strip the lira and the price level and the book ` +
+        `${real < 0 ? "shrank" : "grew"} ${pct(Math.abs(real))} in real, constant-FX terms.`,
+      tone: real < 0 ? "warn" : "neutral",
+    });
+    if (b?.currencyPp != null && b?.inflationPp != null) {
+      items.push({
+        text:
+          `Of that ${pct(y)} print, ${ppStr(b.currencyPp)} is lira depreciation revaluing the FX book ` +
+          `and ${ppStr(b.inflationPp)} is inflation. What remains is real volume.`,
+        tone: "neutral",
+      });
+    }
+  } else if (y != null) {
+    items.push({
+      text: `Loan growth ${pct(y)} y/y (nominal)${m4 != null ? `; the 4-week pace (${pct(m4)}) says the trend is ${pace}` : ""}.`,
+      tone: "neutral",
+    });
+  }
+
+  if (real != null && y != null && m4 != null) {
+    items.push({
+      text: `The 4-week pace (${pct(m4)}) says the NOMINAL trend is ${pace} — on a book that is not growing in real terms.`,
       tone: "neutral",
     });
   }
@@ -168,20 +207,18 @@ export function creditInsights(d: {
   const st = last(d.yoyState);
   const pr = last(d.yoyPrivate);
   if (st != null && pr != null) {
-    const gap = st - pr;
-    const leader = gap >= 0 ? "State" : "Private";
     items.push({
-      text: `${leader} banks lead the lending cycle — ${pct(Math.max(st, pr))} vs ${pct(Math.min(st, pr))} y/y (${ppStr(Math.abs(gap))} gap).`,
-      tone: Math.abs(gap) > 10 ? "warn" : "neutral",
+      text: `${st >= pr ? "State" : "Private"} banks lead the lending cycle — ${pct(Math.max(st, pr))} vs ${pct(Math.min(st, pr))} y/y (${ppStr(Math.abs(st - pr))} gap).`,
+      tone: "neutral",
     });
   }
 
   const fx = last(d.fxShare);
-  const fxD = deltaOver(d.fxShare, 52);
+  const fxD = deltaPp(d.fxShare);
   if (fx != null) {
     items.push({
-      text: `FX loans are ${fxD != null && fxD > 0.3 ? "regaining" : fxD != null && fxD < -0.3 ? "losing" : "holding"} share of the book — ${pct(fx)} of total${fxD != null ? ` (${ppStr(fxD)} y/y)` : ""}.`,
-      tone: fxD != null && fxD > 1 ? "warn" : "neutral",
+      text: `FX loans are ${fxD != null && fxD < -0.3 ? "losing" : fxD != null && fxD > 0.3 ? "gaining" : "holding"} share of the book — ${pct(fx)} of total${fxD != null ? ` (${ppStr(fxD)})` : ""}.`,
+      tone: "neutral",
     });
   }
 
@@ -197,8 +234,12 @@ export function creditInsights(d: {
   }
 
   const headline =
-    `Credit is growing ${pct(y)} y/y and ${pace ?? "—"}, led by ${st != null && pr != null && st >= pr ? "state" : "private"} banks; ` +
-    `FX share of the book ${fx != null ? `at ${pct(fx)}` : "—"}${fxD != null ? (fxD < -0.3 ? " and falling" : fxD > 0.3 ? " and rising" : ", flat") : ""}.`;
+    real != null && y != null
+      ? `The ${pct(y)} loan-growth print is mostly lira and inflation: in real, constant-FX terms the book ` +
+        `${real < 0 ? `shrank ${pct(Math.abs(real))}` : `grew ${pct(real)}`}` +
+        `${st != null && pr != null ? `, with ${st >= pr ? "state" : "private"} banks leading the cycle` : ""}.`
+      : `Credit is growing ${pct(y)} y/y and ${pace ?? "—"}, led by ${st != null && pr != null && st >= pr ? "state" : "private"} banks; ` +
+        `FX share of the book ${fx != null ? `at ${pct(fx)}` : "—"}.`;
 
   return { asOf: period, headline, items };
 }

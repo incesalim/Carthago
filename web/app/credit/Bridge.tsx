@@ -16,12 +16,19 @@ import type { CreditBridge } from "@/app/lib/credit";
 const fmtPct = (v: number, d = 1) => `${v < 0 ? "−" : ""}${Math.abs(v).toFixed(d)}%`;
 const fmtPp = (v: number, d = 1) => `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(d)}pp`;
 
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+/** 'YYYY-MM-DD' → 'at 26 Jun' */
+function weekOf(period: string): string {
+  const m = /^\d{4}-(\d{2})-(\d{2})/.exec(period);
+  return m ? `at ${m[2]} ${MONTHS[Number(m[1]) - 1]}` : "";
+}
+
 type Step =
   | { kind: "level"; label: string; sub?: string; value: number; hero?: boolean }
   | { kind: "cut"; label: string; sub?: string; value: number };
 
 export default function Bridge({ bridge }: { bridge: CreditBridge }) {
-  const { nominal, fxAdj, realFxAdj, currencyPp, inflationPp, cpi } = bridge;
+  const { nominal, fxAdj, realFxAdj, currencyPp, inflationPp, cpi, asOfReal, lagged } = bridge;
   if (
     nominal == null || fxAdj == null || realFxAdj == null ||
     currencyPp == null || inflationPp == null
@@ -41,7 +48,15 @@ export default function Bridge({ bridge }: { bridge: CreditBridge }) {
     // Nominal is the only CONTEXT bar: it is where the reader starts, not the
     // claim. Every level after it is a real measure of the book, so it carries
     // the hero mark (or the negative mark, if the book actually shrank).
-    { kind: "level", label: "Nominal 52w", value: nominalAtReal },
+    // Read at the REAL week, so a CPI lag can't mix two dates inside one bridge.
+    // That makes it differ from the vitals' nominal (the latest week) — say which
+    // week this is, rather than let the two numbers silently disagree.
+    {
+      kind: "level",
+      label: "Nominal 52w",
+      sub: lagged && asOfReal ? weekOf(asOfReal) : undefined,
+      value: nominalAtReal,
+    },
     { kind: "cut", label: "Lira", sub: "depreciation", value: -currencyPp },
     { kind: "level", label: "FX-adjusted", value: fxAdj, hero: true },
     { kind: "cut", label: "Inflation", sub: cpi != null ? `CPI ${cpi.toFixed(1)}%` : undefined, value: -inflationPp },
