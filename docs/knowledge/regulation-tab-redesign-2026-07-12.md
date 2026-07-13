@@ -332,9 +332,31 @@ without anyone editing a component.
 
 ### Verdict
 
-**The spine ships automated. The signature band does not — yet.** Build order should
-therefore be: the clock + register + archive + corridor (all clean), the gap counter, and
-only then the reserve band, once there is a source that actually carries its numbers.
+**The spine ships automated. The signature band does not — yet.**
+
+### The deploy-ready revision (what the artefact now shows)
+
+The mockup was revised so that **nothing on the sheet is un-shippable**. Three changes:
+
+1. **The thesis became a computed takeaway.** The old headline critiqued the page being
+   replaced. The new one is a template with computed slots — *"The corridor has not moved
+   in 171 days — three meetings held at 37%. The rules have. In 5 days the reserve
+   requirement on FX deposits rises 2pp, and the 2.5% add-on that has stood since 2023
+   ends."* Slots: `days_since_rate_change`, `meetings_held`, `next_binding_date`,
+   `unread_rules`. It says the same *kind* of thing next month, about next month.
+2. **The band grew a gap strip, directly beneath it** — *"1 rule in force could not be
+   read"* (23 May growth limits). Not buried in a flags column: immediately under the
+   thing it qualifies, where it cannot be missed.
+3. **The build spec moved off the page.** It is documentation, not UI, so it sits below
+   the sheet with the design notes.
+
+### Ship order — three PRs, each deployable alone
+
+| | | |
+|---|---|---|
+| **PR 1** | **The spine** | Decision date + board number at ingest; `is_instrument`; the corrected clock and the lag comb; the archive rekeyed; the licensing register + gap/watch flag; the corridor band (EVDS ⋈ prose) and the 48-decision path. **A pure function of rows we already have** — no new source, no new cron. The page is already better than today's on this alone. |
+| **PR 2** | **The read + the gap counter** | `insights.ts` takeaway with computed slots, and `is_rule ∧ params = 0 → print the gap`, so the 23 May growth limits are *visible as missing* rather than silently absent. **This is what makes the band honest.** |
+| **PR 3** | **The reserve parameters** | Needs a source that actually carries them (communiqué / Resmî Gazete), then `regime_parameters` and data-driven band rows. **Do not start here** — it is the only part that needs new data. |
 
 ## How it stays automated
 

@@ -253,6 +253,20 @@ main{max-width:1440px; margin:0 auto; padding:26px 18px;}
 .vital .src{font-family:'IBM Plex Mono', ui-monospace, monospace; font-size:8.5px;
   text-transform:uppercase; letter-spacing:.06em; color:var(--faint); margin-top:5px;}
 .vital .val.dead{color:var(--faint);}
+/* the band prints its own gap, immediately under it — never a silent omission */
+.gapstrip{display:grid; grid-template-columns:20px 1fr auto; gap:0 10px; align-items:baseline;
+  border-bottom:1px solid var(--border); border-left:2px solid var(--negative);
+  background:var(--tint-neg); padding:8px 12px 8px 10px;}
+.gapstrip .id{font-family:'IBM Plex Mono', ui-monospace, monospace; font-size:10px;
+  font-weight:600; color:var(--negative);}
+.gapstrip p{margin:0; font-size:12px; line-height:1.5;}
+.gapstrip .rule{font-family:'IBM Plex Mono', ui-monospace, monospace; font-size:8.5px;
+  color:var(--faint); white-space:nowrap;}
+@media(max-width:640px){ .gapstrip{grid-template-columns:20px 1fr;} .gapstrip .rule{display:none;} }
+.read .rulefoot{margin-top:10px; padding-top:6px; border-top:1px solid var(--hair);
+  font-family:'IBM Plex Mono', ui-monospace, monospace; font-size:8.5px;
+  text-transform:uppercase; letter-spacing:.05em; color:var(--faint); line-height:1.7;}
+.read .rulefoot b{color:var(--foreground); font-weight:600;}
 .ax{font-family:'IBM Plex Mono', ui-monospace, monospace; font-size:8px; fill:var(--faint);}
 .anno{font-family:'IBM Plex Mono', ui-monospace, monospace; font-size:8.5px; fill:var(--muted-foreground);}
 .endlab{font-family:'IBM Plex Mono', ui-monospace, monospace; font-size:10px; font-weight:600; fill:var(--data);}
@@ -288,10 +302,13 @@ main{max-width:1440px; margin:0 auto; padding:26px 18px;}
 </nav>
 
 <div class="sheetwrap"><div class="sheet">
-<div class="artefact"><p><b>Design artefact — 12 Jul 2026.</b> Unlike the first
-regulations mockup, <b>every figure on this page is real</b>: read from
-<code>news_items.body_text</code> and <code>regulation_briefings</code> in D1. It is a
-design proposal, not a live regulatory record — do not rely on it for compliance.</p></div>
+<div class="artefact"><p><b>Deploy-ready mockup — 12 Jul 2026.</b> Every figure is real
+(read from D1), and every element on the sheet is <b>producible by a cron from data we
+already hold</b> — with two exceptions, which the page <b>prints as gaps</b> instead of
+faking: the 23 May growth limits (TCMB ships no parseable table) and the next MPC date
+(we hold no calendar). Nothing here is typed by a person. Ship order and the job behind
+each block are in the <b>build spec</b> at the foot. Not a live regulatory record — do
+not rely on it for compliance.</p></div>
 
 <main>
   <div class="masthead">
@@ -360,27 +377,34 @@ design proposal, not a live regulatory record — do not rely on it for complian
     </div>
   </div>
 
+  <div class="gapstrip">
+    <span class="id">!</span>
+    <p><b>1 rule in force could not be read.</b> The 23 May macroprudential release sets
+      credit <i>“Growth Limits (For Eight Weeks)”</i> and its table is not in the text we
+      hold. The band above is therefore <b>incomplete, and says so</b>.</p>
+    <span class="rule">is_rule ∧ params = 0</span>
+  </div>
+
   <div class="read">
-    <span class="cap">The finding</span>
-    <p class="headline">The page you are replacing says its latest decision landed on
-      <span class="fig">9 July</span>. That decision was the replacement of an
-      <b>SSL certificate</b> on the CBRT website. Of the <span class="fig">7</span>
-      “instruments” in its headline count, <span class="fig">5</span> are not regulation
-      at all. The two that are had their parameters sitting in the database — before
-      value, after value, and the date they bind — and the page <b>never once states
-      them</b>.</p>
+    <span class="cap">The read — computed, not written</span>
+    <p class="headline">The corridor has not moved in <span class="fig">171 days</span> —
+      three meetings held at <span class="fig">37%</span>. The rules have. In
+      <span class="fig">5 days</span> the reserve requirement on FX deposits rises
+      <span class="fig">2pp</span>, and the <span class="fig">2.5%</span> add-on that has
+      stood since 2023 ends.</p>
     <ul>
-      <li><b>It counts, it does not read.</b> The vitals band reports feed volume,
-        recency and a keyword topic. Not one of the four is a fact about the regime.</li>
-      <li><b>Readable, but never read.</b> <b>258 of 264</b> TCMB releases carry full body
-        text (avg <b>2,639</b> chars). The drawer will even render the parameter table —
-        <i>if you click</i>. Nothing above it ever compares 32% to the 30% it replaced.</li>
-      <li><b>So is the answer.</b> The weekly Kimi briefing already extracts the
-        corridor and the ratios, with source ids — then prints them as bullets in a
-        box, below the fold.</li>
-      <li><b>And the clock is wrong.</b> BDDK board decisions are sorted by the date we
-        scraped them, not the date they were taken — a mean error of <b>309 days</b>.</li>
+      <li><b>Corridor.</b> 37% policy · 40% / 35.5% overnight · width <b>450bp</b> —
+        unchanged since the 22 Jan cut.</li>
+      <li><b>Binding next.</b> FX deposit reserves <b>30→32%</b> and <b>26→28%</b>,
+        maintained from <b>17 Jul</b>.</li>
+      <li><b>Ending.</b> The additional TL reserve on FX deposits — <b>2.5%</b>, in force
+        since 2023 — is terminated by the same release.</li>
+      <li><b>Could not read.</b> <b>1</b> rule in force yields no parameters (23 May,
+        growth limits). It is counted, not hidden.</li>
     </ul>
+    <div class="rulefoot">takeaway = template + computed slots (insights.ts) ·
+      days_since_rate_change · meetings_held · next_binding_date · unread_rules ·
+      <b>no sentence on this page is typed by a person</b></div>
   </div>
 
   <div class="row57">
@@ -479,15 +503,13 @@ design proposal, not a live regulatory record — do not rely on it for complian
   <div class="row3">
     <div>
       <div class="sec" style="margin-top:0"><h2>What this feed is not</h2></div>
-      <div class="flag">
-        <span class="id">!</span>
-        <p><b>A rule is in force that this band cannot show.</b> The <b>23 May</b>
-          macroprudential release sets credit <b>“Growth Limits (For Eight Weeks)”</b> —
-          and its table is <b>not in the release we hold</b> (342 chars: the heading, then
-          the footer). <b>10 of the last 12</b> macropru releases are the same. So the
-          band is <b>incomplete, and says so</b> rather than implying the regime is six
-          numbers wide.</p>
-        <span class="rule">is_rule ∧ parameters_extracted = 0 → print the gap</span>
+      <div class="flag warn">
+        <span class="id">△</span>
+        <p><b>10 of the last 12</b> macroprudential releases arrive without their
+          parameter table — TCMB does not publish them as HTML we can reach. That is the
+          gap printed under the band, and it is <b>structural</b>, not a scraping bug: all
+          were re-fetched with the table-aware extractor.</p>
+        <span class="rule">len(body) &lt; 600 ∧ is_rule</span>
       </div>
       <div class="flag warn">
         <span class="id">△</span>
@@ -616,48 +638,6 @@ design proposal, not a live regulatory record — do not rely on it for complian
     </div>
   </div>
 
-  <div class="sec" style="margin-top:30px">
-    <h2>How every block stays compiled</h2>
-    <span class="cap">the page is generated on refresh · nobody types a number into it</span>
-  </div>
-  <table class="mv">
-    <thead><tr><th>Block</th><th style="text-align:left">Filled by</th><th style="text-align:left">When the source changes shape, it prints…</th></tr></thead>
-    <tbody>
-      <tr><td class="m">Policy rate<span>the boldest figure on the page</span></td>
-        <td style="font-size:11.5px">EVDS <code>TP.PY.P02.1H</code> (daily, already refreshed) — <b>cross-checked</b> against the regex over 48 MPC bodies</td>
-        <td style="font-size:11.5px">the two disagree → <b>the cell refuses to print</b> and the refresh fails loudly. No silent stale number.</td></tr>
-      <tr><td class="m">O/N lending &amp; borrowing<span>corridor bounds</span></td>
-        <td style="font-size:11.5px">regex on the MPC body (<i>“…at 40 percent and 35.5 percent”</i>). <b>Better:</b> add the two EVDS series and treat prose as the check</td>
-        <td style="font-size:11.5px">no match → <b>“not stated in the last release”</b>, never the previous value dressed as current.</td></tr>
-      <tr><td class="m" style="color:var(--negative)">Reserve ratios<span>THE BLOCKER — not automated today</span></td>
-        <td style="font-size:11.5px">the release's markdown pipe table. But <b>10 of the last 12</b> macropru releases don't <i>have</i> one — TCMB doesn't publish them as HTML tables (all re-fetched 12 Jul with the table-aware extractor; this is not a stale backfill)</td>
-        <td style="font-size:11.5px"><b>nothing to parse.</b> So: rule ∧ 0 parameters → <b>print the gap</b>. Real fix needs the communiqué / Resmî Gazete — a new source.</td></tr>
-      <tr><td class="m" style="color:var(--negative)">The finding<span>THE BLOCKER — hand-written above</span></td>
-        <td style="font-size:11.5px">must come from the <b>deterministic insight engine</b> (<code>insights.ts</code> / <code>Takeaway</code>) — computed slots in a template, no LLM</td>
-        <td style="font-size:11.5px">as drafted it <b>critiques the page it replaces</b> — self-referential nonsense the day it ships. It has to be rewritten as a computed takeaway.</td></tr>
-      <tr><td class="m">The band's <i>rows</i><span>not just its values</span></td>
-        <td style="font-size:11.5px">a <code>regime_parameters</code> table (param, value, prev, effective, instrument, active) — the band renders whatever is <b>active</b></td>
-        <td style="font-size:11.5px">six hard-coded cells would <b>silently omit</b> a new instrument type. Terminated params age out; new ones appear.</td></tr>
-      <tr><td class="m">Instrument vs. noise<span>the ✓/✕ count</span></td>
-        <td style="font-size:11.5px">keyword rules (as <code>news-tags.ts</code>) — the SSL cert, the journal and the MoU are the test set</td>
-        <td style="font-size:11.5px">three states, not two: rule / not-rule / <b>unclassified</b>, and the unclassified count is printed.</td></tr>
-      <tr><td class="m">Decision date &amp; number<span>the corrected clock</span></td>
-        <td style="font-size:11.5px">fixed regex on the BDDK title: <code>^\((\d\d)\.(\d\d)\.(\d{4}) - (\d+)\)</code></td>
-        <td style="font-size:11.5px">no parenthetical (570 of 603) → falls back to the publication date, <b>marked as such</b>.</td></tr>
-      <tr><td class="m">Licensed-bank flag<span>the coverage detector</span></td>
-        <td style="font-size:11.5px">institution name out of the decision title → match against <code>banks</code>; filing status from <b>BdrUyg</b></td>
-        <td style="font-size:11.5px">needs <b>no alias for a bank we've never seen</b> — an unmatched name <i>is</i> the signal. Filing status splits gap from watch.</td></tr>
-      <tr><td class="m">Binding date<span>“binds 17 Jul”</span></td>
-        <td style="font-size:11.5px">phrase regex over the body (<i>“maintained on…”</i>, <i>“enters into force…”</i>, <i>“yürürlüğe girer”</i>)</td>
-        <td style="font-size:11.5px">most releases don't state one → <b>“no binding date stated”</b>. This is the one field with no column today.</td></tr>
-      <tr><td class="m" style="opacity:.6">Next MPC meeting<span>not built</span></td>
-        <td style="font-size:11.5px">TCMB publishes an annual calendar. <b>We hold 0 rows of it.</b></td>
-        <td style="font-size:11.5px">the row stays <b>empty</b> until that page is scraped. It is not guessed.</td></tr>
-      <tr><td class="m">Residue &amp; prose<span>the only LLM surface</span></td>
-        <td style="font-size:11.5px">the weekly Kimi briefing — categories the band does <i>not</i> model</td>
-        <td style="font-size:11.5px">a bad week costs a <b>paragraph</b>, never a figure. No LLM output reaches the band.</td></tr>
-    </tbody>
-  </table>
 
   <div class="colophon">
     Compiled from news_items (867 TCMB + BDDK releases) in D1 · corridor and reserve
@@ -676,7 +656,10 @@ design proposal, not a live regulatory record — do not rely on it for complian
   <h2>Design notes — what changed, and why</h2>
   <p class="lead">The Desk skeleton is unchanged: a computed brief above carried-over
     evidence. What changes is <b>what the signature element is about</b>. The band stops
-    describing the feed and starts stating the regime — which the database already knew.</p>
+    describing the feed and starts stating the regime — which the database already knew.
+    <b>Deploy-ready pass:</b> the hand-written thesis became a computed takeaway, the band
+    grew a gap strip that prints what it could not read, and the build spec moved off the
+    page (it is documentation, not UI).</p>
   <div class="grid">
     <div class="note-item keep">
       <h3>The vitals became a rulebook</h3>
@@ -725,11 +708,88 @@ design proposal, not a live regulatory record — do not rely on it for complian
     <div class="note-item keep">
       <h3>Figures compiled, narrative written</h3>
       <p>The band's numbers must <b>not</b> come from the LLM. Promote a Kimi bullet into
-        the signature and a hallucination becomes the headline. The corridor sentence and
-        the reserve table are regular enough to parse from <code>body_text</code> — the
-        feed's drawer already parses those tables. Kimi keeps the prose and the coverage.</p>
+        the signature and a hallucination becomes the headline. The corridor is
+        reconciled against EVDS instead; Kimi keeps the prose and the coverage.</p>
+    </div>
+    <div class="note-item keep">
+      <h3>The read is generated, or it rots</h3>
+      <p class="was">Was: a hand-written thesis about the page being replaced — which
+        would be talking about itself the day it shipped, and stale a week later.</p>
+      <p>Now: a template with computed slots (days since the last rate change, meetings
+        held, next binding date, unread rules). It says the same kind of thing next month,
+        about next month.</p>
+    </div>
+    <div class="note-item keep">
+      <h3>The band prints what it could not read</h3>
+      <p>The 23 May release sets credit growth limits and ships <b>no parseable table</b>
+        — 10 of the last 12 macropru releases are the same. So a six-cell band is not
+        complete, and pretending otherwise is the failure this page exists to attack. The
+        gap strip sits <b>directly under the band</b>, where it cannot be missed.</p>
     </div>
   </div>
+
+  <div class="sec" style="margin-top:26px">
+    <h2>Build spec — the job behind every block</h2>
+    <span class="cap">not part of the page — this is the implementation contract</span>
+  </div>
+  <p class="lead">Everything on the sheet above is a pure function of rows already
+    arriving daily. Where it is not, the page <b>prints the gap</b> rather than a
+    plausible number. Two rows are red: they are the reason this is a
+    <b>staged</b> build, not a single PR.</p>
+  <table class="mv">
+    <thead><tr><th>Block</th><th style="text-align:left">Filled by</th><th style="text-align:left">When the source changes shape, it prints…</th></tr></thead>
+    <tbody>
+      <tr><td class="m">Policy rate<span>the boldest figure on the page</span></td>
+        <td style="font-size:11.5px">EVDS <code>TP.PY.P02.1H</code> (daily, already in D1) — <b>reconciled</b> against the regex over 48 MPC bodies. Both read 37%</td>
+        <td style="font-size:11.5px">the two disagree → the cell <b>refuses to print</b> and the refresh fails loudly. No silent stale number.</td></tr>
+      <tr><td class="m">O/N lending &amp; borrowing<span>corridor bounds</span></td>
+        <td style="font-size:11.5px">regex on the MPC body (<i>“…at 40 percent and 35.5 percent”</i>). Add the 2 EVDS series and prose becomes the check</td>
+        <td style="font-size:11.5px">no match → <b>“not stated in the last release”</b>, never the previous value dressed as current.</td></tr>
+      <tr><td class="m">Rate path + the clock<span>both charts</span></td>
+        <td style="font-size:11.5px">48 MPC bodies; BDDK title regex <code>^\((\d\d)\.(\d\d)\.(\d{4}) - (\d+)\)</code></td>
+        <td style="font-size:11.5px">no parenthetical (570 of 603) → falls back to the publication date, <b>marked as such</b>.</td></tr>
+      <tr><td class="m">Instrument vs. noise<span>the ✓/✕ count</span></td>
+        <td style="font-size:11.5px">keyword rules (as <code>news-tags.ts</code>) — the SSL cert, the journal and the MoU are the regression set</td>
+        <td style="font-size:11.5px">three states, not two: rule / not-rule / <b>unclassified</b>, and the unclassified count is printed.</td></tr>
+      <tr><td class="m">Licensed-bank flag<span>the coverage detector</span></td>
+        <td style="font-size:11.5px">institution name out of the decision title → match <code>banks</code>; filing status from <b>BdrUyg</b></td>
+        <td style="font-size:11.5px">needs <b>no alias for a bank we've never seen</b> — an unmatched name <i>is</i> the signal.</td></tr>
+      <tr><td class="m">Residue &amp; prose<span>the only LLM surface</span></td>
+        <td style="font-size:11.5px">the weekly Kimi briefing — only the categories the band does <i>not</i> model</td>
+        <td style="font-size:11.5px">a bad week costs a <b>paragraph</b>, never a figure. No LLM output reaches the band.</td></tr>
+      <tr><td class="m" style="color:var(--negative)">Reserve ratios<span>STAGE 2 — data does not exist yet</span></td>
+        <td style="font-size:11.5px"><b>10 of the last 12</b> macropru releases arrive with no parameter table. All were re-fetched 12 Jul with the table-aware extractor — TCMB does not publish them as HTML</td>
+        <td style="font-size:11.5px"><b>nothing to parse.</b> Ship the <b>gap counter first</b>; the numbers need the communiqué / Resmî Gazete — a new source.</td></tr>
+      <tr><td class="m" style="color:var(--negative)">The read<span>STAGE 1 — must be computed</span></td>
+        <td style="font-size:11.5px">the <b>deterministic insight engine</b> (<code>insights.ts</code> / <code>&lt;Takeaway&gt;</code>) — template + computed slots, no LLM</td>
+        <td style="font-size:11.5px">a hand-written thesis <b>rots in a week</b>. Slots: days_since_rate_change, meetings_held, next_binding_date, unread_rules.</td></tr>
+      <tr><td class="m">The band's <i>rows</i><span>not just its values</span></td>
+        <td style="font-size:11.5px">a <code>regime_parameters</code> table (param, value, prev, effective, instrument, active) — the band renders whatever is <b>active</b></td>
+        <td style="font-size:11.5px">hard-coded cells would <b>silently omit</b> a new instrument type. Terminated params age out; new ones appear.</td></tr>
+      <tr><td class="m" style="opacity:.6">Next MPC meeting<span>not built</span></td>
+        <td style="font-size:11.5px">TCMB publishes an annual calendar. <b>We hold 0 rows of it.</b></td>
+        <td style="font-size:11.5px">the row stays <b>empty</b> until that page is scraped. It is not guessed.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="sec" style="margin-top:24px"><h2>Ship order</h2>
+    <span class="cap">three PRs, each deployable on its own</span></div>
+  <table class="ahead">
+    <tbody>
+      <tr><td class="when">PR 1</td><td><b>The spine.</b> Decision date + board number at ingest;
+        <code>is_instrument</code>; the corrected clock and the lag comb; the archive rekeyed;
+        the licensing register + gap/watch flag; the corridor band (EVDS ⋈ prose) and the
+        48-decision path. <b>All of this is a pure function of rows we already have</b> — no new source,
+        no new cron. <span class="cap">the page is already better than today's on this alone</span></td></tr>
+      <tr><td class="when">PR 2</td><td><b>The read + the gap counter.</b> <code>insights.ts</code>
+        takeaway with computed slots, and <code>is_rule ∧ params = 0 → print the gap</code>, so the
+        23 May growth limits are <i>visible as missing</i> rather than silently absent.
+        <span class="cap">this is what makes the band honest</span></td></tr>
+      <tr><td class="when">PR 3</td><td><b>The reserve parameters.</b> Needs a source that actually
+        carries them (communiqué / Resmî Gazete), then <code>regime_parameters</code> and the
+        data-driven band rows. <span class="cap">do not start here — it is the only part that needs new data</span></td></tr>
+    </tbody>
+  </table>
 </section>
 
 </body>
