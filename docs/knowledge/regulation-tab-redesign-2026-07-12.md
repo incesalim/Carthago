@@ -254,6 +254,88 @@ as a column today. So the new mockup shows the binding date where the body state
 it, and says plainly that extracting it fleet-wide is the extraction work this
 design implies.
 
+## Would the built page be fully automated? **No — two blockers. Read this first.**
+
+The honest ledger, because the answer decides whether this is buildable as drawn:
+
+### ✅ Automates cleanly (the spine)
+
+The **policy corridor** (EVDS `TP.PY.P02.1H` reconciled against the MPC prose — both say
+37%), the **48-decision rate path**, the **corrected clock** (decision date + board number
+regexed out of the BDDK title; the lag comb), the **licensing register** and its
+gap/watch flag, the **instrument-vs-noise count**, the **archive**, and the **honesty
+flags**. All of it is a pure function of rows already arriving daily. This is most of the
+page, and it is the part that carries the findings.
+
+### ❌ Blocker 1 — the reserve-requirement cells have no data to stand on
+
+This is the serious one, and it partly undermines the mockup's own signature band.
+
+The premise "the parameters are in `body_text`" holds for **rate** decisions (MPC
+releases average 2,639 chars of regular prose — 48/48 parse). It **does not hold for
+macroprudential** releases:
+
+| Release | Body length | Table? |
+|---|---|---|
+| 2026-07-01 (the one the band uses) | 851 | **yes** — the 30→32 / 26→28 table |
+| 2026-05-23 — credit **"Growth Limits (For Eight Weeks)"** | **342** | **no** — heading, then the footer |
+| 2026-01-31 | 353 | no |
+| 2025-06-21 | 287 | no |
+| 2025-05-03 | 188 | no |
+
+**10 of the last 12** macropru releases are too short to contain their own table. And
+this is *not* a stale-backfill artefact: every row above was re-fetched **2026-07-12**
+with the current, table-aware extractor (`src/news/_htmltext.py` — which already fixed
+the "only `<p>` was scraped" bug). TCMB simply does **not** publish most of these
+parameters as an HTML `<table>` we can reach.
+
+Consequences, stated plainly:
+
+- The band's reserve cells work today **by luck** — the 1 Jul release happened to carry
+  its table.
+- **A rule that is in force is missing from the band right now**: the 23 May credit
+  growth limits. A six-cell band that omits it is not "mostly right", it is *quietly
+  wrong* — the failure mode this whole redesign exists to attack.
+- Fixing it properly needs a **new source** (the communiqué / Resmî Gazete text), which is
+  real work and is not in scope of "read what we already have".
+
+**The mitigation that makes the page honest without that source:** a
+`is_rule ∧ parameters_extracted = 0 → print the gap` counter. The page then says *"1 rule
+change in force we could not read: Macroprudential Framework, 23 May — growth limits"*
+instead of implying the regime is six numbers wide. Silent omission becomes a printed
+gap. Build that **before** the band, not after.
+
+### ❌ Blocker 2 — the thesis block cannot be hand-written
+
+"The Finding" at the top of the mockup — *the latest decision was an SSL certificate; 5 of
+7 aren't regulation* — is **a critique of the page being replaced**. The day it ships,
+that page is gone and the block is talking about itself. It is also a *this-week*
+argument: next month the newest item may genuinely be a rule.
+
+It must be regenerated each refresh from the **deterministic insight engine**
+(`insights.ts` / `<Takeaway>` — [[project_perspective_layer]], no LLM), as computed slots
+in a template. The computable version of the same idea is something like: *"The regime has
+not moved in N days. The corridor has held at X% for M meetings; the last binding change
+was <instrument>, effective <date>."* Same species of statement, but it survives contact
+with next month's data.
+
+### ⚠️ Design consequence — the band's rows must be data, not markup
+
+The regime changes **shape**, not just values: growth limits, securities-maintenance
+ratios and FX-position limits have all existed here recently. Six hard-coded cells cannot
+represent an instrument they have no cell for, so a new rule type would be invisible.
+
+The band must render from a `regime_parameters` table (parameter, value, prev_value,
+effective_date, instrument_id, active) — active rows in, terminated rows ageing out. That
+is also what lets the 2.5% add-on show as *terminated* this month and disappear later,
+without anyone editing a component.
+
+### Verdict
+
+**The spine ships automated. The signature band does not — yet.** Build order should
+therefore be: the clock + register + archive + corridor (all clean), the gap counter, and
+only then the reserve band, once there is a source that actually carries its numbers.
+
 ## How it stays automated
 
 The page it replaces is **fully compiled**: a daily cron scrapes TCMB + BDDK, a Sunday
