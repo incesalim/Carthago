@@ -245,7 +245,7 @@ export default function Archive({ rows, held }: { rows: ArchiveRow[]; held: numb
       <div className="mb-2.5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <h3 className="text-[13.5px] font-bold text-foreground">The archive</h3>
         <span className="ml-auto font-mono text-[8.5px] tracking-[0.07em] uppercase text-faint">
-          {held.toLocaleString()} instruments held · keyed on the date decided, not the date scraped
+          {held.toLocaleString()} releases · dated by the day the decision was taken
         </span>
       </div>
 
@@ -293,12 +293,12 @@ export default function Archive({ rows, held }: { rows: ArchiveRow[]; held: numb
                 <span className="text-[12.5px] leading-snug font-medium text-foreground">{r.item.title}</span>
                 {r.kind === "other" && (
                   <span className="ml-1.5 font-mono text-[8.5px] tracking-[0.05em] uppercase text-faint">
-                    not an instrument
+                    no rule change
                   </span>
                 )}
                 {r.decidedIsFallback && r.kind === "board" && (
                   <span className="ml-1.5 font-mono text-[8.5px] tracking-[0.05em] uppercase text-faint">
-                    no decision date in title
+                    date published, not decided
                   </span>
                 )}
               </td>
@@ -331,7 +331,7 @@ export default function Archive({ rows, held }: { rows: ArchiveRow[]; held: numb
       </table>
 
       <p className="mt-2 font-mono text-[8.5px] tracking-[0.05em] uppercase text-faint">
-        {shown.length} shown · click any row to read the instrument in the regulator&apos;s own words
+        {shown.length} shown · open any row to read the regulator&apos;s own words
       </p>
 
       <Drawer row={open} onClose={() => setOpen(null)} />

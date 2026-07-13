@@ -149,6 +149,7 @@ export default async function RegulationPage() {
   // universe is worth a flag. A permission to establish is not an operating
   // licence, and a revocation is the opposite of one.
   const uncovered = lic.filter((r) => r.ticker == null && r.kind === "operating");
+  const revoked = lic.filter((r) => r.kind === "revocation");
 
   // ── the 30-day window: what the old page's headline count actually contained
   const win = feed.filter((it) => daysBetween(it.published_at.slice(0, 10), anchor) <= 30);
@@ -192,20 +193,26 @@ export default async function RegulationPage() {
     .map((r, i) => (i < BODY_BUDGET ? r : { ...r, item: { ...r.item, body_text: null } }));
 
   // ── flags ─────────────────────────────────────────────────────────────────
+  // Flags are for the READER, and every one of them says something about the
+  // REGIME — not about our pipeline. Whether our two sources reconcile, how many
+  // characters a release had, and what is in our `banks` table are our problems,
+  // not a visitor's: they belong in the colophon and in CI, not shouting in red.
+  // What a reader genuinely needs is: what binds, what we cannot show them, and
+  // how the regulators behave.
   const flags: Flag[] = [
     {
-      code: "UNREAD",
+      code: "NOT SHOWN",
       active: unread.length > 0,
-      rule: "is_rule ∧ parameters_extracted = 0",
+      rule: "rule change ∧ no machine-readable parameters",
       body: (
         <>
           <b className="font-semibold">
-            {unread.length} rule change{unread.length === 1 ? "" : "s"} in the last 12 months yield
-            no parameters.
+            {unread.length} further rule change{unread.length === 1 ? " is" : "s are"} in force
+            that this page cannot show you.
           </b>{" "}
-          TCMB publishes most macroprudential releases without a parseable table, and BDDK
-          announces several of its rules with no body text at all. The regime is therefore wider
-          than the band can show. They are listed rather than dropped:{" "}
+          The regulators announced them without publishing the numbers in any machine-readable
+          form — so the band above is <b className="font-semibold">not the whole regime</b>. Read
+          them at the source:{" "}
           {unread.slice(0, 4).map((u, i) => (
             <span key={u.url}>
               {i > 0 && "; "}
@@ -215,74 +222,109 @@ export default async function RegulationPage() {
                 rel="noopener noreferrer"
                 className="font-semibold text-primary"
               >
-                {u.title.length > 52 ? `${u.title.slice(0, 50)}…` : u.title}
+                {u.title.length > 58 ? `${u.title.slice(0, 56)}…` : u.title}
               </a>{" "}
-              ({longDate(u.publishedAt)}, {u.bodyLength === 0 ? "no text" : `${u.bodyLength}ch`})
+              ({longDate(u.publishedAt)})
             </span>
           ))}
           {unread.length > 4 && <> … and {unread.length - 4} more</>}.
         </>
       ),
-      clear: <>every rule release we hold yielded at least one parameter</>,
+      clear: <>every rule change in the last 12 months is shown above with its parameters</>,
     },
     {
-      code: "EVDS≠TEXT",
+      code: "DISPUTED",
+      // Only ever shown when it FIRES: a reader needs to know a headline figure is
+      // contested. That the two sources AGREE is our QA, not their news.
       active: corridor != null && evds != null && !reconciled,
-      rule: "|policy(EVDS) − policy(release)| < 0.01",
+      rule: "policy rate: EVDS ≠ the release that set it",
       body: (
         <>
-          The policy rate read from EVDS (<b className="font-semibold">{evds && pct(evds.value)}%</b>) disagrees
-          with the rate stated in the last release (
-          <b className="font-semibold">{corridor && pct(corridor.policy)}%</b>). One of the two is
-          wrong; the band does not guess which.
-        </>
-      ),
-      clear: (
-        <>
-          EVDS and the {corridor ? longDate(corridor.decidedAt) : "last"} release agree at{" "}
-          {evds ? pct(evds.value) : "—"}%
+          <b className="font-semibold">The policy rate above is disputed between sources.</b> The
+          CBRT&apos;s own statistics service reports{" "}
+          <b className="font-semibold">{evds && pct(evds.value)}%</b>, while the rate decision that
+          set it says <b className="font-semibold">{corridor && pct(corridor.policy)}%</b>. Treat
+          the figure as provisional until they agree.
         </>
       ),
     },
     {
-      code: "LICENSED",
+      code: "PIPELINE",
       active: uncovered.length > 0,
-      rule: "bank ∧ licensed ∧ ticker ∉ banks → watch until it files",
+      rule: "bank licensed ∧ no financials filed yet",
       body: (
         <>
           <b className="font-semibold">
-            {uncovered.length} licensed bank{uncovered.length === 1 ? "" : "s"}
+            {uncovered.length} bank{uncovered.length === 1 ? " holds" : "s hold"} a BDDK operating
+            licence but {uncovered.length === 1 ? "has" : "have"} not started reporting
           </b>{" "}
-          in the register {uncovered.length === 1 ? "is" : "are"} not in our universe:{" "}
+          —{" "}
           {uncovered.slice(0, 5).map((r, i) => (
             <span key={r.decision.decisionNo}>
               {i > 0 && ", "}
               {r.institution}
             </span>
           ))}
-          {uncovered.length > 5 && <> and {uncovered.length - 5} more</>}. This is{" "}
-          <b className="font-semibold">watch, not gap</b> — a bank that holds a licence but has
-          filed nothing (Fups Bank) is excluded on purpose. The register named Enpara, Colendi and
-          Ziraat Dinamik <b className="font-semibold">long before</b> we onboarded them, which is
-          what makes it worth reading.
+          {uncovered.length > 5 && <> and {uncovered.length - 5} more</>}. They are licensed to
+          operate and will appear in the sector figures once they file. This register is where
+          Türkiye&apos;s newest banks show up first — Enpara, Colendi and Ziraat Dinamik were all
+          named here before they filed a single statement.
         </>
       ),
-      clear: <>every licensed bank in the register is covered</>,
+      clear: <>every licensed bank is reporting</>,
     },
     {
-      code: "STALE-BDDK",
+      code: "LATE",
       active: lags.length > 0 && meanLag > 90,
       rule: "mean(published − decided) > 90d",
       body: (
         <>
-          BDDK board decisions reach the feed a mean of{" "}
-          <b className="font-semibold">{meanLag} days</b> after the board took them (worst:{" "}
-          {worstLag}). The archive below is keyed on the{" "}
-          <b className="font-semibold">decision date</b>, not the scrape date, so a 2024 decision
-          no longer reads as this year&apos;s news.
+          <b className="font-semibold">
+            BDDK publishes its board decisions a mean of {meanLag} days after taking them
+          </b>{" "}
+          (worst: {worstLag} days), in irregular batches. So a decision that appears in the feed
+          this month may be more than a year old — dates below are the dates the board{" "}
+          <b className="font-semibold">decided</b>, which is the date that governs.
         </>
       ),
       clear: <>the regulator publishes its decisions promptly</>,
+    },
+    {
+      code: "HELD",
+      // A domain fact, not a self-check: the corridor is simply not moving.
+      active: false,
+      rule: "Δ policy rate over the last 3 meetings",
+      body: <></>,
+      clear:
+        lastChange && held > 0 ? (
+          <>
+            the policy rate has not changed in {held} meeting{held === 1 ? "" : "s"} — last moved{" "}
+            {longDate(lastChange.date)}
+          </>
+        ) : (
+          <>the policy rate is unchanged</>
+        ),
+    },
+    {
+      code: "REVOKED",
+      active: revoked.length > 0,
+      rule: "licence revoked ∧ bank is in the sector figures",
+      body: (
+        <>
+          <b className="font-semibold">
+            {revoked.length} bank licence{revoked.length === 1 ? "" : "s"} revoked
+          </b>{" "}
+          —{" "}
+          {revoked.slice(0, 4).map((r, i) => (
+            <span key={r.decision.decisionNo}>
+              {i > 0 && ", "}
+              {r.institution}
+            </span>
+          ))}
+          . A revocation removes a bank from the sector before its figures stop appearing.
+        </>
+      ),
+      clear: <>no bank licence has been revoked</>,
     },
   ];
 
@@ -437,25 +479,31 @@ export default async function RegulationPage() {
 
       {/* The band prints what it could not read, immediately beneath it — never
           a silent omission, and never buried in a column further down. */}
+      {/* Not an error state — a COVERAGE NOTE. The band is not the whole regime,
+          and a reader relying on it has to be told so, with a route to the rest.
+          Amber (a threshold), not red (a fault): nothing here is broken. */}
       {unread.length > 0 && (
-        <div className="grid grid-cols-[20px_1fr] items-baseline gap-x-2.5 border-b border-border border-l-2 border-l-negative bg-negative/[0.06] py-2 pr-3 pl-2.5 sm:grid-cols-[20px_1fr_auto]">
-          <span className="font-mono text-[10px] font-semibold text-negative">!</span>
+        <div className="grid grid-cols-[20px_1fr] items-baseline gap-x-2.5 border-b border-border border-l-2 border-l-warning bg-warning/[0.07] py-2 pr-3 pl-2.5">
+          <span className="font-mono text-[10px] font-semibold text-warning">△</span>
           <p className="text-[12px] leading-snug">
             <b className="font-semibold">
-              {unread.length} rule change{unread.length === 1 ? "" : "s"} in the last 12 months
-              could not be read.
+              This is not the whole regime: {unread.length} further rule change
+              {unread.length === 1 ? "" : "s"} in the last 12 months
+              {unread.length === 1 ? " is" : " are"} in force and not shown above.
             </b>{" "}
-            The regulator announced them and we hold no parameters:{" "}
-            {unread[0].bodyLength === 0
-              ? "no text at all"
-              : `only ${unread[0].bodyLength} characters`}{" "}
-            of {longDate(unread[0].publishedAt)}&apos;s. The band above is{" "}
-            <b className="font-semibold">incomplete, and says so</b> — rather than implying the
-            regime is {(reserves?.changes.length ?? 0) + 3} numbers wide.
+            The regulators announced {unread.length === 1 ? "it" : "them"} without publishing the
+            numbers in machine-readable form — including{" "}
+            <a
+              href={unread[0].url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-primary"
+            >
+              {unread[0].title.length > 60 ? `${unread[0].title.slice(0, 58)}…` : unread[0].title}
+            </a>{" "}
+            ({longDate(unread[0].publishedAt)}). They are listed under{" "}
+            <b className="font-semibold">Flags</b>, with links to the source.
           </p>
-          <span className="col-span-2 font-mono text-[8.5px] whitespace-nowrap text-faint sm:col-span-1">
-            is_rule ∧ params = 0
-          </span>
         </div>
       )}
 
@@ -528,25 +576,25 @@ export default async function RegulationPage() {
               ),
             },
             {
-              k: "The feed is not the regime",
+              k: "Announcements are not rules",
               v: (
                 <>
-                  {win.length} items in 30 days; {winInstruments.length} are instruments.{" "}
-                  {winNoise.length} are not regulation at all
-                  {winUnknown.length > 0 && <>, {winUnknown.length} we could not place</>}.
+                  The regulators published {win.length} things in 30 days.{" "}
+                  {winInstruments.length} of them changed something a bank must obey; the rest are
+                  reports, comms and housekeeping.
                 </>
               ),
             },
             {
-              k: "Could not read",
+              k: "Not shown here",
               v:
                 unread.length > 0 ? (
                   <>
-                    {unread.length} rule change{unread.length === 1 ? "" : "s"} in the last 12
-                    months yield no parameters. Counted, not hidden.
+                    {unread.length} further rule change{unread.length === 1 ? "" : "s"} in force —
+                    announced without machine-readable numbers. Linked under Flags.
                   </>
                 ) : (
-                  <>Every rule release we hold yielded at least one parameter.</>
+                  <>Every rule change in the last 12 months is shown above, with its parameters.</>
                 ),
             },
           ]
@@ -572,8 +620,8 @@ export default async function RegulationPage() {
       <div className="mt-7 grid grid-cols-1 gap-x-10 gap-y-6 lg:grid-cols-[5fr_7fr]">
         <div>
           <SecHead
-            title="What the headline count contains"
-            meta={`30 days to the record · anchor ${shortDate(anchor)}`}
+            title="The last 30 days at the regulators"
+            meta="everything TCMB and BDDK published · and which of it actually changed a rule"
             className="mb-2"
           />
           <table className="w-full border-collapse">
@@ -608,26 +656,22 @@ export default async function RegulationPage() {
           </table>
           <div className="mt-2 flex flex-wrap gap-4 font-mono text-[9px] text-faint">
             <span>
-              Instruments <b className="font-semibold text-foreground">{winInstruments.length}</b>
+              Changed a rule <b className="font-semibold text-foreground">{winInstruments.length}</b>
             </span>
             <span>
-              Not regulation <b className="font-semibold text-foreground">{winNoise.length}</b>
+              Did not <b className="font-semibold text-foreground">{winNoise.length}</b>
             </span>
             {winUnknown.length > 0 && (
               <span>
-                Unplaced <b className="font-semibold text-warning">{winUnknown.length}</b>
+                Uncategorised <b className="font-semibold text-warning">{winUnknown.length}</b>
               </span>
             )}
-            <span>
-              Held <b className="font-semibold text-foreground">{(tcmbTotal + bddkTotal).toLocaleString()}</b>
-            </span>
           </div>
           {newestInstrument && newest && newestInstrument !== newest && (
             <p className="mt-1.5 text-[11px] leading-snug text-faint">
-              The newest thing in the feed ({shortDate(newest)}) is{" "}
-              <b className="font-semibold text-foreground">not an instrument</b>. The newest actual
-              rule or rate decision is {shortDate(newestInstrument)} — which is the date this page
-              reports.
+              The most recent thing either regulator published ({shortDate(newest)}) did not change
+              a rule. The last one that did was{" "}
+              <b className="font-semibold text-foreground">{shortDate(newestInstrument)}</b>.
             </p>
           )}
         </div>
@@ -691,8 +735,8 @@ export default async function RegulationPage() {
 
         <div>
           <SecHead
-            title="The register already named the banks"
-            meta="bank licensing decisions ↔ the bank universe · leasing, factoring, e-money and asset managers are licensed from the same sequence and excluded"
+            title="Where Türkiye's newest banks appear first"
+            meta="BDDK bank licensing decisions · leasing, factoring, e-money and asset managers are licensed too, and excluded here"
             className="mb-2"
           />
           <table className="w-full border-collapse">
@@ -722,7 +766,7 @@ export default async function RegulationPage() {
                           : "border-warning text-warning"
                       }`}
                     >
-                      {r.ticker ?? "not covered"}
+                      {r.ticker ?? "not yet reporting"}
                     </span>
                     <span className="block font-mono text-[9px] text-faint">
                       #{r.decision.decisionNo} · {LICENCE_LABEL[r.kind]}
