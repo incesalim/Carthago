@@ -52,9 +52,38 @@ export interface Corridor {
 }
 
 export interface ReserveChange {
+  /** The table row: "Demand deposits and deposits with maturities up to 1 month". */
   label: string;
+  /**
+   * The table's HEADER cell — "Foreign currency deposits/participation funds".
+   * Without it the row label is dangerously incomplete: "demand deposits …up to
+   * 1 month" reads as a LIRA ratio, and it is not one.
+   */
+  group: string;
   prev: number;
   next: number;
+}
+
+/** "Foreign currency deposits…" + "…up to 1 month" → "FX deposits · ≤1 month". */
+export function reserveCellLabel(c: ReserveChange): string {
+  const prefix = /foreign currency|\bfx\b/i.test(c.group)
+    ? "FX deposits"
+    : /turkish lira|\btl\b/i.test(c.group)
+      ? "TL deposits"
+      : c.group.length > 0 && c.group.length <= 24
+        ? c.group
+        : "Reserve ratio";
+
+  const m = /up to (\d+)\s*(month|year)/i.exec(c.label);
+  const suffix = m
+    ? `≤${m[1]} ${m[2]}`
+    : /longer/i.test(c.label)
+      ? "longer maturities"
+      : c.label.length > 22
+        ? `${c.label.slice(0, 20)}…`
+        : c.label;
+
+  return `${prefix} · ${suffix}`;
 }
 
 export interface ReserveState {
@@ -286,8 +315,14 @@ export function parseReserveChanges(body: string | null | undefined): ReserveCha
   for (const block of body.split(/\n{2,}/)) {
     const lines = block.trim().split("\n");
     if (lines.length < 3 || !lines.every((l) => l.trim().startsWith("|"))) continue;
+    const headerCells = lines[0]
+      .trim()
+      .replace(/^\||\|$/g, "")
+      .split("|")
+      .map((c) => c.trim());
     const header = lines[0].toLowerCase();
     if (!header.includes("previous") || !header.includes("new")) continue;
+    const group = headerCells[0] ?? "";
     for (const line of lines.slice(2)) {
       const cells = line
         .trim()
@@ -298,7 +333,7 @@ export function parseReserveChanges(body: string | null | undefined): ReserveCha
       const prev = pct(cells[1]);
       const next = pct(cells[2]);
       if (prev == null || next == null) continue;
-      out.push({ label: cells[0], prev, next });
+      out.push({ label: cells[0], group, prev, next });
     }
   }
   return out;
@@ -417,15 +452,39 @@ export function decisionLags(items: NewsItem[]): DecisionLagRow[] {
 
 // ─────────────────────────────────────────────────────────── licensing
 
+/** Not every licence is the same licence, and the page must not say it is. */
+export type LicenceKind = "operating" | "establishment" | "revocation";
+
 export interface LicenceRow {
   decision: DecisionLagRow;
   /** The institution named in the decision. */
   institution: string;
+  kind: LicenceKind;
   /** Ticker if we cover it; null if we do not. */
   ticker: string | null;
 }
 
-const LICENCE_RE = /faaliyet izni ver|kurulmasına izin ver|kuruluş izni ver/i;
+const LICENCE_RE = /faaliyet izni|kurulmasına izin|kuruluş izni/i;
+const REVOKE_RE = /iptal/i;
+const ESTABLISH_RE = /kurulmasına izin|kuruluş izni/i;
+
+/**
+ * BDDK licenses banks, leasing companies, factoring houses, asset managers,
+ * financing companies and e-money issuers from the SAME numbered decision
+ * sequence. A "licensed institution missing from `banks`" flag that does not
+ * filter to banks therefore fires on Real Varlık Yönetim (an asset manager) and
+ * Pratik Finansman (a financing company) — institutions that will never be in
+ * the bank universe, because they are not banks. The flag becomes noise, which
+ * is worse than no flag.
+ */
+const BANK_RE = /\bbanka|\bbank\b|katılım|katilim/i;
+const NON_BANK_RE =
+  /varlık yönetim|finansman|faktoring|finansal kiralama|elektronik para|ödeme hizmet|ödeme kuruluş|sigorta|aracı kurum|portföy|leasing/i;
+
+/** Is the institution named in this decision a BANK (not a leasing/e-money/AMC)? */
+export function isBankInstitution(name: string): boolean {
+  return BANK_RE.test(name) && !NON_BANK_RE.test(name);
+}
 
 /** "Enpara Bank A.Ş.'ye faaliyet izni verilmesine ilişkin Kurul Kararı" → "Enpara Bank" */
 export function institutionOf(subject: string): string {
@@ -480,8 +539,14 @@ export function licences(lags: DecisionLagRow[], banks: { ticker: string; name: 
 
   return lags
     .filter((d) => LICENCE_RE.test(d.subject))
+    .filter((d) => isBankInstitution(institutionOf(d.subject)))
     .map((decision) => {
       const institution = institutionOf(decision.subject);
+      const kind: LicenceKind = REVOKE_RE.test(decision.subject)
+        ? "revocation"
+        : ESTABLISH_RE.test(decision.subject)
+          ? "establishment"
+          : "operating";
       const key = core(institution);
 
       // Every identifying token of the bank must appear in the institution's
@@ -495,7 +560,7 @@ export function licences(lags: DecisionLagRow[], banks: { ticker: string; name: 
               .sort((a, b) => b.core.length - a.core.length)[0]
           : undefined;
 
-      return { decision, institution, ticker: hit?.ticker ?? null };
+      return { decision, institution, kind, ticker: hit?.ticker ?? null };
     })
     .sort((a, b) => b.decision.lagDays - a.decision.lagDays);
 }

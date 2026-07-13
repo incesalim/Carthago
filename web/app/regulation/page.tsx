@@ -47,8 +47,10 @@ import {
   parseBoardDecision,
   rateChanges,
   regulationFeed,
+  reserveCellLabel,
   unreadRules,
   type InstrumentKind,
+  type LicenceKind,
 } from "@/app/lib/regulation";
 import Archive, { type ArchiveRow } from "./Archive";
 import DecisionLag from "./DecisionLag";
@@ -84,6 +86,15 @@ function daysBetween(a: string, b: string): number {
 }
 
 const pct = (v: number) => v.toFixed(v % 1 === 0 ? 0 : 2);
+
+// A permission to ESTABLISH a bank is not a licence to OPERATE one, and a
+// revocation is neither. Saying "operating licence granted" over all three, as
+// the first cut did, is simply false for two of them.
+const LICENCE_LABEL: Record<LicenceKind, string> = {
+  operating: "operating licence",
+  establishment: "permission to establish",
+  revocation: "licence revoked",
+};
 
 export default async function RegulationPage() {
   const [feed, evds, banks, summary, briefing] = await Promise.all([
@@ -134,6 +145,10 @@ export default async function RegulationPage() {
   const numbers = lags.map((r) => r.decisionNo);
   const span = numbers.length ? Math.max(...numbers) - Math.min(...numbers) + 1 : 0;
   const lic = licences(lags, banks);
+  // Only a bank that was actually LICENSED TO OPERATE and is absent from the
+  // universe is worth a flag. A permission to establish is not an operating
+  // licence, and a revocation is the opposite of one.
+  const uncovered = lic.filter((r) => r.ticker == null && r.kind === "operating");
 
   // ── the 30-day window: what the old page's headline count actually contained
   const win = feed.filter((it) => daysBetween(it.published_at.slice(0, 10), anchor) <= 30);
@@ -231,19 +246,28 @@ export default async function RegulationPage() {
     },
     {
       code: "LICENSED",
-      active: lic.some((r) => r.ticker == null),
-      rule: "licensed(faaliyet_izni) ∧ ticker ∉ banks",
+      active: uncovered.length > 0,
+      rule: "bank ∧ licensed ∧ ticker ∉ banks → watch until it files",
       body: (
         <>
-          {lic.filter((r) => r.ticker == null).length} licensed institution
-          {lic.filter((r) => r.ticker == null).length === 1 ? "" : "s"} in the register{" "}
-          {lic.filter((r) => r.ticker == null).length === 1 ? "is" : "are"} not in our bank
-          universe — <b className="font-semibold">watch, not gap</b> until they file (Fups Bank
-          holds a licence and has filed nothing). The register named Enpara, Colendi and Ziraat
-          Dinamik long before we onboarded them.
+          <b className="font-semibold">
+            {uncovered.length} licensed bank{uncovered.length === 1 ? "" : "s"}
+          </b>{" "}
+          in the register {uncovered.length === 1 ? "is" : "are"} not in our universe:{" "}
+          {uncovered.slice(0, 5).map((r, i) => (
+            <span key={r.decision.decisionNo}>
+              {i > 0 && ", "}
+              {r.institution}
+            </span>
+          ))}
+          {uncovered.length > 5 && <> and {uncovered.length - 5} more</>}. This is{" "}
+          <b className="font-semibold">watch, not gap</b> — a bank that holds a licence but has
+          filed nothing (Fups Bank) is excluded on purpose. The register named Enpara, Colendi and
+          Ziraat Dinamik <b className="font-semibold">long before</b> we onboarded them, which is
+          what makes it worth reading.
         </>
       ),
-      clear: <>every licensed institution in the register is covered</>,
+      clear: <>every licensed bank in the register is covered</>,
     },
     {
       code: "STALE-BDDK",
@@ -368,7 +392,7 @@ export default async function RegulationPage() {
         {reserves?.changes.slice(0, 2).map((c) => (
           <Vital
             key={c.label}
-            label={c.label.length > 46 ? `${c.label.slice(0, 44)}…` : c.label}
+            label={reserveCellLabel(c)}
             value={pct(c.next)}
             unit="%"
             note={
@@ -518,8 +542,8 @@ export default async function RegulationPage() {
               v:
                 unread.length > 0 ? (
                   <>
-                    {unread.length} rule{unread.length === 1 ? "" : "s"} in force yield no
-                    parameters. Counted, not hidden.
+                    {unread.length} rule change{unread.length === 1 ? "" : "s"} in the last 12
+                    months yield no parameters. Counted, not hidden.
                   </>
                 ) : (
                   <>Every rule release we hold yielded at least one parameter.</>
@@ -668,13 +692,13 @@ export default async function RegulationPage() {
         <div>
           <SecHead
             title="The register already named the banks"
-            meta="licensing decisions ↔ the bank universe"
+            meta="bank licensing decisions ↔ the bank universe · leasing, factoring, e-money and asset managers are licensed from the same sequence and excluded"
             className="mb-2"
           />
           <table className="w-full border-collapse">
             <thead>
               <tr>
-                {["Operating licence granted", "Taken", "Late"].map((h, i) => (
+                {["Bank licensing decision", "Taken", "Late"].map((h, i) => (
                   <th
                     key={h}
                     className={`border-b border-foreground pb-1.5 font-mono text-[8.5px] font-normal tracking-[0.07em] uppercase text-faint ${
@@ -695,12 +719,14 @@ export default async function RegulationPage() {
                       className={`ml-1.5 inline-block border px-1 py-px align-[1px] font-mono text-[9px] font-semibold ${
                         r.ticker
                           ? "border-border text-muted-foreground"
-                          : "border-negative text-negative"
+                          : "border-warning text-warning"
                       }`}
                     >
                       {r.ticker ?? "not covered"}
                     </span>
-                    <span className="block font-mono text-[9px] text-faint">#{r.decision.decisionNo}</span>
+                    <span className="block font-mono text-[9px] text-faint">
+                      #{r.decision.decisionNo} · {LICENCE_LABEL[r.kind]}
+                    </span>
                   </td>
                   <td className="border-b border-hair py-1.5 pl-2 text-right font-mono text-[11px] tabular-nums text-muted-foreground">
                     {shortDate(r.decision.decidedAt)}
