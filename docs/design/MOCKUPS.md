@@ -115,7 +115,8 @@ Came out of the design critique (`docs/knowledge/design-critique-2026-07-10.md`,
   keys on a code whose meaning differs between the weekly and monthly bulletins). Cheap to
   fix independently of the redesign.
 - **Four sector tabs still run the pre-contract evidence layer** (capital,
-  profitability, market-risk, and the economy pages): boxed `Stat` cards,
+  profitability, market-risk, and the economy pages) — asset-quality's was converted
+  on 2026-07-13 (`98516e5`), a step the brief-only ship had *missed*: boxed `Stat` cards,
   boxed `Takeaway`, charts in `ChartCard` chrome. `web/DESIGN.md` → "the evidence
   layer speaks the brief's language" is the contract to convert them against.
 - Credit and the superseded first Regulations pass exist **only** as local files; publish
