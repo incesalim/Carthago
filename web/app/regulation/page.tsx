@@ -22,7 +22,7 @@
  */
 import type { Metadata } from "next";
 import Link from "next/link";
-import { newsSourceSummary, type NewsItem } from "@/app/lib/news";
+import { latestRegulationBriefing, newsSourceSummary, type NewsItem } from "@/app/lib/news";
 import {
   Colophon,
   Depth,
@@ -86,12 +86,24 @@ function daysBetween(a: string, b: string): number {
 const pct = (v: number) => v.toFixed(v % 1 === 0 ? 0 : 2);
 
 export default async function RegulationPage() {
-  const [feed, evds, banks, summary] = await Promise.all([
-    regulationFeed(400),
+  const [feed, evds, banks, summary, briefing] = await Promise.all([
+    regulationFeed(),
     policyRateFromEvds(),
     bankNames(),
     newsSourceSummary(),
+    latestRegulationBriefing(),
   ]);
+
+  // THE BRIEFING IS THE EDITOR, NOT THE SOURCE OF THE FIGURES.
+  //
+  // Kimi's regime bullets ARE the band now — restating them below would be the
+  // page arguing with itself. But the briefing also surfaces categories no cell
+  // models (licensing, payments, structure), and dropping those would delete
+  // analytical content the old page carried. So: keep the residue, drop the
+  // duplication. If a category keeps reappearing here week after week, that is
+  // the signal to give it a cell of its own.
+  const MODELLED = /monetary policy|policy stance|interest rate|reserve requirement|deposit share/i;
+  const residue = (briefing?.categories ?? []).filter((c) => !MODELLED.test(c.name));
 
   // The record is the newest thing we hold — but the newest INSTRUMENT is what
   // the page is about, and they are not the same date. Say both.
@@ -716,6 +728,44 @@ export default async function RegulationPage() {
 
       <Depth meta="the archive — carried over, rekeyed, not removed">
         <Archive rows={rows} held={tcmbTotal + bddkTotal} />
+
+        {residue.length > 0 && (
+          <section className="mt-8">
+            <SecHead
+              title="What the briefing found that this page does not model"
+              meta="the residue — kept so the dissolve loses nothing"
+              className="mb-2.5"
+            />
+            <p className="mb-3 max-w-[78ch] text-[12.5px] leading-relaxed text-muted-foreground">
+              The band above models the <b className="font-semibold text-foreground">corridor</b>{" "}
+              and the <b className="font-semibold text-foreground">reserve requirements</b>, and
+              its figures are compiled from the instruments — never from the model. The weekly
+              briefing also surfaces licensing, structure and payments items that no cell
+              represents, so they are listed here rather than dropped. This is the one place on
+              the page where an LLM writes: a bad week costs a paragraph, never a figure.
+            </p>
+            <div className="grid grid-cols-1 gap-x-10 gap-y-5 lg:grid-cols-3">
+              {residue.map((cat) => (
+                <div key={cat.name}>
+                  <h4 className="font-mono text-[8.5px] tracking-[0.07em] uppercase text-faint">
+                    {cat.name}
+                  </h4>
+                  <table className="mt-1 w-full border-collapse">
+                    <tbody>
+                      {cat.bullets.slice(0, 5).map((b, i) => (
+                        <tr key={i}>
+                          <td className="border-b border-hair py-1.5 text-[12px] leading-snug text-muted-foreground">
+                            {b.text}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
       </Depth>
 
       <Colophon>
@@ -724,6 +774,14 @@ export default async function RegulationPage() {
         that set it · corridor and reserve ratios parsed from body_text, not from an LLM ·
         decision dates and board-decision numbers parsed from BDDK titles · binding dates quoted
         from the instruments that state them · rules we could not parse are counted, not hidden
+        {briefing && (
+          <>
+            {" "}
+            · editorial coverage only (never figures) from the weekly briefing —{" "}
+            {briefing.model}, {briefing.item_count} items, {briefing.window_days}-day window,
+            generated {longDate(briefing.generated_at.slice(0, 10))}
+          </>
+        )}
       </Colophon>
     </main>
   );
