@@ -1,180 +1,155 @@
 /**
- * /regulation — the regime in force.
+ * /regulation — what the rules are, and what changed.
  *
- * The page this replaced COUNTED the feed: how many items arrived, when the last
- * one landed, which keyword topic won. None of those is a fact about regulation.
- * Its headline "Latest decision" pointed at the replacement of an SSL certificate
- * on the CBRT website, and five of the seven "instruments" in its 30-day count
- * were not regulation at all (a magazine, a memorandum, a data release).
+ * Three layers, and the page never blurs them:
  *
- * This page STATES the regime instead — the corridor and the reserve ratios a
- * bank actually complies with — compiled from the instruments that set them.
- * Design + rationale: docs/knowledge/regulation-tab-redesign-2026-07-12.md
+ *   COMPILED     the state band and the loan growth caps are parsed from the
+ *                instruments' own text; the policy rate is reconciled against
+ *                EVDS. No figure here comes from a language model.
+ *   SYNTHESIZED  the changelog is written from those same instruments by the
+ *                weekly briefing model. Every claim carries the instrument it
+ *                cites — an uncited claim is not published — and where the
+ *                parser has read the same figure the two are compared: a match
+ *                prints ✓, a conflict prints ✗ with what the instrument says.
+ *   ABSENT       capital-adequacy and credit-card rules are published in BDDK
+ *                Tebliğ / Resmî Gazete, which this site does not ingest. Their
+ *                sections are shown empty rather than estimated.
  *
- * Nothing here is written by hand or by an LLM:
- *   - the policy rate comes from EVDS and is RECONCILED against the press
- *     release; a disagreement raises a flag rather than picking a winner;
- *   - the read is a template with computed slots, so it says the same kind of
- *     thing next month, about next month;
- *   - a rule we can classify but cannot parse is PRINTED as a gap, so the band
- *     declares its own incompleteness (TCMB ships most macroprudential releases
- *     with no parseable table — the 23 May credit growth limits among them).
+ * Balance-sheet consequences (what reserves cost, how the corridor transmits)
+ * belong on /liquidity, /rates and /deposits — not here.
+ *
+ * Design + rationale: docs/knowledge/regulation-tab-redesign-v4-2026-07-13.md
  */
 import type { Metadata } from "next";
 import Link from "next/link";
-import { latestRegulationBriefing, newsSourceSummary, type NewsItem } from "@/app/lib/news";
-import {
-  Colophon,
-  Depth,
-  DeskHeader,
-  Flags,
-  SecHead,
-  Vital,
-  Vitals,
-  type Flag,
-} from "@/app/components/desk";
+import { latestRegulationBriefing, newsLookupBySourceIds, newsSourceSummary, type NewsItem } from "@/app/lib/news";
+import { Colophon, Depth, DeskHeader, SecHead, Vital, Vitals } from "@/app/components/desk";
 import {
   bankNames,
+  buildChangelog,
   classifyInstrument,
   decisionLags,
   deriveCorridor,
   derivePolicyPath,
+  deriveGrowthCaps,
   deriveReserves,
-  isInstrument,
   licences,
   meetingsHeld,
-  policyRateFromEvds,
   parseBoardDecision,
+  policyRateFromEvds,
   rateChanges,
   regulationFeed,
   reserveCellLabel,
-  unreadRules,
+  reserveRatioSeries,
+  type ChangeRow,
   type InstrumentKind,
   type LicenceKind,
 } from "@/app/lib/regulation";
 import Archive, { type ArchiveRow } from "./Archive";
-import DecisionLag from "./DecisionLag";
 import PolicyPath from "./PolicyPath";
+import ReserveRatio from "./ReserveRatio";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Turkish Banking Regulation — the regime in force",
+  title: "Turkish Banking Regulation — the rules, and what changed",
   description:
-    "The policy corridor and reserve requirements Turkish banks comply with today — compiled from the CBRT and BDDK instruments that set them, with the date each one binds.",
+    "The policy corridor, reserve requirements and loan growth caps Turkish banks comply with today, and every rule change dated and linked to the instrument that made it.",
   alternates: { canonical: "/regulation" },
 };
 
-const DAY = 86_400_000;
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTHS = ["", "January", "February", "March", "April", "May", "June", "July",
+  "August", "September", "October", "November", "December"];
+const SHORT = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 function shortDate(iso: string | null | undefined): string {
   if (!iso) return "—";
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
-  if (!m) return iso.slice(0, 10);
-  return `${Number(m[3])} ${MONTHS[Number(m[2]) - 1]}`;
+  return m ? `${Number(m[3])} ${SHORT[Number(m[2])]}` : iso.slice(0, 10);
 }
-
 function longDate(iso: string): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
-  if (!m) return iso;
-  return `${Number(m[3])} ${MONTHS[Number(m[2]) - 1]} ${m[1]}`;
+  return m ? `${Number(m[3])} ${SHORT[Number(m[2])]} ${m[1]}` : iso;
 }
-
-function daysBetween(a: string, b: string): number {
-  return Math.round((Date.parse(b) - Date.parse(a)) / DAY);
-}
-
 const pct = (v: number) => v.toFixed(v % 1 === 0 ? 0 : 2);
+const cap = (v: number) => (v % 1 === 0 ? String(v) : v.toFixed(1));
 
-// A permission to ESTABLISH a bank is not a licence to OPERATE one, and a
-// revocation is neither. Saying "operating licence granted" over all three, as
-// the first cut did, is simply false for two of them.
 const LICENCE_LABEL: Record<LicenceKind, string> = {
   operating: "operating licence",
   establishment: "permission to establish",
   revocation: "licence revoked",
 };
 
+/** Shortened section names for the changelog's category chips. */
+const CHIP: Record<string, { label: string; cls: string }> = {
+  "Monetary Policy Stance": { label: "Corridor", cls: "border-data text-data" },
+  "Loan Growth Caps": { label: "Loan caps", cls: "border-chart-5 text-chart-5" },
+  "Regulations on RRs": { label: "Reserves", cls: "border-chart-4 text-chart-4" },
+  "Regulations for TL Deposit Share": { label: "TL share", cls: "border-border text-muted-foreground" },
+  "Other Regulatory Actions": { label: "Other", cls: "border-border text-muted-foreground" },
+};
+
 export default async function RegulationPage() {
-  const [feed, evds, banks, summary, briefing] = await Promise.all([
+  const [feed, evds, banks, summary, briefing, ratios] = await Promise.all([
     regulationFeed(),
     policyRateFromEvds(),
     bankNames(),
     newsSourceSummary(),
     latestRegulationBriefing(),
+    reserveRatioSeries(),
   ]);
 
-  // THE BRIEFING IS THE EDITOR, NOT THE SOURCE OF THE FIGURES.
-  //
-  // Kimi's regime bullets ARE the band now — restating them below would be the
-  // page arguing with itself. But the briefing also surfaces categories no cell
-  // models (licensing, payments, structure), and dropping those would delete
-  // analytical content the old page carried. So: keep the residue, drop the
-  // duplication. If a category keeps reappearing here week after week, that is
-  // the signal to give it a cell of its own.
-  const MODELLED = /monetary policy|policy stance|interest rate|reserve requirement|deposit share/i;
-  const residue = (briefing?.categories ?? []).filter((c) => !MODELLED.test(c.name));
-
-  // The record is the newest thing we hold — but the newest INSTRUMENT is what
-  // the page is about, and they are not the same date. Say both.
-  const newest = feed[0]?.published_at.slice(0, 10) ?? null;
-  const kindOf = new Map<NewsItem, InstrumentKind>(feed.map((it) => [it, classifyInstrument(it)]));
-  const newestInstrument =
-    feed.find((it) => isInstrument(kindOf.get(it)!))?.published_at.slice(0, 10) ?? null;
-  const anchor = newest ?? new Date().toISOString().slice(0, 10);
-
-  // ── the regime ────────────────────────────────────────────────────────────
   const corridor = deriveCorridor(feed);
   const reserves = deriveReserves(feed);
+  const caps = deriveGrowthCaps(feed);
   const path = derivePolicyPath(feed);
   const changes = rateChanges(path);
   const held = meetingsHeld(path);
   const lastChange = changes[changes.length - 1] ?? null;
-  const unread = unreadRules(feed, anchor);
-
-  // Reconciliation: EVDS is the value, the release is the citation. If they
-  // disagree, we do not pick a winner — we raise it.
   const reconciled =
     corridor != null && evds != null ? Math.abs(corridor.policy - evds.value) < 0.01 : false;
 
-  // ── the clock ─────────────────────────────────────────────────────────────
+  // The changelog: the briefing's claims, re-keyed on the date of the instrument
+  // each one cites. An uncited claim is dropped — a model sentence a reader
+  // cannot check is not something to publish.
+  const lookup = briefing
+    ? await newsLookupBySourceIds(
+        briefing.categories.flatMap((c) =>
+          c.bullets.flatMap((b) =>
+            b.source_ids.map((id) => {
+              const [source, external_id] = id.split(":", 2);
+              return { source, external_id };
+            }),
+          ),
+        ),
+      )
+    : new Map();
+  const changelog = buildChangelog(briefing, lookup, corridor, reserves, caps);
+  const nAgree = changelog.filter((r) => r.agrees).length;
+  const nConflict = changelog.filter((r) => r.conflicts).length;
+
+  const byMonth = new Map<string, ChangeRow[]>();
+  for (const r of changelog) {
+    const k = r.date.slice(0, 7);
+    if (!byMonth.has(k)) byMonth.set(k, []);
+    byMonth.get(k)!.push(r);
+  }
+
+  const sections = new Map<string, ChangeRow[]>();
+  for (const r of changelog) {
+    if (!sections.has(r.category)) sections.set(r.category, []);
+    sections.get(r.category)!.push(r);
+  }
+
   const lags = decisionLags(feed);
   const meanLag = lags.length ? Math.round(lags.reduce((s, r) => s + r.lagDays, 0) / lags.length) : 0;
-  const worstLag = lags.length ? Math.max(...lags.map((r) => r.lagDays)) : 0;
-  const numbers = lags.map((r) => r.decisionNo);
-  const span = numbers.length ? Math.max(...numbers) - Math.min(...numbers) + 1 : 0;
   const lic = licences(lags, banks);
-  // Only a bank that was actually LICENSED TO OPERATE and is absent from the
-  // universe is worth a flag. A permission to establish is not an operating
-  // licence, and a revocation is the opposite of one.
-  const uncovered = lic.filter((r) => r.ticker == null && r.kind === "operating");
-  const revoked = lic.filter((r) => r.kind === "revocation");
-
-  // ── the 30-day window: what the old page's headline count actually contained
-  const win = feed.filter((it) => daysBetween(it.published_at.slice(0, 10), anchor) <= 30);
-  const winInstruments = win.filter((it) => isInstrument(kindOf.get(it)!));
-  // "Not regulation" and "we could not place it" are different claims. Keep them
-  // apart: an unclassified release might BE a rule, and saying otherwise would
-  // be the same confident-but-wrong move the old page made with the SSL cert.
-  const winNoise = win.filter((it) => kindOf.get(it) === "other");
-  const winUnknown = win.filter((it) => kindOf.get(it) === "unclassified");
 
   const tcmbTotal = summary.find((s) => s.source === "tcmb")?.total ?? 0;
   const bddkTotal = summary.find((s) => s.source === "bddk")?.total ?? 0;
+  const heldTotal = tcmbTotal + bddkTotal;
 
-  // ── the read — a template with computed slots, not a sentence someone typed
-  const sinceChange = lastChange ? daysBetween(lastChange.date, anchor) : null;
-  const bindsIn = reserves?.bindsOn ? daysBetween(anchor, reserves.bindsOn) : null;
-  const fxUp = reserves?.changes.filter((c) => c.next > c.prev) ?? [];
-  const bump = fxUp.length ? fxUp[0].next - fxUp[0].prev : null;
-
-  // ── the archive ───────────────────────────────────────────────────────────
-  // Bodies are heavy (TCMB releases average 2.6kB) and every one of them would
-  // otherwise be serialised into the client payload. Ship the text only for the
-  // most recent slice — enough that the drawer opens instantly on anything a
-  // reader is plausibly looking at — and let older rows fall back to the link.
-  const BODY_BUDGET = 120;
+  const kindOf = new Map<NewsItem, InstrumentKind>(feed.map((it) => [it, classifyInstrument(it)]));
   const rows: ArchiveRow[] = feed
     .map((item) => {
       const d = parseBoardDecision(item.title);
@@ -184,149 +159,20 @@ export default async function RegulationPage() {
         kind: kindOf.get(item)!,
         decidedAt: d?.decidedAt ?? pub,
         decidedIsFallback: d == null,
-        lagDays: d ? daysBetween(d.decidedAt, pub) : null,
+        lagDays: d ? Math.round((Date.parse(pub) - Date.parse(d.decidedAt)) / 86_400_000) : null,
         decisionNo: d?.decisionNo ?? null,
       };
     })
     .sort((a, b) => b.decidedAt.localeCompare(a.decidedAt))
     .slice(0, 220)
-    .map((r, i) => (i < BODY_BUDGET ? r : { ...r, item: { ...r.item, body_text: null } }));
+    .map((r, i) => (i < 120 ? r : { ...r, item: { ...r.item, body_text: null } }));
 
-  // ── flags ─────────────────────────────────────────────────────────────────
-  // Flags are for the READER, and every one of them says something about the
-  // REGIME — not about our pipeline. Whether our two sources reconcile, how many
-  // characters a release had, and what is in our `banks` table are our problems,
-  // not a visitor's: they belong in the colophon and in CI, not shouting in red.
-  // What a reader genuinely needs is: what binds, what we cannot show them, and
-  // how the regulators behave.
-  const flags: Flag[] = [
-    {
-      code: "NOT SHOWN",
-      active: unread.length > 0,
-      rule: "rule change ∧ no machine-readable parameters",
-      body: (
-        <>
-          <b className="font-semibold">
-            {unread.length} further rule change{unread.length === 1 ? " is" : "s are"} in force
-            that this page cannot show you.
-          </b>{" "}
-          The regulators announced them without publishing the numbers in any machine-readable
-          form — so the band above is <b className="font-semibold">not the whole regime</b>. Read
-          them at the source:{" "}
-          {unread.slice(0, 4).map((u, i) => (
-            <span key={u.url}>
-              {i > 0 && "; "}
-              <a
-                href={u.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-semibold text-primary"
-              >
-                {u.title.length > 58 ? `${u.title.slice(0, 56)}…` : u.title}
-              </a>{" "}
-              ({longDate(u.publishedAt)})
-            </span>
-          ))}
-          {unread.length > 4 && <> … and {unread.length - 4} more</>}.
-        </>
-      ),
-      clear: <>every rule change in the last 12 months is shown above with its parameters</>,
-    },
-    {
-      code: "DISPUTED",
-      // Only ever shown when it FIRES: a reader needs to know a headline figure is
-      // contested. That the two sources AGREE is our QA, not their news.
-      active: corridor != null && evds != null && !reconciled,
-      rule: "policy rate: EVDS ≠ the release that set it",
-      body: (
-        <>
-          <b className="font-semibold">The policy rate above is disputed between sources.</b> The
-          CBRT&apos;s own statistics service reports{" "}
-          <b className="font-semibold">{evds && pct(evds.value)}%</b>, while the rate decision that
-          set it says <b className="font-semibold">{corridor && pct(corridor.policy)}%</b>. Treat
-          the figure as provisional until they agree.
-        </>
-      ),
-    },
-    {
-      code: "PIPELINE",
-      active: uncovered.length > 0,
-      rule: "bank licensed ∧ no financials filed yet",
-      body: (
-        <>
-          <b className="font-semibold">
-            {uncovered.length} bank{uncovered.length === 1 ? " holds" : "s hold"} a BDDK operating
-            licence but {uncovered.length === 1 ? "has" : "have"} not started reporting
-          </b>{" "}
-          —{" "}
-          {uncovered.slice(0, 5).map((r, i) => (
-            <span key={r.decision.decisionNo}>
-              {i > 0 && ", "}
-              {r.institution}
-            </span>
-          ))}
-          {uncovered.length > 5 && <> and {uncovered.length - 5} more</>}. They are licensed to
-          operate and will appear in the sector figures once they file. This register is where
-          Türkiye&apos;s newest banks show up first — Enpara, Colendi and Ziraat Dinamik were all
-          named here before they filed a single statement.
-        </>
-      ),
-      clear: <>every licensed bank is reporting</>,
-    },
-    {
-      code: "LATE",
-      active: lags.length > 0 && meanLag > 90,
-      rule: "mean(published − decided) > 90d",
-      body: (
-        <>
-          <b className="font-semibold">
-            BDDK publishes its board decisions a mean of {meanLag} days after taking them
-          </b>{" "}
-          (worst: {worstLag} days), in irregular batches. So a decision that appears in the feed
-          this month may be more than a year old — dates below are the dates the board{" "}
-          <b className="font-semibold">decided</b>, which is the date that governs.
-        </>
-      ),
-      clear: <>the regulator publishes its decisions promptly</>,
-    },
-    {
-      code: "HELD",
-      // A domain fact, not a self-check: the corridor is simply not moving.
-      active: false,
-      rule: "Δ policy rate over the last 3 meetings",
-      body: <></>,
-      clear:
-        lastChange && held > 0 ? (
-          <>
-            the policy rate has not changed in {held} meeting{held === 1 ? "" : "s"} — last moved{" "}
-            {longDate(lastChange.date)}
-          </>
-        ) : (
-          <>the policy rate is unchanged</>
-        ),
-    },
-    {
-      code: "REVOKED",
-      active: revoked.length > 0,
-      rule: "licence revoked ∧ bank is in the sector figures",
-      body: (
-        <>
-          <b className="font-semibold">
-            {revoked.length} bank licence{revoked.length === 1 ? "" : "s"} revoked
-          </b>{" "}
-          —{" "}
-          {revoked.slice(0, 4).map((r, i) => (
-            <span key={r.decision.decisionNo}>
-              {i > 0 && ", "}
-              {r.institution}
-            </span>
-          ))}
-          . A revocation removes a bank from the sector before its figures stop appearing.
-        </>
-      ),
-      clear: <>no bank licence has been revoked</>,
-    },
-  ];
+  const consumerCap = caps?.caps.find((c) => c.label === "General-purpose & vehicle") ?? caps?.caps[0];
+  const anchor = feed[0]?.published_at.slice(0, 10) ?? null;
+  const lastRule = feed.find((it) => {
+    const k = kindOf.get(it);
+    return k === "rule" || k === "rate";
+  })?.published_at.slice(0, 10);
 
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
@@ -334,9 +180,9 @@ export default async function RegulationPage() {
         title="Regulation"
         record={
           <>
-            Rules in force <b className="font-normal text-foreground">{longDate(anchor)}</b>
-            {corridor && (
-              <> · corridor set <b className="font-normal text-foreground">{shortDate(corridor.decidedAt)}</b></>
+            In force <b className="font-normal text-foreground">{anchor ? longDate(anchor) : "—"}</b>
+            {lastRule && (
+              <> · last rule change <b className="font-normal text-foreground">{shortDate(lastRule)}</b></>
             )}
             {reserves?.bindsOn && (
               <> · reserve ratios bind <b className="font-normal text-foreground">{shortDate(reserves.bindsOn)}</b></>
@@ -353,20 +199,12 @@ export default async function RegulationPage() {
       </div>
 
       <SecHead
-        title="The regime in force"
-        meta="policy corridor · reserve requirements — read from the instruments that set them"
+        title="The state today"
+        meta="parsed from the instruments · policy rate reconciled against EVDS"
         className="mt-6 mb-2.5"
       />
 
-      {/* The band's width follows the regime, not the markup: if a future release
-          adds an instrument we can read, it gets a cell; if we can read none, the
-          corridor still stands alone rather than leaving three empty columns. */}
-      <Vitals
-        cols={Math.min(
-          6,
-          Math.max(3, 3 + (reserves?.changes.slice(0, 2).length ?? 0) + (reserves?.terminated.length ? 1 : 0)),
-        ) as 3 | 4 | 5 | 6}
-      >
+      <Vitals cols={6}>
         <Vital
           label="Policy rate"
           value={corridor ? pct(corridor.policy) : "—"}
@@ -374,20 +212,11 @@ export default async function RegulationPage() {
           note={
             corridor ? (
               <>
-                {held > 0 && (
-                  <>
-                    Held for <b className="font-semibold text-foreground">{held}</b> consecutive
-                    meeting{held === 1 ? "" : "s"}.{" "}
-                  </>
+                {held > 0 && <>Held <b className="font-semibold text-foreground">{held} meetings</b>. </>}
+                {lastChange && <>Last change {longDate(lastChange.date)}.</>}
+                {evds && !reconciled && (
+                  <span className="font-semibold text-negative"> EVDS reports {pct(evds.value)}%.</span>
                 )}
-                {lastChange && (
-                  <>Last change {longDate(lastChange.date)}. </>
-                )}
-                {evds && reconciled ? (
-                  <>EVDS and the release agree.</>
-                ) : evds ? (
-                  <span className="font-semibold text-negative">EVDS says {pct(evds.value)}%.</span>
-                ) : null}
               </>
             ) : (
               "not stated in the last release"
@@ -401,11 +230,10 @@ export default async function RegulationPage() {
           note={
             corridor?.lending != null ? (
               <>
-                The ceiling — what a bank pays the CBRT overnight.{" "}
                 <b className="font-semibold text-foreground">
                   +{Math.round((corridor.lending - corridor.policy) * 100)}bp
                 </b>{" "}
-                over policy.
+                over the policy rate.
               </>
             ) : (
               "not stated in the last release"
@@ -419,11 +247,11 @@ export default async function RegulationPage() {
           note={
             corridor?.borrowing != null && corridor.lending != null ? (
               <>
-                The floor — what it earns on cash left there. Corridor width{" "}
+                Corridor{" "}
                 <b className="font-semibold text-foreground">
                   {Math.round((corridor.lending - corridor.borrowing) * 100)}bp
-                </b>
-                .
+                </b>{" "}
+                wide.
               </>
             ) : (
               "not stated in the last release"
@@ -442,14 +270,11 @@ export default async function RegulationPage() {
                 <span className="font-mono">
                   <s className="text-faint">{pct(c.prev)}%</s> →{" "}
                   <b className="font-semibold text-foreground">{pct(c.next)}%</b>
-                  {c.next !== c.prev && ` · ${c.next > c.prev ? "+" : ""}${pct(c.next - c.prev)}pp`}
                 </span>
                 {reserves.bindsOn && (
                   <>
                     {" "}
-                    <span className="font-semibold text-warning">
-                      Binds {longDate(reserves.bindsOn)}.
-                    </span>
+                    <span className="font-semibold text-warning">Binds {longDate(reserves.bindsOn)}.</span>
                   </>
                 )}
               </>
@@ -457,313 +282,347 @@ export default async function RegulationPage() {
           />
         ))}
 
-        {reserves?.terminated.slice(0, 1).map((t) => (
+        {consumerCap && (
           <Vital
-            key={t.label}
-            label="Additional TL reserve"
-            value="—"
+            label="Consumer loan cap"
+            value={cap(consumerCap.next)}
+            unit="%"
             note={
               <>
                 <span className="font-mono">
-                  <s className="text-faint">{pct(t.was)}%</s> →{" "}
-                  <b className="font-semibold text-foreground">terminated</b>
-                </span>
-                <br />
-                Abolished by the same release that raised the ratios. A rule ending is a rule
-                change.
+                  <s className="text-faint">{cap(consumerCap.prev)}%</s> →{" "}
+                  <b className="font-semibold text-foreground">{cap(consumerCap.next)}%</b>
+                </span>{" "}
+                over 8 weeks. <a href="#caps" className="font-semibold text-primary">All caps →</a>
               </>
             }
           />
-        ))}
+        )}
       </Vitals>
 
-      {/* The band prints what it could not read, immediately beneath it — never
-          a silent omission, and never buried in a column further down. */}
-      {/* Not an error state — a COVERAGE NOTE. The band is not the whole regime,
-          and a reader relying on it has to be told so, with a route to the rest.
-          Amber (a threshold), not red (a fault): nothing here is broken. */}
-      {unread.length > 0 && (
-        <div className="grid grid-cols-[20px_1fr] items-baseline gap-x-2.5 border-b border-border border-l-2 border-l-warning bg-warning/[0.07] py-2 pr-3 pl-2.5">
-          <span className="font-mono text-[10px] font-semibold text-warning">△</span>
-          <p className="text-[12px] leading-snug">
-            <b className="font-semibold">
-              This is not the whole regime: {unread.length} further rule change
-              {unread.length === 1 ? "" : "s"} in the last 12 months
-              {unread.length === 1 ? " is" : " are"} in force and not shown above.
-            </b>{" "}
-            The regulators announced {unread.length === 1 ? "it" : "them"} without publishing the
-            numbers in machine-readable form — including{" "}
-            <a
-              href={unread[0].url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-semibold text-primary"
-            >
-              {unread[0].title.length > 60 ? `${unread[0].title.slice(0, 58)}…` : unread[0].title}
-            </a>{" "}
-            ({longDate(unread[0].publishedAt)}). They are listed under{" "}
-            <b className="font-semibold">Flags</b>, with links to the source.
-          </p>
-        </div>
-      )}
-
-      {/* The read — a template with computed slots. A hand-written thesis would
-          be stale in a week; this one says the same kind of thing next month. */}
-      <section className="mt-4 border-b border-border pb-4">
-        <span className="font-mono text-[8.5px] tracking-[0.07em] uppercase text-faint">
-          The read — computed, not written
-        </span>
-        <p className="mt-1 max-w-[74ch] text-[17px] leading-snug font-semibold tracking-[-0.01em] text-foreground">
-          {corridor && sinceChange != null && lastChange ? (
-            <>
-              The corridor has not moved in{" "}
-              <span className="font-mono tabular-nums">{sinceChange} days</span>
-              {held > 0 && (
-                <>
-                  {" "}
-                  — {held} meeting{held === 1 ? "" : "s"} held at{" "}
-                  <span className="font-mono tabular-nums">{pct(corridor.policy)}%</span>
-                </>
-              )}
-              .
-            </>
-          ) : (
-            <>The corridor is not stated in the releases we hold.</>
-          )}{" "}
-          {reserves && bindsIn != null && bindsIn >= 0 && bump != null ? (
-            <>
-              The rules have. In{" "}
-              <span className="font-mono tabular-nums">{bindsIn} day{bindsIn === 1 ? "" : "s"}</span>{" "}
-              the reserve requirement on FX deposits rises{" "}
-              <span className="font-mono tabular-nums">{pct(bump)}pp</span>
-              {reserves.terminated[0] && (
-                <>
-                  , and the{" "}
-                  <span className="font-mono tabular-nums">{pct(reserves.terminated[0].was)}%</span>{" "}
-                  add-on it replaced ends the same day
-                </>
-              )}
-              .
-            </>
-          ) : reserves ? (
-            <>The last rule change took effect on {longDate(reserves.decidedAt)}.</>
-          ) : null}
-        </p>
-
-        <ul className="mt-2.5 grid grid-cols-1 gap-x-6 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            corridor && {
-              k: "Corridor",
-              v: (
-                <>
-                  {pct(corridor.policy)}% policy
-                  {corridor.lending != null && corridor.borrowing != null && (
-                    <> · {pct(corridor.lending)}% / {pct(corridor.borrowing)}% overnight</>
-                  )}
-                  {lastChange && <> — unchanged since {longDate(lastChange.date)}.</>}
-                </>
-              ),
-            },
-            reserves?.changes.length && {
-              k: "Binding next",
-              v: (
-                <>
-                  {reserves.changes
-                    .map((c) => `${pct(c.prev)}→${pct(c.next)}%`)
-                    .join(" and ")}
-                  {reserves.bindsOn && <>, maintained from {longDate(reserves.bindsOn)}.</>}
-                </>
-              ),
-            },
-            {
-              k: "Announcements are not rules",
-              v: (
-                <>
-                  The regulators published {win.length} things in 30 days.{" "}
-                  {winInstruments.length} of them changed something a bank must obey; the rest are
-                  reports, comms and housekeeping.
-                </>
-              ),
-            },
-            {
-              k: "Not shown here",
-              v:
-                unread.length > 0 ? (
-                  <>
-                    {unread.length} further rule change{unread.length === 1 ? "" : "s"} in force —
-                    announced without machine-readable numbers. Linked under Flags.
-                  </>
-                ) : (
-                  <>Every rule change in the last 12 months is shown above, with its parameters.</>
-                ),
-            },
-          ]
-            .filter(Boolean)
-            .map((d) => {
-              const row = d as { k: string; v: React.ReactNode };
-              return (
-                <li key={row.k} className="border-t border-hair pt-1.5 text-[12px] leading-snug text-muted-foreground">
-                  <b className="font-semibold text-foreground">{row.k}.</b> {row.v}
-                </li>
-              );
-            })}
-        </ul>
-
-        <div className="mt-2.5 border-t border-hair pt-1.5 font-mono text-[8.5px] tracking-[0.05em] uppercase text-faint">
-          takeaway = template + computed slots · days_since_rate_change · meetings_held ·
-          next_binding_date · unread_rules · no sentence on this page is typed by a person
-        </div>
-      </section>
-
-      {/* ── evidence ─────────────────────────────────────────────────────── */}
-
-      <div className="mt-7 grid grid-cols-1 gap-x-10 gap-y-6 lg:grid-cols-[5fr_7fr]">
-        <div>
-          <SecHead
-            title="The last 30 days at the regulators"
-            meta="everything TCMB and BDDK published · and which of it actually changed a rule"
-            className="mb-2"
-          />
-          <table className="w-full border-collapse">
-            <tbody>
-              {win.map((it) => {
-                const kind = kindOf.get(it)!;
-                const inst = isInstrument(kind);
-                const unknown = kind === "unclassified";
-                return (
-                  <tr key={`${it.source}-${it.external_id}`}>
-                    <td
-                      className={`w-4 border-b border-hair py-1.5 font-mono text-[10px] font-semibold ${
-                        inst ? "text-positive" : unknown ? "text-warning" : "text-negative"
+      {/* ── loan growth caps ─────────────────────────────────────────────── */}
+      {caps && caps.caps.length > 0 && (
+        <>
+          <div id="caps" className="scroll-mt-4">
+            <SecHead
+              title="Loan growth caps"
+              meta="8-week limits · a bank exceeding one holds additional reserves"
+              className="mt-7 mb-2.5"
+            />
+          </div>
+          <div className="grid grid-cols-1 gap-x-10 gap-y-5 lg:grid-cols-2">
+            <table className="w-full border-collapse self-start">
+              <thead>
+                <tr>
+                  {["8-week growth limit", "Was", "Now", "Δ"].map((h, i) => (
+                    <th
+                      key={h}
+                      className={`border-b border-foreground pb-1.5 font-mono text-[8.5px] font-normal tracking-[0.07em] uppercase text-faint ${
+                        i === 0 ? "text-left" : "pl-2 text-right"
                       }`}
                     >
-                      {inst ? "✓" : unknown ? "?" : "✕"}
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {caps.caps.map((c) => (
+                  <tr key={c.label}>
+                    <td className="border-b border-hair py-1.5 text-[12.5px] font-medium text-foreground">
+                      {c.label}
                     </td>
-                    <td
-                      className={`border-b border-hair py-1.5 text-[12px] ${
-                        inst ? "font-semibold text-foreground" : "text-muted-foreground"
-                      }`}
-                    >
-                      {it.title}
+                    <td className="border-b border-hair py-1.5 pl-2 text-right font-mono text-[11px] tabular-nums text-faint">
+                      <s>{cap(c.prev)}%</s>
                     </td>
-                    <td className="border-b border-hair py-1.5 pl-2 text-right font-mono text-[8.5px] whitespace-nowrap text-faint">
-                      {it.source.toUpperCase()} · {shortDate(it.published_at)}
+                    <td className="border-b border-hair py-1.5 pl-2 text-right font-mono text-[12.5px] font-semibold tabular-nums text-foreground">
+                      {cap(c.next)}%
+                    </td>
+                    <td className="border-b border-hair py-1.5 pl-2 text-right font-mono text-[11px] tabular-nums text-muted-foreground">
+                      {c.next > c.prev ? "+" : "−"}
+                      {cap(Math.abs(c.next - c.prev))}pp
                     </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          <div className="mt-2 flex flex-wrap gap-4 font-mono text-[9px] text-faint">
-            <span>
-              Changed a rule <b className="font-semibold text-foreground">{winInstruments.length}</b>
-            </span>
-            <span>
-              Did not <b className="font-semibold text-foreground">{winNoise.length}</b>
-            </span>
-            {winUnknown.length > 0 && (
-              <span>
-                Uncategorised <b className="font-semibold text-warning">{winUnknown.length}</b>
-              </span>
-            )}
+                ))}
+              </tbody>
+            </table>
+
+            <div>
+              <p className="mb-2 text-[12px] leading-relaxed text-muted-foreground">
+                The caps apply to a <b className="font-semibold text-foreground">restricted base</b>:
+                export, investment, agriculture, tradesmen, KOSGEB and CGF loans are exempt, and the
+                limits are enforced <b className="font-semibold text-foreground">bank by bank</b>.
+              </p>
+              <p className="mb-2 text-[12px] leading-relaxed text-muted-foreground">
+                <b className="font-semibold text-foreground">
+                  Sector loan growth is therefore not comparable with these limits.
+                </b>{" "}
+                Compared directly, sector growth exceeds them in most weeks — a consequence of the
+                exempt base, not a breach.
+              </p>
+              <p className="text-[12px] leading-relaxed">
+                <a
+                  href={caps.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold text-primary"
+                >
+                  {caps.title}, {longDate(caps.decidedAt)} ↗
+                </a>
+              </p>
+            </div>
           </div>
-          {newestInstrument && newest && newestInstrument !== newest && (
-            <p className="mt-1.5 text-[11px] leading-snug text-faint">
-              The most recent thing either regulator published ({shortDate(newest)}) did not change
-              a rule. The last one that did was{" "}
-              <b className="font-semibold text-foreground">{shortDate(newestInstrument)}</b>.
-            </p>
-          )}
+        </>
+      )}
+
+      {/* ── the changelog ────────────────────────────────────────────────── */}
+      {changelog.length > 0 && (
+        <>
+          <SecHead
+            title="What changed"
+            meta={`${changelog.length} rule changes · newest first · each links to the instrument that made it`}
+            className="mt-7 mb-2.5"
+          />
+
+          <div className="border-t-2 border-b border-foreground border-b-hair py-1.5 text-[11.5px] text-muted-foreground">
+            Written from the instruments by{" "}
+            <b className="font-semibold text-foreground">{briefing?.model}</b> · every claim carries
+            its source ·{" "}
+            <span className="mx-0.5 inline-block border border-positive px-1 font-mono text-[8.5px] font-semibold text-positive">
+              ✓ {nAgree}
+            </span>{" "}
+            match the parameter parsed from the instrument ·{" "}
+            <span className="mx-0.5 inline-block border border-negative px-1 font-mono text-[8.5px] font-semibold text-negative">
+              ✗ {nConflict}
+            </span>{" "}
+            {nConflict === 1 ? "conflicts" : "conflict"} with it
+          </div>
+
+          {[...byMonth.entries()].map(([ym, items]) => (
+            <div key={ym} className="border-b border-border py-3">
+              <h4 className="mb-1.5 text-[12px] font-bold text-foreground">
+                {MONTHS[Number(ym.slice(5, 7))]} {ym.slice(0, 4)}
+                <span className="ml-1.5 font-mono text-[8.5px] font-normal tracking-[0.07em] uppercase text-faint">
+                  {items.length} change{items.length === 1 ? "" : "s"}
+                </span>
+              </h4>
+              <ul>
+                {items.map((r, i) => {
+                  const chip = CHIP[r.category] ?? {
+                    label: "Other",
+                    cls: "border-border text-muted-foreground",
+                  };
+                  const day = Number(r.date.slice(8, 10));
+                  const mon = SHORT[Number(r.date.slice(5, 7))];
+                  return (
+                    <li
+                      key={`${r.date}-${i}`}
+                      className="grid grid-cols-[46px_1fr] items-baseline gap-x-2.5 border-t border-hair py-1.5 sm:grid-cols-[46px_72px_1fr]"
+                    >
+                      <span className="font-mono text-[10px] font-semibold whitespace-nowrap text-muted-foreground">
+                        {day} {mon}
+                      </span>
+                      <span
+                        className={`hidden border px-1 py-px text-center font-mono text-[8px] font-semibold tracking-[0.06em] whitespace-nowrap uppercase sm:inline-block ${chip.cls}`}
+                      >
+                        {chip.label}
+                      </span>
+                      <span className="col-span-2 text-[12.5px] leading-snug text-foreground sm:col-span-1">
+                        {r.text}
+                        {r.agrees && (
+                          <span
+                            className="ml-1.5 inline-block border border-positive px-1 font-mono text-[8.5px] font-semibold whitespace-nowrap text-positive"
+                            title="Matches the parameter parsed from the instrument."
+                          >
+                            ✓ {r.agrees}
+                          </span>
+                        )}
+                        {r.conflicts && (
+                          <span
+                            className="ml-1.5 inline-block border border-negative px-1 font-mono text-[8.5px] font-semibold whitespace-nowrap text-negative"
+                            title="Conflicts with the parameter parsed from the instrument."
+                          >
+                            ✗ {r.conflicts}
+                          </span>
+                        )}
+                        <a
+                          href={r.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-0.5 block font-mono text-[8.5px] font-semibold tracking-[0.04em] uppercase text-primary"
+                        >
+                          {r.title} ↗
+                        </a>
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </>
+      )}
+
+      {/* ── two instruments, drawn ───────────────────────────────────────── */}
+      <div className="mt-7 grid grid-cols-1 gap-x-10 gap-y-7 lg:grid-cols-2">
+        <div>
+          <h3 className="text-[12.5px] leading-snug font-semibold text-foreground">
+            The policy rate has changed {changes.length} times since {path[0]?.date.slice(0, 4)}
+          </h3>
+          <span className="mt-0.5 block font-mono text-[8.5px] tracking-[0.07em] uppercase text-faint">
+            one-week repo auction rate · EVDS TP.PY.P02.1H
+          </span>
+          <PolicyPath path={path} through={anchor ?? new Date().toISOString().slice(0, 10)} />
+          <div className="mt-2 flex flex-wrap gap-4 border-t border-hair pt-1.5 font-mono text-[9px] text-faint">
+            <span>Changes <b className="font-semibold text-foreground">{changes.length}</b></span>
+            {corridor && <span>Now <b className="font-semibold text-foreground">{pct(corridor.policy)}%</b></span>}
+            {held > 0 && <span>Held <b className="font-semibold text-foreground">{held} meetings</b></span>}
+          </div>
         </div>
 
         <div>
           <h3 className="text-[12.5px] leading-snug font-semibold text-foreground">
-            The policy rate, reconstructed from the press releases — {changes.length} changes in{" "}
-            {path.length} decisions
+            Reserves held against deposits — the lira ratio has risen from near zero since 2022
           </h3>
           <span className="mt-0.5 block font-mono text-[8.5px] tracking-[0.07em] uppercase text-faint">
-            parsed from news_items.body_text · the page stores every one of these
+            required reserves ÷ deposits, weekly · what banks hold, not what the rule states
           </span>
-          <PolicyPath path={path} through={anchor} />
+          <ReserveRatio series={ratios} />
           <div className="mt-2 flex flex-wrap gap-4 border-t border-hair pt-1.5 font-mono text-[9px] text-faint">
-            <span>
-              Decisions <b className="font-semibold text-foreground">{path.length}</b>
-            </span>
-            <span>
-              Changes <b className="font-semibold text-foreground">{changes.length}</b>
-            </span>
-            {corridor && (
-              <span>
-                Now <b className="font-semibold text-foreground">{pct(corridor.policy)}%</b>
-              </span>
+            {ratios.at(-1)?.fx != null && (
+              <span>FX <b className="font-semibold text-foreground">{ratios.at(-1)!.fx!.toFixed(1)}%</b></span>
             )}
-            {evds && (
+            {ratios.at(-1)?.tl != null && (
+              <span>TL <b className="font-semibold text-foreground">{ratios.at(-1)!.tl!.toFixed(1)}%</b></span>
+            )}
+            {ratios[0]?.tl != null && (
               <span>
-                EVDS <b className="font-semibold text-foreground">{pct(evds.value)}%</b>{" "}
-                {reconciled ? "✓" : "✕"}
+                TL in {ratios[0].date.slice(0, 4)}{" "}
+                <b className="font-semibold text-foreground">{ratios[0].tl!.toFixed(2)}%</b>
               </span>
             )}
           </div>
         </div>
       </div>
 
-      <div className="mt-7 grid grid-cols-1 gap-x-10 gap-y-6 lg:grid-cols-[7fr_5fr]">
-        <div>
-          <h3 className="text-[12.5px] leading-snug font-semibold text-foreground">
-            Decided, then published — the archive&apos;s clock is {meanLag} days slow
-          </h3>
-          <span className="mt-0.5 block font-mono text-[8.5px] tracking-[0.07em] uppercase text-faint">
-            each line runs from the date the board decided (grey) to the date it reached the feed
-            (navy) · red = over a year late
-          </span>
-          <DecisionLag rows={lags} from="2024-05-01" />
-          <div className="mt-2 flex flex-wrap gap-4 border-t border-hair pt-1.5 font-mono text-[9px] text-faint">
-            <span>
-              Numbered decisions <b className="font-semibold text-foreground">{lags.length}</b>
-            </span>
-            <span>
-              Mean lag <b className="font-semibold text-foreground">{meanLag}d</b>
-            </span>
-            <span>
-              Worst <b className="font-semibold text-foreground">{worstLag}d</b>
-            </span>
-            <span>
-              Numbering spans <b className="font-semibold text-foreground">{span.toLocaleString()}</b>
-            </span>
+      {/* ── in force, by section ─────────────────────────────────────────── */}
+      {sections.size > 0 && (
+        <>
+          <SecHead
+            title="In force, by section"
+            meta={`the same ${changelog.length} rules, grouped for reference`}
+            className="mt-7 mb-2.5"
+          />
+          <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2 xl:grid-cols-3">
+            {[...sections.entries()].map(([name, items]) => (
+              <div key={name}>
+                <h4 className="mb-1 text-[11.5px] font-bold text-foreground">
+                  {name}
+                  <span className="ml-1 font-mono text-[8.5px] font-normal text-faint">{items.length}</span>
+                </h4>
+                <ul>
+                  {items.map((r, i) => (
+                    <li
+                      key={i}
+                      className="border-t border-hair py-1.5 text-[11.5px] leading-snug text-muted-foreground"
+                    >
+                      {r.text.length > 150 ? `${r.text.slice(0, 148)}…` : r.text}
+                      <span className="ml-1 font-mono text-[8.5px] whitespace-nowrap text-faint">
+                        {shortDate(r.date)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+
+            {/* Named, not estimated. These rules live in BDDK Tebliğ / Resmî
+                Gazete, which this site does not ingest. */}
+            {[
+              {
+                t: "Capital adequacy",
+                d: "Risk weights, FX-rate forbearance in credit-risk calculations, capital floors and buffers.",
+              },
+              {
+                t: "Credit cards",
+                d: "Maximum contractual and overdue interest by balance tier, minimum-payment ratios, installment and limit rules.",
+              },
+            ].map((s) => (
+              <div key={s.t} className="border-l-2 border-border pl-3">
+                <h4 className="mb-1 text-[11.5px] font-bold text-faint">
+                  {s.t}
+                  <span className="ml-1.5 border border-negative px-1 py-px font-mono text-[8px] font-semibold tracking-[0.06em] uppercase text-negative">
+                    no source
+                  </span>
+                </h4>
+                <p className="text-[11.5px] leading-snug text-faint">
+                  {s.d} Published in{" "}
+                  <b className="font-semibold text-muted-foreground">BDDK Tebliğ / Resmî Gazete</b>,
+                  which this site does not ingest. Left empty rather than estimated.
+                </p>
+              </div>
+            ))}
           </div>
+        </>
+      )}
+
+      {/* ── ahead / licensing / related ──────────────────────────────────── */}
+      <div className="mt-7 grid grid-cols-1 gap-x-10 gap-y-6 lg:grid-cols-3">
+        <div>
+          <SecHead title="What binds next" meta="dates the instruments state" className="mb-2" />
+          <table className="w-full border-collapse">
+            <tbody>
+              {reserves?.bindsOn && (
+                <tr>
+                  <td className="border-b border-hair py-1.5 pr-3 font-mono text-[10.5px] font-semibold whitespace-nowrap text-foreground">
+                    {shortDate(reserves.bindsOn)}
+                  </td>
+                  <td className="border-b border-hair py-1.5 text-[12px] text-muted-foreground">
+                    <b className="font-semibold text-foreground">FX reserve ratios</b> rise to{" "}
+                    {reserves.changes.map((c) => `${pct(c.next)}%`).join(" and ")}
+                    {reserves.terminated[0] && (
+                      <>; the {pct(reserves.terminated[0].was)}% additional lira reserve on FX deposits ends</>
+                    )}
+                    .
+                  </td>
+                </tr>
+              )}
+              <tr>
+                <td className="border-b border-hair py-1.5 pr-3 font-mono text-[10.5px] font-semibold text-foreground">
+                  —
+                </td>
+                <td className="border-b border-hair py-1.5 text-[12px] text-muted-foreground">
+                  Next MPC meeting —{" "}
+                  <b className="font-semibold text-foreground">the calendar is not held on this site.</b>
+                </td>
+              </tr>
+              <tr>
+                <td className="border-b border-hair py-1.5 pr-3 font-mono text-[10.5px] font-semibold text-foreground">
+                  —
+                </td>
+                <td className="border-b border-hair py-1.5 text-[12px] text-muted-foreground">
+                  BDDK board decisions — no announced publication cadence.
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
         <div>
           <SecHead
-            title="Where Türkiye's newest banks appear first"
-            meta="BDDK bank licensing decisions · leasing, factoring, e-money and asset managers are licensed too, and excluded here"
+            title="Newly licensed banks"
+            meta="BDDK licensing · not yet in the sector figures"
             className="mb-2"
           />
           <table className="w-full border-collapse">
-            <thead>
-              <tr>
-                {["Bank licensing decision", "Taken", "Late"].map((h, i) => (
-                  <th
-                    key={h}
-                    className={`border-b border-foreground pb-1.5 font-mono text-[8.5px] font-normal tracking-[0.07em] uppercase text-faint ${
-                      i === 0 ? "text-left" : "pl-2 text-right"
-                    }`}
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
             <tbody>
-              {lic.slice(0, 6).map((r) => (
+              {lic.slice(0, 5).map((r) => (
                 <tr key={r.decision.decisionNo}>
                   <td className="border-b border-hair py-1.5">
                     <span className="text-[12.5px] font-medium text-foreground">{r.institution}</span>
                     <span
                       className={`ml-1.5 inline-block border px-1 py-px align-[1px] font-mono text-[9px] font-semibold ${
-                        r.ticker
-                          ? "border-border text-muted-foreground"
-                          : "border-warning text-warning"
+                        r.ticker ? "border-border text-muted-foreground" : "border-warning text-warning"
                       }`}
                     >
                       {r.ticker ?? "not yet reporting"}
@@ -772,86 +631,55 @@ export default async function RegulationPage() {
                       #{r.decision.decisionNo} · {LICENCE_LABEL[r.kind]}
                     </span>
                   </td>
-                  <td className="border-b border-hair py-1.5 pl-2 text-right font-mono text-[11px] tabular-nums text-muted-foreground">
-                    {shortDate(r.decision.decidedAt)}
-                  </td>
-                  <td
-                    className={`border-b border-hair py-1.5 pl-2 text-right font-mono text-[11.5px] font-semibold tabular-nums ${
-                      r.decision.lagDays > 365 ? "text-negative" : "text-muted-foreground"
-                    }`}
-                  >
+                  <td className="border-b border-hair py-1.5 pl-2 text-right font-mono text-[11.5px] font-semibold whitespace-nowrap tabular-nums text-muted-foreground">
                     {r.decision.lagDays}d
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          <p className="mt-2 text-[12px] leading-snug text-muted-foreground">
+            A licence appears here before the bank files its first statement. The lag is the time
+            from the board&apos;s decision to its publication.
+          </p>
+        </div>
+
+        <div>
+          <SecHead title="Related" meta="what these rules do to the sector" className="mb-2" />
+          <p className="text-[12px] leading-relaxed text-muted-foreground">
+            Reserves held at the central bank, the pass-through from the policy rate into deposit
+            and loan pricing, and the FX-protected deposit stock are covered on{" "}
+            <Link href="/liquidity" className="font-semibold text-primary">Liquidity</Link>,{" "}
+            <Link href="/rates" className="font-semibold text-primary">Rates</Link> and{" "}
+            <Link href="/deposits" className="font-semibold text-primary">Deposits</Link>.
+          </p>
         </div>
       </div>
 
-      <SecHead
-        title="Flags"
-        meta="a rule prints whether or not it fires"
-        className="mt-7 mb-2.5"
-      />
-      <Flags flags={flags} showCleared />
-
-      <Depth meta="the archive — carried over, rekeyed, not removed">
-        <Archive rows={rows} held={tcmbTotal + bddkTotal} />
-
-        {residue.length > 0 && (
-          <section className="mt-8">
-            <SecHead
-              title="What the briefing found that this page does not model"
-              meta="the residue — kept so the dissolve loses nothing"
-              className="mb-2.5"
-            />
-            <p className="mb-3 max-w-[78ch] text-[12.5px] leading-relaxed text-muted-foreground">
-              The band above models the <b className="font-semibold text-foreground">corridor</b>{" "}
-              and the <b className="font-semibold text-foreground">reserve requirements</b>, and
-              its figures are compiled from the instruments — never from the model. The weekly
-              briefing also surfaces licensing, structure and payments items that no cell
-              represents, so they are listed here rather than dropped. This is the one place on
-              the page where an LLM writes: a bad week costs a paragraph, never a figure.
-            </p>
-            <div className="grid grid-cols-1 gap-x-10 gap-y-5 lg:grid-cols-3">
-              {residue.map((cat) => (
-                <div key={cat.name}>
-                  <h4 className="font-mono text-[8.5px] tracking-[0.07em] uppercase text-faint">
-                    {cat.name}
-                  </h4>
-                  <table className="mt-1 w-full border-collapse">
-                    <tbody>
-                      {cat.bullets.slice(0, 5).map((b, i) => (
-                        <tr key={i}>
-                          <td className="border-b border-hair py-1.5 text-[12px] leading-snug text-muted-foreground">
-                            {b.text}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
+      <Depth meta="the archive">
+        <p className="mb-3 max-w-[80ch] text-[12px] leading-relaxed text-muted-foreground">
+          {heldTotal.toLocaleString()} releases, dated by the day the decision was taken. BDDK
+          publishes its board decisions a mean of{" "}
+          <b className="font-semibold text-foreground">{meanLag} days</b> after taking them, in
+          irregular batches — a decision surfacing this month may be over a year old. Open any row
+          to read the regulator&apos;s own words.
+        </p>
+        <Archive rows={rows} held={heldTotal} />
       </Depth>
 
       <Colophon>
-        Compiled from news_items ({(tcmbTotal + bddkTotal).toLocaleString()} TCMB + BDDK
-        instruments) in D1 · policy rate from EVDS TP.PY.P02.1H, reconciled against the release
-        that set it · corridor and reserve ratios parsed from body_text, not from an LLM ·
-        decision dates and board-decision numbers parsed from BDDK titles · binding dates quoted
-        from the instruments that state them · rules we could not parse are counted, not hidden
+        The state band and the loan growth caps are parsed from the instruments&apos; own text; the
+        policy rate is reconciled against EVDS TP.PY.P02.1H
         {briefing && (
           <>
-            {" "}
-            · editorial coverage only (never figures) from the weekly briefing —{" "}
-            {briefing.model}, {briefing.item_count} items, {briefing.window_days}-day window,
-            generated {longDate(briefing.generated_at.slice(0, 10))}
+            {" "}· the changelog is written from those instruments by {briefing.model} over{" "}
+            {briefing.item_count} releases, every claim source-linked and cross-checked against the
+            parsed parameter where one exists ({nAgree} match, {nConflict} conflicts)
           </>
-        )}
+        )}{" "}
+        · capital-adequacy and credit-card rules are published in BDDK Tebliğ / Resmî Gazete, which
+        this site does not ingest, and are left empty · reserves ÷ deposits from the weekly BDDK
+        bulletin · decision dates parsed from BDDK titles
       </Colophon>
     </main>
   );

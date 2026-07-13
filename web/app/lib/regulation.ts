@@ -21,7 +21,7 @@
  *     dropped into "not regulation".
  */
 import { cachedAll } from "./db";
-import type { NewsItem } from "./news";
+import type { Briefing, NewsItem } from "./news";
 
 // ─────────────────────────────────────────────────────────── types
 
@@ -187,9 +187,21 @@ const BOARD_RE = /kurul karar|faaliyet izni|kuruluş izni|kurulmasına izin|ipta
  * folded into "not regulation". An unrecognised release might be a rule; the
  * page says how many it could not place rather than pretending to know.
  */
-export function classifyInstrument(item: Pick<NewsItem, "source" | "title">): InstrumentKind {
+export function classifyInstrument(
+  item: Pick<NewsItem, "source" | "title"> & { body_text?: string | null },
+): InstrumentKind {
   const t = item.title;
   if (RATE_RE.test(t)) return "rate";
+
+  // The MPC Summary reads like comms — "a summary of a decision already made" —
+  // and was classified as such. But it is 8,000 characters, and it is the ONLY
+  // document that states the 8-week loan growth limits in machine-readable prose:
+  // the macroprudential release that sets them ships no table at all. A document
+  // carrying binding parameters no other release exposes is not comms.
+  if (/summary of the monetary policy committee/i.test(t) && parseGrowthCaps(item.body_text).length > 0) {
+    return "rule";
+  }
+
   if (NOISE_RE.test(t) || NOISE_TR_RE.test(t)) return "other";
   if (RULE_RE.test(t) || RULE_TR_RE.test(t)) return "rule";
   if (BOARD_RE.test(t)) return "board";
@@ -607,4 +619,262 @@ export async function policyRateFromEvds(): Promise<{ date: string; value: numbe
 
 export async function bankNames(): Promise<{ ticker: string; name: string }[]> {
   return cachedAll<{ ticker: string; name: string }>(`SELECT ticker, name FROM banks`);
+}
+
+// ─────────────────────────────────────────────────────────── loan growth caps
+
+export interface GrowthCap {
+  label: string;
+  prev: number;
+  next: number;
+}
+
+export interface GrowthCaps {
+  caps: GrowthCap[];
+  decidedAt: string;
+  url: string;
+  title: string;
+}
+
+/**
+ * The 8-week loan growth limits.
+ *
+ * These were long treated here as unreadable: the macroprudential release that
+ * SETS them ships no table (we hold 342 characters of the 23 May one). But the
+ * MPC SUMMARY recaps them, in a document we already store in full, in one
+ * regular sentence:
+ *
+ *   "growth limits imposed for eight-week periods were reduced from 4% to 3% in
+ *    general purpose and vehicle loans extended to consumers, from 2% to 1% in
+ *    overdraft account limits extended to consumers, from 5% to 4.5% in Turkish
+ *    lira loans extended to SMEs, and from 3% to 2% in Turkish lira loans
+ *    extended to non-SME enterprises."
+ *
+ * One regex gets all four. That summary is 8,000 characters and was classified
+ * as "comms about a decision already made" — which is exactly what hid the caps.
+ */
+const CAP_CLAUSE_RE = /from\s+([\d.]+)%\s+to\s+([\d.]+)%\s+in\s+([^,.;]+)/gi;
+
+/** "general purpose and vehicle loans extended to consumers" → "General-purpose & vehicle" */
+function capLabel(raw: string): string {
+  const s = raw.toLowerCase();
+  if (/non-sme/.test(s)) return "TL loans to non-SMEs";
+  if (/\bsme/.test(s)) return "TL loans to SMEs";
+  if (/overdraft/.test(s)) return "Consumer overdraft";
+  if (/general purpose/.test(s) && /vehicle/.test(s)) return "General-purpose & vehicle";
+  if (/foreign currency/.test(s)) return "FX loans";
+  const t = raw.trim().replace(/\s+/g, " ");
+  return t.charAt(0).toUpperCase() + t.slice(1, 40);
+}
+
+export function parseGrowthCaps(body: string | null | undefined): GrowthCap[] {
+  if (!body) return [];
+
+  // Bound the search to the PARAGRAPH that announces the limits. An 8,000-char
+  // summary is full of other "from x% to y%" prose (inflation, reserves,
+  // commissions) and any of it would otherwise be read as a cap.
+  //
+  // Do NOT bound with [^.] to "stay in the sentence" — a cap of 4.5% contains a
+  // full stop, so the match dies at the decimal and silently returns two caps
+  // instead of four. That is the same trap that ate a third of the policy-rate
+  // path; it is pinned by a test below.
+  const at = body.search(/growth limits/i);
+  if (at < 0) return [];
+  const end = body.indexOf("\n\n", at);
+  const para = body.slice(at, end > 0 ? end : at + 700);
+  if (!/(?:reduced|increased|set|revised|introduced)/i.test(para)) return [];
+
+  const out: GrowthCap[] = [];
+  for (const c of para.matchAll(CAP_CLAUSE_RE)) {
+    const prev = Number(c[1]);
+    const next = Number(c[2]);
+    if (!Number.isFinite(prev) || !Number.isFinite(next)) continue;
+    out.push({ label: capLabel(c[3]), prev, next });
+  }
+  return out;
+}
+
+/** The caps as stated by the most recent release that states them. */
+export function deriveGrowthCaps(items: NewsItem[]): GrowthCaps | null {
+  const sorted = [...items].sort((a, b) => b.published_at.localeCompare(a.published_at));
+  for (const it of sorted) {
+    const caps = parseGrowthCaps(it.body_text);
+    if (caps.length >= 2) {
+      return { caps, decidedAt: it.published_at.slice(0, 10), url: it.url, title: it.title };
+    }
+  }
+  return null;
+}
+
+// ─────────────────────────────────────────────────────────── the changelog
+
+export interface ChangeRow {
+  category: string;
+  text: string;
+  /** Publication date of the instrument the claim cites. */
+  date: string;
+  url: string;
+  title: string;
+  /** The compiled parameter this claim agrees with, if any. */
+  agrees: string | null;
+  /** What the instrument actually says, where the claim conflicts with it. */
+  conflicts: string | null;
+}
+
+/**
+ * Cross-checks. Where the model states a figure the parser has ALSO read out of
+ * the instrument, the two are compared: agreement earns a ✓, a conflict earns a
+ * ✗ that prints what the instrument says.
+ *
+ * The conflict is real and current. The briefing reports the 4.5% cap as
+ * applying to "commercial loans (excluding overdraft)"; the instrument says
+ * "Turkish lira loans extended to SMEs" — a narrower set — and states a separate
+ * 3%→2% cap for non-SMEs that the briefing omits altogether.
+ */
+function buildChecks(
+  corridor: Corridor | null,
+  reserves: ReserveState | null,
+  caps: GrowthCaps | null,
+): { re: RegExp; agrees?: string; conflicts?: string }[] {
+  const out: { re: RegExp; agrees?: string; conflicts?: string }[] = [];
+  if (corridor) {
+    out.push({
+      re: new RegExp(`policy rate[^.]*?\\b${corridor.policy}\\b`, "i"),
+      agrees: `policy rate ${corridor.policy}%`,
+    });
+    if (corridor.lending != null) {
+      out.push({
+        re: new RegExp(`overnight lending[^.]*?\\b${corridor.lending}\\b`, "i"),
+        agrees: `O/N lending ${corridor.lending}%`,
+      });
+    }
+    if (corridor.borrowing != null) {
+      out.push({
+        re: new RegExp(`overnight borrowing[^.]*?${corridor.borrowing}`, "i"),
+        agrees: `O/N borrowing ${corridor.borrowing}%`,
+      });
+    }
+  }
+  for (const c of reserves?.changes ?? []) {
+    out.push({
+      re: new RegExp(`${c.prev}%\\s*to\\s*${c.next}%`, "i"),
+      agrees: `reserve ratio ${c.prev}→${c.next}%`,
+    });
+  }
+  for (const t of reserves?.terminated ?? []) {
+    out.push({
+      re: /additional turkish lira reserve requirement[^.]*terminat/i,
+      agrees: `${t.was}% add-on ended`,
+    });
+  }
+  const sme = caps?.caps.find((c) => c.label === "TL loans to SMEs");
+  if (sme) {
+    out.push({
+      re: /commercial loans \(excluding overdraft\)/i,
+      conflicts: `instrument: TL loans to SMEs, ${sme.prev}% → ${sme.next}%`,
+    });
+  }
+  return out;
+}
+
+/**
+ * The briefing's claims, re-keyed on the date of the instrument each one cites.
+ *
+ * The briefing groups by BBVA-style section — a taxonomy. Useful for reference,
+ * useless for the question a reader arrives with ("what changed since I last
+ * looked?"). The bullets carry `source_ids`, the instruments carry dates, so the
+ * same content sorts into a changelog.
+ *
+ * A claim that cites nothing is NOT published: an unsourced sentence from a model
+ * is not something a reader can check.
+ */
+export function buildChangelog(
+  briefing: Briefing | null,
+  lookup: Map<string, { title: string; url: string; published_at: string }>,
+  corridor: Corridor | null,
+  reserves: ReserveState | null,
+  caps: GrowthCaps | null,
+): ChangeRow[] {
+  if (!briefing) return [];
+  const checks = buildChecks(corridor, reserves, caps);
+  const rows: ChangeRow[] = [];
+
+  for (const cat of briefing.categories) {
+    for (const b of cat.bullets) {
+      const hits = b.source_ids
+        .map((id) => lookup.get(id))
+        .filter((x): x is { title: string; url: string; published_at: string } => x != null);
+      if (hits.length === 0) continue;
+      const newest = hits.reduce((a, c) => (c.published_at > a.published_at ? c : a));
+
+      let agrees: string | null = null;
+      let conflicts: string | null = null;
+      for (const c of checks) {
+        if (!c.re.test(b.text)) continue;
+        if (c.conflicts) {
+          conflicts = c.conflicts;
+          break;
+        }
+        if (c.agrees && !agrees) agrees = c.agrees;
+      }
+
+      rows.push({
+        category: cat.name,
+        text: b.text,
+        date: newest.published_at.slice(0, 10),
+        url: newest.url,
+        title: newest.title,
+        agrees: conflicts ? null : agrees,
+        conflicts,
+      });
+    }
+  }
+  return rows.sort((a, b) => b.date.localeCompare(a.date));
+}
+
+// ─────────────────────────────────────────────────────────── reserves held
+
+export interface RatioPoint {
+  date: string;
+  tl: number | null;
+  fx: number | null;
+}
+
+/**
+ * What banks actually hold against deposits — required reserves ÷ deposits, from
+ * the weekly BDDK bulletin. The rule states a ratio; this is the ratio that
+ * lands, after exemptions and maturity mix.
+ *
+ * Paired BY DATE, never by row offset: the weekly feed can omit a currency leg,
+ * and a row-offset LAG would silently misalign the series.
+ */
+export async function reserveRatioSeries(): Promise<RatioPoint[]> {
+  const rows = await cachedAll<{ period_date: string; currency: string; item_id: string; value: number }>(
+    `SELECT period_date, currency, item_id, value
+       FROM weekly_series
+      WHERE bank_type_code = '10001'
+        AND item_id IN ('5.0.4', '4.0.1')
+        AND currency IN ('TL', 'FX')
+        AND period_date >= '2022-01-01'
+      ORDER BY period_date`,
+  );
+  const res = new Map<string, Map<string, number>>();
+  const dep = new Map<string, Map<string, number>>();
+  for (const r of rows) {
+    const target = r.item_id === "5.0.4" ? res : dep;
+    if (!target.has(r.period_date)) target.set(r.period_date, new Map());
+    target.get(r.period_date)!.set(r.currency, r.value);
+  }
+  const out: RatioPoint[] = [];
+  for (const [date, r] of [...res.entries()].sort()) {
+    const d = dep.get(date);
+    if (!d) continue;
+    const ratio = (c: string) => {
+      const rv = r.get(c);
+      const dv = d.get(c);
+      return rv != null && dv != null && dv > 0 ? (100 * rv) / dv : null;
+    };
+    out.push({ date: date.slice(0, 10), tl: ratio("TL"), fx: ratio("FX") });
+  }
+  return out;
 }
