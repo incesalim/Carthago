@@ -1,6 +1,6 @@
 # /regulation v4 — "What changed": the changelog, and the model that gets checked
 
-**Date:** 2026-07-13 · **Status: SUPERSEDED** by [v5 — buildable](../design/mockups/2026-07-13-regulation-tab-v5-buildable.html) ·
+**Date:** 2026-07-13 · **Status: SHIPPED 2026-07-13** (`7c1b329`) as the v5 (buildable) composition ·
 > **Why:** v4's artefact argued its own design *inside the page* — a block headed *“The model got
 > this wrong, and the citation caught it”*, and a paragraph explaining that *“a model you can check
 > is worth more than a parser that sees nothing.”* **None of that would ship.** In the built page a
@@ -124,3 +124,32 @@ cross-check is a comparison between two things the page already holds.
 - **Reclassify the MPC Summary.** `classifyInstrument` calls it `other` ("comms about a decision
   already made"). It is 8,000 characters and contains binding parameters no other document
   exposes. That classification is what hid the caps for three design iterations.
+
+---
+
+## Shipped
+
+`7c1b329`, live at https://carthago.app/regulation. Verified in the browser, not by a 200.
+
+**Built:** `parseGrowthCaps` / `deriveGrowthCaps` / `buildChangelog` / `reserveRatioSeries` in
+`app/lib/regulation.ts`; `ReserveRatio.tsx`; `page.tsx` rebuilt to the v5 composition. 205 tests.
+
+**Live behaviour, confirmed:**
+
+- all four caps parsed from the MPC summary (3% / 1% / 4.5% / 2%);
+- the changelog reads **✓ 5 match the parameter parsed from the instrument · ✗ 1 conflicts**;
+- the conflict renders on the offending row, exactly as designed:
+  *"The 8-week growth limit for **commercial loans (excluding overdraft)** has been adjusted to
+  4.5%, down from 5%."* → `✗ instrument: TL loans to SMEs, 5% → 4.5%`;
+- the MPC Summary now classifies as a **rule** and appears as one in the archive;
+- capital-adequacy and credit-card sections render **empty, with their reason**.
+
+**The same trap, a second time.** `parseGrowthCaps` was first written with `[^.]` to "stay in the
+sentence" — and a cap of **4.5%** contains a full stop, so it returned **two** caps instead of four.
+Identical to the bug that ate a third of the policy-rate path. Both are now pinned by tests. The
+lesson is not "avoid `[^.]`"; it is that **a parser that silently returns fewer rows than it should
+looks exactly like a parser that works.** Compare the count you classified with the count you
+parsed, every time.
+
+**Dropped in this ship:** the decision-lag comb chart and the 30-day ✓/✕ list — both were about the
+pipeline, not the regime.
