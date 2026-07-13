@@ -182,6 +182,27 @@ quantity often exists twice: sector CAR is 16.34% in the BDDK monthly bulletin a
 the hybrid stack bigger than the buffer?) silently flatters or damns the answer.
 Compute both sides on one basis and print which.
 
+**One metric, one number — never print a home-made version of a published one.**
+If the source publishes the metric, that figure IS the page's figure. A derived
+effect is applied to it as a **delta**, not computed as a rival. (`/profitability`
+nearly shipped a hand-rolled ROE of 25.8% — net profit ÷ average equity — in the
+band beside BDDK's published 24.7%. The demand-book counterfactual is now a cost
+in pp *against* the published ratio.) Two numbers for one thing is a bug even when
+both are right.
+
+**A cumulative source must be de-cumulated before it is read as a month.** The
+BDDK income statement is year-to-date (net profit 0.09 → 0.17 → 0.29 → 0.36), and
+every ratio built from it — ROE, ROA, NIM, OPEX — is a YTD figure annualized. For
+"what happened this month", subtract last month's YTD, and remember **January IS
+the year to date**. A YTD average cannot show that May's net interest income rose
+₺98bn while the profit fell.
+
+**Derived aggregates reconcile against the source's own total, and fail loudly.**
+A bridge assembled from fixed `item_order` positions drifts silently the day the
+source renumbers a line. Check the sum against the reported total on every render
+(`|bridge − reported| > tolerance`) and print a data-quality flag INSTEAD of the
+chart when it breaks. A page that must survive a cron cannot fail quietly.
+
 **Print the step, don't average it.** A twelve-month "drift" that spans a
 discontinuity is not a trend, and extrapolating it is arithmetic dressed as a
 forecast. `/capital` detects the break from the series (`detectStep` — a move
