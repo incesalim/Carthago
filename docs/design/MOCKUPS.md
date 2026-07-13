@@ -40,6 +40,15 @@ Status vocabulary: **SHIPPED** (built, live) · **PROPOSED** (made, not built) �
 
 ---
 
+## 2026-07-13 — second passes
+
+A page can be right about its defect and still be the wrong page. These are redesigns
+of pages we had *just shipped*.
+
+| Artefact | Status | Local | Link |
+|---|---|---|---|
+| Regulation — **Where the rules bite** | **PROPOSED** — not built. Supersedes the *signature* of the Rulebook (shipped hours earlier; its parsers, archive, licensing register and coverage caveat all survive). Premise: the Rulebook fixed the right defect — the page **counted announcements** instead of **stating the regime** — and then **stopped**. It says the reserve requirement is *32%* and nothing about what 32% **does**. That is a rulebook, and you can get a rulebook from the regulator's website. **Carthago holds the sector's balance sheet, weekly, back to 2019, and the regulation page never touched it.** So: every rule drawn against the number it moves. (1) **The reserve requirement is ₺4.06trn** — **13.6% of every lira deposited in Türkiye** sits at the CBRT, neither lent nor invested, because a rule says so; and the *lira* ratio was **0.02% in Jan 2022** vs 6.8% now — it was built from nothing, while FX barely moved (21.3→24.5%). (2) **The corridor says 37%. Nobody pays 37%** — the saver is paid **49.0%**, the borrower pays **61.7%**: a **24.7pp** wedge, so printing "37%" as *the regime* is true and deeply misleading. (3) **A rule built ₺3.41trn and dissolved it** — FX-protected deposits (KKM) peaked at a **fifth of the deposit base** (Aug 2023) and are now **exactly zero**. Checked and **not** built: the credit-growth-cap chart — 4-week growth swings **0.3–4.7%** with no ceiling effect, so "growth pins at the cap" would be an invented finding. Drops the decision-lag comb and the 30-day ✓/✕ list (both about *us*, not the regime). **No new source, no new cron, no LLM.** Rationale: [knowledge](../knowledge/regulation-tab-redesign-v2-2026-07-13.md) | [html](mockups/2026-07-13-regulation-tab-where-rules-bite.html) · [desktop](mockups/2026-07-13-regulation-tab-where-rules-bite-desktop.png) · [mobile](mockups/2026-07-13-regulation-tab-where-rules-bite-mobile.png) | [artifact](https://claude.ai/code/artifact/edb95ab0-55c8-4d2e-87ef-d9ab4fdcf8be) |
+
 ## 2026-07-12 — tab-by-tab redesigns
 
 Each page of the site taken back to a mockup and rebuilt against the Desk brief.
