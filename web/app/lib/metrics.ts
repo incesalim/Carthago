@@ -23,6 +23,7 @@
  */
 import { cachedAll } from "./db";
 import type { NimComponentRow } from "./nim-components";
+import type { BsRow, PnlRow } from "./profitability";
 import { computeWeeklyGrowth, type WeeklyGrowthInput } from "./weekly-growth";
 
 // ---------------------------------------------------------------------------
@@ -501,6 +502,59 @@ export async function nimComponentsRaw(
               AND ast.bank_type_code = inc.bank_type_code
        ORDER BY inc.year, inc.month, inc.bank_type_code`,
     [...bankCodes, ...bankCodes],
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Sector P&L + the deposit mix (the /profitability engine)
+// ---------------------------------------------------------------------------
+
+/**
+ * The sector's monthly income statement, by item_order. CUMULATIVE year-to-date
+ * — de-cumulate before reading any of it as a month (lib/profitability.ts).
+ * item_order is the BDDK statement's own numbering; if it ever shifts, the
+ * bridge's reconciliation against item 53 fails loudly and the page says so.
+ */
+export async function sectorPnl(
+  bankType: string = BANK_TYPES.SECTOR,
+): Promise<PnlRow[]> {
+  return cachedAll<PnlRow>(
+    `SELECT year, month,
+        SUM(CASE WHEN item_order = 16 THEN amount_total END) AS dep_int,
+        SUM(CASE WHEN item_order = 24 THEN amount_total END) AS nii,
+        SUM(CASE WHEN item_order = 25 THEN amount_total END) AS prov,
+        SUM(CASE WHEN item_order = 34 THEN amount_total END) AS fees,
+        SUM(CASE WHEN item_order = 45 THEN amount_total END) AS opex,
+        SUM(CASE WHEN item_order = 50 THEN amount_total END) AS other,
+        SUM(CASE WHEN item_order = 52 THEN amount_total END) AS tax,
+        SUM(CASE WHEN item_order = 53 THEN amount_total END) AS net
+       FROM income_statement
+      WHERE currency = 'TL' AND bank_type_code = ?
+      GROUP BY year, month
+      ORDER BY year, month`,
+    [bankType],
+  );
+}
+
+/**
+ * The deposit mix and equity behind the engine: demand deposits pay nothing, so
+ * the blended cost of the base sits far below the rate actually paid on the time
+ * book. Item names are the bulletin's own (the trailing asterisks are BDDK's).
+ */
+export async function sectorDepositMix(
+  bankType: string = BANK_TYPES.SECTOR,
+): Promise<BsRow[]> {
+  return cachedAll<BsRow>(
+    `SELECT year, month,
+        SUM(CASE WHEN item_name = 'a) Vadesiz Mevduat'        THEN amount_total END) AS demand,
+        SUM(CASE WHEN item_name = 'b) Vadeli Mevduat'         THEN amount_total END) AS time_dep,
+        SUM(CASE WHEN item_name = 'Mevduat (Katılım Fonu)***' THEN amount_total END) AS total_dep,
+        SUM(CASE WHEN item_name = 'TOPLAM ÖZKAYNAKLAR'        THEN amount_total END) AS equity
+       FROM balance_sheet
+      WHERE currency = 'TL' AND bank_type_code = ?
+      GROUP BY year, month
+      ORDER BY year, month`,
+    [bankType],
   );
 }
 
