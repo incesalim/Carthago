@@ -479,6 +479,16 @@ design proposal, not a live regulatory record — do not rely on it for complian
   <div class="row3">
     <div>
       <div class="sec" style="margin-top:0"><h2>What this feed is not</h2></div>
+      <div class="flag">
+        <span class="id">!</span>
+        <p><b>A rule is in force that this band cannot show.</b> The <b>23 May</b>
+          macroprudential release sets credit <b>“Growth Limits (For Eight Weeks)”</b> —
+          and its table is <b>not in the release we hold</b> (342 chars: the heading, then
+          the footer). <b>10 of the last 12</b> macropru releases are the same. So the
+          band is <b>incomplete, and says so</b> rather than implying the regime is six
+          numbers wide.</p>
+        <span class="rule">is_rule ∧ parameters_extracted = 0 → print the gap</span>
+      </div>
       <div class="flag warn">
         <span class="id">△</span>
         <p>The archive holds <b>33</b> numbered board decisions across a span of
@@ -619,9 +629,15 @@ design proposal, not a live regulatory record — do not rely on it for complian
       <tr><td class="m">O/N lending &amp; borrowing<span>corridor bounds</span></td>
         <td style="font-size:11.5px">regex on the MPC body (<i>“…at 40 percent and 35.5 percent”</i>). <b>Better:</b> add the two EVDS series and treat prose as the check</td>
         <td style="font-size:11.5px">no match → <b>“not stated in the last release”</b>, never the previous value dressed as current.</td></tr>
-      <tr><td class="m">Reserve ratios<span>the fragile one</span></td>
-        <td style="font-size:11.5px">the release's <b>markdown pipe table</b> — <code>RawFeeds.tsx</code> already parses this exact shape</td>
-        <td style="font-size:11.5px">a macropru release the parser can't read → cells go <b>stale-flagged with their as-of date</b>, and the verify job fails.</td></tr>
+      <tr><td class="m" style="color:var(--negative)">Reserve ratios<span>THE BLOCKER — not automated today</span></td>
+        <td style="font-size:11.5px">the release's markdown pipe table. But <b>10 of the last 12</b> macropru releases don't <i>have</i> one — TCMB doesn't publish them as HTML tables (all re-fetched 12 Jul with the table-aware extractor; this is not a stale backfill)</td>
+        <td style="font-size:11.5px"><b>nothing to parse.</b> So: rule ∧ 0 parameters → <b>print the gap</b>. Real fix needs the communiqué / Resmî Gazete — a new source.</td></tr>
+      <tr><td class="m" style="color:var(--negative)">The finding<span>THE BLOCKER — hand-written above</span></td>
+        <td style="font-size:11.5px">must come from the <b>deterministic insight engine</b> (<code>insights.ts</code> / <code>Takeaway</code>) — computed slots in a template, no LLM</td>
+        <td style="font-size:11.5px">as drafted it <b>critiques the page it replaces</b> — self-referential nonsense the day it ships. It has to be rewritten as a computed takeaway.</td></tr>
+      <tr><td class="m">The band's <i>rows</i><span>not just its values</span></td>
+        <td style="font-size:11.5px">a <code>regime_parameters</code> table (param, value, prev, effective, instrument, active) — the band renders whatever is <b>active</b></td>
+        <td style="font-size:11.5px">six hard-coded cells would <b>silently omit</b> a new instrument type. Terminated params age out; new ones appear.</td></tr>
       <tr><td class="m">Instrument vs. noise<span>the ✓/✕ count</span></td>
         <td style="font-size:11.5px">keyword rules (as <code>news-tags.ts</code>) — the SSL cert, the journal and the MoU are the test set</td>
         <td style="font-size:11.5px">three states, not two: rule / not-rule / <b>unclassified</b>, and the unclassified count is printed.</td></tr>
