@@ -17,6 +17,7 @@ import {
   deriveReserves,
   decisionLags,
   institutionOf,
+  isBankInstitution,
   isInstrument,
   licences,
   meetingsHeld,
@@ -27,6 +28,7 @@ import {
   parseReserveChanges,
   parseTerminated,
   rateChanges,
+  reserveCellLabel,
   unreadRules,
 } from "./regulation";
 
@@ -197,10 +199,11 @@ describe("policy path", () => {
 // ── reserve ratios, and the rules we cannot read ────────────────────────────
 
 describe("reserve requirements", () => {
-  it("reads the before/after table", () => {
+  it("reads the before/after table, and keeps the header's currency with each row", () => {
+    const group = "Foreign currency deposits/participation funds";
     expect(parseReserveChanges(MACROPRU_WITH_TABLE)).toEqual([
-      { label: "Demand deposits and deposits with maturities up to 1 month", prev: 30, next: 32 },
-      { label: "With longer maturities", prev: 26, next: 28 },
+      { label: "Demand deposits and deposits with maturities up to 1 month", group, prev: 30, next: 32 },
+      { label: "With longer maturities", group, prev: 26, next: 28 },
     ]);
   });
 
@@ -316,5 +319,79 @@ describe("licensing register", () => {
   it("needs no alias for a bank it has never seen — an unmatched name IS the signal", () => {
     const rows = licences(lags, [{ ticker: "AKBNK", name: "Akbank" }]);
     expect(rows.every((r) => r.ticker === null)).toBe(true);
+  });
+
+  // BDDK licenses banks, leasing houses, factoring firms, asset managers and
+  // e-money issuers from ONE numbered sequence. Without this filter the
+  // "licensed but not covered" flag fires on Real Varlık Yönetim and Pratik
+  // Finansman — institutions that will never be in the bank universe because
+  // they are not banks. A flag that cries wolf 21 times is worse than no flag.
+  it("keeps NON-BANKS out of the bank register", () => {
+    expect(isBankInstitution("Enpara Bank")).toBe(true);
+    expect(isBankInstitution("Marin Yatırım Bankası")).toBe(true);
+    expect(isBankInstitution("Adil Katılım Bankası")).toBe(true);
+    expect(isBankInstitution("Ziraat Dinamik Banka")).toBe(true);
+
+    expect(isBankInstitution("Real Varlık Yönetim")).toBe(false);
+    expect(isBankInstitution("Pratik Finansman")).toBe(false);
+    expect(isBankInstitution("Tuna Faktoring")).toBe(false);
+    expect(isBankInstitution("Ziraat Finansal Kiralama")).toBe(false);
+    expect(isBankInstitution("Parolapara Elektronik Para ve Ödeme Hizmetleri")).toBe(false);
+
+    const mixed = decisionLags([
+      item({
+        source: "bddk",
+        title: "(13.06.2025 - 11226) Galata Varlık Yönetim A.Ş.'ye faaliyet izni verilmesine ilişkin Kurul Kararı",
+        published_at: "2026-03-13",
+      }),
+      item({
+        source: "bddk",
+        title: "(26.02.2026 - 11424) İktisat Katılım Bankası A.Ş.'ye faaliyet izni verilmesine ilişkin Kurul Kararı",
+        published_at: "2026-03-18",
+      }),
+    ]);
+    const rows = licences(mixed, banks);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].institution).toMatch(/İktisat/);
+  });
+
+  // A permission to ESTABLISH a bank is not a licence to OPERATE one, and a
+  // revocation is neither. The first cut labelled all three "operating licence
+  // granted", which is simply false for two of them.
+  it("tells the three kinds of licensing decision apart", () => {
+    const rows = licences(
+      decisionLags([
+        item({
+          source: "bddk",
+          title: "(12.03.2026 - 11432) Fuzul Katılım Bankası A.Ş. ünvanlı bir katılım bankası kurulmasına izin verilmesi",
+          published_at: "2026-03-18",
+        }),
+        item({
+          source: "bddk",
+          title: "(12.03.2026 - 11433) SLM Yatırım Bankası A.Ş.'nin kuruluş izninin iptaline ilişkin Kurul Kararı",
+          published_at: "2026-03-18",
+        }),
+        item({
+          source: "bddk",
+          title: "(26.02.2026 - 11424) İktisat Katılım Bankası A.Ş.'ye faaliyet izni verilmesine ilişkin Kurul Kararı",
+          published_at: "2026-03-18",
+        }),
+      ]),
+      [],
+    );
+    const byNo = new Map(rows.map((r) => [r.decision.decisionNo, r.kind]));
+    expect(byNo.get(11432)).toBe("establishment");
+    expect(byNo.get(11433)).toBe("revocation");
+    expect(byNo.get(11424)).toBe("operating");
+  });
+});
+
+describe("reserve cell labels", () => {
+  // "Demand deposits … up to 1 month" alone reads as a LIRA ratio. It is not
+  // one — the table's header says foreign currency, and the label must too.
+  it("carries the currency from the table header into the cell label", () => {
+    const [short, long] = parseReserveChanges(MACROPRU_WITH_TABLE);
+    expect(reserveCellLabel(short)).toBe("FX deposits · ≤1 month");
+    expect(reserveCellLabel(long)).toBe("FX deposits · longer maturities");
   });
 });

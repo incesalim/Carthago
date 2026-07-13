@@ -302,14 +302,14 @@ export default function Archive({ rows, held }: { rows: ArchiveRow[]; held: numb
                   </span>
                 )}
               </td>
-              <td className="border-b border-hair py-1.5 pl-2 text-right font-mono text-[11px] tabular-nums text-muted-foreground">
+              <td className="border-b border-hair py-1.5 pl-2 text-right font-mono text-[11px] whitespace-nowrap tabular-nums text-muted-foreground">
                 {shortDate(r.decidedAt)}
               </td>
-              <td className="border-b border-hair py-1.5 pl-2 text-right font-mono text-[11px] tabular-nums text-faint">
+              <td className="border-b border-hair py-1.5 pl-2 text-right font-mono text-[11px] whitespace-nowrap tabular-nums text-faint">
                 {shortDate(r.item.published_at)}
               </td>
               <td
-                className={`border-b border-hair py-1.5 pl-2 text-right font-mono text-[11px] font-semibold tabular-nums ${
+                className={`border-b border-hair py-1.5 pl-2 text-right font-mono text-[11px] font-semibold whitespace-nowrap tabular-nums ${
                   (r.lagDays ?? 0) > 365 ? "text-negative" : "text-muted-foreground"
                 }`}
               >
