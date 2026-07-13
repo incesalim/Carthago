@@ -1,6 +1,12 @@
 # /regulation v3 — "The rulebook": compiled, synthesized, absent
 
-**Date:** 2026-07-13 · **Status:** PROPOSED (artefact made, not built) ·
+**Date:** 2026-07-13 · **Status: SUPERSEDED** by [v4 — what changed](regulation-tab-redesign-v4-2026-07-13.md) ·
+> **Why:** v3 gave a *taxonomy* when a reader opens this page asking **“what changed since I last
+> looked?”**. v4 re-spines the same content as a dated **changelog**. It also **overturns v3's
+> central claim**: the loan-growth caps ARE machine-readable — the MPC Summary recaps them in a
+> regular sentence — and parsing them caught the model **misreporting a category and dropping a
+> cap**.
+>
 **Artefact:** [claude.ai](https://claude.ai/code/artifact/16dc5276-cae1-4699-b665-8bbeb787d0c8) ·
 [html](../design/mockups/2026-07-13-regulation-tab-rulebook-v3.html)
 **Supersedes:** [v2 "Where the rules bite"](regulation-tab-redesign-v2-2026-07-13.md) — which
