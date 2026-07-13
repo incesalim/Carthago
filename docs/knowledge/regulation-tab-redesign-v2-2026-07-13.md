@@ -1,6 +1,11 @@
 # /regulation, second redesign — "Where the rules bite"
 
-**Date:** 2026-07-13 · **Status:** PROPOSED (artefact made, not built) ·
+**Date:** 2026-07-13 · **Status: SUPERSEDED** by [v3 — the rulebook](regulation-tab-redesign-v3-2026-07-13.md) ·
+> **Why superseded:** v2's spine (₺4.06trn of reserves, the transmission wedge, the KKM unwind)
+> is *balance-sheet analysis* — it belongs on **Liquidity / Rates / Deposits**, not on the page
+> that answers *what are the rules?* The findings are real and worth building **there**. Two of
+> its visuals survive in v3, demoted to marks beside the rules they illustrate.
+>
 **Supersedes the signature of:** [the Rulebook](regulation-tab-redesign-2026-07-12.md)
 (shipped this morning — its parsers, archive and licensing register all survive)
 
