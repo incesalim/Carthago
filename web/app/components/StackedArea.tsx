@@ -1,5 +1,20 @@
 "use client";
 
+/**
+ * Stacked composition chart.
+ *
+ * BEFORE reaching for this: read "Choosing the mark" in ../../DESIGN.md. A stack
+ * answers ONE question — "who holds the book" — and answers it badly in nominal
+ * ₺: the shape is mostly the deflator (deposits: nominal ×2.86 since May 2023,
+ * real ×0.91), only the bottom band has a flat baseline, and a weekly Δ named in
+ * the title is smaller than the axis can draw. If the question is a trend, a
+ * change, or a real-terms level, the mark is a share stack, a Δ strip, small
+ * multiples or a nominal-vs-real index — not this.
+ *
+ * The redesign this component is measured against (real rows, the arithmetic,
+ * the rules it sets): docs/design/mockups/2026-07-12-composition-chart.html.
+ */
+
 import {
   Area,
   AreaChart,

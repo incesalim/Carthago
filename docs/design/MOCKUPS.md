@@ -25,6 +25,15 @@ Rules for a new artefact: date-prefix the filename, publish it if it needs to be
 shared, and **add a row here in the same change** — an unrecorded artefact is a
 lost one.
 
+**And if the mockup sets a rule, promote the rule into [`web/DESIGN.md`](../../web/DESIGN.md)
+in the same change.** This file is an archive: a future session reads it only if
+it thinks to look. What gets read while a chart is actually being built is
+DESIGN.md and the component's own header. A rule that lives only in a mockup is
+a rule that will be broken by the next person who reaches for the component — so
+the rule goes in the law, and the law links back here for the worked example.
+(First one done this way: the composition chart → DESIGN.md "Choosing the mark"
++ the `StackedArea.tsx` header.)
+
 Status vocabulary: **SHIPPED** (built, live) · **PROPOSED** (made, not built) ·
 **NOT CHOSEN** (lost a bake-off) · **SUPERSEDED** (overtaken by a later design) ·
 **EXPLAINER** (teaching artefact, not a UI proposal).

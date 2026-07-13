@@ -61,6 +61,43 @@ dark one; pass the helper to `<Tooltip cursor>` instead of taking the default.
 Categorical bar charts (`BarByBank`) keep the band highlight (`t.cursor`): a line
 down the middle of a bar reads as a gridline, a band reads as "this column".
 
+## Choosing the mark (read this BEFORE adding a chart)
+
+**The mark answers the question the title asks.** A finding the mark cannot draw
+is a finding the chart has not made — if the title says "−₺0.40 trn in the week"
+and that move is three pixels of the plot, the title is a claim the reader must
+take on trust. Pick the form from the question, then check it against these.
+
+- **Composition is a share chart; a stack is not a trend chart.** For "who holds
+  the book", default `StackedArea` to shares (bands to 100%): it is the only
+  inflation-neutral view — a band can only grow by taking share. Levels stay
+  reachable (the size of the book is a real question), but they stop being what
+  the reader meets first. Only the bottom band of a stack has a flat baseline, so
+  a stack can never show four trends: when each series' own shape is the point,
+  use small multiples with a shared scale.
+- **Every nominal ₺ level ships with its real twin.** In a ~30% CPI regime a
+  nominal level chart is mostly a chart of the deflator (deposits: nominal ×2.86
+  since May 2023, **real ×0.91**). Deflate, or index nominal-vs-real on one axis,
+  and print the deflator's lag rather than hiding it.
+- **A weekly Δ gets a Δ mark**, not a level chart with a Δ in the title: a signed
+  strip (per group, zero-centred) beside the level, with the 4w/13w columns that
+  say whether one week is noise.
+- **Colour follows the entity, never the code table.** One group, one colour, on
+  weekly and monthly charts alike. (Live bug: the weekly bulletin re-uses the
+  bank-type codes with different meanings, so `seriesColor()` currently paints
+  State in Dev & Inv's grey — see the register's design debt.)
+- **Values live beside the mark, not on top of it.** Prefer a readout rail —
+  a fixed column, populated at rest, updated on hover — to a floating tooltip
+  that occludes the bands it describes and takes its numbers away on blur.
+  Identity is direct-labelled at the band/line end; a legend chip is never the
+  only key to a colour.
+- **Bands are separated by the sheet, not by a border** — a 2px gap in the sheet
+  colour between stacked fills; no outlines.
+
+Worked example, on real rows, with the arithmetic:
+[the composition chart](../docs/design/mockups/2026-07-12-composition-chart.html)
+([register row](../docs/design/MOCKUPS.md)).
+
 **Comparison surfaces** (`/cross-bank`, `/banks`) add two rules of their own:
 
 - **Rank is not distance.** A rank-coloured cell hides how FAR apart two banks
