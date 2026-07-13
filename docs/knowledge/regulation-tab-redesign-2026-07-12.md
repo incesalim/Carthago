@@ -561,3 +561,33 @@ before/after table; the tab filter works; 190 tests green.
 `/deposits`, …) throws `__name is not defined` in the console — an
 OpenNext/esbuild `keepNames` artefact. Interactivity is unaffected. Worth a
 separate fix.
+
+## Who is the flag for? (2026-07-13)
+
+The first shipped version warned the **wrong person**. Its flags were addressed to
+us, not to a reader:
+
+- *"EVDS and the 11 Jun release agree at 37%"* — that our two sources reconcile is
+  **our QA**, not a visitor's news.
+- *"we hold only 342 characters of it"*, *"is_rule ∧ params = 0"* — our plumbing.
+- *"4 licensed banks are not in our universe"* — our chore, phrased as if the
+  reader keeps the `banks` table.
+- *"What the headline count contains"* — a section title that only parses if you
+  had seen the page we deleted.
+
+**The test: does this sentence tell the reader something about the REGIME, or
+something about our PIPELINE?** Most of the information passed; the framing did
+not. So:
+
+| Kept, reframed as a fact about the regime | Removed from the page |
+|---|---|
+| "This is not the whole regime: 9 further rule changes are in force and not shown above" — with links to the source. **Amber, not red**: nothing is broken; the regulator simply published no machine-readable numbers | character counts, extraction predicates |
+| "BDDK publishes its board decisions a mean of 348 days after taking them, in irregular batches" — a fact about the *regulator*, and why a decision surfacing this month may be a year old | "the archive below is keyed on the decision date, not the scrape date" |
+| "4 banks hold an operating licence but have not started reporting" — the pipeline of new Turkish banks | "not in our universe" / "not covered" |
+| The reconciliation, **only when it FAILS** — "the policy rate above is disputed between sources; treat it as provisional" | the reconciliation when it passes |
+
+A coverage caveat a reader needs in order not to draw a false conclusion is a
+**service**. A system diagnostic shouting in red is **noise wearing the costume of
+honesty**. Automation honesty (`web/DESIGN.md` rule 6) means the page states how a
+number was made and prints the rules it tested — it does not mean the page
+narrates its own ETL.
