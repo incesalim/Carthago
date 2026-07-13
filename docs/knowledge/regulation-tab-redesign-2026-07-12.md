@@ -518,3 +518,46 @@ The ad-hoc SQL used `instr(title,'-')`, which missed the en-dash variants; the
 parser accepts both. The unread count went from 1 to 9 once the classifier learnt
 BDDK's Turkish rule titles — the gap the page prints is **wider than the mockup
 showed**, which is the honest result and the argument for PR 3.
+
+## Three more, found only by LOOKING at the deployed page
+
+HTTP 200 and a text scrape said the page was fine. It was not. These three
+survived a green build, 187 passing tests and a curl of the rendered HTML, and
+were caught by opening the page in a browser:
+
+1. **The licensing flag was crying wolf 21 times.** BDDK licenses banks, leasing
+   houses, factoring firms, asset managers and e-money issuers from **one**
+   numbered sequence — a fact stated in this very document and then not coded.
+   So the flag read *"21 licensed institutions are not in our bank universe"* and
+   listed **Real Varlık Yönetim** (an asset manager) and **Pratik Finansman** (a
+   financing company): institutions that will never be in `banks` because they are
+   not banks. Filtered to banks, the flag now names **4 real ones** — FUPS,
+   Aytemiz Yatırım, Adil Katılım, İktisat Katılım — which is a signal worth having.
+2. **"Operating licence granted" was false for two of the three decision kinds.**
+   A permission to *establish* a bank (`kurulmasına izin`) is not a licence to
+   *operate* one (`faaliyet izni`), and a revocation (`iptal`) is the opposite of
+   both. Each row now states its own kind, and the flag only fires on an operating
+   licence.
+3. **The reserve cells never said which currency they were.** The band read
+   *"Demand deposits and deposits with maturities up to 1 month — 32%"*, which any
+   reader takes for a **lira** ratio. It is not one. The currency is in the table's
+   header (*"Foreign currency deposits/participation funds"*), which the parser was
+   throwing away. The header is now carried into the cell label: **"FX deposits ·
+   ≤1 month"**.
+
+**The lesson, and it is the same one as the `[^.]` regex:** the failures that
+matter here are not exceptions. They are *confident, well-formatted, plausible
+wrong answers* — a chart missing a third of its points, a flag naming the wrong
+banks, a ratio labelled with the wrong currency. Nothing throws. A green test
+suite does not see them. **Look at the page.**
+
+### Verified on the live page (2026-07-13)
+
+Desktop and dark theme render; mobile (430px) and tablet (820px) have no
+horizontal overflow; the archive drawer opens and renders the release's own
+before/after table; the tab filter works; 190 tests green.
+
+**Pre-existing, NOT from this work:** every route on the site (`/`, `/credit`,
+`/deposits`, …) throws `__name is not defined` in the console — an
+OpenNext/esbuild `keepNames` artefact. Interactivity is unaffected. Worth a
+separate fix.
