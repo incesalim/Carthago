@@ -1,7 +1,15 @@
 # /regulation, rethought — "The Rulebook"
 
-**Date:** 2026-07-12 · **Status:** PROPOSED (mockup made, not built) ·
+**Date:** 2026-07-12 · **Status: SHIPPED 2026-07-13** (PR 1 + PR 2 of the ship order below) ·
 **Artefact:** [`docs/design/mockups/2026-07-12-regulation-tab-rulebook.html`](../design/mockups/2026-07-12-regulation-tab-rulebook.html)
+
+> **Built:** `web/app/lib/regulation.ts` (parsers + queries, 29 unit tests),
+> `web/app/regulation/{page,Archive,PolicyPath,DecisionLag}.tsx`. `RawFeeds.tsx`
+> is gone — the archive replaces it and keeps the drawer.
+> **Not built: PR 3** (the reserve parameters need a source that carries them —
+> see [Blocker 1](#-blocker-1--the-reserve-requirement-cells-have-no-data-to-stand-on)).
+> Four bugs the real-data run caught before deploy are recorded in
+> [What implementation changed](#what-implementation-changed).
 
 Supersedes the earlier `2026-07-12-regulations-tab.html` mockup — see
 [What the first mockup got wrong](#what-the-first-mockup-got-wrong).
@@ -434,3 +442,79 @@ EVDS series. Everything else is already arriving; it is just not being read.
   summarizer and stays; this design leans on it rather than replacing it.
 - `web/DESIGN.md` — the Desk; the carry-over contract and automation honesty.
 </content>
+
+---
+
+## What implementation changed
+
+Built 2026-07-13. The design survived, but running the parsers against the **real
+524 rows** (rather than the handful I had eyeballed in SQL) caught four bugs that
+would all have shipped. Recording them because each is a trap the next parser
+will fall into.
+
+### 1. A regex that could not cross a decimal point — it ate a third of the cycle
+
+```ts
+/policy rate[^.]*?(?:to|at)\s+([\d.]+)\s*percent/i   // WRONG
+```
+
+`[^.]` was meant to keep the match inside one sentence. But a rate like **39.5
+contains a full stop**, so the match dies at the decimal — and every decision
+whose *old* rate had a decimal was silently skipped. That is **8 of 48**,
+including `43→40.5`, `40.5→39.5`, `42.5→46` and `8.5→15`: five of the cycle's
+biggest moves, missing from the chart, with no error anywhere. Bound by line and
+length instead (`[^\n]{0,200}?`), try the `to` form before the `at` form, and pin
+it with a regression test.
+
+**The tell was arithmetic, not an exception:** 48 releases classified as rate
+decisions, 40 points on the chart. Always compare the count you classified with
+the count you parsed.
+
+### 2. `İş Bankası` matched three banks it has nothing to do with
+
+The licence matcher folded names and tested substring containment both ways.
+`fold("İş Bankası")` → `"bankası"`, which is a substring of **every** Turkish
+bank's name — so ISCTR "matched" Marin Yatırım Bankası, Adil Katılım Bankası and
+Aytemiz Yatırım Bankası. A false ticker attribution on a live page.
+
+Fixed by matching on **core tokens**: strip the boilerplate (`bank`, `bankası`,
+`katılım`, `yatırım`, `finans`, `a.ş.`…), require every remaining token of the
+bank's name to appear in the institution's, and where several qualify take the
+most specific — otherwise *Ziraat Bankası* claims *Ziraat Dinamik*'s licence.
+
+### 3. `ORDER BY published_at DESC LIMIT 400` is not a neutral window
+
+BDDK dumped 29 board decisions into a two-week window in March 2026. That batch
+**crowds TCMB out of the window**, so a flat limit silently truncated the rate
+path from 48 decisions to 38 and lost the first two months of the cycle. The
+composition of the window must not depend on how a regulator batches its
+publishing: fetch **per source**, with a limit each.
+
+### 4. "Unclassified" is not "not regulation"
+
+The first classifier left **187 of 400** items unclassified — and the pile was not
+noise. It contained real rules: BDDK's *Makro İhtiyati Önlemler*, the credit-card
+and consumer-loan restructuring, the contactless payment limit. Broadening the
+patterns (Turkish *and* English, with noise tested **first** — Turkish titles are
+promiscuous, and "…Basın Açıklaması" ends both a rule and a strategic-plan
+announcement) brought it to 154 of 524, nearly all genuinely not rules
+(cooperation agreements, a student paper contest, staff recruitment).
+
+The page keeps the third state and prints it: an unplaced release shows `?` in
+amber, not `✕`. Saying "not regulation" about something we merely failed to
+recognise would be the same confident-but-wrong move the old page made when it
+called an SSL certificate its "latest decision".
+
+## Corrected figures (the live page computes these; earlier drafts undercounted)
+
+| | Draft (from ad-hoc SQL) | Live (parsed) |
+|---|---|---|
+| Numbered board decisions | 33 | **37** |
+| Mean publication lag | 309d | **348d** |
+| Worst lag | 629d | **727d** — Sipay Elektronik Para #10873, decided 2024-03-07, published 2026-03-04 |
+| Rules unread (12m) | 1 | **9** — TCMB macropru without tables, *plus* BDDK rules with **no body text at all** |
+
+The ad-hoc SQL used `instr(title,'-')`, which missed the en-dash variants; the
+parser accepts both. The unread count went from 1 to 9 once the classifier learnt
+BDDK's Turkish rule titles — the gap the page prints is **wider than the mockup
+showed**, which is the honest result and the argument for PR 3.
