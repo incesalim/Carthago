@@ -274,6 +274,7 @@ export default async function CreditPage() {
     fxShare,
     cardsYoY: consCards,
     smeYoY: smeSector,
+    bridge,
   });
   const readData = await withLlmHeadline("credit", read);
 
@@ -614,7 +615,7 @@ export default async function CreditPage() {
         meta="carried over, reordered by question — nothing removed"
         action={<GlobalRangeSelector />}
       >
-        <Takeaway data={readData} />
+        <Takeaway data={readData} variant="desk" />
 
         <Section
           index="01"
@@ -641,7 +642,8 @@ export default async function CreditPage() {
                 yFormat="pct"
                 decimals={1}
                 zeroLine
-              />
+              plain
+            />
             </div>
             <TrendChart
               data={mom4Sector}
@@ -650,6 +652,7 @@ export default async function CreditPage() {
               yFormat="pct"
               decimals={1}
               zeroLine
+              plain
             />
           </div>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -661,6 +664,7 @@ export default async function CreditPage() {
               yFormat="pct"
               decimals={1}
               zeroLine
+              plain
             />
             <TrendChart
               data={fxShare}
@@ -669,6 +673,7 @@ export default async function CreditPage() {
               description="How much of the book the currency adjustment is acting on."
               yFormat="pct"
               decimals={1}
+              plain
             />
           </div>
         </Section>
@@ -692,7 +697,8 @@ export default async function CreditPage() {
                 yFormat="pct"
                 decimals={1}
                 zeroLine
-              />
+              plain
+            />
             </div>
             <BarByBank
               data={yoyByBank}
@@ -700,6 +706,7 @@ export default async function CreditPage() {
               title={`Loan YoY by group · ${yoyByBank[0]?.period ?? ""}`}
               format="pct"
               decimals={1}
+              plain
             />
           </div>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -713,6 +720,7 @@ export default async function CreditPage() {
               yFormat="pct"
               decimals={1}
               zeroLine
+              plain
             />
             <TrendChart
               data={tlYoyPubPriv}
@@ -724,6 +732,7 @@ export default async function CreditPage() {
               yFormat="pct"
               decimals={1}
               zeroLine
+              plain
             />
           </div>
         </Section>
@@ -740,12 +749,14 @@ export default async function CreditPage() {
               title="Consumer Credit Mix — Level (sector)"
               yFormat="trn"
               decimals={2}
+              plain
             />
             <StackedArea
               data={consMix}
               series={consMixSeries}
               title="Consumer Credit Mix — Share (%)"
               percentStack
+              plain
             />
           </div>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -761,6 +772,7 @@ export default async function CreditPage() {
               yFormat="pct"
               decimals={1}
               zeroLine
+              plain
             />
             <TrendChart
               data={cards.flatMap(
@@ -775,6 +787,7 @@ export default async function CreditPage() {
               title="Credit Cards — Retail vs Corporate (Level · monthly)"
               yFormat="bn"
               decimals={0}
+              plain
             />
           </div>
         </Section>
@@ -800,6 +813,7 @@ export default async function CreditPage() {
               yFormat="pct"
               decimals={1}
               zeroLine
+              plain
             />
             <TrendChart
               data={smeVsCommercial}
@@ -809,6 +823,7 @@ export default async function CreditPage() {
               yFormat="pct"
               decimals={1}
               zeroLine
+              plain
             />
           </div>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -818,6 +833,7 @@ export default async function CreditPage() {
               title="SME Loans — Level (sector)"
               yFormat="trn"
               decimals={2}
+              plain
             />
             <TrendChart
               data={smeLevel.filter((r) => pubPrivSet.has(r.bank_type_code))}
@@ -828,6 +844,7 @@ export default async function CreditPage() {
               title="SME Loans — Public vs Private (Level)"
               yFormat="trn"
               decimals={2}
+              plain
             />
           </div>
           <ChartRow
@@ -859,6 +876,7 @@ export default async function CreditPage() {
               title="SME Mix — Micro / Small / Medium (sector, TL bn · monthly)"
               yFormat="bn"
               decimals={0}
+              plain
             />
           </ChartRow>
         </Section>
