@@ -31,6 +31,8 @@ interface Props {
   format?: FormatKind;
   decimals?: number;
   height?: number;
+  /** Drop the card chrome — the evidence layer speaks the brief's language. */
+  plain?: boolean;
 }
 
 
@@ -41,6 +43,7 @@ export default function BarByBank({
   format = "raw",
   decimals = 2,
   height = 320,
+  plain = false,
 }: Props) {
   const t = useChartTheme();
   const tt = tooltipStyles(t);
@@ -60,7 +63,7 @@ export default function BarByBank({
     v == null ? "" : fmt(Number(v), decimals);
 
   return (
-    <ChartCard title={title}>
+    <ChartCard title={title} plain={plain}>
       <ChartData
         table={{
           columns: ["Group", "Value"],
