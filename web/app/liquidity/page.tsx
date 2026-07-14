@@ -58,6 +58,7 @@ import {
 } from "@/app/components/desk";
 import { lastVal, latestByGroup, monthLabel, signedPp, windowExtremes } from "@/app/lib/desk";
 import { VERBS, bandsFor, direction, firstClaim } from "@/app/lib/prose";
+import { aheadSlots } from "@/app/lib/ahead-data";
 import { GlobalRangeSelector } from "@/app/components/range-context";
 import TrendChart from "@/app/components/TrendChart";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
@@ -135,6 +136,9 @@ function lastYearWindow<T extends { period: string }>(s: T[]): T[] {
 }
 
 export default async function LiquidityPage() {
+  // What lands next — derived from the record periods + TCMB's published calendar.
+  const ahead = await aheadSlots();
+
   const LOANS = { category: "krediler", item_id: "1.0.1" };
   const DEPOSITS = { category: "mevduat", item_id: "4.0.1" };
 
@@ -752,13 +756,13 @@ export default async function LiquidityPage() {
           </p>
         </div>
         <div>
-          <SecHead title="Ahead" meta="schedule — not a forecast" className="mb-2.5" />
+          <SecHead title="Ahead" meta="schedule — derived from the record periods + the tcmb calendar" className="mb-2.5" />
           <Ahead
             items={[
               { when: "FRI", what: <>BDDK weekly bulletin — TL and FX funding</> },
               { when: "THU", what: <>TCMB analytical balance sheet — the reserve buffer</> },
-              {
-                when: "JUL 23",
+              ahead.mpc && {
+                when: ahead.mpc.when,
                 what: (
                   <>
                     TCMB MPC — the rate the{" "}
@@ -766,12 +770,12 @@ export default async function LiquidityPage() {
                   </>
                 ),
               },
-              {
-                when: "AUG–SEP",
-                what: <>BRSA Q2 filings — LCR, NSFR, leverage</>,
+              ahead["brsa-filings"] && {
+                when: ahead["brsa-filings"].when,
+                what: <>BRSA {ahead["brsa-filings"].record} filings — LCR, NSFR, leverage</>,
                 href: "/earnings",
               },
-            ]}
+            ].filter((i) => !!i)}
           />
         </div>
       </div>

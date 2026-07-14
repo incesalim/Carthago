@@ -49,6 +49,48 @@ export function kindLabel(k: string): string {
 
 const _COLS = `source, external_id, ticker, period, kind, event_date, title, url, language`;
 
+/**
+ * How long after a quarter-end the results filings actually landed.
+ *
+ * The /pipeline and Desk "Ahead" blocks used to hand-type "AUG–SEP" for the next
+ * BRSA filings. This table records the filings that have ALREADY happened, so the
+ * window is observed rather than guessed. Returns null below a handful of
+ * filings — a window we cannot support is a window we do not print.
+ *
+ * Note the basis: `results_filing` rows come from KAP, so this measures the
+ * LISTED banks, who file first. It is the lag to the first filings landing, not
+ * to the whole 38-bank universe being in.
+ */
+export async function filingLagDays(): Promise<{
+  loDays: number;
+  hiDays: number;
+  n: number;
+} | null> {
+  const rows = await cachedAll<{ period: string; event_date: string }>(
+    `SELECT period, event_date
+       FROM bank_earnings
+      WHERE kind = 'results_filing' AND period IS NOT NULL
+      ORDER BY event_date DESC
+      LIMIT 200`,
+  );
+
+  const lags: number[] = [];
+  for (const r of rows) {
+    const q = /^(\d{4})Q([1-4])$/.exec(r.period);
+    if (!q) continue;
+    // Day 0 of the month after the quarter = the quarter's last day.
+    const qEnd = Date.UTC(Number(q[1]), Number(q[2]) * 3, 0);
+    const filed = Date.parse(r.event_date);
+    if (Number.isNaN(filed)) continue;
+    const days = Math.round((filed - qEnd) / 86_400_000);
+    if (days > 0 && days < 200) lags.push(days);
+  }
+  if (lags.length < 3) return null;
+
+  lags.sort((a, b) => a - b);
+  return { loDays: lags[0], hiDays: lags[lags.length - 1], n: lags.length };
+}
+
 /** Latest earnings events across all banks, newest first. */
 export async function latestEarnings(limit = 250): Promise<EarningsEvent[]> {
   return cachedAll<EarningsEvent>(

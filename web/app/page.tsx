@@ -68,6 +68,7 @@ import {
 } from "@/app/components/desk";
 import TrendChart from "@/app/components/TrendChart";
 import BankTypeFilter from "@/app/components/BankTypeFilter";
+import { aheadSlots } from "@/app/lib/ahead-data";
 import { GlobalRangeSelector } from "@/app/components/range-context";
 import Takeaway from "@/app/components/Takeaway";
 import { overviewInsights } from "@/app/lib/insights";
@@ -164,6 +165,8 @@ export default async function OverviewPage({
 }: {
   searchParams: Promise<{ type?: string }>;
 }) {
+  // What lands next — derived from the record periods + TCMB's published calendar.
+  const ahead = await aheadSlots();
   const sector = [BANK_TYPES.SECTOR];
 
   // Bank-type filter for the in-depth scorecard (BANK_TYPE_LABELS keys are
@@ -656,18 +659,25 @@ export default async function OverviewPage({
           <Standings groups={standings} />
         </div>
         <div>
-          <SecHead title="Ahead" meta="schedule — not a forecast" className="mb-2.5" />
+          <SecHead title="Ahead" meta="schedule — derived from the record periods + the tcmb calendar" className="mb-2.5" />
           <Ahead
             items={[
-              { when: "JUL 23", what: <>TCMB MPC — rate decision</> },
-              { when: "AUG ~12", what: <>BDDK monthly bulletin — June record</> },
-              {
-                when: "AUG–SEP",
-                what: <>BRSA Q2 filings — audited statements + capital</>,
+              ahead.mpc && { when: ahead.mpc.when, what: <>TCMB MPC — rate decision</> },
+              ahead["bddk-monthly"] && {
+                when: ahead["bddk-monthly"].when,
+                what: <>BDDK monthly bulletin — {ahead["bddk-monthly"].record} record</>,
+              },
+              ahead["brsa-filings"] && {
+                when: ahead["brsa-filings"].when,
+                what: (
+                  <>
+                    BRSA {ahead["brsa-filings"].record} filings — audited statements + capital
+                  </>
+                ),
                 href: "/earnings",
               },
               { when: "FRI", what: <>BDDK weekly series — credit, deposits, FX</> },
-            ]}
+            ].filter((i) => !!i)}
           />
         </div>
       </div>
