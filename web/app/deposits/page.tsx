@@ -46,7 +46,8 @@ import {
   type StandingsGroup,
   type TransmissionItem,
 } from "@/app/components/desk";
-import { lastVal, monthLabel, signedPp, valAgo } from "@/app/lib/desk";
+import { lastVal, latestByGroup, monthLabel, signedPp, valAgo } from "@/app/lib/desk";
+import { everyOf, firstClaim } from "@/app/lib/prose";
 import { GlobalRangeSelector } from "@/app/components/range-context";
 import TrendChart from "@/app/components/TrendChart";
 import StackedArea from "@/app/components/StackedArea";
@@ -235,6 +236,48 @@ export default async function DepositsPage() {
   const dShareDelta = dShareNow != null && dShare52 != null ? dShareNow - dShare52 : null;
 
   const ldrNow = lastVal(ldrSector);
+
+  // "Every deposit-taking group funds its loan book below the 100% line" was
+  // guarded on the SECTOR ratio — while the Standings table on this very page
+  // already tones a group red when it breaches 100. Test the groups.
+  //
+  // Development & investment banks take no deposits: their LDR is not a funding
+  // ratio, and folding them into a claim about deposit-taking groups is a
+  // category error. The sector aggregate is not a group either.
+  const depositTaking = new Set<string>(
+    PRIMARY_BANK_TYPES.filter((c) => c !== BANK_TYPES.SECTOR && c !== BANK_TYPES.DEV_INV),
+  );
+  const ldrGroups = [...latestByGroup(ldr)].filter(([code]) => depositTaking.has(code));
+  const ldrBreach = ldrGroups
+    .filter(([, v]) => v.value >= 100)
+    .map(([code]) => BANK_TYPE_LABELS[code] ?? code);
+
+  // "Stopped falling" presumes the prior regime WAS a fall — flat-after-a-rise
+  // would have printed the same sentence.
+  const fxShare104 = valAgo(fxShare, 104);
+  const fxSharePrior = fxShare52 != null && fxShare104 != null ? fxShare52 - fxShare104 : null;
+  const fxFlat = fxShareDelta != null && Math.abs(fxShareDelta) < 1;
+
+  // "The book grows, its shape does not" — both halves are in `mix`, the chart's
+  // own data: the sum of the buckets, and how far the shares have travelled.
+  const mixTotal = (r: Record<string, number>) =>
+    MATURITY_SERIES.reduce((s, m) => s + (r[m.key] ?? 0), 0);
+  const mixLast = mix.at(-1);
+  const mixAgo = mix.at(-13);
+  const mixGrew =
+    mixLast && mixAgo ? mixTotal(mixLast) > mixTotal(mixAgo) : null;
+  const mixShift =
+    mixLast && mixAgo && mixTotal(mixLast) > 0 && mixTotal(mixAgo) > 0
+      ? Math.max(
+          ...MATURITY_SERIES.map((m) =>
+            Math.abs(
+              (100 * (mixLast[m.key] ?? 0)) / mixTotal(mixLast) -
+                (100 * (mixAgo[m.key] ?? 0)) / mixTotal(mixAgo),
+            ),
+          ),
+        )
+      : null;
+  const mixHeld = mixShift != null ? mixShift < 3 : null; // no bucket moved 3pp
 
   // ---- the base: the level, and what the book is actually made of -----------
   const trn = (v: number | null | undefined) => (v == null ? null : v / 1_000_000);
@@ -813,9 +856,17 @@ export default async function DepositsPage() {
               data={fxShare}
               seriesLabels={{ [WEEKLY_BANK_TYPES.SECTOR]: "FX share" }}
               title={
-                fxShareDelta != null && Math.abs(fxShareDelta) < 1
-                  ? "The FX share has stopped falling — flat for a year"
-                  : "FX share of total deposits"
+                firstClaim(
+                  [
+                    fxFlat && fxSharePrior != null && fxSharePrior < -1,
+                    "The FX share has stopped falling — flat for a year",
+                  ],
+                  [
+                    fxFlat && fxSharePrior != null && fxSharePrior > 1,
+                    "The FX share has stopped climbing — flat for a year",
+                  ],
+                  [fxFlat, "The FX share is flat — a year without a trend"],
+                ) ?? "FX share of total deposits"
               }
               description="fx deposits ÷ total deposits, %, weekly · sector"
               yFormat="pct"
@@ -894,7 +945,22 @@ export default async function DepositsPage() {
               plain
               data={mix}
               series={MATURITY_SERIES}
-              title="The ladder in lira — the book grows, its shape does not"
+              title={
+                firstClaim(
+                  [
+                    mixGrew === true && mixHeld === true,
+                    "The ladder in lira — the book grows, its shape does not",
+                  ],
+                  [
+                    mixGrew === false && mixHeld === true,
+                    "The ladder in lira — the book shrinks, its shape does not",
+                  ],
+                  [
+                    mixHeld === false && mixShift != null,
+                    `The ladder in lira — the shape is shifting (${(mixShift ?? 0).toFixed(1)}pp over 12m)`,
+                  ],
+                ) ?? "The maturity ladder in lira"
+              }
               description="maturity composition, ₺ trn, monthly · sector"
               source="Source: BDDK monthly bulletin — deposits by maturity"
               yFormat="trn"
@@ -917,9 +983,16 @@ export default async function DepositsPage() {
               data={ldr}
               seriesLabels={BANK_TYPE_LABELS}
               title={
-                ldrNow != null && ldrNow < 100
-                  ? "Every deposit-taking group funds its loan book below the 100% line"
-                  : "Loan / deposit by group"
+                firstClaim(
+                  [
+                    everyOf(ldrGroups, ([, v]) => v.value < 100),
+                    "Every deposit-taking group funds its loan book below the 100% line",
+                  ],
+                  [
+                    ldrBreach.length > 0,
+                    `${ldrBreach.join(" and ")} lend more than they take in — above the 100% line`,
+                  ],
+                ) ?? "Loan / deposit by group"
               }
               description="loans ÷ deposits, %, monthly · by ownership group"
               yFormat="pct"

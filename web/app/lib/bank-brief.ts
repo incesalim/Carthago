@@ -139,6 +139,12 @@ export interface EngineGate {
  * quarter-ends of average balances. A bank that has filed fewer simply has no
  * yield, funding cost, spread, cost of risk or ROE — and the page says so.
  */
+/**
+ * Two years of filings. Past this, a cost base above income is not a build-out —
+ * it is a franchise that does not cover itself, and the page should say so.
+ */
+export const BUILD_OUT_QUARTERS = 8;
+
 export function engineGate(rows: BankMetricRow[]): EngineGate {
   const latest = rows[rows.length - 1];
   const filings = rows.length;
@@ -249,13 +255,22 @@ export function bankFlags(d: FlagInput): BriefFlag[] {
     });
   }
 
+  // A young bank spending more than it earns is a build-out. A bank with twenty
+  // quarters of filings doing the same thing is not — it is a bank having a bad
+  // year, and calling that "normal, N quarters into a build-out" is flattery. The
+  // guard used to fire on cost_income alone; the age is what makes it a build-out.
   if (d.costIncome != null && d.costIncome > 100) {
+    const buildOut = d.filings <= BUILD_OUT_QUARTERS;
     out.push({
       id: "below-breakeven",
       kind: "flag",
       title: "Below break-even",
-      detail: `Cost / income ${d.costIncome.toFixed(1)}% — the bank spends ₺${(d.costIncome / 100).toFixed(2)} for every ₺1 of income. Normal ${d.filings} quarters into a build-out; the test is the trend.`,
-      rule: `cost_income > 100%`,
+      detail:
+        `Cost / income ${d.costIncome.toFixed(1)}% — the bank spends ₺${(d.costIncome / 100).toFixed(2)} for every ₺1 of income. ` +
+        (buildOut
+          ? `Normal ${d.filings} quarters into a build-out; the test is the trend.`
+          : `${d.filings} quarters in, this is not a build-out cost base — the franchise is not covering itself.`),
+      rule: `cost_income > 100% · build-out = filings ≤ ${BUILD_OUT_QUARTERS}q`,
     });
   }
 
@@ -294,7 +309,7 @@ export function risingStreak(values: (number | null)[]): number {
 export function peerRead(
   key: MetricKey,
   s: PeerStat,
-  ctx: { buffer?: number | null; realRoe?: number | null },
+  ctx: { buffer?: number | null; realRoe?: number | null; filings?: number | null },
 ): string {
   const gap = Math.abs(s.value - s.median);
   const place = `${ordinal(s.rank)} of ${s.n}`;
@@ -320,7 +335,12 @@ export function peerRead(
     case "nim":
       return `${place}. ${gap.toFixed(2)}pp ${s.value < s.median ? "under" : "over"} the median margin.`;
     case "cost_income":
-      if (s.value > 100) return `${place}. Costs exceed income — the build-out has not reached break-even.`;
+      if (s.value > 100) {
+        // Only a YOUNG bank is in a build-out. See BUILD_OUT_QUARTERS.
+        return ctx.filings != null && ctx.filings > BUILD_OUT_QUARTERS
+          ? `${place}. Costs exceed income — ${ctx.filings} quarters in, the franchise is not covering itself.`
+          : `${place}. Costs exceed income — the build-out has not reached break-even.`;
+      }
       if (s.rank <= Math.ceil(s.n * 0.25))
         return `${place} — top quartile. ${gap.toFixed(1)}pp better than the median: scale is earning its keep.`;
       return `${place} — ${bandOf(s.rank, s.n)}, ${gap.toFixed(1)}pp ${s.value < s.median ? "better" : "worse"} than the median.`;

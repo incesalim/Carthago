@@ -58,6 +58,7 @@ import {
   type TransmissionItem,
 } from "@/app/components/desk";
 import { monthLabel, signedPp, streak, valAgo, windowExtremes } from "@/app/lib/desk";
+import { firstClaim } from "@/app/lib/prose";
 import { bridge, costIncome, engine } from "@/app/lib/profitability";
 import { GlobalRangeSelector } from "@/app/components/range-context";
 
@@ -192,6 +193,19 @@ export default async function ProfitabilityPage() {
   const ci = costIncome(pnl);
   const ciNow = ci.at(-1)?.value ?? null;
   const ci12 = ci.at(-13)?.value ?? null;
+
+  // Three chart titles asserted things the series beside them already settle.
+  //
+  // "…pays a third of its depositors nothing — so the blended cost sits far below
+  // inflation": both the fraction and the comparison are live numbers (and it is
+  // the deposit BOOK, not the depositors, that the share measures).
+  const blendedGap = E && cpiAvgNow != null ? E.blended - cpiAvgNow : null;
+  // "The margin rebuilt as deposits repriced down": a NIM direction and a deposit-
+  // cost direction, neither tested. Compression reverses both.
+  const nim12 = yearAgo(sectorRows.nim);
+  const nimD = nimNow != null && nim12 != null ? nimNow - nim12 : null;
+  const blended12 = eng.at(-13)?.blended ?? null;
+  const costD = E && blended12 != null ? E.blended - blended12 : null;
   // ONE ROE on this page: BDDK's published ratio. The counterfactual is a COST
   // applied to it, never a rival ROE computed a different way.
   const roeIfPaid = roeNow != null && E ? roeNow - E.roeCost : null;
@@ -639,7 +653,22 @@ export default async function ProfitabilityPage() {
                   BLENDED: "Blended cost",
                   CPI: "CPI 12m-avg",
                 }}
-                title="The sector pays a third of its depositors nothing — so the blended cost sits far below inflation"
+                title={
+                  firstClaim(
+                    [
+                      blendedGap != null && blendedGap < -5,
+                      `The sector pays nothing on ${E.demandShare.toFixed(0)}% of its deposit book — so the blended cost sits far below inflation`,
+                    ],
+                    [
+                      blendedGap != null && blendedGap < 0,
+                      `The sector pays nothing on ${E.demandShare.toFixed(0)}% of its deposit book — enough to hold the blended cost under inflation`,
+                    ],
+                    [
+                      blendedGap != null,
+                      `The sector pays nothing on ${E.demandShare.toFixed(0)}% of its deposit book — yet the blended cost is ${signedPp(blendedGap ?? 0, 1)} against inflation`,
+                    ],
+                  ) ?? "Deposit cost against the CPI hurdle"
+                }
                 description="deposit cost, %, monthly · paid on time deposits vs blended, against the CPI hurdle"
                 source={
                   <div className="flex flex-wrap gap-x-4 gap-y-1">
@@ -901,7 +930,22 @@ export default async function ProfitabilityPage() {
               plain
               data={nim}
               seriesLabels={BANK_TYPE_LABELS}
-              title="The margin rebuilt as deposits repriced down"
+              title={
+                firstClaim(
+                  [
+                    nimD != null && nimD > 0 && costD != null && costD < 0,
+                    "The margin rebuilt as deposits repriced down",
+                  ],
+                  [
+                    nimD != null && nimD < 0 && costD != null && costD > 0,
+                    "The margin compressed as deposits repriced up",
+                  ],
+                  [
+                    nimD != null,
+                    `Net interest margin ${signedPp(nimD ?? 0, 2)} over 12 months`,
+                  ],
+                ) ?? "Net interest margin — by group"
+              }
               description="net interest margin, annualized %, monthly · by ownership group"
               source={<ChartFoot data={nim} labels={BANK_TYPE_LABELS} decimals={2} deltaPeriods={12} />}
               yFormat="pct"
@@ -912,10 +956,24 @@ export default async function ProfitabilityPage() {
               plain
               data={ci.map((c) => ({ period: c.period, bank_type_code: "CI", value: c.value }))}
               seriesLabels={{ CI: "Cost / income" }}
+              // The guard tested the DIRECTION; the sentence claims a LEVEL. Cost/
+              // income falling below 50% while still improving printed "Costs still
+              // eat more than half of income". Every rung now tests what it says.
               title={
-                ciNow != null && ci12 != null && ciNow < ci12
-                  ? "Costs still eat more than half of income — but less than they did"
-                  : "Cost / income"
+                firstClaim(
+                  [
+                    ciNow != null && ciNow > 50 && ci12 != null && ciNow < ci12,
+                    "Costs still eat more than half of income — but less than they did",
+                  ],
+                  [
+                    ciNow != null && ciNow > 50,
+                    `Costs eat ${fmtPct(ciNow)} of income — more than half`,
+                  ],
+                  [
+                    ciNow != null && ci12 != null,
+                    `Costs take ${fmtPct(ciNow)} of income — ${signedPp((ciNow ?? 0) - (ci12 ?? 0), 1)} over 12 months`,
+                  ],
+                ) ?? "Cost / income"
               }
               description="operating costs ÷ (nii + fees & other), %, monthly · sector"
               source={

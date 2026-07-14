@@ -159,3 +159,23 @@ describe("phrases and maths", () => {
     expect(peerRead("car", { ...s, value: 40.7, rank: 3 }, { buffer: 28.7 })).toContain("headroom");
   });
 });
+
+describe("the build-out guard", () => {
+  const s = { value: 118.0, median: 42.0, min: 28.0, max: 140.0, rank: 33, n: 34 };
+
+  it("calls a young bank spending more than it earns a build-out", () => {
+    expect(peerRead("cost_income", s, { filings: 4 })).toContain("build-out");
+  });
+
+  it("does NOT call a mature bank's bad year a build-out", () => {
+    // The guard fired on cost_income > 100 alone, so a bank twenty quarters old
+    // having one loss-making quarter was told it was still finding its feet.
+    const read = peerRead("cost_income", s, { filings: 20 });
+    expect(read).not.toContain("build-out");
+    expect(read).toContain("20 quarters in");
+  });
+
+  it("keeps the build-out reading when the age is unknown", () => {
+    expect(peerRead("cost_income", s, {})).toContain("build-out");
+  });
+});

@@ -45,7 +45,7 @@ import {
   type MoverRow,
 } from "@/app/components/desk";
 import { lastVal, monthLabel, signedPp, valAgo } from "@/app/lib/desk";
-import { VERBS, direction, runPhrase, toneClass } from "@/app/lib/prose";
+import { VERBS, claim, direction, runPhrase, toneClass } from "@/app/lib/prose";
 import {
   contributions,
   creditBridge,
@@ -396,6 +396,17 @@ export default async function CreditPage() {
     { key: "Gen. Purpose", label: "Gen. Purpose" },
     { key: "Retail Cards", label: "Retail Cards" },
   ];
+
+  // "cards & GPL drive the consumer book" was a ranking with nothing behind it,
+  // and housing is a live contender. The mix is right here.
+  const consLast = consMix.at(-1) as Record<string, number | string> | undefined;
+  const consLead = consLast
+    ? consMixSeries
+        .map((s) => ({ label: s.label, v: Number(consLast[s.key]) || 0 }))
+        .sort((a, b) => b.v - a.v)
+        .slice(0, 2)
+        .map((x) => x.label)
+    : [];
 
   const realWeek = weekLabel(bridge.asOfReal, false);
   const headlinePct = bridge.nominal != null ? `${bridge.nominal.toFixed(1)}%` : "the headline";
@@ -749,7 +760,12 @@ export default async function CreditPage() {
         <Section
           index="03"
           title="Where is it going?"
-          description="The composition behind the attribution bars — cards & GPL drive the consumer book."
+          description={
+            claim(
+              consLead.length === 2,
+              `The composition behind the attribution bars — ${consLead[0]} & ${consLead[1]} lead the consumer book.`,
+            ) ?? "The composition behind the attribution bars."
+          }
         >
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <StackedArea

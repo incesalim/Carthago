@@ -70,7 +70,9 @@ export function WhereItStands({
   ctx,
 }: {
   stats: Array<{ spec: PeerFieldSpec; stat: PeerStat }>;
-  ctx: { buffer?: number | null; realRoe?: number | null };
+  // `filings` gates the "build-out" reading: past BUILD_OUT_QUARTERS, a cost base
+  // above income is a franchise problem, not a young bank finding its feet.
+  ctx: { buffer?: number | null; realRoe?: number | null; filings?: number | null };
 }) {
   if (stats.length === 0) return null;
   return (

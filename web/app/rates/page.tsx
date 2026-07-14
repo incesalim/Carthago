@@ -18,6 +18,7 @@ import {
   Vitals,
 } from "@/app/components/desk";
 import { lastVal, monthLabel, signedPp, valAgo } from "@/app/lib/desk";
+import { VERBS, claim, direction } from "@/app/lib/prose";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
 import TrendChart from "@/app/components/TrendChart";
 
@@ -182,6 +183,11 @@ export default async function RatesPage() {
   const policyYoY = policyNow != null && policyYrAgo != null ? policyNow - policyYrAgo : null;
   const fundNow = lastVal(fundS);
   const fundGap = fundNow != null && policyNow != null ? fundNow - policyNow : null;
+  // Which cycle are we actually in? "cuts" / "hikes" / "holds", off the policy rate.
+  const cycleWord = direction(policyYoY, VERBS.cycle, {
+    flat: 0.5,
+    sharp: Number.POSITIVE_INFINITY,
+  });
   const depNow = lastVal(depS);
   const dep13w = valAgo(depS, 13);
   const depD13 = depNow != null && dep13w != null ? depNow - dep13w : null;
@@ -344,9 +350,17 @@ export default async function RatesPage() {
             title="Rate Corridor — Policy + ON + Effective Funding (%)"
             yFormat="pct"
             decimals={2}        />
+          {/* "policy cuts reach deposit pricing first" presumed an EASING cycle. In a
+              hiking cycle it is not stale, it is backwards — and policyYoY, computed
+              200 lines up, has always known which one we are in. */}
           <TimeSeriesChart
             series={byLabel(LENDING)}
-            title="Transmission — policy cuts reach deposit pricing first (weekly survey, %)"
+            title={
+              claim(
+                cycleWord != null && cycleWord !== VERBS.cycle.flat,
+                `Transmission — policy ${cycleWord} reach deposit pricing first (weekly survey, %)`,
+              ) ?? "Transmission — policy, deposit and loan pricing (weekly survey, %)"
+            }
             yFormat="pct"
             decimals={2}        />
         </div>
