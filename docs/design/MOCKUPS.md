@@ -40,6 +40,16 @@ Status vocabulary: **SHIPPED** (built, live) · **PROPOSED** (made, not built) �
 
 ---
 
+## 2026-07-14 — deletions
+
+The user proposed **deleting** two pages. This is the register of what was argued back.
+
+| Artefact | Status | Local | Link |
+|---|---|---|---|
+| **Bank Actions** (`/actions`) — the page that replaces `/earnings` **and** `/disclosures` | **PROPOSED**, awaiting the call. Premise: both pages were **feeds, not pages** — neither states anything, and the site's whole claim is *compiled, not written*. `/earnings` is a link directory whose vitals count **our own scraper** (decks collected, filings archived); `/disclosures` is reverse-chronological KAP, of which **27% (120 of 442 rows) is coupon-payment plumbing** ("the 103rd coupon payment on ISIN TRSSKBKA2716 has been made") and another 44 rows are company-info-form boilerplate. **But the same feed hides a finding no other page on this site can make:** six of the eleven listed banks filed **67 debt-issuance approvals in ten weeks** — AKBNK 18, GARAN 15, VAKBN 14, ISCTR 14, TSKB 4, HALKB 2 — Garanti and Vakıfbank repeatedly offshore, İşbank for **Tier-2 capital**, TSKB back abroad. Turkish banks have **reopened the offshore funding tap**, and one bank went the other way (**SKBNK rights issue**, board 7 May → CMB 3 Jun). `/capital` gives you the CAR *ratio*; **nothing on the site tracks what banks DO to their capital.** So: one page, classified by **act** (funding · capital events · ratings · results season), routine notices **counted and suppressed**, deterministic classifier over KAP form types — **no LLM, no new source, two nav slots → one**. Declared gap, printed on the page: we hold title+summary only, so it **counts acts, it does not measure them** — amounts/maturities/coupons need `src/news/kap.py` to scrape the detail form; and KAP's window only reaches back to **5 May 2026**. | [html](mockups/2026-07-14-actions-page.html) | [artifact](https://claude.ai/code/artifact/e469d447-6a18-4296-b5de-652c5c96c971) |
+
+---
+
 ## 2026-07-13 — second passes
 
 A page can be right about its defect and still be the wrong page. These are redesigns

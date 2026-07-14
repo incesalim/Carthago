@@ -1,0 +1,480 @@
+<title>/actions — Bank Actions (mockup)</title>
+<style>
+  /* ---- The Desk tokens (web/DESIGN.md — light) ------------------------- */
+  :root {
+    --background: #F7F8F6;
+    --card: #FFFFFF;
+    --foreground: #12161B;
+    --muted-foreground: #68707A;
+    --faint: #A0A7AE;
+    --border: #E1E3DD;
+    --hair: #ECEDE8;
+    --primary: #2757A8;
+    --data: #2B4E7E;
+    --context: #C0C8D1;
+    --positive: #187A53;
+    --negative: #C24847;
+    --warning: #B98514;
+    --shadow: 0 1px 2px rgba(18,22,27,.04), 0 8px 24px -12px rgba(18,22,27,.10);
+
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --background: #101318;
+      --card: #171B21;
+      --foreground: #E6E9E6;
+      --muted-foreground: #9AA3AD;
+      --faint: #6B747E;
+      --border: #262C34;
+      --hair: #1F252C;
+      --primary: #7FA3D8;
+      --data: #7FA3D8;
+      --context: #4A525C;
+      --positive: #4FB98A;
+      --negative: #E0716B;
+      --warning: #D9A83F;
+      --shadow: 0 1px 2px rgba(0,0,0,.30), 0 10px 30px -14px rgba(0,0,0,.55);
+    }
+  }
+  :root[data-theme="dark"] {
+    --background: #101318; --card: #171B21; --foreground: #E6E9E6;
+    --muted-foreground: #9AA3AD; --faint: #6B747E; --border: #262C34;
+    --hair: #1F252C; --primary: #7FA3D8; --data: #7FA3D8; --context: #4A525C;
+    --positive: #4FB98A; --negative: #E0716B; --warning: #D9A83F;
+    --shadow: 0 1px 2px rgba(0,0,0,.30), 0 10px 30px -14px rgba(0,0,0,.55);
+  }
+  :root[data-theme="light"] {
+    --background: #F7F8F6; --card: #FFFFFF; --foreground: #12161B;
+    --muted-foreground: #68707A; --faint: #A0A7AE; --border: #E1E3DD;
+    --hair: #ECEDE8; --primary: #2757A8; --data: #2B4E7E; --context: #C0C8D1;
+    --positive: #187A53; --negative: #C24847; --warning: #B98514;
+    --shadow: 0 1px 2px rgba(18,22,27,.04), 0 8px 24px -12px rgba(18,22,27,.10);
+  }
+
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 24px 16px 64px; }
+
+  /* ---- mockup chrome (not part of the page being designed) ------------- */
+  .chrome {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px;
+    font-family: var(--mono); font-size: 9.5px; text-transform: uppercase;
+    letter-spacing: .06em; color: var(--faint); margin-bottom: 14px;
+  }
+  .chrome b { color: var(--warning); font-weight: 600; letter-spacing: .08em; }
+
+  /* ---- the sheet ------------------------------------------------------- */
+  .sheet {
+    background: var(--card); border: 1px solid var(--border); border-radius: 4px;
+    box-shadow: var(--shadow); padding: 34px clamp(18px, 4vw, 46px) 30px;
+  }
+
+  .desk-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 10px 24px; }
+  h1 { font-size: clamp(28px, 3.4vw, 38px); line-height: 1.08; letter-spacing: -.021em; font-weight: 600; text-wrap: balance; margin: 0; }
+  .record { font-family: var(--mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted-foreground); margin-top: 9px; }
+  .record b { color: var(--foreground); font-weight: 500; }
+  .stamp { font-family: var(--mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--faint); padding-bottom: 3px; }
+  .rule { border: 0; border-top: 2px solid var(--foreground); margin: 16px 0 0; }
+
+  /* ---- section heads --------------------------------------------------- */
+  .sec { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; border-bottom: 1px solid var(--hair); padding-bottom: 5px; margin: 40px 0 14px; }
+  .sec h2 { font-size: 12.5px; font-weight: 600; letter-spacing: .01em; margin: 0; }
+  .sec .meta { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: .05em; color: var(--faint); }
+
+  /* ---- the read -------------------------------------------------------- */
+  .read { margin-top: 22px; display: grid; gap: 10px; max-width: 74ch; }
+  .read p { margin: 0; font-size: 16.5px; line-height: 1.5; letter-spacing: -.004em; }
+  .read .sub { font-size: 13.5px; color: var(--muted-foreground); line-height: 1.55; }
+  .read em { font-style: normal; box-shadow: inset 0 -0.42em 0 color-mix(in srgb, var(--warning) 16%, transparent); }
+
+  /* ---- vitals band (the one bold element) ------------------------------ */
+  .vitals { margin-top: 26px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; border-top: 2px solid var(--foreground); border-bottom: 1px solid var(--hair); }
+  .vital { padding: 13px 16px 15px; border-left: 1px solid var(--hair); }
+  .vital:first-child { border-left: 0; padding-left: 0; }
+  .vital .lab { font-family: var(--mono); font-size: 8.5px; text-transform: uppercase; letter-spacing: .07em; color: var(--faint); }
+  .vital .val { font-family: var(--mono); font-size: 27px; font-weight: 500; letter-spacing: -.02em; font-variant-numeric: tabular-nums; margin-top: 6px; line-height: 1.1; }
+  .vital .val .unit { font-size: 12px; color: var(--muted-foreground); letter-spacing: 0; margin-left: 3px; }
+  .vital .note { font-size: 11px; color: var(--muted-foreground); margin-top: 5px; line-height: 1.4; }
+  @media (max-width: 900px) { .vitals { grid-template-columns: repeat(2, 1fr); } .vital { border-left: 1px solid var(--hair); padding-left: 16px; } .vital:nth-child(odd) { border-left: 0; padding-left: 0; } }
+
+  /* ---- issuance strip -------------------------------------------------- */
+  .strip { display: grid; gap: 7px; }
+  .strip .row { display: grid; grid-template-columns: 64px 1fr 34px; align-items: center; gap: 12px; }
+  .strip .tk { font-family: var(--mono); font-size: 11.5px; font-weight: 600; letter-spacing: .02em; }
+  .strip .bar { height: 12px; background: var(--data); border-radius: 1px; }
+  .strip .bar.ctx { background: var(--context); }
+  .strip .n { font-family: var(--mono); font-size: 11.5px; font-variant-numeric: tabular-nums; text-align: right; color: var(--muted-foreground); }
+  .stripnote { font-size: 11px; color: var(--muted-foreground); margin-top: 12px; max-width: 70ch; }
+
+  /* ---- tables ---------------------------------------------------------- */
+  .tblwrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { font-family: var(--mono); font-size: 8.5px; text-transform: uppercase; letter-spacing: .07em; color: var(--faint); font-weight: 500; text-align: left; padding: 0 12px 6px 0; border-bottom: 1px solid var(--hair); white-space: nowrap; }
+  th.num, td.num { text-align: right; }
+  td { padding: 9px 12px 9px 0; border-bottom: 1px solid var(--hair); vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  td.d, td.tk { font-family: var(--mono); font-size: 11.5px; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--muted-foreground); }
+  td.tk { color: var(--foreground); font-weight: 600; }
+  .tr-orig { display: block; font-size: 11px; color: var(--faint); margin-top: 2px; }
+  .tag { font-family: var(--mono); font-size: 8.5px; text-transform: uppercase; letter-spacing: .06em; padding: 1px 5px; border: 1px solid var(--hair); border-radius: 2px; color: var(--muted-foreground); white-space: nowrap; }
+  .tag.cap { color: var(--warning); border-color: color-mix(in srgb, var(--warning) 35%, var(--hair)); }
+  .tag.ext { color: var(--data); border-color: color-mix(in srgb, var(--data) 30%, var(--hair)); }
+  .tag.up { color: var(--positive); border-color: color-mix(in srgb, var(--positive) 30%, var(--hair)); }
+
+  /* ---- suppressed / gap panels ---------------------------------------- */
+  .suppressed { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; padding: 13px 0; }
+  .suppressed .big { font-family: var(--mono); font-size: 20px; font-variant-numeric: tabular-nums; color: var(--muted-foreground); }
+  .suppressed .txt { font-size: 12.5px; color: var(--muted-foreground); max-width: 62ch; }
+  .ghost { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: .06em; color: var(--primary); border: 1px dashed color-mix(in srgb, var(--primary) 40%, var(--hair)); border-radius: 2px; padding: 4px 9px; background: none; cursor: pointer; }
+  .ghost:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+  .gap { border-left: 2px solid var(--warning); padding: 4px 0 4px 14px; display: grid; gap: 6px; max-width: 78ch; }
+  .gap .h { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: .07em; color: var(--warning); }
+  .gap p { margin: 0; font-size: 12.5px; color: var(--muted-foreground); line-height: 1.55; }
+  .gap code { font-family: var(--mono); font-size: 11.5px; color: var(--foreground); }
+
+  .colophon { margin-top: 40px; border-top: 1px solid var(--hair); padding-top: 10px; font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: .05em; color: var(--faint); display: flex; flex-wrap: wrap; gap: 4px 16px; }
+
+  /* ---- decision panel (below the sheet — not part of the page) --------- */
+  .decision { margin-top: 30px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+  .decision > div { background: var(--card); padding: 16px 18px; }
+  .decision h3 { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: .07em; margin: 0 0 8px; color: var(--faint); }
+  .decision h3 .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+  .decision ul { margin: 0; padding-left: 16px; display: grid; gap: 5px; }
+  .decision li { font-size: 12.5px; line-height: 1.45; }
+  .decision code { font-family: var(--mono); font-size: 11.5px; }
+  @media (max-width: 800px) { .decision { grid-template-columns: 1fr; } }
+  a { color: var(--primary); }
+</style>
+
+<div class="wrap">
+
+  <div class="chrome">
+    <span><b>Mockup</b></span>
+    <span>/actions — proposed replacement for /earnings + /disclosures</span>
+    <span>Desk system · web/DESIGN.md</span>
+    <span>Every figure below is live D1 (KAP feed, 5 May – 13 Jul 2026)</span>
+  </div>
+
+  <div class="sheet">
+
+    <!-- ================= header ================= -->
+    <div class="desk-head">
+      <div>
+        <h1>Bank Actions</h1>
+        <div class="record">
+          Record <b>Jul 13, 2026</b> · KAP filings, classified daily · routine notices suppressed
+        </div>
+      </div>
+      <div class="stamp">compiled, not written</div>
+    </div>
+    <hr class="rule" />
+
+    <!-- ================= the read ================= -->
+    <div class="read">
+      <p>
+        Turkish banks have <em>reopened the offshore funding tap</em>. Six of the eleven
+        listed banks filed 67 debt-issuance approvals in the last ten weeks — Garanti and
+        Vakıfbank repeatedly to foreign markets, İşbank for Tier-2 capital, TSKB back
+        abroad for the first time in the window.
+      </p>
+      <p class="sub">
+        One bank is moving the other way: Şekerbank is raising equity, not debt — a rights
+        issue approved by the board on 7 May and filed with the CMB on 3 June. Four banks
+        were re-rated. Nothing else here is a decision; the rest of the KAP feed is
+        coupon-payment plumbing, and this page counts it rather than showing it.
+      </p>
+    </div>
+
+    <!-- ================= vitals ================= -->
+    <div class="sec" style="margin-top:34px">
+      <h2>The vitals</h2>
+      <div class="meta">funding · reach · ratings · equity · season</div>
+    </div>
+    <div class="vitals">
+      <div class="vital">
+        <div class="lab">Issuance filings</div>
+        <div class="val">67</div>
+        <div class="note">bond, GMTN and Tier-2 approvals since 5 May — the window the KAP feed holds</div>
+      </div>
+      <div class="vital">
+        <div class="lab">Banks tapping markets</div>
+        <div class="val">6<span class="unit">of 11</span></div>
+        <div class="note">AKBNK, GARAN, VAKBN, ISCTR, TSKB, HALKB — the other five sat out</div>
+      </div>
+      <div class="vital">
+        <div class="lab">Rating actions</div>
+        <div class="val">6</div>
+        <div class="note">across 4 banks · Fitch ×3, Moody's, JCR Eurasia</div>
+      </div>
+      <div class="vital">
+        <div class="lab">Equity raises</div>
+        <div class="val">1</div>
+        <div class="note">SKBNK rights issue — the only bank adding capital rather than borrowing it</div>
+      </div>
+      <div class="vital">
+        <div class="lab">Results season</div>
+        <div class="val">10<span class="unit">of 11</span></div>
+        <div class="note">Q1 2026 filed · season closed 8 May with ALBRK and HALKB</div>
+      </div>
+    </div>
+
+    <!-- ================= issuance ================= -->
+    <div class="sec">
+      <h2>Wholesale funding &amp; capital instruments</h2>
+      <div class="meta">issuance filings per bank · 5 May – 13 Jul 2026</div>
+    </div>
+
+    <div class="strip">
+      <div class="row"><span class="tk">AKBNK</span><span class="bar" style="width:100%"></span><span class="n">18</span></div>
+      <div class="row"><span class="tk">GARAN</span><span class="bar" style="width:83%"></span><span class="n">15</span></div>
+      <div class="row"><span class="tk">VAKBN</span><span class="bar" style="width:78%"></span><span class="n">14</span></div>
+      <div class="row"><span class="tk">ISCTR</span><span class="bar" style="width:78%"></span><span class="n">14</span></div>
+      <div class="row"><span class="tk">TSKB</span><span class="bar ctx" style="width:22%"></span><span class="n">4</span></div>
+      <div class="row"><span class="tk">HALKB</span><span class="bar ctx" style="width:11%"></span><span class="n">2</span></div>
+    </div>
+    <p class="stripnote">
+      Counts, not amounts — a filing is an act, not a size. See <i>the gap</i> below.
+      The four large private and state banks account for 61 of the 67; the participation
+      banks and the foreign-owned banks filed none.
+    </p>
+
+    <div style="height:26px"></div>
+    <div class="tblwrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:70px">Date</th>
+            <th style="width:70px">Bank</th>
+            <th>Act</th>
+            <th style="width:96px">Type</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="d">Jul 13</td><td class="tk">VAKBN</td>
+            <td>CMB approval — sustainable debt issue abroad under the GMTN programme
+              <span class="tr-orig">GMTN Programı Çerçevesinde Türkiye Dışında Sürdürülebilir Borçlanma Aracı İhracı SPK Onayı</span></td>
+            <td><span class="tag ext">offshore</span></td>
+          </tr>
+          <tr>
+            <td class="d">Jul 13</td><td class="tk">AKBNK</td>
+            <td>Bond issue to qualified investors
+              <span class="tr-orig">Nitelikli Yatırımcılara Yapılan Tahvil İhracı</span></td>
+            <td><span class="tag">domestic</span></td>
+          </tr>
+          <tr>
+            <td class="d">Jul 10</td><td class="tk">GARAN</td>
+            <td>CMB approval — bond issue to foreign markets
+              <span class="tr-orig">Yurtdışı Piyasalara Tahvil İhracı SPK Onayı</span></td>
+            <td><span class="tag ext">offshore</span></td>
+          </tr>
+          <tr>
+            <td class="d">Jul 8</td><td class="tk">ISCTR</td>
+            <td>Tier-2 qualifying debt instrument to be issued abroad
+              <span class="tr-orig">Yurt Dışında Yapılacak Katkı Sermaye Nitelikli Borçlanma Aracı İhracı Hakkında</span></td>
+            <td><span class="tag cap">tier 2</span></td>
+          </tr>
+          <tr>
+            <td class="d">Jul 7</td><td class="tk">TSKB</td>
+            <td>Offshore bond issue
+              <span class="tr-orig">Yurtdışı Tahvil İhracı Hakkında</span></td>
+            <td><span class="tag ext">offshore</span></td>
+          </tr>
+          <tr>
+            <td class="d">Jul 7</td><td class="tk">VAKBN</td>
+            <td>CMB approval — sustainable debt issue abroad under the GMTN programme
+              <span class="tr-orig">GMTN Programı Çerçevesinde Türkiye Dışında Sürdürülebilir Borçlanma Aracı İhracı SPK Onayı</span></td>
+            <td><span class="tag ext">offshore</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ================= capital events ================= -->
+    <div class="sec">
+      <h2>Capital &amp; shareholder events</h2>
+      <div class="meta">rights issues · dividends · buybacks · ceilings</div>
+    </div>
+    <div class="tblwrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:70px">Date</th>
+            <th style="width:70px">Bank</th>
+            <th>Act</th>
+            <th style="width:96px">Type</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="d">Jul 10</td><td class="tk">VAKBN</td>
+            <td>Shares bought back under the BRSA remuneration-practices guide
+              <span class="tr-orig">Bankalarda İyi Ücretlendirme Uygulamalarına İlişkin Rehber kapsamında geri alınan paylar</span></td>
+            <td><span class="tag">buyback</span></td>
+          </tr>
+          <tr>
+            <td class="d">Jun 3</td><td class="tk">SKBNK</td>
+            <td>CMB application filed for the cash rights issue
+              <span class="tr-orig">Bankamızın Bedelli Sermaye Artırımı İşlemine İlişkin SPK Başvurusu</span></td>
+            <td><span class="tag cap">rights issue</span></td>
+          </tr>
+          <tr>
+            <td class="d">May 8</td><td class="tk">KLNMA</td>
+            <td>Dividend distribution
+              <span class="tr-orig">Kar Payı Dağıtımı</span></td>
+            <td><span class="tag up">dividend</span></td>
+          </tr>
+          <tr>
+            <td class="d">May 7</td><td class="tk">SKBNK</td>
+            <td>Board resolution on the cash rights issue, with the use-of-proceeds report
+              <span class="tr-orig">Bedelli Sermaye Artırımına İlişkin Yönetim Kurulu Kararı</span></td>
+            <td><span class="tag cap">rights issue</span></td>
+          </tr>
+          <tr>
+            <td class="d">May 7</td><td class="tk">SKBNK</td>
+            <td>FY2025 profit distribution
+              <span class="tr-orig">2025 yılı kar dağıtımı hakkında</span></td>
+            <td><span class="tag up">dividend</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ================= ratings ================= -->
+    <div class="sec">
+      <h2>Rating actions</h2>
+      <div class="meta">6 filings · 4 banks · agency named from the filing</div>
+    </div>
+    <div class="tblwrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:70px">Date</th>
+            <th style="width:70px">Bank</th>
+            <th style="width:110px">Agency</th>
+            <th>Filing</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="d">Jul 6</td><td class="tk">HALKB</td><td>Moody's</td><td>Credit rating update</td></tr>
+          <tr><td class="d">Jun 24</td><td class="tk">VAKBN</td><td>JCR Eurasia</td><td>Credit ratings</td></tr>
+          <tr><td class="d">Jun 22</td><td class="tk">TSKB</td><td>Fitch</td><td>Ratings</td></tr>
+          <tr><td class="d">Jun 12</td><td class="tk">VAKBN</td><td>Fitch</td><td>Ratings</td></tr>
+          <tr><td class="d">Jun 11</td><td class="tk">HALKB</td><td>Fitch</td><td>Rating — revised</td></tr>
+          <tr><td class="d">Jun 11</td><td class="tk">AKBNK</td><td>Fitch</td><td>Ratings</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ================= results season (absorbs /earnings) ================= -->
+    <div class="sec">
+      <h2>Results season</h2>
+      <div class="meta">Q1 2026 · filing dates from KAP · decks from bank IR sites</div>
+    </div>
+    <div class="tblwrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:70px">Filed</th>
+            <th style="width:70px">Bank</th>
+            <th>Report</th>
+            <th style="width:150px">Investor deck</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="d">May 8</td><td class="tk">ALBRK</td><td>Q1 2026 financial report — consolidated + solo</td><td><a href="#">Q1 2026 deck ↗</a></td></tr>
+          <tr><td class="d">May 8</td><td class="tk">HALKB</td><td>Q1 2026 financial report — consolidated + solo</td><td><a href="#">Q1 2026 deck ↗</a></td></tr>
+          <tr><td class="d">May 7</td><td class="tk">SKBNK</td><td>Q1 2026 financial report — consolidated + solo</td><td><a href="#">Q1 2026 deck ↗</a></td></tr>
+          <tr><td class="d">May 6</td><td class="tk">VAKBN</td><td>Q1 2026 financial report — consolidated + solo</td><td><a href="#">Q1 2026 deck ↗</a></td></tr>
+          <tr><td class="d">May 5</td><td class="tk">ISCTR</td><td>Q1 2026 financial report — consolidated + solo</td><td><a href="#">Q1 2026 deck ↗</a></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="stripnote">
+      75 investor decks held across 10 banks; only ICBCT publishes no deck archive.
+      Turkish banks do not file earnings-call invitations on KAP and no free transcript
+      feed exists, so there is no call calendar here — and there never was one on
+      /earnings either.
+    </p>
+
+    <!-- ================= suppressed ================= -->
+    <div class="sec">
+      <h2>Suppressed as routine</h2>
+      <div class="meta">counted, not shown</div>
+    </div>
+    <div class="suppressed">
+      <div class="big">120</div>
+      <div class="txt">
+        coupon-payment notices, redemptions, issuance-ceiling maintenance and
+        company-information forms — filings a bank makes because a rule says it must,
+        not because anything happened. They are 27% of the KAP feed and they were the
+        top of /disclosures every day.
+      </div>
+      <button class="ghost" type="button">Show anyway</button>
+    </div>
+
+    <!-- ================= the gap ================= -->
+    <div class="sec">
+      <h2>The gap</h2>
+      <div class="meta">what this page cannot yet say</div>
+    </div>
+    <div class="gap">
+      <div class="h">amounts, maturities and coupons are not in this data</div>
+      <p>
+        A KAP filing carries structured fields — nominal amount, ISIN, maturity, coupon —
+        on its detail page. We hold only the title and the summary line, so this page can
+        say <em>that</em> Garanti went to foreign markets four times but not for how much,
+        for how long, or at what price. Until the detail form is scraped
+        (<code>src/news/kap.py</code>), this page <b>counts acts; it does not measure
+        them.</b>
+      </p>
+      <p>
+        The feed also only reaches back to <b>5 May 2026</b> — KAP's own window. A
+        quarter-on-quarter issuance series needs a backfill before it can exist.
+      </p>
+    </div>
+
+    <div class="colophon">
+      <span>Source — KAP (Public Disclosure Platform), bank IR sites</span>
+      <span>Classified by filing type + summary rules · no model sets a figure</span>
+      <span>Refreshed daily 06:00 UTC</span>
+    </div>
+  </div>
+
+  <!-- ================= decision panel (outside the page) ================= -->
+  <div class="decision">
+    <div>
+      <h3><span class="dot" style="background:var(--negative)"></span>What dies</h3>
+      <ul>
+        <li><code>/earnings</code> — a link directory whose vitals counted our own scraper</li>
+        <li><code>/disclosures</code> — reverse-chronological KAP feed, 27% coupon notices</li>
+        <li>Two nav slots under <b>By Bank</b> collapse into one</li>
+      </ul>
+    </div>
+    <div>
+      <h3><span class="dot" style="background:var(--context)"></span>What survives, unmoved</h3>
+      <ul>
+        <li>The per-bank <b>Earnings &amp; Disclosures</b> block on <code>/banks/[ticker]</code> — a filing link is useful in a bank's context, which is the only place it ever was</li>
+        <li>The <code>bank_earnings</code> table and both crons — no pipeline work</li>
+      </ul>
+    </div>
+    <div>
+      <h3><span class="dot" style="background:var(--positive)"></span>What's new</h3>
+      <ul>
+        <li>The only page on the site that tracks what banks <b>do</b>, not what they <b>report</b></li>
+        <li>A funding-conditions signal that exists nowhere else — offshore access reopening</li>
+        <li>Deterministic classifier over KAP form types — no LLM, no new source</li>
+      </ul>
+    </div>
+  </div>
+
+</div>
