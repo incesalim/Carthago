@@ -22,7 +22,12 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { useChartTheme, tooltipStyles } from "@/app/lib/chart-theme";
+import {
+  useChartTheme,
+  tooltipStyles,
+  PLOT_MARGIN_LEFT,
+  Y_AXIS_WIDTH,
+} from "@/app/lib/chart-theme";
 import type { RollForwardYear } from "@/app/lib/credit-risk";
 
 const bnf = (v: number) => `₺${Math.round(v).toLocaleString("en-US")}bn`;
@@ -61,7 +66,11 @@ export default function FormationBars({
       </div>
 
       <ResponsiveContainer width="100%" height={height}>
-        <BarChart data={rows} margin={{ top: 14, right: 4, bottom: 22, left: 0 }} barGap={3}>
+        <BarChart
+          data={rows}
+          margin={{ top: 14, right: 4, bottom: 22, left: PLOT_MARGIN_LEFT }}
+          barGap={3}
+        >
           <CartesianGrid stroke={t.grid} strokeWidth={1} vertical={false} />
           <XAxis
             dataKey="year"
@@ -73,7 +82,7 @@ export default function FormationBars({
             tick={{ fill: t.axis, fontSize: 9, fontFamily: "var(--font-mono)" }}
             axisLine={false}
             tickLine={false}
-            width={44}
+            width={Y_AXIS_WIDTH}
             tickFormatter={(v: number) => `${Math.round(v)}`}
           />
           <Tooltip

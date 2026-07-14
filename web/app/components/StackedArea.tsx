@@ -32,6 +32,8 @@ import {
   tooltipStyles,
   seriesColor,
   crosshairCursor,
+  PLOT_MARGIN_LEFT,
+  Y_AXIS_WIDTH,
 } from "@/app/lib/chart-theme";
 import { wideToTable } from "@/app/lib/chart-csv";
 import { nf, formatters, type FormatKind } from "@/app/lib/chart-format";
@@ -180,7 +182,7 @@ export default function StackedArea({
       <div style={{ height }}>
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={filtered} stackOffset={percentStack ? "expand" : "none"}
-                     margin={{ top: 10, right: 20, left: 60, bottom: 30 }}>
+                     margin={{ top: 10, right: 20, left: PLOT_MARGIN_LEFT, bottom: 30 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={t.grid} />
             <XAxis
               dataKey="period"
@@ -190,6 +192,7 @@ export default function StackedArea({
               tickLine={{ stroke: t.grid }}
             />
             <YAxis
+              width={Y_AXIS_WIDTH}
               tick={{ fontSize: 11, fill: t.axis }}
               tickFormatter={(v) =>
                 percentStack ? `${(v * 100).toFixed(0)}%` : fmt(v, 0)

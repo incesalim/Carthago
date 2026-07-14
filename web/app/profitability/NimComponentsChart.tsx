@@ -19,7 +19,13 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { useChartTheme, tooltipStyles, crosshairCursor } from "@/app/lib/chart-theme";
+import {
+  useChartTheme,
+  tooltipStyles,
+  crosshairCursor,
+  PLOT_MARGIN_LEFT,
+  Y_AXIS_WIDTH,
+} from "@/app/lib/chart-theme";
 import { nf } from "@/app/lib/chart-format";
 import { NIM_SERIES, type NimBarPoint, type NimKey } from "@/app/lib/nim-components";
 
@@ -247,7 +253,12 @@ export default function NimComponentsChart({
         <ComposedChart
           data={data}
           stackOffset="sign"
-          margin={{ top: mode === "annual" ? 22 : 10, right: 20, left: 10, bottom: 30 }}
+          margin={{
+            top: mode === "annual" ? 22 : 10,
+            right: 20,
+            left: PLOT_MARGIN_LEFT,
+            bottom: 30,
+          }}
           barCategoryGap={mode === "annual" ? "28%" : "12%"}
         >
           <CartesianGrid strokeDasharray="3 3" stroke={t.grid} />
@@ -260,6 +271,7 @@ export default function NimComponentsChart({
             tickLine={{ stroke: t.grid }}
           />
           <YAxis
+            width={Y_AXIS_WIDTH}
             tick={{ fontSize: 11, fill: t.axis }}
             tickFormatter={(v) => `${nf(Number(v), 0)}%`}
             axisLine={{ stroke: t.grid }}

@@ -24,7 +24,7 @@ import {
   YAxis,
 } from "recharts";
 import { ChartCard } from "@/app/components/ui/chart-card";
-import { useChartTheme } from "@/app/lib/chart-theme";
+import { useChartTheme, PLOT_MARGIN_LEFT, Y_AXIS_WIDTH } from "@/app/lib/chart-theme";
 import type { Bridge } from "@/app/lib/profitability";
 
 export default function ProfitBridge({
@@ -83,7 +83,10 @@ export default function ProfitBridge({
     <ChartCard plain title={title} description={description} source={source}>
       <div style={{ height }}>
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 24, right: 10, left: 34, bottom: 30 }}>
+          <BarChart
+            data={data}
+            margin={{ top: 24, right: 10, left: PLOT_MARGIN_LEFT, bottom: 30 }}
+          >
             <CartesianGrid vertical={false} stroke={t.grid} />
             <XAxis
               dataKey="name"
@@ -98,7 +101,7 @@ export default function ProfitBridge({
               tickFormatter={(v: number) => v.toFixed(2)}
               axisLine={false}
               tickLine={false}
-              width={40}
+              width={Y_AXIS_WIDTH}
             />
             <ReferenceLine y={0} stroke={t.reference} strokeDasharray="3 3" />
             <Bar dataKey="range" isAnimationActive={false} radius={[2, 2, 0, 0]}>
