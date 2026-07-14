@@ -2,7 +2,12 @@
  * Pure helpers for "The Desk" briefing layer — streak counting, window
  * extremes and the CPI y/y ⁄ 12m-average transforms the brief's computed
  * notes and rule-based flags are built from. Server-safe, no I/O.
+ *
+ * This module holds the FACTS. The words a fact becomes — direction verbs,
+ * guarded claims, signed figures — live in lib/prose.ts.
  */
+
+export { signedPp } from "./prose";
 
 export interface Pt {
   period: string;
@@ -58,24 +63,85 @@ export function monthLabel(p: string | null | undefined, withYear = true): strin
   return withYear ? `${mon} ${m[1]}` : mon;
 }
 
-export const signedPp = (v: number, d = 2): string =>
-  `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(d)}pp`;
+// ─────────────────────────────────────────────── the group primitives ──
+//
+// A long-form `{period, bank_type_code, value}` series is ALREADY the `data`
+// prop of every by-group chart on the site. Titles like "the state banks lean
+// hardest" and "Every ownership group fell together" were typed by hand next to
+// exactly the rows that could have decided them. These three read those rows, so
+// a claim about groups can be tested against the groups.
 
-/**
- * Latest value of each bank-type group in a long-form `{period, bank_type_code,
- * value}` series — the spread the scorecard's peer bar scales against, so a
- * group's cell reads against the league it belongs to and not an arbitrary axis.
- */
-export function groupSpread(
-  rows: ReadonlyArray<{ period: string; bank_type_code: string; value: number | null }>,
-): { lo: number; hi: number } | null {
+export interface GroupRow {
+  period: string;
+  bank_type_code: string;
+  value: number | null;
+}
+
+/** The latest non-null observation for each group. */
+export function latestByGroup(
+  rows: ReadonlyArray<GroupRow>,
+): Map<string, { period: string; value: number }> {
   const latest = new Map<string, { period: string; value: number }>();
   for (const r of rows) {
     if (r.value == null) continue;
     const cur = latest.get(r.bank_type_code);
-    if (!cur || r.period > cur.period) latest.set(r.bank_type_code, { period: r.period, value: r.value });
+    if (!cur || r.period > cur.period) {
+      latest.set(r.bank_type_code, { period: r.period, value: r.value });
+    }
   }
-  const vals = [...latest.values()].map((v) => v.value);
+  return latest;
+}
+
+/**
+ * Each group's own change over its trailing `n` observations — a PER-GROUP
+ * positional delta, never a cross-group comparison.
+ */
+export function deltaByGroup(rows: ReadonlyArray<GroupRow>, n: number): Map<string, number> {
+  const byGroup = new Map<string, { period: string; value: number }[]>();
+  for (const r of rows) {
+    if (r.value == null) continue;
+    const list = byGroup.get(r.bank_type_code) ?? [];
+    list.push({ period: r.period, value: r.value });
+    byGroup.set(r.bank_type_code, list);
+  }
+  const out = new Map<string, number>();
+  for (const [code, list] of byGroup) {
+    if (list.length < 2) continue;
+    list.sort((a, b) => a.period.localeCompare(b.period));
+    const last = list[list.length - 1];
+    const prior = list[Math.max(0, list.length - 1 - n)];
+    out.set(code, last.value - prior.value);
+  }
+  return out;
+}
+
+/**
+ * The group at the top (or bottom) of the latest reading — so "the state banks
+ * lean hardest" names whichever group actually does. Exclude the SECTOR
+ * aggregate, or it wins every ranking it is in.
+ */
+export function leaderOf(
+  rows: ReadonlyArray<GroupRow>,
+  { exclude = [], dir = "max" }: { exclude?: readonly string[]; dir?: "max" | "min" } = {},
+): { code: string; value: number } | null {
+  const skip = new Set(exclude);
+  let best: { code: string; value: number } | null = null;
+  for (const [code, { value }] of latestByGroup(rows)) {
+    if (skip.has(code)) continue;
+    if (!best || (dir === "max" ? value > best.value : value < best.value)) {
+      best = { code, value };
+    }
+  }
+  return best;
+}
+
+/**
+ * The spread of the latest per-group readings — what the scorecard's peer bar
+ * scales against, so a group's cell reads against the league it belongs to and
+ * not an arbitrary axis.
+ */
+export function groupSpread(rows: ReadonlyArray<GroupRow>): { lo: number; hi: number } | null {
+  const vals = [...latestByGroup(rows).values()].map((v) => v.value);
   if (!vals.length) return null;
   return { lo: Math.min(...vals), hi: Math.max(...vals) };
 }
