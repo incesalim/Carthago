@@ -48,6 +48,7 @@ import {
 } from "@/app/components/desk";
 import { lastVal, latestByGroup, monthLabel, signedPp, valAgo } from "@/app/lib/desk";
 import { everyOf, firstClaim } from "@/app/lib/prose";
+import { aheadSlots } from "@/app/lib/ahead-data";
 import { GlobalRangeSelector } from "@/app/components/range-context";
 import TrendChart from "@/app/components/TrendChart";
 import StackedArea from "@/app/components/StackedArea";
@@ -145,6 +146,8 @@ function pivotByCode(rows: WeeklyRow[], codes: string[]): Record<string, string 
 }
 
 export default async function DepositsPage() {
+  // What lands next — derived from the record periods + TCMB's published calendar.
+  const ahead = await aheadSlots();
   const all = Object.values(WEEKLY_BANK_TYPES);
   const sector = [WEEKLY_BANK_TYPES.SECTOR];
   const groups = all.filter((c) => c !== WEEKLY_BANK_TYPES.SECTOR);
@@ -696,25 +699,30 @@ export default async function DepositsPage() {
           <Standings groups={standings} />
         </div>
         <div>
-          <SecHead title="Ahead" meta="schedule — not a forecast" className="mb-2.5" />
+          <SecHead title="Ahead" meta="schedule — derived from the record periods + the tcmb calendar" className="mb-2.5" />
           <Ahead
             items={[
               { when: "FRI", what: <>BDDK weekly bulletin — the base, TL and FX</> },
-              {
-                when: "JUL 23",
+              ahead.mpc && {
+                when: ahead.mpc.when,
                 what: (
                   <>
                     TCMB MPC — the rate {fmtPct(repriceQuarter)} of the book reprices to
                   </>
                 ),
               },
-              { when: "AUG ~12", what: <>BDDK monthly — the maturity ladder, June</> },
-              {
-                when: "AUG–SEP",
-                what: <>BRSA Q2 filings — deposit cost per bank</>,
+              ahead["bddk-monthly"] && {
+                when: ahead["bddk-monthly"].when,
+                what: (
+                  <>BDDK monthly — the maturity ladder, {ahead["bddk-monthly"].record}</>
+                ),
+              },
+              ahead["brsa-filings"] && {
+                when: ahead["brsa-filings"].when,
+                what: <>BRSA {ahead["brsa-filings"].record} filings — deposit cost per bank</>,
                 href: "/earnings",
               },
-            ]}
+            ].filter((i) => !!i)}
           />
         </div>
       </div>

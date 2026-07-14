@@ -60,6 +60,7 @@ import {
 import { monthLabel, signedPp, streak, valAgo, windowExtremes } from "@/app/lib/desk";
 import { firstClaim } from "@/app/lib/prose";
 import { bridge, costIncome, engine } from "@/app/lib/profitability";
+import { aheadSlots } from "@/app/lib/ahead-data";
 import { GlobalRangeSelector } from "@/app/components/range-context";
 
 export const dynamic = "force-dynamic";
@@ -78,6 +79,9 @@ const Go = ({ href, children }: { href: string; children: ReactNode }) => (
 );
 
 export default async function ProfitabilityPage() {
+  // What lands next — derived from the record periods + TCMB's published calendar.
+  const ahead = await aheadSlots();
+
   const [
     roe, roa, nim,
     opex, fees, lev,
@@ -598,14 +602,24 @@ export default async function ProfitabilityPage() {
           <Standings groups={standings} />
         </div>
         <div>
-          <SecHead title="Ahead" meta="schedule — not a forecast" className="mb-2.5" />
+          <SecHead title="Ahead" meta="schedule — derived from the record periods + the tcmb calendar" className="mb-2.5" />
           <Ahead
             items={[
-              { when: "JUL 23", what: <>TCMB MPC — the rate the engine reprices to</> },
-              { when: "AUG ~12", what: <>BDDK monthly — June P&amp;L and the deposit mix</> },
-              {
-                when: "AUG–SEP",
-                what: <>BRSA Q2 filings — per-bank margins</>,
+              ahead.mpc && {
+                when: ahead.mpc.when,
+                what: <>TCMB MPC — the rate the engine reprices to</>,
+              },
+              ahead["bddk-monthly"] && {
+                when: ahead["bddk-monthly"].when,
+                what: (
+                  <>
+                    BDDK monthly — {ahead["bddk-monthly"].record} P&amp;L and the deposit mix
+                  </>
+                ),
+              },
+              ahead["brsa-filings"] && {
+                when: ahead["brsa-filings"].when,
+                what: <>BRSA {ahead["brsa-filings"].record} filings — per-bank margins</>,
                 href: "/earnings",
               },
               {
@@ -613,7 +627,7 @@ export default async function ProfitabilityPage() {
                 what: <>TÜİK CPI — the hurdle every return is measured against</>,
                 href: "/economy/inflation",
               },
-            ]}
+            ].filter((i) => !!i)}
           />
         </div>
       </div>

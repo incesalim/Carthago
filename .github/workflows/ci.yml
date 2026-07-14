@@ -48,6 +48,12 @@ jobs:
         # (bank_ticker/amount_fc/snake_case/no reserved words/unique number).
         # Stdlib-only. Existing tables are grandfathered.
         run: python scripts/check_schema_naming.py
+      - name: Calendar freshness
+        # The Ahead blocks are derived, except TCMB's MPC dates — nothing scrapes
+        # that calendar, so it is transcribed by hand in web/app/lib/ahead.ts.
+        # Fails once it has under 90 days of runway, so it cannot run out the way
+        # the hand-typed schedules did. Also ages out the BBVA baseline.
+        run: python scripts/check_calendar_fresh.py
       - name: Prose claims
         # A sentence asserting a direction, a level or a ranking must be computed
         # from the series it sits next to — or it lies the moment the data turns.

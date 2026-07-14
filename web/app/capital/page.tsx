@@ -69,6 +69,7 @@ import {
   quartersToFloor,
   stepWords,
 } from "@/app/lib/capital";
+import { aheadSlots } from "@/app/lib/ahead-data";
 import { GlobalRangeSelector } from "@/app/components/range-context";
 
 export const dynamic = "force-dynamic";
@@ -93,6 +94,8 @@ function quarterLabel(p: string | null | undefined): string {
 }
 
 export default async function CapitalPage() {
+  // What lands next — derived from the record periods + TCMB's published calendar.
+  const ahead = await aheadSlots();
   const sector = [BANK_TYPES.SECTOR];
   const groups = PRIMARY_BANK_TYPES.filter((c) => c !== BANK_TYPES.SECTOR);
 
@@ -590,17 +593,27 @@ export default async function CapitalPage() {
           <Standings groups={standings} />
         </div>
         <div>
-          <SecHead title="Ahead" meta="schedule — not a forecast" className="mb-2.5" />
+          <SecHead title="Ahead" meta="schedule — derived from the record periods + the tcmb calendar" className="mb-2.5" />
           <Ahead
             items={[
-              { when: "AUG ~12", what: <>BDDK monthly bulletin — June CAR</> },
-              {
-                when: "AUG–SEP",
-                what: <>BRSA Q2 filings — CET1, Tier-1 and RWA per bank</>,
+              ahead["bddk-monthly"] && {
+                when: ahead["bddk-monthly"].when,
+                what: <>BDDK monthly bulletin — {ahead["bddk-monthly"].record} CAR</>,
+              },
+              ahead["brsa-filings"] && {
+                when: ahead["brsa-filings"].when,
+                what: (
+                  <>
+                    BRSA {ahead["brsa-filings"].record} filings — CET1, Tier-1 and RWA per bank
+                  </>
+                ),
                 href: "/earnings",
               },
-              { when: "JUL 23", what: <>TCMB MPC — the rate that prices the AT1 stack</> },
-              {
+              ahead.mpc && {
+                when: ahead.mpc.when,
+                what: <>TCMB MPC — the rate that prices the AT1 stack</>,
+              },
+              step?.isBreak && {
                 when: "OPEN",
                 what: (
                   <>
@@ -610,7 +623,7 @@ export default async function CapitalPage() {
                 ),
                 href: "/regulation",
               },
-            ]}
+            ].filter((i) => !!i)}
           />
         </div>
       </div>
