@@ -24,6 +24,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { latestRegulationBriefing, newsLookupBySourceIds, newsSourceSummary, type NewsItem } from "@/app/lib/news";
 import { Colophon, Depth, DeskHeader, SecHead, Vital, Vitals } from "@/app/components/desk";
+import { signed } from "@/app/lib/prose";
 import {
   bankNames,
   buildChangelog,
@@ -230,8 +231,13 @@ export default async function RegulationPage() {
           note={
             corridor?.lending != null ? (
               <>
+                {/* The lending leg sits above policy by construction, so this is "+" today
+                    — but the sign comes off the number, not the template. */}
                 <b className="font-semibold text-foreground">
-                  +{Math.round((corridor.lending - corridor.policy) * 100)}bp
+                  {signed(
+                    Math.round((corridor.lending - corridor.policy) * 100),
+                    (v) => `${v}bp`,
+                  )}
                 </b>{" "}
                 over the policy rate.
               </>

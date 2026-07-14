@@ -63,6 +63,7 @@ import {
   Vitals,
 } from "@/app/components/desk";
 import { lastVal, monthLabel, signedPp, valAgo, type Pt } from "@/app/lib/desk";
+import { signed } from "@/app/lib/prose";
 import { GlobalRangeSelector } from "@/app/components/range-context";
 import TrendChart, { type TrendPoint } from "@/app/components/TrendChart";
 import StackedArea from "@/app/components/StackedArea";
@@ -213,7 +214,7 @@ export default async function DigitalPage() {
           note={
             mobYoY != null ? (
               <>
-                +{mobYoY.toFixed(0)}% y/y · internet at{" "}
+                {signed(mobYoY, (v) => `${v.toFixed(0)}%`)} y/y · internet at{" "}
                 {intNow != null ? intNow.toFixed(0) : "—"}m
               </>
             ) : (

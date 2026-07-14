@@ -45,6 +45,7 @@ import {
   type MoverRow,
 } from "@/app/components/desk";
 import { lastVal, monthLabel, signedPp, valAgo } from "@/app/lib/desk";
+import { VERBS, direction, runPhrase, toneClass } from "@/app/lib/prose";
 import {
   contributions,
   creditBridge,
@@ -443,7 +444,12 @@ export default async function CreditPage() {
               <>
                 Of that print, {signedPp(bridge.currencyPp, 1)} is lira depreciation revaluing the FX
                 book and {signedPp(bridge.inflationPp, 1)} is inflation (CPI {fmtPct(bridge.cpi)}).
-                What remains is real volume — negative for {realNegRun} consecutive weeks.
+                What remains is real volume —{" "}
+                {/* The run count was computed and the word "negative" was typed, so the
+                    week real growth turned positive this read "negative for 0 weeks". */}
+                {runPhrase(realNegRun, "negative") ??
+                  (realFxNow != null ? `positive at ${fmtPct(realFxNow)}` : "not yet negative")}
+                .
               </>
             ) : (
               <>The bridge awaits a CPI print.</>
@@ -473,10 +479,13 @@ export default async function CreditPage() {
             realFxNow != null ? (
               <>
                 the book{" "}
-                <em className="font-semibold not-italic text-negative">
-                  {realFxNow < 0 ? "shrank" : "grew"}
+                {/* The verb branched on the sign; the colour did not — a book
+                    GROWING in real terms rendered "grew" in red. */}
+                <em className={`font-semibold not-italic ${toneClass(realFxNow, "up")}`}>
+                  {direction(realFxNow, VERBS.size)}
                 </em>{" "}
-                once lira and CPI are stripped — {realNegRun}w negative
+                once lira and CPI are stripped
+                {realNegRun > 0 ? ` — ${realNegRun}w negative` : ""}
                 {bridge.lagged ? ` · at W/E ${realWeek}` : ""}
               </>
             ) : (

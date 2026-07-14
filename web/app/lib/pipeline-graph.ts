@@ -15,6 +15,8 @@
  * docs/ARCHITECTURE.md when the pipeline changes.
  */
 
+import { BANK_COUNT } from "./bank_names";
+
 export type Layer = "source" | "ingestion" | "storage" | "page";
 export type Lane = "bulletin" | "audit" | "shared";
 export type NodeKind = "source" | "workflow" | "store" | "page";
@@ -95,7 +97,7 @@ export const PIPELINE_NODES: PipelineNode[] = [
   { id: "store-d1-advertised-rates", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · bank_advertised_rates", sublabel: "per-bank posted loan + deposit rates · dated snapshots", statusKey: "advertised_rates" },
 
   // ── Audit lane · sources ───────────────────────────────────────────────
-  { id: "src-ir-pdf", kind: "source", layer: "source", lane: "audit", label: "Bank IR / BRSA PDFs", sublabel: "31 banks · +13 auto-discover quarters", statusKey: "audit" },
+  { id: "src-ir-pdf", kind: "source", layer: "source", lane: "audit", label: "Bank IR / BRSA PDFs", sublabel: `${BANK_COUNT} banks · +13 auto-discover quarters`, statusKey: "audit" },
 
   // ── Audit lane · ingestion (workflows) ─────────────────────────────────
   { id: "wf-acquire-audit", kind: "workflow", layer: "ingestion", lane: "audit", label: "acquire-audit", sublabel: "Sun 04:00 · discover + download (no extract)", workflowFile: "acquire-audit.yml" },

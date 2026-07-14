@@ -140,3 +140,16 @@ export const PEER_EXCLUDED_TICKERS: ReadonlySet<string> = new Set(["TAKAS"]);
 export function isPeerExcluded(ticker: string): boolean {
   return PEER_EXCLUDED_TICKERS.has(ticker.toUpperCase());
 }
+
+/**
+ * The universe, counted — never typed.
+ *
+ * It has been 31, then 37, then 38. The homepage's meta description still told
+ * Google "32 banks" long after TAKAS made it 38, because the number was prose.
+ * Anything stating the size of the universe reads it from here (or, where the
+ * claim is specifically about audited filings we HOLD, from `bankSummaries()`).
+ */
+export const BANK_COUNT = Object.keys(BANK_NAMES).length;
+
+/** The universe minus the CCP — the population every peer rank is drawn from. */
+export const PEER_BANK_COUNT = BANK_COUNT - PEER_EXCLUDED_TICKERS.size;
