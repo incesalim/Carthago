@@ -62,8 +62,28 @@ const yoy12 = (s: { period: string; value: number | null }[]) => {
   return now != null && ago != null && ago !== 0 ? (now / ago - 1) * 100 : null;
 };
 
+/** The labelled series with the highest latest value — "which group leads". */
+function topSeries(rec: Record<string, { value: number }[]>): string | null {
+  let best: { label: string; v: number } | null = null;
+  for (const [label, pts] of Object.entries(rec)) {
+    const v = pts.at(-1)?.value;
+    if (v == null || !Number.isFinite(v)) continue;
+    if (!best || v > best.v) best = { label, v };
+  }
+  return best ? best.label.toLowerCase() : null;
+}
+
 export default async function ForeignTradePage() {
   const d = await getForeignTradeData();
+
+  // The section reads — the trade gap and the leading BEC groups, off the charts'
+  // own data. "Imports run well above exports" and "intermediate goods dominate
+  // imports" were both rankings nobody re-checked.
+  const expNow = d.levels["Exports"]?.at(-1)?.value ?? null;
+  const impNow = d.levels["Imports"]?.at(-1)?.value ?? null;
+  const gap = expNow != null && impNow != null ? impNow - expNow : null;
+  const becImpTop = topSeries(d.becImp);
+  const becExpTop = topSeries(d.becExp);
 
   // ---- the brief's computed vitals ------------------------------------------
   const expS = sp(d.levels.Exports);
@@ -239,7 +259,13 @@ export default async function ForeignTradePage() {
 
         <Section
           title="Exports & Imports"
-          description="Annualised level (USD bn) and annual growth. Imports run well above exports — the structural trade gap."
+          description={
+            gap != null
+              ? `Annualised level (USD bn) and annual growth. Imports run $${Math.abs(gap).toFixed(0)}bn ${
+                  gap > 0 ? "above" : "below"
+                } exports — the structural trade gap.`
+              : "Annualised level (USD bn) and annual growth."
+          }
         >
           <Grid>
             <TimeSeriesChart series={d.levels} title="Şekil 2–3 · Exports & Imports (12m rolling, USD bn)" yFormat="raw" decimals={0} />
@@ -249,7 +275,11 @@ export default async function ForeignTradePage() {
 
         <Section
           title="By Product Group (BEC)"
-          description="Broad Economic Categories, annualised USD bn. Intermediate goods (mostly energy & inputs) dominate imports; consumption goods lead exports."
+          description={
+            becImpTop && becExpTop
+              ? `Broad Economic Categories, annualised USD bn. ${becImpTop} lead imports; ${becExpTop} lead exports.`
+              : "Broad Economic Categories, annualised USD bn."
+          }
         >
           <Grid>
             <TimeSeriesChart series={d.becExp} title="Şekil 6 · Exports by BEC Group (12m, USD bn)" yFormat="raw" decimals={0} />
@@ -257,9 +287,12 @@ export default async function ForeignTradePage() {
           </Grid>
         </Section>
 
+        {/* "The energy deficit tracks Brent — the report's clearest single driver of
+            the trade gap" is a correlation claim we never computed. The charts show
+            both series; the reader can see the co-movement without being told. */}
         <Section
           title="Terms of Trade & Energy"
-          description="Terms of trade = export unit-value ÷ import unit-value (2015=100). The energy deficit tracks Brent — the report's clearest single driver of the trade gap."
+          description="Terms of trade = export unit-value ÷ import unit-value (2015=100), against the energy balance and Brent."
         >
           <Grid>
             <TimeSeriesChart series={d.terms} title="Şekil 5 · Terms of Trade (%)" yFormat="rate" decimals={1} />

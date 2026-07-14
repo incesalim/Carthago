@@ -34,6 +34,7 @@ import {
   Vitals,
 } from "@/app/components/desk";
 import { lastVal, signedPp, valAgo, windowExtremes, type Pt } from "@/app/lib/desk";
+import { VERBS, direction, signed } from "@/app/lib/prose";
 import { GlobalRangeSelector } from "@/app/components/range-context";
 import { ChartCard } from "@/app/components/ui/chart-card";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
@@ -147,6 +148,8 @@ function YoyTable({ table, note }: { table: GrowthTable; note?: string }) {
   );
 }
 
+const pp = (v: number) => signed(v, (x) => `${x.toFixed(1)}pp`);
+
 export default async function EconomicGrowthPage() {
   const d = await getGrowthData();
 
@@ -166,6 +169,31 @@ export default async function EconomicGrowthPage() {
   const weakSec = extremeComponent(d.s3, SECTORS, "min");
 
   const signedPpStr = (v: number) => signedPp(v, 1);
+
+  // The two section reads. Every number they used to hardcode — the quarter, the
+  // GDP print, the leading and lagging contributors — is already computed above
+  // and was simply never wired to the sentence.
+  const gdpQuarter = d.s2.at(-1)?.x ?? null;
+  const gdpVerb = direction(gdpNow, VERBS.size, { flat: 0.1, sharp: Number.POSITIVE_INFINITY });
+  const growthRead =
+    gdpNow != null && gdpVerb && gdpQuarter
+      ? `GDP ${gdpVerb} ${Math.abs(gdpNow).toFixed(1)}% y/y in ${gdpQuarter}` +
+        (topExp && topExp.value > 0
+          ? `. ${topExp.label} drove it (${pp(topExp.value)})`
+          : "") +
+        (dragExp && dragExp.value < 0
+          ? `, while ${dragExp.label.toLowerCase()} subtracted ${pp(dragExp.value)}`
+          : "") +
+        "."
+      : null;
+
+  const sectorRead =
+    topSec || weakSec
+      ? "Gross value added by activity, y/y %." +
+        (topSec ? ` ${topSec.label} led (${pp(topSec.value)})` : "") +
+        (weakSec ? `${topSec ? ";" : ""} ${weakSec.label.toLowerCase()} lagged (${pp(weakSec.value)})` : "") +
+        ". Figures use the unadjusted chain-volume index (see table note)."
+      : null;
 
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
@@ -300,9 +328,12 @@ export default async function EconomicGrowthPage() {
           />
         </div>
 
+        {/* Five hardcoded numbers, a hardcoded quarter and three directional claims —
+            all of them sitting in d.s2, which is the chart's own data prop one line
+            below. The moment 2026-Q2 printed, the chart moved and the sentence did not. */}
         <Section
           title="GDP Growth & Contributions"
-          description="GDP grew 2.5% y/y in 2026-Q1 (q/q +0.1% on TÜİK's seasonally-adjusted series — not carried in EVDS). Private consumption drove the expansion (+3.4 pp) while the −12.7% export slump subtracted −2.9 pp."
+          description={growthRead ?? "GDP growth and the expenditure contributions behind it, y/y."}
         >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <TimeSeriesChart
@@ -332,7 +363,10 @@ export default async function EconomicGrowthPage() {
 
         <Section
           title="Production Side"
-          description="Gross value added by activity, y/y %. Construction and services led; industry and agriculture lagged. Figures use the unadjusted chain-volume index (see table note)."
+          description={
+            sectorRead ??
+            "Gross value added by activity, y/y %. Figures use the unadjusted chain-volume index (see table note)."
+          }
         >
           <ChartCard title="Şekil 3 · Sectoral Growth (y/y %)">
             <BopFlowChart

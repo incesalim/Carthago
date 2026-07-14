@@ -30,6 +30,11 @@ export interface FindingOpts {
   decimals?: number;
   /** Lookback in points for the direction read (default 12 ≈ a year, monthly). */
   window?: number;
+  /**
+   * How the lookback reads in the sentence — defaults to `${window}m`, which is
+   * right for a monthly series and wrong for a quarterly one ("over 4m").
+   */
+  windowLabel?: string;
 }
 
 /** 'YYYY-MM' → 'Apr 2026'; 'YYYYQN' → 'Q1 2026'; else the raw string. */
@@ -58,7 +63,7 @@ const fmtNum = (v: number, d: number) =>
  */
 export function seriesFinding(
   series: ReadonlyArray<SeriesPointLike>,
-  { noun, format = "pct", decimals = 1, window = 12 }: FindingOpts,
+  { noun, format = "pct", decimals = 1, window = 12, windowLabel }: FindingOpts,
 ): string | null {
   const pts = series.filter(
     (r): r is { period: string; value: number } =>
@@ -86,6 +91,6 @@ export function seriesFinding(
   }
   const sign = delta > 0 ? "+" : "−";
   const change = `${sign}${fmtNum(Math.abs(delta), decimals)}${deltaUnit}`;
-  const span = pts.length - 1 >= window ? ` over ${window}m` : "";
+  const span = pts.length - 1 >= window ? ` over ${windowLabel ?? `${window}m`}` : "";
   return `${noun} ${verb} ${level} in ${when} (${change}${span})`;
 }

@@ -264,9 +264,12 @@ export default async function BalanceOfPaymentsPage() {
           />
         </div>
 
+        {/* "net tourism is the main services offset to the goods deficit" was a
+            ranking over a services breakdown this page does not load. The
+            definitional half is timeless and stays. */}
         <Section
           title="Current Account"
-          description="Annualised (trailing-12-month) balances, USD bn. The core balance strips out the volatile gold and energy bills; net tourism is the main services offset to the goods deficit."
+          description="Annualised (trailing-12-month) balances, USD bn. The core balance strips out the volatile gold and energy bills."
         >
           <Grid>
             <TimeSeriesChart
