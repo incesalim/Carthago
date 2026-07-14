@@ -48,6 +48,7 @@ import {
 } from "@/app/components/desk";
 import Attribution from "@/app/components/Attribution";
 import { lastVal, monthLabel, signedPp } from "@/app/lib/desk";
+import { signed, toneClass } from "@/app/lib/prose";
 import BarByBank from "@/app/components/BarByBank";
 import TrendChart from "@/app/components/TrendChart";
 import StackedArea from "@/app/components/StackedArea";
@@ -264,7 +265,11 @@ export default async function AssetQualityPage() {
       body: rollNow ? (
         <>
           New NPLs of <b className="font-semibold text-foreground">{fmtBn(rollNow.additions)}</b> against{" "}
-          {fmtBn(rollNow.exits)} of exits — net <b className="font-semibold text-negative">+{fmtBn(rollNow.net)}</b>.
+          {fmtBn(rollNow.exits)} of exits — net{" "}
+          <b className={`font-semibold ${toneClass(rollNow.net, "down")}`}>
+            {signed(rollNow.net, fmtBn)}
+          </b>
+          .
           And the exits are{" "}
           <b className="font-semibold text-foreground">{rollNow.collectionShare.toFixed(0)}% collections</b>,
           not write-offs or sales: the ratio is not being managed down, the book is genuinely
@@ -317,12 +322,16 @@ export default async function AssetQualityPage() {
     }))
     .sort((a, b) => (b.curr - b.prev) - (a.curr - a.prev));
 
+  // A watchlist migration only ever ADDS provisions — Stage 2 → Stage 3 raises ECL
+  // by construction, so these read "+" today. The sign still comes off the number.
   const migrationItems: TransmissionItem[] = migration.scenarios.map((s) => ({
     k: `${s.migratePct}% of the watchlist migrates`,
-    v: `+₺${s.provisionBn.toFixed(0)}bn`,
+    v: signed(s.provisionBn, (v) => `₺${v.toFixed(0)}bn`),
     unit: "provisions",
     effect:
-      s.pctOfEclStock != null ? <>+{s.pctOfEclStock.toFixed(1)}% of today&apos;s ECL stock</> : null,
+      s.pctOfEclStock != null ? (
+        <>{signed(s.pctOfEclStock, (v) => `${v.toFixed(1)}%`)} of ECL stock</>
+      ) : null,
   }));
 
   return (
@@ -378,7 +387,11 @@ export default async function AssetQualityPage() {
                   shortfall. What matters is that the pipeline behind the tip is still filling:
                   formation ran{" "}
                   <b className="font-semibold text-foreground">{formationMultiple.toFixed(1)}×</b> last
-                  year, net <b className="font-semibold text-negative">+{fmtBn(rollNow.net)}</b>.
+                  year, net{" "}
+                  <b className={`font-semibold ${toneClass(rollNow.net, "down")}`}>
+                    {signed(rollNow.net, fmtBn)}
+                  </b>
+                  .
                 </p>
               )}
               <p className="mt-3 border-t border-hair pt-2.5 font-mono text-[9px] uppercase leading-relaxed tracking-[0.06em] text-faint">
@@ -454,7 +467,9 @@ export default async function AssetQualityPage() {
         />
         <Vital
           label="Net NPL formation"
-          value={rollNow ? `+${Math.round(rollNow.net)}` : "—"}
+          // Net formation turning negative is the GOOD case — the stock is
+          // shrinking. It used to render "+-42".
+          value={rollNow ? signed(rollNow.net, (v) => String(Math.round(v))) : "—"}
           unit="₺bn"
           series={roll.map((y) => ({ period: y.year, value: y.net }))}
           format="raw"
@@ -521,7 +536,10 @@ export default async function AssetQualityPage() {
             <p className="mt-2 text-[11.5px] leading-relaxed text-muted-foreground">
               Formation is <b className="font-semibold text-foreground">{formationMultiple.toFixed(1)}×</b>{" "}
               last year ({fmtBn(rollPrev.additions)} → {fmtBn(rollNow.additions)}), net{" "}
-              <b className="font-semibold text-negative">+{fmtBn(rollNow.net)}</b>. Exits are{" "}
+              <b className={`font-semibold ${toneClass(rollNow.net, "down")}`}>
+                {signed(rollNow.net, fmtBn)}
+              </b>
+              . Exits are{" "}
               <b className="font-semibold text-foreground">
                 {rollNow.collectionShare.toFixed(0)}% collections
               </b>{" "}

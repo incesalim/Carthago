@@ -57,6 +57,7 @@ import {
   type TransmissionItem,
 } from "@/app/components/desk";
 import { lastVal, monthLabel, signedPp, windowExtremes } from "@/app/lib/desk";
+import { VERBS, bandsFor, direction } from "@/app/lib/prose";
 import { GlobalRangeSelector } from "@/app/components/range-context";
 import TrendChart from "@/app/components/TrendChart";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
@@ -417,14 +418,25 @@ export default async function LiquidityPage() {
     });
   }
   if (reerNow != null && reer12 != null) {
+    // The noun used to be typed while the sign was computed, so a real
+    // DEPRECIATION printed "Real appreciation of −4.3 … is what makes holding
+    // lira pay". Both the noun and the carry read now come off the same delta.
+    const reerD = reerNow - reer12;
+    const reerMove = direction(reerD, VERBS.noun, bandsFor(reer12));
     transmission.push({
       k: "REER",
       v: reerNow.toFixed(1),
       effect: (
         <>
-          Real appreciation of <b>{signedPp(reerNow - reer12, 1).replace("pp", "")}</b> over 12
-          months is what makes holding lira pay — and why TL deposits run at{" "}
-          <b>{fmtPct(tl13w, 0)} annualized</b>.{" "}
+          {reerMove === VERBS.noun.flat ? (
+            <>The real exchange rate is flat over 12 months — the lira carry is unchanged.</>
+          ) : (
+            <>
+              Real {reerMove} of <b>{Math.abs(reerD).toFixed(1)}</b> over 12 months{" "}
+              {reerD > 0 ? "is what makes holding lira pay" : "works against the lira carry"} — TL
+              deposits run at <b>{fmtPct(tl13w, 0)} annualized</b>.
+            </>
+          )}{" "}
           <Link href="/economy" className="font-semibold text-primary">/economy</Link>
         </>
       ),

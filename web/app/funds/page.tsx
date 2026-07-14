@@ -45,6 +45,7 @@ import {
   Vitals,
 } from "@/app/components/desk";
 import { lastVal, monthLabel, signedPp, valAgo, type Pt } from "@/app/lib/desk";
+import { signed } from "@/app/lib/prose";
 import { GlobalRangeSelector } from "@/app/components/range-context";
 import TrendChart from "@/app/components/TrendChart";
 import StackedArea from "@/app/components/StackedArea";
@@ -231,7 +232,8 @@ export default async function FundsPage() {
           note={
             aumYoY != null ? (
               <>
-                +{aumYoY.toFixed(0)}% y/y nominal — the deposit-substitution channel{" "}
+                {signed(aumYoY, (v) => `${v.toFixed(0)}%`)} y/y nominal — the deposit-substitution
+                channel{" "}
                 <Link href="/deposits" className="font-semibold text-primary">/deposits</Link>
               </>
             ) : (

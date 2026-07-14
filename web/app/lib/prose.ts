@@ -116,6 +116,12 @@ export const VERBS = {
     down: "fell",
     downSharp: "dropped",
   },
+  /** "the book grew once lira and CPI are stripped" — a stock changing size. */
+  size: {
+    flat: "held",
+    up: "grew",
+    down: "shrank",
+  },
   /** "Real appreciation of 4.3%" — the move as a noun. */
   noun: {
     flat: "stability",

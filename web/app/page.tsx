@@ -32,8 +32,9 @@ import {
   BANK_TYPE_LABELS,
 } from "@/app/lib/metrics";
 import { perBankCapital } from "@/app/lib/audit-ratios";
+import { bankSummaries } from "@/app/lib/audit";
 import { getMarketTicker } from "@/app/lib/market-ticker";
-import { BANK_NAMES } from "@/app/lib/bank_names";
+import { BANK_COUNT, BANK_NAMES } from "@/app/lib/bank_names";
 import {
   cpiFromIndex,
   groupSpread,
@@ -78,33 +79,51 @@ import type { ReactNode } from "react";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  // Absolute title bypasses the "· Carthago" template so the home page leads
-  // with the target phrase. This is the page that competes for "Turkish
-  // banking sector data".
-  title: {
-    absolute: "Turkish Banking Sector Data, Financials & Analytics — Carthago",
-  },
-  description:
-    "Live data on Türkiye's banking sector: 32 banks' audited BRSA financials, BDDK aggregates, capital adequacy, NPLs, liquidity, profitability and macro context — updated every quarter, free.",
-  keywords: [
-    "Turkish banking sector",
-    "Turkish banks data",
-    "BDDK data",
-    "BRSA bank financials",
-    "Türkiye banking",
-    "Turkish bank ratios",
-    "capital adequacy",
-    "non-performing loans",
-  ],
-  alternates: { canonical: "/" },
-  openGraph: {
-    title: "Turkish Banking Sector Data, Financials & Analytics",
-    description:
-      "32 banks' audited BRSA financials, BDDK aggregates and macro context for Türkiye's banking sector — updated quarterly, free.",
-    url: "https://carthago.app",
-  },
-};
+/**
+ * The one number in our metadata that is a CLAIM about the data: how many banks
+ * we hold audited filings for. It was typed as "32" and was still saying so at
+ * 38 — the text Google indexes, wrong for months, because nothing computed it.
+ *
+ * `bankSummaries()` is the same source /banks counts its rows from, so the two
+ * can't disagree. It's KV-cached (`cachedAll`), and if D1 is unreachable we fall
+ * back to the compile-time universe rather than shipping a stale integer.
+ */
+async function auditedBankCount(): Promise<number> {
+  try {
+    return (await bankSummaries()).length || BANK_COUNT;
+  } catch {
+    return BANK_COUNT;
+  }
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const n = await auditedBankCount();
+  return {
+    // Absolute title bypasses the "· Carthago" template so the home page leads
+    // with the target phrase. This is the page that competes for "Turkish
+    // banking sector data".
+    title: {
+      absolute: "Turkish Banking Sector Data, Financials & Analytics — Carthago",
+    },
+    description: `Live data on Türkiye's banking sector: ${n} banks' audited BRSA financials, BDDK aggregates, capital adequacy, NPLs, liquidity, profitability and macro context — updated every quarter, free.`,
+    keywords: [
+      "Turkish banking sector",
+      "Turkish banks data",
+      "BDDK data",
+      "BRSA bank financials",
+      "Türkiye banking",
+      "Turkish bank ratios",
+      "capital adequacy",
+      "non-performing loans",
+    ],
+    alternates: { canonical: "/" },
+    openGraph: {
+      title: "Turkish Banking Sector Data, Financials & Analytics",
+      description: `${n} banks' audited BRSA financials, BDDK aggregates and macro context for Türkiye's banking sector — updated quarterly, free.`,
+      url: "https://carthago.app",
+    },
+  };
+}
 
 const datasetJsonLd = {
   "@context": "https://schema.org",
