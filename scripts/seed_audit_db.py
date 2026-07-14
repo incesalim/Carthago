@@ -1,11 +1,14 @@
-"""Copy the bank_audit_* tables from one SQLite DB into a standalone audit DB.
+"""Copy the bank_audit_* statement tables from one SQLite DB into a standalone audit DB.
 
 Bootstraps `data/bank_audit.db` from the legacy combined snapshot
-(`data/bddk_data.db`) the first time `refresh-audit.yml` runs — so the audit
-pipeline doesn't have to re-extract all ~949 PDFs from R2 just to populate a
-fresh standalone snapshot. After this seed, audit data lives in its own DB
-(and its own R2 snapshot `state/bank_audit.db.gz`), fully decoupled from the
-BDDK-bulletin DB.
+(`data/bddk_data.db`) when `state/bank_audit.db.gz` is absent — i.e. on the very
+first `refresh-audit.yml` run, and thereafter only as disaster recovery. The
+seeded rows keep the dashboard populated while extraction catches up.
+
+It seeds statement rows ONLY, never `bank_audit_extractions`: the extraction log
+is what tells the scraper a partition is done, so copying it would make a restore
+skip the re-extraction it exists to trigger. The R2 PDFs remain the durable
+source of truth.
 
 Idempotent: INSERT OR REPLACE keyed on each table's primary key, so re-running
 overwrites rather than duplicates. Only columns present in BOTH databases are
@@ -26,20 +29,23 @@ sys.stdout.reconfigure(encoding="utf-8")
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
+from src.audit_reports.registry import AUDIT_TABLES  # noqa: E402
 from src.audit_reports.schema import init_schema  # noqa: E402
 
-# The full bank_audit_* surface — must match src/audit_reports/schema.py DDL
-# and the audit subset of scripts/push_to_d1.py SYNC_TABLES.
-AUDIT_TABLES = [
-    "bank_audit_extractions",
-    "bank_audit_balance_sheet",
-    "bank_audit_profit_loss",
-    "bank_audit_credit_quality",
-    "bank_audit_profile",
-    "bank_audit_loans_by_sector",
-    "bank_audit_npl_movement",
-    "bank_audit_stages",
-]
+# Every audit table EXCEPT the extraction log, derived from the registry so a new
+# statement type is seeded without editing this file.
+#
+# bank_audit_extractions is deliberately NOT copied. sync_audit_reports skips any
+# (bank, period, kind) already logged with success=1, so seeding the log would
+# make a disaster-recovery restore permanently SKIP re-extraction: the ~1,000
+# historical partitions would never be re-read, and every table added after the
+# source snapshot was taken would stay empty for the whole corpus. (The old
+# hand-written list here dated from 2026-06-05 and named the 8 tables that
+# existed then; capital, liquidity, oci, cash_flow, equity_change, fx_position,
+# repricing and validation all landed later and were never added.) The R2 PDFs
+# are the durable source of truth — after a restore we re-extract them all, and
+# the statement rows seeded below just keep the dashboard populated meanwhile.
+SEED_TABLES = [t for t in AUDIT_TABLES if t != "bank_audit_extractions"]
 
 
 def seed(src: Path, dst: Path) -> int:
@@ -60,7 +66,7 @@ def seed(src: Path, dst: Path) -> int:
     }
 
     total = 0
-    for table in AUDIT_TABLES:
+    for table in SEED_TABLES:
         if table not in src_tables:
             print(f"  {table:<30} not in source — skipped")
             continue
