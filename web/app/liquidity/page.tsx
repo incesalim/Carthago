@@ -56,8 +56,8 @@ import {
   type MoverRow,
   type TransmissionItem,
 } from "@/app/components/desk";
-import { lastVal, monthLabel, signedPp, windowExtremes } from "@/app/lib/desk";
-import { VERBS, bandsFor, direction } from "@/app/lib/prose";
+import { lastVal, latestByGroup, monthLabel, signedPp, windowExtremes } from "@/app/lib/desk";
+import { VERBS, bandsFor, direction, firstClaim } from "@/app/lib/prose";
 import { GlobalRangeSelector } from "@/app/components/range-context";
 import TrendChart from "@/app/components/TrendChart";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
@@ -241,6 +241,13 @@ export default async function LiquidityPage() {
   const lcrFloor = lcrNow != null ? lcrNow - 100 : null; // regulatory floor 100%
   const nsfrFloor = nsfrNow != null ? nsfrNow - 100 : null; // regulatory floor 100%
   const pubPrivGap = pubNow != null && privNow != null ? pubNow - privNow : null;
+
+  // "Both systems are pulling lira in at much the same pace" asserted a
+  // CONVERGENCE with no threshold — the two could diverge 20pp and it would still
+  // say so. The chart 40 lines up (pubPrivGap) already knew how to branch.
+  const ownGrowth = [...latestByGroup(toTrend(tlGrowthOwn)).values()].map((v) => v.value);
+  const ownSpread =
+    ownGrowth.length >= 2 ? Math.max(...ownGrowth) - Math.min(...ownGrowth) : null;
   const privRange = windowExtremes(tlLdrPriv, 52);
   const dollYearAgo = valYearAgoByDate(dollSector);
   const dollYoY = dollNow != null && dollYearAgo != null ? dollNow - dollYearAgo : null;
@@ -361,8 +368,17 @@ export default async function LiquidityPage() {
       effect: (
         <>
           Gross reserves are <b>{fmtBn(grossNow)}</b>, net <b>{fmtBn(netNow)}</b>. The difference —{" "}
-          <b>{fmtBn(banksFx)}</b> — is the banks&rsquo; own FX, held at the CBRT as required
-          reserves. <b>It is not the central bank&rsquo;s money.</b>
+          <b>{fmtBn(banksFx)}</b> —{" "}
+          {banksFx > 0 ? (
+            <>
+              is the banks&rsquo; own FX, held at the CBRT as required reserves.{" "}
+              <b>It is not the central bank&rsquo;s money.</b>
+            </>
+          ) : (
+            // gross − net ≡ the banks' FX at the CBRT, so this is normally positive.
+            // If it inverts, the sentence above becomes nonsense — say what it is.
+            <>is negative: net reserves exceed gross, which the identity does not allow.</>
+          )}
         </>
       ),
     });
@@ -406,8 +422,8 @@ export default async function LiquidityPage() {
           {fundNow < 0 ? (
             <>
               The system is <b>short of lira</b> and funds the gap at the CBRT — the channel a rate
-              decision travels down, and it arrives fast: most of the deposit book reprices inside a
-              quarter.{" "}
+              decision travels down. How fast it arrives is the maturity ladder&rsquo;s question,
+              not this one.{" "}
             </>
           ) : (
             <>The system holds <b>excess lira</b> and places it back with the CBRT. </>
@@ -908,7 +924,18 @@ export default async function LiquidityPage() {
               plain
               data={toTrend(tlGrowthOwn)}
               seriesLabels={LIQ_OWNERSHIP_LABELS}
-              title="Both systems are pulling lira in at much the same pace"
+              title={
+                firstClaim(
+                  [
+                    ownSpread != null && ownSpread < 5,
+                    "Both systems are pulling lira in at much the same pace",
+                  ],
+                  [
+                    ownSpread != null,
+                    `The two systems are pulling lira in at different speeds — ${(ownSpread ?? 0).toFixed(0)}pp apart`,
+                  ],
+                ) ?? "TL deposit growth — public vs private"
+              }
               description="tl deposit growth, 13w annualized, %, weekly · public vs private"
               source={
                 <ChartFoot

@@ -1317,7 +1317,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
           what the balance sheet earns and what it is made of. Every sentence
           is computed in lib/bank-brief.ts; a section whose inputs don't
           resolve is omitted, and the engine states why. */}
-      <WhereItStands stats={peerStats} ctx={{ buffer: carBuffer, realRoe }} />
+      <WhereItStands stats={peerStats} ctx={{ buffer: carBuffer, realRoe, filings: gate.filings }} />
 
       <MoversAndFlags
         from={qLabel(prevPeriod)}
