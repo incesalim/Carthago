@@ -32,8 +32,8 @@ Two data layers cohabit in D1:
 1. **Sector aggregates** — monthly + weekly bulletins from BDDK plus
    TCMB EVDS macro / rate series.
 2. **Per-bank quarterly data** — each bank's published BRSA Financial
-   Report PDF parsed into structured rows. 32 banks × up to 17 quarters
-   (2022-Q1 → 2026-Q1), ~98% of sector by assets. PDFs live in R2.
+   Report PDF parsed into structured rows. 38 banks × up to 17 quarters
+   (2022-Q1 → 2026-Q1), 1,050 PDFs, ~98% of sector by assets. PDFs live in R2.
 
 ## Quick start
 
@@ -105,9 +105,11 @@ bddk_analysis/
 │   │   ├── components/             ← TrendChart, BarByBank, StackedArea, …
 │   │   ├── lib/                    ← db.ts (D1 binding) · metrics.ts (SQL helpers)
 │   │   ├── credit/, deposits/, asset-quality/, capital/, profitability/
-│   │   ├── rates/, liquidity/, market-risk/, cross-bank/, valuation/
-│   │   ├── banks/, ownership/, earnings/, franchise/, funds/, digital/
-│   │   ├── economy/, news/, regulation/, non-bank/, disclosures/, pipeline/
+│   │   ├── rates/, liquidity/, market-risk/, cross-bank/, banks/, ownership/
+│   │   ├── earnings/, funds/, digital/, economy/, news/, regulation/
+│   │   ├── non-bank/, disclosures/, pipeline/
+│   │   ├── _valuation/, _franchise/  ← parked: the leading _ un-routes them (Next
+│   │   │                                private folders). Don't rename without reading why
 │   │   ├── admin/, api/admin/      ← password-gated control center
 │   │   └── page.tsx                ← Overview
 │   ├── wrangler.jsonc, open-next.config.ts
