@@ -35,7 +35,13 @@ import {
   renderAnnotations,
   type ChartAnnotation,
 } from "@/app/components/chart-end-labels";
-import { useChartTheme, seriesColor, crosshairCursor } from "@/app/lib/chart-theme";
+import {
+  useChartTheme,
+  seriesColor,
+  crosshairCursor,
+  PLOT_MARGIN_LEFT,
+  Y_AXIS_WIDTH,
+} from "@/app/lib/chart-theme";
 import { wideToTable } from "@/app/lib/chart-csv";
 import { formatters, type FormatKind } from "@/app/lib/chart-format";
 import { useRangeFilter } from "@/app/lib/use-date-range";
@@ -221,7 +227,7 @@ export default function TrendChart({
             margin={{
               top: 10,
               right: labelsOn ? labelWidth : 20,
-              left: 60,
+              left: PLOT_MARGIN_LEFT,
               bottom: labelsOn ? 8 : 30,
             }}
           >
@@ -236,6 +242,7 @@ export default function TrendChart({
               tickLine={false}
             />
             <YAxis
+              width={Y_AXIS_WIDTH}
               tick={{ fontSize: 11, fill: t.axis, fontFamily: "var(--font-geist-mono), monospace" }}
               tickFormatter={(v) => fmt(v, 0)}
               axisLine={false}

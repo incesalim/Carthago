@@ -21,7 +21,13 @@ import {
 } from "recharts";
 import { ChartCard } from "@/app/components/ui/chart-card";
 import { ChartData } from "@/app/components/ui/chart-csv";
-import { useChartTheme, tooltipStyles, crosshairCursor } from "@/app/lib/chart-theme";
+import {
+  useChartTheme,
+  tooltipStyles,
+  crosshairCursor,
+  PLOT_MARGIN_LEFT,
+  Y_AXIS_WIDTH,
+} from "@/app/lib/chart-theme";
 import { wideToTable } from "@/app/lib/chart-csv";
 import { useRangeFilter } from "@/app/lib/use-date-range";
 
@@ -60,7 +66,10 @@ export default function EngineBars({
       />
       <div style={{ height }}>
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={filtered} margin={{ top: 10, right: 12, left: 48, bottom: 4 }}>
+          <BarChart
+            data={filtered}
+            margin={{ top: 10, right: 12, left: PLOT_MARGIN_LEFT, bottom: 4 }}
+          >
             <CartesianGrid vertical={false} stroke={t.grid} />
             <XAxis
               dataKey="period"
@@ -70,6 +79,7 @@ export default function EngineBars({
               tickLine={false}
             />
             <YAxis
+              width={Y_AXIS_WIDTH}
               tick={{ fontSize: 11, fill: t.axis, fontFamily: "var(--font-geist-mono), monospace" }}
               tickFormatter={(v: number) => `₺${v.toFixed(1)}`}
               axisLine={false}

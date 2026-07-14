@@ -30,7 +30,12 @@ import { ChartCard } from "@/app/components/ui/chart-card";
 import { ChartData } from "@/app/components/ui/chart-csv";
 import { NearestSeriesTooltip } from "@/app/components/nearest-hover";
 import { EndLabelLayer, estimateEndLabelWidth } from "@/app/components/chart-end-labels";
-import { useChartTheme, crosshairCursor } from "@/app/lib/chart-theme";
+import {
+  useChartTheme,
+  crosshairCursor,
+  PLOT_MARGIN_LEFT,
+  Y_AXIS_WIDTH,
+} from "@/app/lib/chart-theme";
 import { wideToTable } from "@/app/lib/chart-csv";
 import { useRangeFilter } from "@/app/lib/use-date-range";
 
@@ -104,7 +109,10 @@ export default function ReserveBuffer({
       />
       <div style={{ height }}>
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={rows} margin={{ top: 10, right: labelWidth, left: 52, bottom: 8 }}>
+          <ComposedChart
+            data={rows}
+            margin={{ top: 10, right: labelWidth, left: PLOT_MARGIN_LEFT, bottom: 8 }}
+          >
             <CartesianGrid vertical={false} stroke={t.grid} />
             <XAxis
               dataKey="period"
@@ -115,6 +123,7 @@ export default function ReserveBuffer({
               tickLine={false}
             />
             <YAxis
+              width={Y_AXIS_WIDTH}
               tick={{ fontSize: 11, fill: t.axis, fontFamily: "var(--font-geist-mono), monospace" }}
               tickFormatter={(v) => `${v}`}
               axisLine={false}

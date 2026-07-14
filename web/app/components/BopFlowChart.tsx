@@ -24,7 +24,13 @@ import {
   YAxis,
 } from "recharts";
 import { ChartData } from "@/app/components/ui/chart-csv";
-import { useChartTheme, tooltipStyles, crosshairCursor } from "@/app/lib/chart-theme";
+import {
+  useChartTheme,
+  tooltipStyles,
+  crosshairCursor,
+  PLOT_MARGIN_LEFT,
+  Y_AXIS_WIDTH,
+} from "@/app/lib/chart-theme";
 import { wideToTable } from "@/app/lib/chart-csv";
 import { nf } from "@/app/lib/chart-format";
 
@@ -153,7 +159,12 @@ export default function BopFlowChart({
           <ComposedChart
             data={data}
             stackOffset={grouped ? undefined : "sign"}
-            margin={{ top: 10, right: line?.rightAxis ? 12 : 20, left: 6, bottom: 28 }}
+            margin={{
+              top: 10,
+              right: line?.rightAxis ? 12 : 20,
+              left: PLOT_MARGIN_LEFT,
+              bottom: 28,
+            }}
             barCategoryGap={grouped ? "16%" : "18%"}
           >
             <CartesianGrid strokeDasharray="3 3" stroke={t.grid} />
@@ -167,6 +178,7 @@ export default function BopFlowChart({
             />
             <YAxis
               yAxisId="left"
+              width={Y_AXIS_WIDTH}
               tick={{ fontSize: 11, fill: t.axis }}
               tickFormatter={(v) => nf(Number(v), 0)}
               axisLine={{ stroke: t.grid }}

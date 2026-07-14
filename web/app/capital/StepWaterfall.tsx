@@ -24,7 +24,7 @@ import {
   YAxis,
 } from "recharts";
 import { ChartCard } from "@/app/components/ui/chart-card";
-import { useChartTheme } from "@/app/lib/chart-theme";
+import { useChartTheme, PLOT_MARGIN_LEFT, Y_AXIS_WIDTH } from "@/app/lib/chart-theme";
 
 const MIN = 12; // the regulatory minimum the buffer is measured against
 
@@ -85,7 +85,10 @@ export default function StepWaterfall({
     <ChartCard plain title={title} description={description} source={source}>
       <div style={{ height }}>
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 22, right: 12, left: 8, bottom: 4 }}>
+          <BarChart
+            data={data}
+            margin={{ top: 22, right: 12, left: PLOT_MARGIN_LEFT, bottom: 4 }}
+          >
             <CartesianGrid vertical={false} stroke={t.grid} />
             <XAxis
               dataKey="name"
@@ -100,7 +103,7 @@ export default function StepWaterfall({
               tickFormatter={(v: number) => `${v.toFixed(0)}%`}
               axisLine={false}
               tickLine={false}
-              width={42}
+              width={Y_AXIS_WIDTH}
             />
             {/* the floor the buffer is measured against */}
             <ReferenceLine

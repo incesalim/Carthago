@@ -153,6 +153,24 @@ export function crosshairCursor(t: ChartTheme) {
   return { stroke: t.crosshair, strokeWidth: 1 } as const;
 }
 
+/**
+ * The left gutter, written down once.
+ *
+ * Recharts gives a <YAxis> a DEFAULT width of 60px, and that width sits ON TOP
+ * OF `margin.left` — so a `left: 60` margin pushed the plot 120px in from the
+ * sheet's text column, parking every line chart well to the right of its own
+ * heading. Instead: let the axis size itself to its ticks (`width="auto"`,
+ * Recharts ≥3.1 — a "₺1,234 bn" tick gets the room it needs, a "0%" tick
+ * doesn't take it), and keep only a thin margin so the leftmost x-tick label,
+ * which is centred on its tick, can't clip at the SVG boundary.
+ *
+ * Every chart with a value (non-category) y-axis uses this pair. A category
+ * y-axis — BarByBank's bank names — is content, not scale furniture, and keeps
+ * its own explicit width.
+ */
+export const Y_AXIS_WIDTH = "auto" as const;
+export const PLOT_MARGIN_LEFT = 8;
+
 /** Shared Recharts tooltip styling for a given theme. */
 export function tooltipStyles(t: ChartTheme) {
   return {

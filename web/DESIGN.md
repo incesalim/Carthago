@@ -61,6 +61,18 @@ dark one; pass the helper to `<Tooltip cursor>` instead of taking the default.
 Categorical bar charts (`BarByBank`) keep the band highlight (`t.cursor`): a line
 down the middle of a bar reads as a gridline, a band reads as "this column".
 
+**The plot starts where the heading starts.** A chart on the sheet has no card to
+indent it, so a fat left gutter parks the mark to the right of its own title and
+the page loses its left edge. Recharts invites exactly that: a `<YAxis>` has a
+DEFAULT width of 60px, and that width sits ON TOP OF `margin.left` — the two
+stack. Every value y-axis therefore takes `width={Y_AXIS_WIDTH}` (`"auto"` — the
+axis sizes itself to its own ticks) and `left: PLOT_MARGIN_LEFT` (a thin margin,
+so the leftmost x-tick label, which is centred on its tick, can't clip at the SVG
+edge), both from `chart-theme.ts`. Never hand a value y-axis a hard-coded width:
+"₺1,234 bn" and "0%" do not need the same room, and the guess is wrong for one of
+them. A CATEGORY y-axis (BarByBank's bank names) is content, not scale furniture —
+it keeps its own explicit width.
+
 ## Choosing the mark (read this BEFORE adding a chart)
 
 **The mark answers the question the title asks.** A finding the mark cannot draw
