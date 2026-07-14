@@ -58,13 +58,16 @@ import {
   type StandingsGroup,
   type TransmissionItem,
 } from "@/app/components/desk";
-import { lastVal, monthLabel, signedPp, valAgo } from "@/app/lib/desk";
+import { deltaByGroup, lastVal, leaderOf, monthLabel, signedPp, valAgo } from "@/app/lib/desk";
+import { VERBS, bandsFor, claim, direction, firstClaim } from "@/app/lib/prose";
 import {
   capitalStack,
   decompose12m,
   detectStep,
+  everyGroupMoved,
   postStepDrift,
   quartersToFloor,
+  stepWords,
 } from "@/app/lib/capital";
 import { GlobalRangeSelector } from "@/app/components/range-context";
 
@@ -159,6 +162,20 @@ export default async function CapitalPage() {
   const rwaDrift = rwaNow != null && rwaAgo != null ? rwaNow - rwaAgo : null;
   const levX = levNow != null ? 1 + levNow / 100 : null; // assets/equity = 1 + L/E
 
+  // Two chart titles used to TYPE a direction and a ranking ("Gearing keeps
+  // climbing — the state banks lean hardest"; "a foreign-bank story") next to the
+  // series that settles them. Both are the charts' own `data` props.
+  const groupOnly = [BANK_TYPES.SECTOR];
+  const levTop = leaderOf(lev, { exclude: groupOnly });
+  const levTopLabel = levTop ? (BANK_TYPE_LABELS[levTop.code] ?? "").toLowerCase() : null;
+  const levTrend = direction(
+    deltaByGroup(lev, 12).get(BANK_TYPES.SECTOR) ?? null,
+    VERBS.trend,
+    bandsFor(levNow ?? 900),
+  );
+  const derivTop = leaderOf(offBsDeriv, { exclude: groupOnly });
+  const derivTopLabel = derivTop ? (BANK_TYPE_LABELS[derivTop.code] ?? "").toLowerCase() : null;
+
   const recMonth = monthLabel(carSector.at(-1)?.period);
   const vsMonth = monthLabel(carSector.at(-2)?.period, false);
   const auditQ = quarterLabel(cet1Series.at(-1)?.period);
@@ -169,6 +186,7 @@ export default async function CapitalPage() {
     cet1: cet1Series,
     equityYoY: equityYoYSec,
     leverage: levSector,
+    assetsYoY: assetsYoYSec,
   });
 
   // ---- what the buffer is made of -----------------------------------------
@@ -209,8 +227,26 @@ export default async function CapitalPage() {
   ];
 
   // ---- the step → the ratio ------------------------------------------------
+  //
+  // detectStep() picks by |Δ| and returns a SIGNED delta, so every word below
+  // that names a direction has to be read off it — and whether the groups really
+  // moved together is a question carAll can answer, not one to remember.
+  const sw = step ? stepWords(step) : null;
+  const together =
+    step && sw ? everyGroupMoved(carAll, step.period, sw.dir, [BANK_TYPES.SECTOR]) : false;
+
+  // "RWA density barely moved" is asserted in three places to argue the step came
+  // through the CAPITAL numerator rather than the risk mix. It is a testable claim
+  // about a series this page already holds — so test it.
+  const rwaClean = rwaSector.filter((r) => r.value != null);
+  const rwaStepIdx = step ? rwaClean.findIndex((r) => r.period === step.period) : -1;
+  const rwaStepDelta =
+    rwaStepIdx > 0 ? rwaClean[rwaStepIdx].value! - rwaClean[rwaStepIdx - 1].value! : null;
+  const rwaStepMove = direction(rwaStepDelta, VERBS.move, bandsFor(rwaNow ?? 100));
+  const rwaHeld = rwaStepMove === VERBS.move.flat;
+
   const transmission: TransmissionItem[] = [];
-  if (step?.isBreak && split) {
+  if (step?.isBreak && split && sw) {
     transmission.push({
       k: monthLabel(step.period),
       v: step.delta.toFixed(2),
@@ -218,14 +254,23 @@ export default async function CapitalPage() {
       effect: (
         <>
           Capital adequacy moved <b>{step.delta.toFixed(2)}pp in a single month</b> — against a
-          typical monthly move of {step.typical.toFixed(2)}pp, and{" "}
-          <b>every ownership group fell together</b>. This is a <b>step</b>, not a trend.
+          typical monthly move of {step.typical.toFixed(2)}pp
+          {together ? (
+            <>
+              , and <b>every ownership group {sw.verb} together</b>
+            </>
+          ) : (
+            <>
+              , though <b>the groups did not all move with it</b>
+            </>
+          )}
+          . This is a <b>step</b>, not a trend.
         </>
       ),
     });
     transmission.push({
       k: "Ex-step",
-      v: `${split.rest >= 0 ? "+" : "−"}${Math.abs(split.rest).toFixed(2)}`,
+      v: signedPp(split.rest, 2).replace("pp", ""),
       unit: "pp",
       effect: (
         <>
@@ -278,9 +323,19 @@ export default async function CapitalPage() {
       v: "—",
       effect: (
         <>
-          <b>We cannot source the step.</b> RWA density barely moved ({fmtPct(rwaNow)}), so it
-          arrived through the <b>capital</b> numerator rather than the risk mix — but no rule in
-          our window explains it. The page says so rather than guessing.{" "}
+          <b>We cannot source the step.</b>{" "}
+          {rwaHeld ? (
+            <>
+              RWA density barely moved ({fmtPct(rwaNow)}), so it arrived through the{" "}
+              <b>capital</b> numerator rather than the risk mix
+            </>
+          ) : (
+            <>
+              RWA density {rwaStepMove} {signedPp(rwaStepDelta ?? 0, 1)} through the same month, so
+              the <b>risk mix</b> moved with it
+            </>
+          )}{" "}
+          — but no rule in our window explains it. The page says so rather than guessing.{" "}
           <Go href="/regulation">/regulation</Go>
         </>
       ),
@@ -597,10 +652,18 @@ export default async function CapitalPage() {
               data={carAll}
               seriesLabels={BANK_TYPE_LABELS}
               title={
-                step?.isBreak
-                  ? `Every ownership group fell together in ${monthLabel(step.period, false)}`
-                  : (seriesFinding(carSector, { noun: "Capital adequacy", decimals: 1 }) ??
-                     "Capital adequacy — by group")
+                firstClaim(
+                  [
+                    step?.isBreak && together && !!sw,
+                    `Every ownership group ${sw?.verb} together in ${monthLabel(step?.period ?? null, false)}`,
+                  ],
+                  [
+                    step?.isBreak && !!sw,
+                    `Capital adequacy ${sw?.verb} ${signedPp(step?.delta ?? 0, 1)} in ${monthLabel(step?.period ?? null, false)} — but not every group moved with it`,
+                  ],
+                ) ??
+                seriesFinding(carSector, { noun: "Capital adequacy", decimals: 1 }) ??
+                "Capital adequacy — by group"
               }
               description="capital adequacy (syr), %, monthly · by group · regulatory minimum 12%"
               source={
@@ -624,7 +687,9 @@ export default async function CapitalPage() {
                 step={split.step}
                 rest={split.rest}
                 stepLabel={`The ${monthLabel(step.period, false)} step`}
-                title="The year's decline is the step — the rest of the year added capital"
+                title={`The year's ${split.total < 0 ? "decline" : "gain"} is the step — the rest of the year ${
+                  split.rest >= 0 ? "added" : "lost"
+                } capital`}
                 description="12-month change in CAR, pp · the one-off isolated from everything else"
                 source={
                   <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-[9px] text-faint">
@@ -663,8 +728,19 @@ export default async function CapitalPage() {
             <p className="mt-4 max-w-[96ch] text-[12px] leading-relaxed text-muted-foreground">
               <b className="font-semibold text-foreground">Not attributed.</b> The step is in the
               data, not in the explanation: no rule in our regulation window covers it, and RWA
-              density barely moved ({fmtPct(rwaNow)}), so it arrived through the capital numerator
-              rather than the risk mix. The buffer is therefore sized against the{" "}
+              density{" "}
+              {rwaHeld ? (
+                <>
+                  barely moved ({fmtPct(rwaNow)}), so it arrived through the capital numerator
+                  rather than the risk mix
+                </>
+              ) : (
+                <>
+                  {rwaStepMove} {signedPp(rwaStepDelta ?? 0, 1)} in the same month, so the risk mix
+                  moved with it
+                </>
+              )}
+              . The buffer is therefore sized against the{" "}
               <b className="font-semibold text-foreground">{driftBasis}</b> slope — extrapolating a
               step would be arithmetic dressed as a forecast.
             </p>
@@ -771,7 +847,20 @@ export default async function CapitalPage() {
               plain
               data={lev}
               seriesLabels={BANK_TYPE_LABELS}
-              title="Gearing keeps climbing — the state banks lean hardest"
+              // Both halves were typed: a direction AND a ranking, next to the very
+              // series that decides them. `lev` is this chart's own data prop.
+              title={
+                firstClaim(
+                  [
+                    levTrend != null && levTrend !== VERBS.trend.flat && levTopLabel != null,
+                    `Gearing keeps ${levTrend} — the ${levTopLabel} banks lean hardest`,
+                  ],
+                  [
+                    levTopLabel != null,
+                    `Gearing is flat — the ${levTopLabel} banks lean hardest`,
+                  ],
+                ) ?? "Liabilities ÷ equity — by group"
+              }
               description="liabilities ÷ equity, %, monthly · by ownership group"
               source={
                 <ChartFoot data={lev} labels={BANK_TYPE_LABELS} decimals={0} deltaPeriods={12} />
@@ -809,9 +898,16 @@ export default async function CapitalPage() {
               data={rwa}
               seriesLabels={BANK_TYPE_LABELS}
               title={
-                step?.isBreak
-                  ? "Risk density barely moved through the step — the fall came from capital, not the risk mix"
-                  : "RWA net / gross — by group"
+                firstClaim(
+                  [
+                    step?.isBreak && rwaHeld && !!sw,
+                    `Risk density barely moved through the step — the ${sw?.noun} came from capital, not the risk mix`,
+                  ],
+                  [
+                    step?.isBreak && !rwaHeld && rwaStepDelta != null,
+                    `Risk density ${rwaStepMove} ${signedPp(rwaStepDelta ?? 0, 1)} through the step — the risk mix moved with it`,
+                  ],
+                ) ?? "RWA net / gross — by group"
               }
               description="rwa net ÷ gross, %, monthly · lower = more low-weight exposure"
               source={
@@ -825,7 +921,14 @@ export default async function CapitalPage() {
               plain
               data={offBsDeriv}
               seriesLabels={BANK_TYPE_LABELS}
-              title="The derivative book is a foreign-bank story"
+              // "a foreign-bank story" — true when written, and never re-checked.
+              // Phrased so it reads for whichever group actually leads.
+              title={
+                claim(
+                  derivTopLabel != null,
+                  `The derivative book is concentrated in the ${derivTopLabel} banks`,
+                ) ?? "Off-balance-sheet derivatives ÷ assets — by group"
+              }
               description="off-balance-sheet derivatives ÷ total assets, %, monthly · by group"
               source={
                 <ChartFoot
