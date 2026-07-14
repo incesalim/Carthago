@@ -3,8 +3,10 @@ import {
   capitalStack,
   decompose12m,
   detectStep,
+  everyGroupMoved,
   postStepDrift,
   quartersToFloor,
+  stepWords,
   type Pt,
 } from "./capital";
 
@@ -97,5 +99,73 @@ describe("capitalStack", () => {
     expect(
       capitalStack([{ period: "2026Q1", bank_type_code: "CET1", value: 11.79 }]),
     ).toHaveLength(0);
+  });
+});
+
+describe("stepWords", () => {
+  it("reads the direction off the sign, because detectStep does not", () => {
+    // detectStep picks by |Δ| and returns a SIGNED delta. Five sites on /capital
+    // typed "fell" / "the year's decline" / "the fall came from capital" — all of
+    // which an UPWARD step (a capital raise, a rule reversing) would have falsified.
+    expect(stepWords({ delta: -2.92 })).toEqual({
+      verb: "fell",
+      noun: "decline",
+      adj: "lost",
+      dir: -1,
+    });
+    expect(stepWords({ delta: 2.92 })).toEqual({
+      verb: "rose",
+      noun: "gain",
+      adj: "added",
+      dir: 1,
+    });
+  });
+
+  it("agrees with the sign the detector actually returns", () => {
+    const up = detectStep([
+      { period: "2026-01", value: 10 },
+      { period: "2026-02", value: 10.1 },
+      { period: "2026-03", value: 10.2 },
+      { period: "2026-04", value: 16 }, // a big UPWARD break
+    ]);
+    expect(up?.isBreak).toBe(true);
+    expect(up!.delta).toBeGreaterThan(0);
+    expect(stepWords(up!).verb).toBe("rose");
+  });
+});
+
+describe("everyGroupMoved", () => {
+  const rows = [
+    { period: "2025-12", bank_type_code: "10005", value: 20 },
+    { period: "2026-01", bank_type_code: "10005", value: 17 }, // −3
+    { period: "2025-12", bank_type_code: "10006", value: 18 },
+    { period: "2026-01", bank_type_code: "10006", value: 15 }, // −3
+    { period: "2025-12", bank_type_code: "10001", value: 19 }, // sector, excluded
+    { period: "2026-01", bank_type_code: "10001", value: 16 },
+  ];
+
+  it("holds when every group moved the sector's way", () => {
+    expect(everyGroupMoved(rows, "2026-01", -1, ["10001"])).toBe(true);
+  });
+
+  it("fails when one group moved against it", () => {
+    const mixed = rows.map((r) =>
+      r.bank_type_code === "10006" && r.period === "2026-01" ? { ...r, value: 19 } : r,
+    );
+    expect(everyGroupMoved(mixed, "2026-01", -1, ["10001"])).toBe(false);
+  });
+
+  it("fails on the wrong direction", () => {
+    expect(everyGroupMoved(rows, "2026-01", 1, ["10001"])).toBe(false);
+  });
+
+  it("is FALSE, not vacuously true, when the groups are missing", () => {
+    // "Every ownership group fell together" must not survive the groups failing
+    // to load — Array.every([]) would have said yes.
+    expect(everyGroupMoved([], "2026-01", -1)).toBe(false);
+    expect(everyGroupMoved(rows, "2026-01", -1, ["10001", "10005", "10006"])).toBe(false);
+    // A group with no reading at the step period can't be said to have moved.
+    const gap = rows.filter((r) => !(r.bank_type_code === "10006" && r.period === "2025-12"));
+    expect(everyGroupMoved(gap, "2026-01", -1, ["10001"])).toBe(false);
   });
 });

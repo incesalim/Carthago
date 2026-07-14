@@ -7,7 +7,15 @@
  *
  * Tone rules are conservative: a metric only reads positive/warn when its
  * move/level clears a threshold; otherwise neutral. All thresholds are explicit.
+ *
+ * Every DIRECTIONAL word comes from `direction()` + the closed `VERBS` vocabulary
+ * (lib/prose.ts) rather than being typed into the template. That is what lets
+ * prose-regression.test.ts feed these builders sign-inverted fixtures and assert
+ * that no falling word survives a rising series — the gate can only be decisive
+ * if the vocabulary is enumerable.
  */
+
+import { VERBS, direction } from "./prose";
 
 /**
  * Minimal series shape the engine needs — structurally satisfied by
@@ -361,15 +369,27 @@ export function assetQualityInsights(d: {
 
   const g = growthOver(d.grossNpl, 52);
   if (g != null) {
+    // "is growing X% y/y" would have read "growing −8.0%" on a shrinking stock.
+    const gw = direction(g, VERBS.size, { flat: 1, sharp: Number.POSITIVE_INFINITY });
     items.push({
-      text: `The NPL stock is growing ${pct(g)} y/y — the ratio is a slow summary of a fast-moving stock.`,
+      text: `${
+        gw === VERBS.size.flat
+          ? "The NPL stock is flat y/y"
+          : `The NPL stock ${gw} ${pct(Math.abs(g))} y/y`
+      } — the ratio is a slow summary of a fast-moving stock.`,
       tone: g > 60 ? "warn" : "neutral",
     });
   }
 
   if (n != null) {
+    // "— rising, but slowly" was typed beside a computed delta, so an EASING NPL
+    // read "2.61% (−0.08pp m/m) — rising, but slowly." The band is the nuance:
+    // inside it, "rising"; beyond it, "climbing".
+    const move = direction(nD, VERBS.trend, { flat: 0.03, sharp: 0.1 });
     items.push({
-      text: `The published NPL ratio is ${pct(n, 2)}${nD != null ? ` (${ppStr(nD)} m/m)` : ""} — rising, but slowly.`,
+      text: `The published NPL ratio is ${pct(n, 2)}${nD != null ? ` (${ppStr(nD)} m/m)` : ""}${
+        move ? ` — ${move}` : ""
+      }.`,
       tone: nD != null && nD > 0.05 ? "warn" : "neutral",
     });
   }
@@ -416,6 +436,8 @@ export function capitalInsights(d: {
   cet1: SeriesPoint[]; // audited quarterly sector CET1 (may lag)
   equityYoY: SeriesPoint[];
   leverage: SeriesPoint[]; // liabilities / equity, sector
+  /** Sector asset growth y/y — the cycle equity has to keep pace WITH. */
+  assetsYoY?: SeriesPoint[];
 }): TabTakeaway {
   const period = asOf(d.car);
   const items: Insight[] = [];
@@ -438,11 +460,22 @@ export function capitalInsights(d: {
     });
   }
 
+  // The balance-sheet cycle was a TYPED constant ("a ~40% nominal cycle") with the
+  // thresholds 30 and 25 pinned to it. It is a series we already hold: as nominal
+  // growth cools with CPI, the hardcoded version drifts into nonsense ("equity
+  // compounding 28% keeps pace with a ~40% cycle"). Compare against the cycle
+  // itself and all three magic numbers go away.
   const eq = last(d.equityYoY);
+  const bs = d.assetsYoY ? last(d.assetsYoY) : null;
   if (eq != null) {
     items.push({
-      text: `Equity is compounding ${pct(eq)} y/y — capital generation ${eq > 30 ? "keeps pace with" : "trails"} a ~40% nominal balance-sheet cycle.`,
-      tone: eq < 25 ? "warn" : "neutral",
+      text:
+        bs == null
+          ? `Equity is compounding ${pct(eq)} y/y — the generation side of the ratio.`
+          : `Equity is compounding ${pct(eq)} y/y — capital generation ${
+              eq >= bs ? "keeps pace with" : "trails"
+            } the ${pct(bs)} nominal balance-sheet cycle.`,
+      tone: bs != null && eq < bs ? "warn" : "neutral",
       href: "/profitability",
     });
   }

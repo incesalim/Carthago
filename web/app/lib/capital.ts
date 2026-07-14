@@ -21,6 +21,63 @@ const clean = (s: readonly Pt[]) =>
   s.filter((r): r is { period: string; value: number } => r.value != null);
 
 /**
+ * The step's direction, as words.
+ *
+ * `detectStep` picks the biggest move by |Δ| and hands back a SIGNED delta — so
+ * the detector is direction-blind and the caller must read the sign. Five places
+ * on /capital didn't: they typed "fell", "the year's decline", "the fall came
+ * from capital". The next step to be detected may well be upward (a capital
+ * raise, a rule change reversing), and the page would have called it a fall.
+ */
+export function stepWords(step: { delta: number }): {
+  verb: string;
+  noun: string;
+  adj: string;
+  dir: 1 | -1;
+} {
+  return step.delta < 0
+    ? { verb: "fell", noun: "decline", adj: "lost", dir: -1 }
+    : { verb: "rose", noun: "gain", adj: "added", dir: 1 };
+}
+
+/**
+ * Did EVERY ownership group move the same way as the sector in `period`?
+ *
+ * "Every ownership group fell together" was asserted next to the very series
+ * that could decide it — `carAll` is the chart's own `data` prop. It is what
+ * makes the move a step rather than one group's accident, so it is worth
+ * testing rather than remembering.
+ *
+ * FALSE when a group has no reading at `period` (or none at all): a universal
+ * claim with no members behind it must not pass.
+ */
+export function everyGroupMoved(
+  rows: ReadonlyArray<{ period: string; bank_type_code: string; value: number | null }>,
+  period: string,
+  dir: 1 | -1,
+  exclude: readonly string[] = [],
+): boolean {
+  const skip = new Set(exclude);
+  const byGroup = new Map<string, { period: string; value: number }[]>();
+  for (const r of rows) {
+    if (r.value == null || skip.has(r.bank_type_code)) continue;
+    const list = byGroup.get(r.bank_type_code) ?? [];
+    list.push({ period: r.period, value: r.value });
+    byGroup.set(r.bank_type_code, list);
+  }
+  if (byGroup.size === 0) return false;
+
+  for (const list of byGroup.values()) {
+    list.sort((a, b) => a.period.localeCompare(b.period));
+    const i = list.findIndex((p) => p.period === period);
+    if (i < 1) return false; // no reading at the step, or nothing to compare it to
+    const delta = list[i].value - list[i - 1].value;
+    if (Math.sign(delta) !== dir) return false;
+  }
+  return true;
+}
+
+/**
  * The largest single-period move in the trailing `window`, and whether it is a
  * structural break: a move `k`× larger than the typical move over the same
  * window. Rule-based, printable, no hand-picked date.
