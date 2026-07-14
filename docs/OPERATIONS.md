@@ -86,12 +86,20 @@ python scripts/build_bank_audit_stages.py --db data/bank_audit.db
 
 # Push new rows to D1 (requires CLOUDFLARE_API_TOKEN)
 python scripts/push_to_d1.py --hours 168                      # bulletin/EVDS lane
-python scripts/push_to_d1.py --db data/bank_audit.db --hours 168 \
-    --only-tables bank_audit_balance_sheet,bank_audit_profit_loss,bank_audit_oci,bank_audit_credit_quality,bank_audit_profile,bank_audit_loans_by_sector,bank_audit_npl_movement,bank_audit_stages,bank_audit_capital,bank_audit_liquidity,bank_audit_extractions,bank_audit_validation
+python scripts/push_to_d1.py --db data/bank_audit.db --hours 168 --table-set audit
 ```
 
-> First-time local audit run: seed the standalone DB from the combined one
-> with `python scripts/seed_audit_db.py` so you don't re-extract every PDF.
+> **Never hand-list the audit tables.** `--table-set audit` expands to every
+> `bank_audit_*` table in `src/audit_reports/registry.py`. The literal list that
+> used to sit here named 12 of the 16 — and the copy in `refresh-audit.yml` named
+> 14 — so `bank_audit_fx_position` and `bank_audit_repricing` were extracted and
+> snapshotted for weeks without ever reaching D1, while the push exited 0.
+> `push_to_d1` now hard-errors on a table it cannot sync.
+
+> First-time local audit run: seed the standalone DB from the combined one with
+> `python scripts/seed_audit_db.py`. It seeds statement rows only — never the
+> extraction log, which would make the restore skip the re-extraction it exists
+> to trigger.
 
 ### Get a newly published audit report in (quarterly cadence)
 

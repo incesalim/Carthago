@@ -35,6 +35,8 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 WORKFLOWS_DIR = REPO_ROOT / ".github" / "workflows"
 OPERATIONS_DOC = REPO_ROOT / "docs" / "OPERATIONS.md"
+ARCHITECTURE_DOC = REPO_ROOT / "docs" / "ARCHITECTURE.md"
+PROJECT_STATE_DOC = REPO_ROOT / "docs" / "PROJECT_STATE.md"
 ENV_DOCS = (
     OPERATIONS_DOC,
     REPO_ROOT / "docs" / "ADMIN.md",
@@ -64,6 +66,29 @@ _ALLOW_ENV_KEYS = frozenset(
         "ASSETS",
     }
 )
+
+# Docs that must name every workflow, and the workflows each may legitimately omit.
+#
+# For a long time only OPERATIONS.md was guarded — so it stayed perfect while
+# ARCHITECTURE.md quietly lost track of 8 of 18 workflows (4 of them scheduled
+# lanes writing D1 daily). A gate pointed at one file certifies that file, not
+# the docs.
+_WORKFLOW_DOCS: dict[Path, frozenset[str]] = {
+    # The runbook and the inventory: no exceptions, every workflow appears.
+    OPERATIONS_DOC: frozenset(),
+    PROJECT_STATE_DOC: frozenset(),
+    # ARCHITECTURE narrates the *scheduled* topology. The manual one-shot
+    # backfills are genuinely out of that scope (they live in OPERATIONS +
+    # PROJECT_STATE); everything that runs on a cron must be described here.
+    ARCHITECTURE_DOC: frozenset(
+        {
+            "backfill-audit.yml",
+            "backfill-faaliyet.yml",
+            "backfill-nonbank.yml",
+            "backfill-tefas.yml",
+        }
+    ),
+}
 
 
 def _read(path: Path) -> str:
@@ -107,6 +132,28 @@ def check_workflows() -> tuple[set[str], set[str]]:
     return on_disk - documented, named_in_doc - on_disk
 
 
+def check_workflow_docs() -> dict[str, set[str]]:
+    """Workflows each doc in _WORKFLOW_DOCS fails to name, keyed by doc name.
+
+    Forward direction only. The reverse ("dangling") check stays in
+    check_workflows() for OPERATIONS alone, because _DOC_WORKFLOW_RE matches a
+    backticked bare filename and ARCHITECTURE writes the full
+    `.github/workflows/x.yml` path — applying it there would silently pass while
+    catching nothing.
+    """
+    on_disk = workflow_files()
+    gaps: dict[str, set[str]] = {}
+    for doc, allowed in _WORKFLOW_DOCS.items():
+        if not doc.exists():
+            gaps[doc.name] = on_disk
+            continue
+        text = _read(doc)
+        missing = {name for name in on_disk - allowed if name not in text}
+        if missing:
+            gaps[doc.name] = missing
+    return gaps
+
+
 def check_secrets() -> set[str]:
     """Secrets/vars a workflow reads but OPERATIONS.md never names."""
     doc_text = _read(OPERATIONS_DOC)
@@ -132,15 +179,26 @@ def main() -> int:
             return 1
 
     missing_wf, dangling_wf = check_workflows()
+    doc_gaps = check_workflow_docs()
     missing_secrets = check_secrets()
     missing_env = check_env_keys()
 
-    if not (missing_wf or dangling_wf or missing_secrets or missing_env):
+    if not (missing_wf or dangling_wf or doc_gaps or missing_secrets or missing_env):
         print(
-            f"docs in sync ({len(workflow_files())} workflows, "
-            f"{len(referenced_secrets())} secrets, {len(env_keys())} env keys)."
+            f"docs in sync ({len(workflow_files())} workflows across "
+            f"{len(_WORKFLOW_DOCS)} docs, {len(referenced_secrets())} secrets, "
+            f"{len(env_keys())} env keys)."
         )
         return 0
+
+    for doc_name, names in sorted(doc_gaps.items()):
+        if doc_name == OPERATIONS_DOC.name and missing_wf:
+            continue  # already reported below, with its own hint
+        _report(
+            f"Workflows missing from docs/{doc_name}:",
+            names,
+            "a lane nobody documents is a lane nobody knows is running",
+        )
 
     if missing_wf:
         _report(

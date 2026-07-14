@@ -48,12 +48,13 @@ machine is involved in the production data flow.
 | **Earnings calendar** | `src/earnings/` | Python — KAP results filings + IR presentation decks → `bank_earnings` |
 | **Franchise (annual reports)** | `src/faaliyet/` | Python — Faaliyet Raporu PDFs → `faaliyet_franchise`, `faaliyet_extractions` |
 | **Non-bank lenders** | `src/nonbank/` | Python — BDDK non-bank monthly bulletin → `nonbank_balance_sheet` |
+| **Advertised rates** | `src/rates/` | Python — doviz.com (loans) + hangikredi (deposits) → `bank_advertised_rates`; the only **per-bank** rate source (EVDS/BDDK publish rates at sector level only) |
 | **TÜİK tables** | `src/tuik/` | Python — veriportali cookie-session → `.xls` downloads (series EVDS lacks) |
-| **Audit-report extraction** | `src/audit_reports/` | **PyMuPDF (fitz) only** for every lane except the frozen balance-sheet / P&L extractor, which still uses pdfplumber. Don't extend pdfplumber — it's ~60× slower per page (see `docs/AUDIT_EXTRACTION_GUIDE.md`) |
+| **Audit-report extraction** | `src/audit_reports/` | **PyMuPDF (fitz)** for every statement lane except the frozen balance-sheet / P&L extractor (`extractor.py`), which still uses pdfplumber. Don't extend pdfplumber — it is roughly an order of magnitude slower per page (the code measures 17–85× depending on the lane; see `docs/AUDIT_EXTRACTION_GUIDE.md`). **Two live exceptions**, both open follow-ups: `src/faaliyet/extractor.py` (the annual-report franchise lane) is pdfplumber-only, and `profiler.py` still opens it |
 | **R2 wrapper** | `src/audit_reports/r2_storage.py` | boto3 against S3-compatible R2 |
-| **D1 sync** | `scripts/push_to_d1.py` | incremental push via wrangler |
+| **D1 sync** | `scripts/push_to_d1.py` | incremental push via wrangler. Audit lanes pass `--table-set audit` — the table list is derived from `src/audit_reports/registry.py`, never hand-written (a hand-written copy is what silently kept `bank_audit_fx_position`/`_repricing` out of D1) |
 | **Edge database** | Cloudflare D1 (`bddk-data`) | SQLite at the edge, ~1.6M rows |
-| **PDF storage** | Cloudflare R2 (`bddk-audit-reports`) | ~2.2 GB, ~970 quarterly PDFs |
+| **PDF storage** | Cloudflare R2 (`bddk-audit-reports`) | ~2.2 GB; **1,050 quarterly PDFs** extracted across the 38-bank universe |
 | **Dashboard** | `web/` | Next.js 16 + OpenNext + Recharts (charts) + d3-force (/ownership network layout) on Cloudflare Workers |
 | **Read cache** | Cloudflare KV (`NEXT_INC_CACHE_KV`) | 12h data cache for D1 reads (`cachedAll` → `unstable_cache`) |
 | **Admin panel** | `web/app/admin/`, `web/app/api/admin/` | password-gated control center: data health, refresh triggers, traffic |
@@ -123,6 +124,22 @@ digital + KAP + TEFAS + Faaliyet franchise:
    `kap_ownership` and the `tefas_*` tables too)
 4. VACUUM + re-gzip + upload the snapshot back to R2
 
+### The satellite lanes — small, scheduled, one table each
+Four crons ride the bulletin lane's snapshot and concurrency group, each writing a
+single table. They're listed here because a lane nobody documents is a lane nobody
+knows is running:
+
+| Workflow | When | Writes |
+|---|---|---|
+| `refresh-advertised-rates.yml` | Mon 06:00 UTC | `python -m src.rates.scraper` → `bank_advertised_rates` (per-bank posted loan/deposit rates; the sources only expose "today", so history accretes forward) |
+| `refresh-presentations-weekly.yml` | Sat 06:00 UTC | `update_presentations.py` → `bank_earnings` (IR presentation decks) |
+| `summarize-regulations.yml` | Sun 06:00 UTC | `summarize_regulations.py` → `regulation_briefings` (weekly Kimi briefing; needs `KIMI_API_TOKEN`) |
+| `generate-reads.yml` | Sun 07:30 UTC | `generate_read_headlines.py` → `read_headlines` (free-LLM rewrite of the one-sentence lead on each T1 tab; number-validated, and shown only while its `det_hash` matches the live page) |
+
+Four more workflows are **manual dispatch only** and exist to load history, not to
+keep it fresh: `backfill-audit.yml`, `backfill-faaliyet.yml`, `backfill-nonbank.yml`
+and `backfill-tefas.yml` (recipes in [OPERATIONS.md](OPERATIONS.md)).
+
 ### Audit reports — two workflows, one `bddk-audit` lane
 Standalone audit pipeline on its own DB + snapshot. **Acquisition is automated;
 extraction is admin-triggered** (they share the concurrency group, so never overlap).
@@ -141,7 +158,8 @@ extraction is admin-triggered** (they share the concurrency group, so never over
    / `--periods … --force` for a targeted re-extract, passed via the workflow's
    `bank`/`period` inputs from the /admin coverage matrix)
 3. `build_bank_audit_stages.py` → `revalidate_audit_db.py` → `check_audit_quality.py`
-4. `push_to_d1.py --only-tables bank_audit_*` + `sync_audit_expected.py --push`
+4. `push_to_d1.py --table-set audit` + `sync_audit_expected.py --push` (the table
+   list is derived from the statement registry — never hand-listed)
 5. VACUUM + re-gzip + upload `state/bank_audit.db.gz` (the snapshot WRITER)
 
 **`reextract-statement.yml`** (dispatch-only) — targeted **single-statement** fix
