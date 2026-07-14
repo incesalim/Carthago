@@ -8,8 +8,14 @@
  * DESCRIPTION of the series' level + direction, not a judgment; returns null
  * on insufficient data so callers fall back to the static metric title.
  *
+ * The verb bands that started here are now `direction()` + `bandsFor()` in
+ * lib/prose.ts, shared with every other claim on the site. This module keeps the
+ * sentence shape; prose.ts owns the vocabulary.
+ *
  * Pure + synchronous — safe in server components and unit tests.
  */
+
+import { VERBS, bandsFor, direction } from "./prose";
 
 export interface SeriesPointLike {
   period: string;
@@ -68,18 +74,14 @@ export function seriesFinding(
   const deltaUnit = format === "pct" ? "pp" : "";
   const level = `${fmtNum(last.value, decimals)}${unit}`;
 
-  // Scale-aware flatness: under 0.15 absolute or 1% of the prior level.
-  const flatBand = Math.max(0.15, Math.abs(prior.value) * 0.01);
-  // "Sharp" band: a move worth a stronger verb.
-  const sharpBand = Math.max(1.0, Math.abs(prior.value) * 0.08);
-
-  let verb: string;
-  if (Math.abs(delta) < flatBand) verb = "holds at";
-  else if (delta > 0) verb = delta >= sharpBand ? "climbed to" : "edged up to";
-  else verb = -delta >= sharpBand ? "fell to" : "eased to";
+  // Scale-aware bands, so a 2% series and a 200% series both get an honest
+  // "flat" — a level series is banded off its own prior value.
+  const bands = bandsFor(prior.value);
+  const verb = direction(delta, VERBS.level, bands);
+  if (verb == null) return null; // no direction, no sentence
 
   const when = prettyPeriod(last.period);
-  if (Math.abs(delta) < flatBand) {
+  if (verb === VERBS.level.flat) {
     return `${noun} ${verb} ${level} in ${when}`;
   }
   const sign = delta > 0 ? "+" : "−";

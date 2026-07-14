@@ -42,6 +42,12 @@ jobs:
         # (bank_ticker/amount_fc/snake_case/no reserved words/unique number).
         # Stdlib-only. Existing tables are grandfathered.
         run: python scripts/check_schema_naming.py
+      - name: Prose claims
+        # A sentence asserting a direction, a level or a ranking must be computed
+        # from the series it sits next to — or it lies the moment the data turns.
+        # WARN-ONLY until the 41 sites the 2026-07 audit found are computed; then
+        # drop --warn and it gates. Stdlib-only.
+        run: python scripts/check_prose_claims.py --warn
       - name: Pytest
         run: pytest
 
