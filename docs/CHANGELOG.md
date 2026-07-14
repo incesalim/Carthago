@@ -3,7 +3,36 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-07-08.
+Last verified: 2026-07-14.
+
+2026-07-14 — **Market-risk data was extracted for weeks and never pushed to D1.**
+`refresh-audit.yml` — the lane that ingests every new quarter — hand-listed 14 of the
+16 audit tables in `--only-tables`, omitting `bank_audit_fx_position` and
+`bank_audit_repricing`. Both were extracted, validated and written to the R2 snapshot
+on every run, and silently never reached D1: `push_to_d1`'s `--only-tables` was an
+unvalidated filter over `SYNC_TABLES`, so a forgotten table matched nothing and the
+push still exited 0. `/market-risk` was frozen at the 2026-06-29 manual backfill while
+every other audit page advanced. Fixed at the root rather than by adding two names:
+the table list is now **derived** from `src/audit_reports/registry.py` (registering a
+statement type is the only step), workflows pass `--table-set audit`, `push_to_d1`
+**hard-errors** on a table it cannot sync, and `tests/test_audit_tables_sync.py` fails
+if any workflow hand-lists `bank_audit_*` again. Related: `seed_audit_db` no longer
+seeds the extraction log (it would have made a DR restore permanently skip the
+re-extraction it exists to trigger); `check_docs_sync` now guards ARCHITECTURE and
+PROJECT_STATE, not just OPERATIONS; `check_pipeline_graph_sync` now fails on a page
+node whose `href` 404s; and CI installs pdfplumber/pymupdf/pandas, so the 13 test
+files that were passing-by-skipping (86 tests) actually run. Audit:
+[knowledge/2026-07-14-architecture-and-docs-check.md](knowledge/2026-07-14-architecture-and-docs-check.md).
+
+2026-07-12 — **Franchise tab unpublished (archived, not deleted).** `/franchise` was
+pulled: the extractor samples stray numbers out of surrounding prose, so **~75% of
+non-ATM values are wrong** (Akbank's 6,210 ATMs read as 202; TSKB, with no ATM network,
+read as 8) and the per-cell confidence flags do not correlate with correctness, so they
+can't be used to filter. Code preserved un-routed under `web/app/_franchise/` (same
+Next.js private-folder treatment as `_valuation`); nav link and sitemap entry removed.
+The ingestion lane still runs. Re-shipping needs a rebuilt extractor behind a validation
+gate (branch reconciliation vs `bank_audit_profile` + YoY sanity), **not** more per-bank
+URL curation — curating URLs would only publish the wrong numbers faster.
 
 2026-07-10 — **Valuation tab hidden (archived, not deleted).** The `/valuation`
 tab was removed from the site at the user's request. Its code is preserved

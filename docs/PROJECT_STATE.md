@@ -10,7 +10,7 @@ coverage or known issues change.
 > from our data) in [BANKING_METRICS.md](BANKING_METRICS.md) — a 153-metric
 > registry (`data/metric_knowledge/`, CLI `scripts/metric_knowledge.py`).
 >
-> Last verified: 2026-07-08. Dated change history → [CHANGELOG.md](CHANGELOG.md).
+> Last verified: 2026-07-14. Dated change history → [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
@@ -29,7 +29,7 @@ coverage or known issues change.
 | `kap_ownership` | KAP Genel Bilgi Formu §5 + §7 subsidiaries (kap.org.tr) | current state per bank (`as_of` = filing date) | weekly full replace; 30/31 banks (ATBANK files no form); subsidiaries grid only on the full form (~15 banks) |
 | `tefas_manager_daily`, `tefas_category_daily`, `tefas_allocation_daily`, `tefas_top_funds` | TEFAS fund-market JSON API (tefas.gov.tr) | rolling ~5 years (API rejects older start dates) → present | daily T+1, trading days; aggregated at ingest (no per-fund rows) |
 | `bist_prices`, `bist_dividends`, `bist_shares` | Borsa İstanbul via Yahoo Finance chart API | 2014-06 → present | daily EOD (~1-day lag); 11 listed banks + XU100/XBANK indices (QNBFB delisted on Yahoo — no data) |
-| `faaliyet_franchise` | Bank annual reports (Faaliyet Raporu PDFs) | annual (FY ending 31 Dec) | ATM / POS / merchant / customer / card counts (the stats audit reports don't carry; branches & employees stay in `bank_audit_profile`); deterministic regex+coordinate extraction with confidence flags. **Lane shipped; coverage pending per-bank URL curation in `data/banks/faaliyet_report_urls.json` + the `backfill-faaliyet` run** |
+| `faaliyet_franchise` | Bank annual reports (Faaliyet Raporu PDFs) | annual (FY ending 31 Dec) | ATM / POS / merchant / customer / card counts (the stats audit reports don't carry; branches & employees stay in `bank_audit_profile`); deterministic regex+coordinate extraction with confidence flags. **⚠️ NOT TRUSTWORTHY — the `/franchise` tab is unpublished (2026-07-12): the extractor samples stray prose numbers, ~75% of non-ATM values are wrong and the confidence flags don't correlate with correctness. Needs a rebuilt extractor + validation gate, NOT more URL curation** |
 | `faaliyet_extractions` | per-PDF extraction ledger for the lane above | — | one row per annual report processed: success flag, rows written, confidence — the lane's audit trail |
 | `tbb_acquisition_stats` | TBB workbooks — remote-vs-branch customer acquisition | monthly | the **TBB** twin of `tkbb_acquisition_stats` above (deposit banks vs participation banks) |
 | `regulation_briefings` | BDDK/TCMB regulation text → weekly Kimi summary | weekly (Sun 06:00 UTC cron) | one briefing row per run. **Since 2026-07-13 it no longer supplies any figure on `/regulation`** — the corridor and reserve ratios are compiled from `news_items.body_text` + EVDS and reconciled, so an LLM can never set a number on the page. The briefing now supplies **editorial coverage only**: the categories the band does not model (licensing, payments, structure). Two categories stay unsourced by design — see [regulation_followups.md](regulation_followups.md) |
@@ -39,10 +39,10 @@ coverage or known issues change.
 | `bank_audit_profile` | BRSA PDFs, qualitative section | same | branches + personnel where disclosed |
 | `bank_audit_capital` | BRSA PDFs, §4.1 capital adequacy | same — **fully backfilled 2026-06-10** (31/31 banks, ~1.7k rows) | CET1/Tier1/Tier2/Total/RWA + CET1/Tier1/CAR ratios, per period_type |
 | `bank_audit_liquidity` | BRSA PDFs, §4.6/4.7 | same — **fully backfilled 2026-06-10** (31/31 banks, ~1.8k rows) | LCR (total/FC), NSFR, leverage ratio, per period_type |
-| `bank_audit_fx_position` | BRSA PDFs, §4 currency-risk footnote | same — **backfilled 2026-06-29 (7,143 rows / 31 banks → 2026Q1)** | FX net open position per currency (EUR/USD/OTHER/TOTAL) × period_type; net_position = net_on + net_off (~99% coverage). Powers `/market-risk` |
-| `bank_audit_repricing` | BRSA PDFs, §4 interest-rate-risk footnote | same — **backfilled 2026-06-29 (10,364 rows / 24 banks → 2026Q1)** | Repricing gap per bucket (lt_1m…gt_5y/non_sensitive/total) × period_type (~81% coverage; participation banks omit → validated N/A) |
+| `bank_audit_fx_position` | BRSA PDFs, §4 currency-risk footnote | same — **backfilled 2026-06-29 (7,143 rows / 31 banks → 2026Q1)** | FX net open position per currency (EUR/USD/OTHER/TOTAL) × period_type; net_position = net_on + net_off (~99% coverage). Powers `/market-risk`. ⚠️ **D1 was stranded at that backfill** — see the note below |
+| `bank_audit_repricing` | BRSA PDFs, §4 interest-rate-risk footnote | same — **backfilled 2026-06-29 (10,364 rows / 24 banks → 2026Q1)** | Repricing gap per bucket (lt_1m…gt_5y/non_sensitive/total) × period_type (~81% coverage; participation banks omit → validated N/A). ⚠️ same as above |
 | `bank_audit_oci`, `_cash_flow`, `_equity_change`, `_npl_movement`, `_stages`, `_loans_by_sector` | BRSA PDFs (statement pages + IFRS-9/credit footnotes) | 2022-Q1 → 2026-Q1 | per-bank; per-lane pass rates in the validation-status table below |
-| `bank_audit_extractions` | extraction log | one row per PDF | 974 rows (954 ok / 20 partial) |
+| `bank_audit_extractions` | extraction log | one row per PDF | **1,050 rows, 1,050 core-success (100%)** across the 38-bank universe (D1, 2026-07-14). The per-lane pass/fail tables below are a dated **2026-06-14** snapshot taken when the fleet was 31 banks / ~975 partitions — read their counts as of that date, not as today's totals |
 | `bank_types`, `table_definitions`, `download_log` | metadata | — | — |
 | `banks` (+ alias views `v_bist_prices` / `v_news_items` / `v_bank_earnings`) | dimension (migration 0021; +0022 new entrants; +0024 Takasbank), seeded from `bddk_bank_list.json` + `bank_names.ts` | 38-bank audited universe | canonical per-bank identity + single join key across lanes (`ticker` == `bank_ticker` == `symbol`); the views alias each lane's id column to `bank_ticker`. Powers cross-lane joins + the text-to-SQL bot. **One bank is carried but peer-excluded** — `TAKAS` (Takasbank), see below |
 
@@ -88,6 +88,20 @@ Re-extract or the Pipeline "Extract audit reports" card. The coverage matrix
 (statement type × bank × period) is the control surface — a new quarter appears
 as a `missing` cell to extract.
 
+**Market-risk was extracted but never pushed (fixed 2026-07-14).** `refresh-audit.yml`
+— the lane that ingests every new quarter — hand-listed 14 of the 16 audit tables in
+`--only-tables`, omitting `bank_audit_fx_position` and `bank_audit_repricing`. They
+were extracted, validated and written to the R2 snapshot on every run, and silently
+never reached D1: `push_to_d1`'s `--only-tables` was an unvalidated filter, so a
+forgotten table matched nothing and the push still exited 0. D1's market-risk tables
+were therefore frozen at the 2026-06-29 manual backfill (which pushed all 16) while
+every other audit page advanced. **Fixed at the root**: the table list is now derived
+from `src/audit_reports/registry.py`, workflows pass `--table-set audit`, and
+`push_to_d1` hard-errors on a table it cannot sync (`tests/test_audit_tables_sync.py`
+pins it). **Open follow-up: D1 still needs a one-off reconciliation** — re-push
+`fx_position`/`repricing` from the R2 snapshot (or re-extract the two statements via
+`reextract-statement.yml`) to recover the quarters D1 missed.
+
 **§4 capital/liquidity (2026-06-10)**: full-fleet history backfilled via
 `backfill-audit.yml` in 5-bank chunks (`ALL` exceeds the 180-min job timeout).
 Per-bank §4 filing quirks and their fixes are catalogued in
@@ -96,7 +110,9 @@ capital-quality flags are bank-reported BRSA temporary-measure CARs
 (ATBANK 2024, TEB consolidated 2022) — false positives, not parse errors.
 Dashboard surfacing (e.g. cross-bank CAR/LCR view) is an open follow-up.
 
-**Audit-lane validation status** (D1, 2026-06-14; /~975 partitions). Every extracted
+**Audit-lane validation status** — a **dated snapshot: D1 as of 2026-06-14**, when the
+fleet was 31 banks / ~975 partitions (it is now 38 / 1,050; the counts below have not
+been re-run). Every extracted
 statement is self-validated (internal-sum / roll-forward / cross identities); the
 `/admin` coverage matrix and the non-destructive re-extract guard both key off this.
 
@@ -385,14 +401,27 @@ resets on a hard reload. CSV/PNG export the visible window. Helpers in
 `web/app/components/ui/range-pills.tsx`. `BopFlowChart`/`BarByBank` are out of
 scope (fixed report windows / single-period snapshots).
 
-The **Franchise** tab (`/franchise`) shows each bank's operational footprint —
-ATMs, POS terminals, merchants, customers and cards — the stats the audited
-financials don't carry, extracted deterministically (regex + coordinates, with
-per-cell confidence flags) from annual reports into `faaliyet_franchise`; the
-per-PDF audit trail is `faaliyet_extractions`. Branch and employee counts
-deliberately come from `bank_audit_profile` instead, and are cross-checked against
-this lane. The table stays sparse until the per-bank URLs in
-`data/banks/faaliyet_report_urls.json` are curated and `backfill-faaliyet.yml` runs.
+A **Franchise** tab (`/franchise`) — **UNPUBLISHED since 2026-07-12. Do not ship it
+as-is.** The code is preserved un-routed under `web/app/_franchise/` (Next.js private
+folder, same treatment as `_valuation`); nav link and sitemap entry were removed.
+
+**The blocker is the extractor, not the data coverage.** It was designed to read each
+bank's operational footprint — ATMs, POS terminals, merchants, customers, cards: the
+stats the audited financials don't carry — deterministically (regex + coordinates,
+with per-cell confidence flags) from annual reports into `faaliyet_franchise`, with a
+per-PDF audit trail in `faaliyet_extractions`. In practice it samples stray numbers
+out of surrounding prose: **~75% of non-ATM values are wrong** (Akbank's 6,210 ATMs
+came out as 202; TSKB, an investment bank with no ATM network, got "8"), and the
+**confidence flags do not correlate with correctness**, so they cannot be used to
+filter. Curating the per-bank URLs in `data/banks/faaliyet_report_urls.json` and
+running `backfill-faaliyet.yml` would therefore *publish wrong numbers faster* — it is
+not the fix. Re-shipping needs a rebuilt extractor behind a validation gate (branch
+reconciliation against `bank_audit_profile` + a YoY sanity check); see
+[knowledge/faaliyet-franchise-extraction-audit-2026-07-12.md](knowledge/faaliyet-franchise-extraction-audit-2026-07-12.md).
+
+Branch and employee counts deliberately come from `bank_audit_profile` instead, and
+are unaffected. The ingestion lane still runs weekly (the `/pipeline` graph shows the
+page node as parked, not linked).
 
 The **Non-Bank** tab (`/non-bank`) covers the BDDK-supervised non-bank lenders
 that compete with bank credit — financial leasing, factoring, and financing
@@ -649,7 +678,7 @@ model (`web/app/lib/pipeline-graph.ts`) with a deterministic layered layout
 (`pipeline-layout.ts`, no dagre/elkjs); keep it in sync with this file +
 [ARCHITECTURE.md](ARCHITECTURE.md) when the pipeline changes.
 
-A qualitative-data layer feeds three tabs from the `news_items` table
+A qualitative-data layer feeds four tabs from the `news_items` table
 (`scripts/sync_news.py`, daily cron):
 
 - **/regulation** — primary regulator feeds: TCMB press releases + BDDK board
@@ -675,6 +704,11 @@ A qualitative-data layer feeds three tabs from the `news_items` table
   handful of new items (capped by `--google-max-decode`, default 60), so the
   rate-limit never bites; a decode failure keeps the still-clickable google link
   and retries next run.
+- **/disclosures** — the banks' own **KAP filings** (`source='kap'`): material-event
+  disclosures as each bank files them, tagged to banks via `news_item_banks` so the
+  same items surface on `/banks/[ticker]`. The regulator/press tabs above are what
+  is said *about* the sector; this is what the banks are legally obliged to say
+  themselves.
 - **Per-bank tagging** (`news_item_banks`, migration 0018) — a sync_news
   post-step (`src/news/bank_tagger.py`, pure-local like the earnings
   classifier) matches every press/google item's title+summary against a

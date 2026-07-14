@@ -5,8 +5,29 @@ Read-only audit of `docs/ARCHITECTURE.md`, `docs/PROJECT_STATE.md`,
 [architecture-review-2026-07.md](architecture-review-2026-07.md) (2026-07-02),
 each **verified against the code** rather than against each other.
 
-> **Status: REPORT ONLY — no code or docs changed.** Everything below is a
-> verified finding with file:line evidence. The two defects in §1 are open.
+> **Status: ACTED ON 2026-07-14** — findings §1–§4 fixed in commits `bf00951`,
+> `0772f40`, `dd02000`, `da24ef4` and the docs pass that follows. The report below
+> is preserved **as written**, so the diagnosis can be judged against what was
+> actually found. Read it with the correction and the leftovers noted here:
+>
+> - **§1.1 understated the damage.** The market-risk gap was not merely a future
+>   risk — D1 was **already** stranded at the 2026-06-29 backfill: 17 banks held
+>   half-size fx partitions (4 rows where the snapshot has 8) and AKBNK's 2026Q1
+>   `fx_position` was missing from D1 entirely. **One follow-up remains open: D1
+>   still needs a reconciliation push** of `bank_audit_fx_position` /
+>   `_repricing` from the R2 snapshot (or a `reextract-statement.yml` run for the
+>   two statements) to recover the quarters it missed. The code can no longer
+>   *create* the gap; it has not yet *closed* the existing one.
+> - **§2.5 had the counts backwards.** D1 proves 1,050 extractions / 1,050
+>   core-success / 38 banks — so PROJECT_STATE's "1,050" was right and the "974"
+>   mentions were the stale ones, not the reverse. Corrected in the docs.
+> - **§1.2 undercounted the dead links: there were two, not one.** `/weekly`
+>   (route retired in `fd0400b`) 404'd alongside `/franchise`.
+> - **Still open** (all pre-existing, none new): the `push_to_d1` declarative
+>   registry (§5 item 8), and the §3 backlog inherited from the 07-02 review —
+>   dead code in `extractor.py`, pdfplumber in `profiler.py` + `faaliyet`,
+>   uncached `audit.ts` reads, `metrics.ts` at 1,263 LOC, the ~10 duplicated HTTP
+>   retry loops, and zero tests on the SQL-shaping lib modules.
 
 **Headline:** the architecture is sound and the repo's own gates are green — but
 they are green because they guard the wrong file. `check_docs_sync.py` enforces
