@@ -99,6 +99,23 @@ REGISTRY: list[StatementType] = [
 
 BY_KEY: dict[str, StatementType] = {st.key: st for st in REGISTRY}
 
+# The two tables that carry no statement rows: the structural-validation results
+# and the per-partition extraction log. Not statement types — but every audit D1
+# push and every partition clear must carry them.
+INFRA_TABLES: list[str] = ["bank_audit_validation", "bank_audit_extractions"]
+
+# Every bank_audit_* table the audit lane writes: one per registered statement
+# type (deduped — the balance sheet carries three sub-statements) plus the infra
+# pair. THE list. Never re-enumerate it by hand.
+#
+# A hand-written copy is how fx_position + repricing stopped reaching D1: the
+# market-risk lane shipped 2026-06-27, the extractor, the loader and
+# push_to_d1.SYNC_TABLES all learned the two tables — and refresh-audit.yml's
+# --only-tables didn't. The rows were extracted, stored and snapshotted every
+# quarter, and silently never arrived. Registering a statement type above is now
+# the only step needed to get its table pushed.
+AUDIT_TABLES: list[str] = list(dict.fromkeys([st.table for st in REGISTRY] + INFRA_TABLES))
+
 
 def core_types() -> list[StatementType]:
     return [st for st in REGISTRY if st.is_core]

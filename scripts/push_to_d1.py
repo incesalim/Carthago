@@ -32,6 +32,7 @@ DB = ROOT / "data" / "bddk_data.db"
 WEB = ROOT / "web"
 
 sys.path.insert(0, str(ROOT))
+from src.audit_reports.registry import AUDIT_TABLES as _AUDIT_TABLES    # noqa: E402
 from src.audit_reports.schema import init_schema as _init_audit_schema  # noqa: E402
 from src.earnings.schema import init_schema as _init_earnings_schema    # noqa: E402
 from src.faaliyet.schema import init_schema as _init_faaliyet_schema    # noqa: E402
@@ -110,6 +111,13 @@ _FULL_REBUILD = {
     "bank_audit_statement_types",
     "bank_audit_coverage",
 }
+
+# Named table groups for --table-set, so a caller can say "the audit lane's
+# tables" instead of hand-listing them. The audit lane pushes all of its tables
+# or none: a hand-written subset in a workflow is exactly how bank_audit_fx_position
+# and bank_audit_repricing stopped reaching D1 while still being extracted,
+# validated and snapshotted every quarter.
+_TABLE_SETS: dict[str, list[str]] = {"audit": _AUDIT_TABLES}
 
 BATCH_SIZE = 100  # rows per INSERT statement (default for skinny tables)
 # news_items can carry multi-KB body_text per row — batch much smaller so a
@@ -255,6 +263,36 @@ def run_wrangler(sql_path: Path) -> int:
     return res.returncode
 
 
+def resolve_tables(only_tables: str | None, table_set: str | None) -> set[str] | None:
+    """Resolve --only-tables / --table-set into an allow-list (None = every table).
+
+    Raises ValueError on a name this script cannot sync. That check is the whole
+    point: the filter used to be a silent intersection over SYNC_TABLES, so a
+    misspelled — or simply forgotten — table pushed nothing and still exited 0.
+    That is why nobody noticed refresh-audit.yml had dropped bank_audit_fx_position
+    and bank_audit_repricing from its list: the rows were extracted and stored,
+    the push reported success, and D1 never saw them.
+    """
+    if table_set and only_tables:
+        raise ValueError("pass --table-set or --only-tables, not both")
+    if table_set:
+        return set(_TABLE_SETS[table_set])
+    if not only_tables:
+        return None
+    names = {t.strip() for t in only_tables.split(",") if t.strip()}
+    unknown = sorted(names - set(SYNC_TABLES))
+    if unknown:
+        # ASCII only: this goes to stderr, which (unlike stdout, line 28) is not
+        # reconfigured to UTF-8, so a dash here mojibakes on a Windows console.
+        raise ValueError(
+            "--only-tables names table(s) this script cannot sync: "
+            + ", ".join(unknown)
+            + ". Fix the name, or add the table to SYNC_TABLES. A table that is "
+              "not in SYNC_TABLES is NEVER pushed to D1."
+        )
+    return names
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--hours", type=int, default=48,
@@ -265,6 +303,11 @@ def main() -> int:
                         help="Comma-separated table allow-list. "
                              "E.g. --only-tables=bank_audit_balance_sheet,bank_audit_extractions "
                              "to push just BS data when other tables (e.g. credit_quality) need a migration first.")
+    parser.add_argument("--table-set", choices=sorted(_TABLE_SETS), default=None,
+                        help="Push a named group instead of hand-listing tables. "
+                             "'audit' = every bank_audit_* table the audit lane writes, "
+                             "derived from src/audit_reports/registry.py — so a new "
+                             "statement type is pushed the moment it is registered.")
     parser.add_argument("--db", type=str, default=str(DB),
                         help="SQLite staging DB to push from (default data/bddk_data.db). "
                              "The audit pipeline passes data/bank_audit.db so it can sync "
@@ -297,12 +340,17 @@ def main() -> int:
     _init_tkbb_acq_schema(conn)
     _init_rates_schema(conn)
 
-    allowed_tables = (
-        {t.strip() for t in args.only_tables.split(",") if t.strip()}
-        if args.only_tables else None
-    )
+    try:
+        allowed_tables = resolve_tables(args.only_tables, args.table_set)
+    except ValueError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 2
+
     lines: list[str] = ["-- incremental D1 push", f"-- window: last {args.hours} hours", ""]
     if allowed_tables:
+        # Echo the resolved set: the Actions log is where you confirm a lane is
+        # pushing every table it extracts.
+        print(f"table filter ({len(allowed_tables)}): {','.join(sorted(allowed_tables))}")
         lines.append(f"-- table filter: {sorted(allowed_tables)}")
         lines.append("")
 
