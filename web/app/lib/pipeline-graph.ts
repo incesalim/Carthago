@@ -107,7 +107,7 @@ export const PIPELINE_NODES: PipelineNode[] = [
   { id: "store-r2-pdf", kind: "store", layer: "storage", lane: "audit", label: "R2 · PDF bucket", sublabel: "bddk-audit-reports/<ticker>/*.pdf" },
   { id: "store-d1-audit-fin", kind: "store", layer: "storage", lane: "audit", label: "D1 · bank_audit financials", sublabel: "balance_sheet · profit_loss · oci · cash_flow · equity_change", statusKey: "audit:balance_sheet" },
   { id: "store-d1-audit-credit", kind: "store", layer: "storage", lane: "audit", label: "D1 · bank_audit credit", sublabel: "credit_quality · stages · npl_movement · loans_by_sector", statusKey: "audit:stages" },
-  { id: "store-d1-audit-reg", kind: "store", layer: "storage", lane: "audit", label: "D1 · bank_audit §4", sublabel: "capital · liquidity", statusKey: "audit:capital" },
+  { id: "store-d1-audit-reg", kind: "store", layer: "storage", lane: "audit", label: "D1 · bank_audit §4", sublabel: "capital · liquidity · fx_position · repricing", statusKey: "audit:capital" },
   { id: "store-d1-audit-spine", kind: "store", layer: "storage", lane: "audit", label: "D1 · coverage spine", sublabel: "coverage · expected · validation · empty-copy guarded", statusKey: "audit:coverage" },
 
   // ── Shared · infra & ops ───────────────────────────────────────────────
@@ -125,7 +125,6 @@ export const PIPELINE_NODES: PipelineNode[] = [
   { id: "page-asset-quality", kind: "page", layer: "page", lane: "bulletin", label: "Asset Quality", sublabel: "/asset-quality", href: "/asset-quality" },
   { id: "page-capital", kind: "page", layer: "page", lane: "bulletin", label: "Capital", sublabel: "/capital", href: "/capital" },
   { id: "page-profitability", kind: "page", layer: "page", lane: "bulletin", label: "Profitability", sublabel: "/profitability · NIM components", href: "/profitability" },
-  { id: "page-weekly", kind: "page", layer: "page", lane: "bulletin", label: "Weekly", sublabel: "/weekly", href: "/weekly" },
   { id: "page-rates", kind: "page", layer: "page", lane: "bulletin", label: "Rates", sublabel: "/rates", href: "/rates" },
   { id: "page-liquidity", kind: "page", layer: "page", lane: "bulletin", label: "Liquidity", sublabel: "/liquidity", href: "/liquidity" },
   { id: "page-economy", kind: "page", layer: "page", lane: "bulletin", label: "Economy", sublabel: "/economy", href: "/economy" },
@@ -136,7 +135,12 @@ export const PIPELINE_NODES: PipelineNode[] = [
   { id: "page-economy-trade", kind: "page", layer: "page", lane: "bulletin", label: "Foreign Trade", sublabel: "/economy/foreign-trade", href: "/economy/foreign-trade" },
   { id: "page-digital", kind: "page", layer: "page", lane: "bulletin", label: "Digital", sublabel: "/digital", href: "/digital" },
   { id: "page-funds", kind: "page", layer: "page", lane: "bulletin", label: "Funds", sublabel: "/funds", href: "/funds" },
-  { id: "page-franchise", kind: "page", layer: "page", lane: "bulletin", label: "Franchise", sublabel: "/franchise · branch/ATM/customer footprint", href: "/franchise" },
+  // Parked, so deliberately no href: the node renders as a non-clickable card.
+  // The route lives at web/app/_franchise/ and Next does not serve underscore
+  // dirs — the extractor gets ~75% of the non-ATM values wrong. The lane still
+  // ingests weekly, so the node stays to show faaliyet_franchise has a (dormant)
+  // consumer; give it an href again only when the extractor is fit to publish.
+  { id: "page-franchise", kind: "page", layer: "page", lane: "bulletin", label: "Franchise (parked)", sublabel: "not routed · extractor rework pending" },
   { id: "page-nonbank", kind: "page", layer: "page", lane: "bulletin", label: "Non-Bank", sublabel: "/non-bank", href: "/non-bank" },
   { id: "page-nonbank-share", kind: "page", layer: "page", lane: "bulletin", label: "Share of Banking", sublabel: "/non-bank/share-of-banking", href: "/non-bank/share-of-banking" },
   { id: "page-ownership", kind: "page", layer: "page", lane: "bulletin", label: "Ownership", sublabel: "/ownership", href: "/ownership" },
@@ -148,6 +152,7 @@ export const PIPELINE_NODES: PipelineNode[] = [
   { id: "page-banks", kind: "page", layer: "page", lane: "audit", label: "Banks", sublabel: "/banks", href: "/banks" },
   { id: "page-bank-detail", kind: "page", layer: "page", lane: "audit", label: "Bank detail", sublabel: "/banks/[ticker] · Sankey, ownership, valuation", href: "/banks" },
   { id: "page-cross-bank", kind: "page", layer: "page", lane: "audit", label: "Compare", sublabel: "/cross-bank · performance heatmap", href: "/cross-bank" },
+  { id: "page-market-risk", kind: "page", layer: "page", lane: "audit", label: "Market Risk", sublabel: "/market-risk · FX open position + repricing gap", href: "/market-risk" },
 
   // ── Shared · pages ─────────────────────────────────────────────────────
   { id: "page-admin", kind: "page", layer: "page", lane: "shared", label: "Admin", sublabel: "/admin · health · triggers · coverage matrix", href: "/admin" },
@@ -241,7 +246,6 @@ export const PIPELINE_EDGES: PipelineEdge[] = [
   { source: "store-d1-bulletin", target: "page-asset-quality" },
   { source: "store-d1-bulletin", target: "page-capital" },
   { source: "store-d1-bulletin", target: "page-profitability" },
-  { source: "store-d1-bulletin", target: "page-weekly" },
   { source: "store-d1-bulletin", target: "page-rates" },
   { source: "store-d1-bulletin", target: "page-liquidity" },
   { source: "store-d1-bulletin", target: "page-economy" },
@@ -287,6 +291,7 @@ export const PIPELINE_EDGES: PipelineEdge[] = [
   { source: "store-d1-audit-reg", target: "page-cross-bank" },
   { source: "store-d1-audit-reg", target: "page-capital" },
   { source: "store-d1-audit-reg", target: "page-liquidity" },
+  { source: "store-d1-audit-reg", target: "page-market-risk" },
   { source: "store-d1-audit-spine", target: "page-admin" },
 
   // cache layer
