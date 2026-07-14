@@ -35,7 +35,9 @@ import {
   Vital,
   Vitals,
 } from "@/app/components/desk";
-import { lastVal, monthLabel, signedPp, streak, valAgo, type Pt } from "@/app/lib/desk";
+import { lastVal, monthLabel, signedPp, streak, valAgo, windowExtremes, type Pt } from "@/app/lib/desk";
+import { VERBS, direction, signed } from "@/app/lib/prose";
+import { seriesFinding } from "@/app/lib/chart-findings";
 import { GlobalRangeSelector } from "@/app/components/range-context";
 import { fmtQuarter } from "@/app/lib/chart-format";
 import MarketTicker from "@/app/components/MarketTicker";
@@ -87,8 +89,12 @@ function Grid({ children }: { children: React.ReactNode }) {
   return <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">{children}</div>;
 }
 
+/** EVDS points ({period_date}) → the shape the finding engine reads. */
+const asPts = (p: Point[]): Pt[] => p.map((r) => ({ period: r.period_date, value: r.value }));
+
 export default async function EconomyPage() {
   const d = await getEconomyData();
+
   const ticker = await getMarketTicker();
   const bistIdx = await bistIndexHistory(8);
   const bistRebased = Object.fromEntries(
@@ -154,7 +160,27 @@ export default async function EconomyPage() {
   const caNow = lastVal(ca);
   const caXgeNow = lastVal(toPts(d.caExGoldEnergy12m));
 
-  const signed = (v: number, dec = 1) => `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(dec)}`;
+  // The section reads. These descriptions used to carry third-party claims from a
+  // March-2026 outlook — "industrial momentum stays weak", "disinflation
+  // decelerated even before the conflict", "every 10% rise in energy prices costs
+  // ~0.3–0.4% of GDP" — typed into a prop that a reader parses as methodology.
+  // Where we hold the series the sentence is ours and recomputes; where the claim
+  // was causal, an elasticity, or a judgment, it is gone rather than fabricated.
+  const unExt = windowExtremes(unemp, 60);
+  const unAtLow = unempNow != null && unExt != null && unempNow <= unExt.min + 0.2;
+  const partAgo = valAgo(part, 12);
+  const partMove = direction(
+    partNow != null && partAgo != null ? partNow - partAgo : null,
+    VERBS.trend,
+    { flat: 0.3, sharp: 1.5 },
+  );
+  const caAgo = valAgo(ca, 12);
+  const caMove = direction(
+    caNow != null && caAgo != null ? caNow - caAgo : null,
+    VERBS.move,
+    { flat: 2, sharp: 10 },
+  );
+  const primNow = lastVal(toPts(d.primaryPctGdp));
 
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
@@ -300,9 +326,27 @@ export default async function EconomyPage() {
 
       {/* ── In depth — the evidence layer ──────────────────────────────── */}
       <Depth action={<GlobalRangeSelector />}>
+        {/* These section descriptions used to be third-party claims lifted from a
+            March-2026 outlook — "industrial momentum stays weak", "disinflation
+            decelerated even before the conflict" — typed into a prop that reads as
+            methodology. Where we hold the series, the sentence is now ours and
+            recomputes. Where the claim was causal, an elasticity, or a report's
+            judgment, it is gone rather than dressed up: we will not fabricate it. */}
         <Section
           title="Growth & Activity"
-          description="GDP grew 3.6% in 2025 on domestic demand; industrial momentum stays weak while services hold up (report pp. 29–30)."
+          description={
+            [
+              seriesFinding(asPts(d.gdpGrowth), {
+                noun: "GDP growth",
+                decimals: 1,
+                window: 4,
+                windowLabel: "4 quarters",
+              }),
+              seriesFinding(asPts(d.ipGrowth), { noun: "industrial production", decimals: 1 }),
+            ]
+              .filter(Boolean)
+              .join(" · ") || "GDP and industrial production, y/y."
+          }
         >
           <Grid>
             <TimeSeriesChart
@@ -323,7 +367,17 @@ export default async function EconomyPage() {
 
         <Section
           title="Labor Market"
-          description="Headline unemployment is historically low, but participation has been sliding — the report flags worsening employment quality (p. 31)."
+          description={
+            [
+              unempNow != null
+                ? `Unemployment ${unempNow.toFixed(1)}%${unAtLow ? " — the lowest in the window we hold" : ""}`
+                : null,
+              partMove ? `participation ${partMove}` : null,
+            ]
+              .filter(Boolean)
+              .join("; ")
+              .concat(".") || "Unemployment, participation and the employment level, SA."
+          }
         >
           <Grid>
             <TimeSeriesChart
@@ -346,7 +400,10 @@ export default async function EconomyPage() {
 
         <Section
           title="Inflation & Monetary Policy"
-          description="Disinflation decelerated even before the conflict — monthly CPI persistently above 2% with unanchored expectations (pp. 32–33, 39)."
+          description={
+            seriesFinding(asPts(d.cpiYoY), { noun: "CPI", decimals: 1 }) ??
+            "CPI y/y against the CBRT's effective cost of funding."
+          }
         >
           <Grid>
             <TimeSeriesChart
@@ -385,7 +442,13 @@ export default async function EconomyPage() {
 
         <Section
           title="Lira & External Balance"
-          description="External balance was worsening before the conflict; every 10% rise in energy prices costs ~0.3–0.4% of GDP on the current account (pp. 35, 41)."
+          description={
+            caNow != null
+              ? `The 12-month current account is ${signed(caNow, (v) => `$${v.toFixed(1)}bn`)}${
+                  caMove ? ` and ${caMove} over the year` : ""
+                } — against USD/TRY and the real effective exchange rate.`
+              : "USD/TRY, the real effective exchange rate and the 12-month current account."
+          }
         >
           <Grid>
             <TimeSeriesChart
@@ -443,7 +506,13 @@ export default async function EconomyPage() {
 
         <Section
           title="Fiscal Stance"
-          description="Cash primary balance back in surplus gives room for fiscal maneuver against the conflict shock (p. 34). Treasury general budget, 12m rolling."
+          description={
+            primNow != null
+              ? `The primary balance is ${signed(primNow, (v) => `${v.toFixed(1)}%`)} of GDP — ${
+                  primNow >= 0 ? "in surplus" : "in deficit"
+                }. Treasury general budget, 12m rolling.`
+              : "Treasury general budget, 12m rolling."
+          }
         >
           <ChartRow
             data={tsRows({

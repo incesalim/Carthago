@@ -25,6 +25,7 @@ import {
   TableCellNum,
   toneFor,
 } from "@/app/components/ui";
+import { direction } from "@/app/lib/prose";
 import { GlobalRangeSelector } from "@/app/components/range-context";
 import {
   Colophon,
@@ -100,6 +101,20 @@ export default async function BudgetPage() {
   const revYoY = yoy(rev12, rev12Ago);
   const expYoY = yoy(exp12, exp12Ago);
   const gap = revYoY != null && expYoY != null ? revYoY - expYoY : null;
+
+  // The section read. "The headline deficit widened on softer tax intake while the
+  // primary balance stays in surplus" — the two directions are `balYoY` and
+  // `d.primary12m`, both computed right here. The causal attribution to tax intake
+  // was never computed at all, so it is gone rather than dressed up.
+  //
+  // Note the vocabulary: for a DEFICIT, a falling balance is a WIDENING one.
+  const balMove = direction(
+    balYoY,
+    d.balance12m != null && d.balance12m < 0
+      ? { flat: "flat", up: "narrowing", down: "widening" }
+      : { flat: "flat", up: "growing", down: "shrinking" },
+    { flat: 50, sharp: Number.POSITIVE_INFINITY },
+  );
 
   const int12 = bn(cells("Interest expenditure")[1]);
   const int12Ago = bn(cells("Interest expenditure")[3]);
@@ -249,9 +264,20 @@ export default async function BudgetPage() {
           />
         </div>
 
+        {/* "The headline deficit widened on softer tax intake while the primary
+            balance stays in surplus" — the two directions are in d.s1 below; the
+            causal attribution to tax intake is not, so it is gone. */}
         <Section
           title="Budget Balance"
-          description="Annualised (trailing-12-month) central-government balance. The headline deficit widened on softer tax intake while the primary balance stays in surplus."
+          description={
+            d.balance12m != null && d.primary12m != null
+              ? `Annualised (trailing-12-month) central-government balance. The headline balance is ${
+                  d.balance12m < 0 ? "in deficit" : "in surplus"
+                }${balMove ? ` and ${balMove}` : ""}; the primary balance is ${
+                  d.primary12m >= 0 ? "in surplus" : "in deficit"
+                }.`
+              : "Annualised (trailing-12-month) central-government balance."
+          }
         >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <TimeSeriesChart
