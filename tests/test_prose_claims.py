@@ -3,10 +3,8 @@
 Thin pytest wrapper around scripts/check_prose_claims.py. Sibling of
 tests/test_docs_sync.py and tests/test_pipeline_graph_sync.py.
 
-The repo-wide assertion (zero unguarded claims) lands with C6, once the 41 sites
-the 2026-07 audit found are computed. Until then the guard runs in `--warn` mode
-in CI and these tests hold the *scanner* honest — a checker that quietly stops
-matching is worse than no checker.
+Two jobs: assert the repo is clean, AND hold the *scanner* honest — a checker
+that quietly stops matching is worse than no checker, because it reads as proof.
 """
 
 from check_prose_claims import _files, scan, scan_text
@@ -39,6 +37,18 @@ IGNORED = [
     "const total = base + {};",  # not a JSX sign
     " * The audited universe is ~32 banks ≈ 98% of the sector.",  # a comment
 ]
+
+
+def test_no_unguarded_claims_in_the_app():
+    hits, sups = scan()
+    assert not hits, "\n".join(
+        f"{h.rule} {h.path}:{h.line}\n    {h.text}" for h in hits
+    )
+    # Suppressions are allowed, but they are exemptions from the site's own
+    # promise — so they get printed, and this test is where they get counted.
+    assert len(sups) <= 3, f"prose-ok is accumulating ({len(sups)}): " + ", ".join(
+        f"{s.path}:{s.line}" for s in sups
+    )
 
 
 def test_catches_every_defect_shape():

@@ -57,9 +57,10 @@ jobs:
       - name: Prose claims
         # A sentence asserting a direction, a level or a ranking must be computed
         # from the series it sits next to — or it lies the moment the data turns.
-        # WARN-ONLY until the 41 sites the 2026-07 audit found are computed; then
-        # drop --warn and it gates. Stdlib-only.
-        run: python scripts/check_prose_claims.py --warn
+        # Catches a hardcoded sign, an asserting title= literal, a hardcoded bank
+        # count. Escape hatch: `prose-ok: <reason>` (none in force today).
+        # Stdlib-only.
+        run: python scripts/check_prose_claims.py
       - name: Pytest
         run: pytest
 

@@ -26,9 +26,21 @@ do all the work; nothing is decorated.
    deliberately resolves to the sans stack so legacy `font-serif` degrades.
 6. **Automation honesty.** The site is compiled, not written: flags print their
    rule (`consecutive_rise(npl) ≥ 6m`), metas say how a number was made
-   ("transmission computed", "schedule — not a forecast"), and each page ends
-   with the `<Colophon/>`.
-7. **Boldness lives in one signature element per page** — the vitals band. Keep
+   ("transmission computed", "schedule — derived from the record periods"), and
+   each page ends with the `<Colophon/>`.
+7. **A claim is computed, or it does not print.** A sentence that asserts a
+   **direction**, a **level** or a **ranking** is a claim about the data, not a
+   label — and the series that settles it is almost always the chart's own `data`
+   prop. Build it with `direction()` / `claim()` / `firstClaim()` / `signed()`
+   (`lib/prose.ts`) or `seriesFinding()`, and fall back to the **topic** when the
+   data won't support a finding: `title={claim(…) ?? "Loan / deposit by group"}`.
+   Never type a direction word, a superlative, a universal ("every group"), or a
+   `+` in front of a value that can go negative.
+   Two gates enforce this — `prose-regression.test.ts` (feeds every insight
+   builder sign-inverted fixtures and fails if a falling word survives a rising
+   series) and `scripts/check_prose_claims.py` (CI). See
+   [docs/knowledge/prose-claims-audit.md](../docs/knowledge/prose-claims-audit.md).
+8. **Boldness lives in one signature element per page** — the vitals band. Keep
    everything else quiet.
 
 ## Tokens (globals.css is the source of truth)
