@@ -3,7 +3,18 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-07-14.
+Last verified: 2026-07-15.
+
+2026-07-15 — **New brand mark.** The logo is now an open navy "C" enclosing a data
+mosaic and a rising bar chart, replacing the blue hatched disc. The geometry is
+authored once as an inline SVG (`web/app/components/BrandMark.tsx`) — inline because
+the mark is multi-tone, and the nav's old `dark:brightness-0 dark:invert` trick would
+flatten it to a white blob on the dark sheet; it now re-tones instead, inverting the
+ramp so the tallest bar stays the highest-contrast element in both themes. Every
+raster (favicon, app icons, social cards, `public/logo.png`) is generated from those
+same numbers by `scripts/make_brand_assets.py`, so the mark cannot drift between the
+component and the assets. The social card picks up the new palette and the "Turkish
+banking data" tagline. Brand palette + the re-run rule are recorded in `web/DESIGN.md`.
 
 2026-07-14 — **Market-risk data was extracted for weeks and never pushed to D1.**
 `refresh-audit.yml` — the lane that ingests every new quarter — hand-listed 14 of the
