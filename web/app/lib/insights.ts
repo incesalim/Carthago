@@ -268,7 +268,11 @@ export function depositsInsights(d: {
   if (dy != null) {
     const gap = ly != null ? dy - ly : null;
     items.push({
-      text: `Deposits growing ${pct(dy)} y/y${gap != null ? ` — ${gap >= 0 ? "ahead of" : "behind"} loans by ${Math.abs(gap).toFixed(1)}pp, so the funding gap is ${gap >= 0 ? "easing" : "widening"}` : ""}.`,
+      // "easing" here meant the GAP, while everywhere else it means a series
+      // falling — one word doing two jobs, which makes the direction unreadable
+      // (and the regime-flip gate unable to tell a bug from a coincidence).
+      // A gap narrows; a rate eases.
+      text: `Deposits growing ${pct(dy)} y/y${gap != null ? ` — ${gap >= 0 ? "ahead of" : "behind"} loans by ${Math.abs(gap).toFixed(1)}pp, so the funding gap is ${gap >= 0 ? "narrowing" : "widening"}` : ""}.`,
       tone: gap != null && gap < -5 ? "warn" : gap != null && gap > 0 ? "positive" : "neutral",
     });
   }

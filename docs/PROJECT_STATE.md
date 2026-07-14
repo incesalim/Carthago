@@ -201,6 +201,37 @@ latest-period** trigger, and **13 banks auto-discover** new quarters from their
 IR page (no hand-added URL needed) — see [ADMIN.md](ADMIN.md) §Auto-discovery.
 Setup in [OPERATIONS.md](OPERATIONS.md) / [ADMIN.md](ADMIN.md).
 
+**The prose audit — the sentences now earn themselves (2026-07-14, SHIPPED):**
+"Compiled, not written" was true of the *figures* and false of the *words*: an
+audit of every visible string found ~300 timeless (axis labels, methodology),
+~170 guarded, and **41 unguarded claims** — hand-typed directions, levels and
+rankings with nothing checking them. Several were already wrong. The homepage
+told Google "32 banks" (it is 38); `/asset-quality` rendered `+₺-42bn` in red
+when net NPL formation turned (the *good* case); `/capital` said "Every ownership
+group **fell** together" off a step detector that picks by `Math.abs`; `/deposits`
+claimed a universal about **every group** off a guard that tested only the sector.
+
+Root cause: nothing in the repo turned a signed delta into a direction *word*.
+**`web/app/lib/prose.ts`** supplies it — `direction()` (a closed `VERBS`
+vocabulary), `claim()` (three-valued: an unknown prints *neither* branch),
+`firstClaim()` (every rung tests what its sentence says), `signed()`, `everyOf()`
+(FALSE on an empty list, unlike `Array.every`), `toneClass()`. Plus
+`latestByGroup`/`deltaByGroup`/`leaderOf` in `desk.ts` — needing no new query,
+because the per-group series was already the chart's own `data` prop.
+Failing closed is the contract: `null` → the caller prints the **topic**, not a
+finding. The five hand-typed `Ahead` schedules now derive (BDDK monthly from the
+record period; the BRSA window from the KAP filing lag that already happened);
+only TCMB's MPC dates remain hand-typed. `/economy`'s third-party claims are
+computed where we hold the series and **deleted** where they were causal or an
+elasticity — never quoted.
+
+Three CI gates keep it: **`prose-regression.test.ts`** (feeds every insight
+builder sign-inverted fixtures; fails if a falling word survives a rising series —
+verified by sabotage), **`check_prose_claims.py`** (a hardcoded sign, an asserting
+`title=` literal, a hardcoded bank count; zero suppressions in force), and
+**`check_calendar_fresh.py`** (fails under 90 days of MPC runway). Full writeup:
+[docs/knowledge/prose-claims-audit.md](knowledge/prose-claims-audit.md).
+
 **/asset-quality rebuilt — the ratio prints the tip (2026-07-13):** the page led
 with "NPL ratio 2.69%", which is calm, and is the **tip**. What the ratio prints is
 Stage 3 (3.1% of the book); loans the banks themselves classify as deteriorated are
