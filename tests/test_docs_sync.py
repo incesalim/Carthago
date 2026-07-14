@@ -8,11 +8,22 @@ tests/test_pipeline_graph_sync.py.
 from check_docs_sync import (
     check_env_keys,
     check_secrets,
+    check_workflow_docs,
     check_workflows,
     env_keys,
     referenced_secrets,
     workflow_files,
 )
+
+
+def test_every_workflow_doc_names_every_workflow():
+    """Not just OPERATIONS. Guarding one doc certifies that doc, not the docs:
+    OPERATIONS stayed perfect while ARCHITECTURE quietly lost 8 of 18 workflows,
+    4 of them scheduled lanes writing D1 on a cron."""
+    gaps = check_workflow_docs()
+    assert not gaps, "workflows missing from docs: " + "; ".join(
+        f"{doc}: {', '.join(sorted(names))}" for doc, names in sorted(gaps.items())
+    )
 
 
 def test_operations_doc_lists_every_workflow():
