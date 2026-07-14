@@ -1,11 +1,11 @@
 "use client";
 
 import * as React from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronDown, ChevronRight, Menu, X } from "lucide-react";
 import { cn } from "@/app/lib/cn";
+import BrandMark from "./BrandMark";
 import { ThemeToggle } from "./ui/theme-toggle";
 
 type NavChild = { href: string; label: string };
@@ -105,15 +105,7 @@ function Brand() {
       aria-label="Carthago — home"
       className="flex shrink-0 items-center gap-2 text-foreground"
     >
-      <Image
-        src="/logo.png"
-        alt=""
-        width={28}
-        height={28}
-        priority
-        unoptimized
-        className="size-7 shrink-0 object-contain dark:brightness-0 dark:invert"
-      />
+      <BrandMark className="size-7" />
       <span className="flex flex-col leading-none">
         <span className="text-lg font-bold tracking-tight">Carthago</span>
         <span className="mt-0.5 text-[10px] font-medium text-faint">

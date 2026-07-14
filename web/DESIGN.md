@@ -241,6 +241,36 @@ mono-caps group labels, ink active bar, no fills) + the sheet wrapper
 (`bg-card rounded-[10px] border shadow-sheet`). Pages start directly with
 `<main>` as above.
 
+## The brand mark
+
+An open navy **C** enclosing a data mosaic (left) and a rising bar chart (right):
+the sector read at a glance, inside the initial. The C's opening faces east and the
+tallest bar points into it.
+
+Brand palette — used by the mark and the social card **only**. It is not a UI
+palette: the Desk's blue-is-links rule still holds everywhere else.
+
+| | | |
+|---|---|---|
+| `#0D1B2A` | ink navy | the C |
+| `#1F2E4A` | deep navy | tallest bar, social-card ground |
+| `#2D5B8C` | mid blue | mid bar, mosaic |
+| `#7FA0BF` | light blue | short bar, mosaic |
+| `#E6EEF6` | pale | mosaic |
+
+**The geometry lives in [`app/components/BrandMark.tsx`](app/components/BrandMark.tsx)**
+— an inline SVG on a 64×64 grid, and the source of truth. It is inline (not the PNG)
+so it stays crisp at nav size and can re-tone for the dark sheet; the mark is
+multi-tone, so the old `dark:brightness-0 dark:invert` silhouette trick would flatten
+it to a blob. On the dark ground the ramp inverts — the C goes to paper ink, and the
+tallest bar stays the highest-contrast element.
+
+Every raster (`favicon.ico`, `icon.png`, `apple-icon.png`, `opengraph-image.png`,
+`twitter-image.png`, `public/logo.png`) is generated from those same numbers by
+[`scripts/make_brand_assets.py`](../scripts/make_brand_assets.py) — **change the
+component, re-run the script, in the same commit.** Never hand-edit a brand raster.
+`favicon.ico` must stay RGBA or the Next build rejects it.
+
 ## Process
 
 Design work starts from a named direction and this file — not inline tweaks.
