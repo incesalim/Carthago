@@ -1,98 +1,97 @@
 {
-  "_README": "Hand-transcribed free-provision STOCK (thousand TL) for partitions the deterministic classifier cannot read — the cancellation-heavy / multi-figure Turkish disclosure tail. Same principle as data/manual_statements.json. Keyed BANK -> PERIOD -> KIND. An override wins outright. current stock = prior +/- current-period allocations/cancellations, read from the auditor's qualification. free_provision=0 means the bank held one but CANCELLED it in full (reversed to zero). Verified by hand against source PDFs 2026-07-15.",
+  "_README": "Hand-transcribed free-provision STOCK (thousand TL), read from the full auditor qualifications in the source PDFs (2026-07-15). An override wins outright over extraction (source_page=-1). free_provision=0 means the bank held one then CANCELLED it in full (reversed to zero / 'Yoktur'), OR does not state a parseable current stock. current stock read from composite 'X gecmis +/- Y cari - Z iptal = toplam W', counterfactual 'diger karsiliklar X daha az', or decomposition. Keyed BANK -> PERIOD -> KIND.",
   "VAKBN": {
-    "2022Q4": {
-      "consolidated":   {"free_provision": 19000000, "source": "year-end = the (31 Aralik 2022: 19,000,000) prior stated across VAKBN 2023 reports"},
-      "unconsolidated": {"free_provision": 19000000, "source": "year-end = the (31 Aralik 2022: 19,000,000) prior stated across VAKBN 2023 reports"}
-    },
-    "2023Q1": {"unconsolidated": {"free_provision": 7000000, "free_provision_prior": 19000000, "source": "'serbest karsilik tutari 7,000,000 TL'dir (31 Aralik 2022: 19,000,000)'"}},
-    "2023Q2": {
-      "consolidated":   {"free_provision": 6750000, "free_provision_prior": 19000000, "source": "'serbest karsilik tutari 6,750,000 TL'dir (31 Aralik 2022: 19,000,000)'"},
-      "unconsolidated": {"free_provision": 6750000, "free_provision_prior": 19000000, "source": "'serbest karsilik tutari 6,750,000 TL'dir (31 Aralik 2022: 19,000,000)'"}
-    },
-    "2023Q3": {"unconsolidated": {"free_provision": 6750000, "free_provision_prior": 19000000, "source": "'serbest karsilik tutari 6,750,000 TL'dir (31 Aralik 2022: 19,000,000)'"}},
-    "2023Q4": {
-      "consolidated":   {"free_provision": 11000000, "free_provision_prior": 19000000, "source": "'serbest karsilik tutari 11,000,000 TL'dir (31 Aralik 2022: 19,000,000)'"},
-      "unconsolidated": {"free_provision": 11000000, "free_provision_prior": 19000000, "source": "'serbest karsilik tutari 11,000,000 TL'dir (31 Aralik 2022: 19,000,000)'"}
-    }
+    "2022Q4": {"consolidated": {"free_provision": 19000000, "source": "(31 Aralik 2022: 19,000,000) prior across VAKBN 2023"}, "unconsolidated": {"free_provision": 19000000, "source": "(31 Aralik 2022: 19,000,000) prior across VAKBN 2023"}},
+    "2023Q1": {"unconsolidated": {"free_provision": 7000000, "free_provision_prior": 19000000, "source": "'serbest karsilik tutari 7,000,000 TL'dir'"}},
+    "2023Q2": {"consolidated": {"free_provision": 6750000, "free_provision_prior": 19000000, "source": "'6,750,000 TL'dir'"}, "unconsolidated": {"free_provision": 6750000, "free_provision_prior": 19000000, "source": "'6,750,000 TL'dir'"}},
+    "2023Q3": {"unconsolidated": {"free_provision": 6750000, "free_provision_prior": 19000000, "source": "'6,750,000 TL'dir'"}},
+    "2023Q4": {"consolidated": {"free_provision": 11000000, "free_provision_prior": 19000000, "source": "'11,000,000 TL'dir'"}, "unconsolidated": {"free_provision": 11000000, "free_provision_prior": 19000000, "source": "'11,000,000 TL'dir'"}},
+    "2024Q4": {"consolidated": {"free_provision": 15000000, "source": "auditor: 'toplam 15,000,000 Bin TL ... serbest karsiligin'"}, "unconsolidated": {"free_provision": 15000000, "source": "auditor: 'toplam 15,000,000 Bin TL ... serbest karsiligin'"}},
+    "2025Q4": {"unconsolidated": {"free_provision": 8000000, "source": "auditor: 'toplam 8,000,000 Bin TL ... serbest karsiligin'"}}
   },
   "BURGAN": {
-    "2022Q2": {
-      "consolidated":   {"free_provision": 176611, "source": "auditor: 'other provisions would decrease by TL 176,611 thousand'"},
-      "unconsolidated": {"free_provision": 176611, "source": "auditor: 'other provisions would decrease by TL 176,611 thousand'"}
-    },
-    "2022Q3": {"unconsolidated": {"free_provision": 251854, "source": "auditor: 'free provision amounting to TL 251,854 thousand'"}}
+    "2022Q2": {"consolidated": {"free_provision": 176611, "source": "auditor: 'other provisions would decrease by TL 176,611'"}, "unconsolidated": {"free_provision": 176611, "source": "auditor: 'other provisions would decrease by TL 176,611'"}},
+    "2022Q3": {"unconsolidated": {"free_provision": 251854, "source": "auditor: 'free provision amounting to TL 251,854'"}},
+    "2022Q4": {"unconsolidated": {"free_provision": 654441, "source": "auditor: 'free provision amounting to TL 654,441'"}},
+    "2026Q1": {"consolidated": {"free_provision": 0, "source": "no parseable current stock disclosed -> 0 per rule"}, "unconsolidated": {"free_provision": 0, "source": "no parseable current stock disclosed -> 0 per rule"}}
   },
   "DENIZ": {
-    "2022Q2": {"unconsolidated": {"free_provision": 1500000, "source": "auditor counterfactual: 'diger karsiliklar 1.500.000 bin TL daha az'"}},
-    "2022Q3": {"unconsolidated": {"free_provision": 1500000, "source": "auditor counterfactual: 'diger karsiliklar 1.500.000 bin TL daha az'"}},
-    "2023Q1": {"unconsolidated": {"free_provision": 6200000, "source": "auditor counterfactual: 'diger karsiliklar 6.200.000 bin TL daha az'"}},
-    "2023Q2": {"unconsolidated": {"free_provision": 6200000, "source": "auditor counterfactual: 'diger karsiliklar 6.200.000 bin TL daha az'"}},
-    "2023Q3": {"unconsolidated": {"free_provision": 7700000, "source": "auditor counterfactual: 'diger karsiliklar 7.700.000 bin TL daha az'"}},
-    "2023Q4": {
-      "consolidated":   {"free_provision": 6700000, "source": "auditor counterfactual: 'diger karsiliklar 6.700.000 bin TL daha az'"},
-      "unconsolidated": {"free_provision": 6700000, "source": "auditor counterfactual: 'diger karsiliklar 6.700.000 bin TL daha az'"}
-    },
-    "2025Q1": {"consolidated": {"free_provision": 8700000, "source": "auditor: 'toplam 8.700.000 Bin TL tutarinda ... serbest karsiligi icermektedir'"}, "unconsolidated": {"free_provision": 8700000, "source": "auditor: 'toplam 8.700.000 Bin TL ... serbest karsiligi'"}},
-    "2025Q2": {"consolidated": {"free_provision": 8700000, "source": "auditor: 'toplam 8.700.000 Bin TL ... serbest karsiligi'"}, "unconsolidated": {"free_provision": 8700000, "source": "auditor: 'toplam 8.700.000 Bin TL ... serbest karsiligi'"}},
-    "2025Q3": {"consolidated": {"free_provision": 8700000, "source": "auditor: 'toplam 8.700.000 Bin TL ... serbest karsiligi'"}, "unconsolidated": {"free_provision": 8700000, "source": "auditor: 'toplam 8.700.000 Bin TL ... serbest karsiligi'"}},
-    "2025Q4": {"consolidated": {"free_provision": 8700000, "source": "auditor: 'toplam 8.700.000 Bin TL ... serbest karsiligi'"}, "unconsolidated": {"free_provision": 8700000, "source": "auditor: 'toplam 8.700.000 Bin TL ... serbest karsiligi'"}}
+    "2022Q2": {"unconsolidated": {"free_provision": 1500000, "source": "counterfactual 'diger karsiliklar 1.500.000 daha az'"}},
+    "2022Q3": {"unconsolidated": {"free_provision": 1500000, "source": "counterfactual 'diger karsiliklar 1.500.000 daha az'"}},
+    "2023Q1": {"unconsolidated": {"free_provision": 6200000, "source": "counterfactual '6.200.000 daha az'"}},
+    "2023Q2": {"unconsolidated": {"free_provision": 6200000, "source": "counterfactual '6.200.000 daha az'"}},
+    "2023Q3": {"unconsolidated": {"free_provision": 7700000, "source": "counterfactual '7.700.000 daha az'"}},
+    "2023Q4": {"consolidated": {"free_provision": 6700000, "source": "counterfactual '6.700.000 daha az'"}, "unconsolidated": {"free_provision": 6700000, "source": "counterfactual '6.700.000 daha az'"}},
+    "2025Q1": {"consolidated": {"free_provision": 8700000, "source": "'toplam 8.700.000 Bin TL ... serbest karsiligi'"}, "unconsolidated": {"free_provision": 8700000, "source": "'toplam 8.700.000 Bin TL'"}},
+    "2025Q2": {"consolidated": {"free_provision": 8700000, "source": "'toplam 8.700.000 Bin TL'"}, "unconsolidated": {"free_provision": 8700000, "source": "'toplam 8.700.000 Bin TL'"}},
+    "2025Q3": {"consolidated": {"free_provision": 8700000, "source": "'toplam 8.700.000 Bin TL'"}, "unconsolidated": {"free_provision": 8700000, "source": "'toplam 8.700.000 Bin TL'"}},
+    "2025Q4": {"consolidated": {"free_provision": 8700000, "source": "'toplam 8.700.000 Bin TL'"}, "unconsolidated": {"free_provision": 8700000, "source": "'toplam 8.700.000 Bin TL'"}},
+    "2026Q1": {"consolidated": {"free_provision": 8700000, "source": "'toplam 8.700.000 Bin TL ... serbest karsiligi'"}, "unconsolidated": {"free_provision": 8700000, "source": "'toplam 8.700.000 Bin TL'"}}
   },
   "TEB": {
-    "2023Q4": {"unconsolidated": {"free_provision": 2050000, "source": "auditor: '400,000 gecmis + 1,650,000 cari donem = total 2,050,000'"}},
-    "2024Q1": {"consolidated": {"free_provision": 2050000, "source": "auditor: '400,000 gecmis yillarda + 1,650,000 (2023) = 2,050,000'"}, "unconsolidated": {"free_provision": 2050000, "source": "auditor: '400,000 + 1,650,000 = 2,050,000'"}},
-    "2024Q2": {"consolidated": {"free_provision": 2050000, "source": "auditor: '400,000 + 1,650,000 = 2,050,000'"}, "unconsolidated": {"free_provision": 2050000, "source": "auditor: '400,000 + 1,650,000 = 2,050,000'"}},
-    "2024Q3": {"consolidated": {"free_provision": 2050000, "source": "auditor: '400,000 + 1,650,000 = 2,050,000'"}, "unconsolidated": {"free_provision": 2050000, "source": "auditor: '400,000 + 1,650,000 = 2,050,000'"}},
-    "2024Q4": {"consolidated": {"free_provision": 2050000, "source": "auditor: '400,000 + 1,650,000 = 2,050,000'"}, "unconsolidated": {"free_provision": 2050000, "source": "auditor: '400,000 + 1,650,000 = 2,050,000'"}}
+    "2023Q4": {"unconsolidated": {"free_provision": 2050000, "source": "'400,000 + 1,650,000 = 2,050,000'"}},
+    "2024Q1": {"consolidated": {"free_provision": 2050000, "source": "'400,000 + 1,650,000'"}, "unconsolidated": {"free_provision": 2050000, "source": "'400,000 + 1,650,000'"}},
+    "2024Q2": {"consolidated": {"free_provision": 2050000, "source": "'400,000 + 1,650,000'"}, "unconsolidated": {"free_provision": 2050000, "source": "'400,000 + 1,650,000'"}},
+    "2024Q3": {"consolidated": {"free_provision": 2050000, "source": "'400,000 + 1,650,000'"}, "unconsolidated": {"free_provision": 2050000, "source": "'400,000 + 1,650,000'"}},
+    "2024Q4": {"consolidated": {"free_provision": 2050000, "source": "'400,000 + 1,650,000'"}, "unconsolidated": {"free_provision": 2050000, "source": "'400,000 + 1,650,000'"}},
+    "2025Q1": {"consolidated": {"free_provision": 0, "source": "auditor: '1,200,000 iptal ... (31 Mart 2025: Yoktur)' -> 0"}, "unconsolidated": {"free_provision": 0, "source": "'(31 Mart 2025: Yoktur)' -> 0"}},
+    "2025Q3": {"consolidated": {"free_provision": 1400000, "source": "'toplam 1.400.000 bin TL ... serbest karsiligi'"}, "unconsolidated": {"free_provision": 1400000, "source": "'toplam 1.400.000'"}},
+    "2025Q4": {"consolidated": {"free_provision": 1230000, "source": "'toplam 1.230.000 Bin TL ... serbest karsiligi'"}, "unconsolidated": {"free_provision": 1230000, "source": "'toplam 1.230.000'"}}
   },
   "TFKB": {
-    "2022Q1": {"consolidated": {"free_provision": 300000, "source": "note (**): 'cari donemde ayrilan 300,000 TL' (YTD stock)"}, "unconsolidated": {"free_provision": 300000, "source": "note (**): 'cari donemde ayrilan 300,000 TL'"}},
-    "2022Q2": {"consolidated": {"free_provision": 300000, "source": "note (**): 'cari donemde ayrilan 300,000 TL'"}, "unconsolidated": {"free_provision": 300000, "source": "note (**): 'cari donemde ayrilan 300,000 TL'"}},
-    "2022Q3": {"consolidated": {"free_provision": 880000, "source": "note (**): 'cari donemde ayrilan 880,000 TL'"}, "unconsolidated": {"free_provision": 880000, "source": "note (**): 'cari donemde ayrilan 880,000 TL'"}},
-    "2022Q4": {"consolidated": {"free_provision": 1155000, "source": "note (**): 'cari donemde ayrilan 1,155,000 TL'"}, "unconsolidated": {"free_provision": 1155000, "source": "note (**): 'cari donemde ayrilan 1,155,000 TL'"}},
-    "2023Q1": {"consolidated": {"free_provision": 1155000, "source": "note (**): '1,155,000 TL (31 Aralik 2022: ...)'"}, "unconsolidated": {"free_provision": 1155000, "source": "note (**): '1,155,000 TL (31 Aralik 2022: ...)'"}},
+    "2022Q1": {"consolidated": {"free_provision": 300000, "source": "note (**): 'cari donemde ayrilan 300,000 TL'"}, "unconsolidated": {"free_provision": 300000, "source": "note (**): '300,000 TL'"}},
+    "2022Q2": {"consolidated": {"free_provision": 300000, "source": "note (**): '300,000 TL'"}, "unconsolidated": {"free_provision": 300000, "source": "note (**): '300,000 TL'"}},
+    "2022Q3": {"consolidated": {"free_provision": 880000, "source": "note (**): '880,000 TL'"}, "unconsolidated": {"free_provision": 880000, "source": "note (**): '880,000 TL'"}},
+    "2022Q4": {"consolidated": {"free_provision": 1155000, "source": "note (**): '1,155,000 TL'"}, "unconsolidated": {"free_provision": 1155000, "source": "note (**): '1,155,000 TL'"}},
+    "2023Q1": {"consolidated": {"free_provision": 1155000, "source": "note (**): '1,155,000 TL'"}, "unconsolidated": {"free_provision": 1155000, "source": "note (**): '1,155,000 TL'"}},
     "2023Q2": {"consolidated": {"free_provision": 1155000, "source": "note (**): '1,155,000 TL'"}, "unconsolidated": {"free_provision": 1155000, "source": "note (**): '1,155,000 TL'"}},
     "2023Q3": {"consolidated": {"free_provision": 1155000, "source": "note (**): '1,155,000 TL'"}, "unconsolidated": {"free_provision": 1155000, "source": "note (**): '1,155,000 TL'"}},
     "2023Q4": {"consolidated": {"free_provision": 1155000, "source": "note (**): '1,155,000 TL'"}, "unconsolidated": {"free_provision": 1155000, "source": "note (**): '1,155,000 TL'"}},
-    "2024Q1": {"unconsolidated": {"free_provision": 500000, "source": "auditor: net 500,000 after prior cancel + current add"}},
+    "2024Q1": {"unconsolidated": {"free_provision": 500000, "source": "auditor: net 500,000"}},
     "2024Q2": {"unconsolidated": {"free_provision": 500000, "source": "auditor: net 500,000"}}
   },
   "ZIRAATK": {
-    "2023Q1": {"unconsolidated": {"free_provision": 404000, "free_provision_prior": 1004000, "source": "auditor: '1.004.000 gecmis - 600.000 iptal = toplam 404.000 serbest karsilik yer almaktadir'"}},
-    "2023Q2": {"consolidated": {"free_provision": 404000, "free_provision_prior": 1004000, "source": "auditor: 'toplam 404.000 bin TL serbest karsilik'"}, "unconsolidated": {"free_provision": 404000, "free_provision_prior": 1004000, "source": "auditor: 'toplam 404.000'"}},
-    "2023Q3": {"unconsolidated": {"free_provision": 404000, "source": "auditor: 'toplam 404.000 bin TL serbest karsilik'"}},
-    "2023Q4": {"unconsolidated": {"free_provision": 500000, "source": "auditor: '1.004.000 gecmis + 96.000 cari - 600.000 iptal = 500.000'"}},
-    "2024Q2": {"consolidated": {"free_provision": 0, "source": "auditor: '500.000 serbest karsilik cari donemde IPTAL edilmistir' (reversed to zero)"}, "unconsolidated": {"free_provision": 0, "source": "auditor: '500.000 ... iptal edilmistir' (reversed to zero)"}},
-    "2024Q3": {"consolidated": {"free_provision": 0, "source": "auditor: '500.000 ... iptal edilmistir' (reversed to zero)"}, "unconsolidated": {"free_provision": 0, "source": "auditor: '500.000 ... iptal edilmistir'"}},
-    "2024Q4": {"consolidated": {"free_provision": 0, "source": "auditor: '500.000 ... cari yilda iptal edilmistir'"}, "unconsolidated": {"free_provision": 0, "source": "auditor: '500.000 ... iptal edilmistir'"}}
+    "2023Q1": {"consolidated": {"free_provision": 404000, "free_provision_prior": 1004000, "source": "'1.004.000 - 600.000 iptal = toplam 404.000'"}, "unconsolidated": {"free_provision": 404000, "free_provision_prior": 1004000, "source": "'toplam 404.000'"}},
+    "2023Q2": {"consolidated": {"free_provision": 404000, "free_provision_prior": 1004000, "source": "'toplam 404.000'"}, "unconsolidated": {"free_provision": 404000, "free_provision_prior": 1004000, "source": "'toplam 404.000'"}},
+    "2023Q3": {"unconsolidated": {"free_provision": 404000, "source": "'toplam 404.000'"}},
+    "2023Q4": {"unconsolidated": {"free_provision": 500000, "source": "'1.004.000 + 96.000 - 600.000 = 500.000'"}},
+    "2024Q2": {"consolidated": {"free_provision": 0, "source": "'500.000 ... iptal edilmistir' -> 0"}, "unconsolidated": {"free_provision": 0, "source": "'500.000 ... iptal edilmistir' -> 0"}},
+    "2024Q3": {"consolidated": {"free_provision": 0, "source": "'500.000 ... iptal edilmistir' -> 0"}, "unconsolidated": {"free_provision": 0, "source": "'500.000 ... iptal edilmistir' -> 0"}},
+    "2024Q4": {"consolidated": {"free_provision": 0, "source": "'500.000 ... cari yilda iptal edilmistir' -> 0"}, "unconsolidated": {"free_provision": 0, "source": "'500.000 ... iptal edilmistir' -> 0"}}
   },
   "ZIRAAT": {
-    "2025Q4": {"consolidated": {"free_provision": 0, "source": "auditor: '9.000.000 bin TL ... serbest karsilik cari yilda IPTAL edilmistir' (reversed to zero)"}}
+    "2025Q4": {"consolidated": {"free_provision": 0, "source": "'9.000.000 ... cari yilda iptal edilmistir' -> 0"}}
   },
   "ODEA": {
-    "2022Q4": {"unconsolidated": {"free_provision": 650000, "source": "year-end = the (31 Aralik 2022: 650.000) prior stated in ODEA 2023Q2/Q4"}},
-    "2023Q2": {"unconsolidated": {"free_provision": 400000, "free_provision_prior": 650000, "source": "'serbest karsiliklara iliskin bilgiler: 400.000 TL (31 Aralik 2022: 650.000 TL)'"}},
-    "2023Q4": {"unconsolidated": {"free_provision": 335000, "free_provision_prior": 650000, "source": "'serbest karsiliklara iliskin bilgiler: 335.000 TL (31 Aralik 2022: 650.000 TL)'"}}
+    "2022Q4": {"unconsolidated": {"free_provision": 650000, "source": "(31 Aralik 2022: 650.000) prior in ODEA 2023"}},
+    "2023Q2": {"unconsolidated": {"free_provision": 400000, "free_provision_prior": 650000, "source": "'400.000 TL (31 Aralik 2022: 650.000)'"}},
+    "2023Q3": {"unconsolidated": {"free_provision": 0, "source": "no parseable current stock disclosed -> 0 per rule"}},
+    "2023Q4": {"unconsolidated": {"free_provision": 335000, "free_provision_prior": 650000, "source": "'335.000 TL (31 Aralik 2022: 650.000)'"}}
   },
   "SKBNK": {
-    "2024Q4": {"unconsolidated": {"free_provision": 1350000, "source": "year-end = the (31 December 2024 - TRL 1,350,000) prior stated in SKBNK 2025Q4"}},
-    "2025Q4": {"unconsolidated": {"free_provision": 1000000, "free_provision_prior": 1350000, "source": "'free provision for possible risks amounting to TRL 1,000,000 (31 December 2024 - TRL 1,350,000)'"}}
+    "2024Q4": {"unconsolidated": {"free_provision": 1350000, "source": "(31 December 2024 - TRL 1,350,000) prior in SKBNK 2025Q4"}},
+    "2025Q4": {"unconsolidated": {"free_provision": 1000000, "free_provision_prior": 1350000, "source": "'free provision ... TRL 1,000,000 (31 December 2024 - TRL 1,350,000)'"}}
   },
   "TSKB": {
-    "2026Q1": {"unconsolidated": {"free_provision": 800000, "free_provision_prior": 1100000, "source": "auditor: '1.100.000 gecmis - 300.000 iptal = toplam 800.000 bin TL serbest karsilik'"}}
+    "2026Q1": {"unconsolidated": {"free_provision": 800000, "free_provision_prior": 1100000, "source": "'1.100.000 - 300.000 iptal = toplam 800.000'"}}
   },
   "EMLAK": {
-    "2023Q4": {
-      "consolidated":   {"free_provision": 2850432, "source": "auditor: free provision set aside in prior periods = 2.850.432 (NOT 855.130, which is the deferred TAX on it); = the (*) note-table row prior column"},
-      "unconsolidated": {"free_provision": 2850432, "source": "auditor: prior-period free provision = 2.850.432; (*) note row prior"}
-    },
-    "2024Q3": {
-      "consolidated":   {"free_provision": 5000000, "source": "note (*) row 'serbest karsiliklar(*) 5.000.000 2.850.432' (current 5,000,000)"},
-      "unconsolidated": {"free_provision": 5000000, "source": "note (*) row 'serbest karsiliklar(*) 5.000.000 2.850.432'"}
-    },
-    "2024Q4": {
-      "consolidated":   {"free_provision": 7500000, "source": "note (*) row 'serbest karsiliklar(*) 7.500.000 2.850.432' (current 7,500,000)"},
-      "unconsolidated": {"free_provision": 7500000, "source": "note (*) row 'serbest karsiliklar(*) 7.500.000 2.850.432'"}
-    }
+    "2023Q4": {"consolidated": {"free_provision": 2850432, "source": "auditor: prior-period free provision = 2.850.432 (NOT 855.130 = deferred tax)"}, "unconsolidated": {"free_provision": 2850432, "source": "auditor: prior-period free provision = 2.850.432"}},
+    "2024Q3": {"consolidated": {"free_provision": 5000000, "source": "note (*) row '5.000.000 2.850.432'"}, "unconsolidated": {"free_provision": 5000000, "source": "note (*) row '5.000.000'"}},
+    "2024Q4": {"consolidated": {"free_provision": 7500000, "source": "note (*) '7.500.000'; confirmed by 2025Q1 'tamami gecmis yilda 7.500.000'"}, "unconsolidated": {"free_provision": 7500000, "source": "note (*) '7.500.000'"}},
+    "2025Q1": {"consolidated": {"free_provision": 7500000, "source": "'tamami gecmis yilda ayrilmis toplam 7.500.000 serbest karsilik'"}, "unconsolidated": {"free_provision": 7500000, "source": "'toplam 7.500.000 serbest karsilik'"}},
+    "2025Q2": {"consolidated": {"free_provision": 9850000, "source": "'7.500.000 gecmis + 2.350.000 cari = toplam 9.850.000'"}, "unconsolidated": {"free_provision": 9850000, "source": "'toplam 9.850.000'"}},
+    "2025Q3": {"consolidated": {"free_provision": 9850000, "source": "'toplam 9.850.000'"}, "unconsolidated": {"free_provision": 9850000, "source": "'toplam 9.850.000'"}},
+    "2025Q4": {"consolidated": {"free_provision": 9850000, "source": "'7.500.000 gecmis + net 2.350.000 cari = toplam 9.850.000'"}, "unconsolidated": {"free_provision": 9850000, "source": "'toplam 9.850.000'"}}
+  },
+  "ALNTF": {
+    "2022Q3": {"consolidated": {"free_provision": 330152, "source": "auditor: 'toplam 330,152 Bin TL ... serbest karsiligi'"}, "unconsolidated": {"free_provision": 326422, "source": "auditor: 'toplam 326,422 Bin TL ... serbest karsiligi'"}}
+  },
+  "FIBA": {
+    "2023Q3": {"consolidated": {"free_provision": 1805000, "source": "auditor: 'toplam 1.805.000 bin TL ... serbest karsiligi'"}},
+    "2024Q1": {"consolidated": {"free_provision": 1556000, "source": "= FIBA 2024Q1 unconsolidated note-table value (consol note not separately parseable)"}},
+    "2025Q3": {"consolidated": {"free_provision": 948000, "source": "auditor: 'toplam 948.000 bin TL ... serbest karsiligi'"}, "unconsolidated": {"free_provision": 948000, "source": "'toplam 948.000'"}},
+    "2025Q4": {"consolidated": {"free_provision": 1092000, "source": "auditor: 'toplam 1.092.000 bin TL ... serbest karsiligi'"}, "unconsolidated": {"free_provision": 1092000, "source": "'toplam 1.092.000'"}},
+    "2026Q1": {"consolidated": {"free_provision": 0, "source": "no parseable current stock disclosed -> 0 per rule"}, "unconsolidated": {"free_provision": 0, "source": "no parseable current stock disclosed -> 0 per rule"}}
   }
 }
