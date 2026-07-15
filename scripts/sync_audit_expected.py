@@ -49,25 +49,44 @@ OVERRIDES = REPO / "data" / "audit_overrides.json"
 NOT_DISCLOSED = REPO / "data" / "audit_not_disclosed.json"
 
 
-def _load_not_disclosed() -> tuple[set, set]:
+def _load_not_disclosed() -> list[dict]:
     """Curated 'genuinely not disclosed in the PDF' cells → shown as N/A, not
-    missing. Returns (specific {(b,p,k,stmt)}, all-noncore {(b,p,k)} for '*')."""
+    missing. Returns the raw entries; _nd_matches does the matching (incl.
+    period/kind '*' wildcards). A '*' (or omitted) period/kind covers every
+    quarter / both consolidation bases — used when a bank STRUCTURALLY never
+    files a lane (e.g. İşbank never states branch/personnel counts in its interim
+    BRSA report; those live in the annual faaliyet report), so it doesn't need a
+    fresh entry every quarter."""
     try:
-        entries = json.loads(NOT_DISCLOSED.read_text(encoding="utf-8"))["not_disclosed"]
+        return json.loads(NOT_DISCLOSED.read_text(encoding="utf-8"))["not_disclosed"]
     except Exception:
-        return set(), set()
-    specific, all_noncore = set(), set()
+        return []
+
+
+def _nd_matches(entries: list[dict], b: str, p: str, k: str, st) -> bool:
+    """True if a curated not-disclosed entry covers this (bank, period, kind,
+    statement-type) cell. period/kind '*' (or omitted) is a wildcard; statement
+    '*' = every NON-CORE lane, a list = any listed key, else an exact key."""
     for e in entries:
-        key = (e["bank"], e["period"], e["kind"])
-        st = e.get("statement")
-        if st == "*":
-            all_noncore.add(key)
-        elif isinstance(st, list):
-            for s in st:
-                specific.add((*key, s))
-        else:
-            specific.add((*key, st))
-    return specific, all_noncore
+        if e["bank"].upper() != b.upper():
+            continue
+        ep, ek = e.get("period", "*"), e.get("kind", "*")
+        if ep != "*" and ep.upper() != p.upper():
+            continue
+        if ek != "*" and ek != k:
+            continue
+        stt = e.get("statement")
+        if stt == "*":
+            if not st.is_core:
+                return True
+        elif isinstance(stt, list):
+            if st.key in stt:
+                return True
+        elif stt == st.key:
+            return True
+    return False
+
+
 COVERAGE_TABLES = ["bank_audit_expected", "bank_audit_statement_types", "bank_audit_coverage"]
 
 # Manual-overlay statement names → registry key.
@@ -218,7 +237,7 @@ def build(conn: sqlite3.Connection, use_r2: bool):
             return 1 if bpk in pdfs else 0
         return 1 if bpk in extracted else 0   # fallback: extracted ⇒ the PDF existed
 
-    nd_specific, nd_all_noncore = _load_not_disclosed()
+    nd_entries = _load_not_disclosed()
     expected_rows, coverage_rows = [], []
     for bpk, meta in sorted(expected.items()):
         b, p, k = bpk
@@ -237,11 +256,10 @@ def build(conn: sqlite3.Connection, use_r2: bool):
             if status == "missing" and st.annual_only and not p.upper().endswith("Q4"):
                 status = "not_expected"
             # Curated: this partition's report genuinely doesn't disclose the lane
-            # (verified vs PDF) — a brief interim/summary filing. '*' covers every
-            # NON-CORE lane; core BS/PL/cross always stay flagged.
-            if status == "missing" and (
-                    (b, p, k, st.key) in nd_specific
-                    or (not st.is_core and (b, p, k) in nd_all_noncore)):
+            # (verified vs PDF) — a brief interim/summary filing, or a bank that
+            # structurally never states the lane (period/kind '*'). '*' statement
+            # covers every NON-CORE lane; core BS/PL/cross always stay flagged.
+            if status == "missing" and _nd_matches(nd_entries, b, p, k, st):
                 status = "not_expected"
             coverage_rows.append((b, p, k, st.key, status, rows, cf, int(is_manual), present))
 
