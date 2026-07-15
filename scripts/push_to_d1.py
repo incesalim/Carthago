@@ -162,6 +162,7 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int) -> list[str]:
     elif table in (
         "bank_audit_credit_quality",
         "bank_audit_profile",
+        "bank_audit_opinion",
         "bank_audit_loans_by_sector",
         "bank_audit_npl_movement",
         "bank_audit_stages",
