@@ -145,6 +145,65 @@ def test_off_balance_does_not_run_statement_total():
     assert all(f["check"] != "statement_total" for f in res.failures), res.failures
 
 
+def test_duplicate_hierarchy_collision_flagged():
+    # EXIM/VAKBN source typo: two DIFFERENT line items stamped on one key
+    # (the Forward-FX Sell leg mislabelled 3.2.2.2, colliding with Swap-Sell).
+    rows = [
+        _row("3.2.2.2", "Forward Foreign Currency Transactions-Sell", 36, 30, 67),
+        _row("3.2.2.2", "Foreign Currency Swap-Sell", 3600, 3823, 7423),
+    ]
+    assert any(f["check"] == "dup_hierarchy"
+               for f in v.check_no_duplicate_hierarchy(rows).failures)
+
+
+def test_duplicate_hierarchy_benign_cases_pass():
+    # same key + SAME item (trailing-dot spelling) is one row, not a collision
+    same = [_row("2.1", "Irrevocable Commitments", 60, 40, 100),
+            _row("2.1.", "Irrevocable Commitments", 60, 40, 100)]
+    assert v.check_no_duplicate_hierarchy(same).failed == 0
+    # different names but both all-zero (template placeholder rows) — not flagged
+    zeros = [_row("3.2.3.1", "FX Options-Buy", 0, 0, 0),
+             _row("3.2.3.1", "Something Else", 0, 0, 0)]
+    assert v.check_no_duplicate_hierarchy(zeros).failed == 0
+
+
+def test_grand_total_ab_reconciles_and_catches_lost_block():
+    ok = [
+        _row("A", "COMMITMENTS AND CONTINGENCIES (I+II+III)", 60, 40, 100),
+        _row("B", "CUSTODY AND PLEDGED ITEMS (IV+V+VI)", 120, 80, 200),
+        _row("", "TOTAL OFF-BALANCE SHEET ITEMS (A+B)", 180, 120, 300),
+    ]
+    r = v.check_grand_total_ab(ok)
+    assert r.failed == 0 and r.passed == 1
+    # B block's value silently lost (row present, zeroed) but the total still
+    # carries it — the case V2's parent-sums can't see. A + B != total -> fail.
+    lost = [
+        _row("A", "COMMITMENTS", 60, 40, 100),
+        _row("B", "CUSTODY", 0, 0, 0),
+        _row("", "TOTAL (A+B)", 108, 72, 300),
+    ]
+    assert v.check_grand_total_ab(lost).failed == 1
+    # no B row at all -> can't reconcile -> skip, never fail
+    r2 = v.check_grand_total_ab([_row("A", "COMMITMENTS", 60, 40, 100),
+                                 _row("", "TOTAL (A+B)", 60, 40, 100)])
+    assert r2.failed == 0 and r2.skipped == 1
+
+
+def test_prior_column_identities_checked():
+    from types import SimpleNamespace
+    good = [SimpleNamespace(hierarchy="1.1", name="Cash",
+                            cur_tl=60_000, cur_fc=40_000, cur_total=100_000,
+                            pri_tl=30_000, pri_fc=20_000, pri_total=50_000)]
+    pr = v._prior_rows(good)
+    assert pr[0]["amount_tl"] == 30_000 and pr[0]["amount_total"] == 50_000
+    assert v.check_row_triplets(pr).failed == 0
+    # a value error in the PRIOR column (current still foots) is now caught
+    bad = [SimpleNamespace(hierarchy="1.1", name="Cash",
+                           cur_tl=60_000, cur_fc=40_000, cur_total=100_000,
+                           pri_tl=30_000, pri_fc=20_000, pri_total=999_000)]
+    assert v.check_row_triplets(v._prior_rows(bad)).failed == 1
+
+
 def test_cross_statement():
     a = [_row("", "TOTAL ASSETS", 60, 40, 100)]
     li_ok = [_row("", "TOTAL LIABILITIES AND EQUITY", 60, 40, 100)]

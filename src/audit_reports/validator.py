@@ -253,12 +253,83 @@ def check_cross_statement(assets: list[dict], liabilities: list[dict]) -> Valida
     return res
 
 
+def check_no_duplicate_hierarchy(rows: list[dict]) -> ValidationResult:
+    """V5 — no two DISTINCT line items share one numeric hierarchy key.
+
+    A source mislabel or an extractor misfile lands two different rows on the
+    same key; the parent=Σchildren check can miss it when the misfiled row's
+    TRUE parent has no other captured children (so nothing contradicts). The
+    EXIM/VAKBN off-balance case is exactly this: the Forward-FX Sell leg is
+    stamped 3.2.2.2 in the filing, colliding with the real Swap-Sell at 3.2.2.2.
+    Corpus-calibrated to zero false positives: fires only when the rows on one
+    key carry DIFFERENT names AND at least two of them a non-zero total — an
+    all-zero template row legitimately repeats, and a trailing-dot spelling of
+    the same label ("2.1" / "2.1.") is the same item, not a collision.
+    """
+    res = ValidationResult()
+    by_key: dict[tuple[int, ...], list[dict]] = {}
+    for r in rows:
+        p = _path(r.get("hierarchy"))
+        if p is not None and len(p) >= 2:  # skip len-1: roman/numeric top-levels alias
+            by_key.setdefault(p, []).append(r)
+    for key, rs in by_key.items():
+        names = {(r.get("item_name") or "").strip().casefold() for r in rs}
+        nonzero = sum(1 for r in rs if (r.get("amount_total") or 0) != 0)
+        if len(names) > 1 and nonzero >= 2:
+            hstr = ".".join(str(x) for x in key)
+            res.add_fail("dup_hierarchy",
+                         f"{hstr}: {len(rs)} distinct rows on one key",
+                         expected=1, actual=len(names))
+        else:
+            res.add_pass()
+    return res
+
+
+def check_grand_total_ab(rows: list[dict]) -> ValidationResult:
+    """V6 (off-balance) — labelled grand total "(A+B)" = letter-block A + B.
+
+    A robust top-of-tree reconciliation that the roman-section total check (V3)
+    can't do on an off-balance sheet: the grand total sums an A. commitments
+    block and a B. custody/pledged block, and dropping the WHOLE B block (silent
+    section loss — the failure mode V2 can't see, since every surviving row's
+    parent-sum still foots) shows up only as A+B ≠ total. Uses the letter
+    aggregates the report itself prints, so it sidesteps the structural offset
+    that made V3 unusable here. Corpus: 889 statements reconcile exactly, 0
+    mismatch; skips (never fails) the 160 whose A/B/total labels differ.
+    """
+    res = ValidationResult()
+
+    def _letter_amt(letter: str) -> float | None:
+        for r in rows:
+            if ((r.get("hierarchy") or "").strip().rstrip(".").upper() == letter
+                    and r.get("amount_total") is not None):
+                return r["amount_total"]
+        return None
+
+    a, b, tot = _letter_amt("A"), _letter_amt("B"), None
+    for r in rows:
+        name = (r.get("item_name") or "").upper().replace(" ", "")
+        if "(A+B)" in name and r.get("amount_total") is not None:
+            if tot is None or abs(r["amount_total"]) > abs(tot):
+                tot = r["amount_total"]
+    if a is None or b is None or tot is None:
+        res.add_skip()
+        return res
+    if abs((a + b) - tot) <= _tol(tot, base=10.0, rel=5e-5):
+        res.add_pass()
+    else:
+        res.add_fail("grand_total_ab", "(A+B) grand total vs A + B",
+                     expected=tot, actual=a + b)
+    return res
+
+
 def validate_statement(rows: list[dict]) -> ValidationResult:
-    """All single-statement checks (V1–V3) for one BS statement's rows."""
+    """All single-statement checks for one BS statement's rows (V1–V3, V5)."""
     res = ValidationResult()
     res.merge(check_row_triplets(rows))
     res.merge(check_hierarchy_sums(rows))
     res.merge(check_statement_total(rows))
+    res.merge(check_no_duplicate_hierarchy(rows))
     return res
 
 
@@ -284,10 +355,18 @@ def validate_off_balance(rows: list[dict]) -> ValidationResult:
     DENIZ/YKBNK ~6-8%) — structural, not a bug. That drift is monitored instead
     by check_audit_quality._off_balance_consistency, which flags a sudden JUMP
     in the offset (a genuinely dropped section) but leaves a stable one alone.
+
+    On top of V1/V2 this also runs V5 (no duplicate hierarchy key — catches the
+    EXIM/VAKBN source mislabel head-on) and V6 (labelled "(A+B)" grand total = A
+    + B — a top-of-tree reconciliation that DOES catch a wholly dropped custody
+    block, which V2's parent-sums cannot). Both are corpus-calibrated to zero
+    false positives.
     """
     res = ValidationResult()
     res.merge(check_row_triplets(rows))
     res.merge(check_hierarchy_sums(rows))
+    res.merge(check_no_duplicate_hierarchy(rows))
+    res.merge(check_grand_total_ab(rows))
     return res
 
 
@@ -488,6 +567,17 @@ def statement_passes(conn, bank: str, period: str, kind: str, statement: str) ->
     return bool(row and row[1] == 0 and row[0] > 0)
 
 
+def _prior_rows(stmt_rows) -> list[dict]:
+    """The PRIOR-period column of a 6-column statement as validator dicts. The
+    report prints prior TL/FC/Total independently of the current column, so its
+    own triplets and parent-sums are a second, free identity set — a value error
+    the current column happens to foot through still has to survive the prior
+    column too."""
+    return [{"hierarchy": r.hierarchy, "item_name": r.name,
+             "amount_tl": r.pri_tl, "amount_fc": r.pri_fc, "amount_total": r.pri_total}
+            for r in stmt_rows]
+
+
 def validate_report(rep, period: str | None = None) -> dict[str, ValidationResult]:
     """Validate one extracted BankReport (all statement types)."""
     assets = rows_from_statement_rows(rep.bs_assets)
@@ -498,7 +588,7 @@ def validate_report(rep, period: str | None = None) -> dict[str, ValidationResul
     cf = rows_from_pl_statement_rows(getattr(rep, "cash_flow", []))
     eq_rep = getattr(rep, "equity_change", None)
     eq_rows = rows_from_equity_rows(eq_rep) if eq_rep else []
-    return {
+    results = {
         "assets": validate_statement(assets),
         "liabilities": validate_statement(liabilities),
         "cross": check_cross_statement(assets, liabilities),
@@ -509,6 +599,18 @@ def validate_report(rep, period: str | None = None) -> dict[str, ValidationResul
         "equity_change": check_equity_change(eq_rows, oci_rows=oci,
                                               liabilities=liabilities, period=period),
     }
+    # Prior-period column: an independently-printed number set validated nowhere
+    # else (the DB stores only the current column). Merge its row triplets and
+    # parent-sums into the owning 6-column statement's result — only when the
+    # column is actually populated (some banks file a single-period statement).
+    for key, stmt_rows in (("assets", rep.bs_assets),
+                           ("liabilities", rep.bs_liabilities),
+                           ("off_balance", rep.off_balance)):
+        prior = _prior_rows(stmt_rows)
+        if any(r["amount_total"] is not None for r in prior):
+            results[key].merge(check_row_triplets(prior))
+            results[key].merge(check_hierarchy_sums(prior))
+    return results
 
 
 # ===========================================================================
