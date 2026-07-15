@@ -267,10 +267,13 @@ re-run the script — never hand-edit a generated asset. `favicon.ico` must stay
 the Next build rejects it.
 
 Everything is transparent so the mark blends with whatever is behind it — the browser
-tab bar, the paper ground, the graphite nav — rather than sitting in a box. The
-gradient is mostly mid-blue, so it keeps enough contrast on the dark sheet to need no
-chip (unlike the earlier flat-navy mark). `apple-icon.png` is the one exception (opaque
-white square): iOS renders transparency as black.
+tab bar, the paper ground, the graphite nav — rather than sitting in a box. The compass
+still has navy elements (ring, hub, needle) that sink into the dark sheet, so the nav
+swaps to **`public/logo-dark.png`** in dark mode: the same mark tonally lifted (each
+pixel's lightness raised toward white, hue and chroma preserved) so it reads on graphite.
+Both variants come out of the generator; the swap is a `dark:hidden` / `hidden dark:block`
+pair in `Nav.tsx`. `apple-icon.png` is the one exception to transparency (opaque white
+square): iOS renders transparency as black.
 
 ## Process
 

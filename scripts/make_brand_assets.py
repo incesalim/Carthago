@@ -49,6 +49,30 @@ def load_mark() -> Image.Image:
     return Image.open(MARK_SRC).convert("RGBA")
 
 
+def lighten_for_dark(mark: Image.Image, lift: float = 0.5) -> Image.Image:
+    """A dark-mode variant of the mark: the same compass, tonally lifted so its
+    navy elements (ring, hub, needle) read on a dark ground instead of sinking
+    into it. Each pixel's lightness is raised toward white while its hue and
+    chroma are preserved, so it stays the blue compass — just brighter."""
+    import numpy as np
+
+    a = np.asarray(mark.convert("RGBA"), dtype=np.float32) / 255.0
+    r, g, b, al = a[..., 0], a[..., 1], a[..., 2], a[..., 3]
+    lo = np.minimum(np.minimum(r, g), b)
+    hi = np.maximum(np.maximum(r, g), b)
+    lum = (lo + hi) / 2
+    lum_new = lum + (1 - lum) * lift
+    # rescale chroma into the lightness headroom so hue is kept and nothing clips
+    room = np.minimum(lum_new, 1 - lum_new)
+    have = np.minimum(lum, 1 - lum)
+    scale = np.where(have > 1e-3, room / np.maximum(have, 1e-3), 1.0)
+    out = np.stack(
+        [np.clip(lum_new + (c - lum) * scale, 0, 1) for c in (r, g, b)] + [al],
+        axis=-1,
+    )
+    return Image.fromarray((out * 255).astype("uint8"), "RGBA")
+
+
 def fit(mark: Image.Image, box: int) -> Image.Image:
     """Scale the mark to fit a box x box square, preserving aspect + transparency."""
     m = mark.copy()
@@ -140,8 +164,11 @@ def social_card(mark: Image.Image) -> Image.Image:
 
 def main() -> None:
     mark = load_mark()
+    dark = lighten_for_dark(mark)
     out: list[tuple[Path, Image.Image]] = [
         (WEB / "public" / "logo.png", transparent(mark, 256)),
+        # Dark-mode nav variant — same compass, lifted to read on the graphite sheet.
+        (WEB / "public" / "logo-dark.png", transparent(dark, 256)),
         # Transparent so the tab-bar / page ground shows through and the mark
         # blends in, rather than sitting in a white box.
         (WEB / "app" / "icon.png", transparent(mark, 256, inset=0.92)),

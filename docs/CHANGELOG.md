@@ -33,8 +33,10 @@ asset (favicon, app icons, social cards, `public/logo.png`) is **composited from
 PNG** by `scripts/make_brand_assets.py`, so the mark cannot drift between uses — to change
 the logo, replace that PNG and re-run. Everything is transparent so the mark blends with
 whatever is behind it (browser tab bar, paper ground, graphite nav) rather than sitting
-in a box; the gradient is mostly mid-blue, so it holds contrast on the dark sheet without
-a chip. `apple-icon.png` is the only opaque asset — iOS renders transparency as black.
+in a box. The compass has navy elements that sink into the dark sheet, so the nav swaps to
+a tonally-lifted variant (`public/logo-dark.png` — same mark, lightness raised toward white
+with hue preserved) in dark mode. `apple-icon.png` is the only opaque asset — iOS renders
+transparency as black.
 The social card is the mark + Instrument-Sans wordmark on the light brand ground with the
 "Turkish banking data" tagline. Brand palette + the replace-and-regenerate rule are
 recorded in `web/DESIGN.md`.
