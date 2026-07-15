@@ -243,19 +243,20 @@ mono-caps group labels, ink active bar, no fills) + the sheet wrapper
 
 ## The brand mark
 
-An open navy **C** enclosing a wireframe globe, a data mosaic and a rising bar
-chart whose tallest bar forms an **i** (with its own dot): the sector read at a
-glance, inside a CI monogram.
+A **compass** in navy→blue gradient: an open "C" ring, a pointer needle, a centre
+hub, two orbital dots that read as an "i", and a lower swoosh. Navigation for the
+Turkish banking sector, inside the initial.
 
 Brand palette — used by the mark and the social card **only**. It is not a UI
 palette: the Desk's blue-is-links rule still holds everywhere else.
 
 | | | |
 |---|---|---|
-| `#0D1B2A` | ink navy | the C |
-| `#2D5B8C` | mid blue | bars, mosaic |
-| `#7FA0BF` | light blue | bars, mosaic |
-| `#E6EEF6` | pale | mosaic, dark-mode nav chip |
+| `#0D1B2A` | ink navy | wordmark, deepest gradient stop |
+| `#1F2E4A` | deep navy | hub, needle |
+| `#2D5B8C` | mid blue | ring, swoosh, tagline |
+| `#7FA0BF` | light blue | gradient highlight |
+| `#E6EEF6` | pale | — |
 
 **The source of truth is a single PNG: [`scripts/brand/carthago-mark.png`](../scripts/brand/carthago-mark.png)**
 — the mark keyed to transparency. Every asset (`favicon.ico`, `icon.png`,
@@ -265,13 +266,11 @@ so the mark can never drift between uses. To change the logo, replace that one P
 re-run the script — never hand-edit a generated asset. `favicon.ico` must stay RGBA or
 the Next build rejects it.
 
-The mark is navy-on-transparent, so it cannot re-tone itself for the dark sheet. The
-favicon, `icon.png` and `public/logo.png` are all transparent so the mark blends with
-whatever is behind it — the browser tab bar, the paper ground — rather than sitting in
-a white box. `apple-icon.png` is the one exception (opaque white square): iOS renders
-transparency as black. In the nav, the mark sits on nothing in light mode (the navy
-reads on the paper ground) and on a pale rounded chip in dark mode — the one place it
-would otherwise vanish, on the graphite ground.
+Everything is transparent so the mark blends with whatever is behind it — the browser
+tab bar, the paper ground, the graphite nav — rather than sitting in a box. The
+gradient is mostly mid-blue, so it keeps enough contrast on the dark sheet to need no
+chip (unlike the earlier flat-navy mark). `apple-icon.png` is the one exception (opaque
+white square): iOS renders transparency as black.
 
 ## Process
 

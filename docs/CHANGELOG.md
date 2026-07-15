@@ -25,18 +25,19 @@ the 10 `pytest.importorskip("pdfplumber")` guards flipped to `"fitz"`. **No prod
 data re-extracted** — the change is code-only; already-extracted rows are untouched and
 only *future* extractions use the fitz-only path. Full unit suite green (389 passed).
 
-2026-07-15 — **New brand mark.** The logo is now the Carthago mark — an open navy "C"
-enclosing a wireframe globe, a data mosaic and a rising bar chart whose tallest bar
-forms an "i" — replacing the blue hatched disc. The mark is the supplied artwork keyed
-to transparency and committed once at `scripts/brand/carthago-mark.png`; every asset
-(favicon, app icons, social cards, `public/logo.png`) is **composited from that one
-PNG** by `scripts/make_brand_assets.py`, so the mark cannot drift between uses. Since
-the mark is navy-on-transparent it can't re-tone for the dark sheet, so the nav sits it
-on a pale rounded chip in dark mode. The favicon, icon and logo are transparent so they
-blend with the browser tab bar instead of sitting in a white box (only `apple-icon.png`
-stays opaque — iOS renders transparency as black). The social card is the mark + wordmark on the light
-brand ground with the "Turkish banking data" tagline. Brand palette + the
-replace-and-regenerate rule are recorded in `web/DESIGN.md`.
+2026-07-15 — **New brand mark: the Carthago compass.** The logo is a navy→blue gradient
+compass — an open "C" ring, a pointer needle, a centre hub, two orbital dots reading as
+an "i", and a lower swoosh — replacing the blue hatched disc. It is the supplied artwork
+keyed to transparency and committed once at `scripts/brand/carthago-mark.png`; every
+asset (favicon, app icons, social cards, `public/logo.png`) is **composited from that one
+PNG** by `scripts/make_brand_assets.py`, so the mark cannot drift between uses — to change
+the logo, replace that PNG and re-run. Everything is transparent so the mark blends with
+whatever is behind it (browser tab bar, paper ground, graphite nav) rather than sitting
+in a box; the gradient is mostly mid-blue, so it holds contrast on the dark sheet without
+a chip. `apple-icon.png` is the only opaque asset — iOS renders transparency as black.
+The social card is the mark + Instrument-Sans wordmark on the light brand ground with the
+"Turkish banking data" tagline. Brand palette + the replace-and-regenerate rule are
+recorded in `web/DESIGN.md`.
 
 2026-07-14 — **Market-risk data was extracted for weeks and never pushed to D1.**
 `refresh-audit.yml` — the lane that ingests every new quarter — hand-listed 14 of the

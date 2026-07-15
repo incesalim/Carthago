@@ -105,21 +105,15 @@ function Brand() {
       aria-label="Carthago — home"
       className="flex shrink-0 items-center gap-2 text-foreground"
     >
-      {/* The mark is the user's navy-on-transparent artwork, so it can't
-          re-tone for the dark sheet. On dark we sit it on a light rounded chip
-          — the app-icon treatment from the brand sheet; on light the chip is
-          transparent and the navy mark reads on the paper ground. */}
-      <span className="inline-grid size-7 shrink-0 place-items-center rounded-md bg-transparent p-px dark:bg-[#E9F0F7]">
-        <Image
-          src="/logo.png"
-          alt=""
-          width={28}
-          height={28}
-          priority
-          unoptimized
-          className="size-full object-contain"
-        />
-      </span>
+      <Image
+        src="/logo.png"
+        alt=""
+        width={28}
+        height={28}
+        priority
+        unoptimized
+        className="size-7 shrink-0 object-contain"
+      />
       <span className="flex flex-col leading-none">
         <span className="text-lg font-bold tracking-tight">Carthago</span>
         <span className="mt-0.5 text-[10px] font-medium text-faint">
