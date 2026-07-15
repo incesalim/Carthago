@@ -78,14 +78,21 @@ _NONE = re.compile(
 # (newline-bounded, NOT `[^.\n]`) so a "300.000" is never cut at its separator.
 # Each captures the amount in group 1.
 _STOCK_PATTERNS = [
-    # EN — "free provision … amounting to/of (thousand) TL 300.000"
-    re.compile(_SUBJ_EN + r".{0,80}?amount(?:ing)?\s+(?:to|of)\s+" + _CCY_AMT, re.I),
+    # The "Other provisions" NOTE table row (participation banks) — the most
+    # authoritative form. Unique label, so very low false-positive risk. Two
+    # columns: current, prior. "Free provisions allocated for possible losses(*)
+    # 1.620.000 1.850.000" / TR "Serbest karşılıklar … 300.000 7.300.000".
+    re.compile(r"(?:Free\s+provisions?\s+allocated\s+for\s+possible\s+losses"
+               r"|Muhtemel\s+riskler\s+için\s+ayr[ıi]lan\s+" + _SUBJ_TR + r"lar?)"
+               r"\S*\s+(" + _NUM + r")\s+" + _NUM, re.I),
+    # EN — "free provision … amount(s/ing) to/of (thousand) TL 300.000"
+    re.compile(_SUBJ_EN + r".{0,80}?amount(?:ing|s)?\s+(?:to|of)\s+" + _CCY_AMT, re.I),
     # EN — "free provision at an amount of thousand TL 6.600.000"
     re.compile(_SUBJ_EN + r"\s+at\s+an\s+amount\s+of\s+" + _CCY_AMT, re.I),
-    # EN — "includes a free provision of TL 1.650.000"
-    re.compile(r"includes?\s+a\s+" + _SUBJ_EN + r"\s+(?:of\s+)?" + _CCY_AMT, re.I),
+    # EN — "(includes) a free provision of (total of) TL 1.650.000"
+    re.compile(_SUBJ_EN + r"\s+of\s+(?:a\s+)?(?:total\s+of\s+)?" + _CCY_AMT, re.I),
     # EN — amount BEFORE subject: "amounting to TL 546,889 (…) for free provision"
-    re.compile(r"amount(?:ing)?\s+(?:to|of)\s+" + _CCY_AMT + r".{0,80}?for\s+" + _SUBJ_EN, re.I),
+    re.compile(r"amount(?:ing|s)?\s+(?:to|of)\s+" + _CCY_AMT + r".{0,80}?for\s+" + _SUBJ_EN, re.I),
     # TR — "serbest karşılık tutarı 4,000,000 TL"
     re.compile(_SUBJ_TR + r"\s+tutar[ıi]\s+(" + _NUM + r")\s*(?:bin\s+)?" + _CCY, re.I),
     # TR — "9.000.000 TL tutarında(ki) … serbest karşılık"
