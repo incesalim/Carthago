@@ -155,11 +155,14 @@ def classify_free_provision(pages: list[str]) -> FreeProvision:
                 amt = _parse_amt(m.group(1))
                 if amt is None:
                     continue
-                # Flow veto: a reversal/allocation verb near the amount marks it
-                # a P&L flow, not the stock. Reach further BEFORE (to catch
-                # "free provision EXPENSE … amounting to TL X") than AFTER (so a
-                # later "… of which X was cancelled" clause can't veto the stock).
-                if _FLOW.search(text[max(0, m.start(1) - 55): m.end(1) + 20]):
+                # Flow veto: a reversal/allocation verb near the amount marks it a
+                # P&L flow, not the stock. Two reaches: BEFORE the amount (catches
+                # "free provision EXPENSE … amounting to TL X") and just after the
+                # WHOLE match (catches TR "X TL … serbest karşılık … iptal
+                # edilmiştir", where the amount leads and the verb trails the
+                # subject). The +35 stays short of a "… of which Y was cancelled"
+                # sub-clause about a DIFFERENT number, so a real stock survives.
+                if _FLOW.search(text[max(0, m.start(1) - 55): m.end() + 35]):
                     continue
                 prior = _PRIOR.search(text[m.start(): m.start() + 400])
                 rank = page_rank + 2 + (2 if prior else 0)

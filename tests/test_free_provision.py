@@ -95,6 +95,24 @@ def test_european_separator_not_truncated():
     assert r.free_provision == 1650000
 
 
+def test_turkish_cancelled_amount_is_not_the_stock():
+    # AKBNK/ZIRAATK: "X TL … serbest karşılık … iptal edilmiştir" is a REVERSAL —
+    # the amount that was CANCELLED, not the current stock. Must not be captured.
+    r = classify_free_provision(_pages(
+        "1.400.000 TL tutarındaki serbest karşılık cari dönemde iptal edilmiştir."
+    ))
+    assert r.free_provision != 1400000
+
+
+def test_of_which_cancelled_subclause_keeps_the_stock():
+    # BURGAN: the stock (546,889) survives even though a SUB-amount was cancelled.
+    r = classify_free_provision(_pages(
+        "includes a free provision of TL 546,889 thousands, of which TL 155,000 "
+        "thousands had been cancelled in the current period."
+    ))
+    assert r.free_provision == 546889
+
+
 def test_no_disclosure_is_empty():
     r = classify_free_provision(["Balance sheet and notes with no such reserve."] * 5)
     assert r.is_empty()
