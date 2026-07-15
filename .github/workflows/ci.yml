@@ -49,6 +49,11 @@ jobs:
         # (bank_ticker/amount_fc/snake_case/no reserved words/unique number).
         # Stdlib-only. Existing tables are grandfathered.
         run: python scripts/check_schema_naming.py
+      - name: No pdfplumber
+        # PDF extraction is fitz (PyMuPDF) only (pdfplumber removed 2026-07-15).
+        # Blocks any `import pdfplumber` creeping back into src/scripts/tests, or
+        # pdfplumber re-entering requirements.txt / this pip install. Stdlib-only.
+        run: python scripts/check_no_pdfplumber.py
       - name: Calendar freshness
         # The Ahead blocks are derived, except TCMB's MPC dates — nothing scrapes
         # that calendar, so it is transcribed by hand in web/app/lib/ahead.ts.
