@@ -162,6 +162,29 @@ def test_qualified_audit_en_basis_is_the_heading_not_the_crossref():
     assert r.auditor == "KPMG"
 
 
+# EY/Güney review template writes "Basis OF Qualified Conclusion" (not "for").
+QUALIFIED_REVIEW_BASIS_OF = """
+AUDITOR'S REVIEW REPORT ON INTERIM FINANCIAL INFORMATION
+We have reviewed the accompanying financial statements. Accordingly, we do not
+express an opinion.
+Basis of Qualified Conclusion
+As explained in Section Five Part II.8.4, the accompanying financial statements
+include a free provision provided outside the requirements of the legislation.
+Qualified Conclusion
+Based on our review, except for the effect of the matter referred in the basis of
+qualified conclusion paragraph, nothing has come to our attention.
+Güney Bağımsız Denetim.
+"""
+
+
+def test_qualified_review_basis_of_variant():
+    # Regression: EY writes "Basis OF …"; the verdict AND the basis must survive.
+    r = classify_opinion(QUALIFIED_REVIEW_BASIS_OF, "2022Q1")
+    assert r.opinion_type == "qualified"
+    assert r.basis_text and "free provision" in r.basis_text
+    assert "nothing has come" not in r.basis_text  # not the Conclusion paragraph
+
+
 def test_clean_audit_tr():
     r = classify_opinion(CLEAN_AUDIT_TR, "2024Q4")
     assert r.opinion_type == "clean"
