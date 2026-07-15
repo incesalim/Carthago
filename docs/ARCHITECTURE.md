@@ -107,12 +107,18 @@ of `refresh.py` (BIST re-fetches a trailing 35-day window daily, TEFAS a trailin
 everything. A separate daily job, `refresh-news-daily.yml` (04:00 UTC), refreshes
 `news_items`.
 
-### Weekly bulletins — `.github/workflows/refresh-bddk-bulletins.yml`
-Friday 13:30 + 15:30 UTC (16:30 & 18:30 Turkey), weekly-only, and Saturday
-02:00 UTC (weekly + monthly). Isolated BDDK-only refresh (`--skip-evds`, no
-audit). BDDK publishes the weekly bulletin Friday afternoon (~16:00–18:00
-Turkey), so the two Friday runs grab it the same evening (bracketing the window
-so it's caught within ~30 min); Saturday is the backstop and does the monthly.
+### BDDK bulletins — `.github/workflows/refresh-bddk-bulletins.yml`
+Isolated BDDK-only refresh (`--skip-evds`, no audit), split by schedule via
+`github.event.schedule`:
+- **Daily 07:00 UTC** (10:00 Turkey) — monthly check. The monthly bulletin lands
+  mid-month on no fixed day, so `update_monthly.py` probes daily and scrapes only
+  when BDDK has published a new month (cheap otherwise).
+- **Friday 13:30 + 15:30 UTC** (16:30 & 18:30 Turkey) — weekly. BDDK publishes the
+  weekly bulletin Friday afternoon; two runs bracket the window (~30 min).
+- **Saturday 02:00 UTC** — weekly backstop.
+
+A positive Telegram ping ("published & fetched", `notify_new_bddk.py`) fires when
+a weekly/monthly period newly lands; quiet otherwise.
 
 ### Weekly full — `.github/workflows/refresh-data.yml`
 Saturday 03:00 UTC. BDDK bulletins + EVDS + BIST + TBB digital + TKBB participation
