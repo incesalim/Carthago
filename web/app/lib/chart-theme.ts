@@ -47,7 +47,10 @@ export interface ChartTheme {
 
 // "The Desk" chart chrome — navy hero + grey context (mirror --chart-1..6),
 // whisper hairline grid, faint mono axis ticks, white-sheet tooltip.
-const LIGHT: ChartTheme = {
+// Exported so the PNG export (chart-export.tsx) can remap a dark capture back to
+// these light values — Recharts bakes theme colours into SVG attributes at render
+// time, so the exporter can't re-theme React; it substitutes DARK → LIGHT instead.
+export const LIGHT: ChartTheme = {
   mode: "light",
   palette: ["#2B4E7E", "#4E79B8", "#8FA8C8", "#B98514", "#7A5C8A", "#A0A7AE"],
   grid: "#ECEDE8",
@@ -67,7 +70,7 @@ const LIGHT: ChartTheme = {
   warning: "#B98514",
 };
 
-const DARK: ChartTheme = {
+export const DARK: ChartTheme = {
   mode: "dark",
   palette: ["#7FA3D8", "#9BB4D8", "#C1CEDE", "#D9A83F", "#B092C0", "#8B939C"],
   grid: "#1F252C",
