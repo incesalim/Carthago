@@ -27,6 +27,8 @@ class StatementType:
     sort_order: int
     annual_only: bool = False     # disclosed only in the Q4 (annual) report (e.g. loans-by-sector);
     #                               interim cells with no data are N/A in the matrix, not "missing"
+    conditional: bool = False     # disclosed only when the bank HOLDS one (e.g. free provision);
+    #                               an empty cell means "no such reserve" = N/A, not "missing"
 
 
 # Order: core financials first, then footnote/§4 tables. sort_order drives the UI.
@@ -102,7 +104,7 @@ REGISTRY: list[StatementType] = [
     StatementType("free_provision", "Free provision (serbest karşılık)",
                   "bank_audit_free_provision", None, None,
                   is_core=False, present_min_rows=1, has_validator=False,
-                  validation_statement=None, sort_order=116),
+                  validation_statement=None, sort_order=116, conditional=True),
 ]
 
 BY_KEY: dict[str, StatementType] = {st.key: st for st in REGISTRY}
