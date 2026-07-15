@@ -8,19 +8,34 @@ from pathlib import Path
 from . import registry
 from .extractor import BankReport, extract
 
-# A few banks' source PDFs print sub-item hierarchy codes with a trailing dot
-# ("1.1." / "2.1." — KUVEYT, partially ALBRK / EXIM / ICBCT) where the BRSA standard
-# (and every other bank) is "1.1" / "2.1". The extractor captures them verbatim, but
-# the per-bank Financials table and the cross-bank heatmap key on the EXACT code and
-# then can't match those rows, so the numbers silently vanish from the UI. Normalise
-# the KEY on write — but ONLY for the catalog-driven, displayed statements (assets,
-# liabilities, profit_loss): strip a trailing dot from a multi-level NUMERIC code;
-# Roman codes ("I.", "XVI."), single-level codes ("1.") and synthetic suffixes
-# ("1.1.ecl") are left intact. off_balance is EXCLUDED on purpose — its sub-items are
-# dotted as a convention across ~19 banks (24k rows), it isn't rendered through the
-# catalog, and its indentation derives from the code, so its dots are kept. oci /
-# cash_flow are likewise left alone (not keyed by the UI). Values are never touched.
+# Some banks' source PDFs print hierarchy codes off the BRSA standard in TWO ways,
+# and consumers that key on the EXACT code — the per-bank Financials table and the
+# cross-bank heatmap — then can't match those rows, so the numbers silently vanish
+# from the UI (or, for a dotless asset roman, drop out of the SUMMED total assets, so
+# the bank reads ~40-50% smaller for that quarter — ALNTF's "I" = Financial Assets):
+#   • a multi-level NUMERIC sub-code with a TRAILING dot ("1.1." / "2.1." — KUVEYT,
+#     partially ALBRK / EXIM / ICBCT) where the standard is "1.1" / "2.1"; and
+#   • a top-level ROMAN code WITHOUT its trailing dot ("XI" Personnel Expenses —
+#     EXIM 2024Q2/Q3; "I" Financial Assets — ALNTF; "V" Dividend Income — 6 banks)
+#     where the standard is "XI." / "I." / "V.".
+# Normalise the KEY on write, ONLY for the catalog-driven displayed statements
+# (assets, liabilities, profit_loss): STRIP the dot from a multi-level numeric code,
+# and ADD a dot to a bare roman-numeral code. Single-level numerics ("1."), synthetic
+# suffixes ("1.1.ecl") and already-correct codes are left intact. off_balance is
+# EXCLUDED on purpose — its sub-items are dotted as a convention across ~19 banks (24k
+# rows), it isn't rendered through the catalog, and its indentation derives from the
+# code, so its dots are kept. oci / cash_flow are likewise left alone (not keyed by
+# the UI). Values are never touched.
+#
+# The roman-dot rule is a pure KEY canonicalisation. Two frozen partitions carry a
+# roman code that is itself mis-extracted CONTENT (a post-merger line keyed "X" where
+# "X." = Other Provisions already exists — a collision; and TOMK 2023Q3 "XI" whose
+# content is Other Operating Expenses, semantically XII.). Those are content bugs, not
+# dot bugs; the one-time backfill (scripts/normalize_roman_hierarchy.py) skips them
+# via a collision guard + a semantic guard, and they can't recur because BS/PL are
+# frozen (never re-extracted).
 _HIER_TRAILING_DOT = re.compile(r"^(\d+(?:\.\d+)+)\.$")
+_HIER_BARE_ROMAN = re.compile(r"^[IVXLCDM]+$")
 _NORMALIZE_HIER = frozenset({"assets", "liabilities", "profit_loss"})
 
 
@@ -28,7 +43,11 @@ def _canon_hier(statement: str, h: str | None) -> str | None:
     if statement not in _NORMALIZE_HIER or not h:
         return h
     m = _HIER_TRAILING_DOT.match(h)
-    return m.group(1) if m else h
+    if m:
+        return m.group(1)
+    if _HIER_BARE_ROMAN.match(h):
+        return h + "."
+    return h
 
 
 def upsert_report(
