@@ -130,6 +130,7 @@ def upsert_report(
     from .repricing import RepricingReport, upsert as _upsert_rp
     from .bank_profile import upsert_profile as _upsert_bp
     from .audit_opinion import upsert_opinion as _upsert_op
+    from .free_provision import upsert_free_provision as _upsert_fp
     from .equity_change import EquityChangeReport, upsert as _upsert_eq
 
     # (counts key, build report from rep, upsert fn, skip when empty)
@@ -149,6 +150,9 @@ def upsert_report(
         # opinion is INSERT OR REPLACE + skip-if-empty (no validator), like profile:
         # a failed re-extract (opinion_type='unknown') must not wipe a stored verdict.
         ('opinion',         lambda: getattr(rep, 'audit_opinion', None),                                                   _upsert_op,  True),
+        # free provision: INSERT OR REPLACE + skip-if-empty (no validator), like
+        # opinion/profile — a re-extract that finds no disclosure keeps the value.
+        ('free_provision',  lambda: getattr(rep, 'free_provision', None),                                                  _upsert_fp,  True),
         ('equity_change',   lambda: getattr(rep, 'equity_change', None) or EquityChangeReport(pdf_path=pdf_path),          _upsert_eq,  False),
     ]
     # Footnote / §4 persisters: gate each on its own validation statement so a
