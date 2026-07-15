@@ -222,6 +222,25 @@ def test_comma_for_dot_markers_normalized():
     assert _parse_rows("17,740,253 20,077,174 37,817,427 14,741,143 13,757,005 28,498,148 notes", 6) == []
 
 
+def test_mixed_dot_comma_marker_normalized():
+    # TSKB 2024Q4 off-balance: once a section passes nine sub-items the LAST
+    # separator renders as a comma while the earlier ones stay dots — "2.1.9"
+    # then "2.1,10" … "2.1,13". The mixed marker must normalize to "2.1.13" so
+    # the row (868.824) rejoins its parent 2.1 sum; otherwise the whole child is
+    # dropped and 2.1 fails parent=Σchildren. (Dot = thousands here, EN report.)
+    r = _parse_rows(
+        "2.1,13 Other Irrevocable Commitments 828.927 39.897 868.824 1.351.528 35.502 1.387.030", 6)
+    assert len(r) == 1 and r[0][0].startswith("2.1.13 Other") and r[0][1][2] == 868824.0
+    # a pure-dot marker of the same depth is unaffected
+    r2 = _parse_rows(
+        "2.1.13 Other Irrevocable Commitments 828.927 39.897 868.824 1.351.528 35.502 1.387.030", 6)
+    assert len(r2) == 1 and r2[0][0].startswith("2.1.13 Other")
+    # a dot-thousands value line (3-digit groups, no marker) is NOT mangled into
+    # a marker row — the 1-2-digit component rule still guards it.
+    assert _parse_rows(
+        "828.927 39.897 868.824 1.351.528 35.502 1.387.030 notes", 6) == []
+
+
 def test_long_two_col_oci_line_kept():
     # ALBRK/ANADOLU/VAKBN OCI line 2.2.2 ("…Valuation/Reclassification of
     # Financial Assets Measured at Fair Value through Other Comprehensive
