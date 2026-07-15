@@ -37,6 +37,12 @@ from dataclasses import dataclass
 # as the separator (reports mix both, sometimes within one document).
 _NUM = r"\d{1,3}(?:[.,]\d{3})+"
 
+# Currency token — reports write the lira as "TL", "TRY" or (rarely) "TRL", and
+# put "thousand" either before ("thousand TL 6.600.000") or after ("TRY 6,000,000
+# thousand") the amount. `_CCY_AMT` captures the amount either way.
+_CCY = r"(?:TL|TRY|TRL)"
+_CCY_AMT = r"(?:thousand\s+)?" + _CCY + r"\s*(" + _NUM + r")(?:\s+thousand)?"
+
 # "free provision" / "serbest karşılık" — the subject. `serbest kar[sş]ıl` also
 # folds the diacritic-dropped text layer some PDFs produce.
 _SUBJ_EN = r"free\s+provision"
@@ -51,7 +57,7 @@ _SUBJ_TR = r"serbest\s+kar[şs][ıi]l[ıi]k"
 # to return None than a wrong prior, so keep this tight.
 _PRIOR = re.compile(
     r"\(\s*(?:31\s+(?:Aral[ıi]k|December)|December\s+31)[^)]{0,40}?"
-    r"(?:TL\s*)?(" + _NUM + r"|[Bb]ulunmamaktad[ıi]r|[Nn]one|[Yy]oktur)",
+    r"(?:" + _CCY + r"\s*)?(" + _NUM + r"|[Bb]ulunmamaktad[ıi]r|[Nn]one|[Yy]oktur)",
     re.I,
 )
 
@@ -73,19 +79,19 @@ _NONE = re.compile(
 # Each captures the amount in group 1.
 _STOCK_PATTERNS = [
     # EN — "free provision … amounting to/of (thousand) TL 300.000"
-    re.compile(_SUBJ_EN + r".{0,80}?amount(?:ing)?\s+(?:to|of)\s+(?:thousand\s+)?TL\s*(" + _NUM + r")", re.I),
+    re.compile(_SUBJ_EN + r".{0,80}?amount(?:ing)?\s+(?:to|of)\s+" + _CCY_AMT, re.I),
     # EN — "free provision at an amount of thousand TL 6.600.000"
-    re.compile(_SUBJ_EN + r"\s+at\s+an\s+amount\s+of\s+(?:thousand\s+)?TL\s*(" + _NUM + r")", re.I),
+    re.compile(_SUBJ_EN + r"\s+at\s+an\s+amount\s+of\s+" + _CCY_AMT, re.I),
     # EN — "includes a free provision of TL 1.650.000"
-    re.compile(r"includes?\s+a\s+" + _SUBJ_EN + r"\s+(?:of\s+)?(?:thousand\s+)?TL\s*(" + _NUM + r")", re.I),
+    re.compile(r"includes?\s+a\s+" + _SUBJ_EN + r"\s+(?:of\s+)?" + _CCY_AMT, re.I),
     # EN — amount BEFORE subject: "amounting to TL 546,889 (…) for free provision"
-    re.compile(r"amount(?:ing)?\s+(?:to|of)\s+(?:thousand\s+)?TL\s*(" + _NUM + r").{0,80}?for\s+" + _SUBJ_EN, re.I),
+    re.compile(r"amount(?:ing)?\s+(?:to|of)\s+" + _CCY_AMT + r".{0,80}?for\s+" + _SUBJ_EN, re.I),
     # TR — "serbest karşılık tutarı 4,000,000 TL"
-    re.compile(_SUBJ_TR + r"\s+tutar[ıi]\s+(" + _NUM + r")\s*(?:bin\s+)?TL", re.I),
+    re.compile(_SUBJ_TR + r"\s+tutar[ıi]\s+(" + _NUM + r")\s*(?:bin\s+)?" + _CCY, re.I),
     # TR — "9.000.000 TL tutarında(ki) … serbest karşılık"
-    re.compile(r"(" + _NUM + r")\s*(?:bin\s+)?TL\s+tutar[ıi]nda(?:ki)?.{0,60}?" + _SUBJ_TR, re.I),
+    re.compile(r"(" + _NUM + r")\s*(?:bin\s+)?" + _CCY + r"\s+tutar[ıi]nda(?:ki)?.{0,60}?" + _SUBJ_TR, re.I),
     # TR — "serbest karşılık … 9.000.000 TL … yer almaktadır"
-    re.compile(_SUBJ_TR + r".{0,60}?(" + _NUM + r")\s*(?:bin\s+)?TL.{0,40}?yer\s+almaktad[ıi]r", re.I),
+    re.compile(_SUBJ_TR + r".{0,60}?(" + _NUM + r")\s*(?:bin\s+)?" + _CCY + r".{0,40}?yer\s+almaktad[ıi]r", re.I),
 ]
 
 
