@@ -18,7 +18,36 @@ REPO = Path(__file__).resolve().parents[1]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
+from src.audit_reports.repricing import _NONINT_RX  # noqa: E402
 from src.audit_reports.validator import check_fx_position, check_repricing  # noqa: E402
+
+
+# ---------------------------------------------------------------------------
+# Repricing table locator — the non-interest-bearing column header (pure regex,
+# runs in CI). This header is what pins the interest-rate repricing schedule
+# apart from the FX table; if it doesn't match, the table is never located and
+# the bank drops to a false N/A.
+# ---------------------------------------------------------------------------
+@pytest.mark.parametrize("header", [
+    "Faizsiz",                 # standard Turkish
+    "Faiz Getirmeyen",         # Turkish variant
+    "Non-Interest Bearing",    # standard English
+    "Non-Interest",            # English, header split
+    "Non-bearing interest",    # Halkbank English (reversed word order) — regressed all 17 quarters to N/A
+    " Non-bearing",            # as fitz clusters Halkbank's header line
+    "Interest-Free",           # English variant
+])
+def test_nonint_header_matches_known_phrasings(header):
+    assert _NONINT_RX.search(header), header
+
+
+@pytest.mark.parametrize("not_header", [
+    "Interest bearing assets",  # the OPPOSITE column — must NOT match
+    "Total interest income",
+    "Faiz oranı riski",         # prose section heading
+])
+def test_nonint_header_rejects_non_matches(not_header):
+    assert not _NONINT_RX.search(not_header), not_header
 
 
 # ---------------------------------------------------------------------------

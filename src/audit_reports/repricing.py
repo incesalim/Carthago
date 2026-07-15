@@ -50,9 +50,20 @@ _ROWS: list[tuple[str, list[str]]] = [
 _ROW_RX = [(f, [re.compile(p, re.I) for p in pats]) for f, pats in _ROWS]
 
 _PRIOR_RX = re.compile(r"\b(Prior\s+Period|Önceki\s+Dönem|Geçmiş\s+Dönem)\b", re.I)
-# Bucket-header signal: a non-interest column ("Faizsiz" / "Non-Interest
-# Bearing") next to a Total — distinguishes the repricing table from the FX one.
-_NONINT_RX = re.compile(r"(Faizsiz|Non[\s-]?Interest)", re.I)
+# Bucket-header signal: a non-interest / non-rate-sensitive column ("Faizsiz" /
+# "Non-interest bearing") next to a Total — distinguishes the repricing table
+# from the FX one. English convenience translations vary the word order
+# ("Non-bearing interest" — Halkbank — vs "Non-interest bearing") and Turkish
+# filings vary the phrase ("Faizsiz" / "Faiz Getirmeyen"), so match the whole
+# family rather than one fixed order (a fixed "Non-Interest" missed HALKB
+# entirely — all 17 quarters — because "bearing" sits between the two words).
+_NONINT_RX = re.compile(
+    r"(Faizsiz"
+    r"|Faiz\s*(?:Getirmeyen|İçermeyen|Taşımayan)"
+    r"|Non[\s-]*(?:Interest|Bearing)"
+    r"|Interest[\s-]*Free)",
+    re.I,
+)
 _SKIP_PAGES = 20
 _MAX_SECTION_PAGES = 6
 
