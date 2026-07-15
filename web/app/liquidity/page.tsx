@@ -759,7 +759,6 @@ export default async function LiquidityPage() {
           <SecHead title="Ahead" meta="schedule — derived from the record periods + the tcmb calendar" className="mb-2.5" />
           <Ahead
             items={[
-              { when: "FRI", what: <>BDDK weekly bulletin — TL and FX funding</> },
               { when: "THU", what: <>TCMB analytical balance sheet — the reserve buffer</> },
               ahead.mpc && {
                 when: ahead.mpc.when,

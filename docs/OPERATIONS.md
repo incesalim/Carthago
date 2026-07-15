@@ -11,7 +11,7 @@ machine involvement is required for routine refreshes.
 |---|---|---|
 | Sun–Fri 05:00 UTC | `refresh-evds-daily.yml` | TCMB EVDS scrape (FX, rates, sterilization, …) + the non-critical BIST/TBB/TKBB/KAP/TEFAS/Faaliyet steps of `refresh.py` → D1 |
 | Daily 04:00 UTC | `refresh-news-daily.yml` | `sync_news.py` → `news_items` + `news_item_banks` (KAP filings, TCMB/BDDK announcements, bank press rooms, Google News) → D1 |
-| Saturday 02:00 UTC | `refresh-bddk-bulletins.yml` | Monthly + weekly BDDK bulletins (no EVDS, no audit) → D1 |
+| Fri 13:30 + 15:30 UTC, Sat 02:00 UTC | `refresh-bddk-bulletins.yml` | BDDK bulletins (no EVDS, no audit) → D1. The two **Friday** runs (16:30 & 18:30 Turkey) are **weekly-only** — BDDK publishes the weekly bulletin Friday afternoon (~16:00–18:00 Turkey), so we grab it the same evening; the **Saturday** run does weekly + monthly |
 | Saturday 03:00 UTC | `refresh-data.yml` | Monthly + weekly BDDK + EVDS → D1 |
 | Saturday 06:00 UTC | `refresh-presentations-weekly.yml` | `update_presentations.py` → `bank_earnings` (IR presentation decks) → D1 (`--only-tables=bank_earnings`). Bulletin lane (`bddk-pipeline` group). Tier-1 results filings ride `refresh-news-daily.yml` instead |
 | Monday 06:00 UTC | `refresh-advertised-rates.yml` | `src.rates.scraper` → `bank_advertised_rates` → D1 (`--only-tables=bank_advertised_rates`). Per-bank **advertised** (posted-to-new-customers) loan + deposit rates scraped from doviz.com (loans) and hangikredi (deposits) — the only per-bank rate source; EVDS/BDDK publish rates at sector level only. Each run appends a dated `snapshot_date`, so history accretes (the sources only expose "today"). Bulletin lane (`bddk-pipeline` group) |

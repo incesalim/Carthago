@@ -613,14 +613,6 @@ export default async function ProfitabilityPage() {
                 when: ahead["inflation-report"].when,
                 what: <>TCMB Inflation Report — where the hurdle is headed</>,
               },
-              ahead["bddk-monthly"] && {
-                when: ahead["bddk-monthly"].when,
-                what: (
-                  <>
-                    BDDK monthly — {ahead["bddk-monthly"].record} P&amp;L and the deposit mix
-                  </>
-                ),
-              },
               ahead["brsa-filings"] && {
                 when: ahead["brsa-filings"].when,
                 what: <>BRSA {ahead["brsa-filings"].record} filings — per-bank margins</>,

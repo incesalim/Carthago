@@ -6,13 +6,19 @@ name: Refresh BDDK bulletins
 # so they serialize via the `bddk-pipeline` concurrency group.
 #
 # When to run:
-#   - Saturday 02:00 UTC (05:00 Turkey): BDDK publishes weekly data
-#     Friday evenings; this catches the new week before the broader
-#     refresh-data.yml runs at 03:00 UTC.
+#   - Friday 13:30 + 15:30 UTC (16:30 & 18:30 Turkey): BDDK publishes the weekly
+#     bulletin Friday AFTERNOON (~16:00–18:00 Turkey), so we grab it the same
+#     evening instead of waiting for Saturday. Two runs bracket the window so we
+#     catch it within ~30 min whenever it drops. These runs are WEEKLY-ONLY —
+#     the monthly bulletin lands mid-month, not on Fridays.
+#   - Saturday 02:00 UTC (05:00 Turkey): the weekly backstop + the monthly
+#     bulletin, before the broader refresh-data.yml runs at 03:00 UTC.
 #   - Manually from the Actions tab.
 on:
   schedule:
-    - cron: "0 2 * * 6"
+    - cron: "30 13 * * 5" # Fri 16:30 Turkey — weekly-only (see SKIP_MONTHLY)
+    - cron: "30 15 * * 5" # Fri 18:30 Turkey — weekly-only
+    - cron: "0 2 * * 6" # Sat 05:00 Turkey — weekly + monthly
   workflow_dispatch:
     inputs:
       skip_monthly:
@@ -81,7 +87,9 @@ jobs:
         # --skip-evds keeps this workflow strictly BDDK-only; --skip-tbb defers
         # the quarterly TBB digital-banking refresh to the 03:00 full refresh.
         env:
-          SKIP_MONTHLY: ${{ inputs.skip_monthly && '--skip-monthly' || '' }}
+          # The two Friday runs are weekly-only (the monthly bulletin isn't out
+          # yet on a Friday); the Saturday run does both.
+          SKIP_MONTHLY: ${{ (inputs.skip_monthly || github.event.schedule == '30 13 * * 5' || github.event.schedule == '30 15 * * 5') && '--skip-monthly' || '' }}
           SKIP_WEEKLY: ${{ inputs.skip_weekly && '--skip-weekly' || '' }}
         run: python scripts/refresh.py --skip-evds --skip-tbb $SKIP_MONTHLY $SKIP_WEEKLY
 
