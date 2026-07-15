@@ -81,3 +81,17 @@ def test_probe_failure_falls_back_to_the_schedule(monkeypatch):
 
 def test_missing_monthly_data_alerts():
     assert healthcheck.monthly_problem(None) == "Monthly bulletin: no data"
+
+
+def test_monthly_freshness_shape_for_the_admin_panel():
+    # The /admin panel + the source_freshness write depend on this dict shape.
+    fresh = healthcheck.monthly_freshness("2026-05", probe=lambda y, m: False)
+    assert fresh == {
+        "status": "fresh",
+        "latest_period": "2026-05",
+        "next_period": "2026-06",
+        "note": "2026-06 not yet published by BDDK",
+    }
+    stale = healthcheck.monthly_freshness("2026-05", probe=lambda y, m: True)
+    assert stale["status"] == "stale"
+    assert "missed a release" in stale["note"]
