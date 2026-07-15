@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { MPC_DATES, aheadDates, dayLabel, mpcRunwayDays, nextMpc, rangeLabel } from "./ahead";
+import {
+  MPC_DATES,
+  aheadDates,
+  dayLabel,
+  mpcRunwayDays,
+  nextMonthlyBulletinDue,
+  nextMpc,
+  rangeLabel,
+} from "./ahead";
 
 const at = (d: string) => new Date(`${d}T09:00:00Z`);
 
@@ -22,6 +30,24 @@ describe("nextMpc", () => {
     // The page then OMITS the row. A schedule that has run out must not print
     // its last entry forever — that is the failure we are removing.
     expect(nextMpc(at("2099-01-01"))).toBeNull();
+  });
+});
+
+describe("nextMonthlyBulletinDue", () => {
+  it("expects the next month ~the 12th of month M+2, with its record name", () => {
+    // Held May → the next record (June) is due ~12 Aug. This is what makes
+    // holding May in mid-July FRESH rather than stale (admin-health / healthcheck).
+    expect(nextMonthlyBulletinDue("2026-05")).toEqual({ date: "2026-08-12", record: "June" });
+  });
+
+  it("rolls the year", () => {
+    expect(nextMonthlyBulletinDue("2026-11")).toEqual({ date: "2027-02-12", record: "December" });
+    expect(nextMonthlyBulletinDue("2026-12")).toEqual({ date: "2027-03-12", record: "January" });
+  });
+
+  it("returns null on a malformed period", () => {
+    expect(nextMonthlyBulletinDue("2026")).toBeNull();
+    expect(nextMonthlyBulletinDue("")).toBeNull();
   });
 });
 
