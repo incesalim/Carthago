@@ -121,10 +121,15 @@ _ROMAN_FN_RX = re.compile(
     r'|\b[IVX]+\s*-\s*[IVX]+(?:\s*-\s*\d{1,3})?\b')          # (b) unparenthesized
 # Comma-for-dot hierarchy markers: BURGAN 2025Q3's text layer renders the
 # marker separator as a comma — "I,", "1,1", "1,1,1" — the SAME glyph as the
-# thousands separator. Only the LEADING marker is normalized to dot-form;
-# thousands groups are 3 digits ("17,740,253") so they never match the
-# 1-2-digit groups here. A normal dotted marker has no comma → unaffected.
-_COMMA_MARKER_RX = re.compile(r'^\s*(?:[IVXivx]+,|\d{1,2}(?:,\d{1,2}){1,2})(?=\s)')
+# thousands separator. TSKB goes further and renders ONLY the last separator as
+# a comma once a section passes nine sub-items ("2.1.9" then "2.1,10" … "2.1,13")
+# — a MIXED dot/comma marker. Both forms are normalized: any comma in the
+# leading marker becomes a dot, so "2.1,13" → "2.1.13" and its value rejoins the
+# parent 2.1 sum (else the whole 2.1.13 row is dropped). Only the LEADING marker
+# is touched; thousands groups are 3 digits ("17,740,253") so they never match
+# the 1-2-digit components here, and a normal dotted marker has no comma →
+# unchanged. The substitution is comma→dot (1-for-1), so column offsets hold.
+_COMMA_MARKER_RX = re.compile(r'^\s*(?:[IVXivx]+,|\d{1,2}(?:[.,]\d{1,2}){1,3})(?=\s)')
 
 
 def _value_matches(line: str) -> list:
