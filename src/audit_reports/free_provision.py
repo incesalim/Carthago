@@ -96,7 +96,7 @@ _STOCK_PATTERNS = [
     # 1.620.000 1.850.000" / TR "Serbest karşılıklar … 300.000 7.300.000".
     re.compile(r"(?:Free\s+provisions?\s+allocated\s+for\s+possible\s+losses"
                r"|Muhtemel\s+riskler\s+için\s+ayr[ıi]lan\s+" + _SUBJ_TR + r"lar?)"
-               r"\S*\s+(" + _NUM + r")\s+" + _NUM, re.I),
+               r"\S*\s+(" + _NUM + r")\s+(" + _NUM + r")", re.I),
     # EN — "free provision … amount(s/ing) to/of (thousand) TL 300.000"
     re.compile(_SUBJ_EN + r".{0,80}?amount(?:ing|s)?\s+(?:to|of)\s+" + _CCY_AMT, re.I),
     # EN — "free provision at an amount of thousand TL 6.600.000"
@@ -176,6 +176,11 @@ def classify_free_provision(pages: list[str]) -> FreeProvision:
                 # sub-clause about a DIFFERENT number, so a real stock survives.
                 if _FLOW.search(text[max(0, m.start(1) - 55): m.end() + 35]):
                     continue
+                # The note table row carries the prior in its second column —
+                # authoritative, unlike the parenthetical grab (which on a
+                # table-row page can latch a different provision's prior).
+                tbl_prior = (_parse_amt(m.group(2))
+                             if m.re.groups >= 2 and m.group(2) else None)
                 prior = _PRIOR.search(text[m.start(): m.start() + 400])
                 # A stated TOTAL is authoritative — it outranks a bare note
                 # sub-line even one carrying a prior parenthetical. But only when
@@ -189,7 +194,9 @@ def classify_free_provision(pages: list[str]) -> FreeProvision:
                     best_rank = rank
                     res.disclosed = True
                     res.free_provision = amt
-                    res.free_provision_prior = _parse_prior(prior.group(1)) if prior else None
+                    res.free_provision_prior = (
+                        tbl_prior if tbl_prior is not None
+                        else _parse_prior(prior.group(1)) if prior else None)
                     res.source_page = i
                     res.snippet = re.sub(r"\s+", " ", text[m.start(): m.start() + 140]).strip()
 
