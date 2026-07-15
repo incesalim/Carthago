@@ -105,6 +105,9 @@ function Brand() {
       aria-label="Carthago — home"
       className="flex shrink-0 items-center gap-2 text-foreground"
     >
+      {/* The compass has navy elements that sink into the dark sheet, so dark
+          mode swaps to a tonally-lifted variant of the same mark. Both are
+          transparent — no box on either ground. */}
       <Image
         src="/logo.png"
         alt=""
@@ -112,7 +115,16 @@ function Brand() {
         height={28}
         priority
         unoptimized
-        className="size-7 shrink-0 object-contain"
+        className="size-7 shrink-0 object-contain dark:hidden"
+      />
+      <Image
+        src="/logo-dark.png"
+        alt=""
+        width={28}
+        height={28}
+        priority
+        unoptimized
+        className="hidden size-7 shrink-0 object-contain dark:block"
       />
       <span className="flex flex-col leading-none">
         <span className="text-lg font-bold tracking-tight">Carthago</span>
