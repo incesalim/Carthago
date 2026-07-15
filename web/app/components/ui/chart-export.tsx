@@ -26,6 +26,7 @@ import { createPortal } from "react-dom";
 import { Check, Clipboard, Download, Maximize2, Minimize2, Sheet, X } from "lucide-react";
 import { toast } from "sonner";
 import { toCsv, type ChartTable } from "@/app/lib/chart-csv";
+import { DARK, LIGHT, type ChartTheme } from "@/app/lib/chart-theme";
 
 const BTN =
   "inline-flex items-center justify-center rounded-md border border-border bg-card p-1.5 text-muted-foreground opacity-0 transition-opacity hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100 disabled:opacity-50";
@@ -40,30 +41,155 @@ function slugify(s: string): string {
   );
 }
 
-/**
- * Resolve a card's background to an explicit sRGB string. The theme tokens are
- * `oklch(...)` and getComputedStyle may hand those back verbatim; a 1px canvas
- * round-trip converts any CSS colour to exact rgb so the PNG's bounding box
- * (including the rounded corners) is filled instead of left transparent.
- */
-function resolveBg(el: HTMLElement): string {
-  const ctx = document.createElement("canvas").getContext("2d");
-  const declared = getComputedStyle(el).backgroundColor;
-  if (!ctx) return declared;
-  ctx.fillStyle = declared;
-  ctx.fillRect(0, 0, 1, 1);
-  const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
-  return `rgb(${r}, ${g}, ${b})`;
+// ── Force-light export ────────────────────────────────────────────────────
+//
+// The downloaded / copied image must ALWAYS be the light sheet, whatever theme
+// is on screen. modern-screenshot rasterises the LIVE DOM — it inlines the
+// element's computed styles onto the clone — so in dark mode the capture comes
+// out dark. We can't re-theme React mid-capture: Recharts bakes its colours into
+// SVG `stroke`/`fill` attributes at render time, and the card chrome is driven by
+// CSS design tokens. So instead we substitute every dark colour for its light
+// counterpart on the cloned node, inside modern-screenshot's `onCloneEachNode`
+// hook (which fires AFTER the computed styles are inlined).
+//
+// Two sources of "dark": the chart ink (the ChartTheme DARK object) and the card
+// chrome (the CSS tokens). The one value they share — #7FA3D8 is both the dark
+// hero line and dark `--primary` — must land on navy in the plot but link-blue in
+// the text, so SVG nodes resolve the chart palette first and HTML nodes the
+// tokens first.
+
+/** Dark UI token → light token. LOCKSTEP with app/globals.css (`:root` vs `.dark`):
+ *  a token colour that changes there changes here. */
+const TOKEN_PAIRS: ReadonlyArray<readonly [string, string]> = [
+  ["#171B21", "#FFFFFF"], // --card (the sheet)
+  ["#101318", "#F7F8F6"], // --background
+  ["#E6E9E6", "#12161B"], // --foreground (titles, values)
+  ["#9AA3AD", "#68707A"], // --muted-foreground
+  ["#6B747E", "#A0A7AE"], // --faint (metas, axis labels)
+  ["#262C34", "#E1E3DD"], // --border
+  ["#1F252C", "#ECEDE8"], // --hair
+  ["#7FA3D8", "#2757A8"], // --primary (links inside a card)
+];
+
+/** The light sheet the export always sits on (light `--card`). */
+const LIGHT_CARD = "#FFFFFF";
+
+type Lookups = {
+  svg: Map<string, string>;
+  html: Map<string, string>;
+  canon: (c: string) => string | null;
+};
+
+let lookups: Lookups | null = null;
+
+/** Build the DARK→LIGHT substitution maps once, keyed by canonical `r,g,b`.
+ *  A 1px canvas normalises any CSS colour (hex, `rgb()`, `oklch()`, named) to the
+ *  same form, so the map matches whatever `getComputedStyle` inlined. */
+function getLookups(): Lookups {
+  if (lookups) return lookups;
+  const ctx = document.createElement("canvas").getContext("2d")!;
+  const cache = new Map<string, string | null>();
+  const canon = (c: string): string | null => {
+    if (!c || c === "none" || c === "transparent" || c.startsWith("url(")) return null;
+    const hit = cache.get(c);
+    if (hit !== undefined) return hit;
+    ctx.fillStyle = "#000"; // reset, so an unparseable value can't inherit the last
+    ctx.fillStyle = c;
+    ctx.fillRect(0, 0, 1, 1);
+    const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
+    const key = a === 0 ? null : `${r},${g},${b}`;
+    cache.set(c, key);
+    return key;
+  };
+
+  const chartPairs: Array<[string, string]> = [];
+  (Object.keys(LIGHT) as Array<keyof ChartTheme>).forEach((k) => {
+    const l = LIGHT[k];
+    const d = DARK[k];
+    if (Array.isArray(d) && Array.isArray(l)) {
+      d.forEach((dv, i) => chartPairs.push([dv, l[i]]));
+    } else if (typeof d === "string" && typeof l === "string") {
+      chartPairs.push([d, l]);
+    }
+  });
+
+  const build = (
+    primary: ReadonlyArray<readonly [string, string]>,
+    secondary: ReadonlyArray<readonly [string, string]>,
+  ): Map<string, string> => {
+    const m = new Map<string, string>();
+    for (const [d, l] of secondary) {
+      const k = canon(d);
+      if (k) m.set(k, l);
+    }
+    for (const [d, l] of primary) {
+      const k = canon(d);
+      if (k) m.set(k, l); // primary wins on a shared key
+    }
+    return m;
+  };
+
+  lookups = {
+    canon,
+    svg: build(chartPairs, TOKEN_PAIRS), // SVG ink: chart palette wins
+    html: build(TOKEN_PAIRS, chartPairs), // card chrome: tokens win
+  };
+  return lookups;
+}
+
+const COLOR_STYLE_PROPS = [
+  "color",
+  "backgroundColor",
+  "fill",
+  "stroke",
+  "stopColor",
+  "outlineColor",
+  "borderTopColor",
+  "borderRightColor",
+  "borderBottomColor",
+  "borderLeftColor",
+] as const;
+const COLOR_ATTRS = ["fill", "stroke", "stop-color", "color"] as const;
+
+/** Rewrite one cloned node's dark colours to their light counterparts. */
+function forceLight(node: Node): void {
+  if (!(node instanceof Element)) return;
+  const isSvg = node instanceof SVGElement;
+  const { svg, html, canon } = getLookups();
+  const map = isSvg ? svg : html;
+
+  const style = (node as HTMLElement | SVGElement).style as CSSStyleDeclaration | undefined;
+  if (style) {
+    for (const prop of COLOR_STYLE_PROPS) {
+      const v = style[prop];
+      if (!v) continue;
+      const k = canon(v);
+      const light = k && map.get(k);
+      if (light) style[prop] = light;
+    }
+  }
+  // Recharts sets stroke/fill as presentation ATTRIBUTES; inline style wins over
+  // them in the SVG cascade, but remap both so nothing stale survives.
+  if (isSvg) {
+    for (const attr of COLOR_ATTRS) {
+      const v = node.getAttribute(attr);
+      if (!v) continue;
+      const k = canon(v);
+      const light = k && map.get(k);
+      if (light) node.setAttribute(attr, light);
+    }
+  }
 }
 
 async function captureBlob(card: HTMLElement): Promise<Blob> {
   const { domToBlob } = await import("modern-screenshot");
   const blob = await domToBlob(card, {
     scale: 2,
-    backgroundColor: resolveBg(card),
+    backgroundColor: LIGHT_CARD, // the export is always the light sheet
     // Drop the export controls (and anything else opted out) from the image.
     filter: (node: Node) =>
       !(node instanceof HTMLElement && node.dataset.chartNoExport === ""),
+    onCloneEachNode: forceLight,
     fetch: { requestInit: { cache: "no-cache" } },
   });
   if (!blob) throw new Error("chart capture produced no image");
