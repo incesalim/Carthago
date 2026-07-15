@@ -1,0 +1,56 @@
+{
+  "_README": "Hand-transcribed free-provision STOCK (thousand TL) for partitions the deterministic classifier in src/audit_reports/free_provision.py cannot read — the cancellation-heavy / multi-figure Turkish disclosure tail. Same principle as data/manual_statements.json. Keyed BANK -> PERIOD -> KIND. `source` records where it was read. An override wins outright over extraction. Verified by hand against the source PDFs 2026-07-15.",
+  "VAKBN": {
+    "2023Q1": {
+      "unconsolidated": {"free_provision": 7000000, "free_provision_prior": 19000000, "source": "note: 'serbest karsilik tutari 7,000,000 TL'dir (31 Aralik 2022: 19,000,000 TL)'"}
+    },
+    "2023Q2": {
+      "consolidated":   {"free_provision": 6750000, "free_provision_prior": 19000000, "source": "note: 'serbest karsilik tutari 6,750,000 TL'dir (31 Aralik 2022: 19,000,000)'"},
+      "unconsolidated": {"free_provision": 6750000, "free_provision_prior": 19000000, "source": "note: 'serbest karsilik tutari 6,750,000 TL'dir (31 Aralik 2022: 19,000,000)'"}
+    },
+    "2023Q3": {
+      "unconsolidated": {"free_provision": 6750000, "free_provision_prior": 19000000, "source": "note: 'serbest karsilik tutari 6,750,000 TL'dir (31 Aralik 2022: 19,000,000)'"}
+    },
+    "2023Q4": {
+      "consolidated":   {"free_provision": 11000000, "free_provision_prior": 19000000, "source": "note: 'serbest karsilik tutari 11,000,000 TL'dir (31 Aralik 2022: 19,000,000)'"},
+      "unconsolidated": {"free_provision": 11000000, "free_provision_prior": 19000000, "source": "note: 'serbest karsilik tutari 11,000,000 TL'dir (31 Aralik 2022: 19,000,000)'"}
+    }
+  },
+  "BURGAN": {
+    "2022Q2": {
+      "consolidated":   {"free_provision": 176611, "source": "auditor: 'if the free provision were not provided, other provisions would decrease by TL 176,611 thousand'"},
+      "unconsolidated": {"free_provision": 176611, "source": "auditor: 'if the free provision were not provided, other provisions would decrease by TL 176,611 thousand'"}
+    }
+  },
+  "DENIZ": {
+    "2022Q3": {
+      "unconsolidated": {"free_provision": 1500000, "source": "auditor: 'serbest karsilik ayrilmamis olsaydi, 30 Eylul 2022 ... diger karsiliklar 1.500.000 [daha az]'"}
+    },
+    "2023Q4": {
+      "consolidated":   {"free_provision": 6700000, "source": "auditor: 'serbest karsilik ayrilmamis olsaydi, 31 Aralik 2023 ... diger karsiliklar 6.700.000 [daha az]'"}
+    }
+  },
+  "ODEA": {
+    "2023Q2": {
+      "unconsolidated": {"free_provision": 400000, "free_provision_prior": 650000, "source": "note: 'serbest karsiliklara iliskin bilgiler: 400.000 TL (31 Aralik 2022: 650.000 TL)'"}
+    },
+    "2023Q4": {
+      "unconsolidated": {"free_provision": 335000, "free_provision_prior": 650000, "source": "note: 'serbest karsiliklara iliskin bilgiler: 335.000 TL (31 Aralik 2022: 650.000 TL)'"}
+    }
+  },
+  "SKBNK": {
+    "2025Q4": {
+      "unconsolidated": {"free_provision": 1000000, "free_provision_prior": 1350000, "source": "note: 'free provision for possible risks amounting to TRL 1,000,000 (31 December 2024 - TRL 1,350,000)'"}
+    }
+  },
+  "EMLAK": {
+    "2024Q3": {
+      "consolidated":   {"free_provision": 1500000, "free_provision_prior": 855130, "source": "note table 'serbest karsiliklar 1.500.000 855.130'; free-provision row confirmed by auditor 855.130 prior-year reference"},
+      "unconsolidated": {"free_provision": 1500000, "free_provision_prior": 855130, "source": "note table 'serbest karsiliklar 1.500.000 855.130'"}
+    },
+    "2024Q4": {
+      "consolidated":   {"free_provision": 2250239, "free_provision_prior": 855130, "source": "note table 'serbest karsiliklar 2.250.239 855.130'"},
+      "unconsolidated": {"free_provision": 2250000, "free_provision_prior": 855130, "source": "note table 'serbest karsiliklar 2.250.000 855.130'"}
+    }
+  }
+}

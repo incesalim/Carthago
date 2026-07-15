@@ -28,9 +28,12 @@ Deterministic, fitz-only. Stored in `bank_audit_free_provision`.
 """
 from __future__ import annotations
 
+import json
 import re
 import sqlite3
 from dataclasses import dataclass
+from functools import lru_cache
+from pathlib import Path
 
 # A monetary amount in thousand-TL: must carry a thousands group (so we never
 # match a footnote marker, a year, or a one/two-digit stray). Accepts "." or ","
@@ -212,8 +215,47 @@ def classify_free_provision(pages: list[str]) -> FreeProvision:
     return res
 
 
+# Hand-transcribed values for partitions the deterministic classifier can't read
+# (the cancellation-heavy Turkish disclosure tail — VAKBN/ZIRAATK/DENIZ/… — where
+# the current stock is stated only in prose intertwined with reversal figures).
+# Same principle as data/manual_statements.json for image-only statements. Keyed
+# BANK → PERIOD → KIND → {free_provision, free_provision_prior, source}.
+_OVERRIDE_PATH = Path(__file__).resolve().parents[2] / "data" / "free_provision_overrides.json"
+
+
+@lru_cache(maxsize=1)
+def _overrides() -> dict:
+    try:
+        return json.loads(_OVERRIDE_PATH.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def _override_for(bank: str, period: str, kind: str) -> FreeProvision | None:
+    o = _overrides().get(bank.upper(), {}).get(period.upper(), {}).get(kind.lower())
+    if o is None:
+        return None
+    return FreeProvision(
+        free_provision=o.get("free_provision"),
+        free_provision_prior=o.get("free_provision_prior"),
+        disclosed=True, source_page=-1,
+        snippet="MANUAL: " + o.get("source", ""),
+    )
+
+
 def extract_free_provision_from_pdf(pdf_path: str = "") -> FreeProvision:
-    """Read every page and classify the free-provision stock. fitz-only."""
+    """Read every page and classify the free-provision stock. fitz-only.
+
+    A hand-transcribed override (data/free_provision_overrides.json) wins outright
+    for the partitions the classifier can't parse — the filename carries the
+    (bank, period, kind) key."""
+    m = re.search(r"([A-Za-z]+)_(\d{4}Q\d)_(consolidated|unconsolidated)",
+                  Path(pdf_path).name, re.I)
+    if m:
+        ov = _override_for(m.group(1), m.group(2), m.group(3))
+        if ov is not None:
+            return ov
+
     from .extractor import _fitz_page_count, _fitz_page_text, _HAS_FITZ
 
     if not (pdf_path and _HAS_FITZ):
