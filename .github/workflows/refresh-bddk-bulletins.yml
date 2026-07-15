@@ -6,19 +6,22 @@ name: Refresh BDDK bulletins
 # so they serialize via the `bddk-pipeline` concurrency group.
 #
 # When to run:
-#   - Friday 13:30 + 15:30 UTC (16:30 & 18:30 Turkey): BDDK publishes the weekly
-#     bulletin Friday AFTERNOON (~16:00–18:00 Turkey), so we grab it the same
-#     evening instead of waiting for Saturday. Two runs bracket the window so we
-#     catch it within ~30 min whenever it drops. These runs are WEEKLY-ONLY —
-#     the monthly bulletin lands mid-month, not on Fridays.
-#   - Saturday 02:00 UTC (05:00 Turkey): the weekly backstop + the monthly
-#     bulletin, before the broader refresh-data.yml runs at 03:00 UTC.
-#   - Manually from the Actions tab.
+#   - DAILY 07:00 UTC (10:00 Turkey): MONTHLY check. The monthly bulletin lands
+#     mid-month on no fixed day, so we probe every day — update_monthly.py only
+#     scrapes when BDDK has actually published a new month (cheap otherwise), and
+#     the notify step pings the day it lands. Weekly-only-skipped on this run.
+#   - Friday 13:30 + 15:30 UTC (16:30 & 18:30 Turkey): WEEKLY. BDDK publishes the
+#     weekly bulletin Friday AFTERNOON (~16:00–18:00 Turkey), so we grab it the
+#     same evening; two runs bracket the window (~30 min). Monthly-skipped.
+#   - Saturday 02:00 UTC (05:00 Turkey): weekly backstop (in case both Friday runs
+#     failed). Monthly-skipped — the daily run covers it.
+#   - Manually from the Actions tab (does both).
 on:
   schedule:
+    - cron: "0 7 * * *" # daily 10:00 Turkey — monthly-only (see SKIP_WEEKLY)
     - cron: "30 13 * * 5" # Fri 16:30 Turkey — weekly-only (see SKIP_MONTHLY)
     - cron: "30 15 * * 5" # Fri 18:30 Turkey — weekly-only
-    - cron: "0 2 * * 6" # Sat 05:00 Turkey — weekly + monthly
+    - cron: "0 2 * * 6" # Sat 05:00 Turkey — weekly backstop (weekly-only)
   workflow_dispatch:
     inputs:
       skip_monthly:
@@ -102,10 +105,10 @@ jobs:
         # --skip-evds keeps this workflow strictly BDDK-only; --skip-tbb defers
         # the quarterly TBB digital-banking refresh to the 03:00 full refresh.
         env:
-          # The two Friday runs are weekly-only (the monthly bulletin isn't out
-          # yet on a Friday); the Saturday run does both.
-          SKIP_MONTHLY: ${{ (inputs.skip_monthly || github.event.schedule == '30 13 * * 5' || github.event.schedule == '30 15 * * 5') && '--skip-monthly' || '' }}
-          SKIP_WEEKLY: ${{ inputs.skip_weekly && '--skip-weekly' || '' }}
+          # Per-schedule split: the daily run is monthly-only; the Friday +
+          # Saturday runs are weekly-only. Manual dispatch does both (minus inputs).
+          SKIP_MONTHLY: ${{ (inputs.skip_monthly || github.event.schedule == '30 13 * * 5' || github.event.schedule == '30 15 * * 5' || github.event.schedule == '0 2 * * 6') && '--skip-monthly' || '' }}
+          SKIP_WEEKLY: ${{ (inputs.skip_weekly || github.event.schedule == '0 7 * * *') && '--skip-weekly' || '' }}
         run: python scripts/refresh.py --skip-evds --skip-tbb $SKIP_MONTHLY $SKIP_WEEKLY
 
       - name: Setup Node (for wrangler)
