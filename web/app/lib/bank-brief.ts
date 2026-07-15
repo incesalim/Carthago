@@ -48,16 +48,16 @@ export interface PeerFieldSpec {
 }
 
 /**
- * The five metrics the strip band shows, in reading order. Chosen because all
- * five are derivable for every bank that files (they come off the frozen
- * statements) — except ROE, which needs the TTM window and is dropped for banks
- * with too little history.
+ * The five metrics the strip band shows, in reading order. CAR and NPL come
+ * straight off the latest filing, so every bank that files has them; ROE, NIM
+ * and Cost/Income are trailing-twelve-month and need five quarter-ends of
+ * history, so they drop for banks with too little of it.
  */
 export const PEER_FIELDS: PeerFieldSpec[] = [
   { key: "car", label: "Capital adequacy", sub: "CAR, §4", scale: 1, higherIsBetter: true, decimals: 1, lo: 12, hi: 30 },
   { key: "npl_ratio", label: "Asset quality", sub: "NPL ratio", scale: 100, higherIsBetter: false, decimals: 2, lo: 0, hi: 12 },
   { key: "roe", label: "Returns", sub: "ROE, TTM", scale: 100, higherIsBetter: true, decimals: 1, lo: 0, hi: 50 },
-  { key: "nim", label: "Margin", sub: "NIM, annualized", scale: 100, higherIsBetter: true, decimals: 2, lo: 0, hi: 22 },
+  { key: "nim", label: "Margin", sub: "NIM, TTM", scale: 100, higherIsBetter: true, decimals: 2, lo: 0, hi: 22 },
   { key: "cost_income", label: "Efficiency", sub: "cost / income", scale: 100, higherIsBetter: false, decimals: 1, lo: 20, hi: 140 },
 ];
 

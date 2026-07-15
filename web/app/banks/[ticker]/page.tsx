@@ -719,7 +719,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
         { label: "Loan yield", note: "interest on loans ÷ avg gross loans", value: pctOf(perfLatest?.loan_yield), unit: "%", kind: "in", scale: 30 },
         { label: "− Deposit cost", note: "interest on deposits ÷ avg deposits", value: pctOf(perfLatest?.deposit_cost), unit: "%", kind: "out", scale: 30 },
         { label: "= Spread", value: pctOf(perfLatest?.spread), unit: "pp", kind: "total", scale: 30 },
-        { label: "Net interest margin", note: "on average assets", value: pctOf(perfLatest?.nim), unit: "%", kind: "sub", scale: 30 },
+        { label: "Net interest margin", note: "TTM net interest ÷ avg assets", value: pctOf(perfLatest?.nim), unit: "%", kind: "sub", scale: 30 },
         { label: "Pre-provision profit / assets", value: pctOf(perfLatest?.ppop_ratio), unit: "%", kind: "sub", scale: 30 },
         { label: "− Cost of risk", value: pctOf(perfLatest?.cost_of_risk), unit: "%", kind: "sub", scale: 30 },
         { label: "Cost / income", note: ciRank ? `${ord(ciRank.rank)} of ${ciRank.n}` : undefined, value: pctOf(perfLatest?.cost_income), unit: "%", kind: "sub", scale: 100 },
