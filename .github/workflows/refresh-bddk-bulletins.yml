@@ -6,7 +6,7 @@ name: Refresh BDDK bulletins
 # so they serialize via the `bddk-pipeline` concurrency group.
 #
 # When to run:
-#   - DAILY 16:00 UTC (19:00 Turkey): MONTHLY check. The monthly bulletin lands
+#   - DAILY 13:00 UTC (16:00 Turkey): MONTHLY check. The monthly bulletin lands
 #     mid-month on no fixed day, so we probe every day — update_monthly.py only
 #     scrapes when BDDK has actually published a new month (cheap otherwise), and
 #     the notify step pings the day it lands. Weekly-only-skipped on this run.
@@ -18,7 +18,7 @@ name: Refresh BDDK bulletins
 #   - Manually from the Actions tab (does both).
 on:
   schedule:
-    - cron: "0 16 * * *" # daily 19:00 Turkey — monthly-only (see SKIP_WEEKLY)
+    - cron: "0 13 * * *" # daily 16:00 Turkey — monthly-only (see SKIP_WEEKLY)
     - cron: "30 13 * * 5" # Fri 16:30 Turkey — weekly-only (see SKIP_MONTHLY)
     - cron: "30 15 * * 5" # Fri 18:30 Turkey — weekly-only
     - cron: "0 2 * * 6" # Sat 05:00 Turkey — weekly backstop (weekly-only)
@@ -108,7 +108,7 @@ jobs:
           # Per-schedule split: the daily run is monthly-only; the Friday +
           # Saturday runs are weekly-only. Manual dispatch does both (minus inputs).
           SKIP_MONTHLY: ${{ (inputs.skip_monthly || github.event.schedule == '30 13 * * 5' || github.event.schedule == '30 15 * * 5' || github.event.schedule == '0 2 * * 6') && '--skip-monthly' || '' }}
-          SKIP_WEEKLY: ${{ (inputs.skip_weekly || github.event.schedule == '0 16 * * *') && '--skip-weekly' || '' }}
+          SKIP_WEEKLY: ${{ (inputs.skip_weekly || github.event.schedule == '0 13 * * *') && '--skip-weekly' || '' }}
         run: python scripts/refresh.py --skip-evds --skip-tbb $SKIP_MONTHLY $SKIP_WEEKLY
 
       - name: Setup Node (for wrangler)
