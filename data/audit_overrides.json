@@ -2474,6 +2474,54 @@
    "item_name": "TRADING INCOME /(LOSS) (Net)",
    "amount": -115160,
    "note": "VI. net-trading roman subtotal dropped (children 6.1=186.467 / 6.3=3.044.842 kept; 6.2 derivatives also dropped). VI=VIII-(III+IV+V+VII)=-115.160 (net trading loss). VIII=17.330.731 and XIII now reconcile exactly."
+  },
+  {
+   "bank_ticker": "COLENDI",
+   "period": "2025Q3",
+   "kind": "unconsolidated",
+   "statement": "liabilities",
+   "hierarchy": "16.7",
+   "item_name": "Minority Shares",
+   "amount_tl": 0,
+   "amount_fc": 0,
+   "amount_total": 0,
+   "note": "minority-shares row wrap-merge-absorbed the grand total 'TOTAL LIABILITIES' (3.629.776); true value 0. XVI=Σ16.x foots (2.073.662). Same pattern as ATBANK 2022Q2"
+  },
+  {
+   "bank_ticker": "COLENDI",
+   "period": "2025Q4",
+   "kind": "unconsolidated",
+   "statement": "liabilities",
+   "hierarchy": "16.7",
+   "item_name": "Minority Shares",
+   "amount_tl": 0,
+   "amount_fc": 0,
+   "amount_total": 0,
+   "note": "minority-shares row wrap-merge-absorbed the grand total 'TOTAL LIABILITIES' (4.108.392); true value 0. XVI=Σ16.x foots (2.039.472)"
+  },
+  {
+   "bank_ticker": "ZIRAATD",
+   "period": "2025Q4",
+   "kind": "unconsolidated",
+   "statement": "liabilities",
+   "hierarchy": "10.1",
+   "item_name": "Genel Karşılıklar",
+   "amount_tl": 4527,
+   "amount_fc": 0,
+   "amount_total": 4527,
+   "note": "10.1 printed only two tokens '4.527 4.527' (TP + Toplam, YP dash) → dropped by the short-row guard; X. KARŞILIKLAR short by exactly 4.527. TL-only like 10.5"
+  },
+  {
+   "bank_ticker": "EMLAK",
+   "period": "2023Q2",
+   "kind": "unconsolidated",
+   "statement": "off_balance",
+   "hierarchy": "2.1.12",
+   "item_name": "Diğer Cayılamaz Taahhütler",
+   "amount_tl": 1032500,
+   "amount_fc": 459677,
+   "amount_total": 1492177,
+   "note": "marker '2.1.12' split from its label+values line ('. Diğer Cayılamaz Taahhütler 1.032.500 459.677 1.492.177') → row dropped; 2.1 Cayılamaz Taahhütler short by exactly 1.492.177"
   }
  ]
 }
