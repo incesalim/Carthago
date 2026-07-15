@@ -154,10 +154,11 @@ def _detect_report_kind(text: str, period: str = "") -> str:
     return "review" if review else "audit"
 
 
-# The "Basis for ..." heading — English and both Turkish forms (Şartlı /
+# The "Basis for/of ..." heading — English (EY templates write "Basis OF
+# Qualified Conclusion", others "Basis FOR") and both Turkish forms (Şartlı /
 # Sınırlı Olumlu, Görüş / Sonuç).
 _BASIS_HEADING = re.compile(
-    r"Basis\s+for\s+(?:the\s+)?(?:Qualified|Adverse)\s+(?:Opinion|Conclusion)"
+    r"Basis\s+(?:for|of)\s+(?:the\s+)?(?:Qualified|Adverse)\s+(?:Opinion|Conclusion)"
     r"|[ŞS]artl[ıi]\s+(?:Görü[sş]ün|Sonucun)\s+Dayana[ğg][ıi]"
     r"|S[ıi]n[ıi]rl[ıi]\s+Olumlu\s+(?:Görü[sş]ün|Sonucun)\s+Dayana[ğg][ıi]",
     re.I,
