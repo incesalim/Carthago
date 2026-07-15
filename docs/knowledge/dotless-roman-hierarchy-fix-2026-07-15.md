@@ -61,9 +61,35 @@ BS/PL-frozen rule (`feedback_bs_pl_frozen`).
 - BS validation unaffected (parent=Σchildren reconciles on values, not the dotted
   key) → `/admin` coverage spine already correct, no re-sync needed.
 
+## Duplicate / junk hierarchy rows — cleaned (follow-on, same day)
+
+The dotless-roman audit surfaced a second class: **75 duplicate `(bank, period, kind,
+hierarchy)` groups** (57 P&L + 18 BS). `scripts/dedup_hierarchy_rows.py` resolved them
+(data-only; values deleted or KEY re-coded, never edited), verified by re-running the
+validator on the corrected rows (all 7 previously-failing partitions flipped to PASS):
+
+- **Header/placeholder JUNK — 59 P&L rows DELETED.** A statement title ("STATEMENT OF
+  PROFIT OR LOSS", "KAR VEYA ZARAR TABLOSU") or a template placeholder
+  ("…doldurulacaktır.)") mis-parsed as a data row with a garbage amount (≤202) on a real
+  line's roman code. Tight title/placeholder match, `|amount| < 1000` guard; verified 0
+  real values removed. (Benign for the heatmap — it used `MAX` — but wrong in the
+  per-bank statement table.)
+- **Mis-numbered real rows — 26 re-coded.** Two real lines collided on one code because
+  the lower section was extracted a numeral short/shifted; the ARABIC sub-codes (18.1,
+  20.1, 23.1…) + P&L arithmetic gave the true numbers. TSKB 2025Q1–Q3 Current Tax
+  `VII.→VIII.`; TOMK 2025Q2/Q3 tax `XVII.→XVIII.` / disc-tax `XXII.→XXIII.`; DUNYAK
+  2023Q4 shifted IX/XI/XII/XIII; TOMK 2023Q3 whole lower section `+1`. These were
+  FAILING `pl_chain`; the recode **cleared real validation failures**.
+- **NOT touched — EXIM/VAKBN off_balance (15 rows).** Forward-Sell `3.2.2.2` /
+  "Diğer Cayılamaz Taahhütler" `2.1.12` — a known SOURCE typo in the filed PDFs,
+  previously hand-checked and **deliberately leave-flagged** (fidelity to source; the
+  off_balance validator already accepts it). Left as-is on purpose.
+
+Result: P&L dups 57→0, BS dups 18→15 (the 15 = the left off_balance). Validation +
+coverage spine refreshed via `sync_audit_expected.py --push`; D1 + R2 snapshot in sync.
+
 ## Follow-ups (NOT done)
 - **KV cache lag:** heatmap queries are KV-cached ~12h (`cachedAll`); the UI reflects
-  the fix within ≤12h or on next deploy.
-- **Pre-existing duplicate rows:** ~57 PL `(bank, period, III./IV.…)` groups where a
-  page-header line was captured with a stray roman code + tiny amount. Benign today
-  (heatmap uses `MAX`), but a latent trap — separate from this fix.
+  the fixes within ≤12h or on next deploy.
+- **DUNYAK 2023Q4** still fails capital / liquidity / stages validators (pre-existing,
+  unrelated to hierarchy dups — different check families).
