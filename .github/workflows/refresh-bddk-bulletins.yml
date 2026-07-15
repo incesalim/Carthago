@@ -82,6 +82,21 @@ jobs:
               print("No snapshot in R2 yet — starting from empty DB.")
           PY
 
+      # Snapshot the latest weekly + monthly periods BEFORE scraping, so the
+      # post-run notify can tell what (if anything) newly landed this run.
+      - name: Snapshot latest BDDK periods (before)
+        id: before
+        run: |
+          python - <<'PY'
+          import os, sqlite3
+          c = sqlite3.connect("data/bddk_data.db")
+          w = c.execute("SELECT MAX(period_date) FROM weekly_series").fetchone()[0] or ""
+          m = c.execute("SELECT MAX(year*100+month) FROM balance_sheet").fetchone()[0] or 0
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"weekly={w}\nmonthly={m}\n")
+          print(f"before: weekly={w} monthly={m}")
+          PY
+
       - name: Refresh BDDK bulletins (skip EVDS, no audit-report sync)
         # refresh.py orchestrates: monthly → weekly → VACUUM → gzip.
         # --skip-evds keeps this workflow strictly BDDK-only; --skip-tbb defers
@@ -106,6 +121,19 @@ jobs:
         # missed earlier in the week. INSERT OR REPLACE is idempotent so
         # overlap between the two workflows is harmless.
         run: python scripts/push_to_d1.py --hours 30
+
+      # Positive ping: a weekly and/or monthly bulletin was published AND fetched
+      # this run. Quiet when nothing new landed (the before/after diff decides).
+      - name: Notify on newly published bulletins
+        if: success()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+        run: |
+          python scripts/notify_new_bddk.py \
+            --before-weekly "${{ steps.before.outputs.weekly }}" \
+            --before-monthly "${{ steps.before.outputs.monthly }}"
 
       - name: Upload new SQLite snapshot back to R2
         run: |
