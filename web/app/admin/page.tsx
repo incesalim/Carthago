@@ -36,6 +36,15 @@ const STATUS_STYLE: Record<FreshnessStatus, { dot: string; text: string; label: 
   unknown: { dot: "bg-faint", text: "text-faint", label: "No data" },
 };
 
+/** The band shows a date, not a clock: strip the time off an ISO/D1 timestamp
+ *  (news/regulation carry a full `...T05:58:00+00:00`), leave period labels
+ *  like "2026-05" or "2026Q1" untouched. */
+function fmtValue(p: string | null): string {
+  if (!p) return "—";
+  const m = /^(\d{4}-\d{2}-\d{2})([ T]|$)/.exec(p);
+  return m ? m[1] : p;
+}
+
 /** Audit freshness is validation health, not a clock — say so. */
 function statusLabel(s: SourceHealth): string {
   if (s.key === "audit") {
@@ -80,7 +89,7 @@ function HealthVital({ s }: { s: SourceHealth }) {
         {s.label}
       </div>
       <div className="mt-1.5 font-mono text-[22px] font-semibold tracking-tight tabular-nums text-foreground">
-        {s.latestPeriod ?? "—"}
+        {fmtValue(s.latestPeriod)}
       </div>
       <div
         className={`mt-2 inline-flex items-center gap-1.5 font-mono text-[8.5px] uppercase tracking-[0.06em] ${st.text}`}
