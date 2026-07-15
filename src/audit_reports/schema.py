@@ -203,6 +203,34 @@ CREATE TABLE IF NOT EXISTS bank_audit_profile (
 );
 
 
+-- Independent auditor's verdict, classified from the auditor's report at the
+-- front of every BRSA filing (src/audit_reports/audit_opinion.py). One row per
+-- (bank, period, kind).
+--   opinion_type  'clean' | 'qualified' | 'adverse' | 'disclaimer' | 'unknown'
+--   is_modified   1 when opinion_type is qualified/adverse/disclaimer (the flag)
+--   report_kind   'audit'  (annual, full opinion) | 'review' (interim, limited)
+--   basis_text    the "Basis for Qualified/Adverse …" paragraph (NULL if clean)
+-- 'unknown' rows are never written (skip-if-empty), so a failed re-extract can't
+-- overwrite a previously-captured verdict — same rule as bank_audit_profile.
+CREATE TABLE IF NOT EXISTS bank_audit_opinion (
+    bank_ticker   TEXT NOT NULL,
+    period        TEXT NOT NULL,
+    kind          TEXT NOT NULL,
+    opinion_type  TEXT NOT NULL,
+    is_modified   INTEGER NOT NULL DEFAULT 0,
+    report_kind   TEXT,
+    basis_text    TEXT,
+    auditor       TEXT,
+    language      TEXT,
+    source_page   INTEGER,
+    extracted_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (bank_ticker, period, kind)
+);
+
+CREATE INDEX IF NOT EXISTS idx_bank_opinion_modified
+  ON bank_audit_opinion(is_modified);
+
+
 -- Sector-level loan exposure with TFRS 9 stage breakdown. Sourced from
 -- the "Information by major sectors and type of counterparties" /
 -- "Önemli Sektörlere veya Karşı Taraf Türüne Göre" footnote table.

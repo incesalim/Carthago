@@ -47,6 +47,7 @@ from src.audit_reports.loans_by_sector import (  # noqa: E402
     LoansBySectorReport, upsert as _upsert_lbs,
 )
 from src.audit_reports.bank_profile import upsert_profile as _upsert_bp  # noqa: E402
+from src.audit_reports.audit_opinion import upsert_opinion as _upsert_op  # noqa: E402
 from src.audit_reports.credit_quality import (  # noqa: E402
     CreditQualityReport, upsert as _upsert_cq,
 )
@@ -69,6 +70,9 @@ STATEMENT_TABLE = {
     "npl_movement": "bank_audit_npl_movement",
     "loans_by_sector": "bank_audit_loans_by_sector",
     "bank_profile": "bank_audit_profile",
+    # audit_opinion has no validator (like bank_profile) — re-extract by --banks
+    # --force, not --only-failing.
+    "audit_opinion": "bank_audit_opinion",
     # credit_quality feeds the DERIVED bank_audit_stages table — re-extracting it
     # requires a build_bank_audit_stages.py rebuild + stages revalidation after the
     # run (see below). Target by --banks --force, not --only-failing: the broken
@@ -132,6 +136,9 @@ def _worker(args):
     elif statement == "bank_profile":
         bp = getattr(rep, "bank_profile", None)
         n = 0 if (bp is None or bp.is_empty()) else 1
+    elif statement == "audit_opinion":
+        op = getattr(rep, "audit_opinion", None)
+        n = 0 if (op is None or op.is_empty()) else 1
     elif statement == "credit_quality":
         n = len(getattr(rep, "credit_quality", []) or [])
     elif statement == "bs_assets":
@@ -195,6 +202,11 @@ def _upsert(conn, statement, bank, period, kind, rep) -> int:
             return 0
         _upsert_bp(conn, bank, period, kind, bp)
         return 1
+    if statement == "audit_opinion":
+        op = getattr(rep, "audit_opinion", None)
+        # Skip-if-empty, like bank_profile: an 'unknown' classification must not
+        # overwrite a stored verdict. upsert_opinion returns None when empty.
+        return _upsert_op(conn, bank, period, kind, op) or 0
     if statement == "credit_quality":
         report = CreditQualityReport(pdf_path=rep.pdf_path,
                                      rows=getattr(rep, "credit_quality", []) or [])
