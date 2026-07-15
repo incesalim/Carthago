@@ -241,6 +241,20 @@ def test_mixed_dot_comma_marker_normalized():
         "828.927 39.897 868.824 1.351.528 35.502 1.387.030 notes", 6) == []
 
 
+def test_digit_led_footnote_ref_does_not_drop_roman_row():
+    # DUNYAK 2023Q4: a roman section whose text label wrapped away leaves the
+    # digit-led dipnot ref "5-II-5" ("5" = note section) directly after the
+    # marker: "IX. 5-II-5 5.745 - 5.745 …". The ref must be masked (roman in the
+    # middle -> unambiguous) so the row survives as bare-marker IX with its
+    # values, instead of being rejected for starting with a digit (which dropped
+    # roman IX from the total -> statement_total false-fail).
+    r = _parse_rows("IX. 5-II-5 5.745 - 5.745 - - -", 6)
+    assert len(r) == 1 and r[0][0].strip() == "IX." and r[0][1][2] == 5745.0
+    # the pre-existing roman-roman form still works, and a plain value is untouched
+    assert _parse_rows("V. 5-II-3 1.000 - 1.000 - - -", 6)[0][1][2] == 1000.0
+    assert _parse_rows("1.1.2 Banks 123.456 789 124.245 100.000 500 100.500", 6)[0][1][2] == 124245.0
+
+
 def test_long_two_col_oci_line_kept():
     # ALBRK/ANADOLU/VAKBN OCI line 2.2.2 ("…Valuation/Reclassification of
     # Financial Assets Measured at Fair Value through Other Comprehensive
