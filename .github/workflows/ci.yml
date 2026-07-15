@@ -23,14 +23,15 @@ jobs:
         # Still not the full requirements.txt — selenium/boto3/sqlalchemy back
         # lanes with no unit tests, and installing them only slows the job down.
         #
-        # But pdfplumber + pymupdf + pandas are NOT optional: 13 test files
+        # But pymupdf (fitz) + pandas are NOT optional: 13 test files
         # pytest.importorskip on them, so without them CI silently skipped every
         # extractor test — the largest subsystem in the repo — and reported green.
         # (Measured: 308 passed / 13 skipped without them; 394 passed / 0 skipped
         # with them. 86 tests had never run in CI.) None of those tests opens a
         # real PDF or touches the network — they build synthetic rows in-process —
-        # and all three ship prebuilt wheels, so the job stays fast.
-        run: pip install ruff pytest lxml requests pdfplumber pymupdf pandas
+        # and both ship prebuilt wheels, so the job stays fast. The extractors are
+        # fitz-only (pdfplumber removed 2026-07-15).
+        run: pip install ruff pytest lxml requests pymupdf pandas
       - name: Ruff (lint)
         run: ruff check .
       - name: Pipeline graph sync

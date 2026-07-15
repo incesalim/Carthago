@@ -5,7 +5,7 @@ import sqlite3
 
 import pytest
 
-pytest.importorskip("pdfplumber")  # CI installs minimal deps; extractor/loader need pdfplumber
+pytest.importorskip("fitz")  # CI installs minimal deps; extractor/loader need fitz (PyMuPDF)
 
 from src.audit_reports.extractor import BankReport  # noqa: E402
 from src.audit_reports.loader import upsert_report  # noqa: E402

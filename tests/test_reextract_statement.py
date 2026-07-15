@@ -4,7 +4,7 @@ single-cell re-extract never dispatches a key the script rejects.
 """
 import pytest
 
-pytest.importorskip("pdfplumber")  # reextract_statement imports the extractor
+pytest.importorskip("fitz")  # reextract_statement imports the extractor (fitz-only)
 
 from reextract_statement import ALIASES, STATEMENT_TABLE, VALIDATOR_NAME  # noqa: E402
 

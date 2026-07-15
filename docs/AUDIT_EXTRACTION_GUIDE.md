@@ -43,7 +43,7 @@
    and let `check_audit_quality.py --alert` carry it (`structure` check).
 8. Tests: fixture-based, including **must-fail fixtures** (a corrupted row the
    validator must catch), importable under CI's minimal deps (no top-level
-   pdfplumber in test modules — `pytest.importorskip`).
+   fitz import in test modules — `pytest.importorskip("fitz")`).
 9. New table = **six** registrations in the same change:
    `schema.py` DDL + `web/migrations/000X.sql` + `push_to_d1.SYNC_TABLES` +
    **`push_to_d1.fetch_recent` time-column mapping** +
@@ -68,11 +68,13 @@
 
 ## Known traps (each cost us once)
 
-> **Engine:** new and changed extractors are **fitz (PyMuPDF) only** — ~60–85× faster
-> per page. `pdfplumber` survives in exactly three places: the frozen balance-sheet /
-> P&L `extractor.py`, `profiler.py`, and `src/faaliyet/extractor.py`. Don't extend it.
-> Several lanes still carry *comments* mentioning pdfplumber artifacts (split digits,
-> collapsed spaces); the repairs remain useful, the attribution is historical.
+> **Engine:** every extractor is **fitz (PyMuPDF) only** — ~60–85× faster per page.
+> `pdfplumber` was removed entirely on 2026-07-15 (the last three holdouts — the frozen
+> balance-sheet / P&L `extractor.py`, `profiler.py`, and `src/faaliyet/extractor.py` —
+> moved to `_fitz_page_text`, whose coordinate reconstruction is a strict superset of the
+> old pdfplumber layout-repair). `_fitz_page_text` is the single text reader; do not add
+> another PDF engine. Several lanes still carry *comments* mentioning pdfplumber artifacts
+> (split digits, collapsed spaces); the repairs remain useful, the attribution is historical.
 
 - **`/Rotate 90` pages garble everything — check `page.rotation` FIRST.** On a rotated
   page (GARAN/AKBNK landscape statements) fitz reports word bboxes in the page's
@@ -99,8 +101,8 @@
   İzlemedeki" / "Loans Under Close Monitoring" — the Stage-1 header often wraps
   and won't match). Pattern: `credit_quality._coord_clustered_lines` +
   `_extract_loans_by_stage_from_page`.
-- Split-digit text layers detach leading digits ("5 86.339.528"); repaired in
-  `extract_page_text_repaired`, but TSKB 2025 quarters are still damaged.
+- Split-digit text layers detach leading digits ("5 86.339.528"); repaired by the
+  digit-fragment merge in `_fitz_page_text`, but TSKB 2025 quarters are still damaged.
 - Some PDFs have **no text layer** at all on statement pages (ISCTR 2025Q1
   consolidated) — unextractable by the deterministic pipeline; protect with `--skip`.
   These are then filled **out-of-band**: hand-transcribe via `scripts/load_partition.py`

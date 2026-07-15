@@ -8,8 +8,7 @@ sys.path.insert(0, os.getcwd())
 sys.stdout.reconfigure(encoding="utf-8")
 import sqlite3
 from src.audit_reports import r2_storage
-from src.audit_reports.extractor import extract, _locate_pages, extract_page_text_repaired, _fitz_merge_rows
-import pdfplumber
+from src.audit_reports.extractor import extract, _locate_pages, _fitz_page_text, _fitz_merge_rows
 
 bank, period, kind = sys.argv[1], sys.argv[2], sys.argv[3]
 want_stmt = sys.argv[4] if len(sys.argv) > 4 and not sys.argv[4].startswith("-") else None
@@ -39,16 +38,15 @@ if show_pdf:
     dest = os.path.join(tempfile.gettempdir(), f"diag_{bank}_{period}_{kind}.pdf")
     if not os.path.exists(dest):
         r2_storage.download_to(key, dest)
-    with pdfplumber.open(dest) as pdf:
-        loc = _locate_pages(pdf)
-        print(f"\n== PDF pages: {loc} ==")
-        for st, pkey in (("assets", "bs_assets"), ("liabilities", "bs_liab")):
-            if want_stmt and st != want_stmt:
-                continue
-            if pkey not in loc:
-                continue
-            text = extract_page_text_repaired(pdf.pages[loc[pkey]-1])
-            print(f"\n--- raw {st} page lines ---")
-            for ln in _fitz_merge_rows(text, 6).split("\n"):
-                if ln.strip():
-                    print("  ", repr(ln[:120]))
+    loc = _locate_pages(dest)
+    print(f"\n== PDF pages: {loc} ==")
+    for st, pkey in (("assets", "bs_assets"), ("liabilities", "bs_liab")):
+        if want_stmt and st != want_stmt:
+            continue
+        if pkey not in loc:
+            continue
+        text = _fitz_page_text(dest, loc[pkey] - 1)
+        print(f"\n--- raw {st} page lines ---")
+        for ln in _fitz_merge_rows(text, 6).split("\n"):
+            if ln.strip():
+                print("  ", repr(ln[:120]))

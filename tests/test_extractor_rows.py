@@ -1,11 +1,11 @@
 """Regression tests for _parse_rows over real-world phantom/garbage lines.
 
-Skipped under CI's minimal deps (extractor imports pdfplumber at module
+Skipped under CI's minimal deps (extractor imports fitz at module
 level); runs locally and in any env with full requirements.
 """
 import pytest
 
-pytest.importorskip("pdfplumber")
+pytest.importorskip("fitz")
 
 from src.audit_reports.extractor import _parse_rows  # noqa: E402
 

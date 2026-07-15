@@ -17,27 +17,22 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import pdfplumber
-
-# Optional fallback parser — used when pdfplumber's column-flattened text
-# misses item names (some banks change layouts year over year).
+# The audit-statement parsers are fitz (PyMuPDF) only. `_fitz_page_text`
+# reconstructs each row from word x/y boxes — a superset of the old pdfplumber
+# layout-repair: it also maps /Rotate 90 pages through the page rotation matrix
+# (GARAN/AKBNK landscape statements), which pdfplumber handled implicitly and
+# naive fitz did not. See the 2026-06-27 equity migration and this change.
 try:
     import fitz  # PyMuPDF
     _HAS_FITZ = True
-except ImportError:
+except ImportError:  # pragma: no cover - fitz is a hard dep in CI/local
     _HAS_FITZ = False
 
 
-# --- fitz-based page count (immune to the pdfminer page-tree hang) -------------
-# pdfplumber's `pdf.pages` forces pdfminer to resolve the whole page tree via
-# object streams. A few BRSA PDFs (e.g. VAKBN 2025Q4 — 159 pages, 273 /ObjStm)
-# make that resolution pathological: pdfminer never returns, while fitz reads the
-# same file in ~30 ms. So wherever we only need a page COUNT we use fitz, and the
-# page locators + equity lane take their text from fitz too — keeping them clear
-# of the hang. (The BS/P&L parsers still use pdfplumber's layout-repaired text;
-# they are out of the equity/cash-flow re-extraction path.)
+# --- fitz-based page count -----------------------------------------------------
 def _fitz_page_count(pdf_path: str) -> int | None:
-    """Page count via fitz (instant, immune to the pdfminer page-tree hang)."""
+    """Page count via fitz (instant, and immune to the pdfminer page-tree
+    enumeration that hangs on a few poison PDFs, e.g. VAKBN 2025Q4)."""
     if not _HAS_FITZ:
         return None
     try:
@@ -48,78 +43,6 @@ def _fitz_page_count(pdf_path: str) -> int | None:
     except Exception:
         return None
 
-
-def _n_pages(pdf) -> int:
-    """Number of pages of an open pdfplumber PDF — via fitz when we can resolve the
-    path (avoids the pdfminer `pdf.pages` enumeration that hangs on poison PDFs),
-    else pdfplumber's own count."""
-    path = pdf.stream.name if hasattr(pdf, 'stream') else None
-    if _HAS_FITZ and path:
-        n = _fitz_page_count(path)
-        if n is not None:
-            return n
-    return len(pdf.pages)
-
-
-# --- guarded pdfplumber layout-repaired text ---------------------------------
-# pdfplumber's column-flattened text is the proven extractor for some banks whose
-# wide equity table neither fitz reconstruction parses (GARAN/AKBNK print the two
-# periods with interleaved side-footnotes that only pdfplumber's x-clustering
-# separates). But materialising pdfplumber pages forces pdfminer's page-tree
-# resolution, which is pathological on poison PDFs (VAKBN 2025Q4: ~2 min, vs 30 ms
-# in fitz). So we run the pdfplumber read under a watchdog: if it doesn't return
-# within the budget the PDF is remembered as poison and every later call skips it
-# (the caller then uses a fitz reconstruction). Only the FIRST access to a poison
-# PDF pays the timeout, and the abandoned worker thread is pure-Python pdfminer —
-# it finishes (~2 min) and exits on its own, so the leak is bounded, not forever.
-_PDFPLUMBER_POISON: set[str] = set()
-
-
-def _run_with_timeout(fn, timeout: float):
-    """Run fn() in a daemon thread; return (True, result) or (False, None) on
-    timeout. A timed-out thread is abandoned (no interrupt hook for pdfminer)."""
-    import threading
-    box: dict = {}
-
-    def work():
-        try:
-            box['r'] = fn()
-        except BaseException as e:  # noqa: BLE001
-            box['e'] = e
-
-    t = threading.Thread(target=work, daemon=True)
-    t.start()
-    t.join(timeout)
-    if t.is_alive():
-        return (False, None)
-    if 'e' in box:
-        raise box['e']
-    return (True, box.get('r'))
-
-
-def _safe_repaired_text(pdf_path: str, page_idx_1: int, timeout: float = 35.0) -> str | None:
-    """Layout-repaired pdfplumber text for ONE page, or None if pdfplumber can't
-    enumerate this PDF's pages within `timeout` (poison — cached per process).
-    Closes only the stream (pdfplumber.close() would re-enumerate after flush)."""
-    if pdf_path in _PDFPLUMBER_POISON:
-        return None
-
-    def _work():
-        pdf = pdfplumber.open(pdf_path)
-        try:
-            return extract_page_text_repaired(pdf.pages[page_idx_1 - 1])
-        finally:
-            try:
-                if not getattr(pdf, 'stream_is_external', False) and getattr(pdf, 'stream', None):
-                    pdf.stream.close()
-            except Exception:
-                pass
-
-    ok, txt = _run_with_timeout(_work, timeout)
-    if not ok:
-        _PDFPLUMBER_POISON.add(pdf_path)
-        return None
-    return txt
 
 # Match a numeric token. Handles both EN and TR thousands/decimal conventions:
 #   EN:  1,234,567.89
@@ -348,75 +271,6 @@ def parse_num(s: str) -> float | None:
         return -v if neg else v
     except ValueError:
         return None
-
-
-def extract_page_text_repaired(page) -> str:
-    """Reconstruct text per row using x-coordinates so split-digit numbers merge.
-
-    pdfplumber's extract_text() sometimes splits a number like '586.339.528' into
-    '5' and '86.339.528' if the rendering nudges the leading digit. This function
-    groups words on each row by similar y-coordinate, then merges adjacent tokens
-    when one is a single digit very close to a numeric token.
-    """
-    words = page.extract_words(use_text_flow=False)
-    rows: dict[int, list[dict]] = defaultdict(list)
-    for w in words:
-        # Bucket by y (round to integer)
-        y_key = int(round(w['top']))
-        rows[y_key].append(w)
-    # Merge close y-buckets (within 2px) into single rows
-    sorted_keys = sorted(rows.keys())
-    merged: dict[int, list[dict]] = {}
-    last_key = None
-    for k in sorted_keys:
-        if last_key is not None and k - last_key <= 2:
-            merged[last_key].extend(rows[k])
-        else:
-            merged[k] = list(rows[k])
-            last_key = k
-
-    out_lines = []
-    for y in sorted(merged.keys()):
-        ws = sorted(merged[y], key=lambda w: w['x0'])
-        # Merge digit-fragment runs: token=='[0-9]' immediately before a token starting with a digit
-        merged_tokens: list[tuple[float, str]] = []
-        i = 0
-        while i < len(ws):
-            cur = ws[i]
-            text = cur['text']
-            x0 = cur['x0']
-            x1 = cur['x1']
-            # Look ahead: if cur is a single digit (or 1-2 digits) AND next is digit-rich
-            # AND gap is <5px, merge
-            j = i + 1
-            while j < len(ws):
-                nxt = ws[j]
-                gap = nxt['x0'] - x1
-                if (
-                    re.match(r'^\d{1,2}$', text)
-                    and re.match(r'^[\d.,]', nxt['text'])
-                    and gap < 4
-                ):
-                    text = text + nxt['text']
-                    x1 = nxt['x1']
-                    j += 1
-                    continue
-                # Allow merging continuation like `.022.683` to previous digits
-                if (
-                    re.match(r'^\d', text[-1] if text else '')
-                    and re.match(r'^[.,]\d', nxt['text'])
-                    and gap < 4
-                ):
-                    text = text + nxt['text']
-                    x1 = nxt['x1']
-                    j += 1
-                    continue
-                break
-            merged_tokens.append((x0, text))
-            i = j
-        line = ' '.join(t for _, t in merged_tokens)
-        out_lines.append(line)
-    return '\n'.join(out_lines)
 
 
 @dataclass
@@ -815,11 +669,11 @@ def _locate_pages(pdf_path: str) -> dict[str, int]:
 def _fitz_page_text(pdf_path: str, page_idx_0: int) -> str:
     """Extract page text with PyMuPDF using word-level coordinates.
 
-    Reconstructs lines by y-bucketing words (same approach as
-    extract_page_text_repaired for pdfplumber). This catches text that fitz's
-    default get_text() ordering splits across lines, and preserves the row
-    structure that pdfplumber's column-flatten loses for some banks (e.g.
-    Akbank 2026Q1)."""
+    Reconstructs each line by y-bucketing word boxes (and merging split-digit
+    fragments). This catches text that fitz's default get_text() ordering splits
+    across lines, and — unlike a naive column-flatten — preserves the row
+    structure some banks (e.g. Akbank 2026Q1) would otherwise lose. This is the
+    single text reader for every audit-statement parser."""
     if not _HAS_FITZ:
         return ""
     try:
@@ -1038,33 +892,21 @@ def _fitz_merge_rows(text: str, n_cols: int) -> str:
 
 
 def _parse_page(pdf_path: str, page_idx_1: int, n_cols: int) -> list[tuple[str, list[float | None]]]:
-    """Try BOTH pdfplumber and PyMuPDF; pick whichever parses more rows.
+    """Parse one statement page from fitz coordinate-reconstructed text.
 
-    Some banks (e.g. Akbank 2026Q1) trip pdfplumber's column-flatten which
-    silently truncates item labels — pdfplumber still returns N rows, but with
-    'I-a' instead of '1.1.1 Nakit Değerler ve Merkez Bankası (I-a)'. Falling
-    back only when pdfplumber returns 0 rows misses this. Compare both.
+    `_fitz_page_text` rebuilds each row from word x/y boxes — mapping /Rotate 90
+    pages through the rotation matrix and merging split-digit fragments. It is a
+    superset of the old pdfplumber layout-repair and does not suffer pdfplumber's
+    column-flatten, which on some banks (e.g. Akbank 2026Q1) silently truncated
+    item labels to 'I-a' instead of '1.1.1 Nakit Değerler ve Merkez Bankası (I-a)'.
 
-    Other banks (ZIRAAT, VAKBN public-sector reports) wrap a single logical
-    row across two physical PDF lines — `II. İTFA EDİLMİŞ MALİYETİ İLE
-    ÖLÇÜLEN` on one line and `FİNANSAL VARLIKLAR (Net) <6 numbers>` on the
-    next. `_fitz_merge_rows` already handles this for the fitz path; we now
-    apply it to the pdfplumber path too so the merge logic is unified.
+    `_fitz_merge_rows` then rejoins a single logical row a bank wraps across two
+    physical lines (ZIRAAT / VAKBN public-sector reports: `II. İTFA EDİLMİŞ
+    MALİYETİ İLE ÖLÇÜLEN` on one line, `FİNANSAL VARLIKLAR (Net) <6 numbers>` on
+    the next). It is text-source agnostic and idempotent on already-merged rows.
     """
-    import pdfplumber as _pp
-    with _pp.open(pdf_path) as pdf:
-        pp_text = extract_page_text_repaired(pdf.pages[page_idx_1 - 1])
-    # Merge wrapped rows on both extraction paths — the logic is text-source
-    # agnostic and the function is idempotent on already-merged rows.
-    pp_rows = _parse_rows(_fitz_merge_rows(pp_text, n_cols), n_cols)
-    if not _HAS_FITZ:
-        return pp_rows
-    fitz_text = _fitz_page_text(pdf_path, page_idx_1 - 1)
-    if not fitz_text:
-        return pp_rows
-    fz_rows = _parse_rows(_fitz_merge_rows(fitz_text, n_cols), n_cols)
-    # Prefer whichever finds more rows. Tie → pdfplumber (proven baseline).
-    return fz_rows if len(fz_rows) > len(pp_rows) else pp_rows
+    text = _fitz_page_text(pdf_path, page_idx_1 - 1)
+    return _parse_rows(_fitz_merge_rows(text, n_cols), n_cols)
 
 
 def _detect_pl_ncols(pdf_path: str, page_idx_1: int) -> int:
@@ -1079,12 +921,10 @@ def _detect_pl_ncols(pdf_path: str, page_idx_1: int) -> int:
     two (which grabs the prior period on a 4-column page). 2-column pages return
     2, so the mapping is identical to the old behaviour and can't regress them.
 
-    A P&L is NEVER more than 4 value columns. If the pdfplumber text yields a
-    mode >4 the page is letter-spaced — each value is shattered into several
-    number-tokens ('38,9 06,5 46' → 3), inflating the count and (downstream)
-    letting the garbled pdfplumber rows out-vote the clean fitz parse. In that
-    case recompute the mode from the coordinate-reconstructed fitz text, which
-    doesn't shatter values. (ISCTR 2024Q4 unconsolidated.)
+    A P&L is NEVER more than 4 value columns. We read the coordinate-reconstructed
+    fitz text, which (unlike pdfplumber's letter-spaced output on some banks, e.g.
+    ISCTR 2024Q4 unconsolidated) never shatters a value into several number-tokens
+    ('38,9 06,5 46' → 3) and so can't inflate the count above 4.
     """
     from collections import Counter
 
@@ -1126,30 +966,10 @@ def _detect_pl_ncols(pdf_path: str, page_idx_1: int) -> int:
         if len(cvs) >= 8 and sum(1 for c in cvs if c == 1) >= 0.7 * len(cvs):
             return 1
 
-    try:
-        import pdfplumber as _pp
-        with _pp.open(pdf_path) as pdf:
-            text = extract_page_text_repaired(pdf.pages[page_idx_1 - 1])
-    except Exception:
-        return 2
-    n = _mode_from(text)
-    if (n is None or n > 4) and _HAS_FITZ:  # shattered pdfplumber text → trust fitz
-        fn = _mode_from(_fitz_page_text(pdf_path, page_idx_1 - 1))
-        if fn is not None:
-            n = fn
+    n = _mode_from(_fitz_page_text(pdf_path, page_idx_1 - 1))
     if n is None:
         return 2
     return max(2, min(4, n))
-
-
-def _page_text(pdf, page_idx_1: int) -> str:
-    """Page text for ANCHOR detection — fitz when available (~50× faster than
-    pdfplumber's extract_text, which dominated page-location time; and a superset
-    for anchor text), else pdfplumber. Used by the page locators, not the parsers."""
-    pdf_path = pdf.stream.name if hasattr(pdf, 'stream') else None
-    if _HAS_FITZ and pdf_path:
-        return _fitz_page_text(pdf_path, page_idx_1 - 1)
-    return pdf.pages[page_idx_1 - 1].extract_text() or ''
 
 
 def _locate_oci_page(pdf_path: str, pl_page_idx_1: int | None) -> int | None:
@@ -1273,12 +1093,10 @@ def extract(pdf_path: str | Path, only: set[str] | None = None) -> BankReport:
 
     pdf_path = str(pdf_path)
     rep = BankReport(pdf_path=pdf_path)
-    # Every lane below reads via pdf_path with fitz. pdfplumber is opened ONLY
-    # inside _parse_page, for the frozen BS/P&L tables — so a single-statement
-    # re-extract that doesn't touch BS/P&L never loads pdfplumber at all (and so
-    # never risks the pdfminer page-tree hang on poison PDFs). The "deep-scan"
-    # extractors each sweep most of the PDF, so skipping them when `only` excludes
-    # them is the bulk of the single-statement speed-up.
+    # Every lane below reads via pdf_path with fitz — no PDF is materialised
+    # through pdfminer, so none risks the page-tree hang on poison PDFs. The
+    # "deep-scan" extractors each sweep most of the PDF, so skipping them when
+    # `only` excludes them is the bulk of the single-statement speed-up.
     if _want('credit_quality'):
         try:
             from .credit_quality import extract_from_pdf as _extract_cq

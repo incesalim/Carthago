@@ -96,7 +96,7 @@ list verified; §5 inventory exists.
 **Goal:** every extraction validates the internal sums and stores the result.
 
 - New `src/audit_reports/validator.py` (pure functions over extracted rows —
-  importable without pdfplumber so CI's minimal-deps job can test it):
+  importable without fitz so CI's minimal-deps job can test it):
   - **V1 row**: cur_tl + cur_fc = cur_total (and prior triplet), tolerance
     ±2 thousand for rounding; skipped when components missing.
   - **V2 hierarchy**: parent = Σ children, "(-)"-labelled children subtract
@@ -190,7 +190,7 @@ and the known-bad cases fail loudly while clean banks pass.
 
 - Catalogue/docs updated in the same change as any extractor work.
 - Validator/profiler test modules must import under CI's minimal deps (no
-  top-level pdfplumber imports in anything tests touch).
+  top-level fitz imports in anything tests touch).
 - Every phase lands on master as its own commit series; production data is
   only touched in Phase 3 and only batchwise with the evidence report.
 

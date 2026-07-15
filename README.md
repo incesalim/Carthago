@@ -83,7 +83,7 @@ bddk_analysis/
 │   │   └── ...                     ← BDDK monthly + weekly scrapers
 │   ├── tbb/                        ← TBB quarterly digital-banking .xls/.xlsx → SQLite
 │   └── audit_reports/              ← per-bank PDF extraction
-│       ├── extractor.py            ← pdfplumber + pymupdf with fallback
+│       ├── extractor.py            ← PyMuPDF (fitz) only
 │       ├── loader.py               ← upsert into bank_audit_* tables
 │       ├── schema.py
 │       └── r2_storage.py           ← Cloudflare R2 (S3-compat) wrapper

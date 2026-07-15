@@ -1,11 +1,11 @@
 """Row-label taxonomy regression tests for the NPL movement extractor.
 
-Guarded by importorskip: npl_movement imports pdfplumber, which CI's minimal
+Guarded by importorskip: npl_movement imports fitz, which CI's minimal
 dependency set omits. The label matcher itself is pure-stdlib.
 """
 import pytest
 
-pytest.importorskip("pdfplumber")
+pytest.importorskip("fitz")
 
 from src.audit_reports.npl_movement import _DATE_BALANCE_RX, _match_row_label  # noqa: E402
 

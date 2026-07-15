@@ -2,7 +2,7 @@
 
 Catalogue of per-bank formatting in the quarterly BRSA audit PDFs (R2 bucket
 `bddk-audit-reports`, ~975 PDFs, 31 banks, 2022Q1→). The extractors in
-`src/audit_reports/` are deterministic (pdfplumber + heading anchors + labelled
+`src/audit_reports/` are deterministic (PyMuPDF/fitz + heading anchors + labelled
 rows — **no LLM API**), so every per-bank quirk must be encoded as an explicit
 variant rule. This file is the human-readable index of those rules and the
 known ways they break.

@@ -511,9 +511,8 @@ def test_npl_brsa_sections_flagged_as_group_basis():
     # The stage1/2/3 columns mean BRSA groups III/IV/V (NOT IFRS stages) only for
     # the npl_brsa_* sections; everything else is a real IFRS stage.
     import pytest
-    # credit_quality is fitz-only AND pulls in extractor (pdfplumber at module top);
-    # CI's minimal deps have neither, so skip there (runs locally / full-deps env).
-    pytest.importorskip("pdfplumber")
+    # credit_quality is fitz-only AND pulls in extractor (fitz at module top);
+    # CI's minimal deps omit fitz, so skip there (runs locally / full-deps env).
     pytest.importorskip("fitz")
     from src.audit_reports.credit_quality import stage_columns_are_brsa_groups
     assert stage_columns_are_brsa_groups("npl_brsa_gross")

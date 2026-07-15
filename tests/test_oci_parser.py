@@ -3,7 +3,7 @@ III = I + II is the tier-1 signal, with a degenerate guard on row I (net profit,
 never ~0) so a near-empty 0==0 parse can't win."""
 import pytest
 
-pytest.importorskip("pdfplumber")  # CI installs minimal deps; oci/extractor need pdfplumber
+pytest.importorskip("fitz")  # CI installs minimal deps; oci/extractor need fitz (PyMuPDF)
 
 from src.audit_reports.extractor import StatementRow  # noqa: E402
 from src.audit_reports.oci import _oci_candidate_score, _oci_chain_closes, _oci_romans  # noqa: E402

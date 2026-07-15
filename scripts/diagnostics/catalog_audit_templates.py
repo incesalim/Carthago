@@ -48,7 +48,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 
 from src.audit_reports import r2_storage  # noqa: E402
 
-import pdfplumber  # noqa: E402
+import fitz  # noqa: E402  (PyMuPDF)
 
 OUT_DIR = REPO_ROOT / "build"
 OUT_DIR.mkdir(exist_ok=True)
@@ -111,9 +111,9 @@ def _scan_pdf(args):
     ecl_contexts: list[dict] = []
     try:
         r2_storage.download_to(key, dest)
-        with pdfplumber.open(str(dest)) as pdf:
-            for page_idx, page in enumerate(pdf.pages, 1):
-                text = page.extract_text() or ""
+        with fitz.open(str(dest)) as doc:
+            for page_idx, page in enumerate(doc, 1):
+                text = page.get_text() or ""
                 lines = text.split("\n")
 
                 # --- npl_brsa: III/IV/V tables ---

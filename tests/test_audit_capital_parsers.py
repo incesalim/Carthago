@@ -1,13 +1,13 @@
 """Unit tests for the §4 extractor number-format helpers.
 
-Guarded by importorskip: capital_adequacy imports pdfplumber, which CI's minimal
+Guarded by importorskip: capital_adequacy imports fitz, which CI's minimal
 dependency set doesn't install, so this module is skipped there and runs locally.
 The cases encode the real per-bank format variants (TR decimal comma, leading vs
 trailing %, dot-thousands) that the cross-bank testing surfaced.
 """
 import pytest
 
-pytest.importorskip("pdfplumber")
+pytest.importorskip("fitz")
 
 from src.audit_reports.capital_adequacy import (  # noqa: E402
     _parse_ratio,
