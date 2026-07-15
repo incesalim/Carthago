@@ -197,3 +197,66 @@ def test_fingerprint_distinguishes_identity():
     other_period = "structure AKBNK 2026Q1 consolidated: assets — 2 identity check(s) failed (59 passed)"
     fps = {q._fingerprint(x) for x in (base, other_kind, other_stmt, other_period)}
     assert len(fps) == 4  # period lives in the (non-stripped) head, so it's preserved
+
+
+# --- Free provision (serbest karşılık) checks -----------------------------
+
+def _ins_freeprov(c, bank, period, kind="unconsolidated", fp=None, prior=None):
+    c.execute("INSERT INTO bank_audit_free_provision "
+              "(bank_ticker, period, kind, free_provision, free_provision_prior) "
+              "VALUES (?,?,?,?,?)", (bank, period, kind, fp, prior))
+    c.commit()
+
+
+def _ins_opinion(c, bank, period, kind="unconsolidated", is_modified=1, basis=""):
+    c.execute("INSERT INTO bank_audit_opinion "
+              "(bank_ticker, period, kind, opinion_type, is_modified, basis_text) "
+              "VALUES (?,?,?,?,?,?)",
+              (bank, period, kind, "qualified" if is_modified else "clean", is_modified, basis))
+    c.commit()
+
+
+def test_freeprov_clean_passes():
+    c = _conn()
+    # Consistent chain: 2024Q4 stock = 300, and 2025Q1 states its prior as 300.
+    _ins_freeprov(c, "X", "2024Q4", fp=300)
+    _ins_freeprov(c, "X", "2025Q1", fp=250, prior=300)
+    assert q._free_provision(c) == []
+
+
+def test_freeprov_band_flags_absurd_value():
+    c = _conn()
+    _ins_freeprov(c, "X", "2025Q1", fp=999_000_000)  # > ceiling
+    assert any("out of plausible band" in i for i in q._free_provision(c))
+
+
+def test_freeprov_prior_chain_break():
+    c = _conn()
+    # 2024Q4 captured as 38 (a sub-component), but 2025Q1 states prior = 1_314 —
+    # the BURGAN fingerprint: one side mis-extracted.
+    _ins_freeprov(c, "BURGAN", "2024Q4", fp=38)
+    _ins_freeprov(c, "BURGAN", "2025Q1", fp=1_300, prior=1_314)
+    assert any("prior-year-end current" in i for i in q._free_provision(c))
+
+
+def test_freeprov_recall_gap_when_qualified_but_no_row():
+    c = _conn()
+    _ins_opinion(c, "DENIZ", "2023Q1", is_modified=1,
+                 basis="... serbest karşılık ...")  # qualified over a free provision
+    # no bank_audit_free_provision row for DENIZ 2023Q1
+    assert any("none was extracted" in i for i in q._free_provision(c))
+
+
+def test_freeprov_recall_not_flagged_when_zero_row_present():
+    c = _conn()
+    _ins_opinion(c, "DENIZ", "2023Q1", is_modified=1, basis="... serbest karşılık ...")
+    _ins_freeprov(c, "DENIZ", "2023Q1", fp=0)  # captured as explicit none — not a gap
+    assert not any("none was extracted" in i for i in q._free_provision(c))
+
+
+def test_freeprov_precision_value_under_clean_opinion():
+    c = _conn()
+    _ins_opinion(c, "AKBNK", "2024Q4", is_modified=0)  # clean
+    _ins_freeprov(c, "AKBNK", "2024Q4", fp=1_400)      # a value the auditor didn't qualify over
+    assert any("under a\nCLEAN opinion".replace("\n", " ") in i.replace("\n", " ")
+               for i in q._free_provision(c))

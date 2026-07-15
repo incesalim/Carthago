@@ -39,6 +39,12 @@ Checks (each yields offending (bank, period, kind)):
                     within a bank/kind series. The chain check accepts either
                     storage convention by design, so flips are invisible to it;
                     they break YTD de-cumulation downstream unless abs()'d.
+ 10. freeprov    — bank_audit_free_provision (serbest karşılık stock): a plausibility
+                    band, a longitudinal cross-check (stated prior == prior-year-end
+                    current), and a two-sided reconciliation against the audit
+                    opinion — qualified-over-free-provision ⇒ a value must exist
+                    (recall), a value under a clean opinion ⇒ verify it isn't a
+                    cancelled amount read as the stock (precision).
 
 Alert-only / non-blocking: prints a report and (with --alert) sends one
 Telegram/Discord summary via scripts/notify.py, then always exits 0 so it never
@@ -457,6 +463,76 @@ def _pl_sign_convention(conn: sqlite3.Connection) -> list[str]:
     return out
 
 
+# Free provisions are stored in thousand-TL. The largest real one in the corpus
+# is ~15bn TL (VAKBN = 15,000,000); a value above this generous ceiling or below
+# zero is a mis-parse (a total grabbed as the reserve). The prior figure a report
+# states IS the prior year-end (Dec 31) stock, so it must equal that bank's Q4
+# free_provision for the prior year — an exact, independent cross-check that
+# catches a wrong current OR a wrong prior on either side.
+FREEPROV_MAX = 100_000_000        # thousand TL (= 100bn TL) — generous ceiling
+FREEPROV_PRIOR_TOL = 0.01         # stated prior vs prior-year-end current: 1%
+
+
+def _free_provision(conn: sqlite3.Connection) -> list[str]:
+    """Data-quality checks for bank_audit_free_provision (the serbest karşılık
+    stock). There is no intra-row arithmetic to reconcile, so the checks are
+    cross-lane and longitudinal — reconciliation against independent signals,
+    which is what actually catches a regression:
+
+      a) band        — 0 <= free_provision <= a sane ceiling; a huge value is a
+                        total mis-read as the reserve.
+      b) prior_chain — the prior figure a report states is the prior YEAR-END
+                        stock, so it must equal that bank's Q4 free_provision for
+                        the prior year. A break means the current or the prior was
+                        mis-extracted on one side.
+      c) recall      — the auditor qualified over a free provision (opinion
+                        is_modified + basis names it) yet no value was captured =
+                        a missed disclosure (the BURGAN-2022 gap fingerprint).
+      d) precision   — a value under a CLEAN opinion. Holding a free provision
+                        usually triggers a qualification, so this wants a look —
+                        it is exactly how the AKBNK/ZIRAATK cancelled-amount false
+                        positives surfaced (a reversal read as the stock)."""
+    if not _has_table(conn, "bank_audit_free_provision"):
+        return []
+    out = []
+    rows = conn.execute(
+        "SELECT bank_ticker, period, kind, free_provision, free_provision_prior "
+        "FROM bank_audit_free_provision").fetchall()
+    cur = {(b, p, k): v for b, p, k, v, _ in rows}
+    for bank, period, kind, fp, prior in rows:
+        tag = f"freeprov  {bank} {period} {kind}:"
+        if fp is not None and (fp < 0 or fp > FREEPROV_MAX):
+            out.append(f"{tag} free provision {fp:,.0f} out of plausible band")
+        # prior_chain: stated prior == that bank's prior-year-end (Q4) current.
+        if prior is not None and prior >= 0 and re.fullmatch(r"\d{4}Q\d", period):
+            q4_prev = cur.get((bank, f"{int(period[:4]) - 1}Q4", kind))
+            if q4_prev is not None:
+                denom = max(abs(prior), abs(q4_prev), 1)
+                if abs(prior - q4_prev) / denom > FREEPROV_PRIOR_TOL:
+                    out.append(f"{tag} stated prior {prior:,.0f} != prior-year-end current "
+                               f"{q4_prev:,.0f} ({int(period[:4]) - 1}Q4) — one side mis-extracted")
+    if _has_table(conn, "bank_audit_opinion"):
+        for bank, period, kind in conn.execute(
+                "SELECT o.bank_ticker, o.period, o.kind FROM bank_audit_opinion o "
+                "WHERE o.is_modified=1 AND (lower(o.basis_text) LIKE '%free provision%' "
+                "   OR lower(o.basis_text) LIKE '%serbest kar%') "
+                "AND NOT EXISTS (SELECT 1 FROM bank_audit_free_provision f "
+                "  WHERE f.bank_ticker=o.bank_ticker AND f.period=o.period "
+                "    AND f.kind=o.kind)"):
+            # No row at all — not merely a captured 0 (a bank that reversed to
+            # zero and disclosed "none" is covered, not a gap).
+            out.append(f"freeprov  {bank} {period} {kind}: auditor qualified over a free "
+                       f"provision but none was extracted — likely a missed disclosure")
+        for bank, period, kind, fp in conn.execute(
+                "SELECT f.bank_ticker, f.period, f.kind, f.free_provision "
+                "FROM bank_audit_free_provision f JOIN bank_audit_opinion o "
+                "  ON o.bank_ticker=f.bank_ticker AND o.period=f.period AND o.kind=f.kind "
+                "WHERE f.free_provision>0 AND o.is_modified=0"):
+            out.append(f"freeprov  {bank} {period} {kind}: free provision {fp:,.0f} under a "
+                       f"CLEAN opinion — verify a real holding, not a cancelled amount")
+    return out
+
+
 def _structure(conn: sqlite3.Connection) -> list[str]:
     """Partitions whose extraction-time identity validation failed (see
     src/audit_reports/validator.py). Summarized per partition — the per-check
@@ -482,7 +558,7 @@ def check(db: Path) -> list[str]:
                 + _liquidity_bands(conn) + _liquidity_outliers(conn)
                 + _off_balance_consistency(conn)
                 + _structure(conn) + _ecl_sanity(conn)
-                + _pl_sign_convention(conn))
+                + _pl_sign_convention(conn) + _free_provision(conn))
     finally:
         conn.close()
 
