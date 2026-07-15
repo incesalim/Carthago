@@ -527,7 +527,11 @@ def _free_provision(conn: sqlite3.Connection) -> list[str]:
                 "SELECT f.bank_ticker, f.period, f.kind, f.free_provision "
                 "FROM bank_audit_free_provision f JOIN bank_audit_opinion o "
                 "  ON o.bank_ticker=f.bank_ticker AND o.period=f.period AND o.kind=f.kind "
-                "WHERE f.free_provision>0 AND o.is_modified=0"):
+                # source_page=-1 is a hand-transcribed override — already human
+                # verified, so it needs no "verify this holding" warning. The check
+                # targets UNVERIFIED extractor values (the cancelled-amount trap).
+                "WHERE f.free_provision>0 AND o.is_modified=0 "
+                "  AND (f.source_page IS NULL OR f.source_page >= 0)"):
             out.append(f"freeprov  {bank} {period} {kind}: free provision {fp:,.0f} under a "
                        f"CLEAN opinion — verify a real holding, not a cancelled amount")
     return out
