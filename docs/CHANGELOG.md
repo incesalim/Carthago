@@ -12,8 +12,9 @@ to transparency and committed once at `scripts/brand/carthago-mark.png`; every a
 (favicon, app icons, social cards, `public/logo.png`) is **composited from that one
 PNG** by `scripts/make_brand_assets.py`, so the mark cannot drift between uses. Since
 the mark is navy-on-transparent it can't re-tone for the dark sheet, so the nav sits it
-on a pale rounded chip in dark mode (the app-icon treatment from the brand sheet) and
-the icon/favicon plates are white. The social card is the mark + wordmark on the light
+on a pale rounded chip in dark mode. The favicon, icon and logo are transparent so they
+blend with the browser tab bar instead of sitting in a white box (only `apple-icon.png`
+stays opaque — iOS renders transparency as black). The social card is the mark + wordmark on the light
 brand ground with the "Turkish banking data" tagline. Brand palette + the
 replace-and-regenerate rule are recorded in `web/DESIGN.md`.
 

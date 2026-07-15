@@ -58,8 +58,14 @@ def fit(mark: Image.Image, box: int) -> Image.Image:
     return out
 
 
-def transparent(mark: Image.Image, px: int) -> Image.Image:
-    return fit(mark, px)
+def transparent(mark: Image.Image, px: int, inset: float = 1.0) -> Image.Image:
+    """The mark on a transparent canvas, so it blends with any surface (a browser
+    tab bar, the paper ground) instead of sitting in a plate. `inset` < 1 leaves a
+    little breathing room around the mark."""
+    canvas = Image.new("RGBA", (px, px), (0, 0, 0, 0))
+    m = fit(mark, round(px * inset))
+    canvas.alpha_composite(m, ((px - m.width) // 2, (px - m.height) // 2))
+    return canvas
 
 
 def on_plate(mark: Image.Image, px: int, inset: float, radius: float,
@@ -136,10 +142,11 @@ def main() -> None:
     mark = load_mark()
     out: list[tuple[Path, Image.Image]] = [
         (WEB / "public" / "logo.png", transparent(mark, 256)),
-        # Rounded white plate keeps the navy C legible on dark browser chrome
-        # (matches the app-icon panel on the brand sheet).
-        (WEB / "app" / "icon.png", on_plate(mark, 512, inset=0.68, radius=0.22)),
-        # iOS masks its own corners -> a full-bleed white square.
+        # Transparent so the tab-bar / page ground shows through and the mark
+        # blends in, rather than sitting in a white box.
+        (WEB / "app" / "icon.png", transparent(mark, 256, inset=0.92)),
+        # iOS ignores transparency (renders it black) and masks its own corners,
+        # so this one alone gets an opaque white square.
         (WEB / "app" / "apple-icon.png", on_plate(mark, 180, inset=0.72, radius=0.0)),
     ]
     card = social_card(mark)
@@ -150,8 +157,8 @@ def main() -> None:
         img.convert("RGBA").save(path, "PNG")
         print(f"  {path.relative_to(REPO)}  {img.size[0]}x{img.size[1]}")
 
-    # RGBA, or Next 16's build rejects it.
-    ico = on_plate(mark, 256, inset=0.68, radius=0.22).convert("RGBA")
+    # Transparent (blends with the tab bar), RGBA — an RGB .ico fails the Next build.
+    ico = transparent(mark, 64, inset=0.92).convert("RGBA")
     ico_path = WEB / "app" / "favicon.ico"
     ico.save(ico_path, "ICO", sizes=[(16, 16), (32, 32), (48, 48)])
     with Image.open(io.BytesIO(ico_path.read_bytes())) as check:

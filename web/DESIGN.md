@@ -265,11 +265,13 @@ so the mark can never drift between uses. To change the logo, replace that one P
 re-run the script — never hand-edit a generated asset. `favicon.ico` must stay RGBA or
 the Next build rejects it.
 
-The mark is navy-on-transparent, so it cannot re-tone itself for the dark sheet. In
-the nav it sits on a pale rounded chip in dark mode (the app-icon treatment from the
-brand sheet) and on nothing in light mode, where the navy reads on the paper ground.
-The icon/favicon plates are white for the same reason — a bare navy mark would vanish
-against dark browser chrome.
+The mark is navy-on-transparent, so it cannot re-tone itself for the dark sheet. The
+favicon, `icon.png` and `public/logo.png` are all transparent so the mark blends with
+whatever is behind it — the browser tab bar, the paper ground — rather than sitting in
+a white box. `apple-icon.png` is the one exception (opaque white square): iOS renders
+transparency as black. In the nav, the mark sits on nothing in light mode (the navy
+reads on the paper ground) and on a pale rounded chip in dark mode — the one place it
+would otherwise vanish, on the graphite ground.
 
 ## Process
 
