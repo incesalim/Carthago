@@ -21,6 +21,15 @@ printed the "(XVII±XVIII)" subtotal under a second "XVIII." and shifted every
 later roman by one). Amounts and labels are correct — only `hierarchy` moves.
 Each rename matches (hierarchy=from AND item_name) exactly; author them
 tail-first so no step leaves two rows on one ordinal.
+
+  BS hierarchy renames: {bank_ticker, period, kind, statement: "bs_rehier",
+        bs_statement: assets|liabilities|off_balance,
+        renames: [{from, to, item_name, to_name?}, ...], note}
+Same idea for a balance-sheet row the FILING mislabels — EXIM/VAKBN off-balance
+stamp the Forward-FX Sell leg "3.2.2.2" (colliding with the Swap-Sell) instead of
+"3.2.1.2"; a spliced column-header posts section A under a phantom "V" (HAYATK).
+Match is (bs_statement, hierarchy=from trailing-dot-insensitive, item_name);
+optional `to_name` strips a garbled label.
 """
 from __future__ import annotations
 
@@ -108,6 +117,30 @@ def _apply_one(conn: sqlite3.Connection, o: dict) -> str:
                 (r["to"], b, p, k, r["from"], r["item_name"]))
             (done if cur.rowcount else missed).append(f"{r['from']}→{r['to']}")
         out = f"PL rehier {b} {p} {k}: {', '.join(done)}"
+        return out + (f" (NO MATCH: {', '.join(missed)})" if missed else "")
+    if st == "bs_rehier":
+        # Balance-sheet hierarchy renames (mirror of pl_rehier) for a row the
+        # FILING mislabels — e.g. EXIM/VAKBN off-balance stamp the Forward-FX
+        # Sell leg "3.2.2.2" (colliding with the Swap-Sell) instead of "3.2.1.2"
+        # (the sibling of the "3.2.1.1" Buy leg); or a spliced column-header posts
+        # section A's aggregate under a phantom "V" (HAYATK). Values are faithful
+        # — only `hierarchy` moves (with an optional `to_name` to strip a garbled
+        # label). Matched by (bs_statement, hierarchy=from trailing-dot-insensitive,
+        # item_name) exactly, so a duplicated key is unambiguous; a rename that
+        # matches nothing is reported, not silent. `bs_statement` names the lane.
+        done, missed = [], []
+        bst = o["bs_statement"]
+        for r in o["renames"]:
+            sets, vals = "hierarchy=?", [r["to"]]
+            if "to_name" in r:
+                sets += ", item_name=?"
+                vals.append(r["to_name"])
+            cur = conn.execute(
+                f"UPDATE bank_audit_balance_sheet SET {sets} WHERE bank_ticker=? "
+                "AND period=? AND kind=? AND statement=? AND rtrim(hierarchy,'.')=rtrim(?,'.') "
+                "AND item_name=?", (*vals, b, p, k, bst, r["from"], r["item_name"]))
+            (done if cur.rowcount else missed).append(f"{r['from']}→{r['to']}")
+        out = f"BS rehier {b} {p} {k} {bst}: {', '.join(done)}"
         return out + (f" (NO MATCH: {', '.join(missed)})" if missed else "")
     h = o["hierarchy"]
     if st == "profit_loss":

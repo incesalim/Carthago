@@ -2522,6 +2522,72 @@
    "amount_fc": 459677,
    "amount_total": 1492177,
    "note": "marker '2.1.12' split from its label+values line ('. Diğer Cayılamaz Taahhütler 1.032.500 459.677 1.492.177') → row dropped; 2.1 Cayılamaz Taahhütler short by exactly 1.492.177"
+  },
+  {
+   "bank_ticker": "EXIM",
+   "period": "2022Q1",
+   "kind": "unconsolidated",
+   "statement": "bs_rehier",
+   "bs_statement": "off_balance",
+   "renames": [{"from": "3.2.2.2", "to": "3.2.1.2", "item_name": "Forward Foreign Currency Transactions-Sell"}],
+   "note": "SOURCE typo: the Forward-FX Sell leg (67.112) is stamped 3.2.2.2, colliding with the Swap-Sell, instead of 3.2.1.2 (sibling of 3.2.1.1 Buy). Relabel → 3.2.1 foots (67.330+67.112=134.442), 3.2.2 foots, dup cleared. TSKB files the same row correctly at 3.2.1.2"
+  },
+  {
+   "bank_ticker": "EXIM",
+   "period": "2022Q2",
+   "kind": "unconsolidated",
+   "statement": "bs_rehier",
+   "bs_statement": "off_balance",
+   "renames": [{"from": "3.2.2.2", "to": "3.2.1.2", "item_name": "Forward Foreign Currency Transactions-Sell"}],
+   "note": "SOURCE typo: Forward-FX Sell (139.045) stamped 3.2.2.2 instead of 3.2.1.2. Relabel → 3.2.1/3.2.2 foot, dup cleared"
+  },
+  {
+   "bank_ticker": "EXIM",
+   "period": "2022Q2",
+   "kind": "unconsolidated",
+   "statement": "off_balance",
+   "hierarchy": "2.1.1",
+   "item_name": "Asset Purchase and Sale Commitments",
+   "amount_tl": 0,
+   "amount_fc": 0,
+   "amount_total": 0,
+   "note": "current period all-dash ('- - -'); parser stored the PRIOR-period column (6.741/6.593/13.334) as current → 2.1 over by exactly 13.334. Real current = 0 (only 2.1.13=3.307 is non-zero, matching parent 2.1=3.307)"
+  },
+  {
+   "bank_ticker": "EXIM",
+   "period": "2022Q3",
+   "kind": "unconsolidated",
+   "statement": "bs_rehier",
+   "bs_statement": "off_balance",
+   "renames": [{"from": "3.2.2.2", "to": "3.2.1.2", "item_name": "Forward Foreign Currency Transactions-Sell"}],
+   "note": "SOURCE typo: Forward-FX Sell (93.044) stamped 3.2.2.2 instead of 3.2.1.2. Relabel → 3.2.1/3.2.2 foot, dup cleared"
+  },
+  {
+   "bank_ticker": "VAKBN",
+   "period": "2022Q2",
+   "kind": "consolidated",
+   "statement": "bs_rehier",
+   "bs_statement": "off_balance",
+   "renames": [{"from": "3.2.2.2", "to": "3.2.1.2.", "item_name": "Vadeli Döviz Satım İşlemleri"}],
+   "note": "SOURCE typo: Vadeli Döviz Satım (Forward Sell, 3.916.043) stamped 3.2.2.2, colliding with Swap Para Satım, instead of 3.2.1.2. Relabel → 3.2.1 foots (4.271.762+3.916.043=8.187.805), 3.2.2 foots, dup cleared"
+  },
+  {
+   "bank_ticker": "VAKBN",
+   "period": "2022Q4",
+   "kind": "consolidated",
+   "statement": "bs_rehier",
+   "bs_statement": "off_balance",
+   "renames": [{"from": "3.2.2.2", "to": "3.2.1.2.", "item_name": "Vadeli Döviz Satım İşlemleri"}],
+   "note": "SOURCE typo: Vadeli Döviz Satım (Forward Sell, 1.002.151) stamped 3.2.2.2 instead of 3.2.1.2. Relabel → 3.2.1/3.2.2 foot, dup cleared"
+  },
+  {
+   "bank_ticker": "HAYATK",
+   "period": "2023Q4",
+   "kind": "unconsolidated",
+   "statement": "bs_rehier",
+   "bs_statement": "off_balance",
+   "renames": [{"from": "V", "to": "A.", "item_name": "TL FC Total TL FC Total COMMITMENTS AND CONTINGENCIES A. (I+II+III)", "to_name": "COMMITMENTS AND CONTINGENCIES (I+II+III)"}],
+   "note": "column-header 'V TL FC Total TL FC Total' wrap-merged into section A's aggregate line → posted at phantom hierarchy 'V' (5.400), colliding with the real V. PLEDGED ITEMS (3.924.260) whose 5.x children then overran it. It IS the A. aggregate → relabel V→A. (leaves the numeric tree), real V. foots, A+B grand total foots"
   }
  ]
 }
