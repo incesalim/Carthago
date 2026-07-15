@@ -140,6 +140,31 @@ export function nextMpc(now: Date): string | null {
   return MPC_DATES.find((d) => d >= today) ?? null;
 }
 
+/**
+ * When the NEXT BDDK monthly bulletin is expected, given the latest month held.
+ *
+ * BDDK publishes no forward calendar; this is the OBSERVED cadence — month M's
+ * bulletin lands ~the 12th of month M+2. Grounded in the ingest history (Apr
+ * 2026 was in by 5 Jun, May by 29 Jun; the lag runs ~28–75 days, so day-12-of-M+2
+ * sits at the generous end and rarely cries wolf).
+ *
+ * Used both to schedule the "Ahead" derivation AND to judge monthly freshness
+ * (admin-health / healthcheck): while `now` is before this date, holding month M
+ * is FRESH — the next month simply isn't out yet, so age-of-last-write says
+ * nothing. `record` is the month we're waiting for.
+ */
+export function nextMonthlyBulletinDue(
+  latestMonthly: string,
+): { date: string; record: string } | null {
+  const m = /^(\d{4})-(\d{2})$/.exec(latestMonthly);
+  if (!m) return null;
+  const year = Number(m[1]);
+  const monthIdx = Number(m[2]) - 1; // 0-based month of the LATEST record we hold
+  const recordIdx = monthIdx + 1; // the month we are waiting for (may be 12)
+  const pub = utc(year, recordIdx + MONTHLY_PUB_LAG_MONTHS, MONTHLY_PUB_DAY);
+  return { date: iso(pub), record: LONG_MONTHS[((recordIdx % 12) + 12) % 12] };
+}
+
 /** Days of runway left in MPC_DATES — what the CI freshness gate watches. */
 export function mpcRunwayDays(now: Date): number {
   const last = MPC_DATES[MPC_DATES.length - 1];
@@ -203,18 +228,13 @@ export function aheadDates({
   }
 
   // The next record is the month after the last one we hold; it publishes around
-  // the 12th of two months later.
-  const m = latestMonthly ? /^(\d{4})-(\d{2})$/.exec(latestMonthly) : null;
-  if (m) {
-    const year = Number(m[1]);
-    const monthIdx = Number(m[2]) - 1; // 0-based, the LAST record we hold
-    const recordIdx = monthIdx + 1; // the month we are waiting for
-    const pub = utc(year, recordIdx + MONTHLY_PUB_LAG_MONTHS, MONTHLY_PUB_DAY);
-    const recordName = LONG_MONTHS[((recordIdx % 12) + 12) % 12];
+  // the 12th of two months later (see nextMonthlyBulletinDue).
+  const monthly = latestMonthly ? nextMonthlyBulletinDue(latestMonthly) : null;
+  if (monthly) {
     out["bddk-monthly"] = {
-      when: `${dayLabel(iso(pub))}`.replace(/(\w+) (\d+)/, "$1 ~$2"),
-      date: iso(pub),
-      record: recordName,
+      when: dayLabel(monthly.date).replace(/(\w+) (\d+)/, "$1 ~$2"),
+      date: monthly.date,
+      record: monthly.record,
       rule: `bddk monthly lands ~day ${MONTHLY_PUB_DAY} of record + ${MONTHLY_PUB_LAG_MONTHS}m`,
     };
   }

@@ -9,6 +9,7 @@
  * web/migrations) degrades to "unknown" instead of breaking the page.
  */
 import { getDB } from "./db";
+import { nextMonthlyBulletinDue } from "./ahead";
 
 export type FreshnessStatus = "fresh" | "late" | "stale" | "unknown";
 
@@ -61,6 +62,29 @@ function statusFor(ageHours: number | null, cadenceHours: number): FreshnessStat
 
 const DAY = 24;
 const WEEK = 24 * 7;
+const MONTH = 24 * 31;
+/** Days past the expected release before a missing month reads "stale". */
+const MONTHLY_OVERDUE_GRACE_DAYS = 14;
+
+/**
+ * The BDDK monthly bulletin publishes ~once a month with a 4–11 week lag, and the
+ * non-destructive upsert never rewrites an unchanged month — so `downloaded_at`
+ * freezes the day a month lands, and an age-vs-cadence check reads "stale" for
+ * the weeks BETWEEN releases even though we hold the latest data that exists.
+ *
+ * So freshness here is schedule-aware, not age-based: while we hold the latest
+ * month due by now (per nextMonthlyBulletinDue), we're fresh; only once the NEXT
+ * month is genuinely overdue does it go late → stale.
+ */
+function monthlyStatus(latestPeriod: string | null): FreshnessStatus {
+  if (!latestPeriod) return "unknown";
+  const due = nextMonthlyBulletinDue(latestPeriod);
+  if (!due) return "unknown";
+  const overdueDays = (Date.now() - Date.parse(`${due.date}T00:00:00Z`)) / 86_400_000;
+  if (overdueDays < 0) return "fresh"; // the next month isn't due yet
+  if (overdueDays <= MONTHLY_OVERDUE_GRACE_DAYS) return "late";
+  return "stale";
+}
 
 async function monthlySource(db: DB): Promise<SourceHealth> {
   const agg = await safeFirst<{ last_refresh: string | null; n: number }>(
@@ -75,17 +99,24 @@ async function monthlySource(db: DB): Promise<SourceHealth> {
     db,
     "SELECT COUNT(*) AS n FROM download_log WHERE status IS NOT NULL AND status <> 'success'",
   );
-  const ageHours = hoursSince(agg?.last_refresh);
+  const latestPeriod = period
+    ? `${period.year}-${String(period.month).padStart(2, "0")}`
+    : null;
+  const due = latestPeriod ? nextMonthlyBulletinDue(latestPeriod) : null;
+  const status = monthlyStatus(latestPeriod);
+  const noteParts: string[] = [];
+  if (due && status === "fresh") noteParts.push(`next (${due.record}) due ~${due.date}`);
+  if (fails && fails.n > 0) noteParts.push(`${fails.n} non-success rows in download_log`);
   return {
     key: "monthly",
     label: "Monthly bulletin",
-    latestPeriod: period ? `${period.year}-${String(period.month).padStart(2, "0")}` : null,
+    latestPeriod,
     lastRefresh: agg?.last_refresh ?? null,
     rowCount: agg?.n ?? null,
-    ageHours,
-    cadenceHours: WEEK,
-    status: statusFor(ageHours, WEEK),
-    note: fails && fails.n > 0 ? `${fails.n} non-success rows in download_log` : undefined,
+    ageHours: hoursSince(agg?.last_refresh),
+    cadenceHours: MONTH,
+    status,
+    note: noteParts.length ? noteParts.join(" · ") : undefined,
   };
 }
 
