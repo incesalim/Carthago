@@ -590,8 +590,6 @@ export default async function CreditPage() {
           <SecHead
             title={`Where the ${headlinePct} came from`}
             meta="contribution to sector growth · 52w · pp of the headline"
-            href="/loans-by-sector"
-            hrefLabel="by economic sector →"
             className="mb-2.5"
           />
           <Attribution

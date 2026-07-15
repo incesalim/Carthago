@@ -43,7 +43,6 @@ const STATIC_ROUTES: {
   { path: "/asset-quality", priority: 0.8, changeFrequency: "weekly" },
   { path: "/profitability", priority: 0.8, changeFrequency: "weekly" },
   { path: "/credit", priority: 0.8, changeFrequency: "weekly" },
-  { path: "/loans-by-sector", priority: 0.7, changeFrequency: "monthly" },
   { path: "/deposits", priority: 0.8, changeFrequency: "weekly" },
   { path: "/rates", priority: 0.7, changeFrequency: "weekly" },
   { path: "/market-risk", priority: 0.7, changeFrequency: "weekly" },

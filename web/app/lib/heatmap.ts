@@ -138,6 +138,11 @@ export interface BankMetricRow {
   provision_intensity: number | null;
   cost_of_risk: number | null;
   roe: number | null;
+  /** Free-provision-adjusted ROE: reported earnings less the discretionary
+   *  serbest-karşılık build/release, same average-equity basis as `roe`. */
+  roeAdjusted: number | null;
+  /** Free-provision (serbest karşılık) STOCK, thousand TL; 0 = holds none. */
+  freeProvision: number | null;
   roa: number | null;
   nim: number | null;
   ppop_ratio: number | null;
@@ -208,7 +213,7 @@ export async function heatmapPanel(
   const romanPlaceholders = BS_ASSET_ROMAN_HIERARCHIES.map(() => "?").join(",");
 
   const [assets, stages, pl, equity, closes, shares, latestCloses, loanRows, depositRows,
-         capRows, fxRows, rpRows, liqRows] = await Promise.all([
+         capRows, fxRows, rpRows, liqRows, fpRows] = await Promise.all([
     // A — total assets: sum of the BS asset Roman subtotals I.–X. (= bankSummaries).
     cachedAll<RowAssets>(
       `SELECT bank_ticker, period, SUM(amount_total) AS total_assets
@@ -364,6 +369,15 @@ export async function heatmapPanel(
         WHERE kind = ? AND period_type = 'current'`,
       [kind],
     ),
+    // N — free-provision (serbest karşılık) STOCK per (bank, period). A missing
+    // row means the bank holds none (a conditional disclosure; see
+    // free_provision.py + the freeprov validator, recall=0) → treated as 0 below,
+    // so the FP-adjusted-ROE add-back captures every build/release.
+    cachedAll<{ bank_ticker: string; period: string; free_provision: number | null }>(
+      `SELECT bank_ticker, period, free_provision FROM bank_audit_free_provision
+        WHERE kind = ?`,
+      [kind],
+    ),
   ]);
 
   const map = new Map<string, BankMetricRow>();
@@ -380,7 +394,7 @@ export async function heatmapPanel(
         bank_ticker: ticker, period,
         total_assets: null, npl_ratio: null, stage2_share: null,
         npl_coverage: null, provision_intensity: null, cost_of_risk: null,
-        roe: null, roa: null, nim: null,
+        roe: null, roeAdjusted: null, freeProvision: null, roa: null, nim: null,
         ppop_ratio: null, loan_yield: null, deposit_cost: null, spread: null,
         cost_income: null,
         cet1: null, car: null, lcr: null,
@@ -410,6 +424,12 @@ export async function heatmapPanel(
   for (const r of equity) {
     equityByKey.set(`${r.bank_ticker}|${r.period}`, r.equity);
     ensure(r.bank_ticker, r.period);
+  }
+  // Free-provision stock (thousand TL) per (bank, period). No entry ⇒ the bank
+  // holds none (conditional disclosure) ⇒ read as 0 by the adjusted-ROE add-back.
+  const fpByKey = new Map<string, number>();
+  for (const r of fpRows) {
+    if (r.free_provision != null) fpByKey.set(`${r.bank_ticker}|${r.period}`, r.free_provision);
   }
   // Margin-engine balance denominators (gross loans, deposits) per (bank, period).
   const loansByKey = new Map<string, number | null>();
@@ -523,6 +543,34 @@ export async function heatmapPanel(
     const avgEq = eqs.reduce((s, x) => s + x, 0) / eqs.length;
     return avgEq > 0 ? ttm / avgEq : null;
   };
+  // Free-provision-ADJUSTED ROE: strip the discretionary serbest-karşılık game
+  // out of earnings. Building a free provision depresses reported profit; releasing
+  // one inflates it (the ALBRK Q1-2025 mechanism). Over the trailing year the P&L
+  // distortion telescopes to the STOCK change, so add it back:
+  //   adjusted TTM net income = reported TTM net income + (FP_now − FP_4q_ago).
+  // A missing FP entry = the bank holds none = 0, so a full release (X → none) is
+  // captured as −X. Same 5-quarter average-equity denominator as ROE, so the two
+  // are directly comparable and the gap = the earnings-management contribution.
+  const ttmRoeAdjusted = (ticker: string, period: string): number | null => {
+    const b = byBank.get(ticker);
+    const ord = ordOf(period);
+    if (!b || ord == null) return null;
+    const ttm = ttmNet(ticker, period);
+    if (ttm == null) return null;
+    const eqs: number[] = [];
+    for (let k = 0; k < 5; k++) {
+      const e = b.get(ord - k)?.eq ?? null;
+      if (e != null && e > 0) eqs.push(e);
+    }
+    if (eqs.length < 2) return null;
+    const avgEq = eqs.reduce((s, x) => s + x, 0) / eqs.length;
+    if (avgEq <= 0) return null;
+    const fpNow = fpByKey.get(`${ticker}|${period}`) ?? 0;
+    const startOrd = ord - 4;
+    const startPeriod = `${Math.floor(startOrd / 4)}Q${(startOrd % 4) + 1}`;
+    const fpStart = fpByKey.get(`${ticker}|${startPeriod}`) ?? 0;
+    return (ttm + (fpNow - fpStart)) / avgEq;
+  };
 
   // --- Margin engine (loan yield / deposit cost / spread / CoR / PPOP) -------
   // Same trailing-year basis as ROE: TTM interest/provision FLOWS (YTD lines
@@ -625,6 +673,8 @@ export async function heatmapPanel(
     const key = `${row.bank_ticker}|${row.period}`;
 
     row.roe = ttmRoe(row.bank_ticker, row.period);
+    row.roeAdjusted = ttmRoeAdjusted(row.bank_ticker, row.period);
+    row.freeProvision = fpByKey.get(`${row.bank_ticker}|${row.period}`) ?? null;
 
     // Income-statement ratios — TTM flows over 5-point average balances (same
     // basis as ROE), stored as FRACTIONS (the "pct" formatter ×100s them).
