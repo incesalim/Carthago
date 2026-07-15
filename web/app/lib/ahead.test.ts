@@ -32,6 +32,44 @@ describe("mpcRunwayDays", () => {
   });
 });
 
+describe("aheadDates — the scraped TCMB calendar", () => {
+  // release_calendar rows: D1 `kind` is snake_case.
+  const events = [
+    { kind: "mpc_decision", event_date: "2026-09-10" },
+    { kind: "mpc_decision", event_date: "2026-07-23" },
+    { kind: "mpc_minutes", event_date: "2026-07-30" },
+    { kind: "inflation_report", event_date: "2026-08-14" },
+    { kind: "financial_stability_report", event_date: "2026-11-20" },
+  ];
+
+  it("picks the next event of each kind from the scrape", () => {
+    const a = aheadDates({ now: at("2026-07-24"), events });
+    // The 2026-07-23 decision is past; the next is 2026-09-10.
+    expect(a.mpc?.date).toBe("2026-09-10");
+    expect(a.mpc?.rule).toBe("tcmb published calendar");
+    expect(a["mpc-minutes"]?.date).toBe("2026-07-30");
+    expect(a["inflation-report"]?.date).toBe("2026-08-14");
+    expect(a.fsr?.date).toBe("2026-11-20");
+  });
+
+  it("falls back to MPC_DATES for the decision when the scrape is empty", () => {
+    const a = aheadDates({ now: at("2026-07-14"), events: [] });
+    expect(a.mpc?.date).toBe("2026-07-23"); // from MPC_DATES
+    expect(a.mpc?.rule).toBe("tcmb calendar (fallback list)");
+    // The report kinds have no fallback — no scrape, no row.
+    expect(a["inflation-report"]).toBeUndefined();
+    expect(a.fsr).toBeUndefined();
+  });
+
+  it("omits a kind whose only events are in the past", () => {
+    const a = aheadDates({
+      now: at("2027-01-01"),
+      events: [{ kind: "inflation_report", event_date: "2026-08-14" }],
+    });
+    expect(a["inflation-report"]).toBeUndefined();
+  });
+});
+
 describe("aheadDates — the BDDK monthly bulletin", () => {
   it("derives the record month and its publication date", () => {
     // Live D1 at the time of writing: the last monthly record is May 2026. The

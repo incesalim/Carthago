@@ -89,6 +89,7 @@ SYNC_TABLES = [
     "tkbb_acquisition_stats",
     "kap_ownership",
     "bank_advertised_rates",
+    "release_calendar",
     "faaliyet_franchise",
     "faaliyet_extractions",
     "tefas_manager_daily",

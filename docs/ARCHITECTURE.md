@@ -132,6 +132,7 @@ knows is running:
 | Workflow | When | Writes |
 |---|---|---|
 | `refresh-advertised-rates.yml` | Mon 06:00 UTC | `python -m src.rates.scraper` → `bank_advertised_rates` (per-bank posted loan/deposit rates; the sources only expose "today", so history accretes forward) |
+| `refresh-calendar.yml` | 1st of month 06:00 UTC | `python -m src.release_calendar.scraper` → `release_calendar` (TCMB's published calendar — MPC decisions/minutes, Inflation Report, Financial Stability Report; feeds the Ahead strips, retires the hand-typed `MPC_DATES`) |
 | `refresh-presentations-weekly.yml` | Sat 06:00 UTC | `update_presentations.py` → `bank_earnings` (IR presentation decks) |
 | `summarize-regulations.yml` | Sun 06:00 UTC | `summarize_regulations.py` → `regulation_briefings` (weekly Kimi briefing; needs `KIMI_API_TOKEN`) |
 | `generate-reads.yml` | Sun 07:30 UTC | `generate_read_headlines.py` → `read_headlines` (free-LLM rewrite of the one-sentence lead on each T1 tab; number-validated, and shown only while its `det_hash` matches the live page) |

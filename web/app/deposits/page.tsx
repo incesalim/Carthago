@@ -722,6 +722,10 @@ export default async function DepositsPage() {
                 what: <>BRSA {ahead["brsa-filings"].record} filings — deposit cost per bank</>,
                 href: "/earnings",
               },
+              ahead["inflation-report"] && {
+                when: ahead["inflation-report"].when,
+                what: <>TCMB Inflation Report — the real-return backdrop</>,
+              },
             ].filter((i) => !!i)}
           />
         </div>

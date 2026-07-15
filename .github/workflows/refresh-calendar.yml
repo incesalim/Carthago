@@ -1,0 +1,108 @@
+name: Refresh release calendar (monthly)
+
+# The Turkish banking release calendar — scheduled central-bank events, scraped
+# from TCMB's own "Monetary Policy Committee Meeting and Reports Calendar":
+# rate decisions, MPC minutes, the Inflation Report and the Financial Stability
+# Report. Feeds web/app/lib/ahead.ts, retiring the hand-transcribed MPC_DATES
+# (which survives only as the render-time fallback, still guarded by
+# scripts/check_calendar_fresh.py).
+#
+# When to run:
+#   - 1st of the month, 06:00 UTC. TCMB publishes the calendar a year or two
+#     ahead, so monthly is ample; it keeps the picked event fresh with margin.
+#   - Manually from the Actions tab.
+#
+# Idempotent: INSERT OR REPLACE on (source, kind, event_date), so a re-run just
+# refreshes the same rows. Parsed with requests + lxml (no browser) — the same
+# www.tcmb.gov.tr host the news lane already scrapes from CI.
+on:
+  schedule:
+    - cron: "0 6 1 * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+# Share the bulletin concurrency group so this can't race the other refresh
+# workflows on the R2 SQLite snapshot.
+concurrency:
+  group: bddk-pipeline
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      PYTHONIOENCODING: utf-8
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Fetch SQLite snapshot from R2 + decompress
+        run: |
+          python - <<'PY'
+          import gzip, shutil, pathlib
+          from src.audit_reports import r2_storage
+          gz  = pathlib.Path("data/bddk_data.db.gz")
+          db  = pathlib.Path("data/bddk_data.db")
+          gz.parent.mkdir(parents=True, exist_ok=True)
+          if r2_storage.exists("state/bddk_data.db.gz"):
+              size = r2_storage.download_to("state/bddk_data.db.gz", gz)
+              print(f"Pulled state/bddk_data.db.gz from R2 ({size/1e6:.1f} MB)")
+              with gzip.open(gz, "rb") as s, open(db, "wb") as d:
+                  shutil.copyfileobj(s, d)
+              print(f"Decompressed to {db.stat().st_size/1e6:.1f} MB")
+          else:
+              print("No snapshot in R2 yet — starting from empty DB.")
+          PY
+
+      - name: Scrape TCMB calendar
+        run: python -m src.release_calendar.scraper
+
+      - name: Setup Node (for wrangler)
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
+      - name: Push new rows to Cloudflare D1
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        # 720h (30-day) window covers the monthly cadence with margin. Idempotent
+        # INSERT OR REPLACE on the (source, kind, event_date) key.
+        run: python scripts/push_to_d1.py --hours 720 --only-tables release_calendar
+
+      # This lane runs the scraper directly rather than scripts/refresh.py, so the
+      # snapshot must be re-compressed here — otherwise we'd re-upload the stale
+      # .gz we downloaded and silently drop this run's rows from the snapshot.
+      - name: Re-gzip + upload snapshot back to R2
+        run: |
+          python - <<'PY'
+          import gzip, shutil, pathlib
+          from src.audit_reports import r2_storage
+          gz, db = pathlib.Path("data/bddk_data.db.gz"), pathlib.Path("data/bddk_data.db")
+          with open(db, "rb") as src, gzip.open(gz, "wb", compresslevel=9) as dst:
+              shutil.copyfileobj(src, dst)
+          size = r2_storage.upload_file(gz, "state/bddk_data.db.gz")
+          print(f"Uploaded {size/1e6:.1f} MB to R2 state/bddk_data.db.gz")
+          PY
+
+      - name: Alert on failure
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+        run: python scripts/notify.py "❌ ${{ github.workflow }} failed — ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

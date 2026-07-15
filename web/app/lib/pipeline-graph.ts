@@ -69,6 +69,7 @@ export const PIPELINE_NODES: PipelineNode[] = [
   { id: "src-rss-google", kind: "source", layer: "source", lane: "bulletin", label: "Google News", sublabel: "topic-scoped search RSS · long-tail outlets", statusKey: "news" },
   { id: "src-ir-presentations", kind: "source", layer: "source", lane: "bulletin", label: "Bank IR presentation decks", sublabel: "Garanti BBVA / Akbank / Yapı Kredi · quarterly PDF" },
   { id: "src-advertised-rates", kind: "source", layer: "source", lane: "bulletin", label: "Rate comparison sites", sublabel: "doviz.com (loans) · hangikredi (deposits) · per-bank posted rates", statusKey: "advertised_rates" },
+  { id: "src-tcmb-calendar", kind: "source", layer: "source", lane: "bulletin", label: "TCMB release calendar", sublabel: "www.tcmb.gov.tr · MPC decisions + minutes + Inflation/Financial-Stability reports", statusKey: "release_calendar" },
 
   // ── Bulletin lane · ingestion (workflows) ──────────────────────────────
   { id: "wf-evds-daily", kind: "workflow", layer: "ingestion", lane: "bulletin", label: "refresh-evds-daily", sublabel: "Sun–Fri 05:00 · EVDS + BIST/TBB/KAP/TEFAS", workflowFile: "refresh-evds-daily.yml" },
@@ -81,6 +82,7 @@ export const PIPELINE_NODES: PipelineNode[] = [
   { id: "wf-summarize", kind: "workflow", layer: "ingestion", lane: "bulletin", label: "summarize-regulations", sublabel: "weekly Thu · LLM briefing", workflowFile: "summarize-regulations.yml" },
   { id: "wf-presentations", kind: "workflow", layer: "ingestion", lane: "bulletin", label: "refresh-presentations-weekly", sublabel: "Sat 06:00 · update_presentations.py", workflowFile: "refresh-presentations-weekly.yml" },
   { id: "wf-advertised-rates", kind: "workflow", layer: "ingestion", lane: "bulletin", label: "refresh-advertised-rates", sublabel: "Mon 06:00 · src.rates.scraper → push_to_d1", workflowFile: "refresh-advertised-rates.yml" },
+  { id: "wf-calendar", kind: "workflow", layer: "ingestion", lane: "bulletin", label: "refresh-calendar", sublabel: "1st 06:00 · src.release_calendar.scraper → push_to_d1", workflowFile: "refresh-calendar.yml" },
 
   // ── Bulletin lane · storage (D1) ───────────────────────────────────────
   { id: "store-d1-bulletin", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · bulletin tables", sublabel: "balance_sheet · income_statement · loans · deposits · ratios · weekly", statusKey: "monthly" },
@@ -95,6 +97,7 @@ export const PIPELINE_NODES: PipelineNode[] = [
   { id: "store-d1-news", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · news_items", sublabel: "regulation + press + Google News · + per-bank tags", statusKey: "news" },
   { id: "store-d1-earnings", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · bank_earnings", sublabel: "KAP results filings + IR presentation decks" },
   { id: "store-d1-advertised-rates", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · bank_advertised_rates", sublabel: "per-bank posted loan + deposit rates · dated snapshots", statusKey: "advertised_rates" },
+  { id: "store-d1-release-calendar", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · release_calendar", sublabel: "scheduled TCMB events · feeds the Ahead strips", statusKey: "release_calendar" },
 
   // ── Audit lane · sources ───────────────────────────────────────────────
   { id: "src-ir-pdf", kind: "source", layer: "source", lane: "audit", label: "Bank IR / BRSA PDFs", sublabel: `${BANK_COUNT} banks · +13 auto-discover quarters`, statusKey: "audit" },
@@ -193,6 +196,7 @@ export const PIPELINE_EDGES: PipelineEdge[] = [
   { source: "src-kap", target: "wf-news-daily" },
   { source: "src-ir-presentations", target: "wf-presentations" },
   { source: "src-advertised-rates", target: "wf-advertised-rates" },
+  { source: "src-tcmb-calendar", target: "wf-calendar" },
 
   // bulletin workflows → D1 stores
   { source: "wf-evds-daily", target: "store-d1-evds" },
@@ -202,6 +206,7 @@ export const PIPELINE_EDGES: PipelineEdge[] = [
   { source: "wf-evds-daily", target: "store-d1-tefas" },
   { source: "wf-evds-daily", target: "store-d1-bist" },
   { source: "wf-advertised-rates", target: "store-d1-advertised-rates" },
+  { source: "wf-calendar", target: "store-d1-release-calendar" },
   { source: "wf-bddk-bulletins", target: "store-d1-bulletin" },
   { source: "wf-bddk-bulletins", target: "store-d1-nonbank" },
   { source: "wf-refresh-data", target: "store-d1-bulletin" },
@@ -248,6 +253,11 @@ export const PIPELINE_EDGES: PipelineEdge[] = [
   { source: "store-d1-bulletin", target: "page-asset-quality" },
   { source: "store-d1-bulletin", target: "page-capital" },
   { source: "store-d1-bulletin", target: "page-profitability" },
+  { source: "store-d1-release-calendar", target: "page-overview" },
+  { source: "store-d1-release-calendar", target: "page-deposits" },
+  { source: "store-d1-release-calendar", target: "page-capital" },
+  { source: "store-d1-release-calendar", target: "page-profitability" },
+  { source: "store-d1-release-calendar", target: "page-liquidity" },
   { source: "store-d1-bulletin", target: "page-rates" },
   { source: "store-d1-bulletin", target: "page-liquidity" },
   { source: "store-d1-bulletin", target: "page-economy" },

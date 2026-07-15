@@ -609,6 +609,10 @@ export default async function ProfitabilityPage() {
                 when: ahead.mpc.when,
                 what: <>TCMB MPC — the rate the engine reprices to</>,
               },
+              ahead["inflation-report"] && {
+                when: ahead["inflation-report"].when,
+                what: <>TCMB Inflation Report — where the hurdle is headed</>,
+              },
               ahead["bddk-monthly"] && {
                 when: ahead["bddk-monthly"].when,
                 what: (

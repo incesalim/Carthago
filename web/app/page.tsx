@@ -663,6 +663,14 @@ export default async function OverviewPage({
           <Ahead
             items={[
               ahead.mpc && { when: ahead.mpc.when, what: <>TCMB MPC — rate decision</> },
+              ahead["inflation-report"] && {
+                when: ahead["inflation-report"].when,
+                what: <>TCMB Inflation Report — the policy outlook</>,
+              },
+              ahead.fsr && {
+                when: ahead.fsr.when,
+                what: <>TCMB Financial Stability Report</>,
+              },
               ahead["bddk-monthly"] && {
                 when: ahead["bddk-monthly"].when,
                 what: <>BDDK monthly bulletin — {ahead["bddk-monthly"].record} record</>,
