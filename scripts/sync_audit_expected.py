@@ -257,6 +257,13 @@ def build(conn: sqlite3.Connection, use_r2: bool):
             # it's not-applicable. (A bank that DOES disclose interim has rows → ok/error.)
             if status == "missing" and st.annual_only and not p.upper().endswith("Q4"):
                 status = "not_expected"
+            # Conditional-disclosure lanes (e.g. free provision): only banks that
+            # actually HOLD one disclose it, so an empty cell means "no such reserve",
+            # not a gap. The recall cross-check (check_audit_quality freeprov) has
+            # already proven no real holding is hidden among the empties, so absence
+            # is genuinely not-applicable.
+            if status == "missing" and getattr(st, "conditional", False):
+                status = "not_expected"
             # Curated: this partition's report genuinely doesn't disclose the lane
             # (verified vs PDF) — a brief interim/summary filing, or a bank that
             # structurally never states the lane (period/kind '*'). '*' statement
