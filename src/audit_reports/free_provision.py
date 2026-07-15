@@ -66,6 +66,18 @@ _PRIOR = re.compile(
 # amount so a "cancelled" clause about a DIFFERENT number can't veto the stock.
 _FLOW = re.compile(r"revers|cancel|iptal|ilave|is\s+reversed|expense|gider", re.I)
 
+# Signals that the matched amount is the TOTAL free provision (a bank may report
+# a total plus sub-components — "Free Provision for Possible Risks" etc.; the
+# total is authoritative). "of total of TL X", "TL X … which consists of …",
+# "… of which … provided" all mark X as the decomposed total. A match carrying
+# one of these outranks a bare note sub-line, so BURGAN's 1,314,025 total beats
+# its 38,000 "for Possible Risks" sub-line.
+_TOTAL_SIGNAL = re.compile(
+    r"of\s+total\s+of|total\s+free\s+provision|toplam.{0,25}serbest\s+kar"
+    r"|which\s+consists\s+of|,?\s*of\s+which\b",
+    re.I,
+)
+
 # Explicit "the bank holds none". `.` (no DOTALL) allows the "." thousands
 # separator but stays on the logical line.
 _NONE = re.compile(
@@ -165,7 +177,14 @@ def classify_free_provision(pages: list[str]) -> FreeProvision:
                 if _FLOW.search(text[max(0, m.start(1) - 55): m.end() + 35]):
                     continue
                 prior = _PRIOR.search(text[m.start(): m.start() + 400])
-                rank = page_rank + 2 + (2 if prior else 0)
+                # A stated TOTAL is authoritative — it outranks a bare note
+                # sub-line even one carrying a prior parenthetical. But only when
+                # no reversal verb sits in a wider window: "out of the total free
+                # provision of TL 7,300,000 … reversed" is the PRE-reversal total,
+                # not the current stock (the ALBRK trap), so it must not be boosted.
+                is_total = (bool(_TOTAL_SIGNAL.search(text[max(0, m.start() - 20): m.end() + 45]))
+                            and not _FLOW.search(text[max(0, m.start(1) - 90): m.start(1)]))
+                rank = page_rank + 2 + (2 if prior else 0) + (5 if is_total else 0)
                 if rank > best_rank:
                     best_rank = rank
                     res.disclosed = True
