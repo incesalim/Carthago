@@ -773,7 +773,7 @@ export default async function LiquidityPage() {
               ahead["brsa-filings"] && {
                 when: ahead["brsa-filings"].when,
                 what: <>BRSA {ahead["brsa-filings"].record} filings — LCR, NSFR, leverage</>,
-                href: "/earnings",
+                href: "/actions",
               },
               ahead.fsr && {
                 when: ahead.fsr.when,

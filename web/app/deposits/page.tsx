@@ -720,7 +720,7 @@ export default async function DepositsPage() {
               ahead["brsa-filings"] && {
                 when: ahead["brsa-filings"].when,
                 what: <>BRSA {ahead["brsa-filings"].record} filings — deposit cost per bank</>,
-                href: "/earnings",
+                href: "/actions",
               },
               ahead["inflation-report"] && {
                 when: ahead["inflation-report"].when,

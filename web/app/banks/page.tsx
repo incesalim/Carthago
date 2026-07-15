@@ -237,8 +237,8 @@ export default async function BanksPage() {
         <Register rows={rows} groups={groups} latest={through} maxPeriods={maxPeriods} />
 
         <div className="flex flex-wrap gap-x-6 gap-y-2 border-t border-hair pt-3">
-          <Link href="/disclosures" className="text-[12.5px] font-semibold text-primary">
-            Recent KAP disclosures (all banks) →
+          <Link href="/actions" className="text-[12.5px] font-semibold text-primary">
+            Bank actions (KAP filings, classified) →
           </Link>
           <Link href="/regulation" className="text-[12.5px] font-semibold text-primary">
             TCMB &amp; BDDK regulation →

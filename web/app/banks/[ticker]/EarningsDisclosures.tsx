@@ -55,7 +55,7 @@ export default function EarningsDisclosures({
           <div className="text-sm font-bold text-foreground">
             Quarterly results &amp; presentations
           </div>
-          <Link href="/earnings" className="text-xs text-muted-foreground hover:text-foreground">
+          <Link href="/actions" className="text-xs text-muted-foreground hover:text-foreground">
             all banks →
           </Link>
         </div>
@@ -94,7 +94,7 @@ export default function EarningsDisclosures({
           <div className="text-sm font-bold text-foreground">Recent KAP disclosures</div>
           {kap.length > 0 && (
             <Link
-              href={`/disclosures?ticker=${ticker}`}
+              href={`/actions?ticker=${ticker}`}
               className="text-xs text-muted-foreground hover:text-foreground"
             >
               all {ticker} →

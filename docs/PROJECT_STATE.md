@@ -736,11 +736,23 @@ A qualitative-data layer feeds four tabs from the `news_items` table
   handful of new items (capped by `--google-max-decode`, default 60), so the
   rate-limit never bites; a decode failure keeps the still-clickable google link
   and retries next run.
-- **/disclosures** — the banks' own **KAP filings** (`source='kap'`): material-event
-  disclosures as each bank files them, tagged to banks via `news_item_banks` so the
-  same items surface on `/banks/[ticker]`. The regulator/press tabs above are what
-  is said *about* the sector; this is what the banks are legally obliged to say
-  themselves.
+- **/actions** — the banks' own **KAP filings** (`source='kap'`), **classified by
+  the act each records** rather than shown reverse-chronologically. Replaces the old
+  `/earnings` (a link directory) and `/disclosures` (a raw feed, 27% of it
+  coupon-payment plumbing), both of which now 307-redirect here (`?ticker=` preserved).
+  `web/app/lib/kap-actions.ts` is a **deterministic** classifier (no LLM sets a
+  category) over the KAP form type + summary, sorting each filing into wholesale
+  funding & capital instruments, capital/shareholder events, rating actions, results,
+  other material events, governance, or *routine* (suppressed). It **fails safe**:
+  only provably-mechanical filings are suppressed (an allow-list); anything
+  unrecognised lands in the visible `material` bucket, never dropped. Every figure on
+  the page (190 funding filings, 103 offshore, etc.) is computed at request time from
+  `news_items` — no new source, table, column or cron; the daily news refresh already
+  keeps it current. Locked by `kap-actions.test.ts` (real KAP fixtures per bucket).
+  **Honest limit printed in-UI:** we hold only the title + summary (KAP's structured
+  amount/ISIN/maturity/coupon fields live on the detail form, `body_text` is empty), so
+  the page **counts acts; it does not measure them**. Same items still surface on
+  `/banks/[ticker]` via `news_item_banks`.
 - **Per-bank tagging** (`news_item_banks`, migration 0018) — a sync_news
   post-step (`src/news/bank_tagger.py`, pure-local like the earnings
   classifier) matches every press/google item's title+summary against a
@@ -757,7 +769,8 @@ A qualitative-data layer feeds four tabs from the `news_items` table
   chips on /news + /news/google cards.
 
 A separate **earnings lane** (`bank_earnings` table, migration 0015,
-`src/earnings/`) feeds **/earnings** and an "Earnings & Presentations" block on
+`src/earnings/`) feeds the **"Results season"** section of **/actions** (the
+`/earnings` route redirects there) and an "Earnings & Presentations" block on
 each `/banks/[ticker]` page:
 
 - **Tier 1 — results-filing calendar (`source='kap'`).** `src/earnings/from_kap.py`

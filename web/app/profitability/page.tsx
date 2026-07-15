@@ -624,7 +624,7 @@ export default async function ProfitabilityPage() {
               ahead["brsa-filings"] && {
                 when: ahead["brsa-filings"].when,
                 what: <>BRSA {ahead["brsa-filings"].record} filings — per-bank margins</>,
-                href: "/earnings",
+                href: "/actions",
               },
               {
                 when: "MONTHLY",

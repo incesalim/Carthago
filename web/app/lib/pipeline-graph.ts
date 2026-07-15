@@ -151,7 +151,7 @@ export const PIPELINE_NODES: PipelineNode[] = [
   { id: "page-ownership", kind: "page", layer: "page", lane: "bulletin", label: "Ownership", sublabel: "/ownership", href: "/ownership" },
   { id: "page-regulation", kind: "page", layer: "page", lane: "bulletin", label: "Regulation", sublabel: "/regulation", href: "/regulation" },
   { id: "page-news", kind: "page", layer: "page", lane: "bulletin", label: "News", sublabel: "/news", href: "/news" },
-  { id: "page-earnings", kind: "page", layer: "page", lane: "bulletin", label: "Earnings", sublabel: "/earnings · results calendar + presentation decks", href: "/earnings" },
+  { id: "page-earnings", kind: "page", layer: "page", lane: "bulletin", label: "Actions", sublabel: "/actions · funding, capital events, ratings, results", href: "/actions" },
 
   // ── Audit lane · pages ─────────────────────────────────────────────────
   { id: "page-banks", kind: "page", layer: "page", lane: "audit", label: "Banks", sublabel: "/banks", href: "/banks" },
@@ -289,6 +289,9 @@ export const PIPELINE_EDGES: PipelineEdge[] = [
   { source: "store-d1-news", target: "page-news" },
   // per-bank "In the News" (news_item_banks tags → /banks/[ticker])
   { source: "store-d1-news", target: "page-bank-detail" },
+  // /actions classifies the KAP filing stream (news_items) and adds results +
+  // IR decks from bank_earnings.
+  { source: "store-d1-news", target: "page-earnings" },
   { source: "store-d1-earnings", target: "page-earnings" },
   { source: "store-d1-earnings", target: "page-bank-detail" },
 
