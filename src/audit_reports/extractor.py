@@ -115,10 +115,13 @@ _DUP_DIGIT_RX = re.compile(r'([.,])(\d)(\d{2})\3(?=\D|$)')
 #   (a) PARENTHESIZED "(I-10)", "(II-8)", "(I-e-f)" — TEB/EXIM dipnot column;
 #       the trailing digits ("-10") otherwise leak as a value and truncate the
 #       label (TEB 4.3 "(I-10)" → stored -10 / -5).
-#   (b) UNPARENTHESIZED "V-II-9", "V-I-15", "V - I - 13" — ANADOLU.
+#   (b) UNPARENTHESIZED "V-II-9", "V-I-15", "V - I - 13" — ANADOLU; and the
+#       digit-led dipnot column "5-II-5", "5-II-10" — DUNYAK/EMLAK, where the
+#       "5" is the note SECTION number. The middle element is always roman, so a
+#       plain value (which never carries a roman letter) can't match either way.
 _ROMAN_FN_RX = re.compile(
-    r'\(\s*[IVXivx]+\s*-\s*[A-Za-z0-9][A-Za-z0-9.\s-]*\)'   # (a) parenthesized
-    r'|\b[IVX]+\s*-\s*[IVX]+(?:\s*-\s*\d{1,3})?\b')          # (b) unparenthesized
+    r'\(\s*[IVXivx]+\s*-\s*[A-Za-z0-9][A-Za-z0-9.\s-]*\)'         # (a) parenthesized
+    r'|\b(?:[IVX]+|\d{1,2})\s*-\s*[IVX]+(?:\s*-\s*\d{1,3})?\b')   # (b) unparenthesized
 # Comma-for-dot hierarchy markers: BURGAN 2025Q3's text layer renders the
 # marker separator as a comma — "I,", "1,1", "1,1,1" — the SAME glyph as the
 # thousands separator. TSKB goes further and renders ONLY the last separator as
