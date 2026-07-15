@@ -47,8 +47,9 @@ const STATIC_ROUTES: {
   { path: "/rates", priority: 0.7, changeFrequency: "weekly" },
   { path: "/market-risk", priority: 0.7, changeFrequency: "weekly" },
   { path: "/ownership", priority: 0.6, changeFrequency: "monthly" },
-  { path: "/disclosures", priority: 0.7, changeFrequency: "daily" },
-  { path: "/earnings", priority: 0.7, changeFrequency: "weekly" },
+  // /earnings and /disclosures 307-redirect to /actions since 2026-07-15 — a
+  // sitemap must not list redirecting URLs, so only /actions appears.
+  { path: "/actions", priority: 0.7, changeFrequency: "daily" },
   { path: "/regulation", priority: 0.7, changeFrequency: "weekly" },
   { path: "/news", priority: 0.7, changeFrequency: "daily" },
   { path: "/news/google", priority: 0.6, changeFrequency: "daily" },

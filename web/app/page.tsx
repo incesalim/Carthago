@@ -682,7 +682,7 @@ export default async function OverviewPage({
                     BRSA {ahead["brsa-filings"].record} filings — audited statements + capital
                   </>
                 ),
-                href: "/earnings",
+                href: "/actions",
               },
               { when: "FRI", what: <>BDDK weekly series — credit, deposits, FX</> },
             ].filter((i) => !!i)}

@@ -36,8 +36,7 @@ const SECTIONS: NavSection[] = [
       { href: "/banks", label: "Banks" },
       { href: "/cross-bank", label: "Compare" },
       { href: "/ownership", label: "Ownership" },
-      { href: "/earnings", label: "Earnings" },
-      { href: "/disclosures", label: "Disclosures" },
+      { href: "/actions", label: "Actions" },
     ],
   },
   {

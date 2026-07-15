@@ -607,7 +607,7 @@ export default async function CapitalPage() {
                     BRSA {ahead["brsa-filings"].record} filings — CET1, Tier-1 and RWA per bank
                   </>
                 ),
-                href: "/earnings",
+                href: "/actions",
               },
               ahead.mpc && {
                 when: ahead.mpc.when,
