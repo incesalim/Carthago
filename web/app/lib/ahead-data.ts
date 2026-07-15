@@ -1,29 +1,39 @@
 /**
  * The D1 side of the release schedule. `ahead.ts` stays pure (and unit-tested);
- * this fetches the three facts it needs and hands back the slots.
+ * this fetches the facts it needs and hands back the slots.
  *
- * One cached query for the record periods plus the (cached) observed filing lag —
- * cheap enough for the five pages that carry an `Ahead` block.
+ * Two cached queries — the record periods and the scraped TCMB calendar
+ * (release_calendar) — plus the (cached) observed filing lag. Cheap enough for
+ * the pages that carry an `Ahead` block.
  */
 import { cachedAll } from "./db";
 import { filingLagDays } from "./earnings";
-import { aheadDates, type AheadKind, type Slot } from "./ahead";
+import { aheadDates, type AheadKind, type CalendarEvent, type Slot } from "./ahead";
 
 export type AheadSlots = Partial<Record<AheadKind, Slot & { record?: string }>>;
 
 export async function aheadSlots(now: Date = new Date()): Promise<AheadSlots> {
   try {
-    const [periods, filingLag] = await Promise.all([
+    const nowIso = now.toISOString().slice(0, 10);
+    const [periods, events, filingLag] = await Promise.all([
       cachedAll<{ monthly: string | null; audit: string | null }>(
         `SELECT
            (SELECT MAX(year || '-' || PRINTF('%02d', month)) FROM financial_ratios) AS monthly,
            (SELECT MAX(period) FROM bank_audit_balance_sheet) AS audit`,
       ),
+      // The scraped TCMB calendar — future rows only; ahead.ts picks next-of-kind.
+      cachedAll<CalendarEvent>(
+        `SELECT kind, event_date FROM release_calendar
+          WHERE source = 'tcmb' AND event_date >= ?
+          ORDER BY event_date`,
+        [nowIso],
+      ).catch(() => [] as CalendarEvent[]),
       filingLagDays(),
     ]);
     const p = periods[0];
     return aheadDates({
       now,
+      events,
       latestMonthly: p?.monthly ?? null,
       latestAudit: p?.audit ?? null,
       filingLag,

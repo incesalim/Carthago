@@ -6,33 +6,61 @@
  * and silently wrong a fortnight later: the only forward-looking surface on the
  * site was also the only fully hand-authored one, and nothing derived it.
  *
- * Three of the row kinds are computable from data we already hold:
+ * The row kinds come from two places:
  *
- *   bddk-monthly   the record month is in D1; a bulletin for month M lands about
- *                  the 12th of M+2 (May's record was in by 12 Jul; June's is due
- *                  ~12 Aug — which is exactly what the hand-typed row said)
- *   brsa-filings   `bank_earnings` holds the KAP filing dates that ALREADY
- *                  happened, so the lag from quarter-end is observed, not guessed
- *   mpc            the one irreducible artefact — see MPC_DATES
+ *   SCRAPED (release_calendar in D1, from TCMB's published calendar):
+ *     mpc                the rate decision
+ *     mpc-minutes        "Summary of the MPC Meeting"
+ *     inflation-report   quarterly
+ *     fsr                Financial Stability Report, twice-yearly
+ *   DERIVED (from record cadence — no external source needed):
+ *     bddk-monthly   the record month is in D1; a bulletin for month M lands about
+ *                    the 12th of M+2 (May's record was in by 12 Jul; June's ~12 Aug)
+ *     brsa-filings   `bank_earnings` holds the KAP filing dates that ALREADY
+ *                    happened, so the lag from quarter-end is observed, not guessed
  *
- * The purely cadence-based rows ("FRI", "THU", "MONTHLY") never go stale and stay
- * as literals on the pages: a claim that is true every week is not a claim.
+ * MPC used to be hand-transcribed into MPC_DATES; it is now scraped, and MPC_DATES
+ * survives only as the render-time fallback when the scrape is unavailable. The
+ * report kinds have no fallback — absent a scrape, their rows are simply omitted.
  *
- * Every function here is pure and takes `now` as an argument, so the schedule is
- * unit-testable and the pages (all `force-dynamic`) pass the real request time.
- * A kind whose date cannot be established returns nothing and the page OMITS the
- * row — never a date in the past.
+ * The purely cadence-based rows ("FRI", "THU") never go stale and stay as literals
+ * on the pages: a claim that is true every week is not a claim.
+ *
+ * Every function here is pure and takes `now` (and the scraped events) as
+ * arguments, so the schedule is unit-testable and the pages (all `force-dynamic`)
+ * pass the real request time. A kind whose date cannot be established returns
+ * nothing and the page OMITS the row — never a date in the past.
  */
 
-export type AheadKind = "mpc" | "bddk-monthly" | "brsa-filings";
+export type AheadKind =
+  | "mpc"
+  | "mpc-minutes"
+  | "inflation-report"
+  | "fsr"
+  | "bddk-monthly"
+  | "brsa-filings";
+
+/** A scraped release_calendar row (D1 `kind` is snake_case: 'mpc_decision', …). */
+export interface CalendarEvent {
+  kind: string;
+  event_date: string;
+}
+
+/** D1 `release_calendar.kind` → the AheadKind it feeds. */
+const TCMB_KIND: Record<string, AheadKind> = {
+  mpc_decision: "mpc",
+  mpc_minutes: "mpc-minutes",
+  inflation_report: "inflation-report",
+  financial_stability_report: "fsr",
+};
 
 /**
- * The only hand-typed forward date left in the app.
+ * The MPC fallback list — no longer the source, only the safety net.
  *
- * TCMB publishes its MPC calendar a year or two ahead and nothing scrapes it, so
- * this is transcribed from the source below. `scripts/check_calendar_fresh.py`
- * FAILS CI once the last date here is under 90 days away — it cannot quietly run
- * out the way the `Ahead` blocks did.
+ * The dates are scraped into `release_calendar` now (src/release_calendar), so
+ * this is used only when the scrape is unavailable at render time. It is still
+ * guarded by `scripts/check_calendar_fresh.py` (FAILS CI under 90 days of
+ * runway) so the fallback itself can never quietly run out.
  *
  * Transcribed 2026-07-14. TCMB lists no July/August 2027 meeting.
  */
@@ -122,6 +150,8 @@ export function mpcRunwayDays(now: Date): number {
 
 export interface AheadInput {
   now: Date;
+  /** Scraped TCMB events (release_calendar); feeds mpc + the report kinds. */
+  events?: CalendarEvent[];
   /** Latest BDDK monthly record in D1, 'YYYY-MM'. */
   latestMonthly?: string | null;
   /** Latest audited quarter in D1, 'YYYYQn'. */
@@ -136,19 +166,40 @@ export interface AheadInput {
  */
 export function aheadDates({
   now,
+  events,
   latestMonthly,
   latestAudit,
   filingLag,
 }: AheadInput): Partial<Record<AheadKind, Slot & { record?: string }>> {
   const out: Partial<Record<AheadKind, Slot & { record?: string }>> = {};
+  const today = iso(now);
 
-  const mpc = nextMpc(now);
+  /** The next scraped event (on or after today) that feeds `kind`. */
+  const nextEvent = (kind: AheadKind): string | null => {
+    const dates = (events ?? [])
+      .filter((e) => TCMB_KIND[e.kind] === kind && e.event_date >= today)
+      .map((e) => e.event_date)
+      .sort();
+    return dates[0] ?? null;
+  };
+
+  // MPC decision — the scraped calendar, falling back to the hand-typed list so a
+  // scrape outage degrades to the previous behaviour, never to a blank.
+  const scrapedMpc = nextEvent("mpc");
+  const mpc = scrapedMpc ?? nextMpc(now);
   if (mpc) {
     out.mpc = {
       when: dayLabel(mpc),
       date: mpc,
-      rule: "tcmb published mpc calendar",
+      rule: scrapedMpc ? "tcmb published calendar" : "tcmb calendar (fallback list)",
     };
+  }
+
+  // The other TCMB events come only from the scrape — no fallback, so a missing
+  // one just omits its row.
+  for (const kind of ["mpc-minutes", "inflation-report", "fsr"] as const) {
+    const d = nextEvent(kind);
+    if (d) out[kind] = { when: dayLabel(d), date: d, rule: "tcmb published calendar" };
   }
 
   // The next record is the month after the last one we hold; it publishes around

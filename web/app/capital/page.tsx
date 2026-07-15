@@ -613,6 +613,10 @@ export default async function CapitalPage() {
                 when: ahead.mpc.when,
                 what: <>TCMB MPC — the rate that prices the AT1 stack</>,
               },
+              ahead.fsr && {
+                when: ahead.fsr.when,
+                what: <>TCMB Financial Stability Report — the systemic read</>,
+              },
               step?.isBreak && {
                 when: "OPEN",
                 what: (

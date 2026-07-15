@@ -775,6 +775,10 @@ export default async function LiquidityPage() {
                 what: <>BRSA {ahead["brsa-filings"].record} filings — LCR, NSFR, leverage</>,
                 href: "/earnings",
               },
+              ahead.fsr && {
+                when: ahead.fsr.when,
+                what: <>TCMB Financial Stability Report — funding &amp; liquidity risks</>,
+              },
             ].filter((i) => !!i)}
           />
         </div>
