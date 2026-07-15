@@ -71,8 +71,10 @@ def _nd_matches(entries: list[dict], b: str, p: str, k: str, st) -> bool:
         if e["bank"].upper() != b.upper():
             continue
         ep, ek = e.get("period", "*"), e.get("kind", "*")
-        if ep != "*" and ep.upper() != p.upper():
-            continue
+        if ep != "*":
+            eps = ep if isinstance(ep, list) else [ep]
+            if p.upper() not in [x.upper() for x in eps]:
+                continue
         if ek != "*" and ek != k:
             continue
         stt = e.get("statement")
