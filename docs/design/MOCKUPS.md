@@ -40,6 +40,18 @@ Status vocabulary: **SHIPPED** (built, live) · **PROPOSED** (made, not built) �
 
 ---
 
+## 2026-07-15 — the admin control center
+
+The last page still built entirely from the legacy `Card`/`Stat`/`Section`
+evidence surfaces — boxed tiles, pill badges, three-deep equal-weight scroll,
+no summary. Argued into the Desk.
+
+| Artefact | Status | Local | Link |
+|---|---|---|---|
+| **Control center** (`/admin`) — the pipeline-health / triggers / traffic console redesigned into a Desk two-layer page | **PROPOSED 2026-07-15** — mockup only; the live page (`web/app/admin/page.tsx` + `PipelinePanel`/`TrafficPanel`/`coverage/*` + `web/app/lib/admin-health.ts`) is unchanged. Premise: `/admin` is the one surface never converted to the Desk — it is still boxed `Stat` tiles with pill freshness badges and the framing "freshness per source, **against expected refresh cadence**", the exact age-vs-cadence logic that produced the daily false "stale" alarm on the monthly bulletin (now fixed in code: freshness asks BDDK if the next month is published rather than estimating a due date). The redesign keeps **every** byte of function — the six data-health sources, the coverage matrix + per-cell re-extract, all pipeline triggers, traffic, the PDF deck, the password gate — and restyles: the six sources become the **vitals band** (the one bold element per Desk rule 8), a computed status **Read** leads ("Every source is current. The monthly bulletin holds *May 2026* — the latest BDDK has published; June is not out yet, so nothing is late."), freshness prints BDDK's real answer ("June not yet published") not a calendar guess, Fresh/Late/Stale stay green/amber/red as **semantic state** (separate from the blue link accent), and controls become mono-caps ink-underline affordances — blue reserved for links that navigate. Build cost if chosen: convert `page.tsx` + `SourceCard` to `DeskHeader`/`SecHead`/`Vitals` + a `Colophon`; the section content (coverage/pipeline/traffic) is already computed, so it is a restyle, not a rebuild. | [html](mockups/2026-07-15-admin-page.html) | [artifact](https://claude.ai/code/artifact/f439323e-3a7f-4ea9-a1a5-ab773bdc0003) |
+
+---
+
 ## 2026-07-14 — deletions
 
 The user proposed **deleting** two pages. This is the register of what was argued back.
