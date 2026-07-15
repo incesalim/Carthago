@@ -213,8 +213,13 @@ def _upsert(conn, statement, bank, period, kind, rep) -> int:
         # overwrite a stored verdict. upsert_opinion returns None when empty.
         return _upsert_op(conn, bank, period, kind, op) or 0
     if statement == "free_provision":
+        # Re-extraction is AUTHORITATIVE: delete-then-insert so a partition that
+        # now extracts as empty (e.g. a value corrected away, or a former false
+        # positive) drops its stale row instead of being protected by the loader's
+        # additive skip-if-empty rule. The upsert still writes only disclosed rows.
+        conn.execute("DELETE FROM bank_audit_free_provision "
+                     "WHERE bank_ticker=? AND period=? AND kind=?", (bank, period, kind))
         fpr = getattr(rep, "free_provision", None)
-        # Skip-if-empty: no disclosure found must not wipe a captured value.
         return _upsert_fp(conn, bank, period, kind, fpr) or 0
     if statement == "credit_quality":
         report = CreditQualityReport(pdf_path=rep.pdf_path,
