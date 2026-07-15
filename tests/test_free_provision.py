@@ -113,6 +113,36 @@ def test_of_which_cancelled_subclause_keeps_the_stock():
     assert r.free_provision == 546889
 
 
+def test_total_beats_a_note_subline():
+    # BURGAN: the auditor's stated TOTAL (1,314,025) must win over a note
+    # sub-component ("Free Provision for Possible Risks" 38,000), even though the
+    # sub-line sits on a later note page and carries a prior parenthetical.
+    r = classify_free_provision([
+        "the financial statements include a free provision of total of TL 1,314,025 "
+        "thousands, of which TL 155,000 thousands had been cancelled.",  # p0 auditor
+    ] + [""] * 6 + [
+        "Free Provision for Possible Risks amounting to TL 38,000 (31 December 2023: "
+        "TL 48,438) for possible losses.",  # p7 note sub-line
+    ])
+    assert r.free_provision == 1_314_025
+
+
+def test_pre_reversal_total_is_not_the_stock():
+    # ALBRK: "out of the total free provision of TL 7,300,000 … reversed" is the
+    # PRE-reversal total; the current stock (300,000) from the note must win —
+    # the "total" signal must not promote the reversed-from amount.
+    r = classify_free_provision([
+        "a portion of the free provision amounting to TL 7,000,000 thousand is "
+        "reversed in the current period out of the total free provision of TL "
+        "7,300,000 thousand provided in prior years.",  # p0 auditor
+    ] + [""] * 6 + [
+        "Free provisions allocated for possible losses(*) 300.000 7.300.000 "
+        "(*) Includes free provisions amounting to TL 300.000 (December 31, 2024: "
+        "TL 7.300.000).",  # p7 note
+    ])
+    assert r.free_provision == 300_000
+
+
 def test_no_disclosure_is_empty():
     r = classify_free_provision(["Balance sheet and notes with no such reserve."] * 5)
     assert r.is_empty()
