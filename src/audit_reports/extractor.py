@@ -320,6 +320,8 @@ class BankReport:
     cash_flow: list[StatementRow] = field(default_factory=list)
     # Statement of changes in equity — wide BRSA template, two pages.
     equity_change: object = None
+    # Independent auditor's verdict (audit_opinion.OpinionResult or None).
+    audit_opinion: object = None
 
 
 def _split_label(label: str) -> tuple[str, str, str]:
@@ -1084,7 +1086,7 @@ def extract(pdf_path: str | Path, only: set[str] | None = None) -> BankReport:
     single-statement re-extraction path so a one-lane fix doesn't re-run all 14
     extractors per PDF. Valid names: bs_assets, bs_liabilities, off_balance,
     profit_loss, oci, equity_change, cash_flow, credit_quality, bank_profile,
-    loans_by_sector, npl_movement, capital, liquidity. The page-location chain a
+    audit_opinion, loans_by_sector, npl_movement, capital, liquidity. The page-location chain a
     requested statement depends on is always run (e.g. only={'cash_flow'} still
     locates P&L/OCI/equity to find the cash-flow page). `only=None` is unchanged —
     a full extract, identical to before."""
@@ -1110,6 +1112,14 @@ def extract(pdf_path: str | Path, only: set[str] | None = None) -> BankReport:
             rep.bank_profile = _extract_bp(pdf_path)
         except Exception:
             rep.bank_profile = None
+    # Independent auditor's opinion (clean / qualified / …) from the front matter.
+    if _want('audit_opinion'):
+        try:
+            from .audit_opinion import extract_opinion_from_pdf as _extract_op
+            _m = re.search(r"_(\d{4}Q\d)_", Path(pdf_path).name)
+            rep.audit_opinion = _extract_op(pdf_path, period=_m.group(1) if _m else "")
+        except Exception:
+            rep.audit_opinion = None
     # Loans-by-sector (Stage 2 / Stage 3 / ECL per sector).
     if _want('loans_by_sector'):
         try:

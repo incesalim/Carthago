@@ -71,6 +71,7 @@ SYNC_TABLES = [
     "bank_audit_profile",
     "bank_audit_loans_by_sector",
     "bank_audit_npl_movement",
+    "bank_audit_opinion",
     "bank_audit_stages",
     "bank_audit_capital",
     "bank_audit_liquidity",

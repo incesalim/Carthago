@@ -95,6 +95,10 @@ REGISTRY: list[StatementType] = [
                   "bank_audit_profile", None, None,
                   is_core=False, present_min_rows=1, has_validator=False,
                   validation_statement=None, sort_order=110),
+    StatementType("audit_opinion", "Audit opinion",
+                  "bank_audit_opinion", None, None,
+                  is_core=False, present_min_rows=1, has_validator=False,
+                  validation_statement=None, sort_order=115),
 ]
 
 BY_KEY: dict[str, StatementType] = {st.key: st for st in REGISTRY}

@@ -129,6 +129,7 @@ def upsert_report(
     from .fx_position import FxReport, upsert as _upsert_fx
     from .repricing import RepricingReport, upsert as _upsert_rp
     from .bank_profile import upsert_profile as _upsert_bp
+    from .audit_opinion import upsert_opinion as _upsert_op
     from .equity_change import EquityChangeReport, upsert as _upsert_eq
 
     # (counts key, build report from rep, upsert fn, skip when empty)
@@ -145,6 +146,9 @@ def upsert_report(
         # profile is INSERT OR REPLACE (no delete) — skip when empty so a failed
         # re-extract doesn't wipe a previously-captured branches/personnel row.
         ('profile',         lambda: getattr(rep, 'bank_profile', None),                                                    _upsert_bp,  True),
+        # opinion is INSERT OR REPLACE + skip-if-empty (no validator), like profile:
+        # a failed re-extract (opinion_type='unknown') must not wipe a stored verdict.
+        ('opinion',         lambda: getattr(rep, 'audit_opinion', None),                                                   _upsert_op,  True),
         ('equity_change',   lambda: getattr(rep, 'equity_change', None) or EquityChangeReport(pdf_path=pdf_path),          _upsert_eq,  False),
     ]
     # Footnote / §4 persisters: gate each on its own validation statement so a
