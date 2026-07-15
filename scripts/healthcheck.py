@@ -21,6 +21,7 @@ from notify import notify  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 WEB = ROOT / "web"
+sys.path.insert(0, str(ROOT))  # so the lazy BDDK-probe import resolves
 
 # (key, label, max_age_hours). Age-based staleness for the sources that publish
 # on a steady cadence. The MONTHLY bulletin is NOT here — it publishes ~once a
@@ -75,20 +76,52 @@ def next_monthly_due(period: str) -> date | None:
     return date(pub_year, pub_month, 12)
 
 
-def monthly_problem(period: str | None) -> str | None:
-    """Schedule-aware monthly freshness. None = fresh (nothing to alert)."""
+def _next_month(period: str) -> tuple[int, int]:
+    y, m = int(period[:4]), int(period[5:7])
+    return (y + 1, 1) if m == 12 else (y, m + 1)
+
+
+def monthly_problem(period: str | None, probe=None) -> str | None:
+    """Monthly freshness by ASKING BDDK, not by guessing a date.
+
+    BDDK publishes no calendar, so the authoritative question is "has BDDK
+    published the next month yet?" — the same one-request probe the extractor
+    uses (src/scrapers/bddk_probe). If BDDK has published it and D1 doesn't have
+    it → the extractor missed a release (alert). If BDDK hasn't → we hold the
+    latest data that exists → fresh, no alarm. `probe` is injectable for tests.
+
+    Only when BDDK itself can't be reached do we fall back to the schedule
+    estimate (next_monthly_due) — so a long outage that also stalled the
+    extractor still surfaces eventually.
+    """
     if not period:
         return "Monthly bulletin: no data"
+    ny, nm = _next_month(period)
+
+    if probe is None:
+        try:
+            from src.scrapers.bddk_probe import monthly_is_published as probe
+        except Exception:
+            probe = None
+    if probe is not None:
+        try:
+            if probe(ny, nm):
+                return (
+                    f"Monthly bulletin: {ny}-{nm:02d} is published by BDDK but not in "
+                    f"D1 — the extractor missed a release"
+                )
+            return None  # BDDK hasn't published the next month → up to date
+        except Exception as e:
+            print(f"monthly probe unreachable ({e}); using schedule backstop", file=sys.stderr)
+
+    # Backstop only: BDDK unreachable.
     due = next_monthly_due(period)
-    if due is None:
-        return None
-    overdue = (date.today() - due).days
-    if overdue > MONTHLY_OVERDUE_GRACE_DAYS:
+    if due and (date.today() - due).days > MONTHLY_OVERDUE_GRACE_DAYS:
         return (
-            f"Monthly bulletin: {period} is the latest, but the next month was "
-            f"due ~{due.isoformat()} ({overdue}d ago) — a release may have been missed"
+            f"Monthly bulletin: {period} is the latest; the next was due ~"
+            f"{due.isoformat()} and BDDK could not be probed"
         )
-    return None  # before the next release (or only just due) → fresh
+    return None
 
 
 def hours_since(ts: str | None) -> float | None:

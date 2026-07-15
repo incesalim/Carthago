@@ -42,9 +42,26 @@ def test_next_monthly_due_rolls_the_year():
     assert healthcheck.next_monthly_due("2026-12") == date(2027, 3, 12)
 
 
-def test_holding_the_latest_month_is_fresh_between_releases(monkeypatch):
-    # THE fix: with May held and the next bulletin not due until 12 Aug, an early
-    # July check must be silent — no daily "stale" alarm while the data is current.
+def test_fresh_when_bddk_has_not_published_the_next_month():
+    # THE fix: ask BDDK, don't guess. If BDDK hasn't published the next month, we
+    # hold the latest data that exists → silent, no daily "stale" alarm.
+    assert healthcheck.monthly_problem("2026-05", probe=lambda y, m: False) is None
+
+
+def test_alerts_when_next_month_is_published_but_missing():
+    # BDDK published the next month and we don't have it → the extractor missed it.
+    msg = healthcheck.monthly_problem("2026-05", probe=lambda y, m: True)
+    assert msg and "2026-06 is published by BDDK" in msg
+
+
+def test_probe_asks_about_the_month_after_the_one_we_hold():
+    seen = []
+    healthcheck.monthly_problem("2026-12", probe=lambda y, m: seen.append((y, m)) or False)
+    assert seen == [(2027, 1)]  # rolls the year
+
+
+def test_probe_failure_falls_back_to_the_schedule(monkeypatch):
+    # BDDK unreachable → schedule backstop; overdue past grace still surfaces.
     import datetime as _dt
 
     class FixedDate(_dt.date):
@@ -52,22 +69,14 @@ def test_holding_the_latest_month_is_fresh_between_releases(monkeypatch):
         def today(cls):
             return cls(2026, 7, 15)
 
-    monkeypatch.setattr(healthcheck, "date", FixedDate)
-    assert healthcheck.monthly_problem("2026-05") is None
-
-
-def test_a_genuinely_overdue_month_still_alerts(monkeypatch):
-    # Stuck two months back (next was due ~12 Jun, it's mid-July) → real miss.
-    import datetime as _dt
-
-    class FixedDate(_dt.date):
-        @classmethod
-        def today(cls):
-            return cls(2026, 7, 15)
+    def boom(y, m):
+        raise RuntimeError("bddk down")
 
     monkeypatch.setattr(healthcheck, "date", FixedDate)
-    msg = healthcheck.monthly_problem("2026-03")
-    assert msg and "due" in msg
+    # Held March: next (April) due ~12 Jun, mid-July → overdue → alert via backstop.
+    assert healthcheck.monthly_problem("2026-03", probe=boom)
+    # Held May: next (June) due ~12 Aug, still future → fresh even with probe down.
+    assert healthcheck.monthly_problem("2026-05", probe=boom) is None
 
 
 def test_missing_monthly_data_alerts():
