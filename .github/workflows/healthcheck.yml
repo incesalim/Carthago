@@ -37,6 +37,11 @@ jobs:
         with:
           python-version: "3.12"
 
+      # requests + certifi for the monthly BDDK publication probe (the check that
+      # replaced the age/estimate heuristic); the rest of the check is stdlib.
+      - name: Install probe deps
+        run: pip install requests certifi
+
       - name: Run health check
         run: python scripts/healthcheck.py
 

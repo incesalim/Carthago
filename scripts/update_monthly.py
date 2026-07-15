@@ -20,17 +20,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-import requests                                     # noqa: E402
 from src.scrapers.bddk_api_scraper import BDDKAPIScraper, BANK_TYPES  # noqa: E402
-from src.scrapers._http import bddk_verify          # noqa: E402
+from src.scrapers.bddk_probe import monthly_is_published  # noqa: E402
 
 DB_PATH = ROOT / "data" / "bddk_data.db"
-
-MONTHLY_PROBE_URL = "https://www.bddk.org.tr/BultenAylik/tr/Home/BasitRaporGetir"
-PROBE_HEADERS = {
-    "Content-Type": "application/x-www-form-urlencoded",
-    "User-Agent": "Mozilla/5.0",
-}
 
 
 # ---------------------------------------------------------------------------
@@ -54,17 +47,9 @@ def month_iter(start: tuple[int, int], stop: tuple[int, int]):
 
 
 def is_published(year: int, month: int) -> bool:
-    """Lightweight probe: fetch a single tiny response; is data returned?"""
-    payload = {
-        "tabloNo": "1", "yil": str(year), "ay": str(month),
-        "paraBirimi": "TL", "taraf[0]": "10001",
-    }
+    """Has BDDK published (year, month)? Probe errors count as 'not yet'."""
     try:
-        r = requests.post(MONTHLY_PROBE_URL, headers=PROBE_HEADERS,
-                          data=payload, timeout=20, verify=bddk_verify())
-        r.raise_for_status()
-        rows = r.json().get("Json", {}).get("data", {}).get("rows", [])
-        return bool(rows)
+        return monthly_is_published(year, month)
     except Exception as e:
         print(f"  probe error for {year}-{month:02d}: {e}", flush=True)
         return False
