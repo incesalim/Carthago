@@ -231,6 +231,35 @@ CREATE INDEX IF NOT EXISTS idx_bank_opinion_modified
   ON bank_audit_opinion(is_modified);
 
 
+-- Free provision (serbest karşılık) — the discretionary "rainy-day" reserve a
+-- bank sets aside OUTSIDE the BRSA provisioning rules. Auditors qualify over it
+-- (see bank_audit_opinion); releasing it inflates profit — the mechanism behind
+-- the ALBRK Q1-2025 case. Held nowhere before; lives only in the "Other
+-- provisions" liability note, in several prose/table forms. Classified by
+-- src/audit_reports/free_provision.py (deterministic, fitz-only).
+--   free_provision       current-period STOCK, thousand TL; 0 = bank holds none
+--   free_provision_prior prior-period (Dec 31) stock from the note's parenthetical
+--                        comparison — best-effort, may be NULL
+--   source_text          the matched sentence, for verification
+-- One row per (bank, period, kind). Only DISCLOSED rows are written (a row with
+-- free_provision=0 means the bank explicitly disclosed "none"; a MISSING row
+-- means no disclosure was found) — so a failed re-extract can't wipe a value.
+CREATE TABLE IF NOT EXISTS bank_audit_free_provision (
+    bank_ticker          TEXT NOT NULL,
+    period               TEXT NOT NULL,
+    kind                 TEXT NOT NULL,
+    free_provision       REAL,
+    free_provision_prior REAL,
+    source_page          INTEGER,
+    source_text          TEXT,
+    extracted_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (bank_ticker, period, kind)
+);
+
+CREATE INDEX IF NOT EXISTS idx_bank_freeprov_bank_period
+  ON bank_audit_free_provision(bank_ticker, period);
+
+
 -- Sector-level loan exposure with TFRS 9 stage breakdown. Sourced from
 -- the "Information by major sectors and type of counterparties" /
 -- "Önemli Sektörlere veya Karşı Taraf Türüne Göre" footnote table.

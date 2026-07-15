@@ -322,6 +322,8 @@ class BankReport:
     equity_change: object = None
     # Independent auditor's verdict (audit_opinion.OpinionResult or None).
     audit_opinion: object = None
+    # Free provision / serbest karşılık stock (free_provision.FreeProvision or None).
+    free_provision: object = None
 
 
 def _split_label(label: str) -> tuple[str, str, str]:
@@ -1086,7 +1088,7 @@ def extract(pdf_path: str | Path, only: set[str] | None = None) -> BankReport:
     single-statement re-extraction path so a one-lane fix doesn't re-run all 14
     extractors per PDF. Valid names: bs_assets, bs_liabilities, off_balance,
     profit_loss, oci, equity_change, cash_flow, credit_quality, bank_profile,
-    audit_opinion, loans_by_sector, npl_movement, capital, liquidity. The page-location chain a
+    audit_opinion, free_provision, loans_by_sector, npl_movement, capital, liquidity. The page-location chain a
     requested statement depends on is always run (e.g. only={'cash_flow'} still
     locates P&L/OCI/equity to find the cash-flow page). `only=None` is unchanged —
     a full extract, identical to before."""
@@ -1120,6 +1122,13 @@ def extract(pdf_path: str | Path, only: set[str] | None = None) -> BankReport:
             rep.audit_opinion = _extract_op(pdf_path, period=_m.group(1) if _m else "")
         except Exception:
             rep.audit_opinion = None
+    # Free provision (serbest karşılık) stock from the "Other provisions" note.
+    if _want('free_provision'):
+        try:
+            from .free_provision import extract_free_provision_from_pdf as _extract_fp
+            rep.free_provision = _extract_fp(pdf_path)
+        except Exception:
+            rep.free_provision = None
     # Loans-by-sector (Stage 2 / Stage 3 / ECL per sector).
     if _want('loans_by_sector'):
         try:
