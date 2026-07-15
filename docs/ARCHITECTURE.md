@@ -110,7 +110,7 @@ everything. A separate daily job, `refresh-news-daily.yml` (04:00 UTC), refreshe
 ### BDDK bulletins — `.github/workflows/refresh-bddk-bulletins.yml`
 Isolated BDDK-only refresh (`--skip-evds`, no audit), split by schedule via
 `github.event.schedule`:
-- **Daily 07:00 UTC** (10:00 Turkey) — monthly check. The monthly bulletin lands
+- **Daily 16:00 UTC** (10:00 Turkey) — monthly check. The monthly bulletin lands
   mid-month on no fixed day, so `update_monthly.py` probes daily and scrapes only
   when BDDK has published a new month (cheap otherwise).
 - **Friday 13:30 + 15:30 UTC** (16:30 & 18:30 Turkey) — weekly. BDDK publishes the
