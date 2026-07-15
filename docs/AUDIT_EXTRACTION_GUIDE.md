@@ -75,6 +75,8 @@
 > old pdfplumber layout-repair). `_fitz_page_text` is the single text reader; do not add
 > another PDF engine. Several lanes still carry *comments* mentioning pdfplumber artifacts
 > (split digits, collapsed spaces); the repairs remain useful, the attribution is historical.
+> **CI-enforced:** `scripts/check_no_pdfplumber.py` (a gate in `ci.yml`) fails the build on
+> any `import pdfplumber` in `src/`/`scripts/`/`tests/` or in `requirements.txt`/`ci.yml`.
 
 - **`/Rotate 90` pages garble everything — check `page.rotation` FIRST.** On a rotated
   page (GARAN/AKBNK landscape statements) fitz reports word bboxes in the page's
