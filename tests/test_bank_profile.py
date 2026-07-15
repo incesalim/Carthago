@@ -241,6 +241,26 @@ def test_activity_report_exim_points_and_dunyak():
                       "171'dir.") == 171
 
 
+def test_note8_branch_table_header_anchored():
+    # Note-VIII "Number/Employees" table: İşbank (EN) and AKTIF (TR). First number
+    # = branches, second = staff. Present in year-end PDFs the prose omits.
+    d, f, t = _branches("REPRESENTATIVE OFFICES Number Employees Domestic Branches "
+                        "(*) 997 20,246 Country of Incorporation Foreign 1 3")
+    assert t == 997
+    assert _personnel("Number Employees Domestic Branches (*) 997 20,246 Country "
+                      "of Incorporation") == 20246
+    assert _branches("temsilciliklerine ilişkin açıklamalar Sayı Çalışan sayısı "
+                     "Yurtiçi şube 16 747 Bulunduğu ülke")[2] == 16
+    assert _personnel("Sayı Çalışan sayısı Yurtiçi şube 16 747 Bulunduğu") == 747
+
+
+def test_note8_requires_header_no_junk_match():
+    # A bare "Domestic Branches N M" WITHOUT the "Number Employees" header (e.g. a
+    # loan/geography table row) must NOT be read as a branch/staff count.
+    assert _branches("Loans to Domestic Branches 212 606 837 within maturity")[2] is None
+    assert _personnel("Residents Abroad Domestic Branches 212 606 total") is None
+
+
 def test_ps_bbva_group_headcount_not_captured():
     # GARAN — "more than 127 thousand employees" describes the BBVA group, not
     # Garanti; the "thousand" between number and noun blocks the match.

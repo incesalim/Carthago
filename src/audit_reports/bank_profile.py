@@ -164,6 +164,17 @@ _BR_EN_DOM_OVERSEAS = _c(
 # EN Eximbank: "32 different points, 25 of which are branches" ⇒ 25 (group n).
 _BR_EN_POINTS = _c(
     rf"(?:{_D})\s+(?:different\s+)?points,?\s+(?P<n>{_D})\s+of\s+which\s+are\s+branches")
+# Note-VIII "Domestic, foreign and offshore branches" TABLE — a "Number / Employees"
+# grid: "… Number Employees Domestic Branches (*) 997 20,246" (İşbank) / "… Sayı
+# Çalışan sayısı Yurtiçi şube 16 747" (AKTIF) / "… Number Employees Domestic Branch
+# 24 883" (Eximbank). Present in the year-end audit PDF even when the prose Section-I
+# / activity report omits it. MUST be anchored on the column header — a bare
+# "Domestic Branch N" appears in loan/geography tables too and grabs junk — so the
+# header immediately precedes the row. First number = branches, second = staff.
+_NOTE8 = _c(
+    rf"(?:Number\s+Employees|Say[ıi]\s+Çalışan\s+say[ıi]s[ıi])\s+"
+    rf"(?:Domestic\s+Branch(?:es)?|Yurt\s*içi\s+şube)\s*\(?\*?\)?\s+"
+    rf"(?P<dom>{_D})\s+(?P<staff>{_D})")
 
 # --- Personnel patterns ----------------------------------------------------
 # Split first: "yurtiçi çalışan sayısı 3.140 (…), yurtdışı çalışan sayısı 15"
@@ -249,6 +260,9 @@ def _extract_branches(text: str, profile: BankProfile) -> None:
         profile.branches_total = _find(_BR_EN_POINTS, text, _BR_LO, _BR_HI)
     if profile.branches_total is None and profile.branches_domestic is None:
         profile.branches_total = _find(_BR_TR_SUBE_SAYISI, text, _BR_LO, _BR_HI)
+    # Note-VIII "… Number Employees Domestic Branches (*) N staff" table.
+    if profile.branches_total is None and profile.branches_domestic is None:
+        profile.branches_domestic = _find(_NOTE8, text, _BR_LO, _BR_HI, "dom")
 
     # 4) reconcile total ⇄ components. Derive foreign FIRST — only from an
     #    EXPLICIT total (e.g. ZIRAATK "231 yurt içi … toplam 233 şube" ⇒ 2
@@ -295,6 +309,9 @@ def _extract_personnel(text: str, profile: BankProfile) -> None:
         if profile.personnel is not None:
             break
         profile.personnel = _find(pat, text, lo, _PS_HI)
+    # staff column of the note-VIII branch table (group "staff").
+    if profile.personnel is None:
+        profile.personnel = _find(_NOTE8, text, _PS_LO, _PS_HI, "staff")
 
 
 # Distinctive anchors for the interim activity report's branch/personnel block.
@@ -305,7 +322,9 @@ _ACT_ANCHOR = _c(
     r"|toplam\s+şube\s+say[ıi]s[ıi]"
     r"|total\s+of\s+[\d.,]+\s+branches"
     r"|number\s+of\s+(?:the\s+)?employees"  # TSKB
-    r"|of\s+which\s+are\s+branches")        # Eximbank
+    r"|of\s+which\s+are\s+branches"         # Eximbank
+    r"|Domestic\s+Branch(?:es)?\s*\(?\*?\)?\s+\d"   # note-VIII table row (EN)
+    r"|Yurt\s*içi\s+şube\s*\(?\*?\)?\s+\d")         # note-VIII table row (TR)
 
 
 def _activity_report_block(pdf_path: str, start: int, end: int) -> str:
