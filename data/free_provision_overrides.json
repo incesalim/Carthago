@@ -82,7 +82,12 @@
     "2025Q1": {"consolidated": {"free_provision": 7500000, "source": "'tamami gecmis yilda ayrilmis toplam 7.500.000 serbest karsilik'"}, "unconsolidated": {"free_provision": 7500000, "source": "'toplam 7.500.000 serbest karsilik'"}},
     "2025Q2": {"consolidated": {"free_provision": 9850000, "source": "'7.500.000 gecmis + 2.350.000 cari = toplam 9.850.000'"}, "unconsolidated": {"free_provision": 9850000, "source": "'toplam 9.850.000'"}},
     "2025Q3": {"consolidated": {"free_provision": 9850000, "source": "'toplam 9.850.000'"}, "unconsolidated": {"free_provision": 9850000, "source": "'toplam 9.850.000'"}},
-    "2025Q4": {"consolidated": {"free_provision": 9850000, "source": "'7.500.000 gecmis + net 2.350.000 cari = toplam 9.850.000'"}, "unconsolidated": {"free_provision": 9850000, "source": "'toplam 9.850.000'"}}
+    "2025Q4": {"consolidated": {"free_provision": 9850000, "source": "'7.500.000 gecmis + net 2.350.000 cari = toplam 9.850.000'"}, "unconsolidated": {"free_provision": 9850000, "source": "'toplam 9.850.000'"}},
+    "2026Q1": {"consolidated": {"free_provision": 13000000, "free_provision_prior": 9850000, "source": "auditor: 'toplam 13.000.000 bin TL serbest karsilik' (2.955.000 = deferred tax, NOT the provision)"}, "unconsolidated": {"free_provision": 13000000, "free_provision_prior": 9850000, "source": "auditor: 'toplam 13.000.000 bin TL serbest karsilik'"}}
+  },
+  "ISCTR": {
+    "2022Q1": {"unconsolidated": {"free_provision": 4325000, "source": "auditor note: 'free provision at an amount of TL 4,325,000 thousands' (genuine holding under a CLEAN opinion)"}},
+    "2022Q2": {"unconsolidated": {"free_provision": 6475000, "source": "auditor note: 'free provision at an amount of TL 6,475,000 thousands' (genuine holding under a CLEAN opinion)"}}
   },
   "ALNTF": {
     "2022Q3": {"consolidated": {"free_provision": 330152, "source": "auditor: 'toplam 330,152 Bin TL ... serbest karsiligi'"}, "unconsolidated": {"free_provision": 326422, "source": "auditor: 'toplam 326,422 Bin TL ... serbest karsiligi'"}}
