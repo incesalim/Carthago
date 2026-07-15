@@ -1281,8 +1281,28 @@ def extract(pdf_path: str | Path, only: set[str] | None = None) -> BankReport:
                 # "(31/12/2024) (31/12/2023)" as a 4-column layout, which then makes
                 # row-parsing reject every 2-value data row (AKBNK/ING annual → 0
                 # rows).  Pin to 2 so both columns are picked directly.
-                cf_n = 2
                 cf_text = _fitz_page_text(pdf_path, cf_page - 1) if _HAS_FITZ else ''
+                # Column count is normally 2 (current + prior, year-to-date). But a
+                # bank's FIRST report after establishment / status-change carries NO
+                # prior comparative (DUNYAK 2024, HAYATK 2023 — "bir önceki dönem ile
+                # karşılaştırmalı sunulmamıştır"), so the CF is a SINGLE current-period
+                # column and the 2-column parse rejects every 1-value row (41 rows →
+                # 2 on DUNYAK). Detect from the page: parse as 1 column only when the
+                # hierarchy rows carry ONE value far more often than two — conservative
+                # so a genuine 2-column page (every row has current+prior) stays at 2.
+                cf_n = 2
+                if cf_text:
+                    _one = _two = 0
+                    for _ln in cf_text.split('\n'):
+                        if not HIERARCHY_PAT.match(_ln.strip()):
+                            continue
+                        _nv = len(_value_matches(_ln))
+                        if _nv == 1:
+                            _one += 1
+                        elif _nv >= 2:
+                            _two += 1
+                    if _one >= 5 and _one >= 2 * _two:
+                        cf_n = 1
                 cf_parsed = _parse_rows(_fitz_merge_rows(cf_text, cf_n), cf_n) if cf_text else []
                 for order, (label, vals) in enumerate(cf_parsed, 1):
                     h, name, fn = _split_label(label)
