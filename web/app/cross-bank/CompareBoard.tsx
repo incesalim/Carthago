@@ -425,7 +425,7 @@ export default function CompareBoard({
           value={medOf("nim") != null ? ((medOf("nim") as number) * 100).toFixed(2) : "—"}
           unit="%"
           series={medianSeries("nim")}
-          note="net interest × 4/q ÷ period-end assets"
+          note="TTM net interest ÷ avg assets"
         />
         <Vital
           label="Median cost of risk"

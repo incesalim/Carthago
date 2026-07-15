@@ -7,13 +7,16 @@
  * over-time views derive from this single panel.
  *
  * Period format is `YYYYQN` with NO dash (2025Q4, 2026Q1). String MAX(period)
- * sorts correctly lexically. P&L amounts are YTD cumulative. ROE uses a
- * trailing-twelve-month net income (de-cumulated to single quarters and summed
- * over the last 4) divided by the average equity across the last 5 quarter-ends
- * — the standard, less-noisy basis. ROA / NIM still annualize the YTD flow by
- * × (4 / quarterNum) over period-end assets (average-balance is a later
- * refinement); Cost/Income is a ratio of two YTD figures (no annualization).
- * Any missing input or non-positive denominator → null cell, never a wrong ratio.
+ * sorts correctly lexically. P&L amounts are YTD cumulative. Every income-
+ * statement ratio is put on the SAME trailing-twelve-month basis: the P&L flow is
+ * de-cumulated to single quarters, the last four summed, and divided by an
+ * average balance over the five trailing quarter-ends — the standard, less-noisy
+ * basis (a YTD×4/q annualization quadruples a single Q1). ROE = TTM net income ÷
+ * avg equity; ROA = TTM net income ÷ avg assets; NIM = TTM net interest ÷ avg
+ * assets; the margin engine (loan yield / deposit cost / spread / cost of risk /
+ * PPOP) works the same way; Cost/Income = |TTM opex| ÷ |TTM gross operating
+ * profit| (a ratio of two flows). Any missing input or non-positive denominator →
+ * null cell, never a wrong ratio.
  *
  * CTE / naming caveat (see audit.ts): never name a CTE after a table it reads —
  * D1 throws a circular-reference 500.
@@ -92,11 +95,11 @@ export const METRIC_DEFS: MetricDef[] = [
   // statement counterpart to the balance-sheet provision-intensity stock.
   { key: "cost_of_risk",        label: "Cost of risk (TTM)",  short: "CoR",        unit: "pct", decimals: 2, direction: "higher_worse", family: "Asset quality",   rule: "|TTM ECL flow| ÷ avg gross loans" },
   { key: "roe",                 label: "ROE (TTM)",           short: "ROE",        unit: "pct", decimals: 1, direction: "higher_better",family: "Returns",         rule: "TTM net income ÷ 5-quarter avg equity" },
-  { key: "roa",                 label: "ROA",                 short: "ROA",        unit: "pct", decimals: 2, direction: "higher_better",family: "Returns",         rule: "YTD net income × 4/q ÷ period-end assets" },
-  { key: "nim",                 label: "NIM (annualized)",    short: "NIM",        unit: "pct", decimals: 2, direction: "higher_better",family: "Returns",         rule: "YTD net interest × 4/q ÷ period-end assets" },
+  { key: "roa",                 label: "ROA (TTM)",           short: "ROA",        unit: "pct", decimals: 2, direction: "higher_better",family: "Returns",         rule: "TTM net income ÷ 5-quarter avg assets" },
+  { key: "nim",                 label: "NIM (TTM)",           short: "NIM",        unit: "pct", decimals: 2, direction: "higher_better",family: "Returns",         rule: "TTM net interest ÷ 5-quarter avg assets" },
   // Margin engine — the drivers behind NIM. TTM interest flows over 5-point
-  // average balances (same basis as ROE), so they read on a trailing-year basis
-  // rather than the annualized-YTD NIM. Loan yield = interest on loans (P&L 1.1)
+  // average balances, the same trailing-year basis as ROE and NIM above. Loan
+  // yield = interest on loans (P&L 1.1)
   // ÷ avg gross loans (BS asset 2.1); deposit cost = interest on deposits (P&L
   // 2.1) ÷ avg deposits (BS liability I.); spread is the gap. Yield/cost are
   // neutral (high yield ↔ riskier book; high cost ↔ funding mix), spread is the
@@ -106,7 +109,7 @@ export const METRIC_DEFS: MetricDef[] = [
   { key: "loan_yield",          label: "Loan yield (TTM)",    short: "Yield",      unit: "pct", decimals: 1, direction: "neutral",      family: "Margin engine",   rule: "TTM interest on loans (1.1) ÷ avg gross loans" },
   { key: "deposit_cost",        label: "Deposit cost (TTM)",  short: "Dep cost",   unit: "pct", decimals: 1, direction: "neutral",      family: "Margin engine",   rule: "TTM interest on deposits (2.1) ÷ avg deposits" },
   { key: "spread",              label: "Loan–deposit spread", short: "Spread",     unit: "pct", decimals: 1, direction: "higher_better",family: "Margin engine",   rule: "loan yield − deposit cost" },
-  { key: "cost_income",         label: "Cost / Income",       short: "Cost/Inc",   unit: "pct",  decimals: 1, direction: "higher_worse",family: "Margin engine",   rule: "|opex| ÷ |gross operating profit|" },
+  { key: "cost_income",         label: "Cost / Income (TTM)", short: "Cost/Inc",   unit: "pct",  decimals: 1, direction: "higher_worse",family: "Margin engine",   rule: "|TTM opex| ÷ |TTM gross operating profit|" },
   // Capital + liquidity (audited §4) — solvency/liquidity buffers; higher = stronger.
   { key: "cet1",                label: "CET1 ratio (§4)",     short: "CET1",       unit: "pts", decimals: 1, direction: "higher_better",family: "Capital & liquidity", rule: "audited §4, as filed" },
   { key: "car",                 label: "CAR (§4)",            short: "CAR",        unit: "pts", decimals: 1, direction: "higher_better",family: "Capital & liquidity", rule: "audited §4, as filed" },
@@ -528,13 +531,16 @@ export async function heatmapPanel(
   // ttmFlow/avgStock helpers below can read any field. ppop (a flow) is
   // pre-computed = gross operating profit (VIII) − |opex| (XI+XII), both YTD.
   interface MarginRec {
-    iiLoans: number | null;    // YTD interest on loans (P&L 1.1)
-    ieDeposits: number | null; // YTD interest on deposits (P&L 2.1)
-    eclProv: number | null;    // YTD ECL provisions (P&L IX.)
-    ppop: number | null;       // YTD pre-provision operating profit (VIII − |opex|)
-    loans: number | null;      // gross loans stock (BS asset 2.1)
-    deposits: number | null;   // deposits stock (BS liability I.)
-    assets: number | null;     // total assets stock
+    iiLoans: number | null;     // YTD interest on loans (P&L 1.1)
+    ieDeposits: number | null;  // YTD interest on deposits (P&L 2.1)
+    eclProv: number | null;     // YTD ECL provisions (P&L IX.)
+    ppop: number | null;        // YTD pre-provision operating profit (VIII − |opex|)
+    netInterest: number | null; // YTD net interest income (P&L III.) — for NIM
+    opexAbs: number | null;     // |YTD opex| (P&L XI + XII) — for Cost/Income
+    grossOp: number | null;     // YTD gross operating profit (P&L VIII.) — for Cost/Income
+    loans: number | null;       // gross loans stock (BS asset 2.1)
+    deposits: number | null;    // deposits stock (BS liability I.)
+    assets: number | null;      // total assets stock
   }
   const marginByBank = new Map<string, Map<number, MarginRec>>();
   for (const row of map.values()) {
@@ -557,6 +563,13 @@ export async function heatmapPanel(
       // TTM window and produce a garbage CoR for the 4 quarters around a flip.
       eclProv: p?.ecl_prov != null ? Math.abs(p.ecl_prov) : null,
       ppop,
+      netInterest: p?.net_interest ?? null,
+      // |opex| at the YTD snapshot, like ppop/eclProv above: opex flips stored
+      // sign mid-history (paren-negative vs positive-magnitude era), so take the
+      // magnitude BEFORE de-cumulation — abs after would mix conventions inside
+      // one TTM window.
+      opexAbs: opex != null ? Math.abs(opex) : null,
+      grossOp,
       loans: loansByKey.get(key) ?? null,
       deposits: depositsByKey.get(key) ?? null,
       assets: row.total_assets,
@@ -595,10 +608,11 @@ export async function heatmapPanel(
     return xs.reduce((s, x) => s + x, 0) / xs.length;
   };
 
-  // Derive the metrics. ROE uses TTM net income / average equity (above). ROA /
-  // NIM are still YTD flows annualized by 4/quarter over period-end assets, and
-  // Cost/Income is a ratio of two YTD flows. Missing inputs (or non-positive
-  // denominators) leave the cell null.
+  // Derive the metrics. Every income-statement ratio is TTM: the P&L flow is
+  // de-cumulated to single quarters, the last four summed, and divided by a
+  // 5-point average balance — ROE ÷ avg equity, ROA / NIM ÷ avg assets, the
+  // margin engine ÷ avg loans/deposits/assets, and Cost/Income = a ratio of two
+  // TTM flows. Missing inputs (or non-positive denominators) leave the cell null.
   // Most-recent period per bank — live prices only overlay this row (the
   // snapshot + the last over-time point); history stays on quarter-end closes.
   const latestPeriodByBank = new Map<string, string>();
@@ -609,33 +623,20 @@ export async function heatmapPanel(
 
   for (const row of map.values()) {
     const key = `${row.bank_ticker}|${row.period}`;
-    const p = plByKey.get(key);
-    const assetsTotal = row.total_assets;
-
-    const q = Number(/Q([1-4])$/.exec(row.period)?.[1]);
-    const ann = q >= 1 && q <= 4 ? 4 / q : null;
-
-    const netProfit = p?.net_profit ?? null;
-    const netInterest = p?.net_interest ?? null;
-    const opex = p?.opex ?? null;
-    const grossOp = p?.gross_op_profit ?? null;
 
     row.roe = ttmRoe(row.bank_ticker, row.period);
-    if (ann != null && netProfit != null && assetsTotal != null && assetsTotal > 0)
-      row.roa = (netProfit * ann) / assetsTotal;
-    if (ann != null && netInterest != null && assetsTotal != null && assetsTotal > 0)
-      row.nim = (netInterest * ann) / assetsTotal;
-    // Opex / gross operating profit may be sign-negative in source (expenses
-    // stored as negatives); abs both so Cost/Income is a clean positive ratio.
-    if (opex != null && grossOp != null && Math.abs(grossOp) > 0)
-      row.cost_income = Math.abs(opex) / Math.abs(grossOp);
 
-    // Margin engine — TTM flows / avg balances, stored as FRACTIONS (the "pct"
-    // formatter ×100s them, like roe/nim). cost_of_risk takes the magnitude of
-    // the annual provision flow (sign convention varies by bank; net releases
-    // are rare). Each leaves the cell null on any missing input.
+    // Income-statement ratios — TTM flows over 5-point average balances (same
+    // basis as ROE), stored as FRACTIONS (the "pct" formatter ×100s them).
+    // cost_of_risk / cost_income take the magnitude of their flow (sign
+    // convention varies by bank; net releases and operating losses are rare).
+    // Each leaves the cell null on any missing input.
     const mb = marginByBank.get(row.bank_ticker);
     const mord = ordOf(row.period);
+    const ttmNetIncome = ttmNet(row.bank_ticker, row.period);
+    const ttmNetInterest = ttmFlow(mb, mord, (r) => r.netInterest);
+    const ttmOpex = ttmFlow(mb, mord, (r) => r.opexAbs);
+    const ttmGrossOp = ttmFlow(mb, mord, (r) => r.grossOp);
     const ttmIiLoans = ttmFlow(mb, mord, (r) => r.iiLoans);
     const ttmIeDep = ttmFlow(mb, mord, (r) => r.ieDeposits);
     const ttmEcl = ttmFlow(mb, mord, (r) => r.eclProv);
@@ -643,6 +644,17 @@ export async function heatmapPanel(
     const avgLoans = avgStock(mb, mord, (r) => r.loans);
     const avgDeposits = avgStock(mb, mord, (r) => r.deposits);
     const avgAssets = avgStock(mb, mord, (r) => r.assets);
+
+    // Returns — TTM income over 5-point average assets.
+    if (ttmNetIncome != null && avgAssets != null && avgAssets > 0)
+      row.roa = ttmNetIncome / avgAssets;
+    if (ttmNetInterest != null && avgAssets != null && avgAssets > 0)
+      row.nim = ttmNetInterest / avgAssets;
+    // Cost / income — |TTM opex| ÷ |TTM gross operating profit|, two flows.
+    if (ttmOpex != null && ttmGrossOp != null && Math.abs(ttmGrossOp) > 0)
+      row.cost_income = Math.abs(ttmOpex) / Math.abs(ttmGrossOp);
+
+    // Margin engine — the NIM drivers, same TTM basis.
     if (ttmIiLoans != null && avgLoans != null && avgLoans > 0)
       row.loan_yield = ttmIiLoans / avgLoans;
     if (ttmIeDep != null && avgDeposits != null && avgDeposits > 0)
@@ -668,9 +680,8 @@ export async function heatmapPanel(
     const sh = sharesByTicker.get(row.bank_ticker) ?? null;
     const mktcap = close != null && sh != null && sh > 0 ? close * sh : null;
     const eqRaw = equityByKey.get(key) ?? null;
-    const ttm = ttmNet(row.bank_ticker, row.period);
     if (mktcap != null && eqRaw != null && eqRaw > 0) row.pb = mktcap / (eqRaw * 1000);
-    if (mktcap != null && ttm != null && ttm > 0) row.pe = mktcap / (ttm * 1000);
+    if (mktcap != null && ttmNetIncome != null && ttmNetIncome > 0) row.pe = mktcap / (ttmNetIncome * 1000);
 
     // Capital + liquidity (audited §4) — ratios already in percent.
     row.cet1 = cet1ByKey.get(key) ?? null;
