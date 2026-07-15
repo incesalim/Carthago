@@ -204,6 +204,24 @@ latest-period** trigger, and **13 banks auto-discover** new quarters from their
 IR page (no hand-added URL needed) — see [ADMIN.md](ADMIN.md) §Auto-discovery.
 Setup in [OPERATIONS.md](OPERATIONS.md) / [ADMIN.md](ADMIN.md).
 
+**/loans-by-sector — the monthly bulletin's sector cut, finally surfaced (2026-07-15,
+SHIPPED):** the BDDK monthly bulletin is scraped in full (17 tables × 10 bank
+groups) but the dashboard consumed ~5–10% of it. The richest dormant cut was
+**`loans` table 5** — the ~22-sector NACE breakdown of the loan book, with an NPL
+stock per sector, the **only sectoral-credit view in the project** (the audited
+`bank_audit_loans_by_sector` is a Stage-2/3/ECL *risk* lens with coverage gaps, not
+volume). The new tab leads with the **share stack** (where credit is allocated:
+consumer 29%, industry 27%, trade 15%), then **where the risk is** — the calm 2.68%
+headline NPL hides a spread from housing **0.2%** to consumer general-purpose **5.3%**
+and cards **4.2%** — then the mix in real terms, and a sector×quarter NPL heatmap.
+Two gotchas baked in: **table 5 is thousand-TL** (÷1000 to the app's million-TL
+convention) and the clean partition is the **bold rows** (`is_subtotal=1`, excl.
+`TOPLAM`) which sum exactly to the total (the loans-to-banks memo is non-bold, so
+excluded). Arithmetic in `web/app/lib/loans-by-sector.ts` (pure, unit-tested: sectors
+reconcile to TOPLAM, groups to 100%); the editorial 22→6 super-group map is keyed on
+`item_name` (verified stable 2020→2026). Reuses `StackedArea`/`BarByBank`/`Attribution`
+and the Desk kit; the one new component is a self-contained sector heatmap.
+
 **The prose audit — the sentences now earn themselves (2026-07-14, SHIPPED):**
 "Compiled, not written" was true of the *figures* and false of the *words*: an
 audit of every visible string found ~300 timeless (axis labels, methodology),
