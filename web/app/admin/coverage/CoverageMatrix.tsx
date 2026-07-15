@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Badge, Section } from "@/app/components/ui";
+import { SecHead } from "@/app/components/desk";
 import CoverageDrawer, { type OpenCell } from "./CoverageDrawer";
-import { STATUS_LABEL, STATUS_VARIANT } from "./status";
+import { STATUS_LABEL } from "./status";
 
 // Local copy (don't import github.ts into the client bundle). The single-cell
 // re-extract workflow — forces just the clicked (bank, period, kind, statement).
@@ -15,6 +15,15 @@ type Mode = ConcreteKind | "both";
 const KIND_TAG: Record<string, string> = {
   consolidated: "cons",
   unconsolidated: "unco",
+};
+
+// Sidebar status word → tone (green/red/amber read state; blue/grey stay quiet).
+const STATUS_TONE: Record<string, string> = {
+  ok: "text-positive",
+  manual: "text-info",
+  error: "text-negative",
+  missing: "text-warning",
+  not_expected: "text-faint",
 };
 
 interface TypeRow {
@@ -54,6 +63,13 @@ const LIST_CAP = 300;
 
 const fmtPeriod = (p: string) => p.replace("20", "’");
 
+// Desk segmented control — mono-caps, hairline box, no pills, no blue.
+const SEG = "inline-flex overflow-hidden rounded-[6px] border border-border";
+const segBtn = (active: boolean) =>
+  `px-2.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.05em] transition-colors ${
+    active ? "bg-foreground/[0.08] text-foreground" : "text-muted-foreground hover:text-foreground"
+  }`;
+
 function HealthBar({ rec }: { rec: Counts }) {
   const total = COLS.reduce((s, c) => s + (rec[c] ?? 0), 0) || 1;
   const seg = (c: Col, cls: string) => {
@@ -62,11 +78,11 @@ function HealthBar({ rec }: { rec: Counts }) {
   };
   return (
     <span
-      className="flex h-2 w-full overflow-hidden rounded bg-muted"
+      className="flex h-[7px] w-full overflow-hidden rounded-[3px] bg-hair"
       title={COLS.filter((c) => rec[c]).map((c) => `${STATUS_LABEL[c]} ${rec[c]}`).join(" · ")}
     >
       {seg("ok", "bg-positive")}
-      {seg("manual", "bg-info")}
+      {seg("manual", "bg-data")}
       {seg("error", "bg-negative")}
       {seg("missing", "bg-warning")}
       {/* not_expected stays as the muted track */}
@@ -225,7 +241,7 @@ export default function CoverageMatrix() {
     const v = rec[col] ?? 0;
     const tone =
       v === 0
-        ? "text-muted-foreground/40"
+        ? "text-faint"
         : col === "error"
           ? "text-negative font-semibold"
           : col === "missing"
@@ -244,27 +260,27 @@ export default function CoverageMatrix() {
       <tr
         key={t.key}
         onClick={() => setSelected(isSel ? "all" : t.key)}
-        className={`cursor-pointer border-t border-border/60 ${
-          isSel ? "bg-primary/10" : "hover:bg-muted/40"
+        className={`cursor-pointer border-t border-hair ${
+          isSel ? "bg-foreground/[0.05]" : "hover:bg-hair/60"
         }`}
       >
-        <td className="whitespace-nowrap py-1 pl-2 pr-3 font-medium">
+        <td className="whitespace-nowrap py-1.5 pr-3 font-medium text-foreground">
           {t.label}
           {t.has_validator ? <span className="ml-1 text-positive">✓</span> : null}
         </td>
-        <td className="px-2 text-right tabular-nums">
+        <td className="px-2 text-right font-mono tabular-nums">
           <Cnt rec={rec} col="ok" />
         </td>
-        <td className="px-2 text-right tabular-nums">
+        <td className="px-2 text-right font-mono tabular-nums">
           <Cnt rec={rec} col="manual" />
         </td>
-        <td className="px-2 text-right tabular-nums">
+        <td className="px-2 text-right font-mono tabular-nums">
           <Cnt rec={rec} col="error" />
         </td>
-        <td className="px-2 text-right tabular-nums">
+        <td className="px-2 text-right font-mono tabular-nums">
           <Cnt rec={rec} col="missing" />
         </td>
-        <td className="px-2 text-right tabular-nums text-muted-foreground">
+        <td className="px-2 text-right font-mono tabular-nums text-faint">
           <Cnt rec={rec} col="not_expected" />
         </td>
         <td className="w-28 px-2 py-1">
@@ -279,30 +295,33 @@ export default function CoverageMatrix() {
     );
   }
 
+  const th = "px-2 pb-1.5 text-right font-normal font-mono text-[8.5px] uppercase tracking-[0.06em] text-faint";
+  const grp = "px-0 pt-4 pb-1 font-mono text-[8.5px] uppercase tracking-[0.07em] text-muted-foreground";
+
   const summaryTable = (
-    <div className="overflow-x-auto rounded-md border border-border">
-      <table className="w-full border-collapse text-[11px]">
+    <div className="overflow-x-auto">
+      <table className="w-full border-collapse text-[12px]">
         <thead>
-          <tr className="bg-muted/60 text-[10px] uppercase tracking-wide text-muted-foreground">
-            <th className="py-1 pl-2 pr-3 text-left font-medium">Statement</th>
-            <th className="px-2 text-right font-medium">OK</th>
-            <th className="px-2 text-right font-medium">Manual</th>
-            <th className="px-2 text-right font-medium">Error</th>
-            <th className="px-2 text-right font-medium">Missing</th>
-            <th className="px-2 text-right font-medium">N/A</th>
-            <th className="px-2 text-left font-medium">Coverage</th>
+          <tr className="border-b border-foreground">
+            <th className={`${th} pl-0 text-left`}>Statement</th>
+            <th className={th}>OK</th>
+            <th className={th}>Manual</th>
+            <th className={th}>Error</th>
+            <th className={th}>Missing</th>
+            <th className={th}>N/A</th>
+            <th className={`${th} text-left`}>Coverage</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td colSpan={7} className="bg-background px-2 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <td colSpan={7} className={grp}>
               Core statements
             </td>
           </tr>
           {coreTypes.map(laneRow)}
           {footTypes.length > 0 && (
             <tr>
-              <td colSpan={7} className="bg-background px-2 pt-3 pb-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <td colSpan={7} className={grp}>
                 Footnotes &amp; §4
               </td>
             </tr>
@@ -314,10 +333,10 @@ export default function CoverageMatrix() {
   );
 
   const sidebar = (
-    <aside className="flex w-full flex-col rounded-md border border-border lg:w-80 lg:shrink-0">
-      <div className="border-b border-border p-3">
+    <aside className="flex w-full flex-col border-t border-hair pt-4 lg:w-80 lg:shrink-0 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
+      <div className="pb-3">
         <div className="flex items-center justify-between">
-          <p className="text-xs font-semibold text-foreground">
+          <p className="text-[12px] font-semibold text-foreground">
             Errors &amp; missing
             {selected !== "all" && (
               <span className="font-normal text-muted-foreground"> · {labelOf(selected)}</span>
@@ -327,7 +346,7 @@ export default function CoverageMatrix() {
             <button
               type="button"
               onClick={() => setSelected("all")}
-              className="text-[11px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+              className="font-mono text-[9px] uppercase tracking-[0.05em] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
             >
               all lanes
             </button>
@@ -335,15 +354,13 @@ export default function CoverageMatrix() {
         </div>
 
         {/* status toggle */}
-        <div className="mt-2 inline-flex overflow-hidden rounded-md border border-border text-[11px]">
+        <div className={`mt-2 ${SEG}`}>
           {(["error", "missing", "both"] as const).map((s) => (
             <button
               key={s}
               type="button"
               onClick={() => setShow(s)}
-              className={`px-2 py-0.5 capitalize ${
-                show === s ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"
-              }`}
+              className={`${segBtn(show === s)} ${s !== "error" ? "border-l border-border" : ""}`}
             >
               {s}
             </button>
@@ -355,19 +372,17 @@ export default function CoverageMatrix() {
           value={bankQuery}
           onChange={(e) => setBankQuery(e.target.value)}
           placeholder="filter bank — e.g. GARAN, AK"
-          className="mt-2 h-6 w-full rounded border border-border bg-background px-2 text-[11px] outline-none focus:ring-1 focus:ring-ring"
+          className="mt-2 h-7 w-full border-b border-border bg-transparent px-0.5 text-[11.5px] outline-none placeholder:text-faint focus:border-foreground"
         />
-        <p className="mt-1.5 text-[11px] text-muted-foreground">
+        <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.04em] text-faint">
           {visibleProblems.length} cell{visibleProblems.length === 1 ? "" : "s"}
-          {overflow > 0 ? ` · showing first ${LIST_CAP}` : ""} · click to inspect / re-extract
+          {overflow > 0 ? ` · first ${LIST_CAP}` : ""} · click to inspect / re-extract
         </p>
       </div>
 
-      <div className="max-h-[28rem] overflow-y-auto p-2">
+      <div className="max-h-[28rem] overflow-y-auto">
         {shown.length === 0 ? (
-          <p className="px-1 py-6 text-center text-[11px] text-muted-foreground">
-            Nothing here — clean.
-          </p>
+          <p className="py-6 text-center text-[11px] text-muted-foreground">Nothing here — clean.</p>
         ) : (
           <ul className="flex flex-col gap-1">
             {shown.map((p) => (
@@ -375,15 +390,15 @@ export default function CoverageMatrix() {
                 <button
                   type="button"
                   onClick={() => openProblem(p)}
-                  className={`w-full rounded border px-2 py-1 text-left text-[11px] hover:ring-1 hover:ring-ring ${
+                  className={`w-full rounded border px-2 py-1.5 text-left text-[11.5px] transition-colors hover:ring-1 hover:ring-ring ${
                     p.status === "error"
-                      ? "border-negative/30 bg-negative/5"
-                      : "border-warning/30 bg-warning/5"
+                      ? "border-negative/25 bg-negative/[0.06]"
+                      : "border-warning/25 bg-warning/[0.06]"
                   }`}
                 >
                   <span className="flex items-center justify-between gap-2">
-                    <span className="truncate font-medium">{p.bank_ticker}</span>
-                    <span className="shrink-0 text-muted-foreground">
+                    <span className="truncate font-medium text-foreground">{p.bank_ticker}</span>
+                    <span className="shrink-0 font-mono text-[10px] text-muted-foreground">
                       {fmtPeriod(p.period)} · {KIND_TAG[p.kind] ?? p.kind}
                     </span>
                   </span>
@@ -396,9 +411,13 @@ export default function CoverageMatrix() {
                           ? "PDF ready"
                           : "no PDF"}
                     </span>
-                    <Badge variant={STATUS_VARIANT[p.status] ?? "secondary"}>
+                    <span
+                      className={`shrink-0 font-mono text-[9px] uppercase tracking-[0.05em] ${
+                        STATUS_TONE[p.status] ?? "text-faint"
+                      }`}
+                    >
                       {STATUS_LABEL[p.status] ?? p.status}
-                    </Badge>
+                    </span>
                   </span>
                 </button>
               </li>
@@ -410,49 +429,49 @@ export default function CoverageMatrix() {
   );
 
   return (
-    <Section
-      title="Coverage matrix"
-      description="Per statement type: how many cells are OK, manual, failing validation, missing, or N/A — with every error & missing cell listed alongside"
-      contentClassName=""
-      actions={
-        <div className="inline-flex overflow-hidden rounded-md border border-border">
-          {(["unconsolidated", "consolidated", "both"] as Mode[]).map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => setMode(m)}
-              className={`px-2.5 py-1 text-xs ${
-                mode === m ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"
-              }`}
-            >
-              {m}
-            </button>
-          ))}
-        </div>
-      }
-    >
+    <>
+      <SecHead
+        title="Coverage"
+        meta="audited §2/§4 · OK / manual / error / missing / n·a"
+        action={
+          <div className={SEG}>
+            {(["unconsolidated", "consolidated", "both"] as Mode[]).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => setMode(m)}
+                className={`${segBtn(mode === m)} ${m !== "unconsolidated" ? "border-l border-border" : ""}`}
+              >
+                {m}
+              </button>
+            ))}
+          </div>
+        }
+        className="mb-2"
+      />
+
       {loading ? (
-        <p className="text-xs text-muted-foreground">Loading…</p>
+        <p className="text-[12px] text-muted-foreground">Loading…</p>
       ) : types.length === 0 ? (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-[12px] text-muted-foreground">
           No coverage data yet — populated by the next <code>refresh-audit.yml</code> run after
           migration 0008 applies.
         </p>
       ) : (
         <>
-          <div className="mb-3 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-            <span>
-              <Badge variant="negative">{totals.error}</Badge> errors
+          <p className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[0.04em]">
+            <span className="text-negative">
+              <span className="font-semibold">{totals.error}</span> errors
             </span>
-            <span>
-              <Badge variant="warning">{totals.missing}</Badge> missing
+            <span className="text-warning">
+              <span className="font-semibold">{totals.missing}</span> missing
             </span>
-            <span className="text-muted-foreground/70">
-              · click a row to filter the list · {KIND_TAG[mode] ?? mode} ✓ = has validator
+            <span className="text-faint">
+              · click a lane to filter · {KIND_TAG[mode] ?? mode} · ✓ = has validator
             </span>
-          </div>
+          </p>
 
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
             <div className="min-w-0 flex-1">{summaryTable}</div>
             {sidebar}
           </div>
@@ -466,6 +485,6 @@ export default function CoverageMatrix() {
         onReextract={reextract}
         reextractBusy={busy}
       />
-    </Section>
+    </>
   );
 }

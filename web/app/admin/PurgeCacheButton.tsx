@@ -8,7 +8,6 @@
  */
 import { useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/app/components/ui";
 
 interface PurgeResponse {
   deleted?: number;
@@ -69,14 +68,14 @@ export default function PurgeCacheButton() {
   }
 
   return (
-    <Button
-      variant="outline"
-      size="sm"
+    <button
+      type="button"
       onClick={() => void purge()}
       disabled={busy}
       title="Clear the dashboard's KV cache so a just-refreshed source appears in the graphs without waiting for the 12h cache window."
+      className="font-mono text-[9.5px] uppercase tracking-[0.06em] text-muted-foreground underline decoration-border underline-offset-4 transition-colors hover:text-foreground hover:decoration-current disabled:opacity-50"
     >
       {busy ? "Purging…" : "Purge cache"}
-    </Button>
+    </button>
   );
 }
