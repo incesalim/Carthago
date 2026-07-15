@@ -71,7 +71,11 @@ _PAREN = r"(?:\s*\([^()]*\))?"
 
 # Plausible bands (a value outside is discarded, and matching continues).
 _BR_LO, _BR_HI = 1, 9999          # branches for one bank
-_PS_LO, _PS_HI = 50, 500_000      # personnel for one bank
+_PS_LO, _PS_HI = 50, 500_000      # personnel — loose (number-before) patterns
+# The anchored "... sayısı N" / "number of ... is N" patterns are specific enough
+# to trust a small count, so a brand-new bank (ENPARA filed "personel sayısı 24")
+# isn't dropped by the 50 floor the looser patterns need against stray hits.
+_PS_LABEL_LO = 5
 
 
 def _parse_int(s: str) -> int | None:
@@ -249,20 +253,26 @@ def _extract_branches(text: str, profile: BankProfile) -> None:
 
 def _extract_personnel(text: str, profile: BankProfile) -> None:
     """Fill personnel from the qualitative text."""
-    # Split (domestic + foreign staff) → sum.
+    # Split (domestic + foreign staff) → sum. Anchored → low floor.
     m = _PS_TR_SPLIT.search(text)
     if m:
         dom = _parse_int(m.group("dom"))
         fgn = _parse_int(m.group("for"))
         if dom is not None:
             total = dom + (fgn or 0)
-            if _PS_LO <= total <= _PS_HI:
+            if _PS_LABEL_LO <= total <= _PS_HI:
                 profile.personnel = total
-    for pat in (_PS_TR_LABEL, _PS_TR_PERSONELI, _PS_TR_CALISAN,
-                _PS_EN_COUNT, _PS_EN_WITH_STAFF, _PS_EN_NUMBER_OF):
+    # (pattern, floor): the "... sayısı N" / "number of ... is N" anchors trust a
+    # small startup count; number-before / bare-noun patterns keep the 50 floor.
+    for pat, lo in ((_PS_TR_LABEL, _PS_LABEL_LO),
+                    (_PS_EN_NUMBER_OF, _PS_LABEL_LO),
+                    (_PS_TR_PERSONELI, _PS_LO),
+                    (_PS_TR_CALISAN, _PS_LO),
+                    (_PS_EN_COUNT, _PS_LO),
+                    (_PS_EN_WITH_STAFF, _PS_LO)):
         if profile.personnel is not None:
             break
-        profile.personnel = _find(pat, text, _PS_LO, _PS_HI)
+        profile.personnel = _find(pat, text, lo, _PS_HI)
 
 
 def extract_profile_from_pdf(

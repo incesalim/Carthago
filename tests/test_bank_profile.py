@@ -185,6 +185,22 @@ def test_ps_english_employees_with_prior_paren():
                       "14.637 employees).") == 14653
 
 
+def test_ps_small_startup_count_label_pattern():
+    # ENPARA (brand-new bank) — "personel sayısı 24 (…) kişidir". The anchored
+    # label pattern trusts a sub-50 count; a loose number-before would not.
+    assert _personnel("31 Aralık 2024 tarihi itibarıyla Banka personel sayısı 24 "
+                      "(31 Aralık 2023 – 16) kişidir.") == 24
+    assert _personnel("Banka'nın 30 Haziran 2025 tarihi itibarıyla şubesi "
+                      "bulunmamaktadır. 30 Haziran 2025 tarihi itibarıyla Banka "
+                      "personel sayısı 48 (31 Aralık 2024 – 24) kişidir.") == 48
+
+
+def test_ps_loose_pattern_keeps_high_floor():
+    # A bare "<n> personeli" with a tiny number must NOT be captured (the loose
+    # number-before patterns keep the 50 floor against stray small hits).
+    assert _personnel("beher çalışma yılı için 30 personeli") is None
+
+
 def test_ps_english_with_staff_and_number_of():
     # ALBRK — "with 2.787 (…) staff"; COLENDI — "number of our employee is 129".
     assert _personnel("and with 2.787 (December 31, 2025: 2.815) staff as of "
