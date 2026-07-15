@@ -501,6 +501,13 @@ def _parse_rows(text: str, n_cols: int) -> list[tuple[str, list[float | None]]]:
             # "TOTALOFF-BALANCESHEETCOMMITMENTS(A+B)" are data, not headers,
             # and Turkish "BİLANÇO DIŞI…" rows likewise.
             r'|(?<!OFF)(?<!OFF-)BALANCE\s*SHEET(?!\s*TOTAL)'
+            # The off-balance PAGE TITLE ("… UNCONSOLIDATED STATEMENT OF
+            # OFF-BALANCE SHEET ITEMS", ISCTR 2025Q4) is spared by the OFF- guard
+            # above, then a date fragment ("31") tokenises as its value and it
+            # posts as a phantom hierarchy-"5" row. A data row never says
+            # "STATEMENT OF", so this reaches the title without touching
+            # "A. OFF-BALANCE SHEET COMMITMENTS" / "TOTAL OFF-BALANCE SHEET…".
+            r'|STATEMENT\s+OF\s+OFF[\s-]*BALANCE\s*SHEET'
             r'|STATEMENT\s+OF\s+FINANCIAL\s+POSITION'
             r'|BİLANÇO(?!\s*(?:TOPLAMI|DI[ŞS]I))'
             r'|Current\s*Period\s+Prior\s*Period'
