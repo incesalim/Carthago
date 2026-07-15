@@ -21,14 +21,7 @@ const SECTIONS: NavSection[] = [
       // asset quality → solvency → earnings. Digital lives under Markets &
       // Macro (structure/context, not a CAMELS vital — audit: relocate).
       { href: "/", label: "Overview" },
-      {
-        href: "/credit",
-        label: "Credit",
-        children: [
-          { href: "/credit", label: "Overview" },
-          { href: "/loans-by-sector", label: "By Sector" },
-        ],
-      },
+      { href: "/credit", label: "Credit" },
       { href: "/deposits", label: "Deposits" },
       { href: "/liquidity", label: "Liquidity" },
       { href: "/asset-quality", label: "Asset Quality" },
