@@ -241,6 +241,18 @@ def test_mixed_dot_comma_marker_normalized():
         "828.927 39.897 868.824 1.351.528 35.502 1.387.030 notes", 6) == []
 
 
+def test_off_balance_page_title_rejected_not_a_data_row():
+    # ISCTR 2025Q4 (also HAYATK 2023Q3): the off-balance page title "…
+    # UNCONSOLIDATED STATEMENT OF OFF-BALANCE SHEET ITEMS" is spared by the
+    # OFF-BALANCE guard, then a date fragment tokenises as its value and it
+    # posts as a phantom hierarchy-"5" row. "STATEMENT OF" marks the title.
+    title = "5 BANK A.S. UNCONSOLIDATED STATEMENT OF OFF-BALANCE SHEET ITEMS 31 12 2025 31 12 2024"
+    assert _parse_rows(title, 6) == []
+    # real off-balance data / total rows (no "STATEMENT OF") stay alive
+    assert _parse_rows("A. OFF-BALANCE SHEET COMMITMENTS (A+B) 100 200 300 90 180 270", 6)[0][1][2] == 300.0
+    assert len(_parse_rows("TOTAL OFF-BALANCE SHEET ITEMS (A+B) 180 120 300 170 100 270", 6)) == 1
+
+
 def test_digit_led_footnote_ref_does_not_drop_roman_row():
     # DUNYAK 2023Q4: a roman section whose text label wrapped away leaves the
     # digit-led dipnot ref "5-II-5" ("5" = note section) directly after the
