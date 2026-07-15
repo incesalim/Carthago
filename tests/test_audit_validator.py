@@ -107,6 +107,44 @@ def test_statement_total_spurious_dup_ordinal_does_not_hide_section():
     assert v.check_statement_total(rows).failed == 0
 
 
+def test_off_balance_catches_dropped_derivative_leg():
+    """Off-balance now runs V2: a "Forward FX Buy/Sell" parent whose Sell leg
+    (3.2.1.2) was dropped foots to half — the real EXIM/VAKBN 2022 defect that
+    V1 triplets alone (each surviving row foots TL+FC=Total) could not see."""
+    rows = [
+        _row("3.2.1", "Forward Foreign Currency Buy/Sell", 80, 54, 134),
+        _row("3.2.1.1", "Forward FX Transactions-Buy", 40, 27, 67),
+        # 3.2.1.2 "…-Sell" (40/27/67) is missing → parent != Σ children
+    ]
+    res = v.validate_off_balance(rows)
+    assert any(f["check"] == "hierarchy_sum" for f in res.failures), res.failures
+
+
+def test_off_balance_skip_level_does_not_false_fail():
+    """A parent with no captured children is skipped, not failed — so the
+    off-balance skip-level numbering (1. → 1.1.1 with no 1.1) stays clean."""
+    rows = [
+        _row("1", "GUARANTEES AND SURETIES", 60, 40, 100),   # no 1.x children
+        _row("1.1.1", "Letters of Guarantee in TL", 36, 24, 60),  # orphan leaf
+    ]
+    res = v.validate_off_balance(rows)
+    assert res.failed == 0, res.failures
+
+
+def test_off_balance_does_not_run_statement_total():
+    """V3 stays OFF for off-balance: the A/B custody-split grand total exceeds
+    Σ top-level rows by a stable per-bank offset (structural, not a bug), so
+    validate_off_balance must not raise statement_total."""
+    rows = [
+        _row("1", "IRREVOCABLE COMMITMENTS", 60, 40, 100),
+        _row("2", "DERIVATIVES", 100, 100, 200),
+        # custody side (B.) not captured as numeric rows → labelled total > Σ
+        _row("", "TOTAL OFF-BALANCE SHEET ITEMS (A+B)", 200, 150, 350),
+    ]
+    res = v.validate_off_balance(rows)
+    assert all(f["check"] != "statement_total" for f in res.failures), res.failures
+
+
 def test_cross_statement():
     a = [_row("", "TOTAL ASSETS", 60, 40, 100)]
     li_ok = [_row("", "TOTAL LIABILITIES AND EQUITY", 60, 40, 100)]

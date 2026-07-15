@@ -263,14 +263,32 @@ def validate_statement(rows: list[dict]) -> ValidationResult:
 
 
 def validate_off_balance(rows: list[dict]) -> ValidationResult:
-    """Off-balance row triplets only.
+    """Off-balance sheet: row triplets (V1) + hierarchy sums (V2).
 
-    Off-balance sheets use I./II./III. roman top-level rows with sub-items
-    numbered 1.x / 1.x.y that skip intermediate aggregation levels (e.g.
-    there is no '1.1' row bridging 'I.' and '1.1.1'). This makes the generic
-    parent=Σchildren check fire spuriously.  Only TL+FC=Total is reliable.
+    V2 is safe here despite the skip-level numbering (a '1.1' bridging '1.' and
+    '1.1.1' is sometimes absent): check_hierarchy_sums SKIPS a parent with no
+    captured children rather than failing it, so the gaps never false-fail. What
+    it does catch is the dropped-child class this module exists for — verified
+    against the corpus, every off-balance V2 failure is a real defect:
+      * a "Forward FX Buy/Sell" line whose Sell leg (x.x.2) was not extracted
+        foots to ~half its parent (EXIM, VAKBN 2022);
+      * a dropped commitment / derivative sub-item (TSKB, EMLAK, FIBA, ALNTF);
+      * a page-header or column-header line captured with a spurious numeric
+        hierarchy (ISCTR 2025Q4 "5"; HAYATK "TL FC Total…" title rows) whose
+        real siblings then overrun the phantom parent.
+
+    V3 (labelled TOTAL = Σ top-level sections) is deliberately NOT run. The
+    off-balance grand total sums an A. commitments / B. custody-and-pledged
+    split whose custody side is not reported as plain numeric top-level rows,
+    so V3 mismatches by a STABLE per-bank offset every quarter (TEB ~35%,
+    DENIZ/YKBNK ~6-8%) — structural, not a bug. That drift is monitored instead
+    by check_audit_quality._off_balance_consistency, which flags a sudden JUMP
+    in the offset (a genuinely dropped section) but leaves a stable one alone.
     """
-    return check_row_triplets(rows)
+    res = ValidationResult()
+    res.merge(check_row_triplets(rows))
+    res.merge(check_hierarchy_sums(rows))
+    return res
 
 
 def rows_from_statement_rows(stmt_rows) -> list[dict]:
