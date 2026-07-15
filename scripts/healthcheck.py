@@ -81,47 +81,86 @@ def _next_month(period: str) -> tuple[int, int]:
     return (y + 1, 1) if m == 12 else (y, m + 1)
 
 
-def monthly_problem(period: str | None, probe=None) -> str | None:
+def monthly_freshness(period: str | None, probe=None) -> dict:
     """Monthly freshness by ASKING BDDK, not by guessing a date.
 
     BDDK publishes no calendar, so the authoritative question is "has BDDK
     published the next month yet?" — the same one-request probe the extractor
     uses (src/scrapers/bddk_probe). If BDDK has published it and D1 doesn't have
-    it → the extractor missed a release (alert). If BDDK hasn't → we hold the
-    latest data that exists → fresh, no alarm. `probe` is injectable for tests.
+    it → the extractor missed a release (stale). If BDDK hasn't → we hold the
+    latest data that exists → fresh. Only when BDDK can't be reached do we fall
+    back to the schedule estimate (next_monthly_due). `probe` is injectable.
 
-    Only when BDDK itself can't be reached do we fall back to the schedule
-    estimate (next_monthly_due) — so a long outage that also stalled the
-    extractor still surfaces eventually.
+    Returns {status: fresh|stale|unknown, latest_period, next_period, note} —
+    consumed both by the alert (below) and the /admin panel (via source_freshness).
     """
     if not period:
-        return "Monthly bulletin: no data"
+        return {"status": "unknown", "latest_period": None, "next_period": None,
+                "note": "no monthly data in D1"}
     ny, nm = _next_month(period)
+    next_period = f"{ny}-{nm:02d}"
 
     if probe is None:
         try:
             from src.scrapers.bddk_probe import monthly_is_published as probe
         except Exception:
             probe = None
+    published: bool | None = None
     if probe is not None:
         try:
-            if probe(ny, nm):
-                return (
-                    f"Monthly bulletin: {ny}-{nm:02d} is published by BDDK but not in "
-                    f"D1 — the extractor missed a release"
-                )
-            return None  # BDDK hasn't published the next month → up to date
+            published = probe(ny, nm)
         except Exception as e:
             print(f"monthly probe unreachable ({e}); using schedule backstop", file=sys.stderr)
+            published = None
 
-    # Backstop only: BDDK unreachable.
-    due = next_monthly_due(period)
-    if due and (date.today() - due).days > MONTHLY_OVERDUE_GRACE_DAYS:
-        return (
-            f"Monthly bulletin: {period} is the latest; the next was due ~"
-            f"{due.isoformat()} and BDDK could not be probed"
+    if published is True:
+        status = "stale"
+        note = f"{next_period} is published by BDDK but not in D1 — the extractor missed a release"
+    elif published is False:
+        status = "fresh"
+        note = f"{next_period} not yet published by BDDK"
+    else:
+        # Backstop only: BDDK unreachable — lean on the schedule estimate.
+        due = next_monthly_due(period)
+        overdue = due and (date.today() - due).days > MONTHLY_OVERDUE_GRACE_DAYS
+        status = "stale" if overdue else "fresh"
+        note = (
+            f"next was due ~{due.isoformat()} and BDDK could not be probed"
+            if overdue
+            else f"next (~{next_period}) not due yet; BDDK not probed"
         )
-    return None
+    return {"status": status, "latest_period": period, "next_period": next_period, "note": note}
+
+
+def monthly_problem(period: str | None, probe=None) -> str | None:
+    """The alert line (None = nothing to alert), derived from monthly_freshness."""
+    f = monthly_freshness(period, probe)
+    if f["latest_period"] is None:
+        return "Monthly bulletin: no data"
+    return f"Monthly bulletin: {f['note']}" if f["status"] == "stale" else None
+
+
+def write_freshness(source: str, f: dict) -> None:
+    """Persist the freshness verdict to remote D1 (source_freshness) for /admin."""
+    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+    def lit(v) -> str:
+        return "NULL" if v is None else "'" + str(v).replace("'", "''") + "'"
+
+    sql = (
+        "INSERT OR REPLACE INTO source_freshness "
+        "(source, checked_at, status, latest_period, note) VALUES "
+        f"({lit(source)}, {lit(now)}, {lit(f['status'])}, "
+        f"{lit(f['latest_period'])}, {lit(f['note'])})"
+    )
+    cmd = ["npx", "--yes", "wrangler", "d1", "execute", "bddk-data", "--remote", "--command", sql]
+    res = subprocess.run(
+        cmd, cwd=str(WEB), capture_output=True, text=True, shell=os.name == "nt"
+    )
+    if res.returncode != 0:
+        # Non-fatal: the table may not exist yet (pre-deploy), or D1 hiccupped.
+        # The alert still fires; the panel falls back to the schedule estimate.
+        print(f"could not write source_freshness: {res.stderr[-300:]}", file=sys.stderr)
 
 
 def hours_since(ts: str | None) -> float | None:
@@ -165,10 +204,14 @@ def main() -> int:
 
     problems: list[str] = []
 
-    # Monthly bulletin — schedule-aware (not age-based; see monthly_problem).
-    monthly = monthly_problem(row.get("monthly_period"))
-    if monthly:
-        problems.append(monthly)
+    # Monthly bulletin — ask BDDK (one probe), record the verdict for /admin, and
+    # alert only if a published month is missing.
+    mf = monthly_freshness(row.get("monthly_period"))
+    write_freshness("bddk_monthly", mf)
+    if mf["latest_period"] is None:
+        problems.append("Monthly bulletin: no data")
+    elif mf["status"] == "stale":
+        problems.append(f"Monthly bulletin: {mf['note']}")
 
     for key, label, max_age in THRESHOLDS:
         age = hours_since(row.get(key))

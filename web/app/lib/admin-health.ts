@@ -99,14 +99,46 @@ async function monthlySource(db: DB): Promise<SourceHealth> {
     db,
     "SELECT COUNT(*) AS n FROM download_log WHERE status IS NOT NULL AND status <> 'success'",
   );
+  // The daily health check probes BDDK and records the verdict here (ground
+  // truth); the Worker can't probe per request. Trust it while it's still about
+  // the month we currently hold — otherwise the data advanced since the last
+  // check, so fall back to the schedule estimate.
+  const recorded = await safeFirst<{
+    status: string;
+    note: string | null;
+    checked_at: string | null;
+    latest_period: string | null;
+  }>(
+    db,
+    "SELECT status, note, checked_at, latest_period FROM source_freshness WHERE source = 'bddk_monthly'",
+  );
+
   const latestPeriod = period
     ? `${period.year}-${String(period.month).padStart(2, "0")}`
     : null;
-  const due = latestPeriod ? nextMonthlyBulletinDue(latestPeriod) : null;
-  const status = monthlyStatus(latestPeriod);
+  const probed =
+    recorded &&
+    recorded.latest_period === latestPeriod &&
+    ["fresh", "late", "stale", "unknown"].includes(recorded.status)
+      ? recorded
+      : null;
+
+  let status: FreshnessStatus;
   const noteParts: string[] = [];
-  if (due && status === "fresh") noteParts.push(`next (${due.record}) due ~${due.date}`);
+  if (probed) {
+    status = probed.status as FreshnessStatus;
+    if (probed.note) noteParts.push(probed.note);
+    const probedAge = hoursSince(probed.checked_at);
+    if (probedAge != null) noteParts.push(`probed ${probedAge < 36 ? "today" : `${Math.round(probedAge / 24)}d ago`}`);
+  } else {
+    // No usable probe result yet → the schedule estimate (still schedule-aware,
+    // never the old age-based check).
+    status = monthlyStatus(latestPeriod);
+    const due = latestPeriod ? nextMonthlyBulletinDue(latestPeriod) : null;
+    if (due && status === "fresh") noteParts.push(`next (${due.record}) due ~${due.date}`);
+  }
   if (fails && fails.n > 0) noteParts.push(`${fails.n} non-success rows in download_log`);
+
   return {
     key: "monthly",
     label: "Monthly bulletin",
