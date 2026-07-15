@@ -1,6 +1,10 @@
 {
   "_README": "Hand-transcribed free-provision STOCK (thousand TL) for partitions the deterministic classifier in src/audit_reports/free_provision.py cannot read — the cancellation-heavy / multi-figure Turkish disclosure tail. Same principle as data/manual_statements.json. Keyed BANK -> PERIOD -> KIND. `source` records where it was read. An override wins outright over extraction. Verified by hand against the source PDFs 2026-07-15.",
   "VAKBN": {
+    "2022Q4": {
+      "consolidated":   {"free_provision": 19000000, "source": "year-end read as the (31 Aralik 2022: 19,000,000) prior stated consistently across all VAKBN 2023 reports"},
+      "unconsolidated": {"free_provision": 19000000, "source": "year-end read as the (31 Aralik 2022: 19,000,000) prior stated across VAKBN 2023 reports"}
+    },
     "2023Q1": {
       "unconsolidated": {"free_provision": 7000000, "free_provision_prior": 19000000, "source": "note: 'serbest karsilik tutari 7,000,000 TL'dir (31 Aralik 2022: 19,000,000 TL)'"}
     },
@@ -31,6 +35,9 @@
     }
   },
   "ODEA": {
+    "2022Q4": {
+      "unconsolidated": {"free_provision": 650000, "source": "year-end read as the (31 Aralik 2022: 650.000) prior stated in ODEA 2023Q2 and 2023Q4"}
+    },
     "2023Q2": {
       "unconsolidated": {"free_provision": 400000, "free_provision_prior": 650000, "source": "note: 'serbest karsiliklara iliskin bilgiler: 400.000 TL (31 Aralik 2022: 650.000 TL)'"}
     },
@@ -39,11 +46,18 @@
     }
   },
   "SKBNK": {
+    "2024Q4": {
+      "unconsolidated": {"free_provision": 1350000, "source": "year-end read as the (31 December 2024 - TRL 1,350,000) prior stated in SKBNK 2025Q4"}
+    },
     "2025Q4": {
       "unconsolidated": {"free_provision": 1000000, "free_provision_prior": 1350000, "source": "note: 'free provision for possible risks amounting to TRL 1,000,000 (31 December 2024 - TRL 1,350,000)'"}
     }
   },
   "EMLAK": {
+    "2023Q4": {
+      "consolidated":   {"free_provision": 855130, "source": "year-end read as the (Dec 2023: 855.130) prior stated in EMLAK 2024Q3 and 2024Q4 note tables"},
+      "unconsolidated": {"free_provision": 855130, "source": "year-end read as the (Dec 2023: 855.130) prior stated in EMLAK 2024Q3 and 2024Q4"}
+    },
     "2024Q3": {
       "consolidated":   {"free_provision": 1500000, "free_provision_prior": 855130, "source": "note table 'serbest karsiliklar 1.500.000 855.130'; free-provision row confirmed by auditor 855.130 prior-year reference"},
       "unconsolidated": {"free_provision": 1500000, "free_provision_prior": 855130, "source": "note table 'serbest karsiliklar 1.500.000 855.130'"}
