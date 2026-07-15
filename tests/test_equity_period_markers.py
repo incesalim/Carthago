@@ -5,11 +5,11 @@ matching "Önceki Dönem"; the old pattern only covered "Önce(si) Dönem" and
 missed the "ki", so the page defaulted to 'current' and the enforce-distinct
 fallback swapped the two periods (stored "current" = the prior-year matrix).
 
-Guarded by importorskip: equity_change imports pdfplumber (CI minimal deps omit).
+Guarded by importorskip: equity_change imports fitz (CI minimal deps omit).
 """
 import pytest
 
-pytest.importorskip("pdfplumber")
+pytest.importorskip("fitz")
 
 from src.audit_reports.equity_change import _CURRENT_RX, _PRIOR_RX, _max_year  # noqa: E402
 

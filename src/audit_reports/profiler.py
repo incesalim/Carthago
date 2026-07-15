@@ -21,14 +21,13 @@ from __future__ import annotations
 
 import re
 
-import pdfplumber
-
 from .extractor import (
     HIERARCHY_PAT,
     _count_values,
+    _fitz_page_count,
+    _fitz_page_text,
     _locate_pages,
     _norm,
-    extract_page_text_repaired,
 )
 
 # §4 + §5 anchor inventory, matched on _norm()-folded page text (A-Z only).
@@ -109,36 +108,36 @@ def _bank_type(liab_text: str) -> str:
 
 
 def profile_pdf(pdf_path: str) -> dict:
-    """One report's format observations. Page-scan only — no value parsing."""
+    """One report's format observations. Page-scan only — no value parsing.
+
+    fitz throughout: `_locate_pages` and `_fitz_page_text` both take the PDF path
+    and reconstruct text from word boxes (the same reader the parsers use)."""
     out: dict = {"pdf": pdf_path}
-    with pdfplumber.open(pdf_path) as pdf:
-        out["pages"] = len(pdf.pages)
-        loc = _locate_pages(pdf)
-        out["section_pages"] = dict(loc)
-        # §4/§5 tables always come after the financial statements; starting
-        # the anchor scan there skips the cover/TOC pages (which list the
-        # section names and would record phantom early hits).
-        scan_from = max(loc.values()) + 1 if loc else 8
-        anchors: dict[str, int] = {}
-        for i, page in enumerate(pdf.pages, 1):
-            if i < scan_from:
-                continue
-            try:
-                norm = _norm(page.extract_text() or "")
-            except Exception:
-                continue
-            for key, needles in FOOTNOTE_ANCHORS.items():
-                if key not in anchors and any(n in norm for n in needles):
-                    anchors[key] = i
-        out["anchors"] = anchors
-        for stmt, key in (("assets", "bs_assets"), ("liabilities", "bs_liab")):
-            if key not in loc:
-                out[stmt] = None
-                continue
-            text = extract_page_text_repaired(pdf.pages[loc[key] - 1])
-            out[stmt] = _profile_statement_text(text)
-            if stmt == "assets":
-                out["language"] = _language(text)
-            else:
-                out["bank_type"] = _bank_type(text)
+    n_pages = _fitz_page_count(pdf_path) or 0
+    out["pages"] = n_pages
+    loc = _locate_pages(pdf_path)
+    out["section_pages"] = dict(loc)
+    # §4/§5 tables always come after the financial statements; starting the
+    # anchor scan there skips the cover/TOC pages (which list the section names
+    # and would record phantom early hits).
+    scan_from = max(loc.values()) + 1 if loc else 8
+    anchors: dict[str, int] = {}
+    for i in range(1, n_pages + 1):
+        if i < scan_from:
+            continue
+        norm = _norm(_fitz_page_text(pdf_path, i - 1))
+        for key, needles in FOOTNOTE_ANCHORS.items():
+            if key not in anchors and any(n in norm for n in needles):
+                anchors[key] = i
+    out["anchors"] = anchors
+    for stmt, key in (("assets", "bs_assets"), ("liabilities", "bs_liab")):
+        if key not in loc:
+            out[stmt] = None
+            continue
+        text = _fitz_page_text(pdf_path, loc[key] - 1)
+        out[stmt] = _profile_statement_text(text)
+        if stmt == "assets":
+            out["language"] = _language(text)
+        else:
+            out["bank_type"] = _bank_type(text)
     return out

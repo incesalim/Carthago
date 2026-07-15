@@ -29,8 +29,6 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import pdfplumber
-
 try:
     import fitz  # PyMuPDF
     _HAS_FITZ = True
@@ -352,7 +350,7 @@ def extract_stats_from_words(rows: list[list[tuple[float, float, str]]],
 # ---------------------------------------------------------------------------
 # PDF driver
 # ---------------------------------------------------------------------------
-def _n_pages(pdf: pdfplumber.PDF, pdf_path: str = "") -> int:
+def _n_pages(pdf_path: str) -> int:
     if _HAS_FITZ and pdf_path:
         try:
             doc = fitz.open(pdf_path)
@@ -361,28 +359,40 @@ def _n_pages(pdf: pdfplumber.PDF, pdf_path: str = "") -> int:
             return n
         except Exception:
             pass
-    return len(pdf.pages)
+    return 0
 
 
-def extract_from_pdf(pdf: pdfplumber.PDF, pdf_path: str = "",
-                     fiscal_year: int | None = None, max_pages: int = 60
-                     ) -> FranchiseReport:
+def _page_texts(pdf_path: str, limit: int) -> list[str]:
+    """Plain page text for the first ``limit`` pages via fitz (single open)."""
+    if not (_HAS_FITZ and pdf_path):
+        return []
+    try:
+        doc = fitz.open(pdf_path)
+        try:
+            n = min(limit, doc.page_count)
+            return [doc[i].get_text() or "" for i in range(n)]
+        finally:
+            doc.close()
+    except Exception:
+        return []
+
+
+def extract_from_pdf(pdf_path: str, fiscal_year: int | None = None,
+                     max_pages: int = 60) -> FranchiseReport:
     """Scan the first ``max_pages`` pages (franchise highlights live up front).
 
-    Pass A (prose regex) runs on the concatenated text; Pass B (coordinate) fills
-    only metrics A missed. An image-only PDF (no text layer) is flagged is_ocr and
-    yields zero stats — a coverage gap, not a failure.
+    Pass A (prose regex) runs on the concatenated fitz page text; Pass B
+    (coordinate) fills only metrics A missed. An image-only PDF (no text layer)
+    is flagged is_ocr and yields zero stats — a coverage gap, not a failure.
     """
+    pdf_path = str(pdf_path)
     rep = FranchiseReport(pdf_path=pdf_path, fiscal_year=fiscal_year)
-    rep.n_pages = _n_pages(pdf, pdf_path)
+    rep.n_pages = _n_pages(pdf_path)
     limit = min(max_pages, rep.n_pages)
 
-    page_texts: list[str] = []
-    for i in range(limit):
-        try:
-            page_texts.append(pdf.pages[i].extract_text() or "")
-        except Exception:
-            page_texts.append("")
+    page_texts = _page_texts(pdf_path, limit)
+    if len(page_texts) < limit:
+        page_texts += [""] * (limit - len(page_texts))
     full = "\n".join(page_texts)
     if not full.strip():
         rep.is_ocr = True
@@ -416,9 +426,7 @@ def extract_from_pdf(pdf: pdfplumber.PDF, pdf_path: str = "",
 
 
 def extract(pdf_path: str | Path, fiscal_year: int | None = None) -> FranchiseReport:
-    pdf_path = str(pdf_path)
-    with pdfplumber.open(pdf_path) as pdf:
-        return extract_from_pdf(pdf, pdf_path, fiscal_year)
+    return extract_from_pdf(str(pdf_path), fiscal_year)
 
 
 def summarize(rep: FranchiseReport) -> str:

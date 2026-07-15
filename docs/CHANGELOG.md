@@ -5,6 +5,26 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-07-15.
 
+2026-07-15 — **pdfplumber removed entirely — every PDF extractor is now fitz (PyMuPDF) only.**
+The last three holdouts moved off pdfplumber: (1) the frozen BS/P&L `_parse_page` /
+`_detect_pl_ncols` in `extractor.py` — they had run BOTH engines and picked whichever
+found more rows (tie → pdfplumber, the proven baseline); now they read `_fitz_page_text`
+directly, whose coordinate reconstruction (y-bucketing word boxes + split-digit merge +
+`/Rotate 90` rotation-matrix mapping) is a **strict superset** of the old pdfplumber
+layout-repair and never shatters a value the way pdfplumber's letter-spaced text did.
+(2) `profiler.py` — rewired to `_locate_pages(pdf_path)` + `_fitz_page_text`; this also
+**fixes a latent bug** where it passed a pdfplumber PDF object to the now-path-based
+`_locate_pages`, which silently returned `{}` (so every profile lost its section pages).
+(3) `src/faaliyet/extractor.py` — Pass A now reads fitz page text via a single-open
+helper. Also deleted the dead `_n_pages` / `_safe_repaired_text` / `_run_with_timeout` /
+`_PDFPLUMBER_POISON` / `_page_text` / `extract_page_text_repaired` block (zero call sites,
+flagged by the 2026-07-14 arch check), the pdfminer poison-PDF watchdog, and the two
+remaining script users (`diag_partition.py`, `catalog_audit_templates.py`,
+`ingest_policy_baseline.py`). `pdfplumber` dropped from `requirements.txt` and `ci.yml`;
+the 10 `pytest.importorskip("pdfplumber")` guards flipped to `"fitz"`. **No production
+data re-extracted** — the change is code-only; already-extracted rows are untouched and
+only *future* extractions use the fitz-only path. Full unit suite green (389 passed).
+
 2026-07-15 — **New brand mark.** The logo is now the Carthago mark — an open navy "C"
 enclosing a wireframe globe, a data mosaic and a rising bar chart whose tallest bar
 forms an "i" — replacing the blue hatched disc. The mark is the supplied artwork keyed

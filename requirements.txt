@@ -22,8 +22,7 @@ xlrd>=2.0.2          # legacy .xls / BIFF (older TBB digital-banking workbooks)
 # Database
 sqlalchemy>=2.0.51
 
-# Audit-report PDF extraction
-pdfplumber>=0.11.10
+# Audit-report PDF extraction (fitz-only; pdfplumber removed 2026-07-15)
 pymupdf>=1.28.0
 
 # Cloudflare R2 (S3-compatible) for audit-report PDF storage

@@ -3,8 +3,8 @@ repricing gap).
 
 The validator tests are pure (stdlib only) and run everywhere, including CI
 (which installs only ruff/pytest/lxml/requests). The extractor tests need
-pdfplumber/fitz and the local diagnostic PDFs under data/eye/, so they
-`importorskip` and skip when either is absent.
+fitz (PyMuPDF) and the local diagnostic PDFs under data/eye/, so they
+`importorskip` and skip when it is absent.
 """
 from __future__ import annotations
 
@@ -111,13 +111,12 @@ def test_repricing_validator_skips_without_total():
 
 
 # ---------------------------------------------------------------------------
-# Extractor tests (need pdfplumber/fitz + local sample PDFs — skip otherwise)
+# Extractor tests (need fitz (PyMuPDF) + local sample PDFs — skip otherwise)
 # ---------------------------------------------------------------------------
 _SAMPLE = REPO / "data" / "eye" / "AKBNK_2024Q4_unconsolidated.pdf"
 
 
 def _need_extractor():
-    pytest.importorskip("pdfplumber")
     pytest.importorskip("fitz")
     if not _SAMPLE.exists():
         pytest.skip("sample PDF not present (local-only diagnostic fixture)")

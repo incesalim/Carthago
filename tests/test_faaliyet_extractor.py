@@ -12,7 +12,7 @@ import sqlite3
 
 import pytest
 
-pytest.importorskip("pdfplumber")  # CI installs minimal deps; extractor needs pdfplumber
+pytest.importorskip("fitz")  # CI installs minimal deps; extractor needs fitz (PyMuPDF)
 
 from src.faaliyet import extractor as ex  # noqa: E402
 from src.faaliyet.loader import upsert_report  # noqa: E402

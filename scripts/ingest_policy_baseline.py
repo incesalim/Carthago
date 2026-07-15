@@ -23,7 +23,6 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import io
 import sqlite3
 import sys
 from datetime import datetime, timezone
@@ -44,15 +43,15 @@ HEADERS = {"User-Agent": "Mozilla/5.0", "Accept-Language": "en-US,en;q=0.9"}
 
 
 def extract_pdf_text(data: bytes) -> str:
-    """Extract text from the policy PDF, annex tables included. pdfplumber's
-    line extraction renders the date-keyed annex tables readably enough for
-    the LLM to parse."""
-    import pdfplumber
+    """Extract text from the policy PDF, annex tables included. fitz's page
+    text renders the date-keyed annex tables readably enough for the LLM to
+    parse."""
+    import fitz  # PyMuPDF
 
     parts: list[str] = []
-    with pdfplumber.open(io.BytesIO(data)) as pdf:
-        for page in pdf.pages:
-            parts.append(page.extract_text() or "")
+    with fitz.open(stream=data, filetype="pdf") as doc:
+        for page in doc:
+            parts.append(page.get_text() or "")
     text = "\n".join(parts).strip()
     return text[:CONTENT_CAP]
 
