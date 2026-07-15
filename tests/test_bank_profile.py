@@ -209,6 +209,38 @@ def test_ps_english_with_staff_and_number_of():
                       "(31 December 2025: 98).") == 129
 
 
+def test_activity_report_isbank_en():
+    # İşbank's interim activity report: "a total of 1,019 branches and 20,630
+    # employees. Of the 1,019 branches, 997 are domestic and 22 are overseas."
+    d, f, t = _branches(
+        "3. Information about Branches and Personnel: As of 31 March 2026, the Bank "
+        "has a total of 1,019 branches and 20,630 employees. Of the 1,019 branches, "
+        "997 are domestic and 22 are overseas. Of the overseas branches, 15 operate "
+        "in the TRNC; İşbank AG operates with 8 branches in Germany.")
+    assert (d, f, t) == (997, 22, 1019)          # subsidiary "8 branches" ignored
+    assert _personnel("the Bank has a total of 1,019 branches and 20,630 "
+                      "employees.") == 20630
+
+
+def test_activity_report_kpi_table_tr():
+    # AKTIF / DENIZ KPI table: "Şube Sayısı 16 Personel Sayısı 745" (current first).
+    assert _branches("Kaldıraç Oranı 7.29 Şube Sayısı 16 Personel Sayısı 745 "
+                     "Dönem İçerisinde")[2] == 16
+    assert _personnel("Şube Sayısı 578 576 Personel Sayısı 12.050 11.972 ATM "
+                      "Sayısı 3.011") == 12050
+
+
+def test_activity_report_exim_points_and_dunyak():
+    # Eximbank: "32 different points, 25 of which are branches and 7 liaison offices".
+    assert _branches("provides Banking services at 32 different points, 25 of which "
+                     "are branches and 7 liaison offices")[2] == 25
+    # DUNYAK: "toplam şube sayısı 1, toplam personel sayısı ise 171".
+    assert _branches("31 Mart 2024 itibarıyla Banka'nın toplam şube sayısı 1, "
+                     "toplam personel sayısı ise 171'dir.")[2] == 1
+    assert _personnel("toplam şube sayısı 1, toplam personel sayısı ise "
+                      "171'dir.") == 171
+
+
 def test_ps_bbva_group_headcount_not_captured():
     # GARAN — "more than 127 thousand employees" describes the BBVA group, not
     # Garanti; the "thousand" between number and noun blocks the match.

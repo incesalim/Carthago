@@ -152,6 +152,19 @@ _BR_EN_TR_OS = _c(
 # — so a lookahead just requires "branch" later in the same sentence.
 _BR_EN_DOM = _c(rf"(?P<n>{_D})\s*{_PAREN}\s*(?:domestic|local)\b(?=[^.]*\bbranch)")
 
+# --- Activity-report (Ara Dönem Faaliyet Raporu) phrasings ------------------
+# The interim activity report bundled at the BACK of the audit PDF carries a
+# "Branches and Personnel" block that the Section-I general info sometimes omits.
+# TR label: "Şube Sayısı 16" (AKTIF KPI table) / "toplam şube sayısı 1" (DUNYAK).
+_BR_TR_SUBE_SAYISI = _c(rf"(?:toplam\s+)?şube\s+say[ıi]s[ıi]\s+(?P<n>{_D})")
+# EN İşbank: "a total of 1,019 branches" (+ "997 are domestic and 22 are overseas").
+_BR_EN_TOTAL_OF = _c(rf"total\s+of\s+(?P<n>{_D})\s+branches")
+_BR_EN_DOM_OVERSEAS = _c(
+    rf"(?P<dom>{_D})\s+are\s+domestic\s+and\s+(?P<for>{_D})\s+are\s+overseas")
+# EN Eximbank: "32 different points, 25 of which are branches" ⇒ 25 (group n).
+_BR_EN_POINTS = _c(
+    rf"(?:{_D})\s+(?:different\s+)?points,?\s+(?P<n>{_D})\s+of\s+which\s+are\s+branches")
+
 # --- Personnel patterns ----------------------------------------------------
 # Split first: "yurtiçi çalışan sayısı 3.140 (…), yurtdışı çalışan sayısı 15"
 # (note ZIRAATK writes "yurtiçi" with no space).
@@ -192,6 +205,7 @@ def _extract_branches(text: str, profile: BankProfile) -> None:
     for pat, dg, fg in (
         (_BR_EN_TOTAL, "dom", "for"),
         (_BR_EN_DOM_FOR, "dom", "for"),
+        (_BR_EN_DOM_OVERSEAS, "dom", "for"),     # İşbank activity report
         (_BR_EN_TR_OS, "dom", "for"),
         (_BR_TR_AKBNK, "dom", "for"),
         (_BR_TR_COMBINED, "dom", "for"),
@@ -227,6 +241,14 @@ def _extract_branches(text: str, profile: BankProfile) -> None:
         profile.branches_total = _find(_BR_TR_BARE, text, _BR_LO, _BR_HI)
     if profile.branches_total is None and profile.branches_domestic is None:
         profile.branches_total = _find(_BR_TR_SUBJECT, text, _BR_LO, _BR_HI)
+    # Activity-report totals (İşbank "total of N branches", Eximbank "N of which
+    # are branches", AKTIF/DUNYAK "şube sayısı N").
+    if profile.branches_total is None:
+        profile.branches_total = _find(_BR_EN_TOTAL_OF, text, _BR_LO, _BR_HI)
+    if profile.branches_total is None:
+        profile.branches_total = _find(_BR_EN_POINTS, text, _BR_LO, _BR_HI)
+    if profile.branches_total is None and profile.branches_domestic is None:
+        profile.branches_total = _find(_BR_TR_SUBE_SAYISI, text, _BR_LO, _BR_HI)
 
     # 4) reconcile total ⇄ components. Derive foreign FIRST — only from an
     #    EXPLICIT total (e.g. ZIRAATK "231 yurt içi … toplam 233 şube" ⇒ 2
@@ -275,26 +297,65 @@ def _extract_personnel(text: str, profile: BankProfile) -> None:
         profile.personnel = _find(pat, text, lo, _PS_HI)
 
 
+# Distinctive anchors for the interim activity report's branch/personnel block.
+_ACT_ANCHOR = _c(
+    r"Şube\s+ve\s+Personel"          # "Şube ve Personel Bilgileri" (DUNYAK, TAKAS)
+    r"|Branches\s+and\s+Personnel"    # İşbank
+    r"|Şube\s+Say[ıi]s[ıi]"           # AKTIF KPI table
+    r"|toplam\s+şube\s+say[ıi]s[ıi]"
+    r"|total\s+of\s+[\d.,]+\s+branches"
+    r"|number\s+of\s+(?:the\s+)?employees"  # TSKB
+    r"|of\s+which\s+are\s+branches")        # Eximbank
+
+
+def _activity_report_block(pdf_path: str, start: int, end: int) -> str:
+    """Text of the pages (start..end) that carry the interim activity report's
+    'Branches and Personnel' disclosure. The activity report ('Ara Dönem Faaliyet
+    Raporu') is appended at the BACK of the audit PDF and states the count that
+    the Section-I general info sometimes omits (İşbank, Aktifbank, Eximbank,
+    Takasbank, TSKB, and new banks' early filings)."""
+    blocks = []
+    for i in range(start, end):
+        t = re.sub(r"[ \t]+", " ", _fitz_page_text(pdf_path, i) or "")
+        if _ACT_ANCHOR.search(t):
+            blocks.append(t)
+    return "\n".join(blocks)
+
+
 def extract_profile_from_pdf(
     pdf_path: str = "",
     max_pages: int = 25,
 ) -> BankProfile:
-    """Scan the first `max_pages` pages of an audit report for branch +
-    personnel disclosures. Returns a BankProfile (possibly partially-filled)."""
+    """Scan an audit report for branch + personnel disclosures. Reads the first
+    `max_pages` (Section-I general info) first; if branches or personnel are still
+    missing, scans the interim activity report at the back. Returns a BankProfile
+    (possibly partially-filled)."""
     profile = BankProfile()
     if not (pdf_path and _HAS_FITZ):
         return profile
-    # Concatenate first N pages (qualitative section is always near the start) —
-    # fitz text, same engine as every other lane (no pdfplumber). Collapse runs
-    # of spaces so a wrapped "current (prior)" phrase stays matchable.
-    n = min(max_pages, _fitz_page_count(pdf_path) or 0)
+    # Concatenate first N pages (Section-I general info) — fitz text, same engine
+    # as every other lane (no pdfplumber). Collapse runs of spaces so a wrapped
+    # "current (prior)" phrase stays matchable.
+    n_total = _fitz_page_count(pdf_path) or 0
+    n = min(max_pages, n_total)
     text = "".join(_fitz_page_text(pdf_path, i) + "\n" for i in range(n))
-    if not text:
+    if not text.strip():
         return profile
     text = re.sub(r"[ \t]+", " ", text)
 
     _extract_branches(text, profile)
     _extract_personnel(text, profile)
+
+    # Fallback: the interim activity report at the back (İşbank et al. disclose
+    # only there). Scan pages beyond the front matter only when something's still
+    # missing — so the ~90% who disclose up front pay no extra page reads.
+    if (profile.branches_total is None or profile.personnel is None) and n_total > n:
+        act = _activity_report_block(pdf_path, n, n_total)
+        if act:
+            if profile.branches_total is None:
+                _extract_branches(act, profile)
+            if profile.personnel is None:
+                _extract_personnel(act, profile)
     return profile
 
 
