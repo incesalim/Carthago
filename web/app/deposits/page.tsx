@@ -702,19 +702,12 @@ export default async function DepositsPage() {
           <SecHead title="Ahead" meta="schedule — derived from the record periods + the tcmb calendar" className="mb-2.5" />
           <Ahead
             items={[
-              { when: "FRI", what: <>BDDK weekly bulletin — the base, TL and FX</> },
               ahead.mpc && {
                 when: ahead.mpc.when,
                 what: (
                   <>
                     TCMB MPC — the rate {fmtPct(repriceQuarter)} of the book reprices to
                   </>
-                ),
-              },
-              ahead["bddk-monthly"] && {
-                when: ahead["bddk-monthly"].when,
-                what: (
-                  <>BDDK monthly — the maturity ladder, {ahead["bddk-monthly"].record}</>
                 ),
               },
               ahead["brsa-filings"] && {

@@ -596,10 +596,6 @@ export default async function CapitalPage() {
           <SecHead title="Ahead" meta="schedule — derived from the record periods + the tcmb calendar" className="mb-2.5" />
           <Ahead
             items={[
-              ahead["bddk-monthly"] && {
-                when: ahead["bddk-monthly"].when,
-                what: <>BDDK monthly bulletin — {ahead["bddk-monthly"].record} CAR</>,
-              },
               ahead["brsa-filings"] && {
                 when: ahead["brsa-filings"].when,
                 what: (

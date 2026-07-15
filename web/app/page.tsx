@@ -671,10 +671,6 @@ export default async function OverviewPage({
                 when: ahead.fsr.when,
                 what: <>TCMB Financial Stability Report</>,
               },
-              ahead["bddk-monthly"] && {
-                when: ahead["bddk-monthly"].when,
-                what: <>BDDK monthly bulletin — {ahead["bddk-monthly"].record} record</>,
-              },
               ahead["brsa-filings"] && {
                 when: ahead["brsa-filings"].when,
                 what: (
@@ -684,7 +680,6 @@ export default async function OverviewPage({
                 ),
                 href: "/actions",
               },
-              { when: "FRI", what: <>BDDK weekly series — credit, deposits, FX</> },
             ].filter((i) => !!i)}
           />
         </div>

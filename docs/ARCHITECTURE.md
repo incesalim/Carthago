@@ -108,8 +108,11 @@ everything. A separate daily job, `refresh-news-daily.yml` (04:00 UTC), refreshe
 `news_items`.
 
 ### Weekly bulletins — `.github/workflows/refresh-bddk-bulletins.yml`
-Saturday 02:00 UTC. Isolated BDDK-only refresh (monthly + weekly bulletins,
-`--skip-evds`, no audit). Catches the new week before `refresh-data.yml`.
+Friday 13:30 + 15:30 UTC (16:30 & 18:30 Turkey), weekly-only, and Saturday
+02:00 UTC (weekly + monthly). Isolated BDDK-only refresh (`--skip-evds`, no
+audit). BDDK publishes the weekly bulletin Friday afternoon (~16:00–18:00
+Turkey), so the two Friday runs grab it the same evening (bracketing the window
+so it's caught within ~30 min); Saturday is the backstop and does the monthly.
 
 ### Weekly full — `.github/workflows/refresh-data.yml`
 Saturday 03:00 UTC. BDDK bulletins + EVDS + BIST + TBB digital + TKBB participation
