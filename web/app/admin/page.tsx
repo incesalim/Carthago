@@ -1,23 +1,19 @@
 /**
  * Admin control center — data/pipeline health + manual triggers + traffic.
- * Gated by requireAdmin() (Cloudflare Access JWT). Safe-by-default: until Access
- * is configured the header is absent and this renders a Forbidden card.
+ * Gated by requireAdmin() (Cloudflare Access JWT / ADMIN_PASSWORD). Safe-by-
+ * default: until auth is configured this renders a Forbidden card.
+ *
+ * Built on "The Desk" (web/DESIGN.md): the six sources are the vitals band — the
+ * one bold element — and everything else (coverage, pipeline, traffic, the deck)
+ * carries under quiet section heads. No boxes, hairlines instead; blue is links
+ * only; Fresh/Late/Stale read green/amber/red as data state, not accent.
  */
 import type { Metadata } from "next";
 import { AdminAuthError, requireAdmin } from "@/app/lib/admin-auth";
 import { getHealthReport, type FreshnessStatus, type SourceHealth } from "@/app/lib/admin-health";
 import { relativeFromHours } from "@/app/lib/format-time";
-import {
-  Badge,
-  Button,
-  buttonVariants,
-  Card,
-  PageHeader,
-  Section,
-  Stat,
-  type BadgeProps,
-  type StatProps,
-} from "@/app/components/ui";
+import { Card } from "@/app/components/ui";
+import { Colophon, SecHead, Vitals } from "@/app/components/desk";
 import CoverageMatrix from "./coverage/CoverageMatrix";
 import LoginForm from "./LoginForm";
 import PipelinePanel from "./PipelinePanel";
@@ -33,15 +29,21 @@ export const metadata: Metadata = {
 
 const nf = new Intl.NumberFormat("en-US");
 
-const STATUS_STYLE: Record<
-  FreshnessStatus,
-  { tone: StatProps["tone"]; variant: BadgeProps["variant"]; label: string }
-> = {
-  fresh: { tone: "positive", variant: "positive", label: "Fresh" },
-  late: { tone: "warning", variant: "warning", label: "Late" },
-  stale: { tone: "negative", variant: "negative", label: "Stale" },
-  unknown: { tone: "neutral", variant: "secondary", label: "No data" },
+const STATUS_STYLE: Record<FreshnessStatus, { dot: string; text: string; label: string }> = {
+  fresh: { dot: "bg-positive", text: "text-positive", label: "Fresh" },
+  late: { dot: "bg-warning", text: "text-warning", label: "Late" },
+  stale: { dot: "bg-negative", text: "text-negative", label: "Stale" },
+  unknown: { dot: "bg-faint", text: "text-faint", label: "No data" },
 };
+
+/** Audit freshness is validation health, not a clock — say so. */
+function statusLabel(s: SourceHealth): string {
+  if (s.key === "audit") {
+    if (s.status === "fresh") return "Clean";
+    if (s.status === "late") return "Failures";
+  }
+  return STATUS_STYLE[s.status].label;
+}
 
 function Forbidden() {
   return (
@@ -58,21 +60,36 @@ function Forbidden() {
   );
 }
 
-function SourceCard({ s }: { s: SourceHealth }) {
-  const style = STATUS_STYLE[s.status];
-  const bits = [
-    `updated ${relativeFromHours(s.ageHours)}`,
-    s.rowCount != null ? `${nf.format(s.rowCount)} rows` : null,
-    s.note,
-  ].filter(Boolean);
+/** One source as a vitals cell: period figure, status dot+word, one detail line. */
+function HealthVital({ s }: { s: SourceHealth }) {
+  const st = STATUS_STYLE[s.status];
+  // A note carries the ground-truth line (e.g. "June not yet published · probed
+  // today") — prefer it over "updated Nd ago", which is misleading for the
+  // monthly bulletin whose ingest timestamp freezes between releases.
+  const detail = s.note
+    ? s.note
+    : [
+        s.rowCount != null ? `${nf.format(s.rowCount)} rows` : null,
+        s.ageHours != null ? `updated ${relativeFromHours(s.ageHours)}` : null,
+      ]
+        .filter(Boolean)
+        .join(" · ");
   return (
-    <Stat
-      label={s.label}
-      value={s.latestPeriod ?? "—"}
-      tone={style.tone}
-      badge={<Badge variant={style.variant}>{style.label}</Badge>}
-      hint={bits.join(" · ")}
-    />
+    <div className="border-r border-hair px-4 py-3 last:border-r-0 max-sm:odd:pl-0 sm:first:pl-0">
+      <div className="font-mono text-[8.5px] uppercase tracking-[0.07em] text-muted-foreground">
+        {s.label}
+      </div>
+      <div className="mt-1.5 font-mono text-[22px] font-semibold tracking-tight tabular-nums text-foreground">
+        {s.latestPeriod ?? "—"}
+      </div>
+      <div
+        className={`mt-2 inline-flex items-center gap-1.5 font-mono text-[8.5px] uppercase tracking-[0.06em] ${st.text}`}
+      >
+        <span className={`h-1.5 w-1.5 rounded-full ${st.dot}`} />
+        {statusLabel(s)}
+      </div>
+      {detail && <div className="mt-2 text-[9.5px] leading-snug text-faint">{detail}</div>}
+    </div>
   );
 }
 
@@ -92,31 +109,76 @@ export default async function AdminPage({
   }
 
   const { sources } = await getHealthReport();
+  const flagged = sources.filter((s) => s.status === "late" || s.status === "stale");
+  const record =
+    flagged.length === 0
+      ? `internal · all ${sources.length} sources current`
+      : `internal · ${flagged.map((s) => s.label.toLowerCase()).join(", ")} ${
+          flagged.length === 1 ? "needs" : "need"
+        } attention`;
 
   return (
-    <main className="mx-auto max-w-6xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
-      <PageHeader
-        eyebrow="Internal"
-        title="Control center"
-        description="Pipeline health, manual refresh triggers, and site traffic — all in one place."
-      >
-        <form method="post" action="/api/admin/logout">
-          <Button type="submit" variant="outline" size="sm">
-            Sign out
-          </Button>
-        </form>
-      </PageHeader>
+    <main className="mx-auto w-full max-w-[1200px] px-4 py-8 sm:px-6 lg:px-8">
+      <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+        <div>
+          <h1 className="text-[24px] font-bold tracking-tight text-foreground">Control center</h1>
+          <p className="mt-1.5 font-mono text-[9.5px] uppercase tracking-[0.07em] text-muted-foreground">
+            {record}
+          </p>
+        </div>
+        <div className="flex flex-col items-end gap-1.5">
+          <form method="post" action="/api/admin/logout">
+            <button
+              type="submit"
+              className="font-mono text-[9.5px] uppercase tracking-[0.06em] text-muted-foreground underline decoration-border underline-offset-4 transition-colors hover:text-foreground hover:decoration-current"
+            >
+              Sign out
+            </button>
+          </form>
+          <span className="font-mono text-[8.5px] uppercase tracking-[0.07em] text-faint">
+            read-only · computed on view
+          </span>
+        </div>
+      </header>
 
-      <Section
-        title="Presentation"
-        description="A board-style PDF of the sector Read — title slide, one slide per tab, methodology. Opens the deck and the browser print dialog; choose “Save as PDF”."
-      >
-        <Card className="flex flex-wrap items-center gap-3 p-4">
+      <section className="mt-7">
+        <SecHead
+          title="Data health"
+          meta="freshness by source · schedule-aware, not age"
+          action={<PurgeCacheButton />}
+          className="mb-2"
+        />
+        <Vitals cols={6}>
+          {sources.map((s) => (
+            <HealthVital key={s.key} s={s} />
+          ))}
+        </Vitals>
+      </section>
+
+      <section className="mt-9">
+        <CoverageMatrix />
+      </section>
+
+      <section className="mt-9">
+        <PipelinePanel />
+      </section>
+
+      <section className="mt-9">
+        <TrafficPanel />
+      </section>
+
+      <section className="mt-9">
+        <SecHead
+          title="Presentation"
+          meta="board-style PDF of the sector Read"
+          className="mb-3"
+        />
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
           <a
             href="/api/presentation?print=1"
             target="_blank"
             rel="noopener noreferrer"
-            className={buttonVariants({ variant: "default", size: "sm" })}
+            className="text-[13px] font-semibold text-primary hover:underline"
           >
             Generate PDF
           </a>
@@ -124,33 +186,20 @@ export default async function AdminPage({
             href="/api/presentation"
             target="_blank"
             rel="noopener noreferrer"
-            className={buttonVariants({ variant: "outline", size: "sm" })}
+            className="text-[13px] font-semibold text-primary hover:underline"
           >
             Preview deck
           </a>
-          <span className="text-xs text-muted-foreground">
+          <span className="text-[12px] text-faint">
             Figures come straight from the live dashboard — nothing to configure.
           </span>
-        </Card>
-      </Section>
-
-      <Section
-        title="Data health"
-        description="Freshness per source, against expected refresh cadence"
-        actions={<PurgeCacheButton />}
-      >
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {sources.map((s) => (
-            <SourceCard key={s.key} s={s} />
-          ))}
         </div>
-      </Section>
+      </section>
 
-      <CoverageMatrix />
-
-      <PipelinePanel />
-
-      <TrafficPanel />
+      <Colophon>
+        Internal control center · read-only D1 queries + GitHub Actions run status + Cloudflare Web
+        Analytics · computed on view · BDDK freshness probed daily 16:00 Turkey · sign out top-right
+      </Colophon>
     </main>
   );
 }

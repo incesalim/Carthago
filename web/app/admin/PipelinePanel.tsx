@@ -8,7 +8,7 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Badge, Button, Card, Section, type BadgeProps } from "@/app/components/ui";
+import { SecHead } from "@/app/components/desk";
 import { relativeFromIso } from "@/app/lib/format-time";
 
 interface WorkflowDef {
@@ -36,20 +36,22 @@ interface RunsResponse {
   error?: string;
 }
 
-function runBadge(run: WorkflowRun | undefined): { variant: BadgeProps["variant"]; label: string } {
-  if (!run) return { variant: "secondary", label: "no runs" };
+// Status → dot colour + mono-caps word. Green/red read run state; in-flight and
+// idle stay a quiet context grey — never blue (blue is links only here).
+function runStatus(run: WorkflowRun | undefined): { text: string; dot: string; label: string } {
+  if (!run) return { text: "text-faint", dot: "bg-context", label: "no runs" };
   if (run.status && run.status !== "completed") {
-    return { variant: "info", label: run.status.replace("_", " ") };
+    return { text: "text-muted-foreground", dot: "bg-context", label: run.status.replace("_", " ") };
   }
   switch (run.conclusion) {
     case "success":
-      return { variant: "positive", label: "success" };
+      return { text: "text-positive", dot: "bg-positive", label: "success" };
     case "failure":
-      return { variant: "negative", label: "failure" };
+      return { text: "text-negative", dot: "bg-negative", label: "failure" };
     case "cancelled":
-      return { variant: "secondary", label: "cancelled" };
+      return { text: "text-faint", dot: "bg-context", label: "cancelled" };
     default:
-      return { variant: "secondary", label: run.conclusion ?? "unknown" };
+      return { text: "text-faint", dot: "bg-context", label: run.conclusion ?? "unknown" };
   }
 }
 
@@ -110,75 +112,80 @@ export default function PipelinePanel() {
   }
 
   const workflows = data?.workflows ?? [];
-  const latestFor = (file: string) =>
-    data?.runs.find((r) => r.workflowFile === file);
+  const latestFor = (file: string) => data?.runs.find((r) => r.workflowFile === file);
 
   return (
-    <Section
-      title="Pipeline"
-      description="Scraper workflows — status and manual triggers"
-      contentClassName=""
-      actions={
-        <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
-          {loading ? "Refreshing…" : "Refresh"}
-        </Button>
-      }
-    >
+    <>
+      <SecHead
+        title="Pipeline"
+        meta="scraper workflows · status & manual triggers"
+        action={
+          <button
+            type="button"
+            onClick={() => void load()}
+            disabled={loading}
+            className="font-mono text-[9.5px] uppercase tracking-[0.06em] text-muted-foreground underline decoration-border underline-offset-4 transition-colors hover:text-foreground hover:decoration-current disabled:opacity-50"
+          >
+            {loading ? "Refreshing…" : "Refresh status"}
+          </button>
+        }
+        className="mb-1"
+      />
+
       {data && !data.configured && (
-        <Card className="mb-3 p-4 text-sm text-muted-foreground">
-          <p className="font-medium text-foreground">GitHub control not configured.</p>
-          <p className="mt-1">
-            Run status and triggers need a token. Add a fine-grained PAT (Actions:
-            read+write) with{" "}
-            <code className="rounded bg-muted px-1">
-              npx wrangler secret put GITHUB_DISPATCH_TOKEN
-            </code>
-            . You can still trigger workflows from the GitHub Actions tab meanwhile.
-          </p>
-        </Card>
+        <p className="mt-3 text-[12.5px] leading-relaxed text-muted-foreground">
+          <span className="font-medium text-foreground">GitHub control not configured.</span> Run
+          status and triggers need a token. Add a fine-grained PAT (Actions: read+write) with{" "}
+          <code className="rounded bg-muted px-1 font-mono text-[11px]">
+            npx wrangler secret put GITHUB_DISPATCH_TOKEN
+          </code>
+          . You can still trigger workflows from the GitHub Actions tab meanwhile.
+        </p>
       )}
       {data?.error && data.configured && (
-        <Card className="mb-3 p-4 text-sm">
-          <Badge variant="warning">GitHub error</Badge>
-          <p className="mt-2 text-muted-foreground">{data.error}</p>
-        </Card>
+        <p className="mt-3 text-[12.5px] text-muted-foreground">
+          <span className="font-mono text-[9px] uppercase tracking-[0.06em] text-warning">
+            GitHub error
+          </span>{" "}
+          — {data.error}
+        </p>
       )}
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="mt-2">
         {workflows.map((w) => {
           const run = latestFor(w.file);
-          const badge = runBadge(run);
+          const st = runStatus(run);
           const isAudit = w.file === data?.auditWorkflow;
           const banks = data?.auditBanks ?? [];
           const disabled = !!busy || (data ? !data.configured : true);
           return (
-            <Card key={w.file} className="flex items-center justify-between gap-3 p-4">
+            <div
+              key={w.file}
+              className="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-2 border-b border-hair py-2.5 sm:grid-cols-[1.5fr_0.8fr_1.5fr_auto]"
+            >
               <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="truncate text-sm font-semibold text-foreground">{w.label}</span>
-                  <Badge variant={badge.variant}>{badge.label}</Badge>
-                </div>
-                <p className="mt-0.5 text-xs text-muted-foreground">{w.description}</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {run ? (
-                    <>
-                      {relativeFromIso(run.createdAt)} · {run.event}
-                      {" · "}
-                      <a
-                        href={run.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="underline hover:text-foreground"
-                      >
-                        view
-                      </a>
-                    </>
-                  ) : (
-                    "no recent runs"
-                  )}
-                </p>
+                <div className="truncate text-[13px] font-medium text-foreground">{w.label}</div>
+                <div className="mt-0.5 truncate text-[11.5px] text-faint">{w.description}</div>
               </div>
-              <div className="flex shrink-0 items-center gap-2">
+              <div
+                className={`hidden items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.05em] sm:inline-flex ${st.text}`}
+              >
+                <span className={`h-1.5 w-1.5 rounded-full ${st.dot}`} />
+                {st.label}
+              </div>
+              <div className="hidden font-mono text-[11px] text-muted-foreground sm:block">
+                {run ? (
+                  <>
+                    {relativeFromIso(run.createdAt)} · {run.event} ·{" "}
+                    <a href={run.url} target="_blank" rel="noreferrer" className="text-primary hover:underline">
+                      view
+                    </a>
+                  </>
+                ) : (
+                  "no recent runs"
+                )}
+              </div>
+              <div className="flex shrink-0 items-center gap-3 justify-self-end">
                 {isAudit && banks.length > 0 && (
                   <select
                     aria-label="Bank to scrape"
@@ -186,7 +193,7 @@ export default function PipelinePanel() {
                     value={auditBank}
                     onChange={(e) => setAuditBank(e.target.value)}
                     disabled={disabled}
-                    className="h-8 rounded-md border border-border bg-transparent px-2 text-xs text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+                    className="h-6 rounded border border-border bg-transparent px-1.5 font-mono text-[10px] text-foreground outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
                   >
                     <option value="">All banks</option>
                     {banks.map((b) => (
@@ -196,21 +203,22 @@ export default function PipelinePanel() {
                     ))}
                   </select>
                 )}
-                <Button
-                  size="sm"
+                <button
+                  type="button"
                   onClick={() => void dispatch(w, isAudit ? auditBank || undefined : undefined)}
                   disabled={disabled}
+                  className="font-mono text-[9.5px] uppercase tracking-[0.06em] text-muted-foreground underline decoration-border underline-offset-4 transition-colors hover:text-foreground hover:decoration-current disabled:opacity-40"
                 >
                   {busy === w.file ? "Triggering…" : "Run"}
-                </Button>
+                </button>
               </div>
-            </Card>
+            </div>
           );
         })}
         {workflows.length === 0 && !loading && (
-          <p className="text-sm text-muted-foreground">No workflows to show.</p>
+          <p className="py-3 text-[12.5px] text-muted-foreground">No workflows to show.</p>
         )}
       </div>
-    </Section>
+    </>
   );
 }
