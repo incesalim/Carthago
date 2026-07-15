@@ -249,6 +249,7 @@ Census of 975 report profiles across 31 banks (regenerated from data/audit_profi
 | Table | Reports | Share |
 |---|---|---|
 | fn_fees_commissions | 975 | 100% |
+| fn_market_risk † | — | ~100% |
 | fn_credit_stages | 974 | 99% |
 | fn_fx_position | 972 | 99% |
 | fn_liquidity_maturity | 972 | 99% |
@@ -260,6 +261,15 @@ Census of 975 report profiles across 31 banks (regenerated from data/audit_profi
 | fn_npl_movement | 747 | 76% |
 | fn_related_party | 549 | 56% |
 | fn_loans_by_sector | 230 | 23% |
+
+† `fn_market_risk` = the §4 market-risk standardised-approach RWA / capital-charge
+table. Fingerprint added 2026-07-15 (`PIYASARISKI` / `MARKETRISK`; 30/30 local banks —
+exact corpus count populates on the next census run). **NOT extracted.** Notable: its
+rate-risk capital-charge line is disclosed by **both** bank types — conventional
+*"faiz oranı riski (genel ve spesifik)"* and participation *"kâr payı oranı riski"* — so
+it is the **one rate-risk field spanning all 38 banks**, unlike the repricing ladder
+(`fn_interest_rate_risk`, 81%, conventional-only). Candidate extraction for a
+participation-inclusive rate-risk metric (would extend the §4 market-risk lane).
 
 ### Reports with NO located balance sheet (10)
 

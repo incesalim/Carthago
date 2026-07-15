@@ -42,6 +42,13 @@ FOOTNOTE_ANCHORS: dict[str, list[str]] = {
     "fn_npl_movement": ["DONUKALACAKHAREKET", "MOVEMENTOFNONPERFORMING"],
     "fn_fx_position": ["KURRISKI", "CURRENCYRISK", "YABANCIPARAPOZISYON"],
     "fn_interest_rate_risk": ["FAIZORANIRISKI", "INTERESTRATERISK"],
+    # Market-risk standardised-approach RWA / capital-charge table (§4). NOT
+    # extracted yet. Its rate-risk capital-charge line is disclosed by BOTH bank
+    # types — conventional "faiz oranı riski (genel ve spesifik)" AND participation
+    # "kâr payı oranı riski" — so it spans all banks, unlike the repricing ladder
+    # (fn_interest_rate_risk, conventional-only ~81%). Candidate for a
+    # participation-inclusive rate-risk metric.
+    "fn_market_risk": ["PIYASARISKI", "MARKETRISK"],
     "fn_liquidity_maturity": [
         "KALANVADELERINEGORE", "REMAININGMATURIT", "LIKIDITERISKI", "LIQUIDITYRISK",
     ],
