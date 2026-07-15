@@ -128,6 +128,7 @@ BATCH_SIZE_PER_TABLE = {
     "news_items": 10,
     "regulation_briefings": 1,  # categories_json + raw_response are large per row
     "bist_prices": 200,  # skinny OHLCV rows — bigger batches speed the backfill push
+    "bank_audit_opinion": 20,  # basis_text is a multi-KB paragraph per modified row
 }
 
 # Stand-in for newline chars in generated SQL literals (see fetch_recent).
