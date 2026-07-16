@@ -10,9 +10,14 @@ Override entry (data/audit_overrides.json "overrides" list):
   BS:  {bank_ticker, period, kind, statement: assets|liabilities|off_balance,
         hierarchy, item_name, amount_tl, amount_fc, amount_total, note}
   P&L: {bank_ticker, period, kind, statement: "profit_loss",
-        hierarchy, item_name, amount, note}
+        hierarchy, item_name, amount, item_order?, note}
 Matched by (bank, period, kind, statement, hierarchy); the row is UPDATED in
-place, or INSERTED (at max item_order+1) if the parser dropped it.
+place, or INSERTED if the parser dropped it — at `item_order` when given (later
+rows shift down), else appended at max item_order+1. Give `item_order` when
+restoring a ROMAN row: the spine is an increasing-ordinal subsequence, so an
+appended roman falls out of it and its identity skips instead of running.
+Author multiple inserts into one partition tail-first (highest item_order
+first) so each position stays valid as earlier rows shift.
 
   P&L hierarchy renames: {bank_ticker, period, kind, statement: "pl_rehier",
         renames: [{from, to, item_name}, ...], note}
@@ -153,12 +158,26 @@ def _apply_one(conn: sqlite3.Connection, o: dict) -> str:
                 "WHERE bank_ticker=? AND period=? AND kind=? AND item_order=?",
                 (o["amount"], o.get("item_name", h), b, p, k, row[0]))
             return f"PL update {b} {p} {k} {h}={o['amount']:,.0f}"
-        nxt = (conn.execute("SELECT COALESCE(MAX(item_order),0)+1 FROM bank_audit_profit_loss "
-                            "WHERE bank_ticker=? AND period=? AND kind=?", (b, p, k)).fetchone()[0])
+        # A restored roman MUST be slotted at its statement position, not appended:
+        # _pl_spine takes the longest increasing-ordinal SUBSEQUENCE in item_order,
+        # so a roman parked after XXV can never extend it and drops out of the
+        # spine — the identity it was meant to satisfy then silently SKIPS
+        # (ANADOLU 2022Q1's appended IV. leaves VIII=III+IV+V+VI+VII unchecked).
+        if "item_order" in o:  # positional insert: shift later rows down
+            # two-step via negatives — a plain +1 collides with the PK mid-update
+            conn.execute("UPDATE bank_audit_profit_loss SET item_order=-(item_order+1) "
+                         "WHERE bank_ticker=? AND period=? AND kind=? AND item_order>=?",
+                         (b, p, k, o["item_order"]))
+            conn.execute("UPDATE bank_audit_profit_loss SET item_order=-item_order "
+                         "WHERE bank_ticker=? AND period=? AND kind=? AND item_order<0", (b, p, k))
+            nxt = o["item_order"]
+        else:
+            nxt = (conn.execute("SELECT COALESCE(MAX(item_order),0)+1 FROM bank_audit_profit_loss "
+                                "WHERE bank_ticker=? AND period=? AND kind=?", (b, p, k)).fetchone()[0])
         conn.execute(
             "INSERT INTO bank_audit_profit_loss (bank_ticker,period,kind,item_order,hierarchy,item_name,amount) "
             "VALUES (?,?,?,?,?,?,?)", (b, p, k, nxt, h, o.get("item_name", h), o["amount"]))
-        return f"PL insert {b} {p} {k} {h}={o['amount']:,.0f}"
+        return f"PL insert {b} {p} {k} {h}={o['amount']:,.0f} @order{nxt}"
     if st == "oci":
         # bank_audit_oci is single-column (amount = current period). Match by
         # hierarchy; update in place, else insert a (possibly dropped) sub-row so
