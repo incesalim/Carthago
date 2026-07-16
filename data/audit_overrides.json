@@ -2588,6 +2588,101 @@
    "bs_statement": "off_balance",
    "renames": [{"from": "V", "to": "A.", "item_name": "TL FC Total TL FC Total COMMITMENTS AND CONTINGENCIES A. (I+II+III)", "to_name": "COMMITMENTS AND CONTINGENCIES (I+II+III)"}],
    "note": "column-header 'V TL FC Total TL FC Total' wrap-merged into section A's aggregate line → posted at phantom hierarchy 'V' (5.400), colliding with the real V. PLEDGED ITEMS (3.924.260) whose 5.x children then overran it. It IS the A. aggregate → relabel V→A. (leaves the numeric tree), real V. foots, A+B grand total foots"
+  },
+  {
+   "bank_ticker": "TAKAS",
+   "period": "2023Q2",
+   "kind": "unconsolidated",
+   "statement": "profit_loss",
+   "hierarchy": "XXIV.",
+   "item_name": "DURDURULAN FAALİYETLER DÖNEM NET K/Z (XXII±XXIII)",
+   "amount": 0,
+   "note": "source prints XXIV=1.035.347 (copy of net profit) though discontinued rows XX–XXIII are all nil → discontinued net is 0; XXV=XIX+XXIV foots with 0 (extraction faithful to a source copy-down artifact)"
+  },
+  {
+   "bank_ticker": "TAKAS",
+   "period": "2023Q3",
+   "kind": "unconsolidated",
+   "statement": "profit_loss",
+   "hierarchy": "XXIV.",
+   "item_name": "DURDURULAN FAALİYETLER DÖNEM NET K/Z (XXII±XXIII)",
+   "amount": 0,
+   "note": "source prints XXIV=2.260.614 (copy of net profit) though discontinued rows XX–XXIII are all nil → discontinued net is 0; XXV=XIX+XXIV foots with 0"
+  },
+  {
+   "bank_ticker": "TAKAS",
+   "period": "2024Q3",
+   "kind": "unconsolidated",
+   "statement": "profit_loss",
+   "hierarchy": "XXIV.",
+   "item_name": "DURDURULAN FAALİYETLER DÖNEM NET K/Z (XXII±XXIII)",
+   "amount": 0,
+   "note": "source prints XXIV=6.064.906 (copy of net profit) though discontinued rows XX–XXIII are all nil → discontinued net is 0; XXV=XIX+XXIV foots with 0"
+  },
+  {
+   "bank_ticker": "HAYATK",
+   "period": "2024Q2",
+   "kind": "unconsolidated",
+   "statement": "profit_loss",
+   "hierarchy": "XVII.",
+   "item_name": "PROFIT/(LOSS) FROM CONTINUED OPERATIONS BEFORE TAXES (XII+...+XV)",
+   "amount": -400486,
+   "note": "pre-tax row captured the dipnot ref '(4.9.)' as its value (stored 4.9); PDF p13 current col = (400.486). XVII=XIII+XIV+XV+XVI=-400.486 and XIX=XVII+XVIII=-400.486+174.727=-225.759 both foot"
+  },
+  {
+   "bank_ticker": "HAYATK",
+   "period": "2024Q2",
+   "kind": "unconsolidated",
+   "statement": "profit_loss",
+   "hierarchy": "XVIII.",
+   "item_name": "PROVISION FROM TAXES ON INCOME FROM CONTINUING OPERATIONS (±)",
+   "amount": 174727,
+   "item_order": 42,
+   "note": "tax row dropped — its label wraps two lines and the 4th column detached; PDF p13 current col = 174.727 (a benefit: deferred tax income 184.596 less expense 9.869). Slotted at 42 (after XVII, before 18.1) so it enters the spine and XIX=XVII±XVIII runs"
+  },
+  {
+   "bank_ticker": "HAYATK",
+   "period": "2024Q2",
+   "kind": "unconsolidated",
+   "statement": "profit_loss",
+   "hierarchy": "XV.",
+   "item_name": "INCOME / (LOSS) FROM INVESTMENTS IN SUBSIDIARIES CONSOLIDATED BASED ON EQUITY METHOD",
+   "amount": 0,
+   "item_order": 40,
+   "note": "equity-method row dropped by the same wrapped label; PDF p13 prints '-' → 0. Slotted at 40 (after XIV, before XVI) so XVII=XIII+XIV+XV+XVI runs"
+  },
+  {
+   "bank_ticker": "TOMK",
+   "period": "2023Q4",
+   "kind": "unconsolidated",
+   "statement": "profit_loss",
+   "hierarchy": "4.2.2",
+   "item_name": "Diğer",
+   "amount": -81,
+   "item_order": 25,
+   "note": "'(81)' read as a dipnot ref → row dropped; PDF p16 current col = (81)"
+  },
+  {
+   "bank_ticker": "TOMK",
+   "period": "2023Q4",
+   "kind": "unconsolidated",
+   "statement": "profit_loss",
+   "hierarchy": "4.2",
+   "item_name": "Verilen Ücret ve Komisyonlar (-)",
+   "amount": -81,
+   "item_order": 24,
+   "note": "'(81)' read as a dipnot ref → row dropped; PDF p16 current col = (81)"
+  },
+  {
+   "bank_ticker": "TOMK",
+   "period": "2023Q4",
+   "kind": "unconsolidated",
+   "statement": "profit_loss",
+   "hierarchy": "IV.",
+   "item_name": "NET ÜCRET VE KOMİSYON GELİRLERİ/GİDERLERİ",
+   "amount": -81,
+   "item_order": 21,
+   "note": "net-fees roman subtotal dropped ('(81)' read as a dipnot ref, as were children 4.2/4.2.2); PDF p16 current col = (81) = 4.1(0)-4.2(81). Slotted at 21 (after III, before 4.1) so VIII=III+IV+V+VI+VII runs: 134.955-81+0+290.951+0=425.825 = printed VIII"
   }
  ]
 }
