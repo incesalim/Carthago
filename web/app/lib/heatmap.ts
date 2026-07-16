@@ -370,9 +370,12 @@ export async function heatmapPanel(
       [kind],
     ),
     // N — free-provision (serbest karşılık) STOCK per (bank, period). A missing
-    // row means the bank holds none (a conditional disclosure; see
-    // free_provision.py + the freeprov validator, recall=0) → treated as 0 below,
-    // so the FP-adjusted-ROE add-back captures every build/release.
+    // row is NOT a zero: free_provision.py emits an explicit 0 when the report
+    // says the bank holds none (66 such rows), so absence means no determination
+    // was made for that (bank, period, kind) — only 16 of 38 banks have one at
+    // 2026Q1. Reading absence as zero invents a full release of whatever stock
+    // the bank last disclosed (ZIRAAT: a phantom ₺9bn), so ttmRoeAdjusted below
+    // requires an explicit determination at BOTH ends of the window.
     cachedAll<{ bank_ticker: string; period: string; free_provision: number | null }>(
       `SELECT bank_ticker, period, free_provision FROM bank_audit_free_provision
         WHERE kind = ?`,
@@ -425,8 +428,9 @@ export async function heatmapPanel(
     equityByKey.set(`${r.bank_ticker}|${r.period}`, r.equity);
     ensure(r.bank_ticker, r.period);
   }
-  // Free-provision stock (thousand TL) per (bank, period). No entry ⇒ the bank
-  // holds none (conditional disclosure) ⇒ read as 0 by the adjusted-ROE add-back.
+  // Free-provision stock (thousand TL) per (bank, period). No entry ⇒ UNKNOWN,
+  // not zero — a null value is a non-determination too, so it stays out of the map
+  // and ttmRoeAdjusted declines to compute rather than invent a release.
   const fpByKey = new Map<string, number>();
   for (const r of fpRows) {
     if (r.free_provision != null) fpByKey.set(`${r.bank_ticker}|${r.period}`, r.free_provision);
@@ -548,9 +552,13 @@ export async function heatmapPanel(
   // one inflates it (the ALBRK Q1-2025 mechanism). Over the trailing year the P&L
   // distortion telescopes to the STOCK change, so add it back:
   //   adjusted TTM net income = reported TTM net income + (FP_now − FP_4q_ago).
-  // A missing FP entry = the bank holds none = 0, so a full release (X → none) is
-  // captured as −X. Same 5-quarter average-equity denominator as ROE, so the two
-  // are directly comparable and the gap = the earnings-management contribution.
+  // Same 5-quarter average-equity denominator as ROE, so the two are directly
+  // comparable and the gap = the earnings-management contribution.
+  //
+  // BOTH endpoints must carry an explicit determination. A gap in the lane is not
+  // evidence of a release: absent-as-zero fabricated a ₺9bn ZIRAAT release out of
+  // a period we simply never extracted, and printed it as a −1.41pp ROE haircut on
+  // the live page. Unknown is unknown → null → the row does not print.
   const ttmRoeAdjusted = (ticker: string, period: string): number | null => {
     const b = byBank.get(ticker);
     const ord = ordOf(period);
@@ -565,10 +573,11 @@ export async function heatmapPanel(
     if (eqs.length < 2) return null;
     const avgEq = eqs.reduce((s, x) => s + x, 0) / eqs.length;
     if (avgEq <= 0) return null;
-    const fpNow = fpByKey.get(`${ticker}|${period}`) ?? 0;
     const startOrd = ord - 4;
     const startPeriod = `${Math.floor(startOrd / 4)}Q${(startOrd % 4) + 1}`;
-    const fpStart = fpByKey.get(`${ticker}|${startPeriod}`) ?? 0;
+    const fpNow = fpByKey.get(`${ticker}|${period}`);
+    const fpStart = fpByKey.get(`${ticker}|${startPeriod}`);
+    if (fpNow == null || fpStart == null) return null;
     return (ttm + (fpNow - fpStart)) / avgEq;
   };
 
