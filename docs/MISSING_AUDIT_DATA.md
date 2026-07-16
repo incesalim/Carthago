@@ -13,6 +13,16 @@ _Generated from the local DB + R2. Coverage: this lists every (bank, period, kin
 >   to 0 and each P&L cross-checked to BS equity. (FIBA 2022Q1 cons+uncons,
 >   2023Q3 cons, 2024Q1 cons, 2025Q1/Q2 uncons, 2025Q3 cons+uncons; TFKB 2022Q3
 >   cons; TSKB 2026Q1 uncons; ISCTR 2025Q1 cons.)
+> - **Off-balance sheet lane: COMPLETE 2026-07-17** — 1,020 ok + 30 manual, **0
+>   missing / 0 N/A**. The last two cells came from the source PDFs, each 86 rows
+>   at 182/182 identity checks: **FIBA 2022Q1 cons** (statement pages are
+>   vector-outlined text — no text layer AND no image, so `get_images()` is empty;
+>   transcribed from a 300-dpi render onto the 2022Q2 skeleton) and **TSKB 2026Q1
+>   uncons** (14-page English KAP filing: its labels carry no hierarchy numerals so
+>   the anchors miss it, but the rows ARE a text layer — parsed, not hand-typed).
+>   The TSKB cell had been showing N/A because `audit_not_disclosed.json` used
+>   `statement='*'`, which also swallowed the §2 statements that the filing DOES
+>   disclose (now narrowed — see that file's note).
 > - **STILL OPEN:** the **IFRS-9 NPL / Stage 1-2-3 footnote** for those image
 >   partitions (a separate table — often also image-only), plus the
 >   "NPL/Stage only" rows in Section 2, and the "Need a document" cells in
