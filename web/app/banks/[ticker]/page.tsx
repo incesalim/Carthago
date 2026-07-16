@@ -565,6 +565,12 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   const roeSeries = perfSeries("roe", 100);
   const roeNow = perfLatest?.roe != null ? perfLatest.roe * 100 : null;
   const roeRank = rankOf("roe");
+  // ROE with the discretionary free-provision swing stripped out (heatmap.ts).
+  // Equal to reported ROE for any bank that did not move its stock over the
+  // trailing year — most of the fleet — so the ladder only prints it when the
+  // two actually differ in the figure shown.
+  const roeAdjNow = perfLatest?.roeAdjusted != null ? perfLatest.roeAdjusted * 100 : null;
+  const roeFpGap = roeAdjNow != null && roeNow != null ? roeAdjNow - roeNow : null;
 
   const lcrSeries = perfSeries("lcr");
   const lcrNow = perfLatest?.lcr ?? null;
@@ -724,6 +730,11 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
         { label: "− Cost of risk", value: pctOf(perfLatest?.cost_of_risk), unit: "%", kind: "sub", scale: 30 },
         { label: "Cost / income", note: ciRank ? `${ord(ciRank.rank)} of ${ciRank.n}` : undefined, value: pctOf(perfLatest?.cost_income), unit: "%", kind: "sub", scale: 100 },
         { label: "= ROE (TTM)", value: roeNow, unit: "%", kind: "total", scale: 50 },
+        // Only when the free-provision stock actually moved over the trailing year:
+        // otherwise this restates reported ROE to the digit and says nothing.
+        ...(roeFpGap != null && Math.abs(roeFpGap) >= 0.005
+          ? [{ label: "ROE ex free provision", note: "the discretionary provision swing added back", value: roeAdjNow, unit: "%", kind: "sub", scale: 50 }]
+          : []),
         { label: "− Inflation", note: "12-month-average CPI", value: cpi12m, unit: "%", kind: "out", scale: 50 },
         { label: "= Real return on equity", value: realRoe, unit: "pp", kind: "total", scale: 50 },
       ].filter((r) => r.value != null) as EngineRow[])
