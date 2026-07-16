@@ -347,6 +347,108 @@ def test_pl_roman_title_row_does_not_shadow_subtotal():
     assert res.failed == 0, res.failures
 
 
+def _compressed_pl(cont_net="XVIII.", period_net="XXIV."):
+    """The compressed template some participation banks file (DUNYAK, TOMK):
+    one fewer opex roman, so net-operating lands at XII and every later subtotal
+    shifts down one — pre-tax XVI, tax XVII. The report states this numbering in
+    the formulas it prints. Same arithmetic as _clean_pl: III=150, VIII=215,
+    XII=160, XVI=160, continuing-net=130, period-net=130.
+
+    cont_net/period_net vary by filer: DUNYAK runs XVIII/XXIV, TOMK skips XVIII
+    entirely and prints continuing-net at XIX with period-net back at XXV.
+    """
+    disc_net = _roman(_int_roman(period_net) - 1)
+    return [
+        _pl("I.", "KÂR PAYI GELİRLERİ", 200),
+        _pl("II.", "KÂR PAYI GİDERLERİ (-)", 50),
+        _pl("III.", "NET KÂR PAYI GELİRİ/GİDERİ", 150),
+        _pl("IV.", "NET ÜCRET VE KOMİSYON GELİRLERİ/GİDERLERİ", 10),
+        _pl("V.", "TEMETTÜ GELİRLERİ", 20),
+        _pl("VI.", "TİCARİ KAR/ZARAR (Net)", 30),
+        _pl("VII.", "DİĞER FAALİYET GELİRLERİ", 5),
+        _pl("VIII.", "FAALİYET BRÜT KÂRI (III+IV+V+VI+VII)", 215),
+        _pl("IX.", "KREDİ KARŞILIKLARI (-)", 40),
+        _pl("X.", "PERSONEL GİDERLERİ (-)", 10),
+        _pl("XI.", "DİĞER FAALİYET GİDERLERİ (-)", 5),
+        _pl("XII.", "NET FAALİYET KÂRI/ZARARI (VIII-IX-X-XI)", 160),
+        _pl("XIII.", "BİRLEŞME İŞLEMİ SONRASINDA GELİR OLARAK KAYDEDİLEN", 0),
+        _pl("XIV.", "ÖZKAYNAK YÖNTEMİ UYGULANAN ORTAKLIKLARDAN KÂR/ZARAR", 0),
+        _pl("XV.", "NET PARASAL POZİSYON KÂRI/ZARARI", 0),
+        _pl("XVI.", "SÜRDÜRÜLEN FAALİYETLER VERGİ ÖNCESİ K/Z (XII+...+XV)", 160),
+        _pl("XVII.", "SÜRDÜRÜLEN FAALİYETLER VERGİ KARŞILIĞI (±)", 30),
+        _pl(cont_net, "SÜRDÜRÜLEN FAALİYETLER DÖNEM NET K/Z (XVI±XVII)", 130),
+        _pl(disc_net, "DURDURULAN FAALİYETLER DÖNEM NET K/Z", 0),
+        _pl(period_net, "DÖNEM NET KARI/ZARARI", 130),
+    ]
+
+
+_ROMANS = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI",
+           "XII", "XIII", "XIV", "XV", "XVI", "XVII", "XVIII", "XIX", "XX", "XXI",
+           "XXII", "XXIII", "XXIV", "XXV"]
+
+
+def _int_roman(h):
+    return _ROMANS.index(h.rstrip("."))
+
+
+def _roman(i):
+    return _ROMANS[i] + "."
+
+
+def test_pl_compressed_template_passes():
+    """DUNYAK's numbering: pre-tax XVI / tax XVII / continuing-net XVIII /
+    period-net XXIV. Hardcoding 17/18/19/25 compared the TAX row against the
+    pre-tax sum and failed 8 correct partitions."""
+    res = v.check_pl_chain(_compressed_pl())
+    assert res.failed == 0, res.failures
+    assert res.passed == 6  # every identity RUNS — not skipped into silence
+
+
+def test_pl_compressed_template_with_missing_tax_roman_passes():
+    """TOMK's variant: same compressed head, but the filing has no XVIII roman
+    at all — tax sits at XVII with 18.x children and continuing-net at XIX."""
+    res = v.check_pl_chain(_compressed_pl(cont_net="XIX.", period_net="XXV."))
+    assert res.failed == 0, res.failures
+    assert res.passed == 6
+
+
+def test_pl_compressed_template_still_catches_a_real_break():
+    """The template-aware chain must not pass everything: corrupt net-operating
+    (XII here, not XIII) and the identity that owns it still fails."""
+    rows = _compressed_pl()
+    for r in rows:
+        if r["hierarchy"] == "XII.":
+            r["amount"] = 999 * 1000
+    res = v.check_pl_chain(rows)
+    assert any(f["check"] == "pl_chain" and "12" in f["node"] for f in res.failures), res.failures
+
+
+def test_pl_unreadable_anchor_labels_fall_back_to_standard():
+    """HAYATK 2024Q2's wrapped labels leave XIX as 'OPERATIONS (XV±XVI)' — no
+    anchor to read. An unreadable partition must behave exactly as it did before
+    (standard ordinals), never guess a template."""
+    rows = _clean_pl()
+    for r in rows:  # strip the semantics off every anchor label
+        r["item_name"] = "OPERATIONS (XV±XVI)"
+    res = v.check_pl_chain(rows)
+    assert res.failed == 0, res.failures
+    assert res.passed == 6
+
+
+def test_pl_discontinued_block_does_not_anchor_continuing_rows():
+    """The discontinued block mirrors the continuing block almost word for word.
+    If 'DURDURULAN … VERGİ ÖNCESİ' were allowed to claim the pre-tax anchor the
+    whole chain would shift and false-fail."""
+    rows = _clean_pl() + [
+        _pl("XXII.", "DURDURULAN FAALİYETLER VERGİ ÖNCESİ K/Z", 0),
+        _pl("XXIII.", "DURDURULAN FAALİYETLER VERGİ KARŞILIĞI (±)", 0),
+    ]
+    rows.sort(key=lambda r: _int_roman(r["hierarchy"]))
+    tpl = v._pl_template(rows, v._pl_spine(rows))
+    assert (tpl["pretax"], tpl["tax"]) == (17, 18)
+    assert v.check_pl_chain(rows).failed == 0
+
+
 def test_pl_mixed_convention_passes():
     """TFKB-style: interest expense II stored as a positive magnitude, but the
     IX–XII expense block stored parenthesised-NEGATIVE in the same statement.
