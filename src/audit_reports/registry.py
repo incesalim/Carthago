@@ -109,10 +109,13 @@ REGISTRY: list[StatementType] = [
 
 BY_KEY: dict[str, StatementType] = {st.key: st for st in REGISTRY}
 
-# The two tables that carry no statement rows: the structural-validation results
-# and the per-partition extraction log. Not statement types — but every audit D1
-# push and every partition clear must carry them.
-INFRA_TABLES: list[str] = ["bank_audit_validation", "bank_audit_extractions"]
+# The tables that carry no statement rows: the structural-validation results, the
+# per-partition extraction log, and the derived P&L role map (which row is the
+# period-net / gross / opex under THIS filer's roman numbering — see schema.py).
+# Not statement types — but every audit D1 push and every partition clear must
+# carry them.
+INFRA_TABLES: list[str] = ["bank_audit_validation", "bank_audit_extractions",
+                           "bank_audit_pl_roles"]
 
 # Every bank_audit_* table the audit lane writes: one per registered statement
 # type (deduped — the balance sheet carries three sub-statements) plus the infra

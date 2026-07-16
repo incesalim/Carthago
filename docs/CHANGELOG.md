@@ -3,7 +3,33 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-07-16.
+Last verified: 2026-07-17.
+
+2026-07-17 — **DUNYAK's net profit was reading 0 on the dashboard. Fixed.** The
+2026-07-16 validator fix taught the *validator* that BRSA roman ordinals aren't fixed;
+`heatmap.ts` never got the message and made the identical mistake in SQL:
+`net_profit = COALESCE(XXV., XIX.)` and `opex = XI. + XII.`. For the compressed template
+those romans are different lines — DUNYAK's period-net is **XXIV**, so `XXV.` is NULL and
+the COALESCE fell through to `XIX.` = *discontinued-operations income* = 0. Verified in
+production D1 before the fix: 2024Q4/2025Q1/2025Q2 all read **0** against true
+1,353,642 / 360,967 / 676,596. `net_profit` feeds **ROE**, and DUNYAK is not
+peer-excluded, so it rendered. `opex` was wrong on 9 partitions (DUNYAK ×8, TOMK 2023Q4)
+— `XI.+XII.` summed other-opex plus net operating *profit* — feeding **Cost/Income** and
+**PPOP**. It survived because the template varies **by period within one bank** (DUNYAK
+2024Q1/Q2 use the XIX/XXV variant and read correctly). Found while investigating the P&L
+spine gaps ([knowledge write-up](knowledge/pl-spine-gaps-2026-07-17.md)).
+Fix: a new derived table **`bank_audit_pl_roles`** (migration 0029) tags each P&L row
+with what it IS — `period_net`, `gross`, `opex_personnel`, `opex_other`, … — resolved
+against the filer's own numbering by `validator.pl_roles()` and rebuilt from stored rows
+beside the validation, so the two can never disagree. `heatmap.ts` joins it instead of
+guessing. The resolution stays in Python deliberately: re-deriving it in SQL means
+`UPPER()` (ASCII-only — "Dönem net karı" never folds) plus hand-cut wildcards over **79**
+distinct period-net labels, and a second copy to drift. `III.`/`VIII.`/`IX.`/`1.1`/`2.1`
+stay ordinal-keyed on purpose — verified stable in 1050/1050 partitions, not assumed.
+Opex falls back to the last two rows of the deduction band when labels are unreadable
+(AKBNK 2022Q4/2026Q1 print the P&L with EMPTY item_names); the fallback agrees with the
+label match on all 1,046 partitions that have labels. Old-vs-new over the whole corpus:
+**9 rows changed, 0 regressions, row set identical**.
 
 2026-07-16 — **Income statement: 13 failing partitions → 0.** Only 4 were data errors;
 9 were the validator being wrong about how those banks number their own statement.

@@ -32,6 +32,7 @@ sys.path.insert(0, str(REPO))
 sys.stdout.reconfigure(encoding="utf-8")
 
 from src.audit_reports import validator as v  # noqa: E402
+from src.audit_reports.schema import init_schema  # noqa: E402
 
 # Known false-positive capital banks (BRSA temporary-measure CARs):
 # These banks' reported CAR systematically differs from Total_Capital/RWA*100
@@ -382,6 +383,11 @@ def revalidate_all(conn, progress: bool = False) -> tuple[int, int]:
     for n, (bank, period, kind) in enumerate(sorted(parts), 1):
         results = revalidate_partition(conn, bank, period, kind)
         v.upsert_validation(conn, bank, period, kind, results)
+        # The derived P&L role map rides along: same stored rows, same pass, so
+        # bank_audit_pl_roles can never disagree with the validation about which
+        # row is the period-net. Consumers join it instead of hardcoding an
+        # ordinal (see schema.py).
+        v.upsert_pl_roles(conn, bank, period, kind, _pl_rows(conn, bank, period, kind))
         if any(r.failed for r in results.values()):
             failed_parts += 1
         if progress and n % 200 == 0:
@@ -395,6 +401,10 @@ def main() -> int:
     ap.add_argument("--db", default=str(REPO / "data" / "bank_audit.db"))
     args = ap.parse_args()
     conn = sqlite3.connect(args.db)
+    # A snapshot pulled from R2 predates any table added since it was written —
+    # bank_audit_pl_roles is written below, so make sure it exists first. The DDL
+    # is all CREATE ... IF NOT EXISTS, so this is idempotent.
+    init_schema(conn)
     total, failed_parts = revalidate_all(conn, progress=True)
     print(f"[revalidate] {total} partitions revalidated; "
           f"{failed_parts} with failing identity checks")
