@@ -3,7 +3,38 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-07-15.
+Last verified: 2026-07-16.
+
+2026-07-16 — **Income statement: 13 failing partitions → 0.** Only 4 were data errors;
+9 were the validator being wrong about how those banks number their own statement.
+`check_pl_chain` hardcoded the standard ordinals (gross VIII / net-op XIII / pre-tax XVII /
+tax XVIII / cont-net XIX / period-net XXV) and the deduction band `{9,10,11,12}`, but the
+**compressed template** some participation banks file drops an opex roman and shifts
+everything after it — net-op XII, pre-tax XVI, tax XVII, then cont-net XVIII + period-net
+XXIV (DUNYAK), or cont-net XIX with **no XVIII at all** (TOMK). Each report states its own
+numbering in the formula it prints ("XVI. …VERGİ ÖNCESİ K/Z (XII+...+XV)") and foots under
+it, so the check was comparing those banks' TAX row against the pre-tax sum — 9 permanent
+false failures on correct data, and no real validation of their chain. The chain is now
+assembled **per-partition from anchor rows found by label** (folded Turkish→ASCII,
+uppercased, whitespace-stripped, since the extractor emits both "DÖNEM NET KARI" and
+"DÖNEMNETKARI/ZARARI"), with the deduction band derived from the anchors. Every anchor
+falls back to its standard ordinal when its label is unreadable, and the template reverts
+to standard wholesale unless the anchors come out strictly increasing → unreadable
+partitions behave exactly as before. Corpus diff over all 1050: pass 6205→6227, fail 21→5,
+skip 74→68 — **0 newly failing, 9 fixed, coverage UP** (the identities these banks were
+never really checked on now run); every other lane byte-identical. The 4 real defects, each
+hand-transcribed from the PDF into `audit_overrides.json`: **TAKAS** 2023Q2/Q3+2024Q3 print
+XXIV as a copy of net profit though XX–XXIII are nil → 0 (extraction faithful to a source
+copy-down artifact; ODEA precedent); **HAYATK** 2024Q2 pre-tax captured the dipnot ref
+"(4.9.)" as its value (4.9), with XVIII and XV dropped by the same wrapped label →
+−400.486 / 174.727 / 0; **TOMK** 2023Q4 read every "(81)" cell as a dipnot ref → IV + 4.2 +
+4.2.2 restored (VIII now foots to the printed 425.825). `apply_overrides` P&L inserts now
+accept `item_order`: a restored roman appended after XXV falls out of the increasing-
+subsequence spine and its identity silently **skips** — ANADOLU 2022Q1's appended IV. has
+left VIII=III+IV+V+VI+VII unchecked since it was authored. Full write-up:
+[docs/knowledge/income-statement-errors-2026-07-16.md](knowledge/income-statement-errors-2026-07-16.md).
+Open: 66 partitions have gaps in the roman spine (a dropped row makes its identity skip
+silently) — not investigated.
 
 2026-07-15 — **pdfplumber removed entirely — every PDF extractor is now fitz (PyMuPDF) only.**
 The last three holdouts moved off pdfplumber: (1) the frozen BS/P&L `_parse_page` /
