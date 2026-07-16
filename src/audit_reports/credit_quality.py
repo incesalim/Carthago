@@ -190,6 +190,19 @@ _END_ROW_PAT = re.compile(
 _NUM = re.compile(_NUM_PAT_STR)
 
 
+def _is_dash(token: str) -> bool:
+    """True when a numeric token is a bare '-' — an EMPTY cell, not a value.
+    parse_num maps it to 0.0, which is correct for a nil amount but conflates
+    "the bank printed zero" with "the bank printed nothing"."""
+    return token.strip() in {"-", "–", "—"}
+
+
+def _nonnull_sum(*vals: float | None) -> float | None:
+    """Sum the non-None values; None when every value is None."""
+    clean = [v for v in vals if v is not None]
+    return sum(clean) if clean else None
+
+
 def _merge_split_digits(line: str) -> str:
     """Reattach a leading digit that pdfplumber separated from its number.
 
@@ -431,12 +444,25 @@ def _extract_from_page(page_num: int, page_text: str) -> list[StageRow]:
             if len(nums) < ncols:
                 continue
             # Take the LAST ncols numbers — protects against stray nums in the label.
-            vals = [parse_num(n) for n in nums[-ncols:]]
+            raw = nums[-ncols:]
+            vals = [parse_num(n) for n in raw]
             if ncols == 3:
                 s1, s2, s3 = vals
                 total = None
             else:
                 s1, s2, s3, total = vals
+                # A '-' in the Toplam column parses to 0.0 (parse_num treats a
+                # bare dash as nil), which is right for a genuinely empty cell —
+                # but a nil total next to non-nil stages is arithmetically
+                # IMPOSSIBLE, so the bank omitted the figure rather than stating
+                # zero. Record "not disclosed" (None), never a fabricated 0.
+                # DUNYAK 2026Q1 note 8.4 (lease-receivable ECL) is the only such
+                # row in the corpus: "Dönem Sonu Bakiyesi 10.091 17.523 - -",
+                # where every other row of the same table foots (2.234 + 9.331 =
+                # 11.565) and the closing total should read 27.614.
+                if (_is_dash(raw[3])
+                        and _nonnull_sum(s1, s2, s3) not in (0, None)):
+                    total = None
             out.append(StageRow(
                 section=section,
                 period_type=period_type,
@@ -1124,6 +1150,29 @@ _STAGE12_LOOSE_S2 = re.compile(
     r"(?:Yak[ıi]n\s*İzleme|İzlemedeki|Close\s*Monitor|Follow\s*-?up)",
     re.IGNORECASE,
 )
+# The §7.2 SECTION TITLE — a single line naming BOTH the standard-loan and the
+# close-monitoring portfolio ("7.2. Standart Nitelikli ve Yakın İzlemedeki
+# (Birinci ve İkinci Grup Krediler)…", "b) Information on the standard and under
+# the close monitoring loans…"). Unlike the column-header phrases above, this is
+# unambiguous: it appears only above the real §7.2 table.
+#
+# It exists to replace the ≥1bn Stage-1 floor for SMALL banks (see the
+# `min_stage1` note in _extract_loans_by_stage_from_page). The floor is a proxy
+# for "this Toplam belongs to a real loan book"; the danger it guards against is
+# a §4 risk table whose column header also says "Loans Under Follow-Up" — e.g.
+# SKBNK 2024Q4 p89 "Exposures provisioned against by major regions and sectors"
+# ("Current Period Loans Under Follow-Up Stage 3 Provisions Write-Offs", Total
+# 893,026 622,569), which sits 22 pages BEFORE the real §7.2 table and would win
+# the first-wins dedup. Such §4 headers never name the standard-loan portfolio,
+# so requiring both tokens on one line rejects them without any magnitude test.
+# The 'standard' token is deliberately bare (not "Standard Loans") — COLENDI's
+# English title reads "the standard and under the close monitoring loans", and
+# its column header wraps "Standard" / "Cash Loans" onto separate visual lines.
+_S12_SECTION_TITLE = re.compile(
+    r"(?=.*(?:Standar[dt]|Performing|Birinci\s*ve\s*İkinci\s*Grup))"
+    r"(?=.*(?:Yak[ıi]n\s*İzleme|Close\s*Monitor|Follow[\s-]?up))",
+    re.IGNORECASE,
+)
 
 
 def _fitz_clustered_lines(page, y_tol: float = 5.5) -> list[str]:
@@ -1162,6 +1211,7 @@ def _fitz_clustered_lines(page, y_tol: float = 5.5) -> list[str]:
 
 def _extract_loans_by_stage_from_page(
     page_num: int, page_text: str, allow_total_drop: bool = False,
+    require_section_title: bool = False, min_stage1: float = 1_000_000,
 ) -> list[StageRow]:
     """Capture Stage 1 / Stage 2 loan AMOUNTS from BRSA section 7.2.
 
@@ -1178,6 +1228,22 @@ def _extract_loans_by_stage_from_page(
     "Toplam 1.008.524 629.760 1.638.284" (1.638.284 = 1.008.524 + 629.760).
     It is OFF by default because rescuing such rows can let an earlier wrong
     sub-table win the dedup over the real §7.2 table (regressed TEB/ODEA/HSBC).
+
+    `min_stage1` is the Stage-1 magnitude floor. The ₺1bn default is a proxy for
+    "this Toplam belongs to a real loan book", and it silently excluded every
+    bank whose book is smaller than ₺1bn — the new digital banks. The corpus
+    showed the tell: extracted Stage-1 values piled up just above the floor
+    (1.008bn / 1.011bn / 1.041bn / 1.103bn) and the SAME bank appeared only once
+    it grew past it (COLENDI 2026Q1 ₺1.04bn in, 2025Q4 ₺610m out; TOMK 2024Q4
+    ₺1.26bn in, 2024Q2 ₺229m out; ZIRAATD absent entirely). That is a data
+    cliff, not a filter.
+
+    `require_section_title` replaces the floor with a structural test: only scan
+    blocks anchored at the unambiguous §7.2 title (_S12_SECTION_TITLE). The
+    small-bank fallback in `extract_from_pdf` pairs it with `min_stage1=1`, so a
+    ₺229m book is admitted while a §4 "Loans Under Follow-Up" risk table — the
+    one real false positive the floor was catching — is still rejected, on
+    structure rather than size.
     """
     if not page_text:
         return []
@@ -1219,7 +1285,12 @@ def _extract_loans_by_stage_from_page(
     # Start the scan from the earlier of the two phrase anchors (the
     # column-headers usually appear within ~5 lines of each other).
     scan_starts: list[int] = []
-    if has_section_header:
+    if require_section_title:
+        # Small-bank fallback: anchor ONLY on the real §7.2 title line, never on
+        # the loose column-header phrase (which a §4 risk table also carries).
+        scan_starts.extend(i for i, ln in enumerate(lines)
+                           if _S12_SECTION_TITLE.search(ln))
+    elif has_section_header:
         first_pos = (s2_match.start() if s1_match is None
                      else min(s1_match.start(), s2_match.start()))
         scan_starts.append(_char_to_line(first_pos))
@@ -1246,7 +1317,9 @@ def _extract_loans_by_stage_from_page(
             vals = [parse_num(n) for n in nums]
             # Sanity gate: Stage 1 column must be:
             #  * non-null
-            #  * in magnitude range (>1 bn TL = >10^6 thousand TL)
+            #  * at least `min_stage1` (default 1 bn TL = 10^6 thousand TL; the
+            #    small-bank fallback lowers it to 1 and anchors on the §7.2
+            #    title instead — see the docstring)
             #  * STRICTLY larger than the sum of the Stage 2 sub-columns — Stage 1
             #    (standard performing) is always the dominant portfolio, S1 ≫ S2.
             #    ECL provision Total rows violate this (Stage 2 ECL usually > Stage 1
@@ -1256,7 +1329,7 @@ def _extract_loans_by_stage_from_page(
             #    2,124,190 946,654 1,177,536" (2,124,190 = 946,654+1,177,536) which
             #    otherwise yields the spurious S1==S2 and, being on an earlier page,
             #    wins the dedup over the real §7.2 table.
-            if not (vals[0] is not None and vals[0] >= 1_000_000):
+            if not (vals[0] is not None and vals[0] >= min_stage1):
                 continue
             stage1 = vals[0]
             rest = vals[1:]
@@ -1549,6 +1622,21 @@ def extract_from_pdf(
             rep.rows.extend(
                 _extract_loans_by_stage_from_page(i, text, allow_total_drop=True)
             )
+
+    # Small-bank fallback: still nothing, so no Toplam row cleared the ₺1bn
+    # Stage-1 floor anywhere in the document. Re-scan with the floor dropped but
+    # anchored strictly on the §7.2 section title. This is what puts the new
+    # digital banks (COLENDI, TOMK, ZIRAATD — books of ₺7m–₺610m) into the
+    # matrix; they disclose the ordinary §7.2 table, they are just smaller than
+    # the floor. Gated on "found nothing" for the same reason as the pass above:
+    # a bank that already has a valid table can never be overridden by it, so
+    # the corpus that extracts today is untouched.
+    if not any(r.section == "loans_by_stage" for r in rep.rows):
+        for i, text in page_texts:
+            rep.rows.extend(_extract_loans_by_stage_from_page(
+                i, text, allow_total_drop=True,
+                require_section_title=True, min_stage1=1,
+            ))
 
     # Choose the NPL source. Prefer the template (precise, label-anchored) — but
     # only when it captured the CURRENT-period gross, the analytically critical
