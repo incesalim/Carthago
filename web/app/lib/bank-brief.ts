@@ -132,6 +132,12 @@ export interface EngineGate {
   firstPeriod: string | null;
   /** Plain-language reason, printed instead of an empty tile. */
   reason: string | null;
+  /**
+   * Set when the bank takes no deposits, so the ladder legitimately has no
+   * funding cost and no spread. Printed under the rows so their absence reads as
+   * a fact about the bank rather than a hole in our data.
+   */
+  fundingNote: string | null;
 }
 
 /**
@@ -149,12 +155,30 @@ export function engineGate(rows: BankMetricRow[]): EngineGate {
   const latest = rows[rows.length - 1];
   const filings = rows.length;
   const first = rows[0]?.period ?? null;
-  const ready = !!latest && latest.spread != null && latest.roe != null;
-  if (ready) return { ready, filings, firstPeriod: first, reason: null };
+  // ROE is the ladder's anchor and the one row that must exist for the section to
+  // say anything. Do NOT also require `spread`: a development/investment bank
+  // (TSKB, KLNMA) takes no deposits, so it has no deposit cost and no spread BY
+  // CONSTRUCTION — gating on spread suppressed its whole ladder, ROE included,
+  // and then told the reader the filings were missing when 34 quarters were on
+  // file. Rows that cannot be formed drop out individually (the caller filters
+  // null values); the section stands as long as ROE does.
+  const ready = !!latest && latest.roe != null;
+  if (ready) {
+    // A missing spread must never be a silent hole. It is either structural (the
+    // bank takes no deposits) or a gap in what we hold — say which.
+    const fundingNote =
+      latest.spread != null
+        ? null
+        : latest.deposits_stock === 0
+          ? "No deposit cost or spread: this bank takes no deposits — it funds itself in the market, so the ladder starts at what the assets earn. These rows are absent because they do not exist for this funding model, not because the figures are missing."
+          : "No deposit cost or spread: we hold no deposits line for this period, so the funding leg cannot be formed. The rest of the ladder stands on its own.";
+    return { ready, filings, firstPeriod: first, reason: null, fundingNote };
+  }
   return {
     ready: false,
     filings,
     firstPeriod: first,
+    fundingNote: null,
     reason:
       filings < 5
         ? `Trailing-twelve-month figures need four quarters of income statement over five quarter-ends of average balances. This bank has filed ${filings} quarter${filings === 1 ? "" : "s"}${first ? ` (first: ${first})` : ""}, so yield, funding cost, spread, cost of risk and ROE cannot be formed without inventing a denominator.`

@@ -149,6 +149,13 @@ export interface BankMetricRow {
   loan_yield: number | null;
   deposit_cost: number | null;
   spread: number | null;
+  /** Deposits stock (thousand TL) at this period, straight off the balance sheet.
+   *  0 means the bank genuinely takes NO deposits — development/investment banks
+   *  (TSKB, KLNMA) fund themselves in the market and file `MEVDUAT` as 0, so they
+   *  have no deposit cost and no spread BY CONSTRUCTION. null means we hold no
+   *  deposits line at all. `deposit_cost`/`spread` collapse both cases to null,
+   *  which is why the engine gate needs this to tell "inapplicable" from "missing". */
+  deposits_stock: number | null;
   cost_income: number | null;
   cet1: number | null;
   car: number | null;
@@ -399,7 +406,7 @@ export async function heatmapPanel(
         npl_coverage: null, provision_intensity: null, cost_of_risk: null,
         roe: null, roeAdjusted: null, freeProvision: null, roa: null, nim: null,
         ppop_ratio: null, loan_yield: null, deposit_cost: null, spread: null,
-        cost_income: null,
+        deposits_stock: null, cost_income: null,
         cet1: null, car: null, lcr: null,
         fx_nop: null, repricing_gap_1y: null,
         pb: null, pe: null,
@@ -703,6 +710,10 @@ export async function heatmapPanel(
     const avgLoans = avgStock(mb, mord, (r) => r.loans);
     const avgDeposits = avgStock(mb, mord, (r) => r.deposits);
     const avgAssets = avgStock(mb, mord, (r) => r.assets);
+    // Raw stock, NOT the average: avgStock() drops non-positive values, so a bank
+    // with zero deposits averages to null and is indistinguishable from one we
+    // hold no data for. The gate needs the 0 itself.
+    row.deposits_stock = mord != null ? (mb?.get(mord)?.deposits ?? null) : null;
 
     // Returns — TTM income over 5-point average assets.
     if (ttmNetIncome != null && avgAssets != null && avgAssets > 0)

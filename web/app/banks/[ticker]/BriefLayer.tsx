@@ -178,13 +178,16 @@ export function Engine({
                   </div>
                 </div>
               ))}
+              {gate.fundingNote && (
+                <p className="mt-2.5 text-[9.5px] leading-relaxed text-faint">{gate.fundingNote}</p>
+              )}
             </div>
           ) : (
             <div className="rounded-lg border border-dashed border-border bg-muted p-4">
               <h4 className="text-[12.5px] font-bold text-foreground">Not derivable yet — and the page says so</h4>
               <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">{gate.reason}</p>
               <p className="mt-2 font-mono text-[8px] uppercase tracking-[0.05em] text-faint">
-                rule: ttm metrics require filings ≥ 5 — never a blank tile
+                rule: the ladder needs a ttm roe — never a blank tile
               </p>
             </div>
           )}
