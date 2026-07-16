@@ -8299,6 +8299,930 @@
       ]
     },
     {
+      "bank": "TSKB",
+      "period": "2026Q1",
+      "kind": "unconsolidated",
+      "statement": "cash_flow",
+      "total_name": "Cash and Cash Equivalents at End of the Period",
+      "rows": [
+        {
+          "h": "1.1",
+          "name": "Operating Profit Before Changes in Operating Assets and Liabilities",
+          "amount": 1878155
+        },
+        {
+          "h": "1.1.1",
+          "name": "Interest Received",
+          "amount": 8515812
+        },
+        {
+          "h": "1.1.2",
+          "name": "Interest Paid",
+          "amount": -5861983
+        },
+        {
+          "h": "1.1.3",
+          "name": "Dividends Received",
+          "amount": 83523
+        },
+        {
+          "h": "1.1.4",
+          "name": "Fees and Commissions Received",
+          "amount": 146646
+        },
+        {
+          "h": "1.1.5",
+          "name": "Other Income",
+          "amount": 533024
+        },
+        {
+          "h": "1.1.6",
+          "name": "Collections from Previously Written off Loans",
+          "amount": 34313
+        },
+        {
+          "h": "1.1.7",
+          "name": "Payments to Personnel and Service Suppliers",
+          "amount": -1381489
+        },
+        {
+          "h": "1.1.8",
+          "name": "Taxes Paid",
+          "amount": -489962
+        },
+        {
+          "h": "1.1.9",
+          "name": "Others",
+          "amount": 298271
+        },
+        {
+          "h": "1.2",
+          "name": "Changes in Operating Assets and Liabilities",
+          "amount": 8767015
+        },
+        {
+          "h": "1.2.1",
+          "name": "Net (Increase) (Decrease) in Financial Assets at Fair Value through Profit or Loss",
+          "amount": -173690
+        },
+        {
+          "h": "1.2.2",
+          "name": "Net (Increase) (Decrease) in Due from Banks",
+          "amount": -1521
+        },
+        {
+          "h": "1.2.3",
+          "name": "Net (Increase) (Decrease) in Loans",
+          "amount": -14855421
+        },
+        {
+          "h": "1.2.4",
+          "name": "Net (Increase) (Decrease) in Other Assets",
+          "amount": 110641
+        },
+        {
+          "h": "1.2.5",
+          "name": "Net (Increase) (Decrease) in Bank Deposits",
+          "amount": 0
+        },
+        {
+          "h": "1.2.6",
+          "name": "Net (Increase) (Decrease) in Other Deposits",
+          "amount": 0
+        },
+        {
+          "h": "1.2.7",
+          "name": "Net (Increase) (Decrease) in Financial Liabilities at Fair Value through Profit or Loss",
+          "amount": 0
+        },
+        {
+          "h": "1.2.8",
+          "name": "Net (Increase) (Decrease) in Funds Borrowed",
+          "amount": -5210426
+        },
+        {
+          "h": "1.2.9",
+          "name": "Net (Increase) (Decrease) in Matured Payable",
+          "amount": 0
+        },
+        {
+          "h": "1.2.10",
+          "name": "Net (Increase) (Decrease) in Other Liabilities",
+          "amount": 28897432
+        },
+        {
+          "h": "I.",
+          "name": "Net Cash Provided by / (used in) Banking Operations",
+          "amount": 10645170
+        },
+        {
+          "h": "II.",
+          "name": "Net Cash Provided by / (used in) Investing Activities",
+          "amount": -71041
+        },
+        {
+          "h": "2.1",
+          "name": "Cash Paid for Purchase of Entities under Common Control, Associates and Subsidiaries",
+          "amount": 0
+        },
+        {
+          "h": "2.2",
+          "name": "Cash Obtained from Sale of Entities under Common Control, Associates and Subsidiaries",
+          "amount": 0
+        },
+        {
+          "h": "2.3",
+          "name": "Purchases of Property and Equipment",
+          "amount": -9536
+        },
+        {
+          "h": "2.4",
+          "name": "Disposals of Property and Equipment",
+          "amount": 5062
+        },
+        {
+          "h": "2.5",
+          "name": "Purchase of Financial Assets at Fair Value through Other Comprehensive Income",
+          "amount": -2010390
+        },
+        {
+          "h": "2.6",
+          "name": "Sale of Financial Assets at Fair Value through Other Comprehensive Income",
+          "amount": 1944110
+        },
+        {
+          "h": "2.7",
+          "name": "Purchase of Financial Assets Measured at Amortized Cost",
+          "amount": 0
+        },
+        {
+          "h": "2.8",
+          "name": "Sale of Financial Assets Measured at Amortized Cost",
+          "amount": 0
+        },
+        {
+          "h": "2.9",
+          "name": "Others",
+          "amount": -287
+        },
+        {
+          "h": "III.",
+          "name": "Net Cash Provided by / (used in) Financing Activities",
+          "amount": -11871266
+        },
+        {
+          "h": "3.1",
+          "name": "Cash Obtained from Funds Borrowed and Securities Issued",
+          "amount": 6009804
+        },
+        {
+          "h": "3.2",
+          "name": "Cash Used for Repayment of Funds Borrowed and Securities Issued",
+          "amount": -16226492
+        },
+        {
+          "h": "3.3",
+          "name": "Capital Increase",
+          "amount": 0
+        },
+        {
+          "h": "3.4",
+          "name": "Dividends Paid",
+          "amount": -1500252
+        },
+        {
+          "h": "3.5",
+          "name": "Payments for Leases",
+          "amount": -154326
+        },
+        {
+          "h": "3.6",
+          "name": "Other",
+          "amount": 0
+        },
+        {
+          "h": "IV.",
+          "name": "Effect of Change in Foreign Exchange Rate on Cash and Cash Equivalents",
+          "amount": 50109
+        },
+        {
+          "h": "V.",
+          "name": "Net Increase / (Decrease) in Cash and Cash Equivalents",
+          "amount": -1247028
+        },
+        {
+          "h": "VI.",
+          "name": "Cash and Cash Equivalents at Beginning of the Period",
+          "amount": 18013654
+        },
+        {
+          "h": "VII.",
+          "name": "Cash and Cash Equivalents at End of the Period",
+          "amount": 16766626
+        }
+      ]
+    },
+    {
+      "bank": "TSKB",
+      "period": "2026Q1",
+      "kind": "unconsolidated",
+      "statement": "oci",
+      "total_name": "TOTAL COMPREHENSIVE INCOME (I+II)",
+      "rows": [
+        {
+          "h": "I.",
+          "name": "CURRENT PERIOD INCOME / LOSS",
+          "amount": 2860035
+        },
+        {
+          "h": "II.",
+          "name": "OTHER COMPREHENSIVE INCOME",
+          "amount": -644949
+        },
+        {
+          "h": "2.1",
+          "name": "Not Reclassified Through Profit or Loss",
+          "amount": 120774
+        },
+        {
+          "h": "2.1.1",
+          "name": "Property and Equipment Revaluation Increase / Decrease",
+          "amount": -4684
+        },
+        {
+          "h": "2.1.2",
+          "name": "Intangible Assets Revaluation Increase / Decrease",
+          "amount": 0
+        },
+        {
+          "h": "2.1.3",
+          "name": "Defined Benefit Pension Plan Remeasurement Gain / Loss",
+          "amount": 0
+        },
+        {
+          "h": "2.1.4",
+          "name": "Other Comprehensive Income Items Not Reclassified Through Profit or Loss",
+          "amount": 124404
+        },
+        {
+          "h": "2.1.5",
+          "name": "Tax Related Other Comprehensive Income Items Not Reclassified Through Profit or Loss",
+          "amount": 1054
+        },
+        {
+          "h": "2.2",
+          "name": "Reclassified Through Profit or Loss",
+          "amount": -765723
+        },
+        {
+          "h": "2.2.1",
+          "name": "Foreign Currency Translation Differences",
+          "amount": 12220
+        },
+        {
+          "h": "2.2.2",
+          "name": "Valuation and / or Reclassification Income / Expense of the Financial Assets at Fair Value Through Other Comprehensive Income",
+          "amount": -1111348
+        },
+        {
+          "h": "2.2.3",
+          "name": "Cash Flow Hedge Income / Loss",
+          "amount": 0
+        },
+        {
+          "h": "2.2.4",
+          "name": "Income (Loss) Related with Hedges of Net Investments in Foreign Operations",
+          "amount": 0
+        },
+        {
+          "h": "2.2.5",
+          "name": "Other Comprehensive Income Items Reclassified Through Profit or Losses",
+          "amount": 0
+        },
+        {
+          "h": "2.2.6",
+          "name": "Tax Related Other Comprehensive Income Items Reclassified Through Profit or Loss",
+          "amount": 333405
+        },
+        {
+          "h": "III.",
+          "name": "TOTAL COMPREHENSIVE INCOME (I+II)",
+          "amount": 2215086
+        }
+      ]
+    },
+    {
+      "bank": "TSKB",
+      "period": "2026Q1",
+      "kind": "unconsolidated",
+      "statement": "off_balance",
+      "total_name": "TOTAL OFF-BALANCE SHEET ACCOUNTS",
+      "rows": [
+        {
+          "h": "A.",
+          "name": "OFF-BALANCE SHEET COMMITMENTS",
+          "tl": 21816867,
+          "fc": 321152353,
+          "total": 342969220
+        },
+        {
+          "h": "I.",
+          "name": "GUARANTIES AND WARRANTIES",
+          "tl": 1532606,
+          "fc": 34493050,
+          "total": 36025656
+        },
+        {
+          "h": "1.1",
+          "name": "Letters of Guarantee",
+          "tl": 1532606,
+          "fc": 12860193,
+          "total": 14392799
+        },
+        {
+          "h": "1.1.1",
+          "name": "Guarantees Subject to State Tender Law",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "1.1.2",
+          "name": "Guarantees Given for Foreign Trade Operations",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "1.1.3",
+          "name": "Other Letters of Guarantee",
+          "tl": 1532606,
+          "fc": 12860193,
+          "total": 14392799
+        },
+        {
+          "h": "1.2",
+          "name": "Bank Acceptances",
+          "tl": 0,
+          "fc": 553936,
+          "total": 553936
+        },
+        {
+          "h": "1.2.1",
+          "name": "Import Letter of Acceptance",
+          "tl": 0,
+          "fc": 553936,
+          "total": 553936
+        },
+        {
+          "h": "1.2.2",
+          "name": "Other Bank Acceptances",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "1.3",
+          "name": "Letters of Credit",
+          "tl": 0,
+          "fc": 21078921,
+          "total": 21078921
+        },
+        {
+          "h": "1.3.1",
+          "name": "Documentary Letters of Credit",
+          "tl": 0,
+          "fc": 21078921,
+          "total": 21078921
+        },
+        {
+          "h": "1.3.2",
+          "name": "Other Letters of Credit",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "1.4",
+          "name": "Prefinancing Given as Guarantee",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "1.5",
+          "name": "Endorsements",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "1.5.1",
+          "name": "Endorsements to the Central Bank of Turkey",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "1.5.2",
+          "name": "Other Endorsements",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "1.6",
+          "name": "Purchase Guarantees for Securities Issued",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "1.7",
+          "name": "Factoring Guarantees",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "1.8",
+          "name": "Other Guarantees",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "1.9",
+          "name": "Other Collaterals",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "II.",
+          "name": "COMMITMENTS",
+          "tl": 5070472,
+          "fc": 21641077,
+          "total": 26711549
+        },
+        {
+          "h": "2.1",
+          "name": "Irrevocable Commitments",
+          "tl": 673973,
+          "fc": 1212711,
+          "total": 1886684
+        },
+        {
+          "h": "2.1.1",
+          "name": "Forward Asset Purchase Commitments",
+          "tl": 122708,
+          "fc": 1035053,
+          "total": 1157761
+        },
+        {
+          "h": "2.1.2",
+          "name": "Time Deposit Purchase and Sales Commitments",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "2.1.3",
+          "name": "Share Capital Commitments to Associates and Subsidiaries",
+          "tl": 0,
+          "fc": 154728,
+          "total": 154728
+        },
+        {
+          "h": "2.1.4",
+          "name": "Loan Granting Commitments",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "2.1.5",
+          "name": "Securities Issue Brokerage Commitments",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "2.1.6",
+          "name": "Commitments for Reserve Requirements",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "2.1.7",
+          "name": "Commitments for Cheque Payments",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "2.1.8",
+          "name": "Tax and Fund Liabilities Arised from Export Commitments",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "2.1.9",
+          "name": "Commitments for Credit Card Limits",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "2.1.10",
+          "name": "Commitments for Credit Cards and Banking Services Promotions",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "2.1.11",
+          "name": "Receivables from Short Sale Commitments of Marketable Securities",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "2.1.12",
+          "name": "Payables for Short Sale Commitments of Marketable Securities",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "2.1.13",
+          "name": "Other Irrevocable Commitments",
+          "tl": 551265,
+          "fc": 22930,
+          "total": 574195
+        },
+        {
+          "h": "2.2",
+          "name": "Revocable Commitments",
+          "tl": 4396499,
+          "fc": 20428366,
+          "total": 24824865
+        },
+        {
+          "h": "2.2.1",
+          "name": "Revocable Loan Granting Commitments",
+          "tl": 4396499,
+          "fc": 20428366,
+          "total": 24824865
+        },
+        {
+          "h": "2.2.2",
+          "name": "Other Revocable Commitments",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "III.",
+          "name": "DERIVATIVE FINANCIAL INSTRUMENTS",
+          "tl": 15213789,
+          "fc": 265018226,
+          "total": 280232015
+        },
+        {
+          "h": "3.1",
+          "name": "Derivative Financial Instruments Held For Hedging",
+          "tl": 0,
+          "fc": 101434265,
+          "total": 101434265
+        },
+        {
+          "h": "3.1.1",
+          "name": "Fair Value Hedges",
+          "tl": 0,
+          "fc": 101434265,
+          "total": 101434265
+        },
+        {
+          "h": "3.1.2",
+          "name": "Cash Flow Hedges",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "3.1.3",
+          "name": "Hedges of Net Investment in Foreign Operations",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "3.2",
+          "name": "Derivative Financial Instruments Held For Trading",
+          "tl": 15213789,
+          "fc": 163583961,
+          "total": 178797750
+        },
+        {
+          "h": "3.2.1",
+          "name": "Forward Foreign Currency Buy or Sell Transactions",
+          "tl": 5008429,
+          "fc": 23513506,
+          "total": 28521935
+        },
+        {
+          "h": "3.2.1.1",
+          "name": "Forward Foreign Currency Buying Transactions",
+          "tl": 2637076,
+          "fc": 11632039,
+          "total": 14269115
+        },
+        {
+          "h": "3.2.1.2",
+          "name": "Forward Foreign Currency Sale Transactions",
+          "tl": 2371353,
+          "fc": 11881467,
+          "total": 14252820
+        },
+        {
+          "h": "3.2.2",
+          "name": "Currency and Interest Rate Swaps",
+          "tl": 4916954,
+          "fc": 132964653,
+          "total": 137881607
+        },
+        {
+          "h": "3.2.2.1",
+          "name": "Currency Swap Buy Transactions",
+          "tl": 362641,
+          "fc": 43391021,
+          "total": 43753662
+        },
+        {
+          "h": "3.2.2.2",
+          "name": "Currency Swap Sell Transactions",
+          "tl": 2291063,
+          "fc": 40069586,
+          "total": 42360649
+        },
+        {
+          "h": "3.2.2.3",
+          "name": "Interest Rate Swap Buy Transactions",
+          "tl": 1131625,
+          "fc": 24752023,
+          "total": 25883648
+        },
+        {
+          "h": "3.2.2.4",
+          "name": "Interest Rate Swap Sell Transactions",
+          "tl": 1131625,
+          "fc": 24752023,
+          "total": 25883648
+        },
+        {
+          "h": "3.2.3",
+          "name": "Currency, Interest Rate and Securities Options",
+          "tl": 5288406,
+          "fc": 7105802,
+          "total": 12394208
+        },
+        {
+          "h": "3.2.3.1",
+          "name": "Currency Options Buy Transactions",
+          "tl": 3079628,
+          "fc": 3134034,
+          "total": 6213662
+        },
+        {
+          "h": "3.2.3.2",
+          "name": "Currency Options Sell Transactions",
+          "tl": 2208778,
+          "fc": 3971768,
+          "total": 6180546
+        },
+        {
+          "h": "3.2.3.3",
+          "name": "Interest Rate Options Buy Transactions",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "3.2.3.4",
+          "name": "Interest Rate Options Sell Transactions",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "3.2.3.5",
+          "name": "Securities Options Buy Transactions",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "3.2.3.6",
+          "name": "Securities Options Sell Transactions",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "3.2.4",
+          "name": "Currency Futures",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "3.2.4.1",
+          "name": "Currency Futures Buy Transactions",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "3.2.4.2",
+          "name": "Currency Futures Sell Transactions",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "3.2.5",
+          "name": "Interest Rate Futures Buy and Sell Transactions",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "3.2.5.1",
+          "name": "Interest Rate Futures Buy Transactions",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "3.2.5.2",
+          "name": "Interest Rate Futures Sell Transactions",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "3.2.6",
+          "name": "Other",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "B.",
+          "name": "CUSTODY AND PLEDGES RECEIVED",
+          "tl": 669918342,
+          "fc": 4215195288,
+          "total": 4885113630
+        },
+        {
+          "h": "IV.",
+          "name": "ITEMS HELD IN CUSTODY",
+          "tl": 10888839,
+          "fc": 16340746,
+          "total": 27229585
+        },
+        {
+          "h": "4.1",
+          "name": "Customer Fund and Portfolio Balances",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "4.2",
+          "name": "Securities Held in Custody",
+          "tl": 9564,
+          "fc": 16340746,
+          "total": 16350310
+        },
+        {
+          "h": "4.3",
+          "name": "Cheques Received for Collection",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "4.4",
+          "name": "Commercial Notes Received for Collection",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "4.5",
+          "name": "Other Assets Received for Collection",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "4.6",
+          "name": "Securities that will be Intermediated to Issue",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "4.7",
+          "name": "Other Items Under Custody",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "4.8",
+          "name": "Custodians",
+          "tl": 10879275,
+          "fc": 0,
+          "total": 10879275
+        },
+        {
+          "h": "V.",
+          "name": "PLEDGED ITEMS",
+          "tl": 640266898,
+          "fc": 3376748537,
+          "total": 4017015435
+        },
+        {
+          "h": "5.1",
+          "name": "Securities",
+          "tl": 456249,
+          "fc": 0,
+          "total": 456249
+        },
+        {
+          "h": "5.2",
+          "name": "Guarantee Notes",
+          "tl": 15367,
+          "fc": 3245673,
+          "total": 3261040
+        },
+        {
+          "h": "5.3",
+          "name": "Commodity",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "5.4",
+          "name": "Warrant",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "5.5",
+          "name": "Real Estate",
+          "tl": 172657782,
+          "fc": 894314427,
+          "total": 1066972209
+        },
+        {
+          "h": "5.6",
+          "name": "Other Pledged Items",
+          "tl": 467137500,
+          "fc": 2479188437,
+          "total": 2946325937
+        },
+        {
+          "h": "5.7",
+          "name": "Depositories Receiving Pledged Items",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "VI.",
+          "name": "ACCEPTED BILL, GUARANTIES AND WARRANTEES",
+          "tl": 18762605,
+          "fc": 822106005,
+          "total": 840868610
+        },
+        {
+          "h": "",
+          "name": "TOTAL OFF-BALANCE SHEET ACCOUNTS",
+          "tl": 691735209,
+          "fc": 4536347641,
+          "total": 5228082850
+        }
+      ]
+    },
+    {
       "bank": "ISCTR",
       "period": "2025Q1",
       "kind": "consolidated",
@@ -10700,78 +11624,603 @@
         {
           "h": "A.",
           "name": "BİLANÇO DIŞI YÜKÜMLÜLÜKLER (I+II+III)",
-          "tl": null,
-          "fc": null,
+          "tl": 26651080,
+          "fc": 55384173,
           "total": 82035253
         },
         {
           "h": "I.",
           "name": "GARANTİ ve KEFALETLER",
-          "tl": null,
-          "fc": null,
+          "tl": 529602,
+          "fc": 521033,
           "total": 1050635
         },
         {
-          "h": "1.1",
+          "h": "1.1.",
           "name": "Teminat Mektupları",
-          "tl": null,
-          "fc": null,
+          "tl": 511602,
+          "fc": 299527,
           "total": 811129
         },
         {
-          "h": "1.2",
+          "h": "1.1.1",
+          "name": "Devlet İhale Kanunu Kapsamına Girenler",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "1.1.2",
+          "name": "Dış Ticaret İşlemleri Dolayısıyla Verilenler",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "1.1.3",
+          "name": "Diğer Teminat Mektupları",
+          "tl": 511602,
+          "fc": 299527,
+          "total": 811129
+        },
+        {
+          "h": "1.2.",
           "name": "Banka Kredileri",
-          "tl": null,
-          "fc": null,
+          "tl": 18000,
+          "fc": 111806,
           "total": 129806
+        },
+        {
+          "h": "1.2.1",
+          "name": "İthalat Kabul Kredileri",
+          "tl": 18000,
+          "fc": 111806,
+          "total": 129806
+        },
+        {
+          "h": "1.2.2",
+          "name": "Diğer Banka Kabulleri",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "1.3.",
+          "name": "Akreditifler",
+          "tl": 0,
+          "fc": 109700,
+          "total": 109700
+        },
+        {
+          "h": "1.3.1",
+          "name": "Belgeli Akreditifler",
+          "tl": 0,
+          "fc": 109700,
+          "total": 109700
+        },
+        {
+          "h": "1.3.2",
+          "name": "Diğer Akreditifler",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "1.4.",
+          "name": "Garanti Verilen Prefinansmanlar",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "1.5.",
+          "name": "Cirolar",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "1.5.1",
+          "name": "T.C. Merkez Bankasına Cirolar",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "1.5.2",
+          "name": "Diğer Cirolar",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "1.6.",
+          "name": "Menkul Kıy. İh. Satın Alma Garantilerimizden",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "1.7.",
+          "name": "Faktoring Garantilerinden",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "1.8.",
+          "name": "Diğer Garantilerimizden",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "1.9.",
+          "name": "Diğer Kefaletlerimizden",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
         },
         {
           "h": "II.",
           "name": "TAAHHÜTLER",
-          "tl": null,
-          "fc": null,
+          "tl": 4687443,
+          "fc": 4287914,
           "total": 8975357
+        },
+        {
+          "h": "2.1.",
+          "name": "Cayılamaz Taahhütler",
+          "tl": 4687443,
+          "fc": 4287914,
+          "total": 8975357
+        },
+        {
+          "h": "2.1.1",
+          "name": "Vadeli Aktif Değerler Alım Satım Taahhütleri",
+          "tl": 1923647,
+          "fc": 4287914,
+          "total": 6211561
+        },
+        {
+          "h": "2.1.2",
+          "name": "Vadeli Mevduat Alım Satım Taahhütleri",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "2.1.3",
+          "name": "İştir. ve Bağ. Ort. Ser. İşt. Taahhütleri",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "2.1.4",
+          "name": "Kul. Gar. Kredi Tahsis Taahhütleri",
+          "tl": 2395471,
+          "fc": 0,
+          "total": 2395471
+        },
+        {
+          "h": "2.1.5",
+          "name": "Men. Kıy. İhr. Aracılık Taahhütleri",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "2.1.6",
+          "name": "Zorunlu Karşılık Ödeme Taahhüdü",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "2.1.7",
+          "name": "Çekler İçin Ödeme Taahhütleri",
+          "tl": 322960,
+          "fc": 0,
+          "total": 322960
+        },
+        {
+          "h": "2.1.8",
+          "name": "İhracat Taahhütlerinden Kaynaklanan Vergi ve Fon Yükümlülükleri",
+          "tl": 11193,
+          "fc": 0,
+          "total": 11193
+        },
+        {
+          "h": "2.1.9",
+          "name": "Kredi Kartı Harcama Limit Taahhütleri",
+          "tl": 28760,
+          "fc": 0,
+          "total": 28760
+        },
+        {
+          "h": "2.1.10",
+          "name": "Kredi Kartları ve Bankacılık Hizmetlerine İlişkin Promosyon Uyg. Taah.",
+          "tl": 15,
+          "fc": 0,
+          "total": 15
+        },
+        {
+          "h": "2.1.11",
+          "name": "Açığa Menkul Kıymet Satış Taahhütlerinden Alacaklar",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "2.1.12",
+          "name": "Açığa Menkul Kıymet Satış Taahhütlerinden Borçlar",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "2.1.13",
+          "name": "Diğer Cayılamaz Taahhütler",
+          "tl": 5397,
+          "fc": 0,
+          "total": 5397
+        },
+        {
+          "h": "2.2.",
+          "name": "Cayılabilir Taahhütler",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "2.2.1",
+          "name": "Cayılabilir Kredi Tahsis Taahhütleri",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "2.2.2",
+          "name": "Diğer Cayılabilir Taahhütler",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
         },
         {
           "h": "III.",
           "name": "TÜREV FİNANSAL ARAÇLAR",
-          "tl": null,
-          "fc": null,
+          "tl": 21434035,
+          "fc": 50575226,
           "total": 72009261
+        },
+        {
+          "h": "3.1",
+          "name": "Riskten Korunma Amaçlı Türev Finansal Araçlar",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "3.1.1",
+          "name": "Gerçeğe Uygun Değer Riskinden Korunma Amaçlı İşlemler",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "3.1.2",
+          "name": "Nakit Akış Riskinden Korunma Amaçlı İşlemler",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "3.1.3",
+          "name": "Yurtdışındaki Net Yatırım Riskinden Korunma Amaçlı İşlemler",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "3.2",
+          "name": "Alım Satım Amaçlı İşlemler",
+          "tl": 21434035,
+          "fc": 50575226,
+          "total": 72009261
+        },
+        {
+          "h": "3.2.1",
+          "name": "Vadeli Döviz Alım-Satım İşlemleri",
+          "tl": 7641673,
+          "fc": 12507426,
+          "total": 20149099
+        },
+        {
+          "h": "3.2.1.1",
+          "name": "Vadeli Döviz Alım İşlemleri",
+          "tl": 7207367,
+          "fc": 2733121,
+          "total": 9940488
+        },
+        {
+          "h": "3.2.1.2",
+          "name": "Vadeli Döviz Satım İşlemleri",
+          "tl": 434306,
+          "fc": 9774305,
+          "total": 10208611
+        },
+        {
+          "h": "3.2.2",
+          "name": "Para ve Faiz Swap İşlemleri",
+          "tl": 11981500,
+          "fc": 32325604,
+          "total": 44307104
+        },
+        {
+          "h": "3.2.2.1",
+          "name": "Swap Para Alım İşlemleri",
+          "tl": 1731461,
+          "fc": 17706665,
+          "total": 19438126
+        },
+        {
+          "h": "3.2.2.2",
+          "name": "Swap Para Satım İşlemleri",
+          "tl": 5365791,
+          "fc": 13991635,
+          "total": 19357426
+        },
+        {
+          "h": "3.2.2.3",
+          "name": "Swap Faiz Alım İşlemleri",
+          "tl": 2442124,
+          "fc": 313652,
+          "total": 2755776
+        },
+        {
+          "h": "3.2.2.4",
+          "name": "Swap Faiz Satım İşlemleri",
+          "tl": 2442124,
+          "fc": 313652,
+          "total": 2755776
+        },
+        {
+          "h": "3.2.3",
+          "name": "Para, Faiz ve Menkul Değer Opsiyonları",
+          "tl": 1734750,
+          "fc": 4482760,
+          "total": 6217510
+        },
+        {
+          "h": "3.2.3.1",
+          "name": "Para Alım Opsiyonları",
+          "tl": 769433,
+          "fc": 2126928,
+          "total": 2896361
+        },
+        {
+          "h": "3.2.3.2",
+          "name": "Para Satım Opsiyonları",
+          "tl": 965317,
+          "fc": 2355832,
+          "total": 3321149
+        },
+        {
+          "h": "3.2.3.3",
+          "name": "Faiz Alım Opsiyonları",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "3.2.3.4",
+          "name": "Faiz Satım Opsiyonları",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "3.2.3.5",
+          "name": "Menkul Değerler Alım Opsiyonları",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "3.2.3.6",
+          "name": "Menkul Değerler Satım Opsiyonları",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "3.2.4",
+          "name": "Futures Para İşlemleri",
+          "tl": 76112,
+          "fc": 0,
+          "total": 76112
+        },
+        {
+          "h": "3.2.4.1",
+          "name": "Futures Para Alım İşlemleri",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "3.2.4.2",
+          "name": "Futures Para Satım İşlemleri",
+          "tl": 76112,
+          "fc": 0,
+          "total": 76112
+        },
+        {
+          "h": "3.2.5",
+          "name": "Futures Faiz Alım-Satım İşlemleri",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "3.2.5.1",
+          "name": "Futures Faiz Alım İşlemleri",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "3.2.5.2",
+          "name": "Futures Faiz Satım İşlemleri",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "3.2.6",
+          "name": "Diğer",
+          "tl": 0,
+          "fc": 1259436,
+          "total": 1259436
         },
         {
           "h": "B.",
           "name": "EMANET VE REHİNLİ KIYMETLER (IV+V+VI)",
-          "tl": null,
-          "fc": null,
+          "tl": 228817249,
+          "fc": 185228048,
           "total": 414045297
         },
         {
           "h": "IV.",
           "name": "EMANET KIYMETLER",
-          "tl": null,
-          "fc": null,
+          "tl": 1371260,
+          "fc": 21930033,
           "total": 23301293
+        },
+        {
+          "h": "4.1",
+          "name": "Müşteri Fon ve Portföy Mevcutları",
+          "tl": 296351,
+          "fc": 2329996,
+          "total": 2626347
+        },
+        {
+          "h": "4.2",
+          "name": "Emanete Alınan Menkul Değerler",
+          "tl": 126047,
+          "fc": 3872359,
+          "total": 3998406
+        },
+        {
+          "h": "4.3",
+          "name": "Tahsile Alınan Çekler",
+          "tl": 747992,
+          "fc": 536603,
+          "total": 1284595
+        },
+        {
+          "h": "4.4",
+          "name": "Tahsile Alınan Ticari Senetler",
+          "tl": 93370,
+          "fc": 41676,
+          "total": 135046
+        },
+        {
+          "h": "4.5",
+          "name": "Tahsile Alınan Diğer Kıymetler",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "4.6",
+          "name": "İhracına Aracı Olunan Kıymetler",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "4.7",
+          "name": "Diğer Emanet Kıymetler",
+          "tl": 107500,
+          "fc": 15149399,
+          "total": 15256899
+        },
+        {
+          "h": "4.8",
+          "name": "Emanet Kıymet Alanlar",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
         },
         {
           "h": "V.",
           "name": "REHİNLİ KIYMETLER",
-          "tl": null,
-          "fc": null,
+          "tl": 227445989,
+          "fc": 163298015,
           "total": 390744004
+        },
+        {
+          "h": "5.1",
+          "name": "Menkul Kıymetler",
+          "tl": 503912,
+          "fc": 144375,
+          "total": 648287
+        },
+        {
+          "h": "5.2",
+          "name": "Teminat Senetleri",
+          "tl": 83232,
+          "fc": 395922,
+          "total": 479154
+        },
+        {
+          "h": "5.3",
+          "name": "Emtia",
+          "tl": 0,
+          "fc": 129682,
+          "total": 129682
+        },
+        {
+          "h": "5.4",
+          "name": "Varant",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
+        },
+        {
+          "h": "5.5",
+          "name": "Gayrimenkul",
+          "tl": 6306068,
+          "fc": 30612052,
+          "total": 36918120
+        },
+        {
+          "h": "5.6",
+          "name": "Diğer Rehinli Kıymetler",
+          "tl": 220552777,
+          "fc": 132015984,
+          "total": 352568761
+        },
+        {
+          "h": "5.7",
+          "name": "Rehinli Kıymet Alanlar",
+          "tl": 0,
+          "fc": 0,
+          "total": 0
         },
         {
           "h": "VI.",
           "name": "KABUL EDİLEN AVALLER VE KEFALETLER",
-          "tl": null,
-          "fc": null,
-          "total": null
+          "tl": 0,
+          "fc": 0,
+          "total": 0
         },
         {
           "h": "",
           "name": "BİLANÇO DIŞI HESAPLAR TOPLAMI (A+B)",
-          "tl": null,
-          "fc": null,
+          "tl": 255468329,
+          "fc": 240612221,
           "total": 496080550
         }
       ]
