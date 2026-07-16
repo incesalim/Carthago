@@ -388,9 +388,27 @@ def rows_from_pl_statement_rows(stmt_rows) -> list[dict]:
 
 # --- P&L (income statement) validation ------------------------------------
 # The BDDK income statement is a fixed roman chain — each subtotal row literally
-# prints its own formula. Roles are fixed by TEMPLATE POSITION: romans II and
-# IX–XII are deductions; everything else adds with its stored sign. Two corpus
-# realities make a naive ±1 chain false-fail, so the check is built around them:
+# prints its own formula. But the ORDINALS are NOT fixed across the corpus. The
+# standard template runs gross VIII / net-operating XIII / pre-tax XVII / tax
+# XVIII / continuing-net XIX / discontinued-net XXIV / period-net XXV, while the
+# compressed variant some participation banks file drops a row and prints
+# net-operating XII / pre-tax XVI / tax XVII — then continuing-net XVIII and
+# period-net XXIV (DUNYAK), or continuing-net XIX with no XVIII at all (TOMK).
+# Each report states its own numbering in the formula it prints ("XVI. …VERGİ
+# ÖNCESİ K/Z (XII+...+XV)"), and foots perfectly under it. Hardcoding 17/18/19/25
+# therefore compared those banks' TAX row against the pre-tax sum — 9 permanent
+# false failures on correct data, and no real check of their chain at all
+# (2026-07-16).
+#
+# So the chain is assembled per-partition from ANCHOR rows located by label, and
+# the deduction band falls out of the anchors — everything between gross and
+# net-operating — instead of a hardcoded {9,10,11,12}. Safety: every anchor falls
+# back to its standard ordinal when its label is unreadable (HAYATK 2024Q2's
+# wrapped labels leave XIX as "OPERATIONS (XV±XVI)"), and the template reverts to
+# standard wholesale unless the anchors come out strictly increasing. A partition
+# whose labels we can't read behaves exactly as it did before.
+#
+# Two corpus realities make a naive ±1 chain false-fail, so the check keeps both:
 #
 #  1. Storage convention is NOT uniform — even within one statement. Most banks
 #     store a deduction as a positive magnitude (the line prints "(-)"); the
@@ -403,20 +421,90 @@ def rows_from_pl_statement_rows(stmt_rows) -> list[dict]:
 #     the body, or a footnote roman below it — would shadow a real subtotal. We
 #     take the subtotal amounts from the longest contiguous strictly-increasing
 #     run of roman rows (the statement body) and ignore out-of-sequence strays.
-#   (target roman ordinal, [source roman ordinals])
-_PL_DEDUCTIONS = frozenset({2, 9, 10, 11, 12})
-_PL_CHAIN = [
-    (3,  [1, 2]),               # III  = I − II
-    (8,  [3, 4, 5, 6, 7]),      # VIII = III+IV+V+VI+VII
-    (13, [8, 9, 10, 11, 12]),   # XIII = VIII−IX−X−XI−XII
-    (17, [13, 14, 15, 16]),     # XVII = XIII+XIV+XV+XVI
-    (25, [19, 24]),             # XXV  = XIX+XXIV
-]
-# XIX = XVII ± XVIII handled apart: the tax provision XVIII prints "(±)" and is
-# genuinely signed (usually expense, occasionally benefit), so XIX may land on
-# either side of the pre-tax figure by XVIII's magnitude.
+_PL_STD = {"gross": 8, "net_op": 13, "pretax": 17,
+           "tax": 18, "cont_net": 19, "period_net": 25}
+# XIX = XVII ± XVIII is handled apart from the additive chain: the tax provision
+# prints "(±)" and is genuinely signed (usually expense, occasionally benefit),
+# so continuing-net may land on either side of pre-tax by the tax magnitude.
 _PL_NET_RX = re.compile(
     r"DÖNEM NET KAR|DÖNEM NET KÂR|NET PERIOD PROFIT|DÖNEM KÂRI|Grubun|Group", re.I)
+
+# Anchor matching runs on a folded label: Turkish glyphs mapped to ASCII, upper-
+# cased, ALL whitespace stripped — the extractor emits both "DÖNEM NET KARI" and
+# the space-collapsed "DÖNEMNETKARI/ZARARI" (TOMK), which a spaced pattern misses.
+_PL_FOLD = str.maketrans("ıİğĞüÜşŞöÖçÇâÂîÎûÛ", "iIgGuUsSoOcCaAiIuU")
+# (role, any-of these substrings, none-of these). Order matters only in that each
+# roman takes the FIRST role it matches. The none-of lists do the real work: the
+# discontinued block mirrors the continuing block almost word for word, and every
+# subtotal from XIX down carries some form of "DÖNEM NET"/"NET PROFIT".
+_PL_ROLES = (
+    ("pretax",     ("VERGIONCESI", "BEFORETAX"),
+                   ("DURDURULAN", "DISCONTINUED")),
+    ("tax",        ("VERGIKARSILIGI", "PROVISIONFORTAX", "TAXPROVISION",
+                    "PROVISIONFROMTAXES", "TAXESONINCOME"),
+                   ("DURDURULAN", "DISCONTINUED")),
+    ("cont_net",   ("SURDURULENFAALIYETLERDONEMNET", "FROMCONTINUEDOPERATIONS",
+                    "FROMCONTINUINGOPERATIONS"),
+                   ("DURDURULAN", "DISCONTINUED", "BEFORE", "VERGI", "TAX", "PROVISION")),
+    ("gross",      ("FAALIYETBRUT", "GROSSOPERATINGPROFIT", "GROSSPROFIT"), ()),
+    ("net_op",     ("NETFAALIYET", "NETOPERATING"), ()),
+    ("period_net", ("DONEMNETKAR", "NETPROFIT", "NETINCOME"),
+                   ("SURDURULEN", "DURDURULAN", "CONTINUED", "DISCONTINUED",
+                    "OPERATIONS", "VERGI", "TAX")),
+)
+
+
+def _pl_fold(s: str | None) -> str:
+    return re.sub(r"\s+", "", (s or "").translate(_PL_FOLD)).upper()
+
+
+def _pl_template(pl_rows: list[dict], amt: dict[int, float]) -> dict[str, int]:
+    """The partition's OWN ordinal for each anchor role, read off the labels of
+    the rows already in the spine. Roles it can't find keep their standard
+    ordinal; if what comes out isn't strictly increasing the labels are lying
+    (or mis-parsed) and we fall back to the standard template wholesale."""
+    t = dict(_PL_STD)
+    seen: set[str] = set()
+    for r in pl_rows:
+        h = (r.get("hierarchy") or "").strip()
+        if not _ROMAN_RX.match(h):
+            continue
+        o = _roman_to_int(h.rstrip("."))
+        if o is None or o not in amt:      # spine rows only — strays can't anchor
+            continue
+        lbl = _pl_fold(r.get("item_name"))
+        for role, want, avoid in _PL_ROLES:
+            if role in seen or any(x in lbl for x in avoid):
+                continue
+            if any(x in lbl for x in want):
+                t[role], _ = o, seen.add(role)
+                break
+    # discontinued-net is the roman immediately above the bottom line in every
+    # template variant filed, and its label mirrors the XX/XXI income+expense
+    # rows too closely to anchor on safely.
+    t["disc_net"] = t["period_net"] - 1
+    order = (3, t["gross"], t["net_op"], t["pretax"], t["tax"],
+             t["cont_net"], t["disc_net"], t["period_net"])
+    if any(a >= b for a, b in zip(order, order[1:])):
+        t = dict(_PL_STD)
+        t["disc_net"] = 24
+    return t
+
+
+def _pl_chain(t: dict[str, int]) -> tuple[list[tuple[int, list[int]]], frozenset[int]]:
+    """(additive chain, deduction ordinals) for one template. The bands between
+    anchors are what the report itself sums: gross = III..gross-1, the opex
+    deductions are everything from gross+1 to net_op-1, and net_op+1..pretax-1
+    are the add-backs (merger income, equity-method, net monetary position)."""
+    g, n, p = t["gross"], t["net_op"], t["pretax"]
+    chain = [
+        (3, [1, 2]),                                  # III = I − II
+        (g, list(range(3, g))),                       # gross    = III+…
+        (n, [g] + list(range(g + 1, n))),             # net_op   = gross − opex…
+        (p, [n] + list(range(n + 1, p))),             # pre-tax  = net_op + …
+        (t["period_net"], [t["cont_net"], t["disc_net"]]),
+    ]
+    return chain, frozenset({2} | set(range(g + 1, n)))
 
 
 def _pl_spine(pl_rows: list[dict]) -> dict[int, float]:
@@ -457,18 +545,21 @@ def _pl_spine(pl_rows: list[dict]) -> dict[int, float]:
 
 
 def check_pl_chain(pl_rows: list[dict]) -> ValidationResult:
-    """The income-statement roman identities (III=I−II … XXV=XIX+XXIV). An
+    """The income-statement roman identities (III=I−II … period-net=cont+disc),
+    each read against the partition's OWN numbering (see module note). An
     identity runs only when its target and ALL its source romans are present, so
     a P&L missing optional rows skips rather than false-fails. Deduction
     identities accept either storage convention (see module note)."""
     res = ValidationResult()
     amt = _pl_spine(pl_rows)
-    for target, sources in _PL_CHAIN:
+    tpl = _pl_template(pl_rows, amt)
+    chain, deductions = _pl_chain(tpl)
+    for target, sources in chain:
         if target not in amt or any(s not in amt for s in sources):
             res.add_skip()
             continue
-        base = sum(amt[s] for s in sources if s not in _PL_DEDUCTIONS)
-        ded = [amt[s] for s in sources if s in _PL_DEDUCTIONS]
+        base = sum(amt[s] for s in sources if s not in deductions)
+        ded = [amt[s] for s in sources if s in deductions]
         tol = _tol(amt[target], base=3.0, rel=5e-5)
         if not ded:
             actual = base
@@ -482,15 +573,16 @@ def check_pl_chain(pl_rows: list[dict]) -> ValidationResult:
         else:
             res.add_fail("pl_chain", f"roman {target} identity",
                          expected=amt[target], actual=actual)
-    # XIX = XVII ± XVIII (tax line genuinely signed → accept either direction)
-    if 19 in amt and 17 in amt:
-        tax = abs(amt.get(18, 0.0))
-        tol = _tol(amt[19], base=3.0, rel=5e-5)
-        if min(abs(amt[19] - (amt[17] - tax)), abs(amt[19] - (amt[17] + tax))) <= tol:
+    # continuing-net = pre-tax ± tax (tax genuinely signed → accept either way)
+    cont, pre = tpl["cont_net"], tpl["pretax"]
+    if cont in amt and pre in amt:
+        tax = abs(amt.get(tpl["tax"], 0.0))
+        tol = _tol(amt[cont], base=3.0, rel=5e-5)
+        if min(abs(amt[cont] - (amt[pre] - tax)), abs(amt[cont] - (amt[pre] + tax))) <= tol:
             res.add_pass()
         else:
-            res.add_fail("pl_chain", "roman 19 identity",
-                         expected=amt[19], actual=amt[17] - tax)
+            res.add_fail("pl_chain", f"roman {cont} identity",
+                         expected=amt[cont], actual=amt[pre] - tax)
     else:
         res.add_skip()
     return res
