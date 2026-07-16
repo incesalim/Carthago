@@ -81,6 +81,37 @@ describe("engineGate", () => {
     expect(g.reason).toContain("has filed 4 quarters");
     expect(g.reason).toContain("2025Q2");
   });
+
+  // A development/investment bank (TSKB, KLNMA) takes no deposits, so it has no
+  // deposit cost and no spread BY CONSTRUCTION. Gating the section on `spread`
+  // suppressed its entire ladder — a perfectly good ROE included — and then told
+  // the reader the filings were missing when 34 quarters were on file.
+  it("keeps the ladder for a bank that takes no deposits, and says why the spread is absent", () => {
+    const rows = ["2025Q2", "2025Q3", "2025Q4", "2026Q1"].map((p) =>
+      row("TSKB", { period: p, spread: null, deposit_cost: null, deposits_stock: 0, roe: 0.266, nim: 0.05 }),
+    );
+    const g = engineGate(rows);
+    expect(g.ready).toBe(true);
+    expect(g.reason).toBeNull();
+    expect(g.fundingNote).toContain("takes no deposits");
+    // and it must NOT claim our data is missing — that was the false statement
+    expect(g.fundingNote).not.toContain("we hold no deposits line");
+  });
+
+  it("distinguishes a real deposits gap from a bank that takes none", () => {
+    const rows = ["2025Q2", "2025Q3", "2025Q4", "2026Q1"].map((p) =>
+      row("GAP", { period: p, spread: null, deposits_stock: null, roe: 0.2 }),
+    );
+    const g = engineGate(rows);
+    expect(g.ready).toBe(true);
+    expect(g.fundingNote).toContain("we hold no deposits line");
+  });
+
+  it("leaves no funding note when the spread resolved normally", () => {
+    const g = engineGate([full("2025Q4"), full("2026Q1")]);
+    expect(g.ready).toBe(true);
+    expect(g.fundingNote).toBeNull();
+  });
 });
 
 describe("bankFlags", () => {
