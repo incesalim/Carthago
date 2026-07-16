@@ -1,7 +1,8 @@
 # P&L roman-spine gaps: investigation
 
 **Date:** 2026-07-17
-**Status:** 🔍 INVESTIGATED — findings only, **nothing changed**. Fixes proposed, not applied.
+**Status:** 🔍 INVESTIGATED. The live bug it surfaced is ✅ **FIXED** (`e72823f`,
+verified live). The gap fixes themselves (items 2–4 below) are **not applied**.
 **Follows:** [income-statement-errors-2026-07-16.md](income-statement-errors-2026-07-16.md)
 
 ## The question
@@ -145,7 +146,16 @@ band is IX+X+XI; `XI.+XII.` picks up other-opex plus *net operating profit*:
 
 `opex` feeds **Cost/Income** and **PPOP/assets**.
 
-### Proposed fix (not applied)
+### ✅ FIXED 2026-07-17 (`e72823f`, live)
+
+A derived table **`bank_audit_pl_roles`** (migration 0029) now tags each P&L row
+with what it IS — `period_net`, `gross`, `opex_personnel`, `opex_other`, … —
+resolved by `validator.pl_roles()` and rebuilt from stored rows beside the
+validation, so the two can never disagree. `heatmap.ts` joins it instead of
+guessing. Old-vs-new over the corpus: **9 rows changed, 0 regressions, row set
+identical**. DUNYAK's ROE now renders **40.1%** live (numerator was 0).
+
+### Original proposal (kept for the reasoning)
 
 The lesson from the validator fix transfers directly: **key by label, not by
 numeral.** Options, cheapest first:
@@ -162,10 +172,16 @@ banks may simply be outside it.
 
 ## Recommended work order
 
-1. **`heatmap.ts` ordinal fix** — the only item where a wrong number is on screen.
-2. **TSKB 2025Q2 + ODEA 2023Q3 XIII overrides** — 2 real values, ~₺9bn combined.
-3. **Re-slot the 3 appended overrides** (needs the move-on-`item_order` step).
-4. **HSBC `X` → `XIV.` ×28** via `pl_rehier` + a `to_name` — mechanical; fixes 28
+1. ~~**`heatmap.ts` ordinal fix**~~ — ✅ done (`e72823f`, live).
+2. **`pl-sankey.ts` + `standard_lines.ts` (`PL_LINES`)** — the same hardcoded spec
+   (`XII.` = Other Operating Expenses *contra*, `XIII.` = net operating profit), so
+   for DUNYAK it would render net operating PROFIT as an expense. **Unaudited** —
+   the surface is tab-gated (not in the initial payload, so curl can't settle it)
+   and its exact gate covers 975 of 1050 partitions, so the compressed-template
+   banks may fall outside it. `bank_audit_pl_roles` is already there to join.
+3. **TSKB 2025Q2 + ODEA 2023Q3 XIII overrides** — 2 real values, ~₺9bn combined.
+4. **Re-slot the 3 appended overrides** (needs the move-on-`item_order` step).
+5. **HSBC `X` → `XIV.` ×28** via `pl_rehier` + a `to_name` — mechanical; fixes 28
    wrong keys and lets 28 XVII identities run.
-5. Leave the remaining ~24 verified-nil gaps skipping. Restoring them buys
+6. Leave the remaining ~24 verified-nil gaps skipping. Restoring them buys
    trivially-true identities.
