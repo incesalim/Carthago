@@ -255,25 +255,46 @@ export async function heatmapPanel(
          )`,
       [kind],
     ),
-    // C — P&L pivot by BRSA hierarchy (labels vary TR/EN, codes don't). The
-    // margin lines are numeric sub-codes, stable across deposit/participation
-    // templates (see standard_lines.ts PL_LINES): 1.1 = interest on loans
-    // (Kredilerden Alınan Faizler), 2.1 = interest on deposits (Mevduata Verilen
-    // Faizler), IX. = expected-credit-loss provisions. All amounts are YTD.
+    // C — P&L pivot. The margin lines are numeric sub-codes, stable across
+    // deposit/participation templates (see standard_lines.ts PL_LINES): 1.1 =
+    // interest on loans (Kredilerden Alınan Faizler), 2.1 = interest on deposits
+    // (Mevduata Verilen Faizler). All amounts are YTD.
+    //
+    // The SUBTOTALS are joined through bank_audit_pl_roles, NOT hardcoded — a
+    // BRSA roman ordinal does not mean the same line at every filer. The
+    // compressed template some participation banks file puts net-operating at
+    // XII and period-net at XXIV (not XIII/XXV), so the ordinals this query used
+    // to name silently read the wrong ROW: `COALESCE(XXV., XIX.)` reported
+    // DUNYAK's net profit as 0 for six quarters — XXV. is NULL there, so it fell
+    // through to XIX. = discontinued-ops income, which is nil — and `XI. + XII.`
+    // summed other-opex plus net operating PROFIT as "opex" (9 partitions).
+    // Same lesson as the equity query below: match what a row IS, not where it
+    // sits. bank_audit_pl_roles is resolved by validator.pl_roles() (which has
+    // the Turkish fold SQL's ASCII-only UPPER() lacks) and rebuilt beside the
+    // validation from the same stored rows, so the two cannot drift.
+    //
+    // III./VIII./IX. stay ordinal-keyed on purpose: net-interest is III and
+    // gross-operating is VIII in 1050/1050 partitions, and the first deduction
+    // roman after gross is always the provision line — verified, not assumed.
+    // opex keeps the `a + b` shape (not SUM) so a missing leg still NULLs the
+    // metric rather than silently understating it; the two legs never disagree
+    // in sign across the corpus, and the caller abs()es.
     cachedAll<RowPl>(
-      `SELECT bank_ticker, period,
-              COALESCE(MAX(CASE WHEN hierarchy = 'XXV.' THEN amount END),
-                       MAX(CASE WHEN hierarchy = 'XIX.' THEN amount END))  AS net_profit,
-              MAX(CASE WHEN hierarchy = 'III.' THEN amount END)            AS net_interest,
-              MAX(CASE WHEN hierarchy = 'XI.'  THEN amount END)
-                + MAX(CASE WHEN hierarchy = 'XII.' THEN amount END)        AS opex,
-              MAX(CASE WHEN hierarchy = 'VIII.' THEN amount END)           AS gross_op_profit,
-              MAX(CASE WHEN hierarchy = '1.1'  THEN amount END)            AS ii_loans,
-              MAX(CASE WHEN hierarchy = '2.1'  THEN amount END)            AS ie_deposits,
-              MAX(CASE WHEN hierarchy = 'IX.'  THEN amount END)            AS ecl_prov
-         FROM bank_audit_profit_loss
-        WHERE kind = ?
-        GROUP BY bank_ticker, period`,
+      `SELECT p.bank_ticker, p.period,
+              MAX(CASE WHEN r.role = 'period_net' THEN p.amount END)        AS net_profit,
+              MAX(CASE WHEN p.hierarchy = 'III.' THEN p.amount END)         AS net_interest,
+              MAX(CASE WHEN r.role = 'opex_personnel' THEN p.amount END)
+                + MAX(CASE WHEN r.role = 'opex_other' THEN p.amount END)    AS opex,
+              MAX(CASE WHEN p.hierarchy = 'VIII.' THEN p.amount END)        AS gross_op_profit,
+              MAX(CASE WHEN p.hierarchy = '1.1'  THEN p.amount END)         AS ii_loans,
+              MAX(CASE WHEN p.hierarchy = '2.1'  THEN p.amount END)         AS ie_deposits,
+              MAX(CASE WHEN p.hierarchy = 'IX.'  THEN p.amount END)         AS ecl_prov
+         FROM bank_audit_profit_loss p
+         LEFT JOIN bank_audit_pl_roles r
+                ON r.bank_ticker = p.bank_ticker AND r.period = p.period
+               AND r.kind = p.kind AND r.hierarchy = p.hierarchy
+        WHERE p.kind = ?
+        GROUP BY p.bank_ticker, p.period`,
       [kind],
     ),
     // D — equity. The equity row's BRSA roman numeral differs by balance-sheet
@@ -593,14 +614,15 @@ export async function heatmapPanel(
   // de-cumulated to single quarters, last 4 summed) over 5-point average
   // BALANCES. One record per (bank, ord) holds every margin input so the generic
   // ttmFlow/avgStock helpers below can read any field. ppop (a flow) is
-  // pre-computed = gross operating profit (VIII) − |opex| (XI+XII), both YTD.
+  // pre-computed = gross operating profit (VIII) − |opex| (the personnel +
+  // other-opex lines, resolved per filer via bank_audit_pl_roles), both YTD.
   interface MarginRec {
     iiLoans: number | null;     // YTD interest on loans (P&L 1.1)
     ieDeposits: number | null;  // YTD interest on deposits (P&L 2.1)
     eclProv: number | null;     // YTD ECL provisions (P&L IX.)
     ppop: number | null;        // YTD pre-provision operating profit (VIII − |opex|)
     netInterest: number | null; // YTD net interest income (P&L III.) — for NIM
-    opexAbs: number | null;     // |YTD opex| (P&L XI + XII) — for Cost/Income
+    opexAbs: number | null;     // |YTD opex| (personnel + other-opex) — for Cost/Income
     grossOp: number | null;     // YTD gross operating profit (P&L VIII.) — for Cost/Income
     loans: number | null;       // gross loans stock (BS asset 2.1)
     deposits: number | null;    // deposits stock (BS liability I.)

@@ -544,6 +544,70 @@ def _pl_spine(pl_rows: list[dict]) -> dict[int, float]:
     return {o: a for o, a in reversed(chosen)}
 
 
+# Dashboard-facing role map. The anchors above say WHERE each subtotal sits for a
+# given filer; this turns that into a per-ROW semantic tag the Worker can read, so
+# a SQL consumer never has to hardcode an ordinal. heatmap.ts did, and it cost us:
+# `COALESCE(XXV., XIX.)` read DUNYAK's net profit as 0 (its period-net is XXIV, so
+# the COALESCE fell through to XIX = discontinued-ops INCOME = 0) and `XI. + XII.`
+# summed other-opex + net-operating-PROFIT as "opex" (2026-07-17 investigation).
+#
+# Emitted to bank_audit_pl_roles by scripts/revalidate_audit_db.py. Keep the
+# resolution HERE — one place decides what a row means, in the language that has
+# the Turkish fold. Re-deriving it in SQL means UPPER() (ASCII-only, so "Dönem net
+# karı" never folds) plus hand-cut wildcards, and a second copy to drift.
+_PL_OPEX_ROLES = (
+    # (role, folded label fragments). Matched INSIDE the deduction band only, so a
+    # like-named row elsewhere in the statement cannot claim the tag.
+    ("opex_personnel", ("PERSONEL", "PERSONNEL")),
+    ("opex_other", ("FAALIYETGIDERLER", "OPERATINGEXPENSE")),
+)
+_PL_ANCHOR_ROLES = ("gross", "net_op", "pretax", "tax", "cont_net", "disc_net", "period_net")
+
+
+def pl_roles(pl_rows: list[dict]) -> dict[str, str]:
+    """{hierarchy: role} for one partition — the chain anchors plus the two opex
+    lines, each tagged on the row that actually carries it under THIS filer's
+    numbering. Empty when there's no spine to anchor against."""
+    amt = _pl_spine(pl_rows)
+    if not amt:
+        return {}
+    t = _pl_template(pl_rows, amt)
+    by_ord: dict[int, str] = {}
+    for r in pl_rows:
+        h = (r.get("hierarchy") or "").strip()
+        if not _ROMAN_RX.match(h):
+            continue
+        o = _roman_to_int(h.rstrip("."))
+        if o is not None and o in amt:
+            by_ord.setdefault(o, h)          # spine rows only; first wins
+    out: dict[str, str] = {}
+    for role in _PL_ANCHOR_ROLES:
+        h = by_ord.get(t[role])
+        if h:
+            out[h] = role
+    band = [o for o in range(t["gross"] + 1, t["net_op"]) if o in by_ord]
+    tagged: dict[int, str] = {}
+    for o in band:
+        lbl = next((_pl_fold(r.get("item_name")) for r in pl_rows
+                    if (r.get("hierarchy") or "").strip() == by_ord[o]), "")
+        for role, want in _PL_OPEX_ROLES:
+            if any(x in lbl for x in want):
+                tagged[o] = role
+                break
+    if len(set(tagged.values())) < 2 and len(band) >= 2:
+        # Label match needs a label: AKBNK 2022Q4/2026Q1 print the whole P&L with
+        # EMPTY item_names. Positional fallback — personnel and other-opex are the
+        # last two rows of the deduction band in every template variant filed
+        # (standard band IX–XII ends XI,XII; compressed IX–XI ends X,XI), which is
+        # what the old ordinal read got right for these four partitions. Asserted
+        # against the label match on the 1,046 partitions that HAVE labels
+        # (test_pl_roles_positional_fallback_matches_labels).
+        tagged = {band[-2]: "opex_personnel", band[-1]: "opex_other"}
+    for o, role in tagged.items():
+        out[by_ord[o]] = role
+    return out
+
+
 def check_pl_chain(pl_rows: list[dict]) -> ValidationResult:
     """The income-statement roman identities (III=I−II … period-net=cont+disc),
     each read against the partition's OWN numbering (see module note). An
@@ -630,6 +694,23 @@ def check_profit_loss(pl_rows: list[dict], liabilities: list[dict] | None = None
     if liabilities is not None:
         res.merge(check_pl_bottomline(pl_rows, liabilities))
     return res
+
+
+def upsert_pl_roles(conn, bank: str, period: str, kind: str,
+                    pl_rows: list[dict]) -> int:
+    """Persist the derived P&L role map for one partition; replaces it
+    idempotently. Rebuilt from stored rows wherever validation is (the two are
+    derived from the same rows and must never disagree about a partition), so a
+    consumer joining bank_audit_pl_roles always sees the current resolution."""
+    conn.execute(
+        "DELETE FROM bank_audit_pl_roles WHERE bank_ticker=? AND period=? AND kind=?",
+        (bank, period, kind))
+    roles = pl_roles(pl_rows)
+    conn.executemany(
+        "INSERT INTO bank_audit_pl_roles (bank_ticker, period, kind, hierarchy, role, derived_at) "
+        "VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
+        [(bank, period, kind, h, role) for h, role in roles.items()])
+    return len(roles)
 
 
 def upsert_validation(conn, bank: str, period: str, kind: str,

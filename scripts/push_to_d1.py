@@ -80,6 +80,7 @@ SYNC_TABLES = [
     "bank_audit_repricing",
     "bank_audit_validation",
     "bank_audit_extractions",
+    "bank_audit_pl_roles",
     "evds_series",
     "news_items",
     "news_item_banks",
@@ -161,6 +162,10 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int) -> list[str]:
         where = f"WHERE extracted_at >= datetime('now', '-{hours} hours')"
     elif table == "bank_audit_validation":
         where = f"WHERE validated_at >= datetime('now', '-{hours} hours')"
+    elif table == "bank_audit_pl_roles":
+        # Derived alongside validation (revalidate_audit_db / apply_overrides
+        # rebuild both for a partition together), so it windows on its own stamp.
+        where = f"WHERE derived_at >= datetime('now', '-{hours} hours')"
     elif table in (
         "bank_audit_credit_quality",
         "bank_audit_profile",

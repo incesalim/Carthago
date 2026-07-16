@@ -435,6 +435,62 @@ def test_pl_unreadable_anchor_labels_fall_back_to_standard():
     assert res.passed == 6
 
 
+def test_pl_roles_standard_template():
+    """The role map heatmap.ts joins: on the standard template the period-net is
+    XXV. and the two opex lines are XI./XII."""
+    roles = v.pl_roles(_clean_pl())
+    assert roles["XXV."] == "period_net"
+    assert roles["XI."] == "opex_personnel"
+    assert roles["XII."] == "opex_other"
+    assert roles["VIII."] == "gross"
+
+
+def test_pl_roles_compressed_template_moves_period_net_and_opex():
+    """DUNYAK's numbering: period-net XXIV. (not XXV.) and opex X./XI. (not
+    XI./XII.). Hardcoding the standard ordinals read XIX. — discontinued-ops
+    income, nil — as net profit, and summed net operating PROFIT into opex."""
+    roles = v.pl_roles(_compressed_pl())
+    assert roles["XXIV."] == "period_net"
+    assert "XXV." not in roles
+    assert roles["X."] == "opex_personnel"
+    assert roles["XI."] == "opex_other"
+    # the rows the old query named are NOT opex here
+    assert roles.get("XII.") == "net_op"
+
+
+def test_pl_roles_compressed_variant_with_period_net_at_25():
+    """TOMK: compressed head (opex X./XI.) but period-net back at XXV."""
+    roles = v.pl_roles(_compressed_pl(cont_net="XIX.", period_net="XXV."))
+    assert roles["XXV."] == "period_net"
+    assert roles["X."] == "opex_personnel"
+    assert roles["XI."] == "opex_other"
+
+
+def test_pl_roles_positional_fallback_when_labels_are_empty():
+    """AKBNK 2022Q4/2026Q1 print the whole P&L with EMPTY item_names — nothing to
+    label-match. The opex pair falls back to the last two rows of the deduction
+    band, which is what the ordinal read got right for those four partitions.
+    (Verified corpus-wide: the fallback agrees with the label match on all 1,046
+    partitions that HAVE labels.)"""
+    rows = _clean_pl()
+    for r in rows:
+        r["item_name"] = ""
+    roles = v.pl_roles(rows)
+    assert roles["XI."] == "opex_personnel"
+    assert roles["XII."] == "opex_other"
+    assert roles["XXV."] == "period_net"   # anchors fall back to standard ordinals
+
+
+def test_pl_roles_opex_label_match_is_confined_to_the_deduction_band():
+    """A like-named row OUTSIDE the band must not claim the opex tag — 'DİĞER
+    FAALİYET GELİRLERİ' (income, VII.) sits right above gross and reads almost
+    the same as 'DİĞER FAALİYET GİDERLERİ' (expense)."""
+    roles = v.pl_roles(_clean_pl())
+    assert "VII." not in roles          # other operating INCOME never tagged
+    assert sorted(r for r in roles.values() if r.startswith("opex_")) == \
+        ["opex_other", "opex_personnel"]
+
+
 def test_pl_discontinued_block_does_not_anchor_continuing_rows():
     """The discontinued block mirrors the continuing block almost word for word.
     If 'DURDURULAN … VERGİ ÖNCESİ' were allowed to claim the pre-tax anchor the

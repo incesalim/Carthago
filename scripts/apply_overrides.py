@@ -53,6 +53,7 @@ sys.path.insert(0, str(REPO))
 sys.stdout.reconfigure(encoding="utf-8")
 
 from src.audit_reports import r2_storage  # noqa: E402
+from src.audit_reports.schema import init_schema  # noqa: E402
 from src.audit_reports.validator import validate_report  # noqa: E402
 from scripts.audit_d1 import (  # noqa: E402
     AUDIT_TABLES, _ensure_d1_schema, _guard_against_ci_writers, _retry_wrangler,
@@ -240,9 +241,16 @@ def _revalidate_partition(conn, b, p, k):
     # of its kind) would never clear its own failure. Delegate to the shared
     # full revalidator so this stays byte-identical to the cron pass.
     from src.audit_reports import validator as v
-    from scripts.revalidate_audit_db import revalidate_partition
+    from scripts.revalidate_audit_db import revalidate_partition, _pl_rows
     res = revalidate_partition(conn, b, p, k)
     v.upsert_validation(conn, b, p, k, res)
+    # Rebuild the derived P&L role map too. An override can MOVE which row is the
+    # period-net (restoring a dropped roman re-anchors the template), and the D1
+    # partition-clear below wipes every AUDIT_TABLES row for this partition —
+    # including bank_audit_pl_roles. Without a fresh derived_at the windowed push
+    # won't restore them and the partition silently loses its roles in D1 (the
+    # same failure mode _SELF_TS_TABLES exists to prevent).
+    v.upsert_pl_roles(conn, b, p, k, _pl_rows(conn, b, p, k))
     return sum(r.failed for r in res.values())
 
 
@@ -262,6 +270,10 @@ def main() -> int:
 
     parts = set()
     with sqlite3.connect(str(DB)) as conn:
+        # The pulled snapshot predates any table added since it was written
+        # (bank_audit_pl_roles, which _revalidate_partition writes below). All
+        # CREATE ... IF NOT EXISTS, so this is idempotent.
+        init_schema(conn)
         for o in overrides:
             print("  ", _apply_one(conn, o))
             parts.add((o["bank_ticker"], o["period"], o["kind"]))
