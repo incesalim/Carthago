@@ -5,6 +5,54 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-07-17.
 
+2026-07-17 — **NPL movement: 13 errors + 43 missing → 0/0. The entire
+error lane was one missing string.** HAYATK prints its closing row, in bold, in
+all 13 reports as `"Ending balance of the current period"` — the one "ending
+balance …" word order `_ROW_LABELS` never learned. The list already had BURGAN's
+`"ending balance of prior period"` → *opening*; the closing mirror was simply
+never added, and `startswith()` matching made it unreachable from every other
+entry. The article is load-bearing: `"ending balance of current period"` would
+still have missed. The natural experiment settles it — 2025Q2 consolidated is
+HAYATK's only **Turkish** report and the only consolidated period that passed;
+the 12 failures are exactly the English ones.
+
+Values are **transcribed, not derived**. `closing_balance` was over-determined
+three ways (roll-forward; `net + |provision|`; prior-closing == current-opening),
+so filling it from our own arithmetic would have made the roll-forward check pass
+**by construction** — the same circular-validation flaw the robustness audit
+found in fx `net_position`. The extractor now reads the printed number, so the
+check stays a real test. 13/13 match the page; the derivation agreed on 39/39,
+but agreement was the check, not the source. It also ties to a *different* note
+and to the balance sheet: printed closing III+IV+V 506,844 = `npl_brsa_gross`
+506,844; stage1 13,072,410 + stage2 193,657 + NPL = 13,772,911 = BS 2.1.
+ZIRAATD 2026Q1 is the mirror — *opening* NULL on its first-ever NPL quarter,
+where the cells are printed genuinely blank; its 0 is sourced from prose
+("31 Aralık 2025: Bulunmamaktadır"), not inferred.
+
+**43 missing → 42 N/A + 1 real gap**, each N/A carrying a verbatim citation
+(TAKAS's *"Toplam donuk alacak hareketlerine ilişkin bilgiler: Bulunmamaktadır"*
+in all 16 quarters, DUNYAK ×8, HAYATK ×5, TOMK ×5, ENPARA ×3, COLENDI ×3,
+ZIRAATD ×2). **The TAKAS story we brought was false, and the citation caught
+it:** a CCP's *Krediler* are NOT money-market placements — they earn loan
+interest (491,308 against 0 from money markets), are 100% *Mali Kesime Verilen
+Krediler*, and ₺6.58bn of ₺9.63bn is lent to its own clearing-member
+shareholders. Real credit that simply never defaults. Right verdict, fictional
+reasoning — which is exactly why an N/A needs a citation and not a plausible
+story.
+
+The one real gap is **COLENDI 2026Q1** — its first NPL (₺26,725, 2.50% of the
+book), printed at p49 and hidden by **three** independent defects: the heading
+reads "Information related **to** non-performing loans" (no "movement", so the
+page is never parsed); the text layer is **cell-per-line**, so the row matcher
+finds zero rows even with the gate bypassed (it needs x-coordinate assembly); and
+the closing label lacks a "the". Curated for now — it recurs every quarter until
+the second is fixed.
+
+Also: `_STMT_TO_KEY` learned `npl_movement`, so 9 hand-read cells (FIBA ×6 out of
+bitmaps and vector outlines, COLENDI, ZIRAATD, AKTIF) stop reading as
+machine-extracted `ok` and now read **manual**. Detail:
+[docs/knowledge/audit-npl-movement-lane-to-zero-2026-07-17.md](knowledge/audit-npl-movement-lane-to-zero-2026-07-17.md).
+
 2026-07-17 — **/credit's bridge prose read the nominal at the wrong week — the
 sentence stopped adding up to its own chart.** `creditBridge` computed
 `nominalAtReal` (the nominal read at the week the *real* legs end, so a CPI lag

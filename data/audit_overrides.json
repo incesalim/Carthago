@@ -6233,6 +6233,72 @@
         "opening_balance": 0.0
       },
       "note": "ZIRAATD 2026Q1 unco is the bank's FIRST period with any donuk alacak, and the opening row's three cells are printed GENUINELY BLANK — not even the '-' every other row in the table carries (p58, rendered at 7x and read; the text layer is faithful). So _THREE_NUMS_TAIL finds no numeric tail on 'Önceki Dönem Sonu Bakiyesi', skips the row, and the block starts on `additions` via start_as_flow → opening_balance NULL, current-only, 3 rows.\nopening_balance = 0 is SOURCED, not derived: the report discloses the prior period as PROSE — '(31 Aralık 2025: Bulunmamaktadır)' — i.e. the bank POSITIVELY states it had no non-performing loans at 31.12.2025. Same precedent as the prose-disclosed Stage-3 credit_quality overrides: a value a table-anchored extractor cannot read, but which the filing states in words. Corroborated by ZIRAATD 2025Q4, whose stages Stage-3 = 0 on a ₺308,480 loan book.\nNOT a tautology: closing_balance (52) was independently EXTRACTED from the printed page and is NOT touched here. Setting only the opening lets the roll-forward run as a REAL test — 0 + 52 additions = 52 = printed closing — and it ties, as does net 42 + provision 10 = 52.\nFixed by override rather than in the extractor ON PURPOSE: this shape only occurs in a bank's first-ever NPL quarter (from 2026Q2 ZIRAATD's opening row carries 52 and extracts normally), and npl_movement.py:358 records that a broad 'numberless opening row → 0' merge CORRUPTS GARAN/TSKB. A one-off cell does not justify that risk.\nGroups IV and V get the same 0 for the same reason: the blank opening row is ONE row spanning all three group columns, so skipping it nulled the opening for all three at once. Their other cells print '-' (→ 0.0), so the groups are genuinely nil and the check still fires on additions=0.0 being non-NULL. 0 + 0 = 0 = printed closing."
+    },
+    {
+      "bank_ticker": "COLENDI",
+      "period": "2026Q1",
+      "kind": "unconsolidated",
+      "statement": "npl_movement",
+      "group_code": "III",
+      "period_type": "current",
+      "fields": {
+        "opening_balance": 0.0,
+        "additions": 26725.0,
+        "transfers_in": 0.0,
+        "transfers_out": 0.0,
+        "collections": 0.0,
+        "write_offs": 0.0,
+        "sold": 0.0,
+        "closing_balance": 26725.0,
+        "provision": 5345.0,
+        "net_balance": 21380.0,
+        "source_page": 49
+      },
+      "note": "COLENDI's first-ever NPL. The III/IV/V roll-forward IS printed (p49, plain text layer, rendered and coordinate-verified) under \"h.2) Information related to non-performing loans:\" — a single current-period block, no prior block (the prior IS the opening row). Transcribed from the page, not derived.\nTHREE independent extractor defects hide it, and fixing only the first would NOT recover it:\n  1. _HEADING_RX fails — COLENDI heads the note \"Information RELATED TO non-performing loans\"; the word \"movement\" never appears, so gate 1 rejects the page and it is never parsed. (_GROUPS_RX passes.)\n  2. THE REAL BLOCKER: COLENDI's get_text() is CELL-PER-LINE — the label and each of the three group values land on separate lines. _THREE_NUMS_TAIL needs `label num num num` on ONE reconstructed line, so it matches ZERO rows even with the heading gate bypassed (verified: rows parsed = 0). Recovering this needs x-coordinate row assembly — the same class as the known loans_by_stage §7.2 column-split gap.\n  3. Row label — COLENDI closes with \"Balance at the end of period\"; _ROW_LABELS only carries \"balance at the end of THE period\".\nFixed by override rather than in code because defect 2 is a coordinate-assembly rewrite, not a label. ⚠️ THIS RECURS EVERY QUARTER: COLENDI now originates NPL and uses this wording each time (2025Q2-Q4 read \"related ON\", 2026Q1 \"related TO\" — neither matches), so the extractor gap is logged as a follow-up, not closed by this cell.\nRECONCILES three independent ways: closing 26,725 == COLENDI's own Stage-3 in the stages lane (2.50% of the ₺1,068,515 loan book); provision 5,345 == note g)'s Stage-3 provision; net 21,380 == 26,725 - 5,345 exactly. The nil prior column matches COLENDI 2025Q4's own \"h.2) ... None\" declaration, which is curated N/A in data/audit_not_disclosed.json.\nGroups IV and V are printed all-'–' (nil), stored as sourced zeros."
+    },
+    {
+      "bank_ticker": "COLENDI",
+      "period": "2026Q1",
+      "kind": "unconsolidated",
+      "statement": "npl_movement",
+      "group_code": "IV",
+      "period_type": "current",
+      "fields": {
+        "opening_balance": 0.0,
+        "additions": 0.0,
+        "transfers_in": 0.0,
+        "transfers_out": 0.0,
+        "collections": 0.0,
+        "write_offs": 0.0,
+        "sold": 0.0,
+        "closing_balance": 0.0,
+        "provision": 0.0,
+        "net_balance": 0.0,
+        "source_page": 49
+      },
+      "note": "COLENDI's first-ever NPL. The III/IV/V roll-forward IS printed (p49, plain text layer, rendered and coordinate-verified) under \"h.2) Information related to non-performing loans:\" — a single current-period block, no prior block (the prior IS the opening row). Transcribed from the page, not derived.\nTHREE independent extractor defects hide it, and fixing only the first would NOT recover it:\n  1. _HEADING_RX fails — COLENDI heads the note \"Information RELATED TO non-performing loans\"; the word \"movement\" never appears, so gate 1 rejects the page and it is never parsed. (_GROUPS_RX passes.)\n  2. THE REAL BLOCKER: COLENDI's get_text() is CELL-PER-LINE — the label and each of the three group values land on separate lines. _THREE_NUMS_TAIL needs `label num num num` on ONE reconstructed line, so it matches ZERO rows even with the heading gate bypassed (verified: rows parsed = 0). Recovering this needs x-coordinate row assembly — the same class as the known loans_by_stage §7.2 column-split gap.\n  3. Row label — COLENDI closes with \"Balance at the end of period\"; _ROW_LABELS only carries \"balance at the end of THE period\".\nFixed by override rather than in code because defect 2 is a coordinate-assembly rewrite, not a label. ⚠️ THIS RECURS EVERY QUARTER: COLENDI now originates NPL and uses this wording each time (2025Q2-Q4 read \"related ON\", 2026Q1 \"related TO\" — neither matches), so the extractor gap is logged as a follow-up, not closed by this cell.\nRECONCILES three independent ways: closing 26,725 == COLENDI's own Stage-3 in the stages lane (2.50% of the ₺1,068,515 loan book); provision 5,345 == note g)'s Stage-3 provision; net 21,380 == 26,725 - 5,345 exactly. The nil prior column matches COLENDI 2025Q4's own \"h.2) ... None\" declaration, which is curated N/A in data/audit_not_disclosed.json.\nGroups IV and V are printed all-'–' (nil), stored as sourced zeros."
+    },
+    {
+      "bank_ticker": "COLENDI",
+      "period": "2026Q1",
+      "kind": "unconsolidated",
+      "statement": "npl_movement",
+      "group_code": "V",
+      "period_type": "current",
+      "fields": {
+        "opening_balance": 0.0,
+        "additions": 0.0,
+        "transfers_in": 0.0,
+        "transfers_out": 0.0,
+        "collections": 0.0,
+        "write_offs": 0.0,
+        "sold": 0.0,
+        "closing_balance": 0.0,
+        "provision": 0.0,
+        "net_balance": 0.0,
+        "source_page": 49
+      },
+      "note": "COLENDI's first-ever NPL. The III/IV/V roll-forward IS printed (p49, plain text layer, rendered and coordinate-verified) under \"h.2) Information related to non-performing loans:\" — a single current-period block, no prior block (the prior IS the opening row). Transcribed from the page, not derived.\nTHREE independent extractor defects hide it, and fixing only the first would NOT recover it:\n  1. _HEADING_RX fails — COLENDI heads the note \"Information RELATED TO non-performing loans\"; the word \"movement\" never appears, so gate 1 rejects the page and it is never parsed. (_GROUPS_RX passes.)\n  2. THE REAL BLOCKER: COLENDI's get_text() is CELL-PER-LINE — the label and each of the three group values land on separate lines. _THREE_NUMS_TAIL needs `label num num num` on ONE reconstructed line, so it matches ZERO rows even with the heading gate bypassed (verified: rows parsed = 0). Recovering this needs x-coordinate row assembly — the same class as the known loans_by_stage §7.2 column-split gap.\n  3. Row label — COLENDI closes with \"Balance at the end of period\"; _ROW_LABELS only carries \"balance at the end of THE period\".\nFixed by override rather than in code because defect 2 is a coordinate-assembly rewrite, not a label. ⚠️ THIS RECURS EVERY QUARTER: COLENDI now originates NPL and uses this wording each time (2025Q2-Q4 read \"related ON\", 2026Q1 \"related TO\" — neither matches), so the extractor gap is logged as a follow-up, not closed by this cell.\nRECONCILES three independent ways: closing 26,725 == COLENDI's own Stage-3 in the stages lane (2.50% of the ₺1,068,515 loan book); provision 5,345 == note g)'s Stage-3 provision; net 21,380 == 26,725 - 5,345 exactly. The nil prior column matches COLENDI 2025Q4's own \"h.2) ... None\" declaration, which is curated N/A in data/audit_not_disclosed.json.\nGroups IV and V are printed all-'–' (nil), stored as sourced zeros."
     }
   ]
 }
