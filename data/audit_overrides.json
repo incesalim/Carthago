@@ -6299,6 +6299,1428 @@
         "source_page": 49
       },
       "note": "COLENDI's first-ever NPL. The III/IV/V roll-forward IS printed (p49, plain text layer, rendered and coordinate-verified) under \"h.2) Information related to non-performing loans:\" — a single current-period block, no prior block (the prior IS the opening row). Transcribed from the page, not derived.\nTHREE independent extractor defects hide it, and fixing only the first would NOT recover it:\n  1. _HEADING_RX fails — COLENDI heads the note \"Information RELATED TO non-performing loans\"; the word \"movement\" never appears, so gate 1 rejects the page and it is never parsed. (_GROUPS_RX passes.)\n  2. THE REAL BLOCKER: COLENDI's get_text() is CELL-PER-LINE — the label and each of the three group values land on separate lines. _THREE_NUMS_TAIL needs `label num num num` on ONE reconstructed line, so it matches ZERO rows even with the heading gate bypassed (verified: rows parsed = 0). Recovering this needs x-coordinate row assembly — the same class as the known loans_by_stage §7.2 column-split gap.\n  3. Row label — COLENDI closes with \"Balance at the end of period\"; _ROW_LABELS only carries \"balance at the end of THE period\".\nFixed by override rather than in code because defect 2 is a coordinate-assembly rewrite, not a label. ⚠️ THIS RECURS EVERY QUARTER: COLENDI now originates NPL and uses this wording each time (2025Q2-Q4 read \"related ON\", 2026Q1 \"related TO\" — neither matches), so the extractor gap is logged as a follow-up, not closed by this cell.\nRECONCILES three independent ways: closing 26,725 == COLENDI's own Stage-3 in the stages lane (2.50% of the ₺1,068,515 loan book); provision 5,345 == note g)'s Stage-3 provision; net 21,380 == 26,725 - 5,345 exactly. The nil prior column matches COLENDI 2025Q4's own \"h.2) ... None\" declaration, which is curated N/A in data/audit_not_disclosed.json.\nGroups IV and V are printed all-'–' (nil), stored as sourced zeros."
+    },
+    {
+      "bank_ticker": "ICBCT",
+      "period": "2023Q4",
+      "kind": "consolidated",
+      "statement": "loans_by_sector_replace",
+      "source_page": 49,
+      "rows": [
+        {
+          "sector": "agri_total",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 31.0,
+          "ecl_amount": 31.0
+        },
+        {
+          "sector": "agri_farming",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 30.0,
+          "ecl_amount": 30.0
+        },
+        {
+          "sector": "agri_forestry",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 1.0,
+          "ecl_amount": 1.0
+        },
+        {
+          "sector": "agri_fishery",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "mfg_total",
+          "period_type": "current",
+          "stage2_amount": 1190180.0,
+          "stage3_amount": 880.0,
+          "ecl_amount": 210660.0
+        },
+        {
+          "sector": "mfg_mining",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 28.0,
+          "ecl_amount": 28.0
+        },
+        {
+          "sector": "mfg_production",
+          "period_type": "current",
+          "stage2_amount": 22637.0,
+          "stage3_amount": 834.0,
+          "ecl_amount": 6006.0
+        },
+        {
+          "sector": "mfg_utilities",
+          "period_type": "current",
+          "stage2_amount": 1167543.0,
+          "stage3_amount": 18.0,
+          "ecl_amount": 204626.0
+        },
+        {
+          "sector": "construction",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 8040.0,
+          "ecl_amount": 8040.0
+        },
+        {
+          "sector": "svc_total",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 24554.0,
+          "ecl_amount": 24555.0
+        },
+        {
+          "sector": "svc_trade",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 23953.0,
+          "ecl_amount": 23954.0
+        },
+        {
+          "sector": "svc_hospitality",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 2.0,
+          "ecl_amount": 2.0
+        },
+        {
+          "sector": "svc_transport",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 63.0,
+          "ecl_amount": 63.0
+        },
+        {
+          "sector": "svc_financial",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "svc_realestate",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 509.0,
+          "ecl_amount": 509.0
+        },
+        {
+          "sector": "svc_professional",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "svc_education",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "svc_health",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 27.0,
+          "ecl_amount": 27.0
+        },
+        {
+          "sector": "other",
+          "period_type": "current",
+          "stage2_amount": 1595.0,
+          "stage3_amount": 94079.0,
+          "ecl_amount": 94094.0
+        },
+        {
+          "sector": "total",
+          "period_type": "current",
+          "stage2_amount": 1191775.0,
+          "stage3_amount": 127584.0,
+          "ecl_amount": 337380.0
+        },
+        {
+          "sector": "total",
+          "period_type": "prior",
+          "stage2_amount": 1749577.0,
+          "stage3_amount": 41956.0,
+          "ecl_amount": 591785.0,
+          "raw_label": "Toplam (prior)"
+        }
+      ],
+      "note": "Hand-transcribed from the printed page 48 (0-based), every cell 7x-pixel-verified. ICBCT stacks TWO dated sector tables on one page ('31 Aralık YYYY' then 'YYYY-1', never 'Cari Dönem'/'Önceki Dönem'), so the period never flips and _dedupe's first-wins backfilled dropped current rows from LAST YEAR's table. Root cause is upstream in the shared _fitz_page_text y-bucketing (int(round(y0)) aliasing the 3.36pt gap between each row's numbers and its label), unfixable without touching every frozen statement lane. Stage2/Stage3 = 'Kredi Riskinde Önemli Artış (İkinci Aşama)' / 'Temerrüt (Üçüncü Aşama)'; ECL = 'Beklenen Kredi Zarar Karşılıkları (TFRS 9)'. Prior-period Toplam stored so loans_sector_year_swap has a clean comparator. This was the reported error (footing failed on the spliced current set)."
+    },
+    {
+      "bank_ticker": "ICBCT",
+      "period": "2023Q4",
+      "kind": "unconsolidated",
+      "statement": "loans_by_sector_replace",
+      "source_page": 46,
+      "rows": [
+        {
+          "sector": "agri_total",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 31.0,
+          "ecl_amount": 31.0
+        },
+        {
+          "sector": "agri_farming",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 30.0,
+          "ecl_amount": 30.0
+        },
+        {
+          "sector": "agri_forestry",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 1.0,
+          "ecl_amount": 1.0
+        },
+        {
+          "sector": "agri_fishery",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "mfg_total",
+          "period_type": "current",
+          "stage2_amount": 1190180.0,
+          "stage3_amount": 880.0,
+          "ecl_amount": 210660.0
+        },
+        {
+          "sector": "mfg_mining",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 28.0,
+          "ecl_amount": 28.0
+        },
+        {
+          "sector": "mfg_production",
+          "period_type": "current",
+          "stage2_amount": 22637.0,
+          "stage3_amount": 834.0,
+          "ecl_amount": 6006.0
+        },
+        {
+          "sector": "mfg_utilities",
+          "period_type": "current",
+          "stage2_amount": 1167543.0,
+          "stage3_amount": 18.0,
+          "ecl_amount": 204626.0
+        },
+        {
+          "sector": "construction",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 8040.0,
+          "ecl_amount": 8040.0
+        },
+        {
+          "sector": "svc_total",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 24554.0,
+          "ecl_amount": 24555.0
+        },
+        {
+          "sector": "svc_trade",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 23953.0,
+          "ecl_amount": 23954.0
+        },
+        {
+          "sector": "svc_hospitality",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 2.0,
+          "ecl_amount": 2.0
+        },
+        {
+          "sector": "svc_transport",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 63.0,
+          "ecl_amount": 63.0
+        },
+        {
+          "sector": "svc_financial",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "svc_realestate",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 509.0,
+          "ecl_amount": 509.0
+        },
+        {
+          "sector": "svc_professional",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "svc_education",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "svc_health",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 27.0,
+          "ecl_amount": 27.0
+        },
+        {
+          "sector": "other",
+          "period_type": "current",
+          "stage2_amount": 1595.0,
+          "stage3_amount": 93917.0,
+          "ecl_amount": 93932.0
+        },
+        {
+          "sector": "total",
+          "period_type": "current",
+          "stage2_amount": 1191775.0,
+          "stage3_amount": 127422.0,
+          "ecl_amount": 337218.0
+        },
+        {
+          "sector": "total",
+          "period_type": "prior",
+          "stage2_amount": 1749577.0,
+          "stage3_amount": 41860.0,
+          "ecl_amount": 591623.0,
+          "raw_label": "Toplam (prior)"
+        }
+      ],
+      "note": "Hand-transcribed from the printed page 45 (0-based), every cell 7x-pixel-verified. ICBCT stacks TWO dated sector tables on one page ('31 Aralık YYYY' then 'YYYY-1', never 'Cari Dönem'/'Önceki Dönem'), so the period never flips and _dedupe's first-wins backfilled dropped current rows from LAST YEAR's table. Root cause is upstream in the shared _fitz_page_text y-bucketing (int(round(y0)) aliasing the 3.36pt gap between each row's numbers and its label), unfixable without touching every frozen statement lane. Stage2/Stage3 = 'Kredi Riskinde Önemli Artış (İkinci Aşama)' / 'Temerrüt (Üçüncü Aşama)'; ECL = 'Beklenen Kredi Zarar Karşılıkları (TFRS 9)'. Prior-period Toplam stored so loans_sector_year_swap has a clean comparator. This partition read a flawless 'ok' while storing NEARLY THE WHOLE 2022 table — total 1,749,577 / 41,860 byte-identical to its own 2022Q4, Stage 3 understated 3.1x; surfaced by the new loans_sector_year_swap check."
+    },
+    {
+      "bank_ticker": "ICBCT",
+      "period": "2022Q4",
+      "kind": "unconsolidated",
+      "statement": "loans_by_sector_replace",
+      "source_page": 45,
+      "rows": [
+        {
+          "sector": "agri_total",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "agri_farming",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "agri_forestry",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "agri_fishery",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "mfg_total",
+          "period_type": "current",
+          "stage2_amount": 772645.0,
+          "stage3_amount": 2033.0,
+          "ecl_amount": 158120.0
+        },
+        {
+          "sector": "mfg_mining",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "mfg_production",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 1967.0,
+          "ecl_amount": 1966.0
+        },
+        {
+          "sector": "mfg_utilities",
+          "period_type": "current",
+          "stage2_amount": 772645.0,
+          "stage3_amount": 66.0,
+          "ecl_amount": 136151.0
+        },
+        {
+          "sector": "construction",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 24756.0,
+          "ecl_amount": 20003.0
+        },
+        {
+          "sector": "svc_total",
+          "period_type": "current",
+          "stage2_amount": 726737.0,
+          "stage3_amount": 11629.0,
+          "ecl_amount": 433503.0
+        },
+        {
+          "sector": "svc_trade",
+          "period_type": "current",
+          "stage2_amount": 726737.0,
+          "stage3_amount": 11611.0,
+          "ecl_amount": 430397.0
+        },
+        {
+          "sector": "svc_hospitality",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "svc_transport",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "svc_financial",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 18.0,
+          "ecl_amount": 17.0
+        },
+        {
+          "sector": "svc_realestate",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "svc_professional",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "svc_education",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "svc_health",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "other",
+          "period_type": "current",
+          "stage2_amount": 250195.0,
+          "stage3_amount": 3442.0,
+          "ecl_amount": 3089.0
+        },
+        {
+          "sector": "total",
+          "period_type": "current",
+          "stage2_amount": 1749577.0,
+          "stage3_amount": 41860.0,
+          "ecl_amount": 591623.0
+        },
+        {
+          "sector": "total",
+          "period_type": "prior",
+          "stage2_amount": 1057607.0,
+          "stage3_amount": 43798.0,
+          "ecl_amount": 598668.0,
+          "raw_label": "Toplam (prior)"
+        }
+      ],
+      "note": "Hand-transcribed from the printed page 44 (0-based), every cell 7x-pixel-verified. ICBCT stacks TWO dated sector tables on one page ('31 Aralık YYYY' then 'YYYY-1', never 'Cari Dönem'/'Önceki Dönem'), so the period never flips and _dedupe's first-wins backfilled dropped current rows from LAST YEAR's table. Root cause is upstream in the shared _fitz_page_text y-bucketing (int(round(y0)) aliasing the 3.36pt gap between each row's numbers and its label), unfixable without touching every frozen statement lane. Stage2/Stage3 = 'Kredi Riskinde Önemli Artış (İkinci Aşama)' / 'Temerrüt (Üçüncü Aşama)'; ECL = 'Beklenen Kredi Zarar Karşılıkları (TFRS 9)'. Prior-period Toplam stored so loans_sector_year_swap has a clean comparator. Corrects the silent agri_fishery=635,214 (which was the prior-year 2021 Sanayi Stage-2 backfilled onto Balıkçılık); the true Balıkçılık row is nil. NOTE: the ECL column's parent subtotals over-state their children in the SOURCE (Sanayi 158,120 vs children 138,117; Hizmetler 433,503 vs 430,414) — pixel-verified, stored as printed; ecl_amount is excluded from the footing check."
+    },
+    {
+      "bank_ticker": "ICBCT",
+      "period": "2025Q4",
+      "kind": "unconsolidated",
+      "statement": "loans_by_sector_replace",
+      "source_page": 47,
+      "rows": [
+        {
+          "sector": "agri_total",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 64.0,
+          "ecl_amount": 63.0
+        },
+        {
+          "sector": "agri_farming",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 64.0,
+          "ecl_amount": 63.0
+        },
+        {
+          "sector": "agri_forestry",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "agri_fishery",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "mfg_total",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 1387.0,
+          "ecl_amount": 1342.0
+        },
+        {
+          "sector": "mfg_mining",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 86.0,
+          "ecl_amount": 86.0
+        },
+        {
+          "sector": "mfg_production",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 1299.0,
+          "ecl_amount": 1255.0
+        },
+        {
+          "sector": "mfg_utilities",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 2.0,
+          "ecl_amount": 1.0
+        },
+        {
+          "sector": "construction",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 7794.0,
+          "ecl_amount": 6400.0
+        },
+        {
+          "sector": "svc_total",
+          "period_type": "current",
+          "stage2_amount": 1466551.0,
+          "stage3_amount": 15118.0,
+          "ecl_amount": 107060.0
+        },
+        {
+          "sector": "svc_trade",
+          "period_type": "current",
+          "stage2_amount": 18150.0,
+          "stage3_amount": 14949.0,
+          "ecl_amount": 13101.0
+        },
+        {
+          "sector": "svc_hospitality",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 12.0,
+          "ecl_amount": 12.0
+        },
+        {
+          "sector": "svc_transport",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 143.0,
+          "ecl_amount": 143.0
+        },
+        {
+          "sector": "svc_financial",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "svc_realestate",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "svc_professional",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 14.0,
+          "ecl_amount": 14.0
+        },
+        {
+          "sector": "svc_education",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "svc_health",
+          "period_type": "current",
+          "stage2_amount": 1448401.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 93790.0
+        },
+        {
+          "sector": "other",
+          "period_type": "current",
+          "stage2_amount": 307.0,
+          "stage3_amount": 3364.0,
+          "ecl_amount": 2828.0
+        },
+        {
+          "sector": "total",
+          "period_type": "current",
+          "stage2_amount": 1466858.0,
+          "stage3_amount": 27727.0,
+          "ecl_amount": 117693.0
+        },
+        {
+          "sector": "total",
+          "period_type": "prior",
+          "stage2_amount": 1117220.0,
+          "stage3_amount": 28193.0,
+          "ecl_amount": 87987.0,
+          "raw_label": "Toplam (prior)"
+        }
+      ],
+      "note": "Hand-transcribed from the printed page 46 (0-based), every cell 7x-pixel-verified. ICBCT stacks TWO dated sector tables on one page ('31 Aralık YYYY' then 'YYYY-1', never 'Cari Dönem'/'Önceki Dönem'), so the period never flips and _dedupe's first-wins backfilled dropped current rows from LAST YEAR's table. Root cause is upstream in the shared _fitz_page_text y-bucketing (int(round(y0)) aliasing the 3.36pt gap between each row's numbers and its label), unfixable without touching every frozen statement lane. Stage2/Stage3 = 'Kredi Riskinde Önemli Artış (İkinci Aşama)' / 'Temerrüt (Üçüncü Aşama)'; ECL = 'Beklenen Kredi Zarar Karşılıkları (TFRS 9)'. Prior-period Toplam stored so loans_sector_year_swap has a clean comparator. Corrects the silent svc_education=1,448,401, which actually belongs to the next row Sağlık ve Sosyal Hizmetler (svc_health); the true Eğitim row is nil."
+    },
+    {
+      "bank_ticker": "ICBCT",
+      "period": "2024Q4",
+      "kind": "consolidated",
+      "statement": "loans_by_sector_replace",
+      "source_page": 47,
+      "rows": [
+        {
+          "sector": "agri_total",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 46.0,
+          "ecl_amount": 46.0
+        },
+        {
+          "sector": "agri_farming",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 45.0,
+          "ecl_amount": 45.0
+        },
+        {
+          "sector": "agri_forestry",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 1.0,
+          "ecl_amount": 1.0
+        },
+        {
+          "sector": "agri_fishery",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "mfg_total",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 656.0,
+          "ecl_amount": 656.0
+        },
+        {
+          "sector": "mfg_mining",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 37.0,
+          "ecl_amount": 37.0
+        },
+        {
+          "sector": "mfg_production",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 590.0,
+          "ecl_amount": 590.0
+        },
+        {
+          "sector": "mfg_utilities",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 29.0,
+          "ecl_amount": 29.0
+        },
+        {
+          "sector": "construction",
+          "period_type": "current",
+          "stage2_amount": 1116926.0,
+          "stage3_amount": 7562.0,
+          "ecl_amount": 67369.0
+        },
+        {
+          "sector": "svc_total",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 16262.0,
+          "ecl_amount": 16263.0
+        },
+        {
+          "sector": "svc_trade",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 16098.0,
+          "ecl_amount": 16099.0
+        },
+        {
+          "sector": "svc_hospitality",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 10.0,
+          "ecl_amount": 10.0
+        },
+        {
+          "sector": "svc_transport",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 108.0,
+          "ecl_amount": 108.0
+        },
+        {
+          "sector": "svc_financial",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "svc_realestate",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "svc_professional",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "svc_education",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "svc_health",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 46.0,
+          "ecl_amount": 46.0
+        },
+        {
+          "sector": "other",
+          "period_type": "current",
+          "stage2_amount": 294.0,
+          "stage3_amount": 3829.0,
+          "ecl_amount": 3816.0
+        },
+        {
+          "sector": "total",
+          "period_type": "current",
+          "stage2_amount": 1117220.0,
+          "stage3_amount": 28355.0,
+          "ecl_amount": 88149.0
+        },
+        {
+          "sector": "total",
+          "period_type": "prior",
+          "stage2_amount": 1191775.0,
+          "stage3_amount": 127584.0,
+          "ecl_amount": 337380.0,
+          "raw_label": "Toplam (prior)"
+        }
+      ],
+      "note": "Hand-transcribed from the printed page 46 (0-based), every cell 7-13x pixel-verified; the stored value was corrupt (a prior-period or same-page Sanayi total y-bucketed onto a nil agri/Balıkçılık child — child_exceeds_parent). Root cause is upstream in the shared _fitz_page_text y-bucketing (int(round(y0)) aliasing the ~3.4pt gap between a row's numbers and its label), unfixable without touching every frozen statement lane. Stage2/Stage3 = 'Kredi Riskinde Önemli Artış (İkinci Aşama)' / 'Temerrüt (Üçüncü Aşama)', ECL = 'Beklenen Kredi Zarar Karşılıkları (TFRS 9)'. ECL grand Toplam prints 88,149 while the top-level rows sum to 88,150 — a 1-unit source rounding artifact in the printed total; foots exactly on Stage 2 and Stage 3."
+    },
+    {
+      "bank_ticker": "ICBCT",
+      "period": "2024Q4",
+      "kind": "unconsolidated",
+      "statement": "loans_by_sector_replace",
+      "source_page": 45,
+      "rows": [
+        {
+          "sector": "agri_total",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 46.0,
+          "ecl_amount": 46.0
+        },
+        {
+          "sector": "agri_farming",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 45.0,
+          "ecl_amount": 45.0
+        },
+        {
+          "sector": "agri_forestry",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 1.0,
+          "ecl_amount": 1.0
+        },
+        {
+          "sector": "agri_fishery",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "mfg_total",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 656.0,
+          "ecl_amount": 656.0
+        },
+        {
+          "sector": "mfg_mining",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 37.0,
+          "ecl_amount": 37.0
+        },
+        {
+          "sector": "mfg_production",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 590.0,
+          "ecl_amount": 590.0
+        },
+        {
+          "sector": "mfg_utilities",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 29.0,
+          "ecl_amount": 29.0
+        },
+        {
+          "sector": "construction",
+          "period_type": "current",
+          "stage2_amount": 1116926.0,
+          "stage3_amount": 7562.0,
+          "ecl_amount": 67369.0
+        },
+        {
+          "sector": "svc_total",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 16262.0,
+          "ecl_amount": 16263.0
+        },
+        {
+          "sector": "svc_trade",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 16098.0,
+          "ecl_amount": 16099.0
+        },
+        {
+          "sector": "svc_hospitality",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 10.0,
+          "ecl_amount": 10.0
+        },
+        {
+          "sector": "svc_transport",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 108.0,
+          "ecl_amount": 108.0
+        },
+        {
+          "sector": "svc_financial",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "svc_realestate",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "svc_professional",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "svc_education",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "svc_health",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 46.0,
+          "ecl_amount": 46.0
+        },
+        {
+          "sector": "other",
+          "period_type": "current",
+          "stage2_amount": 294.0,
+          "stage3_amount": 3667.0,
+          "ecl_amount": 3653.0
+        },
+        {
+          "sector": "total",
+          "period_type": "current",
+          "stage2_amount": 1117220.0,
+          "stage3_amount": 28193.0,
+          "ecl_amount": 87987.0
+        },
+        {
+          "sector": "total",
+          "period_type": "prior",
+          "stage2_amount": 1191775.0,
+          "stage3_amount": 127422.0,
+          "ecl_amount": 337218.0,
+          "raw_label": "Toplam (prior)"
+        }
+      ],
+      "note": "Hand-transcribed from the printed page 44 (0-based), every cell 7-13x pixel-verified; the stored value was corrupt (a prior-period or same-page Sanayi total y-bucketed onto a nil agri/Balıkçılık child — child_exceeds_parent). Root cause is upstream in the shared _fitz_page_text y-bucketing (int(round(y0)) aliasing the ~3.4pt gap between a row's numbers and its label), unfixable without touching every frozen statement lane. Stage2/Stage3 = 'Kredi Riskinde Önemli Artış (İkinci Aşama)' / 'Temerrüt (Üçüncü Aşama)', ECL = 'Beklenen Kredi Zarar Karşılıkları (TFRS 9)'."
+    },
+    {
+      "bank_ticker": "ICBCT",
+      "period": "2022Q4",
+      "kind": "consolidated",
+      "statement": "loans_by_sector_replace",
+      "source_page": 47,
+      "rows": [
+        {
+          "sector": "agri_total",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "agri_farming",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "agri_forestry",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "agri_fishery",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "mfg_total",
+          "period_type": "current",
+          "stage2_amount": 772645.0,
+          "stage3_amount": 2033.0,
+          "ecl_amount": 158120.0
+        },
+        {
+          "sector": "mfg_mining",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "mfg_production",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 1967.0,
+          "ecl_amount": 1966.0
+        },
+        {
+          "sector": "mfg_utilities",
+          "period_type": "current",
+          "stage2_amount": 772645.0,
+          "stage3_amount": 66.0,
+          "ecl_amount": 136151.0
+        },
+        {
+          "sector": "construction",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 24756.0,
+          "ecl_amount": 20003.0
+        },
+        {
+          "sector": "svc_total",
+          "period_type": "current",
+          "stage2_amount": 726737.0,
+          "stage3_amount": 11629.0,
+          "ecl_amount": 433503.0
+        },
+        {
+          "sector": "svc_trade",
+          "period_type": "current",
+          "stage2_amount": 726737.0,
+          "stage3_amount": 11611.0,
+          "ecl_amount": 430397.0
+        },
+        {
+          "sector": "svc_hospitality",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "svc_transport",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "svc_financial",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 18.0,
+          "ecl_amount": 17.0
+        },
+        {
+          "sector": "svc_realestate",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "svc_professional",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "svc_education",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "svc_health",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "other",
+          "period_type": "current",
+          "stage2_amount": 250195.0,
+          "stage3_amount": 3538.0,
+          "ecl_amount": 3251.0
+        },
+        {
+          "sector": "total",
+          "period_type": "current",
+          "stage2_amount": 1749577.0,
+          "stage3_amount": 41956.0,
+          "ecl_amount": 591785.0
+        },
+        {
+          "sector": "total",
+          "period_type": "prior",
+          "stage2_amount": 1057607.0,
+          "stage3_amount": 43960.0,
+          "ecl_amount": 598830.0,
+          "raw_label": "Toplam (prior)"
+        }
+      ],
+      "note": "Hand-transcribed from the printed page 46 (0-based), every cell 7-13x pixel-verified; the stored value was corrupt (a prior-period or same-page Sanayi total y-bucketed onto a nil agri/Balıkçılık child — child_exceeds_parent). Root cause is upstream in the shared _fitz_page_text y-bucketing (int(round(y0)) aliasing the ~3.4pt gap between a row's numbers and its label), unfixable without touching every frozen statement lane. Stage2/Stage3 = 'Kredi Riskinde Önemli Artış (İkinci Aşama)' / 'Temerrüt (Üçüncü Aşama)', ECL = 'Beklenen Kredi Zarar Karşılıkları (TFRS 9)'. ECL parent subtotals over-state their children in the SOURCE (Sanayi 158,120 vs children 138,117; Hizmetler 433,503 vs 430,414) — pixel-verified at 13x, stored as printed; the grand Toplam still ties to the leaf rows and ecl_amount is excluded from the footing check."
+    },
+    {
+      "bank_ticker": "AKTIF",
+      "period": "2024Q4",
+      "kind": "unconsolidated",
+      "statement": "loans_by_sector_replace",
+      "source_page": 50,
+      "rows": [
+        {
+          "sector": "agri_total",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "agri_farming",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "agri_forestry",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "agri_fishery",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "mfg_total",
+          "period_type": "current",
+          "stage2_amount": 60627.0,
+          "stage3_amount": 54031.0,
+          "ecl_amount": 41649.0
+        },
+        {
+          "sector": "mfg_mining",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "mfg_production",
+          "period_type": "current",
+          "stage2_amount": 17377.0,
+          "stage3_amount": 54031.0,
+          "ecl_amount": 41283.0
+        },
+        {
+          "sector": "mfg_utilities",
+          "period_type": "current",
+          "stage2_amount": 43250.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 366.0
+        },
+        {
+          "sector": "construction",
+          "period_type": "current",
+          "stage2_amount": 2650.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 159.0
+        },
+        {
+          "sector": "svc_total",
+          "period_type": "current",
+          "stage2_amount": 13314.0,
+          "stage3_amount": 29282.0,
+          "ecl_amount": 25710.0
+        },
+        {
+          "sector": "svc_trade",
+          "period_type": "current",
+          "stage2_amount": 4664.0,
+          "stage3_amount": 22.0,
+          "ecl_amount": 309.0
+        },
+        {
+          "sector": "svc_hospitality",
+          "period_type": "current",
+          "stage2_amount": 991.0,
+          "stage3_amount": 14208.0,
+          "ecl_amount": 14275.0
+        },
+        {
+          "sector": "svc_transport",
+          "period_type": "current",
+          "stage2_amount": 3680.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 201.0
+        },
+        {
+          "sector": "svc_financial",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "svc_realestate",
+          "period_type": "current",
+          "stage2_amount": 966.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 31.0
+        },
+        {
+          "sector": "svc_professional",
+          "period_type": "current",
+          "stage2_amount": 1961.0,
+          "stage3_amount": 15052.0,
+          "ecl_amount": 10802.0
+        },
+        {
+          "sector": "svc_education",
+          "period_type": "current",
+          "stage2_amount": 556.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 64.0
+        },
+        {
+          "sector": "svc_health",
+          "period_type": "current",
+          "stage2_amount": 496.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 28.0
+        },
+        {
+          "sector": "other",
+          "period_type": "current",
+          "stage2_amount": 2148895.0,
+          "stage3_amount": 695587.0,
+          "ecl_amount": 532726.0
+        },
+        {
+          "sector": "total",
+          "period_type": "current",
+          "stage2_amount": 2225486.0,
+          "stage3_amount": 778900.0,
+          "ecl_amount": 600244.0
+        },
+        {
+          "sector": "total",
+          "period_type": "prior",
+          "stage2_amount": 1176172.0,
+          "stage3_amount": 493250.0,
+          "ecl_amount": 395040.0,
+          "raw_label": "Toplam (prior)"
+        }
+      ],
+      "note": "Hand-transcribed from the printed page 49 (0-based), every cell 7-13x pixel-verified; the stored value was corrupt (a prior-period or same-page Sanayi total y-bucketed onto a nil agri/Balıkçılık child — child_exceeds_parent). Root cause is upstream in the shared _fitz_page_text y-bucketing (int(round(y0)) aliasing the ~3.4pt gap between a row's numbers and its label), unfixable without touching every frozen statement lane. Stage2/Stage3 = 'Kredi Riskinde Önemli Artış (İkinci Aşama)' / 'Temerrüt (Üçüncü Aşama)', ECL = 'Beklenen Kredi Zarar Karşılıkları (TFRS 9)'."
+    },
+    {
+      "bank_ticker": "AKTIF",
+      "period": "2025Q4",
+      "kind": "unconsolidated",
+      "statement": "loans_by_sector_replace",
+      "source_page": 51,
+      "rows": [
+        {
+          "sector": "agri_total",
+          "period_type": "current",
+          "stage2_amount": 639.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 2.0
+        },
+        {
+          "sector": "agri_farming",
+          "period_type": "current",
+          "stage2_amount": 639.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 2.0
+        },
+        {
+          "sector": "agri_forestry",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "agri_fishery",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "mfg_total",
+          "period_type": "current",
+          "stage2_amount": 70752.0,
+          "stage3_amount": 44666.0,
+          "ecl_amount": 47991.0
+        },
+        {
+          "sector": "mfg_mining",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "mfg_production",
+          "period_type": "current",
+          "stage2_amount": 22931.0,
+          "stage3_amount": 44666.0,
+          "ecl_amount": 44865.0
+        },
+        {
+          "sector": "mfg_utilities",
+          "period_type": "current",
+          "stage2_amount": 47821.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 3126.0
+        },
+        {
+          "sector": "construction",
+          "period_type": "current",
+          "stage2_amount": 7488.0,
+          "stage3_amount": 10295.0,
+          "ecl_amount": 1251.0
+        },
+        {
+          "sector": "svc_total",
+          "period_type": "current",
+          "stage2_amount": 65705.0,
+          "stage3_amount": 47541.0,
+          "ecl_amount": 38986.0
+        },
+        {
+          "sector": "svc_trade",
+          "period_type": "current",
+          "stage2_amount": 30331.0,
+          "stage3_amount": 16774.0,
+          "ecl_amount": 8091.0
+        },
+        {
+          "sector": "svc_hospitality",
+          "period_type": "current",
+          "stage2_amount": 9036.0,
+          "stage3_amount": 14225.0,
+          "ecl_amount": 14253.0
+        },
+        {
+          "sector": "svc_transport",
+          "period_type": "current",
+          "stage2_amount": 15203.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 50.0
+        },
+        {
+          "sector": "svc_financial",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "svc_realestate",
+          "period_type": "current",
+          "stage2_amount": 722.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 9.0
+        },
+        {
+          "sector": "svc_professional",
+          "period_type": "current",
+          "stage2_amount": 8690.0,
+          "stage3_amount": 16542.0,
+          "ecl_amount": 16576.0
+        },
+        {
+          "sector": "svc_education",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "svc_health",
+          "period_type": "current",
+          "stage2_amount": 1723.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 7.0
+        },
+        {
+          "sector": "other",
+          "period_type": "current",
+          "stage2_amount": 3074616.0,
+          "stage3_amount": 1320489.0,
+          "ecl_amount": 730064.0
+        },
+        {
+          "sector": "total",
+          "period_type": "current",
+          "stage2_amount": 3219200.0,
+          "stage3_amount": 1422991.0,
+          "ecl_amount": 818294.0
+        },
+        {
+          "sector": "total",
+          "period_type": "prior",
+          "stage2_amount": 2225486.0,
+          "stage3_amount": 778900.0,
+          "ecl_amount": 600244.0,
+          "raw_label": "Toplam (prior)"
+        }
+      ],
+      "note": "Hand-transcribed from the printed page 50 (0-based), every cell 7-13x pixel-verified; the stored value was corrupt (a prior-period or same-page Sanayi total y-bucketed onto a nil agri/Balıkçılık child — child_exceeds_parent). Root cause is upstream in the shared _fitz_page_text y-bucketing (int(round(y0)) aliasing the ~3.4pt gap between a row's numbers and its label), unfixable without touching every frozen statement lane. Stage2/Stage3 = 'Kredi Riskinde Önemli Artış (İkinci Aşama)' / 'Temerrüt (Üçüncü Aşama)', ECL = 'Beklenen Kredi Zarar Karşılıkları (TFRS 9)'."
     }
   ]
 }

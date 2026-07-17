@@ -153,6 +153,28 @@ def _apply_one(conn: sqlite3.Connection, o: dict) -> str:
                 f"period_type,{names}) VALUES (?,?,?,?,?,{qs})", (b, p, k, grp, pt, *vals))
             verb = "insert"
         return f"npl_movement {verb} {b} {p} {k} group {grp}/{pt} ({len(cols)} cols)"
+    if st == "loans_by_sector_replace":
+        # Whole-partition replacement for the §5 sector table. Per-column patching
+        # can't express this lane's failure: ICBCT stacks two DATED tables on one
+        # page ("31 Aralık 2023" / "31 Aralık 2022", never "Cari Dönem"/"Önceki
+        # Dönem"), so the period never flips, both tables are tagged `current`,
+        # and _dedupe's first-wins BACKFILLS any dropped current row from LAST
+        # YEAR's table. The result isn't a wrong cell — it's a row set spliced
+        # from two different years, with the wrong year's Toplam picked by
+        # _pick_total's footing heuristic. Only a full replace is honest.
+        # `rows` = [{sector, period_type, stage2_amount, stage3_amount,
+        #            ecl_amount, raw_label}, ...] transcribed from the page.
+        conn.execute("DELETE FROM bank_audit_loans_by_sector "
+                     "WHERE bank_ticker=? AND period=? AND kind=?", (b, p, k))
+        for r in o["rows"]:
+            conn.execute(
+                "INSERT INTO bank_audit_loans_by_sector (bank_ticker, period, kind, "
+                "sector, period_type, source_page, stage2_amount, stage3_amount, "
+                "ecl_amount, raw_label) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                (b, p, k, r["sector"], r.get("period_type", "current"),
+                 o.get("source_page"), r.get("stage2_amount"), r.get("stage3_amount"),
+                 r.get("ecl_amount"), r.get("raw_label")))
+        return f"loans_by_sector replace {b} {p} {k} ({len(o['rows'])} rows)"
     if st == "credit_quality":
         # Upsert ONE section row of bank_audit_credit_quality (keyed by section +
         # period_type). Used for the Stage-3 (NPL) figure that a bank discloses as

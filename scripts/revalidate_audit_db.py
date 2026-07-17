@@ -132,15 +132,41 @@ _OCI_SKIP = frozenset({
 # (Stage-2 "İkinci Aşama" / Stage-3 "Üçüncü Aşama" columns, faithfully extracted per
 # sector) but omits the closing "Toplam" row entirely — the table ends at "Diğer" and
 # the next page goes straight to the provision-movement note — so there is no total to
-# foot against. (ALNTF, the other gap, uses the legacy past-due schema with NO
-# Stage-2/Stage-3 by sector; the extractor now skips that page, leaving 0 rows → the
-# validator skips naturally and the cell is marked not_expected in
-# data/audit_not_disclosed.json. So ALNTF needs no entry here.)
+# foot against.
+#
+# ⚠️ The note that used to sit here claimed ALNTF needs no entry because it "uses the
+# legacy past-due schema with NO Stage-2/Stage-3 by sector". REFUTED 2026-07-17: ALNTF
+# discloses stages by sector in all 8 annual cells. Its captions are legacy
+# ("Değer Kaybına Uğramış" / "Tahsili gecikmiş") but the NUMBERS are the stages — the
+# sector TOPLAM equals the report's own "Kredi türlerine ve beklenen zarar
+# karşılıklarına ilişkin bilgiler" note to the lira (2025Q4 unco: 6,189,164 /
+# 672,853 = Yakın İzlemedeki / Takipteki), on 7 of 8 cells exactly. ALNTF also states
+# it APPLIES TFRS 9 ("Banka 1 Ocak 2018 tarihinden itibaren değer düşüklüğü
+# karşılıklarını TFRS 9 hükümlerine uygun olarak ayırmaya başlamıştır"), so there is no
+# art. 9/6 exemption to lean on. _is_legacy_pastdue_table() fires correctly — the
+# captions really do lack "İkinci/Üçüncü Aşama" — but its PREMISE is false: legacy
+# captions do not imply legacy data. Skipping the page is still the right call today
+# (the trailing-3-numbers parser would map TG/DeğerAyar/Karşılık onto S2/S3/ECL and
+# store garbage), but the N/A it produced was a false claim about the bank. The
+# not_disclosed entries are removed; the cells now read `missing`, which is what
+# "disclosed but we can't parse it" means. ALNTF needs no _LBS_SKIP entry — with 0
+# rows the validator skips naturally.
 _LBS_SKIP = frozenset({
     ("ATBANK", "2022Q4", "consolidated"), ("ATBANK", "2022Q4", "unconsolidated"),
     ("ATBANK", "2023Q4", "consolidated"), ("ATBANK", "2023Q4", "unconsolidated"),
     ("ATBANK", "2024Q4", "consolidated"), ("ATBANK", "2024Q4", "unconsolidated"),
     ("ATBANK", "2025Q4", "consolidated"), ("ATBANK", "2025Q4", "unconsolidated"),
+    # TOMK 2024Q4: a SOURCE defect, and the data is faithful. p43 literally prints
+    # "Hizmetler  -" while its only child "Mali Kuruluşlar" carries 85.003 — and the
+    # bank's own "Toplam 308.533" DOES include it (= Diğer 223.530 + 85.003). So the
+    # filer left its own services sub-total blank. Our svc_total=0 is a faithful
+    # transcription of a printed dash (x-coords confirm: 85.003 right-edges at 325.3,
+    # exactly the İkinci Aşama column). _resolved_top_level prefers a PRESENT group
+    # total over its children, so the printed dash displaces the real 85.003 from the
+    # sum and the footing can never tie. Not fixable by data: writing 85.003 into
+    # svc_total would store a number the report does not print. Skip, per this list's
+    # rule — verified faithful, source doesn't foot.
+    ("TOMK", "2024Q4", "unconsolidated"),
 })
 
 
@@ -338,6 +364,30 @@ def _opinion_rows(conn, bank, period, kind):
                 (bank, period, kind))]
 
 
+def _prior_year_sector_total(conn, bank, period, kind) -> dict | None:
+    """This bank's `total` sector row from the PREVIOUS annual report.
+
+    The sector note is annual-only, so the comparator is period-4 (2023Q4 →
+    2022Q4), not the previous quarter. Feeds check_loans_by_sector's
+    `loans_sector_year_swap` — the only check that can see a wholesale
+    comparative-column swap, which foots perfectly and so is invisible to every
+    within-partition identity. See the docstring there for the ICBCT case.
+    """
+    if not _has_table(conn, "bank_audit_loans_by_sector") or not period.endswith("Q4"):
+        return None
+    try:
+        prior = f"{int(period[:4]) - 1}Q4"
+    except ValueError:
+        return None
+    row = conn.execute(
+        "SELECT stage2_amount, stage3_amount FROM bank_audit_loans_by_sector "
+        "WHERE bank_ticker=? AND period=? AND kind=? AND sector='total' "
+        "AND period_type='current'", (bank, prior, kind)).fetchone()
+    if not row:
+        return None
+    return {"stage2_amount": row[0], "stage3_amount": row[1]}
+
+
 def _loans_sector_rows(conn, bank, period, kind):
     if not _has_table(conn, "bank_audit_loans_by_sector"):
         return []
@@ -441,7 +491,9 @@ def revalidate_partition(conn, bank: str, period: str, kind: str) -> dict[str, "
     results["npl_movement"]   = v.check_npl_movement(npl_rows, gross_by_group=_gbg)
     results["loans_by_sector"] = (
         _skip_result() if (bank, period, kind) in _LBS_SKIP
-        else v.check_loans_by_sector(_loans_sector_rows(conn, bank, period, kind)))
+        else v.check_loans_by_sector(_loans_sector_rows(conn, bank, period, kind),
+                                     prior_year_total=_prior_year_sector_total(
+                                         conn, bank, period, kind)))
     results["fx_position"]    = v.check_fx_position(_fx_position_rows(conn, bank, period, kind))
     results["repricing"]      = v.check_repricing(_repricing_rows(conn, bank, period, kind))
     # The bank's OTHER filing for the same quarter. A consolidated group contains

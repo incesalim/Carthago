@@ -579,9 +579,53 @@ def _extract_section(page_idx: int, text: str) -> list[SectorRow]:
     return rows
 
 
+# A sector note that ANSWERS ITSELF with a nil declaration: the heading is
+# immediately followed by "Bulunmamaktadır" / "None" / "Yoktur" instead of a table.
+# Anchored to the ~120 chars right after the heading so a nil elsewhere on the page
+# (a different note's answer) can't suppress a real table.
+_NIL_DECLARED_RX = re.compile(
+    r"(?:bulunmamakta(?:dır)?|yoktur|hazırlanmamıştır|\bnone\b|\bnil\b)",
+    re.IGNORECASE)
+
+
+def _is_nil_declared_note(text: str) -> bool:
+    """True when the sector note declares itself EMPTY rather than printing a table.
+
+    TAKAS prints, verbatim: "Önemli Sektörlere veya Karşı Taraf Türüne Göre Muhtelif
+    Bilgiler: Bulunmamaktadır." — a heading and its own nil answer, no table. The
+    heading regex matched it anyway, and with no rows on the page the GARAN-split
+    retry appended the NEXT page — section III, MARKET RISK — where
+    startswith("toplam") matched "Toplam Riske Maruz Değer". So four annual cells
+    stored an average VALUE AT RISK as a loan sector total, for years.
+
+    A note that says it has no table cannot yield one: skip the page. That is also
+    the positive citation the coverage curation needs — the bank is declaring nil,
+    not hiding it.
+    """
+    # Anchor on the note TITLE (_HEADING_PATTERNS — what _page_has_sector_heading
+    # keys off), NOT the column-header band (_SECTOR_HDR_RX): TAKAS's page has the
+    # title "Önemli Sektörlere veya Karşı Taraf Türüne Göre Muhtelif Bilgiler"
+    # answered nil, and no column band at all.
+    m = None
+    for rx in _HEADING_PATTERNS:
+        m = rx.search(text)
+        if m:
+            break
+    if not m:
+        return False
+    tail = text[m.end(): m.end() + 120]
+    if not _NIL_DECLARED_RX.search(tail):
+        return False
+    # ...but only when no sector data follows it: a bank may print the nil answer
+    # for one sub-note and a real table for the next.
+    return not _THREE_NUMS_TAIL.search(tail)
+
+
 def _page_has_sector_heading(text: str) -> bool:
     if _WRONG_TABLE_HINTS.search(text):
         # Page is the investments-by-sector footnote, not what we want.
+        return False
+    if _is_nil_declared_note(text):
         return False
     return any(rx.search(text) for rx in _HEADING_PATTERNS)
 
