@@ -3,7 +3,8 @@
 **Date:** 2026-07-17
 **Status:** TIERS 1 AND 2 SHIPPED (same day). Every detection recommendation in §6 that earned a
 measured zero false-positive rate is live — see "What shipped". **Tier 3 (the actual data
-repairs) is OPEN**, as is the P&L sign work in §7, which is a design question rather than a bug.
+repairs) is OPEN**. The P&L deduction sign — which §3 called MIXED and I twice called
+"undetectable" — is FIXED (`95632b1`); see "The sign claim was wrong" below.
 **Scope:** every validator behind the `/admin` coverage matrix: `src/audit_reports/validator.py`,
 `scripts/check_audit_quality.py`, `scripts/sync_audit_expected.py::_cell_status`,
 `src/audit_reports/registry.py`.
@@ -131,7 +132,7 @@ which proves the drift is real and unreported.
 | assets / liabilities | STRONG | STRONG | V1 181,807 comparisons, ~0% skip; V2 constrains 88.4% of rows; 99%+ detection on 8/14 classes |
 | cross (V4) | — | **WEAK** | Real data ties at **exactly 0.00% on 1050/1050**; the 0.5% band tolerates median ₺1.11bn, max ₺48.2bn. Infinitely too loose. **Reaches no matrix cell** (`cross` maps to no lane) |
 | off_balance | STRONG | **WEAK at top of tree** | V3 never runs (0/1050); V6 skips 15.5% and is blind to its own target |
-| profit_loss | STRONG (94.4% run all 6 identities) | MIXED | roman corruption 99% caught; **tax sign flip 0/297**; deduction sign free in **91%**; same-band swap 0/299; 60.5% of rows unchecked |
+| profit_loss | STRONG (94.4% run all 6 identities) | MIXED → improved | roman corruption 99% caught; ~~deduction sign free in 91%~~ **FIXED, now 100% (`95632b1`)**; tax sign flip 0/297 but **inert** (its only consumer abs()es it); same-band swap 0/299; 60.5% of rows unchecked |
 | oci | STRONG (10 of 11 errors real) | ADEQUATE | **hardcoded `.get(25)`** disables the only cross-check on 6 DUNYAK partitions |
 | cash_flow | — | **WEAK** | only 16.0% of 45,714 rows touched; drop/leaf-shift 0/300 |
 | equity_change | **STRONG — ~100 of 104 errors are real** | **WEAK on components** | reads only `total_equity` and the *sum*; every sum-preserving component error **0/296** |
@@ -288,6 +289,52 @@ value); P&L sum-surviving (detection 4% → 60% but 3 FPs whose amounts are CORR
 `opinion_type ∈ {clean, qualified}` (a closed 2-value enum cannot be violated); `basis_text ⇒
 is_modified` (0 violations AND circular — is_modified is perfectly collinear with opinion_type);
 bare `branches_total IS NOT NULL` (48% FP — 36 of 75 nulls are branchless digital banks).
+
+## The sign claim was wrong (`95632b1`)
+
+This report said the P&L deduction sign was free in 91% of identities, and I twice concluded from
+that it was **"not cleanly fixable — the corpus genuinely mixes conventions within single
+statements, so no per-partition check resolves it."** The mixing is real. The conclusion was not.
+
+**The convention is derivable from the chain on 1048/1048 partitions.** The validator was never
+defeated by ambiguity — it was discarding an answer it already had.
+
+The mechanism, precisely: a deduction identity passes if EITHER `Σ|v| == D` (subtract the
+magnitudes) or `Σv == D` (subtract the stored values) foots. The first reading is **sign-blind by
+construction** — flipping a line's sign leaves its magnitude untouched — so the chain sails
+through. That is the whole 91%.
+
+The fix is to test the SIGNED block sum against `±(base − target)`: one convention per block,
+which the chain determines uniquely. `check_pl_deduction_convention` — 2098 pass / 0 fail / 2
+skip of 2100 possible, 0 FP. A flipped deduction sign: **12% → 100%** caught end-to-end.
+
+**Independently corroborated:** the convention this derives agrees with `pl-sankey.ts`'s own
+anchor heuristic (personnel XI., else II., else XII.) on **1048/1048**. The UI has been guessing
+right for the whole corpus; the guess is now checkable instead of assumed.
+
+**Faithful reversals still pass**, which is why the constraint is on the block TOTAL and not on
+each line's sign: a released provision (BURGAN's ECL release, DENIZ's write-back) stores negative
+inside a positive-convention block and reduces `Σv` by exactly as much as it reduces the net
+deduction `D`, so `Σv == D` still holds. A per-line sign rule would have condemned every genuine
+reversal — and `pl-sankey.ts:150-168` records that abs()-ing them once made the VIII→XIII
+identity fail by ~190%.
+
+**What actually remains uncovered** — narrower than this report claimed:
+- Only the block's SUM is constrained, so moving value between two lines of one block is
+  invisible (the same-band swap, 0/299).
+- **The tax sign is free but INERT.** The chain pins `|tax|` via `cont_net = pretax ± tax` and
+  genuinely cannot pick the side — tax is an expense in most quarters and a benefit in some, and
+  both readings foot. It doesn't matter: `pl-sankey.ts:220` does `Math.abs(...)` and is the only
+  consumer that reads it. Nothing downstream can be corrupted by it. "0/297 caught" is a
+  non-finding, not a hole.
+- `_pl_sign_convention` (alert-only, baseline-suppressed) reports 19 within-series flips. Those
+  are now explained rather than mysterious — a flip is a genuine reversal quarter, and
+  `check_pl_deduction_convention` is what proves the block still foots around it.
+
+**The lesson worth keeping:** "the sources disagree, so nothing can be checked" was wrong twice in
+one day — here, and in the `npl_closing_vs_gross` case where stages turned out to be derived from
+credit_quality. Both times the reconciliation existed and was simply not being consulted. Prefer
+measuring over concluding.
 
 ## 6. The fixes are already in the database (not applied)
 
