@@ -955,6 +955,12 @@ def validate_report(rep, period: str | None = None) -> dict[str, ValidationResul
 # OCI (Other Comprehensive Income) validation
 # ===========================================================================
 
+# The OCI statement's entire template: romans I/II/III + the 2.x sub-tree. Kept
+# in step with oci._OCI_TEMPLATE (the extractor-side guard); this is the
+# detection half of the same fact.
+_OCI_TEMPLATE_RX = re.compile(r"^(?:I{1,3}\.?|2(?:\.\d+){1,2}\.?)$")
+
+
 def check_oci(oci_rows: list[dict], pl_rows: list[dict] | None = None) -> ValidationResult:
     """OCI: numeric hierarchy sums (2.1/2.2 trees) + roman chain III=I+II +
     cross-check OCI.I == P&L net (row XXV)."""
@@ -962,6 +968,21 @@ def check_oci(oci_rows: list[dict], pl_rows: list[dict] | None = None) -> Valida
     if not oci_rows:
         res.add_skip()
         return res
+    # Every row must be ON the OCI template (romans I/II/III + the 2.x sub-tree).
+    # A row outside it is a page artefact the parser swallowed — the date header
+    # ("31 MART 2024 TARİHİNDE…" → hierarchy '31', name 'MART', amount 202) or the
+    # statement title (→ the section's own roman 'IV.'/'V.'). 577 such rows sat in
+    # 574 of 1050 partitions (55% of the corpus) and EVERY ONE read green: a stray
+    # takes no part in III = I + II, so no identity ever touched it. Junk in the
+    # table rather than a wrong headline — but invisible, which is the point.
+    # Zero real rows fall outside the template (16,709 conform, 0 don't), so this
+    # cannot fire on faithful data.
+    for r in oci_rows:
+        if not _OCI_TEMPLATE_RX.fullmatch((r.get("hierarchy") or "").strip()):
+            res.add_fail("oci_offtemplate_row",
+                         f"{r.get('hierarchy')!r} / {(r.get('item_name') or '')[:30]!r} "
+                         "is not an OCI template row (page header or title)",
+                         expected=0.0, actual=r.get("amount") or 0.0)
     # Roman chain III = I + II  (the TOPLAM KAPSAMLI GELİR row)
     roman_amt: dict[int, float] = {}
     for r in oci_rows:

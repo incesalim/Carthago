@@ -32,6 +32,21 @@ _OCI_MIN_REAL_ROWS = 3
 
 # Coordinate-reconstruction token classes (a leading hierarchy marker, a numeric
 # value possibly parenthesised, a "-"/"--" nil cell).
+# The OCI statement's ENTIRE template: romans I/II/III and the 2.x sub-tree.
+# Nothing else is a row. Anything outside this is a page artefact — the date
+# header ("31 MART 2024 TARİHİNDE SONA EREN…" → hierarchy '31', name 'MART') or
+# the statement title ("KAR VEYA ZARAR VE DİĞER KAPSAMLI GELİR TABLOSU" → the
+# section's own roman 'IV.'/'V.'), both carrying the bare 4-digit year truncated
+# to its first thousands group as an "amount" of 202.
+#
+# This is the OCI sibling of the defect dedup_hierarchy_rows.py already cleaned
+# out of the frozen BS/PL tables ("a statement TITLE mis-parsed as a data row
+# with a garbage amount (<=202) … max |amount| = 202") — the same fingerprint,
+# never extended here. Corpus: 577 such rows across 574 of 1050 partitions (55%),
+# against 16,709 template rows. Zero real rows fall outside the template and no
+# real row anywhere carries amount == 202.0, so the filter cannot take data.
+_OCI_TEMPLATE = re.compile(r'^(?:I{1,3}\.?|2(?:\.\d+){1,2}\.?)$')
+
 _COORD_MARK = re.compile(r'^(?:[IVXL]+\.|\d+(?:\.\d+)*\.?)$')
 _COORD_VAL = re.compile(r'^\(?-?[\d][\d.,]*\)?$')
 _COORD_NIL = re.compile(r'^-{1,2}$')
@@ -96,6 +111,18 @@ def _oci_hierarchy_ok(rows: list[StatementRow]) -> bool:
                for r in rows]
     hs = check_hierarchy_sums(adapted)
     return hs.failed == 0 and hs.passed > 0
+
+
+def _drop_offtemplate(rows: list[StatementRow]) -> list[StatementRow]:
+    """Drop rows whose hierarchy is outside the OCI template (see _OCI_TEMPLATE).
+
+    Applied to every CANDIDATE, not to the winner, and that ordering is the whole
+    point: when no candidate validates, extract_oci falls back to
+    `max(candidates, key=len)` — so a stray row inflates its candidate's length
+    and helps the WRONG column template win. Filtering first makes the
+    length comparison count real rows only.
+    """
+    return [r for r in rows if _OCI_TEMPLATE.fullmatch((r.hierarchy or "").strip())]
 
 
 def _oci_candidate_score(rows: list[StatementRow]) -> tuple[int, int, int, int]:
@@ -190,7 +217,8 @@ def extract_oci(pdf_path: str, oci_page: int) -> OCIReport:
     n_templates = sorted({n0, 2, 4})
 
     def _cands_from(text: str) -> list[list[StatementRow]]:
-        return [c for c in (_parse_oci_with(text, n) for n in n_templates) if c]
+        return [c for c in (_drop_offtemplate(_parse_oci_with(text, n))
+                            for n in n_templates) if c]
 
     # FITZ-FIRST: read the page once with fitz and try each column template; the
     # validation-guided selection (below) picks the right one. fitz reads the
