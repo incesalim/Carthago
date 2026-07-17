@@ -1137,6 +1137,118 @@ def test_eq_paid_in_capital_no_equity_section_skips():
     assert res.failed == 0 and res.skipped == 1
 
 
+# --- bank profile ----------------------------------------------------------
+
+def _profile(**kw):
+    d = {"branches_domestic": 700, "branches_foreign": 11, "branches_total": 711,
+         "personnel": 20_000}
+    d.update(kw)
+    return d
+
+
+def test_profile_clean_passes():
+    res = v.check_profile([_profile()], counterpart=[_profile()], kind="consolidated")
+    assert res.failed == 0, res.failures
+
+
+def test_profile_consolidated_below_unconsolidated_fails():
+    """ISCTR's live defect: consolidated Q4 reports 1 branch / 187 staff while the
+    SAME quarter's unconsolidated reports 1,110 / 22,971. A consolidated group
+    contains the parent, so this is impossible — not improbable. The UI keys off
+    branches_total, so İşbank renders "1 branch"."""
+    cons = _profile(branches_total=1, branches_domestic=1, branches_foreign=0,
+                    personnel=187)
+    unco = _profile(branches_total=1_110, branches_domestic=1_099,
+                    branches_foreign=11, personnel=22_971)
+    res = v.check_profile([cons], counterpart=[unco], kind="consolidated")
+    assert any(f["check"] == "profile_cons_lt_unco" for f in res.failures), res.failures
+
+
+def test_profile_unconsolidated_side_is_not_flagged():
+    """The comparison is raised on the consolidated cell only — that is the
+    impossible side. The unconsolidated filing is correct and must stay green."""
+    cons = _profile(branches_total=1, personnel=187, branches_domestic=1,
+                    branches_foreign=0)
+    unco = _profile(branches_total=1_110, branches_domestic=1_099,
+                    branches_foreign=11, personnel=22_971)
+    res = v.check_profile([unco], counterpart=[cons], kind="unconsolidated")
+    assert res.failed == 0, res.failures
+
+
+def test_profile_personnel_equals_branches_fails():
+    """DENIZ 2024Q1/Q2: personnel == branches_total EXACTLY (643=643) — the
+    column slip. Note `personnel >= branches` PASSES this at 1.00, which is why
+    the check is a strict `>`."""
+    res = v.check_profile([_profile(branches_total=643, branches_domestic=640,
+                                    branches_foreign=3, personnel=643)])
+    assert any(f["check"] == "profile_personnel_count" for f in res.failures), res.failures
+
+
+def test_profile_branchless_bank_is_not_flagged():
+    """Digital banks run 0 branches and are faithful — the staffing check is
+    guarded on branches > 0."""
+    res = v.check_profile([_profile(branches_total=0, branches_domestic=0,
+                                    branches_foreign=0, personnel=85)])
+    assert res.failed == 0, res.failures
+
+
+def test_profile_branch_split_tolerates_one():
+    """ZIRAAT 2026Q1 is off by exactly 1 and I can't prove from the data whether
+    that's our misread or the bank's own table — left alone. The +12 break
+    (2025Q4, a prior-year comparative bleed) is unambiguous."""
+    ok = v.check_profile([_profile(branches_domestic=1_745, branches_foreign=24,
+                                   branches_total=1_770)])
+    assert ok.failed == 0, ok.failures
+    bad = v.check_profile([_profile(branches_domestic=1_753, branches_foreign=28,
+                                    branches_total=1_769)])
+    assert any(f["check"] == "profile_branches_split" for f in bad.failures)
+
+
+def test_profile_always_has_an_evaluable_check():
+    """Load-bearing: _cell_status turns zero-pass into `error`, so a partition
+    whose every check skipped for want of a counterpart would redden spuriously
+    (60 cells). The row-carries-something check always runs."""
+    res = v.check_profile([_profile()])          # no counterpart at all
+    assert res.passed > 0, res
+
+
+# --- audit opinion ---------------------------------------------------------
+
+def _opinion(**kw):
+    d = {"opinion_type": "clean", "is_modified": 0, "report_kind": "audit",
+         "basis_text": None, "auditor": "Güney BBDD A.Ş."}
+    d.update(kw)
+    return d
+
+
+def test_audit_opinion_clean_passes():
+    res = v.check_audit_opinion([_opinion()])
+    assert res.failed == 0 and res.passed == 1, res.failures
+
+
+def test_audit_opinion_missing_auditor_fails():
+    """45 rows carry no auditor — every one a Q4 annual report. Every BRSA audit
+    report is signed."""
+    res = v.check_audit_opinion([_opinion(auditor=None)])
+    assert any(f["check"] == "opinion_auditor_missing" for f in res.failures)
+
+
+def test_audit_opinion_modified_without_basis_fails():
+    """ALNTF 2023Q1/Q2/Q3 + TFKB 2024Q4: qualified with no basis. ISA 705
+    requires the paragraph, so a blank is a parse failure, not a filing choice."""
+    res = v.check_audit_opinion([_opinion(opinion_type="qualified", is_modified=1,
+                                          basis_text="  ")])
+    assert any(f["check"] == "opinion_basis_missing" for f in res.failures)
+
+
+def test_audit_opinion_clean_row_still_passes_a_check():
+    """The basis rule only evaluates for MODIFIED opinions, so without the
+    always-evaluable auditor check all 424 clean rows would pass nothing — and
+    _cell_status would redden every one."""
+    res = v.check_audit_opinion([_opinion()])
+    assert res.passed > 0, res
+
+
 # --- NPL movement validation ----------------------------------------------
 
 def _npl_row(**kw):

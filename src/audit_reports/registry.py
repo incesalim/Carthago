@@ -95,12 +95,21 @@ REGISTRY: list[StatementType] = [
                   validation_statement="repricing", sort_order=106),
     StatementType("profile", "Bank profile (branches/personnel)",
                   "bank_audit_profile", None, None,
-                  is_core=False, present_min_rows=1, has_validator=False,
-                  validation_statement=None, sort_order=110),
+                  is_core=False, present_min_rows=1, has_validator=True,
+                  validation_statement="profile", sort_order=110),
     StatementType("audit_opinion", "Audit opinion",
                   "bank_audit_opinion", None, None,
-                  is_core=False, present_min_rows=1, has_validator=False,
-                  validation_statement=None, sort_order=115),
+                  is_core=False, present_min_rows=1, has_validator=True,
+                  validation_statement="audit_opinion", sort_order=115),
+    # free_provision stays has_validator=False DELIBERATELY, and not for want of
+    # a check. conditional=True routes a 0-row partition missing → not_expected
+    # in sync_audit_expected.build() BEFORE any verdict is read, so a
+    # per-partition validator could never see the 469 N/A cells — the only ones
+    # with a real problem (52 of them are suspect; BURGAN 2023Q2–2024Q1 read N/A
+    # while the auditor qualified over exactly that reserve). Its checks are
+    # corpus-wide and longitudinal by nature, so they live in
+    # check_audit_quality._free_provision alongside the prior_chain check that is
+    # already there.
     StatementType("free_provision", "Free provision (serbest karşılık)",
                   "bank_audit_free_provision", None, None,
                   is_core=False, present_min_rows=1, has_validator=False,

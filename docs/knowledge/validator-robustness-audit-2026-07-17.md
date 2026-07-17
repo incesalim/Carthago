@@ -1,8 +1,9 @@
 # Validator robustness audit — all 18 audit lanes
 
 **Date:** 2026-07-17
-**Status:** TIER 1 SHIPPED (same day) — the six zero-false-positive reconciliations in §6 are
-live; see "What shipped" below. Tiers 2–3 and everything in §7 remain OPEN.
+**Status:** TIERS 1 AND 2 SHIPPED (same day). Every detection recommendation in §6 that earned a
+measured zero false-positive rate is live — see "What shipped". **Tier 3 (the actual data
+repairs) is OPEN**, as is the P&L sign work in §7, which is a design question rather than a bug.
 **Scope:** every validator behind the `/admin` coverage matrix: `src/audit_reports/validator.py`,
 `scripts/check_audit_quality.py`, `scripts/sync_audit_expected.py::_cell_status`,
 `src/audit_reports/registry.py`.
@@ -231,6 +232,62 @@ Also: `cross` (assets = liabilities + equity) now folds into both balance-sheet 
 previously mapped to no lane and could have failed unseen; the Coverage ✓ is now gated on
 `has_validator` (it inverted: the three lanes with no validator earned it while 8 validated lanes
 lost it); and the drawer states "not validated" explicitly instead of rendering nothing.
+
+## What shipped in tier 2 (same day)
+
+Same gate throughout: predict the flag set, calibrate on a DB copy, ship only a measured 0 FP.
+
+| Check | Flags | FP | Note |
+|---|---|---|---|
+| `eq_paid_in_capital` — closing paid-in ⋈ BS S.1 | 52 (32 green) | **0/52** | EXIM 2024Q2: BS says ₺35.7bn, equity statement says **0** |
+| `cf_chain` sum-surviving + `cf_roman_missing` | 8 | **0** | drop-detection **0% → 99.9%**; KUVEYT's ₺36.5bn roman IV |
+| `oci_roman_missing` + III = Σ surviving | 5 | **0** | ISCTR 2025Q4 cons lost a ~₺90bn roman I |
+| `pl_roman_missing` (anchors, not disc_net) | 2 | **0** | ODEA/TSKB wrapped-label XIII |
+| `cross_statement` 0.5% → flat ±10k TL | 0 | **0** | corpus max deviation is **exactly 0.000000** |
+| `check_profile` — cons ⋈ unco (NEW lane) | 16 | **0** | İşbank's "1 branch"; TSKB same Q4 fingerprint |
+| `check_audit_opinion` (NEW lane) | 50 | **0** | 45 missing auditors, all Q4 annuals |
+| free-provision recall LIKE widened | 8 | **0** | BURGAN's ₺1.87bn, ~~10~~ **8** cells |
+
+**Cumulative: 117 cells ok → error across the two tiers, plus 66 on the two newly-validated
+lanes.** `profile` and `audit_opinion` now have `has_validator=True` — 1,956 cells that asserted
+only "a row exists" are now checked. **17 of 18 lanes have a validator.**
+
+**The generalizable finding.** §2.2's "a check cannot detect the loss of its own input" is now
+FIXED for cash_flow, OCI and P&L — but *not* by requiring rows. Requiring all seven cash-flow
+romans flags 10 partitions and **2 are faithful** (ZIRAATD 2025Q3, DUNYAK 2024Q1 foot to gap = 0
+without the absent roman). The fix is `check_b_block`'s shape: sum whichever sources SURVIVE and
+check the target you don't need present — it reads the absent slot's *value*, not its presence,
+which is the only way to distinguish nil from dropped. A presence rule structurally cannot.
+
+**Corrections to this document, from evidence gathered while implementing:**
+- §1.3's "63 shifted cells" counted **pages**, not partitions. It is **34** (32 green).
+- §6.4's proposal to anchor equity components was right for `paid_in_capital` only.
+  `share_premium` adds 0 flags; `other_capital_reserves` produces **4 FPs** (EMLAK ties on
+  total, paid-in AND premium — its ₺98,418 of OCR simply sits in a different column of the other
+  statement: a classification difference between two disclosures, not a defect).
+- §6.9's "the extractor already handles the synonym (SKBNK proves it)" is **REFUTED**.
+  `free_provision.py:51` matches only `free\s+provision` / `serbest\s+kar[şs][ıi]l[ıi]k`; SKBNK
+  has rows because its text literally says "free provision". The extractor has the SAME blind
+  spot — the widened LIKE raises the alarm correctly, but the data fix needs the extractor too.
+- §6.7's `net_off_balance = off_bs_receivable − off_bs_payable` is **NOT shippable**: the 86
+  failures are a storage-convention split (DENIZ stores the payable parenthesised-negative in
+  102/102 rows), not defects. Sign-aware reaches 99.68%, but the residual 7 rows are either
+  already caught by `fx_footing` (EMLAK ×3, a real thousands-separator-as-decimal bug) or
+  unverified (TOMK 2025Q1, TAKAS 2023Q1 need a PDF read). Not circular, though — those three
+  columns are independently parsed; only `net_position` is derived.
+- §6 did not anticipate that **`free_provision` must NOT get `has_validator=True`**:
+  `conditional=True` routes an empty cell to `not_expected` before any verdict is read, so a
+  per-partition validator can never see the 469 N/A cells — the only ones with a problem.
+
+**Rejected with the killing number** (recorded so they aren't re-proposed): the longitudinal
+"fewer identities ran than this bank's median" alternative (10 CF flags vs 8; the 2 extra are
+exactly the faithful ZIRAATD and DUNYAK — it sees only that an identity didn't run, never the
+value); P&L sum-surviving (detection 4% → 60% but 3 FPs whose amounts are CORRECT at
+`item_order = MAX`, the known `reference_pl_override_item_order` defect — fix item_order first);
+`personnel >= branches` (0 flags in 811, and it passes DENIZ at exactly 1.00 — the very defect);
+`opinion_type ∈ {clean, qualified}` (a closed 2-value enum cannot be violated); `basis_text ⇒
+is_modified` (0 violations AND circular — is_modified is perfectly collinear with opinion_type);
+bare `branches_total IS NOT NULL` (48% FP — 36 of 75 nulls are branchless digital banks).
 
 ## 6. The fixes are already in the database (not applied)
 
