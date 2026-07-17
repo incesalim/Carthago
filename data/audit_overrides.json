@@ -2846,6 +2846,108 @@
         "total_amount": 0
       },
       "note": "Prose zero: p85 '7.8. Donuk Alacaklara İlişkin Bilgiler (Net)' — 7.8.1/7.8.2/7.8.3/7.8.4 each 'Bulunmamaktadır (31 Aralık 2024: Bulunmamaktadır)'. Corroborated by BS 2.5 Donuk Alacaklar = 0."
+    },
+    {
+      "bank_ticker": "ENPARA",
+      "period": "2024Q4",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "loans_by_stage",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 0,
+        "stage2_amount": 0,
+        "total_amount": 0
+      },
+      "note": "No loan book at 31 Dec 2024: p68 'b.1) Standart Nitelikli ve Yakın İzlemedeki krediler ... Bulunmamaktadır. (31 Aralık 2023 Bulunmamaktadır)'. EVERY loan note on that page reads Bulunmamaktadır. Sourced zero, not an absence — BS 2.1 Krediler = 0 confirms. (Bank started lending 2025Q1: BS 17.)"
+    },
+    {
+      "bank_ticker": "ENPARA",
+      "period": "2024Q4",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "total_amount": 0
+      },
+      "note": "Prose zero: p69 'j) Donuk alacaklara ilişkin bilgiler (Net): Bulunmamaktadır (31 Aralık 2023 - Bulunmamaktadır)'. No loans at all, so no NPL."
+    },
+    {
+      "bank_ticker": "ENPARA",
+      "period": "2025Q1",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "total_amount": 0
+      },
+      "note": "Prose zero: p55 'j) Donuk alacaklara ilişkin bilgiler (Net): Bulunmamaktadır (31 Aralık 2024 - Bulunmamaktadır)'. S1=17 IS extracted (§7.2) and ties BS 2.1 Krediler = 17 exactly."
+    },
+    {
+      "bank_ticker": "ENPARA",
+      "period": "2025Q2",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "total_amount": 0
+      },
+      "note": "Prose zero: p62 'j) Donuk alacaklara ilişkin bilgiler (Net): Bulunmamaktadır (31 Aralık 2024 - Bulunmamaktadır)'. S1+S2 = 245+2 = 247 IS extracted and ties BS 2.1 Krediler = 247 exactly. Without this S3 the cell would flip to a stages_stage3_missing ERROR once S1/S2 populate."
+    },
+    {
+      "bank_ticker": "HAYATK",
+      "period": "2023Q1",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "loans_by_stage",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 0,
+        "stage2_amount": 0,
+        "total_amount": 0
+      },
+      "note": "No loan book at 31 Mar 2023: p39 '1.5.2 Information on standard loans, loans under close monitoring and restructured loans...: None (31 December 2022 - None).' The heading is present with NO table under it. Sourced zero — BS 2.1 Loans = 0 confirms. (Bank started lending 2023Q3: BS 76.342.)"
+    },
+    {
+      "bank_ticker": "HAYATK",
+      "period": "2023Q1",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "total_amount": 0
+      },
+      "note": "Prose zero: p39 '1.5.9 Specific provisions for loans or default (third stage) provisions: None' + '1.5.10.2 Information on the movement of total non-performing loans: None (31 December 2022 - None)'."
+    },
+    {
+      "bank_ticker": "HAYATK",
+      "period": "2023Q2",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "loans_by_stage",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 0,
+        "stage2_amount": 0,
+        "total_amount": 0
+      },
+      "note": "No loan book at 30 Jun 2023: p53 '1.5.2 Information on standard loans, loans under close monitoring...: None (31 December 2022 - None).' Heading only, no table. BS 2.1 Loans = 0 confirms."
+    },
+    {
+      "bank_ticker": "HAYATK",
+      "period": "2023Q2",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "total_amount": 0
+      },
+      "note": "Prose zero: p53 '1.5.9 Specific provisions for loans or default (third stage) provisions: None (31 December 2022 - None)' + the 1.5.10 non-performing notes all None."
     }
   ]
 }

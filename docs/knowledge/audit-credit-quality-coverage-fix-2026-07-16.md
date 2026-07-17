@@ -1,11 +1,15 @@
 # Credit quality (IFRS-9 footnote) — 2 errors + 9 missing cleared, 8 N/A re-verified
 
 **Date:** 2026-07-16, updated 2026-07-17 · **Status:** ✅ SHIPPED — live in D1 + R2
-snapshot. Both rows now clean: `credit_quality` **1029 ok / 10 manual / 0 err / 0
-miss / 11 n·a**, `stages` **1034 / 0 / 0 / 5 / 11** (the `stages` half closed in
-the *Follow-up* section at the bottom) · **Memory:**
+snapshot. **Both lanes COMPLETE:** `credit_quality` **1024 ok / 15 manual / 0 err
+/ 0 miss / 11 n·a**, `stages` **1039 ok / 0 / 0 / 11**. Read the two *Follow-up*
+sections at the bottom for the `stages` half · **Memory:**
 [[project_credit_quality_floor_fix]], [[project_audit_npl_followups]],
 [[reference_credit_quality_stage_columns]]
+
+> The per-section tables below are kept as the record of each step; the header
+> above is the current state. Section 1 ("Result") reports the state after the
+> extractor fix only — Follow-ups 1 and 2 moved it on.
 
 ## What prompted it
 
@@ -288,3 +292,70 @@ point of the column.
   a flow row in the stock field is still possible for any bank without one.
 - `stages` **5 missing** = ENPARA/HAYATK, which hold only `loans_ecl_expense` —
   a section the stages builder does not read. Untouched.
+
+## Follow-up 2 — the last 5 `stages` missing (ENPARA / HAYATK): lane complete
+
+`stages` **1039 ok / 0 err / 0 miss / 11 n·a**; `credit_quality` **1024 ok /
+15 manual / 0 / 0 / 11**. Both rows clean.
+
+These 5 held only `loans_ecl_expense` — a section the stages builder does not
+read — so `credit_quality` showed a green **ok** while carrying nothing usable.
+Worth remembering: *a green cell is not the same as a useful one.* The row count
+gate (`present_min_rows=1`) can't tell the difference.
+
+Two distinct causes:
+
+**ENPARA 2025Q1/Q2 — the floor fix already worked; it just never ran.** These
+partitions already PASSED credit_quality validation, so the non-destructive
+upsert ([[reference_nondestructive_upsert]]) skipped them and `--only-failing`
+never selected them. Needed `--force`. Extraction then yields S1 = 17 (2025Q1)
+and S1+S2 = 245+2 = 247 (2025Q2), tying BS `2.1 Krediler` = 17 / 247 EXACTLY.
+**Lesson: a fix to an extractor does not reach cells that are already "passing"
+on partial data.** After changing an extractor, re-check the passing cells too,
+not just the failing ones.
+
+**ENPARA 2024Q4 + HAYATK 2023Q1/Q2 — no loan book at all.** Every loan note reads
+`Bulunmamaktadır` / `None`:
+
+```
+ENPARA 2024Q4 p68 — b.1) Standart Nitelikli ve Yakın İzlemedeki krediler ...
+                    Bulunmamaktadır. (31 Aralık 2023 Bulunmamaktadır).
+HAYATK 2023Q1 p39 — 1.5.2 Information on standard loans, loans under close
+                    monitoring ...: None (31 December 2022 – None).
+```
+
+BS confirms `2.1 Krediler`/`Loans` = 0 in all three, and both banks start lending
+right after (ENPARA 2025Q1 = 17; HAYATK 2023Q3 = 76,342). Recorded as a SOURCED
+zero (S1=S2=S3=0), consistent with the Stage-3 treatment in Follow-up 1.
+
+**The N/A-vs-zero line, stated once:** *is the note printed?*
+- Note **absent** → nothing is disclosed → **N/A** (TOMK 2023Q3–2024Q1: the
+  asset-note numbering skips Krediler entirely).
+- Note **present, says "none"** → the zero IS disclosed → **0** (ENPARA 2024Q4,
+  HAYATK 2023Q1/Q2, and every Stage-3 in Follow-up 1).
+
+That is the same rule both ways, and it keeps
+`audit_not_disclosed.json`'s contract intact ("never used to hide an extraction
+gap for data that IS printed").
+
+### Correcting the handover doc a second time
+
+`stages-lane-errors-missing-2026-07-16.md` lists these 5 under "**every figure is
+printed in the PDF**", citing "ENPARA ✅ S1 = 17 (p52)" for *2024Q4, 2025Q1/Q2*
+together and "HAYATK ✅ table on p39 (EN)". Read directly: the S1 = 17 is
+**2025Q1's** figure (ENPARA 2024Q4 has no loans and says so), and **p39 is not a
+table** — it is the 1.5.2 heading followed by "None". Same failure mode as its
+TOMK row (Follow-up 1): one PDF read, the neighbouring quarters inferred from it.
+Its diagnosis of the *causes* was sound and its DUNYAK 2023Q4 catch was real —
+but its per-cell "printed?" column was inferred, not verified, in three places.
+
+### Still open
+
+- The **prose-zero detector** — now 18 curated cells across 6 banks. Every new
+  quarter these banks file with no NPL needs another entry, so the detector's
+  case strengthens with each one.
+- **Templates** for the 6 new banks' `npl_brsa` regex path (the DUNYAK 2023Q4
+  flow-vs-stock misread class).
+- `credit_quality`'s `present_min_rows=1` gate counts `loans_ecl_expense` as
+  presence. Consider gating on a section the builder actually reads, so
+  "ok but useless" cannot recur silently.
