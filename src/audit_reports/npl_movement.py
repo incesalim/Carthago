@@ -74,6 +74,24 @@ _ROW_LABELS: list[tuple[str, str]] = [
     ("beginning balance", "opening_balance"),
     ("opening balance", "opening_balance"),
     # Closing — must come BEFORE "balance" prefixes for longest-first.
+    #
+    # HAYATK (English) closes with "Ending Balance of the Current Period" — the
+    # exact mirror of BURGAN's "Ending Balance of Prior Period" opening above,
+    # and the only "ending balance …" word order the list never learned. Matching
+    # is startswith(), so none of the other closing entries could reach it: they
+    # all begin with a different word ("current period ending balance",
+    # "balance at the end of the period", "closing balance", …), and the bare
+    # ("current period", "closing_balance") fallback can't either — the line
+    # CONTAINS "current period" but does not START with it. Note "of THE current
+    # period": the article is load-bearing, "ending balance of current period"
+    # would still miss.
+    # Cost: closing_balance NULL on 66 rows / 12 partitions — every HAYATK report
+    # filed in English. The natural experiment is 2025Q2 consolidated, HAYATK's
+    # only TURKISH report ("Dönem Sonu Bakiyesi") and the only one that passed.
+    # Longest-first keeps this distinct from the 30-char opening variant, and it
+    # cannot trip the HALKB `start_as_opening` rule (whose regex matches only
+    # "period end balance|balance at the end of the period").
+    ("ending balance of the current period", "closing_balance"),
     ("current period ending balance", "closing_balance"),
     ("current period end balance", "closing_balance"),
     # EXIM / BURGAN / AKBNK (English convenience translations) close the

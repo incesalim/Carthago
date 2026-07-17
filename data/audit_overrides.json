@@ -6197,6 +6197,42 @@
         "total_amount": 857119
       },
       "note": "FIBA's stage table is note §5.2 'Standart Nitelikli ve Yakın İzlemedeki krediler ile yeniden yapılandırılan Yakın İzlemedeki kredilere ilişkin bilgiler' — NOT §5.10, which is the prose interest-accrual note ('Banka donuk alacakları için faiz tahakkuku ve reeskontu yapmamaktadır'). Read from PDF p51 (0-based) via render; fitz only. stage2 = the three close-monitoring sub-columns summed (Yeniden Yapılandırma Kapsamında Yer Almayanlar + Sözleşme Koşullarında Değişiklik + Yeniden Finansman).\nDECISIVE CHECK — a closed reconciliation, not a band: S1 + S2 + S3 − faktoring alacakları = BS assets 2.1, EXACT TO THE LIRA. (The §5.2 Toplam includes factoring per its own (*) footnote; BS 2.1 excludes them, carrying them at 2.3.) Here: 58,917,103 + 6,889,153 + 2,441,759 − 127,869 = 68,120,146. The identity predicted S3 to the exact lira BEFORE it was rendered on four partitions. cons == unco for FIBA's stage table in every partition (verified byte-identical §5.2/ECL/NPL/BS in both books), so 2022Q4's identical cons/unco is GENUINE, not a cross-kind copy.\nThis partition was curated 'not disclosed' on an empty get_text(). The table IS printed — p51 has drawings=870, nums=0 (vector outlines). These are WHOLE-REPORT failures, not §5 failures: the balance sheet itself is vector-outlined too, which is why ~180k chars of prose have a text layer while every statement is drawn. An empty text band is meaningless as evidence of absence."
+    },
+    {
+      "bank_ticker": "ZIRAATD",
+      "period": "2026Q1",
+      "kind": "unconsolidated",
+      "statement": "npl_movement",
+      "group_code": "III",
+      "period_type": "current",
+      "fields": {
+        "opening_balance": 0.0
+      },
+      "note": "ZIRAATD 2026Q1 unco is the bank's FIRST period with any donuk alacak, and the opening row's three cells are printed GENUINELY BLANK — not even the '-' every other row in the table carries (p58, rendered at 7x and read; the text layer is faithful). So _THREE_NUMS_TAIL finds no numeric tail on 'Önceki Dönem Sonu Bakiyesi', skips the row, and the block starts on `additions` via start_as_flow → opening_balance NULL, current-only, 3 rows.\nopening_balance = 0 is SOURCED, not derived: the report discloses the prior period as PROSE — '(31 Aralık 2025: Bulunmamaktadır)' — i.e. the bank POSITIVELY states it had no non-performing loans at 31.12.2025. Same precedent as the prose-disclosed Stage-3 credit_quality overrides: a value a table-anchored extractor cannot read, but which the filing states in words. Corroborated by ZIRAATD 2025Q4, whose stages Stage-3 = 0 on a ₺308,480 loan book.\nNOT a tautology: closing_balance (52) was independently EXTRACTED from the printed page and is NOT touched here. Setting only the opening lets the roll-forward run as a REAL test — 0 + 52 additions = 52 = printed closing — and it ties, as does net 42 + provision 10 = 52.\nFixed by override rather than in the extractor ON PURPOSE: this shape only occurs in a bank's first-ever NPL quarter (from 2026Q2 ZIRAATD's opening row carries 52 and extracts normally), and npl_movement.py:358 records that a broad 'numberless opening row → 0' merge CORRUPTS GARAN/TSKB. A one-off cell does not justify that risk."
+    },
+    {
+      "bank_ticker": "ZIRAATD",
+      "period": "2026Q1",
+      "kind": "unconsolidated",
+      "statement": "npl_movement",
+      "group_code": "IV",
+      "period_type": "current",
+      "fields": {
+        "opening_balance": 0.0
+      },
+      "note": "ZIRAATD 2026Q1 unco is the bank's FIRST period with any donuk alacak, and the opening row's three cells are printed GENUINELY BLANK — not even the '-' every other row in the table carries (p58, rendered at 7x and read; the text layer is faithful). So _THREE_NUMS_TAIL finds no numeric tail on 'Önceki Dönem Sonu Bakiyesi', skips the row, and the block starts on `additions` via start_as_flow → opening_balance NULL, current-only, 3 rows.\nopening_balance = 0 is SOURCED, not derived: the report discloses the prior period as PROSE — '(31 Aralık 2025: Bulunmamaktadır)' — i.e. the bank POSITIVELY states it had no non-performing loans at 31.12.2025. Same precedent as the prose-disclosed Stage-3 credit_quality overrides: a value a table-anchored extractor cannot read, but which the filing states in words. Corroborated by ZIRAATD 2025Q4, whose stages Stage-3 = 0 on a ₺308,480 loan book.\nNOT a tautology: closing_balance (52) was independently EXTRACTED from the printed page and is NOT touched here. Setting only the opening lets the roll-forward run as a REAL test — 0 + 52 additions = 52 = printed closing — and it ties, as does net 42 + provision 10 = 52.\nFixed by override rather than in the extractor ON PURPOSE: this shape only occurs in a bank's first-ever NPL quarter (from 2026Q2 ZIRAATD's opening row carries 52 and extracts normally), and npl_movement.py:358 records that a broad 'numberless opening row → 0' merge CORRUPTS GARAN/TSKB. A one-off cell does not justify that risk.\nGroups IV and V get the same 0 for the same reason: the blank opening row is ONE row spanning all three group columns, so skipping it nulled the opening for all three at once. Their other cells print '-' (→ 0.0), so the groups are genuinely nil and the check still fires on additions=0.0 being non-NULL. 0 + 0 = 0 = printed closing."
+    },
+    {
+      "bank_ticker": "ZIRAATD",
+      "period": "2026Q1",
+      "kind": "unconsolidated",
+      "statement": "npl_movement",
+      "group_code": "V",
+      "period_type": "current",
+      "fields": {
+        "opening_balance": 0.0
+      },
+      "note": "ZIRAATD 2026Q1 unco is the bank's FIRST period with any donuk alacak, and the opening row's three cells are printed GENUINELY BLANK — not even the '-' every other row in the table carries (p58, rendered at 7x and read; the text layer is faithful). So _THREE_NUMS_TAIL finds no numeric tail on 'Önceki Dönem Sonu Bakiyesi', skips the row, and the block starts on `additions` via start_as_flow → opening_balance NULL, current-only, 3 rows.\nopening_balance = 0 is SOURCED, not derived: the report discloses the prior period as PROSE — '(31 Aralık 2025: Bulunmamaktadır)' — i.e. the bank POSITIVELY states it had no non-performing loans at 31.12.2025. Same precedent as the prose-disclosed Stage-3 credit_quality overrides: a value a table-anchored extractor cannot read, but which the filing states in words. Corroborated by ZIRAATD 2025Q4, whose stages Stage-3 = 0 on a ₺308,480 loan book.\nNOT a tautology: closing_balance (52) was independently EXTRACTED from the printed page and is NOT touched here. Setting only the opening lets the roll-forward run as a REAL test — 0 + 52 additions = 52 = printed closing — and it ties, as does net 42 + provision 10 = 52.\nFixed by override rather than in the extractor ON PURPOSE: this shape only occurs in a bank's first-ever NPL quarter (from 2026Q2 ZIRAATD's opening row carries 52 and extracts normally), and npl_movement.py:358 records that a broad 'numberless opening row → 0' merge CORRUPTS GARAN/TSKB. A one-off cell does not justify that risk.\nGroups IV and V get the same 0 for the same reason: the blank opening row is ONE row spanning all three group columns, so skipping it nulled the opening for all three at once. Their other cells print '-' (→ 0.0), so the groups are genuinely nil and the check still fires on additions=0.0 being non-NULL. 0 + 0 = 0 = printed closing."
     }
   ]
 }
