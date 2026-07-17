@@ -315,3 +315,38 @@ def test_squished_off_balance_rows_survive_header_filter():
     # …while the page header stays rejected
     hdr = "I. BALANCESHEET-ASSETS CurrentPeriod PriorPeriod 31.12.2023 31.12.2022"
     assert _parse_rows(hdr, 6) == []
+
+
+# --- loans_by_sector: a nil-declared sector note must not be scanned as a table ---
+from src.audit_reports.loans_by_sector import _is_nil_declared_note  # noqa: E402
+
+
+def test_nil_declared_sector_note_skipped():
+    # TAKAS: the heading answers itself "Bulunmamaktadır" — no table. Skipping it is
+    # what stops the GARAN-split retry from storing the next page's Value-at-Risk.
+    text = ("Önemli Sektörlere veya Karşı Taraf Türüne Göre Muhtelif Bilgiler: "
+            "Bulunmamaktadır (31 Aralık 2024: Bulunmamaktadır).")
+    assert _is_nil_declared_note(text) is True
+
+
+def test_nil_declared_sector_note_english_none():
+    text = ("Information according to sectors and counterparties: None "
+            "(31 December 2024: None).")
+    assert _is_nil_declared_note(text) is True
+
+
+def test_real_sector_table_not_nil_declared():
+    # A heading followed by actual sector rows (three trailing numbers) is a real
+    # table — must NOT be treated as nil.
+    text = ("Önemli Sektörlere veya Karşı Taraf Türüne Göre Muhtelif Bilgiler\n"
+            "Tarım 1.234 567 890\nSanayi 2.345 678 901\nToplam 3.579 1.245 1.791")
+    assert _is_nil_declared_note(text) is False
+
+
+def test_nil_elsewhere_does_not_suppress_table():
+    # "Bulunmamaktadır" for some OTHER note far from the heading must not suppress a
+    # real sector table (the nil check is anchored to the ~120 chars after the heading).
+    text = ("Bir başka dipnot bulunmamaktadır.\n" * 5 +
+            "Önemli Sektörlere veya Karşı Taraf Türüne Göre Muhtelif Bilgiler\n"
+            "Tarım 1.234 567 890\nToplam 1.234 567 890")
+    assert _is_nil_declared_note(text) is False

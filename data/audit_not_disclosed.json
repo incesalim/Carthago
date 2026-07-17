@@ -174,62 +174,6 @@
       "note": "NPL MOVEMENT (added 2026-07-17): the same zero-loan-book fact covers it — the asset-note numbering runs continuously 1→2→3→4→5→6(→7) with NO \"Kredilere ilişkin açıklamalar\" note anywhere (zero grep hits), so there is no donuk-alacak sub-note to extract. Contrast 2024Q2, which HAS the loans note at 6 with donuk alacak at sub-note f). 2024Q1 also carries the interim-omission citation for §4: \"…Tebliğ'in 25'inci maddesi uyarınca ara dönemde hazırlanmamıştır.\"\n\nT.O.M. Katılım is a BDDK-approved TFRS-9 NON-APPLIER — it does not run the expected-credit-loss model, so an IFRS-9 stage table cannot exist. Stated positively and verbatim in all four reports (2023Q3 p18, 2023Q4 p23, 2024Q1 p18, 2024Q2 p19) under 'VIII. FİNANSAL VARLIKLARDA DEĞER DÜŞÜKLÜĞÜNE İLİŞKİN AÇIKLAMALAR → Beklenen zarar karşılıklarına ilişkin açıklamalar':\n  \"Banka, BDDK tarafından yayımlanan 'Kredilerin Sınıflandırılması ve Bunlar İçin Ayrılacak Karşılıklara İlişkin Usul ve Esaslar Hakkında Yönetmelik'in DOKUZUNCU MADDESİNİN ALTINCI FIKRASI kapsamında TFRS 9'un değer düşüklüğüne ilişkin hükümlerini uygulamama konusunda BDDK'ya başvuruda bulunmuş ve Banka'nın talebi, BDDK tarafından kabul edilmiştir. Bu kapsamda karşılık hesaplama metodunu TFRS 9'a göre beklenen kredi zararı modeli ile değil; 31 ARALIK 2025 TARİHİNE KADAR ... 'TFRS 9 uygulamayan bankalarca ayrılacak genel ve özel karşılıklar' düzenlemelerine uygun olarak hesaplayıp muhasebeleştirmektedir.\"\nCorroborated per period, each on POSITIVE evidence (re-verified 2026-07-17 by rendering, not by text search):\n  2023Q3 — BS 2.1 Krediler = 0. Bölüm 4's own contents list has no credit-risk section at all (I. Özkaynaklar → II. Kur riski → III. Hisse senedi → IV. Likidite).\n  2023Q4 — the ANNUAL report DOES prepare the credit-risk section (pp34-44) and positively prints a nil loan book: 'Finansal varlık sınıfı bazında kredi kalitesine ilişkin bilgiler' (p39) lists Verilen Krediler: Kurumsal/Girişimci -, Bireysel -, İhtisas - (nil both years); the max-exposure table shows 'Verilen Krediler - -' with Toplam kredi risk duyarlılığı 1.599.856 sourced entirely from Bankalar + FVTPL. Independently corroborated by the 2024Q2 report's own prior-period column (31 Aralık 2023 = all dashes).\n  2024Q1 — the ₺5.314k loan book IS disclosed, but only BY MATURITY, never by stage: liquidity ladder p36, Verilen Krediler 4.130 (1-3 Ay) + 1.184 (3-12 Ay) = 5.314 = BS 2.1 exactly. The bank states its own materiality at p64: 'Krediler 5.314 TL ile %0,19' of assets. The credit-risk section is explicitly omitted WITH a citation (p29): 'II. Kredi riskine ilişkin açıklamalar — Bankalarca Kamuya Açıklanacak Finansal Tablolar ... Tebliğ'in 25'inci maddesi uyarınca ara dönemde hazırlanmamıştır.' p45 was RENDERED at 3x: the text layer is faithful, the notes run 2→3→4→5 consecutively and the lower third is genuinely blank. 0 images; the 343 drawings are borders around the printed Bankalar/FVTPL tables.\nCORRECTS THE PRIOR NOTE, which claimed \"the asset-note numbering jumps straight from '2. Bankalar' to '4. Maddi duran varlıklara'\" — FALSE. There is no gap: item 3 is 'Gerçeğe uygun değer farkı kar/zarara yansıtılan finansal varlıklara ilişkin bilgiler' (FVTPL, ₺1.454.623 at 2024Q1). TOMK RENUMBERS CONTIGUOUSLY when a note is absent; it never leaves a hole — so a numbering gap is NOT a usable tell for this filer. The real tell is the opposite: 2024Q2 expands to the full BRSA template (6. Krediler, 8. Satış amaçlı, 9. Maddi duran, ...), while 2023Q3/Q4/2024Q1 use a compressed 1-6/1-7 list with no loans note. Control: 2024Q2 p60 Standart Nitelikli 229.268 + Yakın İzlemedeki 1.792 = 231.060 = BS 2.1 exactly.\nWHY THE EARLIER SEARCH MISSED THE CITATION: the report spells the article out in words ('dokuzuncu maddesinin altıncı fıkrası', not '9 uncu madde'), uses the regulation's full title (not 'Karşılıklar Yönetmeliği'), and says 'uygulamama konusunda ... başvuruda bulunmuş' (not 'uygulamamaktadır'). All three probe terms returned 0. The single '9 uncu madde' hit at 2024Q1 p26 is a FALSE POSITIVE — it is the Özkaynaklar Yönetmeliği art. 9 on capital valuation adjustments, unrelated."
     },
     {
-      "bank": "ALNTF",
-      "period": "2022Q4",
-      "kind": "consolidated",
-      "statement": "loans_by_sector",
-      "note": "Sector table uses the legacy pre-IFRS-9 schema (Değer Kaybına Uğramış / Tahsili Gecikmiş / Değer Ayarlamaları / Karşılıklar) — it does NOT break Stage-2/Stage-3 out by sector, so this Stage-by-sector lane is genuinely not disclosed. Extractor skips the page rather than fabricate stage values."
-    },
-    {
-      "bank": "ALNTF",
-      "period": "2022Q4",
-      "kind": "unconsolidated",
-      "statement": "loans_by_sector",
-      "note": "Legacy past-due sector schema, no Stage-2/Stage-3 by sector (see consolidated)."
-    },
-    {
-      "bank": "ALNTF",
-      "period": "2023Q4",
-      "kind": "consolidated",
-      "statement": "loans_by_sector",
-      "note": "Legacy past-due sector schema, no Stage-2/Stage-3 by sector (see 2022Q4)."
-    },
-    {
-      "bank": "ALNTF",
-      "period": "2023Q4",
-      "kind": "unconsolidated",
-      "statement": "loans_by_sector",
-      "note": "Legacy past-due sector schema, no Stage-2/Stage-3 by sector (see 2022Q4)."
-    },
-    {
-      "bank": "ALNTF",
-      "period": "2024Q4",
-      "kind": "consolidated",
-      "statement": "loans_by_sector",
-      "note": "Legacy past-due sector schema, no Stage-2/Stage-3 by sector (see 2022Q4)."
-    },
-    {
-      "bank": "ALNTF",
-      "period": "2024Q4",
-      "kind": "unconsolidated",
-      "statement": "loans_by_sector",
-      "note": "Legacy past-due sector schema, no Stage-2/Stage-3 by sector (see 2022Q4)."
-    },
-    {
-      "bank": "ALNTF",
-      "period": "2025Q4",
-      "kind": "consolidated",
-      "statement": "loans_by_sector",
-      "note": "Legacy past-due sector schema, no Stage-2/Stage-3 by sector (see 2022Q4)."
-    },
-    {
-      "bank": "ALNTF",
-      "period": "2025Q4",
-      "kind": "unconsolidated",
-      "statement": "loans_by_sector",
-      "note": "Legacy past-due sector schema, no Stage-2/Stage-3 by sector (see 2022Q4)."
-    },
-    {
       "bank": "TAKAS",
       "period": [
         "2022Q2",
@@ -345,6 +289,83 @@
         "npl_movement"
       ],
       "note": "⚠️ READ THIS BEFORE TRUSTING THE N/A. TOMK DOES disclose donuk alacak in these quarters — as PROSE CARRYING A FIGURE, not as the III/IV/V roll-forward this lane extracts. Verbatim (2024Q3 p52): \"30 Eylül 2024 tarihi itibarıyla Donuk alacak tutarı 4.406 TL'dir (31 Aralık 2023: Bulunmamaktadır). 30 Eylül 2024 tarihi itibarıyla cari dönem içerisinde donuk alacaktan yapılan bir tahsilat bulunmamaktadır.\" 2024Q2 p63 says the same with 2 TL.\nN/A is correct for THIS lane ONLY because the lane IS the roll-forward table and TOMK files none: its note numbering carries no such table until 2024Q4 — exactly the first period this lane extracts (6 rows, group V additions 177,537). It is NOT a claim that TOMK disclosed nothing: the STOCK is captured, sourced from this same prose, in credit_quality/stages (2024Q2 S3=2, 2024Q3 S3=4,406).\nDeliberately NOT stored as a synthesised roll-forward. The prose almost yields one (opening nil + collections nil + closing 4,406 ⇒ additions 4,406; note e) even splits the provision by group, Group III = 882) — but `additions` would then be OUR arithmetic, not the bank's disclosure, and it would make the npl_closing_vs_gross check tautological against a credit_quality figure read from the SAME sentence.\nTOMK is also a BDDK-approved TFRS-9 non-applier (Yönetmelik art. 9/6, approved through 31.12.2025) — see its credit_quality/stages entry. No other bank in this file has that approval: DUNYAK/ENPARA/COLENDI/ZIRAATD/HAYATK/TAKAS all declare nil on the merits.\nVerified 2026-07-17 by a language-agnostic full-document sweep + a bitmap/vector/low-text detector on every page (NOT a keyword probe): the note region is in the plain text layer — no bitmaps, no vector outlines, correct document. The extractor returns 0 rows because NO TABLE EXISTS; it is behaving correctly."
+    },
+    {
+      "bank": "DUNYAK",
+      "period": "2024Q4",
+      "kind": "unconsolidated",
+      "statement": [
+        "loans_by_sector"
+      ],
+      "note": "DUNYAK is a BDDK-approved TFRS-9 NON-APPLIER, so an IFRS-9 stage-by-sector table cannot exist — note (10) prints the LEGACY heading and answers it nil: \"Sektörlere veya karşı taraf türüne göre; … değer kaybına uğramış kredi ve tahsili gecikmiş kredi tutarları …\" → \"31 Aralık 2024 tarihi itibarıyla donuk alacak olarak sınıflandırılan tutar BULUNMAMAKTADIR (1 Ocak 2024: Bulunmamaktadır).\" (p43). The non-applier approval is stated on p26 by APPROVAL LETTER, not article number: \"Banka, BDDK'nin 3 Ekim 2017 tarihli 32521522-101.02.02(27)-E.81 sayılı yazı onayı ile … TFRS 9'un değer düşüklüğüne ilişkin hükümlerini UYGULAMAMAKTADIR.\" A ₺23bn loan book with no sector note is unusual ONLY under IFRS-9 — DUNYAK doesn't apply it. Corroborated by its §4 credit-quality table (p62): Krediler gross 23.035.345, Temerrüt etmiş = \"-\".\nVerified 2026-07-17 by a language-agnostic full-document sweep (≥8 sector-taxonomy labels per page, independent of the heading regex) + a bitmap/vector detector: no missed stage-by-sector table exists on any page. imgs=0 throughout."
+    },
+    {
+      "bank": "DUNYAK",
+      "period": "2023Q4",
+      "kind": "unconsolidated",
+      "statement": [
+        "loans_by_sector"
+      ],
+      "note": "LEGACY past-due schema — DUNYAK prints a full 20-row sector table (p38 Cari Dönem / p39 Önceki Dönem) but with the PRE-IFRS-9 columns \"Değer Kaybına Uğramış | Tahsili Gecikmiş | Değer Ayarlamaları | Karşılıklar\" — no İkinci/Üçüncü Aşama anywhere in the file. So the bank disclosed a sector table, but the STAGE-2/STAGE-3 split this lane models does not exist in it. DUNYAK is a non-applier (2023Q4 cites a different letter: BDDK 4 Nisan 2018 32521522-101.02.02(22)-E.4750). Cari Dönem all-dashes; Önceki Dönem Toplam - 6.075 - 6.075. Mapping past-due onto Stage 2 (the parser does this with the legacy guard bypassed → fabricates 19 rows) would be a fabrication for a bank that doesn't apply TFRS 9.\nVerified 2026-07-17 by a language-agnostic full-document sweep (≥8 sector-taxonomy labels per page, independent of the heading regex) + a bitmap/vector detector: no missed stage-by-sector table exists on any page. imgs=0 throughout."
+    },
+    {
+      "bank": "TOMK",
+      "period": "2023Q4",
+      "kind": "unconsolidated",
+      "statement": [
+        "loans_by_sector"
+      ],
+      "note": "Zero loan book (BS 2.1 = 0) and no loans note at all — TOMK's first sector table appears 2024Q4. TOMK is a BDDK-approved TFRS-9 non-applier (Yönetmelik art. 9/6, approved through 31.12.2025); its asset-note numbering runs continuously with no \"Kredilere ilişkin açıklamalar\" note in the list.\nVerified 2026-07-17 by a language-agnostic full-document sweep (≥8 sector-taxonomy labels per page, independent of the heading regex) + a bitmap/vector detector: no missed stage-by-sector table exists on any page. imgs=0 throughout."
+    },
+    {
+      "bank": "ENPARA",
+      "period": "2024Q4",
+      "kind": "unconsolidated",
+      "statement": [
+        "loans_by_sector"
+      ],
+      "note": "Zero loan book (BS 2.1 = 0). ENPARA APPLIES IFRS 9 but has no loans to break down; both stages are declared nil — \"…bakiyesi bulunmamaktadır\" (p44).\nVerified 2026-07-17 by a language-agnostic full-document sweep (≥8 sector-taxonomy labels per page, independent of the heading regex) + a bitmap/vector detector: no missed stage-by-sector table exists on any page. imgs=0 throughout."
+    },
+    {
+      "bank": "HAYATK",
+      "period": "2023Q4",
+      "kind": "unconsolidated",
+      "statement": [
+        "loans_by_sector"
+      ],
+      "note": "No stage-by-sector table. HAYATK files in ENGLISH and states nil (p45): \"…does not have any second or third stage impaired loans.\" ⚠️ p60 DOES print \"Breakdown of cash loans by sector\" (Manufacturing 332,648 / Services 770,603 / Total 1,103,350 = BS loans exactly) — a GROSS-loans-by-sector table with NO stage split, which is a different disclosure and not this lane's data.\nVerified 2026-07-17 by a language-agnostic full-document sweep (≥8 sector-taxonomy labels per page, independent of the heading regex) + a bitmap/vector detector: no missed stage-by-sector table exists on any page. imgs=0 throughout."
+    },
+    {
+      "bank": "COLENDI",
+      "period": "2025Q4",
+      "kind": "unconsolidated",
+      "statement": [
+        "loans_by_sector"
+      ],
+      "note": "COLENDI is a BDDK-approved TFRS-9 non-applier and states nil, in ENGLISH (p39): \"None (31 December 2024: None)\". The approval is on p20: \"The Bank has applied to the BRSA not to apply the provisions of TFRS 9 regarding impairment within the scope of the sixth paragraph of the ninth article of the 'Regulation on Procedures and Principles for Classification of Loans …' and the Bank's request has been accepted by the BRSA.\" (also p78: \"(*) The Bank does not apply the TFRS 9 Financial Instruments Standard…\"). Its Stage-2=1,576 in the stages lane is the BRSA Group-I/II analogue, not an IFRS stage.\nVerified 2026-07-17 by a language-agnostic full-document sweep (≥8 sector-taxonomy labels per page, independent of the heading regex) + a bitmap/vector detector: no missed stage-by-sector table exists on any page. imgs=0 throughout."
+    },
+    {
+      "bank": "ZIRAATD",
+      "period": "2025Q4",
+      "kind": "unconsolidated",
+      "statement": [
+        "loans_by_sector"
+      ],
+      "note": "ZIRAATD is a BDDK-approved TFRS-9 non-applier and states nil (p42): \"BULUNMAMAKTADIR (31 Aralık 2024: Bulunmamaktadır)\". Approval p20: \"…dokuzuncu maddesinin altıncı fıkrası kapsamında TFRS 9'un değer düşüklüğüne ilişkin hükümlerini uygulamama konusunda BDDK'ya başvurmuş ve … kabul edilmiştir.\" Its Stage-2=248 (note 7.2, \"Birinci ve İkinci Grup Krediler\") is the BRSA Group-I/II classification, not an IFRS stage.\nVerified 2026-07-17 by a language-agnostic full-document sweep (≥8 sector-taxonomy labels per page, independent of the heading regex) + a bitmap/vector detector: no missed stage-by-sector table exists on any page. imgs=0 throughout."
+    },
+    {
+      "bank": "TAKAS",
+      "period": [
+        "2022Q4",
+        "2023Q4",
+        "2024Q4",
+        "2025Q4"
+      ],
+      "kind": "unconsolidated",
+      "statement": [
+        "loans_by_sector"
+      ],
+      "note": "Takasbank declares the stage-by-sector note nil in all 4 annual reports, verbatim: \"Önemli Sektörlere veya Karşı Taraf Türüne Göre Muhtelif Bilgiler: BULUNMAMAKTADIR.\" (2025Q4 p47, rendered at 7x to confirm — no bitmap, no vector table, no gap; the heading and its own nil answer, no table). Consistent with the stages lane: every quarter Stage 1 = the entire loan book = BS 2.1 exactly, no Stage 2 or Stage 3 anywhere.\n⚠️ These 4 cells were ERRORS until 2026-07-17 because the extractor read a MARKET-RISK table as this one: the heading regex matched the note that declares itself empty, no rows were found on the page, so the GARAN-split retry appended the NEXT page (section III, Piyasa Riski) and stored its \"Toplam Riske Maruz Değer\" (Total Value at Risk) average as a loan sector total (e.g. 2025Q4 stage2=137,098). Fixed in the extractor: _is_nil_declared_note now skips a heading whose answer is Bulunmamaktadır/None, so the page yields 0 rows and the retry never fires.\n⚠️ NOT to be confused with TAKAS's OTHER sector table, \"Sektörlere göre nakdi kredi dağılımı\" (pp44-45): that one IS printed, but its columns are the 14 credit-risk-CLASS categories (Merkezi Yönetimlerden… / Bankalar ve Aracı Kurumlardan… / TP / YP / Toplam), with no stage split — its Toplam is ₺470,607,448k, a CCP exposure figure ~50-300x the ₺1.4-9.6bn loan book. It is not this lane's data."
     }
   ]
 }

@@ -1927,17 +1927,123 @@ def _resolved_top_level(cur_rows: list[dict]) -> list[dict]:
     return result
 
 
-def check_loans_by_sector(rows: list[dict]) -> ValidationResult:
+def _check_sector_year_swap(cur: list[dict], prior_year_total: dict | None,
+                            res: ValidationResult) -> None:
+    """This year's sector TOTAL must not be byte-identical to last year's.
+
+    The footing check (Σ top-level == total) is structurally blind to the worst
+    failure this lane has: a WHOLESALE YEAR SWAP foots perfectly, because last
+    year's table foots against last year's total. Only a cross-period identity
+    can see it.
+
+    ICBCT is the live case and the calibration set. Its annual report stacks two
+    tables on one page captioned `31 Aralık 2023` / `31 Aralık 2022` — never
+    "Cari Dönem"/"Önceki Dönem" — so the period never flips, both tables are
+    tagged `current`, and `_dedupe`'s first-wins backfills any dropped current
+    row from LAST YEAR's table. 2023Q4 unconsolidated lost so many rows that the
+    partition became almost entirely the 2022 table: it stored
+    stage2 1,749,577 / stage3 41,860, byte-identical to its own 2022Q4, understated
+    Stage 3 by 3.1x against the printed 127,422 — and read a flawless `ok`, with
+    0 failures, for as long as this lane has existed.
+
+    CALIBRATION (2026-07-17, whole corpus): 2 flags / 167 adjacent annual pairs
+    (1.2%), BOTH true positives, both ICBCT (cons + unco 2022Q4 == 2023Q4).
+    Zero false positives.
+
+    Why a hard fail is safe: these are lira-precise aggregates over a live loan
+    book. Two consecutive year-ends agreeing to the lira on BOTH stage columns
+    does not happen to a real bank. The one legitimate way to tie is nil-on-nil
+    (a bank with no Stage-2/Stage-3 both years), so a zero total is excluded — it
+    is the only value that repeats honestly.
+    """
+    if not prior_year_total:
+        res.add_skip()
+        return
+    total_row = next((r for r in cur if r.get("sector") == "total"), None)
+    if total_row is None:
+        res.add_skip()
+        return
+    same = []
+    for col in ("stage2_amount", "stage3_amount"):
+        now, was = total_row.get(col), prior_year_total.get(col)
+        if now is None or was is None:
+            return  # can't judge on a partial pair — the footing check still runs
+        if abs(now) < 1.0:
+            return  # nil-on-nil is the honest repeat; never flag it
+        same.append(abs(now - was) < 1.0)
+    if same and all(same):
+        res.add_fail("loans_sector_year_swap",
+                     "sector total identical to the PRIOR ANNUAL report "
+                     "(stage2+stage3 both tie to the lira) — the comparative "
+                     "column was almost certainly stored as current",
+                     expected=float(prior_year_total.get("stage2_amount") or 0.0),
+                     actual=float(total_row.get("stage2_amount") or 0.0))
+    else:
+        res.add_pass()
+
+
+def _check_sector_child_le_parent(cur: list[dict], res: ValidationResult) -> None:
+    """A group total is the sum of its non-negative children, so NO CHILD can
+    exceed its parent. A child > parent is a merged-label corruption the footing
+    check is blind to: the extractor fused two adjacent rows ("Balıkçılık - - -
+    Sanayi") and gave one sector's key another's numbers, or backfilled a child
+    from the wrong year — and because _resolved_top_level prefers the (correct)
+    PARENT over the (corrupt) child, the footing still ties and the cell reads
+    'ok'.
+
+    ICBCT is the live case: 2022Q4 `agri_fishery` stored 635,214 (the prior-year
+    Sanayi Stage-2, backfilled onto nil Balıkçılık) against `agri_total` 0;
+    2025Q4 `svc_education` stored 1,448,401 (belongs to Sağlık) against a services
+    parent that doesn't contain it. Both read a flawless green for as long as the
+    lane has existed.
+
+    Zero false positives BY CONSTRUCTION — this is arithmetic, not a tolerance:
+    child > parent cannot happen in a faithfully-read table (a small epsilon
+    absorbs rounding). When it does, either the child or the parent is wrong;
+    either way the partition is defective. ecl_amount is included here (unlike the
+    footing check) because the hierarchy holds for provisions too, and a corrupt
+    child inflates a real column regardless of collective-provisioning nuance.
+    """
+    by = {r["sector"]: r for r in cur if r.get("sector")}
+    eps = 1.0
+    for parent, subs in _SECTOR_GROUPS:
+        prow = by.get(parent)
+        if prow is None:
+            continue
+        for col in ("stage2_amount", "stage3_amount", "ecl_amount"):
+            pv = prow.get(col)
+            if pv is None:
+                continue
+            for kid in subs:
+                krow = by.get(kid)
+                kv = krow.get(col) if krow else None
+                if kv is not None and kv > pv + eps:
+                    res.add_fail(
+                        "loans_sector_child_exceeds_parent",
+                        f"{col}: {kid} ({kv:,.0f}) > {parent} ({pv:,.0f}) — a "
+                        "child sector cannot exceed its group total (merged-label "
+                        "or wrong-year corruption)",
+                        expected=pv, actual=kv)
+                    return  # one flag per partition is enough to fail it
+
+
+def check_loans_by_sector(rows: list[dict],
+                          prior_year_total: dict | None = None) -> ValidationResult:
     """Loans by sector: sum of top-level sectors ≈ total row, per amount column.
 
     Falls back to sub-sector rows when a group aggregate (agri_total, mfg_total,
     svc_total) is absent — some banks omit the sub-total line but print the detail.
+
+    `prior_year_total` is the PREVIOUS annual report's own `total` row for this
+    (bank, kind) — see `loans_sector_year_swap` below for why the footing check
+    alone cannot be trusted here.
     """
     res = ValidationResult()
     cur = [r for r in rows if r.get("period_type") == "current"]
     if not cur:
         res.add_skip()
         return res
+    _check_sector_year_swap(cur, prior_year_total, res)
     total_row = next((r for r in cur if r.get("sector") == "total"), None)
     sectors = [r for r in cur if r.get("sector") and r.get("sector") != "total"]
     if total_row is None:
@@ -1956,6 +2062,7 @@ def check_loans_by_sector(rows: list[dict]) -> ValidationResult:
                      "sector detail dropped (total present, no sector rows)",
                      expected=0.0, actual=0.0)
         return res
+    _check_sector_child_le_parent(cur, res)
     any_check = False
     for col in ("stage2_amount", "stage3_amount"):  # ecl_amount excluded: collective provisioning ≠ sector-exact
         tot_val = total_row.get(col)

@@ -122,6 +122,12 @@ _STMT_TO_KEY = {
     # two-page current/prior mix-up. All of them read a machine-extracted 'ok'
     # until this entry existed.
     "npl_movement": "npl_movement",
+    # Whole-partition sector tables hand-transcribed off the printed page because
+    # ICBCT/AKTIF stack two dated tables and the shared y-bucketing reader spliced
+    # them (see apply_overrides `loans_by_sector_replace`). 9 partitions, every
+    # cell pixel-verified. The override statement is the _replace verb, mapped here
+    # to the coverage key so they read `manual`, not a machine `ok`.
+    "loans_by_sector_replace": "loans_by_sector",
 }
 
 

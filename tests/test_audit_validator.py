@@ -1524,6 +1524,50 @@ def test_loans_by_sector_dropped_sector_cols_fails():
     assert any(f["check"] == "loans_sector_columns_missing" for f in res.failures)
 
 
+def _sector_total_pass_rows():
+    return [
+        _sector_row("agri_total", 10, 5, 3),
+        _sector_row("mfg_total", 20, 10, 6),
+        _sector_row("construction", 5, 3, 2),
+        _sector_row("svc_total", 30, 15, 9),
+        _sector_row("other", 5, 2, 1),
+        _sector_row("total", 70, 35, 21),
+    ]
+
+
+def test_loans_by_sector_year_swap_fails():
+    # This year's total ties to the lira with LAST year's — the comparative column
+    # was stored as current (ICBCT's stacked dated tables). _sector_row scales by
+    # 1000, so the stored total is 70_000 / 35_000.
+    res = v.check_loans_by_sector(
+        _sector_total_pass_rows(),
+        prior_year_total={"stage2_amount": 70_000, "stage3_amount": 35_000})
+    assert any(f["check"] == "loans_sector_year_swap" for f in res.failures)
+
+
+def test_loans_by_sector_year_swap_absent_skips():
+    # No prior-year total available → can't judge; must not fail.
+    res = v.check_loans_by_sector(_sector_total_pass_rows(), prior_year_total=None)
+    assert res.failed == 0, res.failures
+
+
+def test_loans_by_sector_year_change_passes():
+    # A real bank's total moves year-on-year — not a swap.
+    res = v.check_loans_by_sector(
+        _sector_total_pass_rows(),
+        prior_year_total={"stage2_amount": 61_000, "stage3_amount": 29_000})
+    assert not any(f["check"] == "loans_sector_year_swap" for f in res.failures)
+
+
+def test_loans_by_sector_year_swap_nil_on_nil_passes():
+    # Zero total both years is the ONE honest repeat (a bank with no S2/S3) — never
+    # flag it, even though it ties to the lira.
+    rows = [_sector_row("agri_total", 0, 0, 0), _sector_row("total", 0, 0, 0)]
+    res = v.check_loans_by_sector(
+        rows, prior_year_total={"stage2_amount": 0, "stage3_amount": 0})
+    assert not any(f["check"] == "loans_sector_year_swap" for f in res.failures)
+
+
 # --- Cash flow validation -------------------------------------------------
 
 def _cf_row(h, name, amount, scale=1000):
@@ -1718,3 +1762,35 @@ def test_equity_change_open_close_interim_skips():
 def test_equity_change_empty_skips():
     res = v.check_equity_change([])
     assert res.failed == 0 and res.skipped >= 1
+
+
+def test_loans_by_sector_child_exceeds_parent_fails():
+    # A child sector amount larger than its group total = merged-label corruption
+    # (ICBCT stored 635,214 on nil Balıkçılık against agri_total 0).
+    rows = [
+        _sector_row("agri_total", 0, 0, 0),
+        _sector_row("agri_fishery", 635, 1, 272),  # child >> parent
+        _sector_row("mfg_total", 20, 10, 6),
+        _sector_row("svc_total", 30, 15, 9),
+        _sector_row("construction", 5, 3, 2),
+        _sector_row("other", 5, 2, 1),
+        _sector_row("total", 60, 30, 18),
+    ]
+    res = v.check_loans_by_sector(rows)
+    assert any(f["check"] == "loans_sector_child_exceeds_parent" for f in res.failures)
+
+
+def test_loans_by_sector_child_within_parent_passes():
+    # child <= parent everywhere — no violation.
+    rows = [
+        _sector_row("mfg_total", 20, 10, 6),
+        _sector_row("mfg_production", 12, 6, 4),   # <= parent
+        _sector_row("mfg_utilities", 8, 4, 2),
+        _sector_row("agri_total", 10, 5, 3),
+        _sector_row("svc_total", 30, 15, 9),
+        _sector_row("construction", 5, 3, 2),
+        _sector_row("other", 5, 2, 1),
+        _sector_row("total", 70, 35, 21),
+    ]
+    res = v.check_loans_by_sector(rows)
+    assert not any(f["check"] == "loans_sector_child_exceeds_parent" for f in res.failures)

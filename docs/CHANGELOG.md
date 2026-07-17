@@ -5,6 +5,51 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-07-17.
 
+2026-07-17 — **Loans-by-sector: 6 errors + 7 missing → 0/0, and 6 cells
+that read a flawless `ok` were silently wrong.** TAKAS ×4 stored an average
+**Value-at-Risk** (`Toplam Riske Maruz Değer`) as a loan sector total — the
+heading regex matched the note that answers *itself* "Bulunmamaktadır", found no
+table, and the split-table retry wandered onto the next page's market-risk table.
+Fixed by skipping a sector note that declares itself nil, proven neutral on six
+varied banks (the extractor with-and-without the change extracts identical
+counts). TOMK 2024Q4 is a genuine source defect (the bank prints its own services
+subtotal as a dash while a child carries ₺85m) → skip-listed.
+
+The seven "missing" are all genuinely N/A now, each with a verbatim citation —
+and **four of these banks turned out to be TFRS-9 non-appliers** (DUNYAK,
+ZIRAATD, COLENDI, plus the known TOMK), each wording the art. 9/6 exemption
+differently, which is why earlier probes missed them.
+
+**The ALNTF N/A was false and is the headline correction.** It discloses
+stage-by-sector in all eight reports; the column captions are the legacy
+*Değer Kaybına Uğramış / Tahsili gecikmiş*, but the numbers *are* the stages —
+the sector total equals the report's own *Yakın İzlemedeki / Takipteki* stage
+note to the lira, and ALNTF states it applies TFRS 9. So the legacy-schema
+detector fires correctly but its premise is wrong: legacy captions don't imply
+legacy data. Those cells now read honest `missing`.
+
+Two new zero-false-positive checks. **`loans_sector_year_swap`** catches what
+footing structurally can't — a wholesale year-swap foots perfectly against
+itself. ICBCT stacks two *dated* tables on one page (never "Cari/Önceki Dönem"),
+so the period never flips and dropped current rows get backfilled from last year;
+its 2023Q4 unconsolidated cell was reading a flawless `ok` while storing its own
+2022 total, Stage 3 understated 3.1×. Calibrated 2/236, both ICBCT.
+**`loans_sector_child_exceeds_parent`** is a mathematical invariant — a child
+sector can't exceed its group total — that surfaced eight merged-label
+corruptions the footing check is blind to (e.g. ICBCT stored a ₺635m fishery
+exposure that was really the prior year's Sanayi total).
+
+Nine partitions (ICBCT ×7, AKTIF ×2) were hand-transcribed off the printed page,
+every cell 7–13× pixel-verified and foot-checked, via a new
+`loans_by_sector_replace` override; they read `manual`. The root cause is the
+shared y-bucketing text reader (`int(round(y0))` aliasing a 3.4pt intra-row
+offset), which can't be touched without disturbing every frozen statement lane —
+hence overrides rather than an extractor rewrite. One process note: a whole-lane
+`--force` re-extract regressed AKBNK and DENIZ mid-way and was reverted from the
+R2 snapshot — `--force` runs current code over rows frozen by older code, so it's
+never a clean isolation. Detail:
+[docs/knowledge/audit-loans-by-sector-lane-to-zero-2026-07-17.md](knowledge/audit-loans-by-sector-lane-to-zero-2026-07-17.md).
+
 2026-07-17 — **NPL movement: 13 errors + 43 missing → 0/0. The entire
 error lane was one missing string.** HAYATK prints its closing row, in bold, in
 all 13 reports as `"Ending balance of the current period"` — the one "ending
