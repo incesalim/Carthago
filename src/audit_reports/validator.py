@@ -675,6 +675,82 @@ def pl_roles(pl_rows: list[dict]) -> dict[str, str]:
     return out
 
 
+def check_pl_deduction_convention(pl_rows: list[dict]) -> ValidationResult:
+    """Each deduction block carries ONE storage convention, and the chain says
+    which: the signed sum of the block must equal +(base − target) or
+    −(base − target). Nothing in between is possible.
+
+    This is the check that pins the sign, and the reason it is separate from
+    check_pl_chain is that the chain CANNOT do it. The chain accepts a deduction
+    identity if EITHER `Σ|v| == D` (subtract the magnitudes) or `Σv == D`
+    (subtract the stored values) foots. The first reading is **sign-blind by
+    construction** — flipping a line's sign leaves its magnitude untouched, so
+    the identity sails through. Measured: flipping one deduction's stored sign is
+    caught 29/300 (10%) by the chain and 299/300 (100%) here.
+
+    The sign is not decoration. pl-sankey.ts deliberately does NOT abs() the
+    deduction stack (lib/pl-sankey.ts:150-168): a genuine ECL RELEASE (BURGAN) or
+    provision write-back (DENIZ) is stored with the opposite sign and must be
+    ADDED back, and abs()-ing it double-counted the swing until the VIII→XIII
+    identity failed by ~190%. So a wrong stored sign renders a wrong chart.
+
+    Why ±D and not a fixed convention: the corpus genuinely uses both. Most banks
+    print the magnitude and carry the "(-)" in the label; ING/KLNMA/PASHA and the
+    participation banks parenthesise the value itself and therefore store a
+    negative. TFKB mixes the two WITHIN one statement (II positive, IX–XII
+    negative), which is why this is applied per identity-block rather than per
+    statement. What is NOT allowed is a block that matches neither — that is a
+    line whose sign contradicts its own block.
+
+    A genuine reversal is still fine, and this is the subtle part: a released
+    provision inside a positive-convention block stores negative and REDUCES Σv
+    by exactly the amount the block's net deduction D falls, so Σv == D still
+    holds. The check constrains the block's total against the chain, not each
+    line's sign against a rule — so it accepts every faithful reversal and
+    rejects a flip.
+
+    Corpus: 1048/1048 pass, 0 flags. Independently corroborated — the convention
+    this derives agrees with pl-sankey.ts's own anchor heuristic (personnel XI.,
+    else II., else XII.) on 1048/1048, so the UI has been guessing right; this
+    makes the guess checkable instead of assumed.
+
+    NOT covered, stated so it isn't assumed: only the block's SUM is constrained,
+    so moving value between two lines of one block is invisible (the same-band
+    swap, 0/299). And the TAX sign stays free — the chain pins |tax| via
+    cont_net = pretax ± tax but genuinely cannot pick the side, since tax is an
+    expense in most quarters and a benefit in some. That one is inert rather than
+    unfixable: pl-sankey.ts:220 does `Math.abs(ix.get("XVIII.") ?? 0)`, the only
+    consumer that reads it.
+    """
+    res = ValidationResult()
+    amt = _pl_spine(pl_rows)
+    if not amt:
+        res.add_skip()
+        return res
+    tpl = _pl_template(pl_rows, amt)
+    chain, deductions = _pl_chain(tpl)
+    for target, sources in chain:
+        ded_ords = [s for s in sources if s in deductions]
+        if not ded_ords:
+            continue        # gross / pre-tax / period-net are pure sums — N/A here
+        ded = [amt[s] for s in ded_ords if s in amt]
+        base_ords = [s for s in sources if s not in deductions]
+        if (target not in amt or not ded
+                or any(o not in amt for o in base_ords)):
+            res.add_skip()
+            continue
+        d = sum(amt[o] for o in base_ords) - amt[target]   # the net deduction
+        s = sum(ded)                                       # as stored, signed
+        tol = _tol(d, base=3.0, rel=5e-5)
+        if abs(s - d) <= tol or abs(s + d) <= tol:
+            res.add_pass()
+        else:
+            res.add_fail("pl_deduction_convention",
+                         f"roman {target}: signed Σ(deductions) must be ±(base − target)",
+                         expected=d, actual=s)
+    return res
+
+
 def check_pl_chain(pl_rows: list[dict]) -> ValidationResult:
     """The income-statement roman identities (III=I−II … period-net=cont+disc),
     each read against the partition's OWN numbering (see module note). An
@@ -779,6 +855,7 @@ def check_profit_loss(pl_rows: list[dict], liabilities: list[dict] | None = None
     carry "(-)" labels but additive signs, which would false-fail it."""
     res = ValidationResult()
     res.merge(check_pl_chain(pl_rows))
+    res.merge(check_pl_deduction_convention(pl_rows))
     if liabilities is not None:
         res.merge(check_pl_bottomline(pl_rows, liabilities))
     return res
