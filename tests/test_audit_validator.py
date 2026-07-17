@@ -808,6 +808,22 @@ def test_capital_subratio_reconcile_fails():
     assert any(f["check"] == "cap_ratio_reconcile" for f in res.failures)
 
 
+def test_capital_high_car_reconciling_passes():
+    # A newly-licensed bank: CAR 138% but it reconciles to Total/RWA exactly
+    # (1,092,846 / 791,472). Verified, so the [5,80] band must NOT flag it.
+    res = v.check_capital([_cap_row(cet1_capital=1_092_846, tier1_capital=1_092_846,
+                                    total_capital=1_092_846, total_rwa=791_472,
+                                    capital_adequacy_ratio=138.08)])
+    assert not any(f["check"] == "cap_car_band" for f in res.failures), res.failures
+
+
+def test_capital_high_car_not_reconciling_fails():
+    # CAR 138% that does NOT reconcile (RWA would give ~16%) and is implausible →
+    # still flagged by the band.
+    res = v.check_capital([_cap_row(capital_adequacy_ratio=138.0)])
+    assert any(f["check"] == "cap_car_band" for f in res.failures)
+
+
 def test_capital_no_current_row_skips():
     res = v.check_capital([_cap_row(period_type="prior")])
     assert res.passed == 0 and res.failed == 0

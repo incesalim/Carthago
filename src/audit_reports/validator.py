@@ -1135,12 +1135,22 @@ def check_capital(rows: list[dict]) -> ValidationResult:
     _ratio(t1r, t1, "Tier1 ratio = Tier1 / RWA * 100")
     _ratio(car, tc, "CAR = Total Capital / RWA * 100")
 
-    # CAR within plausible band [5, 80]%
+    # CAR plausibility. A CAR that RECONCILES to total_capital / RWA is already
+    # verified against its own components — the [5, 80] band is only a fallback for
+    # a CAR we cannot reconcile (RWA absent, or the reconcile disagrees). Newly
+    # licensed banks legitimately run CARs far above 80%: paid-in capital dwarfs
+    # risk-weighted assets before they build a loan book. TOMK 2023Q4 prints
+    # 138.08% (₺1.09bn capital / ₺0.79bn RWA), 2023Q3 93.75%, ZIRAATD 2026Q1
+    # 85.24% — all pixel-verified and reconciling. The old fixed band flagged them
+    # as false positives.
     if car is not None:
-        if 5 <= car <= 80:
+        reconciles = (tc is not None and rwa is not None and rwa > 0
+                      and abs(tc / rwa * 100 - car) <= _CAP_CAR_TOL)
+        if reconciles or 5 <= car <= 80:
             res.add_pass()
         else:
-            res.add_fail("cap_car_band", "CAR plausible band [5, 80]%",
+            res.add_fail("cap_car_band",
+                         "CAR outside [5, 80]% and not reconciling to Total/RWA",
                          expected=12.0, actual=car)
     elif tc is None or rwa is None:
         # CAR null is a dropped column UNLESS it's derivable from total_capital +

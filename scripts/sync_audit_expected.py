@@ -128,6 +128,12 @@ _STMT_TO_KEY = {
     # cell pixel-verified. The override statement is the _replace verb, mapped here
     # to the coverage key so they read `manual`, not a machine `ok`.
     "loans_by_sector_replace": "loans_by_sector",
+    # §4 capital columns recovered from the printed table (dropped RWA / tier1 /
+    # ratios, a column-shift, a misread tier2) — 54 partitions across ATBANK/EMLAK/
+    # ICBCT/ISCTR/QNBFB/TSKB/HAYATK/TOMK/DUNYAK/… Each was read from the PDF or
+    # recovered from the reconciling identities, so a human stands behind the
+    # number; it shouldn't read a machine-extracted `ok`.
+    "capital": "capital",
 }
 
 
