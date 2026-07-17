@@ -1,2688 +1,2851 @@
 {
- "_doc": "Curated per-cell corrections for BS rows the deterministic extractor cannot recover (one-off OCR/layout artifacts) but whose correct values are legible in the PDF. Applied by scripts/apply_overrides.py to the production DB + pushed to D1, NO re-extraction. Each verified to bring its partition to 0 validation failures (dry-run). amount_total authoritative; tl+fc=total. NOT for genuine source defects or whole-section format breakage (those stay flagged).",
- "overrides": [
-  {
-   "bank_ticker": "EMLAK",
-   "period": "2023Q2",
-   "kind": "unconsolidated",
-   "statement": "liabilities",
-   "hierarchy": "XIV.",
-   "item_name": "ÖZKAYNAKLAR",
-   "amount_tl": 8659438,
-   "amount_fc": 13121,
-   "amount_total": 8672559,
-   "note": "stray 'v' fused to marker 'vXIV.' dropped the equity row"
-  },
-  {
-   "bank_ticker": "EMLAK",
-   "period": "2022Q3",
-   "kind": "consolidated",
-   "statement": "assets",
-   "hierarchy": "1.1.4",
-   "item_name": "Beklenen Zarar Karşılıkları (-)",
-   "amount_tl": 228,
-   "amount_fc": 27421,
-   "amount_total": 27649,
-   "note": "ECL marker garbled '1. B1.e4kl'; values legible"
-  },
-  {
-   "bank_ticker": "EXIM",
-   "period": "2023Q2",
-   "kind": "unconsolidated",
-   "statement": "liabilities",
-   "hierarchy": "XVI.",
-   "item_name": "SHAREHOLDERS' EQUITY",
-   "amount_tl": 28386818,
-   "amount_fc": -155350,
-   "amount_total": 28231468,
-   "note": "YP '-155.350' misparsed as -155.35"
-  },
-  {
-   "bank_ticker": "FIBA",
-   "period": "2025Q4",
-   "kind": "unconsolidated",
-   "statement": "liabilities",
-   "hierarchy": "XII.",
-   "item_name": "ERTELENMİŞ VERGİ BORCU",
-   "amount_tl": 1544349,
-   "amount_fc": 0,
-   "amount_total": 1544349,
-   "note": "deferred-tax roman value wrapped off label line; TL-only like XI"
-  },
-  {
-   "bank_ticker": "FIBA",
-   "period": "2026Q1",
-   "kind": "unconsolidated",
-   "statement": "liabilities",
-   "hierarchy": "XII.",
-   "item_name": "ERTELENMİŞ VERGİ BORCU",
-   "amount_tl": 1594907,
-   "amount_fc": 0,
-   "amount_total": 1594907,
-   "note": "deferred-tax roman value wrapped off label line; TL-only like XI"
-  },
-  {
-   "bank_ticker": "ATBANK",
-   "period": "2022Q2",
-   "kind": "consolidated",
-   "statement": "liabilities",
-   "hierarchy": "16.7",
-   "item_name": "Azınlık Payları",
-   "amount_tl": 0,
-   "amount_fc": 0,
-   "amount_total": 0,
-   "note": "minority-interest row absorbed garbage 12,042,579; true value 0"
-  },
-  {
-   "bank_ticker": "EXIM",
-   "period": "2024Q4",
-   "kind": "unconsolidated",
-   "statement": "assets",
-   "hierarchy": "1.3.2",
-   "item_name": "Equity Securities",
-   "amount_tl": 796469,
-   "amount_fc": 3875399,
-   "amount_total": 4671868,
-   "note": "source TL typo 746.469→796.469; forced by parent 1.3 TL (9.310.241+x=10.106.710) and row total 4.671.868-FC 3.875.399 [hierarchy de-dotted to match normalized key]"
-  },
-  {
-   "bank_ticker": "EXIM",
-   "period": "2024Q4",
-   "kind": "unconsolidated",
-   "statement": "assets",
-   "hierarchy": "V.",
-   "item_name": "TANGIBLE ASSETS (Net) (13)",
-   "amount_tl": 336235,
-   "amount_fc": 0,
-   "amount_total": 336235,
-   "note": "source TL typo 336.253→336.235; Total column 336.235 is the value that foots TOTAL ASSETS"
-  },
-  {
-   "bank_ticker": "EXIM",
-   "period": "2024Q4",
-   "kind": "unconsolidated",
-   "statement": "liabilities",
-   "hierarchy": "16.4",
-   "item_name": "Other Comprehensive Income/Expense Items to be Reclassified to Profit or Loss",
-   "amount_tl": -83876,
-   "amount_fc": 4473,
-   "amount_total": -79403,
-   "note": "source FC typo 4.374→4.473; forced by row total (-83.876+x=-79.403) and FC column total"
-  },
-  {
-   "bank_ticker": "EXIM",
-   "period": "2024Q4",
-   "kind": "unconsolidated",
-   "statement": "liabilities",
-   "hierarchy": "XVI.",
-   "item_name": "SHAREHOLDERS' EQUITY (10)",
-   "amount_tl": 93002171,
-   "amount_fc": 4473,
-   "amount_total": 93006644,
-   "note": "source FC typo 4.374→4.473 (same as 16.4); XVI=Σ16.x and FC column total both confirm 4.473"
-  },
-  {
-   "bank_ticker": "QNBFB",
-   "period": "2022Q4",
-   "kind": "consolidated",
-   "statement": "liabilities",
-   "hierarchy": "XV.",
-   "item_name": "OTHERLIABILITIES",
-   "amount_tl": 19815961,
-   "amount_fc": 17450858,
-   "amount_total": 37266819,
-   "note": "source TRY typo 19.501.461→19.815.961; FC column foots exactly, TL column short by 314.500, row total 37.266.819 locked by grand total + cross-check"
-  },
-  {
-   "bank_ticker": "ODEA",
-   "period": "2023Q4",
-   "kind": "unconsolidated",
-   "statement": "assets",
-   "hierarchy": "2.2",
-   "item_name": "Kiralama İşlemlerinden Alacakları",
-   "amount_tl": 0,
-   "amount_fc": 0,
-   "amount_total": 0,
-   "note": "dipnot 'I-10' leaked: label ate the 'I', value column captured -10; deposit bank has no lease receivables → 0 (II group foots with 2.2=0)"
-  },
-  {
-   "bank_ticker": "TEB",
-   "period": "2024Q4",
-   "kind": "unconsolidated",
-   "statement": "assets",
-   "hierarchy": "V.",
-   "item_name": "MADDİ DURAN VARLIKLAR (Net)",
-   "amount_tl": 3043626,
-   "amount_fc": 0,
-   "amount_total": 3043626,
-   "item_order": 39,
-   "note": "V. roman marker missing in unconsolidated page text → whole row dropped; statement total short by exactly 3.043.626. Inserted at order 39 (after 4.3.2, before VI.)"
-  },
-  {
-   "bank_ticker": "BURGAN",
-   "period": "2023Q2",
-   "kind": "consolidated",
-   "statement": "assets",
-   "hierarchy": "V.",
-   "item_name": "TANGIBLE ASSETS (Net)",
-   "amount_tl": 2818188,
-   "amount_fc": 0,
-   "amount_total": 2818188,
-   "note": "TL '2.818.188' misparsed as decimal 2818.188; total column already correct"
-  },
-  {
-   "bank_ticker": "TSKB",
-   "period": "2025Q3",
-   "kind": "unconsolidated",
-   "statement": "assets",
-   "hierarchy": "II.",
-   "item_name": "FINANCIAL ASSETS MEASURED AT AMORTIZED COST (Net)",
-   "amount_tl": 20476916,
-   "amount_fc": 215440031,
-   "amount_total": 235916947,
-   "note": "value string wrapped across columns ('20.476.916 215 . 440.031 235 .') → garbled; clean read from PDF; II=Σ2.x children"
-  },
-  {
-   "bank_ticker": "TSKB",
-   "period": "2025Q3",
-   "kind": "unconsolidated",
-   "statement": "assets",
-   "hierarchy": "2.5",
-   "item_name": "Expected Credit Losses (-)",
-   "amount_tl": 1878676,
-   "amount_fc": 6019669,
-   "amount_total": 7898345,
-   "note": "value string wrapped ('1.878.676 6. 019.669 7.') → garbled; clean read from PDF"
-  },
-  {
-   "bank_ticker": "KUVEYT",
-   "period": "2022Q2",
-   "kind": "consolidated",
-   "statement": "liabilities",
-   "hierarchy": "VII.",
-   "item_name": "KİRALAMA İŞLEMLERİNDEN YÜKÜMLÜLÜKLER (Net)",
-   "amount_tl": 436472,
-   "amount_fc": 57856,
-   "amount_total": 494328,
-   "note": "label '(Net) (5.2.6.)' wrapped, dipnot 5.2.6 leaked as TL=5/FC=2/Total=6; true values from PDF, statement total foots"
-  },
-  {
-   "bank_ticker": "KUVEYT",
-   "period": "2025Q4",
-   "kind": "consolidated",
-   "statement": "liabilities",
-   "hierarchy": "VII.",
-   "item_name": "KİRALAMA İŞLEMLERİNDEN YÜKÜMLÜLÜKLER (Net)",
-   "amount_tl": 2407839,
-   "amount_fc": 445237,
-   "amount_total": 2853076,
-   "note": "label '(Net) (5.2.6.)' wrapped, dipnot 5.2.6 leaked as TL=5/FC=2/Total=6; true values from PDF, statement total foots"
-  },
-  {
-   "bank_ticker": "YKBNK",
-   "period": "2022Q3",
-   "kind": "consolidated",
-   "statement": "liabilities",
-   "hierarchy": "7.2",
-   "item_name": "Derivative Liabilities at Fair Value Through Other Comprehensive Income",
-   "amount_tl": 57420,
-   "amount_fc": 0,
-   "amount_total": 57420,
-   "note": "7.2 garbled (0/683.193); true 57.420; VII=7.1+7.2 foots"
-  },
-  {
-   "bank_ticker": "YKBNK",
-   "period": "2022Q3",
-   "kind": "consolidated",
-   "statement": "liabilities",
-   "hierarchy": "16.3",
-   "item_name": "Other accumulated comprehensive income that will not be reclassified in profit or loss",
-   "amount_tl": 3840518,
-   "amount_fc": 9279,
-   "amount_total": 3849797,
-   "note": "16.3 garbled; true values from PDF; XVI=Σ16.x foots"
-  },
-  {
-   "bank_ticker": "YKBNK",
-   "period": "2022Q3",
-   "kind": "consolidated",
-   "statement": "liabilities",
-   "hierarchy": "16.4",
-   "item_name": "Other accumulated comprehensive income that will be reclassified in profit or loss",
-   "amount_tl": 18194795,
-   "amount_fc": 973713,
-   "amount_total": 19168508,
-   "note": "16.4 garbled; true values from PDF; XVI=Σ16.x foots"
-  },
-  {
-   "bank_ticker": "YKBNK",
-   "period": "2022Q4",
-   "kind": "consolidated",
-   "statement": "liabilities",
-   "hierarchy": "16.3",
-   "item_name": "Other accumulated comprehensive income that will not be reclassified in profit or loss",
-   "amount_tl": 1956972,
-   "amount_fc": 9299,
-   "amount_total": 1966271,
-   "note": "row labelled 16.3 held 16.4's values; reset to real 16.3 (1.966.271). Paired with the 16.4 insert below"
-  },
-  {
-   "bank_ticker": "YKBNK",
-   "period": "2022Q4",
-   "kind": "consolidated",
-   "statement": "liabilities",
-   "hierarchy": "16.4",
-   "item_name": "Other accumulated comprehensive income that will be reclassified in profit or loss",
-   "amount_tl": 15856039,
-   "amount_fc": 2484397,
-   "amount_total": 18340436,
-   "item_order": 37,
-   "note": "16.4 row missing (its values were sitting under 16.3); inserted after 16.3, before 16.5. XVI=Σ16.x foots"
-  },
-  {
-   "bank_ticker": "YKBNK",
-   "period": "2022Q4",
-   "kind": "consolidated",
-   "statement": "liabilities",
-   "hierarchy": "7.2",
-   "item_name": "Derivative liabilities measured at fair value through other comprehensive income",
-   "amount_tl": 32350,
-   "amount_fc": 0,
-   "amount_total": 32350,
-   "item_order": 14,
-   "note": "7.2 row missing (32.350); inserted after 7.1, before VIII. VII=7.1+7.2 foots. Ordered last so this shift composes with the 16.4 insert"
-  },
-  {
-   "bank_ticker": "KUVEYT",
-   "period": "2024Q4",
-   "kind": "unconsolidated",
-   "statement": "profit_loss",
-   "hierarchy": "XVII.",
-   "item_name": "SÜRDÜRÜLEN FAALİYETLER VERGİ ÖNCESİ K/Z (XIII+...+XVI)",
-   "amount": 46257158,
-   "note": "value leaked into dipnot (5.4.9.) → row blank; 46.257.158 confirmed from PDF (= XIX − XVIII = XIII)"
-  },
-  {
-   "bank_ticker": "KUVEYT",
-   "period": "2025Q1",
-   "kind": "unconsolidated",
-   "statement": "off_balance",
-   "hierarchy": "B.",
-   "item_name": "EMANET VE REHİNLİ KIYMETLER (IV+V+VI)",
-   "amount_tl": 4727468981,
-   "amount_fc": 6748778307,
-   "amount_total": 11476247288,
-   "note": "B. subtotal column-shifted: label dropped, spurious 1.147.624.728 in TL slot pushed TP→FC, YP→Total (printed Total lost) → TL+FC≠Total. PDF prints TP 4.727.468.981 / YP 6.748.778.307 / Total 11.476.247.288; both IV+V+VI and (grand total − A) confirm"
-  },
-  {
-   "bank_ticker": "AKBNK",
-   "period": "2022Q4",
-   "kind": "consolidated",
-   "statement": "assets",
-   "hierarchy": "1.1.4",
-   "item_name": "Beklenen Zarar Karşılıkları (-)",
-   "amount_tl": 5164,
-   "amount_fc": 1452,
-   "amount_total": 6616,
-   "note": "ECL contra label dropped (empty item_name) → validator summed it positive, 1.1 short by 2×6.616. Values correct; restore '(-)' label so it subtracts (like GARAN/ISCTR/VAKBN)"
-  },
-  {
-   "bank_ticker": "AKBNK",
-   "period": "2022Q4",
-   "kind": "consolidated",
-   "statement": "assets",
-   "hierarchy": "2.5",
-   "item_name": "Beklenen Zarar Karşılıkları (-)",
-   "amount_tl": 17493100,
-   "amount_fc": 4748983,
-   "amount_total": 22242083,
-   "note": "ECL contra label dropped (empty item_name) → II summed it positive, short by 2×22.242.083. Values correct; restore '(-)' label so it subtracts"
-  },
-  {
-   "bank_ticker": "AKBNK",
-   "period": "2022Q4",
-   "kind": "unconsolidated",
-   "statement": "assets",
-   "hierarchy": "1.1.4",
-   "item_name": "Beklenen Zarar Karşılıkları (-)",
-   "amount_tl": 5150,
-   "amount_fc": 805,
-   "amount_total": 5955,
-   "note": "ECL contra label dropped (empty item_name) → 1.1 short by 2×5.955. Values correct; restore '(-)' label so it subtracts"
-  },
-  {
-   "bank_ticker": "AKBNK",
-   "period": "2022Q4",
-   "kind": "unconsolidated",
-   "statement": "assets",
-   "hierarchy": "2.5",
-   "item_name": "Beklenen Zarar Karşılıkları (-)",
-   "amount_tl": 17323275,
-   "amount_fc": 4190044,
-   "amount_total": 21513319,
-   "note": "ECL contra label dropped (empty item_name) → II short by 2×21.513.319. Values correct; restore '(-)' label so it subtracts"
-  },
-  {
-   "bank_ticker": "AKBNK",
-   "period": "2026Q1",
-   "kind": "consolidated",
-   "statement": "assets",
-   "hierarchy": "1.1.4",
-   "item_name": "Beklenen Zarar Karşılıkları (-)",
-   "amount_tl": 582,
-   "amount_fc": 474,
-   "amount_total": 1056,
-   "note": "ECL contra label dropped (empty item_name); passed within tolerance but labelled for correctness/consistency so it subtracts"
-  },
-  {
-   "bank_ticker": "AKBNK",
-   "period": "2026Q1",
-   "kind": "consolidated",
-   "statement": "assets",
-   "hierarchy": "2.5",
-   "item_name": "Beklenen Zarar Karşılıkları (-)",
-   "amount_tl": 73169516,
-   "amount_fc": 2987739,
-   "amount_total": 76157255,
-   "note": "ECL contra label dropped (empty item_name) → II short by 2×76.157.255. Values correct; restore '(-)' label so it subtracts"
-  },
-  {
-   "bank_ticker": "AKBNK",
-   "period": "2026Q1",
-   "kind": "unconsolidated",
-   "statement": "assets",
-   "hierarchy": "1.1.4",
-   "item_name": "Beklenen Zarar Karşılıkları (-)",
-   "amount_tl": 120,
-   "amount_fc": 266,
-   "amount_total": 386,
-   "note": "ECL contra label dropped (empty item_name); passed within tolerance but labelled for correctness/consistency so it subtracts"
-  },
-  {
-   "bank_ticker": "AKBNK",
-   "period": "2026Q1",
-   "kind": "unconsolidated",
-   "statement": "assets",
-   "hierarchy": "2.5",
-   "item_name": "Beklenen Zarar Karşılıkları (-)",
-   "amount_tl": 72969581,
-   "amount_fc": 2694939,
-   "amount_total": 75664520,
-   "note": "ECL contra label dropped (empty item_name) → II short by 2×75.664.520. Values correct; restore '(-)' label so it subtracts"
-  },
-  {
-   "bank_ticker": "AKTIF",
-   "period": "2023Q3",
-   "kind": "unconsolidated",
-   "statement": "profit_loss",
-   "hierarchy": "V.",
-   "item_name": "TEMETTÜ GELİRLERİ (3)",
-   "amount": 3194,
-   "note": "dividend income: extractor grabbed the 2nd period column 325; PDF current-period col = 3.194 (which even leaked into the label). VIII=III+IV+V+VI+VII foots exactly with 3.194"
-  },
-  {
-   "bank_ticker": "AKTIF",
-   "period": "2025Q2",
-   "kind": "consolidated",
-   "statement": "profit_loss",
-   "hierarchy": "V.",
-   "item_name": "TEMETTÜ GELİRLERİ (3)",
-   "amount": 1015,
-   "note": "dividend income: extractor grabbed the 2nd period column 661; PDF current-period col = 1.015. VIII=III+IV+V+VI+VII foots exactly with 1.015"
-  },
-  {
-   "bank_ticker": "KUVEYT",
-   "period": "2022Q3",
-   "kind": "unconsolidated",
-   "statement": "profit_loss",
-   "hierarchy": "X.",
-   "item_name": "DİĞER KARŞILIK GİDERLERİ (-) (5.4.7.)",
-   "amount": 532730,
-   "note": "other-provision row captured dipnot 5.4.7 leak '7'; PDF current-period = 532.730. XIII=VIII−IX−X−XI−XII foots"
-  },
-  {
-   "bank_ticker": "ODEA",
-   "period": "2022Q4",
-   "kind": "unconsolidated",
-   "statement": "profit_loss",
-   "hierarchy": "XXIV.",
-   "item_name": "DURDURULAN FAALİYETLER DÖNEM NET K/Z (XXII±XXIII)",
-   "amount": 0,
-   "note": "source prints XXIV=853.203 (copy of net profit) though discontinued rows XX–XXIII are all nil → discontinued net is 0; XXV=XIX+XXIV foots with 0 (extraction faithful to a source copy-down artifact)"
-  },
-  {
-   "bank_ticker": "ODEA",
-   "period": "2023Q4",
-   "kind": "unconsolidated",
-   "statement": "profit_loss",
-   "hierarchy": "XXIV.",
-   "item_name": "DURDURULAN FAALİYETLER DÖNEM NET K/Z (XXII±XXIII)",
-   "amount": 0,
-   "note": "source prints XXIV=1.710.173 (copy of net profit) though discontinued rows XX–XXIII are all nil → discontinued net is 0; XXV=XIX+XXIV foots with 0"
-  },
-  {
-   "bank_ticker": "TSKB",
-   "period": "2025Q3",
-   "kind": "unconsolidated",
-   "statement": "profit_loss",
-   "hierarchy": "XIX.",
-   "item_name": "NET PROFIT/(LOSS) FROM CONTINUED OPERATIONS (XVII±XVIII)",
-   "amount": 9285218,
-   "note": "XIX captured 2.372.570; forced by XVII−XVIII (12.077.887−2.792.669=9.285.218) and equals the stored XXV which passes net-vs-equity (=audited BS equity movement, XXIV=0). TSKB PDF host unreachable on fix day; value over-determined"
-  },
-  {
-   "bank_ticker": "YKBNK",
-   "period": "2022Q2",
-   "kind": "consolidated",
-   "statement": "profit_loss",
-   "hierarchy": "XVII.",
-   "item_name": "PROFIT/LOSS BEFORE TAXES FROM CONTINUING OPERATIONS (XIII+...+XVI)",
-   "amount": 24519994,
-   "note": "current-period cell garbled (prior-col 4.675.749 leaked into label, value slot got fragment ~5); PDF=24.519.994 (=XIII+XV 24.422.164+97.830), present in PDF. Prior-col cross-check 4.675.749−990.254=3.685.495=prior XIX"
-  },
-  {
-   "bank_ticker": "YKBNK",
-   "period": "2022Q2",
-   "kind": "consolidated",
-   "statement": "profit_loss",
-   "hierarchy": "XVIII.",
-   "item_name": "PROVISION FOR TAXES ON INCOME FROM CONTINUING OPERATIONS (±)",
-   "amount": 5338991,
-   "note": "current-period cell garbled (~5); =XVII−XIX=24.519.994−19.181.003=5.338.991, present in PDF"
-  },
-  {
-   "bank_ticker": "YKBNK",
-   "period": "2023Q4",
-   "kind": "consolidated",
-   "statement": "profit_loss",
-   "hierarchy": "XVII.",
-   "item_name": "PROFIT/LOSS BEFORE TAXES FROM CONTINUING OPERATIONS (XIII+...+XVI)",
-   "amount": 85028901,
-   "note": "current-period cell garbled (prior-col 69.193.768 leaked into label, value slot ~5); PDF=85.028.901 (=XIII+XV 83.405.114+1.623.787), present in PDF"
-  },
-  {
-   "bank_ticker": "YKBNK",
-   "period": "2023Q4",
-   "kind": "consolidated",
-   "statement": "profit_loss",
-   "hierarchy": "XVIII.",
-   "item_name": "PROVISION FOR TAXES ON INCOME FROM CONTINUING OPERATIONS (±)",
-   "amount": 17018737,
-   "note": "current-period cell garbled (~1); =XVII−XIX=85.028.901−68.010.164=17.018.737, present in PDF"
-  },
-  {
-   "bank_ticker": "QNBFB",
-   "period": "2023Q1",
-   "kind": "unconsolidated",
-   "statement": "profit_loss",
-   "hierarchy": "XIX.",
-   "item_name": "NET OPERATING PROFIT/LOSS (XVII±XVIII)",
-   "amount": 6632553,
-   "note": "net profit landed in the XX (discontinued-income) row; XIX held garbage -4.678.663. Equity statement confirms period net profit 6.632.553 with NO discontinued ops (TCI 6.632.553−OCI 1.764.044=4.868.509 reconciles). XIX=XVII+|XVIII|=4.858.673+1.773.880 (tax is a benefit). Prior period shows the same pattern (net 2.383.165 sits in XX)"
-  },
-  {
-   "bank_ticker": "QNBFB",
-   "period": "2023Q1",
-   "kind": "unconsolidated",
-   "statement": "profit_loss",
-   "hierarchy": "XX.",
-   "item_name": "INCOME FROM DISCONTINUED OPERATIONS",
-   "amount": 0,
-   "note": "phantom 6.632.553 here is the misplaced net profit (moved to XIX); no discontinued ops — XXI–XXIV nil and equity shows a single net-profit line → 0"
-  },
-  {
-   "bank_ticker": "QNBFB",
-   "period": "2023Q1",
-   "kind": "unconsolidated",
-   "statement": "profit_loss",
-   "hierarchy": "XXV.",
-   "item_name": "NET PROFIT/LOSS (XIX+XXIV)",
-   "amount": 6632553,
-   "note": "blank in source; =XIX+XXIV=6.632.553+0; equals the equity-statement net profit, satisfies the net-vs-equity check"
-  },
-  {
-   "bank_ticker": "TEB",
-   "period": "2022Q4",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "III.",
-   "item_name": "TÜREV FİNANSAL ARAÇLAR ( I I I - 2 ) 141 , 986 , 717",
-   "amount_tl": 141986717,
-   "amount_fc": 188416628,
-   "amount_total": 330403345,
-   "note": "III. derivatives header TL/FC garbled by (III-2) cross-ref letter-spacing; Total correct; TL/FC=3.1+3.2 children (verified)"
-  },
-  {
-   "bank_ticker": "TEB",
-   "period": "2023Q4",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "III.",
-   "item_name": "TÜREV FİNANSAL ARAÇLAR ( I I I - 2 ) 127 , 889 , 540",
-   "amount_tl": 127889540,
-   "amount_fc": 270322456,
-   "amount_total": 398211996,
-   "note": "III. derivatives header TL/FC garbled by (III-2) cross-ref letter-spacing; Total correct; TL/FC=3.1+3.2 children (verified)"
-  },
-  {
-   "bank_ticker": "TEB",
-   "period": "2024Q4",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "III.",
-   "item_name": "TÜREV FİNANSAL ARAÇLAR ( I I I - 2 ) 198 , 894 , 864",
-   "amount_tl": 198894864,
-   "amount_fc": 423361173,
-   "amount_total": 622256037,
-   "note": "III. derivatives header TL/FC garbled by (III-2) cross-ref letter-spacing; Total correct; TL/FC=3.1+3.2 children (verified)"
-  },
-  {
-   "bank_ticker": "TEB",
-   "period": "2025Q1",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "III.",
-   "item_name": "TÜREV FİNANSAL ARAÇLAR ( I I I - 2 ) 262 , 879 , 274",
-   "amount_tl": 262879274,
-   "amount_fc": 550016793,
-   "amount_total": 812896067,
-   "note": "III. derivatives header TL/FC garbled by (III-2) cross-ref letter-spacing; Total correct; TL/FC=3.1+3.2 children (verified)"
-  },
-  {
-   "bank_ticker": "TEB",
-   "period": "2025Q2",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "III.",
-   "item_name": "TÜREV FİNANSAL ARAÇLAR ( I I I - 2 ) 282 , 547 , 990",
-   "amount_tl": 282547990,
-   "amount_fc": 624962731,
-   "amount_total": 907510721,
-   "note": "III. derivatives header TL/FC garbled by (III-2) cross-ref letter-spacing; Total correct; TL/FC=3.1+3.2 children (verified)"
-  },
-  {
-   "bank_ticker": "TEB",
-   "period": "2025Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "III.",
-   "item_name": "TÜREV FİNANSAL ARAÇLAR ( I I I - 2 ) 310 , 026 , 989",
-   "amount_tl": 310026989,
-   "amount_fc": 603897491,
-   "amount_total": 913924480,
-   "note": "III. derivatives header TL/FC garbled by (III-2) cross-ref letter-spacing; Total correct; TL/FC=3.1+3.2 children (verified)"
-  },
-  {
-   "bank_ticker": "TEB",
-   "period": "2025Q4",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "III.",
-   "item_name": "TÜREV FİNANSAL ARAÇLAR ( I I I - 2 ) 358 , 515 , 401",
-   "amount_tl": 358515401,
-   "amount_fc": 596490300,
-   "amount_total": 955005701,
-   "note": "III. derivatives header TL/FC garbled by (III-2) cross-ref letter-spacing; Total correct; TL/FC=3.1+3.2 children (verified)"
-  },
-  {
-   "bank_ticker": "TEB",
-   "period": "2026Q1",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "III.",
-   "item_name": "TÜREV FİNANSAL ARAÇLAR ( I I I - 2 ) 499 , 842 ,",
-   "amount_tl": 499842278,
-   "amount_fc": 785185690,
-   "amount_total": 1285027968,
-   "note": "III. derivatives header TL/FC garbled by (III-2) cross-ref letter-spacing; Total correct; TL/FC=3.1+3.2 children (verified)"
-  },
-  {
-   "bank_ticker": "BURGAN",
-   "period": "2023Q2",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "1.3.",
-   "item_name": "Letters of Credit",
-   "amount_tl": 175252,
-   "amount_fc": 3920147,
-   "amount_total": 4095399,
-   "note": "fc 3.920147 lost decimal -> 3,920,147 (tot-tl)"
-  },
-  {
-   "bank_ticker": "EMLAK",
-   "period": "2022Q4",
-   "kind": "unconsolidated",
-   "statement": "off_balance",
-   "hierarchy": "",
-   "item_name": "BİLANÇO DIŞI HESAPLAR TOPLAMI",
-   "amount_tl": 44595042,
-   "amount_fc": 38771055,
-   "amount_total": 83366097,
-   "note": "grand total 411 garbled -> tl+fc"
-  },
-  {
-   "bank_ticker": "ISCTR",
-   "period": "2025Q4",
-   "kind": "unconsolidated",
-   "statement": "off_balance",
-   "hierarchy": "5",
-   "item_name": "TÜRKİYE İŞ BANKASI A.Ş. UNCONS (spurious header)",
-   "amount_tl": 0,
-   "amount_fc": 0,
-   "amount_total": 0,
-   "note": "page-header captured as data row; neutralize"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2022Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "I.",
-   "item_name": "GARANTİ ve KEFALETLER III-a-3,i 266,,712059,,786629 5140,,409504,,",
-   "amount_tl": 6109869,
-   "amount_fc": 10054176,
-   "amount_total": 16164045,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2022Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "1.1.",
-   "item_name": "Teminat Mektupları III-a-2,ii 105,,025544,,157",
-   "amount_tl": 5254586,
-   "amount_fc": 6844293,
-   "amount_total": 12098879,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2022Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "1.2.",
-   "item_name": "Banka Kredileri",
-   "amount_tl": 0,
-   "amount_fc": 405942,
-   "amount_total": 405942,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2022Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "2.1.1.",
-   "item_name": "Vadeli, Aktif Değer Al.-Sat. Taahhütleri",
-   "amount_tl": 398256,
-   "amount_fc": 5989687,
-   "amount_total": 6387943,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2022Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "2.1.2.",
-   "item_name": "Vadeli, Mevduat Al.-Sat. Taahhütleri",
-   "amount_tl": 0,
-   "amount_fc": 0,
-   "amount_total": 0,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2022Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "3.1",
-   "item_name": "Riskten Korunma Amaçlı Türev Finansal Araçlar 387,,127430,,504",
-   "amount_tl": 7240040,
-   "amount_fc": 6424748,
-   "amount_total": 13664788,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2022Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "3.2.1",
-   "item_name": "Vadeli Döviz Alım-Satım İşlemleri",
-   "amount_tl": 1771096,
-   "amount_fc": 2276968,
-   "amount_total": 4048064,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2022Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "3.2.1.1",
-   "item_name": "Vadeli Döviz Alım İşlemleri",
-   "amount_tl": 1771096,
-   "amount_fc": 207304,
-   "amount_total": 1978400,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2022Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "3.2.1.2",
-   "item_name": "Vadeli Döviz Satım İşlemleri",
-   "amount_tl": 0,
-   "amount_fc": 2069664,
-   "amount_total": 2069664,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2022Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "3.2.2.2",
-   "item_name": "Swap Para Satım İşlemleri",
-   "amount_tl": 5529017,
-   "amount_fc": 6659703,
-   "amount_total": 12188720,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2022Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "3.2.2.4",
-   "item_name": "Swap Faiz Satım İşlemleri",
-   "amount_tl": 150000,
-   "amount_fc": 2224293,
-   "amount_total": 2374293,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2022Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "3.2.3.2",
-   "item_name": "Para Satım Opsiyonları",
-   "amount_tl": 1493576,
-   "amount_fc": 2433530,
-   "amount_total": 3927106,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2022Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "3.2.3.3",
-   "item_name": "Faiz Alım Opsiyonları",
-   "amount_tl": 0,
-   "amount_fc": 0,
-   "amount_total": 0,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2022Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "IV.",
-   "item_name": "EMANET KIYMETLER 11111,,864581,,898072 15163,,544470,,",
-   "amount_tl": 11651902,
-   "amount_fc": 13440724,
-   "amount_total": 25092626,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2022Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "4.1.",
-   "item_name": "Müşteri Fon ve Portföy Mevcutları",
-   "amount_tl": 4050911,
-   "amount_fc": 0,
-   "amount_total": 4050911,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2022Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "4.2.",
-   "item_name": "Emanete Alınan Menkul Değerler",
-   "amount_tl": 190987,
-   "amount_fc": 983983,
-   "amount_total": 1174970,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2022Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "4.3.",
-   "item_name": "Tahsile Alınan Çekler",
-   "amount_tl": 706033,
-   "amount_fc": 36344,
-   "amount_total": 742377,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2022Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "5.3.",
-   "item_name": "Emtia",
-   "amount_tl": 4048496,
-   "amount_fc": 7249014,
-   "amount_total": 11297510,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2022Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "5.4.",
-   "item_name": "Varant",
-   "amount_tl": 0,
-   "amount_fc": 0,
-   "amount_total": 0,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2022Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "5.6.",
-   "item_name": "Diğer Rehinli Kıymetler",
-   "amount_tl": 3717192,
-   "amount_fc": 3205639,
-   "amount_total": 6922831,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2022Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "5.7.",
-   "item_name": "Rehinli Kıymet Alanlar",
-   "amount_tl": 0,
-   "amount_fc": 0,
-   "amount_total": 0,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2023Q1",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "1.2.",
-   "item_name": "Banka Kredileri",
-   "amount_tl": 1350,
-   "amount_fc": 131909,
-   "amount_total": 133259,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2023Q1",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "2.1.1.",
-   "item_name": "Vadeli, Aktif Değer Al.-Sat. Taahhütleri",
-   "amount_tl": 1056755,
-   "amount_fc": 2995669,
-   "amount_total": 4052424,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2023Q1",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "2.1.2.",
-   "item_name": "Vadeli, Mevduat Al.-Sat. Taahhütleri",
-   "amount_tl": 0,
-   "amount_fc": 0,
-   "amount_total": 0,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2023Q1",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "3.2.1",
-   "item_name": "Vadeli Döviz Alım-Satım İşlemleri",
-   "amount_tl": 2216875,
-   "amount_fc": 2576068,
-   "amount_total": 4792943,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2023Q1",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "3.2.1.1",
-   "item_name": "Vadeli Döviz Alım İşlemleri",
-   "amount_tl": 2216875,
-   "amount_fc": 158182,
-   "amount_total": 2375057,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2023Q1",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "3.2.1.2",
-   "item_name": "Vadeli Döviz Satım İşlemleri",
-   "amount_tl": 0,
-   "amount_fc": 2417886,
-   "amount_total": 2417886,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2023Q1",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "3.2.2.2",
-   "item_name": "Swap Para Satım İşlemleri",
-   "amount_tl": 4910613,
-   "amount_fc": 3359016,
-   "amount_total": 8269629,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2023Q1",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "3.2.2.4",
-   "item_name": "Swap Faiz Satım İşlemleri",
-   "amount_tl": 350000,
-   "amount_fc": 2473244,
-   "amount_total": 2823244,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2023Q1",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "3.2.3.2",
-   "item_name": "Para Satım Opsiyonları",
-   "amount_tl": 1845460,
-   "amount_fc": 1964776,
-   "amount_total": 3810236,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2023Q1",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "3.2.3.3",
-   "item_name": "Faiz Alım Opsiyonları",
-   "amount_tl": 0,
-   "amount_fc": 0,
-   "amount_total": 0,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2023Q1",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "4.1.",
-   "item_name": "Müşteri Fon ve Portföy Mevcutları",
-   "amount_tl": 2263407,
-   "amount_fc": 0,
-   "amount_total": 2263407,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2023Q1",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "4.2.",
-   "item_name": "Emanete Alınan Menkul Değerler",
-   "amount_tl": 186416,
-   "amount_fc": 1204527,
-   "amount_total": 1390943,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2023Q1",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "4.3.",
-   "item_name": "Tahsile Alınan Çekler",
-   "amount_tl": 1049926,
-   "amount_fc": 10260,
-   "amount_total": 1060186,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2023Q1",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "5.3.",
-   "item_name": "Emtia",
-   "amount_tl": 3958996,
-   "amount_fc": 7752476,
-   "amount_total": 11711472,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2023Q1",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "5.4.",
-   "item_name": "Varant",
-   "amount_tl": 0,
-   "amount_fc": 0,
-   "amount_total": 0,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2023Q1",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "5.6.",
-   "item_name": "Diğer Rehinli Kıymetler",
-   "amount_tl": 4548849,
-   "amount_fc": 3290581,
-   "amount_total": 7839430,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2023Q1",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "5.7.",
-   "item_name": "Rehinli Kıymet Alanlar",
-   "amount_tl": 0,
-   "amount_fc": 0,
-   "amount_total": 0,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2024Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "1.1.3.",
-   "item_name": "Diğer Teminat Mektupları",
-   "amount_tl": 14274300,
-   "amount_fc": 7926621,
-   "amount_total": 22200921,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2024Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "2.1.1.",
-   "item_name": "Vadeli, Aktif Değer Al.-Sat. Taahhütleri",
-   "amount_tl": 490462,
-   "amount_fc": 2856842,
-   "amount_total": 3347304,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2024Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "2.1.2.",
-   "item_name": "Vadeli, Mevduat Al.-Sat. Taahhütleri",
-   "amount_tl": 0,
-   "amount_fc": 0,
-   "amount_total": 0,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2024Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "3.2.1",
-   "item_name": "Vadeli Döviz Alım-Satım İşlemleri",
-   "amount_tl": 1056318,
-   "amount_fc": 4759070,
-   "amount_total": 5815388,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2024Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "3.2.1.1",
-   "item_name": "Vadeli Döviz Alım İşlemleri",
-   "amount_tl": 1042806,
-   "amount_fc": 1798225,
-   "amount_total": 2841031,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2024Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "3.2.1.2",
-   "item_name": "Vadeli Döviz Satım İşlemleri",
-   "amount_tl": 13512,
-   "amount_fc": 2960845,
-   "amount_total": 2974357,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2024Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "3.2.2.2",
-   "item_name": "Swap Para Satım İşlemleri",
-   "amount_tl": 3816238,
-   "amount_fc": 6116069,
-   "amount_total": 9932307,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2024Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "3.2.2.4",
-   "item_name": "Swap Faiz Satım İşlemleri",
-   "amount_tl": 600000,
-   "amount_fc": 7835292,
-   "amount_total": 8435292,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2024Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "3.2.3.2",
-   "item_name": "Para Satım Opsiyonları",
-   "amount_tl": 4390614,
-   "amount_fc": 13274801,
-   "amount_total": 17665415,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2024Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "3.2.3.3",
-   "item_name": "Faiz Alım Opsiyonları",
-   "amount_tl": 0,
-   "amount_fc": 0,
-   "amount_total": 0,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2024Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "4.5.",
-   "item_name": "Tahsile Alınan Diğer Kıymetler",
-   "amount_tl": 0,
-   "amount_fc": 0,
-   "amount_total": 0,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2024Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "5.2.",
-   "item_name": "Teminat Senetleri",
-   "amount_tl": 68293562,
-   "amount_fc": 82959520,
-   "amount_total": 151253082,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2024Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "5.3.",
-   "item_name": "Emtia",
-   "amount_tl": 629148,
-   "amount_fc": 1918061,
-   "amount_total": 2547209,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2024Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "5.6.",
-   "item_name": "Diğer Rehinli Kıymetler",
-   "amount_tl": 6427952,
-   "amount_fc": 3243288,
-   "amount_total": 9671240,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2024Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "5.7.",
-   "item_name": "Rehinli Kıymet Alanlar",
-   "amount_tl": 0,
-   "amount_fc": 0,
-   "amount_total": 0,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2025Q1",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "3.2.1",
-   "item_name": "Vadeli Döviz Alım-Satım İşlemleri",
-   "amount_tl": 5863781,
-   "amount_fc": 8408011,
-   "amount_total": 14271792,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2025Q1",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "3.2.1.1",
-   "item_name": "Vadeli Döviz Alım İşlemleri",
-   "amount_tl": 2738957,
-   "amount_fc": 4269045,
-   "amount_total": 7008002,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2025Q1",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "3.2.1.2",
-   "item_name": "Vadeli Döviz Satım İşlemleri 1,7761 , 09 3,",
-   "amount_tl": 3124824,
-   "amount_fc": 4138966,
-   "amount_total": 7263790,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2025Q1",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "3.2.2.2",
-   "item_name": "Swap Para Satım İşlemleri",
-   "amount_tl": 2010329,
-   "amount_fc": 6743740,
-   "amount_total": 8754069,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2025Q1",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "3.2.2.4",
-   "item_name": "Swap Faiz Satım İşlemleri",
-   "amount_tl": 400000,
-   "amount_fc": 7897375,
-   "amount_total": 8297375,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2025Q1",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "3.2.3.2",
-   "item_name": "Para Satım Opsiyonları",
-   "amount_tl": 4852025,
-   "amount_fc": 22823724,
-   "amount_total": 27675749,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2025Q1",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "3.2.3.3",
-   "item_name": "Faiz Alım Opsiyonları",
-   "amount_tl": 0,
-   "amount_fc": 0,
-   "amount_total": 0,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2025Q1",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "4.5.",
-   "item_name": "Tahsile Alınan Diğer Kıymetler",
-   "amount_tl": 0,
-   "amount_fc": 0,
-   "amount_total": 0,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2025Q1",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "5.2.",
-   "item_name": "Teminat Senetleri",
-   "amount_tl": 79391670,
-   "amount_fc": 89363658,
-   "amount_total": 168755328,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2025Q1",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "5.3.",
-   "item_name": "Emtia",
-   "amount_tl": 700288,
-   "amount_fc": 839035,
-   "amount_total": 1539323,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2025Q1",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "5.6.",
-   "item_name": "Diğer Rehinli Kıymetler",
-   "amount_tl": 10289288,
-   "amount_fc": 5461005,
-   "amount_total": 15750293,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2025Q1",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "5.7.",
-   "item_name": "Rehinli Kıymet Alanlar",
-   "amount_tl": 0,
-   "amount_fc": 0,
-   "amount_total": 0,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2025Q2",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "3.2.1",
-   "item_name": "Vadeli Döviz Alım-Satım İşlemleri",
-   "amount_tl": 2872030,
-   "amount_fc": 7935666,
-   "amount_total": 10807696,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2025Q2",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "3.2.1.1",
-   "item_name": "Vadeli Döviz Alım İşlemleri",
-   "amount_tl": 734847,
-   "amount_fc": 4480806,
-   "amount_total": 5215653,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2025Q2",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "3.2.1.2",
-   "item_name": "Vadeli Döviz Satım İşlemleri 1,7761 , 09 2,",
-   "amount_tl": 2137183,
-   "amount_fc": 3454860,
-   "amount_total": 5592043,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2025Q2",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "3.2.2.2",
-   "item_name": "Swap Para Satım İşlemleri",
-   "amount_tl": 2870278,
-   "amount_fc": 6459570,
-   "amount_total": 9329848,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2025Q2",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "3.2.2.4",
-   "item_name": "Swap Faiz Satım İşlemleri",
-   "amount_tl": 400000,
-   "amount_fc": 8421531,
-   "amount_total": 8821531,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2025Q2",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "3.2.3.2",
-   "item_name": "Para Satım Opsiyonları",
-   "amount_tl": 4342140,
-   "amount_fc": 30189156,
-   "amount_total": 34531296,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2025Q2",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "3.2.3.3",
-   "item_name": "Faiz Alım Opsiyonları",
-   "amount_tl": 0,
-   "amount_fc": 0,
-   "amount_total": 0,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2025Q2",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "4.5.",
-   "item_name": "Tahsile Alınan Diğer Kıymetler",
-   "amount_tl": 0,
-   "amount_fc": 0,
-   "amount_total": 0,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2025Q2",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "5.2.",
-   "item_name": "Teminat Senetleri",
-   "amount_tl": 82045470,
-   "amount_fc": 96584518,
-   "amount_total": 178629988,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2025Q2",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "5.3.",
-   "item_name": "Emtia",
-   "amount_tl": 925288,
-   "amount_fc": 1038542,
-   "amount_total": 1963830,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2025Q2",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "5.6.",
-   "item_name": "Diğer Rehinli Kıymetler",
-   "amount_tl": 16946157,
-   "amount_fc": 5992463,
-   "amount_total": 22938620,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2025Q2",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "5.7.",
-   "item_name": "Rehinli Kıymet Alanlar",
-   "amount_tl": 0,
-   "amount_fc": 0,
-   "amount_total": 0,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2025Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "3.2.1",
-   "item_name": "Vadeli Döviz Alım-Satım İşlemleri",
-   "amount_tl": 7227425,
-   "amount_fc": 9917230,
-   "amount_total": 17144655,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2025Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "3.2.1.1",
-   "item_name": "Vadeli Döviz Alım İşlemleri",
-   "amount_tl": 1294595,
-   "amount_fc": 6905553,
-   "amount_total": 8200148,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2025Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "3.2.1.2",
-   "item_name": "Vadeli Döviz Satım İşlemleri 1,7761 , 09 5,",
-   "amount_tl": 5932830,
-   "amount_fc": 3011677,
-   "amount_total": 8944507,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2025Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "3.2.2.2",
-   "item_name": "Swap Para Satım İşlemleri",
-   "amount_tl": 5909474,
-   "amount_fc": 4128691,
-   "amount_total": 10038165,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2025Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "3.2.2.4",
-   "item_name": "Swap Faiz Satım İşlemleri",
-   "amount_tl": 0,
-   "amount_fc": 8808772,
-   "amount_total": 8808772,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2025Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "3.2.3.2",
-   "item_name": "Para Satım Opsiyonları",
-   "amount_tl": 4831536,
-   "amount_fc": 31038352,
-   "amount_total": 35869888,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2025Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "3.2.3.3",
-   "item_name": "Faiz Alım Opsiyonları",
-   "amount_tl": 0,
-   "amount_fc": 0,
-   "amount_total": 0,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2025Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "4.5.",
-   "item_name": "Tahsile Alınan Diğer Kıymetler",
-   "amount_tl": 0,
-   "amount_fc": 0,
-   "amount_total": 0,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2025Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "5.2.",
-   "item_name": "Teminat Senetleri",
-   "amount_tl": 85383338,
-   "amount_fc": 101225314,
-   "amount_total": 186608652,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2025Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "5.3.",
-   "item_name": "Emtia",
-   "amount_tl": 962288,
-   "amount_fc": 1085214,
-   "amount_total": 2047502,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2025Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "5.6.",
-   "item_name": "Diğer Rehinli Kıymetler",
-   "amount_tl": 18712849,
-   "amount_fc": 6246818,
-   "amount_total": 24959667,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "ALNTF",
-   "period": "2025Q3",
-   "kind": "consolidated",
-   "statement": "off_balance",
-   "hierarchy": "5.7.",
-   "item_name": "Rehinli Kıymet Alanlar",
-   "amount_tl": 0,
-   "amount_fc": 0,
-   "amount_total": 0,
-   "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
-  },
-  {
-   "bank_ticker": "EXIM",
-   "period": "2023Q1",
-   "kind": "unconsolidated",
-   "statement": "oci_replace",
-   "rows": [
+  "_doc": "Curated per-cell corrections for BS rows the deterministic extractor cannot recover (one-off OCR/layout artifacts) but whose correct values are legible in the PDF. Applied by scripts/apply_overrides.py to the production DB + pushed to D1, NO re-extraction. Each verified to bring its partition to 0 validation failures (dry-run). amount_total authoritative; tl+fc=total. NOT for genuine source defects or whole-section format breakage (those stay flagged).",
+  "overrides": [
     {
-     "hierarchy": "III",
-     "item_name": "TOTAL COMPREHENSIVE INCOME (I+II) 1.806.816 1.239.",
-     "amount": 1806816
+      "bank_ticker": "EMLAK",
+      "period": "2023Q2",
+      "kind": "unconsolidated",
+      "statement": "liabilities",
+      "hierarchy": "XIV.",
+      "item_name": "ÖZKAYNAKLAR",
+      "amount_tl": 8659438,
+      "amount_fc": 13121,
+      "amount_total": 8672559,
+      "note": "stray 'v' fused to marker 'vXIV.' dropped the equity row"
+    },
+    {
+      "bank_ticker": "EMLAK",
+      "period": "2022Q3",
+      "kind": "consolidated",
+      "statement": "assets",
+      "hierarchy": "1.1.4",
+      "item_name": "Beklenen Zarar Karşılıkları (-)",
+      "amount_tl": 228,
+      "amount_fc": 27421,
+      "amount_total": 27649,
+      "note": "ECL marker garbled '1. B1.e4kl'; values legible"
+    },
+    {
+      "bank_ticker": "EXIM",
+      "period": "2023Q2",
+      "kind": "unconsolidated",
+      "statement": "liabilities",
+      "hierarchy": "XVI.",
+      "item_name": "SHAREHOLDERS' EQUITY",
+      "amount_tl": 28386818,
+      "amount_fc": -155350,
+      "amount_total": 28231468,
+      "note": "YP '-155.350' misparsed as -155.35"
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2025Q4",
+      "kind": "unconsolidated",
+      "statement": "liabilities",
+      "hierarchy": "XII.",
+      "item_name": "ERTELENMİŞ VERGİ BORCU",
+      "amount_tl": 1544349,
+      "amount_fc": 0,
+      "amount_total": 1544349,
+      "note": "deferred-tax roman value wrapped off label line; TL-only like XI"
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2026Q1",
+      "kind": "unconsolidated",
+      "statement": "liabilities",
+      "hierarchy": "XII.",
+      "item_name": "ERTELENMİŞ VERGİ BORCU",
+      "amount_tl": 1594907,
+      "amount_fc": 0,
+      "amount_total": 1594907,
+      "note": "deferred-tax roman value wrapped off label line; TL-only like XI"
+    },
+    {
+      "bank_ticker": "ATBANK",
+      "period": "2022Q2",
+      "kind": "consolidated",
+      "statement": "liabilities",
+      "hierarchy": "16.7",
+      "item_name": "Azınlık Payları",
+      "amount_tl": 0,
+      "amount_fc": 0,
+      "amount_total": 0,
+      "note": "minority-interest row absorbed garbage 12,042,579; true value 0"
+    },
+    {
+      "bank_ticker": "EXIM",
+      "period": "2024Q4",
+      "kind": "unconsolidated",
+      "statement": "assets",
+      "hierarchy": "1.3.2",
+      "item_name": "Equity Securities",
+      "amount_tl": 796469,
+      "amount_fc": 3875399,
+      "amount_total": 4671868,
+      "note": "source TL typo 746.469→796.469; forced by parent 1.3 TL (9.310.241+x=10.106.710) and row total 4.671.868-FC 3.875.399 [hierarchy de-dotted to match normalized key]"
+    },
+    {
+      "bank_ticker": "EXIM",
+      "period": "2024Q4",
+      "kind": "unconsolidated",
+      "statement": "assets",
+      "hierarchy": "V.",
+      "item_name": "TANGIBLE ASSETS (Net) (13)",
+      "amount_tl": 336235,
+      "amount_fc": 0,
+      "amount_total": 336235,
+      "note": "source TL typo 336.253→336.235; Total column 336.235 is the value that foots TOTAL ASSETS"
+    },
+    {
+      "bank_ticker": "EXIM",
+      "period": "2024Q4",
+      "kind": "unconsolidated",
+      "statement": "liabilities",
+      "hierarchy": "16.4",
+      "item_name": "Other Comprehensive Income/Expense Items to be Reclassified to Profit or Loss",
+      "amount_tl": -83876,
+      "amount_fc": 4473,
+      "amount_total": -79403,
+      "note": "source FC typo 4.374→4.473; forced by row total (-83.876+x=-79.403) and FC column total"
+    },
+    {
+      "bank_ticker": "EXIM",
+      "period": "2024Q4",
+      "kind": "unconsolidated",
+      "statement": "liabilities",
+      "hierarchy": "XVI.",
+      "item_name": "SHAREHOLDERS' EQUITY (10)",
+      "amount_tl": 93002171,
+      "amount_fc": 4473,
+      "amount_total": 93006644,
+      "note": "source FC typo 4.374→4.473 (same as 16.4); XVI=Σ16.x and FC column total both confirm 4.473"
+    },
+    {
+      "bank_ticker": "QNBFB",
+      "period": "2022Q4",
+      "kind": "consolidated",
+      "statement": "liabilities",
+      "hierarchy": "XV.",
+      "item_name": "OTHERLIABILITIES",
+      "amount_tl": 19815961,
+      "amount_fc": 17450858,
+      "amount_total": 37266819,
+      "note": "source TRY typo 19.501.461→19.815.961; FC column foots exactly, TL column short by 314.500, row total 37.266.819 locked by grand total + cross-check"
+    },
+    {
+      "bank_ticker": "ODEA",
+      "period": "2023Q4",
+      "kind": "unconsolidated",
+      "statement": "assets",
+      "hierarchy": "2.2",
+      "item_name": "Kiralama İşlemlerinden Alacakları",
+      "amount_tl": 0,
+      "amount_fc": 0,
+      "amount_total": 0,
+      "note": "dipnot 'I-10' leaked: label ate the 'I', value column captured -10; deposit bank has no lease receivables → 0 (II group foots with 2.2=0)"
+    },
+    {
+      "bank_ticker": "TEB",
+      "period": "2024Q4",
+      "kind": "unconsolidated",
+      "statement": "assets",
+      "hierarchy": "V.",
+      "item_name": "MADDİ DURAN VARLIKLAR (Net)",
+      "amount_tl": 3043626,
+      "amount_fc": 0,
+      "amount_total": 3043626,
+      "item_order": 39,
+      "note": "V. roman marker missing in unconsolidated page text → whole row dropped; statement total short by exactly 3.043.626. Inserted at order 39 (after 4.3.2, before VI.)"
+    },
+    {
+      "bank_ticker": "BURGAN",
+      "period": "2023Q2",
+      "kind": "consolidated",
+      "statement": "assets",
+      "hierarchy": "V.",
+      "item_name": "TANGIBLE ASSETS (Net)",
+      "amount_tl": 2818188,
+      "amount_fc": 0,
+      "amount_total": 2818188,
+      "note": "TL '2.818.188' misparsed as decimal 2818.188; total column already correct"
+    },
+    {
+      "bank_ticker": "TSKB",
+      "period": "2025Q3",
+      "kind": "unconsolidated",
+      "statement": "assets",
+      "hierarchy": "II.",
+      "item_name": "FINANCIAL ASSETS MEASURED AT AMORTIZED COST (Net)",
+      "amount_tl": 20476916,
+      "amount_fc": 215440031,
+      "amount_total": 235916947,
+      "note": "value string wrapped across columns ('20.476.916 215 . 440.031 235 .') → garbled; clean read from PDF; II=Σ2.x children"
+    },
+    {
+      "bank_ticker": "TSKB",
+      "period": "2025Q3",
+      "kind": "unconsolidated",
+      "statement": "assets",
+      "hierarchy": "2.5",
+      "item_name": "Expected Credit Losses (-)",
+      "amount_tl": 1878676,
+      "amount_fc": 6019669,
+      "amount_total": 7898345,
+      "note": "value string wrapped ('1.878.676 6. 019.669 7.') → garbled; clean read from PDF"
+    },
+    {
+      "bank_ticker": "KUVEYT",
+      "period": "2022Q2",
+      "kind": "consolidated",
+      "statement": "liabilities",
+      "hierarchy": "VII.",
+      "item_name": "KİRALAMA İŞLEMLERİNDEN YÜKÜMLÜLÜKLER (Net)",
+      "amount_tl": 436472,
+      "amount_fc": 57856,
+      "amount_total": 494328,
+      "note": "label '(Net) (5.2.6.)' wrapped, dipnot 5.2.6 leaked as TL=5/FC=2/Total=6; true values from PDF, statement total foots"
+    },
+    {
+      "bank_ticker": "KUVEYT",
+      "period": "2025Q4",
+      "kind": "consolidated",
+      "statement": "liabilities",
+      "hierarchy": "VII.",
+      "item_name": "KİRALAMA İŞLEMLERİNDEN YÜKÜMLÜLÜKLER (Net)",
+      "amount_tl": 2407839,
+      "amount_fc": 445237,
+      "amount_total": 2853076,
+      "note": "label '(Net) (5.2.6.)' wrapped, dipnot 5.2.6 leaked as TL=5/FC=2/Total=6; true values from PDF, statement total foots"
+    },
+    {
+      "bank_ticker": "YKBNK",
+      "period": "2022Q3",
+      "kind": "consolidated",
+      "statement": "liabilities",
+      "hierarchy": "7.2",
+      "item_name": "Derivative Liabilities at Fair Value Through Other Comprehensive Income",
+      "amount_tl": 57420,
+      "amount_fc": 0,
+      "amount_total": 57420,
+      "note": "7.2 garbled (0/683.193); true 57.420; VII=7.1+7.2 foots"
+    },
+    {
+      "bank_ticker": "YKBNK",
+      "period": "2022Q3",
+      "kind": "consolidated",
+      "statement": "liabilities",
+      "hierarchy": "16.3",
+      "item_name": "Other accumulated comprehensive income that will not be reclassified in profit or loss",
+      "amount_tl": 3840518,
+      "amount_fc": 9279,
+      "amount_total": 3849797,
+      "note": "16.3 garbled; true values from PDF; XVI=Σ16.x foots"
+    },
+    {
+      "bank_ticker": "YKBNK",
+      "period": "2022Q3",
+      "kind": "consolidated",
+      "statement": "liabilities",
+      "hierarchy": "16.4",
+      "item_name": "Other accumulated comprehensive income that will be reclassified in profit or loss",
+      "amount_tl": 18194795,
+      "amount_fc": 973713,
+      "amount_total": 19168508,
+      "note": "16.4 garbled; true values from PDF; XVI=Σ16.x foots"
+    },
+    {
+      "bank_ticker": "YKBNK",
+      "period": "2022Q4",
+      "kind": "consolidated",
+      "statement": "liabilities",
+      "hierarchy": "16.3",
+      "item_name": "Other accumulated comprehensive income that will not be reclassified in profit or loss",
+      "amount_tl": 1956972,
+      "amount_fc": 9299,
+      "amount_total": 1966271,
+      "note": "row labelled 16.3 held 16.4's values; reset to real 16.3 (1.966.271). Paired with the 16.4 insert below"
+    },
+    {
+      "bank_ticker": "YKBNK",
+      "period": "2022Q4",
+      "kind": "consolidated",
+      "statement": "liabilities",
+      "hierarchy": "16.4",
+      "item_name": "Other accumulated comprehensive income that will be reclassified in profit or loss",
+      "amount_tl": 15856039,
+      "amount_fc": 2484397,
+      "amount_total": 18340436,
+      "item_order": 37,
+      "note": "16.4 row missing (its values were sitting under 16.3); inserted after 16.3, before 16.5. XVI=Σ16.x foots"
+    },
+    {
+      "bank_ticker": "YKBNK",
+      "period": "2022Q4",
+      "kind": "consolidated",
+      "statement": "liabilities",
+      "hierarchy": "7.2",
+      "item_name": "Derivative liabilities measured at fair value through other comprehensive income",
+      "amount_tl": 32350,
+      "amount_fc": 0,
+      "amount_total": 32350,
+      "item_order": 14,
+      "note": "7.2 row missing (32.350); inserted after 7.1, before VIII. VII=7.1+7.2 foots. Ordered last so this shift composes with the 16.4 insert"
+    },
+    {
+      "bank_ticker": "KUVEYT",
+      "period": "2024Q4",
+      "kind": "unconsolidated",
+      "statement": "profit_loss",
+      "hierarchy": "XVII.",
+      "item_name": "SÜRDÜRÜLEN FAALİYETLER VERGİ ÖNCESİ K/Z (XIII+...+XVI)",
+      "amount": 46257158,
+      "note": "value leaked into dipnot (5.4.9.) → row blank; 46.257.158 confirmed from PDF (= XIX − XVIII = XIII)"
+    },
+    {
+      "bank_ticker": "KUVEYT",
+      "period": "2025Q1",
+      "kind": "unconsolidated",
+      "statement": "off_balance",
+      "hierarchy": "B.",
+      "item_name": "EMANET VE REHİNLİ KIYMETLER (IV+V+VI)",
+      "amount_tl": 4727468981,
+      "amount_fc": 6748778307,
+      "amount_total": 11476247288,
+      "note": "B. subtotal column-shifted: label dropped, spurious 1.147.624.728 in TL slot pushed TP→FC, YP→Total (printed Total lost) → TL+FC≠Total. PDF prints TP 4.727.468.981 / YP 6.748.778.307 / Total 11.476.247.288; both IV+V+VI and (grand total − A) confirm"
+    },
+    {
+      "bank_ticker": "AKBNK",
+      "period": "2022Q4",
+      "kind": "consolidated",
+      "statement": "assets",
+      "hierarchy": "1.1.4",
+      "item_name": "Beklenen Zarar Karşılıkları (-)",
+      "amount_tl": 5164,
+      "amount_fc": 1452,
+      "amount_total": 6616,
+      "note": "ECL contra label dropped (empty item_name) → validator summed it positive, 1.1 short by 2×6.616. Values correct; restore '(-)' label so it subtracts (like GARAN/ISCTR/VAKBN)"
+    },
+    {
+      "bank_ticker": "AKBNK",
+      "period": "2022Q4",
+      "kind": "consolidated",
+      "statement": "assets",
+      "hierarchy": "2.5",
+      "item_name": "Beklenen Zarar Karşılıkları (-)",
+      "amount_tl": 17493100,
+      "amount_fc": 4748983,
+      "amount_total": 22242083,
+      "note": "ECL contra label dropped (empty item_name) → II summed it positive, short by 2×22.242.083. Values correct; restore '(-)' label so it subtracts"
+    },
+    {
+      "bank_ticker": "AKBNK",
+      "period": "2022Q4",
+      "kind": "unconsolidated",
+      "statement": "assets",
+      "hierarchy": "1.1.4",
+      "item_name": "Beklenen Zarar Karşılıkları (-)",
+      "amount_tl": 5150,
+      "amount_fc": 805,
+      "amount_total": 5955,
+      "note": "ECL contra label dropped (empty item_name) → 1.1 short by 2×5.955. Values correct; restore '(-)' label so it subtracts"
+    },
+    {
+      "bank_ticker": "AKBNK",
+      "period": "2022Q4",
+      "kind": "unconsolidated",
+      "statement": "assets",
+      "hierarchy": "2.5",
+      "item_name": "Beklenen Zarar Karşılıkları (-)",
+      "amount_tl": 17323275,
+      "amount_fc": 4190044,
+      "amount_total": 21513319,
+      "note": "ECL contra label dropped (empty item_name) → II short by 2×21.513.319. Values correct; restore '(-)' label so it subtracts"
+    },
+    {
+      "bank_ticker": "AKBNK",
+      "period": "2026Q1",
+      "kind": "consolidated",
+      "statement": "assets",
+      "hierarchy": "1.1.4",
+      "item_name": "Beklenen Zarar Karşılıkları (-)",
+      "amount_tl": 582,
+      "amount_fc": 474,
+      "amount_total": 1056,
+      "note": "ECL contra label dropped (empty item_name); passed within tolerance but labelled for correctness/consistency so it subtracts"
+    },
+    {
+      "bank_ticker": "AKBNK",
+      "period": "2026Q1",
+      "kind": "consolidated",
+      "statement": "assets",
+      "hierarchy": "2.5",
+      "item_name": "Beklenen Zarar Karşılıkları (-)",
+      "amount_tl": 73169516,
+      "amount_fc": 2987739,
+      "amount_total": 76157255,
+      "note": "ECL contra label dropped (empty item_name) → II short by 2×76.157.255. Values correct; restore '(-)' label so it subtracts"
+    },
+    {
+      "bank_ticker": "AKBNK",
+      "period": "2026Q1",
+      "kind": "unconsolidated",
+      "statement": "assets",
+      "hierarchy": "1.1.4",
+      "item_name": "Beklenen Zarar Karşılıkları (-)",
+      "amount_tl": 120,
+      "amount_fc": 266,
+      "amount_total": 386,
+      "note": "ECL contra label dropped (empty item_name); passed within tolerance but labelled for correctness/consistency so it subtracts"
+    },
+    {
+      "bank_ticker": "AKBNK",
+      "period": "2026Q1",
+      "kind": "unconsolidated",
+      "statement": "assets",
+      "hierarchy": "2.5",
+      "item_name": "Beklenen Zarar Karşılıkları (-)",
+      "amount_tl": 72969581,
+      "amount_fc": 2694939,
+      "amount_total": 75664520,
+      "note": "ECL contra label dropped (empty item_name) → II short by 2×75.664.520. Values correct; restore '(-)' label so it subtracts"
+    },
+    {
+      "bank_ticker": "AKTIF",
+      "period": "2023Q3",
+      "kind": "unconsolidated",
+      "statement": "profit_loss",
+      "hierarchy": "V.",
+      "item_name": "TEMETTÜ GELİRLERİ (3)",
+      "amount": 3194,
+      "note": "dividend income: extractor grabbed the 2nd period column 325; PDF current-period col = 3.194 (which even leaked into the label). VIII=III+IV+V+VI+VII foots exactly with 3.194"
+    },
+    {
+      "bank_ticker": "AKTIF",
+      "period": "2025Q2",
+      "kind": "consolidated",
+      "statement": "profit_loss",
+      "hierarchy": "V.",
+      "item_name": "TEMETTÜ GELİRLERİ (3)",
+      "amount": 1015,
+      "note": "dividend income: extractor grabbed the 2nd period column 661; PDF current-period col = 1.015. VIII=III+IV+V+VI+VII foots exactly with 1.015"
+    },
+    {
+      "bank_ticker": "KUVEYT",
+      "period": "2022Q3",
+      "kind": "unconsolidated",
+      "statement": "profit_loss",
+      "hierarchy": "X.",
+      "item_name": "DİĞER KARŞILIK GİDERLERİ (-) (5.4.7.)",
+      "amount": 532730,
+      "note": "other-provision row captured dipnot 5.4.7 leak '7'; PDF current-period = 532.730. XIII=VIII−IX−X−XI−XII foots"
+    },
+    {
+      "bank_ticker": "ODEA",
+      "period": "2022Q4",
+      "kind": "unconsolidated",
+      "statement": "profit_loss",
+      "hierarchy": "XXIV.",
+      "item_name": "DURDURULAN FAALİYETLER DÖNEM NET K/Z (XXII±XXIII)",
+      "amount": 0,
+      "note": "source prints XXIV=853.203 (copy of net profit) though discontinued rows XX–XXIII are all nil → discontinued net is 0; XXV=XIX+XXIV foots with 0 (extraction faithful to a source copy-down artifact)"
+    },
+    {
+      "bank_ticker": "ODEA",
+      "period": "2023Q4",
+      "kind": "unconsolidated",
+      "statement": "profit_loss",
+      "hierarchy": "XXIV.",
+      "item_name": "DURDURULAN FAALİYETLER DÖNEM NET K/Z (XXII±XXIII)",
+      "amount": 0,
+      "note": "source prints XXIV=1.710.173 (copy of net profit) though discontinued rows XX–XXIII are all nil → discontinued net is 0; XXV=XIX+XXIV foots with 0"
+    },
+    {
+      "bank_ticker": "TSKB",
+      "period": "2025Q3",
+      "kind": "unconsolidated",
+      "statement": "profit_loss",
+      "hierarchy": "XIX.",
+      "item_name": "NET PROFIT/(LOSS) FROM CONTINUED OPERATIONS (XVII±XVIII)",
+      "amount": 9285218,
+      "note": "XIX captured 2.372.570; forced by XVII−XVIII (12.077.887−2.792.669=9.285.218) and equals the stored XXV which passes net-vs-equity (=audited BS equity movement, XXIV=0). TSKB PDF host unreachable on fix day; value over-determined"
+    },
+    {
+      "bank_ticker": "YKBNK",
+      "period": "2022Q2",
+      "kind": "consolidated",
+      "statement": "profit_loss",
+      "hierarchy": "XVII.",
+      "item_name": "PROFIT/LOSS BEFORE TAXES FROM CONTINUING OPERATIONS (XIII+...+XVI)",
+      "amount": 24519994,
+      "note": "current-period cell garbled (prior-col 4.675.749 leaked into label, value slot got fragment ~5); PDF=24.519.994 (=XIII+XV 24.422.164+97.830), present in PDF. Prior-col cross-check 4.675.749−990.254=3.685.495=prior XIX"
+    },
+    {
+      "bank_ticker": "YKBNK",
+      "period": "2022Q2",
+      "kind": "consolidated",
+      "statement": "profit_loss",
+      "hierarchy": "XVIII.",
+      "item_name": "PROVISION FOR TAXES ON INCOME FROM CONTINUING OPERATIONS (±)",
+      "amount": 5338991,
+      "note": "current-period cell garbled (~5); =XVII−XIX=24.519.994−19.181.003=5.338.991, present in PDF"
+    },
+    {
+      "bank_ticker": "YKBNK",
+      "period": "2023Q4",
+      "kind": "consolidated",
+      "statement": "profit_loss",
+      "hierarchy": "XVII.",
+      "item_name": "PROFIT/LOSS BEFORE TAXES FROM CONTINUING OPERATIONS (XIII+...+XVI)",
+      "amount": 85028901,
+      "note": "current-period cell garbled (prior-col 69.193.768 leaked into label, value slot ~5); PDF=85.028.901 (=XIII+XV 83.405.114+1.623.787), present in PDF"
+    },
+    {
+      "bank_ticker": "YKBNK",
+      "period": "2023Q4",
+      "kind": "consolidated",
+      "statement": "profit_loss",
+      "hierarchy": "XVIII.",
+      "item_name": "PROVISION FOR TAXES ON INCOME FROM CONTINUING OPERATIONS (±)",
+      "amount": 17018737,
+      "note": "current-period cell garbled (~1); =XVII−XIX=85.028.901−68.010.164=17.018.737, present in PDF"
+    },
+    {
+      "bank_ticker": "QNBFB",
+      "period": "2023Q1",
+      "kind": "unconsolidated",
+      "statement": "profit_loss",
+      "hierarchy": "XIX.",
+      "item_name": "NET OPERATING PROFIT/LOSS (XVII±XVIII)",
+      "amount": 6632553,
+      "note": "net profit landed in the XX (discontinued-income) row; XIX held garbage -4.678.663. Equity statement confirms period net profit 6.632.553 with NO discontinued ops (TCI 6.632.553−OCI 1.764.044=4.868.509 reconciles). XIX=XVII+|XVIII|=4.858.673+1.773.880 (tax is a benefit). Prior period shows the same pattern (net 2.383.165 sits in XX)"
+    },
+    {
+      "bank_ticker": "QNBFB",
+      "period": "2023Q1",
+      "kind": "unconsolidated",
+      "statement": "profit_loss",
+      "hierarchy": "XX.",
+      "item_name": "INCOME FROM DISCONTINUED OPERATIONS",
+      "amount": 0,
+      "note": "phantom 6.632.553 here is the misplaced net profit (moved to XIX); no discontinued ops — XXI–XXIV nil and equity shows a single net-profit line → 0"
+    },
+    {
+      "bank_ticker": "QNBFB",
+      "period": "2023Q1",
+      "kind": "unconsolidated",
+      "statement": "profit_loss",
+      "hierarchy": "XXV.",
+      "item_name": "NET PROFIT/LOSS (XIX+XXIV)",
+      "amount": 6632553,
+      "note": "blank in source; =XIX+XXIV=6.632.553+0; equals the equity-statement net profit, satisfies the net-vs-equity check"
+    },
+    {
+      "bank_ticker": "TEB",
+      "period": "2022Q4",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "III.",
+      "item_name": "TÜREV FİNANSAL ARAÇLAR ( I I I - 2 ) 141 , 986 , 717",
+      "amount_tl": 141986717,
+      "amount_fc": 188416628,
+      "amount_total": 330403345,
+      "note": "III. derivatives header TL/FC garbled by (III-2) cross-ref letter-spacing; Total correct; TL/FC=3.1+3.2 children (verified)"
+    },
+    {
+      "bank_ticker": "TEB",
+      "period": "2023Q4",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "III.",
+      "item_name": "TÜREV FİNANSAL ARAÇLAR ( I I I - 2 ) 127 , 889 , 540",
+      "amount_tl": 127889540,
+      "amount_fc": 270322456,
+      "amount_total": 398211996,
+      "note": "III. derivatives header TL/FC garbled by (III-2) cross-ref letter-spacing; Total correct; TL/FC=3.1+3.2 children (verified)"
+    },
+    {
+      "bank_ticker": "TEB",
+      "period": "2024Q4",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "III.",
+      "item_name": "TÜREV FİNANSAL ARAÇLAR ( I I I - 2 ) 198 , 894 , 864",
+      "amount_tl": 198894864,
+      "amount_fc": 423361173,
+      "amount_total": 622256037,
+      "note": "III. derivatives header TL/FC garbled by (III-2) cross-ref letter-spacing; Total correct; TL/FC=3.1+3.2 children (verified)"
+    },
+    {
+      "bank_ticker": "TEB",
+      "period": "2025Q1",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "III.",
+      "item_name": "TÜREV FİNANSAL ARAÇLAR ( I I I - 2 ) 262 , 879 , 274",
+      "amount_tl": 262879274,
+      "amount_fc": 550016793,
+      "amount_total": 812896067,
+      "note": "III. derivatives header TL/FC garbled by (III-2) cross-ref letter-spacing; Total correct; TL/FC=3.1+3.2 children (verified)"
+    },
+    {
+      "bank_ticker": "TEB",
+      "period": "2025Q2",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "III.",
+      "item_name": "TÜREV FİNANSAL ARAÇLAR ( I I I - 2 ) 282 , 547 , 990",
+      "amount_tl": 282547990,
+      "amount_fc": 624962731,
+      "amount_total": 907510721,
+      "note": "III. derivatives header TL/FC garbled by (III-2) cross-ref letter-spacing; Total correct; TL/FC=3.1+3.2 children (verified)"
+    },
+    {
+      "bank_ticker": "TEB",
+      "period": "2025Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "III.",
+      "item_name": "TÜREV FİNANSAL ARAÇLAR ( I I I - 2 ) 310 , 026 , 989",
+      "amount_tl": 310026989,
+      "amount_fc": 603897491,
+      "amount_total": 913924480,
+      "note": "III. derivatives header TL/FC garbled by (III-2) cross-ref letter-spacing; Total correct; TL/FC=3.1+3.2 children (verified)"
+    },
+    {
+      "bank_ticker": "TEB",
+      "period": "2025Q4",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "III.",
+      "item_name": "TÜREV FİNANSAL ARAÇLAR ( I I I - 2 ) 358 , 515 , 401",
+      "amount_tl": 358515401,
+      "amount_fc": 596490300,
+      "amount_total": 955005701,
+      "note": "III. derivatives header TL/FC garbled by (III-2) cross-ref letter-spacing; Total correct; TL/FC=3.1+3.2 children (verified)"
+    },
+    {
+      "bank_ticker": "TEB",
+      "period": "2026Q1",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "III.",
+      "item_name": "TÜREV FİNANSAL ARAÇLAR ( I I I - 2 ) 499 , 842 ,",
+      "amount_tl": 499842278,
+      "amount_fc": 785185690,
+      "amount_total": 1285027968,
+      "note": "III. derivatives header TL/FC garbled by (III-2) cross-ref letter-spacing; Total correct; TL/FC=3.1+3.2 children (verified)"
+    },
+    {
+      "bank_ticker": "BURGAN",
+      "period": "2023Q2",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "1.3.",
+      "item_name": "Letters of Credit",
+      "amount_tl": 175252,
+      "amount_fc": 3920147,
+      "amount_total": 4095399,
+      "note": "fc 3.920147 lost decimal -> 3,920,147 (tot-tl)"
+    },
+    {
+      "bank_ticker": "EMLAK",
+      "period": "2022Q4",
+      "kind": "unconsolidated",
+      "statement": "off_balance",
+      "hierarchy": "",
+      "item_name": "BİLANÇO DIŞI HESAPLAR TOPLAMI",
+      "amount_tl": 44595042,
+      "amount_fc": 38771055,
+      "amount_total": 83366097,
+      "note": "grand total 411 garbled -> tl+fc"
+    },
+    {
+      "bank_ticker": "ISCTR",
+      "period": "2025Q4",
+      "kind": "unconsolidated",
+      "statement": "off_balance",
+      "hierarchy": "5",
+      "item_name": "TÜRKİYE İŞ BANKASI A.Ş. UNCONS (spurious header)",
+      "amount_tl": 0,
+      "amount_fc": 0,
+      "amount_total": 0,
+      "note": "page-header captured as data row; neutralize"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2022Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "I.",
+      "item_name": "GARANTİ ve KEFALETLER III-a-3,i 266,,712059,,786629 5140,,409504,,",
+      "amount_tl": 6109869,
+      "amount_fc": 10054176,
+      "amount_total": 16164045,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2022Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "1.1.",
+      "item_name": "Teminat Mektupları III-a-2,ii 105,,025544,,157",
+      "amount_tl": 5254586,
+      "amount_fc": 6844293,
+      "amount_total": 12098879,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2022Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "1.2.",
+      "item_name": "Banka Kredileri",
+      "amount_tl": 0,
+      "amount_fc": 405942,
+      "amount_total": 405942,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2022Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "2.1.1.",
+      "item_name": "Vadeli, Aktif Değer Al.-Sat. Taahhütleri",
+      "amount_tl": 398256,
+      "amount_fc": 5989687,
+      "amount_total": 6387943,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2022Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "2.1.2.",
+      "item_name": "Vadeli, Mevduat Al.-Sat. Taahhütleri",
+      "amount_tl": 0,
+      "amount_fc": 0,
+      "amount_total": 0,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2022Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "3.1",
+      "item_name": "Riskten Korunma Amaçlı Türev Finansal Araçlar 387,,127430,,504",
+      "amount_tl": 7240040,
+      "amount_fc": 6424748,
+      "amount_total": 13664788,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2022Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "3.2.1",
+      "item_name": "Vadeli Döviz Alım-Satım İşlemleri",
+      "amount_tl": 1771096,
+      "amount_fc": 2276968,
+      "amount_total": 4048064,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2022Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "3.2.1.1",
+      "item_name": "Vadeli Döviz Alım İşlemleri",
+      "amount_tl": 1771096,
+      "amount_fc": 207304,
+      "amount_total": 1978400,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2022Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "3.2.1.2",
+      "item_name": "Vadeli Döviz Satım İşlemleri",
+      "amount_tl": 0,
+      "amount_fc": 2069664,
+      "amount_total": 2069664,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2022Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "3.2.2.2",
+      "item_name": "Swap Para Satım İşlemleri",
+      "amount_tl": 5529017,
+      "amount_fc": 6659703,
+      "amount_total": 12188720,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2022Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "3.2.2.4",
+      "item_name": "Swap Faiz Satım İşlemleri",
+      "amount_tl": 150000,
+      "amount_fc": 2224293,
+      "amount_total": 2374293,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2022Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "3.2.3.2",
+      "item_name": "Para Satım Opsiyonları",
+      "amount_tl": 1493576,
+      "amount_fc": 2433530,
+      "amount_total": 3927106,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2022Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "3.2.3.3",
+      "item_name": "Faiz Alım Opsiyonları",
+      "amount_tl": 0,
+      "amount_fc": 0,
+      "amount_total": 0,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2022Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "IV.",
+      "item_name": "EMANET KIYMETLER 11111,,864581,,898072 15163,,544470,,",
+      "amount_tl": 11651902,
+      "amount_fc": 13440724,
+      "amount_total": 25092626,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2022Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "4.1.",
+      "item_name": "Müşteri Fon ve Portföy Mevcutları",
+      "amount_tl": 4050911,
+      "amount_fc": 0,
+      "amount_total": 4050911,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2022Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "4.2.",
+      "item_name": "Emanete Alınan Menkul Değerler",
+      "amount_tl": 190987,
+      "amount_fc": 983983,
+      "amount_total": 1174970,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2022Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "4.3.",
+      "item_name": "Tahsile Alınan Çekler",
+      "amount_tl": 706033,
+      "amount_fc": 36344,
+      "amount_total": 742377,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2022Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "5.3.",
+      "item_name": "Emtia",
+      "amount_tl": 4048496,
+      "amount_fc": 7249014,
+      "amount_total": 11297510,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2022Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "5.4.",
+      "item_name": "Varant",
+      "amount_tl": 0,
+      "amount_fc": 0,
+      "amount_total": 0,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2022Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "5.6.",
+      "item_name": "Diğer Rehinli Kıymetler",
+      "amount_tl": 3717192,
+      "amount_fc": 3205639,
+      "amount_total": 6922831,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2022Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "5.7.",
+      "item_name": "Rehinli Kıymet Alanlar",
+      "amount_tl": 0,
+      "amount_fc": 0,
+      "amount_total": 0,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2023Q1",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "1.2.",
+      "item_name": "Banka Kredileri",
+      "amount_tl": 1350,
+      "amount_fc": 131909,
+      "amount_total": 133259,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2023Q1",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "2.1.1.",
+      "item_name": "Vadeli, Aktif Değer Al.-Sat. Taahhütleri",
+      "amount_tl": 1056755,
+      "amount_fc": 2995669,
+      "amount_total": 4052424,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2023Q1",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "2.1.2.",
+      "item_name": "Vadeli, Mevduat Al.-Sat. Taahhütleri",
+      "amount_tl": 0,
+      "amount_fc": 0,
+      "amount_total": 0,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2023Q1",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "3.2.1",
+      "item_name": "Vadeli Döviz Alım-Satım İşlemleri",
+      "amount_tl": 2216875,
+      "amount_fc": 2576068,
+      "amount_total": 4792943,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2023Q1",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "3.2.1.1",
+      "item_name": "Vadeli Döviz Alım İşlemleri",
+      "amount_tl": 2216875,
+      "amount_fc": 158182,
+      "amount_total": 2375057,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2023Q1",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "3.2.1.2",
+      "item_name": "Vadeli Döviz Satım İşlemleri",
+      "amount_tl": 0,
+      "amount_fc": 2417886,
+      "amount_total": 2417886,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2023Q1",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "3.2.2.2",
+      "item_name": "Swap Para Satım İşlemleri",
+      "amount_tl": 4910613,
+      "amount_fc": 3359016,
+      "amount_total": 8269629,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2023Q1",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "3.2.2.4",
+      "item_name": "Swap Faiz Satım İşlemleri",
+      "amount_tl": 350000,
+      "amount_fc": 2473244,
+      "amount_total": 2823244,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2023Q1",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "3.2.3.2",
+      "item_name": "Para Satım Opsiyonları",
+      "amount_tl": 1845460,
+      "amount_fc": 1964776,
+      "amount_total": 3810236,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2023Q1",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "3.2.3.3",
+      "item_name": "Faiz Alım Opsiyonları",
+      "amount_tl": 0,
+      "amount_fc": 0,
+      "amount_total": 0,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2023Q1",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "4.1.",
+      "item_name": "Müşteri Fon ve Portföy Mevcutları",
+      "amount_tl": 2263407,
+      "amount_fc": 0,
+      "amount_total": 2263407,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2023Q1",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "4.2.",
+      "item_name": "Emanete Alınan Menkul Değerler",
+      "amount_tl": 186416,
+      "amount_fc": 1204527,
+      "amount_total": 1390943,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2023Q1",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "4.3.",
+      "item_name": "Tahsile Alınan Çekler",
+      "amount_tl": 1049926,
+      "amount_fc": 10260,
+      "amount_total": 1060186,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2023Q1",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "5.3.",
+      "item_name": "Emtia",
+      "amount_tl": 3958996,
+      "amount_fc": 7752476,
+      "amount_total": 11711472,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2023Q1",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "5.4.",
+      "item_name": "Varant",
+      "amount_tl": 0,
+      "amount_fc": 0,
+      "amount_total": 0,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2023Q1",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "5.6.",
+      "item_name": "Diğer Rehinli Kıymetler",
+      "amount_tl": 4548849,
+      "amount_fc": 3290581,
+      "amount_total": 7839430,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2023Q1",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "5.7.",
+      "item_name": "Rehinli Kıymet Alanlar",
+      "amount_tl": 0,
+      "amount_fc": 0,
+      "amount_total": 0,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2024Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "1.1.3.",
+      "item_name": "Diğer Teminat Mektupları",
+      "amount_tl": 14274300,
+      "amount_fc": 7926621,
+      "amount_total": 22200921,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2024Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "2.1.1.",
+      "item_name": "Vadeli, Aktif Değer Al.-Sat. Taahhütleri",
+      "amount_tl": 490462,
+      "amount_fc": 2856842,
+      "amount_total": 3347304,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2024Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "2.1.2.",
+      "item_name": "Vadeli, Mevduat Al.-Sat. Taahhütleri",
+      "amount_tl": 0,
+      "amount_fc": 0,
+      "amount_total": 0,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2024Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "3.2.1",
+      "item_name": "Vadeli Döviz Alım-Satım İşlemleri",
+      "amount_tl": 1056318,
+      "amount_fc": 4759070,
+      "amount_total": 5815388,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2024Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "3.2.1.1",
+      "item_name": "Vadeli Döviz Alım İşlemleri",
+      "amount_tl": 1042806,
+      "amount_fc": 1798225,
+      "amount_total": 2841031,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2024Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "3.2.1.2",
+      "item_name": "Vadeli Döviz Satım İşlemleri",
+      "amount_tl": 13512,
+      "amount_fc": 2960845,
+      "amount_total": 2974357,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2024Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "3.2.2.2",
+      "item_name": "Swap Para Satım İşlemleri",
+      "amount_tl": 3816238,
+      "amount_fc": 6116069,
+      "amount_total": 9932307,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2024Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "3.2.2.4",
+      "item_name": "Swap Faiz Satım İşlemleri",
+      "amount_tl": 600000,
+      "amount_fc": 7835292,
+      "amount_total": 8435292,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2024Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "3.2.3.2",
+      "item_name": "Para Satım Opsiyonları",
+      "amount_tl": 4390614,
+      "amount_fc": 13274801,
+      "amount_total": 17665415,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2024Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "3.2.3.3",
+      "item_name": "Faiz Alım Opsiyonları",
+      "amount_tl": 0,
+      "amount_fc": 0,
+      "amount_total": 0,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2024Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "4.5.",
+      "item_name": "Tahsile Alınan Diğer Kıymetler",
+      "amount_tl": 0,
+      "amount_fc": 0,
+      "amount_total": 0,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2024Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "5.2.",
+      "item_name": "Teminat Senetleri",
+      "amount_tl": 68293562,
+      "amount_fc": 82959520,
+      "amount_total": 151253082,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2024Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "5.3.",
+      "item_name": "Emtia",
+      "amount_tl": 629148,
+      "amount_fc": 1918061,
+      "amount_total": 2547209,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2024Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "5.6.",
+      "item_name": "Diğer Rehinli Kıymetler",
+      "amount_tl": 6427952,
+      "amount_fc": 3243288,
+      "amount_total": 9671240,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2024Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "5.7.",
+      "item_name": "Rehinli Kıymet Alanlar",
+      "amount_tl": 0,
+      "amount_fc": 0,
+      "amount_total": 0,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2025Q1",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "3.2.1",
+      "item_name": "Vadeli Döviz Alım-Satım İşlemleri",
+      "amount_tl": 5863781,
+      "amount_fc": 8408011,
+      "amount_total": 14271792,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2025Q1",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "3.2.1.1",
+      "item_name": "Vadeli Döviz Alım İşlemleri",
+      "amount_tl": 2738957,
+      "amount_fc": 4269045,
+      "amount_total": 7008002,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2025Q1",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "3.2.1.2",
+      "item_name": "Vadeli Döviz Satım İşlemleri 1,7761 , 09 3,",
+      "amount_tl": 3124824,
+      "amount_fc": 4138966,
+      "amount_total": 7263790,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2025Q1",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "3.2.2.2",
+      "item_name": "Swap Para Satım İşlemleri",
+      "amount_tl": 2010329,
+      "amount_fc": 6743740,
+      "amount_total": 8754069,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2025Q1",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "3.2.2.4",
+      "item_name": "Swap Faiz Satım İşlemleri",
+      "amount_tl": 400000,
+      "amount_fc": 7897375,
+      "amount_total": 8297375,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2025Q1",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "3.2.3.2",
+      "item_name": "Para Satım Opsiyonları",
+      "amount_tl": 4852025,
+      "amount_fc": 22823724,
+      "amount_total": 27675749,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2025Q1",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "3.2.3.3",
+      "item_name": "Faiz Alım Opsiyonları",
+      "amount_tl": 0,
+      "amount_fc": 0,
+      "amount_total": 0,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2025Q1",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "4.5.",
+      "item_name": "Tahsile Alınan Diğer Kıymetler",
+      "amount_tl": 0,
+      "amount_fc": 0,
+      "amount_total": 0,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2025Q1",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "5.2.",
+      "item_name": "Teminat Senetleri",
+      "amount_tl": 79391670,
+      "amount_fc": 89363658,
+      "amount_total": 168755328,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2025Q1",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "5.3.",
+      "item_name": "Emtia",
+      "amount_tl": 700288,
+      "amount_fc": 839035,
+      "amount_total": 1539323,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2025Q1",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "5.6.",
+      "item_name": "Diğer Rehinli Kıymetler",
+      "amount_tl": 10289288,
+      "amount_fc": 5461005,
+      "amount_total": 15750293,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2025Q1",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "5.7.",
+      "item_name": "Rehinli Kıymet Alanlar",
+      "amount_tl": 0,
+      "amount_fc": 0,
+      "amount_total": 0,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2025Q2",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "3.2.1",
+      "item_name": "Vadeli Döviz Alım-Satım İşlemleri",
+      "amount_tl": 2872030,
+      "amount_fc": 7935666,
+      "amount_total": 10807696,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2025Q2",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "3.2.1.1",
+      "item_name": "Vadeli Döviz Alım İşlemleri",
+      "amount_tl": 734847,
+      "amount_fc": 4480806,
+      "amount_total": 5215653,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2025Q2",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "3.2.1.2",
+      "item_name": "Vadeli Döviz Satım İşlemleri 1,7761 , 09 2,",
+      "amount_tl": 2137183,
+      "amount_fc": 3454860,
+      "amount_total": 5592043,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2025Q2",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "3.2.2.2",
+      "item_name": "Swap Para Satım İşlemleri",
+      "amount_tl": 2870278,
+      "amount_fc": 6459570,
+      "amount_total": 9329848,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2025Q2",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "3.2.2.4",
+      "item_name": "Swap Faiz Satım İşlemleri",
+      "amount_tl": 400000,
+      "amount_fc": 8421531,
+      "amount_total": 8821531,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2025Q2",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "3.2.3.2",
+      "item_name": "Para Satım Opsiyonları",
+      "amount_tl": 4342140,
+      "amount_fc": 30189156,
+      "amount_total": 34531296,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2025Q2",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "3.2.3.3",
+      "item_name": "Faiz Alım Opsiyonları",
+      "amount_tl": 0,
+      "amount_fc": 0,
+      "amount_total": 0,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2025Q2",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "4.5.",
+      "item_name": "Tahsile Alınan Diğer Kıymetler",
+      "amount_tl": 0,
+      "amount_fc": 0,
+      "amount_total": 0,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2025Q2",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "5.2.",
+      "item_name": "Teminat Senetleri",
+      "amount_tl": 82045470,
+      "amount_fc": 96584518,
+      "amount_total": 178629988,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2025Q2",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "5.3.",
+      "item_name": "Emtia",
+      "amount_tl": 925288,
+      "amount_fc": 1038542,
+      "amount_total": 1963830,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2025Q2",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "5.6.",
+      "item_name": "Diğer Rehinli Kıymetler",
+      "amount_tl": 16946157,
+      "amount_fc": 5992463,
+      "amount_total": 22938620,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2025Q2",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "5.7.",
+      "item_name": "Rehinli Kıymet Alanlar",
+      "amount_tl": 0,
+      "amount_fc": 0,
+      "amount_total": 0,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2025Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "3.2.1",
+      "item_name": "Vadeli Döviz Alım-Satım İşlemleri",
+      "amount_tl": 7227425,
+      "amount_fc": 9917230,
+      "amount_total": 17144655,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2025Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "3.2.1.1",
+      "item_name": "Vadeli Döviz Alım İşlemleri",
+      "amount_tl": 1294595,
+      "amount_fc": 6905553,
+      "amount_total": 8200148,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2025Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "3.2.1.2",
+      "item_name": "Vadeli Döviz Satım İşlemleri 1,7761 , 09 5,",
+      "amount_tl": 5932830,
+      "amount_fc": 3011677,
+      "amount_total": 8944507,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2025Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "3.2.2.2",
+      "item_name": "Swap Para Satım İşlemleri",
+      "amount_tl": 5909474,
+      "amount_fc": 4128691,
+      "amount_total": 10038165,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2025Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "3.2.2.4",
+      "item_name": "Swap Faiz Satım İşlemleri",
+      "amount_tl": 0,
+      "amount_fc": 8808772,
+      "amount_total": 8808772,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2025Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "3.2.3.2",
+      "item_name": "Para Satım Opsiyonları",
+      "amount_tl": 4831536,
+      "amount_fc": 31038352,
+      "amount_total": 35869888,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2025Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "3.2.3.3",
+      "item_name": "Faiz Alım Opsiyonları",
+      "amount_tl": 0,
+      "amount_fc": 0,
+      "amount_total": 0,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2025Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "4.5.",
+      "item_name": "Tahsile Alınan Diğer Kıymetler",
+      "amount_tl": 0,
+      "amount_fc": 0,
+      "amount_total": 0,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2025Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "5.2.",
+      "item_name": "Teminat Senetleri",
+      "amount_tl": 85383338,
+      "amount_fc": 101225314,
+      "amount_total": 186608652,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2025Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "5.3.",
+      "item_name": "Emtia",
+      "amount_tl": 962288,
+      "amount_fc": 1085214,
+      "amount_total": 2047502,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2025Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "5.6.",
+      "item_name": "Diğer Rehinli Kıymetler",
+      "amount_tl": 18712849,
+      "amount_fc": 6246818,
+      "amount_total": 24959667,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2025Q3",
+      "kind": "consolidated",
+      "statement": "off_balance",
+      "hierarchy": "5.7.",
+      "item_name": "Rehinli Kıymet Alanlar",
+      "amount_tl": 0,
+      "amount_fc": 0,
+      "amount_total": 0,
+      "note": "TL/FC garbled by cross-ref; fitz-read from off_balance page, Total matches stored"
+    },
+    {
+      "bank_ticker": "EXIM",
+      "period": "2023Q1",
+      "kind": "unconsolidated",
+      "statement": "oci_replace",
+      "rows": [
+        {
+          "hierarchy": "III",
+          "item_name": "TOTAL COMPREHENSIVE INCOME (I+II) 1.806.816 1.239.",
+          "amount": 1806816
+        }
+      ],
+      "note": "OCI extractor captured wrong/garbled table; full fitz re-read of the OCI statement"
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2022Q2",
+      "kind": "consolidated",
+      "statement": "oci_replace",
+      "rows": [
+        {
+          "hierarchy": "I",
+          "item_name": "DÖNEM KARI/ZARARI 1.217.677 175.066",
+          "amount": 1217677
+        },
+        {
+          "hierarchy": "II",
+          "item_name": "DİĞER KAPSAMLI GELİRLER 685.689 2.754",
+          "amount": 685689
+        },
+        {
+          "hierarchy": "2.1",
+          "item_name": "Kar veya Zararda Yeniden Sınıflandırılmayacaklar (",
+          "amount": -54
+        },
+        {
+          "hierarchy": "2.1.3",
+          "item_name": "Tanımlanmış Fayda Planları Yeniden Ölçüm Kazançlar",
+          "amount": -73
+        },
+        {
+          "hierarchy": "2.1.5",
+          "item_name": "Kâr veya Zararda Yeniden Sınıflandırılmayacak Diğe",
+          "amount": 19
+        },
+        {
+          "hierarchy": "2.2",
+          "item_name": "Kâr veya Zararda Yeniden Sınıflandırılacaklar 685.",
+          "amount": 685743
+        },
+        {
+          "hierarchy": "2.2.2",
+          "item_name": "Gelirleri/Giderleri 733.982 4.145",
+          "amount": 733982
+        },
+        {
+          "hierarchy": "2.2.6",
+          "item_name": "Kâr veya Zararda Yeniden Sınıflandırılacak Diğer K",
+          "amount": -48239
+        },
+        {
+          "hierarchy": "III",
+          "item_name": "TOPLAM KAPSAMLI GELİR (I+II) 1.903.366 177.820",
+          "amount": 1903366
+        }
+      ],
+      "note": "OCI extractor captured wrong/garbled table; full fitz re-read of the OCI statement"
+    },
+    {
+      "bank_ticker": "QNBFB",
+      "period": "2025Q1",
+      "kind": "consolidated",
+      "statement": "oci_replace",
+      "rows": [
+        {
+          "hierarchy": "I",
+          "item_name": "CURRENT PERIOD PROFIT/LOSS 11,190,139 9,864,528",
+          "amount": 11190139
+        },
+        {
+          "hierarchy": "II",
+          "item_name": "OTHER COMPREHENSIVE INCOME (2,263,311) 1,383,245",
+          "amount": -2263311
+        },
+        {
+          "hierarchy": "2.1",
+          "item_name": "Other Income/Expense Items Not Reclassified Throug",
+          "amount": 210
+        },
+        {
+          "hierarchy": "2.1.3",
+          "item_name": "Defined Benefit Plans' Actuarial Income/Expense 32",
+          "amount": 321
+        },
+        {
+          "hierarchy": "2.1.4",
+          "item_name": "Other Income/Expense Items not Reclassified to Pro",
+          "amount": -15
+        },
+        {
+          "hierarchy": "2.1.5",
+          "item_name": "Tax Related Other Comprehensive Income Items Not R",
+          "amount": -96
+        },
+        {
+          "hierarchy": "2.2",
+          "item_name": "Other Income/Expense Items Reclassified to Profit ",
+          "amount": -2263521
+        },
+        {
+          "hierarchy": "2.2.2",
+          "item_name": "Income/Expenses from Valuation and/or Reclassifica",
+          "amount": -5487771
+        },
+        {
+          "hierarchy": "2.2.3",
+          "item_name": "Income/losses from Cash Flow Hedges 2,249,422 1,84",
+          "amount": 2249422
+        },
+        {
+          "hierarchy": "2.2.6",
+          "item_name": "Tax Related Other Comprehensive Income Items Recla",
+          "amount": 974828
+        },
+        {
+          "hierarchy": "III",
+          "item_name": "TOTAL COMPREHENSIVE INCOME (I+II) 8,926,828 11,247",
+          "amount": 8926828
+        }
+      ],
+      "note": "OCI extractor captured wrong/garbled table; full fitz re-read of the OCI statement"
+    },
+    {
+      "bank_ticker": "QNBFB",
+      "period": "2025Q1",
+      "kind": "unconsolidated",
+      "statement": "oci_replace",
+      "rows": [
+        {
+          "hierarchy": "I",
+          "item_name": "CURRENT PERIOD PROFIT/LOSS 11,187,871 9,863,545",
+          "amount": 11187871
+        },
+        {
+          "hierarchy": "II",
+          "item_name": "OTHER COMPREHENSIVE INCOME (2,263,311) 1,383,245",
+          "amount": -2263311
+        },
+        {
+          "hierarchy": "2.1",
+          "item_name": "Other Income/Expense Items not Reclassified to Pro",
+          "amount": 210
+        },
+        {
+          "hierarchy": "2.1.3",
+          "item_name": "Defined Benefit Plans' Actuarial Income/Loss 321 (",
+          "amount": 321
+        },
+        {
+          "hierarchy": "2.1.4",
+          "item_name": "Other Income/Expense Items not Reclassified to Pro",
+          "amount": -15
+        },
+        {
+          "hierarchy": "2.1.5",
+          "item_name": "Tax Related Other Comprehensive Income Items Not R",
+          "amount": -96
+        },
+        {
+          "hierarchy": "2.2",
+          "item_name": "Other Income/Expense Items Reclassified to Profit ",
+          "amount": -2263521
+        },
+        {
+          "hierarchy": "2.2.2",
+          "item_name": "Income/Expenses from Valuation and/or Reclassifica",
+          "amount": -5475666
+        },
+        {
+          "hierarchy": "2.2.3",
+          "item_name": "Income/Expense from Cash Flow Hedges 2,080,710 1,8",
+          "amount": 2080710
+        },
+        {
+          "hierarchy": "2.2.5",
+          "item_name": "Other Income/Expense Items Reclassified to Profit ",
+          "amount": 112948
+        },
+        {
+          "hierarchy": "2.2.6",
+          "item_name": "Tax Related Other Comprehensive Income Items Recla",
+          "amount": 1018487
+        },
+        {
+          "hierarchy": "III",
+          "item_name": "TOTAL COMPREHENSIVE INCOME (I+II) 8,924,560 11,246",
+          "amount": 8924560
+        }
+      ],
+      "note": "OCI extractor captured wrong/garbled table; full fitz re-read of the OCI statement"
+    },
+    {
+      "bank_ticker": "ISCTR",
+      "period": "2025Q2",
+      "kind": "unconsolidated",
+      "statement": "oci_replace",
+      "rows": [],
+      "note": "OCI extractor captured the EQUITY statement (Beginning Balance / Profit Distribution / Dividend Paid), not the OCI statement; report PDF now 404 so it cannot be re-read — removed the wrong-table rows (no valid OCI for this partition -> shown as skipped, not wrong data kept)"
+    },
+    {
+      "bank_ticker": "KLNMA",
+      "period": "2022Q2",
+      "kind": "unconsolidated",
+      "statement": "oci",
+      "hierarchy": "II.",
+      "item_name": "DİĞER KAPSAMLI GELİRLER",
+      "amount": 33128,
+      "note": "extractor read II + 2.1 from the PRIOR column; correct current II = III - I = 766,297 - 733,169 = 33,128 (= 2.2, 2.1=0); roman III=I+II + section II=2.1+2.2 now foot, cross (I==P&L net) already passed"
+    },
+    {
+      "bank_ticker": "KLNMA",
+      "period": "2022Q2",
+      "kind": "unconsolidated",
+      "statement": "oci",
+      "hierarchy": "2.1",
+      "item_name": "Kar veya Zarara Yeniden Sınıflandırılmayacaklar",
+      "amount": 0,
+      "note": "current 2.1 is blank in the source (stored 660 was the prior column)"
+    },
+    {
+      "bank_ticker": "AKTIF",
+      "period": "2026Q1",
+      "kind": "consolidated",
+      "statement": "capital",
+      "fields": {
+        "total_capital": 18333158
+      },
+      "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+    },
+    {
+      "bank_ticker": "ICBCT",
+      "period": "2025Q2",
+      "kind": "unconsolidated",
+      "statement": "capital",
+      "fields": {
+        "additional_tier1_capital": 3861130
+      },
+      "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+    },
+    {
+      "bank_ticker": "ICBCT",
+      "period": "2025Q3",
+      "kind": "unconsolidated",
+      "statement": "capital",
+      "fields": {
+        "additional_tier1_capital": 4057690
+      },
+      "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+    },
+    {
+      "bank_ticker": "ICBCT",
+      "period": "2025Q4",
+      "kind": "unconsolidated",
+      "statement": "capital",
+      "fields": {
+        "additional_tier1_capital": 4265800
+      },
+      "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+    },
+    {
+      "bank_ticker": "ICBCT",
+      "period": "2026Q1",
+      "kind": "unconsolidated",
+      "statement": "capital",
+      "fields": {
+        "additional_tier1_capital": 4474680
+      },
+      "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+    },
+    {
+      "bank_ticker": "ISCTR",
+      "period": "2023Q3",
+      "kind": "unconsolidated",
+      "statement": "capital",
+      "fields": {
+        "tier2_capital": 47975127
+      },
+      "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+    },
+    {
+      "bank_ticker": "ISCTR",
+      "period": "2024Q3",
+      "kind": "unconsolidated",
+      "statement": "capital",
+      "fields": {
+        "tier2_capital": 59313366
+      },
+      "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+    },
+    {
+      "bank_ticker": "ISCTR",
+      "period": "2025Q1",
+      "kind": "consolidated",
+      "statement": "capital",
+      "fields": {
+        "total_rwa": 2724016639,
+        "cet1_ratio": 12.45,
+        "tier1_ratio": 13.94,
+        "capital_adequacy_ratio": 15.65
+      },
+      "note": "RWA column-slip (stored 426,340,238.0~=total); real RWA 2,724,016,639 from §4 table; ratios recomputed (cet1/t1/tc over RWA)"
+    },
+    {
+      "bank_ticker": "ISCTR",
+      "period": "2025Q2",
+      "kind": "consolidated",
+      "statement": "capital",
+      "fields": {
+        "total_rwa": 2876514556,
+        "cet1_ratio": 13.03,
+        "tier1_ratio": 14.51,
+        "capital_adequacy_ratio": 16.08
+      },
+      "note": "RWA column-slip (stored 462,607,923.0~=total); real RWA 2,876,514,556 from §4 table; ratios recomputed (cet1/t1/tc over RWA)"
+    },
+    {
+      "bank_ticker": "QNBFB",
+      "period": "2022Q1",
+      "kind": "consolidated",
+      "statement": "capital",
+      "fields": {
+        "additional_tier1_capital": 7689045
+      },
+      "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+    },
+    {
+      "bank_ticker": "QNBFB",
+      "period": "2022Q2",
+      "kind": "consolidated",
+      "statement": "capital",
+      "fields": {
+        "additional_tier1_capital": 8751225
+      },
+      "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+    },
+    {
+      "bank_ticker": "QNBFB",
+      "period": "2022Q3",
+      "kind": "consolidated",
+      "statement": "capital",
+      "fields": {
+        "additional_tier1_capital": 9714495
+      },
+      "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+    },
+    {
+      "bank_ticker": "QNBFB",
+      "period": "2022Q4",
+      "kind": "consolidated",
+      "statement": "capital",
+      "fields": {
+        "additional_tier1_capital": 9815715
+      },
+      "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+    },
+    {
+      "bank_ticker": "QNBFB",
+      "period": "2023Q1",
+      "kind": "consolidated",
+      "statement": "capital",
+      "fields": {
+        "additional_tier1_capital": 10055430
+      },
+      "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+    },
+    {
+      "bank_ticker": "QNBFB",
+      "period": "2023Q2",
+      "kind": "consolidated",
+      "statement": "capital",
+      "fields": {
+        "additional_tier1_capital": 13557128
+      },
+      "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+    },
+    {
+      "bank_ticker": "QNBFB",
+      "period": "2025Q1",
+      "kind": "unconsolidated",
+      "statement": "capital",
+      "fields": {
+        "tier2_capital": 22898191
+      },
+      "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+    },
+    {
+      "bank_ticker": "QNBFB",
+      "period": "2025Q2",
+      "kind": "unconsolidated",
+      "statement": "capital",
+      "fields": {
+        "tier2_capital": 24394057
+      },
+      "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+    },
+    {
+      "bank_ticker": "QNBFB",
+      "period": "2025Q3",
+      "kind": "unconsolidated",
+      "statement": "capital",
+      "fields": {
+        "tier2_capital": 24355763
+      },
+      "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+    },
+    {
+      "bank_ticker": "QNBFB",
+      "period": "2025Q4",
+      "kind": "unconsolidated",
+      "statement": "capital",
+      "fields": {
+        "tier2_capital": 25598368
+      },
+      "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+    },
+    {
+      "bank_ticker": "QNBFB",
+      "period": "2026Q1",
+      "kind": "unconsolidated",
+      "statement": "capital",
+      "fields": {
+        "tier2_capital": 28731739
+      },
+      "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+    },
+    {
+      "bank_ticker": "SKBNK",
+      "period": "2022Q4",
+      "kind": "unconsolidated",
+      "statement": "capital",
+      "fields": {
+        "additional_tier1_capital": 16233,
+        "tier2_capital": 2344759
+      },
+      "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+    },
+    {
+      "bank_ticker": "SKBNK",
+      "period": "2025Q4",
+      "kind": "unconsolidated",
+      "statement": "capital",
+      "fields": {
+        "additional_tier1_capital": 8585373,
+        "tier2_capital": 4511856
+      },
+      "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+    },
+    {
+      "bank_ticker": "TSKB",
+      "period": "2022Q1",
+      "kind": "consolidated",
+      "statement": "capital",
+      "fields": {
+        "additional_tier1_capital": 2916300
+      },
+      "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+    },
+    {
+      "bank_ticker": "TSKB",
+      "period": "2022Q2",
+      "kind": "consolidated",
+      "statement": "capital",
+      "fields": {
+        "additional_tier1_capital": 3313400
+      },
+      "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+    },
+    {
+      "bank_ticker": "TSKB",
+      "period": "2022Q3",
+      "kind": "consolidated",
+      "statement": "capital",
+      "fields": {
+        "additional_tier1_capital": 3688000
+      },
+      "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+    },
+    {
+      "bank_ticker": "TSKB",
+      "period": "2023Q1",
+      "kind": "consolidated",
+      "statement": "capital",
+      "fields": {
+        "additional_tier1_capital": 3816000
+      },
+      "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
+    },
+    {
+      "bank_ticker": "EMLAK",
+      "period": "2022Q1",
+      "kind": "consolidated",
+      "statement": "capital",
+      "fields": {
+        "additional_tier1_capital": 2862707
+      },
+      "note": "AT1 (Türkiye Varlık Fonu vadesiz/kâr-paysız ilave ana sermaye) dropped; Tier1=CET1+AT1 reconciles 2,169,272+2,862,707=5,031,979; ratios pass"
+    },
+    {
+      "bank_ticker": "EMLAK",
+      "period": "2022Q1",
+      "kind": "unconsolidated",
+      "statement": "capital",
+      "fields": {
+        "additional_tier1_capital": 2862707
+      },
+      "note": "AT1 dropped; Tier1=CET1+AT1 reconciles 2,195,806+2,862,707=5,058,513"
+    },
+    {
+      "bank_ticker": "EMLAK",
+      "period": "2025Q1",
+      "kind": "consolidated",
+      "statement": "capital",
+      "fields": {
+        "total_capital": 28781229,
+        "total_rwa": 125508698
+      },
+      "note": "column-slip: RWA 125,508,698 read into total_capital, total_rwa NULLed; ÖZKAYNAK=28,781,229; 28,781,229/125,508,698=22.93%=reported CAR"
+    },
+    {
+      "bank_ticker": "ATBANK",
+      "period": "2025Q4",
+      "kind": "unconsolidated",
+      "statement": "off_balance",
+      "hierarchy": "I.",
+      "item_name": "GARANTİ VE KEFALETLER",
+      "item_order": 2,
+      "amount_tl": 4665882,
+      "amount_fc": 23925389,
+      "amount_total": 28591271,
+      "note": "roman section I dropped (only A. parent + 1.x children captured); restores Σromans=32,640,859=total"
+    },
+    {
+      "bank_ticker": "EMLAK",
+      "period": "2022Q4",
+      "kind": "unconsolidated",
+      "statement": "off_balance",
+      "hierarchy": "",
+      "item_name": "BİLANÇO DIŞI HESAPLAR TOPLAMI",
+      "amount_tl": 343115512,
+      "amount_fc": 44595042,
+      "amount_total": 387710554,
+      "note": "grand-total row mis-captured (83,366,097 = two wrong cols summed); source TP 343,115,512 / YP 44,595,042 / Toplam 387,710,554 = Σromans"
+    },
+    {
+      "bank_ticker": "AKBNK",
+      "period": "2022Q1",
+      "kind": "unconsolidated",
+      "statement": "pl_rehier",
+      "renames": [
+        {
+          "from": "XXIV.",
+          "to": "XXV.",
+          "item_name": "NET INCOME/(LOSS) (XIX+XXIV)"
+        },
+        {
+          "from": "XXIII.",
+          "to": "XXIV.",
+          "item_name": "CURRENT PERIOD PROFIT/LOSS FROM DISCONTINUED OPERATIONS (XXII±XXIII)"
+        },
+        {
+          "from": "XXII.",
+          "to": "XXIII.",
+          "item_name": "TAX PROVISION FOR DISCONTINUED OPERATIONS (±)"
+        },
+        {
+          "from": "XXI.",
+          "to": "XXII.",
+          "item_name": "PROFIT/LOSS BEFORE TAX FROM DISCONTINUED OPERATIONS"
+        },
+        {
+          "from": "XX.",
+          "to": "XXI.",
+          "item_name": "EXPENSES FOR DISCONTINUED OPERATIONS (-)"
+        },
+        {
+          "from": "XIX.",
+          "to": "XX.",
+          "item_name": "INCOME FROM DISCONTINUED OPERATIONS"
+        },
+        {
+          "from": "XVIII.",
+          "to": "XIX.",
+          "item_name": "CURRENT PERIOD PROFIT/LOSS FROM CONTINUED OPERATIONS (XVII±XVIII)"
+        }
+      ],
+      "note": "extractor printed the (XVII±XVIII) subtotal under a second XVIII. and shifted every later roman by one (net income landed on XXIV., no XXV.); amounts verified - stored net ties BS 16.6.2 exactly; renames only, tail-first"
+    },
+    {
+      "bank_ticker": "AKBNK",
+      "period": "2022Q2",
+      "kind": "unconsolidated",
+      "statement": "pl_rehier",
+      "renames": [
+        {
+          "from": "XXIV.",
+          "to": "XXV.",
+          "item_name": "NET INCOME/(LOSS) (XIX+XXIV)"
+        },
+        {
+          "from": "XXIII.",
+          "to": "XXIV.",
+          "item_name": "CURRENT PERIOD PROFIT/LOSS FROM DISCONTINUED OPERATIONS (XXII±XXIII)"
+        },
+        {
+          "from": "XXII.",
+          "to": "XXIII.",
+          "item_name": "TAX PROVISION FOR DISCONTINUED OPERATIONS (±)"
+        },
+        {
+          "from": "XXI.",
+          "to": "XXII.",
+          "item_name": "PROFIT/LOSS BEFORE TAX FROM DISCONTINUED OPERATIONS"
+        },
+        {
+          "from": "XX.",
+          "to": "XXI.",
+          "item_name": "EXPENSES FOR DISCONTINUED OPERATIONS (-)"
+        },
+        {
+          "from": "XIX.",
+          "to": "XX.",
+          "item_name": "INCOME FROM DISCONTINUED OPERATIONS"
+        },
+        {
+          "from": "XVIII.",
+          "to": "XIX.",
+          "item_name": "CURRENT PERIOD PROFIT/LOSS FROM CONTINUED OPERATIONS (XVII±XVIII)"
+        }
+      ],
+      "note": "extractor printed the (XVII±XVIII) subtotal under a second XVIII. and shifted every later roman by one (net income landed on XXIV., no XXV.); amounts verified - stored net ties BS 16.6.2 exactly; renames only, tail-first"
+    },
+    {
+      "bank_ticker": "AKBNK",
+      "period": "2022Q3",
+      "kind": "unconsolidated",
+      "statement": "pl_rehier",
+      "renames": [
+        {
+          "from": "XXIV.",
+          "to": "XXV.",
+          "item_name": "NET INCOME/(LOSS) (XIX+XXIV)"
+        },
+        {
+          "from": "XXIII.",
+          "to": "XXIV.",
+          "item_name": "CURRENT PERIOD PROFIT/LOSS FROM DISCONTINUED OPERATIONS (XXII±XXIII)"
+        },
+        {
+          "from": "XXII.",
+          "to": "XXIII.",
+          "item_name": "TAX PROVISION FOR DISCONTINUED OPERATIONS (±)"
+        },
+        {
+          "from": "XXI.",
+          "to": "XXII.",
+          "item_name": "PROFIT/LOSS BEFORE TAX FROM DISCONTINUED OPERATIONS"
+        },
+        {
+          "from": "XX.",
+          "to": "XXI.",
+          "item_name": "EXPENSES FOR DISCONTINUED OPERATIONS (-)"
+        },
+        {
+          "from": "XIX.",
+          "to": "XX.",
+          "item_name": "INCOME FROM DISCONTINUED OPERATIONS"
+        },
+        {
+          "from": "XVIII.",
+          "to": "XIX.",
+          "item_name": "CURRENT PERIOD PROFIT/LOSS FROM CONTINUED OPERATIONS (XVII±XVIII)"
+        }
+      ],
+      "note": "extractor printed the (XVII±XVIII) subtotal under a second XVIII. and shifted every later roman by one (net income landed on XXIV., no XXV.); amounts verified - stored net ties BS 16.6.2 exactly; renames only, tail-first"
+    },
+    {
+      "bank_ticker": "AKBNK",
+      "period": "2022Q2",
+      "kind": "unconsolidated",
+      "statement": "profit_loss",
+      "hierarchy": "XV.",
+      "item_name": "INCOME/(LOSS) FROM INVESTMENTS IN SUBSIDIARIES CONSOLIDATED BASED ON EQUITY METHOD",
+      "amount": 1422380,
+      "note": "XV. equity-method subsidiary income misread as 0: its two-line label 'INCOME...SUBSIDIARIES CONSOLIDATED' / 'BASED ON EQUITY METHOD' straddles XIV's empty dash row in the PDF, so the parser paired XV with the dashes and dropped the 1.422.380 that follows 'BASED ON EQUITY METHOD'. XIV (merger surplus) is genuinely nil. XVII=XIII+XIV+XV+XVI now reconciles exactly (28.129.175)."
+    },
+    {
+      "bank_ticker": "AKBNK",
+      "period": "2022Q3",
+      "kind": "unconsolidated",
+      "statement": "profit_loss",
+      "hierarchy": "XV.",
+      "item_name": "INCOME/(LOSS) FROM INVESTMENTS IN SUBSIDIARIES CONSOLIDATED BASED ON EQUITY METHOD",
+      "amount": 2209610,
+      "note": "Same misread as 2022Q2 (XV equity-method income paired with XIV's dashes). Value 2.209.610 legible after 'BASED ON EQUITY METHOD'; XVII=XIII+XV reconciles exactly (50.613.306)."
+    },
+    {
+      "bank_ticker": "ANADOLU",
+      "period": "2022Q1",
+      "kind": "consolidated",
+      "statement": "profit_loss",
+      "hierarchy": "IV.",
+      "item_name": "NET ÜCRET VE KOMİSYON GELİRLERİ/GİDERLERİ",
+      "amount": 84249,
+      "note": "IV. net-fees roman subtotal dropped by the parser (children 4.1=98.452 / 4.2=14.203 kept); IV=4.1-4.2=84.249. VIII=III+IV+V+VI+VII now reconciles exactly (922.008)."
+    },
+    {
+      "bank_ticker": "ANADOLU",
+      "period": "2022Q2",
+      "kind": "consolidated",
+      "statement": "profit_loss",
+      "hierarchy": "IV.",
+      "item_name": "NET ÜCRET VE KOMİSYON GELİRLERİ/GİDERLERİ",
+      "amount": 176594,
+      "note": "IV. net-fees roman subtotal dropped (children 4.1=207.830 / 4.2=31.236 kept); IV=176.594. VIII reconciles exactly (1.841.318)."
+    },
+    {
+      "bank_ticker": "QNBFB",
+      "period": "2022Q2",
+      "kind": "consolidated",
+      "statement": "profit_loss",
+      "hierarchy": "VI.",
+      "item_name": "TRADING INCOME /(LOSS) (Net)",
+      "amount": -115160,
+      "note": "VI. net-trading roman subtotal dropped (children 6.1=186.467 / 6.3=3.044.842 kept; 6.2 derivatives also dropped). VI=VIII-(III+IV+V+VII)=-115.160 (net trading loss). VIII=17.330.731 and XIII now reconcile exactly."
+    },
+    {
+      "bank_ticker": "COLENDI",
+      "period": "2025Q3",
+      "kind": "unconsolidated",
+      "statement": "liabilities",
+      "hierarchy": "16.7",
+      "item_name": "Minority Shares",
+      "amount_tl": 0,
+      "amount_fc": 0,
+      "amount_total": 0,
+      "note": "minority-shares row wrap-merge-absorbed the grand total 'TOTAL LIABILITIES' (3.629.776); true value 0. XVI=Σ16.x foots (2.073.662). Same pattern as ATBANK 2022Q2"
+    },
+    {
+      "bank_ticker": "COLENDI",
+      "period": "2025Q4",
+      "kind": "unconsolidated",
+      "statement": "liabilities",
+      "hierarchy": "16.7",
+      "item_name": "Minority Shares",
+      "amount_tl": 0,
+      "amount_fc": 0,
+      "amount_total": 0,
+      "note": "minority-shares row wrap-merge-absorbed the grand total 'TOTAL LIABILITIES' (4.108.392); true value 0. XVI=Σ16.x foots (2.039.472)"
+    },
+    {
+      "bank_ticker": "ZIRAATD",
+      "period": "2025Q4",
+      "kind": "unconsolidated",
+      "statement": "liabilities",
+      "hierarchy": "10.1",
+      "item_name": "Genel Karşılıklar",
+      "amount_tl": 4527,
+      "amount_fc": 0,
+      "amount_total": 4527,
+      "note": "10.1 printed only two tokens '4.527 4.527' (TP + Toplam, YP dash) → dropped by the short-row guard; X. KARŞILIKLAR short by exactly 4.527. TL-only like 10.5"
+    },
+    {
+      "bank_ticker": "EMLAK",
+      "period": "2023Q2",
+      "kind": "unconsolidated",
+      "statement": "off_balance",
+      "hierarchy": "2.1.12",
+      "item_name": "Diğer Cayılamaz Taahhütler",
+      "amount_tl": 1032500,
+      "amount_fc": 459677,
+      "amount_total": 1492177,
+      "note": "marker '2.1.12' split from its label+values line ('. Diğer Cayılamaz Taahhütler 1.032.500 459.677 1.492.177') → row dropped; 2.1 Cayılamaz Taahhütler short by exactly 1.492.177"
+    },
+    {
+      "bank_ticker": "EXIM",
+      "period": "2022Q1",
+      "kind": "unconsolidated",
+      "statement": "bs_rehier",
+      "bs_statement": "off_balance",
+      "renames": [
+        {
+          "from": "3.2.2.2",
+          "to": "3.2.1.2",
+          "item_name": "Forward Foreign Currency Transactions-Sell"
+        }
+      ],
+      "note": "SOURCE typo: the Forward-FX Sell leg (67.112) is stamped 3.2.2.2, colliding with the Swap-Sell, instead of 3.2.1.2 (sibling of 3.2.1.1 Buy). Relabel → 3.2.1 foots (67.330+67.112=134.442), 3.2.2 foots, dup cleared. TSKB files the same row correctly at 3.2.1.2"
+    },
+    {
+      "bank_ticker": "EXIM",
+      "period": "2022Q2",
+      "kind": "unconsolidated",
+      "statement": "bs_rehier",
+      "bs_statement": "off_balance",
+      "renames": [
+        {
+          "from": "3.2.2.2",
+          "to": "3.2.1.2",
+          "item_name": "Forward Foreign Currency Transactions-Sell"
+        }
+      ],
+      "note": "SOURCE typo: Forward-FX Sell (139.045) stamped 3.2.2.2 instead of 3.2.1.2. Relabel → 3.2.1/3.2.2 foot, dup cleared"
+    },
+    {
+      "bank_ticker": "EXIM",
+      "period": "2022Q2",
+      "kind": "unconsolidated",
+      "statement": "off_balance",
+      "hierarchy": "2.1.1",
+      "item_name": "Asset Purchase and Sale Commitments",
+      "amount_tl": 0,
+      "amount_fc": 0,
+      "amount_total": 0,
+      "note": "current period all-dash ('- - -'); parser stored the PRIOR-period column (6.741/6.593/13.334) as current → 2.1 over by exactly 13.334. Real current = 0 (only 2.1.13=3.307 is non-zero, matching parent 2.1=3.307)"
+    },
+    {
+      "bank_ticker": "EXIM",
+      "period": "2022Q3",
+      "kind": "unconsolidated",
+      "statement": "bs_rehier",
+      "bs_statement": "off_balance",
+      "renames": [
+        {
+          "from": "3.2.2.2",
+          "to": "3.2.1.2",
+          "item_name": "Forward Foreign Currency Transactions-Sell"
+        }
+      ],
+      "note": "SOURCE typo: Forward-FX Sell (93.044) stamped 3.2.2.2 instead of 3.2.1.2. Relabel → 3.2.1/3.2.2 foot, dup cleared"
+    },
+    {
+      "bank_ticker": "VAKBN",
+      "period": "2022Q2",
+      "kind": "consolidated",
+      "statement": "bs_rehier",
+      "bs_statement": "off_balance",
+      "renames": [
+        {
+          "from": "3.2.2.2",
+          "to": "3.2.1.2.",
+          "item_name": "Vadeli Döviz Satım İşlemleri"
+        }
+      ],
+      "note": "SOURCE typo: Vadeli Döviz Satım (Forward Sell, 3.916.043) stamped 3.2.2.2, colliding with Swap Para Satım, instead of 3.2.1.2. Relabel → 3.2.1 foots (4.271.762+3.916.043=8.187.805), 3.2.2 foots, dup cleared"
+    },
+    {
+      "bank_ticker": "VAKBN",
+      "period": "2022Q4",
+      "kind": "consolidated",
+      "statement": "bs_rehier",
+      "bs_statement": "off_balance",
+      "renames": [
+        {
+          "from": "3.2.2.2",
+          "to": "3.2.1.2.",
+          "item_name": "Vadeli Döviz Satım İşlemleri"
+        }
+      ],
+      "note": "SOURCE typo: Vadeli Döviz Satım (Forward Sell, 1.002.151) stamped 3.2.2.2 instead of 3.2.1.2. Relabel → 3.2.1/3.2.2 foot, dup cleared"
+    },
+    {
+      "bank_ticker": "HAYATK",
+      "period": "2023Q4",
+      "kind": "unconsolidated",
+      "statement": "bs_rehier",
+      "bs_statement": "off_balance",
+      "renames": [
+        {
+          "from": "V",
+          "to": "A.",
+          "item_name": "TL FC Total TL FC Total COMMITMENTS AND CONTINGENCIES A. (I+II+III)",
+          "to_name": "COMMITMENTS AND CONTINGENCIES (I+II+III)"
+        }
+      ],
+      "note": "column-header 'V TL FC Total TL FC Total' wrap-merged into section A's aggregate line → posted at phantom hierarchy 'V' (5.400), colliding with the real V. PLEDGED ITEMS (3.924.260) whose 5.x children then overran it. It IS the A. aggregate → relabel V→A. (leaves the numeric tree), real V. foots, A+B grand total foots"
+    },
+    {
+      "bank_ticker": "TAKAS",
+      "period": "2023Q2",
+      "kind": "unconsolidated",
+      "statement": "profit_loss",
+      "hierarchy": "XXIV.",
+      "item_name": "DURDURULAN FAALİYETLER DÖNEM NET K/Z (XXII±XXIII)",
+      "amount": 0,
+      "note": "source prints XXIV=1.035.347 (copy of net profit) though discontinued rows XX–XXIII are all nil → discontinued net is 0; XXV=XIX+XXIV foots with 0 (extraction faithful to a source copy-down artifact)"
+    },
+    {
+      "bank_ticker": "TAKAS",
+      "period": "2023Q3",
+      "kind": "unconsolidated",
+      "statement": "profit_loss",
+      "hierarchy": "XXIV.",
+      "item_name": "DURDURULAN FAALİYETLER DÖNEM NET K/Z (XXII±XXIII)",
+      "amount": 0,
+      "note": "source prints XXIV=2.260.614 (copy of net profit) though discontinued rows XX–XXIII are all nil → discontinued net is 0; XXV=XIX+XXIV foots with 0"
+    },
+    {
+      "bank_ticker": "TAKAS",
+      "period": "2024Q3",
+      "kind": "unconsolidated",
+      "statement": "profit_loss",
+      "hierarchy": "XXIV.",
+      "item_name": "DURDURULAN FAALİYETLER DÖNEM NET K/Z (XXII±XXIII)",
+      "amount": 0,
+      "note": "source prints XXIV=6.064.906 (copy of net profit) though discontinued rows XX–XXIII are all nil → discontinued net is 0; XXV=XIX+XXIV foots with 0"
+    },
+    {
+      "bank_ticker": "HAYATK",
+      "period": "2024Q2",
+      "kind": "unconsolidated",
+      "statement": "profit_loss",
+      "hierarchy": "XVII.",
+      "item_name": "PROFIT/(LOSS) FROM CONTINUED OPERATIONS BEFORE TAXES (XII+...+XV)",
+      "amount": -400486,
+      "note": "pre-tax row captured the dipnot ref '(4.9.)' as its value (stored 4.9); PDF p13 current col = (400.486). XVII=XIII+XIV+XV+XVI=-400.486 and XIX=XVII+XVIII=-400.486+174.727=-225.759 both foot"
+    },
+    {
+      "bank_ticker": "HAYATK",
+      "period": "2024Q2",
+      "kind": "unconsolidated",
+      "statement": "profit_loss",
+      "hierarchy": "XVIII.",
+      "item_name": "PROVISION FROM TAXES ON INCOME FROM CONTINUING OPERATIONS (±)",
+      "amount": 174727,
+      "item_order": 42,
+      "note": "tax row dropped — its label wraps two lines and the 4th column detached; PDF p13 current col = 174.727 (a benefit: deferred tax income 184.596 less expense 9.869). Slotted at 42 (after XVII, before 18.1) so it enters the spine and XIX=XVII±XVIII runs"
+    },
+    {
+      "bank_ticker": "HAYATK",
+      "period": "2024Q2",
+      "kind": "unconsolidated",
+      "statement": "profit_loss",
+      "hierarchy": "XV.",
+      "item_name": "INCOME / (LOSS) FROM INVESTMENTS IN SUBSIDIARIES CONSOLIDATED BASED ON EQUITY METHOD",
+      "amount": 0,
+      "item_order": 40,
+      "note": "equity-method row dropped by the same wrapped label; PDF p13 prints '-' → 0. Slotted at 40 (after XIV, before XVI) so XVII=XIII+XIV+XV+XVI runs"
+    },
+    {
+      "bank_ticker": "TOMK",
+      "period": "2023Q4",
+      "kind": "unconsolidated",
+      "statement": "profit_loss",
+      "hierarchy": "4.2.2",
+      "item_name": "Diğer",
+      "amount": -81,
+      "item_order": 25,
+      "note": "'(81)' read as a dipnot ref → row dropped; PDF p16 current col = (81)"
+    },
+    {
+      "bank_ticker": "TOMK",
+      "period": "2023Q4",
+      "kind": "unconsolidated",
+      "statement": "profit_loss",
+      "hierarchy": "4.2",
+      "item_name": "Verilen Ücret ve Komisyonlar (-)",
+      "amount": -81,
+      "item_order": 24,
+      "note": "'(81)' read as a dipnot ref → row dropped; PDF p16 current col = (81)"
+    },
+    {
+      "bank_ticker": "TOMK",
+      "period": "2023Q4",
+      "kind": "unconsolidated",
+      "statement": "profit_loss",
+      "hierarchy": "IV.",
+      "item_name": "NET ÜCRET VE KOMİSYON GELİRLERİ/GİDERLERİ",
+      "amount": -81,
+      "item_order": 21,
+      "note": "net-fees roman subtotal dropped ('(81)' read as a dipnot ref, as were children 4.2/4.2.2); PDF p16 current col = (81) = 4.1(0)-4.2(81). Slotted at 21 (after III, before 4.1) so VIII=III+IV+V+VI+VII runs: 134.955-81+0+290.951+0=425.825 = printed VIII"
+    },
+    {
+      "bank_ticker": "COLENDI",
+      "period": "2025Q4",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "total_amount": 0
+      },
+      "note": "Stage-3 disclosed as PROSE, no table: p65 'h) Information on non-performing loans (Net): ... None (31 December 2024: None)'. Sourced zero, not an absence. COLENDI is exempt from TFRS 9 (p23) and provisions under the BRSA general method, so it prints no III/IV/V table at all."
+    },
+    {
+      "bank_ticker": "DUNYAK",
+      "period": "2023Q4",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 0,
+        "stage2_amount": 0,
+        "stage3_amount": 0,
+        "total_amount": 0
+      },
+      "note": "CORRECTS LIVE WRONG DATA: the stored 6.077 was 'Dönem İçinde Tahsilat (-)' — a collections FLOW — read as the NPL stock. p58 movement table foots to zero: 6.075 opening + 2 inflow - 6.077 collections = 'Dönem Sonu Bakiyesi - - -'. BS confirms: 2.5 Donuk Alacaklar current column is dashes (6.075 sits in the PRIOR column only). Groups III/IV/V are 0/0/0 as printed."
+    },
+    {
+      "bank_ticker": "DUNYAK",
+      "period": "2025Q1",
+      "kind": "consolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "total_amount": 0
+      },
+      "note": "Prose zero: p56 'j. Donuk alacaklara ilişkin bilgiler (net): Bulunmamaktadır (31 Aralık 2024: Bulunmamaktadır).' No III/IV/V table printed."
+    },
+    {
+      "bank_ticker": "DUNYAK",
+      "period": "2025Q1",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "total_amount": 0
+      },
+      "note": "Prose zero: p55 'j. Donuk alacaklara ilişkin bilgiler (net): Bulunmamaktadır (31 Aralık 2024: Bulunmamaktadır).'"
+    },
+    {
+      "bank_ticker": "DUNYAK",
+      "period": "2025Q2",
+      "kind": "consolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "total_amount": 0
+      },
+      "note": "Prose zero: p68 'j. Donuk alacaklara ilişkin bilgiler (net): Bulunmamaktadır (31 Aralık 2024: Bulunmamaktadır).'"
+    },
+    {
+      "bank_ticker": "DUNYAK",
+      "period": "2025Q2",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "total_amount": 0
+      },
+      "note": "Prose zero: p69 'j. Donuk alacaklara ilişkin bilgiler (net): Bulunmamaktadır (31 Aralık 2024: Bulunmamaktadır).'"
+    },
+    {
+      "bank_ticker": "TOMK",
+      "period": "2024Q2",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "total_amount": 2
+      },
+      "note": "Prose figure, no table: p64 'f) Donuk alacaklara ilişkin bilgiler — 30 Haziran 2024 tarihi itibarıyla Donuk alacak tutarı 2 TL'dir'. Unit is THOUSAND TL (the report abbreviates bin TL as 'TL'); corroborated by BS 2.4 Donuk alacaklar = 2. No III/IV/V split disclosed -> groups stay NULL."
+    },
+    {
+      "bank_ticker": "TOMK",
+      "period": "2024Q3",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "total_amount": 4406
+      },
+      "note": "Prose figure, no table: p53 'f) Donuk alacaklara ilişkin bilgiler — 30 Eylül 2024 tarihi itibarıyla Donuk alacak tutarı 4.406 TL'dir'. Corroborated by BS 2.4 Donuk alacaklar = 4.406. No III/IV/V split -> groups NULL."
+    },
+    {
+      "bank_ticker": "TOMK",
+      "period": "2024Q4",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 0,
+        "stage2_amount": 0,
+        "stage3_amount": 177537,
+        "total_amount": 177537
+      },
+      "note": "Real III/IV/V table present but only npl_brsa_NET was captured, so the builder (which reads npl_brsa_gross) left S3 NULL. p98 'Dönem Sonu Bakiyesi - - 177.537' (Group V) with 'Özel Kredi Karşılığı (3. Aşama) (-) - - 177.537' and net '- - -'; p97 'Karşılıklardan Önceki Brüt Tutarlar - - 177.537'. Prose agrees ('donuk alacak tutarı 177.537 TL'dir'), as does BS 2.4 = 177.537."
+    },
+    {
+      "bank_ticker": "ZIRAATD",
+      "period": "2025Q4",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "total_amount": 0
+      },
+      "note": "Prose zero: p85 '7.8. Donuk Alacaklara İlişkin Bilgiler (Net)' — 7.8.1/7.8.2/7.8.3/7.8.4 each 'Bulunmamaktadır (31 Aralık 2024: Bulunmamaktadır)'. Corroborated by BS 2.5 Donuk Alacaklar = 0."
     }
-   ],
-   "note": "OCI extractor captured wrong/garbled table; full fitz re-read of the OCI statement"
-  },
-  {
-   "bank_ticker": "FIBA",
-   "period": "2022Q2",
-   "kind": "consolidated",
-   "statement": "oci_replace",
-   "rows": [
-    {
-     "hierarchy": "I",
-     "item_name": "DÖNEM KARI/ZARARI 1.217.677 175.066",
-     "amount": 1217677
-    },
-    {
-     "hierarchy": "II",
-     "item_name": "DİĞER KAPSAMLI GELİRLER 685.689 2.754",
-     "amount": 685689
-    },
-    {
-     "hierarchy": "2.1",
-     "item_name": "Kar veya Zararda Yeniden Sınıflandırılmayacaklar (",
-     "amount": -54
-    },
-    {
-     "hierarchy": "2.1.3",
-     "item_name": "Tanımlanmış Fayda Planları Yeniden Ölçüm Kazançlar",
-     "amount": -73
-    },
-    {
-     "hierarchy": "2.1.5",
-     "item_name": "Kâr veya Zararda Yeniden Sınıflandırılmayacak Diğe",
-     "amount": 19
-    },
-    {
-     "hierarchy": "2.2",
-     "item_name": "Kâr veya Zararda Yeniden Sınıflandırılacaklar 685.",
-     "amount": 685743
-    },
-    {
-     "hierarchy": "2.2.2",
-     "item_name": "Gelirleri/Giderleri 733.982 4.145",
-     "amount": 733982
-    },
-    {
-     "hierarchy": "2.2.6",
-     "item_name": "Kâr veya Zararda Yeniden Sınıflandırılacak Diğer K",
-     "amount": -48239
-    },
-    {
-     "hierarchy": "III",
-     "item_name": "TOPLAM KAPSAMLI GELİR (I+II) 1.903.366 177.820",
-     "amount": 1903366
-    }
-   ],
-   "note": "OCI extractor captured wrong/garbled table; full fitz re-read of the OCI statement"
-  },
-  {
-   "bank_ticker": "QNBFB",
-   "period": "2025Q1",
-   "kind": "consolidated",
-   "statement": "oci_replace",
-   "rows": [
-    {
-     "hierarchy": "I",
-     "item_name": "CURRENT PERIOD PROFIT/LOSS 11,190,139 9,864,528",
-     "amount": 11190139
-    },
-    {
-     "hierarchy": "II",
-     "item_name": "OTHER COMPREHENSIVE INCOME (2,263,311) 1,383,245",
-     "amount": -2263311
-    },
-    {
-     "hierarchy": "2.1",
-     "item_name": "Other Income/Expense Items Not Reclassified Throug",
-     "amount": 210
-    },
-    {
-     "hierarchy": "2.1.3",
-     "item_name": "Defined Benefit Plans' Actuarial Income/Expense 32",
-     "amount": 321
-    },
-    {
-     "hierarchy": "2.1.4",
-     "item_name": "Other Income/Expense Items not Reclassified to Pro",
-     "amount": -15
-    },
-    {
-     "hierarchy": "2.1.5",
-     "item_name": "Tax Related Other Comprehensive Income Items Not R",
-     "amount": -96
-    },
-    {
-     "hierarchy": "2.2",
-     "item_name": "Other Income/Expense Items Reclassified to Profit ",
-     "amount": -2263521
-    },
-    {
-     "hierarchy": "2.2.2",
-     "item_name": "Income/Expenses from Valuation and/or Reclassifica",
-     "amount": -5487771
-    },
-    {
-     "hierarchy": "2.2.3",
-     "item_name": "Income/losses from Cash Flow Hedges 2,249,422 1,84",
-     "amount": 2249422
-    },
-    {
-     "hierarchy": "2.2.6",
-     "item_name": "Tax Related Other Comprehensive Income Items Recla",
-     "amount": 974828
-    },
-    {
-     "hierarchy": "III",
-     "item_name": "TOTAL COMPREHENSIVE INCOME (I+II) 8,926,828 11,247",
-     "amount": 8926828
-    }
-   ],
-   "note": "OCI extractor captured wrong/garbled table; full fitz re-read of the OCI statement"
-  },
-  {
-   "bank_ticker": "QNBFB",
-   "period": "2025Q1",
-   "kind": "unconsolidated",
-   "statement": "oci_replace",
-   "rows": [
-    {
-     "hierarchy": "I",
-     "item_name": "CURRENT PERIOD PROFIT/LOSS 11,187,871 9,863,545",
-     "amount": 11187871
-    },
-    {
-     "hierarchy": "II",
-     "item_name": "OTHER COMPREHENSIVE INCOME (2,263,311) 1,383,245",
-     "amount": -2263311
-    },
-    {
-     "hierarchy": "2.1",
-     "item_name": "Other Income/Expense Items not Reclassified to Pro",
-     "amount": 210
-    },
-    {
-     "hierarchy": "2.1.3",
-     "item_name": "Defined Benefit Plans' Actuarial Income/Loss 321 (",
-     "amount": 321
-    },
-    {
-     "hierarchy": "2.1.4",
-     "item_name": "Other Income/Expense Items not Reclassified to Pro",
-     "amount": -15
-    },
-    {
-     "hierarchy": "2.1.5",
-     "item_name": "Tax Related Other Comprehensive Income Items Not R",
-     "amount": -96
-    },
-    {
-     "hierarchy": "2.2",
-     "item_name": "Other Income/Expense Items Reclassified to Profit ",
-     "amount": -2263521
-    },
-    {
-     "hierarchy": "2.2.2",
-     "item_name": "Income/Expenses from Valuation and/or Reclassifica",
-     "amount": -5475666
-    },
-    {
-     "hierarchy": "2.2.3",
-     "item_name": "Income/Expense from Cash Flow Hedges 2,080,710 1,8",
-     "amount": 2080710
-    },
-    {
-     "hierarchy": "2.2.5",
-     "item_name": "Other Income/Expense Items Reclassified to Profit ",
-     "amount": 112948
-    },
-    {
-     "hierarchy": "2.2.6",
-     "item_name": "Tax Related Other Comprehensive Income Items Recla",
-     "amount": 1018487
-    },
-    {
-     "hierarchy": "III",
-     "item_name": "TOTAL COMPREHENSIVE INCOME (I+II) 8,924,560 11,246",
-     "amount": 8924560
-    }
-   ],
-   "note": "OCI extractor captured wrong/garbled table; full fitz re-read of the OCI statement"
-  },
-  {
-   "bank_ticker": "ISCTR",
-   "period": "2025Q2",
-   "kind": "unconsolidated",
-   "statement": "oci_replace",
-   "rows": [],
-   "note": "OCI extractor captured the EQUITY statement (Beginning Balance / Profit Distribution / Dividend Paid), not the OCI statement; report PDF now 404 so it cannot be re-read — removed the wrong-table rows (no valid OCI for this partition -> shown as skipped, not wrong data kept)"
-  },
-  {
-   "bank_ticker": "KLNMA",
-   "period": "2022Q2",
-   "kind": "unconsolidated",
-   "statement": "oci",
-   "hierarchy": "II.",
-   "item_name": "DİĞER KAPSAMLI GELİRLER",
-   "amount": 33128,
-   "note": "extractor read II + 2.1 from the PRIOR column; correct current II = III - I = 766,297 - 733,169 = 33,128 (= 2.2, 2.1=0); roman III=I+II + section II=2.1+2.2 now foot, cross (I==P&L net) already passed"
-  },
-  {
-   "bank_ticker": "KLNMA",
-   "period": "2022Q2",
-   "kind": "unconsolidated",
-   "statement": "oci",
-   "hierarchy": "2.1",
-   "item_name": "Kar veya Zarara Yeniden Sınıflandırılmayacaklar",
-   "amount": 0,
-   "note": "current 2.1 is blank in the source (stored 660 was the prior column)"
-  },
-  {
-   "bank_ticker": "AKTIF",
-   "period": "2026Q1",
-   "kind": "consolidated",
-   "statement": "capital",
-   "fields": {
-    "total_capital": 18333158
-   },
-   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
-  },
-  {
-   "bank_ticker": "ICBCT",
-   "period": "2025Q2",
-   "kind": "unconsolidated",
-   "statement": "capital",
-   "fields": {
-    "additional_tier1_capital": 3861130
-   },
-   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
-  },
-  {
-   "bank_ticker": "ICBCT",
-   "period": "2025Q3",
-   "kind": "unconsolidated",
-   "statement": "capital",
-   "fields": {
-    "additional_tier1_capital": 4057690
-   },
-   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
-  },
-  {
-   "bank_ticker": "ICBCT",
-   "period": "2025Q4",
-   "kind": "unconsolidated",
-   "statement": "capital",
-   "fields": {
-    "additional_tier1_capital": 4265800
-   },
-   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
-  },
-  {
-   "bank_ticker": "ICBCT",
-   "period": "2026Q1",
-   "kind": "unconsolidated",
-   "statement": "capital",
-   "fields": {
-    "additional_tier1_capital": 4474680
-   },
-   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
-  },
-  {
-   "bank_ticker": "ISCTR",
-   "period": "2023Q3",
-   "kind": "unconsolidated",
-   "statement": "capital",
-   "fields": {
-    "tier2_capital": 47975127
-   },
-   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
-  },
-  {
-   "bank_ticker": "ISCTR",
-   "period": "2024Q3",
-   "kind": "unconsolidated",
-   "statement": "capital",
-   "fields": {
-    "tier2_capital": 59313366
-   },
-   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
-  },
-  {
-   "bank_ticker": "ISCTR",
-   "period": "2025Q1",
-   "kind": "consolidated",
-   "statement": "capital",
-   "fields": {
-    "total_rwa": 2724016639,
-    "cet1_ratio": 12.45,
-    "tier1_ratio": 13.94,
-    "capital_adequacy_ratio": 15.65
-   },
-   "note": "RWA column-slip (stored 426,340,238.0~=total); real RWA 2,724,016,639 from §4 table; ratios recomputed (cet1/t1/tc over RWA)"
-  },
-  {
-   "bank_ticker": "ISCTR",
-   "period": "2025Q2",
-   "kind": "consolidated",
-   "statement": "capital",
-   "fields": {
-    "total_rwa": 2876514556,
-    "cet1_ratio": 13.03,
-    "tier1_ratio": 14.51,
-    "capital_adequacy_ratio": 16.08
-   },
-   "note": "RWA column-slip (stored 462,607,923.0~=total); real RWA 2,876,514,556 from §4 table; ratios recomputed (cet1/t1/tc over RWA)"
-  },
-  {
-   "bank_ticker": "QNBFB",
-   "period": "2022Q1",
-   "kind": "consolidated",
-   "statement": "capital",
-   "fields": {
-    "additional_tier1_capital": 7689045
-   },
-   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
-  },
-  {
-   "bank_ticker": "QNBFB",
-   "period": "2022Q2",
-   "kind": "consolidated",
-   "statement": "capital",
-   "fields": {
-    "additional_tier1_capital": 8751225
-   },
-   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
-  },
-  {
-   "bank_ticker": "QNBFB",
-   "period": "2022Q3",
-   "kind": "consolidated",
-   "statement": "capital",
-   "fields": {
-    "additional_tier1_capital": 9714495
-   },
-   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
-  },
-  {
-   "bank_ticker": "QNBFB",
-   "period": "2022Q4",
-   "kind": "consolidated",
-   "statement": "capital",
-   "fields": {
-    "additional_tier1_capital": 9815715
-   },
-   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
-  },
-  {
-   "bank_ticker": "QNBFB",
-   "period": "2023Q1",
-   "kind": "consolidated",
-   "statement": "capital",
-   "fields": {
-    "additional_tier1_capital": 10055430
-   },
-   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
-  },
-  {
-   "bank_ticker": "QNBFB",
-   "period": "2023Q2",
-   "kind": "consolidated",
-   "statement": "capital",
-   "fields": {
-    "additional_tier1_capital": 13557128
-   },
-   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
-  },
-  {
-   "bank_ticker": "QNBFB",
-   "period": "2025Q1",
-   "kind": "unconsolidated",
-   "statement": "capital",
-   "fields": {
-    "tier2_capital": 22898191
-   },
-   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
-  },
-  {
-   "bank_ticker": "QNBFB",
-   "period": "2025Q2",
-   "kind": "unconsolidated",
-   "statement": "capital",
-   "fields": {
-    "tier2_capital": 24394057
-   },
-   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
-  },
-  {
-   "bank_ticker": "QNBFB",
-   "period": "2025Q3",
-   "kind": "unconsolidated",
-   "statement": "capital",
-   "fields": {
-    "tier2_capital": 24355763
-   },
-   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
-  },
-  {
-   "bank_ticker": "QNBFB",
-   "period": "2025Q4",
-   "kind": "unconsolidated",
-   "statement": "capital",
-   "fields": {
-    "tier2_capital": 25598368
-   },
-   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
-  },
-  {
-   "bank_ticker": "QNBFB",
-   "period": "2026Q1",
-   "kind": "unconsolidated",
-   "statement": "capital",
-   "fields": {
-    "tier2_capital": 28731739
-   },
-   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
-  },
-  {
-   "bank_ticker": "SKBNK",
-   "period": "2022Q4",
-   "kind": "unconsolidated",
-   "statement": "capital",
-   "fields": {
-    "additional_tier1_capital": 16233,
-    "tier2_capital": 2344759
-   },
-   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
-  },
-  {
-   "bank_ticker": "SKBNK",
-   "period": "2025Q4",
-   "kind": "unconsolidated",
-   "statement": "capital",
-   "fields": {
-    "additional_tier1_capital": 8585373,
-    "tier2_capital": 4511856
-   },
-   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
-  },
-  {
-   "bank_ticker": "TSKB",
-   "period": "2022Q1",
-   "kind": "consolidated",
-   "statement": "capital",
-   "fields": {
-    "additional_tier1_capital": 2916300
-   },
-   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
-  },
-  {
-   "bank_ticker": "TSKB",
-   "period": "2022Q2",
-   "kind": "consolidated",
-   "statement": "capital",
-   "fields": {
-    "additional_tier1_capital": 3313400
-   },
-   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
-  },
-  {
-   "bank_ticker": "TSKB",
-   "period": "2022Q3",
-   "kind": "consolidated",
-   "statement": "capital",
-   "fields": {
-    "additional_tier1_capital": 3688000
-   },
-   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
-  },
-  {
-   "bank_ticker": "TSKB",
-   "period": "2023Q1",
-   "kind": "consolidated",
-   "statement": "capital",
-   "fields": {
-    "additional_tier1_capital": 3816000
-   },
-   "note": "AT1/Tier2/Total dropped or column-slipped; derived from identities (ratios reconcile the kept components)"
-  },
-  {
-   "bank_ticker": "EMLAK",
-   "period": "2022Q1",
-   "kind": "consolidated",
-   "statement": "capital",
-   "fields": {
-    "additional_tier1_capital": 2862707
-   },
-   "note": "AT1 (Türkiye Varlık Fonu vadesiz/kâr-paysız ilave ana sermaye) dropped; Tier1=CET1+AT1 reconciles 2,169,272+2,862,707=5,031,979; ratios pass"
-  },
-  {
-   "bank_ticker": "EMLAK",
-   "period": "2022Q1",
-   "kind": "unconsolidated",
-   "statement": "capital",
-   "fields": {
-    "additional_tier1_capital": 2862707
-   },
-   "note": "AT1 dropped; Tier1=CET1+AT1 reconciles 2,195,806+2,862,707=5,058,513"
-  },
-  {
-   "bank_ticker": "EMLAK",
-   "period": "2025Q1",
-   "kind": "consolidated",
-   "statement": "capital",
-   "fields": {
-    "total_capital": 28781229,
-    "total_rwa": 125508698
-   },
-   "note": "column-slip: RWA 125,508,698 read into total_capital, total_rwa NULLed; ÖZKAYNAK=28,781,229; 28,781,229/125,508,698=22.93%=reported CAR"
-  },
-  {
-   "bank_ticker": "ATBANK",
-   "period": "2025Q4",
-   "kind": "unconsolidated",
-   "statement": "off_balance",
-   "hierarchy": "I.",
-   "item_name": "GARANTİ VE KEFALETLER",
-   "item_order": 2,
-   "amount_tl": 4665882,
-   "amount_fc": 23925389,
-   "amount_total": 28591271,
-   "note": "roman section I dropped (only A. parent + 1.x children captured); restores Σromans=32,640,859=total"
-  },
-  {
-   "bank_ticker": "EMLAK",
-   "period": "2022Q4",
-   "kind": "unconsolidated",
-   "statement": "off_balance",
-   "hierarchy": "",
-   "item_name": "BİLANÇO DIŞI HESAPLAR TOPLAMI",
-   "amount_tl": 343115512,
-   "amount_fc": 44595042,
-   "amount_total": 387710554,
-   "note": "grand-total row mis-captured (83,366,097 = two wrong cols summed); source TP 343,115,512 / YP 44,595,042 / Toplam 387,710,554 = Σromans"
-  },
-  {
-   "bank_ticker": "AKBNK",
-   "period": "2022Q1",
-   "kind": "unconsolidated",
-   "statement": "pl_rehier",
-   "renames": [
-    {
-     "from": "XXIV.",
-     "to": "XXV.",
-     "item_name": "NET INCOME/(LOSS) (XIX+XXIV)"
-    },
-    {
-     "from": "XXIII.",
-     "to": "XXIV.",
-     "item_name": "CURRENT PERIOD PROFIT/LOSS FROM DISCONTINUED OPERATIONS (XXII±XXIII)"
-    },
-    {
-     "from": "XXII.",
-     "to": "XXIII.",
-     "item_name": "TAX PROVISION FOR DISCONTINUED OPERATIONS (±)"
-    },
-    {
-     "from": "XXI.",
-     "to": "XXII.",
-     "item_name": "PROFIT/LOSS BEFORE TAX FROM DISCONTINUED OPERATIONS"
-    },
-    {
-     "from": "XX.",
-     "to": "XXI.",
-     "item_name": "EXPENSES FOR DISCONTINUED OPERATIONS (-)"
-    },
-    {
-     "from": "XIX.",
-     "to": "XX.",
-     "item_name": "INCOME FROM DISCONTINUED OPERATIONS"
-    },
-    {
-     "from": "XVIII.",
-     "to": "XIX.",
-     "item_name": "CURRENT PERIOD PROFIT/LOSS FROM CONTINUED OPERATIONS (XVII±XVIII)"
-    }
-   ],
-   "note": "extractor printed the (XVII±XVIII) subtotal under a second XVIII. and shifted every later roman by one (net income landed on XXIV., no XXV.); amounts verified - stored net ties BS 16.6.2 exactly; renames only, tail-first"
-  },
-  {
-   "bank_ticker": "AKBNK",
-   "period": "2022Q2",
-   "kind": "unconsolidated",
-   "statement": "pl_rehier",
-   "renames": [
-    {
-     "from": "XXIV.",
-     "to": "XXV.",
-     "item_name": "NET INCOME/(LOSS) (XIX+XXIV)"
-    },
-    {
-     "from": "XXIII.",
-     "to": "XXIV.",
-     "item_name": "CURRENT PERIOD PROFIT/LOSS FROM DISCONTINUED OPERATIONS (XXII±XXIII)"
-    },
-    {
-     "from": "XXII.",
-     "to": "XXIII.",
-     "item_name": "TAX PROVISION FOR DISCONTINUED OPERATIONS (±)"
-    },
-    {
-     "from": "XXI.",
-     "to": "XXII.",
-     "item_name": "PROFIT/LOSS BEFORE TAX FROM DISCONTINUED OPERATIONS"
-    },
-    {
-     "from": "XX.",
-     "to": "XXI.",
-     "item_name": "EXPENSES FOR DISCONTINUED OPERATIONS (-)"
-    },
-    {
-     "from": "XIX.",
-     "to": "XX.",
-     "item_name": "INCOME FROM DISCONTINUED OPERATIONS"
-    },
-    {
-     "from": "XVIII.",
-     "to": "XIX.",
-     "item_name": "CURRENT PERIOD PROFIT/LOSS FROM CONTINUED OPERATIONS (XVII±XVIII)"
-    }
-   ],
-   "note": "extractor printed the (XVII±XVIII) subtotal under a second XVIII. and shifted every later roman by one (net income landed on XXIV., no XXV.); amounts verified - stored net ties BS 16.6.2 exactly; renames only, tail-first"
-  },
-  {
-   "bank_ticker": "AKBNK",
-   "period": "2022Q3",
-   "kind": "unconsolidated",
-   "statement": "pl_rehier",
-   "renames": [
-    {
-     "from": "XXIV.",
-     "to": "XXV.",
-     "item_name": "NET INCOME/(LOSS) (XIX+XXIV)"
-    },
-    {
-     "from": "XXIII.",
-     "to": "XXIV.",
-     "item_name": "CURRENT PERIOD PROFIT/LOSS FROM DISCONTINUED OPERATIONS (XXII±XXIII)"
-    },
-    {
-     "from": "XXII.",
-     "to": "XXIII.",
-     "item_name": "TAX PROVISION FOR DISCONTINUED OPERATIONS (±)"
-    },
-    {
-     "from": "XXI.",
-     "to": "XXII.",
-     "item_name": "PROFIT/LOSS BEFORE TAX FROM DISCONTINUED OPERATIONS"
-    },
-    {
-     "from": "XX.",
-     "to": "XXI.",
-     "item_name": "EXPENSES FOR DISCONTINUED OPERATIONS (-)"
-    },
-    {
-     "from": "XIX.",
-     "to": "XX.",
-     "item_name": "INCOME FROM DISCONTINUED OPERATIONS"
-    },
-    {
-     "from": "XVIII.",
-     "to": "XIX.",
-     "item_name": "CURRENT PERIOD PROFIT/LOSS FROM CONTINUED OPERATIONS (XVII±XVIII)"
-    }
-   ],
-   "note": "extractor printed the (XVII±XVIII) subtotal under a second XVIII. and shifted every later roman by one (net income landed on XXIV., no XXV.); amounts verified - stored net ties BS 16.6.2 exactly; renames only, tail-first"
-  },
-  {
-   "bank_ticker": "AKBNK",
-   "period": "2022Q2",
-   "kind": "unconsolidated",
-   "statement": "profit_loss",
-   "hierarchy": "XV.",
-   "item_name": "INCOME/(LOSS) FROM INVESTMENTS IN SUBSIDIARIES CONSOLIDATED BASED ON EQUITY METHOD",
-   "amount": 1422380,
-   "note": "XV. equity-method subsidiary income misread as 0: its two-line label 'INCOME...SUBSIDIARIES CONSOLIDATED' / 'BASED ON EQUITY METHOD' straddles XIV's empty dash row in the PDF, so the parser paired XV with the dashes and dropped the 1.422.380 that follows 'BASED ON EQUITY METHOD'. XIV (merger surplus) is genuinely nil. XVII=XIII+XIV+XV+XVI now reconciles exactly (28.129.175)."
-  },
-  {
-   "bank_ticker": "AKBNK",
-   "period": "2022Q3",
-   "kind": "unconsolidated",
-   "statement": "profit_loss",
-   "hierarchy": "XV.",
-   "item_name": "INCOME/(LOSS) FROM INVESTMENTS IN SUBSIDIARIES CONSOLIDATED BASED ON EQUITY METHOD",
-   "amount": 2209610,
-   "note": "Same misread as 2022Q2 (XV equity-method income paired with XIV's dashes). Value 2.209.610 legible after 'BASED ON EQUITY METHOD'; XVII=XIII+XV reconciles exactly (50.613.306)."
-  },
-  {
-   "bank_ticker": "ANADOLU",
-   "period": "2022Q1",
-   "kind": "consolidated",
-   "statement": "profit_loss",
-   "hierarchy": "IV.",
-   "item_name": "NET ÜCRET VE KOMİSYON GELİRLERİ/GİDERLERİ",
-   "amount": 84249,
-   "note": "IV. net-fees roman subtotal dropped by the parser (children 4.1=98.452 / 4.2=14.203 kept); IV=4.1-4.2=84.249. VIII=III+IV+V+VI+VII now reconciles exactly (922.008)."
-  },
-  {
-   "bank_ticker": "ANADOLU",
-   "period": "2022Q2",
-   "kind": "consolidated",
-   "statement": "profit_loss",
-   "hierarchy": "IV.",
-   "item_name": "NET ÜCRET VE KOMİSYON GELİRLERİ/GİDERLERİ",
-   "amount": 176594,
-   "note": "IV. net-fees roman subtotal dropped (children 4.1=207.830 / 4.2=31.236 kept); IV=176.594. VIII reconciles exactly (1.841.318)."
-  },
-  {
-   "bank_ticker": "QNBFB",
-   "period": "2022Q2",
-   "kind": "consolidated",
-   "statement": "profit_loss",
-   "hierarchy": "VI.",
-   "item_name": "TRADING INCOME /(LOSS) (Net)",
-   "amount": -115160,
-   "note": "VI. net-trading roman subtotal dropped (children 6.1=186.467 / 6.3=3.044.842 kept; 6.2 derivatives also dropped). VI=VIII-(III+IV+V+VII)=-115.160 (net trading loss). VIII=17.330.731 and XIII now reconcile exactly."
-  },
-  {
-   "bank_ticker": "COLENDI",
-   "period": "2025Q3",
-   "kind": "unconsolidated",
-   "statement": "liabilities",
-   "hierarchy": "16.7",
-   "item_name": "Minority Shares",
-   "amount_tl": 0,
-   "amount_fc": 0,
-   "amount_total": 0,
-   "note": "minority-shares row wrap-merge-absorbed the grand total 'TOTAL LIABILITIES' (3.629.776); true value 0. XVI=Σ16.x foots (2.073.662). Same pattern as ATBANK 2022Q2"
-  },
-  {
-   "bank_ticker": "COLENDI",
-   "period": "2025Q4",
-   "kind": "unconsolidated",
-   "statement": "liabilities",
-   "hierarchy": "16.7",
-   "item_name": "Minority Shares",
-   "amount_tl": 0,
-   "amount_fc": 0,
-   "amount_total": 0,
-   "note": "minority-shares row wrap-merge-absorbed the grand total 'TOTAL LIABILITIES' (4.108.392); true value 0. XVI=Σ16.x foots (2.039.472)"
-  },
-  {
-   "bank_ticker": "ZIRAATD",
-   "period": "2025Q4",
-   "kind": "unconsolidated",
-   "statement": "liabilities",
-   "hierarchy": "10.1",
-   "item_name": "Genel Karşılıklar",
-   "amount_tl": 4527,
-   "amount_fc": 0,
-   "amount_total": 4527,
-   "note": "10.1 printed only two tokens '4.527 4.527' (TP + Toplam, YP dash) → dropped by the short-row guard; X. KARŞILIKLAR short by exactly 4.527. TL-only like 10.5"
-  },
-  {
-   "bank_ticker": "EMLAK",
-   "period": "2023Q2",
-   "kind": "unconsolidated",
-   "statement": "off_balance",
-   "hierarchy": "2.1.12",
-   "item_name": "Diğer Cayılamaz Taahhütler",
-   "amount_tl": 1032500,
-   "amount_fc": 459677,
-   "amount_total": 1492177,
-   "note": "marker '2.1.12' split from its label+values line ('. Diğer Cayılamaz Taahhütler 1.032.500 459.677 1.492.177') → row dropped; 2.1 Cayılamaz Taahhütler short by exactly 1.492.177"
-  },
-  {
-   "bank_ticker": "EXIM",
-   "period": "2022Q1",
-   "kind": "unconsolidated",
-   "statement": "bs_rehier",
-   "bs_statement": "off_balance",
-   "renames": [{"from": "3.2.2.2", "to": "3.2.1.2", "item_name": "Forward Foreign Currency Transactions-Sell"}],
-   "note": "SOURCE typo: the Forward-FX Sell leg (67.112) is stamped 3.2.2.2, colliding with the Swap-Sell, instead of 3.2.1.2 (sibling of 3.2.1.1 Buy). Relabel → 3.2.1 foots (67.330+67.112=134.442), 3.2.2 foots, dup cleared. TSKB files the same row correctly at 3.2.1.2"
-  },
-  {
-   "bank_ticker": "EXIM",
-   "period": "2022Q2",
-   "kind": "unconsolidated",
-   "statement": "bs_rehier",
-   "bs_statement": "off_balance",
-   "renames": [{"from": "3.2.2.2", "to": "3.2.1.2", "item_name": "Forward Foreign Currency Transactions-Sell"}],
-   "note": "SOURCE typo: Forward-FX Sell (139.045) stamped 3.2.2.2 instead of 3.2.1.2. Relabel → 3.2.1/3.2.2 foot, dup cleared"
-  },
-  {
-   "bank_ticker": "EXIM",
-   "period": "2022Q2",
-   "kind": "unconsolidated",
-   "statement": "off_balance",
-   "hierarchy": "2.1.1",
-   "item_name": "Asset Purchase and Sale Commitments",
-   "amount_tl": 0,
-   "amount_fc": 0,
-   "amount_total": 0,
-   "note": "current period all-dash ('- - -'); parser stored the PRIOR-period column (6.741/6.593/13.334) as current → 2.1 over by exactly 13.334. Real current = 0 (only 2.1.13=3.307 is non-zero, matching parent 2.1=3.307)"
-  },
-  {
-   "bank_ticker": "EXIM",
-   "period": "2022Q3",
-   "kind": "unconsolidated",
-   "statement": "bs_rehier",
-   "bs_statement": "off_balance",
-   "renames": [{"from": "3.2.2.2", "to": "3.2.1.2", "item_name": "Forward Foreign Currency Transactions-Sell"}],
-   "note": "SOURCE typo: Forward-FX Sell (93.044) stamped 3.2.2.2 instead of 3.2.1.2. Relabel → 3.2.1/3.2.2 foot, dup cleared"
-  },
-  {
-   "bank_ticker": "VAKBN",
-   "period": "2022Q2",
-   "kind": "consolidated",
-   "statement": "bs_rehier",
-   "bs_statement": "off_balance",
-   "renames": [{"from": "3.2.2.2", "to": "3.2.1.2.", "item_name": "Vadeli Döviz Satım İşlemleri"}],
-   "note": "SOURCE typo: Vadeli Döviz Satım (Forward Sell, 3.916.043) stamped 3.2.2.2, colliding with Swap Para Satım, instead of 3.2.1.2. Relabel → 3.2.1 foots (4.271.762+3.916.043=8.187.805), 3.2.2 foots, dup cleared"
-  },
-  {
-   "bank_ticker": "VAKBN",
-   "period": "2022Q4",
-   "kind": "consolidated",
-   "statement": "bs_rehier",
-   "bs_statement": "off_balance",
-   "renames": [{"from": "3.2.2.2", "to": "3.2.1.2.", "item_name": "Vadeli Döviz Satım İşlemleri"}],
-   "note": "SOURCE typo: Vadeli Döviz Satım (Forward Sell, 1.002.151) stamped 3.2.2.2 instead of 3.2.1.2. Relabel → 3.2.1/3.2.2 foot, dup cleared"
-  },
-  {
-   "bank_ticker": "HAYATK",
-   "period": "2023Q4",
-   "kind": "unconsolidated",
-   "statement": "bs_rehier",
-   "bs_statement": "off_balance",
-   "renames": [{"from": "V", "to": "A.", "item_name": "TL FC Total TL FC Total COMMITMENTS AND CONTINGENCIES A. (I+II+III)", "to_name": "COMMITMENTS AND CONTINGENCIES (I+II+III)"}],
-   "note": "column-header 'V TL FC Total TL FC Total' wrap-merged into section A's aggregate line → posted at phantom hierarchy 'V' (5.400), colliding with the real V. PLEDGED ITEMS (3.924.260) whose 5.x children then overran it. It IS the A. aggregate → relabel V→A. (leaves the numeric tree), real V. foots, A+B grand total foots"
-  },
-  {
-   "bank_ticker": "TAKAS",
-   "period": "2023Q2",
-   "kind": "unconsolidated",
-   "statement": "profit_loss",
-   "hierarchy": "XXIV.",
-   "item_name": "DURDURULAN FAALİYETLER DÖNEM NET K/Z (XXII±XXIII)",
-   "amount": 0,
-   "note": "source prints XXIV=1.035.347 (copy of net profit) though discontinued rows XX–XXIII are all nil → discontinued net is 0; XXV=XIX+XXIV foots with 0 (extraction faithful to a source copy-down artifact)"
-  },
-  {
-   "bank_ticker": "TAKAS",
-   "period": "2023Q3",
-   "kind": "unconsolidated",
-   "statement": "profit_loss",
-   "hierarchy": "XXIV.",
-   "item_name": "DURDURULAN FAALİYETLER DÖNEM NET K/Z (XXII±XXIII)",
-   "amount": 0,
-   "note": "source prints XXIV=2.260.614 (copy of net profit) though discontinued rows XX–XXIII are all nil → discontinued net is 0; XXV=XIX+XXIV foots with 0"
-  },
-  {
-   "bank_ticker": "TAKAS",
-   "period": "2024Q3",
-   "kind": "unconsolidated",
-   "statement": "profit_loss",
-   "hierarchy": "XXIV.",
-   "item_name": "DURDURULAN FAALİYETLER DÖNEM NET K/Z (XXII±XXIII)",
-   "amount": 0,
-   "note": "source prints XXIV=6.064.906 (copy of net profit) though discontinued rows XX–XXIII are all nil → discontinued net is 0; XXV=XIX+XXIV foots with 0"
-  },
-  {
-   "bank_ticker": "HAYATK",
-   "period": "2024Q2",
-   "kind": "unconsolidated",
-   "statement": "profit_loss",
-   "hierarchy": "XVII.",
-   "item_name": "PROFIT/(LOSS) FROM CONTINUED OPERATIONS BEFORE TAXES (XII+...+XV)",
-   "amount": -400486,
-   "note": "pre-tax row captured the dipnot ref '(4.9.)' as its value (stored 4.9); PDF p13 current col = (400.486). XVII=XIII+XIV+XV+XVI=-400.486 and XIX=XVII+XVIII=-400.486+174.727=-225.759 both foot"
-  },
-  {
-   "bank_ticker": "HAYATK",
-   "period": "2024Q2",
-   "kind": "unconsolidated",
-   "statement": "profit_loss",
-   "hierarchy": "XVIII.",
-   "item_name": "PROVISION FROM TAXES ON INCOME FROM CONTINUING OPERATIONS (±)",
-   "amount": 174727,
-   "item_order": 42,
-   "note": "tax row dropped — its label wraps two lines and the 4th column detached; PDF p13 current col = 174.727 (a benefit: deferred tax income 184.596 less expense 9.869). Slotted at 42 (after XVII, before 18.1) so it enters the spine and XIX=XVII±XVIII runs"
-  },
-  {
-   "bank_ticker": "HAYATK",
-   "period": "2024Q2",
-   "kind": "unconsolidated",
-   "statement": "profit_loss",
-   "hierarchy": "XV.",
-   "item_name": "INCOME / (LOSS) FROM INVESTMENTS IN SUBSIDIARIES CONSOLIDATED BASED ON EQUITY METHOD",
-   "amount": 0,
-   "item_order": 40,
-   "note": "equity-method row dropped by the same wrapped label; PDF p13 prints '-' → 0. Slotted at 40 (after XIV, before XVI) so XVII=XIII+XIV+XV+XVI runs"
-  },
-  {
-   "bank_ticker": "TOMK",
-   "period": "2023Q4",
-   "kind": "unconsolidated",
-   "statement": "profit_loss",
-   "hierarchy": "4.2.2",
-   "item_name": "Diğer",
-   "amount": -81,
-   "item_order": 25,
-   "note": "'(81)' read as a dipnot ref → row dropped; PDF p16 current col = (81)"
-  },
-  {
-   "bank_ticker": "TOMK",
-   "period": "2023Q4",
-   "kind": "unconsolidated",
-   "statement": "profit_loss",
-   "hierarchy": "4.2",
-   "item_name": "Verilen Ücret ve Komisyonlar (-)",
-   "amount": -81,
-   "item_order": 24,
-   "note": "'(81)' read as a dipnot ref → row dropped; PDF p16 current col = (81)"
-  },
-  {
-   "bank_ticker": "TOMK",
-   "period": "2023Q4",
-   "kind": "unconsolidated",
-   "statement": "profit_loss",
-   "hierarchy": "IV.",
-   "item_name": "NET ÜCRET VE KOMİSYON GELİRLERİ/GİDERLERİ",
-   "amount": -81,
-   "item_order": 21,
-   "note": "net-fees roman subtotal dropped ('(81)' read as a dipnot ref, as were children 4.2/4.2.2); PDF p16 current col = (81) = 4.1(0)-4.2(81). Slotted at 21 (after III, before 4.1) so VIII=III+IV+V+VI+VII runs: 134.955-81+0+290.951+0=425.825 = printed VIII"
-  }
- ]
+  ]
 }
