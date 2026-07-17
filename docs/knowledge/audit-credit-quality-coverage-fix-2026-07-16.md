@@ -1,6 +1,11 @@
 # Credit quality (IFRS-9 footnote) — 2 errors + 9 missing cleared, 8 N/A re-verified
 
-**Date:** 2026-07-16 · **Status:** ✅ FIXED (extractor + curated N/A; D1 push pending a clean tree) · **Memory:** [[project_audit_npl_followups]], [[reference_credit_quality_stage_columns]]
+**Date:** 2026-07-16, updated 2026-07-17 · **Status:** ✅ SHIPPED — live in D1 + R2
+snapshot. Both rows now clean: `credit_quality` **1029 ok / 10 manual / 0 err / 0
+miss / 11 n·a**, `stages` **1034 / 0 / 0 / 5 / 11** (the `stages` half closed in
+the *Follow-up* section at the bottom) · **Memory:**
+[[project_credit_quality_floor_fix]], [[project_audit_npl_followups]],
+[[reference_credit_quality_stage_columns]]
 
 ## What prompted it
 
@@ -208,3 +213,78 @@ a separate extractor and needs its own PDF verification before any N/A entry.
 - `data/audit_not_disclosed.json` — TOMK ×3 added; FIBA ×6 notes strengthened
 - `tests/test_credit_quality_extract.py` — 7 tests locking both fixes, incl. the
   SKBNK §4 false positive and the all-nil-total case
+
+---
+
+## Follow-up 2026-07-17 — the `stages` half closed (10 errors → 0)
+
+The *Known residue* above is resolved. `stages` now reads **1034 ok / 0 error /
+5 missing / 11 n·a**; `credit_quality` reads **1029 ok / 10 manual / 0 / 0 / 11**.
+
+**Root cause of all 10: Stage 3 is disclosed as PROSE, not a table.** These banks
+have no NPL to tabulate, so instead of a III/IV/V table they print a sentence —
+`Donuk alacaklara ilişkin bilgiler (net): Bulunmamaktadır` / `Information on
+non-performing loans (Net): None` / `Donuk alacak tutarı 2 TL'dir`. No
+table-anchored extractor can read that, so S3 stayed NULL and
+`stages_stage3_missing` fired. The zero is **stated**, not absent — which is
+exactly what `check_stages`' own contract ("a genuine zero-NPL bank stores S3 =
+0, not NULL") asks for, and what these banks cannot express in a table they never
+print.
+
+Fixed by curation, not by a detector: a new `credit_quality` override type in
+`apply_overrides.py` upserts the `npl_brsa_gross` row. Chosen over the
+prose-zero detector that `stages-lane-errors-missing-2026-07-16.md` recommends
+because the detector must NOT fire where a real table exists (DUNYAK 2023Q4
+carries *both* a "Bulunmamaktadır" line and a real movement table), and 10 cells
+did not justify that risk. If these banks keep filing prose every quarter the
+detector becomes the right call — the overrides are the interim.
+
+Every figure is sourced from the sentence AND cross-checked against the balance
+sheet's `Donuk Alacaklar` line — two independent reads:
+
+| cell | S3 | source | BS check |
+|---|---|---|---|
+| COLENDI 2025Q4 | 0 | p65 "…non-performing loans (Net): None" | — |
+| DUNYAK 2025Q1 cons/unco | 0 | p56/p55 "Bulunmamaktadır" | — |
+| DUNYAK 2025Q2 cons/unco | 0 | p68/p69 "Bulunmamaktadır" | — |
+| TOMK 2024Q2 | 2 | p64 "Donuk alacak tutarı **2 TL**'dir" | 2 ✓ |
+| TOMK 2024Q3 | 4,406 | p53 "…**4.406 TL**'dir" | 4.406 ✓ |
+| TOMK 2024Q4 | 177,537 | p98 "Dönem Sonu Bakiyesi - - **177.537**" (real table) | 177.537 ✓ |
+| ZIRAATD 2025Q4 | 0 | p85 §7.8.1–7.8.4 all "Bulunmamaktadır" | 0 ✓ |
+
+Units: TOMK's "2 TL" is **thousand** TL — the report abbreviates *Bin Türk Lirası*
+as "TL". Where a bank gives only a prose total the III/IV/V groups stay **NULL**
+(no split is disclosed), so `cq_section_total` correctly skips instead of
+checking a fabricated decomposition.
+
+### `stages_npl100` earned its keep — DUNYAK 2023Q4 was live wrong data
+
+Not a blank cell: `npl_brsa_gross.total_amount = 6,077` was being served as the
+Stage-3 **stock**. p58 shows 6,077 is `Dönem İçinde Tahsilat (-)` — a collections
+**flow**. The table foots to zero and says so:
+
+```
+Önceki Dönem Sonu Bakiyesi   -  -  6.075
+Dönem İçinde İntikal (+)     -  -      2
+Dönem İçinde Tahsilat (-)    -  -  6.077   ← was stored as the NPL stock
+Dönem Sonu Bakiyesi          -  -      -   ← the truth: 0
+```
+
+6.075 + 2 − 6.077 = 0, and the balance sheet agrees — `2.5 Donuk Alacaklar`'s
+CURRENT column is dashes (the 6.075 sits in the PRIOR column only). Corrected to
+0/0/0. Credit for finding it: `stages-lane-errors-missing-2026-07-16.md`.
+
+### These cells read `manual`, not `ok`
+
+`sync_audit_expected._STMT_TO_KEY` learned `credit_quality`, so the 10 curated
+cells land in the matrix's **Manual** column. A figure a human transcribed out of
+a sentence must not present as machine-extracted — that distinction is the whole
+point of the column.
+
+### Still open
+
+- The **prose-zero detector** (preferred long-term over per-quarter overrides).
+- **Templates** for the 6 new banks' `npl_brsa` regex path — the misread that put
+  a flow row in the stock field is still possible for any bank without one.
+- `stages` **5 missing** = ENPARA/HAYATK, which hold only `loans_ecl_expense` —
+  a section the stages builder does not read. Untouched.

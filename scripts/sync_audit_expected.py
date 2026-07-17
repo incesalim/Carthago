@@ -91,7 +91,9 @@ def _nd_matches(entries: list[dict], b: str, p: str, k: str, st) -> bool:
 
 COVERAGE_TABLES = ["bank_audit_expected", "bank_audit_statement_types", "bank_audit_coverage"]
 
-# Manual-overlay statement names → registry key.
+# Manual-overlay statement names → registry key. A cell listed here is shown in
+# the matrix's MANUAL column, not OK: the figure is human-sourced, and the
+# distinction is the point of that column.
 _STMT_TO_KEY = {
     "assets": "balance_sheet_assets",
     "liabilities": "balance_sheet_liabilities",
@@ -99,6 +101,11 @@ _STMT_TO_KEY = {
     "profit_loss": "profit_loss",
     "oci": "other_comprehensive_income",
     "cash_flow": "cash_flow",
+    # Prose-disclosed Stage-3 (NPL) figures curated into bank_audit_credit_quality —
+    # see the `credit_quality` branch of apply_overrides._apply_one. Without this
+    # the cells would read a plain machine-extracted 'ok' and hide that a human
+    # transcribed the number out of a sentence.
+    "credit_quality": "credit_quality",
 }
 
 

@@ -110,6 +110,47 @@ def _apply_one(conn: sqlite3.Connection, o: dict) -> str:
             f"UPDATE bank_audit_capital SET {sets} WHERE bank_ticker=? AND period=? "
             "AND kind=? AND period_type='current'", (*vals, b, p, k))
         return f"capital update {b} {p} {k} {dict((c, o['fields'][c]) for c in cols)}"
+    if st == "credit_quality":
+        # Upsert ONE section row of bank_audit_credit_quality (keyed by section +
+        # period_type). Used for the Stage-3 (NPL) figure that a bank discloses as
+        # PROSE instead of a table — "Donuk alacak tutarı 2 TL'dir" /
+        # "Bulunmamaktadır" / "None" — which no table-anchored extractor can read.
+        #
+        # This is a SOURCED figure, never an inferred one: every entry quotes the
+        # sentence (or the table row) it came from in `note`, and the new digital
+        # banks' zeros are additionally corroborated by the balance-sheet
+        # "Donuk Alacaklar" line. It matches check_stages' own stated contract —
+        # "a genuine zero-NPL bank stores S3 = 0, not NULL" — which is exactly what
+        # these banks mean and cannot express in a table they never print.
+        #
+        # `fields` = {column: value}; groups III/IV/V stay NULL when the bank gives
+        # only a prose total (there is no split to record), so cq_section_total
+        # correctly SKIPS rather than checking a fabricated decomposition.
+        allowed = {"stage1_amount", "stage2_amount", "stage3_amount", "total_amount",
+                   "heading_snippet", "source_page"}
+        cols = [c for c in o["fields"] if c in allowed]
+        if not cols:
+            return f"credit_quality SKIP {b} {p} {k} (no valid columns)"
+        sect, pt = o["section"], o.get("period_type", "current")
+        row = conn.execute(
+            "SELECT 1 FROM bank_audit_credit_quality WHERE bank_ticker=? AND period=? "
+            "AND kind=? AND section=? AND period_type=?", (b, p, k, sect, pt)).fetchone()
+        vals = [o["fields"][c] for c in cols]
+        if row:
+            sets = ", ".join(f"{c}=?" for c in cols)
+            conn.execute(
+                f"UPDATE bank_audit_credit_quality SET {sets} WHERE bank_ticker=? AND period=? "
+                "AND kind=? AND section=? AND period_type=?", (*vals, b, p, k, sect, pt))
+            verb = "update"
+        else:
+            names = ", ".join(cols)
+            qs = ", ".join("?" for _ in cols)
+            conn.execute(
+                f"INSERT INTO bank_audit_credit_quality (bank_ticker,period,kind,section,"
+                f"period_type,{names}) VALUES (?,?,?,?,?,{qs})", (b, p, k, sect, pt, *vals))
+            verb = "insert"
+        return (f"credit_quality {verb} {b} {p} {k} {sect}/{pt} "
+                f"{dict((c, o['fields'][c]) for c in cols)}")
     if st == "pl_rehier":
         # Roman-ordinal renames for a tail the extractor shifted (amounts and
         # labels faithful — only the hierarchy column moves). Matched by exact
