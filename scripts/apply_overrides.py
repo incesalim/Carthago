@@ -112,6 +112,30 @@ def _apply_one(conn: sqlite3.Connection, o: dict) -> str:
             f"UPDATE bank_audit_capital SET {sets} WHERE bank_ticker=? AND period=? "
             "AND kind=? AND period_type='current'", (*vals, b, p, k))
         return f"capital update {b} {p} {k} {dict((c, o['fields'][c]) for c in cols)}"
+    if st == "npl_movement":
+        # Per-column patch of ONE BRSA group row of bank_audit_npl_movement,
+        # keyed by (group_code, period_type). Added for the mirror of the
+        # credit_quality case: where cq and the movement table disagree, the
+        # movement side is usually the defective one — but not always. AKTIF
+        # 2023Q3's note 6.10.2 spans two pages, "Cari Dönem" then "(devamı)
+        # Önceki Dönem", and the extractor stored the PRIOR page as current
+        # (its source_page is literally the Önceki Dönem page), so every column
+        # of the row — opening, flows, closing, provision, net — is the prior
+        # period's. cq was right and the movement was wrong; patching cq would
+        # have overwritten a correct value with a wrong one.
+        allowed = {"opening_balance", "additions", "transfers_in", "transfers_out",
+                   "collections", "write_offs", "sold", "fx_diff", "closing_balance",
+                   "provision", "net_balance", "source_page"}
+        cols = [c for c in o["fields"] if c in allowed]
+        if not cols:
+            return f"npl_movement SKIP {b} {p} {k} (no valid columns)"
+        grp, pt = o["group_code"], o.get("period_type", "current")
+        sets = ", ".join(f"{c}=?" for c in cols)
+        vals = [o["fields"][c] for c in cols]
+        conn.execute(
+            f"UPDATE bank_audit_npl_movement SET {sets} WHERE bank_ticker=? AND period=? "
+            "AND kind=? AND group_code=? AND period_type=?", (*vals, b, p, k, grp, pt))
+        return f"npl_movement update {b} {p} {k} group {grp}/{pt} ({len(cols)} cols)"
     if st == "credit_quality":
         # Upsert ONE section row of bank_audit_credit_quality (keyed by section +
         # period_type). Used for the Stage-3 (NPL) figure that a bank discloses as

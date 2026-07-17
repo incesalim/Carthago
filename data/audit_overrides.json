@@ -4549,6 +4549,550 @@
       "amount": -107194,
       "item_order": 41,
       "note": "roman IV (FX effect on cash) dropped: the value is VECTOR-OUTLINED on this page — drawn as curves with NO text token, so fitz's text layer has nothing to read while the number is plainly visible in a render (the FIBA 2022Q1 class). Not a source gap: an 8x render of the value column shows '(107,194)'. Read from PDF p21 (0-based). Independently corroborated: the chain requires V-(I+II+III) = -107,194 and the PDF prints exactly that, so the figure is confirmed twice rather than derived from the identity it will be checked against. Slotted at item_order 41 (V.'s slot, pushing V/VI/VII down) so it enters the spine and V=I+II+III+IV runs."
+    },
+    {
+      "bank_ticker": "ICBCT",
+      "period": "2022Q2",
+      "kind": "consolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 8,
+        "stage2_amount": 146,
+        "stage3_amount": 42539,
+        "total_amount": 42693
+      },
+      "note": "cq npl_brsa_gross took the 'Önceki Dönem Sonu Bakiyesi' (OPENING) row instead of 'Dönem Sonu Bakiyesi' (closing) — byte-identical in 15/17 ICBCT partitions. The opening label ENDS with the same anchor text as the closing label, so an unanchored match hits it first; npl_movement.py guards this (lines 224/380/446), credit_quality.py does not. The table is YTD, so the opening row IS the prior YEAR-END — which is why the stored value looked 'frozen' for four quarters and stepped only at year boundaries. Read from PDF p61 (0-based), 'Dönem Sonu Bakiyesi' row; fitz only. Adjudicated against the PDF: the source's 'Dönem Sonu Bakiyesi' equals the bank_audit_npl_movement closing already in the DB, and the movement block foots internally (opening + flows = closing). Two independent confirmations that the movement side is right and cq is the defective one. total_amount set to III+IV+V = 42,693 (the section's total IS the group sum — holds on 967/999 corpus rows); the stored total was the same wrong row's sum, which is also what fed the derived bank_audit_stages."
+    },
+    {
+      "bank_ticker": "ICBCT",
+      "period": "2022Q2",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 8,
+        "stage2_amount": 146,
+        "stage3_amount": 42376,
+        "total_amount": 42530
+      },
+      "note": "cq npl_brsa_gross took the 'Önceki Dönem Sonu Bakiyesi' (OPENING) row instead of 'Dönem Sonu Bakiyesi' (closing) — byte-identical in 15/17 ICBCT partitions. The opening label ENDS with the same anchor text as the closing label, so an unanchored match hits it first; npl_movement.py guards this (lines 224/380/446), credit_quality.py does not. The table is YTD, so the opening row IS the prior YEAR-END — which is why the stored value looked 'frozen' for four quarters and stepped only at year boundaries. Read from PDF p63 (0-based), 'Dönem Sonu Bakiyesi' row; fitz only. Adjudicated against the PDF: the source's 'Dönem Sonu Bakiyesi' equals the bank_audit_npl_movement closing already in the DB, and the movement block foots internally (opening + flows = closing). Two independent confirmations that the movement side is right and cq is the defective one. total_amount set to III+IV+V = 42,530 (the section's total IS the group sum — holds on 967/999 corpus rows); the stored total was the same wrong row's sum, which is also what fed the derived bank_audit_stages."
+    },
+    {
+      "bank_ticker": "ICBCT",
+      "period": "2022Q3",
+      "kind": "consolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 4,
+        "stage2_amount": 51,
+        "stage3_amount": 42100,
+        "total_amount": 42155
+      },
+      "note": "cq npl_brsa_gross took the 'Önceki Dönem Sonu Bakiyesi' (OPENING) row instead of 'Dönem Sonu Bakiyesi' (closing) — byte-identical in 15/17 ICBCT partitions. The opening label ENDS with the same anchor text as the closing label, so an unanchored match hits it first; npl_movement.py guards this (lines 224/380/446), credit_quality.py does not. The table is YTD, so the opening row IS the prior YEAR-END — which is why the stored value looked 'frozen' for four quarters and stepped only at year boundaries. Read from PDF p53 (0-based), 'Dönem Sonu Bakiyesi' row; fitz only. Adjudicated against the PDF: the source's 'Dönem Sonu Bakiyesi' equals the bank_audit_npl_movement closing already in the DB, and the movement block foots internally (opening + flows = closing). Two independent confirmations that the movement side is right and cq is the defective one. total_amount set to III+IV+V = 42,155 (the section's total IS the group sum — holds on 967/999 corpus rows); the stored total was the same wrong row's sum, which is also what fed the derived bank_audit_stages."
+    },
+    {
+      "bank_ticker": "ICBCT",
+      "period": "2022Q3",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 4,
+        "stage2_amount": 51,
+        "stage3_amount": 41937,
+        "total_amount": 41992
+      },
+      "note": "cq npl_brsa_gross took the 'Önceki Dönem Sonu Bakiyesi' (OPENING) row instead of 'Dönem Sonu Bakiyesi' (closing) — byte-identical in 15/17 ICBCT partitions. The opening label ENDS with the same anchor text as the closing label, so an unanchored match hits it first; npl_movement.py guards this (lines 224/380/446), credit_quality.py does not. The table is YTD, so the opening row IS the prior YEAR-END — which is why the stored value looked 'frozen' for four quarters and stepped only at year boundaries. Read from PDF p54 (0-based), 'Dönem Sonu Bakiyesi' row; fitz only. Adjudicated against the PDF: the source's 'Dönem Sonu Bakiyesi' equals the bank_audit_npl_movement closing already in the DB, and the movement block foots internally (opening + flows = closing). Two independent confirmations that the movement side is right and cq is the defective one. total_amount set to III+IV+V = 41,992 (the section's total IS the group sum — holds on 967/999 corpus rows); the stored total was the same wrong row's sum, which is also what fed the derived bank_audit_stages."
+    },
+    {
+      "bank_ticker": "ICBCT",
+      "period": "2024Q1",
+      "kind": "consolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 6,
+        "stage2_amount": 31,
+        "stage3_amount": 29334,
+        "total_amount": 29371
+      },
+      "note": "cq npl_brsa_gross took the 'Önceki Dönem Sonu Bakiyesi' (OPENING) row instead of 'Dönem Sonu Bakiyesi' (closing) — byte-identical in 15/17 ICBCT partitions. The opening label ENDS with the same anchor text as the closing label, so an unanchored match hits it first; npl_movement.py guards this (lines 224/380/446), credit_quality.py does not. The table is YTD, so the opening row IS the prior YEAR-END — which is why the stored value looked 'frozen' for four quarters and stepped only at year boundaries. Read from PDF p52 (0-based), 'Dönem Sonu Bakiyesi' row; fitz only. Adjudicated against the PDF: the source's 'Dönem Sonu Bakiyesi' equals the bank_audit_npl_movement closing already in the DB, and the movement block foots internally (opening + flows = closing). Two independent confirmations that the movement side is right and cq is the defective one. total_amount set to III+IV+V = 29,371 (the section's total IS the group sum — holds on 967/999 corpus rows); the stored total was the same wrong row's sum, which is also what fed the derived bank_audit_stages."
+    },
+    {
+      "bank_ticker": "ICBCT",
+      "period": "2024Q1",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 6,
+        "stage2_amount": 31,
+        "stage3_amount": 29172,
+        "total_amount": 29209
+      },
+      "note": "cq npl_brsa_gross took the 'Önceki Dönem Sonu Bakiyesi' (OPENING) row instead of 'Dönem Sonu Bakiyesi' (closing) — byte-identical in 15/17 ICBCT partitions. The opening label ENDS with the same anchor text as the closing label, so an unanchored match hits it first; npl_movement.py guards this (lines 224/380/446), credit_quality.py does not. The table is YTD, so the opening row IS the prior YEAR-END — which is why the stored value looked 'frozen' for four quarters and stepped only at year boundaries. Read from PDF p54 (0-based), 'Dönem Sonu Bakiyesi' row; fitz only. Adjudicated against the PDF: the source's 'Dönem Sonu Bakiyesi' equals the bank_audit_npl_movement closing already in the DB, and the movement block foots internally (opening + flows = closing). Two independent confirmations that the movement side is right and cq is the defective one. total_amount set to III+IV+V = 29,209 (the section's total IS the group sum — holds on 967/999 corpus rows); the stored total was the same wrong row's sum, which is also what fed the derived bank_audit_stages."
+    },
+    {
+      "bank_ticker": "ICBCT",
+      "period": "2024Q2",
+      "kind": "consolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 28,
+        "stage2_amount": 24,
+        "stage3_amount": 29466,
+        "total_amount": 29518
+      },
+      "note": "cq npl_brsa_gross took the 'Önceki Dönem Sonu Bakiyesi' (OPENING) row instead of 'Dönem Sonu Bakiyesi' (closing) — byte-identical in 15/17 ICBCT partitions. The opening label ENDS with the same anchor text as the closing label, so an unanchored match hits it first; npl_movement.py guards this (lines 224/380/446), credit_quality.py does not. The table is YTD, so the opening row IS the prior YEAR-END — which is why the stored value looked 'frozen' for four quarters and stepped only at year boundaries. Read from PDF p63 (0-based), 'Dönem Sonu Bakiyesi' row; fitz only. Adjudicated against the PDF: the source's 'Dönem Sonu Bakiyesi' equals the bank_audit_npl_movement closing already in the DB, and the movement block foots internally (opening + flows = closing). Two independent confirmations that the movement side is right and cq is the defective one. total_amount set to III+IV+V = 29,518 (the section's total IS the group sum — holds on 967/999 corpus rows); the stored total was the same wrong row's sum, which is also what fed the derived bank_audit_stages."
+    },
+    {
+      "bank_ticker": "ICBCT",
+      "period": "2024Q2",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 28,
+        "stage2_amount": 24,
+        "stage3_amount": 29304,
+        "total_amount": 29356
+      },
+      "note": "cq npl_brsa_gross took the 'Önceki Dönem Sonu Bakiyesi' (OPENING) row instead of 'Dönem Sonu Bakiyesi' (closing) — byte-identical in 15/17 ICBCT partitions. The opening label ENDS with the same anchor text as the closing label, so an unanchored match hits it first; npl_movement.py guards this (lines 224/380/446), credit_quality.py does not. The table is YTD, so the opening row IS the prior YEAR-END — which is why the stored value looked 'frozen' for four quarters and stepped only at year boundaries. Read from PDF p64 (0-based), 'Dönem Sonu Bakiyesi' row; fitz only. Adjudicated against the PDF: the source's 'Dönem Sonu Bakiyesi' equals the bank_audit_npl_movement closing already in the DB, and the movement block foots internally (opening + flows = closing). Two independent confirmations that the movement side is right and cq is the defective one. total_amount set to III+IV+V = 29,356 (the section's total IS the group sum — holds on 967/999 corpus rows); the stored total was the same wrong row's sum, which is also what fed the derived bank_audit_stages."
+    },
+    {
+      "bank_ticker": "ICBCT",
+      "period": "2025Q2",
+      "kind": "consolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 37,
+        "stage2_amount": 45,
+        "stage3_amount": 27128,
+        "total_amount": 27210
+      },
+      "note": "cq npl_brsa_gross took the 'Önceki Dönem Sonu Bakiyesi' (OPENING) row instead of 'Dönem Sonu Bakiyesi' (closing) — byte-identical in 15/17 ICBCT partitions. The opening label ENDS with the same anchor text as the closing label, so an unanchored match hits it first; npl_movement.py guards this (lines 224/380/446), credit_quality.py does not. The table is YTD, so the opening row IS the prior YEAR-END — which is why the stored value looked 'frozen' for four quarters and stepped only at year boundaries. Read from PDF p65 (0-based), 'Dönem Sonu Bakiyesi' row; fitz only. Adjudicated against the PDF: the source's 'Dönem Sonu Bakiyesi' equals the bank_audit_npl_movement closing already in the DB, and the movement block foots internally (opening + flows = closing). Two independent confirmations that the movement side is right and cq is the defective one. total_amount set to III+IV+V = 27,210 (the section's total IS the group sum — holds on 967/999 corpus rows); the stored total was the same wrong row's sum, which is also what fed the derived bank_audit_stages."
+    },
+    {
+      "bank_ticker": "ICBCT",
+      "period": "2025Q2",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 37,
+        "stage2_amount": 45,
+        "stage3_amount": 26966,
+        "total_amount": 27048
+      },
+      "note": "cq npl_brsa_gross took the 'Önceki Dönem Sonu Bakiyesi' (OPENING) row instead of 'Dönem Sonu Bakiyesi' (closing) — byte-identical in 15/17 ICBCT partitions. The opening label ENDS with the same anchor text as the closing label, so an unanchored match hits it first; npl_movement.py guards this (lines 224/380/446), credit_quality.py does not. The table is YTD, so the opening row IS the prior YEAR-END — which is why the stored value looked 'frozen' for four quarters and stepped only at year boundaries. Read from PDF p66 (0-based), 'Dönem Sonu Bakiyesi' row; fitz only. Adjudicated against the PDF: the source's 'Dönem Sonu Bakiyesi' equals the bank_audit_npl_movement closing already in the DB, and the movement block foots internally (opening + flows = closing). Two independent confirmations that the movement side is right and cq is the defective one. total_amount set to III+IV+V = 27,048 (the section's total IS the group sum — holds on 967/999 corpus rows); the stored total was the same wrong row's sum, which is also what fed the derived bank_audit_stages."
+    },
+    {
+      "bank_ticker": "ICBCT",
+      "period": "2025Q3",
+      "kind": "consolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 28,
+        "stage2_amount": 66,
+        "stage3_amount": 27459,
+        "total_amount": 27553
+      },
+      "note": "cq npl_brsa_gross took the 'Önceki Dönem Sonu Bakiyesi' (OPENING) row instead of 'Dönem Sonu Bakiyesi' (closing) — byte-identical in 15/17 ICBCT partitions. The opening label ENDS with the same anchor text as the closing label, so an unanchored match hits it first; npl_movement.py guards this (lines 224/380/446), credit_quality.py does not. The table is YTD, so the opening row IS the prior YEAR-END — which is why the stored value looked 'frozen' for four quarters and stepped only at year boundaries. Read from PDF p55 (0-based), 'Dönem Sonu Bakiyesi' row; fitz only. Adjudicated against the PDF: the source's 'Dönem Sonu Bakiyesi' equals the bank_audit_npl_movement closing already in the DB, and the movement block foots internally (opening + flows = closing). Two independent confirmations that the movement side is right and cq is the defective one. total_amount set to III+IV+V = 27,553 (the section's total IS the group sum — holds on 967/999 corpus rows); the stored total was the same wrong row's sum, which is also what fed the derived bank_audit_stages."
+    },
+    {
+      "bank_ticker": "ICBCT",
+      "period": "2025Q3",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 28,
+        "stage2_amount": 66,
+        "stage3_amount": 27297,
+        "total_amount": 27391
+      },
+      "note": "cq npl_brsa_gross took the 'Önceki Dönem Sonu Bakiyesi' (OPENING) row instead of 'Dönem Sonu Bakiyesi' (closing) — byte-identical in 15/17 ICBCT partitions. The opening label ENDS with the same anchor text as the closing label, so an unanchored match hits it first; npl_movement.py guards this (lines 224/380/446), credit_quality.py does not. The table is YTD, so the opening row IS the prior YEAR-END — which is why the stored value looked 'frozen' for four quarters and stepped only at year boundaries. Read from PDF p57 (0-based), 'Dönem Sonu Bakiyesi' row; fitz only. Adjudicated against the PDF: the source's 'Dönem Sonu Bakiyesi' equals the bank_audit_npl_movement closing already in the DB, and the movement block foots internally (opening + flows = closing). Two independent confirmations that the movement side is right and cq is the defective one. total_amount set to III+IV+V = 27,391 (the section's total IS the group sum — holds on 967/999 corpus rows); the stored total was the same wrong row's sum, which is also what fed the derived bank_audit_stages."
+    },
+    {
+      "bank_ticker": "ICBCT",
+      "period": "2025Q4",
+      "kind": "consolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 188,
+        "stage2_amount": 74,
+        "stage3_amount": 27627,
+        "total_amount": 27889
+      },
+      "note": "cq npl_brsa_gross took the 'Önceki Dönem Sonu Bakiyesi' (OPENING) row instead of 'Dönem Sonu Bakiyesi' (closing) — byte-identical in 15/17 ICBCT partitions. The opening label ENDS with the same anchor text as the closing label, so an unanchored match hits it first; npl_movement.py guards this (lines 224/380/446), credit_quality.py does not. The table is YTD, so the opening row IS the prior YEAR-END — which is why the stored value looked 'frozen' for four quarters and stepped only at year boundaries. Read from PDF p86 (0-based), 'Dönem Sonu Bakiyesi' row; fitz only. Adjudicated against the PDF: the source's 'Dönem Sonu Bakiyesi' equals the bank_audit_npl_movement closing already in the DB, and the movement block foots internally (opening + flows = closing). Two independent confirmations that the movement side is right and cq is the defective one. total_amount set to III+IV+V = 27,889 (the section's total IS the group sum — holds on 967/999 corpus rows); the stored total was the same wrong row's sum, which is also what fed the derived bank_audit_stages."
+    },
+    {
+      "bank_ticker": "ICBCT",
+      "period": "2025Q4",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 188,
+        "stage2_amount": 74,
+        "stage3_amount": 27465,
+        "total_amount": 27727
+      },
+      "note": "cq npl_brsa_gross took the 'Önceki Dönem Sonu Bakiyesi' (OPENING) row instead of 'Dönem Sonu Bakiyesi' (closing) — byte-identical in 15/17 ICBCT partitions. The opening label ENDS with the same anchor text as the closing label, so an unanchored match hits it first; npl_movement.py guards this (lines 224/380/446), credit_quality.py does not. The table is YTD, so the opening row IS the prior YEAR-END — which is why the stored value looked 'frozen' for four quarters and stepped only at year boundaries. Read from PDF p83 (0-based), 'Dönem Sonu Bakiyesi' row; fitz only. Adjudicated against the PDF: the source's 'Dönem Sonu Bakiyesi' equals the bank_audit_npl_movement closing already in the DB, and the movement block foots internally (opening + flows = closing). Two independent confirmations that the movement side is right and cq is the defective one. total_amount set to III+IV+V = 27,727 (the section's total IS the group sum — holds on 967/999 corpus rows); the stored total was the same wrong row's sum, which is also what fed the derived bank_audit_stages."
+    },
+    {
+      "bank_ticker": "ICBCT",
+      "period": "2024Q4",
+      "kind": "consolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 39,
+        "stage2_amount": 36,
+        "stage3_amount": 28280,
+        "total_amount": 28355
+      },
+      "note": "cq npl_brsa_gross took the 'Dönem İçinde Tahsilat (-)' (COLLECTIONS) row — the only quarter where that row carries three thousands-separated tokens. Read from PDF p84 (0-based), 'Dönem Sonu Bakiyesi' row; fitz only. Adjudicated against the PDF: the source's 'Dönem Sonu Bakiyesi' equals the bank_audit_npl_movement closing already in the DB, and the movement block foots internally (opening + flows = closing). Two independent confirmations that the movement side is right and cq is the defective one. total_amount set to III+IV+V = 28,355 (the section's total IS the group sum — holds on 967/999 corpus rows); the stored total was the same wrong row's sum, which is also what fed the derived bank_audit_stages."
+    },
+    {
+      "bank_ticker": "ICBCT",
+      "period": "2024Q4",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 39,
+        "stage2_amount": 36,
+        "stage3_amount": 28118,
+        "total_amount": 28193
+      },
+      "note": "cq npl_brsa_gross took the 'Dönem İçinde Tahsilat (-)' (COLLECTIONS) row — the only quarter where that row carries three thousands-separated tokens. Read from PDF p82 (0-based), 'Dönem Sonu Bakiyesi' row; fitz only. Adjudicated against the PDF: the source's 'Dönem Sonu Bakiyesi' equals the bank_audit_npl_movement closing already in the DB, and the movement block foots internally (opening + flows = closing). Two independent confirmations that the movement side is right and cq is the defective one. total_amount set to III+IV+V = 28,193 (the section's total IS the group sum — holds on 967/999 corpus rows); the stored total was the same wrong row's sum, which is also what fed the derived bank_audit_stages."
+    },
+    {
+      "bank_ticker": "ICBCT",
+      "period": "2022Q4",
+      "kind": "consolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 0,
+        "stage2_amount": 15
+      },
+      "note": "cq npl_brsa_gross took the 'Önceki Dönem Sonu Bakiyesi' (OPENING) row instead of 'Dönem Sonu Bakiyesi' (closing) — byte-identical in 15/17 ICBCT partitions. The opening label ENDS with the same anchor text as the closing label, so an unanchored match hits it first; npl_movement.py guards this (lines 224/380/446), credit_quality.py does not. The table is YTD, so the opening row IS the prior YEAR-END — which is why the stored value looked 'frozen' for four quarters and stepped only at year boundaries. GROUP V DELIBERATELY NOT OVERRIDDEN: the filing contradicts itself four ways for that one cell (j.2 closing 41,941 / j.4 Brüt 40,231 / j.2's own cross-foot 41,883 / 2023Q1's restated opening 41,679), and cons IV=15 < unco IV=181 is structurally impossible since consolidation can only add. The cell stays flagged — the flag is telling the truth. Read from PDF p81 (0-based), 'Dönem Sonu Bakiyesi' row; fitz only. Adjudicated against the PDF: the source's 'Dönem Sonu Bakiyesi' equals the bank_audit_npl_movement closing already in the DB, and the movement block foots internally (opening + flows = closing). Two independent confirmations that the movement side is right and cq is the defective one."
+    },
+    {
+      "bank_ticker": "PASHA",
+      "period": "2022Q3",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 0,
+        "stage2_amount": 0,
+        "stage3_amount": 16671,
+        "total_amount": 16671
+      },
+      "note": "cq npl_brsa_gross took the OPENING balance: PASHA's template path fails, the regex fallback reads the movement table and picks the LARGEST-magnitude row, which silently assumes NPL books GROW. PASHA's shrinks, so |opening| > |closing| in all 10 and the opening wins every time. The 'gross = provision + net' guard that would catch it is disabled by the very trait that defines PASHA — it is 100%% provisioned, so the net row prints '- - -', fails _NPL_DATA_ROW_FILTER (which requires a digit), leaves net=None, and the guard never runs. Read from PDF p69 (0-based), 'Dönem Sonu Bakiyesi' row; fitz only. Adjudicated against the PDF: the source's 'Dönem Sonu Bakiyesi' equals the bank_audit_npl_movement closing already in the DB, and the movement block foots internally (opening + flows = closing). Two independent confirmations that the movement side is right and cq is the defective one. total_amount set to III+IV+V = 16,671 (the section's total IS the group sum — holds on 967/999 corpus rows); the stored total was the same wrong row's sum, which is also what fed the derived bank_audit_stages."
+    },
+    {
+      "bank_ticker": "PASHA",
+      "period": "2022Q4",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 0,
+        "stage2_amount": 0,
+        "stage3_amount": 16604,
+        "total_amount": 16604
+      },
+      "note": "cq npl_brsa_gross took the OPENING balance: PASHA's template path fails, the regex fallback reads the movement table and picks the LARGEST-magnitude row, which silently assumes NPL books GROW. PASHA's shrinks, so |opening| > |closing| in all 10 and the opening wins every time. The 'gross = provision + net' guard that would catch it is disabled by the very trait that defines PASHA — it is 100%% provisioned, so the net row prints '- - -', fails _NPL_DATA_ROW_FILTER (which requires a digit), leaves net=None, and the guard never runs. Read from PDF p86 (0-based), 'Dönem Sonu Bakiyesi' row; fitz only. Adjudicated against the PDF: the source's 'Dönem Sonu Bakiyesi' equals the bank_audit_npl_movement closing already in the DB, and the movement block foots internally (opening + flows = closing). Two independent confirmations that the movement side is right and cq is the defective one. total_amount set to III+IV+V = 16,604 (the section's total IS the group sum — holds on 967/999 corpus rows); the stored total was the same wrong row's sum, which is also what fed the derived bank_audit_stages."
+    },
+    {
+      "bank_ticker": "PASHA",
+      "period": "2023Q1",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 0,
+        "stage2_amount": 0,
+        "stage3_amount": 13787,
+        "total_amount": 13787
+      },
+      "note": "cq npl_brsa_gross took the OPENING balance: PASHA's template path fails, the regex fallback reads the movement table and picks the LARGEST-magnitude row, which silently assumes NPL books GROW. PASHA's shrinks, so |opening| > |closing| in all 10 and the opening wins every time. The 'gross = provision + net' guard that would catch it is disabled by the very trait that defines PASHA — it is 100%% provisioned, so the net row prints '- - -', fails _NPL_DATA_ROW_FILTER (which requires a digit), leaves net=None, and the guard never runs. Read from PDF p68 (0-based), 'Dönem Sonu Bakiyesi' row; fitz only. Adjudicated against the PDF: the source's 'Dönem Sonu Bakiyesi' equals the bank_audit_npl_movement closing already in the DB, and the movement block foots internally (opening + flows = closing). Two independent confirmations that the movement side is right and cq is the defective one. total_amount set to III+IV+V = 13,787 (the section's total IS the group sum — holds on 967/999 corpus rows); the stored total was the same wrong row's sum, which is also what fed the derived bank_audit_stages."
+    },
+    {
+      "bank_ticker": "PASHA",
+      "period": "2023Q2",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 0,
+        "stage2_amount": 0,
+        "stage3_amount": 13787,
+        "total_amount": 13787
+      },
+      "note": "cq npl_brsa_gross took the OPENING balance: PASHA's template path fails, the regex fallback reads the movement table and picks the LARGEST-magnitude row, which silently assumes NPL books GROW. PASHA's shrinks, so |opening| > |closing| in all 10 and the opening wins every time. The 'gross = provision + net' guard that would catch it is disabled by the very trait that defines PASHA — it is 100%% provisioned, so the net row prints '- - -', fails _NPL_DATA_ROW_FILTER (which requires a digit), leaves net=None, and the guard never runs. Read from PDF p70 (0-based), 'Dönem Sonu Bakiyesi' row; fitz only. Adjudicated against the PDF: the source's 'Dönem Sonu Bakiyesi' equals the bank_audit_npl_movement closing already in the DB, and the movement block foots internally (opening + flows = closing). Two independent confirmations that the movement side is right and cq is the defective one. total_amount set to III+IV+V = 13,787 (the section's total IS the group sum — holds on 967/999 corpus rows); the stored total was the same wrong row's sum, which is also what fed the derived bank_audit_stages."
+    },
+    {
+      "bank_ticker": "PASHA",
+      "period": "2023Q3",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 0,
+        "stage2_amount": 0,
+        "stage3_amount": 13787,
+        "total_amount": 13787
+      },
+      "note": "cq npl_brsa_gross took the OPENING balance: PASHA's template path fails, the regex fallback reads the movement table and picks the LARGEST-magnitude row, which silently assumes NPL books GROW. PASHA's shrinks, so |opening| > |closing| in all 10 and the opening wins every time. The 'gross = provision + net' guard that would catch it is disabled by the very trait that defines PASHA — it is 100%% provisioned, so the net row prints '- - -', fails _NPL_DATA_ROW_FILTER (which requires a digit), leaves net=None, and the guard never runs. Read from PDF p68 (0-based), 'Dönem Sonu Bakiyesi' row; fitz only. Adjudicated against the PDF: the source's 'Dönem Sonu Bakiyesi' equals the bank_audit_npl_movement closing already in the DB, and the movement block foots internally (opening + flows = closing). Two independent confirmations that the movement side is right and cq is the defective one. total_amount set to III+IV+V = 13,787 (the section's total IS the group sum — holds on 967/999 corpus rows); the stored total was the same wrong row's sum, which is also what fed the derived bank_audit_stages."
+    },
+    {
+      "bank_ticker": "PASHA",
+      "period": "2023Q4",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 0,
+        "stage2_amount": 0,
+        "stage3_amount": 13787,
+        "total_amount": 13787
+      },
+      "note": "cq npl_brsa_gross took the OPENING balance: PASHA's template path fails, the regex fallback reads the movement table and picks the LARGEST-magnitude row, which silently assumes NPL books GROW. PASHA's shrinks, so |opening| > |closing| in all 10 and the opening wins every time. The 'gross = provision + net' guard that would catch it is disabled by the very trait that defines PASHA — it is 100%% provisioned, so the net row prints '- - -', fails _NPL_DATA_ROW_FILTER (which requires a digit), leaves net=None, and the guard never runs. Read from PDF p88 (0-based), 'Dönem Sonu Bakiyesi' row; fitz only. Adjudicated against the PDF: the source's 'Dönem Sonu Bakiyesi' equals the bank_audit_npl_movement closing already in the DB, and the movement block foots internally (opening + flows = closing). Two independent confirmations that the movement side is right and cq is the defective one. total_amount set to III+IV+V = 13,787 (the section's total IS the group sum — holds on 967/999 corpus rows); the stored total was the same wrong row's sum, which is also what fed the derived bank_audit_stages."
+    },
+    {
+      "bank_ticker": "PASHA",
+      "period": "2025Q1",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 1658,
+        "stage2_amount": 6481,
+        "stage3_amount": 19067,
+        "total_amount": 27206
+      },
+      "note": "cq npl_brsa_gross took the OPENING balance: PASHA's template path fails, the regex fallback reads the movement table and picks the LARGEST-magnitude row, which silently assumes NPL books GROW. PASHA's shrinks, so |opening| > |closing| in all 10 and the opening wins every time. The 'gross = provision + net' guard that would catch it is disabled by the very trait that defines PASHA — it is 100%% provisioned, so the net row prints '- - -', fails _NPL_DATA_ROW_FILTER (which requires a digit), leaves net=None, and the guard never runs. Read from PDF p71 (0-based), 'Dönem Sonu Bakiyesi' row; fitz only. Adjudicated against the PDF: the source's 'Dönem Sonu Bakiyesi' equals the bank_audit_npl_movement closing already in the DB, and the movement block foots internally (opening + flows = closing). Two independent confirmations that the movement side is right and cq is the defective one. total_amount set to III+IV+V = 27,206 (the section's total IS the group sum — holds on 967/999 corpus rows); the stored total was the same wrong row's sum, which is also what fed the derived bank_audit_stages."
+    },
+    {
+      "bank_ticker": "PASHA",
+      "period": "2025Q2",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 1658,
+        "stage2_amount": 3491,
+        "stage3_amount": 17389,
+        "total_amount": 22538
+      },
+      "note": "cq npl_brsa_gross took the OPENING balance: PASHA's template path fails, the regex fallback reads the movement table and picks the LARGEST-magnitude row, which silently assumes NPL books GROW. PASHA's shrinks, so |opening| > |closing| in all 10 and the opening wins every time. The 'gross = provision + net' guard that would catch it is disabled by the very trait that defines PASHA — it is 100%% provisioned, so the net row prints '- - -', fails _NPL_DATA_ROW_FILTER (which requires a digit), leaves net=None, and the guard never runs. Read from PDF p74 (0-based), 'Dönem Sonu Bakiyesi' row; fitz only. Adjudicated against the PDF: the source's 'Dönem Sonu Bakiyesi' equals the bank_audit_npl_movement closing already in the DB, and the movement block foots internally (opening + flows = closing). Two independent confirmations that the movement side is right and cq is the defective one. total_amount set to III+IV+V = 22,538 (the section's total IS the group sum — holds on 967/999 corpus rows); the stored total was the same wrong row's sum, which is also what fed the derived bank_audit_stages."
+    },
+    {
+      "bank_ticker": "PASHA",
+      "period": "2025Q3",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 1658,
+        "stage2_amount": 2326,
+        "stage3_amount": 2446,
+        "total_amount": 6430
+      },
+      "note": "cq npl_brsa_gross took the OPENING balance: PASHA's template path fails, the regex fallback reads the movement table and picks the LARGEST-magnitude row, which silently assumes NPL books GROW. PASHA's shrinks, so |opening| > |closing| in all 10 and the opening wins every time. The 'gross = provision + net' guard that would catch it is disabled by the very trait that defines PASHA — it is 100%% provisioned, so the net row prints '- - -', fails _NPL_DATA_ROW_FILTER (which requires a digit), leaves net=None, and the guard never runs. Read from PDF p72 (0-based), 'Dönem Sonu Bakiyesi' row; fitz only. Adjudicated against the PDF: the source's 'Dönem Sonu Bakiyesi' equals the bank_audit_npl_movement closing already in the DB, and the movement block foots internally (opening + flows = closing). Two independent confirmations that the movement side is right and cq is the defective one. total_amount set to III+IV+V = 6,430 (the section's total IS the group sum — holds on 967/999 corpus rows); the stored total was the same wrong row's sum, which is also what fed the derived bank_audit_stages."
+    },
+    {
+      "bank_ticker": "PASHA",
+      "period": "2025Q4",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 4978,
+        "stage2_amount": 1668,
+        "stage3_amount": 3135,
+        "total_amount": 9781
+      },
+      "note": "cq npl_brsa_gross took the OPENING balance: PASHA's template path fails, the regex fallback reads the movement table and picks the LARGEST-magnitude row, which silently assumes NPL books GROW. PASHA's shrinks, so |opening| > |closing| in all 10 and the opening wins every time. The 'gross = provision + net' guard that would catch it is disabled by the very trait that defines PASHA — it is 100%% provisioned, so the net row prints '- - -', fails _NPL_DATA_ROW_FILTER (which requires a digit), leaves net=None, and the guard never runs. Read from PDF p92 (0-based), 'Dönem Sonu Bakiyesi' row; fitz only. Adjudicated against the PDF: the source's 'Dönem Sonu Bakiyesi' equals the bank_audit_npl_movement closing already in the DB, and the movement block foots internally (opening + flows = closing). Two independent confirmations that the movement side is right and cq is the defective one. total_amount set to III+IV+V = 9,781 (the section's total IS the group sum — holds on 967/999 corpus rows); the stored total was the same wrong row's sum, which is also what fed the derived bank_audit_stages."
+    },
+    {
+      "bank_ticker": "DUNYAK",
+      "period": "2025Q4",
+      "kind": "consolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 347855,
+        "stage2_amount": 40650,
+        "stage3_amount": 0,
+        "total_amount": 388505
+      },
+      "note": "cq npl_brsa_gross took the 'Dönem İçinde İntikal (+)' (ADDITIONS) row (392,160) instead of the closing (347,855 = 392,160 − 40,650 transfer-out − 3,655 collections). Same disabled guard as PASHA: the all-dash net row leaves net=None so the gross=prov+net identity never evaluates and the largest-magnitude fallback wins. Corroborated against the balance sheet: performing 51,869,644 + 388,505 = 52,258,149 = BS Krediler exactly (cq's value misses by 3,655). Read from PDF p104 (0-based), 'Dönem Sonu Bakiyesi' row; fitz only. Adjudicated against the PDF: the source's 'Dönem Sonu Bakiyesi' equals the bank_audit_npl_movement closing already in the DB, and the movement block foots internally (opening + flows = closing). Two independent confirmations that the movement side is right and cq is the defective one. total_amount set to III+IV+V = 388,505 (the section's total IS the group sum — holds on 967/999 corpus rows); the stored total was the same wrong row's sum, which is also what fed the derived bank_audit_stages."
+    },
+    {
+      "bank_ticker": "DUNYAK",
+      "period": "2025Q4",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 347855,
+        "stage2_amount": 40650,
+        "stage3_amount": 0,
+        "total_amount": 388505
+      },
+      "note": "cq npl_brsa_gross took the 'Dönem İçinde İntikal (+)' (ADDITIONS) row (392,160) instead of the closing (347,855 = 392,160 − 40,650 transfer-out − 3,655 collections). Same disabled guard as PASHA: the all-dash net row leaves net=None so the gross=prov+net identity never evaluates and the largest-magnitude fallback wins. Corroborated against the balance sheet: performing 51,869,644 + 388,505 = 52,258,149 = BS Krediler exactly (cq's value misses by 3,655). Read from PDF p102 (0-based), 'Dönem Sonu Bakiyesi' row; fitz only. Adjudicated against the PDF: the source's 'Dönem Sonu Bakiyesi' equals the bank_audit_npl_movement closing already in the DB, and the movement block foots internally (opening + flows = closing). Two independent confirmations that the movement side is right and cq is the defective one. total_amount set to III+IV+V = 388,505 (the section's total IS the group sum — holds on 967/999 corpus rows); the stored total was the same wrong row's sum, which is also what fed the derived bank_audit_stages."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2025Q4",
+      "kind": "consolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 1565113,
+        "stage2_amount": 1586729,
+        "stage3_amount": 587397,
+        "total_amount": 3739239
+      },
+      "note": "cq npl_brsa_gross took the FC-ONLY sub-table (note 5.9.4) — 0.031%% of the loan book. The _is_fc_only_block guard SHOULD have skipped it, but _NPL_FC_ONLY_HEADING requires 'yabancı para olarak kullandırılan' and Fibabanka's own heading is TYPO'd 'abancı para' (confirmed in the text layer and an 8x render), so the guard never fires and the FC block shadows the real total. Corroborated by the bank's OWN disclosed NPL ratio: the movement gross implies a group book from which the disclosed %%4,77 falls out at 4.773%%. Read from PDF p88 (0-based), 'Dönem Sonu Bakiyesi' row; fitz only. Adjudicated against the PDF: the source's 'Dönem Sonu Bakiyesi' equals the bank_audit_npl_movement closing already in the DB, and the movement block foots internally (opening + flows = closing). Two independent confirmations that the movement side is right and cq is the defective one. total_amount set to III+IV+V = 3,739,239 (the section's total IS the group sum — holds on 967/999 corpus rows); the stored total was the same wrong row's sum, which is also what fed the derived bank_audit_stages."
+    },
+    {
+      "bank_ticker": "ISCTR",
+      "period": "2025Q2",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 12579750,
+        "stage2_amount": 17284805,
+        "stage3_amount": 21209420,
+        "total_amount": 51073975
+      },
+      "note": "cq npl_brsa_gross took the 'interest accruals and valuation differences' sub-table. The insidious part: that sub-table is ITSELF a gross/provision/net triple that foots the identity exactly, so the 'gross = provision + net' guard CONFIRMS the wrong table rather than rejecting it. There is no accruals-sub-heading guard analogous to the FC one. Read from PDF p68 (0-based), 'Dönem Sonu Bakiyesi' row; fitz only. Adjudicated against the PDF: the source's 'Dönem Sonu Bakiyesi' equals the bank_audit_npl_movement closing already in the DB, and the movement block foots internally (opening + flows = closing). Two independent confirmations that the movement side is right and cq is the defective one. total_amount set to III+IV+V = 51,073,975 (the section's total IS the group sum — holds on 967/999 corpus rows); the stored total was the same wrong row's sum, which is also what fed the derived bank_audit_stages."
+    },
+    {
+      "bank_ticker": "QNBFB",
+      "period": "2025Q3",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 7875160,
+        "stage2_amount": 14259226,
+        "stage3_amount": 15239703,
+        "total_amount": 37374089
+      },
+      "note": "cq npl_brsa_gross took the 'interest accruals and valuation differences' sub-table. The insidious part: that sub-table is ITSELF a gross/provision/net triple that foots the identity exactly, so the 'gross = provision + net' guard CONFIRMS the wrong table rather than rejecting it. There is no accruals-sub-heading guard analogous to the FC one. Read from PDF p72 (0-based), 'Dönem Sonu Bakiyesi' row; fitz only. Adjudicated against the PDF: the source's 'Dönem Sonu Bakiyesi' equals the bank_audit_npl_movement closing already in the DB, and the movement block foots internally (opening + flows = closing). Two independent confirmations that the movement side is right and cq is the defective one. total_amount set to III+IV+V = 37,374,089 (the section's total IS the group sum — holds on 967/999 corpus rows); the stored total was the same wrong row's sum, which is also what fed the derived bank_audit_stages."
+    },
+    {
+      "bank_ticker": "AKTIF",
+      "period": "2023Q3",
+      "kind": "unconsolidated",
+      "statement": "npl_movement",
+      "group_code": "III",
+      "period_type": "current",
+      "fields": {
+        "opening_balance": 49933,
+        "additions": 40834,
+        "transfers_in": 0,
+        "transfers_out": 28024,
+        "collections": 16297,
+        "write_offs": 0,
+        "sold": 0,
+        "closing_balance": 46446,
+        "provision": 20319,
+        "net_balance": 26127,
+        "source_page": 60
+      },
+      "note": "AKTIF 2023Q3's note 6.10.2 spans two pages — 'Cari Dönem' (PDF p59, 0-based) then '(devamı) Önceki Dönem' (p60) — and the movement extractor stored the PRIOR page as current: the stored source_page was 61 (1-based) = the Önceki Dönem page, and every column of the row (opening, flows, closing, provision, net) was FY2022's. Tell: the stored closing 49,933/83,454/297,444 is exactly the CURRENT table's OPENING row. THIS IS THE INVERTED CASE — credit_quality was RIGHT here and npl_movement wrong, the only one of the 33 flagged partitions that way; patching cq would have overwritten a correct value with a wrong one. That is why the gross-vs-movement check is a neutral DISAGREEMENT detector raised on both lanes rather than a 'movement is right' rule. Read from PDF p59 'Cari Dönem' block, fitz only. All three groups foot exactly: III 49,933+40,834-28,024-16,297 = 46,446; IV 83,454+63,211+28,024-85,897-23,743 = 65,049; V 297,444+4,654+85,897-66,305-3,203 = 318,487 — and all three closings equal the cq gross already stored. Provisions from note 6.9's '30 Eylül 2023' column (the stored 20,051/41,674/231,301 are its '31 Aralık 2022' column, confirming the whole row was prior); net = closing - provision."
+    },
+    {
+      "bank_ticker": "AKTIF",
+      "period": "2023Q3",
+      "kind": "unconsolidated",
+      "statement": "npl_movement",
+      "group_code": "IV",
+      "period_type": "current",
+      "fields": {
+        "opening_balance": 83454,
+        "additions": 63211,
+        "transfers_in": 28024,
+        "transfers_out": 85897,
+        "collections": 23743,
+        "write_offs": 0,
+        "sold": 0,
+        "closing_balance": 65049,
+        "provision": 31372,
+        "net_balance": 33677,
+        "source_page": 60
+      },
+      "note": "AKTIF 2023Q3's note 6.10.2 spans two pages — 'Cari Dönem' (PDF p59, 0-based) then '(devamı) Önceki Dönem' (p60) — and the movement extractor stored the PRIOR page as current: the stored source_page was 61 (1-based) = the Önceki Dönem page, and every column of the row (opening, flows, closing, provision, net) was FY2022's. Tell: the stored closing 49,933/83,454/297,444 is exactly the CURRENT table's OPENING row. THIS IS THE INVERTED CASE — credit_quality was RIGHT here and npl_movement wrong, the only one of the 33 flagged partitions that way; patching cq would have overwritten a correct value with a wrong one. That is why the gross-vs-movement check is a neutral DISAGREEMENT detector raised on both lanes rather than a 'movement is right' rule. Read from PDF p59 'Cari Dönem' block, fitz only. All three groups foot exactly: III 49,933+40,834-28,024-16,297 = 46,446; IV 83,454+63,211+28,024-85,897-23,743 = 65,049; V 297,444+4,654+85,897-66,305-3,203 = 318,487 — and all three closings equal the cq gross already stored. Provisions from note 6.9's '30 Eylül 2023' column (the stored 20,051/41,674/231,301 are its '31 Aralık 2022' column, confirming the whole row was prior); net = closing - provision."
+    },
+    {
+      "bank_ticker": "AKTIF",
+      "period": "2023Q3",
+      "kind": "unconsolidated",
+      "statement": "npl_movement",
+      "group_code": "V",
+      "period_type": "current",
+      "fields": {
+        "opening_balance": 297444,
+        "additions": 4654,
+        "transfers_in": 85897,
+        "transfers_out": 0,
+        "collections": 66305,
+        "write_offs": 3203,
+        "sold": 0,
+        "closing_balance": 318487,
+        "provision": 252682,
+        "net_balance": 65805,
+        "source_page": 60
+      },
+      "note": "AKTIF 2023Q3's note 6.10.2 spans two pages — 'Cari Dönem' (PDF p59, 0-based) then '(devamı) Önceki Dönem' (p60) — and the movement extractor stored the PRIOR page as current: the stored source_page was 61 (1-based) = the Önceki Dönem page, and every column of the row (opening, flows, closing, provision, net) was FY2022's. Tell: the stored closing 49,933/83,454/297,444 is exactly the CURRENT table's OPENING row. THIS IS THE INVERTED CASE — credit_quality was RIGHT here and npl_movement wrong, the only one of the 33 flagged partitions that way; patching cq would have overwritten a correct value with a wrong one. That is why the gross-vs-movement check is a neutral DISAGREEMENT detector raised on both lanes rather than a 'movement is right' rule. Read from PDF p59 'Cari Dönem' block, fitz only. All three groups foot exactly: III 49,933+40,834-28,024-16,297 = 46,446; IV 83,454+63,211+28,024-85,897-23,743 = 65,049; V 297,444+4,654+85,897-66,305-3,203 = 318,487 — and all three closings equal the cq gross already stored. Provisions from note 6.9's '30 Eylül 2023' column (the stored 20,051/41,674/231,301 are its '31 Aralık 2022' column, confirming the whole row was prior); net = closing - provision."
     }
   ]
 }
