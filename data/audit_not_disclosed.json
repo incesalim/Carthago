@@ -168,9 +168,10 @@
       "kind": "unconsolidated",
       "statement": [
         "credit_quality",
-        "stages"
+        "stages",
+        "npl_movement"
       ],
-      "note": "T.O.M. Katılım is a BDDK-approved TFRS-9 NON-APPLIER — it does not run the expected-credit-loss model, so an IFRS-9 stage table cannot exist. Stated positively and verbatim in all four reports (2023Q3 p18, 2023Q4 p23, 2024Q1 p18, 2024Q2 p19) under 'VIII. FİNANSAL VARLIKLARDA DEĞER DÜŞÜKLÜĞÜNE İLİŞKİN AÇIKLAMALAR → Beklenen zarar karşılıklarına ilişkin açıklamalar':\n  \"Banka, BDDK tarafından yayımlanan 'Kredilerin Sınıflandırılması ve Bunlar İçin Ayrılacak Karşılıklara İlişkin Usul ve Esaslar Hakkında Yönetmelik'in DOKUZUNCU MADDESİNİN ALTINCI FIKRASI kapsamında TFRS 9'un değer düşüklüğüne ilişkin hükümlerini uygulamama konusunda BDDK'ya başvuruda bulunmuş ve Banka'nın talebi, BDDK tarafından kabul edilmiştir. Bu kapsamda karşılık hesaplama metodunu TFRS 9'a göre beklenen kredi zararı modeli ile değil; 31 ARALIK 2025 TARİHİNE KADAR ... 'TFRS 9 uygulamayan bankalarca ayrılacak genel ve özel karşılıklar' düzenlemelerine uygun olarak hesaplayıp muhasebeleştirmektedir.\"\nCorroborated per period, each on POSITIVE evidence (re-verified 2026-07-17 by rendering, not by text search):\n  2023Q3 — BS 2.1 Krediler = 0. Bölüm 4's own contents list has no credit-risk section at all (I. Özkaynaklar → II. Kur riski → III. Hisse senedi → IV. Likidite).\n  2023Q4 — the ANNUAL report DOES prepare the credit-risk section (pp34-44) and positively prints a nil loan book: 'Finansal varlık sınıfı bazında kredi kalitesine ilişkin bilgiler' (p39) lists Verilen Krediler: Kurumsal/Girişimci -, Bireysel -, İhtisas - (nil both years); the max-exposure table shows 'Verilen Krediler - -' with Toplam kredi risk duyarlılığı 1.599.856 sourced entirely from Bankalar + FVTPL. Independently corroborated by the 2024Q2 report's own prior-period column (31 Aralık 2023 = all dashes).\n  2024Q1 — the ₺5.314k loan book IS disclosed, but only BY MATURITY, never by stage: liquidity ladder p36, Verilen Krediler 4.130 (1-3 Ay) + 1.184 (3-12 Ay) = 5.314 = BS 2.1 exactly. The bank states its own materiality at p64: 'Krediler 5.314 TL ile %0,19' of assets. The credit-risk section is explicitly omitted WITH a citation (p29): 'II. Kredi riskine ilişkin açıklamalar — Bankalarca Kamuya Açıklanacak Finansal Tablolar ... Tebliğ'in 25'inci maddesi uyarınca ara dönemde hazırlanmamıştır.' p45 was RENDERED at 3x: the text layer is faithful, the notes run 2→3→4→5 consecutively and the lower third is genuinely blank. 0 images; the 343 drawings are borders around the printed Bankalar/FVTPL tables.\nCORRECTS THE PRIOR NOTE, which claimed \"the asset-note numbering jumps straight from '2. Bankalar' to '4. Maddi duran varlıklara'\" — FALSE. There is no gap: item 3 is 'Gerçeğe uygun değer farkı kar/zarara yansıtılan finansal varlıklara ilişkin bilgiler' (FVTPL, ₺1.454.623 at 2024Q1). TOMK RENUMBERS CONTIGUOUSLY when a note is absent; it never leaves a hole — so a numbering gap is NOT a usable tell for this filer. The real tell is the opposite: 2024Q2 expands to the full BRSA template (6. Krediler, 8. Satış amaçlı, 9. Maddi duran, ...), while 2023Q3/Q4/2024Q1 use a compressed 1-6/1-7 list with no loans note. Control: 2024Q2 p60 Standart Nitelikli 229.268 + Yakın İzlemedeki 1.792 = 231.060 = BS 2.1 exactly.\nWHY THE EARLIER SEARCH MISSED THE CITATION: the report spells the article out in words ('dokuzuncu maddesinin altıncı fıkrası', not '9 uncu madde'), uses the regulation's full title (not 'Karşılıklar Yönetmeliği'), and says 'uygulamama konusunda ... başvuruda bulunmuş' (not 'uygulamamaktadır'). All three probe terms returned 0. The single '9 uncu madde' hit at 2024Q1 p26 is a FALSE POSITIVE — it is the Özkaynaklar Yönetmeliği art. 9 on capital valuation adjustments, unrelated."
+      "note": "NPL MOVEMENT (added 2026-07-17): the same zero-loan-book fact covers it — the asset-note numbering runs continuously 1→2→3→4→5→6(→7) with NO \"Kredilere ilişkin açıklamalar\" note anywhere (zero grep hits), so there is no donuk-alacak sub-note to extract. Contrast 2024Q2, which HAS the loans note at 6 with donuk alacak at sub-note f). 2024Q1 also carries the interim-omission citation for §4: \"…Tebliğ'in 25'inci maddesi uyarınca ara dönemde hazırlanmamıştır.\"\n\nT.O.M. Katılım is a BDDK-approved TFRS-9 NON-APPLIER — it does not run the expected-credit-loss model, so an IFRS-9 stage table cannot exist. Stated positively and verbatim in all four reports (2023Q3 p18, 2023Q4 p23, 2024Q1 p18, 2024Q2 p19) under 'VIII. FİNANSAL VARLIKLARDA DEĞER DÜŞÜKLÜĞÜNE İLİŞKİN AÇIKLAMALAR → Beklenen zarar karşılıklarına ilişkin açıklamalar':\n  \"Banka, BDDK tarafından yayımlanan 'Kredilerin Sınıflandırılması ve Bunlar İçin Ayrılacak Karşılıklara İlişkin Usul ve Esaslar Hakkında Yönetmelik'in DOKUZUNCU MADDESİNİN ALTINCI FIKRASI kapsamında TFRS 9'un değer düşüklüğüne ilişkin hükümlerini uygulamama konusunda BDDK'ya başvuruda bulunmuş ve Banka'nın talebi, BDDK tarafından kabul edilmiştir. Bu kapsamda karşılık hesaplama metodunu TFRS 9'a göre beklenen kredi zararı modeli ile değil; 31 ARALIK 2025 TARİHİNE KADAR ... 'TFRS 9 uygulamayan bankalarca ayrılacak genel ve özel karşılıklar' düzenlemelerine uygun olarak hesaplayıp muhasebeleştirmektedir.\"\nCorroborated per period, each on POSITIVE evidence (re-verified 2026-07-17 by rendering, not by text search):\n  2023Q3 — BS 2.1 Krediler = 0. Bölüm 4's own contents list has no credit-risk section at all (I. Özkaynaklar → II. Kur riski → III. Hisse senedi → IV. Likidite).\n  2023Q4 — the ANNUAL report DOES prepare the credit-risk section (pp34-44) and positively prints a nil loan book: 'Finansal varlık sınıfı bazında kredi kalitesine ilişkin bilgiler' (p39) lists Verilen Krediler: Kurumsal/Girişimci -, Bireysel -, İhtisas - (nil both years); the max-exposure table shows 'Verilen Krediler - -' with Toplam kredi risk duyarlılığı 1.599.856 sourced entirely from Bankalar + FVTPL. Independently corroborated by the 2024Q2 report's own prior-period column (31 Aralık 2023 = all dashes).\n  2024Q1 — the ₺5.314k loan book IS disclosed, but only BY MATURITY, never by stage: liquidity ladder p36, Verilen Krediler 4.130 (1-3 Ay) + 1.184 (3-12 Ay) = 5.314 = BS 2.1 exactly. The bank states its own materiality at p64: 'Krediler 5.314 TL ile %0,19' of assets. The credit-risk section is explicitly omitted WITH a citation (p29): 'II. Kredi riskine ilişkin açıklamalar — Bankalarca Kamuya Açıklanacak Finansal Tablolar ... Tebliğ'in 25'inci maddesi uyarınca ara dönemde hazırlanmamıştır.' p45 was RENDERED at 3x: the text layer is faithful, the notes run 2→3→4→5 consecutively and the lower third is genuinely blank. 0 images; the 343 drawings are borders around the printed Bankalar/FVTPL tables.\nCORRECTS THE PRIOR NOTE, which claimed \"the asset-note numbering jumps straight from '2. Bankalar' to '4. Maddi duran varlıklara'\" — FALSE. There is no gap: item 3 is 'Gerçeğe uygun değer farkı kar/zarara yansıtılan finansal varlıklara ilişkin bilgiler' (FVTPL, ₺1.454.623 at 2024Q1). TOMK RENUMBERS CONTIGUOUSLY when a note is absent; it never leaves a hole — so a numbering gap is NOT a usable tell for this filer. The real tell is the opposite: 2024Q2 expands to the full BRSA template (6. Krediler, 8. Satış amaçlı, 9. Maddi duran, ...), while 2023Q3/Q4/2024Q1 use a compressed 1-6/1-7 list with no loans note. Control: 2024Q2 p60 Standart Nitelikli 229.268 + Yakın İzlemedeki 1.792 = 231.060 = BS 2.1 exactly.\nWHY THE EARLIER SEARCH MISSED THE CITATION: the report spells the article out in words ('dokuzuncu maddesinin altıncı fıkrası', not '9 uncu madde'), uses the regulation's full title (not 'Karşılıklar Yönetmeliği'), and says 'uygulamama konusunda ... başvuruda bulunmuş' (not 'uygulamamaktadır'). All three probe terms returned 0. The single '9 uncu madde' hit at 2024Q1 p26 is a FALSE POSITIVE — it is the Özkaynaklar Yönetmeliği art. 9 on capital valuation adjustments, unrelated."
     },
     {
       "bank": "ALNTF",
@@ -227,6 +228,123 @@
       "kind": "unconsolidated",
       "statement": "loans_by_sector",
       "note": "Legacy past-due sector schema, no Stage-2/Stage-3 by sector (see 2022Q4)."
+    },
+    {
+      "bank": "TAKAS",
+      "period": [
+        "2022Q2",
+        "2022Q3",
+        "2022Q4",
+        "2023Q1",
+        "2023Q2",
+        "2023Q3",
+        "2023Q4",
+        "2024Q1",
+        "2024Q2",
+        "2024Q3",
+        "2024Q4",
+        "2025Q1",
+        "2025Q2",
+        "2025Q3",
+        "2025Q4",
+        "2026Q1"
+      ],
+      "kind": "unconsolidated",
+      "statement": [
+        "npl_movement"
+      ],
+      "note": "Takasbank declares the movement note nil in EVERY one of its 16 quarters, explicitly: \"i.2) Toplam donuk alacak hareketlerine ilişkin bilgiler: BULUNMAMAKTADIR (31 Aralık 2025: Bulunmamaktadır).\" Checked mechanically across all 16 — not extrapolated from a sample.\n⚠️ The intuitive story — \"a CCP's Krediler are money-market/clearing placements, not credit\" — is FALSE; do not repeat it. TAKAS's loans earn LOAN interest (Kredilerden Alınan Faizler 491,308 vs Para Piyasası İşlemlerinden 0) and are booked as loans. They are 100% \"Mali Kesime Verilen Krediler\", all Standart Nitelikli with nothing in Yakın İzleme, and ₺6.58bn of 2026Q1's ₺9.63bn is \"Banka ortaklarına verilen doğrudan krediler\" (its clearing members ARE its shareholders), incl. overnight takas kredisi. This is real credit exposure that simply never goes non-performing — the CITATION, not the story, is why this is N/A.\nConsistent with the stages lane: every quarter Stage 1 = the entire loan book = BS 2.1 exactly, with no Stage 2 or Stage 3 section at all.\nNEAR-MISS worth knowing: 2023Q4 p91 DOES print a nil III/IV/V-style table — but at h), the NPL STOCK by group (all '–'), while i.2) (the MOVEMENT note) still reads Bulunmamaktadır. N/A stands for THIS lane; that nil stock table is a sourced zero for a different one.\nVerified 2026-07-17 by a language-agnostic full-document sweep + a bitmap/vector/low-text detector on every page (NOT a keyword probe): the note region is in the plain text layer — no bitmaps, no vector outlines, correct document. The extractor returns 0 rows because NO TABLE EXISTS; it is behaving correctly."
+    },
+    {
+      "bank": "DUNYAK",
+      "period": [
+        "2024Q1",
+        "2024Q2",
+        "2024Q3",
+        "2024Q4"
+      ],
+      "kind": "unconsolidated",
+      "statement": [
+        "npl_movement"
+      ],
+      "note": "\"j. Donuk alacaklara ilişkin bilgiler (net): BULUNMAMAKTADIR (1 Ocak 2024: Bulunmamaktadır).\" (pp 45/55/48/80). 2024Q4 p42 states it a second, independent way: \"31 Aralık 2024 tarihi itibarıyla donuk alacak olarak sınıflandırılan tutar bulunmamaktadır.\" DUNYAK has a real, fast-growing loan book (₺2.2bn → ₺23.0bn across these four quarters) with no non-performing loans in it — a nil declaration ON THE MERITS, not a TFRS-9 exemption (unlike TOMK).\nVerified 2026-07-17 by a language-agnostic full-document sweep + a bitmap/vector/low-text detector on every page (NOT a keyword probe): the note region is in the plain text layer — no bitmaps, no vector outlines, correct document. The extractor returns 0 rows because NO TABLE EXISTS; it is behaving correctly."
+    },
+    {
+      "bank": "DUNYAK",
+      "period": [
+        "2025Q1",
+        "2025Q2"
+      ],
+      "kind": "*",
+      "statement": [
+        "npl_movement"
+      ],
+      "note": "Same explicit nil as DUNYAK's 2024 quarters: \"Donuk alacaklara ilişkin bilgiler (net): Bulunmamaktadır\" (2025Q1 pp54/55, 2025Q2 pp68/67). cons ≡ unco — identical wording in both books, so each read corroborates the other. Corroborated by the stages lane: Stage 3 = 0 on a ₺25.6bn (Q1) / ₺34.1bn (Q2) loan book.\nVerified 2026-07-17 by a language-agnostic full-document sweep + a bitmap/vector/low-text detector on every page (NOT a keyword probe): the note region is in the plain text layer — no bitmaps, no vector outlines, correct document. The extractor returns 0 rows because NO TABLE EXISTS; it is behaving correctly."
+    },
+    {
+      "bank": "HAYATK",
+      "period": [
+        "2023Q1",
+        "2023Q2",
+        "2023Q3",
+        "2023Q4",
+        "2024Q1"
+      ],
+      "kind": "unconsolidated",
+      "statement": [
+        "npl_movement"
+      ],
+      "note": "\"1.5.10.2 Information on the movement of total non-performing loans — NONE (31 December 2022 – None).\" (pp 38/52/43/71/52). HAYATK files in ENGLISH, so a Turkish \"donuk alacak\" probe returns zero hits here — the nil is STATED, not absent. Its first real roll-forward appears 2024Q2 (closing III 13,724), which is exactly when this lane starts extracting.\nVerified 2026-07-17 by a language-agnostic full-document sweep + a bitmap/vector/low-text detector on every page (NOT a keyword probe): the note region is in the plain text layer — no bitmaps, no vector outlines, correct document. The extractor returns 0 rows because NO TABLE EXISTS; it is behaving correctly."
+    },
+    {
+      "bank": "ENPARA",
+      "period": [
+        "2024Q4",
+        "2025Q1",
+        "2025Q2"
+      ],
+      "kind": "unconsolidated",
+      "statement": [
+        "npl_movement"
+      ],
+      "note": "\"Donuk alacaklara ilişkin bilgiler (Net): BULUNMAMAKTADIR\" (pp 68/54/61). ENPARA's loan book is ₺0 / ₺17k / ₺247k across these quarters — there is nothing that could be non-performing.\nVerified 2026-07-17 by a language-agnostic full-document sweep + a bitmap/vector/low-text detector on every page (NOT a keyword probe): the note region is in the plain text layer — no bitmaps, no vector outlines, correct document. The extractor returns 0 rows because NO TABLE EXISTS; it is behaving correctly."
+    },
+    {
+      "bank": "COLENDI",
+      "period": [
+        "2025Q2",
+        "2025Q3",
+        "2025Q4"
+      ],
+      "kind": "unconsolidated",
+      "statement": [
+        "npl_movement"
+      ],
+      "note": "\"h.2) Information related on non-performing loans: NONE\" (pp 47/43/64). COLENDI files in ENGLISH — a Turkish probe finds nothing on a report that plainly states the nil. Corroborated by stages Stage 3 = 0 at 2025Q4 on a ₺612k loan book.\n⚠️ 2026Q1 is deliberately NOT in this list. COLENDI's first NPL appears there (₺26,725) and the roll-forward IS printed (p49) — that cell is a real extraction gap, fixed by override (see data/audit_overrides.json), never N/A.\nVerified 2026-07-17 by a language-agnostic full-document sweep + a bitmap/vector/low-text detector on every page (NOT a keyword probe): the note region is in the plain text layer — no bitmaps, no vector outlines, correct document. The extractor returns 0 rows because NO TABLE EXISTS; it is behaving correctly."
+    },
+    {
+      "bank": "ZIRAATD",
+      "period": [
+        "2025Q3",
+        "2025Q4"
+      ],
+      "kind": "unconsolidated",
+      "statement": [
+        "npl_movement"
+      ],
+      "note": "\"7.8.2. Toplam Donuk Alacak Hareketlerine İlişkin Bilgiler BULUNMAMAKTADIR\" (pp 54/84). ZIRAATD's first donuk alacak appears 2026Q1 (₺52) — that period IS extracted, and its opening balance of 0 is sourced from this very declaration's successor prose (\"31 Aralık 2025: Bulunmamaktadır\").\nVerified 2026-07-17 by a language-agnostic full-document sweep + a bitmap/vector/low-text detector on every page (NOT a keyword probe): the note region is in the plain text layer — no bitmaps, no vector outlines, correct document. The extractor returns 0 rows because NO TABLE EXISTS; it is behaving correctly."
+    },
+    {
+      "bank": "TOMK",
+      "period": [
+        "2024Q2",
+        "2024Q3"
+      ],
+      "kind": "unconsolidated",
+      "statement": [
+        "npl_movement"
+      ],
+      "note": "⚠️ READ THIS BEFORE TRUSTING THE N/A. TOMK DOES disclose donuk alacak in these quarters — as PROSE CARRYING A FIGURE, not as the III/IV/V roll-forward this lane extracts. Verbatim (2024Q3 p52): \"30 Eylül 2024 tarihi itibarıyla Donuk alacak tutarı 4.406 TL'dir (31 Aralık 2023: Bulunmamaktadır). 30 Eylül 2024 tarihi itibarıyla cari dönem içerisinde donuk alacaktan yapılan bir tahsilat bulunmamaktadır.\" 2024Q2 p63 says the same with 2 TL.\nN/A is correct for THIS lane ONLY because the lane IS the roll-forward table and TOMK files none: its note numbering carries no such table until 2024Q4 — exactly the first period this lane extracts (6 rows, group V additions 177,537). It is NOT a claim that TOMK disclosed nothing: the STOCK is captured, sourced from this same prose, in credit_quality/stages (2024Q2 S3=2, 2024Q3 S3=4,406).\nDeliberately NOT stored as a synthesised roll-forward. The prose almost yields one (opening nil + collections nil + closing 4,406 ⇒ additions 4,406; note e) even splits the provision by group, Group III = 882) — but `additions` would then be OUR arithmetic, not the bank's disclosure, and it would make the npl_closing_vs_gross check tautological against a credit_quality figure read from the SAME sentence.\nTOMK is also a BDDK-approved TFRS-9 non-applier (Yönetmelik art. 9/6, approved through 31.12.2025) — see its credit_quality/stages entry. No other bank in this file has that approval: DUNYAK/ENPARA/COLENDI/ZIRAATD/HAYATK/TAKAS all declare nil on the merits.\nVerified 2026-07-17 by a language-agnostic full-document sweep + a bitmap/vector/low-text detector on every page (NOT a keyword probe): the note region is in the plain text layer — no bitmaps, no vector outlines, correct document. The extractor returns 0 rows because NO TABLE EXISTS; it is behaving correctly."
     }
   ]
 }

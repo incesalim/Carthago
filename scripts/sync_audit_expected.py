@@ -114,6 +114,14 @@ _STMT_TO_KEY = {
     # the cells would read a plain machine-extracted 'ok' and hide that a human
     # transcribed the number out of a sentence.
     "credit_quality": "credit_quality",
+    # Same reasoning, same risk: 9 partitions carry hand-read npl_movement cells —
+    # COLENDI 2026Q1's roll-forward transcribed off a page whose text layer is
+    # cell-per-line, ZIRAATD 2026Q1's opening balance sourced from prose
+    # ("31 Aralık 2025: Bulunmamaktadır") because the cells are printed blank, the
+    # six FIBA notes read out of bitmaps/vector outlines, and AKTIF 2023Q3's
+    # two-page current/prior mix-up. All of them read a machine-extracted 'ok'
+    # until this entry existed.
+    "npl_movement": "npl_movement",
 }
 
 
