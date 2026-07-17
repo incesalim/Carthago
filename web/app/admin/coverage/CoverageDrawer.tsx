@@ -190,11 +190,30 @@ export default function CoverageDrawer({
             </div>
           )}
 
+          {!open.hasValidator && (
+            <div>
+              <p className="mb-1 text-xs font-medium text-muted-foreground">Validation</p>
+              {/* Say it, rather than rendering nothing and letting an absent block
+                  read as a clean one. This lane has no structural validator, so
+                  its "ok" asserts only that a row exists — nothing about whether
+                  the values are right. */}
+              <p className="text-xs text-warning">
+                Not validated — this lane has no structural validator. “ok” means the
+                row is present, not that its values were checked.
+              </p>
+            </div>
+          )}
+
           {open.hasValidator && valRow && (
             <div>
               <p className="mb-1 text-xs font-medium text-muted-foreground">
                 Validation — {valRow.checks_passed} passed, {valRow.checks_failed} failed
               </p>
+              {valRow.checks_passed === 0 && valRow.checks_failed === 0 && (
+                <p className="mb-1 text-xs text-warning">
+                  Every check skipped — nothing about this cell was actually verified.
+                </p>
+              )}
               {failures.length === 0 ? (
                 <p className="text-xs text-positive">All identity checks foot.</p>
               ) : (

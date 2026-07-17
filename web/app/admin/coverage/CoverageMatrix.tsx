@@ -286,7 +286,14 @@ export default function CoverageMatrix() {
         <td className="w-28 px-2 py-1">
           <span className="flex items-center gap-1.5">
             <HealthBar rec={rec} />
-            {problemN === 0 && (rec.ok ?? 0) + (rec.manual ?? 0) > 0 ? (
+            {/* The health ✓ requires a validator, not just an absence of
+                complaints. Gated on problems alone it inverted: profile,
+                audit_opinion and free_provision have NO validator — their cells
+                assert only "≥1 row exists" — so they could never report a
+                problem and always earned the tick, while 8 of the 15 lanes that
+                do run validators lost it for finding real defects. Running a
+                validator could only cost you the ✓; having none guaranteed it. */}
+            {t.has_validator && problemN === 0 && (rec.ok ?? 0) + (rec.manual ?? 0) > 0 ? (
               <span className="text-positive">✓</span>
             ) : null}
           </span>

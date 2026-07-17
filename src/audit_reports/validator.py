@@ -285,6 +285,66 @@ def check_no_duplicate_hierarchy(rows: list[dict]) -> ValidationResult:
     return res
 
 
+def _letter_amt(rows: list[dict], letter: str) -> float | None:
+    """The amount of a letter-block row ("A." / "B.")."""
+    for r in rows:
+        if ((r.get("hierarchy") or "").strip().rstrip(".").upper() == letter
+                and r.get("amount_total") is not None):
+            return r["amount_total"]
+    return None
+
+
+def _roman_amt(rows: list[dict], ordinal: int) -> float | None:
+    """One roman section's contribution, or None if absent. Largest magnitude on
+    an ordinal collision — mirrors _statement_total, where a stray header row
+    captured with a real section's ordinal must not displace it (ISCTR 2025Q4)."""
+    best = None
+    for r in rows:
+        if _path(r.get("hierarchy")) == (ordinal,):
+            a = _contribution(r)
+            if a is not None and (best is None or abs(a) > abs(best)):
+                best = a
+    return best
+
+
+def check_b_block(rows: list[dict]) -> ValidationResult:
+    """V7 (off-balance) — the B. custody/pledged block = Σ its roman sections
+    (IV+V+VI).
+
+    This is the check V6 was supposed to be. V6 reconciles the "(A+B)" grand
+    total against A + B and claims in its own docstring to catch a wholly dropped
+    custody block — but it cannot: removing B deletes V6's own operand, so it
+    flips from RUN to SKIP on 887/887 partitions and reports green. Measured
+    0/259 detection. A check cannot detect the loss of its own input.
+
+    V7 works because B is the operand it checks AGAINST, not one it needs
+    present: it sums whichever of IV/V/VI survive and compares to the printed B.
+    A section that is legitimately absent contributes 0 and B foots anyway; a
+    section that was DROPPED leaves the sum short and it fails. That also puts a
+    guard on the largest unconstrained number in the corpus — VAKBN 2026Q1 unco's
+    roman VI "KABUL EDİLEN AVALLER VE KEFALETLER", ₺92.7trn, which no identity
+    reads today (V2 skips it for want of captured children; V3 never runs here).
+
+    A = I+II+III is deliberately NOT checked: it holds on only 920/977 (94.2%),
+    the 57 exceptions being the stable TEB-consolidated ~76% structural offset
+    that validate_off_balance's docstring already documents. B holds 1,046/1,046
+    (100.0%), and the report itself prints the formula in the label on 1,003.
+    """
+    res = ValidationResult()
+    b = _letter_amt(rows, "B")
+    parts = [a for a in (_roman_amt(rows, o) for o in (4, 5, 6)) if a is not None]
+    if b is None or not parts:
+        res.add_skip()
+        return res
+    total = sum(parts)
+    if abs(total - b) <= _tol(b, base=10.0, rel=5e-5):
+        res.add_pass()
+    else:
+        res.add_fail("off_balance_b_block", "B. block vs Σ romans IV+V+VI",
+                     expected=b, actual=total)
+    return res
+
+
 def check_grand_total_ab(rows: list[dict]) -> ValidationResult:
     """V6 (off-balance) — labelled grand total "(A+B)" = letter-block A + B.
 
@@ -298,15 +358,7 @@ def check_grand_total_ab(rows: list[dict]) -> ValidationResult:
     mismatch; skips (never fails) the 160 whose A/B/total labels differ.
     """
     res = ValidationResult()
-
-    def _letter_amt(letter: str) -> float | None:
-        for r in rows:
-            if ((r.get("hierarchy") or "").strip().rstrip(".").upper() == letter
-                    and r.get("amount_total") is not None):
-                return r["amount_total"]
-        return None
-
-    a, b, tot = _letter_amt("A"), _letter_amt("B"), None
+    a, b, tot = _letter_amt(rows, "A"), _letter_amt(rows, "B"), None
     for r in rows:
         name = (r.get("item_name") or "").upper().replace(" ", "")
         if "(A+B)" in name and r.get("amount_total") is not None:
@@ -357,16 +409,21 @@ def validate_off_balance(rows: list[dict]) -> ValidationResult:
     in the offset (a genuinely dropped section) but leaves a stable one alone.
 
     On top of V1/V2 this also runs V5 (no duplicate hierarchy key — catches the
-    EXIM/VAKBN source mislabel head-on) and V6 (labelled "(A+B)" grand total = A
-    + B — a top-of-tree reconciliation that DOES catch a wholly dropped custody
-    block, which V2's parent-sums cannot). Both are corpus-calibrated to zero
-    false positives.
+    EXIM/VAKBN source mislabel head-on), V6 (labelled "(A+B)" grand total = A + B)
+    and V7 (B. block = Σ romans IV+V+VI). All are corpus-calibrated to zero false
+    positives.
+
+    V7 exists because V6 does NOT do what its docstring claims. V6 says it catches
+    a wholly dropped custody block; measured, it catches 0/259, because dropping B
+    deletes V6's own operand and the check silently stops running. V7 is the one
+    that actually sees a dropped section — see check_b_block.
     """
     res = ValidationResult()
     res.merge(check_row_triplets(rows))
     res.merge(check_hierarchy_sums(rows))
     res.merge(check_no_duplicate_hierarchy(rows))
     res.merge(check_grand_total_ab(rows))
+    res.merge(check_b_block(rows))
     return res
 
 
@@ -666,8 +723,13 @@ def check_pl_bottomline(pl_rows: list[dict], liabilities: list[dict]) -> Validat
     cands = [r["amount"] for r in pl_rows
              if r.get("amount") is not None and _PL_NET_RX.search(r.get("item_name") or "")]
     spine = _pl_spine(pl_rows)
-    if 25 in spine:
-        cands.append(spine[25])
+    # The filer's OWN period-net ordinal, not a hardcoded 25 (see check_oci).
+    # Harmless today — the compressed-template partitions still supply a label
+    # candidate via _PL_NET_RX, so this check runs and passes for them either way
+    # — but it should not depend on that luck.
+    _pn = _pl_template(pl_rows, spine)["period_net"] if spine else None
+    if _pn in spine:
+        cands.append(spine[_pn])
     cands += [r["amount"] for r in pl_rows
               if r.get("amount") is not None and _path(r.get("hierarchy")) == (25, 1)]
     bs_net = next((r.get("amount_total") for r in liabilities
@@ -837,10 +899,23 @@ def check_oci(oci_rows: list[dict], pl_rows: list[dict] | None = None) -> Valida
             else:
                 res.add_fail("oci_section", f"{sec}. = sum of {sec}.x sections",
                              expected=parent, actual=sum(kids))
-    # Cross-check: OCI.I must equal P&L net (XXV / row 25)
+    # Cross-check: OCI.I must equal the P&L's period-net — at whatever roman THIS
+    # filer numbers it, not a hardcoded XXV. The compressed template runs
+    # period-net at XXIV, so `.get(25)` returned None and this check — the only
+    # cross-statement check OCI has — silently SKIPPED on 6 DUNYAK partitions
+    # (2024Q3/2024Q4 unco, 2025Q1/2025Q2 cons+unco), leaving them green with
+    # nothing but internal footing verified. Latent rather than live (OCI.I ties
+    # exactly on all 6), but not hypothetical: the same bank's OCI lane breaks
+    # catastrophically from 2025Q3 (the extractor grabs the income statement, 61
+    # rows, roman I = "KÂR PAYI GELİRLERİ") and oci_cross is precisely what caught
+    # it. Same class as the hardcoded-ordinal heatmap.ts bug fixed in e72823f —
+    # _pl_template exists to answer this question; ask it. (TOMK's compressed
+    # variant still ends at XXV and was never affected.)
     if pl_rows is not None:
         oci_i = roman_amt.get(1)
-        pl_net = _pl_spine(pl_rows).get(25)
+        pl_spine = _pl_spine(pl_rows)
+        pl_net = (pl_spine.get(_pl_template(pl_rows, pl_spine)["period_net"])
+                  if pl_spine else None)
         if oci_i is not None and pl_net is not None:
             tol = _tol(pl_net, base=3.0, rel=1e-5)
             if abs(oci_i - pl_net) <= tol:
@@ -995,6 +1070,53 @@ def _nonnull_sum(*vals: float | None) -> float | None:
     return sum(non_none) if non_none else None
 
 
+def _bs_loans_total(bs_rows: list[dict] | None) -> float | None:
+    """The balance sheet's gross loans (assets row 2.1), or None.
+
+    Resolved by PATH, not by label or string equality. `_path` is dot-agnostic
+    both ways ("2.1" / "2.1."), which the two existing consumers are not —
+    compute_bank_metrics.ASSET_GROSS_LOANS and heatmap.ts both do `== '2.1'` and
+    would silently drop a trailing-dot row (the defect loader._canon_hier exists
+    to prevent). Labels are the WORSE anchor here: 21 spellings across TR/EN with
+    footnote suffixes ("Krediler (6)", "Loans I-e-f", "Krediler (5.1.5.)").
+    Unlike the P&L, the ordinal is genuinely universal — 1050/1050 partitions
+    carry exactly one 2.1 row and none is null — and the participation-bank
+    XIV/XVI divergence is a LIABILITIES-side phenomenon that does not reach here.
+    """
+    if not bs_rows:
+        return None
+    return next((r.get("amount_total") for r in bs_rows
+                 if _path(r.get("hierarchy")) == (2, 1)
+                 and r.get("amount_total") is not None), None)
+
+
+# stages.total_amount / BS loans 2.1. The IFRS-9 stage table and the balance
+# sheet describe the SAME loan book, so this ties at 1.0 for a clean extraction:
+# median 1.0000, p05 1.0000, p95 1.0465 over 1,033 partitions.
+#
+# The band is wide on purpose, and the width is where the calibration lives.
+# 1.05–1.20 is NOT noise — it is persistent per-bank structural offset present in
+# EVERY quarter of the affected banks (BURGAN cons 1.11–1.17, TOMK unco
+# 1.08–1.20, YKBNK cons 1.05–1.06, DENIZ cons 1.05), i.e. leasing/factoring
+# receivables inside the consolidated IFRS-9 table but outside BS 2.1. Tightening
+# to [0.95, 1.10] would flag all of them: 30 partitions, ~21 of them faithful.
+# There is a real GAP to sit in: the highest structural offset is 1.1974 (TOMK
+# 2025Q2) and the nearest true defect above is 1.5641 (FIBA 2022Q4); below, the
+# whole [0.8, 0.95) bucket is EMPTY (p01 is already 1.0000) and the nearest true
+# defect is 0.6531 (EMLAK 2022Q3 cons).
+#
+# Corpus: 9/1033 flagged (0.87%), and all 9 are real — each of those banks reads
+# 1.0000 in its other quarters, so the deviation is per-quarter, not structural:
+#   SKBNK 2025Q4 unco 0.0326 / cons 0.0373 (S1 == S3, a duplicated column)
+#   SKBNK 2024Q4 cons 0.0454 · SKBNK 2022Q4 unco 0.1489 / cons 0.1575
+#   FIBA  2025Q2 cons 0.0543 · FIBA 2022Q4 cons+unco 1.5641 (byte-identical
+#         stage values across kinds — a cross-kind copy)
+#   EMLAK 2022Q3 cons 0.6531 (its unconsolidated reads 1.0000 in all 17 quarters)
+# SIX of the nine pass every other stages check — this is the only thing that
+# sees them. SKBNK 2025Q4 publishes a 39.51% NPL against a truth of ~1.33%.
+_STAGES_BS_BAND = (0.8, 1.3)
+
+
 def check_fx_position(rows: list[dict]) -> ValidationResult:
     """Currency-risk (§4) footing — current period only:
       column: Σ per-currency rows = TOTAL (assets, liab, net BS, net off, net pos)
@@ -1066,9 +1188,16 @@ def check_repricing(rows: list[dict]) -> ValidationResult:
     return res
 
 
-def check_credit_quality(rows: list[dict]) -> ValidationResult:
+def check_credit_quality(rows: list[dict],
+                         npl_movement_rows: list[dict] | None = None) -> ValidationResult:
     """Credit quality: per section total=S1+S2+S3.
     Cross-section: loans_amounts.total ≈ loans_by_stage(S1+S2)+npl_brsa_gross(S3).
+    Cross-table: npl_brsa_gross vs the NPL movement table's closing balance —
+    the mirror of check_npl_movement's own comparison, raised here too because
+    the evidence says THIS is usually the defective side (ICBCT's gross freezes
+    for quarters at a time while the movement closing tracks; see the note above
+    check_npl_vs_gross). Flagging only the movement lane would leave the wrong
+    number protected from re-extraction by statement_passes().
     Note: npl_brsa gross−provision=net is NOT checked — BRSA provision rows include
     general/collective reserves and collateral adjustments that make the identity
     unreliable across bank presentation formats (~30% of partitions fail it)."""
@@ -1096,6 +1225,26 @@ def check_credit_quality(rows: list[dict]) -> ValidationResult:
         else:
             res.add_fail("cq_section_total", f"{sect}: total = S1+S2+S3",
                          expected=tot, actual=expected)
+    # loans_by_stage in its two-stage form. Stage 3 is NULL on this section BY
+    # DESIGN — the BRSA stage-3 balance lives in npl_brsa_gross, not here, and is
+    # null in 1,036/1,036 rows. The generic identity above demands all four
+    # non-null, so it SKIPS every one of them and the section that actually
+    # carries the stage split goes unchecked. `total = S1 + S2` holds 983/983
+    # across the corpus: free coverage, zero false positives. Guarded on s3 IS
+    # NULL so a section that does carry all four stays with the generic check and
+    # is not counted twice.
+    lbs_row = by_sect.get("loans_by_stage")
+    if lbs_row is not None:
+        s1, s2 = lbs_row.get("stage1_amount"), lbs_row.get("stage2_amount")
+        s3, tot = lbs_row.get("stage3_amount"), lbs_row.get("total_amount")
+        if s3 is None and s1 is not None and s2 is not None and tot is not None:
+            expected = s1 + s2
+            if abs(expected - tot) <= _tol(tot, base=3.0, rel=5e-5):
+                res.add_pass()
+            else:
+                res.add_fail("cq_loans_by_stage_total",
+                             "loans_by_stage: total = S1+S2 (S3 null by design)",
+                             expected=tot, actual=expected)
     # Cross-section: loans_amounts.total ≈ loans_by_stage(S1+S2) + npl_brsa_gross(S3)
     la   = by_sect.get("loans_amounts")
     lbs  = by_sect.get("loans_by_stage")
@@ -1123,6 +1272,18 @@ def check_credit_quality(rows: list[dict]) -> ValidationResult:
             res.add_skip()
     else:
         res.add_skip()
+    # Cross-table mirror: npl_brsa_gross vs the movement table's closing, per
+    # group. Same numbers, same tolerance, opposite lane — see check_npl_vs_gross.
+    if npl_movement_rows:
+        gross = by_sect.get("npl_brsa_gross")
+        if gross is not None:
+            _gbg = {"III": gross.get("stage1_amount"),
+                    "IV": gross.get("stage2_amount"),
+                    "V": gross.get("stage3_amount")}
+            res.merge(check_npl_vs_gross(npl_movement_rows, _gbg,
+                                         check_name="cq_gross_vs_movement"))
+        else:
+            res.add_skip()
     # NOTE: a `gross = provision + net` check was considered to catch the NPL
     # gross mis-grab corpus-wide, but REJECTED — the identity is genuinely noisy
     # (BRSA provision/net rows fold in general/collective reserves and collateral,
@@ -1138,8 +1299,19 @@ def check_credit_quality(rows: list[dict]) -> ValidationResult:
 # IFRS-9 stages (derived table) validation
 # ===========================================================================
 
-def check_stages(rows: list[dict]) -> ValidationResult:
-    """Stages: total sums (amounts + ECL), coverage ∈ [0,1], no NPL=100% fingerprint."""
+def check_stages(rows: list[dict], bs_loans: list[dict] | None = None) -> ValidationResult:
+    """Stages: total sums (amounts + ECL), coverage ∈ [0,1], no NPL=100%
+    fingerprint, and — when the BS assets rows are supplied — the loan book
+    reconciled against balance-sheet row 2.1.
+
+    That last one is the only check here that is not internal. It matters because
+    `total = S1+S2+S3` is ONE equation in FOUR unknowns: it cannot see any error
+    that preserves the sum. Scaling the whole row (a fragment sub-table read as
+    the loan book) or swapping S1/S2 leaves every internal identity footing —
+    measured 0/1000 and 0/993 detection. Every one of the nine defects this lane
+    is known to carry is of exactly that consistency-preserving shape, so only a
+    cross-source anchor sees them. See _STAGES_BS_BAND for the calibration.
+    """
     res = ValidationResult()
     cur = [r for r in rows if r.get("period_type") == "current"]
     if not cur:
@@ -1219,6 +1391,24 @@ def check_stages(rows: list[dict]) -> ValidationResult:
             res.add_fail("stages_stage3_missing",
                          "S3 (NPL) null while S1/S2 captured — dropped Stage-3 column",
                          expected=tot, actual=s1 + s2)
+        # Cross-table: the IFRS-9 loan book IS the balance sheet's loan book.
+        # Skips (never false-fails) when either side is absent or the BS loans row
+        # is zero — 6 partitions carry a genuine 0 there (ENPARA 2024Q4, HAYATK
+        # 2023Q1/Q2, TOMK 2023Q3/Q4, DUNYAK 2023Q4: banks whose loan book had not
+        # yet started) and 2 have a null stages total (HAYATK 2023Q3, ZIRAATD
+        # 2026Q1). Neither is a defect; a ratio is simply undefined.
+        if bs_loans is not None:
+            bs = _bs_loans_total(bs_loans)
+            if tot is None or bs is None or bs == 0:
+                res.add_skip()
+            else:
+                lo, hi = _STAGES_BS_BAND
+                if lo <= tot / bs <= hi:
+                    res.add_pass()
+                else:
+                    res.add_fail("stages_bs_loans",
+                                 "stages total_amount vs BS loans (2.1)",
+                                 expected=bs, actual=tot)
     return res
 
 
@@ -1313,6 +1503,86 @@ def check_npl_movement(
             else:
                 res.add_fail("npl_movement", f"group {grp}: opening + flows = closing",
                              expected=cl, actual=implied)
+    res.merge(check_npl_vs_gross(rows, gross_by_group,
+                                 check_name="npl_closing_vs_gross"))
+    # closing − |provision| = net_balance, the table's own second identity.
+    # Holds 2,097/2,097 across the corpus and needs nothing external, so it costs
+    # nothing and covers 100 of the 147 partitions that otherwise pass NOTHING
+    # (the roll-forward above skips them all). Provision is a magnitude under
+    # either storage convention, hence abs().
+    for r in cur:
+        cl, prov, net = (r.get("closing_balance"), r.get("provision"),
+                         r.get("net_balance"))
+        if cl is None or prov is None or net is None:
+            res.add_skip()
+            continue
+        if abs((cl - abs(prov)) - net) <= _tol(abs(net), base=100.0, rel=0.002):
+            res.add_pass()
+        else:
+            res.add_fail("npl_provision_net",
+                         f"group {r.get('group_code') or ''}: closing − |provision| = net",
+                         expected=net, actual=cl - abs(prov))
+    return res
+
+
+# The BRSA NPL closing balance is reported TWICE — as the movement table's
+# closing row and as the credit-quality footnote's npl_brsa_gross. They are the
+# same period-end figure and tie EXACTLY: 2,873 of 2,958 group-rows deviate by
+# 0.000000. There is no middle ground (median/p75/p90/p95 are all exactly 0),
+# which is why the tolerance barely matters — 0.5% flags 34 partitions, 20%
+# flags 29. We keep 0.5% to match the roll-forward's rescue branch.
+#
+# THIS CHECK DOES NOT SAY WHICH SIDE IS WRONG, and must never be read that way.
+# It is a DISAGREEMENT detector; adjudication needs the PDF. Do not assume the
+# movement table is the outlier just because credit_quality and stages agree —
+# bank_audit_stages is DERIVED from bank_audit_credit_quality by
+# build_bank_audit_stages.py, so they are one source, not two. On the evidence the
+# defective side is usually credit_quality:
+#   ICBCT unco — gross FROZEN at 127,385 through 2024Q1/Q2 (a stale repeat of
+#     2023Q4) while closing moves 29,172 → 29,304; again frozen at 28,118 across
+#     2025Q2/Q3/Q4 while closing moves 26,966 → 27,297 → 27,465. The movement
+#     table is the credible one here.
+#   PASHA unco — gross reads 0 for 2024Q1–2025Q4 while closing carries 19,067 →
+#     3,135 and stages S3 is stale at 35,268.
+# So it is raised on BOTH lanes (see check_credit_quality), which is honest — the
+# partition's NPL is unreliable until a human adjudicates — and avoids leaving the
+# wrong side protected from re-extraction by statement_passes().
+#
+# Corpus: 34 partitions — ICBCT 17, PASHA 10, DUNYAK 2, AKTIF/FIBA/ISCTR/QNBFB/
+# TOMK 1 each. Worst: FIBA 2025Q4 cons (closing 1,586,729 vs gross 1,773 — 894×),
+# ISCTR 2025Q2 unco (21,209,420 vs 2,869,855), QNBFB 2025Q3 unco.
+_NPL_GROSS_TOL = 0.005
+
+
+def check_npl_vs_gross(rows: list[dict], gross_by_group: dict | None,
+                       check_name: str) -> ValidationResult:
+    """NPL closing balance vs the independently-reported npl_brsa_gross, per BRSA
+    group. Runs UNCONDITIONALLY wherever both numbers exist (998/999 partitions).
+
+    The comparison already existed inside check_npl_movement but only as a
+    last-resort RESCUE — reachable solely after the roll-forward had already
+    failed AND every flow column was present. In that position it fired 138 times
+    to EXCUSE a failure and 0 times to report one; its `else: add_fail` was dead
+    code, and the roll-forward it guards has never failed once in the corpus.
+    Hoisting it to an unconditional check is what turns the lane's authoritative
+    number from an alibi into a test.
+    """
+    res = ValidationResult()
+    for r in rows:
+        if r.get("period_type") != "current":
+            continue
+        cl = r.get("closing_balance")
+        g = (gross_by_group or {}).get(r.get("group_code") or "")
+        if cl is None or g is None:
+            res.add_skip()
+            continue
+        if abs(cl - g) <= _tol(abs(g), base=100.0, rel=_NPL_GROSS_TOL):
+            res.add_pass()
+        else:
+            res.add_fail(check_name,
+                         f"group {r.get('group_code') or ''}: movement closing vs "
+                         "npl_brsa_gross (disagreement — adjudicate vs the PDF)",
+                         expected=g, actual=cl)
     return res
 
 
