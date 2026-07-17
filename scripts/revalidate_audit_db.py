@@ -127,6 +127,45 @@ _LBS_SKIP = frozenset({
 })
 
 
+def curated_skips() -> set[tuple[str, str, str, str]]:
+    """(bank, period, kind, statement_type_key) for every partition a human has
+    deliberately excused from a check.
+
+    These produce a `_skip_result()` — zero checks passed — which is
+    INDISTINGUISHABLE from "the validator had nothing to check" if you only look
+    at the counts. The two mean opposite things: an accidental zero-pass is an
+    unverified cell, while a curated skip is a cell someone read the PDF for and
+    established that the SOURCE doesn't foot (see the per-list comments above; the
+    rule at the top of this module is that a skip is never for a wrong
+    extraction). The coverage spine needs to tell them apart before it can treat
+    zero-pass as an error — otherwise this curation reads as 53 red cells.
+
+    _PL_BOTTOMLINE_SKIP is deliberately absent: it suppresses only the bottom-line
+    cross-check and leaves the roman chain running, so those partitions still pass
+    real checks and never look unverified.
+    """
+    out: set[tuple[str, str, str, str]] = set()
+    for bank, period, kind in _CAP_SKIP:
+        out.add((bank, period, kind, "capital"))
+    for bank, period, kind in _PL_SKIP:
+        out.add((bank, period, kind, "profit_loss"))
+    for bank, period, kind in _CF_SKIP:
+        out.add((bank, period, kind, "cash_flow"))
+    for bank, period, kind in _OCI_SKIP:
+        out.add((bank, period, kind, "other_comprehensive_income"))
+    for bank, period, kind in _LBS_SKIP:
+        out.add((bank, period, kind, "loans_by_sector"))
+    for bank, period, kind in _CQ_SKIP:
+        out.add((bank, period, kind, "credit_quality"))
+    return out
+
+
+def curated_skip_banks() -> set[tuple[str, str]]:
+    """(bank, statement_type_key) skipped for EVERY period — currently just
+    ATBANK's capital lane (a BRSA regulatory-floor CAR that never reconciles)."""
+    return {(bank, "capital") for bank in _CAP_SKIP_BANKS}
+
+
 def _has_table(conn: sqlite3.Connection, name: str) -> bool:
     return conn.execute(
         "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (name,)
@@ -245,14 +284,17 @@ def _stages_rows(conn, bank, period, kind):
 def _npl_movement_rows(conn, bank, period, kind):
     if not _has_table(conn, "bank_audit_npl_movement"):
         return []
+    # provision + net_balance were stored but never SELECTed, so the table's own
+    # second identity (closing − |provision| = net) was unavailable to the
+    # validator — free coverage on 2,097/2,097 rows, left on the floor.
     return [dict(zip(
         ("group_code", "period_type", "opening_balance", "additions",
          "transfers_in", "transfers_out", "collections", "write_offs",
-         "sold", "fx_diff", "closing_balance"), r))
+         "sold", "fx_diff", "closing_balance", "provision", "net_balance"), r))
             for r in conn.execute(
                 "SELECT group_code, period_type, opening_balance, additions, "
                 "       transfers_in, transfers_out, collections, write_offs, "
-                "       sold, fx_diff, closing_balance "
+                "       sold, fx_diff, closing_balance, provision, net_balance "
                 "FROM bank_audit_npl_movement WHERE bank_ticker=? AND period=? AND kind=?",
                 (bank, period, kind))]
 
@@ -340,20 +382,24 @@ def revalidate_partition(conn, bank: str, period: str, kind: str) -> dict[str, "
         results["capital"] = v.check_capital(cap_rows)
 
     results["liquidity"]      = v.check_liquidity(_liquidity_rows(conn, bank, period, kind))
-    cq_rows = _cq_rows(conn, bank, period, kind)
+    cq_rows  = _cq_rows(conn, bank, period, kind)
+    npl_rows = _npl_movement_rows(conn, bank, period, kind)
     results["credit_quality"] = (_skip_result() if (bank, period, kind) in _CQ_SKIP
-                                 else v.check_credit_quality(cq_rows))
-    results["stages"]         = v.check_stages(_stages_rows(conn, bank, period, kind))
+                                 else v.check_credit_quality(cq_rows, npl_rows))
+    # `assets` carries the balance sheet's own loan book (row 2.1) — the only
+    # independent read on the IFRS-9 stage table's denominator. Already in scope,
+    # so no extra query; same shape as check_equity_change's `liabilities=liab`.
+    results["stages"]         = v.check_stages(
+        _stages_rows(conn, bank, period, kind), bs_loans=assets)
     # The authoritative period-end NPL by BRSA group (III/IV/V), from the
-    # credit-quality table, lets check_npl_movement skip (not fail) a roll-forward
-    # that doesn't tie only because of an unmodeled flow — provided the movement
-    # closing matches this gross. A mismatch is a real extraction error.
+    # credit-quality table. check_npl_movement uses it two ways: to skip (not
+    # fail) a roll-forward that doesn't tie only because of an unmodeled flow,
+    # and — unconditionally — to reconcile the movement closing against it.
     _gross = next((r for r in cq_rows if r.get("section") == "npl_brsa_gross"
                    and r.get("period_type") == "current"), None)
     _gbg = ({"III": _gross.get("stage1_amount"), "IV": _gross.get("stage2_amount"),
              "V": _gross.get("stage3_amount")} if _gross else None)
-    results["npl_movement"]   = v.check_npl_movement(
-        _npl_movement_rows(conn, bank, period, kind), gross_by_group=_gbg)
+    results["npl_movement"]   = v.check_npl_movement(npl_rows, gross_by_group=_gbg)
     results["loans_by_sector"] = (
         _skip_result() if (bank, period, kind) in _LBS_SKIP
         else v.check_loans_by_sector(_loans_sector_rows(conn, bank, period, kind)))

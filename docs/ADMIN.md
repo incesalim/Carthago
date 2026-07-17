@@ -42,9 +42,21 @@ coverage matrix as **missing** for you to extract.
   Each row is a statement type with its cell counts — **ok / manual / error / missing / N/A**
   (present and valid, hand-corrected, present but failing a structural identity check,
   expected-but-absent, or not expected) — and a coverage bar; rows are grouped **core** vs
-  **footnotes & §4** and a `✓` marks a type that has a validator. All 12 statement types have
-  validators (assets, liabilities, off-balance, P&L, OCI, credit_quality, stages,
-  loans_by_sector, npl_movement, capital, liquidity; profile has presence-only sanity).
+  **footnotes & §4** and a `✓` marks a type that has a validator.
+
+  **What the counts do and don't assert.** **error** covers two cases: a structural check
+  failed, *or* the validator verified nothing at all (every check skipped). The second used to
+  fall through to **ok**, which is how 262 cells read green with nothing checked — see
+  `_cell_status` in `scripts/sync_audit_expected.py`. Cells a human has deliberately excused
+  (the curated skip lists in `scripts/revalidate_audit_db.py` — a source that genuinely doesn't
+  foot, verified against the PDF) also have zero passes but stay **ok**.
+
+  **15 of the 18 lanes have a validator.** `profile`, `audit_opinion` and `free_provision` do
+  **not**: for those, **ok** asserts only that at least one row exists, and says nothing about
+  whether the values are right — so the label `✓` and the coverage `✓` are both withheld, and
+  the drawer says so explicitly. Treat their green as "present", not "verified".
+  `docs/knowledge/validator-robustness-audit-2026-07-17.md` measures how much each lane's
+  green is actually worth.
   The kind control (**unconsolidated / consolidated / both**) re-aggregates the counts; a
   header tally shows total errors + missing for the current mode. Click a row to filter the
   sidebar to that lane. New quarters fold into the counts automatically when acquired (the

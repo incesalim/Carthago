@@ -636,6 +636,30 @@ def test_oci_empty_skips():
     assert res.failed == 0 and res.skipped >= 1
 
 
+def test_oci_cross_check_runs_on_the_compressed_template():
+    """The cross-check must find period-net at whatever roman THIS filer uses.
+    It hardcoded XXV, so on the compressed template (period-net at XXIV) it read
+    None and SKIPPED — silently disabling the only cross-statement check OCI has,
+    on 6 DUNYAK partitions that then read green on internal footing alone. Both
+    fixtures net to 130, so the check must RUN and PASS for each."""
+    for period_net in ("XXIV.", "XXV."):        # DUNYAK's numbering, then TOMK's
+        res = v.check_oci(_clean_oci(), _compressed_pl(period_net=period_net))
+        assert res.failed == 0, (period_net, res.failures)
+        # skipped == 0 is the whole point: the cross-check is the only thing here
+        # that can skip, so a zero proves it RAN rather than passing by absence.
+        assert res.skipped == 0, (period_net, res.skipped)
+
+
+def test_oci_cross_check_still_fails_on_the_compressed_template():
+    """…and running is worth nothing if it can't fail: same numbering, wrong net."""
+    oci = _clean_oci()
+    for r in oci:
+        if r["hierarchy"] == "I.":
+            r["amount"] = 999 * 1000
+    res = v.check_oci(oci, _compressed_pl(period_net="XXIV."))
+    assert any(f["check"] == "oci_cross" for f in res.failures), res.failures
+
+
 # --- Capital adequacy validation ------------------------------------------
 
 def _cap_row(**kw):
@@ -732,9 +756,13 @@ def test_liquidity_lcr_implausibly_low_fails():
 # --- Credit quality validation --------------------------------------------
 
 def _cq_row(section, s1, s2, s3, tot, period_type="current"):
+    """s3=None is meaningful, not missing: loans_by_stage carries no stage-3
+    column (the BRSA stage-3 balance lives in npl_brsa_gross)."""
+    def _x(v):
+        return None if v is None else v * 1000
     return {"section": section, "period_type": period_type,
-            "stage1_amount": s1 * 1000, "stage2_amount": s2 * 1000,
-            "stage3_amount": s3 * 1000, "total_amount": tot * 1000}
+            "stage1_amount": _x(s1), "stage2_amount": _x(s2),
+            "stage3_amount": _x(s3), "total_amount": _x(tot)}
 
 
 def test_credit_quality_section_total_passes():
@@ -760,6 +788,51 @@ def test_credit_quality_npl_net_rows_dont_fail():
     ]
     res = v.check_credit_quality(rows)
     assert not any(f.get("check") == "cq_npl_net" for f in res.failures)
+
+
+def test_cq_loans_by_stage_two_stage_total_passes():
+    """S3 is NULL on loans_by_stage BY DESIGN (the BRSA stage-3 balance lives in
+    npl_brsa_gross) — 1,036/1,036 rows — so the four-column identity skips every
+    one of them. The two-stage form covers the section that carries the split."""
+    res = v.check_credit_quality([_cq_row("loans_by_stage", 100, 50, None, 150)])
+    assert res.failed == 0 and res.passed == 1, res.failures
+
+
+def test_cq_loans_by_stage_two_stage_total_fails():
+    res = v.check_credit_quality([_cq_row("loans_by_stage", 100, 50, None, 900)])
+    assert any(f["check"] == "cq_loans_by_stage_total" for f in res.failures), res.failures
+
+
+def test_cq_loans_by_stage_with_s3_uses_the_generic_check_only():
+    """A section that does carry all four stays with the generic identity and is
+    not counted twice."""
+    res = v.check_credit_quality([_cq_row("loans_by_stage", 100, 50, 30, 180)])
+    assert res.failed == 0 and res.passed == 1, res.failures
+
+
+def test_cq_gross_vs_movement_disagreement_fails():
+    """The mirror of npl_closing_vs_gross, raised on THIS lane too — the evidence
+    says credit_quality is usually the defective side (ICBCT's gross freezes for
+    quarters while the movement closing tracks), and flagging only the movement
+    lane would leave the wrong number protected by statement_passes()."""
+    cq = [_cq_row("npl_brsa_gross", 1, 1, 1, 3)]
+    npl = [{"group_code": "III", "period_type": "current",
+            "closing_balance": 999_000}]
+    res = v.check_credit_quality(cq, npl)
+    assert any(f["check"] == "cq_gross_vs_movement" for f in res.failures), res.failures
+
+
+def test_cq_gross_vs_movement_agrees_passes():
+    cq = [_cq_row("npl_brsa_gross", 150, 200, 150, 500)]
+    npl = [{"group_code": "III", "period_type": "current",
+            "closing_balance": 150 * 1000}]
+    res = v.check_credit_quality(cq, npl)
+    assert res.failed == 0, res.failures
+
+
+def test_cq_without_movement_rows_is_unchanged():
+    res = v.check_credit_quality([_cq_row("npl_brsa_gross", 150, 200, 150, 500)])
+    assert res.failed == 0, res.failures
 
 
 def test_npl_brsa_sections_flagged_as_group_basis():
@@ -876,6 +949,108 @@ def test_stages_npl100_fingerprint_fires_on_null_stages():
     assert any(f["check"] == "stages_npl100" for f in res.failures)
 
 
+# --- stages ⋈ balance-sheet loans (2.1) ------------------------------------
+# _clean_assets() carries `2.1 Loans` at 210_000, so a stage row totalling
+# 210_000 reconciles exactly.
+
+def test_stages_bs_loans_reconciles_passes():
+    res = v.check_stages([_stage_row(stage1_amount=160_000, stage2_amount=30_000,
+                                     stage3_amount=20_000, total_amount=210_000)],
+                         bs_loans=_clean_assets())
+    assert res.failed == 0, res.failures
+
+
+def test_stages_bs_loans_fragment_table_fails():
+    """The SKBNK/FIBA defect: a fragment sub-table read as the whole loan book.
+    Every internal identity still foots (the row is self-consistent) — only the
+    balance sheet contradicts it. SKBNK 2025Q4 publishes a 39.51% NPL this way
+    against a truth of ~1.33%, scoring 6 passed / 0 failed."""
+    rows = [_fragment_stage_row()]
+    assert v.check_stages(rows).failed == 0          # internally consistent…
+    res = v.check_stages(rows, bs_loans=_clean_assets())   # …but 7k vs 210k
+    assert any(f["check"] == "stages_bs_loans" for f in res.failures), res.failures
+
+
+def test_stages_bs_loans_structural_offset_passes():
+    """No false positive on the real 1.05–1.20 band: consolidated groups carry
+    leasing/factoring inside the IFRS-9 table but outside BS 2.1 (BURGAN, TOMK,
+    YKBNK, DENIZ do this EVERY quarter). 250k/210k = 1.19 must PASS."""
+    res = v.check_stages([_stage_row(stage1_amount=180_000, stage2_amount=50_000,
+                                     stage3_amount=20_000, total_amount=250_000)],
+                         bs_loans=_clean_assets())
+    assert res.failed == 0, res.failures
+
+
+def test_stages_bs_loans_zero_loans_skips():
+    """A bank whose loan book hasn't started (BS 2.1 = 0) — 6 real partitions.
+    A ratio is undefined, not wrong."""
+    assets = [_row("2.1", "Loans", 0, 0, 0)]
+    res = v.check_stages([_stage_row(total_amount=650_000)], bs_loans=assets)
+    assert res.failed == 0, res.failures
+
+
+def _fragment_stage_row():
+    """A self-consistent stage row that is nonetheless a fragment of the real loan
+    book: 5+1+1 = 7 foots, but the balance sheet says 210."""
+    return _stage_row(stage1_amount=5_000, stage2_amount=1_000,
+                      stage3_amount=1_000, total_amount=7_000,
+                      stage1_ecl=40, stage2_ecl=80, stage3_ecl=400, total_ecl=520)
+
+
+def test_stages_bs_loans_trailing_dot_hierarchy_resolves():
+    """Anchored by _path, not string equality — '2.1.' must resolve like '2.1'.
+    Both spellings have shipped defects in this corpus."""
+    assets = [_row("2.1.", "Krediler", 130, 80, 210)]
+    res = v.check_stages([_fragment_stage_row()], bs_loans=assets)
+    assert any(f["check"] == "stages_bs_loans" for f in res.failures), res.failures
+
+
+def test_stages_without_bs_loans_is_unchanged():
+    """The arg is optional — omitting it must not add a check either way, so the
+    fragment row above is invisible without the anchor."""
+    assert v.check_stages([_fragment_stage_row()]).failed == 0
+
+
+# --- off-balance V7: B. block = Σ romans IV+V+VI ---------------------------
+
+def _clean_b_block():
+    return [
+        _row("IV.", "EMANET KIYMETLER", 30, 20, 50),
+        _row("V.", "REHİNLİ KIYMETLER", 60, 40, 100),
+        _row("VI.", "KABUL EDİLEN AVALLER VE KEFALETLER", 12, 8, 20),
+        _row("B.", "EMANET VE REHİNLİ KIYMETLER", 102, 68, 170),
+    ]
+
+
+def test_off_balance_b_block_passes():
+    res = v.check_b_block(_clean_b_block())
+    assert res.failed == 0 and res.passed == 1, res.failures
+
+
+def test_off_balance_b_block_catches_dropped_section():
+    """The whole point: V6 cannot see this (dropping a section leaves A+B=total
+    intact), and V2 cannot either (every surviving row's parent still foots).
+    V7 sees it because B is what it checks AGAINST, not an operand it needs."""
+    rows = [r for r in _clean_b_block() if r["hierarchy"] != "V."]
+    res = v.check_b_block(rows)
+    assert any(f["check"] == "off_balance_b_block" for f in res.failures), res.failures
+
+
+def test_off_balance_b_block_absent_section_still_foots():
+    """A legitimately absent section contributes 0 and B foots anyway — the
+    distinction from a DROPPED one, which leaves the sum short."""
+    rows = [_row("IV.", "EMANET KIYMETLER", 30, 20, 50),
+            _row("V.", "REHİNLİ KIYMETLER", 60, 40, 100),
+            _row("B.", "EMANET VE REHİNLİ KIYMETLER", 90, 60, 150)]
+    res = v.check_b_block(rows)
+    assert res.failed == 0 and res.passed == 1, res.failures
+
+
+def test_off_balance_b_block_no_letter_row_skips():
+    res = v.check_b_block([_row("IV.", "EMANET KIYMETLER", 30, 20, 50)])
+    assert res.failed == 0 and res.skipped == 1
+
+
 # --- NPL movement validation ----------------------------------------------
 
 def _npl_row(**kw):
@@ -901,20 +1076,27 @@ def test_npl_movement_broken_fails():
     assert any(f["check"] == "npl_movement" for f in res.failures)
 
 
+# These fixtures carry no gross_by_group and no provision/net_balance, so the two
+# checks that are independent of the roll-forward (npl_closing_vs_gross,
+# npl_provision_net) always skip here. The assertions below therefore pin the
+# roll-forward's own verdict — passed/failed — rather than a total skip count,
+# which would break every time the lane gains a check.
+
 def test_npl_movement_null_col_that_ties_passes():
     # A flow column absent from the disclosure (NULL) that is genuinely 0 — the
     # roll-forward ties with it as 0 → PASS (the bank simply omitted a zero row),
     # not a false skip. closing 120 = 100 + 30 - 10 - 0(write_offs).
     res = v.check_npl_movement([_npl_row(write_offs=None, closing_balance=120_000)])
-    assert res.passed == 1 and res.failed == 0 and res.skipped == 0, res.failures
+    assert res.passed == 1 and res.failed == 0, res.failures
 
 
 def test_npl_movement_null_col_that_breaks_tie_skips():
     # NULL flow column where treating it as 0 does NOT tie → could be a genuinely
     # non-zero value the extractor missed → SKIP, never a false fail.
     # (base ties only with write_offs=5000; nulling it leaves implied 120 ≠ 115.)
+    # Neither passed nor failed ⇒ the roll-forward skipped.
     res = v.check_npl_movement([_npl_row(write_offs=None)])
-    assert res.failed == 0 and res.skipped == 1, res.failures
+    assert res.failed == 0 and res.passed == 0, res.failures
 
 
 def test_npl_movement_dropped_closing_fails():
@@ -931,7 +1113,56 @@ def test_npl_movement_empty_group_skips():
         opening_balance=None, closing_balance=None, additions=None,
         transfers_in=None, transfers_out=None, collections=None,
         write_offs=None, sold=None)])
-    assert res.failed == 0 and res.skipped == 1
+    assert res.failed == 0 and res.passed == 0
+
+
+# --- NPL closing ⋈ npl_brsa_gross (runs unconditionally) -------------------
+
+def test_npl_closing_vs_gross_passes():
+    res = v.check_npl_movement([_npl_row()], gross_by_group={"III": 115_000})
+    assert res.failed == 0, res.failures
+
+
+def test_npl_closing_vs_gross_disagreement_fails():
+    """FIBA 2025Q4's shape: the roll-forward ties perfectly, and the closing still
+    contradicts the independently-reported gross. Previously the gross was only
+    consulted AFTER a roll-forward failure, so a tying partition was never
+    compared and this was invisible."""
+    res = v.check_npl_movement([_npl_row()], gross_by_group={"III": 1_000})
+    assert any(f["check"] == "npl_closing_vs_gross" for f in res.failures), res.failures
+
+
+def test_npl_closing_vs_gross_no_gross_skips():
+    res = v.check_npl_movement([_npl_row()])
+    assert res.failed == 0, res.failures
+
+
+def test_npl_gross_rescue_still_excuses_an_unmodeled_flow():
+    """The rescue branch must survive: a roll-forward that doesn't tie only
+    because of an unmodeled 'Diğer' flow, whose closing DOES match the gross, is
+    faithful data and must not fail the roll-forward."""
+    res = v.check_npl_movement([_npl_row(closing_balance=140_000)],
+                               gross_by_group={"III": 140_000})
+    assert not any(f["check"] == "npl_movement" for f in res.failures), res.failures
+
+
+# --- NPL closing − |provision| = net ---------------------------------------
+
+def test_npl_provision_net_passes():
+    res = v.check_npl_movement([_npl_row(provision=15_000, net_balance=100_000)])
+    assert res.failed == 0, res.failures
+
+
+def test_npl_provision_net_fails():
+    res = v.check_npl_movement([_npl_row(provision=15_000, net_balance=50_000)])
+    assert any(f["check"] == "npl_provision_net" for f in res.failures), res.failures
+
+
+def test_npl_provision_net_paren_negative_storage_passes():
+    """Some banks print the provision in parentheses → stored negative. Both
+    conventions must subtract (the storage lesson from the P&L deductions)."""
+    res = v.check_npl_movement([_npl_row(provision=-15_000, net_balance=100_000)])
+    assert res.failed == 0, res.failures
 
 
 # --- Loans by sector validation -------------------------------------------

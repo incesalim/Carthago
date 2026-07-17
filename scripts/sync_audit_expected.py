@@ -18,10 +18,18 @@ Three coverage tables, all rebuilt wholesale:
 
 Status per cell (worst → best): missing < error < manual < ok
   missing  expected but fewer than the type's minimum rows (or none).
-  error    present but a structural validator check failed (P&L / BS identities).
+  error    a structural validator check FAILED, or the validator verified
+           NOTHING (every check skipped) — see _cell_status. The second case
+           used to read 'ok'.
   manual   present, valid, and a manual overlay supplied it (human-sourced).
   ok       present, valid, machine-extracted.
-('not_expected' is reserved for future per-bank-type applicability rules.)
+  not_expected  the lane genuinely doesn't apply here: an annual-only table in an
+           interim quarter, a conditional lane the bank doesn't hold, or a
+           curated data/audit_not_disclosed.json entry.
+
+Caveat worth knowing before reading a row: 'ok' is only as strong as the lane's
+validator, and three lanes (profile, audit_opinion, free_provision) have none —
+for those, registry.has_validator is False and 'ok' asserts only "a row exists".
 
   python scripts/sync_audit_expected.py --db data/bank_audit.db --dry-run
   python scripts/sync_audit_expected.py --db data/bank_audit.db --push
@@ -195,20 +203,63 @@ def _refresh_validation(conn: sqlite3.Connection) -> None:
         print(f"[sync] revalidate skipped ({type(e).__name__}); using stored verdicts")
 
 
-def _validation(conn: sqlite3.Connection) -> dict[tuple[str, str, str, str], int]:
+def _validation(conn: sqlite3.Connection) -> dict[tuple[str, str, str, str], tuple[int, int]]:
+    """(checks_passed, checks_failed) per (bank, period, kind, statement)."""
     try:
-        return {(b, p, k, s): cf for b, p, k, s, cf in conn.execute(
-            "SELECT bank_ticker, period, kind, statement, checks_failed "
+        return {(b, p, k, s): (cp, cf) for b, p, k, s, cp, cf in conn.execute(
+            "SELECT bank_ticker, period, kind, statement, checks_passed, checks_failed "
             "FROM bank_audit_validation")}
     except sqlite3.OperationalError:
         return {}
 
 
+def _curated_skips() -> tuple[set, set]:
+    """The partitions/banks a human has deliberately excused from a check, so the
+    spine doesn't read that curation as an unverified cell. Best-effort — a DB
+    without the scripts importable just gets the old behaviour."""
+    try:
+        from scripts.revalidate_audit_db import curated_skip_banks, curated_skips
+        return curated_skips(), curated_skip_banks()
+    except Exception:  # noqa: BLE001
+        return set(), set()
+
+
 def _cell_status(rows: int, min_rows: int, has_validator: bool,
-                 checks_failed: int, is_manual: bool) -> str:
+                 checks_failed: int, is_manual: bool, checks_passed: int = 1,
+                 curated_skip: bool = False) -> str:
+    """Worst → best: missing < error < manual < ok.
+
+    `error` covers BOTH "we checked it and it's wrong" (checks_failed > 0) and
+    "we never actually checked it" (checks_passed == 0 — every check skipped).
+    The second used to fall through to `ok`, which is how 262 cells (1.9%) came to
+    read green with nothing verified, clustered by bank rather than scattered:
+    ANADOLU's npl_movement, ATBANK's capital, DUNYAK/COLENDI's credit_quality and
+    stages, HAYATK's fx_position.
+
+    This is not a new concept — it resolves a three-way disagreement in which the
+    matrix was the odd one out. validator.statement_passes() ("at least one check
+    passed and none failed") already gates re-extraction this way, and
+    reextract_statement.py already re-extracts on `checks_failed>0 OR
+    checks_passed=0`. Only the matrix called those cells `ok`.
+
+    The two are deliberately merged into one status rather than split into an
+    `unverified` column: the distinction survives in bank_audit_validation
+    (checks_passed) and in the coverage drawer, and a cell you have not verified
+    is not a cell you can report as good.
+
+    `curated_skip` is the exception that makes the rule safe. A partition on one
+    of revalidate_audit_db's skip lists ALSO has checks_passed == 0, but its zero
+    means the opposite: a human read the PDF, established the data is faithful and
+    that the SOURCE itself doesn't foot, and excused the check. Treating that as
+    an error would turn 53 curated cells red — ATBANK's regulatory-floor CAR (34),
+    its total-less sector table (8), TEB's 2022 CARs (4), ALBRK/TSKB's cash-flow
+    source typos (2), ICBCT's rounding (1), ATBANK's OCI sign typo (1) — and
+    would punish exactly the diligence we want.
+    """
     if rows < min_rows:
         return "missing"
-    if has_validator and checks_failed > 0:
+    if has_validator and (checks_failed > 0
+                          or (checks_passed == 0 and not curated_skip)):
         return "error"
     if is_manual:
         return "manual"
@@ -219,6 +270,7 @@ def build(conn: sqlite3.Connection, use_r2: bool):
     _refresh_validation(conn)  # spine is derived from current-code verdicts, not the snapshot's frozen ones
     manual = _manual_cells()
     validation = _validation(conn)
+    skips, skip_banks = _curated_skips()
     counts = {st.key: _counts_for(conn, st) for st in registry.REGISTRY}
 
     extracted = set()
@@ -253,12 +305,25 @@ def build(conn: sqlite3.Connection, use_r2: bool):
         present = pdf_present(bpk)
         expected_rows.append((b, p, k, meta["bank_type"], meta["language"],
                               meta["equity_numeral"], present))
+        # check_cross_statement (total assets = liabilities + equity — the single
+        # most important BS identity) writes a 'cross' row to bank_audit_validation
+        # that NO registry lane maps to, so a failure reached no cell and both
+        # balance-sheet lanes would have stayed green. 0 failures today, so this is
+        # latent, not a live wrong number — but it is a check wired to nothing.
+        # Fold it into both sides, which is where it belongs: the identity is a
+        # statement about the pair, and neither is trustworthy if it breaks.
+        cross_cf = validation.get((b, p, k, "cross"), (1, 0))[1]
         for st in registry.REGISTRY:
             rows = counts[st.key].get(bpk, 0)
             min_rows = st.present_min_rows or 1
-            cf = validation.get((b, p, k, st.validation_statement), 0) if st.has_validator else 0
+            cp, cf = validation.get((b, p, k, st.validation_statement), (0, 0)) \
+                if st.has_validator else (1, 0)
+            if st.key in ("balance_sheet_assets", "balance_sheet_liabilities"):
+                cf += cross_cf
             is_manual = (b, p, k, st.key) in manual
-            status = _cell_status(rows, min_rows, st.has_validator, cf, is_manual)
+            curated = ((b, p, k, st.key) in skips or (b, st.key) in skip_banks)
+            status = _cell_status(rows, min_rows, st.has_validator, cf, is_manual,
+                                  cp, curated)
             # Annual-only statements (e.g. loans-by-sector): the table simply isn't
             # disclosed in interim reports, so an empty interim cell is NOT missing —
             # it's not-applicable. (A bank that DOES disclose interim has rows → ok/error.)
