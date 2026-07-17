@@ -5,6 +5,40 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-07-17.
 
+2026-07-17 — **The /admin coverage matrix called four primary statements
+"footnotes". Fixed.** OCI, statement of changes in equity, cash flow and
+off-balance sheet were grouped under a heading reading *"Footnotes & §4"*. All
+four are **§2 primary statements**: TAS 1 requires OCI, changes-in-equity and
+cash-flow in any complete set of financial statements, and off-balance (*Nazım
+Hesaplar Tablosu*) is a BRSA addition **printed on the balance-sheet page**, not
+in the notes. Only credit-quality/stages/sector/NPL (§5), capital/liquidity/FX/
+repricing (§4), profile (§1) and the opinion (§7) are genuinely outside §2.
+Cause: `CoverageMatrix.tsx` split its two groups on `registry.is_core` — but
+`is_core` is a **severity** flag ("an empty lane here means the extraction
+failed, fail the whole report"), true for exactly BS assets / BS liabilities /
+P&L. The four are `is_core=False` so that one unreadable note-page can't discard
+a good BS+P&L extraction — *not* because they're notes. The view borrowed a
+pipeline gate as an accounting taxonomy. The misconception was in the source of
+truth too: `registry.py`'s own header comment read "core financials first, then
+footnote/§4 tables". Nothing was wrong with the data — only with what the
+operator was told it was. Fix: a new **`section`** field on the registry (the
+bare Bölüm number `1`/`2`/`4`/`5`/`7`; the `§` is typography and stays in the
+view) carrying report **provenance**, mirrored to D1 via migration **0030**
+(+`section_rank` from `registry.SECTION_ORDER` for display order — primary
+statements lead, *not* the filing's own §1→§7, which would open the matrix on
+branches/personnel). The matrix now renders five honest groups and no longer
+reads `is_core` at all — it's dropped from the client's `TypeRow`, so it can't
+be misused again. 0030 **backfills** the live rows: deploy applies migrations but
+doesn't re-run `sync_audit_expected.py`, so without it the matrix would show one
+blank heading until the next audit refresh. `tests/test_registry_sections.py`
+pins section-vs-is_core and diffs the hand-written SQL backfill against the
+registry (mutation-tested: drifting the backfill, refiling OCI as §5, and
+"promoting" OCI to `is_core` each fail). `is_core` still gates `success` for
+exactly the same three lanes — no extraction behaviour changed. While here,
+`AUDIT_PIPELINE.md`'s statement table gained the four lanes it never listed
+(fx_position, repricing, audit_opinion, free_provision) and lost a stale claim
+that `profile` writes no validation row.
+
 2026-07-17 — **DUNYAK's net profit was reading 0 on the dashboard. Fixed.** The
 2026-07-16 validator fix taught the *validator* that BRSA roman ordinals aren't fixed;
 `heatmap.ts` never got the message and made the identical mistake in SQL:

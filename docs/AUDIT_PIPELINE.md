@@ -59,26 +59,46 @@ local DB only where possible.
 
 ## Statement types (each is a registry entry — `src/audit_reports/registry.py`)
 
-`is_core=True` types gate the `bank_audit_extractions.success` flag; `is_core=False` types
-surface `error`/`missing` cells in the matrix but never flip `success`. All types with
-`has_validator=True` write a `bank_audit_validation` row keyed by their `validation_statement`.
+Two independent fields, routinely confused — keep them apart:
 
-| Type | Table | `is_core` | Validator (`validation_statement`) |
-|---|---|---|---|
-| Balance sheet — assets | `bank_audit_balance_sheet` (statement='assets') | ✓ | structural: TL+FC=Total, parent=Σchildren, Σromans=TOTAL, assets=liab+equity (`assets`) |
-| Balance sheet — liabilities | `bank_audit_balance_sheet` (statement='liabilities') | ✓ | structural: TL+FC=Total, parent=Σchildren, Σromans=TOTAL; A=L+E cross-check (`liabilities`) |
-| Off-balance sheet | `bank_audit_balance_sheet` (statement='off_balance') | — | TL+FC=Total row triplets only; hierarchy-sum skipped (off-balance uses I./II./III. top-level with non-contiguous 1.x sub-items) (`off_balance`) |
-| Income statement (P&L) | `bank_audit_profit_loss` | ✓ | identity chain + net = BS equity 16.6.2 / 14.6.2 (`profit_loss`) |
-| Other comprehensive income (OCI) | `bank_audit_oci` | — | `III = I + II`; 2.x subtree sums; **OCI row I = P&L net** (`oci`) |
-| Statement of changes in equity | `bank_audit_equity_change` | — | row-sum (total_equity≈Σ13 cols); col chain III=I+II, closing=III+IV+…+XI; OCI cross (IV.total==OCI.III); BS equity cross (0.5% tol); opening==prior-closing Q4 only (`equity_change`) |
-| Cash flow statement | `bank_audit_cash_flow` | — | hierarchy subtree sums; roman chain **V=I+II+III+IV**, **VII=V+VI** (`cash_flow`) |
-| Credit quality / IFRS-9 | `bank_audit_credit_quality` | — | per-section total=S1+S2+S3; coverage∈[0,1]; cross-section reconciliations (`credit_quality`) — note: gross−prov=net check removed (BRSA provision rows include collective reserves) |
-| IFRS-9 stages (derived) | `bank_audit_stages` | — | total_ecl=ΣSx_ecl; coverage∈[0,1]; **stage3==total fingerprint** (`stages`) |
-| Loans by sector | `bank_audit_loans_by_sector` | — | Σ top-level sectors ≈ total row; falls back to sub-sector sums when group aggregate (agri_total/mfg_total/svc_total) is absent (`loans_by_sector`) |
-| NPL movement | `bank_audit_npl_movement` | — | opening±flows=closing (0.2% + 100 tol); row skipped when write_offs/sold/transfers_out is NULL (column not extracted) (`npl_movement`) |
-| Capital adequacy (§4) | `bank_audit_capital` | — | CET1≤Tier1≤Total; CAR=capital/RWA ±2pp; band [5,80] (`capital`) |
-| Liquidity (§4) | `bank_audit_liquidity` | — | leverage∈(0,30); LCR/NSFR∈(0,2000); LCR≥50 (`liquidity`) |
-| Bank profile (branches/personnel) | `bank_audit_profile` | — | presence sanity only — no `bank_audit_validation` row |
+- **`section`** — which Bölüm of the filing the table is printed in. Pure provenance,
+  and the only field that says *primary statement* vs *note*. The /admin matrix groups
+  its lanes on this.
+- **`is_core`** — a **severity** flag: "an empty lane here means the extraction failed,
+  so fail the whole report". It gates `bank_audit_extractions.success` and nothing else.
+  True for exactly three lanes (BS assets, BS liabilities, P&L). `is_core=False` types
+  surface `error`/`missing` cells in the matrix but never flip `success`.
+
+`is_core=False` is **not** a demotion to footnote status. OCI, changes-in-equity,
+cash-flow and off-balance are all §2 primary statements — TAS 1 requires the first three
+in any complete set, and off-balance ("Nazım Hesaplar Tablosu") prints on the
+balance-sheet page — but one unreadable note-page shouldn't discard a good BS+P&L
+extraction, so none of them gates `success`. Grouping the matrix on `is_core` is what
+labelled those four "Footnotes & §4" until 2026-07-17 (`section` was added to fix it).
+
+All types with `has_validator=True` write a `bank_audit_validation` row keyed by their
+`validation_statement`.
+
+| Type | Table | `section` | `is_core` | Validator (`validation_statement`) |
+|---|---|---|---|---|
+| Balance sheet — assets | `bank_audit_balance_sheet` (statement='assets') | §2 | ✓ | structural: TL+FC=Total, parent=Σchildren, Σromans=TOTAL, assets=liab+equity (`assets`) |
+| Balance sheet — liabilities | `bank_audit_balance_sheet` (statement='liabilities') | §2 | ✓ | structural: TL+FC=Total, parent=Σchildren, Σromans=TOTAL; A=L+E cross-check (`liabilities`) |
+| Off-balance sheet | `bank_audit_balance_sheet` (statement='off_balance') | §2 | — | TL+FC=Total row triplets only; hierarchy-sum skipped (off-balance uses I./II./III. top-level with non-contiguous 1.x sub-items) (`off_balance`) |
+| Income statement (P&L) | `bank_audit_profit_loss` | §2 | ✓ | identity chain + net = BS equity 16.6.2 / 14.6.2 (`profit_loss`) |
+| Other comprehensive income (OCI) | `bank_audit_oci` | §2 | — | `III = I + II`; 2.x subtree sums; **OCI row I = P&L net** (`oci`) |
+| Statement of changes in equity | `bank_audit_equity_change` | §2 | — | row-sum (total_equity≈Σ13 cols); col chain III=I+II, closing=III+IV+…+XI; OCI cross (IV.total==OCI.III); BS equity cross (0.5% tol); opening==prior-closing Q4 only (`equity_change`) |
+| Cash flow statement | `bank_audit_cash_flow` | §2 | — | hierarchy subtree sums; roman chain **V=I+II+III+IV**, **VII=V+VI** (`cash_flow`) |
+| Credit quality / IFRS-9 | `bank_audit_credit_quality` | §5 | — | per-section total=S1+S2+S3; coverage∈[0,1]; cross-section reconciliations (`credit_quality`) — note: gross−prov=net check removed (BRSA provision rows include collective reserves) |
+| IFRS-9 stages (derived) | `bank_audit_stages` | §5 | — | total_ecl=ΣSx_ecl; coverage∈[0,1]; **stage3==total fingerprint** (`stages`) |
+| Loans by sector | `bank_audit_loans_by_sector` | §5 | — | Σ top-level sectors ≈ total row; falls back to sub-sector sums when group aggregate (agri_total/mfg_total/svc_total) is absent (`loans_by_sector`) |
+| NPL movement | `bank_audit_npl_movement` | §5 | — | opening±flows=closing (0.2% + 100 tol); row skipped when write_offs/sold/transfers_out is NULL (column not extracted) (`npl_movement`) |
+| Free provision (serbest karşılık) | `bank_audit_free_provision` | §5 | — | none per-partition **by design** — `conditional=True` routes an empty partition to `not_expected` before any verdict is read, so its checks are corpus-wide and live in `check_audit_quality._free_provision` |
+| Capital adequacy (§4) | `bank_audit_capital` | §4 | — | CET1≤Tier1≤Total; CAR=capital/RWA ±2pp; band [5,80] (`capital`) |
+| Liquidity (§4) | `bank_audit_liquidity` | §4 | — | leverage∈(0,30); LCR/NSFR∈(0,2000); LCR≥50 (`liquidity`) |
+| FX net open position (§4) | `bank_audit_fx_position` | §4 | — | current period only: Σ per-currency rows = TOTAL (assets, liab, net BS, net off, net position); net BS = assets−liab; net position = net BS + net off (`fx_position`) |
+| Interest-rate repricing gap (§4) | `bank_audit_repricing` | §4 | — | Σ per-bucket rows = total (RSA, RSL, gap); **total RSA = total RSL** (the schedule foots to the BS); skips for participation banks that don't disclose it (`repricing`) |
+| Bank profile (branches/personnel) | `bank_audit_profile` | §1 | — | no footing exists in a table of counts, so the checks are cross-kind/cross-field: **cons ≥ unco** on branches+personnel (a group contains its parent — arithmetic, not heuristic), branches-split vs the counterpart, personnel≠branches column-slip, row non-empty (`profile`) |
+| Audit opinion | `bank_audit_opinion` | §7 | — | definitional, not arithmetic: auditor name present (every BRSA report is signed); ISA 705 "Basis for Qualified Opinion" present whenever the opinion is modified (`audit_opinion`) |
 
 **Known false-positive skip-list** (stored in `revalidate_audit_db.py`):
 `_CAP_SKIP_BANKS` — ATBANK (all periods/kinds): systematic BRSA regulatory-floor CAR override.
