@@ -1,37 +1,332 @@
 {
   "_doc": "Cells the coverage matrix should show as N/A (not_expected) instead of 'missing': partitions whose report genuinely does NOT disclose a given statement (verified against the PDF — never used to hide an extraction gap for data that IS printed). statement='*' = every NON-CORE lane this partition is missing (core BS/PL/cross always stay flagged); statement may also be a single key or a LIST of keys. period and kind default to '*' (wildcard = every quarter / both consolidation bases) — use them for a bank that STRUCTURALLY never files a lane; period (and statement) may also be a LIST to scope a bank that omitted a lane only in some quarters. Entries are applied only when the cell is otherwise 'missing'.",
   "not_disclosed": [
-    {"bank": "ATBANK", "period": ["2022Q1", "2022Q2", "2022Q3", "2023Q1", "2023Q2", "2023Q3", "2024Q1", "2024Q2", "2024Q3", "2025Q1", "2025Q2", "2025Q3", "2026Q1"], "kind": "*", "statement": "profile", "note": "Arap Türk Bankası interim reports carry no branch/personnel count — the note-VIII \"Yurt içi şube\" table appears only in the year-end (Q4) note VIII (extracted), and there is no activity report. Verified full-document scan 2026-07-15."},
-    {"bank": "TSKB", "period": ["2022Q1", "2022Q2", "2022Q3", "2023Q1", "2023Q2", "2023Q3", "2024Q1", "2024Q2", "2024Q3", "2025Q1", "2025Q2", "2025Q3", "2026Q1"], "kind": "consolidated", "statement": "profile", "note": "TSKB interim reports carry no branch/personnel count — the note-VIII table appears only at year-end (Q4, extracted). Verified full-document scan 2026-07-15."},
-    {"bank": "TSKB", "period": ["2022Q1", "2022Q2", "2022Q3", "2023Q1", "2023Q2", "2023Q3", "2024Q1", "2024Q2", "2024Q3", "2025Q1", "2025Q2", "2025Q3", "2026Q1"], "kind": "unconsolidated", "statement": "profile", "note": "TSKB interim reports carry no branch/personnel count — the note-VIII table appears only at year-end (Q4, extracted). Verified full-document scan 2026-07-15; 2026Q1 added 2026-07-16 (previously covered by the statement='*' entry, now narrowed) — the brief KAP filing has no 'branch' term at all."},
-    {"bank": "EXIM", "period": ["2022Q1", "2022Q2", "2022Q3", "2023Q1", "2025Q2"], "kind": "unconsolidated", "statement": "profile", "note": "Türk Eximbank early interim reports carry no branch/personnel count in any format (began disclosing later). Verified full-document scan 2026-07-15."},
-    {"bank": "KLNMA", "period": ["2022Q1", "2022Q2", "2022Q3", "2022Q4", "2023Q1", "2023Q2"], "kind": "unconsolidated", "statement": "profile", "note": "Development bank; 2022–early-2023 reports carry no branch/personnel count in any format (Section-I, activity report, or note-VIII table). Verified full-document scan 2026-07-15."},
-    {"bank": "HAYATK", "period": ["2024Q2", "2024Q3", "2024Q4", "2025Q1", "2025Q2"], "kind": "*", "statement": "profile", "note": "New digital participation bank; 2024Q2–2025Q2 reports carry no branch/personnel count in any format. Verified full-document scan 2026-07-15."},
-    {"bank": "ALBRK", "kind": "*", "statement": "repricing", "note": "Participation (Katılım) bank — interest-free; reports profit-share-rate risk (kâr payı oranı riski) as a market-risk capital charge + narrative, NOT the interest-rate repricing ladder (no Faizsiz/non-interest column, no asset-liability repricing schedule with a Toplam Pozisyon row). Verified against PDFs 2026-07-15."},
-    {"bank": "EMLAK", "kind": "*", "statement": "repricing", "note": "Participation (Katılım) bank — no interest-rate repricing ladder disclosed (profit-share-rate risk only). Verified 2026-07-15."},
-    {"bank": "KUVEYT", "kind": "*", "statement": "repricing", "note": "Participation (Katılım) bank — no interest-rate repricing ladder; kâr payı oranı riski shown as a capital charge only (e.g. 2024Q4 = 28,592,557). Verified 2026-07-15."},
-    {"bank": "TFKB", "kind": "*", "statement": "repricing", "note": "Participation (Katılım) bank — no interest-rate repricing ladder disclosed (profit-share-rate risk only). Verified 2026-07-15."},
-    {"bank": "VAKIFK", "kind": "*", "statement": "repricing", "note": "Participation (Katılım) bank — no interest-rate repricing ladder disclosed (profit-share-rate risk only). Verified 2026-07-15."},
-    {"bank": "ZIRAATK", "kind": "*", "statement": "repricing", "note": "Participation (Katılım) bank — no interest-rate repricing ladder; the bucketed table present is the maturity/liquidity gap, not repricing. Verified 2026-07-15."},
-    {"bank": "DUNYAK", "kind": "*", "statement": "repricing", "note": "Participation (Katılım) bank — no interest-rate repricing ladder (no Faizsiz column on any rate-risk page; extract yields 0 rows). Verified against 2026Q1 PDF 2026-07-15."},
-    {"bank": "HAYATK", "kind": "*", "statement": "repricing", "note": "Participation (Katılım) bank — no interest-rate repricing ladder disclosed. Verified against 2026Q1 PDF 2026-07-15."},
-    {"bank": "TOMK", "kind": "*", "statement": "repricing", "note": "Participation (Katılım) bank — no interest-rate repricing ladder disclosed. Verified against 2026Q1 PDF 2026-07-15."},
-    {"bank": "TSKB", "period": "2026Q1", "kind": "unconsolidated", "statement": ["capital", "liquidity", "fx_position", "repricing", "credit_quality", "stages", "npl_movement", "loans_by_sector"], "note": "14-page brief KAP filing (not the full BRSA report) — no §4/footnote tables: no capital-adequacy/CET1, LCR/leverage, FX-position, repricing, Stage-1/2/3, NPL-movement or sector terms anywhere in the text. Narrowed from statement='*' on 2026-07-16: the wildcard covers every NON-CORE lane, so it also swallowed the §2 statements, which ARE disclosed — cash flow (p13), OCI (p12) and off-balance (p8-9) are now hand-transcribed into manual_statements.json; changes-in-equity (p14) is disclosed but left flagged, as load_partition's overlay has no equity_change field. Verified full-document scan 2026-07-16."},
-    {"bank": "ICBCT", "period": "2023Q4", "kind": "consolidated", "statement": "*", "note": "9-page brief consolidated filing — no §4/footnote tables (no capital/liquidity/etc. terms in the PDF)"},
-    {"bank": "FIBA", "period": "2022Q1", "kind": "consolidated", "statement": ["npl_movement", "credit_quality", "stages"], "note": "Q1/Q3 interims print the §5 credit notes as HEADINGS ONLY and state 'Bankalarca Kamuya Açıklanacak Finansal Tablolar … Tebliği'nin 25inci maddesi uyarınca hazırlanmamıştır' (not prepared per Article 25 of the BRSA disclosure communiqué). So the §5.2 'Standart Nitelikli ve Yakın İzlemedeki' heading IS present with no table under it — do NOT read the heading as disclosure. No III/IV/V NPL-movement table and no Stage 1/2/3 table anywhere. FIBA discloses these only in Q2/Q4 (cf. 2025Q2 §5.2 'Toplam 51.617.712 …', which extracts). Re-verified against the PDFs 2026-07-16. (OCI/cash-flow ARE disclosed but on image-only statement pages — left flagged.)"},
-    {"bank": "FIBA", "period": "2022Q1", "kind": "unconsolidated", "statement": ["npl_movement", "credit_quality", "stages"], "note": "Q1 interim: §5 notes are headings only + the Article-25 'hazırlanmamıştır' statement (see consolidated). Re-verified 2026-07-16."},
-    {"bank": "FIBA", "period": "2023Q3", "kind": "consolidated", "statement": ["npl_movement", "credit_quality", "stages"], "note": "Q3 interim: §5 notes are headings only + the Article-25 'hazırlanmamıştır' statement (see 2022Q1 consolidated). Re-verified 2026-07-16."},
-    {"bank": "FIBA", "period": "2024Q1", "kind": "consolidated", "statement": ["npl_movement", "credit_quality", "stages"], "note": "Q1 interim: §5 notes are headings only + the Article-25 'hazırlanmamıştır' statement (see 2022Q1 consolidated). Re-verified 2026-07-16."},
-    {"bank": "FIBA", "period": "2025Q3", "kind": "consolidated", "statement": ["npl_movement", "credit_quality", "stages"], "note": "Q3 interim: §5 notes are headings only + the Article-25 'hazırlanmamıştır' statement (see 2022Q1 consolidated). Re-verified 2026-07-16."},
-    {"bank": "FIBA", "period": "2025Q3", "kind": "unconsolidated", "statement": ["npl_movement", "credit_quality", "stages"], "note": "Q3 interim: §5 notes are headings only + the Article-25 'hazırlanmamıştır' statement (see 2022Q1 consolidated). Re-verified 2026-07-16."},
-    {"bank": "TOMK", "period": ["2023Q3", "2023Q4", "2024Q1"], "kind": "unconsolidated", "statement": ["credit_quality", "stages"], "note": "T.O.M. Katılım launched in 2023 with NO loan book, so the report carries no loans note at all — the asset-note numbering jumps straight from '2. Bankalar ve diğer mali kuruluşlara' to '4. Maddi duran varlıklara', and 'Standart Nitelikli' / 'Yakın İzlemedeki' appear nowhere in the document. Corroborated by the balance sheet (Krediler = 0 at 2023Q3 and 2023Q4; ₺5.3m at 2024Q1, immaterial and still unnoted) and by the 2024Q2 report's own prior-period column (31 Aralık 2023 = all dashes). The loans note first appears 2024Q2 ('6. Kredilere ilişkin açıklamalar', Toplam 229.268 1.792), which now extracts. Verified full-document scan 2026-07-16."},
-    {"bank": "ALNTF", "period": "2022Q4", "kind": "consolidated", "statement": "loans_by_sector", "note": "Sector table uses the legacy pre-IFRS-9 schema (Değer Kaybına Uğramış / Tahsili Gecikmiş / Değer Ayarlamaları / Karşılıklar) — it does NOT break Stage-2/Stage-3 out by sector, so this Stage-by-sector lane is genuinely not disclosed. Extractor skips the page rather than fabricate stage values."},
-    {"bank": "ALNTF", "period": "2022Q4", "kind": "unconsolidated", "statement": "loans_by_sector", "note": "Legacy past-due sector schema, no Stage-2/Stage-3 by sector (see consolidated)."},
-    {"bank": "ALNTF", "period": "2023Q4", "kind": "consolidated", "statement": "loans_by_sector", "note": "Legacy past-due sector schema, no Stage-2/Stage-3 by sector (see 2022Q4)."},
-    {"bank": "ALNTF", "period": "2023Q4", "kind": "unconsolidated", "statement": "loans_by_sector", "note": "Legacy past-due sector schema, no Stage-2/Stage-3 by sector (see 2022Q4)."},
-    {"bank": "ALNTF", "period": "2024Q4", "kind": "consolidated", "statement": "loans_by_sector", "note": "Legacy past-due sector schema, no Stage-2/Stage-3 by sector (see 2022Q4)."},
-    {"bank": "ALNTF", "period": "2024Q4", "kind": "unconsolidated", "statement": "loans_by_sector", "note": "Legacy past-due sector schema, no Stage-2/Stage-3 by sector (see 2022Q4)."},
-    {"bank": "ALNTF", "period": "2025Q4", "kind": "consolidated", "statement": "loans_by_sector", "note": "Legacy past-due sector schema, no Stage-2/Stage-3 by sector (see 2022Q4)."},
-    {"bank": "ALNTF", "period": "2025Q4", "kind": "unconsolidated", "statement": "loans_by_sector", "note": "Legacy past-due sector schema, no Stage-2/Stage-3 by sector (see 2022Q4)."}
+    {
+      "bank": "ATBANK",
+      "period": [
+        "2022Q1",
+        "2022Q2",
+        "2022Q3",
+        "2023Q1",
+        "2023Q2",
+        "2023Q3",
+        "2024Q1",
+        "2024Q2",
+        "2024Q3",
+        "2025Q1",
+        "2025Q2",
+        "2025Q3",
+        "2026Q1"
+      ],
+      "kind": "*",
+      "statement": "profile",
+      "note": "Arap Türk Bankası interim reports carry no branch/personnel count — the note-VIII \"Yurt içi şube\" table appears only in the year-end (Q4) note VIII (extracted), and there is no activity report. Verified full-document scan 2026-07-15."
+    },
+    {
+      "bank": "TSKB",
+      "period": [
+        "2022Q1",
+        "2022Q2",
+        "2022Q3",
+        "2023Q1",
+        "2023Q2",
+        "2023Q3",
+        "2024Q1",
+        "2024Q2",
+        "2024Q3",
+        "2025Q1",
+        "2025Q2",
+        "2025Q3",
+        "2026Q1"
+      ],
+      "kind": "consolidated",
+      "statement": "profile",
+      "note": "TSKB interim reports carry no branch/personnel count — the note-VIII table appears only at year-end (Q4, extracted). Verified full-document scan 2026-07-15."
+    },
+    {
+      "bank": "TSKB",
+      "period": [
+        "2022Q1",
+        "2022Q2",
+        "2022Q3",
+        "2023Q1",
+        "2023Q2",
+        "2023Q3",
+        "2024Q1",
+        "2024Q2",
+        "2024Q3",
+        "2025Q1",
+        "2025Q2",
+        "2025Q3",
+        "2026Q1"
+      ],
+      "kind": "unconsolidated",
+      "statement": "profile",
+      "note": "TSKB interim reports carry no branch/personnel count — the note-VIII table appears only at year-end (Q4, extracted). Verified full-document scan 2026-07-15; 2026Q1 added 2026-07-16 (previously covered by the statement='*' entry, now narrowed) — the brief KAP filing has no 'branch' term at all."
+    },
+    {
+      "bank": "EXIM",
+      "period": [
+        "2022Q1",
+        "2022Q2",
+        "2022Q3",
+        "2023Q1",
+        "2025Q2"
+      ],
+      "kind": "unconsolidated",
+      "statement": "profile",
+      "note": "Türk Eximbank early interim reports carry no branch/personnel count in any format (began disclosing later). Verified full-document scan 2026-07-15."
+    },
+    {
+      "bank": "KLNMA",
+      "period": [
+        "2022Q1",
+        "2022Q2",
+        "2022Q3",
+        "2022Q4",
+        "2023Q1",
+        "2023Q2"
+      ],
+      "kind": "unconsolidated",
+      "statement": "profile",
+      "note": "Development bank; 2022–early-2023 reports carry no branch/personnel count in any format (Section-I, activity report, or note-VIII table). Verified full-document scan 2026-07-15."
+    },
+    {
+      "bank": "HAYATK",
+      "period": [
+        "2024Q2",
+        "2024Q3",
+        "2024Q4",
+        "2025Q1",
+        "2025Q2"
+      ],
+      "kind": "*",
+      "statement": "profile",
+      "note": "New digital participation bank; 2024Q2–2025Q2 reports carry no branch/personnel count in any format. Verified full-document scan 2026-07-15."
+    },
+    {
+      "bank": "ALBRK",
+      "kind": "*",
+      "statement": "repricing",
+      "note": "Participation (Katılım) bank — interest-free; reports profit-share-rate risk (kâr payı oranı riski) as a market-risk capital charge + narrative, NOT the interest-rate repricing ladder (no Faizsiz/non-interest column, no asset-liability repricing schedule with a Toplam Pozisyon row). Verified against PDFs 2026-07-15."
+    },
+    {
+      "bank": "EMLAK",
+      "kind": "*",
+      "statement": "repricing",
+      "note": "Participation (Katılım) bank — no interest-rate repricing ladder disclosed (profit-share-rate risk only). Verified 2026-07-15."
+    },
+    {
+      "bank": "KUVEYT",
+      "kind": "*",
+      "statement": "repricing",
+      "note": "Participation (Katılım) bank — no interest-rate repricing ladder; kâr payı oranı riski shown as a capital charge only (e.g. 2024Q4 = 28,592,557). Verified 2026-07-15."
+    },
+    {
+      "bank": "TFKB",
+      "kind": "*",
+      "statement": "repricing",
+      "note": "Participation (Katılım) bank — no interest-rate repricing ladder disclosed (profit-share-rate risk only). Verified 2026-07-15."
+    },
+    {
+      "bank": "VAKIFK",
+      "kind": "*",
+      "statement": "repricing",
+      "note": "Participation (Katılım) bank — no interest-rate repricing ladder disclosed (profit-share-rate risk only). Verified 2026-07-15."
+    },
+    {
+      "bank": "ZIRAATK",
+      "kind": "*",
+      "statement": "repricing",
+      "note": "Participation (Katılım) bank — no interest-rate repricing ladder; the bucketed table present is the maturity/liquidity gap, not repricing. Verified 2026-07-15."
+    },
+    {
+      "bank": "DUNYAK",
+      "kind": "*",
+      "statement": "repricing",
+      "note": "Participation (Katılım) bank — no interest-rate repricing ladder (no Faizsiz column on any rate-risk page; extract yields 0 rows). Verified against 2026Q1 PDF 2026-07-15."
+    },
+    {
+      "bank": "HAYATK",
+      "kind": "*",
+      "statement": "repricing",
+      "note": "Participation (Katılım) bank — no interest-rate repricing ladder disclosed. Verified against 2026Q1 PDF 2026-07-15."
+    },
+    {
+      "bank": "TOMK",
+      "kind": "*",
+      "statement": "repricing",
+      "note": "Participation (Katılım) bank — no interest-rate repricing ladder disclosed. Verified against 2026Q1 PDF 2026-07-15."
+    },
+    {
+      "bank": "TSKB",
+      "period": "2026Q1",
+      "kind": "unconsolidated",
+      "statement": [
+        "capital",
+        "liquidity",
+        "fx_position",
+        "repricing",
+        "credit_quality",
+        "stages",
+        "npl_movement",
+        "loans_by_sector"
+      ],
+      "note": "14-page brief KAP filing (not the full BRSA report) — no §4/footnote tables: no capital-adequacy/CET1, LCR/leverage, FX-position, repricing, Stage-1/2/3, NPL-movement or sector terms anywhere in the text. Narrowed from statement='*' on 2026-07-16: the wildcard covers every NON-CORE lane, so it also swallowed the §2 statements, which ARE disclosed — cash flow (p13), OCI (p12) and off-balance (p8-9) are now hand-transcribed into manual_statements.json; changes-in-equity (p14) is disclosed but left flagged, as load_partition's overlay has no equity_change field. Verified full-document scan 2026-07-16."
+    },
+    {
+      "bank": "ICBCT",
+      "period": "2023Q4",
+      "kind": "consolidated",
+      "statement": [
+        "capital",
+        "liquidity",
+        "fx_position",
+        "repricing",
+        "credit_quality",
+        "stages",
+        "npl_movement",
+        "loans_by_sector",
+        "audit_opinion",
+        "profile"
+      ],
+      "note": "9-page primary-statements-only filing: the balance sheet, off-balance, P&L, OCI, equity-change and cash-flow statements ONLY — no footnotes, no §4 tables. Verified 2026-07-17 against the PDF: exactly 9 pages, and 0 occurrences of 'sermaye yeterlili'/'capital adequacy', 'likidite'/'liquidity coverage', 'Birinci Aşama'/'Stage 1' or 'kur riski'/'currency risk'. The single 'donuk alacak' hit is the cash-flow line 1.1.6 'Zarar Olarak Muhasebeleştirilen Donuk Alacaklardan Tahsilatlar', not a credit-quality table. NARROWED FROM statement='*' (the last wildcard in this file): '*' expands to EVERY non-core lane, which INCLUDES the §2 statements this filing does print — cash_flow (43 rows), oci (16), equity_change (33), off_balance (86) all extract and read ok today, so the wildcard was dormant rather than harmless. Had any of those regressed, the gap would have turned into N/A instead of a flag — the failure mode that bit TSKB 2026Q1. free_provision is omitted deliberately: it is conditional=True and auto-N/A already."
+    },
+    {
+      "bank": "FIBA",
+      "period": "2022Q1",
+      "kind": "consolidated",
+      "statement": [
+        "npl_movement",
+        "credit_quality",
+        "stages"
+      ],
+      "note": "Q1/Q3 interims print the §5 credit notes as HEADINGS ONLY and state 'Bankalarca Kamuya Açıklanacak Finansal Tablolar … Tebliği'nin 25inci maddesi uyarınca hazırlanmamıştır' (not prepared per Article 25 of the BRSA disclosure communiqué). So the §5.2 'Standart Nitelikli ve Yakın İzlemedeki' heading IS present with no table under it — do NOT read the heading as disclosure. No III/IV/V NPL-movement table and no Stage 1/2/3 table anywhere. FIBA discloses these only in Q2/Q4 (cf. 2025Q2 §5.2 'Toplam 51.617.712 …', which extracts). Re-verified against the PDFs 2026-07-16. (OCI/cash-flow ARE disclosed but on image-only statement pages — left flagged.)"
+    },
+    {
+      "bank": "FIBA",
+      "period": "2022Q1",
+      "kind": "unconsolidated",
+      "statement": [
+        "npl_movement",
+        "credit_quality",
+        "stages"
+      ],
+      "note": "Q1 interim: §5 notes are headings only + the Article-25 'hazırlanmamıştır' statement (see consolidated). Re-verified 2026-07-16."
+    },
+    {
+      "bank": "FIBA",
+      "period": "2023Q3",
+      "kind": "consolidated",
+      "statement": [
+        "npl_movement",
+        "credit_quality",
+        "stages"
+      ],
+      "note": "Q3 interim: §5 notes are headings only + the Article-25 'hazırlanmamıştır' statement (see 2022Q1 consolidated). Re-verified 2026-07-16."
+    },
+    {
+      "bank": "FIBA",
+      "period": "2024Q1",
+      "kind": "consolidated",
+      "statement": [
+        "npl_movement",
+        "credit_quality",
+        "stages"
+      ],
+      "note": "Q1 interim: §5 notes are headings only + the Article-25 'hazırlanmamıştır' statement (see 2022Q1 consolidated). Re-verified 2026-07-16."
+    },
+    {
+      "bank": "FIBA",
+      "period": "2025Q3",
+      "kind": "consolidated",
+      "statement": [
+        "npl_movement",
+        "credit_quality",
+        "stages"
+      ],
+      "note": "Q3 interim: §5 notes are headings only + the Article-25 'hazırlanmamıştır' statement (see 2022Q1 consolidated). Re-verified 2026-07-16."
+    },
+    {
+      "bank": "FIBA",
+      "period": "2025Q3",
+      "kind": "unconsolidated",
+      "statement": [
+        "npl_movement",
+        "credit_quality",
+        "stages"
+      ],
+      "note": "Q3 interim: §5 notes are headings only + the Article-25 'hazırlanmamıştır' statement (see 2022Q1 consolidated). Re-verified 2026-07-16."
+    },
+    {
+      "bank": "TOMK",
+      "period": [
+        "2023Q3",
+        "2023Q4",
+        "2024Q1"
+      ],
+      "kind": "unconsolidated",
+      "statement": [
+        "credit_quality",
+        "stages"
+      ],
+      "note": "T.O.M. Katılım launched in 2023 with NO loan book, so the report carries no loans note at all — the asset-note numbering jumps straight from '2. Bankalar ve diğer mali kuruluşlara' to '4. Maddi duran varlıklara', and 'Standart Nitelikli' / 'Yakın İzlemedeki' appear nowhere in the document. Corroborated by the balance sheet (Krediler = 0 at 2023Q3 and 2023Q4; ₺5.3m at 2024Q1, immaterial and still unnoted) and by the 2024Q2 report's own prior-period column (31 Aralık 2023 = all dashes). The loans note first appears 2024Q2 ('6. Kredilere ilişkin açıklamalar', Toplam 229.268 1.792), which now extracts. Verified full-document scan 2026-07-16."
+    },
+    {
+      "bank": "ALNTF",
+      "period": "2022Q4",
+      "kind": "consolidated",
+      "statement": "loans_by_sector",
+      "note": "Sector table uses the legacy pre-IFRS-9 schema (Değer Kaybına Uğramış / Tahsili Gecikmiş / Değer Ayarlamaları / Karşılıklar) — it does NOT break Stage-2/Stage-3 out by sector, so this Stage-by-sector lane is genuinely not disclosed. Extractor skips the page rather than fabricate stage values."
+    },
+    {
+      "bank": "ALNTF",
+      "period": "2022Q4",
+      "kind": "unconsolidated",
+      "statement": "loans_by_sector",
+      "note": "Legacy past-due sector schema, no Stage-2/Stage-3 by sector (see consolidated)."
+    },
+    {
+      "bank": "ALNTF",
+      "period": "2023Q4",
+      "kind": "consolidated",
+      "statement": "loans_by_sector",
+      "note": "Legacy past-due sector schema, no Stage-2/Stage-3 by sector (see 2022Q4)."
+    },
+    {
+      "bank": "ALNTF",
+      "period": "2023Q4",
+      "kind": "unconsolidated",
+      "statement": "loans_by_sector",
+      "note": "Legacy past-due sector schema, no Stage-2/Stage-3 by sector (see 2022Q4)."
+    },
+    {
+      "bank": "ALNTF",
+      "period": "2024Q4",
+      "kind": "consolidated",
+      "statement": "loans_by_sector",
+      "note": "Legacy past-due sector schema, no Stage-2/Stage-3 by sector (see 2022Q4)."
+    },
+    {
+      "bank": "ALNTF",
+      "period": "2024Q4",
+      "kind": "unconsolidated",
+      "statement": "loans_by_sector",
+      "note": "Legacy past-due sector schema, no Stage-2/Stage-3 by sector (see 2022Q4)."
+    },
+    {
+      "bank": "ALNTF",
+      "period": "2025Q4",
+      "kind": "consolidated",
+      "statement": "loans_by_sector",
+      "note": "Legacy past-due sector schema, no Stage-2/Stage-3 by sector (see 2022Q4)."
+    },
+    {
+      "bank": "ALNTF",
+      "period": "2025Q4",
+      "kind": "unconsolidated",
+      "statement": "loans_by_sector",
+      "note": "Legacy past-due sector schema, no Stage-2/Stage-3 by sector (see 2022Q4)."
+    }
   ]
 }
