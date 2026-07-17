@@ -5,6 +5,47 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-07-17.
 
+2026-07-17 — **IFRS-9 stages: 12 errors → 0, and two "the bank didn't disclose
+it" notes were false claims about the bank.** The new `stages_bs_loans`
+reconciliation (stages total ⋈ balance-sheet loans 2.1) flagged 9 cells, **6 of
+which passed every other check** — the internal identity `total = S1+S2+S3`
+cannot see an error that preserves the sum, so only a cross-source anchor could.
+SKBNK 2025Q4 was publishing an **NPL of 39.51% against a truth of 1.29%**: the
+extractor had grabbed the §4 NPL-by-sector table, and its `1,003,122` was
+**synthesised** (Stage-3 Provisions + Write-Offs) — a number appearing nowhere in
+the PDF. FIBA ×9 had three causes, incl. reading the **collateral-type**
+breakdown (mixing current and prior periods across two portfolios: `18,574,043 +
+3,248,468 + 3,540,679 = 25,363,190`, exact) and falling through a
+**vector-outlined** §5.2 onto a **day-count ageing** table. Proven not by a band
+but by a closed identity — **S1+S2+S3 − faktoring = BS 2.1, exact to the lira**
+on all nine, which *predicted S3 before the page was rendered* on four; FIBA's
+own printed ratios agree (%1,68 → 1.68%, %1,09 → 1.09%).
+
+**N/A 11 → 3.** ICBCT 2023Q4 cons and TSKB 2026Q1 unco were curated "not
+disclosed" on an empty text layer; both banks had filed in full. We had
+configured ICBC's IR-page `Mali Tablo` (tables-only, 9pp) link instead of its
+`Dipnotlar` link — the real report is **108pp**, and our copy's own balance sheet
+carried a `Dipnot / (Beşinci Bölüm)` column with **39 cross-references** into a
+section it didn't contain. R2's TSKB object was a **KAP XBRL rendering**, not the
+report; PwC's opinion *inside our own copy* cites *"beşinci bölüm"* and
+*"ilişikte yedinci bölümde"*, and the URL already in the config served the real
+**100pp**. Both re-fetched and re-extracted — every §4/§5 lane populated, stages
+reconciling at ratio **1.0000**. The surviving 3 (TOMK) are confirmed on a
+*positive* citation: a BDDK-approved **TFRS-9 non-applier** runs no ECL model, so
+no stage table can exist.
+
+Found on the way: `build_bank_audit_stages.py`'s comment said *"when all three
+present"* while the code said **`any`** — with S1 and S2 absent the sum collapsed
+to S3 alone and the row asserted **every lira lent was non-performing**. **161 of
+836 prior rows**, now 0. Latent, not live (no `current` row affected; all
+consumers filter `period_type='current'`) — but `bot-sql.ts` lets an LLM write
+its own SQL, so it was one forgotten `WHERE` from being quoted as fact. Also
+mirrored D1 migration `0030` into `schema.py`'s `_COLUMN_MIGRATIONS`:
+`section`/`section_rank` were declared only in the `CREATE TABLE`, so any DB
+restored from the R2 snapshot crashed `sync_audit_expected` on `no such column:
+section`. Detail:
+[docs/knowledge/audit-stages-lane-to-zero-2026-07-17.md](knowledge/audit-stages-lane-to-zero-2026-07-17.md).
+
 2026-07-17 — **The /admin coverage matrix called four primary statements
 "footnotes". Fixed.** OCI, statement of changes in equity, cash flow and
 off-balance sheet were grouped under a heading reading *"Footnotes & §4"*. All
