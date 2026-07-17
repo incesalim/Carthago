@@ -67,12 +67,33 @@ deck NII incl. swap cost    =  27,162  →  43,086 − 15,924     = 27,162  ✓
 ```
 
 Swap cost (**15,924**) reconciles both lines exactly — so the reclassification is
-confirmed, but the figure is **management-defined and appears on no BRSA line**. Our
-interest-expense sublines don't carry it (2.3 = 15,641,293 is close but is not it).
-Without the bank's own disclosure we cannot derive it, which means: swap-adj NII,
-swap-adj NIM (3.3%), the NIM waterfall (p11) and the NIM evolution series all depend on
-a number only Akbank publishes. **NIM is the deck's spine and it is the thing we cannot
-compute.**
+confirmed, but the figure is **management-defined and appears on no BRSA line**.
+
+### Confirmed against the source, not inferred (2026-07-17)
+
+Checked the full AKBNK 2026Q1 consolidated report (`data/eye/`, 91pp):
+
+- **No swap-cost line exists.** The interest-expense notes (§IV.b, p81) cover exactly
+  four things — loans used, associates/subsidiaries, issued securities, and deposits by
+  maturity. None isolates swap.
+- **The P&L face stops one level short.** VI. Ticari Kâr/Zarar splits only into
+  6.2 Türev Finansal İşlemlerden K/Z (−33,317,470) and 6.3 Kambiyo İşlemleri K/Z
+  (+25,513,987). Swap cost is spread across *both*, commingled with forwards, options
+  and all other FX activity. No note decomposes either by instrument.
+- **The report names the concept but prints no number** — p91 guidance says
+  "Net Faiz Marjı (**Swap düzeltilmiş**) ~ %4". So Akbank uses the measure in a
+  regulated filing while disclosing only the *adjusted result*, never the adjustment.
+- The 10 swap mentions in the report are all derivative *notional/fair-value* tables
+  (pp. 9, 17, 19, 54, 60, 75) and hedge-accounting policy — balance sheet, not P&L.
+- A promising `15.924.782` on p50 turned out to be a substring of `315.924.782` in the
+  NSFR table. Coincidence, not the figure.
+
+**Verdict: swap cost is published only in the IR deck / KAP disclosure, never in the
+audit report.** It cannot be extracted fleet-wide from the filings, and it cannot be
+derived — which puts swap-adj NII, swap-adj NIM (3.3%), the NIM waterfall (p11) and the
+NIM evolution series permanently out of reach from our source. **NIM is the deck's spine
+and it is the one thing we cannot compute.** The only route is per-bank IR decks, i.e.
+image-only PowerPoint — see the warning at the foot of this doc.
 
 ## Per-page verdict
 
@@ -122,11 +143,41 @@ compute.**
   reproducible; the deck's 1Q26 cut is not (the interim report has no such table).
 - **p16 ESG / p27 ratings / p22 digital customers** (15.5mn active, 88% penetration) —
   Akbank MIS and third-party ratings; `tbb_digital_stats` is sector-level, not per-bank.
-- **p17 Guidance** — forward-looking by definition. The *Results* column reproduces;
-  the *Guidance* column is Akbank's.
 
-## Two definitional traps
+## Correction: p17 Guidance IS in the audit report (found 2026-07-17)
 
+This doc's first draft said the guidance column was "forward-looking by definition …
+Akbank's". **That was wrong**, and the same check that settled the swap-cost question
+found it. The report's closing section (pp. 90–91, §"Diğer Açıklamalar") prints:
+
+1. **The complete 2026 guidance table** — all nine lines, identical to deck p17:
+   TL loan growth >%30, FX loan growth >%10, ROE "Yüksek %20'li seviye", NIM (swap adj.)
+   ~%4, fee growth >%30, opex growth "Düşük %30'lu", cost/income "Düşük %40'lı",
+   NPL ~%3,5, net CoC ~200bp. It is a **structured table in a quarterly filing for every
+   bank**, not deck-only prose.
+2. **"Başlıca Finansal Oranlar"** — the bank's *own* printed ratios: ROE 25,3 / ROA 2,2 /
+   CAR 16,1 / NPL 3,5 / loans-to-assets 55,6 / deposits-to-assets 63,6 / EPS 0,03683.
+   So deck p24's headline ratios need **no** recomputation and no convention-matching —
+   the filer states them.
+3. **A Q1 evaluation paragraph** — gross profit 26.855mn, tax 7.712mn, net 19.143mn,
+   CAR %16,12, assets 3.644bn, loans 2.024bn, deposits 2.319bn, NPL %3,5.
+
+This is a **genuinely new lane**, not a deck artefact: a per-bank, per-quarter guidance +
+self-reported-ratio table nobody has extracted. Guidance-vs-actual across 38 banks is
+something no lane currently does, and it is deterministic text — no LLM needed. Best
+follow-up this analysis produced.
+
+**Caveat before anyone builds it:** verified on AKBNK only. Whether every filer prints
+this section, under this heading, in this shape is **unknown** — a census across the
+fleet comes first ([[feedback_understand_reports_first]]).
+
+## Definitional traps
+
+0. **Group's profit ≠ period net profit.** The report's own p90 summary prints net
+   profit **19.152**; the deck prints **19,143**. Both are right and we hold both:
+   XXV. (period net) = 19,142,710 = the deck; 25.1 (group's share) = 19,151,711 = the
+   report; 25.2 (minority) = −9,001. Only 9mn TL apart here, but the fork is real and a
+   consumer must choose deliberately.
 1. **ROE convention.** Deck ROE 25.3% = annualized quarterly ÷ average equity. Ours
    (`heatmap.ts`, [[reference_roe_ttm_definition]]) = **TTM ÷ 5-pt average equity**.
    Both are right; they are different numbers. Any comparison must state which.
@@ -150,15 +201,20 @@ hardcoded ordinal ([[project_heatmap_hardcoded_romans]]).
 
 Ranked by value ÷ effort:
 
-1. **Nothing.** The statutory spine already reproduces; the rest is Akbank's own
-   framing. Reproducing a bank's IR deck is not obviously a goal — our edge is the
-   38-bank cross-section, not one bank's slide.
+1. **The guidance + self-reported-ratio table** (report pp. 90–91, above). Deterministic
+   text, in every quarterly filing we already hold in R2, enabling guidance-vs-actual
+   across 38 banks — a question no lane answers today. Census first. **Clear winner.**
 2. **Securities composition** (p8) — plausible from the securities footnote; would
    serve `/market-risk` beyond this deck.
 3. **Fee & opex breakdown** (p12/p13) — footnote extraction, fleet-wide value.
-4. **Swap cost** — would unlock swap-adj NII/NIM fleet-wide, and it is the single
-   metric Turkish bank analysts actually quote. Disclosed in the notes, not the face
-   of the P&L. Highest analytical value, highest extraction risk.
+4. ~~Swap cost~~ — **struck.** It is the metric analysts quote and it would unlock
+   swap-adj NII/NIM, but the section above proves it is *not in the filings at all*.
+   The only source is per-bank IR decks: image-only, per-bank layouts, no stable
+   anchors. Not worth it.
+
+Nothing here is urgent. The statutory spine already reproduces, and reproducing a bank's
+IR deck is not obviously a goal — our edge is the 38-bank cross-section, not one bank's
+slide. Item 1 is the exception, because it is fleet-wide by nature.
 
 Do **not** build a deck-scraper: IR decks are image-only PowerPoint exports with
 per-bank layouts and no stable anchors — the exact conditions that produced the
