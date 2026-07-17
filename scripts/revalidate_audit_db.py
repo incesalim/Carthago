@@ -107,6 +107,23 @@ _OCI_SKIP = frozenset({
     # "III. TOPLAM KAPSAMLI GELİR (I+II) (307.687)" — parenthesised NEGATIVE — while
     # I+II = +307.687. A source sign typo on the total line; no cell fix reconciles it.
     ("ATBANK", "2023Q4", "unconsolidated"),
+    # TOMK 2024Q1 unconsolidated: the exact mirror of ATBANK above. The filing
+    # prints "I. DÖNEM KARI/ZARARI (97.230)" and "II. DİĞER KAPSAMLI GELİRLER
+    # (189)" — both parenthesised, both negative — then "III. TOPLAM KAPSAMLI
+    # GELİR (I+II) 97.419" with NO parentheses and no minus, where I+II =
+    # −97.419. Confirmed in the text layer (token '97.419' at x=432.1, no sign
+    # glyph) and in an 8× render. It is the SOURCE's typo, not our misread:
+    # the magnitude is exact, every other identity foots (2.1=Σ2.1.x, 2.2=Σ2.2.x,
+    # II=2.1+2.2), I matches the P&L period-net exactly via the role map, and the
+    # PRIOR column foots correctly (31.470 + 0 = 31.470) — so it is not a house
+    # sign convention, it is one cell. Overriding III to −97.419 would fabricate a
+    # figure the filing does not print.
+    #
+    # This partition ALSO carries an oci_replace override, and the two are
+    # independent: the override drops a page-header fragment ('31'/'MART'/202.0)
+    # that was stored as row 1 and is faithful to nothing. Neither action
+    # substitutes for the other.
+    ("TOMK", "2024Q1", "unconsolidated"),
 })
 
 # loans-by-sector partitions whose Σ-sectors=total footing is GENUINELY uncheckable
