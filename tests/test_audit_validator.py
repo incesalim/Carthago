@@ -1051,6 +1051,62 @@ def test_off_balance_b_block_no_letter_row_skips():
     assert res.failed == 0 and res.skipped == 1
 
 
+# --- equity closing paid-in capital ⋈ BS S.1 -------------------------------
+
+def _eq_closing_row(**kw):
+    d = {"hierarchy": "", "item_name": "Dönem Sonu Bakiyesi", "period_type": "current",
+         "paid_in_capital": 10_000_000.0, "share_premium": 0.0,
+         "total_equity": 12_000_000.0}
+    d.update(kw)
+    return d
+
+
+def _bs_equity_16():
+    return [_row("XVI.", "ÖZKAYNAKLAR", 12_000, 0, 12_000),
+            _row("16.1", "Ödenmiş Sermaye", 10_000, 0, 10_000)]
+
+
+def test_eq_paid_in_capital_ties_passes():
+    res = v.check_eq_paid_in_capital([_eq_closing_row()], _bs_equity_16())
+    assert res.failed == 0 and res.passed == 1, res.failures
+
+
+def test_eq_paid_in_capital_column_shift_fails():
+    """EXIM 2024Q2's shape: ₺35.7bn of paid-in filed under share_premium leaves
+    paid_in_capital = 0. The row's SUM is unchanged, so eq_row_sum and the
+    total_equity chain both still foot — only the balance sheet contradicts it."""
+    shifted = _eq_closing_row(paid_in_capital=0.0, share_premium=10_000_000.0)
+    res = v.check_eq_paid_in_capital([shifted], _bs_equity_16())
+    assert any(f["check"] == "eq_paid_in_capital" for f in res.failures), res.failures
+
+
+def test_eq_paid_in_capital_resolves_participation_section():
+    """Participation banks carry equity at XIV, so paid-in is 14.1 — resolved
+    from the statement, never assumed."""
+    liab = [_row("XIV.", "ÖZKAYNAKLAR", 12_000, 0, 12_000),
+            _row("14.1", "Ödenmiş Sermaye", 10_000, 0, 10_000)]
+    assert v.check_eq_paid_in_capital([_eq_closing_row()], liab).passed == 1
+
+
+def test_eq_paid_in_capital_does_not_read_loans_as_capital():
+    """The trap this check must not fall into. For a bank whose equity is at XVI,
+    row 14.1 is KREDİLER — 801 partitions in the corpus. A tuple-set anchor of
+    (16,1)-or-(14,1) (the shape check_pl_bottomline safely uses at DEPTH 3) would
+    compare paid-in capital against the BORROWINGS line here and call it a
+    defect. Resolving the section first is what makes that impossible."""
+    liab = _bs_equity_16() + [_row("14.1", "Krediler", 900_000, 0, 900_000)]
+    res = v.check_eq_paid_in_capital([_eq_closing_row()], liab)
+    assert res.failed == 0 and res.passed == 1, res.failures
+
+
+def test_eq_paid_in_capital_no_equity_section_skips():
+    """AKBNK 2026Q1 prints the statement with empty labels — the section can't be
+    resolved, so the check must skip rather than guess an ordinal."""
+    liab = [_row("16.1", "", 10_000, 0, 10_000)]
+    res = v.check_eq_paid_in_capital([_eq_closing_row()], liab)
+    assert res.failed == 0 and res.skipped == 1
+
+
 # --- NPL movement validation ----------------------------------------------
 
 def _npl_row(**kw):
