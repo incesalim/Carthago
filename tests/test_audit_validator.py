@@ -304,7 +304,8 @@ def test_pl_full_passes_with_bottomline():
     li = [_row("16.6.2", "Net Dönem Kârı/Zararı", 70, 60, 130)]
     res = v.check_profit_loss(_clean_pl(), li)
     assert res.failed == 0, res.failures
-    assert res.passed == 7  # 6 chain + 1 bottom-line
+    # 6 chain + 2 deduction-convention (III=I−II, XIII) + 1 bottom-line
+    assert res.passed == 9
 
 
 def test_pl_broken_subtotal_fails():
@@ -523,6 +524,61 @@ def test_pl_discontinued_block_does_not_anchor_continuing_rows():
     tpl = v._pl_template(rows, v._pl_spine(rows))
     assert (tpl["pretax"], tpl["tax"]) == (17, 18)
     assert v.check_pl_chain(rows).failed == 0
+
+
+def test_pl_deduction_convention_clean_passes():
+    res = v.check_pl_deduction_convention(_clean_pl())
+    assert res.failed == 0 and res.passed == 2, res.failures   # III=I−II and XIII
+
+
+def test_pl_deduction_sign_flip_fails():
+    """The hole this closes. check_pl_chain accepts a deduction identity if
+    EITHER Σ|v| == D or Σv == D foots — and Σ|v| is sign-blind by construction,
+    so flipping a line's sign leaves its magnitude untouched and the chain sails
+    through (measured 12%). The signed block sum catches it (100%). The sign is
+    load-bearing: pl-sankey.ts deliberately does not abs() this stack, because a
+    genuine release must be ADDED back."""
+    rows = _clean_pl()
+    for r in rows:                       # IX. ECL 40 → −40, magnitude unchanged
+        if r["hierarchy"] == "IX.":
+            r["amount"] = -40 * 1000
+    assert v.check_pl_chain(rows).failed == 0          # blind to it…
+    res = v.check_pl_deduction_convention(rows)        # …this is not
+    assert any(f["check"] == "pl_deduction_convention" for f in res.failures), res.failures
+
+
+def test_pl_deduction_convention_paren_negative_storage_passes():
+    """ING/KLNMA/TFKB parenthesise the value itself, so the whole block stores
+    negative. That is a convention, not a defect: Σv == −D."""
+    rows = _clean_pl()
+    for r in rows:
+        if r["hierarchy"] in ("II.", "IX.", "X.", "XI.", "XII."):
+            r["amount"] = -abs(r["amount"])
+    assert v.check_pl_deduction_convention(rows).failed == 0
+
+
+def test_pl_deduction_convention_accepts_a_genuine_reversal():
+    """The subtle one. A released provision inside a positive-convention block
+    stores NEGATIVE and legitimately adds back — BURGAN's ECL release, DENIZ's
+    write-back. It reduces Σv by exactly as much as it reduces the block's net
+    deduction D, so Σv == D still holds and the check must not fire. This is why
+    the constraint is on the block's total against the chain, not on each line's
+    sign against a rule."""
+    rows = _clean_pl()
+    for r in rows:
+        if r["hierarchy"] == "IX.":
+            r["amount"] = -40 * 1000     # ECL RELEASE of 40, not a charge
+        elif r["hierarchy"] == "XIII.":  # net-op rises by 80: 160 → 240
+            r["amount"] = 240 * 1000
+        elif r["hierarchy"] in ("XVII.",):
+            r["amount"] = 240 * 1000
+        elif r["hierarchy"] == "XIX.":
+            r["amount"] = 210 * 1000     # 240 − 30 tax
+        elif r["hierarchy"] == "XXV.":
+            r["amount"] = 210 * 1000
+    res = v.check_pl_deduction_convention(rows)
+    assert res.failed == 0, res.failures
+    assert v.check_pl_chain(rows).failed == 0, "the reversal must stay faithful to the chain too"
 
 
 def test_pl_mixed_convention_passes():
