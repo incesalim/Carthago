@@ -159,40 +159,6 @@
       "note": "Participation (Katılım) bank — no interest-rate repricing ladder disclosed. Verified against 2026Q1 PDF 2026-07-15."
     },
     {
-      "bank": "TSKB",
-      "period": "2026Q1",
-      "kind": "unconsolidated",
-      "statement": [
-        "capital",
-        "liquidity",
-        "fx_position",
-        "repricing",
-        "credit_quality",
-        "stages",
-        "npl_movement",
-        "loans_by_sector"
-      ],
-      "note": "14-page brief KAP filing (not the full BRSA report) — no §4/footnote tables: no capital-adequacy/CET1, LCR/leverage, FX-position, repricing, Stage-1/2/3, NPL-movement or sector terms anywhere in the text. Narrowed from statement='*' on 2026-07-16: the wildcard covers every NON-CORE lane, so it also swallowed the §2 statements, which ARE disclosed — cash flow (p13), OCI (p12) and off-balance (p8-9) are now hand-transcribed into manual_statements.json; changes-in-equity (p14) is disclosed but left flagged, as load_partition's overlay has no equity_change field. Verified full-document scan 2026-07-16."
-    },
-    {
-      "bank": "ICBCT",
-      "period": "2023Q4",
-      "kind": "consolidated",
-      "statement": [
-        "capital",
-        "liquidity",
-        "fx_position",
-        "repricing",
-        "credit_quality",
-        "stages",
-        "npl_movement",
-        "loans_by_sector",
-        "audit_opinion",
-        "profile"
-      ],
-      "note": "9-page primary-statements-only filing: the balance sheet, off-balance, P&L, OCI, equity-change and cash-flow statements ONLY — no footnotes, no §4 tables. Verified 2026-07-17 against the PDF: exactly 9 pages, and 0 occurrences of 'sermaye yeterlili'/'capital adequacy', 'likidite'/'liquidity coverage', 'Birinci Aşama'/'Stage 1' or 'kur riski'/'currency risk'. The single 'donuk alacak' hit is the cash-flow line 1.1.6 'Zarar Olarak Muhasebeleştirilen Donuk Alacaklardan Tahsilatlar', not a credit-quality table. NARROWED FROM statement='*' (the last wildcard in this file): '*' expands to EVERY non-core lane, which INCLUDES the §2 statements this filing does print — cash_flow (43 rows), oci (16), equity_change (33), off_balance (86) all extract and read ok today, so the wildcard was dormant rather than harmless. Had any of those regressed, the gap would have turned into N/A instead of a flag — the failure mode that bit TSKB 2026Q1. free_provision is omitted deliberately: it is conditional=True and auto-N/A already."
-    },
-    {
       "bank": "TOMK",
       "period": [
         "2023Q3",
@@ -204,7 +170,7 @@
         "credit_quality",
         "stages"
       ],
-      "note": "T.O.M. Katılım launched in 2023 with NO loan book, so the report carries no loans note at all — the asset-note numbering jumps straight from '2. Bankalar ve diğer mali kuruluşlara' to '4. Maddi duran varlıklara', and 'Standart Nitelikli' / 'Yakın İzlemedeki' appear nowhere in the document. Corroborated by the balance sheet (Krediler = 0 at 2023Q3 and 2023Q4; ₺5.3m at 2024Q1, immaterial and still unnoted) and by the 2024Q2 report's own prior-period column (31 Aralık 2023 = all dashes). The loans note first appears 2024Q2 ('6. Kredilere ilişkin açıklamalar', Toplam 229.268 1.792), which now extracts. Verified full-document scan 2026-07-16."
+      "note": "T.O.M. Katılım is a BDDK-approved TFRS-9 NON-APPLIER — it does not run the expected-credit-loss model, so an IFRS-9 stage table cannot exist. Stated positively and verbatim in all four reports (2023Q3 p18, 2023Q4 p23, 2024Q1 p18, 2024Q2 p19) under 'VIII. FİNANSAL VARLIKLARDA DEĞER DÜŞÜKLÜĞÜNE İLİŞKİN AÇIKLAMALAR → Beklenen zarar karşılıklarına ilişkin açıklamalar':\n  \"Banka, BDDK tarafından yayımlanan 'Kredilerin Sınıflandırılması ve Bunlar İçin Ayrılacak Karşılıklara İlişkin Usul ve Esaslar Hakkında Yönetmelik'in DOKUZUNCU MADDESİNİN ALTINCI FIKRASI kapsamında TFRS 9'un değer düşüklüğüne ilişkin hükümlerini uygulamama konusunda BDDK'ya başvuruda bulunmuş ve Banka'nın talebi, BDDK tarafından kabul edilmiştir. Bu kapsamda karşılık hesaplama metodunu TFRS 9'a göre beklenen kredi zararı modeli ile değil; 31 ARALIK 2025 TARİHİNE KADAR ... 'TFRS 9 uygulamayan bankalarca ayrılacak genel ve özel karşılıklar' düzenlemelerine uygun olarak hesaplayıp muhasebeleştirmektedir.\"\nCorroborated per period, each on POSITIVE evidence (re-verified 2026-07-17 by rendering, not by text search):\n  2023Q3 — BS 2.1 Krediler = 0. Bölüm 4's own contents list has no credit-risk section at all (I. Özkaynaklar → II. Kur riski → III. Hisse senedi → IV. Likidite).\n  2023Q4 — the ANNUAL report DOES prepare the credit-risk section (pp34-44) and positively prints a nil loan book: 'Finansal varlık sınıfı bazında kredi kalitesine ilişkin bilgiler' (p39) lists Verilen Krediler: Kurumsal/Girişimci -, Bireysel -, İhtisas - (nil both years); the max-exposure table shows 'Verilen Krediler - -' with Toplam kredi risk duyarlılığı 1.599.856 sourced entirely from Bankalar + FVTPL. Independently corroborated by the 2024Q2 report's own prior-period column (31 Aralık 2023 = all dashes).\n  2024Q1 — the ₺5.314k loan book IS disclosed, but only BY MATURITY, never by stage: liquidity ladder p36, Verilen Krediler 4.130 (1-3 Ay) + 1.184 (3-12 Ay) = 5.314 = BS 2.1 exactly. The bank states its own materiality at p64: 'Krediler 5.314 TL ile %0,19' of assets. The credit-risk section is explicitly omitted WITH a citation (p29): 'II. Kredi riskine ilişkin açıklamalar — Bankalarca Kamuya Açıklanacak Finansal Tablolar ... Tebliğ'in 25'inci maddesi uyarınca ara dönemde hazırlanmamıştır.' p45 was RENDERED at 3x: the text layer is faithful, the notes run 2→3→4→5 consecutively and the lower third is genuinely blank. 0 images; the 343 drawings are borders around the printed Bankalar/FVTPL tables.\nCORRECTS THE PRIOR NOTE, which claimed \"the asset-note numbering jumps straight from '2. Bankalar' to '4. Maddi duran varlıklara'\" — FALSE. There is no gap: item 3 is 'Gerçeğe uygun değer farkı kar/zarara yansıtılan finansal varlıklara ilişkin bilgiler' (FVTPL, ₺1.454.623 at 2024Q1). TOMK RENUMBERS CONTIGUOUSLY when a note is absent; it never leaves a hole — so a numbering gap is NOT a usable tell for this filer. The real tell is the opposite: 2024Q2 expands to the full BRSA template (6. Krediler, 8. Satış amaçlı, 9. Maddi duran, ...), while 2023Q3/Q4/2024Q1 use a compressed 1-6/1-7 list with no loans note. Control: 2024Q2 p60 Standart Nitelikli 229.268 + Yakın İzlemedeki 1.792 = 231.060 = BS 2.1 exactly.\nWHY THE EARLIER SEARCH MISSED THE CITATION: the report spells the article out in words ('dokuzuncu maddesinin altıncı fıkrası', not '9 uncu madde'), uses the regulation's full title (not 'Karşılıklar Yönetmeliği'), and says 'uygulamama konusunda ... başvuruda bulunmuş' (not 'uygulamamaktadır'). All three probe terms returned 0. The single '9 uncu madde' hit at 2024Q1 p26 is a FALSE POSITIVE — it is the Özkaynaklar Yönetmeliği art. 9 on capital valuation adjustments, unrelated."
     },
     {
       "bank": "ALNTF",

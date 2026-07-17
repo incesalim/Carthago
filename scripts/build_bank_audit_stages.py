@@ -149,7 +149,25 @@ def main() -> None:
         for r in conn.execute(_SQL_AGG):
             bt, p, k, pt, s1, s2, s3, e1, e2, e3 = r
             # Total amount + total ECL when all three present.
-            tot_a = sum(x for x in (s1, s2, s3) if x is not None) if any(x is not None for x in (s1, s2, s3)) else None
+            #
+            # ...except `total` is the LOAN BOOK, and S1+S2 are what make it one.
+            # With both absent the sum collapses to S3 alone and the row then
+            # states "every lira this bank lent is non-performing" — NPL 100%,
+            # fabricated from a gap. 161 of 836 prior rows were in exactly that
+            # state (and are exactly the corpus's 161 NPL==100% rows); no
+            # `current` row is, which is why no chart ever showed it and no
+            # check caught it — validation reads current only. Latent, not live:
+            # every consumer filters period_type='current' (audit.ts:634,
+            # credit-risk.ts:49, every bot-schema.ts example). But bot-sql.ts
+            # lets an LLM write its own SQL over this table, so a fabricated
+            # 100% is one forgotten WHERE clause from being quoted as fact.
+            # Unknown ≠ zero: emit NULL and let the identity skip.
+            # NOT `all(...)`: 40 current rows have exactly one of S1/S2 null and
+            # a real total; this touches only the both-absent case.
+            if s1 is None and s2 is None:
+                tot_a = None
+            else:
+                tot_a = sum(x for x in (s1, s2, s3) if x is not None) if any(x is not None for x in (s1, s2, s3)) else None
             tot_e = sum(x for x in (e1, e2, e3) if x is not None) if any(x is not None for x in (e1, e2, e3)) else None
             cov1 = (e1 / s1) if (e1 is not None and s1 not in (None, 0)) else None
             cov2 = (e2 / s2) if (e2 is not None and s2 not in (None, 0)) else None
