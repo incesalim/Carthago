@@ -8018,6 +8018,47 @@
         "tier1_ratio": 15.62
       },
       "note": "ENPARA 2025Q4 §4 capital: the composition gap (Total 19,546,672 vs Tier1+Tier2 19,298,927) is a printed BDDK forbearance add-back 'Kurulca belirlenecek diğer hesaplar 247.745', applied to every tier — (17,887,462+247,745)/116,130,361 = 15.62% CET1/Tier1; 19,546,672/RWA = 16.83% CAR, both reconciling. Total and Tier2 are correct; no schema column exists for the add-back, so the composition identity can't tie → curated in _CAP_SKIP. Only the two missing ratios are filled here (both 15.62); CAR 16.83 was already stored."
+    },
+    {
+      "bank_ticker": "TOMK",
+      "period": "2023Q4",
+      "kind": "unconsolidated",
+      "statement": "liquidity",
+      "fields": {
+        "lcr_total": 3768.83
+      },
+      "note": "TOMK 2023Q4 §4 liquidity: lcr_total stored 3.768 was a comma-as-decimal misparse — the printed 'LİKİDİTE KARŞILAMA ORANI (%) 3,768' uses a comma thousands-separator where every other cell uses '.', so the extractor read it as 3.768. True value = 3768.83% (HQLA 611,732 / net outflows 16,231 = 37.69x), bracketed by the page's own weekly min/max box (3,513.39%-5,000.56%). lcr_fc 399.37 was already correct; NSFR not printed → NULL correct. Pixel-verified p43."
+    },
+    {
+      "bank_ticker": "TAKAS",
+      "period": "2024Q3",
+      "kind": "unconsolidated",
+      "statement": "liquidity",
+      "fields": {
+        "nsfr": 49.16
+      },
+      "note": "TAKAS 2024Q3 §4 liquidity: nsfr stored 38.39 was the STALE 31-Dec-2023 prior-period value (the report prints a 'Cari Dönem' then 'Önceki Dönem' NSFR table; the extractor grabbed the prior one because the current row-34 prints four dashes across maturity buckets before its value). True 30 Sep 2024 NSFR = 49.16% (MİF 16,824,016 / GİF 34,220,227), confirmed by the report's own footnote: 'NİFO 30 Eylül 2024 döneminde %49.16 olarak gerçekleşmiştir (31 Aralık 2023: %38.39)'. Sub-100 is legitimate — dev/investment banks are exempt from the 100% NSFR floor (see _LIQ_SKIP). Pixel-verified p41."
+    },
+    {
+      "bank_ticker": "TAKAS",
+      "period": "2024Q4",
+      "kind": "unconsolidated",
+      "statement": "liquidity",
+      "fields": {
+        "nsfr": 54.72
+      },
+      "note": "TAKAS 2024Q4 §4 liquidity: nsfr stored 38.39 was the STALE 31-Dec-2023 prior-period value (same mechanism as 2024Q3 — the identical 38.39 in both quarters IS the 31-Dec-2023 comparative). True 31 Dec 2024 NSFR = 54.72% (MİF 19,247,300 / GİF 35,173,067). Dev/investment-bank NSFR-floor exemption applies (54.72 > 50 so it now passes the low check without a skip). Pixel-verified p56."
+    },
+    {
+      "bank_ticker": "HAYATK",
+      "period": "2023Q2",
+      "kind": "unconsolidated",
+      "statement": "liquidity",
+      "fields": {
+        "leverage_ratio": 97.5,
+        "source_page": 34
+      },
+      "note": "HAYATK 2023Q2 §4 liquidity was MISSING (0 rows). The report discloses ONLY the leverage ratio: 97.5% (Tier I 1,495,883 / total risk 1,534,646 = 97.5%), prose 'The leverage ratio … was 97.5% (31 December 2022 - 97.5%)', p34. Genuine for a near-all-equity new bank. LCR and NSFR are N/A: the report states (p33, note 5.9) 'The … Liquidity Coverage Ratio tables have not been prepared due to the fact that the Bank has not yet commenced banking activities as of June 30, 2023', and Turkish NSFR disclosure only began 1 Jan 2024. Inserted the leverage row (LCR/NSFR stay NULL). Pixel-verified."
     }
   ]
 }

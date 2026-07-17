@@ -1185,10 +1185,18 @@ def check_liquidity(rows: list[dict]) -> ValidationResult:
     lcr  = cur.get("lcr_total")
     nsfr = cur.get("nsfr")
     if lev is not None:
-        if 0 < lev < 30:
+        # Leverage ratio = Tier 1 / total leverage exposure. Established banks run
+        # 5-8%, but a newly-licensed bank is almost entirely equity-funded — its
+        # exposure barely exceeds its capital — so its leverage runs 30-97%. All 18
+        # such corpus cases are new banks, each confirmed against Tier1 / total
+        # assets (HAYATK 2023Q1 97% vs 95%; ENPARA 2024Q4 95% vs 94%; TOMK 2023Q3
+        # 93% vs 93%). The old (0,30) band flagged every one as a false positive.
+        # Tier1 <= total exposure, so leverage < 100% is the real bound; the band
+        # now guards only the impossible (>=100%, a scale error) and non-positive.
+        if 0 < lev < 100:
             res.add_pass()
         else:
-            res.add_fail("liq_leverage_band", "leverage ∈ (0, 30)%",
+            res.add_fail("liq_leverage_band", "leverage ∈ (0, 100)%",
                          expected=5.0, actual=lev)
     else:
         res.add_skip()
@@ -1196,11 +1204,22 @@ def check_liquidity(rows: list[dict]) -> ValidationResult:
         if val is None:
             res.add_skip()
             continue
-        if not (0 < val < 2000):
-            res.add_fail("liq_ratio_band", f"{name} ∈ (0, 2000)%",
+        # No meaningful UPPER bound. BDDK's LCR is the average of the quarter's
+        # WEEKLY ratios, so a near-zero-net-outflow bank (a newly-launched digital
+        # bank, a dormant bank) genuinely reports LCRs in the thousands-to-MILLIONS
+        # of percent — COLENDI 2025Q2 prints 2,316,303%, ENPARA 34,221%, DUNYAK
+        # 17,858%, all pixel-verified against the printed row. And a misread HQLA
+        # amount overlaps that range exactly (COLENDI's real weekly-max LCR was
+        # 9,878,895%), so no ceiling can separate a genuine huge ratio from an
+        # amount — the old (0,2000) band was pure false positives here. Only a
+        # non-positive ratio is impossible.
+        if val <= 0:
+            res.add_fail("liq_ratio_band", f"{name} must be positive",
                          expected=100.0, actual=val)
         elif val < 50:
-            # sub-50% LCR is the fingerprint of a mis-grabbed value
+            # sub-50% is the fingerprint of a mis-grabbed value (a component, an FC
+            # column, or a stale prior-period figure). Exempt dev/investment banks
+            # legitimately run NSFR < 100 (TAKAS is curated in _LIQ_SKIP).
             res.add_fail("liq_ratio_low", f"{name} {val:.1f}% implausibly low",
                          expected=100.0, actual=val)
         else:
