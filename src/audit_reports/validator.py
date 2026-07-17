@@ -1777,6 +1777,29 @@ def _eq_roman(rows: list[dict], ordinal: int) -> dict | None:
     return None
 
 
+def _bs_equity_section(liabilities: list[dict]) -> int | None:
+    """The roman ordinal of the balance sheet's EQUITY section — XVI for most
+    filers, XIV for participation banks. RESOLVED, never assumed.
+
+    Resolving matters more here than anywhere else in this module, because the
+    tempting shortcut is actively wrong. check_pl_bottomline can get away with
+    `_path(...) in ((16,6,2), (14,6,2))` — a tuple set — because at DEPTH 3 the
+    two spellings don't collide. At depth 2 they do: for the 801 partitions whose
+    equity sits at XVI, row `14.1` is **Krediler / Loans / Borrowings** (500 /
+    207 / 51). An anchor of `(16,1) or (14,1)` would therefore compare a bank's
+    paid-in capital against its BORROWINGS line and call the difference a defect.
+
+    Corpus: XVI 801, XIV 247, unresolvable 2 (AKBNK 2026Q1 cons+unco, whose
+    labels are empty — already `error`, and this check skips them).
+    """
+    for r in liabilities:
+        p = _path(r.get("hierarchy"))
+        if (p is not None and len(p) == 1
+                and _EQ_EQUITY_RX.search(r.get("item_name") or "")):
+            return p[0]
+    return None
+
+
 def _eq_grand(r: dict | None) -> float | None:
     """The equity total to compare against statement-level TOTALS (BS equity, OCI
     total comprehensive income). For consolidated those totals INCLUDE minority, so
@@ -1787,6 +1810,71 @@ def _eq_grand(r: dict | None) -> float | None:
         return None
     g = r.get("total_equity_incl_minority")
     return g if g is not None else r.get("total_equity")
+
+
+def check_eq_paid_in_capital(cur_rows: list[dict],
+                             liabilities: list[dict]) -> ValidationResult:
+    """The equity statement's closing PAID-IN CAPITAL vs the balance sheet's own
+    (row S.1, S being the resolved equity section).
+
+    Why a component and not just the total: check_equity_change reads only
+    `total_equity` and the SUM of the 13 component columns, so any error that
+    preserves the sum is invisible to it — measured 0/296 detection. A column
+    SHIFT preserves the sum exactly. The equity extractor fits columns
+    positionally (`paid_in_capital = cols[0]`, equity_change.py:543), so a
+    one-column displacement is precisely its failure mode, and the balance sheet
+    — parsed separately, from a different page, reading nothing from the equity
+    statement — cannot inherit it. Two independent parses; not circular.
+
+    Only paid-in capital is checked, and that is a measured choice, not caution:
+      * paid_in_capital — 950/1,002 tie at EXACTLY 0.0000 difference; the largest
+        tie is 0 and the smallest non-tie is ₺600,000, so the tolerance has no
+        knob to get wrong (0.5 through 599,999 all flag the same 52).
+      * share_premium — also ties cleanly, but adds 0 flags over paid-in. Risk
+        without value.
+      * other_capital_reserves — REJECTED: smallest non-tie is ₺92 and the
+        non-ties are a continuum, not a gap. They are faithful: EMLAK 2025Q1 unco
+        ties on total_equity, paid-in AND premium, so its ₺98,418 of OCR simply
+        sits in a different column of the other statement — a classification
+        difference between two disclosures, not a defect. It would redden 4 good
+        cells.
+      * the paid-in COLUMN CHAIN (closing = Σ III..XI, mirroring total_equity's)
+        — REJECTED: 34 heterogeneous flags. EMLAK 2026Q1's real ₺1.03bn→₺5.0bn
+        capital increase and HAYATK's ₺1.5bn→₺2.5bn raise book the increase
+        outside the summed band and would fail.
+
+    Corpus: 52 flags / 1,002 runs, false-positive rate 0/52. All 52 store a
+    closing paid_in_capital of EXACTLY 0 while 52/52 carry the bank's real
+    paid-in under `share_premium` — the shift signature, corroborating itself.
+    No bank has zero paid-in capital: the corpus minimum is ₺99,337 and 0/1,002
+    partitions have BS paid-in <= 0, so pic == 0 is wrong unconditionally.
+    32 of the 52 are cells currently reading green: TFKB ×29 (2022Q3 unco, and
+    2022Q4→2026Q1 cons+unco), EXIM 2024Q2 unco (₺35.7bn), HAYATK 2023Q4 unco,
+    TOMK 2023Q3 unco.
+
+    Known false negatives, stated so nobody assumes otherwise: this reads the
+    CLOSING row only, so a shift confined to the opening/prior page is invisible
+    (ZIRAAT 2024Q4 cons's opening is shifted while its closing is correct; ~29
+    partitions carry the shape on the prior page alone). A prior-period column
+    has no same-period BS to reconcile against.
+    """
+    res = ValidationResult()
+    sect = _bs_equity_section(liabilities)
+    closing = _eq_closing(cur_rows)
+    pic = closing.get("paid_in_capital") if closing else None
+    bs_pic = next((r.get("amount_total") for r in liabilities
+                   if _path(r.get("hierarchy")) == (sect, 1)
+                   and r.get("amount_total") is not None), None) if sect else None
+    if pic is None or bs_pic is None:
+        res.add_skip()
+        return res
+    if abs(pic - bs_pic) <= _tol(abs(bs_pic), base=3.0, rel=5e-5):
+        res.add_pass()
+    else:
+        res.add_fail("eq_paid_in_capital",
+                     f"equity closing paid-in capital vs BS {sect}.1",
+                     expected=bs_pic, actual=pic)
+    return res
 
 
 def check_equity_change(eq_rows: list[dict],
@@ -1935,6 +2023,7 @@ def check_equity_change(eq_rows: list[dict],
                              expected=bs_eq, actual=cl_total)
         else:
             res.add_skip()
+        res.merge(check_eq_paid_in_capital(cur_rows, liabilities))
     else:
         res.add_skip()
 
