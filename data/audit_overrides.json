@@ -1747,12 +1747,87 @@
       "statement": "oci_replace",
       "rows": [
         {
-          "hierarchy": "III",
-          "item_name": "TOTAL COMPREHENSIVE INCOME (I+II) 1.806.816 1.239.",
+          "hierarchy": "I.",
+          "item_name": "CURRENT PERIOD PROFIT/LOSS",
+          "amount": 1796775
+        },
+        {
+          "hierarchy": "II.",
+          "item_name": "OTHER COMPREHENSIVE INCOME",
+          "amount": 10041
+        },
+        {
+          "hierarchy": "2.1",
+          "item_name": "Other Income/Expense Items not to be Recycled to Profit or Loss",
+          "amount": 54737
+        },
+        {
+          "hierarchy": "2.1.1",
+          "item_name": "Revaluation Surplus on Tangible Assets",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.2",
+          "item_name": "Revaluation Surplus on Intangible Assets",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.3",
+          "item_name": "Defined Benefit Plans’ Actuarial Gains/Losses",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.4",
+          "item_name": "Other Income/Expense Items not to be Recycled to Profit or Loss",
+          "amount": 54737
+        },
+        {
+          "hierarchy": "2.1.5",
+          "item_name": "Taxes on Other Comprehensive Income not to be Recycled to Profit or Loss",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2",
+          "item_name": "Other Income/Expense Items to be Recycled to Profit or Loss",
+          "amount": -44696
+        },
+        {
+          "hierarchy": "2.2.1",
+          "item_name": "Translation Differences",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.2",
+          "item_name": "Income/Expenses from Valuation and/or Reclassification of Financial Assets Measured at Fair Value through Other Comprehensive Income",
+          "amount": -40292
+        },
+        {
+          "hierarchy": "2.2.3",
+          "item_name": "Gains/losses from Cash Flow Hedges",
+          "amount": -4404
+        },
+        {
+          "hierarchy": "2.2.4",
+          "item_name": "Gains/Losses on Hedges of Net Investments in Foreign Operations",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.5",
+          "item_name": "Other Income/Expense Items to be Recycled to Profit or Loss",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.6",
+          "item_name": "Taxes on Other Comprehensive Income to be Recycled to Profit or Loss",
+          "amount": 0
+        },
+        {
+          "hierarchy": "III.",
+          "item_name": "TOTAL COMPREHENSIVE INCOME (I+II)",
           "amount": 1806816
         }
       ],
-      "note": "OCI extractor captured wrong/garbled table; full fitz re-read of the OCI statement"
+      "note": "OCI the single stored row was MALFORMED, not merely lonely: hierarchy='III' (no trailing dot) with the label having swallowed its own values ('TOTAL COMPREHENSIVE INCOME (I+II) 1.806.816 1.239.'). The prior override captured only that one row despite its note claiming a full re-read. Full 16-row replacement. Read from PDF p11 (0-based), current-period column; fitz only, rotation 0. I 1,796,775 + II 10,041 = 1,806,816 vs printed III 1,806,816 -> CHAIN OK. I equals the P&L period-net via bank_audit_pl_roles (XXV.); 2.1=sum(2.1.x), 2.2=sum(2.2.x), II=2.1+2.2 all foot."
     },
     {
       "bank_ticker": "FIBA",
@@ -1946,8 +2021,89 @@
       "period": "2025Q2",
       "kind": "unconsolidated",
       "statement": "oci_replace",
-      "rows": [],
-      "note": "OCI extractor captured the EQUITY statement (Beginning Balance / Profit Distribution / Dividend Paid), not the OCI statement; report PDF now 404 so it cannot be re-read — removed the wrong-table rows (no valid OCI for this partition -> shown as skipped, not wrong data kept)"
+      "rows": [
+        {
+          "hierarchy": "I.",
+          "item_name": "PROFIT/LOSS FOR THE PERIOD",
+          "amount": 29789846
+        },
+        {
+          "hierarchy": "II.",
+          "item_name": "OTHER COMPREHENSIVE INCOME",
+          "amount": 16675342
+        },
+        {
+          "hierarchy": "2.1",
+          "item_name": "Other comprehensive income that will not be reclassified to profit or loss",
+          "amount": 7409207
+        },
+        {
+          "hierarchy": "2.1.1",
+          "item_name": "Revaluation Surplus on Tangible Assets",
+          "amount": 4593980
+        },
+        {
+          "hierarchy": "2.1.2",
+          "item_name": "Revaluation Surplus on Intangible Assets",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.3",
+          "item_name": "Gains/(Losses) on remeasurements of Defined Benefit Plans",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.4",
+          "item_name": "Other Income/Expense Items of Other Comprehensive Income not to be Reclassified to Profit Or Loss",
+          "amount": 3369814
+        },
+        {
+          "hierarchy": "2.1.5",
+          "item_name": "Taxes Relating To Components Of Other Comprehensive Income not to be Reclassified To Profit Or Loss",
+          "amount": -554587
+        },
+        {
+          "hierarchy": "2.2",
+          "item_name": "Other Income/Expense Items not be Reclassified to Profit or Loss",
+          "amount": 9266135
+        },
+        {
+          "hierarchy": "2.2.1",
+          "item_name": "Exchange Differences on Translation",
+          "amount": 6430673
+        },
+        {
+          "hierarchy": "2.2.2",
+          "item_name": "Valuation and/or Reclassification Profit or Loss from Financial Assets at Fair Value through Other Comprehensive Income",
+          "amount": -1961365
+        },
+        {
+          "hierarchy": "2.2.3",
+          "item_name": "Income/(Loss) Related with Cash Flow Hedges",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.4",
+          "item_name": "Income/(Loss) Related with Hedges of Net Investments in Foreign Operations",
+          "amount": -4690320
+        },
+        {
+          "hierarchy": "2.2.5",
+          "item_name": "Other Income/Expense Items of Other Comprehensive Income to be Reclassified to Other Profit or Loss",
+          "amount": 7419299
+        },
+        {
+          "hierarchy": "2.2.6",
+          "item_name": "Taxes Relating To Components Of Other Comprehensive Income to be Reclassified To Profit Or Loss",
+          "amount": 2067848
+        },
+        {
+          "hierarchy": "III.",
+          "item_name": "TOTAL COMPREHENSIVE INCOME (I+II)",
+          "amount": 46465188
+        }
+      ],
+      "note": "OCI the OCI page carries NO TEXT LAYER — it is a single pasted 1014x370 DeviceRGB bitmap (xref 51); the only text on the page is the running header and the page number. Zero rows was neither a parser bug nor absence. Hand-transcribed from the rendered bitmap (the known image-only class). The prior override blanked this cell on the belief the PDF was 404; it is present in R2 and readable as an image. Read from PDF p12 (0-based), current-period column; fitz only, rotation 0. I 29,789,846 + II 16,675,342 = 46,465,188 vs printed III 46,465,188 -> CHAIN OK. I equals the P&L period-net via bank_audit_pl_roles (XXV.); 2.1=sum(2.1.x), 2.2=sum(2.2.x), II=2.1+2.2 all foot."
     },
     {
       "bank_ticker": "KLNMA",
@@ -2948,6 +3104,1363 @@
         "total_amount": 0
       },
       "note": "Prose zero: p53 '1.5.9 Specific provisions for loans or default (third stage) provisions: None (31 December 2022 - None)' + the 1.5.10 non-performing notes all None."
+    },
+    {
+      "bank_ticker": "TSKB",
+      "period": "2025Q2",
+      "kind": "unconsolidated",
+      "statement": "profit_loss",
+      "hierarchy": "XIII.",
+      "item_name": "NET OPERATING INCOME/(LOSS) (VIII-IX-X-XI-XII)",
+      "amount": 7107832,
+      "item_order": 38,
+      "note": "net-operating row dropped: its label wraps two lines in the filing ('NET OPERATING INCOME/(LOSS) (VIII-IX-X-XI' / '-XII)') and the extractor lost the row with it, jumping XII->XIV. PDF p11 current col = 7.107.832. Independently corroborated: VIII-IX-X-XI-XII = 9.955.376-1.195.689-70.000-1.187.264-394.591 = 7.107.832 exactly. Slotted at 38 (after XII=37, before XIV) so it enters the spine and XIII=VIII-IX..XII runs."
+    },
+    {
+      "bank_ticker": "ODEA",
+      "period": "2023Q3",
+      "kind": "unconsolidated",
+      "statement": "profit_loss",
+      "hierarchy": "XIII.",
+      "item_name": "NET FAALİYET KARI/ZARARI (VIII-IX-X-XI-XII)",
+      "amount": 2017580,
+      "item_order": 37,
+      "note": "net-operating row dropped: its label wraps two lines in the filing ('NET FAALİYET KARI/ZARARI (VIII-IX-X-' / 'XI-XII)') and the extractor lost the row with it, jumping XII->XIV (whose own 3-line label left the stray name 'OLARAK KAYDEDİLEN FAZLALIK'). PDF p12 current col = 2.017.580. Independently corroborated: VIII-IX-X-XI-XII = 5.270.942-1.505.675-3.500-882.669-861.518 = 2.017.580 exactly, and XVII (pre-tax) = 2.017.580 with XIV..XVI all nil. Slotted at 37 (after XII=36, before XIV) so it enters the spine and XIII=VIII-IX..XII runs."
+    },
+    {
+      "bank_ticker": "DUNYAK",
+      "period": "2025Q3",
+      "kind": "consolidated",
+      "statement": "oci_replace",
+      "rows": [
+        {
+          "hierarchy": "I.",
+          "item_name": "DÖNEM KARI/ZARARI",
+          "amount": 1539074
+        },
+        {
+          "hierarchy": "II.",
+          "item_name": "DİĞER KAPSAMLI GELİRLER",
+          "amount": 22953
+        },
+        {
+          "hierarchy": "2.1",
+          "item_name": "Kar veya Zararda Yeniden Sınıflandırılmayacaklar",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.1",
+          "item_name": "Maddi Duran Varlıklar Yeniden Değerleme Artışları/Azalışları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.2",
+          "item_name": "Maddi Olmayan Duran Varlıklar Yeniden Değerleme Artışları/Azalışları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.3",
+          "item_name": "Tanımlanmış Fayda Planları Yeniden Ölçüm Kazançları/Kayıpları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.4",
+          "item_name": "Diğer Kâr veya Zarar Olarak Yeniden Sınıflandırılmayacak Diğer Kapsamlı Gelir Unsurları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.5",
+          "item_name": "Kâr veya Zararda Yeniden Sınıflandırılmayacak Diğer Kapsamlı Gelire İlişkin Vergiler",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2",
+          "item_name": "Kâr veya Zararda Yeniden Sınıflandırılacaklar",
+          "amount": 22953
+        },
+        {
+          "hierarchy": "2.2.1",
+          "item_name": "Yabancı Para Çevirim Farkları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.2",
+          "item_name": "Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılan Finansal Varlıkların Değerleme ve/veya Sınıflandırma Gelirleri/Giderleri",
+          "amount": 32790
+        },
+        {
+          "hierarchy": "2.2.3",
+          "item_name": "Nakit Akış Riskinden Korunma Gelirleri/Giderleri",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.4",
+          "item_name": "Yurtdışındaki İşletmeye İlişkin Yatırım Riskinden Korunma Gelirleri/Giderleri",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.5",
+          "item_name": "Diğer Kâr veya Zarar Olarak Yeniden Sınıflandırılacak Diğer Kapsamlı Gelir Unsurları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.6",
+          "item_name": "Kâr veya Zararda Yeniden Sınıflandırılacak Diğer Kapsamlı Gelire İlişkin Vergiler",
+          "amount": -9837
+        },
+        {
+          "hierarchy": "III.",
+          "item_name": "TOPLAM KAPSAMLI GELİR (I+II)",
+          "amount": 1562027
+        }
+      ],
+      "note": "OCI extractor captured the INCOME STATEMENT instead of the OCI table (62 rows, roman I = 'KÂR PAYI GELİRLERİ'). The real 'KAR VEYA ZARAR VE DİĞER KAPSAMLI GELİR TABLOSU' is PDF p16 (0-based), between the income statement and the equity-change statement; 16 rows, transcribed from the 'Cari Dönem' column (columns assigned by x-coordinate, not reading order). Verified: III 1,562,027 = I 1,539,074 + II 22,953 exactly; I equals the P&L period-net via bank_audit_pl_roles (XXV.); II = 2.1 + 2.2; and both I and III independently match the current-period equity-change statement's 'Dönem Net Kar' / 'Toplam Kapsamlı Gelir' rows."
+    },
+    {
+      "bank_ticker": "DUNYAK",
+      "period": "2025Q3",
+      "kind": "unconsolidated",
+      "statement": "oci_replace",
+      "rows": [
+        {
+          "hierarchy": "I.",
+          "item_name": "DÖNEM KARI/ZARARI",
+          "amount": 1447091
+        },
+        {
+          "hierarchy": "II.",
+          "item_name": "DİĞER KAPSAMLI GELİRLER",
+          "amount": 22953
+        },
+        {
+          "hierarchy": "2.1",
+          "item_name": "Kar veya Zararda Yeniden Sınıflandırılmayacaklar",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.1",
+          "item_name": "Maddi Duran Varlıklar Yeniden Değerleme Artışları/Azalışları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.2",
+          "item_name": "Maddi Olmayan Duran Varlıklar Yeniden Değerleme Artışları/Azalışları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.3",
+          "item_name": "Tanımlanmış Fayda Planları Yeniden Ölçüm Kazançları/Kayıpları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.4",
+          "item_name": "Diğer Kâr veya Zarar Olarak Yeniden Sınıflandırılmayacak Diğer Kapsamlı Gelir Unsurları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.5",
+          "item_name": "Kâr veya Zararda Yeniden Sınıflandırılmayacak Diğer Kapsamlı Gelire İlişkin Vergiler",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2",
+          "item_name": "Kâr veya Zararda Yeniden Sınıflandırılacaklar",
+          "amount": 22953
+        },
+        {
+          "hierarchy": "2.2.1",
+          "item_name": "Yabancı Para Çevirim Farkları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.2",
+          "item_name": "Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılan Finansal Varlıkların Değerleme ve/veya Sınıflandırma Gelirleri/Giderleri",
+          "amount": 32790
+        },
+        {
+          "hierarchy": "2.2.3",
+          "item_name": "Nakit Akış Riskinden Korunma Gelirleri/Giderleri",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.4",
+          "item_name": "Yurtdışındaki İşletmeye İlişkin Yatırım Riskinden Korunma Gelirleri/Giderleri",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.5",
+          "item_name": "Diğer Kâr veya Zarar Olarak Yeniden Sınıflandırılacak Diğer Kapsamlı Gelir Unsurları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.6",
+          "item_name": "Kâr veya Zararda Yeniden Sınıflandırılacak Diğer Kapsamlı Gelire İlişkin Vergiler",
+          "amount": -9837
+        },
+        {
+          "hierarchy": "III.",
+          "item_name": "TOPLAM KAPSAMLI GELİR (I+II)",
+          "amount": 1470044
+        }
+      ],
+      "note": "OCI extractor captured the INCOME STATEMENT instead of the OCI table (62 rows, roman I = 'KÂR PAYI GELİRLERİ'). The real 'KAR VEYA ZARAR VE DİĞER KAPSAMLI GELİR TABLOSU' is PDF p16 (0-based), between the income statement and the equity-change statement; 16 rows, transcribed from the 'Cari Dönem' column (columns assigned by x-coordinate, not reading order). Verified: III 1,470,044 = I 1,447,091 + II 22,953 exactly; I equals the P&L period-net via bank_audit_pl_roles (XXV.); II = 2.1 + 2.2; and both I and III independently match the current-period equity-change statement's 'Dönem Net Kar' / 'Toplam Kapsamlı Gelir' rows."
+    },
+    {
+      "bank_ticker": "DUNYAK",
+      "period": "2025Q4",
+      "kind": "consolidated",
+      "statement": "oci_replace",
+      "rows": [
+        {
+          "hierarchy": "I.",
+          "item_name": "DÖNEM KARI/ZARARI",
+          "amount": 2282901
+        },
+        {
+          "hierarchy": "II.",
+          "item_name": "DİĞER KAPSAMLI GELİRLER",
+          "amount": 53789
+        },
+        {
+          "hierarchy": "2.1",
+          "item_name": "Kar veya Zararda Yeniden Sınıflandırılmayacaklar",
+          "amount": 1018
+        },
+        {
+          "hierarchy": "2.1.1",
+          "item_name": "Maddi Duran Varlıklar Yeniden Değerleme Artışları/Azalışları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.2",
+          "item_name": "Maddi Olmayan Duran Varlıklar Yeniden Değerleme Artışları/Azalışları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.3",
+          "item_name": "Tanımlanmış Fayda Planları Yeniden Ölçüm Kazançları/Kayıpları",
+          "amount": 1454
+        },
+        {
+          "hierarchy": "2.1.4",
+          "item_name": "Diğer Kâr veya Zarar Olarak Yeniden Sınıflandırılmayacak Diğer Kapsamlı Gelir Unsurları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.5",
+          "item_name": "Kâr veya Zararda Yeniden Sınıflandırılmayacak Diğer Kapsamlı Gelire İlişkin Vergiler",
+          "amount": -436
+        },
+        {
+          "hierarchy": "2.2",
+          "item_name": "Kâr veya Zararda Yeniden Sınıflandırılacaklar",
+          "amount": 52771
+        },
+        {
+          "hierarchy": "2.2.1",
+          "item_name": "Yabancı Para Çevirim Farkları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.2",
+          "item_name": "Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılan Finansal Varlıkların Değerleme ve/veya Sınıflandırma Gelirleri/Giderleri",
+          "amount": 75054
+        },
+        {
+          "hierarchy": "2.2.3",
+          "item_name": "Nakit Akış Riskinden Korunma Gelirleri/Giderleri",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.4",
+          "item_name": "Yurtdışındaki İşletmeye İlişkin Yatırım Riskinden Korunma Gelirleri/Giderleri",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.5",
+          "item_name": "Diğer Kâr veya Zarar Olarak Yeniden Sınıflandırılacak Diğer Kapsamlı Gelir Unsurları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.6",
+          "item_name": "Kâr veya Zararda Yeniden Sınıflandırılacak Diğer Kapsamlı Gelire İlişkin Vergiler",
+          "amount": -22283
+        },
+        {
+          "hierarchy": "III.",
+          "item_name": "TOPLAM KAPSAMLI GELİR (I+II)",
+          "amount": 2336690
+        }
+      ],
+      "note": "OCI extractor captured the INCOME STATEMENT instead of the OCI table (61 rows, roman I = 'KÂR PAYI GELİRLERİ'). The real 'KAR VEYA ZARAR VE DİĞER KAPSAMLI GELİR TABLOSU' is PDF p21 (0-based), between the income statement and the equity-change statement; 16 rows, transcribed from the 'Cari Dönem' column (columns assigned by x-coordinate, not reading order). Verified: III 2,336,690 = I 2,282,901 + II 53,789 exactly; I equals the P&L period-net via bank_audit_pl_roles (XXV.); II = 2.1 + 2.2; and both I and III independently match the current-period equity-change statement's 'Dönem Net Kar' / 'Toplam Kapsamlı Gelir' rows."
+    },
+    {
+      "bank_ticker": "DUNYAK",
+      "period": "2025Q4",
+      "kind": "unconsolidated",
+      "statement": "oci_replace",
+      "rows": [
+        {
+          "hierarchy": "I.",
+          "item_name": "DÖNEM KARI/ZARARI",
+          "amount": 2057211
+        },
+        {
+          "hierarchy": "II.",
+          "item_name": "DİĞER KAPSAMLI GELİRLER",
+          "amount": 53789
+        },
+        {
+          "hierarchy": "2.1",
+          "item_name": "Kar veya Zararda Yeniden Sınıflandırılmayacaklar",
+          "amount": 1018
+        },
+        {
+          "hierarchy": "2.1.1",
+          "item_name": "Maddi Duran Varlıklar Yeniden Değerleme Artışları/Azalışları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.2",
+          "item_name": "Maddi Olmayan Duran Varlıklar Yeniden Değerleme Artışları/Azalışları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.3",
+          "item_name": "Tanımlanmış Fayda Planları Yeniden Ölçüm Kazançları/Kayıpları",
+          "amount": 1454
+        },
+        {
+          "hierarchy": "2.1.4",
+          "item_name": "Diğer Kâr veya Zarar Olarak Yeniden Sınıflandırılmayacak Diğer Kapsamlı Gelir Unsurları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.5",
+          "item_name": "Kâr veya Zararda Yeniden Sınıflandırılmayacak Diğer Kapsamlı Gelire İlişkin Vergiler",
+          "amount": -436
+        },
+        {
+          "hierarchy": "2.2",
+          "item_name": "Kâr veya Zararda Yeniden Sınıflandırılacaklar",
+          "amount": 52771
+        },
+        {
+          "hierarchy": "2.2.1",
+          "item_name": "Yabancı Para Çevirim Farkları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.2",
+          "item_name": "Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılan Finansal Varlıkların Değerleme ve/veya Sınıflandırma Gelirleri/Giderleri",
+          "amount": 75054
+        },
+        {
+          "hierarchy": "2.2.3",
+          "item_name": "Nakit Akış Riskinden Korunma Gelirleri/Giderleri",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.4",
+          "item_name": "Yurtdışındaki İşletmeye İlişkin Yatırım Riskinden Korunma Gelirleri/Giderleri",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.5",
+          "item_name": "Diğer Kâr veya Zarar Olarak Yeniden Sınıflandırılacak Diğer Kapsamlı Gelir Unsurları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.6",
+          "item_name": "Kâr veya Zararda Yeniden Sınıflandırılacak Diğer Kapsamlı Gelire İlişkin Vergiler",
+          "amount": -22283
+        },
+        {
+          "hierarchy": "III.",
+          "item_name": "TOPLAM KAPSAMLI GELİR (I+II)",
+          "amount": 2111000
+        }
+      ],
+      "note": "OCI extractor captured the INCOME STATEMENT instead of the OCI table (61 rows, roman I = 'KÂR PAYI GELİRLERİ'). The real 'KAR VEYA ZARAR VE DİĞER KAPSAMLI GELİR TABLOSU' is PDF p21 (0-based), between the income statement and the equity-change statement; 16 rows, transcribed from the 'Cari Dönem' column (columns assigned by x-coordinate, not reading order). Verified: III 2,111,000 = I 2,057,211 + II 53,789 exactly; I equals the P&L period-net via bank_audit_pl_roles (XXV.); II = 2.1 + 2.2; and both I and III independently match the current-period equity-change statement's 'Dönem Net Kar' / 'Toplam Kapsamlı Gelir' rows."
+    },
+    {
+      "bank_ticker": "DUNYAK",
+      "period": "2026Q1",
+      "kind": "consolidated",
+      "statement": "oci_replace",
+      "rows": [
+        {
+          "hierarchy": "I.",
+          "item_name": "DÖNEM KARI/ZARARI",
+          "amount": 1988224
+        },
+        {
+          "hierarchy": "II.",
+          "item_name": "DİĞER KAPSAMLI GELİRLER",
+          "amount": 25258
+        },
+        {
+          "hierarchy": "2.1",
+          "item_name": "Kar veya Zararda Yeniden Sınıflandırılmayacaklar",
+          "amount": 104090
+        },
+        {
+          "hierarchy": "2.1.1",
+          "item_name": "Maddi Duran Varlıklar Yeniden Değerleme Artışları/Azalışları",
+          "amount": 111315
+        },
+        {
+          "hierarchy": "2.1.2",
+          "item_name": "Maddi Olmayan Duran Varlıklar Yeniden Değerleme Artışları/Azalışları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.3",
+          "item_name": "Tanımlanmış Fayda Planları Yeniden Ölçüm Kazançları/Kayıpları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.4",
+          "item_name": "Diğer Kâr veya Zarar Olarak Yeniden Sınıflandırılmayacak Diğer Kapsamlı Gelir Unsurları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.5",
+          "item_name": "Kâr veya Zararda Yeniden Sınıflandırılmayacak Diğer Kapsamlı Gelire İlişkin Vergiler",
+          "amount": -7225
+        },
+        {
+          "hierarchy": "2.2",
+          "item_name": "Kâr veya Zararda Yeniden Sınıflandırılacaklar",
+          "amount": -78832
+        },
+        {
+          "hierarchy": "2.2.1",
+          "item_name": "Yabancı Para Çevirim Farkları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.2",
+          "item_name": "Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılan Finansal Varlıkların Değerleme ve/veya Sınıflandırma Gelirleri/Giderleri",
+          "amount": -112350
+        },
+        {
+          "hierarchy": "2.2.3",
+          "item_name": "Nakit Akış Riskinden Korunma Gelirleri/Giderleri",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.4",
+          "item_name": "Yurtdışındaki İşletmeye İlişkin Yatırım Riskinden Korunma Gelirleri/Giderleri",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.5",
+          "item_name": "Diğer Kâr veya Zarar Olarak Yeniden Sınıflandırılacak Diğer Kapsamlı Gelir Unsurları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.6",
+          "item_name": "Kâr veya Zararda Yeniden Sınıflandırılacak Diğer Kapsamlı Gelire İlişkin Vergiler",
+          "amount": 33518
+        },
+        {
+          "hierarchy": "III.",
+          "item_name": "TOPLAM KAPSAMLI GELİR (I+II)",
+          "amount": 2013482
+        }
+      ],
+      "note": "OCI extractor captured the INCOME STATEMENT instead of the OCI table (61 rows, roman I = 'KÂR PAYI GELİRLERİ'). The real 'KAR VEYA ZARAR VE DİĞER KAPSAMLI GELİR TABLOSU' is PDF p14 (0-based), between the income statement and the equity-change statement; 16 rows, transcribed from the 'Cari Dönem' column (columns assigned by x-coordinate, not reading order). Verified: III 2,013,482 = I 1,988,224 + II 25,258 exactly; I equals the P&L period-net via bank_audit_pl_roles (XXV.); II = 2.1 + 2.2; and both I and III independently match the current-period equity-change statement's 'Dönem Net Kar' / 'Toplam Kapsamlı Gelir' rows."
+    },
+    {
+      "bank_ticker": "DUNYAK",
+      "period": "2026Q1",
+      "kind": "unconsolidated",
+      "statement": "oci_replace",
+      "rows": [
+        {
+          "hierarchy": "I.",
+          "item_name": "DÖNEM KARI/ZARARI",
+          "amount": 1952492
+        },
+        {
+          "hierarchy": "II.",
+          "item_name": "DİĞER KAPSAMLI GELİRLER",
+          "amount": 25258
+        },
+        {
+          "hierarchy": "2.1",
+          "item_name": "Kar veya Zararda Yeniden Sınıflandırılmayacaklar",
+          "amount": 104090
+        },
+        {
+          "hierarchy": "2.1.1",
+          "item_name": "Maddi Duran Varlıklar Yeniden Değerleme Artışları/Azalışları",
+          "amount": 111315
+        },
+        {
+          "hierarchy": "2.1.2",
+          "item_name": "Maddi Olmayan Duran Varlıklar Yeniden Değerleme Artışları/Azalışları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.3",
+          "item_name": "Tanımlanmış Fayda Planları Yeniden Ölçüm Kazançları/Kayıpları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.4",
+          "item_name": "Diğer Kâr veya Zarar Olarak Yeniden Sınıflandırılmayacak Diğer Kapsamlı Gelir Unsurları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.5",
+          "item_name": "Kâr veya Zararda Yeniden Sınıflandırılmayacak Diğer Kapsamlı Gelire İlişkin Vergiler",
+          "amount": -7225
+        },
+        {
+          "hierarchy": "2.2",
+          "item_name": "Kâr veya Zararda Yeniden Sınıflandırılacaklar",
+          "amount": -78832
+        },
+        {
+          "hierarchy": "2.2.1",
+          "item_name": "Yabancı Para Çevirim Farkları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.2",
+          "item_name": "Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılan Finansal Varlıkların Değerleme ve/veya Sınıflandırma Gelirleri/Giderleri",
+          "amount": -112350
+        },
+        {
+          "hierarchy": "2.2.3",
+          "item_name": "Nakit Akış Riskinden Korunma Gelirleri/Giderleri",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.4",
+          "item_name": "Yurtdışındaki İşletmeye İlişkin Yatırım Riskinden Korunma Gelirleri/Giderleri",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.5",
+          "item_name": "Diğer Kâr veya Zarar Olarak Yeniden Sınıflandırılacak Diğer Kapsamlı Gelir Unsurları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.6",
+          "item_name": "Kâr veya Zararda Yeniden Sınıflandırılacak Diğer Kapsamlı Gelire İlişkin Vergiler",
+          "amount": 33518
+        },
+        {
+          "hierarchy": "III.",
+          "item_name": "TOPLAM KAPSAMLI GELİR (I+II)",
+          "amount": 1977750
+        }
+      ],
+      "note": "OCI extractor captured the INCOME STATEMENT instead of the OCI table (61 rows, roman I = 'KÂR PAYI GELİRLERİ'). The real 'KAR VEYA ZARAR VE DİĞER KAPSAMLI GELİR TABLOSU' is PDF p14 (0-based), between the income statement and the equity-change statement; 16 rows, transcribed from the 'Cari Dönem' column (columns assigned by x-coordinate, not reading order). Verified: III 1,977,750 = I 1,952,492 + II 25,258 exactly; I equals the P&L period-net via bank_audit_pl_roles (XXV.); II = 2.1 + 2.2; and both I and III independently match the current-period equity-change statement's 'Dönem Net Kar' / 'Toplam Kapsamlı Gelir' rows."
+    },
+    {
+      "bank_ticker": "HAYATK",
+      "period": "2023Q2",
+      "kind": "unconsolidated",
+      "statement": "oci_replace",
+      "rows": [
+        {
+          "hierarchy": "I.",
+          "item_name": "CURRENT PROFIT/LOSS",
+          "amount": 20824
+        },
+        {
+          "hierarchy": "II.",
+          "item_name": "OTHER COMPREHENSIVE INCOME",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1",
+          "item_name": "Other Comprehensive Income Not Reclassified Through Profit or Loss",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.1",
+          "item_name": "Property and Equipment Revaluation Increase/Decrease",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.2",
+          "item_name": "Intangible Assets Revaluation Increase/Decrease",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.3",
+          "item_name": "Defined Benefit Pension Plan Remeasurement Gain/Loss",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.4",
+          "item_name": "Other Comprehensive Income Items Not Reclassified Through Profit or Loss",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.5",
+          "item_name": "Taxes Related to Other Comprehensive Income Items Not Reclassified Through Profit or Loss",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2",
+          "item_name": "Other Comprehensive Income Reclassified Through Profit or Loss",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.1",
+          "item_name": "Foreign Currency Translation Difference",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.2",
+          "item_name": "Valuation and/or Reclassification Income/Expense of the Financial Assets at Fair Value Through Other Comprehensive Income",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.3",
+          "item_name": "Cash Flow Hedge Income/Loss",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.4",
+          "item_name": "Foreign Net Investment Hedge Income/Loss",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.5",
+          "item_name": "Other Comprehensive Income Items Reclassified Through Profit or Losses",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.6",
+          "item_name": "Taxes Related Other Comprehensive Income Items Reclassified Through Profit or Loss",
+          "amount": 0
+        },
+        {
+          "hierarchy": "III.",
+          "item_name": "TOTAL COMPREHENSIVE INCOME (LOSS) (I+II)",
+          "amount": 20824
+        }
+      ],
+      "note": "OCI the table is genuinely SINGLE-column (the bank was incorporated 10.08.2022, so no prior-period comparative exists); the 4-column detector left only III. standing. Re-read from PDF p12 (0-based), 'Current Period' column, columns assigned by x-coordinate not reading order; fitz only, page rotation 0. Verified: III 20,824 = I 20,824 + II 0 exactly; I equals the P&L period-net via bank_audit_pl_roles (XXV.); II = 2.1 + 2.2 and each subtotal = sum of its children."
+    },
+    {
+      "bank_ticker": "HAYATK",
+      "period": "2023Q4",
+      "kind": "unconsolidated",
+      "statement": "oci_replace",
+      "rows": [
+        {
+          "hierarchy": "I.",
+          "item_name": "CURRENT PROFIT (LOSS)",
+          "amount": 62175
+        },
+        {
+          "hierarchy": "II.",
+          "item_name": "OTHER COMPREHENSIVE INCOME",
+          "amount": -11
+        },
+        {
+          "hierarchy": "2.1",
+          "item_name": "Other Comprehensive Income Not Reclassified Through Profit or Loss",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.1",
+          "item_name": "Property And Equipment Revaluation Increase/Decrease",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.2",
+          "item_name": "Intangible Assets Revaluation Increase/Decrease",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.3",
+          "item_name": "Defined Benefit Pension Plan Remeasurement Gain/Loss",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.4",
+          "item_name": "Other Comprehensive Income Items Not Reclassified Through Profit or Loss",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.5",
+          "item_name": "Taxes Related to Other Comprehensive Income Items Not Reclassified Through Profit or Loss",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2",
+          "item_name": "Other Comprehensive Income Reclassified Through Profit or Loss",
+          "amount": -11
+        },
+        {
+          "hierarchy": "2.2.1",
+          "item_name": "Foreign Currency Translation Difference",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.2",
+          "item_name": "Valuation And/Or Reclassification Income/Expense of the Financial Assets at Fair Value Through Other Comprehensive Income",
+          "amount": -16
+        },
+        {
+          "hierarchy": "2.2.3",
+          "item_name": "Cash Flow Hedge Income/Loss",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.4",
+          "item_name": "Foreign Net Investment Hedge Income/Loss",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.5",
+          "item_name": "Other Comprehensive Income Items Reclassified Through Profit or Losses",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.6",
+          "item_name": "Taxes Related Other Comprehensive Income Items Reclassified Through Profit or Loss",
+          "amount": 5
+        },
+        {
+          "hierarchy": "III.",
+          "item_name": "TOTAL COMPREHENSIVE INCOME (LOSS) (I+II)",
+          "amount": 62164
+        }
+      ],
+      "note": "OCI the three dropped rows (II., 2.2, 2.2.2) are exactly the ones whose current value is PARENTHESISED — proven by x-coordinates: (11)@447 and (16)@447 sit in the current-value column beside 62,175@440, while the prior column is at x~514-531; 2.2.6 = 5 (unparenthesised) survived, isolating the parentheses as the trigger. Re-read from PDF p15 (0-based), 'Current Period' column, columns assigned by x-coordinate not reading order; fitz only, page rotation 0. Verified: III 62,164 = I 62,175 + II -11 exactly; I equals the P&L period-net via bank_audit_pl_roles (XXV.); II = 2.1 + 2.2 and each subtotal = sum of its children."
+    },
+    {
+      "bank_ticker": "HAYATK",
+      "period": "2025Q2",
+      "kind": "consolidated",
+      "statement": "oci_replace",
+      "rows": [
+        {
+          "hierarchy": "I.",
+          "item_name": "DÖNEM KARI/ZARARI",
+          "amount": -75884
+        },
+        {
+          "hierarchy": "II.",
+          "item_name": "DİĞER KAPSAMLI GELİRLER",
+          "amount": -1175
+        },
+        {
+          "hierarchy": "2.1",
+          "item_name": "Kar veya Zararda Yeniden Sınıflandırılmayacaklar",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.1",
+          "item_name": "Maddi Duran Varlıklar Yeniden Değerleme Artışları/Azalışları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.2",
+          "item_name": "Maddi Olmayan Duran Varlıklar Yeniden Değerleme Artışları/Azalışları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.3",
+          "item_name": "Tanımlanmış Fayda Planları Yeniden Ölçüm Kazançları/Kayıpları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.4",
+          "item_name": "Diğer Kâr veya Zarar Olarak Yeniden Sınıflandırılmayacak Diğer Kapsamlı Gelir Unsurları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.5",
+          "item_name": "Kâr veya Zararda Yeniden Sınıflandırılmayacak Diğer Kapsamlı Gelire İlişkin Vergiler",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2",
+          "item_name": "Kâr veya Zararda Yeniden Sınıflandırılacaklar",
+          "amount": -1175
+        },
+        {
+          "hierarchy": "2.2.1",
+          "item_name": "Yabancı Para Çevirim Farkları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.2",
+          "item_name": "Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılan Finansal Varlıkların Değerleme ve/veya Sınıflandırma Gelirleri/Giderleri",
+          "amount": -1678
+        },
+        {
+          "hierarchy": "2.2.3",
+          "item_name": "Nakit Akış Riskinden Korunma Gelirleri/Giderleri",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.4",
+          "item_name": "Yurtdışındaki İşletmeye İlişkin Yatırım Riskinden Korunma Gelirleri/Giderleri",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.5",
+          "item_name": "Diğer Kâr veya Zarar Olarak Yeniden Sınıflandırılacak Diğer Kapsamlı Gelir Unsurları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.6",
+          "item_name": "Kâr veya Zararda Yeniden Sınıflandırılacak Diğer Kapsamlı Gelire İlişkin Vergiler",
+          "amount": 503
+        },
+        {
+          "hierarchy": "III.",
+          "item_name": "TOPLAM KAPSAMLI GELİR (I+II)",
+          "amount": -77059
+        }
+      ],
+      "note": "OCI column misalignment — the item_name swallowed columns 1-2 and `amount` took column 3 (prior-cumulative), e.g. item_name='CURRENT PROFIT (LOSS) (75,893) 19,751' with amount=-225,759. The label carried the true current value all along. Re-read from PDF p13 (0-based), 'Current Period' column, columns assigned by x-coordinate not reading order; fitz only, page rotation 0. Verified: III -77,059 = I -75,884 + II -1,175 exactly; I equals the P&L period-net via bank_audit_pl_roles (XXV.); II = 2.1 + 2.2 and each subtotal = sum of its children. The 17th stored row was junk — a page-header fragment ('30','HAZİRAN',202) parsed as data."
+    },
+    {
+      "bank_ticker": "HAYATK",
+      "period": "2025Q2",
+      "kind": "unconsolidated",
+      "statement": "oci_replace",
+      "rows": [
+        {
+          "hierarchy": "I.",
+          "item_name": "CURRENT PROFIT (LOSS)",
+          "amount": -75893
+        },
+        {
+          "hierarchy": "II.",
+          "item_name": "OTHER COMPREHENSIVE INCOME",
+          "amount": -1175
+        },
+        {
+          "hierarchy": "2.1",
+          "item_name": "Other Comprehensive Income Not Reclassified Through Profit or Loss",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.1",
+          "item_name": "Property And Equipment Revaluation Increase/Decrease",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.2",
+          "item_name": "Intangible Assets Revaluation Increase/Decrease",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.3",
+          "item_name": "Defined Benefit Pension Plan Remeasurement Gain/Loss",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.4",
+          "item_name": "Other Comprehensive Income Items Not Reclassified Through Profit or Loss",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.5",
+          "item_name": "Taxes Related to Other Comprehensive Income Items Not Reclassified Through Profit or Loss",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2",
+          "item_name": "Other Comprehensive Income Reclassified Through Profit or Loss",
+          "amount": -1175
+        },
+        {
+          "hierarchy": "2.2.1",
+          "item_name": "Foreign Currency Translation Difference",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.2",
+          "item_name": "Valuation And/Or Reclassification Income/Expense of the Financial Assets at Fair Value Through Other Comprehensive Income",
+          "amount": -1678
+        },
+        {
+          "hierarchy": "2.2.3",
+          "item_name": "Cash Flow Hedge Income/Loss",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.4",
+          "item_name": "Foreign Net Investment Hedge Income/Loss",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.5",
+          "item_name": "Other Comprehensive Income Items Reclassified Through Profit or Losses",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.6",
+          "item_name": "Taxes Related Other Comprehensive Income Items Reclassified Through Profit or Loss",
+          "amount": 503
+        },
+        {
+          "hierarchy": "III.",
+          "item_name": "TOTAL COMPREHENSIVE INCOME (LOSS) (I+II)",
+          "amount": -77068
+        }
+      ],
+      "note": "OCI column misalignment — the item_name swallowed columns 1-2 and `amount` took column 3 (prior-cumulative), e.g. item_name='CURRENT PROFIT (LOSS) (75,893) 19,751' with amount=-225,759. The label carried the true current value all along. Re-read from PDF p13 (0-based), 'Current Period' column, columns assigned by x-coordinate not reading order; fitz only, page rotation 0. Verified: III -77,068 = I -75,893 + II -1,175 exactly; I equals the P&L period-net via bank_audit_pl_roles (XXV.); II = 2.1 + 2.2 and each subtotal = sum of its children."
+    },
+    {
+      "bank_ticker": "HAYATK",
+      "period": "2025Q3",
+      "kind": "consolidated",
+      "statement": "oci_replace",
+      "rows": [
+        {
+          "hierarchy": "I.",
+          "item_name": "CURRENT PROFIT (LOSS)",
+          "amount": -149580
+        },
+        {
+          "hierarchy": "II.",
+          "item_name": "OTHER COMPREHENSIVE INCOME",
+          "amount": 36349
+        },
+        {
+          "hierarchy": "2.1",
+          "item_name": "Other Comprehensive Income Not Reclassified Through Profit or Loss",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.1",
+          "item_name": "Property And Equipment Revaluation Increase/Decrease",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.2",
+          "item_name": "Intangible Assets Revaluation Increase/Decrease",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.3",
+          "item_name": "Defined Benefit Pension Plan Remeasurement Gain/Loss",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.4",
+          "item_name": "Other Comprehensive Income Items Not Reclassified Through Profit or Loss",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.5",
+          "item_name": "Taxes Related to Other Comprehensive Income Items Not Reclassified Through Profit or Loss",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2",
+          "item_name": "Other Comprehensive Income Reclassified Through Profit or Loss",
+          "amount": 36349
+        },
+        {
+          "hierarchy": "2.2.1",
+          "item_name": "Foreign Currency Translation Difference",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.2",
+          "item_name": "Valuation And/Or Reclassification Income/Expense of the Financial Assets at Fair Value Through Other Comprehensive Income",
+          "amount": 51927
+        },
+        {
+          "hierarchy": "2.2.3",
+          "item_name": "Cash Flow Hedge Income/Loss",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.4",
+          "item_name": "Foreign Net Investment Hedge Income/Loss",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.5",
+          "item_name": "Other Comprehensive Income Items Reclassified Through Profit or Losses",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.6",
+          "item_name": "Taxes Related Other Comprehensive Income Items Reclassified Through Profit or Loss",
+          "amount": -15578
+        },
+        {
+          "hierarchy": "III.",
+          "item_name": "TOTAL COMPREHENSIVE INCOME (I+II)",
+          "amount": -113231
+        }
+      ],
+      "note": "OCI column misalignment as in 2025Q2, but NOTE the column ORDER differs: Q3 prints current-cum | prior-cum | current-qtr | prior-qtr (Q2 prints current-cum | current-qtr | prior-cum | prior-qtr), so the stored `amount` is current-QUARTER here, not prior-cumulative. Re-read from PDF p13 (0-based), 'Current Period' column, columns assigned by x-coordinate not reading order; fitz only, page rotation 0. Verified: III -113,231 = I -149,580 + II 36,349 exactly; I equals the P&L period-net via bank_audit_pl_roles (XXV.); II = 2.1 + 2.2 and each subtotal = sum of its children."
+    },
+    {
+      "bank_ticker": "HAYATK",
+      "period": "2025Q3",
+      "kind": "unconsolidated",
+      "statement": "oci_replace",
+      "rows": [
+        {
+          "hierarchy": "I.",
+          "item_name": "CURRENT PROFIT (LOSS)",
+          "amount": -149589
+        },
+        {
+          "hierarchy": "II.",
+          "item_name": "OTHER COMPREHENSIVE INCOME",
+          "amount": 36349
+        },
+        {
+          "hierarchy": "2.1",
+          "item_name": "Other Comprehensive Income Not Reclassified Through Profit or Loss",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.1",
+          "item_name": "Property And Equipment Revaluation Increase/Decrease",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.2",
+          "item_name": "Intangible Assets Revaluation Increase/Decrease",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.3",
+          "item_name": "Defined Benefit Pension Plan Remeasurement Gain/Loss",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.4",
+          "item_name": "Other Comprehensive Income Items Not Reclassified Through Profit or Loss",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.5",
+          "item_name": "Taxes Related to Other Comprehensive Income Items Not Reclassified Through Profit or Loss",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2",
+          "item_name": "Other Comprehensive Income Reclassified Through Profit or Loss",
+          "amount": 36349
+        },
+        {
+          "hierarchy": "2.2.1",
+          "item_name": "Foreign Currency Translation Difference",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.2",
+          "item_name": "Valuation And/Or Reclassification Income/Expense of the Financial Assets at Fair Value Through Other Comprehensive Income",
+          "amount": 51927
+        },
+        {
+          "hierarchy": "2.2.3",
+          "item_name": "Cash Flow Hedge Income/Loss",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.4",
+          "item_name": "Foreign Net Investment Hedge Income/Loss",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.5",
+          "item_name": "Other Comprehensive Income Items Reclassified Through Profit or Losses",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.6",
+          "item_name": "Taxes Related Other Comprehensive Income Items Reclassified Through Profit or Loss",
+          "amount": -15578
+        },
+        {
+          "hierarchy": "III.",
+          "item_name": "TOTAL COMPREHENSIVE INCOME (I+II)",
+          "amount": -113240
+        }
+      ],
+      "note": "OCI column misalignment as in 2025Q2, but NOTE the column ORDER differs: Q3 prints current-cum | prior-cum | current-qtr | prior-qtr (Q2 prints current-cum | current-qtr | prior-cum | prior-qtr), so the stored `amount` is current-QUARTER here, not prior-cumulative. Re-read from PDF p13 (0-based), 'Current Period' column, columns assigned by x-coordinate not reading order; fitz only, page rotation 0. Verified: III -113,240 = I -149,589 + II 36,349 exactly; I equals the P&L period-net via bank_audit_pl_roles (XXV.); II = 2.1 + 2.2 and each subtotal = sum of its children."
+    },
+    {
+      "bank_ticker": "ICBCT",
+      "period": "2023Q3",
+      "kind": "unconsolidated",
+      "statement": "oci_replace",
+      "rows": [
+        {
+          "hierarchy": "I.",
+          "item_name": "DÖNEM KARI/ZARARI",
+          "amount": 1434486
+        },
+        {
+          "hierarchy": "II.",
+          "item_name": "DİĞER KAPSAMLI GELİRLER",
+          "amount": 312119
+        },
+        {
+          "hierarchy": "2.1",
+          "item_name": "Kar veya Zararda Yeniden Sınıflandırılmayacaklar",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.1",
+          "item_name": "Maddi Duran Varlıklar Yeniden Değerleme Artışları/Azalışları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.2",
+          "item_name": "Maddi Olmayan Duran Varlıklar Yeniden Değerleme Artışları/Azalışları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.3",
+          "item_name": "Tanımlanmış Fayda Planları Yeniden Ölçüm Kazançları/Kayıpları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.4",
+          "item_name": "Diğer Kâr veya Zarar Olarak Yeniden Sınıflandırılmayacak Diğer Kapsamlı Gelir Unsurları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.5",
+          "item_name": "Kâr veya Zararda Yeniden Sınıflandırılmayacak Diğer Kapsamlı Gelire İlişkin Vergiler",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2",
+          "item_name": "Kâr veya Zararda Yeniden Sınıflandırılacaklar",
+          "amount": 312119
+        },
+        {
+          "hierarchy": "2.2.1",
+          "item_name": "Yabancı Para Çevirim Farkları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.2",
+          "item_name": "Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılan Finansal Varlıkların Değerleme ve/veya Sınıflandırma Gelirleri/Giderleri",
+          "amount": 452516
+        },
+        {
+          "hierarchy": "2.2.3",
+          "item_name": "Nakit Akış Riskinden Korunma Gelirleri/Giderleri",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.4",
+          "item_name": "Yurtdışındaki İşletmeye İlişkin Yatırım Riskinden Korunma Gelirleri/Giderleri",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.5",
+          "item_name": "Diğer Kâr veya Zarar Olarak Yeniden Sınıflandırılacak Diğer Kapsamlı Gelir Unsurları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.6",
+          "item_name": "Kâr veya Zararda Yeniden Sınıflandırılacak Diğer Kapsamlı Gelire İlişkin Vergiler",
+          "amount": -140397
+        },
+        {
+          "hierarchy": "III.",
+          "item_name": "TOPLAM KAPSAMLI GELİR (I+II)",
+          "amount": 1746605
+        }
+      ],
+      "note": "OCI stored row 1 was a page-header fragment — hierarchy='30', item_name='EYLÜL', amount=202.0, harvested from '30 EYLÜL 2023 TARİHİNDE SONA EREN...' — and it CONSUMED the real 'I.' row (16 stored = 1 stray + 15 real). Drops the stray and restores I. = 1,434,486. Read from PDF p12 (0-based), current-period column; fitz only, rotation 0. I 1,434,486 + II 312,119 = 1,746,605 vs printed III 1,746,605 -> CHAIN OK. I equals the P&L period-net via bank_audit_pl_roles (XXV.); 2.1=sum(2.1.x), 2.2=sum(2.2.x), II=2.1+2.2 all foot."
+    },
+    {
+      "bank_ticker": "ISCTR",
+      "period": "2025Q4",
+      "kind": "consolidated",
+      "statement": "oci_replace",
+      "rows": [
+        {
+          "hierarchy": "I.",
+          "item_name": "PROFIT/LOSS FOR THE PERIOD",
+          "amount": 90064467
+        },
+        {
+          "hierarchy": "II.",
+          "item_name": "OTHER COMPREHENSIVE INCOME",
+          "amount": 50079934
+        },
+        {
+          "hierarchy": "2.1",
+          "item_name": "Other comprehensive income that will not be reclassified to profit or loss",
+          "amount": 27039846
+        },
+        {
+          "hierarchy": "2.1.1",
+          "item_name": "Revaluation Surplus on Tangible Assets",
+          "amount": 20703870
+        },
+        {
+          "hierarchy": "2.1.2",
+          "item_name": "Revaluation Surplus on Intangible Assets",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.3",
+          "item_name": "Gains/(Losses) on remeasurements of Defined Benefit Plans",
+          "amount": -1441649
+        },
+        {
+          "hierarchy": "2.1.4",
+          "item_name": "Other Income/Expense Items of Other Comprehensive Income not to be Reclassified to Profit Or Loss",
+          "amount": 11101930
+        },
+        {
+          "hierarchy": "2.1.5",
+          "item_name": "Taxes Relating To Components Of Other Comprehensive Income not to be Reclassified To Profit Or Loss",
+          "amount": -3324305
+        },
+        {
+          "hierarchy": "2.2",
+          "item_name": "Other Income/Expense Items not be Reclassified to Profit or Loss",
+          "amount": 23040088
+        },
+        {
+          "hierarchy": "2.2.1",
+          "item_name": "Exchange Differences on Translation",
+          "amount": 9386870
+        },
+        {
+          "hierarchy": "2.2.2",
+          "item_name": "Valuation and/or Reclassification Profit or Loss from Financial Assets at Fair Value through Other Comprehensive Income",
+          "amount": 11068934
+        },
+        {
+          "hierarchy": "2.2.3",
+          "item_name": "Income/(Loss) Related with Cash Flow Hedges",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.4",
+          "item_name": "Income/(Loss) Related with Hedges of Net Investments in Foreign Operations",
+          "amount": -6382567
+        },
+        {
+          "hierarchy": "2.2.5",
+          "item_name": "Other Income/Expense Items of Other Comprehensive Income to be Reclassified to Other Profit or Loss",
+          "amount": 10287274
+        },
+        {
+          "hierarchy": "2.2.6",
+          "item_name": "Taxes Relating To Components Of Other Comprehensive Income to be Reclassified To Profit Or Loss",
+          "amount": -1320423
+        },
+        {
+          "hierarchy": "III.",
+          "item_name": "TOTAL COMPREHENSIVE INCOME (I+II)",
+          "amount": 140144401
+        }
+      ],
+      "note": "OCI the 'I.' MARKER GLYPH is not printed at all — the marker cell is visually blank while 'II.' below it prints normally. The value 90,064,467 IS in the text layer at x=435.6 (the current column) but the row carried no hierarchy, so it was dropped. The other 15 stored rows match the source exactly; this restores 'I.'. Read from PDF p22 (0-based), current-period column; fitz only, rotation 0. I 90,064,467 + II 50,079,934 = 140,144,401 vs printed III 140,144,401 -> CHAIN OK. I equals the P&L period-net via bank_audit_pl_roles (XXV.); 2.1=sum(2.1.x), 2.2=sum(2.2.x), II=2.1+2.2 all foot."
+    },
+    {
+      "bank_ticker": "TOMK",
+      "period": "2024Q1",
+      "kind": "unconsolidated",
+      "statement": "oci_replace",
+      "rows": [
+        {
+          "hierarchy": "I.",
+          "item_name": "DÖNEM KARI/ZARARI",
+          "amount": -97230
+        },
+        {
+          "hierarchy": "II.",
+          "item_name": "DİĞER KAPSAMLI GELİRLER",
+          "amount": -189
+        },
+        {
+          "hierarchy": "2.1",
+          "item_name": "Kar veya Zararda Yeniden Sınıflandırılmayacaklar",
+          "amount": -189
+        },
+        {
+          "hierarchy": "2.1.1",
+          "item_name": "Maddi Duran Varlıklar Yeniden Değerleme Artışları/Azalışları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.2",
+          "item_name": "Maddi Olmayan Duran Varlıklar Yeniden Değerleme Artışları/Azalışları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.3",
+          "item_name": "Tanımlanmış Fayda Planları Yeniden Ölçüm Kazançları/Kayıpları",
+          "amount": -269
+        },
+        {
+          "hierarchy": "2.1.4",
+          "item_name": "Diğer Kar veya Zarar Olarak Yeniden Sınıflandırılmayacak Diğer Kapsamlı Gelir Unsurları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.1.5",
+          "item_name": "Kar veya Zararda Yeniden Sınırlandırılmayacak Diğer Kapsamlı Gelire İlişkin Vergiler",
+          "amount": 80
+        },
+        {
+          "hierarchy": "2.2",
+          "item_name": "Kar veya Zararda Yeniden Sınıflandırılacaklar",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.1",
+          "item_name": "Yabancı Para Çevirim Farkları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.2",
+          "item_name": "Gerçeğe Uygun Değer Farkı Diğer Kapsamlı Gelire Yansıtılan Finansal Varlıkların Değerleme ve/veya Sınıflandırma Gelirleri/Giderleri",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.3",
+          "item_name": "Nakit Akış Riskinden Korunma Gelirleri/Giderleri",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.4",
+          "item_name": "Yurtdışındaki İşletmeye İlişkin Yatırım Riskinden Korunma Gelirleri/Giderleri",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.5",
+          "item_name": "Diğer Kâr veya Zarar Olarak Yeniden Sınıflandırılacak Diğer Kapsamlı Gelir Unsurları",
+          "amount": 0
+        },
+        {
+          "hierarchy": "2.2.6",
+          "item_name": "Kar veya Zararda Yeniden Sınıflandırılacak Diğer Kapsamlı Gelire İlişkin Vergiler",
+          "amount": 0
+        },
+        {
+          "hierarchy": "III.",
+          "item_name": "TOPLAM KAPSAMLI GELİR (I+II)",
+          "amount": 97419
+        }
+      ],
+      "note": "OCI stored row 1 was the same page-header fragment — hierarchy='31', item_name='MART', amount=202.0 from '31 MART 2024 TARİHİNDE...' (17 stored = 1 stray + 16 real). This override ONLY drops that stray row; rows 2-17 were already correct. NOTE: this partition's III is a GENUINE SOURCE TYPO (the filing prints 97.419 with no parentheses where I+II = -97,419) and is therefore ALSO on _OCI_SKIP — the two actions are independent and neither substitutes for the other. The figures here are transcribed AS PRINTED; III is deliberately NOT 'corrected'. Read from PDF p12 (0-based), current-period column; fitz only, rotation 0. I -97,230 + II -189 = -97,419 vs printed III 97,419 -> CHAIN FAILS (source typo). I equals the P&L period-net via bank_audit_pl_roles (XXV.); 2.1=sum(2.1.x), 2.2=sum(2.2.x), II=2.1+2.2 all foot."
     }
   ]
 }
