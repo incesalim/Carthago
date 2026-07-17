@@ -564,8 +564,12 @@ CREATE TABLE IF NOT EXISTS bank_audit_statement_types (
     label         TEXT NOT NULL,
     source_table  TEXT NOT NULL,
     statement     TEXT,                  -- BS sub-statement value, else NULL
-    is_core       INTEGER NOT NULL DEFAULT 0,
+    section       TEXT NOT NULL DEFAULT '',  -- report Bölüm number: '1'/'2'/'4'/'5'/'7'.
+    --                                    Provenance — the ONLY field that says primary
+    --                                    statement vs note. is_core does NOT (registry.py).
+    is_core       INTEGER NOT NULL DEFAULT 0,  -- severity: gates extractions.success
     has_validator INTEGER NOT NULL DEFAULT 0,
+    section_rank  INTEGER NOT NULL DEFAULT 99, -- registry.SECTION_ORDER position (display)
     sort_order    INTEGER NOT NULL DEFAULT 0
 );
 

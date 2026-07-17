@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { SecHead } from "@/app/components/desk";
 import CoverageDrawer, { type OpenCell } from "./CoverageDrawer";
@@ -26,14 +26,36 @@ const STATUS_TONE: Record<string, string> = {
   not_expected: "text-faint",
 };
 
+// No is_core here on purpose — the API sends it, this view has no business
+// reading it (see SECTION_HEAD below).
 interface TypeRow {
   key: string;
   label: string;
   statement: string | null;
-  is_core: number;
+  section: string;
   has_validator: number;
+  section_rank: number;
   sort_order: number;
 }
+
+// Lane groups = the report Bölüm each table is printed in (registry.section).
+//
+// This used to group on is_core, which put OCI, changes-in-equity, cash-flow and
+// off-balance under a heading reading "Footnotes & §4". None of them is a
+// footnote: TAS 1 requires OCI, changes-in-equity and cash-flow in a complete set
+// of financial statements, and off-balance ("Nazım Hesaplar") prints on the
+// balance-sheet page. is_core only marks the three lanes whose absence fails the
+// whole extraction — a severity flag, not an accounting taxonomy. Group on
+// `section`; let is_core gate extractions.success and nothing else.
+// Keyed by the bare Bölüm number the registry stores; the § is typography.
+const SECTION_HEAD: Record<string, string> = {
+  "2": "Core statements · §2 Financial statements",
+  "5": "Notes · §5",
+  "4": "Risk & capital · §4",
+  "1": "General information · §1",
+  "7": "Auditor's report · §7",
+};
+
 interface SummaryRow {
   statement_type: string;
   kind: string;
@@ -146,12 +168,25 @@ export default function CoverageMatrix() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [summary, mode]);
 
-  const ordered = useMemo(
-    () => [...types].sort((a, b) => b.is_core - a.is_core || a.sort_order - b.sort_order),
-    [types],
-  );
-  const coreTypes = ordered.filter((t) => t.is_core);
-  const footTypes = ordered.filter((t) => !t.is_core);
+  // Sections in registry.SECTION_ORDER order (section_rank), lanes by sort_order
+  // within each. A section the registry adds but SECTION_HEAD doesn't know still
+  // renders, headed by "§<n>" — a new lane can't vanish from the matrix.
+  const groups = useMemo(() => {
+    const ordered = [...types].sort(
+      (a, b) => a.section_rank - b.section_rank || a.sort_order - b.sort_order,
+    );
+    const bySection = new Map<string, TypeRow[]>();
+    for (const t of ordered) {
+      const g = bySection.get(t.section);
+      if (g) g.push(t);
+      else bySection.set(t.section, [t]);
+    }
+    return [...bySection].map(([section, rows]) => ({
+      section,
+      head: SECTION_HEAD[section] ?? (section ? `§${section}` : "Section not set"),
+      rows,
+    }));
+  }, [types]);
   const labelOf = (key: string) => types.find((t) => t.key === key)?.label ?? key;
 
   const totals = useMemo(() => {
@@ -320,20 +355,16 @@ export default function CoverageMatrix() {
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td colSpan={7} className={grp}>
-              Core statements
-            </td>
-          </tr>
-          {coreTypes.map(laneRow)}
-          {footTypes.length > 0 && (
-            <tr>
-              <td colSpan={7} className={grp}>
-                Footnotes &amp; §4
-              </td>
-            </tr>
-          )}
-          {footTypes.map(laneRow)}
+          {groups.map((g) => (
+            <Fragment key={g.section}>
+              <tr>
+                <td colSpan={7} className={grp}>
+                  {g.head}
+                </td>
+              </tr>
+              {g.rows.map(laneRow)}
+            </Fragment>
+          ))}
         </tbody>
       </table>
     </div>

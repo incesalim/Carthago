@@ -344,8 +344,8 @@ def build(conn: sqlite3.Connection, use_r2: bool):
                 status = "not_expected"
             coverage_rows.append((b, p, k, st.key, status, rows, cf, int(is_manual), present))
 
-    type_rows = [(m["key"], m["label"], m["table"], m["statement"],
-                  m["is_core"], m["has_validator"], m["sort_order"])
+    type_rows = [(m["key"], m["label"], m["table"], m["statement"], m["section"],
+                  m["is_core"], m["has_validator"], m["section_rank"], m["sort_order"])
                  for m in registry.web_metadata()]
     return expected_rows, type_rows, coverage_rows
 
@@ -359,7 +359,8 @@ def write(conn: sqlite3.Connection, expected_rows, type_rows, coverage_rows) -> 
     conn.execute("DELETE FROM bank_audit_statement_types")
     conn.executemany(
         "INSERT INTO bank_audit_statement_types (key, label, source_table, statement, "
-        "is_core, has_validator, sort_order) VALUES (?,?,?,?,?,?,?)", type_rows)
+        "section, is_core, has_validator, section_rank, sort_order) "
+        "VALUES (?,?,?,?,?,?,?,?,?)", type_rows)
     conn.execute("DELETE FROM bank_audit_coverage")
     conn.executemany(
         "INSERT INTO bank_audit_coverage (bank_ticker, period, kind, statement_type, "

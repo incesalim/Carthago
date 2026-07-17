@@ -11,8 +11,13 @@ export interface StatementTypeRow {
   label: string;
   source_table: string;
   statement: string | null;
+  /** Report Bölüm ('§1'/'§2'/'§4'/'§5'/'§7') — provenance, and the only field
+   *  that says primary statement vs note. Group the matrix on THIS, never on
+   *  is_core, which is a severity flag (see src/audit_reports/registry.py). */
+  section: string;
   is_core: number;
   has_validator: number;
+  section_rank: number;
   sort_order: number;
 }
 
@@ -66,8 +71,9 @@ export async function statementTypes(): Promise<StatementTypeRow[]> {
     const db = await getDB();
     const { results } = await db
       .prepare(
-        `SELECT key, label, source_table, statement, is_core, has_validator, sort_order
-         FROM bank_audit_statement_types ORDER BY sort_order`,
+        `SELECT key, label, source_table, statement, section, is_core, has_validator,
+                section_rank, sort_order
+         FROM bank_audit_statement_types ORDER BY section_rank, sort_order`,
       )
       .all<StatementTypeRow>();
     return results;
