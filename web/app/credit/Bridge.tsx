@@ -28,9 +28,10 @@ type Step =
   | { kind: "cut"; label: string; sub?: string; value: number };
 
 export default function Bridge({ bridge }: { bridge: CreditBridge }) {
-  const { nominal, fxAdj, realFxAdj, currencyPp, inflationPp, cpi, asOfReal, lagged } = bridge;
+  const { nominalAtReal, fxAdj, realFxAdj, currencyPp, inflationPp, cpi, asOfReal, lagged } =
+    bridge;
   if (
-    nominal == null || fxAdj == null || realFxAdj == null ||
+    nominalAtReal == null || fxAdj == null || realFxAdj == null ||
     currencyPp == null || inflationPp == null
   ) {
     return (
@@ -40,9 +41,6 @@ export default function Bridge({ bridge }: { bridge: CreditBridge }) {
       </p>
     );
   }
-
-  // Read the nominal leg at the REAL week, so a CPI lag can't mix two dates.
-  const nominalAtReal = realFxAdj + inflationPp + currencyPp;
 
   const steps: Step[] = [
     // Nominal is the only CONTEXT bar: it is where the reader starts, not the

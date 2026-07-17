@@ -5,6 +5,27 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-07-17.
 
+2026-07-17 — **/credit's bridge prose read the nominal at the wrong week — the
+sentence stopped adding up to its own chart.** `creditBridge` computed
+`nominalAtReal` (the nominal read at the week the *real* legs end, so a CPI lag
+can't mix a July nominal with a June real) and then **discarded it**, returning
+only `nominal` at the latest week. `Bridge.tsx` worked around the gap by
+reconstructing the start bar from the legs (`realFxAdj + inflationPp +
+currencyPp`), so the chart stayed correct — but the prose beside it had no such
+workaround and printed `bridge.nominal`. Live, that read **"Nominal credit grew
+36.2%"** next to a chart bar reading **36.4%**, and the paragraph's own
+arithmetic broke: 36.2 − 7.1 − 31.4 = −2.3, while it concluded the book shrank
+**2.1%**. Exactly the failure `credit.ts`'s own comment says the design guards
+against — the guard reached `currencyPp` and the chart, never the sentence. Fix:
+expose `nominalAtReal` on `CreditBridge`; the chart now reads it instead of
+re-deriving it, and the prose starts from it. `nominal` stays the vitals'
+headline (latest week), which is correct for the Vitals + Attribution sections.
+The bug was invisible to tests because the fixture held nominal **flat**, so both
+fields coincided — and the reconciliation test hardcoded `36.6` rather than
+reading the field it stood for. The fixture now moves the last week, and three
+tests pin the split. Widened by the weekly refresh (real legs sit at W/E 26 Jun
+until July CPI prints ~3 Aug, so the gap grows a week every Friday).
+
 2026-07-17 — **IFRS-9 stages: 12 errors → 0, and two "the bank didn't disclose
 it" notes were false claims about the bank.** The new `stages_bs_loans`
 reconciliation (stages total ⋈ balance-sheet loans 2.1) flagged 9 cells, **6 of

@@ -441,8 +441,11 @@ export default async function CreditPage() {
         <div className="self-center">
           <p className="text-[19px] leading-snug tracking-tight text-foreground">
             Nominal credit grew{" "}
-            <b className="font-mono font-semibold">{fmtPct(bridge.nominal)}</b>. Strip the lira and
-            the price level and the loan book{" "}
+            {/* nominalAtReal, NOT nominal: this sentence then subtracts the legs, which
+                are read at the real week. Pairing the latest nominal with June legs made
+                the sentence stop adding up (36.2% − 7.1 − 31.4 ≠ −2.1%). */}
+            <b className="font-mono font-semibold">{fmtPct(bridge.nominalAtReal)}</b>. Strip the
+            lira and the price level and the loan book{" "}
             {realFxNow != null && realFxNow < 0 ? (
               <b className="font-semibold text-negative">shrank {fmtPct(Math.abs(realFxNow))}</b>
             ) : (
