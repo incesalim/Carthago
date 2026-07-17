@@ -4461,6 +4461,94 @@
         }
       ],
       "note": "OCI stored row 1 was the same page-header fragment — hierarchy='31', item_name='MART', amount=202.0 from '31 MART 2024 TARİHİNDE...' (17 stored = 1 stray + 16 real). This override ONLY drops that stray row; rows 2-17 were already correct. NOTE: this partition's III is a GENUINE SOURCE TYPO (the filing prints 97.419 with no parentheses where I+II = -97,419) and is therefore ALSO on _OCI_SKIP — the two actions are independent and neither substitutes for the other. The figures here are transcribed AS PRINTED; III is deliberately NOT 'corrected'. Read from PDF p12 (0-based), current-period column; fitz only, rotation 0. I -97,230 + II -189 = -97,419 vs printed III 97,419 -> CHAIN FAILS (source typo). I equals the P&L period-net via bank_audit_pl_roles (XXV.); 2.1=sum(2.1.x), 2.2=sum(2.2.x), II=2.1+2.2 all foot."
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2024Q3",
+      "kind": "unconsolidated",
+      "statement": "cash_flow",
+      "hierarchy": "IV.",
+      "item_name": "Yabancı Para Çevrim Farklarının Nakit ve Nakde Eşdeğer Varlıklar Üzerindeki Etkisi",
+      "amount": 1643776,
+      "item_order": 41,
+      "note": "roman IV (FX effect on cash) dropped: its label WRAPS two lines in the filing, so the marker renders on the second line while the values align with the FIRST — the extractor lost the row and the spine jumps III->V. Read from PDF p16 (0-based) by coordinate (the value sits ~4pt ABOVE the 'IV.' marker, x in the current-period column); prints '1.643.776'. Independently corroborated: the chain requires V-(I+II+III) = 1,643,776 and the PDF prints exactly that, so the figure is confirmed twice rather than derived from the identity it will be checked against. Slotted at item_order 41 (V.'s slot, pushing V/VI/VII down) so it enters the spine and V=I+II+III+IV runs."
+    },
+    {
+      "bank_ticker": "KUVEYT",
+      "period": "2023Q2",
+      "kind": "unconsolidated",
+      "statement": "cash_flow",
+      "hierarchy": "IV.",
+      "item_name": "Yabancı Para Çevrim Farklarının Nakit ve Nakde Eşdeğer Varlıklar Üzerindeki Etkisi",
+      "amount": 16844331,
+      "item_order": 39,
+      "note": "roman IV (FX effect on cash) dropped: its label WRAPS two lines in the filing, so the marker renders on the second line while the values align with the FIRST — the extractor lost the row and the spine jumps III->V. Read from PDF p14 (0-based) by coordinate (the value sits ~4pt ABOVE the 'IV.' marker, x in the current-period column); prints '16,844,331'. Independently corroborated: the chain requires V-(I+II+III) = 16,844,331 and the PDF prints exactly that, so the figure is confirmed twice rather than derived from the identity it will be checked against. Slotted at item_order 39 (V.'s slot, pushing V/VI/VII down) so it enters the spine and V=I+II+III+IV runs."
+    },
+    {
+      "bank_ticker": "KUVEYT",
+      "period": "2024Q2",
+      "kind": "unconsolidated",
+      "statement": "cash_flow",
+      "hierarchy": "IV.",
+      "item_name": "Yabancı Para Çevrim Farklarının Nakit ve Nakde Eşdeğer Varlıklar Üzerindeki Etkisi",
+      "amount": 11417387,
+      "item_order": 39,
+      "note": "roman IV (FX effect on cash) dropped: its label WRAPS two lines in the filing, so the marker renders on the second line while the values align with the FIRST — the extractor lost the row and the spine jumps III->V. Read from PDF p14 (0-based) by coordinate (the value sits ~4pt ABOVE the 'IV.' marker, x in the current-period column); prints '11,417,387'. Independently corroborated: the chain requires V-(I+II+III) = 11,417,387 and the PDF prints exactly that, so the figure is confirmed twice rather than derived from the identity it will be checked against. Slotted at item_order 39 (V.'s slot, pushing V/VI/VII down) so it enters the spine and V=I+II+III+IV runs."
+    },
+    {
+      "bank_ticker": "KUVEYT",
+      "period": "2024Q4",
+      "kind": "consolidated",
+      "statement": "cash_flow",
+      "hierarchy": "IV.",
+      "item_name": "Yabancı Para Çevrim Farklarının Nakit ve Nakde Eşdeğer Varlıklar Üzerindeki Etkisi",
+      "amount": 36386313,
+      "item_order": 41,
+      "note": "roman IV (FX effect on cash) dropped: its label WRAPS two lines in the filing, so the marker renders on the second line while the values align with the FIRST — the extractor lost the row and the spine jumps III->V. Read from PDF p17 (0-based) by coordinate (the value sits ~4pt ABOVE the 'IV.' marker, x in the current-period column); prints '36,386,313'. Independently corroborated: the chain requires V-(I+II+III) = 36,386,313 and the PDF prints exactly that, so the figure is confirmed twice rather than derived from the identity it will be checked against. Slotted at item_order 41 (V.'s slot, pushing V/VI/VII down) so it enters the spine and V=I+II+III+IV runs."
+    },
+    {
+      "bank_ticker": "KUVEYT",
+      "period": "2024Q4",
+      "kind": "unconsolidated",
+      "statement": "cash_flow",
+      "hierarchy": "IV.",
+      "item_name": "Yabancı Para Çevrim Farklarının Nakit ve Nakde Eşdeğer Varlıklar Üzerindeki Etkisi",
+      "amount": 36516686,
+      "item_order": 41,
+      "note": "roman IV (FX effect on cash) dropped: its label WRAPS two lines in the filing, so the marker renders on the second line while the values align with the FIRST — the extractor lost the row and the spine jumps III->V. Read from PDF p17 (0-based) by coordinate (the value sits ~4pt ABOVE the 'IV.' marker, x in the current-period column); prints '36,516,686'. Independently corroborated: the chain requires V-(I+II+III) = 36,516,686 and the PDF prints exactly that, so the figure is confirmed twice rather than derived from the identity it will be checked against. Slotted at item_order 41 (V.'s slot, pushing V/VI/VII down) so it enters the spine and V=I+II+III+IV runs."
+    },
+    {
+      "bank_ticker": "KUVEYT",
+      "period": "2025Q4",
+      "kind": "consolidated",
+      "statement": "cash_flow",
+      "hierarchy": "IV.",
+      "item_name": "Yabancı Para Çevrim Farklarının Nakit ve Nakde Eşdeğer Varlıklar Üzerindeki Etkisi",
+      "amount": 153590403,
+      "item_order": 41,
+      "note": "roman IV (FX effect on cash) dropped: its label WRAPS two lines in the filing, so the marker renders on the second line while the values align with the FIRST — the extractor lost the row and the spine jumps III->V. Read from PDF p17 (0-based) by coordinate (the value sits ~4pt ABOVE the 'IV.' marker, x in the current-period column); prints '153,590,403'. Independently corroborated: the chain requires V-(I+II+III) = 153,590,403 and the PDF prints exactly that, so the figure is confirmed twice rather than derived from the identity it will be checked against. Slotted at item_order 41 (V.'s slot, pushing V/VI/VII down) so it enters the spine and V=I+II+III+IV runs."
+    },
+    {
+      "bank_ticker": "TAKAS",
+      "period": "2022Q4",
+      "kind": "unconsolidated",
+      "statement": "cash_flow",
+      "hierarchy": "IV.",
+      "item_name": "Döviz kurundaki değişimin nakit ve nakde eşdeğer varlıklar üzerindeki etkisi",
+      "amount": 455325,
+      "item_order": 42,
+      "note": "roman IV (FX effect on cash) dropped: the value is VECTOR-OUTLINED on this page — drawn as curves with NO text token, so fitz's text layer has nothing to read while the number is plainly visible in a render (the FIBA 2022Q1 class). Not a source gap: an 8x render of the value column shows '455,325'. Read from PDF p20 (0-based). Independently corroborated: the chain requires V-(I+II+III) = 455,325 and the PDF prints exactly that, so the figure is confirmed twice rather than derived from the identity it will be checked against. Slotted at item_order 42 (V.'s slot, pushing V/VI/VII down) so it enters the spine and V=I+II+III+IV runs."
+    },
+    {
+      "bank_ticker": "TAKAS",
+      "period": "2023Q4",
+      "kind": "unconsolidated",
+      "statement": "cash_flow",
+      "hierarchy": "IV.",
+      "item_name": "Döviz kurundaki değişimin nakit ve nakde eşdeğer varlıklar üzerindeki etkisi",
+      "amount": -107194,
+      "item_order": 41,
+      "note": "roman IV (FX effect on cash) dropped: the value is VECTOR-OUTLINED on this page — drawn as curves with NO text token, so fitz's text layer has nothing to read while the number is plainly visible in a render (the FIBA 2022Q1 class). Not a source gap: an 8x render of the value column shows '(107,194)'. Read from PDF p21 (0-based). Independently corroborated: the chain requires V-(I+II+III) = -107,194 and the PDF prints exactly that, so the figure is confirmed twice rather than derived from the identity it will be checked against. Slotted at item_order 41 (V.'s slot, pushing V/VI/VII down) so it enters the spine and V=I+II+III+IV runs."
     }
   ]
 }
