@@ -712,6 +712,24 @@ def test_oci_empty_skips():
     assert res.failed == 0 and res.skipped >= 1
 
 
+def test_oci_offtemplate_row_fails():
+    """The page's own furniture parsed as data: the date header ("31 MART 2024
+    TARİHİNDE…" → hierarchy '31', name 'MART', amount 202 — the year truncated at
+    the thousands separator) or the statement title (→ the section's roman 'IV.').
+    577 such rows sat in 574 of 1050 partitions and EVERY ONE read green: a stray
+    takes no part in III = I + II, so no identity ever touched it."""
+    rows = _clean_oci() + [_oci_row("31", "MART", 202, scale=1)]
+    res = v.check_oci(rows)
+    assert any(f["check"] == "oci_offtemplate_row" for f in res.failures), res.failures
+
+
+def test_oci_template_rows_all_pass():
+    """The filter must not touch real data: romans I/II/III and the whole 2.x
+    sub-tree are the template (16,709 corpus rows conform, 0 don't)."""
+    res = v.check_oci(_clean_oci())
+    assert not any(f["check"] == "oci_offtemplate_row" for f in res.failures), res.failures
+
+
 def test_oci_dropped_roman_fails():
     """ISCTR 2025Q4 cons dropped a ~₺90bn roman I; ICBCT 2023Q3 lost roman I to a
     stray "30 | EYLÜL" date fragment read as hierarchy 30. Both were invisible:
