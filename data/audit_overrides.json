@@ -5761,6 +5761,442 @@
         "total_amount": 760620
       },
       "note": "FIBA's note-5.9.2 'Toplam donuk alacak hareketlerine ilişkin bilgiler' IS PRINTED but is invisible to fitz's get_text(): on this page the table is VECTOR-OUTLINED text (0 images, 504-625 vector drawings), leaving only the heading in the text layer above a ~360-440pt gap with zero numbers. The partition was WRONGLY curated as 'not disclosed' in audit_not_disclosed.json with the note '§5 notes are headings only + the Article-25 hazırlanmamıştır statement (Re-verified 2026-07-16)' — that note is wrong twice: the table is disclosed in full, and NO 'hazırlanmamıştır' statement exists on any of these six pages (it was carried over from a different FIBA page). Read from PDF p55 (0-based) by 7x RENDER, fitz only — not one figure came from get_text(). Corroboration: FIBA prints cons == unco for all 3 groups in all 26 already-extracted partitions, and 2023Q3/2024Q1 UNCONSOLIDATED are already in the DB from an independent text-based extraction — all 24 comparable cells match digit-for-digit. Transfers balance (Σin == Σout) and closing - provision == net in all 6. (stage1/2/3 carry BRSA GROUPS III/IV/V for the npl_brsa_* sections, not IFRS stages; total = III+IV+V.)"
+    },
+    {
+      "bank_ticker": "SKBNK",
+      "period": "2025Q4",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "loans_by_stage",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 111006953,
+        "stage2_amount": 3271861,
+        "total_amount": 114278814
+      },
+      "note": "loans_by_stage took the WRONG TABLE: §4 c.4.3 'Exposures provisioned against by major regions and sectors' — the NPL-BY-SECTOR table, whose columns are Loans-Under-Follow-Up | Stage-3 Provisions | Write-Offs — with the stage-table column rule applied to it (S1 := Total col1, S2 := sum(col2..coln)). That rule reproduces the stored numbers EXACTLY on all 5 SKBNK partitions. Tell: the stored S2 793,312 appears NOWHERE in the PDF — it is synthesised by summing Stage-3 Provisions + Write-Offs. Result was a published NPL of 39.51% against a truth of 0.70%. The real table is 'b. Information on standard loans and restructured loans under close monitoring' on PDF p105 (0-based); S2 = the three close-monitoring sub-columns summed, which is the convention the clean 2023Q4 control already stores. Independently confirmed by the maturity table (c.) on the same page, which re-prints the same totals in a 3-column shape, and every Total row equals the sum of its own component rows in all columns (20/20). fitz text layer, rotation 0."
+    },
+    {
+      "bank_ticker": "SKBNK",
+      "period": "2025Q4",
+      "kind": "consolidated",
+      "statement": "credit_quality",
+      "section": "loans_by_stage",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 117288178,
+        "stage2_amount": 4328731,
+        "total_amount": 121616909
+      },
+      "note": "loans_by_stage took the WRONG TABLE: §4 c.4.3 'Exposures provisioned against by major regions and sectors' — the NPL-BY-SECTOR table, whose columns are Loans-Under-Follow-Up | Stage-3 Provisions | Write-Offs — with the stage-table column rule applied to it (S1 := Total col1, S2 := sum(col2..coln)). That rule reproduces the stored numbers EXACTLY on all 5 SKBNK partitions. Tell: the stored S2 1,003,122 appears NOWHERE in the PDF — it is synthesised by summing Stage-3 Provisions + Write-Offs. Result was a published NPL of 38.68% against a truth of 0.75%. The real table is 'b. Information on standard loans and restructured loans under close monitoring' on PDF p110 (0-based); S2 = the three close-monitoring sub-columns summed, which is the convention the clean 2023Q4 control already stores. Independently confirmed by the maturity table (c.) on the same page, which re-prints the same totals in a 3-column shape, and every Total row equals the sum of its own component rows in all columns (20/20). fitz text layer, rotation 0."
+    },
+    {
+      "bank_ticker": "SKBNK",
+      "period": "2024Q4",
+      "kind": "consolidated",
+      "statement": "credit_quality",
+      "section": "loans_by_stage",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 59692568,
+        "stage2_amount": 3420902,
+        "total_amount": 63113470
+      },
+      "note": "loans_by_stage took the WRONG TABLE: §4 c.4.3 'Exposures provisioned against by major regions and sectors' — the NPL-BY-SECTOR table, whose columns are Loans-Under-Follow-Up | Stage-3 Provisions | Write-Offs — with the stage-table column rule applied to it (S1 := Total col1, S2 := sum(col2..coln)). That rule reproduces the stored numbers EXACTLY on all 5 SKBNK partitions. Tell: the stored S2 755,746 appears NOWHERE in the PDF — it is synthesised by summing Stage-3 Provisions + Write-Offs. Result was a published NPL of 36.40% against a truth of 1.08%. The real table is 'b. Information on standard loans and restructured loans under close monitoring' on PDF p114 (0-based); S2 = the three close-monitoring sub-columns summed, which is the convention the clean 2023Q4 control already stores. Independently confirmed by the maturity table (c.) on the same page, which re-prints the same totals in a 3-column shape, and every Total row equals the sum of its own component rows in all columns (20/20). fitz text layer, rotation 0. NOTE: this filing's table b prints NO period label (bare 'Cash loans', a single block), so the extractor filed the RIGHT table under period_type='prior' — the correct current values were already sitting in the DB under the wrong label."
+    },
+    {
+      "bank_ticker": "SKBNK",
+      "period": "2022Q4",
+      "kind": "consolidated",
+      "statement": "credit_quality",
+      "section": "loans_by_stage",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 34620918,
+        "stage2_amount": 1645381,
+        "total_amount": 36266299
+      },
+      "note": "loans_by_stage took the WRONG TABLE: §4 c.4.3 'Exposures provisioned against by major regions and sectors' — the NPL-BY-SECTOR table, whose columns are Loans-Under-Follow-Up | Stage-3 Provisions | Write-Offs — with the stage-table column rule applied to it (S1 := Total col1, S2 := sum(col2..coln)). That rule reproduces the stored numbers EXACTLY on all 5 SKBNK partitions. Tell: the stored S2 1,926,561 appears NOWHERE in the PDF — it is synthesised by summing Stage-3 Provisions + Write-Offs. Result was a published NPL of 26.51% against a truth of 3.68%. The real table is 'b. Information on standard loans and restructured loans under close monitoring' on PDF p111 (0-based); S2 = the three close-monitoring sub-columns summed, which is the convention the clean 2023Q4 control already stores. Independently confirmed by the maturity table (c.) on the same page, which re-prints the same totals in a 3-column shape, and every Total row equals the sum of its own component rows in all columns (20/20). fitz text layer, rotation 0. NOTE: this filing's table b prints NO period label (bare 'Cash loans', a single block), so the extractor filed the RIGHT table under period_type='prior' — the correct current values were already sitting in the DB under the wrong label. The stored block was the PRIOR period's, so 2021 year-end NPL was filed as 2022Q4 loans."
+    },
+    {
+      "bank_ticker": "SKBNK",
+      "period": "2022Q4",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "loans_by_stage",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 32967035,
+        "stage2_amount": 1398147,
+        "total_amount": 34365182
+      },
+      "note": "loans_by_stage took the WRONG TABLE: §4 c.4.3 'Exposures provisioned against by major regions and sectors' — the NPL-BY-SECTOR table, whose columns are Loans-Under-Follow-Up | Stage-3 Provisions | Write-Offs — with the stage-table column rule applied to it (S1 := Total col1, S2 := sum(col2..coln)). That rule reproduces the stored numbers EXACTLY on all 5 SKBNK partitions. Tell: the stored S2 1,800,990 appears NOWHERE in the PDF — it is synthesised by summing Stage-3 Provisions + Write-Offs. Result was a published NPL of 26.39% against a truth of 3.61%. The real table is 'b. Information on standard loans and restructured loans under close monitoring' on PDF p112 (0-based); S2 = the three close-monitoring sub-columns summed, which is the convention the clean 2023Q4 control already stores. Independently confirmed by the maturity table (c.) on the same page, which re-prints the same totals in a 3-column shape, and every Total row equals the sum of its own component rows in all columns (20/20). fitz text layer, rotation 0. The stored block was the PRIOR period's, so 2021 year-end NPL was filed as 2022Q4 loans."
+    },
+    {
+      "bank_ticker": "EMLAK",
+      "period": "2022Q3",
+      "kind": "consolidated",
+      "statement": "credit_quality",
+      "section": "loans_by_stage",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 39744296,
+        "stage2_amount": 128380,
+        "total_amount": 39872676
+      },
+      "note": "loans_by_stage read the filing's printed 'Toplam' row (25.911.981 / 48.303) — which is FAITHFUL but the SOURCE ROW IS DEFECTIVE. EMLAK 2022Q3 consolidated p47 contradicts itself: the Toplam is short by 13,832,315 in col 1 and drops the 80,077 in col 3, while the 'Krediler' parent row and its 7 children (İhracat/İthalat/İşletme/Tüketici/Kredi Kartları/Mali Kesime/Diğer) both sum to 39.744.296 / 48.303 / 80.077. Confirmed by 7x render (text layer and image agree) and by x-coord column alignment. OVERRIDDEN — unlike ICBCT 2022Q4 group V (left flagged, where two tables disagreed and neither was clearly right), here the truth is unambiguous: FOUR independent confirmations agree on 39,744,296 and only the one Toplam row dissents — (1) the Krediler parent row = Σ its children; (2) EMLAK's OWN UNCONSOLIDATED book, same date p46, prints the identical table with a CORRECT Toplam '39.744.296 | 48.303 | 80.077' and is already in the DB from an independent extraction; (3) both books' BS loans 2.1 are identical (40,106,918) — the subsidiaries carry no loans, so cons MUST equal unco; (4) the reconstruction ties to BS at 0.9990 vs the printed row's 0.653. S2 = 48,303 + 80,077 = 128,380 (the printed Toplam drops the second close-monitoring column entirely). This is a reconstruction from the parent row, not a literal read of Toplam."
+    },
+    {
+      "bank_ticker": "DUNYAK",
+      "period": "2023Q4",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "loans_by_stage",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 0,
+        "stage2_amount": 0,
+        "total_amount": 0
+      },
+      "note": "NIL LOAN BOOK — stage 1/2 are a REAL 0, not NULL, so the section identity can RUN instead of leaving the cell with nothing verified. PDF (75pp) p11: BS '2.1 Krediler 5-I-5' is all dashes in BOTH the current and prior columns; p57 '5. Kredilere ilişkin açıklamalar / Bulunmamaktadır.' and every loan sub-note likewise. No Stage heading exists anywhere — the only two 'aşama' hits are 'açık artırma aşamasında' (a TMSF auction, unrelated). This bank holds a BDDK-APPROVED EXEMPTION from TFRS-9's impairment provisions under the Karşılıklar Yönetmeliği art. 9/6, provisioning instead under 'TFRS 9 uygulamayan bankalarca ayrılacak genel ve özel karşılıklar' — which is why no IFRS Stage-1/2 ECL split is published. fitz text layer, rotation 0."
+    },
+    {
+      "bank_ticker": "DUNYAK",
+      "period": "2023Q4",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "loans_ecl_brsa",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 0,
+        "stage2_amount": 0,
+        "total_amount": 0
+      },
+      "note": "NIL LOAN BOOK — no loans, therefore no loan ECL. Same evidence as loans_by_stage above. This bank holds a BDDK-APPROVED EXEMPTION from TFRS-9's impairment provisions under the Karşılıklar Yönetmeliği art. 9/6, provisioning instead under 'TFRS 9 uygulamayan bankalarca ayrılacak genel ve özel karşılıklar' — which is why no IFRS Stage-1/2 ECL split is published."
+    },
+    {
+      "bank_ticker": "HAYATK",
+      "period": "2023Q3",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "loans_by_stage",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 76342,
+        "stage2_amount": 0,
+        "total_amount": 76342
+      },
+      "note": "THE STAGE TABLE IS PRINTED — this cell was zero-pass because the amounts were never extracted, NOT because the bank withheld them. PDF (67pp) p42 §1.5.2 'Information on standard loans, loans under close monitoring and restructured loans under close monitoring': Total 76,342 (61,830 TP + 14,512 YP) = BS assets 2.1 EXACTLY. Stage 3 = 0 by prose zero (p44 §1.5.9 'Specific provisions for loans or default (third stage) provisions: None (31 December 2022 - None)' + §1.5.10.2 NPL movement 'None'). REFUTES the Article-25 hypothesis I raised: §1.5 is fully populated; Art.25 falls on NEIGHBOURING sub-notes only (§1.5.3 maturities, §1.5.10.5 aging, dividend income), never on the staging table. Found only on a BRSA-wording pass ('Standart Nitelikli'/'Yakın İzlemedeki'/'Standard Loans') — an IFRS-wording search ('Aşama'/'Stage') misses it. fitz text layer."
+    },
+    {
+      "bank_ticker": "HAYATK",
+      "period": "2023Q3",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "loans_ecl_brsa",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 399,
+        "stage2_amount": 0,
+        "total_amount": 399
+      },
+      "note": "ECL cross-tab on the same page (p42): '12 Month Expected Credit Losses 399 / Significant Increase in Credit Risk - / Total 399'. Only stage2=0 is added; the 399 was already stored. Reconciles: 237 (cash/banks) + 1,042 (BS 2.4) = 1,279 = p56 total ECL, of which the loan-specific part is 399."
+    },
+    {
+      "bank_ticker": "ZIRAATD",
+      "period": "2026Q1",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "loans_by_stage",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 700100,
+        "stage2_amount": 2549,
+        "total_amount": 702649
+      },
+      "note": "THE STAGE TABLE IS PRINTED — this cell was zero-pass because the amounts were never extracted. PDF (81pp) p55 §7.2 'Standart Nitelikli ve Yakın İzlemedeki (Birinci ve İkinci Grup Krediler) ile Yeniden Yapılandırılan Yakın İzlemedeki Kredilere İlişkin Bilgiler': Standart Nitelikli 700.100 + Yakın İzlemedeki 2.549 = 702.649 = BS assets 2.1 EXACTLY. Stage 3 corroborated three ways: BS p9 '2.5 Donuk Alacaklar (7) 52' with '2.6 Özel Karşılıklar (-) 10'; p58 §7.7 'Üçüncü Aşama' Toplam 10; §7.8.2 III. Grup Dönem Sonu Bakiyesi 52. Found on the BRSA-wording pass, not an IFRS one. This bank holds a BDDK-APPROVED EXEMPTION from TFRS-9's impairment provisions under the Karşılıklar Yönetmeliği art. 9/6, provisioning instead under 'TFRS 9 uygulamayan bankalarca ayrılacak genel ve özel karşılıklar' — which is why no IFRS Stage-1/2 ECL split is published. fitz text layer."
+    },
+    {
+      "bank_ticker": "ZIRAATD",
+      "period": "2026Q1",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 52,
+        "stage2_amount": 0,
+        "stage3_amount": 0,
+        "total_amount": 52
+      },
+      "note": "Stage-3 / NPL = 52, from BS p9 '2.5 Donuk Alacaklar (7) 52' and confirmed by p58 §7.8.2 'III. Grup Dönem Sonu Bakiyesi 52' (BRSA group III; IV and V are nil). The matching provision (10) is already stored in npl_brsa_provision. Without this the derived bank_audit_stages has no S3 at all."
+    },
+    {
+      "bank_ticker": "HAYATK",
+      "period": "2023Q3",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 0,
+        "stage2_amount": 0,
+        "stage3_amount": 0,
+        "total_amount": 0
+      },
+      "note": "PROSE ZERO — the bank states it in a sentence, not a table, so no table-anchored extractor can read it. PDF (67pp) p44 §1.5.9 VERBATIM: 'Specific provisions for loans or default (third stage) provisions: None (31 December 2022 - None)', corroborated by §1.5.10.2 (total NPL movement) = 'None'. Recorded as 0, not NULL, per check_stages' own stated contract ('a genuine zero-NPL bank stores S3 = 0, not NULL') — without it the derived stages row has S1/S2 captured and S3 NULL, which fires stages_stage3_missing, the DROPPED-COLUMN fingerprint. It is not dropped; it is nil. Same shape as the 18 prose-Stage-3 cells already curated (see project_credit_quality_floor_fix)."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2022Q1",
+      "kind": "consolidated",
+      "statement": "credit_quality",
+      "section": "loans_by_stage",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 22459758,
+        "stage2_amount": 3733086,
+        "total_amount": 26192844
+      },
+      "note": "FIBA's stage table is note §5.2 'Standart Nitelikli ve Yakın İzlemedeki krediler ile yeniden yapılandırılan Yakın İzlemedeki kredilere ilişkin bilgiler' — NOT §5.10, which is the prose interest-accrual note ('Banka donuk alacakları için faiz tahakkuku ve reeskontu yapmamaktadır'). Read from PDF p58 (0-based) via render; fitz only. stage2 = the three close-monitoring sub-columns summed (Yeniden Yapılandırma Kapsamında Yer Almayanlar + Sözleşme Koşullarında Değişiklik + Yeniden Finansman).\nDECISIVE CHECK — a closed reconciliation, not a band: S1 + S2 + S3 − faktoring alacakları = BS assets 2.1, EXACT TO THE LIRA. (The §5.2 Toplam includes factoring per its own (*) footnote; BS 2.1 excludes them, carrying them at 2.3.) Here: 22,459,758 + 3,733,086 + 670,301 − 74,289 = 26,788,856. The identity predicted S3 to the exact lira BEFORE it was rendered on four partitions. cons == unco for FIBA's stage table in every partition (verified byte-identical §5.2/ECL/NPL/BS in both books), so 2022Q4's identical cons/unco is GENUINE, not a cross-kind copy.\nThis partition was curated 'not disclosed' on an empty get_text(). The table IS printed — p58 has drawings=511, nums=0 (vector outlines). These are WHOLE-REPORT failures, not §5 failures: the balance sheet itself is vector-outlined too, which is why ~180k chars of prose have a text layer while every statement is drawn. An empty text band is meaningless as evidence of absence."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2022Q1",
+      "kind": "consolidated",
+      "statement": "credit_quality",
+      "section": "loans_ecl_brsa",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 178459,
+        "stage2_amount": 401484,
+        "total_amount": 579943
+      },
+      "note": "FIBA's stage table is note §5.2 'Standart Nitelikli ve Yakın İzlemedeki krediler ile yeniden yapılandırılan Yakın İzlemedeki kredilere ilişkin bilgiler' — NOT §5.10, which is the prose interest-accrual note ('Banka donuk alacakları için faiz tahakkuku ve reeskontu yapmamaktadır'). Read from PDF p58 (0-based) via render; fitz only. stage2 = the three close-monitoring sub-columns summed (Yeniden Yapılandırma Kapsamında Yer Almayanlar + Sözleşme Koşullarında Değişiklik + Yeniden Finansman).\nDECISIVE CHECK — a closed reconciliation, not a band: S1 + S2 + S3 − faktoring alacakları = BS assets 2.1, EXACT TO THE LIRA. (The §5.2 Toplam includes factoring per its own (*) footnote; BS 2.1 excludes them, carrying them at 2.3.) Here: 22,459,758 + 3,733,086 + 670,301 − 74,289 = 26,788,856. The identity predicted S3 to the exact lira BEFORE it was rendered on four partitions. cons == unco for FIBA's stage table in every partition (verified byte-identical §5.2/ECL/NPL/BS in both books), so 2022Q4's identical cons/unco is GENUINE, not a cross-kind copy.\nThis partition was curated 'not disclosed' on an empty get_text(). The table IS printed — p58 has drawings=511, nums=0 (vector outlines). These are WHOLE-REPORT failures, not §5 failures: the balance sheet itself is vector-outlined too, which is why ~180k chars of prose have a text layer while every statement is drawn. An empty text band is meaningless as evidence of absence."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2022Q1",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "loans_by_stage",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 22459758,
+        "stage2_amount": 3733086,
+        "total_amount": 26192844
+      },
+      "note": "FIBA's stage table is note §5.2 'Standart Nitelikli ve Yakın İzlemedeki krediler ile yeniden yapılandırılan Yakın İzlemedeki kredilere ilişkin bilgiler' — NOT §5.10, which is the prose interest-accrual note ('Banka donuk alacakları için faiz tahakkuku ve reeskontu yapmamaktadır'). Read from PDF p55 (0-based) via render; fitz only. stage2 = the three close-monitoring sub-columns summed (Yeniden Yapılandırma Kapsamında Yer Almayanlar + Sözleşme Koşullarında Değişiklik + Yeniden Finansman).\nDECISIVE CHECK — a closed reconciliation, not a band: S1 + S2 + S3 − faktoring alacakları = BS assets 2.1, EXACT TO THE LIRA. (The §5.2 Toplam includes factoring per its own (*) footnote; BS 2.1 excludes them, carrying them at 2.3.) Here: 22,459,758 + 3,733,086 + 670,301 − 74,289 = 26,788,856. The identity predicted S3 to the exact lira BEFORE it was rendered on four partitions. cons == unco for FIBA's stage table in every partition (verified byte-identical §5.2/ECL/NPL/BS in both books), so 2022Q4's identical cons/unco is GENUINE, not a cross-kind copy.\nThis partition was curated 'not disclosed' on an empty get_text(). The table IS printed — p55 has drawings=662, nums=0 (vector outlines). These are WHOLE-REPORT failures, not §5 failures: the balance sheet itself is vector-outlined too, which is why ~180k chars of prose have a text layer while every statement is drawn. An empty text band is meaningless as evidence of absence."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2022Q1",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "loans_ecl_brsa",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 178459,
+        "stage2_amount": 401484,
+        "total_amount": 579943
+      },
+      "note": "FIBA's stage table is note §5.2 'Standart Nitelikli ve Yakın İzlemedeki krediler ile yeniden yapılandırılan Yakın İzlemedeki kredilere ilişkin bilgiler' — NOT §5.10, which is the prose interest-accrual note ('Banka donuk alacakları için faiz tahakkuku ve reeskontu yapmamaktadır'). Read from PDF p55 (0-based) via render; fitz only. stage2 = the three close-monitoring sub-columns summed (Yeniden Yapılandırma Kapsamında Yer Almayanlar + Sözleşme Koşullarında Değişiklik + Yeniden Finansman).\nDECISIVE CHECK — a closed reconciliation, not a band: S1 + S2 + S3 − faktoring alacakları = BS assets 2.1, EXACT TO THE LIRA. (The §5.2 Toplam includes factoring per its own (*) footnote; BS 2.1 excludes them, carrying them at 2.3.) Here: 22,459,758 + 3,733,086 + 670,301 − 74,289 = 26,788,856. The identity predicted S3 to the exact lira BEFORE it was rendered on four partitions. cons == unco for FIBA's stage table in every partition (verified byte-identical §5.2/ECL/NPL/BS in both books), so 2022Q4's identical cons/unco is GENUINE, not a cross-kind copy.\nThis partition was curated 'not disclosed' on an empty get_text(). The table IS printed — p55 has drawings=662, nums=0 (vector outlines). These are WHOLE-REPORT failures, not §5 failures: the balance sheet itself is vector-outlined too, which is why ~180k chars of prose have a text layer while every statement is drawn. An empty text band is meaningless as evidence of absence."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2022Q4",
+      "kind": "consolidated",
+      "statement": "credit_quality",
+      "section": "loans_by_stage",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 35805335,
+        "stage2_amount": 3248468,
+        "total_amount": 39053803
+      },
+      "note": "FIBA's stage table is note §5.2 'Standart Nitelikli ve Yakın İzlemedeki krediler ile yeniden yapılandırılan Yakın İzlemedeki kredilere ilişkin bilgiler' — NOT §5.10, which is the prose interest-accrual note ('Banka donuk alacakları için faiz tahakkuku ve reeskontu yapmamaktadır'). Read from PDF p88 (0-based) via text layer; fitz only. stage2 = the three close-monitoring sub-columns summed (Yeniden Yapılandırma Kapsamında Yer Almayanlar + Sözleşme Koşullarında Değişiklik + Yeniden Finansman).\nDECISIVE CHECK — a closed reconciliation, not a band: S1 + S2 + S3 − faktoring alacakları = BS assets 2.1, EXACT TO THE LIRA. (The §5.2 Toplam includes factoring per its own (*) footnote; BS 2.1 excludes them, carrying them at 2.3.) Here: 35,805,335 + 3,248,468 + 665,426 − 186,790 = 39,532,439. The identity predicted S3 to the exact lira BEFORE it was rendered on four partitions. cons == unco for FIBA's stage table in every partition (verified byte-identical §5.2/ECL/NPL/BS in both books), so 2022Q4's identical cons/unco is GENUINE, not a cross-kind copy.\nROOT CAUSE: the extractor read the COLLATERAL-TYPE breakdown (note 5(8) 'teminat türüne göre detayı', p52 cons / p53 unco), whose Toplam row is 'Standart Cari | Standart Önceki | Yakın Cari | Yakın Önceki' = 35.805.335 | 18.574.043 | 3.248.468 | 3.540.679. It took col0 as S1 and summed cols 1-3 as S2: 18,574,043 + 3,248,468 + 3,540,679 = 25,363,190 — EXACT. It mixed CURRENT AND PRIOR periods across two portfolios, and 25,363,190 / 61,168,525 appear NOWHERE in either PDF. It won on first-wins dedup because p52 < p88. The true S2 (3,248,468) is confirmed by three independent tables: p88 §5.2 (351.691+2.896.777), p52's own Yakın-Cari column, and p50's sector table ('Toplam 3.248.468' under Kredi Riskinde Önemli Artış (İkinci Aşama)). Cross-period: it sits smoothly between 2022Q3 (3,417,194) and 2023Q1 (3,415,183) — the stored value would have required an 87% collapse in one quarter. FIBA's own footnote states %1,68; this implies 1.675%."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2022Q4",
+      "kind": "consolidated",
+      "statement": "credit_quality",
+      "section": "loans_ecl_brsa",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 340842,
+        "stage2_amount": 450534,
+        "total_amount": 791376
+      },
+      "note": "FIBA's stage table is note §5.2 'Standart Nitelikli ve Yakın İzlemedeki krediler ile yeniden yapılandırılan Yakın İzlemedeki kredilere ilişkin bilgiler' — NOT §5.10, which is the prose interest-accrual note ('Banka donuk alacakları için faiz tahakkuku ve reeskontu yapmamaktadır'). Read from PDF p88 (0-based) via text layer; fitz only. stage2 = the three close-monitoring sub-columns summed (Yeniden Yapılandırma Kapsamında Yer Almayanlar + Sözleşme Koşullarında Değişiklik + Yeniden Finansman).\nDECISIVE CHECK — a closed reconciliation, not a band: S1 + S2 + S3 − faktoring alacakları = BS assets 2.1, EXACT TO THE LIRA. (The §5.2 Toplam includes factoring per its own (*) footnote; BS 2.1 excludes them, carrying them at 2.3.) Here: 35,805,335 + 3,248,468 + 665,426 − 186,790 = 39,532,439. The identity predicted S3 to the exact lira BEFORE it was rendered on four partitions. cons == unco for FIBA's stage table in every partition (verified byte-identical §5.2/ECL/NPL/BS in both books), so 2022Q4's identical cons/unco is GENUINE, not a cross-kind copy.\nROOT CAUSE: the extractor read the COLLATERAL-TYPE breakdown (note 5(8) 'teminat türüne göre detayı', p52 cons / p53 unco), whose Toplam row is 'Standart Cari | Standart Önceki | Yakın Cari | Yakın Önceki' = 35.805.335 | 18.574.043 | 3.248.468 | 3.540.679. It took col0 as S1 and summed cols 1-3 as S2: 18,574,043 + 3,248,468 + 3,540,679 = 25,363,190 — EXACT. It mixed CURRENT AND PRIOR periods across two portfolios, and 25,363,190 / 61,168,525 appear NOWHERE in either PDF. It won on first-wins dedup because p52 < p88. The true S2 (3,248,468) is confirmed by three independent tables: p88 §5.2 (351.691+2.896.777), p52's own Yakın-Cari column, and p50's sector table ('Toplam 3.248.468' under Kredi Riskinde Önemli Artış (İkinci Aşama)). Cross-period: it sits smoothly between 2022Q3 (3,417,194) and 2023Q1 (3,415,183) — the stored value would have required an 87% collapse in one quarter. FIBA's own footnote states %1,68; this implies 1.675%."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2022Q4",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "loans_by_stage",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 35805335,
+        "stage2_amount": 3248468,
+        "total_amount": 39053803
+      },
+      "note": "FIBA's stage table is note §5.2 'Standart Nitelikli ve Yakın İzlemedeki krediler ile yeniden yapılandırılan Yakın İzlemedeki kredilere ilişkin bilgiler' — NOT §5.10, which is the prose interest-accrual note ('Banka donuk alacakları için faiz tahakkuku ve reeskontu yapmamaktadır'). Read from PDF p87 (0-based) via text layer; fitz only. stage2 = the three close-monitoring sub-columns summed (Yeniden Yapılandırma Kapsamında Yer Almayanlar + Sözleşme Koşullarında Değişiklik + Yeniden Finansman).\nDECISIVE CHECK — a closed reconciliation, not a band: S1 + S2 + S3 − faktoring alacakları = BS assets 2.1, EXACT TO THE LIRA. (The §5.2 Toplam includes factoring per its own (*) footnote; BS 2.1 excludes them, carrying them at 2.3.) Here: 35,805,335 + 3,248,468 + 665,426 − 186,790 = 39,532,439. The identity predicted S3 to the exact lira BEFORE it was rendered on four partitions. cons == unco for FIBA's stage table in every partition (verified byte-identical §5.2/ECL/NPL/BS in both books), so 2022Q4's identical cons/unco is GENUINE, not a cross-kind copy.\nROOT CAUSE: the extractor read the COLLATERAL-TYPE breakdown (note 5(8) 'teminat türüne göre detayı', p52 cons / p53 unco), whose Toplam row is 'Standart Cari | Standart Önceki | Yakın Cari | Yakın Önceki' = 35.805.335 | 18.574.043 | 3.248.468 | 3.540.679. It took col0 as S1 and summed cols 1-3 as S2: 18,574,043 + 3,248,468 + 3,540,679 = 25,363,190 — EXACT. It mixed CURRENT AND PRIOR periods across two portfolios, and 25,363,190 / 61,168,525 appear NOWHERE in either PDF. It won on first-wins dedup because p52 < p88. The true S2 (3,248,468) is confirmed by three independent tables: p88 §5.2 (351.691+2.896.777), p52's own Yakın-Cari column, and p50's sector table ('Toplam 3.248.468' under Kredi Riskinde Önemli Artış (İkinci Aşama)). Cross-period: it sits smoothly between 2022Q3 (3,417,194) and 2023Q1 (3,415,183) — the stored value would have required an 87% collapse in one quarter. FIBA's own footnote states %1,68; this implies 1.675%."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2022Q4",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "loans_ecl_brsa",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 340842,
+        "stage2_amount": 450534,
+        "total_amount": 791376
+      },
+      "note": "FIBA's stage table is note §5.2 'Standart Nitelikli ve Yakın İzlemedeki krediler ile yeniden yapılandırılan Yakın İzlemedeki kredilere ilişkin bilgiler' — NOT §5.10, which is the prose interest-accrual note ('Banka donuk alacakları için faiz tahakkuku ve reeskontu yapmamaktadır'). Read from PDF p87 (0-based) via text layer; fitz only. stage2 = the three close-monitoring sub-columns summed (Yeniden Yapılandırma Kapsamında Yer Almayanlar + Sözleşme Koşullarında Değişiklik + Yeniden Finansman).\nDECISIVE CHECK — a closed reconciliation, not a band: S1 + S2 + S3 − faktoring alacakları = BS assets 2.1, EXACT TO THE LIRA. (The §5.2 Toplam includes factoring per its own (*) footnote; BS 2.1 excludes them, carrying them at 2.3.) Here: 35,805,335 + 3,248,468 + 665,426 − 186,790 = 39,532,439. The identity predicted S3 to the exact lira BEFORE it was rendered on four partitions. cons == unco for FIBA's stage table in every partition (verified byte-identical §5.2/ECL/NPL/BS in both books), so 2022Q4's identical cons/unco is GENUINE, not a cross-kind copy.\nROOT CAUSE: the extractor read the COLLATERAL-TYPE breakdown (note 5(8) 'teminat türüne göre detayı', p52 cons / p53 unco), whose Toplam row is 'Standart Cari | Standart Önceki | Yakın Cari | Yakın Önceki' = 35.805.335 | 18.574.043 | 3.248.468 | 3.540.679. It took col0 as S1 and summed cols 1-3 as S2: 18,574,043 + 3,248,468 + 3,540,679 = 25,363,190 — EXACT. It mixed CURRENT AND PRIOR periods across two portfolios, and 25,363,190 / 61,168,525 appear NOWHERE in either PDF. It won on first-wins dedup because p52 < p88. The true S2 (3,248,468) is confirmed by three independent tables: p88 §5.2 (351.691+2.896.777), p52's own Yakın-Cari column, and p50's sector table ('Toplam 3.248.468' under Kredi Riskinde Önemli Artış (İkinci Aşama)). Cross-period: it sits smoothly between 2022Q3 (3,417,194) and 2023Q1 (3,415,183) — the stored value would have required an 87% collapse in one quarter. FIBA's own footnote states %1,68; this implies 1.675%."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2023Q3",
+      "kind": "consolidated",
+      "statement": "credit_quality",
+      "section": "loans_by_stage",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 45157225,
+        "stage2_amount": 4298067,
+        "total_amount": 49455292
+      },
+      "note": "FIBA's stage table is note §5.2 'Standart Nitelikli ve Yakın İzlemedeki krediler ile yeniden yapılandırılan Yakın İzlemedeki kredilere ilişkin bilgiler' — NOT §5.10, which is the prose interest-accrual note ('Banka donuk alacakları için faiz tahakkuku ve reeskontu yapmamaktadır'). Read from PDF p58 (0-based) via render; fitz only. stage2 = the three close-monitoring sub-columns summed (Yeniden Yapılandırma Kapsamında Yer Almayanlar + Sözleşme Koşullarında Değişiklik + Yeniden Finansman).\nDECISIVE CHECK — a closed reconciliation, not a band: S1 + S2 + S3 − faktoring alacakları = BS assets 2.1, EXACT TO THE LIRA. (The §5.2 Toplam includes factoring per its own (*) footnote; BS 2.1 excludes them, carrying them at 2.3.) Here: 45,157,225 + 4,298,067 + 544,524 − 218,188 = 49,781,628. The identity predicted S3 to the exact lira BEFORE it was rendered on four partitions. cons == unco for FIBA's stage table in every partition (verified byte-identical §5.2/ECL/NPL/BS in both books), so 2022Q4's identical cons/unco is GENUINE, not a cross-kind copy.\nThis partition was curated 'not disclosed' on an empty get_text(). The table IS printed — p58 is A3 (842x1191) with images=169, nums=0 — a pasted BITMAP. These are WHOLE-REPORT failures, not §5 failures: the balance sheet itself is vector-outlined too, which is why ~180k chars of prose have a text layer while every statement is drawn. An empty text band is meaningless as evidence of absence."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2023Q3",
+      "kind": "consolidated",
+      "statement": "credit_quality",
+      "section": "loans_ecl_brsa",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 302644,
+        "stage2_amount": 466556,
+        "total_amount": 769200
+      },
+      "note": "FIBA's stage table is note §5.2 'Standart Nitelikli ve Yakın İzlemedeki krediler ile yeniden yapılandırılan Yakın İzlemedeki kredilere ilişkin bilgiler' — NOT §5.10, which is the prose interest-accrual note ('Banka donuk alacakları için faiz tahakkuku ve reeskontu yapmamaktadır'). Read from PDF p58 (0-based) via render; fitz only. stage2 = the three close-monitoring sub-columns summed (Yeniden Yapılandırma Kapsamında Yer Almayanlar + Sözleşme Koşullarında Değişiklik + Yeniden Finansman).\nDECISIVE CHECK — a closed reconciliation, not a band: S1 + S2 + S3 − faktoring alacakları = BS assets 2.1, EXACT TO THE LIRA. (The §5.2 Toplam includes factoring per its own (*) footnote; BS 2.1 excludes them, carrying them at 2.3.) Here: 45,157,225 + 4,298,067 + 544,524 − 218,188 = 49,781,628. The identity predicted S3 to the exact lira BEFORE it was rendered on four partitions. cons == unco for FIBA's stage table in every partition (verified byte-identical §5.2/ECL/NPL/BS in both books), so 2022Q4's identical cons/unco is GENUINE, not a cross-kind copy.\nThis partition was curated 'not disclosed' on an empty get_text(). The table IS printed — p58 is A3 (842x1191) with images=169, nums=0 — a pasted BITMAP. These are WHOLE-REPORT failures, not §5 failures: the balance sheet itself is vector-outlined too, which is why ~180k chars of prose have a text layer while every statement is drawn. An empty text band is meaningless as evidence of absence."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2024Q1",
+      "kind": "consolidated",
+      "statement": "credit_quality",
+      "section": "loans_by_stage",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 52109118,
+        "stage2_amount": 3934736,
+        "total_amount": 56043854
+      },
+      "note": "FIBA's stage table is note §5.2 'Standart Nitelikli ve Yakın İzlemedeki krediler ile yeniden yapılandırılan Yakın İzlemedeki kredilere ilişkin bilgiler' — NOT §5.10, which is the prose interest-accrual note ('Banka donuk alacakları için faiz tahakkuku ve reeskontu yapmamaktadır'). Read from PDF p55 (0-based) via render; fitz only. stage2 = the three close-monitoring sub-columns summed (Yeniden Yapılandırma Kapsamında Yer Almayanlar + Sözleşme Koşullarında Değişiklik + Yeniden Finansman).\nDECISIVE CHECK — a closed reconciliation, not a band: S1 + S2 + S3 − faktoring alacakları = BS assets 2.1, EXACT TO THE LIRA. (The §5.2 Toplam includes factoring per its own (*) footnote; BS 2.1 excludes them, carrying them at 2.3.) Here: 52,109,118 + 3,934,736 + 846,683 − 452,167 = 56,438,370. The identity predicted S3 to the exact lira BEFORE it was rendered on four partitions. cons == unco for FIBA's stage table in every partition (verified byte-identical §5.2/ECL/NPL/BS in both books), so 2022Q4's identical cons/unco is GENUINE, not a cross-kind copy.\nThis partition was curated 'not disclosed' on an empty get_text(). The table IS printed — p55 has drawings=773, nums=0 (vector outlines). These are WHOLE-REPORT failures, not §5 failures: the balance sheet itself is vector-outlined too, which is why ~180k chars of prose have a text layer while every statement is drawn. An empty text band is meaningless as evidence of absence."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2024Q1",
+      "kind": "consolidated",
+      "statement": "credit_quality",
+      "section": "loans_ecl_brsa",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 254906,
+        "stage2_amount": 400723,
+        "total_amount": 655629
+      },
+      "note": "FIBA's stage table is note §5.2 'Standart Nitelikli ve Yakın İzlemedeki krediler ile yeniden yapılandırılan Yakın İzlemedeki kredilere ilişkin bilgiler' — NOT §5.10, which is the prose interest-accrual note ('Banka donuk alacakları için faiz tahakkuku ve reeskontu yapmamaktadır'). Read from PDF p55 (0-based) via render; fitz only. stage2 = the three close-monitoring sub-columns summed (Yeniden Yapılandırma Kapsamında Yer Almayanlar + Sözleşme Koşullarında Değişiklik + Yeniden Finansman).\nDECISIVE CHECK — a closed reconciliation, not a band: S1 + S2 + S3 − faktoring alacakları = BS assets 2.1, EXACT TO THE LIRA. (The §5.2 Toplam includes factoring per its own (*) footnote; BS 2.1 excludes them, carrying them at 2.3.) Here: 52,109,118 + 3,934,736 + 846,683 − 452,167 = 56,438,370. The identity predicted S3 to the exact lira BEFORE it was rendered on four partitions. cons == unco for FIBA's stage table in every partition (verified byte-identical §5.2/ECL/NPL/BS in both books), so 2022Q4's identical cons/unco is GENUINE, not a cross-kind copy.\nThis partition was curated 'not disclosed' on an empty get_text(). The table IS printed — p55 has drawings=773, nums=0 (vector outlines). These are WHOLE-REPORT failures, not §5 failures: the balance sheet itself is vector-outlined too, which is why ~180k chars of prose have a text layer while every statement is drawn. An empty text band is meaningless as evidence of absence."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2025Q2",
+      "kind": "consolidated",
+      "statement": "credit_quality",
+      "section": "loans_by_stage",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 51617712,
+        "stage2_amount": 6171553,
+        "total_amount": 57789265
+      },
+      "note": "FIBA's stage table is note §5.2 'Standart Nitelikli ve Yakın İzlemedeki krediler ile yeniden yapılandırılan Yakın İzlemedeki kredilere ilişkin bilgiler' — NOT §5.10, which is the prose interest-accrual note ('Banka donuk alacakları için faiz tahakkuku ve reeskontu yapmamaktadır'). Read from PDF p61 (0-based) via render; fitz only. stage2 = the three close-monitoring sub-columns summed (Yeniden Yapılandırma Kapsamında Yer Almayanlar + Sözleşme Koşullarında Değişiklik + Yeniden Finansman).\nDECISIVE CHECK — a closed reconciliation, not a band: S1 + S2 + S3 − faktoring alacakları = BS assets 2.1, EXACT TO THE LIRA. (The §5.2 Toplam includes factoring per its own (*) footnote; BS 2.1 excludes them, carrying them at 2.3.) Here: 51,617,712 + 6,171,553 + 1,576,265 − 179,278 = 59,186,252. The identity predicted S3 to the exact lira BEFORE it was rendered on four partitions. cons == unco for FIBA's stage table in every partition (verified byte-identical §5.2/ECL/NPL/BS in both books), so 2022Q4's identical cons/unco is GENUINE, not a cross-kind copy.\nROOT CAUSE: the real §5.2 on p61 is VECTOR-OUTLINED (nums=0, drawings=868, a 381pt empty band under the heading), so the extractor saw no numbers and fell through to p62 — the '(devamı)' continuation headed 'Yakın izlemedeki kredilerin gecikme süreleri', a DAY-COUNT AGEING table with columns Ticari | Tüketici | Toplam. allow_total_drop dropped its 1,638,284 (= 1,008,524 + 629,760) and stored the rest as S1/S2. The extractor's OWN DOCSTRING cites this exact row as its motivating example — it was reading an ageing table as an IFRS-9 stage split."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2025Q2",
+      "kind": "consolidated",
+      "statement": "credit_quality",
+      "section": "loans_ecl_brsa",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 417428,
+        "stage2_amount": 453175,
+        "total_amount": 870603
+      },
+      "note": "FIBA's stage table is note §5.2 'Standart Nitelikli ve Yakın İzlemedeki krediler ile yeniden yapılandırılan Yakın İzlemedeki kredilere ilişkin bilgiler' — NOT §5.10, which is the prose interest-accrual note ('Banka donuk alacakları için faiz tahakkuku ve reeskontu yapmamaktadır'). Read from PDF p61 (0-based) via render; fitz only. stage2 = the three close-monitoring sub-columns summed (Yeniden Yapılandırma Kapsamında Yer Almayanlar + Sözleşme Koşullarında Değişiklik + Yeniden Finansman).\nDECISIVE CHECK — a closed reconciliation, not a band: S1 + S2 + S3 − faktoring alacakları = BS assets 2.1, EXACT TO THE LIRA. (The §5.2 Toplam includes factoring per its own (*) footnote; BS 2.1 excludes them, carrying them at 2.3.) Here: 51,617,712 + 6,171,553 + 1,576,265 − 179,278 = 59,186,252. The identity predicted S3 to the exact lira BEFORE it was rendered on four partitions. cons == unco for FIBA's stage table in every partition (verified byte-identical §5.2/ECL/NPL/BS in both books), so 2022Q4's identical cons/unco is GENUINE, not a cross-kind copy.\nROOT CAUSE: the real §5.2 on p61 is VECTOR-OUTLINED (nums=0, drawings=868, a 381pt empty band under the heading), so the extractor saw no numbers and fell through to p62 — the '(devamı)' continuation headed 'Yakın izlemedeki kredilerin gecikme süreleri', a DAY-COUNT AGEING table with columns Ticari | Tüketici | Toplam. allow_total_drop dropped its 1,638,284 (= 1,008,524 + 629,760) and stored the rest as S1/S2. The extractor's OWN DOCSTRING cites this exact row as its motivating example — it was reading an ageing table as an IFRS-9 stage split."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2025Q3",
+      "kind": "consolidated",
+      "statement": "credit_quality",
+      "section": "loans_by_stage",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 58917103,
+        "stage2_amount": 6889153,
+        "total_amount": 65806256
+      },
+      "note": "FIBA's stage table is note §5.2 'Standart Nitelikli ve Yakın İzlemedeki krediler ile yeniden yapılandırılan Yakın İzlemedeki kredilere ilişkin bilgiler' — NOT §5.10, which is the prose interest-accrual note ('Banka donuk alacakları için faiz tahakkuku ve reeskontu yapmamaktadır'). Read from PDF p53 (0-based) via render; fitz only. stage2 = the three close-monitoring sub-columns summed (Yeniden Yapılandırma Kapsamında Yer Almayanlar + Sözleşme Koşullarında Değişiklik + Yeniden Finansman).\nDECISIVE CHECK — a closed reconciliation, not a band: S1 + S2 + S3 − faktoring alacakları = BS assets 2.1, EXACT TO THE LIRA. (The §5.2 Toplam includes factoring per its own (*) footnote; BS 2.1 excludes them, carrying them at 2.3.) Here: 58,917,103 + 6,889,153 + 2,441,759 − 127,869 = 68,120,146. The identity predicted S3 to the exact lira BEFORE it was rendered on four partitions. cons == unco for FIBA's stage table in every partition (verified byte-identical §5.2/ECL/NPL/BS in both books), so 2022Q4's identical cons/unco is GENUINE, not a cross-kind copy.\nThis partition was curated 'not disclosed' on an empty get_text(). The table IS printed — p53 has drawings=865, nums=0 (vector outlines). These are WHOLE-REPORT failures, not §5 failures: the balance sheet itself is vector-outlined too, which is why ~180k chars of prose have a text layer while every statement is drawn. An empty text band is meaningless as evidence of absence."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2025Q3",
+      "kind": "consolidated",
+      "statement": "credit_quality",
+      "section": "loans_ecl_brsa",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 379422,
+        "stage2_amount": 477697,
+        "total_amount": 857119
+      },
+      "note": "FIBA's stage table is note §5.2 'Standart Nitelikli ve Yakın İzlemedeki krediler ile yeniden yapılandırılan Yakın İzlemedeki kredilere ilişkin bilgiler' — NOT §5.10, which is the prose interest-accrual note ('Banka donuk alacakları için faiz tahakkuku ve reeskontu yapmamaktadır'). Read from PDF p53 (0-based) via render; fitz only. stage2 = the three close-monitoring sub-columns summed (Yeniden Yapılandırma Kapsamında Yer Almayanlar + Sözleşme Koşullarında Değişiklik + Yeniden Finansman).\nDECISIVE CHECK — a closed reconciliation, not a band: S1 + S2 + S3 − faktoring alacakları = BS assets 2.1, EXACT TO THE LIRA. (The §5.2 Toplam includes factoring per its own (*) footnote; BS 2.1 excludes them, carrying them at 2.3.) Here: 58,917,103 + 6,889,153 + 2,441,759 − 127,869 = 68,120,146. The identity predicted S3 to the exact lira BEFORE it was rendered on four partitions. cons == unco for FIBA's stage table in every partition (verified byte-identical §5.2/ECL/NPL/BS in both books), so 2022Q4's identical cons/unco is GENUINE, not a cross-kind copy.\nThis partition was curated 'not disclosed' on an empty get_text(). The table IS printed — p53 has drawings=865, nums=0 (vector outlines). These are WHOLE-REPORT failures, not §5 failures: the balance sheet itself is vector-outlined too, which is why ~180k chars of prose have a text layer while every statement is drawn. An empty text band is meaningless as evidence of absence."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2025Q3",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "loans_by_stage",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 58917103,
+        "stage2_amount": 6889153,
+        "total_amount": 65806256
+      },
+      "note": "FIBA's stage table is note §5.2 'Standart Nitelikli ve Yakın İzlemedeki krediler ile yeniden yapılandırılan Yakın İzlemedeki kredilere ilişkin bilgiler' — NOT §5.10, which is the prose interest-accrual note ('Banka donuk alacakları için faiz tahakkuku ve reeskontu yapmamaktadır'). Read from PDF p51 (0-based) via render; fitz only. stage2 = the three close-monitoring sub-columns summed (Yeniden Yapılandırma Kapsamında Yer Almayanlar + Sözleşme Koşullarında Değişiklik + Yeniden Finansman).\nDECISIVE CHECK — a closed reconciliation, not a band: S1 + S2 + S3 − faktoring alacakları = BS assets 2.1, EXACT TO THE LIRA. (The §5.2 Toplam includes factoring per its own (*) footnote; BS 2.1 excludes them, carrying them at 2.3.) Here: 58,917,103 + 6,889,153 + 2,441,759 − 127,869 = 68,120,146. The identity predicted S3 to the exact lira BEFORE it was rendered on four partitions. cons == unco for FIBA's stage table in every partition (verified byte-identical §5.2/ECL/NPL/BS in both books), so 2022Q4's identical cons/unco is GENUINE, not a cross-kind copy.\nThis partition was curated 'not disclosed' on an empty get_text(). The table IS printed — p51 has drawings=870, nums=0 (vector outlines). These are WHOLE-REPORT failures, not §5 failures: the balance sheet itself is vector-outlined too, which is why ~180k chars of prose have a text layer while every statement is drawn. An empty text band is meaningless as evidence of absence."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2025Q3",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "loans_ecl_brsa",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 379422,
+        "stage2_amount": 477697,
+        "total_amount": 857119
+      },
+      "note": "FIBA's stage table is note §5.2 'Standart Nitelikli ve Yakın İzlemedeki krediler ile yeniden yapılandırılan Yakın İzlemedeki kredilere ilişkin bilgiler' — NOT §5.10, which is the prose interest-accrual note ('Banka donuk alacakları için faiz tahakkuku ve reeskontu yapmamaktadır'). Read from PDF p51 (0-based) via render; fitz only. stage2 = the three close-monitoring sub-columns summed (Yeniden Yapılandırma Kapsamında Yer Almayanlar + Sözleşme Koşullarında Değişiklik + Yeniden Finansman).\nDECISIVE CHECK — a closed reconciliation, not a band: S1 + S2 + S3 − faktoring alacakları = BS assets 2.1, EXACT TO THE LIRA. (The §5.2 Toplam includes factoring per its own (*) footnote; BS 2.1 excludes them, carrying them at 2.3.) Here: 58,917,103 + 6,889,153 + 2,441,759 − 127,869 = 68,120,146. The identity predicted S3 to the exact lira BEFORE it was rendered on four partitions. cons == unco for FIBA's stage table in every partition (verified byte-identical §5.2/ECL/NPL/BS in both books), so 2022Q4's identical cons/unco is GENUINE, not a cross-kind copy.\nThis partition was curated 'not disclosed' on an empty get_text(). The table IS printed — p51 has drawings=870, nums=0 (vector outlines). These are WHOLE-REPORT failures, not §5 failures: the balance sheet itself is vector-outlined too, which is why ~180k chars of prose have a text layer while every statement is drawn. An empty text band is meaningless as evidence of absence."
     }
   ]
 }

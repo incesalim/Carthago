@@ -193,60 +193,6 @@
       "note": "9-page primary-statements-only filing: the balance sheet, off-balance, P&L, OCI, equity-change and cash-flow statements ONLY — no footnotes, no §4 tables. Verified 2026-07-17 against the PDF: exactly 9 pages, and 0 occurrences of 'sermaye yeterlili'/'capital adequacy', 'likidite'/'liquidity coverage', 'Birinci Aşama'/'Stage 1' or 'kur riski'/'currency risk'. The single 'donuk alacak' hit is the cash-flow line 1.1.6 'Zarar Olarak Muhasebeleştirilen Donuk Alacaklardan Tahsilatlar', not a credit-quality table. NARROWED FROM statement='*' (the last wildcard in this file): '*' expands to EVERY non-core lane, which INCLUDES the §2 statements this filing does print — cash_flow (43 rows), oci (16), equity_change (33), off_balance (86) all extract and read ok today, so the wildcard was dormant rather than harmless. Had any of those regressed, the gap would have turned into N/A instead of a flag — the failure mode that bit TSKB 2026Q1. free_provision is omitted deliberately: it is conditional=True and auto-N/A already."
     },
     {
-      "bank": "FIBA",
-      "period": "2022Q1",
-      "kind": "consolidated",
-      "statement": [
-        "stages"
-      ],
-      "note": "§5.10 'TFRS 9'a göre beklenen kredi zararı' — the IFRS Aşama 1/2/3 stage table — is NOT YET TRANSCRIBED for this partition, so `stages` (which is DERIVED from credit_quality's loans_by_stage) stays excused pending that read. CORRECTED 2026-07-17: this entry previously also covered credit_quality + npl_movement with the note '§5 notes are headings only + the Article-25 hazırlanmamıştır statement'. THAT WAS WRONG. Note 5.9.2 (Toplam donuk alacak hareketleri) IS printed in full — it is simply invisible to fitz's get_text(): 2023Q3 cons is a pasted BITMAP (304 images), the other five are VECTOR-OUTLINED curves (0 images, 504-625 drawings). Both were read by 7x render and hand-transcribed; cons==unco and the already-extracted unconsolidated siblings confirm all 24 comparable cells digit-for-digit. No 'hazırlanmamıştır' statement exists on any of the six pages. Disclosed-but-unextractable must never be N/A (see reference_not_disclosed_wildcard) — those two lanes are now real data."
-    },
-    {
-      "bank": "FIBA",
-      "period": "2022Q1",
-      "kind": "unconsolidated",
-      "statement": [
-        "stages"
-      ],
-      "note": "§5.10 'TFRS 9'a göre beklenen kredi zararı' — the IFRS Aşama 1/2/3 stage table — is NOT YET TRANSCRIBED for this partition, so `stages` (which is DERIVED from credit_quality's loans_by_stage) stays excused pending that read. CORRECTED 2026-07-17: this entry previously also covered credit_quality + npl_movement with the note '§5 notes are headings only + the Article-25 hazırlanmamıştır statement'. THAT WAS WRONG. Note 5.9.2 (Toplam donuk alacak hareketleri) IS printed in full — it is simply invisible to fitz's get_text(): 2023Q3 cons is a pasted BITMAP (304 images), the other five are VECTOR-OUTLINED curves (0 images, 504-625 drawings). Both were read by 7x render and hand-transcribed; cons==unco and the already-extracted unconsolidated siblings confirm all 24 comparable cells digit-for-digit. No 'hazırlanmamıştır' statement exists on any of the six pages. Disclosed-but-unextractable must never be N/A (see reference_not_disclosed_wildcard) — those two lanes are now real data."
-    },
-    {
-      "bank": "FIBA",
-      "period": "2023Q3",
-      "kind": "consolidated",
-      "statement": [
-        "stages"
-      ],
-      "note": "§5.10 'TFRS 9'a göre beklenen kredi zararı' — the IFRS Aşama 1/2/3 stage table — is NOT YET TRANSCRIBED for this partition, so `stages` (which is DERIVED from credit_quality's loans_by_stage) stays excused pending that read. CORRECTED 2026-07-17: this entry previously also covered credit_quality + npl_movement with the note '§5 notes are headings only + the Article-25 hazırlanmamıştır statement'. THAT WAS WRONG. Note 5.9.2 (Toplam donuk alacak hareketleri) IS printed in full — it is simply invisible to fitz's get_text(): 2023Q3 cons is a pasted BITMAP (304 images), the other five are VECTOR-OUTLINED curves (0 images, 504-625 drawings). Both were read by 7x render and hand-transcribed; cons==unco and the already-extracted unconsolidated siblings confirm all 24 comparable cells digit-for-digit. No 'hazırlanmamıştır' statement exists on any of the six pages. Disclosed-but-unextractable must never be N/A (see reference_not_disclosed_wildcard) — those two lanes are now real data."
-    },
-    {
-      "bank": "FIBA",
-      "period": "2024Q1",
-      "kind": "consolidated",
-      "statement": [
-        "stages"
-      ],
-      "note": "§5.10 'TFRS 9'a göre beklenen kredi zararı' — the IFRS Aşama 1/2/3 stage table — is NOT YET TRANSCRIBED for this partition, so `stages` (which is DERIVED from credit_quality's loans_by_stage) stays excused pending that read. CORRECTED 2026-07-17: this entry previously also covered credit_quality + npl_movement with the note '§5 notes are headings only + the Article-25 hazırlanmamıştır statement'. THAT WAS WRONG. Note 5.9.2 (Toplam donuk alacak hareketleri) IS printed in full — it is simply invisible to fitz's get_text(): 2023Q3 cons is a pasted BITMAP (304 images), the other five are VECTOR-OUTLINED curves (0 images, 504-625 drawings). Both were read by 7x render and hand-transcribed; cons==unco and the already-extracted unconsolidated siblings confirm all 24 comparable cells digit-for-digit. No 'hazırlanmamıştır' statement exists on any of the six pages. Disclosed-but-unextractable must never be N/A (see reference_not_disclosed_wildcard) — those two lanes are now real data."
-    },
-    {
-      "bank": "FIBA",
-      "period": "2025Q3",
-      "kind": "consolidated",
-      "statement": [
-        "stages"
-      ],
-      "note": "§5.10 'TFRS 9'a göre beklenen kredi zararı' — the IFRS Aşama 1/2/3 stage table — is NOT YET TRANSCRIBED for this partition, so `stages` (which is DERIVED from credit_quality's loans_by_stage) stays excused pending that read. CORRECTED 2026-07-17: this entry previously also covered credit_quality + npl_movement with the note '§5 notes are headings only + the Article-25 hazırlanmamıştır statement'. THAT WAS WRONG. Note 5.9.2 (Toplam donuk alacak hareketleri) IS printed in full — it is simply invisible to fitz's get_text(): 2023Q3 cons is a pasted BITMAP (304 images), the other five are VECTOR-OUTLINED curves (0 images, 504-625 drawings). Both were read by 7x render and hand-transcribed; cons==unco and the already-extracted unconsolidated siblings confirm all 24 comparable cells digit-for-digit. No 'hazırlanmamıştır' statement exists on any of the six pages. Disclosed-but-unextractable must never be N/A (see reference_not_disclosed_wildcard) — those two lanes are now real data."
-    },
-    {
-      "bank": "FIBA",
-      "period": "2025Q3",
-      "kind": "unconsolidated",
-      "statement": [
-        "stages"
-      ],
-      "note": "§5.10 'TFRS 9'a göre beklenen kredi zararı' — the IFRS Aşama 1/2/3 stage table — is NOT YET TRANSCRIBED for this partition, so `stages` (which is DERIVED from credit_quality's loans_by_stage) stays excused pending that read. CORRECTED 2026-07-17: this entry previously also covered credit_quality + npl_movement with the note '§5 notes are headings only + the Article-25 hazırlanmamıştır statement'. THAT WAS WRONG. Note 5.9.2 (Toplam donuk alacak hareketleri) IS printed in full — it is simply invisible to fitz's get_text(): 2023Q3 cons is a pasted BITMAP (304 images), the other five are VECTOR-OUTLINED curves (0 images, 504-625 drawings). Both were read by 7x render and hand-transcribed; cons==unco and the already-extracted unconsolidated siblings confirm all 24 comparable cells digit-for-digit. No 'hazırlanmamıştır' statement exists on any of the six pages. Disclosed-but-unextractable must never be N/A (see reference_not_disclosed_wildcard) — those two lanes are now real data."
-    },
-    {
       "bank": "TOMK",
       "period": [
         "2023Q3",
