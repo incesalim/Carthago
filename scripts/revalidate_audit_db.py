@@ -299,6 +299,28 @@ def _npl_movement_rows(conn, bank, period, kind):
                 (bank, period, kind))]
 
 
+def _profile_rows(conn, bank, period, kind):
+    if not _has_table(conn, "bank_audit_profile"):
+        return []
+    return [dict(zip(("branches_domestic", "branches_foreign", "branches_total",
+                      "personnel"), r))
+            for r in conn.execute(
+                "SELECT branches_domestic, branches_foreign, branches_total, personnel "
+                "FROM bank_audit_profile WHERE bank_ticker=? AND period=? AND kind=?",
+                (bank, period, kind))]
+
+
+def _opinion_rows(conn, bank, period, kind):
+    if not _has_table(conn, "bank_audit_opinion"):
+        return []
+    return [dict(zip(("opinion_type", "is_modified", "report_kind", "basis_text",
+                      "auditor"), r))
+            for r in conn.execute(
+                "SELECT opinion_type, is_modified, report_kind, basis_text, auditor "
+                "FROM bank_audit_opinion WHERE bank_ticker=? AND period=? AND kind=?",
+                (bank, period, kind))]
+
+
 def _loans_sector_rows(conn, bank, period, kind):
     if not _has_table(conn, "bank_audit_loans_by_sector"):
         return []
@@ -405,6 +427,16 @@ def revalidate_partition(conn, bank: str, period: str, kind: str) -> dict[str, "
         else v.check_loans_by_sector(_loans_sector_rows(conn, bank, period, kind)))
     results["fx_position"]    = v.check_fx_position(_fx_position_rows(conn, bank, period, kind))
     results["repricing"]      = v.check_repricing(_repricing_rows(conn, bank, period, kind))
+    # The bank's OTHER filing for the same quarter. A consolidated group contains
+    # the parent, so cons >= unco on branches and staff is arithmetic, not a
+    # heuristic — and it is the only independent read this lane has (there is no
+    # footing in a table of counts). Same shape as bs_loans=assets above.
+    _other = "unconsolidated" if kind == "consolidated" else "consolidated"
+    results["profile"] = v.check_profile(
+        _profile_rows(conn, bank, period, kind),
+        counterpart=_profile_rows(conn, bank, period, _other), kind=kind)
+    results["audit_opinion"] = v.check_audit_opinion(
+        _opinion_rows(conn, bank, period, kind))
     return results
 
 

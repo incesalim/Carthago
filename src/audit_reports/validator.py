@@ -1453,6 +1453,174 @@ def check_stages(rows: list[dict], bs_loans: list[dict] | None = None) -> Valida
 
 
 # ===========================================================================
+# Bank profile (branches / personnel)
+# ===========================================================================
+
+def check_profile(rows: list[dict], counterpart: list[dict] | None = None,
+                  kind: str | None = None) -> ValidationResult:
+    """Bank profile — the lane's FIRST validator. Until now `profile` carried
+    has_validator=False, so its 980 green cells asserted only "a row exists" and
+    said nothing about the values. İşbank has been rendering **1 branch** on
+    /banks for four straight Q4s underneath that green.
+
+    There is no arithmetic to reconcile here (the table stores counts, not a
+    footing), so the checks are cross-kind and cross-field — the same
+    "reconciliation beats bands" move used everywhere else in this module. The
+    strongest is cons >= unco: a consolidated group CONTAINS the parent, so it
+    cannot have fewer branches or staff. That is not a heuristic, it is
+    arithmetic, and it holds on 385/393 — the 8 exceptions being the defects.
+
+    Corpus, all measured, all 0 FP:
+      profile_empty           0/980 — every row carries branches or personnel.
+                              Kept as the lane's ALWAYS-EVALUABLE check: without
+                              one, a partition with no counterpart would pass
+                              nothing, and _cell_status turns zero-pass into
+                              `error` — 60 cells would redden spuriously.
+      profile_cons_lt_unco    8 — ISCTR 2022–2025Q4 cons (personnel 187/163/147/
+                              170 vs 22,971/20,809/20,175/20,246) and TSKB
+                              2022–2025Q4 cons (159/192/196/206 vs 438/452/456/
+                              483). TSKB is a NEW find, same Q4-consolidated
+                              fingerprint as ISCTR.
+      profile_branches_split  2 — ZIRAAT 2025Q4 cons+unco read 1753+28 vs total
+                              1769, byte-identical to 2024Q4's split: a
+                              prior-year comparative-column bleed.
+      profile_personnel_count 2 — DENIZ 2024Q1/Q2 unco store personnel ==
+                              branches_total EXACTLY (643=643, 644=644), a column
+                              slip; the real figure is ~12,694.
+      profile_branches_missing 7 — AKBNK 2022Q1/Q2/Q3 unco (its own consolidated
+                              reports 711/711/713) + TSKB 2022–2025Q4 cons.
+
+    Measured and rejected: `personnel >= branches_total` — 0 flags in 811, and it
+    PASSES DENIZ at exactly 1.00, the very defect it was proposed for. The strict
+    `>` is the shippable form. A longitudinal >3x jump guard — its only net-new
+    flags are DUNYAK's real 1→8 branch rollout and ENPARA's real 85→1,402 staff
+    transfer. A bare `branches_total IS NOT NULL` — 48% FP: 36 of the 75 nulls
+    are branchless digital banks (HAYATK, TOMK, ENPARA, COLENDI, ZIRAATD) that
+    are null in EVERY quarter. profile_branches_missing is the airtight subset:
+    it fires only when the bank's own counterpart filing reports a branch count.
+    """
+    res = ValidationResult()
+    cur = rows[0] if rows else None
+    if cur is None:
+        res.add_skip()
+        return res
+    br, pers = cur.get("branches_total"), cur.get("personnel")
+    dom, frn = cur.get("branches_domestic"), cur.get("branches_foreign")
+
+    if br is not None or pers is not None:
+        res.add_pass()
+    else:
+        res.add_fail("profile_empty",
+                     "profile row carries neither branches nor personnel",
+                     expected=1.0, actual=0.0)
+    # Staffing: a branch needs more than one person. Guarded on br > 0 so a
+    # branchless bank (PASHA/KLNMA run 1; digital banks 0) isn't compared.
+    if br is not None and pers is not None and br > 0:
+        if pers > br:
+            res.add_pass()
+        else:
+            res.add_fail("profile_personnel_count",
+                         f"personnel ({pers:,.0f}) <= branches ({br:,.0f}) — column slip",
+                         expected=br, actual=pers)
+    # ±1 of headroom: ZIRAAT 2026Q1 is off by exactly one and I cannot prove from
+    # the data whether that is our misread or the bank's own table, so it is left
+    # alone. The +12 break is unambiguous.
+    if dom is not None and frn is not None and br is not None:
+        if abs((dom + frn) - br) <= 1:
+            res.add_pass()
+        else:
+            res.add_fail("profile_branches_split",
+                         "domestic + foreign != total branches",
+                         expected=br, actual=dom + frn)
+
+    cp = counterpart[0] if counterpart else None
+    if cp is None:
+        res.add_skip()
+        return res
+    cp_br, cp_pers = cp.get("branches_total"), cp.get("personnel")
+    if br is None and cp_br is not None:
+        res.add_fail("profile_branches_missing",
+                     "branches_total dropped (the bank's counterpart filing "
+                     f"reports {cp_br:,.0f})", expected=cp_br, actual=0.0)
+    # A consolidated group contains the parent, so it cannot report FEWER
+    # branches or staff than the unconsolidated bank. Raised on the consolidated
+    # cell only: that is the impossible side, and the one carrying the defect in
+    # all 8 cases.
+    if kind == "consolidated":
+        if pers is not None and cp_pers is not None:
+            if pers >= cp_pers:
+                res.add_pass()
+            else:
+                res.add_fail("profile_cons_lt_unco",
+                             f"consolidated personnel ({pers:,.0f}) < unconsolidated "
+                             f"({cp_pers:,.0f}) — impossible",
+                             expected=cp_pers, actual=pers)
+        if br is not None and cp_br is not None:
+            # −1 of headroom: BURGAN 2022Q3 reads cons 23 vs unco 32 while its
+            # own series reads 32 either side, so a small genuine timing
+            # difference is plausible; a wholesale collapse is not.
+            if br >= cp_br - 1:
+                res.add_pass()
+            else:
+                res.add_fail("profile_cons_lt_unco",
+                             f"consolidated branches ({br:,.0f}) < unconsolidated "
+                             f"({cp_br:,.0f}) — impossible",
+                             expected=cp_br, actual=br)
+    return res
+
+
+# ===========================================================================
+# Audit opinion
+# ===========================================================================
+
+def check_audit_opinion(rows: list[dict]) -> ValidationResult:
+    """Audit opinion — the lane's FIRST validator (has_validator was False, so
+    976 green cells asserted only "a row exists").
+
+    Both checks are definitional rather than arithmetic, which is the most this
+    lane admits: every BRSA audit report is signed, and ISA 705 requires a "Basis
+    for Qualified Opinion" paragraph whenever the opinion is modified. A blank in
+    either is a parse failure, not a filing choice.
+
+    Corpus, 0 FP:
+      opinion_auditor_missing  45/976 — every one a Q4 report_kind='audit'
+                               (19.2% of the 234 annual reports; 0/742 reviews).
+                               The Q4 annual layout is a systematic blind spot.
+                               Kept as the ALWAYS-EVALUABLE check: the basis rule
+                               below only evaluates for modified opinions, so on
+                               its own it would leave all 424 clean rows with
+                               zero passes — which _cell_status now turns red.
+      opinion_basis_missing    7/552 — ALNTF 2023Q1/Q2/Q3 (both kinds) and TFKB
+                               2024Q4 cons: qualified with no stated basis.
+
+    Measured and rejected: `opinion_type ∈ {clean, qualified}` — the corpus holds
+    exactly those two values, so a closed 2-value enum cannot be violated;
+    vacuous. `basis_text present ⇒ is_modified=1` — 0/545 violations AND circular:
+    is_modified is perfectly collinear with opinion_type (552/552, 424/424), so
+    it tests one derived binary against itself.
+    """
+    res = ValidationResult()
+    cur = rows[0] if rows else None
+    if cur is None:
+        res.add_skip()
+        return res
+    if (cur.get("auditor") or "").strip():
+        res.add_pass()
+    else:
+        res.add_fail("opinion_auditor_missing",
+                     "auditor not captured (every BRSA audit report is signed)",
+                     expected=1.0, actual=0.0)
+    if cur.get("is_modified"):
+        if (cur.get("basis_text") or "").strip():
+            res.add_pass()
+        else:
+            res.add_fail("opinion_basis_missing",
+                         "opinion is modified but no basis captured (ISA 705 "
+                         "requires the paragraph)", expected=1.0, actual=0.0)
+    return res
+
+
+# ===========================================================================
 # NPL movement validation
 # ===========================================================================
 

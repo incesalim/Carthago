@@ -472,6 +472,31 @@ def _pl_sign_convention(conn: sqlite3.Connection) -> list[str]:
 FREEPROV_MAX = 100_000_000        # thousand TL (= 100bn TL) — generous ceiling
 FREEPROV_PRIOR_TOL = 0.01         # stated prior vs prior-year-end current: 1%
 
+# How an auditor NAMES the reserve when qualifying over it. The recall check
+# below is only as wide as this list, and it was too narrow: BURGAN's 2023Q2–
+# 2024Q1 basis paragraphs say "general reserve" / "general provision" where its
+# 2024Q2 paragraph — same boilerplate, same Note 2.h.2.ii, same purpose clause —
+# says "free provision". The auditor merely translated it differently. Result:
+# 8 cells read "not applicable" while carrying a qualification over a reserve of
+# up to ₺1.87bn, and the value is sitting in bank_audit_opinion.basis_text, a
+# neighbouring column of this same database.
+#
+# Surgical by measurement, not by hope: these two phrases appear in BURGAN (9)
+# and SKBNK (8, which already have rows) and nowhere else.
+#
+# 'genel karşılık' is deliberately ABSENT despite the symmetry — it matches 0
+# rows today AND it is the standard BRSA term for the regulatory general
+# loan-loss provision, an entirely different thing. Adding it would only ever
+# manufacture false positives.
+#
+# NOTE — this widens DETECTION, not capture. src/audit_reports/free_provision.py
+# has the same blind spot (_SUBJ_EN = r"free\s+provision", _SUBJ_TR =
+# r"serbest\s+kar[şs][ıi]l[ıi]k"), so SKBNK 2022Q1–Q3 have rows only because
+# their text literally says "free provision". These alarms are correct and the
+# data fix needs the extractor widened too.
+_FREEPROV_SUBJECTS = ("%free provision%", "%serbest kar%",
+                      "%general reserve%", "%general provision%")
+
 
 def _free_provision(conn: sqlite3.Connection) -> list[str]:
     """Data-quality checks for bank_audit_free_provision (the serbest karşılık
@@ -512,13 +537,13 @@ def _free_provision(conn: sqlite3.Connection) -> list[str]:
                     out.append(f"{tag} stated prior {prior:,.0f} != prior-year-end current "
                                f"{q4_prev:,.0f} ({int(period[:4]) - 1}Q4) — one side mis-extracted")
     if _has_table(conn, "bank_audit_opinion"):
+        _subj_sql = " OR ".join(["lower(o.basis_text) LIKE ?"] * len(_FREEPROV_SUBJECTS))
         for bank, period, kind in conn.execute(
                 "SELECT o.bank_ticker, o.period, o.kind FROM bank_audit_opinion o "
-                "WHERE o.is_modified=1 AND (lower(o.basis_text) LIKE '%free provision%' "
-                "   OR lower(o.basis_text) LIKE '%serbest kar%') "
+                f"WHERE o.is_modified=1 AND ({_subj_sql}) "
                 "AND NOT EXISTS (SELECT 1 FROM bank_audit_free_provision f "
                 "  WHERE f.bank_ticker=o.bank_ticker AND f.period=o.period "
-                "    AND f.kind=o.kind)"):
+                "    AND f.kind=o.kind)", _FREEPROV_SUBJECTS):
             # No row at all — not merely a captured 0 (a bank that reversed to
             # zero and disclosed "none" is covered, not a gap).
             out.append(f"freeprov  {bank} {period} {kind}: auditor qualified over a free "
