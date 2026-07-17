@@ -72,7 +72,7 @@ SNAP = "state/bank_audit.db.gz"
 _SELF_TS_TABLES = (
     "bank_audit_credit_quality", "bank_audit_profile", "bank_audit_loans_by_sector",
     "bank_audit_npl_movement", "bank_audit_stages", "bank_audit_capital",
-    "bank_audit_liquidity",
+    "bank_audit_liquidity", "bank_audit_fx_position", "bank_audit_repricing",
 )
 
 
@@ -112,6 +112,45 @@ def _apply_one(conn: sqlite3.Connection, o: dict) -> str:
             f"UPDATE bank_audit_capital SET {sets} WHERE bank_ticker=? AND period=? "
             "AND kind=? AND period_type='current'", (*vals, b, p, k))
         return f"capital update {b} {p} {k} {dict((c, o['fields'][c]) for c in cols)}"
+    if st == "fx_position_replace":
+        # Whole-partition insert of the CURRENT-period §4 currency-risk table for a
+        # partition the extractor stored 0 rows for. Two causes, both hand-read:
+        # the Turkish header cells "ABD Doları"/"Diğer YP" split or fuse across
+        # physical lines so _parse_header_columns under-counts columns (ANADOLU,
+        # ATBANK, KLNMA, KUVEYT, ZIRAATK, DUNYAK), and FIBA's table is a
+        # bitmap/vector graphic. `rows` = [{currency, on_bs_assets, on_bs_liab,
+        # net_on_balance, net_off_balance, off_bs_receivable, off_bs_payable,
+        # net_position}, ...], current period only.
+        conn.execute("DELETE FROM bank_audit_fx_position WHERE bank_ticker=? AND period=? "
+                     "AND kind=? AND period_type='current'", (b, p, k))
+        for r in o["rows"]:
+            conn.execute(
+                "INSERT INTO bank_audit_fx_position (bank_ticker, period, kind, period_type, "
+                "currency, on_bs_assets, on_bs_liab, net_on_balance, net_off_balance, "
+                "off_bs_receivable, off_bs_payable, net_position, source_page) "
+                "VALUES (?,?,?,'current',?,?,?,?,?,?,?,?,?)",
+                (b, p, k, r["currency"], r.get("on_bs_assets"), r.get("on_bs_liab"),
+                 r.get("net_on_balance"), r.get("net_off_balance"), r.get("off_bs_receivable"),
+                 r.get("off_bs_payable"), r.get("net_position"), o.get("source_page")))
+        return f"fx_position replace {b} {p} {k} ({len(o['rows'])} rows)"
+    if st == "fx_position":
+        # Per-currency-row patch of the CURRENT-period §4 currency-risk table,
+        # keyed by (currency, period_type). `fields` = {column: value} for a cell
+        # the extractor mis-read (a parse_num hyphen-thousands miss, a dropped
+        # closing paren). Patch net_position alongside the operand it derives from
+        # so the row identity (net_BS + net_off = net_pos) stays consistent.
+        allowed = {"on_bs_assets", "on_bs_liab", "net_on_balance", "net_off_balance",
+                   "off_bs_receivable", "off_bs_payable", "net_position", "source_page"}
+        cols = [c for c in o["fields"] if c in allowed]
+        if not cols:
+            return f"fx_position SKIP {b} {p} {k} (no valid columns)"
+        ccy, pt = o["currency"], o.get("period_type", "current")
+        vals = [o["fields"][c] for c in cols]
+        sets = ", ".join(f"{c}=?" for c in cols)
+        conn.execute(
+            f"UPDATE bank_audit_fx_position SET {sets} WHERE bank_ticker=? AND period=? "
+            "AND kind=? AND currency=? AND period_type=?", (*vals, b, p, k, ccy, pt))
+        return f"fx_position update {b} {p} {k} {ccy}/{pt} {dict((c, o['fields'][c]) for c in cols)}"
     if st == "liquidity":
         # Per-column patch of the CURRENT-period §4 liquidity row. `fields` =
         # {column: value} for a dropped/mis-scaled ratio (TOMK's comma-as-decimal

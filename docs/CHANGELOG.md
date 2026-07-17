@@ -3,7 +3,44 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-07-17.
+Last verified: 2026-07-18.
+
+2026-07-18 — **FX net open position: 21 errors + 66 missing → 0/0.**
+Two extractor fixes recovered most of it; the rest was hand-read from source.
+
+52 of the 66 missing were a two-line header fix. The currency-column parser
+under-counted columns for two big banks: TSKB files "US Dollar" in English, which
+tokenizes to `US` + `Dollar` and matched neither USD pattern; YKBNK's
+unconsolidated "Other FC" header wraps so only `FC` reaches the header line. With
+a currency column dropped, every row failed the column-count check and nothing
+was stored. Adding `US`→USD and `FC`→OTHER recovered all 51 (plus BURGAN),
+verified against Turkish and consolidated controls with zero regression.
+
+13 of the errors were a period mis-tag: HAYATK and ISCTR print a currency
+*sensitivity* sub-table above the position table whose header names both periods,
+and the prior-period detector fired on that caption, tagging the entire current
+table as prior — so the validator found no current rows and skipped everything.
+Guarding the flip to ignore a line that also names the current period fixed it.
+
+The 8 footing errors split cleanly: 4 were real extraction bugs (a `parse_num`
+miss where a hyphen-prefixed thousands group like "-319.110" reads as -319.11, and
+dropped closing parens that flipped QNBFB's signs positive) → overrides; 4 were
+genuine typos in the filings themselves (a dropped leading digit, a malformed
+number, a sign error) where the printed table doesn't foot → skipped, storing the
+faithful printed value.
+
+Verifying the last 14 missing found zero genuine non-disclosure. Eight were a
+second header-split cause — the Turkish "ABD Doları"/"Diğer YP" cells splitting
+across physical lines — hand-overridden from the printed tables. Six are FIBA,
+which prints the currency-risk table as a bitmap or vector graphic; those were
+hand-transcribed from renders, each cross-checked against the report's own "net
+yabancı para pozisyon" prose sentence.
+
+Worth flagging beyond this lane: `parse_num('-319.110')` returning -319.11 is a
+shared-parser bug — it only bit two fx cells here, but it could silently corrupt
+any hyphen-negative thousands value across every statement lane, so it deserves a
+corpus-wide check. All 18 hand-read cells read `manual`. Detail in PROJECT_STATE's
+market-risk note.
 
 2026-07-17 — **Liquidity: 24 errors + 1 missing → 0/0. Most of it was
 bands calibrated for established banks, false-firing on new ones.** A

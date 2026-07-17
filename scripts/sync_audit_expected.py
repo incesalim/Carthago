@@ -137,6 +137,12 @@ _STMT_TO_KEY = {
     # §4 liquidity ratios recovered from the printed table — TOMK's comma-as-decimal
     # LCR, TAKAS's stale prior-period NSFR, HAYATK 2023Q2's dropped leverage.
     "liquidity": "liquidity",
+    # §4 currency-risk cells recovered from the printed table — EMLAK's
+    # hyphen-thousands negatives, QNBFB's dropped-paren signs (per-cell patch), plus
+    # whole-partition inserts where the header split (ABD Doları/Diğer YP) zeroed the
+    # extraction or FIBA printed the table as a graphic.
+    "fx_position": "fx_position",
+    "fx_position_replace": "fx_position",
 }
 
 
