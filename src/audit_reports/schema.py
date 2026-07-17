@@ -616,6 +616,14 @@ _COLUMN_MIGRATIONS: list[tuple[str, str, str]] = [
     # repricing gap) extraction.
     ("bank_audit_extractions", "rows_fx_position", "INTEGER"),
     ("bank_audit_extractions", "rows_repricing", "INTEGER"),
+    # Added 2026-07-17: the coverage matrix groups on the report's Bölüm
+    # (registry.section / SECTION_ORDER) instead of is_core. Declaring them in
+    # the CREATE TABLE above is not enough on its own: every working DB is
+    # restored from the R2 snapshot, where the table already exists, so
+    # CREATE TABLE IF NOT EXISTS is a no-op and sync_audit_expected.write()
+    # dies on "no such column: section".
+    ("bank_audit_statement_types", "section", "TEXT NOT NULL DEFAULT ''"),
+    ("bank_audit_statement_types", "section_rank", "INTEGER NOT NULL DEFAULT 99"),
 ]
 
 
