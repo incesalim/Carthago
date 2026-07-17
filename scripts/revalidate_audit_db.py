@@ -211,7 +211,24 @@ def curated_skips() -> set[tuple[str, str, str, str]]:
         out.add((bank, period, kind, "loans_by_sector"))
     for bank, period, kind in _CQ_SKIP:
         out.add((bank, period, kind, "credit_quality"))
+    for bank, period, kind in _LIQ_SKIP:
+        out.add((bank, period, kind, "liquidity"))
     return out
+
+
+# Liquidity partitions whose sub-50% ratio is GENUINE, not a mis-grab — verified
+# against the PDF. TAKAS (Takasbank) is a development/investment bank and is
+# EXEMPT from the 100% NSFR floor: "Bankamızın da dahil olduğu kalkınma ve yatırım
+# bankaları NİFO yasal sınırı olan asgari %100 oranını sağlamaktan muaftır." So its
+# printed NSFR of 44-49% is legitimate, but the `liq_ratio_low` heuristic (< 50% =
+# mis-grab fingerprint) flags it. Skip these three (2024Q4's corrected 54.72%
+# passes on its own). TAKAS also discloses NO LCR (BRSA set total+FC LCR to zero
+# percent for such banks until further notice), so lcr_total/lcr_fc NULL is correct.
+_LIQ_SKIP = frozenset({
+    ("TAKAS", "2024Q1", "unconsolidated"),
+    ("TAKAS", "2024Q3", "unconsolidated"),
+    ("TAKAS", "2025Q2", "unconsolidated"),
+})
 
 
 def curated_skip_banks() -> set[tuple[str, str]]:
@@ -481,7 +498,9 @@ def revalidate_partition(conn, bank: str, period: str, kind: str) -> dict[str, "
     else:
         results["capital"] = v.check_capital(cap_rows)
 
-    results["liquidity"]      = v.check_liquidity(_liquidity_rows(conn, bank, period, kind))
+    results["liquidity"] = (
+        _skip_result() if (bank, period, kind) in _LIQ_SKIP
+        else v.check_liquidity(_liquidity_rows(conn, bank, period, kind)))
     cq_rows  = _cq_rows(conn, bank, period, kind)
     npl_rows = _npl_movement_rows(conn, bank, period, kind)
     results["credit_quality"] = (_skip_result() if (bank, period, kind) in _CQ_SKIP

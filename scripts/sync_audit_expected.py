@@ -134,6 +134,9 @@ _STMT_TO_KEY = {
     # recovered from the reconciling identities, so a human stands behind the
     # number; it shouldn't read a machine-extracted `ok`.
     "capital": "capital",
+    # §4 liquidity ratios recovered from the printed table — TOMK's comma-as-decimal
+    # LCR, TAKAS's stale prior-period NSFR, HAYATK 2023Q2's dropped leverage.
+    "liquidity": "liquidity",
 }
 
 

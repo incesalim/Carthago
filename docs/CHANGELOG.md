@@ -5,6 +5,35 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-07-17.
 
+2026-07-17 — **Liquidity: 24 errors + 1 missing → 0/0. Most of it was
+bands calibrated for established banks, false-firing on new ones.** A
+newly-licensed bank is almost entirely equity-funded, so its leverage ratio runs
+30–97% (HAYATK 97%, ENPARA 95%, TOMK 93%), each confirmed against Tier1/total
+assets — so the (0,30) leverage band was widened to (0,100), the real ceiling
+since Tier1 can't exceed total exposure. That cleared 18 cells with no data
+change.
+
+The LCR upper bound (2000%) was removed outright. BDDK's LCR is the average of
+the quarter's weekly ratios, so a bank with near-zero net cash outflows genuinely
+prints LCRs in the thousands to millions of percent — COLENDI 2025Q2 prints
+2,316,303%, ENPARA 34,221%, DUNYAK 17,858%, all pixel-verified against the printed
+row. And a misread HQLA amount overlaps that range exactly (COLENDI's real
+weekly-max LCR was 9,878,895%), so no ceiling can tell a genuine huge ratio from
+an amount — a coverage ratio simply has no upper limit. Confirmed no established
+bank has an LCR over 2000%, so nothing real is now hidden.
+
+Takasbank's sub-100% NSFR turned out to be legitimate: development and investment
+banks are exempt from the 100% floor (cited in the report), and it discloses no
+LCR at all. So the <50% "implausibly low" heuristic false-flags it — curated as a
+liquidity skip. Its two mis-stored quarters (both holding the stale 31-Dec-2023
+prior-period value 38.39) were corrected to 49.16 and 54.72.
+
+The only real LCR bug was TOMK 2023Q4 — a comma-as-decimal misparse that read
+"3,768" as 3.768 instead of 3768.83. And HAYATK 2023Q2 (missing) got its leverage
+filled at 97.5%; its LCR and NSFR are genuinely N/A because the bank "has not yet
+commenced banking activities". All four override cells read `manual`. Detail in
+PROJECT_STATE's liquidity row.
+
 2026-07-17 — **Capital adequacy: 26 errors → 0, fixed from the printed
 §4 tables.** Two shapes: 13 real failures (a dropped RWA, tier1, or ratio; a
 misread total) and 13 zero-pass cells where tier1 and the ratios were both

@@ -864,8 +864,17 @@ def test_liquidity_clean_passes():
 
 
 def test_liquidity_leverage_out_of_band_fails():
-    res = v.check_liquidity([_liq_row(leverage_ratio=35.0)])
+    # >= 100% is impossible (Tier1 can't exceed total exposure) → still flagged.
+    res = v.check_liquidity([_liq_row(leverage_ratio=105.0)])
     assert any(f["check"] == "liq_leverage_band" for f in res.failures)
+
+
+def test_liquidity_new_bank_high_leverage_passes():
+    # A newly-licensed bank runs a very high leverage ratio (mostly equity-funded);
+    # 35-97% is genuine and must not be flagged.
+    for lev in (35.0, 65.85, 97.0):
+        res = v.check_liquidity([_liq_row(leverage_ratio=lev)])
+        assert not any(f["check"] == "liq_leverage_band" for f in res.failures), lev
 
 
 def test_liquidity_lcr_implausibly_low_fails():

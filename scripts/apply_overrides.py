@@ -112,6 +112,34 @@ def _apply_one(conn: sqlite3.Connection, o: dict) -> str:
             f"UPDATE bank_audit_capital SET {sets} WHERE bank_ticker=? AND period=? "
             "AND kind=? AND period_type='current'", (*vals, b, p, k))
         return f"capital update {b} {p} {k} {dict((c, o['fields'][c]) for c in cols)}"
+    if st == "liquidity":
+        # Per-column patch of the CURRENT-period §4 liquidity row. `fields` =
+        # {column: value} for a dropped/mis-scaled ratio (TOMK's comma-as-decimal
+        # LCR, TAKAS's stale prior-period NSFR). INSERTs when the partition has no
+        # row at all (HAYATK 2023Q2 disclosed only leverage — LCR/NSFR N/A because
+        # "the Bank has not yet commenced banking activities").
+        allowed = {"leverage_ratio", "lcr_total", "lcr_fc", "nsfr", "source_page"}
+        cols = [c for c in o["fields"] if c in allowed]
+        if not cols:
+            return f"liquidity SKIP {b} {p} {k} (no valid columns)"
+        vals = [o["fields"][c] for c in cols]
+        row = conn.execute(
+            "SELECT 1 FROM bank_audit_liquidity WHERE bank_ticker=? AND period=? "
+            "AND kind=? AND period_type='current'", (b, p, k)).fetchone()
+        if row:
+            sets = ", ".join(f"{c}=?" for c in cols)
+            conn.execute(
+                f"UPDATE bank_audit_liquidity SET {sets} WHERE bank_ticker=? AND period=? "
+                "AND kind=? AND period_type='current'", (*vals, b, p, k))
+            verb = "update"
+        else:
+            names = ", ".join(cols)
+            qs = ", ".join("?" for _ in cols)
+            conn.execute(
+                f"INSERT INTO bank_audit_liquidity (bank_ticker,period,kind,period_type,{names}) "
+                f"VALUES (?,?,?,'current',{qs})", (b, p, k, *vals))
+            verb = "insert"
+        return f"liquidity {verb} {b} {p} {k} {dict((c, o['fields'][c]) for c in cols)}"
     if st == "npl_movement":
         # Per-column patch of ONE BRSA group row of bank_audit_npl_movement,
         # keyed by (group_code, period_type). Added for the mirror of the
