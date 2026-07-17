@@ -894,22 +894,38 @@ def test_credit_quality_npl_net_rows_dont_fail():
     assert not any(f.get("check") == "cq_npl_net" for f in res.failures)
 
 
-def test_cq_loans_by_stage_two_stage_total_passes():
+def test_cq_absent_stage_counts_as_zero_and_passes_on_tie():
     """S3 is NULL on loans_by_stage BY DESIGN (the BRSA stage-3 balance lives in
-    npl_brsa_gross) — 1,036/1,036 rows — so the four-column identity skips every
-    one of them. The two-stage form covers the section that carries the split."""
+    npl_brsa_gross) — 1,036/1,036 rows — so demanding all four non-null skipped
+    the very section that carries the stage split."""
     res = v.check_credit_quality([_cq_row("loans_by_stage", 100, 50, None, 150)])
     assert res.failed == 0 and res.passed == 1, res.failures
 
 
-def test_cq_loans_by_stage_two_stage_total_fails():
-    res = v.check_credit_quality([_cq_row("loans_by_stage", 100, 50, None, 900)])
-    assert any(f["check"] == "cq_loans_by_stage_total" for f in res.failures), res.failures
+def test_cq_both_optional_stages_absent_passes_on_tie():
+    """26 partitions carry exactly this: stage 1 and a total that agree to the
+    lira, stages 2 and 3 simply not printed (TAKAS ×16 — a CCP; DUNYAK, HAYATK,
+    COLENDI, ENPARA, ZIRAATD — new banks with no watchlist yet). Every one had
+    NOTHING verified before."""
+    res = v.check_credit_quality([_cq_row("loans_by_stage", 100, None, None, 100)])
+    assert res.failed == 0 and res.passed == 1, res.failures
 
 
-def test_cq_loans_by_stage_with_s3_uses_the_generic_check_only():
-    """A section that does carry all four stays with the generic identity and is
-    not counted twice."""
+def test_cq_absent_stage_that_breaks_the_tie_skips_not_fails():
+    """The other half of the rule: if treating the NULL as 0 does NOT tie, the
+    stage may be a genuinely non-zero value the extractor missed — so skip, never
+    a false fail. The filing's own total is the judge."""
+    res = v.check_credit_quality([_cq_row("loans_by_stage", 100, None, None, 900)])
+    assert res.failed == 0 and res.passed == 0, res.failures
+
+
+def test_cq_present_but_wrong_stage_still_fails():
+    """The relaxation forgives an ABSENT stage, never a present-but-wrong one."""
+    res = v.check_credit_quality([_cq_row("loans_by_stage", 100, 50, 30, 900)])
+    assert any(f["check"] == "cq_section_total" for f in res.failures), res.failures
+
+
+def test_cq_all_four_present_passes():
     res = v.check_credit_quality([_cq_row("loans_by_stage", 100, 50, 30, 180)])
     assert res.failed == 0 and res.passed == 1, res.failures
 

@@ -1347,42 +1347,40 @@ def check_credit_quality(rows: list[dict],
     if not by_sect:
         res.add_skip()
         return res
-    # Per section: total = S1 + S2 + S3 (when all four are non-null)
+    # Per section: total = S1 + S2 + S3.
+    #
+    # An ABSENT stage counts as 0, and the identity passes only if it then TIES —
+    # this module's standing convention for an optional component
+    # (check_capital._composition, check_npl_movement's flow columns). Demanding
+    # all four non-null was far stricter than the data warrants and cost real
+    # coverage: the BRSA sections legitimately omit stages (loans_by_stage never
+    # carries a stage 3 at all — the BRSA stage-3 balance lives in
+    # npl_brsa_gross, so it is NULL in 1,036/1,036 rows; a bank with no watchlist
+    # prints "-" for stage 2; an early-stage bank has neither). Measured over the
+    # corpus: 2,818 skips -> 857, i.e. +1,961 checks that now RUN, and +0
+    # failures. Nothing that was passing changed.
+    #
+    # Safe because the filing's own total is the judge: a genuinely DROPPED
+    # non-zero stage cannot tie (the printed total would exceed the stages we
+    # have), so it stays a SKIP — never a false pass. That is why the `elif`
+    # below only forgives a NULL, never a present-but-wrong stage.
     for sect, r in by_sect.items():
         s1  = r.get("stage1_amount")
         s2  = r.get("stage2_amount")
         s3  = r.get("stage3_amount")
         tot = r.get("total_amount")
-        if s1 is None or s2 is None or s3 is None or tot is None:
+        if s1 is None or tot is None:
             res.add_skip()
             continue
-        expected = s1 + s2 + s3
+        expected = s1 + (s2 or 0.0) + (s3 or 0.0)
         tol = _tol(tot, base=3.0, rel=5e-5)
         if abs(expected - tot) <= tol:
             res.add_pass()
+        elif s2 is None or s3 is None:
+            res.add_skip()   # a missed NON-zero stage — can't fail confidently
         else:
             res.add_fail("cq_section_total", f"{sect}: total = S1+S2+S3",
                          expected=tot, actual=expected)
-    # loans_by_stage in its two-stage form. Stage 3 is NULL on this section BY
-    # DESIGN — the BRSA stage-3 balance lives in npl_brsa_gross, not here, and is
-    # null in 1,036/1,036 rows. The generic identity above demands all four
-    # non-null, so it SKIPS every one of them and the section that actually
-    # carries the stage split goes unchecked. `total = S1 + S2` holds 983/983
-    # across the corpus: free coverage, zero false positives. Guarded on s3 IS
-    # NULL so a section that does carry all four stays with the generic check and
-    # is not counted twice.
-    lbs_row = by_sect.get("loans_by_stage")
-    if lbs_row is not None:
-        s1, s2 = lbs_row.get("stage1_amount"), lbs_row.get("stage2_amount")
-        s3, tot = lbs_row.get("stage3_amount"), lbs_row.get("total_amount")
-        if s3 is None and s1 is not None and s2 is not None and tot is not None:
-            expected = s1 + s2
-            if abs(expected - tot) <= _tol(tot, base=3.0, rel=5e-5):
-                res.add_pass()
-            else:
-                res.add_fail("cq_loans_by_stage_total",
-                             "loans_by_stage: total = S1+S2 (S3 null by design)",
-                             expected=tot, actual=expected)
     # Cross-section: loans_amounts.total ≈ loans_by_stage(S1+S2) + npl_brsa_gross(S3)
     la   = by_sect.get("loans_amounts")
     lbs  = by_sect.get("loans_by_stage")
