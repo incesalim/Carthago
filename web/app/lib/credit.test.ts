@@ -115,8 +115,45 @@ describe("creditBridge", () => {
 
   it("legs reconcile the endpoints: nominal − currency − inflation = real", () => {
     const b = creditBridge(nominal, fxAdj, cpi);
-    const nominalAtReal = 36.6;
-    expect(nominalAtReal - b.currencyPp! - b.inflationPp!).toBeCloseTo(b.realFxAdj!, 6);
+    // Read the start off the bridge, not a hardcoded literal — a literal passes
+    // even when the field it stands for is read at the wrong week.
+    expect(b.nominalAtReal! - b.currencyPp! - b.inflationPp!).toBeCloseTo(b.realFxAdj!, 6);
+  });
+});
+
+// The fixture above holds nominal FLAT, so `nominal` and `nominalAtReal` coincide
+// and a mix-up between them is invisible. Move the last week and they separate —
+// which is the live case: 36.4% at the real week, 36.2% at the latest.
+describe("creditBridge under a CPI lag with a MOVING nominal", () => {
+  const ps = weeks("2026-07-03", 60);
+  const nominal: Pt[] = ps.map((period, i) => ({
+    period,
+    value: i === ps.length - 1 ? 36.2 : 36.4, // the print moved after the last CPI month
+  }));
+  const fxAdj: Pt[] = ps.map((period) => ({ period, value: 29.3 }));
+  const cpi = new Map([
+    ["2026-05", 32.1],
+    ["2026-06", 32.1],
+  ]); // no July CPI
+
+  it("reads nominalAtReal at the REAL week, not the latest week", () => {
+    const b = creditBridge(nominal, fxAdj, cpi);
+    expect(b.lagged).toBe(true);
+    expect(b.asOfReal).toBe("2026-06-26");
+    expect(b.nominal).toBeCloseTo(36.2, 6); // the vitals' headline — latest week
+    expect(b.nominalAtReal).toBeCloseTo(36.4, 6); // the bridge's start — real week
+  });
+
+  it("the bridge still closes when the two nominals disagree", () => {
+    const b = creditBridge(nominal, fxAdj, cpi);
+    expect(b.nominalAtReal! - b.currencyPp! - b.inflationPp!).toBeCloseTo(b.realFxAdj!, 6);
+  });
+
+  it("starting from the LATEST nominal does not close — the bug this guards", () => {
+    const b = creditBridge(nominal, fxAdj, cpi);
+    // Mixing a July nominal with June legs leaves the sentence ~0.2pp short of
+    // its own conclusion. Pin it so nobody wires `nominal` back into the bridge.
+    expect(b.nominal! - b.currencyPp! - b.inflationPp!).not.toBeCloseTo(b.realFxAdj!, 1);
   });
 });
 

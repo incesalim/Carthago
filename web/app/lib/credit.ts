@@ -94,7 +94,15 @@ export function fxAdjustedGrowth(
 }
 
 export interface CreditBridge {
+  /** The latest nominal print — the vitals' headline. May LEAD the real legs. */
   nominal: number | null;
+  /**
+   * The nominal print read at `asOfReal` — the bridge's own starting bar.
+   * Every other bridge field is read at `asOfReal`, so anything that composes
+   * with a leg (a bar, a sentence) must start here and NOT at `nominal`, or a
+   * CPI lag silently mixes a July nominal with a June real.
+   */
+  nominalAtReal: number | null;
   /** Nominal with the FX book held at a constant USD/TRY. */
   fxAdj: number | null;
   /** Nominal deflated by CPI (the page's existing "real" twin). */
@@ -144,6 +152,7 @@ export function creditBridge(
 
   return {
     nominal: nomPt?.value ?? null,
+    nominalAtReal,
     fxAdj: fxAdjAtReal,
     real: realPt?.value ?? null,
     realFxAdj,
