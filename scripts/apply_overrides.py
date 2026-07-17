@@ -130,12 +130,29 @@ def _apply_one(conn: sqlite3.Connection, o: dict) -> str:
         if not cols:
             return f"npl_movement SKIP {b} {p} {k} (no valid columns)"
         grp, pt = o["group_code"], o.get("period_type", "current")
-        sets = ", ".join(f"{c}=?" for c in cols)
         vals = [o["fields"][c] for c in cols]
-        conn.execute(
-            f"UPDATE bank_audit_npl_movement SET {sets} WHERE bank_ticker=? AND period=? "
-            "AND kind=? AND group_code=? AND period_type=?", (*vals, b, p, k, grp, pt))
-        return f"npl_movement update {b} {p} {k} group {grp}/{pt} ({len(cols)} cols)"
+        row = conn.execute(
+            "SELECT 1 FROM bank_audit_npl_movement WHERE bank_ticker=? AND period=? "
+            "AND kind=? AND group_code=? AND period_type=?", (b, p, k, grp, pt)).fetchone()
+        if row:
+            sets = ", ".join(f"{c}=?" for c in cols)
+            conn.execute(
+                f"UPDATE bank_audit_npl_movement SET {sets} WHERE bank_ticker=? AND period=? "
+                "AND kind=? AND group_code=? AND period_type=?", (*vals, b, p, k, grp, pt))
+            verb = "update"
+        else:
+            # INSERT, not just UPDATE: a partition whose table the extractor could
+            # not READ AT ALL has no row to patch. FIBA's note-5.9.2 tables are
+            # printed but invisible to get_text() — 2023Q3 cons is a pasted bitmap,
+            # the rest are vector-outlined curves — so those six partitions carry
+            # zero movement rows and were (wrongly) curated as "not disclosed".
+            names = ", ".join(cols)
+            qs = ", ".join("?" for _ in cols)
+            conn.execute(
+                f"INSERT INTO bank_audit_npl_movement (bank_ticker,period,kind,group_code,"
+                f"period_type,{names}) VALUES (?,?,?,?,?,{qs})", (b, p, k, grp, pt, *vals))
+            verb = "insert"
+        return f"npl_movement {verb} {b} {p} {k} group {grp}/{pt} ({len(cols)} cols)"
     if st == "credit_quality":
         # Upsert ONE section row of bank_audit_credit_quality (keyed by section +
         # period_type). Used for the Stage-3 (NPL) figure that a bank discloses as

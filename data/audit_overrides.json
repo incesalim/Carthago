@@ -5095,6 +5095,672 @@
         "source_page": 60
       },
       "note": "AKTIF 2023Q3's note 6.10.2 spans two pages — 'Cari Dönem' (PDF p59, 0-based) then '(devamı) Önceki Dönem' (p60) — and the movement extractor stored the PRIOR page as current: the stored source_page was 61 (1-based) = the Önceki Dönem page, and every column of the row (opening, flows, closing, provision, net) was FY2022's. Tell: the stored closing 49,933/83,454/297,444 is exactly the CURRENT table's OPENING row. THIS IS THE INVERTED CASE — credit_quality was RIGHT here and npl_movement wrong, the only one of the 33 flagged partitions that way; patching cq would have overwritten a correct value with a wrong one. That is why the gross-vs-movement check is a neutral DISAGREEMENT detector raised on both lanes rather than a 'movement is right' rule. Read from PDF p59 'Cari Dönem' block, fitz only. All three groups foot exactly: III 49,933+40,834-28,024-16,297 = 46,446; IV 83,454+63,211+28,024-85,897-23,743 = 65,049; V 297,444+4,654+85,897-66,305-3,203 = 318,487 — and all three closings equal the cq gross already stored. Provisions from note 6.9's '30 Eylül 2023' column (the stored 20,051/41,674/231,301 are its '31 Aralık 2022' column, confirming the whole row was prior); net = closing - provision."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2022Q1",
+      "kind": "consolidated",
+      "statement": "npl_movement",
+      "group_code": "III",
+      "period_type": "current",
+      "fields": {
+        "opening_balance": 61679,
+        "additions": 80391,
+        "transfers_in": 0,
+        "transfers_out": 35236,
+        "collections": 15089,
+        "write_offs": 858,
+        "sold": 0,
+        "closing_balance": 90887,
+        "provision": 57326,
+        "net_balance": 33561,
+        "source_page": 63
+      },
+      "note": "FIBA's note-5.9.2 'Toplam donuk alacak hareketlerine ilişkin bilgiler' IS PRINTED but is invisible to fitz's get_text(): on this page the table is VECTOR-OUTLINED text (0 images, 504-625 vector drawings), leaving only the heading in the text layer above a ~360-440pt gap with zero numbers. The partition was WRONGLY curated as 'not disclosed' in audit_not_disclosed.json with the note '§5 notes are headings only + the Article-25 hazırlanmamıştır statement (Re-verified 2026-07-16)' — that note is wrong twice: the table is disclosed in full, and NO 'hazırlanmamıştır' statement exists on any of these six pages (it was carried over from a different FIBA page). Read from PDF p62 (0-based) by 7x RENDER, fitz only — not one figure came from get_text(). Corroboration: FIBA prints cons == unco for all 3 groups in all 26 already-extracted partitions, and 2023Q3/2024Q1 UNCONSOLIDATED are already in the DB from an independent text-based extraction — all 24 comparable cells match digit-for-digit. Transfers balance (Σin == Σout) and closing - provision == net in all 6. ISSUER FOOTING ERROR, stored AS-PRINTED: group IV rolls to 151,918 but prints 151,916 (-2) and group V rolls to 427,497 but prints 427,498 (+1). Verified at 7x and reproduced identically in BOTH books (cons p62 and unco p59), and closing - provision == net holds for both, so the printed closing is internally corroborated. Rounding-scale (0.001%) and no downstream contamination — the table is YTD, so 2022Q2 opens from the 31-Dec-2021 base rather than chaining off Q1's closing. Not adjusted to make it foot."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2022Q1",
+      "kind": "consolidated",
+      "statement": "npl_movement",
+      "group_code": "IV",
+      "period_type": "current",
+      "fields": {
+        "opening_balance": 524861,
+        "additions": 2958,
+        "transfers_in": 0,
+        "transfers_out": 362344,
+        "collections": 13135,
+        "write_offs": 422,
+        "sold": 0,
+        "closing_balance": 151916,
+        "provision": 119830,
+        "net_balance": 32086,
+        "source_page": 63
+      },
+      "note": "FIBA's note-5.9.2 'Toplam donuk alacak hareketlerine ilişkin bilgiler' IS PRINTED but is invisible to fitz's get_text(): on this page the table is VECTOR-OUTLINED text (0 images, 504-625 vector drawings), leaving only the heading in the text layer above a ~360-440pt gap with zero numbers. The partition was WRONGLY curated as 'not disclosed' in audit_not_disclosed.json with the note '§5 notes are headings only + the Article-25 hazırlanmamıştır statement (Re-verified 2026-07-16)' — that note is wrong twice: the table is disclosed in full, and NO 'hazırlanmamıştır' statement exists on any of these six pages (it was carried over from a different FIBA page). Read from PDF p62 (0-based) by 7x RENDER, fitz only — not one figure came from get_text(). Corroboration: FIBA prints cons == unco for all 3 groups in all 26 already-extracted partitions, and 2023Q3/2024Q1 UNCONSOLIDATED are already in the DB from an independent text-based extraction — all 24 comparable cells match digit-for-digit. Transfers balance (Σin == Σout) and closing - provision == net in all 6. ISSUER FOOTING ERROR, stored AS-PRINTED: group IV rolls to 151,918 but prints 151,916 (-2) and group V rolls to 427,497 but prints 427,498 (+1). Verified at 7x and reproduced identically in BOTH books (cons p62 and unco p59), and closing - provision == net holds for both, so the printed closing is internally corroborated. Rounding-scale (0.001%) and no downstream contamination — the table is YTD, so 2022Q2 opens from the 31-Dec-2021 base rather than chaining off Q1's closing. Not adjusted to make it foot."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2022Q1",
+      "kind": "consolidated",
+      "statement": "npl_movement",
+      "group_code": "V",
+      "period_type": "current",
+      "fields": {
+        "opening_balance": 302173,
+        "additions": 18052,
+        "transfers_in": 397580,
+        "transfers_out": 0,
+        "collections": 289298,
+        "write_offs": 1010,
+        "sold": 0,
+        "closing_balance": 427498,
+        "provision": 231554,
+        "net_balance": 195944,
+        "source_page": 63
+      },
+      "note": "FIBA's note-5.9.2 'Toplam donuk alacak hareketlerine ilişkin bilgiler' IS PRINTED but is invisible to fitz's get_text(): on this page the table is VECTOR-OUTLINED text (0 images, 504-625 vector drawings), leaving only the heading in the text layer above a ~360-440pt gap with zero numbers. The partition was WRONGLY curated as 'not disclosed' in audit_not_disclosed.json with the note '§5 notes are headings only + the Article-25 hazırlanmamıştır statement (Re-verified 2026-07-16)' — that note is wrong twice: the table is disclosed in full, and NO 'hazırlanmamıştır' statement exists on any of these six pages (it was carried over from a different FIBA page). Read from PDF p62 (0-based) by 7x RENDER, fitz only — not one figure came from get_text(). Corroboration: FIBA prints cons == unco for all 3 groups in all 26 already-extracted partitions, and 2023Q3/2024Q1 UNCONSOLIDATED are already in the DB from an independent text-based extraction — all 24 comparable cells match digit-for-digit. Transfers balance (Σin == Σout) and closing - provision == net in all 6. ISSUER FOOTING ERROR, stored AS-PRINTED: group IV rolls to 151,918 but prints 151,916 (-2) and group V rolls to 427,497 but prints 427,498 (+1). Verified at 7x and reproduced identically in BOTH books (cons p62 and unco p59), and closing - provision == net holds for both, so the printed closing is internally corroborated. Rounding-scale (0.001%) and no downstream contamination — the table is YTD, so 2022Q2 opens from the 31-Dec-2021 base rather than chaining off Q1's closing. Not adjusted to make it foot."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2022Q1",
+      "kind": "consolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 90887,
+        "stage2_amount": 151916,
+        "stage3_amount": 427498,
+        "total_amount": 670301
+      },
+      "note": "FIBA's note-5.9.2 'Toplam donuk alacak hareketlerine ilişkin bilgiler' IS PRINTED but is invisible to fitz's get_text(): on this page the table is VECTOR-OUTLINED text (0 images, 504-625 vector drawings), leaving only the heading in the text layer above a ~360-440pt gap with zero numbers. The partition was WRONGLY curated as 'not disclosed' in audit_not_disclosed.json with the note '§5 notes are headings only + the Article-25 hazırlanmamıştır statement (Re-verified 2026-07-16)' — that note is wrong twice: the table is disclosed in full, and NO 'hazırlanmamıştır' statement exists on any of these six pages (it was carried over from a different FIBA page). Read from PDF p62 (0-based) by 7x RENDER, fitz only — not one figure came from get_text(). Corroboration: FIBA prints cons == unco for all 3 groups in all 26 already-extracted partitions, and 2023Q3/2024Q1 UNCONSOLIDATED are already in the DB from an independent text-based extraction — all 24 comparable cells match digit-for-digit. Transfers balance (Σin == Σout) and closing - provision == net in all 6. ISSUER FOOTING ERROR, stored AS-PRINTED: group IV rolls to 151,918 but prints 151,916 (-2) and group V rolls to 427,497 but prints 427,498 (+1). Verified at 7x and reproduced identically in BOTH books (cons p62 and unco p59), and closing - provision == net holds for both, so the printed closing is internally corroborated. Rounding-scale (0.001%) and no downstream contamination — the table is YTD, so 2022Q2 opens from the 31-Dec-2021 base rather than chaining off Q1's closing. Not adjusted to make it foot. (stage1/2/3 carry BRSA GROUPS III/IV/V for the npl_brsa_* sections, not IFRS stages; total = III+IV+V.)"
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2022Q1",
+      "kind": "consolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_provision",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 57326,
+        "stage2_amount": 119830,
+        "stage3_amount": 231554,
+        "total_amount": 408710
+      },
+      "note": "FIBA's note-5.9.2 'Toplam donuk alacak hareketlerine ilişkin bilgiler' IS PRINTED but is invisible to fitz's get_text(): on this page the table is VECTOR-OUTLINED text (0 images, 504-625 vector drawings), leaving only the heading in the text layer above a ~360-440pt gap with zero numbers. The partition was WRONGLY curated as 'not disclosed' in audit_not_disclosed.json with the note '§5 notes are headings only + the Article-25 hazırlanmamıştır statement (Re-verified 2026-07-16)' — that note is wrong twice: the table is disclosed in full, and NO 'hazırlanmamıştır' statement exists on any of these six pages (it was carried over from a different FIBA page). Read from PDF p62 (0-based) by 7x RENDER, fitz only — not one figure came from get_text(). Corroboration: FIBA prints cons == unco for all 3 groups in all 26 already-extracted partitions, and 2023Q3/2024Q1 UNCONSOLIDATED are already in the DB from an independent text-based extraction — all 24 comparable cells match digit-for-digit. Transfers balance (Σin == Σout) and closing - provision == net in all 6. ISSUER FOOTING ERROR, stored AS-PRINTED: group IV rolls to 151,918 but prints 151,916 (-2) and group V rolls to 427,497 but prints 427,498 (+1). Verified at 7x and reproduced identically in BOTH books (cons p62 and unco p59), and closing - provision == net holds for both, so the printed closing is internally corroborated. Rounding-scale (0.001%) and no downstream contamination — the table is YTD, so 2022Q2 opens from the 31-Dec-2021 base rather than chaining off Q1's closing. Not adjusted to make it foot. (stage1/2/3 carry BRSA GROUPS III/IV/V for the npl_brsa_* sections, not IFRS stages; total = III+IV+V.)"
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2022Q1",
+      "kind": "consolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_net",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 33561,
+        "stage2_amount": 32086,
+        "stage3_amount": 195944,
+        "total_amount": 261591
+      },
+      "note": "FIBA's note-5.9.2 'Toplam donuk alacak hareketlerine ilişkin bilgiler' IS PRINTED but is invisible to fitz's get_text(): on this page the table is VECTOR-OUTLINED text (0 images, 504-625 vector drawings), leaving only the heading in the text layer above a ~360-440pt gap with zero numbers. The partition was WRONGLY curated as 'not disclosed' in audit_not_disclosed.json with the note '§5 notes are headings only + the Article-25 hazırlanmamıştır statement (Re-verified 2026-07-16)' — that note is wrong twice: the table is disclosed in full, and NO 'hazırlanmamıştır' statement exists on any of these six pages (it was carried over from a different FIBA page). Read from PDF p62 (0-based) by 7x RENDER, fitz only — not one figure came from get_text(). Corroboration: FIBA prints cons == unco for all 3 groups in all 26 already-extracted partitions, and 2023Q3/2024Q1 UNCONSOLIDATED are already in the DB from an independent text-based extraction — all 24 comparable cells match digit-for-digit. Transfers balance (Σin == Σout) and closing - provision == net in all 6. ISSUER FOOTING ERROR, stored AS-PRINTED: group IV rolls to 151,918 but prints 151,916 (-2) and group V rolls to 427,497 but prints 427,498 (+1). Verified at 7x and reproduced identically in BOTH books (cons p62 and unco p59), and closing - provision == net holds for both, so the printed closing is internally corroborated. Rounding-scale (0.001%) and no downstream contamination — the table is YTD, so 2022Q2 opens from the 31-Dec-2021 base rather than chaining off Q1's closing. Not adjusted to make it foot. (stage1/2/3 carry BRSA GROUPS III/IV/V for the npl_brsa_* sections, not IFRS stages; total = III+IV+V.)"
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2022Q1",
+      "kind": "unconsolidated",
+      "statement": "npl_movement",
+      "group_code": "III",
+      "period_type": "current",
+      "fields": {
+        "opening_balance": 61679,
+        "additions": 80391,
+        "transfers_in": 0,
+        "transfers_out": 35236,
+        "collections": 15089,
+        "write_offs": 858,
+        "sold": 0,
+        "closing_balance": 90887,
+        "provision": 57326,
+        "net_balance": 33561,
+        "source_page": 60
+      },
+      "note": "FIBA's note-5.9.2 'Toplam donuk alacak hareketlerine ilişkin bilgiler' IS PRINTED but is invisible to fitz's get_text(): on this page the table is VECTOR-OUTLINED text (0 images, 504-625 vector drawings), leaving only the heading in the text layer above a ~360-440pt gap with zero numbers. The partition was WRONGLY curated as 'not disclosed' in audit_not_disclosed.json with the note '§5 notes are headings only + the Article-25 hazırlanmamıştır statement (Re-verified 2026-07-16)' — that note is wrong twice: the table is disclosed in full, and NO 'hazırlanmamıştır' statement exists on any of these six pages (it was carried over from a different FIBA page). Read from PDF p59 (0-based) by 7x RENDER, fitz only — not one figure came from get_text(). Corroboration: FIBA prints cons == unco for all 3 groups in all 26 already-extracted partitions, and 2023Q3/2024Q1 UNCONSOLIDATED are already in the DB from an independent text-based extraction — all 24 comparable cells match digit-for-digit. Transfers balance (Σin == Σout) and closing - provision == net in all 6. ISSUER FOOTING ERROR, stored AS-PRINTED: group IV rolls to 151,918 but prints 151,916 (-2) and group V rolls to 427,497 but prints 427,498 (+1). Verified at 7x and reproduced identically in BOTH books (cons p62 and unco p59), and closing - provision == net holds for both, so the printed closing is internally corroborated. Rounding-scale (0.001%) and no downstream contamination — the table is YTD, so 2022Q2 opens from the 31-Dec-2021 base rather than chaining off Q1's closing. Not adjusted to make it foot."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2022Q1",
+      "kind": "unconsolidated",
+      "statement": "npl_movement",
+      "group_code": "IV",
+      "period_type": "current",
+      "fields": {
+        "opening_balance": 524861,
+        "additions": 2958,
+        "transfers_in": 0,
+        "transfers_out": 362344,
+        "collections": 13135,
+        "write_offs": 422,
+        "sold": 0,
+        "closing_balance": 151916,
+        "provision": 119830,
+        "net_balance": 32086,
+        "source_page": 60
+      },
+      "note": "FIBA's note-5.9.2 'Toplam donuk alacak hareketlerine ilişkin bilgiler' IS PRINTED but is invisible to fitz's get_text(): on this page the table is VECTOR-OUTLINED text (0 images, 504-625 vector drawings), leaving only the heading in the text layer above a ~360-440pt gap with zero numbers. The partition was WRONGLY curated as 'not disclosed' in audit_not_disclosed.json with the note '§5 notes are headings only + the Article-25 hazırlanmamıştır statement (Re-verified 2026-07-16)' — that note is wrong twice: the table is disclosed in full, and NO 'hazırlanmamıştır' statement exists on any of these six pages (it was carried over from a different FIBA page). Read from PDF p59 (0-based) by 7x RENDER, fitz only — not one figure came from get_text(). Corroboration: FIBA prints cons == unco for all 3 groups in all 26 already-extracted partitions, and 2023Q3/2024Q1 UNCONSOLIDATED are already in the DB from an independent text-based extraction — all 24 comparable cells match digit-for-digit. Transfers balance (Σin == Σout) and closing - provision == net in all 6. ISSUER FOOTING ERROR, stored AS-PRINTED: group IV rolls to 151,918 but prints 151,916 (-2) and group V rolls to 427,497 but prints 427,498 (+1). Verified at 7x and reproduced identically in BOTH books (cons p62 and unco p59), and closing - provision == net holds for both, so the printed closing is internally corroborated. Rounding-scale (0.001%) and no downstream contamination — the table is YTD, so 2022Q2 opens from the 31-Dec-2021 base rather than chaining off Q1's closing. Not adjusted to make it foot."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2022Q1",
+      "kind": "unconsolidated",
+      "statement": "npl_movement",
+      "group_code": "V",
+      "period_type": "current",
+      "fields": {
+        "opening_balance": 302173,
+        "additions": 18052,
+        "transfers_in": 397580,
+        "transfers_out": 0,
+        "collections": 289298,
+        "write_offs": 1010,
+        "sold": 0,
+        "closing_balance": 427498,
+        "provision": 231554,
+        "net_balance": 195944,
+        "source_page": 60
+      },
+      "note": "FIBA's note-5.9.2 'Toplam donuk alacak hareketlerine ilişkin bilgiler' IS PRINTED but is invisible to fitz's get_text(): on this page the table is VECTOR-OUTLINED text (0 images, 504-625 vector drawings), leaving only the heading in the text layer above a ~360-440pt gap with zero numbers. The partition was WRONGLY curated as 'not disclosed' in audit_not_disclosed.json with the note '§5 notes are headings only + the Article-25 hazırlanmamıştır statement (Re-verified 2026-07-16)' — that note is wrong twice: the table is disclosed in full, and NO 'hazırlanmamıştır' statement exists on any of these six pages (it was carried over from a different FIBA page). Read from PDF p59 (0-based) by 7x RENDER, fitz only — not one figure came from get_text(). Corroboration: FIBA prints cons == unco for all 3 groups in all 26 already-extracted partitions, and 2023Q3/2024Q1 UNCONSOLIDATED are already in the DB from an independent text-based extraction — all 24 comparable cells match digit-for-digit. Transfers balance (Σin == Σout) and closing - provision == net in all 6. ISSUER FOOTING ERROR, stored AS-PRINTED: group IV rolls to 151,918 but prints 151,916 (-2) and group V rolls to 427,497 but prints 427,498 (+1). Verified at 7x and reproduced identically in BOTH books (cons p62 and unco p59), and closing - provision == net holds for both, so the printed closing is internally corroborated. Rounding-scale (0.001%) and no downstream contamination — the table is YTD, so 2022Q2 opens from the 31-Dec-2021 base rather than chaining off Q1's closing. Not adjusted to make it foot."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2022Q1",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 90887,
+        "stage2_amount": 151916,
+        "stage3_amount": 427498,
+        "total_amount": 670301
+      },
+      "note": "FIBA's note-5.9.2 'Toplam donuk alacak hareketlerine ilişkin bilgiler' IS PRINTED but is invisible to fitz's get_text(): on this page the table is VECTOR-OUTLINED text (0 images, 504-625 vector drawings), leaving only the heading in the text layer above a ~360-440pt gap with zero numbers. The partition was WRONGLY curated as 'not disclosed' in audit_not_disclosed.json with the note '§5 notes are headings only + the Article-25 hazırlanmamıştır statement (Re-verified 2026-07-16)' — that note is wrong twice: the table is disclosed in full, and NO 'hazırlanmamıştır' statement exists on any of these six pages (it was carried over from a different FIBA page). Read from PDF p59 (0-based) by 7x RENDER, fitz only — not one figure came from get_text(). Corroboration: FIBA prints cons == unco for all 3 groups in all 26 already-extracted partitions, and 2023Q3/2024Q1 UNCONSOLIDATED are already in the DB from an independent text-based extraction — all 24 comparable cells match digit-for-digit. Transfers balance (Σin == Σout) and closing - provision == net in all 6. ISSUER FOOTING ERROR, stored AS-PRINTED: group IV rolls to 151,918 but prints 151,916 (-2) and group V rolls to 427,497 but prints 427,498 (+1). Verified at 7x and reproduced identically in BOTH books (cons p62 and unco p59), and closing - provision == net holds for both, so the printed closing is internally corroborated. Rounding-scale (0.001%) and no downstream contamination — the table is YTD, so 2022Q2 opens from the 31-Dec-2021 base rather than chaining off Q1's closing. Not adjusted to make it foot. (stage1/2/3 carry BRSA GROUPS III/IV/V for the npl_brsa_* sections, not IFRS stages; total = III+IV+V.)"
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2022Q1",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_provision",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 57326,
+        "stage2_amount": 119830,
+        "stage3_amount": 231554,
+        "total_amount": 408710
+      },
+      "note": "FIBA's note-5.9.2 'Toplam donuk alacak hareketlerine ilişkin bilgiler' IS PRINTED but is invisible to fitz's get_text(): on this page the table is VECTOR-OUTLINED text (0 images, 504-625 vector drawings), leaving only the heading in the text layer above a ~360-440pt gap with zero numbers. The partition was WRONGLY curated as 'not disclosed' in audit_not_disclosed.json with the note '§5 notes are headings only + the Article-25 hazırlanmamıştır statement (Re-verified 2026-07-16)' — that note is wrong twice: the table is disclosed in full, and NO 'hazırlanmamıştır' statement exists on any of these six pages (it was carried over from a different FIBA page). Read from PDF p59 (0-based) by 7x RENDER, fitz only — not one figure came from get_text(). Corroboration: FIBA prints cons == unco for all 3 groups in all 26 already-extracted partitions, and 2023Q3/2024Q1 UNCONSOLIDATED are already in the DB from an independent text-based extraction — all 24 comparable cells match digit-for-digit. Transfers balance (Σin == Σout) and closing - provision == net in all 6. ISSUER FOOTING ERROR, stored AS-PRINTED: group IV rolls to 151,918 but prints 151,916 (-2) and group V rolls to 427,497 but prints 427,498 (+1). Verified at 7x and reproduced identically in BOTH books (cons p62 and unco p59), and closing - provision == net holds for both, so the printed closing is internally corroborated. Rounding-scale (0.001%) and no downstream contamination — the table is YTD, so 2022Q2 opens from the 31-Dec-2021 base rather than chaining off Q1's closing. Not adjusted to make it foot. (stage1/2/3 carry BRSA GROUPS III/IV/V for the npl_brsa_* sections, not IFRS stages; total = III+IV+V.)"
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2022Q1",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_net",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 33561,
+        "stage2_amount": 32086,
+        "stage3_amount": 195944,
+        "total_amount": 261591
+      },
+      "note": "FIBA's note-5.9.2 'Toplam donuk alacak hareketlerine ilişkin bilgiler' IS PRINTED but is invisible to fitz's get_text(): on this page the table is VECTOR-OUTLINED text (0 images, 504-625 vector drawings), leaving only the heading in the text layer above a ~360-440pt gap with zero numbers. The partition was WRONGLY curated as 'not disclosed' in audit_not_disclosed.json with the note '§5 notes are headings only + the Article-25 hazırlanmamıştır statement (Re-verified 2026-07-16)' — that note is wrong twice: the table is disclosed in full, and NO 'hazırlanmamıştır' statement exists on any of these six pages (it was carried over from a different FIBA page). Read from PDF p59 (0-based) by 7x RENDER, fitz only — not one figure came from get_text(). Corroboration: FIBA prints cons == unco for all 3 groups in all 26 already-extracted partitions, and 2023Q3/2024Q1 UNCONSOLIDATED are already in the DB from an independent text-based extraction — all 24 comparable cells match digit-for-digit. Transfers balance (Σin == Σout) and closing - provision == net in all 6. ISSUER FOOTING ERROR, stored AS-PRINTED: group IV rolls to 151,918 but prints 151,916 (-2) and group V rolls to 427,497 but prints 427,498 (+1). Verified at 7x and reproduced identically in BOTH books (cons p62 and unco p59), and closing - provision == net holds for both, so the printed closing is internally corroborated. Rounding-scale (0.001%) and no downstream contamination — the table is YTD, so 2022Q2 opens from the 31-Dec-2021 base rather than chaining off Q1's closing. Not adjusted to make it foot. (stage1/2/3 carry BRSA GROUPS III/IV/V for the npl_brsa_* sections, not IFRS stages; total = III+IV+V.)"
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2023Q3",
+      "kind": "consolidated",
+      "statement": "npl_movement",
+      "group_code": "III",
+      "period_type": "current",
+      "fields": {
+        "opening_balance": 132120,
+        "additions": 558477,
+        "transfers_in": 0,
+        "transfers_out": 253763,
+        "collections": 139723,
+        "write_offs": 28998,
+        "sold": 97719,
+        "closing_balance": 170394,
+        "provision": 113529,
+        "net_balance": 56865,
+        "source_page": 63
+      },
+      "note": "FIBA's note-5.9.2 'Toplam donuk alacak hareketlerine ilişkin bilgiler' IS PRINTED but is invisible to fitz's get_text(): on this page the table is a PASTED BITMAP (304 images on the page, 613 text chars), leaving only the heading in the text layer above a ~360-440pt gap with zero numbers. The partition was WRONGLY curated as 'not disclosed' in audit_not_disclosed.json with the note '§5 notes are headings only + the Article-25 hazırlanmamıştır statement (Re-verified 2026-07-16)' — that note is wrong twice: the table is disclosed in full, and NO 'hazırlanmamıştır' statement exists on any of these six pages (it was carried over from a different FIBA page). Read from PDF p62 (0-based) by 7x RENDER, fitz only — not one figure came from get_text(). Corroboration: FIBA prints cons == unco for all 3 groups in all 26 already-extracted partitions, and 2023Q3/2024Q1 UNCONSOLIDATED are already in the DB from an independent text-based extraction — all 24 comparable cells match digit-for-digit. Transfers balance (Σin == Σout) and closing - provision == net in all 6."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2023Q3",
+      "kind": "consolidated",
+      "statement": "npl_movement",
+      "group_code": "IV",
+      "period_type": "current",
+      "fields": {
+        "opening_balance": 98733,
+        "additions": 5401,
+        "transfers_in": 253763,
+        "transfers_out": 91156,
+        "collections": 42468,
+        "write_offs": 1216,
+        "sold": 120819,
+        "closing_balance": 102238,
+        "provision": 69051,
+        "net_balance": 33187,
+        "source_page": 63
+      },
+      "note": "FIBA's note-5.9.2 'Toplam donuk alacak hareketlerine ilişkin bilgiler' IS PRINTED but is invisible to fitz's get_text(): on this page the table is a PASTED BITMAP (304 images on the page, 613 text chars), leaving only the heading in the text layer above a ~360-440pt gap with zero numbers. The partition was WRONGLY curated as 'not disclosed' in audit_not_disclosed.json with the note '§5 notes are headings only + the Article-25 hazırlanmamıştır statement (Re-verified 2026-07-16)' — that note is wrong twice: the table is disclosed in full, and NO 'hazırlanmamıştır' statement exists on any of these six pages (it was carried over from a different FIBA page). Read from PDF p62 (0-based) by 7x RENDER, fitz only — not one figure came from get_text(). Corroboration: FIBA prints cons == unco for all 3 groups in all 26 already-extracted partitions, and 2023Q3/2024Q1 UNCONSOLIDATED are already in the DB from an independent text-based extraction — all 24 comparable cells match digit-for-digit. Transfers balance (Σin == Σout) and closing - provision == net in all 6."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2023Q3",
+      "kind": "consolidated",
+      "statement": "npl_movement",
+      "group_code": "V",
+      "period_type": "current",
+      "fields": {
+        "opening_balance": 434573,
+        "additions": 4131,
+        "transfers_in": 91156,
+        "transfers_out": 0,
+        "collections": 167258,
+        "write_offs": 25988,
+        "sold": 64722,
+        "closing_balance": 271892,
+        "provision": 248322,
+        "net_balance": 23570,
+        "source_page": 63
+      },
+      "note": "FIBA's note-5.9.2 'Toplam donuk alacak hareketlerine ilişkin bilgiler' IS PRINTED but is invisible to fitz's get_text(): on this page the table is a PASTED BITMAP (304 images on the page, 613 text chars), leaving only the heading in the text layer above a ~360-440pt gap with zero numbers. The partition was WRONGLY curated as 'not disclosed' in audit_not_disclosed.json with the note '§5 notes are headings only + the Article-25 hazırlanmamıştır statement (Re-verified 2026-07-16)' — that note is wrong twice: the table is disclosed in full, and NO 'hazırlanmamıştır' statement exists on any of these six pages (it was carried over from a different FIBA page). Read from PDF p62 (0-based) by 7x RENDER, fitz only — not one figure came from get_text(). Corroboration: FIBA prints cons == unco for all 3 groups in all 26 already-extracted partitions, and 2023Q3/2024Q1 UNCONSOLIDATED are already in the DB from an independent text-based extraction — all 24 comparable cells match digit-for-digit. Transfers balance (Σin == Σout) and closing - provision == net in all 6."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2023Q3",
+      "kind": "consolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 170394,
+        "stage2_amount": 102238,
+        "stage3_amount": 271892,
+        "total_amount": 544524
+      },
+      "note": "FIBA's note-5.9.2 'Toplam donuk alacak hareketlerine ilişkin bilgiler' IS PRINTED but is invisible to fitz's get_text(): on this page the table is a PASTED BITMAP (304 images on the page, 613 text chars), leaving only the heading in the text layer above a ~360-440pt gap with zero numbers. The partition was WRONGLY curated as 'not disclosed' in audit_not_disclosed.json with the note '§5 notes are headings only + the Article-25 hazırlanmamıştır statement (Re-verified 2026-07-16)' — that note is wrong twice: the table is disclosed in full, and NO 'hazırlanmamıştır' statement exists on any of these six pages (it was carried over from a different FIBA page). Read from PDF p62 (0-based) by 7x RENDER, fitz only — not one figure came from get_text(). Corroboration: FIBA prints cons == unco for all 3 groups in all 26 already-extracted partitions, and 2023Q3/2024Q1 UNCONSOLIDATED are already in the DB from an independent text-based extraction — all 24 comparable cells match digit-for-digit. Transfers balance (Σin == Σout) and closing - provision == net in all 6. (stage1/2/3 carry BRSA GROUPS III/IV/V for the npl_brsa_* sections, not IFRS stages; total = III+IV+V.)"
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2023Q3",
+      "kind": "consolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_provision",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 113529,
+        "stage2_amount": 69051,
+        "stage3_amount": 248322,
+        "total_amount": 430902
+      },
+      "note": "FIBA's note-5.9.2 'Toplam donuk alacak hareketlerine ilişkin bilgiler' IS PRINTED but is invisible to fitz's get_text(): on this page the table is a PASTED BITMAP (304 images on the page, 613 text chars), leaving only the heading in the text layer above a ~360-440pt gap with zero numbers. The partition was WRONGLY curated as 'not disclosed' in audit_not_disclosed.json with the note '§5 notes are headings only + the Article-25 hazırlanmamıştır statement (Re-verified 2026-07-16)' — that note is wrong twice: the table is disclosed in full, and NO 'hazırlanmamıştır' statement exists on any of these six pages (it was carried over from a different FIBA page). Read from PDF p62 (0-based) by 7x RENDER, fitz only — not one figure came from get_text(). Corroboration: FIBA prints cons == unco for all 3 groups in all 26 already-extracted partitions, and 2023Q3/2024Q1 UNCONSOLIDATED are already in the DB from an independent text-based extraction — all 24 comparable cells match digit-for-digit. Transfers balance (Σin == Σout) and closing - provision == net in all 6. (stage1/2/3 carry BRSA GROUPS III/IV/V for the npl_brsa_* sections, not IFRS stages; total = III+IV+V.)"
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2023Q3",
+      "kind": "consolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_net",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 56865,
+        "stage2_amount": 33187,
+        "stage3_amount": 23570,
+        "total_amount": 113622
+      },
+      "note": "FIBA's note-5.9.2 'Toplam donuk alacak hareketlerine ilişkin bilgiler' IS PRINTED but is invisible to fitz's get_text(): on this page the table is a PASTED BITMAP (304 images on the page, 613 text chars), leaving only the heading in the text layer above a ~360-440pt gap with zero numbers. The partition was WRONGLY curated as 'not disclosed' in audit_not_disclosed.json with the note '§5 notes are headings only + the Article-25 hazırlanmamıştır statement (Re-verified 2026-07-16)' — that note is wrong twice: the table is disclosed in full, and NO 'hazırlanmamıştır' statement exists on any of these six pages (it was carried over from a different FIBA page). Read from PDF p62 (0-based) by 7x RENDER, fitz only — not one figure came from get_text(). Corroboration: FIBA prints cons == unco for all 3 groups in all 26 already-extracted partitions, and 2023Q3/2024Q1 UNCONSOLIDATED are already in the DB from an independent text-based extraction — all 24 comparable cells match digit-for-digit. Transfers balance (Σin == Σout) and closing - provision == net in all 6. (stage1/2/3 carry BRSA GROUPS III/IV/V for the npl_brsa_* sections, not IFRS stages; total = III+IV+V.)"
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2024Q1",
+      "kind": "consolidated",
+      "statement": "npl_movement",
+      "group_code": "III",
+      "period_type": "current",
+      "fields": {
+        "opening_balance": 395518,
+        "additions": 332078,
+        "transfers_in": 0,
+        "transfers_out": 344421,
+        "collections": 74536,
+        "write_offs": 1893,
+        "sold": 56021,
+        "closing_balance": 250725,
+        "provision": 162487,
+        "net_balance": 88238,
+        "source_page": 59
+      },
+      "note": "FIBA's note-5.9.2 'Toplam donuk alacak hareketlerine ilişkin bilgiler' IS PRINTED but is invisible to fitz's get_text(): on this page the table is VECTOR-OUTLINED text (0 images, 504-625 vector drawings), leaving only the heading in the text layer above a ~360-440pt gap with zero numbers. The partition was WRONGLY curated as 'not disclosed' in audit_not_disclosed.json with the note '§5 notes are headings only + the Article-25 hazırlanmamıştır statement (Re-verified 2026-07-16)' — that note is wrong twice: the table is disclosed in full, and NO 'hazırlanmamıştır' statement exists on any of these six pages (it was carried over from a different FIBA page). Read from PDF p58 (0-based) by 7x RENDER, fitz only — not one figure came from get_text(). Corroboration: FIBA prints cons == unco for all 3 groups in all 26 already-extracted partitions, and 2023Q3/2024Q1 UNCONSOLIDATED are already in the DB from an independent text-based extraction — all 24 comparable cells match digit-for-digit. Transfers balance (Σin == Σout) and closing - provision == net in all 6."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2024Q1",
+      "kind": "consolidated",
+      "statement": "npl_movement",
+      "group_code": "IV",
+      "period_type": "current",
+      "fields": {
+        "opening_balance": 121966,
+        "additions": 2095,
+        "transfers_in": 344421,
+        "transfers_out": 35066,
+        "collections": 19007,
+        "write_offs": 310,
+        "sold": 45522,
+        "closing_balance": 368577,
+        "provision": 234800,
+        "net_balance": 133777,
+        "source_page": 59
+      },
+      "note": "FIBA's note-5.9.2 'Toplam donuk alacak hareketlerine ilişkin bilgiler' IS PRINTED but is invisible to fitz's get_text(): on this page the table is VECTOR-OUTLINED text (0 images, 504-625 vector drawings), leaving only the heading in the text layer above a ~360-440pt gap with zero numbers. The partition was WRONGLY curated as 'not disclosed' in audit_not_disclosed.json with the note '§5 notes are headings only + the Article-25 hazırlanmamıştır statement (Re-verified 2026-07-16)' — that note is wrong twice: the table is disclosed in full, and NO 'hazırlanmamıştır' statement exists on any of these six pages (it was carried over from a different FIBA page). Read from PDF p58 (0-based) by 7x RENDER, fitz only — not one figure came from get_text(). Corroboration: FIBA prints cons == unco for all 3 groups in all 26 already-extracted partitions, and 2023Q3/2024Q1 UNCONSOLIDATED are already in the DB from an independent text-based extraction — all 24 comparable cells match digit-for-digit. Transfers balance (Σin == Σout) and closing - provision == net in all 6."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2024Q1",
+      "kind": "consolidated",
+      "statement": "npl_movement",
+      "group_code": "V",
+      "period_type": "current",
+      "fields": {
+        "opening_balance": 230253,
+        "additions": 1433,
+        "transfers_in": 35066,
+        "transfers_out": 0,
+        "collections": 29747,
+        "write_offs": 1369,
+        "sold": 8255,
+        "closing_balance": 227381,
+        "provision": 215944,
+        "net_balance": 11437,
+        "source_page": 59
+      },
+      "note": "FIBA's note-5.9.2 'Toplam donuk alacak hareketlerine ilişkin bilgiler' IS PRINTED but is invisible to fitz's get_text(): on this page the table is VECTOR-OUTLINED text (0 images, 504-625 vector drawings), leaving only the heading in the text layer above a ~360-440pt gap with zero numbers. The partition was WRONGLY curated as 'not disclosed' in audit_not_disclosed.json with the note '§5 notes are headings only + the Article-25 hazırlanmamıştır statement (Re-verified 2026-07-16)' — that note is wrong twice: the table is disclosed in full, and NO 'hazırlanmamıştır' statement exists on any of these six pages (it was carried over from a different FIBA page). Read from PDF p58 (0-based) by 7x RENDER, fitz only — not one figure came from get_text(). Corroboration: FIBA prints cons == unco for all 3 groups in all 26 already-extracted partitions, and 2023Q3/2024Q1 UNCONSOLIDATED are already in the DB from an independent text-based extraction — all 24 comparable cells match digit-for-digit. Transfers balance (Σin == Σout) and closing - provision == net in all 6."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2024Q1",
+      "kind": "consolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 250725,
+        "stage2_amount": 368577,
+        "stage3_amount": 227381,
+        "total_amount": 846683
+      },
+      "note": "FIBA's note-5.9.2 'Toplam donuk alacak hareketlerine ilişkin bilgiler' IS PRINTED but is invisible to fitz's get_text(): on this page the table is VECTOR-OUTLINED text (0 images, 504-625 vector drawings), leaving only the heading in the text layer above a ~360-440pt gap with zero numbers. The partition was WRONGLY curated as 'not disclosed' in audit_not_disclosed.json with the note '§5 notes are headings only + the Article-25 hazırlanmamıştır statement (Re-verified 2026-07-16)' — that note is wrong twice: the table is disclosed in full, and NO 'hazırlanmamıştır' statement exists on any of these six pages (it was carried over from a different FIBA page). Read from PDF p58 (0-based) by 7x RENDER, fitz only — not one figure came from get_text(). Corroboration: FIBA prints cons == unco for all 3 groups in all 26 already-extracted partitions, and 2023Q3/2024Q1 UNCONSOLIDATED are already in the DB from an independent text-based extraction — all 24 comparable cells match digit-for-digit. Transfers balance (Σin == Σout) and closing - provision == net in all 6. (stage1/2/3 carry BRSA GROUPS III/IV/V for the npl_brsa_* sections, not IFRS stages; total = III+IV+V.)"
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2024Q1",
+      "kind": "consolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_provision",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 162487,
+        "stage2_amount": 234800,
+        "stage3_amount": 215944,
+        "total_amount": 613231
+      },
+      "note": "FIBA's note-5.9.2 'Toplam donuk alacak hareketlerine ilişkin bilgiler' IS PRINTED but is invisible to fitz's get_text(): on this page the table is VECTOR-OUTLINED text (0 images, 504-625 vector drawings), leaving only the heading in the text layer above a ~360-440pt gap with zero numbers. The partition was WRONGLY curated as 'not disclosed' in audit_not_disclosed.json with the note '§5 notes are headings only + the Article-25 hazırlanmamıştır statement (Re-verified 2026-07-16)' — that note is wrong twice: the table is disclosed in full, and NO 'hazırlanmamıştır' statement exists on any of these six pages (it was carried over from a different FIBA page). Read from PDF p58 (0-based) by 7x RENDER, fitz only — not one figure came from get_text(). Corroboration: FIBA prints cons == unco for all 3 groups in all 26 already-extracted partitions, and 2023Q3/2024Q1 UNCONSOLIDATED are already in the DB from an independent text-based extraction — all 24 comparable cells match digit-for-digit. Transfers balance (Σin == Σout) and closing - provision == net in all 6. (stage1/2/3 carry BRSA GROUPS III/IV/V for the npl_brsa_* sections, not IFRS stages; total = III+IV+V.)"
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2024Q1",
+      "kind": "consolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_net",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 88238,
+        "stage2_amount": 133777,
+        "stage3_amount": 11437,
+        "total_amount": 233452
+      },
+      "note": "FIBA's note-5.9.2 'Toplam donuk alacak hareketlerine ilişkin bilgiler' IS PRINTED but is invisible to fitz's get_text(): on this page the table is VECTOR-OUTLINED text (0 images, 504-625 vector drawings), leaving only the heading in the text layer above a ~360-440pt gap with zero numbers. The partition was WRONGLY curated as 'not disclosed' in audit_not_disclosed.json with the note '§5 notes are headings only + the Article-25 hazırlanmamıştır statement (Re-verified 2026-07-16)' — that note is wrong twice: the table is disclosed in full, and NO 'hazırlanmamıştır' statement exists on any of these six pages (it was carried over from a different FIBA page). Read from PDF p58 (0-based) by 7x RENDER, fitz only — not one figure came from get_text(). Corroboration: FIBA prints cons == unco for all 3 groups in all 26 already-extracted partitions, and 2023Q3/2024Q1 UNCONSOLIDATED are already in the DB from an independent text-based extraction — all 24 comparable cells match digit-for-digit. Transfers balance (Σin == Σout) and closing - provision == net in all 6. (stage1/2/3 carry BRSA GROUPS III/IV/V for the npl_brsa_* sections, not IFRS stages; total = III+IV+V.)"
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2025Q3",
+      "kind": "consolidated",
+      "statement": "npl_movement",
+      "group_code": "III",
+      "period_type": "current",
+      "fields": {
+        "opening_balance": 635933,
+        "additions": 3471165,
+        "transfers_in": 0,
+        "transfers_out": 1639037,
+        "collections": 496588,
+        "write_offs": 8775,
+        "sold": 806441,
+        "closing_balance": 1156257,
+        "provision": 733384,
+        "net_balance": 422873,
+        "source_page": 58
+      },
+      "note": "FIBA's note-5.9.2 'Toplam donuk alacak hareketlerine ilişkin bilgiler' IS PRINTED but is invisible to fitz's get_text(): on this page the table is VECTOR-OUTLINED text (0 images, 504-625 vector drawings), leaving only the heading in the text layer above a ~360-440pt gap with zero numbers. The partition was WRONGLY curated as 'not disclosed' in audit_not_disclosed.json with the note '§5 notes are headings only + the Article-25 hazırlanmamıştır statement (Re-verified 2026-07-16)' — that note is wrong twice: the table is disclosed in full, and NO 'hazırlanmamıştır' statement exists on any of these six pages (it was carried over from a different FIBA page). Read from PDF p57 (0-based) by 7x RENDER, fitz only — not one figure came from get_text(). Corroboration: FIBA prints cons == unco for all 3 groups in all 26 already-extracted partitions, and 2023Q3/2024Q1 UNCONSOLIDATED are already in the DB from an independent text-based extraction — all 24 comparable cells match digit-for-digit. Transfers balance (Σin == Σout) and closing - provision == net in all 6."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2025Q3",
+      "kind": "consolidated",
+      "statement": "npl_movement",
+      "group_code": "IV",
+      "period_type": "current",
+      "fields": {
+        "opening_balance": 148501,
+        "additions": 26684,
+        "transfers_in": 1639037,
+        "transfers_out": 282337,
+        "collections": 197787,
+        "write_offs": 1653,
+        "sold": 379872,
+        "closing_balance": 952573,
+        "provision": 641587,
+        "net_balance": 310986,
+        "source_page": 58
+      },
+      "note": "FIBA's note-5.9.2 'Toplam donuk alacak hareketlerine ilişkin bilgiler' IS PRINTED but is invisible to fitz's get_text(): on this page the table is VECTOR-OUTLINED text (0 images, 504-625 vector drawings), leaving only the heading in the text layer above a ~360-440pt gap with zero numbers. The partition was WRONGLY curated as 'not disclosed' in audit_not_disclosed.json with the note '§5 notes are headings only + the Article-25 hazırlanmamıştır statement (Re-verified 2026-07-16)' — that note is wrong twice: the table is disclosed in full, and NO 'hazırlanmamıştır' statement exists on any of these six pages (it was carried over from a different FIBA page). Read from PDF p57 (0-based) by 7x RENDER, fitz only — not one figure came from get_text(). Corroboration: FIBA prints cons == unco for all 3 groups in all 26 already-extracted partitions, and 2023Q3/2024Q1 UNCONSOLIDATED are already in the DB from an independent text-based extraction — all 24 comparable cells match digit-for-digit. Transfers balance (Σin == Σout) and closing - provision == net in all 6."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2025Q3",
+      "kind": "consolidated",
+      "statement": "npl_movement",
+      "group_code": "V",
+      "period_type": "current",
+      "fields": {
+        "opening_balance": 114660,
+        "additions": 4277,
+        "transfers_in": 282337,
+        "transfers_out": 0,
+        "collections": 48377,
+        "write_offs": 291,
+        "sold": 19677,
+        "closing_balance": 332929,
+        "provision": 306168,
+        "net_balance": 26761,
+        "source_page": 58
+      },
+      "note": "FIBA's note-5.9.2 'Toplam donuk alacak hareketlerine ilişkin bilgiler' IS PRINTED but is invisible to fitz's get_text(): on this page the table is VECTOR-OUTLINED text (0 images, 504-625 vector drawings), leaving only the heading in the text layer above a ~360-440pt gap with zero numbers. The partition was WRONGLY curated as 'not disclosed' in audit_not_disclosed.json with the note '§5 notes are headings only + the Article-25 hazırlanmamıştır statement (Re-verified 2026-07-16)' — that note is wrong twice: the table is disclosed in full, and NO 'hazırlanmamıştır' statement exists on any of these six pages (it was carried over from a different FIBA page). Read from PDF p57 (0-based) by 7x RENDER, fitz only — not one figure came from get_text(). Corroboration: FIBA prints cons == unco for all 3 groups in all 26 already-extracted partitions, and 2023Q3/2024Q1 UNCONSOLIDATED are already in the DB from an independent text-based extraction — all 24 comparable cells match digit-for-digit. Transfers balance (Σin == Σout) and closing - provision == net in all 6."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2025Q3",
+      "kind": "consolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 1156257,
+        "stage2_amount": 952573,
+        "stage3_amount": 332929,
+        "total_amount": 2441759
+      },
+      "note": "FIBA's note-5.9.2 'Toplam donuk alacak hareketlerine ilişkin bilgiler' IS PRINTED but is invisible to fitz's get_text(): on this page the table is VECTOR-OUTLINED text (0 images, 504-625 vector drawings), leaving only the heading in the text layer above a ~360-440pt gap with zero numbers. The partition was WRONGLY curated as 'not disclosed' in audit_not_disclosed.json with the note '§5 notes are headings only + the Article-25 hazırlanmamıştır statement (Re-verified 2026-07-16)' — that note is wrong twice: the table is disclosed in full, and NO 'hazırlanmamıştır' statement exists on any of these six pages (it was carried over from a different FIBA page). Read from PDF p57 (0-based) by 7x RENDER, fitz only — not one figure came from get_text(). Corroboration: FIBA prints cons == unco for all 3 groups in all 26 already-extracted partitions, and 2023Q3/2024Q1 UNCONSOLIDATED are already in the DB from an independent text-based extraction — all 24 comparable cells match digit-for-digit. Transfers balance (Σin == Σout) and closing - provision == net in all 6. (stage1/2/3 carry BRSA GROUPS III/IV/V for the npl_brsa_* sections, not IFRS stages; total = III+IV+V.)"
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2025Q3",
+      "kind": "consolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_provision",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 733384,
+        "stage2_amount": 641587,
+        "stage3_amount": 306168,
+        "total_amount": 1681139
+      },
+      "note": "FIBA's note-5.9.2 'Toplam donuk alacak hareketlerine ilişkin bilgiler' IS PRINTED but is invisible to fitz's get_text(): on this page the table is VECTOR-OUTLINED text (0 images, 504-625 vector drawings), leaving only the heading in the text layer above a ~360-440pt gap with zero numbers. The partition was WRONGLY curated as 'not disclosed' in audit_not_disclosed.json with the note '§5 notes are headings only + the Article-25 hazırlanmamıştır statement (Re-verified 2026-07-16)' — that note is wrong twice: the table is disclosed in full, and NO 'hazırlanmamıştır' statement exists on any of these six pages (it was carried over from a different FIBA page). Read from PDF p57 (0-based) by 7x RENDER, fitz only — not one figure came from get_text(). Corroboration: FIBA prints cons == unco for all 3 groups in all 26 already-extracted partitions, and 2023Q3/2024Q1 UNCONSOLIDATED are already in the DB from an independent text-based extraction — all 24 comparable cells match digit-for-digit. Transfers balance (Σin == Σout) and closing - provision == net in all 6. (stage1/2/3 carry BRSA GROUPS III/IV/V for the npl_brsa_* sections, not IFRS stages; total = III+IV+V.)"
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2025Q3",
+      "kind": "consolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_net",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 422873,
+        "stage2_amount": 310986,
+        "stage3_amount": 26761,
+        "total_amount": 760620
+      },
+      "note": "FIBA's note-5.9.2 'Toplam donuk alacak hareketlerine ilişkin bilgiler' IS PRINTED but is invisible to fitz's get_text(): on this page the table is VECTOR-OUTLINED text (0 images, 504-625 vector drawings), leaving only the heading in the text layer above a ~360-440pt gap with zero numbers. The partition was WRONGLY curated as 'not disclosed' in audit_not_disclosed.json with the note '§5 notes are headings only + the Article-25 hazırlanmamıştır statement (Re-verified 2026-07-16)' — that note is wrong twice: the table is disclosed in full, and NO 'hazırlanmamıştır' statement exists on any of these six pages (it was carried over from a different FIBA page). Read from PDF p57 (0-based) by 7x RENDER, fitz only — not one figure came from get_text(). Corroboration: FIBA prints cons == unco for all 3 groups in all 26 already-extracted partitions, and 2023Q3/2024Q1 UNCONSOLIDATED are already in the DB from an independent text-based extraction — all 24 comparable cells match digit-for-digit. Transfers balance (Σin == Σout) and closing - provision == net in all 6. (stage1/2/3 carry BRSA GROUPS III/IV/V for the npl_brsa_* sections, not IFRS stages; total = III+IV+V.)"
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2025Q3",
+      "kind": "unconsolidated",
+      "statement": "npl_movement",
+      "group_code": "III",
+      "period_type": "current",
+      "fields": {
+        "opening_balance": 635933,
+        "additions": 3471165,
+        "transfers_in": 0,
+        "transfers_out": 1639037,
+        "collections": 496588,
+        "write_offs": 8775,
+        "sold": 806441,
+        "closing_balance": 1156257,
+        "provision": 733384,
+        "net_balance": 422873,
+        "source_page": 56
+      },
+      "note": "FIBA's note-5.9.2 'Toplam donuk alacak hareketlerine ilişkin bilgiler' IS PRINTED but is invisible to fitz's get_text(): on this page the table is VECTOR-OUTLINED text (0 images, 504-625 vector drawings), leaving only the heading in the text layer above a ~360-440pt gap with zero numbers. The partition was WRONGLY curated as 'not disclosed' in audit_not_disclosed.json with the note '§5 notes are headings only + the Article-25 hazırlanmamıştır statement (Re-verified 2026-07-16)' — that note is wrong twice: the table is disclosed in full, and NO 'hazırlanmamıştır' statement exists on any of these six pages (it was carried over from a different FIBA page). Read from PDF p55 (0-based) by 7x RENDER, fitz only — not one figure came from get_text(). Corroboration: FIBA prints cons == unco for all 3 groups in all 26 already-extracted partitions, and 2023Q3/2024Q1 UNCONSOLIDATED are already in the DB from an independent text-based extraction — all 24 comparable cells match digit-for-digit. Transfers balance (Σin == Σout) and closing - provision == net in all 6."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2025Q3",
+      "kind": "unconsolidated",
+      "statement": "npl_movement",
+      "group_code": "IV",
+      "period_type": "current",
+      "fields": {
+        "opening_balance": 148501,
+        "additions": 26684,
+        "transfers_in": 1639037,
+        "transfers_out": 282337,
+        "collections": 197787,
+        "write_offs": 1653,
+        "sold": 379872,
+        "closing_balance": 952573,
+        "provision": 641587,
+        "net_balance": 310986,
+        "source_page": 56
+      },
+      "note": "FIBA's note-5.9.2 'Toplam donuk alacak hareketlerine ilişkin bilgiler' IS PRINTED but is invisible to fitz's get_text(): on this page the table is VECTOR-OUTLINED text (0 images, 504-625 vector drawings), leaving only the heading in the text layer above a ~360-440pt gap with zero numbers. The partition was WRONGLY curated as 'not disclosed' in audit_not_disclosed.json with the note '§5 notes are headings only + the Article-25 hazırlanmamıştır statement (Re-verified 2026-07-16)' — that note is wrong twice: the table is disclosed in full, and NO 'hazırlanmamıştır' statement exists on any of these six pages (it was carried over from a different FIBA page). Read from PDF p55 (0-based) by 7x RENDER, fitz only — not one figure came from get_text(). Corroboration: FIBA prints cons == unco for all 3 groups in all 26 already-extracted partitions, and 2023Q3/2024Q1 UNCONSOLIDATED are already in the DB from an independent text-based extraction — all 24 comparable cells match digit-for-digit. Transfers balance (Σin == Σout) and closing - provision == net in all 6."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2025Q3",
+      "kind": "unconsolidated",
+      "statement": "npl_movement",
+      "group_code": "V",
+      "period_type": "current",
+      "fields": {
+        "opening_balance": 114660,
+        "additions": 4277,
+        "transfers_in": 282337,
+        "transfers_out": 0,
+        "collections": 48377,
+        "write_offs": 291,
+        "sold": 19677,
+        "closing_balance": 332929,
+        "provision": 306168,
+        "net_balance": 26761,
+        "source_page": 56
+      },
+      "note": "FIBA's note-5.9.2 'Toplam donuk alacak hareketlerine ilişkin bilgiler' IS PRINTED but is invisible to fitz's get_text(): on this page the table is VECTOR-OUTLINED text (0 images, 504-625 vector drawings), leaving only the heading in the text layer above a ~360-440pt gap with zero numbers. The partition was WRONGLY curated as 'not disclosed' in audit_not_disclosed.json with the note '§5 notes are headings only + the Article-25 hazırlanmamıştır statement (Re-verified 2026-07-16)' — that note is wrong twice: the table is disclosed in full, and NO 'hazırlanmamıştır' statement exists on any of these six pages (it was carried over from a different FIBA page). Read from PDF p55 (0-based) by 7x RENDER, fitz only — not one figure came from get_text(). Corroboration: FIBA prints cons == unco for all 3 groups in all 26 already-extracted partitions, and 2023Q3/2024Q1 UNCONSOLIDATED are already in the DB from an independent text-based extraction — all 24 comparable cells match digit-for-digit. Transfers balance (Σin == Σout) and closing - provision == net in all 6."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2025Q3",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_gross",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 1156257,
+        "stage2_amount": 952573,
+        "stage3_amount": 332929,
+        "total_amount": 2441759
+      },
+      "note": "FIBA's note-5.9.2 'Toplam donuk alacak hareketlerine ilişkin bilgiler' IS PRINTED but is invisible to fitz's get_text(): on this page the table is VECTOR-OUTLINED text (0 images, 504-625 vector drawings), leaving only the heading in the text layer above a ~360-440pt gap with zero numbers. The partition was WRONGLY curated as 'not disclosed' in audit_not_disclosed.json with the note '§5 notes are headings only + the Article-25 hazırlanmamıştır statement (Re-verified 2026-07-16)' — that note is wrong twice: the table is disclosed in full, and NO 'hazırlanmamıştır' statement exists on any of these six pages (it was carried over from a different FIBA page). Read from PDF p55 (0-based) by 7x RENDER, fitz only — not one figure came from get_text(). Corroboration: FIBA prints cons == unco for all 3 groups in all 26 already-extracted partitions, and 2023Q3/2024Q1 UNCONSOLIDATED are already in the DB from an independent text-based extraction — all 24 comparable cells match digit-for-digit. Transfers balance (Σin == Σout) and closing - provision == net in all 6. (stage1/2/3 carry BRSA GROUPS III/IV/V for the npl_brsa_* sections, not IFRS stages; total = III+IV+V.)"
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2025Q3",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_provision",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 733384,
+        "stage2_amount": 641587,
+        "stage3_amount": 306168,
+        "total_amount": 1681139
+      },
+      "note": "FIBA's note-5.9.2 'Toplam donuk alacak hareketlerine ilişkin bilgiler' IS PRINTED but is invisible to fitz's get_text(): on this page the table is VECTOR-OUTLINED text (0 images, 504-625 vector drawings), leaving only the heading in the text layer above a ~360-440pt gap with zero numbers. The partition was WRONGLY curated as 'not disclosed' in audit_not_disclosed.json with the note '§5 notes are headings only + the Article-25 hazırlanmamıştır statement (Re-verified 2026-07-16)' — that note is wrong twice: the table is disclosed in full, and NO 'hazırlanmamıştır' statement exists on any of these six pages (it was carried over from a different FIBA page). Read from PDF p55 (0-based) by 7x RENDER, fitz only — not one figure came from get_text(). Corroboration: FIBA prints cons == unco for all 3 groups in all 26 already-extracted partitions, and 2023Q3/2024Q1 UNCONSOLIDATED are already in the DB from an independent text-based extraction — all 24 comparable cells match digit-for-digit. Transfers balance (Σin == Σout) and closing - provision == net in all 6. (stage1/2/3 carry BRSA GROUPS III/IV/V for the npl_brsa_* sections, not IFRS stages; total = III+IV+V.)"
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2025Q3",
+      "kind": "unconsolidated",
+      "statement": "credit_quality",
+      "section": "npl_brsa_net",
+      "period_type": "current",
+      "fields": {
+        "stage1_amount": 422873,
+        "stage2_amount": 310986,
+        "stage3_amount": 26761,
+        "total_amount": 760620
+      },
+      "note": "FIBA's note-5.9.2 'Toplam donuk alacak hareketlerine ilişkin bilgiler' IS PRINTED but is invisible to fitz's get_text(): on this page the table is VECTOR-OUTLINED text (0 images, 504-625 vector drawings), leaving only the heading in the text layer above a ~360-440pt gap with zero numbers. The partition was WRONGLY curated as 'not disclosed' in audit_not_disclosed.json with the note '§5 notes are headings only + the Article-25 hazırlanmamıştır statement (Re-verified 2026-07-16)' — that note is wrong twice: the table is disclosed in full, and NO 'hazırlanmamıştır' statement exists on any of these six pages (it was carried over from a different FIBA page). Read from PDF p55 (0-based) by 7x RENDER, fitz only — not one figure came from get_text(). Corroboration: FIBA prints cons == unco for all 3 groups in all 26 already-extracted partitions, and 2023Q3/2024Q1 UNCONSOLIDATED are already in the DB from an independent text-based extraction — all 24 comparable cells match digit-for-digit. Transfers balance (Σin == Σout) and closing - provision == net in all 6. (stage1/2/3 carry BRSA GROUPS III/IV/V for the npl_brsa_* sections, not IFRS stages; total = III+IV+V.)"
     }
   ]
 }
