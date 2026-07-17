@@ -41,8 +41,18 @@ coverage matrix as **missing** for you to extract.
   sidebar**, both fed by one `?summary=1` round-trip (`coverageSummary` + `coverageProblems`).
   Each row is a statement type with its cell counts — **ok / manual / error / missing / N/A**
   (present and valid, hand-corrected, present but failing a structural identity check,
-  expected-but-absent, or not expected) — and a coverage bar; rows are grouped **core** vs
-  **footnotes & §4** and a `✓` marks a type that has a validator.
+  expected-but-absent, or not expected) — and a coverage bar; a `✓` marks a type that has a
+  validator. Rows are grouped by the **report section** each table is printed in
+  (`registry.section` → §2 financial statements / §5 notes / §4 risk & capital / §1 general
+  information / §7 auditor's report), primary statements first.
+
+  > Until 2026-07-17 the groups were **core** vs **"footnotes & §4"**, split on
+  > `registry.is_core` — which put OCI, changes-in-equity, cash-flow and off-balance under
+  > "footnotes". All four are **§2 primary statements**. `is_core` is a *severity* flag ("an
+  > empty lane here means the extraction failed, fail the whole report"), true only for BS
+  > assets / BS liabilities / P&L; the other four are `is_core=False` so a single unreadable
+  > note-page can't discard a good BS+P&L extraction. Don't read `is_core` as "primary
+  > statement" — group on `section`.
 
   **What the counts do and don't assert.** **error** covers two cases: a structural check
   failed, *or* the validator verified nothing at all (every check skipped). The second used to
