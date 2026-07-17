@@ -162,10 +162,24 @@ found it. The report's closing section (pp. 90–91, §"Diğer Açıklamalar") p
 3. **A Q1 evaluation paragraph** — gross profit 26.855mn, tax 7.712mn, net 19.143mn,
    CAR %16,12, assets 3.644bn, loans 2.024bn, deposits 2.319bn, NPL %3,5.
 
-This is a **genuinely new lane**, not a deck artefact: a per-bank, per-quarter guidance +
-self-reported-ratio table nobody has extracted. Guidance-vs-actual across 38 banks is
-something no lane currently does, and it is deterministic text — no LLM needed. Best
-follow-up this analysis produced.
+> ### ⛔ RETRACTED 2026-07-17 — the census says AKBNK-only. Do not build this.
+>
+> This section originally called a guidance + self-reported-ratio lane "the best
+> follow-up this analysis produced", caveated as AKBNK-only-verified. **The census ran
+> and killed it.** Over all 26 fetchable 2026Q1 filings: the guidance table is
+> **AKBNK ONLY (1/26)**, and a ratio table exists for only **AKBNK / GARAN / DUNYAK** —
+> under three different headings with three different ratio sets. §7 is a per-bank
+> grab-bag, not a schema, so "guidance-vs-actual across 38 banks" would be a one-bank
+> lane.
+>
+> Worse, the first census pass *said* 12/26 and was almost all false positives:
+> `ileriye yönelik beklentiler` is **IFRS-9 ECL boilerplate**, not guidance. A marker
+> that matches is not a marker that means.
+>
+> Full workings + what replaced this as the real finding:
+> [garanti-1q26-deck-and-section7-census-2026-07-17.md](garanti-1q26-deck-and-section7-census-2026-07-17.md).
+> The caveat below was the right instinct; the census is why it stayed a caveat and not
+> a wasted lane.
 
 **Caveat before anyone builds it:** verified on AKBNK only. Whether every filer prints
 this section, under this heading, in this shape is **unknown** — a census across the
@@ -201,20 +215,25 @@ hardcoded ordinal ([[project_heatmap_hardcoded_romans]]).
 
 Ranked by value ÷ effort:
 
-1. **The guidance + self-reported-ratio table** (report pp. 90–91, above). Deterministic
-   text, in every quarterly filing we already hold in R2, enabling guidance-vs-actual
-   across 38 banks — a question no lane answers today. Census first. **Clear winner.**
+1. ~~The guidance + self-reported-ratio table~~ — **struck 2026-07-17 by the census.**
+   AKBNK-only (1/26). Would be a one-bank lane. See the retraction box above.
 2. **Securities composition** (p8) — plausible from the securities footnote; would
    serve `/market-risk` beyond this deck.
 3. **Fee & opex breakdown** (p12/p13) — footnote extraction, fleet-wide value.
-4. ~~Swap cost~~ — **struck.** It is the metric analysts quote and it would unlock
-   swap-adj NII/NIM, but the section above proves it is *not in the filings at all*.
-   The only source is per-bank IR decks: image-only, per-bank layouts, no stable
-   anchors. Not worth it.
+4. ~~Swap cost~~ — **struck**, but the reasoning needs amending. It is genuinely *not in
+   the filings at all*. This doc then said the only source is "image-only PowerPoint",
+   which is true of AKBNK and **false of GARAN** — Garanti's deck is a real text layer
+   and prints `Swap Cost -11,432` outright. So it is reachable for some filers, not
+   none. Still not a lane (per-bank layouts, no stable anchors), but "impossible" was
+   too strong. See the Garanti doc.
 
-Nothing here is urgent. The statutory spine already reproduces, and reproducing a bank's
-IR deck is not obviously a goal — our edge is the 38-bank cross-section, not one bank's
-slide. Item 1 is the exception, because it is fleet-wide by nature.
+**Build nothing.** The statutory spine already reproduces, and reproducing a bank's IR
+deck is not obviously a goal — our edge is the 38-bank cross-section, not one bank's
+slide. Item 1 looked like the exception and the census proved it wasn't. The real output
+of this pass is two documentation/coverage defects, both recorded in the Garanti doc:
+`PROJECT_STATE.md:32`'s "the stats audit reports don't carry [ATM/POS/customer/card]"
+is false for GARAN, and `bank_audit_profile` stores GARAN branches 794 / personnel NULL
+where the filer prints 795 / 23,376.
 
 Do **not** build a deck-scraper: IR decks are image-only PowerPoint exports with
 per-bank layouts and no stable anchors — the exact conditions that produced the
