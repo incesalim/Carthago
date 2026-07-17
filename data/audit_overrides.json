@@ -7721,6 +7721,303 @@
         }
       ],
       "note": "Hand-transcribed from the printed page 50 (0-based), every cell 7-13x pixel-verified; the stored value was corrupt (a prior-period or same-page Sanayi total y-bucketed onto a nil agri/Balıkçılık child — child_exceeds_parent). Root cause is upstream in the shared _fitz_page_text y-bucketing (int(round(y0)) aliasing the ~3.4pt gap between a row's numbers and its label), unfixable without touching every frozen statement lane. Stage2/Stage3 = 'Kredi Riskinde Önemli Artış (İkinci Aşama)' / 'Temerrüt (Üçüncü Aşama)', ECL = 'Beklenen Kredi Zarar Karşılıkları (TFRS 9)'."
+    },
+    {
+      "bank_ticker": "HAYATK",
+      "period": "2024Q4",
+      "kind": "unconsolidated",
+      "statement": "capital",
+      "fields": {
+        "tier1_capital": 1860764.0,
+        "cet1_ratio": 31.3,
+        "tier1_ratio": 31.3,
+        "capital_adequacy_ratio": 31.9
+      },
+      "note": "HAYATK's §4 capital cell read `error` because tier1_capital and all three ratios were dropped in extraction, so the validator could verify nothing (0 passes). All read from the printed table (HAYATK files in ENGLISH; table spans 3 pages: CET1 → AT1/Tier1/Tier2 → Total/RWA/ratios), pixel-verified. tier1_capital is the printed 'Total Tier I Capital' line (= CET1 since AT1 is printed '–' = 0). Ratios printed to 1 decimal. Every partition RECONCILES (CAR = Total/RWA, CET1% = CET1/RWA) with no BDDK forbearance adjustment. CET1/Tier2/Total/RWA were already correct."
+    },
+    {
+      "bank_ticker": "HAYATK",
+      "period": "2025Q1",
+      "kind": "consolidated",
+      "statement": "capital",
+      "fields": {
+        "tier1_capital": 1575432.0,
+        "cet1_ratio": 21.7,
+        "tier1_ratio": 21.7,
+        "capital_adequacy_ratio": 22.1
+      },
+      "note": "HAYATK's §4 capital cell read `error` because tier1_capital and all three ratios were dropped in extraction, so the validator could verify nothing (0 passes). All read from the printed table (HAYATK files in ENGLISH; table spans 3 pages: CET1 → AT1/Tier1/Tier2 → Total/RWA/ratios), pixel-verified. tier1_capital is the printed 'Total Tier I Capital' line (= CET1 since AT1 is printed '–' = 0). Ratios printed to 1 decimal. Every partition RECONCILES (CAR = Total/RWA, CET1% = CET1/RWA) with no BDDK forbearance adjustment. CET1/Tier2/Total/RWA were already correct."
+    },
+    {
+      "bank_ticker": "HAYATK",
+      "period": "2025Q1",
+      "kind": "unconsolidated",
+      "statement": "capital",
+      "fields": {
+        "tier1_capital": 1575432.0,
+        "cet1_ratio": 21.7,
+        "tier1_ratio": 21.7,
+        "capital_adequacy_ratio": 22.1
+      },
+      "note": "HAYATK's §4 capital cell read `error` because tier1_capital and all three ratios were dropped in extraction, so the validator could verify nothing (0 passes). All read from the printed table (HAYATK files in ENGLISH; table spans 3 pages: CET1 → AT1/Tier1/Tier2 → Total/RWA/ratios), pixel-verified. tier1_capital is the printed 'Total Tier I Capital' line (= CET1 since AT1 is printed '–' = 0). Ratios printed to 1 decimal. Every partition RECONCILES (CAR = Total/RWA, CET1% = CET1/RWA) with no BDDK forbearance adjustment. CET1/Tier2/Total/RWA were already correct."
+    },
+    {
+      "bank_ticker": "HAYATK",
+      "period": "2025Q2",
+      "kind": "unconsolidated",
+      "statement": "capital",
+      "fields": {
+        "tier1_capital": 2896853.0,
+        "cet1_ratio": 36.1,
+        "tier1_ratio": 36.1,
+        "capital_adequacy_ratio": 36.6
+      },
+      "note": "HAYATK's §4 capital cell read `error` because tier1_capital and all three ratios were dropped in extraction, so the validator could verify nothing (0 passes). All read from the printed table (HAYATK files in ENGLISH; table spans 3 pages: CET1 → AT1/Tier1/Tier2 → Total/RWA/ratios), pixel-verified. tier1_capital is the printed 'Total Tier I Capital' line (= CET1 since AT1 is printed '–' = 0). Ratios printed to 1 decimal. Every partition RECONCILES (CAR = Total/RWA, CET1% = CET1/RWA) with no BDDK forbearance adjustment. CET1/Tier2/Total/RWA were already correct."
+    },
+    {
+      "bank_ticker": "HAYATK",
+      "period": "2025Q3",
+      "kind": "consolidated",
+      "statement": "capital",
+      "fields": {
+        "tier1_capital": 2691584.0,
+        "cet1_ratio": 34.2,
+        "tier1_ratio": 34.2,
+        "capital_adequacy_ratio": 34.6
+      },
+      "note": "HAYATK's §4 capital cell read `error` because tier1_capital and all three ratios were dropped in extraction, so the validator could verify nothing (0 passes). All read from the printed table (HAYATK files in ENGLISH; table spans 3 pages: CET1 → AT1/Tier1/Tier2 → Total/RWA/ratios), pixel-verified. tier1_capital is the printed 'Total Tier I Capital' line (= CET1 since AT1 is printed '–' = 0). Ratios printed to 1 decimal. Every partition RECONCILES (CAR = Total/RWA, CET1% = CET1/RWA) with no BDDK forbearance adjustment. CET1/Tier2/Total/RWA were already correct."
+    },
+    {
+      "bank_ticker": "HAYATK",
+      "period": "2025Q3",
+      "kind": "unconsolidated",
+      "statement": "capital",
+      "fields": {
+        "tier1_capital": 2691575.0,
+        "cet1_ratio": 34.2,
+        "tier1_ratio": 34.2,
+        "capital_adequacy_ratio": 34.6
+      },
+      "note": "HAYATK's §4 capital cell read `error` because tier1_capital and all three ratios were dropped in extraction, so the validator could verify nothing (0 passes). All read from the printed table (HAYATK files in ENGLISH; table spans 3 pages: CET1 → AT1/Tier1/Tier2 → Total/RWA/ratios), pixel-verified. tier1_capital is the printed 'Total Tier I Capital' line (= CET1 since AT1 is printed '–' = 0). Ratios printed to 1 decimal. Every partition RECONCILES (CAR = Total/RWA, CET1% = CET1/RWA) with no BDDK forbearance adjustment. CET1/Tier2/Total/RWA were already correct."
+    },
+    {
+      "bank_ticker": "HAYATK",
+      "period": "2025Q4",
+      "kind": "consolidated",
+      "statement": "capital",
+      "fields": {
+        "tier1_capital": 2509997.0,
+        "cet1_ratio": 22.8,
+        "tier1_ratio": 22.8,
+        "capital_adequacy_ratio": 23.1
+      },
+      "note": "HAYATK's §4 capital cell read `error` because tier1_capital and all three ratios were dropped in extraction, so the validator could verify nothing (0 passes). All read from the printed table (HAYATK files in ENGLISH; table spans 3 pages: CET1 → AT1/Tier1/Tier2 → Total/RWA/ratios), pixel-verified. tier1_capital is the printed 'Total Tier I Capital' line (= CET1 since AT1 is printed '–' = 0). Ratios printed to 1 decimal. Every partition RECONCILES (CAR = Total/RWA, CET1% = CET1/RWA) with no BDDK forbearance adjustment. CET1/Tier2/Total/RWA were already correct."
+    },
+    {
+      "bank_ticker": "HAYATK",
+      "period": "2025Q4",
+      "kind": "unconsolidated",
+      "statement": "capital",
+      "fields": {
+        "tier1_capital": 2509988.0,
+        "cet1_ratio": 22.8,
+        "tier1_ratio": 22.8,
+        "capital_adequacy_ratio": 23.1
+      },
+      "note": "HAYATK's §4 capital cell read `error` because tier1_capital and all three ratios were dropped in extraction, so the validator could verify nothing (0 passes). All read from the printed table (HAYATK files in ENGLISH; table spans 3 pages: CET1 → AT1/Tier1/Tier2 → Total/RWA/ratios), pixel-verified. tier1_capital is the printed 'Total Tier I Capital' line (= CET1 since AT1 is printed '–' = 0). Ratios printed to 1 decimal. Every partition RECONCILES (CAR = Total/RWA, CET1% = CET1/RWA) with no BDDK forbearance adjustment. CET1/Tier2/Total/RWA were already correct."
+    },
+    {
+      "bank_ticker": "HAYATK",
+      "period": "2026Q1",
+      "kind": "consolidated",
+      "statement": "capital",
+      "fields": {
+        "tier1_capital": 4382804.0,
+        "cet1_ratio": 32.5,
+        "tier1_ratio": 32.5,
+        "capital_adequacy_ratio": 32.8
+      },
+      "note": "HAYATK's §4 capital cell read `error` because tier1_capital and all three ratios were dropped in extraction, so the validator could verify nothing (0 passes). All read from the printed table (HAYATK files in ENGLISH; table spans 3 pages: CET1 → AT1/Tier1/Tier2 → Total/RWA/ratios), pixel-verified. tier1_capital is the printed 'Total Tier I Capital' line (= CET1 since AT1 is printed '–' = 0). Ratios printed to 1 decimal. Every partition RECONCILES (CAR = Total/RWA, CET1% = CET1/RWA) with no BDDK forbearance adjustment. CET1/Tier2/Total/RWA were already correct."
+    },
+    {
+      "bank_ticker": "HAYATK",
+      "period": "2026Q1",
+      "kind": "unconsolidated",
+      "statement": "capital",
+      "fields": {
+        "tier1_capital": 4382795.0,
+        "cet1_ratio": 32.2,
+        "tier1_ratio": 32.2,
+        "capital_adequacy_ratio": 32.5
+      },
+      "note": "HAYATK's §4 capital cell read `error` because tier1_capital and all three ratios were dropped in extraction, so the validator could verify nothing (0 passes). All read from the printed table (HAYATK files in ENGLISH; table spans 3 pages: CET1 → AT1/Tier1/Tier2 → Total/RWA/ratios), pixel-verified. tier1_capital is the printed 'Total Tier I Capital' line (= CET1 since AT1 is printed '–' = 0). Ratios printed to 1 decimal. Every partition RECONCILES (CAR = Total/RWA, CET1% = CET1/RWA) with no BDDK forbearance adjustment. CET1/Tier2/Total/RWA were already correct."
+    },
+    {
+      "bank_ticker": "TOMK",
+      "period": "2023Q4",
+      "kind": "unconsolidated",
+      "statement": "capital",
+      "fields": {
+        "cet1_ratio": 138.08,
+        "tier1_ratio": 138.08,
+        "capital_adequacy_ratio": 138.08
+      },
+      "note": "TOMK's §4 capital cells read `error` because total_rwa was dropped on 2024Q1-2026Q1 (the label changed from 'Toplam Risk Ağırlıklı Tutarlar' to lowercase 'Risk ağırlıklı Tutarlar' from 2024Q1, which the extractor's Çekirdek+Risk anchor missed) and 2024Q1's Tier-2 was dropped (the filing misprints 'Katkı Sermaye Toplamı' as '-' while the 7.793 general-provision line flows into the Total). All values read from the printed table, pixel-verified at 5-7x. TOMK is a new bank with very low RWA against its paid-in capital, so its CARs are genuinely high (2023Q4 = 138.08%) and reconcile exactly to Total/RWA — the [5,80] band flagged them as false positives (fixed by deferring the band to reconciliation). AT1 = 0 (printed '-') throughout, so Tier1 = CET1."
+    },
+    {
+      "bank_ticker": "TOMK",
+      "period": "2024Q1",
+      "kind": "unconsolidated",
+      "statement": "capital",
+      "fields": {
+        "total_rwa": 1316902.0,
+        "tier2_capital": 7793.0
+      },
+      "note": "TOMK's §4 capital cells read `error` because total_rwa was dropped on 2024Q1-2026Q1 (the label changed from 'Toplam Risk Ağırlıklı Tutarlar' to lowercase 'Risk ağırlıklı Tutarlar' from 2024Q1, which the extractor's Çekirdek+Risk anchor missed) and 2024Q1's Tier-2 was dropped (the filing misprints 'Katkı Sermaye Toplamı' as '-' while the 7.793 general-provision line flows into the Total). All values read from the printed table, pixel-verified at 5-7x. TOMK is a new bank with very low RWA against its paid-in capital, so its CARs are genuinely high (2023Q4 = 138.08%) and reconcile exactly to Total/RWA — the [5,80] band flagged them as false positives (fixed by deferring the band to reconciliation). AT1 = 0 (printed '-') throughout, so Tier1 = CET1."
+    },
+    {
+      "bank_ticker": "TOMK",
+      "period": "2024Q2",
+      "kind": "unconsolidated",
+      "statement": "capital",
+      "fields": {
+        "total_rwa": 1907816.0
+      },
+      "note": "TOMK's §4 capital cells read `error` because total_rwa was dropped on 2024Q1-2026Q1 (the label changed from 'Toplam Risk Ağırlıklı Tutarlar' to lowercase 'Risk ağırlıklı Tutarlar' from 2024Q1, which the extractor's Çekirdek+Risk anchor missed) and 2024Q1's Tier-2 was dropped (the filing misprints 'Katkı Sermaye Toplamı' as '-' while the 7.793 general-provision line flows into the Total). All values read from the printed table, pixel-verified at 5-7x. TOMK is a new bank with very low RWA against its paid-in capital, so its CARs are genuinely high (2023Q4 = 138.08%) and reconcile exactly to Total/RWA — the [5,80] band flagged them as false positives (fixed by deferring the band to reconciliation). AT1 = 0 (printed '-') throughout, so Tier1 = CET1."
+    },
+    {
+      "bank_ticker": "TOMK",
+      "period": "2024Q3",
+      "kind": "unconsolidated",
+      "statement": "capital",
+      "fields": {
+        "total_rwa": 3179108.0
+      },
+      "note": "TOMK's §4 capital cells read `error` because total_rwa was dropped on 2024Q1-2026Q1 (the label changed from 'Toplam Risk Ağırlıklı Tutarlar' to lowercase 'Risk ağırlıklı Tutarlar' from 2024Q1, which the extractor's Çekirdek+Risk anchor missed) and 2024Q1's Tier-2 was dropped (the filing misprints 'Katkı Sermaye Toplamı' as '-' while the 7.793 general-provision line flows into the Total). All values read from the printed table, pixel-verified at 5-7x. TOMK is a new bank with very low RWA against its paid-in capital, so its CARs are genuinely high (2023Q4 = 138.08%) and reconcile exactly to Total/RWA — the [5,80] band flagged them as false positives (fixed by deferring the band to reconciliation). AT1 = 0 (printed '-') throughout, so Tier1 = CET1."
+    },
+    {
+      "bank_ticker": "TOMK",
+      "period": "2024Q4",
+      "kind": "unconsolidated",
+      "statement": "capital",
+      "fields": {
+        "total_rwa": 2773007.0
+      },
+      "note": "TOMK's §4 capital cells read `error` because total_rwa was dropped on 2024Q1-2026Q1 (the label changed from 'Toplam Risk Ağırlıklı Tutarlar' to lowercase 'Risk ağırlıklı Tutarlar' from 2024Q1, which the extractor's Çekirdek+Risk anchor missed) and 2024Q1's Tier-2 was dropped (the filing misprints 'Katkı Sermaye Toplamı' as '-' while the 7.793 general-provision line flows into the Total). All values read from the printed table, pixel-verified at 5-7x. TOMK is a new bank with very low RWA against its paid-in capital, so its CARs are genuinely high (2023Q4 = 138.08%) and reconcile exactly to Total/RWA — the [5,80] band flagged them as false positives (fixed by deferring the band to reconciliation). AT1 = 0 (printed '-') throughout, so Tier1 = CET1."
+    },
+    {
+      "bank_ticker": "TOMK",
+      "period": "2025Q1",
+      "kind": "unconsolidated",
+      "statement": "capital",
+      "fields": {
+        "total_rwa": 4147828.0
+      },
+      "note": "TOMK's §4 capital cells read `error` because total_rwa was dropped on 2024Q1-2026Q1 (the label changed from 'Toplam Risk Ağırlıklı Tutarlar' to lowercase 'Risk ağırlıklı Tutarlar' from 2024Q1, which the extractor's Çekirdek+Risk anchor missed) and 2024Q1's Tier-2 was dropped (the filing misprints 'Katkı Sermaye Toplamı' as '-' while the 7.793 general-provision line flows into the Total). All values read from the printed table, pixel-verified at 5-7x. TOMK is a new bank with very low RWA against its paid-in capital, so its CARs are genuinely high (2023Q4 = 138.08%) and reconcile exactly to Total/RWA — the [5,80] band flagged them as false positives (fixed by deferring the band to reconciliation). AT1 = 0 (printed '-') throughout, so Tier1 = CET1."
+    },
+    {
+      "bank_ticker": "TOMK",
+      "period": "2025Q2",
+      "kind": "unconsolidated",
+      "statement": "capital",
+      "fields": {
+        "total_rwa": 5058172.0
+      },
+      "note": "TOMK's §4 capital cells read `error` because total_rwa was dropped on 2024Q1-2026Q1 (the label changed from 'Toplam Risk Ağırlıklı Tutarlar' to lowercase 'Risk ağırlıklı Tutarlar' from 2024Q1, which the extractor's Çekirdek+Risk anchor missed) and 2024Q1's Tier-2 was dropped (the filing misprints 'Katkı Sermaye Toplamı' as '-' while the 7.793 general-provision line flows into the Total). All values read from the printed table, pixel-verified at 5-7x. TOMK is a new bank with very low RWA against its paid-in capital, so its CARs are genuinely high (2023Q4 = 138.08%) and reconcile exactly to Total/RWA — the [5,80] band flagged them as false positives (fixed by deferring the band to reconciliation). AT1 = 0 (printed '-') throughout, so Tier1 = CET1."
+    },
+    {
+      "bank_ticker": "TOMK",
+      "period": "2025Q3",
+      "kind": "unconsolidated",
+      "statement": "capital",
+      "fields": {
+        "total_rwa": 6891880.0
+      },
+      "note": "TOMK's §4 capital cells read `error` because total_rwa was dropped on 2024Q1-2026Q1 (the label changed from 'Toplam Risk Ağırlıklı Tutarlar' to lowercase 'Risk ağırlıklı Tutarlar' from 2024Q1, which the extractor's Çekirdek+Risk anchor missed) and 2024Q1's Tier-2 was dropped (the filing misprints 'Katkı Sermaye Toplamı' as '-' while the 7.793 general-provision line flows into the Total). All values read from the printed table, pixel-verified at 5-7x. TOMK is a new bank with very low RWA against its paid-in capital, so its CARs are genuinely high (2023Q4 = 138.08%) and reconcile exactly to Total/RWA — the [5,80] band flagged them as false positives (fixed by deferring the band to reconciliation). AT1 = 0 (printed '-') throughout, so Tier1 = CET1."
+    },
+    {
+      "bank_ticker": "TOMK",
+      "period": "2025Q4",
+      "kind": "unconsolidated",
+      "statement": "capital",
+      "fields": {
+        "total_rwa": 9207711.0
+      },
+      "note": "TOMK's §4 capital cells read `error` because total_rwa was dropped on 2024Q1-2026Q1 (the label changed from 'Toplam Risk Ağırlıklı Tutarlar' to lowercase 'Risk ağırlıklı Tutarlar' from 2024Q1, which the extractor's Çekirdek+Risk anchor missed) and 2024Q1's Tier-2 was dropped (the filing misprints 'Katkı Sermaye Toplamı' as '-' while the 7.793 general-provision line flows into the Total). All values read from the printed table, pixel-verified at 5-7x. TOMK is a new bank with very low RWA against its paid-in capital, so its CARs are genuinely high (2023Q4 = 138.08%) and reconcile exactly to Total/RWA — the [5,80] band flagged them as false positives (fixed by deferring the band to reconciliation). AT1 = 0 (printed '-') throughout, so Tier1 = CET1."
+    },
+    {
+      "bank_ticker": "TOMK",
+      "period": "2026Q1",
+      "kind": "unconsolidated",
+      "statement": "capital",
+      "fields": {
+        "total_rwa": 13736782.0
+      },
+      "note": "TOMK's §4 capital cells read `error` because total_rwa was dropped on 2024Q1-2026Q1 (the label changed from 'Toplam Risk Ağırlıklı Tutarlar' to lowercase 'Risk ağırlıklı Tutarlar' from 2024Q1, which the extractor's Çekirdek+Risk anchor missed) and 2024Q1's Tier-2 was dropped (the filing misprints 'Katkı Sermaye Toplamı' as '-' while the 7.793 general-provision line flows into the Total). All values read from the printed table, pixel-verified at 5-7x. TOMK is a new bank with very low RWA against its paid-in capital, so its CARs are genuinely high (2023Q4 = 138.08%) and reconcile exactly to Total/RWA — the [5,80] band flagged them as false positives (fixed by deferring the band to reconciliation). AT1 = 0 (printed '-') throughout, so Tier1 = CET1."
+    },
+    {
+      "bank_ticker": "ISCTR",
+      "period": "2024Q1",
+      "kind": "consolidated",
+      "statement": "capital",
+      "fields": {
+        "cet1_capital": 294633433.0,
+        "additional_tier1_capital": 16898643.0,
+        "tier1_capital": 311532076.0,
+        "tier2_capital": 65572930.0,
+        "cet1_ratio": 13.54,
+        "tier1_ratio": 14.32,
+        "capital_adequacy_ratio": 17.33
+      },
+      "note": "ISCTR 2024Q1 consolidated §4 capital: the value column printed SHIFTED UP one row relative to its labels (pixel-confirmed), so the extractor stored the 'Total Tier I Capital' figure (311,532,076) as additional_tier1_capital and 'Total Capital' (377,105,006) as tier2, and missed the four subtotal rows + all 3 ratios. Corrected from the printed table (English convenience translation): CET1 294,633,433 / AT1 16,898,643 / Tier1 311,532,076 / Tier2 65,572,930 / ratios 13.54/14.32/17.33. total (377,101,977) and RWA (2,176,033,599) print on the next page where alignment is fine — kept. Reconciles: 377,101,977/2,176,033,599 = 17.33%. The Total exceeds Tier1+Tier2 by 3,029 (deductions from total equity) — within the 0.1% composition tolerance."
+    },
+    {
+      "bank_ticker": "TSKB",
+      "period": "2025Q2",
+      "kind": "unconsolidated",
+      "statement": "capital",
+      "fields": {
+        "tier1_capital": 50568159.0,
+        "cet1_ratio": 17.6,
+        "tier1_ratio": 23.01,
+        "capital_adequacy_ratio": 24.12
+      },
+      "note": "TSKB (NOT TAKAS) §4 capital: tier1_capital and all 3 ratios were dropped; CET1/AT1/Tier2/Total/RWA already correct. Read from the printed table (English translation): 'Total Tier I Capital (= Core Equity Tier I + Additional Tier I) 50,568,159' and the three printed ratios. tier1 = CET1 + AT1 confirms. Reconciles to Total/RWA, no forbearance."
+    },
+    {
+      "bank_ticker": "TSKB",
+      "period": "2025Q3",
+      "kind": "unconsolidated",
+      "statement": "capital",
+      "fields": {
+        "tier1_capital": 54120856.0,
+        "cet1_ratio": 18.55,
+        "tier1_ratio": 24.07,
+        "capital_adequacy_ratio": 25.19
+      },
+      "note": "TSKB (NOT TAKAS) §4 capital: tier1_capital and all 3 ratios were dropped; CET1/AT1/Tier2/Total/RWA already correct. Read from the printed table (English translation): 'Total Tier I Capital (= Core Equity Tier I + Additional Tier I) 54,120,856' and the three printed ratios. tier1 = CET1 + AT1 confirms. Reconciles to Total/RWA, no forbearance."
+    },
+    {
+      "bank_ticker": "DUNYAK",
+      "period": "2023Q4",
+      "kind": "unconsolidated",
+      "statement": "capital",
+      "fields": {
+        "tier2_capital": 500088.0,
+        "capital_adequacy_ratio": 263.75
+      },
+      "note": "DUNYAK 2023Q4 §4 capital: tier2 was stored 88 (the filing's erroneous 'Katkı Sermaye Toplamı' running-subtotal cell) but the real Tier-2 is 500,088 — a ₺500,000 BDDK-approved subordinated instrument ('Kurumca uygun görülen borçlanma araçları 500.000') + 88 provisions. total 572,014 was already CORRECT (the bold 'ÖZKAYNAK 572.014' row); CAR was NULL → 263.75 (prose: 'özkaynak tutarı 572.014 TL, sermaye yeterliliği standart oranı da %263,75'). Composition now ties (71,926 + 500,088 = 572,014) and CAR reconciles (572,014/216,881 = 263.75%) — a genuine high ratio for a new bank, admitted by the reconciliation-aware band. The filing is internally inconsistent (three subtotal cells drop the 500,000); we store the CAR-consistent figures."
+    },
+    {
+      "bank_ticker": "ENPARA",
+      "period": "2025Q4",
+      "kind": "unconsolidated",
+      "statement": "capital",
+      "fields": {
+        "cet1_ratio": 15.62,
+        "tier1_ratio": 15.62
+      },
+      "note": "ENPARA 2025Q4 §4 capital: the composition gap (Total 19,546,672 vs Tier1+Tier2 19,298,927) is a printed BDDK forbearance add-back 'Kurulca belirlenecek diğer hesaplar 247.745', applied to every tier — (17,887,462+247,745)/116,130,361 = 15.62% CET1/Tier1; 19,546,672/RWA = 16.83% CAR, both reconciling. Total and Tier2 are correct; no schema column exists for the add-back, so the composition identity can't tie → curated in _CAP_SKIP. Only the two missing ratios are filled here (both 15.62); CAR 16.83 was already stored."
     }
   ]
 }

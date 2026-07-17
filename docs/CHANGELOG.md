@@ -5,6 +5,37 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-07-17.
 
+2026-07-17 — **Capital adequacy: 26 errors → 0, fixed from the printed
+§4 tables.** Two shapes: 13 real failures (a dropped RWA, tier1, or ratio; a
+misread total) and 13 zero-pass cells where tier1 and the ratios were both
+dropped so the validator could verify nothing. Every fix is read off the PDF and
+pixel-verified.
+
+TOMK ×10 dropped `total_rwa` from 2024Q1 on — its own label changed to lowercase
+"Risk ağırlıklı Tutarlar" and the anchor missed it — plus a 2024Q1 Tier-2 the
+filing misprints as a dash on its own subtotal line. HAYATK ×10 dropped Tier 1
+(= CET1, AT1 is nil) and all three ratios. ISCTR 2024Q1's value column printed
+shifted up one row, so Tier 1 got stored as AT1 and total equity as Tier 2 — a
+full rewrite. DUNYAK 2023Q4 inverted my premise: its total was correct (a real
+₺500m sukuk Tier-2 instrument), and the wrong cell was Tier 2 itself, which the
+filing's own subtotals drop while its headline equity row and CAR include it.
+
+Two things that weren't data errors. ENPARA 2025Q4's composition gap is a printed
+BDDK forbearance add-back ("other accounts determined by the Board"), with no
+schema column to hold it — curated as a forbearance skip. And the CAR
+plausibility band [5,80] was simply too tight for newly-licensed banks: they hold
+capital far above their tiny risk-weighted assets, so ZIRAATD's 85%, and TOMK's
+93.75% and 138%, are all genuine and reconcile to Total/RWA exactly. The band now
+defers to that reconciliation — a CAR that ties to its own capital and RWA is
+verified, so the band only guards a ratio it can't reconcile — which cleared those
+without touching the data.
+
+Every §4 capital-override cell now reads `manual` rather than a machine `ok`
+(`_STMT_TO_KEY` learned "capital", 54 cells), since a human stands behind each
+recovered figure. Detail:
+[docs/knowledge/audit-loans-by-sector-lane-to-zero-2026-07-17.md] covers the
+sibling lanes; this one is recorded in PROJECT_STATE's capital row.
+
 2026-07-17 — **Loans-by-sector: 6 errors + 7 missing → 0/0, and 6 cells
 that read a flawless `ok` were silently wrong.** TAKAS ×4 stored an average
 **Value-at-Risk** (`Toplam Riske Maruz Değer`) as a loan sector total — the

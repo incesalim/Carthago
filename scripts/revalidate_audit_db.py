@@ -46,6 +46,17 @@ _CAP_SKIP = frozenset({
     ("TEB", "2022Q2", "consolidated"),
     ("TEB", "2022Q3", "consolidated"),
     ("TEB", "2022Q4", "consolidated"),
+    # ENPARA 2025Q4 unco: a genuine forbearance case, verified against the PDF.
+    # Total own funds (19,546,672) exceeds Tier1 + Tier2 (19,298,927) by 247,745 —
+    # the printed BDDK transitional line "Kurulca belirlenecek diğer hesaplar
+    # 247.745", a POSITIVE add-back applied to every tier in the ratio calc
+    # ((17,887,462 + 247,745)/116,130,361 = 15.62% CET1/Tier1; 19,546,672/RWA =
+    # 16.83% CAR — both reconcile to the printed ratios). The stored Tier2 and Total
+    # are both correct; there is no schema column for the add-back, so the
+    # composition identity Total = Tier1 + Tier2 cannot tie and cannot be made to
+    # without masking a genuinely dropped Tier2 (structurally identical to a
+    # positive add-back). Skip, per this list's forbearance rule.
+    ("ENPARA", "2025Q4", "unconsolidated"),
 })
 
 # Known immaterial source defects in the PUBLISHED income statement — the bank's
