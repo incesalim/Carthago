@@ -50,9 +50,15 @@ _NIL = {"-", "—", "–", "--", "---"}
 # ABD; "Avro" → EUR). Turkish reports name them Avro/ABD Doları/Diğer YP.
 _CCY_HEAD = [
     ("EUR", re.compile(r"^(EUR(O)?|Avro)$", re.I)),
-    ("USD", re.compile(r"^(USD|ABD)$", re.I)),
+    # "US" catches TSKB's English "US Dollar" — fitz tokenises the cell to
+    # [US, Dollar] and the parser keys on the first token, which is "US", not "USD".
+    ("USD", re.compile(r"^(USD|US|ABD)$", re.I)),
     ("GBP", re.compile(r"^GBP$", re.I)),
-    ("OTHER", re.compile(r"^(Other|Diğer|Diger)$", re.I)),
+    # "FC" catches YKBNK-unconsolidated's WRAPPED "Other FC" header: "Other" clusters
+    # onto the line above, leaving only "FC(4)" → "FC" on the header baseline. The
+    # header gate still requires TOTAL + a hard currency, and _parse_header_columns'
+    # `code not in cols` guard dedupes when both "Other" and "FC" appear.
+    ("OTHER", re.compile(r"^(Other|Diğer|Diger|FC)$", re.I)),
     ("TOTAL", re.compile(r"^(Total|Toplam)$", re.I)),
 ]
 _HARD_CCY = {"EUR", "USD", "GBP"}
@@ -75,6 +81,15 @@ _ROW_RX = [(f, [re.compile(p, re.I) for p in pats]) for f, pats in _ROWS]
 _FIELDS = [f for f, _ in _ROWS]
 
 _PRIOR_RX = re.compile(r"\b(Prior\s+Period|Önceki\s+Dönem|Geçmiş\s+Dönem)\b", re.I)
+# The genuine prior-period BLOCK is introduced by a standalone prior caption. But
+# HAYATK and ISCTR (English) print a "Sensitivity to currency risk" sub-table
+# ABOVE the position table whose column header carries BOTH periods —
+# "Current Period Prior Period Current Period Prior Period" — and _PRIOR_RX.search
+# would fire on that, flipping to 'prior' before the real current rows are read
+# (so every current row is stored as prior and then overwritten → 0 current rows).
+# A line that names the CURRENT period too is a dual-period header, not a block
+# marker, so it must NOT trigger the flip.
+_CURRENT_RX = re.compile(r"\b(Current\s+Period|Cari\s+Dönem)\b", re.I)
 _SECTION_RX = re.compile(r"(currency\s+risk|kur\s+riski(ne)?)", re.I)
 # A line is the column header when it carries Total/Toplam plus ≥1 other currency.
 _SKIP_PAGES = 20          # clear front matter / statements / capital section
@@ -188,7 +203,7 @@ def extract_from_pdf(pdf: object = None, pdf_path: str = "") -> FxReport:
                 hc = _parse_header_columns(tokens)
                 if hc:
                     cols = hc          # re-read header each block (column set is stable)
-                if _PRIOR_RX.search(lab):
+                if _PRIOR_RX.search(lab) and not _CURRENT_RX.search(lab):
                     period = "prior"
                 if cols is None:
                     continue

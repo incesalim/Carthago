@@ -213,6 +213,8 @@ def curated_skips() -> set[tuple[str, str, str, str]]:
         out.add((bank, period, kind, "credit_quality"))
     for bank, period, kind in _LIQ_SKIP:
         out.add((bank, period, kind, "liquidity"))
+    for bank, period, kind in _FX_SKIP:
+        out.add((bank, period, kind, "fx_position"))
     return out
 
 
@@ -228,6 +230,26 @@ _LIQ_SKIP = frozenset({
     ("TAKAS", "2024Q1", "unconsolidated"),
     ("TAKAS", "2024Q3", "unconsolidated"),
     ("TAKAS", "2025Q2", "unconsolidated"),
+})
+
+# fx_position partitions whose PRINTED currency-risk table does not foot — a typo
+# in the filing, not our extraction (each pixel-verified). Storing the faithful
+# printed value is correct; the footing identity simply can't tie, so skip it.
+#   EMLAK 2022Q1 unco: OTHER Net Bilanço prints (32.418) [negative] but
+#     assets−liab = 1,655,889−1,623,471 = +32,418 and the column total needs
+#     +32,418 — the parenthesis is a filing sign typo.
+#   QNBFB 2023Q1 cons: EUR Net Off-Balance prints the malformed "(41,24,355)"
+#     (a digit dropped); the column total requires (41,924,355).
+#   QNBFB 2023Q3 cons: TOTAL Total Assets prints 32,199,614 — a dropped leading
+#     "3"; Σccy = 332,199,614, which is what the netBS total implies.
+#   ISCTR 2024Q2 unco: USD Total Liab prints 634,664,652 (off +31,000 vs the
+#     footing-consistent 634,633,652) AND TOTAL netBS prints (105,056,270) vs the
+#     required (104,056,270) — two independent printed-figure typos.
+_FX_SKIP = frozenset({
+    ("EMLAK", "2022Q1", "unconsolidated"),
+    ("QNBFB", "2023Q1", "consolidated"),
+    ("QNBFB", "2023Q3", "consolidated"),
+    ("ISCTR", "2024Q2", "unconsolidated"),
 })
 
 
@@ -524,7 +546,9 @@ def revalidate_partition(conn, bank: str, period: str, kind: str) -> dict[str, "
         else v.check_loans_by_sector(_loans_sector_rows(conn, bank, period, kind),
                                      prior_year_total=_prior_year_sector_total(
                                          conn, bank, period, kind)))
-    results["fx_position"]    = v.check_fx_position(_fx_position_rows(conn, bank, period, kind))
+    results["fx_position"] = (
+        _skip_result() if (bank, period, kind) in _FX_SKIP
+        else v.check_fx_position(_fx_position_rows(conn, bank, period, kind)))
     results["repricing"]      = v.check_repricing(_repricing_rows(conn, bank, period, kind))
     # The bank's OTHER filing for the same quarter. A consolidated group contains
     # the parent, so cons >= unco on branches and staff is arithmetic, not a

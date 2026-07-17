@@ -175,3 +175,57 @@ def test_repricing_extractor_on_sample():
     assert abs(sg - tot.gap) < max(2.0, 0.01 * abs(tot.gap))
     # the schedule foots to the balance sheet (total RSA == total RSL).
     assert abs(tot.rate_sensitive_assets - tot.rate_sensitive_liab) < 2.0
+
+
+# --- fx currency-header parsing: the TSKB "US Dollar" + YKBNK wrapped "FC" fixes ---
+from src.audit_reports.fx_position import _parse_header_columns  # noqa: E402
+
+
+def _hdr(*words):
+    """Build a header line as (x, token) pairs, left-to-right."""
+    return [(float(i), w) for i, w in enumerate(words)]
+
+
+def test_fx_header_english_us_dollar():
+    # TSKB files "... Euro US Dollar Other FC Total" — fitz splits "US Dollar" into
+    # US + Dollar, so the parser keys on "US". Must still resolve 4 columns.
+    cols = _parse_header_columns(
+        _hdr("Current", "Period", "Euro", "US", "Dollar", "Other", "FC", "Total"))
+    assert cols == ["EUR", "USD", "OTHER", "TOTAL"], cols
+
+
+def test_fx_header_wrapped_other_fc():
+    # YKBNK-unconsolidated wraps "Other" onto the line above, leaving "FC(4)" on the
+    # header baseline — "FC" must resolve to OTHER.
+    cols = _parse_header_columns(
+        _hdr("Current", "Period", "EUR", "USD", "FC(4)", "Total"))
+    assert cols == ["EUR", "USD", "OTHER", "TOTAL"], cols
+
+
+def test_fx_header_turkish_unchanged():
+    # The Turkish header must be unaffected by the new alternates.
+    cols = _parse_header_columns(_hdr("EURO", "USD", "Diğer", "YP", "Toplam"))
+    assert cols == ["EUR", "USD", "OTHER", "TOTAL"], cols
+
+
+def test_fx_header_non_currency_rejected():
+    # A Total-only header (no hard currency) must not false-match.
+    assert _parse_header_columns(_hdr("Amount", "Total")) is None
+
+
+# --- fx period-tag guard: a dual-period sensitivity header must NOT flip to prior ---
+from src.audit_reports.fx_position import _PRIOR_RX, _CURRENT_RX  # noqa: E402
+
+
+def test_fx_period_flip_only_on_standalone_prior():
+    # A standalone prior-block caption flips; a dual-period sensitivity header
+    # (names Current too) must be guarded so it does NOT flip.
+    standalone = "Prior Period"
+    dual = "exchange rate Current Period Prior Period Current Period Prior Period"
+    assert _PRIOR_RX.search(standalone) and not _CURRENT_RX.search(standalone)
+    assert _PRIOR_RX.search(dual) and _CURRENT_RX.search(dual)  # guarded → no flip
+
+
+def test_fx_period_flip_turkish():
+    assert _PRIOR_RX.search("Önceki Dönem") and not _CURRENT_RX.search("Önceki Dönem")
+    assert _CURRENT_RX.search("Cari Dönem EURO USD Toplam")

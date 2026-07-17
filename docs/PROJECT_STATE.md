@@ -105,6 +105,32 @@ pins it). **Open follow-up: D1 still needs a one-off reconciliation** — re-pus
 `fx_position`/`repricing` from the R2 snapshot (or re-extract the two statements via
 `reextract-statement.yml`) to recover the quarters D1 missed.
 
+**fx_position (§4 currency-risk) lane: 21 err + 66 miss → 0/0 — COMPLETE 2026-07-18**
+(coverage `1032 ok / 18 manual / 0 err / 0 miss`; all fixed manually + two extractor
+fixes). **Missing (52 recovered by a 2-line header fix):** `_CCY_HEAD` under-counted
+currency columns — TSKB's English "US Dollar" tokenises to `US`+`Dollar` (matched no
+USD pattern) and YKBNK-unconsolidated's "Other FC" header WRAPS so only `FC` reaches
+the baseline; added `US`→USD and `FC`→OTHER, agent-verified 0→8 rows on both with zero
+regression on Turkish/consolidated controls. **Errors (13 zero-pass — period mis-tag):**
+HAYATK ×11 + ISCTR ×2 print a currency-SENSITIVITY sub-table above the position table
+whose header says "Current Period / Prior Period"; `_PRIOR_RX.search` fired on it and
+tagged the whole current table as prior (0 current rows → validator skips everything).
+Guarded the flip to ignore a line that also names the current period (`_CURRENT_RX`).
+**Errors (8 footing):** 4 real extraction bugs → overrides (⚠️ `parse_num('-319.110')`
+→ -319.11: a hyphen-prefixed 3-digit thousands group is misread as a decimal — a
+SHARED-parser bug, only 2 fx cells here but a corpus-wide follow-up; + QNBFB's dropped
+closing parens flipped signs positive); 4 genuine SOURCE typos where the filing itself
+doesn't foot (a dropped digit, a malformed "(41,24,355)", a sign typo) → `_FX_SKIP`
+storing the faithful printed value. **Remaining 14 missing verified: ZERO genuine
+non-disclosure** — 8 were a SECOND header-split cause (Turkish "ABD Doları"/"Diğer YP"
+splitting across physical lines; hand-overridden via new `fx_position_replace`), 6 FIBA
+are image-only/vector-outlined (hand-transcribed from renders, each corroborated by the
+report's own "net yabancı para pozisyon" prose). 18 hand-read cells read `manual`
+(`_STMT_TO_KEY` + new fx handlers; `bank_audit_fx_position`/`repricing` added to
+`_SELF_TS_TABLES`). Follow-up: the header-split (ABD Doları/Diğer YP wrap) is an
+extractor gap for DUNYAK/KUVEYT future quarters — a scoped header-line-merge would
+close it. ⚠️ Used `--only-failing`, NEVER `--force` (the market-risk lane's own lesson).
+
 **§4 capital/liquidity (2026-06-10)**: full-fleet history backfilled via
 `backfill-audit.yml` in 5-bank chunks (`ALL` exceeds the 180-min job timeout).
 Per-bank §4 filing quirks and their fixes are catalogued in

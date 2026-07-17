@@ -8059,6 +8059,784 @@
         "source_page": 34
       },
       "note": "HAYATK 2023Q2 §4 liquidity was MISSING (0 rows). The report discloses ONLY the leverage ratio: 97.5% (Tier I 1,495,883 / total risk 1,534,646 = 97.5%), prose 'The leverage ratio … was 97.5% (31 December 2022 - 97.5%)', p34. Genuine for a near-all-equity new bank. LCR and NSFR are N/A: the report states (p33, note 5.9) 'The … Liquidity Coverage Ratio tables have not been prepared due to the fact that the Bank has not yet commenced banking activities as of June 30, 2023', and Turkish NSFR disclosure only began 1 Jan 2024. Inserted the leverage row (LCR/NSFR stay NULL). Pixel-verified."
+    },
+    {
+      "bank_ticker": "EMLAK",
+      "period": "2022Q3",
+      "kind": "consolidated",
+      "statement": "fx_position",
+      "currency": "OTHER",
+      "period_type": "current",
+      "fields": {
+        "net_off_balance": -319110.0,
+        "net_position": 32962.0
+      },
+      "note": "EMLAK's §4 currency-risk table: parse_num mis-read the hyphen-thousands negative '-319.110' as -319 — a single 3-digit '.'-group with a leading hyphen is taken as a decimal fraction (the parenthesised form parses correctly, and multi-dot values like -1.863.698 are fine). True value -319,110 (verified on the page). net_position recomputed = net_on + net_off. Table then foots (Σccy net_off = TOTAL)."
+    },
+    {
+      "bank_ticker": "EMLAK",
+      "period": "2022Q3",
+      "kind": "unconsolidated",
+      "statement": "fx_position",
+      "currency": "OTHER",
+      "period_type": "current",
+      "fields": {
+        "net_off_balance": -319110.0,
+        "net_position": 32962.0
+      },
+      "note": "EMLAK's §4 currency-risk table: parse_num mis-read the hyphen-thousands negative '-319.110' as -319 — a single 3-digit '.'-group with a leading hyphen is taken as a decimal fraction (the parenthesised form parses correctly, and multi-dot values like -1.863.698 are fine). True value -319,110 (verified on the page). net_position recomputed = net_on + net_off. Table then foots (Σccy net_off = TOTAL)."
+    },
+    {
+      "bank_ticker": "EMLAK",
+      "period": "2025Q2",
+      "kind": "unconsolidated",
+      "statement": "fx_position",
+      "currency": "USD",
+      "period_type": "current",
+      "fields": {
+        "net_off_balance": -124081.0,
+        "net_position": 4854196.0
+      },
+      "note": "EMLAK's §4 currency-risk table: parse_num mis-read the hyphen-thousands negative '-124.081' as -124 — a single 3-digit '.'-group with a leading hyphen is taken as a decimal fraction (the parenthesised form parses correctly, and multi-dot values like -1.863.698 are fine). True value -124,081 (verified on the page). net_position recomputed = net_on + net_off. Table then foots (Σccy net_off = TOTAL)."
+    },
+    {
+      "bank_ticker": "QNBFB",
+      "period": "2025Q4",
+      "kind": "consolidated",
+      "statement": "fx_position",
+      "currency": "USD",
+      "period_type": "current",
+      "fields": {
+        "net_on_balance": -162997443.0,
+        "net_position": 13251983.0
+      },
+      "note": "QNBFB 2025Q4 cons §4 currency-risk: fitz dropped the CLOSING paren on the Net Balance Sheet Position row, so the parenthesised negatives '(162,997,443)' etc. parsed POSITIVE. Source prints them negative (pixel-verified; assets−liab confirms: USD 372,477,131−535,474,574 = −162,997,443). Corrected USD/OTHER/TOTAL net_on_balance to negative + recomputed net_position. Table foots on all three identities."
+    },
+    {
+      "bank_ticker": "QNBFB",
+      "period": "2025Q4",
+      "kind": "consolidated",
+      "statement": "fx_position",
+      "currency": "OTHER",
+      "period_type": "current",
+      "fields": {
+        "net_on_balance": -146658717.0,
+        "net_position": 146957.0
+      },
+      "note": "QNBFB 2025Q4 cons §4 currency-risk: fitz dropped the CLOSING paren on the Net Balance Sheet Position row, so the parenthesised negatives '(162,997,443)' etc. parsed POSITIVE. Source prints them negative (pixel-verified; assets−liab confirms: USD 372,477,131−535,474,574 = −162,997,443). Corrected USD/OTHER/TOTAL net_on_balance to negative + recomputed net_position. Table foots on all three identities."
+    },
+    {
+      "bank_ticker": "QNBFB",
+      "period": "2025Q4",
+      "kind": "consolidated",
+      "statement": "fx_position",
+      "currency": "TOTAL",
+      "period_type": "current",
+      "fields": {
+        "net_on_balance": -189287882.0,
+        "net_position": 4849590.0
+      },
+      "note": "QNBFB 2025Q4 cons §4 currency-risk: fitz dropped the CLOSING paren on the Net Balance Sheet Position row, so the parenthesised negatives '(162,997,443)' etc. parsed POSITIVE. Source prints them negative (pixel-verified; assets−liab confirms: USD 372,477,131−535,474,574 = −162,997,443). Corrected USD/OTHER/TOTAL net_on_balance to negative + recomputed net_position. Table foots on all three identities."
+    },
+    {
+      "bank_ticker": "ANADOLU",
+      "period": "2022Q1",
+      "kind": "unconsolidated",
+      "statement": "fx_position_replace",
+      "source_page": 38,
+      "rows": [
+        {
+          "currency": "EUR",
+          "on_bs_assets": 5458197.0,
+          "on_bs_liab": 4167703.0,
+          "net_on_balance": 1290494.0,
+          "net_off_balance": -1862551.0,
+          "off_bs_receivable": 2836554.0,
+          "off_bs_payable": 4699105.0,
+          "net_position": -572057.0
+        },
+        {
+          "currency": "USD",
+          "on_bs_assets": 8990247.0,
+          "on_bs_liab": 12873810.0,
+          "net_on_balance": -3883563.0,
+          "net_off_balance": 4286571.0,
+          "off_bs_receivable": 7814234.0,
+          "off_bs_payable": 3527663.0,
+          "net_position": 403008.0
+        },
+        {
+          "currency": "OTHER",
+          "on_bs_assets": 1427644.0,
+          "on_bs_liab": 1059524.0,
+          "net_on_balance": 368120.0,
+          "net_off_balance": -368692.0,
+          "off_bs_receivable": 208546.0,
+          "off_bs_payable": 577238.0,
+          "net_position": -572.0
+        },
+        {
+          "currency": "TOTAL",
+          "on_bs_assets": 15876088.0,
+          "on_bs_liab": 18101037.0,
+          "net_on_balance": -2224949.0,
+          "net_off_balance": 2055328.0,
+          "off_bs_receivable": 10859334.0,
+          "off_bs_payable": 8804006.0,
+          "net_position": -169621.0
+        }
+      ],
+      "note": "Hand-transcribed from the printed §4 currency-risk table (page 37, 0-based), agent-verified. The extractor located the page but stored 0 rows: the Turkish header cells 'ABD Doları' (USD) and/or 'Diğer YP' (OTHER) split or fuse across physical text lines (fitz's ≤3px y-clustering), so _parse_header_columns under-counted the currency columns and every 4-token row failed the len(vals)==len(cols) check. Columns EUR/USD/OTHER/TOTAL; net_position = net_on + net_off. Foots: Σccy=TOTAL per column, assets−liab=net_on per row."
+    },
+    {
+      "bank_ticker": "ATBANK",
+      "period": "2022Q1",
+      "kind": "unconsolidated",
+      "statement": "fx_position_replace",
+      "source_page": 43,
+      "rows": [
+        {
+          "currency": "EUR",
+          "on_bs_assets": 4206214.0,
+          "on_bs_liab": 4205453.0,
+          "net_on_balance": 761.0,
+          "net_off_balance": 289.0,
+          "off_bs_receivable": 289.0,
+          "off_bs_payable": 0.0,
+          "net_position": 1050.0
+        },
+        {
+          "currency": "USD",
+          "on_bs_assets": 4622146.0,
+          "on_bs_liab": 4628738.0,
+          "net_on_balance": -6592.0,
+          "net_off_balance": -249.0,
+          "off_bs_receivable": 922.0,
+          "off_bs_payable": -1171.0,
+          "net_position": -6841.0
+        },
+        {
+          "currency": "OTHER",
+          "on_bs_assets": 24598.0,
+          "on_bs_liab": 24900.0,
+          "net_on_balance": -302.0,
+          "net_off_balance": -40.0,
+          "off_bs_receivable": 1164.0,
+          "off_bs_payable": -1204.0,
+          "net_position": -342.0
+        },
+        {
+          "currency": "TOTAL",
+          "on_bs_assets": 8852958.0,
+          "on_bs_liab": 8859091.0,
+          "net_on_balance": -6133.0,
+          "net_off_balance": 0.0,
+          "off_bs_receivable": 2375.0,
+          "off_bs_payable": -2375.0,
+          "net_position": -6133.0
+        }
+      ],
+      "note": "Hand-transcribed from the printed §4 currency-risk table (page 42, 0-based), agent-verified. The extractor located the page but stored 0 rows: the Turkish header cells 'ABD Doları' (USD) and/or 'Diğer YP' (OTHER) split or fuse across physical text lines (fitz's ≤3px y-clustering), so _parse_header_columns under-counted the currency columns and every 4-token row failed the len(vals)==len(cols) check. Columns EUR/USD/OTHER/TOTAL; net_position = net_on + net_off. Foots: Σccy=TOTAL per column, assets−liab=net_on per row."
+    },
+    {
+      "bank_ticker": "ATBANK",
+      "period": "2022Q2",
+      "kind": "unconsolidated",
+      "statement": "fx_position_replace",
+      "source_page": 39,
+      "rows": [
+        {
+          "currency": "EUR",
+          "on_bs_assets": 4457300.0,
+          "on_bs_liab": 4442306.0,
+          "net_on_balance": 14994.0,
+          "net_off_balance": 4343.0,
+          "off_bs_receivable": 4343.0,
+          "off_bs_payable": 0.0,
+          "net_position": 19337.0
+        },
+        {
+          "currency": "USD",
+          "on_bs_assets": 5200271.0,
+          "on_bs_liab": 5228100.0,
+          "net_on_balance": -27829.0,
+          "net_off_balance": -21041.0,
+          "off_bs_receivable": 0.0,
+          "off_bs_payable": -21041.0,
+          "net_position": -48870.0
+        },
+        {
+          "currency": "OTHER",
+          "on_bs_assets": 30935.0,
+          "on_bs_liab": 25457.0,
+          "net_on_balance": 5478.0,
+          "net_off_balance": 0.0,
+          "off_bs_receivable": 0.0,
+          "off_bs_payable": 0.0,
+          "net_position": 5478.0
+        },
+        {
+          "currency": "TOTAL",
+          "on_bs_assets": 9688506.0,
+          "on_bs_liab": 9695863.0,
+          "net_on_balance": -7357.0,
+          "net_off_balance": -16698.0,
+          "off_bs_receivable": 4343.0,
+          "off_bs_payable": -21041.0,
+          "net_position": -24055.0
+        }
+      ],
+      "note": "Hand-transcribed from the printed §4 currency-risk table (page 38, 0-based), agent-verified. The extractor located the page but stored 0 rows: the Turkish header cells 'ABD Doları' (USD) and/or 'Diğer YP' (OTHER) split or fuse across physical text lines (fitz's ≤3px y-clustering), so _parse_header_columns under-counted the currency columns and every 4-token row failed the len(vals)==len(cols) check. Columns EUR/USD/OTHER/TOTAL; net_position = net_on + net_off. Foots: Σccy=TOTAL per column, assets−liab=net_on per row."
+    },
+    {
+      "bank_ticker": "KLNMA",
+      "period": "2022Q1",
+      "kind": "unconsolidated",
+      "statement": "fx_position_replace",
+      "source_page": 54,
+      "rows": [
+        {
+          "currency": "EUR",
+          "on_bs_assets": 18417443.0,
+          "on_bs_liab": 18335590.0,
+          "net_on_balance": 81853.0,
+          "net_off_balance": -144036.0,
+          "off_bs_receivable": 0.0,
+          "off_bs_payable": -144036.0,
+          "net_position": -62183.0
+        },
+        {
+          "currency": "USD",
+          "on_bs_assets": 27658628.0,
+          "on_bs_liab": 28249805.0,
+          "net_on_balance": -591177.0,
+          "net_off_balance": 651621.0,
+          "off_bs_receivable": 3017077.0,
+          "off_bs_payable": -2365456.0,
+          "net_position": 60444.0
+        },
+        {
+          "currency": "OTHER",
+          "on_bs_assets": 1204.0,
+          "on_bs_liab": 0.0,
+          "net_on_balance": 1204.0,
+          "net_off_balance": 0.0,
+          "off_bs_receivable": 0.0,
+          "off_bs_payable": 0.0,
+          "net_position": 1204.0
+        },
+        {
+          "currency": "TOTAL",
+          "on_bs_assets": 46077275.0,
+          "on_bs_liab": 46585395.0,
+          "net_on_balance": -508120.0,
+          "net_off_balance": 507585.0,
+          "off_bs_receivable": 3017077.0,
+          "off_bs_payable": -2509492.0,
+          "net_position": -535.0
+        }
+      ],
+      "note": "Hand-transcribed from the printed §4 currency-risk table (page 53, 0-based), agent-verified. The extractor located the page but stored 0 rows: the Turkish header cells 'ABD Doları' (USD) and/or 'Diğer YP' (OTHER) split or fuse across physical text lines (fitz's ≤3px y-clustering), so _parse_header_columns under-counted the currency columns and every 4-token row failed the len(vals)==len(cols) check. Columns EUR/USD/OTHER/TOTAL; net_position = net_on + net_off. Foots: Σccy=TOTAL per column, assets−liab=net_on per row."
+    },
+    {
+      "bank_ticker": "ZIRAATK",
+      "period": "2022Q3",
+      "kind": "unconsolidated",
+      "statement": "fx_position_replace",
+      "source_page": 44,
+      "rows": [
+        {
+          "currency": "EUR",
+          "on_bs_assets": 30364399.0,
+          "on_bs_liab": 27739921.0,
+          "net_on_balance": 2624478.0,
+          "net_off_balance": -2437425.0,
+          "off_bs_receivable": 0.0,
+          "off_bs_payable": 2437425.0,
+          "net_position": 187053.0
+        },
+        {
+          "currency": "USD",
+          "on_bs_assets": 40553323.0,
+          "on_bs_liab": 43245706.0,
+          "net_on_balance": -2692383.0,
+          "net_off_balance": 2453743.0,
+          "off_bs_receivable": 2453743.0,
+          "off_bs_payable": 0.0,
+          "net_position": -238640.0
+        },
+        {
+          "currency": "OTHER",
+          "on_bs_assets": 6882752.0,
+          "on_bs_liab": 6809407.0,
+          "net_on_balance": 73345.0,
+          "net_off_balance": 0.0,
+          "off_bs_receivable": 0.0,
+          "off_bs_payable": 0.0,
+          "net_position": 73345.0
+        },
+        {
+          "currency": "TOTAL",
+          "on_bs_assets": 77800474.0,
+          "on_bs_liab": 77795034.0,
+          "net_on_balance": 5440.0,
+          "net_off_balance": 16318.0,
+          "off_bs_receivable": 2453743.0,
+          "off_bs_payable": 2437425.0,
+          "net_position": 21758.0
+        }
+      ],
+      "note": "Hand-transcribed from the printed §4 currency-risk table (page 43, 0-based), agent-verified. The extractor located the page but stored 0 rows: the Turkish header cells 'ABD Doları' (USD) and/or 'Diğer YP' (OTHER) split or fuse across physical text lines (fitz's ≤3px y-clustering), so _parse_header_columns under-counted the currency columns and every 4-token row failed the len(vals)==len(cols) check. Columns EUR/USD/OTHER/TOTAL; net_position = net_on + net_off. Foots: Σccy=TOTAL per column, assets−liab=net_on per row."
+    },
+    {
+      "bank_ticker": "DUNYAK",
+      "period": "2024Q2",
+      "kind": "unconsolidated",
+      "statement": "fx_position_replace",
+      "source_page": 33,
+      "rows": [
+        {
+          "currency": "EUR",
+          "on_bs_assets": 1622350.0,
+          "on_bs_liab": 712374.0,
+          "net_on_balance": 909976.0,
+          "net_off_balance": -878210.0,
+          "off_bs_receivable": 0.0,
+          "off_bs_payable": 878210.0,
+          "net_position": 31766.0
+        },
+        {
+          "currency": "USD",
+          "on_bs_assets": 663514.0,
+          "on_bs_liab": 665251.0,
+          "net_on_balance": -1737.0,
+          "net_off_balance": -13130.0,
+          "off_bs_receivable": 98479.0,
+          "off_bs_payable": 111609.0,
+          "net_position": -14867.0
+        },
+        {
+          "currency": "OTHER",
+          "on_bs_assets": 3182.0,
+          "on_bs_liab": 2925.0,
+          "net_on_balance": 257.0,
+          "net_off_balance": 0.0,
+          "off_bs_receivable": 0.0,
+          "off_bs_payable": 0.0,
+          "net_position": 257.0
+        },
+        {
+          "currency": "TOTAL",
+          "on_bs_assets": 2289046.0,
+          "on_bs_liab": 1380550.0,
+          "net_on_balance": 908496.0,
+          "net_off_balance": -891340.0,
+          "off_bs_receivable": 98479.0,
+          "off_bs_payable": 989819.0,
+          "net_position": 17156.0
+        }
+      ],
+      "note": "Hand-transcribed from the printed §4 currency-risk table (page 32, 0-based), agent-verified. The extractor located the page but stored 0 rows: the Turkish header cells 'ABD Doları' (USD) and/or 'Diğer YP' (OTHER) split or fuse across physical text lines (fitz's ≤3px y-clustering), so _parse_header_columns under-counted the currency columns and every 4-token row failed the len(vals)==len(cols) check. Columns EUR/USD/OTHER/TOTAL; net_position = net_on + net_off. Foots: Σccy=TOTAL per column, assets−liab=net_on per row."
+    },
+    {
+      "bank_ticker": "DUNYAK",
+      "period": "2024Q3",
+      "kind": "unconsolidated",
+      "statement": "fx_position_replace",
+      "source_page": 33,
+      "rows": [
+        {
+          "currency": "EUR",
+          "on_bs_assets": 2665970.0,
+          "on_bs_liab": 2016002.0,
+          "net_on_balance": 649968.0,
+          "net_off_balance": -649157.0,
+          "off_bs_receivable": 3106071.0,
+          "off_bs_payable": 3755228.0,
+          "net_position": 811.0
+        },
+        {
+          "currency": "USD",
+          "on_bs_assets": 2538036.0,
+          "on_bs_liab": 2174679.0,
+          "net_on_balance": 363357.0,
+          "net_off_balance": -389199.0,
+          "off_bs_receivable": 5023834.0,
+          "off_bs_payable": 5413033.0,
+          "net_position": -25842.0
+        },
+        {
+          "currency": "OTHER",
+          "on_bs_assets": 127867.0,
+          "on_bs_liab": 138369.0,
+          "net_on_balance": -10502.0,
+          "net_off_balance": 8073.0,
+          "off_bs_receivable": 8073.0,
+          "off_bs_payable": 0.0,
+          "net_position": -2429.0
+        },
+        {
+          "currency": "TOTAL",
+          "on_bs_assets": 5331873.0,
+          "on_bs_liab": 4329050.0,
+          "net_on_balance": 1002823.0,
+          "net_off_balance": -1030283.0,
+          "off_bs_receivable": 8137978.0,
+          "off_bs_payable": 9168261.0,
+          "net_position": -27460.0
+        }
+      ],
+      "note": "Hand-transcribed from the printed §4 currency-risk table (page 32, 0-based), agent-verified. The extractor located the page but stored 0 rows: the Turkish header cells 'ABD Doları' (USD) and/or 'Diğer YP' (OTHER) split or fuse across physical text lines (fitz's ≤3px y-clustering), so _parse_header_columns under-counted the currency columns and every 4-token row failed the len(vals)==len(cols) check. Columns EUR/USD/OTHER/TOTAL; net_position = net_on + net_off. Foots: Σccy=TOTAL per column, assets−liab=net_on per row."
+    },
+    {
+      "bank_ticker": "KUVEYT",
+      "period": "2025Q1",
+      "kind": "unconsolidated",
+      "statement": "fx_position_replace",
+      "source_page": 33,
+      "rows": [
+        {
+          "currency": "EUR",
+          "on_bs_assets": 118533414.0,
+          "on_bs_liab": 67429276.0,
+          "net_on_balance": 51104138.0,
+          "net_off_balance": -56032931.0,
+          "off_bs_receivable": 11782086.0,
+          "off_bs_payable": 67815017.0,
+          "net_position": -4928793.0
+        },
+        {
+          "currency": "USD",
+          "on_bs_assets": 260655484.0,
+          "on_bs_liab": 257219945.0,
+          "net_on_balance": 3435539.0,
+          "net_off_balance": -3710705.0,
+          "off_bs_receivable": 59235066.0,
+          "off_bs_payable": 62945771.0,
+          "net_position": -275166.0
+        },
+        {
+          "currency": "OTHER",
+          "on_bs_assets": 130818164.0,
+          "on_bs_liab": 188418225.0,
+          "net_on_balance": -57600061.0,
+          "net_off_balance": 57966824.0,
+          "off_bs_receivable": 134908240.0,
+          "off_bs_payable": 76941416.0,
+          "net_position": 366763.0
+        },
+        {
+          "currency": "TOTAL",
+          "on_bs_assets": 510007062.0,
+          "on_bs_liab": 513067446.0,
+          "net_on_balance": -3060384.0,
+          "net_off_balance": -1776812.0,
+          "off_bs_receivable": 205925392.0,
+          "off_bs_payable": 207702204.0,
+          "net_position": -4837196.0
+        }
+      ],
+      "note": "Hand-transcribed from the printed §4 currency-risk table (page 32, 0-based), agent-verified. The extractor located the page but stored 0 rows: the Turkish header cells 'ABD Doları' (USD) and/or 'Diğer YP' (OTHER) split or fuse across physical text lines (fitz's ≤3px y-clustering), so _parse_header_columns under-counted the currency columns and every 4-token row failed the len(vals)==len(cols) check. Columns EUR/USD/OTHER/TOTAL; net_position = net_on + net_off. Foots: Σccy=TOTAL per column, assets−liab=net_on per row. Column mapping confirmed against the report's prose (prior-period net TOTAL 9,121,278 + (17,439,595) = -8,318,317 = '31 Aralık 2024 - 8,318,317 TL açık')."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2022Q1",
+      "kind": "consolidated",
+      "statement": "fx_position_replace",
+      "source_page": 46,
+      "rows": [
+        {
+          "currency": "EUR",
+          "on_bs_assets": 9663523.0,
+          "on_bs_liab": 3136741.0,
+          "net_on_balance": 6526782.0,
+          "net_off_balance": -6672759.0,
+          "off_bs_receivable": 3902519.0,
+          "off_bs_payable": 10575278.0,
+          "net_position": -145977.0
+        },
+        {
+          "currency": "USD",
+          "on_bs_assets": 16421816.0,
+          "on_bs_liab": 17458337.0,
+          "net_on_balance": -1036521.0,
+          "net_off_balance": 1272691.0,
+          "off_bs_receivable": 18129977.0,
+          "off_bs_payable": 16857286.0,
+          "net_position": 236170.0
+        },
+        {
+          "currency": "OTHER",
+          "on_bs_assets": 308722.0,
+          "on_bs_liab": 3220539.0,
+          "net_on_balance": -2911817.0,
+          "net_off_balance": 2927608.0,
+          "off_bs_receivable": 4122502.0,
+          "off_bs_payable": 1194894.0,
+          "net_position": 15791.0
+        },
+        {
+          "currency": "TOTAL",
+          "on_bs_assets": 26394061.0,
+          "on_bs_liab": 23815617.0,
+          "net_on_balance": 2578444.0,
+          "net_off_balance": -2472460.0,
+          "off_bs_receivable": 26154998.0,
+          "off_bs_payable": 28627458.0,
+          "net_position": 105984.0
+        }
+      ],
+      "note": "Hand-transcribed from the printed §4 currency-risk table (page 45, 0-based), which FIBA prints as a vector-outlined GRAPHIC — no text layer, so the extractor stored 0 rows (source_page None). Rendered and pixel-verified; corroborated by the report's own prose: net_on TOTAL 2,578,444 / net_off (2,472,460) / net 105,984. Columns EUR/USD/OTHER/TOTAL; net_position = net_on + net_off (= the printed 'net yabancı para pozisyon'). Foots exactly on the on-balance rows."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2022Q1",
+      "kind": "unconsolidated",
+      "statement": "fx_position_replace",
+      "source_page": 45,
+      "rows": [
+        {
+          "currency": "EUR",
+          "on_bs_assets": 9663523.0,
+          "on_bs_liab": 3136741.0,
+          "net_on_balance": 6526782.0,
+          "net_off_balance": -6672759.0,
+          "off_bs_receivable": 3902519.0,
+          "off_bs_payable": 10575278.0,
+          "net_position": -145977.0
+        },
+        {
+          "currency": "USD",
+          "on_bs_assets": 16421816.0,
+          "on_bs_liab": 17458337.0,
+          "net_on_balance": -1036521.0,
+          "net_off_balance": 1272691.0,
+          "off_bs_receivable": 18129977.0,
+          "off_bs_payable": 16857286.0,
+          "net_position": 236170.0
+        },
+        {
+          "currency": "OTHER",
+          "on_bs_assets": 308722.0,
+          "on_bs_liab": 3220539.0,
+          "net_on_balance": -2911817.0,
+          "net_off_balance": 2927608.0,
+          "off_bs_receivable": 4122502.0,
+          "off_bs_payable": 1194894.0,
+          "net_position": 15791.0
+        },
+        {
+          "currency": "TOTAL",
+          "on_bs_assets": 26394061.0,
+          "on_bs_liab": 23815617.0,
+          "net_on_balance": 2578444.0,
+          "net_off_balance": -2472460.0,
+          "off_bs_receivable": 26154998.0,
+          "off_bs_payable": 28627458.0,
+          "net_position": 105984.0
+        }
+      ],
+      "note": "Hand-transcribed from the printed §4 currency-risk table (page 44, 0-based), which FIBA prints as a vector-outlined GRAPHIC — no text layer, so the extractor stored 0 rows (source_page None). Rendered and pixel-verified; corroborated by the report's own prose: net 105,984 (cons==unco this quarter). Columns EUR/USD/OTHER/TOTAL; net_position = net_on + net_off (= the printed 'net yabancı para pozisyon'). Foots exactly on the on-balance rows."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2023Q3",
+      "kind": "consolidated",
+      "statement": "fx_position_replace",
+      "source_page": 46,
+      "rows": [
+        {
+          "currency": "EUR",
+          "on_bs_assets": 12632678.0,
+          "on_bs_liab": 4223198.0,
+          "net_on_balance": 8409480.0,
+          "net_off_balance": -8648261.0,
+          "off_bs_receivable": 7459565.0,
+          "off_bs_payable": 16107826.0,
+          "net_position": -238781.0
+        },
+        {
+          "currency": "USD",
+          "on_bs_assets": 25281655.0,
+          "on_bs_liab": 25600183.0,
+          "net_on_balance": -318528.0,
+          "net_off_balance": 1643109.0,
+          "off_bs_receivable": 32694622.0,
+          "off_bs_payable": 31051513.0,
+          "net_position": 1324581.0
+        },
+        {
+          "currency": "OTHER",
+          "on_bs_assets": 982764.0,
+          "on_bs_liab": 6732763.0,
+          "net_on_balance": -5749999.0,
+          "net_off_balance": 5731391.0,
+          "off_bs_receivable": 10845331.0,
+          "off_bs_payable": 5113940.0,
+          "net_position": -18608.0
+        },
+        {
+          "currency": "TOTAL",
+          "on_bs_assets": 38897097.0,
+          "on_bs_liab": 36556144.0,
+          "net_on_balance": 2340953.0,
+          "net_off_balance": -1273761.0,
+          "off_bs_receivable": 50999518.0,
+          "off_bs_payable": 52273279.0,
+          "net_position": 1067192.0
+        }
+      ],
+      "note": "Hand-transcribed from the printed §4 currency-risk table (page 45, 0-based), which FIBA prints as a bitmap (174 sliced images) GRAPHIC — no text layer, so the extractor stored 0 rows (source_page None). Rendered and pixel-verified; corroborated by the report's own prose: net_on TOTAL 2,340,953 / net_off (1,273,761) / net 1,067,192. Columns EUR/USD/OTHER/TOTAL; net_position = net_on + net_off (= the printed 'net yabancı para pozisyon'). Foots exactly on the on-balance rows."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2024Q1",
+      "kind": "consolidated",
+      "statement": "fx_position_replace",
+      "source_page": 40,
+      "rows": [
+        {
+          "currency": "EUR",
+          "on_bs_assets": 13278999.0,
+          "on_bs_liab": 5940070.0,
+          "net_on_balance": 7338929.0,
+          "net_off_balance": -7432595.0,
+          "off_bs_receivable": 7800314.0,
+          "off_bs_payable": 15232909.0,
+          "net_position": -93666.0
+        },
+        {
+          "currency": "USD",
+          "on_bs_assets": 26517552.0,
+          "on_bs_liab": 31291712.0,
+          "net_on_balance": -4774160.0,
+          "net_off_balance": 5793326.0,
+          "off_bs_receivable": 64579399.0,
+          "off_bs_payable": 58786073.0,
+          "net_position": 1019166.0
+        },
+        {
+          "currency": "OTHER",
+          "on_bs_assets": 2745737.0,
+          "on_bs_liab": 7867127.0,
+          "net_on_balance": -5121390.0,
+          "net_off_balance": 5254279.0,
+          "off_bs_receivable": 15469158.0,
+          "off_bs_payable": 10214879.0,
+          "net_position": 132889.0
+        },
+        {
+          "currency": "TOTAL",
+          "on_bs_assets": 42542288.0,
+          "on_bs_liab": 45098909.0,
+          "net_on_balance": -2556621.0,
+          "net_off_balance": 3615010.0,
+          "off_bs_receivable": 87848871.0,
+          "off_bs_payable": 84233861.0,
+          "net_position": 1058389.0
+        }
+      ],
+      "note": "Hand-transcribed from the printed §4 currency-risk table (page 39, 0-based), which FIBA prints as a vector-outlined GRAPHIC — no text layer, so the extractor stored 0 rows (source_page None). Rendered and pixel-verified; corroborated by the report's own prose: net_on TOTAL (2,556,621) / net_off 3,615,010 / net 1,058,389. Columns EUR/USD/OTHER/TOTAL; net_position = net_on + net_off (= the printed 'net yabancı para pozisyon'). Foots exactly on the on-balance rows."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2025Q3",
+      "kind": "consolidated",
+      "statement": "fx_position_replace",
+      "source_page": 40,
+      "rows": [
+        {
+          "currency": "EUR",
+          "on_bs_assets": 14711963.0,
+          "on_bs_liab": 4682351.0,
+          "net_on_balance": 10029612.0,
+          "net_off_balance": -8803713.0,
+          "off_bs_receivable": 24116124.0,
+          "off_bs_payable": 32919838.0,
+          "net_position": 1225899.0
+        },
+        {
+          "currency": "USD",
+          "on_bs_assets": 26437668.0,
+          "on_bs_liab": 36596360.0,
+          "net_on_balance": -10158692.0,
+          "net_off_balance": 7756786.0,
+          "off_bs_receivable": 70893976.0,
+          "off_bs_payable": 63137190.0,
+          "net_position": -2401906.0
+        },
+        {
+          "currency": "OTHER",
+          "on_bs_assets": 8265368.0,
+          "on_bs_liab": 25701516.0,
+          "net_on_balance": -17436148.0,
+          "net_off_balance": 17442508.0,
+          "off_bs_receivable": 54795336.0,
+          "off_bs_payable": 37352828.0,
+          "net_position": 6360.0
+        },
+        {
+          "currency": "TOTAL",
+          "on_bs_assets": 49414999.0,
+          "on_bs_liab": 66980227.0,
+          "net_on_balance": -17565228.0,
+          "net_off_balance": 16395580.0,
+          "off_bs_receivable": 149805435.0,
+          "off_bs_payable": 133409855.0,
+          "net_position": -1169648.0
+        }
+      ],
+      "note": "Hand-transcribed from the printed §4 currency-risk table (page 39, 0-based), which FIBA prints as a vector-outlined GRAPHIC — no text layer, so the extractor stored 0 rows (source_page None). Rendered and pixel-verified; corroborated by the report's own prose: net_on TOTAL (17,565,228) / net_off 16,395,580 / net (1,169,648). Columns EUR/USD/OTHER/TOTAL; net_position = net_on + net_off (= the printed 'net yabancı para pozisyon'). Foots exactly on the on-balance rows. NOTE: the printed off-balance TOTALs (net_off 16,395,580; recv 149,805,435; pay 133,409,855) are 1 below their currency column-sums — a SOURCE rounding artifact (FIBA's prose quotes the printed 16,395,580, not 16,395,581). Stored as printed; within the footing check's 0.5% tolerance."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2025Q3",
+      "kind": "unconsolidated",
+      "statement": "fx_position_replace",
+      "source_page": 39,
+      "rows": [
+        {
+          "currency": "EUR",
+          "on_bs_assets": 14711963.0,
+          "on_bs_liab": 4682351.0,
+          "net_on_balance": 10029612.0,
+          "net_off_balance": -8803811.0,
+          "off_bs_receivable": 24115149.0,
+          "off_bs_payable": 32918960.0,
+          "net_position": 1225801.0
+        },
+        {
+          "currency": "USD",
+          "on_bs_assets": 26437668.0,
+          "on_bs_liab": 36596360.0,
+          "net_on_balance": -10158692.0,
+          "net_off_balance": 7755665.0,
+          "off_bs_receivable": 70890406.0,
+          "off_bs_payable": 63134741.0,
+          "net_position": -2403027.0
+        },
+        {
+          "currency": "OTHER",
+          "on_bs_assets": 8265368.0,
+          "on_bs_liab": 25701516.0,
+          "net_on_balance": -17436148.0,
+          "net_off_balance": 17394921.0,
+          "off_bs_receivable": 54747749.0,
+          "off_bs_payable": 37352828.0,
+          "net_position": -41227.0
+        },
+        {
+          "currency": "TOTAL",
+          "on_bs_assets": 49414999.0,
+          "on_bs_liab": 66980227.0,
+          "net_on_balance": -17565228.0,
+          "net_off_balance": 16346775.0,
+          "off_bs_receivable": 149753304.0,
+          "off_bs_payable": 133406529.0,
+          "net_position": -1218453.0
+        }
+      ],
+      "note": "Hand-transcribed from the printed §4 currency-risk table (page 38, 0-based), which FIBA prints as a vector-outlined GRAPHIC — no text layer, so the extractor stored 0 rows (source_page None). Rendered and pixel-verified; corroborated by the report's own prose: net_on TOTAL (17,565,228) / net_off 16,346,775 / net (1,218,453). Columns EUR/USD/OTHER/TOTAL; net_position = net_on + net_off (= the printed 'net yabancı para pozisyon'). Foots exactly on the on-balance rows."
     }
   ]
 }
