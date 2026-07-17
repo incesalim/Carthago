@@ -19,26 +19,49 @@ flagged the anomaly and been unable to explain it. That gap is closed.
 ## Signal 1 — profit-vs-equity divergence (the decisive one)
 
 `bank_audit_profit_loss` (role `period_net` via `bank_audit_pl_roles`) vs
-`bank_audit_balance_sheet` (liabilities-side roman equity line), Q1 only — Q1 profit is
-YTD=quarterly and Δequity is clean off the audited Q4 close.
+`bank_audit_balance_sheet` (liabilities-side roman equity line).
 
-Rule from §7.1 of the finding doc: flag `(net_profit − Δequity) > 0.25 × opening_equity`.
+§7.1 of the finding doc proposed: flag **any bank-quarter** where
+`|net_profit − Δequity| > 0.25 × opening_equity`, **with OCI and dividends netted out**.
 
-**Fired once in 136 bank-Q1s across 2023Q1–2026Q1. The one hit is ALBRK 2025Q1.**
+**Run as written — all four quarters, YTD de-cumulated for Q2–Q4 (the `heatmap.ts`
+`ttmRoe` pattern) — the screen fires twice in 449 bank-quarters, 2023Q1–2026Q1:**
 
-| period | bank | net profit | Δ equity | gap / opening equity |
-|---|---|---|---|---|
-| 2025Q1 | **ALBRK** | 7,846,456 | 153,848 | **41.7%** |
+| period | bank | q profit | Δ equity | gap / opening equity | verdict |
+|---|---|---|---|---|---|
+| 2025Q1 | **ALBRK** | 7,846,456 | 153,848 | **41.7%** | **the finding** |
+| 2025Q2 | TAKAS | 3,194,229 | −944,100 | 25.4% | dividend artifact |
 
-Fire rate 0.74%. The runner-up in the same quarter is HSBC at 9.4%; next legitimate
-band is 0–5% (dividends + OCI). ALBRK separates from the fleet by ~4×.
+**TAKAS is not a false positive of the idea — it is a false positive of skipping the
+netting step.** `bank_audit_equity_change` carries `Dağıtılan temettü = −4,136,976` for
+TAKAS 2025Q2; 3,194,229 − 4,136,976 = −942,747 against an observed Δequity of −944,100.
+The gap *is* the dividend, to within ₺1.4m of OCI. Net dividends out as §7.1 said and it
+vanishes. TAKAS is also a CCP already in `PEER_EXCLUDED_TICKERS` (it pays out nearly all
+earnings), so it leaves the screen twice over. Its other appearances — 2024Q2 at 20.4%,
+2023Q3 at 15.6% — are the same line, every year.
 
-The screen is one join and no new extraction. It needs no threshold tuning: at any
-cut between 12% and 41% it returns ALBRK 2025Q1 and nothing else.
+**Among lending banks, on §7.1's own rule, the screen fires exactly once in
+2023Q1–2026Q1, and the hit is ALBRK 2025Q1.** One join, no new extraction, and the
+netting leg is one more join to a table we already have.
 
 **Sign matters.** Positive gap = profit that never became equity (the interesting
 direction). Negative gap = equity without profit (capital injection — ATBANK 2025Q1 at
-−41.1% is benign). Screen the positive tail only.
+−41.1% is benign). Screen the positive tail only; `|abs|` as §7.1 wrote it doubles the
+noise for nothing.
+
+**Q1 is the cleanest window, and that is not a coincidence.** Noise by quarter (gap
+distribution, all banks):
+
+| quarter | n | median | p95 | max |
+|---|---|---|---|---|
+| Q1 | 136 | +0.82% | +7.77% | +41.7% (ALBRK) |
+| Q2 | 104 | −0.12% | +8.63% | +25.4% (TAKAS) |
+| Q3 | 105 | −0.59% | +3.10% | +15.6% (TAKAS) |
+| Q4 | 104 | −1.40% | +2.50% | +6.7% |
+
+Turkish AGMs sit in March, so payouts land in **Q2** — which is why an un-netted screen
+is quiet at Q1 and noisy at Q2/Q3, and why every TAKAS hit is a Q2 or Q3. A Q1-only
+screen needs no netting; an any-quarter screen needs §7.1's netting exactly as specified.
 
 ## Signal 2 — other operating income as a share of gross operating income
 
@@ -155,8 +178,11 @@ divergence screen in full:
 
 ## Next
 
-- **Signal 1 is worth building** — 0.74% fire rate, no tuning, no new extraction.
+- **Signal 1 is worth building** — 1 hit / ~436 lending-bank-quarters, no new extraction.
   Proposed home: a validator lane check, surfaced as a flag on `/banks/[ticker]`.
+  Build it as §7.1 specified: net dividends out of Δequity via `bank_audit_equity_change`
+  (`Dağıtılan temettü` / `Dividends Paid`), or restrict to Q1 and skip the netting.
+  Do **not** ship the un-netted any-quarter version — it reports TAKAS every summer.
 - **VAKBN's continuous smoothing reserve is unexamined**, and signal 1 is structurally
   blind to it. A release-vs-*profit* screen (not vs equity) would catch both.
 - Fix the Turkish `item_name` matcher wherever a fleet screen keys off English line names.
