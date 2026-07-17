@@ -212,6 +212,26 @@ def test_cross_statement():
     assert v.check_cross_statement(a, li_bad).failed == 1
 
 
+def test_cross_statement_tolerance_is_flat_not_relative():
+    """A balance sheet balances by construction, and the corpus agrees without
+    hedging: max |assets − liabilities| is EXACTLY 0 across all 1,050 partitions.
+    The old 0.5% band was therefore pure slack — a 0.1% break on a ₺1trn bank
+    (₺1bn) sailed through. It must not."""
+    a = [_row("", "TOTAL ASSETS", 600_000, 400_000, 1_000_000)]
+    off_by_a_thousandth = [_row("", "TOTAL LIABILITIES AND EQUITY",
+                                600_000, 399_000, 999_000)]
+    assert v.check_cross_statement(a, off_by_a_thousandth).failed == 1
+
+
+def test_cross_statement_absorbs_print_rounding():
+    """±10 thousand TL of flat headroom — the same base check_statement_total and
+    check_b_block use — so a filer that prints a rounded total isn't reddened."""
+    a = [_row("", "TOTAL ASSETS", 600_000, 400_000, 1_000_000, scale=1)]
+    rounded = [_row("", "TOTAL LIABILITIES AND EQUITY", 600_000, 400_005, 1_000_005,
+                    scale=1)]
+    assert v.check_cross_statement(a, rounded).failed == 0
+
+
 def test_rounding_tolerance():
     rows = [
         _row("I.", "FINANCIAL ASSETS", 60, 40, 101, scale=1),   # ±1 rounding
@@ -634,6 +654,16 @@ def test_oci_cross_check_mismatch_fails():
 def test_oci_empty_skips():
     res = v.check_oci([])
     assert res.failed == 0 and res.skipped >= 1
+
+
+def test_oci_dropped_roman_fails():
+    """ISCTR 2025Q4 cons dropped a ~₺90bn roman I; ICBCT 2023Q3 lost roman I to a
+    stray "30 | EYLÜL" date fragment read as hierarchy 30. Both were invisible:
+    the chain skipped when a source was absent, so the loss erased its own check
+    (0/296 detection)."""
+    rows = [r for r in _clean_oci() if r["hierarchy"] != "I."]
+    res = v.check_oci(rows)
+    assert any(f["check"] == "oci_roman_missing" for f in res.failures), res.failures
 
 
 def test_oci_cross_check_runs_on_the_compressed_template():
@@ -1334,10 +1364,39 @@ def test_cf_chain_v_broken_fails():
     assert any(f["check"] == "cf_chain" for f in res.failures)
 
 
-def test_cf_missing_roman_skips():
+def test_cf_dropped_section_fails():
+    """Was `test_cf_missing_roman_skips`, which asserted the blind spot itself:
+    a dropped section had to SKIP. That is how KUVEYT 2024Q4 unco lost roman IV
+    (₺36.5bn of FX-effect-on-cash) while reading 1 passed / 0 failed. Dropping
+    III+IV here leaves V = 85 unexplained by the surviving I + II = 70."""
     rows = [r for r in _clean_cf() if r["hierarchy"] not in ("III.", "IV.")]
     res = v.check_cash_flow(rows)
-    assert res.failed == 0 and res.skipped >= 1
+    assert any(f["check"] == "cf_chain" for f in res.failures), res.failures
+
+
+def test_cf_genuinely_nil_section_still_passes():
+    """The distinction that makes the above safe, and the reason this is NOT a
+    'require every roman' rule. ZIRAATD 2025Q3 and DUNYAK 2024Q1 simply have no
+    roman IV and foot to gap = 0 without it — faithful filings. Summing the
+    SURVIVING sources reads the absent slot's value instead of its presence, so
+    nil and dropped are distinguishable. Requiring all seven romans would redden
+    both."""
+    rows = [r for r in _clean_cf() if r["hierarchy"] != "IV."]
+    for r in rows:                    # V = I + II + III = 90, no FX effect
+        if r["hierarchy"] == "V.":
+            r["amount"] = 90 * 1000
+        elif r["hierarchy"] == "VII.":
+            r["amount"] = 105 * 1000  # VII = V + VI
+    res = v.check_cash_flow(rows)
+    assert res.failed == 0, res.failures
+
+
+def test_cf_required_roman_absent_fails():
+    """I/II/V/VI/VII are present in 1050/1050 partitions, so their absence is
+    never faithful — and without the target the identity has nothing to check."""
+    rows = [r for r in _clean_cf() if r["hierarchy"] != "VI."]
+    res = v.check_cash_flow(rows)
+    assert any(f["check"] == "cf_roman_missing" for f in res.failures), res.failures
 
 
 def test_cf_empty_skips():

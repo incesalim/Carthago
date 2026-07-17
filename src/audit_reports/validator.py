@@ -245,7 +245,17 @@ def check_cross_statement(assets: list[dict], liabilities: list[dict]) -> Valida
     if a is None or li is None or a == 0:
         res.add_skip()
         return res
-    if abs(a - li) / abs(a) <= 0.005:
+    # ±10 thousand TL flat, NOT the old 0.5%. A balance sheet balances by
+    # construction, and the corpus says so with no hedging: the maximum
+    # |assets − liabilities| across all 1,050 partitions is EXACTLY 0.000000 —
+    # not "within tolerance", zero, including the 16 that fall back to the roman
+    # sum. The 0.5% band was therefore pure slack, tolerating a median ₺1.11bn
+    # and up to ₺48.2bn (ZIRAAT 2026Q1) of undetected error on data whose real
+    # dispersion is nil. base=10 matches the module's other two top-of-tree total
+    # checks (check_statement_total, check_b_block), costs nothing today (exact
+    # equality also flags 0/1050) and leaves room for a future filer's print
+    # rounding. At ZIRAAT scale this is ~4.8 million times tighter.
+    if abs(a - li) <= _tol(a, base=10.0, rel=0.0):
         res.add_pass()
     else:
         res.add_fail("cross_statement", "assets vs liabilities+equity",
@@ -675,6 +685,22 @@ def check_pl_chain(pl_rows: list[dict]) -> ValidationResult:
     amt = _pl_spine(pl_rows)
     tpl = _pl_template(pl_rows, amt)
     chain, deductions = _pl_chain(tpl)
+    # A missing subtotal must fail, not vanish. Every identity below skips when a
+    # source is absent, so a dropped roman erased its own constraint — drop
+    # detection was 10/300 (3%). These anchors resolve AND are present in
+    # 1050/1050 partitions (checked against each filer's OWN numbering, so the
+    # compressed template is not penalised), which makes their absence never
+    # faithful. Corpus: 2 flags, both real and both already known — ODEA 2023Q3
+    # unco and TSKB 2025Q2 unco lose net-operating to a wrapped label.
+    #
+    # disc_net is deliberately NOT required: 11 partitions genuinely omit it
+    # (ANADOLU ×6, HSBC ×2, HAYATK, QNBFB, ZIRAATK) because a bank with no
+    # discontinued operations does not print the row.
+    for role in ("gross", "net_op", "pretax", "tax", "cont_net", "period_net"):
+        if tpl[role] not in amt:
+            res.add_fail("pl_roman_missing",
+                         f"P&L {role} (roman {tpl[role]}) absent from the spine",
+                         expected=0.0, actual=0.0)
     for target, sources in chain:
         if target not in amt or any(s not in amt for s in sources):
             res.add_skip()
@@ -869,8 +895,22 @@ def check_oci(oci_rows: list[dict], pl_rows: list[dict] | None = None) -> Valida
         o = _roman_to_int(h.rstrip("."))
         if o is not None and a is not None:
             roman_amt.setdefault(o, a)
-    if 1 in roman_amt and 2 in roman_amt and 3 in roman_amt:
-        expected = roman_amt[1] + roman_amt[2]
+    # III = Σ surviving(I, II), and I/II/III are each required. Same shape and
+    # same reason as check_cash_flow: the old `if 1 and 2 and 3 in roman_amt`
+    # SKIPPED whenever a roman was dropped, so the loss erased its own check —
+    # measured 0/296 detection. All three are present in ~1049/1049, so an
+    # absence is never faithful. Corpus: 5 flags, all real — ICBCT 2023Q3 lost
+    # roman I (₺1.43bn) to a stray "30 | EYLÜL" date fragment parsed as hierarchy
+    # 30; ISCTR 2025Q4 cons lost a ~₺90bn roman I; EXIM 2023Q1 and HAYATK 2023Q2
+    # retain only III where every sibling quarter has three rows.
+    for o in (1, 2, 3):
+        if o not in roman_amt:
+            res.add_fail("oci_roman_missing",
+                         f"OCI roman {o} absent (present in ~1049/1049)",
+                         expected=0.0, actual=0.0)
+    present = [roman_amt[o] for o in (1, 2) if o in roman_amt]
+    if 3 in roman_amt and present:
+        expected = sum(present)
         tol = _tol(roman_amt[3], base=3.0, rel=5e-5)
         if abs(roman_amt[3] - expected) <= tol:
             res.add_pass()
@@ -1689,6 +1729,11 @@ _CF_CHAIN = [
     (5, [1, 2, 3, 4]),   # V  = I+II+III+IV  (net cash before FX/opening)
     (7, [5, 6]),          # VII = V+VI         (closing = net + opening)
 ]
+# Romans present in 1050/1050 partitions — a bank that files a cash-flow
+# statement at all files these. III and IV are NOT here: III is absent once
+# (DUNYAK 2024Q1 unco) and IV nine times, and some of those absences are
+# faithful (see check_cash_flow).
+_CF_REQUIRED = frozenset({1, 2, 5, 6, 7})
 
 
 def check_cash_flow(cf_rows: list[dict]) -> ValidationResult:
@@ -1705,17 +1750,45 @@ def check_cash_flow(cf_rows: list[dict]) -> ValidationResult:
     as a positive magnitude but "Personele … Yapılan Nakit" — also a payment — as a
     positive with no "(-)", so neither raw nor contra summing foots the section).
     A wrong *section total* still surfaces here, because it breaks V = I+II+III+IV.
+
+    A DROPPED section used to be invisible — measured 0/300. The chain skipped
+    whenever a source roman was absent, so deleting a section deleted its own
+    constraint and the partition stayed green: KUVEYT 2024Q4 unco lost roman IV
+    (₺36.5bn of FX-effect-on-cash) while reading 1 passed / 0 failed. Now the
+    identity sums whichever sources SURVIVE, which is check_b_block's shape and
+    works for the same reason — it never asks for the input whose loss it is
+    trying to see. A legitimately-nil section contributes nothing and V foots
+    anyway; a dropped one leaves the sum short and it fails.
+
+    That distinction is why this is NOT "require every roman". Requiring all
+    seven flags 10 partitions, and 2 of them are FAITHFUL: ZIRAATD 2025Q3 and
+    DUNYAK 2024Q1 foot to gap = 0 without the absent roman (ZIRAATD prints IV = 0
+    in every other quarter). The sum-surviving shape flags neither, and reads the
+    absent slot's VALUE rather than its presence — the only way to tell nil from
+    dropped. Corpus: 8 flags, all real, drop-detection 0% → 99.9% (7317/7326).
+    ALNTF 2024Q3's own label prints the formula "(I+II+III+IV)"; KUVEYT 2024Q2's
+    sibling consolidated IV equals the unconsolidated gap to the lira.
+
+    _CF_REQUIRED still fails on an absent I/II/V/VI/VII — those are present in
+    1050/1050, so their absence is never faithful, and without the target roman
+    the identity has nothing to check.
     """
     res = ValidationResult()
     if not cf_rows:
         res.add_skip()
         return res
     amt = _pl_spine(cf_rows)  # roman spine I..VII (longest strictly-increasing run)
+    for o in sorted(_CF_REQUIRED):
+        if o not in amt:
+            res.add_fail("cf_roman_missing",
+                         f"CF roman {o} absent from the spine (present in 1050/1050)",
+                         expected=0.0, actual=0.0)
     for target, sources in _CF_CHAIN:
-        if target not in amt or any(s not in amt for s in sources):
+        present = [amt[s] for s in sources if s in amt]
+        if target not in amt or not present:
             res.add_skip()
             continue
-        expected = sum(amt[s] for s in sources)
+        expected = sum(present)
         if abs(amt[target] - expected) <= _tol(amt[target], base=3.0, rel=5e-5):
             res.add_pass()
         else:
