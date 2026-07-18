@@ -11,13 +11,19 @@ consolidation-basis check so the class can't recur silently.
 
 sync_audit_reports now reads each fetched PDF's own front matter and refuses to
 store it under a key whose kind it contradicts — a "…Unconsolidated…" URL that
-actually serves the consolidated report is blocked, not saved. The classifier
-handles both languages' substring traps (Turkish "konsolide olmayan" contains
-"konsolide"; English "unconsolidated" contains "consolidated") and only acts on a
-confident, dominant verdict, so it never blocks on an ambiguous or image-only
-cover. A new --verify-basis mode sweeps the existing archive for the same class
-(the scrape guard only sees new fetches; keys already in R2 are skipped). Pure-text
-unit tests; the basis is read with fitz, no pdfplumber.
+actually serves the consolidated report is blocked, not saved. The classifier keys
+on the DECLARATIVE title phrase ("Konsolide [Olmayan] Finansal …" / "[Un]consolidated
+Financial …"), not raw "konsolide" mention counts. Getting that right needed two
+normalisations the first cut missed — and the --verify-basis sweep caught it on the
+live archive by false-flagging 14 correct unconsolidated reports: Turkish uppercase
+İ (U+0130) lower()s to i + a combining dot, so ALL-CAPS "KONSOLİDE OLMAYAN" scored
+zero against "konsolide" (PASHA/TAKAS ×9); and an unconsolidated report that names
+its consolidated group in the notes out-counted its own title (ODEA/TFKB). The
+phrase form fixes both and separates cleanly (consolidated reports score c≈33-46/u=0,
+unconsolidated u≈29-44/c≈0). --verify-basis sweeps the existing archive (the scrape
+guard only sees new fetches; keys already in R2 are skipped); after the fix it finds
+zero wrong-basis PDFs beyond the two already re-acquired. Pure-text unit tests
+(incl. both regressions); basis read with fitz, no pdfplumber.
 
 2026-07-18 — **FX net position: the false-NEGATIVE sweep — 79 wrong greens → 0.**
 The first pass (below) cleared every RED cell. This one attacked the greens, and

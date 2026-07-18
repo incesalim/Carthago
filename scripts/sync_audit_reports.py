@@ -29,6 +29,7 @@ from __future__ import annotations
 import argparse
 import io
 import json
+import re
 import sqlite3
 import sys
 import tempfile
@@ -133,22 +134,25 @@ def classify_report_basis(text: str) -> str | None:
     CONFIDENTLY (image-only cover, or genuinely mixed front matter). Callers must
     never act on None — the guard only blocks on a confident, opposite verdict.
 
-    The two languages each have a substring trap: Turkish "konsolide olmayan"
-    (unconsolidated) contains "konsolide"; English "unconsolidated" contains
-    "consolidated". We subtract those overlaps so each mention counts only for its
-    OWN basis, then require a clear winner (>=3 mentions AND >=2x the other) — a
-    consolidated report names "konsolide" dozens of times and "konsolide olmayan"
-    only in a handful of comparative notes, and vice-versa."""
-    t = text.lower()
-    unco = (t.count("konsolide olmayan") + t.count("konsolide edilmemiş")
-            + t.count("unconsolidated") + t.count("non-consolidated"))
-    conso = ((t.count("konsolide") - t.count("konsolide olmayan")
-              - t.count("konsolide edilmemiş"))
-             + (t.count("consolidated") - t.count("unconsolidated")
-                - t.count("non-consolidated")))
+    Keys on the DECLARATIVE title/auditor phrase — "Konsolide [Olmayan] Finansal …"
+    / "[Un]consolidated Financial …" — NOT raw "konsolide" mentions: an
+    unconsolidated report still names its consolidated group in the notes, so bare
+    counts false-flag it (measured: it did, on PASHA/ODEA/TFKB). Two normalisations
+    are load-bearing: Turkish uppercase İ (U+0130) lowercases to 'i' + a combining
+    dot (U+0307), so an ALL-CAPS "KONSOLİDE OLMAYAN" title scores ZERO against
+    "konsolide" until the dot is stripped; and a title split across lines only
+    matches once whitespace is collapsed. The phrase discriminates by construction:
+    "konsolide olmayan finansal" does NOT contain "konsolide finansal" (olmayan sits
+    between the words), and "consolidated financial" ⊂ "unconsolidated financial"
+    (subtracted)."""
+    t = re.sub(r"\s+", " ", text.lower().replace("̇", ""))  # strip İ→i̇ combining dot
+    unco = (t.count("konsolide olmayan finansal") + t.count("unconsolidated financial")
+            + t.count("non-consolidated financial") + t.count("bank only financial"))
+    conso = (t.count("konsolide finansal") + t.count("consolidated financial")
+             - t.count("unconsolidated financial") - t.count("non-consolidated financial"))
     hi, lo, basis = ((conso, unco, "consolidated") if conso >= unco
                      else (unco, conso, "unconsolidated"))
-    return basis if hi >= 3 and hi >= 2 * max(lo, 1) else None
+    return basis if hi >= 2 and hi > lo else None
 
 
 def report_basis_from_pdf(body: bytes, max_pages: int = 10) -> str | None:

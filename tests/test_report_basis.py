@@ -1,9 +1,15 @@
 """Consolidation-basis classifier — the acquisition-time wrong-PDF guard.
 
-Pure-text tests (no PDF / fitz needed): classify_report_basis takes front-matter
-text and returns 'consolidated' / 'unconsolidated' / None. The two languages each
-hide a substring trap — TR "konsolide olmayan" contains "konsolide", EN
-"unconsolidated" contains "consolidated" — so the counting must not double-map.
+Pure-text tests (no PDF / fitz): classify_report_basis takes front-matter text and
+returns 'consolidated' / 'unconsolidated' / None. It keys on the DECLARATIVE title
+phrase ("Konsolide [Olmayan] Finansal …" / "[Un]consolidated Financial …"), not raw
+"konsolide" counts — the two regression tests below encode real failures a bare-count
+version produced on the live archive (2026-07-18):
+  * ALL-CAPS Turkish "KONSOLİDE OLMAYAN": İ (U+0130) lower()s to i+U+0307, so it
+    scored ZERO against "konsolide" and 8 PASHA/TAKAS unconsolidated reports were
+    mis-flagged as consolidated.
+  * An unconsolidated report that names its consolidated group in the notes
+    out-counted its own title (ODEA/TFKB).
 """
 import sys
 from pathlib import Path
@@ -14,54 +20,70 @@ from scripts.sync_audit_reports import classify_report_basis  # noqa: E402
 
 
 def test_turkish_consolidated():
-    t = ("31 Aralık 2023 Konsolide Finansal Tablolar. Konsolide bilanço. "
-         "Konsolide gelir tablosu. Bu konsolide raporda...")
-    assert classify_report_basis(t) == "consolidated"
+    assert classify_report_basis(
+        "31 Aralık 2023 Konsolide Finansal Tablolar. Konsolide Finansal rapor. "
+        "Bağımsız denetim raporu — konsolide finansal tablolar.") == "consolidated"
 
 
-def test_turkish_unconsolidated_substring_trap():
-    # "konsolide olmayan" contains "konsolide" — must NOT read as consolidated.
-    t = ("31 Aralık 2023 Konsolide Olmayan Finansal Tablolar. Konsolide Olmayan "
-         "bilanço. Konsolide olmayan gelir tablosu ve bağımsız denetim raporu.")
-    assert classify_report_basis(t) == "unconsolidated"
+def test_turkish_unconsolidated():
+    assert classify_report_basis(
+        "31 Aralık 2023 Konsolide Olmayan Finansal Tablolar. Konsolide Olmayan "
+        "Finansal Tablolara İlişkin Bağımsız Denetim Raporu.") == "unconsolidated"
 
 
 def test_english_consolidated():
-    t = ("Consolidated Financial Report 31 December 2023. Consolidated balance "
-         "sheet. Consolidated statement of profit or loss.")
-    assert classify_report_basis(t) == "consolidated"
+    assert classify_report_basis(
+        "Consolidated Financial Report 31 December 2023. Consolidated Financial "
+        "Statements and independent auditor's report.") == "consolidated"
 
 
 def test_english_unconsolidated_substring_trap():
-    # "unconsolidated" contains "consolidated" — must NOT read as consolidated.
-    t = ("Unconsolidated Financial Report 31 December 2023. Unconsolidated balance "
-         "sheet. Unconsolidated statement of profit or loss.")
-    assert classify_report_basis(t) == "unconsolidated"
+    # "unconsolidated financial" contains "consolidated financial" — must not flip.
+    assert classify_report_basis(
+        "Unconsolidated Financial Report 31 December 2023. Unconsolidated "
+        "Financial Statements.") == "unconsolidated"
 
 
-def test_consolidated_survives_a_few_unconsolidated_notes():
-    # A consolidated report references "konsolide olmayan" in a handful of
-    # comparative notes; dominance (>=2x) must still call it consolidated
-    # (the real KUVEYT case: ~163 konsolide vs ~4 konsolide olmayan).
-    t = "konsolide " * 40 + " konsolide olmayan " * 3
-    assert classify_report_basis(t) == "consolidated"
+def test_allcaps_turkish_unconsolidated_dotted_capital_i():
+    # REGRESSION (PASHA/TAKAS): "İ" (U+0130) lowercases to i + combining dot; the
+    # normaliser must strip it so ALL-CAPS titles still match "konsolide".
+    assert classify_report_basis(
+        "PASHA YATIRIM BANKASI A.Ş. 30 EYLÜL 2024 TARİHİNE AİT KONSOLİDE OLMAYAN "
+        "FİNANSAL TABLOLAR VE BAĞIMSIZ DENETİM RAPORU. KONSOLİDE OLMAYAN FİNANSAL "
+        "TABLOLAR.") == "unconsolidated"
+
+
+def test_unconsolidated_survives_consolidated_group_notes():
+    # REGRESSION (ODEA/TFKB): an unconsolidated report references the consolidated
+    # group; the declarative phrase must still win over the incidental mention.
+    assert classify_report_basis(
+        "Konsolide Olmayan Finansal Tablolar. Konsolide Olmayan Finansal Tablolara "
+        "ilişkin dipnotlar. Banka ayrıca konsolide finansal tablolarını ayrı olarak "
+        "yayımlamaktadır.") == "unconsolidated"
+
+
+def test_line_broken_title_still_matches():
+    # get_text can return the cover title split across lines.
+    assert classify_report_basis(
+        "Konsolide\nOlmayan\nFinansal\nTablolar\nKonsolide Olmayan Finansal rapor"
+    ) == "unconsolidated"
 
 
 def test_garan_poisoned_url_case():
-    # The bug: a "…_Unconsolidated_…pdf" URL that actually serves the CONSOLIDATED
-    # report. The classifier sees consolidated content; the caller compares to the
-    # key's 'unconsolidated' kind and blocks the upload.
-    consolidated_content = "Consolidated Financial Report. " + "consolidated " * 20
-    assert classify_report_basis(consolidated_content) == "consolidated"
+    # The bug that started this: a "…Unconsolidated…" URL that serves the
+    # CONSOLIDATED report. The classifier sees consolidated; the caller compares to
+    # the 'unconsolidated' key and blocks the upload.
+    assert classify_report_basis(
+        "Consolidated Financial Report. Consolidated Financial Statements of the "
+        "Bank and its Financial Subsidiaries.") == "consolidated"
 
 
 def test_ambiguous_returns_none():
-    assert classify_report_basis("Financial report cover page, no basis words") is None
+    assert classify_report_basis("Financial report cover page, no basis phrase") is None
 
 
-def test_below_threshold_returns_none():
-    # A single stray mention is not enough to act on (needs >=3 and >=2x).
-    assert classify_report_basis("... the consolidated group ...") is None
+def test_single_mention_below_threshold_returns_none():
+    assert classify_report_basis("... the consolidated financial group ...") is None
 
 
 def test_empty_returns_none():
