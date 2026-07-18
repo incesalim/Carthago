@@ -215,6 +215,8 @@ def curated_skips() -> set[tuple[str, str, str, str]]:
         out.add((bank, period, kind, "liquidity"))
     for bank, period, kind in _FX_SKIP:
         out.add((bank, period, kind, "fx_position"))
+    for bank, period, kind in _RP_SKIP:
+        out.add((bank, period, kind, "repricing"))
     return out
 
 
@@ -250,6 +252,16 @@ _FX_SKIP = frozenset({
     ("QNBFB", "2023Q1", "consolidated"),
     ("QNBFB", "2023Q3", "consolidated"),
     ("ISCTR", "2024Q2", "unconsolidated"),
+})
+
+# repricing partitions whose PRINTED ladder doesn't foot to the rupee — a source
+# rounding, faithfully stored, not our extraction. ICBCT 2024Q1 unco: the gap row's
+# Faizsiz cell prints (1,176,034) while the Bilançodaki-Kısa row it nets from prints
+# (1,176,041) — the gap buckets sum to ₺7k against a printed total of 0 (assets and
+# liab both total 100,041,027; the printed liab buckets are themselves ₺2,890 off
+# their own total — the same filing's rounding). Verified against a render.
+_RP_SKIP = frozenset({
+    ("ICBCT", "2024Q1", "unconsolidated"),
 })
 
 # fx_position partitions where the prior column faithfully re-prints the prior
@@ -623,7 +635,9 @@ def revalidate_partition(conn, bank: str, period: str, kind: str) -> dict[str, "
         _skip_result() if (bank, period, kind) in _FX_SKIP
         else v.check_fx_position(_fx_position_rows(conn, bank, period, kind),
                                  prior_ye_totals=_fx_ye))
-    results["repricing"]      = v.check_repricing(_repricing_rows(conn, bank, period, kind))
+    results["repricing"]      = (
+        _skip_result() if (bank, period, kind) in _RP_SKIP
+        else v.check_repricing(_repricing_rows(conn, bank, period, kind)))
     # The bank's OTHER filing for the same quarter. A consolidated group contains
     # the parent, so cons >= unco on branches and staff is arithmetic, not a
     # heuristic — and it is the only independent read this lane has (there is no

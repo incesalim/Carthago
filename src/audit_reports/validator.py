@@ -1413,6 +1413,22 @@ def check_repricing(rows: list[dict]) -> ValidationResult:
         return res
     parts = [b for b in cur if b != "total"]
     tot = cur["total"]
+    # COMPLETENESS — every repricing ladder prints an assets row, a liabilities row
+    # and a position (gap) row. The footing/balance checks below all SKIP an absent
+    # field, so if a whole row was dropped (a label the extractor didn't match:
+    # ZIRAAT/KLNMA's liabilities row, ATBANK's position row) the partition still
+    # reads green on the assets footing alone, with half the table unverified and
+    # net_gap — the /market-risk headline — NULL. Guard on the TOTAL row: assets
+    # present but liab or gap NULL means that row is missing, not skippable.
+    if tot.get("rate_sensitive_assets") is not None:
+        if tot.get("rate_sensitive_liab") is None:
+            res.add_fail("rp_liab_missing",
+                         "liabilities row dropped (only the assets row was captured)",
+                         expected=0.0, actual=0.0)
+        elif tot.get("gap") is None:
+            res.add_fail("rp_gap_missing",
+                         "position/gap row dropped (assets+liab captured, gap NULL)",
+                         expected=0.0, actual=0.0)
     for fld in ("rate_sensitive_assets", "rate_sensitive_liab", "gap"):
         tv = tot.get(fld)
         if tv is None or not parts or any(cur[b].get(fld) is None for b in parts):

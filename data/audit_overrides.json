@@ -9588,6 +9588,1332 @@
         }
       ],
       "note": "Hand-transcribed from the unconsolidated report's §4.2 credit-risk sector table (PDF p75 / printed 66), both periods (Cari 31-12-2023, Önceki 31-12-2022), all 3 columns. The extractor had parsed the English CONSOLIDATED report (wrong PDF, now fixed) and mis-locates the Turkish table. Column mapping cross-validated: the stored 2022Q4 stage2 legs equal this page's Önceki-Dönem column exactly. Foots on subsector=parent, Σtop=total, child≤total."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2022Q1",
+      "kind": "unconsolidated",
+      "statement": "repricing_replace",
+      "source_page": 46,
+      "rows": [
+        {
+          "period_type": "current",
+          "bucket": "lt_1m",
+          "rate_sensitive_assets": 20048046.0,
+          "rate_sensitive_liab": 23213315.0,
+          "gap": -3165269.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "1_3m",
+          "rate_sensitive_assets": 8388257.0,
+          "rate_sensitive_liab": 7902770.0,
+          "gap": 485487.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "3_12m",
+          "rate_sensitive_assets": 7533311.0,
+          "rate_sensitive_liab": 7465787.0,
+          "gap": 67524.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "1_5y",
+          "rate_sensitive_assets": 10613805.0,
+          "rate_sensitive_liab": 170142.0,
+          "gap": 10443663.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "gt_5y",
+          "rate_sensitive_assets": 1184799.0,
+          "rate_sensitive_liab": 123650.0,
+          "gap": 1061149.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "non_sensitive",
+          "rate_sensitive_assets": 4778389.0,
+          "rate_sensitive_liab": 13670943.0,
+          "gap": -9363956.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "total",
+          "rate_sensitive_assets": 52546607.0,
+          "rate_sensitive_liab": 52546607.0,
+          "gap": -471402.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "lt_1m",
+          "rate_sensitive_assets": 18282312.0,
+          "rate_sensitive_liab": 19487232.0,
+          "gap": -1204920.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "1_3m",
+          "rate_sensitive_assets": 4370941.0,
+          "rate_sensitive_liab": 6658550.0,
+          "gap": -2287609.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "3_12m",
+          "rate_sensitive_assets": 9135525.0,
+          "rate_sensitive_liab": 4360392.0,
+          "gap": 4775131.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "1_5y",
+          "rate_sensitive_assets": 8206933.0,
+          "rate_sensitive_liab": 2788053.0,
+          "gap": 5418882.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "gt_5y",
+          "rate_sensitive_assets": 294979.0,
+          "rate_sensitive_liab": 513571.0,
+          "gap": -218592.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "non_sensitive",
+          "rate_sensitive_assets": 4871569.0,
+          "rate_sensitive_liab": 11354461.0,
+          "gap": -6943661.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "total",
+          "rate_sensitive_assets": 45162259.0,
+          "rate_sensitive_liab": 45162259.0,
+          "gap": -460769.0
+        }
+      ],
+      "note": "Hand-transcribed from the vector-drawn §4 repricing ladder (fitz get_text empty), both periods, foot-checked (Σ6 buckets=Toplam per row; total assets=total liab)."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2022Q1",
+      "kind": "consolidated",
+      "statement": "repricing_replace",
+      "source_page": 47,
+      "rows": [
+        {
+          "period_type": "current",
+          "bucket": "lt_1m",
+          "rate_sensitive_assets": 20076122.0,
+          "rate_sensitive_liab": 23213505.0,
+          "gap": -3137383.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "1_3m",
+          "rate_sensitive_assets": 8388257.0,
+          "rate_sensitive_liab": 7902770.0,
+          "gap": 485487.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "3_12m",
+          "rate_sensitive_assets": 7533311.0,
+          "rate_sensitive_liab": 7465787.0,
+          "gap": 67524.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "1_5y",
+          "rate_sensitive_assets": 10613805.0,
+          "rate_sensitive_liab": 170142.0,
+          "gap": 10443663.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "gt_5y",
+          "rate_sensitive_assets": 1184799.0,
+          "rate_sensitive_liab": 123650.0,
+          "gap": 1061149.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "non_sensitive",
+          "rate_sensitive_assets": 4773425.0,
+          "rate_sensitive_liab": 13693865.0,
+          "gap": -9391842.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "total",
+          "rate_sensitive_assets": 52569719.0,
+          "rate_sensitive_liab": 52569719.0,
+          "gap": -471402.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "lt_1m",
+          "rate_sensitive_assets": 18304846.0,
+          "rate_sensitive_liab": 19487422.0,
+          "gap": -1182576.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "1_3m",
+          "rate_sensitive_assets": 4370941.0,
+          "rate_sensitive_liab": 6658550.0,
+          "gap": -2287609.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "3_12m",
+          "rate_sensitive_assets": 9135525.0,
+          "rate_sensitive_liab": 4360392.0,
+          "gap": 4775131.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "1_5y",
+          "rate_sensitive_assets": 8206933.0,
+          "rate_sensitive_liab": 2788053.0,
+          "gap": 5418882.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "gt_5y",
+          "rate_sensitive_assets": 294979.0,
+          "rate_sensitive_liab": 513571.0,
+          "gap": -218592.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "non_sensitive",
+          "rate_sensitive_assets": 4871584.0,
+          "rate_sensitive_liab": 11376820.0,
+          "gap": -6966005.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "total",
+          "rate_sensitive_assets": 45184808.0,
+          "rate_sensitive_liab": 45184808.0,
+          "gap": -460769.0
+        }
+      ],
+      "note": "Hand-transcribed from the vector-drawn §4 repricing ladder (fitz get_text empty), both periods, foot-checked (Σ6 buckets=Toplam per row; total assets=total liab)."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2023Q3",
+      "kind": "consolidated",
+      "statement": "repricing_replace",
+      "source_page": 47,
+      "rows": [
+        {
+          "period_type": "current",
+          "bucket": "lt_1m",
+          "rate_sensitive_assets": 33613589.0,
+          "rate_sensitive_liab": 42645203.0,
+          "gap": -9680623.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "1_3m",
+          "rate_sensitive_assets": 19448097.0,
+          "rate_sensitive_liab": 21892728.0,
+          "gap": -2925705.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "3_12m",
+          "rate_sensitive_assets": 22346375.0,
+          "rate_sensitive_liab": 902033.0,
+          "gap": 21237306.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "1_5y",
+          "rate_sensitive_assets": 13905651.0,
+          "rate_sensitive_liab": 6936698.0,
+          "gap": 6968953.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "gt_5y",
+          "rate_sensitive_assets": 3045175.0,
+          "rate_sensitive_liab": 1589.0,
+          "gap": 3043586.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "non_sensitive",
+          "rate_sensitive_assets": 9531376.0,
+          "rate_sensitive_liab": 29512012.0,
+          "gap": -17707910.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "total",
+          "rate_sensitive_assets": 101890263.0,
+          "rate_sensitive_liab": 101890263.0,
+          "gap": 935607.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "lt_1m",
+          "rate_sensitive_assets": 53029351.0,
+          "rate_sensitive_liab": 33611518.0,
+          "gap": 19417834.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "1_3m",
+          "rate_sensitive_assets": 4321909.0,
+          "rate_sensitive_liab": 17413482.0,
+          "gap": -13091572.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "3_12m",
+          "rate_sensitive_assets": 3089527.0,
+          "rate_sensitive_liab": 3117236.0,
+          "gap": -27710.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "1_5y",
+          "rate_sensitive_assets": 7132550.0,
+          "rate_sensitive_liab": 761722.0,
+          "gap": 6370828.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "gt_5y",
+          "rate_sensitive_assets": 187646.0,
+          "rate_sensitive_liab": 1007.0,
+          "gap": 186639.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "non_sensitive",
+          "rate_sensitive_assets": 6320643.0,
+          "rate_sensitive_liab": 19176661.0,
+          "gap": -12279795.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "total",
+          "rate_sensitive_assets": 74081626.0,
+          "rate_sensitive_liab": 74081626.0,
+          "gap": 576224.0
+        }
+      ],
+      "note": "Hand-transcribed from the vector-drawn §4 repricing ladder (fitz get_text empty), both periods, foot-checked (Σ6 buckets=Toplam per row; total assets=total liab)."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2024Q1",
+      "kind": "consolidated",
+      "statement": "repricing_replace",
+      "source_page": 41,
+      "rows": [
+        {
+          "period_type": "current",
+          "bucket": "lt_1m",
+          "rate_sensitive_assets": 36453418.0,
+          "rate_sensitive_liab": 46232080.0,
+          "gap": -11242043.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "1_3m",
+          "rate_sensitive_assets": 19774438.0,
+          "rate_sensitive_liab": 20611364.0,
+          "gap": -3948425.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "3_12m",
+          "rate_sensitive_assets": 29102438.0,
+          "rate_sensitive_liab": 6051059.0,
+          "gap": 22922021.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "1_5y",
+          "rate_sensitive_assets": 12518930.0,
+          "rate_sensitive_liab": 8270188.0,
+          "gap": 4248742.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "gt_5y",
+          "rate_sensitive_assets": 5401283.0,
+          "rate_sensitive_liab": 35872.0,
+          "gap": 5365411.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "non_sensitive",
+          "rate_sensitive_assets": 13471155.0,
+          "rate_sensitive_liab": 35521099.0,
+          "gap": -16388138.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "total",
+          "rate_sensitive_assets": 116721662.0,
+          "rate_sensitive_liab": 116721662.0,
+          "gap": 957568.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "lt_1m",
+          "rate_sensitive_assets": 38560614.0,
+          "rate_sensitive_liab": 46343289.0,
+          "gap": -7928492.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "1_3m",
+          "rate_sensitive_assets": 13599960.0,
+          "rate_sensitive_liab": 17772925.0,
+          "gap": -4275768.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "3_12m",
+          "rate_sensitive_assets": 25929658.0,
+          "rate_sensitive_liab": 2553109.0,
+          "gap": 23236152.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "1_5y",
+          "rate_sensitive_assets": 12020069.0,
+          "rate_sensitive_liab": 7716904.0,
+          "gap": 4303165.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "gt_5y",
+          "rate_sensitive_assets": 3615429.0,
+          "rate_sensitive_liab": 34335.0,
+          "gap": 3581094.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "non_sensitive",
+          "rate_sensitive_assets": 10112735.0,
+          "rate_sensitive_liab": 29417903.0,
+          "gap": -18369315.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "total",
+          "rate_sensitive_assets": 103838465.0,
+          "rate_sensitive_liab": 103838465.0,
+          "gap": 546836.0
+        }
+      ],
+      "note": "Hand-transcribed from the vector-drawn §4 repricing ladder (fitz get_text empty), both periods, foot-checked (Σ6 buckets=Toplam per row; total assets=total liab)."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2025Q3",
+      "kind": "consolidated",
+      "statement": "repricing_replace",
+      "source_page": 41,
+      "rows": [
+        {
+          "period_type": "current",
+          "bucket": "lt_1m",
+          "rate_sensitive_assets": 48962472.0,
+          "rate_sensitive_liab": 70351802.0,
+          "gap": -21584349.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "1_3m",
+          "rate_sensitive_assets": 30549123.0,
+          "rate_sensitive_liab": 17576407.0,
+          "gap": 12972716.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "3_12m",
+          "rate_sensitive_assets": 39631219.0,
+          "rate_sensitive_liab": 2341980.0,
+          "gap": 37289239.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "1_5y",
+          "rate_sensitive_assets": 14224268.0,
+          "rate_sensitive_liab": 15320345.0,
+          "gap": -1096077.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "gt_5y",
+          "rate_sensitive_assets": 11419892.0,
+          "rate_sensitive_liab": 43665.0,
+          "gap": 11376227.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "non_sensitive",
+          "rate_sensitive_assets": 23487860.0,
+          "rate_sensitive_liab": 62640635.0,
+          "gap": -37154032.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "total",
+          "rate_sensitive_assets": 168274834.0,
+          "rate_sensitive_liab": 168274834.0,
+          "gap": 1803724.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "lt_1m",
+          "rate_sensitive_assets": 38516229.0,
+          "rate_sensitive_liab": 55009037.0,
+          "gap": -16802732.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "1_3m",
+          "rate_sensitive_assets": 21718067.0,
+          "rate_sensitive_liab": 15320943.0,
+          "gap": 6290155.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "3_12m",
+          "rate_sensitive_assets": 32427398.0,
+          "rate_sensitive_liab": 1817192.0,
+          "gap": 30563376.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "1_5y",
+          "rate_sensitive_assets": 9843863.0,
+          "rate_sensitive_liab": 13056008.0,
+          "gap": -3212145.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "gt_5y",
+          "rate_sensitive_assets": 8461284.0,
+          "rate_sensitive_liab": 41151.0,
+          "gap": 8420133.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "non_sensitive",
+          "rate_sensitive_assets": 19232357.0,
+          "rate_sensitive_liab": 44954867.0,
+          "gap": -26198520.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "total",
+          "rate_sensitive_assets": 130199198.0,
+          "rate_sensitive_liab": 130199198.0,
+          "gap": -939733.0
+        }
+      ],
+      "note": "Hand-transcribed from the vector-drawn §4 repricing ladder (fitz get_text empty), both periods, foot-checked (Σ6 buckets=Toplam per row; total assets=total liab)."
+    },
+    {
+      "bank_ticker": "FIBA",
+      "period": "2025Q3",
+      "kind": "unconsolidated",
+      "statement": "repricing_replace",
+      "source_page": 40,
+      "rows": [
+        {
+          "period_type": "current",
+          "bucket": "lt_1m",
+          "rate_sensitive_assets": 48529077.0,
+          "rate_sensitive_liab": 70335175.0,
+          "gap": -22001117.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "1_3m",
+          "rate_sensitive_assets": 30549123.0,
+          "rate_sensitive_liab": 17576407.0,
+          "gap": 12972716.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "3_12m",
+          "rate_sensitive_assets": 39631219.0,
+          "rate_sensitive_liab": 2341980.0,
+          "gap": 37289239.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "1_5y",
+          "rate_sensitive_assets": 14224268.0,
+          "rate_sensitive_liab": 15320345.0,
+          "gap": -1096077.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "gt_5y",
+          "rate_sensitive_assets": 11419892.0,
+          "rate_sensitive_liab": 43665.0,
+          "gap": 11376227.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "non_sensitive",
+          "rate_sensitive_assets": 23144782.0,
+          "rate_sensitive_liab": 61880789.0,
+          "gap": -36737264.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "total",
+          "rate_sensitive_assets": 167498361.0,
+          "rate_sensitive_liab": 167498361.0,
+          "gap": 1803724.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "lt_1m",
+          "rate_sensitive_assets": 38188454.0,
+          "rate_sensitive_liab": 54994595.0,
+          "gap": -17116065.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "1_3m",
+          "rate_sensitive_assets": 21718067.0,
+          "rate_sensitive_liab": 15320943.0,
+          "gap": 6290155.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "3_12m",
+          "rate_sensitive_assets": 32427398.0,
+          "rate_sensitive_liab": 1817192.0,
+          "gap": 30563376.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "1_5y",
+          "rate_sensitive_assets": 9843863.0,
+          "rate_sensitive_liab": 13056008.0,
+          "gap": -3212145.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "gt_5y",
+          "rate_sensitive_assets": 8461284.0,
+          "rate_sensitive_liab": 41151.0,
+          "gap": 8420133.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "non_sensitive",
+          "rate_sensitive_assets": 18949404.0,
+          "rate_sensitive_liab": 44358581.0,
+          "gap": -25885187.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "total",
+          "rate_sensitive_assets": 129588470.0,
+          "rate_sensitive_liab": 129588470.0,
+          "gap": -939733.0
+        }
+      ],
+      "note": "Hand-transcribed from the vector-drawn §4 repricing ladder (fitz get_text empty), both periods, foot-checked (Σ6 buckets=Toplam per row; total assets=total liab)."
+    },
+    {
+      "bank_ticker": "ISCTR",
+      "period": "2025Q4",
+      "kind": "consolidated",
+      "statement": "repricing_replace",
+      "source_page": 70,
+      "rows": [
+        {
+          "period_type": "current",
+          "bucket": "lt_1m",
+          "rate_sensitive_assets": 1519686265.0,
+          "rate_sensitive_liab": 1974073995.0,
+          "gap": -462256925.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "1_3m",
+          "rate_sensitive_assets": 445248058.0,
+          "rate_sensitive_liab": 501297041.0,
+          "gap": -27429104.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "3_12m",
+          "rate_sensitive_assets": 1056377153.0,
+          "rate_sensitive_liab": 275541071.0,
+          "gap": 699856547.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "1_5y",
+          "rate_sensitive_assets": 855991639.0,
+          "rate_sensitive_liab": 180002656.0,
+          "gap": 736046854.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "gt_5y",
+          "rate_sensitive_assets": 270344931.0,
+          "rate_sensitive_liab": 62962216.0,
+          "gap": 213024323.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "non_sensitive",
+          "rate_sensitive_assets": 1241690095.0,
+          "rate_sensitive_liab": 2395461162.0,
+          "gap": -1153771067.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "total",
+          "rate_sensitive_assets": 5389338141.0,
+          "rate_sensitive_liab": 5389338141.0,
+          "gap": 5470628.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "lt_1m",
+          "rate_sensitive_assets": 1098460298.0,
+          "rate_sensitive_liab": 1507620990.0,
+          "gap": -382260641.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "1_3m",
+          "rate_sensitive_assets": 315727877.0,
+          "rate_sensitive_liab": 428061948.0,
+          "gap": -80613556.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "3_12m",
+          "rate_sensitive_assets": 749207593.0,
+          "rate_sensitive_liab": 166170375.0,
+          "gap": 510926433.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "1_5y",
+          "rate_sensitive_assets": 614776845.0,
+          "rate_sensitive_liab": 114453897.0,
+          "gap": 520027394.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "gt_5y",
+          "rate_sensitive_assets": 249902129.0,
+          "rate_sensitive_liab": 34282991.0,
+          "gap": 215172997.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "non_sensitive",
+          "rate_sensitive_assets": 832623579.0,
+          "rate_sensitive_liab": 1610108120.0,
+          "gap": -777484541.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "total",
+          "rate_sensitive_assets": 3860698321.0,
+          "rate_sensitive_liab": 3860698321.0,
+          "gap": 5768086.0
+        }
+      ],
+      "note": "§4 repricing ladder — source-read, foot-checked. See docs/knowledge/audit-repricing-lane-*.md for the per-partition cause."
+    },
+    {
+      "bank_ticker": "QNBFB",
+      "period": "2026Q1",
+      "kind": "unconsolidated",
+      "statement": "repricing_replace",
+      "source_page": 52,
+      "rows": [
+        {
+          "period_type": "current",
+          "bucket": "lt_1m",
+          "rate_sensitive_assets": 643852317.0,
+          "rate_sensitive_liab": 732905638.0,
+          "gap": -35443233.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "1_3m",
+          "rate_sensitive_assets": 192394670.0,
+          "rate_sensitive_liab": 209604662.0,
+          "gap": -7296167.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "3_12m",
+          "rate_sensitive_assets": 486380559.0,
+          "rate_sensitive_liab": 172736539.0,
+          "gap": 298791083.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "1_5y",
+          "rate_sensitive_assets": 206867469.0,
+          "rate_sensitive_liab": 105955271.0,
+          "gap": 77453184.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "gt_5y",
+          "rate_sensitive_assets": 72500845.0,
+          "rate_sensitive_liab": 13855537.0,
+          "gap": 50380201.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "non_sensitive",
+          "rate_sensitive_assets": 389886217.0,
+          "rate_sensitive_liab": 756824430.0,
+          "gap": -366938213.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "total",
+          "rate_sensitive_assets": 1991882077.0,
+          "rate_sensitive_liab": 1991882077.0,
+          "gap": 16946855.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "lt_1m",
+          "rate_sensitive_assets": 623458605.0,
+          "rate_sensitive_liab": 672705501.0,
+          "gap": 9204433.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "1_3m",
+          "rate_sensitive_assets": 207189243.0,
+          "rate_sensitive_liab": 224285508.0,
+          "gap": 23767258.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "3_12m",
+          "rate_sensitive_assets": 423736258.0,
+          "rate_sensitive_liab": 179925068.0,
+          "gap": 227793203.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "1_5y",
+          "rate_sensitive_assets": 221101002.0,
+          "rate_sensitive_liab": 57816309.0,
+          "gap": 108322283.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "gt_5y",
+          "rate_sensitive_assets": 66922837.0,
+          "rate_sensitive_liab": 13031002.0,
+          "gap": 40689099.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "non_sensitive",
+          "rate_sensitive_assets": 294873263.0,
+          "rate_sensitive_liab": 689517820.0,
+          "gap": -394644557.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "total",
+          "rate_sensitive_assets": 1837281208.0,
+          "rate_sensitive_liab": 1837281208.0,
+          "gap": 15131719.0
+        }
+      ],
+      "note": "§4 repricing ladder — source-read, foot-checked. See docs/knowledge/audit-repricing-lane-*.md for the per-partition cause."
+    },
+    {
+      "bank_ticker": "EXIM",
+      "period": "2025Q3",
+      "kind": "unconsolidated",
+      "statement": "repricing_replace",
+      "source_page": 45,
+      "rows": [
+        {
+          "period_type": "current",
+          "bucket": "lt_1m",
+          "rate_sensitive_assets": 170544111.0,
+          "rate_sensitive_liab": 66062064.0,
+          "gap": 94876623.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "1_3m",
+          "rate_sensitive_assets": 324837626.0,
+          "rate_sensitive_liab": 355563663.0,
+          "gap": -31365296.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "3_12m",
+          "rate_sensitive_assets": 610658875.0,
+          "rate_sensitive_liab": 557029346.0,
+          "gap": 49890557.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "1_5y",
+          "rate_sensitive_assets": 83508274.0,
+          "rate_sensitive_liab": 76590267.0,
+          "gap": 6918007.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "gt_5y",
+          "rate_sensitive_assets": 2427822.0,
+          "rate_sensitive_liab": 24948815.0,
+          "gap": -22520993.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "non_sensitive",
+          "rate_sensitive_assets": 36288020.0,
+          "rate_sensitive_liab": 148070573.0,
+          "gap": -111782553.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "total",
+          "rate_sensitive_assets": 1228264728.0,
+          "rate_sensitive_liab": 1228264728.0,
+          "gap": -13983655.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "lt_1m",
+          "rate_sensitive_assets": 66344840.0,
+          "rate_sensitive_liab": 70286186.0,
+          "gap": -3847323.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "1_3m",
+          "rate_sensitive_assets": 194515488.0,
+          "rate_sensitive_liab": 170011616.0,
+          "gap": 24701220.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "3_12m",
+          "rate_sensitive_assets": 520229594.0,
+          "rate_sensitive_liab": 438118368.0,
+          "gap": 82275686.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "1_5y",
+          "rate_sensitive_assets": 62890481.0,
+          "rate_sensitive_liab": 88538439.0,
+          "gap": -25647958.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "gt_5y",
+          "rate_sensitive_assets": 9041497.0,
+          "rate_sensitive_liab": 108298.0,
+          "gap": 8933199.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "non_sensitive",
+          "rate_sensitive_assets": 18367218.0,
+          "rate_sensitive_liab": 104326211.0,
+          "gap": -85958993.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "total",
+          "rate_sensitive_assets": 871389118.0,
+          "rate_sensitive_liab": 871389118.0,
+          "gap": 455831.0
+        }
+      ],
+      "note": "§4 repricing ladder — source-read, foot-checked. See docs/knowledge/audit-repricing-lane-*.md for the per-partition cause."
+    },
+    {
+      "bank_ticker": "ZIRAATD",
+      "period": "2025Q4",
+      "kind": "unconsolidated",
+      "statement": "repricing_replace",
+      "source_page": 46,
+      "rows": [
+        {
+          "period_type": "current",
+          "bucket": "lt_1m",
+          "rate_sensitive_assets": 1283277.0,
+          "rate_sensitive_liab": 118288.0,
+          "gap": 1164989.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "1_3m",
+          "rate_sensitive_assets": 279160.0,
+          "rate_sensitive_liab": 27395.0,
+          "gap": 251765.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "3_12m",
+          "rate_sensitive_assets": 1358910.0,
+          "rate_sensitive_liab": 198538.0,
+          "gap": 1160372.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "1_5y",
+          "rate_sensitive_assets": 429251.0,
+          "rate_sensitive_liab": 157707.0,
+          "gap": 271544.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "gt_5y",
+          "rate_sensitive_assets": 0.0,
+          "rate_sensitive_liab": 0.0,
+          "gap": 0.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "non_sensitive",
+          "rate_sensitive_assets": 845639.0,
+          "rate_sensitive_liab": 3694309.0,
+          "gap": -2848670.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "total",
+          "rate_sensitive_assets": 4196237.0,
+          "rate_sensitive_liab": 4196237.0,
+          "gap": 0.0
+        }
+      ],
+      "note": "§4 repricing ladder — source-read, foot-checked. See docs/knowledge/audit-repricing-lane-*.md for the per-partition cause."
+    },
+    {
+      "bank_ticker": "TAKAS",
+      "period": "2023Q1",
+      "kind": "unconsolidated",
+      "statement": "repricing_replace",
+      "source_page": 36,
+      "rows": [
+        {
+          "period_type": "current",
+          "bucket": "lt_1m",
+          "rate_sensitive_assets": 75492769.0,
+          "rate_sensitive_liab": 31069844.0,
+          "gap": 44804095.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "1_3m",
+          "rate_sensitive_assets": 1383276.0,
+          "rate_sensitive_liab": 0.0,
+          "gap": 5203247.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "3_12m",
+          "rate_sensitive_assets": 1923065.0,
+          "rate_sensitive_liab": 0.0,
+          "gap": 1923065.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "1_5y",
+          "rate_sensitive_assets": 0.0,
+          "rate_sensitive_liab": 0.0,
+          "gap": 0.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "gt_5y",
+          "rate_sensitive_assets": 702516.0,
+          "rate_sensitive_liab": 0.0,
+          "gap": 702516.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "non_sensitive",
+          "rate_sensitive_assets": 7688637.0,
+          "rate_sensitive_liab": 56120419.0,
+          "gap": -48431782.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "total",
+          "rate_sensitive_assets": 87190263.0,
+          "rate_sensitive_liab": 87190263.0,
+          "gap": 4201141.0
+        }
+      ],
+      "note": "§4 repricing ladder — source-read, foot-checked. See docs/knowledge/audit-repricing-lane-*.md for the per-partition cause."
+    },
+    {
+      "bank_ticker": "TAKAS",
+      "period": "2023Q3",
+      "kind": "unconsolidated",
+      "statement": "repricing_replace",
+      "source_page": 36,
+      "rows": [
+        {
+          "period_type": "current",
+          "bucket": "lt_1m",
+          "rate_sensitive_assets": 111082349.0,
+          "rate_sensitive_liab": 35064305.0,
+          "gap": 77117721.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "1_3m",
+          "rate_sensitive_assets": 3467931.0,
+          "rate_sensitive_liab": 0.0,
+          "gap": 15104535.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "3_12m",
+          "rate_sensitive_assets": 1734272.0,
+          "rate_sensitive_liab": 0.0,
+          "gap": 1734272.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "1_5y",
+          "rate_sensitive_assets": 653852.0,
+          "rate_sensitive_liab": 0.0,
+          "gap": 653852.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "gt_5y",
+          "rate_sensitive_assets": 435413.0,
+          "rate_sensitive_liab": 0.0,
+          "gap": 435413.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "non_sensitive",
+          "rate_sensitive_assets": 3768782.0,
+          "rate_sensitive_liab": 86078294.0,
+          "gap": -82309512.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "total",
+          "rate_sensitive_assets": 121142599.0,
+          "rate_sensitive_liab": 121142599.0,
+          "gap": 12736281.0
+        }
+      ],
+      "note": "§4 repricing ladder — source-read, foot-checked. See docs/knowledge/audit-repricing-lane-*.md for the per-partition cause."
+    },
+    {
+      "bank_ticker": "COLENDI",
+      "period": "2025Q2",
+      "kind": "unconsolidated",
+      "statement": "repricing_replace",
+      "source_page": 31,
+      "rows": [
+        {
+          "period_type": "current",
+          "bucket": "lt_1m",
+          "rate_sensitive_assets": 554828.0,
+          "rate_sensitive_liab": 68119.0,
+          "gap": 486709.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "1_3m",
+          "rate_sensitive_assets": 239930.0,
+          "rate_sensitive_liab": 80158.0,
+          "gap": 159772.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "3_12m",
+          "rate_sensitive_assets": 130326.0,
+          "rate_sensitive_liab": 39826.0,
+          "gap": 90500.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "1_5y",
+          "rate_sensitive_assets": 8057.0,
+          "rate_sensitive_liab": 139657.0,
+          "gap": -131600.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "gt_5y",
+          "rate_sensitive_assets": 0.0,
+          "rate_sensitive_liab": 0.0,
+          "gap": 0.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "non_sensitive",
+          "rate_sensitive_assets": 2097949.0,
+          "rate_sensitive_liab": 2703330.0,
+          "gap": -605381.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "total",
+          "rate_sensitive_assets": 3031090.0,
+          "rate_sensitive_liab": 3031090.0,
+          "gap": 0.0
+        }
+      ],
+      "note": "§4 repricing ladder — source-read, foot-checked. See docs/knowledge/audit-repricing-lane-*.md for the per-partition cause."
+    },
+    {
+      "bank_ticker": "COLENDI",
+      "period": "2025Q3",
+      "kind": "unconsolidated",
+      "statement": "repricing_replace",
+      "source_page": 31,
+      "rows": [
+        {
+          "period_type": "current",
+          "bucket": "lt_1m",
+          "rate_sensitive_assets": 1246229.0,
+          "rate_sensitive_liab": 147976.0,
+          "gap": 1098253.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "1_3m",
+          "rate_sensitive_assets": 561925.0,
+          "rate_sensitive_liab": 557989.0,
+          "gap": 3936.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "3_12m",
+          "rate_sensitive_assets": 319080.0,
+          "rate_sensitive_liab": 39555.0,
+          "gap": 279525.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "1_5y",
+          "rate_sensitive_assets": 168896.0,
+          "rate_sensitive_liab": 145750.0,
+          "gap": 23146.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "gt_5y",
+          "rate_sensitive_assets": 0.0,
+          "rate_sensitive_liab": 0.0,
+          "gap": 0.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "non_sensitive",
+          "rate_sensitive_assets": 1333646.0,
+          "rate_sensitive_liab": 2738506.0,
+          "gap": -1404860.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "total",
+          "rate_sensitive_assets": 3629776.0,
+          "rate_sensitive_liab": 3629776.0,
+          "gap": 0.0
+        }
+      ],
+      "note": "§4 repricing ladder — source-read, foot-checked. See docs/knowledge/audit-repricing-lane-*.md for the per-partition cause."
+    },
+    {
+      "bank_ticker": "COLENDI",
+      "period": "2025Q4",
+      "kind": "unconsolidated",
+      "statement": "repricing_replace",
+      "source_page": 42,
+      "rows": [
+        {
+          "period_type": "current",
+          "bucket": "lt_1m",
+          "rate_sensitive_assets": 1294745.0,
+          "rate_sensitive_liab": 1137077.0,
+          "gap": 157668.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "1_3m",
+          "rate_sensitive_assets": 731130.0,
+          "rate_sensitive_liab": 229953.0,
+          "gap": 501177.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "3_12m",
+          "rate_sensitive_assets": 201847.0,
+          "rate_sensitive_liab": 157270.0,
+          "gap": 44577.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "1_5y",
+          "rate_sensitive_assets": 1494399.0,
+          "rate_sensitive_liab": 490018.0,
+          "gap": 1004381.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "gt_5y",
+          "rate_sensitive_assets": 0.0,
+          "rate_sensitive_liab": 0.0,
+          "gap": 0.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "non_sensitive",
+          "rate_sensitive_assets": 386271.0,
+          "rate_sensitive_liab": 2094074.0,
+          "gap": -1707803.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "total",
+          "rate_sensitive_assets": 4108392.0,
+          "rate_sensitive_liab": 4108392.0,
+          "gap": 0.0
+        }
+      ],
+      "note": "§4 repricing ladder — source-read, foot-checked. See docs/knowledge/audit-repricing-lane-*.md for the per-partition cause."
     }
   ]
 }

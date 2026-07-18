@@ -139,6 +139,32 @@ def test_repricing_validator_skips_without_total():
     assert res.checked == 0 and res.skipped >= 1
 
 
+def test_repricing_liab_row_dropped_fails():
+    # ZIRAAT/KLNMA pattern: the liabilities row label isn't matched, so RSL is NULL
+    # everywhere — the footing checks would just skip it. Completeness catches it.
+    rows = _rp_rows()
+    for r in rows:
+        r["rate_sensitive_liab"] = None
+    res = check_repricing(rows)
+    assert any(f["check"] == "rp_liab_missing" for f in res.failures), res.failures
+
+
+def test_repricing_gap_row_dropped_fails():
+    # ATBANK pattern: assets + liabilities captured, but the position/gap row label
+    # isn't matched → gap NULL. net_gap (the /market-risk headline) is missing.
+    rows = _rp_rows()
+    for r in rows:
+        r["gap"] = None
+    res = check_repricing(rows)
+    assert any(f["check"] == "rp_gap_missing" for f in res.failures), res.failures
+
+
+def test_repricing_complete_no_completeness_false_fire():
+    res = check_repricing(_rp_rows())
+    assert not any(f["check"] in ("rp_liab_missing", "rp_gap_missing")
+                   for f in res.failures), res.failures
+
+
 # ---------------------------------------------------------------------------
 # Extractor tests (need fitz (PyMuPDF) + local sample PDFs — skip otherwise)
 # ---------------------------------------------------------------------------

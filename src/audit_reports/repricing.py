@@ -43,11 +43,22 @@ _LE_1Y = {"lt_1m", "1_3m", "3_12m"}
 
 _ROWS: list[tuple[str, list[str]]] = [
     ("rate_sensitive_assets", [r"^Total\s+assets\b", r"^Toplam\s+Varlıklar\b", r"^Toplam\s+Aktifler\b"]),
-    ("rate_sensitive_liab", [r"^Total\s+liabilities\b", r"^Toplam\s+Yükümlülükler\b"]),
-    # The reported total repricing gap row (on + off balance).
-    ("gap", [r"^Total\s+position\b", r"^Toplam\s+Pozisyon\b", r"^Net\s+position\b"]),
+    # `Liab[a-z]+` tolerates the QNBFB template's misspelling "Total Liabalities".
+    ("rate_sensitive_liab", [r"^Total\s+Liab[a-z]+\b", r"^Toplam\s+Yükümlülükler\b"]),
+    # The reported total repricing gap row (on + off balance). `Net\s+Pozisyon`
+    # (re.I) catches TAKAS's Turkish "Net pozisyon" — without it the table locator
+    # never fired and all 16 TAKAS quarters read as missing.
+    ("gap", [r"^Total\s+position\b", r"^Toplam\s+Pozisyon\b",
+             r"^Net\s+position\b", r"^Net\s+Pozisyon\b"]),
 ]
 _ROW_RX = [(f, [re.compile(p, re.I) for p in pats]) for f, pats in _ROWS]
+# A footnote reference — a parenthesised 1–2-digit integer with NO thousands/
+# decimal separator ("(1)", "(5)"). It matches _NUM_TOKEN and so leaked into the
+# value stream, inflating the column count (ZIRAAT/KLNMA/ZIRAATD locked ncols too
+# high → the b1..b8 fallback → the liabilities/position rows, one marker short,
+# were dropped). A genuine parenthesised negative always carries a separator
+# ("(682.431)"), so it is never caught here.
+_MARKER_RX = re.compile(r"^\(\d{1,2}\)$")
 
 _PRIOR_RX = re.compile(r"\b(Prior\s+Period|Önceki\s+Dönem|Geçmiş\s+Dönem)\b", re.I)
 # Bucket-header signal: a non-interest / non-rate-sensitive column ("Faizsiz" /
@@ -105,8 +116,32 @@ def _label(tokens) -> str:
     return " ".join(t for _, t in tokens).strip()
 
 
+def _unglue(tok: str) -> list[str]:
+    """Split two grouped integers fused with no space (fitz joins tight columns —
+    HALKB's Faizsiz|Total: "701.658.8113.362.509.545"). A correctly formatted value
+    has strictly 3-digit interior groups, so an interior group with >3 digits is a
+    boundary: cut after its first 3 digits. Safe — no legitimate value has one."""
+    m = re.match(r"^(-?)(\d[\d.,]*\d)$", tok)
+    if not m:
+        return [tok]
+    neg, body = m.group(1), m.group(2)
+    groups = re.split(r"([.,])", body)          # ['701','.','658','.','8113',...]
+    for k, gi in enumerate(range(0, len(groups), 2)):
+        if k > 0 and len(groups[gi]) > 3:
+            first = neg + "".join(groups[:gi]) + groups[gi][:3]
+            second = groups[gi][3:] + "".join(groups[gi + 1:])
+            return [first, second]
+    return [tok]
+
+
 def _value_tokens(tokens) -> list[str]:
-    return [t for _, t in tokens if t in _NIL or _NUM_TOKEN.match(t)]
+    out: list[str] = []
+    for _, t in tokens:
+        if _MARKER_RX.match(t):               # footnote ref, not a value
+            continue
+        if t in _NIL or _NUM_TOKEN.match(t):
+            out.extend(_unglue(t))
+    return out
 
 
 def extract_from_pdf(pdf: object = None, pdf_path: str = "") -> RepricingReport:
@@ -139,16 +174,34 @@ def extract_from_pdf(pdf: object = None, pdf_path: str = "") -> RepricingReport:
         data: dict[tuple[str, str], dict[str, float | None]] = {}
         period = "current"
         for i in range(start, min(n, start + _MAX_SECTION_PAGES)):
-            for tokens in pages[i]:
+            lines = pages[i]
+            for j, tokens in enumerate(lines):
                 lab = _label(tokens)
                 if not lab:
                     continue
-                if _PRIOR_RX.search(lab):
+                # Flip to the prior column only AFTER the current table's total is
+                # in hand. The Section-III FX-sensitivity table that sits above the
+                # repricing ladder carries "Current Period / Prior Period" (or
+                # "Cari/Önceki Dönem") in its header — an ungated flip latched
+                # 'prior' before the current repricing rows were read (ISCTR/ENPARA
+                # lost their current table). The real prior is found either by its
+                # own Prior/Önceki marker below, or the second-assets-block heuristic.
+                if _PRIOR_RX.search(lab) and \
+                        data.get(("current", "total"), {}).get("rate_sensitive_assets") is not None:
                     period = "prior"
                 for fld, rxs in _ROW_RX:
                     if not any(rx.match(lab) for rx in rxs):
                         continue
                     vals = _value_tokens(tokens)
+                    # A summary label alone on its word-line (ATBANK's position row)
+                    # — its figures are on the next line. Borrow them if that line
+                    # is pure values of the right width and not itself a labelled row.
+                    if ncols is not None and len(vals) < ncols and j + 1 < len(lines):
+                        nxt = lines[j + 1]
+                        if _value_tokens(nxt) and len(_value_tokens(nxt)) == ncols \
+                                and not any(rx.match(_label(nxt))
+                                            for _, rxs2 in _ROW_RX for rx in rxs2):
+                            vals = _value_tokens(nxt)
                     # Lock the column count off the first assets row we see.
                     if ncols is None and fld == "rate_sensitive_assets":
                         ncols = len(vals)
