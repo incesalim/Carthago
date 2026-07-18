@@ -37,6 +37,7 @@ import zipfile
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from pathlib import Path
 
+import fitz  # PyMuPDF — front-matter text for the consolidation-basis guard
 import requests
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -125,6 +126,80 @@ def fetch_pdf_bytes(url: str, ticker: str) -> tuple[bytes | None, str]:
     return body, "ok"
 
 
+def classify_report_basis(text: str) -> str | None:
+    """Classify a BRSA report's consolidation basis from its (front-matter) text.
+
+    Returns 'consolidated', 'unconsolidated', or None when it can't tell
+    CONFIDENTLY (image-only cover, or genuinely mixed front matter). Callers must
+    never act on None — the guard only blocks on a confident, opposite verdict.
+
+    The two languages each have a substring trap: Turkish "konsolide olmayan"
+    (unconsolidated) contains "konsolide"; English "unconsolidated" contains
+    "consolidated". We subtract those overlaps so each mention counts only for its
+    OWN basis, then require a clear winner (>=3 mentions AND >=2x the other) — a
+    consolidated report names "konsolide" dozens of times and "konsolide olmayan"
+    only in a handful of comparative notes, and vice-versa."""
+    t = text.lower()
+    unco = (t.count("konsolide olmayan") + t.count("konsolide edilmemiş")
+            + t.count("unconsolidated") + t.count("non-consolidated"))
+    conso = ((t.count("konsolide") - t.count("konsolide olmayan")
+              - t.count("konsolide edilmemiş"))
+             + (t.count("consolidated") - t.count("unconsolidated")
+                - t.count("non-consolidated")))
+    hi, lo, basis = ((conso, unco, "consolidated") if conso >= unco
+                     else (unco, conso, "unconsolidated"))
+    return basis if hi >= 3 and hi >= 2 * max(lo, 1) else None
+
+
+def report_basis_from_pdf(body: bytes, max_pages: int = 10) -> str | None:
+    """Consolidation basis of a report PDF, read from its first `max_pages` pages
+    (cover + independent-auditor's-report header name the basis unambiguously;
+    scanning the whole doc dilutes it with note cross-references). None if the PDF
+    is unreadable or its front matter is image-only (get_text empty)."""
+    try:
+        with fitz.open(stream=body, filetype="pdf") as doc:
+            text = " ".join(doc[i].get_text() for i in range(min(max_pages, len(doc))))
+    except Exception:
+        return None
+    return classify_report_basis(text)
+
+
+def verify_basis_in_r2(workers: int = 16,
+                       only: set[str] | None = None) -> list[tuple[str, str, str, str]]:
+    """Sweep EXISTING R2 audit PDFs and report any whose front matter confidently
+    declares the OPPOSITE basis to their key's `kind` — the wrong-PDF class the
+    acquisition guard blocks going forward, applied retroactively to the archive.
+    (The scrape guard only sees NEW fetches; existing keys are skipped, so a
+    poisoned object already in R2 needs this sweep.) Returns the mismatches."""
+    pdfs = r2_storage.list_audit_pdfs()
+    if only:
+        pdfs = [p for p in pdfs if p[0].upper() in only]
+
+    def _check(p: tuple[str, str, str, str]):
+        ticker, period, kind, key = p
+        try:
+            body = r2_storage.download_bytes(key)
+        except Exception as e:  # noqa: BLE001
+            return (ticker, period, kind, f"err:{type(e).__name__}")
+        basis = report_basis_from_pdf(body)
+        return (ticker, period, kind, basis) if basis is not None and basis != kind else None
+
+    print(f"[verify-basis] scanning {len(pdfs)} R2 PDFs · {workers} parallel", flush=True)
+    mism: list[tuple[str, str, str, str]] = []
+    with ThreadPoolExecutor(max_workers=workers) as ex:
+        for fut in as_completed(ex.submit(_check, p) for p in pdfs):
+            r = fut.result()
+            if r is None:
+                continue
+            mism.append(r)
+            ticker, period, kind, det = r
+            tag = "ERR" if det.startswith("err:") else "MISMATCH"
+            print(f"  [{tag}] {ticker:<8} {period} {kind:<14} key=kind:{kind} "
+                  f"pdf:{det}", flush=True)
+    print(f"[verify-basis] {len(mism)} flagged of {len(pdfs)} scanned", flush=True)
+    return mism
+
+
 def scrape_to_r2(
     workers: int = 16, only: set[str] | None = None, latest_period: bool = False
 ) -> dict[str, int]:
@@ -173,6 +248,15 @@ def scrape_to_r2(
         body, note = fetch_pdf_bytes(url, ticker)
         if body is None:
             return ticker, period, kind, note, 0
+        # Consolidation-basis guard: refuse to store a PDF whose OWN front matter
+        # confidently declares the opposite basis to this key's `kind`. This is how
+        # GARAN's poisoned "Unconsolidated" URL (serves the consolidated report) and
+        # KUVEYT's mis-listed consolidated URL (the unconsolidated file) reached R2
+        # under the wrong key. A confident-opposite verdict is a filing/URL error,
+        # not ours — never overwrite a good key with it; flag for a human.
+        basis = report_basis_from_pdf(body)
+        if basis is not None and basis != kind:
+            return ticker, period, kind, f"basis-mismatch:has-{basis}", 0
         try:
             r2_storage.upload_bytes(body, key)
         except Exception as e:
@@ -350,6 +434,12 @@ def main():
                          "exceeds this on a non-trivial batch (>=4 items). "
                          "Catches systemic breakage (R2 down, extractor broken) "
                          "while ignoring the ~2%% known-partial baseline.")
+    ap.add_argument("--verify-basis", action="store_true",
+                    help="AUDIT MODE: scan every existing R2 audit PDF and report "
+                         "any whose consolidation basis (read from its own front "
+                         "matter) contradicts its key's kind — the wrong-PDF class. "
+                         "Read-only; does no scrape/extract. Pair with --only-bank "
+                         "to scope. Exits non-zero if any mismatch is found.")
     args = ap.parse_args()
 
     db_path = Path(args.db)
@@ -363,6 +453,15 @@ def main():
             print(f"[warn] unknown ticker(s) not in audit_report_urls.json: "
                   f"{', '.join(sorted(unknown))}", file=sys.stderr)
         print(f"[filter] restricting to bank(s): {', '.join(sorted(only))}")
+
+    if args.verify_basis:
+        mism = verify_basis_in_r2(workers=args.workers, only=only)
+        real = [m for m in mism if not m[3].startswith("err:")]
+        if real:
+            print(f"[verify-basis] FAIL: {len(real)} wrong-basis PDF(s) in R2 — "
+                  "fix the URL in audit_report_urls.json, re-fetch, re-extract.",
+                  file=sys.stderr)
+        sys.exit(1 if real else 0)
     if args.latest_period:
         print("[filter] restricting to each bank's latest period only")
 
