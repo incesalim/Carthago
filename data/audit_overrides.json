@@ -10452,6 +10452,42 @@
         }
       ],
       "note": "§4 repricing ladder — source-read, foot-checked. See docs/knowledge/audit-repricing-lane-*.md for the per-partition cause."
+    },
+    {
+      "bank_ticker": "TAKAS",
+      "period": "2023Q1",
+      "kind": "unconsolidated",
+      "statement": "repricing",
+      "bucket": "3_12m",
+      "period_type": "prior",
+      "fields": {
+        "rate_sensitive_assets": 2373311.0
+      },
+      "note": "PRIOR (31-Dec-2022) 3-12M Toplam varlıklar: fitz truncates the printed 2,373,311 to \"2,373,31\" (glyph dropped from the text layer — bbox is wider than the text). The untruncated value is printed in the same table: the detail row AND Net pozisyon both show 2,373,311, and liab=0 so gap=assets there. Restores the prior assets footing (Σ=85,804,572=total). Source-read, not derived from the footing identity."
+    },
+    {
+      "bank_ticker": "TAKAS",
+      "period": "2023Q2",
+      "kind": "unconsolidated",
+      "statement": "repricing",
+      "bucket": "3_12m",
+      "period_type": "prior",
+      "fields": {
+        "rate_sensitive_assets": 2373311.0
+      },
+      "note": "PRIOR (31-Dec-2022) 3-12M Toplam varlıklar: fitz truncates the printed 2,373,311 to \"2,373,31\" (glyph dropped from the text layer — bbox is wider than the text). The untruncated value is printed in the same table: the detail row AND Net pozisyon both show 2,373,311, and liab=0 so gap=assets there. Restores the prior assets footing (Σ=85,804,572=total). Source-read, not derived from the footing identity."
+    },
+    {
+      "bank_ticker": "TAKAS",
+      "period": "2023Q3",
+      "kind": "unconsolidated",
+      "statement": "repricing",
+      "bucket": "3_12m",
+      "period_type": "prior",
+      "fields": {
+        "rate_sensitive_assets": 2373311.0
+      },
+      "note": "PRIOR (31-Dec-2022) 3-12M Toplam varlıklar: fitz truncates the printed 2,373,311 to \"2,373,31\" (glyph dropped from the text layer — bbox is wider than the text). The untruncated value is printed in the same table: the detail row AND Net pozisyon both show 2,373,311, and liab=0 so gap=assets there. Restores the prior assets footing (Σ=85,804,572=total). Source-read, not derived from the footing identity."
     }
   ]
 }
