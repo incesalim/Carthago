@@ -155,11 +155,14 @@ def classify_report_basis(text: str) -> str | None:
     return basis if hi >= 2 and hi > lo else None
 
 
-def report_basis_from_pdf(body: bytes, max_pages: int = 10) -> str | None:
-    """Consolidation basis of a report PDF, read from its first `max_pages` pages
-    (cover + independent-auditor's-report header name the basis unambiguously;
-    scanning the whole doc dilutes it with note cross-references). None if the PDF
-    is unreadable or its front matter is image-only (get_text empty)."""
+def report_basis_from_pdf(body: bytes, max_pages: int = 3) -> str | None:
+    """Consolidation basis of a report PDF, read from its first `max_pages` pages —
+    the cover + independent-auditor's-report header, which name the report's OWN
+    basis. Kept deliberately SHALLOW (3 pages): a bank with subsidiaries references
+    its separately-published *consolidated* group statements in the notes, so a
+    wider window flips its UNCONSOLIDATED report to 'consolidated' (measured: TSKB
+    pg1-3 unco=2/conso=0, but pg1-10 unco=6/conso=7). In pg1-3 the two bases
+    separate cleanly. None if the PDF is unreadable or its cover is image-only."""
     try:
         with fitz.open(stream=body, filetype="pdf") as doc:
             text = " ".join(doc[i].get_text() for i in range(min(max_pages, len(doc))))
