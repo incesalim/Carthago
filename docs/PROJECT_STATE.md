@@ -105,9 +105,41 @@ pins it). **Open follow-up: D1 still needs a one-off reconciliation** — re-pus
 `fx_position`/`repricing` from the R2 snapshot (or re-extract the two statements via
 `reextract-statement.yml`) to recover the quarters D1 missed.
 
-**fx_position (§4 currency-risk) lane: 21 err + 66 miss → 0/0 — COMPLETE 2026-07-18**
-(coverage `1032 ok / 18 manual / 0 err / 0 miss`; all fixed manually + two extractor
-fixes). **Missing (52 recovered by a 2-line header fix):** `_CCY_HEAD` under-counted
+**fx_position (§4 currency-risk) lane: 21 err + 66 miss → 0/0, then a 79-cell
+false-NEGATIVE sweep → 0/0 — COMPLETE 2026-07-18** (coverage `1022 ok / 28 manual /
+0 err / 0 miss`; two extractor fixes + source overrides + curated skips). The first
+pass (below) cleared every RED cell; a second pass then attacked the GREENS.
+
+**Second pass — the cross-period reconciliation (a real external anchor).** The lane's
+identities are all internal (Σccy=TOTAL, assets−liab=net_on, net_on+net_off=net_pos)
+and every one SKIPS an absent field, so a partial extraction reads a flawless green while
+`net_position` (the lane's headline, what `/market-risk` shows) silently collapses to
+whatever WAS captured. Three checks close that: **`fx_net_position_missing`** (a TOTAL
+with only gross assets/liab), **symmetric `fx_current_incomplete`/`fx_prior_incomplete`**
+(neither column may drop a field the other carries — DENIZ/TEB drop the current net-off
+row, TSKB drops the PRIOR net-off row storing a sign-flipped net position), and
+**`fx_cross_period`** — the prior column re-prints the prior YEAR-END, so it must equal
+that year-end's INDEPENDENTLY-extracted current column (`_fx_prior_ye_totals` binds it at
+the revalidate call site, house pattern). Cross-period mismatches fell **88 → 14 pairs**;
+all 14 remaining are documented skips. The sweep flagged **79 green cells** and resolved
+every one: **~53 systematic extractor drops** recovered from source (prior net-off label
+`Net Bilanço Dışı Pozisyon`, a value-column ROW-SHIFT re-paired positionally under the
+identity web, a prior net_on gap-fill; BURGAN 2026Q1 switched EN→TR labels and its net-off
+row dropped from BOTH columns — a blind spot the cross-period anchor caught where the
+symmetric check can't, so the anchor is NOT gated on prior net-off being present); **4
+value-corrections** grounded in each table's OWN derivative-leg rows + the adjacent filing
+(KLNMA 2023Q4 added a USD leg instead of subtracting; EXIM 2025Q4 sign-flipped net-off;
+EXIM 2024Q2 dropped prior liab; ALNTF 2026Q1 dropped a TOTAL net_on sign) → overrides;
+**8 curated `_FX_XPERIOD_SKIP`** genuine restatements / defective-source comparatives
+(HALKB/ALBRK restatements, TOMK's blank prior columns, ALNTF's 2021-under-2022 year-swap);
+and **2 WRONG-PDF findings** the anchor EXPOSED (`_FX_WRONGPDF_SKIP`): **GARAN 2023Q4
+`unconsolidated`** R2 object is the CONSOLIDATED report, and **KUVEYT 2026Q1
+`consolidated`** is the UNCONSOLIDATED report — the whole partition (BS/PL/every lane) is
+another basis's numbers. ⚠️ **These two need whole-partition re-acquisition** (a cross-lane
+follow-up); until then only the fx cross-period flag is suppressed (not fabricated). See
+[audit-fx-cross-period-false-negatives-2026-07-18](knowledge/audit-fx-cross-period-false-negatives-2026-07-18.md).
+
+**First pass — 21 err + 66 miss → 0/0. Missing (52 recovered by a 2-line header fix):** `_CCY_HEAD` under-counted
 currency columns — TSKB's English "US Dollar" tokenises to `US`+`Dollar` (matched no
 USD pattern) and YKBNK-unconsolidated's "Other FC" header WRAPS so only `FC` reaches
 the baseline; added `US`→USD and `FC`→OTHER, agent-verified 0→8 rows on both with zero

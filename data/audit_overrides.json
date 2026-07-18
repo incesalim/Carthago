@@ -8837,6 +8837,467 @@
         }
       ],
       "note": "Hand-transcribed from the printed §4 currency-risk table (page 38, 0-based), which FIBA prints as a vector-outlined GRAPHIC — no text layer, so the extractor stored 0 rows (source_page None). Rendered and pixel-verified; corroborated by the report's own prose: net_on TOTAL (17,565,228) / net_off 16,346,775 / net (1,218,453). Columns EUR/USD/OTHER/TOTAL; net_position = net_on + net_off (= the printed 'net yabancı para pozisyon'). Foots exactly on the on-balance rows."
+    },
+    {
+      "bank_ticker": "AKTIF",
+      "period": "2026Q1",
+      "kind": "unconsolidated",
+      "statement": "fx_position_replace",
+      "source_page": 39,
+      "rows": [
+        {
+          "currency": "EUR",
+          "on_bs_assets": 22333657.0,
+          "on_bs_liab": 14000624.0,
+          "net_on_balance": 8333033.0,
+          "net_off_balance": -8316171.0,
+          "off_bs_receivable": 11475689.0,
+          "off_bs_payable": 19791860.0,
+          "net_position": 16862.0
+        },
+        {
+          "currency": "USD",
+          "on_bs_assets": 39786286.0,
+          "on_bs_liab": 39357936.0,
+          "net_on_balance": 428350.0,
+          "net_off_balance": -956844.0,
+          "off_bs_receivable": 22018569.0,
+          "off_bs_payable": 22975413.0,
+          "net_position": -528494.0
+        },
+        {
+          "currency": "OTHER",
+          "on_bs_assets": 11492444.0,
+          "on_bs_liab": 23852622.0,
+          "net_on_balance": -12360178.0,
+          "net_off_balance": 12571715.0,
+          "off_bs_receivable": 19045214.0,
+          "off_bs_payable": 6473499.0,
+          "net_position": 211537.0
+        },
+        {
+          "currency": "TOTAL",
+          "on_bs_assets": 73612387.0,
+          "on_bs_liab": 77211182.0,
+          "net_on_balance": -3598795.0,
+          "net_off_balance": 3298700.0,
+          "off_bs_receivable": 52539472.0,
+          "off_bs_payable": 49240772.0,
+          "net_position": -300095.0
+        }
+      ],
+      "note": "Hand-transcribed from the printed §4 currency-risk table (page 38, 0-based), agent-verified, foots on Σccy=TOTAL, assets−liab=net_on and net_on+net_off=net_position. The Net Bilanço Pozisyonu (net_on) row was dropped (the OTHER value prints '(12,360,178' with the closing ')' wrapped to the next line). net_on = assets − liab."
+    },
+    {
+      "bank_ticker": "HAYATK",
+      "period": "2025Q2",
+      "kind": "consolidated",
+      "statement": "fx_position_replace",
+      "source_page": 36,
+      "rows": [
+        {
+          "currency": "EUR",
+          "on_bs_assets": 2883323.0,
+          "on_bs_liab": 2884842.0,
+          "net_on_balance": -1519.0,
+          "net_off_balance": -1397.0,
+          "off_bs_receivable": 0.0,
+          "off_bs_payable": 1397.0,
+          "net_position": -2916.0
+        },
+        {
+          "currency": "USD",
+          "on_bs_assets": 1713826.0,
+          "on_bs_liab": 1194819.0,
+          "net_on_balance": 519007.0,
+          "net_off_balance": -513243.0,
+          "off_bs_receivable": 3388.0,
+          "off_bs_payable": 516631.0,
+          "net_position": 5764.0
+        },
+        {
+          "currency": "OTHER",
+          "on_bs_assets": 344643.0,
+          "on_bs_liab": 129151.0,
+          "net_on_balance": 215492.0,
+          "net_off_balance": -210854.0,
+          "off_bs_receivable": 210855.0,
+          "off_bs_payable": 421709.0,
+          "net_position": 4638.0
+        },
+        {
+          "currency": "TOTAL",
+          "on_bs_assets": 4941792.0,
+          "on_bs_liab": 4208812.0,
+          "net_on_balance": 732980.0,
+          "net_off_balance": -725494.0,
+          "off_bs_receivable": 214243.0,
+          "off_bs_payable": 939737.0,
+          "net_position": 7486.0
+        }
+      ],
+      "note": "Hand-transcribed from the printed §4 currency-risk table (page 35, 0-based), agent-verified, foots on Σccy=TOTAL, assets−liab=net_on and net_on+net_off=net_position. Turkish filing; assets/liab labelled 'Toplam Varlıklar²'/'Toplam Yükümlülükler²' (glued footnote digit) were dropped. Read the POSITION table, not the FX-sensitivity table above it."
+    },
+    {
+      "bank_ticker": "KLNMA",
+      "period": "2022Q2",
+      "kind": "unconsolidated",
+      "statement": "fx_position_replace",
+      "source_page": 54,
+      "rows": [
+        {
+          "currency": "EUR",
+          "on_bs_assets": 19838056.0,
+          "on_bs_liab": 18851626.0,
+          "net_on_balance": 986430.0,
+          "net_off_balance": -1003756.0,
+          "off_bs_receivable": 871.0,
+          "off_bs_payable": 1004627.0,
+          "net_position": -17326.0
+        },
+        {
+          "currency": "USD",
+          "on_bs_assets": 33261841.0,
+          "on_bs_liab": 34936735.0,
+          "net_on_balance": -1674894.0,
+          "net_off_balance": 1646511.0,
+          "off_bs_receivable": 5385647.0,
+          "off_bs_payable": 3739136.0,
+          "net_position": -28383.0
+        },
+        {
+          "currency": "OTHER",
+          "on_bs_assets": 1087.0,
+          "on_bs_liab": 0.0,
+          "net_on_balance": 1087.0,
+          "net_off_balance": 0.0,
+          "off_bs_receivable": 0.0,
+          "off_bs_payable": 0.0,
+          "net_position": 1087.0
+        },
+        {
+          "currency": "TOTAL",
+          "on_bs_assets": 53100984.0,
+          "on_bs_liab": 53788361.0,
+          "net_on_balance": -687377.0,
+          "net_off_balance": 642755.0,
+          "off_bs_receivable": 5386518.0,
+          "off_bs_payable": 4743763.0,
+          "net_position": -44622.0
+        }
+      ],
+      "note": "Hand-transcribed from the printed §4 currency-risk table (page 53, 0-based), agent-verified, foots on Σccy=TOTAL, assets−liab=net_on and net_on+net_off=net_position. net_off (Net Nazım) + deriv-payable rows split their EUR cell onto a lower sub-line, so both dropped. deriv_pay stored as positive magnitude (net_off = recv − pay)."
+    },
+    {
+      "bank_ticker": "QNBFB",
+      "period": "2024Q1",
+      "kind": "unconsolidated",
+      "statement": "fx_position_replace",
+      "source_page": 48,
+      "rows": [
+        {
+          "currency": "EUR",
+          "on_bs_assets": 152827788.0,
+          "on_bs_liab": 120869084.0,
+          "net_on_balance": 31958704.0,
+          "net_off_balance": -31305214.0,
+          "off_bs_receivable": 57132796.0,
+          "off_bs_payable": 88438010.0,
+          "net_position": 653490.0
+        },
+        {
+          "currency": "USD",
+          "on_bs_assets": 260678612.0,
+          "on_bs_liab": 392650985.0,
+          "net_on_balance": -131972373.0,
+          "net_off_balance": 140350966.0,
+          "off_bs_receivable": 395713720.0,
+          "off_bs_payable": 255362754.0,
+          "net_position": 8378593.0
+        },
+        {
+          "currency": "OTHER",
+          "on_bs_assets": 10838475.0,
+          "on_bs_liab": 65025974.0,
+          "net_on_balance": -54187499.0,
+          "net_off_balance": 54230290.0,
+          "off_bs_receivable": 65166319.0,
+          "off_bs_payable": 10936029.0,
+          "net_position": 42791.0
+        },
+        {
+          "currency": "TOTAL",
+          "on_bs_assets": 424344875.0,
+          "on_bs_liab": 578546043.0,
+          "net_on_balance": -154201168.0,
+          "net_off_balance": 163276042.0,
+          "off_bs_receivable": 518012835.0,
+          "off_bs_payable": 354736793.0,
+          "net_position": 9074874.0
+        }
+      ],
+      "note": "Hand-transcribed from the printed §4 currency-risk table (page 47, 0-based), agent-verified, foots on Σccy=TOTAL, assets−liab=net_on and net_on+net_off=net_position. Both net rows (Net Balance Sheet / Net Off-Balance) were dropped."
+    },
+    {
+      "bank_ticker": "QNBFB",
+      "period": "2024Q3",
+      "kind": "consolidated",
+      "statement": "fx_position_replace",
+      "source_page": 50,
+      "rows": [
+        {
+          "currency": "EUR",
+          "on_bs_assets": 189366620.0,
+          "on_bs_liab": 119829883.0,
+          "net_on_balance": 69536737.0,
+          "net_off_balance": -68396288.0,
+          "off_bs_receivable": 83501925.0,
+          "off_bs_payable": 151898213.0,
+          "net_position": 1140449.0
+        },
+        {
+          "currency": "USD",
+          "on_bs_assets": 281306573.0,
+          "on_bs_liab": 368858991.0,
+          "net_on_balance": -87552418.0,
+          "net_off_balance": 90715014.0,
+          "off_bs_receivable": 357441941.0,
+          "off_bs_payable": 266726927.0,
+          "net_position": 3162596.0
+        },
+        {
+          "currency": "OTHER",
+          "on_bs_assets": 13771825.0,
+          "on_bs_liab": 80547733.0,
+          "net_on_balance": -66775908.0,
+          "net_off_balance": 67006410.0,
+          "off_bs_receivable": 77059415.0,
+          "off_bs_payable": 10053005.0,
+          "net_position": 230502.0
+        },
+        {
+          "currency": "TOTAL",
+          "on_bs_assets": 484445018.0,
+          "on_bs_liab": 569236607.0,
+          "net_on_balance": -84791589.0,
+          "net_off_balance": 89325136.0,
+          "off_bs_receivable": 518003281.0,
+          "off_bs_payable": 428678145.0,
+          "net_position": 4533547.0
+        }
+      ],
+      "note": "Hand-transcribed from the printed §4 currency-risk table (page 49, 0-based), agent-verified, foots on Σccy=TOTAL, assets−liab=net_on and net_on+net_off=net_position. SOURCE ROW-SHIFT: the 'Net Balance Sheet Position' line prints BLANK and the block shifts down one line, so the extractor stored net_ON's value (=assets−liab) under the net_OFF label and dropped net_on. Corrected: net_on set, net_off replaced with the true (=recv−pay) value."
+    },
+    {
+      "bank_ticker": "QNBFB",
+      "period": "2026Q1",
+      "kind": "consolidated",
+      "statement": "fx_position_replace",
+      "source_page": 53,
+      "rows": [
+        {
+          "currency": "EUR",
+          "on_bs_assets": 364307317.0,
+          "on_bs_liab": 178051156.0,
+          "net_on_balance": 186256161.0,
+          "net_off_balance": -189899388.0,
+          "off_bs_receivable": 189626081.0,
+          "off_bs_payable": 379525469.0,
+          "net_position": -3643227.0
+        },
+        {
+          "currency": "USD",
+          "on_bs_assets": 365631078.0,
+          "on_bs_liab": 587835886.0,
+          "net_on_balance": -222204808.0,
+          "net_off_balance": 231737307.0,
+          "off_bs_receivable": 645073932.0,
+          "off_bs_payable": 413336625.0,
+          "net_position": 9532499.0
+        },
+        {
+          "currency": "OTHER",
+          "on_bs_assets": 36450737.0,
+          "on_bs_liab": 204570260.0,
+          "net_on_balance": -168119523.0,
+          "net_off_balance": 168269038.0,
+          "off_bs_receivable": 228400256.0,
+          "off_bs_payable": 60131218.0,
+          "net_position": 149515.0
+        },
+        {
+          "currency": "TOTAL",
+          "on_bs_assets": 766389132.0,
+          "on_bs_liab": 970457302.0,
+          "net_on_balance": -204068170.0,
+          "net_off_balance": 210106957.0,
+          "off_bs_receivable": 1063100269.0,
+          "off_bs_payable": 852993312.0,
+          "net_position": 6038787.0
+        }
+      ],
+      "note": "Hand-transcribed from the printed §4 currency-risk table (page 52, 0-based), agent-verified, foots on Σccy=TOTAL, assets−liab=net_on and net_on+net_off=net_position. SOURCE ROW-SHIFT: the 'Total Liabilities' line prints BLANK (values shifted up onto 'Other Liabilities'), so on_bs_liab was dropped. Recovered (= Σ liability components = assets − net_on)."
+    },
+    {
+      "bank_ticker": "KLNMA",
+      "period": "2023Q4",
+      "kind": "unconsolidated",
+      "statement": "fx_position_replace",
+      "source_page": 69,
+      "rows": [
+        {
+          "currency": "EUR",
+          "on_bs_assets": 34328349.0,
+          "on_bs_liab": 37054639.0,
+          "net_on_balance": -2726290.0,
+          "net_off_balance": 3239969.0,
+          "off_bs_receivable": 3239969.0,
+          "off_bs_payable": 0.0,
+          "net_position": 513679.0
+        },
+        {
+          "currency": "USD",
+          "on_bs_assets": 52772408.0,
+          "on_bs_liab": 58241397.0,
+          "net_on_balance": -5468989.0,
+          "net_off_balance": 4860455.0,
+          "off_bs_receivable": 6794888.0,
+          "off_bs_payable": 1934433.0,
+          "net_position": -608534.0
+        },
+        {
+          "currency": "OTHER",
+          "on_bs_assets": 1970.0,
+          "on_bs_liab": 0.0,
+          "net_on_balance": 1970.0,
+          "net_off_balance": 0.0,
+          "off_bs_receivable": 0.0,
+          "off_bs_payable": 0.0,
+          "net_position": 1970.0
+        },
+        {
+          "currency": "TOTAL",
+          "on_bs_assets": 87102727.0,
+          "on_bs_liab": 95296036.0,
+          "net_on_balance": -8193309.0,
+          "net_off_balance": 8100424.0,
+          "off_bs_receivable": 10034857.0,
+          "off_bs_payable": 1934433.0,
+          "net_position": -92885.0
+        }
+      ],
+      "note": "Source aggregate contradicts the table's OWN derivative-leg rows and is corrected to the leg-consistent value, confirmed by the 2024Q1 prior column. Foot-checked (net_on=assets−liab; net_pos=net_on+net_off; Σccy=TOTAL)."
+    },
+    {
+      "bank_ticker": "EXIM",
+      "period": "2025Q4",
+      "kind": "unconsolidated",
+      "statement": "fx_position_replace",
+      "source_page": 55,
+      "rows": [
+        {
+          "currency": "EUR",
+          "on_bs_assets": 459764660.0,
+          "on_bs_liab": 310100179.0,
+          "net_on_balance": 149664481.0,
+          "net_off_balance": -148237077.0,
+          "off_bs_receivable": 503329.0,
+          "off_bs_payable": 148740406.0,
+          "net_position": 1427404.0
+        },
+        {
+          "currency": "USD",
+          "on_bs_assets": 260758502.0,
+          "on_bs_liab": 399187293.0,
+          "net_on_balance": -138428791.0,
+          "net_off_balance": 138203196.0,
+          "off_bs_receivable": 147499650.0,
+          "off_bs_payable": 9296454.0,
+          "net_position": -225595.0
+        },
+        {
+          "currency": "OTHER",
+          "on_bs_assets": 14884134.0,
+          "on_bs_liab": 22619096.0,
+          "net_on_balance": -7734962.0,
+          "net_off_balance": 7822987.0,
+          "off_bs_receivable": 7827230.0,
+          "off_bs_payable": 4243.0,
+          "net_position": 88025.0
+        },
+        {
+          "currency": "TOTAL",
+          "on_bs_assets": 735407296.0,
+          "on_bs_liab": 731906568.0,
+          "net_on_balance": 3500728.0,
+          "net_off_balance": -2210894.0,
+          "off_bs_receivable": 155830209.0,
+          "off_bs_payable": 158041103.0,
+          "net_position": 1289834.0
+        }
+      ],
+      "note": "Source aggregate contradicts the table's OWN derivative-leg rows and is corrected to the leg-consistent value, confirmed by the 2026Q1 prior column. Foot-checked (net_on=assets−liab; net_pos=net_on+net_off; Σccy=TOTAL)."
+    },
+    {
+      "bank_ticker": "EXIM",
+      "period": "2024Q2",
+      "kind": "unconsolidated",
+      "statement": "fx_position",
+      "currency": "EUR",
+      "period_type": "prior",
+      "fields": {
+        "on_bs_liab": 147763771.0
+      },
+      "note": "Prior on_bs_liab dropped (a spurious internal space in the EUR figure broke column tokenisation); reconstructed = assets − net_on per currency, Σccy = 347,579,772."
+    },
+    {
+      "bank_ticker": "EXIM",
+      "period": "2024Q2",
+      "kind": "unconsolidated",
+      "statement": "fx_position",
+      "currency": "USD",
+      "period_type": "prior",
+      "fields": {
+        "on_bs_liab": 188459656.0
+      },
+      "note": "Prior on_bs_liab dropped (a spurious internal space in the EUR figure broke column tokenisation); reconstructed = assets − net_on per currency, Σccy = 347,579,772."
+    },
+    {
+      "bank_ticker": "EXIM",
+      "period": "2024Q2",
+      "kind": "unconsolidated",
+      "statement": "fx_position",
+      "currency": "OTHER",
+      "period_type": "prior",
+      "fields": {
+        "on_bs_liab": 11356345.0
+      },
+      "note": "Prior on_bs_liab dropped (a spurious internal space in the EUR figure broke column tokenisation); reconstructed = assets − net_on per currency, Σccy = 347,579,772."
+    },
+    {
+      "bank_ticker": "EXIM",
+      "period": "2024Q2",
+      "kind": "unconsolidated",
+      "statement": "fx_position",
+      "currency": "TOTAL",
+      "period_type": "prior",
+      "fields": {
+        "on_bs_liab": 347579772.0
+      },
+      "note": "Prior on_bs_liab dropped (a spurious internal space in the EUR figure broke column tokenisation); reconstructed = assets − net_on per currency, Σccy = 347,579,772."
+    },
+    {
+      "bank_ticker": "ALNTF",
+      "period": "2026Q1",
+      "kind": "consolidated",
+      "statement": "fx_position",
+      "currency": "TOTAL",
+      "period_type": "prior",
+      "fields": {
+        "net_on_balance": -12885781.0,
+        "net_position": -2713810.0
+      },
+      "note": "Prior TOTAL net_on lost its sign ('(12,885,781' — close paren dropped from the text layer); the per-currency legs are correct and sum to −12,885,781 → net FX −2,713,810 (= 2025Q4 conso current)."
     }
   ]
 }
