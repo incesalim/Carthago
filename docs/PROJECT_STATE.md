@@ -132,11 +132,16 @@ value-corrections** grounded in each table's OWN derivative-leg rows + the adjac
 EXIM 2024Q2 dropped prior liab; ALNTF 2026Q1 dropped a TOTAL net_on sign) → overrides;
 **8 curated `_FX_XPERIOD_SKIP`** genuine restatements / defective-source comparatives
 (HALKB/ALBRK restatements, TOMK's blank prior columns, ALNTF's 2021-under-2022 year-swap);
-and **2 WRONG-PDF findings** the anchor EXPOSED (`_FX_WRONGPDF_SKIP`): **GARAN 2023Q4
-`unconsolidated`** R2 object is the CONSOLIDATED report, and **KUVEYT 2026Q1
-`consolidated`** is the UNCONSOLIDATED report — the whole partition (BS/PL/every lane) is
-another basis's numbers. ⚠️ **These two need whole-partition re-acquisition** (a cross-lane
-follow-up); until then only the fx cross-period flag is suppressed (not fabricated). See
+and **2 WRONG-PDF findings** the anchor EXPOSED and we then FIXED at source: **GARAN 2023Q4
+`unconsolidated`** R2 object was the CONSOLIDATED report, and **KUVEYT 2026Q1
+`consolidated`** was the UNCONSOLIDATED report — the whole partition (BS/PL/every lane) was
+another basis's numbers. **Re-acquired 2026-07-18**: `audit_report_urls.json` corrected to
+the real reports (GARAN's Turkish-site "Konsolide Olmayan" original
+`31_Aralik_2023_…tablo_ve_aciklamalari.pdf`; KUVEYT `konsolide-denetim-raporu-…-3925.pdf` —
+the registry had listed the unconsolidated 3926 under both keys), re-fetched to R2, and
+BOTH partitions re-extracted across ALL lanes. They now reconcile through the anchor with no
+skip (GARAN 2024Q1–Q4 prior = 25,130,005 = the corrected 2023Q4 current; KUVEYT 2026Q1 prior
+= −1,632,877 = 2025Q4 consolidated current). `_FX_WRONGPDF_SKIP` removed. See
 [audit-fx-cross-period-false-negatives-2026-07-18](knowledge/audit-fx-cross-period-false-negatives-2026-07-18.md).
 
 **First pass — 21 err + 66 miss → 0/0. Missing (52 recovered by a 2-line header fix):** `_CCY_HEAD` under-counted

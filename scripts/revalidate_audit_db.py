@@ -281,28 +281,16 @@ _FX_XPERIOD_SKIP = frozenset({
     ("ALNTF", "2023Q1", "unconsolidated"),
 })
 
-# WRONG-PDF partitions the cross-period anchor EXPOSED — the R2 object under this
-# key is the wrong report entirely, so the whole partition (BS/PL/every lane, not
-# just fx) is another basis's numbers. The proper fix is re-acquiring the correct
-# PDF and re-extracting the partition (a cross-lane follow-up, tracked in
-# PROJECT_STATE); until then we suppress ONLY the fx cross-period flag rather than
-# fabricate fx by copying the correct value from a neighbouring filing (that would
-# read green while BS/PL stay corrupt). Each verified against the actual R2 key.
-#   GARAN 2023Q4 unconsolidated: the object is the CONSOLIDATED report (all pages
-#     read "Consolidated"). Its fx current/prior are consolidated 31-Dec-2023/2022.
-#     The true unconsolidated figures are the bank's OWN 2024Q1 prior (25,130,005)
-#     and 2022Q4 current (7,954,807) — so 2024Q1–Q4 unco flag only because their
-#     (correct) prior column is compared against this corrupt year-end.
-#   KUVEYT 2026Q1 consolidated: the object is the UNCONSOLIDATED report (both R2
-#     keys point at the identical file); its fx is unconsolidated basis.
-_FX_WRONGPDF_SKIP = frozenset({
-    ("GARAN", "2023Q4", "unconsolidated"),
-    ("GARAN", "2024Q1", "unconsolidated"),
-    ("GARAN", "2024Q2", "unconsolidated"),
-    ("GARAN", "2024Q3", "unconsolidated"),
-    ("GARAN", "2024Q4", "unconsolidated"),
-    ("KUVEYT", "2026Q1", "consolidated"),
-})
+# (Resolved 2026-07-18) Two WRONG-PDF partitions the cross-period anchor EXPOSED —
+# the R2 object under the key was the wrong report entirely (GARAN 2023Q4
+# `unconsolidated` held the CONSOLIDATED report; KUVEYT 2026Q1 `consolidated` held
+# the UNCONSOLIDATED one), so the whole partition (BS/PL/every lane) was another
+# basis's numbers. Fixed at the SOURCE — audit_report_urls.json corrected to the
+# real reports (GARAN's Turkish "Konsolide Olmayan" original; KUVEYT's
+# `konsolide-denetim-raporu-…-3925.pdf`), re-fetched to R2, and the partitions
+# re-extracted across all lanes. Both now reconcile against their neighbours
+# (GARAN 2024Q1–Q4 prior = 25,130,005 = the re-extracted 2023Q4 current; KUVEYT
+# 2026Q1 prior = −1,632,877 = 2025Q4 consolidated current) — no skip needed.
 
 
 def curated_skip_banks() -> set[tuple[str, str]]:
@@ -630,7 +618,6 @@ def revalidate_partition(conn, bank: str, period: str, kind: str) -> dict[str, "
     # curated genuine-restatement / defective-comparative partitions so footing
     # and completeness still run.
     _fx_ye = (None if (bank, period, kind) in _FX_XPERIOD_SKIP
-              or (bank, period, kind) in _FX_WRONGPDF_SKIP
               else _fx_prior_ye_totals(conn, bank, period, kind))
     results["fx_position"] = (
         _skip_result() if (bank, period, kind) in _FX_SKIP
