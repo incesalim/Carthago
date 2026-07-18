@@ -9298,6 +9298,296 @@
         "net_position": -2713810.0
       },
       "note": "Prior TOTAL net_on lost its sign ('(12,885,781' — close paren dropped from the text layer); the per-currency legs are correct and sum to −12,885,781 → net FX −2,713,810 (= 2025Q4 conso current)."
+    },
+    {
+      "bank_ticker": "GARAN",
+      "period": "2023Q4",
+      "kind": "unconsolidated",
+      "statement": "loans_by_sector_replace",
+      "source_page": 75,
+      "rows": [
+        {
+          "sector": "agri_farming",
+          "period_type": "current",
+          "stage2_amount": 83645.0,
+          "stage3_amount": 24128.0,
+          "ecl_amount": 19199.0
+        },
+        {
+          "sector": "agri_forestry",
+          "period_type": "current",
+          "stage2_amount": 164266.0,
+          "stage3_amount": 5521.0,
+          "ecl_amount": 5938.0
+        },
+        {
+          "sector": "agri_fishery",
+          "period_type": "current",
+          "stage2_amount": 7420.0,
+          "stage3_amount": 9742.0,
+          "ecl_amount": 9098.0
+        },
+        {
+          "sector": "agri_total",
+          "period_type": "current",
+          "stage2_amount": 255331.0,
+          "stage3_amount": 39391.0,
+          "ecl_amount": 34235.0
+        },
+        {
+          "sector": "mfg_mining",
+          "period_type": "current",
+          "stage2_amount": 533996.0,
+          "stage3_amount": 15294.0,
+          "ecl_amount": 105943.0
+        },
+        {
+          "sector": "mfg_production",
+          "period_type": "current",
+          "stage2_amount": 20294757.0,
+          "stage3_amount": 1927432.0,
+          "ecl_amount": 4290005.0
+        },
+        {
+          "sector": "mfg_utilities",
+          "period_type": "current",
+          "stage2_amount": 29745559.0,
+          "stage3_amount": 3002636.0,
+          "ecl_amount": 13270584.0
+        },
+        {
+          "sector": "mfg_total",
+          "period_type": "current",
+          "stage2_amount": 50574312.0,
+          "stage3_amount": 4945362.0,
+          "ecl_amount": 17666532.0
+        },
+        {
+          "sector": "construction",
+          "period_type": "current",
+          "stage2_amount": 10020456.0,
+          "stage3_amount": 6155557.0,
+          "ecl_amount": 7106662.0
+        },
+        {
+          "sector": "svc_trade",
+          "period_type": "current",
+          "stage2_amount": 16517876.0,
+          "stage3_amount": 1769851.0,
+          "ecl_amount": 2641921.0
+        },
+        {
+          "sector": "svc_hospitality",
+          "period_type": "current",
+          "stage2_amount": 3011506.0,
+          "stage3_amount": 621960.0,
+          "ecl_amount": 895740.0
+        },
+        {
+          "sector": "svc_transport",
+          "period_type": "current",
+          "stage2_amount": 3214517.0,
+          "stage3_amount": 1861429.0,
+          "ecl_amount": 1694877.0
+        },
+        {
+          "sector": "svc_financial",
+          "period_type": "current",
+          "stage2_amount": 208629.0,
+          "stage3_amount": 16434.0,
+          "ecl_amount": 23278.0
+        },
+        {
+          "sector": "svc_realestate",
+          "period_type": "current",
+          "stage2_amount": 14014699.0,
+          "stage3_amount": 755433.0,
+          "ecl_amount": 9534229.0
+        },
+        {
+          "sector": "svc_professional",
+          "period_type": "current",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "svc_education",
+          "period_type": "current",
+          "stage2_amount": 198725.0,
+          "stage3_amount": 60157.0,
+          "ecl_amount": 55976.0
+        },
+        {
+          "sector": "svc_health",
+          "period_type": "current",
+          "stage2_amount": 416081.0,
+          "stage3_amount": 20315.0,
+          "ecl_amount": 74437.0
+        },
+        {
+          "sector": "svc_total",
+          "period_type": "current",
+          "stage2_amount": 37582033.0,
+          "stage3_amount": 5105579.0,
+          "ecl_amount": 14920458.0
+        },
+        {
+          "sector": "other",
+          "period_type": "current",
+          "stage2_amount": 85229458.0,
+          "stage3_amount": 10483423.0,
+          "ecl_amount": 9765678.0
+        },
+        {
+          "sector": "total",
+          "period_type": "current",
+          "stage2_amount": 183661590.0,
+          "stage3_amount": 26729312.0,
+          "ecl_amount": 49493565.0
+        },
+        {
+          "sector": "agri_farming",
+          "period_type": "prior",
+          "stage2_amount": 66035.0,
+          "stage3_amount": 27048.0,
+          "ecl_amount": 25017.0
+        },
+        {
+          "sector": "agri_forestry",
+          "period_type": "prior",
+          "stage2_amount": 17155.0,
+          "stage3_amount": 9087.0,
+          "ecl_amount": 8266.0
+        },
+        {
+          "sector": "agri_fishery",
+          "period_type": "prior",
+          "stage2_amount": 7363.0,
+          "stage3_amount": 9295.0,
+          "ecl_amount": 8391.0
+        },
+        {
+          "sector": "agri_total",
+          "period_type": "prior",
+          "stage2_amount": 90553.0,
+          "stage3_amount": 45430.0,
+          "ecl_amount": 41674.0
+        },
+        {
+          "sector": "mfg_mining",
+          "period_type": "prior",
+          "stage2_amount": 3254594.0,
+          "stage3_amount": 30811.0,
+          "ecl_amount": 1515738.0
+        },
+        {
+          "sector": "mfg_production",
+          "period_type": "prior",
+          "stage2_amount": 22309589.0,
+          "stage3_amount": 1341211.0,
+          "ecl_amount": 3684914.0
+        },
+        {
+          "sector": "mfg_utilities",
+          "period_type": "prior",
+          "stage2_amount": 21105363.0,
+          "stage3_amount": 4555478.0,
+          "ecl_amount": 10187862.0
+        },
+        {
+          "sector": "mfg_total",
+          "period_type": "prior",
+          "stage2_amount": 46669546.0,
+          "stage3_amount": 5927500.0,
+          "ecl_amount": 15388514.0
+        },
+        {
+          "sector": "construction",
+          "period_type": "prior",
+          "stage2_amount": 5480727.0,
+          "stage3_amount": 2317183.0,
+          "ecl_amount": 3317717.0
+        },
+        {
+          "sector": "svc_trade",
+          "period_type": "prior",
+          "stage2_amount": 8938374.0,
+          "stage3_amount": 1985241.0,
+          "ecl_amount": 2476907.0
+        },
+        {
+          "sector": "svc_hospitality",
+          "period_type": "prior",
+          "stage2_amount": 5257798.0,
+          "stage3_amount": 539285.0,
+          "ecl_amount": 1193314.0
+        },
+        {
+          "sector": "svc_transport",
+          "period_type": "prior",
+          "stage2_amount": 14891929.0,
+          "stage3_amount": 1902877.0,
+          "ecl_amount": 3049152.0
+        },
+        {
+          "sector": "svc_financial",
+          "period_type": "prior",
+          "stage2_amount": 1409053.0,
+          "stage3_amount": 15489.0,
+          "ecl_amount": 313032.0
+        },
+        {
+          "sector": "svc_realestate",
+          "period_type": "prior",
+          "stage2_amount": 8799487.0,
+          "stage3_amount": 2586060.0,
+          "ecl_amount": 6826480.0
+        },
+        {
+          "sector": "svc_professional",
+          "period_type": "prior",
+          "stage2_amount": 0.0,
+          "stage3_amount": 0.0,
+          "ecl_amount": 0.0
+        },
+        {
+          "sector": "svc_education",
+          "period_type": "prior",
+          "stage2_amount": 269700.0,
+          "stage3_amount": 78751.0,
+          "ecl_amount": 106335.0
+        },
+        {
+          "sector": "svc_health",
+          "period_type": "prior",
+          "stage2_amount": 448871.0,
+          "stage3_amount": 23025.0,
+          "ecl_amount": 46524.0
+        },
+        {
+          "sector": "svc_total",
+          "period_type": "prior",
+          "stage2_amount": 40015212.0,
+          "stage3_amount": 7130728.0,
+          "ecl_amount": 14011744.0
+        },
+        {
+          "sector": "other",
+          "period_type": "prior",
+          "stage2_amount": 37472494.0,
+          "stage3_amount": 4697825.0,
+          "ecl_amount": 4807792.0
+        },
+        {
+          "sector": "total",
+          "period_type": "prior",
+          "stage2_amount": 129728532.0,
+          "stage3_amount": 20118666.0,
+          "ecl_amount": 37567441.0
+        }
+      ],
+      "note": "Hand-transcribed from the unconsolidated report's §4.2 credit-risk sector table (PDF p75 / printed 66), both periods (Cari 31-12-2023, Önceki 31-12-2022), all 3 columns. The extractor had parsed the English CONSOLIDATED report (wrong PDF, now fixed) and mis-locates the Turkish table. Column mapping cross-validated: the stored 2022Q4 stage2 legs equal this page's Önceki-Dönem column exactly. Foots on subsector=parent, Σtop=total, child≤total."
     }
   ]
 }

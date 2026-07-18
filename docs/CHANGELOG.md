@@ -36,9 +36,15 @@ added instead of subtracted, a sign flipped, a dropped liability, a lost negativ
 filing, then overridden. 8 were real restatements or defective/blank prior
 columns the filers themselves printed → curated cross-period skips (footing stays
 live). And 2 were whole misfiled PDFs the anchor exposed for free: GARAN's 2023Q4
-"unconsolidated" slot holds the consolidated report, KUVEYT's 2026Q1
-"consolidated" holds the unconsolidated one — the entire partition is another
-basis's numbers, a cross-lane re-acquisition follow-up.
+"unconsolidated" slot held the consolidated report, KUVEYT's 2026Q1
+"consolidated" held the unconsolidated one — the entire partition was another
+basis's numbers. Both re-acquired the same day: the registry URLs were wrong
+(GARAN's English "Unconsolidated" URL is poisoned at source — the correct file is
+the Turkish "Konsolide Olmayan" original; KUVEYT had the unconsolidated file
+listed under both keys, the real consolidated is a different id), corrected in
+audit_report_urls.json, re-fetched to R2, and both partitions re-extracted across
+all 17 lanes. They now reconcile through the anchor with no skip — proof it works:
+GARAN 2024Q1-Q4's prior column and the corrected 2023Q4 current agree to the lira.
 
 Cross-period divergence fell 88 → 14 pairs, all 14 documented. The lesson worth
 keeping: an internal identity that skips NULLs verifies nothing about what's

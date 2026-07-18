@@ -76,15 +76,25 @@ whose filings print blank/malformed prior columns — the value the source doesn
 can't be an override); ALNTF 2023Q1 (the "31 Aralık 2022" prior column prints 2021 data —
 a filer year-swap).
 
-**2 WRONG-PDF `_FX_WRONGPDF_SKIP`** — the anchor exposed two whole misfiled partitions:
-- **GARAN 2023Q4 `unconsolidated`** — the R2 object is the CONSOLIDATED report (all 181
-  pages read "Consolidated"). The true unconsolidated 31-Dec-2023 (net FX 25,130,005) is
-  confirmed by the bank's OWN 2024Q1 prior column + prose.
-- **KUVEYT 2026Q1 `consolidated`** — the R2 object is the UNCONSOLIDATED report (both R2
-  keys point at the identical file).
-⚠️ These corrupt the WHOLE partition (BS/PL/every lane), not just fx. **Follow-up: re-acquire
-the correct PDFs and re-extract the partitions** (cross-lane). Until then only the fx
-cross-period flag is suppressed — no fx data is fabricated by copying a neighbour.
+**2 WRONG-PDF partitions the anchor exposed — then FIXED at source (2026-07-18):**
+- **GARAN 2023Q4 `unconsolidated`** — the R2 object was the CONSOLIDATED report (all 181
+  pages "Consolidated"). GARAN's English IR URL `31_December_2023_Unconsolidated_Financial_Report.pdf`
+  is poisoned (real PDF, consolidated content); the correct file is the Turkish-site original
+  `…/tr/images/pdf/31_Aralik_2023_Konsolide_Olmayan_Finansal_tablo_ve_aciklamalari.pdf`
+  (183pp, "Konsolide Olmayan", §4 net FX 25,130,006).
+- **KUVEYT 2026Q1 `consolidated`** — the R2 object was the UNCONSOLIDATED report; the registry
+  had listed the unconsolidated `denetim-raporu-…-3926.pdf` under BOTH keys. The real
+  consolidated is `konsolide-denetim-raporu-31-mart-2026-3925.pdf` (85pp, consolidated;
+  id 3925 = unco 3926 − 1, not the usual +1).
+
+**Fix:** `data/banks/audit_report_urls.json` corrected, PDFs re-fetched to R2 (overwriting
+the wrong objects), and BOTH partitions re-extracted across ALL 17 statement lanes (not just
+fx) via `reextract_statement.py --force`. Both now reconcile through the cross-period anchor
+with NO skip — `_FX_WRONGPDF_SKIP` removed. GARAN 2024Q1–Q4 prior (25,130,005) = the corrected
+2023Q4 current; KUVEYT 2026Q1 prior (−1,632,877) = 2025Q4 consolidated current. We did NOT
+copy fx from a neighbour (that would have papered over the corrupt BS/PL); the whole partition
+is now the right report. (One knock-on: GARAN's Turkish sector table needed a `loans_by_sector`
+override — the extractor had parsed the English consolidated one.)
 
 ## Lessons
 
