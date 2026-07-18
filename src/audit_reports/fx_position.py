@@ -43,6 +43,9 @@ from .extractor import _HAS_FITZ, parse_num
 # A numeric token (TR/EN, parenthesised negatives, leading/trailing %): mirrors
 # capital_adequacy._NUM_TOKEN. Nil dashes are kept as 0.0 (parse_num maps them).
 _NUM_TOKEN = re.compile(r"^%?\(?-?\d[\d.,]*%?\)?$")
+# A bare footnote reference marker "(n)" (1-2 digits) — distinct from a real
+# parenthesised negative, which carries thousands separators / ≥3 digits.
+_FOOTNOTE_RX = re.compile(r"^\(\d{1,2}\)$")
 _NIL = {"-", "—", "–", "--", "---"}
 
 # Currency-column header tokens → canonical code. Matched against the FIRST token
@@ -65,16 +68,38 @@ _HARD_CCY = {"EUR", "USD", "GBP"}
 
 # Summary rows we keep (field, [label regexes], bilingual). Matched on the
 # line's leading label (case-insensitive).
+# A straight or curly quote (GARAN glues U+2018/U+2019 to "'On Balance Sheet'"),
+# optional, so the net-position labels match with or without them.
+_Q = r"[‘’‛'\"]?"
 _ROWS: list[tuple[str, list[str]]] = [
-    ("on_bs_assets", [r"^Total\s+assets\b", r"^Toplam\s+Varlıklar\b", r"^Toplam\s+Aktifler\b"]),
-    ("on_bs_liab", [r"^Total\s+liabilities\b", r"^Toplam\s+Yükümlülükler\b"]),
+    # `assets\d` catches HAYATK's footnote-glued "Total Assets2" ("Assets2" is one
+    # word, so \b never fires between the word and the digit).
+    ("on_bs_assets", [r"^Total\s+assets\b", r"^Total\s+assets\d\b",
+                      r"^Toplam\s+Varlıklar\b", r"^Toplam\s+Aktifler\b"]),
+    ("on_bs_liab", [r"^Total\s+liabilities\b", r"^Total\s+liabilities\d\b",
+                    r"^Toplam\s+Yükümlülükler\b"]),
     ("net_on_balance", [r"^Net\s+(?:on[\s-]?)?balance\s+sheet\s+position\b",
+                        rf"^Net\s*{_Q}\s*On\s+Balance\s+Sheet{_Q}\s+Position\b",
                         r"^Net\s+Bilanço\s+(?:İçi\s+)?Pozisyonu?\b"]),
-    ("net_off_balance", [r"^Net\s+off[\s-]?balance\s+sheet\s+position\b",
-                         r"^Net\s+Nazım\s+Hesap\s+Pozisyonu?\b", r"^Net\s+Nazim\b"]),
+    # `[\s‐-―\-]*` between "off" and "balance" tolerates ANY dash the
+    # source glues in: TSKB's prior block prints "Net Off –Balance" (space + en-dash
+    # U+2013) where the current block prints "Off-Balance" (ASCII hyphen), so the old
+    # single-optional `[\s-]?` matched current but silently dropped the prior net-off
+    # row. "Net bilanço dışı pozisyon" is KUVEYT's prior-block wording for the same
+    # line (its current block says "Net nazım hesap pozisyonu") — a different Turkish
+    # phrase for the off-balance position, distinct from the on-balance
+    # "Net bilanço pozisyonu" (which carries no "dışı").
+    ("net_off_balance", [r"^Net\s+off[\s‐-―\-]*balance\s+sheet\s+position\b",
+                         rf"^Net\s*{_Q}\s*Off[\s‐-―\-]*Balance\s+Sheet{_Q}\s+Position\b",
+                         r"^Net\s+Nazım\s+Hesap\s+Pozisyonu?\b", r"^Net\s+Nazim\b",
+                         r"^Net\s+Bilanço\s+Dışı\s+Pozisyon"]),
+    # GARAN prints "Derivative Assets", HAYATK "Financial derivative assets" — both
+    # distinct from the existing "Derivative financial instruments assets".
     ("off_bs_receivable", [r"^Derivative\s+financial\s+instruments?\s+assets\b",
+                           r"^Derivative\s+assets\b", r"^Financial\s+derivative\s+assets\b",
                            r"^Türev\s+Finansal\s+Araçlardan\s+Alacaklar\b"]),
     ("off_bs_payable", [r"^Derivative\s+financial\s+instruments?\s+liabilities\b",
+                        r"^Derivative\s+liabilities\b", r"^Financial\s+derivative\s+liabilities\b",
                         r"^Türev\s+Finansal\s+Araçlardan\s+Borçlar\b"]),
 ]
 _ROW_RX = [(f, [re.compile(p, re.I) for p in pats]) for f, pats in _ROWS]
@@ -162,8 +187,81 @@ def _value_tokens(tokens: list[tuple[float, str]]) -> list[str]:
     return [t for _, t in tokens if t in _NIL or _NUM_TOKEN.match(t)]
 
 
+def _row_values(tokens: list[tuple[float, str]], ncols: int) -> list[str] | None:
+    """The line's value tokens normalized to exactly `ncols`, else None.
+
+    A bare footnote marker "(2)" between the label and the figures is picked up by
+    _NUM_TOKEN (parenthesised digits look like a negative), inflating the count by
+    one — ZIRAAT/DENIZ/TEB space it off as its own token. Strip such markers ONLY
+    when doing so lands the count exactly on ncols; real values (thousands
+    separators, ≥3 digits) never match, and the repricing 7-column rows stay at
+    7≠4 and remain correctly rejected."""
+    vals = _value_tokens(tokens)
+    if len(vals) > ncols:
+        stripped = [x for x in vals if not _FOOTNOTE_RX.match(x)]
+        if len(stripped) == ncols:
+            vals = stripped
+    return vals if len(vals) == ncols else None
+
+
 def _label(tokens: list[tuple[float, str]]) -> str:
     return " ".join(t for _, t in tokens).strip()
+
+
+_CCY_NONTOTAL = ("EUR", "USD", "GBP", "OTHER")
+
+
+def _foots(entries: dict[str, dict[str, float | None]]) -> bool:
+    """True iff a period's assembled rows satisfy the table's own identities:
+    net_on == assets − liab (per column AND for TOTAL) and Σ(currencies) == TOTAL
+    for assets / liab / net_on. Used to accept-or-reject a candidate row→field
+    assignment: the shift-repair below only REPLACES the standard assignment when
+    the standard one fails this and the positional one passes it, so a correctly
+    parsed block is never touched and a coincidental wrong mapping can't slip
+    through (the identity web is far too tight to satisfy by accident)."""
+    t = entries.get("TOTAL")
+    if not t:
+        return False
+    a, l, non = t.get("on_bs_assets"), t.get("on_bs_liab"), t.get("net_on_balance")
+    if a is None or l is None or non is None or abs(non - (a - l)) >= 1.0:
+        return False
+    for f in entries.values():
+        aa, ll, nn = f.get("on_bs_assets"), f.get("on_bs_liab"), f.get("net_on_balance")
+        if None not in (aa, ll, nn) and abs(nn - (aa - ll)) >= 1.0:
+            return False
+    for fld in ("on_bs_assets", "on_bs_liab", "net_on_balance"):
+        parts = [entries[c][fld] for c in _CCY_NONTOTAL
+                 if c in entries and entries[c].get(fld) is not None]
+        if parts and t.get(fld) is not None and abs(sum(parts) - t[fld]) >= 1.0:
+            return False
+    return True
+
+
+def _positional(vrows: list[list[float | None]], cols: list[str],
+                offset: int) -> dict[str, dict[str, float | None]]:
+    """Map the figure rows (from `offset`) onto the canonical field order,
+    column by column. `offset` skips a stray leading figure row that a shifted
+    layout can strand on the "Prior Period" caption (the current block's last
+    line printed one row low)."""
+    pos: dict[str, dict[str, float | None]] = {}
+    for k, fld in enumerate(_FIELDS):
+        if offset + k < len(vrows):
+            for code, val in zip(cols, vrows[offset + k]):
+                pos.setdefault(code, {})[fld] = val
+    return pos
+
+
+def _net_off_corroborated(entries: dict[str, dict[str, float | None]]) -> bool:
+    """TOTAL net_off equals the derivative legs netted (either sign convention:
+    payables are parenthesised-negative for some banks, positive for others).
+    Guards the net_off back-fill so a derivative-less table's non-cash-loans row
+    can never be mistaken for the (absent) net-off row."""
+    t = entries.get("TOTAL", {})
+    no, dr, dp = (t.get("net_off_balance"), t.get("off_bs_receivable"),
+                  t.get("off_bs_payable"))
+    if no is None or dr is None or dp is None:
+        return False
+    return abs(no - (dr - dp)) < 1.0 or abs(no - (dr + dp)) < 1.0
 
 
 def extract_from_pdf(pdf: object = None, pdf_path: str = "") -> FxReport:
@@ -194,6 +292,9 @@ def extract_from_pdf(pdf: object = None, pdf_path: str = "") -> FxReport:
         cols: list[str] | None = None
         # (period_type, currency) -> {field: value}
         data: dict[tuple[str, str], dict[str, float | None]] = {}
+        # Prior-block figure rows in printed order, collected INDEPENDENTLY of the
+        # labels (see the shift-repair note after the loop).
+        prior_vrows: list[list[float | None]] = []
         period = "current"
         for i in range(start, min(n, start + _MAX_SECTION_PAGES)):
             for tokens in pages[i][1]:
@@ -207,6 +308,16 @@ def extract_from_pdf(pdf: object = None, pdf_path: str = "") -> FxReport:
                     period = "prior"
                 if cols is None:
                     continue
+                # Collect the prior block's full figure rows by VALUE, not by label,
+                # so a source that vertically offsets its value column from its label
+                # column (see the shift-repair note below) is still captured in the
+                # right printed order. Stop at the footnotes (a "(n)" line-leader) and
+                # once we have the six summary rows we care about.
+                if period == "prior" and len(prior_vrows) < len(_FIELDS) \
+                        and not _FOOTNOTE_RX.match(tokens[0][1]):
+                    pv = _row_values(tokens, len(cols))
+                    if pv is not None:
+                        prior_vrows.append([parse_num(t) for t in pv])
                 for fld, rxs in _ROW_RX:
                     if not any(rx.match(lab) for rx in rxs):
                         continue
@@ -216,8 +327,8 @@ def extract_from_pdf(pdf: object = None, pdf_path: str = "") -> FxReport:
                             and ("current", "TOTAL") in data \
                             and data[("current", "TOTAL")].get("on_bs_assets") is not None:
                         period = "prior"
-                    vals = _value_tokens(tokens)
-                    if len(vals) != len(cols):
+                    vals = _row_values(tokens, len(cols))
+                    if vals is None:
                         break  # column mismatch — skip (footing validator will flag)
                     for code, tok in zip(cols, vals):
                         data.setdefault((period, code), {})[fld] = parse_num(tok)
@@ -225,7 +336,63 @@ def extract_from_pdf(pdf: object = None, pdf_path: str = "") -> FxReport:
     finally:
         doc.close()
 
+    # --- Shift-repair (prior column) --------------------------------------------
+    # A handful of filings (ISCTR consolidated, QNBFB) print the prior block's VALUE
+    # column vertically offset from its LABEL column, so the y-clustering glues each
+    # figure row to the wrong label: "Total Assets" reads blank and every value lands
+    # one field too high (liab←assets, net_on←liab, …); sometimes the current block's
+    # last line is stranded on the "Prior Period" caption, pushing everything down one
+    # more. The labels are fine and the figures are fine — only their pairing is. So
+    # re-pair by taking the prior figure rows in printed order and mapping them
+    # positionally onto the canonical field order, trying a small leading offset to
+    # absorb a stranded caption row. Every candidate is accepted ONLY if it satisfies
+    # the table's own identities (_foots), and the label-based parse is replaced only
+    # when it does NOT foot and a positional one DOES — so correctly-parsed blocks
+    # (the overwhelming majority) are never disturbed and a coincidental wrong mapping
+    # cannot pass the identity web.
+    prior = {ccy: f for (pt, ccy), f in data.items() if pt == "prior"}
+    best = None
+    for off in range(3):
+        cand = _positional(prior_vrows, cols, off)
+        if _foots(cand):
+            best = cand
+            break
+    if best is not None:
+        std_ok = _foots(prior)
+        if not std_ok:
+            # Label-based parse is broken (a genuine shift) — take the positional one.
+            for key in [k for k in data if k[0] == "prior"]:
+                del data[key]
+            for ccy, fields in best.items():
+                data[("prior", ccy)] = fields
+        elif prior.get("TOTAL", {}).get("net_off_balance") is None \
+                and best.get("TOTAL", {}).get("net_off_balance") is not None \
+                and all(best.get(c, {}).get(f) == prior.get(c, {}).get(f)
+                        for c in ("TOTAL",) for f in ("on_bs_assets", "on_bs_liab",
+                                                      "net_on_balance")) \
+                and _net_off_corroborated(best):
+            # Label-based parse is right on the on-balance rows but dropped the net-off
+            # row (QNBFB 2025Q3 prints its net-off figures 4px above the label, just
+            # past the clustering threshold, orphaning them). The figures survive in
+            # the positional map; fill net_off (and the derivative legs) from it, but
+            # only once the derivative-leg identity corroborates that row really is the
+            # net-off — a derivative-less table can never mis-fill from a non-cash row.
+            for ccy, fields in best.items():
+                data.setdefault(("prior", ccy), {}).update(fields)
+
     for (ptype, ccy), fields in data.items():
+        # Derive a missing PRIOR net-on-balance from its own identity when the source
+        # leaves that cell blank but prints assets and liabilities (QNBFB 2025Q2
+        # prints only two of four net-balance columns, so the row is dropped for a
+        # column-count mismatch). assets − liab is the figure the table itself would
+        # print; we only ever FILL a gap, never overwrite a value that was read.
+        # PRIOR only: a blank current net-balance is the sign of a shifted CURRENT
+        # block (which we don't repair), and deriving it there would silently mask
+        # that break — better to let the completeness validator fail loudly.
+        if ptype == "prior" and fields.get("net_on_balance") is None \
+                and fields.get("on_bs_assets") is not None \
+                and fields.get("on_bs_liab") is not None:
+            fields["net_on_balance"] = fields["on_bs_assets"] - fields["on_bs_liab"]
         row = FxRow(period_type=ptype, currency=ccy, **fields)
         non = row.net_on_balance
         noff = row.net_off_balance

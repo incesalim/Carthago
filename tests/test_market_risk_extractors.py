@@ -229,3 +229,144 @@ def test_fx_period_flip_only_on_standalone_prior():
 def test_fx_period_flip_turkish():
     assert _PRIOR_RX.search("Önceki Dönem") and not _CURRENT_RX.search("Önceki Dönem")
     assert _CURRENT_RX.search("Cari Dönem EURO USD Toplam")
+
+
+# --- fx completeness: partial-extraction green cells must now fail ---
+def _fxrow(currency, period_type="current", **kw):
+    d = {"currency": currency, "period_type": period_type,
+         "on_bs_assets": None, "on_bs_liab": None, "net_on_balance": None,
+         "net_off_balance": None, "net_position": None}
+    d.update(kw)
+    return d
+
+
+def test_fx_net_position_missing_fails():
+    # GARAN pattern: only gross Assets/Liab captured, no net position → not verified.
+    rows = [
+        _fxrow("EUR", on_bs_assets=100, on_bs_liab=60),
+        _fxrow("TOTAL", on_bs_assets=100, on_bs_liab=60),
+    ]
+    res = check_fx_position(rows)
+    assert any(f["check"] == "fx_net_position_missing" for f in res.failures), res.failures
+
+
+def test_fx_current_incomplete_dropped_off_balance_fails():
+    # DENIZ pattern: current drops Net Off-Balance that the prior column carries.
+    rows = [
+        _fxrow("TOTAL", on_bs_assets=100, on_bs_liab=160, net_on_balance=-60,
+               net_off_balance=None, net_position=-60),
+        _fxrow("TOTAL", "prior", on_bs_assets=100, on_bs_liab=160, net_on_balance=-60,
+               net_off_balance=62, net_position=2),
+    ]
+    res = check_fx_position(rows)
+    assert any(f["check"] == "fx_current_incomplete" for f in res.failures), res.failures
+
+
+def test_fx_genuine_no_off_balance_passes():
+    # A bank with NO off-balance FX in BOTH columns is not incomplete — must not flag.
+    rows = [
+        _fxrow("EUR", on_bs_assets=100, on_bs_liab=60, net_on_balance=40,
+               net_off_balance=None, net_position=40),
+        _fxrow("TOTAL", on_bs_assets=100, on_bs_liab=60, net_on_balance=40,
+               net_off_balance=None, net_position=40),
+        _fxrow("EUR", "prior", on_bs_assets=90, on_bs_liab=55, net_on_balance=35,
+               net_off_balance=None, net_position=35),
+        _fxrow("TOTAL", "prior", on_bs_assets=90, on_bs_liab=55, net_on_balance=35,
+               net_off_balance=None, net_position=35),
+    ]
+    res = check_fx_position(rows)
+    assert not any(f["check"] in ("fx_net_position_missing", "fx_current_incomplete")
+                   for f in res.failures), res.failures
+
+
+def test_fx_current_missing_zero_prior_not_flagged():
+    # ATBANK/DUNYAK pattern: prior net_off is 0 (genuinely no off-balance FX), so a
+    # NULL current net_off is not a "dropped" value — must NOT flag.
+    rows = [
+        _fxrow("TOTAL", on_bs_assets=100, on_bs_liab=90, net_on_balance=10,
+               net_off_balance=None, net_position=10),
+        _fxrow("TOTAL", "prior", on_bs_assets=95, on_bs_liab=88, net_on_balance=7,
+               net_off_balance=0.0, net_position=7),
+    ]
+    res = check_fx_position(rows)
+    assert not any(f["check"] == "fx_current_incomplete" for f in res.failures), res.failures
+
+
+def test_fx_prior_incomplete_dropped_off_balance_fails():
+    # TSKB pattern: the PRIOR column drops Net Off-Balance that the current column
+    # carries → prior net_position collapses to net_on only (sign-flipped), which
+    # every within-column identity still accepts. The symmetric check catches it.
+    rows = [
+        _fxrow("TOTAL", on_bs_assets=140, on_bs_liab=151, net_on_balance=-11,
+               net_off_balance=12, net_position=1),
+        _fxrow("TOTAL", "prior", on_bs_assets=91, on_bs_liab=100, net_on_balance=-9,
+               net_off_balance=None, net_position=-9),
+    ]
+    res = check_fx_position(rows)
+    assert any(f["check"] == "fx_prior_incomplete" for f in res.failures), res.failures
+    # …and it is NOT mislabelled as a current-column drop.
+    assert not any(f["check"] == "fx_current_incomplete" for f in res.failures), res.failures
+
+
+def test_fx_cross_period_divergence_fails():
+    # The prior column re-prints the prior year-end; disagreeing with that year-end's
+    # independently-extracted current TOTAL is the external anchor (both columns here
+    # are complete, so this is a genuine value divergence, not a drop).
+    rows = [
+        _fxrow("TOTAL", on_bs_assets=100, on_bs_liab=60, net_on_balance=40,
+               net_off_balance=5, net_position=45),
+        _fxrow("TOTAL", "prior", on_bs_assets=90, on_bs_liab=55, net_on_balance=35,
+               net_off_balance=6, net_position=41),
+    ]
+    res = check_fx_position(rows, prior_ye_totals={"net_position": 25.0})
+    assert any(f["check"] == "fx_cross_period" for f in res.failures), res.failures
+
+
+def test_fx_cross_period_matching_year_end_passes():
+    # Prior column == prior year-end current → the anchor is satisfied, no flag.
+    rows = [
+        _fxrow("TOTAL", on_bs_assets=100, on_bs_liab=60, net_on_balance=40,
+               net_off_balance=5, net_position=45),
+        _fxrow("TOTAL", "prior", on_bs_assets=90, on_bs_liab=55, net_on_balance=35,
+               net_off_balance=6, net_position=41),
+    ]
+    res = check_fx_position(rows, prior_ye_totals={"net_position": 41.0})
+    assert not any(f["check"] == "fx_cross_period" for f in res.failures), res.failures
+
+
+def test_fx_cross_period_skips_when_prior_incomplete():
+    # When the prior column dropped net_off, its net_position is unreliable — the
+    # cross-period anchor must NOT double-flag (fx_prior_incomplete owns it).
+    rows = [
+        _fxrow("TOTAL", on_bs_assets=140, on_bs_liab=151, net_on_balance=-11,
+               net_off_balance=12, net_position=1),
+        _fxrow("TOTAL", "prior", on_bs_assets=91, on_bs_liab=100, net_on_balance=-9,
+               net_off_balance=None, net_position=-9),
+    ]
+    res = check_fx_position(rows, prior_ye_totals={"net_position": 1.0})
+    assert not any(f["check"] == "fx_cross_period" for f in res.failures), res.failures
+
+
+def test_fx_cross_period_no_anchor_no_flag():
+    # First-year partition (no prior year-end supplied) → the anchor simply doesn't run.
+    res = check_fx_position(_fx_rows(), prior_ye_totals=None)
+    assert not any(f["check"] == "fx_cross_period" for f in res.failures), res.failures
+
+
+def test_fx_cross_period_catches_symmetric_net_off_drop():
+    # BURGAN pattern: the net_off row is dropped from BOTH columns, so the
+    # symmetric completeness check sees no asymmetry — only the cross-period read
+    # against the year-end (which DID carry a net_off) exposes the collapsed
+    # net_position. The anchor must not be gated on prior net_off being present.
+    rows = [
+        _fxrow("TOTAL", on_bs_assets=91, on_bs_liab=117, net_on_balance=-25,
+               net_off_balance=None, net_position=-25),
+        _fxrow("TOTAL", "prior", on_bs_assets=76, on_bs_liab=103, net_on_balance=-27,
+               net_off_balance=None, net_position=-27),
+    ]
+    # prior year-end carried a real net_off → its net position was ~-1.75.
+    res = check_fx_position(rows, prior_ye_totals={"net_position": -1.75})
+    assert any(f["check"] == "fx_cross_period" for f in res.failures), res.failures
+    # completeness (symmetric) correctly stays silent — nothing to compare within.
+    assert not any(f["check"] in ("fx_current_incomplete", "fx_prior_incomplete")
+                   for f in res.failures), res.failures

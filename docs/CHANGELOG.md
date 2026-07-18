@@ -5,6 +5,47 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-07-18.
 
+2026-07-18 — **FX net position: the false-NEGATIVE sweep — 79 wrong greens → 0.**
+The first pass (below) cleared every RED cell. This one attacked the greens, and
+they were hiding as much as the reds were.
+
+The lane's checks were all internal — Σ currencies = TOTAL, assets−liab = net
+balance, net balance + net off = net position — and every one skips an absent
+field. So a filing that dropped its Net Off-Balance row still footed on the
+columns that survived and read a flawless green, while net_position (the figure
+/market-risk actually shows) quietly became net_on only. The net+off=position
+check was the worst offender: it "verified" a number the extractor itself
+computed. Nothing internal can see a dropped row.
+
+The anchor that can: a quarterly filing's prior column re-prints the prior
+YEAR-END unchanged, so it must equal that year-end's independently-extracted
+current column. Across the corpus, 88 pairs disagreed. A new `fx_cross_period`
+check codifies the comparison; two symmetric completeness checks catch a field
+dropped from either column. Together they flagged 79 greens.
+
+53 were systematic extractor drops, recovered from source: a prior net-off row
+whose label varied between the two columns (an en-dash, or a different Turkish
+phrase — BURGAN even switched English→Turkish mid-series and dropped the row from
+both columns), a value block printed offset from its labels so each figure glued
+to the wrong row (re-paired positionally, accepted only when it satisfies the
+table's own identities and the label parse doesn't), and a couple of gap-fills.
+
+4 were genuine value errors the source contradicts itself on — a derivative leg
+added instead of subtracted, a sign flipped, a dropped liability, a lost negative
+— each corrected from the table's own sub-rows and confirmed by the neighbouring
+filing, then overridden. 8 were real restatements or defective/blank prior
+columns the filers themselves printed → curated cross-period skips (footing stays
+live). And 2 were whole misfiled PDFs the anchor exposed for free: GARAN's 2023Q4
+"unconsolidated" slot holds the consolidated report, KUVEYT's 2026Q1
+"consolidated" holds the unconsolidated one — the entire partition is another
+basis's numbers, a cross-lane re-acquisition follow-up.
+
+Cross-period divergence fell 88 → 14 pairs, all 14 documented. The lesson worth
+keeping: an internal identity that skips NULLs verifies nothing about what's
+missing, and never repair a cell from the value the check compares it against —
+that just makes the check pass by construction. Detail in
+docs/knowledge/audit-fx-cross-period-false-negatives-2026-07-18.md.
+
 2026-07-18 — **FX net open position: 21 errors + 66 missing → 0/0.**
 Two extractor fixes recovered most of it; the rest was hand-read from source.
 

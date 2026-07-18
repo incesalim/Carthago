@@ -1284,17 +1284,94 @@ def _bs_loans_total(bs_rows: list[dict] | None) -> float | None:
 _STAGES_BS_BAND = (0.8, 1.3)
 
 
-def check_fx_position(rows: list[dict]) -> ValidationResult:
+def check_fx_position(rows: list[dict],
+                      prior_ye_totals: dict | None = None) -> ValidationResult:
     """Currency-risk (§4) footing — current period only:
       column: Σ per-currency rows = TOTAL (assets, liab, net BS, net off, net pos)
       row:    net balance position = assets − liab ; net position = net BS + net off
     All values from the one printed table, so footing is exact; tolerant only of
-    rounding. Skips (never false-fails) when a field is absent."""
+    rounding. Skips (never false-fails) when a field is absent.
+
+    `prior_ye_totals` (optional) is the SAME bank's current-column TOTAL from the
+    prior year-end filing — the independent read the prior column re-prints —
+    supplied by revalidate_partition. When present it drives `fx_cross_period`,
+    the external anchor (see check (3))."""
     res = ValidationResult()
     cur = {r.get("currency"): r for r in rows if r.get("period_type") == "current"}
     if not cur or "TOTAL" not in cur:
         res.add_skip()
         return res
+
+    # COMPLETENESS — the footing identities below all SKIP an absent field, so a
+    # partial extraction reads green: the surviving columns foot, the missing ones
+    # are silently skipped, and net_position (the lane's headline figure, and what
+    # /market-risk shows) collapses to whatever WAS captured. Three guards close
+    # that; (1)+(2) need only the partition's own rows.
+    tot_cur = cur["TOTAL"]
+    pri = {r.get("currency"): r for r in rows if r.get("period_type") == "prior"}
+    tot_pri = pri.get("TOTAL")
+
+    def _dropped(a: dict, b: dict) -> str | None:
+        # First field present & non-trivially non-zero in b but NULL in a (a
+        # dropped it). Non-zero because a zero can't be "dropped" and a bank that
+        # genuinely runs no off-balance FX prints net_off = 0 (not a value we miss).
+        for fld in ("on_bs_assets", "on_bs_liab", "net_on_balance", "net_off_balance"):
+            bv = b.get(fld)
+            if bv is not None and abs(bv) > 1.0 and a.get(fld) is None:
+                return fld
+        return None
+
+    # (1) The net balance-sheet position is disclosed by every currency-risk table.
+    # A TOTAL row without it means only the gross Assets/Liab rows were captured
+    # (GARAN: 34/34) → not a verified net FX position, so fail rather than pass on
+    # two gross-column footings.
+    completeness_failed = False
+    if tot_cur.get("net_on_balance") is None:
+        res.add_fail("fx_net_position_missing",
+                     "current TOTAL has no net balance-sheet position (only gross "
+                     "assets/liab captured)", expected=0.0, actual=0.0)
+        completeness_failed = True
+    # (2) SYMMETRIC column completeness — neither the current nor the prior TOTAL
+    # may drop a field the OTHER column carries. They are the same rows one year
+    # apart, so a field in one but NULL in the other was dropped from that block:
+    # DENIZ/TEB drop the current Net Off-Balance (derivative-hedge) row, ZIRAAT
+    # drops current Assets, and TSKB drops the PRIOR net-off row (storing a
+    # net_position of net_on only — sign-flipped, yet accepted by every identity
+    # because net_position = net_on + net_off just skips the NULL). A bank that
+    # genuinely lacks a row lacks it in BOTH columns, so this never false-fails.
+    elif tot_pri is not None:
+        drop_cur = _dropped(tot_cur, tot_pri)
+        drop_pri = _dropped(tot_pri, tot_cur)
+        if drop_cur:
+            res.add_fail("fx_current_incomplete",
+                         f"current TOTAL dropped {drop_cur} (present in the prior column)",
+                         expected=0.0, actual=0.0)
+            completeness_failed = True
+        elif drop_pri:
+            res.add_fail("fx_prior_incomplete",
+                         f"prior TOTAL dropped {drop_pri} (present in the current column)",
+                         expected=0.0, actual=0.0)
+            completeness_failed = True
+
+    # (3) CROSS-PERIOD reconciliation — the external anchor the within-partition
+    # identities cannot be. The prior column re-prints the prior year-end, so it
+    # must equal that year-end's INDEPENDENTLY-extracted current column. It runs
+    # unless completeness (1)/(2) already owns this partition — so it is NOT gated
+    # on prior net_off being present: a net-off row dropped from BOTH columns
+    # (BURGAN/ENPARA) is invisible to the symmetric check (no asymmetry to see) and
+    # collapses net_position to net_on, which only a cross-period read against the
+    # year-end can catch. What it flags is a genuine value divergence — an
+    # extraction drop, or a real restatement between filings (a curated skip).
+    if (not completeness_failed and prior_ye_totals is not None and tot_pri is not None
+            and tot_pri.get("net_position") is not None
+            and prior_ye_totals.get("net_position") is not None):
+        pp = tot_pri["net_position"]
+        yy = prior_ye_totals["net_position"]
+        if abs(pp - yy) > _tol(max(abs(pp), abs(yy)), base=2.0, rel=5e-3):
+            res.add_fail("fx_cross_period",
+                         "prior-column net position ≠ prior year-end current net position",
+                         expected=yy, actual=pp)
+
     parts = [c for c in cur if c != "TOTAL"]
     tot = cur["TOTAL"]
     for fld in ("on_bs_assets", "on_bs_liab", "net_on_balance",

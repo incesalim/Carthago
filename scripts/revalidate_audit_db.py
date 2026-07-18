@@ -252,6 +252,58 @@ _FX_SKIP = frozenset({
     ("ISCTR", "2024Q2", "unconsolidated"),
 })
 
+# fx_position partitions where the prior column faithfully re-prints the prior
+# year-end but that year-end LEGITIMATELY differs from our independently-extracted
+# copy — so `fx_cross_period` (only) must not run. The footing + completeness
+# checks stay live (prior_ye_totals=None just withholds the cross-period anchor).
+# Each was pixel-verified against BOTH filings: our storage is faithful on both
+# sides, the divergence is real. Distinct from a mis-extraction (→ fixed/overridden).
+#   HALKB 2025Q3/Q4 unco: genuine on-balance restatement of 31-Dec-2024 (EUR+OTHER
+#     legs revised between the annual and interim filings; off-balance + USD leg
+#     byte-identical, so it's a real restatement, not a column swap).
+#   ALBRK 2023Q1 cons: minor genuine restatement of 31-Dec-2022 (EUR on-balance
+#     leg +58,743; everything else identical).
+#   TOMK 2024Q1–Q4 unco: a new bank whose filings print DEFECTIVE prior columns —
+#     blank/dashes (Q1) or a malformed 39,829 (Q2–Q4) — where the true 31-Dec-2023
+#     is 4,084. Storing the (defective) printed comparative is faithful; the value
+#     the source doesn't print can't be an override.
+#   ALNTF 2023Q1 unco: the "31 Aralık 2022" prior column prints 2021 data (byte-
+#     identical to the 2022Q4 filing's 2021 column) — a filer year-swap. Faithful
+#     storage of a stale column; the true 31-Dec-2022 (90,926) is elsewhere.
+_FX_XPERIOD_SKIP = frozenset({
+    ("HALKB", "2025Q3", "unconsolidated"),
+    ("HALKB", "2025Q4", "unconsolidated"),
+    ("ALBRK", "2023Q1", "consolidated"),
+    ("TOMK", "2024Q1", "unconsolidated"),
+    ("TOMK", "2024Q2", "unconsolidated"),
+    ("TOMK", "2024Q3", "unconsolidated"),
+    ("TOMK", "2024Q4", "unconsolidated"),
+    ("ALNTF", "2023Q1", "unconsolidated"),
+})
+
+# WRONG-PDF partitions the cross-period anchor EXPOSED — the R2 object under this
+# key is the wrong report entirely, so the whole partition (BS/PL/every lane, not
+# just fx) is another basis's numbers. The proper fix is re-acquiring the correct
+# PDF and re-extracting the partition (a cross-lane follow-up, tracked in
+# PROJECT_STATE); until then we suppress ONLY the fx cross-period flag rather than
+# fabricate fx by copying the correct value from a neighbouring filing (that would
+# read green while BS/PL stay corrupt). Each verified against the actual R2 key.
+#   GARAN 2023Q4 unconsolidated: the object is the CONSOLIDATED report (all pages
+#     read "Consolidated"). Its fx current/prior are consolidated 31-Dec-2023/2022.
+#     The true unconsolidated figures are the bank's OWN 2024Q1 prior (25,130,005)
+#     and 2022Q4 current (7,954,807) — so 2024Q1–Q4 unco flag only because their
+#     (correct) prior column is compared against this corrupt year-end.
+#   KUVEYT 2026Q1 consolidated: the object is the UNCONSOLIDATED report (both R2
+#     keys point at the identical file); its fx is unconsolidated basis.
+_FX_WRONGPDF_SKIP = frozenset({
+    ("GARAN", "2023Q4", "unconsolidated"),
+    ("GARAN", "2024Q1", "unconsolidated"),
+    ("GARAN", "2024Q2", "unconsolidated"),
+    ("GARAN", "2024Q3", "unconsolidated"),
+    ("GARAN", "2024Q4", "unconsolidated"),
+    ("KUVEYT", "2026Q1", "consolidated"),
+})
+
 
 def curated_skip_banks() -> set[tuple[str, str]]:
     """(bank, statement_type_key) skipped for EVERY period — currently just
@@ -463,6 +515,34 @@ def _fx_position_rows(conn, bank, period, kind):
                 (bank, period, kind))]
 
 
+def _fx_prior_ye_totals(conn, bank, period, kind) -> dict | None:
+    """This bank's current-column TOTAL FX net position from the PREVIOUS
+    year-end filing — the independent read the prior column re-prints.
+
+    The currency-risk table's comparative is the prior YEAR-END (31 Dec),
+    re-printed unchanged in every interim filing of the following year (the prior
+    column is constant across a bank's four quarters, which is how we know it's
+    the fixed year-end, not a rolling prior quarter). So for any 2024Qx the prior
+    column must equal 2023Q4's current column. Feeds check_fx_position's
+    `fx_cross_period` — the external anchor that catches a dropped/mis-mapped
+    prior column (TSKB drops the prior net-off row, storing a sign-flipped net
+    position that every within-partition identity accepts).
+    """
+    if not _has_table(conn, "bank_audit_fx_position"):
+        return None
+    try:
+        prior = f"{int(period[:4]) - 1}Q4"
+    except ValueError:
+        return None
+    row = conn.execute(
+        "SELECT net_position, net_on_balance, net_off_balance "
+        "FROM bank_audit_fx_position WHERE bank_ticker=? AND period=? AND kind=? "
+        "AND currency='TOTAL' AND period_type='current'", (bank, prior, kind)).fetchone()
+    if not row:
+        return None
+    return {"net_position": row[0], "net_on_balance": row[1], "net_off_balance": row[2]}
+
+
 def _repricing_rows(conn, bank, period, kind):
     if not _has_table(conn, "bank_audit_repricing"):
         return []
@@ -546,9 +626,16 @@ def revalidate_partition(conn, bank: str, period: str, kind: str) -> dict[str, "
         else v.check_loans_by_sector(_loans_sector_rows(conn, bank, period, kind),
                                      prior_year_total=_prior_year_sector_total(
                                          conn, bank, period, kind)))
+    # prior_ye_totals drives the cross-period anchor; withhold it (only) for the
+    # curated genuine-restatement / defective-comparative partitions so footing
+    # and completeness still run.
+    _fx_ye = (None if (bank, period, kind) in _FX_XPERIOD_SKIP
+              or (bank, period, kind) in _FX_WRONGPDF_SKIP
+              else _fx_prior_ye_totals(conn, bank, period, kind))
     results["fx_position"] = (
         _skip_result() if (bank, period, kind) in _FX_SKIP
-        else v.check_fx_position(_fx_position_rows(conn, bank, period, kind)))
+        else v.check_fx_position(_fx_position_rows(conn, bank, period, kind),
+                                 prior_ye_totals=_fx_ye))
     results["repricing"]      = v.check_repricing(_repricing_rows(conn, bank, period, kind))
     # The bank's OTHER filing for the same quarter. A consolidated group contains
     # the parent, so cons >= unco on branches and staff is arithmetic, not a
