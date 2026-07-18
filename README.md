@@ -61,7 +61,7 @@ for GitHub Actions): `EVDS_API_KEY`, `CLOUDFLARE_API_TOKEN`,
 ## Project layout
 
 ```
-bddk_analysis/
+carthago/
 ├── README.md
 ├── requirements.txt                ← Python deps (ingestion only)
 ├── .env, .env.example, .gitignore

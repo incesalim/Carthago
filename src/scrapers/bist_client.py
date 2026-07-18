@@ -34,7 +34,7 @@ QUOTESUMMARY_URL = "https://query1.finance.yahoo.com/v10/finance/quoteSummary/{s
 
 # A browser UA — the chart API rejects (429/empty) some library UAs.
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) bddk-analysis/1.0",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) carthago/1.0",
     "Accept": "application/json",
 }
 

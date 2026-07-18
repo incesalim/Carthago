@@ -28,7 +28,7 @@ BASE_URL = "https://evds3.tcmb.gov.tr/igmevdsms-dis"
 API_KEY = os.getenv("EVDS_API_KEY")
 HEADERS = {
     "key": API_KEY or "",
-    "User-Agent": "bddk-analysis/1.0",
+    "User-Agent": "carthago/1.0",
     "Accept": "application/json",
 }
 

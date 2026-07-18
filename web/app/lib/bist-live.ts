@@ -60,7 +60,7 @@ async function fetchSpark(symbols: string[]): Promise<Map<string, LiveQuote>> {
       signal: AbortSignal.timeout(TIMEOUT_MS),
       cf: { cacheTtl: 60, cacheEverything: true },
       headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; bddk-analysis/1.0)",
+        "User-Agent": "Mozilla/5.0 (compatible; carthago/1.0)",
         Accept: "application/json",
       },
     };
@@ -142,7 +142,7 @@ export async function rawQuotes(symbols: string[]): Promise<Map<string, RawQuote
       signal: AbortSignal.timeout(TIMEOUT_MS),
       cf: { cacheTtl: 60, cacheEverything: true },
       headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; bddk-analysis/1.0)",
+        "User-Agent": "Mozilla/5.0 (compatible; carthago/1.0)",
         Accept: "application/json",
       },
     };
