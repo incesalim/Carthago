@@ -97,6 +97,9 @@ class RepricingReport:
 
 
 def _fitz_word_lines(pdf_path: str):
+    """Word-lines per page. A token is (x0, x1, text): the right edge is kept
+    because bucket columns are right-aligned, so x1 is what identifies the
+    column a cell sits under when a row can't be read by token count alone."""
     import fitz
     doc = fitz.open(pdf_path)
     pages = []
@@ -105,15 +108,15 @@ def _fitz_word_lines(pdf_path: str):
         rows = []
         for w in sorted(words, key=lambda w: (w[1], w[0])):
             if rows and w[1] - rows[-1][0] <= 3.0:
-                rows[-1][1].append((w[0], w[4]))
+                rows[-1][1].append((w[0], w[2], w[4]))
             else:
-                rows.append((w[1], [(w[0], w[4])]))
+                rows.append((w[1], [(w[0], w[2], w[4])]))
         pages.append([sorted(toks) for _, toks in rows])
     return pages, doc
 
 
 def _label(tokens) -> str:
-    return " ".join(t for _, t in tokens).strip()
+    return " ".join(t[-1] for t in tokens).strip()
 
 
 def _unglue(tok: str) -> list[str]:
@@ -134,14 +137,168 @@ def _unglue(tok: str) -> list[str]:
     return [tok]
 
 
+def _destray(tok: str) -> str | None:
+    """Recover a numeric cell with ONE stray alpha glyph fused to it — TAKAS
+    2023Q3 prints the Faizsiz total assets as '3,768,782f'. The token fails
+    _NUM_TOKEN, so it was dropped, the assets row came out one value short, and
+    ncols locked at 6 — which then rejected every 7-value row below it.
+
+    Strip a single leading/trailing ASCII letter iff what remains is a grouped
+    number. Requiring a thousands/decimal separator is what keeps this safe: a
+    real label never survives it, and neither does a bare 'digit+letter'."""
+    for core, dropped in ((tok[:-1], tok[-1:]), (tok[1:], tok[:1])):
+        if (len(dropped) == 1 and dropped.isascii() and dropped.isalpha()
+                and ("," in core or "." in core) and _NUM_TOKEN.match(core)):
+            return core
+    return None
+
+
 def _value_tokens(tokens) -> list[str]:
     out: list[str] = []
-    for _, t in tokens:
+    for tok in tokens:
+        t = tok[-1]
         if _MARKER_RX.match(t):               # footnote ref, not a value
             continue
         if t in _NIL or _NUM_TOKEN.match(t):
             out.extend(_unglue(t))
+            continue
+        core = _destray(t)
+        if core is not None:
+            out.extend(_unglue(core))
     return out
+
+
+def _is_value_line(tokens) -> bool:
+    """True if every token on the line is a value (or a footnote marker) and at
+    least one is — i.e. a continuation line carrying figures but no label."""
+    seen = 0
+    for tok in tokens:
+        t = tok[-1]
+        if _MARKER_RX.match(t):
+            continue
+        if t in _NIL or _NUM_TOKEN.match(t) or _destray(t) is not None:
+            seen += 1
+        else:
+            return False
+    return seen > 0
+
+
+def _x_columns(window):
+    """Group the tokens of a few consecutive word-lines into vertically aligned
+    columns by x-interval overlap. Each column comes back as
+    [(line_offset, x0, text), ...] in reading order, so a header cell that wraps
+    over several rows is reassembled into one string."""
+    items = [(li, x0, x1, t)
+             for li, ln in enumerate(window) for (x0, x1, t) in ln]
+    items.sort(key=lambda it: it[1])
+    cols: list[list] = []                      # [lo, hi, [(line, x0, text)…]]
+    for li, x0, x1, t in items:
+        for c in cols:
+            if x0 <= c[1] and c[0] <= x1:      # x-intervals overlap
+                c[0], c[1] = min(c[0], x0), max(c[1], x1)
+                c[2].append((li, x0, t))
+                break
+        else:
+            cols.append([x0, x1, [(li, x0, t)]])
+    return [sorted(c[2]) for c in cols]
+
+
+def _nonint_line(lines) -> int | None:
+    """Index of the line carrying the non-interest bucket header, else None.
+
+    Nearly every filing prints it on one word-line. COLENDI's English template
+    stacks it vertically across three header rows ('Non-' / 'Interest' /
+    'Bearing'), one fragment per row, so no single line matches and the whole
+    table was missed — three quarters read as having no repricing schedule at
+    all. Falling back to the x-aligned column reconstruction rebuilds the cell
+    and matches it there. The caller still demands the gap row on the same page,
+    so this stays pinned to the repricing ladder and can't latch onto prose.
+
+    Returns the LAST line of a wrapped header, so the caller can treat anything
+    above it as belonging to a different table."""
+    for j, toks in enumerate(lines):
+        if _NONINT_RX.search(_label(toks)):
+            return j
+    for j in range(len(lines) - 1):
+        window = lines[j:j + 3]
+        if len(window) < 2:
+            break
+        for col in _x_columns(window):
+            if len({li for li, _, _ in col}) < 2:   # must genuinely wrap
+                continue
+            if _NONINT_RX.search(" ".join(t for _, _, t in col)):
+                return j + max(li for li, _, _ in col)
+    return None
+
+
+def _col_anchors(tokens, ncols) -> list[float] | None:
+    """Right-edge x of each bucket column, read off one fully-populated row.
+    Trusted only when the row holds exactly one raw token per column — if any
+    cell had to be unglued or de-strayed the anchors no longer line up 1:1 with
+    the buckets, so we return None and the column fallback stays switched off."""
+    xs = [x1 for (_, x1, t) in tokens
+          if not _MARKER_RX.match(t) and (t in _NIL or _NUM_TOKEN.match(t))]
+    return xs if len(xs) == ncols else None
+
+
+def _page_anchors(lines, ncols, first=0) -> list[float] | None:
+    """Bucket-column right edges for ONE page, off its first complete row.
+
+    Anchors must be read from the page being parsed rather than carried across
+    the section: ICBCT's prior-period table is laid out some 30pt to the right
+    of its current-period one, so page-1 anchors land between page-2 columns."""
+    for toks in lines[first:]:
+        xs = _col_anchors(toks, ncols)
+        if xs:
+            return xs
+    return None
+
+
+def _row_by_columns(lines, j, col_x, ncols) -> list[str] | None:
+    """Rebuild a summary row that doesn't come out as ncols tokens on one line,
+    by mapping each value to the bucket column it physically sits under.
+
+    Two real layouts need this. A cell can be genuinely BLANK — ZIRAATD 2025Q4
+    prints nothing under '5 Yıl ve Üzeri', not even a dash, leaving the position
+    row one token short and positionally ambiguous without x. Or a cell's text
+    can wrap onto its own line and shove the label down with it — EXIM 2025Q3
+    breaks '(111.782.553)' into '(111.782.55' and '3)' three lines apart, so the
+    label line carries no usable figures and the line above holds only six.
+
+    Tokens are gathered from the label line plus the run of pure-value lines
+    directly above and below it, snapped to the nearest column anchor, and
+    fragments landing in the same column are rejoined in reading order; a column
+    with no token reads as nil. The row is accepted only if every token found a
+    column, at most one column is empty, and the values FOOT — that footing test
+    is what makes this an alignment rather than a guess."""
+    if not col_x or len(col_x) != ncols or ncols < 3:
+        return None
+    span = [(0, lines[j])]
+    for step in (-1, 1):                       # walk out over value-only lines
+        k = j + step
+        while 0 <= k < len(lines) and abs(k - j) <= 3 and _is_value_line(lines[k]):
+            span.append((k - j, lines[k]))
+            k += step
+    items = [(order, x0, x1, t)
+             for order, ln in span for (x0, x1, t) in ln
+             if not _MARKER_RX.match(t)
+             and (t in _NIL or _NUM_TOKEN.match(t) or _destray(t) is not None)]
+    if len(items) < ncols - 1:
+        return None
+    tol = 0.5 * min(abs(col_x[i + 1] - col_x[i]) for i in range(ncols - 1))
+    slots: list[list] = [[] for _ in col_x]
+    for order, x0, x1, t in items:
+        dist, ci = min((abs(x1 - cx), ci) for ci, cx in enumerate(col_x))
+        if dist > tol:
+            return None                        # orphan token — refuse to guess
+        slots[ci].append((order, x0, t))
+    if sum(1 for s in slots if not s) > 1 or not slots[-1]:
+        return None
+    vals = ["".join(t for _, _, t in sorted(s)) if s else "-" for s in slots]
+    nums = [parse_num(v) for v in vals]
+    if any(v is None for v in nums) or abs(sum(nums[:-1]) - nums[-1]) > 1.0:
+        return None
+    return vals
 
 
 def extract_from_pdf(pdf: object = None, pdf_path: str = "") -> RepricingReport:
@@ -158,24 +315,42 @@ def extract_from_pdf(pdf: object = None, pdf_path: str = "") -> RepricingReport:
         # Locate the IR table: a page with the gap row AND a non-interest bucket
         # header (the gap row alone could be a different table; the Faizsiz/
         # Non-Interest header pins it to the repricing schedule).
-        start = None
+        start = header_j = None
         for i in range(min(_SKIP_PAGES, n), n):
             lns = pages[i]
             has_gap = any(any(rx.match(_label(t)) for rx in _gap_rx) for t in lns)
-            has_nonint = any(_NONINT_RX.search(_label(t)) for t in lns)
-            if has_gap and has_nonint:
-                start = i
+            if not has_gap:
+                continue
+            nonint_j = _nonint_line(lns)
+            if nonint_j is not None:
+                start, header_j = i, nonint_j
                 break
         if start is None:
             return rep
         rep.source_page = start + 1
+        # Anything above the non-interest header on the first page belongs to a
+        # different table. The currency-risk ladder often ends on this page, and
+        # its prior-period "Toplam varlıklar" — four columns wide (EUR/USD/other/
+        # total) — was being met first and locking ncols=4, after which every
+        # 7-column repricing row was rejected (TAKAS 2023Q1). Only gate when a
+        # real assets row actually follows the header, so that a filing whose
+        # only Faizsiz mention is a footnote UNDER the table is left untouched.
+        if header_j is not None and not any(
+                any(rx.match(_label(t)) for rx in _assets_rx)
+                for t in pages[start][header_j + 1:]):
+            header_j = None
 
         ncols: int | None = None     # number of bucket columns incl. total
         data: dict[tuple[str, str], dict[str, float | None]] = {}
         period = "current"
         for i in range(start, min(n, start + _MAX_SECTION_PAGES)):
             lines = pages[i]
+            gate = header_j + 1 if (i == start and header_j is not None) else 0
+            col_x: list[float] | None = None   # bucket column edges, THIS page
+            col_x_tried = False
             for j, tokens in enumerate(lines):
+                if i == start and header_j is not None and j < header_j:
+                    continue                 # above the header ⇒ another table
                 lab = _label(tokens)
                 if not lab:
                     continue
@@ -194,14 +369,26 @@ def extract_from_pdf(pdf: object = None, pdf_path: str = "") -> RepricingReport:
                         continue
                     vals = _value_tokens(tokens)
                     # A summary label alone on its word-line (ATBANK's position row)
-                    # — its figures are on the next line. Borrow them if that line
-                    # is pure values of the right width and not itself a labelled row.
+                    # — its figures are on the next line. Borrow them only if that
+                    # line is PURE values of the right width. Testing that it isn't
+                    # one of the three summary labels was too weak: ZIRAATD 2025Q4's
+                    # prior "Toplam Yükümlülükler" is one cell short, so the borrow
+                    # reached past it and took "Bilançodaki Uzun Pozisyon"'s figures
+                    # as the liabilities. A donor carrying any label is never right.
                     if ncols is not None and len(vals) < ncols and j + 1 < len(lines):
                         nxt = lines[j + 1]
-                        if _value_tokens(nxt) and len(_value_tokens(nxt)) == ncols \
-                                and not any(rx.match(_label(nxt))
-                                            for _, rxs2 in _ROW_RX for rx in rxs2):
+                        if _is_value_line(nxt) and len(_value_tokens(nxt)) == ncols:
                             vals = _value_tokens(nxt)
+                    # Still the wrong width: fall back to placing each value under
+                    # its bucket column by x. Only reached for rows that would
+                    # otherwise be dropped, and only accepted when the row foots.
+                    if ncols is not None and len(vals) != ncols:
+                        if not col_x_tried:
+                            col_x = _page_anchors(lines, ncols, gate)
+                            col_x_tried = True
+                        rebuilt = _row_by_columns(lines, j, col_x, ncols)
+                        if rebuilt is not None:
+                            vals = rebuilt
                     # Lock the column count off the first assets row we see.
                     if ncols is None and fld == "rate_sensitive_assets":
                         ncols = len(vals)

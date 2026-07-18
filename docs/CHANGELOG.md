@@ -30,7 +30,20 @@ printed without its parentheses, EXIM/ZIRAATD dropped gap rows, two TAKAS mis-pa
 (one locked to a shared FX table, one a stray "f" glyph), and COLENDI ×3 whose
 ladder IS disclosed but whose wrapped "Non-Interest Bearing" header defeats the
 locator. ICBCT's ₺7k gap-rounding is a source artifact → skipped, faithfully stored.
-Detail in docs/knowledge/audit-repricing-lane-2026-07-18.md.
+
+A second pass then hardened all five brittleness classes those hand-fixes had
+exposed, so 7 of the 15 overrides could be retired — those partitions now come
+from source (and TAKAS/EXIM/ZIRAATD return both periods, where the override held
+only one). The method is x-coordinate column reconstruction: keep each token's
+right edge (bucket columns are right-aligned), rebuild a header split across word
+lines, read column anchors per page off one fully-populated row, then map values
+to columns by position — scanning the lines above as well as below a label, and
+tolerating one empty cell. What makes a positional guess safe is the acceptance
+test: the reconstruction is used only if the values FOOT. 0 regression across 10
+controls. The 8 overrides that remain are source defects no extractor can fix —
+FIBA's vector-drawn tables, a clipped digit in ISCTR's PDF, and a QNBFB gap the
+source prints without its parentheses. Detail in
+docs/knowledge/audit-repricing-lane-2026-07-18.md.
 
 2026-07-18 — **Wrong-PDF guard at acquisition time.** After the fx anchor
 caught two partitions whose R2 object was the wrong report entirely, added a
