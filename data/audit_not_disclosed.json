@@ -144,7 +144,7 @@
       "bank": "DUNYAK",
       "kind": "*",
       "statement": "repricing",
-      "note": "Participation (Katılım) bank — no interest-rate repricing ladder (no Faizsiz column on any rate-risk page; extract yields 0 rows). Verified against 2026Q1 PDF 2026-07-15."
+      "note": "Participation (Katılım) bank — from 2024Q1 reports profit-share-rate risk narratively, no bucketed ladder (extract yields 0 rows → N/A). NOTE: 2023Q4 alone used the conventional Faiz template WITH a Faizsiz repricing ladder (p44 — extracts, reads ok, unaffected by this * entry); switched to the no-ladder participation format from 2024Q1. Re-verified per-quarter 2026-07-18."
     },
     {
       "bank": "HAYATK",
