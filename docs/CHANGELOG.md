@@ -5,6 +5,20 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-07-18.
 
+2026-07-18 — **Wrong-PDF guard at acquisition time.** After the fx anchor
+caught two partitions whose R2 object was the wrong report entirely, added a
+consolidation-basis check so the class can't recur silently.
+
+sync_audit_reports now reads each fetched PDF's own front matter and refuses to
+store it under a key whose kind it contradicts — a "…Unconsolidated…" URL that
+actually serves the consolidated report is blocked, not saved. The classifier
+handles both languages' substring traps (Turkish "konsolide olmayan" contains
+"konsolide"; English "unconsolidated" contains "consolidated") and only acts on a
+confident, dominant verdict, so it never blocks on an ambiguous or image-only
+cover. A new --verify-basis mode sweeps the existing archive for the same class
+(the scrape guard only sees new fetches; keys already in R2 are skipped). Pure-text
+unit tests; the basis is read with fitz, no pdfplumber.
+
 2026-07-18 — **FX net position: the false-NEGATIVE sweep — 79 wrong greens → 0.**
 The first pass (below) cleared every RED cell. This one attacked the greens, and
 they were hiding as much as the reds were.

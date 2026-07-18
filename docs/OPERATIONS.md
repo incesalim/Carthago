@@ -83,6 +83,9 @@ python scripts/refresh.py --skip-monthly --skip-weekly
 python scripts/sync_audit_reports.py --db data/bank_audit.db
 # Or just one bank's freshly published quarter:
 python scripts/sync_audit_reports.py --db data/bank_audit.db --only-bank ZIRAAT --latest-period
+# Audit the archive for WRONG-BASIS PDFs (consolidated file under an
+# "unconsolidated" key or vice-versa) — read-only, exits non-zero on any mismatch:
+python scripts/sync_audit_reports.py --verify-basis            # all banks
 python scripts/build_bank_audit_stages.py --db data/bank_audit.db
 
 # Push new rows to D1 (requires CLOUDFLARE_API_TOKEN)
@@ -506,6 +509,15 @@ change behaviour when set. Only `EVDS_API_KEY` is in `.env.example`:
   `(code, period_date)`).
 - **`sync_audit_reports.py` reports a 404** — bank rotated a URL on
   their IR site. Update the entry in `audit_report_urls.json`.
+- **`basis-mismatch:has-consolidated` (or `-unconsolidated`) on scrape** — the URL
+  serves the WRONG report (a consolidated PDF under an `unconsolidated` key, or
+  vice-versa). The scrape guard refuses to store it. Fix the URL in
+  `audit_report_urls.json` (the correct file often has a different naming — GARAN's
+  is on the Turkish site as `…Konsolide_Olmayan…`; a bank may list the consolidated
+  under a `konsolide-` prefix with a different id) and re-run. Audit the whole
+  archive for the class with `--verify-basis`. The basis is read from the PDF's own
+  cover/auditor's-report front matter (`classify_report_basis`), so a filing whose
+  content genuinely contradicts its filename is caught, not just a bad link.
 - **D1 push errors `no such column`** — schema drift between local SQLite and D1.
   This should now **self-heal**: `ensure_d1_schema()` (`scripts/audit_d1.py`) has
   been column-aware since 2026-07-03 — it diffs the canonical schema (DDL **plus**
