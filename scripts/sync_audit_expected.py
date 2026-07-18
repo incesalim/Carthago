@@ -143,6 +143,11 @@ _STMT_TO_KEY = {
     # extraction or FIBA printed the table as a graphic.
     "fx_position": "fx_position",
     "fx_position_replace": "fx_position",
+    # §4 interest-rate repricing ladder: a per-bucket patch (ISCTR 2025Q4 con's
+    # source-clipped assets cell) and whole-table replaces for FIBA's vector-only
+    # tables — read a machine 'ok' without this.
+    "repricing": "repricing",
+    "repricing_replace": "repricing",
 }
 
 

@@ -151,6 +151,47 @@ def _apply_one(conn: sqlite3.Connection, o: dict) -> str:
             f"UPDATE bank_audit_fx_position SET {sets} WHERE bank_ticker=? AND period=? "
             "AND kind=? AND currency=? AND period_type=?", (*vals, b, p, k, ccy, pt))
         return f"fx_position update {b} {p} {k} {ccy}/{pt} {dict((c, o['fields'][c]) for c in cols)}"
+    if st == "repricing_replace":
+        # Whole-partition insert of the §4 interest-rate repricing ladder for a
+        # partition the extractor can't reach — FIBA prints the table as a vector
+        # graphic (fitz get_text is empty), hand-transcribed from a render. `rows`
+        # = [{period_type, bucket, rate_sensitive_assets, rate_sensitive_liab, gap},
+        # ...] for current (+ prior); cumulative_gap is derived over dated buckets,
+        # matching the extractor's running sum.
+        conn.execute("DELETE FROM bank_audit_repricing WHERE bank_ticker=? AND period=? "
+                     "AND kind=?", (b, p, k))
+        _order = {bk: i for i, bk in enumerate(
+            ["lt_1m", "1_3m", "3_12m", "1_5y", "gt_5y", "non_sensitive", "total"])}
+        for pt in ("current", "prior"):
+            run = 0.0
+            for r in sorted((x for x in o["rows"] if x.get("period_type", "current") == pt),
+                            key=lambda x: _order.get(x["bucket"], 99)):
+                cg = None
+                if r["bucket"] != "total" and r.get("gap") is not None:
+                    run += r["gap"]
+                    cg = run
+                conn.execute(
+                    "INSERT INTO bank_audit_repricing (bank_ticker,period,kind,period_type,"
+                    "bucket,rate_sensitive_assets,rate_sensitive_liab,gap,cumulative_gap,source_page) "
+                    "VALUES (?,?,?,?,?,?,?,?,?,?)",
+                    (b, p, k, pt, r["bucket"], r.get("rate_sensitive_assets"),
+                     r.get("rate_sensitive_liab"), r.get("gap"), cg, o.get("source_page")))
+        return f"repricing replace {b} {p} {k} ({len(o['rows'])} rows)"
+    if st == "repricing":
+        # Per-bucket patch keyed by (bucket, period_type) for a single mis-read cell
+        # (ISCTR 2025Q4 con: the source PDF itself clips "1.056.377.15" → 10x low).
+        allowed = {"rate_sensitive_assets", "rate_sensitive_liab", "gap",
+                   "cumulative_gap", "source_page"}
+        cols = [c for c in o["fields"] if c in allowed]
+        if not cols:
+            return f"repricing SKIP {b} {p} {k} (no valid columns)"
+        bk, pt = o["bucket"], o.get("period_type", "current")
+        vals = [o["fields"][c] for c in cols]
+        sets = ", ".join(f"{c}=?" for c in cols)
+        conn.execute(
+            f"UPDATE bank_audit_repricing SET {sets} WHERE bank_ticker=? AND period=? "
+            "AND kind=? AND bucket=? AND period_type=?", (*vals, b, p, k, bk, pt))
+        return f"repricing update {b} {p} {k} {bk}/{pt} {dict((c, o['fields'][c]) for c in cols)}"
     if st == "liquidity":
         # Per-column patch of the CURRENT-period §4 liquidity row. `fields` =
         # {column: value} for a dropped/mis-scaled ratio (TOMK's comma-as-decimal

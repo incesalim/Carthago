@@ -168,6 +168,26 @@ report's own "net yabancı para pozisyon" prose). 18 hand-read cells read `manua
 extractor gap for DUNYAK/KUVEYT future quarters — a scoped header-line-merge would
 close it. ⚠️ Used `--only-failing`, NEVER `--force` (the market-risk lane's own lesson).
 
+**repricing (§4 interest-rate-risk) lane: 5 err + 26 miss → 0/0 — COMPLETE 2026-07-18**
+(coverage `788 ok / 15 manual / 0 err / 0 miss`). `check_repricing` only checked internal
+footing (both checks skip an absent field), so **70 partitions read green while a whole
+column was dropped** — the extractor never matched the liabilities row (59) or the position/gap
+row (7), mostly the non-standard-bucket banks ZIRAAT/KLNMA stored as `b1..b8`. Added a
+completeness check (`rp_liab_missing`/`rp_gap_missing`, calibrated 66/0-FP); cross-period is
+already clean (0/584). The `b1..b8` fallback was a symptom — footnote markers `(1)`/`(5)`
+matched the number-token regex and inflated the column count. **Six extractor fixes cleared
+~76**: drop footnote markers; add Turkish `Net Pozisyon` (TAKAS ×14 were missing — the locator
+never fired); gate the prior-period flip until the current total is read (ISCTR/ENPARA lost
+their current table to an FX table's "Prior Period" header); borrow a split label row's values
+from the next line (ATBANK); typo-tolerant `Total Liab[a-z]+` (QNBFB "Liabalities"); un-glue a
+fused Faizsiz|Total token (HALKB). **15 overrides**: FIBA ×6 (vector-only, hand-transcribed
+both periods) + 9 source-read residuals (ISCTR source-clipped cell, QNBFB gap missing its
+parens, EXIM/ZIRAATD dropped gap rows, TAKAS ×2 mis-parses, COLENDI ×3 whose wrapped
+"Non-Interest Bearing" header defeats the locator — disclosed, NOT N/A). **1 skip** (`_RP_SKIP`
+ICBCT 2024Q1: gap buckets sum to ₺7k vs printed 0 — source rounding). ⚠️ Follow-up: 5 extractor
+brittleness classes noted (esp. the wrapped non-interest header — future COLENDI quarters miss
+until fixed). See [audit-repricing-lane-2026-07-18](knowledge/audit-repricing-lane-2026-07-18.md).
+
 **§4 capital/liquidity (2026-06-10)**: full-fleet history backfilled via
 `backfill-audit.yml` in 5-bank chunks (`ALL` exceeds the 180-min job timeout).
 Per-bank §4 filing quirks and their fixes are catalogued in

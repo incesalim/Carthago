@@ -5,6 +5,33 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-07-18.
 
+2026-07-18 — **Interest-rate repricing lane → 0/0.** 5 err + 26 miss, plus
+66 green-but-incomplete the strengthened validator surfaced, all resolved.
+
+The validator only checked internal footing (Σ buckets = total; total RSA = RSL),
+both of which skip an absent field — so 70 partitions read green while the extractor
+had dropped a whole column (the liabilities row, or the position/gap row), most of
+them the non-standard-bucket banks ZIRAAT/KLNMA. Added a completeness check
+(rp_liab_missing / rp_gap_missing) on the total row; calibrated to flag exactly 66,
+zero false positives. Cross-period is already clean here (0/584 — unlike fx, the
+prior column is faithful).
+
+The b1..b8 fallback that dropped those columns was a symptom: footnote markers like
+(1)/(5) matched the number-token regex and inflated the column count. Six extractor
+fixes cleared ~76 partitions — drop the markers; add Turkish "Net pozisyon" (TAKAS
+×14 were missing entirely); gate the prior-period flip until the current total is
+read (ISCTR/ENPARA were losing their current table to an FX table's header); borrow
+a split label row's values from the next line; tolerate "Total Liabalities"; un-glue
+a fused Faizsiz|Total column.
+
+The rest was hand-read: FIBA ×6 (vector-only tables, transcribed from renders, both
+periods), and 9 source-read residuals — a source-clipped ISCTR cell, a QNBFB gap
+printed without its parentheses, EXIM/ZIRAATD dropped gap rows, two TAKAS mis-parses
+(one locked to a shared FX table, one a stray "f" glyph), and COLENDI ×3 whose
+ladder IS disclosed but whose wrapped "Non-Interest Bearing" header defeats the
+locator. ICBCT's ₺7k gap-rounding is a source artifact → skipped, faithfully stored.
+Detail in docs/knowledge/audit-repricing-lane-2026-07-18.md.
+
 2026-07-18 — **Wrong-PDF guard at acquisition time.** After the fx anchor
 caught two partitions whose R2 object was the wrong report entirely, added a
 consolidation-basis check so the class can't recur silently.
