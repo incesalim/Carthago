@@ -2,9 +2,58 @@
 
 _Last updated: 2026-07-19_
 
-## OPEN BUG (A): the weekly briefing is running with **no baseline**
+## FIXED (A): the weekly briefing was running with **no baseline**
 
-**Status:** open, live degradation — found 2026-07-19, not fixed.
+**Status:** fixed 2026-07-19. Kept here because the *shape* of this bug —
+shipped code path, un-shipped data pin, silent degradation — is the reusable
+lesson.
+
+**The fix, as shipped:**
+
+1. `summarize-regulations.yml` gained optional `baseline_url` / `baseline_year`
+   dispatch inputs, and runs `ingest_policy_baseline.py` **between** the R2
+   snapshot pull and the snapshot upload. That placement is the whole point (see
+   the trap below). Re-running with the same PDF is a content-hash no-op.
+2. `summarize_regulations.py --require-baseline` (passed by the weekly run) now
+   **fails** instead of generating an ungrounded briefing.
+3. The workflow gained the standard Telegram failure alert; it previously had
+   none, which is the other half of why this stayed invisible.
+
+**Annual procedure** (TCMB publishes in late December): dispatch
+`summarize-regulations.yml` with `baseline_year=YYYY` and `baseline_url` set to
+the *Monetary Policy for YYYY* PDF. 2026's pin:
+`https://www.tcmb.gov.tr/wps/wcm/connect/c2ac62b6-3112-4f33-a6ad-3817defff0be/December28.pdf?MOD=AJPERES&CACHEID=ROOTWORKSPACE-c2ac62b6-3112-4f33-a6ad-3817defff0be-pJACiUd`
+
+**Measured effect** on the same 87-item feed: context ~32k → ~44.6k tokens, and
+26 → 32 bullets across the five sections. The gains landed exactly where theory
+said they would — the *cumulative* regimes, whose rules are in force but were not
+re-announced during the window: TL Deposit Share **1 → 3**, Loan Growth Caps
+**5 → 7**.
+
+### What actually went wrong (keep this)
+
+**Status when found:** live degradation since **2026-05-29** — the day the
+feature landed (f04778b). Not a regression: the baseline was **never once**
+populated in production. Verified across every run from 2026-05-29 to
+2026-07-19, all logging:
+
+```
+[briefing] WARNING: no baseline — run scripts/ingest_policy_baseline.py
+```
+
+**The trap that made it stick:** `ingest_policy_baseline.py` writes to the local
+staging DB, but the briefing reads the **R2 snapshot**, and only
+`summarize-regulations.yml` pulls that snapshot and uploads it back. So the
+documented command — run locally, exactly as the docstring showed — produced a
+database nothing in production ever read. It looked done and wasn't.
+
+**Why nobody noticed for seven weeks:** the run warned and carried on, and an
+ungrounded briefing still reads plausibly — it is only missing rules that were
+never re-announced, which is invisible unless you know what should be there. A
+warning nobody is paged for is not a guard.
+
+**Found** while benchmarking DeepSeek on this task — an unrelated errand; see
+[knowledge/openrouter-deepseek-eval-2026-07-19.md](knowledge/openrouter-deepseek-eval-2026-07-19.md).
 
 Every production run logs:
 
