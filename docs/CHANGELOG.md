@@ -3,7 +3,35 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-07-18.
+Last verified: 2026-07-19.
+
+2026-07-19 — **Repricing: the prior column was structurally invisible.**
+check_repricing read the current period only, so a wrong comparative cell could
+not be caught by construction — and the cross-period anchor didn't cover it
+either, since that compares totals and the totals were right. A sweep of prior-
+block footing found 9 partitions that had never shown as anything but green.
+
+The footing block now runs over the prior column too, with an escape for filer
+typos. It flags exactly those 9, no false positives.
+
+8 were our own misreads, each corrected from a value printed elsewhere on the
+same page rather than inferred from the footing identity (which would have made
+the check vacuously pass). TAKAS x6 lose a digit two different ways: in 2023 fitz
+drops the final glyph of a printed 2,373,311, while in 2024 the PDF content
+stream itself holds only "895,18" — the filer's Word-to-PDF export clipped the
+trailing zero where a bold total overflowed its cell, so the page is visually
+defective and fitz is faithful. ISCTR 2025Q2 lost a sign, not a digit: the text
+layer emits "(452,169,857" with the closing parenthesis clipped, and a paren-
+negative needs a balanced pair. ICBCT 2024Q4 consolidated is the instructive one
+— its liabilities row was verbatim the long-position row, because that page
+prints every value line ABOVE its label and the extractor bound the line below.
+It footed internally, so no footing check would ever have found it; only reading
+the page did.
+
+The remaining 2 are genuine filer typos, stored faithfully and skipped with
+citations: TSKB 2022Q1 (its own Q2-Q4 filings reprint the same ladder with the
+corrected figure) and ANADOLU 2026Q1 consolidated (its four component rows give
+the true bucket). Detail in docs/knowledge/audit-repricing-lane-2026-07-18.md.
 
 2026-07-18 — **Interest-rate repricing lane → 0/0.** 5 err + 26 miss, plus
 66 green-but-incomplete the strengthened validator surfaced, all resolved.

@@ -165,6 +165,38 @@ def test_repricing_complete_no_completeness_false_fire():
                    for f in res.failures), res.failures
 
 
+def _rp_with_prior(break_prior: bool = False):
+    """Current block + a prior block (the same shape one year on)."""
+    rows = _rp_rows()
+    for r in list(rows):
+        p = dict(r, period_type="prior")
+        if break_prior and p["bucket"] == "3_12m":
+            # TAKAS pattern: a printed digit lost from the text layer, so this
+            # bucket reads 10x low and the prior column no longer foots.
+            p["rate_sensitive_assets"] = 30.0
+        rows.append(p)
+    return rows
+
+
+def test_repricing_prior_footing_fails_on_broken_prior():
+    # The current block is untouched and passes — only the PRIOR column is wrong,
+    # which every other check is blind to (they read the current period only).
+    res = check_repricing(_rp_with_prior(break_prior=True))
+    assert any(f["check"] == "rp_prior_footing" for f in res.failures), res.failures
+    assert not any(f["check"] == "rp_footing" for f in res.failures), res.failures
+
+
+def test_repricing_prior_footing_passes_on_good_prior():
+    res = check_repricing(_rp_with_prior())
+    assert not any(f["check"] == "rp_prior_footing" for f in res.failures), res.failures
+
+
+def test_repricing_no_prior_block_skips():
+    # A bank's first filing has no comparative — must not flag.
+    res = check_repricing(_rp_rows())
+    assert not any(f["check"] == "rp_prior_footing" for f in res.failures), res.failures
+
+
 # ---------------------------------------------------------------------------
 # Extractor tests (need fitz (PyMuPDF) + local sample PDFs — skip otherwise)
 # ---------------------------------------------------------------------------
