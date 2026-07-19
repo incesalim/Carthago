@@ -132,9 +132,9 @@ GET /api/v1/serieList?q=<TERM>&dataset=<DS>&bankType=<CODE>&limit=<N>
 |---|---|
 | `q` | substring of the label, **Turkish or English** |
 | `dataset` | `T01`…`T17`, `WLOAN`… |
-| `bankType` | see §7 |
+| `bankType` | see §8 |
 | `frequency` | `monthly` or `weekly` |
-| `limit` / `offset` | default 500, max 5000 |
+| `limit` / `offset` | default 500, max 25000 (the whole catalog) |
 | `type` | `json` or `csv` |
 
 Three ways to work:
@@ -146,9 +146,28 @@ Three ways to work:
 # 2. Browse one table for one bank group
 /api/v1/serieList?dataset=T01&bankType=10001&limit=200
 
-# 3. Export the whole catalog and grep it locally
-/api/v1/serieList?limit=5000&type=csv
+# 3. Export the ENTIRE catalog (all ~19,800 series, ~3 MB) and grep it locally
+/api/v1/serieList?limit=25000&type=csv
 ```
+
+The full export is often the fastest way to work: pull it once, then search it
+in a spreadsheet or with `grep` instead of guessing search terms.
+
+```bash
+curl -s "https://carthago.app/api/v1/serieList?limit=25000&type=csv" \
+  > carthago-series.csv
+grep -i "capital adequacy" carthago-series.csv
+```
+
+```python
+import pandas as pd
+cat = pd.read_csv("https://carthago.app/api/v1/serieList?limit=25000&type=csv")
+cat[cat.item_name_en.str.contains("Deposit", na=False)][["series_code", "item_name_en"]]
+```
+
+Columns: `series_code`, `dataset`, `frequency`, `item_name` (Turkish),
+`item_name_en` (English), `bank_type_code`, `value_column`, `unit`,
+`start_date`, `end_date`, `obs_count`.
 
 Each row tells you the code, both labels, the unit, and **the period range it
 actually covers** — so you can see whether a series is worth requesting before
@@ -162,7 +181,56 @@ you request it.
 
 ---
 
-## 6. Datasets
+## 6. How the catalog is shaped
+
+~19,800 series sounds like a lot to browse. It isn't — the catalog is only
+**554 distinct lines**, each repeated across bank groups and value columns:
+
+```
+series  =  line  ×  bank group  ×  value column
+```
+
+So finding what you want is three small choices, not one search through 19,800
+things. Pick the line, then vary the last two segments of the code.
+
+| Dataset | Lines | Bank groups | Value columns | Series |
+|---|---|---|---|---|
+| `T01` Balance Sheet | 62 | 10 | 3 | 1,860 |
+| `T02` Income Statement | 53 | 10 | 3 | 1,590 |
+| `T03` Loans | 20 | 10 | 9 | 1,712 |
+| `T04` Consumer Loans | 40 | 10 | 3 | 957 |
+| `T05` Sectoral Loans | 70 | 10 | 3 | 2,057 |
+| `T06` SME Loans | 8 | 10 | 6 | 480 |
+| `T07` Syndication | 3 | 10 | 3 | 74 |
+| `T08` Securities | 31 | 10 | 3 | 930 |
+| `T09` Deposits by Type | 26 | 10 | 6 | 1,560 |
+| `T10` Deposits by Maturity | 24 | 10 | 7 | 1,680 |
+| `T11` Liquidity | 44 | 10 | 5 | 2,200 |
+| `T12` Capital Adequacy | 38 | 10 | 1 | 380 |
+| `T13` FX Position | 11 | 10 | 1 | 110 |
+| `T14` Off-Balance Sheet | 52 | 10 | 3 | 1,560 |
+| `T15` Ratios | 32 | 10 | 1 | 320 |
+| `T16` Other Information | 7 | 10 | 1 | 70 |
+| `T17` Foreign Branch Ratios | 3 | 10 | 1 | 30 |
+| `WLOAN` Loans (weekly) | 22 | 6 | 3 | 396 |
+| `WSEC` Securities (weekly) | 13 | 6 | 3 | 234 |
+| `WDEP` Deposits (weekly) | 12 | 6 | 3 | 201 |
+| `WNPL` NPLs (weekly) | 12 | 6 | 3 | 216 |
+| `WOBS` Off-balance (weekly) | 4 | 6 | 3 | 72 |
+| `WBAL` Other balance (weekly) | 16 | 6 | 3 | 288 |
+| `WFX` FX position & custody (weekly) | 45 | 6 | 3 | 810 |
+
+To see every line in a table — 62 rows, not 1,860 — filter to one bank group and
+one column:
+
+```
+/api/v1/serieList?dataset=T01&bankType=10001&limit=200
+```
+
+The weekly datasets cover 6 bank groups rather than 10; BDDK doesn't publish the
+deposit-bank ownership splits weekly.
+
+## 7. Datasets
 
 `T01`–`T17` are **BDDK's own monthly table numbers**, so they mean exactly what
 BDDK's bulletin says they mean.
@@ -201,7 +269,7 @@ Weekly (all **thousand TL**, 2019-11 → current):
 
 ---
 
-## 7. Bank types
+## 8. Bank types
 
 The fourth code segment. These are BDDK's own codes.
 
@@ -225,7 +293,7 @@ The fourth code segment. These are BDDK's own codes.
 
 ---
 
-## 8. Value columns
+## 9. Value columns
 
 `TL`, `FX` and `TOT` mean the same everywhere: the lira leg, the
 foreign-currency leg, and the total. Some datasets add their own:
@@ -243,7 +311,7 @@ foreign-currency leg, and the total. Some datasets add their own:
 
 ---
 
-## 9. Reading the numbers correctly
+## 10. Reading the numbers correctly
 
 **Units differ per series — read `unit`, never assume.** Most monthly tables are
 million TL, but table 5 is *thousand* TL, ratios are percent, table 16 is a
@@ -269,13 +337,13 @@ not recomputed by us.
 
 ---
 
-## 10. Limits
+## 11. Limits
 
 | | |
 |---|---|
 | Series per request | 20 |
 | Observations per series | 2,000 |
-| `/serieList` rows per page | 5,000 |
+| `/serieList` rows per page | 25,000 — the entire catalog in one call |
 | Rate limit | none currently |
 | Caching | responses cached 1 hour |
 
@@ -284,7 +352,7 @@ fixed day). There's no webhook — poll `/api/v1` and watch `coverage.latest`.
 
 ---
 
-## 11. Errors
+## 12. Errors
 
 | Status | Meaning |
 |---|---|
@@ -297,7 +365,7 @@ malformed code tells you the expected shape and points at `/serieList`.
 
 ---
 
-## 12. Worked examples
+## 13. Worked examples
 
 **Sector loan growth, last two years, into pandas**
 
@@ -330,9 +398,9 @@ Then divide the columns. Both are million TL, so the ratio is unit-free.
 
 ---
 
-## 13. Common series
+## 14. Common series
 
-Whole sector (`10001`); swap the fourth segment for any group in §7.
+Whole sector (`10001`); swap the fourth segment for any group in §8.
 
 | Code | Series | Unit |
 |---|---|---|
@@ -347,9 +415,9 @@ Whole sector (`10001`); swap the fourth segment for any group in §7.
 
 ---
 
-## 14. Using it with an LLM
+## 15. Using it with an LLM
 
-Codes can't be guessed, so hand the model the table in §13 plus these rules:
+Codes can't be guessed, so hand the model the table in §14 plus these rules:
 
 ```text
 Carthago API — Turkish banking data from BDDK. No key.
@@ -367,7 +435,7 @@ Rules:
 
 ---
 
-## 15. Reference
+## 16. Reference
 
 | | |
 |---|---|

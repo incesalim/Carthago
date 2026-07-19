@@ -144,16 +144,17 @@ drops straight into a spreadsheet.
 | `dataset` | `T01`…`T17`, `WLOAN`… |
 | `bankType` | BDDK bank-type code |
 | `frequency` | `monthly` or `weekly` |
-| `q` | substring match on the label (case-sensitive for Turkish characters) |
-| `limit` / `offset` | default 500, max 5000 |
+| `q` | substring match on the Turkish **or** English label |
+| `limit` / `offset` | default 500, max 25000 — `?limit=25000&type=csv` exports the whole catalog |
 | `type` | `json` (default) or `csv` |
 
 ```bash
 curl "https://carthago.app/api/v1/serieList?dataset=T01&bankType=10001&limit=5"
 ```
 
-Each row carries `series_code`, `item_name`, `unit`, `start_date`, `end_date`
-and `obs_count`, so you can see a series' coverage before requesting it.
+Each row carries `series_code`, `item_name` (Turkish), `item_name_en`
+(BDDK's own English), `unit`, `start_date`, `end_date` and `obs_count`, so you
+can see a series' coverage before requesting it.
 
 ### `GET /api/v1/categories` — the vocabulary
 
@@ -264,8 +265,9 @@ RULES
 - **CORS** is open (`*`). The data is public and there are no credentials.
 - **Caching** — responses carry `Cache-Control: max-age=3600`. Data moves monthly
   or weekly; an hour of staleness is invisible.
-- **Limits** — 20 series per request, 2,000 observations per series, 5,000 catalog
-  rows per `/serieList` page. No rate limit or API key at present.
+- **Limits** — 20 series per request, 2,000 observations per series, 25,000
+  catalog rows per `/serieList` page (so `?limit=25000&type=csv` exports the
+  entire catalog in one call). No rate limit or API key at present.
 
 ## Not served
 
