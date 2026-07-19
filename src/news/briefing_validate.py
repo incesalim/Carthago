@@ -42,17 +42,21 @@ RULE_SUBJECTS: list[tuple[str, str]] = [
     ("loan:vehicle",        r"\bvehicle\b|\bauto\b"),
     ("loan:overdraft",      r"overdraft"),
     ("loan:fx",             r"(?:foreign[- ]currency|\bFX\b|\bFC\b)[^.;]{0,40}?loans?"),
-    # --- reserve requirements: DELIBERATELY ABSENT ---
-    # RR rules are two-dimensional — liability type (FX deposits, precious metal,
-    # other FX liabilities, funds from abroad) × maturity bucket — and a flat
-    # subject list cannot express that. Modelling maturity as the subject made
-    # "FX deposits, up to 1 month: 32%" collide with "funds from repo
-    # transactions abroad, up to 1 month: 14%", which are different rules with
-    # correctly different values. Because this GATES publication, those false
-    # positives held back a correct Regulations on RRs section on every run and
-    # left it frozen on the previous week's text — the gate doing real harm.
-    # Removed until the 2-D shape is modelled properly; a missed contradiction
-    # is a smaller cost than a section that never updates.
+    # --- reserve requirements: NOT GATED (measured only) ---
+    # Three attempts, three distinct false-positive classes, each of which held
+    # a CORRECT section back on every run:
+    #   1. maturity as the subject → "FX deposits up to 1 month 32%" collided
+    #      with "funds from repo abroad up to 1 month 14%"
+    #   2. a 30-char exclusion lookback missed "other FX liabilities (excluding
+    #      deposits/participation funds and precious metal accounts)"
+    #   3. liability type as the subject → "ADDITIONAL Turkish lira RR for FX
+    #      deposits/participation funds, 2.5%" collided with the FX-deposit
+    #      ratio itself at 32%/28% — a surcharge rule and a base rule sharing
+    #      their entire vocabulary
+    # RR rules overlap too much for a flat regex list, and this GATES
+    # publication, so a false positive is expensive and a miss is not. Real RR
+    # contradictions are still caught for OBSERVABILITY by the hand-verified
+    # facts in scripts/check_briefing_facts.py, which alerts rather than blocks.
     # --- deposit share ---
     ("dep:tl-share-target", r"deposit share target|TL deposit share|Turkish lira deposit share"),
 ]
