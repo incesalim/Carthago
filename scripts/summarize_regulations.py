@@ -123,10 +123,11 @@ INPUT (in order):
      RULE APPEARS SEVERAL TIMES as it was revised. Only the LATEST entry per
      rule is in force; earlier ones are superseded. Where nothing below revises
      a rule, this log's latest entry IS its current value.
-  3. SUPERSESSION — computed from the feed, not opinion: for each rule, which
-     source is NEWEST. Where a rule is stated more than once, the named source
-     wins and every earlier statement is superseded. TRUST THIS OVER YOUR OWN
-     READING of which document looks more authoritative or more complete.
+  3. SUPERSESSION — computed from the feed, not opinion. For every rule stated
+     by more than one source it names the CURRENT id and lists the SUPERSEDED
+     ids. Take that rule's value ONLY from the current id, and take nothing
+     from a superseded id — however complete or authoritative it looks. TRUST
+     THIS OVER YOUR OWN READING of which document seems more definitive.
   4. DATED PRESS RELEASES — TCMB/BDDK updates since. Each item has id, source,
      date (YYYY-MM-DD), title, body (may contain Markdown tables / bullet lists).
 
