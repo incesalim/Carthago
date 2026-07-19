@@ -93,6 +93,58 @@ runs, so there is nothing for pro to improve on, and both produced the same
 sentence in different words. The result above is a **cost/latency** finding
 only. Ranking the two on capability needs a task flash actually fails; not run.
 
+## The real task: regulation briefing — **flash beat pro on accuracy AND cost**
+
+Run via `test-openrouter.yml task=regulation`, which repoints the three env vars
+`kimi.py` already reads at OpenRouter — production prompt, context builder,
+retries and leak guards all unchanged. Section: *Monetary Policy Stance*, same
+87-item feed (~32k tokens of context), all three providers on one context
+([pro+Kimi](https://github.com/incesalim/Carthago/actions/runs/29699263056),
+[flash](https://github.com/incesalim/Carthago/actions/runs/29699366247)).
+
+| | bullets | with figures | latency | $/section | $/yr (5 sections × 52 wk) |
+|---|---:|---:|---:|---:|---:|
+| `v4-flash` | 5 | **4** | 14.1 s | **$0.0039** | **~$1.0** |
+| `v4-pro` | 3 | 2 | 45.1 s | $0.0364 | ~$9.5 |
+| Kimi `moonshot-v1-128k` (incumbent) | 5 | 2 | 10.5 s | — | ~$7 (documented) |
+
+**Pro made a hard factual error that flash caught.** On the one-week repo auctions:
+
+- flash: *"The CBRT **suspended** one-week repo auctions effective March 1, 2026."* ✅
+- pro: *"The CBRT **conducts** one-week repo auctions as its primary funding operation."* ❌
+
+The source is in both models' context window — TCMB, 2026-03-01, *Press Release on
+Turkish Lira Liquidity Management*: **"it has been decided to suspend the one-week
+repo auctions for a period of time."** Pro stated a live operational regime that
+had been suspended four months earlier. It did read that date (it reported the
+FX-forward release correctly, verified against the 2026-03-01 *TL-Settled FX
+Forward Selling Transactions* release) — it just inverted the repo half.
+
+**Kimi made no error but carried almost no information.** Three of its five
+bullets are CBRT boilerplate — "tight stance until price stability",
+"meeting-by-meeting", "macroprudential measures if needed". It missed **both**
+March-1 regime changes. Flash caught both and dated the June 11 hold.
+
+**This inverts the price-list intuition.** Pro is the stronger model on paper and
+4.4× the posted rate, but on a 32k-token input-dominated task it cost **9.3×**
+flash and was wrong where flash was right. Bigger ≠ better when the job is
+"transcribe what these 87 press releases actually say" rather than "reason".
+
+⚠️ **Caveat: one section, one run each.** Not a statistical result. But pro's
+error is a hard, source-checkable contradiction, not a stylistic preference —
+that is worth more than a win rate on taste.
+
+### Incidental production finding: the briefing has no baseline
+
+Every run logged `WARNING: no baseline — run scripts/ingest_policy_baseline.py`,
+including the **live weekly runs** of 2026-07-05, -07-12 and -07-19. The
+`regulation_baseline` table is empty in the R2 snapshot, so the grounding
+scaffold that commit f04778b introduced — the TCMB annual *Monetary Policy for
+YYYY* regime the per-category prompts are supposed to build on — has not been in
+the context for at least three weeks. The A/B above is still fair (all three
+providers saw the same degraded context), but the production briefing is running
+on the feed alone. Not fixed here.
+
 ## ⚠️ The finding that matters: provider routing is non-deterministic
 
 The two runs used the **same model at temperature 0** and produced **different
@@ -130,11 +182,14 @@ never see (388–539 completion tokens for a ~30-word sentence).
 - **Don't swap the Read lane onto it.** Cerebras is free, 10× faster, and already
   gauntlet-validated; DeepSeek's win is capability, and a 30-word headline
   doesn't need capability.
-- **Where it would actually pay:** jobs that are hard, batchy, and latency-
-  insensitive, where the free tiers' quality or rate limits bite — the
-  [regulation briefing](../../scripts/summarize_regulations.py) currently on
-  **paid Kimi** is the obvious candidate (`v4-flash` is likely far cheaper), and
-  the 1M context window suits long filings. Not evaluated here.
+- **The regulation briefing is a real candidate — on `v4-flash`, not pro.**
+  Measured ~$1/yr vs Kimi's ~$7/yr, and in the one section tested it was strictly
+  more informative: it caught two March-2026 regime changes Kimi missed entirely
+  and one that pro got backwards. Before switching, run the remaining four
+  sections and fix the missing baseline (both above) — a provider swap on top of
+  a degraded context would be measuring the wrong thing.
+- **Do not use pro for this.** It costs 9.3× flash on this input shape and
+  produced the run's only factual error.
 - **Never for the extraction spine** — see `feedback_extractors_no_api`.
 
 ## Reproducing
