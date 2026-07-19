@@ -10,7 +10,24 @@ name: Summarize regulations (weekly)
 on:
   schedule:
     - cron: "0 6 * * 0"
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      # The annual grounding pin. TCMB publishes "Monetary Policy for YYYY" in
+      # late December and it is in no scrapable feed, so it is set by hand once
+      # a year — dispatch this workflow with the PDF URL. It has to run HERE
+      # rather than locally because the briefing reads the R2 snapshot, and only
+      # this workflow pulls that snapshot and uploads it back; a local ingest
+      # writes a DB nothing in production ever reads. That trap is why the
+      # baseline was never populated between 2026-05-29 and 2026-07-19.
+      # Idempotent: re-running with the same PDF is a content-hash no-op.
+      baseline_url:
+        description: "Annual pin — URL of the TCMB 'Monetary Policy for YYYY' PDF. Leave blank for a normal run."
+        required: false
+        default: ""
+      baseline_year:
+        description: "Policy year that PDF covers (e.g. 2026). Required with baseline_url."
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -60,11 +77,26 @@ jobs:
               raise SystemExit("No R2 snapshot found — cannot summarize from empty DB.")
           PY
 
+      # Annual pin, only when dispatched with a URL. Runs after the snapshot is
+      # pulled and before the briefing, so the same run both stores the baseline
+      # and grounds on it; the upload step at the end persists it for every
+      # later run.
+      - name: Ingest annual policy baseline (dispatch only)
+        if: inputs.baseline_url != ''
+        run: |
+          python scripts/ingest_policy_baseline.py \
+            --year "${{ inputs.baseline_year }}" \
+            --url "${{ inputs.baseline_url }}"
+          python scripts/ingest_policy_baseline.py --list
+
       - name: Generate weekly briefing via Kimi
         env:
           # Repo secret is named KIMI_API_TOKEN; Python code reads KIMI_API_KEY.
           KIMI_API_KEY: ${{ secrets.KIMI_API_TOKEN }}
-        run: python scripts/summarize_regulations.py
+        # --require-baseline: refuse to ship an ungrounded briefing. It reads
+        # plausibly without the baseline, so a warning was not enough — this ran
+        # degraded for seven weeks unnoticed.
+        run: python scripts/summarize_regulations.py --require-baseline
 
       - name: Setup Node (for wrangler)
         uses: actions/setup-node@v6
@@ -88,3 +120,13 @@ jobs:
           size = r2_storage.upload_file(gz, "state/bddk_data.db.gz")
           print(f"Uploaded {size/1e6:.1f} MB to R2 state/bddk_data.db.gz")
           PY
+
+      # This workflow had no failure alert at all, which is the other half of why
+      # the missing baseline went unnoticed: nothing here ever spoke up.
+      - name: Alert on failure
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+        run: python scripts/notify.py "❌ ${{ github.workflow }} failed — ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
