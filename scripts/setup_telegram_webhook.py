@@ -14,6 +14,7 @@ Usage:
   python scripts/setup_telegram_webhook.py gen-secret   # print a random secret
   python scripts/setup_telegram_webhook.py set          # register the webhook
   python scripts/setup_telegram_webhook.py info         # show current webhook
+  python scripts/setup_telegram_webhook.py check        # assert it matches WORKER_URL
   python scripts/setup_telegram_webhook.py delete       # remove the webhook
 """
 from __future__ import annotations
@@ -86,7 +87,34 @@ def main() -> int:
         print(json.dumps(_api(token, "getWebhookInfo"), indent=2))
         return 0
 
-    sys.exit(f"unknown command: {cmd!r} (use gen-secret | set | info | delete)")
+    if cmd == "check":
+        # Assert the registered webhook still points at the origin we expect.
+        # Telegram keeps pushing to whatever URL it was last told about, so a
+        # Worker rename (which moves the workers.dev hostname) silently breaks
+        # the bot with no error anywhere on our side. Exits 1 on mismatch.
+        want = f"{os.environ.get('WORKER_URL', DEFAULT_WORKER).rstrip('/')}/api/telegram/webhook"
+        info = _api(token, "getWebhookInfo").get("result", {})
+        got = info.get("url") or ""
+        pending = info.get("pending_update_count", 0)
+        last_err = info.get("last_error_message")
+
+        print(f"registered: {got or '(none)'}")
+        print(f"expected:   {want}")
+        print(f"pending updates: {pending}")
+        if last_err:
+            print(f"last error: {last_err} (at {info.get('last_error_date')})")
+
+        ok = got == want
+        print("OK — webhook points at the live origin" if ok
+              else "MISMATCH — the bot is not receiving updates at the live origin")
+        if not ok and "--alert" in sys.argv:
+            sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+            from notify import notify  # stdlib-only helper
+            notify(f"❌ Telegram webhook points at {got or '(none)'}, expected {want} "
+                   f"— run `python scripts/setup_telegram_webhook.py set`")
+        return 0 if ok else 1
+
+    sys.exit(f"unknown command: {cmd!r} (use gen-secret | set | info | check | delete)")
 
 
 if __name__ == "__main__":
