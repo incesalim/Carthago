@@ -46,8 +46,14 @@ bank_audit_balance_sheet(bank_ticker, period, kind, statement, item_order,
     2,715,905,125 instead of 4,935,546,613 — 7th instead of 3rd, in a ranking
     that showed all 38 banks. AKBNK, QNBFB and COLENDI hit the same defect on
     the other leg.
-    Where BOTH legs lack a total row (DUNYAK 2025Q3/Q4) the figure is NOT
-    derivable — say so rather than reporting the largest sub-line.
+    Where BOTH legs lack a total row (e.g. DUNYAK 2025Q4), SUM the top-level
+    roman sections instead — they ARE the statement:
+      SELECT SUM(amount_total) FROM bank_audit_balance_sheet
+       WHERE … AND statement='assets'
+         AND hierarchy GLOB '[IVX]*.' AND hierarchy NOT GLOB '*.*.*'
+    Verified: this agrees with MAX on 74 of 76 partitions and is RIGHT on the
+    two where MAX is wrong. DUNYAK 2025Q4 sums to 99,678,154 on both legs while
+    MAX reports 55,053,572 / 76,466,774. It never needs a total row to exist.
   • Do NOT match the total row by text ('TOTAL ASSETS' etc.) — that label varies
     by bank/language, is sometimes BLANK, and sometimes has spaces injected
     mid-word. (Text matching is only for a SPECIFIC line, e.g. loans.)
