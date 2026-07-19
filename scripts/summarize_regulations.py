@@ -42,14 +42,18 @@ sys.stdout.reconfigure(encoding="utf-8")
 from notify import notify  # noqa: E402  (scripts/ is sys.path[0] under `python scripts/…`)
 from src.news import kimi  # noqa: E402
 from src.news._htmltext import fix_mojibake  # noqa: E402
-from src.news.briefing_validate import describe, find_contradictions  # noqa: E402
+from src.news.briefing_validate import (  # noqa: E402
+    describe,
+    find_contradictions,
+    supersession_note,
+)
 from src.news.schema import init_schema  # noqa: E402
 
 DB_PATH = REPO_ROOT / "data" / "bddk_data.db"
 
 # Feeds input_hash, so a bump forces one regeneration — which is what you want
 # after a context change.
-PROMPT_VERSION = "2026-07-20.v19-validation-gate"
+PROMPT_VERSION = "2026-07-20.v20-supersession-note"
 
 # Fixed seed + temperature 0: this is an extraction task, so sampling buys
 # nothing and costs run-to-run stability. Measured spread before this change:
@@ -119,7 +123,11 @@ INPUT (in order):
      RULE APPEARS SEVERAL TIMES as it was revised. Only the LATEST entry per
      rule is in force; earlier ones are superseded. Where nothing below revises
      a rule, this log's latest entry IS its current value.
-  3. DATED PRESS RELEASES — TCMB/BDDK updates since. Each item has id, source,
+  3. SUPERSESSION — computed from the feed, not opinion: for each rule, which
+     source is NEWEST. Where a rule is stated more than once, the named source
+     wins and every earlier statement is superseded. TRUST THIS OVER YOUR OWN
+     READING of which document looks more authoritative or more complete.
+  4. DATED PRESS RELEASES — TCMB/BDDK updates since. Each item has id, source,
      date (YYYY-MM-DD), title, body (may contain Markdown tables / bullet lists).
 
 HOW TO COMPILE:
@@ -287,6 +295,16 @@ def build_context(items: list[dict], baseline: dict | None) -> str:
                 "value and you should report it.\n\n"
                 f"{history}"
             )
+    # Precedence, computed rather than inferred. The model's remaining failure is
+    # not reading a source wrongly — it is not knowing which of two authoritative,
+    # equally complete-looking sources supersedes the other (it kept printing the
+    # 2025-12-02 FX ratios beside the 2026-07-01 ones). That question has a
+    # deterministic answer: whichever is newer. Deciding it here removes the
+    # judgement from the model and leaves it only the reading.
+    note = supersession_note(items)
+    if note:
+        parts.append(note)
+
     parts.append(
         "==================== DATED PRESS RELEASES (updates since) ====================\n"
         f"Items ({len(items)}):\n{json.dumps(items, ensure_ascii=False)}"

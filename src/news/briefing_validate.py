@@ -55,6 +55,69 @@ RULE_SUBJECTS: list[tuple[str, str]] = [
 
 _COMPILED = [(name, re.compile(pat, re.I)) for name, pat in RULE_SUBJECTS]
 
+# Human-readable names, used when telling the model which source is newest for a
+# rule. Keys must match RULE_SUBJECTS.
+SUBJECT_LABELS: dict[str, str] = {
+    "loan:non-sme": "loan growth cap — non-SME commercial",
+    "loan:sme": "loan growth cap — SME",
+    "loan:general": "loan growth cap — general-purpose consumer",
+    "loan:vehicle": "loan growth cap — vehicle",
+    "loan:overdraft": "loan growth cap — consumer overdraft",
+    "loan:fx": "loan growth cap — FX loans",
+    "rr:fx-short": "reserve requirement — FX demand / up to 1 month",
+    "rr:fx-long": "reserve requirement — FX longer maturities",
+    "rr:precious-metal": "reserve requirement — precious metal accounts",
+    "rr:banks-abroad": "reserve requirement — deposits from banks abroad",
+    "rr:repo-abroad": "reserve requirement — repo transactions abroad",
+    "rr:additional-tl": "reserve requirement — additional TL on FX deposits",
+    "dep:tl-share-target": "TL deposit share target / commission",
+}
+
+
+def latest_source_per_subject(items: list[dict]) -> dict[str, dict]:
+    """For each rule subject, the NEWEST dated item that substantively states it.
+
+    Precedence only — deliberately NOT the value. Extracting the current value
+    from a source body was tried and does not work: the proximity window that
+    behaves on a short generated bullet picks up market statistics from an
+    8,000-char MPC summary (it returned vehicle-loan "caps" of 39.3/45.9/64.1).
+    Which source is newest is robust; what it says is the model's job.
+
+    `items` are the briefing feed dicts: {"id", "date", "title", "body"}.
+    """
+    latest: dict[str, dict] = {}
+    for it in items:
+        date = (it.get("date") or "")
+        if not date:
+            continue
+        body = f"{it.get('title') or ''}\n{it.get('body') or ''}"
+        for subject in _subject_values(body):
+            prev = latest.get(subject)
+            if prev is None or date > prev["date"]:
+                latest[subject] = {"date": date, "id": it.get("id", "?"),
+                                   "title": (it.get("title") or "")[:70]}
+    return latest
+
+
+def supersession_note(items: list[dict]) -> str:
+    """A deterministic precedence block for the prompt, or "" if nothing to say."""
+    latest = latest_source_per_subject(items)
+    if not latest:
+        return ""
+    lines = [
+        "============ SUPERSESSION (computed from the feed, not a judgement) ============",
+        "For each rule below, the NEWEST source in this context is named. Where a rule",
+        "is stated more than once, the statement in the named source WINS and every",
+        "earlier statement of that rule is superseded — including tables that look",
+        "complete and authoritative. This lists which source is current; it does NOT",
+        "give the value. Read the value from the named source.",
+        "",
+    ]
+    for subject, info in sorted(latest.items(), key=lambda kv: SUBJECT_LABELS.get(kv[0], kv[0])):
+        lines.append(f"  {SUBJECT_LABELS.get(subject, subject)}: "
+                     f"{info['id']} ({info['date']})")
+    return "\n".join(lines)
+
 # How near a percentage must be to the subject mention to be read as ITS value.
 # A bullet often lists several rules ("3% for general-purpose and vehicle, 1% for
 # overdraft"), so the association has to be positional rather than per-bullet.
