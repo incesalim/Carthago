@@ -1,6 +1,7 @@
 # /regulation consistency — root cause and end-to-end plan
 
-**Date:** 2026-07-20 · **Status:** PLAN — not started, awaiting go
+**Date:** 2026-07-20 · **Status:** ✅ EXECUTED — see §5 for what actually happened
+(the diagnosis below was **half right**; the rest was found during execution)
 **Origin:** chasing run-to-run variance in the weekly briefing (23/30/32 bullets on
 identical input). Related: [openrouter-deepseek-eval-2026-07-19.md](openrouter-deepseek-eval-2026-07-19.md),
 [regulation_followups.md](../regulation_followups.md).
@@ -185,3 +186,87 @@ Phase 3 is a day of work built on a hypothesis (that judgement-noise is the
 remaining driver) which **Phase 1 may well falsify**. Building it first would be
 the same mistake as blaming the model: acting on the most interesting explanation
 rather than the measured one.
+
+---
+
+## 5. What execution actually found (2026-07-20)
+
+The plan's diagnosis was **half right and half wrong**, and building it in the
+planned order is what exposed the wrong half. Recording both.
+
+### 5.1 The instrument had to be built before the fix — and it moved the answer twice
+
+`scripts/check_briefing_facts.py` scores a briefing against figures traced to the
+release that published them. Its first version asked only *"is the correct number
+present?"* and scored the live briefing **92%** — apparently refuting the whole
+premise. Reading the actual bullets showed why that was wrong:
+
+> • "8-week growth limit of **5%** for SME loans, **3%** for non-SME, **4%** for
+>   general-purpose, **4%** for vehicle; **1%** for FX loans."
+> • "**2.5%** monthly growth limit for SME loans, **1.5%** for other commercial…"
+> • "Growth limits reduced to **3%** for general-purpose and vehicle, **1%** for
+>   overdraft, **4.5%** for SME loans."
+
+Three generations of the same cap, all printed as if in force. **The defect is
+contradiction, not omission** — and a checklist that only looks for the right
+number scores that perfect. Scoring both the current *and* the superseded value,
+per bullet (so "reduced from 4% to 3%" still passes), the real score was **62%**.
+
+### 5.2 The actual root cause: the baseline is a changelog, not a state
+
+`Annex 1: Monetary Policy Decisions Made in 2025` is a **dated decision log** —
+its own Table 5 records the FX limit falling 1.5% → 1% → 0.5% across three
+entries. The context introduced the whole document as *"annex tables list every
+rule in force"*, so the model transcribed log rows as policy. Bullet 2 above is
+Table 5, verbatim. The model was doing exactly as instructed.
+
+**Fix:** `split_baseline()` cuts Annex 1 out into a separately-labelled
+`DECISION HISTORY (NOT CURRENT)` block, and the prompt gains a
+one-value-per-rule rule. Verified against the real document: the 2.5% trap lands
+in history, Annexes 2–4 stay in the framework, and the framework's footnote
+cross-references still point at the history where they help.
+
+### 5.3 Measured effect (3 flash runs, Baidu-pinned, read-only bench)
+
+| | before (6 stored briefings) | after |
+|---|---|---|
+| fact score | **46–77%** (31-point swing) | **85 / 85 / 85%** |
+| PASS | 6–10 of 13 | **11 / 11 / 11** |
+
+The swing did not narrow — it **vanished**. Both the score and its stability
+improved, from the context fix plus `temperature 0` + fixed seed. (Bullet counts
+still move, 14/18/19 — providers do not reliably honour `seed`. The *facts* are
+stable, which is the thing that matters.)
+
+### 5.4 What the plan got wrong
+
+- **"~83% of the feed is noise" was wrong, and acting on it would have caused a
+  regression.** The 7 MPC Meeting Summaries were classified as noise to exclude.
+  They are currently the **only** carrier of the correct loan caps — the
+  macroprudential release that published them is truncated, and the summary
+  narrates the change in prose. Excluding them would have deleted the right
+  answers while looking like a cleanup. **Phase 3's classifier must treat MPC
+  summaries as a source, not noise.**
+- **The truncated bodies are real but were not the main driver.** They cost the
+  authoritative dated tables; the MPC prose compensated. After the history split,
+  the *only* two remaining failures — `loan_nonsme` and `loan_fx` — are precisely
+  the facts whose primary source is a truncated body, identically across all three
+  runs. That is the clean prediction Phase 1b tests.
+
+### 5.5 Shipped
+
+| | |
+|---|---|
+| `check_briefing_facts.py` | fact checklist; contradiction-aware, per bullet |
+| `split_baseline()` + prompt v14 | the fix — changelog no longer read as policy |
+| `temperature 0` + `BRIEFING_SEED` | removes sampling noise from an extraction task |
+| section-regression alert | a section that had bullets and now has none pages you |
+| `check_body_freshness.py` | daily probe; would have caught the table bug in May |
+| `update_body` shrink guard | a shorter re-fetch never overwrites a longer body |
+| `refresh-news-daily.yml` inputs | `refresh_bodies` + source selector + R2 backup |
+
+**Phase 3 (deterministic router) remains behind its gate, and the gate has
+tightened:** the fact score is stable at 85% and the residual is attributable to
+a known data bug, so the case for a day of routing work is weaker than when the
+plan was written — and §5.4 shows the classifier as designed would have made
+things worse.
