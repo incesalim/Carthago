@@ -28,7 +28,10 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://carthago.app"),
   title: {
     default: "Carthago · Turkish Banking Sector",
-    template: "%s · Carthago",
+    // Brand first: a browser tab truncates to ~15 chars, so leading with the
+    // page name made every tab read as a clipped "Turkish Banking Regu…".
+    // The page name still follows for search results and shared links.
+    template: "Carthago · %s",
   },
   description:
     "Carthago — Turkish banking sector & economy dashboard. BDDK monthly + weekly aggregates on Cloudflare D1.",
