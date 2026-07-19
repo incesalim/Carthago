@@ -46,7 +46,14 @@ from src.news.schema import init_schema  # noqa: E402
 
 DB_PATH = REPO_ROOT / "data" / "bddk_data.db"
 
-PROMPT_VERSION = "2026-05-29.v13-percat"
+# Feeds input_hash, so a bump forces one regeneration — which is what you want
+# after a context change.
+PROMPT_VERSION = "2026-07-20.v14-history-split"
+
+# Fixed seed + temperature 0: this is an extraction task, so sampling buys
+# nothing and costs run-to-run stability. Measured spread before this change:
+# the fact-checklist score swung 46-77% across runs on identical input.
+BRIEFING_SEED = 20260720
 
 # Sections whose source data is NOT in our scraped feeds — the rules live in
 # BDDK Resmî Gazete / Tebliğ, which we don't ingest yet. Generating them makes
@@ -104,18 +111,26 @@ Include ONLY rules that belong here: {desc}
 Rules that belong to a different section must be left out entirely.
 
 INPUT (in order):
-  1. BASELINE — TCMB's annual "Monetary Policy for YYYY" document. Its annex
-     tables are the AUTHORITATIVE regime as of the start of the policy year.
+  1. BASELINE: CURRENT FRAMEWORK — TCMB's annual "Monetary Policy for YYYY"
+     document, minus its decision log. The standing framework at year start.
      Use it as the scaffold for this section.
-  2. DATED PRESS RELEASES — TCMB/BDDK updates since. Each item has id, source,
+  2. BASELINE: DECISION HISTORY — a DATED CHANGELOG (Annex 1) of decisions
+     already taken, MANY OF THEM SUPERSEDED by later entries in the same table.
+     It is background only. NEVER quote a figure from it as a rule in force.
+  3. DATED PRESS RELEASES — TCMB/BDDK updates since. Each item has id, source,
      date (YYYY-MM-DD), title, body (may contain Markdown tables / bullet lists).
 
 HOW TO COMPILE:
-  - Start from the baseline for THIS section, then apply the dated press
-    releases as updates.
-  - CURRENCY: report the CURRENT value, and NEVER one older than the baseline.
-    The baseline already supersedes prior years; only a press release dated
-    AFTER the baseline overrides a baseline value (the latest date wins).
+  - Start from the CURRENT FRAMEWORK for THIS section, then apply the dated
+    press releases as updates. The DECISION HISTORY only explains how a rule
+    reached its value; it never establishes one.
+  - CURRENCY: report the CURRENT value only. For any rule, the LATEST-DATED
+    statement wins — a press release overrides the framework, and a later
+    release overrides an earlier one.
+  - ONE VALUE PER RULE. Never print two figures for the same cap, ratio or rate
+    as if both applied. If a limit changed, state only the value now in force
+    (you may write "reduced from X to Y", but never a bare bullet asserting the
+    old X somewhere else in the section).
   - SPECIFICITY: every bullet MUST carry the concrete number(s) — rate, cap,
     ratio, threshold, limit — with units. Never write a vague bullet that names
     a rule without its figures. The numbers are in the baseline annex tables and
@@ -221,16 +236,52 @@ def fetch_baseline(conn: sqlite3.Connection) -> dict | None:
     return {"year": row[0], "title": row[1], "content": row[2]}
 
 
+# "Annex 1: Monetary Policy Decisions Made in YYYY" is a DATED CHANGELOG, not a
+# statement of the regime — its own Table 5 lists the SME growth limit at 2.5%
+# (January 2025) and the FX limit falling 1.5% → 1% → 0.5% across three entries.
+# The context previously introduced the whole document as "annex tables list every
+# rule in force", so the model transcribed superseded entries as current: the
+# 2026-07-19 briefing printed "2.5% monthly growth limit for SME loans" verbatim
+# from that table alongside the actual 4.5% cap. Split it out and label it for
+# what it is. Annex 2 is the MPC meeting calendar — no rules at all.
+_ANNEX1_RE = re.compile(r"^\s*Annex 1[:.]", re.M)
+_ANNEX2_RE = re.compile(r"^\s*Annex 2[:.]", re.M)
+
+
+def split_baseline(content: str) -> tuple[str, str]:
+    """Return (current_framework, decision_history). History is Annex 1 only;
+    everything before it and from Annex 2 on describes the standing framework."""
+    m1 = _ANNEX1_RE.search(content)
+    if not m1:
+        return content, ""
+    m2 = _ANNEX2_RE.search(content, m1.end())
+    end = m2.start() if m2 else len(content)
+    history = content[m1.start():end].strip()
+    framework = (content[:m1.start()] + "\n" + content[end:]).strip()
+    return framework, history
+
+
 def build_context(items: list[dict], baseline: dict | None) -> str:
     """Shared user-message context (baseline + feed), reused for every section."""
     parts: list[str] = []
     if baseline:
+        framework, history = split_baseline(baseline["content"])
         parts.append(
-            f"==================== BASELINE ====================\n"
-            f"{baseline['title']} — authoritative regime as of the start of the "
-            f"policy year; annex tables list every rule in force. Use as scaffold.\n\n"
-            f"{baseline['content']}"
+            f"==================== BASELINE: CURRENT FRAMEWORK ====================\n"
+            f"{baseline['title']} — the standing framework as of the start of the "
+            f"policy year. Use as scaffold.\n\n"
+            f"{framework}"
         )
+        if history:
+            parts.append(
+                "==================== BASELINE: DECISION HISTORY (NOT CURRENT) ====\n"
+                "A DATED CHANGELOG of decisions already taken. Entries supersede one "
+                "another — a later entry overrides an earlier one for the same rule, "
+                "and any dated press release below overrides both. Use it ONLY to "
+                "understand how a rule reached its current value. NEVER quote a "
+                "figure from here as the rule in force.\n\n"
+                f"{history}"
+            )
     parts.append(
         "==================== DATED PRESS RELEASES (updates since) ====================\n"
         f"Items ({len(items)}):\n{json.dumps(items, ensure_ascii=False)}"
@@ -274,7 +325,8 @@ def generate_category(name: str, desc: str, context: str,
     provider = ""
     for attempt in range(1, retries + 1):
         try:
-            resp = kimi.chat_completion(messages, temperature=0.2, json_object=True)
+            resp = kimi.chat_completion(messages, temperature=0.0, json_object=True,
+                                        seed=BRIEFING_SEED)
             parsed = kimi.extract_json(resp)
         except Exception as e:  # noqa: BLE001 - network/JSON variance; retry
             print(f"  [{name}] attempt {attempt}/{retries} failed: {type(e).__name__}: {e}", flush=True)
