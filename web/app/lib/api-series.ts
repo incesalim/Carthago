@@ -12,7 +12,7 @@
  * Everything here is read-only and every value column is resolved from the
  * catalog, never from caller input — see `buildObservationQuery`.
  */
-import { cachedAll } from "./db";
+import { allDirect } from "./db";
 
 /** Max series a single /series call may request, mirroring EVDS's own cap. */
 export const MAX_SERIES_PER_REQUEST = 20;
@@ -84,7 +84,7 @@ export function parseDate(raw: string | null): string | null {
 export async function fetchSeriesMeta(codes: string[]): Promise<SeriesMeta[]> {
   if (!codes.length) return [];
   const placeholders = codes.map(() => "?").join(",");
-  const rows = await cachedAll<SeriesMeta>(
+  const rows = await allDirect<SeriesMeta>(
     `SELECT series_code, dataset, frequency, source_table, table_number,
             category, item_key, item_name, bank_type_code, report_currency,
             value_column, unit, start_date, end_date, obs_count
@@ -216,7 +216,7 @@ export async function fetchObservations(
 ): Promise<Observation[]> {
   const q = buildObservationQuery(meta, from, to);
   if (!q) return [];
-  const rows = await cachedAll<{ date: string; value: number | null }>(
+  const rows = await allDirect<{ date: string; value: number | null }>(
     q.sql,
     q.binds,
   );
