@@ -408,6 +408,32 @@ The schema source of truth is the hand-authored, version-controlled files in
 `web/seeds/`, gitignored) — **not schema, and no longer part of any lane**.
 Routine row updates go through `push_to_d1.py`.
 
+### Rebuild the public-API series catalog
+
+The public API (`/api/v1`, see [API.md](API.md)) serves only what's listed in the
+`api_series` catalog. The weekly `refresh-data.yml` cron rebuilds and pushes it
+automatically after every BDDK refresh — this is for out-of-band rebuilds.
+
+```bash
+python scripts/build_api_catalog.py --dry-run          # report; changes nothing
+python scripts/build_api_catalog.py                    # write data/bddk_data.db
+python scripts/push_to_d1.py --only-tables api_series  # publish
+```
+
+`api_series` is a **full-rebuild** table (no per-row timestamp), so a windowed
+push skips it — it must be named in `--only-tables` or it never reaches D1.
+
+Two things to watch in the build output:
+
+- **`WARNING: N previously published codes no longer resolve`** — a code someone
+  may have hardcoded has stopped working. Expected when BDDK retires a line;
+  investigate if unexplained.
+- **`excluded: N USD-basis series`** — normal. BDDK's USD-converted variant
+  covers one month against 76 of TL, so it's excluded by `INCLUDE_USD_BASIS`.
+
+New BDDK data extends existing series and may add new ones; **codes are carried
+forward and never renumbered**, so a rebuild on unchanged data is a no-op.
+
 ## Disaster recovery
 
 Two independent safety nets, both **free**:
@@ -482,8 +508,9 @@ degrades gracefully when its key is unset:
 | `CEREBRAS_KEY` (or `CEREBRAS_API_KEY`) | the bot's fallback LLM provider |
 | `BOT_PER_CHAT_DAILY` / `BOT_GLOBAL_DAILY` | usage caps (defaults 20/chat, 300 global, per UTC day) |
 | `BOT_TEST_KEY` | enables `GET /api/admin/bot-ask` (the bot test harness); **404s while unset** |
+| `PUBLIC_API_DISABLED` | kill switch for the public `/api/v1` data API — set to `1` and every route 503s, no deploy needed |
 
-Bot detail: [TELEGRAM_BOT.md](TELEGRAM_BOT.md). Non-secret vars live in
+Bot detail: [TELEGRAM_BOT.md](TELEGRAM_BOT.md). Public API: [API.md](API.md). Non-secret vars live in
 `web/wrangler.jsonc`: `CF_ANALYTICS_SITE_TAG` (dual-purpose — the traffic panel's
 query key *and* the client beacon's token), `CF_ACCOUNT_TAG`, and
 `CF_ACCESS_TEAM_DOMAIN` / `CF_ACCESS_AUD` (only if you move to a custom domain and

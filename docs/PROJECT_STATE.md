@@ -278,6 +278,7 @@ concurrency group), so audit failures can't stall the bulletin pipeline:
 - `.github/workflows/backfill-faaliyet.yml` — manual dispatch. Fleet backfill of the Faaliyet-raporu franchise lane → `faaliyet_franchise` + `faaliyet_extractions`. The incremental refresh rides `refresh.py` (step 9, non-critical).
 - `.github/workflows/summarize-regulations.yml` — Sun 06:00 UTC. Weekly regulation briefing via Kimi → `regulation_briefings` → D1. Needs the `KIMI_API_TOKEN` repo secret, which the workflow maps to env `KIMI_API_KEY` (the name `src/news/kimi.py` reads) — see [OPERATIONS.md](OPERATIONS.md) §Secrets. Open follow-up in [regulation_followups.md](regulation_followups.md).
 - `.github/workflows/deploy-cloudflare.yml` — on push to `web/**`. Apply D1 migrations + build + deploy dashboard.
+- **Public-API catalog** — not its own workflow: `refresh-data.yml` runs `scripts/build_api_catalog.py` + `push_to_d1.py --only-tables api_series` after every BDDK refresh, so `/api/v1` sees each new period. `api_series` is full-rebuild (no per-row timestamp), so a windowed push skips it — it must be named explicitly. See [API.md](API.md).
 - `.github/workflows/healthcheck.yml` — daily 06:00 UTC. D1 freshness check → Telegram/Discord alert if stale. Also runs `scripts/verify_chart_spec.py --alert`: re-resolves every reproduced chart in `web/app/lib/chart-specs.catalog.json` against D1 and alerts if a series goes blank (0 rows) or drifts past its `verify[]` anchor. See [REPRODUCING_CHARTS.md](REPRODUCING_CHARTS.md). Third check: `setup_telegram_webhook.py check --alert` asserts the bot webhook still targets the live origin.
 - `.github/workflows/telegram-webhook.yml` — manual only. `set` / `info` / `check` the Q&A bot webhook; lives in CI because the bot token + webhook secret aren't available locally. Run `set` after anything that moves the site origin (e.g. the 2026-07-19 Worker rename to `carthago`, which orphaned the webhook on the dead `workers.dev` host).
 - `.github/workflows/ci.yml` — on PRs. ruff + pytest + eslint + tsc + vitest. (Dependency bumps via `dependabot.yml`.)
@@ -290,14 +291,45 @@ what's applied.
 
 Next.js 16 (React 19, TypeScript 6) + OpenNext on Cloudflare Workers — live at
 <https://carthago.app>. D1 reads are cached
-~12h via KV (`cachedAll` → `unstable_cache`), so repeat page views don't re-query
-D1. A password-gated `/admin` control center (data health, refresh triggers,
+~1h via KV (`cachedAll` → `unstable_cache`), so repeat page views don't re-query
+D1. *(Was 12h — that window existed only to stay under the Workers **free** tier's
+1,000 KV writes/day. On the paid plan the allowance is 1M/month, so the window
+was cut 12× for fresher pages at no marginal cost.)* A password-gated `/admin` control center (data health, refresh triggers,
 traffic) is unlocked by the `ADMIN_PASSWORD` Worker secret; optional
 `GITHUB_DISPATCH_TOKEN` enables the trigger buttons and Web-Analytics creds the
 traffic panel. The Pipeline panel's audit card supports a **per-bank,
 latest-period** trigger, and **13 banks auto-discover** new quarters from their
 IR page (no hand-added URL needed) — see [ADMIN.md](ADMIN.md) §Auto-discovery.
 Setup in [OPERATIONS.md](OPERATIONS.md) / [ADMIN.md](ADMIN.md).
+
+## Public data API
+
+`/api/v1` — public, unauthenticated, read-only. Serves the **BDDK monthly
+(tables 1–17) + weekly bulletin** aggregates as ~19,800 time series, shaped after
+TCMB's **EVDS** (dotted series codes joined with `-`, `DD-MM-YYYY` dates,
+`type=json|csv`). Full reference: **[API.md](API.md)**.
+
+```
+GET /api/v1/series?series=BDDK.T01.I001.10001.TOT&startDate=01-01-2024&type=csv
+GET /api/v1/serieList?dataset=T01&bankType=10001
+GET /api/v1/categories
+GET /api/v1                     ← self-describing index
+```
+
+Codes are `BDDK.<DATASET>.<ITEM>.<BANKTYPE>.<COLUMN>`, where `T01`–`T17` are
+BDDK's own table numbers and `10001`–`10010` its own bank-type codes, so most of
+the identifier is upstream-stable rather than ours to break.
+
+Three things worth knowing:
+
+- **The catalog is the contract.** A code is never parsed into SQL — it's looked
+  up in `api_series` (migration 0031), which holds the real filters. That's what
+  lets published codes survive storage quirks (`other_data` keys items by *name*
+  because its `item_order` collides inside table 12).
+- **Per-bank data is NOT exposed.** The `bank_audit_*` family stays internal;
+  this API is BDDK's published sector aggregates only.
+- **Kill switch**: `PUBLIC_API_DISABLED=1` on the Worker → every route 503s, no
+  deploy needed. That's what makes an unauthenticated endpoint safe to publish.
 
 **The prose audit — the sentences now earn themselves (2026-07-14, SHIPPED):**
 "Compiled, not written" was true of the *figures* and false of the *words*: an
