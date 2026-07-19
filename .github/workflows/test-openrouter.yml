@@ -1,0 +1,41 @@
+name: Test OpenRouter key (scratch)
+
+# Manual probe: verify the OPEN_ROUTER_API secret authenticates and that a
+# DeepSeek model returns a usable, number-validated completion. Secrets are
+# CI-only (never local), so this is the only way to test the key.
+#
+# Scratch lane — delete this workflow and scripts/scratch_test_openrouter.py
+# once the finding is recorded in docs/knowledge/.
+on:
+  workflow_dispatch:
+    inputs:
+      model_id:
+        description: "Override the model id to test (default: auto-pick cheapest free + cheapest paid deepseek)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      OPEN_ROUTER_API: ${{ secrets.OPEN_ROUTER_API }}
+      MODEL_ID: ${{ inputs.model_id }}
+      PYTHONIOENCODING: utf-8
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install deps
+        run: pip install requests
+
+      - name: Probe OpenRouter
+        run: python scripts/scratch_test_openrouter.py

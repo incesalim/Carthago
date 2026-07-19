@@ -26,6 +26,7 @@ machine involvement is required for routine refreshes.
 | Manual only | `backfill-nonbank.yml` | One-time historical backfill of the non-bank sector lane (leasing / factoring / financing) from `from_year` (default 2020) → now (~5–10 min). The incremental refresh rides `refresh.py`; this is only for the initial history load. Apply migration 0013 first (via a `web/**` deploy) |
 | Manual only | `backfill-faaliyet.yml` | Fleet backfill of the Faaliyet-raporu franchise lane (branches / personnel from annual-report PDFs) → `faaliyet_franchise` + `faaliyet_extractions`. The incremental refresh rides `refresh.py` |
 | Daily 06:00 UTC | `healthcheck.yml` | D1 freshness check + `verify_chart_spec.py` + Telegram webhook-target check → Telegram/Discord alert if stale/failing/drifted |
+| Manual only | `test-openrouter.yml` | **Scratch probe** — verifies the `OPEN_ROUTER_API` secret authenticates, lists the DeepSeek models + their per-Mtok price, and runs one real completion through `free_llm.py`'s number validators. Exists only because secrets are CI-only; delete it (and `scripts/scratch_test_openrouter.py`) once the finding is recorded |
 | Manual only | `telegram-webhook.yml` | Register (`set`) / inspect (`info`) / verify (`check`) the Q&A bot webhook. Lives in CI because `TELEGRAM_BOT_TOKEN` + `TELEGRAM_WEBHOOK_SECRET` aren't available locally. Run `set` after anything that moves the site origin — notably a **Worker rename**, which changes the `workers.dev` hostname and silently orphans the webhook |
 | On push touching `web/**` | `deploy-cloudflare.yml` | Apply D1 migrations, build OpenNext bundle, deploy to Workers |
 | On every PR | `ci.yml` | ruff + pytest + eslint + tsc + vitest quality gates |
@@ -519,6 +520,7 @@ GitHub repo → Settings → Secrets and variables → Actions:
 | `ALERT_WEBHOOK_URL` | ditto — optional Discord/Slack webhook mirror of the same alerts |
 | `CEREBRAS_KEY` | "The Read" headline lane (`generate-reads.yml` → `src/news/free_llm.py`) |
 | `GROQ_API_KEY` | ditto — the other free provider |
+| `OPEN_ROUTER_API` | OpenRouter (DeepSeek et al). Added 2026-07-05 and **unused by any lane** — read only by the scratch probe `test-openrouter.yml`. ⚠️ Note the name: no `_KEY` suffix, unlike every other provider secret |
 | `KIMI_API_TOKEN` | weekly regulation briefing (`summarize-regulations.yml`). ⚠️ **Name mismatch**: the repo secret is `KIMI_API_TOKEN`, but the workflow maps it to env `KIMI_API_KEY`, which is what `src/news/kimi.py` reads. Provision the *secret* under the token name |
 
 Actions **variables** (same screen, "Variables" tab — not secrets):
