@@ -200,6 +200,54 @@ its bot protection. If you ever see `403` with **Cloudflare error 1010** on
 `/api/v1`, that rule has been removed or its expression broken; see
 [OPERATIONS.md](OPERATIONS.md).
 
+## Using it with ChatGPT / Claude / any LLM
+
+Paste this as context. It needs web access (ChatGPT: browsing on).
+
+The code table matters: series codes are **opaque and cannot be guessed**, and
+`/serieList?q=` matches the **as-filed Turkish** labels, so an LLM searching
+"total assets" gets zero hits. Giving it the common codes up front skips
+discovery for most questions.
+
+````text
+You can query the Carthago API for Turkish banking-sector data (source: BDDK).
+No API key. Base URL: https://carthago.app/api/v1
+
+FETCH DATA
+  GET /series?series=<CODE>&startDate=DD-MM-YYYY&endDate=DD-MM-YYYY
+  Join up to 20 codes with "-". Add &type=csv for CSV.
+  e.g. /series?series=BDDK.T01.I026.10001.TOT&startDate=01-01-2024
+
+COMMON CODES (whole sector = bank type 10001; monthly)
+  BDDK.T01.I026.10001.TOT   Total assets                      million TL
+  BDDK.T01.I010.10001.TOT   Loans                             million TL
+  BDDK.T01.I011.10001.TOT   Non-performing loans (gross)      million TL
+  BDDK.T01.I027.10001.TOT   Deposits                          million TL
+  BDDK.T01.I001.10001.TOT   Cash                              million TL
+  BDDK.T15.I001.10001.VAL   NPL ratio                         percent
+  BDDK.T15.I002.10001.VAL   NPL coverage ratio                percent
+
+SWAP THE BANK TYPE (4th segment) TO SLICE THE SECTOR
+  10001 entire sector    10002 deposit banks     10003 participation banks
+  10004 development & investment banks           10005 local private banks
+  Full list: GET /categories
+
+FIND OTHER SERIES
+  GET /serieList?q=<TURKISH TERM>&limit=20
+  Labels are Turkish as filed by BDDK — search "kredi", "mevduat",
+  "aktif", "karşılık", NOT English. Also filter by dataset/bankType:
+  GET /serieList?dataset=T01&bankType=10001&limit=200
+  Datasets: T01 balance sheet, T02 income statement, T03-T07 loans,
+  T09/T10 deposits, T15 ratios. GET /categories lists all 24.
+
+RULES
+- NEVER invent a series code. Get it from /serieList or the list above.
+- Units differ per series — read "unit" in the response. Don't assume.
+- Monthly values are dated to month-END and are STOCKS, not flows.
+- A null value means BDDK filed no figure. It does not mean zero.
+- Amounts in "million TL": 51,760,765 = 51.76 trillion TL.
+````
+
 ## Conventions
 
 - **Dates in** — `DD-MM-YYYY` or `YYYY-MM-DD`. **Dates out** — always `YYYY-MM-DD`.
