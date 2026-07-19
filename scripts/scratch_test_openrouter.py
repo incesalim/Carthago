@@ -85,6 +85,20 @@ def check_key(key: str) -> bool:
         print(f"      remaining=${limit - usage:.4f}")
     if d.get("rate_limit"):
         print(f"      rate_limit={d['rate_limit']}")
+
+    # `limit: null` only means no cap was set ON THIS KEY — it says nothing about
+    # whether the ACCOUNT has money. /credits is the balance that actually runs out.
+    c = requests.get(f"{BASE}/credits", headers=_auth(key), timeout=30)
+    if c.status_code == 200:
+        cd = c.json().get("data", {})
+        total, used = cd.get("total_credits"), cd.get("total_usage")
+        print(f"  account: purchased=${total}  used=${used}", end="")
+        if isinstance(total, (int, float)) and isinstance(used, (int, float)):
+            print(f"  REMAINING=${total - used:.4f}")
+        else:
+            print()
+    else:
+        print(f"  (credits unavailable: HTTP {c.status_code})")
     return True
 
 
@@ -113,8 +127,9 @@ def deepseek_models(key: str) -> list[dict]:
     return models
 
 
-def try_completion(key: str, model_id: str) -> bool:
+def try_completion(key: str, model: dict) -> bool:
     """Q4 — a real call, validated by the repo's own guardrails."""
+    model_id = model["id"]
     print(f"\n== 3. completion: {model_id} ==", flush=True)
     facts = FACTS_HEADLINE + "\n" + "\n".join(FACTS_ITEMS)
     allowed = [float(x) for x in NUM_RE.findall(facts)]
@@ -161,9 +176,17 @@ def try_completion(key: str, model_id: str) -> bool:
         print("  ^ NOTE 6.1 = the derived CAR buffer trap (18.1-12.0). Not in the facts.")
 
     # Q4b — what it actually cost, from OpenRouter's own accounting.
+    # Estimated from the models catalog; the authoritative figure is /generation
+    # below, which lags the response by a few seconds (404 until it settles).
+    pr = model.get("pricing") or {}
+    if pr:
+        est = (usage.get("prompt_tokens", 0) * float(pr.get("prompt") or 0)
+               + usage.get("completion_tokens", 0) * float(pr.get("completion") or 0))
+        print(f"  est. cost: ${est:.6f} per call  (~${est * 1000:.3f} per 1,000 calls)")
+
     gen_id = body.get("id")
     if gen_id:
-        time.sleep(2)  # generation stats settle a moment after the response
+        time.sleep(8)  # generation stats settle a few seconds after the response
         g = requests.get(f"{BASE}/generation", headers=_auth(key), params={"id": gen_id}, timeout=30)
         if g.status_code == 200:
             gd = g.json().get("data", {})
@@ -194,12 +217,12 @@ def main() -> int:
     # proves the key works without credits, paid proves the account can bill.
     free = [m for m in models if float((m.get("pricing") or {}).get("prompt") or 0) == 0]
     paid = [m for m in models if float((m.get("pricing") or {}).get("prompt") or 0) > 0]
-    targets = [m["id"] for m in (free[:1] + paid[:1])]
+    targets = free[:1] + paid[:1]
     override = os.environ.get("MODEL_ID")
     if override:
-        targets = [override]
+        targets = [next((m for m in models if m["id"] == override), {"id": override, "pricing": {}})]
 
-    results = {mid: try_completion(key, mid) for mid in targets}
+    results = {m["id"]: try_completion(key, m) for m in targets}
 
     print("\n== summary ==")
     for mid, ok in results.items():
