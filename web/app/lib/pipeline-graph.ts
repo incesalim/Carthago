@@ -118,8 +118,9 @@ export const PIPELINE_NODES: PipelineNode[] = [
   // ── Shared · infra & ops ───────────────────────────────────────────────
   { id: "wf-ci", kind: "workflow", layer: "ingestion", lane: "shared", label: "ci", sublabel: "on PR · ruff + pytest + eslint + tsc + vitest", workflowFile: "ci.yml" },
   { id: "wf-deploy", kind: "workflow", layer: "ingestion", lane: "shared", label: "deploy-cloudflare", sublabel: "push web/** · D1 migrate + build + deploy", workflowFile: "deploy-cloudflare.yml" },
+  { id: "wf-telegram-webhook", kind: "workflow", layer: "ingestion", lane: "shared", label: "telegram-webhook", sublabel: "manual · set/info/check the bot webhook", workflowFile: "telegram-webhook.yml" },
   { id: "store-r2-snap", kind: "store", layer: "storage", lane: "shared", label: "R2 · DB snapshots", sublabel: "state/*.db.gz + dated history (7 kept)" },
-  { id: "store-kv", kind: "store", layer: "storage", lane: "shared", label: "KV · page cache", sublabel: "NEXT_INC_CACHE_KV · 12h TTL on D1 reads" },
+  { id: "store-kv", kind: "store", layer: "storage", lane: "shared", label: "KV · page cache", sublabel: "NEXT_INC_CACHE_KV · 1h TTL on D1 reads" },
   { id: "wf-healthcheck", kind: "workflow", layer: "page", lane: "shared", label: "healthcheck", sublabel: "daily 06:00 · freshness + chart-spec alert", workflowFile: "healthcheck.yml" },
   { id: "wf-generate-reads", kind: "workflow", layer: "page", lane: "shared", label: "generate-reads", sublabel: "weekly · LLM rewrites 'The Read' headlines → read_headlines", workflowFile: "generate-reads.yml" },
 
