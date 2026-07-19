@@ -60,41 +60,6 @@ warning nobody is paged for is not a guard.
 **Found** while benchmarking DeepSeek on this task — an unrelated errand; see
 [knowledge/openrouter-deepseek-eval-2026-07-19.md](knowledge/openrouter-deepseek-eval-2026-07-19.md).
 
-Every production run logs:
-
-```
-[briefing] WARNING: no baseline — run scripts/ingest_policy_baseline.py
-```
-
-Confirmed on the live weekly runs of **2026-07-05, 2026-07-12 and 2026-07-19**
-(`summarize-regulations.yml`), so it is not a one-off.
-
-**What's broken:** `fetch_baseline()` reads `regulation_baseline` from the local
-staging DB, and that table is **empty in the R2 snapshot** the workflow pulls.
-So `build_context()` omits the BASELINE block entirely and every per-category
-call sees only the dated press-release feed.
-
-**Why it matters:** the grounding scaffold introduced in f04778b — the TCMB
-annual *Monetary Policy for YYYY* document, whose annex tables list every rule
-in force at year start — is the thing the per-category prompts are designed to
-build **on top of**. Without it each section is reconstructed from ~330 days of
-press releases alone, so any rule that was in force but not re-announced during
-the window is invisible. The sections most exposed are the ones whose regime is
-cumulative rather than newsy (RRs, TL deposit share, loan-growth caps).
-
-**Fix:** run `scripts/ingest_policy_baseline.py`, confirm `regulation_baseline`
-has the current year's row, and make sure the populated DB reaches the R2
-snapshot (the summarize workflow re-uploads it; a local-only run does not).
-Then re-check that the warning is gone in the next weekly log.
-
-**Worth adding after the fix:** the run is *silently* degraded — it warns and
-carries on, and the briefing still looks plausible. A missing baseline should
-either fail the job or alert, the same way `check_calendar_fresh.py` guards the
-hand-typed MPC dates.
-
-Found while benchmarking DeepSeek on this task; see
-[knowledge/openrouter-deepseek-eval-2026-07-19.md](knowledge/openrouter-deepseek-eval-2026-07-19.md).
-
 ## FIXED (C): the briefing quoted a decision log as current policy
 
 **Status:** fixed 2026-07-20. Full account:
