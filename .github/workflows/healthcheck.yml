@@ -68,6 +68,18 @@ jobs:
         continue-on-error: true
         run: python scripts/check_public_api.py --alert
 
+      # The bot's schema prompt asserts dozens of facts about the data — units,
+      # enum values, which recipe finds which figure. When one drifts the model
+      # writes confident, VALID, wrong SQL and nothing errors: that is how the
+      # sector came back 3.84x too large and a profit ranking lost 2 of 38 banks.
+      # Prose can't be unit-tested; the facts it asserts can.
+      - name: Verify the bot's schema prompt matches the data
+        if: always()
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: python scripts/check_bot_schema.py --alert
+
       # Bodies are fetched once and never revisited, so an improvement to the
       # extractor never heals history — that is how the regulation briefing lost
       # the loan-growth caps for two months without anything failing. Samples the

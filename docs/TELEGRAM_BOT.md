@@ -266,3 +266,49 @@ GROUP BY all pass.
 **The rule for any consumer, not just the bot:** `10001` IS the total. The other
 codes are three overlapping partitions of that same sector — never add across
 them. The same warning is in `docs/API_MANUAL.md` §8 for API callers.
+
+## The audit (2026-07-20)
+
+Four parallel audits ran the schema prompt and the code against live D1. Every
+finding below was reproduced against the database before being fixed; the
+prompt's own worked examples were executed, not read.
+
+### Wrong numbers, silently
+
+| | |
+|---|---|
+| `MAX(amount_total) WHERE statement='assets'` | The grand-total row is MISSING for some bank-quarters, so `MAX` returned the largest **sub-line**. ISCTR read 2.72trn instead of 4.94trn — **7th instead of 3rd** in a 38-row ranking that looked complete. Fixed: take `MAX` across `('assets','liabilities')`; a balance sheet balances, and a sub-line can never exceed the total. |
+| `currency IN ('TL','YP','TOTAL')` | Fabricated. The real values are `'TL'` and `'USD'`, and USD exists for exactly ONE month (2025-12, at ~42.8). Filtering the documented `'TOTAL'` returns zero rows; forgetting the filter in Dec-2025 sums 2.3% high or reads 43x low. |
+| `loans` table 5 | **thousand TL** while tables 3/4/6/7 are million — a 1000x error across the largest block of that table. |
+| `is_subtotal` undocumented | These tables interleave leaves, subtotals and grand totals. `SUM` over them is **8.1x** on balance_sheet, 2x on loans. |
+| Overlapping `bank_type_code` via `IN` | The first gate accepted any `IN` list. `IN ('10001','10002','10003','10004')` is **exactly 2.00x**. Now rejected: 10001 with anything, or codes from two partitions. |
+| Our own `LIMIT 200` | Silently truncated the population and reported the truncated count as the whole. A real "NPL since 2024, all banks" query is 327 rows → 200, dropping Ziraat, VakıfBank, Yapı Kredi, TEB and TSKB. Now over-fetches by one and says so. |
+| A `LIMIT` in a **subquery** | Suppressed the outer cap entirely — the test ran against the whole statement. Now top-level only. |
+
+### Missing or unusable answers
+
+- `bank_audit_credit_quality.section` documented the three **rarest** values (0–2 banks) while `loans_by_stage` (38/38) went unmentioned.
+- The ticker list held 31 of 38 banks. Enpara, Hayat Finans, Takasbank and four others answered "no data".
+- `bank_audit_equity_change` was documented as a line-item table with an `amount` column. It has neither — it is a wide matrix, and it carries `period_type`.
+- `ratio_category`: three of four documented values do not exist.
+- `financial_ratios` was labelled "sparsely populated". It is 26,600 rows, every month, no NULLs — the best source of sector ratios.
+- `other_data` (394k rows, the largest family-B table) had no entry at all.
+- The label-matching rule's own example, `LIKE '%TOTAL%ASSET%'`, matches **9 of 38 banks** — and sat 160 lines below a rule banning exactly that.
+
+### Guards that were not guarding
+
+- `inventedNumbers` — a tested, documented check that every figure in an answer appears in the data — **had never once run**. It was never imported. Now wired, with one correction round.
+- The hallucination guard only caught 4+ digit runs, so `%16,2`, `NPL is 2.3%`, `ROE was 38,5%` and `750 branches` could all be stated with **no query run**.
+- `substituteDataList` re-rendered from the LAST query's rows, not the answer's — a follow-up `SELECT period, COUNT(*)` could replace a bank ranking with a list of periods under the ranking's caption. Now requires label overlap.
+- It also picked the first numeric column, printing absolute Stage-3 amounts under "ranked by NPL ratio". Now reads the `ORDER BY` column.
+- The out-of-steps path skipped re-rendering entirely — the longest conversations, most likely to carry a ranking.
+- `formatTrNumber(0.004)` produced `"0,"`. Stage coverage is stored as a fraction.
+
+### What stops it recurring
+
+`scripts/check_bot_schema.py` verifies the prompt's assertions against live D1 —
+ticker completeness, enum values, column existence, the `bank_type_code` overlap
+identities, `pl_roles` coverage, and the balance-sheet identity that exposed the
+ISCTR defect. It runs daily in `healthcheck.yml`.
+
+**Prose cannot be unit-tested. The facts it asserts can.**

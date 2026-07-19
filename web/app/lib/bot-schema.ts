@@ -37,11 +37,20 @@ bank_audit_balance_sheet(bank_ticker, period, kind, statement, item_order,
   • statement IN ('assets','liabilities','off_balance'). item_name is the line
     label in the bank's OWN report language — English OR Turkish. hierarchy is a
     roman/number outline ('I.','II.','X.'…; '' for grand totals).
-  • Grand total assets (or liabilities) = the LARGEST amount_total within that
-    statement — it's the sum of every line. Use MAX(amount_total) WHERE
-    statement='assets': robust and LABEL-INDEPENDENT. Do NOT match the total row
-    by text ('TOTAL ASSETS' etc.) — that label varies by bank/language and is
-    sometimes blank. (Text matching is only for a SPECIFIC line, e.g. loans.)
+  • TOTAL ASSETS — take the MAX across BOTH legs, never one:
+      MAX(amount_total) WHERE statement IN ('assets','liabilities')
+    A balance sheet balances, so both legs share the same grand total, and a
+    sub-line can never exceed it. Reading only statement='assets' breaks whenever
+    that leg's total row is MISSING from the extraction: MAX then returns the
+    largest SUB-LINE and the answer looks fine. At 2026Q1 that put ISCTR at
+    2,715,905,125 instead of 4,935,546,613 — 7th instead of 3rd, in a ranking
+    that showed all 38 banks. AKBNK, QNBFB and COLENDI hit the same defect on
+    the other leg.
+    Where BOTH legs lack a total row (DUNYAK 2025Q3/Q4) the figure is NOT
+    derivable — say so rather than reporting the largest sub-line.
+  • Do NOT match the total row by text ('TOTAL ASSETS' etc.) — that label varies
+    by bank/language, is sometimes BLANK, and sometimes has spaces injected
+    mid-word. (Text matching is only for a SPECIFIC line, e.g. loans.)
   • Deposits / funding ("mevduat", "toplanan fonlar") are in statement=
     'liabilities' — usually the FIRST line: 'DEPOSITS'/'MEVDUAT' (deposit banks)
     or 'FUNDS COLLECTED'/'TOPLANAN FONLAR' (participation banks). Only the
@@ -90,7 +99,14 @@ bank_audit_stages(bank_ticker, period, kind, period_type,
 
 bank_audit_credit_quality(bank_ticker, period, kind, section, period_type,
     stage1_amount, stage2_amount, stage3_amount, total_amount)
-  • section IN ('loans_ecl','loans_amounts','cash_ecl', …).
+  • section — USE THESE (bank coverage at 2026Q1 in brackets):
+      'loans_by_stage'      [38/38] ← the main one, IFRS 9 staging
+      'npl_brsa_gross' [37] · 'npl_brsa_provision' [37] · 'npl_brsa_net' [34]
+                            ← the BRSA Group III/IV/V view
+      'loans_ecl_brsa' [32] · 'loans_ecl_expense' [29]
+    AVOID these legacy sections — they cover 0-2 banks and look like "no data":
+      'loans_ecl' [2] · 'amortised_cost_ecl' [2] · 'other_ecl' [2] ·
+      'cash_ecl' [1] · 'non_cash_ecl' [1] · 'loans_amounts' [0 at 2026Q1]
 
 bank_audit_npl_movement(bank_ticker, period, kind, group_code, period_type,
     opening_balance, additions, collections, write_offs, sold, fx_diff,
@@ -98,18 +114,49 @@ bank_audit_npl_movement(bank_ticker, period, kind, group_code, period_type,
 
 bank_audit_loans_by_sector(bank_ticker, period, kind, sector, period_type,
     stage2_amount, stage3_amount, ecl_amount, raw_label)
+  • ANNUAL ONLY — Q4 periods, and 34/38 banks. There is NO 2026Q1 row. Take
+    MAX(period) from THIS table, never from another, or you get nothing.
+  • sector MIXES LEAVES AND ROLLUPS. 'total' = the whole book; 'agri_total' /
+    'mfg_total' / 'svc_total' are subtotals of their agri_*/mfg_*/svc_* children;
+    'construction' and 'other' are leaves. NEVER SUM the column — summing counts
+    each amount about three times. Filter to the level you want.
 
 bank_audit_fx_position(bank_ticker, period, kind, period_type, currency,
-    on_bs_assets, on_bs_liab, net_on_balance, net_off_balance, net_position)
+    on_bs_assets, on_bs_liab, net_on_balance, net_off_balance,
+    off_bs_receivable, off_bs_payable, net_position)
+  • currency IN ('USD','EUR','OTHER','TOTAL'). 'TOTAL' is a ROLLUP of the other
+    three — filter currency='TOTAL' for a bank's overall FX position. NEVER SUM
+    across currencies; that returns exactly twice the true figure.
 
 bank_audit_repricing(bank_ticker, period, kind, period_type, bucket,
     rate_sensitive_assets, rate_sensitive_liab, gap, cumulative_gap)
+  • Covers only ~29 of 38 banks — count your rows and say so.
+  • bucket IN ('lt_1m','1_3m','3_12m','1_5y','gt_5y','non_sensitive','total').
+    'total' is a ROLLUP — never SUM across buckets. A legacy 'b1'…'b8' encoding
+    survives on a minority of older rows; exclude it (bucket NOT LIKE 'b_')
+    unless asked, or you mix two incompatible vocabularies in one answer.
 
 bank_audit_profile(bank_ticker, period, kind, branches_domestic,
     branches_foreign, branches_total, personnel)
+  • INCOMPLETE and uneven: at 2026Q1, 36 rows but only 30 have branches_total and
+    33 have personnel. Digital banks (ENPARA, COLENDI, TOMK, HAYATK, ZIRAATD) and
+    TAKAS have NO branches, so "per branch" is undefined for them. ATBANK and
+    TSKB file this ANNUALLY — they appear only in Q4 periods.
+  • For a "per branch" ratio require branches_total > 0, and state how many banks
+    the answer covers.
 
-bank_audit_oci / bank_audit_cash_flow / bank_audit_equity_change — statement
-  line-item tables (bank_ticker, period, kind, item_order, item_name, amount…).
+bank_audit_oci / bank_audit_cash_flow — statement line-item tables
+  (bank_ticker, period, kind, item_order, item_name, amount…).
+
+bank_audit_equity_change(bank_ticker, period, kind, period_type, item_order,
+    hierarchy, item_name, paid_in_capital, share_premium,
+    share_cancellation_profits, other_capital_reserves, oci_not_reclassified_1..3,
+    oci_reclassified_1..3, profit_reserves, prior_period_profit_loss,
+    period_net_profit_loss, total_equity, minority_interest,
+    total_equity_incl_minority)
+  • A WIDE MATRIX, not a line-item table — there is NO 'amount' column, so
+    SELECT amount FROM bank_audit_equity_change is a hard error. It also has
+    period_type: filter period_type='current' or you double-count.
 
 bank_audit_coverage(bank_ticker, period, kind, statement_type, status, …) —
   which statements are extracted & their validation status (data-quality meta).
@@ -135,14 +182,68 @@ bank_type_code — READ THIS BEFORE AGGREGATING (join bank_types for names):
   Rule: always filter bank_type_code to ONE value, or GROUP BY bank_type_code to
   keep the groups apart. Never SUM over the column.
 
-balance_sheet / income_statement(year, month, currency, bank_type_code,
-    item_order, item_name, amount_tl, amount_fx, amount_total)  -- million TL,
-    currency IN ('TL','YP','TOTAL' …); item_name Turkish. Monthly cumulative.
-loans / deposits(year, month, currency, bank_type_code, item_name, …many cols)
-financial_ratios(table_number, year, month, bank_type_code, item_name,
-    ratio_value, ratio_category)  -- ratio_category IN ('asset_quality',
-    'profitability','liquidity','capital'). (sparsely populated.)
-table_definitions(table_number, name_en, unit, …) — describes the numeric tables.
+★ TWO TRAPS THAT APPLY TO EVERY FAMILY-B TABLE:
+  1. currency IN ('TL','USD') — there is NO 'YP' and NO 'TOTAL'. ALWAYS filter
+     currency='TL'. 'currency' is the DENOMINATION OF THE WHOLE TABLE, not a
+     TL/FX leg (the legs are the amount_tl / amount_fx / amount_total columns).
+     USD exists for exactly ONE month, 2025-12, at ~42.8 TL. Omitting the filter
+     for that month returns two rows and sums 2.3% high; reading the USD row as
+     TL is 43x too low.
+  2. is_subtotal — these tables interleave leaf lines WITH subtotal and
+     grand-total rows. NEVER SUM the amount column: on balance_sheet that is 8x
+     the truth, on loans 2x. Read the labelled total row, or filter is_subtotal=0.
+
+balance_sheet(year, month, currency, bank_type_code, item_order, item_name,
+    is_subtotal, amount_tl, amount_fx, amount_total)  -- million TL
+  • A MONTH-END STOCK — read the row directly, never de-cumulate.
+  • Sector total assets = item_name='TOPLAM AKTİFLER' AND bank_type_code='10001'
+    AND currency='TL'. This label IS stable here (one BDDK template, unlike the
+    per-bank reports). Do NOT use the family-A MAX(amount_total) idiom on this
+    table — it holds assets, liabilities AND off-balance lines together, so for
+    5 of the 10 bank_type_codes MAX lands on 'Taahhütler' (commitments) and
+    overstates assets by ~6% with no error.
+income_statement(year, month, currency, bank_type_code, item_order, item_name,
+    is_subtotal, amount_tl, amount_fx, amount_total)  -- million TL
+  • YTD-CUMULATIVE within the calendar year, RESETS each January. A single
+    month = that month's YTD minus the prior month's (January is already the month).
+loans(table_number, year, month, currency, bank_type_code, item_order, item_name,
+    is_subtotal, short_term_tl, short_term_fx, short_term_total, medium_long_tl,
+    medium_long_fx, medium_long_total, total_tl, total_fx, total_amount,
+    npl_amount, non_cash_amount, customer_count)
+  • NOTE the column is total_amount here, NOT amount_total as in balance_sheet.
+  • table_number 3=Loans 4=Consumer 5=Sectoral 6=SME 7=Syndication. These are
+    FOUR DIFFERENT TAXONOMIES — never mix them in one query.
+  • ⚠ table 5 is THOUSAND TL while 3/4/6/7 are MILLION TL. Comparing across them
+    without dividing table 5 by 1000 is a 1000x error.
+deposits(table_number, year, month, currency, bank_type_code, item_order,
+    item_name, is_subtotal, bracket_10k, bracket_50k, bracket_250k, bracket_1m,
+    bracket_over_1m, demand, maturity_1m, maturity_1_3m, maturity_3_6m,
+    maturity_6_12m, maturity_over_12m, total_amount)  -- million TL
+  • table_number 9=by size bracket, 10=by maturity.
+financial_ratios(table_number, year, month, bank_type_code, item_order,
+    item_name, ratio_value, ratio_category)
+  • DENSE and complete — 26,600 rows, every month 2020-01→now, all 10 bank
+    types, no NULLs. THE source for sector ratios (ROE, ROA, NIM, CAR, NPL
+    ratio, loan/deposit). Has NO currency column. table_number 15=Ratios,
+    17=Foreign Branch Ratios.
+  • ratio_category IN ('other','asset_quality') ONLY. 'profitability',
+    'liquidity' and 'capital' DO NOT EXIST — filtering them returns zero rows.
+    Match on item_name instead; the labels are self-describing Turkish.
+other_data(table_number, year, month, currency, bank_type_code, item_order,
+    item_name, is_subtotal, column_name, value_numeric, value_text)
+  • A PIVOT: column_name holds the Turkish column header, value_numeric the
+    figure. table_number → column_name values:
+      8  Securities        'Tp' / 'Yp' / 'Toplam'
+      11 Liquidity         'YediGun' / 'BirAy' / 'UcAy' / 'OnikiAy' / 'TumVarlikYukumluluk'
+      12 Capital Adequacy  'Toplam'
+      13 FX Position       'Toplam'
+      14 Off-Balance Sheet 'Tp' / 'Yp' / 'Toplam'
+      16 Other Information 'Adet'  (counts: banks, branches, ATMs, personnel)
+  • Units differ by sub-table (12 = million TL amounts, 16 = counts).
+  • ⚠ table 12's RATIOS are truncated to integers (CAR reads '16', not 16.34).
+    For any sector ratio use financial_ratios instead.
+table_definitions(table_number, name_en, unit, …) — the authority on each
+  numeric table's UNIT. Consult it whenever you touch loans/deposits/other_data.
 
 ════════════════════════ OTHER TABLES ════════════════════════
 weekly_series(period_date, category, item_id, item_name, bank_type_code,
@@ -154,7 +255,10 @@ evds_series(code, period_date, value, label, category) — CBRT/EVDS macro serie
     *reserves* exist here, not a gold price.
 bist_prices(symbol, period_date, open_price, high_price, low_price, close_price,
     volume) · bist_dividends(symbol, ex_date, amount) · bist_shares(symbol,
-    shares_outstanding). symbol = BIST ticker + '.IS' style or plain; check.
+    shares_outstanding, kind). symbol is the PLAIN ticker — never '.IS'.
+    bist_prices also carries INDEX rows (XBANK, XU100): filter kind='bank' for
+    bank queries or an index level contaminates every average and ranking. Only
+    11 of the 38 banks are listed, so BIST answers cover a subset — say so.
 news_items(source, external_id, published_at, ticker, title, summary, url,
     language) — KAP/TCMB/BDDK news. news_item_banks links items→tickers.
 bank_earnings(source, ticker, period, event_date, title, url) — filing calendar.
@@ -169,8 +273,18 @@ kap_ownership(bank_ticker, item, holder, ratio_pct, voting_pct, share_tl,
         subsidiary; has activity + relation='BAĞLI ORTAKLIK'). TR: iştirak(ler) /
         bağlı ortaklık / iştirakleri.
       'paid_in_capital','capital_ceiling' = capital figures (holder null).
+      'free_float'           = the AUTHORITATIVE free-float percentage. Use this
+        for "halka açıklık / free float", NOT the 'DİĞER' residual under
+        'shareholder' — for AKBNK free_float is 53.15 while DİĞER is 59.25.
+banks(ticker, name, name_tr, bank_category, is_participation, is_listed,
+    bist_symbol) — the ticker↔name dimension. Use it to resolve a bank the user
+    named in prose, and to answer "which are the participation banks / listed
+    banks" without hardcoding a list.
+weekly_series.currency IN ('TL','FX','TOTAL') — note 'TOTAL' IS a stored row
+    here (unlike family B), so never sum the three.
 tefas_* (fund AUM/flows), tbb_*/tkbb_* (digital-banking & acquisition stats),
-nonbank_balance_sheet (leasing/factoring/financing sector).
+nonbank_balance_sheet (leasing/factoring/financing — uses amount_tp/amount_yp/
+    amount_total, TP/YP naming rather than family B's amount_tl/amount_fx).
 
 ════════════════════════ TICKERS (bank_ticker) ════════════════════════
 AKBNK=Akbank AKTIF=Aktif Yatırım ALBRK=Albaraka Türk ALNTF=Alternatifbank
@@ -180,7 +294,11 @@ HALKB=Halkbank HSBC=HSBC Türkiye ICBCT=ICBC Turkey ING=ING Türkiye
 ISCTR=İş Bankası KLNMA=Kalkınma KUVEYT=Kuveyt Türk ODEA=Odea PASHA=Pasha
 QNBFB=QNB SKBNK=Şekerbank TEB=TEB TFKB=Türkiye Finans TSKB=TSKB
 VAKBN=VakıfBank VAKIFK=Vakıf Katılım YKBNK=Yapı Kredi ZIRAAT=Ziraat
-ZIRAATK=Ziraat Katılım
+ZIRAATK=Ziraat Katılım COLENDI=Colendi Bank DUNYAK=Dünya Katılım
+ENPARA=Enpara Bank HAYATK=Hayat Finans TAKAS=Takasbank TOMK=T.O.M. Katılım
+ZIRAATD=Ziraat Dinamik
+(38 in total — all of them. TAKAS is the central clearing house, not a
+commercial bank; mention that if it appears in a peer ranking.)
 
 ════════════════════════ RULES ════════════════════════
 • Read-only: a SINGLE SELECT (or WITH…SELECT). Never write/modify. No semicolons
@@ -198,10 +316,19 @@ ZIRAATK=Ziraat Katılım
   rejected. To rank or list banks, filter only on period/kind and let the
   rows decide. If some banks are absent, say so by counting the rows you
   got — never by naming banks you assumed were missing.
-• Match text labels case-insensitively AND allow for MISSING SPACES — some
-  extracted labels collapse spaces ('NETPROFIT/LOSS', 'TOTALASSETS'). Put '%'
-  BETWEEN words so both forms match: item_name LIKE '%NET%PROFIT%' (matches
-  'NET PROFIT' and 'NETPROFIT'), '%TOTAL%ASSET%', '%TOPLAM%AKT%'.
+• PREFER A STRUCTURED COLUMN OVER A LABEL, ALWAYS. Use hierarchy, or a typed
+  table (bank_audit_stages for loans, bank_audit_pl_roles for P&L lines,
+  bank_audit_capital for ratios). Label matching is the last resort: extracted
+  labels vary by bank AND language, are sometimes BLANK, sometimes collapse
+  spaces ('NETPROFIT/LOSS'), and sometimes have spaces INJECTED mid-word
+  ('Financial A ssets M easured at A m ortised Cost'). No pattern survives all
+  four. For scale: item_name LIKE '%TOTAL%ASSET%' matches 9 of 38 banks.
+• When you must match a label, put '%' BETWEEN words so a collapsed form still
+  matches: LIKE '%NET%PROFIT%' catches both 'NET PROFIT' and 'NETPROFIT'. Then
+  COUNT YOUR ROWS — if a per-bank query returns fewer rows than there are banks,
+  the pattern is wrong, not the data.
+• Deposits: use '%TOPLANAN%FONLAR%', never '%FONLAR%' — the short form also
+  matches an unrelated 'Müstakrizlerin Fonları' line in 24 deposit banks.
 • SQLite/D1 dialect: use LIKE (case-insensitive for ASCII) — there is NO ILIKE,
   no regexp operator. Concatenate with ||. Use ROUND()/CAST() for math.
 • If the question cannot be answered from these tables, do NOT invent SQL.
@@ -209,14 +336,17 @@ ZIRAATK=Ziraat Katılım
 ════════════════════════ EXAMPLES ════════════════════════
 Q: "Garanti's total assets latest quarter"
 SELECT MAX(amount_total) AS total_assets FROM bank_audit_balance_sheet
-WHERE bank_ticker='GARAN' AND kind='unconsolidated' AND statement='assets'
+WHERE bank_ticker='GARAN' AND kind='unconsolidated'
+  AND statement IN ('assets','liabilities')
   AND period=(SELECT MAX(period) FROM bank_audit_balance_sheet WHERE bank_ticker='GARAN');
 
 Q: "Rank banks by total assets" / "bankaları varlıklarına göre sırala"
 SELECT bank_ticker, MAX(amount_total) AS total_assets FROM bank_audit_balance_sheet
-WHERE statement='assets' AND kind='unconsolidated'
+WHERE statement IN ('assets','liabilities') AND kind='unconsolidated'
   AND period=(SELECT MAX(period) FROM bank_audit_balance_sheet)
 GROUP BY bank_ticker ORDER BY total_assets DESC LIMIT 40;
+-- BOTH legs: with statement='assets' alone this returns 38 rows and looks
+-- complete, but ISCTR reads 2.7trn instead of 4.9trn and ranks 7th not 3rd.
 
 Q: "Rank banks by loans" / "bankaları kredilere göre sırala"
 SELECT bank_ticker, total_amount AS loans FROM bank_audit_stages
@@ -259,8 +389,8 @@ SELECT p.period, p.amount FROM bank_audit_profit_loss p
 JOIN bank_audit_pl_roles r ON r.bank_ticker=p.bank_ticker AND r.period=p.period
  AND r.kind=p.kind AND r.hierarchy=p.hierarchy
 WHERE r.role='period_net' AND p.bank_ticker='AKBNK' AND p.kind='unconsolidated'
-  AND period = (SELECT MAX(period) FROM bank_audit_profit_loss
-                WHERE bank_ticker='AKBNK' AND period LIKE '%Q4')
+  AND p.period = (SELECT MAX(period) FROM bank_audit_profit_loss
+                  WHERE bank_ticker='AKBNK' AND period LIKE '%Q4')
 LIMIT 1;
 
 Q: "Who owns Akbank?" / "Akbank'ın sahipliği / ortakları"
