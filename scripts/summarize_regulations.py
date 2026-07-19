@@ -48,7 +48,7 @@ DB_PATH = REPO_ROOT / "data" / "bddk_data.db"
 
 # Feeds input_hash, so a bump forces one regeneration — which is what you want
 # after a context change.
-PROMPT_VERSION = "2026-07-20.v15-post-baseline-feed"
+PROMPT_VERSION = "2026-07-20.v16-log-latest-wins"
 
 # Fixed seed + temperature 0: this is an extraction task, so sampling buys
 # nothing and costs run-to-run stability. Measured spread before this change:
@@ -114,16 +114,17 @@ INPUT (in order):
   1. BASELINE: CURRENT FRAMEWORK — TCMB's annual "Monetary Policy for YYYY"
      document, minus its decision log. The standing framework at year start.
      Use it as the scaffold for this section.
-  2. BASELINE: DECISION HISTORY — a DATED CHANGELOG (Annex 1) of decisions
-     already taken, MANY OF THEM SUPERSEDED by later entries in the same table.
-     It is background only. NEVER quote a figure from it as a rule in force.
+  2. BASELINE: DATED DECISION LOG — a chronology (Annex 1) in which THE SAME
+     RULE APPEARS SEVERAL TIMES as it was revised. Only the LATEST entry per
+     rule is in force; earlier ones are superseded. Where nothing below revises
+     a rule, this log's latest entry IS its current value.
   3. DATED PRESS RELEASES — TCMB/BDDK updates since. Each item has id, source,
      date (YYYY-MM-DD), title, body (may contain Markdown tables / bullet lists).
 
 HOW TO COMPILE:
-  - Start from the CURRENT FRAMEWORK for THIS section, then apply the dated
-    press releases as updates. The DECISION HISTORY only explains how a rule
-    reached its value; it never establishes one.
+  - Start from the CURRENT FRAMEWORK for THIS section, then layer the DECISION
+    LOG's latest entry per rule, then the dated press releases on top. Later
+    always wins.
   - CURRENCY: report the CURRENT value only. For any rule, the LATEST-DATED
     statement wins — a press release overrides the framework, and a later
     release overrides an earlier one.
@@ -274,12 +275,15 @@ def build_context(items: list[dict], baseline: dict | None) -> str:
         )
         if history:
             parts.append(
-                "==================== BASELINE: DECISION HISTORY (NOT CURRENT) ====\n"
-                "A DATED CHANGELOG of decisions already taken. Entries supersede one "
-                "another — a later entry overrides an earlier one for the same rule, "
-                "and any dated press release below overrides both. Use it ONLY to "
-                "understand how a rule reached its current value. NEVER quote a "
-                "figure from here as the rule in force.\n\n"
+                "============ BASELINE: DATED DECISION LOG (latest entry wins) ============\n"
+                "A CHRONOLOGY of decisions, oldest to newest, in which THE SAME RULE "
+                "APPEARS SEVERAL TIMES as it was revised. For any given rule only the "
+                "LATEST-DATED entry is in force; every earlier entry for that rule is "
+                "superseded and must NEVER be printed. A dated press release below "
+                "overrides even the latest entry here.\n"
+                "Read it as a log, not a list: if this log is the newest source for a "
+                "rule (nothing below revises it), its latest entry IS the current "
+                "value and you should report it.\n\n"
                 f"{history}"
             )
     parts.append(
