@@ -190,7 +190,15 @@ apply`), builds the OpenNext bundle, and deploys to Cloudflare Workers.
 ### Health check — `.github/workflows/healthcheck.yml`
 Daily 06:00 UTC. Queries D1 freshness per source + audit failure count and
 alerts (`scripts/notify.py` → Telegram/Discord) when data is stale or
-extractions spike.
+extractions spike. Also asserts the Q&A bot's Telegram webhook still points at
+the live origin — Telegram keeps delivering to whatever URL it was last given,
+so the bot can go silent with nothing failing on our side.
+
+### Telegram webhook — `.github/workflows/telegram-webhook.yml`
+Manual only. `set` / `info` / `check` for the Q&A bot webhook
+(`scripts/setup_telegram_webhook.py`). In CI because `TELEGRAM_BOT_TOKEN` and
+`TELEGRAM_WEBHOOK_SECRET` aren't available locally. Re-run `set` after anything
+that moves the site origin.
 
 ### CI — `.github/workflows/ci.yml`
 On every PR (and master push): Python `ruff` + `pytest` and web `eslint` +
