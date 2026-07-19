@@ -53,7 +53,7 @@ DB_PATH = REPO_ROOT / "data" / "bddk_data.db"
 
 # Feeds input_hash, so a bump forces one regeneration — which is what you want
 # after a context change.
-PROMPT_VERSION = "2026-07-20.v20-supersession-note"
+PROMPT_VERSION = "2026-07-20.v21-supersession-ignore-list"
 
 # Fixed seed + temperature 0: this is an extraction task, so sampling buys
 # nothing and costs run-to-run stability. Measured spread before this change:
