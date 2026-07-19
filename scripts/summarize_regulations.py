@@ -132,6 +132,15 @@ HOW TO COMPILE:
     as if both applied. If a limit changed, state only the value now in force
     (you may write "reduced from X to Y", but never a bare bullet asserting the
     old X somewhere else in the section).
+    Before writing a bullet, scan the sources for EVERY mention of that rule and
+    keep only the latest-dated one. Two worked examples:
+      * The FX loan growth limit appears in the decision log twice — "reduced
+        from 1.5% to 1%" and later "reduced from 1% to 0.5%". Only 0.5% is in
+        force. A bullet saying the FX limit is 1% is WRONG.
+      * A reserve-requirement RATIO TABLE is republished in full each time any
+        row changes, so several dated tables cover the same rows. Use ONLY the
+        latest table; ignore every earlier one entirely, even though it looks
+        equally authoritative and equally complete.
   - SPECIFICITY: every bullet MUST carry the concrete number(s) — rate, cap,
     ratio, threshold, limit — with units. Never write a vague bullet that names
     a rule without its figures. The numbers are in the baseline annex tables and
