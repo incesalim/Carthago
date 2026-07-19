@@ -312,3 +312,41 @@ identities, `pl_roles` coverage, and the balance-sheet identity that exposed the
 ISCTR defect. It runs daily in `healthcheck.yml`.
 
 **Prose cannot be unit-tested. The facts it asserts can.**
+
+## The missing total rows — what they are, and aren't
+
+`MAX(amount_total)` was returning a sub-line for ISCTR 2026Q1 assets and AKBNK
+2026Q1 liabilities. That looked like lost data. It isn't:
+
+```
+ISCTR 2026Q1 assets — sum of the 10 top-level roman sections
+  = 4,935,546,613   exactly the liabilities leg, to the digit
+```
+
+Every component line was extracted correctly. What was NOT captured is the one
+printed **grand-total row**. The extraction ends at `OTHER ASSETS` (item 46) and
+never picks up the total beneath it; the same PDF also has a damaged text layer
+(`O TH ER A SSETS`, spaces injected mid-word), and AKBNK's tail carries blank
+`item_name`s. So the defect is real, but it costs no numbers.
+
+**The validator was right all along.** `cross` passes for all 38 banks because
+`check_cross_statement` already falls back to summing the roman sections — it
+correctly measured the statement as internally consistent. It wasn't missing a
+problem; it was reporting the truth. The bug was in the *recipe*, which assumed
+a total row exists.
+
+Fleet-wide: roman-sum and `MAX` agree on **74 of 76** partitions, and on the two
+where they differ the roman sum is right. It also recovers DUNYAK 2025Q4, where
+BOTH legs lack a total row and `MAX` gives 55,053,572 / 76,466,774 against a true
+99,678,154.
+
+So the prompt now teaches, in order:
+1. `MAX(amount_total) WHERE statement IN ('assets','liabilities')` — simple, and
+   correct wherever either leg has its total row.
+2. Sum the top-level romans (`hierarchy GLOB '[IVX]*.' AND NOT GLOB '*.*.*'`)
+   when neither does.
+
+**Not fixed by re-extraction, deliberately.** The balance sheet is a frozen
+statement and is not in `reextract_statement.py`'s `STATEMENT_TABLE`. Re-running
+it to recover a row that changes no figure would risk good data for no gain. The
+gap is reported by `check_bot_schema.py` on every run so it stays visible.
