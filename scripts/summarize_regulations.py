@@ -301,6 +301,11 @@ def main() -> int:
                     help="Build context + print stats but make no LLM calls.")
     ap.add_argument("--force", action="store_true",
                     help="Regenerate even if inputs are unchanged since last run.")
+    ap.add_argument("--require-baseline", action="store_true",
+                    help="Fail instead of generating an ungrounded briefing when "
+                         "no baseline is stored. The weekly workflow passes this: "
+                         "a warning alone went unnoticed for seven weeks (see "
+                         "docs/regulation_followups.md).")
     args = ap.parse_args()
 
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -315,6 +320,20 @@ def main() -> int:
     print(f"[briefing] {len(items)} update items in last {args.delta_days}d", flush=True)
     if baseline:
         print(f"[briefing] baseline: {baseline['title']} ({len(baseline['content'])} chars)", flush=True)
+    elif args.require_baseline:
+        # Without the baseline every section is reconstructed from the press-release
+        # feed alone, so any rule in force but not re-announced inside the window is
+        # simply invisible — and the output still reads plausibly, which is why this
+        # went unnoticed from 2026-05-29 to 2026-07-19. Refuse rather than ship a
+        # briefing that looks complete and isn't.
+        raise SystemExit(
+            "[briefing] FATAL: no baseline stored, and --require-baseline is set.\n"
+            "  The snapshot's regulation_baseline table is empty, so the briefing "
+            "would be built from the feed alone.\n"
+            "  Fix: dispatch summarize-regulations.yml with baseline_url set to the "
+            "TCMB 'Monetary Policy for YYYY' PDF\n"
+            "  (see docs/regulation_followups.md)."
+        )
     else:
         print("[briefing] WARNING: no baseline — run scripts/ingest_policy_baseline.py", flush=True)
 
