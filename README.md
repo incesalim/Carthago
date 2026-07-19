@@ -22,7 +22,7 @@ Cloudflare for storage and display.
   staging snapshot) and Cloudflare D1 (structured rows: monthly +
   weekly bulletins, EVDS macro series, per-bank quarterly statements).
 - **Dashboard** — Next.js 16 + OpenNext, deployed to Cloudflare Workers.
-  Live at <https://turkish-banking-dashboard.incesalim10.workers.dev>.
+  Live at <https://carthago.app>.
   D1 reads are cached ~12h via a KV-backed data cache. A password-gated
   `/admin` control center (data health, refresh triggers, traffic) lives at
   `/admin` — see [`docs/ADMIN.md`](docs/ADMIN.md).

@@ -3,7 +3,7 @@
 Next.js 16 + OpenNext + Recharts dashboard deployed to Cloudflare Workers.
 Reads directly from Cloudflare D1.
 
-Production: <https://turkish-banking-dashboard.incesalim10.workers.dev>
+Production: <https://carthago.app>
 
 ## Local development
 

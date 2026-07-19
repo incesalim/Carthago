@@ -37,7 +37,7 @@ import requests
 REPO = Path(__file__).resolve().parents[1]
 sys.stdout.reconfigure(encoding="utf-8")
 
-DEFAULT_SITE = "https://turkish-banking-dashboard.incesalim10.workers.dev"
+DEFAULT_SITE = "https://carthago.app"
 
 
 def fetch_html(site: str, tabs: str | None, title: str | None) -> str:

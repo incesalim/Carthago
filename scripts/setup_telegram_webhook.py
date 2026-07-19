@@ -8,7 +8,7 @@ Stdlib only. Reads:
   TELEGRAM_BOT_TOKEN       — BotFather token (required)
   TELEGRAM_WEBHOOK_SECRET  — the same secret you `wrangler secret put` on the
                              Worker (required for `set`)
-  WORKER_URL               — Worker origin (default: the prod workers.dev URL)
+  WORKER_URL               — Worker origin (default: https://carthago.app)
 
 Usage:
   python scripts/setup_telegram_webhook.py gen-secret   # print a random secret
@@ -25,7 +25,7 @@ import secrets
 import sys
 import urllib.request
 
-DEFAULT_WORKER = "https://turkish-banking-dashboard.incesalim10.workers.dev"
+DEFAULT_WORKER = "https://carthago.app"
 
 
 def _api(token: str, method: str, payload: dict | None = None) -> dict:
