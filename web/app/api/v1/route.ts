@@ -54,6 +54,8 @@ export async function GET() {
         "Browse/search the catalog. Params: dataset, bankType, frequency, q, limit, offset, type=json|csv",
       "GET /api/v1/categories":
         "Dataset tokens and bank-type codes, with coverage counts",
+      "GET /api/v1/openapi.json":
+        "OpenAPI 3.1 schema — register as a ChatGPT Action / Custom GPT, or feed to Postman, Swagger UI or a client generator",
     },
     series_code_format: {
       pattern: "BDDK.<DATASET>.<ITEM>.<BANKTYPE>.<COLUMN>",
@@ -79,13 +81,14 @@ export async function GET() {
     },
     examples: {
       "One balance-sheet line, whole sector, full history":
-        "/api/v1/series?series=BDDK.T01.I001.10001.TOT",
+        "https://carthago.app/api/v1/series?series=BDDK.T01.I001.10001.TOT",
       "Two series over a window, as CSV":
-        "/api/v1/series?series=BDDK.T01.I001.10001.TOT-BDDK.T02.I001.10001.TOT&startDate=01-01-2024&endDate=31-12-2025&type=csv",
+        "https://carthago.app/api/v1/series?series=BDDK.T01.I001.10001.TOT-BDDK.T02.I001.10001.TOT&startDate=01-01-2024&endDate=31-12-2025&type=csv",
       "Find loan series for participation banks":
-        "/api/v1/serieList?dataset=T03&bankType=10004",
-      "Search labels": "/api/v1/serieList?q=kredi&limit=20",
+        "https://carthago.app/api/v1/serieList?dataset=T03&bankType=10004",
+      "Search labels": "https://carthago.app/api/v1/serieList?q=kredi&limit=20",
     },
-    documentation: "https://github.com/incesalim/Carthago/blob/master/docs/API.md",
+    openapi: "https://carthago.app/api/v1/openapi.json",
+    documentation: "https://github.com/incesalim/Carthago/blob/master/docs/API_MANUAL.md",
   });
 }

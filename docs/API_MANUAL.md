@@ -428,6 +428,28 @@ Whole sector (`10001`); swap the fourth segment for any group in §8.
 
 ## 15. Using it with an LLM
 
+### The reliable way: a Custom GPT Action
+
+```
+https://carthago.app/api/v1/openapi.json
+```
+
+**Plain browsing does not work well.** ChatGPT's browser will fetch a URL you
+paste, but it refuses to *construct* new parameterised sub-paths on its own — so
+it can read `/api/v1`, correctly learn that `T01` is the balance sheet, and then
+be unable to act on it. It will ask you to paste each URL, which defeats the
+point.
+
+An **Action** removes that limit. In ChatGPT: *Create a GPT → Configure →
+Actions → Import from URL* and give it the `openapi.json` above. Authentication:
+**None**. The schema carries the endpoint definitions *and* the reading rules
+(units vary, month-end stocks, null ≠ zero, bank groups overlap), so the model
+gets the caveats along with the calls.
+
+The same URL works with Postman, Swagger UI, and OpenAPI client generators.
+
+### If you're pasting into a plain chat instead
+
 Codes can't be guessed, so hand the model the table in §14 plus these rules:
 
 ```text
