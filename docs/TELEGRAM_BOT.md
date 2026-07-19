@@ -237,3 +237,32 @@ numbers are the queried ones by construction, and the layout no longer depends o
 which model replied. It fires only on a genuine ranking — enough rows, and prose
 that is clearly a list — and returns the answer untouched otherwise, so narrative
 replies are unaffected.
+
+## bank_type_code overlaps — the sector is not a sum
+
+Asked for the banking sector's total assets, the bot answered **198,874,433
+million TL**. The true figure is **51,760,765**. It had summed all ten
+`bank_type_code` groups:
+
+```
+10001  entire sector          51,760,765
+10002+10003+10004             51,760,765   the sector again, by licence
+10005+10006+10007             51,760,765   the sector again, by ownership
+10008+10009+10010             43,592,138   deposit banks again, by ownership
+                             ────────────
+                             198,874,433   = 3.84x the sector
+```
+
+The arithmetic was correct; the population was wrong. Nothing errored, and
+198 trillion TL is not obviously absurd unless you know the real number.
+
+Root cause: the schema prompt listed the partition codes but **omitted 10001**,
+so the model had no way to know a ready-made sector total existed and built one
+by adding groups. `10001` is now documented first and explicitly, and
+`checkSectorAggregation` (`bot-sql.ts`) rejects any SUM/AVG over a sector table
+that doesn't pin `bank_type_code` — a single-value filter, an IN list, or a
+GROUP BY all pass.
+
+**The rule for any consumer, not just the bot:** `10001` IS the total. The other
+codes are three overlapping partitions of that same sector — never add across
+them. The same warning is in `docs/API_MANUAL.md` §8 for API callers.

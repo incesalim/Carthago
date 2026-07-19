@@ -115,10 +115,25 @@ bank_audit_coverage(bank_ticker, period, kind, statement_type, status, …) —
   which statements are extracted & their validation status (data-quality meta).
 
 ════════════════════════ FAMILY B — SECTOR TABLES ════════════════════════
-bank_type_code groups (join bank_types(code,name_en,category) for names):
-  10005 Local Private · 10006 State · 10007 Foreign · 10003 Participation ·
-  10004 Development & Investment. (Do NOT sum arbitrary codes — some overlap and
-  double-count; prefer a single group, or ask which grouping.)
+bank_type_code — READ THIS BEFORE AGGREGATING (join bank_types for names):
+
+  ★ 10001 = THE ENTIRE SECTOR. For any "sector total / whole banking system"
+    question, filter bank_type_code='10001' and read the row. It is already the
+    total. NEVER add groups together to build it.
+
+  The other codes are THREE SEPARATE PARTITIONS of that same sector — they
+  OVERLAP, and each partition re-covers the whole thing:
+    by licence    : 10002 Deposit + 10003 Participation + 10004 Dev & Investment
+    by ownership  : 10005 Local Private + 10006 State + 10007 Foreign
+    deposit banks : 10008 Local Private + 10009 State + 10010 Foreign
+                    (a sub-split of 10002 ALONE — not of the sector)
+
+  SUMming across codes double-counts. Doing it over all ten reported the sector's
+  total assets as 198,874,433 million TL when the real figure is 51,760,765 —
+  3.8x too high, and it looked like a plausible number. Such a query is REJECTED.
+
+  Rule: always filter bank_type_code to ONE value, or GROUP BY bank_type_code to
+  keep the groups apart. Never SUM over the column.
 
 balance_sheet / income_statement(year, month, currency, bank_type_code,
     item_order, item_name, amount_tl, amount_fx, amount_total)  -- million TL,

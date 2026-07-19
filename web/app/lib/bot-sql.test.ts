@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_ROW_CAP,
+  checkSectorAggregation,
   checkTickerEnumeration,
   enumeratedTickers,
   formatTrNumber,
@@ -269,5 +270,48 @@ describe("renderDataList", () => {
   it("renders a null value as a dash rather than dropping the row", () => {
     expect(renderDataList([{ t: "A", v: null }, { t: "B", v: 5 }]))
       .toBe("1. A — —\n2. B — 5");
+  });
+});
+
+describe("checkSectorAggregation — overlapping bank_type_code groups", () => {
+  it("rejects the query that reported the sector 3.8x too large", () => {
+    const r = checkSectorAggregation(
+      "SELECT SUM(amount_total) FROM balance_sheet WHERE year=2026 AND month=5 AND item_order=26",
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toContain("bank_type_code");
+  });
+
+  it("allows a single-group filter — 10001 IS the sector total", () => {
+    expect(checkSectorAggregation(
+      "SELECT SUM(amount_total) FROM balance_sheet WHERE bank_type_code='10001'",
+    ).ok).toBe(true);
+  });
+
+  it("allows an explicit IN list and a GROUP BY", () => {
+    expect(checkSectorAggregation(
+      "SELECT SUM(amount_total) FROM loans WHERE bank_type_code IN ('10002','10003')",
+    ).ok).toBe(true);
+    expect(checkSectorAggregation(
+      "SELECT bank_type_code, SUM(amount_total) FROM deposits GROUP BY bank_type_code",
+    ).ok).toBe(true);
+  });
+
+  it("leaves non-aggregating reads alone", () => {
+    expect(checkSectorAggregation(
+      "SELECT bank_type_code, amount_total FROM balance_sheet WHERE year=2026",
+    ).ok).toBe(true);
+  });
+
+  it("does not touch the per-bank tables, which have no bank_type_code", () => {
+    expect(checkSectorAggregation(
+      "SELECT SUM(amount) FROM bank_audit_profit_loss WHERE period='2026Q1'",
+    ).ok).toBe(true);
+  });
+
+  it("is not fooled by a filter hidden in a comment", () => {
+    expect(checkSectorAggregation(
+      "SELECT SUM(amount_total) FROM balance_sheet -- bank_type_code='10001'",
+    ).ok).toBe(false);
   });
 });
