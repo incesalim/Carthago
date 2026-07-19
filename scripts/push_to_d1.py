@@ -148,6 +148,20 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int) -> list[str]:
     bank_audit_* tables don't have one — they're filtered by extracted_at
     in bank_audit_extractions (the parent log table).
     """
+    # A table absent from THIS staging DB is not an error. The two DBs hold
+    # disjoint sets (see docs/OPERATIONS.md §Two staging DBs), and `api_series`
+    # is built by build_api_catalog.py in the refresh lane only — it is a
+    # _FULL_REBUILD table, pushed solely when named in --only-tables, so a
+    # general `--hours` push has no business reading it at all. Before this
+    # guard, its absence raised OperationalError and took the whole push down:
+    # that is what failed the regulation briefing on 2026-07-19. Noisy, not
+    # silent — an unexpectedly missing table should still be visible in the log.
+    if not conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name = ?", (table,)
+    ).fetchone():
+        print(f"  [skip] {table}: not present in this staging DB", flush=True)
+        return [f"-- {table}: not present locally — skip"]
+
     cols = [c[1] for c in conn.execute(f"PRAGMA table_info({table})")]
     col_list = ",".join(cols)
 
