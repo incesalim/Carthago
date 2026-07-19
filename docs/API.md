@@ -193,8 +193,15 @@ df = pd.read_csv(
     f"{BASE}/series?series=BDDK.T01.I001.10001.TOT-BDDK.T02.I001.10001.TOT"
     "&startDate=01-01-2024&type=csv",
     parse_dates=["date"],
+    storage_options={"User-Agent": "my-app/1.0"},   # <- required, see below
 ).set_index("date")
 ```
+
+> `storage_options` is **not optional here**. `pandas.read_csv` fetches URLs
+> through stdlib `urllib` (`pandas/io/common.py`), which sends
+> `Python-urllib/3.x` and gets blocked; `storage_options` is passed straight
+> through as request headers, which clears it. Without it you get a bare
+> `HTTPError: 403`.
 
 > ⚠️ **Send a User-Agent.** Cloudflare's Browser Integrity Check sits in front of
 > this API and rejects requests whose UA matches a known-bot signature — notably
