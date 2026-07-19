@@ -75,6 +75,19 @@ def sector_total_assets() -> None:
     expect("sector total assets = the 10001 row, not a sum", v, 51760765,
            "summing all ten groups gives 198,874,433 — 3.84x")
 
+    # The leg/total confusion: filtering currency='TL' invites reading amount_tl,
+    # which is the LIRA leg, not the figure. Live test caught the bot doing
+    # exactly this AFTER the overlap fix — a 39% understatement that reads fine.
+    legs = d1(f"""
+        SELECT amount_tl, amount_fx, amount_total FROM balance_sheet
+         WHERE year={MONTH[0]} AND month={MONTH[1]} AND currency='TL'
+           AND bank_type_code='10001' AND item_name='TOPLAM AKTİFLER'
+    """)[0]
+    expect("amount_tl is the LIRA LEG, not the total", legs["amount_tl"], 31777002,
+           "the bot reported this as 'total assets'")
+    expect("amount_tl + amount_fx = amount_total",
+           legs["amount_tl"] + legs["amount_fx"], legs["amount_total"])
+
     # And the trap it replaced, asserted explicitly so it can't creep back.
     bad = d1(f"""
         SELECT SUM(amount_total) AS s FROM balance_sheet

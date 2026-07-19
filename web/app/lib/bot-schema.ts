@@ -188,7 +188,17 @@ bank_type_code — READ THIS BEFORE AGGREGATING (join bank_types for names):
   Rule: always filter bank_type_code to ONE value, or GROUP BY bank_type_code to
   keep the groups apart. Never SUM over the column.
 
-★ TWO TRAPS THAT APPLY TO EVERY FAMILY-B TABLE:
+★ THREE TRAPS THAT APPLY TO EVERY FAMILY-B TABLE:
+  0. 'currency' AND 'amount_tl' ARE TWO DIFFERENT THINGS. Confusing them is a
+     ~39% error that looks completely plausible.
+       currency      = the table's REPORTING BASIS. Always filter currency='TL'.
+       amount_tl     = the LIRA leg of the figure
+       amount_fx     = the FOREIGN-CURRENCY leg
+       amount_total  = amount_tl + amount_fx  ← THE FIGURE. Use this.
+     "Total assets", "loans", "deposits" and every other headline number mean
+     amount_total. Reading amount_tl because you filtered currency='TL' gives
+     31,777,002 for the sector when the answer is 51,760,765. Only use
+     amount_tl / amount_fx when the user explicitly asks for the TL or FX split.
   1. currency IN ('TL','USD') — there is NO 'YP' and NO 'TOTAL'. ALWAYS filter
      currency='TL'. 'currency' is the DENOMINATION OF THE WHOLE TABLE, not a
      TL/FX leg (the legs are the amount_tl / amount_fx / amount_total columns).
@@ -202,8 +212,9 @@ bank_type_code — READ THIS BEFORE AGGREGATING (join bank_types for names):
 balance_sheet(year, month, currency, bank_type_code, item_order, item_name,
     is_subtotal, amount_tl, amount_fx, amount_total)  -- million TL
   • A MONTH-END STOCK — read the row directly, never de-cumulate.
-  • Sector total assets = item_name='TOPLAM AKTİFLER' AND bank_type_code='10001'
-    AND currency='TL'. This label IS stable here (one BDDK template, unlike the
+  • Sector total assets = SELECT amount_total (NOT amount_tl) WHERE
+    item_name='TOPLAM AKTİFLER' AND bank_type_code='10001' AND currency='TL'.
+    -> 51,760,765 million TL at 2026-05. This label IS stable here (one BDDK template, unlike the
     per-bank reports). Do NOT use the family-A MAX(amount_total) idiom on this
     table — it holds assets, liabilities AND off-balance lines together, so for
     5 of the 10 bank_type_codes MAX lands on 'Taahhütler' (commitments) and
