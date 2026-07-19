@@ -220,6 +220,9 @@ def main() -> int:
     ap.add_argument("--json", dest="json_out", help="Write the full result to this path")
     ap.add_argument("--fail-under", type=float, default=None,
                     help="Exit non-zero if the score is below this (0-1)")
+    ap.add_argument("--alert", action="store_true",
+                    help="Telegram on any CONTRADICTED/STALE/MISSING fact or missing "
+                         "section. Alert-only: never blocks the briefing.")
     args = ap.parse_args()
 
     payload = load_d1() if args.d1 else load_local()
@@ -239,6 +242,21 @@ def main() -> int:
         if r["verdict"] in ("MISSING", "STALE", "CONTRADICTED"):
             extra = f"  (superseded {r['stale']} also printed)" if r["verdict"] == "CONTRADICTED" else ""
             print(f"  {r['verdict']:<13}{r['id']:<16}{r['source']}{extra}")
+
+    if args.alert:
+        bad = [r for r in res["results"] if r["verdict"] in ("CONTRADICTED", "STALE", "MISSING")]
+        if bad or res["missing_sections"]:
+            sys.path.insert(0, str(REPO_ROOT / "scripts"))
+            from notify import notify
+            lines = [f"⚠️ Regulation briefing scored {res['score']:.0%} "
+                     f"({len(bad)} fact issue(s))"]
+            if res["missing_sections"]:
+                lines.append("EMPTY SECTIONS: " + ", ".join(res["missing_sections"]))
+            for r in bad[:8]:
+                lines.append(f"• {r['verdict']}: {r['id']} — want {r['value']} "
+                             f"[{r['section']}]")
+            notify("\n".join(lines))
+            print("[facts] alert sent")
 
     if args.json_out:
         Path(args.json_out).write_text(json.dumps(res, indent=2), encoding="utf-8")

@@ -130,6 +130,21 @@ jobs:
         # degraded for seven weeks unnoticed.
         run: python scripts/summarize_regulations.py --require-baseline ${{ inputs.force && '--force' || '' }}
 
+      # The gate blocks only where the detector is provably precise (loan caps,
+      # deposit share). Reserve-requirement rules overlap too much in wording to
+      # gate on — three attempts produced three false-positive classes, each of
+      # which froze a correct section. So they are MEASURED instead: this scores
+      # the briefing against hand-verified published figures and alerts, without
+      # withholding anything. Block where precision is proven, alert where it
+      # isn't.
+      - name: Score the briefing against published figures (alert only)
+        if: always()
+        continue-on-error: true
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python scripts/check_briefing_facts.py --alert
+
       - name: Setup Node (for wrangler)
         uses: actions/setup-node@v6
         with:
