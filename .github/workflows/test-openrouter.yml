@@ -45,6 +45,11 @@ on:
         type: boolean
         required: false
         default: true
+      telegram:
+        description: "regulation only — also post the bench output to Telegram (labelled as a bench)"
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: read
@@ -108,6 +113,11 @@ jobs:
           KIMI_API_KEY: ${{ secrets.OPEN_ROUTER_API }}
           KIMI_API_URL: https://openrouter.ai/api/v1/chat/completions
           KIMI_MODEL: ${{ inputs.model_id != '' && inputs.model_id || 'deepseek/deepseek-v4-pro' }}
+          # Post the bench output too, but labelled — it has the same shape as the
+          # live weekly briefing and must never be mistaken for what /regulation shows.
+          TELEGRAM_BOT_TOKEN: ${{ inputs.telegram && secrets.TELEGRAM_BOT_TOKEN || '' }}
+          TELEGRAM_CHAT_ID: ${{ inputs.telegram && secrets.TELEGRAM_CHAT_ID || '' }}
+          BRIEFING_LABEL: "🧪 BENCH — NOT the live briefing. /regulation is unchanged."
         run: |
           echo "== provider: OpenRouter / $KIMI_MODEL =="
           CAT='${{ inputs.category }}'
@@ -122,6 +132,9 @@ jobs:
         if: inputs.task == 'regulation' && inputs.kimi_baseline
         env:
           KIMI_API_KEY: ${{ secrets.KIMI_API_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ inputs.telegram && secrets.TELEGRAM_BOT_TOKEN || '' }}
+          TELEGRAM_CHAT_ID: ${{ inputs.telegram && secrets.TELEGRAM_CHAT_ID || '' }}
+          BRIEFING_LABEL: "🧪 BENCH (Kimi A/B) — NOT the live briefing."
         run: |
           echo "== provider: Kimi (incumbent) =="
           CAT='${{ inputs.category }}'

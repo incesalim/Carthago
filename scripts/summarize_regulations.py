@@ -27,6 +27,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import sqlite3
 import sys
@@ -296,8 +297,13 @@ def notify_briefing(categories: list[dict], models: set[str], item_count: int,
     """
     try:
         n_bullets = sum(len(c["bullets"]) for c in categories)
+        # A bench run posts the same shape as the live weekly briefing, so it must
+        # say so at the top: BRIEFING_LABEL is how test-openrouter.yml marks its
+        # output as NOT the page you are reading. Unset in production.
+        label = os.environ.get("BRIEFING_LABEL", "").strip()
         head = (
-            f"🏛 Regulation briefing — {len(categories)} sections, {n_bullets} bullets\n"
+            (f"{label}\n" if label else "")
+            + f"🏛 Regulation briefing — {len(categories)} sections, {n_bullets} bullets\n"
             f"model: {','.join(sorted(models)) or '?'} · {item_count} feed items · "
             f"baseline: {baseline['title'] if baseline else 'NONE'}"
         )
