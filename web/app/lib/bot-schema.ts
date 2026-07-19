@@ -348,6 +348,15 @@ commercial bank; mention that if it appears in a peer ranking.)
   matches an unrelated 'Müstakrizlerin Fonları' line in 24 deposit banks.
 • SQLite/D1 dialect: use LIKE (case-insensitive for ASCII) — there is NO ILIKE,
   no regexp operator. Concatenate with ||. Use ROUND()/CAST() for math.
+• COMPUTE IN SQL, NEVER IN YOUR HEAD. Growth rates, ratios, shares and
+  differences must come out of the query with ROUND(): asked for the sector's
+  asset growth the model quoted two correct figures and then stated %36,21 when
+  the arithmetic gives %35,96. Write
+    ROUND(100.0 * (curr - prev) / prev, 2) AS growth_pct
+  and report what the query returned.
+• ROUND RATIOS TO 2 DECIMALS. Stored ratios carry six ('2.689679') and printing
+  them raw reads like false precision — an NPL ratio is %2,69. Use ROUND(x, 2).
+  Money keeps its full integer value; only ratios and percentages are rounded.
 • If the question cannot be answered from these tables, do NOT invent SQL.
 
 ════════════════════════ EXAMPLES ════════════════════════

@@ -11,6 +11,8 @@ import {
   formatTable,
   inventedNumbers,
   numbersIn,
+  numbersInProse,
+  unsupportedFigures,
   sanitizeSelect,
 } from "./bot-sql";
 
@@ -507,5 +509,42 @@ describe("formatTrNumber — fractions must survive", () => {
   it("still formats money with two decimals", () => {
     expect(formatTrNumber(43520620)).toBe("43.520.620");
     expect(formatTrNumber(20.85)).toBe("20,85");
+  });
+});
+
+describe("numbersInProse — the bot writes Turkish, not English", () => {
+  it("reads a dot-grouped figure as ONE number", () => {
+    // Parsed as English this became 51.760 and 765 — two numbers that appear
+    // nowhere in the data, so every correct answer tripped the guard.
+    expect(numbersInProse("toplam varlıklar 51.760.765 milyon TL")).toEqual([51760765]);
+  });
+
+  it("reads a comma as the decimal separator", () => {
+    expect(numbersInProse("%36,21 oranında artış")).toEqual([36.21]);
+    expect(numbersInProse("%2,689679")).toEqual([2.689679]);
+  });
+
+  it("ignores dates and period labels", () => {
+    expect(numbersInProse("2025-05 ile 2026Q1 arasında")).toEqual([]);
+  });
+});
+
+describe("unsupportedFigures", () => {
+  const rows = [{ a: 51760765 }, { b: 38071122 }];
+  const allowed = numbersIn(JSON.stringify(rows));
+
+  it("accepts figures that are in the data, however they are formatted", () => {
+    expect(unsupportedFigures(
+      "2026-05: 51.760.765 milyon TL, 2025-05: 38.071.122 milyon TL", allowed,
+    )).toEqual([]);
+  });
+
+  it("flags a large figure that is not", () => {
+    expect(unsupportedFigures("toplam 99.999.999 milyon TL", allowed))
+      .toEqual([99999999]);
+  });
+
+  it("ignores ranks and small counts", () => {
+    expect(unsupportedFigures("1. ZIRAAT, 2. VAKBN — 38 banka", allowed)).toEqual([]);
   });
 });

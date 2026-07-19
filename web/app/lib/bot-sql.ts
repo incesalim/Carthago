@@ -507,6 +507,54 @@ export function numbersIn(text: string): number[] {
 }
 
 /**
+ * Figures written in TURKISH notation, as the bot's own replies are:
+ * '.' groups thousands and ',' is the decimal separator.
+ *
+ * Parsing those as English splits every correct figure into fragments —
+ * "51.760.765" reads as 51.760 and 765, neither of which is in the data. That
+ * made the invented-number guard fire on every well-formed answer, spend its one
+ * correction round on noise, and then wave through the genuinely wrong figure
+ * that followed (%36,21 where the truth was %35,96).
+ *
+ * Dates and periods are blanked first: "2025-05" and "2026Q1" are labels, not
+ * quantities, and flagging them is the same false positive in another costume.
+ */
+export function numbersInProse(text: string): number[] {
+  const masked = text
+    .replace(/\d{4}-\d{2}(?:-\d{2})?/g, " ")   // 2025-05, 2026-05-31
+    .replace(/\d{4}\s*Q\d/gi, " ");            // 2026Q1
+  const out: number[] = [];
+  for (const m of masked.matchAll(/-?\d[\d.]*(?:,\d+)?/g)) {
+    const n = parseFloat(m[0].replace(/\./g, "").replace(",", "."));
+    if (Number.isFinite(n)) out.push(n);
+  }
+  return out;
+}
+
+/**
+ * Figures in a Turkish-formatted answer that appear nowhere in the data.
+ *
+ * `allowed` comes from the JSON rows, where numbers are plain — so the two
+ * sides are parsed differently on purpose.
+ *
+ * Only sizeable figures are checked. Ranks, list numbers and small counts are
+ * legitimately absent from the rows, and flagging them is what turns a guard
+ * into noise.
+ */
+export function unsupportedFigures(answer: string, allowed: number[]): number[] {
+  return numbersInProse(answer).filter(
+    (n) =>
+      Math.abs(n) >= 1000 &&
+      !allowed.some(
+        (a) =>
+          Math.abs(a - n) < 0.01 ||
+          Math.abs(Math.abs(a) - n) < 0.01 ||
+          Math.abs(a - n) / Math.max(Math.abs(a), 1) < 0.0001,
+      ),
+  );
+}
+
+/**
  * Numbers in `answer` that don't (approximately) appear in `allowed` and aren't
  * bound to a label (e.g. "Stage-3", "CET1", "1-year"). Used only to flag a
  * synthesized sentence as possibly-approximate — the raw data table shown
