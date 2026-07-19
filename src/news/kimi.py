@@ -34,6 +34,7 @@ def chat_completion(
     model: str | None = None,
     temperature: float = 0.2,
     json_object: bool = False,
+    seed: int | None = None,
     timeout: int = 180,
     retries: int = 2,
 ) -> dict:
@@ -57,6 +58,10 @@ def chat_completion(
     }
     if json_object:
         payload["response_format"] = {"type": "json_object"}
+    # Reproducible sampling, the standard pairing with temperature 0. Providers
+    # that don't honour it ignore it; it never makes output less stable.
+    if seed is not None:
+        payload["seed"] = seed
 
     # OpenRouter only (Moonshot ignores it; we send it only when asked). OpenRouter
     # fronts one model with many upstream providers whose speed, quantization and
