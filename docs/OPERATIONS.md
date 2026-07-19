@@ -434,20 +434,40 @@ Two things to watch in the build output:
 New BDDK data extends existing series and may add new ones; **codes are carried
 forward and never renumbered**, so a rebuild on unchanged data is a no-op.
 
-**Open: Browser Integrity Check blocks `Python-urllib`.** Cloudflare's BIC sits
-in front of the zone and rejects known-bot user agents with `403` /
-**Cloudflare error 1010** *before the request reaches the Worker*. Python's
-stdlib default (`Python-urllib/3.x`) is caught; `requests`, `httpx`, `curl` and
-browsers are not. Callers can clear it by sending any explicit `User-Agent`
-(documented in [API.md](API.md)), but the proper fix is a **Configuration Rule**:
+### Cloudflare Configuration Rule: BIC off for `/api/v1` (load-bearing)
 
-> Cloudflare dashboard → `carthago.app` → Rules → Configuration Rules → Create
-> → expression `starts_with(http.request.uri.path, "/api/v1")`
-> → set **Browser Integrity Check = Off**.
+Cloudflare's **Browser Integrity Check** rejects known-bot user agents with
+`403` / **Cloudflare error 1010** *before the request reaches the Worker*.
+Python's stdlib default (`Python-urllib/3.x`) is caught — and `pandas.read_csv`
+fetches URLs through stdlib `urllib`, so reading a CSV URL into a DataFrame, the
+most natural way to consume this API, was failing. `requests`, `httpx`, `curl`
+and browsers were never affected.
 
-Scope it to `/api/v1` only — do **not** disable BIC zone-wide, which would drop
-bot protection on the whole dashboard. This is a zone setting; the repo's
-`CLOUDFLARE_API_TOKEN` is scoped to Workers/D1/R2 and cannot change it.
+Fixed 2026-07-19 by a **Configuration Rule** (dashboard → `carthago.app` →
+Rules → Configuration Rules), named `API v1`:
+
+> expression: `starts_with(http.request.uri.path, "/api/v1")`
+> setting: **Browser Integrity Check = Off**
+
+Verified after deploy: `/api/v1/*` returns 200 to `Python-urllib`, while `/`
+still returns 403 to it — bot protection intact everywhere except the API path.
+
+⚠️ **This rule is part of the API's contract.** If it is deleted or its
+expression broken, every stdlib-`urllib` and `pandas.read_csv` caller starts
+getting 403s while `curl` keeps working — so it fails invisibly to anyone
+testing with curl. Use `Python-urllib/3.12` as the User-Agent when checking:
+
+```bash
+curl -s -o /dev/null -A "Python-urllib/3.12" -w "%{http_code}\n" \
+  https://carthago.app/api/v1/categories     # must be 200
+curl -s -o /dev/null -A "Python-urllib/3.12" -w "%{http_code}\n" \
+  https://carthago.app/                      # should stay 403
+```
+
+It is a **zone** setting: the repo's `CLOUDFLARE_API_TOKEN` is scoped to
+Workers/D1/R2 and cannot read or change it. Do **not** disable BIC zone-wide
+instead — that would drop bot protection on the whole dashboard. Note also that
+a WAF *skip* rule does not bypass BIC; it must be a Configuration Rule.
 
 ## Disaster recovery
 

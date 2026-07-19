@@ -174,12 +174,8 @@ import urllib.request, json
 
 BASE = "https://carthago.app/api/v1"
 
-def get(url):
-    # Send an explicit User-Agent — see the note below.
-    req = urllib.request.Request(url, headers={"User-Agent": "my-app/1.0"})
-    return urllib.request.urlopen(req)
-
-d = json.load(get(f"{BASE}/series?series=BDDK.T01.I001.10001.TOT&startDate=01-01-2026"))
+d = json.load(urllib.request.urlopen(
+    f"{BASE}/series?series=BDDK.T01.I001.10001.TOT&startDate=01-01-2026"))
 for o in d["series"][0]["observations"]:
     print(o["date"], o["value"])
 ```
@@ -193,25 +189,16 @@ df = pd.read_csv(
     f"{BASE}/series?series=BDDK.T01.I001.10001.TOT-BDDK.T02.I001.10001.TOT"
     "&startDate=01-01-2024&type=csv",
     parse_dates=["date"],
-    storage_options={"User-Agent": "my-app/1.0"},   # <- required, see below
 ).set_index("date")
 ```
 
-> `storage_options` is **not optional here**. `pandas.read_csv` fetches URLs
-> through stdlib `urllib` (`pandas/io/common.py`), which sends
-> `Python-urllib/3.x` and gets blocked; `storage_options` is passed straight
-> through as request headers, which clears it. Without it you get a bare
-> `HTTPError: 403`.
-
-> ⚠️ **Send a User-Agent.** Cloudflare's Browser Integrity Check sits in front of
-> this API and rejects requests whose UA matches a known-bot signature — notably
-> Python's stdlib default `Python-urllib/3.x`, which gets `403` with
-> **Cloudflare error 1010** *before the request reaches the Worker*. `requests`,
-> `httpx`, `curl` and browsers are unaffected. Setting any explicit User-Agent
-> clears it. To remove the caveat entirely, add a Cloudflare **Configuration
-> Rule** scoped to `carthago.app/api/v1/*` that turns Browser Integrity Check
-> off (dashboard → Rules → Configuration Rules) — it is a zone setting, not
-> something this repo can change.
+No `User-Agent` gymnastics are needed: a Cloudflare Configuration Rule
+(`starts_with(http.request.uri.path, "/api/v1")` → Browser Integrity Check
+**Off**) exempts this path, so stdlib `urllib` — and therefore
+`pandas.read_csv`, which uses it — works unmodified. The rest of the site keeps
+its bot protection. If you ever see `403` with **Cloudflare error 1010** on
+`/api/v1`, that rule has been removed or its expression broken; see
+[OPERATIONS.md](OPERATIONS.md).
 
 ## Conventions
 
