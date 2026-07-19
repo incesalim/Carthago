@@ -455,13 +455,16 @@ still returns 403 to it — bot protection intact everywhere except the API path
 ⚠️ **This rule is part of the API's contract.** If it is deleted or its
 expression broken, every stdlib-`urllib` and `pandas.read_csv` caller starts
 getting 403s while `curl` keeps working — so it fails invisibly to anyone
-testing with curl. Use `Python-urllib/3.12` as the User-Agent when checking:
+testing with curl.
+
+`healthcheck.yml` watches it daily via `scripts/check_public_api.py`, which
+probes with stdlib `urllib` (i.e. the blocked user agent) on purpose and alerts
+naming this rule. **Don't "fix" that script to use `requests` or to set a
+User-Agent** — either change makes it pass unconditionally and the check
+becomes decorative. To check by hand:
 
 ```bash
-curl -s -o /dev/null -A "Python-urllib/3.12" -w "%{http_code}\n" \
-  https://carthago.app/api/v1/categories     # must be 200
-curl -s -o /dev/null -A "Python-urllib/3.12" -w "%{http_code}\n" \
-  https://carthago.app/                      # should stay 403
+python scripts/check_public_api.py     # all four probes, exit 1 on failure
 ```
 
 It is a **zone** setting: the repo's `CLOUDFLARE_API_TOKEN` is scoped to
