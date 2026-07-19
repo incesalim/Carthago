@@ -196,6 +196,85 @@ export function formatTable(
   return out.join("\n");
 }
 
+/** Turkish thousand separators: 43520620 -> "43.520.620". Decimals keep a comma. */
+export function formatTrNumber(v: number): string {
+  const neg = v < 0;
+  const abs = Math.abs(v);
+  const whole = Math.trunc(abs);
+  const frac = abs - whole;
+  let s = String(whole).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  if (frac > 0) s += "," + frac.toFixed(2).slice(2).replace(/0+$/, "");
+  return (neg ? "-" : "") + s;
+}
+
+/**
+ * Render query rows as a numbered list, from the DATA rather than from prose.
+ *
+ * Takes the first non-numeric column as the label and the first numeric one as
+ * the value — which covers the shape this matters for (ticker + figure). Returns
+ * null when the rows aren't that shape, so the caller leaves the answer alone.
+ */
+export function renderDataList(rows: Record<string, unknown>[]): string | null {
+  if (!rows.length) return null;
+  const cols = Object.keys(rows[0]);
+  const isNum = (c: string) =>
+    rows.every((r) => r[c] === null || typeof r[c] === "number");
+  const valueCol = cols.find(isNum);
+  const labelCol = cols.find((c) => c !== valueCol);
+  if (!valueCol || !labelCol) return null;
+
+  return rows
+    .map((r, i) => {
+      const v = r[valueCol];
+      const shown = typeof v === "number" ? formatTrNumber(v) : "—";
+      return `${i + 1}. ${String(r[labelCol] ?? "")} — ${shown}`;
+    })
+    .join("\n");
+}
+
+/** A prose line that is really a data row the model retyped. */
+const LIST_LINE = /^\s*(?:\d+[.)]|[-•*])\s+\S/;
+
+/**
+ * Replace the model's hand-typed list with one rendered from the actual rows,
+ * keeping everything else it wrote (caption, units, caveats).
+ *
+ * The model retypes every figure into prose, so a long ranking is 38 chances to
+ * drop a digit, and two runs of the same question formatted differently because
+ * the provider chain answered from different models. Rendering the list from the
+ * rows makes both impossible: the numbers are the queried ones by construction,
+ * and the layout no longer depends on which model replied.
+ *
+ * Conservative by design — only fires on a genuine ranking (enough rows, and the
+ * model clearly produced a list), and returns the prose untouched otherwise.
+ */
+export function substituteDataList(
+  prose: string,
+  rows: Record<string, unknown>[],
+  minRows = 5,
+): string {
+  if (rows.length < minRows) return prose;
+  const lines = prose.split("\n");
+  const listCount = lines.filter((l) => LIST_LINE.test(l)).length;
+  if (listCount < 3) return prose; // not a listing — leave it alone
+
+  const rendered = renderDataList(rows);
+  if (!rendered) return prose;
+
+  const before: string[] = [];
+  const after: string[] = [];
+  let seen = false;
+  for (const l of lines) {
+    if (LIST_LINE.test(l)) { seen = true; continue; }
+    (seen ? after : before).push(l);
+  }
+  return [
+    before.join("\n").trim(),
+    rendered,
+    after.join("\n").trim(),
+  ].filter(Boolean).join("\n\n");
+}
+
 /** Every distinct numeric token in `text` (ignores thousands separators). */
 export function numbersIn(text: string): number[] {
   const out: number[] = [];

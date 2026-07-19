@@ -3,6 +3,9 @@ import {
   DEFAULT_ROW_CAP,
   checkTickerEnumeration,
   enumeratedTickers,
+  formatTrNumber,
+  renderDataList,
+  substituteDataList,
   extractSql,
   formatTable,
   inventedNumbers,
@@ -187,5 +190,69 @@ describe("enumeratedTickers", () => {
 
   it("returns nothing for an unrestricted query", () => {
     expect(enumeratedTickers("SELECT bank_ticker FROM t GROUP BY bank_ticker")).toEqual([]);
+  });
+});
+
+describe("formatTrNumber", () => {
+  it("groups thousands Turkish-style and keeps the sign", () => {
+    expect(formatTrNumber(43520620)).toBe("43.520.620");
+    expect(formatTrNumber(-504991)).toBe("-504.991");
+    expect(formatTrNumber(877011)).toBe("877.011");
+    expect(formatTrNumber(0)).toBe("0");
+  });
+
+  it("renders a decimal with a comma", () => {
+    expect(formatTrNumber(20.85)).toBe("20,85");
+  });
+});
+
+describe("substituteDataList — numbers come from the rows, not the prose", () => {
+  const rows = Array.from({ length: 6 }, (_, i) => ({
+    bank_ticker: `B${i + 1}`, net_profit: (6 - i) * 1000000,
+  }));
+
+  it("replaces a hand-typed ranking with one rendered from the data", () => {
+    const prose = "2026Q1 sıralaması:\n1. B1 — 6.000.000\n2. B2 — 5.000.000\n3. WRONG — 999\nKaynak: BDDK.";
+    const out = substituteDataList(prose, rows);
+    expect(out).toContain("2026Q1 sıralaması:");   // caption kept
+    expect(out).toContain("Kaynak: BDDK.");        // trailing prose kept
+    expect(out).not.toContain("WRONG");            // the model's line is gone
+    expect(out).toContain("6. B6 — 1.000.000");    // all rows rendered, not just typed ones
+  });
+
+  it("corrects a figure the model mistyped", () => {
+    const prose = "x:\n1. B1 — 9.999.999\n2. B2 — 5.000.000\n3. B3 — 4.000.000";
+    expect(substituteDataList(prose, rows)).toContain("1. B1 — 6.000.000");
+  });
+
+  it("leaves a short result alone", () => {
+    const prose = "x:\n1. A — 1\n2. B — 2\n3. C — 3";
+    expect(substituteDataList(prose, rows.slice(0, 2))).toBe(prose);
+  });
+
+  it("leaves plain prose alone", () => {
+    const prose = "Garanti's net profit in 2026Q1 was 33.316.462 bin TL.";
+    expect(substituteDataList(prose, rows)).toBe(prose);
+  });
+
+  it("leaves a bare narrative alone even with many rows behind it", () => {
+    const prose = "The sector grew. Loans rose faster than deposits.";
+    expect(substituteDataList(prose, rows)).toBe(prose);
+  });
+});
+
+describe("renderDataList", () => {
+  it("picks the label and value columns", () => {
+    expect(renderDataList([{ bank_ticker: "ZIRAAT", amount: 43520620 }]))
+      .toBe("1. ZIRAAT — 43.520.620");
+  });
+
+  it("returns null when there is no numeric column to show", () => {
+    expect(renderDataList([{ a: "x", b: "y" }])).toBeNull();
+  });
+
+  it("renders a null value as a dash rather than dropping the row", () => {
+    expect(renderDataList([{ t: "A", v: null }, { t: "B", v: 5 }]))
+      .toBe("1. A — —\n2. B — 5");
   });
 });

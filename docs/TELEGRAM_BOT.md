@@ -220,3 +220,20 @@ examples, both of which produced fluent, confident, wrong answers:
 
 Neither errored. Both looked complete. Row counts are the tell — if a "rank all
 banks" query returns fewer rows than there are banks, the query is wrong.
+
+## Why rankings are rendered, not retyped
+
+The provider chain runs **three different models** (Groq `openai/gpt-oss-120b`,
+Cerebras `gpt-oss-120b`, then `gemma-4-31b`), and `chatComplete` takes whichever
+answers first. So the same question can be answered by a different model each
+time — which formatted identical data two different ways even at `temperature: 0`.
+
+Worse than the cosmetics: the model **retyped every figure**. A 38-bank ranking
+was 38 chances to drop a digit, checked by nothing.
+
+`substituteDataList` (`bot-sql.ts`) now re-renders any listing from the rows the
+query actually returned, keeping the model's caption and caveats around it. The
+numbers are the queried ones by construction, and the layout no longer depends on
+which model replied. It fires only on a genuine ranking — enough rows, and prose
+that is clearly a list — and returns the answer untouched otherwise, so narrative
+replies are unaffected.
