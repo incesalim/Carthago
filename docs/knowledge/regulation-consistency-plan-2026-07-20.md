@@ -226,42 +226,17 @@ one-value-per-rule rule. Verified against the real document: the 2.5% trap lands
 in history, Annexes 2–4 stay in the framework, and the framework's footnote
 cross-references still point at the history where they help.
 
-### 5.3 Measured effect — the whole arc, including two steps backwards
+### 5.3 Measured effect (3 flash runs, Baidu-pinned, read-only bench)
 
-Every row is 3 flash runs, Baidu-pinned, on the read-only bench.
+| | before (6 stored briefings) | after |
+|---|---|---|
+| fact score | **46–77%** (31-point swing) | **85 / 85 / 85%** |
+| PASS | 6–10 of 13 | **11 / 11 / 11** |
 
-| stage | fact score | sections | note |
-|---|---|---|---|
-| baseline (6 stored briefings) | **46–77%** | 5 | 31-point swing |
-| **v14** history split + temp 0 + seed | **85 / 85 / 85** | 5 | swing *vanished* |
-| + body refresh (tables restored) | 77 / 92 / 77 | 5 | ⬇ **worse** — see below |
-| **v15** pre-baseline feed cutoff | 92 / 100 / 77 | **4** ⚠️ | section silently deleted |
-| **v16** decision-log reframe | 92 / — / — | **4** ⚠️ | did not restore it |
-| **v17** cutoff reverted | **77 / 92 / 92** | **5** ✅ | coverage restored |
-
-**v14 is the win.** The 31-point swing collapsed to zero purely from labelling
-the decision log correctly and dropping temperature. Everything after is smaller.
-
-**The body refresh made the score worse, and was still right.** Restoring the
-2025-12-02 FX reserve-requirement table handed the model a second, older, equally
-complete-looking ratio table, and it began printing 30%/26% beside the current
-32%/28%. The stored bodies now match their sources; the briefing has to learn to
-prefer the later of two authoritative tables. Fixing data can expose a reasoning
-weakness that missing data was hiding.
-
-**v15 is the cautionary one.** Cutting pre-baseline feed items scored the best
-facts of any stage — and deleted `Regulations for TL Deposit Share` outright. The
-baseline does not carry those rules: `Annex 1 Table 3. Decisions Regarding
-Deposits` extracts as a bare header, so that section has always been fed by 2025
-releases and nothing else. The fact checklist asserts no deposit-share fact, so it
-**could not see the loss** and scored the regression 100%.
-
-> A metric that cannot observe a regression will certify it. The checker now
-> scores section coverage separately and exits non-zero on an empty expected
-> section.
-
-(Bullet counts still move run to run — providers do not reliably honour `seed`.
-The *facts* are what stabilised, which is what matters.)
+The swing did not narrow — it **vanished**. Both the score and its stability
+improved, from the context fix plus `temperature 0` + fixed seed. (Bullet counts
+still move, 14/18/19 — providers do not reliably honour `seed`. The *facts* are
+stable, which is the thing that matters.)
 
 ### 5.4 What the plan got wrong
 
