@@ -1,23 +1,47 @@
 name: Test OpenRouter key (scratch)
 
-# Manual probe: verify the OPEN_ROUTER_API secret authenticates and that a
-# DeepSeek model returns a usable, number-validated completion. Secrets are
-# CI-only (never local), so this is the only way to test the key.
+# Manual probe for the OPEN_ROUTER_API secret. Secrets are CI-only (never
+# local), so this is the only way to test the key.
+#
+#   task=smoke       auth + credits + DeepSeek price list + one number-validated
+#                    completion on the "The Read" prompt (default)
+#   task=usage       accounting only — key + credits. Spends nothing.
+#   task=regulation  the REAL weekly regulation task (scripts/summarize_regulations.py)
+#                    run against OpenRouter, with a Kimi A/B on the same section
+#
+# The regulation mode needs NO code changes: src/news/kimi.py is an
+# OpenAI-compatible client already parameterized by KIMI_API_URL / KIMI_MODEL /
+# KIMI_API_KEY, so pointing those three at OpenRouter swaps the provider while
+# keeping the production prompt, context builder, retries and guards identical.
+# That is the whole point — a bench with its own prompt would measure the bench.
+#
+# READ-ONLY on production: it pulls the R2 snapshot but never uploads one, and
+# never runs push_to_d1.py. The briefing it generates lands only in the runner's
+# ephemeral SQLite. Hence no `bddk-pipeline` concurrency group — nothing to lock.
 #
 # Scratch lane — delete this workflow and scripts/scratch_test_openrouter.py
-# once the finding is recorded in docs/knowledge/.
+# once the OpenRouter question is settled.
 on:
   workflow_dispatch:
     inputs:
+      task:
+        description: "Which probe to run"
+        type: choice
+        options: [smoke, usage, regulation]
+        default: smoke
       model_id:
-        description: "Override the model id to test (default: auto-pick cheapest free + cheapest paid deepseek)"
+        description: "Model to test (default: auto-pick cheapest paid deepseek / v4-pro for regulation)"
         required: false
         default: ""
-      usage_only:
-        description: "Accounting only — key + credits + per-model token activity. Spends nothing."
+      category:
+        description: "regulation only — which section to generate"
+        required: false
+        default: "Monetary Policy Stance"
+      kimi_baseline:
+        description: "regulation only — also run the same section on the incumbent (Kimi) for A/B"
         type: boolean
         required: false
-        default: false
+        default: true
 
 permissions:
   contents: read
@@ -25,7 +49,7 @@ permissions:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     env:
       OPEN_ROUTER_API: ${{ secrets.OPEN_ROUTER_API }}
       MODEL_ID: ${{ inputs.model_id }}
@@ -39,8 +63,60 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install deps
+      - name: Install deps (smoke/usage)
+        if: inputs.task != 'regulation'
         run: pip install requests
 
       - name: Probe OpenRouter
-        run: python scripts/scratch_test_openrouter.py ${{ inputs.usage_only && '--usage' || '' }}
+        if: inputs.task != 'regulation'
+        run: python scripts/scratch_test_openrouter.py ${{ inputs.task == 'usage' && '--usage' || '' }}
+
+      # ---------------- regulation task ----------------
+
+      - name: Install deps (regulation)
+        if: inputs.task == 'regulation'
+        run: pip install -r requirements.txt
+
+      - name: Fetch SQLite snapshot from R2 (read-only — never uploaded back)
+        if: inputs.task == 'regulation'
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: |
+          python - <<'PY'
+          import gzip, shutil, pathlib
+          from src.audit_reports import r2_storage
+          gz, db = pathlib.Path("data/bddk_data.db.gz"), pathlib.Path("data/bddk_data.db")
+          gz.parent.mkdir(parents=True, exist_ok=True)
+          if not r2_storage.exists("state/bddk_data.db.gz"):
+              raise SystemExit("No R2 snapshot — cannot run the regulation task.")
+          size = r2_storage.download_to("state/bddk_data.db.gz", gz)
+          print(f"Pulled state/bddk_data.db.gz from R2 ({size/1e6:.1f} MB)")
+          with gzip.open(gz, "rb") as s, open(db, "wb") as d:
+              shutil.copyfileobj(s, d)
+          print(f"Decompressed to {db.stat().st_size/1e6:.1f} MB")
+          PY
+
+      - name: Regulation section via OpenRouter (DeepSeek)
+        if: inputs.task == 'regulation'
+        env:
+          # The three env vars kimi.py already reads — repointed, not rewritten.
+          KIMI_API_KEY: ${{ secrets.OPEN_ROUTER_API }}
+          KIMI_API_URL: https://openrouter.ai/api/v1/chat/completions
+          KIMI_MODEL: ${{ inputs.model_id != '' && inputs.model_id || 'deepseek/deepseek-v4-pro' }}
+        run: |
+          echo "== provider: OpenRouter / $KIMI_MODEL =="
+          time python scripts/summarize_regulations.py \
+            --only-category "${{ inputs.category }}" --force
+          python scripts/scratch_dump_briefing.py "OpenRouter / $KIMI_MODEL"
+
+      - name: Same section on the incumbent (Kimi) for A/B
+        if: inputs.task == 'regulation' && inputs.kimi_baseline
+        env:
+          KIMI_API_KEY: ${{ secrets.KIMI_API_TOKEN }}
+        run: |
+          echo "== provider: Kimi (incumbent) =="
+          time python scripts/summarize_regulations.py \
+            --only-category "${{ inputs.category }}" --force
+          python scripts/scratch_dump_briefing.py "Kimi (incumbent)"
