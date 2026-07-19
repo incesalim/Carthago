@@ -294,6 +294,54 @@ the context for at least three weeks. The A/B above is still fair (all three
 providers saw the same degraded context), but the production briefing is running
 on the feed alone. Not fixed here.
 
+## Which provider to pin (18 serve `deepseek-v4-flash`)
+
+From `GET /api/v1/models/deepseek/deepseek-v4-flash/endpoints` (public, no auth),
+costed on a real weekly run — 5 sections × ~34k input + ~2k output:
+
+| provider | quant | uptime 1d | $/run | $/yr | vs cheapest |
+|---|---|---:|---:|---:|---:|
+| DeepInfra | **fp4** | 99.9 | 0.0171 | **0.89** | 1.0× |
+| StreamLake | fp8 | 98.5 | 0.0184 | 0.95 | 1.1× |
+| GMICloud | fp8 | 98.0 | 0.0186 | 0.97 | 1.1× |
+| **Baidu** | **fp8** | **100.0** | 0.0187 | **0.97** | 1.1× |
+| DigitalOcean | ? | 99.8 | 0.0213 | 1.11 | 1.2× |
+| Venice | ? | 99.6 | 0.0262 | 1.36 | 1.5× |
+| AkashML / Novita / WandB / Parasail / Fireworks / DeepSeek | mixed | 97.6–99.4 | 0.0266 | 1.38 | 1.6× |
+| **Io Net** | fp8 | 99.9 | 0.0465 | 2.42 | 2.7× ⚠️ **no `response_format`** |
+| **Ambient** | fp4 | 99.2 | 0.0930 | 4.84 | **5.4×** |
+
+**Cost is not the deciding factor — reliability is.** The entire 18-provider spread
+is $0.89–$4.84/yr, and even the worst is cheaper than Kimi's ~$7. So pin for
+quality, not price.
+
+**Unpinned routing was already overpaying ~40%.** Charged amounts match list prices
+exactly (WandB 33,949 tok × $0.140/M = $0.00475, charged $0.00475), and the default
+router put us on the $0.112–0.140 tier — DigitalOcean, AkashML, WandB, Novita —
+never on the $0.090–0.098 tier.
+
+**Two landmines in leaving it unpinned:**
+- **Io Net does not support `response_format`.** This lane calls with
+  `json_object=True`; land there and the model returns prose, `extract_json` throws,
+  the retry burns, and the section drops. A *plausible* mechanism for an empty
+  section — though not the one that bit us, since DigitalOcean and WandB both do
+  support it.
+- **Ambient is 5.4× the price** for the identical model.
+
+**Recommendation: `provider: {order: ["Baidu", "StreamLake"], allow_fallbacks: false}`.**
+Baidu is the only endpoint at **100% uptime on both the 1-day and 30-minute
+windows**, is fp8 rather than aggressively-quantized fp4, advertises
+`structured_outputs`, and costs within 10% of the cheapest. StreamLake as the
+second is near-cheapest, fp8, and produced the best full answer we saw (3,599
+tokens, complete section). `allow_fallbacks: false` keeps a bad draw from silently
+substituting a 5.4× or JSON-incapable provider — with ~100% uptime and the lane's
+new failure alert, failing loudly is the better trade.
+
+⚠️ **Unmeasured:** `throughput_last_30m` and `latency_last_30m` come back **0** from
+this endpoint (they populate only the web UI), so this ranking has **no speed
+component**. Baidu's throughput is unknown here; verify before committing if the
+5-minute job runtime matters.
+
 ## ⚠️ The finding that matters: provider routing is non-deterministic
 
 The two runs used the **same model at temperature 0** and produced **different
