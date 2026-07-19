@@ -86,6 +86,10 @@ _WORKFLOW_DOCS: dict[Path, frozenset[str]] = {
             "backfill-faaliyet.yml",
             "backfill-nonbank.yml",
             "backfill-tefas.yml",
+            # A scratch credential probe — writes nothing, reads no data source,
+            # and is meant to be deleted. It is in OPERATIONS + PROJECT_STATE
+            # (which inventory *everything*); the architecture has no node for it.
+            "test-openrouter.yml",
         }
     ),
 }
