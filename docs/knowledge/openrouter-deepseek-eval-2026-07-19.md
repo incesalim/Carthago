@@ -134,7 +134,14 @@ flash and was wrong where flash was right. Bigger ≠ better when the job is
 error is a hard, source-checkable contradiction, not a stylistic preference —
 that is worth more than a win rate on taste.
 
-### Full five-section run: flash **dropped an entire section**
+> ⚠️ **Read the retraction below before using the section tables.** The
+> single-section and single-run comparisons in this document were revised twice as
+> more runs came in. Flash's output on this task is dominated by run-to-run
+> variance, so per-section counts here are illustrative, not a ranking. The claims
+> that survived repetition: DeepSeek is far cheaper, OpenRouter routes across many
+> providers with very different behaviour, and Kimi never dropped a section.
+
+### Full five-section run: flash **dropped an entire section** (⚠️ not reproducible)
 
 The one-section result did not survive contact with the full task
 ([run](https://github.com/incesalim/Carthago/actions/runs/29701424488), all five
@@ -188,13 +195,29 @@ run (33.9k input each, timings map 1:1 onto the section sequence in the job log)
 | **Other Regulatory Actions** | DigitalOcean | **7** | $0.00380 | **empty** |
 | ↳ retry | Weights & Biases | **7** | $0.00475 | **empty** |
 
-**On the dropped section — the evidence firmed up rather than flipped.** Seven
-output tokens is about the length of `{"bullets": []}`, and `finish_reason` is
-`stop`, so the model answered "nothing" cleanly rather than being cut off. Two
-*independent* providers returned it, which points at model/prompt behaviour rather
-than one bad host. But note what that means for the section-by-section table above:
-each of those cells is a **single draw from a different provider**, so treat the
-per-section counts as noisy, not as a ranking.
+**On the dropped section — ⚠️ RETRACTED. A second full run refutes it.** Seven
+output tokens is about the length of `{"bullets": []}` with `finish_reason: stop`,
+and two *independent* providers returned it inside one run, so this doc first
+concluded the emptiness was model/prompt behaviour. **A second five-section flash
+run on identical input produced all five sections**, `Other Regulatory Actions`
+included. The zero was a draw, not a property.
+
+| section | run A (19:52) | run B (20:08) |
+|---|---:|---:|
+| Monetary Policy Stance | 5 | 6 |
+| Regulations for TL Deposit Share | **6** | **1** |
+| Loan Growth Caps | 3 | 8 |
+| Regulations on RRs | 4 | 4 |
+| Other Regulatory Actions | **0** | **1** |
+| total | 18 / **4 sections** | 20 / **5 sections** |
+| wall clock | 140 s | 295 s |
+
+**The real finding is instability, and it is a bigger deal than any capability
+story.** Individual sections swing 6→1 and 3→8 between runs on the same input, and
+one run silently lost a section. Kimi over three runs varied 23/30/32 bullets but
+never dropped a section. So on current evidence flash is **cheaper and less stable**,
+and no section-level ranking in this document should be trusted — including the
+"89% of bullets carry figures" comparison, which came from a single run.
 
 **Empty answers are not cheap.** The two 7-token non-answers cost **$0.00855** —
 about a third of the whole run — because 34k of input is billed regardless. On this
