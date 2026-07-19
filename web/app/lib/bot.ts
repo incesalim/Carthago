@@ -16,7 +16,8 @@
 import type { StringEnv } from "./cf-env";
 import { chatComplete, llmConfigured, type ChatMessage } from "./llm";
 import { AGENT_SYSTEM } from "./bot-schema";
-import { DEFAULT_ROW_CAP, formatTable, sanitizeSelect } from "./bot-sql";
+import { BANK_NAMES } from "./bank_names";
+import { DEFAULT_ROW_CAP, checkTickerEnumeration, formatTable, sanitizeSelect } from "./bot-sql";
 import { escapeHtml, sendMessage, type TgUpdate } from "./telegram";
 
 const MAX_MSG_LEN = 500;
@@ -138,16 +139,57 @@ export interface AgentResult {
 }
 
 /**
+ * Short, non-reversible chat identifier — enough to group repeated failures from
+ * one conversation, not enough to identify who asked.
+ */
+function chatHash(chatId?: number): string | null {
+  if (chatId === undefined) return null;
+  let h = 0;
+  for (const ch of String(chatId)) h = (Math.imul(h, 31) + ch.charCodeAt(0)) | 0;
+  return (h >>> 0).toString(36);
+}
+
+/**
+ * Record one query the agent ran. Fire-and-forget: diagnostics must never break
+ * an answer, so every failure here is swallowed. Table created lazily so the bot
+ * keeps working before migration 0033 is applied.
+ */
+async function logQuery(
+  db: Db,
+  row: {
+    chatHash: string | null; question: string; step: number; sql: string;
+    outcome: "rows" | "rejected" | "error"; rowCount?: number; detail?: string;
+  },
+): Promise<void> {
+  try {
+    await db
+      .prepare(
+        `INSERT INTO bot_queries
+           (chat_hash, question, step, sql_text, outcome, row_count, detail)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .bind(row.chatHash, row.question, row.step, row.sql, row.outcome,
+            row.rowCount ?? null, row.detail ?? null)
+      .run();
+  } catch {
+    // Table missing (pre-migration) or D1 hiccup — never surface to the user.
+  }
+}
+
+/**
  * The agent loop: the model runs read-only SQL to explore + verify against the
  * live DB, sees each result (or error / 0 rows) and self-corrects, then answers
  * in prose. Every query is gated by sanitizeSelect (read-only) and row-capped.
  */
-export async function runAgent(env: StringEnv, db: Db, question: string): Promise<AgentResult> {
+export async function runAgent(
+  env: StringEnv, db: Db, question: string, chatId?: number,
+): Promise<AgentResult> {
   const messages: ChatMessage[] = [
     { role: "system", content: AGENT_SYSTEM },
     { role: "user", content: question },
   ];
   const trace: { sql: string; result: string }[] = [];
+  const ch = chatHash(chatId);
   let gotData = false; // a query has returned ≥1 row this session
 
   for (let step = 0; step < MAX_STEPS; step++) {
@@ -186,7 +228,19 @@ export async function runAgent(env: StringEnv, db: Db, question: string): Promis
     const san = sanitizeSelect(sql, ROW_CAP);
     if (!san.ok) {
       trace.push({ sql, result: `rejected: ${san.error}` });
+      await logQuery(db, { chatHash: ch, question, step, sql,
+        outcome: "rejected", detail: san.error });
       messages.push({ role: "user", content: `Query rejected (${san.error}). Fix the SQL and try again.` });
+      continue;
+    }
+    // Gate the model's choice of POPULATION, not just its verbs: a query that
+    // picks its own list of banks answers for a subset while sounding complete.
+    const pop = checkTickerEnumeration(san.sql, question, BANK_NAMES);
+    if (!pop.ok) {
+      trace.push({ sql: san.sql, result: `rejected: ${pop.error}` });
+      await logQuery(db, { chatHash: ch, question, step, sql: san.sql,
+        outcome: "rejected", detail: pop.error });
+      messages.push({ role: "user", content: `Query rejected — ${pop.error}. Rewrite it.` });
       continue;
     }
 
@@ -196,6 +250,8 @@ export async function runAgent(env: StringEnv, db: Db, question: string): Promis
       const rows = (res.results ?? []).slice(0, ROW_CAP);
       if (rows.length) gotData = true;
       trace.push({ sql: san.sql, result: `${rows.length} rows` });
+      await logQuery(db, { chatHash: ch, question, step, sql: san.sql,
+        outcome: "rows", rowCount: rows.length });
       feedback = rows.length
         ? `Result (${rows.length} row${rows.length === 1 ? "" : "s"}):\n` +
           formatTable(rows, MODEL_ROWS, 80).slice(0, MODEL_RESULT_CHARS)
@@ -205,6 +261,8 @@ export async function runAgent(env: StringEnv, db: Db, question: string): Promis
     } catch (e) {
       const msg = e instanceof Error ? e.message : "query failed";
       trace.push({ sql: san.sql, result: `error: ${msg}` });
+      await logQuery(db, { chatHash: ch, question, step, sql: san.sql,
+        outcome: "error", detail: msg });
       feedback = `Error: ${msg}. Fix the SQL and try again.`;
     }
     messages.push({ role: "user", content: feedback });
@@ -259,7 +317,7 @@ export async function handleUpdate(
     }
 
     // The agent loop: the model explores the DB read-only, self-corrects, answers.
-    const { reply } = await runAgent(env, db, text);
+    const { reply } = await runAgent(env, db, text, chatId);
     await sendMessage(env, chatId, reply);
   } catch (e) {
     console.error(`[bot] unhandled: ${e instanceof Error ? e.stack : e}`);

@@ -86,6 +86,77 @@ export function sanitizeSelect(
   return { ok: true, sql };
 }
 
+/** Fold Turkish letters to ASCII so "Garanti"/"GARANTİ"/"İş" compare cleanly. */
+function foldTr(s: string): string {
+  return s
+    .replace(/[İIı]/g, "i").replace(/[Şş]/g, "s").replace(/[Ğğ]/g, "g")
+    .replace(/[Üü]/g, "u").replace(/[Öö]/g, "o").replace(/[Çç]/g, "c")
+    .toLowerCase();
+}
+
+/**
+ * Bank tickers the SQL pins to literal values, e.g. `bank_ticker IN ('A','B')`
+ * or `p.bank_ticker = 'A' OR p.bank_ticker = 'B'`.
+ */
+export function enumeratedTickers(sql: string): string[] {
+  const out = new Set<string>();
+  const clean = stripSqlComments(sql);
+  for (const m of clean.matchAll(
+    /bank_ticker\s+in\s*\(([^)]*)\)/gi,
+  )) {
+    for (const lit of m[1].matchAll(/'([^']+)'/g)) out.add(lit[1].toUpperCase());
+  }
+  for (const m of clean.matchAll(/bank_ticker\s*=\s*'([^']+)'/gi)) {
+    out.add(m[1].toUpperCase());
+  }
+  return [...out];
+}
+
+/**
+ * Reject SQL that decides FOR ITSELF which banks to answer about.
+ *
+ * The bot was asked to rank all banks by branch productivity and answered for
+ * eight, having written its own `IN (…)` list of roughly ten tickers. It then
+ * reported the gaps *within its own list* ("GARAN and HALKB have no data") as
+ * though they were gaps in the dataset — so a partial answer read as an
+ * exhaustive one. Twenty-seven banks had the data.
+ *
+ * The rule: if the query pins bank_ticker to two or more literals and the user
+ * named none of them, the model chose the population rather than the database.
+ * A question that DOES name banks ("compare Garanti and Akbank") is untouched,
+ * and a single-bank query is always allowed.
+ *
+ * `names` maps ticker -> display name so "Garanti" in the question satisfies
+ * 'GARAN' in the SQL.
+ */
+export function checkTickerEnumeration(
+  sql: string,
+  question: string,
+  names: Record<string, string> = {},
+): SanitizeResult {
+  const tickers = enumeratedTickers(sql);
+  if (tickers.length < 2) return { ok: true, sql };
+
+  const q = foldTr(question);
+  const mentioned = tickers.filter((t) => {
+    if (q.includes(foldTr(t))) return true;
+    const name = names[t];
+    // Match on the distinctive first word ("Garanti" for "Garanti BBVA"), which
+    // is how people actually refer to these banks.
+    return !!name && q.includes(foldTr(name.split(/\s+/)[0]));
+  });
+  if (mentioned.length) return { ok: true, sql };
+
+  return {
+    ok: false,
+    error:
+      `the query hardcodes ${tickers.length} bank tickers the question never ` +
+      `named (${tickers.slice(0, 5).join(", ")}…). Do not choose which banks to ` +
+      `include — let the WHERE clause select them, so every bank with data is ` +
+      `covered`,
+  };
+}
+
 /**
  * Pull an executable query out of an LLM reply. Prefers a ```sql fenced block;
  * falls back to a bare statement that starts with SELECT/WITH. Returns null if

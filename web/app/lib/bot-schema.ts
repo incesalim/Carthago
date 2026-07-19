@@ -50,18 +50,25 @@ bank_audit_balance_sheet(bank_ticker, period, kind, statement, item_order,
 
 bank_audit_profit_loss(bank_ticker, period, kind, item_order, hierarchy,
     item_name, amount)   -- income statement lines, thousand TL, YTD-cumulative
-  • Bottom-line net profit = the row whose item_name contains the formula
-    '(XIX+XXIV)'. Match item_name LIKE '%XIX+XXIV%' — this reliably catches it
-    across English ('NET PROFIT/LOSS (XIX+XXIV)'), Turkish ('DÖNEM NET KARI/
-    ZARARI (XIX+XXIV)') and space-collapsed labels, and gives exactly one row per
-    bank. Prefer it over '%NET%PROFIT%'/'%DÖNEM%NET%' text matching.
+  • Bottom-line net profit — JOIN bank_audit_pl_roles, NEVER match a label:
+      FROM bank_audit_profit_loss p
+      JOIN bank_audit_pl_roles r ON r.bank_ticker=p.bank_ticker
+       AND r.period=p.period AND r.kind=p.kind AND r.hierarchy=p.hierarchy
+      WHERE r.role='period_net'
+    The role map resolves each bank's OWN roman ordinal and covers all 38 banks.
+    DO NOT use item_name LIKE '%XIX+XXIV%'. That silently drops banks and looks
+    correct: AKBNK files a BLANK item_name, and banks on the compressed template
+    (e.g. HAYATK) label the same line '(XVII+XXII)'. A ranking built on the LIKE
+    returned 36 of 38 banks with no error and no missing-row warning.
+    Other roles in the same table: gross, net_op, pretax, tax, cont_net,
+    disc_net, opex_personnel, opex_other — join the same way for those.
   • amount is YTD-CUMULATIVE within a year: Q1=3 months … Q4=full year. So a
     bank's ANNUAL / "last year" / "son 1 yıl" profit = its Q4 period (latest full
     year = the most recent …Q4). A single quarter alone = that period's YTD minus
     the prior quarter's YTD.
-  • A FEW reports have BLANK item_name (notably AKBNK 2026Q1 and 2022Q4). If your
-    '%XIX+XXIV%' net-profit query returns 0 rows but the period exists, the net
-    profit is the amount at MAX(item_order) for that bank/period/kind.
+  • A FEW reports have BLANK item_name (notably AKBNK 2026Q1 and 2022Q4), which
+    is why label matching is banned above — the pl_roles join is keyed on
+    hierarchy, so a blank label costs nothing.
 
 bank_audit_capital(bank_ticker, period, kind, period_type, cet1_ratio,
     tier1_ratio, capital_adequacy_ratio, cet1_capital, tier1_capital,
@@ -168,6 +175,14 @@ ZIRAATK=Ziraat Katılım
 • For "latest"/"this quarter" with no period given, pick the max(period) for that
   bank via a subquery, e.g.  period = (SELECT MAX(period) FROM t WHERE bank_ticker=…).
 • Add a sensible LIMIT (≤200). Select only the columns needed.
+• NEVER hardcode a list of banks. If the user did not name specific banks,
+  do NOT write bank_ticker IN ('AKBNK','GARAN',…) — let the WHERE clause
+  select them, so EVERY bank with data is covered. Choosing the banks
+  yourself produces an answer that looks complete and is not: a ranking
+  built that way returned 8 banks when 27 had the data. Such a query is
+  rejected. To rank or list banks, filter only on period/kind and let the
+  rows decide. If some banks are absent, say so by counting the rows you
+  got — never by naming banks you assumed were missing.
 • Match text labels case-insensitively AND allow for MISSING SPACES — some
   extracted labels collapse spaces ('NETPROFIT/LOSS', 'TOTALASSETS'). Put '%'
   BETWEEN words so both forms match: item_name LIKE '%NET%PROFIT%' (matches
@@ -209,20 +224,26 @@ WHERE bank_ticker='AKBNK' AND kind='unconsolidated' AND period_type='current'
 ORDER BY period LIMIT 20;
 
 Q: "Yapı Kredi net profit in 2024Q4"
-SELECT amount FROM bank_audit_profit_loss
-WHERE bank_ticker='YKBNK' AND kind='unconsolidated' AND period='2024Q4'
-  AND item_name LIKE '%XIX+XXIV%' LIMIT 1;
+SELECT p.amount FROM bank_audit_profit_loss p
+JOIN bank_audit_pl_roles r ON r.bank_ticker=p.bank_ticker AND r.period=p.period
+ AND r.kind=p.kind AND r.hierarchy=p.hierarchy
+WHERE r.role='period_net' AND p.bank_ticker='YKBNK'
+  AND p.kind='unconsolidated' AND p.period='2024Q4';
 
 Q: "Rank banks by net profit this quarter" / "bankaları kâra göre sırala"
-SELECT bank_ticker, amount AS net_profit FROM bank_audit_profit_loss
-WHERE kind='unconsolidated' AND item_name LIKE '%XIX+XXIV%'
-  AND period = (SELECT MAX(period) FROM bank_audit_profit_loss)
+SELECT p.bank_ticker, p.amount AS net_profit FROM bank_audit_profit_loss p
+JOIN bank_audit_pl_roles r ON r.bank_ticker=p.bank_ticker AND r.period=p.period
+ AND r.kind=p.kind AND r.hierarchy=p.hierarchy
+WHERE r.role='period_net' AND p.kind='unconsolidated'
+  AND p.period = (SELECT MAX(period) FROM bank_audit_profit_loss)
 ORDER BY net_profit DESC LIMIT 40;
 
 Q: "Akbank's profit over the last year" / "Akbank'ın son 1 yıl karı"
 -- P&L is YTD → full-year profit = the most recent Q4 period.
-SELECT period, amount FROM bank_audit_profit_loss
-WHERE bank_ticker='AKBNK' AND kind='unconsolidated' AND item_name LIKE '%XIX+XXIV%'
+SELECT p.period, p.amount FROM bank_audit_profit_loss p
+JOIN bank_audit_pl_roles r ON r.bank_ticker=p.bank_ticker AND r.period=p.period
+ AND r.kind=p.kind AND r.hierarchy=p.hierarchy
+WHERE r.role='period_net' AND p.bank_ticker='AKBNK' AND p.kind='unconsolidated'
   AND period = (SELECT MAX(period) FROM bank_audit_profit_loss
                 WHERE bank_ticker='AKBNK' AND period LIKE '%Q4')
 LIMIT 1;
