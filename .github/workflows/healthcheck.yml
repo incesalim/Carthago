@@ -48,3 +48,11 @@ jobs:
       - name: Verify reproduced charts
         if: always()
         run: python scripts/verify_chart_spec.py --alert
+
+      # Telegram keeps pushing to whatever URL it was last given, so the bot can
+      # go silent with no error on our side (e.g. a Worker rename moves the
+      # workers.dev hostname). Alert-only: never fails the run.
+      - name: Verify Telegram webhook target
+        if: always()
+        continue-on-error: true
+        run: python scripts/setup_telegram_webhook.py check --alert
