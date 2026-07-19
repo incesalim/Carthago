@@ -56,3 +56,14 @@ jobs:
         if: always()
         continue-on-error: true
         run: python scripts/setup_telegram_webhook.py check --alert
+
+      # The public API depends on a Cloudflare Configuration Rule that exempts
+      # /api/v1 from the Browser Integrity Check. That rule lives in zone config
+      # this repo can't see, and it fails INVISIBLY — curl/requests/browsers are
+      # never blocked, so an ordinary smoke test stays green while stdlib-urllib
+      # and pandas.read_csv callers get 403s. The probe deliberately sends the
+      # blocked user agent; see the module docstring before changing it.
+      - name: Verify public API (/api/v1)
+        if: always()
+        continue-on-error: true
+        run: python scripts/check_public_api.py --alert
