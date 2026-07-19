@@ -28,6 +28,11 @@ on:
         description: "Policy year that PDF covers (e.g. 2026). Required with baseline_url."
         required: false
         default: ""
+      force:
+        description: "Regenerate even when the inputs are unchanged (quiet weeks are a no-op otherwise)."
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: read
@@ -93,10 +98,16 @@ jobs:
         env:
           # Repo secret is named KIMI_API_TOKEN; Python code reads KIMI_API_KEY.
           KIMI_API_KEY: ${{ secrets.KIMI_API_TOKEN }}
+          # Post the briefing itself to Telegram whenever the LLM actually runs.
+          # Absent these, notify() no-ops to stderr — which is what keeps the
+          # scratch DeepSeek bench (test-openrouter.yml) silent.
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
         # --require-baseline: refuse to ship an ungrounded briefing. It reads
         # plausibly without the baseline, so a warning was not enough — this ran
         # degraded for seven weeks unnoticed.
-        run: python scripts/summarize_regulations.py --require-baseline
+        run: python scripts/summarize_regulations.py --require-baseline ${{ inputs.force && '--force' || '' }}
 
       - name: Setup Node (for wrangler)
         uses: actions/setup-node@v6

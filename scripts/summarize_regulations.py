@@ -38,6 +38,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 sys.stdout.reconfigure(encoding="utf-8")
 
+from notify import notify  # noqa: E402  (scripts/ is sys.path[0] under `python scripts/…`)
 from src.news import kimi  # noqa: E402
 from src.news._htmltext import fix_mojibake  # noqa: E402
 from src.news.schema import init_schema  # noqa: E402
@@ -281,6 +282,53 @@ def generate_category(name: str, desc: str, context: str, retries: int) -> tuple
     return (best or []), model
 
 
+# Telegram hard-caps a message at 4096 chars and notify() trims at 4000; a full
+# briefing runs longer than that, so split at SECTION boundaries rather than
+# mid-bullet. Budget leaves room for the continuation header.
+_TG_BUDGET = 3600
+
+
+def notify_briefing(categories: list[dict], models: set[str], item_count: int,
+                    baseline: dict | None) -> None:
+    """Post the briefing that just shipped. Never raises — a failed alert must
+    not fail a good run (notify() already swallows network errors and no-ops
+    when no channel is configured, which is what keeps the scratch bench quiet).
+    """
+    try:
+        n_bullets = sum(len(c["bullets"]) for c in categories)
+        head = (
+            f"🏛 Regulation briefing — {len(categories)} sections, {n_bullets} bullets\n"
+            f"model: {','.join(sorted(models)) or '?'} · {item_count} feed items · "
+            f"baseline: {baseline['title'] if baseline else 'NONE'}"
+        )
+        # Pack per BULLET, not per section: a section that alone exceeds the
+        # budget would otherwise be handed to notify() and silently trimmed —
+        # the same warn-and-carry-on failure that hid the missing baseline for
+        # seven weeks. Spilled sections repeat their header marked "(cont.)".
+        chunks: list[str] = []
+        cur = head
+        for cat in categories:
+            hdr = f"▸ {cat['name']} ({len(cat['bullets'])})"
+            if len(cur) + len(hdr) + 2 > _TG_BUDGET:
+                chunks.append(cur)
+                cur = ""
+            cur = f"{cur}\n\n{hdr}" if cur else hdr
+            for b in cat["bullets"]:
+                line = f"• {b['text']}"
+                if len(cur) + len(line) + 1 > _TG_BUDGET:
+                    chunks.append(cur)
+                    cur = f"{hdr} (cont.)"
+                cur = f"{cur}\n{line}"
+        if cur.strip():
+            chunks.append(cur)
+
+        for i, chunk in enumerate(chunks, 1):
+            prefix = f"({i}/{len(chunks)})\n" if len(chunks) > 1 else ""
+            notify(prefix + chunk)
+    except Exception as e:  # noqa: BLE001 — alerting is never worth a failed run
+        print(f"[briefing] notify failed: {type(e).__name__}: {e}", flush=True)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--delta-days", type=int, default=330,
@@ -408,6 +456,9 @@ def main() -> int:
         )
         conn.commit()
     print("[briefing] stored in regulation_briefings.")
+    # Only reached when the LLM actually ran: the unchanged-inputs and --dry-run
+    # paths return earlier, so quiet weeks stay quiet.
+    notify_briefing(categories, models, len(items), baseline)
     return 0
 
 
