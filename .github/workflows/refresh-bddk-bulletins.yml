@@ -125,6 +125,25 @@ jobs:
         # overlap between the two workflows is harmless.
         run: python scripts/push_to_d1.py --hours 30
 
+      # The public API (/api/v1) serves what's listed in api_series, including
+      # each series' advertised end_date and obs_count. THIS is the workflow that
+      # lands new BDDK periods (daily for monthly, Fridays for weekly), so the
+      # catalog has to be rebuilt here — not only in the Saturday refresh-data.yml
+      # run, which left /serieList understating coverage by up to a week while
+      # /series happily returned the newer observations.
+      #
+      # Cheap and idempotent: ~20k rows re-derived from the local snapshot, and
+      # codes are carried forward, never renumbered. Non-critical — a failure
+      # here must not fail a bulletin ingest that already succeeded.
+      - name: Rebuild + push the public-API series catalog
+        if: success()
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          python scripts/build_api_catalog.py
+          python scripts/push_to_d1.py --only-tables api_series
+
       # Positive ping: a weekly and/or monthly bulletin was published AND fetched
       # this run. Quiet when nothing new landed (the before/after diff decides).
       - name: Notify on newly published bulletins
