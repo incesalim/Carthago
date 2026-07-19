@@ -19,7 +19,7 @@ import { AGENT_SYSTEM } from "./bot-schema";
 import { BANK_NAMES } from "./bank_names";
 import {
   DEFAULT_ROW_CAP, checkSectorAggregation, checkTickerEnumeration, formatTable,
-  inventedNumbers, numbersIn, sanitizeSelect, substituteDataList,
+  numbersIn, sanitizeSelect, substituteDataList, unsupportedFigures,
 } from "./bot-sql";
 import { escapeHtml, sendMessage, type TgUpdate } from "./telegram";
 
@@ -248,18 +248,18 @@ export async function runAgent(
       // — it says nothing about whether THIS sentence's numbers came from it.
       // Give the model one chance to correct itself before giving up.
       const unsupported = lastRows.length
-        ? inventedNumbers(answer, numbersIn(JSON.stringify(lastRows)))
+        ? unsupportedFigures(answer, numbersIn(JSON.stringify(lastRows)))
         : [];
       if (unsupported.length && !retriedForNumbers) {
         retriedForNumbers = true;
         await logQuery(db, { chatHash: ch, question, step, sql: lastSql ?? "",
           outcome: "rejected",
-          detail: `answer cited figures absent from the data: ${unsupported.slice(0, 5).join(", ")}` });
+          detail: `answer cited figures absent from the data: ${unsupported.slice(0, 5).map(String).join(", ")}` });
         messages.push({ role: "assistant", content: gen.text });
         messages.push({
           role: "user",
           content:
-            `These figures are not in any result you retrieved: ${unsupported.slice(0, 8).join(", ")}. ` +
+            `These figures are not in any result you retrieved: ${unsupported.slice(0, 8).map(String).join(", ")}. ` +
             "Do NOT state a number you did not query. Either re-query to get it, or " +
             "rewrite the answer using only the values you actually have.",
         });
