@@ -17,7 +17,10 @@ import type { StringEnv } from "./cf-env";
 import { chatComplete, llmConfigured, type ChatMessage } from "./llm";
 import { AGENT_SYSTEM } from "./bot-schema";
 import { BANK_NAMES } from "./bank_names";
-import { DEFAULT_ROW_CAP, checkTickerEnumeration, formatTable, sanitizeSelect } from "./bot-sql";
+import {
+  DEFAULT_ROW_CAP, checkTickerEnumeration, formatTable, sanitizeSelect,
+  substituteDataList,
+} from "./bot-sql";
 import { escapeHtml, sendMessage, type TgUpdate } from "./telegram";
 
 const MAX_MSG_LEN = 500;
@@ -191,6 +194,9 @@ export async function runAgent(
   const trace: { sql: string; result: string }[] = [];
   const ch = chatHash(chatId);
   let gotData = false; // a query has returned ≥1 row this session
+  // Rows from the last successful query — the model answers FROM these, so a
+  // listing it types out can be re-rendered from them instead of trusted.
+  let lastRows: Record<string, unknown>[] = [];
 
   for (let step = 0; step < MAX_STEPS; step++) {
     let gen;
@@ -220,7 +226,8 @@ export async function runAgent(
         continue;
       }
       // No query needed → this is the final answer to the user.
-      return { reply: finalize(gen.text) || "⚠️ I couldn't produce an answer. Please try rephrasing.", trace };
+      const answer = substituteDataList(gen.text, lastRows);
+      return { reply: finalize(answer) || "⚠️ I couldn't produce an answer. Please try rephrasing.", trace };
     }
 
     // The model wants to run a query: record its turn, run it, feed the result back.
@@ -248,7 +255,7 @@ export async function runAgent(
     try {
       const res = await db.prepare(san.sql).all<Record<string, unknown>>();
       const rows = (res.results ?? []).slice(0, ROW_CAP);
-      if (rows.length) gotData = true;
+      if (rows.length) { gotData = true; lastRows = rows; }
       trace.push({ sql: san.sql, result: `${rows.length} rows` });
       await logQuery(db, { chatHash: ch, question, step, sql: san.sql,
         outcome: "rows", rowCount: rows.length });
