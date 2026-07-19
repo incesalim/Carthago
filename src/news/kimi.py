@@ -55,6 +55,21 @@ def chat_completion(
     if json_object:
         payload["response_format"] = {"type": "json_object"}
 
+    # OpenRouter only (Moonshot ignores it; we send it only when asked). OpenRouter
+    # fronts one model with many upstream providers whose speed, quantization and
+    # even PARAMETER SUPPORT differ — one serves deepseek-v4-flash with no
+    # response_format at all, which would silently break json_object mode. Unpinned,
+    # every call is a fresh draw: measured 8 providers in an hour, output ranging
+    # 7-4,436 tokens, and a ~40% cost premium over the cheapest tier.
+    # allow_fallbacks=false is deliberate: a wrong/unavailable name then FAILS
+    # loudly instead of quietly substituting another provider.
+    order = os.environ.get("LLM_PROVIDER_ORDER", "").strip()
+    if order:
+        payload["provider"] = {
+            "order": [p.strip() for p in order.split(",") if p.strip()],
+            "allow_fallbacks": os.environ.get("LLM_ALLOW_FALLBACKS", "").lower() == "true",
+        }
+
     last_err: Exception | None = None
     for attempt in range(retries + 1):
         try:
