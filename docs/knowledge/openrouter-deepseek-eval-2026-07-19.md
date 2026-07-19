@@ -134,6 +134,48 @@ flash and was wrong where flash was right. Bigger ≠ better when the job is
 error is a hard, source-checkable contradiction, not a stylistic preference —
 that is worth more than a win rate on taste.
 
+### Full five-section run: flash **dropped an entire section**
+
+The one-section result did not survive contact with the full task
+([run](https://github.com/incesalim/Carthago/actions/runs/29701424488), all five
+sections, same 87-item feed + baseline):
+
+| section | flash | flash w/ figures | Kimi 19:31 | Kimi 19:43 |
+|---|---:|---:|---:|---:|
+| Monetary Policy Stance | 5 | 5/5 | 6 | 5 |
+| Regulations for TL Deposit Share | 6 | 4/6 | 3 | 3 |
+| Loan Growth Caps | 3 | 3/3 | 7 | 6 |
+| Regulations on RRs | 4 | 4/4 | 3 | 4 |
+| **Other Regulatory Actions** | **0** ❌ | — | 11 | 5 |
+| **total** | **18 / 4 sections** | **16/18 (89%)** | 30 / 5 | 23 / 5 |
+
+`Other Regulatory Actions` returned **zero bullets** — no exception, no parse
+failure in the log, just nothing usable — and `main()` appends a section only
+`if kept`, so it **vanished from the briefing silently**. Cost $0.0052/section
+(~$0.026/run, **~$1.35/yr** against Kimi's ~$7), latency 140s vs Kimi's 34–71s.
+
+**This is the fidelity/inference split again, and it predicts the failure.** The
+four sections flash won are *transcription* asks — a rate, a cap, a ratio, each
+tied to a dated release; flash carried a figure in **89%** of its bullets against
+Kimi's ~40%. "Other Regulatory Actions" is the catch-all: it asks what *else*
+matters, which is a judgment call with no anchor to transcribe. That is exactly
+where the less-clever model has nothing to fall back on — and it produced nothing
+rather than something wrong, which is at least the safer failure.
+
+**So: not a drop-in replacement.** The right reading is not "flash beats Kimi" or
+the reverse — it is that they fail in different places, which is an argument for a
+**failover chain**, not a swap.
+
+### ⚠️ Third silent-degradation bug found today (in the lane, not the model)
+
+A section that yields no bullets is dropped from the briefing with no error, and
+`SystemExit` fires only when **every** section is empty. So a partial provider
+failure ships a quietly shorter briefing — the same shape as the missing baseline
+and as `notify()`'s silence-means-success. Not fixed; it is a real defect
+independent of which model runs, since Kimi can return an empty section too.
+Suggested: fail (or alert) when a section that produced bullets in the previous
+briefing produces none now.
+
 ### Why the smaller model won — the mechanism, not the luck
 
 Counted over the same 330-day feed both models read:
