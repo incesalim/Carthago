@@ -102,11 +102,18 @@ EXPECTED_SECTIONS = [
 ]
 
 
+# Tokenise numbers and compare NUMERICALLY. The first version matched the value
+# as text with a lookahead, so "37.0%" did not satisfy "37" — the model writing a
+# trailing zero scored the fact MISSING while the briefing was correct. Textual
+# matching also cannot see that 4.50 and 4.5 are one value.
+_NUM_TOKEN_RE = re.compile(r"(?<![\d.])(\d+(?:\.\d+)?)")
+
+
 def _num_present(text: str, value: str) -> bool:
-    """True if `value` appears as a standalone number. Guards against 3 matching
-    inside 37 or 0.35 — the checklist would otherwise score itself passing on
-    coincidence."""
-    return re.search(rf"(?<![\d.]){re.escape(value)}(?![\d.])", text) is not None
+    """True if `value` appears as a standalone number, compared by magnitude.
+    Still anchored on token boundaries so 3 does not match inside 37 or 0.35."""
+    want = float(value)
+    return any(abs(float(tok) - want) < 1e-9 for tok in _NUM_TOKEN_RE.findall(text))
 
 
 def score(payload: dict) -> dict:
