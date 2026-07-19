@@ -1,6 +1,6 @@
 # Regulation tab — scheduled follow-ups & operational notes
 
-_Last updated: 2026-07-19_
+_Last updated: 2026-07-20_
 
 ## FIXED (A): the weekly briefing was running with **no baseline**
 
@@ -94,6 +94,56 @@ hand-typed MPC dates.
 
 Found while benchmarking DeepSeek on this task; see
 [knowledge/openrouter-deepseek-eval-2026-07-19.md](knowledge/openrouter-deepseek-eval-2026-07-19.md).
+
+## FIXED (C): the briefing quoted a decision log as current policy
+
+**Status:** fixed 2026-07-20. Full account:
+[knowledge/regulation-consistency-plan-2026-07-20.md](knowledge/regulation-consistency-plan-2026-07-20.md) §5.
+
+`Annex 1: Monetary Policy Decisions Made in YYYY` of the TCMB annual document is a
+**dated changelog** — its Table 5 records the FX loan limit falling 1.5% → 1% →
+0.5% across three separate entries. The context introduced the whole document as
+*"annex tables list every rule in force"*, so the model transcribed log rows as
+policy and the briefing printed **three generations of the same cap at once**
+(SME at 2.5% monthly, at 5%, and at 4.5%). The model was following instructions.
+
+**Shipped:** `split_baseline()` separates Annex 1 into a clearly-labelled
+`DECISION HISTORY (NOT CURRENT)` block; the prompt gains a one-value-per-rule
+rule; `temperature 0` + a fixed `BRIEFING_SEED`; `PROMPT_VERSION` → v14.
+
+**Measured** (`scripts/check_briefing_facts.py`, 3 runs each on the read-only
+bench): fact score went from a **46–77% swing** across six stored briefings to a
+flat **85 / 85 / 85%**.
+
+⚠️ **Two traps recorded for whoever works here next.**
+1. A fact checklist that asks only *"is the correct number present?"* scores the
+   broken briefing **92%**. The defect is contradiction, so the superseded value
+   must be scored too — **per bullet**, or "reduced from 4% to 3%" false-positives.
+2. **MPC Meeting Summaries are not noise.** They were slated for exclusion as
+   commentary; they are currently the only carrier of the correct loan caps,
+   because the macroprudential release that published them was truncated. Any
+   future item-classifier must treat them as a source.
+
+## FIXED (D): stored news bodies were frozen without their tables
+
+**Status:** fixed 2026-07-20 (TCMB); BDDK refreshed the same day.
+
+`fetch_body` gained table extraction on 2026-05-29 (`f875a47`), but
+`_backfill_bodies` only selects rows that are `NULL` or under 30 chars — a body
+that is **present but truncated is never re-fetched**. Every TCMB item scraped
+before that date kept a table-less body, so `ANO2026-21` held 342 chars ending at
+the heading `Growth Limits (For Eight Weeks)` while the live page carried the
+five-row table beneath it. Nothing ever failed.
+
+**Shipped:** `refresh-news-daily.yml` gains `refresh_bodies` + `body_source`
+inputs (the `--refresh-bodies` flag existed and had no way to be run), an R2
+backup of all 717 bodies before the first overwrite, and a shrink guard in
+`update_body`. TCMB run: 264 re-fetched, 0 failures, **tables in D1 2 → 59**.
+
+**Prevention:** `scripts/check_body_freshness.py` runs daily in `healthcheck.yml`
+— it samples the newest items, re-extracts with current code, and alerts when a
+live page yields materially more than we hold. This is the check that would have
+surfaced the bug in May rather than two months later.
 
 ## Scheduled follow-up (B): add BDDK Tebliğ source for CAR + Credit Card rules
 
