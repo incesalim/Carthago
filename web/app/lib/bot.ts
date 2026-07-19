@@ -142,6 +142,32 @@ export interface AgentResult {
 }
 
 /**
+ * Turn a provider-chain failure into something the user can act on.
+ *
+ * "The model is unavailable" was returned for every cause alike, so a caller
+ * could not tell a five-minute free-tier rate limit from a dead key or a real
+ * outage — and neither could we, because the reason was discarded.
+ */
+export function llmFailureMessage(err: string): string {
+  const e = err.toLowerCase();
+  if (/\b429\b|rate.?limit|too many requests|quota/.test(e)) {
+    return "⚠️ The free model quota is exhausted for the moment (all providers " +
+           "rate-limited). It usually clears within a few minutes — please try again shortly.";
+  }
+  if (/no llm provider configured/.test(e)) {
+    return "⚠️ No language model is configured, so I can't answer questions right now.";
+  }
+  if (/\b(401|403)\b|unauthor|invalid.*key/.test(e)) {
+    return "⚠️ The language-model credentials are being rejected. This needs an " +
+           "operator — it won't fix itself by retrying.";
+  }
+  if (/abort|timeout|timed out/.test(e)) {
+    return "⚠️ The model timed out. Try a narrower question, or retry in a moment.";
+  }
+  return "⚠️ The model is unavailable right now. Please try again shortly.";
+}
+
+/**
  * Short, non-reversible chat identifier — enough to group repeated failures from
  * one conversation, not enough to identify who asked.
  */
@@ -208,8 +234,15 @@ export async function runAgent(
     let gen;
     try {
       gen = await chatComplete(env, messages, { temperature: 0, maxTokens: 1400 });
-    } catch {
-      return { reply: "⚠️ The model is unavailable right now. Please try again shortly.", trace };
+    } catch (e) {
+      // llm.ts builds a per-provider reason ("groq: HTTP 429 …; cerebras: …").
+      // A bare `catch {}` discarded it, so an outage and an exhausted free tier
+      // were indistinguishable — from the outside AND from the logs.
+      const why = e instanceof Error ? e.message : String(e);
+      trace.push({ sql: "", result: `llm failed: ${why}` });
+      await logQuery(db, { chatHash: ch, question, step, sql: "",
+        outcome: "error", detail: why.slice(0, 400) });
+      return { reply: llmFailureMessage(why), trace };
     }
 
     const sql = fencedSql(gen.text);
@@ -384,8 +417,16 @@ export async function runAgent(
     // most-refined conversations — the ones most likely to carry a ranking.
     const forced = substituteDataList(gen.text, lastRows, 5, lastSql);
     return { reply: finalize(forced) || "⚠️ I couldn't work that out. Please try rephrasing.", trace };
-  } catch {
-    return { reply: "⚠️ I couldn't work that out. Please try rephrasing.", trace };
+  } catch (e) {
+    // Same reasoning as the loop's handler: keep the cause. Failing on the
+    // FINAL call after N successful queries is the most frustrating shape, and
+    // it looked identical to "I couldn't work it out" — which blames the
+    // question rather than the provider.
+    const why = e instanceof Error ? e.message : String(e);
+    trace.push({ sql: "", result: `llm failed (final answer): ${why}` });
+    await logQuery(db, { chatHash: ch, question, step: MAX_STEPS, sql: "",
+      outcome: "error", detail: why.slice(0, 400) });
+    return { reply: llmFailureMessage(why), trace };
   }
 }
 
