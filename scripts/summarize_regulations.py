@@ -42,13 +42,14 @@ sys.stdout.reconfigure(encoding="utf-8")
 from notify import notify  # noqa: E402  (scripts/ is sys.path[0] under `python scripts/…`)
 from src.news import kimi  # noqa: E402
 from src.news._htmltext import fix_mojibake  # noqa: E402
+from src.news.briefing_validate import describe, find_contradictions  # noqa: E402
 from src.news.schema import init_schema  # noqa: E402
 
 DB_PATH = REPO_ROOT / "data" / "bddk_data.db"
 
 # Feeds input_hash, so a bump forces one regeneration — which is what you want
 # after a context change.
-PROMPT_VERSION = "2026-07-20.v17-no-feed-cutoff"
+PROMPT_VERSION = "2026-07-20.v19-validation-gate"
 
 # Fixed seed + temperature 0: this is an extraction task, so sampling buys
 # nothing and costs run-to-run stability. Measured spread before this change:
@@ -353,7 +354,8 @@ _TG_BUDGET = 3600
 
 
 def notify_briefing(categories: list[dict], models: set[str], item_count: int,
-                    baseline: dict | None, providers: set[str] | None = None) -> None:
+                    baseline: dict | None, providers: set[str] | None = None,
+                    stale: list[str] | None = None) -> None:
     """Post the briefing that just shipped. Never raises — a failed alert must
     not fail a good run (notify() already swallows network errors and no-ops
     when no channel is configured, which is what keeps the scratch bench quiet).
@@ -373,6 +375,10 @@ def notify_briefing(categories: list[dict], models: set[str], item_count: int,
             + (f" @ {','.join(sorted(providers))}" if providers else "")
             + f" · {item_count} feed items · "
             f"baseline: {baseline['title'] if baseline else 'NONE'}"
+            # A section held back from last week must be visible, or the gate
+            # trades a loud wrong answer for a quiet stale one.
+            + ("\n⚠️ HELD BACK (kept last week's, would not validate): "
+               + ", ".join(stale) if stale else "")
         )
         # Pack per BULLET, not per section: a section that alone exceeds the
         # budget would otherwise be handed to notify() and silently trimmed —
@@ -498,10 +504,26 @@ def main() -> int:
         print("[briefing] --dry-run; skipping LLM calls.")
         return 0
 
+    # Previous briefing, loaded once: it is both the fallback for a section that
+    # will not validate and the reference for the section-regression check below.
+    prev_sections: dict[str, list[dict]] = {}
+    with sqlite3.connect(str(DB_PATH)) as conn:
+        prev_row = conn.execute(
+            "SELECT categories_json FROM regulation_briefings "
+            "ORDER BY generated_at DESC LIMIT 1"
+        ).fetchone()
+    if prev_row:
+        try:
+            prev_sections = {c["name"]: c.get("bullets", [])
+                             for c in json.loads(prev_row[0]).get("categories", [])}
+        except (ValueError, TypeError, KeyError):
+            prev_sections = {}
+
     t0 = time.time()
     categories: list[dict] = []
     models: set[str] = set()
     providers: set[str] = set()
+    stale_sections: list[str] = []
     for name, desc in specs:
         bullets, model, provider = generate_category(name, desc, context, args.cat_retries)
         if model:
@@ -509,6 +531,35 @@ def main() -> int:
         if provider:
             providers.add(provider)
         kept = enforce_category(name, bullets)
+
+        # Gate: a section must not state two values for one rule. This is the
+        # lane's defining failure and the model cannot be instructed out of it
+        # (v18 tried), so it is caught here instead. One regeneration, then the
+        # previous week's verified text — on a regulatory reference, stale and
+        # right beats fresh and self-contradicting.
+        conflicts = find_contradictions([b["text"] for b in kept])
+        if conflicts:
+            print(f"[briefing] {name}: CONTRADICTION — regenerating\n"
+                  + describe(conflicts, limit=2), flush=True)
+            retry_bullets, r_model, r_provider = generate_category(
+                name, desc, context, args.cat_retries)
+            retry_kept = enforce_category(name, retry_bullets)
+            retry_conflicts = find_contradictions([b["text"] for b in retry_kept])
+            if retry_kept and not retry_conflicts:
+                kept, conflicts = retry_kept, []
+                models.add(r_model) if r_model else None
+                providers.add(r_provider) if r_provider else None
+                print(f"[briefing] {name}: clean on retry", flush=True)
+            elif prev_sections.get(name):
+                kept, conflicts = prev_sections[name], []
+                stale_sections.append(name)
+                print(f"[briefing] {name}: still contradicting — KEEPING LAST "
+                      f"WEEK'S {len(kept)} bullets", flush=True)
+            else:
+                kept = []
+                print(f"[briefing] {name}: still contradicting and no previous "
+                      f"version — DROPPING the section", flush=True)
+
         dropped = len(bullets) - len(kept)
         print(f"[briefing] {name}: {len(kept)} bullets"
               + (f" via {provider}" if provider else "")
@@ -529,20 +580,9 @@ def main() -> int:
     # Actions and the section simply vanished.) Compare against the previous
     # briefing and speak up when a section that had content now has none.
     produced = {c["name"] for c in categories}
-    with sqlite3.connect(str(DB_PATH)) as conn:
-        prev_row = conn.execute(
-            "SELECT categories_json FROM regulation_briefings "
-            "ORDER BY generated_at DESC LIMIT 1"
-        ).fetchone()
-    if prev_row:
-        try:
-            prev_cats = json.loads(prev_row[0]).get("categories", [])
-            regressed = sorted(
-                c["name"] for c in prev_cats
-                if c.get("bullets") and c["name"] not in produced
-            )
-        except (ValueError, TypeError, KeyError):
-            regressed = []
+    if prev_sections:
+        regressed = sorted(n for n, b in prev_sections.items()
+                           if b and n not in produced)
         if regressed:
             msg = ("⚠️ Regulation briefing LOST a section that had content last run: "
                    + ", ".join(regressed))
@@ -579,7 +619,8 @@ def main() -> int:
     print("[briefing] stored in regulation_briefings.")
     # Only reached when the LLM actually ran: the unchanged-inputs and --dry-run
     # paths return earlier, so quiet weeks stay quiet.
-    notify_briefing(categories, models, len(items), baseline, providers)
+    notify_briefing(categories, models, len(items), baseline, providers,
+                    stale_sections)
     return 0
 
 
