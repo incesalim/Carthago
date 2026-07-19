@@ -239,6 +239,38 @@ independent of which model runs, since Kimi can return an empty section too.
 Suggested: fail (or alert) when a section that produced bullets in the previous
 briefing produces none now.
 
+### Pinned run (Baidu) — what pinning fixed, and what it didn't
+
+First measurement that identifies itself: every section logged `via Baidu`
+([run](https://github.com/incesalim/Carthago/actions/runs/29703084354), 151 s).
+
+| section | flash A (unpinned) | flash B (unpinned) | **flash C (Baidu)** | Kimi 19:31 | Kimi 19:43 |
+|---|---:|---:|---:|---:|---:|
+| Monetary Policy Stance | 5 | 6 | **6** | 6 | 5 |
+| Regulations for TL Deposit Share | 6 | 1 | **1** | 3 | 3 |
+| Loan Growth Caps | 3 | 8 | **6** | 7 | 6 |
+| Regulations on RRs | 4 | 4 | **4** | 3 | 4 |
+| Other Regulatory Actions | **0** | 1 | **1** | 11 | 5 |
+| total | 18 / 4 sec | 20 / 5 | **18 / 5** | 30 / 5 | 23 / 5 |
+
+**Pinning did not remove the variance.** Loan Growth Caps still moved 3→8→6 and
+TL Deposit Share 6→1→1 across runs. So the swings are **sampling**, not routing —
+the provider roulette was a second, independent noise source layered on top, and
+removing it leaves the first one intact. What pinning bought is a run that says
+what produced it, and a stable price tier.
+
+**One difference does survive all three runs: the catch-all section.** Flash
+returned **0, 1, 1** bullets for `Other Regulatory Actions` where Kimi returned
+**11, 5** (and 9 in the pre-baseline run). Every other section is within noise of
+Kimi. That is a consistent deficit, not a draw — which is the *one* part of the
+retracted fidelity/inference story that the data actually supports, and it only
+became visible after three runs. Totals: flash ~19 bullets, Kimi ~26.
+
+**Verdict unchanged: keep the lane on Kimi.** Flash is ~5× cheaper and holds its
+own on the four transcription sections, but it is short on the one section that
+asks for judgement, and it dropped a section outright once. If it ever does move,
+it should be a Kimi-primary chain with flash as fallback — not a swap.
+
 ### Why the smaller model won — the mechanism, not the luck
 
 Counted over the same 330-day feed both models read:
