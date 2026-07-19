@@ -412,8 +412,14 @@ Routine row updates go through `push_to_d1.py`.
 ### Rebuild the public-API series catalog
 
 The public API (`/api/v1`, see [API.md](API.md)) serves only what's listed in the
-`api_series` catalog. The weekly `refresh-data.yml` cron rebuilds and pushes it
-automatically after every BDDK refresh — this is for out-of-band rebuilds.
+`api_series` catalog. **Both** BDDK ingest workflows rebuild and push it:
+`refresh-bddk-bulletins.yml` (daily monthly-probe / Friday weekly — the runs that
+actually land new periods) and `refresh-data.yml` (Saturday). The steps below are
+for out-of-band rebuilds.
+
+> Rebuilding only in the Saturday run left `/serieList` advertising an
+> `end_date` up to a week behind what `/series` would actually return. The
+> catalog must be rebuilt by whichever workflow lands new BDDK data.
 
 ```bash
 python scripts/build_api_catalog.py --dry-run          # report; changes nothing
