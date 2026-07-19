@@ -196,6 +196,52 @@ export function formatTable(
   return out.join("\n");
 }
 
+/** Sector-aggregate tables, all keyed by the overlapping bank_type_code. */
+const SECTOR_TABLES = [
+  "balance_sheet", "income_statement", "loans", "deposits",
+  "financial_ratios", "other_data",
+];
+
+/**
+ * Reject an aggregate over the sector tables that doesn't pin bank_type_code.
+ *
+ * The codes are THREE overlapping partitions of one sector, plus 10001 which is
+ * the sector itself. Summing across them counts the same banks repeatedly:
+ * asked for the sector's total assets, the bot summed all ten and answered
+ * 198,874,433 million TL against a true 51,760,765 — 3.8x too high, and entirely
+ * plausible-looking. No error, no warning; the arithmetic was correct and the
+ * population was wrong.
+ *
+ * Allowed: a single-group filter (`bank_type_code = '10001'`), an explicit IN
+ * list, or GROUP BY bank_type_code — all of which keep the groups apart.
+ * Rejected: SUM/AVG/TOTAL over a sector table with the column unconstrained.
+ */
+export function checkSectorAggregation(sql: string): SanitizeResult {
+  const clean = stripSqlComments(sql);
+  const lower = clean.toLowerCase();
+
+  const touchesSector = SECTOR_TABLES.some((t) =>
+    new RegExp(`\\b(?:from|join)\\s+${t}\\b`, "i").test(lower),
+  );
+  if (!touchesSector) return { ok: true, sql };
+
+  // Only aggregation can conflate the groups; a plain SELECT of many rows can't.
+  if (!/\b(?:sum|avg|total)\s*\(/i.test(lower)) return { ok: true, sql };
+
+  const filtered = /bank_type_code\s*(?:=|\bin\b)/i.test(lower);
+  const grouped = /group\s+by[\s\S]*?bank_type_code/i.test(lower);
+  if (filtered || grouped) return { ok: true, sql };
+
+  return {
+    ok: false,
+    error:
+      "it aggregates a sector table without constraining bank_type_code. Those " +
+      "codes are overlapping partitions of the SAME sector, so summing across " +
+      "them counts banks two or three times. Use bank_type_code='10001' for the " +
+      "whole sector (it is already the total), or GROUP BY bank_type_code",
+  };
+}
+
 /** Turkish thousand separators: 43520620 -> "43.520.620". Decimals keep a comma. */
 export function formatTrNumber(v: number): string {
   const neg = v < 0;

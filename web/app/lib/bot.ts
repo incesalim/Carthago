@@ -18,7 +18,8 @@ import { chatComplete, llmConfigured, type ChatMessage } from "./llm";
 import { AGENT_SYSTEM } from "./bot-schema";
 import { BANK_NAMES } from "./bank_names";
 import {
-  DEFAULT_ROW_CAP, checkTickerEnumeration, formatTable, sanitizeSelect,
+  DEFAULT_ROW_CAP, checkSectorAggregation, checkTickerEnumeration, formatTable,
+  sanitizeSelect,
   substituteDataList,
 } from "./bot-sql";
 import { escapeHtml, sendMessage, type TgUpdate } from "./telegram";
@@ -242,6 +243,14 @@ export async function runAgent(
     }
     // Gate the model's choice of POPULATION, not just its verbs: a query that
     // picks its own list of banks answers for a subset while sounding complete.
+    const agg = checkSectorAggregation(san.sql);
+    if (!agg.ok) {
+      trace.push({ sql: san.sql, result: `rejected: ${agg.error}` });
+      await logQuery(db, { chatHash: ch, question, step, sql: san.sql,
+        outcome: "rejected", detail: agg.error });
+      messages.push({ role: "user", content: `Query rejected — ${agg.error}. Rewrite it.` });
+      continue;
+    }
     const pop = checkTickerEnumeration(san.sql, question, BANK_NAMES);
     if (!pop.ok) {
       trace.push({ sql: san.sql, result: `rejected: ${pop.error}` });
