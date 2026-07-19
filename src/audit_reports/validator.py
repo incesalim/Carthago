@@ -1401,11 +1401,15 @@ def check_fx_position(rows: list[dict],
     return res
 
 
-def check_repricing(rows: list[dict]) -> ValidationResult:
-    """Interest-rate repricing (§4) footing — current period only:
-      column:  Σ per-bucket rows = total (RSA, RSL, gap)
+def check_repricing(rows: list[dict], check_prior: bool = True) -> ValidationResult:
+    """Interest-rate repricing (§4) footing:
+      column:  Σ per-bucket rows = total (RSA, RSL, gap), current AND prior blocks
       balance: total RSA = total RSL (the schedule foots to the balance sheet)
-    Skips when absent (participation banks that don't disclose the table)."""
+    Skips when absent (participation banks that don't disclose the table).
+
+    `check_prior=False` suppresses the prior-block footing only — for the handful
+    of partitions whose PRINTED comparative doesn't foot (a filer typo we store
+    faithfully); their current-period checks still run."""
     res = ValidationResult()
     cur = {r.get("bucket"): r for r in rows if r.get("period_type") == "current"}
     if not cur or "total" not in cur:
@@ -1445,6 +1449,28 @@ def check_repricing(rows: list[dict]) -> ValidationResult:
             res.add_pass()
         else:
             res.add_fail("rp_balance", "total RSA = total RSL", expected=rsa, actual=rsl)
+
+    # PRIOR-block footing. Everything above reads the CURRENT period only, which
+    # left wrong prior cells structurally invisible — a fleet sweep found 9 (TAKAS's
+    # printed 2,373,311 truncated to 237,331 by a dropped glyph; ISCTR's prior gap
+    # row mis-mapped; ANADOLU/TSKB). Nothing else can see them either: the
+    # cross-period anchor compares TOTALS, and those are right. The prior column is
+    # the same printed table one year on, so it must foot identically. Skips a
+    # partition with no prior block (a bank's first filing) or a partial one.
+    pri = {r.get("bucket"): r for r in rows if r.get("period_type") == "prior"}
+    if check_prior and "total" in pri:
+        pparts = [b for b in pri if b != "total"]
+        for fld in ("rate_sensitive_assets", "rate_sensitive_liab", "gap"):
+            tv = pri["total"].get(fld)
+            if tv is None or not pparts or any(pri[b].get(fld) is None for b in pparts):
+                res.add_skip()
+                continue
+            s = sum(pri[b][fld] for b in pparts)
+            if abs(s - tv) <= _tol(abs(tv), base=2.0, rel=5e-3):
+                res.add_pass()
+            else:
+                res.add_fail("rp_prior_footing",
+                             f"prior: Σ buckets = total ({fld})", expected=tv, actual=s)
     return res
 
 

@@ -264,6 +264,24 @@ _RP_SKIP = frozenset({
     ("ICBCT", "2024Q1", "unconsolidated"),
 })
 
+# repricing partitions whose PRINTED PRIOR block doesn't foot — a filer typo,
+# stored faithfully. Suppresses `rp_prior_footing` ONLY; every current-period
+# check still runs (a whole-partition skip would throw away valid validation).
+# Each was read at 9x and the defective cell located from the table's own
+# component rows, never from the footing identity:
+#   TSKB 2022Q1 unco (p51): prior Total-Assets non-interest prints 3.602.833, but
+#     that column's four detail rows sum to 3,062,833 — a 0↔6 transposition. TSKB's
+#     OWN 2022Q2/Q3/Q4 filings reprint this same 31.12.2021 ladder with 3.062.833,
+#     so the filer silently corrected it from Q2 on. Every other bucket foots.
+#   ANADOLU 2026Q1 cons (p41): prior Toplam Pozisyon 1-5 Yıl prints (6.959.075); the
+#     four printed component rows (Bilançodaki/Nazım uzun+kısa) give (6,956,075) and
+#     each foots across all 7 columns. The row TOTAL (136,804) is right, the bucket
+#     is wrong — confirmed against ANADOLU 2025Q4's own print of the same total.
+_RP_PRIOR_SKIP = frozenset({
+    ("TSKB", "2022Q1", "unconsolidated"),
+    ("ANADOLU", "2026Q1", "consolidated"),
+})
+
 # fx_position partitions where the prior column faithfully re-prints the prior
 # year-end but that year-end LEGITIMATELY differs from our independently-extracted
 # copy — so `fx_cross_period` (only) must not run. The footing + completeness
@@ -637,7 +655,9 @@ def revalidate_partition(conn, bank: str, period: str, kind: str) -> dict[str, "
                                  prior_ye_totals=_fx_ye))
     results["repricing"]      = (
         _skip_result() if (bank, period, kind) in _RP_SKIP
-        else v.check_repricing(_repricing_rows(conn, bank, period, kind)))
+        else v.check_repricing(
+            _repricing_rows(conn, bank, period, kind),
+            check_prior=(bank, period, kind) not in _RP_PRIOR_SKIP))
     # The bank's OTHER filing for the same quarter. A consolidated group contains
     # the parent, so cons >= unco on branches and staff is arithmetic, not a
     # heuristic — and it is the only independent read this lane has (there is no

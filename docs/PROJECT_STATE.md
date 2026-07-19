@@ -169,7 +169,7 @@ extractor gap for DUNYAK/KUVEYT future quarters — a scoped header-line-merge w
 close it. ⚠️ Used `--only-failing`, NEVER `--force` (the market-risk lane's own lesson).
 
 **repricing (§4 interest-rate-risk) lane: 5 err + 26 miss → 0/0 — COMPLETE 2026-07-18**
-(coverage `795 ok / 8 manual / 0 err / 0 miss`). `check_repricing` only checked internal
+(coverage `787 ok / 16 manual / 0 err / 0 miss`). `check_repricing` only checked internal
 footing (both checks skip an absent field), so **70 partitions read green while a whole
 column was dropped** — the extractor never matched the liabilities row (59) or the position/gap
 row (7), mostly the non-standard-bucket banks ZIRAAT/KLNMA stored as `b1..b8`. Added a
@@ -187,6 +187,16 @@ parens, EXIM/ZIRAATD dropped gap rows, TAKAS ×2 mis-parses, COLENDI ×3 whose w
 ICBCT 2024Q1: gap buckets sum to ₺7k vs printed 0 — source rounding). **All 5 brittleness classes then HARDENED** via x-coordinate column reconstruction gated on
 footing (`_x_columns`/`_page_anchors`/`_row_by_columns`/`_destray`) — 7 of the 15 overrides retired
 (those partitions now come from source, both periods); 0 regression across 10 controls. See [audit-repricing-lane-2026-07-18](knowledge/audit-repricing-lane-2026-07-18.md).
+
+**Prior-block sweep (2026-07-19).** `check_repricing` read the CURRENT period only, so a wrong
+comparative cell was unverifiable by construction (the cross-period anchor compares TOTALS, which
+were right). Added `rp_prior_footing` (+ a `check_prior=False` escape). It flagged 9, zero FP:
+**8 were our misreads, corrected from source** — TAKAS ×6 (2023: fitz drops a glyph off a printed
+2,373,311; 2024: the PDF CONTENT STREAM itself holds only `895,18`, a Word→PDF cell-overflow clip),
+ISCTR 2025Q2 (a clipped `)` lost the sign → −452,169,857), and ICBCT 2024Q4 cons (liab row bound one
+row down on an inverted values-above-label page — ⚠️ it FOOTED internally, so only reading the page
+found it). **2 are filer typos** → `_RP_PRIOR_SKIP`, stored faithfully: TSKB 2022Q1 (its own Q2-Q4
+reprint the corrected figure) and ANADOLU 2026Q1 cons (component rows give the true bucket).
 
 **§4 capital/liquidity (2026-06-10)**: full-fleet history backfilled via
 `backfill-audit.yml` in 5-bank chunks (`ALL` exceeds the 180-min job timeout).

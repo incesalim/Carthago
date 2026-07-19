@@ -10488,6 +10488,162 @@
         "rate_sensitive_assets": 2373311.0
       },
       "note": "PRIOR (31-Dec-2022) 3-12M Toplam varlıklar: fitz truncates the printed 2,373,311 to \"2,373,31\" (glyph dropped from the text layer — bbox is wider than the text). The untruncated value is printed in the same table: the detail row AND Net pozisyon both show 2,373,311, and liab=0 so gap=assets there. Restores the prior assets footing (Σ=85,804,572=total). Source-read, not derived from the footing identity."
+    },
+    {
+      "bank_ticker": "TAKAS",
+      "period": "2024Q1",
+      "kind": "unconsolidated",
+      "statement": "repricing",
+      "bucket": "3_12m",
+      "period_type": "prior",
+      "fields": {
+        "rate_sensitive_assets": 895180.0
+      },
+      "note": "PRIOR (31-Dec-2023) 3-12M Toplam varlıklar: the PDF content stream holds only the six glyphs '895,18' (the filer's Word→PDF export clipped the trailing 0 where the bold total overflowed its cell), so fitz is faithful and the FILING is visually defective. 895,180 is printed in full twice in the same column — the sole non-zero detail row and Bilançodaki uzun pozisyon. Restores the prior assets footing (Σ=121,341,014=total)."
+    },
+    {
+      "bank_ticker": "TAKAS",
+      "period": "2024Q2",
+      "kind": "unconsolidated",
+      "statement": "repricing",
+      "bucket": "3_12m",
+      "period_type": "prior",
+      "fields": {
+        "rate_sensitive_assets": 895180.0
+      },
+      "note": "PRIOR (31-Dec-2023) 3-12M Toplam varlıklar: the PDF content stream holds only the six glyphs '895,18' (the filer's Word→PDF export clipped the trailing 0 where the bold total overflowed its cell), so fitz is faithful and the FILING is visually defective. 895,180 is printed in full twice in the same column — the sole non-zero detail row and Bilançodaki uzun pozisyon. Restores the prior assets footing (Σ=121,341,014=total)."
+    },
+    {
+      "bank_ticker": "TAKAS",
+      "period": "2024Q3",
+      "kind": "unconsolidated",
+      "statement": "repricing",
+      "bucket": "3_12m",
+      "period_type": "prior",
+      "fields": {
+        "rate_sensitive_assets": 895180.0
+      },
+      "note": "PRIOR (31-Dec-2023) 3-12M Toplam varlıklar: the PDF content stream holds only the six glyphs '895,18' (the filer's Word→PDF export clipped the trailing 0 where the bold total overflowed its cell), so fitz is faithful and the FILING is visually defective. 895,180 is printed in full twice in the same column — the sole non-zero detail row and Bilançodaki uzun pozisyon. Restores the prior assets footing (Σ=121,341,014=total)."
+    },
+    {
+      "bank_ticker": "ISCTR",
+      "period": "2025Q2",
+      "kind": "unconsolidated",
+      "statement": "repricing",
+      "bucket": "lt_1m",
+      "period_type": "prior",
+      "fields": {
+        "gap": -452169857.0
+      },
+      "note": "PRIOR (31-Dec-2024) lt_1m Total Position: SIGN only. The text layer emits '(452,169,857' with the closing paren clipped (same cell-overflow class as TAKAS above), and the paren-negative rule needs a balanced pair, so the sign was dropped. Printed components: Balance Sheet Short (462,398,818) + Off-BS Long 10,228,961 = -452,169,857. Restores prior gap footing (Σ=3,987,286)."
+    },
+    {
+      "bank_ticker": "ICBCT",
+      "period": "2024Q4",
+      "kind": "consolidated",
+      "statement": "repricing_replace",
+      "source_page": 52,
+      "rows": [
+        {
+          "period_type": "current",
+          "bucket": "1_3m",
+          "rate_sensitive_assets": 31379255.0,
+          "rate_sensitive_liab": 9287642.0,
+          "gap": 22091613.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "1_5y",
+          "rate_sensitive_assets": 11150223.0,
+          "rate_sensitive_liab": 369145.0,
+          "gap": 10781078.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "3_12m",
+          "rate_sensitive_assets": 25310102.0,
+          "rate_sensitive_liab": 42996342.0,
+          "gap": -17686240.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "gt_5y",
+          "rate_sensitive_assets": 5397006.0,
+          "rate_sensitive_liab": 0.0,
+          "gap": 5397006.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "lt_1m",
+          "rate_sensitive_assets": 16017650.0,
+          "rate_sensitive_liab": 34855986.0,
+          "gap": -18838336.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "non_sensitive",
+          "rate_sensitive_assets": 11727672.0,
+          "rate_sensitive_liab": 13472793.0,
+          "gap": -1745121.0
+        },
+        {
+          "period_type": "current",
+          "bucket": "total",
+          "rate_sensitive_assets": 100981908.0,
+          "rate_sensitive_liab": 100981908.0,
+          "gap": 0.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "lt_1m",
+          "rate_sensitive_assets": 16126212.0,
+          "rate_sensitive_liab": 80411515.0,
+          "gap": -64285303.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "1_3m",
+          "rate_sensitive_assets": 41523482.0,
+          "rate_sensitive_liab": 4889996.0,
+          "gap": 36633486.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "3_12m",
+          "rate_sensitive_assets": 22381238.0,
+          "rate_sensitive_liab": 2534178.0,
+          "gap": 19847060.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "1_5y",
+          "rate_sensitive_assets": 2264349.0,
+          "rate_sensitive_liab": 203686.0,
+          "gap": 2060663.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "gt_5y",
+          "rate_sensitive_assets": 5951656.0,
+          "rate_sensitive_liab": 0.0,
+          "gap": 5951656.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "non_sensitive",
+          "rate_sensitive_assets": 12343143.0,
+          "rate_sensitive_liab": 12550705.0,
+          "gap": -207562.0
+        },
+        {
+          "period_type": "prior",
+          "bucket": "total",
+          "rate_sensitive_assets": 100590080.0,
+          "rate_sensitive_liab": 100590080.0,
+          "gap": 0.0
+        }
+      ],
+      "note": "PRIOR (31-Dec-2023) block re-read from p52. The stored liab row was verbatim the 'Bilançodaki Uzun Pozisyon' row: this page prints every value line ABOVE its label (label y=394.2, its values y=390.8) and the extractor bound the line BELOW, landing one row down. Current block carried through unchanged. The gap row's printed total is '-' = nil (0), and the buckets do sum to 0."
     }
   ]
 }
