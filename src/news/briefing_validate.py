@@ -74,6 +74,22 @@ SUBJECT_LABELS: dict[str, str] = {
 }
 
 
+def sources_per_subject(items: list[dict]) -> dict[str, list[dict]]:
+    """Every dated item that substantively states each rule, newest first."""
+    found: dict[str, list[dict]] = {}
+    for it in items:
+        date = it.get("date") or ""
+        if not date:
+            continue
+        body = f"{it.get('title') or ''}\n{it.get('body') or ''}"
+        for subject in _subject_values(body):
+            found.setdefault(subject, []).append(
+                {"date": date, "id": it.get("id", "?")})
+    for subject in found:
+        found[subject].sort(key=lambda s: s["date"], reverse=True)
+    return found
+
+
 def latest_source_per_subject(items: list[dict]) -> dict[str, dict]:
     """For each rule subject, the NEWEST dated item that substantively states it.
 
@@ -100,22 +116,37 @@ def latest_source_per_subject(items: list[dict]) -> dict[str, dict]:
 
 
 def supersession_note(items: list[dict]) -> str:
-    """A deterministic precedence block for the prompt, or "" if nothing to say."""
-    latest = latest_source_per_subject(items)
-    if not latest:
+    """A deterministic precedence block for the prompt, or "" if nothing to say.
+
+    Names the sources to IGNORE, not merely the one to prefer. Naming only the
+    newest was tried and did not work: the model went on printing the December
+    FX ratio table beside the July one, because a complete-looking markdown
+    table is more persuasive than a line saying another source is newer. An
+    instruction to discard a specific id is something it can act on.
+    """
+    per_subject = sources_per_subject(items)
+    contested = {s: srcs for s, srcs in per_subject.items() if len(srcs) > 1}
+    if not contested:
         return ""
     lines = [
-        "============ SUPERSESSION (computed from the feed, not a judgement) ============",
-        "For each rule below, the NEWEST source in this context is named. Where a rule",
-        "is stated more than once, the statement in the named source WINS and every",
-        "earlier statement of that rule is superseded — including tables that look",
-        "complete and authoritative. This lists which source is current; it does NOT",
-        "give the value. Read the value from the named source.",
+        "======= SUPERSESSION (computed from the feed — obey it over your reading) =======",
+        "These rules are stated by MORE THAN ONE source in this context. For each, the",
+        "CURRENT source is named and the SUPERSEDED ones are listed by id.",
+        "",
+        "  ⛔ DO NOT take a value for these rules from a superseded id — not even from a",
+        "     table that looks complete and authoritative. Those tables are republished",
+        "     in full whenever one row changes, so an old one still looks current.",
+        "     Read the value ONLY from the current id.",
         "",
     ]
-    for subject, info in sorted(latest.items(), key=lambda kv: SUBJECT_LABELS.get(kv[0], kv[0])):
-        lines.append(f"  {SUBJECT_LABELS.get(subject, subject)}: "
-                     f"{info['id']} ({info['date']})")
+    for subject, srcs in sorted(contested.items(),
+                                key=lambda kv: SUBJECT_LABELS.get(kv[0], kv[0])):
+        label = SUBJECT_LABELS.get(subject, subject)
+        cur = srcs[0]
+        old = ", ".join(f"{s['id']} ({s['date']})" for s in srcs[1:5])
+        lines.append(f"  {label}")
+        lines.append(f"      CURRENT:    {cur['id']} ({cur['date']})")
+        lines.append(f"      SUPERSEDED: {old}")
     return "\n".join(lines)
 
 # How near a percentage must be to the subject mention to be read as ITS value.
