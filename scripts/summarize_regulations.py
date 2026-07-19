@@ -444,22 +444,14 @@ def main() -> int:
             "SELECT input_hash FROM briefing_input_state WHERE id = 1"
         ).fetchone()
 
-    # The feed is meant to be "updates SINCE the baseline", but --delta-days
-    # reaches back past it: a 330-day window on a baseline published 2025-12-28
-    # includes four months of releases the baseline already incorporates. Those
-    # cannot add anything — the baseline supersedes them by construction — and
-    # they actively harm, because the prompt tells the model a dated release
-    # overrides the framework. Observed directly: recovering the 2025-12-02 FX
-    # reserve-requirement table made the briefing print its superseded 30%/26%
-    # ratios beside the current 32%/28%. Cut the feed at the baseline's own year.
-    if baseline and baseline.get("year"):
-        cutoff = f"{int(baseline['year'])}-01-01"
-        before = len(items)
-        items = [it for it in items if (it.get("date") or "") >= cutoff]
-        if before != len(items):
-            print(f"[briefing] dropped {before - len(items)} pre-baseline items "
-                  f"(< {cutoff}) — superseded by {baseline['title']}", flush=True)
-
+    # NO pre-baseline cutoff. It was tried (v15) on the reasoning that a release
+    # older than the baseline is already incorporated into it, and it did remove
+    # real contradictions — but it silently deleted the whole "Regulations for TL
+    # Deposit Share" section across three runs. The baseline does NOT carry those
+    # rules: Annex 1's "Table 3. Decisions Regarding Deposits" extracts as a bare
+    # header, so that section has always been fed by 2025 releases and nothing
+    # else. Superseded duplicates are handled by the ONE VALUE PER RULE prompt
+    # rule instead, which costs no coverage.
     print(f"[briefing] {len(items)} update items in last {args.delta_days}d", flush=True)
     if baseline:
         print(f"[briefing] baseline: {baseline['title']} ({len(baseline['content'])} chars)", flush=True)

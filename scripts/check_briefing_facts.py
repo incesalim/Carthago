@@ -91,6 +91,17 @@ FACTS: list[dict] = [
 ]
 
 
+# The sections a healthy briefing produces. UNSOURCED_CATEGORIES (CARs, Credit
+# Cards) are deliberately skipped upstream and are not expected here.
+EXPECTED_SECTIONS = [
+    "Monetary Policy Stance",
+    "Regulations for TL Deposit Share",
+    "Loan Growth Caps",
+    "Regulations on RRs",
+    "Other Regulatory Actions",
+]
+
+
 def _num_present(text: str, value: str) -> bool:
     """True if `value` appears as a standalone number. Guards against 3 matching
     inside 37 or 0.35 — the checklist would otherwise score itself passing on
@@ -149,6 +160,13 @@ def score(payload: dict) -> dict:
             verdict = "MISSING"
         results.append({**{k: f[k] for k in ("id", "section", "value", "stale", "source")},
                         "verdict": verdict})
+    # Section coverage is scored separately from facts, because the two failures
+    # are independent and the checklist is blind to one of them: a change can
+    # raise the fact score while deleting an entire section whose rules the
+    # checklist happens not to assert. That is exactly what the pre-baseline
+    # feed cutoff did — 100% on facts, "Regulations for TL Deposit Share" gone.
+    missing_sections = [s for s in EXPECTED_SECTIONS if not cats.get(s, {}).get("bullets")]
+
     order = ("PASS", "MISFILED", "CONTRADICTED", "STALE", "MISSING")
     counts = {v: sum(1 for r in results if r["verdict"] == v) for v in order}
     # Only PASS/MISFILED are correct: the figure reached the page and nothing
@@ -157,6 +175,7 @@ def score(payload: dict) -> dict:
     good = counts["PASS"] + counts["MISFILED"]
     return {"results": results, "counts": counts,
             "score": good / len(FACTS) if FACTS else 0.0,
+            "missing_sections": missing_sections,
             "sections": {n: len(c.get("bullets", [])) for n, c in cats.items()}}
 
 
@@ -217,6 +236,10 @@ def main() -> int:
     if args.json_out:
         Path(args.json_out).write_text(json.dumps(res, indent=2), encoding="utf-8")
         print(f"\nwrote {args.json_out}")
+    if res["missing_sections"]:
+        print(f"\nFAIL: {len(res['missing_sections'])} expected section(s) produced "
+              f"nothing: {', '.join(res['missing_sections'])}", file=sys.stderr)
+        return 1
     if args.fail_under is not None and res["score"] < args.fail_under:
         print(f"\nFAIL: {res['score']:.0%} < {args.fail_under:.0%}", file=sys.stderr)
         return 1
