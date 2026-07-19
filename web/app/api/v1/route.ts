@@ -67,10 +67,7 @@ export async function GET() {
         "(maturity buckets, deposit brackets, VAL for ratios)",
     },
     authentication:
-      "None — no API key or signup. The data is public. Send an explicit " +
-      "User-Agent header: Cloudflare's browser-integrity check rejects known-bot " +
-      "signatures (notably Python's default Python-urllib/3.x) with 403 error 1010 " +
-      "before the request reaches this service.",
+      "None — no API key or signup required. The data is public.",
     conventions: {
       dates:
         "Request dates as DD-MM-YYYY (EVDS style) or YYYY-MM-DD. Responses are always YYYY-MM-DD.",
