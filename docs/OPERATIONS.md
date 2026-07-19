@@ -435,6 +435,31 @@ Two things to watch in the build output:
 New BDDK data extends existing series and may add new ones; **codes are carried
 forward and never renumbered**, so a rebuild on unchanged data is a no-op.
 
+### Refresh the English labels
+
+`api_series.item_name_en` holds **BDDK's own English labels**, not translations:
+BDDK serves the monthly bulletin at `.../BultenAylik/en/...` with identical rows
+in identical order. `scripts/fetch_bddk_english_labels.py` caches them to
+`data/bddk_labels_en.json`, which the catalog builder joins on
+`(table_number, item_order)`.
+
+```bash
+python scripts/fetch_bddk_english_labels.py --check   # report drift, write nothing
+python scripts/fetch_bddk_english_labels.py           # refresh the cache
+python scripts/build_api_catalog.py                   # then rebuild + push as above
+```
+
+The cache is committed, so the catalog build stays offline and deterministic.
+Only re-run this when BDDK changes the report template — the build prints
+English coverage (currently 98.1% of monthly series) and a drop is the signal.
+
+⚠️ **Never machine-translate this column.** These are regulatory line items
+where an invented rendering would quietly misname a supervisory concept. Where
+BDDK publishes no English the value is NULL and consumers fall back to
+`item_name`: all weekly datasets (BDDK has no English weekly bulletin), plus the
+`other_data` lines whose `item_order` collides — the builder drops those rather
+than risk attaching the wrong term to one of a colliding pair.
+
 ### Cloudflare Configuration Rule: BIC off for `/api/v1` (load-bearing)
 
 Cloudflare's **Browser Integrity Check** rejects known-bot user agents with

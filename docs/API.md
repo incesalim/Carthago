@@ -1,5 +1,9 @@
 # Carthago Data API (`/api/v1`)
 
+> **Looking for the user guide?** See **[API_MANUAL.md](API_MANUAL.md)** — the
+> full manual with dataset/bank-type reference tables, worked examples and
+> reading gotchas. This page is the technical/reference companion.
+
 Public, read-only, unauthenticated HTTP API serving the **BDDK monthly (tables
 1–17) and weekly bulletin** statistics as time series.
 

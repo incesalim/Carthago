@@ -110,7 +110,10 @@ export async function GET(request: Request) {
     },
     series: metas.map((m, i) => ({
       series_code: m.series_code,
+      // `name` stays the as-filed Turkish label so it never changes shape for
+      // an existing caller; English is additive and null where BDDK has none.
       name: m.item_name,
+      name_en: m.item_name_en,
       dataset: m.dataset,
       frequency: m.frequency,
       bank_type_code: m.bank_type_code,
