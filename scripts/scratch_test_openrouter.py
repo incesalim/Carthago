@@ -198,6 +198,39 @@ def try_completion(key: str, model: dict) -> bool:
     return ok_form and not bad
 
 
+def show_activity(key: str) -> None:
+    """What the account's spend actually bought, per model per day.
+
+    /credits reports dollars only, so "we've used $0.29" can't be converted to
+    tokens without this. It may require a *provisioning* key (issued separately
+    from a normal inference key) — a 401/404 here is a permission answer, not a
+    failure.
+    """
+    print("\n== activity (tokens behind the spend) ==", flush=True)
+    r = requests.get(f"{BASE}/activity", headers=_auth(key), timeout=30)
+    if r.status_code != 200:
+        print(f"  unavailable: HTTP {r.status_code} {r.text[:200]}")
+        print("  → /activity needs a provisioning key; read it from the dashboard instead:")
+        print("    https://openrouter.ai/activity")
+        return
+    rows = r.json().get("data", [])
+    if not rows:
+        print("  (no activity rows returned)")
+        return
+    print(f"  {'date':<12} {'model':<40} {'reqs':>6} {'prompt':>10} {'compl':>10} {'usage $':>10}")
+    tot_p = tot_c = 0
+    tot_usd = 0.0
+    for row in rows:
+        p = int(row.get("prompt_tokens") or 0)
+        c = int(row.get("completion_tokens") or 0)
+        u = float(row.get("usage") or 0)
+        tot_p, tot_c, tot_usd = tot_p + p, tot_c + c, tot_usd + u
+        print(f"  {str(row.get('date'))[:10]:<12} {str(row.get('model'))[:40]:<40} "
+              f"{int(row.get('requests') or 0):>6} {p:>10,} {c:>10,} {u:>10.6f}")
+    print(f"  {'TOTAL':<12} {'':<40} {'':>6} {tot_p:>10,} {tot_c:>10,} {tot_usd:>10.6f}")
+    print(f"  → {tot_p + tot_c:,} tokens for ${tot_usd:.6f}")
+
+
 def main() -> int:
     key = _key()
     if not key:
@@ -207,6 +240,10 @@ def main() -> int:
 
     if not check_key(key):
         return 1
+
+    if "--usage" in sys.argv:  # accounting only — spends nothing
+        show_activity(key)
+        return 0
 
     models = deepseek_models(key)
     if not models:

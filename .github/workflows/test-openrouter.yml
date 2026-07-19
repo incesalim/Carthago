@@ -13,6 +13,11 @@ on:
         description: "Override the model id to test (default: auto-pick cheapest free + cheapest paid deepseek)"
         required: false
         default: ""
+      usage_only:
+        description: "Accounting only — key + credits + per-model token activity. Spends nothing."
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: read
@@ -38,4 +43,4 @@ jobs:
         run: pip install requests
 
       - name: Probe OpenRouter
-        run: python scripts/scratch_test_openrouter.py
+        run: python scripts/scratch_test_openrouter.py ${{ inputs.usage_only && '--usage' || '' }}
