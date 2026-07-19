@@ -264,16 +264,46 @@ export async function runAgent(
     try {
       const res = await db.prepare(san.sql).all<Record<string, unknown>>();
       const rows = (res.results ?? []).slice(0, ROW_CAP);
-      if (rows.length) { gotData = true; lastRows = rows; }
+      // An aggregate over ZERO matching rows still returns ONE row — of NULLs.
+      // Counting that as "a query returned data" switched off the hallucination
+      // guard below while nothing had actually been retrieved: this really
+      // happened on `SELECT SUM(amount_total) … WHERE item_name LIKE '%VARLIK%'`,
+      // which matched no labels, returned one NULL, and left the model free to
+      // answer from memory. Require at least one non-null value.
+      const meaningful = rows.some((r: Record<string, unknown>) =>
+        Object.values(r).some((v) => v !== null && v !== undefined),
+      );
+      if (meaningful) { gotData = true; lastRows = rows; }
       trace.push({ sql: san.sql, result: `${rows.length} rows` });
       await logQuery(db, { chatHash: ch, question, step, sql: san.sql,
         outcome: "rows", rowCount: rows.length });
-      feedback = rows.length
-        ? `Result (${rows.length} row${rows.length === 1 ? "" : "s"}):\n` +
-          formatTable(rows, MODEL_ROWS, 80).slice(0, MODEL_RESULT_CHARS)
-        : "Result: 0 rows. Inspect why — check the real labels/columns/values (labels " +
-          "vary by bank/language and some are blank) — then try a corrected query, or " +
-          "confirm the data truly isn't there.";
+      const EMPTY_ADVICE =
+        " Inspect why — check the real labels/columns/values (labels vary by " +
+        "bank/language and some are blank) — then try a corrected query, or " +
+        "confirm the data truly isn't there.";
+      if (!rows.length) {
+        feedback = "Result: 0 rows." + EMPTY_ADVICE;
+      } else if (!meaningful) {
+        // Every value NULL. For an aggregate that means the WHERE matched
+        // NOTHING — reporting it as "1 row" reads like success and invites an
+        // answer built on a null.
+        feedback =
+          "Result: your filter matched NO rows (the single row returned is all " +
+          "NULL — an aggregate over an empty set)." + EMPTY_ADVICE;
+      } else {
+        // formatTable's own "… (+N more rows)" notice sits at the END, so a hard
+        // slice could cut it off and hide the truncation. State the full count
+        // up front, and append an explicit marker if the slice bites.
+        const table = formatTable(rows, MODEL_ROWS, 80);
+        const cut = table.length > MODEL_RESULT_CHARS;
+        feedback =
+          `Result (${rows.length} row${rows.length === 1 ? "" : "s"}` +
+          `${rows.length > MODEL_ROWS ? `, showing the first ${MODEL_ROWS}` : ""}):\n` +
+          table.slice(0, MODEL_RESULT_CHARS) +
+          (cut ? `\n… OUTPUT TRUNCATED — you are seeing only part of ${rows.length} rows. ` +
+                 "Do NOT state a count or a 'complete list' from this; re-query with " +
+                 "fewer columns or an aggregate if you need all of it." : "");
+      }
     } catch (e) {
       const msg = e instanceof Error ? e.message : "query failed";
       trace.push({ sql: san.sql, result: `error: ${msg}` });

@@ -315,3 +315,25 @@ describe("checkSectorAggregation — overlapping bank_type_code groups", () => {
     ).ok).toBe(false);
   });
 });
+
+describe("regression: the exact queries that shipped wrong answers", () => {
+  // Recovered from bot_queries after the bot reported the sector's total assets
+  // as 198,874,433 million TL (true figure 51,760,765 — it summed all ten
+  // overlapping bank_type_code groups). Kept verbatim so the gate is always
+  // tested against what really happened, not a tidied-up approximation.
+  const SECTOR_SUM =
+    "WITH latest AS ( SELECT year, month FROM balance_sheet ORDER BY year DESC, " +
+    "month DESC LIMIT 1 ) SELECT SUM(amount_total) AS total_assets_million_tl " +
+    "FROM balance_sheet b JOIN latest l ON b.year = l.year AND b.month = l.month " +
+    "WHERE b.item_name = 'TOPLAM AKTİFLER'";
+
+  it("rejects it", () => {
+    expect(checkSectorAggregation(SECTOR_SUM).ok).toBe(false);
+  });
+
+  it("accepts it once bank_type_code is pinned to the sector row", () => {
+    expect(checkSectorAggregation(
+      SECTOR_SUM.replace("WHERE b.item_name", "WHERE b.bank_type_code='10001' AND b.item_name"),
+    ).ok).toBe(true);
+  });
+});
