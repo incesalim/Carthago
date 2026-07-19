@@ -302,3 +302,66 @@ tightened:** the fact score sits at a mean 87% and the residual is attributable 
 a known data bug, so the case for a day of routing work is weaker than when the
 plan was written — and §5.4 shows the classifier as designed would have made
 things worse.
+
+---
+
+## 6. The validation gate (2026-07-20, after "the page is essential")
+
+**Bar changed** from "most runs are right" to **nothing wrong ever ships**. That
+second bar is reachable; "every run is perfect" is not, because the model must
+resolve supersession across a 34k context and instruction does not make that
+reliable (v18 tried; measured worse).
+
+**`src/news/briefing_validate.py`** detects a section stating two values for one
+rule. `summarize_regulations.py` regenerates such a section once; if it still
+contradicts, it keeps **last week's verified text** and the Telegram post names
+the held-back section. A self-contradicting rule cannot reach the page.
+
+**Verified on 3 live runs — the gate fired on every one:**
+
+| run | outcome |
+|---|---|
+| 1 | `Regulations on RRs` contradiction → retry → still bad → **kept last week's 4 bullets** |
+| 2 | contradiction → **clean on retry** |
+| 3 | contradiction → retry → still bad → **kept last week's** |
+
+All three published 5 sections with zero contradictions.
+
+### ⚠️ Open: the gate fires *every* run on `Regulations on RRs`
+
+Which means that section never updates — permanently stale, correct but frozen.
+Cause: the body refresh restored the 2025-12-02 FX ratio table, superseded by
+2026-07-01, and the model prints both. The gate contains the damage; it does not
+fix it.
+
+### Two dead ends, recorded so they are not retried
+
+1. **Pre-baseline feed cutoff** removes the 2025-12-02 table and fixes this
+   cleanly — and deletes `Regulations for TL Deposit Share`, whose rules exist
+   nowhere else (§5.4). Already tried and reverted.
+2. **Computing the current value per rule from the feed** to inject as a
+   supersession note. The subject matcher works on short generated bullets but
+   **not on long source bodies**: run against the real feed it returned
+   `loan:vehicle → 39.3, 45.9, 64.1` — market statistics from an 8,000-char MPC
+   summary, picked up by the ±90-char proximity window. Any note built on those
+   values would confidently assert nonsense.
+
+**What is computable and correct is PRECEDENCE, not value.** The same pass
+correctly identifies `rr:fx-short → tcmb:ANO2026-26 (2026-07-01)` as the newest
+source. A note that says *"for FX reserve-requirement ratios the latest source is
+ANO2026-26 dated 2026-07-01; prefer it over earlier statements"* asserts no
+figure and cannot be wrong in the way (2) is. **That is the recommended next
+step** — not built, because it needs its own measurement round rather than being
+bolted on at the end of this one.
+
+### 6.1 Third instrument bug — the ruler, again
+
+The gated runs scored `policy_rate` and `on_lending` MISSING while the briefing
+correctly said *"the policy rate is 37.0%"*. The matcher compared the value as
+text with a lookahead, so **"37.0" did not satisfy "37"**. Now tokenised and
+compared by magnitude.
+
+That is three instrument bugs in one session — scoring a contradicting briefing
+92%, blindness to a deleted section, and this. Every one initially read as a
+briefing defect. **When a measurement disagrees with the artefact, suspect the
+measurement first.**
