@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_ROW_CAP,
+  checkTickerEnumeration,
+  enumeratedTickers,
   extractSql,
   formatTable,
   inventedNumbers,
@@ -119,5 +121,71 @@ describe("formatTable", () => {
   });
   it("handles empty input", () => {
     expect(formatTable([])).toBe("(no rows)");
+  });
+});
+
+describe("checkTickerEnumeration — the model must not pick the banks", () => {
+  const NAMES = { GARAN: "Garanti BBVA", AKBNK: "Akbank", ISCTR: "İşbank", HALKB: "Halkbank" };
+
+  it("rejects a self-chosen bank list when the question named none", () => {
+    // The real failure: asked to rank all banks, the model queried ~10 and
+    // answered for 8 while 27 had data.
+    const r = checkTickerEnumeration(
+      "SELECT bank_ticker FROM bank_audit_profile WHERE bank_ticker IN ('AKBNK','GARAN','HALKB','ISCTR')",
+      "şube başına personele göre bankaları sırala",
+      NAMES,
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toContain("hardcodes 4 bank tickers");
+  });
+
+  it("allows a list the user actually asked for, by ticker or by name", () => {
+    expect(checkTickerEnumeration(
+      "SELECT * FROM t WHERE bank_ticker IN ('GARAN','AKBNK')",
+      "compare Garanti and Akbank", NAMES,
+    ).ok).toBe(true);
+    expect(checkTickerEnumeration(
+      "SELECT * FROM t WHERE bank_ticker IN ('GARAN','AKBNK')",
+      "GARAN vs AKBNK", NAMES,
+    ).ok).toBe(true);
+  });
+
+  it("folds Turkish letters so İşbank matches ISCTR", () => {
+    expect(checkTickerEnumeration(
+      "SELECT * FROM t WHERE bank_ticker IN ('ISCTR','AKBNK')",
+      "İşbank ve Akbank karşılaştır", NAMES,
+    ).ok).toBe(true);
+  });
+
+  it("allows a single-bank query regardless", () => {
+    expect(checkTickerEnumeration(
+      "SELECT * FROM t WHERE bank_ticker = 'AKBNK'", "en karlı banka", NAMES,
+    ).ok).toBe(true);
+  });
+
+  it("allows an unrestricted ranking — the shape we want", () => {
+    expect(checkTickerEnumeration(
+      "SELECT bank_ticker, personnel FROM bank_audit_profile WHERE period='2026Q1' ORDER BY personnel DESC",
+      "bankaları sırala", NAMES,
+    ).ok).toBe(true);
+  });
+
+  it("catches the OR-chain spelling too", () => {
+    const r = checkTickerEnumeration(
+      "SELECT * FROM t WHERE bank_ticker='AKBNK' OR bank_ticker='GARAN'",
+      "rank banks by assets", NAMES,
+    );
+    expect(r.ok).toBe(false);
+  });
+});
+
+describe("enumeratedTickers", () => {
+  it("reads IN lists and equality, ignoring comments", () => {
+    expect(enumeratedTickers("WHERE bank_ticker IN ('A','B') -- ,'C'").sort()).toEqual(["A", "B"]);
+    expect(enumeratedTickers("WHERE p.bank_ticker = 'akbnk'")).toEqual(["AKBNK"]);
+  });
+
+  it("returns nothing for an unrestricted query", () => {
+    expect(enumeratedTickers("SELECT bank_ticker FROM t GROUP BY bank_ticker")).toEqual([]);
   });
 });

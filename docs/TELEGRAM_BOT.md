@@ -50,6 +50,7 @@ Files:
 | Test harness (no Telegram) | `web/app/api/admin/bot-ask/route.ts` |
 | Webhook self-register | `web/app/api/admin/telegram-register/route.ts` |
 | Rate-limit table | `web/migrations/0020_bot_usage.sql` |
+| Query log | `web/migrations/0033_bot_queries.sql` |
 | Webhook setup CLI | `scripts/setup_telegram_webhook.py` |
 
 ### Grounding guard — why the bot can't make numbers up
@@ -183,3 +184,39 @@ means it lands in request logs. Treat it as a debug toggle: set it while iterati
   values against the live DB before answering, `SCHEMA_PROMPT` is orientation and
   known-good hints, not the bot's whole understanding of the data. Validate changes
   with the `bot-ask` harness and read the `trace`.
+
+
+## Diagnosing a wrong answer
+
+The bot generates SQL per question, so a wrong answer is usually a wrong query,
+not a wrong database. Every step is recorded in `bot_queries` — the question,
+the SQL actually executed, and the row count:
+
+```sql
+-- recent queries that returned nothing
+SELECT asked_at, question, sql_text, detail FROM bot_queries
+ WHERE outcome != 'rows' OR row_count = 0
+ ORDER BY asked_at DESC LIMIT 20;
+
+-- rankings that look suspiciously short
+SELECT asked_at, question, row_count, sql_text FROM bot_queries
+ WHERE outcome = 'rows' AND sql_text LIKE '%ORDER BY%'
+ ORDER BY asked_at DESC LIMIT 20;
+```
+
+**The failure mode to watch for is a silently narrowed population.** Two live
+examples, both of which produced fluent, confident, wrong answers:
+
+- A net-profit ranking matched `item_name LIKE '%XIX+XXIV%'` and returned **36
+  of 38 banks**. AKBNK files a blank `item_name`; HAYATK uses the compressed
+  template and labels the same line `(XVII+XXII)`. Fixed by joining
+  `bank_audit_pl_roles` on `role='period_net'`, which resolves each bank's own
+  ordinal — never match a P&L label.
+- A branch-productivity ranking returned **8 banks when 27 had the data**: the
+  model wrote its own `IN (…)` list of about ten tickers, then reported the gaps
+  *within its own list* as gaps in the dataset. `checkTickerEnumeration` in
+  `bot-sql.ts` now rejects SQL that pins `bank_ticker` to two or more literals
+  the question never named.
+
+Neither errored. Both looked complete. Row counts are the tell — if a "rank all
+banks" query returns fewer rows than there are banks, the query is wrong.
