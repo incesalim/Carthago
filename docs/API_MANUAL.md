@@ -331,6 +331,17 @@ regulatory terms. About 2% of monthly lines have no English (BDDK's own gap) and
 the **weekly bulletin has none at all**; those come back `null` and you should
 fall back to `name`. Nothing here is machine-translated.
 
+**Trailing asterisks in a label are BDDK's footnote markers, not corruption.**
+`Loans*`, `Deposit (Participation Funds)***`, `Provisions****` — each points at a
+footnote in BDDK's bulletin qualifying that line's scope. Labels are passed
+through exactly as filed, so the markers come with them. **We do not capture the
+footnote text**, so you get the marker without what it refers to — worth knowing
+when a line looks like it should reconcile and doesn't. Strip them with
+`re.sub(r"\*+$", "", name)` if they're noise for your purpose.
+
+A couple of labels also begin with `- ` (e.g. `- Devlet Tahvilleri (Bilgi için)`).
+That's BDDK's own indentation marking a memo line, not a stray character.
+
 **Nothing is derived.** Every value is as-filed by BDDK. No seasonal adjustment,
 no rebasing, no FX conversion, no gap-filling. Ratios are BDDK's own (table 15),
 not recomputed by us.
