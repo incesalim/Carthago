@@ -48,7 +48,7 @@ DB_PATH = REPO_ROOT / "data" / "bddk_data.db"
 
 # Feeds input_hash, so a bump forces one regeneration — which is what you want
 # after a context change.
-PROMPT_VERSION = "2026-07-20.v14-history-split"
+PROMPT_VERSION = "2026-07-20.v15-post-baseline-feed"
 
 # Fixed seed + temperature 0: this is an extraction task, so sampling buys
 # nothing and costs run-to-run stability. Measured spread before this change:
@@ -439,6 +439,22 @@ def main() -> int:
         prev = conn.execute(
             "SELECT input_hash FROM briefing_input_state WHERE id = 1"
         ).fetchone()
+
+    # The feed is meant to be "updates SINCE the baseline", but --delta-days
+    # reaches back past it: a 330-day window on a baseline published 2025-12-28
+    # includes four months of releases the baseline already incorporates. Those
+    # cannot add anything — the baseline supersedes them by construction — and
+    # they actively harm, because the prompt tells the model a dated release
+    # overrides the framework. Observed directly: recovering the 2025-12-02 FX
+    # reserve-requirement table made the briefing print its superseded 30%/26%
+    # ratios beside the current 32%/28%. Cut the feed at the baseline's own year.
+    if baseline and baseline.get("year"):
+        cutoff = f"{int(baseline['year'])}-01-01"
+        before = len(items)
+        items = [it for it in items if (it.get("date") or "") >= cutoff]
+        if before != len(items):
+            print(f"[briefing] dropped {before - len(items)} pre-baseline items "
+                  f"(< {cutoff}) — superseded by {baseline['title']}", flush=True)
 
     print(f"[briefing] {len(items)} update items in last {args.delta_days}d", flush=True)
     if baseline:
