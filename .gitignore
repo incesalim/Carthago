@@ -131,6 +131,7 @@ _scratch/
 .claude/worktrees/
 
 # Next.js / Cloudflare / OpenNext local build artefacts (not versioned)
+node_modules/
 .next/
 .wrangler/
 .open-next/
