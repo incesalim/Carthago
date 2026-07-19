@@ -42,13 +42,17 @@ RULE_SUBJECTS: list[tuple[str, str]] = [
     ("loan:vehicle",        r"\bvehicle\b|\bauto\b"),
     ("loan:overdraft",      r"overdraft"),
     ("loan:fx",             r"(?:foreign[- ]currency|\bFX\b|\bFC\b)[^.;]{0,40}?loans?"),
-    # --- reserve requirements ---
-    ("rr:fx-short",         r"demand deposits|maturities up to 1 month|up to one month"),
-    ("rr:fx-long",          r"longer maturit"),
-    ("rr:precious-metal",   r"precious metal"),
-    ("rr:banks-abroad",     r"banks abroad|head office abroad"),
-    ("rr:repo-abroad",      r"repo transactions abroad"),
-    ("rr:additional-tl",    r"additional Turkish lira"),
+    # --- reserve requirements: DELIBERATELY ABSENT ---
+    # RR rules are two-dimensional — liability type (FX deposits, precious metal,
+    # other FX liabilities, funds from abroad) × maturity bucket — and a flat
+    # subject list cannot express that. Modelling maturity as the subject made
+    # "FX deposits, up to 1 month: 32%" collide with "funds from repo
+    # transactions abroad, up to 1 month: 14%", which are different rules with
+    # correctly different values. Because this GATES publication, those false
+    # positives held back a correct Regulations on RRs section on every run and
+    # left it frozen on the previous week's text — the gate doing real harm.
+    # Removed until the 2-D shape is modelled properly; a missed contradiction
+    # is a smaller cost than a section that never updates.
     # --- deposit share ---
     ("dep:tl-share-target", r"deposit share target|TL deposit share|Turkish lira deposit share"),
 ]
@@ -64,12 +68,6 @@ SUBJECT_LABELS: dict[str, str] = {
     "loan:vehicle": "loan growth cap — vehicle",
     "loan:overdraft": "loan growth cap — consumer overdraft",
     "loan:fx": "loan growth cap — FX loans",
-    "rr:fx-short": "reserve requirement — FX demand / up to 1 month",
-    "rr:fx-long": "reserve requirement — FX longer maturities",
-    "rr:precious-metal": "reserve requirement — precious metal accounts",
-    "rr:banks-abroad": "reserve requirement — deposits from banks abroad",
-    "rr:repo-abroad": "reserve requirement — repo transactions abroad",
-    "rr:additional-tl": "reserve requirement — additional TL on FX deposits",
     "dep:tl-share-target": "TL deposit share target / commission",
 }
 
@@ -159,9 +157,14 @@ _NEAR_CHARS = 90
 # rule at 4.5% and collides with the real overdraft bullet — a false positive
 # that would have withheld a perfectly good 2026-07-12 briefing.
 _EXCLUSION_RE = re.compile(
-    r"(?:exclud\w*|except\w*|other than|apart from|save for|but not)\s*$", re.I
+    r"(?:exclud\w*|except\w*|other than|apart from|save for|but not)\b", re.I
 )
-_EXCLUSION_LOOKBACK = 30
+# Generous, because the excluded list can be long: "other foreign currency
+# liabilities (excluding deposits/participation funds and precious metal
+# accounts)" puts 45 chars between the "excluding" and "precious metal". A
+# 30-char window missed it and the subject read as the bullet's own — a false
+# positive that helped freeze a correct section.
+_EXCLUSION_LOOKBACK = 140
 
 
 def _subject_values(text: str) -> dict[str, set[str]]:
@@ -177,8 +180,12 @@ def _subject_values(text: str) -> dict[str, set[str]]:
             # (SME inside non-SME).
             if any(m.start() <= c < m.end() for c in claimed):
                 continue
+            # Look back only within the current clause: a full stop or semicolon
+            # ends the exclusion's reach, so "…excluding X. Y is capped at 3%"
+            # still treats Y as a real subject.
             lead = text[max(0, m.start() - _EXCLUSION_LOOKBACK):m.start()]
-            if _EXCLUSION_RE.search(lead.rstrip(" ([,")):
+            lead = re.split(r"[.;]", lead)[-1]
+            if _EXCLUSION_RE.search(lead):
                 continue  # named only to be excluded — not this bullet's subject
             claimed.update(range(m.start(), m.end()))
             near = {v for pos, v in pcts if abs(pos - m.start()) <= _NEAR_CHARS}
