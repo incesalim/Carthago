@@ -337,10 +337,60 @@ tokens, complete section). `allow_fallbacks: false` keeps a bad draw from silent
 substituting a 5.4× or JSON-incapable provider — with ~100% uptime and the lane's
 new failure alert, failing loudly is the better trade.
 
-⚠️ **Unmeasured:** `throughput_last_30m` and `latency_last_30m` come back **0** from
-this endpoint (they populate only the web UI), so this ranking has **no speed
-component**. Baidu's throughput is unknown here; verify before committing if the
-5-minute job runtime matters.
+### Speed, from the web UI (the API returns 0 for both)
+
+`throughput_last_30m` / `latency_last_30m` are **0** over the API; they populate
+only `openrouter.ai/deepseek/deepseek-v4-flash/providers`. Read from that page:
+
+| provider | in $/M | out $/M | cache read $/M | latency | throughput |
+|---|---:|---:|---:|---:|---:|
+| DeepInfra | 0.090 | 0.180 | 0.018 | 0.93 s | 23 tps |
+| StreamLake | 0.0966 | 0.1932 | 0.0193 | 1.48 s | 54 tps |
+| GMICloud | 0.098 | 0.196 | 0.0196 | 2.59 s | 49 tps |
+| **Baidu Qianfan** | 0.0983 | 0.1966 | 0.0197 | **0.57 s** ⚡ | **73 tps** ⚡ |
+| DigitalOcean | 0.112 | 0.224 | 0.028 | 1.51 s | **8 tps** 🐌 |
+| SiliconFlow | 0.130 | 0.280 | 0.028 | 1.19 s | 66 tps |
+| Alibaba Cloud Int. | 0.134 | 0.268 | 0.0268 | 0.94 s | 65 tps |
+| Venice | 0.138 | 0.275 | 0.028 | 1.80 s | 19 tps |
+| Morph | 0.139 | 0.278 | — | 0.79 s | 33 tps |
+| Parasail | 0.140 | 0.280 | 0.070 | 0.84 s | 40 tps |
+| Fireworks | 0.140 | 0.280 | 0.028 | 1.22 s | 68 tps |
+| NovitaAI | 0.140 | 0.280 | 0.028 | 1.21 s | 50 tps |
+
+**Baidu wins both speed metrics outright** — lowest latency *and* highest
+throughput — while sitting 4th on price. The API-only recommendation holds and
+strengthens: nothing trades off against picking it.
+
+**DigitalOcean is the slowest listed at 8 tps**, ~9× below Baidu — and it served
+two of our six calls, including one of the empties. Its sluggishness in the
+dashboard (279 tokens in 18 s) is consistent with that rating rather than with a
+transient fault.
+
+The page also exposes routing *modes* — Balanced (price+speed), **Nitro**
+(fastest), **Exacto** (highest tool-calling accuracy) — an alternative to pinning
+by name. `Exacto` is worth a look for a JSON-mode lane, untested here.
+
+### Prompt caching: the cheapest provider on paper is not the cheapest in practice
+
+The web UI exposes a **cache read** price the endpoints API hides, and
+`supports_implicit_caching` is **`True` for exactly one provider — first-party
+DeepSeek** — whose cache read is **$0.0028/M, 50× below its own input price** (all
+others sit ~5× below and need *explicit* cache control we don't send).
+
+This lane is the ideal shape for it: `build_context()` builds **one ~34k-token
+context and reuses it for all five sections**. Cached, a full run would be one
+paid 34k prefill plus four near-free ones — roughly **$0.42/yr against Baidu's
+$0.97**, making the *highest list price* provider the cheapest in practice.
+
+⚠️ **But it would not hit today.** Caching is *prefix*-based, and
+`generate_category()` sends `[{system: per-section prompt}, {user: shared 34k
+context}]` — the **differing** part comes first, so sections share almost no
+prefix. Putting the shared context ahead of the per-section instruction is what
+would unlock it.
+
+**Not worth doing for cost** — the whole spread is under $7/yr. Recorded because
+the ordering trap is invisible and applies to any provider with prefix caching,
+Kimi included.
 
 ## ⚠️ The finding that matters: provider routing is non-deterministic
 
