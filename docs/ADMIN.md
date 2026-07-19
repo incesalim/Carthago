@@ -141,7 +141,7 @@ deploy also busts the cache (new build id → new keys) but needs a code push.
 
 This is all that's needed to open `/admin` on the current `workers.dev` URL.
 
-Cloudflare dashboard → **Workers & Pages → `turkish-banking-dashboard` →
+Cloudflare dashboard → **Workers & Pages → `carthago` →
 Settings → Variables and Secrets → Add** → name `ADMIN_PASSWORD`, type **Secret**,
 value = a password you choose → **Save**. (Or CLI: `cd web && npx wrangler secret
 put ADMIN_PASSWORD`.)

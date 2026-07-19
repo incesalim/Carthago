@@ -463,7 +463,7 @@ Actions **variables** (same screen, "Variables" tab — not secrets):
 
 ### Worker secrets (dashboard / `/admin` / bot)
 
-Set on the Worker — Cloudflare → Workers & Pages → `turkish-banking-dashboard`
+Set on the Worker — Cloudflare → Workers & Pages → `carthago`
 → Settings → Variables and Secrets (or `cd web && npx wrangler secret put NAME`).
 Declared (and commented) in `web/cloudflare-env.d.ts`; all optional — each feature
 degrades gracefully when its key is unset:

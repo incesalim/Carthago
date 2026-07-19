@@ -37,7 +37,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 from src.news import free_llm  # noqa: E402
 from notify import notify  # noqa: E402  (scripts/ is sys.path[0] under `python scripts/…`)
 
-DEFAULT_SITE = "https://turkish-banking-dashboard.incesalim10.workers.dev"
+DEFAULT_SITE = "https://carthago.app"
 D1_NAME = "bddk-data"
 
 
