@@ -91,6 +91,16 @@ def chat_completion(
                 timeout=timeout,
             )
             if r.status_code == 429:
+                # Record it: this branch used to `continue` without touching
+                # last_err, so a run rate-limited on EVERY attempt reported
+                # "failed after 3 attempts: None" — the one diagnosis the
+                # message should have made obvious. Seen for real when three
+                # concurrent benches hit one pinned provider.
+                last_err = RuntimeError(
+                    f"HTTP 429 rate limited by {url.split('/')[2]}"
+                    + (f" (Retry-After: {r.headers['Retry-After']})"
+                       if r.headers.get("Retry-After") else "")
+                )
                 wait = float(r.headers.get("Retry-After", "5"))
                 time.sleep(wait)
                 continue
