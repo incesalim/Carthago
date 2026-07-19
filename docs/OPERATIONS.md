@@ -434,6 +434,21 @@ Two things to watch in the build output:
 New BDDK data extends existing series and may add new ones; **codes are carried
 forward and never renumbered**, so a rebuild on unchanged data is a no-op.
 
+**Open: Browser Integrity Check blocks `Python-urllib`.** Cloudflare's BIC sits
+in front of the zone and rejects known-bot user agents with `403` /
+**Cloudflare error 1010** *before the request reaches the Worker*. Python's
+stdlib default (`Python-urllib/3.x`) is caught; `requests`, `httpx`, `curl` and
+browsers are not. Callers can clear it by sending any explicit `User-Agent`
+(documented in [API.md](API.md)), but the proper fix is a **Configuration Rule**:
+
+> Cloudflare dashboard → `carthago.app` → Rules → Configuration Rules → Create
+> → expression `starts_with(http.request.uri.path, "/api/v1")`
+> → set **Browser Integrity Check = Off**.
+
+Scope it to `/api/v1` only — do **not** disable BIC zone-wide, which would drop
+bot protection on the whole dashboard. This is a zone setting; the repo's
+`CLOUDFLARE_API_TOKEN` is scoped to Workers/D1/R2 and cannot change it.
+
 ## Disaster recovery
 
 Two independent safety nets, both **free**:

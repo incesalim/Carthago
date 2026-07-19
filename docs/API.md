@@ -164,6 +164,48 @@ coverage, worked examples.
 
 ---
 
+## Authentication
+
+**There is none.** No API key, no signup, no header. The data is public, so the
+endpoint is open — unlike TCMB's EVDS, which requires a `key` header.
+
+```python
+import urllib.request, json
+
+BASE = "https://carthago.app/api/v1"
+
+def get(url):
+    # Send an explicit User-Agent — see the note below.
+    req = urllib.request.Request(url, headers={"User-Agent": "my-app/1.0"})
+    return urllib.request.urlopen(req)
+
+d = json.load(get(f"{BASE}/series?series=BDDK.T01.I001.10001.TOT&startDate=01-01-2026"))
+for o in d["series"][0]["observations"]:
+    print(o["date"], o["value"])
+```
+
+Straight into pandas — `type=csv` returns a wide table (date + one column per
+series), the same shape EVDS gives you:
+
+```python
+import pandas as pd
+df = pd.read_csv(
+    f"{BASE}/series?series=BDDK.T01.I001.10001.TOT-BDDK.T02.I001.10001.TOT"
+    "&startDate=01-01-2024&type=csv",
+    parse_dates=["date"],
+).set_index("date")
+```
+
+> ⚠️ **Send a User-Agent.** Cloudflare's Browser Integrity Check sits in front of
+> this API and rejects requests whose UA matches a known-bot signature — notably
+> Python's stdlib default `Python-urllib/3.x`, which gets `403` with
+> **Cloudflare error 1010** *before the request reaches the Worker*. `requests`,
+> `httpx`, `curl` and browsers are unaffected. Setting any explicit User-Agent
+> clears it. To remove the caveat entirely, add a Cloudflare **Configuration
+> Rule** scoped to `carthago.app/api/v1/*` that turns Browser Integrity Check
+> off (dashboard → Rules → Configuration Rules) — it is a zone setting, not
+> something this repo can change.
+
 ## Conventions
 
 - **Dates in** — `DD-MM-YYYY` or `YYYY-MM-DD`. **Dates out** — always `YYYY-MM-DD`.
