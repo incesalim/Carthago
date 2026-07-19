@@ -328,6 +328,13 @@ never on the $0.090–0.098 tier.
   support it.
 - **Ambient is 5.4× the price** for the identical model.
 
+> ✅ **DECIDED 2026-07-19 — pin `Baidu`, no fallback.** Shipped as
+> `LLM_PROVIDER_ORDER` in `src/news/kimi.py`: the `provider` field is sent **only
+> when that env var is set**, so the production Kimi path is byte-identical and
+> unaffected. `LLM_ALLOW_FALLBACKS` defaults to false. The upstream that answered
+> is now recorded per section in the log and in the Telegram header
+> (`model: … @ Baidu`), because a model id alone does not identify a run.
+
 **Recommendation: `provider: {order: ["Baidu", "StreamLake"], allow_fallbacks: false}`.**
 Baidu is the only endpoint at **100% uptime on both the 1-day and 30-minute
 windows**, is fp8 rather than aggressively-quantized fp4, advertises
