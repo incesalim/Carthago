@@ -34,7 +34,7 @@ on:
         required: false
         default: ""
       category:
-        description: "regulation only — which section to generate"
+        description: "regulation only — which section to generate. BLANK = all five (a full weekly run)."
         required: false
         default: "Monetary Policy Stance"
       kimi_baseline:
@@ -107,8 +107,10 @@ jobs:
           KIMI_MODEL: ${{ inputs.model_id != '' && inputs.model_id || 'deepseek/deepseek-v4-pro' }}
         run: |
           echo "== provider: OpenRouter / $KIMI_MODEL =="
+          ONLY=""
+          if [ -n "${{ inputs.category }}" ]; then ONLY='--only-category'; fi
           time python scripts/summarize_regulations.py \
-            --only-category "${{ inputs.category }}" --force
+            $ONLY ${ONLY:+"${{ inputs.category }}"} --force
           python scripts/scratch_dump_briefing.py "OpenRouter / $KIMI_MODEL"
 
       - name: Same section on the incumbent (Kimi) for A/B
@@ -117,6 +119,8 @@ jobs:
           KIMI_API_KEY: ${{ secrets.KIMI_API_TOKEN }}
         run: |
           echo "== provider: Kimi (incumbent) =="
+          ONLY=""
+          if [ -n "${{ inputs.category }}" ]; then ONLY='--only-category'; fi
           time python scripts/summarize_regulations.py \
-            --only-category "${{ inputs.category }}" --force
+            $ONLY ${ONLY:+"${{ inputs.category }}"} --force
           python scripts/scratch_dump_briefing.py "Kimi (incumbent)"
