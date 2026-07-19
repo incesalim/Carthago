@@ -8,7 +8,24 @@ name: Refresh news (daily)
 on:
   schedule:
     - cron: "0 4 * * *"
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      # One-off maintenance: bodies are fetched once and never revisited, so an
+      # improvement to fetch_body never heals history. Table extraction landed
+      # 2026-05-29 and every earlier TCMB row kept a table-less body until this
+      # was run. Guarded by update_body's shrink check; a backup of every body
+      # goes to R2 first.
+      refresh_bodies:
+        description: "Re-fetch body_text for ALL rows of the chosen source (default: only missing ones)"
+        type: boolean
+        required: false
+        default: false
+      body_source:
+        description: "Which source to refresh: tcmb, bddk, or both"
+        type: choice
+        options: [tcmb, bddk, both]
+        required: false
+        default: tcmb
 
 permissions:
   contents: read
@@ -59,8 +76,39 @@ jobs:
               print("No snapshot in R2 yet — starting from empty DB.")
           PY
 
+      # Insurance on the one destructive step in this workflow. Bodies are only
+      # recoverable by re-fetching from the source we would just have misread, so
+      # snapshot every one to R2 before overwriting any.
+      - name: Back up news bodies to R2 (refresh only)
+        if: inputs.refresh_bodies
+        run: |
+          python - <<'PY'
+          import json, gzip, sqlite3, pathlib, datetime
+          from src.audit_reports import r2_storage
+          rows = sqlite3.connect("data/bddk_data.db").execute(
+              "SELECT source, external_id, body_text FROM news_items "
+              "WHERE body_text IS NOT NULL").fetchall()
+          stamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+          p = pathlib.Path(f"data/news_bodies_backup_{stamp}.json.gz")
+          with gzip.open(p, "wt", encoding="utf-8") as fh:
+              json.dump([{"source": s, "external_id": e, "body_text": b}
+                         for s, e, b in rows], fh, ensure_ascii=False)
+          key = f"backups/{p.name}"
+          size = r2_storage.upload_file(p, key)
+          print(f"Backed up {len(rows)} bodies -> R2 {key} ({size/1e6:.2f} MB)")
+          PY
+
       - name: Sync news (KAP + TCMB + BDDK + press + Google News)
-        run: python scripts/sync_news.py
+        run: |
+          if [ "${{ inputs.refresh_bodies }}" = "true" ]; then
+            SRC='${{ inputs.body_source }}'
+            EXTRA=""
+            if [ "$SRC" != "both" ]; then EXTRA="--${SRC}-only"; fi
+            echo "== refreshing bodies (source=$SRC) =="
+            python scripts/sync_news.py --refresh-bodies $EXTRA
+          else
+            python scripts/sync_news.py
+          fi
 
       - name: Setup Node (for wrangler)
         uses: actions/setup-node@v6
