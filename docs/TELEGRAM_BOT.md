@@ -350,3 +350,39 @@ So the prompt now teaches, in order:
 statement and is not in `reextract_statement.py`'s `STATEMENT_TABLE`. Re-running
 it to recover a row that changes no figure would risk good data for no gain. The
 gap is reported by `check_bot_schema.py` on every run so it stays visible.
+
+## Two checkers, and what each catches
+
+| | |
+|---|---|
+| `check_bot_schema.py` | the prompt's FACTS match the data — tickers, enum values, column existence, the `bank_type_code` overlap identities, `pl_roles` coverage |
+| `check_bot_answers.py` | the prompt's RECIPES return the right NUMBERS |
+
+The second exists because the first is not sufficient. Every wrong answer this
+bot has shipped was **valid SQL over the wrong population** — the facts were
+fine, the query was fine, the arithmetic was fine, and the number was wrong.
+
+It re-answers the canonical questions and asserts values verified by hand:
+
+```
+PASS  sector total assets = the 10001 row, not a sum
+PASS  ISCTR ranks 3rd
+PASS  profit ranking covers every bank
+PASS  branch-productivity population
+```
+
+It also asserts the **old** recipes are still broken — that summing every
+`bank_type_code` still gives 198,874,433, that `statement='assets'` alone still
+returns 2,715,905,125 for ISCTR, that `LIKE '%XIX+XXIV%'` still finds 36 of 38.
+Without those negative controls a test can quietly stop testing anything: if the
+data shifted so the broken recipe happened to agree, the suite would go green
+while proving nothing.
+
+Both run daily in `healthcheck.yml`, alert-only.
+
+### What is NOT covered
+
+Neither exercises the LLM. They verify the data layer and the recipes; the agent
+loop's own behaviour — which query the model chooses, how it words an answer — is
+covered by the gates (`bot-sql.test.ts`, 74 tests) and by `bot_queries` after the
+fact. Running the full loop needs the provider keys, which are Worker secrets.

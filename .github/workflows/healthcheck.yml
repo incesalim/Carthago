@@ -80,6 +80,17 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: python scripts/check_bot_schema.py --alert
 
+      # And that its RECIPES still return the right numbers. Every wrong answer
+      # the bot shipped was valid SQL over the wrong population, so the facts
+      # matching is not enough — the canonical questions have to be re-answered
+      # and checked against values verified by hand.
+      - name: Verify the bot's answers are still correct
+        if: always()
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: python scripts/check_bot_answers.py --alert
+
       # Bodies are fetched once and never revisited, so an improvement to the
       # extractor never heals history — that is how the regulation briefing lost
       # the loan-growth caps for two months without anything failing. Samples the
