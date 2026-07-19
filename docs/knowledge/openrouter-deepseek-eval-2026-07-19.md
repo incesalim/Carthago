@@ -21,6 +21,20 @@ weeks. It works. Details below, plus one finding that matters more than the pric
 `limit: null` on `/key` means no cap was set *on the key* — it says nothing about
 the account. The balance that actually runs out is at `/credits`.
 
+### What the $0.289 bought — not answerable with this key
+
+`/credits` reports **dollars only**. The per-model, per-day token breakdown lives
+at `/activity`, which returns **`403 "Only management keys can fetch activity for
+an account"`** — a management/provisioning key is a separate credential from an
+inference key. Read it at <https://openrouter.ai/activity> instead.
+
+What *is* measured: this key's own three probe calls cost **$0.000280 for 1,495
+tokens** (823 + 672; prompt 568, completion 927) — a blended **$0.187/Mtok**,
+completion-heavy because reasoning tokens are billed as output. The $0.289 was
+spent **before this key's first call** (key usage was $0.00 while the account
+already showed $0.289) — i.e. by the website or another key, on an unknown model.
+At v4-flash rates that would be ~1.5M tokens; on a frontier model, ~50k.
+
 ## DeepSeek models visible (11, all paid — **no `:free` variants on this key**)
 
 | id | $/Mtok in | $/Mtok out | ctx |
