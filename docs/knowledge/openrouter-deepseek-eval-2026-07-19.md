@@ -134,6 +134,50 @@ flash and was wrong where flash was right. Bigger ≠ better when the job is
 error is a hard, source-checkable contradiction, not a stylistic preference —
 that is worth more than a win rate on taste.
 
+### Why the smaller model won — the mechanism, not the luck
+
+Counted over the same 330-day feed both models read:
+
+| signal in context | count |
+|---|---:|
+| releases saying *"the policy rate (**the one-week repo auction rate**) at 37 percent"* | **7** |
+| releases saying *"it has been decided to **suspend** the one-week repo auctions"* | **1** |
+
+Seven prominent, repeated statements imply the one-week repo auction is the
+CBRT's live instrument; one short two-sentence release contradicts them. Pro did
+exactly what a reasoning model is built to do — weigh the conflict, resolve it,
+state the general truth — and wrote the 7. Flash didn't adjudicate: it scanned
+for dated events and copied them out. Less clever, and right.
+
+**Pro did not fail from lack of capability; it failed because of it.** This task
+rewards *fidelity*, not *inference*. The correct behaviour is to transcribe the
+anomaly even when seven other documents imply otherwise, and the more a model is
+tuned to synthesize, the more likely it is to smooth that anomaly away. Extra
+reasoning is extra opportunity to talk yourself out of a fact. The same instinct
+shows in the shape of the answers: pro emitted 3× the reasoning tokens and
+compressed to 3 bullets where flash kept 5 — and compression drops facts.
+
+This is a failure class this repo has already met twice: the round-3 gauntlet
+rejected `llama-4-scout` for **deriving** figures
+([free-model-eval-round3.md](free-model-eval-round3.md)), and the npl_movement
+lane's lesson was recorded as *transcribe, don't derive*. Same shape, new model.
+
+**Diagnostic that generalizes:** pro's wrong bullet was the **only** bullet in
+the run carrying neither a date nor a figure. Every flash bullet carried one. An
+uncited bullet is the inferred one — the same discipline `web/app/lib/prose.ts`
+already enforces on the dashboard: *a claim is computed or it does not print.*
+
+**The rule to carry forward** — not "flash beats pro", which is n=1 and false in
+general (pro leads on what it's marketed against: math, code, multi-step
+reasoning, none of which this job needs):
+
+> Match the model to whether the task rewards **inference** or **fidelity**.
+> Extraction/transcription over a corpus you supply → prefer the *less clever*
+> model. Open-ended reasoning → prefer pro.
+
+Which is the same reasoning that keeps the extraction spine on deterministic
+`fitz` anchors and not an LLM at all ([[feedback_extractors_no_api]]).
+
 ### Incidental production finding: the briefing has no baseline
 
 Every run logged `WARNING: no baseline — run scripts/ingest_policy_baseline.py`,
