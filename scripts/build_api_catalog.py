@@ -46,6 +46,10 @@ sys.stdout.reconfigure(encoding="utf-8")
 ROOT = Path(__file__).resolve().parent.parent
 DB = ROOT / "data" / "bddk_data.db"
 SCHEMA = ROOT / "web" / "migrations" / "0031_api_series_catalog.sql"
+SCHEMA_EN = ROOT / "web" / "migrations" / "0032_api_series_english_labels.sql"
+# BDDK's own English labels, keyed "<table_no>:<item_order>".
+# Refreshed by scripts/fetch_bddk_english_labels.py — never hand-edited.
+LABELS_EN = ROOT / "data" / "bddk_labels_en.json"
 
 # ---------------------------------------------------------------------------
 # Dataset specs. Each maps a BDDK table (or weekly category) to the physical
@@ -142,6 +146,25 @@ _skipped: dict[str, int] = {"usd": 0}
 def ensure_schema(conn: sqlite3.Connection) -> None:
     """Create api_series locally from the same DDL that migrates D1."""
     conn.executescript(SCHEMA.read_text(encoding="utf-8"))
+    # ALTER TABLE ADD COLUMN has no IF NOT EXISTS in SQLite; re-running is fine.
+    try:
+        conn.executescript(SCHEMA_EN.read_text(encoding="utf-8"))
+    except sqlite3.OperationalError as e:
+        if "duplicate column" not in str(e).lower():
+            raise
+
+
+def load_english_labels() -> dict[str, str]:
+    """BDDK's official English labels, or {} if the cache is absent.
+
+    Missing cache is not fatal — the catalog is still correct, just Turkish-only.
+    Refresh with scripts/fetch_bddk_english_labels.py.
+    """
+    if not LABELS_EN.exists():
+        print(f"NOTE: {LABELS_EN.name} missing — building without English labels")
+        return {}
+    import json
+    return json.loads(LABELS_EN.read_text(encoding="utf-8"))
 
 
 def load_existing_slots(conn: sqlite3.Connection) -> dict[tuple[str, str], str]:
@@ -198,7 +221,8 @@ def latest_names(conn: sqlite3.Connection, table: str, where: str,
     return {r[0]: r[1] for r in conn.execute(sql, params)}
 
 
-def build_monthly(conn: sqlite3.Connection, units: dict[int, str]) -> list[dict]:
+def build_monthly(conn: sqlite3.Connection, units: dict[int, str],
+                  labels_en: dict[str, str]) -> list[dict]:
     out: list[dict] = []
     for dataset, table, tno, cols, has_currency in MONTHLY_SPECS:
         # loans/deposits/ratios/other partition one physical table by table_number;
@@ -237,6 +261,7 @@ def build_monthly(conn: sqlite3.Connection, units: dict[int, str]) -> list[dict]
                     "category": None,
                     "item_key": str(item_order),
                     "item_name": names.get(item_order, f"item {item_order}"),
+                    "item_name_en": labels_en.get(f"{tno}:{item_order}"),
                     "bank_type_code": bt,
                     "report_currency": cur,
                     "value_column": phys,
@@ -249,10 +274,29 @@ def build_monthly(conn: sqlite3.Connection, units: dict[int, str]) -> list[dict]
 
 
 def build_other(conn: sqlite3.Connection, units: dict[int, str],
-                slots: dict[tuple[str, str], str]) -> list[dict]:
+                slots: dict[tuple[str, str], str],
+                labels_en: dict[str, str]) -> list[dict]:
     """other_data datasets — the ones needing catalog-assigned item slots."""
     out: list[dict] = []
     for dataset, tno, cols in OTHER_SPECS:
+        # BDDK's English labels are keyed by item_order, but other_data's
+        # item_order COLLIDES (two distinct lines share an order inside table
+        # 12). Where that happens the English label is ambiguous, so we drop it
+        # for those lines rather than attach the wrong regulatory term to one of
+        # them. Unambiguous orders still get their label.
+        order_of: dict[str, int] = {}
+        seen_order: dict[int, int] = {}
+        for name, o in conn.execute(
+            "SELECT item_name, MIN(item_order) FROM other_data "
+            "WHERE table_number = ? GROUP BY item_name", (tno,),
+        ):
+            order_of[name] = o
+            seen_order[o] = seen_order.get(o, 0) + 1
+        en_of = {
+            name: labels_en.get(f"{tno}:{o}")
+            for name, o in order_of.items() if seen_order.get(o) == 1
+        }
+
         # Allocate slots over the FULL item set for this table, sorted
         # deterministically, so a rebuild on unchanged data is a no-op.
         items = [r[0] for r in conn.execute(
@@ -300,6 +344,7 @@ def build_other(conn: sqlite3.Connection, units: dict[int, str],
                     "category": None,
                     "item_key": name,
                     "item_name": name,
+                    "item_name_en": en_of.get(name),
                     "bank_type_code": bt,
                     "report_currency": cur,
                     "value_column": colname,
@@ -348,6 +393,9 @@ def build_weekly(conn: sqlite3.Connection) -> list[dict]:
             "category": cat,
             "item_key": str(item_id),
             "item_name": names.get((cat, item_id), str(item_id)),
+            # BDDK publishes no English for the weekly bulletin — left NULL so
+            # consumers fall back to item_name. Never machine-translate it.
+            "item_name_en": None,
             "bank_type_code": bt,
             "report_currency": None,
             "value_column": cur,
@@ -360,7 +408,7 @@ def build_weekly(conn: sqlite3.Connection) -> list[dict]:
 
 
 COLUMNS = ["series_code", "dataset", "frequency", "source_table", "table_number",
-           "category", "item_key", "item_name", "bank_type_code",
+           "category", "item_key", "item_name", "item_name_en", "bank_type_code",
            "report_currency", "value_column", "unit", "start_date", "end_date",
            "obs_count"]
 
@@ -382,7 +430,9 @@ def main() -> int:
              conn.execute("SELECT table_number, unit FROM table_definitions")}
     slots = load_existing_slots(conn)
 
-    series = build_monthly(conn, units) + build_other(conn, units, slots) \
+    labels_en = load_english_labels()
+    series = build_monthly(conn, units, labels_en) \
+        + build_other(conn, units, slots, labels_en) \
         + build_weekly(conn)
 
     # A duplicate code would silently shadow a series. It means a spec is wrong
@@ -407,6 +457,14 @@ def main() -> int:
     if _skipped["usd"]:
         print(f"  excluded: {_skipped['usd']:,} USD-basis series "
               f"(single period only — see INCLUDE_USD_BASIS)")
+
+    # English coverage. A drop here means BDDK's English template moved and
+    # item_order stopped aligning — the labels are silently absent, not wrong,
+    # but /serieList?q= in English gets correspondingly weaker.
+    with_en = sum(1 for s in series if s["item_name_en"])
+    monthly = sum(1 for s in series if s["frequency"] == "monthly")
+    print(f"  English labels: {with_en:,}/{monthly:,} monthly series "
+          f"({with_en / monthly * 100:.1f}%); weekly is Turkish-only by source")
 
     # Codes that existed before but no longer resolve: the underlying series went
     # away (a table BDDK stopped filing, an item retired). Report loudly — a

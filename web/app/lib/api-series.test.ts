@@ -17,6 +17,7 @@ const meta = (over: Partial<SeriesMeta>): SeriesMeta => ({
   category: null,
   item_key: "5",
   item_name: "Krediler",
+  item_name_en: "Loans",
   bank_type_code: "10001",
   report_currency: "TL",
   value_column: "amount_total",

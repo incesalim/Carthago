@@ -28,6 +28,9 @@ export interface SeriesMeta {
   category: string | null;
   item_key: string;
   item_name: string;
+  /** BDDK's own English label. Null where BDDK publishes none (all weekly
+   *  datasets, and the few other_data lines whose item_order collides). */
+  item_name_en: string | null;
   bank_type_code: string;
   report_currency: string | null;
   value_column: string;
@@ -86,8 +89,8 @@ export async function fetchSeriesMeta(codes: string[]): Promise<SeriesMeta[]> {
   const placeholders = codes.map(() => "?").join(",");
   const rows = await allDirect<SeriesMeta>(
     `SELECT series_code, dataset, frequency, source_table, table_number,
-            category, item_key, item_name, bank_type_code, report_currency,
-            value_column, unit, start_date, end_date, obs_count
+            category, item_key, item_name, item_name_en, bank_type_code,
+            report_currency, value_column, unit, start_date, end_date, obs_count
        FROM api_series
       WHERE series_code IN (${placeholders})`,
     codes,

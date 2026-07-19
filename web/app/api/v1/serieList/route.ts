@@ -6,12 +6,12 @@
  * for participation banks" to a code they can pass to /api/v1/series.
  *
  *   /api/v1/serieList?dataset=T01                 every balance-sheet series
- *   /api/v1/serieList?q=kredi&bankType=10004      search labels, one bank type
+ *   /api/v1/serieList?q=loans&bankType=10004      search labels (TR or EN)
  *   /api/v1/serieList?dataset=WLOAN&type=csv      as CSV
  *
  * `dataset`   T01..T17 (monthly) or WLOAN/WSEC/WDEP/WNPL/WOBS/WBAL/WFX (weekly)
  * `bankType`  BDDK bank-type code (see /api/v1/categories)
- * `q`         substring match on the series label, case-insensitive
+ * `q`         substring match on the Turkish OR English label
  * `limit`     default 500, max 5000
  * `offset`    for paging
  * `type`      json (default) | csv
@@ -36,6 +36,7 @@ interface CatalogRow {
   dataset: string;
   frequency: string;
   item_name: string;
+  item_name_en: string | null;
   bank_type_code: string;
   value_column: string;
   unit: string | null;
@@ -63,10 +64,13 @@ export async function GET(request: Request) {
   }
   const q = p.get("q");
   if (q) {
-    // Turkish labels — SQLite's LIKE is ASCII-case-insensitive only, which is
-    // why this is documented as a substring match rather than a real search.
-    where.push("item_name LIKE ?");
-    binds.push(`%${q}%`);
+    // Search BOTH languages. The labels are filed in Turkish, so an English-only
+    // match returned nothing for "loans"/"deposits"/"total assets" — which made
+    // the API unusable to anyone who doesn't already know the Turkish term.
+    // SQLite's LIKE is ASCII-case-insensitive only (so "İ" ≠ "i"), which is why
+    // this is documented as a substring match rather than a real search.
+    where.push("(item_name LIKE ? OR item_name_en LIKE ?)");
+    binds.push(`%${q}%`, `%${q}%`);
   }
   const freq = p.get("frequency");
   if (freq) {
@@ -88,7 +92,7 @@ export async function GET(request: Request) {
   const clause = where.length ? `WHERE ${where.join(" AND ")}` : "";
   const [rows, counted] = await Promise.all([
     allDirect<CatalogRow>(
-      `SELECT series_code, dataset, frequency, item_name, bank_type_code,
+      `SELECT series_code, dataset, frequency, item_name, item_name_en, bank_type_code,
               value_column, unit, start_date, end_date, obs_count
          FROM api_series ${clause}
         ORDER BY series_code LIMIT ? OFFSET ?`,
@@ -105,7 +109,7 @@ export async function GET(request: Request) {
     const esc = (s: string) =>
       /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
     const cols: (keyof CatalogRow)[] = [
-      "series_code", "dataset", "frequency", "item_name", "bank_type_code",
+      "series_code", "dataset", "frequency", "item_name", "item_name_en", "bank_type_code",
       "value_column", "unit", "start_date", "end_date", "obs_count",
     ];
     const csv = [
