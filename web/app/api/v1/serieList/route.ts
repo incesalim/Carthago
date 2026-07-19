@@ -16,7 +16,7 @@
  * `offset`    for paging
  * `type`      json (default) | csv
  */
-import { cachedAll } from "@/app/lib/db";
+import { allDirect } from "@/app/lib/db";
 import {
   apiDisabled,
   csvResponse,
@@ -87,14 +87,14 @@ export async function GET(request: Request) {
 
   const clause = where.length ? `WHERE ${where.join(" AND ")}` : "";
   const [rows, counted] = await Promise.all([
-    cachedAll<CatalogRow>(
+    allDirect<CatalogRow>(
       `SELECT series_code, dataset, frequency, item_name, bank_type_code,
               value_column, unit, start_date, end_date, obs_count
          FROM api_series ${clause}
         ORDER BY series_code LIMIT ? OFFSET ?`,
       [...binds, limit, offset],
     ),
-    cachedAll<{ n: number }>(
+    allDirect<{ n: number }>(
       `SELECT COUNT(*) AS n FROM api_series ${clause}`,
       binds,
     ),

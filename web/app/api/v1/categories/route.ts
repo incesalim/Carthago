@@ -5,7 +5,7 @@
  * Counts and date ranges come from the catalog itself rather than a hand-kept
  * list, so this can't drift from what /api/v1/series will actually serve.
  */
-import { cachedAll } from "@/app/lib/db";
+import { allDirect } from "@/app/lib/db";
 import { apiDisabled, disabledResponse, jsonResponse } from "../_shared";
 
 export { OPTIONS } from "../_shared";
@@ -34,7 +34,7 @@ export async function GET() {
   if (await apiDisabled()) return disabledResponse();
 
   const [datasets, bankTypes, defs] = await Promise.all([
-    cachedAll<DatasetRow>(
+    allDirect<DatasetRow>(
       `SELECT dataset, frequency, MAX(table_number) AS table_number,
               MAX(category) AS category, MAX(unit) AS unit,
               COUNT(*) AS series_count,
@@ -43,7 +43,7 @@ export async function GET() {
         GROUP BY dataset, frequency
         ORDER BY frequency, dataset`,
     ),
-    cachedAll<BankTypeRow>(
+    allDirect<BankTypeRow>(
       `SELECT bt.code, bt.name_tr, bt.name_en, bt.category,
               COUNT(s.series_code) AS series_count
          FROM bank_types bt
@@ -52,7 +52,7 @@ export async function GET() {
        HAVING series_count > 0
         ORDER BY bt.code`,
     ),
-    cachedAll<{ table_number: number; name_en: string | null; name_tr: string }>(
+    allDirect<{ table_number: number; name_en: string | null; name_tr: string }>(
       `SELECT table_number, name_en, name_tr FROM table_definitions
         ORDER BY table_number`,
     ),

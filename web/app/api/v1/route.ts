@@ -6,7 +6,7 @@
  * endpoints, the code grammar, worked examples they can paste into a browser,
  * and live coverage numbers read from the catalog.
  */
-import { cachedAll } from "@/app/lib/db";
+import { allDirect } from "@/app/lib/db";
 import { MAX_SERIES_PER_REQUEST } from "@/app/lib/api-series";
 import { apiDisabled, disabledResponse, jsonResponse } from "./_shared";
 
@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   if (await apiDisabled()) return disabledResponse();
 
-  const [summary] = await cachedAll<{
+  const [summary] = await allDirect<{
     series_count: number;
     dataset_count: number;
     start_date: string | null;

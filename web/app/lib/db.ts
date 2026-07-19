@@ -51,6 +51,28 @@ export async function cachedAll<T>(
   )();
 }
 
+/**
+ * Run a `SELECT … .all()` straight against D1, with NO KV caching.
+ *
+ * For query shapes whose parameter space is unbounded — chiefly the public API,
+ * where any of ~19,800 series can be combined with any date range, page size or
+ * search term. `cachedAll` would mint one KV entry per distinct request, and KV
+ * writes are the scarce resource here (1M/month included) while D1 rows are not
+ * (25B/month). Caching those would optimise the wrong side of the ledger and
+ * hand an unauthenticated caller a way to exhaust the KV quota.
+ *
+ * Dashboard pages should keep using `cachedAll`: their query set is small,
+ * fixed, and repeated on every page view, which is exactly what KV is for.
+ */
+export async function allDirect<T>(
+  sql: string,
+  binds: unknown[] = [],
+): Promise<T[]> {
+  const db = await getDB();
+  const { results } = await db.prepare(sql).bind(...binds).all<T>();
+  return results;
+}
+
 export interface BalanceSheetRow {
   year: number;
   month: number;
