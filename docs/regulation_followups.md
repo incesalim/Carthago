@@ -25,10 +25,15 @@ the *Monetary Policy for YYYY* PDF. 2026's pin:
 `https://www.tcmb.gov.tr/wps/wcm/connect/c2ac62b6-3112-4f33-a6ad-3817defff0be/December28.pdf?MOD=AJPERES&CACHEID=ROOTWORKSPACE-c2ac62b6-3112-4f33-a6ad-3817defff0be-pJACiUd`
 
 **Measured effect** on the same 87-item feed: context ~32k → ~44.6k tokens, and
-26 → 32 bullets across the five sections. The gains landed exactly where theory
-said they would — the *cumulative* regimes, whose rules are in force but were not
-re-announced during the window: TL Deposit Share **1 → 3**, Loan Growth Caps
-**5 → 7**.
+26 → **30** bullets across the five sections (an earlier attempt produced 32 —
+run-to-run LLM variance, so read the direction, not the digit). The gains landed
+where theory said they would: the *cumulative* regimes, whose rules are in force
+but were not re-announced during the window — **TL Deposit Share 1 → 3**, **Loan
+Growth Caps 5 → 7**. The newsy sections (Monetary Policy Stance, Other Actions)
+barely moved, which is the expected signature: they were already well served by
+the feed alone.
+
+Live in D1 as of `generated_at 2026-07-19T19:31:17Z`.
 
 ### What actually went wrong (keep this)
 
