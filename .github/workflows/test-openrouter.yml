@@ -50,6 +50,10 @@ on:
         type: boolean
         required: false
         default: false
+      provider:
+        description: "regulation only — pin the OpenRouter upstream (e.g. Baidu). Blank = unpinned routing."
+        required: false
+        default: "Baidu"
 
 permissions:
   contents: read
@@ -118,6 +122,13 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ inputs.telegram && secrets.TELEGRAM_BOT_TOKEN || '' }}
           TELEGRAM_CHAT_ID: ${{ inputs.telegram && secrets.TELEGRAM_CHAT_ID || '' }}
           BRIEFING_LABEL: "🧪 BENCH — NOT the live briefing. /regulation is unchanged."
+          # Pin the upstream. Baidu Qianfan: best latency (0.57s) AND best throughput
+          # (73 tps) of all 18 endpoints, 100% uptime on both windows, fp8 not fp4,
+          # ~4th cheapest — nothing trades off. allow_fallbacks stays false so a bad
+          # name or an outage fails loudly instead of silently drawing another
+          # provider, which is what made every earlier measurement noise.
+          LLM_PROVIDER_ORDER: ${{ inputs.provider }}
+          LLM_ALLOW_FALLBACKS: "false"
         run: |
           echo "== provider: OpenRouter / $KIMI_MODEL =="
           CAT='${{ inputs.category }}'

@@ -255,9 +255,14 @@ def enforce_category(name: str, bullets: list[dict]) -> list[dict]:
     return bullets
 
 
-def generate_category(name: str, desc: str, context: str, retries: int) -> tuple[list[dict], str]:
+def generate_category(name: str, desc: str, context: str,
+                      retries: int) -> tuple[list[dict], str, str]:
     """One focused call (with parse-retry) for a single section. Returns
-    (bullets, model). Keeps the most specific parse seen across attempts."""
+    (bullets, model, provider). Keeps the most specific parse seen across attempts.
+
+    `provider` is OpenRouter's upstream for this call (empty on a direct API).
+    Worth recording: the same model id behaves very differently by upstream, so
+    "which model" alone does not identify what produced a briefing."""
     sys_prompt = PER_CATEGORY_SYSTEM.format(name=name, desc=desc)
     messages = [
         {"role": "system", "content": sys_prompt},
@@ -266,6 +271,7 @@ def generate_category(name: str, desc: str, context: str, retries: int) -> tuple
     best: list[dict] | None = None
     best_specific = -1
     model = ""
+    provider = ""
     for attempt in range(1, retries + 1):
         try:
             resp = kimi.chat_completion(messages, temperature=0.2, json_object=True)
@@ -274,13 +280,14 @@ def generate_category(name: str, desc: str, context: str, retries: int) -> tuple
             print(f"  [{name}] attempt {attempt}/{retries} failed: {type(e).__name__}: {e}", flush=True)
             continue
         model = resp.get("model", "") or model
+        provider = resp.get("provider", "") or provider
         bullets = clean_bullets(parsed.get("bullets") if isinstance(parsed, dict) else None)
         n_specific = sum(1 for b in bullets if re.search(r"\d", b["text"]))
         if n_specific > best_specific:
             best, best_specific = bullets, n_specific
         if bullets:  # got a usable answer — no need to spend another call
             break
-    return (best or []), model
+    return (best or []), model, provider
 
 
 # Telegram hard-caps a message at 4096 chars and notify() trims at 4000; a full
@@ -290,7 +297,7 @@ _TG_BUDGET = 3600
 
 
 def notify_briefing(categories: list[dict], models: set[str], item_count: int,
-                    baseline: dict | None) -> None:
+                    baseline: dict | None, providers: set[str] | None = None) -> None:
     """Post the briefing that just shipped. Never raises — a failed alert must
     not fail a good run (notify() already swallows network errors and no-ops
     when no channel is configured, which is what keeps the scratch bench quiet).
@@ -304,7 +311,11 @@ def notify_briefing(categories: list[dict], models: set[str], item_count: int,
         head = (
             (f"{label}\n" if label else "")
             + f"🏛 Regulation briefing — {len(categories)} sections, {n_bullets} bullets\n"
-            f"model: {','.join(sorted(models)) or '?'} · {item_count} feed items · "
+            f"model: {','.join(sorted(models)) or '?'}"
+            # Name the upstream: the same model id behaves very differently across
+            # OpenRouter providers, so the model alone doesn't identify the run.
+            + (f" @ {','.join(sorted(providers))}" if providers else "")
+            + f" · {item_count} feed items · "
             f"baseline: {baseline['title'] if baseline else 'NONE'}"
         )
         # Pack per BULLET, not per section: a section that alone exceeds the
@@ -426,13 +437,17 @@ def main() -> int:
     t0 = time.time()
     categories: list[dict] = []
     models: set[str] = set()
+    providers: set[str] = set()
     for name, desc in specs:
-        bullets, model = generate_category(name, desc, context, args.cat_retries)
+        bullets, model, provider = generate_category(name, desc, context, args.cat_retries)
         if model:
             models.add(model)
+        if provider:
+            providers.add(provider)
         kept = enforce_category(name, bullets)
         dropped = len(bullets) - len(kept)
         print(f"[briefing] {name}: {len(kept)} bullets"
+              + (f" via {provider}" if provider else "")
               + (f" ({dropped} leaked dropped)" if dropped else ""), flush=True)
         if kept:
             categories.append({"name": name, "bullets": kept})
@@ -470,7 +485,7 @@ def main() -> int:
     print("[briefing] stored in regulation_briefings.")
     # Only reached when the LLM actually ran: the unchanged-inputs and --dry-run
     # paths return earlier, so quiet weeks stay quiet.
-    notify_briefing(categories, models, len(items), baseline)
+    notify_briefing(categories, models, len(items), baseline, providers)
     return 0
 
 
