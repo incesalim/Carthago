@@ -25,7 +25,8 @@ machine involvement is required for routine refreshes.
 | Manual only | `reextract-statement.yml` | Targeted **single-statement** re-extract (`reextract_statement.py`): one lane (`oci` / `cash_flow` / `equity_change` / `npl_movement` / `loans_by_sector` / `bank_profile` / `credit_quality`) for selected `periods`/`banks` → inline-validate → push that table + `bank_audit_validation` → snapshot → refresh matrix. `only_failing=true` (default) processes only NOT-passing partitions (`checks_failed>0 OR checks_passed=0` — catches stale empties); the non-destructive guard skips passing ones, so it can only improve. **`force=true`** overwrites even passing partitions — needed when the defect is in a **derived** table (e.g. `credit_quality` passes but its derived `bank_audit_stages` fails, so `only_failing` wouldn't select it); the `credit_quality` lane also rebuilds `bank_audit_stages` after the run. **Preferred over `backfill-audit.yml` for a single-lane fix** — one lane on fitz, no full-extract timeout (an all-periods lane run is ~6–10 min). How OCI/CF/NPL/loans_by_stage were fixed fleet-wide |
 | Manual only | `backfill-nonbank.yml` | One-time historical backfill of the non-bank sector lane (leasing / factoring / financing) from `from_year` (default 2020) → now (~5–10 min). The incremental refresh rides `refresh.py`; this is only for the initial history load. Apply migration 0013 first (via a `web/**` deploy) |
 | Manual only | `backfill-faaliyet.yml` | Fleet backfill of the Faaliyet-raporu franchise lane (branches / personnel from annual-report PDFs) → `faaliyet_franchise` + `faaliyet_extractions`. The incremental refresh rides `refresh.py` |
-| Daily 06:00 UTC | `healthcheck.yml` | D1 freshness check + `verify_chart_spec.py` → Telegram/Discord alert if stale/failing |
+| Daily 06:00 UTC | `healthcheck.yml` | D1 freshness check + `verify_chart_spec.py` + Telegram webhook-target check → Telegram/Discord alert if stale/failing/drifted |
+| Manual only | `telegram-webhook.yml` | Register (`set`) / inspect (`info`) / verify (`check`) the Q&A bot webhook. Lives in CI because `TELEGRAM_BOT_TOKEN` + `TELEGRAM_WEBHOOK_SECRET` aren't available locally. Run `set` after anything that moves the site origin — notably a **Worker rename**, which changes the `workers.dev` hostname and silently orphans the webhook |
 | On push touching `web/**` | `deploy-cloudflare.yml` | Apply D1 migrations, build OpenNext bundle, deploy to Workers |
 | On every PR | `ci.yml` | ruff + pytest + eslint + tsc + vitest quality gates |
 
@@ -450,6 +451,7 @@ GitHub repo → Settings → Secrets and variables → Actions:
 | `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` | audit-report PDFs in R2 |
 | `TELEGRAM_BOT_TOKEN` | `scripts/notify.py` — the ❌/🟡/🆕 alerts every workflow posts on failure |
 | `TELEGRAM_CHAT_ID` | ditto — the destination chat |
+| `TELEGRAM_WEBHOOK_SECRET` | `telegram-webhook.yml` (`set`) — **must be byte-identical to the Worker secret of the same name**, which is what verifies each inbound update. Rotating means writing both sides together, then re-running `set` |
 | `ALERT_WEBHOOK_URL` | ditto — optional Discord/Slack webhook mirror of the same alerts |
 | `CEREBRAS_KEY` | "The Read" headline lane (`generate-reads.yml` → `src/news/free_llm.py`) |
 | `GROQ_API_KEY` | ditto — the other free provider |

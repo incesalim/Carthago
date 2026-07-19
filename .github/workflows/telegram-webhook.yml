@@ -1,0 +1,50 @@
+name: Telegram webhook (register / inspect)
+
+# Manual-only. Registers or inspects the Telegram Q&A bot webhook, which points
+# Telegram at {WORKER_URL}/api/telegram/webhook on the Cloudflare Worker.
+#
+# This lives in CI because the credentials are not available locally:
+# TELEGRAM_BOT_TOKEN and TELEGRAM_WEBHOOK_SECRET are repo secrets (and the
+# latter is also a Worker secret, where it is unreadable). The daily
+# healthcheck runs `check` automatically; use `set` after anything that moves
+# the origin — notably a Worker rename, which changes the workers.dev hostname.
+
+on:
+  workflow_dispatch:
+    inputs:
+      command:
+        description: "What to do"
+        type: choice
+        default: check
+        options: [check, info, set]
+
+permissions:
+  contents: read
+
+jobs:
+  webhook:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_WEBHOOK_SECRET: ${{ secrets.TELEGRAM_WEBHOOK_SECRET }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+      PYTHONIOENCODING: utf-8
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      # Stdlib only — no pip install needed.
+      - name: Run ${{ inputs.command }}
+        run: python scripts/setup_telegram_webhook.py ${{ inputs.command }}
+
+      # After a `set`, prove it actually took rather than trusting the API's ok:true.
+      - name: Re-verify target
+        if: ${{ inputs.command == 'set' }}
+        run: python scripts/setup_telegram_webhook.py check
