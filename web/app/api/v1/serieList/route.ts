@@ -29,7 +29,11 @@ export { OPTIONS } from "../_shared";
 export const dynamic = "force-dynamic";
 
 const DEFAULT_LIMIT = 500;
-const MAX_LIMIT = 5000;
+// High enough that `?limit=25000&type=csv` exports the ENTIRE catalog in one
+// call (~19,800 series, ~3 MB). Paging a catalog you want to grep locally is
+// pure friction, and the read is cheap: the whole table is ~20k rows against a
+// 25-billion-rows/month D1 allowance.
+const MAX_LIMIT = 25000;
 
 interface CatalogRow {
   series_code: string;
