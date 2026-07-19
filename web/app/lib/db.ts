@@ -12,12 +12,16 @@ export async function getDB() {
   return env.DB;
 }
 
-/** Default cache window for D1 reads. Data changes daily at most, so a 12h
- *  window keeps pages fresh enough while keeping KV writes well under the free
- *  tier's 1,000 writes/day cap (each cache miss / revalidation = one KV write).
- *  A 1h window risked exceeding that on a busy day, which silently disables the
- *  cache and sends reads back to D1. */
-export const DATA_REVALIDATE_SECONDS = 43200; // 12h
+/** Default cache window for D1 reads. Each cache miss / revalidation costs one
+ *  KV write, so this is bounded by the KV write allowance, not by how fast the
+ *  data moves.
+ *
+ *  This was 12h to stay under the Workers FREE tier's 1,000 KV writes/day —
+ *  exceeding it silently disables the cache and sends every read back to D1. On
+ *  the paid plan the allowance is 1,000,000 writes/month (~33k/day), so the
+ *  binding constraint is gone: ~400–800 distinct cache keys at a 1h window is
+ *  ~14k writes/day ≈ 430k/month, comfortably inside the included quota. */
+export const DATA_REVALIDATE_SECONDS = 3600; // 1h
 
 /**
  * Run a `SELECT … .all()` through Next's data cache (KV-backed via OpenNext),

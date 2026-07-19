@@ -86,6 +86,20 @@ jobs:
         # frozen in this snapshot, so the time-window filter pushes none.
         run: python scripts/push_to_d1.py --hours 168
 
+      # The public API (/api/v1) serves series listed in api_series. A new month
+      # of BDDK data extends existing series and can add new ones, so the catalog
+      # is rebuilt here — AFTER the refresh, or the new period is invisible to
+      # every /serieList date range. Codes are carried forward, never renumbered.
+      - name: Rebuild the public-API series catalog
+        run: python scripts/build_api_catalog.py
+
+      - name: Push the series catalog to Cloudflare D1
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        # api_series is a full-rebuild table with no per-row timestamp, so the
+        # windowed push above skips it and it must be named explicitly.
+        run: python scripts/push_to_d1.py --only-tables api_series
+
       - name: Upload new SQLite snapshot back to R2 (+ dated backup)
         run: |
           python - <<'PY'

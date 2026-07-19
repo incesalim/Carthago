@@ -34,4 +34,10 @@ interface CloudflareEnv {
   BOT_GLOBAL_DAILY?: string;
   // Enables the /api/admin/bot-ask test harness when set (else it 404s).
   BOT_TEST_KEY?: string;
+
+  // --- Public data API (/api/v1; see docs/API.md) ---
+  // Kill switch. Set to 1/true (as a wrangler `secret` or `var`) to take the
+  // public API down without a deploy — every /api/v1 route then returns 503.
+  // This is what makes it safe to publish an unauthenticated endpoint.
+  PUBLIC_API_DISABLED?: string;
 }

@@ -105,15 +105,18 @@ SYNC_TABLES = [
     "bank_audit_expected",
     "bank_audit_statement_types",
     "bank_audit_coverage",
+    "api_series",
 ]
 
 # Precomputed rollups with no per-row timestamp: scripts/sync_audit_expected.py
-# rebuilds them wholesale, so the push clears the D1 table and re-inserts every
-# row (a `--hours` window doesn't apply). Pushed only when named in --only-tables.
+# (and scripts/build_api_catalog.py for api_series) rebuild them wholesale, so
+# the push clears the D1 table and re-inserts every row (a `--hours` window
+# doesn't apply). Pushed only when named in --only-tables.
 _FULL_REBUILD = {
     "bank_audit_expected",
     "bank_audit_statement_types",
     "bank_audit_coverage",
+    "api_series",
 }
 
 # Named table groups for --table-set, so a caller can say "the audit lane's
