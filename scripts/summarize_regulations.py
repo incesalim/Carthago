@@ -510,6 +510,36 @@ def main() -> int:
     if not categories:
         raise SystemExit("[briefing] no sections produced any bullets — aborting (kept previous row).")
 
+    # A section that yields nothing is dropped from the payload with no error, and
+    # the abort above only fires when EVERY section is empty — so a partial
+    # provider failure ships a quietly shorter briefing that still reads fine.
+    # (Observed: deepseek-v4-flash returned {"bullets":[]} for Other Regulatory
+    # Actions and the section simply vanished.) Compare against the previous
+    # briefing and speak up when a section that had content now has none.
+    produced = {c["name"] for c in categories}
+    with sqlite3.connect(str(DB_PATH)) as conn:
+        prev_row = conn.execute(
+            "SELECT categories_json FROM regulation_briefings "
+            "ORDER BY generated_at DESC LIMIT 1"
+        ).fetchone()
+    if prev_row:
+        try:
+            prev_cats = json.loads(prev_row[0]).get("categories", [])
+            regressed = sorted(
+                c["name"] for c in prev_cats
+                if c.get("bullets") and c["name"] not in produced
+            )
+        except (ValueError, TypeError, KeyError):
+            regressed = []
+        if regressed:
+            msg = ("⚠️ Regulation briefing LOST a section that had content last run: "
+                   + ", ".join(regressed))
+            print(f"[briefing] {msg}", flush=True)
+            try:
+                notify(msg)
+            except Exception as e:  # noqa: BLE001 — alerting must not fail the run
+                print(f"[briefing] regression notify failed: {type(e).__name__}: {e}", flush=True)
+
     payload = {"categories": categories}
     with sqlite3.connect(str(DB_PATH)) as conn:
         init_schema(conn)

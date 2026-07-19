@@ -92,12 +92,33 @@ def items_with_body_url(
     return [(row[0], row[1]) for row in conn.execute(sql, (source,))]
 
 
+# A re-fetch that comes back materially shorter is far more likely to be a page
+# that changed shape, an interstitial, or a partial render than genuine editorial
+# deletion — and overwriting on that basis destroys content we cannot recover
+# except from the source we just failed to read properly. Allow a little slack
+# for whitespace/boilerplate churn.
+_SHRINK_FLOOR_RATIO = 0.9
+_SHRINK_FLOOR_CHARS = 100
+
+
 def update_body(
     conn: sqlite3.Connection,
     source: str,
     external_id: str,
     body_text: str,
-) -> None:
+) -> bool:
+    """Store a re-fetched body. Returns False (and writes nothing) if the new
+    body is materially shorter than what we already hold."""
+    row = conn.execute(
+        "SELECT length(body_text) FROM news_items WHERE source = ? AND external_id = ?",
+        (source, external_id),
+    ).fetchone()
+    have = int(row[0] or 0) if row else 0
+    now = len(body_text or "")
+    if have and now < have * _SHRINK_FLOOR_RATIO and (have - now) > _SHRINK_FLOOR_CHARS:
+        print(f"[body] SKIP {source}:{external_id} — refetch shrank {have} → {now} chars",
+              flush=True)
+        return False
     # Bump fetched_at so the incremental D1 push (which filters on fetched_at)
     # picks up body-only refreshes — UPDATE wouldn't otherwise touch it.
     conn.execute(
@@ -106,3 +127,4 @@ def update_body(
         (body_text, source, external_id),
     )
     conn.commit()
+    return True

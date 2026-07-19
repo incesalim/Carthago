@@ -67,3 +67,15 @@ jobs:
         if: always()
         continue-on-error: true
         run: python scripts/check_public_api.py --alert
+
+      # Bodies are fetched once and never revisited, so an improvement to the
+      # extractor never heals history — that is how the regulation briefing lost
+      # the loan-growth caps for two months without anything failing. Samples the
+      # newest items and alerts when a live page yields materially more than we
+      # hold. Reads D1 (no snapshot in this job) and never writes a body.
+      - name: Verify stored news bodies are current
+        if: always()
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: python scripts/check_body_freshness.py --d1 --limit 20 --alert
