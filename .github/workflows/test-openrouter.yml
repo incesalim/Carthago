@@ -138,6 +138,7 @@ jobs:
             time python scripts/summarize_regulations.py --only-category "$CAT" --force
           fi
           python scripts/scratch_dump_briefing.py "OpenRouter / $KIMI_MODEL"
+          python scripts/check_briefing_facts.py
 
       - name: Same section on the incumbent (Kimi) for A/B
         if: inputs.task == 'regulation' && inputs.kimi_baseline
