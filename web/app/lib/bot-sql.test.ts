@@ -225,6 +225,21 @@ describe("substituteDataList — numbers come from the rows, not the prose", () 
     expect(substituteDataList(prose, rows)).toContain("1. B1 — 6.000.000");
   });
 
+  it("fires on a bolded list — the markdown one model emits and another doesn't", () => {
+    // Live regression: `finalize` strips '*' AFTER substitution, so a bolded
+    // list slipped past detection and that model's typed figures survived.
+    const prose = [
+      "2026Q1:",
+      "**1. B1** — 9.999.999 bin TL",
+      "**2. B2** — 5.000.000 bin TL",
+      "**3. B3** — 4.000.000 bin TL",
+    ].join("\n");
+    const out = substituteDataList(prose, rows);
+    expect(out).toContain("1. B1 — 6.000.000");  // corrected from the rows
+    expect(out).not.toContain("9.999.999");
+    expect(out).toContain("6. B6 — 1.000.000");  // all 6 rows, not the 3 typed
+  });
+
   it("leaves a short result alone", () => {
     const prose = "x:\n1. A — 1\n2. B — 2\n3. C — 3";
     expect(substituteDataList(prose, rows.slice(0, 2))).toBe(prose);

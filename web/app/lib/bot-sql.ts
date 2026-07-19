@@ -254,7 +254,13 @@ export function substituteDataList(
   minRows = 5,
 ): string {
   if (rows.length < minRows) return prose;
-  const lines = prose.split("\n");
+  // Strip markdown emphasis FIRST. The caller strips it later anyway, but list
+  // detection runs before that — and a model that writes "**1. ZIRAAT** — …"
+  // produced lines starting with '*', which the numbered-item pattern missed.
+  // The substitution then silently didn't fire, so that model's hand-typed
+  // figures survived while another model's were re-rendered. Same question, two
+  // behaviours, no error either time.
+  const lines = prose.replace(/\*+/g, "").replace(/`/g, "").split("\n");
   const listCount = lines.filter((l) => LIST_LINE.test(l)).length;
   if (listCount < 3) return prose; // not a listing — leave it alone
 
