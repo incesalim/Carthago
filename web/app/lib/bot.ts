@@ -19,8 +19,7 @@ import { AGENT_SYSTEM } from "./bot-schema";
 import { BANK_NAMES } from "./bank_names";
 import {
   DEFAULT_ROW_CAP, checkSectorAggregation, checkTickerEnumeration, formatTable,
-  sanitizeSelect,
-  substituteDataList,
+  inventedNumbers, numbersIn, sanitizeSelect, substituteDataList,
 } from "./bot-sql";
 import { escapeHtml, sendMessage, type TgUpdate } from "./telegram";
 
@@ -198,6 +197,12 @@ export async function runAgent(
   // Rows from the last successful query — the model answers FROM these, so a
   // listing it types out can be re-rendered from them instead of trusted.
   let lastRows: Record<string, unknown>[] = [];
+  // The SQL behind lastRows — its ORDER BY tells the renderer which column the
+  // answer is actually about.
+  let lastSql: string | undefined;
+  // One correction round only; a model that cannot ground its figures twice is
+  // not going to on the third try, and each attempt costs free-tier quota.
+  let retriedForNumbers = false;
 
   for (let step = 0; step < MAX_STEPS; step++) {
     let gen;
@@ -213,8 +218,17 @@ export async function runAgent(
       // returned data is a hallucination. NEVER show it - push the model back to
       // querying and keep looping. (Strip separators first so a grouped number
       // like 43.520.620 still reads as a 4+ digit figure.)
+      // The 4+ digit test alone let every RATIO through: "%16,2", "NPL ratio is
+      // 2.3%", "ROE was 38,5%", "750 branches" were all sent with no query run —
+      // and those are the most-asked question shapes. Catch a percentage, a
+      // decimal, or any bare figure paired with a unit word.
       const digitsOnly = gen.text.replace(/[.,\s]/g, "");
-      const ungrounded = !gotData && (/\d{4,}/.test(digitsOnly) || /\{[a-z_]+\}/i.test(gen.text));
+      const statesAFigure =
+        /\d{4,}/.test(digitsOnly) ||
+        /%\s*\d|\d\s*%/.test(gen.text) ||
+        /\d+[.,]\d/.test(gen.text) ||
+        /\b\d{2,}\s*(?:şube|branch|adet|personel|employee|bank)/i.test(gen.text);
+      const ungrounded = !gotData && (statesAFigure || /\{[a-z_]+\}/i.test(gen.text));
       if (ungrounded) {
         messages.push({ role: "assistant", content: gen.text });
         messages.push({
@@ -227,7 +241,30 @@ export async function runAgent(
         continue;
       }
       // No query needed → this is the final answer to the user.
-      const answer = substituteDataList(gen.text, lastRows);
+      const answer = substituteDataList(gen.text, lastRows, 5, lastSql);
+
+      // Last line of defence: every figure in the answer should be traceable to
+      // a figure in the rows. `gotData` only proves SOME query returned SOMETHING
+      // — it says nothing about whether THIS sentence's numbers came from it.
+      // Give the model one chance to correct itself before giving up.
+      const unsupported = lastRows.length
+        ? inventedNumbers(answer, numbersIn(JSON.stringify(lastRows)))
+        : [];
+      if (unsupported.length && !retriedForNumbers) {
+        retriedForNumbers = true;
+        await logQuery(db, { chatHash: ch, question, step, sql: lastSql ?? "",
+          outcome: "rejected",
+          detail: `answer cited figures absent from the data: ${unsupported.slice(0, 5).join(", ")}` });
+        messages.push({ role: "assistant", content: gen.text });
+        messages.push({
+          role: "user",
+          content:
+            `These figures are not in any result you retrieved: ${unsupported.slice(0, 8).join(", ")}. ` +
+            "Do NOT state a number you did not query. Either re-query to get it, or " +
+            "rewrite the answer using only the values you actually have.",
+        });
+        continue;
+      }
       return { reply: finalize(answer) || "⚠️ I couldn't produce an answer. Please try rephrasing.", trace };
     }
 
@@ -263,7 +300,11 @@ export async function runAgent(
     let feedback: string;
     try {
       const res = await db.prepare(san.sql).all<Record<string, unknown>>();
-      const rows = (res.results ?? []).slice(0, ROW_CAP);
+      const fetched = res.results ?? [];
+      // sanitizeSelect asked for ROW_CAP + 1 when it imposed the cap, so an
+      // extra row here means the real population is LARGER than what we hold.
+      const truncated = san.capImposed === true && fetched.length > ROW_CAP;
+      const rows = fetched.slice(0, ROW_CAP);
       // An aggregate over ZERO matching rows still returns ONE row — of NULLs.
       // Counting that as "a query returned data" switched off the hallucination
       // guard below while nothing had actually been retrieved: this really
@@ -273,7 +314,7 @@ export async function runAgent(
       const meaningful = rows.some((r: Record<string, unknown>) =>
         Object.values(r).some((v) => v !== null && v !== undefined),
       );
-      if (meaningful) { gotData = true; lastRows = rows; }
+      if (meaningful) { gotData = true; lastRows = rows; lastSql = san.sql; }
       trace.push({ sql: san.sql, result: `${rows.length} rows` });
       await logQuery(db, { chatHash: ch, question, step, sql: san.sql,
         outcome: "rows", rowCount: rows.length });
@@ -295,14 +336,27 @@ export async function runAgent(
         // slice could cut it off and hide the truncation. State the full count
         // up front, and append an explicit marker if the slice bites.
         const table = formatTable(rows, MODEL_ROWS, 80);
-        const cut = table.length > MODEL_RESULT_CHARS;
+        // Cut on a LINE boundary. A raw character slice ends mid-row and even
+        // mid-number, so the model reads 10000 for 100000245 and believes it.
+        const body = table.length > MODEL_RESULT_CHARS
+          ? table.slice(0, MODEL_RESULT_CHARS).replace(/\n[^\n]*$/, "")
+          : table;
+        const cut = body.length < table.length;
         feedback =
           `Result (${rows.length} row${rows.length === 1 ? "" : "s"}` +
           `${rows.length > MODEL_ROWS ? `, showing the first ${MODEL_ROWS}` : ""}):\n` +
-          table.slice(0, MODEL_RESULT_CHARS) +
-          (cut ? `\n… OUTPUT TRUNCATED — you are seeing only part of ${rows.length} rows. ` +
-                 "Do NOT state a count or a 'complete list' from this; re-query with " +
-                 "fewer columns or an aggregate if you need all of it." : "");
+          body +
+          // The POPULATION was cut, not just the display: more rows matched than
+          // we are allowed to fetch. This is the one that silently dropped
+          // Ziraat, VakıfBank and Yapı Kredi from a multi-period ranking.
+          (truncated
+            ? `\n⚠ MORE THAN ${ROW_CAP} ROWS MATCHED — this is a TRUNCATED ` +
+              "POPULATION, not the whole result. Do NOT rank, count, or describe " +
+              "it as complete. Re-query with an aggregate (COUNT/SUM/MAX), a " +
+              "tighter filter, or one period at a time."
+            : "") +
+          (cut ? `\n… output shortened — you are seeing part of ${rows.length} rows. ` +
+                 "Do not state a count from this; re-query with fewer columns." : "");
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : "query failed";
@@ -325,7 +379,11 @@ export async function runAgent(
   });
   try {
     const gen = await chatComplete(env, messages, { temperature: 0, maxTokens: 1400 });
-    return { reply: finalize(gen.text) || "⚠️ I couldn't work that out. Please try rephrasing.", trace };
+    // Re-render here too. This branch used to send the model's hand-typed
+    // figures straight through, and it is reached by exactly the longest,
+    // most-refined conversations — the ones most likely to carry a ranking.
+    const forced = substituteDataList(gen.text, lastRows, 5, lastSql);
+    return { reply: finalize(forced) || "⚠️ I couldn't work that out. Please try rephrasing.", trace };
   } catch {
     return { reply: "⚠️ I couldn't work that out. Please try rephrasing.", trace };
   }

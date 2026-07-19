@@ -24,8 +24,24 @@ export const MAX_SQL_LEN = 2000;
 export const DEFAULT_ROW_CAP = 200;
 
 export type SanitizeResult =
-  | { ok: true; sql: string }
+  | { ok: true; sql: string; capImposed?: boolean }
   | { ok: false; error: string };
+
+/**
+ * Remove parenthesised groups so a clause can be tested at the TOP level only.
+ *
+ * `WHERE period IN (SELECT … ORDER BY period DESC LIMIT 8)` contains the word
+ * LIMIT, but the outer query has none — testing the raw string let that pass
+ * uncapped.
+ */
+export function stripParenGroups(sql: string): string {
+  let out = sql, prev = "";
+  while (out !== prev) {
+    prev = out;
+    out = out.replace(/\([^()]*\)/g, " ");
+  }
+  return out;
+}
 
 /** Remove `/* … *​/` and `-- …` comments so they can't hide keywords or `;`. */
 export function stripSqlComments(sql: string): string {
@@ -76,14 +92,30 @@ export function sanitizeSelect(
     }
   }
 
-  // Enforce a row cap on the top-level query. If the model already wrote a
-  // LIMIT anywhere we leave it (the JS-side slice in the caller is the real
-  // backstop); otherwise append one.
-  if (!/\blimit\b/i.test(lower)) {
-    sql = `${sql} LIMIT ${rowCap}`;
+  // Row cap. Two things went wrong here before:
+  //
+  //  1. The LIMIT test ran against the WHOLE statement, so a LIMIT inside a
+  //     subquery suppressed the outer cap entirely.
+  //  2. When the cap DID apply, it silently truncated the population and the
+  //     caller reported the truncated count as if it were the whole result. On
+  //     a real "NPL ratio since 2024, all banks" query that is 327 rows cut to
+  //     200 — dropping Ziraat, VakıfBank, Yapı Kredi, TEB and TSKB with no
+  //     error and no warning.
+  //
+  // So: look for a TOP-LEVEL limit only, clamp the model's own to rowCap, and
+  // fetch ONE extra row so the caller can tell "exactly full" from "there was
+  // more" and say so.
+  const topLevel = stripParenGroups(sql);
+  const own = topLevel.match(/\blimit\s+(\d+)/i);
+  if (own) {
+    const asked = parseInt(own[1], 10);
+    if (asked > rowCap) {
+      sql = sql.replace(/\blimit\s+\d+(?![\s\S]*\blimit\b)/i, `LIMIT ${rowCap + 1}`);
+      return { ok: true, sql, capImposed: true };
+    }
+    return { ok: true, sql, capImposed: false };
   }
-
-  return { ok: true, sql };
+  return { ok: true, sql: `${sql} LIMIT ${rowCap + 1}`, capImposed: true };
 }
 
 /** Fold Turkish letters to ASCII so "Garanti"/"GARANTİ"/"İş" compare cleanly. */
@@ -106,7 +138,12 @@ export function enumeratedTickers(sql: string): string[] {
   )) {
     for (const lit of m[1].matchAll(/'([^']+)'/g)) out.add(lit[1].toUpperCase());
   }
-  for (const m of clean.matchAll(/bank_ticker\s*=\s*'([^']+)'/gi)) {
+  // NOT IN narrows just as effectively, and a LIKE chain or a VALUES list is the
+  // same choice wearing a different hat.
+  for (const m of clean.matchAll(/bank_ticker\s+not\s+in\s*\(([^)]*)\)/gi)) {
+    for (const lit of m[1].matchAll(/'([^']+)'/g)) out.add(lit[1].toUpperCase());
+  }
+  for (const m of clean.matchAll(/bank_ticker\s*(?:=|<>|!=|like)\s*'([^'%_]+)'/gi)) {
     out.add(m[1].toUpperCase());
   }
   return [...out];
@@ -145,15 +182,20 @@ export function checkTickerEnumeration(
     // is how people actually refer to these banks.
     return !!name && q.includes(foldTr(name.split(/\s+/)[0]));
   });
-  if (mentioned.length) return { ok: true, sql };
+  // EVERY pinned ticker must have been named. Accepting the list because ONE
+  // matched is bug #2 with a one-word bypass: "how does Garanti compare with
+  // the other banks?" + IN ('GARAN','AKBNK','ISCTR','HALKB','YKBNK') answers
+  // for 5 of 38 and reads as exhaustive.
+  if (mentioned.length === tickers.length) return { ok: true, sql };
+  const unnamed = tickers.filter((t) => !mentioned.includes(t));
 
   return {
     ok: false,
     error:
-      `the query hardcodes ${tickers.length} bank tickers the question never ` +
-      `named (${tickers.slice(0, 5).join(", ")}…). Do not choose which banks to ` +
-      `include — let the WHERE clause select them, so every bank with data is ` +
-      `covered`,
+      `the query hardcodes bank tickers the question never named ` +
+      `(${unnamed.slice(0, 5).join(", ")}${unnamed.length > 5 ? "…" : ""}). Do not ` +
+      `choose which banks to include — let the WHERE clause select them, so ` +
+      `every bank with data is covered`,
   };
 }
 
@@ -199,8 +241,44 @@ export function formatTable(
 /** Sector-aggregate tables, all keyed by the overlapping bank_type_code. */
 const SECTOR_TABLES = [
   "balance_sheet", "income_statement", "loans", "deposits",
-  "financial_ratios", "other_data",
+  "financial_ratios", "other_data", "weekly_series",
 ];
+
+/**
+ * The three partitions of the sector. Each re-covers its parent in full, so
+ * mixing codes from two of them — or adding anything to 10001 — double-counts.
+ */
+const BANK_TYPE_PARTITIONS: Record<string, string[]> = {
+  licence: ["10002", "10003", "10004"],
+  ownership: ["10005", "10006", "10007"],
+  depositSplit: ["10008", "10009", "10010"],
+};
+
+/** Literal bank_type_code values the SQL pins, however it spells the filter. */
+export function enumeratedBankTypes(sql: string): string[] {
+  const clean = stripSqlComments(sql);
+  const out = new Set<string>();
+  for (const m of clean.matchAll(/bank_type_code\s+in\s*\(([^)]*)\)/gi)) {
+    for (const lit of m[1].matchAll(/'(\d+)'/g)) out.add(lit[1]);
+  }
+  for (const m of clean.matchAll(/bank_type_code\s*=\s*'(\d+)'/gi)) out.add(m[1]);
+  return [...out];
+}
+
+/**
+ * True when a set of bank_type_codes spans more than one view of the sector.
+ *
+ * 10001 IS the whole sector, so pairing it with anything counts those banks
+ * twice; and the three partitions each cover the sector independently, so
+ * drawing from two of them does the same.
+ */
+function mixesPartitions(codes: string[]): boolean {
+  if (codes.length < 2) return false;
+  if (codes.includes("10001")) return true;
+  const hit = Object.values(BANK_TYPE_PARTITIONS)
+    .filter((part) => codes.some((c) => part.includes(c))).length;
+  return hit > 1;
+}
 
 /**
  * Reject an aggregate over the sector tables that doesn't pin bank_type_code.
@@ -228,18 +306,55 @@ export function checkSectorAggregation(sql: string): SanitizeResult {
   // Only aggregation can conflate the groups; a plain SELECT of many rows can't.
   if (!/\b(?:sum|avg|total)\s*\(/i.test(lower)) return { ok: true, sql };
 
-  const filtered = /bank_type_code\s*(?:=|\bin\b)/i.test(lower);
-  const grouped = /group\s+by[\s\S]*?bank_type_code/i.test(lower);
-  if (filtered || grouped) return { ok: true, sql };
+  const codes = enumeratedBankTypes(clean);
+  const grouped = /group\s+by[^;]*\bbank_type_code\b/i.test(lower);
 
-  return {
-    ok: false,
-    error:
-      "it aggregates a sector table without constraining bank_type_code. Those " +
-      "codes are overlapping partitions of the SAME sector, so summing across " +
-      "them counts banks two or three times. Use bank_type_code='10001' for the " +
-      "whole sector (it is already the total), or GROUP BY bank_type_code",
-  };
+  // An IN list is NOT automatically safe: IN ('10001','10002','10003','10004')
+  // sums the sector on top of its own licence partition — exactly 2.00x — and
+  // reads as a careful, explicit filter.
+  if (mixesPartitions(codes)) {
+    return {
+      ok: false,
+      error:
+        `it aggregates over bank_type_code ${codes.join(", ")}, which span more ` +
+        "than one view of the SAME sector. 10001 is already the whole sector, " +
+        "and 10002-10004 (by licence), 10005-10007 (by ownership) and " +
+        "10008-10010 each re-cover it, so this counts banks twice. Pick ONE " +
+        "code, or one partition, or GROUP BY bank_type_code",
+    };
+  }
+
+  if (!codes.length && !grouped) {
+    return {
+      ok: false,
+      error:
+        "it aggregates a sector table without constraining bank_type_code. Those " +
+        "codes are overlapping partitions of the SAME sector, so summing across " +
+        "them counts banks two or three times. Use bank_type_code='10001' for the " +
+        "whole sector (it is already the total), or GROUP BY bank_type_code",
+    };
+  }
+
+  // Pinning the bank type is not enough: these tables interleave line items with
+  // subtotals and a grand total, so SUM over an unconstrained item column adds
+  // the balance sheet to itself — 8.1x on balance_sheet, 2x on loans. Correct
+  // arithmetic, wrong population, no error.
+  const rowPinned =
+    /\b(?:item_order|item_name|is_subtotal|category|item_id)\b\s*(?:=|\bin\b|\blike\b|\bis\b)/i.test(lower) ||
+    /group\s+by[^;]*\b(?:item_order|item_name|category|item_id)\b/i.test(lower);
+  if (!rowPinned) {
+    return {
+      ok: false,
+      error:
+        "it sums a sector table across ALL line items. These tables hold leaf " +
+        "lines, subtotals AND a grand total together, so this adds the balance " +
+        "sheet to itself (8x on balance_sheet, 2x on loans). Read the labelled " +
+        "total row instead — e.g. item_name='TOPLAM AKTİFLER' — or filter " +
+        "is_subtotal=0, or GROUP BY item_name",
+    };
+  }
+
+  return { ok: true, sql };
 }
 
 /** Turkish thousand separators: 43520620 -> "43.520.620". Decimals keep a comma. */
@@ -249,7 +364,15 @@ export function formatTrNumber(v: number): string {
   const whole = Math.trunc(abs);
   const frac = abs - whole;
   let s = String(whole).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  if (frac > 0) s += "," + frac.toFixed(2).slice(2).replace(/0+$/, "");
+  if (frac > 0) {
+    // Two decimals is right for money but destroys a fraction: stage coverage is
+    // stored as 0.0083, and toFixed(2) makes that "0,01" — or, once trailing
+    // zeros are stripped, the malformed "0,". Keep enough significant digits
+    // that small values survive, and never emit a bare separator.
+    const decimals = abs >= 1 ? 2 : Math.min(6, Math.max(2, -Math.floor(Math.log10(frac)) + 1));
+    const fracStr = frac.toFixed(decimals).slice(2).replace(/0+$/, "");
+    if (fracStr) s += "," + fracStr;
+  }
   return (neg ? "-" : "") + s;
 }
 
@@ -260,26 +383,58 @@ export function formatTrNumber(v: number): string {
  * the value — which covers the shape this matters for (ticker + figure). Returns
  * null when the rows aren't that shape, so the caller leaves the answer alone.
  */
-export function renderDataList(rows: Record<string, unknown>[]): string | null {
+const LIST_LINE = /^\s*(?:\d+\s*[.)\]]|\(\d+\)|[-–—•·▪‣◦*])\s*\S/;
+
+/** Labels the model typed in its list, for comparing against candidate rows. */
+function typedLabels(lines: string[]): string[] {
+  const out: string[] = [];
+  for (const l of lines) {
+    if (!LIST_LINE.test(l)) continue;
+    const body = l.replace(/^\s*(?:\d+\s*[.)\]]|\(\d+\)|[-–—•·▪‣◦*])\s*/, "");
+    const label = body.split(/\s+[—–:-]\s+|\s{2,}/)[0].trim();
+    if (label) out.push(label.toUpperCase());
+  }
+  return out;
+}
+
+/**
+ * Render query rows as a numbered list, from the DATA rather than from prose.
+ *
+ * `valueCol` should be the column the answer is actually ABOUT — normally the
+ * one the query sorted by. Picking the first numeric column instead prints the
+ * wrong figure under a right-looking caption: for
+ * `SELECT bank_ticker, period, stage3_amount, total_amount, npl_pct … ORDER BY
+ * npl_pct DESC` it emits the absolute Stage-3 amount under "ranked by NPL
+ * ratio", correctly ordered and entirely wrong.
+ */
+export function renderDataList(
+  rows: Record<string, unknown>[],
+  valueCol?: string,
+): string | null {
   if (!rows.length) return null;
   const cols = Object.keys(rows[0]);
   const isNum = (c: string) =>
+    rows.some((r) => typeof r[c] === "number") &&
     rows.every((r) => r[c] === null || typeof r[c] === "number");
-  const valueCol = cols.find(isNum);
-  const labelCol = cols.find((c) => c !== valueCol);
-  if (!valueCol || !labelCol) return null;
+  const numeric = cols.filter(isNum);
+  const value = valueCol && numeric.includes(valueCol) ? valueCol : numeric[0];
+  const label = cols.find((c) => c !== value && !isNum(c)) ?? cols.find((c) => c !== value);
+  if (!value || !label) return null;
 
   return rows
     .map((r, i) => {
-      const v = r[valueCol];
+      const v = r[value];
       const shown = typeof v === "number" ? formatTrNumber(v) : "—";
-      return `${i + 1}. ${String(r[labelCol] ?? "")} — ${shown}`;
+      return `${i + 1}. ${String(r[label] ?? "")} — ${shown}`;
     })
     .join("\n");
 }
 
-/** A prose line that is really a data row the model retyped. */
-const LIST_LINE = /^\s*(?:\d+[.)]|[-•*])\s+\S/;
+/** The column an ORDER BY sorts on — the one the answer is really about. */
+export function orderByColumn(sql: string): string | undefined {
+  const m = stripSqlComments(sql).match(/order\s+by\s+([a-z_][a-z0-9_]*)/i);
+  return m ? m[1].toLowerCase() : undefined;
+}
 
 /**
  * Replace the model's hand-typed list with one rendered from the actual rows,
@@ -288,30 +443,46 @@ const LIST_LINE = /^\s*(?:\d+[.)]|[-•*])\s+\S/;
  * The model retypes every figure into prose, so a long ranking is 38 chances to
  * drop a digit, and two runs of the same question formatted differently because
  * the provider chain answered from different models. Rendering the list from the
- * rows makes both impossible: the numbers are the queried ones by construction,
- * and the layout no longer depends on which model replied.
+ * rows makes both impossible.
  *
- * Conservative by design — only fires on a genuine ranking (enough rows, and the
- * model clearly produced a list), and returns the prose untouched otherwise.
+ * Three things keep it honest, each learned from a real failure:
+ *  • LABEL OVERLAP — `rows` is whatever the LAST query returned, which is not
+ *    always the query the answer is about. Without this check a follow-up
+ *    "SELECT period, COUNT(*)" replaced a 38-bank ranking with a list of periods
+ *    under the ranking's caption.
+ *  • RESPECTING A DELIBERATE TOP-N — if the model listed 5 of 38 rows on
+ *    purpose, render the first 5, not all 38, or the list contradicts the
+ *    caption above it.
+ *  • valueCol from ORDER BY — see renderDataList.
  */
 export function substituteDataList(
   prose: string,
   rows: Record<string, unknown>[],
   minRows = 5,
+  sql?: string,
 ): string {
   if (rows.length < minRows) return prose;
-  // Strip markdown emphasis FIRST. The caller strips it later anyway, but list
-  // detection runs before that — and a model that writes "**1. ZIRAAT** — …"
-  // produced lines starting with '*', which the numbered-item pattern missed.
-  // The substitution then silently didn't fire, so that model's hand-typed
-  // figures survived while another model's were re-rendered. Same question, two
-  // behaviours, no error either time.
-  const lines = prose.replace(/\*+/g, "").replace(/`/g, "").split("\n");
-  const listCount = lines.filter((l) => LIST_LINE.test(l)).length;
-  if (listCount < 3) return prose; // not a listing — leave it alone
+  // Strip PAIRED emphasis only. Stripping every '*' also ate leading bullets,
+  // which made "* ZIRAAT — 1000" undetectable and left that model's figures
+  // untouched while another model's were re-rendered.
+  const lines = prose.replace(/\*\*/g, "").replace(/`/g, "").split("\n");
+  const listLines = lines.filter((l) => LIST_LINE.test(l));
+  if (listLines.length < 3) return prose;
 
-  const rendered = renderDataList(rows);
+  const value = sql ? orderByColumn(sql) : undefined;
+  const rendered = renderDataList(rows, value);
   if (!rendered) return prose;
+
+  // Do the rows actually correspond to what the model listed?
+  const typed = typedLabels(lines);
+  const rowText = JSON.stringify(rows).toUpperCase();
+  const hits = typed.filter((t) => t.length > 1 && rowText.includes(t)).length;
+  if (!typed.length || hits / typed.length < 0.5) return prose;
+
+  // A deliberate top-N stays a top-N.
+  const slice = typed.length < rows.length ? rows.slice(0, typed.length) : rows;
+  const finalList = renderDataList(slice, value);
+  if (!finalList) return prose;
 
   const before: string[] = [];
   const after: string[] = [];
@@ -322,12 +493,11 @@ export function substituteDataList(
   }
   return [
     before.join("\n").trim(),
-    rendered,
+    finalList,
     after.join("\n").trim(),
   ].filter(Boolean).join("\n\n");
 }
 
-/** Every distinct numeric token in `text` (ignores thousands separators). */
 export function numbersIn(text: string): number[] {
   const out: number[] = [];
   for (const m of text.replace(/,/g, "").matchAll(/-?\d+(?:\.\d+)?/g)) {

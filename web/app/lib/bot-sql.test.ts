@@ -18,7 +18,10 @@ describe("sanitizeSelect — accepts read-only queries", () => {
   it("accepts a plain SELECT and appends a LIMIT", () => {
     const r = sanitizeSelect("SELECT bank_ticker FROM bank_audit_capital");
     expect(r.ok).toBe(true);
-    if (r.ok) expect(r.sql).toBe(`SELECT bank_ticker FROM bank_audit_capital LIMIT ${DEFAULT_ROW_CAP}`);
+    // rowCap + 1: the extra row is how the caller distinguishes "exactly full"
+    // from "there was more", so a truncated population can be announced.
+    if (r.ok) expect(r.sql).toBe(`SELECT bank_ticker FROM bank_audit_capital LIMIT ${DEFAULT_ROW_CAP + 1}`);
+    if (r.ok) expect(r.capImposed).toBe(true);
   });
 
   it("accepts a WITH … SELECT (CTE)", () => {
@@ -140,7 +143,7 @@ describe("checkTickerEnumeration — the model must not pick the banks", () => {
       NAMES,
     );
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.error).toContain("hardcodes 4 bank tickers");
+    if (!r.ok) expect(r.error).toContain("hardcodes bank tickers the question never named");
   });
 
   it("allows a list the user actually asked for, by ticker or by name", () => {
@@ -213,12 +216,53 @@ describe("substituteDataList — numbers come from the rows, not the prose", () 
   }));
 
   it("replaces a hand-typed ranking with one rendered from the data", () => {
-    const prose = "2026Q1 sıralaması:\n1. B1 — 6.000.000\n2. B2 — 5.000.000\n3. WRONG — 999\nKaynak: BDDK.";
+    const prose = "2026Q1 sıralaması:\n1. B1 — 6.000.000\n2. B2 — 5.000.000\n" +
+      "3. B3 — 999\n4. B4 — 3.000.000\n5. B5 — 2.000.000\n6. B6 — 1.000.000\n" +
+      "Kaynak: BDDK.";
     const out = substituteDataList(prose, rows);
     expect(out).toContain("2026Q1 sıralaması:");   // caption kept
     expect(out).toContain("Kaynak: BDDK.");        // trailing prose kept
-    expect(out).not.toContain("WRONG");            // the model's line is gone
-    expect(out).toContain("6. B6 — 1.000.000");    // all rows rendered, not just typed ones
+    expect(out).not.toContain("999");              // the model's wrong figure is gone
+    expect(out).toContain("3. B3 — 4.000.000");    // replaced by the queried value
+    expect(out).toContain("6. B6 — 1.000.000");    // every row rendered
+  });
+
+  it("keeps a deliberate top-N a top-N instead of appending every row", () => {
+    // The model listing 3 of 6 on purpose must not have all 6 pasted under a
+    // caption that says "top 3" — the list would contradict the sentence above it.
+    const prose = "En büyük 3 banka:\n1. B1 — 6.000.000\n2. B2 — 5.000.000\n3. B3 — 4.000.000";
+    const out = substituteDataList(prose, rows);
+    expect(out).toContain("3. B3 — 4.000.000");
+    expect(out).not.toContain("B4");
+  });
+
+  it("declines when the rows are from a different query than the answer", () => {
+    // lastRows is whatever ran most recently. A follow-up "SELECT period,
+    // COUNT(*)" once replaced a 38-bank ranking with a list of periods, under
+    // the ranking's own caption.
+    const unrelated = Array.from({ length: 8 }, (_, i) => ({
+      period: `2026Q${i + 1}`, n: i + 1,
+    }));
+    const prose = "Bankalar:\n1. B1 — 6.000.000\n2. B2 — 5.000.000\n3. B3 — 4.000.000";
+    expect(substituteDataList(prose, unrelated)).toBe(prose);
+  });
+
+  it("renders the column the query sorted by, not the first numeric one", () => {
+    // ORDER BY npl_pct with stage3_amount first would print absolute Stage-3
+    // amounts under a caption saying "ranked by NPL ratio" — right order,
+    // wrong figures, no mismatch signal.
+    const npl = [
+      { bank_ticker: "B1", stage3_amount: 45123456, npl_pct: 8.1 },
+      { bank_ticker: "B2", stage3_amount: 30000000, npl_pct: 6.4 },
+      { bank_ticker: "B3", stage3_amount: 20000000, npl_pct: 5.2 },
+      { bank_ticker: "B4", stage3_amount: 10000000, npl_pct: 4.0 },
+      { bank_ticker: "B5", stage3_amount: 5000000, npl_pct: 2.5 },
+    ];
+    const prose = "NPL:\n1. B1 — 8,1\n2. B2 — 6,4\n3. B3 — 5,2\n4. B4 — 4\n5. B5 — 2,5";
+    const out = substituteDataList(prose, npl, 5,
+      "SELECT bank_ticker, stage3_amount, npl_pct FROM t ORDER BY npl_pct DESC");
+    expect(out).toContain("1. B1 — 8,1");
+    expect(out).not.toContain("45.123.456");
   });
 
   it("corrects a figure the model mistyped", () => {
@@ -234,11 +278,23 @@ describe("substituteDataList — numbers come from the rows, not the prose", () 
       "**1. B1** — 9.999.999 bin TL",
       "**2. B2** — 5.000.000 bin TL",
       "**3. B3** — 4.000.000 bin TL",
+      "**4. B4** — 3.000.000 bin TL",
+      "**5. B5** — 2.000.000 bin TL",
+      "**6. B6** — 1.000.000 bin TL",
     ].join("\n");
     const out = substituteDataList(prose, rows);
     expect(out).toContain("1. B1 — 6.000.000");  // corrected from the rows
     expect(out).not.toContain("9.999.999");
-    expect(out).toContain("6. B6 — 1.000.000");  // all 6 rows, not the 3 typed
+    expect(out).toContain("6. B6 — 1.000.000");
+  });
+
+  it("fires on a '*' bullet — stripping every asterisk once ate the bullet itself", () => {
+    const prose = ["Sıralama:", "* B1 — 9.999.999", "* B2 — 5.000.000",
+      "* B3 — 4.000.000", "* B4 — 3.000.000", "* B5 — 2.000.000",
+      "* B6 — 1.000.000"].join("\n");
+    const out = substituteDataList(prose, rows);
+    expect(out).toContain("1. B1 — 6.000.000");
+    expect(out).not.toContain("9.999.999");
   });
 
   it("leaves a short result alone", () => {
@@ -284,16 +340,19 @@ describe("checkSectorAggregation — overlapping bank_type_code groups", () => {
 
   it("allows a single-group filter — 10001 IS the sector total", () => {
     expect(checkSectorAggregation(
-      "SELECT SUM(amount_total) FROM balance_sheet WHERE bank_type_code='10001'",
+      "SELECT SUM(amount_total) FROM balance_sheet WHERE bank_type_code='10001' " +
+      "AND item_name='TOPLAM AKTİFLER'",
     ).ok).toBe(true);
   });
 
   it("allows an explicit IN list and a GROUP BY", () => {
     expect(checkSectorAggregation(
-      "SELECT SUM(amount_total) FROM loans WHERE bank_type_code IN ('10002','10003')",
+      "SELECT SUM(total_amount) FROM loans WHERE bank_type_code IN ('10002','10003') " +
+      "AND item_order=1",
     ).ok).toBe(true);
     expect(checkSectorAggregation(
-      "SELECT bank_type_code, SUM(amount_total) FROM deposits GROUP BY bank_type_code",
+      "SELECT bank_type_code, item_name, SUM(total_amount) FROM deposits " +
+      "GROUP BY bank_type_code, item_name",
     ).ok).toBe(true);
   });
 
@@ -335,5 +394,118 @@ describe("regression: the exact queries that shipped wrong answers", () => {
     expect(checkSectorAggregation(
       SECTOR_SUM.replace("WHERE b.item_name", "WHERE b.bank_type_code='10001' AND b.item_name"),
     ).ok).toBe(true);
+  });
+});
+
+describe("row cap — our own truncation must be detectable, not silent", () => {
+  it("over-fetches by one so a truncated population can be announced", () => {
+    const r = sanitizeSelect("SELECT a FROM t", 200);
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.sql).toContain("LIMIT 201");
+      expect(r.capImposed).toBe(true);
+    }
+  });
+
+  it("caps a LIMIT inside a SUBQUERY at the top level", () => {
+    // The old test ran against the whole statement, so this passed uncapped —
+    // and a 327-row multi-period ranking came back as 200 with no warning.
+    const r = sanitizeSelect(
+      "SELECT bank_ticker FROM bank_audit_stages WHERE period IN " +
+      "(SELECT DISTINCT period FROM bank_audit_stages ORDER BY period DESC LIMIT 8)",
+      200,
+    );
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.capImposed).toBe(true);
+      expect(r.sql.trim().endsWith("LIMIT 201")).toBe(true);
+    }
+  });
+
+  it("respects a model LIMIT below the cap and reports no cap", () => {
+    const r = sanitizeSelect("SELECT a FROM t LIMIT 40", 200);
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.sql).toContain("LIMIT 40");
+      expect(r.capImposed).toBe(false);
+    }
+  });
+
+  it("clamps a model LIMIT above the cap", () => {
+    const r = sanitizeSelect("SELECT a FROM t LIMIT 5000", 200);
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.sql).toContain("LIMIT 201");
+      expect(r.capImposed).toBe(true);
+    }
+  });
+});
+
+describe("checkSectorAggregation — overlap is reachable through an IN list", () => {
+  it("rejects 10001 combined with its own licence partition (exactly 2x)", () => {
+    const r = checkSectorAggregation(
+      "SELECT SUM(amount_total) FROM balance_sheet WHERE item_order=26 AND " +
+      "bank_type_code IN ('10001','10002','10003','10004')",
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toContain("more than one view");
+  });
+
+  it("rejects two partitions mixed (licence + ownership)", () => {
+    expect(checkSectorAggregation(
+      "SELECT SUM(amount_total) FROM balance_sheet WHERE item_order=26 AND " +
+      "bank_type_code IN ('10002','10003','10004','10005','10006','10007')",
+    ).ok).toBe(false);
+  });
+
+  it("rejects an OR chain drawn from two partitions", () => {
+    expect(checkSectorAggregation(
+      "SELECT SUM(amount_total) FROM balance_sheet WHERE item_order=26 AND " +
+      "(bank_type_code='10002' OR bank_type_code='10005')",
+    ).ok).toBe(false);
+  });
+
+  it("allows one whole partition", () => {
+    expect(checkSectorAggregation(
+      "SELECT SUM(amount_total) FROM balance_sheet WHERE item_order=26 AND " +
+      "bank_type_code IN ('10002','10003','10004')",
+    ).ok).toBe(true);
+  });
+
+  it("rejects summing every line item even with the bank type pinned", () => {
+    // 8.1x on balance_sheet: leaf lines, subtotals and the grand total together.
+    const r = checkSectorAggregation(
+      "SELECT SUM(amount_total) FROM balance_sheet WHERE currency='TL' AND " +
+      "bank_type_code='10001' AND year=2026 AND month=4",
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toContain("ALL line items");
+  });
+
+  it("gates weekly_series too — it carries the same overlapping codes", () => {
+    expect(checkSectorAggregation(
+      "SELECT SUM(value) FROM weekly_series WHERE period_date='2026-07-10'",
+    ).ok).toBe(false);
+  });
+});
+
+describe("formatTrNumber — fractions must survive", () => {
+  it("keeps a small coverage fraction instead of rounding it to 0,01", () => {
+    // stage3_coverage is stored as a fraction; toFixed(2) flattened the whole
+    // signal and trailing-zero stripping produced the malformed "0,".
+    expect(formatTrNumber(0.0083)).toContain("0,008");
+    expect(formatTrNumber(0.004)).not.toBe("0,");
+    expect(formatTrNumber(0.004)).toContain("0,004");
+  });
+
+  it("never emits a bare separator", () => {
+    for (const v of [0.004, 0.0001, -0.004, 0.00001]) {
+      expect(formatTrNumber(v).endsWith(",")).toBe(false);
+    }
+  });
+
+  it("still formats money with two decimals", () => {
+    expect(formatTrNumber(43520620)).toBe("43.520.620");
+    expect(formatTrNumber(20.85)).toBe("20,85");
   });
 });
