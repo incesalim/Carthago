@@ -166,6 +166,46 @@ rather than something wrong, which is at least the safer failure.
 the reverse — it is that they fail in different places, which is an argument for a
 **failover chain**, not a swap.
 
+### What the OpenRouter dashboard showed (and what it corrects)
+
+The per-call activity view — readable only from the account, not from an
+inference key (`/activity` is 403) — reframes several claims above.
+
+**Eight different upstream providers served one model in one hour:** Weights &
+Biases, DigitalOcean, Venice, AkashML, StreamLake, NovitaAI, GMICloud, Fireworks.
+Routing spread is far wider than the two-provider sample earlier in this doc
+suggested.
+
+**Output length for an identical prompt ranged 7 → 4,436 tokens.** The five-section
+run (33.9k input each, timings map 1:1 onto the section sequence in the job log):
+
+| section | provider | out tok | cost | result |
+|---|---|---:|---:|---|
+| Monetary Policy Stance | StreamLake | 3,599 | $0.00398 | 5 bullets |
+| TL Deposit Share | AkashML | 329 | $0.00485 | 6 bullets |
+| Loan Growth Caps | DigitalOcean | 279 | $0.00387 | 3 bullets |
+| Regulations on RRs | Venice | 4,436 | $0.00591 | 4 bullets |
+| **Other Regulatory Actions** | DigitalOcean | **7** | $0.00380 | **empty** |
+| ↳ retry | Weights & Biases | **7** | $0.00475 | **empty** |
+
+**On the dropped section — the evidence firmed up rather than flipped.** Seven
+output tokens is about the length of `{"bullets": []}`, and `finish_reason` is
+`stop`, so the model answered "nothing" cleanly rather than being cut off. Two
+*independent* providers returned it, which points at model/prompt behaviour rather
+than one bad host. But note what that means for the section-by-section table above:
+each of those cells is a **single draw from a different provider**, so treat the
+per-section counts as noisy, not as a ranking.
+
+**Empty answers are not cheap.** The two 7-token non-answers cost **$0.00855** —
+about a third of the whole run — because 34k of input is billed regardless. On this
+task cost is input-dominated, so provider choice barely moves the bill while moving
+output enormously. That is the argument for pinning `provider.order`.
+
+**Also:** the smoke tests show `App: carthago` while the regulation runs show
+`Unknown` — `scratch_test_openrouter.py` sends `HTTP-Referer`/`X-Title` and
+`src/news/kimi.py` does not. Cosmetic, but it is why the lane's spend is
+unattributed in the dashboard.
+
 ### ⚠️ Third silent-degradation bug found today (in the lane, not the model)
 
 A section that yields no bullets is dropped from the briefing with no error, and
