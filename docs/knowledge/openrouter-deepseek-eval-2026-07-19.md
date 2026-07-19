@@ -67,6 +67,32 @@ avoided. Output was on-voice and correctly causal:
 > "A 5.2pp decline in deposit costs to 41.5% expanded net interest margin by
 > 0.6pp to 4.2%, lifting sector ROE 3.1pp to 28.4%."
 
+## flash vs pro — the price list understates the gap 3×
+
+`v4-pro` run on the identical prompt/harness
+([29699115986](https://github.com/incesalim/Carthago/actions/runs/29699115986)):
+
+| | `v4-flash` | `v4-pro` | ratio |
+|---|---:|---:|---:|
+| List price ($/Mtok in / out) | 0.098 / 0.196 | 0.435 / 0.870 | **4.4×** |
+| Completion tokens (same prompt) | 388 | 1,161 | 3.0× |
+| Reasoning emitted | 1,226 chars | 3,668 chars | 3.0× |
+| **Actual cost per call** | $0.000148 | $0.001859 | **12.5×** |
+| Latency | 8.5 s | 23.4 s | 2.8× |
+| Guardrails (well-formed, no invented numbers, trap avoided) | ✅ | ✅ | — |
+
+**A reasoning model's headline price is not its cost ratio.** Pro is 4.4× the
+posted rate but **12.5× the actual spend**, because it also emits ~3× the
+reasoning — and reasoning bills as output tokens you never display. Any
+"cheapest model" comparison done on the price list alone will be wrong by the
+model's thinking multiplier. Measure a real call.
+
+⚠️ **This task cannot tell you whether pro is *better*.** A 30-word lead over
+five given facts has no headroom — flash scored perfect on all three of its
+runs, so there is nothing for pro to improve on, and both produced the same
+sentence in different words. The result above is a **cost/latency** finding
+only. Ranking the two on capability needs a task flash actually fails; not run.
+
 ## ⚠️ The finding that matters: provider routing is non-deterministic
 
 The two runs used the **same model at temperature 0** and produced **different
