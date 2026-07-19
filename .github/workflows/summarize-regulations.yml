@@ -33,6 +33,12 @@ on:
         type: boolean
         required: false
         default: false
+      llm:
+        description: "Provider for THIS run. Blank = the BRIEFING_LLM repo variable, else kimi."
+        type: choice
+        options: ["", kimi, deepseek-flash]
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -52,6 +58,11 @@ jobs:
       R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
       R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
       PYTHONIOENCODING: utf-8
+      # Which LLM runs the briefing. Precedence: this run's input → the
+      # BRIEFING_LLM repo variable → kimi. Switching the SCHEDULED lane is
+      # therefore a one-field change in Settings → Variables, no code, no deploy;
+      # a dispatch input overrides it for a single run without making it stick.
+      BRIEFING_LLM: ${{ inputs.llm != '' && inputs.llm || vars.BRIEFING_LLM || 'kimi' }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v6
@@ -97,7 +108,17 @@ jobs:
       - name: Generate weekly briefing via Kimi
         env:
           # Repo secret is named KIMI_API_TOKEN; Python code reads KIMI_API_KEY.
-          KIMI_API_KEY: ${{ secrets.KIMI_API_TOKEN }}
+          # On deepseek-flash the same three vars point at OpenRouter instead —
+          # kimi.py is an OpenAI-compatible client, so the swap is configuration,
+          # not code. Blank means "unset": kimi.py falls back to its own defaults.
+          KIMI_API_KEY: ${{ env.BRIEFING_LLM == 'deepseek-flash' && secrets.OPEN_ROUTER_API || secrets.KIMI_API_TOKEN }}
+          KIMI_API_URL: ${{ env.BRIEFING_LLM == 'deepseek-flash' && 'https://openrouter.ai/api/v1/chat/completions' || '' }}
+          KIMI_MODEL: ${{ env.BRIEFING_LLM == 'deepseek-flash' && 'deepseek/deepseek-v4-flash' || '' }}
+          # Pin the upstream (Baidu: best latency + throughput of 18, fp8, 100%
+          # uptime). No fallback — a bad name or an outage fails loudly rather
+          # than silently drawing a slower, pricier or JSON-incapable provider.
+          LLM_PROVIDER_ORDER: ${{ env.BRIEFING_LLM == 'deepseek-flash' && 'Baidu' || '' }}
+          LLM_ALLOW_FALLBACKS: "false"
           # Post the briefing itself to Telegram whenever the LLM actually runs.
           # Absent these, notify() no-ops to stderr — which is what keeps the
           # scratch DeepSeek bench (test-openrouter.yml) silent.

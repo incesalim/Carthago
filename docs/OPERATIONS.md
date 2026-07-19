@@ -559,6 +559,7 @@ Actions **variables** (same screen, "Variables" tab — not secrets):
 | Variable | Used by |
 |---|---|
 | `SITE_URL` | `generate-reads.yml` — the dashboard base URL "The Read" fetches; falls back to the prod URL when empty |
+| `BRIEFING_LLM` | `summarize-regulations.yml` — which LLM runs the weekly briefing: `kimi` (default, current) or `deepseek-flash` (OpenRouter, pinned to the `Baidu` upstream). **Switching the scheduled lane is this one field** — no code change, no deploy. A dispatch `llm` input overrides it for a single run without making it stick. Unset = `kimi`. `deepseek-flash` needs the `OPEN_ROUTER_API` secret |
 
 ### Worker secrets (dashboard / `/admin` / bot)
 

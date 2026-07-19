@@ -46,9 +46,12 @@ def chat_completion(
     api_key = os.environ.get("KIMI_API_KEY")
     if not api_key:
         raise RuntimeError("KIMI_API_KEY is not set")
-    url = os.environ.get("KIMI_API_URL", DEFAULT_API_URL)
+    # `or DEFAULT`, not `get(k, DEFAULT)`: CI sets these to "" when the driving
+    # input/variable is unset, and an empty string is not absent — it would post to
+    # "" and send an empty model. Same trap SITE_URL hit in generate-reads.yml.
+    url = os.environ.get("KIMI_API_URL") or DEFAULT_API_URL
     payload: dict = {
-        "model": model or os.environ.get("KIMI_MODEL", DEFAULT_MODEL),
+        "model": model or os.environ.get("KIMI_MODEL") or DEFAULT_MODEL,
         "messages": messages,
         "temperature": temperature,
     }
