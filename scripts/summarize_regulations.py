@@ -322,9 +322,15 @@ def notify_briefing(categories: list[dict], models: set[str], item_count: int,
         if cur.strip():
             chunks.append(cur)
 
+        # Log the outcome rather than relying on notify()'s silence-means-success:
+        # it only speaks up on failure, so a working send and a run where nobody
+        # was watching look identical in the log.
+        ok = 0
         for i, chunk in enumerate(chunks, 1):
             prefix = f"({i}/{len(chunks)})\n" if len(chunks) > 1 else ""
-            notify(prefix + chunk)
+            ok += bool(notify(prefix + chunk))
+        print(f"[briefing] telegram: {ok}/{len(chunks)} message(s) sent "
+              f"({n_bullets} bullets)", flush=True)
     except Exception as e:  # noqa: BLE001 — alerting is never worth a failed run
         print(f"[briefing] notify failed: {type(e).__name__}: {e}", flush=True)
 
