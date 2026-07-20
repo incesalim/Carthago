@@ -176,6 +176,41 @@ def branch_productivity() -> None:
            "the model's self-chosen list answered for 8")
 
 
+def sector_ratio_labels() -> None:
+    """The ratio labels the prompt hands the model must still exist verbatim.
+
+    These are quoted in the prompt so the model does not have to search for
+    them — searching failed, because there is no 'Sermaye Yeterlilik' label and
+    SQLite's LIKE does not fold Turkish letters. If a label is reworded upstream
+    the lookup silently returns nothing, which is how this cost five queries and
+    an apology the first time.
+    """
+    labels = {
+        "CAR": "Yasal Özkaynak / Risk Ağırlıklı Kalemler Toplamı (%)",
+        "ROE": "Dönem Net Kârı (Zararı) / Ortalama Özkaynaklar (%)",
+        "NPL": "Takipteki Alacaklar (Brüt) / Toplam Nakdi Krediler (%)",
+        "loan/deposit": "Toplam Nakdi Krediler / Toplam Mevduat (%)",
+    }
+    for name, label in labels.items():
+        n = d1(f"""
+            SELECT COUNT(*) AS n FROM financial_ratios
+             WHERE year={MONTH[0]} AND month={MONTH[1]}
+               AND item_name = '{label.replace("'", "''")}'
+        """)[0]["n"]
+        expect(f"sector ratio label resolves: {name}", n > 0, True,
+               "the prompt quotes this verbatim; a reworded label returns nothing")
+
+    # bank_types joins on `code`, not `bank_type_code` — the model got this
+    # wrong and errored its last step.
+    car = d1(f"""
+        SELECT ROUND(fr.ratio_value,2) AS car FROM financial_ratios fr
+          JOIN bank_types bt ON bt.code = fr.bank_type_code
+         WHERE fr.year={MONTH[0]} AND fr.month={MONTH[1]} AND bt.code='10001'
+           AND fr.item_name='Yasal Özkaynak / Risk Ağırlıklı Kalemler Toplamı (%)'
+    """)[0]["car"]
+    expect("sector CAR via the documented join", car, 16.34)
+
+
 def units_and_enums() -> None:
     """Unit and value-set claims that scale or void an answer if wrong."""
     unit5 = d1("SELECT unit FROM table_definitions WHERE table_number=5")[0]["unit"]
@@ -202,7 +237,8 @@ def main() -> int:
 
     print(f"verifying the bot's recipes against D1 ({PERIOD} / {MONTH[0]}-{MONTH[1]:02d})…")
     for fn in (sector_total_assets, total_assets_ranking, roman_sum_fallback,
-               profit_ranking, branch_productivity, units_and_enums):
+               profit_ranking, branch_productivity, sector_ratio_labels,
+               units_and_enums):
         try:
             fn()
         except Exception as e:  # a broken check is itself a failure
