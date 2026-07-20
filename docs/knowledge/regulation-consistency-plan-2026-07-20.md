@@ -365,3 +365,62 @@ That is three instrument bugs in one session — scoring a contradicting briefin
 92%, blindness to a deleted section, and this. Every one initially read as a
 briefing defect. **When a measurement disagrees with the artefact, suspect the
 measurement first.**
+
+---
+
+## 7. Final state (2026-07-20)
+
+**Score 92% (12/13), 0 contradictions, all 5 sections generated fresh.**
+Compare with 46–77% and a 31-point swing at the start.
+
+### The architecture that survived
+
+| layer | needs ground truth? | may it block? |
+|---|---|---|
+| **contradiction gate** (`briefing_validate.py`) — a section stating two values for one rule is regenerated, else last week's text is kept | no — structural | **yes, blocks** |
+| **fact checklist** (`check_briefing_facts.py --alert`) — scores against hand-verified published figures | yes, hand-maintained | **no, alerts only** |
+| **section-coverage check** — an expected section producing nothing | no | fails the check |
+
+The rule: **a check may block only if it needs no ground truth.** Ground truth is
+maintained by hand and was wrong twice tonight; a gate built on it would have
+withheld correct briefings.
+
+### ⚠️ Deterministic *checking* worked. Deterministic *steering* did not.
+
+Every attempt to feed the model computed guidance failed or backfired:
+
+| attempt | result |
+|---|---|
+| v18 worked examples of the traps | measured worse → reverted |
+| v20 supersession note naming the newest source | no effect |
+| v21 same note listing superseded ids | no effect |
+| all of the above | **caused a wrong value** → removed |
+
+The note named `ANO2026-24` CURRENT for the FX loan cap — a document that never
+mentions foreign-currency loans — and marked `ANO2026-06`, which sets it at
+0.5%, SUPERSEDED. The briefing then reported the stale 1%. **The failure was
+already predictable from evidence recorded earlier in this document:** value
+extraction from long bodies had returned vehicle "caps" of 39.3/45.9/64.1 from
+that same summary. Values were judged untrustworthy; precedence was then built
+from the identical matches. If a match is too loose to trust for a value, it is
+too loose to trust for precedence.
+
+### Known remaining defect
+
+`loan_fx`: one bullet correctly says "reduced to 0.5% from 1%", another asserts a
+bare "1%". The gate cannot catch this — the value sets overlap, and without
+ground truth "1%" might legitimately restate the current value. The fact
+checklist knows 0.5% is current and alerts. Correct division of labour, not a
+gap to close in the gate.
+
+### Five instrument bugs, all of which first looked like product bugs
+
+1. checklist scored a self-contradicting briefing **92%** — asked only "is the right number present?"
+2. blind to a **deleted section** — certified the regression that caused it
+3. `"37.0"` did not satisfy `"37"` — textual instead of numeric comparison
+4. gate keyed RR rules on **maturity**, colliding distinct liabilities — froze a correct section for hours
+5. checklist read a correct **precious-metal** 30%/26% as a stale FX ratio
+6. a literal **`0x08`** where `\b` was meant — regex compiled, never matched, `grep` and every editor showed it as normal text
+
+> **When a measurement disagrees with the artefact, read the artefact.**
+> Four of these were first attributed to the model or the data.
