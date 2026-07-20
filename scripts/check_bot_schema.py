@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -54,7 +55,12 @@ def d1(sql: str) -> list[dict]:
     proc = subprocess.run(
         ["npx", "wrangler", "d1", "execute", "bddk-data", "--remote", "--json",
          "--command", flat],
-        cwd=WEB, capture_output=True, text=True, encoding="utf-8", shell=True,
+        cwd=WEB, capture_output=True, text=True, encoding="utf-8",
+        # shell=True is required on Windows (npx is a .cmd) but on POSIX it
+        # runs `sh -c "npx"` and DISCARDS the argument list — stdout comes
+        # back empty and every check raises. That is exactly how this
+        # passed locally and failed on every CI run.
+        shell=(os.name == "nt"),
     )
     if proc.returncode != 0:
         raise RuntimeError(f"d1 query failed: {proc.stderr[-400:]}")
