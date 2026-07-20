@@ -76,6 +76,115 @@ SUBJECT_LABELS: dict[str, str] = {
 }
 
 
+# --- reserve requirements: a structured rule key ------------------------------
+#
+# RR rules defeated three flat-regex attempts because their identity is not one
+# string. A rule is (LIABILITY TYPE × MATURITY BUCKET × BASE-or-SURCHARGE), and
+# collapsing any dimension collides distinct rules:
+#   - maturity dropped → "FX deposits 32%" vs "funds from repo abroad 14%"
+#   - liability dropped → every rule has an "up to 1 month" tier
+#   - surcharge dropped → "ADDITIONAL TL RR on FX deposits 2.5%" vs the FX
+#     deposit ratio itself at 32%
+# The maturity belongs to each VALUE, not to the bullet: one sentence routinely
+# says "32% for demand and up to 1 month, and 28% for longer maturities", which
+# is two rules, not one rule with two values.
+#
+# Ordered longest/most-specific first — the first liability to claim a span wins.
+RR_LIABILITIES: list[tuple[str, str]] = [
+    ("banks-abroad",   r"(?:deposits|participation funds)[^.;]{0,30}from banks abroad"
+                       r"|head office abroad"),
+    ("repo-abroad",    r"repo transactions abroad|loans obtained from abroad"),
+    ("direct-abroad",  r"obtain(?:ed|s)?\s+directly from abroad"),
+    ("precious-metal", r"precious metal"),
+    ("other-fx-liab",  r"other foreign[- ]currency liabilities"),
+    ("fx-deposits",    r"foreign[- ]currency\s+(?:demand\s+)?deposits"
+                       r"|foreign[- ]currency deposits?/participation funds"
+                       r"|\bFX deposits"),
+    ("tl-deposits",    r"Turkish lira deposits(?!/)"),
+]
+_RR_COMPILED = [(n, re.compile(p, re.I)) for n, p in RR_LIABILITIES]
+
+# Normalised maturity buckets. "longer maturities" means >1 month for deposits
+# and >5 years for other FX liabilities, but since the liability is part of the
+# key the shared token is unambiguous.
+RR_MATURITIES: list[tuple[str, str]] = [
+    ("1y",     r"up to (?:one|1) year"),
+    (">1y",    r"longer than (?:one|1) year"),
+    ("2y",     r"up to (?:two|2) years"),
+    ("3y",     r"up to (?:three|3) years"),
+    ("5y",     r"up to (?:five|5) years"),
+    (">5y",    r"longer than (?:five|5) years"),
+    ("demand", r"demand deposits?|up to (?:one|1) month"),
+    ("longer", r"longer maturit"),
+]
+_RR_MAT_COMPILED = [(n, re.compile(p, re.I)) for n, p in RR_MATURITIES]
+
+_SURCHARGE_RE = re.compile(r"\badditional\b|\bilave\b|\bextra\b", re.I)
+_RR_MAT_WINDOW = 130
+
+
+def rr_rule_values(text: str) -> dict[tuple[str, str, bool], set[str]]:
+    """Map (liability, maturity, is_surcharge) -> the percentages stated for it."""
+    pcts = [(m.start(), f"{float(m.group(1)):g}") for m in _PCT_RE.finditer(text)]
+    if not pcts:
+        return {}
+    mats = [(m.start(), name) for name, rx in _RR_MAT_COMPILED for m in rx.finditer(text)]
+    surcharge = bool(_SURCHARGE_RE.search(text))
+
+    liabilities: list[str] = []
+    claimed: set[int] = set()
+    for name, rx in _RR_COMPILED:
+        for m in rx.finditer(text):
+            if any(m.start() <= c < m.end() for c in claimed):
+                continue
+            lead = re.split(r"[.;]", text[max(0, m.start() - _EXCLUSION_LOOKBACK):m.start()])[-1]
+            if _EXCLUSION_RE.search(lead):
+                continue
+            claimed.update(range(m.start(), m.end()))
+            if name not in liabilities:
+                liabilities.append(name)
+    if not liabilities:
+        return {}
+
+    out: dict[tuple[str, str, bool], set[str]] = {}
+    for pos, val in pcts:
+        # A FOLLOWING maturity wins over a preceding one. These sentences read
+        # "32% for demand deposits …, and 28% for longer maturities": nearest-in-
+        # any-direction gave the 28% the "up to 1 month" that happens to sit just
+        # before it, merging two distinct rules into one key and hiding a stale
+        # 26%. Only fall back to a preceding phrase when nothing follows — which
+        # is the other real shape, "…with longer maturities … from 26% to 28%".
+        after = [(mp - pos, mn) for mp, mn in mats if 0 <= mp - pos <= _RR_MAT_WINDOW]
+        before = [(pos - mp, mn) for mp, mn in mats if 0 < pos - mp <= _RR_MAT_WINDOW]
+        maturity = min(after)[1] if after else (min(before)[1] if before else "")
+        for liab in liabilities:
+            out.setdefault((liab, maturity, surcharge), set()).add(val)
+    return out
+
+
+def _rr_conflicts(bullets: list[str]) -> list[dict]:
+    by_key: dict[tuple[str, str, bool], list[tuple[str, set[str]]]] = {}
+    for b in bullets:
+        for key, vals in rr_rule_values(b).items():
+            by_key.setdefault(key, []).append((b, vals))
+    out: list[dict] = []
+    for key, entries in by_key.items():
+        if len(entries) < 2:
+            continue
+        liab, mat, sur = key
+        for i, (a_text, a_vals) in enumerate(entries):
+            for b_text, b_vals in entries[i + 1:]:
+                if a_vals & b_vals:
+                    continue
+                out.append({
+                    "subject": f"rr:{liab}" + (f"/{mat}" if mat else "")
+                               + ("/additional" if sur else ""),
+                    "a": a_text, "b": b_text,
+                    "a_pcts": sorted(a_vals), "b_pcts": sorted(b_vals),
+                })
+    return out
+
+
 def sources_per_subject(items: list[dict]) -> dict[str, list[dict]]:
     """Every dated item that substantively states each rule, newest first."""
     found: dict[str, list[dict]] = {}
@@ -224,6 +333,8 @@ def find_contradictions(bullets: list[str]) -> list[dict]:
                     "a": a_text, "b": b_text,
                     "a_pcts": sorted(a_vals), "b_pcts": sorted(b_vals),
                 })
+    # Reserve requirements need the 3-part key, so they are matched separately.
+    out.extend(_rr_conflicts(bullets))
     return out
 
 
