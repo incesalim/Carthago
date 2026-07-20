@@ -72,14 +72,25 @@ FACTS: list[dict] = [
     # longer") matched on the bare maturity words and was scored a stale FX
     # ratio — the same liability-blindness that made three versions of the gate
     # unusable, reproduced here in the hand-written list.
+    # `all_keywords` = every pattern must match the SAME line, because an RR rule
+    # is identified by liability AND maturity together. Matching maturity alone
+    # read a correct "precious metal … 30% demand, 26% longer" bullet as a stale
+    # FX ratio. Excluding any line mentioning precious metal then failed the
+    # other way: the real bullets combine the two liabilities ("for foreign
+    # currency deposits/participation funds and precious metal deposit accounts
+    # … 32% … 28%"), so the exclusion discarded the FX evidence and the facts
+    # read MISSING. Requiring both dimensions handles the combined bullet and
+    # the precious-metal-only bullet correctly.
     dict(id="rr_fx_short", section="Regulations on RRs", value="32",
-         keywords=[r"demand|1 month|one month|short"], stale="30",
-         not_keywords=[r"precious metal"],
-         source="tcmb (2026-07-01)"),
+         all_keywords=[r"(?:foreign[- ]currency|FX)[^.;]{0,60}"
+                       r"(?:deposits|participation funds)",
+                       r"demand|up to 1 month|up to one month"],
+         stale="30", source="tcmb (2026-07-01)"),
     dict(id="rr_fx_long", section="Regulations on RRs", value="28",
-         keywords=[r"longer matur|longer than|long"], stale="26",
-         not_keywords=[r"precious metal"],
-         source="tcmb (2026-07-01)"),
+         all_keywords=[r"(?:foreign[- ]currency|FX)[^.;]{0,60}"
+                       r"(?:deposits|participation funds)",
+                       r"longer maturit"],
+         stale="26", source="tcmb (2026-07-01)"),
     dict(id="rr_addl_tl", section="Regulations on RRs", value="2.5",
          keywords=[r"additional|terminated|abolish"], stale=None,
          source="tcmb (2026-07-01) — the 2.5% additional TL RR was TERMINATED"),
@@ -137,17 +148,20 @@ def score(payload: dict) -> dict:
         # problem, not a missing fact, and the two deserve different verdicts.
         sect = cats.get(f["section"])
         sect_text = "\n".join(b.get("text", "") for b in sect.get("bullets", [])) if sect else ""
-        kw_re = re.compile("|".join(f["keywords"]), re.I)
-        # Lines about a DIFFERENT rule that happens to share this fact's
-        # vocabulary must not be read as evidence for or against it.
-        not_re = (re.compile("|".join(f["not_keywords"]), re.I)
-                  if f.get("not_keywords") else None)
+        # `keywords` is an OR; `all_keywords` requires every pattern on the same
+        # line — needed where a rule's identity is more than one dimension.
+        alls = [re.compile(p, re.I) for p in f.get("all_keywords", [])]
+        kw_re = re.compile("|".join(f["keywords"]), re.I) if f.get("keywords") else None
+
+        def _relevant(line: str) -> bool:
+            if alls:
+                return all(rx.search(line) for rx in alls)
+            return bool(kw_re and kw_re.search(line))
 
         def hit(text: str, val: str | None) -> bool:
             if not text:
                 return False
-            lines = [ln for ln in text.splitlines()
-                     if kw_re.search(ln) and not (not_re and not_re.search(ln))]
+            lines = [ln for ln in text.splitlines() if _relevant(ln)]
             if not lines:
                 return False
             return True if val is None else any(_num_present(ln, val) for ln in lines)
@@ -163,7 +177,7 @@ def score(payload: dict) -> dict:
         superseded = False
         if f["stale"]:
             for b in all_bullets:
-                if not kw_re.search(b) or (not_re and not_re.search(b)):
+                if not _relevant(b):
                     continue
                 if _num_present(b, f["stale"]) and not _num_present(b, f["value"] or "\0"):
                     superseded = True
