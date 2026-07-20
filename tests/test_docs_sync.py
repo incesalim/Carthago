@@ -57,3 +57,24 @@ def test_there_is_something_to_check():
     assert workflow_files(), "no workflow files discovered — check the path"
     assert referenced_secrets(), "no secrets discovered — check the regex"
     assert env_keys(), "no CloudflareEnv keys discovered — check the regex"
+
+
+def test_no_control_chars_in_source():
+    """No stray control characters in the scripts we edit programmatically.
+
+    A patch script wrote a literal 0x08 into check_briefing_facts.py where a
+    regex word boundary was meant: `\b` survived the shell but not the Python
+    string layer. grep and every editor rendered it as ordinary text, the regex
+    silently never matched, and the fact it guarded read PASS on a briefing that
+    should have failed. Cheap to assert, invisible otherwise.
+    """
+    import pathlib
+
+    root = pathlib.Path(__file__).resolve().parents[1]
+    bad = []
+    for path in list((root / "scripts").rglob("*.py")) + list((root / "src").rglob("*.py")):
+        text = path.read_bytes()
+        for ch in (b"\x08", b"\x0b", b"\x0c", b"\x00"):
+            if ch in text:
+                bad.append(f"{path.relative_to(root)}: contains {ch!r}")
+    assert not bad, "control characters in source:\n" + "\n".join(bad)
