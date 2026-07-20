@@ -65,11 +65,20 @@ FACTS: list[dict] = [
          keywords=[r"foreign currency|FX|FC"], stale="1",
          source="tcmb:ANO2026-06 (2026-01-31)"),
     # --- 2026-07-01 FX reserve requirements (post-fix release, table present) ---
+    # ⚠️ These MUST exclude precious metal. The 2026-07-01 release revised only
+    # "foreign currency deposits/participation funds"; precious metal accounts
+    # stay at 30%/26% from 2025-12-02 and are CORRECT at those values. Without
+    # not_keywords, a correct precious-metal bullet ("30% for demand … 26% for
+    # longer") matched on the bare maturity words and was scored a stale FX
+    # ratio — the same liability-blindness that made three versions of the gate
+    # unusable, reproduced here in the hand-written list.
     dict(id="rr_fx_short", section="Regulations on RRs", value="32",
          keywords=[r"demand|1 month|one month|short"], stale="30",
+         not_keywords=[r"precious metal"],
          source="tcmb (2026-07-01)"),
     dict(id="rr_fx_long", section="Regulations on RRs", value="28",
          keywords=[r"longer matur|longer than|long"], stale="26",
+         not_keywords=[r"precious metal"],
          source="tcmb (2026-07-01)"),
     dict(id="rr_addl_tl", section="Regulations on RRs", value="2.5",
          keywords=[r"additional|terminated|abolish"], stale=None,
@@ -129,11 +138,16 @@ def score(payload: dict) -> dict:
         sect = cats.get(f["section"])
         sect_text = "\n".join(b.get("text", "") for b in sect.get("bullets", [])) if sect else ""
         kw_re = re.compile("|".join(f["keywords"]), re.I)
+        # Lines about a DIFFERENT rule that happens to share this fact's
+        # vocabulary must not be read as evidence for or against it.
+        not_re = (re.compile("|".join(f["not_keywords"]), re.I)
+                  if f.get("not_keywords") else None)
 
         def hit(text: str, val: str | None) -> bool:
             if not text:
                 return False
-            lines = [ln for ln in text.splitlines() if kw_re.search(ln)]
+            lines = [ln for ln in text.splitlines()
+                     if kw_re.search(ln) and not (not_re and not_re.search(ln))]
             if not lines:
                 return False
             return True if val is None else any(_num_present(ln, val) for ln in lines)
@@ -149,7 +163,7 @@ def score(payload: dict) -> dict:
         superseded = False
         if f["stale"]:
             for b in all_bullets:
-                if not kw_re.search(b):
+                if not kw_re.search(b) or (not_re and not_re.search(b)):
                     continue
                 if _num_present(b, f["stale"]) and not _num_present(b, f["value"] or "\0"):
                     superseded = True
