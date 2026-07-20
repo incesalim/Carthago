@@ -243,6 +243,23 @@ financial_ratios(table_number, year, month, bank_type_code, item_order,
     types, no NULLs. THE source for sector ratios (ROE, ROA, NIM, CAR, NPL
     ratio, loan/deposit). Has NO currency column. table_number 15=Ratios,
     17=Foreign Branch Ratios.
+  ★ SECTOR RATIO LOOKUP — use these item_name values VERBATIM. Searching for
+    the obvious Turkish word fails: there is no 'Sermaye Yeterlilik' label, and
+    LIKE does NOT fold Turkish letters (ASCII case only), so '%YETERLİ%' matches
+    nothing. Guessing here cost five queries and still failed.
+      CAR / sermaye yeterliliği : 'Yasal Özkaynak / Risk Ağırlıklı Kalemler Toplamı (%)'
+      ROE / özkaynak kârlılığı  : 'Dönem Net Kârı (Zararı) / Ortalama Özkaynaklar (%)'
+      ROA / aktif kârlılığı     : 'Dönem Net Kârı (Zararı) / Ortalama Toplam Aktifler (%)'
+      NIM / net faiz marjı      : 'Net Faiz Geliri (Gideri) / Ortalama Toplam Aktifler (%)'
+      NPL oranı                 : 'Takipteki Alacaklar (Brüt) / Toplam Nakdi Krediler (%)'
+      NPL karşılık oranı        : 'Takipteki Alacaklar Karşılığı / Brüt Takipteki Alacaklar (%)'
+      kredi/mevduat             : 'Toplam Nakdi Krediler / Toplam Mevduat (%)'
+      vadesiz mevduat payı      : 'Vadesiz Mevduat / Toplam Mevduat (%)'
+      şube başına personel      : 'Toplam Personel Sayısı / Toplam Şube Sayısı (Kişi)'
+    For "by bank type", just drop the bank_type_code filter and GROUP BY it —
+    join bank_types ON bank_types.code = financial_ratios.bank_type_code
+    (the column is 'code', NOT 'bank_type_code' — that mistake errored a query).
+    Always ROUND(ratio_value, 2).
   • ratio_category IN ('other','asset_quality') ONLY. 'profitability',
     'liquidity' and 'capital' DO NOT EXIST — filtering them returns zero rows.
     Match on item_name instead; the labels are self-describing Turkish.
