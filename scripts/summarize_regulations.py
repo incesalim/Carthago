@@ -42,18 +42,14 @@ sys.stdout.reconfigure(encoding="utf-8")
 from notify import notify  # noqa: E402  (scripts/ is sys.path[0] under `python scripts/…`)
 from src.news import kimi  # noqa: E402
 from src.news._htmltext import fix_mojibake  # noqa: E402
-from src.news.briefing_validate import (  # noqa: E402
-    describe,
-    find_contradictions,
-    supersession_note,
-)
+from src.news.briefing_validate import describe, find_contradictions  # noqa: E402
 from src.news.schema import init_schema  # noqa: E402
 
 DB_PATH = REPO_ROOT / "data" / "bddk_data.db"
 
 # Feeds input_hash, so a bump forces one regeneration — which is what you want
 # after a context change.
-PROMPT_VERSION = "2026-07-20.v22-rr-subjects-removed"
+PROMPT_VERSION = "2026-07-20.v23-no-supersession-note"
 
 # Fixed seed + temperature 0: this is an extraction task, so sampling buys
 # nothing and costs run-to-run stability. Measured spread before this change:
@@ -123,12 +119,7 @@ INPUT (in order):
      RULE APPEARS SEVERAL TIMES as it was revised. Only the LATEST entry per
      rule is in force; earlier ones are superseded. Where nothing below revises
      a rule, this log's latest entry IS its current value.
-  3. SUPERSESSION — computed from the feed, not opinion. For every rule stated
-     by more than one source it names the CURRENT id and lists the SUPERSEDED
-     ids. Take that rule's value ONLY from the current id, and take nothing
-     from a superseded id — however complete or authoritative it looks. TRUST
-     THIS OVER YOUR OWN READING of which document seems more definitive.
-  4. DATED PRESS RELEASES — TCMB/BDDK updates since. Each item has id, source,
+  3. DATED PRESS RELEASES — TCMB/BDDK updates since. Each item has id, source,
      date (YYYY-MM-DD), title, body (may contain Markdown tables / bullet lists).
 
 HOW TO COMPILE:
@@ -296,16 +287,15 @@ def build_context(items: list[dict], baseline: dict | None) -> str:
                 "value and you should report it.\n\n"
                 f"{history}"
             )
-    # Precedence, computed rather than inferred. The model's remaining failure is
-    # not reading a source wrongly — it is not knowing which of two authoritative,
-    # equally complete-looking sources supersedes the other (it kept printing the
-    # 2025-12-02 FX ratios beside the 2026-07-01 ones). That question has a
-    # deterministic answer: whichever is newer. Deciding it here removes the
-    # judgement from the model and leaves it only the reading.
-    note = supersession_note(items)
-    if note:
-        parts.append(note)
-
+    # NO supersession note. It was added to stop the model mixing an old FX
+    # ratio table with the current one — a problem that turned out to be this
+    # repo's own false positives, not the model. It never demonstrably helped,
+    # and it demonstrably HURT: subject matching on an 8,000-char MPC summary
+    # fires on incidental mentions, so the note named ANO2026-24 (which does not
+    # discuss FX loans at all) as CURRENT for the FX loan cap and marked
+    # ANO2026-06 — the release that actually sets it at 0.5% — as SUPERSEDED.
+    # It told the model to ignore the only correct source. Machinery that is
+    # unproven and has caused a wrong value does not stay.
     parts.append(
         "==================== DATED PRESS RELEASES (updates since) ====================\n"
         f"Items ({len(items)}):\n{json.dumps(items, ensure_ascii=False)}"
