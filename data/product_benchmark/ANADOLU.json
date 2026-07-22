@@ -1,0 +1,523 @@
+{
+  "ticker": "ANADOLU",
+  "bank": "Anadolubank",
+  "domain": "anadolubank.com.tr",
+  "researched_at": "2026-07-21",
+  "attributes": {
+    "A01": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/sizin-icin/birikim-ve-mevduat",
+      "note": "Vadeli Mevduat Hesabı, e-Vadeli Hesap, Kuponlu Hesap"
+    },
+    "A02": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/sizin-icin/birikim-ve-mevduat",
+      "note": "Döviz mevduat; Zap Hesap (yabancı para işletme birikimi)"
+    },
+    "A03": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/sizin-icin/birikim-ve-mevduat",
+      "note": "Altın Hesap"
+    },
+    "A04": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/sizin-icin/birikim-ve-mevduat",
+      "note": "Gümüş Hesap (kıymetli maden çeşitliliği)"
+    },
+    "A05": {
+      "v": "partial",
+      "url": "https://www.anadolubank.com.tr/sizin-icin/birikim-ve-mevduat",
+      "note": "klasik KKM görülmedi; Yuvam Hesabı (yurt dışı vatandaş, kur korumalı) aktif"
+    },
+    "A06": {
+      "v": "unknown",
+      "url": "",
+      "note": "18 yaş altı çocuk/genç hesabı ürün listesinde ayrışmadı"
+    },
+    "A07": {
+      "v": "unknown",
+      "url": "",
+      "note": "otomatik/hedefli birikim ürünü net olarak ayrışmadı (Renkli Hesap esnek getiri)"
+    },
+    "A08": {
+      "v": "unknown",
+      "url": "",
+      "note": "emekli maaşı promosyon ürünü doğrulanamadı"
+    },
+    "A09": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/sizin-icin/birikim-ve-mevduat",
+      "note": "Renkli Hesap: dilediğin zaman yatır-çek, günlük getirili; Kuponlu Hesap da vade bozmadan çekim"
+    },
+    "B01": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/sizin-icin/krediler/ihtiyac-kredisi",
+      "note": "İhtiyaç Kredisi"
+    },
+    "B02": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/sizin-icin/krediler/konut-kredisi",
+      "note": "Konut Kredisi"
+    },
+    "B03": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/sizin-icin/krediler",
+      "note": "Taşıt Kredisi + Motosiklet Kredisi"
+    },
+    "B04": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/sizin-icin/krediler/kmh",
+      "note": "Kredili Mevduat Hesabı (KMH)"
+    },
+    "B05": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/sizin-icin/kartlar",
+      "note": "Taksitli Nakit Avans"
+    },
+    "B06": {
+      "v": "no",
+      "url": "https://www.anadolubank.com.tr/sizin-icin/krediler",
+      "note": "bireysel kredi listesinde yeşil/GES/EV kredisi yok"
+    },
+    "B07": {
+      "v": "no",
+      "url": "https://www.anadolubank.com.tr/sizin-icin/krediler",
+      "note": "eğitim/öğrenci kredisi listede yok"
+    },
+    "B08": {
+      "v": "unknown",
+      "url": "",
+      "note": "gayrimenkul teminatlı ihtiyaç kredisi doğrulanamadı"
+    },
+    "B09": {
+      "v": "unknown",
+      "url": "",
+      "note": "borç transferi/yapılandırma ürünü doğrulanamadı"
+    },
+    "C01": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/sizin-icin/kartlar",
+      "note": "Worldcard (World franchise) + Anadolubank Kredi Kartı"
+    },
+    "C02": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/sizin-icin/kartlar",
+      "note": "Anadolubank Sanal Worldcard, mobil/internet'ten anında"
+    },
+    "C03": {
+      "v": "unknown",
+      "url": "https://www.anadolubank.com.tr/sizin-icin/kartlar",
+      "note": "kart sayfasında Apple Pay görülmedi; doğrulanamadı"
+    },
+    "C04": {
+      "v": "unknown",
+      "url": "https://www.anadolubank.com.tr/sizin-icin/kartlar",
+      "note": "Google Wallet/Pay doğrulanamadı"
+    },
+    "C05": {
+      "v": "no",
+      "url": "https://www.anadolubank.com.tr/sizin-icin/kartlar",
+      "note": "kart rafında ön ödemeli/hediye kart yok (Altın Hediye Çeki farklı ürün)"
+    },
+    "C06": {
+      "v": "unknown",
+      "url": "",
+      "note": "QR ile ATM'den kartsız çekim doğrulanamadı"
+    },
+    "C07": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/sizin-icin",
+      "note": "FAST & KOLAS destekli"
+    },
+    "C08": {
+      "v": "no",
+      "url": "https://www.anadolubank.com.tr/sizin-icin/dijital-bankacilik",
+      "note": "markalı kendi dijital cüzdanı görülmedi"
+    },
+    "C09": {
+      "v": "unknown",
+      "url": "",
+      "note": "yurt dışı hızlı para transferi (WU/MoneyGram) doğrulanamadı"
+    },
+    "C10": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/isiniz-icin",
+      "note": "Troy Business Worldcard, Business Worldcard, Tarım Kart"
+    },
+    "D01": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/sizin-icin",
+      "note": "Yatırım Fonu"
+    },
+    "D02": {
+      "v": "unknown",
+      "url": "",
+      "note": "TEFAS üzerinden diğer kurucu fonları erişimi doğrulanamadı"
+    },
+    "D03": {
+      "v": "unknown",
+      "url": "",
+      "note": "grup içi portföy yönetim şirketi fonu belirsiz (Anadolu Yatırım menkul kıymetler)"
+    },
+    "D04": {
+      "v": "partial",
+      "url": "https://www.anadolubank.com.tr/hakkimizda/anadolubanki-taniyin/istirakler-ve-bagli-ortakliklar",
+      "note": "hisse al-sat grup aracı kurumu Anadolu Yatırım (WEBBORSAM/PARİTEM) üzerinden"
+    },
+    "D05": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/sizin-icin",
+      "note": "VİOP; Anadolu Yatırım WEBBORSAM'da hisse+VİOP+parite"
+    },
+    "D06": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/sizin-icin",
+      "note": "Eurobond"
+    },
+    "D07": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/sizin-icin",
+      "note": "Hazine Bonosu / Devlet Tahvili (DİBS)"
+    },
+    "D08": {
+      "v": "no",
+      "url": "https://www.anadolubank.com.tr/sizin-icin",
+      "note": "yatırım rafında kaldıraçlı foreks yok"
+    },
+    "D09": {
+      "v": "unknown",
+      "url": "",
+      "note": "robo-advisor doğrulanamadı"
+    },
+    "D10": {
+      "v": "unknown",
+      "url": "https://www.anadolubank.com.tr/sizin-icin/birikim-ve-mevduat",
+      "note": "Altın Hesap fiziki teslimatsız; fiziki altın alım/teslimat doğrulanamadı"
+    },
+    "D11": {
+      "v": "unknown",
+      "url": "",
+      "note": "yurt dışı hisse doğrulanamadı (PARİTEM parite işlemleri, ABD hissesi değil)"
+    },
+    "D12": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/sizin-icin",
+      "note": "Kripto Platform İşlemleri: anlaşmalı kripto platformlarına transfer (mobil/internet)"
+    },
+    "D13": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/sizin-icin",
+      "note": "Özel Bankacılık (Premium) segmenti + Özel Bankacılık Kredi Kartı"
+    },
+    "E01": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/sizin-icin",
+      "note": "BES (Bireysel Emeklilik Sistemi)"
+    },
+    "E02": {
+      "v": "unknown",
+      "url": "",
+      "note": "OKS (otomatik katılım) doğrulanamadı"
+    },
+    "E03": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/sizin-icin",
+      "note": "Hayat Sigortası; MetLife İyi ki Varsın Hayat"
+    },
+    "E04": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/sizin-icin",
+      "note": "Kasko + Zorunlu Trafik Sigortası"
+    },
+    "E05": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/sizin-icin",
+      "note": "DASK + Konut Sigortası"
+    },
+    "E06": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/sizin-icin",
+      "note": "Tamamlayıcı Sağlık Sigortası"
+    },
+    "E07": {
+      "v": "partial",
+      "url": "https://www.anadolubank.com.tr/hakkimizda/anadolubanki-taniyin/istirakler-ve-bagli-ortakliklar",
+      "note": "grup içi sigorta şirketi yok; MetLife vb. acenteliği"
+    },
+    "E08": {
+      "v": "partial",
+      "url": "https://www.anadolubank.com.tr/hakkimizda/anadolubanki-taniyin/istirakler-ve-bagli-ortakliklar",
+      "note": "grup içi emeklilik şirketi yok; acentelik"
+    },
+    "F01": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/sizin-icin",
+      "note": "Anadolubank Mobil (iOS + Android)"
+    },
+    "F02": {
+      "v": "unknown",
+      "url": "",
+      "note": "görüntülü görüşmeyle uzaktan müşteri edinimi doğrulanamadı"
+    },
+    "F03": {
+      "v": "unknown",
+      "url": "",
+      "note": "uçtan uca şubesiz müşteri olma doğrulanamadı"
+    },
+    "F04": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/isiniz-icin",
+      "note": "Açık Bankacılık + Servis Bankacılığı (BaaS) + Sistem Entegrasyon Çözümleri"
+    },
+    "F05": {
+      "v": "unknown",
+      "url": "",
+      "note": "uygulama içi yapay zekâ/sesli asistan doğrulanamadı"
+    },
+    "F06": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/sizin-icin",
+      "note": "kendi ATM ağı (ATM Hizmetleri)"
+    },
+    "F07": {
+      "v": "no",
+      "url": "https://www.anadolubank.com.tr/sizin-icin",
+      "note": "ayrı markalı tamamen dijital alt banka yok"
+    },
+    "F08": {
+      "v": "unknown",
+      "url": "",
+      "note": "tam İngilizce site sürümü doğrulanamadı"
+    },
+    "F09": {
+      "v": "unknown",
+      "url": "",
+      "note": "WhatsApp bankacılığı doğrulanamadı"
+    },
+    "F10": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/isiniz-icin",
+      "note": "şube ağı mevcut"
+    },
+    "G01": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/isiniz-icin",
+      "note": "Ticari ve KOBİ Kredileri"
+    },
+    "G02": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/isiniz-icin",
+      "note": "Kredi Garanti Fonu (KGF)"
+    },
+    "G03": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/isiniz-icin",
+      "note": "Tarımsal İşletme Kredisi, Tarım Yatırım Kredileri, Tarım Kart"
+    },
+    "G04": {
+      "v": "unknown",
+      "url": "",
+      "note": "ticari taşıt/iş makinesi finansmanı ayrı doğrulanamadı"
+    },
+    "G05": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/isiniz-icin/pos/urunlerimiz",
+      "note": "Sabit POS, ADSL POS"
+    },
+    "G06": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/isiniz-icin/pos/urunlerimiz",
+      "note": "Sanal POS (e-ticaret, 3D Secure)"
+    },
+    "G07": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/isiniz-icin/pos/urunlerimiz",
+      "note": "Yazarkasa POS (ÖKC)"
+    },
+    "G08": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/isiniz-icin/pos/urunlerimiz",
+      "note": "Mobil POS + POS Cebinde (mobil uygulama POS)"
+    },
+    "G09": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/isiniz-icin/pos/urunlerimiz",
+      "note": "POS taksitli işlem desteği (üye işyeri taksitlendirme)"
+    },
+    "G10": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/sizin-icin",
+      "note": "Çek Karnesi"
+    },
+    "G11": {
+      "v": "unknown",
+      "url": "",
+      "note": "DBS/tedarikçi finansmanı ayrı doğrulanamadı (Tahsilat/Ödeme nakit yönetimi var)"
+    },
+    "G12": {
+      "v": "unknown",
+      "url": "",
+      "note": "e-Çözümlerimiz var; e-fatura/ön muhasebe KOBİ paketi doğrulanamadı"
+    },
+    "G13": {
+      "v": "unknown",
+      "url": "",
+      "note": "KOBİ için şubesiz dijital hesap açılışı doğrulanamadı"
+    },
+    "G14": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/isiniz-icin",
+      "note": "Kadın Girişimci Paketi"
+    },
+    "H01": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/isiniz-icin",
+      "note": "Dış Ticaret > İthalat/İhracat (akreditif)"
+    },
+    "H02": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/isiniz-icin",
+      "note": "Diğer Dış Ticaret İşlemleri (vesaik/kabul-aval)"
+    },
+    "H03": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/urun-ve-hizmet",
+      "note": "Teminat Mektubu (gayrinakdi krediler)"
+    },
+    "H04": {
+      "v": "unknown",
+      "url": "",
+      "note": "e-teminat mektubu (KEP/dijital) doğrulanamadı"
+    },
+    "H05": {
+      "v": "unknown",
+      "url": "",
+      "note": "Eximbank aracılı ihracat kredisi doğrulanamadı (İhracatı Geliştirme A.Ş. finansmanı ayrı ürün)"
+    },
+    "H06": {
+      "v": "unknown",
+      "url": "",
+      "note": "forfaiting/iskonto doğrulanamadı"
+    },
+    "H07": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/hakkimizda/anadolubanki-taniyin/istirakler-ve-bagli-ortakliklar",
+      "note": "Anadolubank Nederland N.V. (Eurozone kurumsal + dış ticaret finansmanı)"
+    },
+    "I01": {
+      "v": "unknown",
+      "url": "",
+      "note": "proje finansmanı ayrı ürün olarak doğrulanamadı (yatırım kredileri var)"
+    },
+    "I02": {
+      "v": "unknown",
+      "url": "",
+      "note": "sendikasyon/kulüp kredisi doğrulanamadı"
+    },
+    "I03": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/sizin-icin",
+      "note": "Türev Ürünler (forward/vadeli döviz)"
+    },
+    "I04": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/sizin-icin",
+      "note": "Türev Ürünler (swap)"
+    },
+    "I05": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/sizin-icin",
+      "note": "Türev Ürünler (opsiyon)"
+    },
+    "I06": {
+      "v": "unknown",
+      "url": "",
+      "note": "emtia riskten korunma doğrulanamadı (Altın Kredisi ayrı ürün)"
+    },
+    "I07": {
+      "v": "unknown",
+      "url": "",
+      "note": "tahvil/kira sertifikası ihracına aracılık doğrulanamadı"
+    },
+    "I08": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/sizin-icin",
+      "note": "Halka Arz (Anadolu Yatırım aracılığıyla)"
+    },
+    "I09": {
+      "v": "unknown",
+      "url": "",
+      "note": "M&A/kurumsal finansman danışmanlığı doğrulanamadı"
+    },
+    "I10": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/isiniz-icin",
+      "note": "Nakit Yönetimi + Sistem Entegrasyon Çözümleri + Servis Bankacılığı + E-Çözümler"
+    },
+    "I11": {
+      "v": "unknown",
+      "url": "",
+      "note": "bordro/maaş ödeme paketi ayrı doğrulanamadı (Ödemeler nakit yönetimi var)"
+    },
+    "I12": {
+      "v": "unknown",
+      "url": "",
+      "note": "sürdürülebilirlik bağlantılı/yeşil ticari kredi doğrulanamadı"
+    },
+    "J01": {
+      "v": "unknown",
+      "url": "https://www.anadolubank.com.tr/hakkimizda/anadolubanki-taniyin/istirakler-ve-bagli-ortakliklar",
+      "note": "ayrı portföy yönetim şirketi görülmedi (Anadolu Yatırım menkul kıymetler)"
+    },
+    "J02": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/hakkimizda/anadolubanki-taniyin/istirakler-ve-bagli-ortakliklar",
+      "note": "Anadolu Yatırım Menkul Kıymetler A.Ş."
+    },
+    "J03": {
+      "v": "no",
+      "url": "https://www.anadolubank.com.tr/hakkimizda/anadolubanki-taniyin/istirakler-ve-bagli-ortakliklar",
+      "note": "grup içi sigorta şirketi yok"
+    },
+    "J04": {
+      "v": "no",
+      "url": "https://www.anadolubank.com.tr/hakkimizda/anadolubanki-taniyin/istirakler-ve-bagli-ortakliklar",
+      "note": "grup içi emeklilik şirketi yok"
+    },
+    "J05": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/hakkimizda/anadolubanki-taniyin/istirakler-ve-bagli-ortakliklar",
+      "note": "Anadolu Leasing"
+    },
+    "J06": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/hakkimizda/anadolubanki-taniyin/istirakler-ve-bagli-ortakliklar",
+      "note": "Anadolu Faktoring A.Ş. (%99 Anadolubank)"
+    },
+    "J07": {
+      "v": "unknown",
+      "url": "https://www.anadolubank.com.tr/hakkimizda/anadolubanki-taniyin/istirakler-ve-bagli-ortakliklar",
+      "note": "ödeme/e-para kuruluşu görülmedi (Webborsam ticaret platformu)"
+    },
+    "J08": {
+      "v": "yes",
+      "url": "https://www.anadolubank.com.tr/hakkimizda/anadolubanki-taniyin/istirakler-ve-bagli-ortakliklar",
+      "note": "Anadolubank Nederland N.V. (2008'den beri, Hollanda)"
+    }
+  },
+  "distinctive": [
+    "Anadolubank Nederland N.V.: Eurozone'da kurumsal ve dış ticaret finansmanı sunan yurt dışı banka iştiraki — orta ölçekli banka için sıra dışı",
+    "Kıymetli maden çeşitliliği: hem Altın Hesap hem Gümüş Hesap",
+    "Ticari ağırlıklı olmasına rağmen tarım rafı var: Tarımsal İşletme/Yatırım Kredileri + Tarım Kart, ayrıca Kadın Girişimci Paketi",
+    "Geniş POS ailesi (Sabit/ADSL/Mobil/Yazarkasa/Doktor POS/POS Cebinde) + sanal POS",
+    "Kurumsal entegrasyon odağı: Açık Bankacılık, Servis Bankacılığı (BaaS), Sistem Entegrasyon ve E-Çözümler",
+    "Kripto platform işlemleri (anlaşmalı platformlara transfer) mobil/internet şubede"
+  ],
+  "shelf_notes": "Anadolubank, HABAŞ grubuna bağlı, ticari/kurumsal ağırlıklı orta ölçekli özel bir bankadır. Bireysel raf temel ürünleri (mevduat çeşitleri, ihtiyaç/konut/taşıt kredisi, Worldcard, Özel Bankacılık) kapsar; ancak yeşil kredi, eğitim kredisi ve net bir çocuk hesabı gibi tematik bireysel ürünler zayıf ya da belirsizdir. Yatırım tarafı büyük ölçüde grup aracı kurumu Anadolu Yatırım (WEBBORSAM/PARİTEM) üzerinden hisse/VİOP/halka arz sunar; fon, eurobond, DİBS ve türevler bankada mevcuttur, kaldıraçlı foreks yoktur. Sigorta/emeklilik grup şirketi olmadığından MetLife acenteliği üzerinden yürür. Bankanın gerçek gücü kurumsal tarafta: dış ticaret, nakit yönetimi/servis bankacılığı ve Hollanda iştiraki. Kıymetli madende altın+gümüş ayrımı ve kripto platform transferi dikkat çeken ayrıştırıcılardır.",
+  "coverage": {
+    "yes": 52,
+    "no": 8,
+    "partial": 4,
+    "unknown": 36
+  }
+}

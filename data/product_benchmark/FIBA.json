@@ -1,0 +1,524 @@
+{
+  "ticker": "FIBA",
+  "bank": "Fibabanka",
+  "domain": "fibabanka.com.tr",
+  "researched_at": "2026-07-21",
+  "attributes": {
+    "A01": {
+      "v": "yes",
+      "url": "https://www.fibabanka.com.tr/bireysel",
+      "note": "Vadeli TL Hesap, e-Mevduat, Kiraz Hesap"
+    },
+    "A02": {
+      "v": "yes",
+      "url": "https://www.fibabanka.com.tr/bireysel",
+      "note": "Vadeli Döviz Hesabı"
+    },
+    "A03": {
+      "v": "yes",
+      "url": "https://www.fibabanka.com.tr/bireysel",
+      "note": "Altın Hesap"
+    },
+    "A04": {
+      "v": "yes",
+      "url": "https://www.fibabanka.com.tr/bireysel",
+      "note": "Gümüş, Platin ve Paladyum Hesap — tam kıymetli maden rafı"
+    },
+    "A05": {
+      "v": "yes",
+      "url": "https://www.fibabanka.com.tr/bireysel",
+      "note": "Kur Korumalı Mevduat Hesabı ürün listesinde yer alıyor; ayrıca Yuvam Vadeli Mevduat"
+    },
+    "A06": {
+      "v": "yes",
+      "url": "https://www.fibabanka.com.tr/bireysel",
+      "note": "Genç KiraZZZ Hesap (genç hesabı)"
+    },
+    "A07": {
+      "v": "unknown",
+      "url": "",
+      "note": "otomatik/hedefli birikim (kumbara) ürünü net ayrışmadı; Kiraz Plus/Düzenli Gelir mevcut"
+    },
+    "A08": {
+      "v": "unknown",
+      "url": "",
+      "note": "emekli maaşı promosyon ürünü doğrulanamadı"
+    },
+    "A09": {
+      "v": "yes",
+      "url": "https://www.fibabanka.com.tr/bireysel",
+      "note": "Kiraz Hesap: vadesiz özgürlüğü + vadeli getirisi, esnek/günlük getirili"
+    },
+    "B01": {
+      "v": "yes",
+      "url": "https://www.fibabanka.com.tr/bireysel/krediler/ihtiyac-kredisi/zen-kredi",
+      "note": "İhtiyaç / Anında İhtiyaç Kredisi (Zen Kredi)"
+    },
+    "B02": {
+      "v": "yes",
+      "url": "https://www.fibabanka.com.tr/bireysel",
+      "note": "Konut Kredisi"
+    },
+    "B03": {
+      "v": "yes",
+      "url": "https://www.fibabanka.com.tr/bireysel",
+      "note": "Taşıt Kredisi"
+    },
+    "B04": {
+      "v": "yes",
+      "url": "https://www.fibabanka.com.tr/bireysel",
+      "note": "Hızlı Para (Kredili Mevduat Hesabı)"
+    },
+    "B05": {
+      "v": "unknown",
+      "url": "https://www.fibabanka.com.tr/bireysel/kartlar/kredi-kartlari",
+      "note": "karttan taksitli nakit avans ayrı ürün olarak doğrulanamadı (Taksitli Hızlı Para KMH bazlı)"
+    },
+    "B06": {
+      "v": "unknown",
+      "url": "",
+      "note": "yeşil bireysel kredi (GES/EV/enerji) görülmedi"
+    },
+    "B07": {
+      "v": "no",
+      "url": "https://www.fibabanka.com.tr/bireysel",
+      "note": "kredi listesinde eğitim/öğrenci kredisi yok (Mutlak Eğitim Sigortası sigorta ürünü)"
+    },
+    "B08": {
+      "v": "unknown",
+      "url": "",
+      "note": "gayrimenkul teminatlı ihtiyaç kredisi doğrulanamadı"
+    },
+    "B09": {
+      "v": "yes",
+      "url": "https://www.fibabanka.com.tr/bireysel",
+      "note": "Yapılandırma Kredileri"
+    },
+    "C01": {
+      "v": "yes",
+      "url": "https://www.fibabanka.com.tr/bireysel/kartlar/kredi-kartlari",
+      "note": "Fibabanka Kredi Kartı (kendi markası, Bonus/World değil); Maximum üye işyeri taksit ortaklığı, Masterpass"
+    },
+    "C02": {
+      "v": "yes",
+      "url": "https://www.fibabanka.com.tr/bireysel",
+      "note": "Dijital Banka Kartı (dijital/sanal kart, online kullanım)"
+    },
+    "C03": {
+      "v": "unknown",
+      "url": "https://www.fibabanka.com.tr/bireysel/dijital-bankacilik",
+      "note": "Apple Pay doğrulanamadı; Masterpass entegrasyonu var"
+    },
+    "C04": {
+      "v": "unknown",
+      "url": "https://www.fibabanka.com.tr/bireysel/dijital-bankacilik",
+      "note": "Google Wallet/Pay doğrulanamadı"
+    },
+    "C05": {
+      "v": "unknown",
+      "url": "",
+      "note": "ön ödemeli/hediye kart görülmedi"
+    },
+    "C06": {
+      "v": "unknown",
+      "url": "https://www.fibabanka.com.tr/bireysel/dijital-bankacilik",
+      "note": "QR ile Ödeme (üye işyeri) var; ATM'den kartsız QR çekim doğrulanamadı"
+    },
+    "C07": {
+      "v": "yes",
+      "url": "https://www.fibabanka.com.tr/bireysel",
+      "note": "FAST Transfer + Kolay Adres Tanımlama (KOLAS)"
+    },
+    "C08": {
+      "v": "no",
+      "url": "https://www.fibabanka.com.tr/bireysel/kartlar/kredi-kartlari",
+      "note": "kendi markalı dijital cüzdanı yok; 3. taraf Masterpass kullanılıyor"
+    },
+    "C09": {
+      "v": "yes",
+      "url": "https://www.fibabanka.com.tr/bireysel",
+      "note": "Global Transfer (Mastercard) yurt dışı para transferi; ayrıca SWIFT"
+    },
+    "C10": {
+      "v": "yes",
+      "url": "https://www.fibabanka.com.tr/ticari-kurumsal",
+      "note": "Hızlı Kart Business (ticari kart)"
+    },
+    "D01": {
+      "v": "yes",
+      "url": "https://www.fibabanka.com.tr/bireysel/yatirim-urunleri",
+      "note": "Geniş fon yelpazesi: para piyasası, altın, döviz, emtia, serbest, hisse, değişken, borçlanma, eurobond fonları"
+    },
+    "D02": {
+      "v": "unknown",
+      "url": "",
+      "note": "TEFAS üzerinden diğer kurucu fonlarına erişim doğrulanamadı"
+    },
+    "D03": {
+      "v": "unknown",
+      "url": "",
+      "note": "fonların grup içi portföy şirketi (Fiba Portföy) fonu olduğu banka sayfasında doğrulanamadı"
+    },
+    "D04": {
+      "v": "yes",
+      "url": "https://www.fibabanka.com.tr/bireysel/yatirim-urunleri",
+      "note": "Borsa Market: banka uygulamasından BİST hisse al-sat"
+    },
+    "D05": {
+      "v": "unknown",
+      "url": "",
+      "note": "VİOP yatırım rafında görülmedi; Fibayatırım üzerinden olabilir"
+    },
+    "D06": {
+      "v": "yes",
+      "url": "https://www.fibabanka.com.tr/bireysel/yatirim-urunleri",
+      "note": "Eurobond + VDMK (Varlığa Dayalı Menkul Kıymetler)"
+    },
+    "D07": {
+      "v": "unknown",
+      "url": "https://www.fibabanka.com.tr/bireysel/yatirim-urunleri",
+      "note": "doğrudan DİBS/devlet tahvili açıkça listelenmedi (borçlanma araçları fonu var)"
+    },
+    "D08": {
+      "v": "no",
+      "url": "https://www.fibabanka.com.tr/bireysel/yatirim-urunleri",
+      "note": "FX Market spot döviz; kaldıraçlı foreks değil"
+    },
+    "D09": {
+      "v": "unknown",
+      "url": "",
+      "note": "robo-advisor doğrulanamadı"
+    },
+    "D10": {
+      "v": "unknown",
+      "url": "https://www.fibabanka.com.tr/bireysel",
+      "note": "Altın Transferi hesap bazlı; fiziki altın alım/teslimat doğrulanamadı"
+    },
+    "D11": {
+      "v": "no",
+      "url": "https://www.fibabanka.com.tr/bireysel/yatirim-urunleri",
+      "note": "Borsa Market BİST ile sınırlı; yurt dışı hisse yok"
+    },
+    "D12": {
+      "v": "yes",
+      "url": "https://www.fibabanka.com.tr/bireysel/yatirim-urunleri",
+      "note": "Kripto Market: uygulama içi kripto erişimi + anlaşmalı platformlara 7/24 ücretsiz transfer"
+    },
+    "D13": {
+      "v": "yes",
+      "url": "https://www.fibabanka.com.tr/bireysel",
+      "note": "Prestige Hesap (Prestige özel/ayrıcalıklı bankacılık segmenti)"
+    },
+    "E01": {
+      "v": "yes",
+      "url": "https://www.fibabanka.com.tr/bireysel",
+      "note": "Bireysel Emeklilik Sistemi (BES)"
+    },
+    "E02": {
+      "v": "unknown",
+      "url": "",
+      "note": "OKS (otomatik katılım) doğrulanamadı"
+    },
+    "E03": {
+      "v": "yes",
+      "url": "https://www.fibabanka.com.tr/bireysel",
+      "note": "Prim İadeli, Kredi Hayat, Kritik Hastalıklar, Fibalı Yaşam hayat sigortaları"
+    },
+    "E04": {
+      "v": "yes",
+      "url": "https://www.fibabanka.com.tr/bireysel",
+      "note": "Kasko Sigortası (+ Taşıt Sigortaları)"
+    },
+    "E05": {
+      "v": "yes",
+      "url": "https://www.fibabanka.com.tr/bireysel",
+      "note": "Konut/Eşya Sigortaları + Zorunlu Deprem Sigortası (DASK)"
+    },
+    "E06": {
+      "v": "yes",
+      "url": "https://www.fibabanka.com.tr/bireysel",
+      "note": "Sağlık Sigortaları (+ Yurt Dışı Seyahat Sağlık)"
+    },
+    "E07": {
+      "v": "partial",
+      "url": "https://www.fibabanka.com.tr/bireysel",
+      "note": "grup içi sigorta şirketi banka sayfasında doğrulanamadı; sigortalar acentelik üzerinden satılıyor"
+    },
+    "E08": {
+      "v": "partial",
+      "url": "https://www.fibabanka.com.tr/bireysel",
+      "note": "grup içi emeklilik şirketi doğrulanamadı; BES acentelik üzerinden"
+    },
+    "F01": {
+      "v": "yes",
+      "url": "https://www.fibabanka.com.tr/bireysel/dijital-bankacilik",
+      "note": "Mobil uygulama iOS + Android + Huawei AppGallery"
+    },
+    "F02": {
+      "v": "yes",
+      "url": "https://www.fibabanka.com.tr/bireysel/dijital-bankacilik",
+      "note": "Mobil'den Müşteri Ol — uzaktan müşteri edinimi"
+    },
+    "F03": {
+      "v": "yes",
+      "url": "https://www.fibabanka.com.tr/bireysel/dijital-bankacilik",
+      "note": "online/mobilden uçtan uca hesap açma"
+    },
+    "F04": {
+      "v": "yes",
+      "url": "https://www.fibabanka.com.tr/bireysel/dijital-bankacilik",
+      "note": "Açık Bankacılık; Fibabanka BaaS/fintech ortaklıkları ile bilinir"
+    },
+    "F05": {
+      "v": "unknown",
+      "url": "",
+      "note": "uygulama içi yapay zekâ/sesli asistan doğrulanamadı"
+    },
+    "F06": {
+      "v": "yes",
+      "url": "https://www.fibabanka.com.tr/bireysel/dijital-bankacilik",
+      "note": "kendi Şube ve ATM ağı"
+    },
+    "F07": {
+      "v": "no",
+      "url": "https://www.fibabanka.com.tr/bireysel/dijital-bankacilik",
+      "note": "ayrı markalı tamamen dijital alt banka görülmedi"
+    },
+    "F08": {
+      "v": "yes",
+      "url": "https://www.fibabanka.com.tr/en/personal",
+      "note": "tam İngilizce site mevcut (/en)"
+    },
+    "F09": {
+      "v": "unknown",
+      "url": "",
+      "note": "WhatsApp bankacılığı doğrulanamadı"
+    },
+    "F10": {
+      "v": "yes",
+      "url": "https://www.fibabanka.com.tr/bireysel/dijital-bankacilik",
+      "note": "şube ağı mevcut (Şube ve ATM'ler)"
+    },
+    "G01": {
+      "v": "yes",
+      "url": "https://www.fibabanka.com.tr/ticari-kurumsal",
+      "note": "Taksitli Ticari Kredi, Borçlu Cari Hesap, Kredili Ticari Hesap"
+    },
+    "G02": {
+      "v": "unknown",
+      "url": "",
+      "note": "ticari kredi menüsünde KGF görülmedi (bilgi bankasında KGF içeriği var)"
+    },
+    "G03": {
+      "v": "unknown",
+      "url": "",
+      "note": "tarım/çiftçi kredisi görülmedi (ticari banka odağı)"
+    },
+    "G04": {
+      "v": "unknown",
+      "url": "",
+      "note": "ticari taşıt/iş makinesi finansmanı ayrı doğrulanamadı"
+    },
+    "G05": {
+      "v": "unknown",
+      "url": "https://www.fibabanka.com.tr/en/product-and-service-fees",
+      "note": "ücret tarifesinde POS/üye işyeri kategorisi görülmedi; POS varlığı doğrulanamadı"
+    },
+    "G06": {
+      "v": "unknown",
+      "url": "",
+      "note": "sanal POS doğrulanamadı"
+    },
+    "G07": {
+      "v": "unknown",
+      "url": "",
+      "note": "ÖKC/yazar kasa POS doğrulanamadı"
+    },
+    "G08": {
+      "v": "unknown",
+      "url": "",
+      "note": "mobil/softPOS doğrulanamadı"
+    },
+    "G09": {
+      "v": "unknown",
+      "url": "",
+      "note": "üye işyeri taksitlendirme programı doğrulanamadı"
+    },
+    "G10": {
+      "v": "yes",
+      "url": "https://www.fibabanka.com.tr/ticari-kurumsal",
+      "note": "Dijital Çek Karnesi + Çek + TL Çek İskontosu"
+    },
+    "G11": {
+      "v": "yes",
+      "url": "https://www.fibabanka.com.tr/ticari-kurumsal",
+      "note": "DBS + Tedarikçi Finansmanı Sistemi (TFS) + Akaryakıt Tahsilatları (TTS)"
+    },
+    "G12": {
+      "v": "unknown",
+      "url": "",
+      "note": "e-fatura/ön muhasebe KOBİ paketi doğrulanamadı"
+    },
+    "G13": {
+      "v": "unknown",
+      "url": "",
+      "note": "KOBİ için şubesiz dijital hesap açılışı ayrı doğrulanamadı"
+    },
+    "G14": {
+      "v": "unknown",
+      "url": "",
+      "note": "kadın girişimci hedefli segment programı doğrulanamadı"
+    },
+    "H01": {
+      "v": "yes",
+      "url": "https://www.fibabanka.com.tr/ticari-kurumsal",
+      "note": "İthalat ve İhracat İşlemleri (akreditif)"
+    },
+    "H02": {
+      "v": "yes",
+      "url": "https://www.fibabanka.com.tr/ticari-kurumsal",
+      "note": "dış ticaret işlemleri (vesaik/kabul-aval)"
+    },
+    "H03": {
+      "v": "yes",
+      "url": "https://www.fibabanka.com.tr/ticari-kurumsal",
+      "note": "Teminat mektubu (gayri nakit krediler)"
+    },
+    "H04": {
+      "v": "yes",
+      "url": "https://www.fibabanka.com.tr/ticari-kurumsal",
+      "note": "Dijital Teminat Mektubu (e-teminat)"
+    },
+    "H05": {
+      "v": "unknown",
+      "url": "",
+      "note": "Eximbank aracılı ihracat kredisi doğrulanamadı"
+    },
+    "H06": {
+      "v": "unknown",
+      "url": "https://www.fibabanka.com.tr/ticari-kurumsal",
+      "note": "Dış Ticaret Finansmanı var; forfaiting/iskonto ayrı doğrulanamadı (TL Çek İskontosu farklı)"
+    },
+    "H07": {
+      "v": "unknown",
+      "url": "",
+      "note": "Fibabanka'nın kendi yurt dışı şube/banka iştiraki doğrulanamadı; Credit Europe Bank Fiba Holding kardeş bankasıdır (Fibabanka iştiraki değil)"
+    },
+    "I01": {
+      "v": "unknown",
+      "url": "",
+      "note": "proje finansmanı ayrı ürün olarak doğrulanamadı"
+    },
+    "I02": {
+      "v": "unknown",
+      "url": "",
+      "note": "sendikasyon/kulüp kredisi doğrulanamadı"
+    },
+    "I03": {
+      "v": "unknown",
+      "url": "",
+      "note": "kurumsal forward/türev ürün sayfası bulunamadı (bireyselde FX Market spot)"
+    },
+    "I04": {
+      "v": "unknown",
+      "url": "",
+      "note": "swap doğrulanamadı"
+    },
+    "I05": {
+      "v": "unknown",
+      "url": "",
+      "note": "opsiyon doğrulanamadı"
+    },
+    "I06": {
+      "v": "unknown",
+      "url": "",
+      "note": "emtia riskten korunma doğrulanamadı"
+    },
+    "I07": {
+      "v": "unknown",
+      "url": "",
+      "note": "tahvil/kira sertifikası ihracına aracılık doğrulanamadı (Fibayatırım olabilir)"
+    },
+    "I08": {
+      "v": "unknown",
+      "url": "",
+      "note": "halka arz aracılığı doğrulanamadı"
+    },
+    "I09": {
+      "v": "unknown",
+      "url": "",
+      "note": "M&A/kurumsal finansman danışmanlığı doğrulanamadı"
+    },
+    "I10": {
+      "v": "yes",
+      "url": "https://www.fibabanka.com.tr/ticari-kurumsal",
+      "note": "Nakit Yönetimi (DBS, Tedarikçi Finansmanı, Akaryakıt Tahsilatları) + Açık Bankacılık/BaaS entegrasyonu"
+    },
+    "I11": {
+      "v": "unknown",
+      "url": "",
+      "note": "bordro/maaş ödeme paketi ayrı doğrulanamadı"
+    },
+    "I12": {
+      "v": "unknown",
+      "url": "",
+      "note": "sürdürülebilirlik bağlantılı/yeşil ticari kredi doğrulanamadı"
+    },
+    "J01": {
+      "v": "unknown",
+      "url": "",
+      "note": "iştirakler sayfası (banka alan adında) açılamadı; Fiba Portföy grup şirketi olabilir, doğrulanamadı"
+    },
+    "J02": {
+      "v": "yes",
+      "url": "https://www.fibabanka.com.tr/bireysel/yatirim-urunleri",
+      "note": "Fibayatırım aracı kurum platformu (yatırım sayfasında ayrı platform olarak anılıyor)"
+    },
+    "J03": {
+      "v": "unknown",
+      "url": "",
+      "note": "grup içi sigorta şirketi iştirak sayfasında doğrulanamadı"
+    },
+    "J04": {
+      "v": "unknown",
+      "url": "",
+      "note": "grup içi emeklilik şirketi doğrulanamadı"
+    },
+    "J05": {
+      "v": "unknown",
+      "url": "",
+      "note": "grup içi leasing şirketi doğrulanamadı"
+    },
+    "J06": {
+      "v": "unknown",
+      "url": "",
+      "note": "grup içi faktoring şirketi doğrulanamadı (Fiba Faktoring olabilir)"
+    },
+    "J07": {
+      "v": "unknown",
+      "url": "",
+      "note": "ödeme/e-para kuruluşu doğrulanamadı"
+    },
+    "J08": {
+      "v": "unknown",
+      "url": "",
+      "note": "yurt dışı banka iştiraki doğrulanamadı; Credit Europe Bank Fiba Holding bünyesinde (Fibabanka iştiraki değil)"
+    }
+  },
+  "distinctive": [
+    "Tam kıymetli maden rafı: Altın + Gümüş + Platin + Paladyum hesapları — orta ölçekli akranlarında ender genişlik",
+    "Kripto Market: banka uygulaması içinde kripto varlık erişimi + anlaşmalı platformlara 7/24 ücretsiz transfer",
+    "Uygulama içi Borsa Market (BİST hisse) ve FX Market — yatırımı bankanın kendi kanalına almış",
+    "Dijitalleşmiş gayrinakdi ürünler: Dijital Teminat Mektubu (e-teminat) ve Dijital Çek Karnesi",
+    "Açık Bankacılık / BaaS ve fintech ortaklıkları odağı; güçlü tedarikçi finansmanı (DBS/TFS/TTS)",
+    "Zengin niş sigorta rafı: Fi-Pati evcil hayvan sigortası, cep telefonu sigortası, kritik hastalık, prim iadeli hayat",
+    "Genç KiraZZZ (genç hesabı) ve esnek getirili Kiraz Hesap ile ayrışan mevduat kimliği"
+  ],
+  "shelf_notes": "Fibabanka, Fiba Grubu'na bağlı, dijital ürünler ve fintech ortaklıklarıyla öne çıkan orta ölçekli özel bir bankadır. Bireysel raf beklenenden geniştir: tam kıymetli maden ailesi (altın/gümüş/platin/paladyum), banka uygulaması içinde Borsa/FX/Kripto Market, çok sayıda yatırım fonu, KKM dahil çeşitli mevduat hesapları ve evcil hayvan/telefon dahil zengin sigorta rafı. Yatırımda hisse ve kripto erişimi doğrudan uygulamadan sunulur; aracı kurum tarafında grup şirketi Fibayatırım vardır. Kurumsal güç dijitalleşmede yoğunlaşır: Dijital Teminat Mektubu, Dijital Çek Karnesi, DBS/Tedarikçi Finansmanı ve Açık Bankacılık/BaaS. POS/üye işyeri, klasik hazine türevleri ve grup iştirak listesi banka alan adında doğrulanamadı (iştirakler sayfası 404) — bu hücreler dürüstçe unknown bırakıldı. Sigorta/emeklilikte grup şirketi doğrulanamadığından acentelik varsayılmıştır.",
+  "coverage": {
+    "yes": 43,
+    "no": 5,
+    "partial": 2,
+    "unknown": 50
+  }
+}
