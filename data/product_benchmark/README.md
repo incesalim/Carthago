@@ -8,7 +8,7 @@ kendi yayınına dayalı kanıtla. Rapor:
 
 | Dosya | Ne |
 |---|---|
-| `<TICKER>.json` | Banka başına 100 öznitelik + kanıt URL'i (30 dosya, 3.000 hücre, 793 benzersiz URL) |
+| `<TICKER>.json` | Banka başına 100 öznitelik + kanıt URL'i (32 dosya, 3.200 hücre, 793+ benzersiz URL) |
 | `TAXONOMY.md` | Spec: 100 kod / 10 blok, kanıt kuralı, evren tanımı, çıktı şeması |
 | `_NARRATIVE.md` | Raporun elle yazılan bölümü (§1–5) |
 | `aggregate.py` | Kanıt QC: eksik kod + kanıtsız `yes` avı → `_QC_REPORT.md` |
@@ -33,9 +33,14 @@ Bu ayrım raporun tamamını taşır: uydurulmuş bir `no`, dürüst bir `unknow
    ile "doğrulanmış raf" (bankaya dair) ayrı raporlanır.
 2. **Yaygınlıkta payda seçilim yanlısı** — araştırmacı ürünü bulamayınca çoğu kez
    `no` değil `unknown` yazdı, bu da küçük paydalarda oranı yukarı çeker. Bu
-   nedenle yaygınlık yalnızca ≥21/30 paydalı **51/100** öznitelik için hesaplanır.
+   nedenle yaygınlık yalnızca ≥22/32 paydalı **58/100** öznitelik için hesaplanır.
 
 ## Durum
 
-30/32 banka. **HALKB ve VAKBN eksik** — kamu mevduat kümesi yalnız ZIRAAT ile
-temsil ediliyor, küme düzeyinde kamu bankası genellemesi yapılmamalı.
+**32/32 banka TAMAM.** 0 kalite sorunu, 0 eksik hücre, 0 kanıtsız `yes`.
+
+⚠️ Kanıt kuralının bilinen sınırı: otomatik kontrol "URL var mı" diye sorabilir,
+"URL bu iddiayı taşıyor mu" diye soramaz. ZIRAATD'nin grup-sigorta iddiası bir
+ücret tarifesine dayanıyordu (ürün satışı ≠ şirket sahipliği) ve düzeltildi —
+raporun §4.1'i. **Sahiplik iddiaları yalnızca iştirak listesi / KAP ile
+kanıtlanmalı**; Blok J bir sonraki turda `kap_ownership` §7'den doldurulacak.
