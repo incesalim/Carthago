@@ -1,13 +1,14 @@
 # Türk Bankaları Ürün Benchmark — kanıt kontrolü
 
-Bankalar: 30/32 dosya bulundu.
-**Eksik dosya:** HALKB, VAKBN
+Bankalar: 32/32 dosya bulundu.
 
 ## Banka kapsama özeti
 
 | Banka | yes | partial | no | unknown | kanıtsız yes/partial | eksik kod |
 |---|--:|--:|--:|--:|--:|--:|
 | ZIRAAT | 69 | 3 | 5 | 23 | 0 | 0 |
+| HALKB | 64 | 6 | 7 | 23 | 0 | 0 |
+| VAKBN | 70 | 5 | 14 | 11 | 0 | 0 |
 | AKBNK | 75 | 7 | 5 | 13 | 0 | 0 |
 | ISCTR | 74 | 2 | 7 | 17 | 0 | 0 |
 | YKBNK | 77 | 6 | 4 | 13 | 0 | 0 |
@@ -30,7 +31,7 @@ Bankalar: 30/32 dosya bulundu.
 | EMLAK | 42 | 4 | 14 | 40 | 0 | 0 |
 | ENPARA | 28 | 3 | 29 | 40 | 0 | 0 |
 | COLENDI | 12 | 3 | 35 | 50 | 0 | 0 |
-| ZIRAATD | 27 | 2 | 25 | 46 | 0 | 0 |
+| ZIRAATD | 23 | 4 | 27 | 46 | 0 | 0 |
 | HAYATK | 25 | 1 | 36 | 38 | 0 | 0 |
 | TOMK | 15 | 2 | 68 | 15 | 0 | 0 |
 | DUNYAK | 30 | 2 | 11 | 57 | 0 | 0 |

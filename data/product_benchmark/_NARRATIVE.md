@@ -1,7 +1,7 @@
 # Türk Bankaları Ürün Benchmark — hangi banka hangi ürünlere sahip
 
-**Tarih:** 2026-07-22 · **Durum:** 30/32 banka tamam (HALKB + VAKBN devam ediyor)
-· **Kapsam:** 100 öznitelik × 30 banka = 3.000 hücre, hepsi kanıt URL'li
+**Tarih:** 2026-07-22 · **Durum:** 32/32 banka TAMAM
+· **Kapsam:** 100 öznitelik × 32 banka = 3.200 hücre, hepsi kanıt URL'li
 
 ---
 
@@ -69,9 +69,15 @@ dair olgudur. Bu ayrım raporun tamamını taşıyor:
 | `partial` | bankaya | Var ama kısıtlı: iştirak üzerinden, acentelik, sadece şubede, segment-only. |
 | `unknown` | **bize** | Doğrulanamadı — sayfa yok, site bloklu. Bankanın eksiği değil, bizim. |
 
-**Sonuç:** 3.000 hücrenin tamamı dolu, **kanıtsız tek bir `yes`/`partial` yok**
-(0/3.000). Bu, çalışmanın en önemli çıktısı — matristeki her "var", tıklanabilir
-bir banka sayfasına dayanıyor.
+**Sonuç:** 3.200 hücrenin tamamı dolu, **kanıtsız tek bir `yes`/`partial` yok**
+(0/3.200), 793 benzersiz kanıt URL'i. Matristeki her "var" tıklanabilir bir
+banka sayfasına dayanıyor.
+
+⚠️ Ama bu kuralın bir sınırı var ve çalışma sırasında bu sınıra çarptık:
+**"URL var" ile "URL iddiayı destekliyor" aynı şey değildir.** Otomatik kontrol
+yalnızca birincisini görebilir. Gerçek bir vaka §4.1'de — bir grup-sahipliği
+iddiası bir *ücret tarifesi* sayfasına dayandırılmıştı; sayfa ürünün satıldığını
+kanıtlıyordu, şirketin sahipliğini değil. Kanıt zincirinin zayıf halkası budur.
 
 ### 2.2 İki ölçüm yanlılığı — tablolara bakmadan önce okunmalı
 
@@ -95,8 +101,8 @@ bir ürünü bulamadığında çoğu kez `no` değil `unknown` yazdı (kategori 
 o ürünü hiç anmıyor). Bu, küçük paydalarda yaygınlığı **yapay olarak yukarı**
 çeker: ham hesapta "WhatsApp bankacılığı %100 yaygın" çıkıyordu — 2 bankada
 doğrulanmış, 28'i `unknown` olduğu için. Bu yüzden yaygınlık **yalnızca en az
-21/30 bankada doğrulanabilen öznitelikler için** hesaplandı. **100 öznitelikten
-51'i** bu eşiği geçiyor; kalan 49'u ayrı bir "kanıt yetersiz" listesinde ve
+22/32 bankada doğrulanabilen öznitelikler için** hesaplandı. **100 öznitelikten
+58'i** bu eşiği geçiyor; kalan 42'si ayrı bir "kanıt yetersiz" listesinde ve
 oranları **hesaplanmadı** — oradaki `var` sayıları birer **alt sınırdır**.
 
 ---
@@ -105,22 +111,27 @@ oranları **hesaplanmadı** — oradaki `var` sayıları birer **alt sınırdır
 
 ### 3.1 Bireysel raf yakınsadı; rekabet artık yatırım, ödeme ve iştirak yapısında
 
-Doğrulanan 51 özniteliğin 16'sı %90+ yaygınlıkta: ihtiyaç kredisi, mobil
+Doğrulanan 58 özniteliğin **19'u %90+ yaygınlıkta**: ihtiyaç kredisi, mobil
 uygulama, sanal kart, FAST, vadeli TL/döviz mevduat, altın hesabı, kendi kart
 markası, yatırım fonu, uzaktan müşteri edinimi, günlük getirili hesap. Bunlar
-**masaya giriş bileti** — burada rekabet yok, sadece eşik var.
+**masaya giriş bileti** — burada rekabet yok, sadece eşik var. 23 öznitelik
+%75–90 bandında (yaygın ama evrensel değil), ve asıl rekabet **14 özniteliğin**
+%25–75 bandında yaşanıyor.
 
 Gerçek ayrışma üç yerde:
-- **Yatırım derinliği:** VİOP %64, kripto %27, foreks %8, yurt dışı hisse (alt
-  sınır 4 banka).
-- **Ödeme mimarisi:** kendi dijital cüzdanı, softPOS, yazarkasa POS.
-- **Grup yapısı** — aşağıdaki bulgu.
+- **Yatırım derinliği:** kripto 6 banka (18 `no`), kaldıraçlı foreks yalnızca
+  **1** banka (Burgan), yurt dışı hisse dar bir azınlık.
+- **Ödeme mimarisi:** kendi dijital cüzdanı 7 banka + 3 kısmi, softPOS,
+  yazarkasa POS.
+- **Grup yapısı** — aşağıdaki iki bulgu.
 
 ### 3.2 En büyük yapısal bulgu: bankasürans üretim değil, dağıtım
 
-Sigorta satan 27 bankadan **yalnızca 6'sında** grup içi sigorta şirketi var;
-**21'i acentelik** yapıyor (`partial`). Emeklilikte tablo aynı: 7 sahiplik,
-17 acentelik.
+Sigorta satan 29 bankadan **yalnızca 5'inde** grup içi sigorta şirketi var;
+**24'ü acentelik** yapıyor (`partial`). Emeklilikte tablo aynı: 6 sahiplik,
+20 acentelik. İştirak tarafından bakıldığında daha da net: 32 bankanın
+**16'sında sigorta şirketi iştiraki yok** (J03 `no`), 16'sında emeklilik
+şirketi iştiraki yok (J04 `no`).
 
 Yani Türk bankacılığında sigorta, ezici çoğunlukta **başkasının ürününü
 dağıtmak**tır. Bu, komisyon geliri kalitesi açısından belirleyici: acente
@@ -137,10 +148,20 @@ Karşı örnek olarak **Akbank**: sigorta/emeklilik Sabancı *kardeş* şirketle
 (Aksigorta/AgeSA) üzerinden — aynı holding, ama bankanın iştiraki değil, yani
 acentelik. Yapı Kredi 2013'te sigortayı Allianz'a satmış; bugün bankasürans.
 
+**Kamu tarafında bu bir tercih değil, bir devlet politikasının sonucu.** Üç kamu
+mevduat bankasının (Ziraat, Halkbank, VakıfBank) **hiçbirinde** grup içi sigorta
+veya emeklilik şirketi yok — Ziraat Sigorta, Halk Sigorta ve Vakıf Emeklilik
+2020'de tek çatı altında **Türkiye Sigorta** ve **Türkiye Hayat ve Emeklilik**
+olarak birleştirildi. Üç banka da bugün kendi eski sigortacısının *acentesi*.
+Bu, üç bankanın da iştirak listesinde bağımsız olarak doğrulandı (VakıfBank'ınki
+pay oranlarıyla birlikte). Kamu bankalarının bancassurance komisyonu artık
+tamamen dağıtım geliridir; teknik kâr başka bir bilançodadır.
+
 ### 3.3 Dijital bankalar dar rafla yarışıyor — ve bu bilinçli
 
 Doğrulanmış raf sıralamasının son beşi tamamen dijital/yeni giren:
-TOMK %19, COLENDI %27, HAYATK %41, ENPARA %49, ZIRAATD %52.
+TOMK %19, COLENDI %27, HAYATK %41, ZIRAATD %46, ENPARA %49. 32 bankanın
+tamamında bu beş sıra kesintisiz — hiçbir şubeli banka bu bandın altına inmiyor.
 
 Bu bir zayıflık raporu değil, bir **strateji tespiti**: dar raf, dar maliyet.
 İçlerinde iki sürpriz var:
@@ -209,15 +230,33 @@ Matris üç net daralma yakaladı:
 
 Bu bölüm raporun güvenilirlik sınırıdır; atlanmamalı.
 
-### 4.1 Çözülmemiş çelişki (1 adet)
+### 4.1 Çözülen çelişki — ve ortaya çıkardığı yöntem dersi
 
-**Ziraat grubu sigorta sahipliği.** `ZIRAAT` dosyası E07'yi `partial` işaretleyip
-"Ziraat Sigorta 2020'de Türkiye Sigorta'ya devroldu, grup dışı" diyor; `ZIRAATD`
-(Ziraat Dinamik) aynı grup için E07/J03'ü `yes` + "grup sigorta şirketi (Ziraat
-Sigorta)" diye işaretlemiş. **İkisi aynı anda doğru olamaz.** ZIRAAT'in notu
-daha spesifik ve tarihsel olarak doğrulanabilir görünüyor; bir sonraki turda
-tek kaynaktan teyit edilip ZIRAATD düzeltilmeli. Bulgu 3.2'deki "6 sahiplik"
-sayısı bu çelişkiye duyarlıdır (5 veya 6).
+**Ziraat grubu sigorta sahipliği. ÇÖZÜLDÜ, veri düzeltildi.**
+
+`ZIRAAT` dosyası E07'yi `partial` işaretleyip "Ziraat Sigorta 2020'de Türkiye
+Sigorta'ya devroldu, grup dışı" derken, `ZIRAATD` (Ziraat Dinamik) aynı grup
+için E07/E08/J03/J04'ü `yes` + "grup sigorta şirketi" diye işaretlemişti. İkisi
+aynı anda doğru olamazdı.
+
+Çözüm, iddiaların **kanıtlarını karşılaştırınca** çıktı:
+
+| | ZIRAATD'nin dayanağı | ZIRAAT + VAKBN'in dayanağı |
+|---|---|---|
+| Sayfa | ürün ve hizmet **ücret tarifesi** | bankanın **iştirak listesi** (VAKBN'inki pay oranlarıyla) |
+| Ne kanıtlar | sigorta ürünü *satıldığını* | grup şirketi *olup olmadığını* |
+| İddiaya uygun mu | **hayır** | evet |
+
+ZIRAATD'nin dört hücresi `partial`/`no` olarak düzeltildi ve düzeltme gerekçesi
+hücrelerin `note` alanına yazıldı (`data/product_benchmark/ZIRAATD.json`).
+HALKB + VAKBN'in bağımsız araştırması aynı deseni üçüncü kez doğruladı —
+bulgu 3.2'nin son paragrafı bu düzeltmeden doğdu.
+
+**Ders (kanıt kuralının sınırı):** otomatik kontrol "URL var mı" diye sorabilir,
+"URL bu iddiayı taşıyor mu" diye soramaz. Bir ücret tarifesi, bir ürünün
+satıldığının kanıtıdır; onu üreten şirketin sahipliğinin değil. **Sahiplik
+iddiaları yalnızca iştirak listesi / KAP formu ile kanıtlanmalı** — sonraki
+turda Blok J'nin tamamı bu yüzden `kap_ownership` §7'den doldurulmalı (§5.2).
 
 ### 4.2 Zayıf paydalı öznitelikler (49 adet)
 
@@ -234,12 +273,16 @@ adında Apple Pay sayfası yok"), ancak bir kısmı piyasa-geneli varsayımdan
 türetilmiş. Bulgu muhtemelen gerçek (Türkiye'de sınırlı banka desteği) ama
 tek turluk hedefli doğrulama gerektiriyor.
 
-### 4.3 Eksik bankalar (2 adet)
+### 4.3 Evren tamamlandı
 
-**HALKB ve VAKBN** bu turda tamamlanamadı — araştırma hattı oturum limitine
-takıldı. Kamu mevduat kümesi şu an yalnız ZIRAAT ile temsil ediliyor, dolayısıyla
-**küme düzeyindeki kamu bankası genellemeleri bu iki banka eklenene kadar
-yapılmamalı.**
+**32/32 banka tamam.** HALKB ve VAKBN ilk turda oturum limitine takılmıştı;
+ikinci bir hatla tamamlandılar ve kamu kümesi artık üç bankayla temsil ediliyor
+(bu tamamlanma, §3.2'deki kamu bancassurance bulgusunu mümkün kıldı).
+
+Kalan tek `unknown` yoğunluğu HALKB'in iştirak bloğunda: `/tr/bankamiz/ortakliklar`
+sayfası JavaScript ile yükleniyor ve doğrudan çekimde boş gövde dönüyor —
+bu yüzden HALKB'in J bloğunun 5/8'i `unknown`. Bu, §5.2'deki KAP çözümünün
+gerekçelerinden biri.
 
 ### 4.4 Sistematik boşluk: Blok I ve Blok J
 
@@ -255,14 +298,27 @@ güvenilir hem sıfır maliyetli.
 
 ## 5. Sonraki tur (öncelik sırasıyla)
 
-1. **HALKB + VAKBN'i tamamla** — kamu kümesi eksik.
-2. **Blok J'yi `kap_ownership` §7'den yeniden doldur** — 8 öznitelik × 32 banka,
-   web yerine kendi veritabanımızdan, deterministik.
-3. **Ziraat sigorta çelişkisini çöz** (§4.1).
-4. **Zayıf paydalı 49 özniteliği hedefli doğrula** — özellikle POS ailesi
-   (G06–G08) ve dijital cüzdan (C08), çünkü bunlar gerçek ayrıştırıcı.
-5. Ancak bundan sonra: bu matrisin kalıcı bir veri hattına ve `/products`
-   sayfasına taşınıp taşınmayacağına karar ver. Bakım maliyeti gerçek —
-   banka siteleri sık değişiyor — ve karar bu turun bulgularıyla verilmeli.
+**5.1** ~~HALKB + VAKBN'i tamamla~~ — **YAPILDI** (§4.3).
+**5.2** ~~Ziraat sigorta çelişkisini çöz~~ — **YAPILDI**, veri düzeltildi (§4.1).
+
+**5.3 Blok J'yi `kap_ownership` §7'den yeniden doldur.** En yüksek getirili
+adım. 8 öznitelik × 32 banka; veri zaten D1'de, deterministik ve bedava. Üç
+ayrı gerekçe aynı yere işaret ediyor: (a) §4.1'in dersi — sahiplik iddiası
+web sayfasıyla kanıtlanamaz; (b) HALKB'in iştirak sayfası JS ile yükleniyor,
+FIBA ve EMLAK'ınki 404 veriyor; (c) J bloğu `unknown` oranı en yüksek bloklardan.
+
+**5.4 Zayıf paydalı 42 özniteliği hedefli doğrula** — öncelik gerçek
+ayrıştırıcılarda: POS ailesi (G06–G08), dijital cüzdan (C08), Apple/Google
+cüzdan (C03/C04). Bunlar `no`-yerine-`unknown` yanlılığının en yoğun olduğu
+yer ve tam da rekabetin görüldüğü bant.
+
+**5.5 Kurumsal/hazine (Blok I) için kaynak değiştir.** Bankalar türev ve
+sendikasyon ürünlerini web sitesinde kalem kalem listelemiyor; bu blok için
+doğru kaynak ürün sayfası değil, faaliyet raporu veya yatırımcı sunumu.
+
+**5.6 Ancak bundan sonra:** bu matrisin kalıcı bir veri hattına ve `/products`
+sayfasına taşınıp taşınmayacağına karar ver. Bakım maliyeti gerçek — banka
+siteleri sık değişiyor, ürün varlığı ikili bir sinyal olarak gürültülü — ve
+karar bu turun bulgularıyla verilmeli, peşinen değil.
 
 ---
