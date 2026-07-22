@@ -1,0 +1,523 @@
+{
+  "ticker": "SKBNK",
+  "bank": "Şekerbank",
+  "domain": "sekerbank.com.tr",
+  "researched_at": "2026-07-21",
+  "attributes": {
+    "A01": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/mevduat-ve-yatirim-urunleri/mevduat-urunleri/vadeli-mevduat/seker-cocuk-hesabi",
+      "note": "vadeli mevduat kategorisi aktif (TL); çocuk/birikim hesapları da vadeli mevduat altında"
+    },
+    "A02": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/mevduat-ve-yatirim-urunleri/yatirim-urunleri/seker-kur",
+      "note": "USD/EUR mevduat; Şeker Kur döviz alım-satım; çocuk hesabı TL/USD/EUR açılabiliyor"
+    },
+    "A03": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/mevduat-ve-yatirim-urunleri/altin-mevduat-urunleri/vadesiz-altin-hesabi",
+      "note": "Faizsiz Altın Hesabı, 0,01 gr'dan al-sat, 7/24"
+    },
+    "A04": {
+      "v": "unknown",
+      "url": "",
+      "note": "gümüş/platin hesabı için ayrı ürün sayfası doğrulanamadı; altın mevduat ürünü var"
+    },
+    "A05": {
+      "v": "no",
+      "url": "https://www.sekerbank.com.tr/mevduat-ve-yatirim-urunleri",
+      "note": "mevduat ürün listesinde aktif KKM/kur korumalı ürün görülmedi; program 2025-2026'da sektör genelinde kapandı"
+    },
+    "A06": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/mevduat-ve-yatirim-urunleri/mevduat-urunleri/vadeli-mevduat/seker-cocuk-hesabi",
+      "note": "Şeker Çocuk Hesabı, 5 yıl vade, TL/USD/EUR"
+    },
+    "A07": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/mevduat-ve-yatirim-urunleri/mevduat-urunleri/vadeli-mevduat/birikimli-gelecek-hesabi",
+      "note": "Birikimli Gelecek Hesabı; vadesiz/karttan otomatik ödeme talimatı ile hedefli birikim"
+    },
+    "A08": {
+      "v": "unknown",
+      "url": "",
+      "note": "emekli maaşı promosyon ürünü sayfası doğrulanamadı"
+    },
+    "A09": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/mevduat-ve-yatirim-urunleri/mevduat-urunleri/vadeli-mevduat/e-gece-gunduz-hesabi",
+      "note": "e-Gece Gündüz Hesabı: günlük getiri, vadeyi bozmadan para çekilebiliyor"
+    },
+    "B01": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/bireysel/bireysel-krediler/ihtiyac-kredisi",
+      "note": "İhtiyaç/tüketici kredisi"
+    },
+    "B02": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/hesaplama-araclari/bireysel-kredi-hesaplama",
+      "note": "Konut kredisi (30 yıla varan vade)"
+    },
+    "B03": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/bireysel/bireysel-krediler/tasit-kredisi",
+      "note": "Taşıt kredisi; araç rehinli"
+    },
+    "B04": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/urun-ve-hizmet-ucretleri/bireysel-krediler",
+      "note": "KMH ücret tarifesinde yer alıyor"
+    },
+    "B05": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/bireysel/kart-urunleri/kredi-kartlari/seker-kart",
+      "note": "Şeker Kart taksitli nakit avans sunuyor"
+    },
+    "B06": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/bireysel/bireysel-krediler/eko-kredi/ekokredi-hibrit-ve-elektrikli-arac-kampanyasi",
+      "note": "EKOkredi: hibrit/elektrikli araç, elektrikli bisiklet/scooter"
+    },
+    "B07": {
+      "v": "unknown",
+      "url": "",
+      "note": "eğitim/öğrenci kredisi sayfası doğrulanamadı"
+    },
+    "B08": {
+      "v": "unknown",
+      "url": "",
+      "note": "bireysel gayrimenkul teminatlı ihtiyaç kredisi doğrulanamadı; ticari gayrimenkul kredisi var"
+    },
+    "B09": {
+      "v": "unknown",
+      "url": "",
+      "note": "borç transferi/yapılandırma ürünü doğrulanamadı"
+    },
+    "C01": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/bireysel/kart-urunleri/kredi-kartlari",
+      "note": "Bonus programı (Şeker Bonus Kart, Şeker Kart, Bütçem Benim Bonus); Bonus franchise markası"
+    },
+    "C02": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/bireysel/kart-urunleri/kredi-kartlari/seker-bonus-sanal-kart",
+      "note": "Şeker Bonus Sanal Kart, Şeker Mobil/İnternet'ten oluşturuluyor"
+    },
+    "C03": {
+      "v": "unknown",
+      "url": "https://www.sekerbank.com.tr/dijital-bankacilik/seker-mobil",
+      "note": "Şeker Mobil ödeme yöntemleri listesinde Apple Pay görülmedi; net doğrulanamadı"
+    },
+    "C04": {
+      "v": "unknown",
+      "url": "https://www.sekerbank.com.tr/dijital-bankacilik/seker-mobil",
+      "note": "Google Wallet/Pay doğrulanamadı"
+    },
+    "C05": {
+      "v": "unknown",
+      "url": "",
+      "note": "ön ödemeli/hediye kart ürünü doğrulanamadı"
+    },
+    "C06": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/dijital-bankacilik/seker-mobil",
+      "note": "QR Kod ile Para Çek; başka banka uygulamalarıyla da Şekerbank ATM'den kartsız çekim"
+    },
+    "C07": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/dijital-bankacilik/seker-mobil",
+      "note": "FAST + KOLAS (Kolay Adresleme Sistemi) destekleniyor"
+    },
+    "C08": {
+      "v": "no",
+      "url": "https://www.sekerbank.com.tr/dijital-bankacilik/seker-mobil",
+      "note": "markalı kendi dijital cüzdanı yok; sanal kart + QR var"
+    },
+    "C09": {
+      "v": "unknown",
+      "url": "",
+      "note": "Western Union/MoneyGram vb. yurt dışı hızlı transfer doğrulanamadı"
+    },
+    "C10": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/ticari-kartlar",
+      "note": "Şeker Bonus Business Kart ve Ticari Kartlar"
+    },
+    "D01": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/mevduat-ve-yatirim-urunleri/yatirim-urunleri/yatirim-fonlari",
+      "note": "Yatırım fonu"
+    },
+    "D02": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/mevduat-ve-yatirim-urunleri/yatirim-urunleri/yatirim-fonlari",
+      "note": "TEFAS'taki tüm fonlar, TL/USD/EUR"
+    },
+    "D03": {
+      "v": "unknown",
+      "url": "",
+      "note": "grup içi portföy yönetim şirketi fonu doğrulanamadı; Şeker Yatırım menkul değerler kurumu"
+    },
+    "D04": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/mevduat-ve-yatirim-urunleri/yatirim-urunleri/hisse-senetleri",
+      "note": "Şeker Yatırım Hesabı ile BİST hisse al-sat, Şekerbank İnternet/Şeker Mobil'den açılıyor"
+    },
+    "D05": {
+      "v": "unknown",
+      "url": "https://www.sekerbank.com.tr/mevduat-ve-yatirim-urunleri/yatirim-urunleri",
+      "note": "banka yatırım ürün listesinde VİOP yok; Şeker Yatırım üzerinden olabilir, doğrulanamadı"
+    },
+    "D06": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/mevduat-ve-yatirim-urunleri/yatirim-urunleri/eurobond",
+      "note": "Eurobond (2-30 yıl); özel sektör tahvili"
+    },
+    "D07": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/mevduat-ve-yatirim-urunleri/yatirim-urunleri/hazine-bonosu-devlet-tahvili",
+      "note": "Hazine bonosu / Devlet tahvili (DİBS) al-sat"
+    },
+    "D08": {
+      "v": "no",
+      "url": "https://www.sekerbank.com.tr/mevduat-ve-yatirim-urunleri/yatirim-urunleri/seker-kur-fx-islem-platformu",
+      "note": "Şeker Kur FX kurumsal spot döviz platformu; kaldıraçlı foreks değil"
+    },
+    "D09": {
+      "v": "unknown",
+      "url": "",
+      "note": "robo-advisor/otomatik portföy önerisi doğrulanamadı"
+    },
+    "D10": {
+      "v": "unknown",
+      "url": "https://www.sekerbank.com.tr/mevduat-ve-yatirim-urunleri/altin-mevduat-urunleri/vadesiz-altin-hesabi",
+      "note": "hesaba dayalı altın; fiziki altın teslimat doğrulanamadı"
+    },
+    "D11": {
+      "v": "no",
+      "url": "https://www.sekerbank.com.tr/mevduat-ve-yatirim-urunleri/yatirim-urunleri/hisse-senetleri",
+      "note": "yalnız BİST hisseleri; yurt dışı hisse yok"
+    },
+    "D12": {
+      "v": "no",
+      "url": "https://www.sekerbank.com.tr/mevduat-ve-yatirim-urunleri/yatirim-urunleri",
+      "note": "yatırım ürün listesinde kripto erişimi/iş birliği görülmedi"
+    },
+    "D13": {
+      "v": "unknown",
+      "url": "",
+      "note": "özel bankacılık (private banking) segmenti doğrulanamadı"
+    },
+    "E01": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/sigorta-ve-emeklilik",
+      "note": "Bireysel Emeklilik (BES)"
+    },
+    "E02": {
+      "v": "unknown",
+      "url": "",
+      "note": "OKS (otomatik katılım) doğrulanamadı"
+    },
+    "E03": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/sigorta-ve-emeklilik",
+      "note": "Hayat sigortası + Kredi Hayat ürünleri"
+    },
+    "E04": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/sigorta-ve-emeklilik",
+      "note": "Araç Sigortaları (kasko/trafik)"
+    },
+    "E05": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/sigorta-ve-emeklilik",
+      "note": "Konut Sigortaları"
+    },
+    "E06": {
+      "v": "unknown",
+      "url": "https://www.sekerbank.com.tr/sigorta-ve-emeklilik",
+      "note": "tamamlayıcı sağlık sigortası listelenmedi (ferdi kaza var)"
+    },
+    "E07": {
+      "v": "partial",
+      "url": "https://www.sekerbank.com.tr/yatirimci/istiraklerimiz",
+      "note": "grup içi sigorta şirketi yok; sigortalar acentelik üzerinden satılıyor"
+    },
+    "E08": {
+      "v": "partial",
+      "url": "https://www.sekerbank.com.tr/yatirimci/istiraklerimiz",
+      "note": "grup içi emeklilik şirketi yok; BES acentelik üzerinden"
+    },
+    "F01": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/dijital-bankacilik/seker-mobil",
+      "note": "Şeker Mobil (iOS + Android)"
+    },
+    "F02": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/dijital-bankacilik/musterimiz-olun",
+      "note": "Şeker Mobil'den görüntülü görüşme ile uzaktan müşteri edinimi (09:00-22:00, yeni kimlik + NFC)"
+    },
+    "F03": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/dijital-bankacilik/musterimiz-olun",
+      "note": "şubeye gitmeden uçtan uca dijital müşteri olma"
+    },
+    "F04": {
+      "v": "unknown",
+      "url": "",
+      "note": "açık bankacılık/geliştirici API portalı doğrulanamadı"
+    },
+    "F05": {
+      "v": "unknown",
+      "url": "",
+      "note": "uygulama içi yapay zekâ/sesli asistan doğrulanamadı"
+    },
+    "F06": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/dijital-bankacilik/seker-mobil",
+      "note": "kendi Şekerbank ATM ağı (QR ile kartsız çekim Şekerbank ATM'lerinde)"
+    },
+    "F07": {
+      "v": "no",
+      "url": "https://www.sekerbank.com.tr/dijital-bankacilik",
+      "note": "ayrı markalı tamamen dijital alt banka yok"
+    },
+    "F08": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/en",
+      "note": "tam İngilizce site mevcut"
+    },
+    "F09": {
+      "v": "unknown",
+      "url": "",
+      "note": "WhatsApp bankacılığı doğrulanamadı"
+    },
+    "F10": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/esnaf-kobi",
+      "note": "yaygın şube ağı (esnaf/tarım bankacılığı ağı)"
+    },
+    "G01": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/esnaf-kobi/esnafkobi-kredileri/esnaf-ve-isletme-kredileri",
+      "note": "Esnaf ve İşletme Kredileri; nakit destek, ekipman, POS/çek teminatlı krediler"
+    },
+    "G02": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/esnaf-kobi",
+      "note": "KGF kefaletli kredilerde katılımcı banka"
+    },
+    "G03": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/tarim",
+      "note": "Tarım bankacılığı: Hasat Kart, tarımsal işletme/yatırım kredileri, hasada endeksli ödeme, mikrofinans"
+    },
+    "G04": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/tarim/aile-ciftciligi/traktor-ve-tarim-ekipmanlari-kredisi",
+      "note": "Traktör/tarım ekipmanı ve ekipman kredileri"
+    },
+    "G05": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/esnaf-kobi/uye-isyeri-pos",
+      "note": "Fiziki üye işyeri POS; Şeker Şirket POS, Döviz POS, Taraftar POS"
+    },
+    "G06": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/esnaf-kobi/uye-isyeri-pos/sanal-pos",
+      "note": "Sanal POS, e-ticaret 7/24"
+    },
+    "G07": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/esnaf-kobi/uye-isyeri-pos/okc-yazar-kasa-pos",
+      "note": "ÖKC/Yazar Kasa POS"
+    },
+    "G08": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/esnaf-kobi/uye-isyeri-pos/android-pos",
+      "note": "Android POS ve Mobil POS"
+    },
+    "G09": {
+      "v": "unknown",
+      "url": "",
+      "note": "üye işyeri taksitlendirme programı doğrulanamadı"
+    },
+    "G10": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/urun-ve-hizmet-ucretleri/cekler-ve-senetler",
+      "note": "Çekler ve Senetler; çek karnesi teminatlı krediler"
+    },
+    "G11": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/esnaf-kobi",
+      "note": "DBS (Doğrudan Borçlandırma Sistemi) kredi kullanımı belirtiliyor"
+    },
+    "G12": {
+      "v": "unknown",
+      "url": "",
+      "note": "e-fatura/ön muhasebe KOBİ paketi doğrulanamadı (Android POS e-belge üretiyor)"
+    },
+    "G13": {
+      "v": "unknown",
+      "url": "",
+      "note": "KOBİ için şubesiz dijital hesap açılışı ayrıca doğrulanamadı"
+    },
+    "G14": {
+      "v": "unknown",
+      "url": "",
+      "note": "kadın girişimci hedefli segment programı doğrulanamadı (Bütçem Benim bireysel kadın kartı)"
+    },
+    "H01": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/esnaf-kobi/dis-ticaret-ve-finansmani",
+      "note": "Akreditif (ithalat/ihracat)"
+    },
+    "H02": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/esnaf-kobi/dis-ticaret-ve-finansmani",
+      "note": "Vesaik mukabili işlem"
+    },
+    "H03": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/esnaf-kobi/dis-ticaret-ve-finansmani",
+      "note": "Teminat mektupları (URDG)"
+    },
+    "H04": {
+      "v": "unknown",
+      "url": "",
+      "note": "e-teminat mektubu (KEP/dijital) doğrulanamadı"
+    },
+    "H05": {
+      "v": "unknown",
+      "url": "",
+      "note": "Eximbank aracılı ihracat kredisi doğrulanamadı"
+    },
+    "H06": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/esnaf-kobi/dis-ticaret-ve-finansmani",
+      "note": "Forfaiting; teyitli akreditif iskontosu"
+    },
+    "H07": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/yatirimci/istiraklerimiz",
+      "note": "Şekerbank (Kıbrıs) Ltd. + Şeker International Banking Unit"
+    },
+    "I01": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/mevduat-ve-yatirim-urunleri/yatirim-urunleri/turev-urunler",
+      "note": "Proje finansmanı (finansal/ekonomik/teknik değerlendirme)"
+    },
+    "I02": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/mevduat-ve-yatirim-urunleri/yatirim-urunleri/turev-urunler",
+      "note": "Yerli/yabancı bankalarla konsorsiyum/sendikasyon katılımı"
+    },
+    "I03": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/mevduat-ve-yatirim-urunleri/yatirim-urunleri/turev-urunler",
+      "note": "Forward (alivre döviz)"
+    },
+    "I04": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/mevduat-ve-yatirim-urunleri/yatirim-urunleri/turev-urunler",
+      "note": "Para/faiz swap"
+    },
+    "I05": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/mevduat-ve-yatirim-urunleri/yatirim-urunleri/turev-urunler",
+      "note": "Opsiyon"
+    },
+    "I06": {
+      "v": "unknown",
+      "url": "",
+      "note": "emtia riskten korunma doğrulanamadı"
+    },
+    "I07": {
+      "v": "unknown",
+      "url": "",
+      "note": "tahvil/kira sertifikası ihracına aracılık doğrulanamadı (Şeker Yatırım olabilir)"
+    },
+    "I08": {
+      "v": "unknown",
+      "url": "",
+      "note": "halka arz aracılığı doğrulanamadı (Şeker Yatırım olabilir)"
+    },
+    "I09": {
+      "v": "unknown",
+      "url": "",
+      "note": "M&A/kurumsal finansman danışmanlığı doğrulanamadı"
+    },
+    "I10": {
+      "v": "unknown",
+      "url": "https://www.sekerbank.com.tr/urun-ve-hizmet-ucretleri",
+      "note": "ticari nakit yönetimi kategorisi var; ERP/host-to-host entegrasyonu ayrıca doğrulanamadı"
+    },
+    "I11": {
+      "v": "unknown",
+      "url": "",
+      "note": "bordro/maaş ödeme paketi ayrıca doğrulanamadı"
+    },
+    "I12": {
+      "v": "unknown",
+      "url": "",
+      "note": "sürdürülebilirlik bağlantılı/yeşil ticari kredi doğrulanamadı (EKOkredi bireysel)"
+    },
+    "J01": {
+      "v": "unknown",
+      "url": "https://www.sekerbank.com.tr/yatirimci/istiraklerimiz",
+      "note": "ayrı portföy yönetim şirketi görülmedi; Şeker Yatırım menkul değerler"
+    },
+    "J02": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/yatirimci/istiraklerimiz",
+      "note": "Şeker Yatırım Menkul Değerler A.Ş."
+    },
+    "J03": {
+      "v": "no",
+      "url": "https://www.sekerbank.com.tr/yatirimci/istiraklerimiz",
+      "note": "grup içi sigorta şirketi yok"
+    },
+    "J04": {
+      "v": "no",
+      "url": "https://www.sekerbank.com.tr/yatirimci/istiraklerimiz",
+      "note": "grup içi emeklilik şirketi yok"
+    },
+    "J05": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/yatirimci/istiraklerimiz",
+      "note": "Şeker Finansal Kiralama (Şeker Leasing)"
+    },
+    "J06": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/yatirimci/istiraklerimiz",
+      "note": "Şeker Faktoring A.Ş."
+    },
+    "J07": {
+      "v": "unknown",
+      "url": "https://www.sekerbank.com.tr/yatirimci/istiraklerimiz",
+      "note": "Retechfin Finansal Çözümler Bilişim var; ödeme/e-para lisansı doğrulanamadı"
+    },
+    "J08": {
+      "v": "yes",
+      "url": "https://www.sekerbank.com.tr/yatirimci/istiraklerimiz",
+      "note": "Şekerbank (Kıbrıs) Ltd. + Şeker International Banking Unit Ltd."
+    }
+  },
+  "distinctive": [
+    "Tarım/çiftçi bankacılığında ihtisas: Hasat Kart, tarımsal işletme/yatırım kredileri, hasada endeksli geri ödeme, traktör/ekipman kredileri, esnaf-çiftçi mikrofinansı",
+    "Esnaf/KOBİ odaklı geniş POS rafı: Sanal, ÖKC/Yazar Kasa, Android/Mobil, Döviz ve Taraftar POS",
+    "e-Gece Gündüz Hesabı: vadeyi bozmadan günlük getirili esnek mevduat",
+    "EKOkredi ile yeşil bireysel finansman (hibrit/elektrikli araç, e-bisiklet/scooter)",
+    "Yurt dışı banka iştiraki: Şekerbank (Kıbrıs) Ltd. — orta ölçekli özel banka için sıra dışı",
+    "Kendi aracı kurum (Şeker Yatırım), leasing ve faktoring iştirakleri; sigorta/emeklilik ise yalnız acentelik"
+  ],
+  "shelf_notes": "Şekerbank, esnaf-çiftçi ve KOBİ tabanı üzerine kurulu orta ölçekli özel bir bankadır; ürün rafı tam bir ticari+bireysel bankaya yakındır ama kimliğini tarım/mikrofinans ve yerel esnaf bankacılığı belirler. Kart tarafında kendi markası yerine Bonus franchise'ını (Şeker Bonus) kullanır. Yatırımda fon/TEFAS/BİST hisse/eurobond/DİBS ve kurumsal türevler vardır; kaldıraçlı foreks, yurt dışı hisse ve kripto yoktur. Aracı kurum, leasing ve faktoring iştirakleri bulunur; sigorta ve emeklilikte grup şirketi olmadığından acentelik üzerinden çalışır. Dijital tarafta görüntülü görüşmeyle uzaktan müşteri edinimi, QR kartsız çekim ve FAST/KOLAS destekli mobil bankacılık mevcuttur.",
+  "coverage": {
+    "yes": 56,
+    "no": 8,
+    "partial": 2,
+    "unknown": 34
+  }
+}
