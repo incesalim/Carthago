@@ -29,6 +29,20 @@ Metric definitions live in [METRICS.md](METRICS.md).
 | [AUDIT_BANK_CATALOG.md](AUDIT_BANK_CATALOG.md) | Auto-generated census of every bank × PDF: format profiles + per-bank filing quirks. |
 | [MISSING_AUDIT_DATA.md](MISSING_AUDIT_DATA.md) | Partitions that can't be fixed from the inputs (image-only PDFs, absent filings, annual-only tables). |
 
+## Agent tooling (`.claude/`)
+
+Repo-local Claude Code configuration — procedures that were previously carried
+only in a session's head. Skills load themselves when the work matches their
+description; commands are typed.
+
+| Item | Kind | What it covers |
+|---|---|---|
+| `.claude/skills/audit-lane-fix/` | skill | Repairing a `bank_audit_*` lane: diagnosis before re-running, which workflow to dispatch, `only_failing` vs `force`, the override ordering. |
+| `.claude/skills/evds-series/` | skill | Adding/debugging an EVDS macro series: the `SERIES` list, the two failure modes that still exit 0 (dead code after a rebase, CI read-timeout), the derivations with a right answer. |
+| `.claude/commands/newlane.md` | `/newlane` | End-to-end scaffold for a new lane — migration, ingest, validation, push path, chart-spec `verify` block, workflow, docs. |
+| `.claude/commands/ship.md` | `/ship` | Runs the CI gate set locally, checks the docs that must move with the change, commits + pushes to `master`. |
+| `.claude/agents/metric-finder.md` | agent | Identifies chart series in a source report and maps them to EVDS / local DB series. |
+
 ## Reference & history
 
 | Doc | What it covers |
