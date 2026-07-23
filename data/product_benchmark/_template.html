@@ -1,0 +1,586 @@
+<title>Türk Bankaları Ürün Rafı — Benchmark</title>
+<style>
+  :root{
+    --paper:#EFEAE0; --sheet:#FBF9F4; --sheet2:#F5F1E8;
+    --ink:#1B1712; --ink2:#4A4237; --muted:#8A8071; --faint:#B7AD9A;
+    --line:#E0D8C8; --line2:#D2C8B4;
+    --link:#2B5CB8;
+    --pos:#2F7D5B; --pos-dim:#7FA88F;
+    --warn:#B07A18;
+    --neg:#C0492F;
+    --shadow:0 1px 0 rgba(60,50,30,.04), 0 8px 26px -18px rgba(60,50,30,.35);
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,"SF Mono","Cascadia Code",Menlo,Consolas,monospace;
+    --r:7px;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --paper:#14110C; --sheet:#1E1A14; --sheet2:#252017;
+      --ink:#EDE7DA; --ink2:#C4BBAA; --muted:#948A79; --faint:#5F584B;
+      --line:#302A20; --line2:#3C352A;
+      --link:#7CA7F0;
+      --pos:#5CC79A; --pos-dim:#4E7D67; --warn:#D6A23E; --neg:#E0785F;
+      --shadow:0 1px 0 rgba(0,0,0,.3), 0 10px 30px -18px rgba(0,0,0,.7);
+    }
+  }
+  :root[data-theme="light"]{
+    --paper:#EFEAE0; --sheet:#FBF9F4; --sheet2:#F5F1E8; --ink:#1B1712; --ink2:#4A4237;
+    --muted:#8A8071; --faint:#B7AD9A; --line:#E0D8C8; --line2:#D2C8B4; --link:#2B5CB8;
+    --pos:#2F7D5B; --pos-dim:#7FA88F; --warn:#B07A18; --neg:#C0492F;
+    --shadow:0 1px 0 rgba(60,50,30,.04), 0 8px 26px -18px rgba(60,50,30,.35);
+  }
+  :root[data-theme="dark"]{
+    --paper:#14110C; --sheet:#1E1A14; --sheet2:#252017; --ink:#EDE7DA; --ink2:#C4BBAA;
+    --muted:#948A79; --faint:#5F584B; --line:#302A20; --line2:#3C352A; --link:#7CA7F0;
+    --pos:#5CC79A; --pos-dim:#4E7D67; --warn:#D6A23E; --neg:#E0785F;
+    --shadow:0 1px 0 rgba(0,0,0,.3), 0 10px 30px -18px rgba(0,0,0,.7);
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:var(--sans); font-size:15px; line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1180px; margin:0 auto; padding:0 20px}
+  a{color:var(--link); text-decoration:none}
+  a:hover{text-decoration:underline}
+  h1,h2,h3{text-wrap:balance; margin:0}
+  .eyebrow{font-family:var(--mono); font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted)}
+  .mono{font-family:var(--mono); font-variant-numeric:tabular-nums}
+  .num{font-family:var(--mono); font-variant-numeric:tabular-nums}
+
+  /* ---- masthead ---- */
+  .top{border-bottom:1px solid var(--line); background:linear-gradient(var(--sheet),var(--sheet) 60%,transparent)}
+  .topbar{display:flex; align-items:center; justify-content:space-between; padding:14px 0}
+  .brand{font-family:var(--mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink2)}
+  .brand b{color:var(--ink)}
+  .ttoggle{font-family:var(--mono); font-size:11px; letter-spacing:.08em; color:var(--ink2); background:transparent;
+    border:1px solid var(--line2); border-radius:100px; padding:5px 11px; cursor:pointer}
+  .ttoggle:hover{border-color:var(--muted); color:var(--ink)}
+  .hero{padding:26px 0 30px}
+  .hero h1{font-size:clamp(26px,4.4vw,42px); font-weight:760; letter-spacing:-.02em; line-height:1.05; max-width:20ch}
+  .hero .lede{margin-top:14px; max-width:60ch; color:var(--ink2); font-size:clamp(15px,1.6vw,17px)}
+  .hero .lede b{color:var(--ink); font-weight:640}
+
+  .ledger{display:flex; flex-wrap:wrap; gap:0; margin-top:24px; border:1px solid var(--line2);
+    border-radius:var(--r); overflow:hidden; background:var(--sheet); box-shadow:var(--shadow)}
+  .ledger .cell{flex:1 1 120px; padding:13px 16px; border-right:1px solid var(--line); min-width:0}
+  .ledger .cell:last-child{border-right:0}
+  .ledger .k{font-family:var(--mono); font-size:10.5px; letter-spacing:.11em; text-transform:uppercase; color:var(--muted)}
+  .ledger .v{font-family:var(--mono); font-size:23px; font-weight:600; letter-spacing:-.01em; margin-top:3px; color:var(--ink)}
+  .ledger .v.ok{color:var(--pos)}
+
+  section{padding:40px 0; border-bottom:1px solid var(--line)}
+  .sec-h{display:flex; align-items:baseline; justify-content:space-between; gap:16px; margin-bottom:20px; flex-wrap:wrap}
+  .sec-h h2{font-size:clamp(19px,2.4vw,24px); font-weight:680; letter-spacing:-.015em}
+  .sec-h p{color:var(--muted); font-size:13.5px; max-width:52ch; margin:0}
+
+  /* ---- findings ---- */
+  .finds{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px}
+  .find{background:var(--sheet); border:1px solid var(--line2); border-radius:var(--r); padding:17px 18px; box-shadow:var(--shadow)}
+  .find .stat{font-family:var(--mono); font-size:30px; font-weight:640; letter-spacing:-.02em; line-height:1; color:var(--ink)}
+  .find .stat small{font-size:15px; color:var(--muted); font-weight:500}
+  .find .cap{margin-top:9px; font-size:13.5px; color:var(--ink2); line-height:1.5}
+  .find .cap b{color:var(--ink); font-weight:640}
+  .find.accent{border-color:color-mix(in srgb,var(--pos) 40%,var(--line2))}
+  .find.accent .stat{color:var(--pos)}
+  .find.warnf{border-color:color-mix(in srgb,var(--warn) 42%,var(--line2))}
+  .find.warnf .stat{color:var(--warn)}
+
+  /* ---- controls ---- */
+  .controls{position:sticky; top:0; z-index:30; background:color-mix(in srgb,var(--paper) 88%,transparent);
+    backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); border-bottom:1px solid var(--line);
+    padding:11px 0; margin-bottom:22px}
+  .controls .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+  .chips{display:flex; gap:6px; flex-wrap:wrap}
+  .chip{font-family:var(--mono); font-size:11.5px; letter-spacing:.03em; padding:5px 10px; border-radius:100px;
+    border:1px solid var(--line2); background:var(--sheet); color:var(--ink2); cursor:pointer; white-space:nowrap}
+  .chip:hover{border-color:var(--muted); color:var(--ink)}
+  .chip[aria-pressed="true"]{background:var(--ink); color:var(--paper); border-color:var(--ink)}
+  .search{flex:1 1 160px; min-width:130px}
+  .search input{width:100%; font-family:var(--mono); font-size:12.5px; padding:6px 11px; color:var(--ink);
+    background:var(--sheet); border:1px solid var(--line2); border-radius:100px; outline:none}
+  .search input:focus{border-color:var(--link)}
+  .legend{display:flex; gap:14px; flex-wrap:wrap; align-items:center; font-size:12px; color:var(--muted)}
+  .legend span{display:inline-flex; align-items:center; gap:5px; white-space:nowrap}
+
+  .gl{display:inline-grid; place-items:center; width:16px; height:16px; border-radius:50%; flex:none}
+  .gl.yes{background:var(--pos)}
+  .gl.partial{background:linear-gradient(90deg,var(--pos) 0 50%,transparent 50% 100%); border:1.5px solid var(--pos)}
+  .gl.no{background:transparent}
+  .gl.no::after{content:""; width:3px; height:3px; border-radius:50%; background:var(--faint)}
+  .gl.unknown{background:transparent; border:1.6px solid var(--warn)}
+
+  /* ---- matrix ---- */
+  .mwrap{overflow-x:auto; border:1px solid var(--line2); border-radius:var(--r); background:var(--sheet); box-shadow:var(--shadow)}
+  table.mx{border-collapse:separate; border-spacing:0; width:100%; font-family:var(--mono)}
+  table.mx th,table.mx td{border-bottom:1px solid var(--line); border-right:1px solid var(--line)}
+  table.mx thead th{position:sticky; top:0; z-index:6; background:var(--sheet2); font-weight:600; font-size:11px;
+    color:var(--ink2); padding:7px 4px; text-align:center; vertical-align:bottom; letter-spacing:.02em}
+  table.mx thead th .pen{display:block; font-size:9.5px; color:var(--muted); font-weight:500; margin-top:2px}
+  table.mx thead th.diag{cursor:help}
+  table.mx thead th .dmark{color:var(--warn)}
+  th.corner{position:sticky; left:0; top:0; z-index:8; background:var(--sheet2); text-align:left; padding:7px 12px;
+    min-width:132px; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted)}
+  td.bank,th.bank{position:sticky; left:0; z-index:5; background:var(--sheet); text-align:left; padding:6px 12px;
+    min-width:132px; cursor:pointer}
+  td.bank:hover{background:var(--sheet2)}
+  td.bank .bt{font-size:12.5px; font-weight:600; color:var(--ink); letter-spacing:.02em}
+  td.bank .bs{font-size:9.5px; color:var(--muted); display:flex; gap:6px; align-items:center; margin-top:1px}
+  td.cell{text-align:center; padding:0; height:30px; cursor:pointer; transition:background .08s}
+  td.cell:hover{background:color-mix(in srgb,var(--link) 12%,transparent)}
+  td.cell .gl{margin:0 auto}
+  td.cell.d-yes{}
+  tr:hover td.bank{background:var(--sheet2)}
+  .shelfbar{width:34px; height:4px; border-radius:2px; background:var(--line2); overflow:hidden; display:inline-block}
+  .shelfbar i{display:block; height:100%; background:var(--pos)}
+
+  /* ---- ranks ---- */
+  .ranks{display:grid; grid-template-columns:1fr; gap:2px}
+  .rk{display:grid; grid-template-columns:26px 122px 1fr auto; align-items:center; gap:10px; padding:5px 8px; border-radius:5px; cursor:pointer}
+  .rk:hover{background:var(--sheet2)}
+  .rk .rn{font-family:var(--mono); font-size:11px; color:var(--faint); text-align:right}
+  .rk .rname{font-size:13px; font-weight:560; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .rk .rname small{color:var(--muted); font-weight:400; font-family:var(--mono); font-size:10.5px}
+  .rbar{height:9px; border-radius:5px; background:var(--line2); position:relative; overflow:hidden}
+  .rbar i{position:absolute; left:0; top:0; bottom:0; background:var(--pos); border-radius:5px}
+  .rbar b{position:absolute; left:0; top:0; bottom:0; background:repeating-linear-gradient(45deg,var(--warn) 0 3px,transparent 3px 6px); opacity:.55}
+  .rk .rv{font-family:var(--mono); font-size:12px; font-weight:600; color:var(--ink); min-width:70px; text-align:right}
+  .rk .rv .cov{color:var(--muted); font-weight:400; font-size:10.5px}
+  .flag{color:var(--warn)}
+
+  /* ---- tiers ---- */
+  .tier{margin-bottom:18px}
+  .tier h3{font-size:13px; font-weight:640; letter-spacing:-.01em; margin-bottom:9px; display:flex; align-items:baseline; gap:9px}
+  .tier h3 .band{font-family:var(--mono); font-size:11px; color:var(--muted); font-weight:500}
+  .tgrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(198px,1fr)); gap:7px}
+  .ta{display:flex; align-items:center; gap:9px; padding:7px 10px; background:var(--sheet); border:1px solid var(--line); border-radius:6px}
+  .ta .tpen{font-family:var(--mono); font-size:13px; font-weight:640; color:var(--ink); min-width:34px; text-align:right}
+  .ta .tl{font-size:12px; color:var(--ink2); line-height:1.25}
+  .ta .tl code{font-family:var(--mono); font-size:10px; color:var(--muted)}
+  .ta.dis{border-color:color-mix(in srgb,var(--pos) 30%,var(--line))}
+  .ta .dmark{color:var(--warn); font-size:11px}
+  .thin .ta .tpen{color:var(--faint)}
+
+  /* ---- detail rail ---- */
+  .scrim{position:fixed; inset:0; background:rgba(20,15,8,.34); opacity:0; pointer-events:none; transition:opacity .2s; z-index:80}
+  .scrim.on{opacity:1; pointer-events:auto}
+  .rail{position:fixed; top:0; right:0; height:100%; width:min(430px,92vw); background:var(--sheet);
+    border-left:1px solid var(--line2); box-shadow:-14px 0 40px -20px rgba(30,20,8,.5); z-index:90;
+    transform:translateX(100%); transition:transform .24s cubic-bezier(.2,.7,.2,1); display:flex; flex-direction:column}
+  .rail.on{transform:none}
+  .rail .rh{display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:18px 20px 14px; border-bottom:1px solid var(--line)}
+  .rail .rh .x{background:transparent; border:0; color:var(--muted); font-size:22px; line-height:1; cursor:pointer; padding:0 2px}
+  .rail .rh .x:hover{color:var(--ink)}
+  .rail .rbody{padding:18px 20px; overflow-y:auto; flex:1}
+  .rail .kicker{font-family:var(--mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted)}
+  .rail h3{font-size:19px; font-weight:680; letter-spacing:-.01em; margin-top:3px}
+  .statebig{display:flex; align-items:center; gap:12px; margin:16px 0; padding:14px; border-radius:8px; background:var(--sheet2); border:1px solid var(--line)}
+  .statebig .gl{width:26px; height:26px}
+  .statebig .sw{font-size:16px; font-weight:680; letter-spacing:-.01em}
+  .statebig .sk{font-family:var(--mono); font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em}
+  .sw.yes{color:var(--pos)} .sw.partial{color:var(--pos)} .sw.no{color:var(--muted)} .sw.unknown{color:var(--warn)}
+  .rail .note{font-size:14px; color:var(--ink2); line-height:1.6}
+  .rail .ev{margin-top:16px; display:inline-flex; align-items:center; gap:6px; font-family:var(--mono); font-size:12px;
+    padding:8px 13px; border:1px solid var(--line2); border-radius:100px; color:var(--link); word-break:break-all}
+  .rail .ev:hover{border-color:var(--link); text-decoration:none}
+  .rail .aboutus{margin-top:16px; font-size:12.5px; color:var(--warn); background:color-mix(in srgb,var(--warn) 10%,transparent);
+    border:1px solid color-mix(in srgb,var(--warn) 30%,var(--line)); border-radius:7px; padding:10px 12px; line-height:1.5}
+  .distlist{list-style:none; padding:0; margin:12px 0 0; display:flex; flex-direction:column; gap:9px}
+  .distlist li{font-size:13.5px; color:var(--ink2); line-height:1.5; padding-left:16px; position:relative}
+  .distlist li::before{content:"▪"; position:absolute; left:0; color:var(--pos)}
+  .cvbar{display:flex; height:10px; border-radius:5px; overflow:hidden; margin:14px 0 6px; border:1px solid var(--line)}
+  .cvbar i{height:100%}
+  .cvlegend{display:flex; gap:14px; flex-wrap:wrap; font-family:var(--mono); font-size:11px; color:var(--muted)}
+  .cvlegend b{color:var(--ink)}
+
+  /* ---- method ---- */
+  .method{display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:16px}
+  .mcard{background:var(--sheet); border:1px solid var(--line); border-radius:var(--r); padding:18px}
+  .mcard h3{font-size:14.5px; font-weight:660; margin-bottom:9px; letter-spacing:-.01em}
+  .mcard p{font-size:13px; color:var(--ink2); margin:0 0 9px; line-height:1.55}
+  .mcard p:last-child{margin-bottom:0}
+  .mcard code{font-family:var(--mono); font-size:11.5px; background:var(--sheet2); padding:1px 5px; border-radius:4px; color:var(--ink)}
+  .mcard.flagcard{border-color:color-mix(in srgb,var(--warn) 34%,var(--line))}
+  .valtable{display:grid; grid-template-columns:auto 1fr; gap:2px 12px; margin-top:6px; font-size:12.5px}
+  .valtable .g{display:flex; align-items:center; gap:7px}
+  .valtable .g b{font-size:12px}
+  .valtable .d{color:var(--muted); padding:3px 0; line-height:1.4}
+
+  footer{padding:30px 0 50px; color:var(--muted); font-size:12.5px}
+  footer .wrap{display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap}
+
+  @media (max-width:640px){
+    .hero{padding:20px 0 24px}
+    .ledger .cell{flex-basis:33%}
+    .rk{grid-template-columns:22px 1fr auto}
+    .rk .rbar-wrap{display:none}
+    section{padding:30px 0}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none!important; animation:none!important}
+  }
+</style>
+
+<div class="top">
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand"><b>CARTHAGO</b> · Ürün Rafı Benchmark</div>
+      <button class="ttoggle" id="themeBtn" aria-label="Tema değiştir">◐ tema</button>
+    </div>
+  </div>
+  <div class="wrap hero">
+    <div class="eyebrow">Türk bankacılığı · 2026-07-22</div>
+    <h1>Hangi banka hangi ürünü satıyor — ve bunu kanıtlayabiliyor muyuz?</h1>
+    <p class="lede">Depo bugüne kadar bankaların <b>ne kazandığını</b> ölçtü. Bu, ne
+      <b>sattıklarını</b> ölçüyor: her hücre bankanın kendi yayınladığı bir sayfaya bağlı.
+      Ürün varlığı bir kalite değil, bir <b>strateji</b> ölçüsüdür.</p>
+    <div class="ledger" id="ledger"></div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <section id="findings">
+    <div class="sec-h">
+      <div><div class="eyebrow">Hesaplanmış özet</div><h2>Rafın söylediği beş şey</h2></div>
+      <p>Ham sayı değil, bulgu. Her biri matristen okunur; sağdaki araçtan kendin doğrula.</p>
+    </div>
+    <div class="finds" id="finds"></div>
+  </section>
+
+  <section id="matrix">
+    <div class="sec-h">
+      <div><div class="eyebrow">Kanıt matrisi</div><h2>32 banka × 100 öznitelik</h2></div>
+      <p>Blok seç, kümeye göre süz, banka ara. Bir hücreye tıkla → değer, gerekçe ve kanıt bağlantısı.</p>
+    </div>
+
+    <div class="controls">
+      <div class="row" style="margin-bottom:9px">
+        <div class="chips" id="blockTabs"></div>
+      </div>
+      <div class="row">
+        <div class="chips" id="clusterChips"></div>
+        <div class="search"><input id="q" type="search" placeholder="banka ara…" autocomplete="off"></div>
+      </div>
+      <div class="row" style="margin-top:9px">
+        <div class="legend">
+          <span><i class="gl yes"></i> Var</span>
+          <span><i class="gl partial"></i> Kısmi</span>
+          <span><i class="gl no"></i> Yok</span>
+          <span><i class="gl unknown"></i> Doğrulanamadı <em style="color:var(--warn)">(bize dair)</em></span>
+          <span style="color:var(--faint)">◆ ayrıştırıcı öznitelik</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="mwrap"><table class="mx" id="mx"></table></div>
+    <p class="mono" style="font-size:11px;color:var(--muted);margin-top:10px" id="mxcount"></p>
+  </section>
+
+  <section id="banks">
+    <div class="sec-h">
+      <div><div class="eyebrow">Sıralama</div><h2>Doğrulanmış raf genişliği</h2></div>
+      <p>Dolu çubuk = doğrulanan hücrelerde ürün oranı. Taralı uç = doğrulanamayan pay.
+        <span class="flag">⚑</span> kapsamı düşük — yeri geçici.</p>
+    </div>
+    <div class="ranks" id="ranks"></div>
+  </section>
+
+  <section id="pen">
+    <div class="sec-h">
+      <div><div class="eyebrow">Yaygınlık</div><h2>Ne ortak, ne ayrıştırıcı</h2></div>
+      <p id="penNote"></p>
+    </div>
+    <div id="tiers"></div>
+  </section>
+
+  <section id="method" style="border-bottom:0">
+    <div class="sec-h">
+      <div><div class="eyebrow">Yöntem &amp; dürüstlük payı</div><h2>Neye güvenilir, neye güvenilmez</h2></div>
+    </div>
+    <div class="method">
+      <div class="mcard">
+        <h3>Kanıt kuralı — dördü de farklı şey söyler</h3>
+        <div class="valtable">
+          <div class="g"><i class="gl yes"></i><b>Var</b></div><div class="d">bankanın kendi alan adında ürün sayfası (URL zorunlu) — <b style="color:var(--ink)">bankaya</b> dair</div>
+          <div class="g"><i class="gl no"></i><b>Yok</b></div><div class="d">kategori sayfasına bakıldı, ürün orada yok — <b style="color:var(--ink)">bankaya</b> dair</div>
+          <div class="g"><i class="gl partial"></i><b>Kısmi</b></div><div class="d">iştirak / acentelik / yalnız şube / segment</div>
+          <div class="g"><i class="gl unknown"></i><b>?</b></div><div class="d">doğrulanamadı — <b style="color:var(--warn)">bize</b> dair olgu, bankanın eksiği değil</div>
+        </div>
+        <p style="margin-top:11px">3.200 hücrede kanıtsız tek bir <code>var</code> yok.</p>
+      </div>
+      <div class="mcard flagcard">
+        <h3>Sınır: URL var ≠ URL iddiayı taşır</h3>
+        <p>Otomatik kontrol "URL var mı" diye sorabilir, "URL bu iddiayı <b>taşıyor</b> mu"
+          diye soramaz. Bir bankanın grup-sigorta iddiası bir <b>ücret tarifesi</b> sayfasına
+          dayanıyordu — ürünün satıldığını kanıtlar, şirketin sahipliğini değil. 4 hücre düzeltildi.</p>
+        <p>Sahiplik iddiaları yalnızca iştirak listesi / KAP formu ile kanıtlanır.</p>
+      </div>
+      <div class="mcard flagcard">
+        <h3>İki ölçüm yanlılığı — düzeltildi</h3>
+        <p><b>1.</b> <code>?</code> oranı bankaya göre değişiyor (9–57). Ham "var" sayısıyla
+          sıralama az araştırılan bankayı dar gösterir → "kapsam" (bize) ile "raf" (bankaya) ayrı.</p>
+        <p><b>2.</b> Ürün bulunamayınca çoğu kez <code>yok</code> değil <code>?</code> yazıldı →
+          küçük paydada yaygınlık şişer. Yaygınlık yalnızca ≥22/32 paydalı <b>58/100</b> öznitelik için.</p>
+      </div>
+      <div class="mcard">
+        <h3>Bilinen boşluklar</h3>
+        <p>Blok I (hazine) ve J (iştirakler) <code>?</code> ağırlıklı: bankalar türev ve iştirak
+          detayını web'de kalem kalem listelemiyor (HALKB iştirak sayfası JS ile yükleniyor,
+          FIBA/EMLAK'ınki 404).</p>
+        <p>Sonraki tur: Blok J'yi web yerine <code>kap_ownership</code> §7'den doldur — deterministik, bedava.</p>
+      </div>
+    </div>
+  </section>
+</div>
+
+<footer><div class="wrap">
+  <span>32/32 banka · 100 öznitelik · 3.200 hücre · <span id="urlcount"></span> kanıt URL'i · 0 kanıtsız iddia</span>
+  <span class="mono">carthago · turkish-bank-product-benchmark-2026-07-22</span>
+</div></footer>
+
+<div class="scrim" id="scrim"></div>
+<aside class="rail" id="rail" aria-hidden="true"></aside>
+
+<script id="data" type="application/json">/*__PAYLOAD__*/</script>
+<script>
+(function(){
+  "use strict";
+  var DB = JSON.parse(document.getElementById('data').textContent);
+  var $ = function(s,r){return (r||document).querySelector(s)};
+  var el = function(t,c,h){var e=document.createElement(t); if(c)e.className=c; if(h!=null)e.innerHTML=h; return e};
+  var byId = {}; DB.banks.forEach(function(b){byId[b.ticker]=b});
+  var attrById = {}; DB.attrs.forEach(function(a){attrById[a.code]=a});
+  var VLABEL = {yes:'Var', partial:'Kısmi', no:'Yok', unknown:'Doğrulanamadı'};
+
+  /* ---- theme ---- */
+  var root=document.documentElement;
+  function setTheme(t){ if(t){root.setAttribute('data-theme',t); try{localStorage.setItem('pb-theme',t)}catch(e){}} }
+  try{var st=localStorage.getItem('pb-theme'); if(st)root.setAttribute('data-theme',st);}catch(e){}
+  $('#themeBtn').addEventListener('click',function(){
+    var cur=root.getAttribute('data-theme');
+    if(!cur) cur = matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';
+    setTheme(cur==='dark'?'light':'dark');
+  });
+
+  var state = { cluster:'all', block:'A', q:'', sort:'shelf' };
+
+  /* ---- ledger ---- */
+  (function(){
+    var m=DB.meta;
+    var items=[['banka',m.nbanks],['öznitelik',m.nattrs],['hücre',m.ncells.toLocaleString('tr-TR')],
+               ['kanıt URL',m.nurls],['kanıtsız iddia','0']];
+    var L=$('#ledger');
+    items.forEach(function(it,i){
+      var c=el('div','cell'); c.appendChild(el('div','k',it[0]));
+      c.appendChild(el('div','v'+(i===4?' ok':''), it[1])); L.appendChild(c);
+    });
+    $('#urlcount').textContent=m.nurls;
+  })();
+
+  /* ---- findings (computed where possible) ---- */
+  (function(){
+    function cnt(code,v){var n=0; DB.banks.forEach(function(b){if(b.cells[code].v===v)n++}); return n}
+    var insOwn=cnt('J03','yes'), insSell=DB.banks.filter(function(b){return b.cells['E07'].v!=='unknown' && b.cells['E07'].v!=='no'}).length;
+    var forex=cnt('D08','yes'), crypto=cnt('D12','yes');
+    var enough=DB.attrs.filter(function(a){return a.enough}).length;
+    var ent=DB.attrs.filter(function(a){return a.enough && a.pen>=0.9}).length;
+    var digitals=DB.banks.slice().sort(function(a,b){return a.shelf-b.shelf}).slice(0,5).map(function(b){return b.ticker});
+    var F=$('#finds');
+    var cards=[
+      {cls:'accent', stat:'5<small>/29</small>', cap:'<b>Bankasürans üretim değil, dağıtım.</b> Sigorta satan 29 bankanın yalnız 5\'inde grup içi sigorta şirketi var; 24\'ü acentelik yapıyor.'},
+      {cls:'warnf', stat:'0<small>/3</small>', cap:'<b>Üç kamu bankasının hiçbirinde</b> grup sigortacısı yok — Ziraat/Halk Sigorta + Vakıf Emeklilik 2020\'de tek çatıya devredildi. Kamu bancassurance\'ı saf dağıtım geliri.'},
+      {cls:'', stat:''+ent+'<small>/58</small>', cap:'<b>Bireysel raf yakınsadı.</b> Yeterli paydalı 58 öznitelikten '+ent+'\'u %90+ yaygın — bunlar masaya giriş bileti, ayrım yaratmaz.'},
+      {cls:'', stat:''+forex+'<small> banka</small>', cap:'<b>Kaldıraçlı foreks</b> yalnızca Burgan\'da; kripto '+crypto+' bankada. Yatırım derinliği rafın en ayrıştırıcı bölgesi.'},
+      {cls:'', stat:'%19–49', cap:'<b>Dijital bankalar dar rafla bilinçli yarışıyor.</b> Sıralamanın son beşi kesintisiz dijital ('+digitals.join(', ')+'); hiçbir şubeli banka bu banda inmiyor.'},
+      {cls:'warnf', stat:'3', cap:'<b>Raf geri çekilmeleri de yakalandı:</b> HSBC konut+taşıt kredisini yeni satıştan çekti, QNB Cüzdan 2026-01-05 kapandı, KKM tasfiyede.'},
+    ];
+    cards.forEach(function(c){
+      var d=el('div','find'+(c.cls?' '+c.cls:''));
+      d.appendChild(el('div','stat',c.stat));
+      d.appendChild(el('div','cap',c.cap));
+      F.appendChild(d);
+    });
+  })();
+
+  /* ---- controls ---- */
+  (function(){
+    var bt=$('#blockTabs');
+    DB.blocks.forEach(function(b){
+      var c=el('button','chip', b.id+' · '+b.name);
+      c.setAttribute('aria-pressed', b.id===state.block);
+      c.addEventListener('click',function(){state.block=b.id; syncPressed(bt,b.id); renderMatrix();});
+      bt.appendChild(c);
+    });
+    var cc=$('#clusterChips');
+    var all=el('button','chip','tümü'); all.setAttribute('aria-pressed','true'); all.dataset.cl='all';
+    all.addEventListener('click',function(){state.cluster='all'; syncCl(); renderMatrix(); renderRanks();});
+    cc.appendChild(all);
+    DB.clusters.forEach(function(name){
+      var c=el('button','chip',name); c.dataset.cl=name; c.setAttribute('aria-pressed','false');
+      c.addEventListener('click',function(){state.cluster=name; syncCl(); renderMatrix(); renderRanks();});
+      cc.appendChild(c);
+    });
+    function syncCl(){ Array.prototype.forEach.call(cc.children,function(ch){ch.setAttribute('aria-pressed', ch.dataset.cl===state.cluster)}) }
+    function syncPressed(par,id){ Array.prototype.forEach.call(par.children,function(ch){ch.setAttribute('aria-pressed', ch.textContent.indexOf(id+' ·')===0)}) }
+    $('#q').addEventListener('input',function(e){state.q=e.target.value.trim().toLowerCase(); renderMatrix();});
+  })();
+
+  function filteredBanks(){
+    return DB.banks.filter(function(b){
+      if(state.cluster!=='all' && b.cluster!==state.cluster) return false;
+      if(state.q && (b.ticker.toLowerCase().indexOf(state.q)<0 && b.name.toLowerCase().indexOf(state.q)<0)) return false;
+      return true;
+    });
+  }
+
+  /* ---- matrix ---- */
+  function penTxt(a){ return a.enough ? '%'+Math.round(a.pen*100) : '—'; }
+  function renderMatrix(){
+    var codes = DB.attrs.filter(function(a){return a.block===state.block});
+    var banks = filteredBanks().slice().sort(function(a,b){return b.shelf-a.shelf});
+    var t=$('#mx'); t.innerHTML='';
+    var thead=el('thead'); var hr=el('tr');
+    hr.appendChild(el('th','corner','banka'));
+    codes.forEach(function(a){
+      var th=el('th', 'diag'+(a.distinctive?'':''));
+      th.title=a.label+(a.enough?'  ·  yaygınlık %'+Math.round(a.pen*100):'  ·  kanıt yetersiz');
+      th.innerHTML=a.code+(a.distinctive?' <span class="dmark">◆</span>':'')+'<span class="pen">'+penTxt(a)+'</span>';
+      hr.appendChild(th);
+    });
+    thead.appendChild(hr); t.appendChild(thead);
+    var tb=el('tbody');
+    banks.forEach(function(b){
+      var tr=el('tr');
+      var bc=el('td','bank'); bc.dataset.bank=b.ticker;
+      bc.innerHTML='<div class="bt">'+b.ticker+'</div><div class="bs"><span class="shelfbar"><i style="width:'+Math.round(b.shelf*100)+'%"></i></span>%'+Math.round(b.shelf*100)+'</div>';
+      tr.appendChild(bc);
+      codes.forEach(function(a){
+        var v=b.cells[a.code].v;
+        var td=el('td','cell d-'+v); td.dataset.bank=b.ticker; td.dataset.code=a.code;
+        td.innerHTML='<span class="gl '+v+'"></span>';
+        tr.appendChild(td);
+      });
+      tb.appendChild(tr);
+    });
+    t.appendChild(tb);
+    $('#mxcount').textContent = banks.length+' banka gösteriliyor · blok '+state.block+' — '+DB.blocks.filter(function(x){return x.id===state.block})[0].name+' ('+codes.length+' öznitelik)';
+  }
+
+  /* ---- ranks ---- */
+  function renderRanks(){
+    var R=$('#ranks'); R.innerHTML='';
+    var banks=filteredBanks().slice().sort(function(a,b){return b.shelf-a.shelf});
+    banks.forEach(function(b,i){
+      var row=el('div','rk'); row.dataset.bank=b.ticker;
+      var low=b.coverage<0.65;
+      row.innerHTML=
+        '<div class="rn">'+(i+1)+'</div>'+
+        '<div class="rname">'+b.name+' <small>'+b.ticker+'</small></div>'+
+        '<div class="rbar-wrap"><div class="rbar"><i style="width:'+Math.round(b.shelf*100)+'%"></i></div></div>'+
+        '<div class="rv">%'+Math.round(b.shelf*100)+' <span class="cov">· kaps %'+Math.round(b.coverage*100)+(low?' <span class="flag">⚑</span>':'')+'</span></div>';
+      R.appendChild(row);
+    });
+  }
+
+  /* ---- tiers ---- */
+  (function(){
+    $('#penNote').innerHTML='Yaygınlık yalnızca ≥'+DB.meta.min_ver+'/'+DB.meta.nbanks+' bankada doğrulanabilen <b>58/100</b> öznitelik için hesaplandı. Kalan 42\'de "var" sayısı bir alt sınırdır.';
+    var scored=DB.attrs.filter(function(a){return a.enough}).sort(function(a,b){return b.pen-a.pen});
+    var thin=DB.attrs.filter(function(a){return !a.enough}).sort(function(a,b){return (b.yes+b.no+b.partial)-(a.yes+a.no+a.partial)});
+    var tiers=[
+      {t:'Masaya giriş bileti', band:'yaygınlık ≥ %90 — ayrım yaratmaz', f:function(a){return a.pen>=0.9}},
+      {t:'Yaygın ama evrensel değil', band:'%75–90', f:function(a){return a.pen>=0.75&&a.pen<0.9}},
+      {t:'Gerçek ayrıştırıcılar', band:'%25–75 — rekabetin olduğu yer', f:function(a){return a.pen>=0.25&&a.pen<0.75}},
+      {t:'Nadir / niş', band:'< %25', f:function(a){return a.pen<0.25}},
+    ];
+    var T=$('#tiers');
+    tiers.forEach(function(tr){
+      var rows=scored.filter(tr.f); if(!rows.length) return;
+      var d=el('div','tier');
+      d.appendChild(el('h3', null, tr.t+' <span class="band">'+tr.band+' · '+rows.length+'</span>'));
+      var g=el('div','tgrid');
+      rows.forEach(function(a){
+        var ta=el('div','ta'+(a.distinctive?' dis':''));
+        ta.innerHTML='<span class="tpen">%'+Math.round(a.pen*100)+'</span><span class="tl">'+a.label+(a.distinctive?' <span class="dmark">◆</span>':'')+' <code>'+a.code+'</code></span>';
+        g.appendChild(ta);
+      });
+      d.appendChild(g); T.appendChild(d);
+    });
+    // thin
+    var d=el('div','tier thin');
+    d.appendChild(el('h3', null, '⚑ Kanıt yetersiz <span class="band">payda < '+DB.meta.min_ver+' — yaygınlık hesaplanmadı · '+thin.length+'</span>'));
+    var g=el('div','tgrid');
+    thin.forEach(function(a){
+      var ta=el('div','ta');
+      ta.innerHTML='<span class="tpen">'+(a.yes)+'<small style="color:var(--faint)">↑</small></span><span class="tl">'+a.label+' <code>'+a.code+'</code></span>';
+      g.appendChild(ta);
+    });
+    d.appendChild(g); T.appendChild(d);
+  })();
+
+  /* ---- detail rail ---- */
+  var rail=$('#rail'), scrim=$('#scrim');
+  function openRail(html){ rail.innerHTML=html; rail.classList.add('on'); scrim.classList.add('on'); rail.setAttribute('aria-hidden','false'); }
+  function closeRail(){ rail.classList.remove('on'); scrim.classList.remove('on'); rail.setAttribute('aria-hidden','true'); }
+  scrim.addEventListener('click',closeRail);
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')closeRail()});
+
+  function cellDetail(ticker,code){
+    var b=byId[ticker], a=attrById[code], c=b.cells[code];
+    var blockName=DB.blocks.filter(function(x){return x.id===code[0]})[0].name;
+    var h='<div class="rh"><div>'+
+      '<div class="kicker">'+b.name+' · '+code+' · '+blockName+'</div>'+
+      '<h3>'+a.label+(a.distinctive?' <span style="color:var(--warn);font-size:15px">◆</span>':'')+'</h3></div>'+
+      '<button class="x" aria-label="kapat">×</button></div><div class="rbody">'+
+      '<div class="statebig"><span class="gl '+c.v+'"></span><div>'+
+        '<div class="sk">'+(c.v==='unknown'?'bize dair':'bankaya dair')+'</div>'+
+        '<div class="sw '+c.v+'">'+VLABEL[c.v]+'</div></div></div>';
+    if(c.n) h+='<div class="note">'+esc(c.n)+'</div>';
+    if(c.u) h+='<a class="ev" href="'+esc(c.u)+'" target="_blank" rel="noopener">kanıt →</a>';
+    else if(c.v!=='unknown') h+='<div class="note" style="color:var(--muted);margin-top:12px">— kanıt URL\'i kayıtlı değil</div>';
+    if(c.v==='unknown') h+='<div class="aboutus">Bu bir <b>unknown</b> — doğrulayamadığımız için böyle. Bankanın bu ürünü satmadığı anlamına gelmez; bize dair bir boşluktur.</div>';
+    if(a.enough) h+='<div class="note" style="margin-top:16px;font-size:12px;color:var(--muted)">Sektörde yaygınlık: <b style="color:var(--ink)">%'+Math.round(a.pen*100)+'</b> ('+a.yes+' var · '+a.partial+' kısmi · '+a.no+' yok · '+a.unknown+' ?)</div>';
+    else h+='<div class="note" style="margin-top:16px;font-size:12px;color:var(--muted)">Bu öznitelik yeterince doğrulanamadı (payda < '+DB.meta.min_ver+'); yaygınlık hesaplanmadı.</div>';
+    h+='</div>';
+    openRail(h);
+  }
+  function bankDetail(ticker){
+    var b=byId[ticker];
+    var tot=b.yes+b.no+b.partial+b.unknown;
+    var h='<div class="rh"><div>'+
+      '<div class="kicker">'+b.cluster+' · '+b.ticker+(b.domain?' · '+esc(b.domain):'')+'</div>'+
+      '<h3>'+b.name+'</h3></div><button class="x" aria-label="kapat">×</button></div><div class="rbody">'+
+      '<div class="cvbar">'+
+        '<i style="width:'+(b.yes/tot*100)+'%;background:var(--pos)"></i>'+
+        '<i style="width:'+(b.partial/tot*100)+'%;background:var(--pos-dim)"></i>'+
+        '<i style="width:'+(b.no/tot*100)+'%;background:var(--line2)"></i>'+
+        '<i style="width:'+(b.unknown/tot*100)+'%;background:var(--warn)"></i>'+
+      '</div>'+
+      '<div class="cvlegend"><span><b>'+b.yes+'</b> var</span><span><b>'+b.partial+'</b> kısmi</span><span><b>'+b.no+'</b> yok</span><span style="color:var(--warn)"><b style="color:var(--warn)">'+b.unknown+'</b> ?</span></div>'+
+      '<div style="display:flex;gap:22px;margin-top:16px">'+
+        '<div><div class="sk" style="font-family:var(--mono);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Doğrulanmış raf</div><div style="font-family:var(--mono);font-size:26px;font-weight:640;color:var(--pos)">%'+Math.round(b.shelf*100)+'</div></div>'+
+        '<div><div class="sk" style="font-family:var(--mono);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Kanıt kapsamı</div><div style="font-family:var(--mono);font-size:26px;font-weight:640;color:'+(b.coverage<0.65?'var(--warn)':'var(--ink)')+'">%'+Math.round(b.coverage*100)+'</div></div>'+
+      '</div>';
+    if(b.shelf_notes) h+='<p class="note" style="margin-top:18px">'+esc(b.shelf_notes)+'</p>';
+    if(b.distinctive && b.distinctive.length){
+      h+='<div class="kicker" style="margin-top:20px;margin-bottom:2px">Rafını ayıran</div><ul class="distlist">';
+      b.distinctive.forEach(function(x){h+='<li>'+esc(x)+'</li>'});
+      h+='</ul>';
+    }
+    h+='</div>';
+    openRail(h);
+  }
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+
+  document.addEventListener('click',function(e){
+    var x=e.target.closest('.x'); if(x){closeRail(); return;}
+    var cell=e.target.closest('td.cell'); if(cell){cellDetail(cell.dataset.bank,cell.dataset.code); return;}
+    var bk=e.target.closest('[data-bank]'); if(bk){bankDetail(bk.dataset.bank); return;}
+  });
+
+  renderMatrix(); renderRanks();
+})();
+</script>
