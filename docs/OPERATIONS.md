@@ -585,9 +585,11 @@ degrades gracefully when its key is unset:
 
 Bot detail: [TELEGRAM_BOT.md](TELEGRAM_BOT.md). Public API: [API.md](API.md). Non-secret vars live in
 `web/wrangler.jsonc`: `CF_ANALYTICS_SITE_TAG` (dual-purpose — the traffic panel's
-query key *and* the client beacon's token), `CF_ACCOUNT_TAG`, and
-`CF_ACCESS_TEAM_DOMAIN` / `CF_ACCESS_AUD` (only if you move to a custom domain and
-switch `/admin` to Cloudflare Access). Full setup: [ADMIN.md](ADMIN.md).
+query key *and* the client beacon's token), `CF_ACCOUNT_TAG`, `GA_MEASUREMENT_ID`
+(the Google Analytics 4 gtag.js measurement ID, `G-…`; the tag is only emitted
+when this is set), and `CF_ACCESS_TEAM_DOMAIN` / `CF_ACCESS_AUD` (only if you move
+to a custom domain and switch `/admin` to Cloudflare Access). Full setup:
+[ADMIN.md](ADMIN.md).
 
 ### Python environment variables
 
