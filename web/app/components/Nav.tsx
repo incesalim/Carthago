@@ -35,7 +35,8 @@ const SECTIONS: NavSection[] = [
     items: [
       { href: "/banks", label: "Banks" },
       { href: "/cross-bank", label: "Compare" },
-      { href: "/products", label: "Products" },
+      // /products is intentionally UNLISTED — reachable by direct URL, but kept
+      // out of the nav, the sitemap and search (noindex). Don't re-add it here.
       { href: "/ownership", label: "Ownership" },
       { href: "/actions", label: "Actions" },
     ],

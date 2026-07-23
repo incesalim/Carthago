@@ -20,7 +20,10 @@ export const metadata: Metadata = {
   title: "Products — Turkish bank product-shelf benchmark",
   description:
     "Which Turkish bank offers which products, every 'has it' backed by the bank's own published page — deposits, lending, cards, investment, insurance, SME, trade finance and treasury.",
-  alternates: { canonical: "/products" },
+  // UNLISTED: reachable by direct URL, but kept out of search engines (and the
+  // nav + sitemap). noindex here rather than a robots.txt Disallow, which would
+  // publicly list the path.
+  robots: { index: false, follow: false },
 };
 
 const pct = (x: number) => `${Math.round(x * 100)}%`;
