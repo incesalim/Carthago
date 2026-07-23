@@ -5,6 +5,15 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-07-19.
 
+2026-07-23 — **The bot prompt typed the universe size.** Fixing the graph gate
+(below) let the Python job reach the prose gate for the first time in days, and
+it found seven hardcoded "38 banks" in `bot-schema.ts` — the schema reference
+handed to the Telegram bot's LLM. The universe has been 31, 37 and 38, so a
+typed denominator becomes a wrong denominator in an answer. The five live
+coverage claims now interpolate `BANK_COUNT`; the two that were frozen
+anecdotes about a past defect ("returned 36 of 38 banks") were rewritten to
+drop a count they never needed — the point was the silence, not the arithmetic.
+
 2026-07-23 — **CI red since 2026-07-19: the graph gate had no room for a scratch
 lane.** `check_pipeline_graph_sync` asserts every `.github/workflows/*.yml` is a
 node on the `/pipeline` lineage graph, so landing the manual OpenRouter bench

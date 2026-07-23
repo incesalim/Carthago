@@ -6,7 +6,13 @@
  *
  * When the DB schema changes materially, update this file. It is the bot's
  * single source of truth about the data.
+ *
+ * The size of the universe is never typed here — it interpolates BANK_COUNT.
+ * It has been 31, 37 and 38; a stale denominator in this prompt is a wrong
+ * denominator in the bot's answer.
  */
+
+import { BANK_COUNT } from "./bank_names";
 
 export const SCHEMA_PROMPT = `You write **read-only SQLite (Cloudflare D1) SELECT queries** for a Turkish
 banking-sector database. Output ONE query that answers the user's question.
@@ -44,7 +50,7 @@ bank_audit_balance_sheet(bank_ticker, period, kind, statement, item_order,
     that leg's total row is MISSING from the extraction: MAX then returns the
     largest SUB-LINE and the answer looks fine. At 2026Q1 that put ISCTR at
     2,715,905,125 instead of 4,935,546,613 — 7th instead of 3rd, in a ranking
-    that showed all 38 banks. AKBNK, QNBFB and COLENDI hit the same defect on
+    that showed every bank. AKBNK, QNBFB and COLENDI hit the same defect on
     the other leg.
     Where BOTH legs lack a total row (e.g. DUNYAK 2025Q4), SUM the top-level
     roman sections instead — they ARE the statement:
@@ -70,11 +76,11 @@ bank_audit_profit_loss(bank_ticker, period, kind, item_order, hierarchy,
       JOIN bank_audit_pl_roles r ON r.bank_ticker=p.bank_ticker
        AND r.period=p.period AND r.kind=p.kind AND r.hierarchy=p.hierarchy
       WHERE r.role='period_net'
-    The role map resolves each bank's OWN roman ordinal and covers all 38 banks.
+    The role map resolves each bank's OWN roman ordinal and covers all ${BANK_COUNT} banks.
     DO NOT use item_name LIKE '%XIX+XXIV%'. That silently drops banks and looks
     correct: AKBNK files a BLANK item_name, and banks on the compressed template
     (e.g. HAYATK) label the same line '(XVII+XXII)'. A ranking built on the LIKE
-    returned 36 of 38 banks with no error and no missing-row warning.
+    returned all but two banks with no error and no missing-row warning.
     Other roles in the same table: gross, net_op, pretax, tax, cont_net,
     disc_net, opex_personnel, opex_other — join the same way for those.
   • amount is YTD-CUMULATIVE within a year: Q1=3 months … Q4=full year. So a
@@ -120,7 +126,7 @@ bank_audit_npl_movement(bank_ticker, period, kind, group_code, period_type,
 
 bank_audit_loans_by_sector(bank_ticker, period, kind, sector, period_type,
     stage2_amount, stage3_amount, ecl_amount, raw_label)
-  • ANNUAL ONLY — Q4 periods, and 34/38 banks. There is NO 2026Q1 row. Take
+  • ANNUAL ONLY — Q4 periods, and 34/${BANK_COUNT} banks. There is NO 2026Q1 row. Take
     MAX(period) from THIS table, never from another, or you get nothing.
   • sector MIXES LEAVES AND ROLLUPS. 'total' = the whole book; 'agri_total' /
     'mfg_total' / 'svc_total' are subtotals of their agri_*/mfg_*/svc_* children;
@@ -136,7 +142,7 @@ bank_audit_fx_position(bank_ticker, period, kind, period_type, currency,
 
 bank_audit_repricing(bank_ticker, period, kind, period_type, bucket,
     rate_sensitive_assets, rate_sensitive_liab, gap, cumulative_gap)
-  • Covers only ~29 of 38 banks — count your rows and say so.
+  • Covers only ~29 of ${BANK_COUNT} banks — count your rows and say so.
   • bucket IN ('lt_1m','1_3m','3_12m','1_5y','gt_5y','non_sensitive','total').
     'total' is a ROLLUP — never SUM across buckets. A legacy 'b1'…'b8' encoding
     survives on a minority of older rows; exclude it (bucket NOT LIKE 'b_')
@@ -292,7 +298,7 @@ bist_prices(symbol, period_date, open_price, high_price, low_price, close_price,
     shares_outstanding, kind). symbol is the PLAIN ticker — never '.IS'.
     bist_prices also carries INDEX rows (XBANK, XU100): filter kind='bank' for
     bank queries or an index level contaminates every average and ranking. Only
-    11 of the 38 banks are listed, so BIST answers cover a subset — say so.
+    11 of the ${BANK_COUNT} banks are listed, so BIST answers cover a subset — say so.
 news_items(source, external_id, published_at, ticker, title, summary, url,
     language) — KAP/TCMB/BDDK news. news_item_banks links items→tickers.
 bank_earnings(source, ticker, period, event_date, title, url) — filing calendar.
@@ -356,7 +362,7 @@ commercial bank; mention that if it appears in a peer ranking.)
   labels vary by bank AND language, are sometimes BLANK, sometimes collapse
   spaces ('NETPROFIT/LOSS'), and sometimes have spaces INJECTED mid-word
   ('Financial A ssets M easured at A m ortised Cost'). No pattern survives all
-  four. For scale: item_name LIKE '%TOTAL%ASSET%' matches 9 of 38 banks.
+  four. For scale: item_name LIKE '%TOTAL%ASSET%' matches 9 of ${BANK_COUNT} banks.
 • When you must match a label, put '%' BETWEEN words so a collapsed form still
   matches: LIKE '%NET%PROFIT%' catches both 'NET PROFIT' and 'NETPROFIT'. Then
   COUNT YOUR ROWS — if a per-bank query returns fewer rows than there are banks,
