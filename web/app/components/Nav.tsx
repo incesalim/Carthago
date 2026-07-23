@@ -35,6 +35,7 @@ const SECTIONS: NavSection[] = [
     items: [
       { href: "/banks", label: "Banks" },
       { href: "/cross-bank", label: "Compare" },
+      { href: "/products", label: "Products" },
       { href: "/ownership", label: "Ownership" },
       { href: "/actions", label: "Actions" },
     ],

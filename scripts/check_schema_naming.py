@@ -109,6 +109,10 @@ def iter_tables(sql: str):
     for m in _CREATE_TABLE_RE.finditer(sql):
         open_idx = m.end() - 1
         body = sql[open_idx + 1 : _matching_paren(sql, open_idx)]
+        # Strip inline `-- …` comments first: their text (and its commas) would
+        # otherwise be split into phantom "columns" (a comment reading
+        # "…hash, not the chat id" yielded columns `--`, `not`, `or`).
+        body = re.sub(r"--[^\n]*", "", body)
         cols = []
         for seg in _split_top_level(body):
             seg = seg.strip()

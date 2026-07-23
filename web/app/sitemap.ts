@@ -38,6 +38,7 @@ const STATIC_ROUTES: {
   // to "/", and a sitemap must not list redirecting URLs.
   { path: "/banks", priority: 0.9, changeFrequency: "weekly" },
   { path: "/cross-bank", priority: 0.8, changeFrequency: "weekly" },
+  { path: "/products", priority: 0.7, changeFrequency: "monthly" },
   { path: "/capital", priority: 0.8, changeFrequency: "weekly" },
   { path: "/liquidity", priority: 0.8, changeFrequency: "weekly" },
   { path: "/asset-quality", priority: 0.8, changeFrequency: "weekly" },
