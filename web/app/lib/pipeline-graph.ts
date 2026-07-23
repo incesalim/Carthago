@@ -153,7 +153,6 @@ export const PIPELINE_NODES: PipelineNode[] = [
   { id: "page-nonbank", kind: "page", layer: "page", lane: "bulletin", label: "Non-Bank", sublabel: "/non-bank", href: "/non-bank" },
   { id: "page-nonbank-share", kind: "page", layer: "page", lane: "bulletin", label: "Share of Banking", sublabel: "/non-bank/share-of-banking", href: "/non-bank/share-of-banking" },
   { id: "page-ownership", kind: "page", layer: "page", lane: "bulletin", label: "Ownership", sublabel: "/ownership", href: "/ownership" },
-  { id: "page-products", kind: "page", layer: "page", lane: "bulletin", label: "Products", sublabel: "/products · product-shelf benchmark", href: "/products" },
   { id: "page-regulation", kind: "page", layer: "page", lane: "bulletin", label: "Regulation", sublabel: "/regulation", href: "/regulation" },
   { id: "page-news", kind: "page", layer: "page", lane: "bulletin", label: "News", sublabel: "/news", href: "/news" },
   { id: "page-earnings", kind: "page", layer: "page", lane: "bulletin", label: "Actions", sublabel: "/actions · funding, capital events, ratings, results", href: "/actions" },
@@ -214,7 +213,8 @@ export const PIPELINE_EDGES: PipelineEdge[] = [
   { source: "wf-calendar", target: "store-d1-release-calendar" },
   { source: "src-product-research", target: "wf-build-products" },
   { source: "wf-build-products", target: "store-d1-products" },
-  { source: "store-d1-products", target: "page-products" },
+  // No store→page edge: /products is unlisted, so the topology documents the
+  // lane but exposes no clickable link to it (like the advertised-rates store).
   { source: "wf-bddk-bulletins", target: "store-d1-bulletin" },
   { source: "wf-bddk-bulletins", target: "store-d1-nonbank" },
   { source: "wf-refresh-data", target: "store-d1-bulletin" },
