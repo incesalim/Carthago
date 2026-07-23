@@ -5,6 +5,20 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-07-19.
 
+2026-07-23 — **Product-shelf benchmark is now a page: `/products`.** The pipeline
+measured what banks earn; nothing measured what they sell. The frozen 32-bank ×
+100-attribute research snapshot (`data/product_benchmark/`) is now a lane:
+`src/products/` (schema + deterministic builder), migration `0034`, three D1
+tables (`product_attributes` / `bank_products` / `bank_product_profile`), and an
+English `/products` page — a two-layer Desk view with an interactive
+cell→evidence / bank→profile matrix. Column labels and per-bank prose are
+hand-authored English (`src/products/labels_en.py`, `profiles_en.json`); the
+four states are encoded by both shape and colour. Seeded by `build-products.yml`
+(idempotent; snapshots accrete like `bank_advertised_rates`). Refresh automation
+is **designed but not built** — two variants (free-model lane / scheduled agent
+routine) over a shared change-detector + evidence-QC + flip-diff spine, written
+up in [knowledge/turkish-bank-product-benchmark-2026-07-22.md](knowledge/turkish-bank-product-benchmark-2026-07-22.md) §5.
+
 2026-07-19 — **Repricing: the prior column was structurally invisible.**
 check_repricing read the current period only, so a wrong comparative cell could
 not be caught by construction — and the cross-period anchor didn't cover it

@@ -1,0 +1,350 @@
+{
+  "ZIRAAT": {
+    "shelf_notes_en": "A full-scope state universal bank, close to the widest shelf possible — end to end from deposits and treasury derivatives to strong agriculture/farmer finance and a broad set of group subsidiaries. Digitally, the ZiraatPay wallet and the Ziraat Dinamik sub-brand stand out. The thin or unverified areas are modern digital-native products (robo-advisor, foreign equities, WhatsApp) and the ones closed by principle (leveraged forex, crypto). Insurance runs through Türkiye Sigorta / Türkiye Hayat as an agency after the 2020 consolidation.",
+    "distinctive_en": [
+      "Turkey's broadest farmer-finance shelf: Farmer Support, Agricultural Mechanisation, Young Farmer, Woman Farmer, Crop Production (G03/G04/G14)",
+      "ZiraatPay, its own digital wallet, plus cardless ATM via QR (C08/C06)",
+      "Ziraat Dinamik: a separately branded, branchless digital sub-bank (F07)",
+      "The widest group-subsidiary and foreign-bank network — the Ziraat Finance Group (J01/J02/J05/J07/J08)",
+      "Precious-metal range: gold + silver term/demand accounts (A04)",
+      "Private-banking segment (D13) plus OTC forward/derivative treasury products (I03–I05)"
+    ]
+  },
+  "HALKB": {
+    "shelf_notes_en": "An SME-and-tradesman-focused state universal bank: the shelf runs full-scope from retail to treasury derivatives, but the centre of gravity is clearly small business, tradesmen and women entrepreneurs (halkbankkobi.com.tr is a separate sub-site; Üreten Kadınlar is its own programme). Cards are consolidated under the single Paraf brand; the investment shelf is broad (government bonds, eurobonds, VIOP, TEFAS), with derivatives limited to forward-swap-option (no commodity hedging). The weakest, least-verifiable areas are the digital-payment shell (Apple Pay / Google Wallet / own wallet) and the group-subsidiary structure — the partnerships page loads via JavaScript, so much of the subsidiary block is honestly left unverified.",
+    "distinctive_en": [
+      "Üreten Kadınlar: Turkey's most comprehensive women-entrepreneur programme — zero-interest tradesman loan, women-exporter loan, cooperative package, dedicated credit card, its own fund (HKG) and an academy (G14)",
+      "A dedicated 'Gold Banking' shelf: term/demand/quarter/savings gold + silver account + the Onsa refinery gold-intake system (A03/A04/D10)",
+      "Three separate green personal loans: eco-vehicle, green-light vehicle, green-home mortgage, plus Energy Support (B06)",
+      "9+ card variants under the single Paraf brand and an SME/tradesman/pharmacist-segmented commercial-card shelf (C01/C10)",
+      "Structured Finance as a distinct line: consortium loans, loan buy/sell, project and acquisition finance (I01/I02)",
+      "Health-insurance depth above peers: complementary health, package tiers, critical illness, diabetes support (E06)"
+    ]
+  },
+  "VAKBN": {
+    "shelf_notes_en": "A state universal bank whose shelf is broad from retail deposits to treasury derivatives and especially mature on the SME/commercial side (four POS types, a full e-transformation suite, four separate export-receivable products, dedicated cheque and payroll pages). Precious-metal and secured-personal-loan variety runs above peers. Insurance and pension have been divested — the subsidiary list holds neither an insurer nor a pension company, and products are sold as agent for Türkiye Sigorta / Türkiye Hayat Emeklilik; by contrast the investment, leasing, factoring, e-money and foreign-bank subsidiaries are solid and listed with their stakes (the subsidiary block is the one block fully verifiable for these state banks). The clearest gap is the digital-payment shell: the contactless page describes only the bank's own Android+NFC solution, with no Apple Pay / Google Wallet, and no cross-border fast-transfer provider.",
+    "distinctive_en": [
+      "The widest precious-metal shelf among state banks: gold (gram/oz/quarter) + silver + PLATINUM + PALLADIUM as separate account products (A03/A04)",
+      "Three separate secured personal loans: against mortgage, land mortgage and car pledge (B08)",
+      "A full export-receivable finance shelf: forfaiting, export factoring, pre-financing, post-financing as separate products (H06)",
+      "A full e-transformation suite (e-invoice, e-archive, e-ledger, e-ledger storage, e-waybill, e-signature) plus a branchless remote-onboarding flow for SMEs/tradesmen (G12/G13)",
+      "ViBi: an in-app financial-advisor assistant with its own product page (F05)",
+      "A broad owned financial-subsidiary chain — Vakıf Yatırım, Vakıf Leasing, Vakıf Faktoring, Vakıf E-Money, VakıfBank International AG — but insurance/pension sit outside the group (J02/J05/J06/J07/J08 vs J03/J04)"
+    ]
+  },
+  "AKBNK": {
+    "shelf_notes_en": "One of Turkey's widest-shelf universal private banks; the retail, SME, corporate, trade-finance and investment blocks are nearly full, delivered on a strong home-built digital stack (Juzdan wallet, Tosla e-money, API portal, AI/voice Akbank Assistant). Investment is fed by Ak Yatırım / Ak Portföy, crypto by Stablex, the foreign leg by Akbank AG (Germany). The gaps are largely structural/strategic: no Apple Pay or Google Wallet (it pushes its own Juzdan), insurance/pension only as agent for Sabancı sister companies (Aksigorta/AgeSA), no separate factoring subsidiary. Treasury derivatives (forward/swap/option) exist in practice but are left unverified where no public product page could be found.",
+    "distinctive_en": [
+      "Its own digital wallet Juzdan + Tosla (AkÖde e-money) — it skips Apple Pay/Google Wallet and pushes its own payment ecosystem",
+      "In-group crypto-asset platform via Stablex (rare among banking peers)",
+      "Akbank API Portal — an open-banking/developer portal since 2016",
+      "Turkey's first digital KGF-guaranteed loan solution + fully digital corporate onboarding",
+      "A rich subsidiary set: Ak Portföy, Ak Yatırım, Ak Lease, AkÖde/Tosla, Stablex, Akbank AG (Germany)",
+      "TEFAS (fonturkey.com.tr) + a risk-profiled Smart Fund Basket (robo-lite)"
+    ]
+  },
+  "ISCTR": {
+    "shelf_notes_en": "İş Bankası runs Turkey's widest and most vertically integrated financial group: insurance (Anadolu Sigorta), pension (Anadolu Hayat), reinsurance (Milli Reasürans), asset management (İş Portföy), brokerage (İş Yatırım + Yatırım Finansman), leasing, factoring, a payment institution (Moka United) and three foreign banks (Germany/Russia/Georgia) are all group subsidiaries. Retail, SME, corporate, trade-finance and investment are nearly full; investment stands out with TEFAS + İş Portföy Robofunds (robo-advisor) and Privia private banking, corporate with a full treasury-derivative + capital-markets (IPO/M&A) shelf. Two clear differences from Akbank: (1) insurance/pension are real group subsidiaries, not agency; (2) no crypto product. Apple Pay/Google Wallet are again absent — payments sit around İşCep + Moka. The unverified cells are mostly standard products not listed on summary pages.",
+    "distinctive_en": [
+      "Turkey's most vertically integrated financial group: ALL eight subsidiary categories are real group companies (İş Portföy, İş Yatırım+Yatırım Finansman, Anadolu Sigorta, Anadolu Hayat, İş Leasing, İş Factoring, Moka United payments, 3 foreign banks)",
+      "Three foreign bank subsidiaries: İşbank AG (Germany), JSC İşbank (Russia), JSC Isbank Georgia — the widest foreign-bank network among peers",
+      "Insurance/pension are real group subsidiaries (Anadolu Sigorta/Anadolu Hayat + Milli Reasürans) — ownership where Akbank has agency",
+      "İş Portföy Robofunds — a genuine robo-advisor product (volatility-targeted dynamic funds)",
+      "TEFAS fully integrated + İş Portföy funds; Privia / Privia Black private-banking brand",
+      "Daily-Earning Account + no-term-break deposit (yield without breaking the term) + the Maxi AI assistant"
+    ]
+  },
+  "YKBNK": {
+    "shelf_notes_en": "One of Turkey's widest-shelf private banks (Koç Group). Deposits, loans, cards, investment, insurance, SME, trade finance and corporate blocks are all full. In cards the World/Play ecosystem is a sector leader; the investment shelf is very deep through the Yapı Kredi Yatırım/Portföy subsidiaries. Two structural gaps: it offers no crypto, and it has no in-group insurance/pension company (sold to Allianz in 2013, with bancassurance continuing). A digital pioneer, but behind Garanti on robo-advisory and crypto.",
+    "distinctive_en": [
+      "The World & Play card ecosystem (World, Play, Adios, Taksitçi + commercial World Business); worldcard.com.tr's broad programme architecture",
+      "World Pay: the bank's own NFC digital wallet + Apple Pay integration",
+      "A deep investment shelf via Yapı Kredi Yatırım: foreign/US equities (fractional), VIOP, FxBox forex, IPO + M&A corporate finance",
+      "End-to-end remote onboarding in ~7 minutes via the video assistant + apiportal.yapikredi.com.tr open banking",
+      "SME digital: open a commercial account from mobile + the 'Women Breaking Barriers' entrepreneur programme + POS Cepte softPOS",
+      "Gaps: NO crypto asset; no in-group insurance/pension company (Allianz bancassurance)"
+    ]
+  },
+  "GARAN": {
+    "shelf_notes_en": "The more digital-native of the two large private banks (a BBVA subsidiary). Every product block is full; its differentiation concentrates on the digital and investment side: crypto (Garanti BBVA Kripto), robo-advisor (Fon Botu), foreign equities + ETFs, the Ugi AI assistant, WhatsApp banking and end-to-end remote onboarding. Payment infrastructure is deep: Bonus + GarantiPay + Garanti Payment Systems / TAMİ (payment + e-money institution). In insurance/pension the group company is Garanti BBVA Emeklilik ve Hayat, with Eureko agency on the non-life side. On shelf breadth and digital maturity, it sits at the top of the benchmark.",
+    "distinctive_en": [
+      "Garanti BBVA Kripto: bank-integrated digital-asset buy/sell/custody — a rare shelf among Turkish banks (D12)",
+      "Fon Botu robo-advisor: suitability test → 24 model portfolios by risk profile + automatic rebalancing (D09)",
+      "Foreign/US equities + ETFs and foreign futures; a deep investment shelf via Garanti BBVA Yatırım",
+      "The Ugi AI assistant + WhatsApp banking (200+ topics) + NFC/video end-to-end remote onboarding",
+      "The Bonus card ecosystem + GarantiPay digital wallet + Garanti Payment Systems (GÖSAŞ) and TAMİ (licensed payment & e-money institution, J07)",
+      "'Yanımda' deposit (daily/overnight-earning account) + electric/hybrid vehicle loan (green personal finance)"
+    ]
+  },
+  "DENIZ": {
+    "shelf_notes_en": "Denizbank (Emirates NBD) is a broad, full-service retail+commercial bank. Personal loans, cards (Bonus), deposits/precious metals (gold+silver), investment (funds/equities/VIOP/eurobond/government bonds) and insurance agency make it largely complete. Digitally it stands out with the fastPay wallet and MobilDeniz; there is no in-group insurance/pension company (agency). Some treasury derivatives and SME POS sub-types are left unverified where no dedicated page was found on its own domain.",
+    "distinctive_en": [
+      "fastPay/DenizPay: one of Turkey's most widely used bank digital wallets; loadable from any bank card and pays by QR with no commission (C08)",
+      "Strong agriculture/farmer banking: Agricultural Personal Loan + Producer Card (G03)",
+      "Kaptan Hesap: an automatic-investment account that routes idle balance into deposits/funds/FX (A07)",
+      "A broad international subsidiary network: DenizBank AG (Germany), DenizBank Moscow, Bahrain branch (H07/J08)",
+      "Tek ATM: the shared DenizBank+QNB+TEB ATM network (F06)",
+      "Card brand is Bonus (Deniz Bonus) — the shared Bonus platform rather than its own proprietary brand (C01)"
+    ]
+  },
+  "QNBFB": {
+    "shelf_notes_en": "QNB Turkey (formerly QNB Finansbank, parent QNB Qatar) is full-service and broad-shelf. Strong cards (QNB/CardFinans), consumer loans, trade finance (QNB Global Trade) and treasury derivatives. Group: QNB Finans Yatırım/Portföy, Finans Leasing/Faktoring, Cigna Finans (insurance+pension), eFinans (e-invoice). Digitally, the separately branded Enpara.com stands out; however QNB Cüzdan was shut down and no Apple Pay/Google Pay page was found on the bank's own domain. In investment, equities/VIOP/bonds run through the group brokerage QNB Finans Yatırım (partial).",
+    "distinctive_en": [
+      "Enpara.com: QNB's separately branded, fully digital bank (F07)",
+      "Cigna Finans Emeklilik ve Hayat: an in-group insurance + pension company (E07/E08/J03/J04)",
+      "The CardFinans legacy → the QNB card family (Xtra/Fix/Emekli/Miles&Smiles) (C01)",
+      "CepPOS softPOS + a broad POS and QNBpay merchant suite (G08)",
+      "Gold/silver banking + an automatic gold-savings account (A03/A04/A07)",
+      "The QNB Cüzdan digital wallet was closed on 5 Jan 2026 — a shelf withdrawal (C08)"
+    ]
+  },
+  "TEB": {
+    "shelf_notes_en": "TEB (a BNP Paribas + Çolakoğlu partnership) is a full-service bank; strong SME/tradesman, trade finance (BNP Paribas), POS and treasury-derivative shelves. Card brand is Bonus. Digitally it stands out with the CEPTETEB sub-brand and remote onboarding. In investment, equities/VIOP/bonds run through the group brokerage TEB Yatırım, funds through TEB Portföy (Fon Danışmanım). Insurance/pension is via BNP Paribas Cardif (a group partner, not TEB's direct subsidiary). Apple Pay/Google Pay could not be verified on the bank's own domain; CEPTETEB offers in-app HCE contactless.",
+    "distinctive_en": [
+      "CEPTETEB: TEB's separately branded, fully digital banking platform; remote onboarding via video call (F07/F02)",
+      "A women-entrepreneur focus: Kadın Patronum + a women-entrepreneur export-support loan (G14)",
+      "The BNP Paribas network: trade finance + TEB Kosovo/TEB NV foreign subsidiaries; BNP Paribas Cardif bancassurance (H07/J08/E07)",
+      "Marifetli Hesap: a flexible account earning daily yield without breaking the term (A09)",
+      "Green/EV finance: electric-vehicle + Togg vehicle loan (B06/B03)",
+      "Card brand Bonus (TEB Bonus) + a broad premium-card shelf (Infinite/Signature/World Elite) (C01)"
+    ]
+  },
+  "ING": {
+    "shelf_notes_en": "ING Turkey is a full-scope foreign-mid bank: a strong digital-native retail deposit brand (Turuncu), a standard personal-loan shelf, Bonus franchise cards, investment via subsidiaries (ING Portföy + ING Yatırım Menkul Değerler), leasing and factoring. The corporate/treasury side is developed (OTC derivatives, cash management, trade finance, sustainable finance). The clearest gap is the absence of an in-group insurance and pension company (covered by agency). The unverified cells are mostly SME add-ons (cheque, DBS, e-invoice, KGF) and some investment detail.",
+    "distinctive_en": [
+      "A digital-native deposit brand: the Turuncu Account (daily interest, withdraw without breaking the term, overnight) + the Turuncu Child/Youth/Gold account family",
+      "In cards, the Bonus programme franchise (ING Bonus) rather than its own scheme",
+      "In-bank direct BIST/VIOP trading: ING Mobile + ING Trader IQ + WebTrader (the ING Yatırım Menkul Değerler subsidiary)",
+      "A full financial group with investment/asset-management/leasing/factoring subsidiaries; but NO in-group insurance/pension company (bancassurance agency)",
+      "Active in sustainability-linked syndicated finance; green (electric/hybrid) vehicle loan",
+      "A broad trade-finance shelf: letters of credit, documentary collection, letters of guarantee, Eximbank, digital trade finance"
+    ]
+  },
+  "BURGAN": {
+    "shelf_notes_en": "Burgan Bank Turkey is a corporate- and commercial-weighted foreign-mid bank (Kuwait Burgan/KIPCO group). The retail shelf is thin and standard (personal/mortgage/vehicle/overdraft, a single-brand credit card), but the investment side is stronger than expected: foreign exchanges (Burgan Trade), leveraged FX, a robo-advisor, four-metal precious metals. On the corporate side there is project finance, a full treasury-derivative set, trade finance (LC/guarantee/documentary) and cash management. Subsidiaries are limited to leasing (Burgan Leasing) and brokerage (Burgan Yatırım); there is no group company for asset management, insurance, pension or factoring.",
+    "distinctive_en": [
+      "An investment shelf unusually broad for a mid-sized bank: Burgan Trade trades foreign (incl. US) equities across 15 countries / 18 exchanges",
+      "Leveraged trading (forex) via Burgan FX — rare among Turkish banks",
+      "Burgan Robo: automated portfolio / robo-advisor",
+      "A four-metal precious-metal shelf: gold + silver + platinum + palladium (book accounts)",
+      "A corporate/commercial-weighted model; a full treasury-derivative set (forward/swap/option, FX+rate)",
+      "A thin retail shelf: personal lending only in need/mortgage/vehicle/overdraft; no in-group insurance/pension/asset-management company"
+    ]
+  },
+  "ALNTF": {
+    "shelf_notes_en": "Alternatifbank (ABank, a Commercial Bank of Qatar subsidiary) is a commercial- and corporate-focused, trade-finance-weighted foreign-mid bank. The retail shelf is plain and standard (personal/mortgage/vehicle/overdraft, VOV daily deposit, Bonus cards) but bancassurance is broad, including non-life lines. The real depth is corporate: trade-finance (LC/guarantee/Eximbank/pre-financing), corporate finance & investment banking (project/acquisition finance), a full treasury-derivative set (forward/swap/XCCY/option) and cash management. Subsidiaries are only leasing (Alternatif Lease) and brokerage (Alternatif Menkul); no group company for asset management, insurance, pension or factoring.",
+    "distinctive_en": [
+      "A deep trade-finance shelf: letters of credit, documentary collection, acceptance-aval, external guarantee/counter-guarantee, Eximbank, pre-financing, country/CBRT rediscount loans + a dedicated Trade Finance advisory line",
+      "Corporate/commercial-focused: Corporate Finance and Investment Banking (project finance, acquisition finance) + hedging (forward/swap/XCCY/option)",
+      "A solid bancassurance shelf (incl. non-life): motor/traffic, home/DASK, private + complementary health, private pension — without an in-group insurer",
+      "Strong digital onboarding: paperless remote account opening by video call; a mobile app on three stores (App Store/Google Play/Huawei)",
+      "VOV account for daily-yield flexible deposit; Bonus franchise cards (Alternatif Bank Bonus + Bonus Business)",
+      "A thin subsidiary structure: only Alternatif Lease (leasing) + Alternatif Menkul (brokerage); no asset-management/insurance/pension/factoring group company"
+    ]
+  },
+  "ODEA": {
+    "shelf_notes_en": "Odea Bank is a mid-sized, digital- and investment-focused foreign bank (majority shareholder ADQ, Abu Dhabi). The retail shelf is broader than expected: a flexible deposit family, a full personal-loan set (incl. property-backed finance), Axess franchise cards and a notably rich investment shelf (equities/VIOP/bonds/eurobond/crypto transfer) — all in-house, with no separate brokerage or asset-management subsidiary. Digitally, open banking and video onboarding (Bank'O) stand out. On the commercial side, trade finance and cash management (DBS, payroll, accounting integration) are strong. Its most distinctive structural feature is the absence of financial subsidiaries — which makes the group-subsidiary block almost entirely 'no'.",
+    "distinctive_en": [
+      "A rich in-house retail investment shelf: equities + VIOP + bonds + eurobond + crypto-asset transfer from the bank's own channel (crypto access rare among Turkish banks)",
+      "A flexible deposit family: Oksijen (use during the day / earn overnight), a withdrawable account, a goal-savings account, YUVAM",
+      "Open banking: aggregate accounts held at other banks in one app; strong digital onboarding (video call + Bank'O digital branch)",
+      "Broad bancassurance (incl. non-life + health): motor/traffic/green-card, DASK/home/contents, complementary health (MetLife), life, private pension",
+      "A deep trade-finance shelf: confirmed LC, standby, external guarantee/counter-guarantee, LC discounting, Eximbank/ECA country loans",
+      "A very thin group structure: almost no financial subsidiary (only Odeatech technology); everything in-house; majority shareholder ADQ (Abu Dhabi)"
+    ]
+  },
+  "SKBNK": {
+    "shelf_notes_en": "Şekerbank is a mid-sized private bank built on a tradesman-farmer and SME base; the shelf is close to a full commercial+retail bank, but its identity is set by agriculture/microfinance and local tradesman banking. In cards it uses the Bonus franchise (Şeker Bonus) rather than its own brand. Investment includes funds/TEFAS/BIST equities/eurobond/government bonds and corporate derivatives; there is no leveraged forex, foreign equity or crypto. It has brokerage, leasing and factoring subsidiaries; with no group insurance/pension company it works via agency. Digitally it offers video-call remote onboarding, cardless QR withdrawal and FAST-enabled mobile banking.",
+    "distinctive_en": [
+      "A specialism in agriculture/farmer banking: Harvest Card, agricultural business/investment loans, harvest-indexed repayment, tractor/equipment loans, tradesman-farmer microfinance",
+      "A broad tradesman/SME POS shelf: virtual, cash-register/OKC, Android/mobile, FX and 'supporter' POS",
+      "e-Gece Gündüz account: daily-yield flexible deposit without breaking the term",
+      "EKOkredi green personal finance (hybrid/electric vehicle, e-bike/scooter)",
+      "A foreign bank subsidiary: Şekerbank (Cyprus) Ltd. — unusual for a mid-sized private bank",
+      "Its own brokerage (Şeker Yatırım), leasing and factoring subsidiaries; insurance/pension only via agency"
+    ]
+  },
+  "ANADOLU": {
+    "shelf_notes_en": "Anadolubank (HABAŞ group) is a commercial/corporate-weighted mid-sized private bank. The retail shelf covers the basics (deposit variants, personal/mortgage/vehicle loans, Worldcard, private banking); but thematic retail products such as green loans, education loans and a clear child account are thin or uncertain. Investment runs largely through the group brokerage Anadolu Yatırım (WEBBORSAM/PARİTEM) for equities/VIOP/IPOs; funds, eurobond, government bonds and derivatives are in the bank, with no leveraged forex. With no group insurance/pension company, insurance runs through MetLife agency. The bank's real strength is corporate: trade finance, cash management/service banking and a Netherlands subsidiary. Gold+silver split precious metals and crypto-platform transfer are notable differentiators.",
+    "distinctive_en": [
+      "Anadolubank Nederland N.V.: a foreign bank subsidiary offering corporate and trade finance in the Eurozone — unusual for a mid-sized bank",
+      "Precious-metal variety: both a Gold Account and a Silver Account",
+      "An agriculture shelf despite the commercial tilt: agricultural business/investment loans + Farm Card, plus a Women Entrepreneur Package",
+      "A broad POS family (fixed/ADSL/mobile/cash-register/Doctor POS/POS-in-pocket) + virtual POS",
+      "A corporate-integration focus: open banking, service banking (BaaS), system integration and e-solutions",
+      "Crypto-platform transactions (transfer to partnered platforms) in the mobile/internet branch"
+    ]
+  },
+  "FIBA": {
+    "shelf_notes_en": "Fibabanka (Fiba Group) is a mid-sized private bank that stands out on digital products and fintech partnerships. The retail shelf is broader than expected: a full precious-metal family (gold/silver/platinum/palladium), an in-app Equity/FX/Crypto market, many mutual funds, various deposit accounts (incl. FX-protected) and a rich insurance shelf down to pet and phone cover. Equity and crypto access are offered directly from the app; on the brokerage side the group company is Fibayatırım. Corporate strength concentrates in digitalisation: a digital letter of guarantee, a digital cheque book, DBS/supplier finance and open banking / BaaS. POS/merchant, classic treasury derivatives and the group-subsidiary list could not be verified on the bank's own domain (the subsidiaries page 404s) — those cells are honestly left unverified; insurance/pension is assumed agency.",
+    "distinctive_en": [
+      "A full precious-metal shelf: gold + silver + platinum + palladium accounts — rare breadth among mid-sized peers",
+      "Crypto Market: in-app crypto-asset access + free 24/7 transfer to partnered platforms",
+      "In-app Equity Market (BIST shares) and FX Market — investment pulled into the bank's own channel",
+      "Digitised non-cash products: a Digital Letter of Guarantee (e-guarantee) and a Digital Cheque Book",
+      "An open banking / BaaS and fintech-partnership focus; strong supplier finance (DBS/TFS/TTS)",
+      "A rich niche-insurance shelf: Fi-Pati pet insurance, mobile-phone insurance, critical illness, premium-return life"
+    ]
+  },
+  "KUVEYT": {
+    "shelf_notes_en": "Kuveyt Türk has the widest shelf among participation banks, a full-scope player: retail/SME/commercial finance, cards, investment, insurance-pension and trade finance all covered vertically through its own group subsidiaries (insurance, pension, asset management, a German bank). Its differentiators are precious-metal banking (silver/platinum account + physical delivery) and digital/open banking (API Market, Senin Bankan, remote onboarding via XTM). Interest-based products (overdraft, forex, swap) are absent by participation principle; their equivalents are offered as lease certificates / participation accounts.",
+    "distinctive_en": [
+      "Precious-metal depth: silver + platinum accounts and physical gold/silver/bullion delivery; incl. 1g gold delivery from ATMs and palladium delivery (A04/D10)",
+      "An open-banking leader: a PSD2-compliant API Market (455 APIs) + the 'Senin Bankan' digital brand (F04/F07)",
+      "An end-to-end participation ecosystem: Neova Katılım Sigorta + Katılım Emeklilik + KT Portföy + KT Bank AG Germany (E07/E08/J01/J08)",
+      "Dijital Kaşif children's banking: a child participation account + card + a separate mobile app (A06)",
+      "A rich POS shelf: cash-register POS + CebimPOS softPOS + Farm POS (G07/G08/G03)",
+      "A private-banking segment across 40+ locations, concierge/lifestyle model (D13)"
+    ]
+  },
+  "ALBRK": {
+    "shelf_notes_en": "Albaraka is a full-scope participation bank; its strongest areas are the card franchise (a broad World family) and the group fintech arm Alneo (softPOS/payments). Personal finance, cards, insurance-pension and the SME shelf are mature; the investment shelf is limited by participation principle (no VIOP/TEFAS/government bonds/foreign equity/crypto — absent from the investment category page, hence 'no'). Corporate/treasury and trade-finance product detail is thin on public pages, so those blocks carry more 'unverified'. Interest-based products (overdraft, forex, swap) are absent by participation principle.",
+    "distinctive_en": [
+      "A broad World card family: World Platinum/Gold/Classic + Troy + Trend (youth) + Eflatun (women) + Özel (private) (C01)",
+      "The Alneo softPOS/payment platform — a group fintech arm (G08/J07)",
+      "Togg (electric-vehicle) financing — a rare green/EV product in participation banking (B06)",
+      "End-to-end digital account opening in 15–20 minutes via NFC ID chip + video call (F02/F03)",
+      "KFK (Katılım Finans Kefalet) — the participation equivalent of KGF guarantee (G02)",
+      "The group ecosystem: Albaraka Portföy + Bereket Sigorta + Bereket/Katılım Emeklilik (J01/J03/J04)"
+    ]
+  },
+  "TFKB": {
+    "shelf_notes_en": "Türkiye Finans (67% owned by Saudi National Bank) is a participation bank whose differentiator is capital markets: via the group brokerage TF Yatırım Menkul Değerler it offers equities, FOREIGN equities, ETFs and IPO underwriting — depth absent at Kuveyt Türk and Albaraka. It has no in-group insurance or pension company; it works on an agency model (agent for six insurers). POS and trade-finance shelves are strong. Corporate/treasury and some SME product detail is thin on public pages, so those blocks carry more 'unverified'. Interest-based products (overdraft, leveraged forex, swap) are absent by participation principle.",
+    "distinctive_en": [
+      "The deepest capital-markets shelf of the three participation banks: equities + ETFs + IPO underwriting via the group brokerage TF Yatırım Menkul Değerler (D04/I08/J02)",
+      "Foreign-equity access — a rare differentiator in participation banking (D11)",
+      "Smart Assistant ARI: an in-app chatbot (F05)",
+      "A rich POS shelf: cash-register POS + Cep POS softPOS + Web T-POS (G07/G08)",
+      "Trade-finance depth: letters of credit + documentary collection + acceptance/aval + Eximbank loans (H01/H02/H05)",
+      "The Happy Card ecosystem + Happy virtual card + the Finansör instalment-finance card (C01/C02)"
+    ]
+  },
+  "VAKIFK": {
+    "shelf_notes_en": "Vakıf Katılım, a foundation/state-owned participation bank, offers a full retail+commercial shelf: participation accounts, murabaha finance (home/vehicle/personal + land/urban-renewal), the VKart TROY credit card, in-channel equity+fund+lease-certificate investment and a strong SME/POS set (physical+virtual+cash-register+MobildePOS). Interest-based products (overdraft, forex, swap, option, classic government bonds) are absent by participation principle. The subsidiary shelf is still thin — insurance/pension via agency, leasing in-house, the sole asset-management company founded in 2025 — which leaves many 'unverified/no' cells across the investment/treasury and group-company blocks. With Apple Pay inactive in Turkey and cards on TROY, the mobile-wallet side is weak; the bank uses its own TR-QR and mobile-payment solution instead.",
+    "distinctive_en": [
+      "Equity trading is done from the bank's own internet/mobile channel — unlike most participation/deposit banks that route to a brokerage (D04)",
+      "MobildePOS (softPOS): the first app among state banks to turn a Samsung phone into a POS (G08)",
+      "Physical gold delivery: minimum 1 kg physical withdrawal from a gold account at branches (D10)",
+      "State-backed goal-savings products: a dowry account + a housing account (A07)",
+      "A young but fast-growing subsidiary structure: Vakıf Katılım Portföy (2025) is the sole major subsidiary; insurance/pension/leasing via agency or in-house"
+    ]
+  },
+  "ZIRAATK": {
+    "shelf_notes_en": "Ziraat Katılım, the participation arm of the Ziraat Finance Group, appears to have the widest shelf of the three state participation banks: a gold+silver split in precious metals, a daily-yield flexible account, a broad savings/goal-account family, sustainability-focused retail+commercial finance, open banking, private banking and a full insurance set incl. complementary health. Cards are branded Bankkart (TROY), a virtual card exists, and cash advance is absent by participation principle. Interest-based products (overdraft, forex, swap, option, classic government bonds) are absent. Many cells in the investment/treasury and group-subsidiary blocks are indirect, through group companies (Ziraat Yatırım/Ziraat Portföy).",
+    "distinctive_en": [
+      "Precious-metal depth: separate Gold Accounts and separate Silver Accounts (A03+A04)",
+      "Instant Daily Account: a daily-yield flexible participation account without breaking the term (A09)",
+      "Persona/niche accounts: a home-production account and a social-media content-creator account",
+      "A sustainability line for both retail and commercial + energy advisory (B06, I12)",
+      "An open-banking portal and a private-banking segment (F04, D13)",
+      "A broad insurance set incl. complementary health (E06); cross-border transfer via MoneyGram (C09)"
+    ]
+  },
+  "EMLAK": {
+    "shelf_notes_en": "Türkiye Emlak Katılım is a state participation bank positioned, as its name suggests, on the housing/real-estate axis: zero-profit-rate 'Gönlüne Göre' housing finance, a Housing Account, workplace/real-estate-certificate finance and an affiliated savings-finance company reinforce that identity. Its precious-metal (gold/silver/platinum/physical gold) and participation-based insurance/pension shelf is the richest of the three state participation banks; on the commercial side there is a very strong green/sustainability and women-entrepreneur finance set. Cards are branded Paraf; virtual card, digital wallet and merchant-POS products were not seen on the bank's site (likely a thin card/acquiring shelf). Interest-based products (overdraft, leveraged forex, swap, option) are absent by participation principle.",
+    "distinctive_en": [
+      "'Gönlüne Göre' housing finance: a zero-profit-rate model — save a down payment first, then finance — a Turkey first (B02)",
+      "The widest precious-metal shelf of the three: silver AND platinum accounts + a Gold Child account + jewellery gold + branch physical gold (A03/A04/A06/D10)",
+      "A housing/real-estate identity: Housing Account, workplace finance, real-estate-certificate finance and the affiliated Emlak Katılım Savings-Finance Co.",
+      "A strong green/sustainability commercial line: eco-export, energy efficiency, wastewater treatment, waste management, blue finance (I12)",
+      "Two separate women-entrepreneur finance programmes (G14); niche accounts (digital content creator, 'earn by producing')",
+      "Remote onboarding via video call + a broad participation-based pension/insurance set (incl. under-18 pension)"
+    ]
+  },
+  "ENPARA": {
+    "shelf_notes_en": "Enpara is a mass digital-native deposit bank (independent Enpara Bank licence since Aug 2024; parent QNB). The retail shelf is built around deposits/savings, a no-fee card, a personal loan and BIST equity+fund investment; products like mortgage/vehicle loans and VIOP/eurobond/government-bond/forex are absent. Insurance is limited to motor/traffic agency. Through 'Şirketim' it also offers a fully digital SME banking with POS and payroll. Investment products run via the partner brokerage QNB Invest.",
+    "distinctive_en": [
+      "A Silver Account — a precious-metal account most peers don't offer",
+      "A lifetime no-fee Enpara Mastercard (committed in clause 1 of the contract)",
+      "Goal savings via the Birikim account + Ekpara revolving credit line",
+      "BIST equity + fund investment (incl. TEFAS) from within the Enpara app; partner brokerage QNB Invest",
+      "Enpara Şirketim: end-to-end digital SME banking + POS (desktop/mobile/cash-register) + payroll"
+    ]
+  },
+  "COLENDI": {
+    "shelf_notes_en": "Colendi Bank is an AI-first 'digital-native' deposit bank. The retail shelf is very thin: term/demand + the daily-yield Kazandıran account, a personal loan, an overdraft, a BNPL-style shopping loan and only a virtual debit card (no credit or physical card). There is no investment or insurance shelf. The real surprise is the SME side: with spot/instalment commercial loans, a letter of guarantee (non-cash) and a supplier-finance system it is building a digital business bank (revolving + overdraft arriving in 2026). The rest of trade finance, corporate treasury and group subsidiaries could not be verified from public sources → unverified.",
+    "distinctive_en": [
+      "An AI-first, digital-native deposit bank (BDDK licence Oct 2024, fully operational Mar 2025)",
+      "Shopping Loan — BNPL at Migros electronics via the Money app (buy now, pay later)",
+      "A deeper-than-expected digital SME side: spot + instalment commercial loan, letter of guarantee, supplier-finance system (TFS)",
+      "The Kazandıran account (daily-yield) + free FAST/EFT/transfer",
+      "The retail shelf runs on a virtual debit card only; no credit or physical card"
+    ]
+  },
+  "ZIRAATD": {
+    "shelf_notes_en": "Ziraat Dinamik is the Ziraat Finance Group's 'first digital bank established under a parent bank'. The retail shelf is broad for its peer set: TL/FX/gold deposits + a daily-term account, a personal loan + a digital overdraft, Bankkart-branded digital/virtual cards, equity+fund investment and a rich insurance set (Ziraat Sigorta/Hayat). But mortgage/vehicle loans are not on the shelf; the 'İşim İçin' side is limited to account + commercial debit card + transfer + investment (no business loan or POS). No trade finance or corporate treasury is offered. Group subsidiaries (Ziraat Yatırım/Portföy/Sigorta/Hayat) feed the investment and insurance shelf.",
+    "distinctive_en": [
+      "A non-printed Digital Debit Card + Digital Credit Card + limited virtual-card creation",
+      "Cardless cash withdrawal from the Ziraat ATM network via QR code",
+      "Ziraat Dinamik Assistant (an in-app AI assistant)",
+      "A broad insurance shelf: pension/youth pension, DASK, loan-linked life, cyber, travel health — the Ziraat Sigorta/Hayat group",
+      "Equity + mutual-fund + gold-account investment (Ziraat Yatırım/Portföy infrastructure) + Bankkart Lira rewards"
+    ]
+  },
+  "HAYATK": {
+    "shelf_notes_en": "Hayat Finans is a branchless digital PARTICIPATION bank live since 2023. Its shelf is full for its age: retail participation/demand/daily accounts, gold, personal and education finance, a credit card (Hayat Plus) + debit card, TEFAS funds + BIST equities + lease certificates + Hayat FX, and POS/virtual POS/DBS/payroll on the SME side. An insurance-pension line, heavy corporate/treasury (syndication, derivatives) and broad trade-finance instruments are not yet visible; because ownership is an industrial group, there is no in-group financial subsidiary. Participation terminology: deposit = participation account, loan = finance, interest = profit share.",
+    "distinctive_en": [
+      "Turkey's first standalone digital participation bank (BDDK digital-bank licence, 2023); fully branchless, remote onboarding",
+      "Owned by an industrial group (Hayat Kimya + Kastamonu Entegre / Hayat Holding) — no financial subsidiary; no insurance/pension/leasing/asset-management group company",
+      "No own ATM network; it shares İş Bankası and Yapı Kredi ATMs",
+      "A narrow but real investment shelf: equities (BIST) from an investment account, TEFAS funds, Hayat FX (spot FX/metals), lease certificates",
+      "The Hayat Plus credit card + Mastercard/TROY commercial card; POS, virtual POS and DBS make the SME side active too",
+      "By participation principle, no overdraft, interest cash advance, swap/option or leveraged forex"
+    ]
+  },
+  "TOMK": {
+    "shelf_notes_en": "TOM Katılım (HADİ), Turgut Aydın Holding's branchless digital PARTICIPATION bank, is a pure retail/consumer neobank. Its shelf: participation/current/'Mega Daily' accounts, a strong precious-metal line (gold+silver, automatic gold savings), shopping-oriented finance (BNPL/instalment), a HADİ credit+debit+virtual card, and a basic investment account (equities+funds+IPO). There is no business/SME, POS, trade finance, corporate/treasury or broad insurance-pension shelf; insurance is only loan-linked life. As ownership is a retail group, there is no in-group financial subsidiary. Participation terminology: deposit = participation account, loan = finance, interest = profit share.",
+    "distinctive_en": [
+      "A consumer-focused digital participation neobank (the HADİ app); markets itself as 'Turkey's largest digital bank', ~3.5m customers",
+      "Owned by Turgut Aydın Holding (A101, English Home, Memorial) — a retail/health group; no financial subsidiary",
+      "A strong, distinctive precious-metal shelf: a Silver Account + a Gold-Saving Account (automatic/goal gold savings)",
+      "Lending is entirely shopping-oriented (credit/instalment/in-store shopping loan = murabaha/BNPL); no classic personal-mortgage-vehicle loan",
+      "The HADİ credit card + debit card + virtual card; no own ATM network — cardless cash in/out from A101 stores",
+      "No SME/corporate/trade-finance/treasury product at all — a pure retail bank; insurance is only loan-linked life"
+    ]
+  },
+  "DUNYAK": {
+    "shelf_notes_en": "Dünya Katılım is NOT a branchless neobank as assumed; it is a full-scope PARTICIPATION bank with a domestic physical branch network + an internet branch (retail and corporate). Its shelf is by far the widest of the three 'digital participation' banks: participation/current accounts, an unusual precious-metal offering (gold/silver/platinum/palladium + physical delivery + ATOM), personal/home/vehicle/green-vehicle finance, Paraf+DKart cards, equity+fund+lease-certificate investment, and a broad bancassurance set (incl. pension). SME/commercial finance and letters of guarantee exist too. Much is unverified: the ownership/subsidiary structure (the whole subsidiary block), POS products, trade-finance instruments and whether the insurer is a group company or a third party. Participation terminology: deposit = participation account, loan = finance, interest = profit share.",
+    "distinctive_en": [
+      "NOTE: contrary to the 'digital participation' assumption, Dünya Katılım is a full-scope participation bank with a NATIONWIDE physical branch network (Branches page, safe-deposit boxes, retail+corporate internet branch)",
+      "A unique precious-metal shelf: gold + silver + PLATINUM + PALLADIUM accounts; physical gold delivered to your door; ATOM converts scrap gold into an account",
+      "A full bancassurance shelf: pension, motor/traffic, home/DASK, complementary+travel+foreigner+private health, personal accident, critical illness — the broadest of the three digital participation banks",
+      "A green/sustainable emphasis: eco-friendly vehicle finance (retail) + sustainable finance solutions (commercial)",
+      "All three of home + vehicle + personal finance (absent at HAYATK/TOMK); 'Enerya'-branded finance points to a group link",
+      "In cards, Paraf (a licensed co-brand) + its own DKart brand"
+    ]
+  },
+  "HSBC": {
+    "shelf_notes_en": "HSBC Turkey is a specialist/niche foreign bank: it has deliberately narrowed the retail-lending shelf (no new mortgage/vehicle origination, only personal loan + overdraft) and built its strategy on Premier private banking, international customers, cross-border transfers and trade finance + corporate/treasury. The deposit and investment shelf is still broad (precious metals, multi-currency, a broad fund+derivative set). It has no in-group insurance/pension company, acting as Allianz agent. The SME/tradesman retail shelf is weak; the focus is corporate and investment banking.",
+    "distinctive_en": [
+      "The HSBC Premier private-banking segment is the bank's core positioning (D13)",
+      "Strong cross-border money transfer and trade-finance connectivity via HSBC's global network (C09, H07, J08)",
+      "A precious-metal deposit account covering gold + silver together (A04)",
+      "A full English website and international-customer focus (F08)",
+      "A relatively rich investment shelf: VIOP, eurobond, government bonds, OTC derivatives, many funds (D05–D07, I03–I05)",
+      "A narrowed retail-lending shelf: mortgage and vehicle loans not sold to new customers, only personal/digital/overdraft (B02, B03)"
+    ]
+  },
+  "ICBCT": {
+    "shelf_notes_en": "ICBC Turkey is a subsidiary of the Chinese state bank ICBC; its weight is in corporate/commercial banking, project finance and the China–Turkey trade corridor (CHINEX, RMB, UnionPay). The retail shelf is thin but covers the basics (deposits, personal/mortgage/vehicle loans, UnionPay credit+debit+virtual card, fund/equity/government-bond investment). It has no own insurance company, acting as agent. It has in-group asset-management (ICBC Turkey Portföy) and brokerage (ICBC Turkey Yatırım) subsidiaries. Data is limited on digital payment/wallet and SME-tradesman retail tools (POS variants, softPOS, e-invoice); many cells are unverified.",
+    "distinctive_en": [
+      "The China link: direct transfer to China via CHINEX and UnionPay cards (C09, C01, H07)",
+      "The first bank in Turkey to issue a retail UnionPay credit card (C01)",
+      "A corporate/commercial and trade-finance-weighted shelf; an RMB and China-corridor focus (H01, I01)",
+      "A full in-group investment infrastructure: ICBC Turkey Portföy + ICBC Turkey Yatırım (J01, J02, D01–D07)",
+      "A broader-than-expected retail-lending shelf: mortgage + vehicle included (B02, B03)",
+      "A daily-yield flexible deposit (Daily Time Deposit) is available (A09)"
+    ]
+  },
+  "AKTIF": {
+    "shelf_notes_en": "Aktif Bank is a non-deposit-taking investment bank, but its N Kolay digital brand + a broad payment-subsidiary ecosystem (UPT, N Kolay Payment/E-Money, PAVO, Passolig, E-Kent, Sigortayeri) give it a retail-like shelf. Lending (personal/vehicle/revolving), the Passo credit card, unleveraged FX+crypto+fund+equity investment, QR/open-banking/easy-address payment and strong SME POS/OKC are all present. Deposits, mortgage, leveraged forex and physical gold are structurally absent. In-group, insurance is a brokerage (Sigortayeri), not an underwriter. Its product logic is not a classic bank but a payment/technology-focused financial ecosystem.",
+    "distinctive_en": [
+      "A non-deposit-taking investment bank: no TL/FX deposits, yield delivered via N Kolay bills/repo (A01, A02)",
+      "A strong payment/e-money subsidiary ecosystem: UPT (cross-border transfer), N Kolay Payment, PAVO cash-register/POS (C09, G07, J07)",
+      "The Passo/Passolig credit card — a real Aktif-issued credit card (present, contrary to the brief) (C01)",
+      "N Kolay, a fully digital, branchless brand with courier onboarding (F03, F07)",
+      "A crypto platform and unleveraged N Kolay FX (currency + precious metals) (D12, A03, A04)",
+      "Strong in cash-register POS (OKC) via PAVO; the sector's 2nd-highest sales (G07)"
+    ]
+  }
+}

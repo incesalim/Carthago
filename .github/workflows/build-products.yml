@@ -1,0 +1,111 @@
+name: Seed product-shelf benchmark (manual)
+
+# Loads the frozen product-shelf research snapshot (data/product_benchmark/*.json)
+# into D1 — the deterministic build behind /products. This is NOT the refresh
+# automation (that lane, when built, re-derives the shelf from bank sources); this
+# only loads the committed JSONs, so it is deterministic and idempotent.
+#
+# When to run:
+#   - Once after the 0034 migration has deployed (to seed the tables).
+#   - Again whenever data/product_benchmark/*.json or the English catalog changes.
+#   Re-running for the same snapshot_date replaces that snapshot's rows.
+#
+# Order note: the page's tables are created by 0034_bank_products.sql. Deploy
+# applies migrations to remote D1; this workflow also runs the migration DDL
+# (CREATE … IF NOT EXISTS) before pushing, so it is safe to dispatch on its own.
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+# Share the pipeline concurrency group so this can't race the other refresh
+# workflows on the R2 SQLite snapshot.
+concurrency:
+  group: bddk-pipeline
+  cancel-in-progress: false
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      PYTHONIOENCODING: utf-8
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Fetch SQLite snapshot from R2 + decompress
+        run: |
+          python - <<'PY'
+          import gzip, shutil, pathlib
+          from src.audit_reports import r2_storage
+          gz  = pathlib.Path("data/bddk_data.db.gz")
+          db  = pathlib.Path("data/bddk_data.db")
+          gz.parent.mkdir(parents=True, exist_ok=True)
+          if r2_storage.exists("state/bddk_data.db.gz"):
+              size = r2_storage.download_to("state/bddk_data.db.gz", gz)
+              print(f"Pulled state/bddk_data.db.gz from R2 ({size/1e6:.1f} MB)")
+              with gzip.open(gz, "rb") as s, open(db, "wb") as d:
+                  shutil.copyfileobj(s, d)
+              print(f"Decompressed to {db.stat().st_size/1e6:.1f} MB")
+          else:
+              print("No snapshot in R2 yet — starting from empty DB.")
+          PY
+
+      - name: Build product-shelf snapshot into local SQLite
+        run: python -m src.products.build
+
+      - name: Setup Node (for wrangler)
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
+      - name: Ensure product tables exist on remote D1
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        working-directory: web
+        run: npx wrangler d1 execute bddk-data --remote --file=migrations/0034_bank_products.sql
+
+      - name: Push rows to Cloudflare D1
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        # 30h window covers the run with margin. Idempotent INSERT OR REPLACE on
+        # the natural keys; product_attributes replaces by code, the cell + profile
+        # tables by (bank, attr/snapshot).
+        run: python scripts/push_to_d1.py --hours 30 --only-tables product_attributes,bank_products,bank_product_profile
+
+      # This lane runs the builder directly (not scripts/refresh.py, which VACUUMs
+      # + re-gzips), so re-compress here — otherwise we'd re-upload the stale .gz we
+      # downloaded and silently drop this run's rows from the snapshot.
+      - name: Re-gzip + upload snapshot back to R2
+        run: |
+          python - <<'PY'
+          import gzip, shutil, pathlib
+          from src.audit_reports import r2_storage
+          gz, db = pathlib.Path("data/bddk_data.db.gz"), pathlib.Path("data/bddk_data.db")
+          with open(db, "rb") as src, gzip.open(gz, "wb", compresslevel=9) as dst:
+              shutil.copyfileobj(src, dst)
+          size = r2_storage.upload_file(gz, "state/bddk_data.db.gz")
+          print(f"Uploaded {size/1e6:.1f} MB to R2 state/bddk_data.db.gz")
+          PY
+
+      - name: Alert on failure
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+        run: python scripts/notify.py "❌ ${{ github.workflow }} failed — ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

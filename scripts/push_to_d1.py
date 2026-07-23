@@ -40,6 +40,7 @@ from src.kap.schema import init_schema as _init_kap_schema              # noqa: 
 from src.news._htmltext import fix_mojibake                            # noqa: E402
 from src.news.schema import init_schema as _init_news_schema            # noqa: E402
 from src.nonbank.schema import init_schema as _init_nonbank_schema      # noqa: E402
+from src.products.schema import init_schema as _init_products_schema    # noqa: E402
 from src.rates.schema import init_schema as _init_rates_schema          # noqa: E402
 from src.tefas.schema import init_schema as _init_tefas_schema          # noqa: E402
 from src.tkbb.schema import init_acquisition_schema as _init_tkbb_acq_schema  # noqa: E402
@@ -92,6 +93,9 @@ SYNC_TABLES = [
     "tkbb_acquisition_stats",
     "kap_ownership",
     "bank_advertised_rates",
+    "product_attributes",
+    "bank_products",
+    "bank_product_profile",
     "release_calendar",
     "faaliyet_franchise",
     "faaliyet_extractions",
@@ -367,6 +371,7 @@ def main() -> int:
     _init_tkbb_schema(conn)
     _init_tkbb_acq_schema(conn)
     _init_rates_schema(conn)
+    _init_products_schema(conn)
 
     try:
         allowed_tables = resolve_tables(args.only_tables, args.table_set)
