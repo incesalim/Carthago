@@ -14,8 +14,11 @@ kendi yayınına dayalı kanıtla. Rapor:
 | `aggregate.py` | Kanıt QC: eksik kod + kanıtsız `yes` avı → `_QC_REPORT.md` |
 | `matrix.py` | Matris + yaygınlık analizi (§6–9) → `_MATRIX.md` |
 | `build_report.sh` | Üçünü zincirleyip raporu yeniden üretir |
+| `_template.html` + `make_artifact.py` | İnteraktif kanıt matrisi (tek dosya, kendi kendine yeten HTML); payload'ı JSON'lardan üretip şablona enjekte eder |
+| `benchmark_explorer.html` | Üretilen interaktif görünüm — Claude Artifact olarak yayınlandı |
 
-Yeniden üretim: `./build_report.sh`
+Yeniden üretim: `./build_report.sh` (rapor) · `python make_artifact.py` (interaktif HTML).
+İkisi de deterministik ve idempotent — kaynak JSON'lar değişince yeniden çalıştır.
 
 ## Değer alfabesi — ikisi bankaya, ikisi bize dair
 
