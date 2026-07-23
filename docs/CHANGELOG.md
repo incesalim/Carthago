@@ -5,6 +5,18 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-07-19.
 
+2026-07-23 — **CI red since 2026-07-19: the graph gate had no room for a scratch
+lane.** `check_pipeline_graph_sync` asserts every `.github/workflows/*.yml` is a
+node on the `/pipeline` lineage graph, so landing the manual OpenRouter bench
+(`test-openrouter.yml`) failed the Python job on every commit afterwards —
+unrelated to whatever was being pushed. Drawing the node was the wrong fix: the
+bench is read-only on production and feeds nothing, so a node would make the
+public graph claim lineage that doesn't exist. The gate now takes a named
+`SCRATCH_WORKFLOWS` exemption with a written reason, and checks the exemption
+too — naming a workflow that no longer exists fails CI, so the list is deleted
+along with the lane. Both "delete this scratch lane" checklists (OPERATIONS,
+PROJECT_STATE) now name the exemption.
+
 2026-07-23 — **Product-shelf benchmark is now a page: `/products`.** The pipeline
 measured what banks earn; nothing measured what they sell. The frozen 32-bank ×
 100-attribute research snapshot (`data/product_benchmark/`) is now a lane:

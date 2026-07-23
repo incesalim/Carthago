@@ -9,6 +9,11 @@ check enforces the invariant bi-directionally:
   * every `.github/workflows/*.yml` is referenced by a `workflowFile:` in the graph
   * every `workflowFile:` in the graph points at a workflow file that exists
 
+The one exception is a scratch lane — a manual probe that moves no production
+data and so has no lineage to draw. Those are named in `SCRATCH_WORKFLOWS` with
+a reason, and the exemption itself is checked: naming a workflow that no longer
+exists fails the gate, so the list is deleted along with the lane.
+
 It also checks the OTHER end of the topology — that every page node's `href:`
 resolves to a route the app actually serves. Retiring a route (/weekly) or
 parking one under an underscore dir (/franchise) updates the nav and the sitemap
@@ -33,6 +38,20 @@ WEB_APP_DIR = REPO_ROOT / "web" / "app"
 _REF_RE = re.compile(r'workflowFile:\s*["\']([^"\']+)["\']')
 _HREF_RE = re.compile(r'href:\s*["\']([^"\']+)["\']')
 
+# Scratch lanes: manual probes that move no production data, so there is no
+# lineage for them to draw. Drawing one anyway would put a bench on the public
+# /pipeline graph and claim it feeds something — the graph would lie in the
+# other direction. Exempting is deliberate and temporary: an entry whose
+# workflow no longer exists is itself an error (see stale_exemptions), so the
+# list cannot quietly rot after the scratch lane is deleted.
+SCRATCH_WORKFLOWS = {
+    "test-openrouter.yml": (
+        "manual OpenRouter bench — read-only on production (pulls the R2 "
+        "snapshot, never uploads, never pushes to D1). Delete the exemption "
+        "with the workflow once the provider question is settled."
+    ),
+}
+
 
 def workflow_files() -> set[str]:
     """Names of all workflow definitions on disk."""
@@ -52,7 +71,12 @@ def check() -> tuple[set[str], set[str]]:
     """Return (missing_from_graph, dangling_in_graph)."""
     on_disk = workflow_files()
     in_graph = referenced_workflows()
-    return on_disk - in_graph, in_graph - on_disk
+    return on_disk - in_graph - set(SCRATCH_WORKFLOWS), in_graph - on_disk
+
+
+def stale_exemptions() -> set[str]:
+    """Scratch exemptions whose workflow is gone — delete the entry."""
+    return set(SCRATCH_WORKFLOWS) - workflow_files()
 
 
 def routes() -> set[str]:
@@ -97,9 +121,12 @@ def main() -> int:
         return 1
     missing, dangling = check()
     dead = dead_hrefs()
-    if not missing and not dangling and not dead:
+    stale = stale_exemptions()
+    if not missing and not dangling and not dead and not stale:
+        exempt = len(SCRATCH_WORKFLOWS)
         print(
-            f"pipeline graph in sync ({len(workflow_files())} workflows, "
+            f"pipeline graph in sync ({len(workflow_files())} workflows"
+            f"{f', {exempt} scratch-exempt' if exempt else ''}, "
             f"{len(routes())} routes)."
         )
         return 0
@@ -129,6 +156,14 @@ def main() -> int:
         )
         for href in sorted(dead):
             print(f"  - {href}", file=sys.stderr)
+    if stale:
+        print(
+            "SCRATCH_WORKFLOWS exempts workflows that no longer exist "
+            "(delete the entry — the scratch lane is gone):",
+            file=sys.stderr,
+        )
+        for name in sorted(stale):
+            print(f"  - {name}", file=sys.stderr)
     return 1
 
 
