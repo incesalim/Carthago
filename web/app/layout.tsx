@@ -3,6 +3,7 @@ import { Instrument_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import Nav from "./components/Nav";
 import Beacon from "./components/Beacon";
+import GoogleAnalytics from "./components/GoogleAnalytics";
 import { RangeProvider } from "./components/range-context";
 import { ThemeProvider } from "./components/ui/theme-provider";
 import { Toaster } from "./components/ui/toaster";
@@ -117,6 +118,7 @@ export default function RootLayout({
           <Toaster />
         </ThemeProvider>
         <Beacon />
+        <GoogleAnalytics />
       </body>
     </html>
   );

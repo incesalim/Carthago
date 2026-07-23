@@ -21,6 +21,10 @@ interface CloudflareEnv {
   CF_ANALYTICS_SITE_TAG?: string; // Web Analytics site tag
   CF_ACCOUNT_TAG?: string; // Cloudflare account id/tag
 
+  // Google Analytics 4 (gtag.js). Non-secret `var` — the GA4 measurement ID
+  // ships in every page's HTML. Unset ⇒ the tag is not emitted (e.g. next dev).
+  GA_MEASUREMENT_ID?: string; // e.g. "G-XXXXXXXXXX"
+
   // --- Telegram Q&A bot (all `secret`s; see docs/TELEGRAM_BOT.md) ---
   TELEGRAM_BOT_TOKEN?: string; // BotFather token
   TELEGRAM_WEBHOOK_SECRET?: string; // matched against the setWebhook secret_token
