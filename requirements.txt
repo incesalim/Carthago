@@ -26,7 +26,7 @@ sqlalchemy>=2.0.51
 pymupdf>=1.28.0
 
 # Cloudflare R2 (S3-compatible) for audit-report PDF storage
-boto3>=1.43.36
+boto3>=1.43.38
 
 # Utilities
 python-dotenv>=1.2.2
