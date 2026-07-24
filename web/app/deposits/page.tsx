@@ -47,6 +47,7 @@ import {
   type TransmissionItem,
 } from "@/app/components/desk";
 import { lastVal, latestByGroup, monthLabel, signedPp, valAgo } from "@/app/lib/desk";
+import { LDR_PUBLISHED } from "@/app/lib/ldr";
 import { everyOf, firstClaim } from "@/app/lib/prose";
 import { aheadSlots } from "@/app/lib/ahead-data";
 import { GlobalRangeSelector } from "@/app/components/range-context";
@@ -479,15 +480,16 @@ export default async function DepositsPage() {
     },
     {
       code: "funding-stretch",
-      active: ldrNow != null && ldrNow > 100,
+      active: ldrNow != null && ldrNow > LDR_PUBLISHED.line,
       body: (
         <>
-          <b className="font-semibold">Funding stretch</b> — loan/deposit {fmtPct(ldrNow)}: lending
-          leans on non-deposit funding.
+          <b className="font-semibold">Funding stretch</b> — TL+FC loan/deposit {fmtPct(ldrNow)}:
+          lending leans on non-deposit funding. The TL-only book is tested separately, against a
+          tighter line, on <Go href="/liquidity">/liquidity</Go>.
         </>
       ),
-      rule: "ldr > 100%",
-      clear: <>Funding stretch — loan/deposit {fmtPct(ldrNow)}, below the line</>,
+      rule: LDR_PUBLISHED.rule,
+      clear: <>Funding stretch — TL+FC loan/deposit {fmtPct(ldrNow)}, below the line</>,
     },
   ];
   const activeFlags = flags.filter((f) => f.active).length;
@@ -633,17 +635,19 @@ export default async function DepositsPage() {
           }
         />
         <Vital
-          label="Loan / deposit"
+          label={LDR_PUBLISHED.label}
           value={ldrNow != null ? ldrNow.toFixed(1) : "—"}
           unit="%"
           series={ldrSector.slice(-13)}
           decimals={1}
           note={
             <>
-              {ldrNow != null && ldrNow < 100 ? "below the 100% line" : "above the 100% line"}{" "}
-              (monthly){" "}
-              <Link href="/credit" className="font-semibold text-primary">
-                /credit
+              {ldrNow != null && ldrNow < LDR_PUBLISHED.line
+                ? `below the ${LDR_PUBLISHED.line}% line`
+                : `above the ${LDR_PUBLISHED.line}% line`}{" "}
+              — {LDR_PUBLISHED.basis}. {LDR_PUBLISHED.elsewhere.what} on{" "}
+              <Link href={LDR_PUBLISHED.elsewhere.href} className="font-semibold text-primary">
+                {LDR_PUBLISHED.elsewhere.href}
               </Link>
             </>
           }
@@ -978,8 +982,8 @@ export default async function DepositsPage() {
         {/* Loan-to-deposit. */}
         <div>
           <SecHead
-            title="Loan-to-deposit"
-            meta="funding pressure · monthly · by ownership group"
+            title="Loan-to-deposit — TL+FC"
+            meta="published ratio · monthly · by ownership group · TL-only weekly on /liquidity"
             className="mb-2.5"
           />
           <ChartRow data={ldr} labels={BANK_TYPE_LABELS} deltaPeriods={12} deltaLabel="12m" fmt={(v) => `${v.toFixed(0)}%`}>
@@ -999,7 +1003,7 @@ export default async function DepositsPage() {
                   ],
                 ) ?? "Loan / deposit by group"
               }
-              description="loans ÷ deposits, %, monthly · by ownership group"
+              description="published all-currency loans ÷ deposits, %, monthly · by ownership group"
               yFormat="pct"
               decimals={0}
               height={300}

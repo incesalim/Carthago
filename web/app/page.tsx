@@ -45,6 +45,7 @@ import {
   valAgo,
   windowExtremes,
 } from "@/app/lib/desk";
+import { LDR_PUBLISHED } from "@/app/lib/ldr";
 import {
   Ahead,
   ChartFoot,
@@ -293,7 +294,7 @@ export default async function OverviewPage({
       good: "up",
     },
     {
-      label: "Loan / deposit",
+      label: LDR_PUBLISHED.label,
       prev: sLdr.at(-2)?.value ?? null,
       curr: ldrNow,
       fmt: (v) => `${v.toFixed(1)}%`,
@@ -429,14 +430,15 @@ export default async function OverviewPage({
     },
     {
       code: "funding-stretch",
-      active: ldrNow != null && ldrNow > 100,
+      active: ldrNow != null && ldrNow > LDR_PUBLISHED.line,
       body: (
         <>
-          <b className="font-semibold">Funding stretch</b> — loan/deposit{" "}
-          {fmtPct(ldrNow, 1)}: growth leans on non-deposit funding.
+          <b className="font-semibold">Funding stretch</b> — TL+FC loan/deposit{" "}
+          {fmtPct(ldrNow, 1)}: growth leans on non-deposit funding. The TL-only book is
+          tested against a tighter line on <Go href="/liquidity">/liquidity</Go>.
         </>
       ),
-      rule: "ldr > 100%",
+      rule: LDR_PUBLISHED.rule,
     },
   ];
   const activeFlags = flags.filter((f) => f.active).length;

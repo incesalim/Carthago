@@ -21,6 +21,7 @@ import {
   weeklyGrowth,
 } from "./metrics";
 import { fxNopToCapital } from "./market-risk";
+import { LDR_PUBLISHED } from "./ldr";
 
 const S = [BANK_TYPES.SECTOR];
 const WS = [WEEKLY_BANK_TYPES.SECTOR];
@@ -101,7 +102,7 @@ export async function presentationData(): Promise<DeckData> {
     { label: "Capital adequacy", value: lastVal(p.car), unit: "%", decimals: 1 },
     { label: "Net interest margin", value: lastVal(p.nim), unit: "%", decimals: 2 },
     { label: "Return on equity", value: lastVal(p.roe), unit: "%", decimals: 1 },
-    { label: "Loan-to-deposit", value: lastVal(p.ldr), unit: "%", decimals: 1 },
+    { label: LDR_PUBLISHED.label, value: lastVal(p.ldr), unit: "%", decimals: 1 },
   ];
 
   const asOf =

@@ -206,6 +206,16 @@ quantity often exists twice: sector CAR is 16.34% in the BDDK monthly bulletin a
 the hybrid stack bigger than the buffer?) silently flatters or damns the answer.
 Compute both sides on one basis and print which.
 
+**When a metric legitimately has several bases, one module owns them and every
+label names its own.** Loan-to-deposit exists three ways here — BDDK's published
+TL+FC monthly ratio, our computed TL-only weekly ratio by ownership group, and a
+bank's own audited quarterly one — and all three once printed as "Loan / deposit",
+so `/deposits` showed a comfortable 91% while `/liquidity`, one click away,
+flagged 97%. `app/lib/ldr.ts` now holds the label, the source-and-cadence note,
+the threshold and the pointer to the sibling figure for each; surfaces import,
+never retype. Different thresholds are fine and often right (the TL book is
+judged at 95, the blend at 100) — the flag prints which basis its rule tests.
+
 **One metric, one number — never print a home-made version of a published one.**
 If the source publishes the metric, that figure IS the page's figure. A derived
 effect is applied to it as a **delta**, not computed as a rival. (`/profitability`

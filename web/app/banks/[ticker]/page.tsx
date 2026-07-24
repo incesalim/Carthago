@@ -79,6 +79,7 @@ import {
   SECTOR_TOTAL_LIABILITIES_KEY,
 } from "@/app/lib/audit";
 import { ordOf, ttmEndingAt, yoyPct } from "@/app/lib/period-math";
+import { LDR_AUDITED } from "@/app/lib/ldr";
 import { newsByTicker, pressNewsByBank } from "@/app/lib/news";
 import { earningsByTicker } from "@/app/lib/earnings";
 import { bankOwnership } from "@/app/lib/kap";
@@ -780,7 +781,12 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
 
   const franchiseStats: Array<{ k: string; v: string; note?: string }> = [];
   if (ldr != null) {
-    franchiseStats.push({ k: "Loan / deposit", v: `${ldr.toFixed(0)}%`, note: ldr < 100 ? "self-funded" : "leans on wholesale" });
+    franchiseStats.push({
+      k: LDR_AUDITED.label,
+      v: `${ldr.toFixed(0)}%`,
+      // Basis, because the sector's figure on /deposits is a different one — see lib/ldr.ts.
+      note: `${ldr < LDR_AUDITED.line ? "self-funded" : "leans on wholesale"} · audited, quarterly`,
+    });
   }
   if (profile?.branches_total && taNow) {
     franchiseStats.push({

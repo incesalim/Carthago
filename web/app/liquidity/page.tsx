@@ -57,6 +57,7 @@ import {
   type TransmissionItem,
 } from "@/app/components/desk";
 import { lastVal, latestByGroup, monthLabel, signedPp, windowExtremes } from "@/app/lib/desk";
+import { LDR_WEEKLY_TL } from "@/app/lib/ldr";
 import { VERBS, bandsFor, direction, firstClaim } from "@/app/lib/prose";
 import { aheadSlots } from "@/app/lib/ahead-data";
 import { GlobalRangeSelector } from "@/app/components/range-context";
@@ -339,9 +340,9 @@ export default async function LiquidityPage() {
     curr: s.at(-1)?.value ?? null,
   });
   const moverRows: MoverRow[] = [
-    { label: "TL loan / deposit — public", ...wk(tlLdrPub), fmt: (v) => `${v.toFixed(1)}%`, deltaDecimals: 1, good: "down" },
+    { label: `${LDR_WEEKLY_TL.label} — public`, ...wk(tlLdrPub), fmt: (v) => `${v.toFixed(1)}%`, deltaDecimals: 1, good: "down" },
     {
-      label: "TL loan / deposit — private",
+      label: `${LDR_WEEKLY_TL.label} — private`,
       note: privNow != null ? `${(100 - privNow).toFixed(1)}pp from the 100% line` : undefined,
       ...wk(tlLdrPriv), fmt: (v) => `${v.toFixed(1)}%`, deltaDecimals: 1, good: "down",
     },
@@ -506,15 +507,17 @@ export default async function LiquidityPage() {
     },
     {
       code: "private-ldr",
-      active: privNow != null && privNow > 95,
+      active: privNow != null && privNow > LDR_WEEKLY_TL.line,
       body: (
         <>
           <b className="font-semibold">Private LDR at the line</b> — private TL loan/deposit{" "}
           {fmtPct(privNow)}, within {privNow != null ? (100 - privNow).toFixed(1) : "—"}pp of 100%.
-          New lending has to be funded, not recycled.
+          New lending has to be funded, not recycled. This is the TL book alone; the published
+          TL+FC sector ratio, judged against 100%, is on{" "}
+          <Link href="/deposits" className="font-semibold text-primary">/deposits</Link>.
         </>
       ),
-      rule: "tl_ldr_private > 95%",
+      rule: LDR_WEEKLY_TL.rule,
       clear: <>Private TL loan/deposit — {fmtPct(privNow)}, clear of the line</>,
     },
     {
@@ -565,8 +568,8 @@ export default async function LiquidityPage() {
   const dollPub = lastVal(dollarization.filter((r) => r.bank_type_code === "PUBLIC"));
   const dollPriv = lastVal(dollarization.filter((r) => r.bank_type_code === "PRIVATE"));
   const compareRows: CompareRow[] = [
-    { label: "TL loan / deposit", a: pubNow, b: privNow },
-    { label: "FC loan / deposit", a: fcPub, b: fcPriv },
+    { label: "TL loan / deposit (weekly)", a: pubNow, b: privNow },
+    { label: "FC loan / deposit (weekly)", a: fcPub, b: fcPriv },
     { label: "FC share of deposits", a: dollPub, b: dollPriv },
   ];
 
@@ -633,7 +636,7 @@ export default async function LiquidityPage() {
           }
         />
         <Vital
-          label="TL loan / deposit — public"
+          label={`${LDR_WEEKLY_TL.label} — public`}
           value={pubNow != null ? pubNow.toFixed(1) : "—"}
           unit="%"
           series={lastYearWindow(tlLdrPub)}
@@ -650,7 +653,7 @@ export default async function LiquidityPage() {
           }
         />
         <Vital
-          label="TL loan / deposit — private"
+          label={`${LDR_WEEKLY_TL.label} — private`}
           value={privNow != null ? privNow.toFixed(1) : "—"}
           unit="%"
           series={lastYearWindow(tlLdrPriv)}
@@ -880,7 +883,7 @@ export default async function LiquidityPage() {
         <div>
           <SecHead
             title="TL funding"
-            meta="loan-to-deposit pressure · the maturity ladder lives on /deposits"
+            meta="TL-only loan-to-deposit · weekly · the published TL+FC ratio and the maturity ladder live on /deposits"
             className="mb-2.5"
           />
           <ChartRow data={toTrend(tlLtd)} labels={LIQ_OWNERSHIP_LABELS} deltaPeriods={52} deltaLabel="52w" fmt={(v) => `${v.toFixed(0)}%`}>
@@ -893,7 +896,7 @@ export default async function LiquidityPage() {
                   ? "The private banks lend out nearly every lira they take in; the state banks do not"
                   : "TL loan / deposit — public vs private"
               }
-              description="tl loans ÷ tl deposits, %, weekly · public vs private"
+              description="tl loans ÷ tl deposits, %, weekly · public vs private · TL+FC published ratio on /deposits"
               yFormat="pct"
               decimals={0}
               height={300}

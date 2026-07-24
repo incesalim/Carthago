@@ -129,7 +129,10 @@ export function overviewInsights(d: {
   // Funding / liquidity (L)
   const ldr = last(d.ldr);
   items.push({
-    text: `Loan-to-deposit ${pct(ldr)} — funding ${ldr != null && ldr > 110 ? "stretched" : "comfortable"}.`,
+    // TL+FC, because that is what the published ratio measures. The link goes to
+    // /liquidity, where the TL-only book is read — a different, hotter number, so
+    // the sentence has to say which one it is quoting. See lib/ldr.ts.
+    text: `Loan-to-deposit (TL+FC) ${pct(ldr)} — funding ${ldr != null && ldr > 110 ? "stretched" : "comfortable"}.`,
     tone: ldr != null && ldr > 120 ? "warn" : "neutral",
     href: "/liquidity",
   });
@@ -298,7 +301,7 @@ export function depositsInsights(d: {
   const l = last(d.ldr);
   if (l != null) {
     items.push({
-      text: `Loan-to-deposit at ${pct(l)} — ${l > 110 ? "stretched; growth leans on non-deposit funding" : l > 95 ? "fully lent" : "comfortable"}.`,
+      text: `Loan-to-deposit (TL+FC, published) at ${pct(l)} — ${l > 110 ? "stretched; growth leans on non-deposit funding" : l > 95 ? "fully lent" : "comfortable"}.`,
       tone: l > 110 ? "warn" : "neutral",
       href: "/liquidity",
     });
@@ -307,7 +310,7 @@ export function depositsInsights(d: {
   const headline =
     `Deposits are growing ${pct(dy)} y/y${ly != null && dy != null ? ` (loans ${pct(ly)})` : ""}, ` +
     `FX share ${fx != null ? `at ${pct(fx)}` : "—"}${fxD != null ? (fxD < -0.5 ? " and unwinding" : fxD > 0.5 ? " and rebuilding" : "") : ""}, ` +
-    `and the loan-to-deposit ratio sits at ${pct(l)}.`;
+    `and the published TL+FC loan-to-deposit ratio sits at ${pct(l)}.`;
 
   return { asOf: period, headline, items };
 }

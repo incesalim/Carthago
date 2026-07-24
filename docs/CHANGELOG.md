@@ -5,6 +5,29 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-07-19.
 
+2026-07-24 — **"Loan / deposit" was three different numbers wearing one label.**
+`/deposits` printed BDDK's published TL+FC monthly ratio — ~91%, no flag.
+`/liquidity`, one click away and linked from that page's own Takeaway, printed a
+computed TL-only weekly ratio for private banks — ~97%, flagged. Both correct;
+neither label said which quantity it was, so they read as one metric disagreeing
+with itself. `/` and the PDF deck were printing the bare label too, which the
+2026-07-13 sector-page audit (local archive, not versioned) had not caught — five
+surfaces, not the three it found.
+
+`web/app/lib/ldr.ts` now owns the family: three bases, each carrying its label,
+its source-and-cadence note, its threshold, and a pointer to where the reader
+meets the sibling figure. Every surface imports rather than retypes, so a label
+cannot drift back to a bare "Loan / deposit". The differing thresholds were kept
+and made legible instead of unified — the TL book is where funding pressure shows
+first, so it is judged at 95 while the TL+FC blend is judged at 100, and each flag
+now prints which basis its rule tests. `ldr.test.ts` fails a label with no
+currency scope, a basis with no cadence, or a cross-reference pointing at its own
+page. The rule is now in DESIGN.md beside the CAR case it generalizes.
+
+One thing deliberately NOT written: the note first read "the TL-only book runs
+hotter", which is true today and computed nowhere. Replaced with the structural
+fact — that it is tested against a tighter line — which the unit test guarantees.
+
 2026-07-24 — **A clearing house was inside the sector's market-risk numbers.**
 `PEER_EXCLUDED_TICKERS = {TAKAS}` has existed since Takasbank was onboarded, and
 `heatmap.ts` / `market-share.ts` enforce it. Three other aggregators never
