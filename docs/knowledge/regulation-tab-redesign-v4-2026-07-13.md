@@ -10,7 +10,7 @@
 > The reasoning lives here, in the knowledge doc, which is where it belongs.
 >
 **Artefact:** [claude.ai](https://claude.ai/code/artifact/a706157a-a633-4984-8e6d-6186a2175164) ·
-[html](../design/mockups/2026-07-13-regulation-tab-changelog-v4.html)
+`2026-07-13-regulation-tab-changelog-v4.html` (local archive)
 **Supersedes:** [v3 — the rulebook](regulation-tab-redesign-v3-2026-07-13.md)
 
 ---

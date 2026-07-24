@@ -1,7 +1,7 @@
 # /regulation, rethought — "The Rulebook"
 
 **Date:** 2026-07-12 · **Status: SHIPPED 2026-07-13** (PR 1 + PR 2 of the ship order below) ·
-**Artefact:** [`docs/design/mockups/2026-07-12-regulation-tab-rulebook.html`](../design/mockups/2026-07-12-regulation-tab-rulebook.html)
+**Artefact:** `2026-07-12-regulation-tab-rulebook.html` (local archive)
 
 > **Built:** `web/app/lib/regulation.ts` (parsers + queries, 29 unit tests),
 > `web/app/regulation/{page,Archive,PolicyPath,DecisionLag}.tsx`. `RawFeeds.tsx`

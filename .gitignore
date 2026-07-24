@@ -142,3 +142,21 @@ migrate.log
 
 # Local pipeline run logs
 data/*.log
+
+# Design archive — mockups, screenshots and the artefact register are kept
+# LOCAL ONLY. They are superseded iterations (five generations of the
+# regulation tab alone) that cost ~16MB in the repo and serve no reader of
+# the public code. web/DESIGN.md is the design *law* and stays versioned;
+# this is the *archive*. Keep the files on disk — they are still the record
+# of why a page looks the way it does.
+docs/design/
+
+# Internal business/strategy assessments — LOCAL ONLY. These evaluate the
+# product and the business (positioning, moat, weaknesses, site ratings)
+# rather than the data pipeline. The extraction and validator post-mortems
+# in docs/knowledge/ stay public: those demonstrate the rigour behind the
+# numbers, which is worth publishing. These do not.
+docs/knowledge/strategic-review-2026-07.md
+docs/knowledge/website-evaluation-2026-07-12.md
+docs/knowledge/dashboard-audit.md
+docs/knowledge/2026-07-13-sector-pages-consistency-audit.md

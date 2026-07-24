@@ -8,7 +8,7 @@
 > cap**.
 >
 **Artefact:** [claude.ai](https://claude.ai/code/artifact/16dc5276-cae1-4699-b665-8bbeb787d0c8) ·
-[html](../design/mockups/2026-07-13-regulation-tab-rulebook-v3.html)
+`2026-07-13-regulation-tab-rulebook-v3.html` (local archive)
 **Supersedes:** [v2 "Where the rules bite"](regulation-tab-redesign-v2-2026-07-13.md) — which
 drifted into another tab's job.
 

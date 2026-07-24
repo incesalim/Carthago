@@ -1,7 +1,7 @@
 # Display study — the strategist / C-level lens
 
 Companion to the [sector-story spine](sector-story-spine.md) (framework) and the
-[dashboard audit](dashboard-audit.md) (analyst-audience snapshot, 2026-06-27).
+dashboard audit (analyst-audience snapshot, 2026-06-27 — local archive).
 This study re-judges *what each page displays* for a second audience the owner
 named on 2026-07-02: **a strategist / C-level bank manager**. It is the build
 spec for the "editorial IA" phases; the Opus design mockups

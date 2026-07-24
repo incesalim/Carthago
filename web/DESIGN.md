@@ -119,8 +119,8 @@ take on trust. Pick the form from the question, then check it against these.
   colour between stacked fills; no outlines.
 
 Worked example, on real rows, with the arithmetic:
-[the composition chart](../docs/design/mockups/2026-07-12-composition-chart.html)
-([register row](../docs/design/MOCKUPS.md)).
+`2026-07-12-composition-chart.html`, in the local design archive
+(`docs/design/` — kept on disk, not versioned; see the register there).
 
 **Comparison surfaces** (`/cross-bank`, `/banks`) add two rules of their own:
 
@@ -285,6 +285,9 @@ Iterate by naming the defect, verify by screenshot against this file.
 
 **File the artefact.** Every mockup goes in `docs/design/mockups/` as
 `YYYY-MM-DD-<slug>.html` plus desktop/mobile screenshots, and gets a row in
-[`docs/design/MOCKUPS.md`](../docs/design/MOCKUPS.md) — the register of what was
-designed and whether it shipped — **in the same change**. Never put a mockup in
+`docs/design/MOCKUPS.md` — the register of what was designed and whether it
+shipped — **in the same change**. That whole archive is **local only**
+(gitignored): it ran to ~16MB of superseded iterations and serves no reader of
+the public code. Filing the artefact still matters — design work is expensive to
+redo and cheap to forget — it just lives on your disk, not in the repo. Never put a mockup in
 `web/public/`: that directory is served, so it deploys to carthago.app.

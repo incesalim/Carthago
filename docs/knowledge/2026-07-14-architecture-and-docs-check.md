@@ -241,8 +241,8 @@ migrations). They are healthy — and they are **scoped to the wrong surface**:
 | 7 | OPERATIONS:90 recipe → canonical table list; README route tree → `_valuation/`, `_franchise/`; CHANGELOG → record the unpublish | doc |
 | 8 | `push_to_d1.py` declarative table registry + "every table registered" test | medium — retires the chokepoint |
 
-Related: [architecture-review-2026-07.md](architecture-review-2026-07.md),
-[strategic-review-2026-07.md](strategic-review-2026-07.md),
-[2026-07-13-sector-pages-consistency-audit.md](2026-07-13-sector-pages-consistency-audit.md).
+Related: [architecture-review-2026-07.md](architecture-review-2026-07.md); plus
+`strategic-review-2026-07.md` and `2026-07-13-sector-pages-consistency-audit.md`,
+both kept in the local archive (not versioned).
 </content>
 </invoke>

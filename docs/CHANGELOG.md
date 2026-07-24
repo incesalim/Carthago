@@ -10,7 +10,7 @@ Last verified: 2026-07-19.
 `heatmap.ts` / `market-share.ts` enforce it. Three other aggregators never
 imported it, so the CCP sat inside the audited sector ratios: `audit-ratios.ts`
 (`/capital`, `/liquidity`), `credit-risk.ts` (`/asset-quality`) — both named by
-the [2026-07-13 sector-page audit](knowledge/2026-07-13-sector-pages-consistency-audit.md)
+the 2026-07-13 sector-page audit (local archive, not versioned)
 — and `market-risk.ts`, which that audit missed and which held by far the
 largest error. At 2026Q1 the published **cumulative ≤1y repricing gap read 1.71%
 of rate-sensitive assets against a true 1.09%** — 57% overstated — and ΔNII at

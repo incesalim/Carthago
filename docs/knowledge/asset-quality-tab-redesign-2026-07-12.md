@@ -37,7 +37,7 @@
 > provisions held drawn inside each stage. The two-ratio chart and the +1.76 / −1.06
 > strip are **gone**. Loan-growth dilution survives only as a footnote at its honest
 > size (~0.1pp), next to a footnote on the two ratio bases.
-**Artefact:** [`docs/design/mockups/2026-07-12-asset-quality-tab.html`](../design/mockups/2026-07-12-asset-quality-tab.html) (+ desktop/mobile PNGs)
+**Artefact:** `2026-07-12-asset-quality-tab.html` (local archive) (+ desktop/mobile PNGs)
 **System:** The Desk ([web/DESIGN.md](../../web/DESIGN.md)) — a re-*think*, not a re-skin.
 
 Every figure below is real, computed from D1 (BDDK weekly + monthly bulletin to

@@ -12,7 +12,9 @@
  * multiples or a nominal-vs-real index — not this.
  *
  * The redesign this component is measured against (real rows, the arithmetic,
- * the rules it sets): docs/design/mockups/2026-07-12-composition-chart.html.
+ * the rules it sets): 2026-07-12-composition-chart.html, in the local design
+ * archive (docs/design/ — kept on disk, not versioned). The rules it sets are
+ * restated in web/DESIGN.md, which is versioned.
  */
 
 import {

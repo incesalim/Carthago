@@ -1,7 +1,7 @@
 # /credit redesign — rationale + mockup
 
 **Date:** 2026-07-12 · **Status:** SHIPPED (`7ffa75a`)
-**Artefact:** [`docs/design/mockups/2026-07-12-credit-tab.html`](../design/mockups/2026-07-12-credit-tab.html) (+ desktop/mobile PNGs)
+**Artefact:** `2026-07-12-credit-tab.html` (local archive) (+ desktop/mobile PNGs)
 **Code:** `web/app/lib/credit.ts` (+ tests), `web/app/credit/{page,Bridge,Attribution}.tsx`
 **System:** The Desk ([web/DESIGN.md](../../web/DESIGN.md)) — this is a re-*think*, not a re-skin.
 

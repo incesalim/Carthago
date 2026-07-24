@@ -2,7 +2,7 @@
 
 Status: **on-page shipped & live**; off-page (Search Console verification, backlinks)
 is a manual / ongoing to-do. Goal driving this work: rank for **"Turkish banking
-sector data"** and related queries. Context: the [strategic review](strategic-review-2026-07.md)
+sector data"** and related queries. Context: the strategic review (local archive)
 named distribution/discoverability the single biggest gap.
 
 ## What shipped (on-page, live on carthago.app)

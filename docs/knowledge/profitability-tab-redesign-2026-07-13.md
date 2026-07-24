@@ -1,7 +1,7 @@
 # Profitability tab — redesign rationale + build spec
 
 **Date:** 2026-07-13 · **Status:** PROPOSED (mockup built, deploy-ready, not yet built)
-**Artefact:** [mockup](../design/mockups/2026-07-13-profitability-tab.html) ·
+**Artefact:** `2026-07-13-profitability-tab.html` (local archive) ·
 [artifact](https://claude.ai/code/artifact/4c842228-30b3-4f0d-ad7e-7d19dbb19b8e)
 
 ## The premise

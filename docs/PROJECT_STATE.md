@@ -975,7 +975,7 @@ each `/banks/[ticker]` page:
   keepNames was preserving nothing. **Verify after any wrangler/OpenNext bump**:
   `curl -s https://carthago.app/ | grep -c __name` must be 0 — a live request is the
   only place this shows up (it builds, deploys and type-checks clean either way).
-  Found by the [2026-07-12 site evaluation](knowledge/website-evaluation-2026-07-12.md)
+  Found by the 2026-07-12 site evaluation (local archive, not versioned)
   (finding 3), which is otherwise **not acted on** — mobile Lighthouse 57–66 /
   LCP 4.1–4.5s, `text-faint` contrast 1.7–2.4:1, and no About / methodology /
   privacy / terms page (now pointed, since `/` loads GA4).
