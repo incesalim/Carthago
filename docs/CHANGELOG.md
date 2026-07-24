@@ -28,11 +28,18 @@ after any wrangler or OpenNext bump, `curl -s https://carthago.app/ | grep -c
 __name` must be 0.
 
 Also cleared today: the Dependabot PRs open since 2026-07-01. #89 (boto3) merged
-as-is. The web-deps group had spent three weeks failing `npm ci` on a lockfile
-master had moved past — Dependabot replaced #90 with #92 (15 updates), which
-failed the same way plus `Missing: esbuild@0.28.1 from lock file`: its own
-lockfile inconsistent with its own package.json. So the bumps were taken
-directly on master with a real install — next 16.2.11, react 19.2.8, recharts
+as-is. The web-deps group had spent three weeks failing `npm ci` with
+`Missing: esbuild@0.28.1 from lock file` — which reads as a stale lockfile a
+rebase would fix, and is not. **CI pinned Node 22 (npm 10) while every lockfile
+that reaches it is written by npm 11**: esbuild 0.28's platform packages carry a
+`libc` field and nest under `node_modules/wrangler/node_modules/`, and npm 10
+reports that tree as missing. Dependabot uses npm 11, so the group was
+unmergeable by construction — #90 and #92 died the same death three weeks apart,
+and so did the first hand-made attempt here (reproduced locally: `npm@10.9.4 ci
+--dry-run` fails on the identical lockfile that npm 11 accepts). `ci.yml` and
+`deploy-cloudflare.yml` now use Node 24; the other 18 workflows stay on 22,
+where node only runs `npx wrangler`. The bumps were then taken directly on
+master with a real install — next 16.2.11, react 19.2.8, recharts
 3.10.0, @xyflow/react, lucide-react, @opennextjs/cloudflare 1.20.2, eslint
 9.39.5 + eslint-config-next, vitest 4.1.10, wrangler 4.114.0; lint, tsc and 379
 tests green. **typescript ^6 → ^7 was dropped**, and majors are now ignored for

@@ -26,10 +26,12 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v6
 
-      - name: Setup Node 22
+      - name: Setup Node 24
         uses: actions/setup-node@v6
         with:
-          node-version: "22"
+          # Must match ci.yml: npm 10 (Node 22) cannot `npm ci` a lockfile npm 11
+          # wrote — see the note there. The deploy job runs the same install.
+          node-version: "24"
           cache: npm
           cache-dependency-path: web/package-lock.json
 
