@@ -11,8 +11,10 @@ Last verified: 2026-07-19.
 computed TL-only weekly ratio for private banks — ~97%, flagged. Both correct;
 neither label said which quantity it was, so they read as one metric disagreeing
 with itself. `/` and the PDF deck were printing the bare label too, which the
-2026-07-13 sector-page audit (local archive, not versioned) had not caught — five
-surfaces, not the three it found.
+2026-07-13 sector-page audit (local archive, not versioned) had not caught. Nine
+printed surfaces in the end, not the three it found — `/` alone had four (vital,
+movers row, by-group table, flag), and the first sweep missed two of them until
+the deployed HTML was read back.
 
 `web/app/lib/ldr.ts` now owns the family: three bases, each carrying its label,
 its source-and-cadence note, its threshold, and a pointer to where the reader

@@ -304,7 +304,7 @@ export function bankFlags(d: FlagInput): BriefFlag[] {
       id: "liquidity",
       kind: "ok",
       title: "Liquidity clear",
-      detail: `LCR ${d.lcr!.toFixed(0)}%${d.ldr != null ? ` and loan/deposit ${d.ldr.toFixed(0)}%` : ""} — funding is not a constraint this quarter.`,
+      detail: `LCR ${d.lcr!.toFixed(0)}%${d.ldr != null ? ` and TL+FC loan/deposit ${d.ldr.toFixed(0)}%` : ""} — funding is not a constraint this quarter.`,
       rule: `lcr < 120 OR ldr > 100 → would fire; neither did`,
     });
   }

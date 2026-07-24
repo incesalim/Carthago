@@ -497,7 +497,7 @@ export default async function OverviewPage({
     { label: "Capital adequacy", series: car, groups: carGroups, sector: carNow, decimals: 1 },
     { label: "NPL ratio", series: npl, groups: nplAllGroups, sector: nplNow, decimals: 2 },
     { label: "Net int. margin", series: nim, groups: nimGroups, sector: nimNow, decimals: 2 },
-    { label: "Loan / deposit", series: ldr, groups: ldrGroups, sector: ldrNow, decimals: 1 },
+    { label: LDR_PUBLISHED.label, series: ldr, groups: ldrGroups, sector: ldrNow, decimals: 1 },
     { label: "ROE, ann.", series: roe, groups: roeGroups, sector: roeNow, decimals: 1 },
     { label: "ROA, ann.", series: roa, groups: roaGroups, sector: roaNow, decimals: 2 },
   ];
@@ -578,15 +578,17 @@ export default async function OverviewPage({
           }
         />
         <Vital
-          label="Loan / deposit"
+          label={LDR_PUBLISHED.label}
           value={ldrNow != null ? ldrNow.toFixed(1) : "—"}
           unit="%"
           series={spark(sLdr)}
           decimals={1}
           note={
             <>
-              {ldrNow != null && ldrNow < 100 ? "below the 100% line" : "above the 100% line"}{" "}
-              <Go href="/deposits">/deposits</Go>
+              {ldrNow != null && ldrNow < LDR_PUBLISHED.line
+                ? `below the ${LDR_PUBLISHED.line}% line`
+                : `above the ${LDR_PUBLISHED.line}% line`}{" "}
+              — published, monthly <Go href="/deposits">/deposits</Go>
             </>
           }
         />

@@ -517,7 +517,7 @@ export default async function DepositsPage() {
       })),
     },
     {
-      heading: "Loan / deposit — monthly",
+      heading: `${LDR_PUBLISHED.label} — monthly`,
       rows: ldrRanked.map((r, i) => ({
         rank: i + 1,
         name: BANK_TYPE_LABELS[r.code] ?? r.code,
@@ -1001,7 +1001,7 @@ export default async function DepositsPage() {
                     ldrBreach.length > 0,
                     `${ldrBreach.join(" and ")} lend more than they take in — above the 100% line`,
                   ],
-                ) ?? "Loan / deposit by group"
+                ) ?? `${LDR_PUBLISHED.label} by group`
               }
               description="published all-currency loans ÷ deposits, %, monthly · by ownership group"
               yFormat="pct"
