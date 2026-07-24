@@ -5,6 +5,32 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-07-19.
 
+2026-07-24 — **A clearing house was inside the sector's market-risk numbers.**
+`PEER_EXCLUDED_TICKERS = {TAKAS}` has existed since Takasbank was onboarded, and
+`heatmap.ts` / `market-share.ts` enforce it. Three other aggregators never
+imported it, so the CCP sat inside the audited sector ratios: `audit-ratios.ts`
+(`/capital`, `/liquidity`), `credit-risk.ts` (`/asset-quality`) — both named by
+the [2026-07-13 sector-page audit](knowledge/2026-07-13-sector-pages-consistency-audit.md)
+— and `market-risk.ts`, which that audit missed and which held by far the
+largest error. At 2026Q1 the published **cumulative ≤1y repricing gap read 1.71%
+of rate-sensitive assets against a true 1.09%** — 57% overstated — and ΔNII at
++500bp read −₺101.5bn against −₺114.2bn. ~94% of Takasbank's balance sheet is
+cash and placements that reprice inside a year against no matching liability:
+the same structural fact that makes it not a bank. Smaller elsewhere but the
+same category error — NSFR 123.27% → 123.52%, CAR 16.10% → 16.07%, CET1 11.86% →
+11.82%, `/asset-quality`'s reporting-bank count 38 → 37.
+
+Two helpers now sit beside the list in `bank_names.ts` — `peersOnly(rows)` where
+TypeScript aggregates, `peerExclusionSql()` where D1 does (bound params, never an
+interpolated ticker) — so the next aggregator has something to reach for instead
+of re-deriving the filter. The filter goes at the point rows become one published
+number, deliberately NOT in the row-fetchers: the same rows feed `/banks/TAKAS`,
+where the CCP's own ladder is exactly what the reader asked for, and that page is
+unchanged. Stage-2/3 shares didn't move — the per-column `CASE` guards already
+dropped a filer with no Stage-2 book, so the CCP was only inflating `n` and the
+ECL stock. Pinned by `bank_names.test.ts` (7 new cases) and an `aggregateCapital`
+case that fails if a peer-excluded row reaches the sector ratio.
+
 2026-07-24 — **Every page threw a ReferenceError before paint.** The theme
 initializer was bundled with a helper it could not take with it. Wrangler
 bundles the OpenNext worker with esbuild `keepNames: true` by default, which

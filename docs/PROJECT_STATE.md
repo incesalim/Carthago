@@ -66,10 +66,16 @@ clearing (CCP) + custody institution — market infrastructure, not a lender: **
 deposits**, customer loans ~2.5% of assets, ~94% of the balance sheet in cash +
 placements (member cash and collateral it merely custodies), plus ~178bn TL of
 off-balance CCP guarantees. It is therefore **excluded from peer ranking, the
-market-share league and the sector HHI** — `PEER_EXCLUDED_TICKERS` in
-`web/app/lib/bank_names.ts`, enforced at the single choke point in `heatmap.ts`
-(`ensure`) and `market-share.ts` (`fleetBalances`). It keeps its own `/banks/TAKAS`
-page, where balance sheet / capital / liquidity ARE meaningful. Two sourcing quirks:
+market-share league, the sector HHI and every audited sector ratio** —
+`PEER_EXCLUDED_TICKERS` in `web/app/lib/bank_names.ts`, enforced at the choke point
+in `heatmap.ts` (`ensure`), `market-share.ts` (`fleetBalances`) and — since
+2026-07-24 — `audit-ratios.ts`, `credit-risk.ts` and `market-risk.ts`, which had all
+been aggregating it in. **Any new sector aggregate must apply it**, via `peersOnly()`
+where TypeScript sums the rows or `peerExclusionSql()` where D1 does; both live beside
+the list. The rule is the point rows become ONE published number — never the
+row-fetcher, because the same rows feed the per-bank pages. It keeps its own
+`/banks/TAKAS` page, where balance sheet / capital / liquidity ARE meaningful (and
+where its own repricing ladder and FX position still show every row). Two sourcing quirks:
 its own IR site sits behind an **F5 WAF** that rejects non-browser requests (CI fails
 identically), so it is sourced from **BDDK's BdrUyg registry** (institution code 132,
 `unconsolidated_zip`); and BDDK omits its GlobalSign intermediate cert, so

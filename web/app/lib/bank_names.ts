@@ -142,6 +142,33 @@ export function isPeerExcluded(ticker: string): boolean {
 }
 
 /**
+ * Rows that may enter a SECTOR aggregate. Apply at the point per-bank rows
+ * become one published number — not at the fetch, because the same rows feed
+ * per-bank views (`/banks/TAKAS`), where the CCP's own figures are exactly what
+ * the reader asked for.
+ */
+export function peersOnly<T extends { bank_ticker: string }>(rows: readonly T[]): T[] {
+  return rows.filter((r) => !isPeerExcluded(r.bank_ticker));
+}
+
+/**
+ * The same rule for aggregates SQL computes (SUM/GROUP BY in D1, where no TS
+ * filter can reach the rows). Returns a fragment to append inside a WHERE, plus
+ * its bound params — never interpolate a ticker into SQL.
+ *
+ * Empty exclusion set → empty clause, so this stays correct if the set is ever
+ * emptied rather than silently producing `NOT IN ()`.
+ */
+export function peerExclusionSql(column = "bank_ticker"): { clause: string; params: string[] } {
+  const excluded = [...PEER_EXCLUDED_TICKERS];
+  if (excluded.length === 0) return { clause: "", params: [] };
+  return {
+    clause: ` AND ${column} NOT IN (${excluded.map(() => "?").join(",")})`,
+    params: excluded,
+  };
+}
+
+/**
  * The universe, counted — never typed.
  *
  * It has been 31, then 37, then 38. The homepage's meta description still told

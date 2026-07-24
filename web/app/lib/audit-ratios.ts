@@ -15,6 +15,7 @@
  * period_type = 'current'; quarterly `YYYYQN`.
  */
 import { cachedAll } from "./db";
+import { peerExclusionSql, peersOnly } from "./bank_names";
 import { BS_ASSET_ROMAN_HIERARCHIES } from "./standard_lines";
 import type { TrendPoint } from "@/app/components/TrendChart";
 
@@ -64,12 +65,17 @@ function cet1Of(r: CapRow): number | null {
  * dragged the published CET1 to 10.56% when the true figure is 11.79%. So each
  * ratio now sums numerator AND denominator over the banks that actually report
  * that component (after recovering CET1 from Tier-1 − AT1 where possible).
+ *
+ * PEER UNIVERSE. This is the choke point where per-bank rows become one sector
+ * number, so the peer exclusion belongs here: a CCP's capital against a CCP's
+ * RWA is a real ratio for that institution and a category error inside a
+ * banking-sector aggregate (DESIGN.md — compare like with like).
  */
 export function aggregateCapital(rows: readonly CapRow[]): TrendPoint[] {
   type Acc = { num: number; den: number };
   const zero = (): Acc => ({ num: 0, den: 0 });
   const agg = new Map<string, { cet1: Acc; tier1: Acc; car: Acc }>();
-  for (const r of rows) {
+  for (const r of peersOnly(rows)) {
     if (r.total_rwa == null || r.total_rwa <= 0) continue;
     const a = agg.get(r.period) ?? { cet1: zero(), tier1: zero(), car: zero() };
     const add = (acc: Acc, v: number | null | undefined) => {
@@ -118,6 +124,10 @@ export interface BankCapitalRow {
  * (desc). Each ratio = its capital component ÷ that bank's total RWA — the same
  * arithmetic as the sector aggregate, just not summed. Banks with no RWA are
  * dropped (can't form a ratio). Powers the "By bank" capital-adequacy table.
+ *
+ * This is a RANKING, so the peer universe applies: Takasbank's CAR is computed
+ * against a clearing house's risk-weighted assets and would seat it in a league
+ * of lenders. Its own figure stays on `/banks/TAKAS`.
  */
 export async function perBankCapital(
   kind: string = DEFAULT_KIND,
@@ -135,7 +145,7 @@ export async function perBankCapital(
   const period = rows[0].period;
   const pct = (n: number | null, rwa: number) => (n != null ? (n / rwa) * 100 : null);
   const out: BankCapitalRow[] = [];
-  for (const r of rows) {
+  for (const r of peersOnly(rows)) {
     if (r.total_rwa == null || r.total_rwa <= 0) continue;
     out.push({
       bank_ticker: r.bank_ticker,
@@ -154,6 +164,11 @@ export async function perBankCapital(
  * Sector LCR / NSFR / leverage (%), per quarter — asset-weighted average across
  * reporting banks (LCR/NSFR are ratios with no stored numerator, so a Σ/Σ isn't
  * possible; asset-weighting reflects the system better than a simple mean).
+ *
+ * Peers only. A CCP's funding ratios answer a different question than a
+ * deposit-funded bank's: Takasbank prints NSFR of 46–93% across recent quarters,
+ * which is not a bank in breach — it has no deposits to be stable about — and
+ * averaging it into the sector line reads as one.
  */
 export async function sectorLiquidityRatios(kind: string = DEFAULT_KIND): Promise<TrendPoint[]> {
   const romanPlaceholders = BS_ASSET_ROMAN_HIERARCHIES.map(() => "?").join(",");
@@ -180,7 +195,7 @@ export async function sectorLiquidityRatios(kind: string = DEFAULT_KIND): Promis
   const add = (acc: Acc, val: number | null, w: number) => {
     if (val != null && w > 0) { acc.sum += val * w; acc.w += w; }
   };
-  for (const r of liq) {
+  for (const r of peersOnly(liq)) {
     const w = wByKey.get(`${r.bank_ticker}|${r.period}`) ?? 0;
     if (w <= 0) continue;
     const a = agg.get(r.period) ?? { lcr: { sum: 0, w: 0 }, nsfr: { sum: 0, w: 0 }, lev: { sum: 0, w: 0 } };
@@ -199,11 +214,17 @@ export async function sectorLiquidityRatios(kind: string = DEFAULT_KIND): Promis
   return out;
 }
 
-/** Latest quarter present in the audited capital table (for dataThrough). */
+/**
+ * Latest quarter present in the audited capital table (for dataThrough). Peers
+ * only — this stamps the freshness of the ratios above, so it must be the latest
+ * quarter of the population those ratios are drawn from.
+ */
 export async function auditRatioLatestPeriod(kind: string = DEFAULT_KIND): Promise<string | null> {
+  const peers = peerExclusionSql();
   const rows = await cachedAll<{ period: string }>(
-    `SELECT MAX(period) AS period FROM bank_audit_capital WHERE kind = ? AND period_type = 'current'`,
-    [kind],
+    `SELECT MAX(period) AS period FROM bank_audit_capital
+      WHERE kind = ? AND period_type = 'current'${peers.clause}`,
+    [kind, ...peers.params],
   );
   return rows[0]?.period ?? null;
 }

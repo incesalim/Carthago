@@ -11,6 +11,7 @@
  *
  * Amounts are thousand TRY → ₺bn for display. Period `YYYYQN` sorts lexically.
  */
+import { peerExclusionSql } from "./bank_names";
 import { cachedAll } from "./db";
 
 const DEFAULT_KIND = "unconsolidated";
@@ -36,6 +37,15 @@ interface StageAggRow {
 async function stageAgg(kind: string): Promise<StageAggRow[]> {
   // Only banks with BOTH a stage amount and the total contribute to a share —
   // enforced per column via CASE so a partial filer can't skew the ratio.
+  //
+  // Peers only, and D1 does the summing, so the filter has to be in the SQL.
+  // Takasbank files a stage table with a Stage-1 book and no Stage 2 or 3 (a CCP
+  // has no watchlist and no NPL), which the CASE guards already keep out of the
+  // share numerators — but NOT out of `n`, the reporting-bank count printed
+  // beside the aggregate, nor out of SUM(total_ecl), the ECL stock the migration
+  // scenario is expressed against. Excluding it here fixes both, and stops a
+  // future Stage-2 row from entering the shares silently.
+  const peers = peerExclusionSql();
   return cachedAll<StageAggRow>(
     `SELECT period,
             SUM(CASE WHEN stage2_amount IS NOT NULL AND total_amount IS NOT NULL THEN stage2_amount END) AS s2,
@@ -46,10 +56,10 @@ async function stageAgg(kind: string): Promise<StageAggRow[]> {
             SUM(total_ecl) AS ecl_total,
             COUNT(DISTINCT bank_ticker) AS n
        FROM bank_audit_stages
-      WHERE kind = ? AND period_type = 'current'
+      WHERE kind = ? AND period_type = 'current'${peers.clause}
       GROUP BY period
       ORDER BY period`,
-    [kind],
+    [kind, ...peers.params],
   );
 }
 
@@ -239,6 +249,7 @@ export interface RollForwardYear {
 export async function nplRollForwardAnnual(
   kind: string = DEFAULT_KIND,
 ): Promise<RollForwardYear[]> {
+  const peers = peerExclusionSql();
   const rows = await cachedAll<{
     period: string;
     additions: number | null;
@@ -254,10 +265,10 @@ export async function nplRollForwardAnnual(
             SUM(sold)        AS sold,
             COUNT(DISTINCT bank_ticker) AS n
        FROM bank_audit_npl_movement
-      WHERE kind = ? AND period_type = 'current' AND period LIKE '%Q4'
+      WHERE kind = ? AND period_type = 'current' AND period LIKE '%Q4'${peers.clause}
       GROUP BY period
       ORDER BY period`,
-    [kind],
+    [kind, ...peers.params],
   );
 
   const out: RollForwardYear[] = [];

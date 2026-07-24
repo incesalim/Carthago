@@ -57,6 +57,24 @@ describe("aggregateCapital", () => {
     expect(at(out, "CET1")).toBeCloseTo(10, 6);
   });
 
+  /**
+   * The 2026-07-13 sector-page audit: TAKAS (a CCP, not a lender) was inside the
+   * audited sector CAR. At 2026Q1 it moved the published figure 16.10% → 16.07%
+   * and Tier-1 13.58% → 13.54%. Small, and wrong in kind: a clearing house's
+   * capital over a clearing house's RWA is not part of a banking-sector ratio.
+   */
+  it("keeps the peer-excluded CCP out of the sector ratio", () => {
+    const peers = [
+      row({ bank_ticker: "A", cet1_capital: 10, tier1_capital: 12, total_capital: 16, total_rwa: 100 }),
+    ];
+    const withCcp = aggregateCapital([
+      ...peers,
+      row({ bank_ticker: "TAKAS", cet1_capital: 90, tier1_capital: 90, total_capital: 90, total_rwa: 100 }),
+    ]);
+    expect(at(withCcp, "CAR")).toBeCloseTo(at(aggregateCapital(peers), "CAR")!, 6);
+    expect(at(withCcp, "CAR")).toBeCloseTo(16, 6); // NOT 53
+  });
+
   it("keeps each period separate and sorted", () => {
     const out = aggregateCapital([
       row({ bank_ticker: "A", period: "2026Q1", cet1_capital: 12, total_capital: 16, total_rwa: 100 }),

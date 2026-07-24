@@ -15,6 +15,7 @@
  * fast-follow — the AFS/FVOCI revaluation reserve isn't a cleanly-labelled BS
  * line, so it needs an OCI-line mapping before it can be surfaced correctly.
  */
+import { peerExclusionSql, peersOnly } from "./bank_names";
 import { cachedAll } from "./db";
 import type { TrendPoint } from "@/app/components/TrendChart";
 
@@ -52,16 +53,23 @@ interface RpRow {
 export async function marketRiskLatestPeriod(
   minBanks = 5, kind: string = DEFAULT_KIND,
 ): Promise<string | null> {
+  const peers = peerExclusionSql();
   const rows = await cachedAll<{ period: string }>(
     `SELECT period, COUNT(DISTINCT bank_ticker) AS n
        FROM bank_audit_fx_position
-      WHERE kind = ? AND period_type = 'current' AND currency = 'TOTAL'
+      WHERE kind = ? AND period_type = 'current' AND currency = 'TOTAL'${peers.clause}
       GROUP BY period HAVING n >= ? ORDER BY period DESC LIMIT 1`,
-    [kind, minBanks],
+    [kind, ...peers.params, minBanks],
   );
   return rows[0]?.period ?? null;
 }
 
+// The three row-fetchers below deliberately do NOT filter: they feed both the
+// sector aggregates and the per-bank drill-downs, and `/banks/TAKAS` must show
+// Takasbank its own FX position and repricing ladder. Each SECTOR consumer
+// applies `peersOnly` at the point the rows become one published number; each
+// per-bank consumer narrows by ticker instead. Adding a filter here would break
+// the CCP's own page.
 async function fxRows(kind: string) {
   return cachedAll<FxRow>(
     `SELECT bank_ticker, period, currency, net_position
@@ -93,12 +101,12 @@ async function rpRows(kind: string) {
 export async function fxNopToCapital(kind: string = DEFAULT_KIND): Promise<TrendPoint[]> {
   const [fx, cap] = await Promise.all([fxRows(kind), capRows(kind)]);
   const nop = new Map<string, number>();   // period → Σ net_position (TOTAL)
-  for (const r of fx) {
+  for (const r of peersOnly(fx)) {
     if (r.currency !== "TOTAL" || r.net_position == null) continue;
     nop.set(r.period, (nop.get(r.period) ?? 0) + r.net_position);
   }
   const capByPeriod = new Map<string, number>();
-  for (const r of cap) {
+  for (const r of peersOnly(cap)) {
     if (r.total_capital == null) continue;
     capByPeriod.set(r.period, (capByPeriod.get(r.period) ?? 0) + r.total_capital);
   }
@@ -114,10 +122,12 @@ export async function fxNopToCapital(kind: string = DEFAULT_KIND): Promise<Trend
  *  system is net long (+) / short (−). Signed stacked bars (EUR/USD/Other incl.
  *  GBP); x = period. */
 export async function fxByCurrency(kind: string = DEFAULT_KIND, ticker?: string): Promise<FlowRow[]> {
-  const fx = await fxRows(kind);
+  const all = await fxRows(kind);
+  // One bank asked for → show that bank, whoever it is. No ticker → this is the
+  // sector line, so the peer universe applies.
+  const fx = ticker ? all.filter((r) => r.bank_ticker === ticker) : peersOnly(all);
   const byPeriod = new Map<string, { EUR: number; USD: number; Other: number }>();
   for (const r of fx) {
-    if (ticker && r.bank_ticker !== ticker) continue;
     if (r.currency === "TOTAL" || r.net_position == null) continue;
     const slot = byPeriod.get(r.period) ?? { EUR: 0, USD: 0, Other: 0 };
     const key = r.currency === "EUR" ? "EUR" : r.currency === "USD" ? "USD" : "Other";
@@ -138,7 +148,7 @@ export const FX_CURRENCY_BARS = [
  *  much of the book reprices within a year, net (assets − liabilities). A large
  *  |value| means NIM is sensitive to a rate move. */
 export async function repricingGap1y(kind: string = DEFAULT_KIND): Promise<TrendPoint[]> {
-  const rp = await rpRows(kind);
+  const rp = peersOnly(await rpRows(kind));
   const gap = new Map<string, number>();    // period → Σ gap over ≤1y buckets
   const assets = new Map<string, number>();  // period → Σ total RSA
   for (const r of rp) {
@@ -164,7 +174,7 @@ export async function repricingLadder(
   ticker?: string,
 ): Promise<{ data: Array<Record<string, number | string | null>>; period: string | null }> {
   const all = await rpRows(kind);
-  const rp = ticker ? all.filter((r) => r.bank_ticker === ticker) : all;
+  const rp = ticker ? all.filter((r) => r.bank_ticker === ticker) : peersOnly(all);
   const periods = [...new Set(rp.map((r) => r.period))].sort();
   const period = periods.at(-1) ?? null;
   if (!period) return { data: [], period: null };
@@ -205,7 +215,7 @@ export async function niiSensitivity(
   kind: string = DEFAULT_KIND,
   shiftsBps: number[] = [-500, -250, 250, 500],
 ): Promise<{ period: string | null; scenarios: NiiScenario[] }> {
-  const rp = await rpRows(kind);
+  const rp = peersOnly(await rpRows(kind));
   const periods = [...new Set(rp.map((r) => r.period))].sort();
   const period = periods.at(-1) ?? null;
   if (!period) return { period: null, scenarios: [] };
@@ -271,8 +281,10 @@ export async function bankMarketRiskDetail(
   ticker?: string,
 ): Promise<MarketRiskDetail> {
   const [fx, cap, rp] = await Promise.all([fxRows(kind), capRows(kind), rpRows(kind)]);
-  const myRp = ticker ? rp.filter((r) => r.bank_ticker === ticker) : rp;
-  const myFx = ticker ? fx.filter((r) => r.bank_ticker === ticker) : fx;
+  // With a ticker this is that bank's own page (TAKAS included, by design);
+  // without one it degrades to a sector view, which is peers-only.
+  const myRp = ticker ? rp.filter((r) => r.bank_ticker === ticker) : peersOnly(rp);
+  const myFx = ticker ? fx.filter((r) => r.bank_ticker === ticker) : peersOnly(fx);
   const rpPeriod = [...new Set(myRp.map((r) => r.period))].sort().at(-1) ?? null;
   const fxPeriod = [...new Set(myFx.map((r) => r.period))].sort().at(-1) ?? null;
 
@@ -307,7 +319,7 @@ export async function bankMarketRiskDetail(
 
   // ── FX net open position by currency (latest fx quarter) ──
   const capV = fxPeriod
-    ? (ticker ? cap.filter((r) => r.bank_ticker === ticker) : cap)
+    ? (ticker ? cap.filter((r) => r.bank_ticker === ticker) : peersOnly(cap))
         .filter((r) => r.period === fxPeriod)
         .reduce((s, r) => s + (r.total_capital ?? 0), 0)
     : 0;
