@@ -48,6 +48,12 @@ it in `dependabot.yml` alongside eslint: typescript-eslint 8.x declares
 transitively, so every `npm ci` would resolve through an overridden peer. Same
 trap as eslint 10, one layer down.
 
+Dependabot then reopened the remainder against the new master — all of them still
+branched off the old Node 22 pin, so all of them still failed. Taken directly too:
+actions/setup-node v7 (merged as #94), actions/setup-python v7 across 21
+workflows, selenium 4.46.0 / pandas 3.0.5 / numpy 2.5.1 / boto3 1.43.55, and
+tailwind 4.3.3 (lockfile only). **Open PRs and remote branches: zero.**
+
 Two stale PROJECT_STATE entries retired: the market-risk D1 reconciliation
 (re-verified against remote D1 — fx_position 8,208 rows / 590 partitions,
 repricing 12,064 / 455, AKBNK 2026Q1 present; the 2026-07-18/19 lane passes had
