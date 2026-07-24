@@ -81,7 +81,17 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
-          node-version: "22"
+          # Node 24 (npm 11), NOT 22 (npm 10) — `npm ci` validates the lockfile
+          # against package.json, and npm 10 rejects a lockfile npm 11 wrote:
+          # esbuild 0.28's platform packages carry a `libc` field and nest under
+          # `node_modules/wrangler/node_modules/`, which npm 10 reads as
+          # "Missing: esbuild@0.28.1 from lock file". Dependabot writes its
+          # lockfiles with npm 11, so this pin silently made EVERY web-deps PR
+          # unmergeable (#90, #92 both died here, three weeks apart, looking like
+          # a stale-lockfile problem that a rebase would fix — it wasn't).
+          # Keep this in step with deploy-cloudflare.yml and with whatever npm
+          # writes web/package-lock.json.
+          node-version: "24"
           cache: npm
           cache-dependency-path: web/package-lock.json
       - name: Install dependencies
