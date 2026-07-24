@@ -27,13 +27,25 @@ every page while CI reports success. The standing check is now in PROJECT_STATE:
 after any wrangler or OpenNext bump, `curl -s https://carthago.app/ | grep -c
 __name` must be 0.
 
-Also cleared today: the Dependabot PRs open since 2026-07-01 (boto3 #89 merged;
-the web-deps group #90 had failed `npm ci` against a lockfile master had moved
-past, and was rebased), and two stale entries in PROJECT_STATE — the market-risk D1
-reconciliation (re-verified against remote D1: fx_position 8,208 rows / 590
-partitions, repricing 12,064 / 455, AKBNK 2026Q1 present — the 2026-07-18/19
-lane passes had already closed it) and the `PlSankeyChart.tsx` light-mode
-regression, whose component the Desk redesign deleted.
+Also cleared today: the Dependabot PRs open since 2026-07-01. #89 (boto3) merged
+as-is. The web-deps group had spent three weeks failing `npm ci` on a lockfile
+master had moved past — Dependabot replaced #90 with #92 (15 updates), which
+failed the same way plus `Missing: esbuild@0.28.1 from lock file`: its own
+lockfile inconsistent with its own package.json. So the bumps were taken
+directly on master with a real install — next 16.2.11, react 19.2.8, recharts
+3.10.0, @xyflow/react, lucide-react, @opennextjs/cloudflare 1.20.2, eslint
+9.39.5 + eslint-config-next, vitest 4.1.10, wrangler 4.114.0; lint, tsc and 379
+tests green. **typescript ^6 → ^7 was dropped**, and majors are now ignored for
+it in `dependabot.yml` alongside eslint: typescript-eslint 8.x declares
+`peer typescript >=4.8.4 <6.1.0`, and eslint-config-next pulls typescript-eslint
+transitively, so every `npm ci` would resolve through an overridden peer. Same
+trap as eslint 10, one layer down.
+
+Two stale PROJECT_STATE entries retired: the market-risk D1 reconciliation
+(re-verified against remote D1 — fx_position 8,208 rows / 590 partitions,
+repricing 12,064 / 455, AKBNK 2026Q1 present; the 2026-07-18/19 lane passes had
+already closed it) and the `PlSankeyChart.tsx` light-mode regression, whose
+component the Desk redesign deleted.
 
 2026-07-23 — **The bot prompt typed the universe size.** Fixing the graph gate
 (below) let the Python job reach the prose gate for the first time in days, and

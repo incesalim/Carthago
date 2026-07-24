@@ -24,6 +24,15 @@ updates:
       # eslint-plugin-react 7.37.5, which requires ESLint <= 9.7. Keep eslint ^9.
       - dependency-name: "eslint"
         update-types: ["version-update:semver-major"]
+      # Same shape, one layer down: typescript-eslint 8.x declares
+      # `peer typescript >=4.8.4 <6.1.0`, so a typescript 7 bump makes every
+      # `npm ci` resolve through an overridden peer — and eslint-config-next
+      # pulls typescript-eslint transitively, so we cannot pin our way out of
+      # it here. Keep typescript ^6 until eslint-config-next ships a
+      # typescript-eslint that accepts 7. (2026-07-24: dropped from the
+      # web-deps group for exactly this.)
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
 
   # Pin/refresh GitHub Actions versions
   - package-ecosystem: "github-actions"
