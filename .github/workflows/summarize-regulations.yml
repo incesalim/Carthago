@@ -144,7 +144,7 @@ jobs:
         run: python scripts/check_briefing_facts.py --alert
 
       - name: Setup Node (for wrangler)
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: "22"
 

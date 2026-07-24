@@ -79,7 +79,7 @@ jobs:
         working-directory: web
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           # Node 24 (npm 11), NOT 22 (npm 10) — `npm ci` validates the lockfile
           # against package.json, and npm 10 rejects a lockfile npm 11 wrote:
