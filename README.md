@@ -159,4 +159,23 @@ See [`docs/OPERATIONS.md`](docs/OPERATIONS.md) for full instructions.
 
 ## License
 
-Educational / analytical use. Respect BDDK's and TCMB's terms of service.
+The **code** in this repository is licensed under the [GNU Affero General
+Public License v3.0](LICENSE).
+
+    Carthago — analytics for the Turkish banking sector
+    Copyright (C) 2026 Salim İnce
+
+You may use, study, modify and redistribute it. If you run a modified
+version as a network service, AGPL §13 requires you to offer that
+service's users the corresponding source. For a commercial licence
+without that obligation, contact <incesalim10@gmail.com>.
+
+### The data is not covered by this licence
+
+The AGPL grants rights to *this codebase only*. It grants no rights to the
+underlying data, which is derived from third parties — BDDK, TCMB EVDS,
+TBB, KAP, TEFAS, TKBB and BIST market data — each carrying its own terms
+of use. Redistribution of that data, including through the public
+[`/api/v1`](docs/API.md) endpoints, remains subject to those terms
+regardless of anything stated here. Third-party reports under
+`data/external_reports/` are deliberately not redistributed.
