@@ -4,7 +4,7 @@
 
 # Web Scraping (BDDK monthly + weekly bulletins, bank IR PDFs, EVDS)
 requests>=2.34.2
-selenium>=4.45.0
+selenium>=4.46.0
 beautifulsoup4>=4.15.0
 lxml>=6.1.1
 webdriver-manager>=4.1.2
@@ -14,8 +14,8 @@ webdriver-manager>=4.1.2
 googlenewsdecoder>=0.1.7
 
 # Data Processing
-pandas>=3.0.3      # not >=3.0.4: 3.0.4 was yanked from PyPI; 3.0.3 is newest installable
-numpy>=2.5.0
+pandas>=3.0.5      # skip 3.0.4: yanked from PyPI
+numpy>=2.5.1
 openpyxl>=3.1.5      # .xlsx (newer TBB digital-banking workbooks)
 xlrd>=2.0.2          # legacy .xls / BIFF (older TBB digital-banking workbooks)
 
@@ -26,7 +26,7 @@ sqlalchemy>=2.0.51
 pymupdf>=1.28.0
 
 # Cloudflare R2 (S3-compatible) for audit-report PDF storage
-boto3>=1.43.38
+boto3>=1.43.55
 
 # Utilities
 python-dotenv>=1.2.2
