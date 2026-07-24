@@ -43,8 +43,8 @@ coverage or known issues change.
 | `bank_audit_opinion` | BRSA PDFs, auditor's report (front matter) | 2022-Q1 → 2026-Q1 | **the auditor's verdict** — `opinion_type` clean/qualified/adverse/disclaimer + `is_modified` flag + the "Basis for Qualified…" paragraph + firm + audit-vs-review. Deterministic text classifier (`src/audit_reports/audit_opinion.py`), EN+TR / audit+review. Built + **backfilled 2026-07-15**: 976 rows / 38 banks in D1, **552 modified (57%) / 424 clean** — the free-provision practice behind the ALBRK Q1 case is sector-wide (PwC/EY/KPMG all qualify over it; state banks also over bond reclassifications). Basis paragraph captured for 545/552 modified. Backfill via `reextract-statement.yml` (statement=`audit_opinion`, force, only_failing off — no validator, like `profile`) |
 | `bank_audit_capital` | BRSA PDFs, §4.1 capital adequacy | same — **fully backfilled 2026-06-10** (31/31 banks, ~1.7k rows) | CET1/Tier1/Tier2/Total/RWA + CET1/Tier1/CAR ratios, per period_type |
 | `bank_audit_liquidity` | BRSA PDFs, §4.6/4.7 | same — **fully backfilled 2026-06-10** (31/31 banks, ~1.8k rows) | LCR (total/FC), NSFR, leverage ratio, per period_type |
-| `bank_audit_fx_position` | BRSA PDFs, §4 currency-risk footnote | same — **backfilled 2026-06-29 (7,143 rows / 31 banks → 2026Q1)** | FX net open position per currency (EUR/USD/OTHER/TOTAL) × period_type; net_position = net_on + net_off (~99% coverage). Powers `/market-risk`. ⚠️ **D1 was stranded at that backfill** — see the note below |
-| `bank_audit_repricing` | BRSA PDFs, §4 interest-rate-risk footnote | same — **backfilled 2026-06-29 (10,364 rows / 24 banks → 2026Q1)** | Repricing gap per bucket (lt_1m…gt_5y/non_sensitive/total) × period_type (~81% coverage; participation banks omit → validated N/A). ⚠️ same as above |
+| `bank_audit_fx_position` | BRSA PDFs, §4 currency-risk footnote | same — **backfilled 2026-06-29 (7,143 rows / 31 banks → 2026Q1)** | FX net open position per currency (EUR/USD/OTHER/TOTAL) × period_type; net_position = net_on + net_off (~99% coverage). Powers `/market-risk`. D1 reconciled 2026-07-24 (8,208 rows / 590 partitions) — see the note below |
+| `bank_audit_repricing` | BRSA PDFs, §4 interest-rate-risk footnote | same — **backfilled 2026-06-29 (10,364 rows / 24 banks → 2026Q1)** | Repricing gap per bucket (lt_1m…gt_5y/non_sensitive/total) × period_type (~81% coverage; participation banks omit → validated N/A). D1 reconciled 2026-07-24 (12,064 rows / 455 partitions) |
 | `bank_audit_oci`, `_cash_flow`, `_equity_change`, `_npl_movement`, `_stages`, `_loans_by_sector` | BRSA PDFs (statement pages + IFRS-9/credit footnotes) | 2022-Q1 → 2026-Q1 | per-bank; per-lane pass rates in the validation-status table below |
 | `bank_audit_extractions` | extraction log | one row per PDF | **1,050 rows, 1,050 core-success (100%)** across the 38-bank universe (D1, 2026-07-14). The per-lane pass/fail tables below are a dated **2026-06-14** snapshot taken when the fleet was 31 banks / ~975 partitions — read their counts as of that date, not as today's totals |
 | `bank_types`, `table_definitions`, `download_log` | metadata | — | — |
@@ -102,9 +102,11 @@ were therefore frozen at the 2026-06-29 manual backfill (which pushed all 16) wh
 every other audit page advanced. **Fixed at the root**: the table list is now derived
 from `src/audit_reports/registry.py`, workflows pass `--table-set audit`, and
 `push_to_d1` hard-errors on a table it cannot sync (`tests/test_audit_tables_sync.py`
-pins it). **Open follow-up: D1 still needs a one-off reconciliation** — re-push
-`fx_position`/`repricing` from the R2 snapshot (or re-extract the two statements via
-`reextract-statement.yml`) to recover the quarters D1 missed.
+pins it). **Reconciliation CLOSED (verified against remote D1, 2026-07-24)** — the
+2026-07-18/19 lane passes re-pushed both tables: `bank_audit_fx_position` 8,208 rows /
+590 partitions, `bank_audit_repricing` 12,064 rows / 455 partitions, and AKBNK 2026Q1
+(the partition named as absent from D1 entirely) holds its 16 fx rows. Both are now
+**above** the R2 snapshot counts the gap was measured against, so no push is pending.
 
 **fx_position (§4 currency-risk) lane: 21 err + 66 miss → 0/0, then a 79-cell
 false-NEGATIVE sweep → 0/0 — COMPLETE 2026-07-18** (coverage `1022 ok / 28 manual /
@@ -953,18 +955,34 @@ each `/banks/[ticker]` page:
   (3) `weeklyGrowth` now pairs by **date** (`web/app/lib/weekly-growth.ts`, exact
   week → ±1w holiday tolerance, annualized by actual elapsed days) so a source gap
   renders as a gap instead of a wrong number.
-- **P&L Sankey paints dark palette in light mode (live, 2026-07-02).** Regression
-  from the Editorial theme: `web/app/banks/[ticker]/PlSankeyChart.tsx:209` sniffs
-  dark mode via `t.tooltipBg !== "#ffffff"`, but Editorial's light `tooltipBg` is
-  `#FBFAF7` → always "dark" → dark node/ribbon fills on every `/banks/[ticker]`
-  light-theme view. One-line fix when taken: `t.mode === "dark"` (the idiom
-  `NimComponentsChart`/`BopFlowChart` already use).
+- **Every page threw a ReferenceError before paint (fixed 2026-07-24).** The
+  bundler put a helper call inside a script it was never going to bundle:
+  wrangler bundles the OpenNext worker with esbuild `keepNames: true` by default,
+  which rewrites `function f(){}` to `function f(){} __name(f,"f")` so a minified
+  bundle keeps `fn.name`. next-themes ships its no-flash initializer by
+  **stringifying** a function into an inline `<script>` (`(${script.toString()})(…)`),
+  so the injected `__name(k2,"k2")` travelled into that string — where the helper
+  does not exist. The script threw at that line, before the `if (d2) k2(d2)` that
+  applies the stored theme, so the pre-hydration pass never ran and the theme only
+  landed once React hydrated (flash of the wrong theme on every route). Fixed with
+  `"keep_names": false` in `web/wrangler.jsonc` — we do not minify this bundle, so
+  keepNames was preserving nothing. **Verify after any wrangler/OpenNext bump**:
+  `curl -s https://carthago.app/ | grep -c __name` must be 0 — a live request is the
+  only place this shows up (it builds, deploys and type-checks clean either way).
+  Found by the [2026-07-12 site evaluation](knowledge/website-evaluation-2026-07-12.md)
+  (finding 3), which is otherwise **not acted on** — mobile Lighthouse 57–66 /
+  LCP 4.1–4.5s, `text-faint` contrast 1.7–2.4:1, and no About / methodology /
+  privacy / terms page (now pointed, since `/` loads GA4).
 - **Architecture review 2026-07-02 (report only, no code changed).** Live site +
   web/ + pipeline surveyed post-Editorial; verdict sound, debt concentrated. The
   ranked backlog (off-theme chart palettes ×4, uncached `audit.ts` reads on public
   pages, CI silently skipping the fitz/pdfplumber test suite, `push_to_d1.py`
-  3-edit table registration, dead extractor code, Dependabot #90 lockfile) lives
+  3-edit table registration, dead extractor code) lives
   in [knowledge/architecture-review-2026-07.md](knowledge/architecture-review-2026-07.md).
+  Two of its items are now closed: the CI test-suite gap and the `push_to_d1`
+  chokepoint (2026-07-14). The `PlSankeyChart.tsx` light-mode regression it listed
+  is **moot** — that component no longer exists (the Desk redesign left only
+  `lib/pl-sankey.ts`).
 - **Seeking-Alpha-style statement viewer shipped (2026-06-24).** The `/banks/[ticker]`
   Financials section gains a **Cash Flow** tab (alongside Balance Sheet / Income
   Statement), an **Absolute / YoY Growth** view toggle, and a **TTM** column (income

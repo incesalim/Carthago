@@ -5,6 +5,36 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-07-19.
 
+2026-07-24 — **Every page threw a ReferenceError before paint.** The theme
+initializer was bundled with a helper it could not take with it. Wrangler
+bundles the OpenNext worker with esbuild `keepNames: true` by default, which
+rewrites `function f(){}` to `function f(){} __name(f,"f")` so `fn.name`
+survives minification. That is harmless for code that RUNS in the worker — but
+next-themes ships its no-flash initializer by **stringifying** a function into
+an inline `<script>` (`(${script.toString()})(…)`), and the injected
+`__name(k2,"k2")` travelled into the string, into a scope where no such helper
+exists. The script threw at that line — which sits *above* the `if (d2) k2(d2)`
+that reads localStorage and applies the stored theme — so the pre-hydration pass
+never ran and the theme only landed once React hydrated. Every route flashed the
+wrong theme. Fixed with `"keep_names": false` in `web/wrangler.jsonc`: this
+bundle is not minified, so keepNames was preserving nothing.
+
+The instructive part is why it survived three weeks after being written up. It
+builds clean, type-checks clean, deploys clean, and the site *looks* fine once
+hydrated — the only place the defect exists is the served HTML of a live
+request. Same class as the Turbopack chunk-name regression that returns 500 on
+every page while CI reports success. The standing check is now in PROJECT_STATE:
+after any wrangler or OpenNext bump, `curl -s https://carthago.app/ | grep -c
+__name` must be 0.
+
+Also cleared today: the Dependabot PRs open since 2026-07-01 (boto3 #89 merged;
+the web-deps group #90 had failed `npm ci` against a lockfile master had moved
+past, and was rebased), and two stale entries in PROJECT_STATE — the market-risk D1
+reconciliation (re-verified against remote D1: fx_position 8,208 rows / 590
+partitions, repricing 12,064 / 455, AKBNK 2026Q1 present — the 2026-07-18/19
+lane passes had already closed it) and the `PlSankeyChart.tsx` light-mode
+regression, whose component the Desk redesign deleted.
+
 2026-07-23 — **The bot prompt typed the universe size.** Fixing the graph gate
 (below) let the Python job reach the prose gate for the first time in days, and
 it found seven hardcoded "38 banks" in `bot-schema.ts` — the schema reference
