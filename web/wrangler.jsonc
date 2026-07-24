@@ -11,6 +11,17 @@
     "binding": "ASSETS",
     "directory": ".open-next/assets"
   },
+  // Wrangler bundles the OpenNext worker with esbuild `keepNames: true` by
+  // default, which rewrites `function f(){}` to `function f(){} __name(f,"f")`
+  // so a minified bundle keeps `fn.name`. That is harmless for code that RUNS
+  // in the worker — but next-themes ships its no-flash theme initializer by
+  // stringifying a function (`(${script.toString()})(…)`) into an inline
+  // <script> on every page. The injected `__name` call travelled into that
+  // string, where the helper does not exist: every page threw a ReferenceError
+  // before paint, so the pre-hydration theme application never ran and the
+  // theme only landed once React hydrated (flash of the wrong theme).
+  // We do not minify this bundle, so keepNames preserves nothing we need.
+  "keep_names": false,
   "d1_databases": [
     {
       "binding": "DB",
