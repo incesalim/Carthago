@@ -818,6 +818,15 @@ export function Colophon({ children }: { children?: React.ReactNode }) {
     <footer className="mt-8 border-t border-border pt-2.5 font-mono text-[8.5px] uppercase leading-relaxed tracking-[0.04em] text-faint">
       {children ??
         "Compiled, not written — every figure computed from BDDK · BRSA · TCMB · TÜİK · KAP · BIST source series. Flag rules are printed where they fire. No forecasts. Analytical information, not investment advice."}
+      {/* Outside the `children ??` fallback on purpose: pages that pass their own
+          colophon text still carry the privacy link. A notice reachable only from
+          the pages that forgot to override the default is not reachable. */}
+      <span className="ml-1">
+        ·{" "}
+        <Link href="/privacy" className="text-primary hover:underline">
+          Privacy
+        </Link>
+      </span>
     </footer>
   );
 }

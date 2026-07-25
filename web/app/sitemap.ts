@@ -65,6 +65,9 @@ const STATIC_ROUTES: {
   { path: "/economy/economic-growth", priority: 0.6, changeFrequency: "monthly" },
   { path: "/economy/balance-of-payments", priority: 0.6, changeFrequency: "monthly" },
   { path: "/pipeline", priority: 0.3, changeFrequency: "monthly" },
+  // Low priority, but listed on purpose: a privacy notice a reader cannot find
+  // is not a notice. Changes only when the code it describes changes.
+  { path: "/privacy", priority: 0.3, changeFrequency: "yearly" },
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

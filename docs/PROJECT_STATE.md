@@ -312,6 +312,22 @@ latest-period** trigger, and **13 banks auto-discover** new quarters from their
 IR page (no hand-added URL needed) — see [ADMIN.md](ADMIN.md) §Auto-discovery.
 Setup in [OPERATIONS.md](OPERATIONS.md) / [ADMIN.md](ADMIN.md).
 
+**Analytics are consent-gated, and `/privacy` says what is collected (2026-07-25).**
+Two tools, deliberately unequal: **Cloudflare Web Analytics** is cookieless and
+identifier-free, so it is always on and needs no consent; **GA4** sets cookies and
+sends the visit to Google, so `gtag.js` is not requested at all until the visitor
+accepts. Decline (or ignore the bar) and the site sets **no cookies whatsoever** —
+the answer itself lives in one localStorage key, not a cookie. The gate is
+`AnalyticsConsent.tsx` over `lib/consent.ts`; consumers read it through
+`useSyncExternalStore` (`lib/use-consent.ts`), which is what keeps the banner out
+of the server HTML — a consent bar that flashes during hydration gets dismissed by
+accident. `/privacy` carries the withdrawal path, and is linked from the Colophon on
+every page. It also documents the Telegram bot, which retains more than the site
+does: question text plus a non-reversible chat hash (`bot_queries`), the raw chat id
+in the rate-limit counter (`bot_usage`), and the question going to a third-party
+model provider. **If any of that changes, `/privacy` changes in the same commit** —
+it is the one page whose claims are about us, not about the banks.
+
 ## Public data API
 
 `/api/v1` — public, unauthenticated, read-only. Serves the **BDDK monthly

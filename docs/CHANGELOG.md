@@ -5,6 +5,40 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-07-19.
 
+2026-07-25 — **Analytics ran for two days with no notice and no choice.** GA4
+shipped on the 23rd. The site had no privacy page, no consent bar, and no way to
+say no — on a product whose entire pitch is that its claims are checkable. Both
+halves fixed together, because either alone is half a fix: a notice nobody can act
+on, or a switch nobody can find.
+
+`/privacy` states what is collected against what the code does, and every claim in
+it names the file that implements it — the repository is public, so a reader can
+check the page the same way they can check a bank figure. It is linked from the
+Colophon on **every** page, outside the `children ??` fallback so a page that
+passes its own colophon text still carries it.
+
+GA4 is now opt-IN: `gtag.js` is not requested until the visitor accepts, so
+declining means Google never sees the request — nothing set and deleted
+afterwards. **Decline, or ignore the bar, and the site sets no cookies at all.**
+Cloudflare Web Analytics stays ungated and is named as such: it is cookieless and
+keeps no per-visitor identifier, so it cannot single anyone out. Accept and decline
+are the same size and weight; a decline that is harder to find than accept is not a
+choice.
+
+Three implementation notes worth keeping. The preference is an **external store**,
+not derived state — `useSyncExternalStore` (`lib/use-consent.ts`) reads it during
+render, which both satisfies `react-hooks/set-state-in-effect` and keeps the banner
+out of the server HTML; a consent bar that flashes during hydration is one that gets
+dismissed by accident. Every failure path reads as **refusal**: no stored value,
+an unrecognised value, storage disabled, SSR — all return null, and null means off
+(8 unit tests pin exactly that, including that `"true"` and `"yes"` are not
+consent). And the notice documents the **Telegram bot honestly**, which retains
+more than the website does: question text plus a non-reversible chat hash, the raw
+chat id in the rate-limit counter, and the question going to a third-party model
+provider.
+
+Contact is a real address, not a form: incesalim10@gmail.com.
+
 2026-07-25 — **The landing page computed "real" the one way its own library
 forbids.** `series.ts` exports `deflate()` and says so in the docstring: exact
 Fisher, not the g−π shortcut. `/credit`, `/deposits` and `/asset-quality` obey it.
