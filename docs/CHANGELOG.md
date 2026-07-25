@@ -5,6 +5,52 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-07-19.
 
+2026-07-25 — **The quietest text on the site was 2.43:1.** WCAG AA asks 4.5:1
+for normal text. `--faint` sat at **2.43:1** on the white sheet — and it carries
+8–10px type across **210 call sites**: captions, record lines, chart axis ticks,
+every colophon. The 2026-07-12 evaluation scored accessibility 6.5/10 and named
+this as the cause. It is the oldest known defect on the site and the easiest to
+keep not-fixing, because a contrast ratio is arithmetic nobody re-runs after
+nudging a hex by eye.
+
+So the fix is a **gate first**: `scripts/check_contrast.py` computes every
+`text-*` token against every surface it can sit on — the sheet, the ground, and
+the muted row fill, which is the darkest surface and the pairing that fails first
+— in both themes. It also has an inventory half, like `check_docs_sync`: a colour
+used as text with no declared background fails, so nobody can introduce one
+without deciding where it sits. **66 pairs, 4.5:1 floor, stdlib only.**
+
+Running it found more than the evaluation did:
+
+  --faint         2.43:1 -> 5.13  (light)   2.43 was the headline number
+  --faint         3.64:1 -> 4.96  (dark)    also short, on a darker sheet
+  --warning       3.27:1 -> 5.18  (light)   26 text uses
+  --negative      4.33:1 -> 4.55  (on muted rows)
+  --context       1.69:1            used as TEXT in 6 places on /cross-bank
+  --chart-4       3.27:1            used as chip TEXT on /regulation
+  --chart-2       4.42:1            used as tag TEXT in news-tags.ts
+  chart axis tick 2.43:1            chart-theme.ts's copy of --faint
+
+Two consequences worth stating, because both were design decisions rather than
+arithmetic. **Raising `faint` squeezed it against `muted-foreground` (5.02:1) —
+two tiers with no gap** — so the secondary tier moved darker as well, and the
+ordering `ink > secondary > quiet` with a real gap between the last two is now
+asserted in a test. The Desk is built on three quiet tiers; making one legible
+must not collapse two. And **a chart series colour is no longer allowed to be a
+label colour**: rather than distort a tuned 6-colour palette, the amber chip
+keeps its coloured border and takes ink for the word. Marks answer to a different
+rule (3:1, WCAG 1.4.11) and were left alone.
+
+`chart-theme.ts` can't read CSS variables, so its `axis` (tick labels) and
+`inkMuted` are copies of text tokens — the gate now requires them to be EQUAL,
+not merely similar, which is the lockstep rule DESIGN.md always stated but
+nothing enforced.
+
+One bug found on the way, by the repo's own guard: the patch script that wrote
+the gate put a literal `0x08` where a regex `` was meant, and the check
+silently matched nothing. `tests/test_docs_sync.py::test_no_control_chars_in_source`
+exists because this exact thing once made a briefing fact read PASS.
+
 2026-07-25 — **Analytics ran for two days with no notice and no choice.** GA4
 shipped on the 23rd. The site had no privacy page, no consent bar, and no way to
 say no — on a product whose entire pitch is that its claims are checkable. Both

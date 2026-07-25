@@ -25,7 +25,7 @@ const SOURCE_TAGS: Record<NewsSource, Tag> = {
   bddk: { label: "BDDK", className: "bg-positive/10 text-positive" },
   kap: { label: "KAP", className: "bg-primary/10 text-primary" },
   press: { label: "Press", className: "bg-warning/15 text-warning" },
-  google_news: { label: "Google News", className: "bg-chart-2/15 text-chart-2" },
+  google_news: { label: "Google News", className: "bg-chart-2/15 text-foreground" },
 };
 
 export function sourceTag(source: string): Tag {
@@ -44,7 +44,7 @@ const RULES: { test: RegExp; tag: Tag }[] = [
   // Capital / macroprudential rules (before Liquidity so "Macroprudential
   // Framework and Liquidity Steps" lands here, not in Liquidity)
   { test: /macroprudential|capital adequacy|reserve requirement|securities maintenance|\bratios?\b|makro/i,
-    tag: { label: "Macroprudential", className: "bg-chart-5/15 text-chart-5" } },
+    tag: { label: "Macroprudential", className: "bg-chart-5/15 text-foreground" } },
   // TCMB — liquidity / FX operations
   { test: /liquidity|likidite|\bswap\b|lira-settled|\bfx\b|foreign exchange|foreign currency|rediscount|forward|\brepo\b|protected (?:deposit|account)|yuvam/i,
     tag: { label: "Liquidity & FX", className: "bg-info/10 text-info" } },
@@ -52,7 +52,7 @@ const RULES: { test: RegExp; tag: Tag }[] = [
   // "payment"/"system", which leak into "Repayments"/"Systemic"/"Balance of
   // Payments"). `ödeme` retained for BDDK payment-institution items.
   { test: /open banking|\bfast\b|payment system|electronic money|elektronik para|ödeme|digital turkish lira|interbank card|request-to-pay|center of payments|overlay service/i,
-    tag: { label: "Payments & Systems", className: "bg-chart-2/15 text-chart-2" } },
+    tag: { label: "Payments & Systems", className: "bg-chart-2/15 text-foreground" } },
   // Reports / briefings / assembly notices (incl. Inflation Report briefings)
   { test: /inflation report|faaliyet raporu|\breport\b|briefing|general assembly|\brapor/i,
     tag: { label: "Report", className: NEUTRAL } },

@@ -312,6 +312,17 @@ latest-period** trigger, and **13 banks auto-discover** new quarters from their
 IR page (no hand-added URL needed) — see [ADMIN.md](ADMIN.md) §Auto-discovery.
 Setup in [OPERATIONS.md](OPERATIONS.md) / [ADMIN.md](ADMIN.md).
 
+**Text legibility is a CI gate (2026-07-25).** `scripts/check_contrast.py` computes
+every `text-*` token against every surface it sits on — sheet, ground and the muted
+row fill — in both themes, and fails under WCAG AA 4.5:1. It also fails on a colour
+used as text with no declared background, which is how the chart palette leaking
+into chip labels was found. `--faint` had shipped at **2.43:1** under 8–10px type on
+210 call sites (the 2026-07-12 evaluation's accessibility finding); the quiet ramp
+was re-spaced (`faint` 2.43→5.13, `muted-foreground` moved darker to keep three
+distinct tiers), `--warning` and `--negative` were nudged, and `chart-theme.ts`'s
+tick-label colours are now required to EQUAL the text tokens they copy. Chart MARKS
+are deliberately out of scope (3:1, WCAG 1.4.11) — see [web/DESIGN.md](../web/DESIGN.md).
+
 **Analytics are consent-gated, and `/privacy` says what is collected (2026-07-25).**
 Two tools, deliberately unequal: **Cloudflare Web Analytics** is cookieless and
 identifier-free, so it is always on and needs no consent; **GA4** sets cookies and

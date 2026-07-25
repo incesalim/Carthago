@@ -27,7 +27,7 @@ function Item({ it }: { it: TickerItem }) {
           {up ? "▲" : "▼"} {nfPct(it.changePct)}
         </span>
       )}
-      <span aria-hidden className="text-border">·</span>
+      <span aria-hidden className="text-faint">·</span>
     </span>
   );
 }

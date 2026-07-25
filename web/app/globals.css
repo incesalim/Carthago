@@ -33,7 +33,7 @@
   --popover-foreground: var(--foreground);
 
   --muted: #F1F2EE;              /* quiet fill: subtotal rows / inner dividers */
-  --muted-foreground: #68707A;   /* secondary text */
+  --muted-foreground: #50565E;   /* secondary text — 7.4:1 on the sheet */
 
   --accent: #F0F2EE;             /* hover bg (kept subtle — Desk prefers text-only hover) */
   --accent-foreground: var(--foreground);
@@ -59,12 +59,12 @@
   --context: #C0C8D1;
 
   /* Caption / axis tone. */
-  --faint: #A0A7AE;
+  --faint: #6A6E73;
 
   /* Data-semantic tones (used as text + as /10–/15 tinted backgrounds). */
   --positive: #187A53;
-  --negative: #C24847;
-  --warning: #B98514;             /* thresholds, representative-data flags */
+  --negative: #BC4645;
+  --warning: #8E660F;             /* thresholds, representative-data flags */
   --info: #2B4E7E;
 
   /* Cross-bank heatmap ramp. */
@@ -112,7 +112,7 @@
   --data: #7FA3D8;              /* brightened hero navy for dark charts */
   --context: #4A525C;           /* context grey on the dark sheet (chart-theme) */
 
-  --faint: #6B747E;
+  --faint: #838A93;
 
   --positive: #4FB98A;
   --negative: #E0716B;

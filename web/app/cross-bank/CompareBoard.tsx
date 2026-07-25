@@ -309,7 +309,7 @@ export default function CompareBoard({
         {benchGroups.map((g) => (
           <div key={g.code}>
             <div className="mb-1.5 font-mono text-[8.5px] uppercase tracking-[0.08em] text-faint">
-              {g.label} <span className="text-context">{g.rows.length}</span>
+              {g.label} <span className="text-faint">{g.rows.length}</span>
             </div>
             <div className="flex flex-wrap gap-x-1 gap-y-0.5">
               {g.rows.map((b) => {
@@ -710,10 +710,10 @@ export default function CompareBoard({
                             <div className="absolute left-1.5 top-8 font-mono text-[8.5px] text-faint">
                               {outLo.length > 0 && (
                                 <>
-                                  <span className="cursor-help text-context" title={`beyond the axis — ${cut(outLo)}`}>
+                                  <span className="cursor-help text-faint" title={`beyond the axis — ${cut(outLo)}`}>
                                     ‹{outLo.length}
                                   </span>
-                                  <span className="mx-[3px] text-context">·</span>
+                                  <span className="mx-[3px] text-faint">·</span>
                                 </>
                               )}
                               {formatMetricValue(lo, m.unit, m.decimals)}
@@ -722,8 +722,8 @@ export default function CompareBoard({
                               {formatMetricValue(hi, m.unit, m.decimals)}
                               {outHi.length > 0 && (
                                 <>
-                                  <span className="mx-[3px] text-context">·</span>
-                                  <span className="cursor-help text-context" title={`beyond the axis — ${cut(outHi)}`}>
+                                  <span className="mx-[3px] text-faint">·</span>
+                                  <span className="cursor-help text-faint" title={`beyond the axis — ${cut(outHi)}`}>
                                     ›{outHi.length}
                                   </span>
                                 </>
@@ -771,7 +771,7 @@ export default function CompareBoard({
       <p className="mt-2.5 font-mono text-[8.5px] leading-relaxed tracking-[0.04em] text-faint">
         Axis runs the peer frame&rsquo;s range, clipped to the Tukey whiskers (q₁/q₃ ± 1.5 × IQR)
         where a lone freak value would otherwise flatten the field — clipped peers are counted at
-        the edge (<span className="text-context">‹3</span>), and a pick is never clipped out of
+        the edge (<span className="text-faint">‹3</span>), and a pick is never clipped out of
         view. Shaded band is the interquartile range. Assets use a log axis. Ranks are the same
         percentile rule the grid below colours by.
       </p>

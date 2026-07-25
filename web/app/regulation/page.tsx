@@ -84,8 +84,8 @@ const LICENCE_LABEL: Record<LicenceKind, string> = {
 /** Shortened section names for the changelog's category chips. */
 const CHIP: Record<string, { label: string; cls: string }> = {
   "Monetary Policy Stance": { label: "Corridor", cls: "border-data text-data" },
-  "Loan Growth Caps": { label: "Loan caps", cls: "border-chart-5 text-chart-5" },
-  "Regulations on RRs": { label: "Reserves", cls: "border-chart-4 text-chart-4" },
+  "Loan Growth Caps": { label: "Loan caps", cls: "border-chart-5 text-foreground" },
+  "Regulations on RRs": { label: "Reserves", cls: "border-chart-4 text-foreground" },
   "Regulations for TL Deposit Share": { label: "TL share", cls: "border-border text-muted-foreground" },
   "Other Regulatory Actions": { label: "Other", cls: "border-border text-muted-foreground" },
 };

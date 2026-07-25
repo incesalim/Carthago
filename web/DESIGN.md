@@ -50,18 +50,36 @@ do all the work; nothing is decorated.
 | `--background` (workspace) | `#F7F8F6` | `#101318` |
 | `--card` (the sheet) | `#FFFFFF` | `#171B21` |
 | `--foreground` (ink) | `#12161B` | `#E6E9E6` |
-| `--muted-foreground` | `#68707A` | `#9AA3AD` |
-| `--faint` (captions/axes) | `#A0A7AE` | `#6B747E` |
+| `--muted-foreground` | `#50565E` | `#9AA3AD` |
+| `--faint` (captions/axes) | `#6A6E73` | `#838A93` |
 | `--border` (sheet edge) | `#E1E3DD` | `#262C34` |
 | `--hair` (row hairlines) | `#ECEDE8` | `#1F252C` |
 | `--primary` (links only) | `#2757A8` | `#7FA3D8` |
 | `--data` / chart hero | `#2B4E7E` | `#7FA3D8` |
 | `--context` (the non-hero mark) | `#C0C8D1` | `#4A525C` |
-| `--positive` / `--negative` | `#187A53` / `#C24847` | `#4FB98A` / `#E0716B` |
-| `--warning` (thresholds) | `#B98514` | `#D9A83F` |
+| `--positive` / `--negative` | `#187A53` / `#BC4645` | `#4FB98A` / `#E0716B` |
+| `--warning` (thresholds) | `#8E660F` | `#D9A83F` |
 
 **LOCKSTEP RULE:** `app/lib/chart-theme.ts` mirrors these values in JS (Recharts
 can't read CSS vars). Any token change lands in both files in the same commit.
+`scripts/check_contrast.py` now enforces the half that matters most — `axis` and
+`inkMuted` render TEXT (tick labels, series names), so they must EQUAL `--faint`
+and `--muted-foreground`, not merely resemble them.
+
+**A TEXT COLOUR CLEARS 4.5:1, ON EVERY SURFACE IT SITS ON, IN BOTH THEMES.** Not
+a taste question and not checked by eye — `check_contrast.py` computes it in CI
+for every `text-*` token, against the sheet, the ground AND the muted row fill
+(the darkest surface, and the pairing that fails first). `--faint` shipped at
+**2.43:1** under 8–10px type on 210 call sites; the 2026-07-12 evaluation scored
+accessibility 6.5/10 on the back of it. Two consequences the ramp had to absorb:
+raising `faint` to AA squeezed it against `muted-foreground`, so that moved
+darker too — the ordering `ink > secondary > quiet`, with a real gap between the
+last two, is asserted in `tests/test_contrast.py`. And a colour used as text
+needs a declared background, so a **chart series colour can no longer be a label
+colour**: the amber chip at 3.27:1 keeps its coloured border and takes ink for
+the word. Marks answer to a different rule (3:1, WCAG 1.4.11) and are left
+alone.
+
 Charts: hero navy + grey context (`--context`), direct end-labels via
 `chart-end-labels.tsx`, hairline grid, no legend boxes.
 

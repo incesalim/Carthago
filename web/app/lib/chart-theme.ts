@@ -54,7 +54,7 @@ export const LIGHT: ChartTheme = {
   mode: "light",
   palette: ["#2B4E7E", "#4E79B8", "#8FA8C8", "#B98514", "#7A5C8A", "#A0A7AE"],
   grid: "#ECEDE8",
-  axis: "#A0A7AE",
+  axis: "#6A6E73",       // = --faint: these are tick LABELS, i.e. text
   cursor: "rgba(43,78,126,0.06)",
   crosshair: "#C9CDC5",
   reference: "#A0A7AE",
@@ -64,7 +64,7 @@ export const LIGHT: ChartTheme = {
   hero: "#2B4E7E",
   context: "#C0C8D1",
   contextActive: "#454D57",
-  inkMuted: "#68707A",
+  inkMuted: "#50565E",   // = --muted-foreground
   negative: "#C24847",
   positive: "#187A53",
   warning: "#B98514",
@@ -74,7 +74,7 @@ export const DARK: ChartTheme = {
   mode: "dark",
   palette: ["#7FA3D8", "#9BB4D8", "#C1CEDE", "#D9A83F", "#B092C0", "#8B939C"],
   grid: "#1F252C",
-  axis: "#6B747E",
+  axis: "#838A93",       // = --faint (dark)
   cursor: "rgba(127,163,216,0.10)",
   crosshair: "#39424C",
   reference: "#6B747E",

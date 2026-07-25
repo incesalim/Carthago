@@ -60,6 +60,13 @@ jobs:
         # Fails once it has under 90 days of runway, so it cannot run out the way
         # the hand-typed schedules did. Also ages out the BBVA baseline.
         run: python scripts/check_calendar_fresh.py
+      - name: Contrast (text legibility)
+        # Every colour used as TEXT must clear WCAG AA 4.5:1 on every surface it
+        # sits on, in BOTH themes — and chart-theme.ts's tick-label colours must
+        # equal the text tokens they copy. `--faint` shipped at 2.43:1 under
+        # 8-10px type across 210 call sites; contrast is arithmetic nobody re-runs
+        # after nudging a hex by eye. Stdlib-only.
+        run: python scripts/check_contrast.py
       - name: Prose claims
         # A sentence asserting a direction, a level or a ranking must be computed
         # from the series it sits next to — or it lies the moment the data turns.
