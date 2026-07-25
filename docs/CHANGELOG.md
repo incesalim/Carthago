@@ -5,6 +5,35 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-07-19.
 
+2026-07-25 — **/about and /methodology — the rest of the trust layer.** With
+`/privacy`, that closes the 2026-07-12 evaluation's finding 4: a financial-data
+product with no public statement of what it is, who makes it, or how a figure is
+computed.
+
+`/methodology` is the one that earns its place. Sources and cadences; coverage and
+why Takasbank is carried but excluded from every peer statistic; **the basis
+problem** — that sector CAR, loan-to-deposit and the rest legitimately exist in
+several definitions, and the site names which one it used rather than picking a
+winner; the computation rules the code actually enforces (exact Fisher, not
+g−π; YTD de-cumulated before it is read as a quarter; TTM ROE over average equity;
+Σ/Σ over the same reporting population; growth paired by date so a source gap
+renders as a gap); what runs before anything publishes; and a plain list of what
+the site is not.
+
+Both pages **read their counts from the data**. `check_prose_claims.py` R3 fails a
+hardcoded universe count in rendered text — the universe has been 31, 37 and 38
+inside a year — so the coverage sentences restate themselves rather than rotting.
+One `prose-ok` suppression was added, for a static section heading that R2 reads as
+an assertion: there is no series on the page to compute it against, and the
+suppression prints on every run rather than hiding.
+
+Also measured while looking for a performance win, and worth writing down because
+it is a dead end: **the 101KB Recharts chunk loads on pages with no charts**,
+`/privacy` among them. Fixing that helps only the light pages; the heavy ones
+(`/banks/…`, `/cross-bank`, `/economy`) genuinely need the library, so the real
+LCP lever is deferring or replacing Recharts *there* — a decision about how charts
+appear, not a bundling tweak. Left open deliberately.
+
 2026-07-25 — **The heaviest page on the site was the only one not using the
 cache.** `db.ts` states the rule in its own docstring: *"Dashboard pages should
 keep using `cachedAll`: their query set is small, fixed, and repeated on every

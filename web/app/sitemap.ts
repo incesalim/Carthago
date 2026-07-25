@@ -65,8 +65,12 @@ const STATIC_ROUTES: {
   { path: "/economy/economic-growth", priority: 0.6, changeFrequency: "monthly" },
   { path: "/economy/balance-of-payments", priority: 0.6, changeFrequency: "monthly" },
   { path: "/pipeline", priority: 0.3, changeFrequency: "monthly" },
-  // Low priority, but listed on purpose: a privacy notice a reader cannot find
-  // is not a notice. Changes only when the code it describes changes.
+  // The trust layer. /methodology carries real substance (sources, bases, the
+  // computation rules) and is a legitimate landing page for someone checking
+  // whether the numbers can be trusted; /privacy is listed because a notice a
+  // reader cannot find is not a notice.
+  { path: "/about", priority: 0.5, changeFrequency: "monthly" },
+  { path: "/methodology", priority: 0.5, changeFrequency: "monthly" },
   { path: "/privacy", priority: 0.3, changeFrequency: "yearly" },
 ];
 

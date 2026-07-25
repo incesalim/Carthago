@@ -823,6 +823,14 @@ export function Colophon({ children }: { children?: React.ReactNode }) {
           the pages that forgot to override the default is not reachable. */}
       <span className="ml-1">
         ·{" "}
+        <Link href="/about" className="text-primary hover:underline">
+          About
+        </Link>{" "}
+        ·{" "}
+        <Link href="/methodology" className="text-primary hover:underline">
+          Methodology
+        </Link>{" "}
+        ·{" "}
         <Link href="/privacy" className="text-primary hover:underline">
           Privacy
         </Link>

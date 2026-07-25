@@ -312,6 +312,16 @@ latest-period** trigger, and **13 banks auto-discover** new quarters from their
 IR page (no hand-added URL needed) — see [ADMIN.md](ADMIN.md) §Auto-discovery.
 Setup in [OPERATIONS.md](OPERATIONS.md) / [ADMIN.md](ADMIN.md).
 
+**The trust layer is complete (2026-07-25):** `/about`, `/methodology`, `/privacy`,
+linked from the Colophon on every page and listed in the sitemap. `/methodology` is
+the substantive one — sources and their cadences, the coverage and the peer
+exclusion, the basis problem (one quantity, several legitimate definitions), the
+computation rules that actually govern the code (Fisher deflation, YTD
+de-cumulation, TTM ROE, Σ/Σ over the same population, date-paired growth), what runs
+before anything publishes, and what the site is not. **Every count on both pages is
+READ, never typed** — `check_prose_claims.py` R3 fails a hardcoded universe count in
+rendered text, so the pages restate themselves as coverage grows.
+
 **Every dashboard D1 read is cached (2026-07-25).** `audit.ts` — the module behind
 `/banks/[ticker]`, the heaviest page on the site — called `getDB()` directly in 12 of
 its 15 query functions, so a single view re-queried D1 for the balance sheet, P&L,
