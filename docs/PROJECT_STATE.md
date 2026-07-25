@@ -312,6 +312,19 @@ latest-period** trigger, and **13 banks auto-discover** new quarters from their
 IR page (no hand-added URL needed) — see [ADMIN.md](ADMIN.md) §Auto-discovery.
 Setup in [OPERATIONS.md](OPERATIONS.md) / [ADMIN.md](ADMIN.md).
 
+**Chart-library weight: measured, demonstrated, DEFERRED (2026-07-25).** A bank page
+ships 338 KB of compressed JS across 19 chunks, one 101 KB chunk of which is Recharts
+— the ~2.6s of main-thread work the 2026-07-12 evaluation measured, and the last of
+its findings still open. Every fix changes how a chart ARRIVES, so it is a design call:
+the four options are built and running at **`/lab/chart-loading`** (unlisted, noindex,
+not in nav/sitemap/Colophon) — server-rendered today, `ssr:false`, defer-until-in-view,
+and hand-rolled SVG, with a slow-motion toggle that makes the blank state visible.
+**Reviewed and deliberately not taken for now.** Do not re-propose it as a defect;
+re-open only if the decision changes. Delete `web/app/lab/` when it is no longer
+wanted. Two related measurements worth keeping: the 40 KB polyfills chunk ships
+`noModule` (modern browsers skip it — not waste), and the 101 KB chunk loads on
+chart-free pages too, which is real but only helps the light pages.
+
 **The trust layer is complete (2026-07-25):** `/about`, `/methodology`, `/privacy`,
 linked from the Colophon on every page and listed in the sitemap. `/methodology` is
 the substantive one — sources and their cadences, the coverage and the peer
