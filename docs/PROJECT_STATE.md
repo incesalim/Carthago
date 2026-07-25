@@ -1147,7 +1147,7 @@ each `/banks/[ticker]` page:
   60 s; hidden on failure / kill switch.
 - **Cash flow + equity-change extractors shipped; deep-fixed + fleet re-extracted (2026-06-13).**
   Two statement types: `bank_audit_cash_flow` (sort_order=38) and `bank_audit_equity_change`
-  (sort_order=36). Root-cause fixes (commits b8b1c51, 8a91444): equity locator now uses the
+  (sort_order=36). Root-cause fixes (commits 7322fb3, c62057b): equity locator now uses the
   wide-table fingerprint not the title anchor; CF pinned to 2 value columns (the P&L detector
   misread annual CF date-headers as 4 cols → 0 rows fleet-wide); TEB roman-restart mid-page
   split; DENIZ `--` zeros + EMLAK 15→14 col clamp. Whole fleet re-extracted sequentially,
@@ -1158,7 +1158,7 @@ each `/banks/[ticker]` page:
     blank column → dropped. A validated `_try_fit` fix (insert 0 at the gate-satisfying
     position when a row has n_cols−1 tokens) recovers most banks; GARAN-class consolidated
     (closing row undetected) is a separate deeper issue. Applying needs a fleet re-extract
-    (no fast equity-only path; 8a91444's dash/clamp is currently only on DENIZ/EMLAK data).
+    (no fast equity-only path; c62057b's dash/clamp is currently only on DENIZ/EMLAK data).
     Also: 136 CF `cf_chain` identity failures; FIBA 2023Q3 cons manual-P&L transcription
     typo left it unpushed (needs source re-check). **Re-extract lesson:** add
     `maxtasksperchild` (ProcessPool workers leaked memory → chunk 6 slowed 10×); never run

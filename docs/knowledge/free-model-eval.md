@@ -130,7 +130,7 @@ direction is chosen.
 # Machine report (second run, corrected validator)
 
 
-*Run 2026-07-04 18:40 UTC · commit `8b83c544` · 14 models × 4 Reads · temperature 0.4*
+*Run 2026-07-04 18:40 UTC · commit `9a72cc51` · 14 models × 4 Reads · temperature 0.4*
 
 > **No winner is declared here.** This is the raw evidence — outputs, performance, rate limits — so the choice can be made deliberately.
 

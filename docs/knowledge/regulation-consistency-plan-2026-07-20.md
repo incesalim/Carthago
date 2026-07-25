@@ -14,7 +14,7 @@ The variance investigation kept pointing at the LLM — temperature, provider,
 model choice. All of that was downstream of a data bug.
 
 **`body_text` for TCMB press releases scraped before 2026-05-29 has no tables.**
-Table extraction landed that day (`f875a47`), and the body backfill only fetches
+Table extraction landed that day (`a09caf9`), and the body backfill only fetches
 rows where `body_text IS NULL OR length(body_text) < 30`. A body that is *present
 but truncated* is never re-fetched, so every pre-fix row is frozen without its
 table. `sync_news.py --refresh-bodies` exists for exactly this ("Use after a

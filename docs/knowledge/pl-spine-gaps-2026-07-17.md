@@ -1,7 +1,7 @@
 # P&L roman-spine gaps: investigation
 
 **Date:** 2026-07-17
-**Status:** 🔍 INVESTIGATED. The live bug it surfaced is ✅ **FIXED** (`e72823f`,
+**Status:** 🔍 INVESTIGATED. The live bug it surfaced is ✅ **FIXED** (`0012179`,
 verified live). The gap fixes themselves (items 2–4 below) are **not applied**.
 **Follows:** [income-statement-errors-2026-07-16.md](income-statement-errors-2026-07-16.md)
 
@@ -84,7 +84,7 @@ Two notes:
   skips. The stored key is still wrong, though, and `pl_rehier` is the tool for
   it (it would need a `to_name`, which `bs_rehier` has and `pl_rehier` lacks).
 - **DUNYAK 2023Q4 `X` / TOMK 2023Q3 `X`** are missing *by design*:
-  `dedup_hierarchy_rows.py` (4cd7014) deleted them as junk placeholders
+  `dedup_hierarchy_rows.py` (5de3115) deleted them as junk placeholders
   ("…doldurulacaktır.)" parsed as a data row). True value nil. But note its
   docstring claims the recode "CLEARS the failure" — for DUNYAK 2023Q4 it
   converted a **fail into a skip**, which is not the same thing.
@@ -146,7 +146,7 @@ band is IX+X+XI; `XI.+XII.` picks up other-opex plus *net operating profit*:
 
 `opex` feeds **Cost/Income** and **PPOP/assets**.
 
-### ✅ FIXED 2026-07-17 (`e72823f`, live)
+### ✅ FIXED 2026-07-17 (`0012179`, live)
 
 A derived table **`bank_audit_pl_roles`** (migration 0029) now tags each P&L row
 with what it IS — `period_net`, `gross`, `opex_personnel`, `opex_other`, … —
@@ -172,7 +172,7 @@ banks may simply be outside it.
 
 ## Recommended work order
 
-1. ~~**`heatmap.ts` ordinal fix**~~ — ✅ done (`e72823f`, live).
+1. ~~**`heatmap.ts` ordinal fix**~~ — ✅ done (`0012179`, live).
 2. **`pl-sankey.ts` + `standard_lines.ts` (`PL_LINES`)** — the same hardcoded spec
    (`XII.` = Other Operating Expenses *contra*, `XIII.` = net operating profit), so
    for DUNYAK it would render net operating PROFIT as an expense. **Unaudited** —

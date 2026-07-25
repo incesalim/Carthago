@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-16
 **Status:** ✅ DONE — shipped and live in D1 (verified: 0 failing P&L partitions of 1050)
-**Commits:** `dd4eea9` (data overrides + positional P&L insert), `34ef3bc` (template-aware chain)
+**Commits:** `442fc41` (data overrides + positional P&L insert), `56fc12f` (template-aware chain)
 
 ## What was asked
 

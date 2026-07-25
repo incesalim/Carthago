@@ -924,78 +924,78 @@ and remains unstarted; the strategic review names distribution as the project's 
 live on `/cross-bank`; corrected to the operational-footprint copy the page actually renders.)
 
 2026-07-05 — **Public Telegram Q&A bot: text-to-SQL over D1, rebuilt as a self-correcting agent loop.**
-Shipped as a two-call pipeline (`bb3f44b`: question → SQL → rows → summary) and replaced the same day
-by `runAgent` (`b778ff9`), a loop of at most 6 query/refine rounds in which the model sees each
+Shipped as a two-call pipeline (`7b79755`: question → SQL → rows → summary) and replaced the same day
+by `runAgent` (`f98f203`), a loop of at most 6 query/refine rounds in which the model sees each
 result — or the SQL error, or `0 rows` — and self-corrects before answering. Runs inside the existing
 Worker; no new service. Migration **0020** adds `bot_usage` (per-chat + global daily caps).
 Every query passes `bot-sql.ts` (single `SELECT`/`WITH`, row-capped, writes/DDL/multi-statement
 rejected — 29 vitest cases), so a prompt-injected write is impossible.
 The hard problem was *ungrounded figures*, fixed in layers: a `gotData` guard rejects any answer
 stating a 4+ digit number or a `{placeholder}` before a query has returned rows and pushes the model
-back to querying (`8f7d92e`, `786b8d9`); grouped-number separators are stripped **before** that test
-so `43.520.620` still trips it (`cfc0941`, `970f792`); amounts are then re-grouped deterministically
+back to querying (`8aea015`, `6d0b346`); grouped-number separators are stripped **before** that test
+so `43.520.620` still trips it (`6fb49ba`, `7d0df6c`); amounts are then re-grouped deterministically
 by `groupThousands()` rather than by the model, with lookarounds that spare years, periods, decimals
-and Turkish decimal commas (`30853b0`, `22d5421`). Also: answer in the question's language
-(`cd0ead3`); never guess the reporting quarter — `SELECT` it (`520f9fc`); replies are plain prose,
-the SQL and raw table demoted to diagnostics (`1ade91b`, `1118fc8`, `45976b5`).
-Provider chain flipped to **Groq-first** (`064bcf8`) — same `gpt-oss-120b` model, far higher free-tier
+and Turkish decimal commas (`c45c7a8`, `ca1c218`). Also: answer in the question's language
+(`9615a1c`); never guess the reporting quarter — `SELECT` it (`32079f1`); replies are plain prose,
+the SQL and raw table demoted to diagnostics (`7a9296e`, `6b28fdd`, `5c3c27d`).
+Provider chain flipped to **Groq-first** (`bc6e6a9`) — same `gpt-oss-120b` model, far higher free-tier
 rate limit, which matters because the loop makes several calls per question; this intentionally
 diverges from the Cerebras-first Python reads lane. Schema-prompt corrections along the way: SQLite
-has no `ILIKE` (`433911d`); net profit anchors on the (XIX+XXIV) formula, not fragile text
-(`139d332`); per-bank loans come from `bank_audit_stages.total_amount` (`4e4c2bd`); deposits live on
-the liabilities side (`925c81a`); grand totals via `MAX(amount_total)`, not label matching (`725b3ad`).
-Webhook can self-register from `/admin` (`eb6f97a`); the CLI prompts for token/secret on hidden input
-(`10a4888`). Setup + architecture: `docs/TELEGRAM_BOT.md`.
+has no `ILIKE` (`36bd208`); net profit anchors on the (XIX+XXIV) formula, not fragile text
+(`6414343`); per-bank loans come from `bank_audit_stages.total_amount` (`abab75f`); deposits live on
+the liabilities side (`41e676d`); grand totals via `MAX(amount_total)`, not label matching (`c483b92`).
+Webhook can self-register from `/admin` (`13b1016`); the CLI prompts for token/secret on hidden input
+(`2211978`). Setup + architecture: `docs/TELEGRAM_BOT.md`.
 
 2026-07-05 — **"The Read": LLM-rewritten headline per dashboard tab.**
 New weekly lane (`generate-reads.yml`, Sun 07:30 UTC) → `read_headlines` → D1. Live on the Overview
-first (`f2e0e5f`), then all 8 tabs (`4353bff`). Free providers only, no paid API. Hardening: retry the
-*same* provider on a 429 before failing over, so the primary stays primary (`eff15d0`); per-family
-pacing to respect Cerebras' ~5 req/min (`820c1b9`); a magnitude-matching number validator so a
-sign-flip isn't scored as an invented figure (`49a5815`); fall back to the prod URL when `SITE_URL`
-is the empty string, not merely unset (`128324a`); Telegram notification per run (`359aaa0`).
-The gemma tier was dropped once both providers served the same `gpt-oss-120b` (`34aa3de`); the chain
+first (`b6c3ce3`), then all 8 tabs (`b8c313a`). Free providers only, no paid API. Hardening: retry the
+*same* provider on a 429 before failing over, so the primary stays primary (`6fd8e0c`); per-family
+pacing to respect Cerebras' ~5 req/min (`05667fb`); a magnitude-matching number validator so a
+sign-flip isn't scored as an invented figure (`83f158e`); fall back to the prod URL when `SITE_URL`
+is the empty string, not merely unset (`9db7f7c`); Telegram notification per run (`5e2479b`).
+The gemma tier was dropped once both providers served the same `gpt-oss-120b` (`c5c221c`); the chain
 now falls back to a deterministic template rather than a weaker model. Provider selection was decided
 by a throwaway bake-off, kept as `docs/knowledge/free-model-eval*.md` and then deleted from the tree
-(`c19b7c0` … `515e525`); Gemini was dropped for refusing to serve within a free cap (`44b1b1b`).
+(`d4e456a` … `ebcdd78`); Gemini was dropped for refusing to serve within a free cap (`11daf7b`).
 
 2026-07-05 — **Presentation deck generator + banks dimension + schema-naming CI gate.**
-(a) One-command sector deck: reads → HTML → PDF (`90f717e`), an `/admin` "Generate presentation"
-button and deck route (`95fb7b2`), then a designed layout with KPI vitals and per-section trend
-charts (`3b42045`). Source of truth is `/api/presentation`, which reuses `metrics.ts` — so the deck
+(a) One-command sector deck: reads → HTML → PDF (`27b2396`), an `/admin` "Generate presentation"
+button and deck route (`8bd3069`), then a designed layout with KPI vitals and per-section trend
+charts (`f63a701`). Source of truth is `/api/presentation`, which reuses `metrics.ts` — so the deck
 cannot drift from the dashboard.
-(b) Migration **0021** adds a `banks` dimension table + cross-lane alias views (`496789c`).
-(c) New CI gate `scripts/check_schema_naming.py` + `docs/SCHEMA_CONVENTIONS.md` (`ba47e0f`): migrations
+(b) Migration **0021** adds a `banks` dimension table + cross-lane alias views (`f2a93cb`).
+(c) New CI gate `scripts/check_schema_naming.py` + `docs/SCHEMA_CONVENTIONS.md` (`8edcc7c`): migrations
 **≥ 0022** must use `bank_ticker` / `amount_fc` / snake_case / no reserved words / unique number.
 Existing tables are grandfathered, so it currently enforces on zero files and emits drift notes only.
-Also `69c5513`: register `generate-reads.yml` in the pipeline graph, which its own CI guard demanded.
+Also `e073815`: register `generate-reads.yml` in the pipeline graph, which its own CI guard demanded.
 
 2026-07-05 — **Cloudflare Web Analytics — beacon injected manually, because the edge won't.**
-Wired the analytics tags for the `/admin` traffic panel (`acc7ea9`), then found RUM stuck at 0: the
+Wired the analytics tags for the `/admin` traffic panel (`01fe505`), then found RUM stuck at 0: the
 beacon was absent from the live HTML because Cloudflare's *automatic* edge injection does not fire on
 the OpenNext Worker response. Fixed by rendering the snippet ourselves in
-`web/app/components/Beacon.tsx` (`f420f41`). The token is the non-secret `CF_ANALYTICS_SITE_TAG`,
+`web/app/components/Beacon.tsx` (`e7222a1`). The token is the non-secret `CF_ANALYTICS_SITE_TAG`,
 now **dual-purpose**: the client beacon's token and the key the traffic panel queries against. It
 renders nothing when unset, so `next dev` never pollutes production analytics.
-Also `0f1acd9`: real per-bank brand logos on `/banks` (static PNGs + `fetch_bank_logos.py`).
+Also `5b348de`: real per-bank brand logos on `/banks` (static PNGs + `fetch_bank_logos.py`).
 
 2026-07-04 — **Audit / financials: five dropped P&L lines recovered, cash-flow signs normalized, P&L flow now reconciles exactly.**
-`9782a48` recovers 5 dropped/misread P&L lines, after which the whole fleet reconciles. The P&L flow
-Sankey now **requires exact reconciliation** and treats deductions sign-aware (`ac7fb4e`), with
-consistent signed negatives for deduction lines (`1389d4d`); cash-flow outflow lines are
-sign-normalized fleet-wide (`032ee0e`). Two rendering defects behind the same surface: VAKBN's P&L
-flow was blank because its hierarchy prints a **dotless** roman VI (`ad8ad2a`), and the `1.1.3 Money
-Market Placements` row was missing entirely (`d3c8652`).
+`56a296d` recovers 5 dropped/misread P&L lines, after which the whole fleet reconciles. The P&L flow
+Sankey now **requires exact reconciliation** and treats deductions sign-aware (`dd218b7`), with
+consistent signed negatives for deduction lines (`cbeb39c`); cash-flow outflow lines are
+sign-normalized fleet-wide (`05dd1d9`). Two rendering defects behind the same surface: VAKBN's P&L
+flow was blank because its hierarchy prints a **dotless** roman VI (`5788b90`), and the `1.1.3 Money
+Market Placements` row was missing entirely (`e9baaed`).
 
 2026-07-04 — **Liquidity: IMF-template reserve lines + six more BBVA charts.**
 Net-reserves-excluding-swaps was computed off the wrong swap series; switched to the IMF-template
-forward/swap position (`813561d`) and added it as a third reserve line (`2869713`). Six further charts
-from the BBVA liquidity section rendered (`09cc469`), taking that section to 13 of 17 reproducible.
+forward/swap position (`7e9b55c`) and added it as a third reserve line (`6045c67`). Six further charts
+from the BBVA liquidity section rendered (`6f04bf2`), taking that section to 13 of 17 reproducible.
 
 2026-07-04 — **`/sector/ratios` retired; Overview Snapshot and Ratios merged into one switchable scorecard.**
 The standalone ratios page's only distinct value was the bank-**type** filter (a dashboard-audit
-"clarify_purpose" item), so it folded into the Overview (`1cbd1dd`, `b9a739c`) and now redirects.
-This removed a public route — noted here because nothing else records it. Also `389f393`: fill the
+"clarify_purpose" item), so it folded into the Overview (`869d5b8`, `550daae`) and now redirects.
+This removed a public route — noted here because nothing else records it. Also `d5b99bc`: fill the
 last "The Read" grid row so no blank cell shows.
 
 2026-07-03 — **`ensure_d1_schema` is now column-aware — D1 can no longer drift behind the snapshot schema.**
@@ -1465,7 +1465,7 @@ primary sections for ~all banks, and fitz **recovers data pdfplumber couldn't** 
 **TFKB's tables** I'd wrongly called "image-only" (loans_ecl garbage `1475` → correct `501475`), so TFKB will
 extract on re-extract, not stay flagged. Divergences are confined to a secondary section (`loans_ecl_brsa`)
 and genuinely hard multi-table layouts (ALBRK/QNBFB), where neither engine is clearly right — not regressions.
-Also fixed **CI red since 3e6f3a8**: the `stage_columns_are_brsa_groups` guard test imports `credit_quality`
+Also fixed **CI red since 1e099c3**: the `stage_columns_are_brsa_groups` guard test imports `credit_quality`
 (PDF engine, absent from CI's minimal deps); added `pytest.importorskip("pdfplumber"/"fitz")` per the existing
 pattern. Code stored unchanged until a re-extract. 170 tests pass.
 
@@ -1661,7 +1661,7 @@ empties are genuine. The Q4 fail bug (e.g. FIBA 2025Q4): an all-nil sub-sector r
 ("Balıkçılık -- -- --") has no DIGITS, so `_merge_wrapped_labels` treated it as a label-head and
 merged it with the next line ("Sanayi 787.928…" = the manufacturing TOTAL), giving fishery the
 wrong sector's value → Σ ≠ total → fail (and wrong data). Fixes: don't merge a line that already
-matches the 3-value pattern; accept `--` runs as nil; scan+parse with fitz (commit `bda5c2a`).
+matches the 3-value pattern; accept `--` runs as nil; scan+parse with fitz (commit `5f49eee`).
 Shipped the 4 Q4 quarters (interim has no table to re-extract): each now ~33–35/58. 99 → **135**
 pass, no pass→fail regressions. Remaining Q4 fails (~5/quarter) are per-bank layout/disclosure.
 `loans_by_sector` wired into `reextract_statement.py` (5th lane).
@@ -1677,7 +1677,7 @@ but many banks simply OMIT a genuinely-zero row (KUVEYT has no write-offs) — n
 columns as 0 and PASSES only when the roll-forward TIES (a missed NON-zero column won't tie → stays
 SKIP; never a false pass/fail). Two-quarter D1: 2025Q4 17→32, 2026Q1 11→32; no pass→fail regressions
 (one skip→fail, DENIZ, is a real non-reconciling roll-forward surfaced). npl_movement wired into
-`reextract_statement.py`; commits `ac439fd`/`3f56200`. **Also moved the lane to FITZ** — it had been
+`reextract_statement.py`; commits `3d23513`/`ef30db3`. **Also moved the lane to FITZ** — it had been
 scanning every page with pdfplumber's `extract_text` (~17× slower; an all-periods run was ~80 min and
 risked the 120-min timeout). Now scans+parses with fitz like the statement locators (verified
 strictly ≥ pdfplumber across 23 local PDFs — even recovers ISCTR/TFKB rows pdfplumber drops); an
@@ -1698,11 +1698,11 @@ dropped-sub-row banks (FIBA/KUVEYT/SKBNK/TEB) AND **AKBNK recovered from empty**
 (`oci.py`) drops its pdfplumber candidates (keeps the validation-guided n-template select;
 pdfplumber only as a no-fitz fallback) and the CF block (`extractor.py`) parses with fitz,
 falling back to the both-engines parser only if fitz yields 0 rows. `reextract_statement.py`
-gains a `cash_flow` lane (commit `c83eaaa`). **Re-extracted ALL periods fleet-wide
+gains a `cash_flow` lane (commit `9884b40`). **Re-extracted ALL periods fleet-wide
 (2022Q1→2026Q1): OCI 62 → 881 / 975 pass; cash flow 802 → 813 / 975.** OCI's jump is because
 ~94% were broken across all years (same n_cols bug); CF moved little — already healthy, the +11
 is recovered stale empties, its 135 fails are the dropped-sub-row tail. Also fixed `--only-failing`
-(commit `3d028b0`): now means NOT-passing (`checks_failed>0 OR checks_passed=0`) so it catches the
+(commit `5b51d96`): now means NOT-passing (`checks_failed>0 OR checks_passed=0`) so it catches the
 stale empties (was failed-only, which skipped them) → a fleet re-extract downloads only the bad
 partitions (CF: 173 not 975); workflow defaults it true. Remaining tail — OCI 78 / CF 135 fails +
 ~16/27 empties — is the dropped-sub-row issue (ALBRK OCI 2.2.2 / the CF banks' 2.2 — shared
@@ -1723,7 +1723,7 @@ swap is isolated to the OCI block (BS/P&L/equity/CF byte-unchanged). `reextract_
 gains an `oci` lane; new `.github/workflows/reextract-statement.yml` (workflow_dispatch)
 ships it (statement=oci, periods=2026Q1, only_failing OFF — empties are
 `checks_failed=0`/skipped, so `--only-failing` would miss them; the non-destructive
-guard still skips passing). Commits `cf5c4e7`, `8f320ce`. **Shipped to D1+R2 (run
+guard still skips passing). Commits `c87afec`, `a7199c4`. **Shipped to D1+R2 (run
 27500669011): 55 OCI partitions → 52 pass, was ~1.** Tail of 3: ALBRK cons+uncons
 (chain validates but drops the wrapped sub-row 2.2.2 → hierarchy sub-tree short) and
 TSKB uncons (P&L page is image-only → `pl=None` → no OCI page → empty; genuine
@@ -1757,7 +1757,7 @@ the reconstruction whose **column chain VALIDATES** among pdfplumber + 2 fitz en
 (validation-guided, not max-rows), with a both-template (14/16) retry gated to failing
 pages. (3) `n_cols` detected from pdfplumber text (fitz over-counts → AKBNK/BURGAN uncons
 1→17 rows). (4) mid-page split closing must follow the table body (fixed VAKBN current↔prior
-flip). Commits `753d885`, `e0d301e`, `ec7f073`. **Self-validating loop:**
+flip). Commits `4177a52`, `6f6c37c`, `5f85616`. **Self-validating loop:**
 `reextract_statement.py` validates each partition INLINE (factored `revalidate_partition`),
 prints live `[vFAIL]`, pushes `bank_audit_validation`; new `--only-failing` re-extracts ONLY
 the failing set → edit→measure dropped ~10 min → ~2 min. **2025/26 equity: 206/285 clean
@@ -1777,7 +1777,7 @@ gated on a fragile title anchor** → missed ODEA (image-only title) / Ziraat
 ≥10 tokens); (2) **cash flow used the P&L column detector** → misread annual CF
 date-headers as 4 cols → 0 CF rows fleet-wide — now pinned to 2 cols; (3) mid-page
 split missed TEB (no closing row) — added roman-restart split; (4) DENIZ `--`
-double-dash zeros + EMLAK 15→16 col mis-clamp (commits b8b1c51, 8a91444). Whole
+double-dash zeros + EMLAK 15→16 col mis-clamp (commits 7322fb3, c62057b). Whole
 fleet (31 banks, 975 PDFs) re-extracted **sequentially** (never concurrent — that
 races the R2 snapshot), 11 manual image-only partitions restored + 25 overrides
 re-applied, revalidated, pushed, snapshot uploaded. Result: **CF 0 contamination

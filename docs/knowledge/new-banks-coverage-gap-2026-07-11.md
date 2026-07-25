@@ -240,7 +240,7 @@ Core-statement success (`bank_audit_extractions.success` = assets+liabilities+P&
 | HAYATK | 18 | 17 | 1 partition partial |
 | DUNYAK | 17 | 9 | **8 partitions: P&L under-parses** |
 
-**DUNYAK P&L — FIXED 2026-07-11** (`extractor.py`, commit e2f6140). Root cause: those
+**DUNYAK P&L — FIXED 2026-07-11** (`extractor.py`, commit 87b5c1d). Root cause: those
 Dünya reports print a **single-column** P&L (current period only, no prior comparative).
 `_detect_pl_ncols` couldn't represent 1 column (it assumes ≥2, and `NUM_PAT` counts the
 hierarchy marker "1.1" as a value, inflating every single-value row to 2), so it fell

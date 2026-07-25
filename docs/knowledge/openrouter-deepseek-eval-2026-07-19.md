@@ -320,7 +320,7 @@ Which is the same reasoning that keeps the extraction spine on deterministic
 Every run logged `WARNING: no baseline — run scripts/ingest_policy_baseline.py`,
 including the **live weekly runs** of 2026-07-05, -07-12 and -07-19. The
 `regulation_baseline` table is empty in the R2 snapshot, so the grounding
-scaffold that commit f04778b introduced — the TCMB annual *Monetary Policy for
+scaffold that commit 5e8a2b3 introduced — the TCMB annual *Monetary Policy for
 YYYY* regime the per-category prompts are supposed to build on — has not been in
 the context for at least three weeks. The A/B above is still fair (all three
 providers saw the same degraded context), but the production briefing is running

@@ -38,7 +38,7 @@ Live in D1 as of `generated_at 2026-07-19T19:31:17Z`.
 ### What actually went wrong (keep this)
 
 **Status when found:** live degradation since **2026-05-29** — the day the
-feature landed (f04778b). Not a regression: the baseline was **never once**
+feature landed (5e8a2b3). Not a regression: the baseline was **never once**
 populated in production. Verified across every run from 2026-05-29 to
 2026-07-19, all logging:
 
@@ -93,7 +93,7 @@ flat **85 / 85 / 85%**.
 
 **Status:** fixed 2026-07-20 (TCMB); BDDK refreshed the same day.
 
-`fetch_body` gained table extraction on 2026-05-29 (`f875a47`), but
+`fetch_body` gained table extraction on 2026-05-29 (`a09caf9`), but
 `_backfill_bodies` only selects rows that are `NULL` or under 30 chars — a body
 that is **present but truncated is never re-fetched**. Every TCMB item scraped
 before that date kept a table-less body, so `ANO2026-21` held 342 chars ending at

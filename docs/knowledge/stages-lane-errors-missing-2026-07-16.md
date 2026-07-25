@@ -9,7 +9,7 @@
 (1021 ok · 7 error · 14 missing · 8 N/A). Diagnosis got as far as ground truth
 per partition; **a concurrent session was found actively editing
 `src/audit_reports/credit_quality.py`** (mtime 16 s before inspection, plus new
-commit `5749ce2`) on the *same* problem, so no code was written here — see
+commit `fa84df7`) on the *same* problem, so no code was written here — see
 *Handover* at the bottom. This is the evidence that session needs.
 
 ## Bottom line

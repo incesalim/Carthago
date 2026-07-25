@@ -140,7 +140,7 @@ FIBA 2025Q4 + 2026Q1 (XII deferred tax), ATBANK 2022Q2 (16.7 minority interest).
 
 ## State when paused (2026-06-11 — since resolved)
 - **68 → ~16 failing partitions fixed in CODE** (committed to master, HEAD has
-  11 identity-gated extractor fixes + regression fixes f3fcc74).
+  11 identity-gated extractor fixes + regression fixes 23a8f3b).
 - **Production D1 NOT yet updated** — still has the pre-existing ~51 corrupted
   rows + 68 failing partitions. NOTHING corrupted; just not yet pushed.
 - A clean evidence dry-run was mid-extraction (~150/500 PDFs) into

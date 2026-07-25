@@ -68,7 +68,7 @@ so the deterministic template is the right ultimate fallback.)*
 # Machine report (reliability gauntlet)
 
 
-*Run 2026-07-04 19:09 UTC · commit `d0d2eec8` · Groq + Cerebras · 7 models × 11 Reads × 3 repeats · temperature 0.0*
+*Run 2026-07-04 19:09 UTC · commit `06ee38c1` · Groq + Cerebras · 7 models × 11 Reads × 3 repeats · temperature 0.0*
 
 Gemini is excluded (not free for us). This round measures the **downside**: how often each model breaks the number-lock or the format, and how stable it is when called repeatedly at the temperature we'd ship.
 

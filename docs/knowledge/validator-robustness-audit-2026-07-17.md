@@ -4,7 +4,7 @@
 **Status:** TIERS 1 AND 2 SHIPPED (same day). Every detection recommendation in §6 that earned a
 measured zero false-positive rate is live — see "What shipped". **Tier 3 (the actual data
 repairs) is OPEN**. The P&L deduction sign — which §3 called MIXED and I twice called
-"undetectable" — is FIXED (`95632b1`); see "The sign claim was wrong" below.
+"undetectable" — is FIXED (`2f49a32`); see "The sign claim was wrong" below.
 **Scope:** every validator behind the `/admin` coverage matrix: `src/audit_reports/validator.py`,
 `scripts/check_audit_quality.py`, `scripts/sync_audit_expected.py::_cell_status`,
 `src/audit_reports/registry.py`.
@@ -132,7 +132,7 @@ which proves the drift is real and unreported.
 | assets / liabilities | STRONG | STRONG | V1 181,807 comparisons, ~0% skip; V2 constrains 88.4% of rows; 99%+ detection on 8/14 classes |
 | cross (V4) | — | **WEAK** | Real data ties at **exactly 0.00% on 1050/1050**; the 0.5% band tolerates median ₺1.11bn, max ₺48.2bn. Infinitely too loose. **Reaches no matrix cell** (`cross` maps to no lane) |
 | off_balance | STRONG | **WEAK at top of tree** | V3 never runs (0/1050); V6 skips 15.5% and is blind to its own target |
-| profit_loss | STRONG (94.4% run all 6 identities) | MIXED → improved | roman corruption 99% caught; ~~deduction sign free in 91%~~ **FIXED, now 100% (`95632b1`)**; tax sign flip 0/297 but **inert** (its only consumer abs()es it); same-band swap 0/299; 60.5% of rows unchecked |
+| profit_loss | STRONG (94.4% run all 6 identities) | MIXED → improved | roman corruption 99% caught; ~~deduction sign free in 91%~~ **FIXED, now 100% (`2f49a32`)**; tax sign flip 0/297 but **inert** (its only consumer abs()es it); same-band swap 0/299; 60.5% of rows unchecked |
 | oci | STRONG (10 of 11 errors real) | ADEQUATE | **hardcoded `.get(25)`** disables the only cross-check on 6 DUNYAK partitions |
 | cash_flow | — | **WEAK** | only 16.0% of 45,714 rows touched; drop/leaf-shift 0/300 |
 | equity_change | **STRONG — ~100 of 104 errors are real** | **WEAK on components** | reads only `total_equity` and the *sum*; every sum-preserving component error **0/296** |
@@ -290,7 +290,7 @@ value); P&L sum-surviving (detection 4% → 60% but 3 FPs whose amounts are CORR
 is_modified` (0 violations AND circular — is_modified is perfectly collinear with opinion_type);
 bare `branches_total IS NOT NULL` (48% FP — 36 of 75 nulls are branchless digital banks).
 
-## The sign claim was wrong (`95632b1`)
+## The sign claim was wrong (`2f49a32`)
 
 This report said the P&L deduction sign was free in 91% of identities, and I twice concluded from
 that it was **"not cleanly fixable — the corpus genuinely mixes conventions within single
@@ -357,7 +357,7 @@ false-positive rate of zero:
 7. **`net_off_balance = off_bs_receivable − off_bs_payable`** — holds 2,106/2,192 (96.1%); puts the
    two unchecked fx columns under a real check.
 8. **`check_oci`: replace `.get(25)`** with the resolved `_pl_template(...)["period_net"]` — 6 skips
-   become 6 passes. Same class as the heatmap.ts bug fixed in e72823f.
+   become 6 passes. Same class as the heatmap.ts bug fixed in 0012179.
 9. **Free-provision recall: widen the `basis_text` LIKE** beyond "free provision"/"serbest kar" to
    "general reserve"/"general provision". The extractor already handles the synonym (SKBNK
    2022Q1–Q3); only the check's LIKE doesn't.

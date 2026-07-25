@@ -1,6 +1,6 @@
 # /regulation v4 — "What changed": the changelog, and the model that gets checked
 
-**Date:** 2026-07-13 · **Status: SHIPPED 2026-07-13** (`7c1b329`) as the v5 (buildable) composition ·
+**Date:** 2026-07-13 · **Status: SHIPPED 2026-07-13** (`4d41609`) as the v5 (buildable) composition ·
 > **Why:** v4's artefact argued its own design *inside the page* — a block headed *“The model got
 > this wrong, and the citation caught it”*, and a paragraph explaining that *“a model you can check
 > is worth more than a parser that sees nothing.”* **None of that would ship.** In the built page a
@@ -129,7 +129,7 @@ cross-check is a comparison between two things the page already holds.
 
 ## Shipped
 
-`7c1b329`, live at https://carthago.app/regulation. Verified in the browser, not by a 200.
+`4d41609`, live at https://carthago.app/regulation. Verified in the browser, not by a 200.
 
 **Built:** `parseGrowthCaps` / `deriveGrowthCaps` / `buildChangelog` / `reserveRatioSeries` in
 `app/lib/regulation.ts`; `ReserveRatio.tsx`; `page.tsx` rebuilt to the v5 composition. 205 tests.

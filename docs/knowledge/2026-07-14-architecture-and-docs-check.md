@@ -5,8 +5,8 @@ Read-only audit of `docs/ARCHITECTURE.md`, `docs/PROJECT_STATE.md`,
 [architecture-review-2026-07.md](architecture-review-2026-07.md) (2026-07-02),
 each **verified against the code** rather than against each other.
 
-> **Status: ACTED ON 2026-07-14** — findings §1–§4 fixed in commits `bf00951`,
-> `0772f40`, `dd02000`, `da24ef4` and the docs pass that follows. The report below
+> **Status: ACTED ON 2026-07-14** — findings §1–§4 fixed in commits `233d162`,
+> `3e96d89`, `659af73`, `183c88b` and the docs pass that follows. The report below
 > is preserved **as written**, so the diagnosis can be judged against what was
 > actually found. Read it with the correction and the leftovers noted here:
 >
@@ -22,7 +22,7 @@ each **verified against the code** rather than against each other.
 >   core-success / 38 banks — so PROJECT_STATE's "1,050" was right and the "974"
 >   mentions were the stale ones, not the reverse. Corrected in the docs.
 > - **§1.2 undercounted the dead links: there were two, not one.** `/weekly`
->   (route retired in `fd0400b`) 404'd alongside `/franchise`.
+>   (route retired in `4350f18`) 404'd alongside `/franchise`.
 > - **Still open** (all pre-existing, none new): the `push_to_d1` declarative
 >   registry (§5 item 8), and the §3 backlog inherited from the 07-02 review —
 >   dead code in `extractor.py`, pdfplumber in `profiler.py` + `faaliyet`,
@@ -190,7 +190,7 @@ Re-verified all 10 items: **2 fixed, 8 still open, and one of its findings was
 already false when written.**
 
 - ✅ **FIXED** — the Sankey light-mode palette bug. `PlSankeyChart.tsx` no longer
-  exists (deleted in `896d4f5`); the flow chart is now `IncomeShape.tsx`, and
+  exists (deleted in `3a58aa9`); the flow chart is now `IncomeShape.tsx`, and
   `ChartTheme` exposes an explicit `mode` (`chart-theme.ts:19`) which every chart uses.
 - ✅ **FIXED** — stray `.next/` at repo root.
 - ❌ **FALSE WHEN WRITTEN** — "`app/sector/page.tsx` inline SQL". That file is a

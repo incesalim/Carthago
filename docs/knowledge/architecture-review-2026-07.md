@@ -1,7 +1,7 @@
 # Architecture & live-page review — 2026-07-02
 
 A dated snapshot: the live dashboard and the end-to-end architecture (web/ +
-Python pipeline) checked after the Editorial theme ship (#88, a645b8c).
+Python pipeline) checked after the Editorial theme ship (#88, 5824825).
 
 > **Scope: report only. No code was changed.** These are verified findings and
 > a ranked backlog to decide on, not edits made. The two "urgent" items below

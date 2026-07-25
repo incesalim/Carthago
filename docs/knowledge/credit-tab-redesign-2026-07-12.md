@@ -1,6 +1,6 @@
 # /credit redesign — rationale + mockup
 
-**Date:** 2026-07-12 · **Status:** SHIPPED (`7ffa75a`)
+**Date:** 2026-07-12 · **Status:** SHIPPED (`db95090`)
 **Artefact:** `2026-07-12-credit-tab.html` (local archive) (+ desktop/mobile PNGs)
 **Code:** `web/app/lib/credit.ts` (+ tests), `web/app/credit/{page,Bridge,Attribution}.tsx`
 **System:** The Desk ([web/DESIGN.md](../../web/DESIGN.md)) — this is a re-*think*, not a re-skin.
@@ -91,7 +91,7 @@ Same carry-over contract as every Desk conversion: **nothing analytical is delet
   the existing `fxAdjustedYoY`, and the single biggest modelling assumption in the bridge.
 - Auto (₺42.7bn) is ~0.2% of the book. It earns a flag, not a chart.
 
-## As built (2026-07-12, `7ffa75a`)
+## As built (2026-07-12, `db95090`)
 
 Bridge + Attribution are new route-local components; the vitals and every Depth chart
 reuse existing wiring (`weeklySeries`, `weeklyGrowth`, `nominalVsReal`, `creditInsights`).
@@ -117,7 +117,7 @@ negative 10 consecutive weeks.
   under the bridge instead of being buried in a helper.
 - Nothing else. `<Flags showCleared>` (printing the rules that did *not* fire, with what
   each test measured) was briefly deferred while the component change was still
-  uncommitted in a concurrent session; it landed in `d4de0e6` and /credit now uses it.
+  uncommitted in a concurrent session; it landed in `14c656c` and /credit now uses it.
 
 Related: [[project_desk_redesign]] (briefs for other pages was the named remainder),
 [[reference_design_system]], [[feedback_rationale_before_narrative]].
