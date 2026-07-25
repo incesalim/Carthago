@@ -179,3 +179,7 @@ of use. Redistribution of that data, including through the public
 [`/api/v1`](docs/API.md) endpoints, remains subject to those terms
 regardless of anything stated here. Third-party reports under
 `data/external_reports/` are deliberately not redistributed.
+
+What each source actually permits — and what changes if this is ever
+monetised — is recorded in
+[`docs/knowledge/data-source-terms-audit-2026-07-25.md`](docs/knowledge/data-source-terms-audit-2026-07-25.md).
