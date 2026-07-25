@@ -312,6 +312,20 @@ latest-period** trigger, and **13 banks auto-discover** new quarters from their
 IR page (no hand-added URL needed) — see [ADMIN.md](ADMIN.md) §Auto-discovery.
 Setup in [OPERATIONS.md](OPERATIONS.md) / [ADMIN.md](ADMIN.md).
 
+**Every dashboard D1 read is cached (2026-07-25).** `audit.ts` — the module behind
+`/banks/[ticker]`, the heaviest page on the site — called `getDB()` directly in 12 of
+its 15 query functions, so a single view re-queried D1 for the balance sheet, P&L,
+multi-period pivots, cash flow, profile and stages *per visitor* while every other
+page read from KV. All fifteen now use `cachedAll`. Bounded key space (ticker × kind ×
+the periods a reader opens) is what makes that correct and not merely faster — the
+unbounded twin is the public API, which is why `allDirect` exists. Freshness follows
+the site-wide 1h window; after a re-extraction `/banks/…` lags up to an hour unless
+the KV purge in OPERATIONS is run. **Measured, and correcting two inherited
+assumptions:** the 40KB polyfills chunk ships `noModule` so modern browsers skip it
+(not waste), and the ~2.6s main-thread cost on a bank page is **JS, not server time** —
+338KB compressed across 19 chunks, of which one 101KB chunk is Recharts. That, not
+caching, is the remaining LCP lever.
+
 **Text legibility is a CI gate (2026-07-25).** `scripts/check_contrast.py` computes
 every `text-*` token against every surface it sits on — sheet, ground and the muted
 row fill — in both themes, and fails under WCAG AA 4.5:1. It also fails on a colour

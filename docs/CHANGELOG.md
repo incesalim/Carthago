@@ -5,6 +5,34 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-07-19.
 
+2026-07-25 — **The heaviest page on the site was the only one not using the
+cache.** `db.ts` states the rule in its own docstring: *"Dashboard pages should
+keep using `cachedAll`: their query set is small, fixed, and repeated on every
+page view."* `audit.ts` — which powers `/banks/[ticker]` — called `getDB()`
+directly in **12 of its 15** query functions. A single bank-page view therefore
+re-queried D1 for the balance sheet, the P&L, both multi-period pivots, the cash
+flow, the line names, the profile, the stages and the extraction log, per
+visitor, while every other page on the site read from KV.
+
+All fifteen now go through `cachedAll`. The key space is what makes this correct
+rather than merely faster: ticker (38) × kind (2) × the periods a reader actually
+opens — bounded, which is precisely the distinction `allDirect` exists to draw
+for the public API's unbounded one.
+
+Measured before the change: TTFB 0.65–0.95s across `/`, `/banks/AKBNK`,
+`/cross-bank` and `/economy`.
+
+Two things the measurement corrected, both worth recording because they were
+assumptions inherited from the 2026-07-12 evaluation rather than facts:
+
+- **The 40KB polyfills chunk is not waste.** It ships with `noModule`, so every
+  modern browser skips it. The report implied otherwise; the HTML says no.
+- **JS, not server time, is what costs 2.6s on a bank page.** 338KB compressed
+  across 19 chunks, of which a single **101KB chunk is Recharts**. Caching D1
+  improves TTFB, and TTFB was never the 4.1s LCP. The chart-library weight is the
+  real lever and is untouched here — deferring or replacing Recharts is a
+  separate piece of work, not a token change.
+
 2026-07-25 — **The quietest text on the site was 2.43:1.** WCAG AA asks 4.5:1
 for normal text. `--faint` sat at **2.43:1** on the white sheet — and it carries
 8–10px type across **210 call sites**: captions, record lines, chart axis ticks,

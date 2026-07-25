@@ -3,8 +3,24 @@
  *
  * Reads from bank_audit_balance_sheet / bank_audit_profit_loss /
  * bank_audit_extractions tables. Filter by (bank_ticker, period, kind).
+ *
+ * EVERY read here goes through `cachedAll` (2026-07-25). Twelve of the fifteen
+ * used to call `getDB()` directly, so a `/banks/[ticker]` view re-queried D1 for
+ * the balance sheet, the P&L, the multi-period pivots, the cash flow, the
+ * profile and the stages on EVERY request — the heaviest page on the site
+ * paying full D1 cost per visitor while every other page read from KV. `db.ts`
+ * already stated the rule ("Dashboard pages should keep using `cachedAll`: their
+ * query set is small, fixed, and repeated on every page view"); this module was
+ * the exception nobody had noticed.
+ *
+ * The key space is bounded, which is what makes caching correct here rather than
+ * merely faster: ticker (38) × kind (2) × the periods a reader actually opens.
+ * That is the opposite of the public API, whose unbounded parameter space is
+ * exactly why `allDirect` exists. Freshness follows the site-wide 1h window —
+ * after a re-extraction, `/banks/…` lags by up to an hour unless the KV purge in
+ * OPERATIONS is run, the same as every other page.
  */
-import { cachedAll, getDB } from "./db";
+import { cachedAll } from "./db";
 import { BANK_TYPE_BY_TICKER, isPeerExcluded } from "./bank_names";
 import {
   BS_ASSET_ROMAN_HIERARCHIES,
@@ -86,16 +102,13 @@ export async function bankSummaries(): Promise<BankSummary[]> {
 export async function bankPeriods(
   ticker: string,
 ): Promise<{ period: string; kind: string; success: number; rows_bs_assets: number; rows_profit_loss: number }[]> {
-  const db = await getDB();
-  const { results } = await db
-    .prepare(
-      `SELECT period, kind, success, rows_bs_assets, rows_profit_loss
+  const results = await cachedAll<{ period: string; kind: string; success: number; rows_bs_assets: number; rows_profit_loss: number }>(
+    `SELECT period, kind, success, rows_bs_assets, rows_profit_loss
        FROM bank_audit_extractions
        WHERE bank_ticker = ?
        ORDER BY period DESC, kind`,
-    )
-    .bind(ticker)
-    .all<{ period: string; kind: string; success: number; rows_bs_assets: number; rows_profit_loss: number }>();
+    [ticker],
+  );
   return results;
 }
 
@@ -105,17 +118,14 @@ export async function balanceSheet(
   period: string,
   kind: "consolidated" | "unconsolidated" = "unconsolidated",
 ): Promise<BalanceSheetRow[]> {
-  const db = await getDB();
-  const { results } = await db
-    .prepare(
-      `SELECT statement, item_order, hierarchy, item_name, footnote,
+  const results = await cachedAll<BalanceSheetRow>(
+    `SELECT statement, item_order, hierarchy, item_name, footnote,
               amount_tl, amount_fc, amount_total
        FROM bank_audit_balance_sheet
        WHERE bank_ticker = ? AND period = ? AND kind = ?
        ORDER BY statement, item_order`,
-    )
-    .bind(ticker, period, kind)
-    .all<BalanceSheetRow>();
+    [ticker, period, kind],
+  );
   return results;
 }
 
@@ -125,16 +135,13 @@ export async function profitLoss(
   period: string,
   kind: "consolidated" | "unconsolidated" = "unconsolidated",
 ): Promise<PlRow[]> {
-  const db = await getDB();
-  const { results } = await db
-    .prepare(
-      `SELECT item_order, hierarchy, item_name, footnote, amount
+  const results = await cachedAll<PlRow>(
+    `SELECT item_order, hierarchy, item_name, footnote, amount
        FROM bank_audit_profit_loss
        WHERE bank_ticker = ? AND period = ? AND kind = ?
        ORDER BY item_order`,
-    )
-    .bind(ticker, period, kind)
-    .all<PlRow>();
+    [ticker, period, kind],
+  );
   return results;
 }
 
@@ -177,18 +184,15 @@ export async function balanceSheetMultiPeriod(
   periods: string[],
 ): Promise<Map<string, Map<string, number | null>>> {
   if (periods.length === 0) return new Map();
-  const db = await getDB();
   const placeholders = periods.map(() => "?").join(",");
-  const { results } = await db
-    .prepare(
-      `SELECT statement, period, hierarchy, item_name, amount_total
+  const results = await cachedAll<{ statement: string; period: string; hierarchy: string; item_name: string; amount_total: number | null }>(
+    `SELECT statement, period, hierarchy, item_name, amount_total
        FROM bank_audit_balance_sheet
        WHERE bank_ticker = ? AND kind = ?
          AND period IN (${placeholders})
          AND hierarchy != ''`,
-    )
-    .bind(ticker, kind, ...periods)
-    .all<{ statement: string; period: string; hierarchy: string; item_name: string; amount_total: number | null }>();
+    [ticker, kind, ...periods],
+  );
   const out = new Map<string, Map<string, number | null>>();
   const addTo = (key: string, period: string, v: number | null) => {
     if (!out.has(key)) out.set(key, new Map());
@@ -366,15 +370,12 @@ export async function validationByPeriod(
   // Sheet column ⚠ when an unrelated footnote (stages / equity / cash-flow) fails
   // even though assets/liabilities are clean.
   try {
-    const db = await getDB();
-    const { results } = await db
-      .prepare(
-        `SELECT period, statement, checks_failed, checks_passed
+    const results = await cachedAll<{ period: string; statement: string; checks_failed: number; checks_passed: number }>(
+      `SELECT period, statement, checks_failed, checks_passed
          FROM bank_audit_validation
          WHERE bank_ticker = ? AND kind = ?`,
-      )
-      .bind(ticker, kind)
-      .all<{ period: string; statement: string; checks_failed: number; checks_passed: number }>();
+      [ticker, kind],
+    );
     const byPeriod = new Map<string, Map<string, ValidationCell>>();
     for (const r of results) {
       let m = byPeriod.get(r.period);
@@ -406,18 +407,15 @@ export async function balanceSheetLineNames(
   periods: string[],
 ): Promise<Map<string, string>> {
   if (periods.length === 0) return new Map();
-  const db = await getDB();
   const placeholders = periods.map(() => "?").join(",");
-  const { results } = await db
-    .prepare(
-      `SELECT statement, hierarchy, item_name, period
+  const results = await cachedAll<{ statement: string; hierarchy: string; item_name: string; period: string }>(
+    `SELECT statement, hierarchy, item_name, period
        FROM bank_audit_balance_sheet
        WHERE bank_ticker = ? AND kind = ?
          AND period IN (${placeholders})
          AND hierarchy != '' AND item_name IS NOT NULL`,
-    )
-    .bind(ticker, kind, ...periods)
-    .all<{ statement: string; hierarchy: string; item_name: string; period: string }>();
+    [ticker, kind, ...periods],
+  );
   // Keep the name from the latest period each key appears in.
   const best = new Map<string, { period: string; name: string }>();
   for (const r of results) {
@@ -438,18 +436,15 @@ export async function profitLossMultiPeriod(
   periods: string[],
 ): Promise<Map<string, Map<string, number | null>>> {
   if (periods.length === 0) return new Map();
-  const db = await getDB();
   const placeholders = periods.map(() => "?").join(",");
-  const { results } = await db
-    .prepare(
-      `SELECT period, hierarchy, amount
+  const results = await cachedAll<{ period: string; hierarchy: string; amount: number | null }>(
+    `SELECT period, hierarchy, amount
        FROM bank_audit_profit_loss
        WHERE bank_ticker = ? AND kind = ?
          AND period IN (${placeholders})
          AND hierarchy != ''`,
-    )
-    .bind(ticker, kind, ...periods)
-    .all<{ period: string; hierarchy: string; amount: number | null }>();
+    [ticker, kind, ...periods],
+  );
   const out = new Map<string, Map<string, number | null>>();
   for (const r of results) {
     if (!out.has(r.hierarchy)) out.set(r.hierarchy, new Map());
@@ -468,19 +463,16 @@ export async function profitLossRowsMultiPeriod(
   periods: string[],
 ): Promise<Record<string, PlRow[]>> {
   if (periods.length === 0) return {};
-  const db = await getDB();
   const placeholders = periods.map(() => "?").join(",");
-  const { results } = await db
-    .prepare(
-      `SELECT period, item_order, hierarchy, item_name, footnote, amount
+  const results = await cachedAll<PlRow & { period: string }>(
+    `SELECT period, item_order, hierarchy, item_name, footnote, amount
        FROM bank_audit_profit_loss
        WHERE bank_ticker = ? AND kind = ?
          AND period IN (${placeholders})
          AND hierarchy != ''
        ORDER BY period, item_order`,
-    )
-    .bind(ticker, kind, ...periods)
-    .all<PlRow & { period: string }>();
+    [ticker, kind, ...periods],
+  );
   const out: Record<string, PlRow[]> = {};
   for (const r of results) {
     const { period, ...row } = r;
@@ -509,18 +501,15 @@ export async function cashFlowMultiPeriod(
 ): Promise<Map<string, Map<string, number | null>>> {
   if (periods.length === 0) return new Map();
   try {
-    const db = await getDB();
     const placeholders = periods.map(() => "?").join(",");
-    const { results } = await db
-      .prepare(
-        `SELECT period, hierarchy, item_name, amount
+    const results = await cachedAll<{ period: string; hierarchy: string; item_name: string; amount: number | null }>(
+      `SELECT period, hierarchy, item_name, amount
          FROM bank_audit_cash_flow
          WHERE bank_ticker = ? AND kind = ?
            AND period IN (${placeholders})
            AND hierarchy != ''`,
-      )
-      .bind(ticker, kind, ...periods)
-      .all<{ period: string; hierarchy: string; item_name: string; amount: number | null }>();
+      [ticker, kind, ...periods],
+    );
     const out = new Map<string, Map<string, number | null>>();
     for (const r of results) {
       const h = _CF_TRAILING_DOT.test(r.hierarchy) ? r.hierarchy.slice(0, -1) : r.hierarchy;
@@ -550,17 +539,14 @@ export async function bsItemTimeSeries(
   itemName: string,
   kind: "consolidated" | "unconsolidated" = "unconsolidated",
 ): Promise<{ period: string; value: number }[]> {
-  const db = await getDB();
-  const { results } = await db
-    .prepare(
-      `SELECT period, amount_total AS value
+  const results = await cachedAll<{ period: string; value: number }>(
+    `SELECT period, amount_total AS value
        FROM bank_audit_balance_sheet
        WHERE bank_ticker = ? AND kind = ? AND item_name = ?
          AND amount_total IS NOT NULL
        ORDER BY period`,
-    )
-    .bind(ticker, kind, itemName)
-    .all<{ period: string; value: number }>();
+    [ticker, kind, itemName],
+  );
   return results;
 }
 
@@ -580,18 +566,15 @@ export interface BankProfile {
 }
 
 export async function bankProfile(ticker: string): Promise<BankProfile | null> {
-  const db = await getDB();
-  const { results } = await db
-    .prepare(
-      `SELECT bank_ticker, period, kind, branches_domestic, branches_foreign,
+  const results = await cachedAll<BankProfile>(
+    `SELECT bank_ticker, period, kind, branches_domestic, branches_foreign,
               branches_total, personnel
        FROM bank_audit_profile
        WHERE bank_ticker = ?
        ORDER BY period DESC, kind
        LIMIT 1`,
-    )
-    .bind(ticker)
-    .all<BankProfile>();
+    [ticker],
+  );
   return results[0] ?? null;
 }
 
@@ -623,10 +606,8 @@ export async function bankStagesLatest(
   ticker: string,
   kind: "consolidated" | "unconsolidated" = "unconsolidated",
 ): Promise<BankStages | null> {
-  const db = await getDB();
-  const { results } = await db
-    .prepare(
-      `SELECT bank_ticker, period, kind, period_type,
+  const results = await cachedAll<BankStages>(
+    `SELECT bank_ticker, period, kind, period_type,
               stage1_amount, stage2_amount, stage3_amount, total_amount,
               stage1_ecl, stage2_ecl, stage3_ecl, total_ecl,
               stage1_coverage, stage2_coverage, stage3_coverage
@@ -634,9 +615,8 @@ export async function bankStagesLatest(
        WHERE bank_ticker = ? AND kind = ? AND period_type = 'current'
        ORDER BY period DESC
        LIMIT 1`,
-    )
-    .bind(ticker, kind)
-    .all<BankStages>();
+    [ticker, kind],
+  );
   return results[0] ?? null;
 }
 
@@ -650,17 +630,14 @@ export async function totalAssetsApprox(
   ticker: string,
   kind: "consolidated" | "unconsolidated" = "unconsolidated",
 ): Promise<{ period: string; value: number }[]> {
-  const db = await getDB();
-  const { results } = await db
-    .prepare(
-      `SELECT period, SUM(amount_total) AS value
+  const results = await cachedAll<{ period: string; value: number }>(
+    `SELECT period, SUM(amount_total) AS value
        FROM bank_audit_balance_sheet
        WHERE bank_ticker = ? AND kind = ? AND statement = 'assets'
          AND hierarchy LIKE '%' AND hierarchy GLOB '[IVX]*.' /* single Roman */
        GROUP BY period
        ORDER BY period`,
-    )
-    .bind(ticker, kind)
-    .all<{ period: string; value: number }>();
+    [ticker, kind],
+  );
   return results;
 }
