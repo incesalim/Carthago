@@ -37,6 +37,7 @@ import { Depth, SecHead, Vital, Vitals } from "@/app/components/desk";
 import HeatmapView from "./HeatmapView";
 import type { PanelCell } from "./HeatmapOverTime";
 import { MAX_PICKS, PICK_COLORS, type BoardBank } from "./picks";
+import { ScrollX } from "@/app/components/ui/scroll-x";
 
 interface Props {
   metrics: MetricDef[];
@@ -503,7 +504,7 @@ export default function CompareBoard({
         meta="each metric on its own value axis — every peer a tick, the median marked, your picks as dots"
         className="mb-2 mt-7 border-b border-hair pb-1.5"
       />
-      <div className="overflow-x-auto">
+      <ScrollX label="Scorecard — scrolls horizontally">
         <div className="min-w-[820px]">
           {/* header */}
           <div
@@ -766,7 +767,7 @@ export default function CompareBoard({
             );
           })}
         </div>
-      </div>
+      </ScrollX>
 
       <p className="mt-2.5 font-mono text-[8.5px] leading-relaxed tracking-[0.04em] text-faint">
         Axis runs the peer frame&rsquo;s range, clipped to the Tukey whiskers (q₁/q₃ ± 1.5 × IQR)

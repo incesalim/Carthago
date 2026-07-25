@@ -28,8 +28,13 @@ import { toast } from "sonner";
 import { toCsv, type ChartTable } from "@/app/lib/chart-csv";
 import { DARK, LIGHT, type ChartTheme } from "@/app/lib/chart-theme";
 
+// Reveal-on-hover ONLY where hover exists. `opacity-0` + `group-hover` is a
+// desktop idiom; on a touch device there is no hover, so these controls were
+// invisible and unreachable — a feature that shipped but could not be found on a
+// phone (2026-07-12 evaluation, finding 5). Default is now visible, and the
+// hide-until-hover behaviour applies under `@media (hover: hover)`.
 const BTN =
-  "inline-flex items-center justify-center rounded-md border border-border bg-card p-1.5 text-muted-foreground opacity-0 transition-opacity hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100 disabled:opacity-50";
+  "inline-flex items-center justify-center rounded-md border border-border bg-card p-1.5 text-muted-foreground transition-opacity hover:text-foreground focus-visible:opacity-100 disabled:opacity-50 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100";
 
 function slugify(s: string): string {
   return (

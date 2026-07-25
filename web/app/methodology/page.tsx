@@ -15,6 +15,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { bankSummaries } from "@/app/lib/audit";
 import { BANK_COUNT, PEER_BANK_COUNT } from "@/app/lib/bank_names";
+import { ScrollX } from "@/app/components/ui/scroll-x";
 
 export const dynamic = "force-dynamic";
 
@@ -82,7 +83,7 @@ export default async function MethodologyPage() {
             Eight public sources, each used for what it actually publishes rather than
             blended into one series:
           </p>
-          <div className="overflow-x-auto">
+          <ScrollX label="Sources table — scrolls horizontally">
             <table className="w-full min-w-[34rem] border-collapse text-[12.5px]">
               <thead>
                 <tr className="border-b border-border text-left font-mono text-[9.5px] uppercase tracking-[0.05em] text-faint">
@@ -101,7 +102,7 @@ export default async function MethodologyPage() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </ScrollX>
         </Section>
 
         <Section id="coverage" title="Coverage">

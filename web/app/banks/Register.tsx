@@ -22,6 +22,7 @@ import { Fragment, useMemo, useState } from "react";
 import Link from "next/link";
 import BankLogo from "@/app/components/BankLogo";
 import { median } from "@/app/lib/heatmap-normalize";
+import { ScrollX } from "@/app/components/ui/scroll-x";
 
 export interface RegisterRow {
   ticker: string;
@@ -300,7 +301,7 @@ export default function Register({ rows, groups, latest, maxPeriods }: Props) {
         </span>
       </div>
 
-      <div className="mt-1 overflow-x-auto">
+      <ScrollX className="mt-1" label="Bank register — scrolls horizontally">
         <table className="w-full min-w-[940px] border-collapse text-foreground">
           <thead>
             <tr>
@@ -346,7 +347,7 @@ export default function Register({ rows, groups, latest, maxPeriods }: Props) {
             )}
           </tbody>
         </table>
-      </div>
+      </ScrollX>
 
       <p className="mt-2.5 font-mono text-[8.5px] leading-relaxed tracking-[0.04em] text-faint">
         Group rules carry each type&rsquo;s asset subtotal, its share of the reporting total, and its{" "}

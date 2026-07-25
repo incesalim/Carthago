@@ -14,6 +14,7 @@ import { bankDisplayName } from "@/app/lib/bank_names";
 import { nf } from "@/app/lib/chart-format";
 import { SecHead } from "@/app/components/desk";
 import type { LeagueEntry, HhiPoint } from "@/app/lib/market-share";
+import { ScrollX } from "@/app/components/ui/scroll-x";
 
 const pct = (v: number | null, d = 2): string => (v == null ? "—" : `${(v * 100).toFixed(d)}%`);
 
@@ -94,7 +95,7 @@ export default function MarketShareSection({
         </div>
       )}
 
-      <div className="mt-3 overflow-x-auto">
+      <ScrollX className="mt-3" label="Market share league table — scrolls horizontally">
         <table className="w-full min-w-[720px] border-collapse text-foreground">
           <thead>
             <tr>
@@ -131,7 +132,7 @@ export default function MarketShareSection({
             ))}
           </tbody>
         </table>
-      </div>
+      </ScrollX>
 
       <p className="mt-2.5 font-mono text-[8.5px] leading-relaxed tracking-[0.04em] text-faint">
         Δ y/y columns show who is TAKING share (pp vs four quarters ago). HHI = Σ share² × 10,000,

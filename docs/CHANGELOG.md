@@ -5,6 +5,27 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-07-19.
 
+2026-07-25 — **A feature that could not be found on a phone.** The chart
+export/copy controls were `opacity-0` revealed on `group-hover`. There is no hover
+on a touch device, so on every phone and tablet they were permanently invisible —
+shipped, working, and undiscoverable. The reveal now applies under
+`@media (hover: hover)` only; touch gets them visible, desktop is unchanged.
+
+The same finding's other half: `overflow-x-auto` is invisible on touch. The
+`/cross-bank` scorecard is **820px wide inside a 390px viewport** — two thirds
+off-screen with nothing to suggest it. New `ScrollX` (`components/ui/scroll-x.tsx`)
+adds an edge fade **per side, removed on arrival**, so "there is a fade" always
+means "there is more that way"; a permanent gradient is a texture the eye learns
+to ignore. It also makes the region keyboard-operable (`tabIndex` + `role="region"`
++ a required label — WCAG 2.1.1: a scrollable region has to be reachable without a
+mouse), and re-measures on resize as well as scroll, because the same table is
+scrollable on a phone and not on a desktop.
+
+Applied to the four widest surfaces a reader actually meets: the Compare
+scorecard, the market-share league, the bank register (940px) and the sources
+table on `/methodology`. The other `overflow-x-auto` containers are narrower and
+left for a follow-up sweep.
+
 2026-07-25 — **/about and /methodology — the rest of the trust layer.** With
 `/privacy`, that closes the 2026-07-12 evaluation's finding 4: a financial-data
 product with no public statement of what it is, who makes it, or how a figure is
