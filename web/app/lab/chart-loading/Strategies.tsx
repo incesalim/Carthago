@@ -146,9 +146,9 @@ export default function Strategies() {
 
       <Panel
         n={1}
-        title="Today — server-rendered, then hydrated"
-        cost="ships 101 KB of Recharts, blocks ~2.6s of main thread on a bank page"
-        verdict="The chart is in the HTML: it is drawn before any JavaScript runs, so it never flashes. You pay for that with the whole library on first load, on every page that carries a chart."
+        title="Today — client-rendered after hydration"
+        cost="ships 101 KB of Recharts in the initial chunk graph; ~2.6s of main thread on a bank page"
+        verdict="CORRECTED 2026-07-25: the server sends an EMPTY container. Recharts needs a measured width, so nothing is drawn until the JavaScript runs — which means this panel and panel 2 look the same to a reader. The only difference is that today the library sits on the critical path."
       >
         <TrendChart {...COMMON} />
       </Panel>
@@ -158,7 +158,7 @@ export default function Strategies() {
         n={2}
         title="No server render (ssr: false)"
         cost="same 101 KB, but off the critical path; smaller HTML"
-        verdict="Watch the placeholder. The page is interactive sooner and the HTML is much smaller, but every chart on the page starts as an empty box and fills in. On a page that IS charts, this is the trade you feel most."
+        verdict="Every chart starts as an empty box and fills in — which, per panel 1, is ALREADY what happens today. So the visible cost of this option is a labelled placeholder instead of a blank area, and the gain is that Recharts leaves the critical path. Cheaper than it looks."
       >
         <DelayedNoSsr delayMs={delay} />
       </Panel>

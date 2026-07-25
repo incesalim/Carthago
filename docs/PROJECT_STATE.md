@@ -319,6 +319,13 @@ its findings still open. Every fix changes how a chart ARRIVES, so it is a desig
 the four options are built and running at **`/lab/chart-loading`** (unlisted, noindex,
 not in nav/sitemap/Colophon) — server-rendered today, `ssr:false`, defer-until-in-view,
 and hand-rolled SVG, with a slow-motion toggle that makes the blank state visible.
+⚠️ **Correction (2026-07-25): the charts do NOT server-render.** `ResponsiveContainer`
+needs a measured width, so the served HTML carries an empty
+`recharts-responsive-container` and no chart — verified on `/economy`. The lab page
+originally claimed option 1 draws before JS and that `ssr:false` gives that up; it
+does not, because nothing is server-drawn today. `ssr:false` is therefore close to
+free — a labelled placeholder where a blank area already sits — and the same fact is
+why charts had no text alternative at all until the sr-only summaries landed.
 **Reviewed and deliberately not taken for now.** Do not re-propose it as a defect;
 re-open only if the decision changes. Delete `web/app/lab/` when it is no longer
 wanted. Two related measurements worth keeping: the 40 KB polyfills chunk ships

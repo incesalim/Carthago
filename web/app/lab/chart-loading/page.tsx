@@ -59,18 +59,27 @@ export default function ChartLoadingLab() {
           What I would pick, if it helps
         </h2>
         <div className="space-y-3 text-[13.5px] leading-relaxed text-foreground">
-          <p>
-            <b className="font-semibold">4 for the small fixed marks, 3 for the big
-            interactive ones.</b> Most charts on this site are a trend line a reader
-            glances at — those lose almost nothing as hand-rolled SVG, and gain being
-            free and server-rendered. The Compare board, the ownership network and the
-            per-bank drill-downs genuinely need hover, crosshair and export; those keep
-            Recharts and simply stop loading it until someone scrolls to them.
+          <p className="rounded-md border border-warning/40 bg-warning/5 px-3 py-2 text-[12.5px]">
+            <b className="font-semibold">Corrected 2026-07-25.</b> This page originally
+            said option 1 draws the chart before JavaScript runs, and that option 2 was
+            the weakest because it gives that up. Measurement says otherwise: the served
+            HTML contains an <i>empty</i> Recharts container and no chart at all. Nothing
+            is given up by deferring, because nothing is server-drawn today.
           </p>
           <p>
-            <b className="font-semibold">2 alone is the weakest option:</b> it pays the
-            full library cost anyway and gives up the server-rendered chart in exchange
-            for a slightly smaller HTML payload.
+            <b className="font-semibold">4 for the small fixed marks, 3 for the big
+            interactive ones.</b> Most charts here are a trend line a reader glances at —
+            those lose almost nothing as hand-rolled SVG, and gain being genuinely
+            server-rendered, which no option above delivers today. The Compare board, the
+            ownership network and the per-bank drill-downs need hover, crosshair and
+            export; those keep Recharts and simply stop loading it until someone scrolls
+            to them.
+          </p>
+          <p>
+            <b className="font-semibold">2 is now the cheap floor, not the weak option.</b>{" "}
+            It changes what a reader sees only by putting a labelled placeholder where a
+            blank area already is, and it takes 101 KB off the critical path. If nothing
+            else is done, do that.
           </p>
           <p className="text-[12.5px] text-muted-foreground">
             Whatever you pick, it is a visible change to how the site feels on first
