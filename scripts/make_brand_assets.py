@@ -7,7 +7,8 @@ is the source of truth; every asset below is composited from it, so the mark can
 never drift between uses. To change the logo, replace that one PNG and re-run.
 
 Outputs (all regenerated from scratch):
-    web/public/logo.png         256  transparent   the mark alone (nav, docs, mockups)
+    web/public/logo.png          84  transparent   the mark alone, NAV SIZE (see below)
+    web/public/logo-dark.png     84  transparent   dark-sheet variant of the same
     web/app/icon.png            512  white plate    <link rel=icon> + JSON-LD logo
     web/app/apple-icon.png      180  white square   iOS home screen (masks its own corners)
     web/app/favicon.ico         16/32/48 RGBA       browser tab
@@ -15,6 +16,17 @@ Outputs (all regenerated from scratch):
     web/app/twitter-image.png   1200x630 light      social card
 
 favicon.ico MUST stay RGBA — Next 16 rejects an RGB .ico at build time.
+
+The nav logos are sized for the NAV, not for archival. They render at 28 CSS px,
+`unoptimized` (OpenNext serves no image optimizer), and BOTH are in the DOM with
+`priority` — the light/dark swap is a CSS class, so the browser preloads each. At
+256px that was 76 KB of PNG to paint a 28px mark, which the 2026-07-12 site
+evaluation flagged and the 07-25 re-check measured as still the largest trivially
+avoidable payload on every page. They are now emitted at 84px (3x, crisp to
+DPR 3) and palette-quantised: ~3.3 KB each, mean per-pixel error 1.1/255 against
+the straight resample — invisible at 28px, ~70 KB saved on every page load.
+Anything that needs the mark LARGE should composite it from
+`scripts/brand/carthago-mark.png`, which stays the source of truth.
 
 Usage:  python scripts/make_brand_assets.py
 Needs:  pillow, requests (not CI deps — this is a local, one-off generator).
@@ -162,13 +174,34 @@ def social_card(mark: Image.Image) -> Image.Image:
     return card
 
 
+# Nav display is 28 CSS px; 3x covers every DPR in the wild.
+NAV_PX = 84
+# 255 colours costs 3.3 KB and beats 200 on encoding while halving the error of
+# 128 (measured mean 1.11 vs 1.33 /255). Full RGBA at this size is 10 KB — 3x the
+# bytes for a difference no eye resolves on a 28px mark.
+NAV_COLOURS = 255
+
+
+def save_nav_logo(img: Image.Image, path: Path) -> int:
+    """Write a nav mark: quantised, optimised, alpha intact. Returns bytes."""
+    q = img.convert("RGBA").quantize(colors=NAV_COLOURS, method=Image.FASTOCTREE)
+    q.save(path, "PNG", optimize=True)
+    return path.stat().st_size
+
+
 def main() -> None:
     mark = load_mark()
     dark = lighten_for_dark(mark)
-    out: list[tuple[Path, Image.Image]] = [
-        (WEB / "public" / "logo.png", transparent(mark, 256)),
+    # The two nav marks take the quantised path — see NAV_PX above.
+    for path, img in (
+        (WEB / "public" / "logo.png", transparent(mark, NAV_PX)),
         # Dark-mode nav variant — same compass, lifted to read on the graphite sheet.
-        (WEB / "public" / "logo-dark.png", transparent(dark, 256)),
+        (WEB / "public" / "logo-dark.png", transparent(dark, NAV_PX)),
+    ):
+        n = save_nav_logo(img, path)
+        print(f"  {path.relative_to(REPO)}  {NAV_PX}x{NAV_PX}  {n:,} B")
+
+    out: list[tuple[Path, Image.Image]] = [
         # Transparent so the tab-bar / page ground shows through and the mark
         # blends in, rather than sitting in a white box.
         (WEB / "app" / "icon.png", transparent(mark, 256, inset=0.92)),
