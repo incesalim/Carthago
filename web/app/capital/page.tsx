@@ -777,7 +777,11 @@ export default async function CapitalPage() {
                 { key: "t2", label: "Tier-2" },
               ]}
               title={
-                hybrids != null && buffer != null && hybrids > buffer
+                // auditBuffer, NOT buffer: this chart is the audited stack, and the
+                // hybrid-buffer flag above tests the same claim on the audited basis.
+                // Against the bulletin's CAR (a different basis — 16.34 vs 16.07) the
+                // title said composition was fine while the flag said it was not.
+                hybrids != null && auditBuffer != null && hybrids > auditBuffer
                   ? "The cushion over the minimum is instruments, not common equity"
                   : "Capital composition — CET1, AT1 and Tier-2"
               }

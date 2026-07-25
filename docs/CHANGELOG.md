@@ -5,6 +5,32 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-07-19.
 
+2026-07-25 — **Two pages arguing with themselves on one screen.** The last of the
+sector-page audit's on-screen contradictions.
+
+`/capital`: the capital-composition chart titled itself off `hybrids > buffer` —
+the **bulletin** buffer — while the flag directly above it tested the identical
+claim against `auditBuffer`, and the chart's own data is audited. Live today:
+audited CAR (peers) 16.07 → 4.07pp buffer, against hybrids of 4.26pp (AT1 1.73 +
+Tier-2 2.53), so the flag fires "Hybrid-funded buffer" — but measured against the
+bulletin's 16.34 the buffer is 4.34pp, so the chart underneath printed the neutral
+"Capital composition". One word, and the page stops contradicting itself. The
+comment three lines above the flag had already written down why the audited basis
+is the right one; the chart title simply never got the memo.
+
+`/asset-quality`: the "Cover on the problem book" vital printed provisions ÷ the
+problem book — a ratio in the 70s — over a sparkline of the **Stage-2 share of
+gross loans**, around 10%. Different quantity, different axis, so the trend a
+reader took from the mark was not the trend of the number above it. New
+`credit-risk.problemCoverageSeries()` (pure, unit-tested) supplies the real
+series. It gates on `total` even though the ratio never divides by it, purely so
+its filter matches `stageLadder`'s — diverging filters would put a different
+quarter at the end of the sparkline than in the headline, which is the same bug
+wearing a smaller hat.
+
+Remaining from that audit: `/` still uses the `g − π` shortcut where `series.ts`
+mandates Fisher `deflate()`, plus the hygiene tier.
+
 2026-07-24 — **"Loan / deposit" was three different numbers wearing one label.**
 `/deposits` printed BDDK's published TL+FC monthly ratio — ~91%, no flag.
 `/liquidity`, one click away and linked from that page's own Takeaway, printed a

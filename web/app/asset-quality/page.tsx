@@ -63,6 +63,7 @@ import {
   provisionMigrationScenarios,
   stageLadder,
   nplRollForwardAnnual,
+  problemBookCoverage,
 } from "@/app/lib/credit-risk";
 import {
   impliedRatio,
@@ -135,7 +136,7 @@ export default async function AssetQualityPage() {
     stockHousing, stockAuto, stockGpl, stockCards, stockCommercial, stockSme,
     loanHousing, loanAuto, loanGpl, loanCards, loanCommercial, loanSme,
     cMix, cRatios, commRatios,
-    stageShares, migration, ladder, roll,
+    stageShares, migration, ladder, roll, problemCov,
   ] = await Promise.all([
     ratioNpl(PRIMARY_BANK_TYPES),
     latestPerBank(ratioNpl, groups),
@@ -153,6 +154,7 @@ export default async function AssetQualityPage() {
     provisionMigrationScenarios(),
     stageLadder(),
     nplRollForwardAnnual(),
+    problemBookCoverage(),
   ]);
   const cpiYoY = await cpiYoYByMonth();
 
@@ -434,7 +436,10 @@ export default async function AssetQualityPage() {
           label="Cover on the problem book"
           value={ladder ? ladder.problemCov.toFixed(1) : "—"}
           unit="%"
-          series={stage2.map((r) => ({ period: r.period, value: r.value }))}
+          // The coverage series, NOT the Stage-2 share: the value is provisions
+          // over the problem book (~70%), and this sparkline used to draw a share
+          // of gross loans (~10%) — a different quantity on a different axis.
+          series={problemCov.map((r) => ({ period: r.period, value: r.value }))}
           decimals={1}
           note={
             ladder ? (

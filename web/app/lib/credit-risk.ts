@@ -23,7 +23,7 @@ export interface TrendPoint {
   value: number;
 }
 
-interface StageAggRow {
+export interface StageAggRow {
   period: string;
   s2: number | null;
   s3: number | null;
@@ -77,6 +77,45 @@ export async function sectorStageShares(kind: string = DEFAULT_KIND): Promise<Tr
     if (r.s3 != null) out.push({ period: r.period, bank_type_code: "STAGE3", value: (r.s3 / r.total) * 100 });
   }
   return out;
+}
+
+/**
+ * Cover on the problem book (%), per quarter — (ECL2 + ECL3) ÷ (Stage 2 +
+ * Stage 3). Pure, so the arithmetic is testable without D1.
+ *
+ * Exists because `/asset-quality`'s "Cover on the problem book" vital printed
+ * this ratio (~70%) over a sparkline of the Stage-2 SHARE (~10%): the headline
+ * figure and the mark under it were different quantities on different axes, so
+ * the trend a reader inferred was not the trend of the number being read.
+ *
+ * Same gates as `stageLadder`, which prints the latest value of this series —
+ * the two must agree at the right-hand end or the vital contradicts its own
+ * sparkline again. ECL is magnitude-taken for the same reason it is there:
+ * provisions are stored signed either way depending on the filer's layout.
+ */
+export function problemCoverageSeries(rows: readonly StageAggRow[]): TrendPoint[] {
+  const out: TrendPoint[] = [];
+  for (const r of rows) {
+    // Gate on `total` as well, even though the ratio does not use it: stageLadder
+    // does, and if the two filters differ the vital's headline can come from a
+    // quarter this series skipped — the sparkline's last point would then not be
+    // the number printed above it. Which is the defect being fixed.
+    if (r.n < 5 || r.total == null || r.total <= 0) continue;
+    if (r.s2 == null || r.s3 == null || r.ecl2 == null || r.ecl3 == null) continue;
+    const problem = r.s2 + r.s3;
+    if (problem <= 0) continue;
+    out.push({
+      period: r.period,
+      bank_type_code: "PROBLEM_COV",
+      value: ((Math.abs(r.ecl2) + Math.abs(r.ecl3)) / problem) * 100,
+    });
+  }
+  return out;
+}
+
+/** The series behind the "Cover on the problem book" vital. */
+export async function problemBookCoverage(kind: string = DEFAULT_KIND): Promise<TrendPoint[]> {
+  return problemCoverageSeries(await stageAgg(kind));
 }
 
 export const STAGE_SHARE_LABELS: Record<string, string> = {
