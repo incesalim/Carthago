@@ -13,6 +13,29 @@
  */
 import { evdsSeries } from "./metrics";
 
+/**
+ * One nominal rate, deflated — the exact Fisher form, `(1+g)/(1+π) − 1`.
+ *
+ * The scalar twin of `deflate()`/`nominalVsReal()`, added because `/` was doing
+ * `g − π` inline on the two figures it leads with: ROE real and credit real. At
+ * a ~32% CPI the shortcut is 1.2–1.8pp adrift, and it made the landing page's
+ * "credit in real terms" disagree with `/credit`'s Fisher-deflated own.
+ *
+ * NOTE the unit changes with the maths. A subtraction yields percentage POINTS;
+ * this yields a real RATE in percent. Print it as %, not pp.
+ *
+ * Pick π to match what is being deflated, and print which: a y/y growth rate
+ * takes spot y/y CPI; a return earned across the year takes the 12m average.
+ */
+export function realRate(
+  nominalPct: number | null | undefined,
+  cpiPct: number | null | undefined,
+): number | null {
+  if (nominalPct == null || cpiPct == null) return null;
+  if (cpiPct <= -100) return null; // (1+π) ≤ 0 — no real rate exists
+  return ((1 + nominalPct / 100) / (1 + cpiPct / 100) - 1) * 100;
+}
+
 /** Series codes the nominal-vs-real TrendChart keys on. */
 export const REAL_TERMS_LABELS: Record<string, string> = {
   NOMINAL: "Nominal (y/y)",

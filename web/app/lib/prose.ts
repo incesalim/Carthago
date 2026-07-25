@@ -233,6 +233,9 @@ export function signed(
 /** "+1.20pp" / "−0.34pp". Moved here from desk.ts — same output, one sign rule. */
 export const signedPp = (v: number, d = 2): string => signed(v, (x) => `${x.toFixed(d)}pp`);
 
+/** "+3.70%" / "−5.60%". For a RATE — a Fisher-deflated real return is not pp. */
+export const signedPct = (v: number, d = 1): string => signed(v, (x) => `${x.toFixed(d)}%`);
+
 // ───────────────────────────────────────────────────────── universals ──
 
 /**

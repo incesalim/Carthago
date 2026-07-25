@@ -7,7 +7,7 @@
  * guarded claims, signed figures — live in lib/prose.ts.
  */
 
-export { signedPp } from "./prose";
+export { signedPp, signedPct } from "./prose";
 
 export interface Pt {
   period: string;

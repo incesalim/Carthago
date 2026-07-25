@@ -40,12 +40,14 @@ import {
   groupSpread,
   lastVal,
   monthLabel,
+  signedPct,
   signedPp,
   streak,
   valAgo,
   windowExtremes,
 } from "@/app/lib/desk";
 import { LDR_PUBLISHED } from "@/app/lib/ldr";
+import { realRate } from "@/app/lib/real-terms";
 import {
   Ahead,
   ChartFoot,
@@ -244,10 +246,14 @@ export default async function OverviewPage({
   const roaNow = lastVal(sRoa);
   const assetsYoYNow = lastVal(sAssetsYoY);
 
+  const assetsRealNow = realRate(assetsYoYNow, cpiYoYNow);
   const buffer = carNow != null ? carNow - 12 : null;
   const nplStreak = streak(sNpl, "up");
   const nimLow = windowExtremes(sNim, 24)?.min ?? null;
-  const roeReal = roeNow != null && cpiAvgNow != null ? roeNow - cpiAvgNow : null;
+  // Fisher, not roe − cpi: at a ~32% CPI the shortcut is ~1.8pp adrift. The base
+  // is the 12m AVERAGE because ROE is earned across the year, not at a point —
+  // and the surfaces below print which base they used. (series.ts / real-terms.ts)
+  const roeReal = realRate(roeNow, cpiAvgNow);
   const carDrift12 = carNow != null && valAgo(sCar, 12) != null ? carNow - (valAgo(sCar, 12) as number) : null;
 
   const recMonth = monthLabel(sNpl.at(-1)?.period);
@@ -304,7 +310,7 @@ export default async function OverviewPage({
     {
       label: "Assets, y/y",
       note:
-        assetsYoYNow != null && cpiYoYNow != null && Math.abs(assetsYoYNow - cpiYoYNow) < 5
+        assetsRealNow != null && Math.abs(assetsRealNow) < 5
           ? "≈ flat in real terms"
           : undefined,
       prev: sAssetsYoY.at(-2)?.value ?? null,
@@ -317,8 +323,10 @@ export default async function OverviewPage({
 
   // ---- transmission ---------------------------------------------------------
   const loansYoYNow = lastVal(sLoansYoY);
-  const creditReal =
-    loansYoYNow != null && cpiYoYNow != null ? loansYoYNow - cpiYoYNow : null;
+  // Fisher too, and on the SPOT y/y base — this deflates a y/y growth rate, so
+  // its π must be the y/y one. /credit computes the same quantity this way; the
+  // g−π shortcut here made the landing page disagree with it.
+  const creditReal = realRate(loansYoYNow, cpiYoYNow);
   const usdtry = (ticker ?? []).find((t) => t.label.toUpperCase().includes("USD"));
 
   const transmission: TransmissionItem[] = [];
@@ -329,7 +337,9 @@ export default async function OverviewPage({
       unit: "%",
       effect: (
         <>
-          ROE {fmtPct(roeNow, 1)} ≈ <b>{roeReal != null ? signedPp(roeReal, 1) : "—"} in real terms</b> —{" "}
+          ROE {fmtPct(roeNow, 1)} ≈{" "}
+          <b>{roeReal != null ? signedPct(roeReal, 1) : "—"} in real terms</b> (deflated by
+          12m-avg CPI) —{" "}
           {roeReal != null && roeReal < 0
             ? "the sector still compounds a real loss."
             : "the sector clears its inflation hurdle."}{" "}
@@ -359,11 +369,12 @@ export default async function OverviewPage({
   if (creditReal != null) {
     transmission.push({
       k: "Credit, real",
-      v: signedPp(creditReal, 1).replace("pp", ""),
-      unit: "pp",
+      v: signedPct(creditReal, 1).replace("%", ""),
+      unit: "%",
       effect: (
         <>
-          Loan growth {fmtPct(loansYoYNow, 1)} nominal vs CPI {fmtPct(cpiYoYNow, 1)} —{" "}
+          Loan growth {fmtPct(loansYoYNow, 1)} nominal, deflated by y/y CPI{" "}
+          {fmtPct(cpiYoYNow, 1)} —{" "}
           <b>
             {creditReal > 2
               ? "credit is growing ahead of prices."
@@ -398,10 +409,10 @@ export default async function OverviewPage({
         <>
           <b className="font-semibold">Real returns</b> — ROE {fmtPct(roeNow, 1)} vs{" "}
           {fmtPct(cpiAvgNow, 1)} 12m-avg CPI: equity compounds a{" "}
-          {roeReal != null ? Math.abs(roeReal).toFixed(1) : "—"}pp real loss.
+          {roeReal != null ? Math.abs(roeReal).toFixed(1) : "—"}% real loss.
         </>
       ),
-      rule: "roe − cpi_12m_avg < 0",
+      rule: "(1+roe)/(1+cpi_12m_avg) − 1 < 0",
     },
     {
       code: "npl-streak",
@@ -608,7 +619,7 @@ export default async function OverviewPage({
                     : "not-italic font-semibold text-positive"
                 }
               >
-                {roeReal != null ? signedPp(roeReal, 1) : "—"} real
+                {roeReal != null ? signedPct(roeReal, 1) : "—"} real
               </em>{" "}
               <Go href="/profitability">/profitability</Go>
             </>

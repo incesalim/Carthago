@@ -5,6 +5,32 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-07-19.
 
+2026-07-25 — **The landing page computed "real" the one way its own library
+forbids.** `series.ts` exports `deflate()` and says so in the docstring: exact
+Fisher, not the g−π shortcut. `/credit`, `/deposits` and `/asset-quality` obey it.
+`/` subtracted — on the two figures it leads with. At a ~32% CPI that is not a
+rounding difference: **ROE real printed −7.3pp where the true figure is −5.5%,
+and credit real +5.4pp against +4.1%**. It also made the landing page's "credit in
+real terms" disagree with `/credit`'s own line for the same quantity.
+
+`real-terms.realRate()` is now the scalar twin of `deflate()`, unit-tested against
+the series form so the two cannot drift apart. Three sites on `/` use it: ROE real,
+credit real, and the "≈ flat in real terms" band on assets.
+
+Both CPI bases were kept and each surface now prints which it used — a y/y growth
+rate is deflated by spot y/y CPI, a return earned across the year by the 12m
+average. The defect was the subtraction, not the base choice.
+
+The unit had to follow the arithmetic: `g − π` yields percentage POINTS, Fisher
+yields a real RATE. So `signedPct` joins `signedPp` in `prose.ts`, the transmission
+item's unit goes pp → %, and the flag's printed rule becomes
+`(1+roe)/(1+cpi_12m_avg) − 1 < 0`. A page that prints its own rule cannot quietly
+change the maths underneath it.
+
+That closes every Tier-1 and Tier-2 finding of the 2026-07-13 sector-page audit.
+Its hygiene tier — one shared `fmtPct`/`fmtTrn`, `CAR_MIN` from one place,
+date-pairing everywhere — is still open.
+
 2026-07-25 — **Two pages arguing with themselves on one screen.** The last of the
 sector-page audit's on-screen contradictions.
 
