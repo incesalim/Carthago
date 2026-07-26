@@ -16,9 +16,10 @@ the rest of the lane:
 
     pull snapshot -> delete locally -> delete in D1 -> re-upload snapshot
 
-`--dry-run` here is genuinely read-only: it prints the row counts it would remove
-and exits before touching D1, the snapshot, or R2. (Unlike apply_overrides.py,
-whose --dry-run is not.) Re-running is safe: a purged partition simply reports 0.
+`--dry-run` here is genuinely read-only: it pulls the snapshot (a download changes
+nothing) and prints the row counts it would remove, then exits before any D1
+delete or snapshot upload. (Unlike apply_overrides.py, whose --dry-run is not.)
+Re-running is safe: a purged partition simply reports 0.
 
 Re-extracting afterwards restores the partition — this removes data, never PDFs.
 The R2 PDF stays put, so the coverage cell shows `missing` WITH `pdf_present`,
@@ -98,13 +99,16 @@ def main() -> int:
     kinds = [args.kind] if args.kind else list(KINDS)
     parts = [(bank, period, k) for k in kinds]
 
-    if args.dry_run:
-        # Read-only: never pull (a pull overwrites the local DB), never upload.
-        if not DB.exists():
-            return print(f"[purge] no local {DB} — run without --dry-run "
-                         "(or --no-pull off) to fetch the snapshot") or 1
-    elif not args.no_pull:
+    # A dry run still PULLS: downloading the snapshot mutates nothing remote, and
+    # on a fresh CI runner there is no local DB to inspect otherwise — refusing to
+    # pull made --dry-run useless exactly where it is dispatched from. What
+    # "read-only" promises is the other end: no D1 delete, no snapshot upload.
+    # --no-pull is the escape hatch for a local run with a DB you want kept.
+    if not args.no_pull:
         pull_snapshot(guard=True)
+    if not DB.exists():
+        return print(f"[purge] no local {DB} and --no-pull given — nothing to "
+                     "inspect") or 1
 
     conn = sqlite3.connect(str(DB))
     counts = count_rows(conn, parts)
