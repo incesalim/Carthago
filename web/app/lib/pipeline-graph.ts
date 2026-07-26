@@ -110,6 +110,7 @@ export const PIPELINE_NODES: PipelineNode[] = [
   { id: "wf-refresh-audit", kind: "workflow", layer: "ingestion", lane: "audit", label: "refresh-audit", sublabel: "manual · extract → validate → push", workflowFile: "refresh-audit.yml" },
   { id: "wf-reextract", kind: "workflow", layer: "ingestion", lane: "audit", label: "reextract-statement", sublabel: "manual · one lane (oci/cf/equity/…)", workflowFile: "reextract-statement.yml" },
   { id: "wf-backfill-audit", kind: "workflow", layer: "ingestion", lane: "audit", label: "backfill-audit", sublabel: "manual · full re-extract (5-bank chunks)", workflowFile: "backfill-audit.yml" },
+  { id: "wf-purge-partition", kind: "workflow", layer: "ingestion", lane: "audit", label: "purge-partition", sublabel: "manual · remove a known-wrong partition (keeps the PDF)", workflowFile: "purge-partition.yml" },
 
   // ── Audit lane · storage ───────────────────────────────────────────────
   { id: "store-r2-pdf", kind: "store", layer: "storage", lane: "audit", label: "R2 · PDF bucket", sublabel: "bddk-audit-reports/<ticker>/*.pdf" },
@@ -248,6 +249,12 @@ export const PIPELINE_EDGES: PipelineEdge[] = [
   { source: "wf-backfill-audit", target: "store-d1-audit-fin" },
   { source: "wf-backfill-audit", target: "store-d1-audit-credit" },
   { source: "wf-backfill-audit", target: "store-d1-audit-reg" },
+  // Purge REMOVES rows: it writes to the same stores, plus the spine (the cell
+  // returns to `missing`). It never touches the PDF bucket — that's the point.
+  { source: "wf-purge-partition", target: "store-d1-audit-fin" },
+  { source: "wf-purge-partition", target: "store-d1-audit-credit" },
+  { source: "wf-purge-partition", target: "store-d1-audit-reg" },
+  { source: "wf-purge-partition", target: "store-d1-audit-spine" },
 
   // R2 snapshots (push side)
   { source: "wf-refresh-data", target: "store-r2-snap", kind: "snapshot" },

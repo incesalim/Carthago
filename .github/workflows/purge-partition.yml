@@ -1,0 +1,101 @@
+name: Purge an audit partition
+
+# Remove one (bank, period[, kind]) from the audit lane — local snapshot, D1, and
+# the re-uploaded R2 snapshot — via scripts/purge_partition.py. The PDF in R2 is
+# untouched, so the coverage cell returns to `missing` WITH `pdf_present`:
+# "acquired, awaiting extraction". Re-extracting restores the partition.
+#
+# When to run: an extraction that succeeded and validated green but is KNOWN to be
+# wrong, and the fix is not ready. The case this was built for: TEB 2026Q2, whose
+# filing switched from thousands to millions of TL — every figure landed 1000x too
+# small while every internal identity still footed, so no validator could see it
+# (only the fx lane's cross-period anchor did).
+#
+# Why a workflow rather than a local run: the snapshot pull/upload must happen
+# between the pull and the push, inside CI. Run it locally and you mutate a DB
+# production never reads. Shares the `bddk-audit` concurrency group so it can
+# never interleave with an extraction run.
+on:
+  workflow_dispatch:
+    inputs:
+      bank:
+        description: "Ticker, e.g. TEB"
+        type: string
+        required: true
+      period:
+        description: "Quarter, e.g. 2026Q2"
+        type: string
+        required: true
+      kind:
+        description: "Restrict to one basis (consolidated/unconsolidated); blank = both"
+        type: string
+        default: ""
+      dry_run:
+        description: "Preview only — READ-ONLY, touches neither D1 nor the snapshot"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bddk-audit
+  cancel-in-progress: false
+
+jobs:
+  purge:
+    name: Purge partition → snapshot + D1
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      PYTHONIOENCODING: utf-8
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Setup Node (for wrangler / D1)
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+
+      - name: Purge the partition
+        # Inputs forwarded via env (never interpolated into the command line) so a
+        # dispatch input is one quoted argument and can't inject shell.
+        env:
+          BANK: ${{ inputs.bank }}
+          PERIOD: ${{ inputs.period }}
+          KIND: ${{ inputs.kind }}
+          DRY: ${{ inputs.dry_run && '--dry-run' || '' }}
+        run: |
+          args=(--bank "$BANK" --period "$PERIOD")
+          [ -n "$KIND" ] && args+=(--kind "$KIND")
+          [ -n "$DRY" ] && args+=("$DRY")
+          echo "resolved scope: bank=$BANK period=$PERIOD kind=${KIND:-both} dry_run=${DRY:-off}"
+          python scripts/purge_partition.py "${args[@]}"
+
+      - name: Refresh coverage matrix (/admin)
+        # Full rebuild of the coverage spine, so the purged cell flips back to
+        # `missing` + pdf_present. Skipped on a dry run, which changed nothing.
+        if: ${{ !inputs.dry_run }}
+        run: python scripts/sync_audit_expected.py --push
+
+      - name: Alert on failure
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+        run: python scripts/notify.py "❌ ${{ github.workflow }} failed — ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

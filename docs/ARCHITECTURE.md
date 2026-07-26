@@ -183,6 +183,24 @@ derived-table defects (a partition can pass `credit_quality` yet fail the derive
 `bank_audit_stages`). This is how OCI/CF/NPL/loans_by_stage were fixed fleet-wide
 without re-running the frozen BS/P&L extraction.
 
+**`purge-partition.yml`** (dispatch-only) — the inverse operation: removes one
+`(bank, period[, kind])` from the lane via `scripts/purge_partition.py`, in the
+one order that makes it stick — pull snapshot → delete locally → delete in D1 →
+**re-upload the snapshot**. Clearing D1 alone does not hold: the snapshot keeps
+the rows and the next `push_to_d1` from any later extraction restores them. The
+R2 **PDF is left in place**, so the coverage cell returns to `missing` *with*
+`pdf_present` — "acquired, awaiting extraction" — and a re-extract brings it back.
+
+It exists for the failure mode no validator can reach: an extraction that is
+internally consistent and still wrong. **TEB's 2026Q2 filing switched its
+reporting unit from thousands to millions of TL**, so every figure landed 1000×
+too small — and because uniform scaling cancels on both sides of every internal
+identity (assets = liabilities, subtotal = Σchildren), the balance sheet and P&L
+validated *green*. Only `fx_cross_period`, which anchors the prior column against
+the independently extracted prior year-end, went red. The lesson generalises: **no
+internal identity can detect a unit change; only a cross-period or external anchor
+can.**
+
 ### Deploy — `.github/workflows/deploy-cloudflare.yml`
 On push touching `web/**`. Applies D1 migrations (`wrangler d1 migrations
 apply`), builds the OpenNext bundle, and deploys to Cloudflare Workers.

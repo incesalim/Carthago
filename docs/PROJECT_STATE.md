@@ -61,9 +61,35 @@ PDFs themselves live in R2 at
 
 **The 2026Q2 season opened 2026-07-26** — `acquire-audit.yml` pulled TEB's two
 2026Q2 PDFs (consolidated + unconsolidated) into R2, the first of the quarter;
-the coverage spine now carries a 2026Q2 row (36 cells, 32 missing) and the rest
-of the fleet is still at 2026Q1. **Not yet extracted** — see the quorum note
-below for why the order matters.
+the rest of the fleet is still at 2026Q1.
+
+**⚠️ TEB 2026Q2 switched reporting unit — extracted, found wrong, PURGED
+(2026-07-26).** The filing declares *"Tutarlar aksi belirtilmedikçe **Milyon**
+Türk Lirası"*; 2026Q1 said *"**Bin** Türk Lirası"*. The extractor reads the
+printed figures correctly and stores them as thousands, so the whole partition
+landed **1000× too small** (TEB total assets ₺799bn @2026Q1 → ₺841m @2026Q2).
+
+**No validator could see it, by construction.** Every BS/P&L check is an
+*internal* identity — assets = liabilities, subtotal = Σchildren,
+closing = opening + flows — and a uniform unit change scales both sides equally,
+so all of them foot and the cells read `ok`. Only the lane with a **cross-period**
+anchor went red: `fx_cross_period` compares the prior column against the
+independently extracted prior year-end and caught it at ~1000× (equity_change's
+`eq_oci_cross` also failed). The general rule: **no internal identity can detect a
+unit change; only a cross-period or external anchor can.**
+
+A pure-SQL sweep of the whole corpus (per bank, `LAG()` over total assets, flag
+ratio > 50 or < 0.02) returns **exactly one row** — TEB 2026Q2, ratio 950.6 (not
+exactly 1000 because the bank also grew ~5%). So **no historical filing was
+missed**; TEB is the first, and Turkish inflation makes more likely as the season
+fills in.
+
+**Decision: wait for more Q2 filers before building the fix**, so unit detection
+is designed against several examples rather than fitted to TEB. The partition was
+purged via the new `purge-partition.yml` (snapshot + D1 + coverage re-sync), so
+the cell reads `missing` + `pdf_present` and nothing published is silently wrong.
+**Do not extract further 2026Q2 filings until the unit is normalised** — check the
+`Bin|Milyon Türk Lirası` header first.
 
 **A new quarter arrives one bank at a time — sector "latest" needs a quorum
 (2026-07-26).** Three consumers took a bare `MAX(period)` over an audit table,
@@ -306,6 +332,7 @@ concurrency group), so audit failures can't stall the bulletin pipeline:
 - `.github/workflows/refresh-audit.yml` — **manual dispatch only** (no schedule; extraction is admin-reviewed — the Sunday 04:00 UTC cron belongs to `acquire-audit.yml`, which only *acquires* PDFs). Audit-report extract → `bank_audit_*` → D1. Own DB `data/bank_audit.db`, own snapshot `state/bank_audit.db.gz`, own group `bddk-audit`. Dispatch takes optional `bank` / `skip_scrape` inputs (the /admin per-bank trigger uses `bank` → `--only-bank … --latest-period`). After extraction it runs `scripts/check_audit_quality.py --alert` (alert-only): flags a quarter whose lines are identical to the prior one (period-shift), a balance sheet that doesn't balance, or missing rows → Telegram/Discord, never blocking the push.
 - `.github/workflows/reextract-statement.yml` — manual dispatch. Targeted single-statement re-extract via `scripts/reextract_statement.py`: pull snapshot → re-extract ONE lane (`oci`/`cash_flow`/`equity_change`/`npl_movement`) for the selected partitions → inline-validate → push that table + `bank_audit_validation` to D1 → snapshot → refresh coverage matrix. Shares the `bddk-audit` group. Inputs: `statement`, `banks`, `periods` (blank=all), `only_failing` (default true — selects `checks_failed>0 OR checks_passed=0`, so it catches the stale empties and skips the proven-passing rest), `dry_run`. This is the lane used to fix OCI/CF/NPL fleet-wide.
 - `.github/workflows/backfill-audit.yml` — manual dispatch. Full re-extract (all statements) of named banks via `backfill_extraction.py` (`ALL` exceeds the timeout → 5-bank chunks).
+- `.github/workflows/purge-partition.yml` — manual dispatch. Removes one `(bank, period[, kind])` from the lane via `scripts/purge_partition.py`: pull snapshot → delete locally → delete in D1 → **re-upload the snapshot** → coverage re-sync. Clearing D1 alone does not stick (the snapshot restores the rows on the next push). Leaves the R2 PDF, so the cell returns to `missing` + `pdf_present`. For extractions that pass validation but are known wrong — built for the TEB 2026Q2 unit switch. `dry_run` defaults **true** and is genuinely read-only.
 - `.github/workflows/backfill-faaliyet.yml` — manual dispatch. Fleet backfill of the Faaliyet-raporu franchise lane → `faaliyet_franchise` + `faaliyet_extractions`. The incremental refresh rides `refresh.py` (step 9, non-critical).
 - `.github/workflows/summarize-regulations.yml` — Sun 06:00 UTC. Weekly regulation briefing via Kimi → `regulation_briefings` → D1. Needs the `KIMI_API_TOKEN` repo secret, which the workflow maps to env `KIMI_API_KEY` (the name `src/news/kimi.py` reads) — see [OPERATIONS.md](OPERATIONS.md) §Secrets. Grounded on the TCMB annual policy baseline, pinned once a year by dispatching this workflow with `baseline_url`/`baseline_year` (the ingest must run in CI, between the snapshot pull and upload — a local run writes a DB production never reads). Runs `--require-baseline`, so an ungrounded briefing fails instead of shipping. Posts the generated briefing to Telegram (`notify_briefing()`, split across messages under Telegram's 4k cap) whenever the LLM actually runs — silent on unchanged-input weeks; `force=true` regenerates on demand. Follow-ups in [regulation_followups.md](regulation_followups.md).
 - `.github/workflows/deploy-cloudflare.yml` — on push to `web/**`. Apply D1 migrations + build + deploy dashboard.
