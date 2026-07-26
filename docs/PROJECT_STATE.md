@@ -59,6 +59,28 @@ Hayat Finans / T.O.M. Katılım) were onboarded 2026-07-11, and **Takasbank (`TA
 PDFs themselves live in R2 at
 `bddk-audit-reports/<ticker>/<TICKER>_<period>_<kind>.pdf`.
 
+**The 2026Q2 season opened 2026-07-26** — `acquire-audit.yml` pulled TEB's two
+2026Q2 PDFs (consolidated + unconsolidated) into R2, the first of the quarter;
+the coverage spine now carries a 2026Q2 row (36 cells, 32 missing) and the rest
+of the fleet is still at 2026Q1. **Not yet extracted** — see the quorum note
+below for why the order matters.
+
+**A new quarter arrives one bank at a time — sector "latest" needs a quorum
+(2026-07-26).** Three consumers took a bare `MAX(period)` over an audit table,
+which follows the FIRST filer of a quarter rather than the fleet: `perBankCapital`
+and `auditRatioLatestPeriod` (`audit-ratios.ts`) would have ranked sector capital
+adequacy on a league of one bank — on `/capital` **and the home page** — and
+`aheadSlots` (`ahead-data.ts`) reads the latest audit period as "the last quarter
+we hold" to predict the *next* filing window, so one early filer would have made
+the Ahead strip announce the **Q3** window while the Q2 season was still running.
+All three now take the latest quarter reported by **≥ 10 peer banks**, the guard
+`latestCommonPeriod` (heatmap) and `marketRiskLatestPeriod` (market risk) already
+used. All 38 banks file capital each quarter, so the quorum clears within days of
+a season opening and never gates a settled quarter. Pinned by
+`audit-ratios.test.ts` ("auditRatioLatestPeriod quorum"). **The guard is what makes
+it safe to extract a new quarter as each bank files, instead of waiting for the
+fleet.**
+
 **Takasbank (`TAKAS`) — carried, but NOT a peer.** İstanbul Takas ve Saklama Bankası is
 BDDK-licensed as a development-and-investment bank and files standard quarterly BRSA
 reports (16 periods, 2022Q2→2026Q1), but it is Turkey's central securities-settlement /

@@ -1,5 +1,42 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { aggregateCapital, type CapRow } from "./audit-ratios";
+
+// The quorum tests below drive the two SQL-backed exports, so D1 is stubbed:
+// `cachedAll` answers from a fixture fleet instead of the database.
+const fleet: { period: string; bank_ticker: string }[] = [
+  ...Array.from({ length: 38 }, (_, i) => ({ period: "2026Q1", bank_ticker: `B${i}` })),
+  { period: "2026Q2", bank_ticker: "TEB" }, // the lone early filer
+];
+
+vi.mock("./db", () => ({
+  cachedAll: vi.fn(async (sql: string, params: unknown[] = []) => {
+    if (/COUNT\(DISTINCT bank_ticker\)/.test(sql)) {
+      const minBanks = params[params.length - 1] as number;
+      const byPeriod = new Map<string, Set<string>>();
+      for (const r of fleet) {
+        if (!byPeriod.has(r.period)) byPeriod.set(r.period, new Set());
+        byPeriod.get(r.period)!.add(r.bank_ticker);
+      }
+      const hit = [...byPeriod.entries()]
+        .filter(([, banks]) => banks.size >= minBanks)
+        .sort((a, b) => b[0].localeCompare(a[0]))[0];
+      return hit ? [{ period: hit[0], n: hit[1].size }] : [];
+    }
+    // the row fetch — echo back whichever period it was asked for
+    const period = params[1] as string;
+    return fleet
+      .filter((r) => r.period === period)
+      .map((r) => ({
+        bank_ticker: r.bank_ticker,
+        period: r.period,
+        cet1_capital: 10,
+        additional_tier1_capital: null,
+        tier1_capital: 12,
+        total_capital: 16,
+        total_rwa: 100,
+      }));
+  }),
+}));
 
 /**
  * The bug this pins: a bank missing ONE capital component used to add its RWA to
@@ -83,5 +120,32 @@ describe("aggregateCapital", () => {
     const cet1 = out.filter((r) => r.bank_type_code === "CET1");
     expect(cet1.map((r) => r.period)).toEqual(["2025Q4", "2026Q1"]);
     expect(cet1.map((r) => r.value)).toEqual([10, 12]);
+  });
+});
+
+/**
+ * The bug this pins: TEB filed 2026Q2 on 2026-07-26, alone, and a bare
+ * `MAX(period)` made that quarter "the latest" the moment it was extracted. The
+ * by-bank capital table — on `/capital` AND the home page — would have ranked
+ * the sector's capital adequacy on a league of ONE bank, and kept doing so for
+ * the weeks until the rest of the fleet filed. A quorum makes a new quarter
+ * become "latest" only once enough of the fleet is in it to be a sector.
+ */
+describe("auditRatioLatestPeriod quorum", () => {
+  it("ignores a quarter only one early filer has published", async () => {
+    const { auditRatioLatestPeriod } = await import("./audit-ratios");
+    expect(await auditRatioLatestPeriod()).toBe("2026Q1"); // NOT 2026Q2
+  });
+
+  it("takes the new quarter once the fleet clears the quorum", async () => {
+    const { auditRatioLatestPeriod } = await import("./audit-ratios");
+    expect(await auditRatioLatestPeriod("unconsolidated", 1)).toBe("2026Q2");
+  });
+
+  it("ranks banks in the quorum quarter, not the single filer's", async () => {
+    const { perBankCapital } = await import("./audit-ratios");
+    const { period, rows } = await perBankCapital();
+    expect(period).toBe("2026Q1");
+    expect(rows.length).toBe(38); // the fleet — not TEB on its own
   });
 });

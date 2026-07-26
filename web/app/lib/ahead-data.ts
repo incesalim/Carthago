@@ -16,10 +16,18 @@ export async function aheadSlots(now: Date = new Date()): Promise<AheadSlots> {
   try {
     const nowIso = now.toISOString().slice(0, 10);
     const [periods, events, filingLag] = await Promise.all([
+      // `audit` = the last quarter the FLEET has filed, not the last quarter any
+      // single bank has. `ahead.ts` reads it as "the last quarter we hold" and
+      // predicts the NEXT quarter's filing window, so one early filer (TEB
+      // opened 2026Q2 alone) would make the strip announce the Q3 window while
+      // the Q2 season was still running. Quorum of 10, as in `latestCommonPeriod`.
       cachedAll<{ monthly: string | null; audit: string | null }>(
         `SELECT
            (SELECT MAX(year || '-' || PRINTF('%02d', month)) FROM financial_ratios) AS monthly,
-           (SELECT MAX(period) FROM bank_audit_balance_sheet) AS audit`,
+           (SELECT period FROM bank_audit_balance_sheet
+             WHERE statement = 'assets'
+             GROUP BY period HAVING COUNT(DISTINCT bank_ticker) >= 10
+             ORDER BY period DESC LIMIT 1) AS audit`,
       ),
       // The scraped TCMB calendar — future rows only; ahead.ts picks next-of-kind.
       cachedAll<CalendarEvent>(

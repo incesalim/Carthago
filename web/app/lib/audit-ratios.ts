@@ -132,17 +132,16 @@ export interface BankCapitalRow {
 export async function perBankCapital(
   kind: string = DEFAULT_KIND,
 ): Promise<{ period: string | null; rows: BankCapitalRow[] }> {
+  const period = await auditRatioLatestPeriod(kind);
+  if (period == null) return { period: null, rows: [] };
   const rows = await cachedAll<CapRow>(
     `SELECT bank_ticker, period, cet1_capital, additional_tier1_capital, tier1_capital,
             total_capital, total_rwa
        FROM bank_audit_capital
-      WHERE kind = ? AND period_type = 'current'
-        AND period = (SELECT MAX(period) FROM bank_audit_capital
-                       WHERE kind = ? AND period_type = 'current')`,
-    [kind, kind],
+      WHERE kind = ? AND period_type = 'current' AND period = ?`,
+    [kind, period],
   );
   if (rows.length === 0) return { period: null, rows: [] };
-  const period = rows[0].period;
   const pct = (n: number | null, rwa: number) => (n != null ? (n / rwa) * 100 : null);
   const out: BankCapitalRow[] = [];
   for (const r of peersOnly(rows)) {
@@ -215,16 +214,30 @@ export async function sectorLiquidityRatios(kind: string = DEFAULT_KIND): Promis
 }
 
 /**
- * Latest quarter present in the audited capital table (for dataThrough). Peers
- * only — this stamps the freshness of the ratios above, so it must be the latest
- * quarter of the population those ratios are drawn from.
+ * Latest quarter reported by at least `minBanks` peer banks (for dataThrough,
+ * and for the by-bank ranking's period). Peers only — this stamps the freshness
+ * of the ratios above, so it must be the latest quarter of the population those
+ * ratios are drawn from.
+ *
+ * The quorum is the point. A bare `MAX(period)` follows the FIRST filer of a new
+ * quarter: TEB published 2026Q2 on its own, and an unguarded max would have
+ * ranked the sector's capital adequacy on a table of one bank — on `/capital`
+ * and on the home page — for the weeks until the rest of the fleet filed. All 38
+ * banks report capital each quarter, so 10 clears within days of the season
+ * opening and never gates a settled quarter. Same guard as
+ * `latestCommonPeriod` (heatmap) and `marketRiskLatestPeriod` (market risk).
  */
-export async function auditRatioLatestPeriod(kind: string = DEFAULT_KIND): Promise<string | null> {
+export async function auditRatioLatestPeriod(
+  kind: string = DEFAULT_KIND,
+  minBanks = 10,
+): Promise<string | null> {
   const peers = peerExclusionSql();
   const rows = await cachedAll<{ period: string }>(
-    `SELECT MAX(period) AS period FROM bank_audit_capital
-      WHERE kind = ? AND period_type = 'current'${peers.clause}`,
-    [kind, ...peers.params],
+    `SELECT period, COUNT(DISTINCT bank_ticker) AS n
+       FROM bank_audit_capital
+      WHERE kind = ? AND period_type = 'current'${peers.clause}
+      GROUP BY period HAVING n >= ? ORDER BY period DESC LIMIT 1`,
+    [kind, ...peers.params, minBanks],
   );
   return rows[0]?.period ?? null;
 }
