@@ -121,7 +121,40 @@ signal and the credit-quality equivalent.
 Generalisable: a per-cell repair tool has to be able to name **which** cell, and
 has to say so when it names one that does not exist.
 
-### Found on the way, still open: ISCTR 2024Q1 prior is a column SLIP
+### The bigger finding: half of every §4 capital cell was never validated
+
+`check_capital` reads the row list and takes
+`next(r for r in rows if r["period_type"] == "current")`. That is all it ever
+looked at. `Tier1 = CET1 + AT1` — the identity that refutes the ISCTR CET1
+defect instantly — **has existed since the lane shipped**; it simply never ran on
+the prior column, which is where the defect was.
+
+Extended to both columns (failures tagged `[prior]` so a red cell names its
+table; the *completeness* fails stay current-only, because a bank reprinting a
+partial prior column is ordinary and not our defect). Calibrated over the
+corpus: **21 partitions fail** — all pre-existing, none new. Three are corrected
+below; the other 18 share one signature (`at1` or `t2` stored `0.0` where the
+value is non-zero, the truth always being `t1 − cet1` or `tc − t1`), which is one
+extractor defect in the prior-column parse rather than 18 data errors.
+
+The lesson is not "add a validator" — the validator was there. It is that **an
+identity applied to half a table is an identity you do not have.** Worth checking
+the other lanes for the same shape: `check_liquidity` takes the identical
+`period_type == "current"` line.
+
+### A method note: the circular proof
+
+The first correction set I built took each failing row, replaced the flagged
+fields with the year-end anchor's values, and checked the identity closed. It
+closed for 9 of 11 — and that number was meaningless. Substituting a whole row
+from a self-consistent source and then testing self-consistency proves only that
+the source was self-consistent.
+
+The honest test derives each field from **the stored row's own** identity and
+requires the anchor to agree *independently*. Two derivations, no shared input.
+Under it, 9 of 11 collapsed to **2**. Both were applied; the other 9 were not.
+
+### Found on the way and FIXED: ISCTR 2024Q1 prior was a column SLIP
 
 Same 31-Dec-2023 column, different defect class:
 
@@ -136,9 +169,15 @@ Same 31-Dec-2023 column, different defect class:
 
 **The amount-integrity sweep is structurally blind to this** — every stored value
 is a whole number, so nothing about its *shape* is wrong; only the assignment is.
-It is a row-label matching failure, not a parse failure, and catching the class
-would need a different check (e.g. the same `CET1 + AT1 = Tier1` identity as a
-validator, which would flag it immediately). Left for a decision.
+It is a row-label matching failure, not a parse failure.
+
+Cause, read from the PDF: ISCTR's 2024Q1 is an **English** filing whose §4 labels
+print one row off their values. p37 reads *"Total Deductions from Common Equity
+Tier 1  294,633,433  270,336,203"* — that IS the CET1 row; *"Total Additional
+Tier I Capital  311,532,076  275,684,291"* is Tier 1; and so on down the table.
+The extractor matched each label literally, so `cet1`/`tier1` came back NULL
+while AT1 took Tier 1's value and Tier 2 took Capital's. **Corrected from source**
+(four fields), and the row now closes `CET1 + AT1 = Tier1` exactly.
 
 **Leaked non-values — 65.** A hierarchy marker, sector numbering or dipnot ref
 parked in an amount column: `equity_change.paid_in_capital` (44, all GARAN
@@ -278,18 +317,31 @@ Recorded so they are not re-proposed as oversights:
 
 ## 6. Open, needing a decision
 
-1. **ISCTR 2024Q1 consolidated prior — the column slip** in §3 above. Every
-   correct value is determined by the other three 2024 filings; it is the same
-   one-entry override, and the sweep will never find it on its own.
-2. **The 65 leaked non-values.** A symptom of the equity_change and
-   loans_by_sector column-alignment tails; fixing them means an extractor pass on
-   those lanes, not a data edit. `check_amount_integrity --strict` fails on them
-   if that is ever wanted as a gate.
-3. **A `CET1 + AT1 = Tier1` validator.** The identity that proved the ISCTR
-   correction is not currently checked anywhere. It would have caught both the
-   2024Q2 mis-read and the 2024Q1 slip at extraction time — cheap, and the
-   §4 capital lane has the columns for it.
-4. **Local `pytest` cannot run two TBB test files** — `numpy.dtype size changed`,
+1. **18 §4 capital partitions failing on the prior column** (EMLAK ×4, ISCTR ×2,
+   QNBFB ×11, +1). One shared signature — `at1`/`t2` stored `0.0` where the value
+   is non-zero — so the fix belongs in `capital_adequacy.py`'s prior-column
+   parse, not in 18 overrides. 5 of them have no in-corpus anchor (their prior
+   column is a 2021 year-end, before the corpus starts) and need the source PDF.
+   A full `revalidate_audit_db.py` pass is what surfaces them in `/admin`.
+2. **`check_liquidity` has the same `period_type == "current"` line** as
+   `check_capital` did. Its prior column has never been validated either. Worth
+   the same treatment, and the same calibration before shipping.
+3. **The 65 leaked non-values.** Root causes now identified, both extractor-side:
+   *equity_change* leaks a footnote/section reference into `paid_in_capital`
+   (GARAN 38 rows carry 11.1/11.2/11.3, EXIM 6 carry 10.2 — and EXIM's stored
+   label `"Capital Increase in Cash (."` is the smoking gun, truncated at the
+   opening paren of its own `(10.2)` ref); *loans_by_sector* leaks the sector
+   NUMBERING as a value on a wrapped Turkish label (ANADOLU "Madencilik ve" →
+   `stage2 = 2.1`), and on ALBRK 2025Q4 prior it is worse than junk — `raw_label`
+   holds *'Farming and stockbreeding 44.417 25.470 22.851'* while `stage3` got
+   the sector number and `ecl` was dropped, so 10 sectors lost two real columns.
+   Three further rows are pure **phantoms**: a page header parsed as a cash-flow
+   row (QNBFB 2022Q2), a header fragment as a P&L row (QNBFB 2024Q2), and a
+   truncated label fragment in YKBNK 2022Q3 liabilities.
+4. **9 stale overrides** that match nothing on every run (AKBNK `pl_rehier` ×3,
+   EXIM/VAKBN/HAYATK `bs_rehier` ×6) — the extractor fixes they compensated for
+   have landed. Dead config, and they make a real `NO MATCH` harder to spot.
+5. **Local `pytest` cannot run two TBB test files** — `numpy.dtype size changed`,
    a numpy/pandas ABI mismatch in the local venv. Pre-existing (reproduced on a
    clean `git stash`), unrelated to this change, and not present in CI, which
    installs fresh wheels. Worth a `pip install -U numpy pandas` locally.

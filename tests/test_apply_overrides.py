@@ -124,3 +124,44 @@ def test_credit_quality_override_targets_the_named_period_column():
     assert dict(c.execute("SELECT period_type, stage2_amount FROM "
                           "bank_audit_credit_quality").fetchall()) == {
         "current": -2386482.0, "prior": -535779}
+
+
+def test_capital_prior_is_validated_at_all():
+    """check_capital read ONLY the current row until 2026-07-27, so half of every
+    §4 capital cell in the corpus went unchecked — which is why ISCTR 2024Q2
+    shipped a CET1 stored 1000x too small: the value sat in the PRIOR column,
+    where `Tier1 = CET1 + AT1` would have refuted it on sight."""
+    from src.audit_reports.validator import check_capital
+    ok = {"period_type": "current", "cet1_capital": 305357338.0,
+          "additional_tier1_capital": 17674063.0, "tier1_capital": 323031401.0,
+          "tier2_capital": 64664377.0, "total_capital": 387695778.0,
+          "total_rwa": 2324128517.0}
+    prior_ok = {"period_type": "prior", "cet1_capital": 270336203.0,
+                "additional_tier1_capital": 5348088.0, "tier1_capital": 275684291.0,
+                "tier2_capital": 56791080.0, "total_capital": 332475371.0,
+                "total_rwa": 1673761385.0}
+    assert check_capital([ok, prior_ok]).failed == 0
+
+    prior_bad = dict(prior_ok, cet1_capital=270336.203)   # the shipped defect
+    res = check_capital([ok, prior_bad])
+    assert res.failed == 1
+    assert "[prior]" in res.failures[0]["node"], "a failure must name its column"
+    assert res.failures[0]["check"] == "cap_composition"
+
+
+def test_capital_completeness_fails_stay_current_only():
+    """A bank reprinting a partial prior column is ordinary and not our defect.
+    Failing on it would be a false positive on the 'missing is a fact about US'
+    line, so cap_rwa_missing / cap_car_missing must not fire on prior."""
+    from src.audit_reports.validator import check_capital
+    cur = {"period_type": "current", "cet1_capital": 100.0,
+           "additional_tier1_capital": 0.0, "tier1_capital": 100.0,
+           "tier2_capital": 0.0, "total_capital": 100.0, "total_rwa": 1000.0,
+           "capital_adequacy_ratio": 10.0}
+    bare_prior = {"period_type": "prior", "total_rwa": None,
+                  "capital_adequacy_ratio": None}
+    res = check_capital([cur, bare_prior])
+    assert res.failed == 0, [f["check"] for f in res.failures]
+
+    # …but the SAME emptiness on the current row is still a hard fail.
+    assert check_capital([dict(bare_prior, period_type="current")]).failed > 0

@@ -10667,6 +10667,43 @@
         "stage2_amount": -535779
       },
       "note": "Same parse_num defect, negative form: -535.779 stored for -535.779 read as thousands, i.e. -535,779. The prior column re-prints the prior year's current column verbatim — DENIZ's UNCONSOLIDATED 2023Q4 prior row is byte-identical to its 2022Q4 unconsolidated current row (890,853 / -632,174 / 6,462,021), establishing that this bank restates nothing here. On the consolidated side DENIZ 2022Q4 current carries stage2 -535,779 and stage3 6,259,934; the 2023Q4 prior row already matches stage3 exactly. NOTE stage1 still differs (1,248,122 here vs 1,252,125 in 2022Q4 current) — left alone: no 1000x signature and no evidence which of the two is the mis-read, so it stays flagged rather than guessed."
+    },
+    {
+      "bank_ticker": "ISCTR",
+      "period": "2024Q1",
+      "kind": "consolidated",
+      "statement": "capital",
+      "period_type": "prior",
+      "fields": {
+        "cet1_capital": 270336203,
+        "additional_tier1_capital": 5348088,
+        "tier1_capital": 275684291,
+        "tier2_capital": 56791080
+      },
+      "note": "Column SLIP, not a parse error: ISCTR's 2024Q1 English filing prints the section-4 capital labels one row off their values, so every value line carried the label above it. p37 reads 'Total Deductions from Common Equity Tier 1 294,633,433 270,336,203' (that IS the CET1 row), 'Total Deductions from Additional Tier I Capital 16,898,643 5,348,088' (the AT1 total), 'Total Additional Tier I Capital 311,532,076 275,684,291' (Tier 1) and 'Total Deductions from Tier II Capital 65,572,930 56,791,080' (Tier 2). The extractor matched each label literally, so cet1/tier1 came back NULL while AT1 got Tier1's value and Tier2 got Capital's. Values read from the source PDF (R2 isctr/ISCTR_2024Q1_consolidated.pdf p37) and corroborated four ways: the same 31-Dec-2023 column in ISCTR's 2024Q2/Q3/Q4 priors and in its own 2023Q4 CURRENT row. CET1 + AT1 = Tier1 closes exactly. total_capital left as stored (332,472,141 = the source's 'Total Capital' line, after deductions) - it is the filing's own figure and validates."
+    },
+    {
+      "bank_ticker": "ICBCT",
+      "period": "2026Q1",
+      "kind": "unconsolidated",
+      "statement": "capital",
+      "period_type": "prior",
+      "fields": {
+        "additional_tier1_capital": 4265800
+      },
+      "note": "AT1 stored 0 in the PRIOR column where the bank holds 4,265,800. Proven by two INDEPENDENT derivations that agree exactly: the stored row's own identity gives Tier1 - CET1 = 8,054,499 - 3,788,699 = 4,265,800, and ICBCT's 2025Q4 filing - the year-end this prior column reprints - carries additional_tier1_capital = 4,265,800 in its independently extracted CURRENT row. Surfaced by extending check_capital to the prior column (2026-07-27); it had only ever validated `current`."
+    },
+    {
+      "bank_ticker": "SKBNK",
+      "period": "2025Q4",
+      "kind": "unconsolidated",
+      "statement": "capital",
+      "period_type": "prior",
+      "fields": {
+        "additional_tier1_capital": 16233,
+        "tier2_capital": 3835379
+      },
+      "note": "Same class as ICBCT above: AT1 and Tier2 both stored 0 in the PRIOR column. Each proven by two independent derivations agreeing exactly - stored identity Tier1 - CET1 = 10,352,346 - 10,336,113 = 16,233 and Total - Tier1 = 14,187,725 - 10,352,346 = 3,835,379, both matching SKBNK's 2024Q4 CURRENT row (16,233 / 3,835,379)."
     }
   ]
 }

@@ -1083,12 +1083,35 @@ def check_capital(rows: list[dict]) -> ValidationResult:
       plus a CAR plausibility band [5, 80]%.
     An optional component (AT1 / Tier2) is treated as 0 when NULL, but the
     composition PASSES only when the identity then ties — a genuinely-missed
-    NON-zero component won't tie → SKIP, never a false pass/fail."""
+    NON-zero component won't tie → SKIP, never a false pass/fail.
+
+    Run over BOTH period columns since 2026-07-27. It used to read only the
+    `current` row, and that is why ISCTR 2024Q2 shipped a CET1 stored 1000x too
+    small: the value sat in the PRIOR column, where `Tier1 = CET1 + AT1` — the
+    identity that proves it wrong on sight — was simply never evaluated. Half a
+    table was going unchecked in every §4 capital cell in the corpus.
+
+    Only the reconciling checks extend to prior. The COMPLETENESS fails
+    (cap_car_missing / cap_rwa_missing) stay current-only: a bank reprinting a
+    partial prior column is ordinary and not our defect, so failing on it would
+    be a false positive on exactly the "missing is a fact about US" line."""
     res = ValidationResult()
     cur = next((r for r in rows if r.get("period_type") == "current"), None)
     if cur is None:
         res.add_skip()
         return res
+    _check_capital_row(res, cur, completeness=True)
+    pri = next((r for r in rows if r.get("period_type") == "prior"), None)
+    if pri is not None:
+        _check_capital_row(res, pri, completeness=False, label_suffix=" [prior]")
+    return res
+
+
+def _check_capital_row(res: ValidationResult, cur: dict, *, completeness: bool,
+                       label_suffix: str = "") -> None:
+    """The per-column body of check_capital. `label_suffix` tags a failure with
+    the column it came from — without it a red cell doesn't say which of the two
+    tables to look at."""
     cet1 = cur.get("cet1_capital")
     at1  = cur.get("additional_tier1_capital")
     t1   = cur.get("tier1_capital")
@@ -1117,8 +1140,8 @@ def check_capital(rows: list[dict]) -> ValidationResult:
         else:
             res.add_fail("cap_composition", label, expected=parent, actual=implied)
 
-    _composition(t1, cet1, at1, "Tier1 = CET1 + AT1")
-    _composition(tc, t1, t2, "Total Capital = Tier1 + Tier2")
+    _composition(t1, cet1, at1, "Tier1 = CET1 + AT1" + label_suffix)
+    _composition(tc, t1, t2, "Total Capital = Tier1 + Tier2" + label_suffix)
 
     def _ratio(reported, num, label):
         # reported sub-ratio must equal num / RWA * 100 (±2pp, as for CAR)
@@ -1131,9 +1154,9 @@ def check_capital(rows: list[dict]) -> ValidationResult:
         else:
             res.add_fail("cap_ratio_reconcile", label, expected=implied, actual=reported)
 
-    _ratio(cet1r, cet1, "CET1 ratio = CET1 / RWA * 100")
-    _ratio(t1r, t1, "Tier1 ratio = Tier1 / RWA * 100")
-    _ratio(car, tc, "CAR = Total Capital / RWA * 100")
+    _ratio(cet1r, cet1, "CET1 ratio = CET1 / RWA * 100" + label_suffix)
+    _ratio(t1r, t1, "Tier1 ratio = Tier1 / RWA * 100" + label_suffix)
+    _ratio(car, tc, "CAR = Total Capital / RWA * 100" + label_suffix)
 
     # CAR plausibility. A CAR that RECONCILES to total_capital / RWA is already
     # verified against its own components — the [5, 80] band is only a fallback for
@@ -1150,8 +1173,11 @@ def check_capital(rows: list[dict]) -> ValidationResult:
             res.add_pass()
         else:
             res.add_fail("cap_car_band",
-                         "CAR outside [5, 80]% and not reconciling to Total/RWA",
+                         "CAR outside [5, 80]% and not reconciling to Total/RWA"
+                         + label_suffix,
                          expected=12.0, actual=car)
+    elif not completeness:
+        res.add_skip()   # prior column: a missing CAR is the filer's choice
     elif tc is None or rwa is None:
         # CAR null is a dropped column UNLESS it's derivable from total_capital +
         # RWA (both present → the cell is complete and CAR = TC/RWA*100 is
@@ -1164,10 +1190,9 @@ def check_capital(rows: list[dict]) -> ValidationResult:
         res.add_skip()  # CAR not stored but derivable from total_capital + RWA → complete
     # Total RWA is the mandatory, non-derivable denominator of every §4 table; NULL
     # = a dropped column (every cet1/tier1/CAR reconcile skips without it).
-    if rwa is None:
+    if rwa is None and completeness:
         res.add_fail("cap_rwa_missing", "total_rwa dropped (mandatory on §4 table)",
                      expected=0.0, actual=0.0)
-    return res
 
 
 # ===========================================================================

@@ -5,6 +5,49 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-07-27.
 
+2026-07-27 — **Half of every section-4 capital cell was never validated.**
+`check_capital` took `next(r for r in rows if r["period_type"] == "current")` and
+that was all it ever looked at. `Tier1 = CET1 + AT1` — the identity that refutes
+the ISCTR CET1 defect on sight — has existed since the lane shipped; it simply
+never ran on the prior column, which is where the defect was. The lesson is not
+"add a validator": the validator was there. An identity applied to half a table
+is an identity you do not have.
+
+Now run over both columns, failures tagged `[prior]` so a red cell names its
+table. The COMPLETENESS fails (cap_rwa_missing / cap_car_missing) stay
+current-only on purpose — a bank reprinting a partial prior column is ordinary
+and not our defect. Calibrated over the corpus: **21 partitions fail on the prior
+column**, all pre-existing (EMLAK x4, ICBCT x1, ISCTR x4, QNBFB x11, SKBNK x1).
+
+**3 corrected, from evidence.** ISCTR 2024Q1 consolidated prior was a column
+SLIP the fractional sweep is structurally blind to — every value a whole number,
+only the assignment wrong. Its 2024Q1 **English** filing prints the section-4
+labels one row off their values ("Total Deductions from Common Equity Tier 1
+294,633,433 270,336,203" IS the CET1 row), so the extractor matched labels
+literally and put Tier 1's value in AT1. Four fields re-read from the PDF.
+ICBCT 2026Q1 and SKBNK 2025Q4 each proven by two independent derivations
+agreeing exactly. All six affected rows now close CET1 + AT1 = Tier1 in D1.
+
+**18 remain, with one shared signature** — `additional_tier1_capital` or
+`tier2_capital` stored as 0.0 where the value is non-zero, the truth always
+being `t1 - cet1` or `tc - t1`. That is one extractor defect in the prior-column
+parse, not 18 data errors; 5 of them have no in-corpus anchor at all (their
+prior column is a 2021 year-end, before the corpus starts).
+
+**A method note worth keeping.** The first correction set replaced each failing
+row's flagged fields with the year-end anchor's values and checked the identity
+closed. It closed for 9 of 11 — and the number was meaningless: substituting a
+whole row from a self-consistent source and then testing self-consistency proves
+only that the source was self-consistent. The honest test derives each field
+from the STORED row's own identity and requires the anchor to agree
+independently. Under it, 9 collapsed to 2.
+
+Also settled at source: DENIZ 2023Q4's prior `stage1_amount`, left flagged
+earlier, is **not** an error — p112 prints 1.248.122 and the bank restated it.
+The same page confirms the stage-2 fix, printing `-535.779` with a hyphen while
+the current column uses `(2.386.482)` parens: exactly why the parse bug bit one
+column and not the other.
+
 2026-07-27 — **The two mis-read amounts, corrected — and the repair tool
 could not name the cell.** Both figures the amount-integrity sweep found sit in
 a *prior* column, and `apply_overrides`' capital handler hardcoded

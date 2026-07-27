@@ -1098,14 +1098,48 @@ each `/banks/[ticker]` page:
     (defaulting to `current`, so the 54 pre-existing capital overrides are
     unchanged) and reports **NO MATCH** instead of succeeding on zero rows.
     Pinned by `tests/test_apply_overrides.py`.
-  - **Still open: ISCTR 2024Q1 consolidated prior is a column SLIP** — `cet1` and
-    `tier1` NULL, Tier1's value sitting in `additional_tier1_capital`, Total
-    capital's in `tier2_capital`, and `total_capital` = 332,472,141 against the
-    332,475,371 the other three filings print. Same 31-Dec-2023 column, so the
-    same four-way agreement determines every correct value. **The
-    amount-integrity sweep is structurally blind to it** — every stored value is
-    a whole number; only the *assignment* is wrong. A row-label matching failure,
-    not a parse failure.
+  - **ISCTR 2024Q1 consolidated prior — CORRECTED 2026-07-27, from source.** A
+    column SLIP, not a parse error, and the amount-integrity sweep is
+    structurally blind to it: every stored value was a whole number, only the
+    *assignment* was wrong. ISCTR's 2024Q1 **English** filing prints the §4
+    capital labels one row off their values — p37 reads *"Total Deductions from
+    Common Equity Tier 1  294,633,433  270,336,203"*, which IS the CET1 row — so
+    the extractor matched labels literally and put Tier 1's value in AT1 and
+    Capital's in Tier 2, leaving `cet1`/`tier1` NULL. Four fields re-read from
+    the PDF and corroborated by the same 31-Dec-2023 column in three other
+    filings.
+
+- **§4 capital: `check_capital` only ever validated the CURRENT column
+  (fixed 2026-07-27) — 21 partitions were hiding behind it.** The identity that
+  refutes the ISCTR CET1 defect on sight, `Tier1 = CET1 + AT1`, has existed in
+  `validator.py` since the lane shipped. It just never ran on the prior row, so
+  **half of every §4 capital cell in the corpus went unchecked**. Now run over
+  both columns, with failures tagged `[prior]` so a red cell names its table.
+  The *completeness* fails (`cap_rwa_missing`/`cap_car_missing`) stay
+  current-only on purpose: a bank reprinting a partial prior column is ordinary
+  and not our defect.
+
+  Calibration over the corpus: **21 partitions fail on the prior column** —
+  EMLAK ×4, ICBCT ×1, ISCTR ×4, QNBFB ×11, SKBNK ×1. All pre-existing, none new.
+  **3 corrected** (ISCTR 2024Q1 above; ICBCT 2026Q1 and SKBNK 2025Q4, each proven
+  by two independent derivations agreeing exactly — the stored row's own identity
+  and the year-end filing the prior column reprints). **18 remain**, and they
+  share one signature: `additional_tier1_capital` or `tier2_capital` stored as
+  **0.0** where the value is non-zero, the true figure always being `t1 − cet1`
+  or `tc − t1`. That is one extractor defect in the prior-column parse, not 18
+  data errors — fix it at source rather than hand-writing 18 overrides. **5 of
+  the 18 have no in-corpus anchor at all** (their prior column is a 2021
+  year-end, before the corpus starts) and need the source PDF.
+
+  ⚠️ Note the surfacing is not yet in `/admin`: only partitions touched by an
+  override run have been revalidated. A full `revalidate_audit_db.py` pass is
+  what turns the other 18 red in the coverage matrix.
+
+- **9 overrides in `data/audit_overrides.json` now match nothing** (AKBNK
+  `pl_rehier` ×3, EXIM/VAKBN/HAYATK `bs_rehier` ×6). They report `NO MATCH` on
+  every run: the extractor fixes they compensated for have since landed, so the
+  renames are already applied and the entries are dead config. Harmless, but they
+  make a real no-match harder to spot in the log.
   - **Leaked non-values (65)** — a hierarchy marker or sector numbering parked in
     an amount column (`equity_change.paid_in_capital` 44 × GARAN `11.2`/`11.3`,
     `loans_by_sector` 18, three singletons). Junk that reads as junk; belongs to
