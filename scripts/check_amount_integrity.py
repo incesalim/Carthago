@@ -79,10 +79,6 @@ RATIO_COLUMNS: dict[str, set[str]] = {
 # double-rounding noise on values up to ~1e12.
 TOLERANCE = 1e-6
 
-# Pairs per generated query. D1 has a statement-size limit and a per-query time
-# budget; ~70 (table, column) pairs in one UNION ALL is asking for trouble.
-CHUNK = 10
-
 # A fractional amount has exactly two causes, and they need different responses:
 #
 #   MIS-READ THOUSANDS SEPARATOR — "270.336.203" arriving as "270336.203", or
@@ -161,7 +157,10 @@ def _d1(sql: str) -> list[dict]:
         shell=(os.name == "nt"),
     )
     if proc.returncode != 0:
-        raise RuntimeError(f"d1 query failed: {proc.stderr[-400:]}")
+        # wrangler writes its error body to STDOUT, not stderr — reporting only
+        # stderr here produced "d1 query failed:" with nothing after it.
+        detail = (proc.stderr.strip() or proc.stdout.strip() or "no output")
+        raise RuntimeError(f"d1 query failed: {detail[-600:]}")
     m = re.search(r"\[[\s\S]*\]", proc.stdout)
     if not m:
         raise RuntimeError(f"unparseable d1 output: {proc.stdout[:300]}")
@@ -182,18 +181,35 @@ def _fraction_predicate(col: str) -> str:
 
 def count_offenders(query, pairs: list[tuple[str, str]]) -> dict[tuple[str, str], int]:
     """Rows with a fractional amount, per (table, column). Zero-count pairs are
-    dropped so the caller only sees what is wrong."""
+    dropped so the caller only sees what is wrong.
+
+    ONE query per TABLE, counting all of its amount columns in a single pass via
+    conditional aggregation. The obvious shape — one `COUNT(*) … WHERE` per
+    column, UNION ALL'd — is what this replaced: every branch of a UNION is its
+    own full scan, so 67 columns meant 67 scans of tables up to ~200k rows, and
+    D1 rejected the query outright. Conditional aggregation makes it 13 scans,
+    one per table, regardless of how many columns each has.
+
+    Aliases are positional (c0, c1, …) rather than the column names, so a column
+    whose name collides with SQL syntax can't break the projection.
+    """
+    by_table: dict[str, list[str]] = {}
+    for table, col in pairs:
+        by_table.setdefault(table, []).append(col)
+
     found: dict[tuple[str, str], int] = {}
-    for i in range(0, len(pairs), CHUNK):
-        chunk = pairs[i:i + CHUNK]
-        sql = " UNION ALL ".join(
-            f"SELECT '{t}' AS tbl, '{c}' AS col, COUNT(*) AS n FROM {t} "
-            f"WHERE {_fraction_predicate(c)}"
-            for t, c in chunk
+    for table, cols in by_table.items():
+        projection = ", ".join(
+            f"SUM(CASE WHEN {_fraction_predicate(c)} THEN 1 ELSE 0 END) AS c{i}"
+            for i, c in enumerate(cols)
         )
-        for row in query(sql):
-            if int(row["n"]) > 0:
-                found[(row["tbl"], row["col"])] = int(row["n"])
+        rows = query(f"SELECT {projection} FROM {table}")
+        if not rows:
+            continue
+        for i, col in enumerate(cols):
+            n = rows[0].get(f"c{i}") or 0
+            if int(n) > 0:
+                found[(table, col)] = int(n)
     return found
 
 
