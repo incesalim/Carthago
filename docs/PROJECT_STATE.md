@@ -1057,8 +1057,11 @@ each `/banks/[ticker]` page:
 
 ## Known issues / pending work
 
-- **D1 write bill: ~122M rows/month against a 50M allowance — two pure-waste
-  sources fixed 2026-07-27, the campaign cost still open.** D1 charges $1.00 per
+- **D1 write bill: 68.1M rows month-to-date against a 50M allowance (~$18 over)
+  — two pure-waste sources fixed 2026-07-27, the campaign cost still open.**
+  ⚠️ An earlier note here said ~122M/month and ~$72: that was a **14-day window
+  extrapolated to 30**, and the window held three campaign days. Writes are far
+  too bursty for that — always sum the calendar month. D1 charges $1.00 per
   million **rows written** (reads are $0.001/M — a thousandth), and `rowsWritten`
   counts DELETEs and index maintenance: one override push here reported 392,363
   rowsWritten against 107,636 actual changes, a **3.6× multiplier**.
@@ -1081,8 +1084,16 @@ each `/banks/[ticker]` page:
   download stamp cannot.
 
   ⚠️ **Not all of the bill is this project.** The account hosts a second D1
-  database, `gazelhan`, which was ~20% of writes and half of reads over the
-  measured fortnight. Attribute before optimising.
+  database, `gazelhan` — 9.5M of the month's 68.1M writes and half of all reads.
+  Attribute before optimising.
+
+  **The QUIET-day baseline is cheap and flat** — Jul 6–10 ran ~485k rows/day,
+  ~14.6M/month, well inside the allowance. Every bit of the overage is campaign
+  days: Jul 15 (12.4M), Jul 17 (15.1M) and Jul 26 (9.4M) are 36.9M of 68.1M.
+  Predicted, not yet confirmed: the EVDS fix (52,828 rows × 3 pushes/day on a
+  table with a PK + 2 indexes) should account for most of that ~485k baseline —
+  verify against the analytics a few days after 2026-07-27 rather than trusting
+  the arithmetic.
 
   **Still open — the dominant cost.** Audit campaigns, not the daily crons: two
   days of lane work (2026-07-15/17) were 27.5M of that fortnight's 47.5M. The

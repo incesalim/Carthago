@@ -540,8 +540,21 @@ EOF
 ```
 
 ⚠️ **The account hosts more than one D1 database.** `bddk-data` is this project;
-`gazelhan` is not, and was ~20% of the account's writes and half its reads when
+`gazelhan` is not, and was ~14% of the account's writes and half its reads when
 this was last measured (2026-07-27). Attribute before optimising.
+
+⚠️ **Measure month-to-date; never extrapolate a short window.** Writes here are
+extremely bursty — an audit campaign day is 20-30x a quiet one. Scaling a
+fortnight that happened to contain three campaign days to a month overstated the
+bill by 4x (claimed $72, actual $18). The query above already returns per-day
+rows: sum the calendar month, do not multiply an average.
+
+**Measured 2026-07-01 → 07-27** (27 days, the whole month to date): 68.1M rows
+written account-wide (bddk-data 58.6M + gazelhan 9.5M) against the 50M included —
+**18.1M over, ~$18**. The QUIET-day baseline is flat and cheap: Jul 6-10 ran
+486,892 / 487,107 / 488,156 / 484,448 / 487,011 rows a day, i.e. ~14.6M a month,
+comfortably inside the allowance. **The entire overage is campaign days** — Jul
+15 (12.4M), Jul 17 (15.1M) and Jul 26 (9.4M) alone are 36.9M of the 68.1M.
 
 **The two rules that keep the bill down**
 
