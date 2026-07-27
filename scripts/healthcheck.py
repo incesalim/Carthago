@@ -32,7 +32,15 @@ sys.path.insert(0, str(ROOT))  # so the lazy BDDK-probe import resolves
 # staleness (banks publish quarterly) — it's covered by the failure count.
 THRESHOLDS = [
     ("weekly", "Weekly bulletin", 192),
-    ("evds", "EVDS rates/FX", 48),  # daily cron (24h) + margin
+    # Checked on the latest DATA date, like TEFAS below and for the same reason:
+    # since 2026-07-27 the EVDS scraper only writes rows whose value CHANGED, so
+    # `downloaded_at` now means "when the data last moved", not "when the cron
+    # last ran". (It re-fetched each series' full history every day and rewrote
+    # it identically — ~17M rows/month to D1, all waste.) `MAX(period_date)`
+    # advances on every TCMB business-day publication, so it also catches a
+    # genuine publishing break, which `downloaded_at` never could. 120h survives
+    # a normal long weekend.
+    ("evds", "EVDS rates/FX", 120),
     ("news", "News", 48),
     # Checked on the latest DATA date (not downloaded_at, which refreshes even
     # when TEFAS publishes nothing) so publishing breaks are caught. 120h
@@ -51,7 +59,7 @@ SQL = (
     "(SELECT PRINTF('%04d-%02d', year, month) FROM balance_sheet "
     " ORDER BY year DESC, month DESC LIMIT 1) AS monthly_period,"
     "(SELECT MAX(downloaded_at) FROM weekly_series) AS weekly,"
-    "(SELECT MAX(downloaded_at) FROM evds_series) AS evds,"
+    "(SELECT MAX(period_date) FROM evds_series) AS evds,"
     "(SELECT MAX(fetched_at) FROM news_items) AS news,"
     "(SELECT MAX(date) FROM tefas_manager_daily) AS tefas,"
     "(SELECT MAX(extracted_at) FROM bank_audit_extractions) AS audit,"

@@ -17,6 +17,7 @@ Env:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import os
 import sqlite3
 import subprocess
@@ -129,6 +130,72 @@ _FULL_REBUILD = {
 # validated and snapshotted every quarter.
 _TABLE_SETS: dict[str, list[str]] = {"audit": _AUDIT_TABLES}
 
+# Full-rebuild tables emit `DELETE FROM t; INSERT …` for EVERY row, and D1 bills
+# rows written — DELETEs included, index maintenance included (~3.6x per logical
+# row measured on this database). `api_series` alone is 19,787 rows, rebuilt on
+# the DAILY bulletin cron: ~40k logical writes a day for a catalogue that only
+# changes when BDDK adds a series. `bank_audit_coverage` is 18,936 more on every
+# audit and override run.
+#
+# So a full-rebuild table now carries a content hash. If the local rows hash to
+# what was last pushed, the rebuild is skipped entirely. State lives in the
+# STAGING db (which rides the R2 snapshot, pulled at the start of every workflow
+# and uploaded at the end), so it persists across runs — and a fresh or reseeded
+# staging db simply has no state and pushes once, which is the safe default.
+_PUSH_STATE_DDL = """
+CREATE TABLE IF NOT EXISTS d1_push_state (
+    table_name   TEXT PRIMARY KEY,
+    content_hash TEXT NOT NULL,
+    pushed_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+"""
+
+
+# Columns that record WHEN a rebuild ran, not WHAT it produced. They must be
+# excluded from the content hash or the skip can never fire: build_api_catalog
+# does `DELETE FROM api_series` then re-INSERTs without naming `built_at`, so it
+# takes DEFAULT CURRENT_TIMESTAMP and all 19,787 rows differ on every run even
+# when the catalogue is identical. Excluding it is also the correct semantics —
+# a moved build stamp is not a reason to rewrite a table in D1.
+_BUILD_STAMP_COLUMNS = {"built_at", "downloaded_at", "generated_at", "synced_at"}
+
+
+def content_hash(conn: sqlite3.Connection, table: str) -> str:
+    """Order-independent digest of a table's meaningful contents.
+
+    Sorted so two databases holding the same rows agree regardless of insert
+    order — these rows are generated wholesale by a rebuild script and their
+    physical order carries no meaning.
+    """
+    cols = [c[1] for c in conn.execute(f"PRAGMA table_info({table})")
+            if c[1] not in _BUILD_STAMP_COLUMNS]
+    if not cols:                      # a table of nothing but stamps: never skip
+        return ""
+    h = hashlib.sha256()
+    h.update((",".join(cols) + "\n").encode())
+    for row in sorted(conn.execute(f"SELECT {','.join(cols)} FROM {table}")):
+        h.update(repr(row).encode())
+        h.update(b"\n")
+    return h.hexdigest()
+
+
+def stored_hash(conn: sqlite3.Connection, table: str) -> str | None:
+    conn.executescript(_PUSH_STATE_DDL)
+    row = conn.execute(
+        "SELECT content_hash FROM d1_push_state WHERE table_name = ?", (table,)
+    ).fetchone()
+    return row[0] if row else None
+
+
+def record_hash(conn: sqlite3.Connection, table: str, digest: str) -> None:
+    """Called only AFTER wrangler reports success — a failed push must not be
+    remembered as done, or the table silently never syncs again."""
+    conn.executescript(_PUSH_STATE_DDL)
+    conn.execute(
+        "INSERT OR REPLACE INTO d1_push_state(table_name, content_hash, pushed_at) "
+        "VALUES (?, ?, CURRENT_TIMESTAMP)", (table, digest))
+    conn.commit()
+
 BATCH_SIZE = 100  # rows per INSERT statement (default for skinny tables)
 # news_items can carry multi-KB body_text per row — batch much smaller so a
 # single INSERT statement stays under D1's SQLITE_TOOBIG limit (~1 MB).
@@ -144,7 +211,8 @@ BATCH_SIZE_PER_TABLE = {
 _NL_SENTINEL = "__D1_NL__"
 
 
-def fetch_recent(conn: sqlite3.Connection, table: str, hours: int) -> list[str]:
+def fetch_recent(conn: sqlite3.Connection, table: str, hours: int,
+                 skip_unchanged: bool = True) -> list[str]:
     """Return SQL statements (INSERT OR REPLACE) for rows updated in last `hours`.
 
     Tables with a `downloaded_at` column are filtered by it.
@@ -173,6 +241,19 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int) -> list[str]:
     full_rebuild = table in _FULL_REBUILD
     if full_rebuild:
         where = ""
+        # Cheapest possible push: none at all. Hash the local rows against what
+        # was last pushed and bail if nothing moved. Costs one local table scan
+        # and saves a DELETE + INSERT of every row (api_series: 19,787 rows a
+        # DAY on the bulletin cron; bank_audit_coverage: 18,936 on every audit
+        # run) — D1 bills all of it, DELETEs and index writes included.
+        if skip_unchanged:
+            digest = content_hash(conn, table)
+            # `digest` is falsy only for a table with nothing but build stamps —
+            # there is no content to compare, so never skip on it.
+            if digest and digest == stored_hash(conn, table):
+                print(f"  [skip] {table}: unchanged since last push "
+                      f"({digest[:12]}…)", flush=True)
+                return [f"-- {table}: full rebuild skipped — content unchanged"]
     elif "downloaded_at" in cols:
         where = f"WHERE downloaded_at >= datetime('now', '-{hours} hours')"
     elif table in ("news_items", "news_item_banks", "bank_earnings",
@@ -330,6 +411,13 @@ def main() -> int:
                         help="Sync rows updated in the last N hours (default 48)")
     parser.add_argument("--dry-run", action="store_true",
                         help="Generate SQL file but don't execute it")
+    parser.add_argument("--force-rebuild", action="store_true",
+                        help="Push full-rebuild tables (bank_audit_coverage, "
+                             "api_series, …) even when their content hash says "
+                             "nothing changed. Use after editing D1 directly, or "
+                             "to repair drift between the staging DB and D1 — "
+                             "the skip trusts that the last successful push "
+                             "landed.")
     parser.add_argument("--only-tables", type=str, default=None,
                         help="Comma-separated table allow-list. "
                              "E.g. --only-tables=bank_audit_balance_sheet,bank_audit_extractions "
@@ -399,13 +487,18 @@ def main() -> int:
         lines.append("")
 
     total_inserts = 0
+    rebuilt: list[str] = []   # full-rebuild tables actually emitted this run
     for tbl in SYNC_TABLES:
         if allowed_tables is not None and tbl not in allowed_tables:
             continue
-        block = fetch_recent(conn, tbl, args.hours)
+        block = fetch_recent(conn, tbl, args.hours,
+                             skip_unchanged=not args.force_rebuild)
         lines.extend(block)
         lines.append("")
-        total_inserts += sum(1 for ln in block if ln.startswith("INSERT"))
+        n_ins = sum(1 for ln in block if ln.startswith("INSERT"))
+        total_inserts += n_ins
+        if tbl in _FULL_REBUILD and n_ins:
+            rebuilt.append(tbl)
 
     if total_inserts == 0 and not pending:
         print(f"no new rows in last {args.hours}h — nothing to push")
@@ -431,6 +524,10 @@ def main() -> int:
         )
         conn.commit()
         print(f"cleared {len(pending)} replayed outbox deletes")
+    # Only now — a failed push must not be remembered as done, or the table
+    # would be skipped forever after.
+    for tbl in rebuilt:
+        record_hash(conn, tbl, content_hash(conn, tbl))
     print("D1 push complete")
     return 0
 

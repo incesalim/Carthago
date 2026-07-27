@@ -198,7 +198,15 @@ async function evdsSource(db: DB): Promise<SourceHealth> {
     ));
   const latest = agg?.latest ?? null;
   const lastRefresh = (agg as { last_refresh?: string | null })?.last_refresh ?? latest;
-  const ageHours = hoursSince(lastRefresh);
+  // Age comes from the DATA date, not from downloaded_at. Since 2026-07-27 the
+  // EVDS scraper only writes rows whose value CHANGED (it used to re-stamp all
+  // ~53k rows daily, which cost ~17M rows written/month in D1 for identical
+  // data), so downloaded_at now means "when the data last moved". Judging
+  // freshness on it would paint the panel amber every quiet weekend. period_date
+  // advances on every TCMB business-day publication and also catches a genuine
+  // publishing break, which downloaded_at never could. Same reasoning and the
+  // same threshold as scripts/healthcheck.py; lastRefresh is display only.
+  const ageHours = hoursSince(latest);
   return {
     key: "evds",
     label: "EVDS (rates / FX)",
@@ -206,8 +214,10 @@ async function evdsSource(db: DB): Promise<SourceHealth> {
     lastRefresh,
     rowCount: agg?.n ?? null,
     ageHours,
-    cadenceHours: DAY,
-    status: statusFor(ageHours, DAY),
+    // TCMB publishes on business days, so a normal Fri→Mon gap is ~72h. At the
+    // 1.5x "fresh" multiplier a 3-day cadence tolerates that plus a holiday.
+    cadenceHours: 3 * DAY,
+    status: statusFor(ageHours, 3 * DAY),
   };
 }
 

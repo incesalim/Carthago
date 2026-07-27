@@ -506,6 +506,83 @@ Workers/D1/R2 and cannot read or change it. Do **not** disable BIC zone-wide
 instead — that would drop bot protection on the whole dashboard. Note also that
 a WAF *skip* rule does not bypass BIC; it must be a Configuration Rule.
 
+### D1 write budget
+
+D1 bills **rows written**: the Workers Paid plan includes 50 million a month and
+charges **$1.00 per million** after that. Rows *read* are $0.001 per million —
+a thousandth the price. Two consequences worth internalising:
+
+- **`rowsWritten` is not "rows you changed".** It counts `DELETE` and `UPDATE`
+  as well as `INSERT`, and it counts **index maintenance**. Measured on this
+  database: one override push reported 392,363 rowsWritten against 107,636
+  actual changes — a **3.6x** multiplier. Every logical write avoided is worth
+  about 3.6 billed ones.
+- **Reads are essentially free by comparison.** Preferring a read that avoids a
+  write is almost always correct, at a 1000:1 price ratio.
+
+Check current usage (needs `CLOUDFLARE_API_TOKEN` + `R2_ACCOUNT_ID`):
+
+```bash
+# rowsWritten / rowsRead per day per database, last 14 days
+python - <<'EOF'
+import os, json, urllib.request, datetime
+tok=os.environ["CLOUDFLARE_API_TOKEN"]; acc=os.environ["R2_ACCOUNT_ID"]
+end=datetime.datetime.now(datetime.UTC).date(); start=end-datetime.timedelta(days=14)
+q=("query($acc:String!,$start:Date!,$end:Date!){viewer{accounts(filter:{accountTag:$acc})"
+   "{d1AnalyticsAdaptiveGroups(limit:200,filter:{date_geq:$start,date_leq:$end})"
+   "{dimensions{date databaseId} sum{rowsRead rowsWritten}}}}}")
+req=urllib.request.Request("https://api.cloudflare.com/client/v4/graphql",
+  data=json.dumps({"query":q,"variables":{"acc":acc,"start":str(start),"end":str(end)}}).encode(),
+  headers={"Authorization":f"Bearer {tok}","Content-Type":"application/json"})
+for r in json.load(urllib.request.urlopen(req))["data"]["viewer"]["accounts"][0]["d1AnalyticsAdaptiveGroups"]:
+    print(r["dimensions"], r["sum"])
+EOF
+```
+
+⚠️ **The account hosts more than one D1 database.** `bddk-data` is this project;
+`gazelhan` is not, and was ~20% of the account's writes and half its reads when
+this was last measured (2026-07-27). Attribute before optimising.
+
+**The two rules that keep the bill down**
+
+1. **Never re-stamp a row that did not change.** `push_to_d1` windows on
+   `downloaded_at`, so a scraper that re-fetches history and rewrites it
+   identically re-pushes the whole table. This is what `evds_scraper.fetch_one`
+   did — EVDS has no incremental endpoint, so it pulled each series back to 2018
+   every run and `INSERT OR REPLACE`d all of it, and because `downloaded_at` is
+   omitted from that statement every row took `DEFAULT CURRENT_TIMESTAMP`. 52,828
+   of 53,521 rows looked new *every day*: ~17M rows written a month for data that
+   had not moved. It now compares `(value, label, category)` and writes only what
+   differs. A settled series reporting **0 rows written is the healthy reading.**
+2. **Full-rebuild tables carry a content hash.** `api_series` (19,787 rows,
+   rebuilt on the DAILY bulletin cron) and the audit spine
+   (`bank_audit_coverage`, 18,936 rows, on every audit and override run) emit
+   `DELETE` + `INSERT` for every row. `push_to_d1` now hashes the local contents
+   against what it last pushed and skips entirely when nothing moved. Build-stamp
+   columns (`built_at`, `downloaded_at`, …) are excluded from the hash — without
+   that the skip could never fire, because `build_api_catalog` re-INSERTs without
+   naming `built_at` and it takes a fresh `CURRENT_TIMESTAMP` on every run.
+
+   The state lives in `d1_push_state` in the **staging** DB, which rides the R2
+   snapshot. A fresh or reseeded staging DB has no state and pushes once — the
+   safe default. The skip trusts that the last successful push landed, so after
+   editing D1 by hand use **`push_to_d1.py --force-rebuild`** to resync.
+
+**Freshness after the EVDS change.** `MAX(downloaded_at)` on `evds_series` now
+means "when the data last moved", not "when the cron last ran", so both
+`scripts/healthcheck.py` and `/admin` judge EVDS on **`MAX(period_date)`** with a
+threshold that survives a long weekend (120h / a 3-day cadence). That is the
+same treatment TEFAS already had, for the same reason — and it is strictly
+better, because a data date catches a genuine TCMB publishing break while a
+download stamp never could.
+
+**Still known-expensive, not yet addressed:** `apply_overrides.py` re-applies
+every override and then DELETEs and re-pushes all 27 audit tables across all 214
+touched partitions, whatever changed. Two runs on 2026-07-27 wrote ~632,000 rows
+between them to correct **five cells**. Audit campaigns are where the bulk of
+this database's writes come from — two days of lane work (2026-07-15/17) were
+27.5M of that fortnight's 47.5M.
+
 ## Disaster recovery
 
 Two independent safety nets, both **free**:

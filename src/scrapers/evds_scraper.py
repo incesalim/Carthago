@@ -374,19 +374,47 @@ def fetch_one(s: Series, start: str = "01-01-2018") -> int:
         return 0
     conn = sqlite3.connect(str(DB))
     try:
-        conn.executemany(
-            "INSERT OR REPLACE INTO evds_series(code, period_date, value, label, category) "
-            "VALUES (?, ?, ?, ?, ?)",
-            rows,
-        )
-        conn.commit()
+        # Write ONLY what changed. EVDS has no incremental endpoint, so every run
+        # re-fetches each series' whole history back to 2018 — but `INSERT OR
+        # REPLACE` rewrote all of it, and because `downloaded_at` is omitted here
+        # it took DEFAULT CURRENT_TIMESTAMP on every row. push_to_d1 windows on
+        # that column, so 52,828 of evds_series' 53,521 rows looked "new" every
+        # single day and were re-pushed to D1 with byte-identical values —
+        # ~17M rows written/month, all of it waste, against a 50M/month
+        # allowance (D1 bills rows written, and counts index maintenance too).
+        #
+        # Comparing (value, label, category) is the whole fix: a row we already
+        # hold keeps its old `downloaded_at`, so the push window never sees it.
+        # A revision, a rebase or a new observation still writes, because the
+        # tuple differs. See docs/OPERATIONS.md → D1 write budget.
+        existing = {
+            (r[0], r[1]): (r[2], r[3], r[4])
+            for r in conn.execute(
+                "SELECT code, period_date, value, label, category "
+                "FROM evds_series WHERE code = ?", (s.code,)
+            )
+        }
+        changed = [r for r in rows if existing.get((r[0], r[1])) != (r[2], r[3], r[4])]
+        if changed:
+            conn.executemany(
+                "INSERT OR REPLACE INTO evds_series(code, period_date, value, label, category) "
+                "VALUES (?, ?, ?, ?, ?)",
+                changed,
+            )
+            conn.commit()
     finally:
         conn.close()
-    return len(rows)
+    return len(changed)
 
 
 def update_all(start: str = "01-01-2018") -> dict[str, int]:
-    """Fetch + upsert every configured series. Returns per-series row counts."""
+    """Fetch + upsert every configured series.
+
+    Returns per-series counts of rows actually WRITTEN (not fetched) — a settled
+    series reports 0 on a normal day, and that is the healthy reading. `-1` is a
+    failure. A run that writes 0 across the board means EVDS published nothing
+    new, not that the scraper broke; freshness is judged on `MAX(period_date)`,
+    see scripts/healthcheck.py."""
     conn = sqlite3.connect(str(DB))
     try:
         init_schema(conn)

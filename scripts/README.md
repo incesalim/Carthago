@@ -15,7 +15,7 @@ audit lane and its repair playbook are in [`docs/AUDIT_PIPELINE.md`](../docs/AUD
 ## Shared / infrastructure
 | Script | Purpose | Run by | Class |
 |---|---|---|---|
-| `push_to_d1.py` | Incremental SQLite→D1 sync (`INSERT OR REPLACE` rows newer than `--hours`); `--db`, `--only-tables`. The one D1 writer every lane uses. | every refresh workflow | pipeline |
+| `push_to_d1.py` | Incremental SQLite→D1 sync (`INSERT OR REPLACE` rows newer than `--hours`); `--db`, `--only-tables`, `--table-set`. The one D1 writer every lane uses. **Full-rebuild tables (`api_series`, the audit spine) are skipped when their content hash is unchanged** — D1 bills rows written and those are ~20k-row DELETE+INSERT cycles; `--force-rebuild` overrides after direct D1 edits. See OPERATIONS §D1 write budget. | every refresh workflow | pipeline |
 | `notify.py` | Telegram/Discord alert (lib + CLI). | called by workflows + scripts on failure | pipeline |
 | `healthcheck.py` | Daily D1 freshness check + audit-failure count. | `healthcheck.yml` | pipeline |
 | `verify_chart_spec.py` | Re-resolve every reproduced chart spec in D1 (regression catch). | `healthcheck.yml` | pipeline |

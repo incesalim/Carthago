@@ -1057,6 +1057,41 @@ each `/banks/[ticker]` page:
 
 ## Known issues / pending work
 
+- **D1 write bill: ~122M rows/month against a 50M allowance — two pure-waste
+  sources fixed 2026-07-27, the campaign cost still open.** D1 charges $1.00 per
+  million **rows written** (reads are $0.001/M — a thousandth), and `rowsWritten`
+  counts DELETEs and index maintenance: one override push here reported 392,363
+  rowsWritten against 107,636 actual changes, a **3.6× multiplier**.
+
+  Fixed: (1) `evds_scraper.fetch_one` re-fetched each series' whole history back
+  to 2018 every run and `INSERT OR REPLACE`d all of it — `downloaded_at` is
+  omitted from that statement so every row took `DEFAULT CURRENT_TIMESTAMP`, and
+  `push_to_d1` windows on exactly that column. **52,828 of evds_series' 53,521
+  rows looked new every single day** and were re-pushed with identical values:
+  ~17M rows/month. It now compares `(value, label, category)` and writes only
+  what differs. (2) `push_to_d1` full-rebuild tables (`api_series` 19,787 rows on
+  the DAILY bulletin cron; `bank_audit_coverage` 18,936 on every audit run) now
+  carry a content hash and skip entirely when nothing moved: ~4M rows/month.
+  Build-stamp columns are excluded from the hash or the skip could never fire.
+
+  Consequence: `MAX(downloaded_at)` on `evds_series` now means *when the data
+  last moved*, so **both** `healthcheck.py` and `/admin` judge EVDS freshness on
+  `MAX(period_date)` (120h / 3-day cadence) — the treatment TEFAS already had,
+  and strictly better, since a data date catches a TCMB publishing break that a
+  download stamp cannot.
+
+  ⚠️ **Not all of the bill is this project.** The account hosts a second D1
+  database, `gazelhan`, which was ~20% of writes and half of reads over the
+  measured fortnight. Attribute before optimising.
+
+  **Still open — the dominant cost.** Audit campaigns, not the daily crons: two
+  days of lane work (2026-07-15/17) were 27.5M of that fortnight's 47.5M. The
+  concentrated piece is `apply_overrides.py`, which re-applies all 457 overrides
+  and then DELETEs and re-pushes all 27 audit tables across all 214 touched
+  partitions regardless of what changed — **two runs wrote ~632,000 rows to
+  correct five cells**. Scoping it to partitions whose rows actually changed is
+  the next win.
+
 - **`parse_num` read hyphen-negatives 1000× too small — FIXED 2026-07-27, and
   now guarded.** The numeric primitive eight audit extractors share decided
   Turkish-vs-English thousands notation with an anchored regex
