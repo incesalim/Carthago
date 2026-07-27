@@ -1075,13 +1075,37 @@ each `/banks/[ticker]` page:
   agree). BRSA prints whole thousands of TL, so a fractional amount cannot be a
   small figure; it is one we mis-read. `scripts/check_amount_integrity.py`
   sweeps all 67 amount columns (ratio columns excluded by name) and classifies:
-  - **Mis-read separators (2)** — real figures stored 1000× too small.
-    `bank_audit_capital.cet1_capital` **ISCTR 2024Q2 consolidated** = `270336.203`
-    (the same prior-period figure reads `270336203` in ISCTR's own 2024Q3 **and**
-    2024Q4 filings — an independent cross-period confirmation), and
-    `bank_audit_credit_quality.stage2_amount` **DENIZ 2023Q4 consolidated prior**
-    = `-535.779` (DENIZ 2022Q4 current carries the same figure as `-535779`).
-    Both are the *prior* column. **Not yet corrected — awaiting a decision.**
+  - **Mis-read separators (2) — CORRECTED 2026-07-27** via
+    `data/audit_overrides.json` + `apply_overrides.py`; verified in live D1, and
+    the sweep is now clean on this class.
+    `bank_audit_capital.cet1_capital` **ISCTR 2024Q2 consolidated prior** was
+    `270336.203` → **270,336,203**. A §4 prior column re-prints the prior
+    year-end, so this cell is 31-Dec-2023: ISCTR's own 2024Q3 prior, 2024Q4
+    prior and 2023Q4 **current** all carry that figure with every sibling field
+    identical, and the identity **CET1 + AT1 = Tier1** closes exactly
+    (270,336,203 + 5,348,088 = 275,684,291) — it misses by 1000× with the old
+    value. `bank_audit_credit_quality.stage2_amount` **DENIZ 2023Q4 consolidated
+    prior** was `-535.779` → **−535,779**; DENIZ's *unconsolidated* 2023Q4 prior
+    is byte-identical to its 2022Q4 unconsolidated current, establishing that the
+    bank restates nothing here, and the consolidated prior row already matched
+    2022Q4 current on stage 3 exactly. **Left flagged, not guessed:** that row's
+    `stage1_amount` still differs from 2022Q4 current by 4,003 — no 1000×
+    signature and no evidence which filing is the mis-read.
+  - ⚠️ **`period_type` was the trap.** Both defects sit in the *prior* column,
+    and the `capital` override handler hardcoded `period_type='current'` — an
+    override would have silently patched the CORRECT current row and left the
+    wrong one in place. The handler now takes an optional `period_type`
+    (defaulting to `current`, so the 54 pre-existing capital overrides are
+    unchanged) and reports **NO MATCH** instead of succeeding on zero rows.
+    Pinned by `tests/test_apply_overrides.py`.
+  - **Still open: ISCTR 2024Q1 consolidated prior is a column SLIP** — `cet1` and
+    `tier1` NULL, Tier1's value sitting in `additional_tier1_capital`, Total
+    capital's in `tier2_capital`, and `total_capital` = 332,472,141 against the
+    332,475,371 the other three filings print. Same 31-Dec-2023 column, so the
+    same four-way agreement determines every correct value. **The
+    amount-integrity sweep is structurally blind to it** — every stored value is
+    a whole number; only the *assignment* is wrong. A row-label matching failure,
+    not a parse failure.
   - **Leaked non-values (65)** — a hierarchy marker or sector numbering parked in
     an amount column (`equity_change.paid_in_capital` 44 × GARAN `11.2`/`11.3`,
     `loans_by_sector` 18, three singletons). Junk that reads as junk; belongs to

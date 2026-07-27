@@ -53,3 +53,74 @@ def test_exact_match_still_updates():
     })
     rows = c.execute("SELECT COUNT(*), MAX(amount_total) FROM bank_audit_balance_sheet").fetchone()
     assert rows == (1, 999)
+
+
+# --- capital: which period column an override lands on ----------------------
+
+def _ins_capital(c, period_type, cet1, bank="X", period="2024Q2",
+                 kind="consolidated"):
+    c.execute(
+        "INSERT INTO bank_audit_capital (bank_ticker, period, kind, period_type, "
+        "cet1_capital) VALUES (?,?,?,?,?)", (bank, period, kind, period_type, cet1))
+    c.commit()
+
+
+def _capital(c):
+    return dict(c.execute(
+        "SELECT period_type, cet1_capital FROM bank_audit_capital").fetchall())
+
+
+def _capital_override(**extra):
+    return {"bank_ticker": "X", "period": "2024Q2", "kind": "consolidated",
+            "statement": "capital", "fields": {"cet1_capital": 270336203}, **extra}
+
+
+def test_capital_override_defaults_to_the_current_column():
+    """Every capital override authored before 2026-07-27 omits period_type and
+    means the current column. That must not change."""
+    c = _conn()
+    _ins_capital(c, "current", 1)
+    _ins_capital(c, "prior", 2)
+    apply_overrides._apply_one(c, _capital_override())
+    assert _capital(c) == {"current": 270336203, "prior": 2}
+
+
+def test_capital_override_can_target_the_prior_column():
+    """A section-4 prior column re-prints the prior YEAR-END, so a bad quarter is
+    provable against the other three quarters of the following year (ISCTR 2024Q2
+    CET1). Before this, such an override silently patched the CURRENT row —
+    corrupting a correct figure and leaving the wrong one in place."""
+    c = _conn()
+    _ins_capital(c, "current", 305357338)
+    _ins_capital(c, "prior", 270336.203)
+    apply_overrides._apply_one(c, _capital_override(period_type="prior"))
+    assert _capital(c) == {"current": 305357338, "prior": 270336203}
+
+
+def test_capital_override_matching_no_row_says_so():
+    """An override that matches nothing leaves the wrong value in place while the
+    run reports success — the silent no-op this repo has paid for before."""
+    c = _conn()
+    _ins_capital(c, "current", 1)
+    msg = apply_overrides._apply_one(c, _capital_override(period_type="prior"))
+    assert "NO MATCH" in msg
+
+
+def test_credit_quality_override_targets_the_named_period_column():
+    """The DENIZ 2023Q4 shape: the defect is in the prior column, and the current
+    one for the same section must be left alone."""
+    c = _conn()
+    for pt, stage2 in (("current", -2386482.0), ("prior", -535.779)):
+        c.execute(
+            "INSERT INTO bank_audit_credit_quality (bank_ticker, period, kind, "
+            "section, period_type, stage2_amount) VALUES (?,?,?,?,?,?)",
+            ("X", "2023Q4", "consolidated", "loans_ecl_expense", pt, stage2))
+    c.commit()
+    apply_overrides._apply_one(c, {
+        "bank_ticker": "X", "period": "2023Q4", "kind": "consolidated",
+        "statement": "credit_quality", "section": "loans_ecl_expense",
+        "period_type": "prior", "fields": {"stage2_amount": -535779},
+    })
+    assert dict(c.execute("SELECT period_type, stage2_amount FROM "
+                          "bank_audit_credit_quality").fetchall()) == {
+        "current": -2386482.0, "prior": -535779}

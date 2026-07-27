@@ -96,21 +96,37 @@ def _apply_one(conn: sqlite3.Connection, o: dict) -> str:
                 (b, p, k, i, r["hierarchy"], r.get("item_name", r["hierarchy"]), r["amount"]))
         return f"OCI replace {b} {p} {k} ({len(o['rows'])} rows)"
     if st == "capital":
-        # Per-column patch of the CURRENT-period §4 capital row. `fields` =
-        # {column: value} for the dropped/column-slipped components (AT1, Tier2,
-        # total, RWA, ratios). Columns whitelisted to the capital schema.
+        # Per-column patch of one §4 capital row. `fields` = {column: value} for
+        # the dropped/column-slipped components (AT1, Tier2, total, RWA, ratios).
+        # Columns whitelisted to the capital schema.
+        #
+        # `period_type` defaults to 'current' — that is where the extractor's
+        # column slips land and what every entry before 2026-07-27 targeted. The
+        # PRIOR column needs it too: a §4 prior column re-prints the prior
+        # YEAR-END, so the same figures appear in Q1/Q2/Q3/Q4 of the year after
+        # and one bad quarter is provable against the other three (ISCTR 2024Q2
+        # CET1). Without this parameter such an override silently patched the
+        # CURRENT row instead — corrupting a correct figure while leaving the
+        # wrong one in place.
         allowed = {"cet1_capital", "additional_tier1_capital", "tier1_capital",
                    "tier2_capital", "total_capital", "total_rwa", "cet1_ratio",
                    "tier1_ratio", "capital_adequacy_ratio"}
         cols = [c for c in o["fields"] if c in allowed]
         if not cols:
             return f"capital SKIP {b} {p} {k} (no valid columns)"
+        pt = o.get("period_type", "current")
         sets = ", ".join(f"{c}=?" for c in cols)
         vals = [o["fields"][c] for c in cols]
-        conn.execute(
+        cur = conn.execute(
             f"UPDATE bank_audit_capital SET {sets} WHERE bank_ticker=? AND period=? "
-            "AND kind=? AND period_type='current'", (*vals, b, p, k))
-        return f"capital update {b} {p} {k} {dict((c, o['fields'][c]) for c in cols)}"
+            "AND kind=? AND period_type=?", (*vals, b, p, k, pt))
+        if cur.rowcount == 0:
+            # Loud, not silent: an override that matches no row leaves the wrong
+            # value in place and the run still reports success.
+            return (f"capital NO MATCH {b} {p} {k} {pt} — nothing updated "
+                    f"(check period_type / that the partition is extracted)")
+        return (f"capital update {b} {p} {k} {pt} "
+                f"{dict((c, o['fields'][c]) for c in cols)}")
     if st == "fx_position_replace":
         # Whole-partition insert of the CURRENT-period §4 currency-risk table for a
         # partition the extractor stored 0 rows for. Two causes, both hand-read:

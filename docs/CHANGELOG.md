@@ -5,6 +5,38 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-07-27.
 
+2026-07-27 — **The two mis-read amounts, corrected — and the repair tool
+could not name the cell.** Both figures the amount-integrity sweep found sit in
+a *prior* column, and `apply_overrides`' capital handler hardcoded
+`period_type='current'`. Authored naively, the ISCTR override would have
+silently patched the CORRECT current row and left the wrong one exactly where it
+was — a repair that makes the corpus worse and reports success. The handler takes
+an optional `period_type` now (default `current`, so the 54 existing capital
+overrides behave identically) and returns NO MATCH when the UPDATE touches zero
+rows. Four tests pin the default, the prior path, the no-match signal and the
+credit-quality equivalent.
+
+`bank_audit_capital.cet1_capital` ISCTR 2024Q2 consolidated prior:
+270336.203 -> 270,336,203. A section-4 prior column re-prints the prior
+year-end, so the cell is 31-Dec-2023 — and beyond the three filings that agree,
+the row carries its own proof: CET1 + AT1 = Tier1 closes exactly at
+270,336,203 + 5,348,088 = 275,684,291 and misses by 1000x with the old value.
+An identity the row already holds beats any number of agreeing neighbours.
+
+`bank_audit_credit_quality.stage2_amount` DENIZ 2023Q4 consolidated prior:
+-535.779 -> -535,779. DENIZ's unconsolidated 2023Q4 prior is byte-identical to
+its 2022Q4 unconsolidated current, establishing that the bank restates nothing
+here. Left alone deliberately: that row's stage1_amount still differs from
+2022Q4 current by 4,003 — no 1000x signature and no evidence which filing is the
+mis-read, so it stays flagged rather than guessed.
+
+Verified in live D1; `check_amount_integrity` is now clean on the separator
+class. Found on the way and still open: **ISCTR 2024Q1 consolidated prior is a
+column SLIP** — Tier1's value in `additional_tier1_capital`, Total capital's in
+`tier2_capital`, `cet1`/`tier1` NULL. Every value is a whole number, so the
+sweep is structurally blind to it: nothing about the numbers' shape is wrong,
+only their assignment.
+
 2026-07-27 — **A number's sign changed how its format was read.**
 `extractor.parse_num` — the numeric primitive eight audit extractors share, and
 the one with no tests — decided Turkish-vs-English thousands notation with an

@@ -10644,6 +10644,29 @@
         }
       ],
       "note": "PRIOR (31-Dec-2023) block re-read from p52. The stored liab row was verbatim the 'Bilançodaki Uzun Pozisyon' row: this page prints every value line ABOVE its label (label y=394.2, its values y=390.8) and the extractor bound the line BELOW, landing one row down. Current block carried through unchanged. The gap row's printed total is '-' = nil (0), and the buckets do sum to 0."
+    },
+    {
+      "bank_ticker": "ISCTR",
+      "period": "2024Q2",
+      "kind": "consolidated",
+      "statement": "capital",
+      "period_type": "prior",
+      "fields": {
+        "cet1_capital": 270336203
+      },
+      "note": "parse_num read a hyphen/single-group thousands value down the English branch and stored 270336.203 for 270.336.203 — a 1000x error the amount-integrity sweep caught (fixed at source 2026-07-27, this repairs the row already in D1). PROVEN, not inferred: the section-4 prior column re-prints the prior YEAR-END, so this cell is 31-Dec-2023, and (a) ISCTR's OWN 2024Q3 and 2024Q4 prior columns both carry 270,336,203 with every sibling field identical (AT1 5,348,088 / Tier1 275,684,291 / Tier2 56,791,080 / Total 332,475,371 / RWA 1,673,761,385), (b) ISCTR 2023Q4's independently-extracted CURRENT row is the same figure, and (c) the identity CET1 + AT1 = Tier1 closes exactly at 270,336,203 + 5,348,088 = 275,684,291 and fails by 1000x with the stored value."
+    },
+    {
+      "bank_ticker": "DENIZ",
+      "period": "2023Q4",
+      "kind": "consolidated",
+      "statement": "credit_quality",
+      "section": "loans_ecl_expense",
+      "period_type": "prior",
+      "fields": {
+        "stage2_amount": -535779
+      },
+      "note": "Same parse_num defect, negative form: -535.779 stored for -535.779 read as thousands, i.e. -535,779. The prior column re-prints the prior year's current column verbatim — DENIZ's UNCONSOLIDATED 2023Q4 prior row is byte-identical to its 2022Q4 unconsolidated current row (890,853 / -632,174 / 6,462,021), establishing that this bank restates nothing here. On the consolidated side DENIZ 2022Q4 current carries stage2 -535,779 and stage3 6,259,934; the 2023Q4 prior row already matches stage3 exactly. NOTE stage1 still differs (1,248,122 here vs 1,252,125 in 2022Q4 current) — left alone: no 1000x signature and no evidence which of the two is the mis-read, so it stays flagged rather than guessed."
     }
   ]
 }

@@ -91,8 +91,54 @@ database, not a stale local copy:
 
 Both are in the *prior* column, and in both cases the adjacent filing's
 independently-extracted **current** column is the anchor that confirms it — the
-same mechanism `fx_cross_period` uses. **Not yet corrected: awaiting a call on
-whether to override or re-extract.**
+same mechanism `fx_cross_period` uses.
+
+**Both CORRECTED the same day** via `data/audit_overrides.json` +
+`scripts/apply_overrides.py`, verified in live D1; the sweep is now clean on this
+class. Two things that pass came out of doing it:
+
+- **The ISCTR case is provable, not merely corroborated.** `CET1 + AT1 = Tier1`
+  closes exactly at 270,336,203 + 5,348,088 = 275,684,291 and misses by 1000×
+  with the stored value. Worth remembering when judging a candidate correction:
+  an identity the row already carries beats any number of agreeing neighbours.
+- **What was left alone.** DENIZ's 2023Q4 prior `stage1_amount` differs from its
+  2022Q4 current by 4,003. No 1000× signature, and no evidence which of the two
+  filings is the mis-read — so it stays flagged rather than guessed. The point of
+  a sourced override is that it is *sourced*.
+
+### The trap: `period_type`
+
+Both defects sit in the **prior** column, and `apply_overrides`' `capital`
+handler hardcoded `period_type='current'`. Authored naively, the ISCTR override
+would have silently patched the CORRECT current row and left the wrong one
+exactly where it was — a repair that makes the corpus worse and reports success.
+The handler now takes an optional `period_type` (defaulting to `current`, so the
+54 pre-existing capital overrides behave identically) and returns **NO MATCH**
+when the UPDATE touches zero rows, instead of exiting 0 on a no-op.
+`tests/test_apply_overrides.py` pins the default, the prior path, the no-match
+signal and the credit-quality equivalent.
+
+Generalisable: a per-cell repair tool has to be able to name **which** cell, and
+has to say so when it names one that does not exist.
+
+### Found on the way, still open: ISCTR 2024Q1 prior is a column SLIP
+
+Same 31-Dec-2023 column, different defect class:
+
+| Field | Stored | Correct (per the other three filings) |
+|---|---|---|
+| `cet1_capital` | NULL | 270,336,203 |
+| `additional_tier1_capital` | 275,684,291 ← Tier 1's value | 5,348,088 |
+| `tier1_capital` | NULL | 275,684,291 |
+| `tier2_capital` | 332,475,371 ← Total capital's value | 56,791,080 |
+| `total_capital` | 332,472,141 | 332,475,371 |
+| `total_rwa` | 1,673,761,385 ✓ | 1,673,761,385 |
+
+**The amount-integrity sweep is structurally blind to this** — every stored value
+is a whole number, so nothing about its *shape* is wrong; only the assignment is.
+It is a row-label matching failure, not a parse failure, and catching the class
+would need a different check (e.g. the same `CET1 + AT1 = Tier1` identity as a
+validator, which would flag it immediately). Left for a decision.
 
 **Leaked non-values — 65.** A hierarchy marker, sector numbering or dipnot ref
 parked in an amount column: `equity_change.paid_in_capital` (44, all GARAN
@@ -232,14 +278,20 @@ Recorded so they are not re-proposed as oversights:
 
 ## 6. Open, needing a decision
 
-1. **The 2 mis-read amounts** (ISCTR 2024Q2 CET1, DENIZ 2023Q4 stage-2 prior).
-   Both cross-period-corroborated. Correct via `data/audit_overrides.json` +
-   `audit_correct override-cells`, or re-extract the two partitions. Until then
-   `check_amount_integrity` alerts daily, by design.
+1. **ISCTR 2024Q1 consolidated prior — the column slip** in §3 above. Every
+   correct value is determined by the other three 2024 filings; it is the same
+   one-entry override, and the sweep will never find it on its own.
 2. **The 65 leaked non-values.** A symptom of the equity_change and
    loans_by_sector column-alignment tails; fixing them means an extractor pass on
-   those lanes, not a data edit.
-3. **Local `pytest` cannot run two TBB test files** — `numpy.dtype size changed`,
+   those lanes, not a data edit. `check_amount_integrity --strict` fails on them
+   if that is ever wanted as a gate.
+3. **A `CET1 + AT1 = Tier1` validator.** The identity that proved the ISCTR
+   correction is not currently checked anywhere. It would have caught both the
+   2024Q2 mis-read and the 2024Q1 slip at extraction time — cheap, and the
+   §4 capital lane has the columns for it.
+4. **Local `pytest` cannot run two TBB test files** — `numpy.dtype size changed`,
    a numpy/pandas ABI mismatch in the local venv. Pre-existing (reproduced on a
    clean `git stash`), unrelated to this change, and not present in CI, which
    installs fresh wheels. Worth a `pip install -U numpy pandas` locally.
+
+**Done since first writing:** the two mis-read amounts (§3).
