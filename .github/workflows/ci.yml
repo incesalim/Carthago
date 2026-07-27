@@ -31,7 +31,14 @@ jobs:
         # real PDF or touches the network — they build synthetic rows in-process —
         # and both ship prebuilt wheels, so the job stays fast. The extractors are
         # fitz-only (pdfplumber removed 2026-07-15).
-        run: pip install ruff pytest lxml requests pymupdf pandas
+        #
+        # python-dotenv joined for the same reason (2026-07-27): src.scrapers.
+        # evds_client does `from dotenv import load_dotenv` at import time, so
+        # without it tests/test_d1_write_budget.py errors on collection — and
+        # the alternative, an importorskip, would have made a test that guards a
+        # ~17M-rows/month D1 billing regression silently decorative. Tiny, pure
+        # Python, already in requirements.txt.
+        run: pip install ruff pytest lxml requests pymupdf pandas python-dotenv
       - name: Ruff (lint)
         run: ruff check .
       - name: Pipeline graph sync
