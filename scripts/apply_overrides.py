@@ -42,6 +42,7 @@ from __future__ import annotations
 
 import argparse
 import gzip
+import hashlib
 import json
 import shutil
 import sqlite3
@@ -77,6 +78,49 @@ _SELF_TS_TABLES = (
 
 def _has_col(conn: sqlite3.Connection, table: str, col: str) -> bool:
     return any(r[1] == col for r in conn.execute(f"PRAGMA table_info({table})"))
+
+
+# Columns that record WHEN a row was written, not WHAT it says. Excluded from the
+# partition digest below — they are exactly what this script bumps on purpose, so
+# including them would make every partition look changed and defeat the check.
+_STAMP_COLUMNS = {"extracted_at", "validated_at", "derived_at", "downloaded_at"}
+
+
+def _partition_digest(conn: sqlite3.Connection, b: str, p: str, k: str) -> str:
+    """Content fingerprint of one (bank, period, kind) across every audit table.
+
+    Taken before and after the overrides are applied. Equal digests mean this
+    partition's rows are byte-identical to what the snapshot already held, so
+    there is nothing for D1 to receive.
+
+    This matters because the script re-applies EVERY override on every run (that
+    is what makes it idempotent), and almost all of them were already applied by
+    an earlier run. Without this check all 214 named partitions got their
+    timestamps bumped, cleared from D1 and re-pushed regardless — two runs on
+    2026-07-27 wrote ~632,000 rows to D1 to correct FIVE cells. D1 bills rows
+    written at $1/M and counts DELETEs and index maintenance, so that is the
+    single most expensive thing this repo does. See OPERATIONS §D1 write budget.
+    """
+    h = hashlib.sha256()
+    for table in sorted(AUDIT_TABLES):
+        if not conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (table,)
+        ).fetchone():
+            continue
+        cols = [c[1] for c in conn.execute(f"PRAGMA table_info({table})")
+                if c[1] not in _STAMP_COLUMNS]
+        if not cols:
+            continue
+        h.update((table + ":" + ",".join(cols) + "\n").encode())
+        rows = conn.execute(
+            f"SELECT {','.join(cols)} FROM {table} "
+            "WHERE bank_ticker=? AND period=? AND kind=?", (b, p, k))
+        # Sorted: row order is not meaningful and a replace-type override can
+        # reinsert the same rows in a different order.
+        for row in sorted(rows, key=repr):
+            h.update(repr(row).encode())
+            h.update(b"\n")
+    return h.hexdigest()
 
 
 def _apply_one(conn: sqlite3.Connection, o: dict) -> str:
@@ -493,18 +537,35 @@ def main() -> int:
         # CREATE ... IF NOT EXISTS, so this is idempotent.
         init_schema(conn)
         for o in overrides:
-            print("  ", _apply_one(conn, o))
             parts.add((o["bank_ticker"], o["period"], o["kind"]))
-        # re-validate each touched partition + bump every timestamp the narrow
-        # --hours push keys off, so it re-ships EVERYTHING the D1 partition-clear
-        # below removes. Without this the clear wipes the self-timestamped tables
-        # (capital/liquidity/stages/…) from D1 — their extracted_at predates the
-        # push window, so push_to_d1 won't restore them. The BS-family rides
-        # bank_audit_extractions.extracted_at; validation rides validated_at
-        # (refreshed inside _revalidate_partition).
+        # Fingerprint BEFORE anything is written. Every override is re-applied on
+        # every run — that is what makes the script idempotent — so most of these
+        # partitions are about to be rewritten with the values they already hold.
+        before = {part: _partition_digest(conn, *part) for part in sorted(parts)}
+
+        for o in overrides:
+            print("  ", _apply_one(conn, o))
+
+        # Re-validate every touched partition. Cheap and local, and it must run
+        # for ALL of them, not just the changed ones: a VALIDATOR change (not a
+        # data change) also has to reach D1, and the digest below is what
+        # notices — bank_audit_validation and _pl_roles are inside it.
         for b, p, k in sorted(parts):
             f = _revalidate_partition(conn, b, p, k)
             print(f"  revalidate {b} {p} {k}: {f} failures")
+
+        changed = sorted(part for part in sorted(parts)
+                         if _partition_digest(conn, *part) != before[part])
+        print(f"\n[ovr] {len(changed)} of {len(parts)} partitions actually changed"
+              + (f": {', '.join('/'.join(c) for c in changed)}" if changed else ""))
+
+        # Bump the timestamps ONLY for those. The narrow `--hours 1` push keys
+        # off them, so this is what selects rows for D1 — and it has to re-ship
+        # EVERYTHING the partition-clear below removes, or the clear wipes the
+        # self-timestamped tables (capital/liquidity/stages/…) whose extracted_at
+        # predates the window. The BS-family rides bank_audit_extractions;
+        # validation rides validated_at (refreshed inside _revalidate_partition).
+        for b, p, k in changed:
             conn.execute("UPDATE bank_audit_extractions SET extracted_at=CURRENT_TIMESTAMP "
                          "WHERE bank_ticker=? AND period=? AND kind=?", (b, p, k))
             for tbl in _SELF_TS_TABLES:
@@ -517,14 +578,29 @@ def main() -> int:
         print("[ovr] local only — not pushing")
         return 0
 
+    if not changed:
+        # Nothing to send, and nothing to persist either: the only local writes
+        # were re-applications of values already present, and the timestamp bumps
+        # above were skipped. Uploading an identical snapshot would just cost an
+        # R2 PUT. The coverage spine is rebuilt from these same rows, so it is
+        # unchanged too (and push_to_d1 would hash-skip it regardless).
+        print("[ovr] no partition changed — nothing to push, snapshot left as is")
+        return 0
+
     _ensure_d1_schema()
+    # Clear ONLY the partitions whose contents moved. The clear exists so a
+    # replace-type override that REMOVES rows takes effect (push_to_d1 is
+    # INSERT OR REPLACE and never DELETEs), so it is needed for a changed
+    # partition and pure cost for an unchanged one — and a DELETE bills as rows
+    # written just like an INSERT.
     stmts = []
     for tbl in AUDIT_TABLES:
-        for b, p, k in parts:
+        for b, p, k in changed:
             stmts.append(f"DELETE FROM {tbl} WHERE bank_ticker='{b}' AND period='{p}' AND kind='{k}';")
     sqlp = Path(tempfile.gettempdir()) / "d1_ovr_clear.sql"
     sqlp.write_text("\n".join(stmts) + "\n", encoding="utf-8")
-    print(f"[ovr] clearing {len(parts)} partitions in D1")
+    print(f"[ovr] clearing {len(changed)} partition(s) in D1 "
+          f"({len(stmts)} statements, was {len(AUDIT_TABLES) * len(parts)})")
     _retry_wrangler(sqlp, "D1 override clear")
     subprocess.run([sys.executable, str(REPO / "scripts" / "push_to_d1.py"),
                     "--db", str(DB), "--hours", "1", "--only-tables", ",".join(AUDIT_TABLES)], check=True)

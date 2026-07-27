@@ -589,12 +589,31 @@ same treatment TEFAS already had, for the same reason — and it is strictly
 better, because a data date catches a genuine TCMB publishing break while a
 download stamp never could.
 
-**Still known-expensive, not yet addressed:** `apply_overrides.py` re-applies
-every override and then DELETEs and re-pushes all 27 audit tables across all 214
-touched partitions, whatever changed. Two runs on 2026-07-27 wrote ~632,000 rows
-between them to correct **five cells**. Audit campaigns are where the bulk of
-this database's writes come from — two days of lane work (2026-07-15/17) were
-27.5M of that fortnight's 47.5M.
+**`apply_overrides.py` pushes only what changed (fixed 2026-07-27).** It
+re-applies every override on every run — that is what makes it idempotent — so
+almost all of the ~216 named partitions were being rewritten with the values they
+already held, then cleared from D1 and re-pushed regardless. Two runs earlier
+that day wrote ~632,000 rows between them to correct **five cells**.
+
+It now fingerprints each partition across every audit table *before* applying and
+*after* revalidating (`_partition_digest`, timestamp columns excluded — they are
+what the script bumps on purpose), and clears + pushes only the partitions whose
+contents actually moved. An idempotent re-run costs **nothing**: no D1 write, no
+R2 upload. Measured back-to-back on the real snapshot: `207 of 216 changed` on a
+run with a pending validator change, then `0 of 216` on the next.
+
+Two properties worth keeping in mind:
+- **A validator change is a real change.** `bank_audit_validation` and
+  `bank_audit_pl_roles` are inside the digest, and every partition is revalidated
+  before the comparison — so editing a check correctly marks the partitions whose
+  results moved, and they do get pushed.
+- **The digest must ignore `extracted_at`/`validated_at`/`derived_at`.** Those are
+  precisely what the script bumps to select rows for the `--hours 1` push window;
+  including them would make every partition look changed and silently restore the
+  old cost.
+
+Audit campaigns remain where the bulk of this database's writes come from — two
+days of lane work (2026-07-15/17) were 27.5M of that month's 68.1M.
 
 ## Disaster recovery
 

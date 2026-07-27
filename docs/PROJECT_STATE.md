@@ -1095,13 +1095,21 @@ each `/banks/[ticker]` page:
   verify against the analytics a few days after 2026-07-27 rather than trusting
   the arithmetic.
 
-  **Still open — the dominant cost.** Audit campaigns, not the daily crons: two
-  days of lane work (2026-07-15/17) were 27.5M of that fortnight's 47.5M. The
-  concentrated piece is `apply_overrides.py`, which re-applies all 457 overrides
-  and then DELETEs and re-pushes all 27 audit tables across all 214 touched
-  partitions regardless of what changed — **two runs wrote ~632,000 rows to
-  correct five cells**. Scoping it to partitions whose rows actually changed is
-  the next win.
+  **`apply_overrides.py` scoped to changed partitions (2026-07-27).** It was the
+  concentrated cost: re-applying all 457 overrides every run (which is what makes
+  it idempotent) meant all ~216 named partitions were cleared from D1 and
+  re-pushed whatever changed — **two runs wrote ~632,000 rows to correct five
+  cells**. It now fingerprints each partition before applying and after
+  revalidating (`_partition_digest`; `extracted_at`/`validated_at`/`derived_at`
+  excluded, since those are what the script bumps on purpose) and touches only
+  what moved. An idempotent re-run now costs nothing at all — no D1 write, no R2
+  upload. Verified back-to-back on the real snapshot: `207 of 216` with a pending
+  validator change, `0 of 216` immediately after. Note the first number is
+  correct behaviour, not leakage: `bank_audit_validation` is inside the digest,
+  so a **validator** change is a real change and must reach D1.
+
+  **Still the dominant cost:** audit campaigns generally — two days of lane work
+  (2026-07-15/17) were 27.5M of the month's 68.1M.
 
 - **`parse_num` read hyphen-negatives 1000× too small — FIXED 2026-07-27, and
   now guarded.** The numeric primitive eight audit extractors share decided

@@ -205,3 +205,111 @@ def test_evds_writes_when_only_the_label_changes(evds):
     E.fetch_one(s)
     relabelled = E.Series(s.code, "Test series (2025=100)", s.category, s.freq)
     assert E.fetch_one(relabelled) == 1
+
+
+# --- apply_overrides pushes only the partitions that actually changed --------
+
+def _audit_db():
+    from src.audit_reports.schema import init_schema
+    c = sqlite3.connect(":memory:")
+    init_schema(c)
+    return c
+
+
+def _cap_row(c, bank="X", period="2024Q2", kind="consolidated",
+             period_type="prior", cet1=270336.203):
+    c.execute("INSERT INTO bank_audit_capital (bank_ticker, period, kind, period_type, "
+              "cet1_capital, additional_tier1_capital, tier1_capital) VALUES (?,?,?,?,?,?,?)",
+              (bank, period, kind, period_type, cet1, 5348088.0, 275684291.0))
+    c.commit()
+
+
+def test_partition_digest_ignores_timestamps():
+    """extracted_at is exactly what apply_overrides bumps on purpose. If the
+    digest saw it, every partition would look changed and the check would be
+    worthless — the failure mode is silent and costs money, not correctness."""
+    import apply_overrides as A
+    c = _audit_db()
+    _cap_row(c)
+    d1 = A._partition_digest(c, "X", "2024Q2", "consolidated")
+    c.execute("UPDATE bank_audit_capital SET extracted_at = '2099-01-01 00:00:00'")
+    c.commit()
+    assert A._partition_digest(c, "X", "2024Q2", "consolidated") == d1
+
+
+def test_partition_digest_sees_a_value_change():
+    import apply_overrides as A
+    c = _audit_db()
+    _cap_row(c)
+    d1 = A._partition_digest(c, "X", "2024Q2", "consolidated")
+    c.execute("UPDATE bank_audit_capital SET cet1_capital = 270336203.0")
+    c.commit()
+    assert A._partition_digest(c, "X", "2024Q2", "consolidated") != d1
+
+
+def test_partition_digest_sees_a_removed_row():
+    """Replace-type overrides delete rows. The digest must notice, or the D1
+    partition-clear that makes a removal stick would be skipped."""
+    import apply_overrides as A
+    c = _audit_db()
+    _cap_row(c)
+    _cap_row(c, period_type="current", cet1=305357338.0)
+    d1 = A._partition_digest(c, "X", "2024Q2", "consolidated")
+    c.execute("DELETE FROM bank_audit_capital WHERE period_type='current'")
+    c.commit()
+    assert A._partition_digest(c, "X", "2024Q2", "consolidated") != d1
+
+
+def test_partition_digest_is_row_order_independent():
+    """A replace-type override reinserts the same rows in a different order;
+    that is not a change and must not trigger a push."""
+    import apply_overrides as A
+    a, b = _audit_db(), _audit_db()
+    for pt, v in (("current", 1.0), ("prior", 2.0)):
+        _cap_row(a, period_type=pt, cet1=v)
+    for pt, v in (("prior", 2.0), ("current", 1.0)):
+        _cap_row(b, period_type=pt, cet1=v)
+    assert (A._partition_digest(a, "X", "2024Q2", "consolidated")
+            == A._partition_digest(b, "X", "2024Q2", "consolidated"))
+
+
+def test_partition_digest_isolates_partitions():
+    """A change in one bank must not mark a different one as changed."""
+    import apply_overrides as A
+    c = _audit_db()
+    _cap_row(c, bank="X")
+    _cap_row(c, bank="Y")
+    dx = A._partition_digest(c, "X", "2024Q2", "consolidated")
+    c.execute("UPDATE bank_audit_capital SET cet1_capital = 1 WHERE bank_ticker='Y'")
+    c.commit()
+    assert A._partition_digest(c, "X", "2024Q2", "consolidated") == dx
+
+
+def test_reapplying_a_settled_override_is_a_no_op():
+    """THE case. Every override is re-applied on every run to stay idempotent,
+    so a partition fixed weeks ago is rewritten with the value it already holds.
+    Before this check, all 214 named partitions were cleared from D1 and
+    re-pushed regardless: ~632,000 rows written to correct five cells."""
+    import apply_overrides as A
+    c = _audit_db()
+    _cap_row(c, cet1=270336203.0)          # already corrected by an earlier run
+    ovr = {"bank_ticker": "X", "period": "2024Q2", "kind": "consolidated",
+           "statement": "capital", "period_type": "prior",
+           "fields": {"cet1_capital": 270336203}}
+    before = A._partition_digest(c, "X", "2024Q2", "consolidated")
+    A._apply_one(c, ovr)
+    c.commit()
+    assert A._partition_digest(c, "X", "2024Q2", "consolidated") == before
+
+
+def test_an_override_that_does_change_something_is_detected():
+    import apply_overrides as A
+    c = _audit_db()
+    _cap_row(c, cet1=270336.203)           # still wrong
+    ovr = {"bank_ticker": "X", "period": "2024Q2", "kind": "consolidated",
+           "statement": "capital", "period_type": "prior",
+           "fields": {"cet1_capital": 270336203}}
+    before = A._partition_digest(c, "X", "2024Q2", "consolidated")
+    A._apply_one(c, ovr)
+    c.commit()
+    assert A._partition_digest(c, "X", "2024Q2", "consolidated") != before
