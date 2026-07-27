@@ -1071,8 +1071,9 @@ each `/banks/[ticker]` page:
   case against its positive twin. The primitive had had **no tests at all**.
 
   **A corpus sweep found 67 fractional amounts — 2 wrong numbers, 65 leaked
-  non-values.** BRSA prints whole thousands of TL, so a fractional amount cannot
-  be a small figure; it is one we mis-read. `scripts/check_amount_integrity.py`
+  non-values** (verified against **live D1**, not just the R2 snapshot — the two
+  agree). BRSA prints whole thousands of TL, so a fractional amount cannot be a
+  small figure; it is one we mis-read. `scripts/check_amount_integrity.py`
   sweeps all 67 amount columns (ratio columns excluded by name) and classifies:
   - **Mis-read separators (2)** — real figures stored 1000× too small.
     `bank_audit_capital.cet1_capital` **ISCTR 2024Q2 consolidated** = `270336.203`

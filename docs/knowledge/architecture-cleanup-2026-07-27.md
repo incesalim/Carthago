@@ -78,7 +78,9 @@ column, a fractional value is not a small number — it is a number we mis-read.
 
 `scripts/check_amount_integrity.py` sweeps all **67 amount columns across 13
 tables** (column list derived from `registry.py`, ratio columns excluded by name)
-and found **67 fractional values**, which split cleanly in two:
+and found **67 fractional values**, which split cleanly in two. Run against both
+the R2 snapshot and **live D1** — identical findings, so this is the serving
+database, not a stale local copy:
 
 **Mis-read separators — 2. Real figures stored 1000× too small:**
 
@@ -118,6 +120,23 @@ roughly one in ten of the class. The magnitude signal catches those. Pinned by
 
 Only the separator class alerts. Daily-paging a 65-item backlog nobody is
 clearing this week only teaches everyone to mute the channel.
+
+### A D1 shape lesson worth keeping
+
+The sweep's first CI run died before reading a row. The obvious query shape —
+one `COUNT(*) … WHERE <col> is fractional` per column, `UNION ALL`'d — makes
+**every branch its own full scan**, so 67 columns meant 67 scans over tables up
+to ~200k rows and D1 refused the statement. The identical sweep over the local
+SQLite snapshot ran fine, because SQLite does not care. Rewritten as **one query
+per table** with conditional aggregation (`SUM(CASE WHEN … THEN 1 ELSE 0 END)`
+per column), it is 13 scans regardless of column count, and returns the same
+answer. Generalisable: on D1, fan columns out inside one scan, never fan scans
+out inside one statement.
+
+(Second thing that run taught: **wrangler writes its error body to stdout**, not
+stderr. Reporting only `proc.stderr` produced `d1 query failed:` with nothing
+after it. `_d1` now falls back to stdout — worth copying into the other probes
+that share this helper.)
 
 ### Why a new kind of check, not another validator
 
