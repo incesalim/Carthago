@@ -1200,12 +1200,30 @@ def _check_capital_row(res: ValidationResult, cur: dict, *, completeness: bool,
 # ===========================================================================
 
 def check_liquidity(rows: list[dict]) -> ValidationResult:
-    """Liquidity ratios: leverage < 30%, LCR/NSFR within plausible bands."""
+    """Liquidity ratios: leverage < 30%, LCR/NSFR within plausible bands.
+
+    Run over BOTH period columns since 2026-07-27, for the same reason
+    check_capital was: it read only `current`, so the prior column of every §4
+    liquidity cell went unchecked. Unlike capital there is no identity here —
+    only plausibility bands — so this catches a mis-scaled or mis-grabbed prior
+    ratio, not a composition error. Calibrated first: **0 violations across all
+    981 prior rows**, so it ships with no false positives to absorb."""
     res = ValidationResult()
     cur = next((r for r in rows if r.get("period_type") == "current"), None)
     if cur is None:
         res.add_skip()
         return res
+    _check_liquidity_row(res, cur)
+    pri = next((r for r in rows if r.get("period_type") == "prior"), None)
+    if pri is not None:
+        _check_liquidity_row(res, pri, label_suffix=" [prior]")
+    return res
+
+
+def _check_liquidity_row(res: ValidationResult, cur: dict,
+                         label_suffix: str = "") -> None:
+    """The per-column body of check_liquidity. `label_suffix` tags a failure with
+    the column it came from."""
     lev  = cur.get("leverage_ratio")
     lcr  = cur.get("lcr_total")
     nsfr = cur.get("nsfr")
@@ -1221,7 +1239,7 @@ def check_liquidity(rows: list[dict]) -> ValidationResult:
         if 0 < lev < 100:
             res.add_pass()
         else:
-            res.add_fail("liq_leverage_band", "leverage ∈ (0, 100)%",
+            res.add_fail("liq_leverage_band", "leverage ∈ (0, 100)%" + label_suffix,
                          expected=5.0, actual=lev)
     else:
         res.add_skip()
@@ -1239,17 +1257,17 @@ def check_liquidity(rows: list[dict]) -> ValidationResult:
         # amount — the old (0,2000) band was pure false positives here. Only a
         # non-positive ratio is impossible.
         if val <= 0:
-            res.add_fail("liq_ratio_band", f"{name} must be positive",
+            res.add_fail("liq_ratio_band", f"{name} must be positive" + label_suffix,
                          expected=100.0, actual=val)
         elif val < 50:
             # sub-50% is the fingerprint of a mis-grabbed value (a component, an FC
             # column, or a stale prior-period figure). Exempt dev/investment banks
             # legitimately run NSFR < 100 (TAKAS is curated in _LIQ_SKIP).
-            res.add_fail("liq_ratio_low", f"{name} {val:.1f}% implausibly low",
+            res.add_fail("liq_ratio_low",
+                         f"{name} {val:.1f}% implausibly low" + label_suffix,
                          expected=100.0, actual=val)
         else:
             res.add_pass()
-    return res
 
 
 # ===========================================================================

@@ -228,8 +228,13 @@ def curated_skips() -> set[tuple[str, str, str, str]]:
 # mis-grab fingerprint) flags it. Skip these three (2024Q4's corrected 54.72%
 # passes on its own). TAKAS also discloses NO LCR (BRSA set total+FC LCR to zero
 # percent for such banks until further notice), so lcr_total/lcr_fc NULL is correct.
+# 2024Q2 joined the list on 2026-07-27, when check_liquidity started validating
+# the PRIOR column as well as the current one. Its prior column re-prints the
+# same 2023 year-end NSFR (38.39%) that 2024Q1's prior does — the identical
+# exempt figure, reached through a cell that had simply never been looked at.
 _LIQ_SKIP = frozenset({
     ("TAKAS", "2024Q1", "unconsolidated"),
+    ("TAKAS", "2024Q2", "unconsolidated"),
     ("TAKAS", "2024Q3", "unconsolidated"),
     ("TAKAS", "2025Q2", "unconsolidated"),
 })

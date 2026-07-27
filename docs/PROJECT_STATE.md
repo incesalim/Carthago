@@ -1135,11 +1135,28 @@ each `/banks/[ticker]` page:
   override run have been revalidated. A full `revalidate_audit_db.py` pass is
   what turns the other 18 red in the coverage matrix.
 
+- **§4 liquidity: the same blind spot, closed with no fallout (2026-07-27).**
+  `check_liquidity` had the identical `period_type == "current"` line, so its
+  prior column had never been validated either. Extended the same way and
+  calibrated first: **0 violations across all 981 prior rows**, bar one — TAKAS
+  2024Q2 unconsolidated, whose prior column re-prints the same 2023 year-end
+  NSFR (38.39%) that 2024Q1's prior does. TAKAS is a development bank and is
+  *exempt* from the 100% NSFR floor, which is why 2024Q1/Q3 and 2025Q2 were
+  already curated in `_LIQ_SKIP`; 2024Q2 joined them. Unlike capital there is no
+  identity here — only plausibility bands — so this catches a mis-scaled prior
+  ratio, not a composition error.
+
 - **9 overrides in `data/audit_overrides.json` now match nothing** (AKBNK
   `pl_rehier` ×3, EXIM/VAKBN/HAYATK `bs_rehier` ×6). They report `NO MATCH` on
-  every run: the extractor fixes they compensated for have since landed, so the
-  renames are already applied and the entries are dead config. Harmless, but they
-  make a real no-match harder to spot in the log.
+  every run. **Do NOT bulk-delete them** — checked 2026-07-27 and only ONE is
+  provably dead: HAYATK 2023Q4's target `A.` is present and its source `V`
+  absent, so that rename did land. The rest are ambiguous or worse — EXIM
+  2022Q1/Q2/Q3 still carry `3.2.2.2`, meaning the rename was *never* applied and
+  the entry is masking a live defect; VAKBN 2022Q2/Q4 have neither the source nor
+  the target row, so the whole off-balance sub-tree is missing; and AKBNK's P&L
+  carries both the source and target ordinals, which distinguishes nothing. Each
+  needs its own diagnosis. Harmless where they sit, but they make a real
+  `NO MATCH` harder to spot in the log.
   - **Leaked non-values (65)** — a hierarchy marker or sector numbering parked in
     an amount column (`equity_change.paid_in_capital` 44 × GARAN `11.2`/`11.3`,
     `loans_by_sector` 18, three singletons). Junk that reads as junk; belongs to
