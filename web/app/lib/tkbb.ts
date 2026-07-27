@@ -34,7 +34,7 @@ interface Row {
 }
 
 export const SCALE_PERSONS_TO_M = 1e-6;
-export const SCALE_TRY_TO_TRN = 1e-12;
+const SCALE_TRY_TO_TRN = 1e-12;
 
 const pt = (period: string, code: string, value: number | null): TrendPoint => ({
   period,

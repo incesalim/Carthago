@@ -21,7 +21,7 @@ export type Consent = "granted" | "denied";
 export const CONSENT_KEY = "carthago:analytics-consent";
 
 /** Fired on the window when the choice changes, so listeners re-render. */
-export const CONSENT_EVENT = "carthago:consent";
+const CONSENT_EVENT = "carthago:consent";
 
 /**
  * Subscribe to changes for `useSyncExternalStore`. Listens to both our own event

@@ -86,8 +86,8 @@ const MAX_SERIES_DESCRIBED = 8;
  * Above these bounds the summary carries the shape and says how many points the
  * CSV holds.
  */
-export const SR_TABLE_MAX_ROWS = 60;
-export const SR_TABLE_MAX_CELLS = 400;
+const SR_TABLE_MAX_ROWS = 60;
+const SR_TABLE_MAX_CELLS = 400;
 
 export function srTableIsUseful(t: ChartTable): boolean {
   const rows = t.rows.length;

@@ -262,8 +262,18 @@ def parse_num(s: str) -> float | None:
     s = s.strip()
     if s == '-' or s == '':
         return 0.0
-    neg = s.startswith('(') and s.endswith(')')
-    s = s.strip('()').strip()
+    # The SIGN is stripped before the format sniff below, and must be, because
+    # the sniff is anchored (`^\d{1,3}…$`) — a leading '-' failed it, so a
+    # hyphen-negative with exactly ONE thousands group fell through to the
+    # English branch and its separator was read as a DECIMAL POINT:
+    # "-319.110" came back as -319.11 instead of -319110, a silent 1000× error.
+    # Two groups ("-1.234.567") survived on the count('.') > 1 clause and
+    # parenthesised negatives never reached the sniff, which is why this only
+    # ever bit single-group hyphen-negatives — the §4 market-risk net-off and
+    # gap rows. A number's sign must not change how its FORMAT is read: after
+    # this, negatives parse exactly as the same digits do positive.
+    neg = (s.startswith('(') and s.endswith(')')) or s.startswith('-')
+    s = s.strip('()').strip().lstrip('-').strip()
     # Turkish format uses '.' as thousands separator and ',' as decimal
     # English format uses ',' as thousands separator and '.' as decimal
     # Distinguish by counting: if multiple dots and last group is 3 digits → TR
@@ -279,6 +289,21 @@ def parse_num(s: str) -> float | None:
         return -v if neg else v
     except ValueError:
         return None
+
+
+def parse_amount(s: str) -> float | None:
+    """`parse_num`, but a cell that is EMPTY or nothing but dashes reads as nil.
+
+    Footnote tables print a nil cell as "-", "--" or an en/em dash, and a run of
+    dashes is not a value `parse_num` can see: it only special-cases the single
+    "-". Lanes that read note tables (loans_by_sector, npl_movement) need the
+    run form too, or a trailing "--" drops the row and the next line's numbers
+    get merged onto the wrong label.
+    """
+    s = s.strip()
+    if not s or all(c in "-–—" for c in s):   # "", "-", "--", "—" … → nil
+        return 0.0
+    return parse_num(s)
 
 
 @dataclass
@@ -851,7 +876,6 @@ def _fitz_merge_rows(text: str, n_cols: int) -> str:
         lines.append(s)
     out: list[str] = []
     i = 0
-    NUM_RE = re.compile(r'^[\d.,()\- ]+$')
     _HAS_ALPHA = re.compile(r'[A-Za-zÇĞİÖŞÜçğıöşü]')
     while i < len(lines):
         ln = lines[i]

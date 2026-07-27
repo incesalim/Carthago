@@ -8,7 +8,7 @@ sys.path.insert(0, os.getcwd())
 sys.stdout.reconfigure(encoding="utf-8")
 import sqlite3
 from src.audit_reports import r2_storage
-from src.audit_reports.extractor import extract, _locate_pages, _fitz_page_text, _fitz_merge_rows
+from src.audit_reports.extractor import _locate_pages, _fitz_page_text, _fitz_merge_rows
 
 bank, period, kind = sys.argv[1], sys.argv[2], sys.argv[3]
 want_stmt = sys.argv[4] if len(sys.argv) > 4 and not sys.argv[4].startswith("-") else None

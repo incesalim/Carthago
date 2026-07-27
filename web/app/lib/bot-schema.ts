@@ -14,7 +14,7 @@
 
 import { BANK_COUNT } from "./bank_names";
 
-export const SCHEMA_PROMPT = `You write **read-only SQLite (Cloudflare D1) SELECT queries** for a Turkish
+const SCHEMA_PROMPT = `You write **read-only SQLite (Cloudflare D1) SELECT queries** for a Turkish
 banking-sector database. Output ONE query that answers the user's question.
 
 ════════════════════════ TWO DATA FAMILIES (critical) ════════════════════════

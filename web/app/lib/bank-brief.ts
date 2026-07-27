@@ -113,9 +113,6 @@ export const ordinal = (n: number): string => {
   return `${n}${s[(v - 20) % 10] ?? s[v] ?? s[0]}`;
 };
 
-/** Real return: a nominal rate less inflation, in points. */
-export const realOf = (nominalPct: number, cpiPct: number): number => nominalPct - cpiPct;
-
 /** Real growth: a nominal growth rate deflated by CPI (not a subtraction). */
 export const realGrowth = (nominalPct: number, cpiPct: number): number =>
   ((1 + nominalPct / 100) / (1 + cpiPct / 100) - 1) * 100;

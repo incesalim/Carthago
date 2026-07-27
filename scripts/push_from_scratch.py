@@ -15,7 +15,6 @@ import sqlite3
 import subprocess
 import sys
 import tempfile
-import time
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
@@ -25,7 +24,6 @@ sys.stdout.reconfigure(encoding="utf-8")
 from src.audit_reports import r2_storage  # noqa: E402
 from scripts.audit_d1 import (  # noqa: E402
     AUDIT_TABLES, _ensure_d1_schema, _guard_against_ci_writers, _retry_wrangler,
-    run_wrangler,
 )
 
 DB = REPO / "data" / "bank_audit.db"

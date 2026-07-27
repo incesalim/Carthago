@@ -172,8 +172,10 @@ Kartları, Faktoring, Toplam Krediler, etc. Columns: `short_term_tl/_fx`,
 | SME — Medium | `Orta Büyüklükteki İşletmelere Kullandırılan Krediler` |
 | SME — Customer counts | `%İşletme Niteliğindeki Müşteri Sayısı%` |
 
-Implementation: `smeLoans`, `smeBreakdown`, `consumerMix`,
-`consumerNplMix` in [`web/app/lib/metrics.ts`](../web/app/lib/metrics.ts).
+Implementation: `smeBreakdown`, `consumerNplMix` in
+[`web/app/lib/metrics.ts`](../web/app/lib/metrics.ts). (`smeLoans` and
+`consumerMix` were listed here too and had no caller; deleted 2026-07-27 —
+`/credit` reads the SME series through `weeklySeries` + `smeBreakdown`.)
 
 ---
 
@@ -196,8 +198,10 @@ Columns `bracket_10k, bracket_50k, bracket_250k, bracket_1m, bracket_over_1m`
 exist but are currently only populated for some rows / not wired into the
 dashboard.
 
-Implementation: `depositMaturityMix`, `tlDeposits`, `fxDeposits` in
-[`web/app/lib/metrics.ts`](../web/app/lib/metrics.ts).
+Implementation: `depositMaturityMix` in
+[`web/app/lib/metrics.ts`](../web/app/lib/metrics.ts). (`tlDeposits` /
+`fxDeposits` were listed here too and had no caller; deleted 2026-07-27 —
+`/deposits` splits TL vs FX from `weeklySeries`, which carries both legs.)
 
 ---
 
@@ -234,9 +238,11 @@ underlying tables. For income-based ratios BDDK publishes YTD (see
 Implementation: `getPublishedRatio` plus named wrappers (`ratioNpl`,
 `ratioCar`, `ratioLdr`, `ratioCoverage`, `ratioRoa`, `ratioRoe`,
 `ratioNim`, `ratioOpex`, `ratioFeesToRevenue`, `ratioRwaDensity`,
-`ratioNonInterestCoverage`, `ratioFeesToOpex`,
 `ratioOffBsDerivatives`) in
-[`web/app/lib/metrics.ts`](../web/app/lib/metrics.ts).
+[`web/app/lib/metrics.ts`](../web/app/lib/metrics.ts). The regulator publishes
+`ratioNonInterestCoverage` and `ratioFeesToOpex` too and both had wrappers here
+with no caller — deleted 2026-07-27; re-add the wrapper if a page ever wants
+them, the underlying ratio is still in `financial_ratios`.
 
 ### CET 1 and capital-adequacy detail (lives in `other_data`, not Table 15)
 Table 12 (BDDK Capital Adequacy Detail) — not in `financial_ratios`. Query
@@ -280,9 +286,9 @@ because of different RWA composition.
   the data store; currently not shown as a standalone panel).
 
 Implementation: derivations are computed on-the-fly inside each page's
-Server Component (e.g. `web/app/credit/page.tsx` calls `tlLoans` + `fxLoans`
-and computes FX share in JS). There is no precomputed cache layer; D1's
-edge latency makes one query per chart cheap enough.
+Server Component (e.g. `web/app/credit/page.tsx` pulls `weeklySeries` per
+currency leg and computes the FX share in JS). There is no precomputed cache
+layer; D1's edge latency makes one query per chart cheap enough.
 
 ### NPL ratio by segment
 The dashboard now computes per-product consumer NPL ratios via

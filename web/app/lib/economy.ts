@@ -82,7 +82,7 @@ export function rollingSum(rows: EvdsRow[], window: number, scale = 1): Point[] 
 }
 
 /** Collapse a daily series to monthly averages (dated at month start). */
-export function monthlyAverage(rows: EvdsRow[]): Point[] {
+function monthlyAverage(rows: EvdsRow[]): Point[] {
   const acc = new Map<string, { sum: number; n: number }>();
   for (const r of rows) {
     const month = `${r.period_date.slice(0, 7)}-01`;
@@ -105,7 +105,7 @@ export function scaled(rows: EvdsRow[], scale: number): Point[] {
  * Ex-ante real rate: nominal monthly rate deflated by the 12m-ahead
  * inflation expectation, compounded — ((1+i)/(1+πᵉ) − 1) × 100.
  */
-export function exAnteReal(nominal: Point[], expectation: EvdsRow[]): Point[] {
+function exAnteReal(nominal: Point[], expectation: EvdsRow[]): Point[] {
   const exp = new Map(expectation.map((r) => [r.period_date, r.value]));
   const out: Point[] = [];
   for (const p of nominal) {
@@ -125,7 +125,7 @@ export function exAnteReal(nominal: Point[], expectation: EvdsRow[]): Point[] {
  * with the most recent completed 4-quarter GDP window at or before it —
  * the same convention BBVA charts use for "% of GDP" monthly fiscal lines.
  */
-export function pctOfGdp(monthlyFlow: EvdsRow[], nominalGdpQ: EvdsRow[]): Point[] {
+function pctOfGdp(monthlyFlow: EvdsRow[], nominalGdpQ: EvdsRow[]): Point[] {
   const gdp4q: Point[] = [];
   for (let i = 3; i < nominalGdpQ.length; i++) {
     gdp4q.push({

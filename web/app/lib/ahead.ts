@@ -82,9 +82,6 @@ export const MPC_DATES: readonly string[] = [
   "2027-12-09",
 ];
 
-export const MPC_SOURCE =
-  "https://www.tcmb.gov.tr/wps/wcm/connect/EN/TCMB+EN/Main+Menu/Announcements/Calendar";
-
 /** BDDK publishes month M's bulletin around the 12th of month M+2. */
 const MONTHLY_PUB_LAG_MONTHS = 2;
 const MONTHLY_PUB_DAY = 12;

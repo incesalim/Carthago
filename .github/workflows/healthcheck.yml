@@ -96,6 +96,21 @@ jobs:
       # the loan-growth caps for two months without anything failing. Samples the
       # newest items and alerts when a live page yields materially more than we
       # hold. Reads D1 (no snapshot in this job) and never writes a body.
+      # Every structural validator in the audit lane is an INTERNAL identity —
+      # assets = liabilities, subtotal = sum of children — and a uniform scaling
+      # error cancels on both sides of all of them (that is how TEB's 2026Q2
+      # unit switch validated green). This asks a different question, per cell
+      # and with no cross-reference: does the stored number have a shape the
+      # source could not have printed? BRSA prints whole thousands of TL, so a
+      # fractional amount is a mis-read thousands separator — a real figure
+      # stored 1000x too small. Ratio columns are excluded by name.
+      - name: Verify no audit amount was read 1000x too small
+        if: always()
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: python scripts/check_amount_integrity.py --alert
+
       - name: Verify stored news bodies are current
         if: always()
         continue-on-error: true

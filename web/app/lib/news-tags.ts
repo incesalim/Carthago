@@ -5,9 +5,10 @@
  * "duyuru"), so a topical tag is derived from the title via keyword
  * matching. Pure + synchronous — safe to call during server render.
  *
- * Two tags surface per card: the source (TCMB/BDDK) and the topic below.
+ * One tag surfaces per card: the topic derived below. (A companion
+ * source-tag helper lived here until 2026-07-27 — the cards render the source
+ * themselves, so nothing had called it for some time.)
  */
-import type { NewsSource } from "./news";
 
 export interface Tag {
   label: string;
@@ -18,19 +19,6 @@ export interface Tag {
 // All pill colours are semantic/chart TOKENS (never raw hex or Tailwind
 // pastels) so they adapt to dark mode with the rest of the theme.
 const NEUTRAL = "bg-muted text-muted-foreground";
-
-// Source pills — one token family per regulator/feed.
-const SOURCE_TAGS: Record<NewsSource, Tag> = {
-  tcmb: { label: "TCMB", className: "bg-info/10 text-info" },
-  bddk: { label: "BDDK", className: "bg-positive/10 text-positive" },
-  kap: { label: "KAP", className: "bg-primary/10 text-primary" },
-  press: { label: "Press", className: "bg-warning/15 text-warning" },
-  google_news: { label: "Google News", className: "bg-chart-2/15 text-foreground" },
-};
-
-export function sourceTag(source: string): Tag {
-  return SOURCE_TAGS[source as NewsSource] ?? { label: source.toUpperCase(), className: NEUTRAL };
-}
 
 // Ordered keyword rules — first match wins. Titles are English (TCMB) or
 // Turkish (BDDK), so both languages' keywords live in one list. Patterns use

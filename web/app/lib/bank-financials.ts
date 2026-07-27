@@ -70,7 +70,7 @@ export function cpiForPeriod(cpiYoy: Pt[], period: string | null): CpiPick | nul
 export type Verdict = "growing" | "standing still" | "shrinking";
 
 /** A real growth rate becomes a word. ±3pp is the "standing still" band. */
-export function verdictOf(realPct: number): Verdict {
+function verdictOf(realPct: number): Verdict {
   if (realPct > 3) return "growing";
   if (realPct < -3) return "shrinking";
   return "standing still";

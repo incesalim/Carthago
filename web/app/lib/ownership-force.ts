@@ -58,7 +58,7 @@ export interface ForceLayout {
   neighbors: Map<string, Set<string>>;
 }
 
-export const FORCE_SIZE = 1200;
+const FORCE_SIZE = 1200;
 const RING_R = 330;
 const GROUP_ORDER = ["10006", "10005", "10007", "10003", "10004"];
 

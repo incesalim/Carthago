@@ -74,7 +74,7 @@ const MIN_BETA_OBS = 30;
  * BIST bank trading makes daily betas noisy, so we resample to weekly. Falls
  * back to null (caller substitutes a sector default of 1.0) below MIN_BETA_OBS.
  */
-export async function bankBeta(ticker: string, yearsBack = 2): Promise<BankBeta> {
+async function bankBeta(ticker: string, yearsBack = 2): Promise<BankBeta> {
   const [bank, idx] = await Promise.all([
     bistPriceHistory(ticker, yearsBack),
     bistPriceHistory("XU100", yearsBack),

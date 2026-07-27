@@ -100,7 +100,6 @@ def main():
     # We can't pickle pdfplumber objects across processes, but we CAN do
     # the extract in the worker and return the BankReport object (dataclass).
     # However opening a sqlite connection in each process is fine.
-    futures_started = 0
     with sqlite3.connect(str(DB)) as conn, ProcessPoolExecutor(max_workers=workers) as ex:
         futures = [ex.submit(worker, t) for t in todo]
         for fut in as_completed(futures):

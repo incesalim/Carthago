@@ -35,18 +35,6 @@ export interface EarningsEvent {
   language: string | null;
 }
 
-const KIND_LABELS: Record<EarningsKind, string> = {
-  results_filing: "Results filed",
-  presentation_deck: "Presentation",
-  call: "Earnings call",
-  presentation_filing: "Presentation filing",
-  webcast_replay: "Webcast replay",
-};
-
-export function kindLabel(k: string): string {
-  return KIND_LABELS[k as EarningsKind] ?? k;
-}
-
 const _COLS = `source, external_id, ticker, period, kind, event_date, title, url, language`;
 
 /**
@@ -115,30 +103,4 @@ export async function earningsByTicker(
        LIMIT ?`,
     [ticker.toUpperCase(), limit],
   );
-}
-
-/** Per-kind counts + latest event date — used by the /earnings header. */
-export async function earningsSummary(): Promise<
-  { kind: EarningsKind; total: number; banks: number; latest: string }[]
-> {
-  return cachedAll<{ kind: EarningsKind; total: number; banks: number; latest: string }>(
-    `SELECT kind,
-              COUNT(*) AS total,
-              COUNT(DISTINCT ticker) AS banks,
-              MAX(event_date) AS latest
-       FROM bank_earnings
-       GROUP BY kind
-       ORDER BY total DESC`,
-  );
-}
-
-/** Group a flat event list by ticker, preserving newest-first order. */
-export function groupByTicker(events: EarningsEvent[]): Map<string, EarningsEvent[]> {
-  const out = new Map<string, EarningsEvent[]>();
-  for (const e of events) {
-    const arr = out.get(e.ticker) ?? [];
-    arr.push(e);
-    out.set(e.ticker, arr);
-  }
-  return out;
 }

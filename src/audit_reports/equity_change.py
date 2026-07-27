@@ -44,11 +44,9 @@ from __future__ import annotations
 import re
 import sqlite3
 from dataclasses import dataclass, field
-from pathlib import Path
 
 from .extractor import (
-    HIERARCHY_PAT, NUM_PAT, _FOOTNOTE_RX, _LINE_HIER_RX, _norm,
-    _fitz_page_text, _fitz_page_count, parse_num,
+    HIERARCHY_PAT, NUM_PAT, _FOOTNOTE_RX, _LINE_HIER_RX, _fitz_page_text, _fitz_page_count, parse_num,
 )
 # Self-contained equity validators reused to SCORE reconstruction candidates
 # (validator.py imports only stdlib → no circular import).
@@ -294,7 +292,7 @@ def _fitz_page_lines(pdf_path: str, page_idx_0: int) -> list[str]:
             i = 0
             while i < len(words):
                 w = words[i]
-                x0, x1, text = w[0], w[2], w[4]
+                x1, text = w[2], w[4]
                 j = i + 1
                 while j < len(words) and j < i + 4:
                     nxt = words[j]

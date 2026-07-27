@@ -38,7 +38,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 
-from .extractor import _HAS_FITZ, _fitz_page_count, _fitz_page_text, parse_num
+from .extractor import _HAS_FITZ, _fitz_page_count, _fitz_page_text, parse_amount
 
 
 # ---------------------------------------------------------------------------
@@ -270,13 +270,6 @@ _DATE_BALANCE_RX = re.compile(
 )
 
 
-def _parse_amount(s: str) -> float | None:
-    s = s.strip()
-    if not s or all(c in "-–—" for c in s):  # "", "-", "--", "—" … → nil
-        return 0.0
-    return parse_num(s)
-
-
 @dataclass
 class NplGroupRow:
     """One row of the NPL movement table — i.e. one (bank, period, kind,
@@ -447,9 +440,9 @@ def _extract_from_block(page_idx: int, text: str) -> list[NplGroupRow]:
         m = _THREE_NUMS_TAIL.search(line_stripped)
         if not m:
             continue
-        n3 = _parse_amount(m.group("n3"))
-        n4 = _parse_amount(m.group("n4"))
-        n5 = _parse_amount(m.group("n5"))
+        n3 = parse_amount(m.group("n3"))
+        n4 = parse_amount(m.group("n4"))
+        n5 = parse_amount(m.group("n5"))
         # New block starts when we see an opening_balance row — OR, for banks like
         # HALKB whose movement block carries the prior-period close at the TOP
         # under the SAME "…period end balance" label as the closing, when we hit

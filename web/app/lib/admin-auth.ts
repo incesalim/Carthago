@@ -35,7 +35,7 @@ export interface AdminIdentity {
   bypass?: boolean;
 }
 
-export function authMode(env: StringEnv): AuthMode {
+function authMode(env: StringEnv): AuthMode {
   if (env.CF_ACCESS_TEAM_DOMAIN && env.CF_ACCESS_AUD) return "access";
   if (env.ADMIN_PASSWORD) return "password";
   return "none";

@@ -41,34 +41,6 @@ export function sourceLabel(s: string): string {
   return SOURCE_LABELS[s as NewsSource] ?? s.toUpperCase();
 }
 
-/** Latest items across all sources. */
-export async function latestNews(limit = 100): Promise<NewsItem[]> {
-  return cachedAll<NewsItem>(
-    `SELECT source, external_id, published_at, ticker, category,
-              title, summary, url, language
-       FROM news_items
-       ORDER BY published_at DESC
-       LIMIT ?`,
-    [limit],
-  );
-}
-
-/** Latest items from a specific source. */
-export async function newsBySource(
-  source: NewsSource,
-  limit = 100,
-): Promise<NewsItem[]> {
-  return cachedAll<NewsItem>(
-    `SELECT source, external_id, published_at, ticker, category,
-              title, summary, url, language, body_text
-       FROM news_items
-       WHERE source = ?
-       ORDER BY published_at DESC
-       LIMIT ?`,
-    [source, limit],
-  );
-}
-
 /** Comma-joined bank tags for one item (news_item_banks junction, written by
  *  src/news/bank_tagger.py). Scalar subquery — no GROUP BY needed. */
 const TICKERS_SUBQUERY = `(SELECT GROUP_CONCAT(b.ticker)

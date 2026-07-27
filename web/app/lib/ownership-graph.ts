@@ -87,7 +87,7 @@ export interface OwnershipGraph {
 // ---------------------------------------------------------------------------
 
 /** Whitespace-collapse + Turkish-aware uppercase + trailing-punct strip. */
-export function normalizeHolderKey(name: string): string {
+function normalizeHolderKey(name: string): string {
   return name
     .trim()
     .replace(/\s+/g, " ")
@@ -342,14 +342,14 @@ export interface RadialLayout {
   bottom: PlacedLeaf[];
 }
 
-export const RADIAL_WIDTH = 900;
+const RADIAL_WIDTH = 900;
 const BASE_R = 180;
 const ROW_GAP = 80;
 const LABEL_PAD = 52;
 const EMPTY_DEPTH = 110;
 const MIN_SEP_DEG = 11;
 
-export function nodeRadius(ratioPct: number | null): number {
+function nodeRadius(ratioPct: number | null): number {
   if (ratioPct == null) return 4;
   return 4 + 10 * Math.sqrt(Math.min(Math.max(ratioPct, 0), 100) / 100);
 }
@@ -484,7 +484,7 @@ export interface NetworkLayout {
   shared: NetworkSharedNode[];
 }
 
-export const NETWORK_SIZE = 1000;
+const NETWORK_SIZE = 1000;
 const NETWORK_R = 340;
 /** Type-group order around the circle: State, Private, Foreign, Part., D&I. */
 export const GROUP_ORDER = ["10006", "10005", "10007", "10003", "10004"];

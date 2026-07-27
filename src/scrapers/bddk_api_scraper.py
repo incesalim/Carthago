@@ -132,9 +132,8 @@ class BDDKAPIScraper:
 
         # Build column mapping
         columns = {}
-        for i, (model, name) in enumerate(zip(col_models, col_names)):
+        for i, (model, _name) in enumerate(zip(col_models, col_names)):
             tech_name = model.get("name", "")
-            display_name = name if name else tech_name
             columns[tech_name] = i
 
         saved_rows = 0

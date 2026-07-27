@@ -21,7 +21,7 @@ export async function getDB() {
  *  the paid plan the allowance is 1,000,000 writes/month (~33k/day), so the
  *  binding constraint is gone: ~400–800 distinct cache keys at a 1h window is
  *  ~14k writes/day ≈ 430k/month, comfortably inside the included quota. */
-export const DATA_REVALIDATE_SECONDS = 3600; // 1h
+const DATA_REVALIDATE_SECONDS = 3600; // 1h
 
 /**
  * Run a `SELECT … .all()` through Next's data cache (KV-backed via OpenNext),

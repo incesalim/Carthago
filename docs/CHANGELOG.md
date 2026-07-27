@@ -3,7 +3,46 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-07-19.
+Last verified: 2026-07-27.
+
+2026-07-27 — **A number's sign changed how its format was read.**
+`extractor.parse_num` — the numeric primitive eight audit extractors share, and
+the one with no tests — decided Turkish-vs-English thousands notation with an
+anchored regex applied to the *signed* string. A leading `-` failed the anchor, so
+a hyphen-negative with exactly one thousands group fell through to the English
+branch and its separator was read as a decimal point: `-319.110` came back as
+`-319.11`, a silent 1000x error. Two groups survived on a separate clause and
+parenthesised negatives never reached the sniff, which is why it only ever bit the
+section-4 market-risk net-off and gap rows. Sign is now stripped first;
+`tests/test_parse_num.py` asserts every case against its positive twin.
+
+The invariant it earned: **BRSA prints whole thousands of TL, so a fractional
+amount is a number we mis-read.** `scripts/check_amount_integrity.py` sweeps all
+67 amount columns (ratio columns excluded by name, list derived from
+`registry.py`) and runs daily in `healthcheck.yml`. No internal identity can see
+this class — they compare figures to each other, so a uniform scaling error
+cancels on both sides (that is how TEB's 2026Q2 unit switch validated green).
+This asks instead whether a stored number has a shape the source could not have
+printed, which needs no anchor and no peer.
+
+First sweep: **67 fractional values — 2 wrong numbers, 65 leaked non-values.**
+`bank_audit_capital.cet1_capital` ISCTR 2024Q2 consolidated reads `270336.203`
+where ISCTR's own 2024Q3 *and* 2024Q4 filings print `270336203`;
+`bank_audit_credit_quality.stage2_amount` DENIZ 2023Q4 prior reads `-535.779`
+where DENIZ 2022Q4 current carries `-535779`. Both flagged, neither corrected —
+the call is whether to override or re-extract. The other 65 are hierarchy markers
+and sector numbering parked in amount columns (equity_change 44, loans_by_sector
+18), reported but not alerted: they belong to the known column-alignment tails.
+
+Same pass: the `push_to_d1` routing guard widened from the 27 audit tables to all
+54 `SYNC_TABLES` (schema built from `web/migrations/*.sql`, so the baseline
+tables are covered too); ruff widened from five rules to full pyflakes, 18
+findings cleared; `_parse_amount` de-duplicated into `extractor.parse_amount`;
+and 74 over-broad exports in `web/app/lib` reduced to module-private or deleted —
+37 confirmed unused by tsc + ESLint, orphaning 7 more helpers, net -538 lines
+(`metrics.ts` 1,263 -> 974). Four stale claims in METRICS.md that named deleted
+helpers were corrected. Full record:
+[knowledge/architecture-cleanup-2026-07-27.md](knowledge/architecture-cleanup-2026-07-27.md).
 
 2026-07-25 — **A feature that could not be found on a phone.** The chart
 export/copy controls were `opacity-0` revealed on `group-hover`. There is no hover

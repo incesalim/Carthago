@@ -122,7 +122,7 @@ function toTrend(rows: (TimeSeriesRow | WeeklyRow)[]): { period: string; bank_ty
 // --- per-tab computers ---
 
 /** Overview "Sector Pulse" — always sector aggregate. [web/app/page.tsx] */
-export async function overviewRead(): Promise<TabTakeaway> {
+async function overviewRead(): Promise<TabTakeaway> {
   const s = [BANK_TYPES.SECTOR];
   const [assetsYoY, loansYoY, depositsYoY, npl, car, ldr, roe] = await Promise.all([
     totalAssetsYoY(s), totalLoansYoY(s), totalDepositsYoY(s),
@@ -132,7 +132,7 @@ export async function overviewRead(): Promise<TabTakeaway> {
 }
 
 /** Credit. [web/app/credit/page.tsx] */
-export async function creditRead(): Promise<TabTakeaway> {
+async function creditRead(): Promise<TabTakeaway> {
   const KREDI = "krediler", TOTAL = "1.0.1", CARDS = "1.0.8", SME = "1.0.11";
   const sector = [WEEKLY_BANK_TYPES.SECTOR];
   const pubPriv = [WEEKLY_BANK_TYPES.PRIVATE, WEEKLY_BANK_TYPES.STATE];
@@ -158,7 +158,7 @@ export async function creditRead(): Promise<TabTakeaway> {
 }
 
 /** Deposits. [web/app/deposits/page.tsx] */
-export async function depositsRead(): Promise<TabTakeaway> {
+async function depositsRead(): Promise<TabTakeaway> {
   const MEVDUAT = "mevduat", TOTAL = "4.0.1";
   const DEMAND_PARTS = ["4.0.3", "4.0.6", "4.0.9"];
   const sector = [WEEKLY_BANK_TYPES.SECTOR];
@@ -181,7 +181,7 @@ export async function depositsRead(): Promise<TabTakeaway> {
 }
 
 /** Asset Quality. [web/app/asset-quality/page.tsx] */
-export async function assetQualityRead(): Promise<TabTakeaway> {
+async function assetQualityRead(): Promise<TabTakeaway> {
   const SECTOR = "10001";
   const [npl, coverage, gross, cRatios, commRatios, stageShares] = await Promise.all([
     ratioNpl([SECTOR]),
@@ -202,7 +202,7 @@ export async function assetQualityRead(): Promise<TabTakeaway> {
 }
 
 /** Capital. [web/app/capital/page.tsx] */
-export async function capitalRead(): Promise<TabTakeaway> {
+async function capitalRead(): Promise<TabTakeaway> {
   const s = [BANK_TYPES.SECTOR];
   const [car, capRatios, equity, lev] = await Promise.all([
     ratioCar(s),
@@ -219,7 +219,7 @@ export async function capitalRead(): Promise<TabTakeaway> {
 }
 
 /** Profitability. [web/app/profitability/page.tsx] */
-export async function profitabilityRead(): Promise<TabTakeaway> {
+async function profitabilityRead(): Promise<TabTakeaway> {
   const s = [BANK_TYPES.SECTOR];
   const [roe, roa, nim, opex, cpiRaw] = await Promise.all([
     ratioRoe(s), ratioRoa(s), ratioNim(s), ratioOpex(s),
@@ -246,7 +246,7 @@ export async function profitabilityRead(): Promise<TabTakeaway> {
 }
 
 /** Liquidity. [web/app/liquidity/page.tsx] */
-export async function liquidityRead(): Promise<TabTakeaway> {
+async function liquidityRead(): Promise<TabTakeaway> {
   const [tlLtd, dollarization, apifon, liqRatios] = await Promise.all([
     weeklyOwnershipRatio("krediler", "1.0.1", "mevduat", "4.0.1", "TL"),
     weeklyDollarization(),
@@ -266,7 +266,7 @@ export async function liquidityRead(): Promise<TabTakeaway> {
 }
 
 /** Market Risk. [web/app/market-risk/page.tsx] */
-export async function marketRiskRead(): Promise<TabTakeaway> {
+async function marketRiskRead(): Promise<TabTakeaway> {
   const [nop, gap1y] = await Promise.all([fxNopToCapital(), repricingGap1y()]);
   return marketRiskInsights({ nop, gap1y });
 }
@@ -275,7 +275,7 @@ export async function marketRiskRead(): Promise<TabTakeaway> {
  * Registry — keyed by the tab slug in read_headlines.tab and each page's
  * `withLlmHeadline(tab, …)`.
  */
-export const READ_COMPUTERS: Record<string, () => Promise<TabTakeaway>> = {
+const READ_COMPUTERS: Record<string, () => Promise<TabTakeaway>> = {
   overview: overviewRead,
   credit: creditRead,
   deposits: depositsRead,

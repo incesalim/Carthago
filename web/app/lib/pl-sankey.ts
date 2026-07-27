@@ -109,7 +109,7 @@ export interface PlSankeyResult {
  *  line (VAKBN's net trading loss vanished → VIII/XIII overstated → the >5%
  *  gate suppressed the chart every period). Canonicalize any all-roman code to
  *  the dotted form; numeric sub-codes ("1.1", "4.2") are left untouched. */
-export const canonHier = (h: string) => (/^[IVXLCDM]+$/.test(h) ? `${h}.` : h);
+const canonHier = (h: string) => (/^[IVXLCDM]+$/.test(h) ? `${h}.` : h);
 
 export interface LineIndex {
   get(h: string): number | null;

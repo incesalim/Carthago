@@ -15,8 +15,6 @@ export interface Pt {
 }
 
 export const lastVal = (s: Pt[]): number | null => s.at(-1)?.value ?? null;
-export const prevVal = (s: Pt[]): number | null => s.at(-2)?.value ?? null;
-export const lastPeriod = (s: Pt[]): string | null => s.at(-1)?.period ?? null;
 
 /** Value n periods before the latest (n=12 on monthly ≈ a year ago). */
 export const valAgo = (s: Pt[], n: number): number | null => s.at(-1 - n)?.value ?? null;

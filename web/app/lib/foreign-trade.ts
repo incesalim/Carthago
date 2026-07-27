@@ -72,7 +72,6 @@ function barRows(cols: { key: string; rows: Point[] }[], months: number): BarRow
   });
 }
 
-const latest = (pts: Point[]): number | null => pts.at(-1)?.value ?? null;
 const last3 = (rows: EvdsRow[], k: number): number | null =>
   rows.length >= 3 ? rows.slice(-3).reduce((a, r) => a + r.value, 0) * k : null;
 
@@ -158,9 +157,4 @@ export async function getForeignTradeData(yearsBack = 16): Promise<ForeignTradeD
       QBARS,
     ),
   };
-}
-
-/** Latest value of any of the page's derived series — for the data-through badge. */
-export function ftLatest(d: ForeignTradeData): number | null {
-  return latest(d.s1["Trade balance"] ?? []);
 }

@@ -75,7 +75,7 @@ def main() -> None:
             tk, p, path, st = f.result()
             res[tk] = (p, path, st)
 
-    changed, regressions = [], []
+    changed = []
     for tk in sorted(cfg["banks"]):
         p, path, st = res[tk]
         if st != "ok":

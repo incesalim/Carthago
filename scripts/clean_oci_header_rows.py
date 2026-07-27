@@ -42,7 +42,6 @@ and clear/re-push the affected partitions the way apply_overrides.py does.
 from __future__ import annotations
 
 import argparse
-import re
 import sqlite3
 import sys
 from pathlib import Path

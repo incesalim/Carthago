@@ -1359,7 +1359,7 @@ def _extract_loans_by_stage_from_page(
     # the TL Total + FC Total — summing them gives the all-portfolios total.
     s1_match = None
     s2_match = None
-    s1_line_idx = s2_line_idx = -1
+    s1_line_idx = -1
     for li, ln in enumerate(lines):
         if s1_match is None:
             m = _STAGE12_GARAN_S1_ROW.match(ln)
@@ -1370,7 +1370,6 @@ def _extract_loans_by_stage_from_page(
             m = _STAGE12_GARAN_S2_ROW.match(ln)
             if m:
                 s2_match = m.group(1)
-                s2_line_idx = li
         if s1_match and s2_match:
             break
     if s1_match and s2_match:

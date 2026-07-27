@@ -8,7 +8,6 @@ fitz (PyMuPDF) and the local diagnostic PDFs under data/eye/, so they
 """
 from __future__ import annotations
 
-import os
 import sys
 from pathlib import Path
 

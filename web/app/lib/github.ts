@@ -8,7 +8,7 @@
  */
 import { getEnv } from "./cf-env";
 
-export const REPO = "incesalim/turkish-banking-sector";
+const REPO = "incesalim/turkish-banking-sector";
 const API = "https://api.github.com";
 
 export interface WorkflowDef {

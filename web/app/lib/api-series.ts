@@ -17,7 +17,7 @@ import { allDirect } from "./db";
 /** Max series a single /series call may request, mirroring EVDS's own cap. */
 export const MAX_SERIES_PER_REQUEST = 20;
 /** Max observations returned per series before truncation. ~50 years monthly. */
-export const MAX_OBS_PER_SERIES = 2000;
+const MAX_OBS_PER_SERIES = 2000;
 
 export interface SeriesMeta {
   series_code: string;

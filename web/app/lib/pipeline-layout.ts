@@ -15,7 +15,7 @@
 import type { Layer, Lane, PipelineNode } from "./pipeline-graph";
 
 export const NODE_W = 234;
-export const NODE_H = 64;
+const NODE_H = 64;
 const COL_GAP = 340; // x-distance between column origins
 const ROW_PITCH = NODE_H + 24; // y-distance between stacked nodes
 const LANE_GAP = 96; // vertical gutter between bands

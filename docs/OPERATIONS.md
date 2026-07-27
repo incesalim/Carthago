@@ -27,7 +27,7 @@ machine involvement is required for routine refreshes.
 | Manual only | `backfill-nonbank.yml` | One-time historical backfill of the non-bank sector lane (leasing / factoring / financing) from `from_year` (default 2020) → now (~5–10 min). The incremental refresh rides `refresh.py`; this is only for the initial history load. Apply migration 0013 first (via a `web/**` deploy) |
 | Manual only | `backfill-faaliyet.yml` | Fleet backfill of the Faaliyet-raporu franchise lane (branches / personnel from annual-report PDFs) → `faaliyet_franchise` + `faaliyet_extractions`. The incremental refresh rides `refresh.py` |
 | Manual only | `build-products.yml` | Loads the frozen **product-shelf** benchmark (`data/product_benchmark/*.json` + `src/products/labels_en.py` + `profiles_en.json`) via `src.products.build` → `product_attributes` / `bank_products` / `bank_product_profile` → D1 (`--only-tables=product_attributes,bank_products,bank_product_profile`) + snapshot. Deterministic and idempotent (loads committed JSONs, not a scrape); re-run for the same `snapshot_date` replaces its rows. Powers `/products`. Runs the `0034` DDL against remote D1 first (`CREATE … IF NOT EXISTS`), so it is safe to dispatch independently of deploy. NOT the refresh automation (that lane is designed but not built — see [knowledge/turkish-bank-product-benchmark-2026-07-22.md](knowledge/turkish-bank-product-benchmark-2026-07-22.md) §5). Bulletin lane (`bddk-pipeline` group) |
-| Daily 06:00 UTC | `healthcheck.yml` | D1 freshness check + `verify_chart_spec.py` + Telegram webhook-target check → Telegram/Discord alert if stale/failing/drifted |
+| Daily 06:00 UTC | `healthcheck.yml` | D1 freshness check + `verify_chart_spec.py` + `check_amount_integrity.py` + Telegram webhook-target check → Telegram/Discord alert if stale/failing/drifted |
 | Manual only | `test-openrouter.yml` | **Scratch probe** for the `OPEN_ROUTER_API` secret. `task=smoke` — auth + credits + DeepSeek price list + a completion through `free_llm.py`'s number validators. `task=usage` — accounting only, spends nothing. `task=regulation` — runs the **real** `summarize_regulations.py` against OpenRouter (repointing the `KIMI_API_URL`/`KIMI_MODEL`/`KIMI_API_KEY` env vars `kimi.py` already reads, so the production prompt is unchanged) with a Kimi A/B on the same section. **Read-only on production**: pulls the R2 snapshot, never uploads one, never pushes to D1. Delete it (+ `scripts/scratch_test_openrouter.py`, `scripts/scratch_dump_briefing.py`, and its `SCRATCH_WORKFLOWS` entry in `scripts/check_pipeline_graph_sync.py`) once the OpenRouter question is settled |
 | Manual only | `telegram-webhook.yml` | Register (`set`) / inspect (`info`) / verify (`check`) the Q&A bot webhook. Lives in CI because `TELEGRAM_BOT_TOKEN` + `TELEGRAM_WEBHOOK_SECRET` aren't available locally. Run `set` after anything that moves the site origin — notably a **Worker rename**, which changes the `workers.dev` hostname and silently orphans the webhook |
 | On push touching `web/**` | `deploy-cloudflare.yml` | Apply D1 migrations, build OpenNext bundle, deploy to Workers |
@@ -609,6 +609,41 @@ change behaviour when set. Only `EVDS_API_KEY` is in `.env.example`:
 | `SITE_URL` | base URL for `generate_read_headlines.py` and `generate_presentation.py` |
 | `WORKER_URL` | target Worker for `setup_telegram_webhook.py` |
 | `CHROME_PATH` | headless Chrome binary for the presentation-deck PDF render |
+
+### Amount-integrity alert ("read 1000x too small")
+
+`healthcheck.yml` runs `scripts/check_amount_integrity.py --alert` daily. BRSA
+reports print every figure as a whole number of **thousands of TL**, so a
+fractional value in an amount column is a number we mis-read, not a small
+number. The check sweeps every REAL column in the audit lane except the named
+ratio columns (`RATIO_COLUMNS` in the script — CAR / LCR / NSFR / stage
+coverage) and splits what it finds in two:
+
+- **mis-read thousands separator** — the alerting class. `270336.203` where the
+  filing printed `270.336.203`, or a hyphen-negative parsed down the English
+  branch. The stored figure is a real one, 1000x too small. **No internal
+  validator can see this**: every identity in `validator.py` compares figures to
+  each other, and a scaling error on one cell breaks them only if that cell is
+  in an identity at all.
+- **leaked non-value** — a hierarchy marker, sector numbering or dipnot ref
+  (`11.3`, `4.5`) that landed in an amount column. Reported, not alerted:
+  it belongs to the equity_change / loans_by_sector column-alignment tails.
+
+To run by hand:
+
+```bash
+python scripts/check_amount_integrity.py                    # remote D1
+python scripts/check_amount_integrity.py --db data/bank_audit.db   # snapshot
+python scripts/check_amount_integrity.py --strict           # fail on leaks too
+```
+
+**When it fires:** open the source PDF cell, and cross-check the same figure's
+prior-period twin in the adjacent filing (a prior column re-prints the previous
+year-end, so a correct extraction of that quarter is an independent anchor —
+that is how the ISCTR 2024Q2 CET1 case was confirmed). Then correct via
+`data/audit_overrides.json` + `scripts/audit_correct.py override-cells`, or
+re-extract the partition. Do **not** widen `RATIO_COLUMNS` to silence it unless
+the column genuinely holds a ratio.
 
 ## Troubleshooting
 

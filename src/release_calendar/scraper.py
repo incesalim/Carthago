@@ -132,7 +132,6 @@ def fetch(url: str = URL) -> str:
 
 def write_db(conn: sqlite3.Connection, events: list[dict]) -> int:
     init_schema(conn)
-    placeholders = ",".join(["?"] * len(DB_COLUMNS))
     # `downloaded_at` is omitted from the row dicts, so it takes the table's
     # CURRENT_TIMESTAMP default — which push_to_d1.py filters on.
     cols = [c for c in DB_COLUMNS if c != "downloaded_at"]

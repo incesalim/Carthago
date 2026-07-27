@@ -10,19 +10,42 @@ unvalidated filter over SYNC_TABLES — an omitted or misspelled table simply
 matched nothing.
 
 Each test below pins one link in that chain.
+
+The last two tests widen the routing guard from the 27 audit tables to ALL of
+SYNC_TABLES. The bulletin, EVDS, news, TEFAS, BIST, TBB/TKBB, KAP, rates,
+products, calendar and faaliyet tables ride exactly the same silent-skip path
+and had no guard at all.
 """
 
 import re
+import sqlite3
 from pathlib import Path
 
 import pytest
 
-from push_to_d1 import SYNC_TABLES, resolve_tables
+from push_to_d1 import SYNC_TABLES, fetch_recent, resolve_tables
 from src.audit_reports.registry import AUDIT_TABLES, INFRA_TABLES, REGISTRY
 
 REPO = Path(__file__).resolve().parents[1]
 WORKFLOWS = REPO / ".github" / "workflows"
+MIGRATIONS = REPO / "web" / "migrations"
 _ONLY_TABLES_RE = re.compile(r"--only-tables[=\s]+([A-Za-z0-9_,]+)")
+
+
+def _d1_schema() -> sqlite3.Connection:
+    """An in-memory copy of D1's schema, built from web/migrations/*.sql.
+
+    The migrations are the canonical definition of what D1 holds, and they are
+    the only place the baseline tables (balance_sheet, income_statement, loans,
+    deposits, financial_ratios, other_data, weekly_series, evds_series, bist_*,
+    api_series) are declared — no src/*/schema.py init_schema creates them. So
+    the migrations, not those eleven initialisers, are what a whole-SYNC_TABLES
+    guard has to build from.
+    """
+    conn = sqlite3.connect(":memory:")
+    for path in sorted(MIGRATIONS.glob("*.sql")):
+        conn.executescript(path.read_text(encoding="utf-8"))
+    return conn
 
 
 def test_audit_tables_is_the_registry_plus_the_infra_pair():
@@ -69,9 +92,6 @@ def test_every_audit_table_is_routed_by_fetch_recent():
     first shipped empty): fetch_recent's per-table routing is hand-maintained and
     lived out of step with the registry. Every registered audit table must be
     routed — pin it so the next new table can't be silently dropped."""
-    import sqlite3
-
-    from push_to_d1 import fetch_recent
     from src.audit_reports.schema import init_schema
 
     conn = sqlite3.connect(":memory:")
@@ -83,6 +103,41 @@ def test_every_audit_table_is_routed_by_fetch_recent():
     assert not skipped, (
         "push_to_d1.fetch_recent has no timestamp-column branch for these audit "
         f"tables — their rows would never reach D1: {skipped}"
+    )
+
+
+def test_every_sync_table_exists_in_the_d1_migrations():
+    """A table push_to_d1 pushes but D1 has no schema for fails the whole run at
+    the wrangler step — the ONE loud failure mode in this file, and only because
+    it happens to be loud. Pin it anyway: the migration is the half people
+    forget, and forgetting it takes down every OTHER table in the same push."""
+    conn = _d1_schema()
+    have = {r[0] for r in conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table'")}
+    missing = [t for t in SYNC_TABLES if t not in have]
+    assert not missing, (
+        "in push_to_d1.SYNC_TABLES but declared by no web/migrations/*.sql — D1 "
+        f"has no table to push into: {missing}"
+    )
+
+
+def test_every_sync_table_is_routed_by_fetch_recent():
+    """The audit half of this is pinned above; this is the other 27 tables.
+
+    Same silent-skip mechanism, no guard until now: a new bulletin / EVDS / news
+    / TEFAS / BIST / TBB / TKBB / KAP / rates / products table added to
+    SYNC_TABLES without a matching branch in fetch_recent returns
+    "no time column, skipped" — 0 INSERTs, exit 0, and the lane looks healthy
+    while D1 never receives a row. Every table this script claims to sync must
+    be routable, not just the audit ones."""
+    conn = _d1_schema()
+    skipped = [
+        t for t in SYNC_TABLES
+        if any("no time column, skipped" in s for s in fetch_recent(conn, t, 24))
+    ]
+    assert not skipped, (
+        "push_to_d1.fetch_recent has no timestamp-column branch for these tables "
+        f"— their rows would never reach D1: {skipped}"
     )
 
 

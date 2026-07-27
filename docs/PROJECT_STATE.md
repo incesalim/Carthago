@@ -1057,6 +1057,44 @@ each `/banks/[ticker]` page:
 
 ## Known issues / pending work
 
+- **`parse_num` read hyphen-negatives 1000× too small — FIXED 2026-07-27, and
+  now guarded.** The numeric primitive eight audit extractors share decided
+  Turkish-vs-English thousands notation with an anchored regex
+  (`^\d{1,3}(\.\d{3})+$`) applied to the **signed** string. A leading `-` failed
+  the anchor, so a hyphen-negative with exactly ONE thousands group fell through
+  to the English branch and its separator was read as a decimal point:
+  `parse_num('-319.110')` → `-319.11`. Two groups survived on a separate clause
+  and parenthesised negatives never reached the sniff, so it only ever bit
+  single-group hyphen-negatives — the §4 market-risk net-off and gap rows.
+  The sign is now stripped before the sniff, so **a number's sign no longer
+  changes how its format is read**, and `tests/test_parse_num.py` asserts every
+  case against its positive twin. The primitive had had **no tests at all**.
+
+  **A corpus sweep found 67 fractional amounts — 2 wrong numbers, 65 leaked
+  non-values.** BRSA prints whole thousands of TL, so a fractional amount cannot
+  be a small figure; it is one we mis-read. `scripts/check_amount_integrity.py`
+  sweeps all 67 amount columns (ratio columns excluded by name) and classifies:
+  - **Mis-read separators (2)** — real figures stored 1000× too small.
+    `bank_audit_capital.cet1_capital` **ISCTR 2024Q2 consolidated** = `270336.203`
+    (the same prior-period figure reads `270336203` in ISCTR's own 2024Q3 **and**
+    2024Q4 filings — an independent cross-period confirmation), and
+    `bank_audit_credit_quality.stage2_amount` **DENIZ 2023Q4 consolidated prior**
+    = `-535.779` (DENIZ 2022Q4 current carries the same figure as `-535779`).
+    Both are the *prior* column. **Not yet corrected — awaiting a decision.**
+  - **Leaked non-values (65)** — a hierarchy marker or sector numbering parked in
+    an amount column (`equity_change.paid_in_capital` 44 × GARAN `11.2`/`11.3`,
+    `loans_by_sector` 18, three singletons). Junk that reads as junk; belongs to
+    the known column-alignment tails below, and does not alert.
+
+  **Why this needed a new check rather than a validator.** Every structural
+  check in `validator.py` is an *internal identity* — it compares figures to each
+  other. A scaling error is invisible to one unless the cell participates in an
+  identity, and a **uniform** scaling error (the TEB 2026Q2 unit switch) is
+  invisible to all of them by construction. This asks a different question, per
+  cell and with no cross-reference: *does the stored number have a shape the
+  source could not have printed?* It runs daily in `healthcheck.yml`; recipe in
+  [OPERATIONS.md](OPERATIONS.md) → Amount-integrity alert.
+
 - **Audit-extractor `textops` / `locate` refactor never landed (Phase 5).** The
   audit-quality rework is otherwise complete, but its last phase — extracting shared
   `textops.py` (page-text repair, squish handling, `NUM_PAT` + dipnot token rules,
@@ -1105,10 +1143,20 @@ each `/banks/[ticker]` page:
   pages, CI silently skipping the fitz/pdfplumber test suite, `push_to_d1.py`
   3-edit table registration, dead extractor code) lives
   in [knowledge/architecture-review-2026-07.md](knowledge/architecture-review-2026-07.md).
-  Two of its items are now closed: the CI test-suite gap and the `push_to_d1`
-  chokepoint (2026-07-14). The `PlSankeyChart.tsx` light-mode regression it listed
-  is **moot** — that component no longer exists (the Desk redesign left only
-  `lib/pl-sankey.ts`).
+  **Re-verified 2026-07-27 and now largely closed** — see
+  [knowledge/architecture-cleanup-2026-07-27.md](knowledge/architecture-cleanup-2026-07-27.md)
+  for the item-by-item status and what was deliberately left. Closed since:
+  the CI test-suite gap and the `push_to_d1` chokepoint (2026-07-14, the routing
+  guard widened from the audit tables to all 54 on 2026-07-27); the uncached
+  `audit.ts` reads (now 20 `cachedAll` / 1 raw `getDB`); pdfplumber removal;
+  the `sector/page.tsx` inline SQL; the stray `.next/` at repo root; the dead
+  extractor helpers; and the zero data-layer tests (5 → 28 web / 51 → 53 Python
+  suites). The `PlSankeyChart.tsx` light-mode regression is **moot** — that
+  component no longer exists (the Desk redesign left only `lib/pl-sankey.ts`).
+  **Still open by choice:** the `textops`/`locate` split (above) and the ~9
+  copy-pasted HTTP session+retry loops in `src/scrapers`/`tbb`/`tefas`/`tuik`/
+  `kap`/`news` — each backoff is tuned to its own flaky source, so a shared
+  helper is worth doing deliberately, not as a sweep.
 - **Seeking-Alpha-style statement viewer shipped (2026-06-24).** The `/banks/[ticker]`
   Financials section gains a **Cash Flow** tab (alongside Balance Sheet / Income
   Statement), an **Absolute / YoY Growth** view toggle, and a **TTM** column (income

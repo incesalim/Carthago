@@ -9,7 +9,7 @@
  */
 
 /** Tables that exist but must not be exposed to a public querier. */
-export const DENY_TABLES = new Set(["bot_usage", "d1_migrations"]);
+const DENY_TABLES = new Set(["bot_usage", "d1_migrations"]);
 
 // Data-modifying / DDL / dangerous verbs. Matched as whole words (case-insensitive)
 // after comments are stripped. None is a table/column name in our schema, so a
@@ -20,7 +20,7 @@ const FORBIDDEN = [
   "revoke", "truncate", "into", "commit", "rollback", "savepoint",
 ];
 
-export const MAX_SQL_LEN = 2000;
+const MAX_SQL_LEN = 2000;
 export const DEFAULT_ROW_CAP = 200;
 
 export type SanitizeResult =
@@ -34,7 +34,7 @@ export type SanitizeResult =
  * LIMIT, but the outer query has none — testing the raw string let that pass
  * uncapped.
  */
-export function stripParenGroups(sql: string): string {
+function stripParenGroups(sql: string): string {
   let out = sql, prev = "";
   while (out !== prev) {
     prev = out;
@@ -44,7 +44,7 @@ export function stripParenGroups(sql: string): string {
 }
 
 /** Remove `/* … *​/` and `-- …` comments so they can't hide keywords or `;`. */
-export function stripSqlComments(sql: string): string {
+function stripSqlComments(sql: string): string {
   return sql
     .replace(/\/\*[\s\S]*?\*\//g, " ")
     .replace(/--[^\n\r]*/g, " ");
@@ -255,7 +255,7 @@ const BANK_TYPE_PARTITIONS: Record<string, string[]> = {
 };
 
 /** Literal bank_type_code values the SQL pins, however it spells the filter. */
-export function enumeratedBankTypes(sql: string): string[] {
+function enumeratedBankTypes(sql: string): string[] {
   const clean = stripSqlComments(sql);
   const out = new Set<string>();
   for (const m of clean.matchAll(/bank_type_code\s+in\s*\(([^)]*)\)/gi)) {
@@ -431,7 +431,7 @@ export function renderDataList(
 }
 
 /** The column an ORDER BY sorts on — the one the answer is really about. */
-export function orderByColumn(sql: string): string | undefined {
+function orderByColumn(sql: string): string | undefined {
   const m = stripSqlComments(sql).match(/order\s+by\s+([a-z_][a-z0-9_]*)/i);
   return m ? m[1].toLowerCase() : undefined;
 }

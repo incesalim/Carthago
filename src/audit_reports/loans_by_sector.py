@@ -35,7 +35,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 
-from .extractor import _HAS_FITZ, _fitz_page_count, _fitz_page_text, parse_num
+from .extractor import _HAS_FITZ, _fitz_page_count, _fitz_page_text, parse_amount
 
 
 # ---------------------------------------------------------------------------
@@ -268,17 +268,6 @@ class LoansBySectorReport:
     rows: list[SectorRow] = field(default_factory=list)
 
 
-# ---------------------------------------------------------------------------
-# Number parser shared with extractor.parse_num — but we accept '-' as zero
-# (audit reports use '-' for "nil" entries).
-# ---------------------------------------------------------------------------
-def _parse_amount(s: str) -> float | None:
-    s = s.strip()
-    if not s or all(c in "-–—" for c in s):  # "", "-", "--", "—" … → nil
-        return 0.0
-    return parse_num(s)
-
-
 # Three numbers in a row, separated by whitespace, optionally with commas
 # inside numbers and an optional leading footnote ref like "(1)". A nil cell is
 # one OR MORE dashes ("--" as well as "-", en/em variants) — accept a run, else a
@@ -476,7 +465,7 @@ def _extract_section_xy(page_idx: int, lines: list[list[tuple[float, float, str]
         if sector_key is None:
             continue
         # numbers with their right-edge x (skip the label tokens)
-        nums = [(_parse_amount(t), x1) for _x0, x1, t in row if re.fullmatch(_NUM_TOKEN, t)]
+        nums = [(parse_amount(t), x1) for _x0, x1, t in row if re.fullmatch(_NUM_TOKEN, t)]
         nums = [(v, x) for v, x in nums if v is not None]
         if not nums:
             continue
@@ -564,9 +553,9 @@ def _extract_section(page_idx: int, text: str) -> list[SectorRow]:
                 break
         if sector_key is None:
             continue
-        n2 = _parse_amount(m_nums.group("n1"))
-        n3 = _parse_amount(m_nums.group("n2"))
-        ecl = _parse_amount(m_nums.group("n3"))
+        n2 = parse_amount(m_nums.group("n1"))
+        n3 = parse_amount(m_nums.group("n2"))
+        ecl = parse_amount(m_nums.group("n3"))
         rows.append(SectorRow(
             sector=sector_key,
             stage2_amount=n2,

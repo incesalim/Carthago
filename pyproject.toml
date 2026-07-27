@@ -4,9 +4,21 @@ target-version = "py312"
 extend-exclude = ["web", "data", ".venv"]
 
 [tool.ruff.lint]
-# Start conservative: catch real breakage (syntax + undefined names) so CI is
-# green on the existing code. Tighten over time (add E, I, UP, B, …).
-select = ["E9", "F63", "F7", "F82", "F821"]
+# E9 = syntax / IO errors. F = ALL of pyflakes: the undefined-name rules this
+# started with (F82x), plus unused imports (F401) and unused locals (F841).
+#
+# Widened from the original five-rule set on 2026-07-27. Cost was 18 findings
+# across ~22k LOC — 11 unused imports, 7 dead locals, most of them in the frozen
+# scripts/archive/ — so the whole class was cheap to close permanently. It also
+# pays for itself on refactors: swapping loans_by_sector/npl_movement onto the
+# shared extractor.parse_amount left `parse_num` imported and unused in both,
+# and F401 is what said so.
+#
+# Deliberately NOT enabled: E (1,161 E501 line-too-long — the long explanatory
+# comments in this codebase are the point, not accidents) and I (77 unsorted
+# imports, all in files doing the sys.path.insert + `# noqa: E402` dance, where
+# reordering buys nothing and churns every diff).
+select = ["E9", "F"]
 
 [tool.pytest.ini_options]
 pythonpath = ["scripts", "."]

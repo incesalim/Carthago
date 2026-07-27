@@ -114,10 +114,6 @@ export const BANK_TYPE_BADGE_LABELS: Record<string, string> = {
   "10004": "Dev & Inv",
 };
 
-export function bankTypeCode(ticker: string): string | undefined {
-  return BANK_TYPE_BY_TICKER[ticker.toUpperCase()];
-}
-
 /**
  * Banks carried in the data but EXCLUDED from peer comparison, ranking and
  * concentration stats (`/cross-bank` heatmap, market-share league, HHI).

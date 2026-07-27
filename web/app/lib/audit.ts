@@ -112,39 +112,6 @@ export async function bankPeriods(
   return results;
 }
 
-/** Full balance-sheet rows for one bank-period-kind. */
-export async function balanceSheet(
-  ticker: string,
-  period: string,
-  kind: "consolidated" | "unconsolidated" = "unconsolidated",
-): Promise<BalanceSheetRow[]> {
-  const results = await cachedAll<BalanceSheetRow>(
-    `SELECT statement, item_order, hierarchy, item_name, footnote,
-              amount_tl, amount_fc, amount_total
-       FROM bank_audit_balance_sheet
-       WHERE bank_ticker = ? AND period = ? AND kind = ?
-       ORDER BY statement, item_order`,
-    [ticker, period, kind],
-  );
-  return results;
-}
-
-/** Full P&L rows for one bank-period-kind. */
-export async function profitLoss(
-  ticker: string,
-  period: string,
-  kind: "consolidated" | "unconsolidated" = "unconsolidated",
-): Promise<PlRow[]> {
-  const results = await cachedAll<PlRow>(
-    `SELECT item_order, hierarchy, item_name, footnote, amount
-       FROM bank_audit_profit_loss
-       WHERE bank_ticker = ? AND period = ? AND kind = ?
-       ORDER BY item_order`,
-    [ticker, period, kind],
-  );
-  return results;
-}
-
 // Expected-credit-loss contra rows: "Expected Credit Losses (-)" /
 // "Beklenen Zarar Karşılıkları (-)" / Şekerbank's "Expected Losses (-)".
 const _ECL_RE = /(EXPECTEDCREDITLOSS|BEKLENENZARAR|EXPECTEDLOSS)/;
@@ -531,26 +498,6 @@ export async function cashFlowMultiPeriod(
 }
 
 /**
- * Time series of a specific BS line for one bank.
- * Matches `item_name` exactly. Returns (period, amount_total) tuples.
- */
-export async function bsItemTimeSeries(
-  ticker: string,
-  itemName: string,
-  kind: "consolidated" | "unconsolidated" = "unconsolidated",
-): Promise<{ period: string; value: number }[]> {
-  const results = await cachedAll<{ period: string; value: number }>(
-    `SELECT period, amount_total AS value
-       FROM bank_audit_balance_sheet
-       WHERE bank_ticker = ? AND kind = ? AND item_name = ?
-         AND amount_total IS NOT NULL
-       ORDER BY period`,
-    [ticker, kind, itemName],
-  );
-  return results;
-}
-
-/**
  * Bank profile (branches + personnel) — latest extraction across periods.
  * Picks the most-recent (period, kind) for the ticker; period_type=current
  * is implied (the profile extractor only emits current-period values).
@@ -577,7 +524,6 @@ export async function bankProfile(ticker: string): Promise<BankProfile | null> {
   );
   return results[0] ?? null;
 }
-
 
 /**
  * Latest TFRS 9 stage view for one bank (consolidated|unconsolidated).
@@ -618,26 +564,4 @@ export async function bankStagesLatest(
     [ticker, kind],
   );
   return results[0] ?? null;
-}
-
-
-/**
- * For a given bank, the SUM of all top-level (single-Roman) hierarchy
- * items at item_order = 1, 2, 3, … in the assets statement.
- * Approximates "Total Assets" when the actual TOTAL row is missing.
- */
-export async function totalAssetsApprox(
-  ticker: string,
-  kind: "consolidated" | "unconsolidated" = "unconsolidated",
-): Promise<{ period: string; value: number }[]> {
-  const results = await cachedAll<{ period: string; value: number }>(
-    `SELECT period, SUM(amount_total) AS value
-       FROM bank_audit_balance_sheet
-       WHERE bank_ticker = ? AND kind = ? AND statement = 'assets'
-         AND hierarchy LIKE '%' AND hierarchy GLOB '[IVX]*.' /* single Roman */
-       GROUP BY period
-       ORDER BY period`,
-    [ticker, kind],
-  );
-  return results;
 }
