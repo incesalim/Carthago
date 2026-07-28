@@ -615,6 +615,64 @@ Two properties worth keeping in mind:
 Audit campaigns remain where the bulk of this database's writes come from — two
 days of lane work (2026-07-15/17) were 27.5M of that month's 68.1M.
 
+### ⚠️ The billing cycle is NOT the calendar month
+
+Confirmed on the dashboard 2026-07-28: this account's cycle runs **the 11th to
+the 10th** (the period labelled "Aug 2026" is **Jul 11 → Aug 10**, 31 days). The
+GraphQL query above defaults to whatever window you give it — give it the
+**cycle**, not the month, or every projection is wrong at both ends. Cross-check:
+Jul 11–27 summed 61,682,243 locally against the dashboard's 61.68M, exact.
+
+Also note the dashboard's **projected cycle cost is structurally low**. It is
+`average daily cost × cycle days`, and that average is diluted by the days that
+cost $0 because they were still inside the 50M allowance. Once the allowance is
+spent, every subsequent day bills at full rate, so project bottom-up from the
+day-shapes (quiet weekday ~0.5–0.9M, Friday ~2M, Saturday ~3M, Sunday ~2.4M).
+
+### Cron freeze 2026-07-28 → 2026-08-11 (TEMPORARY — RE-ENABLE)
+
+The 50M allowance for the Jul 11 → Aug 10 cycle was exhausted on Jul 26; the
+remaining 13 days would have billed at full rate. Ten scheduled workflows are
+**disabled via `gh workflow disable`** (repo files unchanged, so this is
+invisible in git — check `gh workflow list --all`):
+
+`acquire-audit` · `generate-reads` · `healthcheck` · `refresh-advertised-rates` ·
+`refresh-bddk-bulletins` · `refresh-calendar` · `refresh-data` ·
+`refresh-evds-daily` · `refresh-presentations-weekly` · `summarize-regulations`
+
+**Re-enable on 2026-08-11**, when the next cycle starts with a fresh 50M:
+
+```bash
+for wf in acquire-audit generate-reads healthcheck refresh-advertised-rates \
+          refresh-bddk-bulletins refresh-calendar refresh-data \
+          refresh-evds-daily refresh-presentations-weekly summarize-regulations; do
+  gh workflow enable "$wf.yml"
+done
+```
+
+**`refresh-news-daily` deliberately keeps running.** Every other lane reads an
+archive and heals on resume — EVDS is a historical API, BDDK bulletins stay on
+BDDK's site, audit PDFs stay on the banks' sites — so a pause defers their writes
+into the next cycle rather than losing anything. News does not: KAP, Google News
+and the press feeds are **windowed**, they only surface recent items, and an item
+that scrolls out during a freeze is gone for good. A 13-day hole in `news_items`
+would be permanent and would show on `/actions` and the per-bank news tabs
+forever. It is also the cheapest of the daily jobs. Never freeze this one.
+
+Consequences to expect while frozen: `/admin` freshness goes red across the
+board (that is the freeze, not a break), no Telegram bulletin pings, and the
+monthly BDDK bulletin — which lands mid-month on no fixed day — is picked up
+whenever the daily probe resumes rather than the day it publishes.
+
+⚠️ **Manual-dispatch workflows are still enabled and still cost campaign money.**
+`backfill-*`, `refresh-audit`, `reextract-statement`, `purge-partition`,
+`build-products` and `apply_overrides.py` are $9–15 a run at this point in a
+cycle. Do not dispatch them before Aug 11 unless the fix is urgent.
+
+⚠️ **`gazelhan` is ~340k rows/day of the same account allowance and is not this
+project.** It cannot be frozen from this repo. It was ~$4.40 of the remaining
+13 days' spend — worth dealing with at the source.
+
 ## Disaster recovery
 
 Two independent safety nets, both **free**:
