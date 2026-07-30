@@ -3,7 +3,51 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-07-27.
+Last verified: 2026-07-30.
+
+2026-07-30 — **A native app, and the rule that keeps it from disagreeing with
+the website.** `mobile/` — Expo SDK 57 / React Native 0.86 / expo-router, four
+tabs (Overview, Banks, Economy, News) plus a per-bank detail screen. Built and
+verified locally; **not submitted to either store.**
+
+The expensive part was never the UI. The website's data layer is server
+components reading D1 directly, and the only public JSON surface was `/api/v1` —
+the EVDS-shaped series catalog, which deliberately exposes no per-bank data. So
+a native client needed a read API that did not exist.
+
+It is `/api/app/v1`, and it is **private on purpose**: `/api/v1` is a documented
+contract third parties build against, so its shapes can only be added to, while
+this one is the wire format between our own Worker and our own client and can be
+reshaped whenever a screen is. Separate kill switch (`APP_API_DISABLED`) for the
+same reason — taking down third-party load in an incident must not black out
+every installed app at the same moment.
+
+The rule that makes a second client safe: **no metric is derived in the app.**
+Every route handler calls the same `web/app/lib` function the website renders
+from — `ratioCar`, `heatmapPanel`, `realRate`, `cpiFromIndex`, `overviewInsights`
+— so the two surfaces cannot print different values for one metric. The client
+formats and writes copy; it never does arithmetic. A new figure goes into
+`app/lib` first.
+
+Three things the port surfaced:
+
+- **The categorical chart ramp fails colorblind separation.** Validating the six
+  `--chart-*` tokens against their own surfaces: in dark mode `--chart-2` vs
+  `--chart-1` scores ΔE 6.1 for *normal* vision (floor 15), and `--chart-6` vs
+  `--chart-5` drops to 5.3 under protanopia; in light mode `--chart-3` and
+  `--chart-6` sit at ~2.37:1 against the sheet. The website is partly covered by
+  its direct-labelled `ChartFoot`, which is the documented relief for a
+  borderline pair — but that is relief, not a fix. **Not acted on**: re-stepping
+  a CI-gated ramp is a system-wide decision across ~40 charts. The app sidesteps
+  it by plotting single series in `--data` only. Logged in PROJECT_STATE.md.
+- **Two copies of a colour system drift silently.** React Native cannot read a
+  CSS custom property, so `mobile/src/theme/tokens.ts` is a hand-copy of
+  `globals.css`. `mobile/scripts/check-tokens.mjs` re-reads the CSS and diffs it
+  in CI — mutation-tested by flipping one hex and confirming it fails.
+- **`tsc` is not proof a React Native app builds.** It is happy with imports
+  Metro cannot resolve. CI runs `npx expo export` for that; it also caught that
+  the Google-Fonts package root pulls every weight and italic (~2.5MB of TTFs
+  for five faces), fixed with per-weight subpath imports.
 
 2026-07-27 — **Half of every section-4 capital cell was never validated.**
 `check_capital` took `next(r for r in rows if r["period_type"] == "current")` and

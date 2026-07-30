@@ -116,3 +116,38 @@ jobs:
         run: npx tsc --noEmit
       - name: Unit tests
         run: npm run test
+
+  mobile:
+    name: Mobile — eslint + tsc + tokens + bundle
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          # Node 24 for the same lockfile reason as the web job — npm 10 rejects
+          # a lockfile npm 11 wrote. Keep the two jobs on the same major.
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: ESLint
+        run: npx eslint .
+      - name: Type-check
+        run: npx tsc --noEmit
+      - name: Theme tokens in sync with globals.css
+        # mobile/src/theme/tokens.ts is a hand-copy of web/app/globals.css —
+        # React Native can't read a CSS custom property. Two copies of a colour
+        # system drift silently, so this re-reads the CSS and diffs it.
+        run: npm run check:tokens
+      - name: Metro bundle
+        # The one check that proves the app actually builds. tsc is happy with a
+        # module Metro can't resolve (a native-only import, a bad asset path, a
+        # route file in the wrong place), and those failures otherwise surface
+        # for the first time on a developer's device — or in a store build.
+        # No simulator or Xcode needed; this is the JS bundle only.
+        run: npx expo export --platform ios --output-dir .expo-export

@@ -56,6 +56,7 @@ machine is involved in the production data flow.
 | **Edge database** | Cloudflare D1 (`bddk-data`) | SQLite at the edge, ~1.6M rows |
 | **PDF storage** | Cloudflare R2 (`bddk-audit-reports`) | ~2.2 GB; **1,050 quarterly PDFs** extracted across the 38-bank universe |
 | **Dashboard** | `web/` | Next.js 16 + OpenNext + Recharts (charts) + d3-force (/ownership network layout) on Cloudflare Workers |
+| **Mobile app** | `mobile/` | Expo SDK 57 + expo-router + React Native 0.86 + react-native-svg. Read-only native client over `/api/app/v1` — see § Mobile app |
 | **Read cache** | Cloudflare KV (`NEXT_INC_CACHE_KV`) | 12h data cache for D1 reads (`cachedAll` → `unstable_cache`) |
 | **Admin panel** | `web/app/admin/`, `web/app/api/admin/` | password-gated control center: data health, refresh triggers, traffic |
 | **Quality gates** | `.github/workflows/ci.yml`, `pyproject.toml`, `tests/` | ruff + pytest + eslint + tsc + vitest on every PR |
@@ -219,10 +220,71 @@ Manual only. `set` / `info` / `check` for the Q&A bot webhook
 that moves the site origin.
 
 ### CI — `.github/workflows/ci.yml`
-On every PR (and master push): Python `ruff` + `pytest` and web `eslint` +
-`tsc` + `vitest` (`npm run test` — unit tests for pure lib code, e.g.
-`app/lib/pl-sankey.test.ts`). Dependency updates come via
-`.github/dependabot.yml` (pip / npm / github-actions, weekly).
+On every PR (and master push): Python `ruff` + `pytest`; web `eslint` + `tsc` +
+`vitest` (`npm run test` — unit tests for pure lib code, e.g.
+`app/lib/pl-sankey.test.ts`); and mobile `eslint` + `tsc` + `check:tokens` +
+a Metro bundle. Dependency updates come via `.github/dependabot.yml`
+(pip / npm / github-actions, weekly).
+
+## Mobile app
+
+`mobile/` is an Expo (React Native) client for iOS and Android. It is a **second
+view of the same data**, not a second pipeline: it reads `/api/app/v1` on the
+same Worker, which reads the same D1 through the same `web/app/lib/` query
+modules the website renders from.
+
+### Why a private API rather than `/api/v1`
+
+`/api/v1` is a published product surface — a documented series contract that
+third parties build against, so its shapes can only ever be added to.
+`/api/app/v1` is the private wire format between our own Worker and our own
+client: screen-oriented, denormalised, and free to change whenever a screen
+changes. Keeping them apart is what lets the app iterate without freezing the
+public API.
+
+| Endpoint | Screen | Reuses |
+|---|---|---|
+| `GET /api/app/v1` | launch handshake (`minSupportedClient`) | — (no D1 read on the launch path) |
+| `GET /api/app/v1/overview` | Overview | `metrics.ts`, `desk.ts`, `insights.ts`, `audit-ratios.ts`, `real-terms.ts`, `ahead-data.ts` |
+| `GET /api/app/v1/banks` | Banks index | `heatmap.ts`, `audit.ts`, `bank_names.ts` |
+| `GET /api/app/v1/banks/{ticker}` | Bank detail | `heatmap.ts`, `audit.ts`, `news.ts` |
+| `GET /api/app/v1/economy` | Economy | `economy.ts` |
+| `GET /api/app/v1/news` | News | `news.ts` |
+
+Kill switch: `APP_API_DISABLED=1` on the Worker. **Separate** from
+`PUBLIC_API_DISABLED` on purpose — that one sheds third-party load in an
+incident, and reusing it would black out every installed app at the same moment.
+
+### The invariant that matters
+
+**No metric is derived in the app.** Every ratio, deflation and streak is
+computed server-side by the same `web/app/lib` function the website calls, so
+the two surfaces cannot print different values for the same metric. The client
+formats (`mobile/src/format.ts`) and writes copy around figures; it never makes
+them. A new number goes into `web/app/lib` first.
+
+### Deliberate divergences from the website
+
+- **Four tabs, not ~30 routes.** Overview / Banks / Economy / News. The depth
+  routes (`/capital`, `/liquidity`, `/cross-bank`, `/regulation`, `/pipeline`)
+  stay on the web, and each screen links out.
+- **The sheet is the screen.** The Desk's white-sheet-on-paper figure-ground
+  needs margins the phone doesn't have, so `card` becomes the screen fill —
+  which is what the website itself already does below the `lg` breakpoint.
+- **Single-series charts only.** Partly because a multi-series line chart is
+  unreadable at 390pt, and partly because the categorical ramp fails the
+  colorblind check in dark mode (`--chart-2` vs `--chart-1` scores ΔE 6.1 for
+  *normal* vision, below the 15 floor). The website gets away with it via
+  direct-labelled chart feet; a phone chart has no room for one. See
+  PROJECT_STATE.md § Known issues.
+- **Payloads are trimmed server-side.** Sparklines ship 13 points, metric trends
+  8 quarters, macro series 48 months. Full history stays on the web.
+
+### Theme tokens
+
+`mobile/src/theme/tokens.ts` is a hand-copy of `web/app/globals.css` (React
+Native cannot read a CSS custom property). `mobile/scripts/check-tokens.mjs`
+re-reads the CSS and fails CI on any divergence, so the two copies cannot drift.
 
 ## Why the SQLite snapshot exists
 

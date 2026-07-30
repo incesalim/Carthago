@@ -777,6 +777,7 @@ degrades gracefully when its key is unset:
 | `BOT_PER_CHAT_DAILY` / `BOT_GLOBAL_DAILY` | usage caps (defaults 20/chat, 300 global, per UTC day) |
 | `BOT_TEST_KEY` | enables `GET /api/admin/bot-ask` (the bot test harness); **404s while unset** |
 | `PUBLIC_API_DISABLED` | kill switch for the public `/api/v1` data API — set to `1` and every route 503s, no deploy needed |
+| `APP_API_DISABLED` | kill switch for the mobile app's `/api/app/v1` API. **Separate from `PUBLIC_API_DISABLED` on purpose** — that one sheds third-party load in an incident, and reusing it would black out every installed app at the same moment. Setting this 503s the app while the website and public API stay up |
 
 Bot detail: [TELEGRAM_BOT.md](TELEGRAM_BOT.md). Public API: [API.md](API.md). Non-secret vars live in
 `web/wrangler.jsonc`: `CF_ANALYTICS_SITE_TAG` (dual-purpose — the traffic panel's

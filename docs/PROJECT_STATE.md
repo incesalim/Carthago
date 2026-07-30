@@ -461,6 +461,42 @@ Three things worth knowing:
 - **Kill switch**: `PUBLIC_API_DISABLED=1` on the Worker → every route 503s, no
   deploy needed. That's what makes an unauthenticated endpoint safe to publish.
 
+## Mobile app
+
+`mobile/` — Expo SDK 57 / React Native 0.86 / expo-router, iOS + Android.
+**Built and verified locally (typecheck, lint, token gate, Metro bundle all
+green); NOT submitted to either store.** Architecture: [ARCHITECTURE.md](ARCHITECTURE.md)
+§ Mobile app. Working notes: `mobile/CLAUDE.md`.
+
+Four tabs — **Overview** (the Desk brief: vitals, movers, transmission, flags,
+standings, ahead), **Banks** (searchable index → per-bank scorecard with a
+selectable charted metric, earnings quality, stages, franchise, KAP feed),
+**Economy** (12 EVDS series, one selectable chart), **News** (merged feed +
+the regulation briefing with its provenance line).
+
+Served by `/api/app/v1` on the same Worker — a **private** wire format, kept
+apart from the public `/api/v1` series contract so the app can reshape screens
+without freezing a published API. Kill switch: `APP_API_DISABLED=1`.
+
+Three decisions worth not re-litigating:
+
+- **No metric is derived in the app.** Every ratio and deflation is computed by
+  the same `web/app/lib` function the website calls. A second client that does
+  its own arithmetic will eventually disagree with the first, and the reader
+  trusts whichever they saw last.
+- **Stale-while-revalidate, with the staleness printed.** Cached payloads paint
+  instantly on launch (the data moves monthly to quarterly, so yesterday's copy
+  is not stale in any sense a reader cares about), and any figure not fetched
+  this session carries a `Cached · fetched Nh ago` line. A failed refresh keeps
+  the data on screen rather than blanking it.
+- **Single-series charts only** — see Known issues for the colorblind finding
+  behind that.
+
+Not built: store submission, push notifications, Turkish localisation, and any
+write path. Store submission is the one with real prerequisites beyond code —
+Apple guideline 4.2 wants more than a data reader, and the upstream data terms
+(see § Upstream data terms) are a live question the moment there's a listing.
+
 **The prose audit — the sentences now earn themselves (2026-07-14, SHIPPED):**
 "Compiled, not written" was true of the *figures* and false of the *words*: an
 audit of every visible string found ~300 timeless (axis labels, methodology),
@@ -1056,6 +1092,33 @@ each `/banks/[ticker]` page:
   are streaming-only). Out of scope given the no-paid-vendor / no-LLM-API constraints.
 
 ## Known issues / pending work
+
+- **The categorical chart ramp fails colorblind separation — worst in dark mode
+  (found 2026-07-30 while porting the palette to `mobile/`, NOT acted on).**
+  Running the six `--chart-*` tokens through a CVD validator against their own
+  surfaces:
+
+  | Theme | Check | Result |
+  |---|---|---|
+  | dark | normal-vision separation | `--chart-2` #9BB4D8 vs `--chart-1` #7FA3D8 — **ΔE 6.1**, against a floor of 15 |
+  | dark | protanopia | `--chart-6` #8B939C vs `--chart-5` #B092C0 — **ΔE 5.3** |
+  | light | contrast vs the sheet | `--chart-3` #8FA8C8 at 2.38:1, `--chart-6` #A0A7AE at 2.37:1 (below 3:1) |
+
+  The dark normal-vision failure is the serious one: it says a reader with full
+  colour vision cannot reliably tell series 1 from series 2. The website is
+  *partly* covered because every multi-series chart carries a direct-labelled
+  `ChartFoot`, which is the documented relief for a borderline pair — but that
+  is relief, not a fix, and it does nothing for the light-mode contrast pair.
+
+  Nothing was changed. `chart-theme.ts` is in LOCKSTEP with `globals.css` and
+  CI-gated on text contrast, so re-stepping the ramp is a system-wide design
+  decision across ~40 charts, not a hex nudge. The mobile app sidesteps it
+  entirely by plotting single series in `--data` only.
+
+  To fix properly: re-step chart-2/3 and chart-5/6 off the same ramps until the
+  validator passes on adjacent pairs in both themes, then re-run
+  `scripts/check_contrast.py`. Worth doing before any new multi-series chart
+  lands, not urgently.
 
 - **D1 write bill: 68.1M rows month-to-date against a 50M allowance (~$18 over)
   — two pure-waste sources fixed 2026-07-27, the campaign cost still open.**

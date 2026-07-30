@@ -44,4 +44,12 @@ interface CloudflareEnv {
   // public API down without a deploy — every /api/v1 route then returns 503.
   // This is what makes it safe to publish an unauthenticated endpoint.
   PUBLIC_API_DISABLED?: string;
+
+  // --- Mobile app API (/api/app/v1; see docs/ARCHITECTURE.md § Mobile app) ---
+  // The mobile client's own kill switch. Deliberately SEPARATE from
+  // PUBLIC_API_DISABLED: that one exists to shed third-party load in an
+  // incident, and reusing it here would black out every installed app at the
+  // same moment — the users least able to route around it, since they can't
+  // just open the website instead.
+  APP_API_DISABLED?: string;
 }
