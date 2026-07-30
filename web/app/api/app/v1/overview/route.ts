@@ -237,10 +237,27 @@ export async function GET() {
     },
     coverage: { banks: banks.length || BANK_COUNT },
     levels: {
-      totalAssets: assets.at(-1)?.value ?? null, // thousand TL
+      // ⚠️ UNIT TRAP. `totalAssets()` reads the BDDK monthly bulletin, which is
+      // denominated in MILLION TL — while every `bank_audit_*` amount this API
+      // also serves (the banks index, stages, free provision) is in THOUSAND
+      // TL. Handing the client both under one field name printed the sector at
+      // ₺52.7 bn instead of ₺52.7 trn: a clean 1000×, and a plausible-looking
+      // number, which is the kind that survives review.
+      //
+      // Normalised to thousand TL — the canonical unit across this API — so the
+      // client has exactly one scale to know about. `units` below states it, so
+      // it is checkable rather than conventional.
+      totalAssets:
+        assets.at(-1)?.value != null ? (assets.at(-1)!.value as number) * 1000 : null,
       assetsYoY: assetsYoYNow,
       loansYoY: loansYoYNow,
       depositsYoY: lastVal(depositsYoY),
+    },
+    units: {
+      /** Every ₺ amount in this payload. Matches the bank_audit_* convention. */
+      amounts: "thousand TL",
+      /** Every ratio and growth rate. Percentage POINTS, not fractions. */
+      rates: "percent",
     },
     tape: (ticker ?? []).map((t) => ({
       label: t.label, value: t.value, changePct: t.changePct,

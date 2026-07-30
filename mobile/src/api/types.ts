@@ -90,11 +90,15 @@ export interface Overview {
   record: { period: string | null; label: string; vs: string };
   coverage: { banks: number };
   levels: {
+    /** Thousand TL — normalised server-side. The BDDK bulletin this comes from
+     *  is denominated in MILLION TL while the audit tables are in thousand;
+     *  the route converts so the client has one scale. See `units`. */
     totalAssets: number | null;
     assetsYoY: number | null;
     loansYoY: number | null;
     depositsYoY: number | null;
   };
+  units: { amounts: string; rates: string };
   tape: { label: string; value: string | number; changePct: number | null }[];
   vitals: Vital[];
   movers: Mover[];

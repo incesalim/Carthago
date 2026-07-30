@@ -46,8 +46,15 @@ export function signedPct(v: number | null | undefined, decimals = 1): string {
 }
 
 /**
- * Thousand-TL (how every audit amount is stored) → a readable ₺ figure.
- * Thresholds are on the STORED scale: 1e9 thousand-TL = ₺1trn.
+ * Thousand TL → a readable ₺ figure. Thresholds are on the STORED scale:
+ * 1e9 thousand-TL = ₺1trn.
+ *
+ * ⚠️ Thousand TL is the canonical unit of THIS API, not of the underlying
+ * sources. The `bank_audit_*` tables are in thousand TL, but the BDDK monthly
+ * bulletin is in MILLION TL — the overview route normalises before sending, and
+ * the payload's `units.amounts` states which scale arrived. Passing a raw
+ * bulletin figure here prints a clean 1000× error that still looks like a
+ * plausible number (the sector at ₺52.7 bn rather than ₺52.7 trn).
  */
 export function tl(thousands: number | null | undefined): string {
   if (thousands == null || !Number.isFinite(thousands)) return DASH;
