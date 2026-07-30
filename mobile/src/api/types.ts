@@ -127,7 +127,10 @@ export interface BankRow {
 
 export interface BankList {
   period: string | null;
+  /** The whole universe we hold filings for. */
   count: number;
+  /** The rankable subset. Rank and colour-scale off this, never off `count`. */
+  peers: number;
   rows: BankRow[];
 }
 
@@ -165,8 +168,12 @@ export interface BankDetail {
   type: string | null;
   typeLabel: string | null;
   peerExcluded: boolean;
-  period: string;
+  period: string | null;
   coverage: { periodsHeld: number; latestPeriodHeld: string | null };
+  /** False for a bank the ratio panel refuses to hold (a CCP). The filings are
+   *  real; the peer ratios are simply not computed for it. */
+  scorecardAvailable: boolean;
+  scorecardNote: string | null;
   scorecard: ScorecardMetric[];
   earningsQuality: {
     roe: number | null;

@@ -66,7 +66,13 @@ export async function GET(
     .sort((a, b) => a.period.localeCompare(b.period));
 
   const latest = history.at(-1) ?? null;
-  if (!latest) {
+  const summary = summaries.find((s) => s.bank_ticker === ticker) ?? null;
+
+  // A bank with no panel row is not necessarily a bank we hold nothing for.
+  // `heatmapPanel` refuses to hold a PEER-EXCLUDED bank at all, by design — so
+  // keying "do we have this bank" off the panel 404'd Takasbank, which the
+  // website lists and serves a full page for. The filings are the test.
+  if (!latest && !summary) {
     return errorResponse(`No audited filings held for '${ticker}'.`, 404);
   }
 
@@ -87,12 +93,12 @@ export async function GET(
       direction: d?.direction ?? "neutral",
       // The rule the number was made by, printed under it (DESIGN.md rule 6).
       rule: d?.rule ?? null,
-      value: latest[key] ?? null,
+      value: latest?.[key] ?? null,
       series: trend.map((r) => ({ t: r.period, v: r[key] ?? null })),
     };
   });
 
-  const summary = summaries.find((s) => s.bank_ticker === ticker) ?? null;
+  const period = latest?.period ?? summary?.latest_period ?? null;
 
   return jsonResponse({
     ticker,
@@ -100,19 +106,28 @@ export async function GET(
     type: BANK_TYPE_BY_TICKER[ticker] ?? null,
     typeLabel: BANK_TYPE_BADGE_LABELS[BANK_TYPE_BY_TICKER[ticker]] ?? null,
     peerExcluded: isPeerExcluded(ticker),
-    period: latest.period,
+    period,
     coverage: {
       periodsHeld: summary?.periods ?? history.length,
-      latestPeriodHeld: summary?.latest_period ?? latest.period,
+      latestPeriodHeld: summary?.latest_period ?? period,
     },
-    scorecard,
+    // Empty when the ratio panel holds no row for this bank. The client says so
+    // and links to the web page rather than rendering ten em dashes as though
+    // the filings were blank — they are not; these ratios are just not computed
+    // for a bank that is not a lender.
+    scorecardAvailable: latest != null,
+    scorecardNote:
+      latest == null
+        ? "Peer ratios are not computed for a central counterparty — its capital and liquidity answer a different question. The filed statements are on the web page."
+        : null,
+    scorecard: latest != null ? scorecard : [],
     // Reported vs free-provision-adjusted. Where a bank has released a
     // discretionary serbest-karşılık stock, the reported ROE is not the
     // franchise's ROE, and the two must be shown together or not at all.
     earningsQuality: {
-      roe: latest.roe,
-      roeAdjusted: latest.roeAdjusted,
-      freeProvision: latest.freeProvision,
+      roe: latest?.roe ?? null,
+      roeAdjusted: latest?.roeAdjusted ?? null,
+      freeProvision: latest?.freeProvision ?? null,
     },
     profile: profile
       ? {

@@ -62,7 +62,7 @@ export default function BankScreen() {
     );
   }
 
-  if (!data || !active) {
+  if (!data) {
     return (
       <>
         <Stack.Screen options={{ title: upper }} />
@@ -76,7 +76,7 @@ export default function BankScreen() {
 
   // While scrubbing, the headline shows the touched point, not the latest — so
   // there is exactly one number on screen claiming to be "the" value.
-  const shown = scrub ? scrub.v : active.value;
+  const shown = scrub ? scrub.v : (active?.value ?? null);
   const shownPeriod = scrub ? scrub.t : data.period;
 
   return (
@@ -91,35 +91,47 @@ export default function BankScreen() {
 
         {data.peerExcluded && (
           <Text size={13} tone="warning" style={{ paddingTop: space.md }}>
-            A central counterparty, not a lender — these ratios are computed against a
-            clearing house&apos;s balance sheet and are excluded from peer rankings.
+            A central counterparty, not a lender — excluded from every peer ranking,
+            because a clearing house&apos;s capital and liquidity answer a different
+            question than a deposit-funded bank&apos;s.
           </Text>
         )}
 
         {/* ── The selected metric ───────────────────────────────────────── */}
-        <View style={{ paddingTop: space.lg }}>
-          <Label tone="muted">{active.label}</Label>
-          <View style={{ flexDirection: "row", alignItems: "baseline", gap: space.sm, marginTop: 4 }}>
-            <Figure size={30} weight="medium">
-              {fmtMetric(shown, active.unit, active.decimals)}
-            </Figure>
-            <Label>{periodLabel(shownPeriod)}</Label>
+        {active && (
+          <View style={{ paddingTop: space.lg }}>
+            <Label tone="muted">{active.label}</Label>
+            <View style={{ flexDirection: "row", alignItems: "baseline", gap: space.sm, marginTop: 4 }}>
+              <Figure size={30} weight="medium">
+                {fmtMetric(shown, active.unit, active.decimals)}
+              </Figure>
+              <Label>{periodLabel(shownPeriod)}</Label>
+            </View>
+            <View style={{ marginTop: space.md }}>
+              <MetricChart
+                points={active.series}
+                zeroLine={active.key === "roe" || active.key === "roa"}
+                onScrub={setScrub}
+              />
+            </View>
+            {/* How the number was MADE, printed under it. */}
+            {active.rule && <Label style={{ marginTop: space.sm }}>{active.rule}</Label>}
           </View>
-          <View style={{ marginTop: space.md }}>
-            <MetricChart
-              points={active.series}
-              zeroLine={active.key === "roe" || active.key === "roa"}
-              onScrub={setScrub}
-            />
+        )}
+
+        {/* A bank whose peer ratios aren't computed says so, with the reason.
+            Ten em dashes would read as "the filings are blank" — they are not. */}
+        {!data.scorecardAvailable && data.scorecardNote && (
+          <View style={{ paddingTop: space.lg }}>
+            <Text size={14} tone="muted">{data.scorecardNote}</Text>
           </View>
-          {/* How the number was MADE, printed under it. */}
-          {active.rule && <Label style={{ marginTop: space.sm }}>{active.rule}</Label>}
-        </View>
+        )}
 
         {/* ── Scorecard ─────────────────────────────────────────────────── */}
+        {data.scorecardAvailable && (
         <Section title="Scorecard" meta="tap to chart">
           {data.scorecard.map((m) => {
-            const isActive = m.key === active.key;
+            const isActive = m.key === active?.key;
             return (
               <View key={m.key}>
                 <Pressable
@@ -153,6 +165,7 @@ export default function BankScreen() {
             );
           })}
         </Section>
+        )}
 
         {/* ── Earnings quality ──────────────────────────────────────────── */}
         {data.earningsQuality.freeProvision != null &&
