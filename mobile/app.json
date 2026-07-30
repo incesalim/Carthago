@@ -2,6 +2,7 @@
   "expo": {
     "name": "Carthago",
     "slug": "carthago",
+    "owner": "carthago",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -54,7 +55,8 @@
         {
           "android": {
             "enableProguardInReleaseBuilds": true,
-            "enableShrinkResourcesInReleaseBuilds": true
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "enableMinifyInReleaseBuilds": true
           }
         }
       ]
@@ -64,7 +66,11 @@
       "reactCompiler": true
     },
     "extra": {
-      "clientBuild": 1
+      "clientBuild": 1,
+      "router": {},
+      "eas": {
+        "projectId": "a5eebdc1-f93e-4bcc-89f4-20954510661e"
+      }
     }
   }
 }
