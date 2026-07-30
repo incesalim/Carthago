@@ -246,6 +246,7 @@ public API.
 |---|---|---|
 | `GET /api/app/v1` | launch handshake (`minSupportedClient`) | — (no D1 read on the launch path) |
 | `GET /api/app/v1/overview` | Overview | `metrics.ts`, `desk.ts`, `insights.ts`, `audit-ratios.ts`, `real-terms.ts`, `ahead-data.ts` |
+| — | *(no market tape)* | `market-ticker.ts` is deliberately **not** called here — Yahoo terms forbid redistribution, which a store listing makes formal. USD/TRY comes from EVDS `TP.DK.USD.A` instead. Website unaffected. |
 | `GET /api/app/v1/banks` | Banks index | `heatmap.ts`, `audit.ts`, `bank_names.ts` |
 | `GET /api/app/v1/banks/{ticker}` | Bank detail | `heatmap.ts`, `audit.ts`, `news.ts` |
 | `GET /api/app/v1/economy` | Economy | `economy.ts` |

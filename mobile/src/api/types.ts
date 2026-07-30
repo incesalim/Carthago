@@ -99,7 +99,11 @@ export interface Overview {
     depositsYoY: number | null;
   };
   units: { amounts: string; rates: string };
-  tape: { label: string; value: string | number; changePct: number | null }[];
+  // NOTE: no market tape. The BIST/FX/commodity strip the website shows is
+  // Yahoo-sourced, and Yahoo's terms forbid redistribution — which a store
+  // listing makes formal in a way a web page does not. The API no longer sends
+  // it and the app no longer renders it. USD/TRY still reaches the transmission
+  // block, from TCMB EVDS instead.
   vitals: Vital[];
   movers: Mover[];
   transmission: TransmissionItem[];

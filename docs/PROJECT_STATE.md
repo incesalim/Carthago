@@ -492,10 +492,40 @@ Three decisions worth not re-litigating:
 - **Single-series charts only** — see Known issues for the colorblind finding
   behind that.
 
-Not built: store submission, push notifications, Turkish localisation, and any
-write path. Store submission is the one with real prerequisites beyond code —
-Apple guideline 4.2 wants more than a data reader, and the upstream data terms
-(see § Upstream data terms) are a live question the moment there's a listing.
+**Play Store: code-ready, not submitted (2026-07-30).** Runbook:
+`mobile/RELEASE.md`. Path is EAS Build (cloud) — `eas.json` ships `development`
+/ `preview` / `production` profiles, production emitting an `.aab` and
+submitting to the **internal track as a draft**, never straight to public.
+
+What was needed beyond "it builds":
+
+- **The Yahoo tape is gone from the app AND from `/api/app/v1`.** BIST indices,
+  FX, Brent and gold came from Yahoo, whose terms forbid redistribution — and a
+  store listing is a formal, publisher-named act of it in a way a web page is
+  not. The website is unchanged. USD/TRY still reaches the app's transmission
+  block, now from TCMB EVDS (`TP.DK.USD.A`), which is attribution-licensed.
+  **Don't add the tape back to the app.**
+- **Four permissions stripped.** The generated manifest declared
+  `SYSTEM_ALERT_WINDOW` ("Display over other apps"), `VIBRATE` and both legacy
+  storage permissions. Blocked via `android.blockedPermissions`; the merged
+  release manifest is now `INTERNET` plus one auto-generated AndroidX
+  self-permission. Shipping "draw over other apps" on a banking reader is a
+  review question and a trust problem.
+- **Privacy policy covers the app** — `/privacy` gained a "The mobile app"
+  section, so the Play Data Safety answer ("collects no data") matches a
+  published policy rather than contradicting one.
+- R8 + resource shrinking enabled for release via `expo-build-properties`.
+
+Still outstanding, and needing *you* rather than code: an Expo account, a Play
+Console account ($25), `eas login`, a 1024×500 feature graphic, and a
+native-resolution app icon (the current one is a 256→1024 upscale). Apple is
+further off — guideline 4.2 wants more than a data reader.
+
+⚠️ **Monetising the app** (ads, paid tier, IAP) would need written permission
+from TCMB/TBB/BDDK first — attribution licences cover a free reader, not a
+commercial one. See § upstream data terms.
+
+Not built: push notifications, Turkish localisation, any write path.
 
 **The prose audit — the sentences now earn themselves (2026-07-14, SHIPPED):**
 "Compiled, not written" was true of the *figures* and false of the *words*: an

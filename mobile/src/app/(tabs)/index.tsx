@@ -54,20 +54,8 @@ export default function OverviewScreen() {
       />
       <StaleNote cachedAt={cachedAt} error={error} />
 
-      {/* ── The tape ──────────────────────────────────────────────────── */}
-      {data.tape.length > 0 && (
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.md, paddingTop: space.md }}>
-          {data.tape.map((t) => (
-            <View key={t.label} style={{ flexDirection: "row", alignItems: "baseline", gap: 4 }}>
-              <Label>{t.label}</Label>
-              <Figure size={13}>{typeof t.value === "number" ? num(t.value, 2) : t.value}</Figure>
-              {t.changePct != null && (
-                <Delta value={t.changePct} format={(v) => signedPct(v, 1)} good="up" size={11} />
-              )}
-            </View>
-          ))}
-        </View>
-      )}
+      {/* No market tape here — see the note in api/types.ts. The website keeps
+          its BIST/FX strip; the app deliberately ships without one. */}
 
       {/* ── Vitals ────────────────────────────────────────────────────── */}
       <Section title="The vitals" meta="trailing 13m">

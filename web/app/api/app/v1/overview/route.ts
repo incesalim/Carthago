@@ -29,7 +29,6 @@ import {
 } from "@/app/lib/desk";
 import { overviewInsights } from "@/app/lib/insights";
 import { LDR_PUBLISHED } from "@/app/lib/ldr";
-import { getMarketTicker } from "@/app/lib/market-ticker";
 import {
   BANK_TYPES,
   evdsSeries,
@@ -71,7 +70,7 @@ export async function GET() {
   const [
     car, npl, nim, ldr, roe, roa,
     assets, assetsYoY, loansYoY, depositsYoY,
-    league, ticker, cpiRaw, fundingRaw, banks, ahead,
+    league, cpiRaw, fundingRaw, usdRaw, banks, ahead,
   ] = await Promise.all([
     ratioCar(sector),
     ratioNpl(sector),
@@ -84,11 +83,19 @@ export async function GET() {
     totalLoansYoY(sector),
     totalDepositsYoY(sector),
     perBankCapital(),
-    // The tape is a nice-to-have; a market-data hiccup must not blank the whole
-    // home screen, which is what an unhandled reject here would do.
-    getMarketTicker().catch(() => []),
     evdsSeries("TP.TUKFIY2025.GENEL", 10),
     evdsSeries("TP.APIFON4", 1),
+    // USD/TRY from TCMB's own series, NOT the Yahoo-backed market ticker.
+    //
+    // This endpoint used to carry `getMarketTicker()` — the BIST/FX/commodity
+    // tape — and the app rendered it on the home screen. It was removed for the
+    // Play Store release: Yahoo's terms forbid redistribution, and a store
+    // listing is a formal, publisher-named act of it in a way a web page is not.
+    // The website still shows the tape; the app does not, and this API no longer
+    // serves it. TCMB EVDS is attribution-licensed and covers the one figure the
+    // transmission block actually needs. See docs/PROJECT_STATE.md § Upstream
+    // data terms.
+    evdsSeries("TP.DK.USD.A", 1),
     bankSummaries().catch(() => []),
     aheadSlots(),
   ]);
@@ -103,6 +110,10 @@ export async function GET() {
   const cpiYoYNow = lastVal(cpi.yoy);
   const funding =
     (fundingRaw as { period_date: string; value: number | null }[])
+      .filter((r) => r.value != null)
+      .at(-1)?.value ?? null;
+  const usdtry =
+    (usdRaw as { period_date: string; value: number | null }[])
       .filter((r) => r.value != null)
       .at(-1)?.value ?? null;
 
@@ -171,7 +182,6 @@ export async function GET() {
   ];
 
   // ---- transmission: the macro backdrop, computed into bank P&L -------------
-  const usdtry = (ticker ?? []).find((t) => t.label.toUpperCase().includes("USD"));
   const transmission = [
     cpiAvgNow != null && {
       key: "cpi", label: "CPI, 12m-avg", value: cpiAvgNow, unit: "%", decimals: 1,
@@ -187,8 +197,8 @@ export async function GET() {
       effect: { metric: "loans_yoy", nominal: loansYoYNow, real: creditReal,
                 deflator: cpiYoYNow, deflatorBasis: "y/y CPI", href: "/credit" },
     },
-    usdtry && {
-      key: "usdtry", label: "USD/TRY", value: usdtry.value, unit: null, decimals: 2,
+    usdtry != null && {
+      key: "usdtry", label: "USD/TRY", value: usdtry, unit: null, decimals: 2,
       effect: { metric: "fx_deposit_share", href: "/deposits" },
     },
   ].filter(Boolean);
@@ -259,9 +269,6 @@ export async function GET() {
       /** Every ratio and growth rate. Percentage POINTS, not fractions. */
       rates: "percent",
     },
-    tape: (ticker ?? []).map((t) => ({
-      label: t.label, value: t.value, changePct: t.changePct,
-    })),
     vitals,
     movers,
     transmission,

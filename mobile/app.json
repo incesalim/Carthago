@@ -10,10 +10,18 @@
     "backgroundColor": "#FFFFFF",
     "ios": {
       "bundleIdentifier": "app.carthago.mobile",
+      "buildNumber": "1",
       "supportsTablet": true
     },
     "android": {
       "package": "app.carthago.mobile",
+      "versionCode": 1,
+      "blockedPermissions": [
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.VIBRATE"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#F7F8F6",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -34,9 +42,20 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#FFFFFF",
-          "dark": { "backgroundColor": "#171B21" },
+          "dark": {
+            "backgroundColor": "#171B21"
+          },
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableProguardInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
+          }
         }
       ]
     ],

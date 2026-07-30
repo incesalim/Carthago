@@ -109,6 +109,42 @@ export default function PrivacyPage() {
           </p>
         </Section>
 
+        <Section title="The mobile app">
+          <p>
+            The Carthago app for Android and iOS is a read-only reader over the same
+            data. It collects <b className="font-semibold">nothing</b> — and unlike the
+            website, that is not a claim with an analytics caveat attached: the app ships
+            no analytics SDK of any kind, no Google Analytics, no Cloudflare beacon, no
+            crash reporter, no advertising identifier.
+          </p>
+          <ul className="ml-4 list-disc space-y-2.5 marker:text-faint">
+            <li>
+              <b className="font-semibold">No account, and nothing to sign into.</b> The
+              app never asks for a name, an email or a password.
+            </li>
+            <li>
+              <b className="font-semibold">One permission: internet access.</b> That is
+              the entire list. No location, no contacts, no files, no camera, no
+              notifications — and nothing that lets it draw over other apps.
+            </li>
+            <li>
+              <b className="font-semibold">A local cache, on your device only.</b> Screens
+              you have opened are stored on the phone so the app opens instantly and
+              still shows something without a connection. It holds published banking
+              figures, never anything about you, it is never uploaded anywhere, and
+              uninstalling the app deletes it.
+            </li>
+            <li>
+              <b className="font-semibold">Requests reach our own server only.</b> The app
+              talks to <code className="font-mono text-[12px]">carthago.app</code> and
+              nowhere else. Those requests are logged the same way this website&rsquo;s
+              are, described under &ldquo;Hosting and logs&rdquo; below. Tapping a news
+              headline opens that publisher&rsquo;s page in your browser, at which point
+              their privacy policy applies, not ours.
+            </li>
+          </ul>
+        </Section>
+
         <Section title="The Telegram bot">
           <p>
             If you use the Telegram question-and-answer bot, that is a separate surface
