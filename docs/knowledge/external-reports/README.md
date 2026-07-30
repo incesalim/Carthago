@@ -175,6 +175,11 @@ blocks automated checks — confirmed via HTTP status, opens normally in a brows
 > Most useful free, recurring source: **BBVA Research's monthly Türkiye Banking Sector Outlook**.
 > **TSKB** and **KPMG** also publish strong free Turkish-banking material.
 
+**Quarterly earnings season:** broker previews and post-results notes are indexed per quarter, since the
+deep links rotate within days — [`2q26-bank-earnings-analyst-reports.md`](2q26-bank-earnings-analyst-reports.md)
+(2Q26, compiled 2026-07-30; Garanti BBVA Yatırım, İş Yatırım, Şeker, Deniz, HSBC, Goldman + the
+post-results target-price sweep).
+
 ### BBVA Research / Garanti BBVA
 - **Türkiye geography landing** (all Turkey pubs) 🟢 EN — https://www.bbvaresearch.com/en/geography/turkiye/
 - **Türkiye Economic Outlook — 1Q26, Mar 2026** (quarterly macro sibling of the banking outlook;
