@@ -30,6 +30,23 @@ import { appApiDisabled, disabledResponse, jsonResponse } from "../_shared";
 export { OPTIONS } from "../_shared";
 export const dynamic = "force-dynamic";
 
+/**
+ * Fraction → percentage points.
+ *
+ * ⚠️ `heatmapPanel` mixes two scales, and METRIC_DEFS is the only thing that
+ * says which is which: roe/roa/npl_ratio/npl_coverage/nim/cost_income are
+ * FRACTIONS (0.304 → 30.4%), while cet1/car/lcr come out of the audited §4
+ * tables already in POINTS (17.06 → 17.06%). Shipping them side by side under
+ * one field shape printed Ziraat's ROE as 0.3% next to a correct CAR of 15.3% —
+ * a 100× error that reads as a plausible, if dire, ratio.
+ *
+ * The detail endpoint keeps per-metric `unit` tags because its scorecard is
+ * genuinely heterogeneous (trn, mult, pts, pct). This list is homogeneous, so
+ * it normalises once here and declares the result in `units`.
+ */
+const asPoints = (fraction: number | null | undefined): number | null =>
+  fraction == null ? null : fraction * 100;
+
 export async function GET() {
   if (await appApiDisabled()) return disabledResponse();
 
@@ -61,13 +78,15 @@ export async function GET() {
         // Scale comes from bankSummaries, so it is present even for a bank the
         // ratio panel refuses to hold.
         totalAssets: s.total_assets, // thousand TL
-        roe: m?.roe ?? null,
-        roeAdjusted: m?.roeAdjusted ?? null,
-        npl: m?.npl_ratio ?? null,
+        // Fractions, scaled to points.
+        roe: asPoints(m?.roe),
+        roeAdjusted: asPoints(m?.roeAdjusted),
+        npl: asPoints(m?.npl_ratio),
+        nim: asPoints(m?.nim),
+        costIncome: asPoints(m?.cost_income),
+        // Already points — audited §4, as filed. Do NOT scale.
         car: m?.car ?? null,
         cet1: m?.cet1 ?? null,
-        nim: m?.nim ?? null,
-        costIncome: m?.cost_income ?? null,
         periodsHeld: s.periods,
         latestPeriodHeld: s.latest_period,
       };
@@ -79,6 +98,7 @@ export async function GET() {
     count: rows.length,
     // The client ranks and colour-scales off `peers`; `count` is the universe.
     peers: rows.filter((r) => !r.peerExcluded).length,
+    units: { amounts: "thousand TL", rates: "percent" },
     rows,
   });
 }

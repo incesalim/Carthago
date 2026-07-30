@@ -58,6 +58,12 @@ export async function get<T>(path: string, signal?: AbortSignal): Promise<T> {
     const res = await fetch(`${API_BASE}${path}`, {
       signal: controller.signal,
       headers: { Accept: "application/json" },
+      // These responses carry `max-age=3600`, which is right in production and
+      // actively misleading in development: change a route handler, deploy, and
+      // the client keeps serving the old payload for up to an hour with nothing
+      // on screen to say so. Cost an hour once already. Production keeps the
+      // cache; `__DEV__` always goes to the origin.
+      cache: __DEV__ ? "no-store" : "default",
     });
 
     if (!res.ok) {

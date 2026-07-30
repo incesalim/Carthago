@@ -117,7 +117,9 @@ export interface BankRow {
   /** True for Takasbank — a CCP whose ratios answer a different question. Never
    *  rank it against deposit-funded lenders. */
   peerExcluded: boolean;
+  /** Thousand TL. */
   totalAssets: number | null;
+  // All percentage POINTS (30.4 = 30.4%) — normalised server-side. See `units`.
   roe: number | null;
   roeAdjusted: number | null;
   npl: number | null;
@@ -135,6 +137,9 @@ export interface BankList {
   count: number;
   /** The rankable subset. Rank and colour-scale off this, never off `count`. */
   peers: number;
+  /** Declared, not assumed. Every ratio here is percentage POINTS — the route
+   *  normalises the fraction-scaled metrics before sending. */
+  units: { amounts: string; rates: string };
   rows: BankRow[];
 }
 
