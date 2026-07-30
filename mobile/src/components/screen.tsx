@@ -17,11 +17,19 @@ import { useTheme } from "../theme";
 import { Hairline, Label, Text } from "./ui";
 
 export function Screen({
-  children, refreshing, onRefresh,
+  children, refreshing, onRefresh, insetTop = true,
 }: {
   children: ReactNode;
   refreshing?: boolean;
   onRefresh?: () => void;
+  /**
+   * Whether this screen owns its top inset. True for the tab screens, which
+   * render with `headerShown: false` and so sit directly under the status bar.
+   * FALSE for anything pushed onto the Stack — React Navigation's header
+   * already clears the notch, and insetting again pushes the content down by
+   * a status bar's worth of empty space.
+   */
+  insetTop?: boolean;
 }) {
   const { colors, space } = useTheme();
   const insets = useSafeAreaInsets();
@@ -31,6 +39,10 @@ export function Screen({
       style={{ flex: 1, backgroundColor: colors.card }}
       contentContainerStyle={{
         paddingHorizontal: space.lg,
+        // Without this the page title renders UNDER the clock and signal icons.
+        // Invisible on the web (no status bar) and on a notchless simulator —
+        // it only shows up on a real handset, which is where it was found.
+        paddingTop: insetTop ? insets.top : 0,
         // The tab bar floats over the content, so the last row needs clearance
         // or it sits permanently under it.
         paddingBottom: insets.bottom + space.xxl * 2,

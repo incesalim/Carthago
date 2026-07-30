@@ -57,7 +57,7 @@ export default function BankScreen() {
     return (
       <>
         <Stack.Screen options={{ title: upper }} />
-        <Screen><Loading /></Screen>
+        <Screen insetTop={false}><Loading /></Screen>
       </>
     );
   }
@@ -66,7 +66,7 @@ export default function BankScreen() {
     return (
       <>
         <Stack.Screen options={{ title: upper }} />
-        <Screen>
+        <Screen insetTop={false}>
           <ScreenHeader title={upper} />
           <ErrorState message={error?.message ?? "No filings held."} onRetry={refresh} />
         </Screen>
@@ -82,7 +82,8 @@ export default function BankScreen() {
   return (
     <>
       <Stack.Screen options={{ title: data.ticker }} />
-      <Screen refreshing={refreshing} onRefresh={refresh}>
+      {/* The Stack header already clears the status bar on this route. */}
+        <Screen refreshing={refreshing} onRefresh={refresh} insetTop={false}>
         <ScreenHeader
           title={data.name}
           record={`${data.typeLabel ? data.typeLabel.toUpperCase() + " · " : ""}${periodLabel(data.period).toUpperCase()} · ${data.coverage.periodsHeld} QUARTERS HELD`}

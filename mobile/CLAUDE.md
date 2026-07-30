@@ -52,10 +52,56 @@ is the one that matters most: `tsc` is happy with imports Metro cannot resolve.
 ## Running it
 ```
 npm start                    # then scan the QR with Expo Go
+npm run web                  # react-native-web in a browser — the fastest loop
 EXPO_PUBLIC_API_BASE=http://<lan-ip>:3000 npm start   # against local web/
 ```
 `localhost` is the DEVICE's localhost on a phone — a LAN IP is required, and
 getting this wrong is the usual reason a dev build shows no data.
+
+### Native builds
+
+`android/` and `ios/` are **not committed** — this is Expo's Continuous Native
+Generation. `npx expo prebuild --platform android` regenerates the Gradle
+project from `app.json` whenever it's needed; never hand-edit it, because the
+next prebuild discards the edit. Put native config in `app.json` or a config
+plugin instead.
+
+On this machine the Android SDK is installed but **not on PATH**, and there is
+no separate JDK — Android Studio's bundled JBR is the one to use:
+
+```powershell
+$env:ANDROID_HOME     = "$env:LOCALAPPDATA\Android\Sdk"
+$env:ANDROID_SDK_ROOT = "$env:LOCALAPPDATA\Android\Sdk"
+$env:JAVA_HOME        = "C:\Program Files\Android\Android Studio\jbr"
+cd android
+.\gradlew.bat assembleDebug -PreactNativeArchitectures=arm64-v8a
+# → app/build/outputs/apk/debug/app-debug.apk
+```
+
+⚠️ **Pass `-PreactNativeArchitectures=arm64-v8a` for a local build.** Two reasons,
+one of them fatal:
+
+- The default builds **four** ABIs (armeabi-v7a, arm64-v8a, x86, x86_64). On
+  NDK 27.1 the `armeabi-v7a` compile of `expo-modules-core`'s `JNIInjector.cpp`
+  **crashes clang** — an internal compiler error, not a code error, and it kills
+  the whole build after ~17 minutes with the real message buried a hundred lines
+  above `BUILD FAILED`.
+- Every current phone is arm64-v8a (check with
+  `adb shell getprop ro.product.cpu.abilist`). Three of the four ABIs are work
+  no device here can run.
+
+Do NOT bake this into `app.json` — a Play Store release genuinely needs the
+other ABIs. It is a local-build flag, not a project setting.
+
+⚠️ **No emulator system image is installed.** The `Medium_Phone_API_36.0` AVD
+points at `system-images/android-36/google_apis_playstore/x86_64`, which is
+absent, so the emulator PANICs on launch with a misleading
+"Please define ANDROID_SDK_ROOT" — the env var is not the problem. Fetching it
+is a ~1.5GB `sdkmanager` download. Building an APK does not need it; only
+running the emulator does.
+
+iOS needs macOS + Xcode, so it cannot be built here at all. The CI Metro bundle
+covers both platforms' JS, which is the part that can break from this repo.
 
 ## Not built yet
 No store submission, no push notifications, no offline write path, no Turkish

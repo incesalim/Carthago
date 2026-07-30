@@ -44,7 +44,7 @@ export default function BanksScreen() {
 
   if (loading && !data) {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.card, paddingHorizontal: space.lg }}>
+      <View style={{ flex: 1, backgroundColor: colors.card, paddingHorizontal: space.lg, paddingTop: insets.top }}>
         <Loading />
       </View>
     );
@@ -52,7 +52,7 @@ export default function BanksScreen() {
 
   if (!data) {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.card, paddingHorizontal: space.lg }}>
+      <View style={{ flex: 1, backgroundColor: colors.card, paddingHorizontal: space.lg, paddingTop: insets.top }}>
         <ScreenHeader title="Banks" />
         <ErrorState message={error?.message ?? "No data."} onRetry={refresh} />
       </View>
@@ -66,6 +66,9 @@ export default function BanksScreen() {
         keyExtractor={(r) => r.ticker}
         contentContainerStyle={{
           paddingHorizontal: space.lg,
+          // This screen doesn't use <Screen>, so it owns its own insets — the
+          // top one included, or the title renders under the status bar.
+          paddingTop: insets.top,
           paddingBottom: insets.bottom + space.xxl * 2,
         }}
         refreshing={refreshing}
