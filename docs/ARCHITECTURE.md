@@ -280,6 +280,21 @@ them. A new number goes into `web/app/lib` first.
 - **Payloads are trimmed server-side.** Sparklines ship 13 points, metric trends
   8 quarters, macro series 48 months. Full history stays on the web.
 
+### ⚠️ `heatmapPanel()` is a RANKING, not the universe
+
+`heatmapPanel()` refuses to hold a peer-excluded bank at all — `ensure()` hands
+those callers a throwaway row, because every rank, colour scale and percentile
+downstream is computed off that map. Building the bank index off it dropped
+Takasbank from the app entirely and 404'd a bank the website lists and serves a
+full page for.
+
+The spine of any *universe* query is `bankSummaries()` (unfiltered); ratios are
+left-joined from the panel where they exist. `/api/app/v1/banks` returns both
+`count` (38, the universe) and `peers` (37, the rankable subset) so a client
+cannot rank off the wrong one, and `/banks/{ticker}` carries
+`scorecardAvailable` + `scorecardNote` so an absent ratio prints its reason
+rather than an em dash that reads as a blank filing.
+
 ### Theme tokens
 
 `mobile/src/theme/tokens.ts` is a hand-copy of `web/app/globals.css` (React
