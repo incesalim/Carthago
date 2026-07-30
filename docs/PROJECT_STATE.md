@@ -10,7 +10,7 @@ coverage or known issues change.
 > from our data) in [BANKING_METRICS.md](BANKING_METRICS.md) — a 153-metric
 > registry (`data/metric_knowledge/`, CLI `scripts/metric_knowledge.py`).
 >
-> Last verified: 2026-07-14. Dated change history → [CHANGELOG.md](CHANGELOG.md).
+> Last verified: 2026-07-30. Dated change history → [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
@@ -18,7 +18,7 @@ coverage or known issues change.
 
 | Table | Source | Range | Latest |
 |---|---|---|---|
-| `balance_sheet`, `income_statement`, `loans`, `deposits`, `financial_ratios`, `other_data` | BDDK monthly bulletin | 2020-01 → present | 2026-05 |
+| `balance_sheet`, `income_statement`, `loans`, `deposits`, `financial_ratios`, `other_data` | BDDK monthly bulletin | 2020-01 → present | 2026-06 |
 | `weekly_series` | BDDK weekly bulletin | 2019-11 → present | rolling 2-week lag |
 | `nonbank_balance_sheet` | BDDK non-bank monthly bulletin (BultenAylikBdmk) | 2008-01 → present | leasing / factoring / financing, monthly, balance sheet (Million TL); reconciles to FKB sector totals. VYŞ (sparse/variant feed) + savings-finance (not in this bulletin) deferred |
 | `evds_series` | TCMB EVDS | 2018-01 → present | daily / weekly / monthly per series. Loan/deposit **rates here are SECTOR-level only** (`TP.KTFTUK`/`TP.KTF17`/`TP.KTF12`/`TP.TRY.MT06`) — the per-bank complement is `bank_advertised_rates` below |

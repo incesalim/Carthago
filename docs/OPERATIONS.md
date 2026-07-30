@@ -664,6 +664,33 @@ board (that is the freeze, not a break), no Telegram bulletin pings, and the
 monthly BDDK bulletin — which lands mid-month on no fixed day — is picked up
 whenever the daily probe resumes rather than the day it publishes.
 
+**Publishing a release during the freeze** (done for 2026-06 on 2026-07-30 —
+BDDK published while frozen and the site would otherwise have shown May until
+Aug 11). Enable, dispatch, re-disable — the freeze stays intact, and only the one
+release is paid for (~8.5k rows):
+
+```bash
+gh workflow enable  refresh-bddk-bulletins.yml
+gh workflow run     refresh-bddk-bulletins.yml -f skip_monthly=false -f skip_weekly=true
+gh run watch <id> --exit-status          # ~10 min for a landing run (~6 min when it only probes)
+gh workflow disable refresh-bddk-bulletins.yml
+```
+
+Then three things the crons would normally have done, in this order:
+
+1. **Purge the KV cache** — `/admin` → *Purge cache*, or the REST recipe (`wrangler
+   kv bulk delete` crashes on Windows). Public pages cache D1 reads 12h, so the
+   new month does not appear until this runs. Page prose needs nothing else: the
+   takeaways are computed from D1 at render (`insights.ts`), so they re-derive.
+2. **`python scripts/healthcheck.py`** — repoints `source_freshness` (frozen
+   `healthcheck` is what normally writes it) so `/admin` isn't red on data we hold.
+   On Windows prefix `PYTHONUTF8=1 PYTHONIOENCODING=utf-8`; the console codec
+   breaks both the wrangler read-back and the ✅ summary otherwise.
+3. **`generate-reads`** (enable → run → disable) — new facts flip `det_hash`, so
+   every tab silently falls back to its deterministic headline until this reruns.
+   Must come **after** the purge: the generator reads `/api/reads` from the live
+   site, so a pre-purge run rewrites the *previous* month's takeaway.
+
 ⚠️ **Manual-dispatch workflows are still enabled and still cost campaign money.**
 `backfill-*`, `refresh-audit`, `reextract-statement`, `purge-partition`,
 `build-products` and `apply_overrides.py` are $9–15 a run at this point in a
