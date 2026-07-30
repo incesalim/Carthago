@@ -162,8 +162,13 @@ docs/knowledge/dashboard-audit.md
 docs/knowledge/2026-07-13-sector-pages-consistency-audit.md
 docs/knowledge/website-evaluation-2026-07-25.md
 
-# Per-quarter analyst-report indexes — LOCAL ONLY. Curated links to other
-# people's research (broker earnings previews, target-price sweeps) kept for
-# our own reference. Nothing downstream reads them, they age out within a
-# quarter, and a reader of the public code does not need our reading list.
-docs/knowledge/external-reports/*-bank-earnings-analyst-reports.md
+# Reading lists — LOCAL ONLY. These index *other people's* work (broker
+# earnings previews, rating actions, multilateral reports, FT chart references,
+# BBVA outlook editions) rather than documenting our own pipeline. Kept on disk
+# as reference; nothing downstream reads them, the deep links age out within a
+# quarter, and a reader of the public code does not need our reading list. The
+# extraction and validator post-mortems in docs/knowledge/ stay public — those
+# are about our numbers.
+docs/knowledge/external-reports/
+docs/knowledge/bbva-economic-outlook/
+docs/knowledge/ft-visual-journalism/

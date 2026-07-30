@@ -38,7 +38,7 @@ They are complementary, not averaged. Each answers a different question:
 - **CBRT/IMF FSR** — the *narrative ordering*. Macro → credit → funding/liquidity
   → asset quality → solvency → profitability → market risk → outlook.
   A chart-level reproducibility map of the FSR 2026-I edition lives in
-  [`external-reports/cbrt-fsr-2026-1-chart-inventory.md`](external-reports/cbrt-fsr-2026-1-chart-inventory.md).
+  `external-reports/cbrt-fsr-2026-1-chart-inventory.md` — kept on disk, not versioned.
 - **IMF FSIs** — the *comparability standard*. Fixes *which exact ratios* are
   internationally peer-comparable (regulatory capital/RWA, NPL/gross loans, NPL
   net of provisions/capital, ROA, ROE, interest margin/gross income,

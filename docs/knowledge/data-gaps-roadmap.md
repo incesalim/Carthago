@@ -82,8 +82,8 @@ currently dumped unstructured into `other_data`. Deterministic extractors only
 - **Why it matters:** market view of creditworthiness; rating actions move funding
   cost and are catalysts.
 - **Source:** agency press releases (Fitch / Moody's / S&P / JCR Eurasia / SAHA) +
-  KAP rating disclosures. The `docs/knowledge/external-reports/` catalog links the
-  agencies (links only, no data).
+  KAP rating disclosures. The local-only `docs/knowledge/external-reports/` catalog
+  links the agencies (links only, no data; kept on disk, not versioned).
 - **Proposed schema:** `bank_ratings(bank_ticker, agency, rating_type, grade,
   outlook, action, action_date, source_url)` — a rating-**events** table.
 - **Approach:** scrape/parse agency press + KAP; a per-agency scale map normalises

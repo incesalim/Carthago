@@ -929,8 +929,8 @@ still not derivable (AUM deltas mix flows with valuation). The static **BBVA bas
 scenario table** (report p. 42) is embedded in `economy.ts` for context —
 refresh it when a new quarterly outlook is published. The non-reproducible
 numbers themselves (CDS, OIS, carry/positioning, nowcast, FCI, sensitivities)
-are preserved per edition in
-[knowledge/bbva-economic-outlook/](knowledge/bbva-economic-outlook/).
+are preserved per edition in `docs/knowledge/bbva-economic-outlook/` — kept on
+disk, not versioned (it distils a third party's report).
 
 ### Verification
 

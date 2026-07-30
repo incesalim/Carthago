@@ -9,7 +9,7 @@ critique #4 (density lane). A code-grounded walkthrough of the site's design **l
 the **style of every one of the 34 pages**, plus a consistency map of where pages honoured the
 system and where they drifted. Companion to the subjective
 [design-critique-2026-07-10.md](design-critique-2026-07-10.md) (opinion/verdict on 3 live pages)
-and [ft-visual-journalism/](ft-visual-journalism) (chart references). This doc is the "what is
+and `ft-visual-journalism/` (chart references; local-only, kept on disk). This doc is the "what is
 actually there" inventory; the critique is the "what to change."
 
 Method: read `globals.css`, `layout.tsx`, `Nav.tsx`, the `components/ui/*` primitives and
@@ -276,7 +276,7 @@ Every page shares the **foundations** (tokens, fonts, `PageHeader` where used, c
 
 ## 5. Chart craft vs the FT benchmark
 
-The stated chart benchmark is [ft-visual-journalism/](ft-visual-journalism) (FT house style — *not*
+The stated chart benchmark is `ft-visual-journalism/` (FT house style, local-only notes — *not*
 a mandate to copy, a bar to measure against). Scoring the real charts (`TrendChart`,
 `ChartCard`, `chart-theme.ts`) against its eight house-style principles:
 
