@@ -29,14 +29,21 @@ Metric definitions live in [METRICS.md](METRICS.md).
 | [AUDIT_BANK_CATALOG.md](AUDIT_BANK_CATALOG.md) | Auto-generated census of every bank × PDF: format profiles + per-bank filing quirks. |
 | [MISSING_AUDIT_DATA.md](MISSING_AUDIT_DATA.md) | Partitions that can't be fixed from the inputs (image-only PDFs, absent filings, annual-only tables). |
 
-## Agent tooling (`.claude/`)
+## Agent tooling (`AGENTS.md` + `.claude/`)
 
-Repo-local Claude Code configuration — procedures that were previously carried
-only in a session's head. Skills load themselves when the work matches their
-description; commands are typed.
+The instruction files are `AGENTS.md` — at the repo root, in `web/` and in
+`mobile/`. Each `CLAUDE.md` is a one-line `@AGENTS.md` import, so Claude Code and
+the AGENTS.md-reading agents (opencode, Codex, …) read the same text. Edit the
+`AGENTS.md`; the `CLAUDE.md` never carries content.
+
+`.claude/` holds the Claude-Code-only extras — procedures that were previously
+carried only in a session's head. Skills load themselves when the work matches
+their description; commands are typed.
 
 | Item | Kind | What it covers |
 |---|---|---|
+| `AGENTS.md` (root) | instructions | Orientation, the check commands, and the rules that are expensive to break (fitz-only, no `--force` re-extraction, D1 write cost, `null` ≠ `0`, no LLM-set figures). |
+| `web/AGENTS.md`, `mobile/AGENTS.md` | instructions | Per-surface layout, conventions and build traps. |
 | `.claude/skills/audit-lane-fix/` | skill | Repairing a `bank_audit_*` lane: diagnosis before re-running, which workflow to dispatch, `only_failing` vs `force`, the override ordering. |
 | `.claude/skills/evds-series/` | skill | Adding/debugging an EVDS macro series: the `SERIES` list, the two failure modes that still exit 0 (dead code after a rebase, CI read-timeout), the derivations with a right answer. |
 | `.claude/commands/newlane.md` | `/newlane` | End-to-end scaffold for a new lane — migration, ingest, validation, push path, chart-spec `verify` block, workflow, docs. |

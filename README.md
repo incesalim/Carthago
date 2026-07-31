@@ -63,6 +63,7 @@ for GitHub Actions): `EVDS_API_KEY`, `CLOUDFLARE_API_TOKEN`,
 ```
 carthago/
 ├── README.md
+├── AGENTS.md                       ← repo guide for coding agents (CLAUDE.md imports it)
 ├── requirements.txt                ← Python deps (ingestion only)
 ├── .env, .env.example, .gitignore
 │
