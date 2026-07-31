@@ -141,9 +141,37 @@ Sources: BDDK, BRSA bank filings, TCMB EVDS, TÜİK, KAP.
 Full dashboard: https://carthago.app
 ```
 
-⚠️ **The app icon is a 256→1024 upscale** of the site's brand mark. It passes,
-but it is soft at 512px in the Play listing. A native-resolution export of the
-mark is worth doing before you publish.
+- **App icon**: `assets/store/store-icon-512.png` (512×512 exactly, opaque —
+  Play renders alpha as black). Regenerate with `assets/store/make-app-icons.ps1`,
+  which also emits the in-app icons. Both derive from
+  `scripts/brand/carthago-app-icon-512.png` — a native-resolution export, not an
+  upscale.
+
+## Closed testing — the 12/14 rule
+
+A **personal** Play developer account created after 2023-11-13 cannot publish to
+production until it has run a **closed test with ≥12 testers opted in
+continuously for 14 days**. Only then does "Apply for production access" unlock
+on the Console dashboard. Organisation accounts and older personal accounts are
+exempt.
+
+What actually counts:
+
+- **Opted in** = the tester followed the closed-track opt-in link and accepted
+  it under the *same Google account* they use on the device. An invite that was
+  sent but never accepted counts for nothing.
+- **Continuously** = the 14-day clock restarts if the tester count drops below
+  12. Recruit a couple of spares rather than exactly 12.
+- **14 days** is elapsed time on the closed track, not time since upload — the
+  clock starts when the twelfth tester is opted in, not when the build lands.
+- Testers must be added to the **closed** track (`Testing → Closed testing`).
+  The **internal** track — which `eas.json` targets by default — does *not*
+  count towards this requirement. Internal is for you and a handful of people;
+  it is the right place for a first smoke test, but promote the build to a
+  closed track before starting the clock.
+
+So the order is: upload → internal track, look at it yourself → promote to a
+closed track → send the opt-in link → hold ≥12 for 14 days → apply.
 
 ## Before you submit — read this
 
