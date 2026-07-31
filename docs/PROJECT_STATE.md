@@ -492,10 +492,27 @@ Three decisions worth not re-litigating:
 - **Single-series charts only** — see Known issues for the colorblind finding
   behind that.
 
-**Play Store: code-ready, not submitted (2026-07-30).** Runbook:
-`mobile/RELEASE.md`. Path is EAS Build (cloud) — `eas.json` ships `development`
-/ `preview` / `production` profiles, production emitting an `.aab` and
-submitting to the **internal track as a draft**, never straight to public.
+**Play Store: published to closed testing, gathering testers (2026-07-31).**
+Runbook: `mobile/RELEASE.md`. Path is EAS Build (cloud) — `eas.json` ships
+`development` / `preview` / `production` profiles, production emitting an `.aab`
+and submitting to the **internal track as a draft**, never straight to public.
+
+Live state — package `app.carthago.mobile`, release `2 (1.0.0)`, closed track
+**Alpha**, 177 countries. Production is Inactive and stays that way until the
+12-testers-for-14-days gate clears.
+
+- **Testers are admitted by Google Group**, `carthago-testers@googlegroups.com`,
+  set to *anyone on the web can join*. It was originally an email list; that
+  forces a manual add per tester and is why recruiting via a swap platform
+  stalls. Switch before reaching 12, never after — dropping below 12 restarts
+  the 14 days.
+- **Group membership is not opt-in.** A member is merely *eligible*; they must
+  still open the opt-in link on the phone, signed into the account that phone
+  uses. Track the Console's *"N testers currently opted-in"* line, not the
+  group's member count — they diverge (7 members vs 4 opted-in on 2026-07-31).
+- **Recruiting**: listed on Twelve Testers (a free dev-to-dev swap pool) and
+  posted to r/AndroidTest4Test. Both are reciprocal — they cost testing other
+  people's apps daily for the same fortnight.
 
 What was needed beyond "it builds":
 

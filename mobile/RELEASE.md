@@ -173,6 +173,38 @@ What actually counts:
 So the order is: upload → internal track, look at it yourself → promote to a
 closed track → send the opt-in link → hold ≥12 for 14 days → apply.
 
+### How this app is actually set up
+
+Closed track **Alpha**, package `app.carthago.mobile`, release `2 (1.0.0)`.
+Testers are admitted by **Google Group** — `carthago-testers@googlegroups.com`,
+set to *anyone on the web can join*, no approval step.
+
+The Testers tab offers `Email lists` or `Google Groups` as **radio buttons**, so
+it is one or the other, never both. Prefer the Group: on an email list you must
+collect and add every tester's address by hand, which is a per-person round trip
+and the reason listings on swap platforms sit half-filled. Migrating is
+lossless — put the existing addresses in the Group first, then flip the radio;
+the opted-in count does not move.
+
+⚠️ **Switch before you reach 12, not after.** The 14-day clock only runs while
+≥12 are opted in, so a switch today is free and a switch mid-count risks
+restarting the fortnight.
+
+⚠️ **A group member is not an opted-in tester.** Joining only makes someone
+eligible; they must then open the opt-in link *on the phone*, signed in with the
+account that phone uses, and accept — it should say "You are a tester". The two
+numbers drift apart (7 group members vs 4 opted-in on 2026-07-31), and the one
+that counts is the Console dashboard's *"N testers currently opted-in"*.
+
+Recruiting channels in use: **Twelve Testers** (free dev-to-dev swap pool,
+listing `twelvetesters.com/go/cms8vrhta0axko4236jzy2kvr`) and
+**r/AndroidTest4Test**. Both are reciprocal — the cost is testing other people's
+apps daily for the same fortnight, not money. Paid tester farms are deliberately
+not used: Google's 2026 detection targets exactly that (emulator fingerprints,
+zero battery decay across 14 days, failed Play Integrity attestation), and the
+downside is a suspension bound to a verified identity that cannot be
+re-registered.
+
 ## Before you submit — read this
 
 **Upstream data terms.** The Yahoo-sourced market tape (BIST indices, FX, Brent,
