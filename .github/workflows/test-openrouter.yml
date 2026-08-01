@@ -27,7 +27,7 @@ on:
       task:
         description: "Which probe to run"
         type: choice
-        options: [smoke, usage, regulation, unit, freelist]
+        options: [smoke, usage, regulation, unit, freelist, vision]
         default: smoke
       model_id:
         description: "Model to test (default: auto-pick cheapest paid deepseek / v4-pro for regulation)"
@@ -115,8 +115,8 @@ jobs:
       #
       # Needs R2 (the PDFs) but writes nothing back, and never touches D1.
 
-      - name: Install deps (unit/freelist)
-        if: inputs.task == 'unit' || inputs.task == 'freelist'
+      - name: Install deps (unit/freelist/vision)
+        if: inputs.task == 'unit' || inputs.task == 'freelist' || inputs.task == 'vision'
         run: pip install requests boto3 pymupdf
 
       - name: List free + nemotron models
@@ -149,6 +149,36 @@ jobs:
         with:
           name: bench-unit-detection
           path: bench_unit_detection.json
+          if-no-files-found: warn
+
+      # ---------------- vision-extraction bench ----------------
+      # The 59 statements in data/manual_statements.json were typed in BY HAND
+      # because the page is drawn, not typed — fitz has nothing to read. They are
+      # the only part of this pipeline whose cost is a person's afternoon, which
+      # makes them the one place an LLM could add capability instead of
+      # duplicating it. Scored against the human transcript.
+      #
+      # ⚠️ This bench DOES ask a model for figures, which production forbids.
+      # Nothing it returns is written anywhere; the comparison IS the output.
+
+      - name: Bench vision extraction (LLM vs hand transcription)
+        if: inputs.task == 'vision'
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          BENCH_DELAY: "2"
+        run: >
+          python scripts/scratch_bench_vision_extract.py
+          ${{ inputs.model_id != '' && format('--model {0}', inputs.model_id) || '' }}
+          ${{ inputs.sample != '0' && format('--limit {0}', inputs.sample) || '' }}
+
+      - name: Upload vision bench result
+        if: inputs.task == 'vision'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bench-vision-extract
+          path: bench_vision_extract.json
           if-no-files-found: warn
 
       # ---------------- regulation task ----------------
