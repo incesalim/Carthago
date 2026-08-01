@@ -317,7 +317,16 @@ def main() -> int:
               f"exact={sc['exact']} ({pct:.0f}%) total_row={'OK' if sc['total_row_ok'] else 'WRONG'}")
         for w in sc["wrong"]:
             print(f"        {w}")
-        results.append({"tag": tag, "page": page, **meta, **sc})
+        # Keep the model's own rows: a matched=0 with rows returned is the
+        # difference between "read the wrong page" and "read it fine, labelled
+        # it differently", and the score alone cannot tell those apart.
+        results.append({"tag": tag, "page": page, **meta, **sc,
+                        "model_rows": rows[:60], "truth_head": s["rows"][:5]})
+        for a, b in zip(s["rows"][:4], rows[:4]):
+            print(f"        truth {a.get('h', ''):8s} {a.get('name', '')[:26]:28s} "
+                  f"{int(a.get('tl') or 0):>14,}")
+            print(f"        model {b.get('h', ''):8s} {b.get('name', '')[:26]:28s} "
+                  f"{int(b.get('tl') or 0):>14,}")
 
     ok = [r for r in results if "exact" in r]
     if ok:

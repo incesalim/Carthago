@@ -85,7 +85,7 @@ permissions:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
     env:
       OPEN_ROUTER_API: ${{ secrets.OPEN_ROUTER_API }}
       MODEL_ID: ${{ inputs.model_id }}
