@@ -59,9 +59,29 @@ Hayat Finans / T.O.M. Katılım) were onboarded 2026-07-11, and **Takasbank (`TA
 PDFs themselves live in R2 at
 `bddk-audit-reports/<ticker>/<TICKER>_<period>_<kind>.pdf`.
 
-**The 2026Q2 season opened 2026-07-26** — `acquire-audit.yml` pulled TEB's two
-2026Q2 PDFs (consolidated + unconsolidated) into R2, the first of the quarter;
-the rest of the fleet is still at 2026Q1.
+**The 2026Q2 season opened 2026-07-24** — KLNMA filed first, on KAP. TEB was the
+first PDF we *held* (`acquire-audit.yml`, 2026-07-26), which is a different fact:
+acquisition reads IR pages, and a bank files on KAP days before its own site
+catches up. As of **2026-08-01** seven banks have released 2026Q2 reports —
+KLNMA (07-24), TEB (07-26), AKBNK (07-28), TSKB (07-29), GARAN (07-30),
+YKBNK (07-31) and ENPARA. The other 30 are still at 2026Q1.
+
+**KAP is the earliest signal, and it is already wired up.** `src/news/sources/kap.py`
+returns `disclosureClass: "FR"` rows carrying `year` / `ruleType` / `period`
+(2026 · "6 Aylık" · 2 for this quarter), two per bank — unconsolidated and
+consolidated. It covers BIST-listed banks only, so unlisted filers (TEB, ENPARA)
+still surface only from their IR pages. Note the attachment endpoint
+`/tr/api/file/download/<objId>` serves the PDF wrapped in a **Java-serialised byte
+array** (`AC ED 00 05` magic) under an `application/pdf` header — the raw response
+is not a usable PDF, so the KAP lane is a discovery signal, not a download path.
+
+**⚠️ TSKB 2026Q2 is a KAP cover sheet, not the report (2026-08-01).** The URLs its
+IR page serves for the quarter (`tskb-consolidated-30062026.pdf`,
+`tskb-bank-only-30062026.pdf`) are **14 pages / 165 KB** against 2026Q1's
+**107 pages / 2.0 MB**, and page 1 reads *"Bank Financial Report … KAMUYU
+AYDINLATMA PLATFORMU"*. TSKB is in `DISCOVERY_BANKS`, so an unscoped acquire run
+**will** store the stub. It was deliberately excluded from the 2026-08-01
+acquisition; re-acquire once the bank posts the full document.
 
 **⚠️ TEB 2026Q2 switched reporting unit — extracted, found wrong, PURGED
 (2026-07-26).** The filing declares *"Tutarlar aksi belirtilmedikçe **Milyon**
@@ -90,6 +110,15 @@ purged via the new `purge-partition.yml` (snapshot + D1 + coverage re-sync), so
 the cell reads `missing` + `pdf_present` and nothing published is silently wrong.
 **Do not extract further 2026Q2 filings until the unit is normalised** — check the
 `Bin|Milyon Türk Lirası` header first.
+
+**Nine more 2026Q2 PDFs were acquired 2026-08-01 — deliberately unextracted.**
+AKBNK, GARAN, YKBNK, KLNMA (consolidated + unconsolidated each) and ENPARA
+(unconsolidated) are in R2 with static URLs in `data/banks/audit_report_urls.json`;
+every one was opened with `fitz` before being committed (92–153 pages, cover page
+dated 30 June 2026). They exist precisely so the unit-detection fix above can be
+designed against six banks instead of one. `acquire-audit.yml` now takes a `banks`
+dispatch input (`ALL` sentinel) so a run can be scoped away from a bank serving
+the wrong document — which is how TSKB was skipped.
 
 **A new quarter arrives one bank at a time — sector "latest" needs a quorum
 (2026-07-26).** Three consumers took a bare `MAX(period)` over an audit table,
