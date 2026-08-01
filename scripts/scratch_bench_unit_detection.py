@@ -125,6 +125,11 @@ VARIANTS: dict[str, dict] = {
     "v3_effort_none":   {"effort": "none"},
     "v4_schema_nothink": {"schema": True, "nothink": True},
     "v5_all":           {"schema": True, "nothink": True, "effort": "none"},
+    # effort=none was the one lever that mattered; these isolate it. v6 pairs it
+    # with the schema (no /no_think), v7 is a bare repeat to check the 22/22 is
+    # stable rather than a lucky seed.
+    "v6_schema_effort": {"schema": True, "effort": "none"},
+    "v7_effort_repeat": {"effort": "none"},
 }
 
 
@@ -234,6 +239,12 @@ def classify(key: str, model: str, text: str, provider: str = "",
     if r.status_code != 200:
         return "HTTP_ERROR", f"{r.status_code}: {r.text[:160]}", {}
     d = r.json()
+    # A 200 with no `choices` is real: OpenRouter returns an error object in the
+    # body when an upstream rejects a parameter combination. Surfacing it as a
+    # scored result beats crashing the whole sweep on one bad variant.
+    if not d.get("choices"):
+        err = (d.get("error") or {}).get("message") or json.dumps(d)[:160]
+        return "NO_CHOICES", err[:160], {}
     choice = d["choices"][0]
     content = (choice["message"]["content"] or "").strip()
     usage = dict(d.get("usage") or {})
