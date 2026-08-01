@@ -54,8 +54,13 @@ KINDS = ["unconsolidated", "consolidated"]
 
 DELAY = float(os.environ.get("BENCH_DELAY", "0"))
 
-FRONT_PAGES = 8  # the declaration sits on p3-p5 in every filing seen so far
-CHARS_PER_PAGE = 2200
+# ⚠️ 8 pages / 2200 chars was fitted to Q1-Q2 filings, where the declaration sits
+# on p3-p5. Annual (Q4) reports carry a full audit opinion instead of a limited
+# review, so their front matter runs longer and pushes it to p7-p17 — the regex
+# then returned UNKNOWN on 18/200 sampled filings, 15 of them Q4. The window was
+# the bug, not the pattern. Full page text, and deep enough for an annual report.
+FRONT_PAGES = int(os.environ.get("BENCH_PAGES", "22"))
+CHARS_PER_PAGE = int(os.environ.get("BENCH_CHARS", "100000"))
 
 # ---------------------------------------------------------------------------
 # Baseline: the deterministic detector
