@@ -165,12 +165,30 @@ async function attemptChain(
   opts: ChatOpts,
 ): Promise<ChatResult> {
   const errors: string[] = [];
+  const skipped: string[] = [];
   for (const p of PROVIDERS) {
     const key = keyFor(env, p);
-    if (!key) continue;
+    if (!key) {
+      skipped.push(p.name);
+      continue;
+    }
     try {
       const text = await callProvider(p, key, messages, opts);
-      if (text) return { text, model: p.name };
+      if (text) {
+        // WHICH provider actually answered. The chain falls back silently by
+        // design, so without this a mis-set key or a wrong model id looks
+        // exactly like success: the bot replies normally, one model down the
+        // list, and nothing anywhere records that it did. `bot_queries` logs the
+        // SQL but not the model. Read it with `npx wrangler tail`.
+        // Deliberately no question text and no key material — this is a public
+        // bot and the query log already hashes the chat id.
+        console.log(
+          `llm: answered by ${p.name}` +
+            (skipped.length ? ` (no key for: ${skipped.join(", ")})` : "") +
+            (errors.length ? ` (failed first: ${errors.join("; ")})` : ""),
+        );
+        return { text, model: p.name };
+      }
       errors.push(`${p.name}: empty`);
     } catch (e) {
       errors.push(`${p.name}: ${e instanceof Error ? e.message : String(e)}`);

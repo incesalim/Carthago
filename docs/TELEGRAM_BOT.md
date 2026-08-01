@@ -98,6 +98,24 @@ limit (Cerebras is ~5 req/min).
 > against the Worker, this provider is skipped and the chain starts at Groq — the
 > bot keeps working, it just isn't on Nemotron.
 
+**Which model actually answered.** The chain falls back silently by design, so a
+rejected key or a wrong model id looks exactly like success — the bot replies
+normally, one model down the list. `bot_queries` records the SQL but NOT the
+model, so the only signal is the Worker log:
+
+```
+cd web; npx wrangler tail
+```
+
+then ask the bot a question. Every answer logs one line —
+`llm: answered by openrouter/nemotron-3-super-120b`, plus which providers were
+skipped for want of a key and which failed before it. No question text or key
+material is logged.
+
+> Recording the model on `bot_queries` would be better than a log line, but that
+> needs a migration and therefore a D1 write — deferred under the standing
+> no-D1-writes constraint (see docs/knowledge/2026-08-01-team-evaluation.md).
+
 > This **intentionally differs** from the Python "The Read" headline lane
 > (`src/news/free_llm.py`), which is Cerebras-first and falls back to a deterministic
 > template rather than a third model. That lane makes one call per run and is not
