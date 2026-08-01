@@ -27,7 +27,7 @@ on:
       task:
         description: "Which probe to run"
         type: choice
-        options: [smoke, usage, regulation]
+        options: [smoke, usage, regulation, unit, freelist]
         default: smoke
       model_id:
         description: "Model to test (default: auto-pick cheapest paid deepseek / v4-pro for regulation)"
@@ -76,12 +76,49 @@ jobs:
           python-version: "3.12"
 
       - name: Install deps (smoke/usage)
-        if: inputs.task != 'regulation'
+        if: inputs.task == 'smoke' || inputs.task == 'usage'
         run: pip install requests
 
       - name: Probe OpenRouter
-        if: inputs.task != 'regulation'
+        if: inputs.task == 'smoke' || inputs.task == 'usage'
         run: python scripts/scratch_test_openrouter.py ${{ inputs.task == 'usage' && '--usage' || '' }}
+
+      # ---------------- unit-detection bench ----------------
+      # Can an LLM read a filing's reporting unit as well as a regex can? The
+      # 2026Q2 THOUSAND->MILLION switch is invisible to every validator we have,
+      # so the unit must be read off the filing itself. The model returns a LABEL
+      # from a closed set, never a figure — "no LLM sets a number" still holds.
+      #
+      # Needs R2 (the PDFs) but writes nothing back, and never touches D1.
+
+      - name: Install deps (unit/freelist)
+        if: inputs.task == 'unit' || inputs.task == 'freelist'
+        run: pip install requests boto3 pymupdf
+
+      - name: List free + nemotron models
+        if: inputs.task == 'freelist'
+        run: python scripts/scratch_bench_unit_detection.py --list-free
+
+      - name: Bench unit detection (regex vs LLM)
+        if: inputs.task == 'unit'
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        # `provider` is deliberately NOT forwarded: its default (Baidu) is the
+        # regulation task's pinned upstream and would not serve the model this
+        # bench picks. Unpinned routing is right for a one-off classification.
+        run: >
+          python scripts/scratch_bench_unit_detection.py
+          ${{ inputs.model_id != '' && format('--model {0}', inputs.model_id) || '' }}
+
+      - name: Upload bench result
+        if: inputs.task == 'unit'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bench-unit-detection
+          path: bench_unit_detection.json
+          if-no-files-found: warn
 
       # ---------------- regulation task ----------------
 

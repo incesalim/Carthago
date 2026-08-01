@@ -76,6 +76,11 @@ data/fleet_scratch.db
 data/_anomalies_*.txt
 data/run_*.cmd
 
+# scratch_bench_unit_detection.py byproducts — the PDFs it pulls from R2 and the
+# per-filing result it writes. Both are regenerable from a workflow dispatch.
+data/_bench/
+bench_unit_detection.json
+
 # Economy chart-reproduction diagnostics — source-report PDFs + page-image crops
 # pulled while building the /economy pages, consolidated under data/albaraka_reports/
 # ({bop,budget,growth,inflation,trade}/). Local-only; the dashboard data lives in
