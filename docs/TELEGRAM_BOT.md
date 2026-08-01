@@ -76,10 +76,26 @@ requires the answer be in **the same language as the question**.
 
 ## LLM provider chain
 
-`llm.ts` tries, in order: **OpenRouter `nvidia/nemotron-3-super-120b-a12b:free` →
-Groq `openai/gpt-oss-120b` → Cerebras `gpt-oss-120b` → Cerebras `gemma-4-31b`**.
+`llm.ts` tries, in order: **Groq `openai/gpt-oss-120b` → Cerebras `gpt-oss-120b`
+→ Cerebras `gemma-4-31b` → OpenRouter `nvidia/nemotron-3-super-120b-a12b:free`**.
 
-Nemotron became the primary on **2026-08-01**. It is a 120B MoE with ~12B active,
+> ⚠️ **Nemotron was promoted to first on 2026-08-01 and demoted again on
+> 2026-08-02.** The model itself worked — the Worker logged `llm: answered by
+> openrouter/nemotron-3-super-120b` with no fallback. What broke was the time
+> budget: the webhook ACKs Telegram immediately and runs the agent loop inside
+> `ctx.waitUntil`, the Worker logged *"waitUntil() tasks did not complete within
+> the allowed time and have been cancelled"*, and the bot stopped replying.
+>
+> That failure shape is nasty: the answer IS generated, the log looks healthy,
+> and the user gets silence. `MAX_STEPS = 6` rounds × a 45s per-call timeout ×
+> up to 3 chain passes fits inside the allowance on Groq's fast inference and
+> does not on a slower free endpoint.
+>
+> **Re-promoting Nemotron requires bounding the loop first** — shorter per-call
+> timeout and/or fewer steps — verified with `npx wrangler tail` before it goes
+> back to the front. Moving it up without that reintroduces the outage.
+
+Nemotron was briefly the primary on **2026-08-01**. It is a 120B MoE with ~12B active,
 so it replaces `gpt-oss-120b` like for like rather than trading capability away,
 and the low active-parameter count is what keeps it usable here — the agent loop
 makes several calls per question. The rest of the chain is kept on purpose: this
