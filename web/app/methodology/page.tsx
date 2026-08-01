@@ -33,7 +33,6 @@ const SOURCES: { name: string; what: string; cadence: string }[] = [
   { name: "TCMB EVDS", what: "policy rate, CPI, reserves, exchange rates, balance of payments, sector rates", cadence: "daily to monthly" },
   { name: "TÜİK", what: "CPI detail, national accounts, foreign trade", cadence: "monthly / quarterly" },
   { name: "KAP", what: "ownership structure, subsidiaries, company disclosures", cadence: "as filed" },
-  { name: "Borsa İstanbul", what: "prices and shares for the listed banks, for market-based ratios", cadence: "daily" },
   { name: "TBB / TKBB", what: "digital-banking and channel statistics", cadence: "quarterly / monthly" },
 ];
 
@@ -80,8 +79,11 @@ export default async function MethodologyPage() {
       <div className="space-y-6">
         <Section id="sources" title="Sources">
           <p>
-            Eight public sources, each used for what it actually publishes rather than
-            blended into one series:
+            Seven public sources, each used for what it actually publishes rather than
+            blended into one series. Market prices are <b>not</b> among them: the
+            Borsa İstanbul feed was removed on 2026-08-01 because its provider&rsquo;s
+            terms forbid redistribution, so this site publishes no share prices,
+            market caps or valuation multiples.
           </p>
           <ScrollX label="Sources table — scrolls horizontally">
             <table className="w-full min-w-[34rem] border-collapse text-[12.5px]">
@@ -204,15 +206,19 @@ export default async function MethodologyPage() {
           </p>
           <ul className="ml-4 list-disc space-y-2.5 marker:text-faint">
             <li>
-              <b className="font-semibold">Net interest margin is not swap-adjusted, and is
-              struck on total assets.</b> Turkish banks fund lira assets by swapping foreign
-              currency, and under TFRS the cost of that swap lands in the trading and FX
-              line, not in interest expense. Banks therefore publish a{" "}
-              <i>swap maliyetine göre düzeltilmiş marj</i> computed from their own treasury
-              books — a figure that is not a line in the filing and cannot be reproduced
-              from it. Ours is the unadjusted margin over average total assets rather than
-              average interest-earning assets, so it reads lower than a bank-published or
-              broker NIM, and the gap is widest for the banks that swap most.
+              <b className="font-semibold">Net interest margin is not swap-adjusted.</b>{" "}
+              Turkish banks fund lira assets by swapping foreign currency, and under TFRS the
+              cost of that swap lands in the trading and FX line, not in interest expense.
+              Banks therefore publish a <i>swap maliyetine göre düzeltilmiş marj</i> computed
+              from their own treasury books — a figure that is not a line in the filing and
+              <b> cannot be reproduced from it</b>. We do not print a proxy: netting the
+              trading line back in over-corrects (it also carries customer FX revenue and
+              revaluation on the structural position) and is the difference of two nearly
+              cancelling legs, so it would not reproduce from one quarter to the next. Our
+              NIM is struck on average <b>interest-earning</b> assets, the market
+              convention, and it reads lower than a bank-published swap-adjusted margin by
+              roughly that bank&rsquo;s swap cost — widest for the banks that swap most. The{" "}
+              <b>Trading &amp; FX share</b> metric shows the dependency directly instead.
             </li>
             <li>
               <b className="font-semibold">Cost / income uses BRSA gross operating

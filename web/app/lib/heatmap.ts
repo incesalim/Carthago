@@ -36,6 +36,7 @@ export type MetricKey =
   | "roe"
   | "roa"
   | "nim"
+  | "trading_share"
   | "ppop_ratio"
   | "loan_yield"
   | "deposit_cost"
@@ -93,11 +94,20 @@ export const METRIC_DEFS: MetricDef[] = [
   { key: "cost_of_risk",        label: "Cost of risk (TTM)",  short: "CoR",        unit: "pct", decimals: 2, direction: "higher_worse", family: "Asset quality",   rule: "|TTM ECL flow| ÷ avg gross loans" },
   { key: "roe",                 label: "ROE (TTM)",           short: "ROE",        unit: "pct", decimals: 1, direction: "higher_better",family: "Returns",         rule: "TTM net income ÷ 5-quarter avg equity" },
   { key: "roa",                 label: "ROA (TTM)",           short: "ROA",        unit: "pct", decimals: 2, direction: "higher_better",family: "Returns",         rule: "TTM net income ÷ 5-quarter avg assets" },
-  // NOT swap-adjusted, and on TOTAL assets rather than interest-earning — the
-  // rule string says so because this is the figure most likely to be reconciled
-  // against a bank's own deck, where it is struck both ways differently. See
-  // /methodology#comparability.
-  { key: "nim",                 label: "NIM (TTM)",           short: "NIM",        unit: "pct", decimals: 2, direction: "higher_better",family: "Returns",         rule: "TTM net interest ÷ 5-quarter avg total assets · not swap-adjusted" },
+  // On average interest-EARNING assets (BS asset romans I. + II.), which is the
+  // market convention. Still NOT swap-adjusted, and it cannot be: Turkish banks
+  // fund TL assets by swapping FX and the carry lands in the trading line, but
+  // the swap cost they publish comes from their own treasury books and is not a
+  // P&L line — it is not derivable from the filing at all. Netting the trading
+  // line in as a proxy over-corrects (it also contains customer FX revenue and
+  // structural-position revaluation) and is the difference of two nearly
+  // cancelling legs, so it will not reproduce quarter to quarter. `trading_share`
+  // below surfaces the dependency instead of hiding it inside the margin.
+  { key: "nim",                 label: "NIM (TTM)",           short: "NIM",        unit: "pct", decimals: 2, direction: "higher_better",family: "Returns",         rule: "TTM net interest ÷ 5-quarter avg interest-earning assets · not swap-adjusted" },
+  // What share of revenue is trading & FX rather than margin. The honest form of
+  // the swap question: a bank whose margin looks strong on a large trading
+  // contribution is a different proposition from one earning it on the book.
+  { key: "trading_share",       label: "Trading & FX share",  short: "Trading",    unit: "pct", decimals: 1, direction: "neutral",      family: "Returns",         rule: "TTM trading & FX result (P&L VI.) ÷ TTM gross operating profit" },
   // Margin engine — the drivers behind NIM. TTM interest flows over 5-point
   // average balances, the same trailing-year basis as ROE and NIM above. Loan
   // yield = interest on loans (P&L 1.1)
@@ -142,6 +152,7 @@ export interface BankMetricRow {
   freeProvision: number | null;
   roa: number | null;
   nim: number | null;
+  trading_share: number | null;
   ppop_ratio: number | null;
   loan_yield: number | null;
   deposit_cost: number | null;
@@ -188,7 +199,19 @@ export async function latestCommonPeriod(
   return rows[0]?.period ?? null;
 }
 
-interface RowAssets { bank_ticker: string; period: string; total_assets: number | null }
+interface RowAssets {
+  bank_ticker: string;
+  period: string;
+  total_assets: number | null;
+  earning_assets: number | null;
+}
+
+/** Interest-EARNING asset romans: I. (cash, FVTPL, FVOCI, derivatives) and II.
+ *  (loans, leases, factoring, securities at amortized cost). III.–X. are
+ *  held-for-sale, subsidiaries & associates, PP&E, intangibles, investment
+ *  property, current/deferred tax assets and other assets — none of which earn
+ *  interest or profit share. */
+const BS_EARNING_ASSET_HIERARCHIES = ["I.", "II."];
 interface RowStages {
   bank_ticker: string; period: string;
   npl_ratio: number | null; stage2_share: number | null;
@@ -199,6 +222,7 @@ interface RowPl {
   net_profit: number | null; net_interest: number | null;
   opex: number | null; gross_op_profit: number | null;
   ii_loans: number | null; ie_deposits: number | null; ecl_prov: number | null;
+  trading: number | null;
 }
 interface RowEquity { bank_ticker: string; period: string; equity: number | null }
 interface RowBalance { bank_ticker: string; period: string; amount: number | null }
@@ -215,14 +239,22 @@ export async function heatmapPanel(
 
   const [assets, stages, pl, equity, loanRows, depositRows,
          capRows, fxRows, rpRows, liqRows, fpRows] = await Promise.all([
-    // A — total assets: sum of the BS asset Roman subtotals I.–X. (= bankSummaries).
+    // A — total assets (Σ BS asset romans I.–X. = bankSummaries) AND the
+    // interest-EARNING subset (I. + II.). NIM belongs on the earning base: a
+    // margin struck on total assets is diluted by every non-earning item a bank
+    // happens to carry, which is wrong by every convention, market and academic,
+    // and understates most for banks with large non-earning bases. Both are
+    // returned so `total_assets` keeps driving scale/ROA unchanged.
     cachedAll<RowAssets>(
-      `SELECT bank_ticker, period, SUM(amount_total) AS total_assets
+      `SELECT bank_ticker, period,
+              SUM(amount_total) AS total_assets,
+              SUM(CASE WHEN hierarchy IN (${BS_EARNING_ASSET_HIERARCHIES.map(() => "?").join(",")})
+                       THEN amount_total END) AS earning_assets
          FROM bank_audit_balance_sheet
         WHERE kind = ? AND statement = 'assets'
           AND hierarchy IN (${romanPlaceholders})
         GROUP BY bank_ticker, period`,
-      [kind, ...BS_ASSET_ROMAN_HIERARCHIES],
+      [...BS_EARNING_ASSET_HIERARCHIES, kind, ...BS_ASSET_ROMAN_HIERARCHIES],
     ),
     // B — stage ratios (one row per bank/period already); guard divide-by-zero.
     // Broken-breakdown guard: a handful of historical partitions captured only
@@ -282,7 +314,11 @@ export async function heatmapPanel(
               MAX(CASE WHEN p.hierarchy = 'VIII.' THEN p.amount END)        AS gross_op_profit,
               MAX(CASE WHEN p.hierarchy = '1.1'  THEN p.amount END)         AS ii_loans,
               MAX(CASE WHEN p.hierarchy = '2.1'  THEN p.amount END)         AS ie_deposits,
-              MAX(CASE WHEN p.hierarchy = 'IX.'  THEN p.amount END)         AS ecl_prov
+              MAX(CASE WHEN p.hierarchy = 'IX.'  THEN p.amount END)         AS ecl_prov,
+              -- VI. is the trading & FX result. Ordinal-keyed like III./VIII.:
+              -- the income block above gross is stable across both templates
+              -- (only the lines BELOW gross shift on the compressed one).
+              MAX(CASE WHEN p.hierarchy = 'VI.'  THEN p.amount END)         AS trading
          FROM bank_audit_profit_loss p
          LEFT JOIN bank_audit_pl_roles r
                 ON r.bank_ticker = p.bank_ticker AND r.period = p.period
@@ -388,6 +424,7 @@ export async function heatmapPanel(
         total_assets: null, npl_ratio: null, stage2_share: null,
         npl_coverage: null, provision_intensity: null, cost_of_risk: null,
         roe: null, roeAdjusted: null, freeProvision: null, roa: null, nim: null,
+        trading_share: null,
         ppop_ratio: null, loan_yield: null, deposit_cost: null, spread: null,
         deposits_stock: null, cost_income: null,
         cet1: null, car: null, lcr: null,
@@ -398,7 +435,15 @@ export async function heatmapPanel(
     return row;
   };
 
-  for (const r of assets) ensure(r.bank_ticker, r.period).total_assets = r.total_assets;
+  // `earning_assets` stays out of BankMetricRow — it is a NIM input, not a
+  // published metric — so it rides a side map keyed the same way.
+  const earningByKey = new Map<string, number>();
+  for (const r of assets) {
+    ensure(r.bank_ticker, r.period).total_assets = r.total_assets;
+    if (r.earning_assets != null) {
+      earningByKey.set(`${r.bank_ticker}|${r.period}`, r.earning_assets);
+    }
+  }
   for (const r of stages) {
     const row = ensure(r.bank_ticker, r.period);
     row.npl_ratio = r.npl_ratio;
@@ -576,9 +621,11 @@ export async function heatmapPanel(
     netInterest: number | null; // YTD net interest income (P&L III.) — for NIM
     opexAbs: number | null;     // |YTD opex| (personnel + other-opex) — for Cost/Income
     grossOp: number | null;     // YTD gross operating profit (P&L VIII.) — for Cost/Income
+    trading: number | null;     // YTD trading & FX result (P&L VI.)
     loans: number | null;       // gross loans stock (BS asset 2.1)
     deposits: number | null;    // deposits stock (BS liability I.)
     assets: number | null;      // total assets stock
+    earningAssets: number | null; // interest-earning subset (BS asset I. + II.)
   }
   const marginByBank = new Map<string, Map<number, MarginRec>>();
   for (const row of map.values()) {
@@ -608,9 +655,11 @@ export async function heatmapPanel(
       // one TTM window.
       opexAbs: opex != null ? Math.abs(opex) : null,
       grossOp,
+      trading: p?.trading ?? null,
       loans: loansByKey.get(key) ?? null,
       deposits: depositsByKey.get(key) ?? null,
       assets: row.total_assets,
+      earningAssets: earningByKey.get(key) ?? null,
     });
   }
   // De-cumulate one YTD field to a single quarter (Q1 is already one quarter).
@@ -684,8 +733,13 @@ export async function heatmapPanel(
     // Returns — TTM income over 5-point average assets.
     if (ttmNetIncome != null && avgAssets != null && avgAssets > 0)
       row.roa = ttmNetIncome / avgAssets;
-    if (ttmNetInterest != null && avgAssets != null && avgAssets > 0)
-      row.nim = ttmNetInterest / avgAssets;
+    // NIM on average interest-EARNING assets, not total. Falls back to total
+    // only if the earning subset is unavailable for the window, and says so
+    // nowhere else — so the metric's `rule` string names the earning base.
+    const avgEarning = avgStock(mb, mord, (r) => r.earningAssets);
+    const nimBase = avgEarning != null && avgEarning > 0 ? avgEarning : avgAssets;
+    if (ttmNetInterest != null && nimBase != null && nimBase > 0)
+      row.nim = ttmNetInterest / nimBase;
     // Cost / income — |TTM opex| ÷ |TTM gross operating profit|, two flows.
     if (ttmOpex != null && ttmGrossOp != null && Math.abs(ttmGrossOp) > 0)
       row.cost_income = Math.abs(ttmOpex) / Math.abs(ttmGrossOp);
@@ -701,6 +755,13 @@ export async function heatmapPanel(
       row.cost_of_risk = Math.abs(ttmEcl) / avgLoans;
     if (ttmPpop != null && avgAssets != null && avgAssets > 0)
       row.ppop_ratio = ttmPpop / avgAssets;
+    // Trading & FX as a SHARE of revenue — surfaced beside the margin rather
+    // than netted into it. Gross operating profit can be negative for a bank
+    // having a bad year; a share of a negative base is not a reading anyone can
+    // use, so it stays null there rather than printing a sign-flipped ratio.
+    const ttmTrading = ttmFlow(mb, mord, (r) => r.trading);
+    if (ttmTrading != null && ttmGrossOp != null && ttmGrossOp > 0)
+      row.trading_share = ttmTrading / ttmGrossOp;
 
 
     // Capital + liquidity (audited §4) — ratios already in percent.
