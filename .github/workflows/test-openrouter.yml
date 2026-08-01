@@ -68,6 +68,10 @@ on:
           detector generalises beyond the two quarters it was written against.
         required: false
         default: "0"
+      seed:
+        description: "unit only, with sample — sampling seed (change it to draw a different sample)"
+        required: false
+        default: "1729"
       llm_check:
         description: >-
           unit only, with sample — LLM-check this many sampled filings (every
@@ -137,6 +141,7 @@ jobs:
           ${{ inputs.variants != '' && format('--variants {0}', inputs.variants) || '' }}
           ${{ inputs.sample != '0' && format('--sample {0}', inputs.sample) || '' }}
           ${{ inputs.llm_check != '0' && format('--llm-check {0}', inputs.llm_check) || '' }}
+          ${{ inputs.seed != '' && format('--seed {0}', inputs.seed) || '' }}
 
       - name: Upload bench result
         if: inputs.task == 'unit'
