@@ -1,0 +1,106 @@
+{
+  "_comment": [
+    "Expected enabled/disabled state of every GitHub Actions workflow.",
+    "A workflow's disabled state lives in GitHub, NOT in the repo — `gh workflow disable` leaves no",
+    "trace in git. So every gate in this repo passed while ten scheduled lanes, including the only",
+    "monitor, were switched off and the YAML schedules were fiction. This file is the missing half:",
+    "scripts/check_workflow_state.py diffs it against the live API, so a freeze or a thaw has to be",
+    "written down to pass CI.",
+    "To change a workflow's state: run `gh workflow enable|disable <file>` AND update this file in",
+    "the same commit."
+  ],
+  "workflows": {
+    "acquire-audit.yml": {
+      "state": "disabled_manually",
+      "reason": "Cron freeze of 2026-08-01. The D1 write overage that prompted it came from backfill campaigns (36.9M of 68.1M rows on three days), not from these lanes — quiet baseline is ~14.6M rows/month against 50M included. Held frozen INDEFINITELY by decision on 2026-08-01; there is no scheduled re-enable date.",
+      "frozen_since": "2026-08-01"
+    },
+    "backfill-audit.yml": {
+      "state": "active"
+    },
+    "backfill-faaliyet.yml": {
+      "state": "active"
+    },
+    "backfill-nonbank.yml": {
+      "state": "active"
+    },
+    "backfill-tefas.yml": {
+      "state": "active"
+    },
+    "build-products.yml": {
+      "state": "active"
+    },
+    "ci.yml": {
+      "state": "active"
+    },
+    "deploy-cloudflare.yml": {
+      "state": "active"
+    },
+    "generate-reads.yml": {
+      "state": "disabled_manually",
+      "reason": "Cron freeze of 2026-08-01. The D1 write overage that prompted it came from backfill campaigns (36.9M of 68.1M rows on three days), not from these lanes — quiet baseline is ~14.6M rows/month against 50M included. Held frozen INDEFINITELY by decision on 2026-08-01; there is no scheduled re-enable date.",
+      "frozen_since": "2026-08-01"
+    },
+    "healthcheck.yml": {
+      "state": "disabled_manually",
+      "reason": "Cron freeze of 2026-08-01, held indefinitely by decision. NOTE: this is the ONLY monitor. While it is off nothing watches data freshness or extraction failures and no alert can fire. That consequence was raised and accepted; re-enable this one FIRST if the freeze lifts.",
+      "frozen_since": "2026-08-01"
+    },
+    "purge-partition.yml": {
+      "state": "active"
+    },
+    "reextract-statement.yml": {
+      "state": "active"
+    },
+    "refresh-advertised-rates.yml": {
+      "state": "disabled_manually",
+      "reason": "Cron freeze of 2026-08-01. The D1 write overage that prompted it came from backfill campaigns (36.9M of 68.1M rows on three days), not from these lanes — quiet baseline is ~14.6M rows/month against 50M included. Held frozen INDEFINITELY by decision on 2026-08-01; there is no scheduled re-enable date.",
+      "frozen_since": "2026-08-01"
+    },
+    "refresh-audit.yml": {
+      "state": "active"
+    },
+    "refresh-bddk-bulletins.yml": {
+      "state": "disabled_manually",
+      "reason": "Cron freeze of 2026-08-01. The D1 write overage that prompted it came from backfill campaigns (36.9M of 68.1M rows on three days), not from these lanes — quiet baseline is ~14.6M rows/month against 50M included. Held frozen INDEFINITELY by decision on 2026-08-01; there is no scheduled re-enable date.",
+      "frozen_since": "2026-08-01"
+    },
+    "refresh-calendar.yml": {
+      "state": "disabled_manually",
+      "reason": "Cron freeze of 2026-08-01. The D1 write overage that prompted it came from backfill campaigns (36.9M of 68.1M rows on three days), not from these lanes — quiet baseline is ~14.6M rows/month against 50M included. Held frozen INDEFINITELY by decision on 2026-08-01; there is no scheduled re-enable date.",
+      "frozen_since": "2026-08-01"
+    },
+    "refresh-data.yml": {
+      "state": "disabled_manually",
+      "reason": "Cron freeze of 2026-08-01. The D1 write overage that prompted it came from backfill campaigns (36.9M of 68.1M rows on three days), not from these lanes — quiet baseline is ~14.6M rows/month against 50M included. Held frozen INDEFINITELY by decision on 2026-08-01; there is no scheduled re-enable date.",
+      "frozen_since": "2026-08-01"
+    },
+    "refresh-evds-daily.yml": {
+      "state": "disabled_manually",
+      "reason": "Cron freeze of 2026-08-01. The D1 write overage that prompted it came from backfill campaigns (36.9M of 68.1M rows on three days), not from these lanes — quiet baseline is ~14.6M rows/month against 50M included. Held frozen INDEFINITELY by decision on 2026-08-01; there is no scheduled re-enable date.",
+      "frozen_since": "2026-08-01"
+    },
+    "refresh-news-daily.yml": {
+      "state": "active"
+    },
+    "refresh-presentations-weekly.yml": {
+      "state": "disabled_manually",
+      "reason": "Cron freeze of 2026-08-01. The D1 write overage that prompted it came from backfill campaigns (36.9M of 68.1M rows on three days), not from these lanes — quiet baseline is ~14.6M rows/month against 50M included. Held frozen INDEFINITELY by decision on 2026-08-01; there is no scheduled re-enable date.",
+      "frozen_since": "2026-08-01"
+    },
+    "repair-loans-zeros.yml": {
+      "state": "active"
+    },
+    "summarize-regulations.yml": {
+      "state": "disabled_manually",
+      "reason": "Cron freeze of 2026-08-01. The D1 write overage that prompted it came from backfill campaigns (36.9M of 68.1M rows on three days), not from these lanes — quiet baseline is ~14.6M rows/month against 50M included. Held frozen INDEFINITELY by decision on 2026-08-01; there is no scheduled re-enable date.",
+      "frozen_since": "2026-08-01"
+    },
+    "telegram-webhook.yml": {
+      "state": "active"
+    },
+    "test-openrouter.yml": {
+      "state": "active"
+    }
+  }
+}

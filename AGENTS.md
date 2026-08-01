@@ -40,7 +40,8 @@ cd mobile && npx eslint . && npm run typecheck && npm run check:tokens
 
 The Python job also runs standalone gates — `check_docs_sync.py`,
 `check_schema_naming.py`, `check_no_pdfplumber.py`, `check_pipeline_graph_sync.py`,
-`check_prose_claims.py`, `check_contrast.py`, `check_calendar_fresh.py`. Each one
+`check_prose_claims.py`, `check_contrast.py`, `check_calendar_fresh.py`,
+`check_workflow_state.py`. Each one
 exists because the thing it guards drifted silently once.
 
 ## Rules that are expensive to break

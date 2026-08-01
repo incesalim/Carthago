@@ -597,7 +597,7 @@ cost $0 because they were still inside the 50M allowance. Once the allowance is
 spent, every subsequent day bills at full rate, so project bottom-up from the
 day-shapes (quiet weekday ~0.5–0.9M, Friday ~2M, Saturday ~3M, Sunday ~2.4M).
 
-### Cron freeze 2026-07-28 → 2026-08-11 (TEMPORARY — RE-ENABLE)
+### Cron freeze from 2026-07-28 — HELD INDEFINITELY (decision 2026-08-01)
 
 The 50M allowance for the Jul 11 → Aug 10 cycle was exhausted on Jul 26; the
 remaining 13 days would have billed at full rate. Ten scheduled workflows are
@@ -608,7 +608,23 @@ invisible in git — check `gh workflow list --all`):
 `refresh-bddk-bulletins` · `refresh-calendar` · `refresh-data` ·
 `refresh-evds-daily` · `refresh-presentations-weekly` · `summarize-regulations`
 
-**Re-enable on 2026-08-11**, when the next cycle starts with a fresh 50M:
+**No re-enable date.** The original plan was 2026-08-11, when the next cycle
+starts with a fresh 50M. On 2026-08-01 the decision was taken to **keep the
+freeze in place indefinitely** instead. Note what the numbers actually say: the
+overage came from *backfill campaigns* (36.9M of 68.1M rows on three days), not
+from these lanes — the quiet baseline is ~14.6M rows/month against 50M included
+— so the freeze is no longer a cost necessity. It is a deliberate choice, and
+`healthcheck` is frozen with the rest, which means **nothing is watching data
+freshness or extraction failures and no alert can fire**. That consequence was
+raised and accepted.
+
+The state is now recorded in `data/workflow_state.json` and enforced by
+`scripts/check_workflow_state.py` in CI, so it can no longer be true-and-
+invisible: every CI run prints the frozen set, and enabling or disabling a
+workflow without committing the change fails the build.
+
+To lift it (re-enable `healthcheck` FIRST, then update the registry in the same
+commit):
 
 ```bash
 for wf in acquire-audit generate-reads healthcheck refresh-advertised-rates \

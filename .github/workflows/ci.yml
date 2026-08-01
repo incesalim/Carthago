@@ -8,6 +8,8 @@ on:
 
 permissions:
   contents: read
+  # check_workflow_state.py reads the enabled/disabled state of every workflow.
+  actions: read
 
 jobs:
   python:
@@ -67,6 +69,17 @@ jobs:
         # Fails once it has under 90 days of runway, so it cannot run out the way
         # the hand-typed schedules did. Also ages out the BBVA baseline.
         run: python scripts/check_calendar_fresh.py
+      - name: Workflow state (what is actually running)
+        # `gh workflow disable` leaves NO trace in git, so ten scheduled lanes —
+        # including healthcheck, the only monitor — were switched off while every
+        # gate here stayed green and the `schedule:` blocks were fiction.
+        # data/workflow_state.json records the intended state; this diffs it
+        # against the live API, so a freeze or a thaw has to be committed. It
+        # also prints the frozen set into every CI log.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python scripts/check_workflow_state.py
+
       - name: Contrast (text legibility)
         # Every colour used as TEXT must clear WCAG AA 4.5:1 on every surface it
         # sits on, in BOTH themes — and chart-theme.ts's tick-label colours must
