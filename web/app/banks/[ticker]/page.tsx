@@ -69,6 +69,7 @@ import {
   balanceSheetLineNames,
   profitLossMultiPeriod,
   profitLossRowsMultiPeriod,
+  plRolesByPeriod,
   cashFlowMultiPeriod,
   bankProfile,
   bankStagesLatest,
@@ -80,6 +81,8 @@ import {
 } from "@/app/lib/audit";
 import { ordOf, ttmEndingAt, yoyPct } from "@/app/lib/period-math";
 import { realRate } from "@/app/lib/real-terms";
+import { remapPlLines } from "@/app/lib/pl-sankey";
+import type { PlRow } from "@/app/lib/audit";
 import { LDR_AUDITED } from "@/app/lib/ldr";
 import { newsByTicker, pressNewsByBank } from "@/app/lib/news";
 import { earningsByTicker } from "@/app/lib/earnings";
@@ -419,14 +422,22 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
     return o != null && o >= floorOrd && latestOrd != null && o <= latestOrd;
   });
 
-  const [bsPivot, bsNames, plPivot, plRows, cfPivot, kapItems, profile, stages, validation, ownership, heatmap, sharePanel, earnings, mrDetail, bankNews, cpiRaw, sectorShares] =
+  const [bsPivot, bsNames, plPivot, plRows, plRoles, cfPivot, kapItems, profile, stages, validation, ownership, heatmap, sharePanel, earnings, mrDetail, bankNews, cpiRaw, sectorShares] =
     await Promise.all([
       balanceSheetMultiPeriod(ticker, kind, queryPeriods),
       balanceSheetLineNames(ticker, kind, periods),
       profitLossMultiPeriod(ticker, kind, queryPeriods),
       statement === "is"
         ? profitLossRowsMultiPeriod(ticker, kind, periods)
-        : Promise.resolve({}),
+        : Promise.resolve({} as Record<string, PlRow[]>),
+      // Which row IS the gross / net-operating / pre-tax / bottom line UNDER THIS
+      // FILER'S OWN numbering. Not decoration: the compressed template some
+      // participation banks file shifts every ordinal below VIII, and reading it
+      // against the standard ones drew DUNYAK's net operating profit as an
+      // expense with a blank bottom line.
+      statement === "is"
+        ? plRolesByPeriod(ticker, kind, periods)
+        : Promise.resolve({} as Record<string, Record<string, string>>),
       cashFlowMultiPeriod(ticker, kind, queryPeriods),
       newsByTicker(ticker, 12),
       bankProfile(ticker),
@@ -1114,6 +1125,16 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   // (abs / yoy / size), plus the peer pair on a common-size balance sheet, or the
   // nominal→CPI→real→verdict quartet for one quarter on the real lens.
   const TH = "py-2 pl-4 text-right font-mono text-[8.5px] font-normal uppercase tracking-[0.07em] text-faint whitespace-nowrap";
+  // The statement table labels rows by ordinal, so it has to use THIS filer's
+  // numbering or a compressed-template bank gets its net operating profit
+  // printed as "Other Operating Expenses". Latest period's roles are
+  // representative — the table's columns are all one filer, one template.
+  const plLinesForFiler = remapPlLines(
+    PL_LINES,
+    plRows[periods[0]] ?? [],
+    plRoles[periods[0]],
+  );
+
   const periodHeaderRow = (
     <tr className="border-b border-foreground">
       <th className={`${TH} pl-0 text-left`}>Breakdown</th>
@@ -1494,7 +1515,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
           )}
           {statement === "is" && (
             <>
-              <IncomeShape rowsByPeriod={plRows} periods={periods} />
+              <IncomeShape rowsByPeriod={plRows} rolesByPeriod={plRoles} periods={periods} />
               {mode !== "abs" && (
                 <p className="mt-1 font-mono text-[8.5px] uppercase tracking-[0.05em] text-faint">
                   The bridge above reads the filed quarter in ₺ — the {LENS_LABEL[mode].toLowerCase()} lens applies to the statement below.
@@ -1597,7 +1618,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
                       components with their breakdown nested under them. Passing
                       `divider={line.bold}` (as this did) ruled EVERY top-level line —
                       thirty identical bands, no hierarchy. */}
-                  {PL_LINES.map((line) => (
+                  {plLinesForFiler.map((line) => (
                     <Row
                       key={line.id}
                       label={line.label}

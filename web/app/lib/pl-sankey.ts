@@ -146,8 +146,124 @@ export function indexRows(rows: PlRow[]): LineIndex {
 const fmtM = (v: number) =>
   new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(v);
 
-export function buildPlSankey(rows: PlRow[]): PlSankeyResult {
+/** The roles `validator.pl_roles()` resolves against each filer's OWN numbering. */
+export type PlRole =
+  | "gross" | "net_op" | "pretax" | "tax" | "cont_net" | "period_net"
+  | "opex_personnel" | "opex_other";
+
+/** role → that filer's roman code, from `bank_audit_pl_roles`. */
+export type PlRoleMap = Partial<Record<PlRole, string>>;
+
+/** The standard template's ordinals — the fallback when no role map is supplied.
+ *
+ *  These are what this file USED to hardcode unconditionally, and the reason it
+ *  had to stop: BRSA roman ordinals are not fixed across the corpus. The
+ *  compressed template DUNYAK and TOMK file puts net-operating at XII and
+ *  period-net at XXIV, not XIII/XXV. Rendered against these defaults, DUNYAK
+ *  2024Q4 put ₺1.616bn of NET OPERATING PROFIT under "Other Operating Expenses"
+ *  with `contra: true` — a profit drawn as a ₺1.6bn expense — while XVII (tax,
+ *  ₺262m) read "Pre-tax Profit" and XXV, the bottom line, came back blank.
+ *
+ *  `heatmap.ts` was fixed by joining `bank_audit_pl_roles`; this consumer and
+ *  `standard_lines.ts` were not. It matters most here because the filers on the
+ *  compressed template are participation banks, and for those there is no second
+ *  published source a reader could check the number against. */
+const DEFAULT_ROLE_ORDINALS: Record<PlRole, string> = {
+  gross: "VIII.",
+  opex_personnel: "XI.",
+  opex_other: "XII.",
+  net_op: "XIII.",
+  pretax: "XVII.",
+  tax: "XVIII.",
+  cont_net: "XIX.",
+  period_net: "XXV.",
+};
+
+
+/** Roman numeral → integer. Returns null for numeric sub-codes ("1.1"). */
+export function romanValue(h: string): number | null {
+  const m = /^([IVXLCDM]+)\.?$/.exec(h.trim());
+  if (!m) return null;
+  const D: Record<string, number> = { I: 1, V: 5, X: 10, L: 50, C: 100, D: 500, M: 1000 };
+  let total = 0;
+  const s = m[1];
+  for (let i = 0; i < s.length; i++) {
+    const cur = D[s[i]], next = D[s[i + 1]] ?? 0;
+    total += cur < next ? -cur : cur;
+  }
+  return total;
+}
+
+/** This filer's own code for a role, falling back to the standard ordinal. */
+export const roleCode = (roles: PlRoleMap | undefined, role: PlRole): string =>
+  roles?.[role] ?? DEFAULT_ROLE_ORDINALS[role];
+
+/** The two ordinal BANDS the statement identities depend on, derived from the
+ *  role anchors rather than named outright.
+ *
+ *  Naming them (`IX. + X.` for provisions, `XIV.–XVI.` below the line) was a
+ *  second hardcode, and a worse one than the subtotal lookups: on the compressed
+ *  template `X.` is PERSONNEL, so it was counted twice — once as "other
+ *  provisions" and once as opex — and net operating profit came out 52% below
+ *  the filed figure, which suppresses the chart for a filing that is perfectly
+ *  fine. Deriving each band from the roles that bound it holds for both:
+ *
+ *    standard   gross VIII → net_op XIII : IX, X, XI(pers), XII(other) → prov = X
+ *    compressed gross VIII → net_op XII  : IX, X(pers), XI(other)      → prov = none
+ */
+export function plLineBands(rows: PlRow[], roles?: PlRoleMap) {
+  const grossIdx = romanValue(roleCode(roles, "gross"));
+  const netOpIdx = romanValue(roleCode(roles, "net_op"));
+  const pretaxIdx = romanValue(roleCode(roles, "pretax"));
+  const opexCodes = new Set([roleCode(roles, "opex_personnel"), roleCode(roles, "opex_other")]);
+
+  const between = (lo: number | null, hi: number | null, skip?: Set<string>): string[] => {
+    if (lo == null || hi == null) return [];
+    const found: string[] = [];
+    for (const r of rows) {
+      const h = canonHier(r.hierarchy);
+      const v = romanValue(h);
+      if (v != null && v > lo && v < hi && !skip?.has(h)) found.push(h);
+    }
+    return [...new Set(found)].sort((a, b) => (romanValue(a) ?? 0) - (romanValue(b) ?? 0));
+  };
+
+  return {
+    /** Provisions + ECL: gross → net_op, minus the two opex lines. The FIRST is
+     *  the ECL/provision line in every filing in the corpus. */
+    deductionBand: between(grossIdx, netOpIdx, opexCodes),
+    /** Merger / equity-method / monetary: net_op → pretax. */
+    belowLineBand: between(netOpIdx, pretaxIdx),
+  };
+}
+
+/** The below-the-line items, matched by filed LABEL where possible.
+ *  A compressed filer may omit the merger line entirely, and slotting monetary
+ *  into "merger" would mislabel a real number. Anything unmatched still enters
+ *  the identity, or pre-tax stops reconciling for a filing that is fine. */
+export function belowLineItems(rows: PlRow[], roles: PlRoleMap | undefined, ix: LineIndex) {
+  const { belowLineBand } = plLineBands(rows, roles);
+  const labelOf = (h: string) => rows.find((r) => canonHier(r.hierarchy) === h)?.item_name ?? "";
+  const pick = (re: RegExp) => belowLineBand.find((h) => re.test(labelOf(h)));
+  const mergerCode = pick(/birleşme|merger/i);
+  const equityCode = pick(/özkaynak\s*yönt|equity[-\s]?method|iştirak/i);
+  const monetaryCode = pick(/parasal|monetary/i);
+  const named = new Set([mergerCode, equityCode, monetaryCode].filter(Boolean) as string[]);
+  const unnamed = belowLineBand.filter((h) => !named.has(h));
+  return {
+    merger: mergerCode ? (ix.get(mergerCode) ?? 0) : 0,
+    equityMethod: equityCode ? (ix.get(equityCode) ?? 0) : 0,
+    monetary:
+      (monetaryCode ? (ix.get(monetaryCode) ?? 0) : 0) +
+      unnamed.reduce((sum, h) => sum + (ix.get(h) ?? 0), 0),
+  };
+}
+
+export function buildPlSankey(rows: PlRow[], roles?: PlRoleMap): PlSankeyResult {
   const ix = indexRows(rows);
+  /** This filer's own code for a role, falling back to the standard ordinal. */
+  const code = (role: PlRole): string => roleCode(roles, role);
+  const at = (role: PlRole): number | null => ix.get(code(role));
   const notes: string[] = [];
 
   // Sign convention for the deduction stack (II., IX.–XII.). Most banks store
@@ -161,12 +277,14 @@ export function buildPlSankey(rows: PlRow[]): PlSankeyResult {
   // cost — personnel (XI.) first, since participation banks (TFKB) have no
   // interest expense II. — then interest expense, then other opex. `ded(h)`
   // returns the amount to SUBTRACT: >0 a real expense, <0 a reversal/credit.
-  const convAnchor = ix.get("XI.") ?? ix.get("II.") ?? ix.get("XII.") ?? 0;
+  const convAnchor = at("opex_personnel") ?? ix.get("II.") ?? at("opex_other") ?? 0;
   const conv = convAnchor < 0 ? -1 : 1;
   const ded = (h: string): number | null => {
     const v = ix.get(h);
     return v == null ? null : conv * v;
   };
+  /** `ded`, but resolved through the role map. */
+  const dedRole = (role: PlRole): number | null => ded(code(role));
 
   // --- normalized line values -------------------------------------------
   const interestIncome = ix.get("I.");
@@ -188,18 +306,17 @@ export function buildPlSankey(rows: PlRow[]): PlSankeyResult {
   const dividend = ix.get("V.") ?? 0;
   const trading = ix.get("VI.") ?? 0;
   const otherIncome = ix.get("VII.") ?? 0;
-  const grossOpReported = ix.get("VIII.");
-  const ecl = ded("IX.") ?? 0;
-  const otherProv = ded("X.") ?? 0;
-  const personnel = ded("XI.") ?? 0;
-  const otherOpex = ded("XII.") ?? 0;
-  const netOpReported = ix.get("XIII.");
-  const merger = ix.get("XIV.") ?? 0;
-  const equityMethod = ix.get("XV.") ?? 0;
-  const monetary = ix.get("XVI.") ?? 0;
-  const pretaxReported = ix.get("XVII.");
-  const netContReported = ix.get("XIX.");
-  const netTotalReported = ix.get("XXV.") ?? netContReported;
+  const grossOpReported = at("gross");
+  const { deductionBand: uniqueBand } = plLineBands(rows, roles);
+  const ecl = uniqueBand.length > 0 ? (ded(uniqueBand[0]) ?? 0) : 0;
+  const otherProv = uniqueBand.slice(1).reduce((sum, h) => sum + (ded(h) ?? 0), 0);
+  const personnel = dedRole("opex_personnel") ?? 0;
+  const otherOpex = dedRole("opex_other") ?? 0;
+  const netOpReported = at("net_op");
+  const { merger, equityMethod, monetary } = belowLineItems(rows, roles, ix);
+  const pretaxReported = at("pretax");
+  const netContReported = at("cont_net");
+  const netTotalReported = at("period_net") ?? netContReported;
 
   if (netInterest == null || netTotalReported == null) {
     return {
@@ -217,11 +334,11 @@ export function buildPlSankey(rows: PlRow[]): PlSankeyResult {
   if (pretaxReported != null && netContReported != null) {
     tax = pretaxReported - netContReported;
   } else {
-    tax = Math.abs(ix.get("XVIII.") ?? 0);
-    notes.push("Tax derived from |XVIII.| — pre-tax or continuing-ops subtotal missing.");
+    tax = Math.abs(at("tax") ?? 0);
+    notes.push(`Tax derived from |${code("tax")}| — pre-tax or continuing-ops subtotal missing.`);
   }
   const disc =
-    netContReported != null && ix.get("XXV.") != null ? netTotalReported - netContReported : 0;
+    netContReported != null && at("period_net") != null ? netTotalReported - netContReported : 0;
 
   // --- reconciliation checks ---------------------------------------------
   // Relative to max(|computed|, |reported|); diffs under 0.1 % of interest
@@ -247,10 +364,10 @@ export function buildPlSankey(rows: PlRow[]): PlSankeyResult {
   const worstPctDiff = checks.reduce((w, c) => Math.max(w, c.pctDiff), 0);
 
   // Non-gating tax cross-check.
-  const taxFiled = ix.get("XVIII.");
+  const taxFiled = at("tax");
   if (taxFiled != null && Math.abs(Math.abs(tax) - Math.abs(taxFiled)) > Math.max(noiseFloor, 0.01 * Math.abs(tax))) {
     notes.push(
-      `Tax derived from subtotals (${fmtM(tax)}) differs from the filed XVIII. line (${fmtM(taxFiled)}).`,
+      `Tax derived from subtotals (${fmtM(tax)}) differs from the filed ${code("tax")} line (${fmtM(taxFiled)}).`,
     );
   }
 
@@ -602,4 +719,69 @@ export function layoutPlSankey(g: PlSankeyResult, W = 960, H = 440): PlSankeyLay
   }
 
   return { W, H, nodes: nodesOut, ribbons };
+}
+
+/** PL_LINES catalog id → the role that decides which roman it really is. */
+const PL_LINE_ROLE: Record<string, PlRole> = {
+  gross_op_profit: "gross",
+  personnel_expense: "opex_personnel",
+  other_op_expense: "opex_other",
+  net_op_profit: "net_op",
+  pretax_profit_cont: "pretax",
+  tax_provision: "tax",
+  net_profit_cont: "cont_net",
+  net_profit_total: "period_net",
+};
+
+/**
+ * Re-point a P&L line catalog at THIS filer's own roman numbering.
+ *
+ * `PL_LINES` maps a roman code to a label, and the statement table renders each
+ * catalog row with the catalog's label. That is fine while the ordinals are
+ * fixed — and they are not. On the compressed template DUNYAK and TOMK file,
+ * `XII.` is NET OPERATING PROFIT, so the table printed ₺1.616bn of profit under
+ * "Other Operating Expenses" with `contra: true`, showed the tax line as
+ * "Pre-tax Profit", and left the bottom line blank because `XXV.` does not
+ * exist there.
+ *
+ * The eight role-bearing lines move to whatever `bank_audit_pl_roles` says. The
+ * provisions band (between gross and net-operating) and the below-the-line band
+ * (between net-operating and pre-tax) are re-pointed positionally, since those
+ * lines carry no role. A catalog line with no counterpart in this filing is
+ * dropped rather than left pointing at a row that means something else — an
+ * absent line is honest, a mislabelled one is not.
+ */
+export function remapPlLines<T extends { id: string; hierarchy: string }>(
+  lines: T[],
+  rows: PlRow[],
+  roles?: PlRoleMap,
+): T[] {
+  if (!roles || Object.keys(roles).length === 0) return lines;
+
+  const { deductionBand, belowLineBand } = plLineBands(rows, roles);
+  const labelOf = (h: string) => rows.find((r) => canonHier(r.hierarchy) === h)?.item_name ?? "";
+  const pick = (re: RegExp) => belowLineBand.find((h) => re.test(labelOf(h)));
+
+  const byId: Record<string, string | undefined> = {
+    ecl_provisions: deductionBand[0],
+    other_provisions: deductionBand[1],
+    equity_method: pick(/özkaynak\s*yönt|equity[-\s]?method|iştirak/i) ?? belowLineBand[0],
+    monetary_position: pick(/parasal|monetary/i),
+  };
+
+  const out: T[] = [];
+  for (const line of lines) {
+    const role = PL_LINE_ROLE[line.id];
+    if (role) {
+      out.push({ ...line, hierarchy: roleCode(roles, role) });
+      continue;
+    }
+    if (line.id in byId) {
+      const h = byId[line.id];
+      if (h) out.push({ ...line, hierarchy: h });
+      continue; // no counterpart in this filing → drop, don't mislabel
+    }
+    out.push(line);
+  }
+  return out;
 }

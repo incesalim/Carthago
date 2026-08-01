@@ -282,3 +282,108 @@ describe("layoutPlSankey", () => {
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// The compressed BRSA template (participation banks)
+// ---------------------------------------------------------------------------
+
+/** DUNYAK / TOMK file a COMPRESSED template: fewer lines, so the roman ordinals
+ *  shift. Net-operating lands at XII (not XIII), pre-tax at XVI (not XVII),
+ *  continuing-ops net at XVIII, and the bottom line at XXIV (not XXV).
+ *
+ *  Same economics as `plainBank()` — only the numbering differs. Rendered
+ *  against the standard ordinals, XII ("Other Operating Expenses" in the normal
+ *  template) picks up NET OPERATING PROFIT and draws a profit as an expense,
+ *  while XXV is absent so the bottom line renders blank. That is what shipped
+ *  for DUNYAK 2024Q4: ₺1.616bn of profit under an expense label. */
+function compressedTemplateBank(): PlRow[] {
+  return rows({
+    "I.": ["Kâr Payı Gelirleri", 1000],
+    "II.": ["Kâr Payı Giderleri (-)", 600],
+    "III.": ["Net Kâr Payı Geliri", 400],
+    "IV.": ["Net Ücret ve Komisyon Gelirleri", 120],
+    "V.": ["Temettü Gelirleri", 10],
+    "VI.": ["Ticari Kâr/Zarar (Net)", 50],
+    "VII.": ["Diğer Faaliyet Gelirleri", 70],
+    "VIII.": ["Faaliyet Brüt Kârı", 650],
+    "IX.": ["Beklenen Zarar Karşılıkları (-)", 100],
+    "X.": ["Personel Giderleri (-)", 130],
+    "XI.": ["Diğer Faaliyet Giderleri (-)", 170],
+    "XII.": ["Net Faaliyet Kârı", 250],
+    "XV.": ["Net Parasal Pozisyon Kârı/(Zararı)", -25],
+    "XVI.": ["Vergi Öncesi Kâr", 225],
+    "XVII.": ["Vergi Karşılığı (±)", 45],
+    "XVIII.": ["Sürdürülen Faaliyetler Dönem Net Kârı", 180],
+    "XXIV.": ["Dönem Net Kâr/Zararı", 180],
+  });
+}
+
+/** What `bank_audit_pl_roles` resolves for that filing. */
+const COMPRESSED_ROLES = {
+  gross: "VIII.",
+  opex_personnel: "X.",
+  opex_other: "XI.",
+  net_op: "XII.",
+  pretax: "XVI.",
+  tax: "XVII.",
+  cont_net: "XVIII.",
+  period_net: "XXIV.",
+} as const;
+
+describe("compressed template — the participation-bank ordinal shift", () => {
+  it("renders correctly when the filer's own roles are supplied", () => {
+    const g = buildPlSankey(compressedTemplateBank(), COMPRESSED_ROLES);
+
+    expect(g.renderable, `notes: ${g.notes.join(" | ")}`).toBe(true);
+    assertFluxConserved(g);
+
+    // The bottom line is present and right — not blank.
+    const result = g.nodes.find((n) => n.kind === "result");
+    expect(result, "no result node — the bottom line rendered blank").toBeDefined();
+    expect(result!.reported).toBe(180);
+  });
+
+  it("never draws net operating PROFIT as an expense", () => {
+    const g = buildPlSankey(compressedTemplateBank(), COMPRESSED_ROLES);
+
+    // XII. is net operating profit here. No terminal expense node may carry it.
+    for (const n of g.nodes.filter((x) => x.kind === "deduction")) {
+      expect(
+        n.reported == null || Math.abs(n.reported) !== 250,
+        `deduction node "${n.label}" carries the net-operating-profit figure`,
+      ).toBe(true);
+      expect(n.label, "a deduction is labelled as the operating result").not.toMatch(/Net Operating/i);
+    }
+  });
+
+  it("REGRESSION: without the role map the same filing renders wrong", () => {
+    // This is the shipped defect, pinned. Read against the standard ordinals,
+    // XI. (here "Diğer Faaliyet Giderleri" = 170) and XII. (NET OPERATING PROFIT
+    // = 250) are both taken as opex, the pre-tax/tax/net chain reads lines that
+    // are one ordinal off, and XXV. does not exist at all.
+    const g = buildPlSankey(compressedTemplateBank()); // no roles → defaults
+
+    // It must NOT silently render a plausible-looking but wrong flow.
+    const bottomLine = g.nodes.find((n) => n.kind === "result")?.reported ?? null;
+    const wrong = !g.renderable || bottomLine !== 180;
+    expect(
+      wrong,
+      "the default ordinals happened to produce the right answer — if the " +
+        "template changed, update this test; do not delete the role map",
+    ).toBe(true);
+  });
+
+  it("falls back to standard ordinals for a standard filing", () => {
+    // A bank on the normal template must be unaffected by the new parameter,
+    // whether or not roles are passed.
+    const withoutRoles = buildPlSankey(plainBank());
+    const withRoles = buildPlSankey(plainBank(), {
+      gross: "VIII.", opex_personnel: "XI.", opex_other: "XII.", net_op: "XIII.",
+      pretax: "XVII.", tax: "XVIII.", cont_net: "XIX.", period_net: "XXV.",
+    });
+    expect(withoutRoles.renderable).toBe(true);
+    expect(withRoles.renderable).toBe(true);
+    expect(withRoles.nodes.find((n) => n.kind === "result")?.reported)
+      .toBe(withoutRoles.nodes.find((n) => n.kind === "result")?.reported);
+  });
+});

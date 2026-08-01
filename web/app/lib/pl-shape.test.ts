@@ -157,3 +157,76 @@ describe("buildInterestFlow", () => {
     expect(l.ribbons.filter((r) => r.kind === "keep")).toHaveLength(1);
   });
 });
+
+// ---------------------------------------------------------------------------
+// The compressed BRSA template — the participation-bank ordinal shift
+// ---------------------------------------------------------------------------
+
+/** DUNYAK / TOMK file a compressed template, so the romans shift: net-operating
+ *  at XII (not XIII), pre-tax at XVI, continuing-ops net at XVIII, bottom line
+ *  at XXIV. Read against the standard ordinals, XII. — the net operating PROFIT
+ *  — was drawn as "Other operating expenses". Same economics as a normal filing;
+ *  only the numbering differs. */
+const COMPRESSED: PlRow[] = [
+  row("I.", 1_000, "Kâr Payı Gelirleri"),
+  row("II.", 600, "Kâr Payı Giderleri (-)"),
+  row("III.", 400, "Net Kâr Payı Geliri"),
+  row("IV.", 120, "Net Ücret ve Komisyon Gelirleri"),
+  row("V.", 10, "Temettü Gelirleri"),
+  row("VI.", 50, "Ticari Kâr/Zarar (Net)"),
+  row("VII.", 70, "Diğer Faaliyet Gelirleri"),
+  row("VIII.", 650, "Faaliyet Brüt Kârı"),
+  row("IX.", 100, "Beklenen Zarar Karşılıkları (-)"),
+  row("X.", 130, "Personel Giderleri (-)"),
+  row("XI.", 170, "Diğer Faaliyet Giderleri (-)"),
+  row("XII.", 250, "Net Faaliyet Kârı"),
+  row("XV.", -25, "Net Parasal Pozisyon Kârı/(Zararı)"),
+  row("XVI.", 225, "Vergi Öncesi Kâr"),
+  row("XVII.", 45, "Vergi Karşılığı (±)"),
+  row("XVIII.", 180, "Sürdürülen Faaliyetler Dönem Net Kârı"),
+  row("XXIV.", 180, "Dönem Net Kâr/Zararı"),
+];
+
+const COMPRESSED_ROLES = {
+  gross: "VIII.", opex_personnel: "X.", opex_other: "XI.", net_op: "XII.",
+  pretax: "XVI.", tax: "XVII.", cont_net: "XVIII.", period_net: "XXIV.",
+} as const;
+
+describe("buildWaterfall — compressed template", () => {
+  it("reconciles when the filer's own roles are supplied", () => {
+    const w = buildWaterfall(COMPRESSED, COMPRESSED_ROLES);
+    expect(w.renderable, `notes: ${w.notes.join(" | ")}`).toBe(true);
+  });
+
+  it("never renders net operating PROFIT as an expense", () => {
+    const w = buildWaterfall(COMPRESSED, COMPRESSED_ROLES);
+    const opex = w.steps.find((s) => s.id === "other_opex");
+    // XI. (170) is the real other-opex here; XII. (250) is the operating RESULT.
+    expect(opex, "no other-opex step at all").toBeDefined();
+    expect(Math.abs(opex!.delta), "the operating result was drawn as opex").toBe(170);
+    const netOp = w.steps.find((s) => s.id === "net_op");
+    expect(netOp?.reported).toBe(250);
+  });
+
+  it("REGRESSION: the same filing read against standard ordinals is wrong", () => {
+    const w = buildWaterfall(COMPRESSED); // no roles → standard ordinals
+    const opex = w.steps.find((s) => s.id === "other_opex");
+    const drawnAsExpense = opex != null && Math.abs(opex.delta) === 250;
+    expect(
+      drawnAsExpense || !w.renderable,
+      "standard ordinals happened to read this filing correctly — if the " +
+        "template changed, update this test; do not drop the role map",
+    ).toBe(true);
+  });
+
+  it("a standard filing is unaffected by the new parameter", () => {
+    const a = buildWaterfall(AKBNK_2026Q1);
+    const b = buildWaterfall(AKBNK_2026Q1, {
+      gross: "VIII.", opex_personnel: "XI.", opex_other: "XII.", net_op: "XIII.",
+      pretax: "XVII.", tax: "XVIII.", cont_net: "XIX.", period_net: "XXV.",
+    });
+    expect(a.renderable).toBe(true);
+    expect(b.renderable).toBe(true);
+    expect(b.steps.length).toBe(a.steps.length);
+  });
+});

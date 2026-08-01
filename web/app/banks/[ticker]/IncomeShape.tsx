@@ -254,9 +254,14 @@ const TABS: Array<{ id: Tab; title: string; sub: string }> = [
 
 export default function IncomeShape({
   rowsByPeriod,
+  rolesByPeriod,
   periods,
 }: {
   rowsByPeriod: Record<string, PlRow[]>;
+  /** `bank_audit_pl_roles` per period — which row IS each subtotal under this
+   *  filer's own roman numbering. Empty for a period the roles table has not
+   *  been built for; the builders then fall back to the standard ordinals. */
+  rolesByPeriod?: Record<string, Record<string, string>>;
   /** Display order, latest first — matches the table columns. */
   periods: string[];
 }) {
@@ -265,7 +270,8 @@ export default function IncomeShape({
   const active = periods.includes(period) ? period : periods[0];
   const rows = useMemo(() => rowsByPeriod[active] ?? [], [rowsByPeriod, active]);
 
-  const waterfall = useMemo(() => buildWaterfall(rows), [rows]);
+  const roles = useMemo(() => rolesByPeriod?.[active], [rolesByPeriod, active]);
+  const waterfall = useMemo(() => buildWaterfall(rows, roles), [rows, roles]);
   const flow = useMemo(() => buildInterestFlow(rows), [rows]);
 
   if (periods.length === 0) return null;

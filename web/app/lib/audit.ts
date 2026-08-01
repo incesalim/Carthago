@@ -565,3 +565,33 @@ export async function bankStagesLatest(
   );
   return results[0] ?? null;
 }
+
+/** `bank_audit_pl_roles` for one bank+kind, as `{period: {role: hierarchy}}`.
+ *
+ *  Consumers must not hardcode BRSA roman ordinals: they are not fixed across
+ *  the corpus. The compressed template DUNYAK and TOMK file puts net-operating
+ *  at XII and period-net at XXIV, not XIII/XXV — so a consumer naming ordinals
+ *  reads the WRONG LINE, and `pl-shape.ts` drew DUNYAK's ₺1.6bn net operating
+ *  profit as "Other operating expenses" for exactly that reason.
+ *
+ *  The resolution itself lives in Python (`validator.pl_roles()`), which has the
+ *  Turkish case fold SQL's ASCII-only UPPER() lacks, and is rebuilt from the
+ *  stored rows beside the validation — so this table cannot drift from the
+ *  filing it describes. Read it; don't re-derive it here. */
+export async function plRolesByPeriod(
+  ticker: string,
+  kind: "consolidated" | "unconsolidated",
+  periods: string[],
+): Promise<Record<string, Record<string, string>>> {
+  if (periods.length === 0) return {};
+  const placeholders = periods.map(() => "?").join(",");
+  const rows = await cachedAll<{ period: string; hierarchy: string; role: string }>(
+    `SELECT period, hierarchy, role
+       FROM bank_audit_pl_roles
+      WHERE bank_ticker = ? AND kind = ? AND period IN (${placeholders})`,
+    [ticker, kind, ...periods],
+  );
+  const out: Record<string, Record<string, string>> = {};
+  for (const r of rows) (out[r.period] ??= {})[r.role] = r.hierarchy;
+  return out;
+}

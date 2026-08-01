@@ -34,7 +34,15 @@
  * is `conv × stored`: positive = a real expense, negative = a credit that adds back.
  */
 import type { PlRow } from "./audit";
-import { indexRows, type LineIndex } from "./pl-sankey";
+import {
+  indexRows,
+  plLineBands,
+  belowLineItems,
+  roleCode,
+  type LineIndex,
+  type PlRole,
+  type PlRoleMap,
+} from "./pl-sankey";
 
 // ---------------------------------------------------------------------------
 // Shared
@@ -87,8 +95,15 @@ const EMPTY_WATERFALL = (note: string): Waterfall => ({
   lead: null,
 });
 
-export function buildWaterfall(rows: PlRow[]): Waterfall {
+export function buildWaterfall(rows: PlRow[], roles?: PlRoleMap): Waterfall {
   const ix = indexRows(rows);
+  // Resolve the subtotals against THIS filer's numbering. Without it, a bank on
+  // the compressed template (DUNYAK, TOMK — participation banks) had its NET
+  // OPERATING PROFIT read out of XII. and drawn as "Other operating expenses",
+  // because on the standard template XII. is other-opex. That is the shipped
+  // defect this parameter exists to close, and it lands hardest here: nobody
+  // else publishes these filers, so a reader has no second source to catch it.
+  const at = (role: PlRole): number | null => ix.get(roleCode(roles, role));
   const notes: string[] = [];
   const conv = dedSign(ix);
   /** Amount to SUBTRACT for a deduction line: >0 a real expense, <0 a reversal. */
@@ -112,9 +127,11 @@ export function buildWaterfall(rows: PlRow[]): Waterfall {
       "Interest income / expense not filed for this period — the waterfall is built on the interest block.",
     );
   }
-  const netProfit = ix.get("XXV.") ?? ix.get("XIX.");
+  const netProfit = at("period_net") ?? at("cont_net");
   if (netProfit == null) {
-    return EMPTY_WATERFALL("Net period profit (XXV.) missing for this period — nothing to build to.");
+    return EMPTY_WATERFALL(
+      `Net period profit (${roleCode(roles, "period_net")}) missing for this period — nothing to build to.`,
+    );
   }
 
   const noise = noiseFloor(income);
@@ -153,38 +170,48 @@ export function buildWaterfall(rows: PlRow[]): Waterfall {
   optional("dividend", "Dividend income", ix.get("V."));
   optional("trading", "Net trading income", ix.get("VI."));
   optional("other_income", "Other operating income", ix.get("VII."));
-  subtotal("gross_op", "Gross operating profit", ix.get("VIII."));
+  subtotal("gross_op", "Gross operating profit", at("gross"));
 
-  optional("ecl", "Expected credit losses", ix.get("IX.") == null ? null : -ded("IX."));
-  optional("other_prov", "Other provisions", ix.get("X.") == null ? null : -ded("X."));
-  optional("personnel", "Personnel expenses", ix.get("XI.") == null ? null : -ded("XI."));
-  optional("other_opex", "Other operating expenses", ix.get("XII.") == null ? null : -ded("XII."));
-  subtotal("net_op", "Net operating profit", ix.get("XIII."));
+  // Provisions band = gross → net_op, minus the two opex roles. Derived, not
+  // named: on the compressed template X. is PERSONNEL, and naming it as "other
+  // provisions" double-counted it.
+  const { deductionBand } = plLineBands(rows, roles);
+  const eclCode = deductionBand[0];
+  if (eclCode) optional("ecl", "Expected credit losses", -ded(eclCode));
+  for (const h of deductionBand.slice(1)) optional(`prov_${h}`, "Other provisions", -ded(h));
+  const persCode = roleCode(roles, "opex_personnel");
+  const otherCode = roleCode(roles, "opex_other");
+  optional("personnel", "Personnel expenses", ix.get(persCode) == null ? null : -ded(persCode));
+  optional("other_opex", "Other operating expenses", ix.get(otherCode) == null ? null : -ded(otherCode));
+  subtotal("net_op", "Net operating profit", at("net_op"));
 
-  optional("merger", "Merger surplus", ix.get("XIV."));
-  optional("equity_method", "Equity-method subsidiaries", ix.get("XV."));
-  optional("monetary", "Net monetary position", ix.get("XVI."));
-  const pretaxFiled = ix.get("XVII.");
+  const bl = belowLineItems(rows, roles, ix);
+  optional("merger", "Merger surplus", bl.merger || null);
+  optional("equity_method", "Equity-method subsidiaries", bl.equityMethod || null);
+  optional("monetary", "Net monetary position", bl.monetary || null);
+  const pretaxFiled = at("pretax");
   subtotal("pretax", "Pre-tax profit", pretaxFiled);
   const pretax = pretaxFiled ?? run;
 
   // Tax from the unambiguous subtotals (XVII − XIX); the filed XVIII. line is
   // sign-ambiguous across the two storage conventions, so it's only a fallback.
-  const netContFiled = ix.get("XIX.");
-  const taxFiled = ix.get("XVIII.");
+  const netContFiled = at("cont_net");
+  const taxFiled = at("tax");
   let tax: number;
   if (pretaxFiled != null && netContFiled != null) {
     tax = pretaxFiled - netContFiled;
   } else if (taxFiled != null) {
     tax = Math.abs(taxFiled);
-    notes.push("Tax derived from |XVIII.| — the pre-tax or continuing-operations subtotal is missing.");
+    notes.push(
+      `Tax derived from |${roleCode(roles, "tax")}| — the pre-tax or continuing-operations subtotal is missing.`,
+    );
   } else {
     tax = pretax - netProfit;
     notes.push("Tax derived as pre-tax profit − net profit — the tax line is missing from the extraction.");
   }
   if (tax !== 0) step("tax", tax >= 0 ? "Tax" : "Tax credit", -tax, tax >= 0 ? "out" : "in");
 
-  const disc = netContFiled != null && ix.get("XXV.") != null ? netProfit - netContFiled : 0;
+  const disc = netContFiled != null && at("period_net") != null ? netProfit - netContFiled : 0;
   optional("disc_ops", "Discontinued operations", disc);
 
   if (Math.abs(run - netProfit) > noise) {
