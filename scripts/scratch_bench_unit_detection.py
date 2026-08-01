@@ -30,6 +30,7 @@ import argparse
 import io
 import json
 import os
+import random
 import re
 import sys
 import time
@@ -308,6 +309,70 @@ def front_text(pdf_bytes: bytes) -> list[str]:
         doc.close()
 
 
+def load_random_corpus(n: int, seed: int, workers: int = 12) -> list[dict]:
+    """A random sample of everything in R2, across the whole 2022Q1-> history.
+
+    The fixed 6-bank/2026 corpus proves the detector on the two quarters it was
+    written against, which is exactly the sample that cannot tell you whether it
+    GENERALISES. This draws from every bank and every period we hold, so an
+    unusual phrasing in some 2023 filing gets a chance to show up.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+
+    every = r2_storage.list_audit_pdfs()
+    rnd = random.Random(seed)
+    pick = rnd.sample(every, min(n, len(every)))
+    print(f"R2 holds {len(every)} audit PDFs; sampling {len(pick)} (seed={seed})")
+
+    def fetch(rec: tuple[str, str, str, str]) -> dict | None:
+        ticker, period, kind, key = rec
+        dest = Path("data/_bench") / f"{ticker}_{period}_{kind}.pdf"
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            if not dest.exists():
+                r2_storage.download_to(key, dest)
+            pages = front_text(dest.read_bytes())
+        except Exception as e:  # noqa: BLE001 — a bad PDF is a result, not a crash
+            return {"bank": ticker, "period": period, "kind": kind,
+                    "text": "", "truth": f"READ_ERROR:{type(e).__name__}"}
+        return {"bank": ticker, "period": period, "kind": kind,
+                "text": "\n\n".join(pages), "truth": regex_unit(pages)}
+
+    with ThreadPoolExecutor(max_workers=workers) as ex:
+        out = [r for r in ex.map(fetch, pick) if r]
+    return out
+
+
+def report_regex(corpus: list[dict]) -> list[dict]:
+    """Distribution of the deterministic detector over a historical sample."""
+    by_period: dict[str, dict[str, int]] = {}
+    for item in corpus:
+        by_period.setdefault(item["period"], {})
+        d = by_period[item["period"]]
+        d[item["truth"]] = d.get(item["truth"], 0) + 1
+
+    print(f"\n{'period':9s} {'THOUSAND':>9s} {'MILLION':>8s} {'UNKNOWN':>8s} {'other':>7s}")
+    print("-" * 46)
+    for period in sorted(by_period):
+        d = by_period[period]
+        other = sum(v for k, v in d.items()
+                    if k not in ("THOUSAND", "MILLION", "UNKNOWN"))
+        print(f"{period:9s} {d.get('THOUSAND', 0):9d} {d.get('MILLION', 0):8d} "
+              f"{d.get('UNKNOWN', 0):8d} {other:7d}")
+
+    odd = [c for c in corpus if c["truth"] not in ("THOUSAND", "MILLION")]
+    # A pre-2026Q2 MILLION would be genuinely surprising and worth a look.
+    early_million = [c for c in corpus
+                     if c["truth"] == "MILLION" and c["period"] < "2026Q2"]
+    print(f"\n  not-a-clean-unit: {len(odd)}")
+    for c in odd:
+        print(f"    {c['bank']:8s} {c['period']} {c['kind'][:5]:5s} -> {c['truth']}")
+    print(f"  MILLION before 2026Q2: {len(early_million)}")
+    for c in early_million:
+        print(f"    {c['bank']:8s} {c['period']} {c['kind'][:5]:5s}")
+    return odd
+
+
 def load_corpus() -> list[dict]:
     """Every filing we hold, with the deterministic answer attached."""
     out = []
@@ -415,6 +480,13 @@ def main() -> int:
     ap.add_argument("--baseline-only", action="store_true", help="run the regex only — spends nothing")
     ap.add_argument("--variants", default="",
                     help=f"comma-separated variants to sweep: {','.join(VARIANTS)}")
+    ap.add_argument("--sample", type=int, default=0,
+                    help="random-sample N filings from ALL of R2 history instead "
+                         "of the fixed 2026 corpus")
+    ap.add_argument("--seed", type=int, default=1729, help="sampling seed")
+    ap.add_argument("--llm-check", type=int, default=0,
+                    help="with --sample: also LLM-check this many filings "
+                         "(all oddities first, then a random slice of the rest)")
     args = ap.parse_args()
 
     key = os.environ.get("OPEN_ROUTER_API") or os.environ.get("OPENROUTER_API_KEY")
@@ -430,6 +502,40 @@ def main() -> int:
     if model:
         print(f"model: {model}" + (f"  provider={args.provider}" if args.provider else ""))
     print(f"corpus: {len(BANKS)} banks x {PERIODS} x {KINDS}\n")
+
+    if args.sample:
+        corpus = load_random_corpus(args.sample, args.seed)
+        odd = report_regex(corpus)
+
+        if args.llm_check and not args.baseline_only:
+            # Every oddity gets checked, because those are the cases where the
+            # regex is admitting it has nothing — the exact branch an LLM was
+            # proposed for. The rest of the budget goes to a random slice, to
+            # catch a filing the regex reads CONFIDENTLY and wrongly.
+            rest = [c for c in corpus if c not in odd]
+            rnd = random.Random(args.seed + 1)
+            check = odd + rnd.sample(rest, min(max(0, args.llm_check - len(odd)),
+                                               len(rest)))
+            cfg = VARIANTS["v10_enum_only"]  # the configuration that won round 2
+            print(f"\n== LLM cross-check on {len(check)} filings "
+                  f"({len(odd)} oddities + {len(check) - len(odd)} random) ==")
+            agree = 0
+            for item in check:
+                if DELAY:
+                    time.sleep(DELAY)
+                unit, ev, _ = classify(key, model, item["text"], args.provider, cfg)
+                same = unit == item["truth"]
+                agree += same
+                flag = "" if same else "   <-- DIFFERS"
+                print(f"  {item['bank']:8s} {item['period']} {item['kind'][:5]:5s} "
+                      f"regex={item['truth']:14s} llm={unit:10s}{flag}")
+            print(f"\n  agreement: {agree}/{len(check)}")
+
+        Path("bench_unit_detection.json").write_text(
+            json.dumps([{k: v for k, v in c.items() if k != "text"} for c in corpus],
+                       indent=2, ensure_ascii=False), encoding="utf-8")
+        print("\nwrote bench_unit_detection.json")
+        return 0
 
     if args.variants:
         names = [v.strip() for v in args.variants.split(",") if v.strip()]

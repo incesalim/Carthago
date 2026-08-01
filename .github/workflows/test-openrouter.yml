@@ -61,6 +61,19 @@ on:
           Blank runs a single pass on the default settings.
         required: false
         default: ""
+      sample:
+        description: >-
+          unit only — random-sample N filings from ALL of R2 history instead of
+          the fixed 2026 corpus. 0 keeps the fixed corpus. Tests whether the
+          detector generalises beyond the two quarters it was written against.
+        required: false
+        default: "0"
+      llm_check:
+        description: >-
+          unit only, with sample — LLM-check this many sampled filings (every
+          regex oddity first, then a random slice). 0 = regex only, spends nothing.
+        required: false
+        default: "0"
 
 permissions:
   contents: read
@@ -122,6 +135,8 @@ jobs:
           python scripts/scratch_bench_unit_detection.py
           ${{ inputs.model_id != '' && format('--model {0}', inputs.model_id) || '' }}
           ${{ inputs.variants != '' && format('--variants {0}', inputs.variants) || '' }}
+          ${{ inputs.sample != '0' && format('--sample {0}', inputs.sample) || '' }}
+          ${{ inputs.llm_check != '0' && format('--llm-check {0}', inputs.llm_check) || '' }}
 
       - name: Upload bench result
         if: inputs.task == 'unit'
