@@ -51,6 +51,8 @@ BANKS = ["AKBNK", "GARAN", "YKBNK", "KLNMA", "ENPARA", "TEB"]
 PERIODS = ["2026Q1", "2026Q2"]
 KINDS = ["unconsolidated", "consolidated"]
 
+DELAY = float(os.environ.get("BENCH_DELAY", "0"))
+
 FRONT_PAGES = 8  # the declaration sits on p3-p5 in every filing seen so far
 CHARS_PER_PAGE = 2200
 
@@ -130,6 +132,8 @@ VARIANTS: dict[str, dict] = {
     # stable rather than a lucky seed.
     "v6_schema_effort": {"schema": True, "effort": "none"},
     "v7_effort_repeat": {"effort": "none"},
+    "v8_effort_rep2":   {"effort": "none"},
+    "v9_effort_rep3":   {"effort": "none"},
 }
 
 
@@ -316,6 +320,11 @@ def sweep(key: str, model: str, names: list[str], provider: str) -> int:
         tin = tout = 0
         lat: list[float] = []
         for item in corpus:
+            # Free NVIDIA endpoints answer "ResourceExhausted" under load, which
+            # would otherwise be scored as a model failure. Space the calls so
+            # run-to-run variance measures the MODEL, not the rate limiter.
+            if DELAY:
+                time.sleep(DELAY)
             t0 = time.time()
             unit, ev, usage = classify(key, model, item["text"], provider, cfg)
             dt = time.time() - t0

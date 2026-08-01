@@ -112,6 +112,9 @@ jobs:
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          # Free NVIDIA endpoints return ResourceExhausted under load, which a
+          # sweep would otherwise score as the model being wrong.
+          BENCH_DELAY: "2"
         # `provider` is deliberately NOT forwarded: its default (Baidu) is the
         # regulation task's pinned upstream and would not serve the model this
         # bench picks. Unpinned routing is right for a one-off classification.
