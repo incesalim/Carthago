@@ -110,8 +110,15 @@ declare `bin`. TEB was the first filer, not an outlier. Local extraction of the
 six banks confirms both the failure (raw figures ~950× small against their own
 Q1) and the fix (×1000 puts QoQ growth at +5% to +9.8%).
 
-**Unit detection is solved deterministically — 22/22, free, offline.** A single
-regex over the front pages reads the declaration in both Turkish and English.
+**Unit detection is solved deterministically — clean on 550 sampled filings,
+free, offline.** A single regex reads the declaration in both Turkish and
+English. **⚠️ Scan at least 22 pages, untruncated.** The first version looked at
+8 and scored 22/22 — on the 2026Q1/Q2 corpus it was written against. A random
+draw across all 1,061 audit PDFs in R2 then returned `UNKNOWN` on 18/200, **15 of
+them Q4**: annual reports carry a full audit opinion rather than a limited review,
+so the declaration sits on p7–p17. The pattern was right; the window was fitted
+to its own sample. Widened, two draws (200 and 350, 2022Q1–2026Q2, every bank)
+come back clean — and confirm **no filing before 2026Q2 ever used millions**.
 An LLM arm was benched against it on the same 22 filings and lost: DeepSeek
 v4-flash 19/22, Nemotron-3-super free 16/22, and *not one* miss was a
 comprehension failure — both models quoted the correct phrase and then fumbled
