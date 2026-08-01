@@ -88,7 +88,9 @@ SYSTEM = (
     "'unless stated otherwise, presented in thousands of Turkish Lira').\n"
     "Answer with STRICT JSON and nothing else:\n"
     '  {"unit": "THOUSAND"|"MILLION"|"BILLION"|"UNKNOWN", "evidence": "<the '
-    'exact phrase you read it from, verbatim, max 120 chars>"}\n'
+    'exact phrase you read it from, verbatim, max 60 chars>"}\n'
+    "Answer immediately. Do not reason at length — the answer is a phrase you "
+    "either find in the text or do not.\n"
     "Use UNKNOWN if the text does not state it. Never guess from the size of any "
     "number, and never report a number."
 )
@@ -160,7 +162,12 @@ def classify(key: str, model: str, text: str, provider: str = "") -> tuple[str, 
             {"role": "user", "content": text},
         ],
         "temperature": 0,
-        "max_tokens": 200,
+        # Generous, because reasoning models bill and BUDGET their thinking as
+        # output: at max_tokens=200 deepseek-v4-flash spent the whole allowance
+        # reasoning and the JSON came back truncated mid-string, which scored as
+        # a wrong answer when it was a harness bug. finish_reason is surfaced
+        # below so a future truncation is never mistaken for a bad model again.
+        "max_tokens": 1200,
         "response_format": {"type": "json_object"},
     }
     if provider:
@@ -171,14 +178,19 @@ def classify(key: str, model: str, text: str, provider: str = "") -> tuple[str, 
     if r.status_code != 200:
         return "HTTP_ERROR", f"{r.status_code}: {r.text[:160]}", {}
     d = r.json()
-    content = (d["choices"][0]["message"]["content"] or "").strip()
-    usage = d.get("usage") or {}
+    choice = d["choices"][0]
+    content = (choice["message"]["content"] or "").strip()
+    usage = dict(d.get("usage") or {})
+    usage["finish_reason"] = choice.get("finish_reason")
     try:
         parsed = json.loads(content)
         unit = str(parsed.get("unit", "")).upper()
         ev = str(parsed.get("evidence", ""))[:120]
     except (json.JSONDecodeError, AttributeError):
-        return "UNPARSEABLE", content[:120], usage
+        # Distinguish "ran out of room" from "returned nonsense" — they mean
+        # very different things about the model.
+        why = "TRUNCATED" if choice.get("finish_reason") == "length" else "UNPARSEABLE"
+        return why, content[:120], usage
     return (unit if unit in VALID else f"INVALID:{unit}"), ev, usage
 
 
