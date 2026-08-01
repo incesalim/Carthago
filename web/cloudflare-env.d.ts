@@ -33,6 +33,12 @@ interface CloudflareEnv {
   CEREBRAS_API_KEY?: string;
   GROQ_API_KEY?: string;
   GROQ_API_TOKEN?: string;
+  // OpenRouter — the bot's primary provider since 2026-08-01
+  // (nvidia/nemotron-3-super-120b-a12b:free). Same key name as the Actions
+  // secret, but it must be set on the WORKER separately: `wrangler secret
+  // put OPEN_ROUTER_API`. Absent -> the chain starts at Groq instead.
+  OPEN_ROUTER_API?: string;
+  OPENROUTER_API_KEY?: string;
   // Optional usage-cap overrides (defaults: 20 per chat, 300 global, per UTC day).
   BOT_PER_CHAT_DAILY?: string;
   BOT_GLOBAL_DAILY?: string;

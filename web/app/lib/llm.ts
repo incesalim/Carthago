@@ -2,16 +2,36 @@
  * Free OpenAI-compatible chat client for the Cloudflare Worker (Telegram bot).
  *
  * Provider chain (see PROVIDERS below):
- *   Groq openai/gpt-oss-120b  →  Cerebras gpt-oss-120b  →  Cerebras gemma-4-31b
+ *   OpenRouter nvidia/nemotron-3-super-120b-a12b:free
+ *     →  Groq openai/gpt-oss-120b
+ *     →  Cerebras gpt-oss-120b
+ *     →  Cerebras gemma-4-31b
  *
- * Groq-first INTENTIONALLY diverges from the Python headline lane
+ * Nemotron-first since 2026-08-01. It is a 120B MoE with ~12B active, so it is
+ * the like-for-like replacement for gpt-oss-120b rather than a step down, and
+ * the active-parameter count is what keeps it viable for THIS caller: the agent
+ * loop makes several calls per question, which is the same reason Groq sits
+ * ahead of Cerebras below.
+ *
+ * The rest of the chain is kept, deliberately. This is a public bot; a free
+ * endpoint that rate-limits or 5xxs should degrade to the previous model rather
+ * than tell a user the bot is unavailable. Nothing about the fallback order
+ * changed.
+ *
+ * Groq-before-Cerebras INTENTIONALLY diverges from the Python headline lane
  * (src/news/free_llm.py), which is Cerebras-first and falls back to a
- * deterministic template. That lane makes one call per run; the agent loop here
- * makes several per question, so it needs the higher free-tier rate limit.
- * Don't "resync" the two chains.
+ * deterministic template. That lane makes one call per run. Don't "resync" the
+ * two chains.
  *
  * Keys (set with `wrangler secret put` — see docs/TELEGRAM_BOT.md):
- *   GROQ_API_KEY (or GROQ_API_TOKEN), CEREBRAS_KEY (or CEREBRAS_API_KEY).
+ *   OPEN_ROUTER_API (or OPENROUTER_API_KEY), GROQ_API_KEY (or GROQ_API_TOKEN),
+ *   CEREBRAS_KEY (or CEREBRAS_API_KEY).
+ *
+ * ⚠️ A GitHub Actions secret is NOT a Worker secret. `OPEN_ROUTER_API` already
+ * exists in Actions (used by summarize-regulations.yml), and the Worker cannot
+ * see it. Until `wrangler secret put OPEN_ROUTER_API` is run against the Worker,
+ * `keyFor` finds nothing for this provider and the chain simply starts at Groq —
+ * the bot keeps working, it just isn't on Nemotron yet.
  */
 import type { StringEnv } from "./cf-env";
 
@@ -25,13 +45,28 @@ interface Provider {
   base: string;
   model: string;
   keys: string[];
+  /** Extra request headers this provider wants (OpenRouter's attribution). */
+  headers?: Record<string, string>;
 }
 
 // Ordered fallback chain. Each is OpenAI-compatible (`/chat/completions`).
-// Groq first: same gpt-oss-120b model as Cerebras but a much higher free-tier
-// rate limit (Cerebras is ~5 req/min), which matters because the agent loop
-// makes several calls per question. Falls back to Cerebras, then gemma.
+// Nemotron first (see the header); then Groq, whose free-tier rate limit is much
+// higher than Cerebras's ~5 req/min — which matters because the agent loop makes
+// several calls per question. Falls back to Cerebras, then gemma.
 const PROVIDERS: Provider[] = [
+  {
+    name: "openrouter/nemotron-3-super-120b",
+    base: "https://openrouter.ai/api/v1",
+    // Pinned to the `:free` variant on purpose. The paid twin
+    // (nvidia/nemotron-3-super-120b-a12b) is a different id and WOULD BILL;
+    // dropping the suffix is the one-character mistake that turns this lane
+    // from free to metered without any other visible change.
+    model: "nvidia/nemotron-3-super-120b-a12b:free",
+    keys: ["OPEN_ROUTER_API", "OPENROUTER_API_KEY"],
+    // OpenRouter attributes usage to a referring app. Same pair the Python
+    // lanes send (scripts/scratch_test_openrouter.py, summarize_regulations.py).
+    headers: { "HTTP-Referer": "https://carthago.app", "X-Title": "carthago" },
+  },
   {
     name: "groq/openai/gpt-oss-120b",
     base: "https://api.groq.com/openai/v1",
@@ -100,6 +135,7 @@ async function callProvider(
       headers: {
         Authorization: `Bearer ${key}`,
         "Content-Type": "application/json",
+        ...p.headers,
       },
       body: JSON.stringify({
         model: p.model,

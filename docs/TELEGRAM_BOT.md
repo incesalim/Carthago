@@ -44,7 +44,7 @@ Files:
 | Agent loop | `web/app/lib/bot.ts` (`runAgent`) |
 | SQL gate + helpers | `web/app/lib/bot-sql.ts` (+ `bot-sql.test.ts`) |
 | Agent system prompt | `web/app/lib/bot-schema.ts` (`AGENT_SYSTEM`, wrapping `SCHEMA_PROMPT`) |
-| LLM client (Groq→Cerebras) | `web/app/lib/llm.ts` |
+| LLM client (OpenRouter→Groq→Cerebras) | `web/app/lib/llm.ts` |
 | Env accessor | `web/app/lib/cf-env.ts` |
 | Telegram API helpers | `web/app/lib/telegram.ts` |
 | Test harness (no Telegram) | `web/app/api/admin/bot-ask/route.ts` |
@@ -76,10 +76,27 @@ requires the answer be in **the same language as the question**.
 
 ## LLM provider chain
 
-`llm.ts` tries, in order: **Groq `openai/gpt-oss-120b` → Cerebras `gpt-oss-120b` →
-Cerebras `gemma-4-31b`**. Groq is first because it serves the same `gpt-oss-120b`
-model at a much higher free-tier rate limit (Cerebras is ~5 req/min), and the agent
-loop makes several calls per question.
+`llm.ts` tries, in order: **OpenRouter `nvidia/nemotron-3-super-120b-a12b:free` →
+Groq `openai/gpt-oss-120b` → Cerebras `gpt-oss-120b` → Cerebras `gemma-4-31b`**.
+
+Nemotron became the primary on **2026-08-01**. It is a 120B MoE with ~12B active,
+so it replaces `gpt-oss-120b` like for like rather than trading capability away,
+and the low active-parameter count is what keeps it usable here — the agent loop
+makes several calls per question. The rest of the chain is kept on purpose: this
+is a public bot, and a free endpoint that rate-limits or 5xxs should fall back to
+the previous model rather than tell a user it is unavailable. Groq still precedes
+Cerebras because it serves the same `gpt-oss-120b` at a much higher free-tier
+limit (Cerebras is ~5 req/min).
+
+> ⚠️ **The `:free` suffix is load-bearing.** `nvidia/nemotron-3-super-120b-a12b`
+> without it is a different, **billed** model id. Dropping one suffix silently
+> converts this lane from free to metered.
+
+> ⚠️ **An Actions secret is not a Worker secret.** `OPEN_ROUTER_API` has existed as
+> a GitHub Actions secret since 2026-07-05 (used by `summarize-regulations.yml`),
+> and the Worker cannot read it. Until `wrangler secret put OPEN_ROUTER_API` is run
+> against the Worker, this provider is skipped and the chain starts at Groq — the
+> bot keeps working, it just isn't on Nemotron.
 
 > This **intentionally differs** from the Python "The Read" headline lane
 > (`src/news/free_llm.py`), which is Cerebras-first and falls back to a deterministic
@@ -88,7 +105,8 @@ loop makes several calls per question.
 
 A whole-chain failure is retried up to **3 passes** with 2s/4s backoff to ride out
 transient 429s (`chatComplete`, `llm.ts`). Keys are read from Worker secrets:
-`GROQ_API_KEY` (or `GROQ_API_TOKEN`), `CEREBRAS_KEY` (or `CEREBRAS_API_KEY`).
+`OPEN_ROUTER_API` (or `OPENROUTER_API_KEY`), `GROQ_API_KEY` (or `GROQ_API_TOKEN`),
+`CEREBRAS_KEY` (or `CEREBRAS_API_KEY`).
 
 ## One-time setup
 
@@ -108,8 +126,9 @@ You need a bot from [@BotFather](https://t.me/BotFather) (`/newbot` → token).
    cd web
    wrangler secret put TELEGRAM_BOT_TOKEN        # paste the BotFather token
    wrangler secret put TELEGRAM_WEBHOOK_SECRET   # paste the secret from step 1
-   wrangler secret put GROQ_API_KEY              # primary provider
-   wrangler secret put CEREBRAS_KEY              # fallback; reuse the reads-lane key
+   wrangler secret put OPEN_ROUTER_API           # primary provider (Nemotron)
+   wrangler secret put GROQ_API_KEY              # first fallback
+   wrangler secret put CEREBRAS_KEY              # second fallback; reuse the reads-lane key
    ```
 
    Optional caps (defaults 20/chat/day, 300 global/day):

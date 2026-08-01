@@ -756,8 +756,9 @@ degrades gracefully when its key is unset:
 | `CF_ANALYTICS_TOKEN` | `/admin` traffic panel (optional) |
 | `TELEGRAM_BOT_TOKEN` | the Q&A bot's Telegram API calls |
 | `TELEGRAM_WEBHOOK_SECRET` | matched against the `setWebhook` secret_token on every update |
-| `GROQ_API_KEY` (or `GROQ_API_TOKEN`) | the bot's primary LLM provider |
-| `CEREBRAS_KEY` (or `CEREBRAS_API_KEY`) | the bot's fallback LLM provider |
+| `OPEN_ROUTER_API` (or `OPENROUTER_API_KEY`) | **the bot's primary LLM provider since 2026-08-01** — OpenRouter, `nvidia/nemotron-3-super-120b-a12b:free`. ⚠️ The identically-named **Actions** secret does not reach the Worker; set it separately with `wrangler secret put OPEN_ROUTER_API`. While unset the provider is skipped and the chain starts at Groq, so the bot keeps answering — just not on Nemotron. ⚠️ The `:free` suffix in the model id is load-bearing: the paid twin is a different id and would bill |
+| `GROQ_API_KEY` (or `GROQ_API_TOKEN`) | the bot's first fallback LLM provider |
+| `CEREBRAS_KEY` (or `CEREBRAS_API_KEY`) | the bot's second fallback LLM provider |
 | `BOT_PER_CHAT_DAILY` / `BOT_GLOBAL_DAILY` | usage caps (defaults 20/chat, 300 global, per UTC day) |
 | `BOT_TEST_KEY` | enables `GET /api/admin/bot-ask` (the bot test harness); **404s while unset** |
 | `PUBLIC_API_DISABLED` | kill switch for the public `/api/v1` data API — set to `1` and every route 503s, no deploy needed |
