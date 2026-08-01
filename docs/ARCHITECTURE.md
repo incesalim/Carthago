@@ -147,9 +147,13 @@ knows is running:
 | `summarize-regulations.yml` | Sun 06:00 UTC | `summarize_regulations.py` → `regulation_briefings` (weekly Kimi briefing; needs `KIMI_API_TOKEN`) |
 | `generate-reads.yml` | Sun 07:30 UTC | `generate_read_headlines.py` → `read_headlines` (free-LLM rewrite of the one-sentence lead on each T1 tab; number-validated, and shown only while its `det_hash` matches the live page) |
 
-Four more workflows are **manual dispatch only** and exist to load history, not to
-keep it fresh: `backfill-audit.yml`, `backfill-faaliyet.yml`, `backfill-nonbank.yml`
-and `backfill-tefas.yml` (recipes in [OPERATIONS.md](OPERATIONS.md)).
+Five more workflows are **manual dispatch only**. Four exist to load history, not
+to keep it fresh: `backfill-audit.yml`, `backfill-faaliyet.yml`,
+`backfill-nonbank.yml` and `backfill-tefas.yml`. The fifth,
+`repair-loans-zeros.yml`, is a one-time idempotent correction — it re-derives the
+zeros `_save_loans` discarded (falsy `or` chains turned every reported 0 into
+NULL) from the raw responses already on disk. Recipes in
+[OPERATIONS.md](OPERATIONS.md).
 
 ### Audit reports — two workflows, one `bddk-audit` lane
 Standalone audit pipeline on its own DB + snapshot. **Acquisition is automated;

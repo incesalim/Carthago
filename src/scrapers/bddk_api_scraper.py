@@ -242,6 +242,31 @@ class BDDKAPIScraper:
                     return cells[columns[col_name]]
                 return None
 
+            def first_val(*col_names):
+                """First candidate column that is PRESENT — NOT the first truthy one.
+
+                These were `get_val("A") or get_val("B")` chains, and `or` treats a
+                reported 0 as missing. BDDK sends nil as the integer 0 — never null,
+                never empty, never a dash — so every genuine zero fell through to a
+                candidate that does not exist in this table and landed as NULL.
+                Measured over the stored corpus before the fix: `total_tl` and
+                `total_fx` held **zero zeros across every row**, while table 4's
+                `Yp` column alone reports 19,139 of them (and the stored NULL count
+                matched that figure exactly). The four maturity-split columns, which
+                never used an `or` chain, preserved their zeros perfectly — that
+                contrast is what identified this as the cause.
+
+                It matters beyond tidiness: the largest block is the consumer-loan
+                FX column, where zero is not absence but Decree 32 — residents
+                without FX income may not borrow in foreign currency. Storing that
+                as NULL turns a legal prohibition into "we don't know".
+                """
+                for name in col_names:
+                    v = get_val(name)
+                    if v is not None and v != "":
+                        return v
+                return None
+
             try:
                 self.cursor.execute("""
                     INSERT OR REPLACE INTO loans
@@ -254,11 +279,11 @@ class BDDKAPIScraper:
                       is_subtotal,
                       get_val("KisaTp"), get_val("KisaYp"), get_val("KisaToplam"),
                       get_val("OrtaUzunTp"), get_val("OrtaUzunYp"), get_val("OrtaUzunToplam"),
-                      get_val("ToplamTp") or get_val("Tp") or get_val("NakdiKrediTp"),
-                      get_val("ToplamYp") or get_val("Yp") or get_val("NakdiKrediYp"),
-                      get_val("Toplam") or get_val("NakdiKrediToplam") or get_val("ToplamNakdi"),
-                      get_val("Takipteki") or get_val("TakipKrediToplam"),
-                      get_val("GayriNakdi") or get_val("GayriNakdiKrediToplam"),
+                      first_val("ToplamTp", "Tp", "NakdiKrediTp"),
+                      first_val("ToplamYp", "Yp", "NakdiKrediYp"),
+                      first_val("Toplam", "NakdiKrediToplam", "ToplamNakdi"),
+                      first_val("Takipteki", "TakipKrediToplam"),
+                      first_val("GayriNakdi", "GayriNakdiKrediToplam"),
                       get_val("NetMusteri")))
                 count += 1
             except Exception as e:

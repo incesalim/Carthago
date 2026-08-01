@@ -1,0 +1,128 @@
+name: Repair loans zeros
+
+# One-time (re-runnable, idempotent) repair of the `loans` table.
+#
+# `_save_loans` selected values with `get_val("A") or get_val("B") or ...`, and
+# `or` is falsy-based — so a genuine reported 0 fell through to a column absent
+# from that table and stored NULL. BDDK sends nil as the integer 0 (never null,
+# never empty, never a dash), so every real zero in five columns was lost. The
+# scraper was fixed on 2026-08-01; this repairs the history from the raw
+# responses we kept verbatim in `raw_api_responses`, so nothing is re-fetched.
+#
+# Measured over the snapshot: ~44k cells across ~30k rows, the largest block
+# being consumer-loan FX — where zero is Decree 32 (residents without FX income
+# may not borrow in foreign currency), not absence.
+#
+# Idempotent: it only ever fills a NULL with the value the raw response reports,
+# and a second run finds nothing left to do. It refuses to overwrite a non-NULL
+# figure that disagrees with the raw JSON — that would be a different defect and
+# is reported instead.
+#
+# WRITE BUDGET: the script bumps `downloaded_at` on corrected rows ONLY, so the
+# incremental push below carries exactly those rows. Do NOT widen `--hours` into
+# a full-table push — that re-stamps ~100k unchanged rows for nothing.
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Report what would change without writing (recommended first)"
+        type: boolean
+        required: false
+        default: true
+
+permissions:
+  contents: read
+
+# Hold the shared pipeline group: the crons must not race this on the R2
+# snapshot. (They are frozen as of 2026-08-01, but the guard is the point.)
+concurrency:
+  group: bddk-pipeline
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      PYTHONIOENCODING: utf-8
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Setup Node (for wrangler)
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+
+      - name: Fetch SQLite snapshot from R2 + decompress
+        run: |
+          python - <<'PY'
+          import gzip, shutil, pathlib, sys
+          from src.audit_reports import r2_storage
+          gz  = pathlib.Path("data/bddk_data.db.gz")
+          db  = pathlib.Path("data/bddk_data.db")
+          gz.parent.mkdir(parents=True, exist_ok=True)
+          if not r2_storage.exists("state/bddk_data.db.gz"):
+              sys.exit("No snapshot in R2 — nothing to repair.")
+          size = r2_storage.download_to("state/bddk_data.db.gz", gz)
+          print(f"Pulled state/bddk_data.db.gz from R2 ({size/1e6:.1f} MB)")
+          with gzip.open(gz, "rb") as s, open(db, "wb") as d:
+              shutil.copyfileobj(s, d)
+          print(f"Decompressed to {db.stat().st_size/1e6:.1f} MB")
+          PY
+
+      - name: Repair (dry run)
+        if: ${{ inputs.dry_run }}
+        run: python scripts/repair_loans_zeros.py
+
+      - name: Repair (apply)
+        if: ${{ !inputs.dry_run }}
+        run: python scripts/repair_loans_zeros.py --apply
+
+      # Everything below is skipped on a dry run: nothing changed, so pushing
+      # and re-uploading would only burn writes and churn the snapshot.
+      - name: Push corrected loans rows to Cloudflare D1
+        if: ${{ !inputs.dry_run }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        # 2h window: the repair stamped `downloaded_at` on exactly the rows it
+        # changed, minutes ago. Scoped to `loans` so nothing else moves.
+        run: python scripts/push_to_d1.py --hours 2 --only-tables loans
+
+      - name: VACUUM + gzip snapshot
+        if: ${{ !inputs.dry_run }}
+        run: |
+          python - <<'PY'
+          import gzip, shutil, sqlite3, pathlib
+          db = pathlib.Path("data/bddk_data.db")
+          gz = pathlib.Path("data/bddk_data.db.gz")
+          c = sqlite3.connect(db); c.execute("VACUUM"); c.close()
+          with open(db, "rb") as s, gzip.open(gz, "wb", compresslevel=9) as d:
+              shutil.copyfileobj(s, d)
+          print(f"{gz.name}: {gz.stat().st_size/1e6:.1f} MB")
+          PY
+
+      # Without this the next pull re-introduces the NULLs and the D1 push is
+      # silently undone the next time anything writes the snapshot.
+      - name: Upload new SQLite snapshot back to R2
+        if: ${{ !inputs.dry_run }}
+        run: |
+          python - <<'PY'
+          from src.audit_reports import r2_storage
+          import pathlib
+          gz = pathlib.Path("data/bddk_data.db.gz")
+          size = r2_storage.upload_file(gz, "state/bddk_data.db.gz")
+          print(f"Uploaded {size/1e6:.1f} MB to R2 state/bddk_data.db.gz")
+          PY
