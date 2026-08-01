@@ -261,8 +261,35 @@ def score(truth: list[dict], got: list[dict]) -> dict:
     total_ok = bool(gt) and all(
         int(tt.get(f) or 0) == int(gt.get(f) or 0) for f in ("tl", "fc", "total"))
 
+    pos = score_positional(truth, got)
     return {"truth_rows": len(truth), "got_rows": len(got), "matched": matched,
-            "exact": exact, "total_row_ok": total_ok, "wrong": wrong}
+            "exact": exact, "total_row_ok": total_ok, "wrong": wrong, **pos}
+
+
+def score_positional(truth: list[dict], got: list[dict]) -> dict:
+    """Score the AMOUNTS by position, ignoring the labels entirely.
+
+    Name matching understates this model badly: it reads 68.752.573 correctly
+    and then writes the label as 'ALİNAN KREĞLER' or 'PARA PIYASAİLARİNA
+    BORŞLAR' — the Turkish diacritics are mangled and a header row shifts
+    everything by one. Since the BRSA chart of accounts is uniform and prints
+    every line in a fixed order, position against the known template is how the
+    deterministic extractor aligns rows too. This measures the only thing the
+    model would actually be asked to supply: the digits.
+
+    Tries small offsets and reports the best, so one spurious header row does
+    not read as total failure.
+    """
+    best = {"pos_exact": 0, "pos_offset": 0, "pos_n": len(truth)}
+    for off in range(0, 4):
+        window = got[off:off + len(truth)]
+        ex = sum(
+            1 for t, g in zip(truth, window)
+            if all(int(t.get(f) or 0) == int(g.get(f) or 0)
+                   for f in ("tl", "fc", "total")))
+        if ex > best["pos_exact"]:
+            best = {"pos_exact": ex, "pos_offset": off, "pos_n": len(truth)}
+    return best
 
 
 def main() -> int:
@@ -314,7 +341,9 @@ def main() -> int:
         pct = 100.0 * sc["exact"] / max(1, sc["truth_rows"])
         print(f"  {tag}: p{page} (imgs={meta['images']} text={meta['textlen']}) "
               f"rows {sc['got_rows']}/{sc['truth_rows']} matched={sc['matched']} "
-              f"exact={sc['exact']} ({pct:.0f}%) total_row={'OK' if sc['total_row_ok'] else 'WRONG'}")
+              f"exact={sc['exact']} ({pct:.0f}%) total_row={'OK' if sc['total_row_ok'] else 'WRONG'}"
+              f" | BY POSITION {sc['pos_exact']}/{sc['pos_n']} "
+              f"({100.0 * sc['pos_exact'] / max(1, sc['pos_n']):.0f}%, offset {sc['pos_offset']})")
         for w in sc["wrong"]:
             print(f"        {w}")
         # Keep the model's own rows: a matched=0 with rows returned is the
