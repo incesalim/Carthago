@@ -1,8 +1,9 @@
 # Can an LLM read a filing's reporting unit better than a regex?
 
 **Date:** 2026-08-01 · **Status:** ANSWERED — a properly tuned Nemotron **ties**
-the regex at 22/22 and never beats it. Keep extraction deterministic; an LLM is
-worth it only on the regex's `UNKNOWN` branch.
+the regex and never beats it. Keep extraction deterministic; an LLM is worth it
+only on the regex's `UNKNOWN` branch. **⚠️ Scan ≥22 pages untruncated** — the
+8-page window used in rounds 1–2 silently missed ~9% of filings, almost all Q4.
 **Evidence:** `scripts/scratch_bench_unit_detection.py` via `test-openrouter.yml`.
 Round 1 — [30715235995](https://github.com/incesalim/Carthago/actions/runs/30715235995)
 (DeepSeek), [30715365345](https://github.com/incesalim/Carthago/actions/runs/30715365345)
@@ -12,6 +13,10 @@ Round 1 — [30715235995](https://github.com/incesalim/Carthago/actions/runs/307
 [30716578444](https://github.com/incesalim/Carthago/actions/runs/30716578444) (isolation),
 [30716838564](https://github.com/incesalim/Carthago/actions/runs/30716838564) (stability),
 [30717074829](https://github.com/incesalim/Carthago/actions/runs/30717074829) (enum-only).
+Round 3, historical sampling —
+[30717601168](https://github.com/incesalim/Carthago/actions/runs/30717601168) (200, 8-page window),
+[30717696258](https://github.com/incesalim/Carthago/actions/runs/30717696258) (200, widened),
+[30717751115](https://github.com/incesalim/Carthago/actions/runs/30717751115) (350 + 40-filing LLM check).
 
 ## The problem this was testing
 
@@ -57,6 +62,10 @@ That is the only shape of this problem that does not collide with AGENTS.md's
 | `deepseek/deepseek-v4-flash-0731` | 19/22 | $0.012 | 6.2s median |
 | `nvidia/nemotron-3-super-120b-a12b:free` | 16/22 | $0 | 7.2s median |
 
+> ⚠️ That regex 22/22 is **scored on the sample the detector was built from** and
+> does not survive round 3 — an 8-page window silently returns UNKNOWN on ~9% of
+> the wider corpus. Read the whole document before quoting this table.
+
 ## The finding that matters
 
 **Both models read the filing correctly every single time. Both lose on output
@@ -70,8 +79,8 @@ discipline.** Not one failure was a comprehension failure:
   phrase: …"`). Its visible thinking quotes the correct phrase every time.
 
 So the LLM is not worse at *reading* than the regex. It is worse at *returning*,
-and that is the part a regex cannot get wrong. Against a baseline that is already
-perfect, free and offline, there is nothing left for a model to add here.
+and that is the part a regex cannot get wrong — provided the regex is actually
+looking at the right pages, which round 3 shows it was not.
 
 **⚠️ The first run scored 8/22 and that number was a lie.** `max_tokens: 200`
 starved the reasoning models — they spent the whole allowance thinking and
@@ -144,7 +153,52 @@ YKBNK 2026Q2 while its own evidence read *"expressed in millions of Turkish
 L…"*. A confidently wrong label contradicting its own quote is exactly the
 failure a 1000× scale decision cannot absorb.
 
-## Fine-tuning: available, and not justified here
+## Round 3 — the 22/22 was overfitted to its own sample
+
+Both earlier rounds scored the detector on **2026Q1/Q2 only** — the two quarters
+it was written against. Sampling 200 filings at random from all 1,061 audit PDFs
+in R2 (2022Q1 onward, every bank, both bases) broke it immediately:
+
+| | THOUSAND | MILLION | **UNKNOWN** |
+|---|---:|---:|---:|
+| 200 random filings, 8-page window | 182 | 0 | **18** |
+
+**15 of the 18 were Q4.** Annual reports carry a full audit opinion instead of a
+limited review, so their front matter runs longer and the unit declaration lands
+on **p7–p17** instead of p3–p5. `FRONT_PAGES = 8` with a 2,200-char-per-page cap
+never reached it. The pattern was never wrong — the *window* was, and the window
+had been fitted to the only quarters ever tested:
+
+| filing | strict regex matches on |
+|---|---|
+| ISCTR 2024Q4 unconsolidated (131pp) | p10 `thousands of Turkish Lira` |
+| HALKB 2025Q4 consolidated (155pp) | p7 |
+| QNBFB 2022Q4 unconsolidated (137pp) | p9 |
+| ZIRAAT 2025Q4 unconsolidated (157pp) | p10 `bin Türk Lirası` |
+| TSKB 2024Q4 unconsolidated (162pp) | p10 |
+| AKTIF 2022Q1 consolidated (90pp) | p17 `Bin \nTürk Lirası` |
+
+At 22 pages untruncated, both re-draws come back clean:
+
+| draw | n | THOUSAND | MILLION | UNKNOWN |
+|---|---:|---:|---:|---:|
+| seed 1729 | 200 | 200 (2022Q1–2026Q1) | 0 | **0** |
+| seed 8675309 | 350 | 346 (2022Q1–2026Q1) | 4 (2026Q2) | **0** |
+
+**550 filings across 17 quarters and every bank we hold: every single pre-2026Q2
+filing is in thousands, and there is no earlier instance of a unit change.** The
+2026Q2 switch is genuinely unprecedented in our history, not something the
+pipeline had been quietly mis-reading all along.
+
+Nemotron (enum-only, `effort=none`) cross-checked on a 40-filing random
+historical slice: **40/40 agreement**, no disagreements to adjudicate.
+
+**The lesson is about the benchmark, not the regex.** "22/22, free, offline" was
+true and misleading — scored on the sample the detector was built from, it could
+not have found the window bug. A ~9% silent-UNKNOWN rate concentrated in annual
+reports survived two rounds of confident measurement. Any detector claim here
+should be re-scored on a random draw across the full history before it is
+believed.
 
 - **Nemotron 3 Super is open-weight** (Hugging Face), so LoRA/QLoRA is possible;
   full fine-tuning of 120B is not a laptop job.
@@ -161,9 +215,14 @@ GPU hours and an MLOps dependency to match fifteen lines of `re`.
 
 ## What to do instead
 
-Unit detection belongs in the extractor as a deterministic step. The detector is
-already written and validated 22/22 — `UNIT_RE` + `regex_unit()` in
-`scripts/scratch_bench_unit_detection.py`, ~15 lines, no dependencies.
+Unit detection belongs in the extractor as a deterministic step. `UNIT_RE` +
+`regex_unit()` in `scripts/scratch_bench_unit_detection.py` is ~15 lines with no
+dependencies and now scores clean on 550 filings across 17 quarters.
+
+**Port the window with it, not just the pattern.** Scan **at least 22 pages,
+untruncated** — 8 pages was the round-1/2 setting and it silently returned
+UNKNOWN on ~9% of filings, almost all Q4. A future `UNKNOWN` should be treated as
+"look at this filing", never as "assume thousands".
 
 **The unresolved part is not detection, it is application.** A scale factor has
 to reach every amount across ~14 lanes whose columns are named differently
