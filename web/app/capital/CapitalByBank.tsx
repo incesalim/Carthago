@@ -20,7 +20,7 @@
 import Link from "next/link";
 import { BANK_NAMES } from "@/app/lib/bank_names";
 import { SecHead } from "@/app/components/desk";
-import { CAR_TARGET, CET1_TARGET } from "@/app/lib/capital-thresholds";
+import { CAR_TARGET, CET1_MIN, CET1_TARGET } from "@/app/lib/capital-thresholds";
 import type { BankCapitalRow } from "@/app/lib/audit-ratios";
 
 const DOMAIN_MAX = 25; // bar-track ceiling; a few specialists run far above it
@@ -62,13 +62,16 @@ export default function CapitalByBank({
         </b>{" "}
         hold common equity below the {CAR_TARGET}% target they must meet in total. AT1 and Tier-2
         count toward that target, so this is not a breach — it is what the cushion is made of.
-        Common equity answers to its own {CET1_TARGET}% requirement, and{" "}
+        Common equity answers to its own {CET1_TARGET}% level ({CET1_MIN}% minimum + 2.5pp
+        conservation buffer), and{" "}
         {belowCet1Req === 0 ? (
-          <b className="font-semibold text-foreground">every bank clears it</b>
+          <b className="font-semibold text-foreground">every bank sits above it</b>
         ) : (
-          <b className="font-semibold text-foreground">{belowCet1Req} sit below it</b>
-        )}
-        .
+          <b className="font-semibold text-foreground">
+            {belowCet1Req} {belowCet1Req === 1 ? "has" : "have"} dipped into the buffer
+          </b>
+        )}{" "}
+        — a constraint on distributions, not a breach of the {CET1_MIN}% floor.
       </p>
 
       <table className="w-full border-collapse">
@@ -147,8 +150,8 @@ export default function CapitalByBank({
           AT1 + Tier-2
         </span>
         <span>
-          Track = 0–25% of RWA · tick = BDDK&rsquo;s {CAR_TARGET}% target · red CET1 = below the{" "}
-          {CET1_TARGET}% common-equity requirement
+          Track = 0–25% of RWA · tick = BDDK&rsquo;s {CAR_TARGET}% target · red CET1 = inside the
+          conservation buffer (&lt;{CET1_TARGET}%)
         </span>
         <span>Source: BRSA quarterly filings · {quarterLabel(period)}</span>
       </div>

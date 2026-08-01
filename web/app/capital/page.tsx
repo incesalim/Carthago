@@ -28,7 +28,7 @@ import {
   BANK_TYPE_LABELS,
 } from "@/app/lib/metrics";
 import { sectorCapitalRatios, perBankCapital, AUDIT_CAPITAL_LABELS } from "@/app/lib/audit-ratios";
-import { CAR_TARGET, CAR_LEGAL_MIN, CET1_TARGET } from "@/app/lib/capital-thresholds";
+import { CAR_TARGET, CAR_LEGAL_MIN, CET1_MIN, CET1_TARGET } from "@/app/lib/capital-thresholds";
 import { BANK_NAMES } from "@/app/lib/bank_names";
 import BarByBank from "@/app/components/BarByBank";
 import CapitalByBank from "./CapitalByBank";
@@ -391,17 +391,20 @@ export default async function CapitalPage() {
       active: thinCet1 > 0,
       body: (
         <>
-          <b className="font-semibold">Thin common equity</b> — {thinCet1} of{" "}
-          {byBankCap.rows.length} banks hold CET1 below the {CET1_TARGET}% common-equity
-          requirement (4.5% minimum + 2.5pp conservation buffer). Systemic banks owe more on top;
-          we do not hold BDDK&rsquo;s D-SIB buffers, so this is a floor, not the full test.
+          <b className="font-semibold">Into the conservation buffer</b> — {thinCet1} of{" "}
+          {byBankCap.rows.length} banks hold CET1 below {CET1_TARGET}% ({CET1_MIN}% minimum +
+          2.5pp conservation buffer). That is <b>not a breach</b>: the {CET1_MIN}% minimum is the
+          hard floor, and a bank inside the buffer faces restrictions on distributions, not
+          sanction. Systemic banks owe a D-SIB buffer on top — we do not hold BDDK&rsquo;s
+          designations, so this is a floor, not the full test.
         </>
       ),
       rule: `count(cet1 < ${CET1_TARGET}%) > 0`,
       clear: (
         <>
-          Common equity — every bank clears the {CET1_TARGET}% requirement; {cet1BelowTarget} sit
-          below {CAR_TARGET}% on CET1 alone, which AT1 and Tier-2 are there to meet
+          Common equity — every bank holds CET1 above {CET1_TARGET}%, buffer intact;{" "}
+          {cet1BelowTarget} sit below {CAR_TARGET}% on CET1 alone, which AT1 and Tier-2 are there
+          to meet
         </>
       ),
     },
