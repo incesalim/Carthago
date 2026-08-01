@@ -19,7 +19,11 @@
  */
 import type { BankMetricRow, MetricKey } from "./heatmap";
 
-export const CAR_MIN = 12; // BDDK regulatory minimum, incl. buffers
+// Re-exported because `BriefLayer.tsx` consumes it. Was `CAR_MIN = 12` commented
+// "BDDK regulatory minimum" — 12% is BDDK's TARGET ratio; the statutory floor is
+// 8%. See capital-thresholds.ts for why that distinction is load-bearing.
+export { CAR_TARGET } from "./capital-thresholds";
+import { CAR_TARGET } from "./capital-thresholds";
 
 /** Where this bank sits in the field, on one metric. */
 export interface PeerStat {
@@ -223,7 +227,7 @@ const pp = (v: number, d = 1) => `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(d
  */
 export function bankFlags(d: FlagInput): BriefFlag[] {
   const out: BriefFlag[] = [];
-  const buffer = d.car != null ? d.car - CAR_MIN : null;
+  const buffer = d.car != null ? d.car - CAR_TARGET : null;
 
   if (d.car != null && d.carQoq != null && buffer != null && d.carQoq < -1 && buffer < 8) {
     out.push({
@@ -231,7 +235,7 @@ export function bankFlags(d: FlagInput): BriefFlag[] {
       kind: "flag",
       title: "Capital step-down",
       detail:
-        `CAR fell ${Math.abs(d.carQoq).toFixed(1)}pp in a quarter to ${d.car.toFixed(1)}% — a ${buffer.toFixed(1)}pp buffer over the ${CAR_MIN}% minimum` +
+        `CAR fell ${Math.abs(d.carQoq).toFixed(1)}pp in a quarter to ${d.car.toFixed(1)}% — a ${buffer.toFixed(1)}pp buffer over the ${CAR_TARGET}% target ratio` +
         `${d.carRank ? `, ${ordinal(d.carRank.rank)} of ${d.carRank.n}` : ""}` +
         `${d.assetsQoqPct != null ? `, while the balance sheet grew ${d.assetsQoqPct.toFixed(1)}% q/q` : ""}.`,
       rule: `Δcar_qoq < −1pp AND buffer < 8pp`,
@@ -338,9 +342,9 @@ export function peerRead(
   switch (key) {
     case "car": {
       const b = ctx.buffer;
-      if (b != null && b < 4) return `${place}. One of the field's thinnest buffers — ${b.toFixed(1)}pp over the ${CAR_MIN}% floor.`;
+      if (b != null && b < 4) return `${place}. One of the field's thinnest buffers — ${b.toFixed(1)}pp over the ${CAR_TARGET}% target ratio.`;
       if (b != null && b > 20) return `${place}. ${b.toFixed(1)}pp of headroom — capital raised well ahead of the book.`;
-      return `${place} — ${bandOf(s.rank, s.n)}${b != null ? `, ${b.toFixed(1)}pp over the floor` : ""}.`;
+      return `${place} — ${bandOf(s.rank, s.n)}${b != null ? `, ${b.toFixed(1)}pp over the target` : ""}.`;
     }
     case "npl_ratio":
       return s.value < s.median

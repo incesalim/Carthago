@@ -68,7 +68,9 @@ function growthOver(s: SeriesPoint[], n: number): number | null {
   return c != null && p != null && p !== 0 ? ((c - p) / Math.abs(p)) * 100 : null;
 }
 
-const CAR_MIN = 12; // BDDK regulatory minimum (incl. buffers)
+// 12% is BDDK's TARGET ratio, not the statutory minimum (8%) — this was
+// `CAR_MIN`, commented "BDDK regulatory minimum". See capital-thresholds.ts.
+import { CAR_TARGET } from "./capital-thresholds";
 
 /**
  * Overview "Sector Pulse" — one takeaway per CAMELS vital, in spine order
@@ -110,9 +112,9 @@ export function overviewInsights(d: {
   // Capital (C)
   const car = last(d.car);
   const carD = deltaPp(d.car);
-  const buffer = car != null ? car - CAR_MIN : null;
+  const buffer = car != null ? car - CAR_TARGET : null;
   items.push({
-    text: `Capital adequacy ${pct(car)}${buffer != null ? ` — ${buffer.toFixed(1)}pp above the ${CAR_MIN}% minimum` : ""}${carD != null ? ` (${ppStr(carD)} m/m)` : ""}.`,
+    text: `Capital adequacy ${pct(car)}${buffer != null ? ` — ${buffer.toFixed(1)}pp above the ${CAR_TARGET}% target ratio` : ""}${carD != null ? ` (${ppStr(carD)} m/m)` : ""}.`,
     tone: buffer != null && buffer < 2 ? "warn" : buffer != null && buffer >= 4 ? "positive" : "neutral",
     href: "/capital",
   });
@@ -451,10 +453,10 @@ export function capitalInsights(d: {
 
   const car = last(d.car);
   const carD = deltaPp(d.car);
-  const buffer = car != null ? car - CAR_MIN : null;
+  const buffer = car != null ? car - CAR_TARGET : null;
   if (car != null && buffer != null) {
     items.push({
-      text: `CAR ${pct(car)} — a ${buffer.toFixed(1)}pp buffer over the ${CAR_MIN}% minimum${carD != null ? ` (${ppStr(carD)} m/m)` : ""}.`,
+      text: `CAR ${pct(car)} — a ${buffer.toFixed(1)}pp buffer over the ${CAR_TARGET}% target ratio${carD != null ? ` (${ppStr(carD)} m/m)` : ""}.`,
       tone: buffer < 2 ? "warn" : buffer >= 4 ? "positive" : "neutral",
     });
   }
@@ -497,7 +499,7 @@ export function capitalInsights(d: {
   }
 
   const headline =
-    `The sector holds a ${buffer != null ? buffer.toFixed(1) : "—"}pp buffer over the ${CAR_MIN}% minimum (CAR ${pct(car)}` +
+    `The sector holds a ${buffer != null ? buffer.toFixed(1) : "—"}pp buffer over the ${CAR_TARGET}% target ratio (CAR ${pct(car)}` +
     `${cet1 != null ? `, CET1 ${pct(cet1)}` : ""}); the question is whether ${pct(eq)} equity growth keeps funding the balance sheet.`;
 
   return { asOf: period, headline, items };

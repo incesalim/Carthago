@@ -3,7 +3,7 @@ import Link from "next/link";
 import { SecHead, Flags, Movers, type Flag, type MoverRow } from "@/app/components/desk";
 import { cn } from "@/app/lib/cn";
 import {
-  CAR_MIN,
+  CAR_TARGET,
   ordinal,
   peerRead,
   type BriefFlag,
@@ -339,7 +339,7 @@ export function MoversAndFlags({
   );
 }
 
-export { CAR_MIN };
+export { CAR_TARGET };
 
 /** The identity strip — the facts this bank actually has, nothing invented. */
 export function Identity({ items }: { items: Array<{ k: string; v: React.ReactNode }> }) {

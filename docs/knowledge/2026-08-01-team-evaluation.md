@@ -44,7 +44,16 @@ lead, independently of the agent that raised them.
 These are not code smells. Each one currently prints something false to a
 reader, or removes a stated safety guarantee.
 
-### 1.1 CET1 judged against the 12% total-capital target **[verified]**
+### 1.1 CET1 judged against the 12% total-capital target ✅ **FIXED 2026-08-01**
+
+> Resolved. `web/app/lib/capital-thresholds.ts` is now the single source
+> (`CAR_LEGAL_MIN` 8, `CAR_TARGET` 12, `CET1_MIN` 4.5, `CET1_TARGET` 7). The
+> constant turned out to be duplicated in **four** places, not two — `bank-brief.ts`
+> and `insights.ts` also carried it, both commented "BDDK regulatory minimum". The
+> `thin-cet1` flag now tests CET1 against 7% and states in-line that it is a floor,
+> since we hold no D-SIB buffers. `CapitalByBank`'s composition reading was kept —
+> it was always correct that AT1/Tier-2 count toward the target — with only the red
+> threshold and the "minimum"/"target" wording changed. Original finding below.
 
 `web/app/capital/page.tsx:125` defines a single `CAR_MIN = 12`, and `:202`
 reuses it as the CET1 test. The rendered sentence at `:384` reads *"N of M banks
@@ -326,9 +335,21 @@ the product level · the BIST/Yahoo lane, on legal grounds ·
 require written permission for commercial use. **Yahoo forbids redistribution
 outright and prohibits automated access — that is a live defect today, not a
 monetisation one**, and the precedent is already set: the Yahoo tape was stripped
-from the mobile app and `/api/app/v1` before the Play listing. Four source
-terms pages remain unread — **BDDK, KAP, TEFAS, TKBB** — and `/api/v1` is
-BDDK-only, so the single highest-stakes page is one of the unread ones.
+from the mobile app and `/api/app/v1` before the Play listing.
+
+✅ **BDDK's terms were read 2026-08-01, and the expectation was wrong.** The prior
+audit predicted the same peer boilerplate. Instead: *"Web sitemizde yayınlanan
+çalışmalardan, kaynak gösterilmek suretiyle **kısmen alıntı** yapılabilir ancak bu
+bilgilerin ticari amaçlarla kullanımı BDDK'nın yazılı iznine tabidir."* — **partial
+quotation** with attribution, where TCMB permits publication outright. Since
+`/api/v1` is BDDK-only and serves complete series unauthenticated with
+`MAX_LIMIT = 25000`, the source assumed safest is in fact the strictest and it
+governs the most aggressive redistribution surface. Not a prohibition — bare
+figures are largely uncopyrightable in Turkish law and what the terms protect is
+the compilation — but no longer a safe assumption to build a paid tier on. Full
+analysis in [data-source-terms-audit-2026-07-25.md](data-source-terms-audit-2026-07-25.md).
+Three pages remain unread — **KAP, TEFAS, TKBB** — and the BDDK result is the
+reason to actually read them rather than extrapolate.
 
 **A derivative-work question surfaced that is separate from the data terms.**
 `chart-specs.catalog.json` documents, in this repo, that a set of `/economy`
@@ -420,8 +441,8 @@ Not flattery — each of these was checked.
 
 ## 6. Recommended order
 
-1. **Capital thresholds** (§1.1) — half a day, removes the site's most
-   consequential false claim.
+1. ~~**Capital thresholds** (§1.1)~~ ✅ **done 2026-08-01** — single sourced
+   constants module; four duplicate definitions collapsed into one.
 2. **Gate the deploy on CI** (§1.3) — ~1 hour, makes a documented rule true.
 3. **Close the contrast-gate holes** (§1.5) — ~30 lines, converts a whole class
    from vigilance to CI.
@@ -445,8 +466,10 @@ Not flattery — each of these was checked.
    `6.2 + 6.3` swap adjustment; surface trading & FX as its own line instead.
 8. **Peer-group parameter on `peerStat`** and **`realRate()` at
    `page.tsx:706`** (§2.3, §2.4) — two one-liners.
-9. **Read BDDK's terms; pull the Yahoo feed** (§3) — five minutes and a day. The
-   terms check may moot other work.
+9. ~~**Read BDDK's terms**~~ ✅ **done 2026-08-01** — and it did change the picture:
+   partial quotation only, which lands on `/api/v1`. **Still to do: pull the Yahoo
+   feed** (a day), and decide what `/api/v1` should serve — leave it, bound it so a
+   caller cannot pull a complete series, or name it in a permission letter.
 10. **Make schedule state observable** (§2.1) — ~2–3 hours, closes freeze
    blindness permanently rather than for one date.
 

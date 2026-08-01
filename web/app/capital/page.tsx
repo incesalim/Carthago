@@ -28,6 +28,7 @@ import {
   BANK_TYPE_LABELS,
 } from "@/app/lib/metrics";
 import { sectorCapitalRatios, perBankCapital, AUDIT_CAPITAL_LABELS } from "@/app/lib/audit-ratios";
+import { CAR_TARGET, CAR_LEGAL_MIN, CET1_TARGET } from "@/app/lib/capital-thresholds";
 import { BANK_NAMES } from "@/app/lib/bank_names";
 import BarByBank from "@/app/components/BarByBank";
 import CapitalByBank from "./CapitalByBank";
@@ -122,10 +123,9 @@ export default async function CapitalPage() {
   // discontinuity. So: detect the break from the series (rule, not a hand-picked
   // date), split the year into the step and everything else, and size the buffer
   // against the slope measured AFTER the break.
-  const CAR_MIN = 12;
   const carSector = carAll.filter((r) => r.bank_type_code === BANK_TYPES.SECTOR);
   const carNow = carSector.at(-1)?.value ?? null;
-  const buffer = carNow != null ? carNow - CAR_MIN : null;
+  const buffer = carNow != null ? carNow - CAR_TARGET : null;
 
   const step = detectStep(carSector, { window: 13, k: 3 });
   const breakPeriod = step?.isBreak ? step.period : null;
@@ -139,7 +139,7 @@ export default async function CapitalPage() {
   const afterStep = stepIdx > 0 ? (carSector[stepIdx].value ?? null) : null;
   // Drift used for sizing: post-step when there IS a break, else the plain 12m.
   const drift = post?.perYear ?? split?.total ?? null;
-  const qtrsToFloor = quartersToFloor(carNow, drift, CAR_MIN);
+  const qtrsToFloor = quartersToFloor(carNow, drift, CAR_TARGET);
   const driftBasis = breakPeriod
     ? `post-step · ${post?.months ?? 0}m since ${monthLabel(breakPeriod, false)}`
     : "12-month drift";
@@ -199,11 +199,20 @@ export default async function CapitalPage() {
   const stackNow = stack.at(-1) ?? null;
   const hybrids = stackNow ? stackNow.at1 + stackNow.t2 : null;
   const cet1Share = stackNow && stackNow.car > 0 ? (stackNow.cet1 / stackNow.car) * 100 : null;
-  const thinCet1 = byBankCap.rows.filter((b) => b.cet1 != null && b.cet1 < CAR_MIN).length;
+  // CET1 answers to its OWN requirement (4.5 + 2.5 conservation = 7), never to
+  // the 12% total-capital target — AT1 and Tier-2 count toward that target, so a
+  // bank below 12% on common equity alone is not thin, it is hybrid-funded. This
+  // counted `cet1 < 12` and reported 18 of 37 banks as short of common equity;
+  // all 18 cleared their actual stack. `thinCet1` now means what it says.
+  const thinCet1 = byBankCap.rows.filter((b) => b.cet1 != null && b.cet1 < CET1_TARGET).length;
+  // How much of the 12% target is met with common equity rather than instruments
+  // — a COMPOSITION reading, not a breach count. Kept because it is the honest
+  // version of what the old flag was gesturing at.
+  const cet1BelowTarget = byBankCap.rows.filter((b) => b.cet1 != null && b.cet1 < CAR_TARGET).length;
   // Compare like with like: the hybrid stack is AUDITED (Σ/Σ over the filings),
   // so it must be set against the AUDITED buffer — not the monthly bulletin's
   // CAR, which is a different basis (16.02% vs 16.34%) and would flatter it.
-  const auditBuffer = stackNow ? stackNow.car - CAR_MIN : null;
+  const auditBuffer = stackNow ? stackNow.car - CAR_TARGET : null;
 
   const fmtPct = (v: number | null | undefined, d = 1) =>
     v == null ? "—" : `${v.toFixed(d)}%`;
@@ -291,11 +300,13 @@ export default async function CapitalPage() {
       unit: `pp · audited ${auditQ}`,
       effect: (
         <>
-          Over the 12% minimum. The AT1 + Tier-2 stack is <b>{hybrids.toFixed(2)}pp</b> —{" "}
+          Over BDDK&rsquo;s {CAR_TARGET}% target ratio (the statutory floor is {CAR_LEGAL_MIN}%). The
+          AT1 + Tier-2 stack is <b>{hybrids.toFixed(2)}pp</b> —{" "}
           {hybrids > auditBuffer ? (
             <>
-              <b>larger than the buffer itself</b>. Strip the instruments and the ratio is{" "}
-              {fmtPct(stackNow?.cet1, 2)}, below the minimum it must meet.
+              <b>larger than the buffer itself</b>. Strip the instruments and total capital falls to{" "}
+              {fmtPct(stackNow?.cet1, 2)} — still above the {CET1_TARGET}% common-equity
+              requirement, but the target is met with instruments rather than equity.
             </>
           ) : (
             <>the cushion is more common equity than instruments.</>
@@ -367,25 +378,32 @@ export default async function CapitalPage() {
       body: (
         <>
           <b className="font-semibold">Hybrid-funded buffer</b> — AT1 + Tier-2 ={" "}
-          {hybrids?.toFixed(2)}pp of RWA against a {auditBuffer?.toFixed(2)}pp buffer over the
-          minimum (both audited {auditQ}). Strip them and the ratio is{" "}
-          {fmtPct(stackNow?.cet1, 2)}, below the 12% it must meet.
+          {hybrids?.toFixed(2)}pp of RWA against a {auditBuffer?.toFixed(2)}pp buffer over the{" "}
+          {CAR_TARGET}% target (both audited {auditQ}). Strip them and total capital is{" "}
+          {fmtPct(stackNow?.cet1, 2)} — the target is met with instruments, not equity.
         </>
       ),
-      rule: "at1 + tier2 > car_audited − 12",
+      rule: `at1 + tier2 > car_audited − ${CAR_TARGET}`,
       clear: <>Buffer — more common equity than instruments</>,
     },
     {
       code: "thin-cet1",
-      active: thinCet1 > byBankCap.rows.length * 0.25,
+      active: thinCet1 > 0,
       body: (
         <>
           <b className="font-semibold">Thin common equity</b> — {thinCet1} of{" "}
-          {byBankCap.rows.length} banks hold CET1 below the 12% total-capital minimum.
+          {byBankCap.rows.length} banks hold CET1 below the {CET1_TARGET}% common-equity
+          requirement (4.5% minimum + 2.5pp conservation buffer). Systemic banks owe more on top;
+          we do not hold BDDK&rsquo;s D-SIB buffers, so this is a floor, not the full test.
         </>
       ),
-      rule: "count(cet1 < 12%) > 25% of banks",
-      clear: <>Common equity — {thinCet1} banks below 12% CET1</>,
+      rule: `count(cet1 < ${CET1_TARGET}%) > 0`,
+      clear: (
+        <>
+          Common equity — every bank clears the {CET1_TARGET}% requirement; {cet1BelowTarget} sit
+          below {CAR_TARGET}% on CET1 alone, which AT1 and Tier-2 are there to meet
+        </>
+      ),
     },
     {
       code: "generation-gap",
@@ -411,12 +429,12 @@ export default async function CapitalPage() {
       active: buffer != null && buffer < 2,
       body: (
         <>
-          <b className="font-semibold">Thin buffer</b> — {buffer?.toFixed(2)}pp over the 12%
-          minimum.
+          <b className="font-semibold">Thin buffer</b> — {buffer?.toFixed(2)}pp over BDDK&rsquo;s{" "}
+          {CAR_TARGET}% target ratio.
         </>
       ),
-      rule: "car − 12 < 2pp",
-      clear: <>Buffer — {buffer?.toFixed(2)}pp over the 12% minimum</>,
+      rule: `car − ${CAR_TARGET} < 2pp`,
+      clear: <>Buffer — {buffer?.toFixed(2)}pp over the {CAR_TARGET}% target ratio</>,
     },
   ];
   const activeFlags = flags.filter((f) => f.active).length;
