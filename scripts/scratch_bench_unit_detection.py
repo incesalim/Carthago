@@ -116,6 +116,30 @@ UNIT_SCHEMA = {
     },
 }
 
+# Strongest possible shape: the enum and nothing else. The verbatim-evidence
+# field is what triggered <unk> spew (the tokenizer choking on quoted Turkish)
+# and the truncations that followed, so this drops it. The cost is auditability
+# — we lose the model's own justification, which was the only thing making an
+# LLM answer checkable at all.
+UNIT_ONLY_SCHEMA = {
+    "name": "reporting_unit",
+    "strict": True,
+    "schema": {
+        "type": "object",
+        "properties": {"unit": {"type": "string", "enum": sorted(VALID)}},
+        "required": ["unit"],
+        "additionalProperties": False,
+    },
+}
+
+SYSTEM_NOEV = (
+    "You read the front matter of a Turkish bank's BRSA audit report and report "
+    "the MONETARY UNIT the financial statements are presented in ('bin/thousands' "
+    "or 'milyon/millions' of Turkish Lira).\n"
+    'Reply with STRICT JSON only: {"unit": "THOUSAND"|"MILLION"|"BILLION"|"UNKNOWN"}\n'
+    "Never guess from the size of any number, and never report a number."
+)
+
 # Variants under test. Nemotron 3 Super gates its chain-of-thought on a /think
 # vs /no_think system directive, and OpenRouter exposes reasoning_effort on top;
 # the baseline failure was CoT spilling into `content` until max_tokens ran out,
@@ -134,6 +158,10 @@ VARIANTS: dict[str, dict] = {
     "v7_effort_repeat": {"effort": "none"},
     "v8_effort_rep2":   {"effort": "none"},
     "v9_effort_rep3":   {"effort": "none"},
+    # enum-only, no free-text field: the best shot the model gets.
+    "v10_enum_only":    {"schema": True, "noev": True, "effort": "none"},
+    "v11_enum_rep2":    {"schema": True, "noev": True, "effort": "none"},
+    "v12_enum_rep3":    {"schema": True, "noev": True, "effort": "none"},
 }
 
 
@@ -196,7 +224,7 @@ def list_free(key: str) -> None:
 def classify(key: str, model: str, text: str, provider: str = "",
              cfg: dict | None = None) -> tuple[str, str, dict]:
     cfg = cfg or {}
-    system = SYSTEM
+    system = SYSTEM_NOEV if cfg.get("noev") else SYSTEM
     if cfg.get("nothink"):
         # Nemotron 3 Super gates chain-of-thought on this directive. The bench's
         # whole failure mode was CoT written into `content`, so turning it off at
@@ -220,7 +248,8 @@ def classify(key: str, model: str, text: str, provider: str = "",
     }
 
     if cfg.get("schema"):
-        body["response_format"] = {"type": "json_schema", "json_schema": UNIT_SCHEMA}
+        body["response_format"] = {"type": "json_schema", "json_schema":
+                                   UNIT_ONLY_SCHEMA if cfg.get("noev") else UNIT_SCHEMA}
         # Fail loudly rather than silently routing to an endpoint that ignores
         # the schema — a soft fallback would make this variant unmeasurable.
         body["provider"] = {"require_parameters": True}
