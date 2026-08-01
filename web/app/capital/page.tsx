@@ -305,8 +305,8 @@ export default async function CapitalPage() {
           {hybrids > auditBuffer ? (
             <>
               <b>larger than the buffer itself</b>. Strip the instruments and total capital falls to{" "}
-              {fmtPct(stackNow?.cet1, 2)} — still above the {CET1_TARGET}% common-equity
-              requirement, but the target is met with instruments rather than equity.
+              {fmtPct(stackNow?.cet1, 2)} — still clear of the {CET1_TARGET}% conservation-buffer
+              level, but the target is met with instruments rather than equity.
             </>
           ) : (
             <>the cushion is more common equity than instruments.</>
