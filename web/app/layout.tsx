@@ -103,13 +103,30 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <RangeProvider>
+            {/* WCAG 2.4.1 Bypass Blocks. <Nav/> is a ~35-link rail, and it comes
+                before the content in DOM order — without this, a keyboard or
+                screen-reader user tabs the entire site index on every page
+                before reaching the page. Visually hidden until focused. */}
+            <a
+              href="#main"
+              className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded focus:border focus:border-border focus:bg-card focus:px-3 focus:py-2 focus:text-[13px] focus:font-medium focus:text-foreground focus:shadow-sheet"
+            >
+              Skip to content
+            </a>
             <div className="flex min-h-full flex-col lg:flex-row">
               <Nav />
               {/* The document sheet: page content renders on a white sheet
                   floating on the workspace ground (desktop); below lg the
                   sheet goes full-bleed. */}
               <div className="min-w-0 flex-1 lg:py-5 lg:pl-2 lg:pr-6">
-                <div className="min-h-full bg-card lg:rounded-[10px] lg:border lg:border-border lg:shadow-sheet">
+                {/* NOT a <main> — every page renders its own, and nesting two
+                    is invalid. This is just the skip target, focusable so the
+                    jump moves the caret and not merely the scroll position. */}
+                <div
+                  id="main"
+                  tabIndex={-1}
+                  className="min-h-full bg-card focus:outline-none lg:rounded-[10px] lg:border lg:border-border lg:shadow-sheet"
+                >
                   {children}
                 </div>
               </div>

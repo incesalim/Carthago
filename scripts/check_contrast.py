@@ -20,13 +20,34 @@ WHAT IT CHECKS
      deciding which surfaces it sits on. (The inventory half — same reason
      check_docs_sync fails on an undocumented secret.)
   2. For each (token, surface) pair, in BOTH themes, contrast >= 4.5:1.
+  3. No arbitrary hex is used AS text — `text-[#b07a18]` and friends.
+  4. Text on a TINTED surface (`text-negative` over `bg-negative/12`) is checked
+     against the actual composite, not against the untinted sheet.
+
+  Rules 3 and 4 were added 2026-08-01 after a review found two holes that let
+  live pages fail AA while this gate reported green:
+
+  - Rule 1's regex is `\\btext-([a-z][a-z0-9-]*)\\b`, which requires a lowercase
+    letter after the dash — so `text-[#b07a18]` is STRUCTURALLY invisible to it.
+    That hex shipped as body and label text at 11 call sites on /products at
+    3.72:1, and at 3.34:1 on its own /10 tint.
+  - PAIRS only lists solid surfaces, so a chip putting `text-negative` on
+    `bg-negative/12` was never evaluated against its own tint (4.34:1), nor
+    `text-warning` on `bg-warning/15` (4.24:1).
+
+  Note what this means about the paragraph below: it used to claim "if a chart
+  colour is ever used AS text, rule 1 above will notice." Rule 1 IS the blind
+  regex. The stated safety net did not exist; rule 3 is what makes it true.
 
 WHAT IT DELIBERATELY DOES NOT CHECK
 
   Chart colours (`--chart-*`, `--data`, `--context` as a mark, heat scales).
   Those are marks, not text, and they answer to a different rule (WCAG 1.4.11,
   3:1, and only for meaningful graphics). `chart-theme.ts` owns them. If a chart
-  colour is ever used AS text, rule 1 above will notice.
+  colour is ever used AS text, rules 1 and 3 will notice.
+
+  Font SIZE has no floor here. There are 175 sub-10px call sites; they pass on
+  ratio and are a legibility question, not a WCAG one (no size minimum exists).
 
 Run standalone (`python scripts/check_contrast.py`) or via pytest
 (`tests/test_contrast.py`).
@@ -167,6 +188,92 @@ CHART_TEXT_LOCKSTEP = {
 CHART_THEME = REPO_ROOT / "web" / "app" / "lib" / "chart-theme.ts"
 
 
+# Rule 3. `text-[#abc123]`, `dark:text-[#abc123]`, `hover:text-[#abc]` — any
+# arbitrary hex in a text utility. These bypass the token system entirely: they
+# cannot be retuned with the theme, cannot be checked by rule 1, and cannot
+# follow a surface. The fix is always "use a token", never "pick a darker hex".
+_ARBITRARY_TEXT_HEX = re.compile(r"\btext-\[(#[0-9A-Fa-f]{3,8})\]")
+
+# Rule 4. A tinted surface: `bg-negative/12` is the token at 12% over whatever
+# is behind it. Tailwind writes the alpha as a percentage.
+_BG_TINT = re.compile(r"\bbg-([a-z][a-z0-9-]*)/(\d{1,3})\b")
+_TEXT_CLASS = re.compile(r"\btext-([a-z][a-z0-9-]*)\b")
+
+# Class lists live inside quoted strings; scanning per-string rather than
+# per-line keeps a `text-` on one element from being paired with a `bg-` on the
+# next one along.
+_QUOTED = re.compile(r'"([^"\n]*)"|`([^`]*)`|\'([^\'\n]*)\'')
+
+# The surfaces a tinted chip can sit on. `muted` is excluded: a tint over a
+# subtotal row is rare and assuming it would produce false failures.
+_TINT_BASES = ("card", "background")
+
+
+def _hex_to_rgb(h: str) -> tuple[int, int, int]:
+    s = h.lstrip("#")
+    if len(s) == 3:
+        s = "".join(c * 2 for c in s)
+    return tuple(int(s[i : i + 2], 16) for i in (0, 2, 4))  # type: ignore[return-value]
+
+
+def composite(top: str, bottom: str, alpha: float) -> str:
+    """`top` at `alpha` (0–1) painted over opaque `bottom` — plain source-over."""
+    tr, tg, tb = _hex_to_rgb(top)
+    br, bg_, bb = _hex_to_rgb(bottom)
+    mix = lambda t, b: round(alpha * t + (1 - alpha) * b)  # noqa: E731
+    return f"#{mix(tr, br):02x}{mix(tg, bg_):02x}{mix(tb, bb):02x}"
+
+
+def check_arbitrary_text_hex() -> list[str]:
+    out: list[str] = []
+    for path in sorted(APP_DIR.rglob("*.ts*")):
+        rel = path.relative_to(REPO_ROOT).as_posix()
+        for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            for m in _ARBITRARY_TEXT_HEX.finditer(line):
+                out.append(
+                    f"{rel}:{lineno}: text-[{m.group(1)}] — an arbitrary hex used as text. "
+                    f"Use a token from globals.css so it is themed and checkable "
+                    f"(rule 1 cannot see bracketed values)"
+                )
+    return out
+
+
+def check_tinted_surfaces(themes: dict[str, dict[str, str]]) -> list[str]:
+    """Text sitting on `bg-<token>/NN` must clear AA against the COMPOSITE."""
+    seen: set[tuple[str, str, int]] = set()
+    out: list[str] = []
+    for path in sorted(APP_DIR.rglob("*.ts*")):
+        rel = path.relative_to(REPO_ROOT).as_posix()
+        for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            for qm in _QUOTED.finditer(line):
+                chunk = next((g for g in qm.groups() if g is not None), "")
+                tints = _BG_TINT.findall(chunk)
+                if not tints:
+                    continue
+                texts = [t for t in _TEXT_CLASS.findall(chunk) if not _NOT_A_COLOUR.match(t)]
+                for tint_token, pct in tints:
+                    for text_token in texts:
+                        key = (text_token, tint_token, int(pct))
+                        for theme, tokens in themes.items():
+                            fg, tint = tokens.get(text_token), tokens.get(tint_token)
+                            if fg is None or tint is None:
+                                continue
+                            for base in _TINT_BASES:
+                                bg = tokens.get(base)
+                                if bg is None:
+                                    continue
+                                surface = composite(tint, bg, int(pct) / 100)
+                                ratio = contrast_ratio(fg, surface)
+                                if ratio < MIN_RATIO and (key + (theme,)) not in seen:  # type: ignore[operator]
+                                    seen.add(key + (theme,))  # type: ignore[arg-type]
+                                    out.append(
+                                        f"{rel}:{lineno}: [{theme}] text-{text_token} ({fg}) on "
+                                        f"bg-{tint_token}/{pct} over {base} = {surface} -> "
+                                        f"{ratio:.2f}:1, below the {MIN_RATIO}:1 AA floor"
+                                    )
+    return out
+
+
 def check_chart_lockstep(themes: dict[str, dict[str, str]]) -> list[str]:
     src = CHART_THEME.read_text(encoding="utf-8")
     out: list[str] = []
@@ -230,13 +337,21 @@ def main() -> int:
                         f"{ratio:.2f}:1 — below the {MIN_RATIO}:1 AA floor for normal text"
                     )
 
+    # 3 — no arbitrary hex as text, and 4 — text on tinted surfaces.
+    problems += check_arbitrary_text_hex()
+    tinted = check_tinted_surfaces(themes)
+    problems += tinted
+
     if problems:
         print("contrast check FAILED:")
         for p in problems:
             print(f"  - {p}")
         return 1
 
-    print(f"contrast OK ({checked} token/surface pairs across 2 themes, >= {MIN_RATIO}:1).")
+    print(
+        f"contrast OK ({checked} token/surface pairs across 2 themes, >= {MIN_RATIO}:1; "
+        f"no arbitrary text hexes; tinted surfaces composited)."
+    )
     return 0
 
 

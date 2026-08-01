@@ -79,7 +79,7 @@ export function WhereItStands({
     <section>
       <SecHead
         title="Where it stands"
-        meta={`the ${stats[0].stat.n} banks reporting · dot = this bank · tick = median`}
+        meta={`the ${stats[0].stat.n} ${stats[0].stat.universe} reporting · dot = this bank · tick = median`}
         className="mb-2.5 mt-8"
       />
       <div className="border-t-2 border-foreground">

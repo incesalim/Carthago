@@ -82,8 +82,8 @@ export default async function ProductsPage() {
         <SecHead title="What the shelf says" meta="computed, not raw" />
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {findings.map((f) => (
-            <div key={f.stat + f.cap} className={`rounded-md border bg-card p-4 ${f.tone === "pos" ? "border-positive/40" : f.tone === "warn" ? "border-[#b07a18]/45" : "border-border"}`}>
-              <div className={`font-mono text-[28px] font-semibold leading-none tracking-tight ${f.tone === "pos" ? "text-positive" : f.tone === "warn" ? "text-[#b07a18] dark:text-[#d6a23e]" : "text-foreground"}`}>
+            <div key={f.stat + f.cap} className={`rounded-md border bg-card p-4 ${f.tone === "pos" ? "border-positive/40" : f.tone === "warn" ? "border-warning/45" : "border-border"}`}>
+              <div className={`font-mono text-[28px] font-semibold leading-none tracking-tight ${f.tone === "pos" ? "text-positive" : f.tone === "warn" ? "text-warning" : "text-foreground"}`}>
                 {f.stat}
                 {f.unit && <span className="text-[15px] font-medium text-muted-foreground"> {f.unit}</span>}
               </div>
@@ -121,7 +121,7 @@ export default async function ProductsPage() {
                   <div key={a.code} className={`flex items-center gap-2.5 rounded border bg-card px-2.5 py-1.5 ${a.distinctive ? "border-positive/30" : "border-border"}`}>
                     <span className="min-w-[34px] text-right font-mono text-[13px] font-semibold text-foreground">{a.enough ? pct(a.pen ?? 0) : String(a.yes)}</span>
                     <span className="text-[12px] leading-tight text-muted-foreground">
-                      {a.label}{a.distinctive && <span className="text-[#b07a18] dark:text-[#d6a23e]"> ◆</span>} <code className="font-mono text-[10px] text-faint">{a.code}</code>
+                      {a.label}{a.distinctive && <span className="text-warning"> ◆</span>} <code className="font-mono text-[10px] text-faint">{a.code}</code>
                     </span>
                   </div>
                 ))}
@@ -140,7 +140,7 @@ export default async function ProductsPage() {
               <li><b className="text-foreground">Has it</b> — the bank’s own page shows the product (URL required) — about the bank</li>
               <li><b className="text-foreground">No</b> — category page checked, product absent — about the bank</li>
               <li><b className="text-foreground">Partial</b> — via a subsidiary / agency / branch-only / one segment</li>
-              <li><b className="text-[#b07a18] dark:text-[#d6a23e]">Unverified</b> — we couldn’t confirm — about us, not a gap in the bank</li>
+              <li><b className="text-warning">Unverified</b> — we couldn’t confirm — about us, not a gap in the bank</li>
             </ul>
             <p className="mt-2.5">Across {data.nCells.toLocaleString("en-US")} cells, not a single “has it” is uncited.</p>
           </Method>
@@ -165,7 +165,7 @@ export default async function ProductsPage() {
 
 function Method({ title, warn, children }: { title: string; warn?: boolean; children: React.ReactNode }) {
   return (
-    <div className={`rounded-md border bg-card p-4 ${warn ? "border-[#b07a18]/40" : "border-border"}`}>
+    <div className={`rounded-md border bg-card p-4 ${warn ? "border-warning/40" : "border-border"}`}>
       <h3 className="mb-2 text-[14px] font-semibold tracking-tight text-foreground">{title}</h3>
       <div className="space-y-2 text-[13px] leading-relaxed text-muted-foreground [&_code]:rounded [&_code]:bg-background [&_code]:px-1">{children}</div>
     </div>

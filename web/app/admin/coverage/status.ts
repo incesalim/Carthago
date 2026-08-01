@@ -25,7 +25,10 @@ export const STATUS_LABEL: Record<string, string> = {
 export const STATUS_CELL: Record<string, { cls: string; glyph: string }> = {
   ok: { cls: "bg-positive/15 text-positive", glyph: "✓" },
   manual: { cls: "bg-info/15 text-info", glyph: "✎" },
-  error: { cls: "bg-negative/25 text-negative font-semibold", glyph: "!" },
+  // /15, not /25: the semantic tones are only legible as text up to a /15 tint
+  // (globals.css says so, and check_contrast now enforces it). The bold weight
+  // and the glyph carry the emphasis the deeper fill was reaching for.
+  error: { cls: "bg-negative/15 text-negative font-semibold", glyph: "!" },
   missing: { cls: "bg-warning/15 text-warning", glyph: "·" },
   not_expected: { cls: "bg-muted text-muted-foreground", glyph: "" },
 };

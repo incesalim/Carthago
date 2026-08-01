@@ -39,7 +39,7 @@ function Glyph({ v, className }: { v: CellValue; className?: string }) {
   // unknown — amber hollow ring (about us)
   return (
     <span className={box}>
-      <span className="size-[15px] rounded-full border-[1.6px] border-[#b07a18] dark:border-[#d6a23e]" />
+      <span className="size-[15px] rounded-full border-[1.6px] border-warning" />
     </span>
   );
 }
@@ -128,7 +128,7 @@ export default function ProductMatrix({ data }: { data: ProductBenchmark }) {
                   className="border-b border-r border-border bg-card px-1 py-1.5 align-bottom text-center text-[11px] font-semibold text-muted-foreground"
                 >
                   {a.code}
-                  {a.distinctive && <span className="text-[#b07a18] dark:text-[#d6a23e]"> ◆</span>}
+                  {a.distinctive && <span className="text-warning"> ◆</span>}
                   <span className="mt-0.5 block text-[9px] font-normal text-faint">
                     {a.enough ? pct(a.pen ?? 0) : "—"}
                   </span>
@@ -215,7 +215,7 @@ function Legend() {
       <span className="inline-flex items-center gap-1.5"><Glyph v="partial" className="size-4" /> Partial</span>
       <span className="inline-flex items-center gap-1.5"><Glyph v="no" className="size-4" /> No</span>
       <span className="inline-flex items-center gap-1.5">
-        <Glyph v="unknown" className="size-4" /> Unverified <em className="text-[#b07a18] not-italic dark:text-[#d6a23e]">(about us)</em>
+        <Glyph v="unknown" className="size-4" /> Unverified <em className="not-italic text-warning">(about us)</em>
       </span>
       <span className="text-faint">◆ discriminating attribute</span>
     </div>
@@ -251,7 +251,7 @@ function CellDetail({
     <>
       <RailHeader
         kicker={`${bank.name} · ${code} · ${attr.blockName}`}
-        title={<>{attr.label}{attr.distinctive && <span className="text-[#b07a18] dark:text-[#d6a23e]"> ◆</span>}</>}
+        title={<>{attr.label}{attr.distinctive && <span className="text-warning"> ◆</span>}</>}
         onClose={onClose}
       />
       <div className="flex-1 overflow-y-auto px-5 py-4">
@@ -261,7 +261,7 @@ function CellDetail({
             <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
               {v === "unknown" ? "about us" : "about the bank"}
             </div>
-            <div className={cn("text-[16px] font-bold tracking-tight", v === "unknown" ? "text-[#b07a18] dark:text-[#d6a23e]" : v === "no" ? "text-muted-foreground" : "text-positive")}>
+            <div className={cn("text-[16px] font-bold tracking-tight", v === "unknown" ? "text-warning" : v === "no" ? "text-muted-foreground" : "text-positive")}>
               {STATE_LABEL[v]}
             </div>
           </div>
@@ -277,7 +277,7 @@ function CellDetail({
           </a>
         )}
         {v === "unknown" && (
-          <div className="mt-4 rounded-md border border-[#b07a18]/40 bg-[#b07a18]/10 px-3 py-2.5 text-[12.5px] leading-relaxed text-[#b07a18] dark:border-[#d6a23e]/40 dark:text-[#d6a23e]">
+          <div className="mt-4 rounded-md border border-warning/40 bg-warning/10 px-3 py-2.5 text-[12.5px] leading-relaxed text-warning">
             This is <b>unverified</b> — we could not confirm it, so it is left open. It does not mean the bank lacks the product; it is a gap about us.
           </div>
         )}
@@ -304,13 +304,13 @@ function BankDetail({ bank, onClose }: { bank: ProductBank; onClose: () => void 
           {seg(bank.yes, "var(--positive)")}
           {seg(bank.partial, "color-mix(in srgb, var(--positive) 55%, transparent)")}
           {seg(bank.no, "var(--border)")}
-          {seg(bank.unknown, "#b07a18")}
+          {seg(bank.unknown, "var(--warning)")}
         </div>
         <div className="mt-1.5 flex flex-wrap gap-x-3.5 font-mono text-[11px] text-muted-foreground">
           <span><b className="text-foreground">{bank.yes}</b> has</span>
           <span><b className="text-foreground">{bank.partial}</b> partial</span>
           <span><b className="text-foreground">{bank.no}</b> no</span>
-          <span className="text-[#b07a18] dark:text-[#d6a23e]"><b>{bank.unknown}</b> unverified</span>
+          <span className="text-warning"><b>{bank.unknown}</b> unverified</span>
         </div>
         <div className="mt-4 flex gap-6">
           <Metric label="Verified shelf" value={pct(bank.shelf)} tone="pos" />
@@ -340,7 +340,7 @@ function Metric({ label, value, tone }: { label: string; value: string; tone: "p
   return (
     <div>
       <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-muted-foreground">{label}</div>
-      <div className={cn("font-mono text-[26px] font-semibold", tone === "pos" ? "text-positive" : tone === "warn" ? "text-[#b07a18] dark:text-[#d6a23e]" : "text-foreground")}>
+      <div className={cn("font-mono text-[26px] font-semibold", tone === "pos" ? "text-positive" : tone === "warn" ? "text-warning" : "text-foreground")}>
         {value}
       </div>
     </div>

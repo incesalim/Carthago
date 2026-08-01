@@ -61,10 +61,16 @@
   /* Caption / axis tone. */
   --faint: #6A6E73;
 
-  /* Data-semantic tones (used as text + as /10–/15 tinted backgrounds). */
-  --positive: #187A53;
-  --negative: #BC4645;
-  --warning: #8E660F;             /* thresholds, representative-data flags */
+  /* Data-semantic tones (used as text + as /10–/15 tinted backgrounds).
+     Darkened ~8% on 2026-08-01: at the stated /15 these cleared only 4.24–4.34:1
+     against their OWN tint, because check_contrast only ever measured them on
+     solid surfaces. The gate now composites the tint (rule 4), and /15 is a hard
+     ceiling — at /25 no usable ink clears AA. Dark-theme values needed no change.
+     Mirrored in mobile/src/theme/tokens.ts (check:tokens diffs them) and in
+     chart-theme.ts, which bakes its own hexes for Recharts. */
+  --positive: #16714D;
+  --negative: #A93F3E;
+  --warning: #825D0E;             /* thresholds, representative-data flags */
   --info: #2B4E7E;
 
   /* Cross-bank heatmap ramp. */

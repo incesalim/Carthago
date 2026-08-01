@@ -195,6 +195,43 @@ export default async function MethodologyPage() {
           </ul>
         </Section>
 
+        <Section id="comparability" title="Where our definitions differ from the market">
+          <p className="mb-2.5">
+            Three figures here are computed differently from the way a Turkish bank
+            publishes them or a sell-side model carries them. None is an error — each is a
+            definition — but a reader reconciling against their own numbers will find a
+            gap, and ought to know which gap it is rather than conclude the data is wrong.
+          </p>
+          <ul className="ml-4 list-disc space-y-2.5 marker:text-faint">
+            <li>
+              <b className="font-semibold">Net interest margin is not swap-adjusted, and is
+              struck on total assets.</b> Turkish banks fund lira assets by swapping foreign
+              currency, and under TFRS the cost of that swap lands in the trading and FX
+              line, not in interest expense. Banks therefore publish a{" "}
+              <i>swap maliyetine göre düzeltilmiş marj</i> computed from their own treasury
+              books — a figure that is not a line in the filing and cannot be reproduced
+              from it. Ours is the unadjusted margin over average total assets rather than
+              average interest-earning assets, so it reads lower than a bank-published or
+              broker NIM, and the gap is widest for the banks that swap most.
+            </li>
+            <li>
+              <b className="font-semibold">Cost / income uses BRSA gross operating
+              profit</b> (the statement&rsquo;s own subtotal), which includes other
+              operating income — provision reversals among it. Most brokers strip that out.
+              Ours therefore reads structurally low against a sell-side cost/income, and
+              the difference is largest in quarters with big reversals.
+            </li>
+            <li>
+              <b className="font-semibold">Unconsolidated is the default everywhere.</b>{" "}
+              Every audited figure is the bank-only (solo) filing unless a page says
+              otherwise; per-bank pages carry a toggle where the consolidated report
+              exists, but every sector aggregate is solo. Brokers generally model
+              consolidated, which for a bank with material subsidiaries is a different
+              company.
+            </li>
+          </ul>
+        </Section>
+
         <Section id="checks" title="What runs before anything publishes">
           <p>
             The extraction is validated against the filings themselves — statements must

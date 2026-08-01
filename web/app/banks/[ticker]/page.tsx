@@ -79,6 +79,7 @@ import {
   SECTOR_TOTAL_LIABILITIES_KEY,
 } from "@/app/lib/audit";
 import { ordOf, ttmEndingAt, yoyPct } from "@/app/lib/period-math";
+import { realRate } from "@/app/lib/real-terms";
 import { LDR_AUDITED } from "@/app/lib/ldr";
 import { newsByTicker, pressNewsByBank } from "@/app/lib/news";
 import { earningsByTicker } from "@/app/lib/earnings";
@@ -703,7 +704,14 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
   );
   const cpi12m = lastVal(cpi.avg12);
   const cpiYoY = lastVal(cpi.yoy);
-  const realRoe = roeNow != null && cpi12m != null ? roeNow - cpi12m : null;
+  // Exact Fisher, not `roeNow - cpi12m`. real-terms.ts:16-27 exists precisely
+  // because `/` was doing that subtraction inline: at ~32% CPI the shortcut runs
+  // 1.2–1.8pp adrift and made the landing page disagree with /credit's own
+  // deflated figure. The fix landed on `/` and not here. NOTE the unit changes
+  // with the maths — a subtraction yields percentage POINTS, this yields a real
+  // RATE in percent, so the ladder row below prints "%" and no longer claims to
+  // be the arithmetic difference of the two rows above it.
+  const realRoe = realRate(roeNow, cpi12m);
 
   /** '2026Q1' → 'Q1 2026'; used for the movers header. */
   const qLabel = (p: string | null): string => {
@@ -736,8 +744,8 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
         ...(roeFpGap != null && Math.abs(roeFpGap) >= 0.005
           ? [{ label: "ROE ex free provision", note: "the discretionary provision swing added back", value: roeAdjNow, unit: "%", kind: "sub", scale: 50 }]
           : []),
-        { label: "− Inflation", note: "12-month-average CPI", value: cpi12m, unit: "%", kind: "out", scale: 50 },
-        { label: "= Real return on equity", value: realRoe, unit: "pp", kind: "total", scale: 50 },
+        { label: "÷ Inflation", note: "12-month-average CPI, deflated (1+g)/(1+π)−1", value: cpi12m, unit: "%", kind: "out", scale: 50 },
+        { label: "= Real return on equity", value: realRoe, unit: "%", kind: "total", scale: 50 },
       ].filter((r) => r.value != null) as EngineRow[])
     : [];
 

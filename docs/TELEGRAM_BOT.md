@@ -115,9 +115,10 @@ You need a bot from [@BotFather](https://t.me/BotFather) (`/newbot` → token).
    Optional caps (defaults 20/chat/day, 300 global/day):
    `wrangler secret put BOT_PER_CHAT_DAILY` · `BOT_GLOBAL_DAILY`.
 
-3. **Deploy** so the route + `bot_usage` table exist. Pushing any `web/**`
-   change to `master` triggers `deploy-cloudflare.yml` (which also runs
-   `wrangler d1 migrations apply`). Or deploy manually: `cd web && npm run deploy`.
+3. **Deploy** so the route + `bot_usage` table exist. Pushing to `master`
+   triggers `deploy-cloudflare.yml` once CI goes green on that commit (it also
+   runs `wrangler d1 migrations apply`). Or deploy manually:
+   `cd web && npm run deploy`.
 
 4. **Register the webhook** (points Telegram at the Worker). Two ways:
 

@@ -18,6 +18,7 @@
  * renders an explanation instead of an empty tile.
  */
 import type { BankMetricRow, MetricKey } from "./heatmap";
+import { BANK_TYPE_BY_TICKER } from "./bank_names";
 
 // Re-exported because `BriefLayer.tsx` consumes it. Was `CAR_MIN = 12` commented
 // "BDDK regulatory minimum" — 12% is BDDK's TARGET ratio; the statutory floor is
@@ -33,8 +34,10 @@ export interface PeerStat {
   max: number;
   /** 1 = best on this metric (direction-aware). */
   rank: number;
-  /** Banks reporting the metric this quarter. */
+  /** Banks reporting the metric this quarter, within `universe`. */
   n: number;
+  /** Which field this was ranked against — "deposit banks", "all banks", … */
+  universe: string;
 }
 
 export interface PeerFieldSpec {
@@ -72,9 +75,48 @@ const median = (xs: number[]): number => {
 };
 
 /**
- * This bank against every bank reporting the same quarter. Returns null when the
+ * Licence class, which is the peer boundary that actually matters — BDDK
+ * partitions the sector the same way (mevduat / katılım / kalkınma-yatırım).
+ * `BANK_TYPE_BY_TICKER` codes OWNERSHIP (state/private/foreign are three codes
+ * for one business model), so it has to be collapsed before it is useful here.
+ */
+const PEER_CLASS_LABEL: Record<string, string> = {
+  deposit: "deposit banks",
+  participation: "participation banks",
+  devinv: "development & investment banks",
+};
+
+function peerClassOf(ticker: string): string | null {
+  switch (BANK_TYPE_BY_TICKER[ticker]) {
+    case "10005":
+    case "10006":
+    case "10007":
+      return "deposit";
+    case "10003":
+      return "participation";
+    case "10004":
+      return "devinv";
+    default:
+      return null;
+  }
+}
+
+/**
+ * This bank against its peer class in the same quarter. Returns null when the
  * bank has no value, or when fewer than `minField` peers reported (a "rank" out
  * of three banks is noise, not context).
+ *
+ * ⚠️ This used to compare against the ENTIRE licensed universe — every bank
+ * reporting, no class filter. Development & investment banks fund themselves
+ * without deposits and run capital ratios up to ~85%, and the recent digital
+ * entrants are tiny, so they set the level: at 2026Q1 the universe CAR median is
+ * 17.1% (n=37) against 15.3% for the big deposit banks. Every large bank's page
+ * therefore read "below the field" on capital while sitting AT its true peers'
+ * median. Comparing a deposit bank to Eximbank is not a peer comparison.
+ *
+ * Falls back to the whole field when the class is too thin to rank within, or
+ * when the ticker's class is unknown — and reports which universe it used, so
+ * the page can say so rather than implying one it did not use.
  */
 export function peerStat(
   panel: BankMetricRow[],
@@ -82,10 +124,20 @@ export function peerStat(
   period: string,
   spec: PeerFieldSpec,
   minField = 8,
+  universe: "class" | "all" = "class",
 ): PeerStat | null {
-  const field = panel
+  const all = panel
     .filter((r) => r.period === period && r[spec.key] != null)
     .map((r) => ({ t: r.bank_ticker, v: (r[spec.key] as number) * spec.scale }));
+
+  const cls = universe === "class" ? peerClassOf(ticker) : null;
+  const classField = cls ? all.filter((r) => peerClassOf(r.t) === cls) : [];
+  // Only narrow to the class if it is deep enough to rank inside; otherwise the
+  // wider field is the more honest context, labelled as such.
+  const useClass = cls != null && classField.length >= minField;
+  const field = useClass ? classField : all;
+  const universeLabel = useClass ? PEER_CLASS_LABEL[cls] : "all banks";
+
   if (field.length < minField) return null;
   const me = field.find((r) => r.t === ticker);
   if (!me) return null;
@@ -99,6 +151,7 @@ export function peerStat(
     max: Math.max(...vals),
     rank: ordered.findIndex((r) => r.t === ticker) + 1,
     n: field.length,
+    universe: universeLabel,
   };
 }
 

@@ -56,6 +56,43 @@ describe("peerStat", () => {
     expect(peerStat(field.slice(0, 3), "A", "2026Q1", spec)).toBeNull();
   });
 
+  // The defect this guards: the field used to be the whole licensed universe.
+  // Development & investment banks take no deposits and run CAR up to ~85%, so
+  // they dragged the median up and every large deposit bank read "below the
+  // field" while sitting at its true peers' median.
+  it("ranks a deposit bank against deposit banks, not development banks", () => {
+    const deposits = [
+      row("AKBNK", { car: 15.3 }), row("ISCTR", { car: 15.1 }), row("YKBNK", { car: 15.5 }),
+      row("GARAN", { car: 16.0 }), row("DENIZ", { car: 15.9 }), row("TEB", { car: 15.2 }),
+      row("SKBNK", { car: 14.8 }), row("FIBA", { car: 16.4 }), row("ANADOLU", { car: 15.7 }),
+    ];
+    const devInv = [
+      row("TSKB", { car: 40.7 }), row("EXIM", { car: 60.1 }), row("KLNMA", { car: 85.2 }),
+    ];
+    const s = peerStat([...deposits, ...devInv], "AKBNK", "2026Q1", spec)!;
+
+    expect(s.universe).toBe("deposit banks");
+    expect(s.n).toBe(9); // the dev banks are not in the field
+    expect(s.max).toBe(16.4); // NOT 85.2
+    expect(s.median).toBeCloseTo(15.5, 5); // NOT dragged up by the dev banks
+  });
+
+  it("falls back to the whole field, and says so, when a class is too thin", () => {
+    // Only three development banks file — ranking 1-of-3 is noise, so the wider
+    // field is the honest context. The label has to change with it.
+    const s = peerStat(
+      [
+        row("TSKB", { car: 40.7 }), row("EXIM", { car: 60.1 }), row("KLNMA", { car: 85.2 }),
+        ...Array.from({ length: 8 }, (_, i) => row(`AK${i}`, { car: 15 + i / 10 })),
+      ],
+      "TSKB",
+      "2026Q1",
+      spec,
+    )!;
+    expect(s.universe).toBe("all banks");
+    expect(s.n).toBe(11);
+  });
+
   it("returns null when this bank has no value", () => {
     expect(peerStat(field, "MISSING", "2026Q1", spec)).toBeNull();
   });
@@ -185,14 +222,14 @@ describe("phrases and maths", () => {
   });
 
   it("writes the capital read from the buffer, not by hand", () => {
-    const s = { value: 15.3, median: 17.0, min: 12.3, max: 85.2, rank: 24, n: 34 };
+    const s = { value: 15.3, median: 17.0, min: 12.3, max: 85.2, rank: 24, n: 34, universe: "all banks" };
     expect(peerRead("car", s, { buffer: 3.3 })).toContain("thinnest buffers");
     expect(peerRead("car", { ...s, value: 40.7, rank: 3 }, { buffer: 28.7 })).toContain("headroom");
   });
 });
 
 describe("the build-out guard", () => {
-  const s = { value: 118.0, median: 42.0, min: 28.0, max: 140.0, rank: 33, n: 34 };
+  const s = { value: 118.0, median: 42.0, min: 28.0, max: 140.0, rank: 33, n: 34, universe: "all banks" };
 
   it("calls a young bank spending more than it earns a build-out", () => {
     expect(peerRead("cost_income", s, { filings: 4 })).toContain("build-out");

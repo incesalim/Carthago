@@ -66,7 +66,7 @@ export const LIGHT: ChartTheme = {
   contextActive: "#454D57",
   inkMuted: "#50565E",   // = --muted-foreground
   negative: "#C24847",
-  positive: "#187A53",
+  positive: "#16714D",
   warning: "#B98514",
 };
 

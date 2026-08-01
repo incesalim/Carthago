@@ -81,7 +81,7 @@ export default function Attribution({
                     className="absolute inset-y-0 left-0 block border-r-2 border-card bg-data"
                     style={{ width: `${nestWidth}%` }}
                   >
-                    <span className="absolute left-2 top-1/2 -translate-y-1/2 whitespace-nowrap font-mono text-[9px] font-semibold text-white dark:text-[#0f1319]">
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 whitespace-nowrap font-mono text-[9px] font-semibold text-white dark:text-background">
                       {nest.label} {fmtValue(nest.value)}
                     </span>
                   </span>

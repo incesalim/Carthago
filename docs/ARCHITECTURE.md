@@ -203,8 +203,17 @@ internal identity can detect a unit change; only a cross-period or external anch
 can.**
 
 ### Deploy — `.github/workflows/deploy-cloudflare.yml`
-On push touching `web/**`. Applies D1 migrations (`wrangler d1 migrations
-apply`), builds the OpenNext bundle, and deploys to Cloudflare Workers.
+**After CI passes on the same commit** (`workflow_run` on `CI`, `conclusion ==
+success`, push events on `master`). Applies D1 migrations (`wrangler d1
+migrations apply`), builds the OpenNext bundle, and deploys to Cloudflare
+Workers.
+
+Until 2026-08-01 this was `on: push` with a `paths:` filter, which meant it
+*raced* CI rather than waiting for it — no `needs:`, no branch protection, so a
+red CI did not stop a deploy and the D1 migration step ran before any check had
+passed. `workflow_run` carries no path filter, so the deploy now builds on every
+green CI on master rather than only on `web/**` changes: a few minutes of free
+Actions time, traded for never shipping unchecked, and never silently skipping.
 
 ### Health check — `.github/workflows/healthcheck.yml`
 Daily 06:00 UTC. Queries D1 freshness per source + audit failure count and

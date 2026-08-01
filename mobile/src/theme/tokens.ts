@@ -61,9 +61,9 @@ export const light: Palette = {
   primaryForeground: "#FFFFFF",
   data: "#2B4E7E",
   context: "#C0C8D1",
-  positive: "#187A53",
-  negative: "#BC4645",
-  warning: "#8E660F",
+  positive: "#16714D",
+  negative: "#A93F3E",
+  warning: "#825D0E",
   chart: ["#2B4E7E", "#4E79B8", "#8FA8C8", "#B98514", "#7A5C8A", "#A0A7AE"],
 };
 

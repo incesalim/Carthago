@@ -1,15 +1,30 @@
 name: Deploy Cloudflare Workers dashboard
 
-# Deploys the Next.js dashboard in web/ to Cloudflare Workers via OpenNext
-# whenever the web/ folder (or this workflow) changes on master.
-# Manually triggerable from the Actions tab.
+# Deploys the Next.js dashboard in web/ to Cloudflare Workers via OpenNext,
+# AFTER CI has passed on the same commit. Manually triggerable from the Actions tab.
+#
+# This used to be `on: push` with a `paths:` filter — which meant it raced ci.yml
+# rather than waiting for it. Both fired on the same push, nothing linked them,
+# and `gh api .../branches/master/protection` returned 404 with no rulesets. So a
+# red CI did not stop a deploy, and `wrangler d1 migrations apply --remote` below
+# ran against the live database before a single check had passed. AGENTS.md and
+# web/AGENTS.md both stated "CI gates deploy"; until this change that was false.
+#
+# `workflow_run` is the trigger that actually expresses "after CI, if green".
+#
+# TRADE-OFF, deliberate: workflow_run carries no `paths:` filter, so this now
+# builds on every green CI on master, not only when web/** changed. That costs a
+# few minutes of (free, public-repo) Actions time on Python-only commits. The
+# alternative — reconstructing the changed-file set from the commit range — is
+# fragile across multi-commit pushes, and the failure it risks is a SILENTLY
+# STALE SITE. An extra idempotent deploy is the cheaper mistake, so it is the one
+# this file makes.
 
 on:
-  push:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
     branches: [master]
-    paths:
-      - "web/**"
-      - ".github/workflows/deploy-cloudflare.yml"
   workflow_dispatch: {}
 
 permissions:
@@ -17,6 +32,13 @@ permissions:
 
 jobs:
   deploy:
+    # Green CI on a push to master, or a hand-triggered run. `workflow_run` also
+    # fires for CI runs on pull requests and for failed/cancelled runs — neither
+    # should reach production.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
@@ -25,6 +47,11 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v6
+        with:
+          # A workflow_run job checks out the DEFAULT branch unless told
+          # otherwise — deploy the exact commit CI went green on, not whatever
+          # master points at by the time this starts.
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
 
       - name: Setup Node 24
         uses: actions/setup-node@v7

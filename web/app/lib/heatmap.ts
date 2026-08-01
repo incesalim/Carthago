@@ -96,7 +96,11 @@ export const METRIC_DEFS: MetricDef[] = [
   { key: "cost_of_risk",        label: "Cost of risk (TTM)",  short: "CoR",        unit: "pct", decimals: 2, direction: "higher_worse", family: "Asset quality",   rule: "|TTM ECL flow| ÷ avg gross loans" },
   { key: "roe",                 label: "ROE (TTM)",           short: "ROE",        unit: "pct", decimals: 1, direction: "higher_better",family: "Returns",         rule: "TTM net income ÷ 5-quarter avg equity" },
   { key: "roa",                 label: "ROA (TTM)",           short: "ROA",        unit: "pct", decimals: 2, direction: "higher_better",family: "Returns",         rule: "TTM net income ÷ 5-quarter avg assets" },
-  { key: "nim",                 label: "NIM (TTM)",           short: "NIM",        unit: "pct", decimals: 2, direction: "higher_better",family: "Returns",         rule: "TTM net interest ÷ 5-quarter avg assets" },
+  // NOT swap-adjusted, and on TOTAL assets rather than interest-earning — the
+  // rule string says so because this is the figure most likely to be reconciled
+  // against a bank's own deck, where it is struck both ways differently. See
+  // /methodology#comparability.
+  { key: "nim",                 label: "NIM (TTM)",           short: "NIM",        unit: "pct", decimals: 2, direction: "higher_better",family: "Returns",         rule: "TTM net interest ÷ 5-quarter avg total assets · not swap-adjusted" },
   // Margin engine — the drivers behind NIM. TTM interest flows over 5-point
   // average balances, the same trailing-year basis as ROE and NIM above. Loan
   // yield = interest on loans (P&L 1.1)
@@ -109,7 +113,9 @@ export const METRIC_DEFS: MetricDef[] = [
   { key: "loan_yield",          label: "Loan yield (TTM)",    short: "Yield",      unit: "pct", decimals: 1, direction: "neutral",      family: "Margin engine",   rule: "TTM interest on loans (1.1) ÷ avg gross loans" },
   { key: "deposit_cost",        label: "Deposit cost (TTM)",  short: "Dep cost",   unit: "pct", decimals: 1, direction: "neutral",      family: "Margin engine",   rule: "TTM interest on deposits (2.1) ÷ avg deposits" },
   { key: "spread",              label: "Loan–deposit spread", short: "Spread",     unit: "pct", decimals: 1, direction: "higher_better",family: "Margin engine",   rule: "loan yield − deposit cost" },
-  { key: "cost_income",         label: "Cost / Income (TTM)", short: "Cost/Inc",   unit: "pct",  decimals: 1, direction: "higher_worse",family: "Margin engine",   rule: "|TTM opex| ÷ |TTM gross operating profit|" },
+  // Denominator is the BRSA subtotal, which INCLUDES other operating income
+  // (provision reversals among it). Brokers strip that, so ours reads low.
+  { key: "cost_income",         label: "Cost / Income (TTM)", short: "Cost/Inc",   unit: "pct",  decimals: 1, direction: "higher_worse",family: "Margin engine",   rule: "|TTM opex| ÷ |TTM BRSA gross operating profit, incl. other income|" },
   // Capital + liquidity (audited §4) — solvency/liquidity buffers; higher = stronger.
   { key: "cet1",                label: "CET1 ratio (§4)",     short: "CET1",       unit: "pts", decimals: 1, direction: "higher_better",family: "Capital & liquidity", rule: "audited §4, as filed" },
   { key: "car",                 label: "CAR (§4)",            short: "CAR",        unit: "pts", decimals: 1, direction: "higher_better",family: "Capital & liquidity", rule: "audited §4, as filed" },

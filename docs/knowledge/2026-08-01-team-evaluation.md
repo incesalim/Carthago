@@ -267,18 +267,24 @@ are the reference implementation. Note the lane has no tests at all (§2.8).
 | 2.6 | **One LCR/NSFR floor applied to a population it doesn't uniformly bind.** Sub-100 prints at 2026Q1 are EXIM NSFR 92.63, PASHA LCR 93.36, TAKAS NSFR 92.69 — all non-deposit-taking. Also flagged against an *asset-weighted sector average*, which is not a regulatory object. | `liquidity/page.tsx:246,528-545` |
 | 2.7 | **`/economy` is a second design system in the first one's shell.** Raw hex from the retired "Editorial" palette across 5 pages + 2 chart components; amber `#f5c518` = 1.63:1, grey 2.54:1, orange 2.71:1 against the sheet — below 1.4.11's 3:1 for a meaningful graphic. | `economy/*/page.tsx`; `BopFlowChart.tsx:70-74` |
 | 2.8 | **The aggregate scraper lane has zero tests.** `bddk_api_scraper.py` produces everything `/api/v1` publishes and most of what the sector pages read, with five copy-pasted `_save_*` methods and per-row exceptions swallowed into a `print` — so a systematic parse break returns a low row count and exits 0. | `:164,195,226,269,308`; `:190,221,264` |
-| 2.9 | **Charts are mouse-only; no skip link.** `TrendChart.tsx:296-301` drives series isolate/pin entirely via `onMouseEnter`/`onContextMenu` — no focus, no keyboard, no touch. `layout.tsx:106` puts a ~35-link rail before content with no bypass. | WCAG 2.1.1, 2.4.1 |
+| 2.9 | **Charts are mouse-only** — `TrendChart.tsx:296-301` drives series isolate/pin entirely via `onMouseEnter`/`onContextMenu`: no focus, no keyboard, no touch. **STILL OPEN.** ✅ The skip-link half is fixed (2026-08-01): `layout.tsx` now renders a focus-revealed "Skip to content" anchor onto a focusable `#main` wrapper — a `div`, not a `<main>`, because every page already renders its own and nesting two is invalid. | WCAG 2.1.1 open, 2.4.1 closed |
 | 2.10 | **The categorical chart ramp fails a colour-vision check — and rendered, it is worse than the token values suggest.** Recomputed from source (Vienot 1999, CIE76): dark normal-vision chart-1~chart-2 ΔE 11.8; dark deuteranopia c2~c5 7.7 — under the ~15 categorical floor. But multi-series *lines* use hero+context (2 colours), so the real exposure is **stacked areas**, which render every band at `fill-opacity 0.55` over `#171B21`, roughly halving separation again. As rendered on `/deposits`: adjacent 1–3m\|3–6m ΔE **8.9 at normal vision**; 3–6m\|6–12m ΔE **4.7** deuteranopia; the upper four bands were not separable by eye. **And the legend swatches draw at full opacity while the bands are 55%** — the only key on a stacked area is a different colour from the mark it keys. The mobile layer sidesteps all of this by being single-series by construction; the web ships the ramp across 22 render sites. | `globals.css:75-82,126-131`; verified live on `/deposits` |
 | 2.12 | **The sticky bank-page header is frosted app chrome in a document-sheet system.** The wrapper is `rgba(0,0,0,0)` with two children at 90%/95% white and `blur(8px)`, so dense content ghosts through behind the bank name. Confirmed in a live capture. A design-language break rather than a defect — but the constitution is "a white sheet on paper ground", and this is the one place the product reads like an app. | `banks/[ticker]/page.tsx:1289` |
 | 2.13 | **65 sub-10px text nodes on one page fail as reading, not as contrast.** 18 at 8px, 20 at 8.5px, 26 at 9.5px — all `--faint` mono **caps** with 0.07–0.12em tracking. All-caps at 8.5px removes ascender/descender cues, so it reads as texture to skip rather than a line to read. No WCAG size minimum exists, so this is a legibility finding, not an accessibility one — reclassified accordingly. | verified live on `/banks/AKBNK` |
 | 2.11 | **The 45 "Şekil N" labels on `/economy` are a dangling citation naming the wrong organisation.** Not leftover strings — the numbering is non-sequential (budget renders Şekil 1, 5, 4, 3, 2 in DOM order; `METRICS.md:1006-1020` has gaps at 4 and 5), so it is a real reference. `chart-specs.catalog.json` records the referent per chart: **Albaraka Türk's Turkish macro research notes** — not TCMB, not TÜİK, both of which use "**Grafik N**" and never "Şekil N". So the page prints a Turkish figure number above a TÜİK/Treasury source footer and a reader infers a TÜİK reference that does not exist. Several charts also consolidate a *range* ("Şekil 2–6"), and the notes are periodic, so a bare number isn't stable across editions. Fix: plain-English title; full citation in the footer generated from the catalog — *"Chart after Albaraka, Ödemeler Dengesi (Apr 2026), Şekil 2 · Data: TÜİK"*. `lang="tr"` marks up a reference that still doesn't resolve; translating destroys a real one. | `chart-specs.catalog.json`; `budget/page.tsx:285-347` |
 
 **Accessibility verdict, stated plainly: this product would not pass a WCAG 2.2
-AA review today.** Failing with cause: 2.4.1, 2.1.1, 1.4.1 (`delta-badge.tsx:52-53`
-hides direction in an `aria-hidden` glyph and passes the screen reader
-`Math.abs`), 1.3.1 (h2→h5 heading skips), 1.4.3, 1.4.11, 2.4.7
-(`Register.tsx:298` kills the outline with no replacement), 3.1.2 (45 Turkish
-figure labels in a `lang="en"` document, no `lang="tr"` anywhere).
+AA review today.** Failing with cause: ~~2.4.1~~ ✅, 2.1.1, 1.4.1
+(`delta-badge.tsx:52-53` hides direction in an `aria-hidden` glyph and passes the
+screen reader `Math.abs`), 1.3.1 (h2→h5 heading skips), ~~1.4.3~~ ✅, 1.4.11,
+2.4.7 (`Register.tsx:298` kills the outline with no replacement), 3.1.2 (45
+Turkish figure labels in a `lang="en"` document, no `lang="tr"` anywhere).
+
+**2026-08-01: 2.4.1 and 1.4.3 are closed** — skip link added, and the
+contrast-gate holes fixed at the token level so 1.4.3 is now CI-enforced rather
+than merely repaired. **Five criteria remain**, and the verdict is unchanged:
+still failing AA. 1.4.11 (chart marks) is the largest remaining piece and needs
+the ramp work, which is a genuine palette exercise rather than a tweak.
 
 ## 3. What the strategy work concluded
 
@@ -443,9 +449,16 @@ Not flattery — each of these was checked.
 
 1. ~~**Capital thresholds** (§1.1)~~ ✅ **done 2026-08-01** — single sourced
    constants module; four duplicate definitions collapsed into one.
-2. **Gate the deploy on CI** (§1.3) — ~1 hour, makes a documented rule true.
-3. **Close the contrast-gate holes** (§1.5) — ~30 lines, converts a whole class
-   from vigilance to CI.
+2. ~~**Gate the deploy on CI** (§1.3)~~ ✅ **done 2026-08-01** — `workflow_run` on
+   CI, success-only, push-only. The `paths:` filter goes with it, so every green
+   CI on master now builds: a few minutes of free Actions time, traded against
+   never shipping unchecked and never silently skipping a deploy.
+3. ~~**Close the contrast-gate holes** (§1.5)~~ ✅ **done 2026-08-01** — rule 3
+   (no arbitrary hex as text) and rule 4 (composite the tint before measuring).
+   Caught **21 hex leaks** and **9 real tint failures**, including the two the
+   review found. Clearing them needed the three light semantic inks darkened ~8%
+   and the `/25` tint capped to `/15` — the dark theme needed no change, and
+   `mobile/src/theme/tokens.ts` moved in lockstep.
 4. **Restore the zeros in `total_tl` / `total_fx`** (§1.6) — scoped to two
    columns in the loans loader, with four working columns as the reference.
    19,139 legally-mandated zeros currently render as ignorance. Backfill needs a
@@ -456,16 +469,23 @@ Not flattery — each of these was checked.
    Pair with the fixture check that would actually have caught DUNYAK 2024Q4:
    feed the sankey transform a compressed-template row set and assert no
    `contra: true` node carries a positive profit. ~2 hours, build it first.
-6. **A definition note on NIM, cost/income and consolidation basis** (§1.2) — a
-   paragraph. Highest credibility-per-word in the list: it converts "their data
-   is wrong" into "their definition is different" for any professional who tries
-   to reconcile. Do this before any launch.
+6. ~~**A definition note on NIM, cost/income and consolidation basis** (§1.2)~~
+   ✅ **done 2026-08-01** — `/methodology#comparability`, plus the two metric
+   `rule` strings that render at the point of use, so a reader meets the caveat
+   on the figure rather than only on a page they may not open.
 7. **Strike NIM on average interest-earning assets, not total assets** (§1.2) —
    computable from stored rows, wrong by every convention today, and the one part
    of the NIM finding that needs no judgement call. Do **not** ship a
    `6.2 + 6.3` swap adjustment; surface trading & FX as its own line instead.
-8. **Peer-group parameter on `peerStat`** and **`realRate()` at
-   `page.tsx:706`** (§2.3, §2.4) — two one-liners.
+8. ~~**Peer-group parameter on `peerStat`** and **`realRate()` at
+   `page.tsx:706`**~~ ✅ **done 2026-08-01** — neither was a one-liner in the end.
+   `peerStat` needed a licence-class collapse (`BANK_TYPE_BY_TICKER` codes
+   *ownership*, so state/private/foreign are three codes for one business model),
+   a thin-class fallback, and a `universe` field so the page can name the field it
+   ranked against instead of implying one it did not use. `realRate()` changes the
+   UNIT — a subtraction yields points, Fisher yields a rate — so the engine
+   ladder's "− Inflation / = Real ROE" rows had to stop claiming to be an
+   arithmetic difference. Two tests added pinning the dev-bank distortion.
 9. ~~**Read BDDK's terms**~~ ✅ **done 2026-08-01** — and it did change the picture:
    partial quotation only, which lands on `/api/v1`. **Still to do: pull the Yahoo
    feed** (a day), and decide what `/api/v1` should serve — leave it, bound it so a
