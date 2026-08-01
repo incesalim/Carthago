@@ -104,6 +104,23 @@ exactly 1000 because the bank also grew ~5%). So **no historical filing was
 missed**; TEB is the first, and Turkish inflation makes more likely as the season
 fills in.
 
+**⚠️ It is not TEB — it is the whole sector (2026-08-01).** All 11 held 2026Q2
+filings declare `milyon Türk Lirası`; all 11 of the same banks' 2026Q1 filings
+declare `bin`. TEB was the first filer, not an outlier. Local extraction of the
+six banks confirms both the failure (raw figures ~950× small against their own
+Q1) and the fix (×1000 puts QoQ growth at +5% to +9.8%).
+
+**Unit detection is solved deterministically — 22/22, free, offline.** A single
+regex over the front pages reads the declaration in both Turkish and English.
+An LLM arm was benched against it on the same 22 filings and lost: DeepSeek
+v4-flash 19/22, Nemotron-3-super free 16/22, and *not one* miss was a
+comprehension failure — both models quoted the correct phrase and then fumbled
+the output field. See
+[knowledge/2026-08-01-llm-vs-regex-unit-detection.md](knowledge/2026-08-01-llm-vs-regex-unit-detection.md).
+**The open part is applying the scale, not detecting it**: an allowlist of every
+amount column across ~14 lanes that excludes the ratios, coverage fractions and
+branch/personnel counts sharing those rows.
+
 **Decision: wait for more Q2 filers before building the fix**, so unit detection
 is designed against several examples rather than fitted to TEB. The partition was
 purged via the new `purge-partition.yml` (snapshot + D1 + coverage re-sync), so
