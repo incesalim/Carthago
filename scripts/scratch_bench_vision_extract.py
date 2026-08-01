@@ -44,7 +44,7 @@ BASE = "https://openrouter.ai/api/v1"
 HEADERS_EXTRA = {"HTTP-Referer": "https://carthago.app", "X-Title": "carthago"}
 ROOT = Path(__file__).resolve().parents[1]
 DELAY = float(os.environ.get("BENCH_DELAY", "2"))
-DPI = int(os.environ.get("BENCH_DPI", "150"))
+DPI = int(os.environ.get("BENCH_DPI", "120"))
 
 # Statements whose page we can locate deterministically. The point of the bench
 # is the transcription, not the page hunt, so anything we cannot address
@@ -113,13 +113,41 @@ def render_page(pdf: Path, page_1: int) -> tuple[bytes, dict]:
         pg = doc[page_1 - 1]
         meta = {"images": len(pg.get_images()), "textlen": len(pg.get_text().strip()),
                 "rotation": pg.rotation, "pages": doc.page_count}
-        return pg.get_pixmap(dpi=DPI).tobytes("png"), meta
+        # JPEG, not PNG: at 120dpi this is ~178KB base64 against ~357KB for PNG
+        # at 150. The free VL endpoint is slow enough that payload size is worth
+        # halving even though the 504s below are an idle timeout, not a size cap.
+        return pg.get_pixmap(dpi=DPI).tobytes("jpg", jpg_quality=82), meta
+    finally:
+        doc.close()
+
+
+def fallback_page(pdf: Path, statement: str) -> int | None:
+    """Locate a drawn balance sheet when _locate_pages finds nothing.
+
+    When BOTH halves of the balance sheet are images (FIBA 2022Q1), there is no
+    text for the normal locator to anchor on and it returns {}. The drawn
+    statement pages are still identifiable: they are the image-dense pages near
+    the front. Assets is the first, liabilities the next.
+    """
+    import fitz
+
+    doc = fitz.open(pdf)
+    try:
+        dense = [i + 1 for i in range(min(30, doc.page_count))
+                 if len(doc[i].get_images()) > 40]
+        if not dense:
+            return None
+        if statement == "assets":
+            return dense[0]
+        if statement == "liabilities":
+            return dense[1] if len(dense) > 1 else None
+        return None
     finally:
         doc.close()
 
 
 def transcribe(key: str, model: str, png: bytes) -> tuple[list[dict], str, dict]:
-    url = "data:image/png;base64," + base64.b64encode(png).decode()
+    url = "data:image/jpeg;base64," + base64.b64encode(png).decode()
     body = {
         "model": model,
         "messages": [
@@ -131,7 +159,10 @@ def transcribe(key: str, model: str, png: bytes) -> tuple[list[dict], str, dict]
         ],
         "temperature": 0,
         "seed": 7,
-        "max_tokens": 8000,
+        # A 47-row table is ~1.5k tokens of JSON. 8000 let the free endpoint run
+        # long enough to hit "Upstream idle timeout exceeded" (504) on every
+        # call, which is a generation-speed failure, not a size one.
+        "max_tokens": 4000,
         # effort=none was the round-2 finding: reasoning tokens otherwise eat the
         # budget and the JSON comes back truncated, scoring as a model failure.
         "reasoning": {"effort": "none"},
@@ -140,7 +171,13 @@ def transcribe(key: str, model: str, png: bytes) -> tuple[list[dict], str, dict]
     for attempt in range(4):
         r = requests.post(f"{BASE}/chat/completions", headers=_auth(key),
                           json=body, timeout=300)
-        if r.status_code == 429:
+        # Free vision endpoints 429 under load and 5xx on slow generation; both
+        # are worth retrying, and neither should be scored as a wrong answer.
+        if r.status_code == 429 or r.status_code >= 500:
+            time.sleep(5 * (attempt + 1))
+            continue
+        # A 200 can still carry an upstream error object rather than choices.
+        if "Upstream idle timeout" in r.text or '"code": 504' in r.text:
             time.sleep(5 * (attempt + 1))
             continue
         break
@@ -235,7 +272,7 @@ def main() -> int:
             r2_storage.download_to(r2key, dest)
 
         loc = _locate_pages(str(dest))
-        page = PAGE_FOR[s["statement"]](loc)
+        page = PAGE_FOR[s["statement"]](loc) or fallback_page(dest, s["statement"])
         if not page:
             print(f"  {tag}: page not locatable ({loc})"); continue
 
