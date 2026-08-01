@@ -121,27 +121,49 @@ def render_page(pdf: Path, page_1: int) -> tuple[bytes, dict]:
         doc.close()
 
 
-def fallback_page(pdf: Path, statement: str) -> int | None:
-    """Locate a drawn balance sheet when _locate_pages finds nothing.
+# Order of the statement block in a BRSA report, which is fixed by the uniform
+# chart of accounts: bilanço aktif, bilanço pasif, nazım hesaplar, kâr/zarar,
+# OCI, özkaynak değişim, nakit akış.
+DRAWN_ORDER = ["assets", "liabilities", "off_balance", "profit_loss",
+               "oci", "equity_change", "cash_flow"]
 
-    When BOTH halves of the balance sheet are images (FIBA 2022Q1), there is no
-    text for the normal locator to anchor on and it returns {}. The drawn
-    statement pages are still identifiable: they are the image-dense pages near
-    the front. Assets is the first, liabilities the next.
+
+def fallback_page(pdf: Path, statement: str) -> int | None:
+    """Locate a DRAWN statement block when _locate_pages finds nothing.
+
+    Two different mechanisms produce an unreadable page and only one is an
+    image: FIBA 2025Q1 p11 carries 368 embedded images, but FIBA 2022Q1 pp10-16
+    carry ZERO images and 800-1,775 vector *drawings* — every glyph is a path.
+    Checking `get_images()` alone sees nothing wrong with the second, which is
+    why the first version of this returned None for the whole 2022Q1 family.
+
+    A drawn statement page is: almost no text, lots of marks. They appear as one
+    consecutive run, in the fixed order above.
     """
     import fitz
 
     doc = fitz.open(pdf)
     try:
-        dense = [i + 1 for i in range(min(30, doc.page_count))
-                 if len(doc[i].get_images()) > 40]
-        if not dense:
+        drawn = []
+        for i in range(min(40, doc.page_count)):
+            pg = doc[i]
+            marks = len(pg.get_drawings()) + len(pg.get_images())
+            if len(pg.get_text().strip()) < 400 and marks > 200:
+                drawn.append(i + 1)
+        if not drawn:
             return None
-        if statement == "assets":
-            return dense[0]
-        if statement == "liabilities":
-            return dense[1] if len(dense) > 1 else None
-        return None
+        # Keep the first consecutive run — later runs are note tables, not the
+        # statement block.
+        run = [drawn[0]]
+        for p in drawn[1:]:
+            if p == run[-1] + 1:
+                run.append(p)
+            else:
+                break
+        if statement not in DRAWN_ORDER:
+            return None
+        idx = DRAWN_ORDER.index(statement)
+        return run[idx] if idx < len(run) else None
     finally:
         doc.close()
 
@@ -159,10 +181,11 @@ def transcribe(key: str, model: str, png: bytes) -> tuple[list[dict], str, dict]
         ],
         "temperature": 0,
         "seed": 7,
-        # A 47-row table is ~1.5k tokens of JSON. 8000 let the free endpoint run
-        # long enough to hit "Upstream idle timeout exceeded" (504) on every
-        # call, which is a generation-speed failure, not a size one.
-        "max_tokens": 4000,
+        # 8000 hit "Upstream idle timeout exceeded" (504) on every call; 4000
+        # then truncated mid-table. Turkish row names tokenize badly, so a
+        # 47-row statement runs well past the ~2k a rough count suggests. 12000
+        # with the 5xx retry above: let it be slow rather than cut off.
+        "max_tokens": 12000,
         # effort=none was the round-2 finding: reasoning tokens otherwise eat the
         # budget and the JSON comes back truncated, scoring as a model failure.
         "reasoning": {"effort": "none"},
@@ -208,14 +231,17 @@ def score(truth: list[dict], got: list[dict]) -> dict:
     inserts one row would otherwise misalign everything after it and score ~0,
     which would tell us the alignment broke, not how well it read.
     """
-    by_name = {}
+    by_name, by_h = {}, {}
     for r in got:
         by_name.setdefault(_norm(r.get("name", "")), r)
+        by_h.setdefault(_norm(r.get("h", "")), r)
 
     matched = exact = 0
     wrong: list[str] = []
     for t in truth:
-        g = by_name.get(_norm(t.get("name", "")))
+        # Name first, hierarchy as the fallback: a mis-read Turkish name should
+        # not cost a row whose marker is unambiguous.
+        g = by_name.get(_norm(t.get("name", ""))) or by_h.get(_norm(t.get("h", "")))
         if not g:
             continue
         matched += 1
@@ -231,7 +257,7 @@ def score(truth: list[dict], got: list[dict]) -> dict:
     # The total row carries the whole statement; getting it wrong is fatal even
     # if every other row is right.
     tt = truth[-1] if truth else {}
-    gt = by_name.get(_norm(tt.get("name", "")))
+    gt = by_name.get(_norm(tt.get("name", ""))) or by_h.get(_norm(tt.get("h", "")))
     total_ok = bool(gt) and all(
         int(tt.get(f) or 0) == int(gt.get(f) or 0) for f in ("tl", "fc", "total"))
 
