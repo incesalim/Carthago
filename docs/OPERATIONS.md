@@ -5,6 +5,12 @@ workflows pick up new BDDK bulletins, new audit reports, and fresh
 EVDS data on their own and push everything to Cloudflare D1 — no local
 machine involvement is required for routine refreshes.
 
+> **Shell note.** This repo is worked from **Windows PowerShell 5.1**, which has
+> no `&&` — `cd web && npx wrangler …` is a parser error there, not a chaining
+> operator. Commands in these docs use `;` so they run in both PowerShell and
+> bash, and call CLIs through `npx` since `wrangler` is a local dependency and is
+> not on PATH.
+
 ## Schedules
 
 | When | Workflow | What it does |
@@ -373,7 +379,7 @@ The schema source of truth is the hand-authored, version-controlled files in
 2. Commit + push. The deploy workflow runs `wrangler d1 migrations apply
    bddk-data --remote`, which applies only files not yet recorded in the
    `d1_migrations` table. (`CREATE … IF NOT EXISTS` makes re-apply a no-op.)
-3. Test locally first: `cd web && npx wrangler d1 migrations apply bddk-data --local`.
+3. Test locally first: `cd web; npx wrangler d1 migrations apply bddk-data --local`.
 
 `scripts/archive/generate_d1_migrations.py` was a one-time D1 seed (writes to
 `web/seeds/`, gitignored) — **not schema, and no longer part of any lane**.
@@ -744,7 +750,7 @@ Actions **variables** (same screen, "Variables" tab — not secrets):
 ### Worker secrets (dashboard / `/admin` / bot)
 
 Set on the Worker — Cloudflare → Workers & Pages → `carthago`
-→ Settings → Variables and Secrets (or `cd web && npx wrangler secret put NAME`).
+→ Settings → Variables and Secrets (or `cd web; npx wrangler secret put NAME`).
 Declared (and commented) in `web/cloudflare-env.d.ts`; all optional — each feature
 degrades gracefully when its key is unset:
 

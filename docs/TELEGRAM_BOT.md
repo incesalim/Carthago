@@ -137,7 +137,7 @@ You need a bot from [@BotFather](https://t.me/BotFather) (`/newbot` → token).
 3. **Deploy** so the route + `bot_usage` table exist. Pushing to `master`
    triggers `deploy-cloudflare.yml` once CI goes green on that commit (it also
    runs `wrangler d1 migrations apply`). Or deploy manually:
-   `cd web && npm run deploy`.
+   `cd web; npm run deploy`.
 
 4. **Register the webhook** (points Telegram at the Worker). Two ways:
 
@@ -170,7 +170,7 @@ It is gated by the `BOT_TEST_KEY` Worker secret and returns **404 when that secr
 unset**, so the endpoint doesn't exist unless you deliberately enable it:
 
 ```bash
-cd web && wrangler secret put BOT_TEST_KEY    # any long random string
+cd web; npx wrangler secret put BOT_TEST_KEY   # any long random string
 ```
 
 Note the key travels in the query string (so it can be opened in a browser), which

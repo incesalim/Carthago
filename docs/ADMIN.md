@@ -143,7 +143,7 @@ This is all that's needed to open `/admin` on the current `workers.dev` URL.
 
 Cloudflare dashboard → **Workers & Pages → `carthago` →
 Settings → Variables and Secrets → Add** → name `ADMIN_PASSWORD`, type **Secret**,
-value = a password you choose → **Save**. (Or CLI: `cd web && npx wrangler secret
+value = a password you choose → **Save**. (Or CLI: `cd web; npx wrangler secret
 put ADMIN_PASSWORD`.)
 
 Then visit `/admin`, enter the password, and you're in. The session lasts ~12h;
