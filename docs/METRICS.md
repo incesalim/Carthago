@@ -311,7 +311,7 @@ server-side in [`valuation-data.ts`](../web/app/lib/valuation-data.ts), presets 
 
 | Metric | Formula | Notes |
 |---|---|---|
-| Cost of equity (COE) | `rf + β·ERP + CRP` | CAPM, **nominal TRY**. rf = CBRT funding proxy (EVDS `TP.APIFON4`); β = OLS of weekly bank vs XU100 returns from `bist_prices` (≥30 obs, else sector default 1.0); CRP = optional country premium |
+| Cost of equity (COE) | `rf + β·ERP + CRP` | CAPM, **nominal TRY**. rf = CBRT funding proxy (EVDS `TP.APIFON4`); β — **unavailable since 2026-08-01** (was OLS of weekly bank vs XU100 returns from `bist_prices`; the BIST lane was removed, see §17). Sector default 1.0 until a licensed price source exists; CRP = optional country premium |
 | Sustainable growth (g) | `ROE · (1 − payout)` | retention × return |
 | Justified P/B | `(ROE − g) / (COE − g)` | warranted multiple; null when COE ≤ g |
 | Starting ROE | `TTM net income / avg trailing-5-quarter equity` | same basis as `/cross-bank` heatmap ROE; falls back to TTM ÷ period-end equity |
@@ -1276,79 +1276,32 @@ Private sub-cuts (10008 / 10010), State deposit (10009), Participation
 10004 partitions the sector. For composite groups a period is emitted only
 when every member code has data.
 
-## 17. BIST equity-market data + valuation (/economy, /banks/[ticker])
+## 17. BIST equity-market data + valuation — REMOVED 2026-08-01
 
-Borsa İstanbul daily EOD via the **Yahoo Finance chart API**
-(`query1.finance.yahoo.com/v8/finance/chart/{symbol}`, keyless). Turkish symbol
-= `<ticker>.IS`; indices use the index code (`XU100.IS`, `XBANK.IS`). Ingested
-by `src/scrapers/bist_scraper.py` into three D1 tables (see migration
-`0012_bist.sql`): `bist_prices` (daily OHLCV, banks + indices), `bist_dividends`
-(cash dividend events, banks only), `bist_shares` (shares outstanding per bank).
+The Borsa İstanbul lane (daily EOD prices, dividends, shares outstanding) was
+sourced from the **Yahoo Finance chart API**. Yahoo's terms prohibit
+redistribution of the data outright and prohibit automated access without
+written permission — both of which this lane did. It was removed on 2026-08-01:
+the scraper (`src/scrapers/bist_scraper.py`, `bist_client.py`), the serving
+modules (`web/app/lib/bist.ts`, `bist-live.ts`, `market-ticker.ts`,
+`valuation-data.ts`), the `/api/market-ticker` route, the `MarketTicker`
+component and the parked `_valuation` route are all deleted.
 
-**Universe.** Derived at runtime from `data/banks/bddk_bank_list.json` — the
-banks with `listed: true` + a `bist_ticker` (11 banks). **QNBFB** is listed but
-its float is ~0.12% and Yahoo carries no tradeable price for `QNBFB.IS`, so it
-yields no rows and no valuation (omitted from `bist_shares.json`).
+**What went with it:** P/B, P/E, market cap, dividend yield, the share-price
+chart on `/banks/[ticker]`, the valuation columns on `/cross-bank`, the BIST
+index chart and the live market-ticker strip on `/economy`, `/news` and `/`.
+The `Valuation` metric family no longer exists.
 
-**Index chart (/economy).** XU100 and XBANK levels **rebased to 100** at the
-window start (`rebase100()` in the page) so the banking sector's relative
-performance against the broad market is directly comparable.
+**What replaced it:** nothing, except USD/TRY on `/` which now reads TCMB EVDS
+`TP.DK.USD.A` — the same quantity from a source that permits republication with
+attribution. Everything else is simply gone until a licensed feed exists.
 
-**Valuation (/banks/[ticker]).** Combines the market price with *audited*
-fundamentals (`web/app/lib/bank-fundamentals.ts`, methodology shared with the
-`/cross-bank` ROE in `heatmap.ts`). Audit amounts are **thousand TL** → ×1000 to
-compare against a TL market cap.
+**The stored rows remain in D1** (`bist_prices`, `bist_dividends`,
+`bist_shares`). Holding already-fetched data is not redistribution; serving it
+is. Nothing reads them, and `bot-sql.ts` denies them to the public Q&A bot by
+name so a crafted query cannot reach them either. Drop the tables only if you
+decide the history is worthless — it cannot be re-fetched, because re-fetching
+is the thing that was prohibited.
 
-| Metric | Definition |
-|---|---|
-| **Market cap** | latest close × `shares_outstanding` (TL) |
-| **P/B** | market cap ÷ period-end **book equity** (label-matched on any roman line — `%ZKAYNAK%`/`%EQUITY%` — so participation banks at XIV. resolve) |
-| **P/E** | market cap ÷ **TTM net income** (YTD P&L de-cumulated to single quarters, trailing four summed; telescopes to `YTD(latest)+FY(prior)−YTD(same q prior yr)`, robust to YTD-vs-3-month column quirks) |
-| **Dividend yield** | trailing-12m `bist_dividends` per share ÷ latest close |
-| **1y change** | latest close ÷ close nearest (latest − 365d) − 1 |
-
-Sanity (GARAN, Jun-2026): close ₺135.9 × 4.2bn = ₺570.8bn market cap; ÷ ₺451.3bn
-equity = **P/B 1.26×**; ÷ ₺118.6bn TTM net income = **P/E 4.8×**.
-
-**Shares maintenance.** `bist_shares` is best-effort refreshed each run from
-Yahoo `quoteSummary` (cookie+crumb handshake) and falls back to the committed
-`data/banks/bist_shares.json` seed; refresh the seed on capital actions
-(bonus/rights issues). See [OPERATIONS.md](OPERATIONS.md) §BIST equity market.
-
-**Cross-bank (`/cross-bank`).** `heatmapPanel` also emits **P/B** and **P/E**
-columns (neutral color — cheap/expensive isn't good/bad). Market cap per
-(bank, period) = the **quarter-end close** (last trading day inside the calendar
-quarter, via a `ROW_NUMBER()` window over `bist_prices`) × shares, divided by
-the same audited equity / `ttmNet` used elsewhere. **The latest period uses the
-freshest price** — live Yahoo quote → else the latest stored EOD close → else
-quarter-end — so the Snapshot shows a current P/B/P/E (not a months-old
-quarter-end one); historical over-time rows keep their own quarter-end close
-(point-in-time). Current shares are used throughout (no historical counts), so
-deep-history ratios are approximate across capital actions. Listed banks only —
-the unlisted majority render "—".
-
-**Live overlay (delayed Yahoo, `web/app/lib/bist-live.ts`).** All three surfaces
-overlay the *latest* Yahoo price at page-render time: `/banks/[ticker]` price +
-market cap + P/B/P/E/yield (label "⏱ as of HH:MM · ~15-min delayed", or "last
-close DD Mon" when the market is shut); `/cross-bank` snapshot P/B & P/E (live
-price on the latest period, else the latest stored close); `/economy`
-indices (a live final point appended to each rebased series). Quotes come in one
-batched Yahoo `spark` request (not N per-symbol fetches — a burst of 11 gets the
-Cloudflare egress IP rate-limited). It's ~15-min
-delayed during BIST hours and the last close otherwise — **not** real-time
-(that needs a paid feed). Everything is price-linear: `applyLivePrice` rescales
-market cap/P/B/P/E by `r = live/stored` and yield by `1/r`. **Caching is
-deliberately NOT KV** (the 12h `cachedAll` window guards the ~1k KV-writes/day
-cap): the fetch uses Cloudflare's edge cache (`cf.cacheTtl`) + a 60 s per-isolate
-in-memory map, with a 2.5 s timeout and graceful fallback to the stored close on
-any failure. Kill switch: `BIST_LIVE_DISABLED=1`.
-
-**Market ticker (`/economy`, `/news`).** A scrolling "flowing data" strip
-(`web/app/components/MarketTicker.tsx`) of BIST indices (XU100 / Banks / 30),
-FX (USD/TRY, EUR/TRY), and commodities (Brent `BZ=F`, gold `GC=F` $/oz, plus a
-derived **gram gold ₺** = $/oz ÷ 31.1035 × USD/TRY), each with a day-change %.
-Data: `getMarketTicker()` (`web/app/lib/market-ticker.ts`) → one batched
-`rawQuotes` spark request (arbitrary Yahoo symbols, no `.IS` append). Server-
-rendered, then the client polls `GET /api/market-ticker` every 60 s (edge-cached
-so polls don't re-hit Yahoo). Hidden entirely when the fetch fails or
-`BIST_LIVE_DISABLED=1`.
+Revive point: `d52ce2d`. Terms detail:
+[knowledge/data-source-terms-audit-2026-07-25.md](knowledge/data-source-terms-audit-2026-07-25.md).

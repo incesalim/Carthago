@@ -9,7 +9,7 @@ machine involvement is required for routine refreshes.
 
 | When | Workflow | What it does |
 |---|---|---|
-| Sun–Fri 05:00 UTC | `refresh-evds-daily.yml` | TCMB EVDS scrape (FX, rates, sterilization, …) + the non-critical BIST/TBB/TKBB/KAP/TEFAS/Faaliyet steps of `refresh.py` → D1 |
+| Sun–Fri 05:00 UTC | `refresh-evds-daily.yml` | TCMB EVDS scrape (FX, rates, sterilization, …) + the non-critical TBB/TKBB/KAP/TEFAS/Faaliyet steps of `refresh.py` → D1 |
 | Daily 04:00 UTC | `refresh-news-daily.yml` | `sync_news.py` → `news_items` + `news_item_banks` (KAP filings, TCMB/BDDK announcements, bank press rooms, Google News) → D1 |
 | Daily 13:00 UTC + Fri 13:30/15:30 UTC + Sat 02:00 UTC | `refresh-bddk-bulletins.yml` | BDDK bulletins (no EVDS, no audit) → D1. **Daily 13:00** = **monthly** check (probe-then-fetch; the month lands mid-month on no fixed day). **Fri 16:30 & 18:30 Turkey** = **weekly** (BDDK publishes it Friday afternoon). **Sat 02:00** = weekly backstop. Each per-schedule run skips the other lane via `github.event.schedule`; manual dispatch does both. Sends a positive Telegram ping ("published & fetched") when a new weekly/monthly period lands (`notify_new_bddk.py`); quiet otherwise |
 | Saturday 03:00 UTC | `refresh-data.yml` | Monthly + weekly BDDK + EVDS → D1 |
@@ -46,7 +46,7 @@ There are **two** local SQLite staging DBs, each with its own R2 snapshot:
 
 | DB | Holds | R2 snapshot | Lane |
 |---|---|---|---|
-| `data/bddk_data.db` | BDDK monthly/weekly + EVDS + news + TBB + TKBB + KAP + TEFAS + BIST | `state/bddk_data.db.gz` | `bddk-pipeline` |
+| `data/bddk_data.db` | BDDK monthly/weekly + EVDS + news + TBB + TKBB + KAP + TEFAS | `state/bddk_data.db.gz` | `bddk-pipeline` |
 | `data/bank_audit.db` | the `bank_audit_*` tables (PDF extraction) | `state/bank_audit.db.gz` | `bddk-audit` |
 
 Both lanes push to the **same D1**, writing a disjoint set of tables. The catch:
@@ -287,48 +287,15 @@ healthcheck watches `MAX(date)` in `tefas_manager_daily` with a 120 h
 threshold; one benign alert can fire during multi-day religious holidays
 (no trading days → no new data).
 
-### BIST equity market (daily + one-time backfill)
+### BIST equity market — REMOVED 2026-08-01
 
-The daily crons refresh `bist_prices` / `bist_dividends` / `bist_shares` (a
-non-critical step in `refresh.py` → `python -m src.scrapers.bist_scraper`): each
-run re-fetches a trailing **35-day window** for the 11 listed banks + the XU100 /
-XBANK indices from the Yahoo Finance chart API and upserts, so the EOD ~1-day
-lag, market holidays and late closes self-heal. Source data + universe rules in
-[METRICS.md](METRICS.md) §17.
-
-**One-time / re-backfill.** To (re)load deep history:
-
-```bash
-python -m src.scrapers.bist_scraper --backfill   # ~12 years, all symbols
-python scripts/push_to_d1.py --hours 8760 --only-tables bist_prices,bist_dividends,bist_shares
-```
-
-The `bist_*` tables must exist in D1 first (migration `0012_bist.sql`, applied
-by the deploy workflow). For a full backfill, pull the R2 snapshot first and
-upload it back afterwards (same pattern as the EVDS workflow) so the cron's
-working copy carries the history — otherwise D1 keeps the deep history but the
-R2 snapshot only rebuilds the trailing 35-day window.
-
-**Shares outstanding.** `bist_shares` drives market cap (P/B, P/E). The scraper
-refreshes it best-effort each run from Yahoo `quoteSummary` (cookie+crumb) and
-falls back to the committed `data/banks/bist_shares.json` seed. **Refresh the
-seed on capital actions** (bonus/rights issues, splits) — re-run the standalone
-quoteSummary pull and update the JSON, or trust the live refresh if it resolves.
-QNBFB is intentionally absent (delisted float on Yahoo → no price → no cap).
-
-**Live price overlay (request-time, NOT the cron).** `web/app/lib/bist-live.ts`
-fetches the latest (delayed ~15-min) Yahoo price when `/banks/[ticker]`,
-`/cross-bank`, or `/economy` render, and overlays it on the stored EOD figures.
-This is **separate from the daily cron** and writes nothing to D1. It does NOT
-use the Next/KV data cache (that would breach the ~1k KV-writes/day cap) — it
-relies on Cloudflare's edge cache (`cf.cacheTtl=60`) + a per-isolate in-memory
-TTL, with a 2.5 s timeout and silent fallback to the stored close.
-- **Disable it without a deploy:** set the Worker var `BIST_LIVE_DISABLED=1`
-  (`wrangler secret put BIST_LIVE_DISABLED` or a `vars` entry) → pages fall back
-  to the stored EOD prices. Use this if Yahoo ever rate-limits the Worker egress.
-- **Monitoring:** if pages feel slow, check the edge cache is engaging (repeated
-  loads within 60 s should not re-hit Yahoo) and watch KV writes stay flat (the
-  overlay must never add KV writes).
+The Yahoo-sourced BIST lane (daily EOD prices, dividends, shares outstanding) was
+removed: Yahoo's terms forbid redistribution outright and prohibit automated
+access. Both the scraper and every serving path are deleted, so there is nothing
+to operate here. The `bist_prices` / `bist_dividends` / `bist_shares` tables
+still exist in D1 with their history — nothing reads them, and `bot-sql.ts`
+denies them to the public Q&A bot by name. Do not re-enable a fetch without a
+licensed feed. Detail: METRICS.md §17.
 
 ### Bank logos (rare — when a bank is added)
 
@@ -798,7 +765,7 @@ change behaviour when set. Only `EVDS_API_KEY` is in `.env.example`:
 | Var | Effect |
 |---|---|
 | `R2_BUCKET` / `R2_FAALIYET_BUCKET` | override the default R2 bucket names |
-| `EVDS_CACHE_DISABLED` / `BIST_CACHE_DISABLED` | bypass the local response cache (force a live fetch) |
+| `EVDS_CACHE_DISABLED` | bypass the local response cache (force a live fetch) |
 | `KIMI_API_KEY` | the regulation-briefing key — fed from the `KIMI_API_TOKEN` secret (see above) |
 | `KIMI_API_URL` / `KIMI_MODEL` | override the Kimi endpoint / model |
 | `SITE_URL` | base URL for `generate_read_headlines.py` and `generate_presentation.py` |

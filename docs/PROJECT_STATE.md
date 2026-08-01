@@ -29,7 +29,7 @@ coverage or known issues change.
 | `tkbb_acquisition_stats` | TKBB Veri Peteği — remote-vs-branch acquisition | 2025-07 → present (accumulating) | monthly; source exposes only a rolling 12-month window — history builds forward, rows never deleted |
 | `kap_ownership` | KAP Genel Bilgi Formu §5 + §7 subsidiaries (kap.org.tr) | current state per bank (`as_of` = filing date) | weekly full replace; 30/31 banks (ATBANK files no form); subsidiaries grid only on the full form (~15 banks) |
 | `tefas_manager_daily`, `tefas_category_daily`, `tefas_allocation_daily`, `tefas_top_funds` | TEFAS fund-market JSON API (tefas.gov.tr) | rolling ~5 years (API rejects older start dates) → present | daily T+1, trading days; aggregated at ingest (no per-fund rows) |
-| `bist_prices`, `bist_dividends`, `bist_shares` | Borsa İstanbul via Yahoo Finance chart API | 2014-06 → present | daily EOD (~1-day lag); 11 listed banks + XU100/XBANK indices (QNBFB delisted on Yahoo — no data) |
+| ~~`bist_prices`, `bist_dividends`, `bist_shares`~~ | ~~Borsa İstanbul via Yahoo~~ | frozen at 2026-08-01 | **LANE REMOVED 2026-08-01** — Yahoo forbids redistribution. Rows retained in D1 but nothing reads them and the bot denies them; do not re-enable without a licensed feed |
 | `faaliyet_franchise` | Bank annual reports (Faaliyet Raporu PDFs) | annual (FY ending 31 Dec) | ATM / POS / merchant / customer / card counts (the stats audit reports don't carry; branches & employees stay in `bank_audit_profile`); deterministic regex+coordinate extraction with confidence flags. **⚠️ NOT TRUSTWORTHY — the `/franchise` tab is unpublished (2026-07-12): the extractor samples stray prose numbers, ~75% of non-ATM values are wrong and the confidence flags don't correlate with correctness. Needs a rebuilt extractor + validation gate, NOT more URL curation** |
 | `faaliyet_extractions` | per-PDF extraction ledger for the lane above | — | one row per annual report processed: success flag, rows written, confidence — the lane's audit trail |
 | `tbb_acquisition_stats` | TBB workbooks — remote-vs-branch customer acquisition | monthly | the **TBB** twin of `tkbb_acquisition_stats` above (deposit banks vs participation banks) |
@@ -1024,7 +1024,7 @@ income** model `V₀ = B₀ + Σ PV[(ROEₜ − COE)·Bₜ₋₁] + PV(terminal)
 ROE fade and a Gordon (ω=0) or Ohlson-decay (ω>0) terminal, a **two-stage DDM**,
 and the **justified P/B** identity `(ROE − g)/(COE − g)`, g = ROE·(1−payout). Cost
 of equity is CAPM, **nominal TRY**: `rf + β·ERP + CRP`, β from weekly
-bank-vs-XU100 returns (`bist_prices`, ≥30 obs else a sector-default 1.0), rf a CBRT
+bank-vs-XU100 returns (**unavailable since the BIST lane was removed 2026-08-01** — sector-default 1.0), rf a CBRT
 funding-rate proxy (`evds_series` TP.APIFON4). The maths are a pure, unit-tested
 module (`web/app/lib/valuation.ts`, 19 vitest cases) so the page **recomputes live
 in the browser** as the user drags sliders; Base/Bull/Bear presets seed editable
@@ -1446,42 +1446,19 @@ each `/banks/[ticker]` page:
   image-only banks recur: ALBRK/ALNTF/EXIM/ODEA/TSKB), which are real gaps, not extractor
   bugs. Re-extraction is now **non-destructive** (the guard skips passing partitions), so
   any future fix can only improve the corpus.
-- **BIST equity-market lane shipped (2026-06-13).** Daily EOD prices for the 11
-  BIST-listed banks + the XU100 / XBANK indices via the Yahoo Finance chart API
-  (keyless, headless) → `bist_prices` / `bist_dividends` / `bist_shares` in D1
-  (12y backfill, 2014→present). Source: `src/scrapers/bist_client.py` +
-  `bist_scraper.py`; rides the daily EVDS workflow (non-critical step in
-  `refresh.py`). Universe derived from `data/banks/bddk_bank_list.json`
-  (`listed && bist_ticker`) — never hardcoded. Surfaced: an "Equity Markets"
-  rebased XU100-vs-XBANK chart on `/economy`, and a "Market & Valuation" section
-  on `/banks/[ticker]` (price chart + market cap, P/B, P/E, dividend yield).
-  Valuation combines Yahoo close × shares with the *audited* book equity (label-
-  matched, so participation banks at roman XIV. resolve) and TTM net income
-  (de-cumulated, telescoping — same methodology as `/cross-bank` ROE; see
-  `web/app/lib/bank-fundamentals.ts`). Caveats: QNBFB has ~0.12% float and is
-  delisted on Yahoo → no price/valuation (omitted from `bist_shares.json`);
-  `bist_shares` is best-effort refreshed from Yahoo `quoteSummary` each run with
-  the committed JSON as fallback — refresh the seed on capital actions.
-  `/cross-bank` now also carries **P/B and P/E columns** (neutral coloring;
-  snapshot uses the quarter-end close, over-time uses current shares so deep
-  history is approximate across capital actions) — `heatmapPanel` computes them
-  from `bist_prices`/`bist_shares` + the shared `ttmNet` helper; listed banks
-  only (others blank). The per-bank P/B/P/E reuse single-ticker helpers in
-  `bank-fundamentals.ts` rather than refactoring `heatmapPanel`, kept identical
-  to avoid regressing the shipped ROE.
-  **Live overlay (2026-06-13):** all three surfaces overlay the latest (delayed
-  ~15-min) Yahoo price at render time (`web/app/lib/bist-live.ts`) — per-bank
-  price/market-cap/P/B/P/E/yield with an "as of HH:MM" label, cross-bank snapshot
-  P/B/P/E, and a live final point on the `/economy` index chart. Price-linear
-  rescale (`applyLivePrice`); graceful fallback to the stored close. Cached on
-  Cloudflare's **edge cache + per-isolate memory, never KV** (the 12h KV window
-  guards the write cap), 2.5 s timeout, kill switch `BIST_LIVE_DISABLED=1`.
-  Not real-time (paid feed); this is a request-time read overlay — no D1 writes.
-  **Market ticker (2026-06-13):** a scrolling live strip on `/economy` + `/news`
-  (`MarketTicker.tsx`) — BIST indices, USD/TRY, EUR/TRY, Brent, gold $/oz +
-  derived gram-gold ₺, each with day-change %. One batched Yahoo `spark` request
-  (`getMarketTicker()` → `rawQuotes`); client polls `/api/market-ticker` every
-  60 s; hidden on failure / kill switch.
+- **BIST equity-market lane REMOVED (2026-08-01).** Shipped 2026-06-13 (daily
+  EOD for the 11 listed banks + XU100/XBANK, valuation, live overlay, market
+  ticker); withdrawn because it was sourced from the Yahoo Finance chart API,
+  whose terms prohibit redistribution outright and prohibit automated access.
+  Both the fetch and every serving path are deleted — scraper, `bist.ts`,
+  `bist-live.ts`, `market-ticker.ts`, `valuation-data.ts`, `/api/market-ticker`,
+  the `MarketTicker` strip, the `_valuation` route, and the P/B & P/E metrics
+  (the `Valuation` family is gone). **Lost:** market cap, P/B, P/E, dividend
+  yield, the share-price chart, the BIST index chart, the live tape. **Kept:**
+  USD/TRY on `/`, re-sourced to TCMB EVDS `TP.DK.USD.A`. The `bist_*` tables
+  remain in D1 with their history — storage is not redistribution, serving is —
+  and `bot-sql.ts` denies them to the public bot by name. Revive point `d52ce2d`;
+  do not re-enable without a licensed feed. See METRICS.md §17.
 - **Cash flow + equity-change extractors shipped; deep-fixed + fleet re-extracted (2026-06-13).**
   Two statement types: `bank_audit_cash_flow` (sort_order=38) and `bank_audit_equity_change`
   (sort_order=36). Root-cause fixes (commits 7322fb3, c62057b): equity locator now uses the

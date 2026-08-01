@@ -157,12 +157,12 @@ Keep the helper's `ENUMS` in sync with the schema —
 `tests/test_metric_knowledge.py::test_enum_parity_with_schema` enforces it (it reads
 `mk.ARRAY_ENUMS` for the array-typed enums).
 
-> **Open follow-up — valuation:** the 8 `valuation` entries still say
-> `reproducible: no` / `source: external`, but the **BIST lane** (`bist_prices` +
-> audited equity) now makes market cap / P-B / P-E / dividend yield derivable. A
-> refresh there needs a new `bist` value in the `source_datasets` enum and an update
-> to `test_breadth_and_new_groups_present` (which currently pins valuation to
-> `reproducible == "no"`). Left out of the v5 non-financial pass on purpose.
+> **Valuation entries — CLOSED as not-reproducible, 2026-08-01.** The 8
+> `valuation` entries stay `reproducible: no` / `source: external`, and now
+> permanently so: the BIST lane that would have made market cap / P-B / P-E /
+> dividend yield derivable was removed because Yahoo's terms forbid
+> redistribution (see METRICS.md §17). Do not add a `bist` value to the
+> `source_datasets` enum unless a licensed price feed arrives.
 
 > **Done (§4 extractors merged):** per-bank capital/liquidity is now extracted into
 > `bank_audit_capital` (cet1/tier1/tier2/total capital, total_rwa, cet1/tier1/CAR

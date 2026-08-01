@@ -2,7 +2,7 @@
  * Live status for the pipeline graph's storage/source nodes.
  *
  * Reuses the admin "data health" report (admin-health.ts) for the sources it
- * already covers, and adds row-count / freshness for the rest (BIST, TBB, KAP,
+ * already covers, and adds row-count / freshness for the rest (TBB, KAP,
  * TEFAS, the per-table audit groups) via plain COUNT/MAX queries. Every query is
  * wrapped so a missing table (these live Python-side, not in web/migrations)
  * degrades to "no data" instead of breaking the page. All reads go through
@@ -77,11 +77,6 @@ async function countQuery(table: string): Promise<number | null> {
 
 /** Sources not covered by admin-health: each has a refresh column + cadence. */
 const EXT_SOURCES: { key: string; sql: string; cadenceHours: number }[] = [
-  {
-    key: "bist",
-    sql: "SELECT COUNT(*) AS n, MAX(downloaded_at) AS last_refresh, MAX(period_date) AS latest FROM bist_prices",
-    cadenceHours: DAY,
-  },
   {
     key: "tbb_digital",
     sql: "SELECT COUNT(*) AS n, MAX(downloaded_at) AS last_refresh, MAX(period) AS latest FROM tbb_digital_stats",

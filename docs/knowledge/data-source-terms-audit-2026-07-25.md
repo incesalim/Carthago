@@ -28,7 +28,7 @@ not asked for yet. The remedy is a letter, not a rebuild.
 > the BDDK section below. Treat the remaining three unread sources as genuinely
 > unknown rather than presumed-standard.
 
-The one genuine outright exception is Yahoo, which forbids redistribution.
+The one genuine outright exception was Yahoo, which forbids redistribution — **that lane was removed on 2026-08-01**, so no source we serve is now in breach.
 
 ## Verified
 
@@ -38,7 +38,7 @@ The one genuine outright exception is Yahoo, which forbids redistribution.
 | **TBB** | "Web sitemizde yayınlanan çalışmalar kaynak gösterilmek suretiyle izinsiz yayımlanabilir, ancak bu bilgilerin ticari amaçlarla kullanımı Türkiye Bankalar Birliği'nin yazılı iznine tabidir." | ✅ with attribution | ⚠️ **written permission required** |
 | **TÜİK** | Reuse from the site, publications or databases is permitted **with attribution and without needing permission** — no commercial carve-out. | ✅ | ✅ clean |
 | **BDDK** *(read 2026-08-01)* | "Web sitemizde yayınlanan çalışmalardan, kaynak gösterilmek suretiyle **kısmen alıntı** yapılabilir ancak bu bilgilerin ticari amaçlarla kullanımı BDDK'nın yazılı iznine tabidir." | ⚠️ **partial quotation only** — see below | ⚠️ **written permission required** |
-| **Yahoo Finance** (BIST prices) | Must **not redistribute** information displayed on or provided by Yahoo Finance; automated access prohibited without written permission. | ❌ **already offside** | ❌ must be replaced |
+| **Yahoo Finance** (BIST prices) | Must **not redistribute** information displayed on or provided by Yahoo Finance; automated access prohibited without written permission. | ✅ **RESOLVED 2026-08-01 — lane removed** | n/a |
 
 Sources: [TCMB Kullanım Şartları](https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB+TR/Bottom+Menu/Diger/Kullanim+Sartlari) ·
 [TBB Kullanım Koşulları](https://www.tbb.org.tr/kullanim-kosullari) ·
@@ -125,7 +125,7 @@ can from KAP filings. Not yet investigated.
       Result was not the expected boilerplate: partial quotation only. See above.**
 - [ ] Same for KAP, TEFAS, TKBB — and do **read** them; the BDDK result shows the
       peer-boilerplate assumption is not reliable
-- [ ] Decide on the Yahoo/BIST feed — it is offside today, not merely on monetisation
+- [x] ~~Decide on the Yahoo/BIST feed~~ — **removed 2026-08-01.** Scraper and every serving path deleted; stored rows retained in D1 (storage is not redistribution) and denied to the public bot by name. USD/TRY re-sourced to TCMB EVDS. Revive point `d52ce2d`.
 - [ ] Decide what `/api/v1` should serve given "kısmen alıntı" — the options are
       leave it (accepting the reading risk), bound it so a caller cannot pull a
       complete series, or seek written permission naming the API specifically

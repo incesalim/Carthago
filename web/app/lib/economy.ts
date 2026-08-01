@@ -11,8 +11,9 @@
  * Out of scope (no data source here): CDS / OIS / sovereign curves
  * (Bloomberg), the GDP nowcast and FCI (BBVA-proprietary), foreigners'
  * positioning (CBRT securities stats not ingested), and BBVA's scenario
- * sensitivities. (BIST index levels now come from bist.ts / Yahoo — see the
- * "Equity Markets" section on /economy.)
+ * sensitivities. (BIST index levels were carried here until 2026-08-01, sourced
+ * from Yahoo; that feed was removed because its terms forbid redistribution, and
+ * nothing replaces it until a licensed source exists.)
  */
 import { evdsMulti, type EvdsRow } from "@/app/lib/metrics";
 

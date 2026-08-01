@@ -18,8 +18,6 @@ import {
   type MetricKey,
 } from "@/app/lib/heatmap";
 import { marketSharePanel, leagueTable, hhiSeries } from "@/app/lib/market-share";
-import { listedBistTickers } from "@/app/lib/bist";
-import { liveQuotes } from "@/app/lib/bist-live";
 import {
   BANK_NAMES,
   BANK_TYPE_BY_TICKER,
@@ -62,14 +60,11 @@ function quarterLabel(p: string | null | undefined): string {
 }
 
 export default async function CrossBankPage() {
-  // Live (delayed) quotes for the listed banks → P/B & P/E reflect the latest
-  // price (graceful fallback to the quarter-end close if Yahoo is unreachable).
-  const [live, period, sharePanel] = await Promise.all([
-    listedBistTickers().then(liveQuotes),
+  const [period, sharePanel] = await Promise.all([
     latestCommonPeriod(),
     marketSharePanel(),
   ]);
-  const panel = await heatmapPanel(undefined, live);
+  const panel = await heatmapPanel();
 
   const league = period ? leagueTable(sharePanel, period) : [];
   const hhiAll = hhiSeries(sharePanel);
@@ -107,9 +102,6 @@ export default async function CrossBankPage() {
   const reporting = period
     ? new Set(panel.filter((r) => r.period === period).map((r) => r.bank_ticker)).size
     : 0;
-  const liveNote = live.size
-    ? " · P/B & P/E live (~15-min delayed)"
-    : " · P/B & P/E at last close";
 
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
@@ -118,7 +110,7 @@ export default async function CrossBankPage() {
         record={
           <>
             Record <b className="font-normal text-foreground">{quarterLabel(period)}</b> ·{" "}
-            {reporting} of {banks.length} banks reporting{liveNote}
+            {reporting} of {banks.length} banks reporting
           </>
         }
         right="every figure computed from source series"

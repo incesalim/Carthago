@@ -223,9 +223,12 @@ def check_columns(prompt: str, rep: Report) -> None:
     Cheap to check and it catches the nastiest kind of prompt rot: a renamed
     column sends the model into an error loop it burns its whole step budget on.
     """
+    # `bist_prices` was listed here until 2026-08-01. The BIST/Yahoo lane was
+    # removed (redistribution prohibited), so the tables are no longer in the
+    # bot prompt — and bot-sql.ts now denies them outright.
     for m in re.finditer(r"^(bank_audit_\w+|balance_sheet|income_statement|loans|"
                          r"deposits|financial_ratios|other_data|kap_ownership|"
-                         r"bist_prices|weekly_series)\(([^)]*)\)", prompt, re.M):
+                         r"weekly_series)\(([^)]*)\)", prompt, re.M):
         table, cols_raw = m.group(1), m.group(2)
         claimed = {c.strip() for c in re.split(r"[,\s]+", cols_raw)
                    if re.fullmatch(r"[a-z][a-z0-9_]*", c.strip())}

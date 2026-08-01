@@ -487,8 +487,7 @@ Not flattery — each of these was checked.
    ladder's "− Inflation / = Real ROE" rows had to stop claiming to be an
    arithmetic difference. Two tests added pinning the dev-bank distortion.
 9. ~~**Read BDDK's terms**~~ ✅ **done 2026-08-01** — and it did change the picture:
-   partial quotation only, which lands on `/api/v1`. **Still to do: pull the Yahoo
-   feed** (a day), and decide what `/api/v1` should serve — leave it, bound it so a
+   partial quotation only, which lands on `/api/v1`. ✅ **Yahoo feed pulled 2026-08-01.** Still open: decide what `/api/v1` should serve — leave it, bound it so a
    caller cannot pull a complete series, or name it in a permission letter.
 10. **Make schedule state observable** (§2.1) — ~2–3 hours, closes freeze
    blindness permanently rather than for one date.

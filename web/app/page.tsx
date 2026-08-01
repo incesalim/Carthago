@@ -33,7 +33,6 @@ import {
 } from "@/app/lib/metrics";
 import { perBankCapital } from "@/app/lib/audit-ratios";
 import { bankSummaries } from "@/app/lib/audit";
-import { getMarketTicker } from "@/app/lib/market-ticker";
 import { BANK_COUNT, BANK_NAMES } from "@/app/lib/bank_names";
 import {
   cpiFromIndex,
@@ -60,7 +59,6 @@ import {
   PeerBar,
   SecHead,
   Standings,
-  Tape,
   Transmission,
   Vital,
   Vitals,
@@ -186,7 +184,7 @@ export default async function OverviewPage({
     // scorecard cell's peer bar is scaled against.
     loansYoYGroups, nplAllGroups, carGroups, roeGroups, nimGroups, ldrGroups, roaGroups,
     // Standings + backdrop.
-    league, ticker, cpiRaw, fundingRaw,
+    league, usdRaw, cpiRaw, fundingRaw,
     // In-depth scorecard for the selected bank type.
     assets, assetsYoY, loansYoY, depositsYoY, npl, car, nim, ldr, roa, roe,
   ] = await Promise.all([
@@ -209,7 +207,10 @@ export default async function OverviewPage({
     ratioRoa(PRIMARY_BANK_TYPES),
 
     perBankCapital(),
-    getMarketTicker().catch(() => []),
+    // USD/TRY from TCMB, not the market tape: the Yahoo feed this page used to
+    // read was removed 2026-08-01 (its terms forbid redistribution outright).
+    // EVDS carries the same quantity and permits republication with attribution.
+    evdsSeries("TP.DK.USD.A", 1),
     evdsSeries("TP.TUKFIY2025.GENEL", 10),
     evdsSeries("TP.APIFON4", 1),
 
@@ -327,7 +328,7 @@ export default async function OverviewPage({
   // its π must be the y/y one. /credit computes the same quantity this way; the
   // g−π shortcut here made the landing page disagree with it.
   const creditReal = realRate(loansYoYNow, cpiYoYNow);
-  const usdtry = (ticker ?? []).find((t) => t.label.toUpperCase().includes("USD"));
+  const usdtryNow = (usdRaw ?? []).at(-1)?.value ?? null;
 
   const transmission: TransmissionItem[] = [];
   if (cpiAvgNow != null) {
@@ -387,10 +388,10 @@ export default async function OverviewPage({
       ),
     });
   }
-  if (usdtry) {
+  if (usdtryNow != null) {
     transmission.push({
       k: "USD/TRY",
-      v: usdtry.value,
+      v: `₺${usdtryNow.toFixed(2)}`,
       effect: (
         <>
           The lira&rsquo;s path sets the <b>dollarization incentive</b> — the FX share
@@ -528,10 +529,6 @@ export default async function OverviewPage({
           </>
         }
         right="every figure computed from source series"
-      />
-
-      <Tape
-        items={(ticker ?? []).map((t) => ({ k: t.label, v: t.value, chg: t.changePct }))}
       />
 
       {/* ── The vitals ─────────────────────────────────────────────────── */}

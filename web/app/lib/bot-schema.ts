@@ -293,12 +293,6 @@ evds_series(code, period_date, value, label, category) — CBRT/EVDS macro serie
     query terms first (altın→Gold, faiz→rate/interest, enflasyon→CPI/inflation,
     işsizlik→unemployment, kur→exchange rate, büyüme→GDP/growth). NB: only gold
     *reserves* exist here, not a gold price.
-bist_prices(symbol, period_date, open_price, high_price, low_price, close_price,
-    volume) · bist_dividends(symbol, ex_date, amount) · bist_shares(symbol,
-    shares_outstanding, kind). symbol is the PLAIN ticker — never '.IS'.
-    bist_prices also carries INDEX rows (XBANK, XU100): filter kind='bank' for
-    bank queries or an index level contaminates every average and ranking. Only
-    11 of the ${BANK_COUNT} banks are listed, so BIST answers cover a subset — say so.
 news_items(source, external_id, published_at, ticker, title, summary, url,
     language) — KAP/TCMB/BDDK news. news_item_banks links items→tickers.
 bank_earnings(source, ticker, period, event_date, title, url) — filing calendar.

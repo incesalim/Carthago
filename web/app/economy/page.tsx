@@ -13,9 +13,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getEconomyData, BBVA_BASELINE, type Point } from "@/app/lib/economy";
-import { bistIndexHistory, type PricePoint } from "@/app/lib/bist";
-import { liveQuotes, type LiveQuote } from "@/app/lib/bist-live";
-import { getMarketTicker } from "@/app/lib/market-ticker";
 import {
   Section,
   Table,
@@ -40,15 +37,7 @@ import { VERBS, direction, signed } from "@/app/lib/prose";
 import { seriesFinding } from "@/app/lib/chart-findings";
 import { GlobalRangeSelector } from "@/app/components/range-context";
 import { fmtQuarter } from "@/app/lib/chart-format";
-import MarketTicker from "@/app/components/MarketTicker";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
-
-/** Rebase a level series to 100 at the first point, for cross-index comparison. */
-function rebase100(pts: PricePoint[]): PricePoint[] {
-  const base = pts.find((p) => p.value)?.value;
-  if (!base) return pts;
-  return pts.map((p) => ({ period_date: p.period_date, value: (p.value / base) * 100 }));
-}
 
 /** EVDS rows ({period_date}) → the desk helpers' Pt shape ({period}). */
 const toPts = (s: { period_date: string; value: number }[]): Pt[] =>
@@ -95,31 +84,6 @@ const asPts = (p: Point[]): Pt[] => p.map((r) => ({ period: r.period_date, value
 export default async function EconomyPage() {
   const d = await getEconomyData();
 
-  const ticker = await getMarketTicker();
-  const bistIdx = await bistIndexHistory(8);
-  const bistRebased = Object.fromEntries(
-    Object.entries(bistIdx).map(([label, pts]) => [label, rebase100(pts)]),
-  );
-  const hasBist = Object.values(bistRebased).some((s) => s.length > 0);
-
-  // Append a live (delayed) final point to each rebased index series, in the
-  // same rebased scale (live level ÷ the series' base × 100). No-op on failure.
-  const idxLabel: Record<string, string> = { XU100: "BIST 100", XBANK: "BIST Banks" };
-  const liveIdx: Map<string, LiveQuote> = hasBist
-    ? await liveQuotes(["XU100", "XBANK"])
-    : new Map();
-  let bistLivePoint = false;
-  for (const [sym, q] of liveIdx) {
-    const label = idxLabel[sym];
-    const base = label ? bistIdx[label]?.find((p) => p.value)?.value : undefined;
-    const series = label ? bistRebased[label] : undefined;
-    if (!base || !series || series.length === 0) continue;
-    series.push({ period_date: new Date(q.asOf * 1000).toISOString().slice(0, 10), value: (q.price / base) * 100 });
-    bistLivePoint = true;
-  }
-  const bistSubtitle =
-    "Borsa İstanbul benchmark vs the banking sector, rebased to 100 — does the banks index lead or lag the broad market? (Yahoo Finance, daily close" +
-    (bistLivePoint ? " · last point live, ~15-min delayed)" : ".)");
 
   // ---- the brief's computed vitals ------------------------------------------
   // Every cell below is derived from a series this page already fetches.
@@ -195,11 +159,6 @@ export default async function EconomyPage() {
         right="every figure computed from source series"
       />
 
-      {ticker.length > 0 && (
-        <div className="mt-3">
-          <MarketTicker items={ticker} />
-        </div>
-      )}
 
       {/* ── The vitals ─────────────────────────────────────────────────── */}
       <SecHead
@@ -482,27 +441,6 @@ export default async function EconomyPage() {
           </Grid>
         </Section>
 
-        {hasBist && (
-          <Section
-            title="Equity Markets (BIST)"
-            description={bistSubtitle}
-          >
-            <ChartRow
-              data={tsRows(bistRebased)}
-              deltaPeriods={252}
-              deltaLabel="1y"
-              fmt={(v) => v.toFixed(0)}
-            >
-              <TimeSeriesChart
-                series={bistRebased}
-                title="BIST 100 vs Banks (rebased to 100)"
-                yFormat="raw"
-                decimals={0}
-                height={340}
-              />
-            </ChartRow>
-          </Section>
-        )}
 
         <Section
           title="Fiscal Stance"
@@ -575,9 +513,9 @@ export default async function EconomyPage() {
 
       <Colophon>
         Compiled, not written — growth, labour, prices, lira, external and fiscal series
-        computed from TCMB EVDS (TÜİK · CBRT · Treasury); BIST index levels from Yahoo
-        Finance. The BBVA baseline is a third party&rsquo;s published scenario, carried for
-        context — not our forecast. Analytical information, not investment advice.
+        computed from TCMB EVDS (TÜİK · CBRT · Treasury). The BBVA baseline is a third
+        party&rsquo;s published scenario, carried for context — not our forecast.
+        Analytical information, not investment advice.
       </Colophon>
     </main>
   );

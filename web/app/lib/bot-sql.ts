@@ -8,8 +8,21 @@
  * guard are (a) writes/DDL corrupting data and (b) runaway result size.
  */
 
-/** Tables that exist but must not be exposed to a public querier. */
-const DENY_TABLES = new Set(["bot_usage", "d1_migrations"]);
+/** Tables that exist but must not be exposed to a public querier.
+ *
+ * The `bist_*` trio is here for a different reason than the other two: those
+ * rows are Yahoo-sourced, and Yahoo's terms forbid redistribution outright. The
+ * feed was removed on 2026-08-01, but the stored history is still in D1 —
+ * retaining it is not redistribution, SERVING it is. Dropping them from the
+ * bot's schema prompt only makes the model unlikely to reach for them; this
+ * makes it unable to. Delete these entries only alongside a licensed feed. */
+const DENY_TABLES = new Set([
+  "bot_usage",
+  "d1_migrations",
+  "bist_prices",
+  "bist_dividends",
+  "bist_shares",
+]);
 
 // Data-modifying / DDL / dangerous verbs. Matched as whole words (case-insensitive)
 // after comments are stripped. None is a table/column name in our schema, so a

@@ -4,14 +4,17 @@ Steps (each can be skipped individually):
   1. Incremental monthly update (only new months BDDK has published).
   2. Incremental weekly update (latest 13-week window).
   3. EVDS refresh (TCMB macro / rate series).
-  4. BIST equity prices/indices refresh via Yahoo (non-critical).
-  5. TBB quarterly digital-banking refresh (non-critical).
-  6. TKBB participation-bank digital refresh (non-critical).
-  7. KAP ownership-structure refresh (non-critical).
-  8. TEFAS fund-market refresh (non-critical).
-  9. Faaliyet-raporları franchise refresh — incremental, non-critical.
- 10. VACUUM + gzip to data/bddk_data.db.gz.
- 11. Optional: git add / commit / push the new snapshot.
+  4. TBB quarterly digital-banking refresh (non-critical).
+  5. TKBB participation-bank digital refresh (non-critical).
+  6. KAP ownership-structure refresh (non-critical).
+  7. TEFAS fund-market refresh (non-critical).
+  8. Faaliyet-raporları franchise refresh — incremental, non-critical.
+  9. VACUUM + gzip to data/bddk_data.db.gz.
+ 10. Optional: git add / commit / push the new snapshot.
+
+The BIST equity step (Yahoo) was removed 2026-08-01 — Yahoo's terms forbid
+redistribution and prohibit automated access, so both the fetch and the serve
+had to go. See docs/knowledge/data-source-terms-audit-2026-07-25.md.
 
 After this runs, scripts/push_to_d1.py syncs the changed rows up to
 Cloudflare D1 — which the production dashboard reads from.
@@ -86,8 +89,6 @@ def main():
                         help="skip the BDDK non-bank sector (leasing/factoring/"
                              "financing/VYŞ) refresh")
     parser.add_argument("--skip-evds", action="store_true")
-    parser.add_argument("--skip-bist", action="store_true",
-                        help="skip the BIST equity prices/indices refresh")
     parser.add_argument("--skip-tbb", action="store_true",
                         help="skip the TBB quarterly digital-banking refresh")
     parser.add_argument("--skip-tkbb", action="store_true",
@@ -122,14 +123,6 @@ def main():
     if not args.skip_evds:
         _run_step("EVDS update",
                    [sys.executable, "-m", "src.scrapers.evds_scraper"])
-    if not args.skip_bist:
-        # BIST equity prices/indices via Yahoo (daily EOD, ~1-day lag). Rides the
-        # daily EVDS workflow's `--skip-monthly --skip-weekly` run. Non-critical:
-        # a Yahoo outage must not abort the core refresh — the next cron self-heals
-        # (the trailing-35-day window re-fetches any missed sessions).
-        _run_step("BIST prices update",
-                   [sys.executable, "-m", "src.scrapers.bist_scraper"],
-                   critical=False)
     if not args.skip_tbb:
         # Quarterly source; latest 2 reports refresh the newest quarter and pick
         # up TBB's revisions. Non-critical: a TBB outage must not abort the core

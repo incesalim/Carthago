@@ -25,7 +25,6 @@ import { cachedAll } from "./db";
 import { BS_ASSET_ROMAN_HIERARCHIES } from "./standard_lines";
 import { isPeerExcluded } from "./bank_names";
 import type { Direction } from "./heatmap-normalize";
-import type { LiveQuote } from "./bist-live";
 
 export type MetricKey =
   | "total_assets"
@@ -47,8 +46,7 @@ export type MetricKey =
   | "lcr"
   | "fx_nop"
   | "repricing_gap_1y"
-  | "pb"
-  | "pe";
+;
 
 /** Metric families — the scorecard's row groups, top to bottom. */
 export const METRIC_FAMILIES = [
@@ -58,7 +56,6 @@ export const METRIC_FAMILIES = [
   "Margin engine",
   "Capital & liquidity",
   "Market risk",
-  "Valuation",
 ] as const;
 
 export type MetricFamily = (typeof METRIC_FAMILIES)[number];
@@ -126,12 +123,6 @@ export const METRIC_DEFS: MetricDef[] = [
   // total assets — how much of the book reprices within a year, net.
   { key: "fx_nop",              label: "FX net open pos. / capital", short: "FX NOP", unit: "pts", decimals: 1, direction: "higher_worse", family: "Market risk", rule: "|net open FX position| ÷ regulatory capital" },
   { key: "repricing_gap_1y",    label: "Repricing gap ≤1y / assets", short: "Gap ≤1y", unit: "pts", decimals: 1, direction: "higher_worse", family: "Market risk", rule: "|Σ gap in the ≤1y buckets| ÷ rate-sensitive assets" },
-  // Market valuation (listed banks only — blank for the unlisted majority).
-  // Neutral coloring: cheap/expensive isn't good/bad. Snapshot uses the
-  // quarter-end close; over-time uses current shares (no historical share
-  // counts), so deep-history P/B/P/E is approximate across capital actions.
-  { key: "pb",                  label: "Price / Book",        short: "P/B",        unit: "mult", decimals: 2, direction: "neutral", family: "Valuation", rule: "market cap ÷ equity · listed banks only" },
-  { key: "pe",                  label: "Price / Earnings",    short: "P/E",        unit: "mult", decimals: 1, direction: "neutral", family: "Valuation", rule: "market cap ÷ TTM net income · listed banks only" },
 ];
 
 export interface BankMetricRow {
@@ -168,8 +159,6 @@ export interface BankMetricRow {
   lcr: number | null;
   fx_nop: number | null;
   repricing_gap_1y: number | null;
-  pb: number | null;
-  pe: number | null;
 }
 
 // Repricing buckets ≤ 1 year (for the cumulative ≤1y gap heatmap column).
@@ -221,11 +210,10 @@ interface RowBalance { bank_ticker: string; period: string; amount: number | nul
  */
 export async function heatmapPanel(
   kind: string = DEFAULT_KIND,
-  live?: Map<string, LiveQuote>,
 ): Promise<BankMetricRow[]> {
   const romanPlaceholders = BS_ASSET_ROMAN_HIERARCHIES.map(() => "?").join(",");
 
-  const [assets, stages, pl, equity, closes, shares, latestCloses, loanRows, depositRows,
+  const [assets, stages, pl, equity, loanRows, depositRows,
          capRows, fxRows, rpRows, liqRows, fpRows] = await Promise.all([
     // A — total assets: sum of the BS asset Roman subtotals I.–X. (= bankSummaries).
     cachedAll<RowAssets>(
@@ -326,38 +314,6 @@ export async function heatmapPanel(
     // day inside each calendar quarter, keyed to the audit period format YYYYQN.
     // Drives market cap for P/B & P/E. (kind-independent — prices aren't split
     // by consolidation.)
-    cachedAll<{ bank_ticker: string; period: string; close_price: number }>(
-      `SELECT symbol AS bank_ticker, quarter AS period, close_price FROM (
-         SELECT symbol, close_price,
-                strftime('%Y', period_date) || 'Q' ||
-                  ((CAST(strftime('%m', period_date) AS INTEGER) + 2) / 3) AS quarter,
-                ROW_NUMBER() OVER (
-                  PARTITION BY symbol,
-                    strftime('%Y', period_date) || 'Q' ||
-                      ((CAST(strftime('%m', period_date) AS INTEGER) + 2) / 3)
-                  ORDER BY period_date DESC) AS rn
-           FROM bist_prices
-          WHERE kind = 'bank' AND close_price IS NOT NULL
-       ) WHERE rn = 1`,
-      [],
-    ),
-    // F — shares outstanding per listed bank (for market cap = close × shares).
-    cachedAll<{ bank_ticker: string; shares_outstanding: number | null }>(
-      `SELECT symbol AS bank_ticker, shares_outstanding FROM bist_shares`,
-      [],
-    ),
-    // G — the single latest stored EOD close per bank. The snapshot's "current"
-    // P/B & P/E use this (reliable, ~1-day fresh) rather than the months-old
-    // quarter-end close, with the live Yahoo price overlaid on top when present.
-    cachedAll<{ bank_ticker: string; close_price: number }>(
-      `SELECT bank_ticker, close_price FROM (
-         SELECT symbol AS bank_ticker, close_price,
-                ROW_NUMBER() OVER (PARTITION BY symbol ORDER BY period_date DESC) AS rn
-           FROM bist_prices
-          WHERE kind = 'bank' AND close_price IS NOT NULL
-       ) WHERE rn = 1`,
-      [],
-    ),
     // H — gross loans per (bank, period): BS asset sub-item 2.1 ("Loans"), the
     // denominator for loan yield + cost of risk. Stable hierarchy across the
     // deposit/participation templates. Narrow scan (one hierarchy).
@@ -436,7 +392,6 @@ export async function heatmapPanel(
         deposits_stock: null, cost_income: null,
         cet1: null, car: null, lcr: null,
         fx_nop: null, repricing_gap_1y: null,
-        pb: null, pe: null,
       };
       map.set(key, row);
     }
@@ -512,15 +467,6 @@ export async function heatmapPanel(
     }
     ensure(r.bank_ticker, r.period);
   }
-  // Market valuation inputs (listed banks only). closeByKey is the quarter-end
-  // close per (bank, period); sharesByTicker is current shares outstanding.
-  const closeByKey = new Map<string, number>();
-  for (const r of closes) closeByKey.set(`${r.bank_ticker}|${r.period}`, r.close_price);
-  const sharesByTicker = new Map<string, number>();
-  for (const r of shares) if (r.shares_outstanding) sharesByTicker.set(r.bank_ticker, r.shares_outstanding);
-  const latestCloseByTicker = new Map<string, number>();
-  for (const r of latestCloses) latestCloseByTicker.set(r.bank_ticker, r.close_price);
-
   // --- Trailing-twelve-month ROE -------------------------------------------
   // ROE = (sum of the last 4 quarters' net income) / (average equity over the
   // last 5 quarter-ends). TTM income avoids the noisy YTD×(4/q) annualization
@@ -705,14 +651,6 @@ export async function heatmapPanel(
   // 5-point average balance — ROE ÷ avg equity, ROA / NIM ÷ avg assets, the
   // margin engine ÷ avg loans/deposits/assets, and Cost/Income = a ratio of two
   // TTM flows. Missing inputs (or non-positive denominators) leave the cell null.
-  // Most-recent period per bank — live prices only overlay this row (the
-  // snapshot + the last over-time point); history stays on quarter-end closes.
-  const latestPeriodByBank = new Map<string, string>();
-  for (const row of map.values()) {
-    const cur = latestPeriodByBank.get(row.bank_ticker);
-    if (!cur || row.period > cur) latestPeriodByBank.set(row.bank_ticker, row.period);
-  }
-
   for (const row of map.values()) {
     const key = `${row.bank_ticker}|${row.period}`;
 
@@ -764,22 +702,6 @@ export async function heatmapPanel(
     if (ttmPpop != null && avgAssets != null && avgAssets > 0)
       row.ppop_ratio = ttmPpop / avgAssets;
 
-    // Market valuation (listed banks only; null otherwise). Market cap (TL) =
-    // price × shares. Audit amounts are thousand TL → ×1000. Price precedence:
-    //  • latest period → live (delayed) quote → latest stored EOD close → q-end
-    //  • historical periods → that quarter's quarter-end close (point-in-time)
-    const liveQ = live?.get(row.bank_ticker);
-    const isLatest = latestPeriodByBank.get(row.bank_ticker) === row.period;
-    const close = (
-      isLatest
-        ? (liveQ?.price ?? latestCloseByTicker.get(row.bank_ticker) ?? closeByKey.get(key))
-        : closeByKey.get(key)
-    ) ?? null;
-    const sh = sharesByTicker.get(row.bank_ticker) ?? null;
-    const mktcap = close != null && sh != null && sh > 0 ? close * sh : null;
-    const eqRaw = equityByKey.get(key) ?? null;
-    if (mktcap != null && eqRaw != null && eqRaw > 0) row.pb = mktcap / (eqRaw * 1000);
-    if (mktcap != null && ttmNetIncome != null && ttmNetIncome > 0) row.pe = mktcap / (ttmNetIncome * 1000);
 
     // Capital + liquidity (audited §4) — ratios already in percent.
     row.cet1 = cet1ByKey.get(key) ?? null;

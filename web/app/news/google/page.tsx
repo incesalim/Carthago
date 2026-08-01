@@ -12,8 +12,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { latestGoogleNews } from "@/app/lib/news";
-import { getMarketTicker } from "@/app/lib/market-ticker";
-import MarketTicker from "@/app/components/MarketTicker";
 import {
   Colophon,
   Depth,
@@ -57,7 +55,7 @@ function shortDate(iso: string | null | undefined): string {
 }
 
 export default async function GoogleNewsPage() {
-  const [items, ticker] = await Promise.all([latestGoogleNews(200), getMarketTicker()]);
+  const items = await latestGoogleNews(200);
   const latest = items[0]?.published_at;
   const outletCount = new Set(items.map((it) => it.category ?? "Google News")).size;
 
@@ -88,12 +86,6 @@ export default async function GoogleNewsPage() {
         }
         right="compiled, not written"
       />
-
-      {ticker.length > 0 && (
-        <div className="mt-3">
-          <MarketTicker items={ticker} />
-        </div>
-      )}
 
       <SecHead
         title="The vitals"

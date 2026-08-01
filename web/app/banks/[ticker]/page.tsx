@@ -88,9 +88,6 @@ import { heatmapPanel } from "@/app/lib/heatmap";
 import { evdsSeries } from "@/app/lib/metrics";
 import { marketSharePanel, bankShareSeries } from "@/app/lib/market-share";
 import { bankMarketRiskDetail } from "@/app/lib/market-risk";
-import { bistValuation, bistPriceHistory } from "@/app/lib/bist";
-import { liveQuotes, applyLivePrice, formatAsOf } from "@/app/lib/bist-live";
-import TimeSeriesChart from "@/app/components/TimeSeriesChart";
 import { BankTabs, type BankTab } from "./BankTabs";
 import { MarginBridgeChart, MarketShareChart } from "./BankCharts";
 import MarketRiskSection from "./MarketRiskSection";
@@ -363,15 +360,6 @@ function sumSeries(
   return out;
 }
 
-const nfmt = (v: number, d = 2) =>
-  new Intl.NumberFormat("en-US", { minimumFractionDigits: d, maximumFractionDigits: d }).format(v);
-
-/** Market cap (TL) → "₺570.8B" / "₺1.05T". */
-function fmtMarketCap(tl: number): string {
-  if (tl >= 1e12) return `₺${nfmt(tl / 1e12, 2)}T`;
-  return `₺${nfmt(tl / 1e9, 1)}B`;
-}
-
 export default async function BankDetailPage({ params, searchParams }: Props) {
   const { ticker: rawTicker } = await params;
   const sp = await searchParams;
@@ -431,7 +419,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
     return o != null && o >= floorOrd && latestOrd != null && o <= latestOrd;
   });
 
-  const [bsPivot, bsNames, plPivot, plRows, cfPivot, kapItems, profile, stages, validation, ownership, valuationBase, priceHistory, liveMap, heatmap, sharePanel, earnings, mrDetail, bankNews, cpiRaw, sectorShares] =
+  const [bsPivot, bsNames, plPivot, plRows, cfPivot, kapItems, profile, stages, validation, ownership, heatmap, sharePanel, earnings, mrDetail, bankNews, cpiRaw, sectorShares] =
     await Promise.all([
       balanceSheetMultiPeriod(ticker, kind, queryPeriods),
       balanceSheetLineNames(ticker, kind, periods),
@@ -445,9 +433,6 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
       bankStagesLatest(ticker, kind),
       validationByPeriod(ticker, kind),
       bankOwnership(ticker),
-      bistValuation(ticker, kind),
-      bistPriceHistory(ticker, 8),
-      liveQuotes([ticker]),
       // Fleet-wide derived metrics + market share (both cached); filtered to this
       // ticker below. heatmapPanel carries the margin engine, marketSharePanel the
       // competitive shares — same source of truth as /cross-bank.
@@ -487,10 +472,6 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
         perfLatest.lcr != null)) ||
     mrDetail.hasData;
 
-  // Overlay the latest (delayed) Yahoo price on the stored valuation; if the
-  // live fetch returned nothing, keep the stored EOD figures untouched.
-  const liveQ = liveMap.get(ticker);
-  const valuation = valuationBase && liveQ ? applyLivePrice(valuationBase, liveQ) : valuationBase;
 
   // Rank-in-field (display-study Phase 4): this bank's place among the banks
   // reporting the same quarter, per metric — the "are we winning?" context every
@@ -916,7 +897,6 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
       ? `${topHolder.holder}${topHolder.ratio_pct != null ? ` ${topHolder.ratio_pct.toFixed(1)}%` : ""}`
       : "— not filed to KAP",
   });
-  if (valuation?.pb != null) identityItems.push({ k: "Market", v: `BIST ${ticker} · P/B ${valuation.pb.toFixed(2)}×` });
   void cpiYoY;
 
   // ⚠ on a period column = that quarter's extraction failed one or more
@@ -1369,68 +1349,6 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
         />
       )}
 
-      {/* Market & valuation — the 11 listed banks only. The rest of the old
-          Overview card (branches, staff, stages, rank chips) is now stated once:
-          in the identity strip, the vitals and the franchise. */}
-      {valuation && (
-        <section className="mt-8">
-          <SecHead
-            title="What the market pays"
-            meta={`BIST ${ticker} · ${valuation.isLive && valuation.asOf ? formatAsOf(valuation.asOf) : `close ${valuation.period_date}`}`}
-            className="mb-2.5"
-          />
-          <div className="border-t-2 border-foreground">
-            <div className="grid gap-6 py-3 lg:grid-cols-[5fr_7fr]">
-              <div>
-                <div className="flex flex-wrap items-baseline gap-x-3">
-                  <span className="font-mono text-3xl font-semibold tracking-tight text-foreground">
-                    ₺{nfmt(valuation.price, 2)}
-                  </span>
-                  {valuation.changePct1y != null && (
-                    <span
-                      className={`font-mono text-sm font-semibold ${
-                        valuation.changePct1y >= 0 ? "text-positive" : "text-negative"
-                      }`}
-                    >
-                      {valuation.changePct1y >= 0 ? "+" : ""}
-                      {nfmt(valuation.changePct1y, 1)}% · 1y
-                    </span>
-                  )}
-                </div>
-                <div className="mt-3 grid grid-cols-4 gap-3 border-t border-hair pt-3">
-                  {(
-                    [
-                      ["Mkt cap", valuation.marketCap != null ? fmtMarketCap(valuation.marketCap) : "—"],
-                      ["P/B", valuation.pb != null ? `${nfmt(valuation.pb, 2)}×` : "—"],
-                      ["P/E", valuation.pe != null ? `${nfmt(valuation.pe, 1)}×` : "—"],
-                      ["Div yield", valuation.dividendYield != null ? `${nfmt(valuation.dividendYield * 100, 2)}%` : "—"],
-                    ] as const
-                  ).map(([label, value]) => (
-                    <div key={label}>
-                      <div className="text-[10.5px] text-muted-foreground">{label}</div>
-                      <div className="font-mono text-sm font-semibold tabular-nums text-foreground">{value}</div>
-                    </div>
-                  ))}
-                </div>
-                {valuation.fundamentalsPeriod && (
-                  <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.05em] text-faint">
-                    P/B &amp; P/E vs {valuation.fundamentalsPeriod} audited figures · daily close
-                  </p>
-                )}
-              </div>
-              {priceHistory.length > 0 && (
-                <TimeSeriesChart
-                  bare
-                  series={{ [`${ticker} share price`]: priceHistory }}
-                  yFormat="fx"
-                  decimals={2}
-                  height={170}
-                />
-              )}
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* The way in to the other tabs — named with what they hold, so nothing the
           old one-page layout carried is now hidden behind an unlabelled tab. */}

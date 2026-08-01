@@ -63,7 +63,6 @@ export const PIPELINE_NODES: PipelineNode[] = [
   { id: "src-kap", kind: "source", layer: "source", lane: "bulletin", label: "KAP Genel Bilgi Formu", sublabel: "kap.org.tr · ownership §5/§7", statusKey: "kap" },
   { id: "src-tefas", kind: "source", layer: "source", lane: "bulletin", label: "TEFAS fund market", sublabel: "tefas.gov.tr JSON API", statusKey: "tefas" },
   { id: "src-faaliyet", kind: "source", layer: "source", lane: "bulletin", label: "Bank annual reports", sublabel: "Faaliyet Raporları PDFs · franchise stats", statusKey: "faaliyet" },
-  { id: "src-yahoo", kind: "source", layer: "source", lane: "bulletin", label: "Yahoo Finance", sublabel: "chart API · BIST prices/indices", statusKey: "bist" },
   { id: "src-rss-reg", kind: "source", layer: "source", lane: "bulletin", label: "TCMB / BDDK feeds", sublabel: "press releases + board decisions", statusKey: "regulation" },
   { id: "src-rss-press", kind: "source", layer: "source", lane: "bulletin", label: "Financial-media RSS", sublabel: "Bloomberg HT, Dünya, Ekonomim, AA, NTV", statusKey: "news" },
   { id: "src-rss-google", kind: "source", layer: "source", lane: "bulletin", label: "Google News", sublabel: "topic-scoped search RSS · long-tail outlets", statusKey: "news" },
@@ -73,7 +72,7 @@ export const PIPELINE_NODES: PipelineNode[] = [
   { id: "src-product-research", kind: "source", layer: "source", lane: "bulletin", label: "Bank product pages", sublabel: "each bank's own site · product shelf scored on a fixed taxonomy" },
 
   // ── Bulletin lane · ingestion (workflows) ──────────────────────────────
-  { id: "wf-evds-daily", kind: "workflow", layer: "ingestion", lane: "bulletin", label: "refresh-evds-daily", sublabel: "Sun–Fri 05:00 · EVDS + BIST/TBB/KAP/TEFAS", workflowFile: "refresh-evds-daily.yml" },
+  { id: "wf-evds-daily", kind: "workflow", layer: "ingestion", lane: "bulletin", label: "refresh-evds-daily", sublabel: "Sun–Fri 05:00 · EVDS + TBB/KAP/TEFAS", workflowFile: "refresh-evds-daily.yml" },
   { id: "wf-bddk-bulletins", kind: "workflow", layer: "ingestion", lane: "bulletin", label: "refresh-bddk-bulletins", sublabel: "Sat 02:00 · update_monthly / update_weekly", workflowFile: "refresh-bddk-bulletins.yml" },
   { id: "wf-refresh-data", kind: "workflow", layer: "ingestion", lane: "bulletin", label: "refresh-data", sublabel: "Sat 03:00 · refresh.py (full) → push_to_d1", workflowFile: "refresh-data.yml" },
   { id: "wf-backfill-tefas", kind: "workflow", layer: "ingestion", lane: "bulletin", label: "backfill-tefas", sublabel: "manual · ~5y TEFAS history", workflowFile: "backfill-tefas.yml" },
@@ -95,7 +94,6 @@ export const PIPELINE_NODES: PipelineNode[] = [
   { id: "store-d1-kap", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · kap_ownership", sublabel: "shareholders + §7 subsidiaries", statusKey: "kap" },
   { id: "store-d1-tefas", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · tefas_*", sublabel: "manager / category / allocation / top_funds", statusKey: "tefas" },
   { id: "store-d1-faaliyet", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · faaliyet_franchise", sublabel: "ATM / POS / merchant / customer / card counts", statusKey: "faaliyet" },
-  { id: "store-d1-bist", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · bist_*", sublabel: "bist_prices · bist_dividends · bist_shares", statusKey: "bist" },
   { id: "store-d1-news", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · news_items", sublabel: "regulation + press + Google News · + per-bank tags", statusKey: "news" },
   { id: "store-d1-earnings", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · bank_earnings", sublabel: "KAP results filings + IR presentation decks" },
   { id: "store-d1-advertised-rates", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · bank_advertised_rates", sublabel: "per-bank posted loan + deposit rates · dated snapshots", statusKey: "advertised_rates" },
@@ -193,7 +191,6 @@ export const PIPELINE_EDGES: PipelineEdge[] = [
   { source: "src-tefas", target: "wf-backfill-tefas" },
   { source: "src-faaliyet", target: "wf-backfill-faaliyet" },
   { source: "src-faaliyet", target: "wf-refresh-data" },
-  { source: "src-yahoo", target: "wf-evds-daily" },
   { source: "src-rss-reg", target: "wf-news-daily" },
   { source: "src-rss-reg", target: "wf-summarize" },
   { source: "src-rss-press", target: "wf-news-daily" },
@@ -209,7 +206,6 @@ export const PIPELINE_EDGES: PipelineEdge[] = [
   { source: "wf-evds-daily", target: "store-d1-tkbb" },
   { source: "wf-evds-daily", target: "store-d1-kap" },
   { source: "wf-evds-daily", target: "store-d1-tefas" },
-  { source: "wf-evds-daily", target: "store-d1-bist" },
   { source: "wf-advertised-rates", target: "store-d1-advertised-rates" },
   { source: "wf-calendar", target: "store-d1-release-calendar" },
   { source: "src-product-research", target: "wf-build-products" },
@@ -288,9 +284,6 @@ export const PIPELINE_EDGES: PipelineEdge[] = [
   { source: "store-d1-evds", target: "page-liquidity" },
 
   // D1 (market / sector aggregates) → pages
-  { source: "store-d1-bist", target: "page-economy" },
-  { source: "store-d1-bist", target: "page-bank-detail" },
-  { source: "store-d1-bist", target: "page-cross-bank" },
   { source: "store-d1-tbb", target: "page-digital" },
   { source: "store-d1-tkbb", target: "page-digital" },
   { source: "store-d1-tefas", target: "page-funds" },

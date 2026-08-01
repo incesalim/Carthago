@@ -13,8 +13,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { latestPress } from "@/app/lib/news";
-import { getMarketTicker } from "@/app/lib/market-ticker";
-import MarketTicker from "@/app/components/MarketTicker";
 import {
   Colophon,
   Depth,
@@ -58,7 +56,7 @@ function shortDate(iso: string | null | undefined): string {
 }
 
 export default async function NewsPage() {
-  const [items, ticker] = await Promise.all([latestPress(160), getMarketTicker()]);
+  const items = await latestPress(160);
   const latest = items[0]?.published_at;
 
   // ---- the brief's computed vitals — counts and dates from the fetched feed
@@ -90,12 +88,6 @@ export default async function NewsPage() {
         }
         right="compiled, not written"
       />
-
-      {ticker.length > 0 && (
-        <div className="mt-3">
-          <MarketTicker items={ticker} />
-        </div>
-      )}
 
       <SecHead
         title="The vitals"
