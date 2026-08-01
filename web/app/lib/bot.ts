@@ -26,6 +26,28 @@ import { escapeHtml, sendMessage, type TgUpdate } from "./telegram";
 const MAX_MSG_LEN = 500;
 const ROW_CAP = DEFAULT_ROW_CAP;
 const MAX_STEPS = 6; // max query/refine rounds the agent may take per question
+
+/**
+ * Wall-clock budget for the whole agent run, in ms.
+ *
+ * The webhook ACKs Telegram immediately and runs this loop inside
+ * `ctx.waitUntil`. Blow that allowance and the Worker cancels the task AFTER the
+ * answer has been generated but BEFORE `sendMessage` — so the model looks
+ * healthy in the log and the user gets silence. That happened on 2026-08-01
+ * when the primary provider was switched to a slower endpoint: six rounds that
+ * fitted on fast inference no longer did.
+ *
+ * Step count alone cannot prevent it, because the cost of a step depends on the
+ * model. So the loop is bounded in TIME as well: once the budget is spent it
+ * stops querying and goes straight to the forced final answer, which is a
+ * degraded reply rather than no reply at all. ~20s leaves room inside the
+ * ~30s allowance for that last call plus the Telegram round-trip.
+ */
+const RUN_BUDGET_MS = 20_000;
+
+/** Per-LLM-call ceiling. Must be well under RUN_BUDGET_MS or one hung call
+ *  consumes the entire run and the loop never reaches its final answer. */
+const CALL_TIMEOUT_MS = 12_000;
 const MODEL_ROWS = 60; // rows fed back to the model after each query
 const MODEL_RESULT_CHARS = 6000; // cap on the result text handed back to the model
 
@@ -230,10 +252,20 @@ export async function runAgent(
   // not going to on the third try, and each attempt costs free-tier quota.
   let retriedForNumbers = false;
 
+  const deadline = Date.now() + RUN_BUDGET_MS;
+
   for (let step = 0; step < MAX_STEPS; step++) {
+    // Out of time is treated exactly like out of steps: break to the forced
+    // final answer below rather than starting a round we cannot finish.
+    if (Date.now() >= deadline) break;
     let gen;
     try {
-      gen = await chatComplete(env, messages, { temperature: 0, maxTokens: 1400 });
+      gen = await chatComplete(env, messages, {
+        temperature: 0,
+        maxTokens: 1400,
+        timeoutMs: CALL_TIMEOUT_MS,
+        deadline,
+      });
     } catch (e) {
       // llm.ts builds a per-provider reason ("groq: HTTP 429 …; cerebras: …").
       // A bare `catch {}` discarded it, so an outage and an exhausted free tier
@@ -411,7 +443,15 @@ export async function runAgent(
     content: "Stop querying. Give your final plain-text answer now, based on the results so far. No sql block.",
   });
   try {
-    const gen = await chatComplete(env, messages, { temperature: 0, maxTokens: 1400 });
+    // The final call gets its own head-room past the loop deadline: this is the
+    // reply the user actually receives, so it must not be cut off by the budget
+    // the QUERY rounds were bounded with.
+    const gen = await chatComplete(env, messages, {
+      temperature: 0,
+      maxTokens: 1400,
+      timeoutMs: CALL_TIMEOUT_MS,
+      deadline: Date.now() + CALL_TIMEOUT_MS + 1_000,
+    });
     // Re-render here too. This branch used to send the model's hand-typed
     // figures straight through, and it is reached by exactly the longest,
     // most-refined conversations — the ones most likely to carry a ranking.

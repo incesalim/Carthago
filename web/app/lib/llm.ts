@@ -2,29 +2,37 @@
  * Free OpenAI-compatible chat client for the Cloudflare Worker (Telegram bot).
  *
  * Provider chain (see PROVIDERS below):
- *   Groq openai/gpt-oss-120b  →  Cerebras gpt-oss-120b  →  Cerebras gemma-4-31b
- *     →  OpenRouter nvidia/nemotron-3-super-120b-a12b:free
+ *   OpenRouter nvidia/nemotron-3-super-120b-a12b:free
+ *     →  Groq openai/gpt-oss-120b
+ *     →  Cerebras gpt-oss-120b
+ *     →  Cerebras gemma-4-31b
  *
- * ⚠️ NEMOTRON IS LAST ON PURPOSE — 2026-08-02. It was promoted to FIRST on
- * 2026-08-01 and it worked: `llm: answered by openrouter/nemotron-3-super-120b`,
- * no fallback. But the Worker then logged
+ * WHY THE FIRST ATTEMPT AT NEMOTRON FAILED, and what fixed it (2026-08-01/02).
+ * Promoting it to first worked at the model level — the Worker logged
+ * `llm: answered by openrouter/nemotron-3-super-120b`, no fallback — and the bot
+ * then went SILENT on Telegram:
  *
  *   waitUntil() tasks did not complete within the allowed time and have been
  *   cancelled
  *
- * and the bot stopped replying on Telegram. The webhook ACKs immediately and
- * runs the agent loop inside `ctx.waitUntil`, so exceeding that budget kills the
- * reply AFTER the answer has been generated — the model looks healthy in the log
- * and the user gets silence.
+ * The webhook ACKs immediately and runs the agent loop inside `ctx.waitUntil`,
+ * so exceeding that allowance kills the reply AFTER the answer exists. Healthy
+ * logs, no message. Two causes, both now closed:
  *
- * The budget is the problem, not the model. `bot.ts` allows MAX_STEPS = 6 rounds,
- * each a `chatComplete`, each with a 45s per-call timeout and up to 3 chain
- * passes. Groq's inference is fast enough that six rounds fit; Nemotron on a free
- * endpoint is slower per call, and the same loop ran past the allowance.
+ *   1. nemotron-3 is a REASONING model. At OpenRouter's default effort it emits
+ *      a long thinking trace before each answer; `stripReasoning()` discards
+ *      that text but we still waited for every token. Six of those per question
+ *      is what blew the budget. Fixed with `reasoning: { effort: "low" }` on the
+ *      provider — see the note there.
+ *   2. Nothing bounded the run in TIME. Step count cannot, because the cost of a
+ *      step depends on the model. `bot.ts` now runs to a wall-clock budget and
+ *      passes a `deadline` down through here, so the chain stops walking
+ *      providers and stops sleeping between retries once the caller can no
+ *      longer use the result — leaving room to send a degraded answer instead of
+ *      being cancelled mid-flight.
  *
- * So this is NOT "Nemotron doesn't work". Re-promoting it needs the loop bounded
- * first — a shorter per-call timeout and/or fewer steps — verified against
- * `npx wrangler tail` before it goes back to the front.
+ * The second fix is the load-bearing one: it makes ANY slow provider safe here,
+ * not just this one.
  *
  * Groq-before-Cerebras INTENTIONALLY diverges from the Python headline lane
  * (src/news/free_llm.py), which is Cerebras-first and falls back to a
@@ -53,6 +61,8 @@ interface Provider {
   keys: string[];
   /** Extra request headers this provider wants (OpenRouter's attribution). */
   headers?: Record<string, string>;
+  /** Extra body fields merged into the completion request. */
+  params?: Record<string, unknown>;
 }
 
 // Ordered fallback chain. Each is OpenAI-compatible (`/chat/completions`).
@@ -60,6 +70,29 @@ interface Provider {
 // matters because the agent loop makes several calls per question. Nemotron sits
 // LAST until the loop's time budget is fixed — see the header.
 const PROVIDERS: Provider[] = [
+  {
+    name: "openrouter/nemotron-3-super-120b",
+    base: "https://openrouter.ai/api/v1",
+    // Pinned to the `:free` variant on purpose. The paid twin
+    // (nvidia/nemotron-3-super-120b-a12b) is a different id and WOULD BILL;
+    // dropping the suffix is the one-character mistake that turns this lane
+    // from free to metered without any other visible change.
+    model: "nvidia/nemotron-3-super-120b-a12b:free",
+    keys: ["OPEN_ROUTER_API", "OPENROUTER_API_KEY"],
+    // OpenRouter attributes usage to a referring app. Same pair the Python
+    // lanes send (scripts/scratch_test_openrouter.py, summarize_regulations.py).
+    headers: { "HTTP-Referer": "https://carthago.app", "X-Title": "carthago" },
+    // ⚠️ THIS LINE IS WHY NEMOTRON IS USABLE HERE. nemotron-3 is a REASONING
+    // model (its endpoint advertises reasoning / reasoning_effort /
+    // include_reasoning). At OpenRouter's default effort it emits a long
+    // thinking trace before every answer — `stripReasoning()` below throws that
+    // text away, but we still WAITED for every token of it. Six of those in one
+    // agent loop blew the Worker's waitUntil budget and the bot went silent on
+    // 2026-08-01: answers were generated and then cancelled before sending.
+    // Low effort keeps the reasoning that helps it write SQL and drops the
+    // essay. Do not remove this without re-measuring against `wrangler tail`.
+    params: { reasoning: { effort: "low" } },
+  },
   {
     name: "groq/openai/gpt-oss-120b",
     base: "https://api.groq.com/openai/v1",
@@ -77,19 +110,6 @@ const PROVIDERS: Provider[] = [
     base: "https://api.cerebras.ai/v1",
     model: "gemma-4-31b",
     keys: ["CEREBRAS_KEY", "CEREBRAS_API_KEY"],
-  },
-  {
-    name: "openrouter/nemotron-3-super-120b",
-    base: "https://openrouter.ai/api/v1",
-    // Pinned to the `:free` variant on purpose. The paid twin
-    // (nvidia/nemotron-3-super-120b-a12b) is a different id and WOULD BILL;
-    // dropping the suffix is the one-character mistake that turns this lane
-    // from free to metered without any other visible change.
-    model: "nvidia/nemotron-3-super-120b-a12b:free",
-    keys: ["OPEN_ROUTER_API", "OPENROUTER_API_KEY"],
-    // OpenRouter attributes usage to a referring app. Same pair the Python
-    // lanes send (scripts/scratch_test_openrouter.py, summarize_regulations.py).
-    headers: { "HTTP-Referer": "https://carthago.app", "X-Title": "carthago" },
   },
 ];
 
@@ -125,6 +145,13 @@ interface ChatOpts {
   temperature?: number;
   maxTokens?: number;
   timeoutMs?: number;
+  /** Absolute wall-clock cutoff (Date.now() ms) for this whole call, retries
+   *  and fallbacks included. Without it the chain can walk every provider and
+   *  every retry pass, which is far longer than any single `timeoutMs` — and
+   *  the caller's own budget is what the Worker's waitUntil actually enforces.
+   *  Past the cutoff the chain stops trying and throws, so the caller can still
+   *  send a degraded reply instead of being cancelled mid-flight. */
+  deadline?: number;
 }
 
 async function callProvider(
@@ -148,6 +175,7 @@ async function callProvider(
         temperature: opts.temperature ?? 0,
         max_tokens: opts.maxTokens ?? 1024,
         messages,
+        ...p.params,
       }),
       signal: ctrl.signal,
     });
@@ -173,6 +201,10 @@ async function attemptChain(
   const errors: string[] = [];
   const skipped: string[] = [];
   for (const p of PROVIDERS) {
+    if (opts.deadline != null && Date.now() >= opts.deadline) {
+      errors.push("deadline reached before trying remaining providers");
+      break;
+    }
     const key = keyFor(env, p);
     if (!key) {
       skipped.push(p.name);
@@ -224,6 +256,10 @@ export async function chatComplete(
     } catch (e) {
       last = e;
       if (!llmConfigured(env) || attempt === backoffs.length) break;
+      // Don't sleep into a deadline we've already missed — the retry would
+      // start work the caller can no longer use, and burn the budget it needs
+      // to send a degraded answer.
+      if (opts.deadline != null && Date.now() + backoffs[attempt] >= opts.deadline) break;
       await new Promise((r) => setTimeout(r, backoffs[attempt]));
     }
   }

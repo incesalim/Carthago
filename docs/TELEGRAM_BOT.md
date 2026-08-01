@@ -76,24 +76,34 @@ requires the answer be in **the same language as the question**.
 
 ## LLM provider chain
 
-`llm.ts` tries, in order: **Groq `openai/gpt-oss-120b` → Cerebras `gpt-oss-120b`
-→ Cerebras `gemma-4-31b` → OpenRouter `nvidia/nemotron-3-super-120b-a12b:free`**.
+`llm.ts` tries, in order: **OpenRouter `nvidia/nemotron-3-super-120b-a12b:free`
+→ Groq `openai/gpt-oss-120b` → Cerebras `gpt-oss-120b` → Cerebras `gemma-4-31b`**.
 
-> ⚠️ **Nemotron was promoted to first on 2026-08-01 and demoted again on
-> 2026-08-02.** The model itself worked — the Worker logged `llm: answered by
-> openrouter/nemotron-3-super-120b` with no fallback. What broke was the time
-> budget: the webhook ACKs Telegram immediately and runs the agent loop inside
-> `ctx.waitUntil`, the Worker logged *"waitUntil() tasks did not complete within
-> the allowed time and have been cancelled"*, and the bot stopped replying.
->
-> That failure shape is nasty: the answer IS generated, the log looks healthy,
-> and the user gets silence. `MAX_STEPS = 6` rounds × a 45s per-call timeout ×
-> up to 3 chain passes fits inside the allowance on Groq's fast inference and
-> does not on a slower free endpoint.
->
-> **Re-promoting Nemotron requires bounding the loop first** — shorter per-call
-> timeout and/or fewer steps — verified with `npx wrangler tail` before it goes
-> back to the front. Moving it up without that reintroduces the outage.
+### The waitUntil trap (2026-08-01 outage, and the two fixes)
+
+Promoting Nemotron to first worked at the model level and still broke the bot:
+the Worker logged `llm: answered by openrouter/nemotron-3-super-120b` with no
+fallback, then *"waitUntil() tasks did not complete within the allowed time and
+have been cancelled"*, and nothing arrived on Telegram.
+
+The webhook ACKs Telegram immediately and runs the agent loop inside
+`ctx.waitUntil`. Exceed that allowance and the reply is killed **after** the
+answer has been generated — healthy logs, silent bot. Two causes:
+
+1. **nemotron-3 is a reasoning model.** At OpenRouter's default effort it writes
+   a long thinking trace before every answer. `stripReasoning()` throws that text
+   away, but the Worker still waited for every token of it, six times per
+   question. Now pinned to `reasoning: { effort: "low" }`.
+2. **Nothing bounded the run in time.** A step count can't, because the cost of a
+   step depends on the model. `bot.ts` now enforces `RUN_BUDGET_MS` (20s) across
+   the whole run with a `CALL_TIMEOUT_MS` (12s) ceiling per call, and passes a
+   `deadline` into `chatComplete` so the chain stops walking providers — and
+   stops sleeping between retries — once the caller can no longer use the result.
+   Out of time is handled exactly like out of steps: it breaks to the forced
+   final answer, so the user gets a degraded reply rather than none.
+
+Fix 2 is the load-bearing one — it makes any slow provider safe here, not just
+this model.
 
 Nemotron was briefly the primary on **2026-08-01**. It is a 120B MoE with ~12B active,
 so it replaces `gpt-oss-120b` like for like rather than trading capability away,
