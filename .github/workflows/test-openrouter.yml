@@ -54,6 +54,13 @@ on:
         description: "regulation only — pin the OpenRouter upstream (e.g. Baidu). Blank = unpinned routing."
         required: false
         default: "Baidu"
+      variants:
+        description: >-
+          unit only — comma-separated prompt/decoding variants to sweep
+          (v0_baseline,v1_schema,v2_nothink,v3_effort_none,v4_schema_nothink,v5_all).
+          Blank runs a single pass on the default settings.
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -111,6 +118,7 @@ jobs:
         run: >
           python scripts/scratch_bench_unit_detection.py
           ${{ inputs.model_id != '' && format('--model {0}', inputs.model_id) || '' }}
+          ${{ inputs.variants != '' && format('--variants {0}', inputs.variants) || '' }}
 
       - name: Upload bench result
         if: inputs.task == 'unit'
