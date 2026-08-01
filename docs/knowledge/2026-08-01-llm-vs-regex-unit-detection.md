@@ -1,12 +1,17 @@
 # Can an LLM read a filing's reporting unit better than a regex?
 
-**Date:** 2026-08-01 · **Status:** ANSWERED — no. Regex 22/22, free, offline.
-Keep extraction deterministic.
-**Evidence:** `scripts/scratch_bench_unit_detection.py` via `test-openrouter.yml`
-runs [30715235995](https://github.com/incesalim/Carthago/actions/runs/30715235995)
-(DeepSeek) and [30715365345](https://github.com/incesalim/Carthago/actions/runs/30715365345)
-(Nemotron), plus [30715083033](https://github.com/incesalim/Carthago/actions/runs/30715083033)
-(model inventory).
+**Date:** 2026-08-01 · **Status:** ANSWERED — a properly tuned Nemotron **ties**
+the regex at 22/22 and never beats it. Keep extraction deterministic; an LLM is
+worth it only on the regex's `UNKNOWN` branch.
+**Evidence:** `scripts/scratch_bench_unit_detection.py` via `test-openrouter.yml`.
+Round 1 — [30715235995](https://github.com/incesalim/Carthago/actions/runs/30715235995)
+(DeepSeek), [30715365345](https://github.com/incesalim/Carthago/actions/runs/30715365345)
+(Nemotron), [30715083033](https://github.com/incesalim/Carthago/actions/runs/30715083033)
+(inventory). Round 2, Nemotron tuning —
+[30715899607](https://github.com/incesalim/Carthago/actions/runs/30715899607) (6-variant sweep),
+[30716578444](https://github.com/incesalim/Carthago/actions/runs/30716578444) (isolation),
+[30716838564](https://github.com/incesalim/Carthago/actions/runs/30716838564) (stability),
+[30717074829](https://github.com/incesalim/Carthago/actions/runs/30717074829) (enum-only).
 
 ## The problem this was testing
 
@@ -90,6 +95,70 @@ plus `google/gemma-4-{26b-a4b,31b}-it:free`, `openai/gpt-oss-20b:free`,
 Note `deepseek/deepseek-v4-flash` resolved to **`deepseek-v4-flash-0731`** — the
 dated id. Discover from `GET /models`; never hardcode.
 
+## Round 2 — tuning Nemotron properly (nemotron only)
+
+The round-1 score was a badly-configured model, so the levers were checked
+against `GET /models` rather than guessed. The **free** endpoint advertises
+`structured_outputs`, `response_format`, `reasoning`, `reasoning_effort`,
+`include_reasoning`, `seed`, `tools`, `tool_choice` (262K ctx; the paid variant
+is 1M and adds `logit_bias`/`top_k`/`min_p`). Nemotron 3 Super also gates its
+chain-of-thought on a `/no_think` system directive.
+
+Twelve variants over the same 22 filings:
+
+| variant | score | out tokens | median |
+|---|---|---:|---:|
+| v0 baseline | 20/22 | 13,852 | 6.6s |
+| v1 strict json_schema | 19/22 | 12,728 | 5.9s |
+| v2 `/no_think` | 20/22 | 16,356 | 8.6s |
+| v4 schema + `/no_think` | 19/22 | 14,400 | 7.3s |
+| v3 `reasoning.effort=none` | 22/22 → 21 → 20 → 17 | ~1,900 | 0.9s |
+| **v10–v12 enum-only + schema + effort=none** | **21 / 22 / 22** | **~205** | **0.6s** |
+
+**`reasoning.effort=none` is the lever; the schema and `/no_think` did nothing
+on their own.** Output tokens fell 13,852 → ~205 (67×) and latency 6.6s → 0.6s.
+`/no_think` in the system prompt had no measurable effect through OpenRouter —
+use the API parameter, not the directive.
+
+**⚠️ Do not trust a single benchmark run of this endpoint.** `effort=none` scored
+**22, 21, 20 and 17 out of 22 on byte-identical configs** at `temperature: 0`
+with a fixed `seed`, calls spaced 2s apart so the rate limiter was not the cause.
+One sample would have supported any conclusion you like.
+
+**What was actually breaking it: the free-text `evidence` field.** Two failure
+shapes, one cause — `INVALID:MILLIONS OF TURKISH LIRA (TL)` (the phrase written
+into the enum field) and `TRUNCATED` with `<unk><unk><unk>` spew, the tokenizer
+choking on quoted Turkish and then running to the cap. Dropping the field and
+constraining to a bare enum gives **22/22 twice and 21/22 once — where the single
+miss was `Upstream error from Nvidia: ResourceExhausted`, an infrastructure
+failure rather than a wrong answer.** Answer-for-answer that is 65/65.
+
+So a properly configured Nemotron **ties** the regex. It never wins, and getting
+there cost three levers, twelve variants and six CI runs — while the regex was
+right the first time. It also gives up the `evidence` field, which was the only
+thing making an LLM answer auditable, and it still fails ~1 call in 66 to a free
+upstream that owes us nothing.
+
+**One wrong answer, worth naming:** `v6_schema_effort` returned `THOUSAND` for
+YKBNK 2026Q2 while its own evidence read *"expressed in millions of Turkish
+L…"*. A confidently wrong label contradicting its own quote is exactly the
+failure a 1000× scale decision cannot absorb.
+
+## Fine-tuning: available, and not justified here
+
+- **Nemotron 3 Super is open-weight** (Hugging Face), so LoRA/QLoRA is possible;
+  full fine-tuning of 120B is not a laptop job.
+- **Hosted customization exists** — AWS SageMaker AI serverless customization
+  covers Nemotron 3 Nano and Super with SFT / RLVR / RLAIF, and NVIDIA NeMo
+  Customizer does the same on NVIDIA infrastructure.
+- **OpenRouter cannot serve it on this plan.** Its Private Models beta (May 2026)
+  routes to your own fine-tuned endpoints but is **Enterprise-only**; BYOK exists
+  for provider keys, not for hosting a checkpoint.
+
+None of it is worth doing for this task. **The ceiling is 22/22 and a regex
+already reaches it for free, offline, deterministically.** Fine-tuning would buy
+GPU hours and an MLOps dependency to match fifteen lines of `re`.
+
 ## What to do instead
 
 Unit detection belongs in the extractor as a deterministic step. The detector is
@@ -108,3 +177,17 @@ whole document is about. Do not infer the field list — enumerate it against
 
 **Do not re-bench this** unless the question changes. The regex cannot be beaten
 on a task it already scores 22/22 on for free.
+
+**Where an LLM would still earn its place: the `UNKNOWN` branch.** The regex is
+22/22 on filings that state the unit in a phrasing we have seen. It returns
+`UNKNOWN` — honestly — on anything else, and a bank that rewords the declaration,
+or states it only in a statement header, is a matter of time. Calling
+enum-only Nemotron *only when the regex returns `UNKNOWN`* costs nothing in the
+common case, is free, adds ~0.6s on the exception, and round 2 shows it answers
+that question correctly. That is the hybrid worth building if this ever needs
+more than the regex — not an LLM in the default path.
+
+If it is built: `reasoning: {"effort": "none"}`, strict `json_schema` with the
+unit as an `enum` and **no free-text field**, `provider: {"require_parameters":
+true}`, and treat a disagreement with the regex as a hard stop for a human, never
+as a value to store.
