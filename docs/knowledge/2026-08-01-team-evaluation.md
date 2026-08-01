@@ -1,6 +1,83 @@
 # Five-lens team evaluation — 2026-08-01
 
-**Status: report only. No code was changed.** A five-agent review team
+> ## SESSION CLOSED 2026-08-01 — read this first
+>
+> The review below is the findings. This box is the **state at close**: what got
+> fixed, what is deliberately not being done, and what a later session should
+> pick up. Everything in "shipped" is committed, CI-green and deployed.
+>
+> ### ⛔ Standing constraints (decisions, not open questions — do not re-litigate)
+>
+> | Constraint | Decided |
+> |---|---|
+> | **No D1 writes.** Nothing that writes to the live database runs, including the loans repair below. | 2026-08-01 |
+> | **Do not drop the `bist_*` tables.** Retained deliberately; nothing reads them and `bot-sql.ts` denies them. | 2026-08-01 |
+> | **Crons stay frozen, indefinitely** — including `healthcheck`, so nothing is monitoring. Enforced+visible via `check_workflow_state.py`. | 2026-08-01 |
+> | **Monetisation undecided** → no permission letters sent, no engineering spent on `/api/v1`. | 2026-08-01 |
+>
+> ### ✅ Shipped this session
+>
+> | Commit | What |
+> |---|---|
+> | `3b17d55` | This report |
+> | `9459403` `e97d635` `41daf54` | **Capital thresholds** — CET1 was judged against the 12% *total-capital* target, flagging 18 of 37 banks as short of common equity. One sourced constants module replaced four duplicate `CAR_MIN = 12` definitions. Flag now reads 1 of 37 (Ziraat Katılım, CET1 6.9%) and is framed as a conservation-buffer dip, not a breach. |
+> | `d52ce2d` | **Deploy gated on CI** (`workflow_run`) — it used to race; **contrast-gate holes closed** (21 hex leaks + 9 tint failures; three light inks darkened ~8%, mobile tokens in lockstep); **definition note** at `/methodology#comparability`; **peerStat licence-class peer groups**; **`realRate()`** on the bank page; **skip link** (WCAG 2.4.1). |
+> | `487264d` | **BIST/Yahoo lane removed** — the only live terms breach. Fetch and every serving path deleted; USD/TRY re-sourced to TCMB EVDS. |
+> | `54ce1d9` | **Loans falsy-`or` zero loss fixed** in the scraper + 7 tests (4 fail on the old code). Repair script and workflow written but **NOT RUN**. |
+> | `8b169fa` | **P&L subtotals resolved via `bank_audit_pl_roles`** in the live waterfall, the statement catalog and the sankey. Affects **7 partitions of 590** (DUNYAK 2024Q1–2025Q2, TOMK) — verified against the roles table. |
+> | `b67dd98` | **NIM on interest-earning assets**; `trading_share` added instead of a swap proxy. Removed the stale Borsa İstanbul row from `/methodology`'s source table. |
+> | `4232020` | **Workflow-state gate** — the frozen set is now recorded, diffed against the live API in CI, and printed in every build log. |
+>
+> ### 📌 Standing issues (ranked; none is urgent, none is silently rotting)
+>
+> **Blocked by the no-D1-writes constraint:**
+> 1. **The loans repair has not been run.** `44,220 cells across 30,516 rows` are
+>    still NULL in production where BDDK reported `0` — the largest block being
+>    consumer-loan FX, where 0 is Decree 32. The scraper no longer creates new
+>    losses. `repair-loans-zeros.yml` (dry-run default) is ready when D1 writes
+>    resume. The 44,220 figure was measured on a **stale local snapshot**; re-run
+>    the dry run against production before trusting it.
+>
+> **Still printing something wrong:**
+> 2. Sector FX net open position nets long against short, then reads the result as
+>    "well-hedged" (`market-risk.ts:100-118`). ~2h.
+> 3. LCR/NSFR floor applied to non-deposit-takers (EXIM, PASHA, TAKAS). ~2h — but
+>    needs the BDDK scope article first; may be a re-scope, not a fix.
+> 4. `/economy` raw hex marks at 1.63–2.71:1 — fails WCAG 1.4.11. ~half day.
+> 5. "Şekil N" labels cite **Albaraka's** research notes while the footer credits
+>    TÜİK. Fix is a full citation from `chart-specs.catalog.json`, not translation.
+>
+> **Accessibility — still fails AA on five criteria:**
+> 6. **Chart ramp CVD failure** — the largest remaining item, and deliberately not
+>    attempted: it needs a genuine palette exercise plus a ΔE gate, not a tweak.
+> 7. Chart keyboard parity (2.1.1) — isolate/pin is still mouse-only.
+> 8. `delta-badge` direction (1.4.1), heading-order skips (1.3.1), `Register.tsx`
+>    focus ring (2.4.7), `lang="tr"` on Turkish labels (3.1.2).
+> 9. Craft, not compliance: frosted sticky header; 65 sub-10px all-caps nodes.
+>
+> **Coverage gap:**
+> 10. Only `_save_loans` gained tests. The other four `_save_*` methods
+>     (balance sheet, income statement, deposits, ratios) remain untested and feed
+>     most of the sector pages.
+>
+> **Decisions parked:**
+> 11. What `/api/v1` should serve given BDDK's *kısmen alıntı*.
+>
+> **Needs a source outside the repo:**
+> 12. Vendor coverage (11 of 38) — **currently carries the strategic argument and
+>     is unverified**. One subscription check.
+> 13. BDDK LCR/NSFR scope article · KAP, TEFAS, TKBB terms · TBB Excel beyond BS/P&L.
+>
+> ### Note on scope
+>
+> This backlog is bounded and ranked; it is not open-ended. Several items grew
+> during the session because fixing one surfaced a second defect underneath it —
+> the P&L work found a hardcode in the reconciliation *identities*, and the
+> contrast work found the token values themselves failed. Those are recorded
+> above rather than pursued.
+
+**Status: report only. No code was changed.** *(As originally written — see the
+session-close box above for what has since shipped.)* A five-agent review team
 (engineering, analyst methodology, banking domain, design, product strategy)
 evaluated the system independently, then cross-examined each other's findings.
 This document records what survived the cross-examination.
