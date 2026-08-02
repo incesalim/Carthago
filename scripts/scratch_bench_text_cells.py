@@ -90,10 +90,17 @@ WINDOW_FOR = {
     #                                 +5:25 +6:13                  -> needs 7
     #   npl_movement    27/187 (14%)  +0:23 +1:4, ABSENT 160       -> see below
     #
-    # ⚠️ npl_movement's ceiling is 14%: 160 of its 187 non-zero corrected values
-    # are not printed anywhere near the note. Those are reconstructions, not
-    # transcriptions, and no window or prompt reaches them. Widening it further
-    # only adds distractors.
+    # ⚠️ npl_movement measures a 14% ceiling, but NOT because the values are
+    # reconstructions — that first reading was wrong. Re-checked with a
+    # digits-only match over the whole PDF, of 40 "absent" cases:
+    #   ~19  ARE on source_page, offset 0 — the text layer SPLITS the digits
+    #        ('1 1,372,338' for 11,372,338, the same squish capital_adequacy.py
+    #        documents), so an exact-string search misses them
+    #    16  are on a DRAWN page: printed, but invisible to get_text() — the
+    #        override note says so outright for FIBA 2022Q1 note-5.9.2
+    # Both are extraction-layer defects, not derivation. A text model cannot
+    # read either, so the lane stays out of reach for THIS approach; the drawn
+    # subset is the one a vision model could in principle reach.
     "capital": 3,
     "liquidity": 3,
     "repricing": 3,
