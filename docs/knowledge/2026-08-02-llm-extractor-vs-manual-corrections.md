@@ -291,3 +291,67 @@ Everything else stays as it is: regex first, hand-fix what survives. The LLM's
 value is highest not as a writer but as a **detector** — it disagrees with the
 stored figure on a real error far more often than at random, and a disagreement
 is a cheap signal to send a human to a partition.
+
+---
+
+# Part 4 — closing the validator hole, and tuning
+
+## The hole is closed (shipped)
+
+`check_pl_subitem_sums` — see `src/audit_reports/validator.py`. Depth>=3 decimals
+only, and the restriction is measured over all 1,050 partitions:
+
+| level | holds | usable? |
+|---|---:|---|
+| roman = Σ(its decimals) | 82.11% | **no** — roman IV is `4.1 received − 4.2 paid`, XVIII nets tax |
+| depth>=3 parent = Σ(children) | **99.94%** (3142/3144) | yes |
+
+Corpus impact: 3,144 new checks, **2 partitions newly failing** — FIBA 2023Q3
+consolidated `4.1` off by 600, ODEA 2023Q3 unconsolidated `1.5` off by 24,659.
+Both genuine. The gate test now catches **3 of 3, zero escaped**.
+
+## ⚠️ Three of the four "model failures" were the harness
+
+This is the load-bearing lesson of the whole investigation. Each of these was
+first recorded as a model limitation and each turned out to be mine:
+
+| symptom | apparent conclusion | actual cause |
+|---|---|---|
+| 8/22 on unit detection | "the model can't read a declaration" | `max_tokens: 200` starved a reasoning model |
+| wrong figure for P&L `4.2.1` | "confidently wrong, unusable" | prompt passed a label printed TWICE (4.1.1 and 4.2.1) |
+| `capital` 0/5, `liquidity` 0/2 | "can't read §4 tables" | fed the wrong page — `source_page` is where the SECTION starts |
+| gate reported ESCAPED | "validators don't cover it" | mutation keyed on name, so it patched 4.1.1 not 4.2.1 |
+
+Only the fourth changed a real conclusion; the first three each cost a full
+round. **Before recording an LLM limitation here, verify the model was given the
+question you think it was given.**
+
+## Tuning results
+
+Two fixes, measured on the same bench:
+
+1. **Pass the hierarchy marker, not just the label.** Control-set *wrong answers*
+   went **5 → 0**; the remaining control misses are retrieval, not bad figures.
+2. **Read a 3-page window from `source_page`.** `source_page` marks the section
+   start and §4 tables span pages — VAKBN's capital section starts p41 while
+   "Toplam Risk Ağırlıklı Tutarlar 2,483,897,695" prints on p42.
+
+| lane | before | after |
+|---|---:|---:|
+| `capital` | 0/5 (0%) | **3/3 (100%)** |
+| `liquidity` | 0/2 (0%) | **1/1 (100%)** |
+| `repricing` | 3/5 (60%) | **4/4 (100%)** |
+| `credit_quality` | 1/5 (20%) | 3/5 (60%) |
+| `npl_movement` | 6/9 (67%) | 5/9 (56%) |
+| `fx_position` | 10/14 (71%) | 6/11 (55%) |
+| `loans_by_sector` | 3/5 (60%) | 1/3 (33%) |
+| **all named metrics** | **47%** | **64%** |
+
+Repair and control both 6/6 on the latest draw (small samples — the field lanes
+carry the signal).
+
+**`fx_position` went DOWN, and that is informative.** Its errors are sign flips
+and cross-currency bleed (want 899,389, got −4,958,766), so a wider window gives
+it more neighbouring currency blocks and period columns to confuse. Retrieval
+width is not monotonically good: the right window is per-lane, and for
+fx_position it should probably narrow to the one currency block, not widen.
