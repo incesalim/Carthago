@@ -136,6 +136,10 @@ SYSTEM_3 = (
     "4727468981. Parentheses mean negative.\n"
     'Reply with STRICT JSON only: {"tl": <int>, "fc": <int>, "total": <int>, '
     '"found": true|false}\n'
+    "⚠️ The SAME label can appear more than once under different parents. QNBFB "
+    "prints 'Non-cash loans' under BOTH fees received (4.1.1 = 175,010) and fees "
+    "paid (4.2.1 = 449). The hierarchy marker decides which row is meant — match "
+    "it first, and use the label only to confirm.\n"
     "Set found=false if the row is not on this page. Never compute or infer a "
     "figure — copy what is printed."
 )
@@ -146,6 +150,10 @@ SYSTEM_1 = (
     "A dash '-' means ZERO. '.' is the thousands separator: 46.257.158 is "
     "46257158. Parentheses mean negative.\n"
     'Reply with STRICT JSON only: {"amount": <int>, "found": true|false}\n'
+    "⚠️ The SAME label can appear more than once under different parents. QNBFB "
+    "prints 'Non-cash loans' under BOTH fees received (4.1.1 = 175,010) and fees "
+    "paid (4.2.1 = 449). The hierarchy marker decides which row is meant — match "
+    "it first, and use the label only to confirm.\n"
     "Set found=false if the row is not on this page. Never compute or infer a "
     "figure — copy what is printed."
 )
@@ -201,13 +209,15 @@ def find_page(pdf: Path, item_name: str, hint: int | None) -> tuple[int, str] | 
         doc.close()
 
 
-def ask(key: str, model: str, page_text: str, label: str, three: bool) -> tuple[dict, str]:
+def ask(key: str, model: str, page_text: str, label: str, three: bool,
+        hier: str = "") -> tuple[dict, str]:
     body = {
         "model": model,
         "messages": [
             {"role": "system", "content": SYSTEM_3 if three else SYSTEM_1},
             {"role": "user", "content":
-                f"ROW LABEL: {label}\n\n--- PAGE TEXT ---\n{page_text[:24000]}"},
+                f"HIERARCHY MARKER: {hier or '(none)'}\nROW LABEL: {label}\n\n"
+                f"--- PAGE TEXT ---\n{page_text[:24000]}"},
         ],
         "temperature": 0, "seed": 7, "max_tokens": 3000,
         # The round-2 finding: reasoning tokens otherwise eat the budget and the
@@ -269,6 +279,7 @@ def build_repair(limit: int, seed: int) -> list[dict]:
             want = {"amount": x.get("amount")}
         out.append({"set": "repair", "bank": x["bank_ticker"], "period": x["period"],
                     "kind": x["kind"], "statement": st, "label": x["item_name"],
+                    "h": x.get("hierarchy") or "",
                     "want": want, "hint": x.get("source_page")})
     random.Random(seed).shuffle(out)
     return out[:limit]
@@ -299,6 +310,7 @@ def build_control(limit: int, seed: int, repair: list[dict]) -> list[dict]:
                         else {"amount": r[2]})
                 out.append({"set": "control", "bank": bank, "period": period,
                             "kind": kind, "statement": st, "label": r[1],
+                            "h": r[0] or "",
                             "want": want, "hint": None})
     finally:
         db.close()
@@ -472,7 +484,8 @@ def main() -> int:
 
         three = item["statement"] in THREE_COL
         time.sleep(DELAY)
-        got, err = ask(key, args.model, text, item["label"], three)
+        got, err = ask(key, args.model, text, item["label"], three,
+                       item.get("h", ""))
         if err:
             print(f"  {tag} p{page} ERR {err}")
             results.append({**{k: item[k] for k in ('set', 'bank', 'period', 'statement')},
