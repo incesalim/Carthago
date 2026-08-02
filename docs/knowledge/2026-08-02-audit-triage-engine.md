@@ -157,15 +157,63 @@ the paired counts gone).
 - Verdicts are hypotheses. `confirmed` means the PDF demonstrates it; `likely`
   means it was inferred. Confirm before acting.
 
-## Next, if it earns it
+## The extractor fixes this surfaced
 
-- `max_pages` in `audit_opinion.extract_opinion_from_pdf`: 6 → 10. Cheapest fix
-  in the backlog, 7 partitions, guarded by the existing opinion tests.
-- The `dropped_cell` cluster (EMLAK + QNBFB capital) points at one prior-column
-  read in the §4 extractor. That is a code fix, not a re-extraction campaign.
-- `column_slip` on equity_change (53) is the largest single cell in the matrix and
-  has not been opened yet. Start there, and open a case before trusting the count
-  — that is exactly how the `dropped_cell` over-claim was found.
-- 7 `rotated_page` partitions were invisible in the local cache and only appeared
-  in the CI run. `/Rotate` normalisation is a known extractor gap
-  (`docs/knowledge` — the equity/CF `/Rotate 90` work), so these are likely one fix.
+**None of these are applied.** They change the extractor, and re-extraction
+writes rows — so they are recorded here as issues, per the standing D1 rule.
+Ranked by evidence, not by size.
+
+### 1. The opinion extractor's page window is two pages too short — 43 partitions
+
+`audit_opinion.extract_opinion_from_pdf` takes `max_pages: int = 6`
+(`src/audit_reports/audit_opinion.py:247`). Across the 43 failing
+`opinion_auditor_missing` partitions, the audit firm IS named, on:
+
+| page | 7 | 8 | 9 |
+|---|--:|--:|--:|
+| partitions | 26 | 10 | 7 |
+
+Firms: Deloitte 33, PwC 5, KPMG 5. Nothing lands past p9. **`6` → `10` clears all
+43** with a page of margin. Verified by hand on TEB 2023Q4 (Deloitte, p7).
+
+Why the window was ever enough: a *clean* opinion is short. A qualified one
+carries a "Basis for Qualified Opinion" paragraph that pushes the signature
+block back — and 57% of this corpus is modified, so the failure concentrates
+exactly where the interesting banks are.
+
+### 2. §4 capital never reads the prior AT1 column — 9 partitions
+
+Every one stores `additional_tier1_capital = 0` on the `period_type='prior'` row
+while the real figure is printed. EMLAK + QNBFB only. Verified by hand on EMLAK
+2022Q1: prior AT1 is printed as `2.359.569` on p32, the §4 table spans pp31–33,
+and prior Tier1 (3,956,825) reconciles against the printed prior Tier1 ratio
+(27.57%) — so the stored Tier1 and CET1 are both right and AT1 alone is lost.
+Parsing lives in `capital_adequacy.py:_parse_section` (the `prior` dict at
+`:269`/`:325`). This is the one cause the filing *proves*: the shortfall equals
+the printed figure exactly.
+
+### 3. The two big equity_change clusters are grouped, NOT diagnosed — ~114 partitions
+
+126 equity failures fall into `column_slip` 53 (dominated by `eq_paid_in_capital`
+30 and `eq_oci_cross` 14), `dropped_cell` ~35 (zeros in `total_equity`,
+`total_equity_incl_minority`, `prior_period_profit_loss`), and `missing_row` 26.
+
+⚠️ **Do not treat these as one fix.** The obvious hypothesis — that the closing
+`Dönem Sonu Bakiyesi` row is not being extracted, which is exactly what AKBNK
+2026Q1 shows (its label wrapped onto the `11.3` line, orphaning 16 values) —
+**is refuted at corpus scale**: the closing row is absent from 37% of failing
+partitions and 36% of *passing* ones. It predicts nothing. Whatever unifies these
+clusters, it is not that, and one hand-verified case was not enough to tell.
+
+Start by opening three or four cases across different banks before writing any
+code. This is the largest block in the matrix and the one most likely to waste a
+week on a wrong theory.
+
+### Not a fix: the 7 rotated pages
+
+ING equity_change ×6 + TFKB ×1, all `/Rotate 90` on p16. The extractor is
+**already rotation-aware** (`extractor.py:734` maps bboxes through
+`page.rotation_matrix`; `equity_change.py:741` runs a rotation-aware scan), and
+most rotated pages in the corpus extract fine. The triage was over-claiming here
+and has been corrected — rotation is now reported as context only when figures
+are genuinely missing. Their real cause is unknown and they now sort under it.
