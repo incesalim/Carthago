@@ -23,18 +23,30 @@ a human still decides what to act on.
 
 ## What it found
 
-212 failing partitions in the snapshot (equity_change 126, audit_opinion 51,
-capital 19, profile 16). 42 have a locally cached PDF — including **all 19
-capital partitions** — and those triage in 17 seconds:
+All **212** failing partitions, triaged in CI against the live R2 corpus
+(run 30763530600, ~4 min):
 
 | Cause | n | Meaning |
 |---|--:|---|
-| `dropped_cell` | 16 | a column the extractor never read, stored as `0` |
-| `column_slip` | 10 | right statement, wrong column |
-| `anchor_miss` | 8 | the value is in the filing, outside where we looked |
-| `missing_row` | 4 | a printed row has no stored counterpart at all |
-| `unclassified` | 3 | not decidable by this method — said so rather than guessed |
+| `column_slip` | 61 | right statement, wrong column |
+| `dropped_cell` | 46 | a column the extractor never read, stored as `0` |
+| `anchor_miss` | 45 | the value is in the filing, outside where we looked |
+| `unclassified` | 26 | not decidable by this method — said so rather than guessed |
+| `missing_row` | 26 | a printed row has no stored counterpart at all |
+| `rotated_page` | 7 | `/Rotate` set; text comes out garbled unless normalised |
 | `drawn_page` | 1 | no text layer; a human has to transcribe it |
+
+| Lane | Partitions | Dominant cause |
+|---|--:|---|
+| equity_change | 126 | `column_slip` (53) |
+| audit_opinion | 51 | `anchor_miss` (43) |
+| capital | 19 | `dropped_cell` (9) |
+| profile | 16 | `unclassified` (16) |
+
+**`source_defect` is zero across the corpus.** After the rule was tightened (see
+below) nothing here qualifies as "the bank's own statement does not foot" — every
+failure is ours, or honestly undecidable. That is worth knowing before anyone
+adds another entry to `revalidate_audit_db`'s skip-lists.
 
 Three verified by hand, end to end:
 
@@ -90,6 +102,17 @@ is worse than no label.
    defect. The real defect is the same node stored under two spellings. The first
    rule fired on healthy equity statements across the corpus.
 
+A seventh was caught only *after* the first full-corpus run, by spot-checking one
+of the 83 `dropped_cell` verdicts it produced rather than reading its counts:
+**when the stored side of an identity is `0`, the shortfall equals the figure the
+identity wants**, so "the shortfall is printed" restates the premise and proves
+nothing — and the zeros it named as the culprit were whatever the partition
+happened to hold (`minority_interest`) rather than the column the identity sums
+over. Zeros are now matched against the node text and the circular case is
+refused. That single correction moved 46 partitions off `dropped_cell`
+(92 → 46, with `column_slip` 27 → 61 and `missing_row` 14 → 26) — a reminder that
+a plausible aggregate is not evidence, and only opening one case is.
+
 Two smaller ones, both silent: an `except ImportError` around the auditor lookup
 swallowed a wrong symbol name (`extract` vs `extract_opinion_from_pdf`) and
 turned every opinion partition into a plausible-looking `unclassified`; and the
@@ -110,7 +133,8 @@ gap in the implementation.
 
 `scripts/watch_cross_period.py` is the instrument that can: same bank, one
 quarter earlier, asking what moved by a clean power of ten, what went missing,
-and what appeared. Pure SQL over the snapshot — 133 balance-sheet seams in 0.44s.
+and what appeared. Pure SQL over the snapshot — **14,452 seams across every
+validated lane, 1,225 raising something, 0 reporting-unit changes**, in seconds.
 
 ⚠️ **Not validated against the real event.** The 2026-07-27 snapshot stops at
 2026Q1, so the Bin→Milyon seam is not in the data; the detector is covered by a
@@ -127,8 +151,9 @@ the paired counts gone).
 
 - Numeric only. Text fields have one bespoke detector (the auditor signature);
   `basis_text` and the profile lane's branch/personnel counts are not covered.
-- `unclassified` is a real answer, not a failure — 3 of 42. Prefer growing that
-  number over widening a detector until it guesses.
+- `unclassified` is a real answer, not a failure — 26 of 212, and all 16 profile
+  partitions (branch/personnel counts are too short to presence-check). Prefer
+  growing that number over widening a detector until it guesses.
 - Verdicts are hypotheses. `confirmed` means the PDF demonstrates it; `likely`
   means it was inferred. Confirm before acting.
 
@@ -136,7 +161,11 @@ the paired counts gone).
 
 - `max_pages` in `audit_opinion.extract_opinion_from_pdf`: 6 → 10. Cheapest fix
   in the backlog, 7 partitions, guarded by the existing opinion tests.
-- Run the triage in CI over the full 212 (only 42 PDFs are cached locally) to get
-  the true distribution — the workflow is built and does exactly this.
 - The `dropped_cell` cluster (EMLAK + QNBFB capital) points at one prior-column
   read in the §4 extractor. That is a code fix, not a re-extraction campaign.
+- `column_slip` on equity_change (53) is the largest single cell in the matrix and
+  has not been opened yet. Start there, and open a case before trusting the count
+  — that is exactly how the `dropped_cell` over-claim was found.
+- 7 `rotated_page` partitions were invisible in the local cache and only appeared
+  in the CI run. `/Rotate` normalisation is a known extractor gap
+  (`docs/knowledge` — the equity/CF `/Rotate 90` work), so these are likely one fix.
