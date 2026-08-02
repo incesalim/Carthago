@@ -87,7 +87,14 @@ WINDOW_FOR = {
     "credit_quality": 3,
     "fx_position": 1,
     "loans_by_sector": 1,
-    "npl_movement": 1,
+    # ⚠️ 1 was tuned on cells the extractor already FILLED and is wrong for the
+    # ones it failed on: the movement note routinely spans two pages, 'Cari
+    # Dönem' then '(devamı) Önceki Dönem' — an override note says so explicitly
+    # for AKTIF 2023Q3 (p59 then p60). At window=1 the model answered
+    # found=false on most of them, correctly, because the row was not there.
+    # The right window is a property of the LANE and the POPULATION, not the
+    # lane alone.
+    "npl_movement": 3,
 }
 
 # Human-readable descriptions so the prompt names the quantity the way the
