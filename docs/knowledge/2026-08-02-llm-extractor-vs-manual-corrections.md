@@ -480,3 +480,59 @@ order. A detector built on raw disagreement would generate mostly false alarms;
 it would need the disagreement to also break an identity before it is worth a
 human's time, which is the same per-cell gate the validator work already points
 to.
+
+---
+
+# ADDENDUM — one row where regex failed, tested properly
+
+The settled 44% was measured across lanes and hid the mechanism. This is a
+single row, worked end to end: KUVEYT 2025Q1 unconsolidated off-balance,
+`B. EMANET VE REHİNLİ KIYMETLER (IV+V+VI)`, which needed a hand correction.
+
+**The cause, from the rendered page:** the figure `11,476,247,288` is
+WORD-WRAPPED inside its table cell. It does not fit the column width, so the
+final `8` drops to a second line *within the same cell*:
+
+```
+B.  EMANET VE REHİNLİ KIYMETLER (IV+V+VI)  4,727,468,981  6,748,778,307   11,476,247,28
+                                                                                      8   4,152,268,333 ...
+```
+
+A human reads it correctly because the cell borders are visible. `get_text()`
+emits two tokens at y=530.28 and y=537.24 and throws the cell away.
+
+**Every text approach failed the same way:**
+
+| approach | total |
+|---|---|
+| the deterministic anchors | `1,147,624,728` ✗ |
+| deepseek-v4-flash, flat `" | "` join | `1,147,624,728` ✗ |
+| deepseek-v4-flash, x-ALIGNED (positions preserved) | `1,147,624,728` ✗ |
+| human | **`11,476,247,288`** |
+
+All three read the truncated token and re-grouped its digits. Preserving x
+positions did NOT help, because position is not cell membership — which was the
+flaw in the earlier reasoning that coordinates make vision unnecessary.
+
+**But it is deterministically detectable.** `page.find_tables()` returns the page
+column-wise, and the wrapped cell shows up as a count mismatch:
+
+```
+value columns:  65  65  66  65  65  65
+                        ^ Toplam current — one extra entry
+```
+
+Every value column has 65 entries; the one holding the wrapped figure has 66.
+Detect the over-long column, rejoin the adjacent fragments, done — a few lines
+of Python that run on every page for free and cannot hallucinate.
+
+## Conclusion for structured tables
+
+**Stay deterministic.** On well-formed pages regex already wins on cost and
+reproducibility, and on this failure class an LLM fails identically to the
+extractor while a column-count check catches it exactly. The 457 overrides are
+not evidence that extraction needs a model; they are evidence that the parser
+does not yet reconcile columns.
+
+Worth measuring next: how many of the 457 are this same wrapped-cell shape. If
+it is a large share, the fix is one parser change rather than a new lane.
