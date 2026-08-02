@@ -53,6 +53,73 @@ DELAY = float(os.environ.get("BENCH_DELAY", "2"))
 # absent: regex is fine there.
 THREE_COL = {"off_balance"}                      # amount_tl / amount_fc / amount_total
 ONE_COL = {"profit_loss", "cash_flow", "oci"}    # amount
+# §4 / note lanes: a NAMED metric in a table, not a statement row. Different
+# prompt shape, and they carry source_page so retrieval is exact rather than a
+# label search — which is the weak link in the statement lanes above.
+FIELD_LANES = {
+    "capital": ("bank_audit_capital", ["cet1_capital", "tier1_capital",
+                "tier2_capital", "total_capital", "total_rwa"]),
+    "liquidity": ("bank_audit_liquidity", ["leverage_ratio", "lcr_total",
+                  "lcr_fc", "nsfr"]),
+    "npl_movement": ("bank_audit_npl_movement", ["opening_balance", "additions",
+                     "collections", "closing_balance", "provision"]),
+    "fx_position": ("bank_audit_fx_position", ["on_bs_assets", "on_bs_liab",
+                    "net_on_balance", "net_off_balance", "net_position"]),
+    "credit_quality": ("bank_audit_credit_quality", ["stage1_amount",
+                       "stage2_amount", "stage3_amount", "total_amount"]),
+    "repricing": ("bank_audit_repricing", ["rate_sensitive_assets",
+                  "rate_sensitive_liab", "gap"]),
+    "loans_by_sector": ("bank_audit_loans_by_sector", ["stage2_amount",
+                        "stage3_amount", "ecl_amount"]),
+}
+
+# Human-readable descriptions so the prompt names the quantity the way the
+# filing does, not the way our schema does.
+FIELD_DESC = {
+    "cet1_capital": "Common Equity Tier 1 capital (Çekirdek Ana Sermaye)",
+    "tier1_capital": "Tier 1 capital (Ana Sermaye)",
+    "tier2_capital": "Tier 2 capital (Katkı Sermaye)",
+    "total_capital": "Total capital / own funds (Toplam Özkaynak)",
+    "total_rwa": "Total risk-weighted assets (Toplam Risk Ağırlıklı Tutar)",
+    "leverage_ratio": "Leverage ratio %  (Kaldıraç Oranı)",
+    "lcr_total": "Liquidity coverage ratio, total %  (Likidite Karşılama Oranı)",
+    "lcr_fc": "Liquidity coverage ratio, FC %",
+    "nsfr": "Net stable funding ratio %",
+    "opening_balance": "opening balance (Önceki Dönem Sonu Bakiyesi)",
+    "additions": "additions in the period (Dönem İçinde İntikal)",
+    "collections": "collections (Tahsilatlar)",
+    "closing_balance": "closing balance (Dönem Sonu Bakiyesi)",
+    "provision": "provision (Özel Karşılık)",
+    "on_bs_assets": "on-balance-sheet foreign currency assets",
+    "on_bs_liab": "on-balance-sheet foreign currency liabilities",
+    "net_on_balance": "net on-balance-sheet position",
+    "net_off_balance": "net off-balance-sheet position",
+    "net_position": "net foreign currency position",
+    "stage1_amount": "Stage 1 amount", "stage2_amount": "Stage 2 amount",
+    "stage3_amount": "Stage 3 amount", "total_amount": "total amount",
+    "ecl_amount": "expected credit loss provision",
+    "rate_sensitive_assets": "rate-sensitive assets for the bucket",
+    "rate_sensitive_liab": "rate-sensitive liabilities for the bucket",
+    "gap": "the repricing gap for the bucket",
+}
+
+SYSTEM_F = (
+    "You read ONE named figure out of a table in a Turkish bank's BRSA audit "
+    "report. You are given the page text, the table/row it belongs to, and which "
+    "quantity to report.\n"
+    "'.' is the thousands separator: 18.333.158 is 18333158. A ratio like "
+    "'18,45' uses a comma decimal and is 18.45. A dash '-' means ZERO. "
+    "Parentheses mean negative.\n"
+    'Reply with STRICT JSON only: {"value": <number>, "found": true|false}\n'
+    "Set found=false if it is not on this page. Never compute or infer — copy "
+    "what is printed."
+)
+SCHEMA_F = {
+    "name": "named_value", "strict": True,
+    "schema": {"type": "object", "properties": {
+        "value": {"type": "number"}, "found": {"type": "boolean"}},
+        "required": ["value", "found"], "additionalProperties": False}}
+
 TABLE_FOR = {
     "off_balance": ("bank_audit_balance_sheet", "statement='off_balance'"),
     "profit_loss": ("bank_audit_profit_loss", "1=1"),
@@ -239,12 +306,116 @@ def build_control(limit: int, seed: int, repair: list[dict]) -> list[dict]:
     return out[:limit]
 
 
+def _row_key(st: str, r: sqlite3.Row) -> str:
+    """How the filing identifies the row: which table, which line."""
+    if st == "npl_movement":
+        return f"BRSA group {r['group_code']}, {r['period_type']} period"
+    if st == "fx_position":
+        return f"currency {r['currency']}, {r['period_type']} period"
+    if st == "credit_quality":
+        return f"section {r['section']}, {r['period_type']} period"
+    if st == "repricing":
+        return f"repricing bucket {r['bucket']}, {r['period_type']} period"
+    if st == "loans_by_sector":
+        return f"sector {r['sector']}, {r['period_type']} period"
+    return f"{r['period_type']} period"
+
+
+def build_fields(limit: int, seed: int, lanes: set[str]) -> list[dict]:
+    """Named-metric cells from the §4 / note lanes.
+
+    These carry `source_page`, so retrieval is exact — which also isolates the
+    model from the label-search weakness that dominates the statement lanes.
+    Ground truth is the stored, validated value; overrides are already applied
+    to the snapshot, so a match means agreeing with the corrected figure.
+    """
+    db = sqlite3.connect(f"file:{ROOT / 'data/bank_audit.db'}?mode=ro", uri=True)
+    db.row_factory = sqlite3.Row
+    out = []
+    try:
+        for st in sorted(lanes):
+            table, fields = FIELD_LANES[st]
+            cols = [r[1] for r in db.execute(f"pragma table_info({table})")]
+            if "source_page" not in cols:
+                continue
+            rows = db.execute(
+                f"SELECT * FROM {table} WHERE source_page IS NOT NULL "
+                f"AND source_page > 0 LIMIT 4000").fetchall()
+            for r in rows:
+                for f in fields:
+                    if f not in cols:
+                        continue
+                    val = r[f]
+                    if val is None or val == 0:
+                        continue
+                    out.append({
+                        "set": "fields", "bank": r["bank_ticker"],
+                        "period": r["period"], "kind": r["kind"], "statement": st,
+                        "field": f, "label": FIELD_DESC.get(f, f),
+                        "where": _row_key(st, r), "want": {"value": val},
+                        "hint": r["source_page"],
+                    })
+    finally:
+        db.close()
+    random.Random(seed + 2).shuffle(out)
+    return out[:limit]
+
+
+def ask_field(key: str, model: str, page_text: str, what: str,
+              where: str) -> tuple[dict, str]:
+    body = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": SYSTEM_F},
+            {"role": "user", "content":
+                f"TABLE / ROW: {where}\nQUANTITY: {what}\n\n"
+                f"--- PAGE TEXT ---\n{page_text[:24000]}"},
+        ],
+        "temperature": 0, "seed": 7, "max_tokens": 3000,
+        "reasoning": {"effort": "none"},
+        "response_format": {"type": "json_schema", "json_schema": SCHEMA_F},
+    }
+    for attempt in range(4):
+        r = requests.post(f"{BASE}/chat/completions", headers=_auth(key),
+                          json=body, timeout=180)
+        if r.status_code == 429 or r.status_code >= 500:
+            time.sleep(5 * (attempt + 1)); continue
+        if "Upstream idle timeout" in r.text:
+            time.sleep(5 * (attempt + 1)); continue
+        break
+    if r.status_code != 200:
+        return {}, f"HTTP {r.status_code}"
+    d = r.json()
+    if not d.get("choices"):
+        return {}, f"NO_CHOICES {json.dumps(d)[:120]}"
+    ch = d["choices"][0]
+    try:
+        return json.loads((ch["message"]["content"] or "").strip()), ""
+    except (json.JSONDecodeError, AttributeError):
+        return {}, ("TRUNCATED" if ch.get("finish_reason") == "length" else "UNPARSEABLE")
+
+
+def page_text_at(pdf: Path, page_1: int) -> str | None:
+    import fitz
+
+    doc = fitz.open(pdf)
+    try:
+        if not (1 <= page_1 <= doc.page_count):
+            return None
+        return doc[page_1 - 1].get_text()
+    finally:
+        doc.close()
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", default="nvidia/nemotron-3-ultra-550b-a55b:free")
     ap.add_argument("--repair", type=int, default=20)
     ap.add_argument("--control", type=int, default=20)
     ap.add_argument("--seed", type=int, default=11)
+    ap.add_argument("--fields", type=int, default=0,
+                    help="also sample N named-metric cells from the §4/note lanes")
+    ap.add_argument("--field-lanes", default=",".join(FIELD_LANES))
     args = ap.parse_args()
 
     key = os.environ.get("OPEN_ROUTER_API") or os.environ.get("OPENROUTER_API_KEY")
@@ -253,17 +424,44 @@ def main() -> int:
 
     repair = build_repair(args.repair, args.seed)
     control = build_control(args.control, args.seed, repair)
+    lanes = {x.strip() for x in args.field_lanes.split(",") if x.strip()}
+    fields = build_fields(args.fields, args.seed, lanes & set(FIELD_LANES))         if args.fields else []
     print(f"model: {args.model}")
     print(f"repair set: {len(repair)}  control set: {len(control)}  "
           f"(balance sheet excluded by design)\n")
 
     results = []
-    for item in repair + control:
+    for item in repair + control + fields:
         tag = (f"{item['set']:7s} {item['bank']:7s} {item['period']} "
                f"{item['kind'][:5]:5s} {item['statement']:12s}")
         pdf = pdf_for(item["bank"], item["period"], item["kind"])
         if not pdf:
             print(f"  {tag} PDF missing"); continue
+
+        if item["set"] == "fields":
+            text = page_text_at(pdf, item["hint"])
+            if not text:
+                print(f"  {tag} source_page {item['hint']} out of range"); continue
+            time.sleep(DELAY)
+            got, err = ask_field(key, args.model, text, item["label"], item["where"])
+            if err:
+                print(f"  {tag} p{item['hint']} ERR {err}")
+                results.append({**{k: item[k] for k in ('set','bank','period','statement')},
+                                "outcome": err}); continue
+            want_v = float(item["want"]["value"])
+            got_v = float(got.get("value") or 0)
+            # Ratios are stored to 2dp; amounts are integers. Compare loosely
+            # enough that a rounding difference is not scored as a wrong read.
+            ok = bool(got.get("found")) and abs(want_v - got_v) <= max(
+                0.01, abs(want_v) * 1e-6)
+            print(f"  {tag} {item['field']:22s} p{item['hint']} "
+                  f"{'MATCH ' if ok else 'DIFFER'} want={want_v:,.2f} got={got_v:,.2f}"
+                  f"{'' if got.get('found') else ' (found=false)'}")
+            results.append({**{k: item[k] for k in ('set','bank','period','statement')},
+                            "field": item["field"],
+                            "outcome": "match" if ok else "differ",
+                            "want": want_v, "got": got_v, "page": item["hint"]})
+            continue
         hit = find_page(pdf, item["label"], item.get("hint"))
         if not hit:
             print(f"  {tag} label not found on any page: {item['label'][:40]!r}")
@@ -294,7 +492,7 @@ def main() -> int:
                         "want": w, "got": g, "page": page})
 
     print()
-    for name in ("repair", "control"):
+    for name in ("repair", "control", "fields"):
         s = [r for r in results if r["set"] == name]
         if not s:
             continue
@@ -303,6 +501,17 @@ def main() -> int:
         other = len(s) - m - d
         print(f"  {name:8s} {m}/{len(s)} match, {d} differ, {other} no-answer "
               f"({100.0 * m / len(s):.0f}%)")
+    per_lane: dict[str, list[int]] = {}
+    for r in results:
+        if r["set"] != "fields":
+            continue
+        per_lane.setdefault(r["statement"], [0, 0])
+        per_lane[r["statement"]][1] += 1
+        per_lane[r["statement"]][0] += r["outcome"] == "match"
+    if per_lane:
+        print("\n  by lane (named metrics):")
+        for lane, (m, n) in sorted(per_lane.items()):
+            print(f"    {lane:16s} {m}/{n} ({100.0 * m / max(1, n):.0f}%)")
     Path("bench_text_cells.json").write_text(
         json.dumps(results, indent=2, ensure_ascii=False), encoding="utf-8")
     print("\nwrote bench_text_cells.json")
