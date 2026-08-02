@@ -180,7 +180,38 @@ the 3 asset rows that differ positionally should be looked at first.
 `off_bs` for ISCTR 2025Q1 consolidated — it never finds the balance sheet, and
 extraction yields 0 rows. That is a page-location failure, not a drawn page.
 
-Probe: `scripts/scratch_probe_drawn_pages.py`.
+### How much is actually lost, and is any of it silent?
+
+`scripts/scratch_probe_drawn_pages.py`, over 12,875 pages in 123 cached filings:
+
+| | |
+|---|---|
+| statement pages lost | **55** (0.43%) |
+| filings affected | **8 of 123** |
+| by bank | **FIBA 50, ISCTR 5** — nobody else |
+
+**No silent loss found.** Every affected filing already has a `manual_statements`
+entry, and its stored row counts are complete (47/48/55 and the like). The hand
+transcription process has caught all of them in this sample.
+
+⚠️ Three separate corrections were needed to reach that number, which is worth
+knowing before trusting it:
+
+1. Requiring `marks > 200` missed **ISCTR entirely** — it renders each statement
+   as ONE full-page image, which scores 1. A page headed `CONSOLIDATED BALANCE
+   SHEET` with 294 characters of text was reported healthy, and the first result
+   confidently said "FIBA only".
+2. Fixing that gave 119 pages over 8 banks, which **overstated** it: PASHA's
+   three are pp2-4 with no text at all — scanned cover and opinion matter — and
+   all five of its statements are stored complete.
+3. So the count has to filter on whether a statement was supposed to be on the
+   page, which the residual running header tells you.
+
+**Not corpus-wide.** 123 of 1,061 audit PDFs were checked, and the cache
+over-represents FIBA because it was pulled deliberately for the vision bench. A
+full sweep means downloading the rest, so it belongs in CI rather than here.
+That sweep is the one thing that would turn "no silent loss found" into "no
+silent loss".
 
 ## Not fixed, deliberately
 
