@@ -1,7 +1,11 @@
 # Can an LLM extractor replace the manual corrections?
 
-**Date:** 2026-08-02 · **Status:** ANSWERED — no, not with the free Nemotron VL.
-Best case 53% of rows exact where 100% is required. Hand transcription stays.
+**Date:** 2026-08-02 · **Status:** SPLIT VERDICT.
+**Vision** (Part 1) — no. Best 53% of rows exact where 100% is required; the 59
+hand transcriptions stay manual.
+**Text** (Part 2) — promising. 88% on the per-cell corrections outside the
+balance sheet, but three confidently-wrong figures in 80 calls keep it out of
+anything that writes a number.
 **Evidence:** `scripts/scratch_bench_vision_extract.py` via `test-openrouter.yml`
 task=`vision`, runs [30718532267](https://github.com/incesalim/Carthago/actions/runs/30718532267),
 [30718799791](https://github.com/incesalim/Carthago/actions/runs/30718799791),
@@ -116,3 +120,86 @@ If any of this is ever promoted: the model returned figures here, which
 `AGENTS.md` forbids in production. Nothing from these runs was written to D1, R2
 or the snapshot, and a transcription that disagrees with an identity check must
 stop for a human rather than be stored.
+
+---
+
+# Part 2 — a TEXT LLM on the per-cell corrections
+
+**Status:** PROMISING — 88% on cells a human had to fix, 75% on a control set,
+and most of the misses are my retrieval rather than the model. Not shippable as
+written; worth a second look.
+**Evidence:** `scripts/scratch_bench_text_cells.py` via task=`cells`, runs
+[30736535192](https://github.com/incesalim/Carthago/actions/runs/30736535192) (18+18),
+[30736676671](https://github.com/incesalim/Carthago/actions/runs/30736676671) (40+40).
+Model: `nvidia/nemotron-3-ultra-550b-a55b:free` — the **largest** free Nemotron,
+against the 12B nano that failed the vision half.
+
+These pages **have a text layer**. `fitz` read them fine; the anchor logic put
+the number in the wrong place. So the model re-reads text we already hold rather
+than deciphering an image — a different and much easier problem than Part 1, and
+the reason the result is different. **Balance-sheet lanes excluded by design.**
+
+| set | n | match | differ | no answer |
+|---|---:|---:|---:|---:|
+| **repair** (extractor wrong, human fixed) | 40 | **35 (88%)** | 3 | 2 |
+| **control** (already stored + validated) | 40 | 30 (75%) | 5 | 5 |
+
+The control set exists because a repair rate alone is not interpretable — a model
+that fixes broken cells while quietly breaking good ones is worse than useless.
+
+**Read the control number carefully: it is mostly my harness.** Of its 10
+non-matches, 4 are `found=false` on a page my crude label-search picked wrongly
+(it landed on p2), and 5 are "label not found on any page" — see below. Only
+**one** control cell is a genuine confident-wrong answer.
+
+**The genuine model errors, and they are the ones that matter:**
+
+| cell | want | got |
+|---|---|---|
+| QNBFB 2023Q1 uncon `profit_loss` | 6,632,553 | 0 |
+| QNBFB 2023Q1 uncon `profit_loss` (control) | 449 | 175,010 |
+| TAKAS 2023Q3 uncon `profit_loss` | 0 | 2,260,614 |
+
+Three wrong figures in 80 calls, all `profit_loss`, and all **confidently wrong**
+— a plausible number returned with `found=true`. That is the same shape as the
+`v6_schema_effort` failure in the unit bench: the model does not signal doubt. Any
+production use needs the answer checked against an identity, never stored on the
+model's say-so.
+
+## ⚠️ Accidental finding: 202 stored rows have figures fused into the label
+
+The "label not found on any page" failures were not the model. They are stored
+`item_name` values that carry digit fragments, so nothing matches them:
+
+```
+'Teminat Mektupları III-a-2,ii 105,,025544,,157'
+'Dış Ticaret İşlemleri Dolayısıyla Verilenler 54,9 21'
+'Cayılamaz Taahhütler 1,732 , 30'
+'Menkul Kıymetler 100,1 06,'
+```
+
+Counted over the snapshot: **202 rows**, ALNTF 118, YKBNK 74, TEB 8, ATBANK 2,
+in `off_balance` (128) and `assets` (74). The label has picked up digits from
+neighbouring cells — `'Cayılamaz Taahhütler 1,732 , 30'` sits next to a TL amount
+of 1,610,374 while the row above has 1,732,301.
+
+**The amounts look sound** — 145 of 188 checked are non-zero and plausible — so
+this reads as a label defect, not a figure defect. But it is not cosmetic: the
+UI prints these names, and **any consumer joining on `item_name` silently misses
+these rows**. Worth a separate look; not touched here (no D1 writes this session).
+
+## Verdict on Part 2
+
+Unlike the vision arm, this is not a no. 88% on exactly the cells the
+deterministic extractor got wrong is a real signal, and the harness — not the
+model — accounts for most of the rest.
+
+What it is **not** is shippable. Three confidently-wrong `profit_loss` figures in
+80 calls is disqualifying on its own for anything that writes a number. The
+shape that would work is the same one the unit bench pointed at: **the model as a
+second opinion that must agree with an identity check, with disagreement stopping
+for a human** — never as the thing that sets the value.
+
+Before any of that, the retrieval step needs to be real. Searching page text for
+the row label is fine for a bench and is the binding constraint on these numbers;
+a production version would use each lane's own page locator.
