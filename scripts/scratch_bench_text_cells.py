@@ -259,7 +259,7 @@ def ask(key: str, model: str, page_text: str, label: str, three: bool,
             time.sleep(5 * (attempt + 1)); continue
         break
     if r.status_code != 200:
-        return {}, f"HTTP {r.status_code}"
+        return {}, f"HTTP {r.status_code}: {r.text[:180]}"
     d = r.json()
     if not d.get("choices"):
         return {}, f"NO_CHOICES {json.dumps(d)[:120]}"
@@ -420,7 +420,7 @@ def ask_field(key: str, model: str, page_text: str, what: str,
             time.sleep(5 * (attempt + 1)); continue
         break
     if r.status_code != 200:
-        return {}, f"HTTP {r.status_code}"
+        return {}, f"HTTP {r.status_code}: {r.text[:180]}"
     d = r.json()
     if not d.get("choices"):
         return {}, f"NO_CHOICES {json.dumps(d)[:120]}"
