@@ -15,6 +15,9 @@
       "reason": "Cron freeze of 2026-08-01. The D1 write overage that prompted it came from backfill campaigns (36.9M of 68.1M rows on three days), not from these lanes — quiet baseline is ~14.6M rows/month against 50M included. Held frozen INDEFINITELY by decision on 2026-08-01; there is no scheduled re-enable date.",
       "frozen_since": "2026-08-01"
     },
+    "audit-triage.yml": {
+      "state": "active"
+    },
     "backfill-audit.yml": {
       "state": "active"
     },

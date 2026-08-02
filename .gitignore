@@ -174,6 +174,12 @@ docs/knowledge/website-evaluation-2026-07-25.md
 # quarter, and a reader of the public code does not need our reading list. The
 # extraction and validator post-mortems in docs/knowledge/ stay public — those
 # are about our numbers.
+# Generated triage output (scripts/triage_partitions.py, watch_cross_period.py).
+# Regenerated on every run and republished as a workflow artifact, so committing
+# it would churn git with a dated copy of a report nothing downstream reads. The
+# FINDINGS live in a dated write-up alongside the other post-mortems.
+docs/knowledge/triage/
+
 docs/knowledge/external-reports/
 docs/knowledge/bbva-economic-outlook/
 docs/knowledge/ft-visual-journalism/

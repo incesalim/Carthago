@@ -110,6 +110,7 @@ export const PIPELINE_NODES: PipelineNode[] = [
   { id: "wf-reextract", kind: "workflow", layer: "ingestion", lane: "audit", label: "reextract-statement", sublabel: "manual · one lane (oci/cf/equity/…)", workflowFile: "reextract-statement.yml" },
   { id: "wf-backfill-audit", kind: "workflow", layer: "ingestion", lane: "audit", label: "backfill-audit", sublabel: "manual · full re-extract (5-bank chunks)", workflowFile: "backfill-audit.yml" },
   { id: "wf-purge-partition", kind: "workflow", layer: "ingestion", lane: "audit", label: "purge-partition", sublabel: "manual · remove a known-wrong partition (keeps the PDF)", workflowFile: "purge-partition.yml" },
+  { id: "wf-audit-triage", kind: "workflow", layer: "ingestion", lane: "audit", label: "audit-triage", sublabel: "manual · read-only · why a partition fails (writes nothing)", workflowFile: "audit-triage.yml" },
 
   // ── Audit lane · storage ───────────────────────────────────────────────
   { id: "store-r2-pdf", kind: "store", layer: "storage", lane: "audit", label: "R2 · PDF bucket", sublabel: "bddk-audit-reports/<ticker>/*.pdf" },
@@ -254,6 +255,10 @@ export const PIPELINE_EDGES: PipelineEdge[] = [
   { source: "wf-purge-partition", target: "store-d1-audit-credit" },
   { source: "wf-purge-partition", target: "store-d1-audit-reg" },
   { source: "wf-purge-partition", target: "store-d1-audit-spine" },
+  // Triage is the only audit workflow with NO outgoing edge: it reads the PDFs
+  // and the validation spine to explain a failure and writes nothing anywhere.
+  { source: "store-r2-pdf", target: "wf-audit-triage" },
+  { source: "store-d1-audit-spine", target: "wf-audit-triage" },
 
   // R2 snapshots (push side)
   { source: "wf-refresh-data", target: "store-r2-snap", kind: "snapshot" },

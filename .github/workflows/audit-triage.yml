@@ -1,0 +1,125 @@
+name: Audit triage
+
+# Diagnose the failing partitions — why, not just which. READ-ONLY BY DESIGN.
+#
+# `bank_audit_validation` says an identity broke; it never says why, and every
+# repair in this repo's history began with a human opening the PDF to find out.
+# That step is mechanical (src/audit_reports/triage.py), so this runs it over the
+# whole failing set and reports the distribution of CAUSES. Turning "212 failing
+# partitions" into "212, and 16 of them are one column the extractor never read"
+# is the difference between a week and an afternoon.
+#
+# It also runs the cross-period watch, which compares each partition against the
+# same bank one quarter earlier. That is the ONLY instrument that can see a
+# reporting-unit change: when the sector went Bin→Milyon in 2026Q2 every filing
+# stayed internally perfect while every stored figure was wrong by 1000×, because
+# each in-filing identity is a ratio of figures sharing a scale.
+#
+# WHY THIS RUNS IN ACTIONS: it pulls the R2 snapshot and opens up to a few hundred
+# PDFs. Local is for editing and light checks.
+#
+# WHAT IT NEVER DOES: no D1 write, no row update, no extractor edit, no PDF
+# upload. It pulls the snapshot read-only and does not push it back — so it is
+# unaffected by the D1 write freeze and cannot re-stamp a row. The output is a
+# report published as an artifact; a human decides what to act on.
+#
+# NO MODEL IS CALLED. Every verdict is deterministic and carries its evidence.
+on:
+  workflow_dispatch:
+    inputs:
+      statement:
+        description: "One validation lane (capital, equity_change, …). Blank = ALL."
+        type: string
+        required: false
+        default: ""
+      bank:
+        description: "One bank ticker. Blank = ALL."
+        type: string
+        required: false
+        default: ""
+      limit:
+        description: "Max partitions to triage (0 = no cap)"
+        type: string
+        required: false
+        default: "0"
+      render:
+        description: "Rasterise the best-scoring page next to each note"
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: read
+
+# Share the pipeline group: this reads the same R2 snapshot the refresh lanes
+# write, and a half-written snapshot would produce nonsense verdicts.
+concurrency:
+  group: bddk-pipeline
+  cancel-in-progress: false
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      PYTHONIOENCODING: utf-8
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Fetch audit SQLite snapshot from R2 + decompress
+        run: |
+          python - <<'PY'
+          import gzip, shutil, pathlib, sys
+          from src.audit_reports import r2_storage
+          gz = pathlib.Path("data/bank_audit.db.gz")
+          db = pathlib.Path("data/bank_audit.db")
+          gz.parent.mkdir(parents=True, exist_ok=True)
+          if not r2_storage.exists("state/bank_audit.db.gz"):
+              sys.exit("No audit snapshot in R2 — nothing to triage.")
+          size = r2_storage.download_to("state/bank_audit.db.gz", gz)
+          print(f"Pulled state/bank_audit.db.gz from R2 ({size/1e6:.1f} MB)")
+          with gzip.open(gz, "rb") as s, open(db, "wb") as d:
+              shutil.copyfileobj(s, d)
+          print(f"Decompressed to {db.stat().st_size/1e6:.1f} MB")
+          PY
+
+      # Resolve the scope explicitly. An empty workflow_dispatch input arrives as
+      # "" and a bare `--statement ""` would select nothing at all, silently, and
+      # report a clean run over zero partitions.
+      - name: Resolve scope
+        id: scope
+        run: |
+          ARGS=""
+          if [ -n "${{ inputs.statement }}" ]; then ARGS="$ARGS --statement ${{ inputs.statement }}"; fi
+          if [ -n "${{ inputs.bank }}" ]; then ARGS="$ARGS --bank ${{ inputs.bank }}"; fi
+          if [ "${{ inputs.limit }}" != "0" ] && [ -n "${{ inputs.limit }}" ]; then ARGS="$ARGS --limit ${{ inputs.limit }}"; fi
+          if [ "${{ inputs.render }}" = "true" ]; then ARGS="$ARGS --render"; fi
+          echo "args=$ARGS" >> "$GITHUB_OUTPUT"
+          echo "Resolved scope: ${ARGS:-ALL failing partitions}"
+
+      - name: Triage failing partitions
+        run: python scripts/triage_partitions.py ${{ steps.scope.outputs.args }}
+
+      - name: Cross-period watch
+        run: python scripts/watch_cross_period.py
+
+      - name: Publish reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-triage
+          path: docs/knowledge/triage/
+          if-no-files-found: error
+          retention-days: 30

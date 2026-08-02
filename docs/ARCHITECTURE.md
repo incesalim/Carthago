@@ -188,6 +188,20 @@ derived-table defects (a partition can pass `credit_quality` yet fail the derive
 `bank_audit_stages`). This is how OCI/CF/NPL/loans_by_stage were fixed fleet-wide
 without re-running the frozen BS/P&L extraction.
 
+**`audit-triage.yml`** (dispatch-only) — the *diagnosis* half of the same lane,
+and the only one that writes nothing at all. The validator records which identity
+broke; `src/audit_reports/triage.py` works out why, by comparing the stored rows
+against what the filing actually prints and assigning one of a fixed set of
+mechanical causes — a column the extractor never read, a row it never extracted, a
+value taken from the wrong column, a cell word-wrapped out of reach, a missed
+anchor, a drawn page, a rotated page, the wrong PDF, a unit change, or a source
+that genuinely does not foot. Deterministic throughout: no model is consulted and
+no figure is produced, so a verdict is a hypothesis with its evidence attached
+rather than an assertion. Its companion `scripts/watch_cross_period.py` compares
+each partition with the same bank one quarter earlier, which is the only place a
+reporting-unit change can be seen — every in-filing identity is a ratio of figures
+sharing a scale, so all of them foot when the whole filing moves by 1000×.
+
 **`purge-partition.yml`** (dispatch-only) — the inverse operation: removes one
 `(bank, period[, kind])` from the lane via `scripts/purge_partition.py`, in the
 one order that makes it stick — pull snapshot → delete locally → delete in D1 →
