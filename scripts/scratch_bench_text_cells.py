@@ -257,6 +257,13 @@ def ask(key: str, model: str, page_text: str, label: str, three: bool,
             time.sleep(5 * (attempt + 1)); continue
         if "Upstream idle timeout" in r.text:
             time.sleep(5 * (attempt + 1)); continue
+        # reasoning.effort=none was THE lever for Nemotron, but it is not
+        # portable: gpt-oss-20b:free answers 400 "Reasoning is mandatory for
+        # this endpoint and cannot be disabled." Drop the field and retry rather
+        # than scoring the model on a request it never got to see.
+        if r.status_code == 400 and "Reasoning is mandatory" in r.text:
+            body.pop("reasoning", None)
+            continue
         break
     if r.status_code != 200:
         return {}, f"HTTP {r.status_code}: {r.text[:180]}"
@@ -418,6 +425,13 @@ def ask_field(key: str, model: str, page_text: str, what: str,
             time.sleep(5 * (attempt + 1)); continue
         if "Upstream idle timeout" in r.text:
             time.sleep(5 * (attempt + 1)); continue
+        # reasoning.effort=none was THE lever for Nemotron, but it is not
+        # portable: gpt-oss-20b:free answers 400 "Reasoning is mandatory for
+        # this endpoint and cannot be disabled." Drop the field and retry rather
+        # than scoring the model on a request it never got to see.
+        if r.status_code == 400 and "Reasoning is mandatory" in r.text:
+            body.pop("reasoning", None)
+            continue
         break
     if r.status_code != 200:
         return {}, f"HTTP {r.status_code}: {r.text[:180]}"
