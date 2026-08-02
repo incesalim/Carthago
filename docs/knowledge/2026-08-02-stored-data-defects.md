@@ -147,6 +147,41 @@ looks like a decision.
 
 ---
 
+---
+
+## 5. Some hand-transcribed statements are now REDUNDANT
+
+`data/manual_statements.json` holds 59 statements typed in by hand. Checking why
+each partition needed it, against the PDF currently in R2:
+
+| cause | partitions | statements |
+|---|---|---:|
+| **drawn pages** — printed but invisible to `get_text()` | 6 cached, all FIBA | ~41 |
+| **PDF has since been replaced** — extracts fine now | TSKB 2026Q1 uncon | 6 |
+| **page location still fails** | ISCTR 2025Q1 conso, 2025Q2 uncon | 7 |
+| not cached, unchecked | TFKB 2022Q3, ALBRK 2025Q4, ATBANK 2025Q4, FIBA 2025Q2 | 5 |
+
+**TSKB 2026Q1 unconsolidated no longer needs its transcription.** The current PDF
+extracts 47 asset and 47 liability rows and agrees with the human:
+
+| | hand | extracted |
+|---|---:|---:|
+| `VARLIKLAR TOPLAMI` / `TOTAL ASSETS` | 346,391,225 | 346,391,225 |
+| `YÜKÜMLÜLÜKLER TOPLAMI` / `TOTAL LIABILITIES` | 346,391,225 | 346,391,225 |
+| positional value match, liabilities | — | **47/47** |
+| positional value match, assets | — | 44/47 |
+
+The row NAMES differ completely because the human transcribed a **Turkish** copy
+while the PDF now in R2 is the **English** one — the replaced-PDF mechanism, not
+a data conflict. Retiring those 6 entries would let the lane extract normally;
+the 3 asset rows that differ positionally should be looked at first.
+
+**ISCTR is a different problem and still real.** `_locate_pages` returns only
+`off_bs` for ISCTR 2025Q1 consolidated — it never finds the balance sheet, and
+extraction yields 0 rows. That is a page-location failure, not a drawn page.
+
+Probe: `scripts/scratch_probe_drawn_pages.py`.
+
 ## Not fixed, deliberately
 
 No D1 writes were made this session (standing instruction). Fixing #1 and #2
