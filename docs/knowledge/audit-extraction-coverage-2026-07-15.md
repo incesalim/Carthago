@@ -1,6 +1,16 @@
 # Audit-report extraction coverage — what a BRSA report holds vs. what we extract
 
-**Date:** 2026-07-15 · **Status:** 📋 REFERENCE (coverage snapshot; no code change) · **Memory:** [[reference_audit_report_full_structure]]
+**Date:** 2026-07-15 · **Status:** 🗄️ SUPERSEDED by
+[2026-08-02-audit-report-extraction-routing.md](2026-08-02-audit-report-extraction-routing.md)
+· **Memory:** [[reference_audit_report_full_structure]]
+
+> **Stale on two points**, corrected in the 2026-08-02 doc: the registry holds
+> **18** statement types, not 17 (`profile`, `audit_opinion` and
+> `free_provision` are registered, not "screens outside the registry"), and
+> `bank_audit_opinion` stores `auditor`, `basis_text`, `report_kind`, `language`
+> and `source_page` as well as the opinion type — the audit firm is not an
+> extraction gap. The newer doc also adds the non-table inventory and the
+> regex-vs-LLM routing rule.
 
 ## What prompted it
 
