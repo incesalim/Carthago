@@ -6,6 +6,9 @@ hand transcriptions stay manual.
 **Text** (Part 2) — promising. 88% on the per-cell corrections outside the
 balance sheet, but three confidently-wrong figures in 80 calls keep it out of
 anything that writes a number.
+**Architecture** (Part 3) — the validator gate holds for identity-covered rows
+and **does not exist for P&L leaves**, where a wrong figure passes silently.
+Per-lane accuracy runs 88% down to 0. Viable only cell-by-cell, never globally.
 **Evidence:** `scripts/scratch_bench_vision_extract.py` via `test-openrouter.yml`
 task=`vision`, runs [30718532267](https://github.com/incesalim/Carthago/actions/runs/30718532267),
 [30718799791](https://github.com/incesalim/Carthago/actions/runs/30718799791),
@@ -203,3 +206,88 @@ for a human** — never as the thing that sets the value.
 Before any of that, the retrieval step needs to be real. Searching page text for
 the row label is fine for a bench and is the binding constraint on these numbers;
 a production version would use each lane's own page locator.
+
+---
+
+# Part 3 — every other table, and does the validator gate hold?
+
+**Evidence:** `cells` run [30737545371](https://github.com/incesalim/Carthago/actions/runs/30737545371),
+`scripts/scratch_bench_validator_gate.py` (local, read-only).
+
+## The proposed architecture
+
+> regex to its fullest → LLM where regex fails → validators ensure no wrong
+> number passes → hand-fix what survives.
+
+Parts 1–2 measured the middle step. This measures the rest.
+
+## Accuracy is extremely uneven across lanes
+
+The §4 / note lanes are a different shape from statement rows — a *named* metric
+in a table — and they carry `source_page`, so retrieval is exact rather than a
+label search. Same model, same settings:
+
+| lane | LLM correct |
+|---|---|
+| statement rows (`off_balance`, `profit_loss`, `cash_flow`, `oci`) | **35/40 (88%)** |
+| `fx_position` | 10/14 (71%) |
+| `npl_movement` | 6/9 (67%) |
+| `loans_by_sector` | 3/5 (60%) |
+| `repricing` | 3/5 (60%) |
+| `credit_quality` | 1/5 (20%) |
+| `capital` | **0/5 (0%)** |
+| `liquidity` | **0/2 (0%)** |
+
+**Do not read capital/liquidity 0% as "the model cannot read capital tables."**
+A large share of the stored values in those lanes are *derived*, not printed —
+the override notes say so outright ("derived from identities (ratios reconcile
+the kept components)", and TOMK's `lcr_total` 3768.83 was reconstructed from
+HQLA ÷ net outflows). A model reading the page faithfully returns the printed
+figure and is scored wrong against a reconciled one. The lanes need a bench with
+printed-value ground truth before any claim about them is safe. What the table
+does establish is that **per-lane accuracy varies from 88% to near zero, so a
+single "LLM fallback" switch across all lanes is not a real option.**
+
+## ⚠️ The validator gate holds for identity-covered rows, and NOT for leaves
+
+The decisive test: substitute the model's wrong figure into the stored rows,
+re-run the real lane validator, see whether failures rise.
+
+| cell | truth | model said | validator |
+|---|---|---|---|
+| QNBFB 2023Q1 `XIX. NET OPERATING PROFIT/LOSS` | 6,632,553 | 0 | **CAUGHT** (`pl_chain`, 2 new failures) |
+| TAKAS 2023Q3 `XXIV. DURDURULAN FAALİYETLER` | 0 | 2,260,614 | **CAUGHT** (`pl_chain` roman 25) |
+| QNBFB 2023Q1 `4.2.1 Non-cash loans` | 449 | 175,010 | **ESCAPED** — zero new failures |
+
+The mechanism is explicit in the code. `check_profit_loss` is
+`check_pl_chain` + `check_pl_deduction_convention` + `check_pl_bottomline`, and
+its own docstring says the parent=Σchildren machinery is **deliberately not
+used** — P&L deduction lines carry "(-)" labels with additive signs and would
+false-fail it. `validate_statement` (balance sheet) *does* run
+`check_hierarchy_sums`, so BS leaves are covered.
+
+**So: a P&L decimal leaf like `4.2.1` is constrained by nothing.** An LLM error
+there is silent, reaches the database, and prints on the site. The gate is real
+for romans, subtotals and spine rows; it does not exist for leaves in the one
+lane whose validator drops the sum check.
+
+## What this means for the architecture
+
+The design is sound **where an identity covers the cell**, which is most of the
+balance sheet and every roman in the P&L. It is not sound as a blanket rule.
+
+Two concrete conditions before an LLM fallback could write anything:
+
+1. **Only for cells an identity actually constrains.** That set is computable
+   today — a row is eligible if some check would move when its value moves. A
+   cheap implementation is exactly the mutation test in
+   `scratch_bench_validator_gate.py`: perturb the cell, see if any validator
+   notices. If nothing notices, the LLM must not be trusted there.
+2. **Per-lane, not global.** 88% on statement rows and 0/5 on capital are not the
+   same decision, and the capital number is not even measuring the right thing
+   yet.
+
+Everything else stays as it is: regex first, hand-fix what survives. The LLM's
+value is highest not as a writer but as a **detector** — it disagrees with the
+stored figure on a real error far more often than at random, and a disagreement
+is a cheap signal to send a human to a partition.
