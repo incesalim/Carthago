@@ -17,16 +17,15 @@ import re
 import sqlite3
 import sys
 
-sys.path.insert(0, r"C:\Users\Salim\Desktop\code\claude\carthago")
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
 import fitz  # noqa: E402
 
 from src.audit_reports import r2_storage  # noqa: E402
 
-ROOT = pathlib.Path(r"C:\Users\Salim\Desktop\code\claude\carthago")
-CACHE = pathlib.Path(
-    r"C:\Users\Salim\AppData\Local\Temp\claude"
-    r"\C--Users-Salim-Desktop-code-claude-carthago"
-    r"\23fcd9e3-ffa8-428b-9b3c-2fd2ea91ee0f\scratchpad\pdfs")
+# Same cache the cell bench uses, so a PDF is pulled from R2 once.
+CACHE = ROOT / "data" / "_bench"
 CACHE.mkdir(parents=True, exist_ok=True)
 
 FIELD_LANES = {
