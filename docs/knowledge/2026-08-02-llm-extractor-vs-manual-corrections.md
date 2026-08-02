@@ -294,6 +294,67 @@ is a cheap signal to send a human to a partition.
 
 ---
 
+# FINAL — the settled answer (2026-08-02, n=150)
+
+Everything below Part 4 is the working record. This is the conclusion.
+
+**On the population the architecture actually routes to an LLM** — the
+`fields:{}` overrides, i.e. §4 cells the deterministic extractor could not do:
+
+| lane | n | model | retrieval ceiling |
+|---|---:|---:|---:|
+| `fx_position` | 6 | 83% | — |
+| `capital` | 34 | 74% | 91% |
+| `credit_quality` | 49 | 45% | 65% |
+| `liquidity` | 3 | 33% | — |
+| `npl_movement` | 57 | 21% | 14% |
+| **all** | **150** | **44%** | **49%** |
+
+**The model is at its ceiling.** It captures ~90% of everything present in the
+pages it is shown. Further prompt or model tuning is spent effort; the limit is
+that **half the failed cells are not retrievable at all** — the value is on a
+drawn page, or was derived by a human rather than printed.
+
+Earlier figures of 50–56% came from n=60–70 draws and were optimistic. 44% is
+the settled number.
+
+## What this means for regex → LLM → validator → hand-fix
+
+The design is sound, and now quantified per lane rather than assumed:
+
+| lane | verdict |
+|---|---|
+| `capital` | **viable** — 74% of failures recovered, 91% retrievable, gated on an identity |
+| `credit_quality` | **partly viable** — 45%, the printed half |
+| `npl_movement` | **not viable** — 14% retrievable; the pages are drawn |
+| balance sheet | **not needed** — regex is fine, do not add an LLM |
+
+Two conditions before any of it writes a value:
+
+1. **Per-cell, never per-lane.** A cell is eligible only if some validator moves
+   when its value moves — `scripts/scratch_bench_validator_gate.py` measures that
+   directly by mutation.
+2. **Disagreement stops for a human**, never overwrites. On these lanes a
+   disagreement is more often the model resolving an ambiguous label differently
+   than a caught error.
+
+## The finding that outlived the question
+
+**Six times, an apparent model limitation was the harness** — starved
+`max_tokens`, a label printed twice, the wrong page, a name-keyed mutation,
+`LIMIT 1` on an arbitrary sub-table, a window tuned on the wrong population. Two
+further hypotheses of mine were false and are recorded as such in Part 4.
+
+Every accuracy gain came from fixing **what the model was shown**: 47% → 68% on
+already-filled cells, 15% → 44% on failed cells. Model choice was worth 69 vs 57.
+
+So the engineering risk in this architecture is not the LLM tier. It is
+retrieval and addressing — which pages, which row, disambiguated how — and that
+part is deterministic, testable, and free. The probes in
+`scripts/scratch_probe_*.py` exist for exactly that and cost no tokens.
+
+---
+
 # Part 4 — closing the validator hole, and tuning
 
 ## The hole is closed (shipped)
