@@ -138,6 +138,35 @@ SYSTEM_F = (
     "Set found=false if it is not on this page. Never compute or infer — copy "
     "what is printed."
 )
+# Prose-aware variant, for the cells regex could NOT do. 88% of those are not
+# transcription problems: of 127 credit_quality/npl_movement override notes, 38
+# are "not disclosed / no table", 37 are "disclosed as PROSE, no table" and 37
+# are "derived from identities". SYSTEM_F forbids exactly what those need.
+#
+# This opens ONLY the prose->zero door, which is a reading task and the one an
+# LLM is actually suited to: "Bulunmamaktadır" / "None" in the relevant note
+# means the quantity is a disclosed ZERO, not a missing value — the distinction
+# `null is not 0` in AGENTS.md turns on. Derivation stays forbidden: a figure
+# reconstructed from identities is a computation, and no LLM sets a number here.
+SYSTEM_PROSE = (
+    "You read ONE named figure out of a Turkish bank's BRSA audit report. You "
+    "are given the page text, the table/row it belongs to, and which quantity to "
+    "report.\n"
+    "'.' is the thousands separator: 18.333.158 is 18333158. A ratio like "
+    "'18,45' uses a comma decimal and is 18.45. Parentheses mean negative.\n"
+    "The figure may be printed in a TABLE, or stated in PROSE instead. Turkish "
+    "filings often disclose a nil balance as a sentence rather than a table row: "
+    "'Bulunmamaktadır', 'Yoktur', 'bulunmamaktadır (31 Aralık 2024: "
+    "Bulunmamaktadır)', or in English 'None'. When the relevant note says that, "
+    "the quantity is a disclosed ZERO — report 0 with found=true.\n"
+    "⚠️ A disclosed zero and an absent disclosure are DIFFERENT. Report 0 only "
+    "when the filing states the nil; if the note is simply not present, set "
+    "found=false.\n"
+    "⚠️ NEVER derive, compute or reconcile a figure from other figures. If the "
+    "value is only obtainable by arithmetic, set found=false.\n"
+    'Reply with STRICT JSON only: {"value": <number>, "found": true|false}'
+)
+
 SCHEMA_F = {
     "name": "named_value", "strict": True,
     "schema": {"type": "object", "properties": {
@@ -476,11 +505,11 @@ def build_field_repair(limit: int, seed: int, lanes: set[str]) -> list[dict]:
 
 
 def ask_field(key: str, model: str, page_text: str, what: str,
-              where: str) -> tuple[dict, str]:
+              where: str, prose: bool = False) -> tuple[dict, str]:
     body = {
         "model": model,
         "messages": [
-            {"role": "system", "content": SYSTEM_F},
+            {"role": "system", "content": SYSTEM_PROSE if prose else SYSTEM_F},
             {"role": "user", "content":
                 f"TABLE / ROW: {where}\nQUANTITY: {what}\n\n"
                 f"--- PAGE TEXT ---\n{page_text[:60000]}"},
@@ -549,6 +578,9 @@ def main() -> int:
     ap.add_argument("--fields", type=int, default=0,
                     help="also sample N named-metric cells from the §4/note lanes")
     ap.add_argument("--field-lanes", default=",".join(FIELD_LANES))
+    ap.add_argument("--prose", action="store_true",
+                    help="fieldrepair only: allow a prose nil ('Bulunmamaktadır') "
+                         "to be read as a disclosed zero")
     ap.add_argument("--fieldrepair", type=int, default=0,
                     help="sample N §4 cells the extractor FAILED on (fields:{} "
                          "overrides) — the actual regex-failed fallback set")
@@ -583,7 +615,9 @@ def main() -> int:
             if not text:
                 print(f"  {tag} source_page {item['hint']} out of range"); continue
             time.sleep(DELAY)
-            got, err = ask_field(key, args.model, text, item["label"], item["where"])
+            got, err = ask_field(key, args.model, text, item["label"],
+                                 item["where"],
+                                 prose=item["set"] == "fieldrepair" and args.prose)
             if err:
                 print(f"  {tag} p{item['hint']} ERR {err}")
                 results.append({**{k: item[k] for k in ('set','bank','period','statement')},
