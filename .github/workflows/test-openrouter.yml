@@ -232,6 +232,7 @@ jobs:
           ${{ inputs.llm_check != '0' && format('--fields {0}', inputs.llm_check) || '' }}
           ${{ inputs.variants != '' && format('--fieldrepair {0}', inputs.variants) || '' }}
           ${{ inputs.kimi_baseline && '--prose' || '' }}
+          ${{ inputs.telegram && '--tables' || '' }}
 
       - name: Upload cells bench result
         if: inputs.task == 'cells'

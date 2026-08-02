@@ -596,6 +596,60 @@ def ask_field(key: str, model: str, page_text: str, what: str,
         return {}, ("TRUNCATED" if ch.get("finish_reason") == "length" else "UNPARSEABLE")
 
 
+def page_table_at(pdf: Path, page_1: int, window: int = 3) -> str | None:
+    """The page as RECONSTRUCTED ROWS, not a flattened character stream.
+
+    This is the comparison the bench was missing. `get_text()` linearises a
+    table — a label and its two figures arrive as three separate lines with
+    nothing tying them together:
+
+        'Toplam Özkaynak(Ana sermaye ve katkı sermaye toplamı) '
+        '368,609,231 '
+        '326,506,436 '
+
+    so the model has to infer which figure is the current column with no
+    alignment to go on. That is exactly the observed failure mode: right row,
+    wrong column; right label, neighbouring block. Meanwhile the pages I read
+    myself while diagnosing this were RENDERED IMAGES, where the columns are
+    visible. The two arms were never comparable.
+
+    `_fitz_visual_rows` keeps each token's x-position, so the row can be put
+    back together as the page prints it:
+
+        Toplam Özkaynak(Ana sermaye ve katkı sermaye toplamı) | 368,609,231 | 326,506,436
+    """
+    from src.audit_reports.extractor import _fitz_visual_rows
+
+    import fitz
+
+    doc = fitz.open(pdf)
+    n = doc.page_count
+    doc.close()
+    if not (1 <= page_1 <= n):
+        return None
+
+    out: list[str] = []
+    for p in range(page_1, min(page_1 + window, n + 1)):
+        out.append(f"--- page {p} ---")
+        for row in _fitz_visual_rows(str(pdf), p - 1):
+            # Split into cells wherever the horizontal gap exceeds a space or
+            # two — that is what separates a label from a column of figures.
+            cells: list[str] = []
+            prev_x1 = None
+            for x0, x1, tok in row:
+                if prev_x1 is not None and x0 - prev_x1 > 6.0:
+                    cells.append(tok)
+                elif cells:
+                    cells[-1] = f"{cells[-1]} {tok}"
+                else:
+                    cells.append(tok)
+                prev_x1 = x1
+            line = " | ".join(c.strip() for c in cells if c.strip())
+            if line:
+                out.append(line)
+    return "\n".join(out)
+
+
 def page_text_at(pdf: Path, page_1: int, window: int = 3) -> str | None:
     """Text of source_page and the pages after it.
 
@@ -629,6 +683,9 @@ def main() -> int:
     ap.add_argument("--fields", type=int, default=0,
                     help="also sample N named-metric cells from the §4/note lanes")
     ap.add_argument("--field-lanes", default=",".join(FIELD_LANES))
+    ap.add_argument("--tables", action="store_true",
+                    help="feed COORDINATE-RECONSTRUCTED rows instead of raw "
+                         "get_text() — label | current | prior, aligned")
     ap.add_argument("--prose", action="store_true",
                     help="fieldrepair only: allow a prose nil ('Bulunmamaktadır') "
                          "to be read as a disclosed zero")
@@ -661,8 +718,9 @@ def main() -> int:
             print(f"  {tag} PDF missing"); continue
 
         if item["set"] in ("fields", "fieldrepair"):
-            text = page_text_at(pdf, item["hint"],
-                                WINDOW_FOR.get(item["statement"], 3))
+            reader = page_table_at if args.tables else page_text_at
+            text = reader(pdf, item["hint"],
+                          WINDOW_FOR.get(item["statement"], 3))
             if not text:
                 print(f"  {tag} source_page {item['hint']} out of range"); continue
             time.sleep(DELAY)
