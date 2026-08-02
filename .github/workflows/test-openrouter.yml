@@ -27,7 +27,7 @@ on:
       task:
         description: "Which probe to run"
         type: choice
-        options: [smoke, usage, regulation, unit, freelist, vision, cells]
+        options: [smoke, usage, regulation, unit, freelist, vision, cells, onepdf]
         default: smoke
       model_id:
         description: "Model to test (default: auto-pick cheapest paid deepseek / v4-pro for regulation)"
@@ -116,7 +116,7 @@ jobs:
       # Needs R2 (the PDFs) but writes nothing back, and never touches D1.
 
       - name: Install deps (unit/freelist/vision)
-        if: inputs.task == 'unit' || inputs.task == 'freelist' || inputs.task == 'vision' || inputs.task == 'cells'
+        if: inputs.task == 'unit' || inputs.task == 'freelist' || inputs.task == 'vision' || inputs.task == 'cells' || inputs.task == 'onepdf'
         run: pip install requests boto3 pymupdf
 
       - name: List free + nemotron models
@@ -241,6 +241,37 @@ jobs:
           name: bench-text-cells
           path: bench_text_cells.json
           if-no-files-found: warn
+
+      # ---------------- one PDF, one model, every row ----------------
+
+      - name: Fetch audit snapshot from R2 (read-only) for onepdf
+        if: inputs.task == 'onepdf'
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: |
+          python - <<'PY'
+          import gzip, shutil, pathlib
+          from src.audit_reports import r2_storage
+          gz = pathlib.Path("data/bank_audit.db.gz"); db = pathlib.Path("data/bank_audit.db")
+          gz.parent.mkdir(parents=True, exist_ok=True)
+          r2_storage.download_to("state/bank_audit.db.gz", gz)
+          with gzip.open(gz, "rb") as s, open(db, "wb") as d:
+              shutil.copyfileobj(s, d)
+          print(f"snapshot {db.stat().st_size/1e6:.1f} MB")
+          PY
+
+      - name: One PDF through one model, row by row
+        if: inputs.task == 'onepdf'
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: >
+          python scripts/scratch_one_pdf_deepseek.py
+          ${{ inputs.model_id != '' && format('--model {0}', inputs.model_id) || '' }}
+          ${{ inputs.category != '' && format('--statement {0}', inputs.category) || '' }}
 
       # ---------------- regulation task ----------------
 
