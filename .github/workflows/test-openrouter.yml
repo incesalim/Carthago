@@ -27,7 +27,7 @@ on:
       task:
         description: "Which probe to run"
         type: choice
-        options: [smoke, usage, regulation, unit, freelist, vision, cells, onepdf]
+        options: [smoke, usage, regulation, unit, freelist, vision, cells, onepdf, hardrow]
         default: smoke
       model_id:
         description: "Model to test (default: auto-pick cheapest paid deepseek / v4-pro for regulation)"
@@ -116,7 +116,7 @@ jobs:
       # Needs R2 (the PDFs) but writes nothing back, and never touches D1.
 
       - name: Install deps (unit/freelist/vision)
-        if: inputs.task == 'unit' || inputs.task == 'freelist' || inputs.task == 'vision' || inputs.task == 'cells' || inputs.task == 'onepdf'
+        if: inputs.task == 'unit' || inputs.task == 'freelist' || inputs.task == 'vision' || inputs.task == 'cells' || inputs.task == 'onepdf' || inputs.task == 'hardrow'
         run: pip install requests boto3 "pymupdf>=1.27.2,<1.28.0"
 
       - name: List free + nemotron models
@@ -272,6 +272,25 @@ jobs:
           python scripts/scratch_one_pdf_deepseek.py
           ${{ inputs.model_id != '' && format('--model {0}', inputs.model_id) || '' }}
           ${{ inputs.category != '' && format('--statement {0}', inputs.category) || '' }}
+
+      # ---------------- one HARD row: regex failed here ----------------
+      # KUVEYT 2025Q1 off-balance B. — the row wraps two lines and its total is
+      # split across them. Runs the same row under BOTH representations so the
+      # x-aligned rendering is isolated from the model.
+
+      - name: One hard row, x-aligned vs flat
+        if: inputs.task == 'hardrow'
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: |
+          M='${{ inputs.model_id }}'; M=${M:-deepseek/deepseek-v4-flash-0731}
+          echo "################ FLAT (the representation used all day) ################"
+          python scripts/scratch_one_hard_row.py --model "$M" --flat || true
+          echo
+          echo "################ X-ALIGNED ################"
+          python scripts/scratch_one_hard_row.py --model "$M"
 
       # ---------------- regulation task ----------------
 
