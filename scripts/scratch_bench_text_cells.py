@@ -73,6 +73,23 @@ FIELD_LANES = {
                         "stage3_amount", "ecl_amount"]),
 }
 
+# How many pages to read from source_page, PER LANE. Not a constant: widening
+# from 1 to 3 pages took capital 0/5 -> 3/3 and liquidity 0/2 -> 1/1 (those
+# tables span pages and source_page marks the section start), but it took
+# fx_position 71% -> 55% and loans_by_sector 60% -> 33%. Those lanes repeat the
+# same field names down a column of currencies / sectors, so extra pages supply
+# more near-identical rows to pick the wrong one from. Wider retrieval is not
+# monotonically better; it trades a missing answer for an ambiguous one.
+WINDOW_FOR = {
+    "capital": 3,
+    "liquidity": 3,
+    "repricing": 3,
+    "credit_quality": 3,
+    "fx_position": 1,
+    "loans_by_sector": 1,
+    "npl_movement": 1,
+}
+
 # Human-readable descriptions so the prompt names the quantity the way the
 # filing does, not the way our schema does.
 FIELD_DESC = {
@@ -111,6 +128,13 @@ SYSTEM_F = (
     "'18,45' uses a comma decimal and is 18.45. A dash '-' means ZERO. "
     "Parentheses mean negative.\n"
     'Reply with STRICT JSON only: {"value": <number>, "found": true|false}\n'
+    "⚠️ These tables repeat the SAME field names down a column — one block per "
+    "currency (EUR, USD, other), per sector, per maturity bucket, and again for "
+    "the prior period. Locate the block named in TABLE / ROW first, then read the "
+    "quantity inside THAT block. A figure from the neighbouring block is the most "
+    "common way to be wrong here.\n"
+    "⚠️ Report the sign as printed. A net position is frequently negative; do not "
+    "drop a minus sign and do not add one.\n"
     "Set found=false if it is not on this page. Never compute or infer — copy "
     "what is printed."
 )
@@ -463,7 +487,8 @@ def main() -> int:
             print(f"  {tag} PDF missing"); continue
 
         if item["set"] == "fields":
-            text = page_text_at(pdf, item["hint"])
+            text = page_text_at(pdf, item["hint"],
+                                WINDOW_FOR.get(item["statement"], 3))
             if not text:
                 print(f"  {tag} source_page {item['hint']} out of range"); continue
             time.sleep(DELAY)
