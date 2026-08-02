@@ -192,6 +192,30 @@ jobs:
       # Runs a CONTROL set too — a model that repairs 60% of broken cells while
       # breaking the good ones is worse than useless.
 
+      - name: Fetch audit snapshot from R2 (read-only — never uploaded back)
+        # The control set is drawn from stored, validated cells, so this bench
+        # needs the snapshot. Pulled, never pushed.
+        if: inputs.task == 'cells'
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: |
+          python - <<'PY'
+          import gzip, shutil, pathlib
+          from src.audit_reports import r2_storage
+          gz = pathlib.Path("data/bank_audit.db.gz")
+          db = pathlib.Path("data/bank_audit.db")
+          gz.parent.mkdir(parents=True, exist_ok=True)
+          if not r2_storage.exists("state/bank_audit.db.gz"):
+              raise SystemExit("No audit snapshot in R2 — cannot build the control set.")
+          size = r2_storage.download_to("state/bank_audit.db.gz", gz)
+          print(f"Pulled state/bank_audit.db.gz from R2 ({size/1e6:.1f} MB)")
+          with gzip.open(gz, "rb") as s, open(db, "wb") as d:
+              shutil.copyfileobj(s, d)
+          print(f"Decompressed to {db.stat().st_size/1e6:.1f} MB")
+          PY
+
       - name: Bench text-cell repair (LLM vs manual corrections)
         if: inputs.task == 'cells'
         env:
