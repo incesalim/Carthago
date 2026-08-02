@@ -480,9 +480,24 @@ def build_field_repair(limit: int, seed: int, lanes: set[str]) -> list[dict]:
                 continue
             table, _known = FIELD_LANES[st]
             page = x.get("source_page") or fields.get("source_page")
+            # Match the row the override actually targets. A bare LIMIT 1 picked
+            # an arbitrary sub-table of the partition, so the prompt described
+            # the wrong section and often pointed at the wrong page — which is
+            # why credit_quality scored 0/29 with truths like 8 and 188 against
+            # answers in the tens of millions. Those lanes store MANY rows per
+            # partition (one per section / BRSA group / currency / bucket /
+            # sector, times current and prior).
+            where, params = ["bank_ticker=?", "period=?", "kind=?"], [
+                x["bank_ticker"], x["period"], x["kind"]]
+            cols = {c[1] for c in db.execute(f"pragma table_info({table})")}
+            for disc in ("section", "group_code", "currency", "bucket", "sector",
+                         "period_type"):
+                if disc in cols and x.get(disc):
+                    where.append(f"{disc}=?")
+                    params.append(x[disc])
             row = db.execute(
-                f"SELECT * FROM {table} WHERE bank_ticker=? AND period=? AND kind=? "
-                f"LIMIT 1", (x["bank_ticker"], x["period"], x["kind"])).fetchone()
+                f"SELECT * FROM {table} WHERE {' AND '.join(where)} LIMIT 1",
+                params).fetchone()
             if page is None and row is not None:
                 page = row["source_page"]
             if not page:
