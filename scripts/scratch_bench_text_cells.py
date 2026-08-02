@@ -81,10 +81,17 @@ FIELD_LANES = {
 # more near-identical rows to pick the wrong one from. Wider retrieval is not
 # monotonically better; it trades a missing answer for an ambiguous one.
 WINDOW_FOR = {
+    # Derived, not guessed. A local probe searched each failed cell's value in
+    # the pages after source_page and recorded the offset where it actually
+    # appears — no API calls needed, since retrieval is deterministic:
+    #   capital         present 34/42, offsets +0:6 +1:21 +2:7   -> 3 is right
+    #   credit_quality  present 12/23, offsets +0:3 +3:1 +4:4 +5:4 -> 3 is TOO NARROW
+    # credit_quality notes run several pages past the section anchor, so most of
+    # its values were outside the window entirely.
     "capital": 3,
     "liquidity": 3,
     "repricing": 3,
-    "credit_quality": 3,
+    "credit_quality": 6,
     "fx_position": 1,
     "loans_by_sector": 1,
     # ⚠️ 1 was tuned on cells the extractor already FILLED and is wrong for the
