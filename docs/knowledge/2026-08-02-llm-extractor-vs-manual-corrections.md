@@ -355,3 +355,67 @@ and cross-currency bleed (want 899,389, got −4,958,766), so a wider window giv
 it more neighbouring currency blocks and period columns to confuse. Retrieval
 width is not monotonically good: the right window is per-lane, and for
 fx_position it should probably narrow to the one currency block, not widen.
+
+## Settled numbers (n=120) — and a correction on method
+
+⚠️ **The per-lane figures above came from samples of 3–14 and should not have
+been read as movement.** `loans_by_sector` "unchanged at 33%" was 1/3 versus 1/3.
+Only the large mechanical jumps (capital 0% → 100%, caused by a page bug) were
+ever safely real. Re-run at **n=120**, after all tuning, with
+`nemotron-3-ultra-550b-a55b:free`:
+
+| lane | n | accuracy |
+|---|---:|---:|
+| `capital` | 13 | **92%** |
+| `repricing` | 15 | 80% |
+| `npl_movement` | 29 | 76% |
+| `liquidity` | 4 | 75% |
+| `fx_position` | 27 | 67% |
+| `credit_quality` | 15 | 53% |
+| `loans_by_sector` | 17 | **35%** |
+| **all named metrics** | **120** | **68%** |
+
+`loans_by_sector` at 6/17 is now real: naming the row by its printed Turkish
+label (`raw_label`, e.g. "Çiftçilik ve Hayvancılık" rather than `agri_farming`)
+did **not** rescue it. That lane and `credit_quality` are the two genuinely weak
+ones; `capital` is genuinely strong once it is handed the right pages.
+
+## Cross-family model comparison, same cells
+
+| | `nemotron-3-ultra:free` | `gpt-oss-20b:free` |
+|---|---:|---:|
+| overall | **29/42 (69%)** | 24/42 (57%) |
+| `fx_position` | **11/14 (79%)** | 5/14 (36%) |
+| `capital` | 3/5 | **4/5** |
+| wall clock | **~5 min** | ~30 min |
+
+Nemotron wins on both axes. The speed gap is structural, not incidental:
+gpt-oss-20b answers `400 "Reasoning is mandatory for this endpoint and cannot be
+disabled"`, so `reasoning.effort=none` — the single largest tuning win — is
+unavailable there. **Model choice matters (69 vs 57), but far less than fixing
+how the question is asked (47 → 68).**
+
+## ⚠️ BRSA filings print the same label twice, with DIFFERENT figures
+
+Three independent instances now, and it is the single most common cause of a
+wrong cell:
+
+| filing | label printed twice | values |
+|---|---|---|
+| QNBFB 2023Q1 P&L | `Non-cashloans` | 4.1.1 = 175,010 (fees received) / 4.2.1 = 449 (paid) |
+| VAKBN 2025Q4 capital, **same page** | `Toplam Özkaynak (...)` | 479,407,722 / 479,398,199 |
+| every `loans_by_sector` page | sector names | one block per period, repeated |
+
+The VAKBN case is the sharpest: page 46 prints
+`Toplam özkaynak (Ana Sermaye ve Katkı Sermaye Toplamı) 479,407,722` and
+`Toplam Özkaynak(Ana sermaye ve katkı sermaye toplamı) 479,398,199` — differing
+by 9,523. The extractor takes the first by anchor order; the model took the
+second and was scored wrong.
+
+**This weakens the "LLM as detector" hypothesis for these lanes.** A
+disagreement is not evidence of a stored error — most of the ones inspected are
+the model resolving an ambiguous label differently from the extractor's anchor
+order. A detector built on raw disagreement would generate mostly false alarms;
+it would need the disagreement to also break an identity before it is worth a
+human's time, which is the same per-cell gate the validator work already points
+to.
