@@ -230,6 +230,7 @@ jobs:
           ${{ inputs.model_id != '' && format('--model {0}', inputs.model_id) || '' }}
           ${{ inputs.sample != '0' && format('--repair {0} --control {0}', inputs.sample) || '' }}
           ${{ inputs.llm_check != '0' && format('--fields {0}', inputs.llm_check) || '' }}
+          ${{ inputs.variants != '' && format('--fieldrepair {0}', inputs.variants) || '' }}
 
       - name: Upload cells bench result
         if: inputs.task == 'cells'

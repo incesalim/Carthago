@@ -423,6 +423,58 @@ def build_fields(limit: int, seed: int, lanes: set[str]) -> list[dict]:
     return out[:limit]
 
 
+def build_field_repair(limit: int, seed: int, lanes: set[str]) -> list[dict]:
+    """§4 cells the extractor FAILED on and a human fixed — the real fallback set.
+
+    Every other set here samples cells the extractor already filled, where a
+    disagreement is usually the model resolving an ambiguous label differently
+    from the extractor's anchor order rather than catching anything. The
+    architecture routes the LLM to cells regex could NOT do, and those are
+    exactly the `fields:{...}` overrides: 716 of them across capital,
+    credit_quality, npl_movement, fx_position, repricing and liquidity.
+
+    Ground truth is the human's corrected value. `source_page` comes from the
+    stored row, since only 25 overrides record one themselves.
+    """
+    ov = json.loads(
+        (ROOT / "data/audit_overrides.json").read_text(encoding="utf-8"))["overrides"]
+    db = sqlite3.connect(f"file:{ROOT / 'data/bank_audit.db'}?mode=ro", uri=True)
+    db.row_factory = sqlite3.Row
+    out: list[dict] = []
+    try:
+        for x in ov:
+            st = x.get("statement")
+            if st not in lanes or st not in FIELD_LANES:
+                continue
+            fields = x.get("fields")
+            if not isinstance(fields, dict):
+                continue
+            table, _known = FIELD_LANES[st]
+            page = x.get("source_page") or fields.get("source_page")
+            row = db.execute(
+                f"SELECT * FROM {table} WHERE bank_ticker=? AND period=? AND kind=? "
+                f"LIMIT 1", (x["bank_ticker"], x["period"], x["kind"])).fetchone()
+            if page is None and row is not None:
+                page = row["source_page"]
+            if not page:
+                continue
+            for f, v in fields.items():
+                if f == "source_page" or not isinstance(v, (int, float)):
+                    continue
+                out.append({
+                    "set": "fieldrepair", "bank": x["bank_ticker"],
+                    "period": x["period"], "kind": x["kind"], "statement": st,
+                    "field": f, "label": FIELD_DESC.get(f, f),
+                    "where": _row_key(st, row) if row is not None
+                             else f"{x.get('period_type', 'current')} period",
+                    "want": {"value": v}, "hint": page,
+                })
+    finally:
+        db.close()
+    random.Random(seed + 3).shuffle(out)
+    return out[:limit]
+
+
 def ask_field(key: str, model: str, page_text: str, what: str,
               where: str) -> tuple[dict, str]:
     body = {
@@ -497,6 +549,9 @@ def main() -> int:
     ap.add_argument("--fields", type=int, default=0,
                     help="also sample N named-metric cells from the §4/note lanes")
     ap.add_argument("--field-lanes", default=",".join(FIELD_LANES))
+    ap.add_argument("--fieldrepair", type=int, default=0,
+                    help="sample N §4 cells the extractor FAILED on (fields:{} "
+                         "overrides) — the actual regex-failed fallback set")
     args = ap.parse_args()
 
     key = os.environ.get("OPEN_ROUTER_API") or os.environ.get("OPENROUTER_API_KEY")
@@ -507,6 +562,9 @@ def main() -> int:
     control = build_control(args.control, args.seed, repair)
     lanes = {x.strip() for x in args.field_lanes.split(",") if x.strip()}
     fields = build_fields(args.fields, args.seed, lanes & set(FIELD_LANES))         if args.fields else []
+    if args.fieldrepair:
+        fields = fields + build_field_repair(args.fieldrepair, args.seed,
+                                             lanes & set(FIELD_LANES))
     print(f"model: {args.model}")
     print(f"repair set: {len(repair)}  control set: {len(control)}  "
           f"(balance sheet excluded by design)\n")
@@ -519,7 +577,7 @@ def main() -> int:
         if not pdf:
             print(f"  {tag} PDF missing"); continue
 
-        if item["set"] == "fields":
+        if item["set"] in ("fields", "fieldrepair"):
             text = page_text_at(pdf, item["hint"],
                                 WINDOW_FOR.get(item["statement"], 3))
             if not text:
@@ -575,7 +633,7 @@ def main() -> int:
                         "want": w, "got": g, "page": page})
 
     print()
-    for name in ("repair", "control", "fields"):
+    for name in ("repair", "control", "fields", "fieldrepair"):
         s = [r for r in results if r["set"] == name]
         if not s:
             continue
@@ -586,15 +644,16 @@ def main() -> int:
               f"({100.0 * m / len(s):.0f}%)")
     per_lane: dict[str, list[int]] = {}
     for r in results:
-        if r["set"] != "fields":
+        if r["set"] not in ("fields", "fieldrepair"):
             continue
-        per_lane.setdefault(r["statement"], [0, 0])
-        per_lane[r["statement"]][1] += 1
-        per_lane[r["statement"]][0] += r["outcome"] == "match"
+        key = f"{r['set'][:5]}:{r['statement']}"
+        per_lane.setdefault(key, [0, 0])
+        per_lane[key][1] += 1
+        per_lane[key][0] += r["outcome"] == "match"
     if per_lane:
         print("\n  by lane (named metrics):")
         for lane, (m, n) in sorted(per_lane.items()):
-            print(f"    {lane:16s} {m}/{n} ({100.0 * m / max(1, n):.0f}%)")
+            print(f"    {lane:26s} {m}/{n} ({100.0 * m / max(1, n):.0f}%)")
     Path("bench_text_cells.json").write_text(
         json.dumps(results, indent=2, ensure_ascii=False), encoding="utf-8")
     print("\nwrote bench_text_cells.json")
