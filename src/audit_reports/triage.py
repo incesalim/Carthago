@@ -82,10 +82,14 @@ UNCLASSIFIED = "unclassified"
 #: masquerades as one: every figure we hold can be printed exactly as stored and
 #: the identity still break, simply because the row that would close it was never
 #: extracted. Presence-checking stored values cannot see an absent row.
+#: ROTATED_PAGE sits BELOW the cell-level causes: the extractor is already
+#: rotation-aware, so a rotated page is context that accompanies a failure far
+#: more often than it explains one. Ranked high it simply masked whatever was
+#: really wrong.
 SEVERITY_ORDER = [
-    WRONG_PDF, DRAWN_PAGE, ROTATED_PAGE, UNIT_SWITCH, ANCHOR_MISS,
+    WRONG_PDF, DRAWN_PAGE, UNIT_SWITCH, ANCHOR_MISS,
     DROPPED_CELL, MISSING_ROW, COLUMN_SLIP, WRAPPED_CELL, LABEL_DIGIT_FUSION,
-    TRAILING_DOT_HIERARCHY, SOURCE_DEFECT, UNCLASSIFIED,
+    TRAILING_DOT_HIERARCHY, ROTATED_PAGE, SOURCE_DEFECT, UNCLASSIFIED,
 ]
 
 #: What each label implies for the person reading the note. Kept here so the
@@ -93,7 +97,8 @@ SEVERITY_ORDER = [
 REMEDY = {
     WRONG_PDF: "Re-sync the filing: the object at this R2 key is a different report.",
     DRAWN_PAGE: "Page carries no text layer — transcribe by hand (data/manual_statements.json).",
-    ROTATED_PAGE: "Page has /Rotate set; the extractor must normalise rotation before parsing.",
+    ROTATED_PAGE: "Page has /Rotate set AND data is missing. The extractor already "
+                  "normalises rotation, so treat this as context, not the cause.",
     ANCHOR_MISS: "Locator picked the wrong page — widen or correct the anchor, not the parser.",
     UNIT_SWITCH: "Filing changed reporting unit; scale on ingest and re-check the period seam.",
     COLUMN_SLIP: "Right page, wrong column — fix the column mapping, not the number.",
@@ -526,13 +531,23 @@ def detect_wrong_pdf(pdf_path: str | Path, bank: str, period: str) -> Finding | 
     return None
 
 
-def detect_page_defects(facts: PageFacts) -> list[Finding]:
+def detect_page_defects(facts: PageFacts, values_missing: bool = True) -> list[Finding]:
+    """Page-level causes. `values_missing` gates the ones that only matter when
+    something actually failed to come through."""
     out: list[Finding] = []
-    if facts.rotation:
+    if facts.rotation and values_missing:
+        # The extractor already maps bboxes through page.rotation_matrix
+        # (extractor.py `_fitz_page_text`, and equity_change's rotation-aware
+        # scan), so a rotated page is NOT a defect on its own — most rotated
+        # pages in this corpus extract fine. Reporting it unconditionally
+        # promoted "this page is landscape" to a diagnosis and masked the real
+        # cause underneath it. It is context, and only when data is missing.
         out.append(Finding(
-            ROTATED_PAGE, f"/Rotate {facts.rotation} — text comes out garbled unless "
-            f"rotation is normalised first", page=facts.page1,
-            evidence=[f"page.rotation = {facts.rotation}"], confidence="confirmed"))
+            ROTATED_PAGE, f"/Rotate {facts.rotation}, and figures are missing — worth "
+            f"ruling out as a layout cause, though the extractor is already "
+            f"rotation-aware so this is context rather than a diagnosis",
+            page=facts.page1,
+            evidence=[f"page.rotation = {facts.rotation}"], confidence="likely"))
     if facts.is_unreadable():
         out.append(Finding(
             DRAWN_PAGE, "page is drawn/scanned: it reads fine to a human and "
@@ -1199,8 +1214,10 @@ def triage_partition(conn: sqlite3.Connection, pdf_path: str | Path, bank: str,
                       f"{len(values)} judgeable stored figures"]))
         return note
 
+    cells = audit_stored_values(window, rows, cols)
+    missing = any(c.verdict in ("absent", "wrapped") for c in cells)
     for facts in window:
-        note.findings.extend(detect_page_defects(facts))
+        note.findings.extend(detect_page_defects(facts, values_missing=missing))
     dot = detect_trailing_dot(rows, window[0])
     if dot:
         note.findings.append(dot)
@@ -1216,7 +1233,6 @@ def triage_partition(conn: sqlite3.Connection, pdf_path: str | Path, bank: str,
                       f"scores={ {k: v for k, v in sorted(scores.items()) if v} }"],
             confidence="confirmed"))
 
-    cells = audit_stored_values(window, rows, cols)
     unit = detect_unit_switch(window, cells)
     if unit:
         note.findings.append(unit)
