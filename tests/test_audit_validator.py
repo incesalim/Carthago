@@ -1819,3 +1819,53 @@ def test_loans_by_sector_child_within_parent_passes():
     ]
     res = v.check_loans_by_sector(rows)
     assert not any(f["check"] == "loans_sector_child_exceeds_parent" for f in res.failures)
+
+
+def _pl_sub(h, name, amount):
+    """Minimal P&L row for the sub-item sum checks — no scaling, unlike the
+    module-level `_pl` helper above, which multiplies by 1000."""
+    return {"hierarchy": h, "item_name": name, "amount": amount}
+
+
+def test_pl_subitem_sum_catches_a_wrong_leaf():
+    # QNBFB 2023Q1 shape: "Non-cashloans" appears under BOTH 4.1 (fees
+    # received) and 4.2 (fees paid). Before check_pl_subitem_sums, a wrong
+    # figure in 4.2.1 was constrained by nothing — check_pl_chain only walks
+    # romans — so it reached the database silently.
+    rows = [
+        _pl_sub("4.2", "Feesandcommissionspaid(-)", 650351),
+        _pl_sub("4.2.1", "Non-cashloans", 175010),   # should be 449
+        _pl_sub("4.2.2", "Others", 649902),
+    ]
+    res = v.check_pl_subitem_sums(rows)
+    assert any(f["check"] == "pl_subitem_sum" for f in res.failures)
+
+
+def test_pl_subitem_sum_passes_when_children_foot():
+    rows = [
+        _pl_sub("4.2", "Feesandcommissionspaid(-)", 650351),
+        _pl_sub("4.2.1", "Non-cashloans", 449),
+        _pl_sub("4.2.2", "Others", 649902),
+    ]
+    res = v.check_pl_subitem_sums(rows)
+    assert res.failed == 0 and res.passed == 1
+
+
+def test_pl_subitem_sum_ignores_the_roman_level():
+    # Roman IV is a NET line (4.1 received - 4.2 paid), not a sum. Measured over
+    # the corpus, roman = sum(its decimals) holds only 82% of the time, which is
+    # why this check is restricted to depth>=3. A roman must never be failed here.
+    rows = [
+        _pl_sub("IV.", "NET ÜCRET VE KOMİSYON GELİRLERİ", 2047984),
+        _pl_sub("4.1", "Alınan", 2614407),
+        _pl_sub("4.2", "Verilen(-)", 566423),
+    ]
+    res = v.check_pl_subitem_sums(rows)
+    assert res.checked == 0 and res.failed == 0
+
+
+def test_pl_subitem_sum_skips_a_single_child():
+    # A one-child "sum" is a restatement, not an identity.
+    rows = [_pl_sub("1.5", "Menkul Değerler", 100), _pl_sub("1.5.1", "Only child", 90)]
+    res = v.check_pl_subitem_sums(rows)
+    assert res.failed == 0 and res.passed == 0

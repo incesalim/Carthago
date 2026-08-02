@@ -35,17 +35,21 @@ ROOT = Path(__file__).resolve().parents[1]
 
 # The confidently-wrong answers the text-cell bench produced: model said
 # found=true and returned a figure that is not what is printed. Each is
-# (bank, period, kind, lane, row label, true value, model value).
+# (bank, period, kind, lane, HIERARCHY, true value, model value).
+#
+# Addressed by hierarchy, not by name. QNBFB 2023Q1 prints "Non-cashloans"
+# TWICE — 4.1.1 (fees received, 175,010) and 4.2.1 (fees paid, 449) — so a
+# name-keyed lookup silently mutated the wrong row and reported ESCAPED for a
+# substitution that never happened. The same ambiguity is why the model
+# answered 175,010 when asked for 4.2.1.
 WRONG = [
     # A spine row: the model zeroed the net operating result.
     ("QNBFB", "2023Q1", "unconsolidated", "profit_loss",
-     "NET OPERATING PROFIT/LOSS (XVII±XVIII)", 6632553, 0),
+     "XIX.", 6632553, 0),
     # A discontinued-operations roman the model invented a figure for.
-    ("TAKAS", "2023Q3", "unconsolidated", "profit_loss",
-     "DURDURULAN FAALİYETLER DÖNEM NET K/Z (XXII±XXIII)", 0, 2260614),
+    ("TAKAS", "2023Q3", "unconsolidated", "profit_loss", "XXIV.", 0, 2260614),
     # A deep leaf (4.2.1) — the hardest case for a sum check to see.
-    ("QNBFB", "2023Q1", "unconsolidated", "profit_loss",
-     "Non-cashloans", 449, 175010),
+    ("QNBFB", "2023Q1", "unconsolidated", "profit_loss", "4.2.1", 449, 175010),
 ]
 
 
@@ -66,7 +70,7 @@ def run_lane(conn, bank: str, period: str, kind: str, lane: str,
         target = {"profit_loss": pl, "oci": oci, "off_balance": off}[lane]
         hit = False
         for r in target:
-            if _norm(r.get("item_name")) == _norm(label):
+            if (r.get("hierarchy") or "").strip().rstrip(".") == label.rstrip("."):
                 if lane == "off_balance":
                     r["amount_total"] = value
                 else:
@@ -74,7 +78,7 @@ def run_lane(conn, bank: str, period: str, kind: str, lane: str,
                 hit = True
                 break
         if not hit:
-            raise KeyError(f"row {label!r} not found in {lane}")
+            raise KeyError(f"hierarchy {label!r} not found in {lane}")
 
     if lane == "profit_loss":
         return v.check_profit_loss(pl, liab)

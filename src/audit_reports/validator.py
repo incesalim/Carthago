@@ -848,14 +848,76 @@ def check_pl_bottomline(pl_rows: list[dict], liabilities: list[dict]) -> Validat
     return res
 
 
+_PL_SUBITEM_RX = re.compile(r"^(\d+(?:\.\d+)+)\.?$")
+
+
+def check_pl_subitem_sums(pl_rows: list[dict]) -> ValidationResult:
+    """Each DEEP decimal P&L parent equals the sum of its direct children.
+
+    Only depth>=3 (``1.5`` against ``1.5.1``+``1.5.2``+``1.5.3``). Deliberately
+    NOT the roman level, and not depth-2 against its roman: measured over the
+    corpus, roman = Σ(its decimals) holds only 82.1% of the time because several
+    romans are NET lines, not sums — roman IV "NET ÜCRET VE KOMİSYON GELİRLERİ"
+    is ``4.1 received − 4.2 paid``, and roman XVIII nets current against deferred
+    tax. That is the deduction convention `check_profit_loss` documents, and it
+    is why the balance sheet's parent=Σchildren machinery cannot be reused
+    wholesale here.
+
+    Restricted to depth>=3, the identity holds on **3142/3144 groups (99.94%)**
+    across all 1,050 partitions, so the two survivors are findings rather than
+    noise. This closes a real hole: before it, a P&L leaf was constrained by
+    nothing at all — `check_pl_chain` only walks romans — so a wrong figure in
+    e.g. ``4.2.1`` reached the database silently.
+
+    A parent with fewer than two captured children is skipped: a one-child
+    "sum" is a restatement, not an identity.
+    """
+    res = ValidationResult()
+    amt: dict[str, float] = {}
+    label: dict[str, str] = {}
+    for r in pl_rows:
+        h = (r.get("hierarchy") or "").strip().rstrip(".")
+        if not _PL_SUBITEM_RX.match(h):
+            continue
+        a = r.get("amount")
+        if a is None:
+            continue
+        amt[h] = float(a)
+        label[h] = r.get("item_name") or ""
+
+    kids: dict[str, list[str]] = {}
+    for h in amt:
+        parent = h.rsplit(".", 1)[0]
+        if parent in amt:           # only depth>=3 has a decimal parent present
+            kids.setdefault(parent, []).append(h)
+
+    for parent, ch in sorted(kids.items()):
+        if len(ch) < 2:
+            res.add_skip()
+            continue
+        expected = amt[parent]
+        actual = sum(amt[c] for c in ch)
+        if abs(actual - expected) <= _tol(expected, base=3.0 + len(ch), rel=5e-5):
+            res.add_pass()
+        else:
+            res.add_fail("pl_subitem_sum", f"{parent} {label.get(parent, '')}".strip(),
+                         expected=expected, actual=actual)
+    return res
+
+
 def check_profit_loss(pl_rows: list[dict], liabilities: list[dict] | None = None) -> ValidationResult:
-    """P&L structural checks: the roman identity chain, plus (when the BS
-    liabilities rows are supplied) net profit = balance-sheet equity. The BS
-    parent=Σchildren machinery is deliberately NOT used — P&L deduction lines
-    carry "(-)" labels but additive signs, which would false-fail it."""
+    """P&L structural checks: the roman identity chain, the deep decimal
+    sub-item sums, plus (when the BS liabilities rows are supplied) net profit =
+    balance-sheet equity.
+
+    The BS parent=Σchildren machinery is still not used at the ROMAN level — P&L
+    deduction lines carry "(-)" labels but additive signs, and several romans are
+    net rather than additive, which would false-fail it. `check_pl_subitem_sums`
+    applies the same idea only where it measurably holds."""
     res = ValidationResult()
     res.merge(check_pl_chain(pl_rows))
     res.merge(check_pl_deduction_convention(pl_rows))
+    res.merge(check_pl_subitem_sums(pl_rows))
     if liabilities is not None:
         res.merge(check_pl_bottomline(pl_rows, liabilities))
     return res
