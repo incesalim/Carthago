@@ -119,9 +119,16 @@ FIELD_DESC = {
     "net_on_balance": "net on-balance-sheet position",
     "net_off_balance": "net off-balance-sheet position",
     "net_position": "net foreign currency position",
-    "stage1_amount": "Stage 1 amount", "stage2_amount": "Stage 2 amount",
-    "stage3_amount": "Stage 3 amount", "total_amount": "total amount",
-    "ecl_amount": "expected credit loss provision",
+    # Name the Turkish column headers, not just the IFRS stage. On a sector
+    # page the headers are split across many text lines — 'Kredi Riskinde' /
+    # 'Önemli Artış' / '(İkinci Aşama)' is Stage 2, 'Temerrüt' / '(Üçüncü' /
+    # 'Aşama)' is Stage 3 — so "Stage 2 amount" alone gives the model nothing
+    # to match against, with three consecutive unlabelled figures per row.
+    "stage1_amount": "Stage 1 — Birinci Aşama (12 aylık beklenen kredi zararı)",
+    "stage2_amount": "Stage 2 — 'Kredi Riskinde Önemli Artış (İkinci Aşama)'",
+    "stage3_amount": "Stage 3 — 'Temerrüt (Üçüncü Aşama)', donuk/değer kaybına uğramış",
+    "total_amount": "the total amount (Toplam)",
+    "ecl_amount": "'Beklenen Kredi Zararı Karşılıkları' — the ECL provision",
     "rate_sensitive_assets": "rate-sensitive assets for the bucket",
     "rate_sensitive_liab": "rate-sensitive liabilities for the bucket",
     "gap": "the repricing gap for the bucket",
