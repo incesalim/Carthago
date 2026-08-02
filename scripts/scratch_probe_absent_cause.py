@@ -13,11 +13,11 @@ import re
 import sqlite3
 import sys
 
-ROOT = pathlib.Path(r"C:\Users\Salim\Desktop\code\claude\carthago")
+ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 import fitz  # noqa: E402
 
-CACHE = pathlib.Path(__file__).resolve().parent / "pdfs"
+CACHE = ROOT / "data" / "_bench"
 
 ov = json.loads((ROOT / "data/audit_overrides.json").read_text(encoding="utf-8"))["overrides"]
 db = sqlite3.connect(f"file:{ROOT / 'data/bank_audit.db'}?mode=ro", uri=True)
