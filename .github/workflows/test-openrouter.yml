@@ -222,7 +222,9 @@ jobs:
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          BENCH_DELAY: "2"
+          # The free NVIDIA endpoint returned "ResourceExhausted: Worker local
+          # total request limit reached (32/32)" mid-sweep at 2s.
+          BENCH_DELAY: "4"
         run: >
           python scripts/scratch_bench_text_cells.py
           ${{ inputs.model_id != '' && format('--model {0}', inputs.model_id) || '' }}
