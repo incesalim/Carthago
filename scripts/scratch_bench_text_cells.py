@@ -349,18 +349,37 @@ def build_control(limit: int, seed: int, repair: list[dict]) -> list[dict]:
     return out[:limit]
 
 
+def _col(r: sqlite3.Row, name: str) -> str:
+    try:
+        return (r[name] or "").strip()
+    except (IndexError, KeyError):
+        return ""
+
+
 def _row_key(st: str, r: sqlite3.Row) -> str:
-    """How the filing identifies the row: which table, which line."""
+    """How the FILING identifies the row, not how our schema does.
+
+    `loans_by_sector.sector` is 'agri_farming'; the page prints 'Çiftçilik ve
+    Hayvancılık'. Asking for the schema key made the model guess which of a
+    dozen near-identical sector rows was meant, which is why that lane sat at
+    33% while every other tuning fix moved. Both tables already store the
+    printed text — raw_label (5,242 of 5,462 rows) and heading_snippet — so use
+    it and keep the key only as a fallback.
+    """
     if st == "npl_movement":
         return f"BRSA group {r['group_code']}, {r['period_type']} period"
     if st == "fx_position":
         return f"currency {r['currency']}, {r['period_type']} period"
     if st == "credit_quality":
-        return f"section {r['section']}, {r['period_type']} period"
+        head = _col(r, "heading_snippet")
+        where = f'the note headed "{head[:90]}"' if head else f"section {r['section']}"
+        return f"{where}, {r['period_type']} period"
     if st == "repricing":
         return f"repricing bucket {r['bucket']}, {r['period_type']} period"
     if st == "loans_by_sector":
-        return f"sector {r['sector']}, {r['period_type']} period"
+        raw = _col(r, "raw_label")
+        where = f'the sector row printed "{raw}"' if raw else f"sector {r['sector']}"
+        return f"{where}, {r['period_type']} period"
     return f"{r['period_type']} period"
 
 
