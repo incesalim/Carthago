@@ -892,22 +892,40 @@ def detect_dropped_cell(window: list[PageFacts], cells: list[CellCheck],
     for c in checks:
         if c.diff is None or not judgeable(abs(c.diff)):
             continue
+        # When the stored side is 0 the shortfall IS the required figure, so
+        # "the shortfall is printed" restates "the figure the identity wants is
+        # printed" and proves nothing about which cell went missing. Those cases
+        # belong to missing_row / column_slip, which can still say something
+        # specific; claiming a dropped column here would attach a confident
+        # remedy to whichever unrelated zeros the partition happens to hold.
+        if not c.actual:
+            continue
         verdict, page, ev = find_in_window(window, abs(c.diff))
         if verdict != "exact":
             continue
+        # Name only the zeros the broken identity plausibly sums over: a node
+        # reads "Tier1 = CET1 + AT1", so match its words against the columns.
+        # Digits are stripped from BOTH sides — the node writes "Tier1" and the
+        # column writes "tier1", and a comparison that keeps them never matches.
+        node_words = set(re.findall(r"[a-z]+", c.node.lower()))
+        suspect = [z for z in zeros
+                   if node_words & {re.sub(r"\d+", "", part)
+                                    for part in z.column.lower().split("_")}]
+        targeted = bool(suspect)
+        suspect = suspect or zeros
         return Finding(
             DROPPED_CELL,
             f"`{c.check}` is short by {abs(c.diff):,.0f}, and {abs(c.diff):,.0f} is "
             f"printed in the filing — while this partition stores 0 in "
-            f"{', '.join(sorted({z.column for z in zeros}))}. The extractor never "
+            f"{', '.join(sorted({z.column for z in suspect}))}. The extractor never "
             f"read that column",
             page=page,
             evidence=[f"node {c.node}",
                       f"stored {c.actual:,.0f}, identity requires {c.expected:,.0f}"
-                      if c.actual is not None and c.expected is not None else f"diff {c.diff}",
+                      if c.expected is not None else f"diff {c.diff}",
                       f"shortfall printed on p{page} as {ev!r}"]
-            + [f"stored zero: {z.label} · {z.column}" for z in zeros[:3]],
-            confidence="confirmed")
+            + [f"stored zero: {z.label} · {z.column}" for z in suspect[:3]],
+            confidence="confirmed" if targeted else "likely")
     return None
 
 

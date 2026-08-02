@@ -217,6 +217,31 @@ def test_dropped_cell_is_proved_by_the_shortfall_being_printed():
     assert f.label == T.DROPPED_CELL and f.confidence == "confirmed"
 
 
+def test_dropped_cell_refuses_the_circular_case():
+    """When the stored side is 0 the shortfall EQUALS the figure the identity
+    wants, so "the shortfall is printed" restates the premise and says nothing
+    about which cell went missing. Refusing keeps the note from pinning a remedy
+    on whichever unrelated zeros the partition happens to hold."""
+    p = page([("5.200.000", 100)])
+    cells = [cell("minority_interest", 0.0, "zero"),
+             cell("share_cancellation_profits", 0.0, "zero")]
+    checks = [T.BrokenCheck("eq_paid_in_capital", "equity closing paid-in capital vs BS",
+                            5_200_000.0, 0.0, 5_200_000.0)]
+    assert T.detect_dropped_cell([p], cells, checks) is None
+
+
+def test_dropped_cell_names_the_column_the_identity_sums_over():
+    p = page([("2.359.569", 100)])
+    cells = [cell("additional_tier1_capital", 0.0, "zero"),
+             cell("minority_interest", 0.0, "zero")]
+    checks = [T.BrokenCheck("cap_composition", "Tier1 = CET1 + AT1 [prior]",
+                            3_956_825.0, 1_597_256.0, -2_359_569.0)]
+    f = T.detect_dropped_cell([p], cells, checks)
+    assert f is not None
+    assert "additional_tier1_capital" in f.detail
+    assert "minority_interest" not in f.detail
+
+
 def test_dropped_cell_stays_silent_without_a_stored_zero():
     p = page([("2.359.569", 100)])
     cells = [cell("cet1_capital", 1_597_256, "exact")]
