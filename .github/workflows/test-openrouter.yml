@@ -27,7 +27,7 @@ on:
       task:
         description: "Which probe to run"
         type: choice
-        options: [smoke, usage, regulation, unit, freelist, vision]
+        options: [smoke, usage, regulation, unit, freelist, vision, cells]
         default: smoke
       model_id:
         description: "Model to test (default: auto-pick cheapest paid deepseek / v4-pro for regulation)"
@@ -116,7 +116,7 @@ jobs:
       # Needs R2 (the PDFs) but writes nothing back, and never touches D1.
 
       - name: Install deps (unit/freelist/vision)
-        if: inputs.task == 'unit' || inputs.task == 'freelist' || inputs.task == 'vision'
+        if: inputs.task == 'unit' || inputs.task == 'freelist' || inputs.task == 'vision' || inputs.task == 'cells'
         run: pip install requests boto3 pymupdf
 
       - name: List free + nemotron models
@@ -179,6 +179,37 @@ jobs:
         with:
           name: bench-vision-extract
           path: bench_vision_extract.json
+          if-no-files-found: warn
+
+      # ---------------- text-cell repair bench ----------------
+      # 416 of the 457 hand corrections in data/audit_overrides.json are OUTSIDE
+      # the balance sheet, and unlike the hand-transcribed statements those pages
+      # DO have a text layer — fitz read them fine, the anchor logic put the
+      # number in the wrong place. So this asks a text model to re-read text we
+      # already have, which is a much easier problem than the vision bench.
+      #
+      # Balance-sheet lanes are excluded: the regex path is fine there.
+      # Runs a CONTROL set too — a model that repairs 60% of broken cells while
+      # breaking the good ones is worse than useless.
+
+      - name: Bench text-cell repair (LLM vs manual corrections)
+        if: inputs.task == 'cells'
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          BENCH_DELAY: "2"
+        run: >
+          python scripts/scratch_bench_text_cells.py
+          ${{ inputs.model_id != '' && format('--model {0}', inputs.model_id) || '' }}
+          ${{ inputs.sample != '0' && format('--repair {0} --control {0}', inputs.sample) || '' }}
+
+      - name: Upload cells bench result
+        if: inputs.task == 'cells'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bench-text-cells
+          path: bench_text_cells.json
           if-no-files-found: warn
 
       # ---------------- regulation task ----------------
