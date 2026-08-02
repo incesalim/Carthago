@@ -510,3 +510,334 @@ audit-report depth. That is carthago's actual position.
   conceded?
 - Is the three-way state participation-bank merger handled as a registry change
   before or after any audience work?
+
+---
+
+# Part 2 — The question catalogue
+
+Part 1 described what each actor needs. This part is the actual questions, phrased
+as the actor would phrase them, plus **how they get an answer today**. The "today"
+column is the important one: it shows what carthago would be replacing, and how
+bad the current path is.
+
+## The CEO, expanded
+
+The seven headline questions decompose into the ones actually asked in a Monday
+meeting.
+
+**On margin**
+- What is Garanti paying for a 32-day TL deposit *this week* — not last quarter?
+- Is anyone paying visibly above the market, and is that a land grab or a
+  liquidity problem?
+- Are we longer or shorter duration than peers going into the next cut?
+- What share of peer funding is demand deposits — the free money — versus ours?
+- How much of peer NIM is CPI linkers, and what happens to them at 23% inflation?
+- How much swap funding are peers running, and at what cost?
+
+*Today:* interbank chatter and brokers; customers who shop around and tell the
+relationship manager; posted rate sheets that don't match negotiated rates; CBRT
+weekly averages that describe the pool, not the competitor.
+
+**On risk**
+- Is our cost of risk high because our book is worse, or because we provision
+  harder than they do?
+- What ECL scenario weights do peers use? If they weight the bad case at 10% and
+  we weight it at 30%, our cost of risk is not comparable to theirs.
+- What is peer stage 2 as a share of loans, and is it rising faster than ours?
+- Gross NPL formation before write-offs and portfolio sales — theirs versus ours.
+- Who is selling NPL portfolios, and at what price? That is the clearing level
+  for our own book.
+- Are we an outlier on any sector concentration?
+
+*Today:* reading peer filings by hand; informal signals from the audit firm,
+which audits competitors too; BDDK aggregates for sector context; risk-manager
+networks and TBB working groups.
+
+**On capital and constraint**
+- Who is close enough to their capital requirement that they cannot chase the
+  next large deal?
+- Who is at the credit growth cap — and therefore physically cannot compete this
+  month?
+- Whose capital ratio uses the forbearance FX rate, and what is it without?
+- If the lira drops 20%, whose capital ratio falls furthest?
+
+*Today:* mostly inference from behaviour — you find out a competitor was
+constrained by winning a deal you expected to lose.
+
+**On competition**
+- Where did we lose share this quarter, by product, not in total?
+- What is our revenue per branch and per employee against peers?
+- Is anyone growing in a segment we exited?
+- If we are at the cap, where should the marginal lira of lending go?
+
+**On the board conversation**
+- Why is our return on equity four points below theirs — how much is margin, how
+  much cost, how much risk, how much leverage?
+- Which of those four is the one we can actually move next year?
+- Is their return real, or is it a one-off — a free-provision release, a
+  subsidiary sale, a property revaluation?
+
+## Credit investors (AT1 / Tier 2 / senior)
+
+- How far is CET1 above the AT1 trigger, and what single event moves it 100bp?
+- Is the reported ratio calculated using BDDK's forbearance FX rate?
+- How much of the last two quarters' capital build was CPI-linker income that
+  reverses as inflation falls?
+- Are there enough distributable reserves under Turkish law for the coupon to be
+  paid, and is coupon payment at management's discretion or the regulator's?
+- What is the external maturity wall in the next 12 months, and is the rollover
+  ratio holding?
+- What share of deposits is FX, and what share sits above the ₺1.2m insurance
+  ceiling — the flighty part?
+- If the lira falls 20%, what happens to the ratio? FX-denominated risk-weighted
+  assets against largely lira capital.
+
+*Today:* the bank's English investor deck (fastest, but it is marketing); the
+offering circular on the Irish or Luxembourg exchange for the actual AT1 terms;
+Bloomberg for spread history; rating agency bank reports as the nearest thing to
+a standardised peer view; a call to the syndicate desk that placed the deal; and,
+if they are diligent, the BRSA filing itself — 300 pages in Turkish.
+
+## Rating agency analysts
+
+- Where does this bank sit in its peer cohort on each factor, this year versus
+  last?
+- Is reported asset quality flattered by write-offs and portfolio sales?
+- What is core profitability excluding one-offs — free provisions, trading,
+  subsidiary gains?
+- Is capital maintained by earnings, or by regulatory relief?
+- Is related-party lending rising?
+- Would the sovereign support this bank, and can it afford to?
+
+*Today:* their own internal bank database; an annual management meeting where
+they get non-public data directly from the CFO and CRO; a data template the bank
+fills in for them; peer medians computed in-house. **They have access carthago
+does not** — the value to them is normalisation, not information.
+
+## Correspondent bank FI credit officers
+
+- Is this bank solvent enough that I can carry the exposure for another year?
+- Who ultimately owns it, and is any owner sanctioned or politically exposed?
+- What has changed since the last review — a penalty, a management change, an
+  adverse headline?
+- Would my own regulator criticise this file if it read it?
+
+*Today:* the respondent bank completes a **Wolfsberg Correspondent Banking Due
+Diligence Questionnaire**, the standard industry artefact; Bankers Almanac and
+Moody's BankFocus for financials and ownership; World-Check or Dow Jones for
+sanctions and PEP screening; adverse-media monitoring; annual refresh.
+
+## Development finance institution officers
+
+- Can this bank absorb $100m and on-lend it to the target segment within the
+  disbursement window?
+- Is their SME book genuinely growing, or is it relabelled corporate lending?
+- Do they have the capital headroom to grow the book we are funding?
+- Can their systems report sub-borrower attributes — women-led, youth-led, green?
+- Are we already concentrated on this bank across our other facilities?
+
+*Today:* an on-site due diligence mission; audited financials and a bespoke data
+pack from the bank; internal credit scoring; a board approval document that
+becomes the public Project Summary Document — with the financials stripped out.
+
+## Corporate treasurers
+
+- If I place ₺500m here for three months, do I get it back?
+- Which of my eight banks is weakest right now — should I rebalance before the
+  quarter closes?
+- My policy caps exposure by rating tier. Has anyone moved tier?
+- Am I being offered a competitive rate, or a sticky-customer rate?
+- Can I show the board a documented monitoring process?
+
+*Today:* ratings as the policy anchor, which lag; CDS spreads where they exist,
+which for most Turkish banks they do not; the relationship banker, who is
+conflicted; news; a treasury management system that aggregates exposure but
+supplies no credit view. In practice, **mostly nothing systematic**.
+
+## Sell-side analysts
+
+- What was the quarter's NIM, and how much came from CPI linkers versus core
+  spread?
+- What is swap-adjusted NIM, and is management's full-year guidance still
+  reachable?
+- Cost of risk against guidance — and was there a free-provision release
+  flattering it?
+- Is fee growth real or just inflation?
+- Is the cost/income ratio flattered by inflation accounting?
+- Was there a one-off — a subsidiary sale, a property revaluation, a tax item?
+- Did loan growth hit the regulatory cap, and where did the margin go instead?
+- How does all of that compare with the three peers that reported the same
+  morning?
+
+*Today:* the IR presentation and the Excel data pack banks publish alongside it;
+the BRSA filing on KAP; the earnings call, where they can simply ask; their own
+model updated within hours; Bloomberg consensus for the surprise calculation.
+**Their pain is that six to eight banks report inside two weeks, each on a
+slightly different basis.**
+
+## Buy-side / EM funds
+
+- Is the sector's discount to EM peers justified, or is this the entry point?
+- Which bank has the most operating leverage to falling rates?
+- Who is over-earning on linkers and will disappoint when inflation normalises?
+- Who is under-provisioned relative to their stage 2 book?
+- Is the dividend real, or an accounting artefact?
+- What regulatory change could remove a quarter of earnings overnight?
+
+*Today:* sell-side research paid for through commissions; company meetings and
+roadshows; terminal screens; their own models; broker conferences.
+
+## Bank investor relations
+
+- What will an analyst ask on Thursday that I cannot answer?
+- Which peer has already reported, and what did they show on NIM and cost of risk?
+- Will our cost/income look worse than everyone's, and what is the honest reason?
+- Did a peer change a definition in a way that makes our comparison look bad?
+- What did the sell-side write about us after last quarter?
+
+*Today:* reading peer presentations the day they land; a peer table built by
+their own strategy team; sell-side notes on peers, which they receive free;
+pre-quiet-period calls with analysts; consensus screens.
+
+## The four desks inside a bank
+
+**Pricing:** What is the competitor's advertised rate on a 12-month
+general-purpose loan today? Did anyone cut mortgage pricing this week? Can that
+competitor *afford* the price they are quoting, or are they buying share below
+cost? *Today: mystery shopping — literally checking competitor websites and
+branches — comparison sites, and lost-deal reports from the sales force, which
+arrive weeks late and anecdotally.*
+
+**Treasury/ALM, Risk, Strategy:** as under the CEO section above; these are the
+desks that actually do the work behind those questions.
+
+## Foreign parent banks
+
+- Is our subsidiary out- or under-performing the local market, or just the local
+  market?
+- What return are we earning on capital allocated to Türkiye against Mexico or
+  Colombia?
+- When local management says "the market was difficult", is that true?
+- What is the regulatory trajectory — will we be required to inject more capital?
+- Can we get dividends out?
+
+*Today:* the subsidiary reports upward and controls the narrative; an in-house
+research team (BBVA literally funds one, publishing monthly); local sell-side;
+board members on the local board; the group auditor. **The unmet need is an
+independent check on what the subsidiary tells head office** — which is a
+commercial need, not a curiosity.
+
+## Fintechs and new entrants
+
+- How many people in Türkiye genuinely bank mobile-only, and how fast is that
+  growing?
+- What does an incumbent earn on a card or payments customer?
+- Which segment are incumbents retreating from?
+- What does it cost an incumbent to serve a branch customer — what is my cost
+  advantage worth?
+- What capital would I need, and who already holds a licence?
+
+*Today:* TBB digital statistics; BDDK regulation; expensive consultancy reports;
+incumbent investor decks; hiring an ex-banker for the tacit knowledge.
+
+## Consultancies
+
+- What is the peer benchmark table for this pitch, by Tuesday?
+- Where is this client's largest gap to best-in-class on cost/income?
+- How big is the prize in this segment?
+
+*Today:* a junior analyst rebuilds it from IR decks and BDDK over two or three
+days, per engagement, forever; global proprietary benchmarks that lack Turkish
+granularity; expert networks for the rest.
+
+## Audit firms
+
+- Is our client's ECL assumption an outlier against peers?
+- What key audit matters did other auditors report for comparable banks?
+- Is a peer disclosing something our client is not?
+
+*Today:* reading peer filings; internal methodology and national-office guidance;
+limited published benchmarking.
+
+## Regulators
+
+- Is the public picture consistent with the supervisory returns we receive?
+- Which bank is an outlier, and is it gaming a definition?
+- What will the rule we are drafting actually do?
+
+*Today:* supervisory returns, on-site examination and in-house analytics — all
+better than anything public. **What they lack is the cross-join** — regulation in
+force against balance sheets against macro — and a view of how their own rules
+land in public.
+
+## IMF / World Bank / BIS
+
+- Is the system resilient to a stress scenario?
+- Are macroprudential caps suppressing credit, and where is it leaking around
+  them?
+- Is the maturity of bank lending shortening?
+- Is there hidden impairment behind restructuring and forbearance?
+- Is state-bank lending crowding out or subsidising?
+
+*Today:* the Article IV mission — two weeks in country meeting the authorities
+and banks; formal data requests; a full FSAP roughly every five to ten years
+(Türkiye's last was 2017); published aggregates. Note that questions three and
+four above were asserted **qualitatively** in the 2025 Article IV, because the
+per-bank series to answer them quantitatively were not to hand.
+
+## Journalists
+
+- Which bank made the most money this quarter, and is that a story?
+- Is anyone in trouble?
+- What does this new rule mean for an ordinary person?
+- Give me one number I can put in a headline that will not be wrong.
+
+*Today:* KAP filings and press releases; a friendly analyst on the phone; bank
+press offices; BDDK and TBB releases; a terminal if the outlet has one.
+
+## Academics
+
+- Does ownership type affect efficiency in Türkiye?
+- Did macroprudential measure X change lending behaviour?
+- I need a panel of N banks over T years with variables A, B and C.
+
+*Today:* manual assembly from BDDK and TBB downloads; BankFocus or Orbis if the
+university subscribes; self-written scrapers (`bddkR`, `rbrsa`); and, genuinely,
+typing figures out of PDFs.
+
+## Savers
+
+- Which bank pays most on ₺100,000 for three months?
+- Is my money safe there, and is it covered?
+- This small bank I have never heard of — is it real?
+- Should I hold lira or foreign currency?
+
+*Today:* HangiKredi and Enuygun for rates; bank websites; asking at the branch;
+forums and word of mouth for the safety question, because **no source answers
+it**.
+
+## SMEs
+
+- Which bank will actually lend to my sector this month?
+- Who is cheapest for ₺5m of working capital?
+- Is my bank about to cut my limit?
+- Is there a credit-guarantee window open?
+
+*Today:* their accountant; relationship managers at two or three banks; the trade
+association; rumour.
+
+## What the question catalogue reveals
+
+Three patterns fall out of the "today" column:
+
+1. **The most valuable questions are answered by gossip.** Peer deposit pricing,
+   who is constrained, whether a competitor can afford its price — all sourced
+   from brokers, lost deals and chatter. That is a market with no product in it.
+2. **The comparability questions have no source at all.** Whose ECL weights,
+   whose ratio uses forbearance, who changed a definition. Every actor from the
+   CRO to the rating agency to the auditor asks a version of this, and each one
+   answers it by reading filings by hand.
+3. **Several actors are paying people to do this manually right now** —
+   consultancy juniors, IR teams, BBVA's research desk, academics, rating
+   analysts. Manual effort that recurs on a fixed calendar is the clearest buy
+   signal there is.
