@@ -23,7 +23,20 @@ xlrd>=2.0.2          # legacy .xls / BIFF (older TBB digital-banking workbooks)
 sqlalchemy>=2.0.51
 
 # Audit-report PDF extraction (fitz-only; pdfplumber removed 2026-07-15)
-pymupdf>=1.28.0
+#
+# ⚠️ CAPPED BELOW 1.28 — 1.28.0 BREAKS STATEMENT PAGE LOCATION ENTIRELY.
+# Same PDF, same code, _locate_pages():
+#   1.27.2.3  AKBNK 2026Q1 uncon -> {'bs_assets': 7, 'bs_liab': 8, 'off_bs': 9, 'pl': 10}
+#   1.28.0    AKBNK 2026Q1 uncon -> {'off_bs': 78}
+#   1.28.0    AKBNK conso / GARAN / YKBNK / TEB / ISCTR -> {}  (nothing found)
+# 1.28.0 ships MuPDF 1.29.0, whose text extraction changes what
+# `_fitz_page_text` returns, so the anchor match in `_locate_pages` no longer
+# fires. An extraction run under it finds no balance sheet, no P&L and no
+# off-balance page — it does not fail loudly, it just extracts nothing.
+# Found 2026-08-02: the requirement said >=1.28.0 while local dev ran 1.27.2.3,
+# so CI and the developer were on different engines and only CI was broken.
+# Re-test `_locate_pages` across several filings before raising this cap.
+pymupdf>=1.27.2,<1.28.0
 
 # Cloudflare R2 (S3-compatible) for audit-report PDF storage
 boto3>=1.43.55

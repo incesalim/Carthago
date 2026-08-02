@@ -117,7 +117,7 @@ jobs:
 
       - name: Install deps (unit/freelist/vision)
         if: inputs.task == 'unit' || inputs.task == 'freelist' || inputs.task == 'vision' || inputs.task == 'cells' || inputs.task == 'onepdf'
-        run: pip install requests boto3 pymupdf
+        run: pip install requests boto3 "pymupdf>=1.27.2,<1.28.0"
 
       - name: List free + nemotron models
         if: inputs.task == 'freelist'

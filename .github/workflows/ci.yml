@@ -40,7 +40,7 @@ jobs:
         # the alternative, an importorskip, would have made a test that guards a
         # ~17M-rows/month D1 billing regression silently decorative. Tiny, pure
         # Python, already in requirements.txt.
-        run: pip install ruff pytest lxml requests pymupdf pandas python-dotenv
+        run: pip install ruff pytest lxml requests "pymupdf>=1.27.2,<1.28.0" pandas python-dotenv
       - name: Ruff (lint)
         run: ruff check .
       - name: Pipeline graph sync
