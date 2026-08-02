@@ -217,7 +217,7 @@ def ask(key: str, model: str, page_text: str, label: str, three: bool,
             {"role": "system", "content": SYSTEM_3 if three else SYSTEM_1},
             {"role": "user", "content":
                 f"HIERARCHY MARKER: {hier or '(none)'}\nROW LABEL: {label}\n\n"
-                f"--- PAGE TEXT ---\n{page_text[:24000]}"},
+                f"--- PAGE TEXT ---\n{page_text[:60000]}"},
         ],
         "temperature": 0, "seed": 7, "max_tokens": 3000,
         # The round-2 finding: reasoning tokens otherwise eat the budget and the
@@ -381,7 +381,7 @@ def ask_field(key: str, model: str, page_text: str, what: str,
             {"role": "system", "content": SYSTEM_F},
             {"role": "user", "content":
                 f"TABLE / ROW: {where}\nQUANTITY: {what}\n\n"
-                f"--- PAGE TEXT ---\n{page_text[:24000]}"},
+                f"--- PAGE TEXT ---\n{page_text[:60000]}"},
         ],
         "temperature": 0, "seed": 7, "max_tokens": 3000,
         "reasoning": {"effort": "none"},
@@ -407,14 +407,26 @@ def ask_field(key: str, model: str, page_text: str, what: str,
         return {}, ("TRUNCATED" if ch.get("finish_reason") == "length" else "UNPARSEABLE")
 
 
-def page_text_at(pdf: Path, page_1: int) -> str | None:
+def page_text_at(pdf: Path, page_1: int, window: int = 3) -> str | None:
+    """Text of source_page and the pages after it.
+
+    `source_page` marks where the SECTION starts (`rep.source_page = start + 1`
+    in capital_adequacy.py), not where the row sits, and these §4 tables span
+    pages. VAKBN 2025Q2's capital section starts on p41 while "Toplam Risk
+    Ağırlıklı Tutarlar 2,483,897,695" is on p42 — a single-page fetch handed the
+    model a page that did not contain the answer at all, which is most of why
+    capital scored 0/5.
+    """
     import fitz
 
     doc = fitz.open(pdf)
     try:
         if not (1 <= page_1 <= doc.page_count):
             return None
-        return doc[page_1 - 1].get_text()
+        parts = []
+        for p in range(page_1, min(page_1 + window, doc.page_count + 1)):
+            parts.append(f"--- page {p} ---\n{doc[p - 1].get_text()}")
+        return "\n".join(parts)
     finally:
         doc.close()
 
