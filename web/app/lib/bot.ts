@@ -248,6 +248,12 @@ export async function runAgent(
   // The SQL behind lastRows — its ORDER BY tells the renderer which column the
   // answer is actually about.
   let lastSql: string | undefined;
+  // Every number returned by ANY successful query this run. The figure check has
+  // to span the whole conversation, not just the last query: a six-step answer
+  // legitimately cites a figure retrieved at step 2 while `lastRows` holds
+  // step 6's, and checking against `lastRows` alone reads that as invented —
+  // spending the single correction round on a false positive.
+  const seenNumbers: number[] = [];
   // One correction round only; a model that cannot ground its figures twice is
   // not going to on the third try, and each attempt costs free-tier quota.
   let retriedForNumbers = false;
@@ -312,8 +318,8 @@ export async function runAgent(
       // a figure in the rows. `gotData` only proves SOME query returned SOMETHING
       // — it says nothing about whether THIS sentence's numbers came from it.
       // Give the model one chance to correct itself before giving up.
-      const unsupported = lastRows.length
-        ? unsupportedFigures(answer, numbersIn(JSON.stringify(lastRows)))
+      const unsupported = seenNumbers.length
+        ? unsupportedFigures(answer, seenNumbers)
         : [];
       if (unsupported.length && !retriedForNumbers) {
         retriedForNumbers = true;
@@ -379,7 +385,12 @@ export async function runAgent(
       const meaningful = rows.some((r: Record<string, unknown>) =>
         Object.values(r).some((v) => v !== null && v !== undefined),
       );
-      if (meaningful) { gotData = true; lastRows = rows; lastSql = san.sql; }
+      if (meaningful) {
+        gotData = true;
+        lastRows = rows;
+        lastSql = san.sql;
+        seenNumbers.push(...numbersIn(JSON.stringify(rows)));
+      }
       trace.push({ sql: san.sql, result: `${rows.length} rows` });
       await logQuery(db, { chatHash: ch, question, step, sql: san.sql,
         outcome: "rows", rowCount: rows.length });
@@ -456,6 +467,26 @@ export async function runAgent(
     // figures straight through, and it is reached by exactly the longest,
     // most-refined conversations — the ones most likely to carry a ranking.
     const forced = substituteDataList(gen.text, lastRows, 5, lastSql);
+    // The loop's last line of defence, applied here too — this branch used to
+    // skip it entirely, and it is reached by the longest conversations, the ones
+    // carrying the most figures. There is no correction round left to spend: we
+    // are past the budget by definition, and the 2026-08-01 outage was caused by
+    // exactly the extra call that would buy one. So an answer citing a figure
+    // that appears in NO result this run is dropped rather than sent. A confident
+    // invented number is the failure this file exists to prevent; an unhelpful
+    // reply is only disappointing.
+    const unsupported = seenNumbers.length ? unsupportedFigures(forced, seenNumbers) : [];
+    if (unsupported.length) {
+      const cited = unsupported.slice(0, 5).map(String).join(", ");
+      trace.push({ sql: "", result: `forced answer rejected — ungrounded figures: ${cited}` });
+      await logQuery(db, { chatHash: ch, question, step: MAX_STEPS, sql: lastSql ?? "",
+        outcome: "rejected",
+        detail: `forced answer cited figures absent from every result: ${cited}` });
+      return {
+        reply: "⚠️ I couldn't ground every figure in that answer. Please try rephrasing, or ask for one figure at a time.",
+        trace,
+      };
+    }
     return { reply: finalize(forced) || "⚠️ I couldn't work that out. Please try rephrasing.", trace };
   } catch (e) {
     // Same reasoning as the loop's handler: keep the cause. Failing on the

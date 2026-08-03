@@ -85,6 +85,14 @@ describe("sanitizeSelect — rejects writes and abuse", () => {
     expect(sanitizeSelect("SELECT * FROM d1_migrations").ok).toBe(false);
   });
 
+  it("rejects bot_queries — it holds every user's question text", () => {
+    // Absent from the schema prompt, which only makes the model unlikely to ask
+    // for it. A querier naming it directly could read other people's questions.
+    expect(sanitizeSelect("SELECT question FROM bot_queries").ok).toBe(false);
+    expect(sanitizeSelect("SELECT * FROM bot_queries WHERE outcome='rows'").ok).toBe(false);
+    expect(sanitizeSelect("WITH q AS (SELECT * FROM bot_queries) SELECT * FROM q").ok).toBe(false);
+  });
+
   it("rejects over-long queries", () => {
     expect(sanitizeSelect("SELECT " + "a,".repeat(2000) + "b FROM x").ok).toBe(false);
   });

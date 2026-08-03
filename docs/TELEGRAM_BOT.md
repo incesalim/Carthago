@@ -50,7 +50,7 @@ Files:
 | Test harness (no Telegram) | `web/app/api/admin/bot-ask/route.ts` |
 | Webhook self-register | `web/app/api/admin/telegram-register/route.ts` |
 | Rate-limit table | `web/migrations/0020_bot_usage.sql` |
-| Query log | `web/migrations/0033_bot_queries.sql` |
+| Query log | `web/migrations/0033_bot_queries.sql` (denied to the querier — it holds every user's question) |
 | Webhook setup CLI | `scripts/setup_telegram_webhook.py` |
 
 ### Grounding guard — why the bot can't make numbers up
@@ -367,7 +367,10 @@ prompt's own worked examples were executed, not read.
 
 ### Guards that were not guarding
 
-- `inventedNumbers` — a tested, documented check that every figure in an answer appears in the data — **had never once run**. It was never imported. ⚠️ **It still has not.** `inventedNumbers` (`bot-sql.ts:576-598`) remains exported with tests and zero callers outside the test file; what `bot.ts` wired instead is `unsupportedFigures` (`bot-sql.ts:557-568`), with one correction round. Two gaps carried over: the forced-final path (out of steps or out of time, `bot.ts:441-459`) skips the figure check entirely, and only figures ≥1000 are checked (`bot-sql.ts:560`), so ratios and percentages — the most-asked shape — go unverified.
+- `inventedNumbers` — a tested, documented check that every figure in an answer appears in the data — **had never once run**. It was never imported. It still has not: `inventedNumbers` (`bot-sql.ts:576-598`) remains exported with tests and no callers outside the test file. What `bot.ts` wired instead is `unsupportedFigures` (`bot-sql.ts:557-568`), with one correction round — an earlier version of this doc named the wrong function.
+- **The forced-final path skipped that check entirely** — the branch reached when the run is out of steps or out of time, i.e. by exactly the longest conversations, carrying the most figures. **Fixed 2026-08-03:** it now runs the same check, and having no correction round left to spend — nor head-room to buy one, since that extra call is what caused the 2026-08-01 outage — it **drops an answer citing an ungrounded figure rather than sending it**.
+- **The check compared against the LAST query's rows only.** A six-step answer legitimately cites a figure retrieved at step 2 while `lastRows` holds step 6's, so a correct answer read as invented and spent the single correction round on a false positive. Fixed in the same change: `seenNumbers` accumulates every number returned by every successful query in the run, and both the loop and the forced path check against that.
+- ⚠️ **Still open:** only figures ≥1000 are checked (`bot-sql.ts:560`). Every ratio and percentage in a final answer is unverified — deliberate, so ranks and small counts don't turn the guard into noise, but it exempts the most-asked question shape.
 - The hallucination guard only caught 4+ digit runs, so `%16,2`, `NPL is 2.3%`, `ROE was 38,5%` and `750 branches` could all be stated with **no query run**.
 - `substituteDataList` re-rendered from the LAST query's rows, not the answer's — a follow-up `SELECT period, COUNT(*)` could replace a bank ranking with a list of periods under the ranking's caption. Now requires label overlap.
 - It also picked the first numeric column, printing absolute Stage-3 amounts under "ranked by NPL ratio". Now reads the `ORDER BY` column.
@@ -454,5 +457,5 @@ Both run daily in `healthcheck.yml`, alert-only.
 
 Neither exercises the LLM. They verify the data layer and the recipes; the agent
 loop's own behaviour — which query the model chooses, how it words an answer — is
-covered by the gates (`bot-sql.test.ts` + `bot-failure.test.ts`, 85 tests) and by `bot_queries` after the
+covered by the gates (`bot-sql.test.ts` + `bot-failure.test.ts`, 86 tests) and by `bot_queries` after the
 fact. Running the full loop needs the provider keys, which are Worker secrets.

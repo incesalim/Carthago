@@ -163,14 +163,15 @@ After the above, the residue is small:
    and §9 shows the migration cost is re-encoding the corpus rules, not the
    endpoints.
 3. **Per-lane trust in the answer path** (§4 above).
-4. **Two live gaps in the bot's own numeric chain**, inherited by anything built
-   on it: the forced-final path (out of steps or time, `bot.ts:441-459`) applies
-   `substituteDataList` but **skips `unsupportedFigures` entirely** — and those
-   are the longest conversations; and only figures ≥1000 are checked
-   (`bot-sql.ts:560`), so every ratio and percentage goes unverified, which is the
-   most-asked question shape. Separately, `bot_queries` holds every user's
-   question text and is **not** in `DENY_TABLES` (`bot-sql.ts:19-25`), against
-   that file's own stated standard.
+4. ~~Two live gaps in the bot's numeric chain, plus `bot_queries` missing from
+   `DENY_TABLES`.~~ **Fixed 2026-08-03** (commit follows this doc): the
+   forced-final path now runs the figure check and drops an ungrounded answer
+   rather than sending it; the check accumulates every number from every
+   successful query (`seenNumbers`) instead of comparing against the last query's
+   rows alone, which was producing false positives that burned the single
+   correction round; and `bot_queries` — every user's question text — is denied
+   at the SQL gate with a test. ⚠️ **Still open:** only figures ≥1000 are checked
+   (`bot-sql.ts:560`), so ratios and percentages remain unverified.
 5. ⚠️ **All drift detection is currently off.** `healthcheck.yml` is frozen with
    no `review_by`, and it is what runs `check_bot_schema.py` (prompt facts vs
    data), `check_bot_answers.py` (recipes vs correct numbers) and the webhook
