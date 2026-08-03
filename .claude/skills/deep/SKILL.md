@@ -52,6 +52,13 @@ in one message so they run concurrently** — one per independent facet. The
 standing "don't call the Agent tool unless requested" does not apply inside this
 skill; the deep-pass memory is that request.
 
+**Collect, then answer once.** Agent results arrive as separate turns. Each
+arrival is *not* a task. Do not edit a document, commit, or open new work when one
+lands — hold it, wait for the rest, and spend them all in a single answer at §5.
+Servicing completions one at a time is how a research question turns into a commit
+log with no answer in it; that is the failure this rule exists to stop
+(`docs/knowledge/2026-08-03-instruction-drift-session-audit.md` §4).
+
 Give each agent a facet and a breadth ("medium" / "very thorough"), not the whole
 question. Facets that usually partition well here:
 
@@ -81,9 +88,13 @@ Every load-bearing claim carries a `file:line`, a command output, or an explicit
   wrong, the run exited 0 and changed nothing, the aggregate footed and the unit
   had switched. A check that only looks for visible failures will miss them.
 
-## 5. Answer
+## 5. Answer — to the user, in the reply, before anything is written
 
-In this order:
+**The deliverable is the reply.** Not a document, not a commit. The pass is not
+finished when a file exists; it is finished when the user has read the answer to
+the question they asked.
+
+Write it as one message, in this order:
 
 1. **The recommendation**, first, in a sentence. Not a survey of options.
 2. The evidence, cited.
@@ -91,9 +102,18 @@ In this order:
 4. **What could not be verified**, named explicitly, with what it would take.
 5. The one open question, if a real fork remains. One, not four.
 
-If the pass produced something worth keeping, it goes to `docs/knowledge/` dated
-and status-marked, with a memory pointer — a long answer that only exists in a
-terminal scrollback was half-wasted work.
+Only **after** that answer has been delivered: if the pass produced something
+worth keeping, write it to `docs/knowledge/` dated and status-marked, with a
+memory pointer. One write at the end, not a running edit as findings arrive. If
+the two ever compete, the answer wins and the file waits — see
+[[feedback_answer_before_artifact]].
+
+## 6. Budget
+
+Bound the pass: **one fan-out round and roughly 30 tool calls after it.** If that
+is spent and the question is still open, stop and answer with what is verified,
+naming what is still unknown (§5.4). A pass that has run for an hour without a
+reply has already failed, however good the reasoning is.
 
 ## Cost discipline
 
@@ -114,3 +134,6 @@ hold inside this skill without exception:
 - Treating length as depth — five verified lines beat five unverified paragraphs.
 - Confirming only. If nothing was checked that could have falsified the answer,
   the pass has not happened yet.
+- **Answering the file instead of the user.** Measured on this skill's own first
+  run: 9 commits to one document, two side-quest code fixes, and 2 h 22 min later
+  the user asked "what was my question". Depth is not the risk here — delivery is.
