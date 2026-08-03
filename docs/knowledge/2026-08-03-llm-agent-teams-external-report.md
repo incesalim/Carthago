@@ -159,8 +159,22 @@ After the above, the residue is small:
    ungrounded figures, and is invisible to everyone not on Telegram.
 2. **Typed tools vs free SQL.** The bot lets the model write SQL, gated by
    `bot-sql.ts`. Typed tools would close the one class the gate cannot see — a
-   valid query that joins wrong and returns a plausible number. **Unmeasured.**
+   valid query that joins wrong and returns a plausible number. **Unmeasured**,
+   and §9 shows the migration cost is re-encoding the corpus rules, not the
+   endpoints.
 3. **Per-lane trust in the answer path** (§4 above).
+4. **Two live gaps in the bot's own numeric chain**, inherited by anything built
+   on it: the forced-final path (out of steps or time, `bot.ts:441-459`) applies
+   `substituteDataList` but **skips `unsupportedFigures` entirely** — and those
+   are the longest conversations; and only figures ≥1000 are checked
+   (`bot-sql.ts:560`), so every ratio and percentage goes unverified, which is the
+   most-asked question shape. Separately, `bot_queries` holds every user's
+   question text and is **not** in `DENY_TABLES` (`bot-sql.ts:19-25`), against
+   that file's own stated standard.
+5. ⚠️ **All drift detection is currently off.** `healthcheck.yml` is frozen with
+   no `review_by`, and it is what runs `check_bot_schema.py` (prompt facts vs
+   data), `check_bot_answers.py` (recipes vs correct numbers) and the webhook
+   liveness check. A new model lane would ship with nothing watching it.
 
 ## 6. Corrections to the first version of this file
 
@@ -250,13 +264,33 @@ reason. `authentication: "None"`, made safe by the `PUBLIC_API_DISABLED` kill
 switch; unknown codes land in `meta.unknown` rather than failing the request
 (`series/route.ts:15-17`).
 
+Verdicts across the whole `web/app/lib` surface, not just `/api/v1` —
+**4 EXISTS · 5 PARTIAL · 1 ABSENT**:
+
 | Proposed tool | Status |
 |---|---|
-| `get_metric_series` | **EXISTS** — `/api/v1/series`, ≤20 codes, date range, json/csv |
-| `get_metric_definition` | **PARTIAL** — `serieList` gives label+unit; `registry.json` gives formula+derivation |
-| `get_data_freshness` | **PARTIAL** — coverage earliest/latest at index; per-series in the catalog |
-| `get_source_record` | **PARTIAL** — source attributed at API level, not per value |
-| `compare_entities`, `get_rankings`, `calculate_change`, `evaluate_flag`, `get_source_excerpt`, `get_release_calendar` | **ABSENT** from `/api/v1` |
+| `evaluate_flag` | **EXISTS** — the most mature of the ten. `bankFlags()` (`bank-brief.ts:281`), 6 rules each returning its own literal rule string (`"Δcar_qoq < −1pp AND buffer < 8pp"`); sector flags already on the wire with `rule` + `operands` (`api/app/v1/overview/route.ts:210-223`); `engineGate()` explains *absence* |
+| `get_release_calendar` | **EXISTS**, already public — `aheadDates()` (`ahead.ts:189`), `Slot = {when, date, rule}`; a kind whose date can't be established is omitted, never printed stale |
+| `calculate_change` | **EXISTS**, over-supplied — `period-math.ts:36/51/70`, `desk.ts:17-141`, `economy.ts:58/72`, `real-terms.ts:30` (Fisher, not subtraction), `series.ts:65/101` |
+| `get_metric_series` | **EXISTS** but fragmented — five entry points, three period formats, two ₺ scales; no dispatcher |
+| `get_metric_definition` | **PARTIAL** — 21 metrics typed in `METRIC_DEFS` (`heatmap.ts:86`) with a printable `rule`; the 162-metric registry is Python-only, never imported by `web/`, not in D1, no route. Content done, accessor missing |
+| `compare_entities` | **PARTIAL** — `peerStat()` (`bank-brief.ts:121`) is licence-class aware and reports which universe it used; no bank-A-vs-bank-B, no group-vs-group |
+| `get_rankings` | **PARTIAL** — `leagueTable()` (`market-share.ts:204`), `peerStat().rank`; no generic `rankBy` |
+| `get_data_freshness` | **PARTIAL** — `getHealthReport()` (`admin-health.ts:254`) is schedule-aware and probe-backed, but has **no HTTP surface** |
+| `get_source_record` | **PARTIAL, split by lane** — news/KAP/IR exist; audit filings absent |
+| `get_source_excerpt` | **ABSENT** — the only one needing genuinely new plumbing: PDFs are in R2, `fitz` cannot run in a Worker, and the Worker holds no R2 binding |
+
+⚠️ **The finding that decides the open question.** `bot-schema.ts` (~450 lines) is
+where the corpus's hardest rules are written, and they are properties of *the
+data*, not of the schema: take `MAX(amount_total)` across **both** balance-sheet
+legs (reading only `assets` put ISCTR at ₺2.72tn instead of ₺4.94tn, 7th instead
+of 3rd, in a ranking that showed every bank); JOIN `bank_audit_pl_roles`, never
+label-match (AKBNK files a blank `item_name`); `10001` is already the sector,
+summing the ten codes reported it 3.84× too high and looked plausible; filter
+`currency='TL'` but read `amount_total`, not `amount_tl` (a ~39% error that looks
+fine). **Any typed tool over the same tables must re-encode every one of these.**
+Typed tools do not inherit the scar tissue for free — that is the real cost of
+the migration, not the endpoints.
 
 ⚠️ **Scope inverts the build question.** `/api/v1` covers BDDK monthly tables 1–17
 and the weekly bulletin — public aggregates anyone can pull from BDDK. It does
@@ -278,21 +312,49 @@ the audit lanes IS the typed-tool layer**, with a working precedent to copy, and
 puts a schema in front of the lanes where a wrong join is both most likely and most
 damaging.
 
-## 11. Process note
+## 11. Cost and the real limits (measured, not estimated)
 
-Five `Explore` agents were dispatched across the facets of this pass. **Their
-reports never reached the orchestrating session** — only idle notifications
-arrived, through two rounds of direct requests — so every finding above was
-re-derived from direct reads.
+D1 is **not** the cost centre for an agent query: ≤6 SELECTs each capped at 201
+rows ≈ **$0.00012** typical, **$0.0096** pathological; writes ~32 billed rows
+≈ **$0.000032**. Even scanning all ~1.6M rows costs $0.0016. Reads are $0.001/M
+against writes at $1.00/M, and `rowsWritten` carries a measured **3.6×** index
+multiplier (`OPERATIONS.md:486-496`).
 
-⚠️ An earlier version of this section recorded that as the agents having
-"contributed nothing". That was wrong: the agents did produce answers, visible in
-the session UI. The failure was in **delivery to the caller**, not in the work.
-The distinction matters here of all places — a result that exists but never
-reaches the component that acts on it is indistinguishable, from that component's
-side, from no result at all. That is the inter-agent-misalignment class in Cemri
-et al., not a capability limit, and it is an argument for the report's §6.3
-centralized-coordination point rather than against agents as such.
+The binding constraints are elsewhere:
+
+1. **The `waitUntil` allowance.** `RUN_BUDGET_MS = 20_000`, `CALL_TIMEOUT_MS =
+   12_000` (`bot.ts:46,50`). ⚠️ **A page render has no equivalent escape** — the
+   webhook affords 20s only because it ACKs Telegram 200 first. On a page this
+   must be an API route the client calls, not a server component.
+2. **Free-tier provider rates** — Cerebras ~5 req/min against a loop making
+   several calls per question.
+3. **Tokens, if you leave free models.** `bot-schema.ts` is ~32 KB ≈ **8k tokens**
+   of system prompt, resent on each of up to 7 calls over an accumulating
+   history — roughly **70–100k input tokens per question**, about 100× the D1
+   spend on a metered model.
+
+CPU is never the constraint: LLM calls are I/O wait, and a paid Worker has 30s CPU
+with no hard wall-clock limit on HTTP requests.
+
+## 12. Process note
+
+Five `Explore` agents were dispatched across the facets of this pass. Their
+reports did not reach the orchestrating session for roughly twenty minutes — only
+idle notifications arrived, through three rounds of requests.
+
+⚠️ Two earlier versions of this section were wrong in sequence: the first recorded
+the agents as having "contributed nothing", the second as their reports having
+"never reached" the caller. Both were claims about an inbox stated as claims about
+the work. **The cause was a protocol mismatch**: an `Explore` agent is told its
+final text *is* its return value, while the teammate transport requires an
+explicit `SendMessage` call — so each wrote a complete report as plain text, went
+idle, and delivered nothing. Naming the tool explicitly fixed it immediately and
+all five delivered in full, materially sharpening §5, §9 and §11 above.
+
+The lesson generalises past this session: the failure was neither capability nor
+coordination logic, but **an unstated assumption about how a result gets
+returned** — Cemri et al.'s inter-agent-misalignment category, and the single
+cheapest thing to specify explicitly in any agent design.
 
 ## Not related to this document
 
