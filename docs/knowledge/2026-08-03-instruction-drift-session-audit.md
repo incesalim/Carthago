@@ -99,8 +99,20 @@ It is how the thread gets dropped.
 
 The `/deep` skill was authored at ~09:00 on 2026-08-03 (session `b7f45a0e`, at the
 user's request) and first used at 09:30 — the session above. It encoded the
-mechanism rather than preventing it. Three defects, all now fixed in
-`.claude/skills/deep/SKILL.md`:
+mechanism rather than preventing it.
+
+**Root cause, per the user: two machines were built as one.** The ask at 08:52 was
+for *claude.ai-style depth of reasoning* on conceptual questions. What got built
+was a *research operation* — wide fan-out, web lane, dated write-up. Depth of
+thinking and production of a report are different jobs with different
+deliverables, and fusing them meant every thinking question started the research
+apparatus. The apparatus is where the artifacts came from.
+
+Split 2026-08-03 into `deep` (thinking; default; **writes no file**) and
+`research` (explicit ask; answers in chat first, then one write-up). The test is
+**what the user walks away holding** — an understanding, or a file.
+
+Three defects, all fixed in `.claude/skills/deep/SKILL.md`:
 
 1. **It named the file as the deliverable.** The original §5 closed with "a long
    answer that only exists in a terminal scrollback was half-wasted work" —

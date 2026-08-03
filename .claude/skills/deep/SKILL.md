@@ -1,25 +1,44 @@
 ---
 name: deep
-description: Answer a conceptual or architectural question with a verified deep pass instead of a one-turn answer — frame the question, fan out Explore agents, check every load-bearing claim against the current code, argue the opposite, then recommend. Use when the user runs /deep, or asks "why is X built this way", "should we do A or B", "how does <lane/page/engine> fit together", "evaluate/critique X", "is this the right approach". Not for factual lookups — those stay fast.
+description: Think hard about a conceptual or architectural question and answer it in chat — frame the question, verify every load-bearing claim against the current code, argue the opposite, then recommend. Use when the user asks "why is X built this way", "should we do A or B", "how does <lane/page/engine> fit together", "evaluate/critique X", "is this the right approach", "think harder about this". Produces an ANSWER, never a file. Not for factual lookups — those stay fast. Not for surveys whose deliverable is a document — that is `research`.
 ---
 
-# Deep pass
+# Deep thinking
 
 The default loop answers in one turn. That is right for a lookup and wrong for a
 question where two readings lead to materially different work. This skill is the
 slower path: **verified reasoning, not more prose.** Length is not the deliverable.
 
-## 0. Check that this is the right tool
+## 0. This skill produces an answer, not an artifact
 
-Exit immediately and answer fast if the question is a **factual lookup** — a table
-name, whether something shipped, which workflow runs a backfill, what a memory
-already records verbatim. Spending twenty tool calls on those is the failure mode
-in the other direction.
+**Hard rule: a deep-thinking pass writes no file and makes no commit.** Not a
+knowledge doc, not a memory, not a scratch note that becomes one. The whole
+output is the reply in the terminal.
 
-Stay if answering wrong would send work down the wrong path: design choices,
-"A or B", critiques, evaluations, anything spanning more than one lane.
+If the pass turns up something worth keeping, *say so in one line at the end and
+let the user decide*. Do not write it and mention it afterwards.
 
-## 1. Frame before searching
+This rule is not a style preference. It exists because the first version of this
+skill said the opposite — "a long answer that only exists in a terminal
+scrollback was half-wasted work" — and its first run produced 9 commits to one
+document, two unrelated code fixes, and a user asking "what was my question" two
+hours later. See `docs/knowledge/2026-08-03-instruction-drift-session-audit.md`.
+
+## 1. Check that this is the right tool
+
+Three ways out, all cheap:
+
+| If… | Then |
+|---|---|
+| It is a **factual lookup** — a table name, whether something shipped, which workflow runs a backfill, what a memory records verbatim | Exit and answer fast. Twenty tool calls here is the failure in the other direction. |
+| The deliverable is a **document that outlives the conversation** — a survey, a competitive scan, a dated write-up someone reads later | That is `research`, and it needs an explicit ask. Say so and stop. |
+| Answering wrong would **send work down the wrong path** — design choices, "A or B", critiques, anything spanning more than one lane | Stay. |
+
+The test for the middle row: *what does the user walk away holding?* An
+understanding → think. A file → research. When it is genuinely both, think first
+and offer the file at the end.
+
+## 2. Frame before searching
 
 Write down, in one or two lines:
 
@@ -29,7 +48,7 @@ Write down, in one or two lines:
 
 This is what makes the search targeted instead of a sweep.
 
-## 2. Treat memory as a map, never as the answer
+## 3. Treat memory as a map, never as the answer
 
 The memory index is large and cheap to recall, which is exactly why it is
 dangerous here: it is a set of point-in-time observations, several of them months
@@ -45,22 +64,15 @@ code  >  docs/PROJECT_STATE.md  >  other docs/  >  memory
 A memory naming a file, function, table or flag is a hypothesis. Confirm the thing
 still exists before repeating it back.
 
-## 3. Fan out
+## 4. Read, and fan out only if the question genuinely spans lanes
 
-For anything spanning more than one file or lane, launch `Explore` agents — **all
-in one message so they run concurrently** — one per independent facet. The
-standing "don't call the Agent tool unless requested" does not apply inside this
-skill; the deep-pass memory is that request.
+Most thinking questions are answered by reading three or four files well. Reach
+for agents when the question truly covers separate areas — then launch **at most
+three `Explore` agents, all in one message** so they run concurrently. The
+standing "don't call the Agent tool unless requested" does not apply here; the
+deep-pass memory is that request.
 
-**Collect, then answer once.** Agent results arrive as separate turns. Each
-arrival is *not* a task. Do not edit a document, commit, or open new work when one
-lands — hold it, wait for the rest, and spend them all in a single answer at §5.
-Servicing completions one at a time is how a research question turns into a commit
-log with no answer in it; that is the failure this rule exists to stop
-(`docs/knowledge/2026-08-03-instruction-drift-session-audit.md` §4).
-
-Give each agent a facet and a breadth ("medium" / "very thorough"), not the whole
-question. Facets that usually partition well here:
+Facets that partition well in this repo:
 
 | Facet | Where it lives |
 |---|---|
@@ -72,11 +84,17 @@ question. Facets that usually partition well here:
 | Prior investigation | `docs/knowledge/` (dated write-ups) |
 | Invariants and gates | `scripts/check_*.py` — each one exists because something drifted |
 
-If the question depends on facts **outside** the repo — regulation in force, an
-upstream source's terms, what a peer product ships — that is a `WebSearch` /
-`WebFetch` lane, not a repo lane. Do not answer those from the training cutoff.
+**Collect, then answer once.** Agent results arrive as separate turns. An arrival
+is *not* a task. Do not act on one when it lands — hold it, wait for the rest,
+spend them all in a single answer at §6. Servicing completions one at a time is
+how a question turns into a commit log with no answer in it.
 
-## 4. Verify, then argue the opposite
+A fact from **outside** the repo — regulation in force, an upstream source's
+terms, what a peer ships — is a bounded `WebSearch`/`WebFetch` lookup, one or two
+calls. Do not answer it from the training cutoff, and do not let it turn the pass
+into a survey. If it needs more than that, the question was a research question.
+
+## 5. Verify, then argue the opposite
 
 Every load-bearing claim carries a `file:line`, a command output, or an explicit
 "could not verify". Two passes:
@@ -88,13 +106,7 @@ Every load-bearing claim carries a `file:line`, a command output, or an explicit
   wrong, the run exited 0 and changed nothing, the aggregate footed and the unit
   had switched. A check that only looks for visible failures will miss them.
 
-## 5. Answer — to the user, in the reply, before anything is written
-
-**The deliverable is the reply.** Not a document, not a commit. The pass is not
-finished when a file exists; it is finished when the user has read the answer to
-the question they asked.
-
-Write it as one message, in this order:
+## 6. Answer — to the user, in the reply, in one message
 
 1. **The recommendation**, first, in a sentence. Not a survey of options.
 2. The evidence, cited.
@@ -102,18 +114,8 @@ Write it as one message, in this order:
 4. **What could not be verified**, named explicitly, with what it would take.
 5. The one open question, if a real fork remains. One, not four.
 
-Only **after** that answer has been delivered: if the pass produced something
-worth keeping, write it to `docs/knowledge/` dated and status-marked, with a
-memory pointer. One write at the end, not a running edit as findings arrive. If
-the two ever compete, the answer wins and the file waits — see
-[[feedback_answer_before_artifact]].
-
-## 6. Budget
-
-Bound the pass: **one fan-out round and roughly 30 tool calls after it.** If that
-is spent and the question is still open, stop and answer with what is verified,
-naming what is still unknown (§5.4). A pass that has run for an hour without a
-reply has already failed, however good the reasoning is.
+Then, optionally, one closing line: *"worth keeping as a knowledge doc?"* — and
+stop. The user answers that, not you.
 
 ## Cost discipline
 
@@ -124,8 +126,12 @@ hold inside this skill without exception:
 - **no D1 writes**, no drops, crons frozen — propose the work, never run it;
 - rows written to D1 are ~1000× the price of a read;
 - multi-agent **workflows** still need an explicit ask ("use a workflow" /
-  "ultracode"). If the question genuinely warrants one, say what it would do and
-  roughly what it would cost, then let the user call it.
+  "ultracode").
+
+**Budget: one fan-out round and roughly 25 tool calls after it.** If that is spent
+and the question is still open, answer with what is verified and name what is
+still unknown (§6.4). A pass that has run an hour without a reply has failed,
+however good the reasoning is.
 
 ## Failure modes this skill exists to prevent
 
@@ -134,6 +140,6 @@ hold inside this skill without exception:
 - Treating length as depth — five verified lines beat five unverified paragraphs.
 - Confirming only. If nothing was checked that could have falsified the answer,
   the pass has not happened yet.
-- **Answering the file instead of the user.** Measured on this skill's own first
-  run: 9 commits to one document, two side-quest code fixes, and 2 h 22 min later
-  the user asked "what was my question". Depth is not the risk here — delivery is.
+- **Answering the file instead of the user.** §0. This is the one that actually
+  happened.
+- Quietly escalating into `research` because the question was interesting.
