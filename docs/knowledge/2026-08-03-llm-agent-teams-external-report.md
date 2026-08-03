@@ -170,8 +170,13 @@ After the above, the residue is small:
    successful query (`seenNumbers`) instead of comparing against the last query's
    rows alone, which was producing false positives that burned the single
    correction round; and `bot_queries` — every user's question text — is denied
-   at the SQL gate with a test. ⚠️ **Still open:** only figures ≥1000 are checked
-   (`bot-sql.ts:560`), so ratios and percentages remain unverified.
+   at the SQL gate with a test. The ≥1000 floor that exempted every ratio is gone
+   — a percentage is now checked at any magnitude, matched at ×1 and ×100 because
+   the corpus stores ratios both as fractions and as points. ⚠️ Fixing it exposed
+   a fourth defect: the guard parsed Turkish notation only, while the bot answers
+   in the language of the question, so `2.3%` in an English reply was read as
+   **23** — every English answer had been checked against numbers an order of
+   magnitude out since the lane shipped. Also fixed.
 5. ⚠️ **All drift detection is currently off.** `healthcheck.yml` is frozen with
    no `review_by`, and it is what runs `check_bot_schema.py` (prompt facts vs
    data), `check_bot_answers.py` (recipes vs correct numbers) and the webhook

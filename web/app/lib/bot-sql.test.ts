@@ -535,6 +535,22 @@ describe("numbersInProse — the bot writes Turkish, not English", () => {
   it("ignores dates and period labels", () => {
     expect(numbersInProse("2025-05 ile 2026Q1 arasında")).toEqual([]);
   });
+
+  // The bot answers in the language of the QUESTION, so its own replies are not
+  // reliably Turkish. Reading an English answer as Turkish turned "2.3%" into 23.
+  it("reads English notation too, without a language hint", () => {
+    expect(numbersInProse("NPL ratio is 2.3%")).toEqual([2.3]);
+    expect(numbersInProse("total assets 51,760,765 million TL")).toEqual([51760765]);
+    expect(numbersInProse("ROE of 20.85% on 1,234.56 bn")).toEqual([20.85, 1234.56]);
+  });
+
+  it("still reads Turkish notation the same way", () => {
+    expect(numbersInProse("%2,3 oranı, 51.760.765 milyon TL")).toEqual([2.3, 51760765]);
+  });
+
+  it("does not swallow list punctuation as a separator", () => {
+    expect(numbersInProse("1. ZIRAAT, 2. VAKBN — 38 banka")).toEqual([1, 2, 38]);
+  });
 });
 
 describe("unsupportedFigures", () => {
@@ -554,5 +570,44 @@ describe("unsupportedFigures", () => {
 
   it("ignores ranks and small counts", () => {
     expect(unsupportedFigures("1. ZIRAAT, 2. VAKBN — 38 banka", allowed)).toEqual([]);
+  });
+});
+
+describe("unsupportedFigures — ratios, which the ≥1000 floor used to exempt", () => {
+  // The documented escapes: "%16,2", "NPL ratio is 2.3%", "ROE was 38,5%" and
+  // "750 branches" were all sent with no query run. The first three are ratios.
+  it("flags a percentage that is in no row", () => {
+    expect(unsupportedFigures("ROE %38,5 oldu", numbersIn(JSON.stringify([{ roe: 24.7 }]))))
+      .toEqual([38.5]);
+  });
+
+  it("accepts a ratio stored as POINTS (cet1 17.06 → %17,06)", () => {
+    expect(unsupportedFigures("CET1 %17,06", numbersIn(JSON.stringify([{ cet1: 17.06 }]))))
+      .toEqual([]);
+  });
+
+  it("accepts a ratio stored as a FRACTION (coverage 0.0083 → %0,83)", () => {
+    // npl_coverage is a fraction in the corpus; the answer prints a percentage.
+    expect(unsupportedFigures("karşılık oranı %0,83", numbersIn(JSON.stringify([{ c: 0.0083 }]))))
+      .toEqual([]);
+  });
+
+  it("accepts a percentage correctly rounded to the decimals it printed", () => {
+    // 0.023046 → 2.3046% → printed "%2,3". Half a unit in the last place.
+    expect(unsupportedFigures("NPL %2,3", numbersIn(JSON.stringify([{ npl: 0.023046 }]))))
+      .toEqual([]);
+    // …but not a figure outside that rounding window.
+    expect(unsupportedFigures("NPL %2,9", numbersIn(JSON.stringify([{ npl: 0.023046 }]))))
+      .toEqual([2.9]);
+  });
+
+  it("reads the English trailing form too", () => {
+    expect(unsupportedFigures("NPL ratio is 2.3%", numbersIn(JSON.stringify([{ npl: 9.9 }]))))
+      .toEqual([2.3]);
+  });
+
+  it("still does not flag a bare small integer next to a percentage", () => {
+    expect(unsupportedFigures("1. ZIRAAT %17,06 — 38 banka", numbersIn(JSON.stringify([{ cet1: 17.06 }]))))
+      .toEqual([]);
   });
 });

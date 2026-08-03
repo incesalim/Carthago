@@ -539,16 +539,90 @@ export function numbersIn(text: string): number[] {
  * Dates and periods are blanked first: "2025-05" and "2026Q1" are labels, not
  * quantities, and flagging them is the same false positive in another costume.
  */
-export function numbersInProse(text: string): number[] {
+export interface ProseFigure {
+  value: number;
+  /** Digits printed after the decimal comma — i.e. how far it was rounded. */
+  decimals: number;
+  /** Written with a `%` adjacent. Turkish puts it first (`%16,2`), English last. */
+  isPercent: boolean;
+}
+
+/**
+ * Split a written figure into integer and fractional digits, in EITHER notation.
+ *
+ * The bot answers in the language of the question, so its own replies are not
+ * reliably Turkish: an English answer writes `2.3%` and `51,760,765`, a Turkish
+ * one writes `%2,3` and `51.760.765` — the two conventions are exact mirrors.
+ * Assuming Turkish read every English decimal as a thousands group, turning
+ * "2.3%" into 23 and waving through a ratio that was an order of magnitude out.
+ *
+ * The rule needs no language detection: a thousands separator always leaves
+ * groups of exactly three digits behind it, and a decimal separator almost never
+ * does. Where both characters appear the LAST one is the decimal point. The one
+ * genuinely ambiguous form is a single separator with exactly three digits after
+ * it (`1.234`), which is read as Turkish — the convention this corpus is in.
+ */
+function splitProseNumber(body: string): { int: string; frac: string } {
+  const groupsAllThree = (sep: string): boolean => {
+    const parts = body.split(sep);
+    return parts.length > 1 && parts.slice(1).every((p) => p.length === 3);
+  };
+  const asDecimal = (sep: string) => {
+    const i = body.indexOf(sep);
+    return { int: body.slice(0, i), frac: body.slice(i + 1) };
+  };
+  const dots = body.includes(".");
+  const commas = body.includes(",");
+
+  if (dots && commas) {
+    const dec = body.lastIndexOf(".") > body.lastIndexOf(",") ? "." : ",";
+    const grp = dec === "." ? "," : ".";
+    const i = body.lastIndexOf(dec);
+    return { int: body.slice(0, i).split(grp).join(""), frac: body.slice(i + 1) };
+  }
+  // A lone separator is a thousands mark only if EVERY group after it is a
+  // triple. For commas we additionally require two of them, so the ambiguous
+  // `1,234` keeps its Turkish decimal reading.
+  if (commas) {
+    return groupsAllThree(",") && (body.match(/,/g) ?? []).length >= 2
+      ? { int: body.split(",").join(""), frac: "" }
+      : asDecimal(",");
+  }
+  if (dots) {
+    return groupsAllThree(".")
+      ? { int: body.split(".").join(""), frac: "" }
+      : asDecimal(".");
+  }
+  return { int: body, frac: "" };
+}
+
+export function figuresInProse(text: string): ProseFigure[] {
   const masked = text
     .replace(/\d{4}-\d{2}(?:-\d{2})?/g, " ")   // 2025-05, 2026-05-31
     .replace(/\d{4}\s*Q\d/gi, " ");            // 2026Q1
-  const out: number[] = [];
-  for (const m of masked.matchAll(/-?\d[\d.]*(?:,\d+)?/g)) {
-    const n = parseFloat(m[0].replace(/\./g, "").replace(",", "."));
-    if (Number.isFinite(n)) out.push(n);
+  const out: ProseFigure[] = [];
+  // Must END on a digit, so the '.' in a numbered list ("1. ZIRAAT") and a
+  // clause comma ("…, 2. VAKBN") are not swallowed as separators.
+  for (const m of masked.matchAll(/-?\d(?:[\d.,]*\d)?/g)) {
+    const raw = m[0];
+    const neg = raw.startsWith("-");
+    const { int, frac } = splitProseNumber(neg ? raw.slice(1) : raw);
+    const n = parseFloat(`${int || "0"}.${frac || "0"}`);
+    if (!Number.isFinite(n)) continue;
+    const start = m.index ?? 0;
+    out.push({
+      value: neg ? -n : n,
+      decimals: frac.length,
+      isPercent:
+        /%\s*$/.test(masked.slice(0, start)) ||
+        /^\s*%/.test(masked.slice(start + raw.length)),
+    });
   }
   return out;
+}
+
+export function numbersInProse(text: string): number[] {
+  return figuresInProse(text).map((f) => f.value);
 }
 
 /**
@@ -557,21 +631,45 @@ export function numbersInProse(text: string): number[] {
  * `allowed` comes from the JSON rows, where numbers are plain — so the two
  * sides are parsed differently on purpose.
  *
- * Only sizeable figures are checked. Ranks, list numbers and small counts are
- * legitimately absent from the rows, and flagging them is what turns a guard
- * into noise.
+ * TWO classes are checked, for different reasons:
+ *
+ *  - **Amounts ≥ 1000.** Copied verbatim from a row, so they must match closely.
+ *    Ranks, list numbers and small counts are legitimately absent from the rows,
+ *    and flagging them is what turns a guard into noise — hence the floor.
+ *
+ *  - **Anything written as a percentage**, at any magnitude. The floor exempted
+ *    every ratio, and a ratio is the most-asked question shape: `%16,2`, "NPL
+ *    ratio is 2.3%" and "ROE was 38,5%" all went out unchecked. A percentage is
+ *    never a list index or a bank count, so it can be checked without the noise
+ *    the floor exists to prevent.
+ *
+ * A percentage is matched at ×1 AND ×100, because the corpus stores ratios both
+ * ways and the answer is right against either: `npl_coverage` is a FRACTION
+ * (0.0083 is 0.83%) while `cet1`/`car`/`lcr` are already POINTS (17.06 is
+ * 17.06%). Tolerance is half a unit in the last printed place, so a figure the
+ * model rounded to the ~2 decimals its prompt allows still matches the value it
+ * was rounded from — without that, every correctly-rounded ratio would trip the
+ * guard, which is the exact failure that made the Turkish-notation bug so costly.
  */
 export function unsupportedFigures(answer: string, allowed: number[]): number[] {
-  return numbersInProse(answer).filter(
-    (n) =>
-      Math.abs(n) >= 1000 &&
-      !allowed.some(
-        (a) =>
-          Math.abs(a - n) < 0.01 ||
-          Math.abs(Math.abs(a) - n) < 0.01 ||
-          Math.abs(a - n) / Math.max(Math.abs(a), 1) < 0.0001,
-      ),
-  );
+  const near = (n: number, a: number, tol: number): boolean =>
+    Math.abs(a - n) <= tol ||
+    Math.abs(Math.abs(a) - n) <= tol ||
+    Math.abs(a - n) / Math.max(Math.abs(a), 1) < 0.0001;
+
+  return figuresInProse(answer)
+    .filter((f) => {
+      if (f.isPercent) {
+        const tol = Math.max(0.5 * 10 ** -f.decimals, 1e-9);
+        return !allowed.some(
+          (a) => near(f.value, a, tol) || near(f.value, a * 100, tol),
+        );
+      }
+      return (
+        Math.abs(f.value) >= 1000 && !allowed.some((a) => near(f.value, a, 0.01))
+      );
+    })
+    .map((f) => f.value);
 }
 
 /**
