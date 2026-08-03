@@ -42,7 +42,7 @@
         "roa",
         "equity_multiplier"
       ],
-      "derivation": "net_income (P&L XXV.→XIX.) / equity (BS XVI.); annualize YTD ×(4/quarter). Sector: financial_ratios Table 15.",
+      "derivation": "net_income (P&L XXV.→XIX.) / equity (BS XVI.). The site's per-bank ROE is TTM: de-cumulate YTD to single-quarter income, sum 4 quarters, divide by a 5-point average equity (web/app/lib/heatmap.ts:515-574). NOT YTD×(4/quarter) — that quadruples a single Q1. Sector ROE is BDDK-published ×12/month (financial_ratios Table 15, web/app/lib/metrics.ts:198), a different base.",
       "caveats": "Audit P&L is YTD → annualize. Consolidated vs unconsolidated differ.",
       "examples": [
         {

@@ -61,10 +61,16 @@ mechanisms in `bot.ts` prevent it:
 1. **No query, no numbers.** `runAgent` tracks `gotData` — whether any query has
    returned ≥1 row. A final answer containing a 4+ digit figure or a `{placeholder}`
    while `gotData` is false is treated as a hallucination: it is **never sent**. The
-   model is pushed back to querying and the loop continues (`bot.ts:158-178`).
+   model is pushed back to querying and the loop continues (`bot.ts:280-307`).
+   `gotData` flips only when a row carries at least one **non-null** value
+   (`bot.ts:379-382`) — an aggregate over zero matching rows returns one row of
+   NULLs, and counting that as data switched the guard off while nothing had been
+   retrieved.
 2. **Separators stripped before that check.** A grouped number like `43.520.620` is
    collapsed to bare digits *first*, so it still trips the 4+ digit test rather than
-   reading as three short numbers (`bot.ts:163`).
+   reading as three short numbers (`bot.ts:290`). The digit test alone let every
+   ratio through, so the guard also catches a percentage, a decimal, or a bare
+   figure paired with a unit word (`bot.ts:286-296`).
 3. **Amounts are formatted deterministically, never by the model.** `groupThousands()`
    (`bot.ts:40-48`) re-groups bare integers with Turkish dot separators using
    lookarounds that leave years (`2026`), periods (`2026Q1`), decimals (`8.06`) and
@@ -361,7 +367,7 @@ prompt's own worked examples were executed, not read.
 
 ### Guards that were not guarding
 
-- `inventedNumbers` — a tested, documented check that every figure in an answer appears in the data — **had never once run**. It was never imported. Now wired, with one correction round.
+- `inventedNumbers` — a tested, documented check that every figure in an answer appears in the data — **had never once run**. It was never imported. ⚠️ **It still has not.** `inventedNumbers` (`bot-sql.ts:576-598`) remains exported with tests and zero callers outside the test file; what `bot.ts` wired instead is `unsupportedFigures` (`bot-sql.ts:557-568`), with one correction round. Two gaps carried over: the forced-final path (out of steps or out of time, `bot.ts:441-459`) skips the figure check entirely, and only figures ≥1000 are checked (`bot-sql.ts:560`), so ratios and percentages — the most-asked shape — go unverified.
 - The hallucination guard only caught 4+ digit runs, so `%16,2`, `NPL is 2.3%`, `ROE was 38,5%` and `750 branches` could all be stated with **no query run**.
 - `substituteDataList` re-rendered from the LAST query's rows, not the answer's — a follow-up `SELECT period, COUNT(*)` could replace a bank ranking with a list of periods under the ranking's caption. Now requires label overlap.
 - It also picked the first numeric column, printing absolute Stage-3 amounts under "ranked by NPL ratio". Now reads the `ORDER BY` column.
@@ -448,5 +454,5 @@ Both run daily in `healthcheck.yml`, alert-only.
 
 Neither exercises the LLM. They verify the data layer and the recipes; the agent
 loop's own behaviour — which query the model chooses, how it words an answer — is
-covered by the gates (`bot-sql.test.ts`, 74 tests) and by `bot_queries` after the
+covered by the gates (`bot-sql.test.ts` + `bot-failure.test.ts`, 85 tests) and by `bot_queries` after the
 fact. Running the full loop needs the provider keys, which are Worker secrets.

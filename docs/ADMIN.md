@@ -119,7 +119,7 @@ it returns already-public copy, same as `/api/reads`.
 The **Purge cache** button in the Data-health section header clears the dashboard's
 KV cache so a just-refreshed source appears in the graphs right away.
 
-Why it's needed: D1 reads are cached ~12h in KV (`cachedAll` → `unstable_cache`,
+Why it's needed: D1 reads are cached ~1h in KV (`cachedAll` → `unstable_cache`,
 `DATA_REVALIDATE_SECONDS` in `web/app/lib/db.ts`) to keep repeat page views off D1.
 So when a manual refresh lands a new bulletin / EVDS / weekly row in D1, the charts
 keep serving the pre-refresh render until that window rolls over. The data isn't

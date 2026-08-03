@@ -57,7 +57,7 @@ machine is involved in the production data flow.
 | **PDF storage** | Cloudflare R2 (`bddk-audit-reports`) | ~2.2 GB; **1,050 quarterly PDFs** extracted across the 38-bank universe |
 | **Dashboard** | `web/` | Next.js 16 + OpenNext + Recharts (charts) + d3-force (/ownership network layout) on Cloudflare Workers |
 | **Mobile app** | `mobile/` | Expo SDK 57 + expo-router + React Native 0.86 + react-native-svg. Read-only native client over `/api/app/v1` — see § Mobile app |
-| **Read cache** | Cloudflare KV (`NEXT_INC_CACHE_KV`) | 12h data cache for D1 reads (`cachedAll` → `unstable_cache`) |
+| **Read cache** | Cloudflare KV (`NEXT_INC_CACHE_KV`) | 1h data cache for D1 reads (`cachedAll` → `unstable_cache`) |
 | **Admin panel** | `web/app/admin/`, `web/app/api/admin/` | password-gated control center: data health, refresh triggers, traffic |
 | **Quality gates** | `.github/workflows/ci.yml`, `pyproject.toml`, `tests/` | ruff + pytest + eslint + tsc + vitest on every PR |
 | **Schema migrations** | `web/migrations/` | hand-authored, version-controlled; applied via `wrangler d1 migrations apply` on deploy |

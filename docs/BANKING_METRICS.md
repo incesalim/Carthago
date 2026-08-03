@@ -115,7 +115,7 @@ interest income/expense, opex, provisions and tax. `--unstructured` lists every
 non-comparable metric with its reason codes and a tally; `--show <id>` dumps one
 metric's full knowledge (definition, variants, reasons, channels, examples).
 
-Current snapshot (v5, **153 metrics** across 13 groups): **82 / 153** reproducible
+Current snapshot (v5, **162 metrics** across 13 groups): **92 / 162** reproducible
 from audit reports. The metrics we still can't get at all cluster in **valuation**
 (P/B, P/E, market cap, EPS, dividend yield — need BIST price data), **franchise /
 customer** (active/registered digital customers, NPS, payroll, cards, ATM/POS,

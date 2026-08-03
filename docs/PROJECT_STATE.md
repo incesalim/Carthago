@@ -364,7 +364,7 @@ The **weekly** bulletin numbers the same groups differently — see METRICS.md �
 | `state/bddk_data.db.gz` | Cloudflare R2 (same bucket) | bulletin/EVDS cron (bulletin lane snapshot) |
 | `state/bank_audit.db.gz` | Cloudflare R2 (same bucket) | `refresh-audit.yml` (admin-triggered extraction) — the audit-lane snapshot writer |
 | `state/history/<lane>-YYYYMMDD.db.gz` | Cloudflare R2 (same bucket) | every cron — dated backup, last 7 kept |
-| Next.js page-data cache | Cloudflare KV (`NEXT_INC_CACHE_KV`) | dashboard render (12h TTL on D1 reads) |
+| Next.js page-data cache | Cloudflare KV (`NEXT_INC_CACHE_KV`) | dashboard render (1h TTL on D1 reads) |
 | `data/banks/audit_report_urls.json` | git | hand-edited via PR |
 | `data/banks/bddk_bank_list.json` | git | hand-edited via PR |
 | `src/`, `scripts/`, `web/` | git | hand-edited via PR |

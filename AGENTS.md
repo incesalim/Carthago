@@ -67,8 +67,13 @@ zero are different facts, and every layer — extractor, validator, API, both UI
 keeps them apart. Rendering `null` as `0` invents data.
 
 **No LLM sets a number.** Model output is editorial only; every figure on the site
-is computed from stored rows. `scripts/check_prose_claims.py` enforces that a
-printed claim is backed by a computation.
+is computed from stored rows. The gates are per-lane and runtime, not one CI check:
+`web/app/lib/prose.ts` fails closed (an unsupported claim returns null and the
+caller prints the topic), `withLlmHeadline` requires the deterministic hash to
+still match *and* every number to be known, and `find_contradictions()` blocks a
+briefing section asserting two values for one rule. `scripts/check_prose_claims.py`
+guards only the *source* shapes that let a hand-typed claim drift — it lints
+`.ts`/`.tsx` literals and never inspects a computed value or a runtime string.
 
 **New D1 migrations follow [docs/SCHEMA_CONVENTIONS.md](docs/SCHEMA_CONVENTIONS.md)**
 (`bank_ticker`, `amount_fc`, snake_case), CI-gated. `web/migrations/` is the
