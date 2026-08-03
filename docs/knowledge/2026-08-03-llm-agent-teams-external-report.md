@@ -272,11 +272,19 @@ damaging.
 
 ## 11. Process note
 
-Five `Explore` agents were dispatched across the facets of this pass. All five
-idled without returning a report, through two rounds of direct requests. Every
-finding above came from direct reads. Recorded because the fan-out cost real time
-and contributed nothing — and because the failure mode is the one Cemri et al.
-catalogue: verification/termination, not capability.
+Five `Explore` agents were dispatched across the facets of this pass. **Their
+reports never reached the orchestrating session** — only idle notifications
+arrived, through two rounds of direct requests — so every finding above was
+re-derived from direct reads.
+
+⚠️ An earlier version of this section recorded that as the agents having
+"contributed nothing". That was wrong: the agents did produce answers, visible in
+the session UI. The failure was in **delivery to the caller**, not in the work.
+The distinction matters here of all places — a result that exists but never
+reaches the component that acts on it is indistinguishable, from that component's
+side, from no result at all. That is the inter-agent-misalignment class in Cemri
+et al., not a capability limit, and it is an argument for the report's §6.3
+centralized-coordination point rather than against agents as such.
 
 ## Not related to this document
 
