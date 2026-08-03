@@ -226,22 +226,57 @@ requires breaking a standing rule, the rule is named.
    change-detector spine (`PROJECT_STATE.md:26`), and per-bank credit memos, which
    are the actual deliverable of the credit/DFI actors the audience research named.
 
-## 9. Not verified
+## 9. `/api/v1` is already an agent-framed tool contract — over the wrong lane
 
-Five Explore agents were dispatched and idled without delivering; the above rests
-on direct reads. Still open: whether `/api/v1`'s five routes (`categories`,
-`series`, `serieList`, `openapi.json`, root) already satisfy any of the ten
-proposed tools — note that a published `openapi.json` is itself a machine-readable
-tool contract; and the per-tool EXISTS/PARTIAL/ABSENT mapping. None of this
-changes the recommendation; all of it changes the size of the build.
+`web/app/api/v1/route.ts` is a self-describing index: endpoints, code grammar,
+worked examples, and live coverage read from `api_series`. The OpenAPI route
+describes itself as *"OpenAPI 3.1 schema — **register as a ChatGPT Action / Custom
+GPT**, or feed to Postman, Swagger UI or a client generator"* (`:57-58`). The
+report's §8 tool layer is not merely partly built; the built part was designed for
+model consumption.
+
+It also encodes three of the report's §4.1 principles machine-readably (`:73-81`):
+*"A null observation means BDDK filed no figure for that period. It does not mean
+zero"*; *"Units — per series… Never assume"*; and month-end dating, with the
+reason. `authentication: "None"`, made safe by the `PUBLIC_API_DISABLED` kill
+switch; unknown codes land in `meta.unknown` rather than failing the request
+(`series/route.ts:15-17`).
+
+| Proposed tool | Status |
+|---|---|
+| `get_metric_series` | **EXISTS** — `/api/v1/series`, ≤20 codes, date range, json/csv |
+| `get_metric_definition` | **PARTIAL** — `serieList` gives label+unit; `registry.json` gives formula+derivation |
+| `get_data_freshness` | **PARTIAL** — coverage earliest/latest at index; per-series in the catalog |
+| `get_source_record` | **PARTIAL** — source attributed at API level, not per value |
+| `compare_entities`, `get_rankings`, `calculate_change`, `evaluate_flag`, `get_source_excerpt`, `get_release_calendar` | **ABSENT** from `/api/v1` |
+
+⚠️ **Scope inverts the build question.** `/api/v1` covers BDDK monthly tables 1–17
+and the weekly bulletin — public aggregates anyone can pull from BDDK. It does
+**not** cover the audit lanes, EVDS, TBB or TKBB. Typed tools therefore exist for
+the data that matters least competitively and are absent for the per-bank BRSA
+extraction nobody else holds — which is precisely where the bot reaches by free
+SQL, and where §4's blind spots live.
 
 ## 10. The open question
 
 **Free SQL or typed tools?** Gated free SQL is proven in production. Typed tools
 would close the wrong-join class the gate cannot see, and nobody has measured how
 often that happens. Sampling `bot_queries` (`web/migrations/0033_bot_queries.sql`)
-for wrong-join answers is the cheap experiment that decides the architecture, and
-it needs no new code.
+for wrong-join answers is the cheap experiment that decides it, and needs no new
+code.
+
+Given §9, the build itself is not greenfield: **extending the `/api/v1` pattern to
+the audit lanes IS the typed-tool layer**, with a working precedent to copy, and it
+puts a schema in front of the lanes where a wrong join is both most likely and most
+damaging.
+
+## 11. Process note
+
+Five `Explore` agents were dispatched across the facets of this pass. All five
+idled without returning a report, through two rounds of direct requests. Every
+finding above came from direct reads. Recorded because the fan-out cost real time
+and contributed nothing — and because the failure mode is the one Cemri et al.
+catalogue: verification/termination, not capability.
 
 ## Not related to this document
 
