@@ -187,8 +187,16 @@ Both were assertions I did not check before committing.
   / equity (BS XVI.); annualize YTD ×(4/quarter). Sector: financial_ratios Table
   15." It also carries `examples[]` — bank, period, the bank's **own published
   value**, its source, and `ours` (AKBNK 2026Q1 ROE 25.3 vs ours 25.3; HALKB 17.4
-  vs ours 17.2). That is the seed of the §12 golden eval set, in machine-readable
-  form, which the report never imagines.
+  vs ours 17.2) — the seed of the §12 golden eval set in machine-readable form,
+  which the report never imagines.
+
+  ⚠️ **Measured population, not generalised from ROE** (162 metrics):
+  `definition` 100% · `unit` 100% · `caveats` 59% · **`formula` 46%** ·
+  `derivation` 36% · **`examples` 18% (29 metrics)** · `decomposes_into` 8%.
+  Absent `formula` is largely *correct*: the empty set is dominated by primitives
+  that are read rather than computed (`interest_income`, `total_assets`,
+  `personnel_expense`, `tax_expense`). But the eval seed is **29 metrics, not a
+  corpus** — enough to bootstrap a golden set, not enough to be one.
 
 ## 7. Doc bug found in passing
 
