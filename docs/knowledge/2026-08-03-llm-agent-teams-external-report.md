@@ -41,7 +41,28 @@ This is not a hallucinated bibliography.
 
 ## 3. What repo access falsifies
 
-### 3.1 Phases 1–2 are already in production
+### 3.0 ⚠️ What the bot is, precisely — and what it is not
+
+Read §3.1 with this qualification, which an earlier version of this document got
+wrong by asserting the bot *is* the proposed analyst.
+
+It is not. The bot is a **grounded text-to-SQL interface with a repair loop**. The
+loop is real — it re-queries on an error, on zero rows, on a rejected statement —
+but it serves *retrieval*, not reasoning. On output the bot does one thing:
+restate the rows it fetched, in prose, in the question's language. It does not
+compare, contextualise, decompose a movement into its drivers, bring in the
+regulation in force that quarter, adjust for the free provision, or carry any
+sense of which of two true facts is the interesting one. It forms no view, and
+holds no task beyond the message in front of it.
+
+So the correct claim is narrower and more useful than the one it replaces:
+**Carthago has built the substrate an analyst would stand on — grounded retrieval
+with a structural anti-hallucination gate — and none of the analysis.** That is
+the hard, safety-critical half, and it is why the sequencing in §8 differs from
+the report's: what remains to build is the reasoning layer, not the plumbing under
+it.
+
+### 3.1 The plumbing the report specifies is already in production
 
 The Telegram Q&A bot **is** the proposed architecture, running in the same Worker.
 
@@ -224,35 +245,149 @@ Both were assertions I did not check before committing.
 holds **162** (`ConvertFrom-Json` over `data/metric_knowledge/registry.json`). Per
 AGENTS.md, the code wins and the doc is the bug.
 
-## 8. Use cases, ordered by what only this repo can do
+## 8. Use cases
 
 Taken as open research rather than as what survives current doctrine; where a case
 requires breaking a standing rule, the rule is named.
 
-1. **Classify the qualification corpus.** 976 opinions, **552 modified (57%)**,
-   basis paragraph captured verbatim on **545** (`PROJECT_STATE.md:43`) — and none
-   of it classified (`routing:144`). Nobody knows what the sector is qualified
-   *about*. Closed answer set, nothing returned is a figure: squarely inside the
-   admissible zone the routing rule already defines.
-2. **Key audit matters, subsequent-event type, and the 28 accounting-policy
-   notes** — all marked MODEL, all untaken (`routing:147,170-175`). ECL
-   methodology carries DPD thresholds and scenario weights inside sentences;
-   comparable policy across 38 banks has never existed.
-3. **The model as the extractor's auditor.** Point it at cash-flow cells with the
-   PDF page as ground truth — not to write a value, but to *disagree*. A
-   disagreement is a human stop. The only proposal that attacks the 79.9%.
-4. **Cross-source contradiction.** BDDK publishes nothing per-bank; TBB excludes
-   participation banks. Sector aggregate vs Σ per-bank filings vs TBB vs KAP is a
-   reconciliation nobody publishes; the gaps are the product.
-5. **Regulation → measured effect.** Join the Rulebook's regime-in-force to the
-   balance-sheet response. Neither half is novel; the join has no competitor.
-6. **The English unlock as a stored artifact, not a live agent** — a generated,
-   verified, versioned bilingual ontology over every line item, note and
-   regulatory term.
-7. **The bot on the web** (§5.1).
-8. Already designed, not built: the product-benchmark refresh agent over a
-   change-detector spine (`PROJECT_STATE.md:26`), and per-bank credit memos, which
-   are the actual deliverable of the credit/DFI actors the audience research named.
+**The organising principle is not "what would be impressive" but *what can only a
+model do here*.** The repo's own routing rule already answers that: a model earns
+its place where the **phrasing is unbounded but the answer set is not**, and where
+nothing it returns is a figure. Every table in a BRSA filing has a mandated
+caption; every *paragraph* does not. That asymmetry is the whole opportunity, and
+it is why the ranking below is not the report's.
+
+The second ordering axis is risk, and risk here is almost entirely "does it
+return a number". Tiers A and B return labels and disagreements. Tier C returns
+prose over figures, and needs the substrate from §3.0 — which exists.
+
+### Tier A — turn held prose into structured data (the monopoly)
+
+**A1. The qualification atlas.** ★ Highest value-per-unit-cost in the whole space.
+
+You hold **545 basis-for-qualification paragraphs verbatim**, against 976 opinions
+of which **552 (57%) are modified** (`PROJECT_STATE.md:43`), and you classify
+**none** of them (`routing:144`). Nobody in the market knows what Turkish banks
+are qualified *about* — the ALBRK free-provision case was found by hand, one bank
+at a time. A model reads each paragraph and returns a label from a closed set
+(free provision · bond reclassification · ECL model · related-party · consolidation
+scope · other).
+
+What comes out is a per-bank, per-quarter series of **why the auditor modified** —
+a dataset that has never existed, anywhere. It is a credit signal on its own
+terms: a bank whose qualification *changes category* is a bank whose accounting
+changed. 545 calls, closed-set output, effectively free on the models already
+wired. Nothing returned is a figure, so it sits exactly inside the admissible
+zone rather than at its edge.
+
+**A2. Key audit matters — the auditors' own risk map.** KAMs are what the audit
+firm itself judged hardest (AKBNK 2025: TFRS-9 impairment, pension obligation, IT
+audit). Untaken (`routing:147`). Extracted across 38 banks × 17 quarters they give
+a risk taxonomy sourced from the auditors rather than from us — independent of our
+own metric choices, which is exactly what makes it citable.
+
+**A3. Accounting-policy comparability — the 28 untaken notes.** ★ The one that
+changes the value of data you already ship.
+
+ECL methodology is prose: DPD thresholds, SICR triggers, forward-looking scenario
+weights, all inside sentences, all different per bank (`routing:174`). Today the
+site compares NPL and Stage-2 ratios across banks that **define the stages
+differently**, and no reader can see it. Extracting those policies to a comparable
+grid is not a new dataset so much as a **validity layer under the existing one** —
+it is what makes "is this bank's asset quality actually comparable to that one's"
+answerable, which is *the* question in this sector. It also directly serves the
+`standard_across_banks` / `nonstandard_reasons` fields the registry already
+models but cannot currently populate from evidence.
+
+### Tier B — the model as auditor of the pipeline
+
+**B1. Blind-spot patrol.** The measured exposure is cash flow **79.9%**, OCI
+**52.6%**, P&L sub-items **38.7%** of cells corruptible with no check objecting,
+plus `free_provision` with 580 cells and no validator at all (§4). Point a model
+at one stored cell and its PDF page — **not to write the value, but to disagree
+with it**. A disagreement is a human stop, never a stored number. This is per-cell,
+which the routing doc establishes as the only safe granularity (`routing:91-97`),
+and it is the only proposal on the table that attacks the largest known risk in
+the data rather than the most visible one.
+
+**B2. Fused-label and junk-row adjudication.** 52 rows carry a figure's digits
+fused into `item_name`, 32 of them in OCI — the same lane that is 53% blind (§4).
+Separately, 347 junk P&L rows of which **24 are real EPS** and must not be bulk
+deleted. Both are "read the page, decide which of two readings is right" — the
+model's natural shape, with a human accepting each verdict.
+
+### Tier C — the analyst that does not exist yet
+
+This is where §3.0 bites: the bot returns the number and **nobody explains it**.
+
+**C1. "Why did it move?"** Explaining a single metric movement requires assembling
+things that currently live apart: the metric and its decomposition (the registry
+already holds `decomposes_into` and `derivation`), the peer position
+(`peerStat()`), the regulation in force that quarter (`/regulation`), the bank's
+own qualification and KAM (A1/A2), and the free-provision adjustment that makes
+ALBRK's ROE mean something. That assembly is genuine multi-source synthesis, it is
+the report's §5A, and none of it exists. It is also the first case here where a
+model touches figures — so it inherits the whole §3.1 grounding stack, and should
+reuse it rather than re-implement it.
+
+**C2. The per-bank credit memo.** ~2 pages, generated: capital, asset quality with
+A3's comparability caveats attached, funding, profitability with the
+free-provision adjustment, peer standing, and the auditor's own verdict. This is
+the literal deliverable of the credit and DFI actors the audience research
+identified — not a feature on a dashboard but the artefact those readers already
+produce by hand.
+
+**C3. Release-day brief, in English, minutes after BDDK publishes.** BBVA Research
+ships a *monthly* Türkiye outlook, so commentary is not the axis to compete on —
+**latency is**. Not opinion: a change report, computed, with the model supplying
+only the connective prose.
+
+### Tier D — distribution and structure
+
+**D1. The bilingual ontology as a stored artefact, not a live agent.** ★ The
+cheapest form of the biggest lever.
+
+Every line item, note and regulatory term rendered in the vocabulary a London
+credit analyst uses — generated once, verified, versioned, stored. The audience
+research named English as *the* unlock. Doing it as an artefact rather than as
+live translation means it is reviewed once and then costs nothing, carries no
+runtime risk, and is auditable. This should probably ship before anything in
+Tier C.
+
+**D2. Cross-source contradiction.** BDDK publishes nothing per-bank; TBB excludes
+participation banks. Σ per-bank filings vs the sector aggregate vs TBB vs KAP is a
+reconciliation **nobody publishes**, and the gaps are themselves the product.
+
+**D3. Natural-language rule authoring.** The user describes an alert; the model
+proposes a *structured rule*; the user confirms it; the deterministic engine
+evaluates it forever after. The model never evaluates the rule — `evaluate_flag`
+already exists and is the most mature of the ten tools (§9).
+
+### What to deprioritise, and why
+
+**The report's own first build — the chart-scoped "Explain" endpoint (§16, §5B).**
+That surface is already owned by `insights.ts`, which is deterministic,
+recomputed from D1 on every render so it cannot drift from the chart, and
+constrained by a closed verb vocabulary that `prose-regression.test.ts` enforces
+with sign-inverted fixtures. Putting a model there **replaces a provably-correct
+component with a probabilistically-correct one on the same real estate**. The
+right move is the opposite: extend the deterministic engine's coverage, and spend
+the model where determinism cannot reach — which is Tiers A and B.
+
+### Sequencing
+
+**A1 → A3 → B1 → D1 → C2.** Narrative first because it is the only work that
+creates data nobody else has, at near-zero risk and near-zero cost. A3 next
+because it makes the existing asset quality data *mean* something. B1 third
+because it protects everything downstream of it. D1 fourth because it is the
+largest audience lever and is a one-off artefact. Tier C last — not because it is
+least valuable, but because C1 and C2 are worth far more once A1, A3 and D1 exist
+to feed them, and they are the only tier that puts a model near a number.
+
+This is close to the inverse of the report's roadmap, and for one reason: the
+report sequences by *engineering* risk, and assumes the plumbing is missing. Here
+the plumbing exists and the scarce thing is **structured knowledge the market does
+not have** — so the sequencing follows the data, not the stack.
 
 ## 9. `/api/v1` is already an agent-framed tool contract — over the wrong lane
 
