@@ -183,7 +183,9 @@ SYSTEM_F = (
 # LLM is actually suited to: "Bulunmamaktadır" / "None" in the relevant note
 # means the quantity is a disclosed ZERO, not a missing value — the distinction
 # `null is not 0` in AGENTS.md turns on. Derivation stays forbidden: a figure
-# reconstructed from identities is a computation, and no LLM sets a number here.
+# reconstructed from identities is a computation. This bench still keeps the model
+# away from the stored value — its own choice, not a repo rule: "No LLM sets a
+# number" was reversed 2026-08-03, so a lane that wants a model-set cell may have one.
 SYSTEM_PROSE = (
     "You read ONE named figure out of a Turkish bank's BRSA audit report. You "
     "are given the page text, the table/row it belongs to, and which quantity to "

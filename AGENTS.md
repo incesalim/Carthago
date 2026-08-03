@@ -66,14 +66,33 @@ correction bills for hundreds of thousands of rows.
 zero are different facts, and every layer — extractor, validator, API, both UIs —
 keeps them apart. Rendering `null` as `0` invents data.
 
-**No LLM sets a number.** Model output is editorial only; every figure on the site
-is computed from stored rows. The gates are per-lane and runtime, not one CI check:
-`web/app/lib/prose.ts` fails closed (an unsupported claim returns null and the
-caller prints the topic), `withLlmHeadline` requires the deterministic hash to
-still match *and* every number to be known, and `find_contradictions()` blocks a
-briefing section asserting two values for one rule. `scripts/check_prose_claims.py`
-guards only the *source* shapes that let a hand-typed claim drift — it lints
-`.ts`/`.tsx` literals and never inspects a computed value or a runtime string.
+**A model may set a figure.** *(Reversed 2026-08-03. The prior rule — "No LLM sets
+a number", model output editorial only — no longer applies in any lane, including
+ones a reader sees.)*
+
+It gated on **provenance**: parser-extracted trusted, model-read forbidden. That
+premise did not survive measurement. Corrupt one stored cell and re-run every
+check the lane actually gets, and **cash flow misses 79.9%**, OCI 52.6%, P&L
+sub-items 38.7%; `free_provision` has 580 cells and no validator at all. The
+deterministic pipeline already ships unverified figures in volume, so "a parser
+produced it" was never the guarantee the rule implied.
+
+Per-lane gates stand exactly as they are — this document no longer mandates them,
+and none may be removed casually, but each is now a lane's own choice:
+`bot.ts`'s `gotData` guard and `unsupportedFigures`, `withLlmHeadline`'s
+`det_hash` + `hasOnlyKnownNumbers`, `find_contradictions()` on the briefing, and
+the parser-vs-model disagreement stop in the audit lanes.
+
+Two measured facts to design against rather than discover again:
+
+- **The model does not signal doubt.** Three confidently wrong figures in 80 calls,
+  every one `found=true` — 6,632,553 → 0; 0 → 2,260,614; 449 → 175,010. There is
+  no confidence field to gate on, so abstention has to be structural.
+- **A P&L leaf is constrained by nothing.** `check_profit_loss` deliberately omits
+  hierarchy sums (deduction lines carry `(-)` labels with additive signs and would
+  false-fail), so a wrong value there survives every validator. The balance sheet
+  does run hierarchy sums and is 0.0% blind. Where an identity exists, a model read
+  is recoverable; where none does, it is not.
 
 **New D1 migrations follow [docs/SCHEMA_CONVENTIONS.md](docs/SCHEMA_CONVENTIONS.md)**
 (`bank_ticker`, `amount_fc`, snake_case), CI-gated. `web/migrations/` is the

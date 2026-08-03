@@ -111,7 +111,10 @@ jobs:
       # Can an LLM read a filing's reporting unit as well as a regex can? The
       # 2026Q2 THOUSAND->MILLION switch is invisible to every validator we have,
       # so the unit must be read off the filing itself. The model returns a LABEL
-      # from a closed set, never a figure — "no LLM sets a number" still holds.
+      # from a closed set, never a figure — which is this bench's own design, not
+      # a repo rule: "No LLM sets a number" was reversed 2026-08-03. A label is
+      # still the right output here, because the answer set is closed and a wrong
+      # unit is a 1000x error no validator catches.
       #
       # Needs R2 (the PDFs) but writes nothing back, and never touches D1.
 
