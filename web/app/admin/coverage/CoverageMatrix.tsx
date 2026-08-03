@@ -54,6 +54,9 @@ const SECTION_HEAD: Record<string, string> = {
   "4": "Risk & capital · §4",
   "1": "General information · §1",
   "7": "Auditor's report · §7",
+  // '0' is not a Bölüm. Prose is the one lane that spans the filing rather than
+  // sitting in a section, so it carries the section on its ROWS instead.
+  "0": "Narrative · §1–§8",
 };
 
 interface SummaryRow {

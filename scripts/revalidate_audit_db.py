@@ -489,6 +489,16 @@ def _opinion_rows(conn, bank, period, kind):
                 (bank, period, kind))]
 
 
+def _prose_rows(conn, bank, period, kind):
+    if not _has_table(conn, "bank_audit_prose"):
+        return []
+    return [dict(zip(("section", "section_role", "page_start"), r))
+            for r in conn.execute(
+                "SELECT section, section_role, page_start FROM bank_audit_prose "
+                "WHERE bank_ticker=? AND period=? AND kind=? ORDER BY item_order",
+                (bank, period, kind))]
+
+
 def _prior_year_sector_total(conn, bank, period, kind) -> dict | None:
     """This bank's `total` sector row from the PREVIOUS annual report.
 
@@ -673,6 +683,7 @@ def revalidate_partition(conn, bank: str, period: str, kind: str) -> dict[str, "
         counterpart=_profile_rows(conn, bank, period, _other), kind=kind)
     results["audit_opinion"] = v.check_audit_opinion(
         _opinion_rows(conn, bank, period, kind))
+    results["prose"] = v.check_prose(_prose_rows(conn, bank, period, kind))
     return results
 
 
@@ -688,7 +699,8 @@ def revalidate_all(conn, progress: bool = False) -> tuple[int, int]:
                 "bank_audit_capital", "bank_audit_liquidity",
                 "bank_audit_fx_position", "bank_audit_repricing",
                 "bank_audit_npl_movement", "bank_audit_loans_by_sector",
-                "bank_audit_oci", "bank_audit_cash_flow", "bank_audit_equity_change"):
+                "bank_audit_oci", "bank_audit_cash_flow", "bank_audit_equity_change",
+                "bank_audit_prose"):
         if _has_table(conn, tbl):
             parts_query += f" UNION SELECT bank_ticker, period, kind FROM {tbl}"
 

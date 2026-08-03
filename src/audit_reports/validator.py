@@ -1969,6 +1969,112 @@ def check_audit_opinion(rows: list[dict]) -> ValidationResult:
     return res
 
 
+def check_prose(rows: list[dict]) -> ValidationResult:
+    """Narrative prose — structural checks on the SECTIONING, which is the part
+    that fails.
+
+    Transcription cannot be validated arithmetically: there is no identity a
+    sentence must satisfy. The sectioning can, and every measured failure mode
+    of this lane is a sectioning failure that produces rows silently:
+
+      sections_missing      fewer than 7 sections resolved. Measured before the
+                            three-anchor resolver: 2/10 filings resolved ZERO
+                            (English convenience translations against a
+                            Turkish-only pattern) and returned rows regardless.
+      sections_not_contiguous  a gap in 1..N. ALTERNATİFBANK prints no §2
+                            divider; the gap means the statements pages were
+                            attributed to §1.
+      sections_out_of_order start pages must not go BACKWARDS. Non-decreasing,
+                            not strictly increasing: in an annual filing §6
+                            ("Diğer açıklamalar") and §7 (the audit-report
+                            pointer) both open on the final page, so a strict
+                            test red-flags every annual report in the fleet.
+      role_missing          the four roles every filing must carry. §6/§7 swap
+                            between annual and interim, so checking for a
+                            section NUMBER would pass on a mislabelled filing;
+                            checking the ROLE is what catches it.
+      empty_narrative_role  a role resolved but carrying no prose — the
+                            signature of a boundary landing in the wrong place.
+                            §2 is exempt: it is the statements, and all table.
+    """
+    res = ValidationResult()
+    if not rows:
+        res.add_skip()
+        return res
+    sections = sorted({int(r["section"]) for r in rows})
+    # Six, not seven: ARAP TÜRK BANKASI's own contents page lists six sections
+    # (§6 = Bağımsız Denetçi Raporu, no separate activity report), and KUVEYT
+    # TÜRK lists eight. The count is a filing choice; six is the floor observed
+    # across the corpus. What must always hold is the end-check below.
+    if len(sections) >= 6:
+        res.add_pass()
+    else:
+        res.add_fail("sections_missing",
+                     f"only {len(sections)} sections resolved (minimum is 6)",
+                     expected=6.0, actual=float(len(sections)))
+    if sections == list(range(1, len(sections) + 1)):
+        res.add_pass()
+    else:
+        res.add_fail("sections_not_contiguous",
+                     f"section numbers have a gap: {sections}",
+                     expected=float(len(sections)), actual=float(max(sections)))
+
+    # Start pages, taken as each section's first row, must strictly increase.
+    starts: dict[int, int] = {}
+    for r in rows:
+        s = int(r["section"])
+        p = int(r["page_start"])
+        starts[s] = min(starts.get(s, p), p)
+    ordered = [starts[s] for s in sections]
+    back = sum(1 for a, b in zip(ordered, ordered[1:]) if b < a)
+    if back == 0:
+        res.add_pass()
+    else:
+        res.add_fail("sections_out_of_order",
+                     f"section start pages go backwards: {ordered}",
+                     expected=0.0, actual=float(back))
+
+    roles = {r["section_role"] for r in rows}
+    for required in ("general_info", "accounting_policies", "risk", "notes"):
+        if required in roles:
+            res.add_pass()
+        else:
+            res.add_fail("role_missing", f"no section carries role '{required}'",
+                         expected=1.0, actual=0.0)
+
+    # Every BRSA filing closes with the auditor's / activity sections — it never
+    # ends on the notes. This is the check that catches a TRUNCATED resolution,
+    # which a count threshold cannot: KUVEYT resolved a clean, contiguous,
+    # in-order 1–5 and stopped at the notes, and only this test saw it.
+    closing = {"audit_report", "review_report_pointer", "interim_activity_report",
+               "other_explanations"}
+    # Among the last THREE, not strictly the last: İŞ BANKASI resolves a clean
+    # 1–8 whose §6/§7 are the review and activity reports and whose §8 is an
+    # addendum this classifier has no rule for. Requiring the final section to
+    # carry a closing role red-flags a filing that plainly ended correctly.
+    tail_roles = {r["section_role"] for r in rows
+                  if int(r["section"]) in sections[-3:]}
+    if tail_roles & closing:
+        res.add_pass()
+    else:
+        res.add_fail("sections_truncated",
+                     f"filing ends on §{sections[-1]} with no auditor's or "
+                     f"activity section among the last three: {sorted(tail_roles)}",
+                     expected=1.0, actual=0.0)
+
+    by_role: dict[str, int] = {}
+    for r in rows:
+        by_role[r["section_role"]] = by_role.get(r["section_role"], 0) + 1
+    for role in sorted(roles - {"financial_statements"}):
+        if by_role.get(role, 0) >= 1:
+            res.add_pass()
+        else:
+            res.add_fail("empty_narrative_role",
+                         f"role '{role}' resolved but carries no prose",
+                         expected=1.0, actual=0.0)
+    return res
+
+
 # ===========================================================================
 # NPL movement validation
 # ===========================================================================

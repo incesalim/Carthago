@@ -244,6 +244,43 @@ CREATE INDEX IF NOT EXISTS idx_bank_opinion_modified
 -- One row per (bank, period, kind). Only DISCLOSED rows are written (a row with
 -- free_provision=0 means the bank explicitly disclosed "none"; a MISSING row
 -- means no disclosure was found) — so a failed re-extract can't wipe a value.
+-- Narrative prose, as item rows. Everything else in this schema is a table the
+-- filing prints; this is what the filing SAYS — accounting-policy notes, the
+-- risk narrative, the review-report explanations, the activity report. Extracted
+-- by src/audit_reports/prose.py (deterministic, fitz-only, no model).
+--   section       the printed Bölüm number (1..8 — ALNTF splits into eight)
+--   section_role  what that section IS, read off the filing's own declared
+--                 title. §6/§7 swap between annual and interim filings, so the
+--                 number is not the meaning and must never be treated as it.
+--   heading       the note heading the block sits under, and heading_path its
+--                 mandated marker ("IV", "a", "2.1") — the prose analogue of
+--                 the statements' hierarchy/item_name pair
+--   item_order    ordinal within the filing; with (bank, period, kind) it is the
+--                 row identity, exactly like a statement line's item_order
+-- One row per prose block. Tables and page furniture are excluded by
+-- construction, not by post-filtering.
+CREATE TABLE IF NOT EXISTS bank_audit_prose (
+    bank_ticker   TEXT NOT NULL,
+    period        TEXT NOT NULL,
+    kind          TEXT NOT NULL,
+    item_order    INTEGER NOT NULL,
+    section       INTEGER NOT NULL,
+    section_role  TEXT NOT NULL,
+    heading       TEXT,
+    heading_path  TEXT,
+    page_start    INTEGER NOT NULL,
+    page_end      INTEGER NOT NULL,
+    lang          TEXT NOT NULL,
+    text          TEXT NOT NULL,
+    char_count    INTEGER NOT NULL,
+    extracted_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (bank_ticker, period, kind, item_order)
+);
+
+CREATE INDEX IF NOT EXISTS idx_bank_prose_section
+  ON bank_audit_prose(section_role, period);
+
+
 CREATE TABLE IF NOT EXISTS bank_audit_free_provision (
     bank_ticker          TEXT NOT NULL,
     period               TEXT NOT NULL,

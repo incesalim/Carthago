@@ -135,13 +135,20 @@ REGISTRY: list[StatementType] = [
                   "bank_audit_free_provision", None, None, section="5",
                   is_core=False, present_min_rows=1, has_validator=False,
                   validation_statement=None, sort_order=116, conditional=True),
+    # The only type whose rows are sentences rather than figures, and the only
+    # one that spans the filing instead of sitting in one Bölüm — hence
+    # section='0'. Its rows carry their own `section` (1..8) and `section_role`.
+    StatementType("prose", "Narrative prose (all sections)",
+                  "bank_audit_prose", None, "prose", section="0",
+                  is_core=False, present_min_rows=40, has_validator=True,
+                  validation_statement="prose", sort_order=120),
 ]
 
 # The report's Bölüm, in the order the coverage matrix groups them: the primary
 # statements lead (they carry the fleet), then the notes and risk disclosures we
 # extract, then the two one-table sections. NOT the filing's own §1→§7 order —
 # that would open the matrix on branches/personnel.
-SECTION_ORDER: list[str] = ["2", "5", "4", "1", "7"]
+SECTION_ORDER: list[str] = ["2", "5", "4", "1", "7", "0"]
 
 BY_KEY: dict[str, StatementType] = {st.key: st for st in REGISTRY}
 

@@ -151,6 +151,7 @@ def upsert_report(
     from .audit_opinion import upsert_opinion as _upsert_op
     from .free_provision import upsert_free_provision as _upsert_fp
     from .equity_change import EquityChangeReport, upsert as _upsert_eq
+    from .prose import ProseResult, upsert as _upsert_prose
 
     # (counts key, build report from rep, upsert fn, skip when empty)
     persisters = [
@@ -173,6 +174,9 @@ def upsert_report(
         # opinion/profile — a re-extract that finds no disclosure keeps the value.
         ('free_provision',  lambda: getattr(rep, 'free_provision', None),                                                  _upsert_fp,  True),
         ('equity_change',   lambda: getattr(rep, 'equity_change', None) or EquityChangeReport(pdf_path=pdf_path),          _upsert_eq,  False),
+        # prose: DELETE+INSERT (item_order is positional), gated on its own
+        # validation statement like the footnote lanes below.
+        ('prose',           lambda: getattr(rep, 'prose', None) or ProseResult(),                                         _upsert_prose, False),
     ]
     # Footnote / §4 persisters: gate each on its own validation statement so a
     # passing one is left intact (same non-destructive rule as above). 'profile'
@@ -186,6 +190,7 @@ def upsert_report(
         'fx_position':     'bank_audit_fx_position',
         'repricing':       'bank_audit_repricing',
         'equity_change':   'bank_audit_equity_change',
+        'prose':           'bank_audit_prose',
     }
     for key, build, upsert_fn, skip_if_empty in persisters:
         if key in _PERSISTER_TABLE and _keep(key):

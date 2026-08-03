@@ -63,6 +63,17 @@ export interface CellDetail {
     is_manual: number;
     pdf_present: number;
   }[];
+  /** Prose sections for this partition — one entry per resolved Bölüm. Present
+   *  only when the prose lane has rows; the drawer omits the block otherwise. */
+  prose: {
+    section: number;
+    section_role: string;
+    n_rows: number;
+    chars: number;
+    page_start: number;
+    page_end: number;
+    sample: string | null;
+  }[];
 }
 
 /** The statement-type registry, mirrored into D1 — drives the matrix selector. */
@@ -182,7 +193,7 @@ export async function coverageCellDetail(
   period: string,
   kind: string,
 ): Promise<CellDetail> {
-  const empty: CellDetail = { extraction: null, validation: [], coverage: [] };
+  const empty: CellDetail = { extraction: null, validation: [], coverage: [], prose: [] };
   try {
     const db = await getDB();
     const extraction = await db
@@ -211,7 +222,22 @@ export async function coverageCellDetail(
       )
       .bind(bank, period, kind)
       .all<CellDetail["coverage"][number]>();
-    return { extraction: extraction ?? null, validation, coverage };
+    // One row per resolved section. MIN(heading) is not meaningful ordering, so
+    // the sample is the first block's opening — enough to see at a glance that
+    // the section landed on the right pages.
+    const { results: prose } = await db
+      .prepare(
+        `SELECT section, section_role, COUNT(*) AS n_rows, SUM(char_count) AS chars,
+                MIN(page_start) AS page_start, MAX(page_end) AS page_end,
+                SUBSTR(MIN(printf('%06d', item_order) || '|' || text), 8, 160) AS sample
+         FROM bank_audit_prose
+         WHERE bank_ticker = ? AND period = ? AND kind = ?
+         GROUP BY section, section_role
+         ORDER BY section`,
+      )
+      .bind(bank, period, kind)
+      .all<CellDetail["prose"][number]>();
+    return { extraction: extraction ?? null, validation, coverage, prose };
   } catch {
     return empty;
   }

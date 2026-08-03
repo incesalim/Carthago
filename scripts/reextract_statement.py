@@ -75,6 +75,9 @@ STATEMENT_TABLE = {
     # --force, not --only-failing.
     "audit_opinion": "bank_audit_opinion",
     "free_provision": "bank_audit_free_provision",  # no validator; --banks --force
+    # Narrative prose. HAS a validator (on the sectioning), so --only-failing
+    # selects the partitions whose sections did not resolve.
+    "prose": "bank_audit_prose",
     # credit_quality feeds the DERIVED bank_audit_stages table — re-extracting it
     # requires a build_bank_audit_stages.py rebuild + stages revalidation after the
     # run (see below). Target by --banks --force, not --only-failing: the broken

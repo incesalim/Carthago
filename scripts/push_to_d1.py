@@ -74,6 +74,7 @@ SYNC_TABLES = [
     "bank_audit_npl_movement",
     "bank_audit_opinion",
     "bank_audit_free_provision",
+    "bank_audit_prose",
     "bank_audit_stages",
     "bank_audit_capital",
     "bank_audit_liquidity",
@@ -200,6 +201,9 @@ BATCH_SIZE_PER_TABLE = {
     "news_items": 10,
     "regulation_briefings": 1,  # categories_json + raw_response are large per row
     "bank_audit_opinion": 20,  # basis_text is a multi-KB paragraph per modified row
+    # A prose row IS a paragraph — ~350 rows/filing averaging 400 chars, and the
+    # long ones run past 2 KB. Same SQLITE_TOOBIG reasoning as news_items.
+    "bank_audit_prose": 20,
 }
 
 # Stand-in for newline chars in generated SQL literals (see fetch_recent).
@@ -268,6 +272,7 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int,
         "bank_audit_profile",
         "bank_audit_opinion",
         "bank_audit_free_provision",
+        "bank_audit_prose",
         "bank_audit_loans_by_sector",
         "bank_audit_npl_movement",
         "bank_audit_stages",

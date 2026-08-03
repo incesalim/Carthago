@@ -357,6 +357,8 @@ class BankReport:
     audit_opinion: object = None
     # Free provision / serbest karşılık stock (free_provision.FreeProvision or None).
     free_provision: object = None
+    # Section-scoped narrative prose (prose.ProseResult or None).
+    prose: object = None
 
 
 def _split_label(label: str) -> tuple[str, str, str]:
@@ -717,9 +719,27 @@ def _fitz_page_text(pdf_path: str, page_idx_0: int) -> str:
     fragments). This catches text that fitz's default get_text() ordering splits
     across lines, and — unlike a naive column-flatten — preserves the row
     structure some banks (e.g. Akbank 2026Q1) would otherwise lose. This is the
-    single text reader for every audit-statement parser."""
+    single text reader for every audit-statement parser.
+
+    Thin join over `_fitz_page_line_tokens` — that function holds the bucketing,
+    and callers that need the geometry (the prose lane, which separates narrative
+    from tables by column alignment) read the tokens instead of re-deriving them
+    from this string. Output is byte-identical to the pre-split implementation."""
+    return '\n'.join(' '.join(t for _, _, t in line)
+                     for line in _fitz_page_line_tokens(pdf_path, page_idx_0))
+
+
+def _fitz_page_line_tokens(
+    pdf_path: str, page_idx_0: int,
+) -> list[list[tuple[float, float, str]]]:
+    """One list per visual line, each holding that line's (x0, x1, text) tokens
+    in reading order — the shared body of `_fitz_page_text`, with the coordinates
+    kept instead of flattened away.
+
+    Unlike `_fitz_visual_rows` this applies the page rotation matrix, so a
+    /Rotate 90 page yields display-space columns rather than scrambled ones."""
     if not _HAS_FITZ:
-        return ""
+        return []
     try:
         doc = fitz.open(pdf_path)
         page = doc[page_idx_0]
@@ -734,7 +754,7 @@ def _fitz_page_text(pdf_path: str, page_idx_0: int) -> str:
         rot_m = page.rotation_matrix if page.rotation else None
         doc.close()
         if not words:
-            return ""
+            return []
         rows: dict[int, list[tuple[float, float, str]]] = defaultdict(list)
         for w in words:
             x0, y0, x1, _y1, text = w[0], w[1], w[2], w[3], w[4]
@@ -754,7 +774,7 @@ def _fitz_page_text(pdf_path: str, page_idx_0: int) -> str:
             else:
                 merged[k] = list(rows[k])
                 last_key = k
-        out_lines: list[str] = []
+        out_lines: list[list[tuple[float, float, str]]] = []
         for y in sorted(merged.keys()):
             ws = sorted(merged[y], key=lambda t: t[0])
             # Merge digit-fragment runs: a single digit token immediately before
@@ -789,11 +809,10 @@ def _fitz_page_text(pdf_path: str, page_idx_0: int) -> str:
                     break
                 tokens.append((x0, x1, text))
                 i = j
-            line = ' '.join(t for _, _, t in tokens)
-            out_lines.append(line)
-        return '\n'.join(out_lines)
+            out_lines.append(tokens)
+        return out_lines
     except Exception:
-        return ""
+        return []
 
 
 def _fitz_visual_rows(pdf_path: str, page_idx_0: int) -> list[list[tuple[float, float, str]]]:
@@ -1168,6 +1187,14 @@ def extract(pdf_path: str | Path, only: set[str] | None = None) -> BankReport:
             rep.free_provision = _extract_fp(pdf_path)
         except Exception:
             rep.free_provision = None
+    # Narrative prose, section-scoped — everything the tables leave behind.
+    if _want('prose'):
+        try:
+            from .prose import extract_prose as _extract_prose
+            _mp = re.search(r"_(\d{4}Q\d)_", Path(pdf_path).name)
+            rep.prose = _extract_prose(pdf_path, period=_mp.group(1) if _mp else "")
+        except Exception:
+            rep.prose = None
     # Loans-by-sector (Stage 2 / Stage 3 / ECL per sector).
     if _want('loans_by_sector'):
         try:

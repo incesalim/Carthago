@@ -34,7 +34,30 @@ interface Detail {
     failed_detail: string | null;
   }[];
   coverage: { statement_type: string; status: string; row_count: number; is_manual: number; pdf_present: number }[];
+  prose: {
+    section: number;
+    section_role: string;
+    n_rows: number;
+    chars: number;
+    page_start: number;
+    page_end: number;
+    sample: string | null;
+  }[];
 }
+
+// §6 and §7 swap between annual and interim filings, so the number never names
+// the section. These are the roles the extractor reads off each filing's own
+// declared title — show those, and show the number only as provenance.
+const ROLE_LABEL: Record<string, string> = {
+  general_info: "General information",
+  financial_statements: "Financial statements",
+  accounting_policies: "Accounting policies",
+  risk: "Financial structure & risk",
+  notes: "Notes to the statements",
+  other_explanations: "Other explanations",
+  audit_report: "Audit / review report",
+  interim_activity_report: "Interim activity report",
+};
 
 interface FailRow {
   check?: string;
@@ -76,7 +99,7 @@ export default function CoverageDrawer({
     if (!open) return;
     let cancelled = false;
     const cell = `${open.bank}|${open.period}|${open.kind}`;
-    const empty: Detail = { extraction: null, validation: [], coverage: [] };
+    const empty: Detail = { extraction: null, validation: [], coverage: [], prose: [] };
     void (async () => {
       try {
         const res = await fetch(`/api/admin/coverage?cell=${encodeURIComponent(cell)}`, {
@@ -201,6 +224,34 @@ export default function CoverageDrawer({
                 Not validated — this lane has no structural validator. “ok” means the
                 row is present, not that its values were checked.
               </p>
+            </div>
+          )}
+
+          {(detail?.prose?.length ?? 0) > 0 && (
+            <div>
+              <p className="mb-1 text-xs font-medium text-muted-foreground">
+                Narrative prose — {detail!.prose.reduce((a, p) => a + p.n_rows, 0)} blocks
+                across {detail!.prose.length} sections
+              </p>
+              <ul className="flex flex-col gap-1">
+                {detail!.prose.map((p) => (
+                  <li key={p.section} className="rounded border border-border px-2 py-1 text-xs">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="font-medium">
+                        §{p.section} {ROLE_LABEL[p.section_role] ?? p.section_role}
+                      </span>
+                      <span className="shrink-0 font-mono text-[11px] text-muted-foreground">
+                        {p.n_rows} · {nf.format(p.chars)} ch · p{p.page_start}–{p.page_end}
+                      </span>
+                    </div>
+                    {p.sample && (
+                      <p className="mt-0.5 line-clamp-2 text-[11px] text-muted-foreground">
+                        {p.sample}
+                      </p>
+                    )}
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
 

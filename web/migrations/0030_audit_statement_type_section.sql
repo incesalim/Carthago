@@ -35,3 +35,7 @@ UPDATE bank_audit_statement_types SET section = '4', section_rank = 2
  WHERE key IN ('capital', 'liquidity', 'fx_position', 'repricing');
 UPDATE bank_audit_statement_types SET section = '1', section_rank = 3 WHERE key = 'profile';
 UPDATE bank_audit_statement_types SET section = '7', section_rank = 4 WHERE key = 'audit_opinion';
+-- '0' is not a Bölüm: the prose lane spans the filing rather than sitting in one
+-- section, and carries the section on its rows instead. Added with migration
+-- 0035; backfilled here for the same reason as the rows above.
+UPDATE bank_audit_statement_types SET section = '0', section_rank = 5 WHERE key = 'prose';
