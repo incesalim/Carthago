@@ -38,6 +38,38 @@ export interface StoryGate {
 }
 
 /**
+ * A detector signal rendered as a sentence a reader cannot invert. The GARAN
+ * deep-dive read `discontinued_ops direction:"appeared"` as "a NEW line of
+ * business was added" — the exact opposite of a disposal-in-progress. Raw
+ * payloads invite that; each known signal now explains itself.
+ */
+export function signalSentence(sig: { signal_type: string; payload: string }): string {
+  try {
+    const p = JSON.parse(sig.payload) as Record<string, unknown>;
+    if (sig.signal_type === "perimeter_change" && p.subtype === "discontinued_ops") {
+      return p.direction === "appeared"
+        ? `a DISCONTINUED-OPERATIONS result of ${fmt(p.current_amount as number)} appeared in the P&L (prior quarter: none). This means the bank is EXITING a business — a disposal or held-for-sale reclassification — NOT adding a new one; continuing-operations comparisons against earlier quarters carry this perimeter break.`
+        : `the discontinued-operations line ceased (prior ${fmt(p.prior_amount as number)}) — an exited business has left the accounts; the perimeter break now sits in the PRIOR-year comparatives.`;
+    }
+    if (sig.signal_type === "perimeter_change" && p.subtype === "cons_gap") {
+      return `the consolidated/unconsolidated asset gap moved ${fmt(p.move as number)} — the group perimeter changed (a subsidiary bought, sold or newly consolidated).`;
+    }
+    if (sig.signal_type === "unit_change") {
+      return `the reporting unit SWITCHED (QoQ total-assets ratio ${fmt(p.ratio as number)}) — figures across this boundary are on different scales and must not be compared as printed.`;
+    }
+    if (sig.signal_type === "cross_period_mismatch") {
+      return `this filing's stored prior column disagrees with what the earlier filing itself reported (${fmt(p.lane as string)}.${fmt(p.metric as string)}, ${fmt(p.pct_diff as number)}% apart${p.documented ? " — a documented restatement" : ""}); history was restated or a prior column is defective.`;
+    }
+    if (sig.signal_type === "opinion_change") {
+      return `the audit opinion moved (${fmt(p.subtype as string)}): ${sig.payload}`;
+    }
+  } catch {
+    /* fall through to the raw payload */
+  }
+  return sig.payload;
+}
+
+/**
  * The deterministic editorial layer. The untuned GARAN run led with a
  * capital-composition story on a bank whose CAR−CET1 gap sits AT the class
  * median — the calibration banks' narrative transferred to a bank that does
@@ -160,7 +192,7 @@ export function storyGates(input: AnalystInput): StoryGate[] {
       rank: 1,
     live: events.length > 0,
     reason: events.length
-      ? events.map((x) => `${x.signal_type} [${x.severity}]`).join("; ")
+      ? events.map((x) => `[${x.severity}] ${signalSentence(x)}`).join(" · ")
       : "no restatement, unit, opinion or perimeter signal this quarter",
   });
 
@@ -311,10 +343,10 @@ export function renderDataBlock(input: AnalystInput): string {
   }
 
   if (s.asset_quality.npl_movement.length) {
-    out.push("## NPL movement, YTD (group | opening | additions | collections | write_offs | sold | closing)");
+    out.push("## NPL movement, YTD (group | opening | additions | transfers_in | transfers_out | collections | write_offs | sold | closing) — transfers are BETWEEN groups, so the table foots per group");
     for (const m of s.asset_quality.npl_movement) {
       out.push(
-        `  ${m.group} | ${fmt(m.opening)} | ${fmt(m.additions_ytd)} | ${fmt(m.collections_ytd)} | ${fmt(m.write_offs_ytd)} | ${fmt(m.sold_ytd)} | ${fmt(m.closing)}`,
+        `  ${m.group} | ${fmt(m.opening)} | ${fmt(m.additions_ytd)} | ${fmt(m.transfers_in_ytd)} | ${fmt(m.transfers_out_ytd)} | ${fmt(m.collections_ytd)} | ${fmt(m.write_offs_ytd)} | ${fmt(m.sold_ytd)} | ${fmt(m.closing)}`,
       );
     }
     const adds = s.asset_quality.additions_quarterly.filter((a) => a.amount != null);
@@ -414,9 +446,9 @@ export function renderDataBlock(input: AnalystInput): string {
     out.push(`  auditor's basis text (verbatim lead): "${s.comparability.basis_text_lead}"`);
   }
   if (s.comparability.signals_this_period.length) {
-    out.push("  detector signals fired this quarter:");
+    out.push("  detector signals fired this quarter (our own detectors over the stored rows — not regulator notices):");
     for (const sig of s.comparability.signals_this_period) {
-      out.push(`    [${sig.severity}] ${sig.signal_type}: ${sig.payload}`);
+      out.push(`    [${sig.severity}] ${sig.signal_type}: ${signalSentence(sig)}`);
     }
   }
   out.push("");

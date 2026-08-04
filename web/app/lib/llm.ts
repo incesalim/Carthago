@@ -115,19 +115,11 @@ const PROVIDERS: Provider[] = [
     model: "gemma-4-31b",
     keys: ["CEREBRAS_KEY", "CEREBRAS_API_KEY"],
   },
-  // OPT-IN, analyst deep-dive lane only (providerOrder names it; the bot's
-  // walk never reaches it). The long-form-proven model in this repo: the
-  // regulation briefing runs deepseek-v4-flash via OpenRouter. The :free
-  // variant keeps the lane unbilled — dropping the suffix is the same
-  // one-character billing mistake as nemotron's.
-  {
-    name: "openrouter/deepseek-v4-flash-free",
-    base: "https://openrouter.ai/api/v1",
-    model: "deepseek/deepseek-v4-flash:free",
-    keys: ["OPEN_ROUTER_API", "OPENROUTER_API_KEY"],
-    headers: { "HTTP-Referer": "https://carthago.app", "X-Title": "carthago" },
-    optIn: true,
-  },
+  // NOTE: deepseek/deepseek-v4-flash has NO :free variant on OpenRouter
+  // (measured 2026-08-04: HTTP 404 "unavailable for free — the paid version
+  // is available"; the briefing lane uses the PAID slug). Do not re-add a
+  // guessed :free entry — cerebras/gpt-oss-120b carries the deep-dive lane
+  // reliably once the skeleton reminder sits at the prompt tail.
 ];
 
 const THINK_RE = /<think>[\s\S]*?<\/think>/gi;

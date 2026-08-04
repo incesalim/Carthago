@@ -141,6 +141,8 @@ export interface AnalystSections {
       group: string;
       opening: number | null;
       additions_ytd: number | null;
+      transfers_in_ytd: number | null;
+      transfers_out_ytd: number | null;
       collections_ytd: number | null;
       write_offs_ytd: number | null;
       sold_ytd: number | null;
@@ -409,8 +411,9 @@ export async function buildAnalystSections(
         "WHERE bank_ticker = ? AND kind = ? AND period = ? AND period_type = 'current'",
       [bank, kind, period],
     ),
-    db.all<{ period: string; group_code: string; opening_balance: number | null; additions: number | null; collections: number | null; write_offs: number | null; sold: number | null; closing_balance: number | null }>(
-      "SELECT period, group_code, opening_balance, additions, collections, write_offs, sold, closing_balance " +
+    db.all<{ period: string; group_code: string; opening_balance: number | null; additions: number | null; transfers_in: number | null; transfers_out: number | null; collections: number | null; write_offs: number | null; sold: number | null; closing_balance: number | null }>(
+      "SELECT period, group_code, opening_balance, additions, transfers_in, transfers_out, " +
+        "collections, write_offs, sold, closing_balance " +
         "FROM bank_audit_npl_movement WHERE bank_ticker = ? AND kind = ? AND period_type = 'current'",
       [bank, kind],
     ),
@@ -871,6 +874,8 @@ export async function buildAnalystSections(
         group: r.group_code,
         opening: r.opening_balance,
         additions_ytd: r.additions,
+        transfers_in_ytd: r.transfers_in,
+        transfers_out_ytd: r.transfers_out,
         collections_ytd: r.collections,
         write_offs_ytd: r.write_offs,
         sold_ytd: r.sold,

@@ -53,13 +53,12 @@ export async function generateMemo(
     maxTokens: MAX_TOKENS,
     timeoutMs: CALL_TIMEOUT_MS,
     deadline,
-    // The deep-dive chain, explicitly ordered: DeepSeek flash free first (the
-    // repo's long-form-proven model — the regulation briefing runs its paid
-    // twin), then the OSS chain. Not nemotron (reasoning leak, see llm.ts);
-    // Groq last-ish because its free-tier TPM cap 413s on prompt+10k-token
-    // requests.
+    // The deep-dive chain, explicitly ordered. Cerebras first — with the
+    // skeleton reminder at the prompt tail it reliably writes the full
+    // 13-section report. Not nemotron (reasoning leak, see llm.ts); Groq
+    // second (its free-tier TPM cap 413s on prompt+10k-token requests, so it
+    // mostly serves as fallback).
     providerOrder: [
-      "openrouter/deepseek-v4-flash-free",
       "cerebras/gpt-oss-120b",
       "groq/openai/gpt-oss-120b",
       "cerebras/gemma-4-31b",

@@ -328,6 +328,16 @@ describe("storyGates — the deterministic editorial layer", () => {
     expect(by.npl_coverage_divergence.reason).toContain("12.13pp mix");
   });
 
+  it("renders discontinued-ops signals as an exit, never as new business", async () => {
+    const { signalSentence } = await import("./prompt");
+    const s = signalSentence({
+      signal_type: "perimeter_change",
+      payload: JSON.stringify({ subtype: "discontinued_ops", direction: "appeared", current_amount: 399875, prior_amount: null }),
+    });
+    expect(s).toContain("EXITING");
+    expect(s).toContain("NOT adding");
+  });
+
   it("flags comparability events from non-divergence signals", async () => {
     const { storyGates } = await import("./prompt");
     const gates = storyGates(
