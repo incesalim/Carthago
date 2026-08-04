@@ -213,6 +213,106 @@ describe("guardMemo — structural abstention", () => {
   });
 });
 
+describe("storyGates — the deterministic editorial layer", () => {
+  const baseInput = async (overrides: {
+    signals?: { signal_id: string; signal_type: string; severity: string; payload: string }[];
+    roeReal?: number;
+    noncore?: number | null;
+    gap?: number | null;
+    npl?: number | null;
+  }) => {
+    const { buildAnalystSections } = await import("./sections");
+    const emptyDb: Queryable = {
+      all: async (sql: string) => {
+        if (/analyst_/.test(sql)) throw new Error("no such table");
+        return [];
+      },
+    };
+    const sections = await buildAnalystSections(emptyDb, "GARAN", "2026Q1", "unconsolidated");
+    sections.comparability.signals_this_period = overrides.signals ?? [];
+    sections.earnings.roe_real_pct = overrides.roeReal ?? null;
+    sections.earnings.roe_ttm_pct = 29.32;
+    sections.macro.cpi_yoy_pct = 30.87;
+    sections.capital.noncore_share_of_car = overrides.noncore ?? 0.249;
+    sections.capital.car_minus_cet1_pp = overrides.gap ?? 4.68;
+    sections.asset_quality.npl_ratio_pct = overrides.npl ?? null;
+    return {
+      sections,
+      peers: {
+        licence_class: "deposit",
+        peer_count: 20,
+        medians: {
+          car: 15.6, cet1: 11.71, car_minus_cet1_pp: 4.64, npl_ratio_pct: 2.67,
+          stage2_ratio_pct: 9.87, stage3_coverage_pct: 63.35, ldr_pct: 85.54, roe_ttm_pct: 25.74,
+        },
+      },
+      comparatives: [] as import("./comparator").MetricChange[],
+    };
+  };
+
+  it("declares GARAN's capital story DEAD and its real-terms story LIVE", async () => {
+    const { storyGates } = await import("./prompt");
+    const gates = storyGates(await baseInput({ roeReal: -1.18, npl: 3.69 }));
+    const by = Object.fromEntries(gates.map((g) => [g.story, g]));
+    expect(by.capital_composition.live).toBe(false);
+    expect(by.capital_composition.reason).toContain("do NOT manufacture");
+    expect(by.real_terms.live).toBe(true);
+    expect(by.real_terms.reason).toContain("SHRINKING");
+    expect(by.peer_deviation.live).toBe(true); // NPL 3.69 vs median 2.67
+    expect(by.free_provision.live).toBe(false);
+  });
+
+  it("declares SKBNK's stories LIVE off the detector signals", async () => {
+    const { storyGates } = await import("./prompt");
+    const gates = storyGates(
+      await baseInput({
+        signals: [
+          { signal_id: "a", signal_type: "divergence", severity: "alert", payload: '{"subtype":"capital_composition"}' },
+          { signal_id: "b", signal_type: "divergence", severity: "alert", payload: '{"subtype":"npl_coverage"}' },
+        ],
+        noncore: 0.61,
+        gap: 13.49,
+        roeReal: -10.05,
+      }),
+    );
+    const by = Object.fromEntries(gates.map((g) => [g.story, g]));
+    expect(by.capital_composition.live).toBe(true);
+    expect(by.npl_coverage_divergence.live).toBe(true);
+    expect(by.real_terms.live).toBe(true);
+  });
+
+  it("coverage gate holds via the data fallback when signals are absent", async () => {
+    // Pre-freeze-lift D1 has no analyst_signals — the SKBNK-class divergence
+    // must still gate LIVE from the decomposition + comparatives alone.
+    const { storyGates } = await import("./prompt");
+    const input = await baseInput({ roeReal: -10.05 });
+    input.sections.asset_quality.coverage_decomposition = {
+      window_start: "2025Q1", coverage_then_pct: 67.26, coverage_now_pct: 48.32,
+      total_fall_pp: 18.94, counterfactual_now_balances_then_rates_pct: 55.13,
+      mix_pp: 12.13, erosion_pp: 6.81,
+    };
+    input.comparatives = [{
+      metric: "npl_ratio_pct", unit: "pp", now: 1.33,
+      qoq: { prior: 1.29, delta: 0.04, direction: "flat" },
+      yoy: { prior: 1.45, delta: -0.12, direction: "down" },
+    }];
+    const by = Object.fromEntries(storyGates(input).map((g) => [g.story, g]));
+    expect(by.npl_coverage_divergence.live).toBe(true);
+    expect(by.npl_coverage_divergence.reason).toContain("12.13pp mix");
+  });
+
+  it("flags comparability events from non-divergence signals", async () => {
+    const { storyGates } = await import("./prompt");
+    const gates = storyGates(
+      await baseInput({
+        signals: [{ signal_id: "c", signal_type: "cross_period_mismatch", severity: "alert", payload: "{}" }],
+      }),
+    );
+    const by = Object.fromEntries(gates.map((g) => [g.story, g]));
+    expect(by.comparability_events.live).toBe(true);
+  });
+});
+
 describe("prompt rendering", () => {
   it("prints gaps as NOT AVAILABLE and signals with severity", async () => {
     const { renderDataBlock } = await import("./prompt");

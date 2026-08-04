@@ -172,6 +172,14 @@ export interface AnalystSections {
     total_equity: number | null;
     equity_to_assets_pct: number | null;
     trajectory: { period: string; cet1: number | null; car: number | null; gap_pp: number | null; leverage: number | null }[];
+    /** WHY the ratio moved — the hand memos' "RWA +60% against capital +26%"
+     *  derivation, precomputed so causality is a quote, not an inference. */
+    ratio_drivers: {
+      cet1_capital_qoq_pct: number | null;
+      rwa_qoq_pct: number | null;
+      cet1_capital_yoy_pct: number | null;
+      rwa_yoy_pct: number | null;
+    };
   };
   securities: SectionBase & { total: null; breakdown_available: false };
   comparability: SectionBase & {
@@ -634,10 +642,14 @@ export async function buildAnalystSections(
 
   /* -------- capital -------- */
   const cap = s.capital.get(period);
+  const capPrevQ = s.capital.get(periodFromOrd(ord - 1));
+  const capPrevY = s.capital.get(prevYearSame);
   const equityNow = s.equityClosing.get(period) ?? null;
   const gapPp = cap?.capital_adequacy_ratio != null && cap.cet1_ratio != null
     ? cap.capital_adequacy_ratio - cap.cet1_ratio
     : null;
+  const growthPct = (now: number | null | undefined, prior: number | null | undefined) =>
+    now != null && prior != null && prior !== 0 ? pct(((now - prior) / Math.abs(prior)) * 100, 1) : null;
   const trajectory: AnalystSections["capital"]["trajectory"] = [];
   for (let k = 5; k >= 0; k--) {
     const p = periodFromOrd(ord - k);
@@ -853,6 +865,12 @@ export async function buildAnalystSections(
       equity_to_assets_pct:
         equityNow != null && assetsNow ? pct((equityNow / assetsNow) * 100, 1) : null,
       trajectory,
+      ratio_drivers: {
+        cet1_capital_qoq_pct: growthPct(cap?.cet1_capital, capPrevQ?.cet1_capital),
+        rwa_qoq_pct: growthPct(cap?.total_rwa, capPrevQ?.total_rwa),
+        cet1_capital_yoy_pct: growthPct(cap?.cet1_capital, capPrevY?.cet1_capital),
+        rwa_yoy_pct: growthPct(cap?.total_rwa, capPrevY?.total_rwa),
+      },
     },
     securities: {
       _gaps: [

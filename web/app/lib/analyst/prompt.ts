@@ -23,6 +23,136 @@ export interface AnalystInput {
 const fmt = (v: number | string | null | undefined, suffix = ""): string =>
   v == null ? "n/a" : `${v}${suffix}`;
 
+export interface StoryGate {
+  story: string;
+  live: boolean;
+  reason: string;
+}
+
+/**
+ * The deterministic editorial layer. The untuned GARAN run led with a
+ * capital-composition story on a bank whose CAR−CET1 gap sits AT the class
+ * median — the calibration banks' narrative transferred to a bank that does
+ * not have it — while the genuinely strong finding (negative REAL returns)
+ * went unused. Same cure as every other calibration failure: compute the
+ * judgment and hand it over. A gate says which stories are LIVE for THIS
+ * bank, with the numeric reason; the memo may only lead with a live one.
+ * (insights.ts's rule, one level up: tone moves only when a threshold clears.)
+ */
+export function storyGates(input: AnalystInput): StoryGate[] {
+  const { sections: s, peers } = input;
+  const gates: StoryGate[] = [];
+  const signals = s.comparability.signals_this_period;
+  const has = (type: string, sub?: string) =>
+    signals.some((x) => x.signal_type === type && (!sub || x.payload.includes(sub)));
+
+  // Real terms — the story screens structurally miss in a 30%+ CPI regime.
+  const roeReal = s.earnings.roe_real_pct;
+  if (roeReal != null) {
+    gates.push({
+      story: "real_terms",
+      live: roeReal < 0,
+      reason:
+        `ROE ${fmt(s.earnings.roe_ttm_pct)}% nominal = ${roeReal}% REAL against ` +
+        `${fmt(s.macro.cpi_yoy_pct)}% CPI` +
+        (s.earnings.assets_yoy_real_pct != null
+          ? `; asset growth ${fmt(s.earnings.assets_yoy_pct)}% nominal = ${s.earnings.assets_yoy_real_pct}% real`
+          : "") +
+        (roeReal < 0
+          ? " — the bank is SHRINKING its real equity; that outranks any nominal print"
+          : " — real capital is being built"),
+    });
+  }
+
+  // Capital composition — live on the detector signal or the level itself.
+  const noncore = s.capital.noncore_share_of_car;
+  const gap = s.capital.car_minus_cet1_pp;
+  const gapMed = peers.medians.car_minus_cet1_pp;
+  const capLive = has("divergence", "capital_composition") || (noncore != null && noncore >= 0.4);
+  gates.push({
+    story: "capital_composition",
+    live: capLive,
+    reason: capLive
+      ? `non-core is ${fmt(noncore)} of CAR (gap ${fmt(gap)}pp vs class median ${fmt(gapMed)}pp)` +
+        (has("divergence", "capital_composition") ? "; detector signal fired" : "")
+      : `CAR−CET1 gap ${fmt(gap)}pp vs class median ${fmt(gapMed)}pp — unremarkable composition; ` +
+        `do NOT manufacture a composition story (CET1 < CAR is true of every bank)`,
+  });
+
+  // NPL-vs-coverage concealment — the detector's call, with a data-level
+  // fallback mirroring its thresholds (drop ≥10pp over the window while NPL
+  // is flat/falling) so the gate holds even where analyst_signals is absent
+  // (pre-freeze-lift D1, a local run without staging).
+  const d = s.asset_quality.coverage_decomposition;
+  const nplYoY = input.comparatives.find((c) => c.metric === "npl_ratio_pct")?.yoy.delta;
+  const covFallback = d != null && d.total_fall_pp >= 10 && nplYoY != null && nplYoY <= 0.15;
+  const covLive = has("divergence", "npl_coverage") || covFallback;
+  gates.push({
+    story: "npl_coverage_divergence",
+    live: covLive,
+    reason: covLive
+      ? `NPL flat/falling while coverage fell materially` +
+        (d ? ` (${d.total_fall_pp}pp over 4 quarters: ${d.mix_pp}pp mix, ${d.erosion_pp}pp erosion)` : "") +
+        (has("divergence", "npl_coverage") ? "; detector signal fired" : "")
+      : d
+        ? `coverage moved ${d.total_fall_pp}pp over 4 quarters (mix ${d.mix_pp}pp, erosion ${d.erosion_pp}pp) — below the divergence threshold or NPL rising too; no concealment story`
+        : "no divergence signal; no concealment story",
+  });
+
+  // Free provision — earnings-quality adjustment only where one exists.
+  const fpEver = s.earnings.free_provision.history.some(
+    (h) => h.release_pct_of_income != null && Math.abs(h.release_pct_of_income) >= 20,
+  );
+  const fpLive =
+    fpEver ||
+    s.governance.is_free_provision_qualified === true ||
+    (s.earnings.free_provision.release_pct_of_ytd_income != null &&
+      Math.abs(s.earnings.free_provision.release_pct_of_ytd_income) >= 20);
+  gates.push({
+    story: "free_provision",
+    live: fpLive,
+    reason: fpLive
+      ? "a discretionary-reserve release has moved printed profit (see FP history) and/or the opinion is qualified over it — the printed series needs re-basing"
+      : "no free provision held or disclosed — earnings carry no discretionary-reserve adjustment; say so in one sentence at most",
+  });
+
+  // Adverse peer deviations — where THIS bank leaves its class.
+  const dev: string[] = [];
+  const npl = s.asset_quality.npl_ratio_pct;
+  if (npl != null && peers.medians.npl_ratio_pct != null && npl - peers.medians.npl_ratio_pct >= 1) {
+    dev.push(`NPL ${npl}% vs class median ${peers.medians.npl_ratio_pct}%`);
+  }
+  const s2 = s.asset_quality.stage2_ratio_pct;
+  if (s2 != null && peers.medians.stage2_ratio_pct != null && s2 - peers.medians.stage2_ratio_pct >= 2) {
+    dev.push(`Stage-2 ${s2}% vs median ${peers.medians.stage2_ratio_pct}%`);
+  }
+  const cov = s.asset_quality.stage3_coverage_pct;
+  if (cov != null && peers.medians.stage3_coverage_pct != null && peers.medians.stage3_coverage_pct - cov >= 5) {
+    dev.push(`Stage-3 coverage ${cov}% vs median ${peers.medians.stage3_coverage_pct}%`);
+  }
+  const roe = s.earnings.roe_ttm_pct;
+  if (roe != null && peers.medians.roe_ttm_pct != null && peers.medians.roe_ttm_pct - roe >= 5) {
+    dev.push(`ROE ${roe}% vs median ${peers.medians.roe_ttm_pct}%`);
+  }
+  gates.push({
+    story: "peer_deviation",
+    live: dev.length > 0,
+    reason: dev.length ? dev.join("; ") : "no adverse deviation ≥ threshold from the class medians",
+  });
+
+  // Comparability events — restatements, unit switches, opinion/perimeter moves.
+  const events = signals.filter((x) => x.signal_type !== "divergence");
+  gates.push({
+    story: "comparability_events",
+    live: events.length > 0,
+    reason: events.length
+      ? events.map((x) => `${x.signal_type} [${x.severity}]`).join("; ")
+      : "no restatement, unit, opinion or perimeter signal this quarter",
+  });
+
+  return gates;
+}
+
 function lines(out: string[], title: string, rows: Record<string, unknown>): void {
   out.push(`## ${title}`);
   for (const [k, v] of Object.entries(rows)) {
@@ -57,6 +187,12 @@ export function renderDataBlock(input: AnalystInput): string {
       ? `${s.business.market_share.peer_rank_by_assets} of ${s.business.market_share.peer_count}`
       : null,
   });
+
+  out.push("## STORY GATES — computed, binding. The headline and the lead of every section MUST come from a LIVE story; a DEAD story gets at most one 'notably absent' sentence.");
+  for (const g of storyGates(input)) {
+    out.push(`  ${g.live ? "LIVE" : "DEAD"} — ${g.story}: ${g.reason}`);
+  }
+  out.push("");
 
   lines(out, "Macro backdrop", {
     cbrt_funding_rate_pct: s.macro.funding_rate_pct,
@@ -187,6 +323,14 @@ export function renderDataBlock(input: AnalystInput): string {
   for (const t of s.capital.trajectory) {
     out.push(`  ${t.period} | ${fmt(t.cet1)} | ${fmt(t.car)} | ${fmt(t.gap_pp)} | ${fmt(t.leverage)}`);
   }
+  const rd = s.capital.ratio_drivers;
+  if (rd.cet1_capital_qoq_pct != null || rd.rwa_qoq_pct != null) {
+    out.push(
+      "why the ratio moved (growth of numerator vs denominator): " +
+        `CET1 capital QoQ ${fmt(rd.cet1_capital_qoq_pct, "%")} vs RWA QoQ ${fmt(rd.rwa_qoq_pct, "%")}; ` +
+        `CET1 capital YoY ${fmt(rd.cet1_capital_yoy_pct, "%")} vs RWA YoY ${fmt(rd.rwa_yoy_pct, "%")}`,
+    );
+  }
   out.push("");
 
   lines(out, "Funding & liquidity", {
@@ -261,6 +405,14 @@ ABSOLUTE RULES
   stored figure alongside (e.g. "7,000,000 thousand TL (₺7.0bn)").
 
 WHAT MAKES THIS A MEMO, NOT A SCREEN
+The DATA block opens with STORY GATES — a computed verdict on which analytical
+stories are LIVE for this bank. They are binding editorial rulings, not hints:
+the headline must state a LIVE story; a DEAD story may appear only as a single
+"notably absent" sentence (a clean bank's cleanliness IS worth one line). Do
+not import a story from banks in general — if the gate says the capital
+composition is unremarkable, it is unremarkable HERE regardless of how often
+that story is true elsewhere.
+
 Headline ratios conceal composition. Your job is the SECOND question:
 - If CAR and CET1 diverge, the composition of capital IS the story — use the
   trajectory table and say which is binding.
@@ -287,7 +439,11 @@ Line 1: "# " + a one-sentence headline stating the single most important fact.
 Then exactly these sections:
 "## What changed" — 2-3 paragraphs: the quarter's movements that matter, with QoQ/YoY and peer context.
 "## What it means" — 2-3 paragraphs: the causal chain, built from the decompositions, movement tables and the auditor's words.
-"## What to watch" — 2-4 bullets: forward indicators, each with an explicit falsification condition from held metrics.
+"## What to watch" — 2-4 bullets: forward indicators tied to LIVE stories. A
+falsification threshold must be a figure that appears in the DATA block (the
+current value, a peer median, a window-start value) — if no held figure makes
+a sensible threshold, state the indicator and its direction WITHOUT a number.
+This is where invented figures die: never project a level the data does not contain.
 "## Comparability caveats" — bullets: reporting unit, assurance level, consolidation basis, opinion status and streak, restatement/detector signals, and any NOT-AVAILABLE item a reader must know about.
 
 Output ONLY the memo itself, starting directly with the "# " headline line.

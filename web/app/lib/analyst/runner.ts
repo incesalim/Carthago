@@ -26,6 +26,10 @@ export interface MemoResult {
   generated_at: string;
   fact_check_passed: boolean;
   dropped_paragraphs: number;
+  /** What the guard removed and why — a failed fact-check must be diagnosable
+   *  from the artifact alone (the GARAN run's dropped forward-section was
+   *  invisible until this existed). Never rendered to a reader. */
+  dropped_detail: { paragraph: string; unsupported: number[] }[];
 }
 
 const MAX_TOKENS = 3200; // ≤900 words + markdown scaffolding
@@ -116,5 +120,6 @@ export async function generateMemo(
     generated_at: new Date().toISOString(),
     fact_check_passed: guarded.passed,
     dropped_paragraphs: guarded.dropped.length,
+    dropped_detail: guarded.dropped,
   };
 }
