@@ -14,8 +14,10 @@
 import { chatComplete } from "../../llm";
 import type { EvidenceRecord } from "./evidence";
 import { FINDING_SCHEMA_PROMPT, findingProblems, type Finding } from "./findings";
+import { STATEMENTS } from "./registry";
 import type { ScoutResult } from "./scout";
 import { runTool, toolCatalog, ToolError, type ToolContext } from "./tools";
+import { verifyFindings } from "./verifier";
 
 export interface Hypothesis {
   hypothesis_id: string;
@@ -46,7 +48,7 @@ export interface ResearchResult {
 
 const MAX_TURNS = 22;
 const WALL_MS = 9 * 60_000;
-const RESULT_CHARS = 6_000;
+const RESULT_CHARS = 9_000;
 const MAX_CONSECUTIVE_PROTOCOL = 3;
 
 const SYSTEM = `You are a bank research analyst investigating ONE bank, ONE quarter, ONE
@@ -75,12 +77,18 @@ METHOD — this is an investigation, not a report:
    validation status. An extraction defect and a real event look identical
    until reconciled.
 4. Numbers: only ever cite numbers you have SEEN in a tool result, and cite
-   the evidence_id that contains them. NULL means not-disclosed, never zero.
+   the evidence_id that contains them (the id is shown WITH the result — note
+   which id held which number as you go). In tables, ∅ means null =
+   not-disclosed, never zero.
 5. A validation-failing partition can still carry a story — but say so.
-6. Emit at most 3 findings, most material first. If nothing clears the bar,
-   abstain — a documented "ordinary quarter" is a correct result.
-7. Budget: you have a limited number of turns (shown each turn). Spend them
-   on investigation, not repetition — identical tool calls are cached.`;
+6. Emit at most 3 findings, most material first. Each finding is verified
+   deterministically AT EMISSION: if a cited number is not in the cited
+   evidence, you get the failing checks back and ONE chance to repair that
+   finding. If nothing clears the bar, abstain — a documented "ordinary
+   quarter" is a correct result.
+7. Budget: you have a limited number of turns (shown each turn). Repeating an
+   identical tool call returns a short notice, never new data — results are
+   cached and complete. Spend turns broadening the investigation instead.`;
 
 interface TraceLine {
   turn: number;
@@ -118,16 +126,71 @@ function extractJson(text: string): unknown | null {
   return null;
 }
 
+type Primitive = string | number | boolean | null;
+
+function isPrimitive(v: unknown): v is Primitive {
+  return v == null || ["string", "number", "boolean"].includes(typeof v);
+}
+
+function cell(v: unknown): string {
+  if (v == null) return "∅";
+  return String(v).replace(/\|/g, "¦").replace(/\s+/g, " ");
+}
+
+/**
+ * Render an array of row-objects as a pipe-table instead of verbose JSON —
+ * one nesting level of plain objects is flattened into dotted columns. The
+ * stored EvidenceRecord keeps full JSON; this only compresses what the model
+ * SEES, so a 14-column statement matrix fits the result window whole.
+ * `∅` marks null (not-disclosed — never zero).
+ */
+export function tablify(rows: unknown[]): string | null {
+  if (rows.length < 3) return null;
+  const flat: Record<string, Primitive>[] = [];
+  for (const r of rows) {
+    if (typeof r !== "object" || r == null || Array.isArray(r)) return null;
+    const out: Record<string, Primitive> = {};
+    for (const [k, v] of Object.entries(r as Record<string, unknown>)) {
+      if (isPrimitive(v)) out[k] = v;
+      else if (typeof v === "object" && !Array.isArray(v) && Object.values(v as object).every(isPrimitive)) {
+        for (const [k2, v2] of Object.entries(v as Record<string, Primitive>)) out[`${k}.${k2}`] = v2;
+      } else return null;
+    }
+    flat.push(out);
+  }
+  const cols: string[] = [];
+  for (const r of flat) for (const k of Object.keys(r)) if (!cols.includes(k)) cols.push(k);
+  const lines = [`TABLE ${flat.length} rows · cols: ${cols.join("|")} · ∅=null(not disclosed)`];
+  for (const r of flat) lines.push(cols.map((c) => cell(c in r ? r[c] : null)).join("|"));
+  return lines.join("\n");
+}
+
+function renderData(data: unknown): string {
+  if (Array.isArray(data)) {
+    const t = tablify(data);
+    if (t) return t;
+  }
+  if (data != null && typeof data === "object" && !Array.isArray(data)) {
+    const parts: string[] = [];
+    for (const [k, v] of Object.entries(data as Record<string, unknown>)) {
+      const t = Array.isArray(v) ? tablify(v) : null;
+      parts.push(t ? `${k}:\n${t}` : `${k}: ${JSON.stringify(v)}`);
+    }
+    return parts.join("\n");
+  }
+  return JSON.stringify(data);
+}
+
 function compactEvidence(rec: EvidenceRecord): string {
-  const s = JSON.stringify({
+  const head = JSON.stringify({
     evidence_id: rec.evidence_id,
     tool: rec.tool,
     args: rec.args,
     warnings: rec.warnings,
     validation_warnings: rec.validation_warnings,
     rows_returned: rec.rows_returned,
-    data: rec.data,
   });
+  const s = `${head}\nDATA:\n${renderData(rec.data)}`;
   return s.length > RESULT_CHARS ? s.slice(0, RESULT_CHARS) + `…(truncated of ${s.length} chars — narrow the query)` : s;
 }
 
@@ -153,6 +216,10 @@ export async function runResearch(
   const seedAvail = await runTool(ctx, "list_available_data", {});
   const seedValidation = await runTool(ctx, "get_validation_status", {});
   toolCalls += 2;
+  const deliveredIds = new Set<string>([seedAvail.evidence_id, seedValidation.evidence_id]);
+  const examinedStatements = new Set<string>();
+  const findingRepairs = new Map<string, number>();
+  let verifierBounces = 0;
 
   const system = SYSTEM.replace("__TOOL_CATALOG__", toolCatalog()).replace("__FINDING_SCHEMA__", FINDING_SCHEMA_PROMPT);
   const briefing =
@@ -219,8 +286,19 @@ export async function runResearch(
       try {
         const rec = await runTool(ctx, toolName, (a.args as Record<string, unknown>) ?? {});
         toolCalls++;
-        lastResult = compactEvidence(rec);
-        trace.push({ turn, raw_reply_head: head, action: "tool", detail: `${toolName}(${JSON.stringify(a.args ?? {})})`, evidence_id: rec.evidence_id });
+        if (typeof rec.args.statement === "string") examinedStatements.add(rec.args.statement);
+        if (deliveredIds.has(rec.evidence_id)) {
+          const unexamined = Object.keys(STATEMENTS).filter((s) => !examinedStatements.has(s));
+          lastResult =
+            `REPEAT CALL: identical args already answered as ${rec.evidence_id} — the result is cached and unchanged, so re-requesting cannot show more. ` +
+            `Work from what you already noted, or examine something new` +
+            (unexamined.length ? ` (statements not yet read: ${unexamined.slice(0, 10).join(", ")})` : "") + `.`;
+          trace.push({ turn, raw_reply_head: head, action: "tool", detail: `repeat ${toolName}(${JSON.stringify(a.args ?? {})})`, evidence_id: rec.evidence_id });
+        } else {
+          deliveredIds.add(rec.evidence_id);
+          lastResult = compactEvidence(rec);
+          trace.push({ turn, raw_reply_head: head, action: "tool", detail: `${toolName}(${JSON.stringify(a.args ?? {})})`, evidence_id: rec.evidence_id });
+        }
       } catch (e) {
         protocolErrors++;
         const msg = e instanceof ToolError ? e.message : String(e).slice(0, 200);
@@ -250,9 +328,31 @@ export async function runResearch(
         trace.push({ turn, raw_reply_head: head, action: "finding", detail: "rejected", error: problems.join("; ") });
         continue;
       }
-      findings.push(a.finding as Finding);
-      lastResult = `finding ${(a.finding as Finding).finding_id} accepted structurally (verification runs after the loop). ${findings.length >= 3 ? "Finding budget reached — conclude or abstain." : "Continue, or conclude."}`;
-      trace.push({ turn, raw_reply_head: head, action: "finding", detail: (a.finding as Finding).finding_id });
+      const cand = a.finding as Finding;
+      // Deterministic verification AT EMISSION (same verifier that gates the
+      // final report) — a wrong number or wrong evidence pointer comes back
+      // as a named failing check with ONE repair chance, instead of silently
+      // dying at publication.
+      const verdict = verifyFindings([...findings, cand], ctx.log, ctx.defaults).findings.at(-1);
+      if (verdict && verdict.verdict === "fail") {
+        verifierBounces++;
+        const failed = verdict.checks.filter((c) => !c.ok && c.severity === "fail").map((c) => `${c.check} — ${c.detail}`).slice(0, 6);
+        const attempts = (findingRepairs.get(cand.finding_id) ?? 0) + 1;
+        findingRepairs.set(cand.finding_id, attempts);
+        if (attempts >= 2 || verifierBounces >= 4) {
+          lastResult = `FINDING ${cand.finding_id} REJECTED (verification failed again): ${failed.join("; ")}. Drop it — emit a different finding, conclude, or abstain.`;
+          trace.push({ turn, raw_reply_head: head, action: "finding", detail: `rejected_by_verifier ${cand.finding_id}`, error: failed.join("; ").slice(0, 300) });
+        } else {
+          lastResult =
+            `FINDING ${cand.finding_id} FAILED VERIFICATION (one repair allowed): ${failed.join("; ")}. ` +
+            `Every cited number must appear in the evidence_id you cite — fix the values or cite the evidence that actually contains them, and resubmit the corrected finding.`;
+          trace.push({ turn, raw_reply_head: head, action: "finding", detail: `verifier_repair ${cand.finding_id}`, error: failed.join("; ").slice(0, 300) });
+        }
+        continue;
+      }
+      findings.push(cand);
+      lastResult = `finding ${cand.finding_id} accepted (verification ${verdict?.verdict ?? "pass"}). ${findings.length >= 3 ? "Finding budget reached — conclude or abstain." : "Continue, or conclude."}`;
+      trace.push({ turn, raw_reply_head: head, action: "finding", detail: cand.finding_id });
       continue;
     }
     if (a.action === "abstain") {

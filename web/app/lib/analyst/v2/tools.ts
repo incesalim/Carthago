@@ -36,6 +36,8 @@ interface ParamSpec {
   required?: boolean;
   enum?: readonly string[];
   pattern?: RegExp;
+  /** Materialized into args when absent, so an omitted-vs-explicit default yields ONE evidence id. */
+  default?: string;
   description: string;
 }
 
@@ -74,6 +76,7 @@ function validateArgs(spec: ToolSpec, raw: Record<string, unknown>, defaults: To
     if (v == null && ["bank", "period", "kind"].includes(p.name)) {
       v = defaults[p.name as "bank" | "period" | "kind"];
     }
+    if (v == null && p.default != null) v = p.default;
     if (v == null) {
       if (p.required) bad(`missing required param '${p.name}'`);
       continue;
@@ -235,7 +238,7 @@ export const TOOLS: ToolSpec[] = [
     params: [
       P_BANK, P_PERIOD, P_KIND,
       { name: "statement", type: "string", required: true, enum: Object.keys(STATEMENTS), description: "which statement" },
-      { name: "period_type", type: "string", enum: ["current", "prior"], description: "for statements that carry a prior block" },
+      { name: "period_type", type: "string", enum: ["current", "prior"], default: "current", description: "for statements that carry a prior block" },
     ],
     run: async (ctx, a) => {
       const warnings: string[] = [];

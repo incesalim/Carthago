@@ -2,11 +2,28 @@
  * Analyst V2 — evidence model + typed tools.
  * Fixtures are synthetic; the shapes mirror the real audit DDL.
  */
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { Queryable } from "../data";
 import { canonical, evidenceId, EvidenceLog } from "./evidence";
+import type { ScoutResult } from "./scout";
 import { runTool, snapshotIdOf, ToolError, toolCatalog, type ToolContext } from "./tools";
+
+// The loop's LLM is scripted: each chatComplete call pops the next reply and
+// records the messages it was shown, so repeat-notices and repair messages
+// are assertable.
+const llmScript = vi.hoisted(() => ({
+  replies: [] as string[],
+  calls: [] as { user: string }[],
+}));
+vi.mock("../../llm", () => ({
+  chatComplete: async (_env: unknown, messages: { role: string; content: string }[]) => {
+    llmScript.calls.push({ user: messages[1].content });
+    const text = llmScript.replies.shift();
+    if (text == null) throw new Error("llm script exhausted");
+    return { text, model: "mock" };
+  },
+}));
 
 const EQ_ROWS = [
   { item_order: 1, hierarchy: "I.", item_name: "Balances at beginning of the period", paid_in_capital: 50, share_premium: 0, share_cancellation_profits: 0, other_capital_reserves: 0, oci_not_reclassified_1: 0, oci_not_reclassified_2: 0, oci_not_reclassified_3: 0, oci_reclassified_1: 0, oci_reclassified_2: 0, oci_reclassified_3: 0, profit_reserves: 30, prior_period_profit_loss: 0, period_net_profit_loss: 0, total_equity: 100, minority_interest: null, total_equity_incl_minority: null, source_page: 12 },
@@ -340,5 +357,95 @@ describe("catalog", () => {
     for (const name of ["get_statement_rows", "reconcile_statements", "search_filing_text", "get_source_page"]) {
       expect(cat).toContain(name);
     }
+  });
+});
+
+describe("evidence id canonicalization (the ALBRK double-id regression)", () => {
+  it("omitted and explicit period_type='current' yield ONE evidence record", async () => {
+    const c = await ctx();
+    const a = await runTool(c, "get_statement_rows", { statement: "equity_change" });
+    const b = await runTool(c, "get_statement_rows", { statement: "equity_change", period_type: "current" });
+    expect(b.evidence_id).toBe(a.evidence_id);
+    expect(c.log.all()).toHaveLength(1);
+    expect(a.args.period_type).toBe("current"); // default materialized into args
+  });
+});
+
+describe("tablify (the 7.6KB-equity-matrix-vs-6KB-window regression)", () => {
+  it("renders row arrays as a pipe-table far smaller than JSON, nulls as ∅", async () => {
+    const { tablify } = await import("./loop");
+    const t = tablify(EQ_ROWS)!;
+    expect(t).toContain("TABLE 4 rows");
+    expect(t).toContain("total_equity");
+    expect(t).toContain("|-8|"); // values byte-identical for echoing
+    expect(t).toContain("∅"); // minority_interest null ≠ 0
+    expect(t.length).toBeLessThan(JSON.stringify(EQ_ROWS).length / 2);
+  });
+
+  it("flattens one level of plain objects into dotted columns; bails on deeper nesting", async () => {
+    const { tablify } = await import("./loop");
+    const rows = [1, 2, 3].map((i) => ({ item: `r${i}`, components: { a: i, b: null } }));
+    const t = tablify(rows)!;
+    expect(t).toContain("components.a");
+    expect(t.split("\n")[1]).toBe("r1|1|∅");
+    expect(tablify([{ x: [1] }, { x: [2] }, { x: [3] }])).toBeNull();
+  });
+});
+
+describe("research loop — repeat calls and emission-time verification", () => {
+  const scout = { candidates: [] } as unknown as ScoutResult;
+
+  it("a repeated identical call returns a short notice, not the payload again", async () => {
+    const { runResearch } = await import("./loop");
+    const c = await ctx();
+    llmScript.calls.length = 0;
+    llmScript.replies = [
+      JSON.stringify({ action: "tool", tool: "get_statement_rows", args: { statement: "equity_change" } }),
+      JSON.stringify({ action: "tool", tool: "get_statement_rows", args: { statement: "equity_change", period_type: "current" } }),
+      JSON.stringify({ action: "abstain", reason: "checked" }),
+    ];
+    const res = await runResearch(c, scout, {});
+    expect(llmScript.calls[1].user).toContain("TABLE 4 rows"); // first delivery: tablified, whole
+    expect(llmScript.calls[2].user).toContain("REPEAT CALL"); // second: notice only
+    expect(llmScript.calls[2].user).toContain("statements not yet read");
+    expect(res.metrics.protocol_errors).toBe(0);
+    expect(res.abstained).toBe(true);
+  });
+
+  it("a finding with an unevidenced value bounces back once for repair, then lands", async () => {
+    const { runResearch } = await import("./loop");
+    const c = await ctx();
+    const eid = evidenceId(
+      "get_statement_rows",
+      { bank: "TESTBK", period: "2026Q1", kind: "unconsolidated", statement: "equity_change", period_type: "current" },
+      c.snapshot.id,
+    );
+    const finding = (value: number) => ({
+      action: "finding",
+      finding: {
+        finding_id: "F1", bank: "TESTBK", period: "2026Q1", kind: "unconsolidated",
+        classification: "observed_fact", thesis: "Others Changes shows a negative equity movement.",
+        materiality_rationale: "equity moved outside profit", confidence: "medium",
+        claims: [{ claim_id: "F1.c1", claim_kind: "value", value,
+          subject: { bank: "TESTBK", period: "2026Q1", kind: "unconsolidated", statement: "equity_change", row: "Others Changes", metric: "total_equity" },
+          evidence_ids: [eid] }],
+        counterevidence: [], caveats: ["the equity_change validator is failing on this partition"], missing: [], source_pages: [12],
+      },
+    });
+    llmScript.calls.length = 0;
+    llmScript.replies = [
+      JSON.stringify({ action: "tool", tool: "get_statement_rows", args: { statement: "equity_change" } }),
+      JSON.stringify(finding(-9999)), // not in evidence → verifier bounce
+      JSON.stringify(finding(-8)), // repaired → accepted
+      JSON.stringify({ action: "conclude", reason: "done" }),
+    ];
+    const res = await runResearch(c, scout, {});
+    expect(llmScript.calls[2].user).toContain("FAILED VERIFICATION");
+    expect(llmScript.calls[2].user).toContain("value_in_evidence");
+    expect(res.findings).toHaveLength(1);
+    expect((res.findings[0].claims[0] as { value: number }).value).toBe(-8);
+    expect(res.metrics.protocol_errors).toBe(0); // a verifier bounce is not a protocol error
+    const trace = res.traceJsonl.trim().split("\n").map((l) => JSON.parse(l) as { detail: string });
+    expect(trace.some((t) => t.detail.startsWith("verifier_repair F1"))).toBe(true);
   });
 });
