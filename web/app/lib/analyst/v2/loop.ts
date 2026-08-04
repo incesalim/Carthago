@@ -184,11 +184,14 @@ export async function runResearch(
         maxTokens: 1700,
         timeoutMs: 120_000,
         deadline: deadlineAt,
+        // Luna-pro leads the RESEARCH loop (user-authorized): multi-turn
+        // investigation is where model capability binds, and its 1M context
+        // absorbs long tool results without truncation pressure.
         providerOrder: [
+          "openrouter/gpt-5.6-luna-pro",
           "openrouter/deepseek-v4-flash",
           "cerebras/gpt-oss-120b",
           "groq/openai/gpt-oss-120b",
-          "cerebras/gemma-4-31b",
         ],
       });
     } catch (e) {

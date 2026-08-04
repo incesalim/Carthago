@@ -130,6 +130,19 @@ const PROVIDERS: Provider[] = [
     params: { provider: { order: ["Baidu"], allow_fallbacks: false }, seed: 1729 },
     optIn: true,
   },
+  // OPT-IN, V2 research-loop lead (user-authorized 2026-08-04). Slug VERIFIED
+  // against the OpenRouter models API before wiring — the guessed-slug 404 is
+  // a once-only lesson. 1.05M context, $0.10/M in $0.60/M out; no upstream
+  // pin (OpenAI models route through one provider).
+  {
+    name: "openrouter/gpt-5.6-luna-pro",
+    base: "https://openrouter.ai/api/v1",
+    model: "openai/gpt-5.6-luna-pro",
+    keys: ["OPEN_ROUTER_API", "OPENROUTER_API_KEY"],
+    headers: { "HTTP-Referer": "https://carthago.app", "X-Title": "carthago" },
+    params: { seed: 1729 },
+    optIn: true,
+  },
 ];
 
 const THINK_RE = /<think>[\s\S]*?<\/think>/gi;
