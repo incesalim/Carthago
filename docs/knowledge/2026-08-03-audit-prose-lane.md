@@ -140,6 +140,34 @@ The fragment PDFs are worth acting on separately: two of 162 R2 objects are
 partial filings, and no existing lane notices, because the statements they *do*
 contain extract fine.
 
+## What sections each report actually has
+
+Measured across the 162 local filings. **Two layouts cover 126 of them (78%)**,
+and they are the annual/interim pair:
+
+| n | type | layout |
+|---|---|---|
+| **65** | annual | §1 general info · §2 statements · §3 accounting policies · §4 risk & capital · §5 notes · **§6 other explanations · §7 audit report** |
+| **61** | interim | §1 general info · §2 statements · §3 accounting policies · §4 risk & capital · §5 notes · **§6 review report · §7 activity report** |
+
+§1–§5 are invariant across the whole corpus. Every variation is in the tail:
+
+| n | banks | variation |
+|---|---|---|
+| 11 | ALNTF, KUVEYT, PASHA | **eight** sections — §6 other, §7 audit, §8 activity |
+| 4 | KLNMA, VAKIFK, YKBNK | seven, but §6 other + §7 activity — **no separate audit section** |
+| 3 | ATBANK | **six** — ends at §6 audit report, no activity section |
+| 3 | FIBA | §6 is a pointer at the review report bound in front, not the report |
+| 3 | ISCTR | eight, §8 an addendum with no role rule |
+| 2 | ICBCT | §6 titled as a second notes section |
+| 3 | QNBFB ×2, ALBRK | §6 **and** §7 both audit-report sections |
+| 4 | GARAN | §1 unresolved (see above) |
+
+The practical consequence: **§6 and §7 mean four different things depending on
+the bank and the period**, and one filing in fourteen doesn't have seven sections
+at all. Anything reading "the audit report" out of §7 is wrong for 61 interim
+filings; anything assuming seven sections is wrong for 21.
+
 ## The validator
 
 `check_prose` checks the sectioning, not the sentences — transcription has no

@@ -86,17 +86,31 @@ _ROLE_RULES: list[tuple[str, tuple[str, ...]]] = [
     # Before `notes`: ALNTF titles §6 "Diğer Açıklama ve Dipnotlar" — singular
     # "Açıklama", so it misses "DIGER ACIKLAMALAR" and, tested later, would fall
     # through to the notes rule and label the section a second §5.
-    ("other_explanations", ("DIGER ACIKLAMA", "OTHER EXPLANATION")),
+    # "Other DISCLOSURES on Activities" is GARANTİ's §6. Broadening `notes` to
+    # match any disclosure word made it a second §5 unless this rule names the
+    # variant too.
+    ("other_explanations", ("DIGER ACIKLAMA", "OTHER EXPLANATION",
+                            "OTHER DISCLOSURE")),
     ("accounting_policies", ("MUHASEBE POLITIKA", "ACCOUNTING POLICIES")),
     ("risk", ("MALI BUNYE", "RISK YONETIM", "FINANCIAL STRUCTURE",
-              "FINANCIAL POSITION AND RISK")),
+              "FINANCIAL POSITION AND RISK",
+              # GARANTİ: "Financial Position and Results of Operations and Risk
+              # Management" — the title runs long and is captured truncated.
+              "FINANCIAL POSITION AND RESULTS")),
     ("general_info", ("GENEL BILGILER", "GENERAL INFORMATION")),
-    # GARANTİ titles §5 "Disclosures and Footnotes on Unconsolidated Financial
-    # Statements" — no "explanations and notes" anywhere in it, so without
-    # FOOTNOTES it falls through to the financial-statements rule and the notes
-    # section reads as a second §2.
-    ("notes", ("ACIKLAMA VE DIPNOTLAR", "EXPLANATIONS AND NOTES", "FOOTNOTES",
-               "DIPNOTLAR")),
+    # §2 and §5 are both "…financial statements"; what separates them is the
+    # DISCLOSURE word, not the noun. §2 is the statements themselves ("Konsolide
+    # Olmayan Finansal Tablolar"); §5 is always *about* them — "Explanations and
+    # Disclosures on …", "Information and Disclosures Related to …", "…Tablolara
+    # İlişkin Açıklama ve Dipnotlar". Matching only on "notes"/"footnotes" left
+    # 23 filings (EXIM, QNBFB, SKBNK, TSKB, PASHA) reading §5 as a second §2.
+    # Safe at this position: `other_explanations`, `accounting_policies` and
+    # `risk` all carry disclosure words too and are tested above.
+    # "TABLOLARA ILISKIN" (dative — *relating to* the statements) is the Turkish
+    # discriminator on its own, and carries §5 even when the title is captured
+    # truncated before "Açıklama ve Dipnotlar" (PASHA).
+    ("notes", ("DIPNOT", "ACIKLAMA", "NOTE", "FOOTNOTE", "EXPLANATION",
+               "DISCLOSURE", "TABLOLARA ILISKIN")),
     ("financial_statements", ("FINANSAL TABLOLAR", "FINANCIAL STATEMENTS")),
 ]
 

@@ -255,3 +255,36 @@ def test_validator_catches_a_filing_truncated_at_the_notes():
         (3, "accounting_policies", 15), (4, "risk", 27), (5, "notes", 49),
         (6, "notes", 60)]))
     assert "sections_truncated" in {f["check"] for f in res.failures}
+
+
+def test_section5_is_notes_however_the_bank_phrases_it():
+    """§2 and §5 are both '…financial statements'. What separates them is the
+    disclosure word, not the noun — matching only 'notes'/'footnotes' left 23
+    filings (EXIM, QNBFB, SKBNK, TSKB, PASHA) reading §5 as a second §2."""
+    for title in (
+        "Explanations and Disclosures on Unconsolidated Financial Statements",
+        "INFORMATION AND DISCLOSURES RELATED TO UNCONSOLIDATED FINANCIAL STATEMENTS",
+        "Konsolide Finansal Tablolara İlişkin Açıklama ve Dipnotlar",
+        "Disclosures and Footnotes on Unconsolidated Financial Statements",
+    ):
+        assert role_from_title(title) == "notes", title
+    # …and the statements themselves must still classify as the statements.
+    for title in ("Konsolide Olmayan Finansal Tablolar",
+                  "Unconsolidated Interim Financial Statements"):
+        assert role_from_title(title) == "financial_statements", title
+    # Neighbours that also carry disclosure words keep their own roles.
+    assert role_from_title("Other Explanations") == "other_explanations"
+    assert role_from_title("Muhasebe Politikalarına İlişkin Açıklamalar") == \
+        "accounting_policies"
+
+
+def test_disclosure_variants_keep_their_own_roles():
+    """Broadening `notes` to any disclosure word regressed GARANTİ's §6 'Other
+    Disclosures on Activities' into a second §5; and PASHA's §5 title is
+    captured truncated at '…TABLOLARA İLİŞKİN', where the Turkish dative is the
+    whole discriminator."""
+    assert role_from_title("Other Disclosures on Activities") == "other_explanations"
+    assert role_from_title("KONSOLİDE OLMAYAN FİNANSAL TABLOLARA İLİŞKİN") == "notes"
+    assert role_from_title(
+        "Consolidated Financial Position and Results of Operations and Risk Management"
+    ) == "risk"
