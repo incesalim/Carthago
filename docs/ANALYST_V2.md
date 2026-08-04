@@ -193,14 +193,20 @@ LLM keys are CI secrets).
 - The verifier proves **structure, association and arithmetic** — not
   semantics. A wrong word about a right number inside the thesis can pass;
   the claim schema shrinks that surface, it does not eliminate it.
-- The loop's discovery ceiling is the model's. Measured on the Albaraka
-  acceptance case: the harnessed agent reaches the **publication bar** (a
-  surviving PASS finding, zero unsupported claims, zero mismatches) and
-  independently discovers the equity partition's extraction-reliability
-  story, but has not yet synthesized the underlying economic story the eval
-  markers demand (the provision-release trail) — it anchors on the single
-  biggest number. The eval corpus adjudicates progress; the publication bar,
-  not the discovery bar, gates any publishing integration.
+- The discovery ceiling moved with each measured harness fix, and the
+  acceptance case now **passes**: on the seventh Albaraka run the agent
+  found the free-provision story cold — the ₺7.0bn reversal, the stock
+  drawdown, the auditor's qualified conclusion as its basis, the profit
+  impact — as verified PASS findings with zero unsupported claims, claims
+  spanning four lanes. The chastening lesson stands with it: six of the
+  seven rounds failed because the HARNESS starved the model (truncated
+  tables, a memoryless loop, duplicate evidence ids, boolean queries
+  silently matching nothing, pages clipped to 1,400 chars, a case file
+  that evicted mid-run) — diagnose from run artifacts before concluding a
+  model can't do something. Still beyond reach: the multi-statement sukuk
+  reclassification narrative (equity exit → subordinated arrival → capital
+  mix shift); its evidence gets touched, the synthesis doesn't fire. The
+  publication bar, not the discovery bar, gates any publishing integration.
 - Equity-matrix boundary detection (opening/closing rows) is heuristic where
   filers template-shift labels; the reconciliation tool reports its method
   and the researcher is instructed to trust arithmetic over labels.
