@@ -12,7 +12,7 @@
  */
 import { chatComplete } from "../llm";
 import { guardMemo } from "./guard";
-import { buildMemoMessages, type AnalystInput } from "./prompt";
+import { buildMemoMessages, storyGates, type AnalystInput, type StoryGate } from "./prompt";
 
 export interface MemoResult {
   note_id: string;
@@ -35,6 +35,9 @@ export interface MemoResult {
    *  the read-headlines det_hash idea applied to the whole memo. Macro is
    *  excluded so a daily FX tick does not re-roll every bank's prose. */
   data_hash: string;
+  /** The editorial rulings the model was bound by — persisted so the scorer
+   *  can measure lead-adherence and live-story coverage per report. */
+  gates: StoryGate[];
 }
 
 /** FNV-1a/32 over a string — the same fingerprint family read-headlines uses. */
@@ -155,5 +158,6 @@ export async function generateMemo(
     dropped_paragraphs: guarded.dropped.length,
     dropped_detail: guarded.dropped,
     data_hash: computeDataHash(input),
+    gates: storyGates(input),
   };
 }

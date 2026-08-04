@@ -398,6 +398,25 @@ export function renderDataBlock(input: AnalystInput): string {
     out.push("");
   }
 
+  {
+    const sd = s.asset_quality.stage_definitions;
+    if (sd) {
+      out.push(
+        `## Stage definitions — this bank's OWN disclosed thresholds (from its ${sd.source_period} ${sd.source_kind} notes; verbatim snippets)`,
+      );
+      if (sd.dpd_stage3_days != null) {
+        out.push(`  default / Stage-3 trigger: ${sd.dpd_stage3_days} days past due — "${sd.stage3_snippet}"`);
+      }
+      if (sd.dpd_stage2_days != null) {
+        out.push(`  SICR / Stage-2 day-count trigger: ${sd.dpd_stage2_days} days past due — "${sd.stage2_snippet}"`);
+      }
+      out.push(
+        "  (fleet context: a 90-day default trigger is disclosed by 22 of 38 banks; an explicit 30-day SICR trigger by 11 — where a peer's disclosure is absent, stage comparisons still carry the caveat)",
+        "",
+      );
+    }
+  }
+
   const d = s.asset_quality.coverage_decomposition;
   if (d) {
     out.push("## Coverage-fall decomposition (PRECOMPUTED — cite, do not re-derive)");

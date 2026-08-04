@@ -21,6 +21,7 @@ import {
   BANK_TYPE_BY_TICKER,
   PEER_EXCLUDED_TICKERS,
 } from "../bank_names";
+import { STAGE_DEFINITIONS, type StageDefinition } from "./stage-definitions";
 import { ordOf, periodFromOrd, singleQuarter, ttmEndingAt, yoyPct } from "../period-math";
 import { realRate } from "../real-terms";
 import type { Queryable } from "./data";
@@ -165,6 +166,10 @@ export interface AnalystSections {
     zero_write_offs_all_periods: boolean | null;
     npl_by_sector: { sector: string; stage3: number | null; as_of: string }[];
     history: { period: string; npl_pct: number | null; stage2_pct: number | null; coverage_pct: number | null }[];
+    /** The bank's OWN disclosed staging thresholds, extracted from its §3/
+     *  notes prose — the dataset whose absence forced a disclaimer onto every
+     *  peer stage comparison since the feasibility test. */
+    stage_definitions: StageDefinition | null;
   };
   currency: SectionBase & {
     net_fx_position: number | null;
@@ -993,7 +998,9 @@ export async function buildAnalystSections(
     },
     asset_quality: {
       _gaps: [
-        "stage-definition notes (SICR triggers, DPD thresholds) are not extracted — peer stage comparisons carry that caveat",
+        ...(STAGE_DEFINITIONS[bank]
+          ? ["only the day-count staging triggers are extracted — qualitative SICR criteria remain in the notes"]
+          : ["this bank's stage-definition notes (SICR triggers, DPD thresholds) yielded no parseable threshold — peer stage comparisons carry that caveat"]),
         "restructured loans and collateral are in unextracted §5 footnotes",
         "gross loans per sector are not stored — sector view is Stage-3 only",
       ],
@@ -1024,6 +1031,7 @@ export async function buildAnalystSections(
       zero_write_offs_all_periods: anyWoKnown ? !anyWo : null,
       npl_by_sector: sectorRows.map((r) => ({ sector: r.sector, stage3: r.stage3_amount, as_of: r.period })),
       history: aqHistory,
+      stage_definitions: STAGE_DEFINITIONS[bank] ?? null,
     },
     currency: {
       _gaps: ["borrower-level FX exposure is not disclosed in filings"],
