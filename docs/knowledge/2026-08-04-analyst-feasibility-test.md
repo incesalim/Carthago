@@ -116,11 +116,31 @@ two to three quarters.
 
 **Asset quality — the second flatter.** NPL **1.33%** and falling every quarter
 (1.70 → 1.45 → 1.34 → 1.30 → 1.33). Stage 2 **2.6%**, also falling. Both read
-excellent. Stage 3 coverage over the same window: **86.2% → 48.3%**, a **44%
-decline**. Falling NPL *with* falling coverage is not improvement — it is
-consistent with covered NPLs leaving the book via write-off or sale while the
-remaining stock is progressively under-provisioned. The residual book is thinner
-cover per lira of NPL than at any point held.
+excellent. Stage 3 coverage over the same window: **86.2% → 48.3%**.
+
+⚠️ **Corrected 2026-08-04.** The first version of this memo said the fall was
+"consistent with covered NPLs leaving the book via write-off or sale". **That is
+refuted by `bank_audit_npl_movement`: write-offs and sales are ZERO in every period
+held.** The real decomposition, 2024Q4 → 2026Q1 (69.7% → 48.3%, −21.4pp):
+
+| | Group III | Group IV | Group V | total |
+|---|--:|--:|--:|--:|
+| share of NPL, 2024Q4 | 17.9% | 14.4% | **67.7%** | 100% |
+| share of NPL, 2026Q1 | 24.8% | 28.5% | **46.7%** | 100% |
+| coverage, 2024Q4 | 25.8% | 27.9% | 90.2% | 69.7% |
+| coverage, 2026Q1 | 21.8% | 24.9% | 76.7% | 48.3% |
+
+Holding 2026Q1 balances at 2024Q4 within-bucket rates gives 56.5%, so **13.2pp of
+the fall is mix and 8.2pp is genuine within-bucket erosion**. The mix shift is not
+disposal — it is **new NPL formation**: additions to Group III ran ₺301m (2024Q4),
+₺928m (2025Q4) and ₺391m in 2026Q1 alone. The book is filling with fresh NPL that
+carries light provisions.
+
+**Forward:** ₺981m sits in Groups III+IV at ~23% coverage. Seasoning into Group V
+at ~77% implies roughly **₺530m of further provision** — about a quarter of TTM net
+income — already committed by loans that have gone bad but not yet been
+reclassified. **Falsifier:** Group III additions falling below ~₺200m/quarter, or
+Group V coverage stabilising above 80%.
 
 **Profitability.** TTM net income **₺2.21bn** on 5-point average equity **₺12.45bn**
 → **ROE 17.7%**. Against 30.9% CPI: **−10.1% real**. The bank is shrinking in real
@@ -215,10 +235,41 @@ ratio, and −10% real ROE behind 85% nominal asset growth. None required a PDF.
   romans. The working form is the bot prompt's:
   `hierarchy GLOB '[IVX]*.' AND hierarchy NOT GLOB '*.*.*'`.
 
-## 6. The answer
+## 6. Screening note vs analyst — the distance, measured
 
-**Yes — Carthago can produce a working analyst.** Both memos are publishable work
-product, and the blind case found more than the calibrated one. The binding
-constraint is not the plumbing, the model, or the tool layer: it is the **one
-missing dataset** (stage definitions) and **two missing derivations**
-(headline-vs-composition divergences) named above.
+⚠️ **The memos above, as first written, were screening notes, not analyst memos.**
+They reported levels, trends and divergences. An analyst additionally (a) asks
+*why*, (b) commits to a forward view, (c) quantifies what it costs, (d) says what
+would falsify it, and (e) decides.
+
+The distance was closed by **one query**, not by a model. `bank_audit_npl_movement`
+turned "Şekerbank's coverage is falling" into: it is falling because NPL formation
+is accelerating and new NPL lands in lightly-provisioned buckets; 13.2pp of the
+21.4pp fall is mix and 8.2pp is erosion; write-offs are zero so nothing is being
+cleared; ₺981m will season into a ~₺530m provision, a quarter of TTM income; and
+here is what would prove it wrong.
+
+That is the actual finding of this test. **The analyst gap is not reasoning
+capacity — it is the number of questions asked of data already held.** My first
+pass stopped at the first question and published a causal guess that the second
+question refuted.
+
+The same move applies to the rest: `kap_ownership` answers "who stands behind this
+bank", `/regulation` answers "what changed in the regime this quarter", and the
+untaken §3 notes answer "is this comparable to its peers". None needs a model.
+
+## 7. The answer
+
+**Yes — Carthago can produce a working analyst,** and the ceiling is higher than
+the first pass suggested. Both memos are publishable, the blind case found more
+than the calibrated one, and the second-question test showed the data supports
+causal explanation and a quantified forward view, not just description.
+
+The binding constraint is not plumbing, model or tool layer. It is:
+
+1. **one missing dataset** — stage definitions, so peer comparison stops needing a
+   disclaimer;
+2. **two missing derivations** — CAR-vs-CET1 and NPL-vs-coverage divergence, each
+   two series and a subtraction, neither computed anywhere today;
+3. **a habit** — asking the second question. Every genuine insight in this test
+   came from the follow-up query, not the first one.
