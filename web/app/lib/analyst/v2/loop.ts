@@ -60,8 +60,13 @@ const MAX_CONSECUTIVE_PROTOCOL = 3;
  * 16 turns straight, because data vanished the turn after delivery. Oldest
  * non-seed records are evicted to a stub when over budget; a re-call after
  * eviction re-delivers.
+ *
+ * Sized so a full 32-turn run NEVER evicts in practice: at 45KB, 8KB pages
+ * overflowed the file mid-run and the model spent 9 turns re-delivering its
+ * own evicted evidence (measured, round 6). 150KB ≈ 40k tokens still fits
+ * the smallest fallback model's context with ample headroom.
  */
-const DIGEST_BUDGET = 45_000;
+const DIGEST_BUDGET = 150_000;
 
 const SYSTEM = `You are a bank research analyst investigating ONE bank, ONE quarter, ONE
 consolidation basis, over audited-filing data that has already been extracted

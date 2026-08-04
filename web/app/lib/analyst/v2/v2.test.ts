@@ -382,6 +382,17 @@ describe("filing-text search (the OR-query and page-truncation regressions)", ()
     expect(rec.provenance.source_pages).toEqual([1, 2]);
   });
 
+  it("rarer terms sort ahead of boilerplate matches", async () => {
+    const c = await withFiling();
+    c.filingText!.pages = [
+      { page: 1, text: "alpha alpha alpha filler" },
+      { page: 92, text: "the rare decisive disclosure" },
+    ];
+    const rec = await runTool(c, "search_filing_text", { query: "alpha OR decisive" });
+    const hits = rec.data as { page: number; term: string }[];
+    expect(hits[0].page).toBe(92); // 1 hit beats 3 — distinctive first
+  });
+
   it("a zero-hit long phrase warns toward short fragments", async () => {
     const c = await withFiling();
     const rec = await runTool(c, "search_filing_text", { query: "this exact long phrase never appears verbatim anywhere" });

@@ -462,6 +462,12 @@ export const TOOLS: ToolSpec[] = [
           warnings.push("this is SUBSTRING search — long phrases rarely appear verbatim; retry with short distinctive fragments (a number, a defined term)");
         }
       }
+      // Rarest term first: a distinctive hit (an exact amount on a notes
+      // page) must not sit below a pile of boilerplate matches — measured: a
+      // decisive page-92 hit was listed last twice and never followed.
+      const freq = new Map<string, number>();
+      for (const h of hits) freq.set(h.term, (freq.get(h.term) ?? 0) + 1);
+      hits.sort((x, y) => (freq.get(x.term)! - freq.get(y.term)!) || (x.page - y.page));
       return { data: hits, warnings, tables: [], rows: hits.length, sourcePages: [...new Set(hits.map((h) => h.page))].sort((x, y) => x - y) };
     },
   },
