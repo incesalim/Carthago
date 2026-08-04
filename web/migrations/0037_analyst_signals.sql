@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS analyst_notes (
     generated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     model         TEXT,                   -- which LLM produced it
     fact_check_passed INTEGER NOT NULL DEFAULT 0,  -- grounding guard verdict (runtime gate)
+    data_hash     TEXT,                   -- FNV-1a over the bank-side inputs; same hash = no regeneration
     PRIMARY KEY (note_id)
 );
 CREATE INDEX IF NOT EXISTS idx_notes_bank_period ON analyst_notes(bank_ticker, period);

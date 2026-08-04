@@ -244,6 +244,33 @@ export function renderDataBlock(input: AnalystInput): string {
   }
   out.push("");
 
+  // Direction words precomputed — deriving them is where right numbers grew
+  // wrong words ("16.12% above the sector's 16.52%", AKBNK run).
+  {
+    const cmpWord = (a: number, b: number): string =>
+      Math.abs(a - b) <= 0.15 ? "IN LINE WITH" : a > b ? "ABOVE" : "BELOW";
+    const rows: string[] = [];
+    const add = (label: string, mine: number | null, med: number | null, sector?: number | null) => {
+      if (mine == null) return;
+      const parts: string[] = [];
+      if (med != null) parts.push(`${cmpWord(mine, med)} class median ${med}%`);
+      if (sector != null) parts.push(`${cmpWord(mine, sector)} sector ${sector}%`);
+      if (parts.length) rows.push(`  ${label} ${mine}% — ${parts.join("; ")}`);
+    };
+    const med = peers.medians;
+    add("CAR", s.capital.car_pct, med.car, s.macro.sector.car_pct);
+    add("CET1", s.capital.cet1_pct, med.cet1);
+    add("NPL ratio", s.asset_quality.npl_ratio_pct, med.npl_ratio_pct, s.macro.sector.npl_ratio_pct);
+    add("Stage-2 ratio", s.asset_quality.stage2_ratio_pct, med.stage2_ratio_pct);
+    add("Stage-3 coverage", s.asset_quality.stage3_coverage_pct, med.stage3_coverage_pct);
+    add("ROE ttm", s.earnings.roe_ttm_pct, med.roe_ttm_pct);
+    add("LDR", s.funding.ldr_pct, med.ldr_pct);
+    if (rows.length) {
+      out.push("## COMPARISONS — precomputed; quote these direction words, NEVER derive above/below yourself");
+      out.push(...rows, "");
+    }
+  }
+
   lines(out, "Macro backdrop", {
     cbrt_funding_rate_pct: s.macro.funding_rate_pct,
     cpi_yoy_pct: s.macro.cpi_yoy_pct,
@@ -312,6 +339,29 @@ export function renderDataBlock(input: AnalystInput): string {
     out.push("");
   }
 
+  if (s.earnings.ecl.total_ytd != null) {
+    out.push("## ECL provision expense (per IFRS-9 stage, YTD, as filed — the GROSS charge; reversals are NOT separable, so the net charge is a stated gap)");
+    out.push(
+      `  stage1: ${fmt(s.earnings.ecl.stage1_ytd)} · stage2: ${fmt(s.earnings.ecl.stage2_ytd)} · stage3: ${fmt(s.earnings.ecl.stage3_ytd)} · TOTAL ytd: ${fmt(s.earnings.ecl.total_ytd)}`,
+      `  TTM total: ${fmt(s.earnings.ecl.ttm_total)} · cost of risk (TTM ECL / avg gross loans): ${fmt(s.earnings.ecl.cost_of_risk_ttm_pct, "%")}`,
+      "  (a negative stage figure is a net reversal in that stage as filed)",
+      "",
+    );
+  }
+
+  {
+    const q = s.earnings.net_income_quarterly_series.filter((x) => x.amount != null);
+    if (q.length) {
+      const byP = new Map(q.map((x) => [x.period, x.amount as number]));
+      out.push("## Quarterly net income (de-cumulated; read against the same quarter a year earlier — seasonal)");
+      for (const x of q) {
+        const prior = byP.get(`${Number(x.period.slice(0, 4)) - 1}${x.period.slice(4)}`);
+        out.push(`  ${x.period}: ${x.amount}` + (prior != null ? `  (same quarter a year earlier: ${prior})` : ""));
+      }
+      out.push("");
+    }
+  }
+
   lines(out, "Asset quality", {
     gross_loans: s.asset_quality.gross_loans,
     npl_ratio_pct: s.asset_quality.npl_ratio_pct,
@@ -320,6 +370,16 @@ export function renderDataBlock(input: AnalystInput): string {
     stage2_coverage_pct: s.asset_quality.stage2_coverage_pct,
     zero_write_offs_every_stored_period: s.asset_quality.zero_write_offs_all_periods,
   });
+  {
+    const h = s.asset_quality.history.filter((x) => x.npl_pct != null || x.coverage_pct != null);
+    if (h.length) {
+      out.push("asset-quality history (period | NPL% | Stage-2% | Stage-3 coverage%):");
+      for (const x of h) {
+        out.push(`  ${x.period} | ${fmt(x.npl_pct)} | ${fmt(x.stage2_pct)} | ${fmt(x.coverage_pct)}`);
+      }
+      out.push("");
+    }
+  }
 
   if (s.asset_quality.npl_by_bucket.length) {
     out.push("## NPL by BRSA group (III=substandard, IV=doubtful, V=loss)");
@@ -448,9 +508,20 @@ export function renderDataBlock(input: AnalystInput): string {
     out.push(`## Sector aggregates — BDDK monthly data, ${sec.as_of} (system-wide, code 10001)`);
     out.push(
       `  sector_total_assets: ${fmt(sec.total_assets_million_tl)} MILLION TL · this bank's share: ${fmt(sec.bank_share_of_sector_assets_pct, "%")}`,
-      `  sector_roe: ${fmt(sec.roe_pct, "%")} · sector_npl_ratio: ${fmt(sec.npl_ratio_pct, "%")} · sector_car: ${fmt(sec.car_pct, "%")} · sector_nim_on_avg_assets: ${fmt(sec.nim_pct, "%")}`,
+      `  sector_npl_ratio: ${fmt(sec.npl_ratio_pct, "%")} · sector_car: ${fmt(sec.car_pct, "%")}`,
+      `  sector_roe: ${fmt(sec.roe_pct, "%")} and sector_nim_on_avg_assets: ${fmt(sec.nim_pct, "%")} are BDDK PERIOD-basis ratios — NOT comparable to this bank's TTM figures; never set them against the bank's ROE or cost-income`,
       "",
     );
+  }
+
+  if (s.management.excerpts.length) {
+    out.push(
+      `## Management commentary — VERBATIM executive excerpts from the bank's earnings call (${s.management.call_period}, ${s.management.call_date}). These are MANAGEMENT'S CLAIMS, not verified data: quote or paraphrase only with attribution ("management said on the call"), and never present their figures as filed facts.`,
+    );
+    for (const e of s.management.excerpts) {
+      out.push(`  [${e.topic}] "${e.quote}"`);
+    }
+    out.push("");
   }
 
   out.push("## Quarter-over-quarter / year-over-year (growth % precomputed for amounts — use these, never derive your own)");
@@ -482,9 +553,10 @@ export function renderDataBlock(input: AnalystInput): string {
 
   out.push("## NOT AVAILABLE (do not guess these — say 'not held' if relevant)");
   const gapSet = new Set<string>();
-  for (const sec of [s.business, s.macro, s.earnings, s.asset_quality, s.currency, s.funding, s.capital, s.securities, s.comparability, s.governance, s.valuation]) {
+  for (const sec of [s.business, s.macro, s.earnings, s.asset_quality, s.currency, s.funding, s.capital, s.securities, s.comparability, s.management, s.governance, s.valuation]) {
     for (const g of sec._gaps) gapSet.add(g);
   }
+  gapSet.add("ECL reversals are not separable from the gross charge — the NET provision charge is not held");
   for (const g of gapSet) out.push(`  - ${g}`);
 
   return out.join("\n");
@@ -571,6 +643,9 @@ recent regulation categories; what they mean for THIS bank's mix.
 "## Peer comparison" — the named-peer table rendered as markdown, then 2-3
 paragraphs of directional reading (who leads on what; where this bank sits;
 respect the stage-definition caveat).
+"## Management commentary" — ONLY if the DATA block carries call excerpts:
+what management said, quoted with attribution, set against what the filings
+show. Their figures are claims, not data. Omit the section entirely otherwise.
 "## What the auditor said" — assurance level and its meaning (a review is
 negative assurance, narrower than an audit), opinion status and streak, the
 verbatim basis text if qualified, detector signals. For a clean opinion say
@@ -606,6 +681,7 @@ gives you a table):
 ## Currency position
 ## Macro and regulation
 ## Peer comparison
+## Management commentary   (only if the DATA block has call excerpts; else omit)
 ## What the auditor said
 ## What to watch
 ## What this report cannot see

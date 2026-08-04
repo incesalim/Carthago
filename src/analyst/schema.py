@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS analyst_notes (
     generated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     model         TEXT,
     fact_check_passed INTEGER NOT NULL DEFAULT 0,
+    data_hash     TEXT,
     PRIMARY KEY (note_id)
 );
 CREATE INDEX IF NOT EXISTS idx_notes_bank_period ON analyst_notes(bank_ticker, period);

@@ -38,6 +38,10 @@ on:
         type: choice
         options: [unconsolidated, consolidated]
         default: unconsolidated
+      force_regen:
+        description: "Regenerate memos even when the data hash is unchanged."
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -95,6 +99,24 @@ jobs:
               print(f"{key}: {size/1e6:.1f} MB → {db} ({db.stat().st_size/1e6:.1f} MB)")
           PY
 
+      - name: Pull analyst staging state from R2 (memo hashes — regeneration gate)
+        # data/analyst.db persists ACROSS runs via R2 so a memo regenerates
+        # only when its bank-side data hash changed. Absent on first run: fine.
+        run: |
+          python - <<'PY'
+          import gzip, shutil, pathlib
+          from src.audit_reports import r2_storage
+          key, dest = "state/analyst.db.gz", pathlib.Path("data/analyst.db")
+          if r2_storage.exists(key):
+              gz = pathlib.Path(str(dest) + ".gz")
+              r2_storage.download_to(key, gz)
+              with gzip.open(gz, "rb") as s, open(dest, "wb") as d:
+                  shutil.copyfileobj(s, d)
+              print(f"pulled {key} ({dest.stat().st_size/1e6:.1f} MB)")
+          else:
+              print("no analyst state in R2 yet — first run")
+          PY
+
       - name: Run detectors (stage signals + basis metadata)
         run: python scripts/analyst/detect.py --db data/bank_audit.db --stage
 
@@ -142,6 +164,7 @@ jobs:
           BANKS: ${{ inputs.banks }}
           PERIOD: ${{ inputs.period }}
           KIND: ${{ inputs.kind }}
+          FORCE: ${{ inputs.force_regen && '--force' || '' }}
         run: |
           [ "$BANKS" = "CALIBRATE" ] && BANKS="ALBRK,SKBNK"
           if ! printf '%s' "$PERIOD" | grep -Eq '^[0-9]{4}Q[1-4]$'; then
@@ -154,12 +177,29 @@ jobs:
             [ -z "$t" ] && continue
             echo "── memo: $t $PERIOD $KIND"
             npx tsx scripts/analyst-run.ts --bank "$t" --period "$PERIOD" --kind "$KIND" \
-              --memo --out "../data/analyst_memo_${t}_${PERIOD}_${KIND}.json" || fail=1
+              --memo --store $FORCE --out "../data/analyst_memo_${t}_${PERIOD}_${KIND}.json" || fail=1
             npx tsx scripts/analyst-run.ts --bank "$t" --period "$PERIOD" --kind "$KIND" \
               --sections --out "../data/analyst_sections_${t}_${PERIOD}_${KIND}.json"
           done
           # A memo that failed its fact-check is a result to READ, not a green run.
           exit $fail
+
+      - name: Upload analyst staging state to R2
+        if: always()
+        run: |
+          python - <<'PY'
+          import gzip, pathlib, shutil
+          from src.audit_reports import r2_storage
+          db = pathlib.Path("data/analyst.db")
+          if not db.exists():
+              print("no analyst.db to upload")
+              raise SystemExit(0)
+          gz = pathlib.Path("data/analyst.db.gz")
+          with open(db, "rb") as s, gzip.open(gz, "wb", compresslevel=6) as d:
+              shutil.copyfileobj(s, d)
+          size = r2_storage.upload_file(gz, "state/analyst.db.gz")
+          print(f"uploaded state/analyst.db.gz ({size/1e6:.2f} MB)")
+          PY
 
       - name: Upload artifacts (signals + basis + memos + sections)
         if: always()

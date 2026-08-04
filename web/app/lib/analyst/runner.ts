@@ -30,6 +30,31 @@ export interface MemoResult {
    *  from the artifact alone (the GARAN run's dropped forward-section was
    *  invisible until this existed). Never rendered to a reader. */
   dropped_detail: { paragraph: string; unsupported: number[] }[];
+  /** Hash of the BANK-side inputs (sections minus macro/meta + peers +
+   *  comparatives). Regeneration is gated on it: same data, same report —
+   *  the read-headlines det_hash idea applied to the whole memo. Macro is
+   *  excluded so a daily FX tick does not re-roll every bank's prose. */
+  data_hash: string;
+}
+
+/** FNV-1a/32 over a string — the same fingerprint family read-headlines uses. */
+function fnv1a(s: string): string {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0).toString(16).padStart(8, "0");
+}
+
+export function computeDataHash(input: AnalystInput): string {
+  const { sections } = input;
+  const stable = {
+    ...sections,
+    macro: undefined, // daily market prints must not re-roll bank prose
+    meta: undefined, // carries generated_at
+  };
+  return fnv1a(JSON.stringify({ s: stable, p: input.peers, c: input.comparatives }));
 }
 
 const MAX_TOKENS = 10_000; // a 2,500-4,000-word report with tables
@@ -129,5 +154,6 @@ export async function generateMemo(
     fact_check_passed: guarded.passed,
     dropped_paragraphs: guarded.dropped.length,
     dropped_detail: guarded.dropped,
+    data_hash: computeDataHash(input),
   };
 }

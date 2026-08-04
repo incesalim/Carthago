@@ -211,6 +211,44 @@ describe("guardMemo — structural abstention", () => {
     expect(unsupportedDenominatedFigures("sektör aktifleri 49.730.674 milyon TL", data)).toEqual([]);
   });
 
+  it("drops a wrong direction word between two right numbers", async () => {
+    // The residual class: "CAR 16.12% above the sector median of 16.52%".
+    const { contradictedComparisons } = await import("./guard");
+    expect(contradictedComparisons("CAR 16.12% is above the sector median of 16.52%")).toHaveLength(1);
+    expect(contradictedComparisons("CAR 16.12% is below the sector median of 16.52%")).toHaveLength(0);
+    // Delta forms and multi-number sentences are out of scope — stand down.
+    expect(contradictedComparisons("up 0.14 pp and above the 2.47% median")).toHaveLength(0);
+    expect(contradictedComparisons("CAR 16.12% above both 16.52% and 15.33%")).toHaveLength(0);
+    expect(contradictedComparisons("not above the 16.52% level from 16.12%")).toHaveLength(0);
+  });
+
+  it("data hash ignores macro but tracks bank data", async () => {
+    const { computeDataHash } = await import("./runner");
+    const { buildAnalystSections } = await import("./sections");
+    const emptyDb: Queryable = {
+      all: async (sql: string) => {
+        if (/analyst_/.test(sql)) throw new Error("no such table");
+        return [];
+      },
+    };
+    const mkInput = async () => ({
+      sections: await buildAnalystSections(emptyDb, "GARAN", "2026Q1", "unconsolidated"),
+      peers: {
+        licence_class: "deposit", peer_count: 0, rows: [],
+        medians: { car: null, cet1: null, car_minus_cet1_pp: null, npl_ratio_pct: null,
+          stage2_ratio_pct: null, stage3_coverage_pct: null, ldr_pct: null, roe_ttm_pct: null },
+      },
+      comparatives: [] as import("./comparator").MetricChange[],
+    });
+    const a = await mkInput();
+    const b = await mkInput();
+    b.sections.macro.usd_try = 99.9; // daily market noise
+    const c = await mkInput();
+    c.sections.earnings.net_income_ttm = 123456789; // a filing changed
+    expect(computeDataHash(a)).toBe(computeDataHash(b));
+    expect(computeDataHash(a)).not.toBe(computeDataHash(c));
+  });
+
   it("drops a paragraph carrying a template placeholder", async () => {
     // The ranked-gates run left "(e.g., TL X thousand)" in a watch bullet —
     // scaffolding from a model that could not find a threshold.

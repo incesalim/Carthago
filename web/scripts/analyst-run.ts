@@ -96,14 +96,66 @@ async function main(): Promise<number> {
 
   // --memo: sections → prompt → LLM → guard. Imported lazily so --sections
   // never needs the LLM modules to resolve env keys.
-  const { generateMemo } = await import("../app/lib/analyst/runner");
-  const memo = await generateMemo(
-    { sections, peers: peersCtx, comparatives },
-    process.env as Record<string, string | undefined>,
-  );
+  const { generateMemo, computeDataHash } = await import("../app/lib/analyst/runner");
+  const input = { sections, peers: peersCtx, comparatives };
+
+  // Hash gating: same bank-side data, same report. The staging DB
+  // (data/analyst.db, R2-persisted by the workflow) remembers the last
+  // passing memo's hash; --force regenerates regardless.
+  const analystDbPath = resolve(root, "data/analyst.db");
+  const currentHash = computeDataHash(input);
+  if (!has("force")) {
+    try {
+      const st = new DatabaseSync(analystDbPath, { readOnly: true });
+      const prev = st
+        .prepare(
+          "SELECT data_hash, fact_check_passed FROM analyst_notes " +
+            "WHERE bank_ticker = ? AND period = ? AND kind = ? " +
+            "ORDER BY generated_at DESC LIMIT 1",
+        )
+        .get(bank, period, kind) as { data_hash: string | null; fact_check_passed: number } | undefined;
+      st.close();
+      if (prev?.data_hash === currentHash && prev.fact_check_passed === 1) {
+        console.log(`memo UNCHANGED (data_hash ${currentHash}) — skipping generation (--force to override)`);
+        return 0;
+      }
+    } catch {
+      /* no staging DB / no table yet — generate */
+    }
+  }
+
+  const memo = await generateMemo(input, process.env as Record<string, string | undefined>);
   const dest = arg("out") ?? `data/analyst_memo_${bank}_${period}_${kind}.json`;
   mkdirSync(dirname(resolve(dest)), { recursive: true });
   writeFileSync(dest, JSON.stringify(memo, null, 2), "utf-8");
+
+  if (has("store")) {
+    try {
+      const st = new DatabaseSync(analystDbPath);
+      st.prepare(
+        "INSERT OR REPLACE INTO analyst_notes " +
+          "(note_id, bank_ticker, period, kind, signal_ids, title, body, generated_at, model, fact_check_passed, data_hash) " +
+          "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      ).run(
+        memo.note_id,
+        memo.bank_ticker,
+        memo.period,
+        memo.kind,
+        JSON.stringify(memo.signal_ids),
+        memo.title,
+        memo.body,
+        memo.generated_at,
+        memo.model,
+        memo.fact_check_passed ? 1 : 0,
+        memo.data_hash,
+      );
+      st.close();
+      console.log(`stored into ${analystDbPath} (data_hash ${memo.data_hash})`);
+    } catch (e) {
+      console.warn(`store failed (staging DB missing? run detect.py --stage first): ${e}`);
+    }
+  }
+
   console.log(
     `memo ${memo.fact_check_passed ? "PASSED" : "FAILED"} fact-check ` +
       `(model ${memo.model ?? "none"}, ${memo.dropped_paragraphs} dropped ¶) → ${dest}`,

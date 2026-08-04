@@ -81,6 +81,37 @@ function paragraphsOf(memo: string): string[] {
     .filter(Boolean);
 }
 
+/**
+ * The relation verifier — the defect class the figure check cannot see: a
+ * wrong DIRECTION word between two right numbers ("CAR 16.12% above the
+ * sector's 16.52%", measured in the AKBNK report). Deliberately conservative:
+ * it only judges a sentence with EXACTLY two percent figures and ONE
+ * direction word between them, and stands down near pp/bp deltas or
+ * negation — a missed check is noise, a false drop is damage.
+ */
+const PCT_NUM_RE = /(-?\d+(?:[.,]\d+)?)\s*%/g;
+const DIR_RE = /\b(above|below|over|under|exceeds|higher than|lower than)\b/i;
+
+export function contradictedComparisons(text: string): { a: number; b: number; dir: string }[] {
+  const out: { a: number; b: number; dir: string }[] = [];
+  for (const sentence of text.split(/(?<=[.;])\s+|\n/)) {
+    if (/\bpp\b|\bbps?\b|points|not\s+(above|below|over|under)/i.test(sentence)) continue;
+    const nums = [...sentence.matchAll(PCT_NUM_RE)].map((m) => ({
+      v: parseFloat(m[1].replace(",", ".")),
+      i: m.index ?? 0,
+    }));
+    if (nums.length !== 2) continue;
+    const dm = DIR_RE.exec(sentence);
+    if (!dm || dm.index <= nums[0].i || dm.index >= nums[1].i) continue;
+    const up = /above|over|exceeds|higher/i.test(dm[1]);
+    const { v: a } = nums[0];
+    const { v: b } = nums[1];
+    if (!Number.isFinite(a) || !Number.isFinite(b) || Math.abs(a - b) <= 0.05) continue;
+    if ((up && a < b) || (!up && a > b)) out.push({ a, b, dir: dm[1].toLowerCase() });
+  }
+  return out;
+}
+
 export function guardMemo(memo: string, dataBlock: string): GuardResult {
   const allowed = numbersIn(dataBlock);
   const kept: string[] = [];
@@ -98,6 +129,7 @@ export function guardMemo(memo: string, dataBlock: string): GuardResult {
     const bad = [
       ...unsupportedFigures(para, allowed),
       ...unsupportedDenominatedFigures(para, allowed),
+      ...contradictedComparisons(para).flatMap((c) => [c.a, c.b]),
     ];
     if (bad.length === 0 && !PLACEHOLDER_RE.test(para)) {
       kept.push(para);

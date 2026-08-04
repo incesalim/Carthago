@@ -114,6 +114,19 @@ export interface AnalystSections {
     operating_income_ttm: number | null;
     net_fees_ytd: number | null;
     opex: { personnel_ytd: number | null; other_ytd: number | null; cost_income_ttm_pct: number | null };
+    /** Per-stage GROSS ECL provision expense, YTD as filed — the sum
+     *  reproduces the "gross expected credit losses" figure banks present
+     *  (verified: GARAN 2026Q1 sums to the disclosed ₺30.5bn). Reversals are
+     *  NOT separable — the net charge stays a stated gap. */
+    ecl: {
+      stage1_ytd: number | null;
+      stage2_ytd: number | null;
+      stage3_ytd: number | null;
+      total_ytd: number | null;
+      ttm_total: number | null;
+      cost_of_risk_ttm_pct: number | null;
+    };
+    net_income_quarterly_series: { period: string; amount: number | null }[];
     pl_movers: { item_name: string; ytd: number; prior_year_ytd: number; yoy_pct: number }[];
   };
   asset_quality: SectionBase & {
@@ -151,6 +164,7 @@ export interface AnalystSections {
     additions_quarterly: { period: string; group: string; amount: number | null }[];
     zero_write_offs_all_periods: boolean | null;
     npl_by_sector: { sector: string; stage3: number | null; as_of: string }[];
+    history: { period: string; npl_pct: number | null; stage2_pct: number | null; coverage_pct: number | null }[];
   };
   currency: SectionBase & {
     net_fx_position: number | null;
@@ -195,6 +209,14 @@ export interface AnalystSections {
     };
   };
   securities: SectionBase & { total: null; breakdown_available: false };
+  management: SectionBase & {
+    call_date: string | null;
+    call_period: string | null;
+    title: string | null;
+    /** VERBATIM executive turns from the earnings-call transcript, selected
+     *  by topic keyword — management's claims, never verified figures. */
+    excerpts: { topic: string; quote: string }[];
+  };
   comparability: SectionBase & {
     reporting_unit: string | null;
     unit_source: string;
@@ -629,6 +651,87 @@ export async function buildAnalystSections(
       "AND period_type = 'current' AND section IN ('npl_brsa_gross','npl_brsa_provision')",
     [bank, kind],
   );
+
+  // Per-stage GROSS ECL expense (YTD). Here stage columns ARE IFRS stages.
+  const eclRows = await db.all<{ period: string; stage1_amount: number | null; stage2_amount: number | null; stage3_amount: number | null }>(
+    "SELECT period, stage1_amount, stage2_amount, stage3_amount " +
+      "FROM bank_audit_credit_quality WHERE bank_ticker = ? AND kind = ? " +
+      "AND period_type = 'current' AND section = 'loans_ecl_expense'",
+    [bank, kind],
+  );
+  const eclNow = eclRows.find((r) => r.period === period) ?? null;
+  const eclSum = (r: { stage1_amount: number | null; stage2_amount: number | null; stage3_amount: number | null } | null): number | null =>
+    r && (r.stage1_amount != null || r.stage2_amount != null || r.stage3_amount != null)
+      ? (r.stage1_amount ?? 0) + (r.stage2_amount ?? 0) + (r.stage3_amount ?? 0)
+      : null;
+  const eclYtdByOrd = new Map<number, number>();
+  for (const r of eclRows) {
+    const o = ordOf(r.period);
+    const v = eclSum(r);
+    if (o != null && v != null) eclYtdByOrd.set(o, v);
+  }
+  const eclTtm = ttmEndingAt(eclYtdByOrd, ord);
+  const avgLoansForCoR = trailingAverage(
+    new Map([...s.stages].map(([p, r]) => [p, r.total_amount] as [string, number]).filter(([, v]) => v != null) as [string, number][]),
+    period,
+  );
+  const costOfRisk =
+    eclTtm != null && avgLoansForCoR != null && avgLoansForCoR > 0
+      ? (eclTtm / avgLoansForCoR) * 100
+      : null;
+
+  // Management commentary — the latest transcribed call for this bank,
+  // preferring the report's own quarter. Verbatim executive turns only:
+  // attribution is the transcript corpus's weak axis, so no speaker names.
+  let management: AnalystSections["management"] = {
+    _gaps: ["no transcribed earnings call available for this bank"],
+    call_date: null,
+    call_period: null,
+    title: null,
+    excerpts: [],
+  };
+  try {
+    const call =
+      (await firstRow<{ period: string; call_date: string; title: string | null; transcript_json: string }>(
+        db,
+        "SELECT period, call_date, title, transcript_json FROM bank_call_transcripts " +
+          "WHERE bank_ticker = ? AND period = ? ORDER BY call_date DESC LIMIT 1",
+        [bank, period],
+      )) ??
+      (await firstRow<{ period: string; call_date: string; title: string | null; transcript_json: string }>(
+        db,
+        "SELECT period, call_date, title, transcript_json FROM bank_call_transcripts " +
+          "WHERE bank_ticker = ? AND call_date <= ? ORDER BY call_date DESC LIMIT 1",
+        [bank, `${period.slice(0, 4)}-${QUARTER_END_MONTH[period.slice(5)]}-31`],
+      ));
+    if (call) {
+      const turns = JSON.parse(call.transcript_json) as { role?: string; text?: string }[];
+      const TOPICS: [string, RegExp][] = [
+        ["margin", /margin|NIM|net interest|spread|funding cost/i],
+        ["asset quality", /provision|coverage|NPL|stage|asset quality|cost of risk/i],
+        ["outlook", /guidance|outlook|expect|target|forecast/i],
+        ["capital", /capital|dividend|CET1|CAR\b/i],
+      ];
+      const excerpts: { topic: string; quote: string }[] = [];
+      for (const [topic, rx] of TOPICS) {
+        const turn = turns.find(
+          (t) => t.role === "executive" && t.text && rx.test(t.text) && t.text.length > 80,
+        );
+        if (turn?.text) {
+          excerpts.push({ topic, quote: turn.text.slice(0, 420).replace(/\s+/g, " ").trim() + (turn.text.length > 420 ? "…" : "") });
+        }
+      }
+      management = {
+        _gaps: call.period === period ? [] : [`latest transcribed call covers ${call.period}, not ${period}`],
+        call_date: call.call_date,
+        call_period: call.period,
+        title: call.title,
+        excerpts,
+      };
+    }
+  } catch {
+    /* table absent (not pushed to D1 yet / not in this snapshot) — the gap stands */
+  }
   const GROUPS = ["III", "IV", "V"] as const;
   const cqAt = (p: string, section: string): (number | null)[] | null => {
     const r = cqRows.find((x) => x.period === p && x.section === section);
@@ -694,8 +797,34 @@ export async function buildAnalystSections(
     : null;
   const growthPct = (now: number | null | undefined, prior: number | null | undefined) =>
     now != null && prior != null && prior !== 0 ? pct(((now - prior) / Math.abs(prior)) * 100, 1) : null;
+  const netQuarterlySeries: AnalystSections["earnings"]["net_income_quarterly_series"] = [];
+  for (let k = 8; k >= 0; k--) {
+    netQuarterlySeries.push({
+      period: periodFromOrd(ord - k),
+      amount: singleQuarter(netYtdMap, ord - k),
+    });
+  }
+
+  const aqHistory: AnalystSections["asset_quality"]["history"] = [];
+  for (let k = 7; k >= 0; k--) {
+    const p = periodFromOrd(ord - k);
+    const row = s.stages.get(p);
+    aqHistory.push({
+      period: p,
+      npl_pct:
+        row?.stage3_amount != null && row.total_amount
+          ? pct((row.stage3_amount / row.total_amount) * 100)
+          : null,
+      stage2_pct:
+        row?.stage2_amount != null && row.total_amount
+          ? pct((row.stage2_amount / row.total_amount) * 100)
+          : null,
+      coverage_pct: row?.stage3_coverage != null ? pct(row.stage3_coverage * 100, 1) : null,
+    });
+  }
+
   const trajectory: AnalystSections["capital"]["trajectory"] = [];
-  for (let k = 5; k >= 0; k--) {
+  for (let k = 9; k >= 0; k--) {
     const p = periodFromOrd(ord - k);
     const c = s.capital.get(p);
     const l = s.liquidity.get(p);
@@ -815,6 +944,7 @@ export async function buildAnalystSections(
     earnings: {
       _gaps: [
         "CPI-linker income, swap costs and securities duration are in unextracted footnotes",
+        "ECL reversals are not separable from the gross charge — the net provision charge is not held",
         ...(coreNow ? [] : ["core margin line not found by label — participation/legacy template"]),
       ],
       total_assets: assetsNow,
@@ -850,6 +980,15 @@ export async function buildAnalystSections(
         other_ytd: opexOther.get(ord) ?? null,
         cost_income_ttm_pct: pct(costIncome, 1),
       },
+      ecl: {
+        stage1_ytd: eclNow?.stage1_amount ?? null,
+        stage2_ytd: eclNow?.stage2_amount ?? null,
+        stage3_ytd: eclNow?.stage3_amount ?? null,
+        total_ytd: eclSum(eclNow),
+        ttm_total: eclTtm,
+        cost_of_risk_ttm_pct: pct(costOfRisk),
+      },
+      net_income_quarterly_series: netQuarterlySeries,
       pl_movers: movers,
     },
     asset_quality: {
@@ -884,6 +1023,7 @@ export async function buildAnalystSections(
       additions_quarterly: additionsQuarterly,
       zero_write_offs_all_periods: anyWoKnown ? !anyWo : null,
       npl_by_sector: sectorRows.map((r) => ({ sector: r.sector, stage3: r.stage3_amount, as_of: r.period })),
+      history: aqHistory,
     },
     currency: {
       _gaps: ["borrower-level FX exposure is not disclosed in filings"],
@@ -942,6 +1082,7 @@ export async function buildAnalystSections(
       breakdown_available: false,
     },
     comparability,
+    management,
     governance: {
       _gaps: ["management turnover and guidance-vs-actuals are not sourced"],
       controlling_shareholder: shareholders[0]?.name ?? null,
