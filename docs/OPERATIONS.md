@@ -677,17 +677,27 @@ cost $0 because they were still inside the 50M allowance. Once the allowance is
 spent, every subsequent day bills at full rate, so project bottom-up from the
 day-shapes (quiet weekday ~0.5–0.9M, Friday ~2M, Saturday ~3M, Sunday ~2.4M).
 
-### Cron freeze 2026-07-28 → LIFTED 2026-08-04 (all but `refresh-evds-daily`)
+### Cron freeze 2026-07-28 → FULLY LIFTED 2026-08-04
 
-**Current state: one workflow disabled.** `refresh-evds-daily` only — recorded in
-`data/workflow_state.json` with `review_by: 2026-09-01`. The other nine were
-re-enabled on 2026-08-04. `gh workflow list --all` is the live truth; the CI gate
-below keeps the file honest about it.
+**Current state: nothing is frozen.** All ten lanes are back on their schedules,
+recorded in `data/workflow_state.json` and verified against the live API by
+`scripts/check_workflow_state.py` on every CI run — which prints the frozen set,
+so "0 frozen" is asserted rather than assumed.
 
-⚠️ **The daily cron is what is off; EVDS still refreshes weekly.**
-`refresh-data.yml` (Sat 03:00) runs `scripts/refresh.py` with no `--skip-evds`,
-so the EVDS lane runs once a week through that path. Add the flag there if the
-intent is no EVDS refresh at all.
+`refresh-evds-daily` was the last one back. Keeping it weekly-only would have
+been a false economy twice over: the re-stamp bug that made the lane expensive
+was fixed on 2026-07-27 (it now writes only series whose value moved), and EVDS
+carries genuinely daily data — FX, the policy rate and CBRT funding are ~2,116
+daily observations each. A Saturday-only refresh would also have pushed age past
+**both** freshness thresholds (`healthcheck.py` 120h, `admin-health.ts` 3-day
+cadence ⇒ amber past 4.5 days) by every Thursday, i.e. a false Telegram alert
+most weeks. Both thresholds are correct as written **for a daily EVDS cron** — if
+that cron is ever switched off again, retune them in the same change.
+
+Note `refresh-data.yml` (Sat 03:00) also refreshes EVDS: it runs
+`scripts/refresh.py` without `--skip-evds`. Post-fix that Saturday overlap finds
+nothing changed and costs ~nothing, so the redundancy is harmless — but it is why
+disabling the daily lane does **not** stop EVDS refreshing.
 
 <details><summary>Why the freeze happened, and why it ended</summary>
 
