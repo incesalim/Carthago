@@ -202,6 +202,15 @@ describe("guardMemo — structural abstention", () => {
     expect(unsupportedDenominatedFigures("income of ₺2.2 bn (2,205,403 thousand TL)", data)).toEqual([]);
   });
 
+  it("does not part-match a grouped figure before a denomination word", async () => {
+    // AKBNK run: "49,730,674 million TL" (in the data) part-matched as
+    // "730,674 million" and flagged a phantom. Number boundary required.
+    const { unsupportedDenominatedFigures } = await import("./guard");
+    const data = [49_730_674];
+    expect(unsupportedDenominatedFigures("sector assets of 49,730,674 million TL", data)).toEqual([]);
+    expect(unsupportedDenominatedFigures("sektör aktifleri 49.730.674 milyon TL", data)).toEqual([]);
+  });
+
   it("drops a paragraph carrying a template placeholder", async () => {
     // The ranked-gates run left "(e.g., TL X thousand)" in a watch bullet —
     // scaffolding from a model that could not find a threshold.

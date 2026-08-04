@@ -22,7 +22,11 @@ import { numbersIn, unsupportedFigures } from "../bot-sql";
  * scale (million → ×1e3, billion/bn/milyar → ×1e6). The legitimate idiom
  * "7,000,000 thousand TL (₺7.0bn)" passes: 7.0×1e6 is in the data.
  */
-const DENOM_RE = /(-?\d+(?:[.,]\d+)?)\s*(bn|billion|milyar|million|milyon|mn)\b/gi;
+// The lookbehind is load-bearing: without it, "49,730,674 million TL" (a
+// grouped figure that IS in the data) part-matches as "730,674 million" and
+// flags a phantom — measured on the AKBNK run. A denomination-glued figure
+// must start at a number boundary, not mid-group.
+const DENOM_RE = /(?<![\d.,])(-?\d+(?:[.,]\d+)?)\s*(bn|billion|milyar|million|milyon|mn)\b/gi;
 
 export function unsupportedDenominatedFigures(answer: string, allowed: number[]): number[] {
   const bad: number[] = [];

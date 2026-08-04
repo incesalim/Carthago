@@ -349,6 +349,24 @@ export function renderDataBlock(input: AnalystInput): string {
         `  ${m.group} | ${fmt(m.opening)} | ${fmt(m.additions_ytd)} | ${fmt(m.transfers_in_ytd)} | ${fmt(m.transfers_out_ytd)} | ${fmt(m.collections_ytd)} | ${fmt(m.write_offs_ytd)} | ${fmt(m.sold_ytd)} | ${fmt(m.closing)}`,
       );
     }
+    // The TOTAL row is precomputed so the model never sums rows itself —
+    // an across-groups collections total it derived by hand was the one real
+    // invention of the AKBNK run.
+    const tot = (f: (m: (typeof s.asset_quality.npl_movement)[number]) => number | null) => {
+      let sum = 0;
+      let any = false;
+      for (const m of s.asset_quality.npl_movement) {
+        const v = f(m);
+        if (v != null) {
+          sum += v;
+          any = true;
+        }
+      }
+      return any ? sum : null;
+    };
+    out.push(
+      `  TOTAL | ${fmt(tot((m) => m.opening))} | ${fmt(tot((m) => m.additions_ytd))} | ${fmt(tot((m) => m.transfers_in_ytd))} | ${fmt(tot((m) => m.transfers_out_ytd))} | ${fmt(tot((m) => m.collections_ytd))} | ${fmt(tot((m) => m.write_offs_ytd))} | ${fmt(tot((m) => m.sold_ytd))} | ${fmt(tot((m) => m.closing))}`,
+    );
     const adds = s.asset_quality.additions_quarterly.filter((a) => a.amount != null);
     if (adds.length) {
       out.push("quarterly additions (new NPL formation):");
