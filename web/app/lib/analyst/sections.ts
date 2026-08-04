@@ -82,8 +82,17 @@ export interface AnalystSections {
       ttm_release: number | null;
       roe_ex_release_pct: number | null;
       /** Stock + YTD release per quarter, oldest→newest — the ALBRK ₺7.0bn
-       *  release lives in this history, not in the latest quarter. */
-      history: { period: string; stock: number | null; release_ytd: number | null; net_income_ytd: number | null }[];
+       *  release lives in this history, not in the latest quarter. The
+       *  ex-release figures are precomputed so re-basing a distorted YoY
+       *  comparison is a quote, not an inference the model must attempt. */
+      history: {
+        period: string;
+        stock: number | null;
+        release_ytd: number | null;
+        net_income_ytd: number | null;
+        release_pct_of_income: number | null;
+        income_ex_release: number | null;
+      }[];
     };
     core_margin: {
       label: string | null;
@@ -505,11 +514,16 @@ export async function buildAnalystSections(
   for (let k = 8; k >= 0; k--) {
     const p = periodFromOrd(ord - k);
     const row = s.freeProvision.get(p);
+    const rel = releaseYtdAt(p);
+    const income = netYtdMap.get(ord - k) ?? null;
     fpHistory.push({
       period: p,
       stock: row?.stock ?? null,
-      release_ytd: releaseYtdAt(p),
-      net_income_ytd: netYtdMap.get(ord - k) ?? null,
+      release_ytd: rel,
+      net_income_ytd: income,
+      release_pct_of_income:
+        rel != null && income != null && income !== 0 ? pct((rel / income) * 100, 1) : null,
+      income_ex_release: rel != null && income != null ? income - rel : null,
     });
   }
 

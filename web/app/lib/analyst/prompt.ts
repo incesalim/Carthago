@@ -86,10 +86,16 @@ export function renderDataBlock(input: AnalystInput): string {
   out.push(
     `stock_now: ${fmt(s.earnings.free_provision.stock)} · prior_year_end: ${fmt(s.earnings.free_provision.prior_year_end_stock)} · release_ytd: ${fmt(s.earnings.free_provision.release_ytd)} (${fmt(s.earnings.free_provision.release_pct_of_ytd_income, "%")} of YTD profit) · roe_ex_release_pct: ${fmt(s.earnings.free_provision.roe_ex_release_pct)}`,
   );
-  out.push("history (period | stock | release_ytd | net_income_ytd):");
+  out.push("history (period | stock | release_ytd | printed profit_ytd | release as % of printed | EX-RELEASE profit):");
   for (const h of s.earnings.free_provision.history) {
     if (h.stock == null && h.release_ytd == null) continue;
-    out.push(`  ${h.period} | ${fmt(h.stock)} | ${fmt(h.release_ytd)} | ${fmt(h.net_income_ytd)}`);
+    const inflated =
+      h.release_pct_of_income != null && h.release_pct_of_income >= 20
+        ? "  <- printed profit inflated by the release; later YoY comparisons against this base are distorted"
+        : "";
+    out.push(
+      `  ${h.period} | ${fmt(h.stock)} | ${fmt(h.release_ytd)} | ${fmt(h.net_income_ytd)} | ${fmt(h.release_pct_of_income, "%")} | ${fmt(h.income_ex_release)}${inflated}`,
+    );
   }
   out.push("");
 
@@ -258,7 +264,9 @@ Headline ratios conceal composition. Your job is the SECOND question:
   release. Quote the release and that quarter's printed profit side by side.
 - The core-margin quarterly series is the underlying earnings line. Read it
   against the printed bottom line — a margin that halved or rebuilt while the
-  headline moved the other way is exactly the finding a screen misses.
+  headline moved the other way is exactly the finding a screen misses. Compare
+  LIKE quarters (Q1 against earlier Q1s): the series is seasonal, and a
+  Q4-to-Q1 step is not a collapse.
 - Judge growth in REAL terms (the deflated figures are provided).
 - Use peer medians to say whether a level is the bank or the sector.
 
