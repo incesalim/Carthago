@@ -112,6 +112,13 @@ SYNC_TABLES = [
     "bank_audit_statement_types",
     "bank_audit_coverage",
     "api_series",
+    # The analyst lane's staging tables. They live in their own DB
+    # (data/analyst.db, which rides R2 as state/analyst.db.gz), so a push names
+    # them with --db data/analyst.db; every other staging DB simply reports them
+    # "not present" and skips.
+    "analyst_signals",
+    "analyst_basis_metadata",
+    "analyst_notes",
 ]
 
 # Precomputed rollups with no per-row timestamp: scripts/sync_audit_expected.py
@@ -123,6 +130,13 @@ _FULL_REBUILD = {
     "bank_audit_statement_types",
     "bank_audit_coverage",
     "api_series",
+    # Derived wholesale by scripts/analyst/detect.py from the audit corpus on
+    # every run — there is no "recent row" to window on, and a signal that
+    # stopped firing must disappear from D1 rather than linger. Small (455 + 1,050
+    # rows today), so the content hash makes a re-run free.
+    "analyst_signals",
+    "analyst_basis_metadata",
+    "analyst_notes",
 }
 
 # Named table groups for --table-set, so a caller can say "the audit lane's
@@ -159,7 +173,15 @@ CREATE TABLE IF NOT EXISTS d1_push_state (
 # takes DEFAULT CURRENT_TIMESTAMP and all 19,787 rows differ on every run even
 # when the catalogue is identical. Excluding it is also the correct semantics —
 # a moved build stamp is not a reason to rewrite a table in D1.
-_BUILD_STAMP_COLUMNS = {"built_at", "downloaded_at", "generated_at", "synced_at"}
+#
+# `fired_at` is here for exactly the same reason and it is the easiest to miss:
+# detect.py's INSERT OR REPLACE omits the column, so every re-run takes DEFAULT
+# CURRENT_TIMESTAMP on every signal even when the detector found precisely what
+# it found yesterday. Left in the hash, the analyst tables would rebuild daily
+# forever — the EVDS bug in miniature. Excluding it also gives D1's `fired_at`
+# the better meaning: when this signal FIRST fired, not when the detector last ran.
+_BUILD_STAMP_COLUMNS = {"built_at", "downloaded_at", "generated_at", "synced_at",
+                        "fired_at"}
 
 
 def content_hash(conn: sqlite3.Connection, table: str) -> str:

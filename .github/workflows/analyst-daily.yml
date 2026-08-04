@@ -42,6 +42,10 @@ on:
         description: "Regenerate memos even when the data hash is unchanged."
         type: boolean
         default: false
+      push:
+        description: "Push analyst_signals + analyst_basis_metadata to D1. Off by default."
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -187,6 +191,24 @@ jobs:
       - name: Score reports (informational — the guard already gates)
         if: always()
         run: python scripts/analyst/score_reports.py "data/analyst_memo_*.json"
+
+      # Off by default. The three analyst tables are registered as _FULL_REBUILD
+      # in push_to_d1: detect.py derives them wholesale from the audit corpus on
+      # every run, so there is no "recent row" to window on, and a signal that
+      # stopped firing has to DISAPPEAR from D1 rather than linger. They are tiny
+      # (455 + 1,050 rows), and the content hash makes an unchanged re-run free —
+      # note `fired_at` is excluded from that hash, because detect.py omits the
+      # column on INSERT and it therefore takes a fresh CURRENT_TIMESTAMP every
+      # run even when the detector found exactly what it found yesterday.
+      # `analyst_notes` is empty today; push_to_d1 refuses to emit a bare DELETE
+      # for an empty full-rebuild table, so this cannot wipe it in D1.
+      - name: Push analyst tables to Cloudflare D1
+        if: ${{ inputs.push }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: >
+          python scripts/push_to_d1.py --db data/analyst.db
+          --only-tables analyst_signals,analyst_basis_metadata,analyst_notes
 
       - name: Upload analyst staging state to R2
         if: always()
