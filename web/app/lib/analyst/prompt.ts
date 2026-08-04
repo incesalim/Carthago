@@ -448,9 +448,8 @@ WHAT MAKES THIS A MEMO, NOT A SCREEN
 The DATA block opens with STORY GATES — a computed verdict on which analytical
 stories are LIVE for this bank, in editorial order. They are binding rulings,
 not hints: the headline must state the story marked LEAD; EVERY other LIVE
-story must receive at least one dedicated paragraph of its own in "What
-changed" or "What it means" — dropping a live story is as wrong as inventing
-a dead one. A DEAD story may appear only as a single "notably absent"
+story must receive at least one dedicated paragraph of its own in the body
+sections — dropping a live story is as wrong as inventing a dead one. A DEAD story may appear only as a single "notably absent"
 sentence (a clean bank's cleanliness IS worth one line). Do not import a
 story from banks in general — if the gate says the capital composition is
 unremarkable, it is unremarkable HERE regardless of how often that story is
@@ -529,9 +528,34 @@ Output ONLY the report itself, starting directly with the "# " headline line.
 Never narrate your process, restate these instructions, or think out loud —
 text that is not the report is discarded wholesale.`;
 
+const SKELETON_REMINDER = `
+────────────────────────────────────────────
+REMINDER — output the FULL report now, 2,500–4,000 words, starting with the
+"# " headline, then the Analyst verdict paragraph, then EXACTLY these
+sections in order (every one present; use markdown tables where the data
+gives you a table):
+## First-read scorecard
+## What changed
+## Earnings and earnings quality
+## Balance sheet, funding and liquidity
+## Asset quality
+## Capital
+## Currency position
+## Macro and regulation
+## Peer comparison
+## What the auditor said
+## What to watch
+## What this report cannot see
+## Bottom line
+A short four-section memo is a FAILED output.`;
+
 export function buildMemoMessages(input: AnalystInput): { system: string; user: string } {
   return {
     system: ANALYST_SYSTEM_PROMPT,
-    user: renderDataBlock(input),
+    // The skeleton repeats at the TAIL of the user message: on long prompts
+    // the free models follow the most recent instruction far more reliably
+    // than one buried mid-system-prompt (the 435-word collapse of run
+    // 30906921912 is the measurement).
+    user: renderDataBlock(input) + "\n" + SKELETON_REMINDER,
   };
 }

@@ -63,6 +63,10 @@ interface Provider {
   headers?: Record<string, string>;
   /** Extra body fields merged into the completion request. */
   params?: Record<string, unknown>;
+  /** Not part of the default walk — reachable only when a caller names it in
+   *  `providerOrder`. Lets a lane opt into a provider without changing the
+   *  bot's tuned chain. */
+  optIn?: boolean;
 }
 
 // Ordered fallback chain. Each is OpenAI-compatible (`/chat/completions`).
@@ -110,6 +114,19 @@ const PROVIDERS: Provider[] = [
     base: "https://api.cerebras.ai/v1",
     model: "gemma-4-31b",
     keys: ["CEREBRAS_KEY", "CEREBRAS_API_KEY"],
+  },
+  // OPT-IN, analyst deep-dive lane only (providerOrder names it; the bot's
+  // walk never reaches it). The long-form-proven model in this repo: the
+  // regulation briefing runs deepseek-v4-flash via OpenRouter. The :free
+  // variant keeps the lane unbilled — dropping the suffix is the same
+  // one-character billing mistake as nemotron's.
+  {
+    name: "openrouter/deepseek-v4-flash-free",
+    base: "https://openrouter.ai/api/v1",
+    model: "deepseek/deepseek-v4-flash:free",
+    keys: ["OPEN_ROUTER_API", "OPENROUTER_API_KEY"],
+    headers: { "HTTP-Referer": "https://carthago.app", "X-Title": "carthago" },
+    optIn: true,
   },
 ];
 
@@ -161,6 +178,10 @@ interface ChatOpts {
    *  The bot's short SQL loop keeps nemotron first — the chains differ on
    *  purpose, like the Python headline lane does. */
   excludeProviders?: string[];
+  /** Full replacement chain for this CALL: exactly these provider names, in
+   *  this order (unknown names are ignored). The only way to reach an
+   *  `optIn` provider. Callers that pass nothing get the default walk. */
+  providerOrder?: string[];
 }
 
 async function callProvider(
@@ -209,7 +230,12 @@ async function attemptChain(
 ): Promise<ChatResult> {
   const errors: string[] = [];
   const skipped: string[] = [];
-  for (const p of PROVIDERS) {
+  const chain = opts.providerOrder
+    ? opts.providerOrder
+        .map((name) => PROVIDERS.find((p) => p.name === name))
+        .filter((p): p is Provider => p != null)
+    : PROVIDERS.filter((p) => !p.optIn);
+  for (const p of chain) {
     if (opts.deadline != null && Date.now() >= opts.deadline) {
       errors.push("deadline reached before trying remaining providers");
       break;
