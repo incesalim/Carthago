@@ -153,10 +153,13 @@ describe("guardMemo — structural abstention", () => {
   ].join("\n");
 
   const shaped = (middle: string) =>
-    `# Coverage collapsed to 48.3%\n\n## What changed\n\n${middle}\n\n` +
-    "## What it means\n\nThe fall is structural.\n\n" +
+    `# Coverage collapsed to 48.3%\n\n## First-read scorecard\n\n| metric | value |\n| NPL | 1.33 |\n\n` +
+    `## What changed\n\n${middle}\n\n` +
+    "## Asset quality\n\nCoverage sits at 48.3%.\n\n" +
+    "## Capital\n\nCAR is 22.13%.\n\n" +
+    "## What the auditor said\n\nClean review, limited assurance.\n\n" +
     "## What to watch\n\n- Coverage stabilising.\n\n" +
-    "## Comparability caveats\n\n- Limited review.";
+    "## Bottom line\n\nThe fall is structural.";
 
   it("passes a memo whose figures are all in the data (incl. % forms)", async () => {
     const { guardMemo } = await import("./guard");
@@ -254,6 +257,7 @@ describe("storyGates — the deterministic editorial layer", () => {
           car: 15.6, cet1: 11.71, car_minus_cet1_pp: 4.64, npl_ratio_pct: 2.67,
           stage2_ratio_pct: 9.87, stage3_coverage_pct: 63.35, ldr_pct: 85.54, roe_ttm_pct: 25.74,
         },
+        rows: [],
       },
       comparatives: [] as import("./comparator").MetricChange[],
     };
@@ -356,6 +360,7 @@ describe("prompt rendering", () => {
           car: null, cet1: null, car_minus_cet1_pp: null, npl_ratio_pct: null,
           stage2_ratio_pct: null, stage3_coverage_pct: null, ldr_pct: null, roe_ttm_pct: null,
         },
+        rows: [],
       },
       comparatives: [],
     });

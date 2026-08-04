@@ -52,11 +52,17 @@ export interface GuardResult {
   passed: boolean;
 }
 
+// The full-report skeleton (prompt.ts STRUCTURE). Requiring the core sections
+// keeps the leaked-monologue failure impossible without being brittle about
+// the optional ones (a bank with no FX table may fold that section away).
 const REQUIRED_HEADINGS = [
+  "## First-read scorecard",
   "## What changed",
-  "## What it means",
+  "## Asset quality",
+  "## Capital",
+  "## What the auditor said",
   "## What to watch",
-  "## Comparability caveats",
+  "## Bottom line",
 ];
 
 export function memoStructureOk(memo: string): boolean {

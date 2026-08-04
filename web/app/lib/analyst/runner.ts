@@ -32,9 +32,9 @@ export interface MemoResult {
   dropped_detail: { paragraph: string; unsupported: number[] }[];
 }
 
-const MAX_TOKENS = 3200; // ≤900 words + markdown scaffolding
-const CALL_TIMEOUT_MS = 90_000;
-const RUN_BUDGET_MS = 300_000; // CI is patient; the chain's own deadline still bounds retries
+const MAX_TOKENS = 10_000; // a 2,500-4,000-word report with tables
+const CALL_TIMEOUT_MS = 240_000;
+const RUN_BUDGET_MS = 600_000; // CI is patient; the chain's own deadline still bounds retries
 
 function titleOf(body: string): string {
   const m = /^#\s*(.+)$/m.exec(body);

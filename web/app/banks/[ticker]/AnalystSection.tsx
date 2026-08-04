@@ -94,6 +94,29 @@ function MemoBody({ body }: { body: string }) {
             </h4>
           );
         }
+        if (b.split("\n").every((l) => l.trim().startsWith("|"))) {
+          const rows = b
+            .split("\n")
+            .map((l) => l.trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim()))
+            .filter((cells) => !cells.every((c) => /^:?-{2,}:?$/.test(c)));
+          return (
+            <div key={i} className="overflow-x-auto">
+              <table className="w-full border-collapse text-[11px]">
+                <tbody>
+                  {rows.map((cells, ri) => (
+                    <tr key={ri} className="border-b border-hair">
+                      {cells.map((c, ci) => (
+                        <td key={ci} className={`py-1 pr-3 align-top ${ri === 0 ? "font-semibold text-foreground" : "font-mono text-[10.5px] text-muted-foreground"}`}>
+                          {c}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        }
         if (/^[-*] /m.test(b)) {
           return (
             <ul key={i} className="list-disc space-y-1 pl-4 text-[12px] leading-relaxed text-muted-foreground">

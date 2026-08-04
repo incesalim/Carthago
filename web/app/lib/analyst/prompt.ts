@@ -374,6 +374,28 @@ export function renderDataBlock(input: AnalystInput): string {
   for (const [k, v] of Object.entries(peers.medians)) out.push(`  median_${k}: ${fmt(v)}`);
   out.push("");
 
+  if (peers.rows.length) {
+    out.push("## Named peer table — the class by assets, each bank's own filed figures");
+    out.push("  ticker | total_assets | CAR | CET1 | NPL% | Stage2% | Stage3 cov% | ROE ttm%");
+    for (const r of peers.rows) {
+      out.push(
+        `  ${r.bank_ticker} | ${fmt(r.total_assets)} | ${fmt(r.car)} | ${fmt(r.cet1)} | ` +
+          `${fmt(r.npl_ratio_pct)} | ${fmt(r.stage2_ratio_pct)} | ${fmt(r.stage3_coverage_pct)} | ${fmt(r.roe_ttm_pct)}`,
+      );
+    }
+    out.push("");
+  }
+
+  const sec = s.macro.sector;
+  if (sec.as_of) {
+    out.push(`## Sector aggregates — BDDK monthly data, ${sec.as_of} (system-wide, code 10001)`);
+    out.push(
+      `  sector_total_assets: ${fmt(sec.total_assets_million_tl)} MILLION TL · this bank's share: ${fmt(sec.bank_share_of_sector_assets_pct, "%")}`,
+      `  sector_roe: ${fmt(sec.roe_pct, "%")} · sector_npl_ratio: ${fmt(sec.npl_ratio_pct, "%")} · sector_car: ${fmt(sec.car_pct, "%")} · sector_nim_on_avg_assets: ${fmt(sec.nim_pct, "%")}`,
+      "",
+    );
+  }
+
   out.push("## Quarter-over-quarter / year-over-year");
   for (const c of comparatives) {
     if (c.now == null) continue;
@@ -455,21 +477,57 @@ Headline ratios conceal composition. Your job is the SECOND question:
 - Judge growth in REAL terms (the deflated figures are provided).
 - Use peer medians to say whether a level is the bank or the sector.
 
-STRUCTURE (markdown, ≤ 900 words)
-Line 1: "# " + a one-sentence headline stating the single most important fact.
-Then exactly these sections:
-"## What changed" — 2-3 paragraphs: the quarter's movements that matter, with QoQ/YoY and peer context.
-"## What it means" — 2-3 paragraphs: the causal chain, built from the decompositions, movement tables and the auditor's words.
-"## What to watch" — 2-4 bullets: forward indicators tied to LIVE stories. A
-falsification threshold must be a figure that appears in the DATA block (the
-current value, a peer median, a window-start value) — if no held figure makes
-a sensible threshold, state the indicator and its direction WITHOUT a number.
-This is where invented figures die: never project a level the data does not contain.
-"## Comparability caveats" — bullets: reporting unit, assurance level, consolidation basis, opinion status and streak, restatement/detector signals, and any NOT-AVAILABLE item a reader must know about.
+STRUCTURE — a FULL research report, 2,500–4,000 words of substance, markdown.
+Line 1: "# " + a one-sentence headline stating the LEAD story.
+Then a short "Analyst verdict" paragraph (3-5 sentences — the whole thesis).
+Then EXACTLY these sections, in order. Markdown tables are encouraged wherever
+the data block gives you a table (scorecard, buckets, trajectory, peers) —
+every cell a figure from the data block, "n/a" where not held.
 
-Output ONLY the memo itself, starting directly with the "# " headline line.
+"## First-read scorecard" — a table: the 8-12 defining metrics of the quarter
+(assets, net income, ROE nominal AND real, NIM-proxy or margin line, NPL,
+Stage-2, coverage, CAR/CET1, LDR), each with the figure, the QoQ/YoY move,
+and one short interpretation.
+"## What changed" — 3-5 paragraphs: the quarter's movements that matter, every
+LIVE story present, peer and sector context inline.
+"## Earnings and earnings quality" — margin/core-margin trend (like-quarter
+comparisons), fees/opex/cost-income, the free-provision position and its
+history (re-base distorted comparisons where the history shows releases),
+real-terms verdict.
+"## Balance sheet, funding and liquidity" — assets, deposits (TL/FC split),
+LDR, LCR/NSFR/leverage.
+"## Asset quality" — the deep dive: stages, BRSA buckets with shares and
+per-bucket coverage, the PRECOMPUTED mix-vs-erosion decomposition, the NPL
+movement reconciliation (opening → additions → collections → write-offs/sales
+→ closing), quarterly formation, sector NPL comparison.
+"## Capital" — ratios vs peers and sector, the trajectory table, WHY the
+ratio moved (the capital-vs-RWA growth figures), equity/assets, leverage.
+"## Currency position" — the net FX position, on/off-balance split, by
+currency.
+"## Macro and regulation" — the funding rate, CPI, USDTRY, sector aggregates,
+recent regulation categories; what they mean for THIS bank's mix.
+"## Peer comparison" — the named-peer table rendered as markdown, then 2-3
+paragraphs of directional reading (who leads on what; where this bank sits;
+respect the stage-definition caveat).
+"## What the auditor said" — assurance level and its meaning (a review is
+negative assurance, narrower than an audit), opinion status and streak, the
+verbatim basis text if qualified, detector signals. For a clean opinion say
+plainly that no qualification exists and what a review does NOT cover.
+"## What to watch" — 4-6 bullets tied to LIVE stories. A falsification
+threshold must be a figure that appears in the DATA block (current value,
+peer median, window-start value) — if no held figure makes a sensible
+threshold, state the indicator and its direction WITHOUT a number. This is
+where invented figures die: never project a level the data does not contain.
+"## What this report cannot see" — an honest register of the NOT AVAILABLE
+list: name the missing dataset AND what question it would answer (e.g. market
+pricing is deliberately not carried, so no P/B or P/E is computed here).
+"## Bottom line" — 2-3 paragraphs: the thesis restated with its strongest
+numbers, what is franchise vs cycle vs accounting artifact, and the single
+condition that would change the read.
+
+Output ONLY the report itself, starting directly with the "# " headline line.
 Never narrate your process, restate these instructions, or think out loud —
-text that is not the memo is discarded wholesale.`;
+text that is not the report is discarded wholesale.`;
 
 export function buildMemoMessages(input: AnalystInput): { system: string; user: string } {
   return {

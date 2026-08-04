@@ -15,6 +15,17 @@ import { licenceClassOf } from "./sections";
 
 export const MIN_PEERS = 3;
 
+export interface PeerRow {
+  bank_ticker: string;
+  total_assets: number | null;
+  car: number | null;
+  cet1: number | null;
+  npl_ratio_pct: number | null;
+  stage2_ratio_pct: number | null;
+  stage3_coverage_pct: number | null;
+  roe_ttm_pct: number | null;
+}
+
 export interface PeerContext {
   licence_class: string;
   peer_count: number;
@@ -28,6 +39,10 @@ export interface PeerContext {
     ldr_pct: number | null;
     roe_ttm_pct: number | null;
   };
+  /** The largest class peers BY NAME with their filed figures — a deep-dive
+   *  peer table is named banks, not an anonymous median. Includes the subject
+   *  bank; sorted by assets, TAKAS excluded like every aggregate. */
+  rows: PeerRow[];
 }
 
 function median(xs: number[]): number | null {
@@ -49,7 +64,7 @@ export async function buildPeerContext(
 
   const inClass = (t: string) => !PEER_EXCLUDED_TICKERS.has(t) && licenceClassOf(t) === cls;
 
-  const [capRows, stagesRows, depRows, plRows, eqRows] = await Promise.all([
+  const [capRows, stagesRows, depRows, plRows, eqRows, assetRows] = await Promise.all([
     db.all<{ bank_ticker: string; cet1_ratio: number | null; capital_adequacy_ratio: number | null }>(
       "SELECT bank_ticker, cet1_ratio, capital_adequacy_ratio FROM bank_audit_capital " +
         "WHERE period = ? AND kind = ? AND period_type = 'current'",
@@ -85,6 +100,12 @@ export async function buildPeerContext(
         "AND hierarchy = '' AND total_equity IS NOT NULL AND period <= ?" +
         ") WHERE rn = 1",
       [kind, period],
+    ),
+    db.all<{ bank_ticker: string; total: number | null }>(
+      "SELECT bank_ticker, MAX(amount_total) AS total FROM bank_audit_balance_sheet " +
+        "WHERE period = ? AND kind = ? AND hierarchy = '' " +
+        "AND statement IN ('assets','liabilities') GROUP BY bank_ticker",
+      [period, kind],
     ),
   ]);
 
@@ -153,11 +174,57 @@ export async function buildPeerContext(
     if (avg > 0) roes.push((ttm / avg) * 100);
   }
 
+  // Per-bank peer table: the class ranked by assets, each with its own filed
+  // figures (per-bank ROE reuses the TTM machinery above).
+  const roeByBank = new Map<string, number>();
+  for (const [t, ytd] of ytdByBank) {
+    const ttm = ttmEndingAt(ytd, ord);
+    const eq = eqByBank.get(t);
+    if (ttm == null || !eq) continue;
+    const pts: number[] = [];
+    for (let k = 0; k < 5; k++) {
+      const p = `${Math.floor((ord - k) / 4)}Q${((ord - k) % 4) + 1}`;
+      const v = eq.get(p);
+      if (v != null) pts.push(v);
+    }
+    if (pts.length < 2) continue;
+    const avg = pts.reduce((a, b) => a + b, 0) / pts.length;
+    if (avg > 0) roeByBank.set(t, Number(((ttm / avg) * 100).toFixed(2)));
+  }
+  const capByBank = new Map(capRows.map((r) => [r.bank_ticker, r]));
+  const stagesByBank = new Map(stagesRows.map((r) => [r.bank_ticker, r]));
+  const rows: PeerRow[] = assetRows
+    .filter((r) => inClass(r.bank_ticker) && r.total != null)
+    .sort((a, b) => (b.total ?? 0) - (a.total ?? 0))
+    .slice(0, 10)
+    .map((r) => {
+      const c = capByBank.get(r.bank_ticker);
+      const st = stagesByBank.get(r.bank_ticker);
+      return {
+        bank_ticker: r.bank_ticker,
+        total_assets: r.total,
+        car: c?.capital_adequacy_ratio ?? null,
+        cet1: c?.cet1_ratio ?? null,
+        npl_ratio_pct:
+          st?.stage3_amount != null && st.total_amount
+            ? Number(((st.stage3_amount / st.total_amount) * 100).toFixed(2))
+            : null,
+        stage2_ratio_pct:
+          st?.stage2_amount != null && st.total_amount
+            ? Number(((st.stage2_amount / st.total_amount) * 100).toFixed(2))
+            : null,
+        stage3_coverage_pct:
+          st?.stage3_coverage != null ? Number((st.stage3_coverage * 100).toFixed(1)) : null,
+        roe_ttm_pct: roeByBank.get(r.bank_ticker) ?? null,
+      };
+    });
+
   return {
     licence_class: cls,
     peer_count: new Set(
       capRows.map((r) => r.bank_ticker).filter(inClass),
     ).size,
+    rows,
     medians: {
       car: median(cars),
       cet1: median(cet1s),

@@ -62,6 +62,17 @@ export interface AnalystSections {
     cpi_yoy_pct: number | null;
     usd_try: number | null;
     regulation_categories: string[];
+    /** BDDK's own sector aggregates (family B, monthly, million TL / percent)
+     *  at the latest month ≤ quarter end — "is it the bank or the sector". */
+    sector: {
+      as_of: string | null;
+      total_assets_million_tl: number | null;
+      bank_share_of_sector_assets_pct: number | null;
+      roe_pct: number | null;
+      npl_ratio_pct: number | null;
+      car_pct: number | null;
+      nim_pct: number | null;
+    };
   };
   earnings: SectionBase & {
     total_assets: number | null;
@@ -471,6 +482,36 @@ export async function buildAnalystSections(
     regulationCategories = [];
   }
 
+  // BDDK sector aggregates (family B): code 10001 IS the whole system —
+  // never summed. Ratio labels are the VERBATIM strings from bot-schema.ts
+  // (LIKE does not fold Turkish; guessing the label cost five queries once).
+  // Sector amounts are MILLION TL; per-bank audit amounts are THOUSAND TL —
+  // the share calculation converts explicitly.
+  const yyyymm = Number(`${period.slice(0, 4)}${QUARTER_END_MONTH[period.slice(5)]}`);
+  const sectorRatio = async (label: string): Promise<{ v: number | null; ym: number | null }> => {
+    const row = await firstRow<{ ratio_value: number | null; year: number; month: number }>(
+      db,
+      "SELECT ratio_value, year, month FROM financial_ratios " +
+        "WHERE bank_type_code = '10001' AND item_name = ? AND (year * 100 + month) <= ? " +
+        "ORDER BY year DESC, month DESC LIMIT 1",
+      [label, yyyymm],
+    ).catch(() => null);
+    return { v: row?.ratio_value ?? null, ym: row ? row.year * 100 + row.month : null };
+  };
+  const [secRoe, secNpl, secCar, secNim, secAssets] = await Promise.all([
+    sectorRatio("Dönem Net Kârı (Zararı) / Ortalama Özkaynaklar (%)"),
+    sectorRatio("Takipteki Alacaklar (Brüt) / Toplam Nakdi Krediler (%)"),
+    sectorRatio("Yasal Özkaynak / Risk Ağırlıklı Kalemler Toplamı (%)"),
+    sectorRatio("Net Faiz Geliri (Gideri) / Ortalama Toplam Aktifler (%)"),
+    firstRow<{ amount_total: number | null; year: number; month: number }>(
+      db,
+      "SELECT amount_total, year, month FROM balance_sheet " +
+        "WHERE bank_type_code = '10001' AND currency = 'TL' AND item_name = 'TOPLAM AKTİFLER' " +
+        "AND (year * 100 + month) <= ? ORDER BY year DESC, month DESC LIMIT 1",
+      [yyyymm],
+    ).catch(() => null),
+  ]);
+
   /* -------- earnings -------- */
   const netYtdMap = s.plByRole.get("period_net") ?? new Map<number, number>();
   const netYtd = netYtdMap.get(ord) ?? null;
@@ -746,11 +787,27 @@ export async function buildAnalystSections(
       },
     },
     macro: {
-      _gaps: regulationCategories.length ? [] : ["no regulation briefing available"],
+      _gaps: [
+        ...(regulationCategories.length ? [] : ["no regulation briefing available"]),
+        ...(secAssets ? [] : ["sector bulletin tables not reachable — sector context absent"]),
+      ],
       funding_rate_pct: latestOf("TP.APIFON4"),
       cpi_yoy_pct: pct(cpiYoY),
       usd_try: latestOf("TP.DK.USD.A"),
       regulation_categories: regulationCategories,
+      sector: {
+        as_of: secAssets ? `${secAssets.year}-${String(secAssets.month).padStart(2, "0")}` : null,
+        total_assets_million_tl: secAssets?.amount_total ?? null,
+        // Bank amounts are THOUSAND TL, sector MILLION TL: share = k / (m × 1000).
+        bank_share_of_sector_assets_pct:
+          assetsNow != null && secAssets?.amount_total
+            ? pct((assetsNow / (secAssets.amount_total * 1000)) * 100)
+            : null,
+        roe_pct: pct(secRoe.v),
+        npl_ratio_pct: pct(secNpl.v),
+        car_pct: pct(secCar.v),
+        nim_pct: pct(secNim.v),
+      },
     },
     earnings: {
       _gaps: [
