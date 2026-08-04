@@ -59,7 +59,11 @@ const TICKER_RE = /^[A-Z]{2,8}$/;
 const KINDS = ["consolidated", "unconsolidated"] as const;
 
 const MAX_ROWS = 220;
-const TEXT_TRUNC = 1400;
+// Safety bound for unexpected long strings in evidence. Every tool bounds its
+// own text tighter (search contexts ~320, failed_detail 400, quotes 600) —
+// EXCEPT get_source_page, whose 8000-char page IS the payload; 1400 here was
+// measured clipping the sukuk instrument table out of the model's sight.
+const TEXT_TRUNC = 8200;
 
 /* ------------------------------------------------------------------ utils */
 
@@ -424,29 +428,41 @@ export const TOOLS: ToolSpec[] = [
   },
   {
     name: "search_filing_text",
-    description: "Full-text search over the filing PDF's extracted text (prepared per run). Returns page numbers with context windows.",
+    description: "Text search over the filing PDF's extracted text (prepared per run). SUBSTRING match per term; separate alternatives with ' OR '. Short fragments beat long phrases. Returns page numbers with context windows.",
     params: [
-      { name: "query", type: "string", required: true, description: "substring, diacritic-folded, min 3 chars" },
+      { name: "query", type: "string", required: true, description: "substring (diacritic-folded, min 3 chars), or alternatives joined by ' OR ' — matched independently" },
       { name: "max_hits", type: "number", description: "default 8" },
     ],
     run: async (ctx, a) => {
       if (!ctx.filingText) {
         return { data: [], warnings: ["filing text not prepared in this run — the source-page tools need the PDF pre-extract step"], tables: [], rows: 0 };
       }
-      const q = foldTr(String(a.query));
-      if (q.length < 3) bad("query too short");
+      // Models reach for boolean syntax under pressure — measured: 7 of 12
+      // searches across two runs were 'X OR Y' forms that matched nothing as
+      // literal substrings. Split on OR and match each alternative.
+      const terms = String(a.query).split(/\s+OR\s+/i).map((t) => foldTr(t.trim())).filter((t) => t.length > 0);
+      if (!terms.length || terms.some((t) => t.length < 3)) bad("each search term must be at least 3 chars");
       const maxHits = Math.min(Number(a.max_hits) || 8, 20);
-      const hits: { page: number; context: string }[] = [];
-      for (const p of ctx.filingText.pages) {
+      const warnings: string[] = [];
+      const hits: { page: number; term: string; context: string }[] = [];
+      outer: for (const p of ctx.filingText.pages) {
         const folded = foldTr(p.text);
-        let idx = folded.indexOf(q);
-        while (idx >= 0 && hits.length < maxHits) {
-          hits.push({ page: p.page, context: p.text.slice(Math.max(0, idx - 160), idx + q.length + 160).replace(/\s+/g, " ") });
-          idx = folded.indexOf(q, idx + q.length);
+        for (const q of terms) {
+          let idx = folded.indexOf(q);
+          while (idx >= 0) {
+            hits.push({ page: p.page, term: q, context: p.text.slice(Math.max(0, idx - 160), idx + q.length + 160).replace(/\s+/g, " ") });
+            if (hits.length >= maxHits) break outer;
+            idx = folded.indexOf(q, idx + q.length);
+          }
         }
-        if (hits.length >= maxHits) break;
       }
-      return { data: hits, warnings: hits.length ? [] : ["no matches"], tables: [], rows: hits.length, sourcePages: hits.map((h) => h.page) };
+      if (!hits.length) {
+        warnings.push("no matches");
+        if (terms.some((t) => t.split(/\s+/).length >= 4)) {
+          warnings.push("this is SUBSTRING search — long phrases rarely appear verbatim; retry with short distinctive fragments (a number, a defined term)");
+        }
+      }
+      return { data: hits, warnings, tables: [], rows: hits.length, sourcePages: [...new Set(hits.map((h) => h.page))].sort((x, y) => x - y) };
     },
   },
   {

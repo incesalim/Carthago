@@ -360,6 +360,43 @@ describe("catalog", () => {
   });
 });
 
+describe("filing-text search (the OR-query and page-truncation regressions)", () => {
+  const withFiling = async (): Promise<ToolContext> => {
+    const c = await ctx();
+    c.filingText = {
+      bank: "TESTBK", period: "2026Q1", kind: "unconsolidated",
+      pages: [
+        { page: 1, text: "the quick alpha fox" },
+        { page: 2, text: "a beta instrument table" },
+        { page: 36, text: "SUKUK WAKALA issued via Bereket. " + "x".repeat(5000) + " BDDK letter 9196" },
+      ],
+    };
+    return c;
+  };
+
+  it("splits ' OR ' into alternatives and unions the hits", async () => {
+    const c = await withFiling();
+    const rec = await runTool(c, "search_filing_text", { query: "alpha OR beta" });
+    const hits = rec.data as { page: number; term: string }[];
+    expect(hits.map((h) => h.page)).toEqual([1, 2]);
+    expect(rec.provenance.source_pages).toEqual([1, 2]);
+  });
+
+  it("a zero-hit long phrase warns toward short fragments", async () => {
+    const c = await withFiling();
+    const rec = await runTool(c, "search_filing_text", { query: "this exact long phrase never appears verbatim anywhere" });
+    expect(rec.warnings.join(" ")).toContain("SUBSTRING search");
+  });
+
+  it("get_source_page evidence keeps the whole 8000-char page — the tail is readable", async () => {
+    const c = await withFiling();
+    const rec = await runTool(c, "get_source_page", { page: 36 });
+    const text = (rec.data as { text: string }).text;
+    expect(text.length).toBeGreaterThan(5000);
+    expect(text).toContain("BDDK letter 9196"); // was beyond the old 1400-char cut
+  });
+});
+
 describe("evidence id canonicalization (the ALBRK double-id regression)", () => {
   it("omitted and explicit period_type='current' yield ONE evidence record", async () => {
     const c = await ctx();
