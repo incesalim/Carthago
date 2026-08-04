@@ -599,6 +599,17 @@ comfortably inside the allowance. **The entire overage is campaign days** — Ju
    `tests/test_d1_write_economy.py` is the gate: a second identical ingest must
    write nothing, and a genuine revision must still land.
 
+   ⚠️ **Fixing a lane changes what its freshness check means — retune it in the
+   same commit.** `MAX(downloaded_at)` stops answering "did the cron run" and
+   starts answering "did new data land", so a threshold sized for the cron will
+   cry wolf on the source's real cadence. Both `scripts/healthcheck.py`
+   (`THRESHOLDS`) and `web/app/lib/admin-health.ts` read these columns and both
+   must move. Weekly went 192h → **312h** on 2026-08-04: measured over 341
+   publication gaps since 2019-11, 307 are exactly 7 days but 17 run longer, to a
+   maximum of 11 (public holidays) — 8 days would have alerted ~2.5x a year for
+   nothing. EVDS and TEFAS took the other route and switched to `MAX(<data
+   date>)` instead. Either is fine; leaving the old threshold is not.
+
    ⚠️ **This class is the flat daily baseline, not the overage.** Together the
    weekly + TEFAS fixes take ~1.7M/month off a ~14.6M/month quiet baseline. The
    50M is blown by **campaign days** (Jul 15/17/26 alone were 36.9M of 68.1M) —

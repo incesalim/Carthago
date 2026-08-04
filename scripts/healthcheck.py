@@ -31,7 +31,17 @@ sys.path.insert(0, str(ROOT))  # so the lazy BDDK-probe import resolves
 # schedule-aware check instead (see monthly_problem). Audit is excluded from
 # staleness (banks publish quarterly) — it's covered by the failure count.
 THRESHOLDS = [
-    ("weekly", "Weekly bulletin", 192),
+    # 13 days, not the 8 it was until 2026-08-04. `weekly` is checked on
+    # MAX(downloaded_at), and that column changed MEANING on that date: the
+    # weekly scraper used to re-stamp all ~26,600 rows of BDDK's trailing
+    # 13-week window on every run, so the check really asked "did the cron run".
+    # Now that only changed rows are written, it asks the better question —
+    # "did a new week actually land" — and so it must tolerate BDDK's real
+    # publication cadence instead of the cron's. Measured over 341 gaps since
+    # 2019-11: 307 are exactly 7 days, but 17 exceed a week (twelve 8-day, one
+    # 9, three 10, one 11 — public holidays). 8 days would have cried wolf
+    # ~2.5x a year. 13 still fires on two consecutive missed weeks.
+    ("weekly", "Weekly bulletin", 312),
     # Checked on the latest DATA date, like TEFAS below and for the same reason:
     # since 2026-07-27 the EVDS scraper only writes rows whose value CHANGED, so
     # `downloaded_at` now means "when the data last moved", not "when the cron

@@ -261,7 +261,16 @@ export async function getHealthReport(): Promise<HealthReport> {
       table: "weekly_series",
       periodCol: "period_date",
       refreshCol: "downloaded_at",
-      cadenceHours: WEEK,
+      // 9 days, not WEEK. downloaded_at changed meaning on 2026-08-04: the
+      // weekly scraper stopped re-stamping BDDK's unchanged trailing 13-week
+      // window (~26,600 rows a run, ~1.5M D1 writes/month), so this column now
+      // marks when a new week LANDED rather than when the cron last ran. BDDK's
+      // real cadence is 7 days but 17 of 341 gaps since 2019-11 ran longer, to a
+      // maximum of 11 (public holidays). At the 1.5x fresh multiplier a 9-day
+      // cadence tolerates 13.5 days, so a holiday gap stays green and two
+      // consecutive missed weeks still go amber. Same reasoning and the same
+      // shape as the EVDS note above; see scripts/healthcheck.py THRESHOLDS.
+      cadenceHours: 9 * DAY,
     }),
     evdsSource(db),
     auditSource(db),
