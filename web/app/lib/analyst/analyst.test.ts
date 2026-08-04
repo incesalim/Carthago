@@ -329,8 +329,8 @@ describe("storyGates — the deterministic editorial layer", () => {
     };
     input.comparatives = [{
       metric: "npl_ratio_pct", unit: "pp", now: 1.33,
-      qoq: { prior: 1.29, delta: 0.04, direction: "flat" },
-      yoy: { prior: 1.45, delta: -0.12, direction: "down" },
+      qoq: { prior: 1.29, delta: 0.04, growth_pct: null, direction: "flat" },
+      yoy: { prior: 1.45, delta: -0.12, growth_pct: null, direction: "down" },
     }];
     const by = Object.fromEntries(storyGates(input).map((g) => [g.story, g]));
     expect(by.npl_coverage_divergence.live).toBe(true);

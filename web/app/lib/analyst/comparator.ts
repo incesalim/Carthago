@@ -10,8 +10,8 @@ export interface MetricChange {
   metric: string;
   unit: "pct" | "pp" | "thousand_tl";
   now: number | null;
-  qoq: { prior: number | null; delta: number | null; direction: "up" | "down" | "flat" | null };
-  yoy: { prior: number | null; delta: number | null; direction: "up" | "down" | "flat" | null };
+  qoq: { prior: number | null; delta: number | null; growth_pct: number | null; direction: "up" | "down" | "flat" | null };
+  yoy: { prior: number | null; delta: number | null; growth_pct: number | null; direction: "up" | "down" | "flat" | null };
 }
 
 function direction(delta: number | null, eps: number): "up" | "down" | "flat" | null {
@@ -36,12 +36,19 @@ function change(
   const yv = yP ? at(yP) : null;
   const dq = now != null && q != null ? Number((now - q).toFixed(2)) : null;
   const dy = now != null && yv != null ? Number((now - yv).toFixed(2)) : null;
+  // Growth PERCENT precomputed for amount metrics — the AKBNK run derived
+  // "+28.3% YoY" by hand from the delta because only the delta was given.
+  // Ratio metrics keep deltas only (a growth-% of a percentage misleads).
+  const g = (a: number | null, b: number | null): number | null =>
+    unit === "thousand_tl" && a != null && b != null && b !== 0
+      ? Number((((a - b) / Math.abs(b)) * 100).toFixed(1))
+      : null;
   return {
     metric,
     unit,
     now,
-    qoq: { prior: q, delta: dq, direction: direction(dq, eps) },
-    yoy: { prior: yv, delta: dy, direction: direction(dy, eps) },
+    qoq: { prior: q, delta: dq, growth_pct: g(now, q), direction: direction(dq, eps) },
+    yoy: { prior: yv, delta: dy, growth_pct: g(now, yv), direction: direction(dy, eps) },
   };
 }
 

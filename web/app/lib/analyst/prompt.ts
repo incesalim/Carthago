@@ -323,11 +323,18 @@ export function renderDataBlock(input: AnalystInput): string {
 
   if (s.asset_quality.npl_by_bucket.length) {
     out.push("## NPL by BRSA group (III=substandard, IV=doubtful, V=loss)");
+    let bucketTotal = 0;
+    let bucketAny = false;
     for (const b of s.asset_quality.npl_by_bucket) {
       out.push(
         `  Group ${b.group}: gross ${fmt(b.gross)} · share ${fmt(b.share_pct, "%")} · coverage ${fmt(b.coverage_pct, "%")}`,
       );
+      if (b.gross != null) {
+        bucketTotal += b.gross;
+        bucketAny = true;
+      }
     }
+    if (bucketAny) out.push(`  TOTAL gross NPL across groups: ${bucketTotal}`);
     out.push("");
   }
 
@@ -446,11 +453,13 @@ export function renderDataBlock(input: AnalystInput): string {
     );
   }
 
-  out.push("## Quarter-over-quarter / year-over-year");
+  out.push("## Quarter-over-quarter / year-over-year (growth % precomputed for amounts — use these, never derive your own)");
   for (const c of comparatives) {
     if (c.now == null) continue;
+    const gq = c.qoq.growth_pct != null ? ` (${c.qoq.growth_pct}%)` : "";
+    const gy = c.yoy.growth_pct != null ? ` (${c.yoy.growth_pct}%)` : "";
     out.push(
-      `  ${c.metric}: now ${c.now} · QoQ ${c.qoq.direction ?? "n/a"} ${fmt(c.qoq.delta)} · YoY ${c.yoy.direction ?? "n/a"} ${fmt(c.yoy.delta)}`,
+      `  ${c.metric}: now ${c.now} · QoQ ${c.qoq.direction ?? "n/a"} ${fmt(c.qoq.delta)}${gq} · YoY ${c.yoy.direction ?? "n/a"} ${fmt(c.yoy.delta)}${gy}`,
     );
   }
   out.push("");
@@ -491,6 +500,10 @@ ABSOLUTE RULES
 - NULL/"n/a" means NOT HELD, never zero. If something material is listed under
   NOT AVAILABLE, say it is not held rather than guessing.
 - No investment advice: never say buy/sell/long/short, no price targets.
+- No outside knowledge: no industry rules of thumb, regulatory minimums or
+  "typical" benchmark levels from memory (a "60% industry ceiling" is an
+  invention like any other). The ONLY comparators are the peer medians, the
+  named peer table and the sector aggregates in the DATA block.
 - Amounts are thousand TL; you may express them as ₺bn by quoting the exact
   stored figure alongside (e.g. "7,000,000 thousand TL (₺7.0bn)").
 
