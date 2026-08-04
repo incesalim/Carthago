@@ -17,12 +17,15 @@ Env:
 from __future__ import annotations
 
 import argparse
+import datetime as dt
 import hashlib
+import json
 import os
 import sqlite3
 import subprocess
 import sys
 import tempfile
+import urllib.request
 from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8")
@@ -195,6 +198,35 @@ def record_hash(conn: sqlite3.Connection, table: str, digest: str) -> None:
         "VALUES (?, ?, CURRENT_TIMESTAMP)", (table, digest))
     conn.commit()
 
+# Ceiling on ESTIMATED billed rows for a single push, before it refuses to run.
+#
+# Sized to clear every legitimate push and stop a runaway. The largest routine
+# campaign is a whole-audit-corpus re-push — 440,545 rows across the audit tables
+# at a ~4x index factor ≈ 1.8M billed — and the pending one-off prose push is
+# ~369k rows ≈ 1.1-1.5M. 2.5M clears both with headroom. For scale: July 2026's
+# three campaign days billed 12.4M, 15.1M and 9.4M, every one of them silently.
+#
+# This is a floor on deliberateness, not a budget: a caller who genuinely needs
+# more passes --max-billed-rows, and because that lands in the workflow file the
+# number is reviewable in a diff rather than discovered on the invoice.
+DEFAULT_MAX_BILLED_ROWS = 2_500_000
+
+# The per-push cap above bounds ONE invocation. It cannot bound a day: July's
+# campaign days were several pushes each, and no single one of them would have
+# tripped a 2.5M ceiling. So the cap also tightens when the cycle's allowance is
+# already spent — read from Cloudflare's own analytics, not guessed.
+#
+# ⚠️ The billing cycle is the 11th → the 10th, NOT the calendar month. Reasoning
+# off a calendar month has produced the wrong days-remaining twice.
+D1_MONTHLY_ALLOWANCE = 50_000_000
+
+# Once the allowance is gone every further row bills at $1/M. Routine lanes must
+# keep running — freezing the whole pipeline was July's *other* mistake, and it
+# cost four days of unwatched data for a bill the crons were not causing — but a
+# campaign should wait for the cycle to roll over. This cap passes a daily cron
+# (thousands of rows) and stops a backfill (millions).
+EXHAUSTED_CYCLE_CAP = 250_000
+
 BATCH_SIZE = 100  # rows per INSERT statement (default for skinny tables)
 # news_items can carry multi-KB body_text per row — batch much smaller so a
 # single INSERT statement stays under D1's SQLITE_TOOBIG limit (~1 MB).
@@ -212,13 +244,115 @@ BATCH_SIZE_PER_TABLE = {
 _NL_SENTINEL = "__D1_NL__"
 
 
+def cycle_start(today: dt.date) -> dt.date:
+    """First day of the D1 billing cycle containing `today`.
+
+    The cycle runs the 11th → the 10th, so the period Cloudflare labels
+    "Aug 2026" is Jul 11 → Aug 10. Reading it as a calendar month has twice
+    produced the wrong days-remaining.
+    """
+    if today.day >= 11:
+        return today.replace(day=11)
+    prev = today.replace(day=1) - dt.timedelta(days=1)
+    return prev.replace(day=11)
+
+
+def cycle_rows_written(account_tag: str, token: str,
+                       today: dt.date | None = None) -> int | None:
+    """Rows written account-wide so far this billing cycle, or None if unknown.
+
+    None means "could not observe" — no credentials, no network, an API change.
+    The caller must treat that as unknown rather than as zero: reporting a
+    missing reading as "plenty of headroom" is exactly the silent-wrong shape
+    this repo keeps getting bitten by.
+
+    ⚠️ Account-wide, not per-database. `gazelhan` is a second D1 database on this
+    account and is NOT this project — it was 9.5M of July's 68.1M. That makes
+    this reading conservative, which is the right direction for a spend guard.
+    """
+    today = today or dt.date.today()
+    query = (
+        "query($acc:String!,$start:Date!,$end:Date!){viewer{accounts(filter:{accountTag:$acc})"
+        "{d1AnalyticsAdaptiveGroups(limit:10000,filter:{date_geq:$start,date_leq:$end})"
+        "{sum{rowsWritten}}}}}"
+    )
+    body = json.dumps({
+        "query": query,
+        "variables": {"acc": account_tag,
+                      "start": str(cycle_start(today)), "end": str(today)},
+    }).encode()
+    req = urllib.request.Request(
+        "https://api.cloudflare.com/client/v4/graphql", data=body,
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            payload = json.load(resp)
+        groups = payload["data"]["viewer"]["accounts"][0]["d1AnalyticsAdaptiveGroups"]
+    except Exception:
+        return None
+    return sum(g["sum"]["rowsWritten"] for g in groups)
+
+
+def effective_cap(declared: int, used: int | None) -> tuple[int, str]:
+    """(cap, why) — the declared cap, tightened when the cycle is spent.
+
+    `used is None` leaves the declared cap alone: an unobservable cycle must not
+    silently relax OR tighten the rule, or the guard's behaviour depends on
+    whether an API answered.
+    """
+    # ASCII only in these strings: they reach stderr on the refusal path, and
+    # stderr is NOT reconfigured to UTF-8 (only stdout is, at the top of this
+    # file), so a dash here mojibakes on a Windows console. Same reason as the
+    # note in resolve_tables.
+    if used is None:
+        return declared, "cycle usage unknown - per-push cap only"
+    headroom = D1_MONTHLY_ALLOWANCE - used
+    if headroom > 0:
+        return declared, f"{headroom:,} rows of allowance left this cycle"
+    return (min(declared, EXHAUSTED_CYCLE_CAP),
+            f"allowance SPENT ({used:,}/{D1_MONTHLY_ALLOWANCE:,}) - "
+            f"campaign-sized pushes are held until the cycle rolls over")
+
+
+def index_count(conn: sqlite3.Connection, table: str) -> int:
+    """Number of indexes SQLite maintains for `table` (0 if it is unknown here)."""
+    try:
+        return len(list(conn.execute(f"PRAGMA index_list({table})")))
+    except sqlite3.Error:
+        return 0
+
+
+def billed_estimate(conn: sqlite3.Connection, table: str, rows: int,
+                    full_rebuild: bool) -> int:
+    """Estimate the rows D1 will BILL for writing `rows` logical rows.
+
+    Billed rows are not logical rows. D1 counts index maintenance, and a
+    full-rebuild table pays twice: once for the DELETE of what is there, once
+    for the INSERT. Estimated structurally from the staging DB's own indexes,
+    which is why it is an estimate and not an invoice — the D1 schema comes from
+    `web/migrations/`, not from this file, so the two can differ. The measured
+    whole-push multiplier on this database is ~3.6x (OPERATIONS.md, D1 write
+    budget) and this lands in that range for the usual table mix.
+
+    Used ONLY to decide whether a human authorised this much writing. Never
+    reported as actual spend — read that from the Cloudflare analytics query.
+    """
+    per_row = 1 + index_count(conn, table)
+    return rows * per_row * (2 if full_rebuild else 1)
+
+
 def fetch_recent(conn: sqlite3.Connection, table: str, hours: int,
-                 skip_unchanged: bool = True) -> list[str]:
+                 skip_unchanged: bool = True,
+                 counts: dict[str, int] | None = None) -> list[str]:
     """Return SQL statements (INSERT OR REPLACE) for rows updated in last `hours`.
 
     Tables with a `downloaded_at` column are filtered by it.
     bank_audit_* tables don't have one — they're filtered by extracted_at
     in bank_audit_extractions (the parent log table).
+
+    `counts`, when given, is populated with {table: estimated billed rows} so the
+    caller can price the push before running it. Optional because the signature
+    is load-bearing for tests that call this directly.
     """
     # A table absent from THIS staging DB is not an error. The two DBs hold
     # disjoint sets (see docs/OPERATIONS.md §Two staging DBs), and `api_series`
@@ -310,6 +444,9 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int,
         return [f"-- {table}: 0 local rows — skip"
                 + (" (full-rebuild: refusing to wipe D1)" if full_rebuild
                    else f" in last {hours}h")]
+
+    if counts is not None:
+        counts[table] = billed_estimate(conn, table, n, full_rebuild)
 
     if full_rebuild:
         out: list[str] = [f"-- {table}: full rebuild, {n} rows", f"DELETE FROM {table};"]
@@ -429,6 +566,20 @@ def main() -> int:
                              "'audit' = every bank_audit_* table the audit lane writes, "
                              "derived from src/audit_reports/registry.py — so a new "
                              "statement type is pushed the moment it is registered.")
+    parser.add_argument("--max-billed-rows", type=int, default=DEFAULT_MAX_BILLED_ROWS,
+                        help="Refuse the push if the estimated BILLED rows exceed "
+                             "this (default %(default)s). Billed != logical: D1 "
+                             "counts index maintenance, and a full rebuild pays for "
+                             "its DELETE as well. The default clears every routine "
+                             "lane and a whole-audit-corpus push, and stops a "
+                             "runaway campaign. Raise it deliberately, in the "
+                             "workflow file, so the cost is reviewable in the diff.")
+    parser.add_argument("--no-cycle-check", action="store_true",
+                        help="Skip reading this cycle's rows-written from Cloudflare. "
+                             "The per-push cap still applies. Use when the analytics "
+                             "API is unavailable and the push is known-small; the "
+                             "reading is skipped automatically anyway when "
+                             "CLOUDFLARE_API_TOKEN / CF_ACCOUNT_TAG are absent.")
     parser.add_argument("--db", type=str, default=str(DB),
                         help="SQLite staging DB to push from (default data/bddk_data.db). "
                              "The audit pipeline passes data/bank_audit.db so it can sync "
@@ -490,11 +641,13 @@ def main() -> int:
 
     total_inserts = 0
     rebuilt: list[str] = []   # full-rebuild tables actually emitted this run
+    billed: dict[str, int] = {}
     for tbl in SYNC_TABLES:
         if allowed_tables is not None and tbl not in allowed_tables:
             continue
         block = fetch_recent(conn, tbl, args.hours,
-                             skip_unchanged=not args.force_rebuild)
+                             skip_unchanged=not args.force_rebuild,
+                             counts=billed)
         lines.extend(block)
         lines.append("")
         n_ins = sum(1 for ln in block if ln.startswith("INSERT"))
@@ -505,6 +658,43 @@ def main() -> int:
     if total_inserts == 0 and not pending:
         print(f"no new rows in last {args.hours}h — nothing to push")
         return 0
+
+    # Price the push BEFORE running it, and print the number every time — a cost
+    # nobody sees is a cost nobody manages. July 2026 went 18.1M rows over the
+    # 50M monthly allowance and the whole overage was three campaign days
+    # (12.4M + 15.1M + 9.4M); none of those runs announced what they were about
+    # to write, and nothing stopped them.
+    est_total = sum(billed.values())
+
+    # Second layer: what is left of THIS cycle's allowance. The per-push cap
+    # cannot see that a day has already run eight pushes; this can.
+    used = None
+    if not args.no_cycle_check:
+        acct = os.environ.get("CF_ACCOUNT_TAG") or os.environ.get("R2_ACCOUNT_ID")
+        tok = os.environ.get("CLOUDFLARE_API_TOKEN")
+        if acct and tok:
+            used = cycle_rows_written(acct, tok)
+    cap, why = effective_cap(args.max_billed_rows, used)
+
+    print(f"\nestimated billed rows: {est_total:,}   (cap {cap:,} — {why})")
+    for tbl, n in sorted(billed.items(), key=lambda kv: -kv[1])[:8]:
+        if n:
+            print(f"   {n:>10,}  {tbl}")
+    if est_total > cap:
+        print(
+            f"\nREFUSING TO PUSH: estimated {est_total:,} billed rows exceeds the "
+            f"{cap:,} cap.\n"
+            f"  ({why})\n"
+            f"  D1 bills rows WRITTEN at $1.00/M after 50M a cycle, counts index\n"
+            f"  maintenance, and a full rebuild pays for its DELETE too.\n"
+            f"  If this much writing is intended, say so explicitly:\n"
+            f"    --max-billed-rows {est_total + est_total // 10}\n"
+            f"  Putting the number in the workflow file makes the cost reviewable\n"
+            f"  in the diff instead of discovered on the invoice. Cheaper first:\n"
+            f"  narrow --hours, narrow --only-tables, or wait for the cycle to\n"
+            f"  roll over on the 11th.",
+            file=sys.stderr)
+        return 3
 
     sql_path = Path(tempfile.gettempdir()) / "d1_incremental.sql"
     sql_path.write_text("\n".join(lines), encoding="utf-8")

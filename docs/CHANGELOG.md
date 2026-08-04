@@ -5,6 +5,31 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-04.
 
+2026-08-04 — **Campaign pushes now have to declare what they cost.**
+`push_to_d1.py` prices every push before running it, prints the estimate with a
+per-table breakdown, and **fails (exit 3) rather than warning** when it exceeds
+`--max-billed-rows` (default 2,500,000).
+
+The scraper fixes earlier today made the quiet days cheap and did nothing for the
+days that actually blew the allowance. July's overage was three campaign days —
+12.4M, 15.1M and 9.4M billed rows — and every one ran to completion without ever
+saying what it was about to write. The default cap is sized to clear real work
+and stop a runaway: a whole-audit-corpus push estimates 1,678,540 and the pending
+prose push 1,110,204, while the smallest of those three days does not fit. Raising
+it is fine, and lands the number in the workflow file where a diff shows it.
+
+A second layer reads rows-written for the **current cycle** (the 11th → the 10th,
+not the calendar month) from `d1AnalyticsAdaptiveGroups`. Once the 50M allowance
+is spent the cap drops to 250,000: routine crons keep running, campaigns wait for
+the roll-over. Freezing everything was July's other mistake — four days with
+nothing watching the data, for a bill the crons were not causing. An unreadable
+API returns `None` and changes nothing in either direction; treating a missing
+reading as "plenty of headroom" is the silent-wrong shape this repo keeps meeting.
+
+Measured live while testing: the Jul 11 → Aug 10 cycle stands at **62,621,752
+rows written against the 50,000,000 included** — 12.6M over, so the tightened cap
+is what is in force today.
+
 2026-08-04 — **The EVDS write bug was never EVDS-specific: found it twice more,
 in the weekly bulletin and TEFAS.** `weekly_api_scraper.fetch_and_store` and
 `tefas.loader.upsert_day` now compare the stored tuple before writing, the same

@@ -313,3 +313,145 @@ def test_an_override_that_does_change_something_is_detected():
     A._apply_one(c, ovr)
     c.commit()
     assert A._partition_digest(c, "X", "2024Q2", "consolidated") != before
+
+
+# --- the pre-flight cost guard ----------------------------------------------
+#
+# The fixes above make the QUIET days cheap. They do nothing for a campaign: a
+# backfill or a fleet re-extraction re-pushes whatever it touched, and July
+# 2026's overage was three such days (12.4M + 15.1M + 9.4M billed rows) that
+# each ran to completion without ever announcing what they were about to write.
+# These tests pin the guard that makes that impossible to do by accident.
+
+def _loans_db(tmp_path, rows: int, indexes: int = 0):
+    """A staging DB holding `rows` freshly-downloaded rows of a windowed table."""
+    p = tmp_path / "stage.db"
+    c = sqlite3.connect(p)
+    c.execute("CREATE TABLE loans (year INT, month INT, item_order INT, "
+              "amount_tl REAL, downloaded_at TIMESTAMP)")
+    for i in range(indexes):
+        c.execute(f"CREATE INDEX idx_loans_{i} ON loans(item_order, amount_tl)")
+    c.executemany(
+        "INSERT INTO loans VALUES (2026, 6, ?, ?, datetime('now'))",
+        [(i, float(i)) for i in range(rows)],
+    )
+    c.commit()
+    return p, c
+
+
+def test_billed_estimate_counts_index_maintenance(tmp_path):
+    """A row write is not one billed row: every index on the table is another."""
+    _, c = _loans_db(tmp_path, rows=100, indexes=3)
+    # 1 for the row itself + 3 indexes. (SQLite reports no implicit index for a
+    # plain rowid table, so this is exactly the three we created.)
+    assert P.billed_estimate(c, "loans", 100, full_rebuild=False) == 100 * 4
+
+
+def test_billed_estimate_doubles_for_a_full_rebuild(tmp_path):
+    """DELETE + INSERT — a rebuild pays for clearing the table as well."""
+    _, c = _loans_db(tmp_path, rows=100, indexes=1)
+    windowed = P.billed_estimate(c, "loans", 100, full_rebuild=False)
+    assert P.billed_estimate(c, "loans", 100, full_rebuild=True) == 2 * windowed
+
+
+def test_fetch_recent_reports_its_cost_when_asked(tmp_path):
+    _, c = _loans_db(tmp_path, rows=50, indexes=2)
+    counts: dict[str, int] = {}
+    P.fetch_recent(c, "loans", 48, counts=counts)
+    assert counts["loans"] == 50 * 3
+
+
+def test_fetch_recent_still_works_without_the_counter(tmp_path):
+    """`counts` is optional on purpose — other tests and callers pass three args."""
+    _, c = _loans_db(tmp_path, rows=5)
+    assert any(ln.startswith("INSERT") for ln in P.fetch_recent(c, "loans", 48))
+
+
+def _run_main(monkeypatch, db_path, *extra):
+    monkeypatch.setattr(
+        sys, "argv",
+        ["push_to_d1.py", "--db", str(db_path), "--hours", "48", "--dry-run", *extra])
+    return P.main()
+
+
+def test_push_refuses_when_it_would_write_more_than_the_cap(tmp_path, monkeypatch):
+    """THE guard. A push over the cap must FAIL, not warn — a campaign that
+    exits 0 is a campaign nobody reviews."""
+    p, _ = _loans_db(tmp_path, rows=500, indexes=1)
+    assert _run_main(monkeypatch, p, "--max-billed-rows", "100") == 3
+
+
+def test_push_proceeds_when_the_cost_is_declared(tmp_path, monkeypatch):
+    """Raising the cap is how a legitimate campaign says so — and because it
+    lands in the workflow file, the number is reviewable in the diff."""
+    p, _ = _loans_db(tmp_path, rows=500, indexes=1)
+    assert _run_main(monkeypatch, p, "--max-billed-rows", "10000") == 0
+
+
+def test_the_default_cap_clears_a_whole_audit_corpus():
+    """The cap must not block legitimate work or it will be raised habitually
+    and stop meaning anything. A whole-audit-corpus push is ~440k rows at a ~4x
+    index factor; the pending one-off prose push is ~369k rows."""
+    assert P.DEFAULT_MAX_BILLED_ROWS >= 440_545 * 4
+    assert P.DEFAULT_MAX_BILLED_ROWS < 9_400_000   # July's smallest campaign day
+
+
+# --- the cycle-aware layer ---------------------------------------------------
+#
+# The per-push cap bounds ONE invocation. It cannot bound a day, and July's
+# campaign days were several pushes each — no single one would have tripped a
+# 2.5M ceiling. So the cap also tightens once the cycle's allowance is spent.
+
+import datetime as _dt
+
+
+@pytest.mark.parametrize("today,expected", [
+    ("2026-08-04", "2026-07-11"),   # before the 11th -> previous month's 11th
+    ("2026-08-11", "2026-08-11"),   # the roll-over day itself
+    ("2026-08-31", "2026-08-11"),
+    ("2026-01-05", "2025-12-11"),   # across a year boundary
+    ("2026-03-01", "2026-02-11"),   # across a short month
+])
+def test_billing_cycle_runs_the_11th_to_the_10th(today, expected):
+    """NOT the calendar month. Cloudflare labels Jul 11 -> Aug 10 as 'Aug 2026';
+    reading it as a calendar month has twice produced wrong days-remaining."""
+    assert P.cycle_start(_dt.date.fromisoformat(today)) == _dt.date.fromisoformat(expected)
+
+
+def test_headroom_left_leaves_the_declared_cap_alone():
+    cap, why = P.effective_cap(P.DEFAULT_MAX_BILLED_ROWS, used=10_000_000)
+    assert cap == P.DEFAULT_MAX_BILLED_ROWS
+    assert "40,000,000" in why
+
+
+def test_a_spent_cycle_tightens_the_cap_to_routine_size():
+    """Campaigns wait for the roll-over; daily crons keep running. Freezing the
+    whole pipeline was July's other mistake — four days unwatched for a bill the
+    crons were not causing."""
+    cap, why = P.effective_cap(P.DEFAULT_MAX_BILLED_ROWS, used=68_100_000)
+    assert cap == P.EXHAUSTED_CYCLE_CAP
+    assert "SPENT" in why
+    # A daily cron still fits; a whole-corpus audit push does not.
+    assert 50_000 < cap < 1_678_540
+
+
+def test_a_spent_cycle_never_RAISES_a_lower_declared_cap():
+    """min(), not replace — an operator who asked for a tighter cap keeps it."""
+    cap, _ = P.effective_cap(1_000, used=68_100_000)
+    assert cap == 1_000
+
+
+def test_unobservable_usage_neither_tightens_nor_relaxes():
+    """None means 'could not observe'. Treating it as zero would report a
+    missing reading as plenty of headroom, which is the silent-wrong shape."""
+    cap, why = P.effective_cap(P.DEFAULT_MAX_BILLED_ROWS, used=None)
+    assert cap == P.DEFAULT_MAX_BILLED_ROWS
+    assert "unknown" in why
+
+
+def test_cycle_reading_returns_none_rather_than_raising(monkeypatch):
+    """A dead analytics API must not take the push down with it."""
+    def boom(*a, **k):
+        raise OSError("network is down")
+    monkeypatch.setattr(P.urllib.request, "urlopen", boom)
+    assert P.cycle_rows_written("acct", "token") is None

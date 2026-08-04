@@ -575,6 +575,43 @@ written account-wide (bddk-data 58.6M + gazelhan 9.5M) against the 50M included 
 comfortably inside the allowance. **The entire overage is campaign days** — Jul
 15 (12.4M), Jul 17 (15.1M) and Jul 26 (9.4M) alone are 36.9M of the 68.1M.
 
+**The guard: `push_to_d1.py` prices every push before it runs.**
+
+Added 2026-08-04, because the two rules below only ever made the *quiet* days
+cheap. Every campaign day that blew the allowance ran to completion without
+announcing what it was about to write, and nothing stopped it. Now:
+
+- **The estimate is printed on every push**, with a per-table breakdown. Billed
+  rows are estimated structurally — `1 + index_count` per row, doubled for a
+  full rebuild's `DELETE` — which lands near the measured 3.6x for the usual
+  table mix. It is an estimate for authorising a push, never a report of spend;
+  read actuals from the analytics query above.
+- **A push over `--max-billed-rows` FAILS (exit 3)**, it does not warn. Default
+  **2,500,000**: a whole-audit-corpus push is 1,678,540 and the pending one-off
+  prose push is 1,110,204, so both clear it, while July's smallest campaign day
+  (9.4M) does not. Raise it deliberately — and because the number then lives in
+  the workflow file, the cost is reviewable in a diff instead of discovered on
+  the invoice.
+- **The cap tightens itself when the cycle is spent.** Before pushing, the script
+  reads rows-written for the current cycle from `d1AnalyticsAdaptiveGroups`
+  (needs `CLOUDFLARE_API_TOKEN` + `CF_ACCOUNT_TAG`/`R2_ACCOUNT_ID`; skipped when
+  absent, or with `--no-cycle-check`). Past 50M the cap drops to **250,000** —
+  routine crons keep running, campaigns wait for the 11th. Freezing everything
+  was July's *other* mistake: four days with nothing watching the data, for a
+  bill the crons were not causing.
+- **An unreadable API means unknown, not zero.** The cycle reading returns `None`
+  on any failure and the declared cap is used unchanged — it neither relaxes nor
+  tightens. A missing reading reported as "plenty of headroom" is precisely the
+  silent-wrong shape this repo keeps rediscovering.
+
+Pinned by `tests/test_d1_write_budget.py` (cycle boundary is the 11th, a spent
+cycle never *raises* a lower declared cap, a dead API cannot take the push down).
+
+⚠️ The per-push cap bounds **one invocation, not a day**. July's campaign days
+were several pushes each and no single one would have tripped 2.5M — the
+cycle-aware layer is what closes that, and it only works where the analytics
+credentials are present.
+
 **The two rules that keep the bill down**
 
 1. **Never re-stamp a row that did not change.** `push_to_d1` windows on
