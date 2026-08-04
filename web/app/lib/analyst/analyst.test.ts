@@ -189,6 +189,16 @@ describe("guardMemo — structural abstention", () => {
     expect(g.dropped[0].paragraph).toBe(bad);
   });
 
+  it("catches denomination-scaled inventions the amount floor missed", async () => {
+    // The ₺700m hole from calibration round 2: amounts are thousand TL, so a
+    // figure written in millions is numerically < 1000 and floor-exempt.
+    const { unsupportedDenominatedFigures } = await import("./guard");
+    const data = [7_000_000, 2_205_403]; // ₺7.0bn and ₺2.2bn in thousand TL
+    expect(unsupportedDenominatedFigures("overstated by ₺700 million", data)).toEqual([700]);
+    expect(unsupportedDenominatedFigures("a release of ₺7.0bn", data)).toEqual([]);
+    expect(unsupportedDenominatedFigures("income of ₺2.2 bn (2,205,403 thousand TL)", data)).toEqual([]);
+  });
+
   it("fails a leaked reasoning monologue even when its figures all match", async () => {
     // The 2026-08-04 calibration failure: nemotron wrote its planning into the
     // content channel. Every echoed number was in the data, so the figure

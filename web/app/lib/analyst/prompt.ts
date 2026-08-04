@@ -248,9 +248,17 @@ Headline ratios conceal composition. Your job is the SECOND question:
   trajectory table and say which is binding.
 - If the NPL ratio and Stage-3 coverage diverge, use the PRECOMPUTED
   mix-vs-erosion decomposition and the NPL-movement table (formation,
-  collections, write-offs) — never guess the cause when it is computed.
-- If a free-provision release moved printed profit, the underlying series is
-  the real one — use the FP history table and the auditor's own words.
+  collections, write-offs — and SAY IT when write-offs are zero: nothing is
+  being cleared) — never guess the cause when it is computed.
+- READ THE FP HISTORY TABLE, not just the latest quarter. If any quarter in it
+  shows a large release_ytd against that quarter's net_income_ytd, the PRINTED
+  profit history is not comparable to itself: a year-over-year "collapse" or
+  "surge" measured against an inflated base is an artifact of the release, not
+  the business. Say which printed comparisons are distorted and by which
+  release. Quote the release and that quarter's printed profit side by side.
+- The core-margin quarterly series is the underlying earnings line. Read it
+  against the printed bottom line — a margin that halved or rebuilt while the
+  headline moved the other way is exactly the finding a screen misses.
 - Judge growth in REAL terms (the deflated figures are provided).
 - Use peer medians to say whether a level is the bank or the sector.
 

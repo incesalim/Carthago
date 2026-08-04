@@ -13,6 +13,32 @@
  */
 import { numbersIn, unsupportedFigures } from "../bot-sql";
 
+/**
+ * The ₺700-million hole: amounts are stored in THOUSAND TL, so a figure the
+ * model writes in millions or billions is numerically small ("₺700 million" →
+ * 700) and slips under `unsupportedFigures`' ≥1000 floor — an invented ₺700m
+ * passed the second calibration run untouched. Any sub-1000 figure glued to a
+ * denomination word must therefore ALSO exist in the data at the thousand-TL
+ * scale (million → ×1e3, billion/bn/milyar → ×1e6). The legitimate idiom
+ * "7,000,000 thousand TL (₺7.0bn)" passes: 7.0×1e6 is in the data.
+ */
+const DENOM_RE = /(-?\d+(?:[.,]\d+)?)\s*(bn|billion|milyar|million|milyon|mn)\b/gi;
+
+export function unsupportedDenominatedFigures(answer: string, allowed: number[]): number[] {
+  const bad: number[] = [];
+  for (const m of answer.matchAll(DENOM_RE)) {
+    const v = parseFloat(m[1].replace(",", "."));
+    if (!Number.isFinite(v) || Math.abs(v) >= 1000) continue; // the plain check owns those
+    const scale = /^(bn|billion|milyar)$/i.test(m[2]) ? 1e6 : 1e3;
+    const scaled = v * scale;
+    const tol = Math.max(Math.abs(scaled) * 0.005, 1); // the model rounds to ~1 decimal
+    if (!allowed.some((a) => Math.abs(Math.abs(a) - Math.abs(scaled)) <= tol)) {
+      bad.push(v);
+    }
+  }
+  return bad;
+}
+
 export interface GuardResult {
   body: string;
   dropped: { paragraph: string; unsupported: number[] }[];
@@ -54,7 +80,10 @@ export function guardMemo(memo: string, dataBlock: string): GuardResult {
   for (const para of paragraphsOf(memo)) {
     // Headings and pure-prose paragraphs carry no 4+ digit / percent claims —
     // unsupportedFigures returns [] for them and they pass untouched.
-    const bad = unsupportedFigures(para, allowed);
+    const bad = [
+      ...unsupportedFigures(para, allowed),
+      ...unsupportedDenominatedFigures(para, allowed),
+    ];
     if (bad.length === 0) {
       kept.push(para);
     } else {
