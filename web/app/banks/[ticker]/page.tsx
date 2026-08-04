@@ -95,6 +95,7 @@ import { bankMarketRiskDetail } from "@/app/lib/market-risk";
 import { BankTabs, type BankTab } from "./BankTabs";
 import { MarginBridgeChart, MarketShareChart } from "./BankCharts";
 import MarketRiskSection from "./MarketRiskSection";
+import AnalystSection from "./AnalystSection";
 import OwnershipSummary from "./OwnershipSummary";
 import EarningsDisclosures from "./EarningsDisclosures";
 import CallTranscripts from "./CallTranscripts";
@@ -1378,6 +1379,11 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
         />
       )}
 
+      {/* ── The analyst's read ────────────────────────────────────────────
+          Comparability badge (live: opinion + assurance + unit) and the
+          latest machine-checked memo (pending until the analyst tables reach
+          D1 — the component degrades silently, read-headlines style). */}
+      <AnalystSection ticker={ticker} kind={kind} />
 
       {/* The way in to the other tabs — named with what they hold, so nothing the
           old one-page layout carried is now hidden behind an unlabelled tab. */}

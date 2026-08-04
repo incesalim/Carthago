@@ -260,7 +260,11 @@ Then exactly these sections:
 "## What changed" — 2-3 paragraphs: the quarter's movements that matter, with QoQ/YoY and peer context.
 "## What it means" — 2-3 paragraphs: the causal chain, built from the decompositions, movement tables and the auditor's words.
 "## What to watch" — 2-4 bullets: forward indicators, each with an explicit falsification condition from held metrics.
-"## Comparability caveats" — bullets: reporting unit, assurance level, consolidation basis, opinion status and streak, restatement/detector signals, and any NOT-AVAILABLE item a reader must know about.`;
+"## Comparability caveats" — bullets: reporting unit, assurance level, consolidation basis, opinion status and streak, restatement/detector signals, and any NOT-AVAILABLE item a reader must know about.
+
+Output ONLY the memo itself, starting directly with the "# " headline line.
+Never narrate your process, restate these instructions, or think out loud —
+text that is not the memo is discarded wholesale.`;
 
 export function buildMemoMessages(input: AnalystInput): { system: string; user: string } {
   return {

@@ -18,7 +18,23 @@ export interface GuardResult {
   dropped: { paragraph: string; unsupported: number[] }[];
   /** Unsupported figures across the WHOLE memo before dropping (for the retry prompt). */
   offending: number[];
+  /** The output has the memo's shape: a `# ` headline and all four sections.
+   *  The figure check alone cannot see "this is not a memo" — a leaked
+   *  reasoning monologue passed it once, because every number it echoed was
+   *  in the data. Form is a claim too. */
+  structure_ok: boolean;
   passed: boolean;
+}
+
+const REQUIRED_HEADINGS = [
+  "## What changed",
+  "## What it means",
+  "## What to watch",
+  "## Comparability caveats",
+];
+
+export function memoStructureOk(memo: string): boolean {
+  return /^#\s+\S/m.test(memo) && REQUIRED_HEADINGS.every((h) => memo.includes(h));
 }
 
 /** Split on blank lines, keeping headings attached to their following text. */
@@ -47,10 +63,12 @@ export function guardMemo(memo: string, dataBlock: string): GuardResult {
     }
   }
 
+  const structure_ok = memoStructureOk(memo);
   return {
     body: kept.join("\n\n"),
     dropped,
     offending,
-    passed: dropped.length === 0,
+    structure_ok,
+    passed: dropped.length === 0 && structure_ok,
   };
 }

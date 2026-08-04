@@ -152,6 +152,15 @@ interface ChatOpts {
    *  Past the cutoff the chain stops trying and throws, so the caller can still
    *  send a degraded reply instead of being cancelled mid-flight. */
   deadline?: number;
+  /** Provider names (the `name` field) this CALL should skip. The analyst memo
+   *  lane excludes nemotron: on a long instruction-heavy prose prompt the
+   *  reasoning model leaks its planning monologue into the CONTENT channel
+   *  (measured 2026-08-04 — both calibration memos came back as "We must not
+   *  compute…" essays, truncated at max_tokens, with the figure guard
+   *  helplessly passing one because every echoed number was in the data).
+   *  The bot's short SQL loop keeps nemotron first — the chains differ on
+   *  purpose, like the Python headline lane does. */
+  excludeProviders?: string[];
 }
 
 async function callProvider(
@@ -204,6 +213,9 @@ async function attemptChain(
     if (opts.deadline != null && Date.now() >= opts.deadline) {
       errors.push("deadline reached before trying remaining providers");
       break;
+    }
+    if (opts.excludeProviders?.includes(p.name)) {
+      continue;
     }
     const key = keyFor(env, p);
     if (!key) {

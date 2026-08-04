@@ -44,7 +44,15 @@ export async function generateMemo(
 ): Promise<MemoResult> {
   const { system, user } = buildMemoMessages(input);
   const deadline = Date.now() + RUN_BUDGET_MS;
-  const opts = { temperature: 0, maxTokens: MAX_TOKENS, timeoutMs: CALL_TIMEOUT_MS, deadline };
+  const opts = {
+    temperature: 0,
+    maxTokens: MAX_TOKENS,
+    timeoutMs: CALL_TIMEOUT_MS,
+    deadline,
+    // Not nemotron for memos: on this long instruction-heavy prompt the
+    // reasoning model writes its deliberation INTO the answer (see llm.ts).
+    excludeProviders: ["openrouter/nemotron-3-super-120b"],
+  };
 
   const first = await chatComplete(
     env,
@@ -59,26 +67,36 @@ export async function generateMemo(
   let model = first.model;
 
   if (!guarded.passed) {
-    // One correction round, naming the figures that failed — then the drop is final.
+    // One correction round, naming what failed — then the verdict is final.
+    const problems: string[] = [];
+    if (!guarded.structure_ok) {
+      problems.push(
+        "Your output was not the memo. Output ONLY the memo, starting with the " +
+          '"# " headline line, with exactly the sections "## What changed", ' +
+          '"## What it means", "## What to watch", "## Comparability caveats".',
+      );
+    }
+    if (guarded.offending.length) {
+      problems.push(
+        `These figures are NOT in the DATA block: ${[...new Set(guarded.offending)].join(", ")}. ` +
+          `Use ONLY figures that appear in the DATA block verbatim; do not compute new numbers; ` +
+          `where a needed figure is not held, say so.`,
+      );
+    }
     const retry = await chatComplete(
       env,
       [
         { role: "system", content: system },
         { role: "user", content: user },
         { role: "assistant", content: first.text },
-        {
-          role: "user",
-          content:
-            `These figures are NOT in the DATA block: ${[...new Set(guarded.offending)].join(", ")}. ` +
-            `Rewrite the full memo using ONLY figures that appear in the DATA block verbatim. ` +
-            `Do not compute new numbers; where a needed figure is not held, say so.`,
-        },
+        { role: "user", content: problems.join("\n\n") },
       ],
       opts,
     );
     const retried = guardMemo(retry.text, user);
     // Keep whichever survived better; a worse retry must not undo a good first pass.
-    if (retried.dropped.length <= guarded.dropped.length) {
+    const score = (g: typeof guarded) => (g.structure_ok ? 0 : 100) + g.dropped.length;
+    if (score(retried) <= score(guarded)) {
       guarded = retried;
       model = retry.model;
     }

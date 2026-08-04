@@ -240,6 +240,13 @@ const NET_FEES_RE = /NET\s*(UCRET|ÜCRET|FEE)/;
 // as a display fallback when analyst_basis_metadata has not been pushed.
 const FP_BASIS_RE = /free\s+provision|general\s+(reserve|provision)|serbest\s+kar|genel\s+kar/i;
 
+/** Display fallback for the qualification category until the pushed
+ *  `analyst_basis_metadata.opinion_category` (the Python classifier's verdict)
+ *  is available in D1. Free-provision only — the tail stays null. */
+export function classifyBasisLead(lead: string | null): "free_provision" | null {
+  return lead && FP_BASIS_RE.test(lead) ? "free_provision" : null;
+}
+
 async function tableOrEmpty<T>(db: Queryable, sql: string, binds: unknown[]): Promise<T[]> {
   try {
     return await db.all<T>(sql, binds);

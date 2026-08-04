@@ -50,6 +50,12 @@ export const WORKFLOWS: WorkflowDef[] = [
     description: "Discover + download new audit PDFs → R2 (no extraction) · weekly (Sun)",
   },
   {
+    file: "analyst-daily.yml",
+    label: "Analyst memos",
+    description:
+      "Detectors → grounded LLM memos (artifacts only under the write freeze) · manual · banks=CALIBRATE for the ALBRK+SKBNK pair",
+  },
+  {
     file: "refresh-audit.yml",
     label: "Extract audit reports",
     description: "Extract audit PDFs from R2 → bank_audit_* → D1 (manual)",

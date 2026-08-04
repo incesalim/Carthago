@@ -152,21 +152,28 @@ describe("guardMemo — structural abstention", () => {
     "car_pct: 22.13",
   ].join("\n");
 
+  const shaped = (middle: string) =>
+    `# Coverage collapsed to 48.3%\n\n## What changed\n\n${middle}\n\n` +
+    "## What it means\n\nThe fall is structural.\n\n" +
+    "## What to watch\n\n- Coverage stabilising.\n\n" +
+    "## Comparability caveats\n\n- Limited review.";
+
   it("passes a memo whose figures are all in the data (incl. % forms)", async () => {
     const { guardMemo } = await import("./guard");
-    const memo =
-      "# Coverage collapsed to 48.3%\n\nThe NPL ratio of 1.33% conceals it.\n\n" +
-      "TTM net income was 2,205,403 thousand TL against a CAR of 22.13%.";
-    const g = guardMemo(memo, dataBlock);
+    const g = guardMemo(
+      shaped(
+        "The NPL ratio of 1.33% conceals it. TTM net income was 2,205,403 thousand TL against a CAR of 22.13%.",
+      ),
+      dataBlock,
+    );
     expect(g.passed).toBe(true);
+    expect(g.structure_ok).toBe(true);
     expect(g.dropped).toHaveLength(0);
   });
 
   it("drops the paragraph carrying an invented figure, keeps the rest", async () => {
     const { guardMemo } = await import("./guard");
-    const memo =
-      "# Coverage collapsed to 48.3%\n\nNPL sits at 5.2% which flatters.\n\nCAR is 22.13%.";
-    const g = guardMemo(memo, dataBlock);
+    const g = guardMemo(shaped("NPL sits at 5.2% which flatters.\n\nCAR is 22.13%."), dataBlock);
     expect(g.passed).toBe(false);
     expect(g.dropped).toHaveLength(1);
     expect(g.dropped[0].unsupported).toContain(5.2);
@@ -176,10 +183,23 @@ describe("guardMemo — structural abstention", () => {
 
   it("never edits a figure — the paragraph goes, verbatim", async () => {
     const { guardMemo } = await import("./guard");
-    const memo = "Profit was 9,999,999 thousand TL.";
-    const g = guardMemo(memo, dataBlock);
-    expect(g.body).toBe("");
-    expect(g.dropped[0].paragraph).toBe(memo);
+    const bad = "Profit was 9,999,999 thousand TL.";
+    const g = guardMemo(shaped(bad), dataBlock);
+    expect(g.body).not.toContain("9,999,999");
+    expect(g.dropped[0].paragraph).toBe(bad);
+  });
+
+  it("fails a leaked reasoning monologue even when its figures all match", async () => {
+    // The 2026-08-04 calibration failure: nemotron wrote its planning into the
+    // content channel. Every echoed number was in the data, so the figure
+    // check passed it — form is a claim too.
+    const { guardMemo } = await import("./guard");
+    const leak =
+      "We need to write a credit analyst memo. We must not compute new numbers. " +
+      "We can quote car_pct: 22.13 and npl_ratio_pct: 1.33 as given.";
+    const g = guardMemo(leak, dataBlock);
+    expect(g.structure_ok).toBe(false);
+    expect(g.passed).toBe(false);
   });
 });
 
