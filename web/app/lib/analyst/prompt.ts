@@ -27,6 +27,14 @@ export interface StoryGate {
   story: string;
   live: boolean;
   reason: string;
+  /** Editorial precedence, 1 = leads. Bank-specific distortions outrank
+   *  regime-wide conditions: a printed series that is not comparable to
+   *  itself (FP) or a data-integrity event beats a concealment divergence,
+   *  which beats peer deviation, which beats negative real returns — the
+   *  last is true of much of the sector at 30%+ CPI and so carries the
+   *  least bank-specific information. Every LIVE story still gets its own
+   *  paragraph; rank only decides the HEADLINE. */
+  rank: number;
 }
 
 /**
@@ -51,6 +59,7 @@ export function storyGates(input: AnalystInput): StoryGate[] {
   if (roeReal != null) {
     gates.push({
       story: "real_terms",
+      rank: 6,
       live: roeReal < 0,
       reason:
         `ROE ${fmt(s.earnings.roe_ttm_pct)}% nominal = ${roeReal}% REAL against ` +
@@ -71,6 +80,7 @@ export function storyGates(input: AnalystInput): StoryGate[] {
   const capLive = has("divergence", "capital_composition") || (noncore != null && noncore >= 0.4);
   gates.push({
     story: "capital_composition",
+      rank: 3,
     live: capLive,
     reason: capLive
       ? `non-core is ${fmt(noncore)} of CAR (gap ${fmt(gap)}pp vs class median ${fmt(gapMed)}pp)` +
@@ -89,6 +99,7 @@ export function storyGates(input: AnalystInput): StoryGate[] {
   const covLive = has("divergence", "npl_coverage") || covFallback;
   gates.push({
     story: "npl_coverage_divergence",
+      rank: 4,
     live: covLive,
     reason: covLive
       ? `NPL flat/falling while coverage fell materially` +
@@ -110,6 +121,7 @@ export function storyGates(input: AnalystInput): StoryGate[] {
       Math.abs(s.earnings.free_provision.release_pct_of_ytd_income) >= 20);
   gates.push({
     story: "free_provision",
+      rank: 2,
     live: fpLive,
     reason: fpLive
       ? "a discretionary-reserve release has moved printed profit (see FP history) and/or the opinion is qualified over it — the printed series needs re-basing"
@@ -136,6 +148,7 @@ export function storyGates(input: AnalystInput): StoryGate[] {
   }
   gates.push({
     story: "peer_deviation",
+      rank: 5,
     live: dev.length > 0,
     reason: dev.length ? dev.join("; ") : "no adverse deviation ≥ threshold from the class medians",
   });
@@ -144,13 +157,15 @@ export function storyGates(input: AnalystInput): StoryGate[] {
   const events = signals.filter((x) => x.signal_type !== "divergence");
   gates.push({
     story: "comparability_events",
+      rank: 1,
     live: events.length > 0,
     reason: events.length
       ? events.map((x) => `${x.signal_type} [${x.severity}]`).join("; ")
       : "no restatement, unit, opinion or perimeter signal this quarter",
   });
 
-  return gates;
+  // Live first, then by editorial precedence — the first entry is the LEAD.
+  return gates.sort((a, b) => Number(b.live) - Number(a.live) || a.rank - b.rank);
 }
 
 function lines(out: string[], title: string, rows: Record<string, unknown>): void {
@@ -188,9 +203,12 @@ export function renderDataBlock(input: AnalystInput): string {
       : null,
   });
 
-  out.push("## STORY GATES — computed, binding. The headline and the lead of every section MUST come from a LIVE story; a DEAD story gets at most one 'notably absent' sentence.");
+  out.push("## STORY GATES — computed, binding, in editorial order. The headline states the LEAD story; EVERY live story gets its own paragraph; a DEAD story gets at most one 'notably absent' sentence.");
+  let leadMarked = false;
   for (const g of storyGates(input)) {
-    out.push(`  ${g.live ? "LIVE" : "DEAD"} — ${g.story}: ${g.reason}`);
+    const tag = g.live ? (leadMarked ? "LIVE" : "LEAD") : "DEAD";
+    if (g.live) leadMarked = true;
+    out.push(`  ${tag} — ${g.story}: ${g.reason}`);
   }
   out.push("");
 
@@ -406,12 +424,15 @@ ABSOLUTE RULES
 
 WHAT MAKES THIS A MEMO, NOT A SCREEN
 The DATA block opens with STORY GATES — a computed verdict on which analytical
-stories are LIVE for this bank. They are binding editorial rulings, not hints:
-the headline must state a LIVE story; a DEAD story may appear only as a single
-"notably absent" sentence (a clean bank's cleanliness IS worth one line). Do
-not import a story from banks in general — if the gate says the capital
-composition is unremarkable, it is unremarkable HERE regardless of how often
-that story is true elsewhere.
+stories are LIVE for this bank, in editorial order. They are binding rulings,
+not hints: the headline must state the story marked LEAD; EVERY other LIVE
+story must receive at least one dedicated paragraph of its own in "What
+changed" or "What it means" — dropping a live story is as wrong as inventing
+a dead one. A DEAD story may appear only as a single "notably absent"
+sentence (a clean bank's cleanliness IS worth one line). Do not import a
+story from banks in general — if the gate says the capital composition is
+unremarkable, it is unremarkable HERE regardless of how often that story is
+true elsewhere.
 
 Headline ratios conceal composition. Your job is the SECOND question:
 - If CAR and CET1 diverge, the composition of capital IS the story — use the

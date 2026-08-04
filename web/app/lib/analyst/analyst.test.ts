@@ -262,7 +262,7 @@ describe("storyGates — the deterministic editorial layer", () => {
     expect(by.free_provision.live).toBe(false);
   });
 
-  it("declares SKBNK's stories LIVE off the detector signals", async () => {
+  it("declares SKBNK's stories LIVE off the detector signals, ranked", async () => {
     const { storyGates } = await import("./prompt");
     const gates = storyGates(
       await baseInput({
@@ -279,6 +279,20 @@ describe("storyGates — the deterministic editorial layer", () => {
     expect(by.capital_composition.live).toBe(true);
     expect(by.npl_coverage_divergence.live).toBe(true);
     expect(by.real_terms.live).toBe(true);
+    // Live stories come first, in editorial precedence — capital leads here.
+    expect(gates[0].story).toBe("capital_composition");
+    expect(gates[0].live).toBe(true);
+  });
+
+  it("ranks the FP re-base above regime-wide real-terms for an ALBRK-shaped bank", async () => {
+    const { storyGates } = await import("./prompt");
+    const input = await baseInput({ roeReal: -1.99, noncore: 0.47, gap: 7.41 });
+    input.sections.governance.is_free_provision_qualified = true;
+    const gates = storyGates(input);
+    const live = gates.filter((g) => g.live).map((g) => g.story);
+    expect(live[0]).toBe("free_provision"); // the LEAD — not real_terms
+    expect(live).toContain("real_terms");
+    expect(live).toContain("capital_composition");
   });
 
   it("coverage gate holds via the data fallback when signals are absent", async () => {
