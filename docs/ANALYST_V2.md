@@ -109,14 +109,44 @@ JSON action protocol — one object per turn: `tool` / `hypotheses` /
 `finding` / `abstain` / `conclude`. Lenient balanced-brace extraction (no
 provider function-calling assumed); a protocol violation gets one repair
 message and costs the turn; three consecutive violations abort into
-abstention. Budgets: 22 turns, 9 minutes wall-clock, 6KB per tool result
-(truncation says so), ≤3 findings. The hypothesis ledger (id, statement,
-status, materiality, confidence, supporting/counter evidence ids, open
-questions) is the model's to maintain and is persisted whole. **Abstention
-is a first-class success** — "ordinary quarter, here is what was checked."
+abstention. Budgets: 32 turns, 14 minutes wall-clock, 9KB per rendered
+result, ≤3 findings. **Abstention is a first-class success** — "ordinary
+quarter, here is what was checked."
 
-Model chain: `deepseek-v4-flash` (paid, pinned, seeded) → the free OSS chain;
-nemotron excluded (measured reasoning-leak).
+Five mechanisms exist because a five-round measured arc on the Albaraka
+acceptance case (2026-08-04) showed each one's absence failing in a specific
+way:
+
+- **The case file.** Every delivered evidence record stays visible in the
+  prompt (compact rendering, 45KB budget, oldest non-seed entries evicted to
+  a stub; re-calling after eviction re-delivers). A last-result-only loop was
+  measured driving the model to re-fetch one table 16 turns straight —
+  it re-asked because the data had genuinely left its context.
+- **Tablified results.** Row arrays render as pipe-tables (`∅` = null =
+  not-disclosed, one nesting level flattened), so a 14-column equity matrix
+  that overflowed the old window as verbose JSON now arrives whole. Stored
+  evidence stays lossless JSON; only the model's view is compressed.
+- **One question, one id.** Declared arg defaults (`period_type=current`)
+  are materialized before the evidence id is hashed — omitted-vs-explicit
+  spellings of the same query no longer mint two ids.
+- **Emission-time verification.** Every finding runs through the full
+  deterministic verifier the moment it is emitted; a failing finding bounces
+  back with its named checks and ONE repair chance (global cap 4 bounces).
+  Measured: a finding carrying right numbers with a wrong evidence pointer —
+  dead at publication in round 1 — becomes a one-turn fix.
+- **Breadth pressure.** The method prompt teaches counterpart-fingerprint
+  doctrine (a real event marks more than one statement; a number with no
+  counterpart trail is more likely an artifact than a story), and six
+  consecutive probes of one area append a nudge — measured round 4 spending
+  8 straight turns on a single line's filing-text trail.
+
+The hypothesis ledger (id, statement, status, materiality, confidence,
+supporting/counter evidence ids, open questions) is the model's to maintain
+and is persisted whole.
+
+Model chain: `gpt-5.6-luna-pro` (paid, user-authorized, 1M context) →
+`deepseek-v4-flash` (paid, pinned, seeded) → the free OSS chain; nemotron
+excluded (measured reasoning-leak).
 
 ## Artifacts (per run of `analyst-research.yml`)
 
@@ -163,10 +193,14 @@ LLM keys are CI secrets).
 - The verifier proves **structure, association and arithmetic** — not
   semantics. A wrong word about a right number inside the thesis can pass;
   the claim schema shrinks that surface, it does not eliminate it.
-- The loop's discovery ceiling is the model's. On the current chain, the
-  realistic behavior is *investigation of scout-surfaced anomalies*, which is
-  exactly what the design leans on; open-ended discovery beyond the scout is
-  the stretch goal the evaluation corpus adjudicates.
+- The loop's discovery ceiling is the model's. Measured on the Albaraka
+  acceptance case: the harnessed agent reaches the **publication bar** (a
+  surviving PASS finding, zero unsupported claims, zero mismatches) and
+  independently discovers the equity partition's extraction-reliability
+  story, but has not yet synthesized the underlying economic story the eval
+  markers demand (the provision-release trail) — it anchors on the single
+  biggest number. The eval corpus adjudicates progress; the publication bar,
+  not the discovery bar, gates any publishing integration.
 - Equity-matrix boundary detection (opening/closing rows) is heuristic where
   filers template-shift labels; the reconciliation tool reports its method
   and the researcher is instructed to trust arithmetic over labels.
