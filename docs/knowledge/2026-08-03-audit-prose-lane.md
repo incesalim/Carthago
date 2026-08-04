@@ -102,16 +102,34 @@ that as a contents page and truncates the filing at §5.
 
 ## Corpus result
 
-162 local filings, 30 banks, 2022Q1–2026Q1 — **153 fully resolved (94.4%)**,
+162 local filings, 30 banks, 2022Q1–2026Q1 — **156 fully resolved (96.3%)**,
 zero exceptions, **60,288 prose rows**, median 368 rows and 157k prose chars per
-filing.
+filing. (An earlier draft said 94.4%; that was measured before the
+`sections_truncated` tail rule was relaxed to "among the last three", which is
+what İŞ BANKASI's §8 addendum needed.)
+
+**Nothing fails at transcription.** 162/162 filings produced text, zero
+exceptions, and only one produced zero rows — because its PDF is a 14-page
+fragment. The 96.3% measures *section resolution*: deciding where one section
+ends and the next begins, which is inference over what the bank chose to print,
+not extraction.
 
 The 6 filings that do not resolve, and why:
 
 | filings | cause |
 |---|---|
-| GARAN ×4 | §1 has no anchor of any of the four kinds; its contents entry is the column header "Page No" |
+| GARAN ×4 | prints **no** section marker of any kind — no divider, no running header, no roman numeral. §2–§7 are recovered from its note numbering (`4.2.7`); §1's notes are roman (`I.`, `II.`), so nothing anchors it. Still yields 479–568 rows each; only §1 is lost |
 | ICBCT 2023Q4 cons (9 pp), TSKB 2026Q1 (14 pp) | **the stored PDF is a fragment**, not a full report — a data defect this lane surfaced, not an extractor failure |
+
+### The fifth anchor, not yet built
+
+GARAN is solvable and the information is in the document, just not where any of
+the four anchors look. Its contents page carries a **printed page number** per
+entry (`I. Balance sheet – Assets 5`), and every body page prints its own number
+in the footer (pdf 40 → "30", pdf 60 → "50", pdf 120 → "110" — a constant offset
+of 10). Reading the footers gives printed→PDF, and the contents column then gives
+every section start directly. That is deterministic and would close the last four
+filings.
 
 Fixed along the way, each having looked like an extractor failure and turned out
 to be an assumption: ATBANK ×3 resolves 1–6, which is **correct** (its contents
