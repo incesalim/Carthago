@@ -33,7 +33,11 @@ CREATE TABLE IF NOT EXISTS analyst_notes (
     generated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     model         TEXT,                   -- which LLM produced it
     fact_check_passed INTEGER NOT NULL DEFAULT 0,  -- grounding guard verdict (runtime gate)
-    data_hash     TEXT,                   -- FNV-1a over the bank-side inputs; same hash = no regeneration
+    -- `data_hash` is NOT here: it is added by 0038, because THIS file had already
+    -- been applied to D1 without it. Restoring the as-applied shape is what makes
+    -- a from-scratch replay (0037 then 0038) and the live database agree. Do not
+    -- re-add it here — an applied migration is immutable, and editing this one is
+    -- exactly what produced the drift 0038 repairs.
     PRIMARY KEY (note_id)
 );
 CREATE INDEX IF NOT EXISTS idx_notes_bank_period ON analyst_notes(bank_ticker, period);

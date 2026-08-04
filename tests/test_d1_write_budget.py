@@ -455,3 +455,57 @@ def test_cycle_reading_returns_none_rather_than_raising(monkeypatch):
         raise OSError("network is down")
     monkeypatch.setattr(P.urllib.request, "urlopen", boom)
     assert P.cycle_rows_written("acct", "token") is None
+
+
+# --- statements must fit D1's 100 KB ceiling --------------------------------
+#
+# The first push of bank_call_transcripts died on SQLITE_TOOBIG: one row is a
+# WHOLE earnings call (median 30k chars, max 67,710 across the corpus) and the
+# table had no BATCH_SIZE_PER_TABLE entry, so it batched at the default 100.
+# The per-table row counts are a hand-tuned hint and a hand-tuned hint drifts;
+# the batcher now flushes on BYTES too, so no table can reach that error.
+
+def _fat_rows_db(tmp_path, rows: int, chars: int):
+    p = tmp_path / "fat.db"
+    c = sqlite3.connect(p)
+    c.execute("CREATE TABLE loans (year INT, month INT, item_order INT, "
+              "item_name TEXT, downloaded_at TIMESTAMP)")
+    c.executemany(
+        "INSERT INTO loans VALUES (2026, 6, ?, ?, datetime('now'))",
+        [(i, "x" * chars) for i in range(rows)],
+    )
+    c.commit()
+    return c
+
+
+def _insert_stmts(block):
+    return [s for s in block if s.startswith("INSERT")]
+
+
+def test_no_statement_exceeds_d1s_limit_even_at_the_default_batch(tmp_path):
+    """30k-char rows at the default batch of 100 would be a 3 MB statement."""
+    c = _fat_rows_db(tmp_path, rows=40, chars=30_000)
+    stmts = _insert_stmts(P.fetch_recent(c, "loans", 48))
+    assert stmts, "expected some INSERTs"
+    assert max(len(s.encode("utf-8")) for s in stmts) <= P.D1_MAX_SQL_BYTES
+
+
+def test_a_row_near_the_ceiling_gets_its_own_statement(tmp_path):
+    c = _fat_rows_db(tmp_path, rows=5, chars=80_000)
+    stmts = _insert_stmts(P.fetch_recent(c, "loans", 48))
+    assert len(stmts) == 5                       # one row apiece
+    assert max(len(s.encode("utf-8")) for s in stmts) <= P.D1_MAX_SQL_BYTES
+
+
+def test_skinny_rows_still_batch_together(tmp_path):
+    """Byte-sizing must not defeat batching — that would be 1 statement/row for
+    every table and a far larger SQL file for no reason."""
+    c = _fat_rows_db(tmp_path, rows=250, chars=10)
+    stmts = _insert_stmts(P.fetch_recent(c, "loans", 48))
+    assert len(stmts) == 3                       # 250 rows at the default 100
+
+
+def test_transcripts_batch_one_row_at_a_time():
+    """Belt and braces: the byte guard makes this table safe anyway, but the
+    explicit entry documents WHY one call per statement is the right shape."""
+    assert P.BATCH_SIZE_PER_TABLE["bank_call_transcripts"] == 1

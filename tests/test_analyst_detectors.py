@@ -407,23 +407,33 @@ def test_basis_rows_sweep_horizon(db):
 # ------------------------------------------------- schema lockstep
 
 def test_staging_schema_matches_migration():
-    """src/analyst/schema.py and web/migrations/0037_analyst_signals.sql must
-    declare the same tables and columns."""
-    mig = (REPO / "web" / "migrations" / "0037_analyst_signals.sql").read_text(encoding="utf-8")
+    """src/analyst/schema.py and web/migrations/ must declare the same columns.
 
-    def columns(sql: str, table: str) -> list[str]:
-        m = re.search(rf"CREATE TABLE IF NOT EXISTS {table} \((.*?)\);", sql, re.S)
-        assert m, f"{table} missing"
-        cols = []
-        for line in m.group(1).splitlines():
-            line = line.split("--")[0].strip().rstrip(",")
-            if not line or line.upper().startswith(("PRIMARY", "FOREIGN")):
-                continue
-            cols.append(line.split()[0])
+    Compares the REPLAYED migration set, not the text of one file. It used to
+    regex 0037 alone, which made every later ALTER invisible to it — and that is
+    not hypothetical: `analyst_notes.data_hash` was added by editing 0037 in
+    place, after 0037 had already been applied to D1. `CREATE TABLE IF NOT
+    EXISTS` is a no-op against an existing table, so the file claimed a column
+    the database did not have, this gate agreed with the file, and the first push
+    of the lane failed on `no column named data_hash`. Replaying is the only
+    reading that answers "what do these files actually build".
+    """
+    import sqlite3
+
+    mirror = sqlite3.connect(":memory:")
+    mirror.executescript(ANALYST_DDL)
+
+    replayed = sqlite3.connect(":memory:")
+    for path in sorted((REPO / "web" / "migrations").glob("*.sql")):
+        replayed.executescript(path.read_text(encoding="utf-8"))
+
+    def columns(conn, table: str) -> list[str]:
+        cols = [r[1] for r in conn.execute(f"PRAGMA table_info({table})")]
+        assert cols, f"{table} missing"
         return cols
 
     for table in ("analyst_signals", "analyst_notes", "analyst_basis_metadata"):
-        assert columns(ANALYST_DDL, table) == columns(mig, table), table
+        assert columns(mirror, table) == columns(replayed, table), table
 
 
 def test_signal_id_carries_subtype():

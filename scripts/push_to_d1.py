@@ -249,6 +249,13 @@ D1_MONTHLY_ALLOWANCE = 50_000_000
 # (thousands of rows) and stops a backfill (millions).
 EXHAUSTED_CYCLE_CAP = 250_000
 
+# D1 rejects any SQL statement over 100,000 bytes with SQLITE_TOOBIG. We build
+# multi-row INSERTs, so the batcher flushes on BYTES as well as on row count and
+# keeps a margin: a statement is measured before D1 sees it, but the margin
+# covers the difference between our accounting and the server's.
+D1_MAX_SQL_BYTES = 100_000
+_SAFE_STMT_BYTES = 90_000
+
 BATCH_SIZE = 100  # rows per INSERT statement (default for skinny tables)
 # news_items can carry multi-KB body_text per row — batch much smaller so a
 # single INSERT statement stays under D1's SQLITE_TOOBIG limit (~1 MB).
@@ -259,6 +266,13 @@ BATCH_SIZE_PER_TABLE = {
     # A prose row IS a paragraph — ~350 rows/filing averaging 400 chars, and the
     # long ones run past 2 KB. Same SQLITE_TOOBIG reasoning as news_items.
     "bank_audit_prose": 20,
+    # One row is a WHOLE earnings call: median 30k chars, max 67,710 measured
+    # over the 144-call corpus. D1's maximum SQL statement is 100,000 bytes, so
+    # anything above a batch of one risks SQLITE_TOOBIG — and at the default 100
+    # it is certain, which is how the first push of this lane failed. One row per
+    # statement still leaves ~30% headroom on the largest call for quote-doubling
+    # and the newline sentinel.
+    "bank_call_transcripts": 1,
 }
 
 # Stand-in for newline chars in generated SQL literals (see fetch_recent).
@@ -476,6 +490,17 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int,
         out = [f"-- {table}: {n} rows from last {hours}h"]
     batch: list[str] = []
     batch_size = BATCH_SIZE_PER_TABLE.get(table, BATCH_SIZE)
+    header = f"INSERT OR REPLACE INTO {table}({col_list}) VALUES\n"
+    header_bytes = len(header.encode("utf-8"))
+    batch_bytes = header_bytes
+
+    def flush() -> None:
+        nonlocal batch, batch_bytes
+        if batch:
+            out.append(header + ",\n".join(batch) + ";")
+            batch = []
+            batch_bytes = header_bytes
+
     repair = table in _MOJIBAKE_TABLES
     rows_iter = conn.execute(f"SELECT {col_list} FROM {table} {where}")
     for r in rows_iter:
@@ -502,20 +527,22 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int,
                 vals.append(f"replace('{s}', '{_NL_SENTINEL}', char(10))")
             else:
                 vals.append("'" + s.replace("'", "''") + "'")
-        batch.append("(" + ",".join(vals) + ")")
+        row_sql = "(" + ",".join(vals) + ")"
+        row_bytes = len(row_sql.encode("utf-8")) + 2   # + the ",\n" separator
+
+        # Flush BEFORE adding a row that would carry the statement past D1's hard
+        # limit. The per-table row counts above are a hint tuned by hand, and a
+        # hand-tuned hint drifts: bank_call_transcripts had none, so it batched
+        # at the default 100 with a MEDIAN row of 30k chars and the lane's first
+        # push died on SQLITE_TOOBIG. Sizing the batch by bytes makes that
+        # unreachable for every table, including the ones not added here yet.
+        if batch and batch_bytes + row_bytes > _SAFE_STMT_BYTES:
+            flush()
+        batch.append(row_sql)
+        batch_bytes += row_bytes
         if len(batch) >= batch_size:
-            out.append(
-                f"INSERT OR REPLACE INTO {table}({col_list}) VALUES\n"
-                + ",\n".join(batch)
-                + ";"
-            )
-            batch = []
-    if batch:
-        out.append(
-            f"INSERT OR REPLACE INTO {table}({col_list}) VALUES\n"
-            + ",\n".join(batch)
-            + ";"
-        )
+            flush()
+    flush()
     return out
 
 

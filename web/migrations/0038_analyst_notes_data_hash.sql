@@ -1,0 +1,22 @@
+-- analyst_notes.data_hash — repairing drift, not adding a feature.
+--
+-- 0037 reached D1 without this column, and was later edited IN PLACE to add it
+-- (the V2-A note versioning work). `CREATE TABLE IF NOT EXISTS` is a no-op
+-- against a table that already exists, so the repo's account of the schema and
+-- the actual database disagreed with nothing to notice it — until the first
+-- push of the lane tried to write the column and D1 answered:
+--
+--     table analyst_notes has no column named data_hash: SQLITE_ERROR
+--
+-- The push failed atomically (wrangler rolls the whole file back), so no partial
+-- state landed; the cost was one red run.
+--
+-- THE RULE: an applied migration is immutable. Change the shape in a NEW file.
+-- Editing an applied one makes the migration directory a description of what
+-- SHOULD be there rather than a record of what IS, and no offline gate can tell
+-- the difference — `check_schema_naming.py` reads the files, not the database.
+--
+-- Additive and safe: nullable, no default, no rewrite of existing rows.
+-- `v_latest_analyst_note` selects `n.*`, which SQLite expands at query time, so
+-- the view picks the column up without being recreated (verified locally).
+ALTER TABLE analyst_notes ADD COLUMN data_hash TEXT;
