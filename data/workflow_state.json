@@ -11,9 +11,8 @@
   ],
   "workflows": {
     "acquire-audit.yml": {
-      "state": "disabled_manually",
-      "reason": "Cron freeze of 2026-08-01. The D1 write overage that prompted it came from backfill campaigns (36.9M of 68.1M rows on three days), not from these lanes — quiet baseline is ~14.6M rows/month against 50M included. Held frozen INDEFINITELY by decision on 2026-08-01; there is no scheduled re-enable date.",
-      "frozen_since": "2026-08-01"
+      "state": "active",
+      "reason": "Thawed 2026-08-04. The 2026-08-01 freeze was never a cost necessity: the overage was backfill campaigns (36.9M of July's 68.1M rows on three days), not these lanes. The three lanes that DID carry avoidable cost - EVDS, weekly, TEFAS - re-stamped unchanged rows and re-shipped them to D1; all three now compare before writing (see OPERATIONS.md, D1 write budget), taking the quiet baseline to roughly 7M/month against 50M included."
     },
     "analyst-daily.yml": {
       "state": "active",
@@ -44,14 +43,12 @@
       "state": "active"
     },
     "generate-reads.yml": {
-      "state": "disabled_manually",
-      "reason": "Cron freeze of 2026-08-01. The D1 write overage that prompted it came from backfill campaigns (36.9M of 68.1M rows on three days), not from these lanes — quiet baseline is ~14.6M rows/month against 50M included. Held frozen INDEFINITELY by decision on 2026-08-01; there is no scheduled re-enable date.",
-      "frozen_since": "2026-08-01"
+      "state": "active",
+      "reason": "Thawed 2026-08-04. The 2026-08-01 freeze was never a cost necessity: the overage was backfill campaigns (36.9M of July's 68.1M rows on three days), not these lanes. The three lanes that DID carry avoidable cost - EVDS, weekly, TEFAS - re-stamped unchanged rows and re-shipped them to D1; all three now compare before writing (see OPERATIONS.md, D1 write budget), taking the quiet baseline to roughly 7M/month against 50M included."
     },
     "healthcheck.yml": {
-      "state": "disabled_manually",
-      "reason": "Cron freeze of 2026-08-01, held indefinitely by decision. NOTE: this is the ONLY monitor. While it is off nothing watches data freshness or extraction failures and no alert can fire. That consequence was raised and accepted; re-enable this one FIRST if the freeze lifts.",
-      "frozen_since": "2026-08-01"
+      "state": "active",
+      "reason": "Thawed 2026-08-04. The 2026-08-01 freeze was never a cost necessity: the overage was backfill campaigns (36.9M of July's 68.1M rows on three days), not these lanes. The three lanes that DID carry avoidable cost - EVDS, weekly, TEFAS - re-stamped unchanged rows and re-shipped them to D1; all three now compare before writing (see OPERATIONS.md, D1 write budget), taking the quiet baseline to roughly 7M/month against 50M included."
     },
     "purge-partition.yml": {
       "state": "active"
@@ -60,40 +57,36 @@
       "state": "active"
     },
     "refresh-advertised-rates.yml": {
-      "state": "disabled_manually",
-      "reason": "Cron freeze of 2026-08-01. The D1 write overage that prompted it came from backfill campaigns (36.9M of 68.1M rows on three days), not from these lanes — quiet baseline is ~14.6M rows/month against 50M included. Held frozen INDEFINITELY by decision on 2026-08-01; there is no scheduled re-enable date.",
-      "frozen_since": "2026-08-01"
+      "state": "active",
+      "reason": "Thawed 2026-08-04. The 2026-08-01 freeze was never a cost necessity: the overage was backfill campaigns (36.9M of July's 68.1M rows on three days), not these lanes. The three lanes that DID carry avoidable cost - EVDS, weekly, TEFAS - re-stamped unchanged rows and re-shipped them to D1; all three now compare before writing (see OPERATIONS.md, D1 write budget), taking the quiet baseline to roughly 7M/month against 50M included."
     },
     "refresh-audit.yml": {
       "state": "active"
     },
     "refresh-bddk-bulletins.yml": {
-      "state": "disabled_manually",
-      "reason": "Cron freeze of 2026-08-01. The D1 write overage that prompted it came from backfill campaigns (36.9M of 68.1M rows on three days), not from these lanes — quiet baseline is ~14.6M rows/month against 50M included. Held frozen INDEFINITELY by decision on 2026-08-01; there is no scheduled re-enable date.",
-      "frozen_since": "2026-08-01"
+      "state": "active",
+      "reason": "Thawed 2026-08-04. The 2026-08-01 freeze was never a cost necessity: the overage was backfill campaigns (36.9M of July's 68.1M rows on three days), not these lanes. The three lanes that DID carry avoidable cost - EVDS, weekly, TEFAS - re-stamped unchanged rows and re-shipped them to D1; all three now compare before writing (see OPERATIONS.md, D1 write budget), taking the quiet baseline to roughly 7M/month against 50M included."
     },
     "refresh-calendar.yml": {
-      "state": "disabled_manually",
-      "reason": "Cron freeze of 2026-08-01. The D1 write overage that prompted it came from backfill campaigns (36.9M of 68.1M rows on three days), not from these lanes — quiet baseline is ~14.6M rows/month against 50M included. Held frozen INDEFINITELY by decision on 2026-08-01; there is no scheduled re-enable date.",
-      "frozen_since": "2026-08-01"
+      "state": "active",
+      "reason": "Thawed 2026-08-04. The 2026-08-01 freeze was never a cost necessity: the overage was backfill campaigns (36.9M of July's 68.1M rows on three days), not these lanes. The three lanes that DID carry avoidable cost - EVDS, weekly, TEFAS - re-stamped unchanged rows and re-shipped them to D1; all three now compare before writing (see OPERATIONS.md, D1 write budget), taking the quiet baseline to roughly 7M/month against 50M included."
     },
     "refresh-data.yml": {
-      "state": "disabled_manually",
-      "reason": "Cron freeze of 2026-08-01. The D1 write overage that prompted it came from backfill campaigns (36.9M of 68.1M rows on three days), not from these lanes — quiet baseline is ~14.6M rows/month against 50M included. Held frozen INDEFINITELY by decision on 2026-08-01; there is no scheduled re-enable date.",
-      "frozen_since": "2026-08-01"
+      "state": "active",
+      "reason": "Thawed 2026-08-04. The 2026-08-01 freeze was never a cost necessity: the overage was backfill campaigns (36.9M of July's 68.1M rows on three days), not these lanes. The three lanes that DID carry avoidable cost - EVDS, weekly, TEFAS - re-stamped unchanged rows and re-shipped them to D1; all three now compare before writing (see OPERATIONS.md, D1 write budget), taking the quiet baseline to roughly 7M/month against 50M included."
     },
     "refresh-evds-daily.yml": {
       "state": "disabled_manually",
-      "reason": "Cron freeze of 2026-08-01. The D1 write overage that prompted it came from backfill campaigns (36.9M of 68.1M rows on three days), not from these lanes — quiet baseline is ~14.6M rows/month against 50M included. Held frozen INDEFINITELY by decision on 2026-08-01; there is no scheduled re-enable date.",
-      "frozen_since": "2026-08-01"
+      "reason": "Held back deliberately on 2026-08-04 when the other nine lanes were thawed - operator's call, not a cost one: the re-stamp bug that made this lane expensive was fixed 2026-07-27, so it is now cheap. NOTE the daily cron is what is off; EVDS still refreshes WEEKLY through refresh-data.yml (Sat 03:00), which runs scripts/refresh.py without --skip-evds. Add that flag if the intent is no EVDS refresh at all.",
+      "frozen_since": "2026-08-01",
+      "review_by": "2026-09-01"
     },
     "refresh-news-daily.yml": {
       "state": "active"
     },
     "refresh-presentations-weekly.yml": {
-      "state": "disabled_manually",
-      "reason": "Cron freeze of 2026-08-01. The D1 write overage that prompted it came from backfill campaigns (36.9M of 68.1M rows on three days), not from these lanes — quiet baseline is ~14.6M rows/month against 50M included. Held frozen INDEFINITELY by decision on 2026-08-01; there is no scheduled re-enable date.",
-      "frozen_since": "2026-08-01"
+      "state": "active",
+      "reason": "Thawed 2026-08-04. The 2026-08-01 freeze was never a cost necessity: the overage was backfill campaigns (36.9M of July's 68.1M rows on three days), not these lanes. The three lanes that DID carry avoidable cost - EVDS, weekly, TEFAS - re-stamped unchanged rows and re-shipped them to D1; all three now compare before writing (see OPERATIONS.md, D1 write budget), taking the quiet baseline to roughly 7M/month against 50M included."
     },
     "refresh-transcripts-weekly.yml": {
       "state": "active",
@@ -103,9 +96,8 @@
       "state": "active"
     },
     "summarize-regulations.yml": {
-      "state": "disabled_manually",
-      "reason": "Cron freeze of 2026-08-01. The D1 write overage that prompted it came from backfill campaigns (36.9M of 68.1M rows on three days), not from these lanes — quiet baseline is ~14.6M rows/month against 50M included. Held frozen INDEFINITELY by decision on 2026-08-01; there is no scheduled re-enable date.",
-      "frozen_since": "2026-08-01"
+      "state": "active",
+      "reason": "Thawed 2026-08-04. The 2026-08-01 freeze was never a cost necessity: the overage was backfill campaigns (36.9M of July's 68.1M rows on three days), not these lanes. The three lanes that DID carry avoidable cost - EVDS, weekly, TEFAS - re-stamped unchanged rows and re-shipped them to D1; all three now compare before writing (see OPERATIONS.md, D1 write budget), taking the quiet baseline to roughly 7M/month against 50M included."
     },
     "telegram-webhook.yml": {
       "state": "active"

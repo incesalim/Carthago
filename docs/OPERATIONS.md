@@ -677,41 +677,47 @@ cost $0 because they were still inside the 50M allowance. Once the allowance is
 spent, every subsequent day bills at full rate, so project bottom-up from the
 day-shapes (quiet weekday ~0.5–0.9M, Friday ~2M, Saturday ~3M, Sunday ~2.4M).
 
-### Cron freeze from 2026-07-28 — HELD INDEFINITELY (decision 2026-08-01)
+### Cron freeze 2026-07-28 → LIFTED 2026-08-04 (all but `refresh-evds-daily`)
 
-The 50M allowance for the Jul 11 → Aug 10 cycle was exhausted on Jul 26; the
-remaining 13 days would have billed at full rate. Ten scheduled workflows are
-**disabled via `gh workflow disable`** (repo files unchanged, so this is
-invisible in git — check `gh workflow list --all`):
+**Current state: one workflow disabled.** `refresh-evds-daily` only — recorded in
+`data/workflow_state.json` with `review_by: 2026-09-01`. The other nine were
+re-enabled on 2026-08-04. `gh workflow list --all` is the live truth; the CI gate
+below keeps the file honest about it.
 
-`acquire-audit` · `generate-reads` · `healthcheck` · `refresh-advertised-rates` ·
-`refresh-bddk-bulletins` · `refresh-calendar` · `refresh-data` ·
-`refresh-evds-daily` · `refresh-presentations-weekly` · `summarize-regulations`
+⚠️ **The daily cron is what is off; EVDS still refreshes weekly.**
+`refresh-data.yml` (Sat 03:00) runs `scripts/refresh.py` with no `--skip-evds`,
+so the EVDS lane runs once a week through that path. Add the flag there if the
+intent is no EVDS refresh at all.
 
-**No re-enable date.** The original plan was 2026-08-11, when the next cycle
-starts with a fresh 50M. On 2026-08-01 the decision was taken to **keep the
-freeze in place indefinitely** instead. Note what the numbers actually say: the
-overage came from *backfill campaigns* (36.9M of 68.1M rows on three days), not
-from these lanes — the quiet baseline is ~14.6M rows/month against 50M included
-— so the freeze is no longer a cost necessity. It is a deliberate choice, and
-`healthcheck` is frozen with the rest, which means **nothing is watching data
-freshness or extraction failures and no alert can fire**. That consequence was
-raised and accepted.
+<details><summary>Why the freeze happened, and why it ended</summary>
 
-The state is now recorded in `data/workflow_state.json` and enforced by
-`scripts/check_workflow_state.py` in CI, so it can no longer be true-and-
-invisible: every CI run prints the frozen set, and enabling or disabling a
-workflow without committing the change fails the build.
+The 50M allowance for the Jul 11 → Aug 10 cycle was exhausted on Jul 26, so ten
+scheduled workflows were disabled via `gh workflow disable` — a change that
+leaves **no trace in git**, which is why `scripts/check_workflow_state.py` and
+`data/workflow_state.json` now exist. On 2026-08-01 the freeze was extended
+indefinitely; on 2026-08-04 it was lifted.
 
-To lift it (re-enable `healthcheck` FIRST, then update the registry in the same
-commit):
+What changed in between is that the cost was finally attributed. The overage was
+never these lanes: it came from **backfill campaigns** (36.9M of July's 68.1M
+rows on three days), against a quiet baseline of ~14.6M/month. And the part of
+that baseline which *was* avoidable turned out to be one bug in three places —
+EVDS, weekly and TEFAS each re-stamped unchanged rows and re-shipped them to D1.
+With all three fixed the baseline is roughly **7M/month against 50M included**,
+so the crons cost about 15% of the allowance and the freeze had nothing left to
+defend. See *D1 write budget* above.
+
+Freezing `healthcheck` with the rest meant **nothing was watching data freshness
+or extraction failures** for four days. Re-enable it first in any future freeze,
+or accept that consequence explicitly.
+
+</details>
+
+To freeze again, or to thaw the remaining lane — **update the registry in the
+same commit or CI fails**, which is the whole point of the gate:
 
 ```bash
-for wf in acquire-audit generate-reads healthcheck refresh-advertised-rates \
-          refresh-bddk-bulletins refresh-calendar refresh-data \
-          refresh-evds-daily refresh-presentations-weekly summarize-regulations; do
-  gh workflow enable "$wf.yml"
-done
+gh workflow enable  refresh-evds-daily.yml     # or `disable` a lane
+python scripts/check_workflow_state.py         # will fail until the JSON matches
 ```
 
 **`refresh-news-daily` deliberately keeps running.** Every other lane reads an
@@ -755,10 +761,18 @@ Then three things the crons would normally have done, in this order:
    Must come **after** the purge: the generator reads `/api/reads` from the live
    site, so a pre-purge run rewrites the *previous* month's takeaway.
 
-⚠️ **Manual-dispatch workflows are still enabled and still cost campaign money.**
+⚠️ **The campaigns are the cost centre, and they are all manual dispatches.**
 `backfill-*`, `refresh-audit`, `reextract-statement`, `purge-partition`,
-`build-products` and `apply_overrides.py` are $9–15 a run at this point in a
-cycle. Do not dispatch them before Aug 11 unless the fix is urgent.
+`build-products` and `apply_overrides.py` are $9–15 a run once a cycle's
+allowance is spent — that is what blew July, not the crons. Thawing the schedules
+did not change this: budget a campaign before dispatching it, and prefer
+`only_failing` over `force`.
+
+⚠️ **The Jul 11 → Aug 10 cycle is still the exhausted one.** It ran out on Jul 26,
+so everything written until Aug 11 bills at full rate. The thawed crons add
+~240k rows/day ≈ **1.7M rows ≈ $1.70** for the rest of this cycle — immaterial,
+and the reason the thaw did not wait for the reset. A campaign in the same window
+is not immaterial.
 
 ⚠️ **`gazelhan` is ~340k rows/day of the same account allowance and is not this
 project.** It cannot be frozen from this repo. It was ~$4.40 of the remaining
