@@ -115,11 +115,21 @@ const PROVIDERS: Provider[] = [
     model: "gemma-4-31b",
     keys: ["CEREBRAS_KEY", "CEREBRAS_API_KEY"],
   },
-  // NOTE: deepseek/deepseek-v4-flash has NO :free variant on OpenRouter
-  // (measured 2026-08-04: HTTP 404 "unavailable for free — the paid version
-  // is available"; the briefing lane uses the PAID slug). Do not re-add a
-  // guessed :free entry — cerebras/gpt-oss-120b carries the deep-dive lane
-  // reliably once the skeleton reminder sits at the prompt tail.
+  // OPT-IN, analyst deep-dive lane only (user-authorized PAID model,
+  // 2026-08-04 — "deepseek flash on openrouter, that's cheap"). There is NO
+  // :free variant (measured: HTTP 404). Same configuration wisdom as the
+  // briefing lane (kimi.py): upstream pinned to Baidu — unpinned, OpenRouter
+  // draws from ~8 providers whose output quality ranged 7–4,436 tokens — and
+  // no silent fallback, so an outage fails loudly into the OSS chain below.
+  {
+    name: "openrouter/deepseek-v4-flash",
+    base: "https://openrouter.ai/api/v1",
+    model: "deepseek/deepseek-v4-flash",
+    keys: ["OPEN_ROUTER_API", "OPENROUTER_API_KEY"],
+    headers: { "HTTP-Referer": "https://carthago.app", "X-Title": "carthago" },
+    params: { provider: { order: ["Baidu"], allow_fallbacks: false }, seed: 1729 },
+    optIn: true,
+  },
 ];
 
 const THINK_RE = /<think>[\s\S]*?<\/think>/gi;
