@@ -25,6 +25,7 @@ import { BANK_TYPE_BY_TICKER } from "./bank_names";
 // 8%. See capital-thresholds.ts for why that distinction is load-bearing.
 export { CAR_TARGET } from "./capital-thresholds";
 import { CAR_TARGET } from "./capital-thresholds";
+import { realRate } from "./real-terms";
 
 /** Where this bank sits in the field, on one metric. */
 export interface PeerStat {
@@ -305,13 +306,20 @@ export function bankFlags(d: FlagInput): BriefFlag[] {
     });
   }
 
-  if (d.roe != null && d.cpi12m != null && d.roe - d.cpi12m < 0) {
+  // Deflate with the exact Fisher form, not `roe − cpi`. real-terms.ts:19-22
+  // measures the shortcut at 1.2-1.8pp adrift around 32% CPI, and
+  // real-terms.test.ts asserts the two must NOT agree — yet this flag shipped the
+  // shortcut, so the per-bank page and the Fisher-deflated pages disagreed on the
+  // same bank. GARAN 2026Q1: subtraction −1.55pp, Fisher −1.18%.
+  const realRoePct =
+    d.roe != null && d.cpi12m != null ? realRate(d.roe, d.cpi12m) : null;
+  if (realRoePct != null && realRoePct < 0) {
     out.push({
       id: "real-roe",
       kind: "flag",
       title: "Real returns",
-      detail: `ROE ${d.roe.toFixed(1)}% against ${d.cpi12m.toFixed(1)}% 12-month-average CPI: equity compounds a ${Math.abs(d.roe - d.cpi12m).toFixed(1)}pp real loss.`,
-      rule: `roe − cpi_12m_avg < 0`,
+      detail: `ROE ${d.roe!.toFixed(1)}% against ${d.cpi12m!.toFixed(1)}% 12-month-average CPI: equity compounds a ${Math.abs(realRoePct).toFixed(1)}pp real loss.`,
+      rule: `(1 + roe) / (1 + cpi_12m_avg) − 1 < 0`,
     });
   }
 

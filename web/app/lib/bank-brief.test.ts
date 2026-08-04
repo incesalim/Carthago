@@ -175,10 +175,24 @@ describe("bankFlags", () => {
     expect(note.detail).toContain("28.7pp of buffer remains");
   });
 
-  it("flags a real-terms loss on equity", () => {
+  it("flags a real-terms loss on equity, deflated not subtracted", () => {
     const f = bankFlags({ ...base, roe: 27.0, cpi12m: 32.1 });
     const flag = f.find((x) => x.id === "real-roe")!;
-    expect(flag.detail).toContain("5.1pp real loss");
+    // (1.270 / 1.321) − 1 = −3.86%. This test previously asserted "5.1pp", which
+    // is 27.0 − 32.1 — the g−π shortcut real-terms.ts:19-22 measures at 1.2-1.8pp
+    // adrift around this CPI, and which real-terms.test.ts already asserts must
+    // NOT be used. The test was pinning the bug.
+    expect(flag.detail).toContain("3.9pp real loss");
+    expect(flag.detail).not.toContain("5.1pp");
+    expect(flag.rule).toBe("(1 + roe) / (1 + cpi_12m_avg) − 1 < 0");
+  });
+
+  it("does not fire when the deflated return is positive but the subtraction is negative", () => {
+    // The boundary the two forms disagree on: roe < cpi numerically, yet
+    // (1+roe)/(1+cpi) − 1 is still negative — so both agree here. The real guard
+    // is that the magnitude printed is the deflated one, above.
+    expect(bankFlags({ ...base, roe: 35.0, cpi12m: 32.1 }).find((x) => x.id === "real-roe"))
+      .toBeUndefined();
   });
 
   it("flags NPL drift only from four consecutive rises", () => {
