@@ -86,6 +86,13 @@ METHOD — this is an investigation, not a report:
    identical call returns only a pointer to the file. If an entry was
    evicted for space, re-calling the tool re-delivers it.
 1. Start from the scout candidates, but they are LEADS, not conclusions.
+   Work BREADTH-FIRST: a real economic event leaves matching fingerprints in
+   MORE THAN ONE statement (P&L ↔ balance sheet ↔ equity ↔ notes), so before
+   going deep on any single line, rank movements on the major statements and
+   look for its counterparts. A large number whose counterpart trail you
+   cannot find is more likely an extraction or presentation artifact than a
+   story. If a hypothesis resists confirmation after several probes, mark it
+   unresolved and test the NEXT lead — do not tunnel.
 2. Keep the hypothesis ledger current ("hypotheses" action) — every idea you
    are working on, with status and open questions.
 3. For your preferred explanation, actively SEEK COUNTEREVIDENCE before
@@ -235,6 +242,11 @@ export async function runResearch(
   const examinedStatements = new Set<string>();
   const findingRepairs = new Map<string, number>();
   let verifierBounces = 0;
+  // Tunnel-vision detector: consecutive tool calls probing one area (a
+  // statement, or the filing text) earn a breadth nudge — measured round 4
+  // spending 8 straight turns on one line's filing-text trail.
+  const recentFocus: string[] = [];
+  const FOCUS_WINDOW = 6;
 
   // The case file: every delivered record stays visible each turn. The model
   // never has to re-fetch; only over-budget entries fall back to a stub.
@@ -337,6 +349,14 @@ export async function runResearch(
           deliver(rec);
           lastResult = `${rec.evidence_id} delivered — now ON FILE above.`;
           trace.push({ turn, raw_reply_head: head, action: "tool", detail: `${toolName}(${JSON.stringify(a.args ?? {})})`, evidence_id: rec.evidence_id });
+        }
+        const focus = typeof rec.args.statement === "string"
+          ? (rec.args.statement as string)
+          : ["search_filing_text", "get_source_page"].includes(toolName) ? "filing_text" : toolName;
+        recentFocus.push(focus);
+        if (recentFocus.length > FOCUS_WINDOW) recentFocus.shift();
+        if (recentFocus.length === FOCUS_WINDOW && new Set(recentFocus).size === 1 && turn < MAX_TURNS - 2) {
+          lastResult += ` NOTE: your last ${FOCUS_WINDOW} queries all probed ${focus} — a real event leaves counterparts elsewhere; test a different lead, or emit what is already supported.`;
         }
       } catch (e) {
         protocolErrors++;

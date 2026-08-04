@@ -413,6 +413,21 @@ describe("research loop — repeat calls and emission-time verification", () => 
     expect(res.abstained).toBe(true);
   });
 
+  it("six consecutive probes of one area earn a breadth nudge", async () => {
+    const { runResearch } = await import("./loop");
+    const c = await ctx();
+    llmScript.calls.length = 0;
+    llmScript.replies = [
+      ...[1, 2, 3, 4, 5, 6].map((i) =>
+        JSON.stringify({ action: "tool", tool: "search_filing_text", args: { query: `probe number ${i}` } })),
+      JSON.stringify({ action: "abstain", reason: "checked" }),
+    ];
+    const res = await runResearch(c, scout, {});
+    expect(llmScript.calls[6].user).toContain("queries all probed filing_text");
+    expect(llmScript.calls[5].user).not.toContain("queries all probed"); // fires only when the window is uniform and full
+    expect(res.abstained).toBe(true);
+  });
+
   it("a finding with an unevidenced value bounces back once for repair, then lands", async () => {
     const { runResearch } = await import("./loop");
     const c = await ctx();
