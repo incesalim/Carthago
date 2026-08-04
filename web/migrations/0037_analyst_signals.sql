@@ -21,8 +21,9 @@ CREATE TABLE IF NOT EXISTS analyst_signals (
 CREATE INDEX IF NOT EXISTS idx_signals_bank_period ON analyst_signals(bank_ticker, period);
 
 -- One row per analyst note produced. The prose, grounded on signals.
+-- note_id carries kind + a timestamp: same-day reruns are VERSIONS.
 CREATE TABLE IF NOT EXISTS analyst_notes (
-    note_id       TEXT NOT NULL,          -- "note:SKBNK:2026Q1:2026-08-05"
+    note_id       TEXT NOT NULL,          -- "note:SKBNK:2026Q1:unconsolidated:20260805T071500"
     bank_ticker   TEXT NOT NULL,
     period        TEXT NOT NULL,
     kind          TEXT NOT NULL,
@@ -53,10 +54,15 @@ CREATE TABLE IF NOT EXISTS analyst_basis_metadata (
 );
 CREATE INDEX IF NOT EXISTS idx_basis_bank_period ON analyst_basis_metadata(bank_ticker, period);
 
--- Latest note per bank, for the per-bank page to join.
+-- Latest PASSING note per (bank, kind) — the page's read path. Partitioned by
+-- kind (the two bases are different reports) and filtered to passing, so a
+-- failed later run can never hide the most recent passing report.
 CREATE VIEW IF NOT EXISTS v_latest_analyst_note AS
 SELECT n.* FROM analyst_notes n
 JOIN (
-    SELECT bank_ticker, MAX(generated_at) AS max_at
-    FROM analyst_notes GROUP BY bank_ticker
-) latest ON n.bank_ticker = latest.bank_ticker AND n.generated_at = latest.max_at;
+    SELECT bank_ticker, kind, MAX(generated_at) AS max_at
+    FROM analyst_notes WHERE fact_check_passed = 1
+    GROUP BY bank_ticker, kind
+) latest ON n.bank_ticker = latest.bank_ticker AND n.kind = latest.kind
+        AND n.generated_at = latest.max_at
+WHERE n.fact_check_passed = 1;

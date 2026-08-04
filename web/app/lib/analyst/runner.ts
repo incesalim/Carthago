@@ -148,9 +148,12 @@ export async function generateMemo(
   }
 
   const s = input.sections.meta;
-  const day = today ?? new Date().toISOString().slice(0, 10);
+  // note_id carries KIND (two bases used to collide) and a second-resolution
+  // timestamp (same-day reruns are VERSIONS, never overwrites — the latest
+  // view picks the newest PASSING one).
+  const stamp = (today ?? new Date().toISOString()).replace(/[-:]/g, "").slice(0, 15);
   return {
-    note_id: `note:${s.bank_ticker}:${s.period}:${day}`,
+    note_id: `note:${s.bank_ticker}:${s.period}:${s.kind}:${stamp}`,
     bank_ticker: s.bank_ticker,
     period: s.period,
     kind: s.kind,

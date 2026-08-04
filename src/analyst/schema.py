@@ -43,6 +43,16 @@ CREATE TABLE IF NOT EXISTS analyst_notes (
 );
 CREATE INDEX IF NOT EXISTS idx_notes_bank_period ON analyst_notes(bank_ticker, period);
 
+CREATE VIEW IF NOT EXISTS v_latest_analyst_note AS
+SELECT n.* FROM analyst_notes n
+JOIN (
+    SELECT bank_ticker, kind, MAX(generated_at) AS max_at
+    FROM analyst_notes WHERE fact_check_passed = 1
+    GROUP BY bank_ticker, kind
+) latest ON n.bank_ticker = latest.bank_ticker AND n.kind = latest.kind
+        AND n.generated_at = latest.max_at
+WHERE n.fact_check_passed = 1;
+
 CREATE TABLE IF NOT EXISTS analyst_basis_metadata (
     bank_ticker      TEXT NOT NULL,
     period           TEXT NOT NULL,

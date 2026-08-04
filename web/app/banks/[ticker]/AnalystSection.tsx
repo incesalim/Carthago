@@ -46,19 +46,21 @@ const ASSURANCE: Record<string, string> = {
   audit: "full audit",
 };
 
-async function latestNote(ticker: string): Promise<NoteRow | null> {
+async function latestNote(ticker: string, kind: string): Promise<NoteRow | null> {
   try {
     const db = await getDB();
+    // The view is already partitioned by kind and filtered to passing — the
+    // kind bind matches the page's selected basis, never the other one's note.
     const row = await db
       .prepare(
         "SELECT period, kind, title, body, model, generated_at, fact_check_passed " +
-          "FROM v_latest_analyst_note WHERE bank_ticker = ?",
+          "FROM v_latest_analyst_note WHERE bank_ticker = ? AND kind = ?",
       )
-      .bind(ticker)
+      .bind(ticker, kind)
       .first<NoteRow>();
     return row ?? null;
   } catch {
-    return null; // table not migrated yet — the freeze; render "pending"
+    return null; // table not migrated yet — render "pending"
   }
 }
 
@@ -174,13 +176,13 @@ export default async function AnalystSection({
   ].join(" · ");
 
   const [note, signals] = await Promise.all([
-    latestNote(ticker),
+    latestNote(ticker, kind),
     signalsFor(ticker, latest.period, kind),
   ]);
 
   return (
     <section className="mt-8">
-      <SecHead title="The analyst's read" meta="grounded on stored rows · figures machine-checked" className="mb-2" />
+      <SecHead title="The analyst's read" meta="grounded on stored rows · automated checks passed" className="mb-2" />
       <p className="mb-3 font-mono text-[9.5px] uppercase tracking-[0.06em] text-faint">{badge}</p>
 
       {latest.opinion_type === "qualified" && lead && (
@@ -206,7 +208,7 @@ export default async function AnalystSection({
           <h3 className="mb-2 text-[13.5px] font-bold leading-snug text-foreground">{note.title}</h3>
           <MemoBody body={note.body} />
           <p className="mt-2.5 font-mono text-[8.5px] uppercase tracking-[0.07em] text-faint">
-            {note.period} · {note.kind} · {note.model ?? "model n/a"} · generated {note.generated_at.slice(0, 10)} · every figure verified against stored rows
+            {note.period} · {note.kind} · {note.model ?? "model n/a"} · generated {note.generated_at.slice(0, 10)} · automated checks passed — figures matched to stored rows; wording is the model&apos;s
           </p>
         </>
       ) : (
