@@ -100,9 +100,21 @@ export function renderDataBlock(input: AnalystInput): string {
   out.push("");
 
   out.push(`## Core margin — ${s.earnings.core_margin.label ?? "line not found"}`);
-  out.push("quarterly (de-cumulated):");
-  for (const c of s.earnings.core_margin.quarterly_series) {
-    if (c.amount != null) out.push(`  ${c.period}: ${c.amount}`);
+  out.push("quarterly (de-cumulated; the series is SEASONAL — read each quarter against the same quarter a year earlier, shown alongside):");
+  {
+    const byPeriod = new Map<string, number>();
+    for (const c of s.earnings.core_margin.quarterly_series) {
+      if (c.amount != null) byPeriod.set(c.period, c.amount);
+    }
+    for (const c of s.earnings.core_margin.quarterly_series) {
+      if (c.amount == null) continue;
+      const priorYear = `${Number(c.period.slice(0, 4)) - 1}${c.period.slice(4)}`;
+      const base = byPeriod.get(priorYear);
+      out.push(
+        `  ${c.period}: ${c.amount}` +
+          (base != null ? `  (same quarter a year earlier: ${base})` : ""),
+      );
+    }
   }
   out.push("");
 
