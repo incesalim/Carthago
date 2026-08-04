@@ -9,7 +9,6 @@
  *
  * The scout may rank. It must never conclude.
  */
-import type { Queryable } from "../data";
 import { ordOf, periodFromOrd } from "../../period-math";
 import { RECONCILIATIONS, STATEMENTS } from "./registry";
 import { runTool, type ToolContext } from "./tools";

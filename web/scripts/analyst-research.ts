@@ -104,7 +104,7 @@ async function main(): Promise<number> {
       `research: ${research.findings.length} finding(s), ${research.metrics.turns} turns, ` +
         `${research.metrics.tool_calls} tool calls, abstained=${research.abstained} → ${outDir}`,
     );
-    const failed = verification.findings.filter((f) => f.verdict === "fail").length;
+    const failed = verification.findings.filter((f: { verdict: string }) => f.verdict === "fail").length;
     console.log(`verification: ${verification.findings.length - failed}/${verification.findings.length} findings pass`);
   }
 
