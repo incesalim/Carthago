@@ -15,9 +15,10 @@ Metric definitions live in [METRICS.md](METRICS.md).
 | [CHANGELOG.md](CHANGELOG.md) | Dated history of pipeline / dashboard changes (split out of PROJECT_STATE). |
 | [OPERATIONS.md](OPERATIONS.md) | How to run & maintain: the workflow schedule, manual recipes per lane, troubleshooting, disaster recovery. |
 | [METRICS.md](METRICS.md) | Authoritative metric reference — sources (BDDK/EVDS/TBB/TEFAS/BIST/KAP), bank-type taxonomy, currency conventions, dashboard placements. |
-| [BANKING_METRICS.md](BANKING_METRICS.md) | The 153-metric registry: what each metric means, how it's computed, and where it surfaces. |
+| [BANKING_METRICS.md](BANKING_METRICS.md) | The 162-metric registry: what each metric means, how it's computed, and where it surfaces. |
 | [ADMIN.md](ADMIN.md) | Setup & use of the `/admin` control center (coverage matrix, pipeline/traffic panels, auth, manual triggers). |
 | [TELEGRAM_BOT.md](TELEGRAM_BOT.md) | The public Q&A bot: the agent loop, the read-only SQL gate, the grounding guard, setup, and the `bot-ask` test harness. |
+| [ANALYST.md](ANALYST.md) | The analyst lane in plain language: detectors → assembly → story gates → LLM → guard, with diagrams, how to run it, and what waits on the freeze. |
 | [SCHEMA_CONVENTIONS.md](SCHEMA_CONVENTIONS.md) | Naming rules for new D1 migrations (≥ 0022), enforced in CI by `scripts/check_schema_naming.py`. |
 
 ## Audit lane (per-bank BRSA report extraction)
