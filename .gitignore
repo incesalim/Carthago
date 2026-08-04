@@ -175,3 +175,4 @@ data/analyst_memo_*.md
 # Code may CITE these paths in comments (they resolve locally) but nothing
 # in CI reads them — verified before this rule landed.
 docs/knowledge/
+data/research/
