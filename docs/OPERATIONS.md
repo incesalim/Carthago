@@ -578,13 +578,32 @@ comfortably inside the allowance. **The entire overage is campaign days** — Ju
 
 1. **Never re-stamp a row that did not change.** `push_to_d1` windows on
    `downloaded_at`, so a scraper that re-fetches history and rewrites it
-   identically re-pushes the whole table. This is what `evds_scraper.fetch_one`
-   did — EVDS has no incremental endpoint, so it pulled each series back to 2018
-   every run and `INSERT OR REPLACE`d all of it, and because `downloaded_at` is
-   omitted from that statement every row took `DEFAULT CURRENT_TIMESTAMP`. 52,828
-   of 53,521 rows looked new *every day*: ~17M rows written a month for data that
-   had not moved. It now compares `(value, label, category)` and writes only what
-   differs. A settled series reporting **0 rows written is the healthy reading.**
+   identically re-pushes the whole table. **Any lane that re-fetches an
+   overlapping window has this bug until it is shown not to** — the run succeeds,
+   the data is correct, and only the bill moves. Three lanes have carried it:
+
+   | Lane | Why it re-fetches | Waste before the fix | Fixed |
+   |---|---|---|---|
+   | `evds_scraper.fetch_one` | no incremental endpoint — pulls each series back to 2018 every run | 52,828 of 53,521 rows looked new **daily**, ~17M rows/month | 2026-07-27 |
+   | `weekly_api_scraper.fetch_and_store` | the BDDK weekly API only serves a trailing **13-week** window | ~26,600 rows a run, of which 12/13 (~24,550) unchanged; 4 runs/week ⇒ **~1.5M billed writes/month** | 2026-08-04 |
+   | `tefas.loader.upsert_day` | `update_tefas.py` re-fetches a trailing **7-day** window every day | ~2,150 rows/day, 6/7 unchanged ⇒ **~0.2M billed writes/month** | 2026-08-04 |
+
+   All three now compare the stored tuple before writing, so an unchanged row
+   keeps its old `downloaded_at` and the push window never sees it. A revision, a
+   rebase or a new period still writes, because the tuple differs. A settled
+   series reporting **0 rows written is the healthy reading** — the weekly
+   scraper's `stats` prints `same=` beside `rows=` so the saving is visible in
+   the Actions log, and `same` collapsing to ~0 means either the upstream
+   restated the whole window or the comparison broke.
+
+   `tests/test_d1_write_economy.py` is the gate: a second identical ingest must
+   write nothing, and a genuine revision must still land.
+
+   ⚠️ **This class is the flat daily baseline, not the overage.** Together the
+   weekly + TEFAS fixes take ~1.7M/month off a ~14.6M/month quiet baseline. The
+   50M is blown by **campaign days** (Jul 15/17/26 alone were 36.9M of 68.1M) —
+   backfills, re-extractions and override pushes. Fixing scrapers does not
+   address those; budgeting the campaign does.
 2. **Full-rebuild tables carry a content hash.** `api_series` (19,787 rows,
    rebuilt on the DAILY bulletin cron) and the audit spine
    (`bank_audit_coverage`, 18,936 rows, on every audit and override run) emit

@@ -5,6 +5,38 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-04.
 
+2026-08-04 — **The EVDS write bug was never EVDS-specific: found it twice more,
+in the weekly bulletin and TEFAS.** `weekly_api_scraper.fetch_and_store` and
+`tefas.loader.upsert_day` now compare the stored tuple before writing, the same
+fix EVDS got on 2026-07-27. Gate: `tests/test_d1_write_economy.py`.
+
+The pattern is a property of the *source*, not of any one scraper: an upstream
+that only serves a trailing window forces a re-fetch of data already held, and
+`INSERT OR REPLACE` then re-stamps `downloaded_at` on every row of it. Since
+`push_to_d1` windows on exactly that column, the whole window re-ships to D1
+carrying identical values. Nothing looks wrong — the run succeeds, the data is
+correct, only the bill moves.
+
+- **weekly** — the BDDK weekly API serves a trailing **13-week** window, so
+  ~26,600 rows were rewritten per run and only the newest week (~2,080) was ever
+  new. At 4 runs/week (Fri ×2, Sat ×2) that is **~1.5M billed writes a month**
+  for data that had not moved. `weekly_series` is the largest table in the
+  database (711,777 rows), which is why it was the most expensive place to have
+  this bug and the least visible.
+- **TEFAS** — `update_tefas.py` re-fetches a trailing **7-day** window daily;
+  6 of 7 days came back identical. ~**0.2M billed writes a month**.
+
+⚠️ **This does not fix the overage, and it was not meant to.** Both lanes live in
+the flat quiet-day baseline (~487k rows/day, ~14.6M/month); together the fixes
+take ~1.7M/month off it. The 50M allowance is blown by **campaign days** —
+2026-07-15 (12.4M), 07-17 (15.1M) and 07-26 (9.4M) were 36.9M of July's 68.1M
+between them. Backfills, re-extractions and override pushes are the cost centre;
+scrapers are the rounding error that happens to be free to fix.
+
+The weekly scraper's stats now print `same=` beside `rows=`, so the saving is
+readable in the Actions log and a collapse to `same≈0` — upstream restating the
+whole window, or the comparison breaking — is visible rather than silent.
+
 2026-08-04 — **Earnings-call transcripts: 144 calls, and a "no free feed exists"
 claim that had stopped being true.** `bank_call_transcripts` (migration 0036,
 `src/transcripts/`), an "Earnings calls" block on `/banks/[ticker]`, and a reader

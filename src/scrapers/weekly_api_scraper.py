@@ -163,7 +163,7 @@ class BDDKWeeklyAPIScraper:
         # Quick counters for summary
         self.stats = {
             "calls": 0, "empty": 0, "errors": 0,
-            "rows_inserted": 0, "sanity_drops": 0,
+            "rows_inserted": 0, "rows_unchanged": 0, "sanity_drops": 0,
         }
 
     def open(self) -> None:
@@ -289,7 +289,31 @@ class BDDKWeeklyAPIScraper:
         currency = SUTUN_TO_CURRENCY.get(sutun, f"sutun{sutun}")
         monthly_code = WEEKLY_TO_MONTHLY_CODE[taraf_weekly]
 
+        # Write ONLY what changed. The weekly API has no incremental endpoint:
+        # every run re-fetches the same trailing 13-week window (see
+        # scripts/update_weekly.py), and INSERT OR REPLACE rewrote all of it.
+        # `downloaded_at` is absent from the column list, so each rewrite took
+        # DEFAULT CURRENT_TIMESTAMP — and push_to_d1 windows on that column, so
+        # ~26,600 byte-identical rows looked "new" to D1 on every single run.
+        # Only the newest of the 13 weeks is ever actually new.
+        #
+        # This is the EVDS bug (fixed 2026-07-27, ~17M rows/month of waste) in
+        # the largest table in the database. Same fix: compare the stored tuple
+        # first, so an unchanged row keeps its old `downloaded_at` and the push
+        # window never sees it. A revision, a restatement or a new week still
+        # writes, because the tuple differs.
+        # See docs/OPERATIONS.md -> D1 write budget.
+        existing = {
+            r[0]: (r[1], r[2], r[3])
+            for r in self.conn.execute(
+                "SELECT period_date, category, item_name, value FROM weekly_series "
+                "WHERE item_id = ? AND bank_type_code = ? AND currency = ?",
+                (chart_id, monthly_code, currency),
+            )
+        }
+
         written = 0
+        unchanged = 0
         for x, y in zip(xs, ys):
             try:
                 dt = parse_bddk_date(x).isoformat()
@@ -300,6 +324,9 @@ class BDDKWeeklyAPIScraper:
                 self.stats["sanity_drops"] += 1
                 print(f"  SANITY drop {chart_id} @ {x}: value={y}")
                 continue
+            if existing.get(dt) == (category_slug, item_name, v):
+                unchanged += 1
+                continue
             self.conn.execute(
                 "INSERT OR REPLACE INTO weekly_series "
                 "(period_date, category, item_id, item_name, bank_type_code, currency, value) "
@@ -309,6 +336,10 @@ class BDDKWeeklyAPIScraper:
             written += 1
         self.conn.commit()
         self.stats["rows_inserted"] += written
+        # Counted so the Actions log shows the saving: on a steady-state run this
+        # should dwarf rows_inserted, and a run where it drops to ~0 means the
+        # upstream restated the whole window (or the comparison broke).
+        self.stats["rows_unchanged"] += unchanged
         return written
 
     # -------------------------------------------------------------------
@@ -363,6 +394,7 @@ class BDDKWeeklyAPIScraper:
                                   f"elapsed={elapsed/60:>5.1f}m  "
                                   f"eta={eta/60:>5.1f}m  "
                                   f"rows={self.stats['rows_inserted']:,} "
+                                  f"same={self.stats['rows_unchanged']:,} "
                                   f"empty={self.stats['empty']} "
                                   f"err={self.stats['errors']}", flush=True)
 
