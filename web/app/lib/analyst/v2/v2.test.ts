@@ -138,6 +138,45 @@ describe("reconciliations", () => {
   });
 });
 
+describe("scout", () => {
+  it("ranks an unusual row above an always-huge rollup, and carries leads", async () => {
+    const { runScout } = await import("./scout");
+    const periods = ["2024Q1", "2024Q2", "2024Q3", "2024Q4", "2025Q1", "2025Q2", "2025Q3", "2025Q4", "2026Q1"];
+    const db: Queryable = {
+      all: async <T>(sql: string, binds: unknown[] = []): Promise<T[]> => {
+        if (/MAX\(extracted_at\)/.test(sql)) return [{ m: "x", n: 1 }] as T[];
+        if (/MAX\(amount_total\).*GROUP BY bank_ticker, statement/s.test(sql)) {
+          return [{ statement: "assets", total: 1_000_000 }, { statement: "liabilities", total: 1_000_000 }] as T[];
+        }
+        if (/FROM bank_audit_balance_sheet\s+WHERE bank_ticker = \? AND kind = \? AND statement = 'liabilities' ORDER BY period/.test(sql)) {
+          // Two rows: a giant TOTAL that always grows by the same amount (no
+          // surprise) and a small provisions row that collapses at 2026Q1.
+          const rows: unknown[] = [];
+          periods.forEach((p, i) => {
+            rows.push({ period: p, hierarchy: "", item_name: "TOTAL LIABILITIES", v: 900_000 + i * 50_000 });
+            rows.push({ period: p, hierarchy: "8.4", item_name: "Other Provisions", v: p === "2026Q1" ? 300 : 7_000 });
+          });
+          return rows as T[];
+        }
+        if (/FROM bank_audit_validation/.test(sql)) {
+          return [{ statement: "equity_change", checks_passed: 1, checks_failed: 1, failed_detail: "x" }] as T[];
+        }
+        return [] as T[];
+      },
+    };
+    const c: ToolContext = {
+      db, snapshot: await snapshotIdOf(db), log: new EvidenceLog(),
+      defaults: { bank: "TESTBK", period: "2026Q1", kind: "unconsolidated" },
+    };
+    const out = await runScout(c);
+    const liab = out.candidates.filter((x) => x.statement === "balance_sheet_liabilities");
+    expect(liab.length).toBeGreaterThan(0);
+    expect(liab[0].row).toContain("Other Provisions"); // surprise beats size
+    const validation = out.candidates.find((x) => x.source === "validation");
+    expect(validation?.description).toContain("equity_change");
+  });
+});
+
 describe("catalog", () => {
   it("lists every tool with signatures", () => {
     const cat = toolCatalog();
