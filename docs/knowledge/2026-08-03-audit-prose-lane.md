@@ -16,7 +16,7 @@ centre renders it with the same machinery as the tables:
 | `item_order` | ordinal within the filing — with (bank, period, kind), the row identity |
 | `section` | the **printed** Bölüm number (1–8) |
 | `section_role` | what that section *is*, read off the filing's own declared title |
-| `heading` / `heading_path` | the note heading and its mandated marker (`IV`, `a`, `2.1`) |
+| `heading` / `heading_path` | the note heading, and its **full** path — `5.I.a.1`, not the leaf marker |
 | `page_start` / `page_end` | page span |
 | `lang` | `tr` / `en` |
 | `text` | the reflowed paragraph |
@@ -32,6 +32,36 @@ AKBNK 2024Q1 unconsolidated, 315 rows, as `/admin` lists them:
   §6 audit_report                7 rows    1,452 chars
   §7 interim_activity_report     9 rows   10,387 chars
 ```
+
+## The section number is not the address — `heading_path` is
+
+A report is not seven flat buckets. §5 runs `I. → a. → 1. → (i)`, and §1 runs
+`I. → II. → III.`, so a block's real address is a path. `heading_path` stores the
+whole one — `5.I.a.1` — which is the prose analogue of the balance sheet's
+`hierarchy` column. An earlier draft stored only the leaf marker, and it could
+not say whether a `1.` sat under `I.a` or under `II.d`; two sibling `1.`s in
+different parents were indistinguishable rows.
+
+Depth is `len(path.split(".")) - 1`, so the admin can indent without a second
+column, and ancestors are a prefix join on the same table.
+
+Three things had to be right for the paths to mean anything, each measured:
+
+- **Roman only for I/V/X combinations.** A bare `C.` or `D.` is the third or
+  fourth item of a lettered list far more often than 100 or 500; admitting them
+  as roman hoists those blocks to the top level.
+- **A trailing period is optional only for a section-rooted decimal.** GARANTİ
+  prints `4.2.7 Movements in value adjustments` with none, which left **340 of
+  its 478 blocks with no heading at all**. Relaxing it for *any* decimal then
+  made `31.12.2024 Toplam …` a heading and turned a date into four levels of
+  hierarchy — hence the `[1-8](\.\d{1,2})+` shape.
+- **Abbreviations are not sentence ends.** The run-on guard counted `". "`, so
+  `T.C.` read as two sentences and the heading was rejected. Turkish bank
+  filings are full of `T.C.` and `A.Ş.`; this silently suppressed an entire
+  level — AKBNK's §5 went `5.I → 5.I.1`, skipping the `a.` that owns it.
+
+An absolute marker whose first component IS the section (GARANTİ's `4.2.7`)
+replaces the stack rather than nesting under it, or the path reads `4.4.2.7`.
 
 ## `section` is not `section_role`, and the number is not the meaning
 

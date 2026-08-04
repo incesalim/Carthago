@@ -127,11 +127,22 @@ def role_from_title(title: str | None) -> str | None:
 # A heading carries a numbering marker: roman (I. II. XVIII.), letter (a. b.) or
 # decimal (1. 1.1 2.4.3). BRSA mandates the numbering, not the wording, which is
 # why this is regex territory and the body of the note is not.
+# The trailing "." or ")" is required for a roman, a letter or a bare integer —
+# without it "2024 was a year of…" would open a heading. A MULTI-component
+# decimal is self-delimiting, so its trailing period is optional: GARANTİ prints
+# "4.2.7 Movements in value adjustments" with none, which left 340 of its 478
+# blocks with no heading at all.
+# The period-optional branch is deliberately narrow: it must be rooted in a
+# plausible section (1–8) with 1–2 digit components. Allowing any decimal made
+# "31.12.2024 Toplam …" a heading, which produced 11-deep paths out of a date.
 _HEAD_MARKER = re.compile(
-    r"^((?:[IVXLC]{1,6}|[a-zA-Z]|\d+(?:\.\d+)*)[.)])\s+(\S.{1,160})$")
+    r"^((?:[IVXLC]{1,6}|[a-zA-Z]|\d+(?:\.\d+)*)[.)]|[1-8](?:\.\d{1,2})+)"
+    r"\s+(\S.{1,160})$")
 _PAGE_NO = re.compile(r"^\(?\d{1,4}\)?$")
 _NUMERIC = re.compile(r"^\(?-?[\d.,]*\d[\d.,]*\)?%?$")
 _HAS_ALPHA = re.compile(r"[A-Za-zÇĞİÖŞÜçğıöşü]")
+# A period that ends a real sentence: preceded by a word, not by an initial.
+_SENTENCE_END = re.compile(r"[a-zçğıöşü]{3}\.\s")
 
 # Geometry thresholds. Tuned on the 10-filing random sample; see the lane doc.
 _ANCHOR_BUCKET = 2.0     # pt — x positions within this are the same column
@@ -316,9 +327,11 @@ def _mark_headings(lines: list[Line]) -> None:
             continue
         m = _HEAD_MARKER.match(ln.text)
         if m and _HAS_ALPHA.search(m.group(2)):
-            body = m.group(2)
-            # A numbered heading does not run on into a second sentence.
-            if body.count(". ") <= 1:
+            # A numbered heading does not run on into a second sentence — but
+            # counting ". " as the break makes "T.C." and "A.Ş." look like two
+            # sentences, and Turkish bank filings are full of both. A real
+            # sentence end needs a word before the period, not an initial.
+            if not _SENTENCE_END.search(m.group(2)):
                 ln.is_heading = True
                 ln.marker = m.group(1).rstrip(".)")
 
@@ -591,6 +604,46 @@ def _section_of(seq: int, starts_seq: dict[int, int]) -> int | None:
     return hit
 
 
+# Marker forms, in the nesting order BRSA mandates: I. → a. → 1. → (i).
+# Roman is matched against I/V/X combinations ONLY. A bare "C." or "D." is the
+# third/fourth item of a lettered list far more often than it is 100 or 500, and
+# admitting them as roman would hoist those blocks to the top level.
+_ROMAN_UPPER = re.compile(r"^(?:X{0,3})(?:IX|IV|V?I{0,3})$")
+_ROMAN_LOWER = re.compile(r"^(?:x{0,3})(?:ix|iv|v?i{0,3})$")
+_DECIMAL_PATH = re.compile(r"^\d+(?:\.\d+)+$")
+
+
+def _marker_depth(marker: str) -> int:
+    """Nesting depth of a heading marker, 1 = directly under the section."""
+    if _DECIMAL_PATH.match(marker):
+        return 2 + marker.count(".")
+    if marker.isupper() and _ROMAN_UPPER.match(marker):
+        return 1
+    if len(marker) > 1 and marker.islower() and _ROMAN_LOWER.match(marker):
+        return 4
+    if len(marker) == 1 and marker.isalpha():
+        return 2
+    if marker.isdigit():
+        return 3
+    return 3
+
+
+def _push_path(stack: list[str], marker: str, section: int) -> list[str]:
+    """Update the heading stack with a marker and return the new path.
+
+    A dotted marker whose first component IS the section number is already
+    absolute — GARANTİ numbers its notes "4.2.7", "5.6.6" — so it replaces the
+    stack rather than nesting under it, or the path would read "4.4.2.7".
+    """
+    if _DECIMAL_PATH.match(marker) and marker.split(".")[0] == str(section):
+        stack[:] = marker.split(".")[1:]
+        return list(stack)
+    depth = _marker_depth(marker)
+    del stack[depth - 1:]
+    stack.append(marker)
+    return list(stack)
+
+
 def _is_divider(text: str, lang: str) -> bool:
     """The 'ÜÇÜNCÜ BÖLÜM …' banner that opens a section is structure, not prose —
     it would otherwise become the first row of every section."""
@@ -608,6 +661,7 @@ def build_rows(lines: list[Line], starts_seq: dict[int, int], lang: str,
     heading_path: str | None = None
     cur_section: int | None = None
     rows_in_section = 0
+    stack: list[str] = []
 
     def flush() -> None:
         nonlocal buf, buf_pages, rows_in_section
@@ -638,6 +692,9 @@ def build_rows(lines: list[Line], starts_seq: dict[int, int], lang: str,
             flush()
             cur_section, heading, heading_path = sec, None, None
             rows_in_section = 0
+            stack = []
+            if sec is not None:
+                heading_path = str(sec)   # a block before the first heading
         if ln.is_table or _is_divider(ln.text, lang):
             flush()
             continue
@@ -645,7 +702,11 @@ def build_rows(lines: list[Line], starts_seq: dict[int, int], lang: str,
             flush()
             m = _HEAD_MARKER.match(ln.text)
             heading = m.group(2).strip() if m else ln.text
-            heading_path = ln.marker
+            # The FULL path, not the leaf marker. "1" alone cannot say whether
+            # the block sits under I.a or under II.d, and two sibling "1."s in
+            # different parents were indistinguishable.
+            path = _push_path(stack, ln.marker, cur_section) if ln.marker else []
+            heading_path = ".".join([str(cur_section), *path])
             continue
         buf.append(ln.text)
         buf_pages.append(ln.page)

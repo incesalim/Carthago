@@ -9,6 +9,8 @@ from src.audit_reports.prose import (
     _fold,
     _mark_headings,
     _mark_tables,
+    _marker_depth,
+    _push_path,
     build_rows,
     declared_titles,
     detect_language,
@@ -182,7 +184,7 @@ def test_blocks_carry_their_heading_and_section():
     assert len(rows) == 1
     assert rows[0].section == 3
     assert rows[0].section_role == "accounting_policies"
-    assert rows[0].heading_path == "I"
+    assert rows[0].heading_path == "3.I"   # section-rooted full path
     assert rows[0].text.startswith("Finansal tablolar")
 
 
@@ -288,3 +290,69 @@ def test_disclosure_variants_keep_their_own_roles():
     assert role_from_title(
         "Consolidated Financial Position and Results of Operations and Risk Management"
     ) == "risk"
+
+
+# --- heading hierarchy ------------------------------------------------------
+
+def test_heading_path_is_the_full_path_not_the_leaf():
+    """A bare "1" cannot say whether the block sits under I.a or under II.d, and
+    two sibling "1."s in different parents were indistinguishable."""
+    stack: list[str] = []
+    assert _push_path(stack, "I", 5) == ["I"]
+    assert _push_path(stack, "a", 5) == ["I", "a"]
+    assert _push_path(stack, "1", 5) == ["I", "a", "1"]
+    # A sibling at letter depth truncates the deeper levels.
+    assert _push_path(stack, "b", 5) == ["I", "b"]
+    assert _push_path(stack, "II", 5) == ["II"]
+
+
+def test_absolute_note_numbering_is_not_re_prefixed():
+    """GARANTİ numbers its notes '4.2.7', '5.6.6' — the leading component IS the
+    section, so nesting it under the stack would yield '4.4.2.7'."""
+    stack = ["II", "c"]
+    assert _push_path(stack, "4.2.7", 4) == ["2", "7"]
+
+
+def test_single_letters_that_look_roman_are_letters():
+    """'C.' is the third item of a lettered list far more often than 100."""
+    assert _marker_depth("I") == 1
+    assert _marker_depth("VIII") == 1
+    assert _marker_depth("C") == 2
+    assert _marker_depth("D") == 2
+    assert _marker_depth("a") == 2
+    assert _marker_depth("7") == 3
+
+
+def test_abbreviations_do_not_disqualify_a_heading():
+    """The run-on guard counted '. ' as a sentence break, so 'T.C.' looked like
+    two sentences — and Turkish bank filings are full of 'T.C.' and 'A.Ş.'.
+    This suppressed a whole level of headings fleet-wide."""
+    lines = [mkline("a. Nakit degerler ve T.C. Merkez Bankasi Hesabi ile T.C. "
+                    "Merkez Bankasi hesabi icerigine iliskin bilgiler:")]
+    _mark_headings(lines)
+    assert lines[0].is_heading and lines[0].marker == "a"
+    # A genuine run-on is still not a heading.
+    runon = [mkline("1. Banka faaliyetlerine devam etmektedir. Ayrica donem "
+                    "icinde herhangi bir degisiklik olmamistir")]
+    _mark_headings(runon)
+    assert not runon[0].is_heading
+
+
+def test_decimal_marker_without_a_trailing_period_is_a_heading():
+    """GARANTİ prints '4.2.7 Movements in value adjustments' with no trailing
+    period, which left 340 of its 478 blocks with no heading at all."""
+    lines = [mkline("4.2.7 Movements in value adjustments and provisions")]
+    _mark_headings(lines)
+    assert lines[0].is_heading and lines[0].marker == "4.2.7"
+
+
+def test_a_date_does_not_open_a_heading():
+    """Relaxing the trailing period for decimals made '31.12.2024 Toplam …' a
+    heading, and the date became four levels of hierarchy."""
+    lines = [mkline("31.12.2024 Toplam varliklar tutari asagida sunulmustur")]
+    _mark_headings(lines)
+    assert not lines[0].is_heading
+    # A bare year must not open one either.
+    year = [mkline("2024 yilinda Banka faaliyetlerine devam etmistir")]
+    _mark_headings(year)
+    assert not year[0].is_heading
