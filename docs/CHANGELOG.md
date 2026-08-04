@@ -5,6 +5,33 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-04.
 
+2026-08-05 — **A campaign now costs what it changed, not what it touched.** Each
+`(bank_audit_* table, bank·period·kind)` partition carries a digest in
+`d1_pushed_partitions`, and an unchanged partition is not pushed at all.
+
+The cap shipped yesterday made a campaign *declared*; this makes it *cheap*. The
+windowed audit tables key on the extraction stamp, so re-running the fleet after
+an extractor fix re-shipped every partition it touched — including all the ones
+the fix did not alter. Measured on the real balance-sheet corpus (1,050
+partitions / 182,141 rows): a re-extraction that changes nothing goes from
+182,141 rows to **0**, and one that corrects a single cell goes to **181**.
+
+Safety is the whole design, because the mirror image of the saving is rows that
+silently never arrive. A partition with no stored digest is always sent (missing
+state means "send it"); digests are recorded only after wrangler succeeds; stamp
+columns are excluded or nothing would ever match; a partition that *lost* a row
+counts as changed; `--force-partitions` resends everything. `bank_audit_extractions`
+is exempt outright — it is the log that records that an extraction ran, so
+skipping it would freeze the audit trail while the rows it describes had genuinely
+been re-extracted.
+
+Also: `healthcheck.py` now alerts at **80%** of the cycle's write allowance
+rather than leaving the bill unwatched — July's 18.1M overage was discovered on
+the invoice. It stays silent when the reading is unavailable, because an alert
+that fires on its own blindness gets muted. Shared reader in `src/d1_usage.py`,
+stdlib-only so the minimal-deps job can import it. Live at time of writing:
+62,626,854 rows this cycle, 12.6M over, ~$12.63.
+
 2026-08-04 — **Campaign pushes now have to declare what they cost.**
 `push_to_d1.py` prices every push before running it, prints the estimate with a
 per-table breakdown, and **fails (exit 3) rather than warning** when it exceeds

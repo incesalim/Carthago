@@ -612,6 +612,46 @@ were several pushes each and no single one would have tripped 2.5M — the
 cycle-aware layer is what closes that, and it only works where the analytics
 credentials are present.
 
+**Partition digests: a campaign costs what it CHANGED, not what it touched.**
+
+The guard above makes a campaign *declared*. This makes it *cheap*. The windowed
+`bank_audit_*` tables key on the extraction stamp, so re-running the fleet after
+an extractor fix re-pushed every partition it touched — including every partition
+the fix did not alter. Each `(table, bank_ticker|period|kind)` now carries a
+digest of its own rows in `d1_pushed_partitions` (staging DB, rides the R2
+snapshot, same as `d1_push_state`), and an unchanged partition is not emitted.
+
+Measured on the real balance-sheet corpus (1,050 partitions / 182,141 rows):
+
+| Campaign | Rows pushed before | After |
+|---|---:|---:|
+| Re-extraction that changed nothing | 182,141 | **0** |
+| Re-extraction that fixed one cell | 182,141 | **181** (1 partition) |
+
+Rules that keep it safe, each pinned by a test in `tests/test_d1_write_budget.py`:
+
+- A partition with **no stored digest is always sent** — missing state means
+  "send it", never "assume it landed". A reseeded staging DB pushes once.
+- Digests are recorded **only after wrangler succeeds**, like the content hash.
+- Stamp columns (`extracted_at`, `validated_at`, `derived_at`, `downloaded_at`)
+  are **excluded** — a re-extraction bumps them on purpose, and including them
+  would make every partition look changed and defeat the whole mechanism.
+- A partition that **lost** a row counts as changed (the digest covers row count).
+- `--force-partitions` resends everything, for when D1 was edited by hand.
+- ⚠️ **`bank_audit_extractions` is exempt.** It is the extraction *log*: its job
+  is to record that an extraction ran, and `extracted_at` — the fact it exists to
+  carry — is excluded from every digest. Skipping it would freeze D1's audit
+  trail while the rows it describes had genuinely been re-extracted. 1,050 rows;
+  pushing it always is cheap and correct.
+
+**And the bill is now watched.** `healthcheck.py` reads the cycle's rows-written
+and alerts at **80%** of the allowance, not at 100% — at 100% the only choices
+left are stop or pay. It stays **silent when the reading is unavailable**: an
+alert that fires on its own blindness gets muted, and a muted alert is worse than
+none. Needs `R2_ACCOUNT_ID` (account tag) beside `CLOUDFLARE_API_TOKEN` in
+`healthcheck.yml`. The shared reader is `src/d1_usage.py`, stdlib-only so the
+minimal-deps health-check job can import it.
+
 **The two rules that keep the bill down**
 
 1. **Never re-stamp a row that did not change.** `push_to_d1` windows on

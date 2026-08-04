@@ -404,6 +404,8 @@ def test_the_default_cap_clears_a_whole_audit_corpus():
 
 import datetime as _dt
 
+from src import d1_usage as U  # cycle reading lives here, stdlib-only
+
 
 @pytest.mark.parametrize("today,expected", [
     ("2026-08-04", "2026-07-11"),   # before the 11th -> previous month's 11th
@@ -415,7 +417,7 @@ import datetime as _dt
 def test_billing_cycle_runs_the_11th_to_the_10th(today, expected):
     """NOT the calendar month. Cloudflare labels Jul 11 -> Aug 10 as 'Aug 2026';
     reading it as a calendar month has twice produced wrong days-remaining."""
-    assert P.cycle_start(_dt.date.fromisoformat(today)) == _dt.date.fromisoformat(expected)
+    assert U.cycle_start(_dt.date.fromisoformat(today)) == _dt.date.fromisoformat(expected)
 
 
 def test_headroom_left_leaves_the_declared_cap_alone():
@@ -453,8 +455,8 @@ def test_cycle_reading_returns_none_rather_than_raising(monkeypatch):
     """A dead analytics API must not take the push down with it."""
     def boom(*a, **k):
         raise OSError("network is down")
-    monkeypatch.setattr(P.urllib.request, "urlopen", boom)
-    assert P.cycle_rows_written("acct", "token") is None
+    monkeypatch.setattr(U.urllib.request, "urlopen", boom)
+    assert U.cycle_rows_written("acct", "token") is None
 
 
 # --- statements must fit D1's 100 KB ceiling --------------------------------
@@ -509,3 +511,178 @@ def test_transcripts_batch_one_row_at_a_time():
     """Belt and braces: the byte guard makes this table safe anyway, but the
     explicit entry documents WHY one call per statement is the right shape."""
     assert P.BATCH_SIZE_PER_TABLE["bank_call_transcripts"] == 1
+
+
+# --- partition-level skip: campaigns cost what they CHANGED -------------------
+#
+# The guard above makes a campaign declared. This makes it cheap. The windowed
+# audit tables key on the extraction stamp, so re-running the fleet after an
+# extractor fix re-pushes every partition it TOUCHED, not the ones it changed —
+# and July's overage was campaigns. Each partition now carries a digest.
+#
+# The danger is the mirror image of the saving: a wrong skip means rows silently
+# never reach D1. These tests pin the safe defaults.
+
+def _audit_partition_db(tmp_path):
+    p = tmp_path / "audit.db"
+    c = sqlite3.connect(p)
+    c.execute("CREATE TABLE bank_audit_capital (bank_ticker TEXT, period TEXT, "
+              "kind TEXT, item TEXT, value REAL, extracted_at TIMESTAMP)")
+    rows = [("AKBNK", "2026Q1", "consolidated", "cet1", 100.0),
+            ("AKBNK", "2026Q1", "consolidated", "tier1", 200.0),
+            ("GARAN", "2026Q1", "consolidated", "cet1", 300.0)]
+    c.executemany(
+        "INSERT INTO bank_audit_capital VALUES (?,?,?,?,?,datetime('now'))", rows)
+    c.commit()
+    return c
+
+
+def _push(c, **kw):
+    d: dict = {}
+    block = P.fetch_recent(c, "bank_audit_capital", 48, digests=d, **kw)
+    return block, d
+
+
+def _emitted_values(block):
+    return [ln for ln in block if ln.startswith("INSERT")]
+
+
+def test_first_push_sends_every_partition(tmp_path):
+    c = _audit_partition_db(tmp_path)
+    block, d = _push(c)
+    assert _emitted_values(block)
+    assert set(d["bank_audit_capital"]) == {
+        "AKBNK|2026Q1|consolidated", "GARAN|2026Q1|consolidated"}
+
+
+def test_a_reextraction_that_changed_nothing_pushes_nothing(tmp_path):
+    """THE case. The extractor re-ran, bumped extracted_at on every row, and
+    produced byte-identical values — the window says 'touched', the digest says
+    'unchanged', and D1 should receive nothing at all."""
+    c = _audit_partition_db(tmp_path)
+    _, d = _push(c)
+    P.record_partition_digests(c, "bank_audit_capital", d["bank_audit_capital"])
+
+    c.execute("UPDATE bank_audit_capital SET extracted_at = datetime('now','+1 hour')")
+    c.commit()
+    block, _ = _push(c)
+    assert not _emitted_values(block)
+    assert "none changed" in " ".join(block)
+
+
+def test_only_the_partition_that_moved_is_pushed(tmp_path):
+    c = _audit_partition_db(tmp_path)
+    _, d = _push(c)
+    P.record_partition_digests(c, "bank_audit_capital", d["bank_audit_capital"])
+
+    c.execute("UPDATE bank_audit_capital SET value = 999.0 "
+              "WHERE bank_ticker='GARAN'")
+    c.commit()
+    block, d2 = _push(c)
+    sql = " ".join(_emitted_values(block))
+    assert "GARAN" in sql and "AKBNK" not in sql
+    assert set(d2["bank_audit_capital"]) == {"GARAN|2026Q1|consolidated"}
+
+
+def test_a_partition_never_pushed_is_always_sent(tmp_path):
+    """Missing state must mean 'send it', never 'assume it landed'. A reseeded
+    staging DB has no digests at all and must push everything once."""
+    c = _audit_partition_db(tmp_path)
+    _, d = _push(c)
+    P.record_partition_digests(c, "bank_audit_capital", d["bank_audit_capital"])
+
+    c.execute("INSERT INTO bank_audit_capital VALUES "
+              "('ISCTR','2026Q1','consolidated','cet1',500.0,datetime('now'))")
+    c.commit()
+    block, _ = _push(c)
+    assert "ISCTR" in " ".join(_emitted_values(block))
+
+
+def test_force_partitions_overrides_the_skip(tmp_path):
+    c = _audit_partition_db(tmp_path)
+    _, d = _push(c)
+    P.record_partition_digests(c, "bank_audit_capital", d["bank_audit_capital"])
+    block, _ = _push(c, skip_partitions=False)
+    assert _emitted_values(block), "--force-partitions must resend everything"
+
+
+def test_digests_ignore_the_extraction_stamp(tmp_path):
+    """extracted_at is what a re-extraction bumps on purpose; in the digest it
+    would make every partition look changed and defeat the whole mechanism."""
+    c = _audit_partition_db(tmp_path)
+    before = P.partition_digests(c, "bank_audit_capital", "")
+    c.execute("UPDATE bank_audit_capital SET extracted_at = '2099-01-01'")
+    c.commit()
+    assert P.partition_digests(c, "bank_audit_capital", "") == before
+
+
+def test_a_deleted_row_still_counts_as_a_change(tmp_path):
+    """A partition that LOST a row must re-push — the digest covers row count,
+    not just values."""
+    c = _audit_partition_db(tmp_path)
+    _, d = _push(c)
+    P.record_partition_digests(c, "bank_audit_capital", d["bank_audit_capital"])
+    c.execute("DELETE FROM bank_audit_capital WHERE bank_ticker='AKBNK' "
+              "AND item='tier1'")
+    c.commit()
+    block, _ = _push(c)
+    assert "AKBNK" in " ".join(_emitted_values(block))
+
+
+def test_the_extraction_log_is_never_partition_skipped(tmp_path):
+    """bank_audit_extractions exists to record THAT an extraction ran, and
+    extracted_at — the fact it carries — is excluded from every digest. Skipping
+    it would freeze D1's audit trail while the rows it describes were genuinely
+    re-extracted: the log quietly disagreeing with the audit."""
+    p = tmp_path / "log.db"
+    c = sqlite3.connect(p)
+    c.execute("CREATE TABLE bank_audit_extractions (bank_ticker TEXT, period TEXT, "
+              "kind TEXT, success INT, extracted_at TIMESTAMP)")
+    c.execute("INSERT INTO bank_audit_extractions VALUES "
+              "('AKBNK','2026Q1','consolidated',1,datetime('now'))")
+    c.commit()
+
+    d: dict = {}
+    first = P.fetch_recent(c, "bank_audit_extractions", 48, digests=d)
+    assert any(ln.startswith("INSERT") for ln in first)
+    assert "bank_audit_extractions" not in d, "must not record a partition digest"
+
+    # Re-extraction bumps the stamp and changes nothing else: still pushed.
+    c.execute("UPDATE bank_audit_extractions SET extracted_at = datetime('now','+1 hour')")
+    c.commit()
+    again = P.fetch_recent(c, "bank_audit_extractions", 48, digests={})
+    assert any(ln.startswith("INSERT") for ln in again)
+
+
+# --- the spend alert: hear about it before 100%, not on the invoice -----------
+
+def _spend(used):
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("hc", REPO / "scripts" / "healthcheck.py")
+    hc = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(hc)
+    return hc.d1_spend_problem(used=used)
+
+
+def test_quiet_below_the_warn_line():
+    assert _spend(30_000_000) is None          # 60%
+
+
+def test_warns_before_the_allowance_is_gone():
+    """80%, not 100% — at 100% the only choices left are stop or pay."""
+    msg = _spend(41_000_000)
+    assert msg and "82%" in msg and "headroom" in msg
+
+
+def test_reports_the_overage_and_its_cost():
+    msg = _spend(68_100_000)                   # July's actual month-to-date
+    assert msg and "18,100,000 OVER" in msg and "$18.10" in msg
+
+
+def test_silent_when_the_reading_is_unavailable(monkeypatch):
+    """An alert that fires on its own blindness gets muted, and a muted alert is
+    worse than none. The push guard is the enforcing half regardless."""
+    monkeypatch.delenv("CLOUDFLARE_API_TOKEN", raising=False)
+    monkeypatch.delenv("CF_ACCOUNT_TAG", raising=False)
+    monkeypatch.delenv("R2_ACCOUNT_ID", raising=False)
+    assert _spend(None) is None

@@ -22,6 +22,12 @@ from notify import notify  # noqa: E402
 ROOT = Path(__file__).resolve().parent.parent
 WEB = ROOT / "web"
 sys.path.insert(0, str(ROOT))  # so the lazy BDDK-probe import resolves
+# Stdlib-only by design, so this stays importable in the minimal-deps job.
+from src.d1_usage import (  # noqa: E402
+    D1_MONTHLY_ALLOWANCE,
+    cycle_rows_written,
+    cycle_start,
+)
 
 # (key, label, max_age_hours). Age-based staleness for the sources that publish
 # on a steady cadence. The MONTHLY bulletin is NOT here — it publishes ~once a
@@ -59,6 +65,15 @@ THRESHOLDS = [
     ("tefas", "TEFAS funds", 120),
 ]
 AUDIT_FAILED_ALERT = 25  # baseline known-partial extractions is ~20
+
+# Warn at 80% of the D1 write allowance, not at 100%.
+#
+# July 2026 ran 18.1M rows past the 50M included and nobody saw it until the
+# invoice: the crons were watched, the bill was not. Three campaign days did it
+# (12.4M + 15.4M + 9.4M), so the useful moment to hear about it is while there is
+# still headroom to spend deliberately — at 100% the only choices left are stop
+# or pay. `push_to_d1` enforces; this one tells you before it has to.
+D1_SPEND_WARN_FRACTION = 0.80
 
 # Days past the expected monthly release before a missing month is worth an
 # alert (mirrors MONTHLY_OVERDUE_GRACE_DAYS in web/app/lib/admin-health.ts).
@@ -212,6 +227,34 @@ def query_d1() -> dict:
     return rows[0]
 
 
+def d1_spend_problem(used: int | None = None) -> str | None:
+    """Alert text when this cycle's D1 writes cross the warn line, else None.
+
+    Silent when the reading is unavailable (no credentials, no network): a spend
+    alert that fires on its own blindness gets muted, and a muted alert is worse
+    than none. The push guard is the enforcing half and does not depend on this.
+    """
+    if used is None:
+        acct = os.environ.get("CF_ACCOUNT_TAG") or os.environ.get("R2_ACCOUNT_ID")
+        tok = os.environ.get("CLOUDFLARE_API_TOKEN")
+        if not (acct and tok):
+            return None
+        used = cycle_rows_written(acct, tok)
+    if used is None:
+        return None
+    pct = used / D1_MONTHLY_ALLOWANCE
+    if pct < D1_SPEND_WARN_FRACTION:
+        return None
+    cycle = cycle_start(date.today())
+    if used <= D1_MONTHLY_ALLOWANCE:
+        return (f"D1 writes {used:,} of {D1_MONTHLY_ALLOWANCE:,} this cycle "
+                f"({pct:.0%}, since {cycle}) — headroom is nearly gone")
+    over = used - D1_MONTHLY_ALLOWANCE
+    return (f"D1 writes {used:,} this cycle (since {cycle}) — {over:,} OVER the "
+            f"{D1_MONTHLY_ALLOWANCE:,} allowance, ~${over / 1e6:.2f} so far; "
+            f"campaign pushes are being refused until it rolls over")
+
+
 def main() -> int:
     try:
         row = query_d1()
@@ -241,6 +284,10 @@ def main() -> int:
     failed = row.get("audit_failed") or 0
     if failed > AUDIT_FAILED_ALERT:
         problems.append(f"Audit extractions failing: {failed} (baseline ~20)")
+
+    spend = d1_spend_problem()
+    if spend:
+        problems.append(spend)
 
     if problems:
         msg = "🟡 BDDK data health:\n- " + "\n- ".join(problems)

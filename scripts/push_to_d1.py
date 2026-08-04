@@ -17,15 +17,12 @@ Env:
 from __future__ import annotations
 
 import argparse
-import datetime as dt
 import hashlib
-import json
 import os
 import sqlite3
 import subprocess
 import sys
 import tempfile
-import urllib.request
 from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8")
@@ -36,6 +33,13 @@ WEB = ROOT / "web"
 
 sys.path.insert(0, str(ROOT))
 from src.audit_reports.registry import AUDIT_TABLES as _AUDIT_TABLES    # noqa: E402
+# Cycle usage lives in its own stdlib-only module so scripts/healthcheck.py can
+# read it too without pulling this file's whole import chain into the
+# minimal-deps health-check job.
+from src.d1_usage import (  # noqa: E402
+    D1_MONTHLY_ALLOWANCE,
+    cycle_rows_written,
+)
 from src.audit_reports.schema import init_schema as _init_audit_schema  # noqa: E402
 from src.earnings.schema import init_schema as _init_earnings_schema    # noqa: E402
 from src.faaliyet.schema import init_schema as _init_faaliyet_schema    # noqa: E402
@@ -166,6 +170,46 @@ CREATE TABLE IF NOT EXISTS d1_push_state (
 );
 """
 
+# The same idea one level finer, for the windowed audit tables.
+#
+# The content hash above is all-or-nothing per table, which suits a small rollup
+# and is useless for bank_audit_balance_sheet. Those tables are windowed on the
+# extraction stamp, so a re-extraction re-pushes every row of every partition it
+# touched — whether or not the extractor produced anything different. That is
+# what makes a campaign expensive: re-running the fleet after an extractor fix
+# re-ships partitions the fix did not change, and July's overage was campaigns.
+#
+# So each (table, bank_ticker|period|kind) carries a digest of its own rows, and
+# a partition whose digest is unchanged is not emitted at all. State lives in the
+# STAGING db, which rides the R2 snapshot, exactly like d1_push_state.
+_PARTITION_STATE_DDL = """
+CREATE TABLE IF NOT EXISTS d1_pushed_partitions (
+    table_name TEXT NOT NULL,
+    part_key   TEXT NOT NULL,
+    digest     TEXT NOT NULL,
+    PRIMARY KEY (table_name, part_key)
+);
+"""
+
+# Columns recording WHEN a row was written rather than WHAT it says. Excluded
+# from the partition digest for the same reason apply_overrides excludes them
+# (_STAMP_COLUMNS there): a re-extraction bumps them on purpose, so including
+# them would make every partition look changed and defeat the whole check.
+_ROW_STAMP_COLUMNS = {"extracted_at", "validated_at", "derived_at", "downloaded_at"}
+
+_PART_KEY = ("bank_ticker", "period", "kind")
+
+# Tables the partition skip must NOT apply to.
+#
+# `bank_audit_extractions` is the extraction LOG: its job is to record that an
+# extraction ran, and `extracted_at` is the fact it exists to carry. That column
+# is excluded from every digest (it is what a re-extraction bumps on purpose), so
+# skipping this table would leave D1's log frozen at the previous run while the
+# rows it describes had genuinely been re-extracted — the audit trail quietly
+# disagreeing with the audit. It is 1,050 rows; pushing it always is cheap and
+# correct. `/admin` reads MAX(extracted_at) from it for the audit panel's age.
+_NO_PARTITION_SKIP = {"bank_audit_extractions"}
+
 
 # Columns that record WHEN a rebuild ran, not WHAT it produced. They must be
 # excluded from the content hash or the skip can never fire: build_api_catalog
@@ -239,8 +283,8 @@ DEFAULT_MAX_BILLED_ROWS = 2_500_000
 # already spent — read from Cloudflare's own analytics, not guessed.
 #
 # ⚠️ The billing cycle is the 11th → the 10th, NOT the calendar month. Reasoning
-# off a calendar month has produced the wrong days-remaining twice.
-D1_MONTHLY_ALLOWANCE = 50_000_000
+# off a calendar month has produced the wrong days-remaining twice. The allowance
+# and the reading itself live in src/d1_usage.py, imported above.
 
 # Once the allowance is gone every further row bills at $1/M. Routine lanes must
 # keep running — freezing the whole pipeline was July's *other* mistake, and it
@@ -280,53 +324,58 @@ BATCH_SIZE_PER_TABLE = {
 _NL_SENTINEL = "__D1_NL__"
 
 
-def cycle_start(today: dt.date) -> dt.date:
-    """First day of the D1 billing cycle containing `today`.
+def has_partition_key(conn: sqlite3.Connection, table: str) -> bool:
+    cols = {c[1] for c in conn.execute(f"PRAGMA table_info({table})")}
+    return set(_PART_KEY) <= cols
 
-    The cycle runs the 11th → the 10th, so the period Cloudflare labels
-    "Aug 2026" is Jul 11 → Aug 10. Reading it as a calendar month has twice
-    produced the wrong days-remaining.
+
+def partition_digests(conn: sqlite3.Connection, table: str,
+                      where: str) -> dict[str, str]:
+    """{`bank|period|kind`: digest} over the rows this push would send.
+
+    One streaming pass that builds only hashes — no row text — so memory is a few
+    dozen bytes per partition regardless of how many rows are in the window.
     """
-    if today.day >= 11:
-        return today.replace(day=11)
-    prev = today.replace(day=1) - dt.timedelta(days=1)
-    return prev.replace(day=11)
+    cols = [c[1] for c in conn.execute(f"PRAGMA table_info({table})")
+            if c[1] not in _ROW_STAMP_COLUMNS]
+    key = ", ".join(_PART_KEY)
+    out: dict[str, hashlib._Hash] = {}
+    # ORDER BY the key so a partition's rows arrive together; the digest is order
+    # sensitive within a partition, which is fine — these rows are written by one
+    # extractor pass and re-read in the same order.
+    for row in conn.execute(
+        f"SELECT {key}, {', '.join(cols)} FROM {table} {where} ORDER BY {key}"
+    ):
+        part = "|".join("" if v is None else str(v) for v in row[:3])
+        h = out.get(part)
+        if h is None:
+            h = out[part] = hashlib.sha256()
+            h.update((",".join(cols) + "\n").encode())
+        h.update(repr(row[3:]).encode())
+        h.update(b"\n")
+    return {k: v.hexdigest() for k, v in out.items()}
 
 
-def cycle_rows_written(account_tag: str, token: str,
-                       today: dt.date | None = None) -> int | None:
-    """Rows written account-wide so far this billing cycle, or None if unknown.
+def stored_partition_digests(conn: sqlite3.Connection, table: str) -> dict[str, str]:
+    conn.executescript(_PARTITION_STATE_DDL)
+    return {
+        r[0]: r[1] for r in conn.execute(
+            "SELECT part_key, digest FROM d1_pushed_partitions WHERE table_name = ?",
+            (table,))
+    }
 
-    None means "could not observe" — no credentials, no network, an API change.
-    The caller must treat that as unknown rather than as zero: reporting a
-    missing reading as "plenty of headroom" is exactly the silent-wrong shape
-    this repo keeps getting bitten by.
 
-    ⚠️ Account-wide, not per-database. `gazelhan` is a second D1 database on this
-    account and is NOT this project — it was 9.5M of July's 68.1M. That makes
-    this reading conservative, which is the right direction for a spend guard.
-    """
-    today = today or dt.date.today()
-    query = (
-        "query($acc:String!,$start:Date!,$end:Date!){viewer{accounts(filter:{accountTag:$acc})"
-        "{d1AnalyticsAdaptiveGroups(limit:10000,filter:{date_geq:$start,date_leq:$end})"
-        "{sum{rowsWritten}}}}}"
-    )
-    body = json.dumps({
-        "query": query,
-        "variables": {"acc": account_tag,
-                      "start": str(cycle_start(today)), "end": str(today)},
-    }).encode()
-    req = urllib.request.Request(
-        "https://api.cloudflare.com/client/v4/graphql", data=body,
-        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"})
-    try:
-        with urllib.request.urlopen(req, timeout=20) as resp:
-            payload = json.load(resp)
-        groups = payload["data"]["viewer"]["accounts"][0]["d1AnalyticsAdaptiveGroups"]
-    except Exception:
-        return None
-    return sum(g["sum"]["rowsWritten"] for g in groups)
+def record_partition_digests(conn: sqlite3.Connection, table: str,
+                             digests: dict[str, str]) -> None:
+    """Called only AFTER wrangler reports success — a remembered-but-failed push
+    would skip those partitions forever, which is the silent-wrong failure this
+    whole mechanism has to avoid being."""
+    conn.executescript(_PARTITION_STATE_DDL)
+    conn.executemany(
+        "INSERT OR REPLACE INTO d1_pushed_partitions(table_name, part_key, digest) "
+        "VALUES (?, ?, ?)",
+        [(table, k, d) for k, d in digests.items()])
+    conn.commit()
 
 
 def effective_cap(declared: int, used: int | None) -> tuple[int, str]:
@@ -379,7 +428,9 @@ def billed_estimate(conn: sqlite3.Connection, table: str, rows: int,
 
 def fetch_recent(conn: sqlite3.Connection, table: str, hours: int,
                  skip_unchanged: bool = True,
-                 counts: dict[str, int] | None = None) -> list[str]:
+                 counts: dict[str, int] | None = None,
+                 digests: dict[str, dict[str, str]] | None = None,
+                 skip_partitions: bool = True) -> list[str]:
     """Return SQL statements (INSERT OR REPLACE) for rows updated in last `hours`.
 
     Tables with a `downloaded_at` column are filtered by it.
@@ -387,8 +438,10 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int,
     in bank_audit_extractions (the parent log table).
 
     `counts`, when given, is populated with {table: estimated billed rows} so the
-    caller can price the push before running it. Optional because the signature
-    is load-bearing for tests that call this directly.
+    caller can price the push before running it. `digests`, when given, collects
+    {table: {partition: digest}} for the partitions actually emitted, so main()
+    can record them AFTER wrangler succeeds. Both are optional because this
+    signature is load-bearing for tests that call it with three arguments.
     """
     # A table absent from THIS staging DB is not an error. The two DBs hold
     # disjoint sets (see docs/OPERATIONS.md §Two staging DBs), and `api_series`
@@ -480,6 +533,34 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int,
         return [f"-- {table}: 0 local rows — skip"
                 + (" (full-rebuild: refusing to wipe D1)" if full_rebuild
                    else f" in last {hours}h")]
+
+    # Drop partitions whose rows are byte-identical to what we last pushed. This
+    # is what makes a re-extraction campaign cost what it actually changed rather
+    # than what it touched: the window says "this partition was re-extracted",
+    # the digest says whether the re-extraction produced anything different.
+    if (skip_partitions and not full_rebuild and digests is not None
+            and table not in _NO_PARTITION_SKIP
+            and has_partition_key(conn, table)):
+        current = partition_digests(conn, table, where)
+        stored = stored_partition_digests(conn, table)
+        # A partition we have never pushed has no stored digest and is therefore
+        # always sent — the safe default when the state is missing or reseeded.
+        changed = {k: v for k, v in current.items() if stored.get(k) != v}
+        if not changed:
+            print(f"  [skip] {table}: {len(current)} partition(s) in window, "
+                  f"none changed", flush=True)
+            return [f"-- {table}: {len(current)} partitions in window, "
+                    f"none changed — nothing to push"]
+        if len(changed) < len(current):
+            print(f"  [part] {table}: {len(changed)}/{len(current)} partitions "
+                  f"changed", flush=True)
+            keys = ", ".join(
+                "(" + ",".join("'" + p.replace("'", "''") + "'"
+                               for p in k.split("|")) + ")"
+                for k in sorted(changed))
+            where += f" AND ({', '.join(_PART_KEY)}) IN (VALUES {keys})"
+            n = conn.execute(f"SELECT COUNT(*) FROM {table} {where}").fetchone()[0]
+        digests[table] = changed
 
     if counts is not None:
         counts[table] = billed_estimate(conn, table, n, full_rebuild)
@@ -623,6 +704,12 @@ def main() -> int:
                              "lane and a whole-audit-corpus push, and stops a "
                              "runaway campaign. Raise it deliberately, in the "
                              "workflow file, so the cost is reviewable in the diff.")
+    parser.add_argument("--force-partitions", action="store_true",
+                        help="Push every partition in the window, even ones whose "
+                             "rows are identical to what was last pushed. Use "
+                             "after editing D1 by hand, or to repair drift between "
+                             "the staging DB and D1 — the skip trusts that the "
+                             "last successful push landed.")
     parser.add_argument("--no-cycle-check", action="store_true",
                         help="Skip reading this cycle's rows-written from Cloudflare. "
                              "The per-push cap still applies. Use when the analytics "
@@ -691,12 +778,14 @@ def main() -> int:
     total_inserts = 0
     rebuilt: list[str] = []   # full-rebuild tables actually emitted this run
     billed: dict[str, int] = {}
+    digests: dict[str, dict[str, str]] = {}
     for tbl in SYNC_TABLES:
         if allowed_tables is not None and tbl not in allowed_tables:
             continue
         block = fetch_recent(conn, tbl, args.hours,
                              skip_unchanged=not args.force_rebuild,
-                             counts=billed)
+                             counts=billed, digests=digests,
+                             skip_partitions=not args.force_partitions)
         lines.extend(block)
         lines.append("")
         n_ins = sum(1 for ln in block if ln.startswith("INSERT"))
@@ -765,10 +854,12 @@ def main() -> int:
         )
         conn.commit()
         print(f"cleared {len(pending)} replayed outbox deletes")
-    # Only now — a failed push must not be remembered as done, or the table
-    # would be skipped forever after.
+    # Only now — a failed push must not be remembered as done, or the table (or
+    # partition) would be skipped forever after.
     for tbl in rebuilt:
         record_hash(conn, tbl, content_hash(conn, tbl))
+    for tbl, parts in digests.items():
+        record_partition_digests(conn, tbl, parts)
     print("D1 push complete")
     return 0
 
