@@ -184,6 +184,10 @@ jobs:
           # A memo that failed its fact-check is a result to READ, not a green run.
           exit $fail
 
+      - name: Score reports (informational — the guard already gates)
+        if: always()
+        run: python scripts/analyst/score_reports.py "data/analyst_memo_*.json"
+
       - name: Upload analyst staging state to R2
         if: always()
         run: |

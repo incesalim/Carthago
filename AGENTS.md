@@ -23,7 +23,7 @@ Full index: [docs/README.md](docs/README.md).
 | `scripts/` | CLI entry points, backfills, and the `check_*.py` CI gates |
 | `web/` | Next.js 16 dashboard → **[web/AGENTS.md](web/AGENTS.md)** |
 | `mobile/` | Expo app → **[mobile/AGENTS.md](mobile/AGENTS.md)** |
-| `docs/` | Canonical docs; `docs/knowledge/` holds dated investigation write-ups |
+| `docs/` | Canonical docs; `docs/knowledge/` holds dated investigation write-ups (**gitignored — internal**, on disk only) |
 | `tests/` | pytest, including the gate tests |
 | `data/` | Mostly gitignored — the committed part is bank URL config + registries |
 | `.github/workflows/` | Every scheduled job, and every manual backfill entry point |
@@ -108,6 +108,9 @@ reads; `check_docs_sync.py` diffs it against `.github/workflows/` and
 - Docs are part of "done": a change that moves the system's state updates
   `PROJECT_STATE.md` / `OPERATIONS.md` / `ADMIN.md` in the same commit.
 - Investigation write-ups go in `docs/knowledge/`, dated and status-marked.
+  The whole directory is **gitignored (2026-08-04)** — the knowledge base is
+  internal and never ships in the public repo. Docs may cite those paths;
+  the links resolve on a working machine, not on GitHub.
 - The **code** is AGPL-3.0. The **data** is not ours to relicense — BDDK, TCMB,
   TBB, KAP, TEFAS and BIST each carry their own terms, and redistribution
   (including via `/api/v1`) stays subject to them.

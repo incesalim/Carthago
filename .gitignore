@@ -162,30 +162,10 @@ data/*.log
 # of why a page looks the way it does.
 docs/design/
 
-# Internal business/strategy assessments — LOCAL ONLY. These evaluate the
-# product and the business (positioning, moat, weaknesses, site ratings)
-# rather than the data pipeline. The extraction and validator post-mortems
-# in docs/knowledge/ stay public: those demonstrate the rigour behind the
-# numbers, which is worth publishing. These do not.
-docs/knowledge/strategic-review-2026-07.md
-docs/knowledge/website-evaluation-2026-07-12.md
-docs/knowledge/dashboard-audit.md
-docs/knowledge/2026-07-13-sector-pages-consistency-audit.md
-docs/knowledge/website-evaluation-2026-07-25.md
-
-# Reading lists — LOCAL ONLY. These index *other people's* work (broker
-# earnings previews, rating actions, multilateral reports, FT chart references,
-# BBVA outlook editions) rather than documenting our own pipeline. Kept on disk
-# as reference; nothing downstream reads them, the deep links age out within a
-# quarter, and a reader of the public code does not need our reading list. The
-# extraction and validator post-mortems in docs/knowledge/ stay public — those
-# are about our numbers.
-# Generated triage output (scripts/triage_partitions.py, watch_cross_period.py).
-# Regenerated on every run and republished as a workflow artifact, so committing
-# it would churn git with a dated copy of a report nothing downstream reads. The
-# FINDINGS live in a dated write-up alongside the other post-mortems.
-docs/knowledge/triage/
-
-docs/knowledge/external-reports/
-docs/knowledge/bbva-economic-outlook/
-docs/knowledge/ft-visual-journalism/
+# The knowledge base — INTERNAL, whole directory (decision 2026-08-04,
+# superseding the earlier per-file split that kept post-mortems public).
+# Dated investigation write-ups, evaluations, build plans and reading lists
+# stay on disk as the working record; none of it ships in the public repo.
+# Code may CITE these paths in comments (they resolve locally) but nothing
+# in CI reads them — verified before this rule landed.
+docs/knowledge/

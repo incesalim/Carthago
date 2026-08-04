@@ -2,9 +2,8 @@
 
 This is the plain-language tour of the analyst lane: what runs, in what order,
 and why the reports can be trusted. The task-level build record with pass/fail
-criteria lives in
-[knowledge/2026-08-04-analyst-build-plan.md](knowledge/2026-08-04-analyst-build-plan.md);
-this page is the map.
+criteria lives in `docs/knowledge/2026-08-04-analyst-build-plan.md`
+(internal — the knowledge base is gitignored); this page is the map.
 
 **The one-sentence version:** deterministic code digs every number and every
 judgment out of the stored filings, a cheap LLM writes the connecting prose,

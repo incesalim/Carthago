@@ -61,4 +61,4 @@ their description; commands are typed.
 | [regulation_followups.md](regulation_followups.md) | Tracking file for regulatory changes that need code updates. |
 | [AUDIT_REWORK_PLAN.md](AUDIT_REWORK_PLAN.md) | **Historical** — the completed 6-phase audit-quality rework. |
 | [RESUME_AUDIT_FIX.md](RESUME_AUDIT_FIX.md) | **Historical** — closure record of the 2026-06-12 balance-sheet ECL corruption fix. |
-| [knowledge/](knowledge/) | Dated, status-marked working notes: strategic + architecture reviews, the dashboard audit and display study, free-model evals, the SEO/Search-Console record, and external-report distillations (BBVA outlook, CBRT FSR chart inventory, FT visual-journalism precedents). Not a data source for any page. |
+| `knowledge/` | **Internal — gitignored (2026-08-04), on-disk only.** Dated, status-marked working notes: strategic + architecture reviews, build plans, evaluations, external-report distillations. Not a data source for any page, and not part of the public repo. |
