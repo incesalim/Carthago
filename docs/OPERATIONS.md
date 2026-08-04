@@ -143,6 +143,47 @@ To enable auto-discovery for more banks, run
 the config) and add any passing ticker to `DISCOVERY_BANKS`. See
 [ADMIN.md](ADMIN.md) §Auto-discovery.
 
+### Narrative prose lane — local backfill, deferred D1 push
+
+`bank_audit_prose` is extracted and validated **locally**, into its own SQLite
+file, and has deliberately **not been pushed to D1** (the write freeze stands).
+
+```bash
+python scripts/backfill_prose.py                    # whole R2 fleet -> data/bank_audit_prose.db
+python scripts/backfill_prose.py --only-bank GARAN  # one bank
+python scripts/backfill_prose.py --local-dir data/eye   # no network
+```
+
+Idempotent and resumable — a partition that already has rows is skipped unless
+`--force`, so an interrupted run continues where it stopped. Roughly 1.7 s per
+filing at the default 6 workers.
+
+**Why its own file, not `data/bank_audit.db`.** `apply_overrides` and every
+refresh workflow OVERWRITE the lane snapshot from R2. Prose rows written into the
+snapshot would be destroyed by the next pull with no error. `data/bank_audit_prose.db`
+is gitignored and self-contained.
+
+**When the freeze lifts**, merge and push — do NOT re-extract:
+
+```bash
+sqlite3 data/bank_audit.db "
+  ATTACH 'data/bank_audit_prose.db' AS p;
+  INSERT OR REPLACE INTO bank_audit_prose SELECT * FROM p.bank_audit_prose;
+  INSERT OR REPLACE INTO bank_audit_validation
+    SELECT * FROM p.bank_audit_validation WHERE statement='prose';"
+python scripts/push_to_d1.py --only-tables=bank_audit_prose,bank_audit_validation
+```
+
+Apply migration `0035_bank_audit_prose.sql` first (it rides a `web/**` deploy).
+Budget: ~330k rows ≈ **$0.33** one-off at D1's $1/M rows written; re-runs write
+only what changed. Nothing else in the lane costs anything — extraction is
+deterministic and uses no model.
+
+**Automation is not wired yet.** The intended shape is a `statement=prose` run of
+`reextract-statement.yml` (the lane is already registered there and in
+`push_to_d1`), plus a step in `sync_audit_reports.py` so a newly synced PDF gets
+its prose in the same pass.
+
 ### TBB digital-banking statistics (quarterly)
 
 The weekly Saturday `refresh-data.yml` cron already refreshes TBB (a
