@@ -36,10 +36,10 @@ sqlalchemy>=2.0.51
 # Found 2026-08-02: the requirement said >=1.28.0 while local dev ran 1.27.2.3,
 # so CI and the developer were on different engines and only CI was broken.
 # Re-test `_locate_pages` across several filings before raising this cap.
-pymupdf>=1.27.2,<1.28.0
+pymupdf>=1.28.0,<1.29.0
 
 # Cloudflare R2 (S3-compatible) for audit-report PDF storage
-boto3>=1.43.55
+boto3>=1.43.59
 
 # Utilities
 python-dotenv>=1.2.2
