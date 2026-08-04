@@ -1,0 +1,156 @@
+name: Analyst V2 research
+
+# Agentic discovery over deterministic evidence (docs/ANALYST_V2.md):
+# pull the R2 snapshots, run the story-agnostic anomaly scout, prepare the
+# filing's per-page text, then a bounded hypothesis-driven research loop over
+# typed read-only tools, deterministic verification of the structured
+# findings, and a rendered summary of the survivors.
+#
+# ARTIFACT-ONLY, evaluation phase:
+#   - No D1 writes of any kind.
+#   - No schedule — manual dispatch only; nothing publishes automatically.
+#   - V1 (analyst-daily.yml) stays intact as the regression baseline.
+#   - A run with zero verified findings + a documented abstention is GREEN:
+#     an ordinary quarter is a correct result.
+on:
+  workflow_dispatch:
+    inputs:
+      banks:
+        description: "Tickers to research (comma-separated)."
+        type: string
+        default: "ALBRK"
+      period:
+        description: "Quarter to investigate (YYYYQn)."
+        type: string
+        default: "2025Q1"
+      kind:
+        description: "Consolidation basis."
+        type: choice
+        options: [unconsolidated, consolidated]
+        default: unconsolidated
+      scout_only:
+        description: "Run only the deterministic scout (no LLM)."
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bddk-audit
+  cancel-in-progress: false
+
+jobs:
+  research:
+    name: Scout → research loop → verifier (artifacts only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      PYTHONIOENCODING: utf-8
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install minimal Python deps
+        # boto3 for R2; pymupdf for the filing-text pre-extract. The research
+        # stack itself is TypeScript.
+        run: pip install boto3 pymupdf
+
+      - name: Fetch snapshots from R2 (audit + bulletin + analyst state)
+        run: |
+          python - <<'PY'
+          import gzip, shutil, pathlib, sys
+          from src.audit_reports import r2_storage
+          for key, dest, required in (
+              ("state/bank_audit.db.gz", "data/bank_audit.db", True),
+              ("state/bddk_data.db.gz", "data/bddk_data.db", False),
+              ("state/analyst.db.gz", "data/analyst.db", False)):
+              gz = pathlib.Path(dest + ".gz")
+              db = pathlib.Path(dest)
+              gz.parent.mkdir(parents=True, exist_ok=True)
+              if not r2_storage.exists(key):
+                  if required:
+                      sys.exit(f"required snapshot missing in R2: {key}")
+                  print(f"optional snapshot missing: {key}")
+                  continue
+              r2_storage.download_to(key, gz)
+              with gzip.open(gz, "rb") as s, open(db, "wb") as d:
+                  shutil.copyfileobj(s, d)
+              print(f"{key} → {db} ({db.stat().st_size/1e6:.1f} MB)")
+          PY
+
+      - name: Refresh detector signals (leads for the researcher)
+        run: python scripts/analyst/detect.py --db data/bank_audit.db --stage
+
+      - name: Prepare filing text (per-page PDF extract for the source tools)
+        env:
+          BANKS: ${{ inputs.banks }}
+          PERIOD: ${{ inputs.period }}
+          KIND: ${{ inputs.kind }}
+        run: |
+          if ! printf '%s' "$PERIOD" | grep -Eq '^[0-9]{4}Q[1-4]$'; then
+            echo "bad period input: $PERIOD" >&2; exit 2
+          fi
+          IFS=',' read -ra TICKERS <<< "$BANKS"
+          for t in "${TICKERS[@]}"; do
+            t="$(printf '%s' "$t" | tr -cd 'A-Z')"
+            [ -z "$t" ] && continue
+            python scripts/analyst/prepare_filing_text.py --bank "$t" --period "$PERIOD" --kind "$KIND"
+          done
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install web deps
+        working-directory: web
+        run: npm ci
+
+      - name: Research
+        working-directory: web
+        env:
+          OPEN_ROUTER_API: ${{ secrets.OPEN_ROUTER_API }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          CEREBRAS_KEY: ${{ secrets.CEREBRAS_KEY }}
+          BANKS: ${{ inputs.banks }}
+          PERIOD: ${{ inputs.period }}
+          KIND: ${{ inputs.kind }}
+          MODE: ${{ inputs.scout_only && '--scout' || '--research' }}
+        run: |
+          IFS=',' read -ra TICKERS <<< "$BANKS"
+          for t in "${TICKERS[@]}"; do
+            t="$(printf '%s' "$t" | tr -cd 'A-Z')"
+            [ -z "$t" ] && continue
+            echo "── research: $t $PERIOD $KIND ($MODE)"
+            npx tsx scripts/analyst-research.ts --bank "$t" --period "$PERIOD" --kind "$KIND" $MODE \
+              --out-dir ../data/research
+          done
+
+      - name: Upload research artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: research-${{ inputs.period }}-${{ github.run_id }}
+          path: |
+            data/research/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Alert on failure
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+        run: python scripts/notify.py "❌ ${{ github.workflow }} failed — ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

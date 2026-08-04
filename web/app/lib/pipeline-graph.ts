@@ -114,7 +114,8 @@ export const PIPELINE_NODES: PipelineNode[] = [
   { id: "wf-backfill-audit", kind: "workflow", layer: "ingestion", lane: "audit", label: "backfill-audit", sublabel: "manual · full re-extract (5-bank chunks)", workflowFile: "backfill-audit.yml" },
   { id: "wf-purge-partition", kind: "workflow", layer: "ingestion", lane: "audit", label: "purge-partition", sublabel: "manual · remove a known-wrong partition (keeps the PDF)", workflowFile: "purge-partition.yml" },
   { id: "wf-audit-triage", kind: "workflow", layer: "ingestion", lane: "audit", label: "audit-triage", sublabel: "manual · read-only · why a partition fails (writes nothing)", workflowFile: "audit-triage.yml" },
-  { id: "wf-analyst", kind: "workflow", layer: "ingestion", lane: "audit", label: "analyst-daily", sublabel: "manual · detectors → LLM memos (artifacts only — write freeze)", workflowFile: "analyst-daily.yml" },
+  { id: "wf-analyst", kind: "workflow", layer: "ingestion", lane: "audit", label: "analyst-daily", sublabel: "manual · detectors → LLM memos (V1 baseline, artifacts)", workflowFile: "analyst-daily.yml" },
+  { id: "wf-analyst-research", kind: "workflow", layer: "ingestion", lane: "audit", label: "analyst-research", sublabel: "manual · V2 scout → research loop → verifier (artifacts only, eval phase)", workflowFile: "analyst-research.yml" },
 
   // ── Audit lane · storage ───────────────────────────────────────────────
   { id: "store-r2-pdf", kind: "store", layer: "storage", lane: "audit", label: "R2 · PDF bucket", sublabel: "bddk-audit-reports/<ticker>/*.pdf" },
@@ -266,6 +267,8 @@ export const PIPELINE_EDGES: PipelineEdge[] = [
   { source: "store-r2-pdf", target: "wf-audit-triage" },
   { source: "store-d1-audit-spine", target: "wf-audit-triage" },
   { source: "store-r2-snap", target: "wf-analyst" },
+  { source: "store-r2-snap", target: "wf-analyst-research" },
+  { source: "store-r2-pdf", target: "wf-analyst-research" },
 
   // R2 snapshots (push side)
   { source: "wf-refresh-data", target: "store-r2-snap", kind: "snapshot" },

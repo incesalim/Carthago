@@ -1,0 +1,84 @@
+{
+  "_comment": [
+    "Analyst V2 evaluation corpus — factual expectations only (rationale lives in the",
+    "internal knowledge notes). Scored by scripts/analyst/eval_research.py against a",
+    "run's findings_/verification_ artifacts. expected_markers are case-insensitive",
+    "substrings that must appear in at least one VERIFIED finding (thesis or claims);",
+    "alternative_markers count as a hit too; forbidden_markers must appear in NO",
+    "verified finding; required_evidence_tools must each be cited by some verified",
+    "finding's evidence; abstention_ok says whether an abstention counts as correct."
+  ],
+  "cases": [
+    {
+      "case_id": "albrk_equity_discovery",
+      "bank": "ALBRK", "period": "2025Q1", "kind": "unconsolidated",
+      "expected_markers": [["free provision", "serbest", "provision reversal", "other provisions"]],
+      "alternative_markers": [["prior period profit", "others changes", "reserve"]],
+      "forbidden_markers": ["buy", "sell", "price target"],
+      "required_evidence_tools": ["get_statement_rows"],
+      "abstention_ok": false,
+      "notes": "the equity movement, the provisions line and other operating income must connect; discovery, not recitation"
+    },
+    {
+      "case_id": "skbnk_coverage_capital",
+      "bank": "SKBNK", "period": "2026Q1", "kind": "unconsolidated",
+      "expected_markers": [["coverage", "cet1", "core capital"]],
+      "alternative_markers": [["stage", "tier"]],
+      "forbidden_markers": ["buy", "sell"],
+      "required_evidence_tools": [],
+      "abstention_ok": false,
+      "notes": "NPL falling while coverage collapses; CAR concealing CET1"
+    },
+    {
+      "case_id": "garan_perimeter",
+      "bank": "GARAN", "period": "2026Q1", "kind": "consolidated",
+      "expected_markers": [["discontinued", "perimeter", "held for sale"]],
+      "alternative_markers": [["real", "rwa"]],
+      "forbidden_markers": ["new line of business", "buy", "sell"],
+      "required_evidence_tools": [],
+      "abstention_ok": false,
+      "notes": "the disc-ops appearance is an exit, not an addition"
+    },
+    {
+      "case_id": "akbnk_ordinary_with_deviation",
+      "bank": "AKBNK", "period": "2026Q1", "kind": "consolidated",
+      "expected_markers": [["npl", "median", "real"]],
+      "alternative_markers": [["peer", "capital"]],
+      "forbidden_markers": ["free provision release", "qualified opinion"],
+      "required_evidence_tools": [],
+      "abstention_ok": true,
+      "notes": "no event this quarter — peer deviation and real-terms are acceptable stories; abstention also acceptable"
+    },
+    {
+      "case_id": "quiet_quarter_abstention",
+      "bank": "ANADOLU", "period": "2024Q2", "kind": "unconsolidated",
+      "expected_markers": [],
+      "alternative_markers": [],
+      "forbidden_markers": ["crisis", "collapse", "buy", "sell"],
+      "required_evidence_tools": [],
+      "abstention_ok": true,
+      "notes": "expected outcome: abstention or a modest, well-caveated observation"
+    },
+    {
+      "case_id": "failed_partition_caveat",
+      "bank": "TFKB", "period": "2026Q1", "kind": "unconsolidated",
+      "expected_markers": [],
+      "alternative_markers": [],
+      "forbidden_markers": [],
+      "required_evidence_tools": [],
+      "abstention_ok": true,
+      "must_caveat_validation_if_equity_cited": true,
+      "notes": "equity_change validator failing here — any equity-based finding must carry the caveat or fail"
+    },
+    {
+      "case_id": "documented_restatement",
+      "bank": "HALKB", "period": "2025Q3", "kind": "unconsolidated",
+      "expected_markers": [],
+      "alternative_markers": [["restat", "prior", "fx position"]],
+      "forbidden_markers": [],
+      "required_evidence_tools": [],
+      "abstention_ok": true,
+      "notes": "the documented FX restatement is a legitimate comparability finding if surfaced"
+    }
+  ]
+}

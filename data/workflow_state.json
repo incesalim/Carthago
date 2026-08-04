@@ -14,6 +14,10 @@
       "state": "active",
       "reason": "Thawed 2026-08-04. The 2026-08-01 freeze was never a cost necessity: the overage was backfill campaigns (36.9M of July's 68.1M rows on three days), not these lanes. The three lanes that DID carry avoidable cost - EVDS, weekly, TEFAS - re-stamped unchanged rows and re-shipped them to D1; all three now compare before writing (see OPERATIONS.md, D1 write budget), taking the quiet baseline to roughly 7M/month against 50M included."
     },
+    "analyst-research.yml": {
+      "state": "active",
+      "reason": "Active but UNSCHEDULED and ARTIFACT-ONLY - the V2 agentic-research lane in its evaluation phase. No D1 writes of any kind, no schedule, nothing publishes automatically; V1 (analyst-daily.yml) remains the baseline. Publishing integration only after the evaluation corpus and explicit human approval (docs/ANALYST_V2.md)."
+    },
     "analyst-daily.yml": {
       "state": "active",
       "reason": "Active but UNSCHEDULED — dispatch-only under the 2026-08-01 D1-write freeze. Produces signals+memos as run artifacts; contains NO D1 push step at all. The daily 07:00 UTC cron and the push steps go in when the freeze lifts (see the workflow header)."

@@ -9,6 +9,7 @@
  * columns; OCI and cash flow ship whole; labels ship with their known
  * fragility stated.
  */
+import { BANK_COUNT } from "../../bank_names";
 
 export interface StatementSpec {
   /** The SQLite/D1 table. */
@@ -207,7 +208,7 @@ export const STATEMENTS: Record<string, StatementSpec> = {
     numericColumns: ["rate_sensitive_assets", "rate_sensitive_liab", "gap", "cumulative_gap"],
     hasPeriodType: true,
     hasSourcePage: true,
-    caveats: ["bucket 'total' is a rollup; exclude legacy 'b1'..'b8' rows unless asked; ~29 of 38 banks covered"],
+    caveats: [`bucket 'total' is a rollup; exclude legacy 'b1'..'b8' rows unless asked; ~29 of ${BANK_COUNT} banks covered`],
   },
   stages: {
     table: "bank_audit_stages",

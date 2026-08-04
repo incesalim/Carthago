@@ -216,6 +216,18 @@ whose numbers are not in the data it was shown. No signal or memo reaches D1
 until the 2026-08-01 freeze lifts — migration `0037_analyst_signals.sql` is
 authored, unapplied.
 
+**`analyst-research.yml`** (dispatch-only, artifact-only, evaluation phase) —
+Analyst V2: agentic discovery over deterministic evidence. A story-agnostic
+scout surfaces what moved (per-row deltas, own-history z-scores, reconciliation
+breaks); a bounded research loop lets the model investigate through typed
+read-only tools (full statement matrices, row histories, cross-statement
+reconciliations, filing-page text) building a hypothesis ledger; findings are
+STRUCTURED claims with evidence ids; a deterministic verifier checks entity/
+period/kind association, comparison direction, arithmetic, contradictions,
+causal-language and forecast policy — beyond V1's lexical guard. Nothing
+reaches D1; abstention is a first-class outcome. Contracts and limitations:
+[ANALYST_V2.md](ANALYST_V2.md).
+
 **`purge-partition.yml`** (dispatch-only) — the inverse operation: removes one
 `(bank, period[, kind])` from the lane via `scripts/purge_partition.py`, in the
 one order that makes it stick — pull snapshot → delete locally → delete in D1 →

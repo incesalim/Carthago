@@ -51,9 +51,15 @@ export const WORKFLOWS: WorkflowDef[] = [
   },
   {
     file: "analyst-daily.yml",
-    label: "Analyst memos",
+    label: "Analyst memos (V1)",
     description:
-      "Detectors → grounded LLM memos (artifacts only under the write freeze) · manual · banks=CALIBRATE for the ALBRK+SKBNK pair",
+      "Detectors → grounded LLM memos (artifacts; the regression baseline) · manual · banks=CALIBRATE for the ALBRK+SKBNK pair",
+  },
+  {
+    file: "analyst-research.yml",
+    label: "Analyst research (V2)",
+    description:
+      "Anomaly scout → bounded research loop over typed tools → deterministic verifier · artifacts only, evaluation phase · manual",
   },
   {
     file: "refresh-audit.yml",
