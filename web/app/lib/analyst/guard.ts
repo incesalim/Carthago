@@ -77,6 +77,11 @@ export function guardMemo(memo: string, dataBlock: string): GuardResult {
   const dropped: GuardResult["dropped"] = [];
   const offending: number[] = [];
 
+  // Template placeholders ("TL X thousand", "{value}") are never legitimate
+  // memo text — a model that could not find a threshold left its scaffolding
+  // in. Same treatment as an invented figure: the paragraph goes.
+  const PLACEHOLDER_RE = /\bTL\s+X\b|\{[a-z_]+\}|\bXX+%/i;
+
   for (const para of paragraphsOf(memo)) {
     // Headings and pure-prose paragraphs carry no 4+ digit / percent claims —
     // unsupportedFigures returns [] for them and they pass untouched.
@@ -84,7 +89,7 @@ export function guardMemo(memo: string, dataBlock: string): GuardResult {
       ...unsupportedFigures(para, allowed),
       ...unsupportedDenominatedFigures(para, allowed),
     ];
-    if (bad.length === 0) {
+    if (bad.length === 0 && !PLACEHOLDER_RE.test(para)) {
       kept.push(para);
     } else {
       dropped.push({ paragraph: para, unsupported: bad });

@@ -199,6 +199,15 @@ describe("guardMemo — structural abstention", () => {
     expect(unsupportedDenominatedFigures("income of ₺2.2 bn (2,205,403 thousand TL)", data)).toEqual([]);
   });
 
+  it("drops a paragraph carrying a template placeholder", async () => {
+    // The ranked-gates run left "(e.g., TL X thousand)" in a watch bullet —
+    // scaffolding from a model that could not find a threshold.
+    const { guardMemo } = await import("./guard");
+    const g = guardMemo(shaped("Monitor releases (e.g., TL X thousand) next quarter."), dataBlock);
+    expect(g.passed).toBe(false);
+    expect(g.body).not.toContain("TL X");
+  });
+
   it("fails a leaked reasoning monologue even when its figures all match", async () => {
     // The 2026-08-04 calibration failure: nemotron wrote its planning into the
     // content channel. Every echoed number was in the data, so the figure

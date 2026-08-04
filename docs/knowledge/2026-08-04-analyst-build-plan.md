@@ -999,3 +999,48 @@ Iteration stopped deliberately after round 5: both hand-memo finding sets are
 reproduced, and further prompt-tuning against the same two known memos would
 be overfitting the harness (the 22/22 unit-detection lesson). The next real
 test is a bank neither the prompt nor the harness was tuned on.
+
+## The untuned test and the story gates (same day, commits `6abb49a`–`3e65b56`)
+
+**GARAN 2026Q1** was that test, and it failed instructively: the memo led with
+a capital-composition story on a bank whose CAR−CET1 gap sits AT the class
+median (narrative transferred from the calibration banks), skipped the
+genuinely strong finding (29.3% nominal ROE = **−1.2% REAL**), and invented a
+figure in the forward section — which the guard dropped, correctly failing
+the memo.
+
+The cure was the same as every calibration failure — compute the judgment:
+
+- **STORY GATES**, a deterministic editorial layer at the top of the data
+  block. Six candidate stories (comparability events, free-provision
+  distortion, capital composition, coverage divergence, adverse peer
+  deviations, real-terms erosion) each ruled LIVE or DEAD with the numeric
+  reason, **ranked** (bank-specific distortions above regime-wide
+  conditions), the first live gate marked LEAD. The headline must state the
+  LEAD; every live story must get its own paragraph; a dead story gets one
+  "notably absent" sentence. The coverage gate carries a data-level fallback
+  mirroring the detector thresholds so it holds where `analyst_signals` is
+  absent.
+- **`capital.ratio_drivers`** — CET1-capital vs RWA growth QoQ/YoY, so "why
+  the ratio moved" is a quote (the hand memos' RWA-vs-capital derivation).
+- Watch-section thresholds restricted to held figures; a "TL X" template
+  placeholder that leaked in one run now drops the paragraph like an
+  invented figure; dropped paragraphs persist in the memo artifact.
+
+**Validation across all three banks (run 30906062055, all passing the
+guard):** GARAN leads with its peer-deviation story and carries a full
+real-terms paragraph plus the correct negative-mix decomposition reading and
+"RWA grew 46.1% YoY" causality; ALBRK leads with the free-provision re-base
+(ex-release profit quoted, history cited, capital and real-terms each getting
+their paragraph, the ratio-drivers used); SKBNK leads with the auditor's own
+₺700,000k understatement arithmetic and keeps its full decomposition. Gate
+regressions were caught twice in testing before shipping (a signal-only gate
+going dead without staged signals; the un-ranked gates letting ALBRK's lead
+drift to real-terms).
+
+**Known residuals, deliberately not chased further:** run-to-run variance in
+WHICH history figures get quoted (free-model provider rotation at temp 0);
+semantic glosses the guard cannot see (a share compared against a
+pp-median); occasional stiff phrasing. The structural properties — grounded
+figures, correct story selection, complete live-story coverage, structural
+abstention — are now enforced, not hoped for.
