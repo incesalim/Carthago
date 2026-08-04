@@ -50,6 +50,15 @@ const MAX_TURNS = 22;
 const WALL_MS = 9 * 60_000;
 const RESULT_CHARS = 9_000;
 const MAX_CONSECUTIVE_PROTOCOL = 3;
+/**
+ * Total byte budget for the evidence-on-file digest. Every delivered record
+ * stays visible in the prompt — a memoryless last-result-only loop was
+ * measured (ALBRK head-to-head) driving models to re-fetch the same table
+ * 16 turns straight, because data vanished the turn after delivery. Oldest
+ * non-seed records are evicted to a stub when over budget; a re-call after
+ * eviction re-delivers.
+ */
+const DIGEST_BUDGET = 45_000;
 
 const SYSTEM = `You are a bank research analyst investigating ONE bank, ONE quarter, ONE
 consolidation basis, over audited-filing data that has already been extracted
@@ -69,6 +78,10 @@ __TOOL_CATALOG__
 __FINDING_SCHEMA__
 
 METHOD — this is an investigation, not a report:
+0. Everything you have retrieved stays ON FILE in the EVIDENCE ON FILE
+   section of each turn — you NEVER need to re-fetch anything. A repeated
+   identical call returns only a pointer to the file. If an entry was
+   evicted for space, re-calling the tool re-delivers it.
 1. Start from the scout candidates, but they are LEADS, not conclusions.
 2. Keep the hypothesis ledger current ("hypotheses" action) — every idea you
    are working on, with status and open questions.
@@ -212,33 +225,56 @@ export async function runResearch(
   let consecutiveProtocol = 0;
   let model: string | null = null;
 
-  // Seed evidence the briefing references.
+  // Seed evidence, delivered into the persistent case file.
   const seedAvail = await runTool(ctx, "list_available_data", {});
   const seedValidation = await runTool(ctx, "get_validation_status", {});
   toolCalls += 2;
-  const deliveredIds = new Set<string>([seedAvail.evidence_id, seedValidation.evidence_id]);
   const examinedStatements = new Set<string>();
   const findingRepairs = new Map<string, number>();
   let verifierBounces = 0;
 
+  // The case file: every delivered record stays visible each turn. The model
+  // never has to re-fetch; only over-budget entries fall back to a stub.
+  const digest = new Map<string, string>();
+  const stubOf = new Map<string, string>();
+  const evictedStubs = new Map<string, string>();
+  const seedIds = new Set([seedAvail.evidence_id, seedValidation.evidence_id]);
+  const deliver = (rec: EvidenceRecord) => {
+    digest.set(rec.evidence_id, compactEvidence(rec));
+    stubOf.set(rec.evidence_id, `${rec.evidence_id} ${rec.tool}(${JSON.stringify(rec.args)})`);
+    evictedStubs.delete(rec.evidence_id);
+    let size = [...digest.values()].reduce((s, v) => s + v.length, 0);
+    for (const [id, v] of digest) {
+      if (size <= DIGEST_BUDGET) break;
+      if (seedIds.has(id) || id === rec.evidence_id) continue;
+      evictedStubs.set(id, stubOf.get(id) ?? id);
+      digest.delete(id);
+      size -= v.length;
+    }
+  };
+  deliver(seedAvail);
+  deliver(seedValidation);
+
   const system = SYSTEM.replace("__TOOL_CATALOG__", toolCatalog()).replace("__FINDING_SCHEMA__", FINDING_SCHEMA_PROMPT);
   const briefing =
     `INVESTIGATION: ${ctx.defaults.bank} ${ctx.defaults.period} ${ctx.defaults.kind} · snapshot ${ctx.snapshot.id}\n\n` +
-    `AVAILABLE DATA (${seedAvail.evidence_id}):\n${compactEvidence(seedAvail).slice(0, 2600)}\n\n` +
-    `VALIDATION STATUS (${seedValidation.evidence_id}):\n${compactEvidence(seedValidation).slice(0, 1800)}\n\n` +
     `SCOUT — ranked movements (leads, not conclusions; scores are surprise-weighted):\n` +
     scout.candidates.slice(0, 28).map((c) => `  [${c.score}] ${c.source} ${c.statement ?? ""} ${c.row ?? c.metric ?? ""} — ${c.description} :: ${JSON.stringify(c.values)}`).join("\n");
 
-  let lastResult = "(no tool called yet)";
+  let lastResult = "(seed evidence is on file above — begin the investigation)";
   let turn = 0;
 
   while (turn < MAX_TURNS) {
     if (Date.now() > deadlineAt) { aborted = "wall_clock"; break; }
     turn++;
     const user =
-      `${briefing}\n\nHYPOTHESIS LEDGER (yours to maintain):\n${JSON.stringify(hypotheses)}\n\n` +
+      `${briefing}\n\n` +
+      `EVIDENCE ON FILE (your case file — everything retrieved so far; cite these evidence_ids):\n` +
+      [...digest.values()].join("\n---\n") +
+      (evictedStubs.size ? `\n[evicted for space — re-call to re-deliver: ${[...evictedStubs.values()].join(" · ")}]` : "") +
+      `\n\nHYPOTHESIS LEDGER (yours to maintain):\n${JSON.stringify(hypotheses)}\n\n` +
       `FINDINGS EMITTED SO FAR: ${findings.length}\n` +
-      `LAST TOOL RESULT:\n${lastResult}\n\n` +
+      `LAST ACTION RESULT:\n${lastResult}\n\n` +
       `Turns remaining: ${MAX_TURNS - turn}. Output exactly one action JSON object.`;
 
     let reply: { text: string; model: string };
@@ -287,16 +323,16 @@ export async function runResearch(
         const rec = await runTool(ctx, toolName, (a.args as Record<string, unknown>) ?? {});
         toolCalls++;
         if (typeof rec.args.statement === "string") examinedStatements.add(rec.args.statement);
-        if (deliveredIds.has(rec.evidence_id)) {
+        if (digest.has(rec.evidence_id)) {
           const unexamined = Object.keys(STATEMENTS).filter((s) => !examinedStatements.has(s));
           lastResult =
-            `REPEAT CALL: identical args already answered as ${rec.evidence_id} — the result is cached and unchanged, so re-requesting cannot show more. ` +
-            `Work from what you already noted, or examine something new` +
+            `REPEAT CALL: ${rec.evidence_id} is already ON FILE above — read it there; re-requesting cannot show more. ` +
+            `Examine something new` +
             (unexamined.length ? ` (statements not yet read: ${unexamined.slice(0, 10).join(", ")})` : "") + `.`;
           trace.push({ turn, raw_reply_head: head, action: "tool", detail: `repeat ${toolName}(${JSON.stringify(a.args ?? {})})`, evidence_id: rec.evidence_id });
         } else {
-          deliveredIds.add(rec.evidence_id);
-          lastResult = compactEvidence(rec);
+          deliver(rec);
+          lastResult = `${rec.evidence_id} delivered — now ON FILE above.`;
           trace.push({ turn, raw_reply_head: head, action: "tool", detail: `${toolName}(${JSON.stringify(a.args ?? {})})`, evidence_id: rec.evidence_id });
         }
       } catch (e) {

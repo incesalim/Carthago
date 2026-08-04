@@ -405,8 +405,9 @@ describe("research loop — repeat calls and emission-time verification", () => 
       JSON.stringify({ action: "abstain", reason: "checked" }),
     ];
     const res = await runResearch(c, scout, {});
-    expect(llmScript.calls[1].user).toContain("TABLE 4 rows"); // first delivery: tablified, whole
-    expect(llmScript.calls[2].user).toContain("REPEAT CALL"); // second: notice only
+    expect(llmScript.calls[1].user).toContain("TABLE 4 rows"); // delivered into the case file, tablified, whole
+    expect(llmScript.calls[2].user).toContain("REPEAT CALL"); // repeat answered with a pointer…
+    expect(llmScript.calls[2].user).toContain("TABLE 4 rows"); // …while the data STAYS on file (the round-2 regression)
     expect(llmScript.calls[2].user).toContain("statements not yet read");
     expect(res.metrics.protocol_errors).toBe(0);
     expect(res.abstained).toBe(true);
