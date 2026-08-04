@@ -1044,3 +1044,30 @@ semantic glosses the guard cannot see (a share compared against a
 pp-median); occasional stiff phrasing. The structural properties — grounded
 figures, correct story selection, complete live-story coverage, structural
 abstention — are now enforced, not hoped for.
+
+## The deep-dive and the GO arc (same day, evening — commits `f151bae`…)
+
+The user benchmarked the memo against an external GARAN deep-research
+document and asked for that depth. The format became a **13-section research
+report** (~2,400 words, tables); where the two overlap, our filings
+reproduce the benchmark's figures bank-for-bank (GARAN consolidated: CAR
+16.2, CET1 12.0, NPL 3.2, Stage-3 coverage 62.8 — identical). Reaching a
+clean pass took removing, one measured failure at a time, every class of
+number the model wanted and the data block did not supply — growth percents,
+cross-row totals, direction words, outside-knowledge benchmarks — plus one
+guard bug (a grouped figure part-matching before a denomination word) and
+one dead assumption (no `:free` DeepSeek exists; the PAID flash is now
+user-authorized for this lane, Baidu-pinned and seeded).
+
+The "GO" batch then added: ranked story gates with a computed LEAD (cured
+narrative transfer measured on the untuned GARAN run), a relation verifier
+(a wrong direction word between two right numbers now drops the sentence's
+paragraph), per-stage GROSS ECL expense (sums reproduce the disclosed
+₺30.5bn for GARAN), verbatim management commentary from the transcripts
+lane (executive turns only, claims-not-data framing), hash-gated
+regeneration with R2-persisted staging state, a report scorer over run
+artifacts, and — the feasibility test's #1 missing dataset — **per-bank
+stage definitions extracted from the prose corpus**: 24/38 banks' own
+disclosed thresholds (90-day default × 22, explicit 30-day SICR × 11) as a
+generated, committed module with verbatim snippets. The stage-comparability
+disclaimer now stands only where a bank disclosed nothing parseable.
