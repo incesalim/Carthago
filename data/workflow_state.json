@@ -15,6 +15,10 @@
       "reason": "Cron freeze of 2026-08-01. The D1 write overage that prompted it came from backfill campaigns (36.9M of 68.1M rows on three days), not from these lanes — quiet baseline is ~14.6M rows/month against 50M included. Held frozen INDEFINITELY by decision on 2026-08-01; there is no scheduled re-enable date.",
       "frozen_since": "2026-08-01"
     },
+    "analyst-daily.yml": {
+      "state": "active",
+      "reason": "Active but UNSCHEDULED — dispatch-only under the 2026-08-01 D1-write freeze. Produces signals+memos as run artifacts; contains NO D1 push step at all. The daily 07:00 UTC cron and the push steps go in when the freeze lifts (see the workflow header)."
+    },
     "audit-triage.yml": {
       "state": "active"
     },

@@ -203,6 +203,19 @@ each partition with the same bank one quarter earlier, which is the only place a
 reporting-unit change can be seen — every in-filing identity is a ratio of figures
 sharing a scale, so all of them foot when the whole filing moves by 1000×.
 
+**`analyst-daily.yml`** (dispatch-only, artifacts-only under the write freeze) —
+the analyst layer on top of the same snapshot. Deterministic detectors
+(`src/analyst/` — reporting-unit switches, cross-period restatements the
+validators deliberately skip-list, opinion-type/category changes via the
+basis-text classifier, perimeter changes, and the two
+headline-conceals-composition divergences: CAR−CET1 and NPL-vs-coverage), then
+per-bank memos: `web/app/lib/analyst/` assembles an 11-section deterministic
+view (with the mix-vs-erosion coverage decomposition precomputed), a free-model
+LLM writes connective prose, and the bot's figure guard drops any paragraph
+whose numbers are not in the data it was shown. No signal or memo reaches D1
+until the 2026-08-01 freeze lifts — migration `0037_analyst_signals.sql` is
+authored, unapplied.
+
 **`purge-partition.yml`** (dispatch-only) — the inverse operation: removes one
 `(bank, period[, kind])` from the lane via `scripts/purge_partition.py`, in the
 one order that makes it stick — pull snapshot → delete locally → delete in D1 →

@@ -1,0 +1,183 @@
+name: Analyst signals + memos
+
+# The automated analyst layer (docs/knowledge/2026-08-04-analyst-build-plan.md):
+# pull the audit snapshot from R2, run the deterministic detectors
+# (scripts/analyst/detect.py — no LLM, no network beyond R2), then generate
+# grounded analyst memos for the requested banks with the free-model chain
+# (web/scripts/analyst-run.ts --memo → prompt → LLM → figure guard).
+#
+# DISPATCH-ONLY under the 2026-08-01 D1-write freeze (indefinite):
+#   - No schedule. The intended cadence when the freeze lifts is daily 07:00 UTC
+#     (after refresh-news-daily, before European open):
+#       # schedule:
+#       #   - cron: "0 7 * * *"
+#     A new workflow is born ENABLED and `gh workflow disable` leaves no trace
+#     in git — shipping dispatch-only is what keeps this lane inert (the
+#     refresh-transcripts-weekly.yml precedent).
+#   - NO D1 push steps exist here yet. Signals + basis metadata + memos leave
+#     as run artifacts only. At freeze-lift, add: apply migration
+#     0037_analyst_signals.sql, then a push step reading data/analyst.db
+#     (registration goes through push_to_d1's table handling, not a hand list).
+#
+# Everything model-touching runs HERE because the LLM keys are CI secrets by
+# design (no local keys exist), and batch generation belongs in Actions like
+# every other lane.
+on:
+  workflow_dispatch:
+    inputs:
+      banks:
+        description: "Tickers to write memos for (comma-separated). CALIBRATE = the ALBRK+SKBNK pair the hand memos cover. NONE = detectors only."
+        type: string
+        default: "CALIBRATE"
+      period:
+        description: "Quarter to analyse (YYYYQn)."
+        type: string
+        default: "2026Q1"
+      kind:
+        description: "Consolidation basis for the memos."
+        type: choice
+        options: [unconsolidated, consolidated]
+        default: unconsolidated
+
+permissions:
+  contents: read
+
+# Reads the audit snapshot — never race the extraction lane.
+concurrency:
+  group: bddk-audit
+  cancel-in-progress: false
+
+jobs:
+  analyst:
+    name: Detectors → memos (artifacts only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      PYTHONIOENCODING: utf-8
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install minimal Python deps
+        # The detectors are stdlib-only by design; boto3 is for the R2 pull.
+        # Installing all of requirements.txt (fitz, pandas, …) here would be
+        # minutes of setup for code that never imports them.
+        run: pip install boto3
+
+      - name: Fetch snapshots from R2 (audit + bulletin)
+        run: |
+          python - <<'PY'
+          import gzip, shutil, pathlib, sys
+          from src.audit_reports import r2_storage
+          for key, dest in (("state/bank_audit.db.gz", "data/bank_audit.db"),
+                            ("state/bddk_data.db.gz", "data/bddk_data.db")):
+              gz = pathlib.Path(dest + ".gz")
+              db = pathlib.Path(dest)
+              gz.parent.mkdir(parents=True, exist_ok=True)
+              if not r2_storage.exists(key):
+                  # The audit snapshot is required; the bulletin one only feeds
+                  # macro/ownership colour — a memo without it still stands.
+                  if "bank_audit" in key:
+                      sys.exit(f"required snapshot missing in R2: {key}")
+                  print(f"optional snapshot missing: {key} — macro sections will read as gaps")
+                  continue
+              size = r2_storage.download_to(key, gz)
+              with gzip.open(gz, "rb") as s, open(db, "wb") as d:
+                  shutil.copyfileobj(s, d)
+              print(f"{key}: {size/1e6:.1f} MB → {db} ({db.stat().st_size/1e6:.1f} MB)")
+          PY
+
+      - name: Run detectors (stage signals + basis metadata)
+        run: python scripts/analyst/detect.py --db data/bank_audit.db --stage
+
+      - name: Alert on critical signals
+        # Informational only — a unit switch or ~1000× cross-period break is
+        # exactly what someone should hear about the day it lands.
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+        run: |
+          python - <<'PY'
+          import json, subprocess, sys
+          crit = [json.loads(l) for l in open("data/analyst_signals.jsonl", encoding="utf-8")]
+          crit = [s for s in crit if s["severity"] == "critical"]
+          if crit:
+              names = ", ".join(sorted({f"{s['bank_ticker']} {s['period']}" for s in crit}))
+              subprocess.run([sys.executable, "scripts/notify.py",
+                              f"🚨 analyst: {len(crit)} CRITICAL signal(s) — {names}"], check=False)
+          else:
+              print("no critical signals")
+          PY
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install web deps
+        if: inputs.banks != 'NONE'
+        working-directory: web
+        run: npm ci
+
+      - name: Generate memos (LLM behind the figure guard)
+        if: inputs.banks != 'NONE'
+        working-directory: web
+        env:
+          OPEN_ROUTER_API: ${{ secrets.OPEN_ROUTER_API }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          CEREBRAS_KEY: ${{ secrets.CEREBRAS_KEY }}
+          # Forwarded via env, never interpolated — a dispatch input must not
+          # be able to inject shell.
+          BANKS: ${{ inputs.banks }}
+          PERIOD: ${{ inputs.period }}
+          KIND: ${{ inputs.kind }}
+        run: |
+          [ "$BANKS" = "CALIBRATE" ] && BANKS="ALBRK,SKBNK"
+          if ! printf '%s' "$PERIOD" | grep -Eq '^[0-9]{4}Q[1-4]$'; then
+            echo "bad period input: $PERIOD" >&2; exit 2
+          fi
+          fail=0
+          IFS=',' read -ra TICKERS <<< "$BANKS"
+          for t in "${TICKERS[@]}"; do
+            t="$(printf '%s' "$t" | tr -cd 'A-Z')"
+            [ -z "$t" ] && continue
+            echo "── memo: $t $PERIOD $KIND"
+            npx tsx scripts/analyst-run.ts --bank "$t" --period "$PERIOD" --kind "$KIND" \
+              --memo --out "../data/analyst_memo_${t}_${PERIOD}_${KIND}.json" || fail=1
+            npx tsx scripts/analyst-run.ts --bank "$t" --period "$PERIOD" --kind "$KIND" \
+              --sections --out "../data/analyst_sections_${t}_${PERIOD}_${KIND}.json"
+          done
+          # A memo that failed its fact-check is a result to READ, not a green run.
+          exit $fail
+
+      - name: Upload artifacts (signals + basis + memos + sections)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: analyst-${{ inputs.period }}-${{ github.run_id }}
+          path: |
+            data/analyst_signals.jsonl
+            data/analyst_basis_metadata.jsonl
+            data/analyst_memo_*.json
+            data/analyst_sections_*.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Alert on failure
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+        run: python scripts/notify.py "❌ ${{ github.workflow }} failed — ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

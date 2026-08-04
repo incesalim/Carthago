@@ -114,6 +114,7 @@ export const PIPELINE_NODES: PipelineNode[] = [
   { id: "wf-backfill-audit", kind: "workflow", layer: "ingestion", lane: "audit", label: "backfill-audit", sublabel: "manual · full re-extract (5-bank chunks)", workflowFile: "backfill-audit.yml" },
   { id: "wf-purge-partition", kind: "workflow", layer: "ingestion", lane: "audit", label: "purge-partition", sublabel: "manual · remove a known-wrong partition (keeps the PDF)", workflowFile: "purge-partition.yml" },
   { id: "wf-audit-triage", kind: "workflow", layer: "ingestion", lane: "audit", label: "audit-triage", sublabel: "manual · read-only · why a partition fails (writes nothing)", workflowFile: "audit-triage.yml" },
+  { id: "wf-analyst", kind: "workflow", layer: "ingestion", lane: "audit", label: "analyst-daily", sublabel: "manual · detectors → LLM memos (artifacts only — write freeze)", workflowFile: "analyst-daily.yml" },
 
   // ── Audit lane · storage ───────────────────────────────────────────────
   { id: "store-r2-pdf", kind: "store", layer: "storage", lane: "audit", label: "R2 · PDF bucket", sublabel: "bddk-audit-reports/<ticker>/*.pdf" },
@@ -264,6 +265,7 @@ export const PIPELINE_EDGES: PipelineEdge[] = [
   // and the validation spine to explain a failure and writes nothing anywhere.
   { source: "store-r2-pdf", target: "wf-audit-triage" },
   { source: "store-d1-audit-spine", target: "wf-audit-triage" },
+  { source: "store-r2-snap", target: "wf-analyst" },
 
   // R2 snapshots (push side)
   { source: "wf-refresh-data", target: "store-r2-snap", kind: "snapshot" },

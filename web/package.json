@@ -38,6 +38,7 @@
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.2.11",
     "tailwindcss": "^4",
+    "tsx": "^4.23.5",
     "typescript": "^6",
     "vitest": "^4.1.10",
     "wrangler": "^4.114.0"
