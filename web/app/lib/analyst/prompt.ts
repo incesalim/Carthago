@@ -12,7 +12,7 @@
  */
 import type { MetricChange } from "./comparator";
 import type { PeerContext } from "./peers";
-import type { AnalystSections } from "./sections";
+import { STAGE_DEFINITION_CENSUS, type AnalystSections } from "./sections";
 
 export interface AnalystInput {
   sections: AnalystSections;
@@ -410,8 +410,14 @@ export function renderDataBlock(input: AnalystInput): string {
       if (sd.dpd_stage2_days != null) {
         out.push(`  SICR / Stage-2 day-count trigger: ${sd.dpd_stage2_days} days past due — "${sd.stage2_snippet}"`);
       }
+      // Counts derived from the generated census, never typed — the universe
+      // moves with every prose backfill (and R3 in check_prose_claims.py
+      // exists precisely because a typed "32 banks" once outlived the truth).
+      const census = STAGE_DEFINITION_CENSUS;
+      const n90 = census.stage3_days_distribution["90"] ?? 0;
+      const n30 = census.stage2_days_distribution["30"] ?? 0;
       out.push(
-        "  (fleet context: a 90-day default trigger is disclosed by 22 of 38 banks; an explicit 30-day SICR trigger by 11 — where a peer's disclosure is absent, stage comparisons still carry the caveat)",
+        `  (fleet context: a 90-day default trigger is disclosed by ${n90} of ${census.banks_scanned} banks; an explicit 30-day SICR trigger by ${n30} — where a peer's disclosure is absent, stage comparisons still carry the caveat)`,
         "",
       );
     }

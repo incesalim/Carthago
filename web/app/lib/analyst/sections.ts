@@ -21,7 +21,9 @@ import {
   BANK_TYPE_BY_TICKER,
   PEER_EXCLUDED_TICKERS,
 } from "../bank_names";
-import { STAGE_DEFINITIONS, type StageDefinition } from "./stage-definitions";
+import { STAGE_DEFINITIONS, STAGE_DEFINITION_CENSUS, type StageDefinition } from "./stage-definitions";
+
+export { STAGE_DEFINITION_CENSUS };
 import { ordOf, periodFromOrd, singleQuarter, ttmEndingAt, yoyPct } from "../period-math";
 import { realRate } from "../real-terms";
 import type { Queryable } from "./data";
