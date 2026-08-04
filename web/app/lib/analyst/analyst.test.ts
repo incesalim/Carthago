@@ -258,6 +258,18 @@ describe("guardMemo — structural abstention", () => {
     expect(g.body).not.toContain("TL X");
   });
 
+  it("strips preamble before the headline instead of judging it", async () => {
+    // DeepSeek's retry prepended an apology carrying the offending figures.
+    const { guardMemo } = await import("./guard");
+    const g = guardMemo(
+      "I apologize — I previously used 9,999,999 which is wrong.\n\n" +
+        shaped("The NPL ratio of 1.33% is the fact."),
+      dataBlock,
+    );
+    expect(g.passed).toBe(true);
+    expect(g.body).not.toContain("apologize");
+  });
+
   it("fails a leaked reasoning monologue even when its figures all match", async () => {
     // The 2026-08-04 calibration failure: nemotron wrote its planning into the
     // content channel. Every echoed number was in the data, so the figure

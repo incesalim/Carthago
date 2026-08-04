@@ -120,9 +120,14 @@ export async function generateMemo(
       problems.push(
         `These figures are NOT in the DATA block: ${[...new Set(guarded.offending)].join(", ")}. ` +
           `Use ONLY figures that appear in the DATA block verbatim; do not compute new numbers; ` +
-          `where a needed figure is not held, say so.`,
+          `a rounded RANGE between held values ("12-13 billion") is an invented figure — use the ` +
+          `exact held values instead; where a needed figure is not held, say so.`,
       );
     }
+    problems.push(
+      "Output ONLY the corrected report, starting directly at the \"# \" headline — " +
+        "no apology, no preamble, no commentary about the correction.",
+    );
     const retry = await chatComplete(
       env,
       [

@@ -113,6 +113,12 @@ export function contradictedComparisons(text: string): { a: number; b: number; d
 }
 
 export function guardMemo(memo: string, dataBlock: string): GuardResult {
+  // The report BEGINS at its "# " headline — anything before it is preamble
+  // by definition (DeepSeek's retry prepended "I apologize for the errors…",
+  // which carried the offending figures back in). Strip, don't judge.
+  const headlineAt = memo.search(/^# /m);
+  if (headlineAt > 0) memo = memo.slice(headlineAt);
+
   const allowed = numbersIn(dataBlock);
   const kept: string[] = [];
   const dropped: GuardResult["dropped"] = [];
