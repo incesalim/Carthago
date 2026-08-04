@@ -334,6 +334,67 @@ describe("verifier — the regression classes the old guard passed", () => {
   });
 });
 
+describe("verifier tightening (sign, row scope, duplicates)", () => {
+  const run = { bank: "TESTBK", period: "2026Q1", kind: "unconsolidated" };
+  const mkLog = () => {
+    const log = new EvidenceLog();
+    log.add({
+      evidence_id: "E_rows", tool: "get_statement_rows",
+      args: { statement: "balance_sheet_liabilities", bank: "TESTBK", period: "2026Q1", kind: "unconsolidated" },
+      provenance: { snapshot: "s", tables: [], bank: "TESTBK", period: "2026Q1", kind: "unconsolidated", source_pages: [] },
+      validation_warnings: [], warnings: [], rows_returned: 2,
+      data: { rows: [
+        { hierarchy: "8.4", item_name: "Other Provisions", amount_total: 744880 },
+        { hierarchy: "9.9", item_name: "Unrelated Line", amount_total: 555111 },
+      ] },
+    });
+    return log;
+  };
+  const base = (claims: unknown[]) => ({
+    finding_id: "F1", bank: "TESTBK", period: "2026Q1", kind: "unconsolidated",
+    classification: "observed_fact", thesis: "Provisions stand where they stand.",
+    materiality_rationale: "material", confidence: "medium",
+    claims, counterevidence: [], caveats: [], missing: [], source_pages: [],
+  });
+  const claim = (value: number, row: string | undefined) => ({
+    claim_id: "c1", claim_kind: "value", value,
+    subject: { bank: "TESTBK", period: "2026Q1", kind: "unconsolidated", statement: "balance_sheet_liabilities", row },
+    evidence_ids: ["E_rows"],
+  });
+
+  it("an opposite-signed match downgrades to flag instead of passing", async () => {
+    const { verifyFindings } = await import("./verifier");
+    const r = verifyFindings([base([claim(-744880, "Other Provisions")]) as never], mkLog(), run);
+    expect(r.findings[0].verdict).toBe("flag");
+    expect(r.findings[0].checks.find((c) => c.check.includes("value_in_evidence"))?.detail).toContain("OPPOSITE sign");
+    expect(r.summary.unsupported_numeric_claims).toBe(0); // flagged, not unsupported
+  });
+
+  it("a value found only OUTSIDE the named row flags; inside it passes clean", async () => {
+    const { verifyFindings } = await import("./verifier");
+    const wrong = verifyFindings([base([claim(555111, "Other Provisions")]) as never], mkLog(), run);
+    expect(wrong.findings[0].verdict).toBe("flag");
+    expect(wrong.findings[0].checks.find((c) => c.check.includes("value_in_evidence"))?.detail).toContain("NOT within the named row");
+    const right = verifyFindings([base([claim(744880, "8.4 Other Provisions")]) as never], mkLog(), run);
+    expect(right.findings[0].verdict).toBe("pass"); // label containment works both directions
+  });
+
+  it("a near-duplicate second finding fails duplicate_finding", async () => {
+    const { verifyFindings } = await import("./verifier");
+    const f1 = base([claim(744880, "Other Provisions")]);
+    const f2 = { ...base([claim(744880, "Other Provisions")]), finding_id: "F2", thesis: "Provisions stand exactly where they stand." };
+    const r = verifyFindings([f1 as never, f2 as never], mkLog(), run);
+    expect(r.findings[0].verdict).toBe("pass");
+    expect(r.findings[1].verdict).toBe("fail");
+    expect(r.findings[1].checks.find((c) => c.check === "duplicate_finding")?.detail).toContain("near-duplicate of F1");
+  });
+
+  it("rank_statement_movements no longer advertises singleton statements", async () => {
+    const c = await ctx();
+    await expect(runTool(c, "rank_statement_movements", { statement: "npl_movement" })).rejects.toThrow(/must be one of/);
+  });
+});
+
 describe("loop protocol", () => {
   it("extracts the first balanced JSON object from noisy replies", async () => {
     const { runResearch } = await import("./loop");

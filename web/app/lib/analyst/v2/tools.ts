@@ -306,10 +306,12 @@ export const TOOLS: ToolSpec[] = [
   },
   {
     name: "rank_statement_movements",
-    description: "Deterministic movement ranking for one statement at the period: per-row QoQ/YoY deltas and share of total absolute change (line statements), or per-movement-row equity impact with per-component column sums (equity_change).",
+    description: "Deterministic movement ranking for one statement at the period: per-row QoQ/YoY deltas and share of total absolute change (line statements), or per-movement-row equity impact with per-component column sums (equity_change). Singleton statements (capital, liquidity, …) have no rows to rank — use get_row_history there.",
     params: [
       P_BANK, P_PERIOD, P_KIND,
-      { name: "statement", type: "string", required: true, enum: Object.keys(STATEMENTS), description: "which statement" },
+      // Advertising unrankable statements cost measured turns (3 in one run
+      // on npl_movement alone) — the enum IS the contract.
+      { name: "statement", type: "string", required: true, enum: Object.keys(STATEMENTS).filter((k) => k === "equity_change" || STATEMENTS[k].columns.includes("item_name")), description: "which statement (line statements + equity_change)" },
     ],
     run: async (ctx, a) => {
       const statement = a.statement as string;

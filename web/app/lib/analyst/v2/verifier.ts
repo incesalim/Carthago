@@ -67,15 +67,60 @@ function near(a: number, b: number): boolean {
   return Math.abs(a - b) <= Math.max(Math.abs(b) * NUM_TOL_REL, NUM_TOL_ABS);
 }
 
-function numberInEvidence(value: number, evidence: EvidenceRecord[]): boolean {
-  for (const e of evidence) {
-    for (const n of collectNumbers(e.data)) {
-      if (near(value, n) || near(value, -n)) return true;
-      // Stored fractions vs claimed percents (stage coverages).
-      if (near(value, n * 100)) return true;
-    }
+const foldTr = (s: string) => s.replace(/İ/g, "I").replace(/ı/g, "i").toUpperCase();
+
+/** Row-objects inside evidence data whose identity matches the claim's row
+ *  (label contains-either-way after folding, or exact hierarchy). */
+function subjectRows(v: unknown, row: string, out: unknown[] = []): unknown[] {
+  if (Array.isArray(v)) for (const x of v) subjectRows(x, row, out);
+  else if (v && typeof v === "object") {
+    const r = v as Record<string, unknown>;
+    const label = typeof r.item_name === "string" ? foldTr(r.item_name) : null;
+    const target = foldTr(row);
+    if ((label && (label.includes(target) || target.includes(label))) || r.hierarchy === row) out.push(v);
+    else for (const x of Object.values(r)) subjectRows(x, row, out);
   }
-  return false;
+  return out;
+}
+
+type MatchTier = "signed_scoped" | "signed" | "abs_only" | "none";
+
+/** The ×100 bridge exists ONLY for stored fractions claimed as percents
+ *  (stage coverages: 0.6349 → "63.49%"). Gating it to fraction-sized numbers
+ *  matters: unrestricted, an evidence value of 100 would validate any claim
+ *  near ±10,000 through the relative tolerance. */
+function signedIn(value: number, nums: number[]): boolean {
+  return nums.some((n) => near(value, n) || (Math.abs(n) <= 2 && near(value, n * 100)));
+}
+
+/**
+ * How the claimed value relates to the cited evidence. Signed match within
+ * the claim's own row beats signed-anywhere beats opposite-sign-only — the
+ * old boolean accepted a number found anywhere at either sign, which lets a
+ * direction-inverted claim through on magnitude alone. abs_only is kept as
+ * a distinct tier (not a pass) because P&L deduction lines legitimately
+ * print positive under "(-)" labels: the verdict downgrades, never silently
+ * passes.
+ */
+function evidenceMatch(
+  value: number, evidence: EvidenceRecord[], row?: string | null,
+): { tier: MatchTier; scopedAvailable: boolean } {
+  const scoped: number[] = [];
+  const all: number[] = [];
+  for (const e of evidence) {
+    collectNumbers(e.data, all);
+    if (row) for (const r of subjectRows(e.data, row)) collectNumbers(r, scoped);
+  }
+  if (row && scoped.length && signedIn(value, scoped)) return { tier: "signed_scoped", scopedAvailable: true };
+  if (signedIn(value, all)) return { tier: "signed", scopedAvailable: !!row && scoped.length > 0 };
+  if (all.some((n) => near(value, -n) || (Math.abs(n) <= 2 && near(value, -n * 100)))) return { tier: "abs_only", scopedAvailable: !!row && scoped.length > 0 };
+  return { tier: "none", scopedAvailable: !!row && scoped.length > 0 };
+}
+
+/** Permissive presence (any sign) — for thesis tracing and derivation inputs,
+ *  where prose conventions ("decreased by 6,719,898") legitimately drop signs. */
+function numberInEvidence(value: number, evidence: EvidenceRecord[]): boolean {
+  return evidenceMatch(value, evidence).tier !== "none";
 }
 
 const CAUSAL_RE = /\b(because|due to|driven by|caused by|led to|as a result of|thanks to|stems? from)\b/i;
@@ -93,6 +138,9 @@ export function verifyFindings(
 
   // Cross-finding contradiction ledger: metric-key → asserted directions.
   const directionByKey = new Map<string, { finding_id: string; op: string; value: number; rhs: number }[]>();
+
+  // Near-duplicate ledger: claim signatures + thesis tokens of processed findings.
+  const seenSignatures: { finding_id: string; claims: Set<string>; tokens: Set<string> }[] = [];
 
   for (const f of findings) {
     const checks: CheckResult[] = [];
@@ -135,11 +183,20 @@ export function verifyFindings(
         if (e.validation_warnings.length) failedPartitionCited.push(`${e.evidence_id}: ${e.validation_warnings[0]}`);
       }
 
-      /* C3 — the asserted number exists in the cited evidence. */
+      /* C3 — the asserted number exists in the cited evidence: signed, and
+         preferably inside the claim's own row. */
       if (typeof c.value === "number") {
-        const present = numberInEvidence(c.value, evidence);
-        if (!present) unsupported++;
-        push(`${tag}: value_in_evidence`, present, "fail", present ? `${c.value} found` : `${c.value} appears in NONE of the cited evidence`);
+        const m = evidenceMatch(c.value, evidence, (c.subject as ClaimSubject)?.row);
+        if (m.tier === "none") {
+          unsupported++;
+          push(`${tag}: value_in_evidence`, false, "fail", `${c.value} appears in NONE of the cited evidence`);
+        } else if (m.tier === "abs_only") {
+          push(`${tag}: value_in_evidence`, false, "flag", `${c.value} matches only with the OPPOSITE sign — check the sign convention before publishing`);
+        } else if (m.tier === "signed" && m.scopedAvailable) {
+          push(`${tag}: value_in_evidence`, false, "flag", `${c.value} found in cited evidence but NOT within the named row '${(c.subject as ClaimSubject)?.row}'`);
+        } else {
+          push(`${tag}: value_in_evidence`, true, "fail", `${c.value} found${m.tier === "signed_scoped" ? " in the named row" : ""}`);
+        }
       }
 
       /* C4 — comparison direction actually holds. */
@@ -153,8 +210,10 @@ export function verifyFindings(
             (c.comparison.op === "le" && c.value <= rhs) ||
             (c.comparison.op === "eq" && near(c.value, rhs));
           push(`${tag}: comparison_direction`, opOk, "fail", `${c.value} ${c.comparison.op} ${rhs} is ${opOk}`);
-          const rhsPresent = numberInEvidence(rhs, evidence);
-          push(`${tag}: comparison_rhs_in_evidence`, rhsPresent, "fail", rhsPresent ? "rhs found" : `rhs ${rhs} not in cited evidence`);
+          const rm = evidenceMatch(rhs, evidence);
+          if (rm.tier === "none") push(`${tag}: comparison_rhs_in_evidence`, false, "fail", `rhs ${rhs} not in cited evidence`);
+          else if (rm.tier === "abs_only") push(`${tag}: comparison_rhs_in_evidence`, false, "flag", `rhs ${rhs} matches only with the opposite sign`);
+          else push(`${tag}: comparison_rhs_in_evidence`, true, "fail", "rhs found");
           const key = `${c.subject.bank}|${c.subject.period}|${c.subject.kind}|${c.subject.metric ?? c.subject.row ?? ""}`;
           const list = directionByKey.get(key) ?? [];
           list.push({ finding_id: f.finding_id, op: c.comparison.op, value: c.value, rhs });
@@ -228,6 +287,24 @@ export function verifyFindings(
        heuristic flag only. */
     if (f.classification === "observed_fact" && /\b(suggests|likely|probably|appears to|may have)\b/i.test(f.thesis)) {
       push("fact_vs_interpretation", false, "flag", "hedged language inside observed_fact — consider interpretation");
+    }
+
+    /* T6 — near-duplicate of an earlier finding (same claims retold, or the
+       same thesis reworded) adds noise, not information: the later one fails. */
+    {
+      const claimSig = new Set(
+        (f.claims ?? []).map((c) => `${c.claim_kind}|${c.subject?.statement ?? ""}|${foldTr(String(c.subject?.row ?? ""))}|${c.value ?? ""}`),
+      );
+      const tokens = new Set(foldTr(f.thesis ?? "").split(/[^A-Z0-9]+/).filter((w) => w.length > 3));
+      const dup = seenSignatures.find((s) => {
+        const shared = [...claimSig].filter((k) => s.claims.has(k)).length;
+        const jaccard = shared / (new Set([...claimSig, ...s.claims]).size || 1);
+        const tokShared = [...tokens].filter((t) => s.tokens.has(t)).length;
+        const overlap = tokShared / (Math.min(tokens.size, s.tokens.size) || 1);
+        return jaccard >= 0.5 || overlap >= 0.75;
+      });
+      push("duplicate_finding", !dup, "fail", dup ? `near-duplicate of ${dup.finding_id} — merge or drop` : "distinct");
+      seenSignatures.push({ finding_id: f.finding_id, claims: claimSig, tokens });
     }
 
     const anyFail = checks.some((c) => !c.ok && c.severity === "fail");
