@@ -46,8 +46,11 @@ export interface ResearchResult {
   traceJsonl: string;
 }
 
-const MAX_TURNS = 22;
-const WALL_MS = 9 * 60_000;
+// Raised 22→32 after the ALBRK round-3 run: with the case file in place the
+// model spent every turn productively (18 distinct queries, zero repeats)
+// and hit the budget mid-synthesis — turns, not discipline, were binding.
+const MAX_TURNS = 32;
+const WALL_MS = 14 * 60_000;
 const RESULT_CHARS = 9_000;
 const MAX_CONSECUTIVE_PROTOCOL = 3;
 /**
