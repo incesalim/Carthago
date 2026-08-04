@@ -83,8 +83,10 @@ coverage matrix as **missing** for you to extract.
   yet extracted — click Re-extract"; one that's been extracted but has an empty statement says
   "likely scanned-image — hand-transcribe." The drawer's **Re-extract** dispatches
   `reextract-statement.yml` for just that `bank` + `period` + `kind` + statement.
-- **Pipeline panel** — two audit cards: **Acquire audit PDFs** (`acquire-audit.yml`, no inputs)
-  and **Extract audit reports** (`refresh-audit.yml`, optional bank).
+- **Pipeline panel** — three audit cards: **Acquire audit PDFs** (`acquire-audit.yml`, no inputs),
+  **Extract audit reports** (`refresh-audit.yml`, optional bank), and **Analyst memos**
+  (`analyst-daily.yml` — detectors + grounded LLM memos, artifacts-only while the D1 write
+  freeze holds; `banks=CALIBRATE` runs the ALBRK+SKBNK feasibility pair).
 
 Data comes from `bank_audit_coverage` / `bank_audit_expected` / `bank_audit_statement_types`,
 rebuilt by `scripts/sync_audit_expected.py` (in both the acquire and extract workflows).

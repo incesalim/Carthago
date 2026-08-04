@@ -1,9 +1,11 @@
 # Analyst build plan — 2026-08-04
 
-> **Status: plan, not code.** Task-level detail for building the automated
-> analyst layer. Nothing implemented yet. Supersedes the abstract discussion in
+> **Status: IMPLEMENTED and CALIBRATED, same day** (commits `77b92ad` →
+> `5b31f4c`; calibration verdict at the end of this doc). Artifacts-only until
+> the D1 write freeze lifts. Originally: task-level detail for building the
+> automated analyst layer, superseding the abstract discussion in
 > `2026-08-04-analyst-feasibility-test.md` — the feasibility test answered "can
-> it work"; this says "here is every piece, in order, with pass/fail criteria."
+> it work"; this said "here is every piece, in order, with pass/fail criteria."
 
 > **As-built corrections (2026-08-04, pre-implementation probe).** The first
 > draft carried premises the snapshot refutes; corrected in place below:
@@ -902,6 +904,37 @@ printed headline ratios and stop?
 
 ---
 
+## As-built record (2026-08-04, same day)
+
+Implemented through Phase 4 in three commits (`77b92ad`, `914e3f6`, `6e4f920`).
+Deviations from the plan above, each deliberate:
+
+- **Task 3.3 location — CI, not the Worker.** Memo generation runs in
+  `analyst-daily.yml` via `web/scripts/analyst-run.ts` (node:sqlite over the
+  R2 snapshots), importing the SAME `web/app/lib/analyst/` modules the Worker
+  reads. Three reasons: the LLM keys are CI secrets by design (none exist
+  locally or need to reach a route), batch generation belongs in Actions like
+  every other lane, and a Worker-side writer would be a second D1 write path
+  outside `push_to_d1.py`'s budget discipline. No `/api/admin/analyst/run`
+  route exists; the /admin card is the workflow-dispatch entry in the existing
+  Pipeline panel (Task 4.2 trimmed accordingly — the signals/notes browsing UI
+  comes with the D1 push at freeze-lift). Task 4.4 (the /analyst feed) is not
+  built, as the plan already preferred.
+- **Task 1.6 has `--stage`, not `--push`** — there is no push flag at all
+  while the freeze stands. Signals + basis metadata stage into
+  `data/analyst.db`; how that third staging DB wires into `push_to_d1.py` is a
+  freeze-lift decision, recorded in Task 1.7.
+- **The guard needed a STRUCTURE gate the plan did not foresee.** Calibration
+  round 1: nemotron (the bot's first-choice model) answered the long
+  instruction-heavy memo prompt with its own planning monologue, truncated at
+  max_tokens — and the ALBRK version PASSED the figure check, because every
+  number it echoed was in the data block. Form is a claim too: `guardMemo` now
+  requires the headline + all four sections, and the memo lane excludes
+  nemotron via `chatComplete`'s new `excludeProviders` (the bot's short SQL
+  loop keeps it — the chains differ on purpose). This is the same lesson as
+  "the model does not signal doubt", one level up: it does not signal
+  off-task either.
+
 ## The one number that matters
 
 If the Şekerbank 2026Q1 memo says "NPL ratio improved to 1.33% from 1.70%" and
@@ -911,3 +944,58 @@ provisioned buckets and 8.2pp by within-bucket erosion, with zero write-offs
 and accelerating new NPL formation in Group III" — the build passed.
 
 That is the "second question" test. Everything in this plan is in service of it.
+
+## Calibration verdict (Task 3.4) — PASSED, five rounds, 2026-08-04
+
+Run via `analyst-daily.yml banks=CALIBRATE` (runs 30903420162 → 30904767159).
+Each round's failure became a deterministic harness fix; nothing was fixed by
+hoping the model behaves.
+
+- **Round 1 — FAILED, and the failure was the harness.** nemotron answered the
+  long instruction-heavy prompt with its planning monologue, truncated at
+  max_tokens — and ALBRK **passed the figure guard**, because every number the
+  monologue echoed was in the data block. Fixes: a STRUCTURE gate in
+  `guardMemo` (headline + all four sections — form is a claim too) and
+  `excludeProviders` in `chatComplete` (the memo lane skips nemotron; the
+  bot's short SQL loop keeps it).
+- **Round 2 — SKBNK passed the kill point**; an "overstated by ₺700 million"
+  figure evaded the ≥1000 amount floor (amounts are thousand TL, so a
+  million-denominated figure is numerically small). Fix: denomination-scaled
+  checking (million ×1e3, bn ×1e6) — which in round 3 turned out to VERIFY the
+  claim rather than block it (the ₺700,000k was the auditor's own
+  retained-earnings figure, illegible to the guard only by denomination).
+- **Rounds 3–5 — the ALBRK second question landed piece by piece, each time by
+  moving the derivation into the data** (the coverage-decomposition pattern,
+  applied twice more): ex-release profit per FP-history row made the memo
+  quote "the 2025Q1 base was inflated by a release = **89.2%** of printed
+  profit; YoY comparisons against it are misleading" (round 4), and
+  like-quarter pairs in the core-margin rendering made it read the underlying
+  series correctly (round 5: "core margin more than double the same quarter a
+  year earlier while printed income collapsed −88.5% — the declines are
+  overstated; the core series shows genuine improvement", quoting the ₺7.0bn).
+
+**Final state (rounds 3–5, temp 0, free-model chain):**
+
+- **SKBNK 2026Q1: PASS on all four criteria, stable across three rounds.**
+  Headline = the CAR/CET1 divergence; coverage fall decomposed from the
+  precomputed table (18.94pp = 12.13 mix + 6.81 erosion over the standard
+  4-quarter window — the memo's 5-quarter equivalent of the hand memo's
+  13.2/8.2); **zero write-offs stated and used causally**; Group III
+  formation quoted at the hand memo's exact ₺391,354; a real falsifier
+  ("the first non-zero write-off would falsify"). The one-number test above:
+  passed as written.
+- **ALBRK 2026Q1: all four criteria demonstrated** (release-distortion
+  headline in round 4; ₺7.0bn + core-margin reading in round 5), with the
+  caveat that a single run leads with ONE of the two legitimate stories
+  (capital composition vs release distortion) and carries the other in-body.
+- **Residual defects, named:** occasional interpretive gloss errors on
+  correctly-grounded figures (round 5 read `noncore_share 0.47` as "only
+  0.47%"); signal-payload internals quoted verbatim once; one garbled
+  negation. The guard checks figures and form, not semantics — a wrong WORD
+  about a right NUMBER is the class it cannot catch. Provider rotation
+  (cerebras ↔ groq) adds run-to-run variance at temp 0.
+
+Iteration stopped deliberately after round 5: both hand-memo finding sets are
+reproduced, and further prompt-tuning against the same two known memos would
+be overfitting the harness (the 22/22 unit-detection lesson). The next real
+test is a bank neither the prompt nor the harness was tuned on.
