@@ -37,6 +37,8 @@ import unicodedata
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 
+from .prose_topics import topic_of
+
 # `from .extractor import …` is deferred into _read_lines: everything else in
 # this module is a pure function over Line objects, and CI's Python job installs
 # only ruff + pytest + stdlib. A module-level import would make the whole test
@@ -184,6 +186,7 @@ class ProseRow:
     section_role: str
     heading: str | None
     heading_path: str | None
+    topic: str | None
     item_order: int
     page_start: int
     page_end: int
@@ -628,20 +631,29 @@ def _marker_depth(marker: str) -> int:
     return 3
 
 
-def _push_path(stack: list[str], marker: str, section: int) -> list[str]:
-    """Update the heading stack with a marker and return the new path.
+def _push_path(levels: dict[int, str], marker: str, section: int) -> list[str]:
+    """Update the heading state with a marker and return the new path.
+
+    Keyed by DEPTH rather than appended to a list. With a list, a marker whose
+    depth exceeds the current stack length lands at the wrong index and its
+    siblings never displace it — consecutive decimal notes then nested instead
+    of replacing, and KUVEYT produced paths like
+    `5.III.1.5.10.7.2.2.1.2.2.1.2.1`.
 
     A dotted marker whose first component IS the section number is already
     absolute — GARANTİ numbers its notes "4.2.7", "5.6.6" — so it replaces the
-    stack rather than nesting under it, or the path would read "4.4.2.7".
+    state rather than nesting under it, or the path would read "4.4.2.7".
     """
     if _DECIMAL_PATH.match(marker) and marker.split(".")[0] == str(section):
-        stack[:] = marker.split(".")[1:]
-        return list(stack)
+        levels.clear()
+        for i, part in enumerate(marker.split(".")[1:], start=1):
+            levels[i] = part
+        return [levels[k] for k in sorted(levels)]
     depth = _marker_depth(marker)
-    del stack[depth - 1:]
-    stack.append(marker)
-    return list(stack)
+    for k in [k for k in levels if k >= depth]:
+        del levels[k]
+    levels[depth] = marker
+    return [levels[k] for k in sorted(levels)]
 
 
 def _is_divider(text: str, lang: str) -> bool:
@@ -661,7 +673,7 @@ def build_rows(lines: list[Line], starts_seq: dict[int, int], lang: str,
     heading_path: str | None = None
     cur_section: int | None = None
     rows_in_section = 0
-    stack: list[str] = []
+    levels: dict[int, str] = {}
 
     def flush() -> None:
         nonlocal buf, buf_pages, rows_in_section
@@ -682,6 +694,10 @@ def build_rows(lines: list[Line], starts_seq: dict[int, int], lang: str,
         rows.append(ProseRow(
             section=cur_section, section_role=roles.get(cur_section, "unknown"),
             heading=heading, heading_path=heading_path,
+            # The normalized key beside the as-reported address. Derived from the
+            # caption, because the address is not stable: `derivatives` alone
+            # covers 135 distinct heading_paths across 30 banks.
+            topic=topic_of(heading, _fold),
             item_order=len(rows) + 1,
             page_start=min(pages), page_end=max(pages), lang=lang, text=text,
         ))
@@ -692,7 +708,7 @@ def build_rows(lines: list[Line], starts_seq: dict[int, int], lang: str,
             flush()
             cur_section, heading, heading_path = sec, None, None
             rows_in_section = 0
-            stack = []
+            levels = {}
             if sec is not None:
                 heading_path = str(sec)   # a block before the first heading
         if ln.is_table or _is_divider(ln.text, lang):
@@ -705,7 +721,7 @@ def build_rows(lines: list[Line], starts_seq: dict[int, int], lang: str,
             # The FULL path, not the leaf marker. "1" alone cannot say whether
             # the block sits under I.a or under II.d, and two sibling "1."s in
             # different parents were indistinguishable.
-            path = _push_path(stack, ln.marker, cur_section) if ln.marker else []
+            path = _push_path(levels, ln.marker, cur_section) if ln.marker else []
             heading_path = ".".join([str(cur_section), *path])
             continue
         buf.append(ln.text)
@@ -723,14 +739,14 @@ def upsert(conn, bank_ticker: str, period: str, kind: str,
                 "WHERE bank_ticker=? AND period=? AND kind=?",
                 (bank_ticker, period, kind))
     rows = [(bank_ticker, period, kind, r.item_order, r.section, r.section_role,
-             r.heading, r.heading_path, r.page_start, r.page_end, r.lang,
-             r.text, r.char_count) for r in rep.rows]
+             r.heading, r.heading_path, r.topic, r.page_start, r.page_end,
+             r.lang, r.text, r.char_count) for r in rep.rows]
     if rows:
         cur.executemany(
             "INSERT INTO bank_audit_prose "
             "(bank_ticker, period, kind, item_order, section, section_role, "
-            " heading, heading_path, page_start, page_end, lang, text, "
-            " char_count) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)", rows)
+            " heading, heading_path, topic, page_start, page_end, lang, text, "
+            " char_count) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", rows)
     return len(rows)
 
 

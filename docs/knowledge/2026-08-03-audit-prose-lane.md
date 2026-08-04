@@ -198,6 +198,44 @@ the bank and the period**, and one filing in fourteen doesn't have seven section
 at all. Anything reading "the audit report" out of §7 is wrong for 61 interim
 filings; anything assuming seven sections is wrong for 21.
 
+## As reported, and normalized
+
+The as-reported address is the right thing to store and the wrong thing to query,
+because the same disclosure moves. Measured across the 162 filings:
+
+| topic | banks | **distinct `heading_path`s it collapses** |
+|---|---|---|
+| derivatives | 30 | **135** |
+| fvoci_assets | 30 | 111 |
+| subsidiaries | 27 | 108 |
+| held_for_sale | 30 | 101 |
+| deposits | 23 | 78 |
+| related_party | 29 | 73 |
+| equity | 30 | 48 |
+
+**The audit firm does not explain it.** KPMG's deposit note sits at `5.II.1.2`,
+`5.II.a.1` *and* `5.II.a`; Deloitte's at three others. Nor is it stable within a
+bank — 6 of 14 banks use more than one path for the deposit note across their own
+filings.
+
+**What is stable is the caption**, because BRSA mandates the note wording: 19
+banks print the FVOCI heading character for character. So `topic` is derived from
+the heading text, never from its position — `src/audit_reports/prose_topics.py`,
+63 topics, assigned to **47% of 22,076 headings** (the unmatched tail is one-off
+sub-headings that have no canonical equivalent).
+
+Two rules the registry lives by, both measured:
+
+- **Specific before general.** The FVOCI and FVPL captions share their opening
+  words; testing the general rule first swallows the specific one — the same
+  ordering discipline the section-role rules need.
+- **Flatten punctuation before matching.** "kâr/zarara yansıtılan" never matches
+  a keyword written `KAR ZARARA YANSITILAN`; that one omission lost 51 FVPL
+  headings.
+
+`/admin` shows both: sections with their as-reported page spans, and the
+normalized topic chips beneath them.
+
 ## The validator
 
 `check_prose` checks the sectioning, not the sentences — transcription has no

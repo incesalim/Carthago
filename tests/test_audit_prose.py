@@ -297,20 +297,31 @@ def test_disclosure_variants_keep_their_own_roles():
 def test_heading_path_is_the_full_path_not_the_leaf():
     """A bare "1" cannot say whether the block sits under I.a or under II.d, and
     two sibling "1."s in different parents were indistinguishable."""
-    stack: list[str] = []
-    assert _push_path(stack, "I", 5) == ["I"]
-    assert _push_path(stack, "a", 5) == ["I", "a"]
-    assert _push_path(stack, "1", 5) == ["I", "a", "1"]
+    lv: dict[int, str] = {}
+    assert _push_path(lv, "I", 5) == ["I"]
+    assert _push_path(lv, "a", 5) == ["I", "a"]
+    assert _push_path(lv, "1", 5) == ["I", "a", "1"]
     # A sibling at letter depth truncates the deeper levels.
-    assert _push_path(stack, "b", 5) == ["I", "b"]
-    assert _push_path(stack, "II", 5) == ["II"]
+    assert _push_path(lv, "b", 5) == ["I", "b"]
+    assert _push_path(lv, "II", 5) == ["II"]
+
+
+def test_sibling_decimal_notes_replace_rather_than_nest():
+    """A list-backed stack put a marker deeper than the stack length at the
+    wrong index, so its siblings never displaced it — KUVEYT produced
+    '5.III.1.5.10.7.2.2.1.2.2.1.2.1'."""
+    lv: dict[int, str] = {}
+    _push_path(lv, "III", 5)
+    assert _push_path(lv, "1.5", 5) == ["III", "1.5"]
+    assert _push_path(lv, "10.7", 5) == ["III", "10.7"]
+    assert _push_path(lv, "2.1", 5) == ["III", "2.1"]
 
 
 def test_absolute_note_numbering_is_not_re_prefixed():
     """GARANTİ numbers its notes '4.2.7', '5.6.6' — the leading component IS the
     section, so nesting it under the stack would yield '4.4.2.7'."""
-    stack = ["II", "c"]
-    assert _push_path(stack, "4.2.7", 4) == ["2", "7"]
+    lv = {1: "II", 2: "c"}
+    assert _push_path(lv, "4.2.7", 4) == ["2", "7"]
 
 
 def test_single_letters_that_look_roman_are_letters():

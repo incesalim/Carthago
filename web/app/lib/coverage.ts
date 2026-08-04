@@ -74,6 +74,9 @@ export interface CellDetail {
     page_end: number;
     sample: string | null;
   }[];
+  /** Normalized topics present in this partition. The as-reported heading_path
+   *  is not comparable across banks; this is what a cross-bank query joins on. */
+  proseTopics: { topic: string; n_rows: number; chars: number }[];
 }
 
 /** The statement-type registry, mirrored into D1 — drives the matrix selector. */
@@ -193,7 +196,9 @@ export async function coverageCellDetail(
   period: string,
   kind: string,
 ): Promise<CellDetail> {
-  const empty: CellDetail = { extraction: null, validation: [], coverage: [], prose: [] };
+  const empty: CellDetail = {
+    extraction: null, validation: [], coverage: [], prose: [], proseTopics: [],
+  };
   try {
     const db = await getDB();
     const extraction = await db
@@ -237,7 +242,16 @@ export async function coverageCellDetail(
       )
       .bind(bank, period, kind)
       .all<CellDetail["prose"][number]>();
-    return { extraction: extraction ?? null, validation, coverage, prose };
+    const { results: proseTopics } = await db
+      .prepare(
+        `SELECT topic, COUNT(*) AS n_rows, SUM(char_count) AS chars
+         FROM bank_audit_prose
+         WHERE bank_ticker = ? AND period = ? AND kind = ? AND topic IS NOT NULL
+         GROUP BY topic ORDER BY chars DESC LIMIT 12`,
+      )
+      .bind(bank, period, kind)
+      .all<CellDetail["proseTopics"][number]>();
+    return { extraction: extraction ?? null, validation, coverage, prose, proseTopics };
   } catch {
     return empty;
   }

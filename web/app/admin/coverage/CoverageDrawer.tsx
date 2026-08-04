@@ -43,6 +43,7 @@ interface Detail {
     page_end: number;
     sample: string | null;
   }[];
+  proseTopics: { topic: string; n_rows: number; chars: number }[];
 }
 
 // §6 and §7 swap between annual and interim filings, so the number never names
@@ -99,7 +100,9 @@ export default function CoverageDrawer({
     if (!open) return;
     let cancelled = false;
     const cell = `${open.bank}|${open.period}|${open.kind}`;
-    const empty: Detail = { extraction: null, validation: [], coverage: [], prose: [] };
+    const empty: Detail = {
+      extraction: null, validation: [], coverage: [], prose: [], proseTopics: [],
+    };
     void (async () => {
       try {
         const res = await fetch(`/api/admin/coverage?cell=${encodeURIComponent(cell)}`, {
@@ -252,6 +255,26 @@ export default function CoverageDrawer({
                   </li>
                 ))}
               </ul>
+            </div>
+          )}
+
+          {(detail?.proseTopics?.length ?? 0) > 0 && (
+            <div>
+              <p className="mb-1 text-xs font-medium text-muted-foreground">
+                Normalized topics — what a cross-bank query joins on
+              </p>
+              <div className="flex flex-wrap gap-1">
+                {detail!.proseTopics.map((t) => (
+                  <span
+                    key={t.topic}
+                    className="rounded border border-border px-1.5 py-0.5 text-[11px]"
+                    title={`${t.n_rows} blocks · ${nf.format(t.chars)} chars`}
+                  >
+                    {t.topic.replace(/_/g, " ")}{" "}
+                    <span className="font-mono text-muted-foreground">{t.n_rows}</span>
+                  </span>
+                ))}
+              </div>
             </div>
           )}
 

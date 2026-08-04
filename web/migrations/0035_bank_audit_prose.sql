@@ -16,6 +16,15 @@
 -- sections. The printed number is therefore not the meaning. `section_role` is
 -- read off each filing's own declared title and is what queries must join on.
 --
+-- heading_path vs topic: heading_path is the address AS THE BANK PRINTED IT
+-- ("5.I.a.1"), which is the right thing to store and the wrong thing to query.
+-- The same disclosure moves — the equity note appears at 13 distinct paths, the
+-- derivatives note at 135 across 30 banks — and the audit firm does not explain
+-- it (KPMG's deposit note sits at three different paths), nor is it stable
+-- within a bank. `topic` is the normalized key, derived from the mandated
+-- CAPTION, which is stable: 19 banks print the FVOCI heading character for
+-- character. Query on topic; cite heading_path.
+--
 -- Written by src/audit_reports/prose.py — deterministic, fitz-only, no model.
 CREATE TABLE IF NOT EXISTS bank_audit_prose (
     bank_ticker   TEXT NOT NULL,
@@ -26,6 +35,7 @@ CREATE TABLE IF NOT EXISTS bank_audit_prose (
     section_role  TEXT NOT NULL,
     heading       TEXT,
     heading_path  TEXT,
+    topic         TEXT,
     page_start    INTEGER NOT NULL,
     page_end      INTEGER NOT NULL,
     lang          TEXT NOT NULL,
@@ -37,3 +47,6 @@ CREATE TABLE IF NOT EXISTS bank_audit_prose (
 
 CREATE INDEX IF NOT EXISTS idx_bank_prose_section
   ON bank_audit_prose(section_role, period);
+
+CREATE INDEX IF NOT EXISTS idx_bank_prose_topic
+  ON bank_audit_prose(topic, period);

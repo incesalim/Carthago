@@ -268,6 +268,7 @@ CREATE TABLE IF NOT EXISTS bank_audit_prose (
     section_role  TEXT NOT NULL,
     heading       TEXT,
     heading_path  TEXT,
+    topic         TEXT,
     page_start    INTEGER NOT NULL,
     page_end      INTEGER NOT NULL,
     lang          TEXT NOT NULL,
