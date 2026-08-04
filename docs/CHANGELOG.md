@@ -3,7 +3,51 @@
 Dated history of pipeline and dashboard changes, newest first. For the
 current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
-Last verified: 2026-07-30.
+Last verified: 2026-08-04.
+
+2026-08-04 — **Earnings-call transcripts: 144 calls, and a "no free feed exists"
+claim that had stopped being true.** `bank_call_transcripts` (migration 0036,
+`src/transcripts/`), an "Earnings calls" block on `/banks/[ticker]`, and a reader
+at `/banks/[ticker]/calls/[period]`.
+
+PROJECT_STATE had ruled the lane out: *"no free, deterministic feed exists for
+Turkish banks … out of scope given the no-paid-vendor / no-LLM-API constraints."*
+Every leg of that had failed. AlphaSpread serves the full body and Q&A as
+server-rendered HTML for eight of the eleven listed banks, ungated, with
+`robots.txt` allowing all agents — and the archive **enumerates itself**: each
+bank's index page lists every call as a `q<N>-<YYYY>` slug, so unlike the
+presentation lane there is no filename skeleton to learn and no quarter can be
+lost to a URL nobody added. The LLM half of the constraint had already been
+reversed on 2026-08-03, and no model is involved here anyway.
+
+Ingested 2026-08-04: **734,412 words across 3,831 speaker turns**, AKBNK 33 calls
+back to 2018Q1, GARAN 31, HALKB 22, ISCTR 21, VAKBN 20, ALBRK 8, YKBNK 7, TSKB 2.
+SKBNK, ICBCT and QNBFB hold no call at all — an absence at the source, so the
+block does not render for them rather than showing a permanent empty state.
+
+Two things the lane records about itself rather than letting a reader assume:
+
+- **Attribution is the weak axis, not content.** Against Investing.com's version
+  of the same call (AKBNK 2026Q1) the body matches — 4,582 words vs 4,875, both
+  ending on "Bye for now" — but the operator naming a Turkish analyst often lands
+  as `[indiscernible]`, which also strips that turn's `role='analyst'` tag. 522
+  markers corpus-wide, stored per call in `indiscernible_count` and printed in the
+  reader. Analyst identity is not something to key on.
+- **The figures in a transcript are transcription, not extraction** — spoken
+  aloud and written down as heard ("TRY 51.7 billion, 5-1-0.7"). The reader links
+  back to the audited numbers instead of inviting the comparison silently.
+
+The ingest is one fat row per call with the turns as JSON, not a per-turn table:
+a call is only ever read whole and D1 bills rows written, so this is ~1/25th the
+write cost. **The workflow ships with no `schedule:`** — the freeze is enforced by
+`gh workflow disable`, which leaves no trace in git, so a new workflow with a cron
+would be born enabled and become the one lane writing to D1 during it. Its `push`
+input defaults to false for the same reason. Both flip when the freeze lifts.
+
+Also: the source rate-limits. A first run at 1 req/s tripped 429 around page 70
+and stayed tripped, costing five banks their *index* fetch and so their whole
+archive; the fetcher now backs off (10s → 30s → 90s, honouring `Retry-After`) and
+paces at 3s.
 
 2026-07-30 — **A native app, and the rule that keeps it from disagreeing with
 the website.** `mobile/` — Expo SDK 57 / React Native 0.86 / expo-router, four

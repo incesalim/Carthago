@@ -1,0 +1,117 @@
+name: Refresh call transcripts (weekly)
+
+# When to run:
+#   - Manually from the Actions tab, for now.
+#
+#   ⚠️ NO `schedule:` TRIGGER YET, ON PURPOSE. The D1 write freeze standing since
+#   2026-08-01 is enforced by disabling crons with `gh workflow disable`, which is
+#   invisible in git — a new workflow shipped with a schedule would be born ENABLED
+#   and would quietly become the one cron writing to D1 during the freeze. When the
+#   freeze lifts, add:
+#       schedule:
+#         - cron: "0 7 * * 6"        # Sat 07:00 UTC, after refresh-presentations (06:00)
+#   and flip the `push` input's default to true. Earnings calls happen four times a
+#   year per bank, so weekly is already generous.
+on:
+  workflow_dispatch:
+    inputs:
+      banks:
+        description: "ALL, NONE, or comma-separated tickers (AKBNK,GARAN,…)"
+        required: false
+        default: "ALL"
+      refresh:
+        description: "Refetch quarters already stored (parser changes only)"
+        type: boolean
+        required: false
+        default: false
+      push:
+        description: "Push to D1 — leave OFF while the write freeze stands"
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: read
+
+# Share the snapshot lock with the other pipeline workflows so none of them can
+# write R2's snapshot concurrently.
+concurrency:
+  group: bddk-pipeline
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    # A full --refresh walks ~150 pages at 3s apiece plus backoff; the routine
+    # incremental run is one index GET per bank and finishes in under a minute.
+    timeout-minutes: 45
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      PYTHONIOENCODING: utf-8
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Fetch SQLite snapshot from R2 + decompress
+        run: |
+          python - <<'PY'
+          import gzip, shutil, pathlib
+          from src.audit_reports import r2_storage
+          gz, db = pathlib.Path("data/bddk_data.db.gz"), pathlib.Path("data/bddk_data.db")
+          gz.parent.mkdir(parents=True, exist_ok=True)
+          if r2_storage.exists("state/bddk_data.db.gz"):
+              size = r2_storage.download_to("state/bddk_data.db.gz", gz)
+              print(f"Pulled state/bddk_data.db.gz from R2 ({size/1e6:.1f} MB)")
+              with gzip.open(gz, "rb") as s, open(db, "wb") as d:
+                  shutil.copyfileobj(s, d)
+              print(f"Decompressed to {db.stat().st_size/1e6:.1f} MB")
+          else:
+              print("No snapshot in R2 yet — starting from empty DB.")
+          PY
+
+      # A blank workflow_dispatch input does NOT arrive empty — the default wins —
+      # so the scope is an explicit ALL/NONE sentinel and the script echoes what it
+      # resolved to before fetching anything.
+      - name: Refresh earnings-call transcripts
+        run: |
+          python -u scripts/update_transcripts.py \
+            --banks "${{ inputs.banks || 'ALL' }}" \
+            ${{ inputs.refresh && '--refresh' || '' }}
+
+      - name: Setup Node (for wrangler)
+        if: ${{ inputs.push }}
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+
+      # Off by default: see the freeze note at the top of this file.
+      # 192h (8d) window so a missed weekly run still re-pushes; the table is
+      # idempotent on (source, bank_ticker, period) so re-pushes are safe.
+      - name: Push bank_call_transcripts to Cloudflare D1
+        if: ${{ inputs.push }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: python scripts/push_to_d1.py --hours 192 --only-tables=bank_call_transcripts
+
+      - name: Re-gzip + upload snapshot back to R2
+        run: |
+          python - <<'PY'
+          import gzip, shutil, pathlib
+          from src.audit_reports import r2_storage
+          gz, db = pathlib.Path("data/bddk_data.db.gz"), pathlib.Path("data/bddk_data.db")
+          with open(db, "rb") as src, gzip.open(gz, "wb", compresslevel=9) as dst:
+              shutil.copyfileobj(src, dst)
+          size = r2_storage.upload_file(gz, "state/bddk_data.db.gz")
+          print(f"Uploaded {size/1e6:.1f} MB to R2 state/bddk_data.db.gz")
+          PY

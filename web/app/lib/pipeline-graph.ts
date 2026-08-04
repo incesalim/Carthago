@@ -67,6 +67,7 @@ export const PIPELINE_NODES: PipelineNode[] = [
   { id: "src-rss-press", kind: "source", layer: "source", lane: "bulletin", label: "Financial-media RSS", sublabel: "Bloomberg HT, Dünya, Ekonomim, AA, NTV", statusKey: "news" },
   { id: "src-rss-google", kind: "source", layer: "source", lane: "bulletin", label: "Google News", sublabel: "topic-scoped search RSS · long-tail outlets", statusKey: "news" },
   { id: "src-ir-presentations", kind: "source", layer: "source", lane: "bulletin", label: "Bank IR presentation decks", sublabel: "Garanti BBVA / Akbank / Yapı Kredi · quarterly PDF" },
+  { id: "src-call-transcripts", kind: "source", layer: "source", lane: "bulletin", label: "Earnings-call transcripts", sublabel: "alphaspread.com · 8 listed banks · quarterly" },
   { id: "src-advertised-rates", kind: "source", layer: "source", lane: "bulletin", label: "Rate comparison sites", sublabel: "doviz.com (loans) · hangikredi (deposits) · per-bank posted rates", statusKey: "advertised_rates" },
   { id: "src-tcmb-calendar", kind: "source", layer: "source", lane: "bulletin", label: "TCMB release calendar", sublabel: "www.tcmb.gov.tr · MPC decisions + minutes + Inflation/Financial-Stability reports", statusKey: "release_calendar" },
   { id: "src-product-research", kind: "source", layer: "source", lane: "bulletin", label: "Bank product pages", sublabel: "each bank's own site · product shelf scored on a fixed taxonomy" },
@@ -82,6 +83,7 @@ export const PIPELINE_NODES: PipelineNode[] = [
   { id: "wf-news-daily", kind: "workflow", layer: "ingestion", lane: "bulletin", label: "refresh-news-daily", sublabel: "daily 02:00 · sync_news.py", workflowFile: "refresh-news-daily.yml" },
   { id: "wf-summarize", kind: "workflow", layer: "ingestion", lane: "bulletin", label: "summarize-regulations", sublabel: "weekly Thu · LLM briefing", workflowFile: "summarize-regulations.yml" },
   { id: "wf-presentations", kind: "workflow", layer: "ingestion", lane: "bulletin", label: "refresh-presentations-weekly", sublabel: "Sat 06:00 · update_presentations.py", workflowFile: "refresh-presentations-weekly.yml" },
+  { id: "wf-transcripts", kind: "workflow", layer: "ingestion", lane: "bulletin", label: "refresh-transcripts-weekly", sublabel: "manual · update_transcripts.py (no cron yet — write freeze)", workflowFile: "refresh-transcripts-weekly.yml" },
   { id: "wf-advertised-rates", kind: "workflow", layer: "ingestion", lane: "bulletin", label: "refresh-advertised-rates", sublabel: "Mon 06:00 · src.rates.scraper → push_to_d1", workflowFile: "refresh-advertised-rates.yml" },
   { id: "wf-calendar", kind: "workflow", layer: "ingestion", lane: "bulletin", label: "refresh-calendar", sublabel: "1st 06:00 · src.release_calendar.scraper → push_to_d1", workflowFile: "refresh-calendar.yml" },
   { id: "wf-build-products", kind: "workflow", layer: "ingestion", lane: "bulletin", label: "build-products", sublabel: "manual · src.products.build → push_to_d1 (deterministic seed)", workflowFile: "build-products.yml" },
@@ -97,6 +99,7 @@ export const PIPELINE_NODES: PipelineNode[] = [
   { id: "store-d1-faaliyet", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · faaliyet_franchise", sublabel: "ATM / POS / merchant / customer / card counts", statusKey: "faaliyet" },
   { id: "store-d1-news", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · news_items", sublabel: "regulation + press + Google News · + per-bank tags", statusKey: "news" },
   { id: "store-d1-earnings", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · bank_earnings", sublabel: "KAP results filings + IR presentation decks" },
+  { id: "store-d1-transcripts", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · bank_call_transcripts", sublabel: "earnings-call transcripts · one row per call, turns as JSON" },
   { id: "store-d1-advertised-rates", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · bank_advertised_rates", sublabel: "per-bank posted loan + deposit rates · dated snapshots", statusKey: "advertised_rates" },
   { id: "store-d1-release-calendar", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · release_calendar", sublabel: "scheduled TCMB events · feeds the Ahead strips", statusKey: "release_calendar" },
   { id: "store-d1-products", kind: "store", layer: "storage", lane: "bulletin", label: "D1 · product_* (shelf)", sublabel: "product_attributes · bank_products · bank_product_profile · dated snapshots" },
@@ -199,6 +202,7 @@ export const PIPELINE_EDGES: PipelineEdge[] = [
   { source: "src-rss-google", target: "wf-news-daily" },
   { source: "src-kap", target: "wf-news-daily" },
   { source: "src-ir-presentations", target: "wf-presentations" },
+  { source: "src-call-transcripts", target: "wf-transcripts" },
   { source: "src-advertised-rates", target: "wf-advertised-rates" },
   { source: "src-tcmb-calendar", target: "wf-calendar" },
 
@@ -232,6 +236,7 @@ export const PIPELINE_EDGES: PipelineEdge[] = [
   { source: "wf-summarize", target: "store-d1-news" },
   { source: "wf-news-daily", target: "store-d1-earnings" },
   { source: "wf-presentations", target: "store-d1-earnings" },
+  { source: "wf-transcripts", target: "store-d1-transcripts" },
 
   // audit lane
   { source: "src-ir-pdf", target: "wf-acquire-audit" },
@@ -264,6 +269,7 @@ export const PIPELINE_EDGES: PipelineEdge[] = [
   { source: "wf-refresh-data", target: "store-r2-snap", kind: "snapshot" },
   { source: "wf-refresh-audit", target: "store-r2-snap", kind: "snapshot" },
   { source: "wf-presentations", target: "store-r2-snap", kind: "snapshot" },
+  { source: "wf-transcripts", target: "store-r2-snap", kind: "snapshot" },
 
   // D1 (bulletin) → pages
   { source: "store-d1-bulletin", target: "page-overview" },
@@ -310,6 +316,7 @@ export const PIPELINE_EDGES: PipelineEdge[] = [
   { source: "store-d1-news", target: "page-earnings" },
   { source: "store-d1-earnings", target: "page-earnings" },
   { source: "store-d1-earnings", target: "page-bank-detail" },
+  { source: "store-d1-transcripts", target: "page-bank-detail" },
 
   // D1 (audit) → pages
   { source: "store-d1-audit-fin", target: "page-banks" },

@@ -86,6 +86,7 @@ import type { PlRow } from "@/app/lib/audit";
 import { LDR_AUDITED } from "@/app/lib/ldr";
 import { newsByTicker, pressNewsByBank } from "@/app/lib/news";
 import { earningsByTicker } from "@/app/lib/earnings";
+import { callsByTicker, TRANSCRIPT_BANKS } from "@/app/lib/transcripts";
 import { bankOwnership } from "@/app/lib/kap";
 import { heatmapPanel } from "@/app/lib/heatmap";
 import { evdsSeries } from "@/app/lib/metrics";
@@ -96,6 +97,7 @@ import { MarginBridgeChart, MarketShareChart } from "./BankCharts";
 import MarketRiskSection from "./MarketRiskSection";
 import OwnershipSummary from "./OwnershipSummary";
 import EarningsDisclosures from "./EarningsDisclosures";
+import CallTranscripts from "./CallTranscripts";
 import BankNewsSection from "./BankNewsSection";
 import BsShape from "./BsShape";
 import IncomeShape from "./IncomeShape";
@@ -422,7 +424,7 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
     return o != null && o >= floorOrd && latestOrd != null && o <= latestOrd;
   });
 
-  const [bsPivot, bsNames, plPivot, plRows, plRoles, cfPivot, kapItems, profile, stages, validation, ownership, heatmap, sharePanel, earnings, mrDetail, bankNews, cpiRaw, sectorShares] =
+  const [bsPivot, bsNames, plPivot, plRows, plRoles, cfPivot, kapItems, profile, stages, validation, ownership, heatmap, sharePanel, earnings, calls, mrDetail, bankNews, cpiRaw, sectorShares] =
     await Promise.all([
       balanceSheetMultiPeriod(ticker, kind, queryPeriods),
       balanceSheetLineNames(ticker, kind, periods),
@@ -450,6 +452,12 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
       heatmapPanel(kind),
       marketSharePanel(kind),
       earningsByTicker(ticker, 24),
+      // Earnings-call transcripts. Only 8 listed banks hold an English call at
+      // all, so the query is skipped for the rest rather than issuing a select
+      // that can only ever return nothing.
+      TRANSCRIPT_BANKS.has(ticker)
+        ? callsByTicker(ticker, 40)
+        : Promise.resolve([]),
       bankMarketRiskDetail(kind, ticker),
       pressNewsByBank(ticker, 10),
       // The deflator — every "real terms" read on this page (real ROE, and the
@@ -1768,6 +1776,18 @@ export default async function BankDetailPage({ params, searchParams }: Props) {
         <div className="mb-8">
           <Section title="Earnings & Disclosures" contentClassName="">
             <EarningsDisclosures earnings={earnings} disclosures={kapItems} ticker={ticker} />
+          </Section>
+        </div>
+      )}
+
+      {/* ── Earnings calls ────────────────────────────────────────────────
+          What management actually said, quarter by quarter. Rendered only for
+          the banks that hold an English call — for the rest the block would be
+          a permanent empty state about someone else's editorial decision. */}
+      {tab === "news" && TRANSCRIPT_BANKS.has(ticker) && (
+        <div className="mb-8">
+          <Section title="Earnings calls" contentClassName="">
+            <CallTranscripts calls={calls} ticker={ticker} holdsCalls />
           </Section>
         </div>
       )}

@@ -91,6 +91,10 @@
       "reason": "Cron freeze of 2026-08-01. The D1 write overage that prompted it came from backfill campaigns (36.9M of 68.1M rows on three days), not from these lanes — quiet baseline is ~14.6M rows/month against 50M included. Held frozen INDEFINITELY by decision on 2026-08-01; there is no scheduled re-enable date.",
       "frozen_since": "2026-08-01"
     },
+    "refresh-transcripts-weekly.yml": {
+      "state": "active",
+      "reason": "Active but UNSCHEDULED — the file carries workflow_dispatch only, so nothing fires it. Shipping it with a cron would have made it the one lane writing to D1 during the 2026-08-01 freeze, because a new workflow is born enabled and `gh workflow disable` leaves no trace in git. The schedule (Sat 07:00 UTC) and the push input's true default go in when the freeze lifts."
+    },
     "repair-loans-zeros.yml": {
       "state": "active"
     },

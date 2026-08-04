@@ -1,0 +1,51 @@
+{
+  "_doc": "Per-bank earnings-call transcript sources. Mirrors investor_presentation_urls.json in shape, but the archive enumerates itself: the bank's index page lists every call as a '/earnings-call/q<N>-<YYYY>' slug, so only the slug is configured and scripts/update_transcripts.py discovers the quarters. Period keys are 'YYYYQn' as AlphaSpread labels the call (Turkish interim calls are cumulative: 1H=Q2, 9M=Q3, full-year=Q4).",
+  "_updated": "2026-08-04",
+  "_source": {
+    "name": "alphaspread",
+    "index_url": "https://www.alphaspread.com/security/ist/{slug}/investor-relations/earnings-call",
+    "call_url": "https://www.alphaspread.com/security/ist/{slug}/investor-relations/earnings-call/{quarter}",
+    "note": "Server-rendered HTML — transcript body and Q&A are in the raw response, no JS needed. robots.txt is 'User-agent: * / Disallow:' (all paths allowed; ChatGPT-User is the only disallowed agent). A default urllib User-Agent gets 403, so the fetcher sends a browser UA.",
+    "quality": "Machine transcription. Content is complete (opening through closing remarks incl. Q&A), but SPEAKER ATTRIBUTION is not: the operator's naming of Turkish analysts is often transcribed '[indiscernible]', which also leaves those turns untagged as role='analyst'. Counted per call in the indiscernible_count column — treat analyst identity as unreliable, and never read a figure off a transcript as fact (numbers are spoken aloud and land as e.g. 'TRY 51.7 billion, 5-1-0.7')."
+  },
+  "_deferred": {
+    "SKBNK": "Şekerbank — AlphaSpread returns 'No Earnings Calls Available'; Yahoo lists no earnings calls either. Holds no English investor call.",
+    "QNBFB": "QNB Bank — delisted from BIST; no call archive.",
+    "ICBCT": "ICBC Turkey — no earnings call and no public IR deck archive (also the one bank unseeded in investor_presentation_urls.json).",
+    "_note": "These three are absences at the SOURCE, not gaps in our coverage. An empty lane for them is the correct answer, not a bug to chase."
+  },
+  "banks": {
+    "AKBNK": {
+      "name": "Akbank T.A.Ş.",
+      "slug": "akbnk.e"
+    },
+    "GARAN": {
+      "name": "Türkiye Garanti Bankası A.Ş.",
+      "slug": "garan.e"
+    },
+    "ISCTR": {
+      "name": "Türkiye İş Bankası A.Ş.",
+      "slug": "isctr.e"
+    },
+    "YKBNK": {
+      "name": "Yapı ve Kredi Bankası A.Ş.",
+      "slug": "ykbnk.e"
+    },
+    "HALKB": {
+      "name": "Türkiye Halk Bankası A.Ş.",
+      "slug": "halkb.e"
+    },
+    "VAKBN": {
+      "name": "Türkiye Vakıflar Bankası T.A.O.",
+      "slug": "vakbn.e"
+    },
+    "TSKB": {
+      "name": "Türkiye Sınai Kalkınma Bankası A.Ş.",
+      "slug": "tskb.e"
+    },
+    "ALBRK": {
+      "name": "Albaraka Türk Katılım Bankası A.Ş.",
+      "slug": "albrk.e"
+    }
+  }
+}

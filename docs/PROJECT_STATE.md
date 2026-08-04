@@ -382,6 +382,7 @@ concurrency group), so audit failures can't stall the bulletin pipeline:
 - `.github/workflows/repair-loans-zeros.yml` — manual dispatch only, `dry_run=true` by default. Repairs the falsy-`or` zero loss in `loans` (see `scripts/repair_loans_zeros.py`): a reported 0 was discarded and stored NULL in the five `or`-chained columns. Re-derives from `raw_api_responses` (no re-fetch) — ~44k cells / ~30k rows measured. Idempotent: fills NULLs only, and refuses to overwrite a non-NULL value that disagrees with the raw JSON (that would be a different defect, and it reports rather than rewrites). Stamps `downloaded_at` on changed rows only so the D1 push stays scoped. Scraper fixed 2026-08-01 (`first_val`), guarded by `tests/test_bddk_api_scraper.py`.
 - `.github/workflows/backfill-nonbank.yml` — manual dispatch only. One-time historical backfill of the non-bank sector lane (leasing/factoring/financing) from `from_year` (default 2020 = banking-aggregate horizon) → now (~5–10 min). The incremental refresh rides `refresh-bddk-bulletins.yml` / `refresh-data.yml` (non-critical `update_nonbank.py` step in `refresh.py`); this workflow is only for the initial history load. Apply migration 0013 (via a `web/**` deploy) before dispatching.
 - `.github/workflows/refresh-presentations-weekly.yml` — Sat 06:00 UTC. `scripts/update_presentations.py` → `bank_earnings` (IR presentation decks) → D1 (`--only-tables=bank_earnings`). Bulletin lane (`bddk-pipeline` group), rides the shared snapshot. Tier-1 results filings instead ride the daily `refresh-news-daily.yml` (classified in `sync_news.py`). Apply migration 0015 (via a `web/**` deploy) before the first push.
+- `.github/workflows/refresh-transcripts-weekly.yml` — **manual dispatch only, no `schedule:` yet.** `scripts/update_transcripts.py` → `bank_call_transcripts` (earnings-call transcripts for the 8 listed banks that hold an English call) → optionally D1 (`--only-tables=bank_call_transcripts`). Bulletin lane (`bddk-pipeline` group), rides the shared snapshot. The missing cron is deliberate: the 2026-08-01 freeze is enforced with `gh workflow disable`, which leaves no trace in git, so a new workflow shipped with a schedule would be born **enabled** and become the only lane writing to D1 during the freeze. Its `push` input defaults to `false` for the same reason — a run ingests and re-uploads the snapshot without touching D1. Add `schedule: "0 7 * * 6"` and flip `push` when the freeze lifts. Inputs use an explicit `ALL`/`NONE` bank sentinel (a blank dispatch input arrives as the default, not empty). Apply migration 0036 (via a `web/**` deploy) before the first push.
 - `.github/workflows/refresh-advertised-rates.yml` — Mon 06:00 UTC. `python -m src.rates.scraper` → `bank_advertised_rates` → D1 (`--only-tables=bank_advertised_rates`). Bulletin lane (`bddk-pipeline` group), rides the shared snapshot (re-gzips it explicitly — this lane doesn't run `refresh.py`, which is what VACUUMs+gzips for the other refresh workflows). Migration 0023 applies via the `web/**` deploy that ships it.
 - `.github/workflows/refresh-calendar.yml` — 1st of month 06:00 UTC. `python -m src.release_calendar.scraper` → `release_calendar` → D1 (`--only-tables=release_calendar`). Scrapes TCMB's published "MPC Meeting and Reports Calendar" (rate decisions + minutes + Inflation Report + Financial Stability Report) so the **Ahead** strips fill themselves; retires the hand-typed `MPC_DATES` (now a render-time fallback, still guarded by `check_calendar_fresh.py`). `requests`+`lxml`, no browser — same `www.tcmb.gov.tr` host the news lane scrapes. Bulletin lane (`bddk-pipeline` group), re-gzips the snapshot explicitly. Migration 0025 applies via the `web/**` deploy that ships it.
 - `.github/workflows/refresh-audit.yml` — **manual dispatch only** (no schedule; extraction is admin-reviewed — the Sunday 04:00 UTC cron belongs to `acquire-audit.yml`, which only *acquires* PDFs). Audit-report extract → `bank_audit_*` → D1. Own DB `data/bank_audit.db`, own snapshot `state/bank_audit.db.gz`, own group `bddk-audit`. Dispatch takes optional `bank` / `skip_scrape` inputs (the /admin per-bank trigger uses `bank` → `--only-bank … --latest-period`). After extraction it runs `scripts/check_audit_quality.py --alert` (alert-only): flags a quarter whose lines are identical to the prior one (period-shift), a balance sheet that doesn't balance, or missing rows → Telegram/Discord, never blocking the push.
@@ -1190,9 +1191,57 @@ each `/banks/[ticker]` page:
   İşbank JS dropdown — gathered via the browser MCP, all URLs verified 200/206). Only
   ICBCT (no public IR deck archive) unseeded. Runs weekly via
   `.github/workflows/refresh-presentations-weekly.yml`.
-- **Not built:** earnings-call transcripts/audio — no free, deterministic feed
-  exists for Turkish banks (third-party transcripts are paywalled/ToS-gray; webcasts
-  are streaming-only). Out of scope given the no-paid-vendor / no-LLM-API constraints.
+A separate **call-transcript lane** (`bank_call_transcripts`, migration 0036,
+`src/transcripts/`) holds what management actually *said*, next to what the
+filings show. Surfaces as an "Earnings calls" block on `/banks/[ticker]` and a
+reader at `/banks/[ticker]/calls/[period]`.
+
+- **Source: AlphaSpread** (`alphaspread.com/security/ist/<slug>.e/…/earnings-call`).
+  Server-rendered HTML — body and Q&A are in the raw response, no JS. `robots.txt`
+  is `User-agent: * / Disallow:`. The archive **enumerates itself**: the bank's
+  index page lists every call as a `q<N>-<YYYY>` slug, so unlike the presentation
+  lane there is no filename skeleton to learn and no quarter can be missed for want
+  of a hand-added URL. `data/banks/call_transcript_sources.json` configures only the
+  per-bank slug.
+- **Ingested 2026-08-04: 144 calls, 734,412 words, 3,831 speaker turns**, floor
+  `2018Q1`:
+
+  | Bank | Calls | Range | Words |
+  |---|---:|---|---:|
+  | AKBNK | 33 | 2018Q1–2026Q2 | 219,732 |
+  | GARAN | 31 | 2018Q1–2026Q2 | 157,496 |
+  | HALKB | 22 | 2018Q1–**2025Q3** | 79,048 |
+  | ISCTR | 21 | 2018Q1–2026Q1 | 89,991 |
+  | VAKBN | 20 | 2018Q1–2026Q1 | 105,524 |
+  | ALBRK | 8 | 2021Q2–2026Q1 | 35,765 |
+  | YKBNK | 7 | 2019Q1–2026Q1 | 36,601 |
+  | TSKB | 2 | 2025Q2–2025Q4 | 10,255 |
+
+- **Three listed banks are absent at the SOURCE, not by omission.** SKBNK and ICBCT
+  hold no English call (AlphaSpread returns "No Earnings Calls Available"; Yahoo
+  agrees) and QNBFB is delisted. An empty lane for them is the right answer, and the
+  UI renders the block only for the eight that do hold calls.
+- **⚠️ These are machine transcriptions, and the weak axis is attribution, not
+  content.** Body coverage is complete — opening remarks through the Q&A to the
+  closing remarks; measured against Investing.com's version of the same call
+  (AKBNK 2026Q1) it is 4,582 words vs 4,875, and both end on "Bye for now". But the
+  operator naming a Turkish analyst frequently transcribes as `[indiscernible]`, and
+  those turns then also lose their `role='analyst'` tag. Counted per call in
+  `indiscernible_count` and printed in the reader: **522 markers across the corpus**,
+  concentrated in VAKBN (150) and AKBNK (123), and varying call by call — GARAN
+  2026Q2 has none at all. **Do not key on analyst identity.** Do not read a figure off a
+  transcript either — numbers are spoken aloud and land as e.g. "TRY 51.7 billion,
+  5-1-0.7"; the audited figures are the `bank_audit_*` lanes' job.
+- **Known gaps:** HALKB stops at 2025Q3 though a FY2025 call was held 2026-02-20
+  (MarketScreener has it); YKBNK's archive is ~one call a year against a quarterly
+  reporter. Investing.com carries free full transcripts that patch both, but its
+  URLs are editorial slugs with an opaque numeric id and cannot be enumerated, so it
+  stays a manual backstop rather than a second ingest.
+  `call_date` is only published from 2025 onward (**29 of 144 dated**); `period` is
+  always known, so ordering is unaffected.
+- **Not built:** call *audio*. Webcast replays exist on the banks' own IR sites
+  (Garanti's Download Center, İşbank's webcast list) but are streaming-only, and the
+  transcripts already carry the content.
 
 ## Known issues / pending work
 

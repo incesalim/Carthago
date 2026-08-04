@@ -1,0 +1,97 @@
+<!doctype html>
+<!--
+  Trimmed copy of an AlphaSpread earnings-call page, preserving the parts the
+  parser depends on:
+    * the "Earnings Call on <date>" sub-header (call_date)
+    * an AI-summary comment block BEFORE #earnings-call-transcript, which must
+      NOT be parsed as a turn
+    * Livewire's <!--[if BLOCK]--> conditional-comment wrappers around each turn
+    * the author / description / text nesting, including a turn with no role
+  Structure copied from akbnk.e q1-2026 on 2026-08-04.
+-->
+<html lang="en">
+<head><title>TEST.E Q1-2026 Earnings Call - Alpha Spread</title></head>
+<body>
+  <h3>
+    <div class="mobile-no-padding content">
+      AI Summary
+      <div class="sub header">
+        Earnings Call on Apr 28, 2026
+      </div>
+    </div>
+  </h3>
+
+  <div class="ui comments">
+    <div class="comment">
+      <div class="avatar-container"><div class="avatar">
+        <div class="author">Summary Bot<div class="description">summary</div></div>
+      </div></div>
+      <div class="content"><div class="text">
+        <p>This block sits above the transcript anchor and must be ignored.</p>
+      </div></div>
+    </div>
+  </div>
+
+  <h2 id="earnings-call-transcript">
+    Earnings Call Transcript
+  </h2>
+
+  <div class="earnings-call-transcript">
+    <div class="ui comments">
+      <!--[if BLOCK]><![endif]-->
+      <div class="comment">
+        <div class="avatar-container"><div class="avatar">
+          <div class="ui circular label">C</div>
+          <div class="author">
+            Cenk Gur
+            <!--[if BLOCK]><![endif]--><div class="description">
+              executive
+            </div><!--[if ENDBLOCK]><![endif]-->
+          </div>
+        </div></div>
+        <div class="content"><div class="text">
+          <!--[if BLOCK]><![endif]-->
+          <p>Good afternoon, everyone, and thank you for joining our first quarter call.</p>
+          <p>Net income rose to TRY 19.1 billion.</p>
+          <!--[if ENDBLOCK]><![endif]-->
+        </div></div>
+      </div>
+
+      <div class="comment">
+        <div class="avatar-container"><div class="avatar">
+          <div class="ui circular label">O</div>
+          <div class="author">
+            Operator
+          </div>
+        </div></div>
+        <div class="content"><div class="text">
+          <p>[Operator Instructions] The next question comes from [indiscernible].</p>
+        </div></div>
+      </div>
+
+      <div class="comment">
+        <div class="avatar-container"><div class="avatar">
+          <div class="ui circular label">D</div>
+          <div class="author">
+            David Taranto
+            <div class="description">
+              analyst
+            </div>
+          </div>
+        </div></div>
+        <div class="content"><div class="text">
+          <p>A question on margins, and a follow-up from [indiscernible] earlier.</p>
+        </div></div>
+      </div>
+
+      <div class="comment">
+        <div class="avatar-container"><div class="avatar">
+          <div class="author">Empty Speaker<div class="description">executive</div></div>
+        </div></div>
+        <div class="content"><div class="text"></div></div>
+      </div>
+      <!--[if ENDBLOCK]><![endif]-->
+    </div>
+  </div>
+</body>
+</html>
