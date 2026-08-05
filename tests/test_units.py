@@ -727,35 +727,233 @@ def test_a_legacy_override_needs_no_unit_and_is_not_scaled(tmp_path):
     assert ao._normalise_override(entry, ctx)["amount_tl"] == 1234.5
 
 
-def test_every_raw_money_writer_actually_applies_the_context(tmp_path):
-    """THE regression that the TEB smoke test caught and the unit tests did not.
+# --- every monetary writer, read back from a real database -------------------
+#
+# THE regression the TEB smoke test caught and the suite did not: four writers
+# (capital, liquidity, fx_position, repricing) accepted `unit` and never called
+# it — a scripted edit's anchor omitted the intervening `cur.executemany(` line,
+# so the insertion silently no-opped. Signature present, scaling absent, every
+# test green, and TEB's fx net position stored at -7,662 against a Q1 of
+# -6,231,165.
+#
+# A source-string assertion ("does the module mention scale_rows") is weaker
+# than it looks: it cannot tell a call that RUNS from one sitting behind a
+# branch, and it passes a writer that scales the wrong columns. So each of the
+# twelve now writes a Milyon figure into a real schema and has it read back —
+# amounts x1000, ordinals/pages/ratios untouched.
 
-    Four writers (capital, liquidity, fx_position, repricing) accepted `unit`
-    and never called it: a scripted edit's anchor omitted the intervening
-    `cur.executemany(` line, so the insertion silently no-opped. Signature
-    present, scaling absent, every test green — and TEB's fx net position stored
-    at -7,662 against a Q1 of -6,231,165.
+def _wdb(tmp_path, name):
+    conn = sqlite3.connect(tmp_path / f"{name}.db")
+    init_schema(conn)
+    return conn
 
-    Source-level, because a per-table behavioural test can be added for eleven
-    writers and forgotten for the twelfth.
-    """
-    import inspect
-    import importlib
-    for table in sorted(U.RAW_MONEY_TABLES):
-        mod_name = {
-            "bank_audit_balance_sheet": "loader", "bank_audit_profit_loss": "loader",
-            "bank_audit_cash_flow": "loader", "bank_audit_oci": "oci",
-            "bank_audit_credit_quality": "credit_quality",
-            "bank_audit_loans_by_sector": "loans_by_sector",
-            "bank_audit_npl_movement": "npl_movement",
-            "bank_audit_capital": "capital_adequacy",
-            "bank_audit_fx_position": "fx_position",
-            "bank_audit_repricing": "repricing",
-            "bank_audit_equity_change": "equity_change",
-            "bank_audit_free_provision": "free_provision",
-        }[table]
-        mod = importlib.import_module(f"src.audit_reports.{mod_name}")
-        src = inspect.getsource(mod)
-        assert "scale_rows(" in src, (
-            f"{mod_name} writes {table} but never calls scale_rows — it accepts "
-            f"the context and ignores it")
+
+def _milyon_ctx():
+    return U.UnitContext(source_unit="milyon", factor=1_000)
+
+
+def test_writer_balance_sheet_pl_and_cash_flow_read_back_scaled(tmp_path):
+    from src.audit_reports.extractor import BankReport, StatementRow
+    from src.audit_reports.loader import upsert_report
+    conn = _wdb(tmp_path, "bs_pl_cf")
+    rep = BankReport(
+        pdf_path="x.pdf",
+        bs_assets=[StatementRow(order=1, hierarchy="I.", name="Nakit", footnote=None,
+                                cur_tl=1.0, cur_fc=2.0, cur_total=3.0)],
+        bs_liabilities=[], off_balance=[],
+        profit_loss=[StatementRow(order=1, hierarchy="I.", name="Faiz",
+                                  footnote=None, cur_amount=4.0)])
+    rep.cash_flow = [StatementRow(order=1, hierarchy="A.", name="Akis",
+                                  footnote=None, cur_amount=5.0)]
+    upsert_report(conn, "T", "2026Q2", "consolidated", rep, "k.pdf",
+                  unit=_milyon_ctx())
+    assert conn.execute(
+        "SELECT amount_tl, amount_fc, amount_total, item_order "
+        "FROM bank_audit_balance_sheet").fetchone() == (1_000.0, 2_000.0, 3_000.0, 1)
+    assert conn.execute(
+        "SELECT amount FROM bank_audit_profit_loss").fetchone()[0] == 4_000.0
+    assert conn.execute(
+        "SELECT amount FROM bank_audit_cash_flow").fetchone()[0] == 5_000.0
+
+
+def test_writer_oci_reads_back_scaled(tmp_path):
+    from src.audit_reports.extractor import StatementRow
+    from src.audit_reports.oci import OCIReport, upsert
+    conn = _wdb(tmp_path, "oci")
+    upsert(conn, "T", "2026Q2", "consolidated",
+           OCIReport(pdf_path="x.pdf",
+                     rows=[StatementRow(order=1, hierarchy="I.", name="O",
+                                        footnote=None, cur_amount=7.0)]),
+           unit=_milyon_ctx())
+    assert conn.execute(
+        "SELECT amount, item_order FROM bank_audit_oci").fetchone() == (7_000.0, 1)
+
+
+def test_writer_credit_quality_reads_back_scaled(tmp_path):
+    from src.audit_reports.credit_quality import (CreditQualityReport, StageRow,
+                                                  upsert)
+    conn = _wdb(tmp_path, "cq")
+    rep = CreditQualityReport(pdf_path="x.pdf", rows=[
+        StageRow(section="loans_amounts", period_type="current", page=5,
+                 stage1=1.0, stage2=2.0, stage3=None, total=6.0, heading="h")])
+    upsert(conn, "T", "2026Q2", "consolidated", rep, unit=_milyon_ctx())
+    assert conn.execute(
+        "SELECT stage1_amount, stage2_amount, stage3_amount, total_amount, "
+        "source_page FROM bank_audit_credit_quality").fetchone() == \
+        (1_000.0, 2_000.0, None, 6_000.0, 5), "null must stay null; page must not scale"
+
+
+def test_writer_loans_by_sector_reads_back_scaled(tmp_path):
+    from src.audit_reports.loans_by_sector import (LoansBySectorReport, SectorRow,
+                                                   upsert)
+    conn = _wdb(tmp_path, "lbs")
+    rep = LoansBySectorReport(pdf_path="x.pdf", rows=[
+        SectorRow(sector="agriculture", stage2_amount=2.0, stage3_amount=3.0,
+                  ecl_amount=1.0, period_type="current", page=7, raw_label="Tarım")])
+    upsert(conn, "T", "2026Q2", "consolidated", rep, unit=_milyon_ctx())
+    assert conn.execute(
+        "SELECT stage2_amount, stage3_amount, ecl_amount, source_page, sector "
+        "FROM bank_audit_loans_by_sector").fetchone() == \
+        (2_000.0, 3_000.0, 1_000.0, 7, "agriculture")
+
+
+def test_writer_npl_movement_reads_back_scaled(tmp_path):
+    from src.audit_reports.npl_movement import NplGroupRow, NplMovementReport, upsert
+    conn = _wdb(tmp_path, "npl")
+    rep = NplMovementReport(pdf_path="x.pdf", rows=[
+        NplGroupRow(group_code="III", period_type="current", opening_balance=10.0,
+                    additions=1.0, collections=-2.0, closing_balance=9.0,
+                    provision=4.0, net_balance=5.0, page=9)])
+    upsert(conn, "T", "2026Q2", "consolidated", rep, unit=_milyon_ctx())
+    assert conn.execute(
+        "SELECT opening_balance, additions, collections, closing_balance, "
+        "provision, net_balance, transfers_in, source_page "
+        "FROM bank_audit_npl_movement").fetchone() == \
+        (10_000.0, 1_000.0, -2_000.0, 9_000.0, 4_000.0, 5_000.0, None, 9), \
+        "a negative keeps its sign; an undisclosed leg stays null"
+
+
+def test_writer_capital_scales_amounts_and_leaves_ratios(tmp_path):
+    from src.audit_reports.capital_adequacy import CapitalReport, CapitalRow, upsert
+    conn = _wdb(tmp_path, "cap")
+    rep = CapitalReport(pdf_path="x.pdf", source_page=88, rows=[
+        CapitalRow(period_type="current", cet1_capital=10.0, tier1_capital=12.0,
+                   total_capital=15.0, total_rwa=100.0, cet1_ratio=10.0,
+                   tier1_ratio=12.0, capital_adequacy_ratio=15.0)])
+    upsert(conn, "T", "2026Q2", "consolidated", rep, unit=_milyon_ctx())
+    assert conn.execute(
+        "SELECT cet1_capital, tier1_capital, total_capital, total_rwa, cet1_ratio, "
+        "tier1_ratio, capital_adequacy_ratio, source_page "
+        "FROM bank_audit_capital").fetchone() == \
+        (10_000.0, 12_000.0, 15_000.0, 100_000.0, 10.0, 12.0, 15.0, 88), \
+        "a scaled ratio would print a 15% CAR as 15,000%"
+
+
+def test_writer_liquidity_scales_nothing_at_all(tmp_path):
+    """The negative control: every column here is a ratio, so the writer takes a
+    context and must leave all four values exactly as extracted."""
+    from src.audit_reports.liquidity import LiquidityReport, LiquidityRow, upsert
+    conn = _wdb(tmp_path, "liq")
+    rep = LiquidityReport(pdf_path="x.pdf", source_page=9, rows=[
+        LiquidityRow(period_type="current", leverage_ratio=8.0, lcr_total=150.0,
+                     lcr_fc=200.0, nsfr=130.0)])
+    upsert(conn, "T", "2026Q2", "consolidated", rep, unit=_milyon_ctx())
+    assert conn.execute(
+        "SELECT leverage_ratio, lcr_total, lcr_fc, nsfr "
+        "FROM bank_audit_liquidity").fetchone() == (8.0, 150.0, 200.0, 130.0)
+
+
+def test_writer_fx_position_reads_back_scaled(tmp_path):
+    """The one the TEB smoke test caught: signature present, scaling absent."""
+    from src.audit_reports.fx_position import FxReport, FxRow, upsert
+    conn = _wdb(tmp_path, "fx")
+    rep = FxReport(pdf_path="x.pdf", source_page=44, rows=[
+        FxRow(period_type="current", currency="TOTAL", on_bs_assets=10.0,
+              on_bs_liab=12.0, net_on_balance=-2.0, net_off_balance=1.0,
+              off_bs_receivable=3.0, off_bs_payable=2.0, net_position=-1.0)])
+    upsert(conn, "T", "2026Q2", "consolidated", rep, unit=_milyon_ctx())
+    assert conn.execute(
+        "SELECT on_bs_assets, on_bs_liab, net_on_balance, net_off_balance, "
+        "off_bs_receivable, off_bs_payable, net_position, currency, source_page "
+        "FROM bank_audit_fx_position").fetchone() == \
+        (10_000.0, 12_000.0, -2_000.0, 1_000.0, 3_000.0, 2_000.0, -1_000.0,
+         "TOTAL", 44)
+
+
+def test_writer_repricing_reads_back_scaled(tmp_path):
+    from src.audit_reports.repricing import RepricingReport, RepricingRow, upsert
+    conn = _wdb(tmp_path, "rp")
+    rep = RepricingReport(pdf_path="x.pdf", source_page=55, rows=[
+        RepricingRow(period_type="current", bucket="lt_1m",
+                     rate_sensitive_assets=10.0, rate_sensitive_liab=8.0,
+                     gap=2.0, cumulative_gap=2.0)])
+    upsert(conn, "T", "2026Q2", "consolidated", rep, unit=_milyon_ctx())
+    assert conn.execute(
+        "SELECT rate_sensitive_assets, rate_sensitive_liab, gap, cumulative_gap, "
+        "bucket, source_page FROM bank_audit_repricing").fetchone() == \
+        (10_000.0, 8_000.0, 2_000.0, 2_000.0, "lt_1m", 55)
+
+
+def test_writer_equity_change_reads_back_scaled(tmp_path):
+    from src.audit_reports.equity_change import EquityChangeReport, EquityChangeRow, upsert
+    conn = _wdb(tmp_path, "eq")
+    rep = EquityChangeReport(pdf_path="x.pdf", rows=[
+        EquityChangeRow(order=1, hierarchy="I.", name="Baslangic",
+                        period_type="current", source_page=3,
+                        paid_in_capital=1.0, profit_reserves=2.0,
+                        period_net_profit_loss=-3.0, total_equity=9.0,
+                        total_equity_incl_minority=9.0)])
+    upsert(conn, "T", "2026Q2", "consolidated", rep, unit=_milyon_ctx())
+    conn.commit()
+    assert conn.execute(
+        "SELECT paid_in_capital, profit_reserves, period_net_profit_loss, "
+        "total_equity, total_equity_incl_minority, minority_interest, item_order, "
+        "source_page FROM bank_audit_equity_change").fetchone() == \
+        (1_000.0, 2_000.0, -3_000.0, 9_000.0, 9_000.0, None, 1, 3), \
+        "item_order is an ordinal and source_page a page — neither is money"
+
+
+def test_writer_free_provision_reads_back_scaled(tmp_path):
+    from src.audit_reports.free_provision import FreeProvision, upsert_free_provision
+    conn = _wdb(tmp_path, "fp")
+    upsert_free_provision(
+        conn, "T", "2026Q2", "consolidated",
+        FreeProvision(free_provision=5.0, free_provision_prior=4.0, disclosed=True,
+                      source_page=61, snippet="serbest karsilik"),
+        unit=_milyon_ctx())
+    assert conn.execute(
+        "SELECT free_provision, free_provision_prior, source_page "
+        "FROM bank_audit_free_provision").fetchone() == (5_000.0, 4_000.0, 61)
+
+
+# Declared coverage, cross-checked against the file itself below — a literal
+# that can lie is worth nothing, and "declared covered, never exercised" is the
+# same failure class as the four writers that no-opped.
+_READ_BACK_COVERED = frozenset({
+    "bank_audit_balance_sheet", "bank_audit_profit_loss", "bank_audit_cash_flow",
+    "bank_audit_oci", "bank_audit_credit_quality", "bank_audit_loans_by_sector",
+    "bank_audit_npl_movement", "bank_audit_capital", "bank_audit_fx_position",
+    "bank_audit_repricing", "bank_audit_equity_change",
+    "bank_audit_free_provision",
+})
+
+
+def test_every_raw_money_table_has_a_read_back_test():
+    """Guards the guard. A thirteenth monetary table added to the registry with
+    no behavioural test fails here rather than shipping unscaled."""
+    missing = U.RAW_MONEY_TABLES - _READ_BACK_COVERED
+    assert not missing, f"no read-back test for {sorted(missing)}"
+
+
+def test_the_declared_coverage_is_not_a_lie():
+    """Each declared table must actually appear inside a `test_writer_*`
+    function in this file — so the set above cannot be padded to pass."""
+    import ast
+    tree = ast.parse(Path(__file__).read_text(encoding="utf-8"))
+    exercised = set()
+    for node in tree.body:
+        if isinstance(node, ast.FunctionDef) and node.name.startswith("test_writer_"):
+            body = ast.dump(node)
+            exercised |= {t for t in _READ_BACK_COVERED if repr(t)[1:-1] in body}
+    assert _READ_BACK_COVERED <= exercised, (
+        f"declared but never exercised: {sorted(_READ_BACK_COVERED - exercised)}")

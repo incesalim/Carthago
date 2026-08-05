@@ -160,20 +160,113 @@ def _modal_ncols(lines: list[str], min_tokens: int = 10) -> int:
     return 14
 
 
-def _parse_row_tokens(line: str) -> list[float | None] | None:
-    """Extract all value tokens from a line as floats. Returns None if <2 tokens."""
-    masked = _FOOTNOTE_RX.sub(lambda m: " " * len(m.group()), _norm_dashes(line))
-    hier_m = _LINE_HIER_RX.match(masked)
-    if hier_m:
-        masked = masked[hier_m.end():]
-    tokens = _NUM_RX.findall(masked)
-    if len(tokens) < 2:
-        return None
-    result = []
-    for t in tokens:
-        t = t.strip()
-        result.append(parse_num(t))
-    return result
+# A standards citation inside a row label — "TMS 8", "TAS 8", "TFRS 9". Its
+# numeral is not a value, and unlike a footnote ref it can sit at the very END
+# of the label ("Correction made as per TAS 8"), where the last-letter cut below
+# would leave it on the value side.
+_STD_REF_RX = re.compile(r'\b(?:TMS|TAS|TFRS|IFRS|IAS|UFRS)\s*\d{1,2}\b', re.I)
+
+
+def _value_region(text: str) -> str:
+    """The value grid alone: the longest run of numeric tokens that no letter
+    interrupts.
+
+    An equity row is ``<marker> <label> <values…>``, and the grid is the one
+    stretch of the line with no words in it. Taking "everything after the last
+    letter" is not equivalent — AKBNK's y-bucketed closing row ends
+    ``… 324.751 - 324.751 Kâr veya``, a header fragment the bucketing drags onto
+    the row, and that reading would return nothing at all. The longest-run
+    reading returns the 16 values and the row foots exactly.
+
+    Standards citations are masked first, because they are the one part of a
+    label that can end in a numeral and would otherwise join the grid's run.
+
+    Without this cut a numeral inside the label becomes the first value, and
+    every bank's row II carries one: "TMS 8 Uyarınca Yapılan Düzeltmeler",
+    "Correction made as per TAS 8", "Adjustment in accordance with TAS 8". The
+    surplus window in `_try_fit` takes the leading 16 of 17 tokens, the row-sum
+    gate waves it through (|8 - 0| under a tolerance of 48), and paid-in capital
+    is stored as 8. In Bin TL that was ₺8k — invisible for four years. Scaled to
+    Milyon it is ₺8mn, and `eq_row_sum` failed it on all 11 Q2 filings.
+
+    Also drops a date printed beside the label ("Dönem Sonu Bakiyesi
+    30.06.2025"), which the same window would otherwise read as two values.
+    """
+    scan = _STD_REF_RX.sub(lambda m: " " * len(m.group()), text)
+    runs: list[list] = []
+    cur: list = []
+    prev_end = 0
+    for m in _NUM_RX.finditer(scan):
+        if cur and any(ch.isalpha() for ch in scan[prev_end:m.start()]):
+            runs.append(cur)
+            cur = []
+        cur.append(m)
+        prev_end = m.end()
+    if cur:
+        runs.append(cur)
+    if not runs:
+        return ""
+    best = max(runs, key=len)
+    return scan[best[0].start():best[-1].end()]
+
+
+def _trailing_text(text: str) -> str:
+    """Whatever is printed AFTER a row's value grid.
+
+    On AKBNK's rotated landscape page the y-bucketing strands the closing row's
+    label on the previous line — "11.3Diğer … - - Dönem Sonu" — and drags a
+    column-header fragment onto the closing row itself ("… 324.751 Kâr veya").
+    So the label of row N+1 has to be read off the end of row N.
+    """
+    scan = _STD_REF_RX.sub(lambda m: " " * len(m.group()), text)
+    region = _value_region(text)
+    if not region:
+        return ""
+    end = scan.rfind(region)
+    return scan[end + len(region):].strip() if end >= 0 else ""
+
+
+def _parse_row_tokens(line: str,
+                      n_cols: int | None = None) -> list[float | None] | None:
+    """Extract all value tokens from a line as floats. Returns None if <2 tokens.
+
+    `(55)` is ambiguous: a dipnot reference, or the value -55. The footnote mask
+    (``\\(\\s*\\d{1,2}\\s*\\)``) has always resolved it as a reference, which was
+    safe while amounts printed in Bin TL — a real equity component was never
+    two digits there. The 2026Q2 Milyon switch removed three digits from every
+    printed figure and made small parenthesised negatives ordinary: TEB's prior
+    block carries ``(55)`` for -55 million in the OCI-reclassified column, the
+    mask ate it, the row came back one token short, and `_try_fit`'s zero-insert
+    missed the row-sum gate by 7 on a tolerance of 48 — so BOTH the opening and
+    the new-balance row were dropped, the roman sequence never restarted, the
+    mid-page split never fired, and all 32 surviving rows were stored as
+    `current`.
+
+    So when the caller knows the template, let the column count decide: the
+    reading that fits it is the right one. Masked wins ties and every ambiguous
+    case, which is exactly today's behaviour — a row that already fits cannot
+    change.
+    """
+    base = _norm_dashes(line)
+
+    def _tokens_of(text: str) -> list[float | None]:
+        # Strip the row marker only when it is one this table can actually
+        # carry. `_LINE_HIER_RX` is the generic statement matcher and reads
+        # AKBNK's markerless closing row — "5.200 3.506 - 1.815 …" — as
+        # hierarchy "5.200", eating its paid-in capital and leaving 15 tokens
+        # in a 16-column table, which drops the closing balance and takes the
+        # BS cross-check and the column chain down with it.
+        hier_m = _LINE_HIER_RX.match(text)
+        if hier_m and hier_m.group().strip().rstrip('.') in _EQ_MARKERS:
+            text = text[hier_m.end():]
+        return [parse_num(t.strip()) for t in _NUM_RX.findall(_value_region(text))]
+
+    masked = _tokens_of(_FOOTNOTE_RX.sub(lambda m: " " * len(m.group()), base))
+    if n_cols is not None and len(masked) != n_cols:
+        unmasked = _tokens_of(base)
+        if len(unmasked) == n_cols:
+            masked = unmasked
+    return masked if len(masked) >= 2 else None
 
 
 def _row_gate(vals: list[float | None], n_cols: int) -> bool:
@@ -353,6 +446,13 @@ def _eq_is_closing(line: str) -> bool:
 # trailing '.' is mandatory so an English word that merely starts with a roman
 # letter ("Income", "Internal", "Increase") is NOT mistaken for marker "I.".
 _EQ_GLUED_RX = re.compile(r'^([IVX]{1,5}|\d{1,2}\.\d{1,2})\.(.+)$')
+# A NUMERIC sub-marker glued to its label with no separating dot at all —
+# "2.1Hataların", "11.1Dağıtılan". AKBNK started typesetting this way in 2026Q1
+# and its equity statement fell from 34 rows to 22: every 2.x and 11.x row lost
+# its marker, and with no marker and no label they were skipped outright. Unlike
+# the roman case this needs no trailing dot to be unambiguous — a digit pair
+# followed directly by a letter is never a word.
+_EQ_GLUED_NUM_RX = re.compile(r'^(\d{1,2}\.\d{1,2})(?=[^\W\d_])(.+)$')
 
 
 def _eq_split(line: str) -> tuple[str | None, str]:
@@ -370,7 +470,8 @@ def _eq_split(line: str) -> tuple[str | None, str]:
         if core in _EQ_MARKERS:                 # exact token: "VI." "2.1" "11.1"
             marker_core = core
         else:
-            m = _EQ_GLUED_RX.match(tok)          # glued: "VIII.Convertible"
+            m = (_EQ_GLUED_RX.match(tok)         # glued: "VIII.Convertible"
+                 or _EQ_GLUED_NUM_RX.match(tok))  # glued, no dot: "11.1Dağıtılan"
             if m and m.group(1) in _EQ_MARKERS:
                 marker_core, rest = m.group(1), m.group(2)
         if marker_core is None:
@@ -511,12 +612,14 @@ def _parse_equity_page(pdf_path: str, page_idx_1: int, period_type: str,
         result: list[EquityChangeRow] = []
         order = 0
         last_ri = -1            # index in _EQ_ROW_SEQ of the last main roman seen
+        stranded = ''           # label left over from the previous row's line
+        closing_taken = False   # at most one label-less closing row per block
         for line in lines:
             line = line.strip()
             if not line:
                 continue
             marker, name = _eq_split(line)
-            tokens = _parse_row_tokens(line)
+            tokens = _parse_row_tokens(line, nc)
             if tokens is None:
                 continue
             fitted = _try_fit(tokens, nc)
@@ -530,7 +633,19 @@ def _parse_equity_page(pdf_path: str, page_idx_1: int, period_type: str,
             if marker is None and not name and 0 <= last_ri < len(_EQ_ROW_SEQ) - 1:
                 marker = _EQ_ROW_SEQ[last_ri + 1]
             if marker is None and not name:
-                continue
+                # Past XI the standard table has exactly one row left: the
+                # closing balance. AKBNK's arrives markerless AND nameless
+                # because the bucketing stranded "Dönem Sonu" on the 11.3 line,
+                # and dropping it costs the BS cross-check, the paid-in-capital
+                # check and both column chains. The row-sum gate has already
+                # admitted the values; take the stranded label as its name
+                # rather than inventing one.
+                if last_ri == len(_EQ_ROW_SEQ) - 1 and not closing_taken:
+                    closing_taken = True
+                    name = stranded
+                else:
+                    stranded = _trailing_text(line)
+                    continue
             if marker in _EQ_ROW_SEQ:        # reset on each block (second I. → 0)
                 last_ri = _EQ_ROW_SEQ.index(marker)
             h = marker or ''
@@ -556,6 +671,7 @@ def _parse_equity_page(pdf_path: str, page_idx_1: int, period_type: str,
                 minority_interest=cols[14] if nc == 16 else None,
                 total_equity_incl_minority=cols[15] if nc == 16 else None,
             )
+            stranded = _trailing_text(line)
             result.append(row)
         return result
 

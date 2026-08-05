@@ -61,6 +61,7 @@ def upsert_report(
     force: bool = False,
     *,
     unit: UnitContext,
+    with_prose: bool = False,
 ) -> dict[str, int]:
     """Idempotently insert one bank's report. Replaces existing rows for the
     same (bank, period, kind).
@@ -211,6 +212,14 @@ def upsert_report(
         'liquidity', 'fx_position', 'repricing', 'equity_change',
         'free_provision',
     }
+    # The prose lane is FROZEN: 369,007 rows live in their own local
+    # data/bank_audit_prose.db, are not in D1, and are not part of the routine
+    # audit push. Extracting it here would put Q2 prose into the audit snapshot
+    # and from there into the next push — reviving a lane that is deliberately
+    # parked. Opt in explicitly (`with_prose=True`) when that is authorised.
+    if not with_prose:
+        persisters = [x for x in persisters if x[0] != 'prose']
+
     for key, build, upsert_fn, skip_if_empty in persisters:
         if key in _PERSISTER_TABLE and _keep(key):
             counts[key] = _existing(_PERSISTER_TABLE[key])

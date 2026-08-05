@@ -132,7 +132,14 @@ _ROMAN_FN_RX = re.compile(
 # is touched; thousands groups are 3 digits ("17,740,253") so they never match
 # the 1-2-digit components here, and a normal dotted marker has no comma →
 # unchanged. The substitution is comma→dot (1-for-1), so column offsets hold.
-_COMMA_MARKER_RX = re.compile(r'^\s*(?:[IVXivx]+,|\d{1,2}(?:[.,]\d{1,2}){1,3})(?=\s)')
+# The numeric branch also accepts a marker GLUED to its label with no space —
+# AKBNK renders off-balance row 1.1 as "1,1Teminat Mektupları" (comma AND no
+# separator). Requiring a following space dropped that row from 2026Q2, and with
+# it the hierarchy sum for "I. GARANTİ ve KEFALETLER", ₺483.5bn short. A letter
+# can never follow a thousands separator, and the components here are 1-2 digits
+# while a thousands group is 3, so this cannot match a value.
+_COMMA_MARKER_RX = re.compile(
+    r'^\s*(?:[IVXivx]+,(?=\s)|\d{1,2}(?:[.,]\d{1,2}){1,3}(?=\s|[^\W\d_]))')
 
 
 def _value_matches(line: str) -> list:
@@ -387,6 +394,30 @@ def _split_label(label: str) -> tuple[str, str, str]:
     return h, rest, footnote
 
 
+def _triplets_foot(vals: list[float | None], n_cols: int) -> bool:
+    """True when every 3-column period block satisfies tl + fc == total.
+
+    Balance-sheet and off-balance rows come in triplets (TL, FC, Total) per
+    period, so a row can check ITSELF — no other row, no validator. Used to tell
+    a genuine small paren-negative from a dipnot reference, a distinction that
+    only became ambiguous when the sector switched to Milyon TL.
+    """
+    if n_cols <= 0 or n_cols % 3 or len(vals) != n_cols:
+        return False
+    for s in range(0, n_cols, 3):
+        tl, fc, total = vals[s], vals[s + 1], vals[s + 2]
+        if tl is None or fc is None or total is None:
+            return False
+        # ABSOLUTE, not relative. A 5e-5 relative band is ~56 units on a
+        # ₺1.1bn row, wide enough to admit TOMK's "1.2 … (3) 1.117.694
+        # 1.117.694 1.084.780 308.064 1.392.844", where the (3) is a dipnot ref
+        # and the row is off by exactly 3. This test is only worth having if it
+        # means the row proves itself, so it has to be exact.
+        if abs((tl + fc) - total) > 1.0:
+            return False
+    return True
+
+
 def _parse_rows(text: str, n_cols: int) -> list[tuple[str, list[float | None]]]:
     """For each line that ends in N numeric tokens, return (label, values)."""
     rows: list[tuple[str, list[float | None]]] = []
@@ -420,6 +451,29 @@ def _parse_rows(text: str, n_cols: int) -> list[tuple[str, list[float | None]]]:
             return len(ms) > 1 and ms[1].group().lstrip().startswith('(')
         while (nums_m and _FOOTNOTE_RX.fullmatch(nums_m[0].group())
                and not _next_is_paren(nums_m)):
+            # The 2026Q2 Milyon switch made a real value routinely 1-2 digits,
+            # so a leading "(10)" is now as likely to be -10mn as a dipnot ref.
+            # Keep it when the row only foots WITH it: KLNMA's
+            # "1.1.4 Beklenen Zarar Karşılıkları (-) (10) - (10) (8) - (8)" is
+            # two exact tl+fc=total triplets and lost its first cell, shifting
+            # the whole row; SKBNK's "(14) - - - - -" foots as none and is still
+            # a footnote. Only ever consulted when the count already matches the
+            # template, so a row that needs the strip is unaffected.
+            # With no surplus token, stripping GUARANTEES the row is lost — so
+            # keep it, but ONLY when the row can prove itself complete by its
+            # own triplet identity.
+            #
+            # Deliberately not extended to statements without triplets. It is
+            # tempting: a 2-column cash flow has nowhere to put a dipnot ref
+            # without creating surplus, so "(58) 4.480" looks like two values.
+            # But SKBNK's P&L prints "XXII. … (8) -" directly above "(9) - -",
+            # "(10) - -" and "(11) 1,502,150 254,698" — a note-number sequence,
+            # and that reading would store -8, -9, -10, -11 as amounts. With no
+            # identity to appeal to there is no way to tell the two apart, so
+            # cash flow and P&L keep the old strip-and-drop behaviour.
+            if len(nums_m) == n_cols and _triplets_foot(
+                    [parse_num(x.group()) for x in nums_m], n_cols):
+                break
             nums_m = nums_m[1:]
         # Dipnot refs like "(6)" sit between the label and the value columns;
         # drop them while the line still has surplus tokens, so they can never
@@ -879,8 +933,16 @@ def _fitz_merge_rows(text: str, n_cols: int) -> str:
 
     Also fixes fitz's no-space output (e.g. "1.1.1Nakit Değerler …" → "1.1.1 Nakit…").
     """
-    # Inject space after hierarchy markers that have no whitespace before the label
-    _INSERT_SPACE = re.compile(r'^([IVX]+\.|[A-Z]\.|\d+(?:\.\d+)*\.?)([A-Za-zÇĞİÖŞÜçğıöşü(])')
+    # Inject space after hierarchy markers that have no whitespace before the
+    # label. The numeric separator may be a COMMA: AKBNK prints off-balance row
+    # 1.1 as "1,1Teminat Mektupları" — comma AND glued. Without both allowances
+    # the line never reaches _parse_rows, the row is dropped, and the hierarchy
+    # sum for "I. GARANTİ ve KEFALETLER" comes up ₺483.5bn short. (_parse_rows
+    # has its own comma normaliser, but only for markers that already stand
+    # apart from their label, so it never sees this line.) The marker is
+    # normalised to dots on the way out.
+    _INSERT_SPACE = re.compile(
+        r'^([IVX]+\.|[A-Z]\.|\d+(?:[.,]\d+)*\.?)([A-Za-zÇĞİÖŞÜçğıöşü(])')
     # A line that is JUST a hierarchy marker, nothing else (VAKIFK 2024+ wraps a
     # long label around the marker so it lands on its own physical line).
     _BARE_HIER = re.compile(r'^(?:[IVX]+\.|[A-Z]\.|\d+(?:\.\d+)*\.?)$')
@@ -891,7 +953,7 @@ def _fitz_merge_rows(text: str, n_cols: int) -> str:
             continue
         m = _INSERT_SPACE.match(s)
         if m:
-            s = m.group(1) + ' ' + s[m.end(1):]
+            s = m.group(1).replace(',', '.') + ' ' + s[m.end(1):]
         lines.append(s)
     out: list[str] = []
     i = 0
@@ -1264,8 +1326,18 @@ def extract(pdf_path: str | Path, only: set[str] | None = None) -> BankReport:
             # Total slots) and section-reference numbers ("III-a-2,3" → 105/4/
             # 305).  All legitimate depth-1 section totals for any Turkish bank
             # are in at least the millions of TRY.
+            #
+            # That floor is denominated in the FILING's unit, and 2026Q2 moved
+            # the sector from Bin TL to Milyon TL — so ₺115mn now prints as
+            # "115" and KLNMA's "IV. EMANET KIYMETLER 115 - 115 126 - 126" fell
+            # through it, taking the B = IV+V+VI identity down with it. Rather
+            # than rescale the floor, let a row that FOOTS escape it: the
+            # spurious rows this guard exists for never do — a date fragment
+            # reads 31.03 / 202 / 2 and a section ref 105 / 4 / 305, and
+            # neither satisfies tl + fc = total in both periods.
             if (h and re.fullmatch(r'[IVX]+\.|[A-Z]\.', h)
-                    and cur_tot is not None and 0 < abs(cur_tot) < 1_000):
+                    and cur_tot is not None and 0 < abs(cur_tot) < 1_000
+                    and not _triplets_foot(vals, 6)):
                 continue
             _off_order += 1
             rep.off_balance.append(StatementRow(

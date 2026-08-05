@@ -28,6 +28,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 from src.audit_reports import r2_storage  # noqa: E402
 from src.audit_reports.extractor import extract, StatementRow  # noqa: E402
 from src.audit_reports.loader import upsert_report  # noqa: E402
+from src.audit_reports import units as units_mod  # noqa: E402
 from src.audit_reports.units import UnitContext  # noqa: E402
 from src.audit_reports import validator as v  # noqa: E402
 from scripts.audit_d1 import (  # noqa: E402
@@ -94,6 +95,32 @@ def main() -> int:
         print(f"no manual statements for {b} {p} {k}")
         return 1
 
+    # manual_statements.json entries are SOURCE-NATIVE: a person read the PDF and
+    # typed what the page said. Past 2026Q1 the unit must be declared, and it must
+    # AGREE with what the filing declares — a Milyon page transcribed as `bin`
+    # would be overlaid 1000x small onto normalised rows, and mixing units inside
+    # one BankReport means the balance sheet and the overlay disagree by a
+    # thousandfold while every row-level identity still foots.
+    #
+    # Checked here, before the snapshot is pulled and before anything is written.
+    declared = {m.get("unit") for m in manual}
+    if not units_mod.within_sweep(p):
+        if declared == {None}:
+            print(f"[lp] ABORT: {p} is past {units_mod.SWEEP_HORIZON} — every "
+                  f"manual_statements.json entry must declare its unit "
+                  f'(e.g. "unit": "milyon"). Nothing was pulled or written.',
+                  file=sys.stderr)
+            return 2
+        if len(declared) > 1:
+            print(f"[lp] ABORT: mixed units inside one report: {sorted(declared)}. "
+                  f"Nothing was pulled or written.", file=sys.stderr)
+            return 2
+    try:
+        manual_ctx = UnitContext.manual(p, next(iter(declared)))
+    except ValueError as e:
+        print(f"[lp] ABORT before any change: {e}", file=sys.stderr)
+        return 2
+
     if not args.dry_run:
         _guard_against_ci_writers()
         r2_storage.download_to(SNAP, GZ)
@@ -107,6 +134,13 @@ def main() -> int:
         # Resolve while the temp file EXISTS — it is deleted when this block
         # closes, and the write below happens afterwards.
         unit = UnitContext.for_partition(p, str(pdf))
+        if unit.source_unit != manual_ctx.source_unit:
+            print(f"[lp] ABORT: manual_statements.json declares "
+                  f"{manual_ctx.source_unit!r} but the filing declares "
+                  f"{unit.source_unit!r}. One of the two is wrong; overlaying "
+                  f"would mix scales inside one report. Nothing written.",
+                  file=sys.stderr)
+            return 2
         rep = extract(str(pdf))
 
     for m in manual:

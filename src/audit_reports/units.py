@@ -319,6 +319,27 @@ class UnitContext:
     source_unit: str
     factor: int
 
+    def __post_init__(self) -> None:
+        """A context is only meaningful if the two fields agree.
+
+        Direct construction is the loophole the classmethods close: nothing else
+        stops `UnitContext("milyon", 1)`, which says "this filing prints
+        millions" and "do not scale" in the same breath — a silent 1000x error
+        wearing the type that exists to prevent one. Tests build these by hand,
+        so the invariant belongs on the type.
+        """
+        expected = UNIT_SCALE.get(self.source_unit)
+        if expected is None:
+            raise ValueError(
+                f"unrecognised reporting unit {self.source_unit!r}; "
+                f"known: {sorted(UNIT_SCALE)}")
+        if self.factor != expected:
+            raise ValueError(
+                f"inconsistent UnitContext: source_unit={self.source_unit!r} "
+                f"implies factor {expected}, got {self.factor}. The two fields "
+                f"must agree — a mismatch stores figures at a scale nothing "
+                f"declared.")
+
     @classmethod
     def for_partition(cls, period: str, local_pdf_path: str | None) -> "UnitContext":
         """Resolve from the REAL local file. Raises when it cannot be established.

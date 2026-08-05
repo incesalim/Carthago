@@ -145,6 +145,54 @@ designed against six banks instead of one. `acquire-audit.yml` now takes a `bank
 dispatch input (`ALL` sentinel) so a run can be scoped away from a bank serving
 the wrong document — which is how TSKB was skipped.
 
+**✅ Normalisation wired and the 11 held filings verified — NOT pushed
+(2026-08-05).** `src/audit_reports/units.py` is the one detector (the analyst
+lane imports it); `UnitContext` carries `(source_unit, factor)` and refuses to
+exist inconsistently; all 12 raw monetary writers scale through it and each has a
+read-back test against a real schema; `bank_audit_stages` is DERIVED and is
+rebuilt, never scaled (scaling both would be ×1,000,000 with every coverage ratio
+still footing). Migration `0039_extractions_source_unit.sql` records what the
+PAGE said — **authored, unapplied**. Dry run over all 11 held PDFs on a copy of
+the snapshot: **9 of 11 partitions fully green**, 4,161 rows, ≈15k billed D1
+writes (≈$0.015). Two PDF-verified exceptions remain, both pre-existing and
+neither affecting a total: AKBNK cons prior-period equity row X (the text layer
+emits 14 of 16 cells; the two offsetting ±₺46mn components land in the wrong
+columns, all three totals correct) and KLNMA cash-flow row III (a leading `(58)`
+is indistinguishable from a dipnot ref in a 2-column statement — see below).
+
+**⚠️ The unit switch broke every heuristic keyed on digit COUNT, not just the
+scale (2026-08-05).** Dividing every printed figure by 1,000 moved a large
+population of real values into ranges four extractor heuristics had reserved for
+something else. Each was found by a Q2 filing and each was already corrupting
+Bin-era partitions at a lower rate:
+
+| Heuristic | What it assumed | What Milyon did |
+|---|---|---|
+| `_FOOTNOTE_RX` — `(\d{1,2})` is a dipnot ref | a real value is never 1-2 digits | TEB's `(55)` = −₺55mn was eaten; the row came back one token short, `_try_fit` missed the row-sum gate by 7 on a tolerance of 48, **both** the opening and new-balance rows were dropped, the roman sequence never restarted, the mid-page split never fired, and all 32 surviving rows stored as `current` |
+| off-balance section floor `< 1_000` | "depth-1 totals are at least millions of TRY" | KLNMA's `IV. EMANET KIYMETLER 115` fell through it, taking the `B = IV+V+VI` identity with it |
+| the surplus window in `_try_fit` | a label numeral nets out under tolerance | every bank's `TMS 8 / TAS 8` row stored paid-in capital = 8 — ₺8k in Bin, invisible for four years; ₺8mn once scaled, and `eq_row_sum` failed it on **all 11** Q2 filings |
+| `HIERARCHY_PAT` / `_INSERT_SPACE` | a marker is dot-separated and stands apart | AKBNK prints `1,1Teminat Mektupları`; the row was lost and `I. GARANTİ ve KEFALETLER` came up ₺483.5bn short |
+
+The fixes are structural, not magnitude bands: the reading that matches the
+column template wins (`_parse_row_tokens` takes `n_cols`), the value grid is the
+longest run of tokens no letter interrupts (`_value_region`), and a balance-sheet
+row escapes the footnote strip and the section floor only by proving itself —
+`tl + fc = total` in **both** periods, to the unit (`_triplets_foot`).
+Deliberately **not** extended to cash flow or P&L: SKBNK's P&L prints
+`XXII. … (8) -` directly above `(9) - -`, `(10) - -`, `(11) 1,502,150 254,698`,
+a note-number sequence that reading would store as −8, −9, −10, −11. With no
+identity to appeal to there is no way to tell the two apart, so those lanes keep
+strip-and-drop — which is what leaves KLNMA's cash-flow III unrecovered.
+
+Measured over all 145 bench filings, HEAD vs fixed, across assets / liabilities /
+off-balance / P&L / cash flow: **11 of 145 changed, 8 rows added, 0 removed,
+7 cells altered — every one verified against the filing text.** The historical
+repairs are real: ICBCT 2025Q3/Q4 rows 16.4 were losing an **entire prior-period
+triplet**, and the equity lane's own 145-PDF sweep repaired 13 pre-Q2 partitions
+(QNBFB 2022Q1 and KLNMA 2026Q1 had lost the whole minority-interest column).
+**These corrections are in the code only — no partition has been re-extracted or
+re-pushed**, so the stored rows still carry the old readings.
+
 **A new quarter arrives one bank at a time — sector "latest" needs a quorum
 (2026-07-26).** Three consumers took a bare `MAX(period)` over an audit table,
 which follows the FIRST filer of a quarter rather than the fleet: `perBankCapital`

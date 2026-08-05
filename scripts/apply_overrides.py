@@ -135,6 +135,9 @@ _OVR_TABLE = {
     "credit_quality": "bank_audit_credit_quality",
     "free_provision": "bank_audit_free_provision",
     "oci_replace": "bank_audit_oci",
+    "loans_by_sector_replace": "bank_audit_loans_by_sector",
+    "fx_position_replace": "bank_audit_fx_position",
+    "repricing_replace": "bank_audit_repricing",
     "profit_loss": "bank_audit_profit_loss",
     "cash_flow": "bank_audit_cash_flow",
     "oci": "bank_audit_oci",
@@ -168,8 +171,16 @@ def _normalise_override(o: dict, unit: UnitContext) -> dict:
             k: (units_mod.scale_amount(v, unit.factor) if k in money else v)
             for k, v in out["fields"].items()}
     if isinstance(out.get("rows"), list):
+        # Nested replacement rows carry the TARGET TABLE's columns, not the
+        # generic `amount*` keys: a loans_by_sector_replace row has
+        # stage2_amount/stage3_amount/ecl_amount, an fx_position_replace row has
+        # net_position and friends, a repricing_replace row has gap and
+        # cumulative_gap. Matching only `amount*` left every one of those
+        # unscaled — 1000x small, with the row's own identities still footing.
+        money = (units_mod.MONEY_COLUMNS.get(table, frozenset()) | _OVR_MONEY_KEYS
+                 if table else _OVR_MONEY_KEYS)
         out["rows"] = [
-            {k: (units_mod.scale_amount(v, unit.factor) if k in _OVR_MONEY_KEYS else v)
+            {k: (units_mod.scale_amount(v, unit.factor) if k in money else v)
              for k, v in r.items()} if isinstance(r, dict) else r
             for r in out["rows"]]
     return out

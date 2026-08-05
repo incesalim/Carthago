@@ -80,8 +80,10 @@ def main() -> int:
                  "item_name", "footnote", "amount"],
                 [(b, p, k, r.order, r.hierarchy, r.name, r.footnote, r.cur_amount)
                  for r in pl]))
-        conn.execute("UPDATE bank_audit_extractions SET extracted_at=CURRENT_TIMESTAMP "
-                     "WHERE bank_ticker=? AND period=? AND kind=?", (b, p, k))
+        conn.execute("UPDATE bank_audit_extractions SET extracted_at=CURRENT_TIMESTAMP, "
+                     "source_unit=? "
+                     "WHERE bank_ticker=? AND period=? AND kind=?",
+                     (unit.source_unit, b, p, k))
         conn.commit()
     print(f"[pl] DB profit_loss rows {before} → {len(pl)}")
 

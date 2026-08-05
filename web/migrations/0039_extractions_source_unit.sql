@@ -1,0 +1,16 @@
+-- bank_audit_extractions.source_unit — the reporting unit READ from each filing.
+--
+-- The sector switched Bin TL -> Milyon TL in 2026Q2. Stored amounts are always
+-- normalised to canonical `bin`, so nothing downstream needs to know the unit to
+-- do arithmetic — but the analyst basis row must report what the PAGE said, and
+-- without this column a normalised Q2 partition surfaces as
+-- `reporting_unit = NULL / pending_regex`: "nobody has looked at this filing",
+-- about one we did look at.
+--
+-- NULL means pre-switch or recorded before this column existed; it is never
+-- "assume thousands". The local staging schema adds the same column through
+-- src/audit_reports/schema.py `_COLUMN_MIGRATIONS`, so a snapshot pulled from R2
+-- gains it on the next init_schema.
+--
+-- Additive: nullable, no default, no rewrite of existing rows.
+ALTER TABLE bank_audit_extractions ADD COLUMN source_unit TEXT;

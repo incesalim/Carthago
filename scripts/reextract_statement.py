@@ -383,8 +383,10 @@ def main() -> int:
                     continue
                 _upsert(conn, statement, t, p, k, rep, unit=unit)
                 conn.execute(
-                    "UPDATE bank_audit_extractions SET extracted_at=CURRENT_TIMESTAMP "
-                    "WHERE bank_ticker=? AND period=? AND kind=?", (t, p, k))
+                    "UPDATE bank_audit_extractions SET extracted_at=CURRENT_TIMESTAMP, "
+                     "source_unit=? "
+                    "WHERE bank_ticker=? AND period=? AND kind=?",
+                    (unit.source_unit, t, p, k))
                 touched.append((t, p, k))
                 counts["ok"] += 1
                 counts["rows"] += n
