@@ -84,7 +84,7 @@ def test_ratios_and_counts_are_never_money():
     assert "cet1_ratio" not in U.money_columns("bank_audit_capital")
     assert "capital_adequacy_ratio" not in U.money_columns("bank_audit_capital")
     for c in ("stage1_coverage", "stage2_coverage", "stage3_coverage"):
-        assert c not in U.money_columns("bank_audit_stages")
+        assert c not in U.MONEY_COLUMNS["bank_audit_stages"]
     assert U.money_columns("bank_audit_liquidity") == frozenset(), \
         "LCR, NSFR and leverage are all ratios — nothing in liquidity is money"
     assert U.money_columns("bank_audit_profile") == frozenset(), \
@@ -101,11 +101,71 @@ def test_the_money_side_covers_the_statements_that_carry_figures():
                    ("bank_audit_fx_position", "net_position"),
                    ("bank_audit_repricing", "cumulative_gap"),
                    ("bank_audit_free_provision", "free_provision"),
-                   ("bank_audit_stages", "total_ecl"),
                    ("bank_audit_loans_by_sector", "ecl_amount"),
                    ("bank_audit_credit_quality", "total_amount"),
                    ("bank_audit_equity_change", "total_equity")]:
         assert col in U.money_columns(t), f"{t}.{col} must be scaled"
+
+
+def test_stage_amounts_are_money_but_are_never_scaled_at_write():
+    """bank_audit_stages is DERIVED wholesale from bank_audit_credit_quality by
+    scripts/build_bank_audit_stages.py. Its amounts are money — so they belong in
+    the classification — but they arrive already normalised. Scaling them again
+    is x1,000,000, and because every coverage it computes is amount/amount the
+    ratios would still foot perfectly. So the writer path refuses outright."""
+    assert "total_ecl" in U.MONEY_COLUMNS["bank_audit_stages"]
+    assert "bank_audit_stages" in U.DERIVED_MONEY_TABLES
+    assert "bank_audit_stages" not in U.RAW_MONEY_TABLES
+    with pytest.raises(ValueError, match="derived"):
+        U.money_columns("bank_audit_stages")
+
+
+def test_exactly_twelve_raw_writers_need_scaling():
+    """12 raw monetary tables + 1 derived = the 13 that carry money."""
+    assert len(U.RAW_MONEY_TABLES) == 12
+    assert len(U.DERIVED_MONEY_TABLES) == 1
+    assert U.RAW_MONEY_TABLES | U.DERIVED_MONEY_TABLES == set(U.MONEY_COLUMNS)
+
+
+# --- fail closed --------------------------------------------------------------
+
+def test_an_unknown_table_is_rejected_not_silently_unscaled():
+    """Returning an empty set for an unknown name skips scaling in silence —
+    the exact failure this module exists to prevent."""
+    with pytest.raises(ValueError, match="unknown table"):
+        U.money_columns("bank_audit_not_a_table")
+    with pytest.raises(ValueError, match="unknown table"):
+        U.scale_mapping("bank_audit_not_a_table", {"amount": 1.0}, 1_000)
+
+
+def test_a_column_row_length_mismatch_is_rejected():
+    """zip() would truncate to the shorter side; a money column falling off the
+    end is stored 1000x too small with nothing to notice."""
+    with pytest.raises(ValueError, match="Refusing to zip-truncate"):
+        U.scale_sequence("bank_audit_balance_sheet",
+                         ["bank_ticker", "amount_tl", "item_order"],
+                         ("AKBNK", 2.0), 1_000)
+
+
+def test_factor_one_takes_the_same_path_as_factor_one_thousand():
+    """No bypass: the claim that old filings run the same code is only true if
+    factor 1 is a real multiply, not an early return."""
+    import ast
+    import inspect
+    # AST, not text: the docstrings deliberately mention `factor == 1` while
+    # explaining why there is no such branch, and a substring check reads those.
+    for fn in (U.scale_mapping, U.scale_amount, U.scale_sequence):
+        tree = ast.parse(inspect.getsource(fn).lstrip())
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Compare) and isinstance(node.left, ast.Name) \
+                    and node.left.id == "factor":
+                raise AssertionError(
+                    f"{fn.__name__} branches on `factor`; a factor==1 shortcut "
+                    f"leaves the old-filing path untested by every test that "
+                    f"exercises the new one")
+    row = {"amount_tl": 3.0, "item_order": 1}
+    assert U.scale_mapping("bank_audit_balance_sheet", row, 1) == \
+        {"amount_tl": 3.0, "item_order": 1}
 
 
 def test_thirteen_tables_carry_money_and_seven_carry_none():
@@ -251,3 +311,101 @@ def test_a_declaration_past_the_window_is_not_found():
 
 def test_no_declaration_is_unknown_not_bin():
     assert U.regex_unit(["balance sheet", "cash flow"]) is None
+
+
+# --- end to end: credit_quality -> stages, scaled exactly once ---------------
+
+def test_milyon_credit_quality_reaches_stages_multiplied_exactly_once(tmp_path):
+    """THE derived-table proof.
+
+    bank_audit_stages is built wholesale FROM bank_audit_credit_quality. If the
+    writer scaled both, a Milyon filing would land in stages at x1,000,000 — and
+    because every coverage stages computes is ecl/amount, both scaled, the ratios
+    would still foot perfectly and no validator would see it.
+
+    So: scale credit_quality on the way in, run the REAL builder, and assert the
+    amounts arrive x1,000 (not x1,000,000) while coverage is untouched.
+    """
+    import subprocess
+
+    db = tmp_path / "stages.db"
+    conn = sqlite3.connect(db)
+    init_schema(conn)
+
+    B, P, K = "TEB", "2026Q2", "consolidated"
+    factor = U.scale_factor("milyon")
+    assert factor == 1_000
+
+    # As printed in a Milyon filing: 1,000 (=1bn TL) of stage-1 loans, 10 of ECL.
+    printed = [
+        # section,           s1,     s2,    s3,  total
+        ("loans_amounts", 1_000.0, 200.0, 50.0, 1_250.0),
+        ("loans_ecl",        10.0,  20.0, 25.0,    55.0),
+    ]
+    cols = ["bank_ticker", "period", "kind", "section", "period_type",
+            "stage1_amount", "stage2_amount", "stage3_amount", "total_amount"]
+    for section, s1, s2, s3, tot in printed:
+        row = (B, P, K, section, "current", s1, s2, s3, tot)
+        scaled = U.scale_sequence("bank_audit_credit_quality", cols, row, factor)
+        conn.execute(
+            f"INSERT INTO bank_audit_credit_quality ({','.join(cols)}) "
+            f"VALUES ({','.join('?' * len(cols))})", scaled)
+    conn.commit()
+    conn.close()
+
+    subprocess.run([sys.executable, str(REPO / "scripts" / "build_bank_audit_stages.py"),
+                    "--db", str(db)], check=True, capture_output=True)
+
+    conn = sqlite3.connect(db)
+    conn.row_factory = sqlite3.Row
+    row = conn.execute(
+        "SELECT * FROM bank_audit_stages WHERE bank_ticker=? AND period=? AND kind=?",
+        (B, P, K)).fetchone()
+    assert row is not None, "the builder produced no stages row"
+
+    # x1,000 exactly — NOT x1,000,000.
+    assert row["stage1_amount"] == 1_000_000.0
+    assert row["stage2_amount"] == 200_000.0
+    assert row["stage3_amount"] == 50_000.0
+    assert row["stage1_ecl"] == 10_000.0
+    assert row["stage3_ecl"] == 25_000.0
+
+    # Coverage is ecl/amount — scale-invariant, and must equal the raw ratio.
+    assert row["stage1_coverage"] == pytest.approx(10.0 / 1_000.0)
+    assert row["stage3_coverage"] == pytest.approx(25.0 / 50.0)
+    assert row["stage3_coverage"] <= 1.0, "a coverage ratio was scaled"
+    conn.close()
+
+
+def test_the_same_flow_at_bin_is_unchanged(tmp_path):
+    """The old-filing control: identical inputs at factor 1 must land as printed."""
+    import subprocess
+
+    db = tmp_path / "stages_bin.db"
+    conn = sqlite3.connect(db)
+    init_schema(conn)
+    B, P, K = "TEB", "2026Q1", "consolidated"
+    factor = U.scale_factor(U.resolve_unit(P))      # sweep-established `bin`
+    assert factor == 1
+
+    cols = ["bank_ticker", "period", "kind", "section", "period_type",
+            "stage1_amount", "stage2_amount", "stage3_amount", "total_amount"]
+    for section, s1, s2, s3, tot in [("loans_amounts", 1_000.0, 200.0, 50.0, 1_250.0),
+                                     ("loans_ecl", 10.0, 20.0, 25.0, 55.0)]:
+        row = U.scale_sequence("bank_audit_credit_quality", cols,
+                               (B, P, K, section, "current", s1, s2, s3, tot), factor)
+        conn.execute(
+            f"INSERT INTO bank_audit_credit_quality ({','.join(cols)}) "
+            f"VALUES ({','.join('?' * len(cols))})", row)
+    conn.commit()
+    conn.close()
+
+    subprocess.run([sys.executable, str(REPO / "scripts" / "build_bank_audit_stages.py"),
+                    "--db", str(db)], check=True, capture_output=True)
+    conn = sqlite3.connect(db)
+    conn.row_factory = sqlite3.Row
+    row = conn.execute("SELECT * FROM bank_audit_stages WHERE bank_ticker=?",
+                       (B,)).fetchone()
+    assert row["stage1_amount"] == 1_000.0
+    assert row["stage1_coverage"] == pytest.approx(10.0 / 1_000.0)
+    conn.close()

@@ -14,51 +14,32 @@ nothing stores today:
   `reporting_unit = NULL` + `unit_source = 'pending_regex'` — never a silent
   `bin`. UNKNOWN means "look at this filing", not "assume thousands".
 
-The regex is the July bench's (`scripts/scratch_bench_unit_detection.py`),
-promoted here verbatim: 22 front pages, untruncated text — the old 8-page
-window missed 15 Q4 filings whose declaration lands p7–p17 behind the full
-annual opinion.
+The regex is the July bench's (`scripts/scratch_bench_unit_detection.py`): 22
+front pages, untruncated text — the old 8-page window missed 15 Q4 filings whose
+declaration lands p7–p17 behind the full annual opinion. It now lives in
+`src.audit_reports.units` and is imported here, not duplicated.
 """
 from __future__ import annotations
 
-import re
 import sqlite3
+
+from src.audit_reports import units
 
 from .periods import quarter_num, sort_key
 
 # Every stored period up to and including this one is sweep-established `bin`.
-SWEEP_HORIZON = "2026Q1"
+# Single definition in the audit lane; re-exported here for existing callers.
+SWEEP_HORIZON = units.SWEEP_HORIZON
 SWEEP_SOURCE = "sweep-2026-08-01"
 
-FRONT_PAGES = 22
-
-UNIT_RE = re.compile(
-    r"(bin|milyon|milyar|thousand|million|billion)s?\s+(?:of\s+)?"
-    r"(?:t[uü]rk\s+liras[iı]|turkish\s+lira)", re.I)
-_NORM = {
-    "bin": "bin", "thousand": "bin",
-    "milyon": "milyon", "million": "milyon",
-    "milyar": "milyar", "billion": "milyar",
-}
-
-
-def regex_unit(pages: list[str]) -> str | None:
-    """First unit declaration in the front pages, normalized; None = UNKNOWN."""
-    for text in pages[:FRONT_PAGES]:
-        m = UNIT_RE.search(text)
-        if m:
-            return _NORM[m.group(1).lower()]
-    return None
-
-
-def detect_unit_from_pdf(pdf_path: str) -> str | None:
-    """CI path — reads the first FRONT_PAGES pages with fitz. Import is local
-    so the snapshot-only paths never need PyMuPDF loaded."""
-    import fitz  # PyMuPDF — the repo's only sanctioned PDF engine
-
-    with fitz.open(pdf_path) as doc:
-        pages = [page.get_text() for page in doc.pages(0, min(FRONT_PAGES, doc.page_count))]
-    return regex_unit(pages)
+# The detector lives in the AUDIT lane, because the reporting unit is a property
+# of the filing and the analyst only consumes it. Imported, not copied: two
+# copies of a regex that decides a 1000x scale factor is exactly the drift this
+# repo has been bitten by before.
+FRONT_PAGES = units.FRONT_PAGES
+UNIT_RE = units.UNIT_RE
+regex_unit = units.regex_unit
+detect_unit_from_pdf = units.detect_unit_from_pdf
 
 
 def _expected_assurance(period: str) -> str:

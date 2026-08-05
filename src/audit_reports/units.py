@@ -199,31 +199,67 @@ NON_MONEY_NUMERIC: dict[str, frozenset[str]] = {
 }
 
 
+#: Monetary, but NOT scaled at write: built from an already-normalised source.
+#: `bank_audit_stages` is derived wholesale from `bank_audit_credit_quality` by
+#: scripts/build_bank_audit_stages.py, so its amounts and ECLs arrive already
+#: scaled. Scaling them again would be x1,000,000 — and every coverage ratio it
+#: computes is amount/amount, so the ratios would still foot perfectly.
+DERIVED_MONEY_TABLES: frozenset[str] = frozenset({"bank_audit_stages"})
+
+#: The tables a writer must scale: money, minus the derived ones. Twelve.
+RAW_MONEY_TABLES: frozenset[str] = frozenset(MONEY_COLUMNS) - DERIVED_MONEY_TABLES
+
+
 def money_columns(table: str) -> frozenset[str]:
+    """Columns to scale when WRITING `table`. Raises on a table this module has
+    never classified: returning an empty set for an unknown name silently skips
+    scaling, which is the failure this whole module exists to prevent."""
+    if table in DERIVED_MONEY_TABLES:
+        raise ValueError(
+            f"{table} is derived from an already-normalised source and must not "
+            f"be scaled again — that would be x1,000,000, and its coverage "
+            f"ratios are amount/amount so they would still foot.")
+    if table not in MONEY_COLUMNS and table not in NON_MONEY_NUMERIC:
+        raise ValueError(
+            f"unknown table {table!r}: classify its numeric columns in "
+            f"units.MONEY_COLUMNS / NON_MONEY_NUMERIC before writing to it.")
     return MONEY_COLUMNS.get(table, frozenset())
 
 
 def scale_amount(value, factor: int):
     """Scale one figure. None stays None — a disclosure never made is not zero,
-    and 0 x 1000 is still 0, which is the correct answer for a disclosed zero."""
-    if value is None or factor == 1:
+    and 0 x 1000 is still 0, which is the correct answer for a disclosed zero.
+
+    There is deliberately NO `factor == 1` shortcut anywhere in this module: a
+    pre-2026Q2 filing multiplies by 1 and takes exactly the code path a Milyon
+    filing takes. A bypass would leave the old path untested by every test that
+    exercises the new one, which is how the "old filings are unaffected" claim
+    would quietly stop being true.
+    """
+    if value is None:
         return value
     return value * factor
 
 
 def scale_mapping(table: str, row: dict, factor: int) -> dict:
-    """Return `row` with this table's money columns scaled. Non-money columns,
-    unknown keys and NULLs pass through untouched."""
-    if factor == 1:
-        return row
+    """Return `row` with this table's money columns scaled. Non-money columns
+    and NULLs pass through. No factor==1 shortcut — see scale_amount."""
     money = money_columns(table)
     return {k: (scale_amount(v, factor) if k in money else v) for k, v in row.items()}
 
 
 def scale_sequence(table: str, columns: list[str], row: tuple, factor: int) -> tuple:
-    """Positional variant, for the writers that build value tuples."""
-    if factor == 1:
-        return row
+    """Positional variant, for the writers that build value tuples.
+
+    Length mismatch RAISES. `zip` would silently truncate to the shorter of the
+    two, dropping trailing columns from the scaling — and a money column that
+    falls off the end is stored 1000x too small with nothing to notice.
+    """
+    if len(columns) != len(row):
+        raise ValueError(
+            f"{table}: {len(columns)} columns but {len(row)} values. Refusing to "
+            f"zip-truncate: a money column dropped off the end would be stored "
+            f"unscaled and no validator would see it.")
     money = money_columns(table)
     return tuple(scale_amount(v, factor) if c in money else v
                  for c, v in zip(columns, row))
