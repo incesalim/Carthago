@@ -287,6 +287,16 @@ def record_hash(conn: sqlite3.Connection, table: str, digest: str) -> None:
 # This is a floor on deliberateness, not a budget: a caller who genuinely needs
 # more passes --max-billed-rows, and because that lands in the workflow file the
 # number is reviewable in a diff rather than discovered on the invoice.
+# Exit codes with MEANINGS, so a caller can tell "retrying cannot help" from
+# "the network hiccuped". audit_d1's helpers retry every nonzero child exit, and
+# a deterministic refusal retried is a refusal defeated: the first attempt used
+# to create the missing table and refuse, the second saw it as pre-existing and
+# proceeded to a DELETE-only replacement against live D1.
+EXIT_OK = 0
+EXIT_VALIDATION = 2     # bad scope, unknown table, unprovable outbox — terminal
+EXIT_BUDGET = 3         # the cost guard refused — terminal
+EXIT_PUSH_FAILED = 4    # wrangler/transport — the only genuinely retryable one
+
 DEFAULT_MAX_BILLED_ROWS = 2_500_000
 
 # The per-push cap above bounds ONE invocation. It cannot bound a day: July's
@@ -1141,40 +1151,11 @@ def main() -> int:
         print(f"ERROR: {WEB}/wrangler.jsonc not found", file=sys.stderr)
         return 1
 
-    conn = sqlite3.connect(str(db))
-    conn.execute("PRAGMA foreign_keys = OFF")
-    # Snapshot the tables that EXIST NOW, before the initialisers below create
-    # any missing ones. Replacement ownership must be judged against what the
-    # staging DB actually held: init_schema creates the whole bank_audit_* set,
-    # so a presence check made afterwards passes for a table this DB never had —
-    # and a replacement into a wrong or empty snapshot then emits a scoped DELETE
-    # with no INSERT, erasing the partition remotely. Reproduced at exit 0.
-    pre_existing = {
-        r[0] for r in conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table'")
-    }
-    # The R2 snapshot may predate recent schema additions (new bank_audit_*
-    # tables, regulation_briefings). The daily news / EVDS workflows don't
-    # run any extractor that would call init_schema, so without this they
-    # crash when SYNC_TABLES lists a table that's not in the snapshot. All
-    # DDL is `CREATE … IF NOT EXISTS`, so it's a no-op once snapshot is current.
-    _init_audit_schema(conn)
-    _init_news_schema(conn)
-    _init_kap_schema(conn)
-    _init_tefas_schema(conn)
-    _init_nonbank_schema(conn)
-    _init_faaliyet_schema(conn)
-    _init_earnings_schema(conn)
-    _init_tkbb_schema(conn)
-    _init_tkbb_acq_schema(conn)
-    _init_rates_schema(conn)
-    _init_products_schema(conn)
-
     try:
         allowed_tables = resolve_tables(args.only_tables, args.table_set)
     except ValueError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
-        return 2
+        return EXIT_VALIDATION
 
     replace: set[str] | None = None
     if args.replace_partitions:
@@ -1190,7 +1171,7 @@ def main() -> int:
         if bad:
             print(f"ERROR: malformed partition key(s), expected bank|period|kind: "
                   f"{bad[:5]}", file=sys.stderr)
-            return 2
+            return EXIT_VALIDATION
         print(f"replacing {len(replace)} partition(s)")
         # Replacement MUST name its tables. Without a filter the main loop walks
         # every sync table, and the ones without (bank_ticker, period, kind)
@@ -1201,15 +1182,25 @@ def main() -> int:
             print("ERROR: --replace-partitions requires an explicit table scope "
                   "(--only-tables or --table-set). Without one this would also "
                   "push every other table's ordinary window.", file=sys.stderr)
-            return 2
-        missing, unsupported = [], []
-        for t in sorted(allowed_tables):
-            if t in _FULL_REBUILD:
-                unsupported.append(t)
-            elif t not in pre_existing:          # judged BEFORE init_schema ran
-                missing.append(t)
-            elif not has_partition_key(conn, t):
-                unsupported.append(t)
+            return EXIT_VALIDATION
+        # READ-ONLY, and before anything has touched the staging DB. Judging
+        # after init_schema let a refusal CREATE the table it refused, so the
+        # retry saw it as pre-existing and proceeded — and replace_partitions
+        # retries every nonzero child exit, so no human was needed for that.
+        ro = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
+        try:
+            present = {r[0] for r in ro.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'")}
+            missing, unsupported = [], []
+            for t in sorted(allowed_tables):
+                if t in _FULL_REBUILD:
+                    unsupported.append(t)
+                elif t not in present:
+                    missing.append(t)
+                elif not has_partition_key(ro, t):
+                    unsupported.append(t)
+        finally:
+            ro.close()
         # A table absent from the staging DB is fine for a WINDOWED push — the
         # two staging DBs hold disjoint sets — but in replacement mode it means
         # the repair silently did nothing. Reproduced: replacing into an empty
@@ -1221,18 +1212,33 @@ def main() -> int:
                   f"cannot be replaced: {missing}. Replacement names what it owns, "
                   f"so a table this staging DB never held is an error, not a skip: "
                   f"otherwise a wrong or empty snapshot emits a scoped DELETE with "
-                  f"nothing to re-insert and erases the partition remotely. (The "
-                  f"schema initialisers create audit tables, which is why this is "
-                  f"judged against the pre-init snapshot.) Check --db and the scope.",
+                  f"nothing to re-insert and erases the partition remotely. This is "
+                  f"checked read-only, before anything touches the staging DB, so "
+                  f"the refusal cannot create what it refused and a retry stays "
+                  f"refused. Check --db and the table scope.",
                   file=sys.stderr)
-            return 2
+            return EXIT_VALIDATION
         if unsupported:
             print(f"ERROR: these tables cannot honour partition replacement: "
                   f"{unsupported}. A full-rebuild rollup has no partition key and "
                   f"a table without (bank_ticker, period, kind) cannot be scoped, "
                   f"so both would silently fall back to window or full-rebuild "
                   f"behaviour. Drop them from the table scope.", file=sys.stderr)
-            return 2
+            return EXIT_VALIDATION
+
+    conn = sqlite3.connect(str(db))
+    conn.execute("PRAGMA foreign_keys = OFF")
+    _init_audit_schema(conn)
+    _init_news_schema(conn)
+    _init_kap_schema(conn)
+    _init_tefas_schema(conn)
+    _init_nonbank_schema(conn)
+    _init_faaliyet_schema(conn)
+    _init_earnings_schema(conn)
+    _init_tkbb_schema(conn)
+    _init_tkbb_acq_schema(conn)
+    _init_rates_schema(conn)
+    _init_products_schema(conn)
 
     lines: list[str] = ["-- incremental D1 push", f"-- window: last {args.hours} hours", ""]
     if allowed_tables:
@@ -1269,7 +1275,7 @@ def main() -> int:
                       f"`WHERE 1=1` satisfies 'has a WHERE' and empties the "
                       f"table, which is why that is no longer the test.",
                       file=sys.stderr)
-                return 2
+                return EXIT_VALIDATION
             tbl, rows = proven
             billed_pending[tbl] = billed_pending.get(tbl, 0) + \
                 billed_estimate(conn, tbl, rows, False)
@@ -1350,7 +1356,7 @@ def main() -> int:
             f"  narrow --hours, narrow --only-tables, or wait for the cycle to\n"
             f"  roll over on the 11th.",
             file=sys.stderr)
-        return 3
+        return EXIT_BUDGET
 
     if args.check_only:
         print("check-only: this push would be accepted")
@@ -1367,8 +1373,11 @@ def main() -> int:
 
     rc = run_wrangler(sql_path)
     if rc != 0:
+        # Remapped: wrangler's own code could collide with EXIT_VALIDATION /
+        # EXIT_BUDGET and make a retryable transport failure look terminal (or
+        # the reverse). Callers branch on meaning, not on wrangler's number.
         print(f"wrangler failed with exit code {rc}", file=sys.stderr)
-        return rc
+        return EXIT_PUSH_FAILED
     if pending:
         conn.executemany(
             "DELETE FROM d1_pending_deletes WHERE rowid = ?",

@@ -36,7 +36,14 @@ from src.audit_reports import r2_storage  # noqa: E402
 # ONLY step needed to get its table cleared + pushed. A hand-kept copy of this
 # list here is what silently dropped fx_position/repricing from D1 for weeks.
 from src.audit_reports.registry import AUDIT_TABLES  # noqa: E402,F401
-from scripts.push_to_d1 import run_wrangler  # noqa: E402
+from scripts.push_to_d1 import (  # noqa: E402
+    EXIT_BUDGET, EXIT_VALIDATION, run_wrangler,
+)
+
+# Retrying these cannot help and actively harms: a deterministic refusal
+# retried is a refusal defeated. Attempt one used to create the missing
+# table and refuse; attempt two saw it as pre-existing and proceeded.
+TERMINAL_EXITS = (EXIT_VALIDATION, EXIT_BUDGET)
 
 # --- audit-lane constants -------------------------------------------------
 DB = REPO / "data" / "bank_audit.db"
@@ -258,12 +265,17 @@ def replace_partitions(parts: Sequence[tuple[str, str, str]],
            "--replace-partitions", str(listing)]
     print(f"[d1] replacing {len(parts)} partition(s) × {len(tables)} tables in D1")
     for attempt in range(1, D1_RETRIES + 1):
-        if subprocess.run(cmd).returncode == 0:
+        rc = subprocess.run(cmd).returncode
+        if rc == 0:
             return
+        if rc in TERMINAL_EXITS:
+            sys.exit(f"[d1] replace refused (exit {rc}) — a validation or budget "
+                     "refusal is deterministic, so retrying would only defeat it. "
+                     "Nothing was written. Fix the cause and re-run.")
         if attempt == D1_RETRIES:
             sys.exit(f"[d1] replace failed after {D1_RETRIES} attempts. The push is "
                      "atomic, so D1 is unchanged — fix the cause and re-run.")
-        print(f"[d1] replace failed (attempt {attempt}/{D1_RETRIES}) — "
+        print(f"[d1] replace failed (attempt {attempt}/{D1_RETRIES}, exit {rc}) — "
               f"retrying in {D1_RETRY_WAIT_S}s", flush=True)
         time.sleep(D1_RETRY_WAIT_S)
 
@@ -324,13 +336,18 @@ def push_to_d1(db_path: Path = DB, window_hours: int = PUSH_WINDOW_HOURS,
            "--db", str(db_path), "--hours", str(window_hours),
            "--only-tables", ",".join(tables)]
     for attempt in range(1, D1_RETRIES + 1):
-        if subprocess.run(cmd).returncode == 0:
+        rc = subprocess.run(cmd).returncode
+        if rc == 0:
             return
+        if rc in TERMINAL_EXITS:
+            sys.exit(f"[d1] push refused (exit {rc}) — a validation or budget "
+                     "refusal is deterministic; retrying cannot help. Nothing "
+                     "was written.")
         if attempt == D1_RETRIES:
-            sys.exit(f"[d1] push failed after {D1_RETRIES} attempts. Pushes are "
-                     "upsert-only and atomic per file, so D1 is unchanged — fix "
-                     "the cause and re-run.")
-        print(f"[d1] push failed (attempt {attempt}/{D1_RETRIES}) — "
+            sys.exit(f"[d1] push failed after {D1_RETRIES} attempts. wrangler "
+                     "executes a file atomically, so D1 is unchanged — fix the "
+                     "cause and re-run.")
+        print(f"[d1] push failed (attempt {attempt}/{D1_RETRIES}, exit {rc}) — "
               f"retrying in {D1_RETRY_WAIT_S}s", flush=True)
         time.sleep(D1_RETRY_WAIT_S)
 

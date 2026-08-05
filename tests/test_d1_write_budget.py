@@ -1761,3 +1761,111 @@ def test_invalidation_is_wired_after_the_wrangler_call():
     assert "invalidate_partition_state" in after
     before = src.split("rc = run_wrangler(sql_path)", 1)[0]
     assert "invalidate_partition_state(" not in before.split("def main(", 1)[-1]
+
+
+# --- a refusal must not defeat itself on retry -------------------------------
+#
+# The ownership check ran AFTER the schema initialisers, so the refusal itself
+# created the table it was refusing. Reproduced: attempt 1 exit 2 with
+# bank_audit_capital now present, attempt 2 exit 0 emitting a scoped DELETE and
+# no INSERT. And nobody had to do that by hand — audit_d1.replace_partitions
+# retried every nonzero child exit, so the second attempt was automatic.
+
+def test_a_refused_replacement_leaves_the_table_absent(tmp_path, monkeypatch):
+    db = tmp_path / "empty.db"
+    sqlite3.connect(db).close()
+    lst = _listing(tmp_path, "AKBNK|2026Q1|consolidated")
+    rc = _run(monkeypatch, db, "--replace-partitions", str(lst),
+              "--only-tables", "bank_audit_capital", remote=181)
+    assert rc == P.EXIT_VALIDATION
+    present = sqlite3.connect(db).execute(
+        "SELECT 1 FROM sqlite_master WHERE name='bank_audit_capital'").fetchone()
+    assert not present, "the refusal created the very table it refused"
+
+
+def test_an_identical_second_invocation_is_refused_too(tmp_path, monkeypatch):
+    """The retry must see exactly what the first attempt saw."""
+    db = tmp_path / "empty.db"
+    sqlite3.connect(db).close()
+    lst = _listing(tmp_path, "AKBNK|2026Q1|consolidated")
+    args = ("--replace-partitions", str(lst), "--only-tables", "bank_audit_capital")
+    assert _run(monkeypatch, db, *args, remote=181) == P.EXIT_VALIDATION
+    assert _run(monkeypatch, db, *args, remote=181) == P.EXIT_VALIDATION
+
+
+def test_validation_runs_before_any_staging_db_mutation(tmp_path, monkeypatch):
+    """Not just for the audit tables: NOTHING may be written before the scope is
+    known good. The file's mtime and table set must be untouched."""
+    db = tmp_path / "empty.db"
+    sqlite3.connect(db).close()
+    before = db.stat().st_mtime_ns, db.stat().st_size
+    lst = _listing(tmp_path, "AKBNK|2026Q1|consolidated")
+    _run(monkeypatch, db, "--replace-partitions", str(lst),
+         "--only-tables", "bank_audit_capital", remote=181)
+    assert (db.stat().st_mtime_ns, db.stat().st_size) == before
+
+
+def _audit_d1():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("ad", REPO / "scripts" / "audit_d1.py")
+    ad = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(ad)
+    return ad
+
+
+def _count_child_calls(ad, monkeypatch, rc):
+    calls: list = []
+
+    def _run_child(cmd, *a, **k):
+        calls.append(cmd)
+        return type("R", (), {"returncode": rc})()
+    monkeypatch.setattr(ad.subprocess, "run", _run_child)
+    monkeypatch.setattr(ad, "ensure_d1_schema", lambda *a, **k: None)
+    monkeypatch.setattr(ad.time, "sleep", lambda *_: None)
+    return calls
+
+
+def test_replace_partitions_does_not_retry_a_validation_refusal(tmp_path, monkeypatch):
+    """THE second layer. Retrying a deterministic refusal is how the first layer
+    got bypassed automatically."""
+    ad = _audit_d1()
+    calls = _count_child_calls(ad, monkeypatch, ad.EXIT_VALIDATION)
+    with pytest.raises(SystemExit):
+        ad.replace_partitions([("AKBNK", "2026Q1", "consolidated")], tmp_path / "x.db")
+    assert len(calls) == 1, "a validation refusal must not be retried"
+
+
+def test_replace_partitions_does_not_retry_a_budget_refusal(tmp_path, monkeypatch):
+    ad = _audit_d1()
+    calls = _count_child_calls(ad, monkeypatch, ad.EXIT_BUDGET)
+    with pytest.raises(SystemExit):
+        ad.replace_partitions([("AKBNK", "2026Q1", "consolidated")], tmp_path / "x.db")
+    assert len(calls) == 1, "a budget refusal must not be retried"
+
+
+def test_replace_partitions_still_retries_a_transport_failure(tmp_path, monkeypatch):
+    """The retry loop exists for real transients (D1_RESET_DO, fetch failed) —
+    those must keep retrying."""
+    ad = _audit_d1()
+    calls = _count_child_calls(ad, monkeypatch, ad.EXIT_PUSH_FAILED
+                               if hasattr(ad, "EXIT_PUSH_FAILED") else 4)
+    with pytest.raises(SystemExit):
+        ad.replace_partitions([("AKBNK", "2026Q1", "consolidated")], tmp_path / "x.db")
+    assert len(calls) == ad.D1_RETRIES
+
+
+def test_the_push_wrapper_also_treats_refusals_as_terminal(tmp_path, monkeypatch):
+    ad = _audit_d1()
+    calls = _count_child_calls(ad, monkeypatch, ad.EXIT_BUDGET)
+    with pytest.raises(SystemExit):
+        ad.push_to_d1(tmp_path / "x.db", 24, ["bank_audit_capital"])
+    assert len(calls) == 1
+
+
+def test_a_wrangler_failure_cannot_masquerade_as_a_deterministic_exit():
+    """wrangler's own code could be 2 or 3. Remapped, so callers branch on
+    meaning rather than on whatever the tool happened to return."""
+    src = (REPO / "scripts" / "push_to_d1.py").read_text(encoding="utf-8")
+    after = src.split("rc = run_wrangler(sql_path)", 1)[1].split("\n\n", 1)[0]
+    assert "EXIT_PUSH_FAILED" in after
+    assert "return rc" not in after
