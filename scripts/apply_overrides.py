@@ -48,7 +48,6 @@ import shutil
 import sqlite3
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
@@ -58,7 +57,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 from src.audit_reports import r2_storage  # noqa: E402
 from src.audit_reports.schema import init_schema  # noqa: E402
 from scripts.audit_d1 import (  # noqa: E402
-    AUDIT_TABLES, _ensure_d1_schema, _guard_against_ci_writers, _retry_wrangler,
+    AUDIT_TABLES, _guard_against_ci_writers, replace_partitions,
 )
 
 DB = REPO / "data" / "bank_audit.db"
@@ -587,23 +586,16 @@ def main() -> int:
         print("[ovr] no partition changed — nothing to push, snapshot left as is")
         return 0
 
-    _ensure_d1_schema()
-    # Clear ONLY the partitions whose contents moved. The clear exists so a
-    # replace-type override that REMOVES rows takes effect (push_to_d1 is
-    # INSERT OR REPLACE and never DELETEs), so it is needed for a changed
-    # partition and pure cost for an unchanged one — and a DELETE bills as rows
-    # written just like an INSERT.
-    stmts = []
-    for tbl in AUDIT_TABLES:
-        for b, p, k in changed:
-            stmts.append(f"DELETE FROM {tbl} WHERE bank_ticker='{b}' AND period='{p}' AND kind='{k}';")
-    sqlp = Path(tempfile.gettempdir()) / "d1_ovr_clear.sql"
-    sqlp.write_text("\n".join(stmts) + "\n", encoding="utf-8")
-    print(f"[ovr] clearing {len(changed)} partition(s) in D1 "
-          f"({len(stmts)} statements, was {len(AUDIT_TABLES) * len(parts)})")
-    _retry_wrangler(sqlp, "D1 override clear")
-    subprocess.run([sys.executable, str(REPO / "scripts" / "push_to_d1.py"),
-                    "--db", str(DB), "--hours", "1", "--only-tables", ",".join(AUDIT_TABLES)], check=True)
+    # Replace ONLY the partitions whose contents moved, in ONE atomic push.
+    # The DELETE is still required — a replace-type override that REMOVES rows
+    # takes effect only if the old rows go — but it now travels in the same
+    # guarded wrangler file as the INSERTs. This used to be a remote clear
+    # followed by a separate push_to_d1 subprocess, so a refusal, a SQL error or
+    # a cancelled runner between the two left the corrected partitions deleted
+    # and unrestored: the worst possible outcome for a correction tool.
+    print(f"[ovr] replacing {len(changed)} changed partition(s) in D1 "
+          f"(of {len(parts)} named)")
+    replace_partitions(sorted(changed), DB, AUDIT_TABLES)
     # Rebuild + push the coverage spine (bank_audit_coverage/expected/statement_types).
     # The /admin matrix reads its per-cell status from bank_audit_coverage — a rollup of
     # bank_audit_validation that's regenerated ONLY here and by the refresh-audit cron, not

@@ -14,7 +14,6 @@ import argparse
 import gzip
 import shutil
 import sqlite3
-import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -26,7 +25,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 from src.audit_reports import r2_storage  # noqa: E402
 from src.audit_reports.extractor import extract  # noqa: E402
 from scripts.audit_d1 import (  # noqa: E402
-    _ensure_d1_schema, _guard_against_ci_writers, _retry_wrangler,
+    _guard_against_ci_writers, replace_partitions,
 )
 
 DB = REPO / "data" / "bank_audit.db"
@@ -81,15 +80,9 @@ def main() -> int:
         print("[pl] dry-run — not pushing")
         return 0
 
-    _ensure_d1_schema()
-    sqlp = Path(tempfile.gettempdir()) / "d1_pl_clear.sql"
-    sqlp.write_text(
-        f"DELETE FROM bank_audit_profit_loss WHERE bank_ticker='{b}' AND period='{p}' AND kind='{k}';\n",
-        encoding="utf-8")
-    print(f"[pl] clearing {b} {p} {k} profit_loss in D1")
-    _retry_wrangler(sqlp, "D1 P&L clear")
-    subprocess.run([sys.executable, str(REPO / "scripts" / "push_to_d1.py"),
-                    "--db", str(DB), "--hours", "1", "--only-tables", "bank_audit_profit_loss"], check=True)
+    # One atomic replace, not clear-then-push (see audit_d1.replace_partitions).
+    print(f"[pl] replacing {b} {p} {k} profit_loss in D1")
+    replace_partitions([(b, p, k)], DB, ["bank_audit_profit_loss"])
     with sqlite3.connect(str(DB)) as c:
         c.execute("VACUUM")
     with open(DB, "rb") as s, gzip.open(GZ, "wb", compresslevel=6) as d:

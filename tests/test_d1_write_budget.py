@@ -899,31 +899,51 @@ def test_check_only_accepts_an_affordable_push(tmp_path, monkeypatch):
     assert P.main() == 0
 
 
-def test_clearing_aborts_when_the_follow_up_push_would_be_refused(tmp_path, monkeypatch):
-    """THE ordering guarantee: no remote DELETE is issued unless the push that
-    must follow it is known to be affordable."""
+def test_no_migrated_caller_issues_a_standalone_remote_delete(monkeypatch, tmp_path):
+    """THE architectural guarantee. Every audit repair tool used to run a remote
+    DELETE and then launch push_to_d1 as a second process; any refusal, SQL
+    error, network blip or cancelled runner in between left the partitions gone
+    with nothing local aware they needed restoring. A preflight could not fix
+    that — two remote calls cannot be made atomic, and the guard reads cycle
+    usage independently in each, so an accepted check could still be followed by
+    a refused push AFTER the delete.
+
+    Now there is exactly one remote call, carrying DELETEs and INSERTs together.
+    This asserts the shape: replace_partitions shells out to push_to_d1 with
+    --replace-partitions and never issues a wrangler DELETE of its own.
+    """
     import importlib.util
     spec = importlib.util.spec_from_file_location("ad", REPO / "scripts" / "audit_d1.py")
     ad = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(ad)
 
-    cleared: list[str] = []
+    wrangler_calls: list = []
+    pushes: list[list[str]] = []
     monkeypatch.setattr(ad, "retry_wrangler",
-                        lambda *a, **k: cleared.append("CLEARED"))
+                        lambda *a, **k: wrangler_calls.append(a))
+    monkeypatch.setattr(ad, "ensure_d1_schema", lambda *a, **k: None)
     monkeypatch.setattr(ad.subprocess, "run",
-                        lambda *a, **k: type("R", (), {"returncode": 3})())
+                        lambda cmd, *a, **k: (pushes.append(cmd),
+                                              type("R", (), {"returncode": 0})())[1])
 
-    db = tmp_path / "s.db"
-    c = sqlite3.connect(db)
-    c.execute("CREATE TABLE bank_audit_extractions (bank_ticker TEXT, period TEXT, "
-              "kind TEXT, extracted_at TIMESTAMP)")
-    c.execute("INSERT INTO bank_audit_extractions VALUES "
-              "('AKBNK','2026Q1','consolidated',datetime('now'))")
-    c.commit(); c.close()
+    ad.replace_partitions([("AKBNK", "2026Q1", "consolidated")], tmp_path / "x.db")
 
-    with pytest.raises(SystemExit):
-        ad.clear_d1_partitions(db, 48)
-    assert cleared == [], "a refusal must abort BEFORE anything is deleted"
+    assert wrangler_calls == [], "no standalone remote DELETE may be issued"
+    assert len(pushes) == 1, "exactly one remote operation"
+    assert "--replace-partitions" in pushes[0]
+
+
+def test_every_audit_repair_tool_routes_through_replace_partitions():
+    """A future edit must not reintroduce clear-then-push by hand. These five
+    were the callers that had it; none may build its own DELETE + push pair."""
+    for name in ("apply_overrides", "load_partition", "reextract_pl",
+                 "push_from_scratch", "backfill_extraction"):
+        src = (REPO / "scripts" / f"{name}.py").read_text(encoding="utf-8")
+        assert "replace_partitions" in src or "clear_d1_partitions" in src, name
+        # The tell-tale of the old shape: building DELETE text AND launching the
+        # pusher as a separate step.
+        assert not ("DELETE FROM {tbl} WHERE bank_ticker=" in src
+                    and "push_to_d1.py" in src), f"{name} still clears then pushes"
 
 
 # --- delete-only work, pricing, and deliberate resend -------------------------
@@ -992,3 +1012,122 @@ def test_historical_partitions_outside_the_window_are_never_deleted(tmp_path):
                          dropped=dropped, skip_partitions=True)
     assert "ISCTR" not in " ".join(blk)
     assert not dropped.get("bank_audit_capital")
+
+
+# --- explicit replacement: the interface that retired clear-then-push ---------
+
+def _replace(c, parts, **kw):
+    d: dict = {}
+    rc: dict = {}
+    dr: dict = {}
+    cnt: dict = {}
+    block = P.fetch_recent(c, "bank_audit_capital", 48, digests=d, rowcounts=rc,
+                           dropped=dr, counts=cnt, replace=set(parts), **kw)
+    return block, d, rc, dr, cnt
+
+
+def test_explicit_replacement_converges_for_a_shrinking_partition(tmp_path):
+    c = _audit_partition_db(tmp_path)
+    block, d, rc, _, _ = _replace(c, ["AKBNK|2026Q1|consolidated",
+                                      "GARAN|2026Q1|consolidated"])
+    remote = _remote_from(c)
+    P.record_partition_digests(c, "bank_audit_capital", d["bank_audit_capital"],
+                               rows=rc.get("bank_audit_capital"))
+
+    c.execute("DELETE FROM bank_audit_capital WHERE bank_ticker='AKBNK' AND item='tier1'")
+    c.commit()
+    block, _, _, _, _ = _replace(c, ["AKBNK|2026Q1|consolidated"])
+    _apply(remote, block)
+    assert _rows(remote) == _rows(c)
+
+
+def test_explicit_replacement_clears_a_partition_with_no_local_rows(tmp_path):
+    """Selection is explicit, so a partition is replaced because it was ASKED
+    for — not because a timestamp or the extraction log happened to mention it.
+    A partition with zero local rows must still be cleared remotely."""
+    c = _audit_partition_db(tmp_path)
+    block, d, rc, _, _ = _replace(c, ["AKBNK|2026Q1|consolidated",
+                                      "GARAN|2026Q1|consolidated"])
+    remote = _remote_from(c)
+    P.record_partition_digests(c, "bank_audit_capital", d["bank_audit_capital"],
+                               rows=rc.get("bank_audit_capital"))
+
+    c.execute("DELETE FROM bank_audit_capital WHERE bank_ticker='AKBNK'")
+    # deliberately no extraction-log row and no local rows: only the caller knows
+    c.execute("DELETE FROM bank_audit_extractions WHERE bank_ticker='AKBNK'")
+    c.commit()
+    block, _, _, dr, _ = _replace(c, ["AKBNK|2026Q1|consolidated"])
+    assert [ln for ln in block if ln.startswith("DELETE")]
+    _apply(remote, block)
+    assert not list(remote.execute(
+        "SELECT 1 FROM bank_audit_capital WHERE bank_ticker='AKBNK'"))
+    assert dr["bank_audit_capital"] == ["AKBNK|2026Q1|consolidated"]
+
+
+def test_explicit_replacement_touches_nothing_it_was_not_given(tmp_path):
+    c = _audit_partition_db(tmp_path)
+    block, _, _, _, _ = _replace(c, ["GARAN|2026Q1|consolidated"])
+    sql = " ".join(block)
+    assert "GARAN" in sql and "AKBNK" not in sql
+
+
+def test_replacement_prices_the_delete_and_the_insert(tmp_path):
+    c = _audit_partition_db(tmp_path)
+    _, d, rc, _, _ = _replace(c, ["AKBNK|2026Q1|consolidated"])
+    P.record_partition_digests(c, "bank_audit_capital", d["bank_audit_capital"],
+                               rows=rc.get("bank_audit_capital"))
+    _, _, _, _, cnt = _replace(c, ["AKBNK|2026Q1|consolidated"])
+    assert cnt["bank_audit_capital"] == 4        # 2 deleted + 2 inserted
+
+
+def test_a_legacy_emptied_partition_is_never_priced_as_one_row(tmp_path, monkeypatch):
+    """origin/master already holds digest rows with a NULL row_count. Emptying
+    such a 100-row partition once priced its DELETE as a single logical row — 2
+    billed instead of 200 — so the guard waved through the very push it exists
+    to stop. With nothing local able to say how big it is, D1 is asked."""
+    c = _audit_partition_db(tmp_path)
+    c.executemany("INSERT INTO bank_audit_capital VALUES "
+                  "('ISCTR','2026Q1','consolidated',?,?,datetime('now'))",
+                  [(f"i{i}", float(i)) for i in range(100)])
+    c.execute("INSERT INTO bank_audit_extractions VALUES "
+              "('ISCTR','2026Q1','consolidated',1,datetime('now'))")
+    c.commit()
+    _, d, _ = _push3(c)
+    # Legacy state: digest recorded, row_count NULL (rows= omitted entirely).
+    P.record_partition_digests(c, "bank_audit_capital", d["bank_audit_capital"])
+    assert P.stored_partition_rows(c, "bank_audit_capital") == {}
+
+    c.execute("DELETE FROM bank_audit_capital WHERE bank_ticker='ISCTR'")
+    c.commit()
+    monkeypatch.setattr(P, "remote_partition_rows",
+                        lambda t, parts: {p: 100 for p in parts})
+    counts: dict = {}
+    P.fetch_recent(c, "bank_audit_capital", 48, digests={}, rowcounts={},
+                   dropped={}, counts=counts, skip_partitions=True)
+    # The fixture table carries no indexes, so the factor is 1: the estimate is
+    # the row count itself. What matters is that it reflects the 100 rows D1
+    # actually holds and not the 1 the old fallback assumed.
+    assert counts["bank_audit_capital"] == 100
+
+
+def test_it_refuses_rather_than_guess_when_d1_cannot_be_asked(tmp_path, monkeypatch):
+    """No fourth source. Assuming a number is how the guard gets defeated."""
+    c = _audit_partition_db(tmp_path)
+    _, d, _ = _push3(c)
+    P.record_partition_digests(c, "bank_audit_capital", d["bank_audit_capital"])
+    c.execute("DELETE FROM bank_audit_capital WHERE bank_ticker='AKBNK'")
+    c.commit()
+    monkeypatch.setattr(P, "remote_partition_rows", lambda t, parts: None)
+    with pytest.raises(RuntimeError, match="cannot price the DELETE"):
+        P.fetch_recent(c, "bank_audit_capital", 48, digests={}, rowcounts={},
+                       dropped={}, skip_partitions=True)
+
+
+def test_state_advances_only_after_the_push_succeeds():
+    """Both the digest and the row_count are written by main() after wrangler
+    exits 0 — generating the SQL persists nothing."""
+    src = (REPO / "scripts" / "push_to_d1.py").read_text(encoding="utf-8")
+    after = src.split("rc = run_wrangler(sql_path)", 1)[1]
+    assert "record_partition_digests" in after
+    before = src.split("rc = run_wrangler(sql_path)", 1)[0]
+    assert "record_partition_digests(" not in before.split("def main(", 1)[-1]

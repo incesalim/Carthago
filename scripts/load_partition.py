@@ -17,7 +17,6 @@ import gzip
 import json
 import shutil
 import sqlite3
-import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -31,7 +30,7 @@ from src.audit_reports.extractor import extract, StatementRow  # noqa: E402
 from src.audit_reports.loader import upsert_report  # noqa: E402
 from src.audit_reports import validator as v  # noqa: E402
 from scripts.audit_d1 import (  # noqa: E402
-    AUDIT_TABLES, _ensure_d1_schema, _guard_against_ci_writers, _retry_wrangler,
+    AUDIT_TABLES, _guard_against_ci_writers, replace_partitions,
 )
 
 DB = REPO / "data" / "bank_audit.db"
@@ -126,14 +125,11 @@ def main() -> int:
         print("[lp] dry-run — not pushing")
         return 0
 
-    _ensure_d1_schema()
-    stmts = [f"DELETE FROM {t} WHERE bank_ticker='{b}' AND period='{p}' AND kind='{k}';" for t in AUDIT_TABLES]
-    sqlp = Path(tempfile.gettempdir()) / "d1_lp_clear.sql"
-    sqlp.write_text("\n".join(stmts) + "\n", encoding="utf-8")
-    print(f"[lp] clearing {b} {p} {k} in D1")
-    _retry_wrangler(sqlp, "D1 partition clear")
-    subprocess.run([sys.executable, str(REPO / "scripts" / "push_to_d1.py"),
-                    "--db", str(DB), "--hours", "1", "--only-tables", ",".join(AUDIT_TABLES)], check=True)
+    # One atomic replace, not clear-then-push: the DELETEs and the INSERTs
+    # travel in a single guarded wrangler file, so a refusal or a transient can
+    # no longer leave this partition deleted with nothing to restore it.
+    print(f"[lp] replacing {b} {p} {k} in D1")
+    replace_partitions([(b, p, k)], DB, AUDIT_TABLES)
     with sqlite3.connect(str(DB)) as c:
         c.execute("VACUUM")
     with open(DB, "rb") as s, gzip.open(GZ, "wb", compresslevel=6) as d:

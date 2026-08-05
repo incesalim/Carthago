@@ -24,6 +24,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from collections.abc import Sequence
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
@@ -228,34 +229,61 @@ def ensure_d1_schema() -> None:
     retry_wrangler(alter_path, "D1 schema column add")
 
 
-def assert_push_affordable(db_path: Path, window_hours: int,
-                           tables: list[str] = AUDIT_TABLES) -> None:
-    """Abort BEFORE clearing anything if the follow-up push would be refused.
+def replace_partitions(parts: Sequence[tuple[str, str, str]],
+                       db_path: Path = DB,
+                       tables: list[str] = AUDIT_TABLES) -> None:
+    """Replace the named (bank, period, kind) partitions in D1 — ONE remote call.
 
-    The clear and the push are two remote calls, and the push can decline: the
-    cost guard exits 3 when the estimate exceeds the cap, and while a cycle's
-    allowance is spent that cap is 250,000. Without this the sequence is
-    "delete the partitions, then discover we may not re-insert them" — the rows
-    are gone and nothing local knows to put them back.
+    This is the interface that retired clear-then-push. That sequence issued a
+    remote DELETE and then launched push_to_d1, so any refusal, SQL error,
+    network blip or cancelled runner between the two left the partitions gone,
+    with nothing local aware they needed restoring. A preflight could not fix it:
+    two remote calls cannot be made atomic, and the cost guard reads cycle usage
+    independently in each, so an accepted check could still be followed by a
+    refused push AFTER the delete.
 
-    Runs the real guard (`--check-only`) rather than re-deriving the estimate, so
-    the two can never disagree about what is affordable.
+    Now push_to_d1 generates the DELETEs and the INSERTs into a single file,
+    prices the whole file under one guard, and wrangler executes it as a unit
+    that rolls back on failure. A partition is either replaced or untouched.
     """
+    if not parts:
+        print("[d1] no partitions to replace")
+        return
+    ensure_d1_schema()
+    listing = Path(tempfile.gettempdir()) / "d1_replace_partitions.txt"
+    listing.write_text(
+        "\n".join(f"{b}|{p}|{k}" for b, p, k in parts) + "\n", encoding="utf-8")
     cmd = [sys.executable, str(REPO / "scripts" / "push_to_d1.py"),
-           "--db", str(db_path), "--hours", str(window_hours),
-           "--only-tables", ",".join(tables), "--check-only"]
-    if subprocess.run(cmd).returncode != 0:
-        sys.exit("[d1] refusing to clear: the follow-up push would be rejected by "
-                 "the cost guard. Nothing has been deleted. Narrow the window or "
-                 "raise --max-billed-rows deliberately.")
+           "--db", str(db_path), "--only-tables", ",".join(tables),
+           "--replace-partitions", str(listing)]
+    print(f"[d1] replacing {len(parts)} partition(s) × {len(tables)} tables in D1")
+    for attempt in range(1, D1_RETRIES + 1):
+        if subprocess.run(cmd).returncode == 0:
+            return
+        if attempt == D1_RETRIES:
+            sys.exit(f"[d1] replace failed after {D1_RETRIES} attempts. The push is "
+                     "atomic, so D1 is unchanged — fix the cause and re-run.")
+        print(f"[d1] replace failed (attempt {attempt}/{D1_RETRIES}) — "
+              f"retrying in {D1_RETRY_WAIT_S}s", flush=True)
+        time.sleep(D1_RETRY_WAIT_S)
+
+
+def partitions_in_window(db_path: Path, window_hours: int
+                         ) -> list[tuple[str, str, str]]:
+    """The (bank, period, kind) set a windowed push would touch."""
+    with sqlite3.connect(str(db_path)) as conn:
+        return conn.execute(
+            "SELECT DISTINCT bank_ticker, period, kind FROM bank_audit_extractions "
+            f"WHERE extracted_at >= datetime('now', '-{window_hours} hours')"
+        ).fetchall()
 
 
 def clear_d1_partitions(db_path: Path, window_hours: int,
                         tables: list[str] = AUDIT_TABLES) -> None:
-    """Clear the just-re-extracted partitions in remote D1 so the subsequent push
-    lands in clean partitions. The (bank, period, kind) set is derived from the
-    fresh bank_audit_extractions rows — the same set push_to_d1 re-inserts within
-    the same window."""
+    """Replace the just-re-extracted partitions in D1. Kept under its old name so
+    existing callers keep working, but it no longer CLEARS and returns: it now
+    does the whole replacement in one guarded, atomic push. The caller must not
+    follow it with a separate push — see replace_partitions."""
     with sqlite3.connect(str(db_path)) as conn:
         parts = conn.execute(
             "SELECT DISTINCT bank_ticker, period, kind FROM bank_audit_extractions "
@@ -264,11 +292,7 @@ def clear_d1_partitions(db_path: Path, window_hours: int,
     if not parts:
         print("[d1] no freshly-extracted partitions to clear in D1")
         return
-    assert_push_affordable(db_path, window_hours, tables)
-    sql_path = Path(tempfile.gettempdir()) / "d1_partition_deletes.sql"
-    sql_path.write_text(partition_delete_sql(parts, tables), encoding="utf-8")
-    print(f"[d1] clearing {len(parts)} partitions × {len(tables)} tables in D1")
-    retry_wrangler(sql_path, "D1 partition delete")
+    replace_partitions(parts, db_path, tables)
 
 
 # --- snapshot pull / push (the bookends of every repair) ------------------
@@ -321,13 +345,7 @@ def push_partitions(parts: list[tuple[str, str, str]], db_path: Path = DB,
     the fresh rows within the window. Used by the targeted manual-correction tools
     (overlay-statement / override-cells / reextract-pl), which touch a known set of
     partitions rather than deriving them from the extracted_at window."""
-    ensure_d1_schema()
-    assert_push_affordable(db_path, window_hours, tables)
-    sql_path = Path(tempfile.gettempdir()) / "d1_targeted_deletes.sql"
-    sql_path.write_text(partition_delete_sql(parts, tables), encoding="utf-8")
-    print(f"[d1] clearing {len(parts)} partition(s) × {len(tables)} tables in D1")
-    retry_wrangler(sql_path, "D1 targeted partition delete")
-    push_to_d1(db_path, window_hours, tables)
+    replace_partitions(parts, db_path, tables)
 
 
 # --- backward-compat aliases (old underscore names; importers migrating) --

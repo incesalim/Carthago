@@ -33,8 +33,8 @@ sys.path.insert(0, str(REPO))
 sys.stdout.reconfigure(encoding="utf-8")
 
 from scripts.audit_d1 import (  # noqa: E402
-    DB, AUDIT_TABLES, PUSH_WINDOW_HOURS,
-    pull_snapshot, ensure_d1_schema, clear_d1_partitions, push_to_d1, push_snapshot,
+    DB, PUSH_WINDOW_HOURS,
+    pull_snapshot, ensure_d1_schema, clear_d1_partitions, push_snapshot,
 )
 from scripts.sync_audit_reports import extract_from_r2  # noqa: E402
 
@@ -103,8 +103,11 @@ def main() -> None:
         return
 
     ensure_d1_schema()                          # create any missing tables before clear/push
-    clear_d1_partitions(DB, args.window_hours)  # derive the (bank,period,kind) set from the window
-    push_to_d1(DB, args.window_hours, AUDIT_TABLES)
+    # One atomic replace: the DELETEs and the INSERTs travel in a single guarded
+    # wrangler file. This used to be clear_d1_partitions() followed by
+    # push_to_d1(), where anything going wrong between the two left the
+    # partitions deleted and unrestored.
+    clear_d1_partitions(DB, args.window_hours)
     push_snapshot(DB)
     print("[backfill] done")
 

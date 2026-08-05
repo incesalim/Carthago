@@ -686,13 +686,37 @@ it equals local**, because "an INSERT was emitted" was never the question:
   leave the digest state current, so the next opt-in run does not re-push it all
   again. (Simply omitting the opt-in flag pushes everything but records nothing.)
 
-⚠️ **Cost validation must happen BEFORE any remote DELETE.** The clear-then-push
-callers issue two remote calls, and the second can decline — the guard exits 3
-when the estimate exceeds the cap, and that cap is 250,000 while a cycle's
-allowance is spent. `audit_d1.assert_push_affordable()` runs the real guard via
-`push_to_d1.py --check-only` before `clear_d1_partitions()` /
-`push_partitions()` delete anything, and aborts with nothing removed. It shells
-out to the guard rather than re-deriving the estimate so the two cannot disagree.
+### There is no clear-then-push any more
+
+Every audit repair tool used to issue a remote `DELETE` and then launch
+`push_to_d1` as a second process. Anything between the two — a guard refusal, a
+SQL error, a network blip, a cancelled runner — left the partitions deleted with
+nothing local aware they needed restoring.
+
+**A preflight cannot fix that**, and the earlier claim here that the two "cannot
+disagree" was wrong: two remote calls cannot be made atomic, the cost guard reads
+cycle usage independently in each, and headroom genuinely moves between them. An
+accepted check could still be followed by a refused push *after* the delete.
+
+`audit_d1.replace_partitions(parts, db, tables)` is now the only path.
+`push_to_d1 --replace-partitions <file>` takes an explicit
+`bank|period|kind` list, emits the scoped `DELETE`s and the current rows into
+**one** file, prices the whole file under **one** guard, and lets wrangler execute
+it as a unit that rolls back on failure. A partition is replaced or untouched.
+
+Selection is explicit — neither the time window nor `bank_audit_extractions` is
+consulted — so a partition holding zero rows locally is still cleared remotely.
+Migrated: `apply_overrides.py`, `load_partition.py`, `reextract_pl.py`,
+`push_from_scratch.py`, `backfill_extraction.py`, and both `audit_d1` helpers.
+`purge_partition.py` is deliberately out of scope: destroying rows is its job.
+
+**Pricing a DELETE has exactly three sources, and no fourth.** The recorded
+`row_count`; failing that the local count, valid only when the digest matched
+(equality means local and remote agree); failing that D1 itself, since a read is
+a thousandth the price of a write. If none can answer — an emptied partition
+whose state predates `row_count`, with D1 unreachable — the push **refuses**.
+Assuming a number is how a 100-row delete got priced as one row, and the guard
+then waves through the very push it exists to stop.
 - ⚠️ **`bank_audit_extractions` is exempt.** It is the extraction *log*: its job
   is to record that an extraction ran, and `extracted_at` — the fact it exists to
   carry — is excluded from every digest. Skipping it would freeze D1's audit

@@ -18,7 +18,9 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import json
 import os
+import re
 import sqlite3
 import subprocess
 import sys
@@ -444,6 +446,41 @@ def record_partition_digests(conn: sqlite3.Connection, table: str,
     conn.commit()
 
 
+def remote_partition_rows(table: str, parts: list[str]) -> dict[str, int] | None:
+    """Ask D1 how many rows it holds for each partition, or None if it cannot say.
+
+    Needed only when a partition must be DELETED remotely and nothing local can
+    say how big it is — an emptied partition whose stored state predates
+    `row_count`. Guessing there is not acceptable: the guard would price a
+    100-row delete as one row. Rows READ are a thousandth the price of rows
+    written, so asking is always cheaper than being wrong about writing.
+
+    Returns None on any failure; the caller must refuse rather than assume.
+    """
+    if not parts:
+        return {}
+    keys = ", ".join(
+        "(" + ",".join("'" + f.replace("'", "''") + "'" for f in p.split("|")) + ")"
+        for p in parts)
+    sql = (f"SELECT bank_ticker || '|' || period || '|' || kind AS p, "
+           f"COUNT(*) AS n FROM {table} "
+           f"WHERE ({', '.join(_PART_KEY)}) IN (VALUES {keys}) GROUP BY p")
+    cmd = ["npx", "--yes", "wrangler", "d1", "execute", "bddk-data", "--remote",
+           "--json", "--command", sql]
+    try:
+        res = subprocess.run(cmd, cwd=str(WEB), shell=os.name == "nt",
+                             capture_output=True, text=True, timeout=120)
+        if res.returncode != 0:
+            return None
+        m = re.search(r"\[\s*\{.*\}\s*\]", res.stdout, re.S)
+        rows = json.loads(m.group(0))[0]["results"]
+    except Exception:
+        return None
+    counts = {r["p"]: r["n"] for r in rows}
+    # A partition D1 does not know about holds nothing — that is an answer.
+    return {p: counts.get(p, 0) for p in parts}
+
+
 def touched_partitions(conn: sqlite3.Connection, hours: int) -> set[str] | None:
     """Partitions re-extracted inside the window, from the lane's own log.
 
@@ -532,7 +569,8 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int,
                  skip_partitions: bool = False,
                  resend: bool = False,
                  rowcounts: dict[str, dict[str, int]] | None = None,
-                 dropped: dict[str, list[str]] | None = None) -> list[str]:
+                 dropped: dict[str, list[str]] | None = None,
+                 replace: set[str] | None = None) -> list[str]:
     """Return SQL statements (INSERT OR REPLACE) for rows updated in last `hours`.
 
     Tables with a `downloaded_at` column are filtered by it.
@@ -625,9 +663,19 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int,
         return [f"-- {table}: no time column, skipped"]
 
     n = conn.execute(f"SELECT COUNT(*) FROM {table} {where}").fetchone()[0]
-    partition_mode = (skip_partitions and not full_rebuild and digests is not None
+    partition_mode = ((skip_partitions or replace is not None)
+                      and not full_rebuild and digests is not None
                       and table not in _NO_PARTITION_SKIP
                       and has_partition_key(conn, table))
+    if replace is not None and partition_mode:
+        # Explicit selection replaces the time window outright: the caller says
+        # which partitions it owns, so a row whose stamp falls outside the window
+        # is still part of the partition being replaced.
+        keys = ", ".join(
+            "(" + ",".join("'" + f.replace("'", "''") + "'" for f in p.split("|")) + ")"
+            for p in sorted(replace))
+        where = f"WHERE ({', '.join(_PART_KEY)}) IN (VALUES {keys})"
+        n = conn.execute(f"SELECT COUNT(*) FROM {table} {where}").fetchone()[0]
     # A partition emptied by re-extraction has NO rows left, so `n` can be 0 while
     # D1 still holds everything it used to. Returning here would strand it, which
     # is exactly what happened before: the log even printed "none changed".
@@ -655,17 +703,24 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int,
         # A partition we have never pushed has no stored digest and is therefore
         # always sent — the safe default when the state is missing or reseeded.
         changed = {k: v for k, v in current.items()
-                   if resend or stored.get(k) != v}
+                   if resend or replace is not None or stored.get(k) != v}
 
-        # Partitions the log says were re-extracted, which now hold NO rows: D1
-        # still has their old contents and nothing local can point at them.
-        # Scoped to the window via the log, so historical partitions that are
-        # merely out of window are never touched.
-        touched = touched_partitions(conn, hours)
-        emptied = sorted(
-            k for k in stored
-            if k not in current and (touched is None or k in touched)
-        ) if touched is not None else []
+        if replace is not None:
+            # EXPLICIT REPLACEMENT. The caller named the partitions, so selection
+            # does not go through the window or the extraction log at all — a
+            # partition is replaced because it was asked for, including one that
+            # now holds zero rows locally and one the log has never heard of.
+            emptied = sorted(p for p in replace if p not in current)
+        else:
+            # Partitions the log says were re-extracted, which now hold NO rows:
+            # D1 still has their old contents and nothing local can point at
+            # them. Scoped to the window via the log, so historical partitions
+            # that are merely out of window are never touched.
+            touched = touched_partitions(conn, hours)
+            emptied = sorted(
+                k for k in stored
+                if k not in current and (touched is None or k in touched)
+            ) if touched is not None else []
 
         if not changed and not emptied:
             print(f"  [skip] {table}: {len(current)} partition(s) in window, "
@@ -699,11 +754,39 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int,
         part_delete = partition_deletes(table, to_delete)
         # What D1 will actually delete — the rows it HOLDS, not the rows we hold.
         # A shrinking or emptied partition has fewer (or none) locally, so pricing
-        # off the local count would understate the bill. Legacy state with no
-        # recorded count falls back to the local count, or to the table's mean
-        # partition size when even that is zero.
-        fallback = max(1, n // max(1, len(changed))) if changed else 1
-        del_rows = sum(stored_rows.get(k, fallback) for k in to_delete)
+        # off the local count understates the bill.
+        #
+        # Three sources, in order of trust:
+        #   1. the recorded row_count from the last push;
+        #   2. the LOCAL count, when the partition still has rows AND its digest
+        #      matched — digest equality means local and remote agree, so the
+        #      local count is the remote count. This backfills legacy state
+        #      without a network call;
+        #   3. D1 itself, for a partition being deleted whose size nothing local
+        #      knows — an emptied partition recorded before row_count existed.
+        # There is deliberately no fourth. Assuming a number here is how a 100-row
+        # delete gets priced as one row, and the guard then waves through the very
+        # push it exists to stop.
+        local_rows = {
+            k: conn.execute(
+                f"SELECT COUNT(*) FROM {table} WHERE "
+                + " AND ".join(f"{c} = ?" for c in _PART_KEY), k.split("|")
+            ).fetchone()[0] for k in to_delete
+        }
+        unknown = [k for k in to_delete
+                   if k not in stored_rows and not local_rows.get(k)]
+        if unknown:
+            probed = remote_partition_rows(table, unknown)
+            if probed is None:
+                raise RuntimeError(
+                    f"{table}: cannot price the DELETE of {len(unknown)} partition(s) "
+                    f"— no recorded row_count, no local rows, and D1 could not be "
+                    f"queried. Refusing rather than guessing; a wrong guess here "
+                    f"defeats the cost guard. Retry when D1 is reachable, or pass "
+                    f"--max-billed-rows deliberately with --no-cycle-check."
+                )
+            stored_rows = {**stored_rows, **probed}
+        del_rows = sum(stored_rows.get(k, local_rows.get(k, 0)) for k in to_delete)
         digests[table] = changed
         if rowcounts is not None:
             rowcounts[table] = {
@@ -902,6 +985,17 @@ def main() -> int:
                              "self-contained DELETE+INSERT path, so unlike simply "
                              "omitting --skip-unchanged-partitions it does not "
                              "leave the next opt-in run re-pushing everything.")
+    parser.add_argument("--replace-partitions", type=str, default=None,
+                        help="Path to a file of `bank|period|kind` lines. Those "
+                             "partitions are REPLACED: one scoped DELETE plus the "
+                             "current local rows, in a single guarded wrangler "
+                             "file. Selection is explicit — the time window and "
+                             "the extraction log are not consulted — so a "
+                             "partition that now holds zero rows is still cleared "
+                             "remotely. This is the interface every targeted "
+                             "correction tool uses INSTEAD of clearing D1 itself "
+                             "and then pushing, which left the rows gone whenever "
+                             "the second call did not happen.")
     parser.add_argument("--check-only", action="store_true",
                         help="Generate the SQL and apply the cost guard, then exit "
                              "WITHOUT executing: 0 if the push would be affordable, "
@@ -953,6 +1047,23 @@ def main() -> int:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2
 
+    replace: set[str] | None = None
+    if args.replace_partitions:
+        replace = {
+            ln.strip() for ln in
+            Path(args.replace_partitions).read_text(encoding="utf-8").splitlines()
+            if ln.strip()
+        }
+        if not replace:
+            print("no partitions listed to replace — nothing to push")
+            return 0
+        bad = sorted(p for p in replace if len(p.split("|")) != 3)
+        if bad:
+            print(f"ERROR: malformed partition key(s), expected bank|period|kind: "
+                  f"{bad[:5]}", file=sys.stderr)
+            return 2
+        print(f"replacing {len(replace)} partition(s)")
+
     lines: list[str] = ["-- incremental D1 push", f"-- window: last {args.hours} hours", ""]
     if allowed_tables:
         # Echo the resolved set: the Actions log is where you confirm a lane is
@@ -989,7 +1100,8 @@ def main() -> int:
                              skip_partitions=(args.skip_unchanged_partitions
                                               or args.resend_partitions),
                              resend=args.resend_partitions,
-                             rowcounts=rowcounts, dropped=dropped)
+                             rowcounts=rowcounts, dropped=dropped,
+                             replace=replace)
         lines.extend(block)
         lines.append("")
         n_ins = sum(1 for ln in block if ln.startswith("INSERT"))

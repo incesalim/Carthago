@@ -12,9 +12,7 @@ import argparse
 import gzip
 import shutil
 import sqlite3
-import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
@@ -23,7 +21,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 
 from src.audit_reports import r2_storage  # noqa: E402
 from scripts.audit_d1 import (  # noqa: E402
-    AUDIT_TABLES, _ensure_d1_schema, _guard_against_ci_writers, _retry_wrangler,
+    AUDIT_TABLES, _guard_against_ci_writers, replace_partitions,
 )
 
 DB = REPO / "data" / "bank_audit.db"
@@ -55,21 +53,13 @@ def _copy_banks(prod: sqlite3.Connection, banks: list[str]) -> dict[str, int]:
     return counts
 
 
-def _clear_d1(banks: list[str]) -> None:
-    parts = []
+def _partitions_for(banks: list[str]) -> list[tuple[str, str, str]]:
+    """Every (bank, period, kind) these banks own, from the extraction log."""
     with sqlite3.connect(str(DB)) as c:
         ph = ",".join("?" * len(banks))
-        parts = c.execute(
+        return c.execute(
             f"SELECT DISTINCT bank_ticker, period, kind FROM bank_audit_extractions "
             f"WHERE bank_ticker IN ({ph})", banks).fetchall()
-    stmts = []
-    for tbl in AUDIT_TABLES:
-        for b, p, k in parts:
-            stmts.append(f"DELETE FROM {tbl} WHERE bank_ticker='{b}' AND period='{p}' AND kind='{k}';")
-    sql = Path(tempfile.gettempdir()) / "d1_scratch_clear.sql"
-    sql.write_text("\n".join(stmts) + "\n", encoding="utf-8")
-    print(f"[push] clearing {len(parts)} partitions × {len(AUDIT_TABLES)} tables in D1")
-    _retry_wrangler(sql, "D1 partition clear")
 
 
 def main() -> int:
@@ -102,11 +92,9 @@ def main() -> int:
         print("[push] dry-run: skipping D1 + snapshot")
         return 0
 
-    _ensure_d1_schema()
-    _clear_d1(banks)
-    subprocess.run([sys.executable, str(REPO / "scripts" / "push_to_d1.py"),
-                    "--db", str(DB), "--hours", str(args.window_hours),
-                    "--only-tables", ",".join(AUDIT_TABLES)], check=True)
+    # One atomic replace of every partition these banks own, instead of a remote
+    # clear followed by a separate push (see audit_d1.replace_partitions).
+    replace_partitions(_partitions_for(banks), DB, AUDIT_TABLES)
     with sqlite3.connect(str(DB)) as c:
         c.execute("VACUUM")
     with open(DB, "rb") as s, gzip.open(GZ, "wb", compresslevel=6) as d:
