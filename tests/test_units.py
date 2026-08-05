@@ -13,6 +13,7 @@ untouched, and pin that an unreadable unit refuses rather than assumes.
 """
 from __future__ import annotations
 
+import json
 import sqlite3
 import sys
 from pathlib import Path
@@ -486,3 +487,275 @@ def test_every_existing_override_entry_is_legacy_and_needs_no_unit():
         assert unit in U.UNIT_SCALE
         if U.within_sweep(period):
             assert U.scale_factor(unit) == 1, f"{period} legacy entry would be scaled"
+
+
+# --- integration: the WIRING, not the registry -------------------------------
+#
+# The tests above prove the classification. These prove each writer actually
+# applies it: invoked as production invokes it, against a real schema, value read
+# back. A writer that accepts the context and forgets to use it passes every unit
+# test and fails here.
+
+def _db(tmp_path, name="w.db"):
+    conn = sqlite3.connect(tmp_path / name)
+    init_schema(conn)
+    return conn
+
+
+def _milyon():
+    return U.UnitContext(source_unit="milyon", factor=1_000)
+
+
+def test_credit_quality_writer_scales(tmp_path):
+    from src.audit_reports.credit_quality import CreditQualityReport, upsert
+    conn = _db(tmp_path)
+    rep = CreditQualityReport(pdf_path="x.pdf", rows=[])
+    row = type("R", (), {"section": "loans_amounts", "period_type": "current",
+                         "page": 5, "stage1": 1.0, "stage2": 2.0, "stage3": 3.0,
+                         "total": 6.0, "heading": "h"})()
+    rep.rows = [row]
+    upsert(conn, "TEB", "2026Q2", "consolidated", rep, unit=_milyon())
+    got = conn.execute("SELECT stage1_amount, total_amount, source_page "
+                       "FROM bank_audit_credit_quality").fetchone()
+    assert got == (1_000.0, 6_000.0, 5), "the page number must not be scaled"
+
+
+def test_liquidity_writer_scales_nothing(tmp_path):
+    from src.audit_reports.liquidity import LiquidityReport, upsert
+    conn = _db(tmp_path)
+    rep = LiquidityReport(pdf_path="x.pdf")
+    rep.rows = [type("R", (), {"period_type": "current", "leverage_ratio": 8.0,
+                               "lcr_total": 150.0, "lcr_fc": 200.0,
+                               "nsfr": 130.0})()]
+    rep.source_page = 9
+    upsert(conn, "TEB", "2026Q2", "consolidated", rep, unit=_milyon())
+    got = conn.execute("SELECT leverage_ratio, lcr_total, lcr_fc, nsfr "
+                       "FROM bank_audit_liquidity").fetchone()
+    assert got == (8.0, 150.0, 200.0, 130.0), "LCR/NSFR/leverage are ratios"
+
+
+def test_oci_writer_scales(tmp_path):
+    from src.audit_reports.oci import OCIReport, upsert
+    conn = _db(tmp_path)
+    rep = OCIReport(pdf_path="x.pdf", rows=[
+        type("R", (), {"order": 1, "hierarchy": "I.", "name": "OCI",
+                       "footnote": None, "cur_amount": 7.0})()])
+    upsert(conn, "TEB", "2026Q2", "consolidated", rep, unit=_milyon())
+    assert conn.execute("SELECT amount, item_order FROM bank_audit_oci").fetchone() \
+        == (7_000.0, 1)
+
+
+def test_a_writer_cannot_be_called_without_a_context():
+    """No default anywhere. A caller that forgets fails loudly rather than
+    silently storing a Milyon filing unscaled."""
+    from src.audit_reports.oci import OCIReport, upsert
+    with pytest.raises(TypeError, match="unit"):
+        upsert(sqlite3.connect(":memory:"), "T", "2026Q2", "c",
+               OCIReport(pdf_path="x.pdf", rows=[]))
+
+
+def test_the_loader_scales_balance_sheet_pl_and_cash_flow(tmp_path):
+    from src.audit_reports.extractor import BankReport, StatementRow
+    from src.audit_reports.loader import upsert_report
+    conn = _db(tmp_path)
+    rep = BankReport(
+        pdf_path="x.pdf",
+        bs_assets=[StatementRow(order=1, hierarchy="I.", name="Nakit", footnote=None,
+                                cur_tl=1.0, cur_fc=2.0, cur_total=3.0)],
+        bs_liabilities=[], off_balance=[],
+        profit_loss=[StatementRow(order=1, hierarchy="I.", name="Faiz",
+                                  footnote=None, cur_amount=4.0)])
+    rep.cash_flow = [StatementRow(order=1, hierarchy="A.", name="Akis",
+                                  footnote=None, cur_amount=5.0)]
+    # The sixth argument is the R2 KEY, exactly as sync_audit_reports passes it.
+    upsert_report(conn, "TEB", "2026Q2", "consolidated", rep,
+                  "teb/TEB_2026Q2_consolidated.pdf", unit=_milyon())
+    assert conn.execute("SELECT amount_tl, amount_fc, amount_total, item_order "
+                        "FROM bank_audit_balance_sheet").fetchone() == \
+        (1_000.0, 2_000.0, 3_000.0, 1)
+    assert conn.execute(
+        "SELECT amount FROM bank_audit_profit_loss").fetchone()[0] == 4_000.0
+    assert conn.execute(
+        "SELECT amount FROM bank_audit_cash_flow").fetchone()[0] == 5_000.0
+
+
+def test_the_loader_at_factor_one_stores_exactly_what_was_extracted(tmp_path):
+    """The historical control: a pre-switch partition must not move."""
+    from src.audit_reports.extractor import BankReport, StatementRow
+    from src.audit_reports.loader import upsert_report
+    conn = _db(tmp_path)
+    rep = BankReport(
+        pdf_path="x.pdf",
+        bs_assets=[StatementRow(order=1, hierarchy="I.", name="Nakit", footnote=None,
+                                cur_tl=1234.5, cur_fc=None, cur_total=1234.5)],
+        bs_liabilities=[], off_balance=[], profit_loss=[])
+    upsert_report(conn, "TEB", "2025Q4", "consolidated", rep, "k.pdf",
+                  unit=U.UnitContext.for_partition("2025Q4", None))
+    assert conn.execute("SELECT amount_tl, amount_fc FROM bank_audit_balance_sheet") \
+        .fetchone() == (1234.5, None), "null stayed null; the figure did not move"
+
+
+# --- the R2 key is not a path -------------------------------------------------
+
+def test_the_stored_identifier_and_the_detector_path_are_distinct(tmp_path):
+    """THE wiring trap. sync_audit_reports hands the writer the R2 KEY while the
+    downloaded file has a different name in a temp dir; load_partition,
+    reextract_pl and backfill_credit_quality delete theirs before writing."""
+    key = "teb/TEB_2026Q2_consolidated.pdf"
+    with pytest.raises(ValueError, match="not a readable file"):
+        U.UnitContext.for_partition("2026Q2", key)
+
+    local = tmp_path / "TEB_2026Q2_consolidated.pdf"
+    local.write_bytes(b"not a pdf")
+    assert key != str(local)
+    assert Path(local).is_file() and "/" not in key.split("/")[-1]
+
+
+def test_unknown_missing_and_key_all_refuse_leaving_rows_untouched(tmp_path):
+    from src.audit_reports.extractor import BankReport, StatementRow
+    from src.audit_reports.loader import upsert_report
+    conn = _db(tmp_path)
+    rep = BankReport(pdf_path="x.pdf",
+                     bs_assets=[StatementRow(order=1, hierarchy="I.", name="N",
+                                             footnote=None, cur_tl=1.0)],
+                     bs_liabilities=[], off_balance=[], profit_loss=[])
+    upsert_report(conn, "TEB", "2025Q4", "consolidated", rep, "k.pdf",
+                  unit=U.UnitContext.canonical())
+    before = list(conn.execute("SELECT * FROM bank_audit_balance_sheet"))
+
+    for bad in (None, "/no/such/file.pdf", "teb/TEB_2026Q2_consolidated.pdf"):
+        with pytest.raises(ValueError):
+            U.UnitContext.for_partition("2026Q2", bad)
+    assert list(conn.execute("SELECT * FROM bank_audit_balance_sheet")) == before
+
+
+# --- apply_overrides: the REAL path, proving no mutation ----------------------
+
+def _override_db(tmp_path):
+    conn = sqlite3.connect(tmp_path / "ovr.db")
+    init_schema(conn)
+    conn.execute(
+        "INSERT INTO bank_audit_balance_sheet (bank_ticker, period, kind, "
+        "statement, item_order, hierarchy, item_name, amount_tl, amount_total) "
+        "VALUES ('TEB','2026Q2','consolidated','assets',1,'I.','Nakit',42.0,42.0)")
+    conn.commit()
+    return conn
+
+
+def test_a_post_horizon_override_without_a_unit_aborts_the_whole_run(tmp_path,
+                                                                     monkeypatch):
+    """Not a resolver call with an unreachable UPDATE after it — this drives the
+    real main(), which resolves EVERY entry before pulling the snapshot or
+    touching a row, so one undeclared Q2 entry aborts with nothing applied."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "ao", REPO / "scripts" / "apply_overrides.py")
+    ao = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(ao)
+
+    conn = _override_db(tmp_path)
+    before = list(conn.execute("SELECT * FROM bank_audit_balance_sheet"))
+    conn.commit()
+    conn.close()
+
+    ovr = tmp_path / "ovr.json"
+    ovr.write_text(json.dumps({"overrides": [
+        {"bank_ticker": "TEB", "period": "2026Q2", "kind": "consolidated",
+         "statement": "assets", "hierarchy": "I.", "item_name": "Nakit",
+         "amount_tl": 5000, "amount_total": 5000, "note": "no unit declared"}]}),
+        encoding="utf-8")
+    monkeypatch.setattr(ao, "OVR", ovr)
+    monkeypatch.setattr(ao, "DB", tmp_path / "ovr.db")
+    pulled = []
+    monkeypatch.setattr(ao.r2_storage, "download_to",
+                        lambda *a, **k: pulled.append(a))
+    monkeypatch.setattr(sys, "argv", ["apply_overrides.py", "--dry-run"])
+
+    assert ao.main() == 2, "an undeclared post-horizon entry must abort"
+    assert pulled == [], "it aborted before even pulling the snapshot"
+
+    conn = sqlite3.connect(tmp_path / "ovr.db")
+    assert list(conn.execute("SELECT * FROM bank_audit_balance_sheet")) == before
+    conn.close()
+
+
+def test_an_override_declaring_milyon_is_normalised_once(tmp_path):
+    """apply_overrides is standalone — it writes rows itself — so the entry is
+    converted from its declared unit to canonical bin before dispatch."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "ao2", REPO / "scripts" / "apply_overrides.py")
+    ao = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(ao)
+
+    entry = {"bank_ticker": "TEB", "period": "2026Q2", "kind": "consolidated",
+             "statement": "assets", "hierarchy": "I.", "item_name": "Nakit",
+             "amount_tl": 5.0, "amount_total": 5.0, "unit": "milyon"}
+    out = ao._normalise_override(entry, U.UnitContext.manual("2026Q2", "milyon"))
+    assert out["amount_tl"] == 5_000.0 and out["amount_total"] == 5_000.0
+    # and again at bin — unchanged
+    same = ao._normalise_override(entry, U.UnitContext.manual("2026Q2", "bin"))
+    assert same["amount_tl"] == 5.0
+
+
+def test_an_override_scales_amounts_but_not_ratios_in_fields(tmp_path):
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "ao3", REPO / "scripts" / "apply_overrides.py")
+    ao = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(ao)
+
+    entry = {"bank_ticker": "TEB", "period": "2026Q2", "kind": "consolidated",
+             "statement": "capital", "unit": "milyon",
+             "fields": {"cet1_capital": 10.0, "cet1_ratio": 15.4}}
+    out = ao._normalise_override(entry, U.UnitContext.manual("2026Q2", "milyon"))
+    assert out["fields"]["cet1_capital"] == 10_000.0
+    assert out["fields"]["cet1_ratio"] == 15.4, "a ratio was scaled"
+
+
+def test_a_legacy_override_needs_no_unit_and_is_not_scaled(tmp_path):
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "ao4", REPO / "scripts" / "apply_overrides.py")
+    ao = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(ao)
+
+    entry = {"bank_ticker": "TEB", "period": "2025Q4", "kind": "consolidated",
+             "statement": "assets", "amount_tl": 1234.5}
+    ctx = U.UnitContext.manual("2025Q4", None)
+    assert ctx.factor == 1
+    assert ao._normalise_override(entry, ctx)["amount_tl"] == 1234.5
+
+
+def test_every_raw_money_writer_actually_applies_the_context(tmp_path):
+    """THE regression that the TEB smoke test caught and the unit tests did not.
+
+    Four writers (capital, liquidity, fx_position, repricing) accepted `unit`
+    and never called it: a scripted edit's anchor omitted the intervening
+    `cur.executemany(` line, so the insertion silently no-opped. Signature
+    present, scaling absent, every test green — and TEB's fx net position stored
+    at -7,662 against a Q1 of -6,231,165.
+
+    Source-level, because a per-table behavioural test can be added for eleven
+    writers and forgotten for the twelfth.
+    """
+    import inspect
+    import importlib
+    for table in sorted(U.RAW_MONEY_TABLES):
+        mod_name = {
+            "bank_audit_balance_sheet": "loader", "bank_audit_profit_loss": "loader",
+            "bank_audit_cash_flow": "loader", "bank_audit_oci": "oci",
+            "bank_audit_credit_quality": "credit_quality",
+            "bank_audit_loans_by_sector": "loans_by_sector",
+            "bank_audit_npl_movement": "npl_movement",
+            "bank_audit_capital": "capital_adequacy",
+            "bank_audit_fx_position": "fx_position",
+            "bank_audit_repricing": "repricing",
+            "bank_audit_equity_change": "equity_change",
+            "bank_audit_free_provision": "free_provision",
+        }[table]
+        mod = importlib.import_module(f"src.audit_reports.{mod_name}")
+        src = inspect.getsource(mod)
+        assert "scale_rows(" in src, (
+            f"{mod_name} writes {table} but never calls scale_rows — it accepts "
+            f"the context and ignores it")

@@ -28,6 +28,8 @@ refused: UNKNOWN means "look at this filing", never "assume thousands".
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
+from pathlib import Path
 
 # ---------------------------------------------------------------------------
 # Detection. Lifted verbatim from src/analyst/extract_basis_metadata.py, which
@@ -297,3 +299,59 @@ def resolve_manual_unit(period: str, declared: str | None) -> str:
         f"2026Q2, so defaulting to thousands here would store the figure 1000x "
         f"small while every in-filing identity still foots — the one error no "
         f"validator in this repo can see.")
+
+
+@dataclass(frozen=True)
+class UnitContext:
+    """What a filing printed, and the multiplier to canonical `bin`.
+
+    Passed explicitly rather than re-derived per writer, because the writers do
+    not have the PDF: `sync_audit_reports` hands `upsert_report` the R2 KEY
+    (`akbnk/AKBNK_2026Q2_consolidated.pdf`) while the downloaded file lives in a
+    temp dir under a different name, and `load_partition`, `reextract_pl` and
+    `backfill_credit_quality` all close their TemporaryDirectory before writing.
+    A writer that tried to open `pdf_path` would get a name that is not a file.
+
+    So: resolve ONCE while the local file exists, thread the result, and keep the
+    stored R2 key as a separate value used only for provenance.
+    """
+
+    source_unit: str
+    factor: int
+
+    @classmethod
+    def for_partition(cls, period: str, local_pdf_path: str | None) -> "UnitContext":
+        """Resolve from the REAL local file. Raises when it cannot be established.
+
+        `local_pdf_path` must be a path that exists right now — never an R2 key.
+        """
+        if not within_sweep(period):
+            if local_pdf_path is None:
+                raise ValueError(
+                    f"{period} is past {SWEEP_HORIZON} and no local PDF was given: "
+                    f"the reporting unit must be READ from the filing. Resolve it "
+                    f"while the temporary file still exists and pass the context in.")
+            if not Path(local_pdf_path).is_file():
+                raise ValueError(
+                    f"{period}: {local_pdf_path!r} is not a readable file. This is "
+                    f"the R2-key-versus-temp-path trap: the stored identifier is a "
+                    f"key like 'akbnk/AKBNK_2026Q2_consolidated.pdf', not a path. "
+                    f"Resolve the unit from the downloaded file.")
+        unit = resolve_unit(period, local_pdf_path)
+        return cls(source_unit=unit, factor=scale_factor(unit))
+
+    @classmethod
+    def manual(cls, period: str, declared: str | None) -> "UnitContext":
+        """For a hand-transcribed entry, which carries the filing's own unit."""
+        unit = resolve_manual_unit(period, declared)
+        return cls(source_unit=unit, factor=scale_factor(unit))
+
+    @classmethod
+    def canonical(cls) -> "UnitContext":
+        """Values already in `bin` — a derived rebuild, or a legacy repair."""
+        return cls(source_unit=CANONICAL_UNIT, factor=1)
+
+    def scale_rows(self, table: str, columns: list[str],
+                   rows: list[tuple]) -> list[tuple]:
+        """Scale a writer's value tuples. Raises for a derived or unknown table."""
+        return [scale_sequence(table, columns, r, self.factor) for r in rows]

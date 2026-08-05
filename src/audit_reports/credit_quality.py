@@ -38,6 +38,7 @@ from pathlib import Path
 
 import fitz  # PyMuPDF — ~85× faster than pdfplumber for text; credit_quality is fitz-only
 
+from .units import UnitContext
 from .extractor import NUM_PAT as _NUM_PAT_STR
 from .extractor import parse_num
 
@@ -1695,6 +1696,8 @@ def upsert(
     period: str,
     kind: str,
     rep: CreditQualityReport,
+    *,
+    unit: UnitContext,
 ) -> int:
     """Idempotently store one bank's credit-quality rows. Returns row count."""
     cur = conn.cursor()
@@ -1707,6 +1710,9 @@ def upsert(
         bank_ticker, period, kind, r.section, r.period_type,
         r.page, r.stage1, r.stage2, r.stage3, r.total, r.heading,
     ) for r in rep.rows]
+    # Normalise to canonical `bin` BEFORE the insert. The factor comes
+    # from the caller because this function has no PDF to read.
+    rows = unit.scale_rows("bank_audit_credit_quality", ["bank_ticker","period","kind","section","period_type","source_page","stage1_amount","stage2_amount","stage3_amount","total_amount","heading_snippet"], rows)
     if rows:
         cur.executemany(
             "INSERT INTO bank_audit_credit_quality "

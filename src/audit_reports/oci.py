@@ -27,6 +27,7 @@ from .extractor import (
     _split_label,
 )
 from .validator import _roman_to_int, _tol, check_hierarchy_sums
+from .units import UnitContext
 
 _OCI_MIN_REAL_ROWS = 3
 
@@ -266,7 +267,7 @@ def extract_oci(pdf_path: str, oci_page: int) -> OCIReport:
 
 
 def upsert(conn: sqlite3.Connection, bank: str, period: str,
-           kind: str, report: OCIReport) -> int:
+           kind: str, report: OCIReport, *, unit: UnitContext) -> int:
     """Delete + insert OCI rows for (bank, period, kind). Returns row count."""
     conn.execute(
         'DELETE FROM bank_audit_oci WHERE bank_ticker=? AND period=? AND kind=?',
@@ -274,11 +275,16 @@ def upsert(conn: sqlite3.Connection, bank: str, period: str,
     )
     if not report.rows:
         return 0
+    cols = ["bank_ticker", "period", "kind", "item_order", "hierarchy",
+            "item_name", "footnote", "amount"]
+    rows = [(bank, period, kind, r.order, r.hierarchy, r.name, r.footnote, r.cur_amount)
+            for r in report.rows]
+    # Normalise to canonical `bin` BEFORE the insert.
+    rows = unit.scale_rows("bank_audit_oci", cols, rows)
     conn.executemany(
         'INSERT INTO bank_audit_oci '
         '(bank_ticker, period, kind, item_order, hierarchy, item_name, footnote, amount) '
         'VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [(bank, period, kind, r.order, r.hierarchy, r.name, r.footnote, r.cur_amount)
-         for r in report.rows],
+        rows,
     )
     return len(report.rows)

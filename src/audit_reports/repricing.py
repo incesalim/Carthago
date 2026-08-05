@@ -28,6 +28,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from .extractor import _HAS_FITZ, parse_num
+from .units import UnitContext
 
 # fitz-only: the §4 interest-rate-risk table is a single narrow footnote — fitz
 # word clustering reads it faithfully and is far cheaper than pdfplumber per page,
@@ -435,7 +436,7 @@ _VALUE_COLS = ["rate_sensitive_assets", "rate_sensitive_liab", "gap", "cumulativ
 
 
 def upsert(conn: sqlite3.Connection, bank_ticker: str, period: str, kind: str,
-           rep: RepricingReport) -> int:
+           rep: RepricingReport, *, unit: UnitContext) -> int:
     cur = conn.cursor()
     cur.execute(
         "DELETE FROM bank_audit_repricing WHERE bank_ticker=? AND period=? AND kind=?",
@@ -448,6 +449,9 @@ def upsert(conn: sqlite3.Connection, bank_ticker: str, period: str, kind: str,
         bank_ticker, period, kind, r.period_type, r.bucket,
         *[getattr(r, c) for c in _VALUE_COLS], rep.source_page,
     ) for r in rep.rows]
+    # Normalise to canonical `bin` BEFORE the insert; the factor comes
+    # from the caller because this function has no PDF to read.
+    rows = unit.scale_rows("bank_audit_repricing", cols, rows)
     if rows:
         cur.executemany(
             f"INSERT INTO bank_audit_repricing ({', '.join(cols)}) VALUES ({ph})", rows

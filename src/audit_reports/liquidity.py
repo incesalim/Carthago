@@ -24,6 +24,7 @@ from pathlib import Path
 
 from .capital_adequacy import _parse_ratio, _repair_split_digits, _trailing_two_tokens
 from .extractor import _HAS_FITZ, _fitz_page_count, _fitz_page_text
+from .units import UnitContext
 
 _SKIP_PAGES = 12
 _MAX_SCAN_FROM_START = 26   # pages to scan once the LCR section begins; the
@@ -224,6 +225,8 @@ def upsert(
     period: str,
     kind: str,
     rep: LiquidityReport,
+    *,
+    unit: UnitContext,
 ) -> int:
     cur = conn.cursor()
     cur.execute(
@@ -237,6 +240,9 @@ def upsert(
         *[getattr(r, c) for c in _VALUE_COLS],
         rep.source_page,
     ) for r in rep.rows]
+    # Normalise to canonical `bin` BEFORE the insert; the factor comes
+    # from the caller because this function has no PDF to read.
+    rows = unit.scale_rows("bank_audit_liquidity", cols, rows)
     if rows:
         cur.executemany(
             f"INSERT INTO bank_audit_liquidity ({', '.join(cols)}) VALUES ({ph})", rows

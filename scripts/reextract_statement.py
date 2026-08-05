@@ -38,6 +38,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 from src.audit_reports import r2_storage  # noqa: E402
 from src.audit_reports import validator as _validator  # noqa: E402
 from src.audit_reports.extractor import extract  # noqa: E402
+from src.audit_reports.units import UnitContext  # noqa: E402
 from src.audit_reports.equity_change import (  # noqa: E402
     EquityChangeReport, upsert as _upsert_equity,
 )
@@ -124,12 +125,18 @@ def _worker(args):
         r2_storage.download_to(key, dest)
     except Exception as e:  # noqa: BLE001
         return (ticker, period, kind, False, 0, time.time() - t0,
-                f"r2:{type(e).__name__}", None, str(dest))
+                f"r2:{type(e).__name__}", None, str(dest), None)
+    try:
+        # While `dest` still exists: the parent upserts after this worker returns.
+        unit = UnitContext.for_partition(period, str(dest))
+    except ValueError as e:
+        return (ticker, period, kind, False, 0, time.time() - t0,
+                f"unit:{e}", None, str(dest), None)
     try:
         rep = extract(str(dest), only={statement})
     except Exception as e:  # noqa: BLE001
         return (ticker, period, kind, False, 0, time.time() - t0,
-                f"extract:{type(e).__name__}:{str(e)[:60]}", None, str(dest))
+                f"extract:{type(e).__name__}:{str(e)[:60]}", None, str(dest), None)
     if statement == "oci":
         n = len(getattr(rep, "other_comprehensive_income", []) or [])
     elif statement == "cash_flow":
@@ -170,17 +177,17 @@ def _worker(args):
     else:
         eq = getattr(rep, "equity_change", None)
         n = len(eq.rows) if eq and getattr(eq, "rows", None) else 0
-    return (ticker, period, kind, True, n, time.time() - t0, "", rep, str(dest))
+    return (ticker, period, kind, True, n, time.time() - t0, "", rep, str(dest), unit)
 
 
-def _upsert(conn, statement, bank, period, kind, rep) -> int:
+def _upsert(conn, statement, bank, period, kind, rep, *, unit) -> int:
     if statement == "equity_change":
         report = getattr(rep, "equity_change", None) or EquityChangeReport(pdf_path=rep.pdf_path)
-        return _upsert_equity(conn, bank, period, kind, report)
+        return _upsert_equity(conn, bank, period, kind, report, unit=unit)
     if statement == "oci":
         report = OCIReport(pdf_path=rep.pdf_path,
                            rows=getattr(rep, "other_comprehensive_income", []) or [])
-        return _upsert_oci(conn, bank, period, kind, report)
+        return _upsert_oci(conn, bank, period, kind, report, unit=unit)
     if statement == "cash_flow":
         rows = getattr(rep, "cash_flow", []) or []
         conn.execute('DELETE FROM bank_audit_cash_flow WHERE bank_ticker=? AND period=? AND kind=?',
@@ -196,11 +203,11 @@ def _upsert(conn, statement, bank, period, kind, rep) -> int:
     if statement == "npl_movement":
         report = NplMovementReport(pdf_path=rep.pdf_path,
                                    rows=getattr(rep, "npl_movement", []) or [])
-        return _upsert_npl(conn, bank, period, kind, report)
+        return _upsert_npl(conn, bank, period, kind, report, unit=unit)
     if statement == "loans_by_sector":
         report = LoansBySectorReport(pdf_path=rep.pdf_path,
                                      rows=getattr(rep, "loans_by_sector", []) or [])
-        return _upsert_lbs(conn, bank, period, kind, report)
+        return _upsert_lbs(conn, bank, period, kind, report, unit=unit)
     if statement == "bank_profile":
         bp = getattr(rep, "bank_profile", None)
         # Mirror the loader's skip-if-empty: don't write an all-NULL row for a bank
@@ -223,23 +230,23 @@ def _upsert(conn, statement, bank, period, kind, rep) -> int:
         conn.execute("DELETE FROM bank_audit_free_provision "
                      "WHERE bank_ticker=? AND period=? AND kind=?", (bank, period, kind))
         fpr = getattr(rep, "free_provision", None)
-        return _upsert_fp(conn, bank, period, kind, fpr) or 0
+        return _upsert_fp(conn, bank, period, kind, fpr, unit=unit) or 0
     if statement == "credit_quality":
         report = CreditQualityReport(pdf_path=rep.pdf_path,
                                      rows=getattr(rep, "credit_quality", []) or [])
-        return _upsert_cq(conn, bank, period, kind, report)
+        return _upsert_cq(conn, bank, period, kind, report, unit=unit)
     if statement == "capital":
         report = getattr(rep, "capital", None) or CapitalReport(pdf_path=rep.pdf_path)
-        return _upsert_cap(conn, bank, period, kind, report)
+        return _upsert_cap(conn, bank, period, kind, report, unit=unit)
     if statement == "liquidity":
         report = getattr(rep, "liquidity", None) or LiquidityReport(pdf_path=rep.pdf_path)
-        return _upsert_liq(conn, bank, period, kind, report)
+        return _upsert_liq(conn, bank, period, kind, report, unit=unit)
     if statement == "fx_position":
         report = getattr(rep, "fx_position", None) or FxReport(pdf_path=rep.pdf_path)
-        return _upsert_fx(conn, bank, period, kind, report)
+        return _upsert_fx(conn, bank, period, kind, report, unit=unit)
     if statement == "repricing":
         report = getattr(rep, "repricing", None) or RepricingReport(pdf_path=rep.pdf_path)
-        return _upsert_rp(conn, bank, period, kind, report)
+        return _upsert_rp(conn, bank, period, kind, report, unit=unit)
     if statement in ("bs_assets", "bs_liabilities", "off_balance"):
         # assets / liabilities / off_balance share bank_audit_balance_sheet, keyed by
         # the `statement` column — delete + insert only this one. Mirrors loader.py.
@@ -362,7 +369,7 @@ def main() -> int:
             futs = [ex.submit(_worker, w) for w in work]
             done = 0
             for fut in as_completed(futs):
-                t, p, k, ok, n, secs, err, rep, path = fut.result()
+                t, p, k, ok, n, secs, err, rep, path, unit = fut.result()
                 done += 1
                 if not ok:
                     counts["fail"] += 1
@@ -374,7 +381,7 @@ def main() -> int:
                 if not args.force and _validator.statement_passes(conn, t, p, k, vname):
                     counts["keep"] += 1
                     continue
-                _upsert(conn, statement, t, p, k, rep)
+                _upsert(conn, statement, t, p, k, rep, unit=unit)
                 conn.execute(
                     "UPDATE bank_audit_extractions SET extracted_at=CURRENT_TIMESTAMP "
                     "WHERE bank_ticker=? AND period=? AND kind=?", (t, p, k))

@@ -24,6 +24,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 
 from src.audit_reports import r2_storage  # noqa: E402
 from src.audit_reports.extractor import extract  # noqa: E402
+from src.audit_reports.units import UnitContext  # noqa: E402
 from scripts.audit_d1 import (  # noqa: E402
     _guard_against_ci_writers, replace_partitions,
 )
@@ -53,6 +54,9 @@ def main() -> int:
     with tempfile.TemporaryDirectory(prefix="bddk_pl_") as td:
         pdf = Path(td) / "r.pdf"
         r2_storage.download_to(key, str(pdf))
+        # Resolve while the temp file exists — this block deletes it, and the
+        # write below happens afterwards.
+        unit = UnitContext.for_partition(p, str(pdf))
         rep = extract(str(pdf))
     pl = rep.profit_loss
     print(f"[pl] {b} {p} {k}: extracted {len(pl)} profit_loss rows")
@@ -70,7 +74,12 @@ def main() -> int:
             "INSERT INTO bank_audit_profit_loss "
             "(bank_ticker,period,kind,item_order,hierarchy,item_name,footnote,amount) "
             "VALUES (?,?,?,?,?,?,?,?)",
-            [(b, p, k, r.order, r.hierarchy, r.name, r.footnote, r.cur_amount) for r in pl])
+            unit.scale_rows(
+                "bank_audit_profit_loss",
+                ["bank_ticker", "period", "kind", "item_order", "hierarchy",
+                 "item_name", "footnote", "amount"],
+                [(b, p, k, r.order, r.hierarchy, r.name, r.footnote, r.cur_amount)
+                 for r in pl]))
         conn.execute("UPDATE bank_audit_extractions SET extracted_at=CURRENT_TIMESTAMP "
                      "WHERE bank_ticker=? AND period=? AND kind=?", (b, p, k))
         conn.commit()

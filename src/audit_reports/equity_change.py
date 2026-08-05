@@ -51,6 +51,7 @@ from .extractor import (
 # Self-contained equity validators reused to SCORE reconstruction candidates
 # (validator.py imports only stdlib → no circular import).
 from .validator import _eq_roman as _v_eq_roman, _eq_closing as _v_eq_closing
+from .units import UnitContext
 
 try:
     import fitz as _fitz
@@ -764,7 +765,7 @@ def extract_from_pdf(pdf_path: str, after_page: int | None) -> EquityChangeRepor
 
 
 def upsert(conn: sqlite3.Connection, bank: str, period: str,
-           kind: str, report: EquityChangeReport) -> int:
+           kind: str, report: EquityChangeReport, *, unit: UnitContext) -> int:
     """Delete + insert equity-change rows for (bank, period, kind). Returns row count."""
     conn.execute(
         'DELETE FROM bank_audit_equity_change WHERE bank_ticker=? AND period=? AND kind=?',
@@ -792,14 +793,28 @@ def upsert(conn: sqlite3.Connection, bank: str, period: str,
         ' profit_reserves, prior_period_profit_loss, period_net_profit_loss, total_equity, '
         ' minority_interest, total_equity_incl_minority, source_page) '
         'VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
-        [(bank, period, kind, r.period_type, r.order, r.hierarchy, r.name,
-          r.paid_in_capital, r.share_premium, r.share_cancellation_profits,
-          r.other_capital_reserves,
-          r.oci_not_reclassified_1, r.oci_not_reclassified_2, r.oci_not_reclassified_3,
-          r.oci_reclassified_1, r.oci_reclassified_2, r.oci_reclassified_3,
-          r.profit_reserves, r.prior_period_profit_loss, r.period_net_profit_loss,
-          r.total_equity, r.minority_interest, r.total_equity_incl_minority,
-          r.source_page)
-         for r in deduped],
+        unit.scale_rows(
+            "bank_audit_equity_change",
+            ["bank_ticker", "period", "kind", "period_type", "item_order",
+             "hierarchy", "item_name",
+             "paid_in_capital", "share_premium", "share_cancellation_profits",
+             "other_capital_reserves",
+             "oci_not_reclassified_1", "oci_not_reclassified_2",
+             "oci_not_reclassified_3",
+             "oci_reclassified_1", "oci_reclassified_2", "oci_reclassified_3",
+             "profit_reserves", "prior_period_profit_loss",
+             "period_net_profit_loss", "total_equity", "minority_interest",
+             "total_equity_incl_minority", "source_page"],
+            [(bank, period, kind, r.period_type, r.order, r.hierarchy, r.name,
+              r.paid_in_capital, r.share_premium, r.share_cancellation_profits,
+              r.other_capital_reserves,
+              r.oci_not_reclassified_1, r.oci_not_reclassified_2,
+              r.oci_not_reclassified_3,
+              r.oci_reclassified_1, r.oci_reclassified_2, r.oci_reclassified_3,
+              r.profit_reserves, r.prior_period_profit_loss,
+              r.period_net_profit_loss,
+              r.total_equity, r.minority_interest, r.total_equity_incl_minority,
+              r.source_page)
+             for r in deduped]),
     )
     return len(deduped)

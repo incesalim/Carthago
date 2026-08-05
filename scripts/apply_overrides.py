@@ -56,6 +56,8 @@ sys.stdout.reconfigure(encoding="utf-8")
 
 from src.audit_reports import r2_storage  # noqa: E402
 from src.audit_reports.schema import init_schema  # noqa: E402
+from src.audit_reports import units as units_mod  # noqa: E402
+from src.audit_reports.units import UnitContext  # noqa: E402
 from scripts.audit_d1 import (  # noqa: E402
     AUDIT_TABLES, _guard_against_ci_writers, replace_partitions,
 )
@@ -122,7 +124,59 @@ def _partition_digest(conn: sqlite3.Connection, b: str, p: str, k: str) -> str:
     return h.hexdigest()
 
 
-def _apply_one(conn: sqlite3.Connection, o: dict) -> str:
+# Statement key -> the table whose MONEY_COLUMNS govern an override's `fields`.
+_OVR_TABLE = {
+    "capital": "bank_audit_capital",
+    "liquidity": "bank_audit_liquidity",
+    "fx_position": "bank_audit_fx_position",
+    "repricing": "bank_audit_repricing",
+    "loans_by_sector": "bank_audit_loans_by_sector",
+    "npl_movement": "bank_audit_npl_movement",
+    "credit_quality": "bank_audit_credit_quality",
+    "free_provision": "bank_audit_free_provision",
+    "oci_replace": "bank_audit_oci",
+    "profit_loss": "bank_audit_profit_loss",
+    "cash_flow": "bank_audit_cash_flow",
+    "oci": "bank_audit_oci",
+    "assets": "bank_audit_balance_sheet",
+    "liabilities": "bank_audit_balance_sheet",
+    "off_balance": "bank_audit_balance_sheet",
+}
+
+#: Money-bearing keys an override may set directly on the entry or on a row.
+_OVR_MONEY_KEYS = frozenset({"amount", "amount_tl", "amount_fc", "amount_total"})
+
+
+def _normalise_override(o: dict, unit: UnitContext) -> dict:
+    """Convert one hand-transcribed entry from its declared unit to canonical bin.
+
+    apply_overrides is standalone — it writes rows directly rather than going
+    through the extractor writers — so the entry itself is normalised here, once,
+    before dispatch. Ratios and ordinals are never touched: `fields` is filtered
+    through the target table's MONEY_COLUMNS, so a capital override may set
+    cet1_capital (scaled) and cet1_ratio (not) in the same entry.
+    """
+    if unit.factor == 1:
+        return o
+    out = dict(o)
+    for k in _OVR_MONEY_KEYS & set(out):
+        out[k] = units_mod.scale_amount(out[k], unit.factor)
+    table = _OVR_TABLE.get(o.get("statement") or "")
+    if isinstance(out.get("fields"), dict) and table:
+        money = units_mod.MONEY_COLUMNS.get(table, frozenset())
+        out["fields"] = {
+            k: (units_mod.scale_amount(v, unit.factor) if k in money else v)
+            for k, v in out["fields"].items()}
+    if isinstance(out.get("rows"), list):
+        out["rows"] = [
+            {k: (units_mod.scale_amount(v, unit.factor) if k in _OVR_MONEY_KEYS else v)
+             for k, v in r.items()} if isinstance(r, dict) else r
+            for r in out["rows"]]
+    return out
+
+
+def _apply_one(conn: sqlite3.Connection, o: dict, *, unit: UnitContext) -> str:
+    o = _normalise_override(o, unit)
     b, p, k = o["bank_ticker"], o["period"], o["kind"]
     st = o["statement"]
     if st == "oci_replace":
@@ -522,6 +576,25 @@ def main() -> int:
     args = ap.parse_args()
 
     overrides = json.loads(OVR.read_text(encoding="utf-8"))["overrides"]
+
+    # Overrides are SOURCE-NATIVE: a person read the PDF and typed what the page
+    # said, so each entry carries the filing's own unit. Every entry written so
+    # far predates the 2026Q2 Bin->Milyon switch, which is why an absent `unit`
+    # may default to `bin` — but only through 2026Q1. Past that the default is
+    # withdrawn: an author reading a Milyon page and typing 5,000 would otherwise
+    # have it stored a thousandfold small with every identity still footing.
+    #
+    # Resolved for EVERY entry up front, before the snapshot is pulled and before
+    # a single row is touched, so one undeclared Q2 entry aborts the whole run
+    # with the database untouched rather than half-applied.
+    try:
+        units_by_entry = [
+            UnitContext.manual(o["period"], o.get("unit")) for o in overrides
+        ]
+    except ValueError as e:
+        print(f"[ovr] ABORT before any change: {e}", file=sys.stderr)
+        return 2
+
     if not args.dry_run and not args.no_push:
         _guard_against_ci_writers()
         r2_storage.download_to(SNAP, GZ)
@@ -542,8 +615,8 @@ def main() -> int:
         # partitions are about to be rewritten with the values they already hold.
         before = {part: _partition_digest(conn, *part) for part in sorted(parts)}
 
-        for o in overrides:
-            print("  ", _apply_one(conn, o))
+        for o, unit in zip(overrides, units_by_entry):
+            print("  ", _apply_one(conn, o, unit=unit))
 
         # Re-validate every touched partition. Cheap and local, and it must run
         # for ALL of them, not just the changed ones: a VALIDATOR change (not a

@@ -35,6 +35,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 
+from .units import UnitContext
 from .extractor import _HAS_FITZ, _fitz_page_count, _fitz_page_text, parse_amount
 
 
@@ -767,6 +768,8 @@ def upsert(
     period: str,
     kind: str,
     rep: LoansBySectorReport,
+    *,
+    unit: UnitContext,
 ) -> int:
     """Idempotently store one bank's sector rows. Returns row count."""
     cur = conn.cursor()
@@ -780,6 +783,9 @@ def upsert(
         r.page, r.stage2_amount, r.stage3_amount, r.ecl_amount,
         r.raw_label,
     ) for r in rep.rows]
+    # Normalise to canonical `bin` BEFORE the insert. The factor comes
+    # from the caller because this function has no PDF to read.
+    rows = unit.scale_rows("bank_audit_loans_by_sector", ["bank_ticker","period","kind","sector","period_type","source_page","stage2_amount","stage3_amount","ecl_amount","raw_label"], rows)
     if rows:
         cur.executemany(
             "INSERT INTO bank_audit_loans_by_sector "

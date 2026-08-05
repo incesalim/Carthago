@@ -10,6 +10,11 @@ pytest.importorskip("fitz")  # CI installs minimal deps; extractor/loader need f
 from src.audit_reports.extractor import BankReport  # noqa: E402
 from src.audit_reports.loader import upsert_report  # noqa: E402
 from src.audit_reports.schema import init_schema  # noqa: E402
+# Pre-2026Q2 (`bin`) fixtures, so the canonical context is the honest one:
+# factor 1, applied as a real multiply. The argument is REQUIRED with no
+# default — a caller that forgets must fail loudly rather than silently
+# store a Milyon filing unscaled.
+from src.audit_reports.units import UnitContext  # noqa: E402
 
 B, P, K = "TEST", "2025Q1", "consolidated"
 
@@ -48,21 +53,21 @@ def _empty() -> BankReport:
 def test_passing_statement_is_protected():
     c = _conn()
     _seed_equity(c, 34, passed=5, failed=0)          # validated-correct
-    upsert_report(c, B, P, K, _empty(), "x.pdf")     # empty re-extract, guard ON
+    upsert_report(c, B, P, K, _empty(), "x.pdf", unit=UnitContext.canonical())     # empty re-extract, guard ON
     assert _eq_rows(c) == 34                          # left untouched
 
 
 def test_force_overwrites_passing_statement():
     c = _conn()
     _seed_equity(c, 34, passed=5, failed=0)
-    upsert_report(c, B, P, K, _empty(), "x.pdf", force=True)
+    upsert_report(c, B, P, K, _empty(), "x.pdf", force=True, unit=UnitContext.canonical())
     assert _eq_rows(c) == 0                           # force ignores the guard
 
 
 def test_failing_statement_is_not_protected():
     c = _conn()
     _seed_equity(c, 34, passed=3, failed=2)          # currently FAILING
-    upsert_report(c, B, P, K, _empty(), "x.pdf")     # guard ON
+    upsert_report(c, B, P, K, _empty(), "x.pdf", unit=UnitContext.canonical())     # guard ON
     assert _eq_rows(c) == 0                           # re-extract still replaces it
 
 
@@ -75,5 +80,5 @@ def test_unvalidated_statement_is_not_protected():
         "VALUES (?,?,?,?,?,?)",
         [(B, P, K, "current", i, f"row {i}") for i in range(10)])
     c.commit()
-    upsert_report(c, B, P, K, _empty(), "x.pdf")
+    upsert_report(c, B, P, K, _empty(), "x.pdf", unit=UnitContext.canonical())
     assert _eq_rows(c) == 0

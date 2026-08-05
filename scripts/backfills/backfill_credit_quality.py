@@ -27,6 +27,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 
 from src.audit_reports import r2_storage  # noqa: E402
 from src.audit_reports.credit_quality import extract, upsert  # noqa: E402
+from src.audit_reports.units import UnitContext  # noqa: E402
 from src.audit_reports.schema import init_schema  # noqa: E402
 
 DB_PATH = REPO_ROOT / "data" / "bddk_data.db"
@@ -98,7 +99,8 @@ def main():
                 counts["fail"] += 1
                 print(f"  [{i:>4}/{len(pdfs)}] FAIL {ticker:<8} {period} {kind:<14} {err}", flush=True)
             else:
-                upsert(conn, ticker, period, kind, rep)
+                upsert(conn, ticker, period, kind, rep,
+                       unit=UnitContext.for_partition(period, path_str))
                 counts["rows"] += nrows
                 if nrows == 0:
                     counts["empty"] += 1

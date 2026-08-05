@@ -49,6 +49,7 @@ from src.audit_reports import r2_storage  # noqa: E402
 from src.audit_reports.discovery import discover_targets  # noqa: E402
 from src.audit_reports.extractor import extract  # noqa: E402
 from src.audit_reports.loader import upsert_report  # noqa: E402
+from src.audit_reports.units import UnitContext  # noqa: E402
 from src.audit_reports.schema import init_schema  # noqa: E402
 from src.scrapers._http import bddk_verify  # noqa: E402
 
@@ -383,7 +384,19 @@ def extract_from_r2(
                     counts["fail"] += 1
                     print(f"  [FAIL] {ticker:<8} {period} {kind:<14} {err}", flush=True)
                     continue
-                upsert_report(conn, ticker, period, kind, rep, key, force=overwrite_correct)
+                # `key` is the R2 KEY and `path_str` is the downloaded file. The
+                # unit must be read from the FILE — a detector handed the key
+                # would find no such path. Resolved here, before the writer
+                # touches anything, so an unreadable unit aborts this partition
+                # with its stored rows intact.
+                try:
+                    unit = UnitContext.for_partition(period, path_str)
+                except ValueError as e:
+                    counts["fail"] += 1
+                    print(f"  [UNIT] {ticker:<8} {period} {kind:<14} {e}", flush=True)
+                    continue
+                upsert_report(conn, ticker, period, kind, rep, key,
+                              force=overwrite_correct, unit=unit)
                 tag = "OK" if (bsa >= 20 and bsl >= 20 and pl >= 20) else "WARN"
                 counts["ok"] += 1
                 print(

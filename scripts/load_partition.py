@@ -28,6 +28,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 from src.audit_reports import r2_storage  # noqa: E402
 from src.audit_reports.extractor import extract, StatementRow  # noqa: E402
 from src.audit_reports.loader import upsert_report  # noqa: E402
+from src.audit_reports.units import UnitContext  # noqa: E402
 from src.audit_reports import validator as v  # noqa: E402
 from scripts.audit_d1 import (  # noqa: E402
     AUDIT_TABLES, _guard_against_ci_writers, replace_partitions,
@@ -103,6 +104,9 @@ def main() -> int:
     with tempfile.TemporaryDirectory(prefix="bddk_lp_") as td:
         pdf = Path(td) / "r.pdf"
         r2_storage.download_to(key, str(pdf))
+        # Resolve while the temp file EXISTS — it is deleted when this block
+        # closes, and the write below happens afterwards.
+        unit = UnitContext.for_partition(p, str(pdf))
         rep = extract(str(pdf))
 
     for m in manual:
@@ -113,7 +117,7 @@ def main() -> int:
           f"offbs={len(rep.off_balance)} pl={len(rep.profit_loss)}")
 
     with sqlite3.connect(str(DB)) as conn:
-        upsert_report(conn, b, p, k, rep, key)
+        upsert_report(conn, b, p, k, rep, key, unit=unit)
         fails = _revalidate(conn, b, p, k)   # includes the P&L chain + net=equity checks
         conn.commit()
     print(f"[lp] validation failures: {fails}")

@@ -30,6 +30,7 @@ from pathlib import Path
 
 
 from .extractor import _HAS_FITZ, _fitz_page_count, _fitz_page_text, parse_num
+from .units import UnitContext
 
 
 # ---------------------------------------------------------------------------
@@ -488,6 +489,8 @@ def upsert(
     period: str,
     kind: str,
     rep: CapitalReport,
+    *,
+    unit: UnitContext,
 ) -> int:
     cur = conn.cursor()
     cur.execute(
@@ -501,6 +504,9 @@ def upsert(
         *[getattr(r, c) for c in _VALUE_COLS],
         rep.source_page,
     ) for r in rep.rows]
+    # Normalise to canonical `bin` BEFORE the insert; the factor comes
+    # from the caller because this function has no PDF to read.
+    rows = unit.scale_rows("bank_audit_capital", cols, rows)
     if rows:
         cur.executemany(
             f"INSERT INTO bank_audit_capital ({', '.join(cols)}) VALUES ({ph})", rows

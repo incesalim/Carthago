@@ -653,6 +653,11 @@ _COLUMN_MIGRATIONS: list[tuple[str, str, str]] = [
     # Added 2026-06-27: §4 market-risk (FX net open position + interest-rate
     # repricing gap) extraction.
     ("bank_audit_extractions", "rows_fx_position", "INTEGER"),
+    # Added 2026-08-05: the reporting unit READ from this filing ("bin"/"milyon").
+    # Stored amounts are always canonical `bin`; this records what the PAGE said,
+    # so the analyst basis row can report `milyon` for a Q2 partition whose
+    # figures were normalised on the way in. NULL means pre-switch or unrecorded.
+    ("bank_audit_extractions", "source_unit", "TEXT"),
     ("bank_audit_extractions", "rows_repricing", "INTEGER"),
     # Added 2026-07-17: the coverage matrix groups on the report's Bölüm
     # (registry.section / SECTION_ORDER) instead of is_core. Declaring them in

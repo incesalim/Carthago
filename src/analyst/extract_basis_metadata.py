@@ -50,7 +50,8 @@ def build_rows(conn: sqlite3.Connection, bank: str | None = None) -> list[dict]:
     """One metadata row per extracted partition."""
     where, params = ("AND e.bank_ticker = ?", [bank]) if bank else ("", [])
     rows = conn.execute(
-        "SELECT e.bank_ticker, e.period, e.kind, o.report_kind "
+        "SELECT e.bank_ticker, e.period, e.kind, o.report_kind, "
+        "       e.source_unit AS recorded_unit "
         "FROM bank_audit_extractions e "
         "LEFT JOIN bank_audit_opinion o ON o.bank_ticker = e.bank_ticker "
         f"  AND o.period = e.period AND o.kind = e.kind WHERE 1=1 {where}",
@@ -59,12 +60,22 @@ def build_rows(conn: sqlite3.Connection, bank: str | None = None) -> list[dict]:
     out: list[dict] = []
     for r in sorted(rows, key=lambda r: (r["bank_ticker"], sort_key(r["period"]), r["kind"])):
         within_sweep = sort_key(r["period"]) <= sort_key(SWEEP_HORIZON)
+        recorded = (r["recorded_unit"] if "recorded_unit" in r.keys()
+                    else None)
         out.append({
             "bank_ticker": r["bank_ticker"],
             "period": r["period"],
             "kind": r["kind"],
-            "reporting_unit": "bin" if within_sweep else None,
-            "unit_source": SWEEP_SOURCE if within_sweep else "pending_regex",
+            # The unit READ from the filing at extraction wins: a Q2 partition
+            # normalised on the way in must report `milyon` here even though its
+            # stored amounts are canonical `bin`. Falling through to
+            # `pending_regex` would say "nobody has looked at this filing" about
+            # one we did look at.
+            "reporting_unit": (
+                recorded if recorded else ("bin" if within_sweep else None)),
+            "unit_source": (
+                "extraction" if recorded
+                else (SWEEP_SOURCE if within_sweep else "pending_regex")),
             "assurance_level": r["report_kind"] or _expected_assurance(r["period"]),
             "assurance_source": "opinion" if r["report_kind"] else "expected_rhythm",
             "consolidation_basis": r["kind"],

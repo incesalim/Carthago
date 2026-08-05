@@ -34,6 +34,7 @@ import sqlite3
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
+from .units import UnitContext
 
 # A monetary amount in thousand-TL: must carry a thousands group (so we never
 # match a footnote marker, a year, or a one/two-digit stray). Accepts "." or ","
@@ -271,6 +272,8 @@ def upsert_free_provision(
     period: str,
     kind: str,
     fp: FreeProvision,
+    *,
+    unit: UnitContext,
 ) -> int | None:
     """Store one bank's free-provision row. Skip-if-empty (no disclosure found),
     so a failed re-extract can't wipe a captured value — same rule as profile."""
@@ -280,8 +283,12 @@ def upsert_free_provision(
         "INSERT OR REPLACE INTO bank_audit_free_provision "
         "(bank_ticker, period, kind, free_provision, free_provision_prior, "
         " source_page, source_text) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        (bank_ticker, period, kind, fp.free_provision, fp.free_provision_prior,
-         fp.source_page, (fp.snippet or "")[:300]),
+        unit.scale_rows(
+            "bank_audit_free_provision",
+            ["bank_ticker", "period", "kind", "free_provision",
+             "free_provision_prior", "source_page", "source_text"],
+            [(bank_ticker, period, kind, fp.free_provision, fp.free_provision_prior,
+              fp.source_page, (fp.snippet or "")[:300])])[0],
     )
     conn.commit()
     return 1

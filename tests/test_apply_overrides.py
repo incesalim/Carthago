@@ -7,6 +7,11 @@ import sqlite3
 import pytest
 
 from src.audit_reports.schema import init_schema
+# Pre-2026Q2 (`bin`) fixtures, so the canonical context is the honest one:
+# factor 1, applied as a real multiply. The argument is REQUIRED with no
+# default — a caller that forgets must fail loudly rather than silently
+# store a Milyon filing unscaled.
+from src.audit_reports.units import UnitContext  # noqa: E402
 
 apply_overrides = pytest.importorskip("apply_overrides")  # scripts/ on pythonpath
 
@@ -37,7 +42,7 @@ def test_trailing_dot_override_updates_not_inserts():
         "bank_ticker": "X", "period": "2024Q4", "kind": "unconsolidated",
         "statement": "assets", "hierarchy": "1.3.2.", "item_name": "Equity Securities",
         "amount_tl": 40, "amount_fc": 60, "amount_total": 100,
-    })
+    }, unit=UnitContext.canonical())
     rows = c.execute("SELECT hierarchy, amount_total FROM bank_audit_balance_sheet "
                      "WHERE statement='assets'").fetchall()
     assert rows == [("1.3.2", 100)]  # one row, updated in place — no duplicate
@@ -50,7 +55,7 @@ def test_exact_match_still_updates():
         "bank_ticker": "X", "period": "2024Q4", "kind": "unconsolidated",
         "statement": "assets", "hierarchy": "2.5", "item_name": "ECL",
         "amount_tl": 50, "amount_fc": 150, "amount_total": 999,
-    })
+    }, unit=UnitContext.canonical())
     rows = c.execute("SELECT COUNT(*), MAX(amount_total) FROM bank_audit_balance_sheet").fetchone()
     assert rows == (1, 999)
 
@@ -81,7 +86,7 @@ def test_capital_override_defaults_to_the_current_column():
     c = _conn()
     _ins_capital(c, "current", 1)
     _ins_capital(c, "prior", 2)
-    apply_overrides._apply_one(c, _capital_override())
+    apply_overrides._apply_one(c, _capital_override(), unit=UnitContext.canonical())
     assert _capital(c) == {"current": 270336203, "prior": 2}
 
 
@@ -93,7 +98,7 @@ def test_capital_override_can_target_the_prior_column():
     c = _conn()
     _ins_capital(c, "current", 305357338)
     _ins_capital(c, "prior", 270336.203)
-    apply_overrides._apply_one(c, _capital_override(period_type="prior"))
+    apply_overrides._apply_one(c, _capital_override(period_type="prior"), unit=UnitContext.canonical())
     assert _capital(c) == {"current": 305357338, "prior": 270336203}
 
 
@@ -102,7 +107,7 @@ def test_capital_override_matching_no_row_says_so():
     run reports success — the silent no-op this repo has paid for before."""
     c = _conn()
     _ins_capital(c, "current", 1)
-    msg = apply_overrides._apply_one(c, _capital_override(period_type="prior"))
+    msg = apply_overrides._apply_one(c, _capital_override(period_type="prior"), unit=UnitContext.canonical())
     assert "NO MATCH" in msg
 
 
@@ -120,7 +125,7 @@ def test_credit_quality_override_targets_the_named_period_column():
         "bank_ticker": "X", "period": "2023Q4", "kind": "consolidated",
         "statement": "credit_quality", "section": "loans_ecl_expense",
         "period_type": "prior", "fields": {"stage2_amount": -535779},
-    })
+    }, unit=UnitContext.canonical())
     assert dict(c.execute("SELECT period_type, stage2_amount FROM "
                           "bank_audit_credit_quality").fetchall()) == {
         "current": -2386482.0, "prior": -535779}

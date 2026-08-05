@@ -7,6 +7,7 @@ from pathlib import Path
 
 from . import registry
 from .extractor import BankReport, extract
+from .units import UnitContext
 
 # Some banks' source PDFs print hierarchy codes off the BRSA standard in TWO ways,
 # and consumers that key on the EXACT code — the per-bank Financials table and the
@@ -58,6 +59,8 @@ def upsert_report(
     rep: BankReport,
     pdf_path: str,
     force: bool = False,
+    *,
+    unit: UnitContext,
 ) -> dict[str, int]:
     """Idempotently insert one bank's report. Replaces existing rows for the
     same (bank, period, kind).
@@ -108,8 +111,14 @@ def upsert_report(
                 'INSERT INTO bank_audit_balance_sheet '
                 '(bank_ticker, period, kind, statement, item_order, hierarchy, item_name, footnote, amount_tl, amount_fc, amount_total) '
                 'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                [(bank_ticker, period, kind, stmt_name, r.order, _canon_hier(stmt_name, r.hierarchy), r.name,
-                  r.footnote, r.cur_tl, r.cur_fc, r.cur_total) for r in rows],
+                unit.scale_rows(
+                    'bank_audit_balance_sheet',
+                    ['bank_ticker', 'period', 'kind', 'statement', 'item_order',
+                     'hierarchy', 'item_name', 'footnote', 'amount_tl',
+                     'amount_fc', 'amount_total'],
+                    [(bank_ticker, period, kind, stmt_name, r.order,
+                      _canon_hier(stmt_name, r.hierarchy), r.name, r.footnote,
+                      r.cur_tl, r.cur_fc, r.cur_total) for r in rows]),
             )
         counts[ckey] = len(rows)
 
@@ -129,8 +138,13 @@ def upsert_report(
                 f'INSERT INTO {table} '
                 '(bank_ticker, period, kind, item_order, hierarchy, item_name, footnote, amount) '
                 'VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-                [(bank_ticker, period, kind, r.order, _canon_hier(stmt_name, r.hierarchy), r.name, r.footnote, r.cur_amount)
-                 for r in rows],
+                unit.scale_rows(
+                    table,
+                    ['bank_ticker', 'period', 'kind', 'item_order', 'hierarchy',
+                     'item_name', 'footnote', 'amount'],
+                    [(bank_ticker, period, kind, r.order,
+                      _canon_hier(stmt_name, r.hierarchy), r.name, r.footnote,
+                      r.cur_amount) for r in rows]),
             )
         counts[ckey] = len(rows)
 
@@ -192,6 +206,11 @@ def upsert_report(
         'equity_change':   'bank_audit_equity_change',
         'prose':           'bank_audit_prose',
     }
+    _UNIT_AWARE_PERSISTERS = {
+        'credit_quality', 'loans_by_sector', 'npl_movement', 'capital',
+        'liquidity', 'fx_position', 'repricing', 'equity_change',
+        'free_provision',
+    }
     for key, build, upsert_fn, skip_if_empty in persisters:
         if key in _PERSISTER_TABLE and _keep(key):
             counts[key] = _existing(_PERSISTER_TABLE[key])
@@ -199,7 +218,15 @@ def upsert_report(
         report = build()
         if skip_if_empty and (report is None or getattr(report, 'is_empty', lambda: True)()):
             continue
-        n = upsert_fn(conn, bank_ticker, period, kind, report)
+        # Only the writers that touch money take a context. `profile` (branch and
+        # personnel counts), `opinion` (a verdict + flag) and `prose` (sentences)
+        # carry no figures, so handing them one would be noise — and a signature
+        # they do not have. `liquidity` DOES take one despite being all ratios:
+        # it proves, per run, that nothing there is scaled.
+        if key in _UNIT_AWARE_PERSISTERS:
+            n = upsert_fn(conn, bank_ticker, period, kind, report, unit=unit)
+        else:
+            n = upsert_fn(conn, bank_ticker, period, kind, report)
         if n is not None:
             counts[key] = n
 
@@ -224,12 +251,12 @@ def upsert_report(
     # Extractions log row (idempotent via REPLACE)
     cur.execute(
         'INSERT OR REPLACE INTO bank_audit_extractions '
-        '(bank_ticker, period, kind, pdf_path, rows_bs_assets, rows_bs_liabilities, '
+        '(bank_ticker, period, kind, pdf_path, source_unit, rows_bs_assets, rows_bs_liabilities, '
         ' rows_off_balance, rows_profit_loss, rows_credit_quality, rows_oci, '
         ' rows_cash_flow, rows_equity_change, rows_fx_position, rows_repricing, success) '
-        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         (
-            bank_ticker, period, kind, pdf_path,
+            bank_ticker, period, kind, pdf_path, unit.source_unit,
             counts['bs_assets'], counts['bs_liabilities'],
             counts['off_balance'], counts['profit_loss'],
             counts.get('credit_quality', 0),
@@ -253,9 +280,13 @@ def load_pdf(
     pdf_path: str | Path,
 ) -> dict[str, int]:
     """End-to-end: extract one PDF and upsert into DB."""
+    # Resolve BEFORE opening the DB: an unreadable unit must abort before any
+    # DELETE, INSERT or commit. Here pdf_path IS the real local file.
+    unit = UnitContext.for_partition(period, str(pdf_path))
     rep = extract(str(pdf_path))
     with sqlite3.connect(str(db_path)) as conn:
-        return upsert_report(conn, bank_ticker, period, kind, rep, str(pdf_path))
+        return upsert_report(conn, bank_ticker, period, kind, rep, str(pdf_path),
+                             unit=unit)
 
 
 if __name__ == '__main__':

@@ -38,6 +38,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 
+from .units import UnitContext
 from .extractor import _HAS_FITZ, _fitz_page_count, _fitz_page_text, parse_amount
 
 
@@ -562,6 +563,8 @@ def upsert(
     period: str,
     kind: str,
     rep: NplMovementReport,
+    *,
+    unit: UnitContext,
 ) -> int:
     cur = conn.cursor()
     cur.execute(
@@ -575,6 +578,9 @@ def upsert(
         r.collections, r.write_offs, r.sold, r.fx_diff,
         r.closing_balance, r.provision, r.net_balance,
     ) for r in rep.rows]
+    # Normalise to canonical `bin` BEFORE the insert. The factor comes
+    # from the caller because this function has no PDF to read.
+    rows = unit.scale_rows("bank_audit_npl_movement", ["bank_ticker","period","kind","group_code","period_type","source_page","opening_balance","additions","transfers_in","transfers_out","collections","write_offs","sold","fx_diff","closing_balance","provision","net_balance"], rows)
     if rows:
         cur.executemany(
             "INSERT INTO bank_audit_npl_movement "

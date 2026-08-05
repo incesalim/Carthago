@@ -32,6 +32,11 @@ sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "scripts"))
 
 import push_to_d1 as P  # noqa: E402
+# Pre-2026Q2 (`bin`) fixtures, so the canonical context is the honest one:
+# factor 1, applied as a real multiply. The argument is REQUIRED with no
+# default — a caller that forgets must fail loudly rather than silently
+# store a Milyon filing unscaled.
+from src.audit_reports.units import UnitContext  # noqa: E402
 
 
 def fake_remote(rows_per_partition=0):
@@ -305,7 +310,7 @@ def test_reapplying_a_settled_override_is_a_no_op():
            "statement": "capital", "period_type": "prior",
            "fields": {"cet1_capital": 270336203}}
     before = A._partition_digest(c, "X", "2024Q2", "consolidated")
-    A._apply_one(c, ovr)
+    A._apply_one(c, ovr, unit=UnitContext.canonical())
     c.commit()
     assert A._partition_digest(c, "X", "2024Q2", "consolidated") == before
 
@@ -318,7 +323,7 @@ def test_an_override_that_does_change_something_is_detected():
            "statement": "capital", "period_type": "prior",
            "fields": {"cet1_capital": 270336203}}
     before = A._partition_digest(c, "X", "2024Q2", "consolidated")
-    A._apply_one(c, ovr)
+    A._apply_one(c, ovr, unit=UnitContext.canonical())
     c.commit()
     assert A._partition_digest(c, "X", "2024Q2", "consolidated") != before
 
