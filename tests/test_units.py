@@ -26,6 +26,9 @@ from src.audit_reports import units as U  # noqa: E402
 from src.audit_reports.registry import AUDIT_TABLES  # noqa: E402
 from src.audit_reports.schema import init_schema  # noqa: E402
 
+sys.path.insert(0, str(REPO / "scripts"))
+from build_bank_audit_stages import build_stages  # noqa: E402
+
 
 # --- the classification must be exhaustive -----------------------------------
 
@@ -326,8 +329,6 @@ def test_milyon_credit_quality_reaches_stages_multiplied_exactly_once(tmp_path):
     So: scale credit_quality on the way in, run the REAL builder, and assert the
     amounts arrive x1,000 (not x1,000,000) while coverage is untouched.
     """
-    import subprocess
-
     db = tmp_path / "stages.db"
     conn = sqlite3.connect(db)
     init_schema(conn)
@@ -353,10 +354,8 @@ def test_milyon_credit_quality_reaches_stages_multiplied_exactly_once(tmp_path):
     conn.commit()
     conn.close()
 
-    subprocess.run([sys.executable, str(REPO / "scripts" / "build_bank_audit_stages.py"),
-                    "--db", str(db)], check=True, capture_output=True)
-
     conn = sqlite3.connect(db)
+    build_stages(conn)
     conn.row_factory = sqlite3.Row
     row = conn.execute(
         "SELECT * FROM bank_audit_stages WHERE bank_ticker=? AND period=? AND kind=?",
@@ -379,8 +378,6 @@ def test_milyon_credit_quality_reaches_stages_multiplied_exactly_once(tmp_path):
 
 def test_the_same_flow_at_bin_is_unchanged(tmp_path):
     """The old-filing control: identical inputs at factor 1 must land as printed."""
-    import subprocess
-
     db = tmp_path / "stages_bin.db"
     conn = sqlite3.connect(db)
     init_schema(conn)
@@ -400,12 +397,92 @@ def test_the_same_flow_at_bin_is_unchanged(tmp_path):
     conn.commit()
     conn.close()
 
-    subprocess.run([sys.executable, str(REPO / "scripts" / "build_bank_audit_stages.py"),
-                    "--db", str(db)], check=True, capture_output=True)
     conn = sqlite3.connect(db)
+    build_stages(conn)
     conn.row_factory = sqlite3.Row
     row = conn.execute("SELECT * FROM bank_audit_stages WHERE bank_ticker=?",
                        (B,)).fetchone()
     assert row["stage1_amount"] == 1_000.0
     assert row["stage1_coverage"] == pytest.approx(10.0 / 1_000.0)
     conn.close()
+
+
+# --- hand-transcribed sources: legacy default, post-horizon refusal ----------
+#
+# audit_overrides.json (457 entries) and manual_statements.json are typed by a
+# person reading the PDF, so they carry the filing's own unit. Every entry so far
+# predates the switch and is `bin`, which is why an absent unit may default — but
+# only for those. The first Q2 transcription that omits the field would otherwise
+# recreate the 1000x error exactly: the author reads a Milyon page, types 5,000,
+# and a defaulted `bin` stores it a thousandfold small while every identity foots.
+
+@pytest.mark.parametrize("period", ["2022Q1", "2024Q3", "2025Q4", "2026Q1"])
+def test_a_legacy_manual_entry_may_omit_the_unit(period):
+    assert U.resolve_manual_unit(period, None) == "bin"
+    assert U.scale_factor(U.resolve_manual_unit(period, None)) == 1
+
+
+@pytest.mark.parametrize("period", ["2026Q2", "2026Q3", "2027Q1"])
+def test_a_post_horizon_manual_entry_must_declare_its_unit(period):
+    with pytest.raises(ValueError, match="must declare its unit"):
+        U.resolve_manual_unit(period, None)
+
+
+def test_an_unrecognised_manual_unit_is_refused():
+    with pytest.raises(ValueError, match="not"):
+        U.resolve_manual_unit("2026Q2", "kurus")
+    with pytest.raises(ValueError, match="not"):
+        U.resolve_manual_unit("2024Q1", "dollars")
+
+
+def test_an_explicit_milyon_manual_entry_scales_once():
+    unit = U.resolve_manual_unit("2026Q2", "milyon")
+    assert unit == "milyon"
+    factor = U.scale_factor(unit)
+    row = U.scale_mapping("bank_audit_balance_sheet",
+                          {"amount_tl": 5_000.0, "item_order": 2}, factor)
+    assert row["amount_tl"] == 5_000_000.0
+    assert row["item_order"] == 2
+
+
+def test_an_explicit_bin_manual_entry_is_canonical_and_unscaled():
+    unit = U.resolve_manual_unit("2026Q2", "bin")
+    assert U.scale_factor(unit) == 1
+    row = U.scale_mapping("bank_audit_balance_sheet", {"amount_tl": 5_000.0}, 1)
+    assert row["amount_tl"] == 5_000.0
+
+
+def test_a_refused_manual_entry_leaves_the_database_untouched(tmp_path):
+    """The refusal must come BEFORE any mutation, so a Q2 override missing its
+    unit cannot half-apply."""
+    db = tmp_path / "ovr.db"
+    conn = sqlite3.connect(db)
+    init_schema(conn)
+    conn.execute(
+        "INSERT INTO bank_audit_balance_sheet (bank_ticker, period, kind, "
+        "statement, item_order, hierarchy, item_name, amount_tl) "
+        "VALUES ('TEB','2026Q2','consolidated','assets',1,'I.','Nakit',42.0)")
+    conn.commit()
+    before = list(conn.execute("SELECT * FROM bank_audit_balance_sheet"))
+
+    with pytest.raises(ValueError, match="must declare its unit"):
+        U.scale_factor(U.resolve_manual_unit("2026Q2", None))   # raises here
+        conn.execute("UPDATE bank_audit_balance_sheet SET amount_tl = ?", (99.0,))
+
+    assert list(conn.execute("SELECT * FROM bank_audit_balance_sheet")) == before
+    conn.close()
+
+
+def test_every_existing_override_entry_is_legacy_and_needs_no_unit():
+    """All 457 predate the switch, so today's file stays valid unchanged."""
+    import json
+    data = json.loads((REPO / "data" / "audit_overrides.json").read_text(encoding="utf-8"))
+    entries = data.get("overrides", data)
+    for o in entries:
+        period = o.get("period")
+        if not period:
+            continue
+        unit = U.resolve_manual_unit(period, o.get("unit"))
+        assert unit in U.UNIT_SCALE
+        if U.within_sweep(period):
+            assert U.scale_factor(unit) == 1, f"{period} legacy entry would be scaled"

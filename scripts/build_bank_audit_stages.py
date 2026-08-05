@@ -107,6 +107,92 @@ LEFT JOIN s3_prov sp   USING (bank_ticker, period, kind, period_type)
 """
 
 
+def build_stages(conn: sqlite3.Connection) -> int:
+    """Rebuild bank_audit_stages from bank_audit_credit_quality, in process.
+
+    Extracted from main() so tests can drive the REAL builder without
+    shelling out: the suite carries a zero-subprocess guarantee (verified
+    with a plugin wrapping subprocess.Popen and socket.connect), and a test
+    that launches python breaks it and makes the suite depend on the
+    interpreter path. Returns the row count written.
+    """
+    # Ensure the table exists (init_schema also creates it; this is a
+    # no-op if so).
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS bank_audit_stages (
+            bank_ticker      TEXT NOT NULL,
+            period           TEXT NOT NULL,
+            kind             TEXT NOT NULL,
+            period_type      TEXT NOT NULL,
+            stage1_amount    REAL,
+            stage2_amount    REAL,
+            stage3_amount    REAL,
+            total_amount     REAL,
+            stage1_ecl       REAL,
+            stage2_ecl       REAL,
+            stage3_ecl       REAL,
+            total_ecl        REAL,
+            stage1_coverage  REAL,
+            stage2_coverage  REAL,
+            stage3_coverage  REAL,
+            extracted_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (bank_ticker, period, kind, period_type)
+        )
+    """)
+    conn.execute("DELETE FROM bank_audit_stages")
+
+    rows: list[tuple] = []
+    for r in conn.execute(_SQL_AGG):
+        bt, p, k, pt, s1, s2, s3, e1, e2, e3 = r
+        # Total amount + total ECL when all three present.
+        #
+        # ...except `total` is the LOAN BOOK, and S1+S2 are what make it one.
+        # With both absent the sum collapses to S3 alone and the row then
+        # states "every lira this bank lent is non-performing" — NPL 100%,
+        # fabricated from a gap. 161 of 836 prior rows were in exactly that
+        # state (and are exactly the corpus's 161 NPL==100% rows); no
+        # `current` row is, which is why no chart ever showed it and no
+        # check caught it — validation reads current only. Latent, not live:
+        # every consumer filters period_type='current' (audit.ts:634,
+        # credit-risk.ts:49, every bot-schema.ts example). But bot-sql.ts
+        # lets an LLM write its own SQL over this table, so a fabricated
+        # 100% is one forgotten WHERE clause from being quoted as fact.
+        # Unknown ≠ zero: emit NULL and let the identity skip.
+        # NOT `all(...)`: 40 current rows have exactly one of S1/S2 null and
+        # a real total; this touches only the both-absent case.
+        if s1 is None and s2 is None:
+            tot_a = None
+        else:
+            tot_a = sum(x for x in (s1, s2, s3) if x is not None) if any(x is not None for x in (s1, s2, s3)) else None
+        tot_e = sum(x for x in (e1, e2, e3) if x is not None) if any(x is not None for x in (e1, e2, e3)) else None
+        cov1 = (e1 / s1) if (e1 is not None and s1 not in (None, 0)) else None
+        cov2 = (e2 / s2) if (e2 is not None and s2 not in (None, 0)) else None
+        cov3 = (e3 / s3) if (e3 is not None and s3 not in (None, 0)) else None
+        rows.append((bt, p, k, pt, s1, s2, s3, tot_a, e1, e2, e3, tot_e, cov1, cov2, cov3))
+
+    conn.executemany(
+        "INSERT INTO bank_audit_stages "
+        "(bank_ticker, period, kind, period_type, "
+        " stage1_amount, stage2_amount, stage3_amount, total_amount, "
+        " stage1_ecl, stage2_ecl, stage3_ecl, total_ecl, "
+        " stage1_coverage, stage2_coverage, stage3_coverage) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        rows,
+    )
+    conn.commit()
+
+    # Stats
+    total = len(rows)
+    complete = sum(1 for r in rows if all(r[i] is not None for i in (4, 5, 6, 8, 9, 10)))
+    any_amt = sum(1 for r in rows if any(r[i] is not None for i in (4, 5, 6)))
+    any_ecl = sum(1 for r in rows if any(r[i] is not None for i in (8, 9, 10)))
+    print(f"bank_audit_stages: {total} rows")
+    print(f"  with all 6 fields (S1/S2/S3 amounts + ECL):   {complete}")
+    print(f"  with at least one amount field:               {any_amt}")
+    print(f"  with at least one ECL field:                  {any_ecl}")
+    return total
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--db", type=str, default=str(DB),
@@ -120,80 +206,7 @@ def main() -> None:
         print(f"ERROR: {db} not found", file=sys.stderr)
         sys.exit(1)
     with sqlite3.connect(str(db)) as conn:
-        # Ensure the table exists (init_schema also creates it; this is a
-        # no-op if so).
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS bank_audit_stages (
-                bank_ticker      TEXT NOT NULL,
-                period           TEXT NOT NULL,
-                kind             TEXT NOT NULL,
-                period_type      TEXT NOT NULL,
-                stage1_amount    REAL,
-                stage2_amount    REAL,
-                stage3_amount    REAL,
-                total_amount     REAL,
-                stage1_ecl       REAL,
-                stage2_ecl       REAL,
-                stage3_ecl       REAL,
-                total_ecl        REAL,
-                stage1_coverage  REAL,
-                stage2_coverage  REAL,
-                stage3_coverage  REAL,
-                extracted_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                PRIMARY KEY (bank_ticker, period, kind, period_type)
-            )
-        """)
-        conn.execute("DELETE FROM bank_audit_stages")
-
-        rows: list[tuple] = []
-        for r in conn.execute(_SQL_AGG):
-            bt, p, k, pt, s1, s2, s3, e1, e2, e3 = r
-            # Total amount + total ECL when all three present.
-            #
-            # ...except `total` is the LOAN BOOK, and S1+S2 are what make it one.
-            # With both absent the sum collapses to S3 alone and the row then
-            # states "every lira this bank lent is non-performing" — NPL 100%,
-            # fabricated from a gap. 161 of 836 prior rows were in exactly that
-            # state (and are exactly the corpus's 161 NPL==100% rows); no
-            # `current` row is, which is why no chart ever showed it and no
-            # check caught it — validation reads current only. Latent, not live:
-            # every consumer filters period_type='current' (audit.ts:634,
-            # credit-risk.ts:49, every bot-schema.ts example). But bot-sql.ts
-            # lets an LLM write its own SQL over this table, so a fabricated
-            # 100% is one forgotten WHERE clause from being quoted as fact.
-            # Unknown ≠ zero: emit NULL and let the identity skip.
-            # NOT `all(...)`: 40 current rows have exactly one of S1/S2 null and
-            # a real total; this touches only the both-absent case.
-            if s1 is None and s2 is None:
-                tot_a = None
-            else:
-                tot_a = sum(x for x in (s1, s2, s3) if x is not None) if any(x is not None for x in (s1, s2, s3)) else None
-            tot_e = sum(x for x in (e1, e2, e3) if x is not None) if any(x is not None for x in (e1, e2, e3)) else None
-            cov1 = (e1 / s1) if (e1 is not None and s1 not in (None, 0)) else None
-            cov2 = (e2 / s2) if (e2 is not None and s2 not in (None, 0)) else None
-            cov3 = (e3 / s3) if (e3 is not None and s3 not in (None, 0)) else None
-            rows.append((bt, p, k, pt, s1, s2, s3, tot_a, e1, e2, e3, tot_e, cov1, cov2, cov3))
-
-        conn.executemany(
-            "INSERT INTO bank_audit_stages "
-            "(bank_ticker, period, kind, period_type, "
-            " stage1_amount, stage2_amount, stage3_amount, total_amount, "
-            " stage1_ecl, stage2_ecl, stage3_ecl, total_ecl, "
-            " stage1_coverage, stage2_coverage, stage3_coverage) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            rows,
-        )
-        conn.commit()
-
-        # Stats
-        total = len(rows)
-        complete = sum(1 for r in rows if all(r[i] is not None for i in (4, 5, 6, 8, 9, 10)))
-        any_amt = sum(1 for r in rows if any(r[i] is not None for i in (4, 5, 6)))
-        any_ecl = sum(1 for r in rows if any(r[i] is not None for i in (8, 9, 10)))
-        print(f"bank_audit_stages: {total} rows")
-        print(f"  with all 6 fields (S1/S2/S3 amounts + ECL):   {complete}")
-        print(f"  with at least one amount field:               {any_amt}")
-        print(f"  with at least one ECL field:                  {any_ecl}")
+        build_stages(conn)
 
 
 if __name__ == "__main__":

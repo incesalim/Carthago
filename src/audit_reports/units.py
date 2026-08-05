@@ -263,3 +263,37 @@ def scale_sequence(table: str, columns: list[str], row: tuple, factor: int) -> t
     money = money_columns(table)
     return tuple(scale_amount(v, factor) if c in money else v
                  for c, v in zip(columns, row))
+
+
+# ---------------------------------------------------------------------------
+# Hand-transcribed sources: data/audit_overrides.json, data/manual_statements.json.
+#
+# A person reads the PDF and types what the page says, so these are SOURCE-NATIVE
+# and carry the filing's own unit. Every one of the 457 override entries written
+# so far predates the switch and is therefore `bin`, which is why an absent
+# `unit` may default — but ONLY for those.
+#
+# Past the horizon the default is withdrawn. The first Q2 transcription that
+# omits the field would otherwise silently recreate the exact 1000x error this
+# module exists to prevent: the author reads a Milyon page, types 5,000, and a
+# defaulted `bin` stores it a thousandfold small with every identity still
+# footing. So post-horizon entries must declare, and a missing or unrecognised
+# declaration refuses BEFORE any row is touched.
+# ---------------------------------------------------------------------------
+def resolve_manual_unit(period: str, declared: str | None) -> str:
+    """Unit for a hand-transcribed entry. Raises rather than assume."""
+    if declared is not None:
+        norm = str(declared).strip().lower()
+        if norm not in UNIT_SCALE:
+            raise ValueError(
+                f"{period}: manual entry declares unit {declared!r}, which is not "
+                f"one of {sorted(UNIT_SCALE)}. Refusing before any row is touched.")
+        return norm
+    if within_sweep(period):
+        return CANONICAL_UNIT
+    raise ValueError(
+        f"{period}: a hand-transcribed entry past {SWEEP_HORIZON} must declare its "
+        f'unit (e.g. "unit": "milyon"). The sector switched Bin -> Milyon in '
+        f"2026Q2, so defaulting to thousands here would store the figure 1000x "
+        f"small while every in-filing identity still foots — the one error no "
+        f"validator in this repo can see.")
