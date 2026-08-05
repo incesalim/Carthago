@@ -395,12 +395,49 @@ def write(conn: sqlite3.Connection, expected_rows, type_rows, coverage_rows) -> 
         "INSERT INTO bank_audit_statement_types (key, label, source_table, statement, "
         "section, is_core, has_validator, section_rank, sort_order) "
         "VALUES (?,?,?,?,?,?,?,?,?)", type_rows)
-    conn.execute("DELETE FROM bank_audit_coverage")
-    conn.executemany(
-        "INSERT INTO bank_audit_coverage (bank_ticker, period, kind, statement_type, "
-        "status, row_count, checks_failed, is_manual, pdf_present) VALUES (?,?,?,?,?,?,?,?,?)",
-        coverage_rows)
+    write_coverage(conn, coverage_rows)
     conn.commit()
+
+
+_COVERAGE_VALUE_COLS = ("status", "row_count", "checks_failed", "is_manual",
+                        "pdf_present")
+
+
+def write_coverage(conn, coverage_rows) -> tuple[int, int]:
+    """Write only the coverage rows whose VALUES moved. Returns (changed, removed).
+
+    `derived_at` is what push_to_d1 windows this table on (migration 0040), so
+    re-stamping an unchanged row re-ships it. Rebuilding the table wholesale
+    cost 161,272 estimated billed rows in the 2026Q2 refresh because eleven
+    partitions changed — the other ~19,000 rows were identical.
+
+    Rows the rebuild no longer produces are DELETEd here, which is what the
+    delete-all used to do. That matters more than the saving: a coverage cell
+    for a partition that has left the expected universe would otherwise sit in
+    D1 for ever, and the matrix would keep showing it.
+    """
+    key_len = 4                              # bank, period, kind, statement_type
+    stored = {tuple(r[:key_len]): tuple(r[key_len:]) for r in conn.execute(
+        "SELECT bank_ticker, period, kind, statement_type, "
+        + ", ".join(_COVERAGE_VALUE_COLS) + " FROM bank_audit_coverage")}
+    incoming = {tuple(r[:key_len]): tuple(r[key_len:]) for r in coverage_rows}
+
+    gone = sorted(set(stored) - set(incoming))
+    for key in gone:
+        conn.execute(
+            "DELETE FROM bank_audit_coverage WHERE bank_ticker=? AND period=? "
+            "AND kind=? AND statement_type=?", key)
+
+    changed = [(*k, *v) for k, v in incoming.items() if stored.get(k) != v]
+    cols = ["bank_ticker", "period", "kind", "statement_type", *_COVERAGE_VALUE_COLS]
+    placeholders = ", ".join("?" for _ in cols)      # counted, never hand-typed
+    conn.executemany(
+        f"INSERT OR REPLACE INTO bank_audit_coverage ({', '.join(cols)}, derived_at) "
+        f"VALUES ({placeholders}, CURRENT_TIMESTAMP)",
+        changed)
+    print(f"[sync] coverage: {len(changed)} of {len(incoming)} rows changed"
+          f"{f', {len(gone)} removed' if gone else ''}")
+    return len(changed), len(gone)
 
 
 def main() -> int:

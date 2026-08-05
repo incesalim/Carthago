@@ -187,11 +187,24 @@ also lost its `DELETE FROM bank_audit_stages` — with an incremental insert tha
 delete-all would have emptied the table, so the rebuild now owns row lifecycle
 and removes only keys it no longer produces.
 
-`bank_audit_coverage` is **not** in that class: full-rebuild tables already carry
-a content hash, so the spine is skipped entirely on a run that changes nothing.
-It cost 161,272 here because 11 new partitions genuinely changed it. Making it
-per-partition needs a stamp column and removal from `_FULL_REBUILD` — real, but
-smaller, and it wants a supervised first run.
+**`bank_audit_coverage` is now per-partition too — built, tested, NOT yet
+activated live (2026-08-05).** As a full-rebuild rollup its content hash made a
+no-op run free, but *any* change re-shipped all ~20,000 rows: 161,272 estimated
+billed here for eleven changed partitions. Migration
+`0040_coverage_derived_at.sql` adds the stamp, `sync_audit_expected.write_coverage()`
+writes only rows whose values moved **and deletes the keys the rebuild no longer
+produces** (what the delete-all used to do — losing it silently would leave the
+matrix showing partitions that no longer exist), and the table has left
+`_FULL_REBUILD` so the push windows it like every other audit table. A NULL
+stamp is out of window on purpose: rows written before 0040 are already in D1,
+and re-shipping them once would cost exactly what this removes. 11 offline tests.
+
+**The switch is OFF** (`push_to_d1._COVERAGE_INCREMENTAL = False`, coverage
+still in `_FULL_REBUILD`) and a test pins it off. The ordering cannot be
+enforced from the code: the windowed push reads `derived_at`, so D1 must have
+the column *before* the first incremental push, and 0040 only lands on the
+deploy that follows this commit. Behaviour today is byte-for-byte what shipped
+before; flipping the flag is the whole supervised activation.
 
 **The 250,000 cap now bounds the RUN, not each push.** It was applied per
 invocation, so 203,799 then 226,069 each "passed" while the run spent 429,868.
@@ -200,6 +213,33 @@ write (a failed import still bills) and subtracted from the *result* of the
 cycle guard — subtracting it from the input let the guard's own floor swallow
 it, which would have disabled the ledger in exactly the exhausted-allowance
 state where it matters most.
+
+**⚠️ The ledger and the automatic retry contradicted each other — resolved
+2026-08-05.** Booking before the write and retrying `EXIT_PUSH_FAILED` cannot
+both be right:
+
+```
+attempt 1  books 203,799  ->  wrangler blips  ->  exit 4 (retryable)
+attempt 2  cap is now 250,000 - 203,799 = 46,201
+           estimate 203,799 > 46,201        ->  exit 3 (TERMINAL)
+```
+
+A service-side blip became a permanent budget refusal, and the operator read
+*"a validation or budget refusal is deterministic … Nothing was written"* —
+neither half true. Whether a half-finished import bills is not observable from
+here: if it did, retrying spends twice; if it did not, the ledger has
+over-booked and the retry is refused for nothing. So `audit_d1.terminal_exits()`
+adds `EXIT_PUSH_FAILED` to the terminal set **while a ledger is active** — one
+attempt, then a human. Without a ledger it stays retryable, which is what the
+non-audit callers rely on. Reproduced end-to-end before fixing.
+
+**The ledger's wiring is now gated** (`tests/test_workflow_ledger_wiring.py`):
+every workflow that pushes to D1 more than once must give each pushing step the
+same run-scoped path. `check_docs_sync.py` covers workflows, `secrets.*` and
+Worker bindings, not this — the gap was the reason to add a test, not to skip
+one. Writing it found the **same defect in two more lanes**:
+`refresh-bddk-bulletins.yml` and `refresh-data.yml` each push twice
+(rows, then the `api_series` full rebuild) and had no shared ledger. Both fixed.
 
 *(prior status, for the record)* Normalisation wired and the 11 held filings
 verified on a copy before any push (2026-08-05): `src/audit_reports/units.py` is the one detector (the analyst
@@ -277,10 +317,33 @@ the 380 opinions mentioning a free provision, the opinion figure matches the
 stored stock 160 times and **disagrees 42 times**, while recovering exactly
 **one** missing row — because the opinion reports what was **set aside** and the
 note what **remains**. ALBRK is the clearest case: opinion ₺7,300,000k against a
-stored ₺245,000k, the reversal being the entire ALBRK story. So TEB's ₺368mn
-belongs in `audit_overrides.json` as a curated cell (the established route for a
-figure disclosed in prose rather than a table), **not** in a general fallback.
-Not applied — that is a data write.
+stored ₺245,000k, the reversal being the entire ALBRK story. So the figure is
+curated per partition, **not** taken from a general fallback.
+
+**✅ Curated 2026-08-05 in `data/free_provision_overrides.json`** — the file that
+exists for exactly this (hand-transcribed stocks read from auditor
+qualifications), not `audit_overrides.json`. Both TEB 2026Q2 kinds, declaring
+`"unit": "milyon"`, `free_provision: 368`, `free_provision_prior: 1230`.
+
+That declaration needed a loader fix first: `_override_for` returned raw numbers
+and `upsert_free_provision` then scaled them by the **filing's** unit. Harmless
+while every filing was Bin TL and a silent **1000×** from 2026Q2 on. The
+override now resolves its own unit through `UnitContext.manual()` — which
+**refuses** a post-2026Q1 entry that declares none — normalises to canonical
+`bin` itself, and marks the result so the writer cannot scale it twice. The ~200
+legacy entries carry no `"unit"`, resolve to `bin` at factor 1, and are pinned
+unchanged by a test.
+
+Stored canonical values, proven end-to-end through the real override file and
+the real writer: **current 368,000 · prior 1,230,000 Bin TL**. The prior
+reconciles exactly with TEB's stored 2025Q4 current stock of 1,230,000 — the
+module's own longitudinal check (this report's prior == last report's current).
+
+⚠️ **Not pushed** — this is a local data change; the row reaches D1 only on a
+future refresh. And note **TEB 2026Q1 currently stores 0**, which contradicts
+both the 2025Q4 stock and the Q2 auditor's "1.230 milyon set aside in prior
+years"; it was machine-extracted (p76/p79) and looks wrong, but correcting it is
+a separate curated decision.
 
 **A new quarter arrives one bank at a time — sector "latest" needs a quorum
 (2026-07-26).** Three consumers took a bare `MAX(period)` over an audit table,

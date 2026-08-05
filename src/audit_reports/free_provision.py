@@ -139,6 +139,13 @@ class FreeProvision:
     disclosed: bool = False                   # did the bank disclose a free provision at all?
     source_page: int | None = None
     snippet: str = ""                         # matched context, for audit/debug
+    # True when the amounts are ALREADY canonical `bin` and must not be scaled
+    # again by the filing's unit. Only a hand-transcribed override sets it: an
+    # override carries its OWN declared unit, which is not necessarily the
+    # filing's. Without this the loader multiplied a manual value by the
+    # filing's factor — harmless while every filing was Bin TL, and a silent
+    # 1000x from 2026Q2 on.
+    unit_normalised: bool = False
 
     def is_empty(self) -> bool:
         return not self.disclosed
@@ -233,13 +240,28 @@ def _overrides() -> dict:
 
 
 def _override_for(bank: str, period: str, kind: str) -> FreeProvision | None:
+    """A hand-transcribed stock, normalised to canonical `bin` here.
+
+    The entry carries its OWN unit — the human read it off a page, and from
+    2026Q2 that page prints Milyon TL. An absent "unit" resolves to `bin`
+    through `resolve_manual_unit`, which is what every pre-switch entry in the
+    file means (its header says thousand TL) and which RAISES for a period past
+    2026Q1 rather than assume. Normalising here, and marking the result, is what
+    stops `upsert_free_provision` scaling a manual figure a second time by the
+    filing's factor.
+    """
     o = _overrides().get(bank.upper(), {}).get(period.upper(), {}).get(kind.lower())
     if o is None:
         return None
+    ctx = UnitContext.manual(period, o.get("unit"))
+
+    def _canon(v):
+        return None if v is None else v * ctx.factor
+
     return FreeProvision(
-        free_provision=o.get("free_provision"),
-        free_provision_prior=o.get("free_provision_prior"),
-        disclosed=True, source_page=-1,
+        free_provision=_canon(o.get("free_provision")),
+        free_provision_prior=_canon(o.get("free_provision_prior")),
+        disclosed=True, source_page=-1, unit_normalised=True,
         snippet="MANUAL: " + o.get("source", ""),
     )
 
@@ -276,9 +298,16 @@ def upsert_free_provision(
     unit: UnitContext,
 ) -> int | None:
     """Store one bank's free-provision row. Skip-if-empty (no disclosure found),
-    so a failed re-extract can't wipe a captured value — same rule as profile."""
+    so a failed re-extract can't wipe a captured value — same rule as profile.
+
+    `unit` is the FILING's context. A hand-transcribed override has already been
+    converted from its own declared unit to canonical `bin` by `_override_for`,
+    so applying the filing's factor to it as well would multiply it twice.
+    """
     if fp is None or fp.is_empty():
         return None
+    if fp.unit_normalised:
+        unit = UnitContext.canonical()
     conn.execute(
         "INSERT OR REPLACE INTO bank_audit_free_provision "
         "(bank_ticker, period, kind, free_provision, free_provision_prior, "

@@ -19,6 +19,7 @@ PDFs because `data/_bench/` is gitignored and CI has no filings to read.
 """
 from __future__ import annotations
 
+import json
 import re
 import sys
 from pathlib import Path
@@ -195,6 +196,102 @@ def test_a_free_provision_reversal_is_never_read_as_the_stock():
         "there is no Dec-31 stock anchor — the parenthetical is a prior-period FLOW"
     assert not re.fullmatch(FP._NUM, "862"), \
         "in Milyon TL a real amount can be 3 digits; _NUM still requires a group"
+
+
+def test_teb_2026q2_free_provision_stores_the_canonical_stock(tmp_path):
+    """End to end, through the REAL override file and the REAL writer.
+
+    The regex assertions above prove only that the note is rejected. This proves
+    what actually lands in the row — the thing that was missing. A manual entry
+    carries its own declared unit ("milyon"), and the writer must NOT scale it a
+    second time by the filing's factor; before the fix, an override read while
+    extracting a Milyon filing came out 1000x large.
+    """
+    import sqlite3
+
+    from src.audit_reports.free_provision import _override_for, upsert_free_provision
+    from src.audit_reports.schema import init_schema
+    from src.audit_reports.units import UnitContext
+
+    for kind in ("consolidated", "unconsolidated"):
+        fp = _override_for("TEB", "2026Q2", kind)
+        assert fp is not None, f"TEB 2026Q2 {kind} override is missing"
+        assert fp.unit_normalised and fp.source_page == -1
+
+        conn = sqlite3.connect(tmp_path / f"fp_{kind}.db")
+        init_schema(conn)
+        # The FILING is Milyon — exactly the context production passes.
+        upsert_free_provision(conn, "TEB", "2026Q2", kind, fp,
+                              unit=UnitContext("milyon", 1_000))
+        stored = conn.execute(
+            "SELECT free_provision, free_provision_prior FROM bank_audit_free_provision"
+        ).fetchone()
+        assert stored == (368_000.0, 1_230_000.0), (
+            f"{kind}: stored {stored}, expected 368,000 / 1,230,000 Bin TL "
+            f"(368 and 1,230 Milyon)")
+
+
+def test_a_manual_free_provision_is_not_scaled_twice(tmp_path):
+    """The defect the declared unit fixes, stated directly: the same entry read
+    while extracting a Milyon filing must land on the same canonical value as
+    one read from a Bin filing."""
+    import sqlite3
+
+    from src.audit_reports.free_provision import _override_for, upsert_free_provision
+    from src.audit_reports.schema import init_schema
+    from src.audit_reports.units import UnitContext
+
+    fp = _override_for("TEB", "2026Q2", "consolidated")
+    out = []
+    for i, ctx in enumerate((UnitContext("milyon", 1_000), UnitContext("bin", 1))):
+        conn = sqlite3.connect(tmp_path / f"twice{i}.db")
+        init_schema(conn)
+        upsert_free_provision(conn, "TEB", "2026Q2", "consolidated", fp, unit=ctx)
+        out.append(conn.execute(
+            "SELECT free_provision FROM bank_audit_free_provision").fetchone()[0])
+    assert out[0] == out[1] == 368_000.0
+
+
+def test_a_post_horizon_override_without_a_unit_is_refused():
+    """A Q2+ entry that forgets "unit" must raise, not default to thousands —
+    that default is the 1000x-small error no in-filing identity can see."""
+    import src.audit_reports.free_provision as FP
+
+    FP._overrides.cache_clear()
+    original = FP._overrides
+    FP._overrides = lambda: {"XBANK": {"2026Q2": {"consolidated":
+                                                  {"free_provision": 368}}}}
+    try:
+        with pytest.raises(ValueError, match="must declare its unit"):
+            FP._override_for("XBANK", "2026Q2", "consolidated")
+    finally:
+        FP._overrides = original
+        FP._overrides.cache_clear()
+
+
+def test_every_legacy_override_still_resolves_unchanged():
+    """The file's ~200 pre-switch entries carry no "unit" and are thousand-TL by
+    its own header. They must keep resolving at factor 1, untouched."""
+    import src.audit_reports.free_provision as FP
+
+    raw = json.loads(FP._OVERRIDE_PATH.read_text(encoding="utf-8"))
+    checked = 0
+    for bank, periods in raw.items():
+        if bank.startswith("_"):
+            continue
+        for period, kinds in periods.items():
+            for kind, entry in kinds.items():
+                fp = FP._override_for(bank, period, kind)
+                assert fp is not None
+                if "unit" not in entry:
+                    assert period <= "2026Q1", (
+                        f"{bank} {period} {kind} is past the horizon and declares "
+                        f"no unit — it would have raised")
+                    assert fp.free_provision == entry.get("free_provision"), (
+                        f"{bank} {period} {kind} moved: {fp.free_provision} != "
+                        f"{entry.get('free_provision')}")
+                    checked += 1
+    assert checked > 50, f"only {checked} legacy entries checked — file not loaded?"
 
 
 def test_the_audit_opinion_is_not_a_substitute_source_for_the_stock():

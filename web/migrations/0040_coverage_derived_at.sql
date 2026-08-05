@@ -1,0 +1,16 @@
+-- bank_audit_coverage: a per-row stamp, so the table can leave the
+-- full-rebuild set and be pushed per partition.
+--
+-- Full-rebuild tables emit DELETE + INSERT for EVERY row and D1 bills both. The
+-- 2026Q2 audit refresh spent 161,272 estimated billed rows rebuilding all
+-- ~20,159 coverage rows because eleven partitions changed. The existing
+-- content-hash gate makes a NO-OP run free, but any change at all pays for the
+-- whole table.
+--
+-- With a stamp, push_to_d1 windows this table exactly like every other
+-- bank_audit_* one: sync_audit_expected writes only the rows whose status
+-- actually moved, and only those partitions are shipped.
+--
+-- NULL means "written before this column existed". The windowed push treats a
+-- NULL stamp as out-of-window, which is correct: those rows are already in D1.
+ALTER TABLE bank_audit_coverage ADD COLUMN derived_at TIMESTAMP;

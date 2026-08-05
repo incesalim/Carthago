@@ -29,6 +29,12 @@
     "2026Q1": {"consolidated": {"free_provision": 8700000, "source": "'toplam 8.700.000 Bin TL ... serbest karsiligi'"}, "unconsolidated": {"free_provision": 8700000, "source": "'toplam 8.700.000 Bin TL'"}}
   },
   "TEB": {
+    "2026Q2": {
+      "consolidated":   {"unit": "milyon", "free_provision": 368, "free_provision_prior": 1230,
+        "source": "auditor qualification p1 (EY, sartli): '1.230 milyon TL’si gecmis yillarda ayrilan, 862 milyon TL’si de cari donemde iptal edilen toplam 368 milyon TL tutarinda ... serbest karsiligi icermektedir'; cites notes 5 II.7.d + IV.5. Note p91 carries only the 862 REVERSAL (footnote on Diger, current (798) prior 170), which is a flow and correctly not extracted. Prior 1.230 reconciles exactly with TEB 2025Q4 stored current 1,230,000."},
+      "unconsolidated": {"unit": "milyon", "free_provision": 368, "free_provision_prior": 1230,
+        "source": "auditor qualification p1 (EY, sartli): same figures as consolidated (1.230 gecmis / 862 iptal / toplam 368 Milyon TL); note p88 carries only the 862 reversal."}
+    },
     "2023Q4": {"unconsolidated": {"free_provision": 2050000, "source": "'400,000 + 1,650,000 = 2,050,000'"}},
     "2024Q1": {"consolidated": {"free_provision": 2050000, "source": "'400,000 + 1,650,000'"}, "unconsolidated": {"free_provision": 2050000, "source": "'400,000 + 1,650,000'"}},
     "2024Q2": {"consolidated": {"free_provision": 2050000, "source": "'400,000 + 1,650,000'"}, "unconsolidated": {"free_provision": 2050000, "source": "'400,000 + 1,650,000'"}},

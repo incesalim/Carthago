@@ -37,13 +37,38 @@ from src.audit_reports import r2_storage  # noqa: E402
 # list here is what silently dropped fx_position/repricing from D1 for weeks.
 from src.audit_reports.registry import AUDIT_TABLES  # noqa: E402,F401
 from scripts.push_to_d1 import (  # noqa: E402
-    EXIT_BUDGET, EXIT_VALIDATION, run_wrangler,
+    EXIT_BUDGET, EXIT_PUSH_FAILED, EXIT_VALIDATION, run_wrangler,
 )
 
 # Retrying these cannot help and actively harms: a deterministic refusal
 # retried is a refusal defeated. Attempt one used to create the missing
 # table and refuse; attempt two saw it as pre-existing and proceeded.
 TERMINAL_EXITS = (EXIT_VALIDATION, EXIT_BUDGET)
+
+
+def terminal_exits() -> tuple[int, ...]:
+    """TERMINAL_EXITS, plus EXIT_PUSH_FAILED when a run ledger is active.
+
+    push_to_d1 books its estimate BEFORE calling wrangler, because an import
+    that dies half way still bills. That makes a retry unanswerable:
+
+        attempt 1  books 203,799  -> wrangler blips -> exit 4 (retryable)
+        attempt 2  cap is now 250,000 - 203,799 = 46,201
+                   estimate 203,799 > 46,201       -> exit 3 (TERMINAL)
+
+    A service-side blip becomes a permanent budget refusal, and the operator
+    reads "a validation or budget refusal is deterministic ... Nothing was
+    written" — neither half of which is true. Whether a failed import billed is
+    not observable from here: if it did, retrying spends twice; if it did not,
+    the ledger has over-booked and the retry is refused for nothing. Neither
+    branch is safe to automate, so under a ledger the loop stops after one
+    attempt and a human decides. Without a ledger there is no double-booking to
+    worry about and exit 4 stays retryable, which is what the non-audit callers
+    rely on.
+    """
+    if os.environ.get("D1_RUN_LEDGER"):
+        return (*TERMINAL_EXITS, EXIT_PUSH_FAILED)
+    return TERMINAL_EXITS
 
 # --- audit-lane constants -------------------------------------------------
 DB = REPO / "data" / "bank_audit.db"
@@ -268,6 +293,18 @@ def replace_partitions(parts: Sequence[tuple[str, str, str]],
         rc = subprocess.run(cmd).returncode
         if rc == 0:
             return
+        if rc == EXIT_PUSH_FAILED and rc in terminal_exits():
+            sys.exit(
+                f"[d1] replace failed (exit {rc}) and a run ledger is active "
+                f"(D1_RUN_LEDGER={os.environ.get('D1_RUN_LEDGER')}), so this "
+                "attempt's estimate is already booked against the run's cap.\n"
+                "  NOT retrying: whether a half-finished import billed is not "
+                "observable from here. If it did, a retry spends twice; if it "
+                "did not, the ledger has over-booked and the retry would be "
+                "refused as a budget breach — a transient blip reported as a "
+                "deterministic refusal.\n"
+                "  D1 content is unchanged either way (the import is atomic). "
+                "Check the cycle usage, clear or adjust the ledger, then re-run.")
         if rc in TERMINAL_EXITS:
             sys.exit(f"[d1] replace refused (exit {rc}) — a validation or budget "
                      "refusal is deterministic, so retrying would only defeat it. "

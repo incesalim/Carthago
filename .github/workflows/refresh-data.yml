@@ -79,6 +79,7 @@ jobs:
       - name: Push incremental rows to Cloudflare D1
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          D1_RUN_LEDGER: ${{ runner.temp }}/d1_run_ledger.json
         # 168h (7 days) window — covers the weekly cron interval. Idempotent
         # via INSERT OR REPLACE; re-running overwrites unchanged rows safely.
         # Covers monthly / weekly / EVDS tables. The bank_audit_* tables are
@@ -96,6 +97,7 @@ jobs:
       - name: Push the series catalog to Cloudflare D1
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          D1_RUN_LEDGER: ${{ runner.temp }}/d1_run_ledger.json
         # api_series is a full-rebuild table with no per-row timestamp, so the
         # windowed push above skips it and it must be named explicitly.
         run: python scripts/push_to_d1.py --only-tables api_series

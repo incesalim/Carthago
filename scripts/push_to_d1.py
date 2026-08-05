@@ -139,6 +139,9 @@ SYNC_TABLES = [
 _FULL_REBUILD = {
     "bank_audit_expected",
     "bank_audit_statement_types",
+    # bank_audit_coverage is STILL HERE, deliberately — see _COVERAGE_INCREMENTAL
+    # below. Everything it needs to leave is built and tested; the switch is held
+    # until migration 0040 is confirmed applied.
     "bank_audit_coverage",
     "api_series",
     # Derived wholesale by scripts/analyst/detect.py from the audit corpus on
@@ -149,6 +152,24 @@ _FULL_REBUILD = {
     "analyst_basis_metadata",
     "analyst_notes",
 }
+
+# ACTIVATION SWITCH for the incremental bank_audit_coverage push.
+#
+# As a full-rebuild rollup, coverage re-ships all ~20,000 rows whenever anything
+# changes — 161,272 estimated billed rows in the 2026Q2 refresh to restate what
+# eleven partitions did. Everything needed to fix that is in place and tested:
+# migration 0040 adds `derived_at`, sync_audit_expected.write_coverage() stamps
+# only rows whose values moved and deletes keys the rebuild no longer produces,
+# and the windowed branch below already knows the column.
+#
+# It is OFF because the order matters and cannot be enforced from here: the
+# windowed push reads `derived_at`, so D1 must have the column BEFORE the first
+# incremental push, and migration 0040 lands via the deploy that follows this
+# commit. Flipping this to True in a later, deliberate change is the whole
+# activation — a supervised first run, per the plan.
+_COVERAGE_INCREMENTAL = False
+if _COVERAGE_INCREMENTAL:                      # pragma: no cover - off by default
+    _FULL_REBUILD.discard("bank_audit_coverage")
 
 # Named table groups for --table-set, so a caller can say "the audit lane's
 # tables" instead of hand-listing them. The audit lane pushes all of its tables
@@ -779,9 +800,17 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int,
         where = f"WHERE extracted_at >= datetime('now', '-{hours} hours')"
     elif table == "bank_audit_validation":
         where = f"WHERE validated_at >= datetime('now', '-{hours} hours')"
-    elif table == "bank_audit_pl_roles":
+    elif table in ("bank_audit_pl_roles", "bank_audit_coverage"):
         # Derived alongside validation (revalidate_audit_db / apply_overrides
         # rebuild both for a partition together), so it windows on its own stamp.
+        #
+        # bank_audit_coverage joined them in migration 0040. It used to be a
+        # full-rebuild rollup, which meant any change at all re-shipped all
+        # ~20,000 rows — 161,272 estimated billed in the 2026Q2 refresh for
+        # eleven changed partitions. sync_audit_expected now stamps only the
+        # rows whose values moved and deletes the keys it no longer produces,
+        # so the ordinary partition machinery is enough. A NULL stamp (written
+        # before 0040) is out of window on purpose: those rows are already in D1.
         where = f"WHERE derived_at >= datetime('now', '-{hours} hours')"
     elif table in (
         "bank_audit_credit_quality",

@@ -623,6 +623,9 @@ CREATE TABLE IF NOT EXISTS bank_audit_coverage (
     checks_failed  INTEGER NOT NULL DEFAULT 0,
     is_manual      INTEGER NOT NULL DEFAULT 0,
     pdf_present    INTEGER NOT NULL DEFAULT 0,
+    -- Set only when the row's VALUES change (sync_audit_expected), so the
+    -- windowed push ships changed partitions instead of the whole table.
+    derived_at     TIMESTAMP,
     PRIMARY KEY (bank_ticker, period, kind, statement_type)
 );
 
@@ -667,6 +670,10 @@ _COLUMN_MIGRATIONS: list[tuple[str, str, str]] = [
     # dies on "no such column: section".
     ("bank_audit_statement_types", "section", "TEXT NOT NULL DEFAULT ''"),
     ("bank_audit_statement_types", "section_rank", "INTEGER NOT NULL DEFAULT 99"),
+    # Added 2026-08-05 (migration 0040): the per-row stamp that lets
+    # bank_audit_coverage leave the full-rebuild set and be pushed per
+    # partition. NULL = written before the column existed, i.e. already in D1.
+    ("bank_audit_coverage", "derived_at", "TIMESTAMP"),
 ]
 
 
