@@ -637,17 +637,10 @@ Measured on the real balance-sheet corpus (1,050 partitions / 182,141 rows):
 | Re-extraction that changed nothing | 182,141 | **0** |
 | Re-extraction that fixed one cell | 182,141 | **181** (1 partition) |
 
-⚠️ **The skip is OPT-IN (`--skip-unchanged-partitions`), and that is load-bearing.**
-Five callers **DELETE the partitions in D1 and then invoke `push_to_d1` to
-re-insert them** — `apply_overrides.py`, `load_partition.py`, `reextract_pl.py`,
-`push_from_scratch.py`, and `audit_d1.clear_d1_partitions()` (used by
-`backfill_extraction.py`). That split only works while the push always re-emits
-what the clear removed. A skip in that window — or a budget refusal — leaves the
-partition **cleared and empty**, and the digest then records it as synced so
-every later push skips it too. `audit_d1.push_to_d1()` already warned "partitions
-may be cleared but unpushed" for the *failure* case; the skip made it reachable
-on a *successful* run. So the default is off, and only `refresh-audit.yml` opts
-in, because it calls the push directly with nothing clearing D1 first.
+⚠️ **The skip is OPT-IN (`--skip-unchanged-partitions`).** A plain windowed push
+is upsert-only, so silently declining to send partitions for a caller that did
+not ask for it is the wrong default. Only `refresh-audit.yml` opts in. Targeted
+repairs do not use it at all — they use explicit replacement, below.
 
 When it IS on, the push **owns the partition end to end**: it emits its own
 scoped `DELETE` for the changed partitions followed by their current rows, in the
@@ -710,13 +703,29 @@ Migrated: `apply_overrides.py`, `load_partition.py`, `reextract_pl.py`,
 `push_from_scratch.py`, `backfill_extraction.py`, and both `audit_d1` helpers.
 `purge_partition.py` is deliberately out of scope: destroying rows is its job.
 
+**Replacement must name its tables.** `--replace-partitions` requires
+`--only-tables` or `--table-set` and rejects any table that cannot honour it (a
+full-rebuild rollup, or one without `bank_ticker/period/kind`). Without that a
+replacement fell through to every *other* table's ordinary window — an AKBNK
+repair emitted an unrelated recent `loans` row. `_NO_PARTITION_SKIP` suppresses
+the digest **skip** only, never the selection: while it also disabled selection,
+replacing AKBNK emitted GARAN's `bank_audit_extractions` row and no scoped
+DELETE.
+
 **Pricing a DELETE has exactly three sources, and no fourth.** The recorded
-`row_count`; failing that the local count, valid only when the digest matched
-(equality means local and remote agree); failing that D1 itself, since a read is
-a thousandth the price of a write. If none can answer — an emptied partition
-whose state predates `row_count`, with D1 unreachable — the push **refuses**.
-Assuming a number is how a 100-row delete got priced as one row, and the guard
-then waves through the very push it exists to stop.
+`row_count`; failing that the local count, valid **only when the digest matched**
+— equality is what proves local and remote agree, so a partition shrunk from 100
+rows to 1 has a *different* digest and its single row says nothing about what D1
+holds; failing that D1 itself, since a read is a thousandth the price of a write.
+If none can answer, the push **refuses**, and no flag overrides it — the number
+is unknown, not merely large. Assuming one is how a 100-row delete got priced at
+one row, and the guard then waves through the very push it exists to stop.
+
+**The estimate covers the whole generated file, including the outbox.** Queued
+`d1_pending_deletes` statements execute, so they are priced (one PK-scoped row
+each, the outbox's contract) and a statement with no `WHERE` is refused outright
+rather than replayed. Explicit replacement leaves the outbox alone entirely:
+those entries belong to other lanes and must not ride along in a targeted repair.
 - ⚠️ **`bank_audit_extractions` is exempt.** It is the extraction *log*: its job
   is to record that an extraction ran, and `extracted_at` — the fact it exists to
   carry — is excluded from every digest. Skipping it would freeze D1's audit

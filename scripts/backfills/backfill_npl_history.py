@@ -30,7 +30,6 @@ import shutil
 import sqlite3
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
@@ -38,9 +37,10 @@ sys.path.insert(0, str(REPO))
 sys.stdout.reconfigure(encoding="utf-8")
 
 from src.audit_reports import r2_storage  # noqa: E402
-from scripts.push_to_d1 import run_wrangler  # noqa: E402
 from scripts.sync_audit_reports import extract_from_r2  # noqa: E402
-from scripts.audit_d1 import AUDIT_TABLES, DB, GZ, SNAP  # noqa: E402
+from scripts.audit_d1 import (  # noqa: E402
+    AUDIT_TABLES, DB, GZ, SNAP, replace_partitions,
+)
 
 # Banks whose templates grabbed the FC-only NPL sub-table (the set that changed
 # in the 2026Q1 latest-period backfill). Their full history needs re-extraction.
@@ -59,31 +59,6 @@ def _esc(v) -> str:
     # Audit text columns (heading_snippet, item_name) are short single-line
     # snippets — simple quote-doubling is sufficient (no embedded newlines).
     return "'" + str(v).replace("'", "''") + "'"
-
-
-def _period_chunk_sql(conn: sqlite3.Connection, banks: list[str], period: str) -> str:
-    """DELETE + INSERT OR REPLACE for one period's partitions across all audit
-    tables, scoped to `banks`. Self-contained so each wrangler execute is
-    independent and bounded."""
-    bank_list = ",".join("'" + b + "'" for b in banks)
-    parts: list[str] = [f"-- {period}: {len(banks)} banks"]
-    for tbl in AUDIT_TABLES:
-        cols = [c[1] for c in conn.execute(f"PRAGMA table_info({tbl})")]
-        col_list = ",".join(cols)
-        parts.append(
-            f"DELETE FROM {tbl} WHERE bank_ticker IN ({bank_list}) AND period='{period}';"
-        )
-        rows = conn.execute(
-            f"SELECT {col_list} FROM {tbl} "
-            f"WHERE bank_ticker IN ({bank_list}) AND period=?",
-            (period,),
-        ).fetchall()
-        for i in range(0, len(rows), BATCH):
-            values = ",\n".join(
-                "(" + ",".join(_esc(v) for v in r) + ")" for r in rows[i:i + BATCH]
-            )
-            parts.append(f"INSERT OR REPLACE INTO {tbl}({col_list}) VALUES\n{values};")
-    return "\n".join(parts) + "\n"
 
 
 def main() -> None:
@@ -129,18 +104,27 @@ def main() -> None:
             f"WHERE bank_ticker IN ({ph}) ORDER BY period", tuple(banks))]
     print(f"[npl-history] {len(periods)} periods to push: {periods}")
 
-    sql_path = Path(tempfile.gettempdir()) / "d1_npl_history_chunk.sql"
+    # One guarded, atomic replace per period. This used to build its own
+    # DELETE+INSERT file and hand it straight to run_wrangler: no billed-row
+    # guard on an explicitly high-volume audit backfill, and no partition
+    # digest/row-count state, so the next push had to rediscover everything it
+    # had just written. Period-level chunking is preserved — each period is one
+    # bounded remote call, which is what kept these runs debuggable.
     with sqlite3.connect(str(DB)) as conn:
-        for i, period in enumerate(periods, 1):
-            sql_path.write_text(_period_chunk_sql(conn, banks, period), encoding="utf-8")
-            mb = sql_path.stat().st_size / 1e6
-            verb = "would push" if args.dry_run else "push"
-            print(f"[npl-history] {verb} {i}/{len(periods)} {period} ({mb:.1f} MB)", flush=True)
-            if args.dry_run:
-                continue
-            rc = run_wrangler(sql_path)
-            if rc != 0:
-                sys.exit(f"[npl-history] D1 push failed for {period} (rc={rc})")
+        by_period: dict[str, list[tuple[str, str, str]]] = {}
+        for period in periods:
+            by_period[period] = conn.execute(
+                f"SELECT DISTINCT bank_ticker, period, kind FROM bank_audit_extractions "
+                f"WHERE bank_ticker IN ({ph}) AND period = ?", (*banks, period)
+            ).fetchall()
+    for i, period in enumerate(periods, 1):
+        parts = by_period[period]
+        verb = "would replace" if args.dry_run else "replace"
+        print(f"[npl-history] {verb} {i}/{len(periods)} {period} "
+              f"({len(parts)} partitions)", flush=True)
+        if args.dry_run:
+            continue
+        replace_partitions(parts, DB, AUDIT_TABLES)
 
     if args.dry_run:
         print("[npl-history] dry-run: skipped D1 push + snapshot upload")

@@ -1,8 +1,9 @@
 """Shared D1 + R2-snapshot operations for the audit lane.
 
 Every audit repair/sync tool does the same dance: pull the snapshot, mutate the
-local ``bank_audit.db``, clear the touched partitions in D1, push (upsert-only),
-re-upload the snapshot — guarded against concurrent CI writers and D1 transients.
+local ``bank_audit.db``, REPLACE the touched partitions in D1 (one atomic,
+cost-guarded call — see ``replace_partitions``), re-upload the snapshot — guarded
+against concurrent CI writers and D1 transients.
 This module is the one place that logic lives, so the satellites
 (``backfill_extraction``, ``audit_correct``, ``push_from_scratch``,
 ``backfills/backfill_npl_history``) share it instead of re-implementing it.
@@ -41,15 +42,14 @@ from scripts.push_to_d1 import run_wrangler  # noqa: E402
 DB = REPO / "data" / "bank_audit.db"
 GZ = REPO / "data" / "bank_audit.db.gz"
 SNAP = "state/bank_audit.db.gz"
-# Window passed to push_to_d1; the D1 partition-clear derives the same
-# (bank, period) set the push will re-insert, so keep these two in lock-step.
+# Window passed to push_to_d1 for the plain windowed pushes. Targeted repairs go
+# through replace_partitions instead, which names its partitions outright.
 PUSH_WINDOW_HOURS = 24
 
 # D1 occasionally drops a remote execute with a service-side transient
 # ("D1_RESET_DO" / "import polling failed" / fetch failed) — seen during a
-# Phase-3 batch run right after a heavy partition clear. Imports are
-# transactional, so retrying is safe; without it a transient strands a batch
-# with cleared-but-unpushed partitions.
+# Phase-3 batch run right after a heavy partition replace. Imports are
+# transactional, so a failed file leaves D1 untouched and retrying is safe.
 D1_RETRIES = 3
 D1_RETRY_WAIT_S = 90
 
@@ -268,16 +268,6 @@ def replace_partitions(parts: Sequence[tuple[str, str, str]],
         time.sleep(D1_RETRY_WAIT_S)
 
 
-def partitions_in_window(db_path: Path, window_hours: int
-                         ) -> list[tuple[str, str, str]]:
-    """The (bank, period, kind) set a windowed push would touch."""
-    with sqlite3.connect(str(db_path)) as conn:
-        return conn.execute(
-            "SELECT DISTINCT bank_ticker, period, kind FROM bank_audit_extractions "
-            f"WHERE extracted_at >= datetime('now', '-{window_hours} hours')"
-        ).fetchall()
-
-
 def clear_d1_partitions(db_path: Path, window_hours: int,
                         tables: list[str] = AUDIT_TABLES) -> None:
     """Replace the just-re-extracted partitions in D1. Kept under its old name so
@@ -332,8 +322,9 @@ def push_to_d1(db_path: Path = DB, window_hours: int = PUSH_WINDOW_HOURS,
         if subprocess.run(cmd).returncode == 0:
             return
         if attempt == D1_RETRIES:
-            sys.exit(f"[d1] push failed after {D1_RETRIES} attempts — partitions "
-                     "may be cleared but unpushed; re-run for the same banks to recover")
+            sys.exit(f"[d1] push failed after {D1_RETRIES} attempts. Pushes are "
+                     "upsert-only and atomic per file, so D1 is unchanged — fix "
+                     "the cause and re-run.")
         print(f"[d1] push failed (attempt {attempt}/{D1_RETRIES}) — "
               f"retrying in {D1_RETRY_WAIT_S}s", flush=True)
         time.sleep(D1_RETRY_WAIT_S)

@@ -5,7 +5,11 @@ pulls rows whose `downloaded_at` is within the last N hours (default 48) and
 INSERT OR REPLACEs them into D1 via `wrangler d1 execute --remote --file=...`.
 
 INSERT OR REPLACE is idempotent — re-running is safe; existing rows get
-overwritten with identical data.
+overwritten with identical data. Upsert alone cannot DELETE, so the audit lane's
+targeted repairs use --replace-partitions: an explicit (bank|period|kind) list
+whose scoped DELETEs and current rows travel in ONE guarded file, replacing the
+old "clear D1, then push" two-step that stranded partitions when the second call
+did not happen.
 
 Usage:
     python scripts/push_to_d1.py             # default window 48h
@@ -663,9 +667,13 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int,
         return [f"-- {table}: no time column, skipped"]
 
     n = conn.execute(f"SELECT COUNT(*) FROM {table} {where}").fetchone()[0]
+    # `_NO_PARTITION_SKIP` suppresses the digest SKIP, never explicit selection:
+    # a caller naming AKBNK must not have GARAN's extraction-log row swept in by
+    # the time window, nor that table left without a scoped DELETE.
+    exempt_from_skip = table in _NO_PARTITION_SKIP and replace is None
     partition_mode = ((skip_partitions or replace is not None)
                       and not full_rebuild and digests is not None
-                      and table not in _NO_PARTITION_SKIP
+                      and not exempt_from_skip
                       and has_partition_key(conn, table))
     if replace is not None and partition_mode:
         # Explicit selection replaces the time window outright: the caller says
@@ -704,6 +712,10 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int,
         # always sent — the safe default when the state is missing or reseeded.
         changed = {k: v for k, v in current.items()
                    if resend or replace is not None or stored.get(k) != v}
+        # Digest equality is the ONLY licence to treat the local row count as the
+        # remote one. A 100-row partition shrunk to 1 has a DIFFERENT digest, so
+        # its single local row says nothing about what D1 still holds.
+        digest_matched = {k for k, v in current.items() if stored.get(k) == v}
 
         if replace is not None:
             # EXPLICIT REPLACEMENT. The caller named the partitions, so selection
@@ -774,7 +786,7 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int,
             ).fetchone()[0] for k in to_delete
         }
         unknown = [k for k in to_delete
-                   if k not in stored_rows and not local_rows.get(k)]
+                   if k not in stored_rows and k not in digest_matched]
         if unknown:
             probed = remote_partition_rows(table, unknown)
             if probed is None:
@@ -782,11 +794,15 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int,
                     f"{table}: cannot price the DELETE of {len(unknown)} partition(s) "
                     f"— no recorded row_count, no local rows, and D1 could not be "
                     f"queried. Refusing rather than guessing; a wrong guess here "
-                    f"defeats the cost guard. Retry when D1 is reachable, or pass "
-                    f"--max-billed-rows deliberately with --no-cycle-check."
+                    f"defeats the cost guard. No flag bypasses this — the number "
+                    f"is unknown, not merely large. Retry when D1 is reachable, or "
+                    f"record the partition's size by pushing it once with "
+                    f"--resend-partitions while D1 is up."
                 )
             stored_rows = {**stored_rows, **probed}
-        del_rows = sum(stored_rows.get(k, local_rows.get(k, 0)) for k in to_delete)
+        del_rows = sum(
+            stored_rows[k] if k in stored_rows else local_rows.get(k, 0)
+            for k in to_delete)
         digests[table] = changed
         if rowcounts is not None:
             rowcounts[table] = {
@@ -1063,6 +1079,33 @@ def main() -> int:
                   f"{bad[:5]}", file=sys.stderr)
             return 2
         print(f"replacing {len(replace)} partition(s)")
+        # Replacement MUST name its tables. Without a filter the main loop walks
+        # every sync table, and the ones without (bank_ticker, period, kind)
+        # quietly keep their ordinary window or full-rebuild behaviour — an
+        # AKBNK replacement emitted an unrelated recent `loans` row that way.
+        # "Replace these partitions" has to mean only that.
+        if allowed_tables is None:
+            print("ERROR: --replace-partitions requires an explicit table scope "
+                  "(--only-tables or --table-set). Without one this would also "
+                  "push every other table's ordinary window.", file=sys.stderr)
+            return 2
+        probe = sqlite3.connect(str(db))
+        try:
+            unsupported = sorted(
+                t for t in allowed_tables
+                if t in _FULL_REBUILD
+                or (probe.execute(
+                        "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
+                        (t,)).fetchone() and not has_partition_key(probe, t)))
+        finally:
+            probe.close()
+        if unsupported:
+            print(f"ERROR: these tables cannot honour partition replacement: "
+                  f"{unsupported}. A full-rebuild rollup has no partition key and "
+                  f"a table without (bank_ticker, period, kind) cannot be scoped, "
+                  f"so both would silently fall back to window or full-rebuild "
+                  f"behaviour. Drop them from the table scope.", file=sys.stderr)
+            return 2
 
     lines: list[str] = ["-- incremental D1 push", f"-- window: last {args.hours} hours", ""]
     if allowed_tables:
@@ -1076,10 +1119,29 @@ def main() -> int:
     # written by lanes whose runs replace whole partitions, e.g. KAP
     # ownership) BEFORE the inserts, so D1 can't keep orphan rows that the
     # INSERT OR REPLACE sync would never touch.
-    pending = conn.execute(
+    billed_pending: dict[str, int] = {}
+    # Explicit replacement replays NOTHING from the outbox: those entries belong
+    # to other lanes and other partitions, and smuggling them into a targeted
+    # repair is the opposite of explicit scope. They stay queued for their lane.
+    pending = [] if replace is not None else conn.execute(
         "SELECT rowid, sql FROM d1_pending_deletes ORDER BY rowid"
     ).fetchall()
     if pending:
+        # These execute, so they must be priced. The outbox contract is one
+        # PK-scoped row per statement (tefas_top_funds queues a fund code that
+        # dropped out of the top 15); an unbounded DELETE would blow the budget
+        # while the guard printed zero, so refuse rather than replay one.
+        for _, stmt in pending:
+            if not re.search(r"\bWHERE\b", stmt, re.I):
+                print(f"ERROR: queued outbox statement has no WHERE clause and "
+                      f"could delete a whole table: {stmt[:120]!r}. The outbox "
+                      f"contract is one PK-scoped row per statement.",
+                      file=sys.stderr)
+                return 2
+            m = re.search(r"DELETE\s+FROM\s+([A-Za-z_][A-Za-z0-9_]*)", stmt, re.I)
+            if m:
+                billed_pending[m.group(1)] = billed_pending.get(m.group(1), 0) + \
+                    billed_estimate(conn, m.group(1), 1, False)
         lines.append(f"-- d1_pending_deletes outbox: {len(pending)} statements")
         lines.extend(stmt for _, stmt in pending)
         lines.append("")
@@ -1122,7 +1184,9 @@ def main() -> int:
     # 50M monthly allowance and the whole overage was three campaign days
     # (12.4M + 15.1M + 9.4M); none of those runs announced what they were about
     # to write, and nothing stopped them.
-    est_total = sum(billed.values())
+    est_total = sum(billed.values()) + sum(billed_pending.values())
+    for t, v in billed_pending.items():
+        billed[t] = billed.get(t, 0) + v
 
     # Second layer: what is left of THIS cycle's allowance. The per-push cap
     # cannot see that a day has already run eight pushes; this can.

@@ -559,7 +559,8 @@ def _push(c, **kw):
     the push, and a skip after such a clear would leave them empty."""
     kw.setdefault("skip_partitions", True)
     d: dict = {}
-    block = P.fetch_recent(c, "bank_audit_capital", 48, digests=d, **kw)
+    _push.rowcounts = rc = {}
+    block = P.fetch_recent(c, "bank_audit_capital", 48, digests=d, rowcounts=rc, **kw)
     return block, d
 
 
@@ -581,7 +582,8 @@ def test_a_reextraction_that_changed_nothing_pushes_nothing(tmp_path):
     'unchanged', and D1 should receive nothing at all."""
     c = _audit_partition_db(tmp_path)
     _, d = _push(c)
-    P.record_partition_digests(c, "bank_audit_capital", d["bank_audit_capital"])
+    P.record_partition_digests(c, "bank_audit_capital", d["bank_audit_capital"],
+                               rows=_push.rowcounts.get("bank_audit_capital"))
 
     c.execute("UPDATE bank_audit_capital SET extracted_at = datetime('now','+1 hour')")
     c.commit()
@@ -593,7 +595,8 @@ def test_a_reextraction_that_changed_nothing_pushes_nothing(tmp_path):
 def test_only_the_partition_that_moved_is_pushed(tmp_path):
     c = _audit_partition_db(tmp_path)
     _, d = _push(c)
-    P.record_partition_digests(c, "bank_audit_capital", d["bank_audit_capital"])
+    P.record_partition_digests(c, "bank_audit_capital", d["bank_audit_capital"],
+                               rows=_push.rowcounts.get("bank_audit_capital"))
 
     c.execute("UPDATE bank_audit_capital SET value = 999.0 "
               "WHERE bank_ticker='GARAN'")
@@ -609,7 +612,8 @@ def test_a_partition_never_pushed_is_always_sent(tmp_path):
     staging DB has no digests at all and must push everything once."""
     c = _audit_partition_db(tmp_path)
     _, d = _push(c)
-    P.record_partition_digests(c, "bank_audit_capital", d["bank_audit_capital"])
+    P.record_partition_digests(c, "bank_audit_capital", d["bank_audit_capital"],
+                               rows=_push.rowcounts.get("bank_audit_capital"))
 
     c.execute("INSERT INTO bank_audit_capital VALUES "
               "('ISCTR','2026Q1','consolidated','cet1',500.0,datetime('now'))")
@@ -619,14 +623,15 @@ def test_a_partition_never_pushed_is_always_sent(tmp_path):
 
 
 def test_the_skip_is_off_unless_asked_for(tmp_path):
-    """THE safety default. scripts/apply_overrides.py, load_partition.py,
-    reextract_pl.py, push_from_scratch.py and audit_d1.clear_d1_partitions all
-    DELETE the partitions in D1 and then invoke this script to re-insert them.
-    A skip in that window leaves the partition cleared and empty — so skipping
-    must be something a caller opts into, never something it inherits."""
+    """THE safety default, and it outlived the bug that motivated it. Those
+    callers no longer clear-then-push — they go through replace_partitions — but
+    a plain windowed push is still upsert-only, so silently skipping partitions
+    for any caller that did not ask remains the wrong default. Opting in is what
+    makes the self-contained DELETE+INSERT path apply."""
     c = _audit_partition_db(tmp_path)
     _, d = _push(c)
-    P.record_partition_digests(c, "bank_audit_capital", d["bank_audit_capital"])
+    P.record_partition_digests(c, "bank_audit_capital", d["bank_audit_capital"],
+                               rows=_push.rowcounts.get("bank_audit_capital"))
     block, _ = _push(c, skip_partitions=False)
     assert _emitted_values(block), "default must resend everything in the window"
 
@@ -646,7 +651,8 @@ def test_a_deleted_row_still_counts_as_a_change(tmp_path):
     not just values."""
     c = _audit_partition_db(tmp_path)
     _, d = _push(c)
-    P.record_partition_digests(c, "bank_audit_capital", d["bank_audit_capital"])
+    P.record_partition_digests(c, "bank_audit_capital", d["bank_audit_capital"],
+                               rows=_push.rowcounts.get("bank_audit_capital"))
     c.execute("DELETE FROM bank_audit_capital WHERE bank_ticker='AKBNK' "
               "AND item='tier1'")
     c.commit()
@@ -751,7 +757,8 @@ def test_removing_a_row_locally_removes_it_remotely(tmp_path):
     c = _audit_partition_db(tmp_path)
     block, d = _push(c)
     remote = _remote_from(c)
-    P.record_partition_digests(c, "bank_audit_capital", d["bank_audit_capital"])
+    P.record_partition_digests(c, "bank_audit_capital", d["bank_audit_capital"],
+                               rows=_push.rowcounts.get("bank_audit_capital"))
 
     c.execute("DELETE FROM bank_audit_capital WHERE bank_ticker='AKBNK' AND item='tier1'")
     c.commit()
@@ -791,7 +798,8 @@ def test_only_changed_partitions_are_deleted(tmp_path):
     """The scoped DELETE must not sweep partitions the push is not resending."""
     c = _audit_partition_db(tmp_path)
     _, d = _push(c)
-    P.record_partition_digests(c, "bank_audit_capital", d["bank_audit_capital"])
+    P.record_partition_digests(c, "bank_audit_capital", d["bank_audit_capital"],
+                               rows=_push.rowcounts.get("bank_audit_capital"))
 
     c.execute("UPDATE bank_audit_capital SET value = 999 WHERE bank_ticker='GARAN'")
     c.commit()
@@ -806,7 +814,8 @@ def test_an_unchanged_partition_emits_no_delete(tmp_path):
     partition the push then declines to re-insert."""
     c = _audit_partition_db(tmp_path)
     _, d = _push(c)
-    P.record_partition_digests(c, "bank_audit_capital", d["bank_audit_capital"])
+    P.record_partition_digests(c, "bank_audit_capital", d["bank_audit_capital"],
+                               rows=_push.rowcounts.get("bank_audit_capital"))
     block, _ = _push(c)
     assert not [ln for ln in block if ln.startswith(("DELETE", "INSERT"))]
 
@@ -1114,6 +1123,9 @@ def test_it_refuses_rather_than_guess_when_d1_cannot_be_asked(tmp_path, monkeypa
     """No fourth source. Assuming a number is how the guard gets defeated."""
     c = _audit_partition_db(tmp_path)
     _, d, _ = _push3(c)
+    # LEGACY state on purpose: digest recorded, row_count NULL. That is what
+    # origin/master already holds, and it is the only case where nothing local
+    # can say how many rows D1 still has.
     P.record_partition_digests(c, "bank_audit_capital", d["bank_audit_capital"])
     c.execute("DELETE FROM bank_audit_capital WHERE bank_ticker='AKBNK'")
     c.commit()
@@ -1131,3 +1143,198 @@ def test_state_advances_only_after_the_push_succeeds():
     assert "record_partition_digests" in after
     before = src.split("rc = run_wrangler(sql_path)", 1)[0]
     assert "record_partition_digests(" not in before.split("def main(", 1)[-1]
+
+
+# --- main()-level: explicit scope, and the whole file priced ------------------
+#
+# Everything above drives fetch_recent. These drive main(), because the gaps
+# found next lived BETWEEN the two: a replacement with no table filter fell
+# through to every other table's ordinary window, and queued outbox DELETEs
+# executed without ever entering the estimate.
+
+def _audit_db_file(tmp_path, extra_loans=True):
+    p = tmp_path / "stage.db"
+    c = sqlite3.connect(p)
+    c.execute("CREATE TABLE bank_audit_capital (bank_ticker TEXT, period TEXT, "
+              "kind TEXT, item TEXT, value REAL, extracted_at TIMESTAMP)")
+    c.executemany("INSERT INTO bank_audit_capital VALUES (?,?,?,?,?,datetime('now'))",
+                  [("AKBNK", "2026Q1", "consolidated", "cet1", 1.0),
+                   ("GARAN", "2026Q1", "consolidated", "cet1", 2.0)])
+    c.execute("CREATE TABLE bank_audit_extractions (bank_ticker TEXT, period TEXT, "
+              "kind TEXT, success INT, extracted_at TIMESTAMP)")
+    c.executemany("INSERT INTO bank_audit_extractions VALUES (?,?,?,1,datetime('now'))",
+                  [("AKBNK", "2026Q1", "consolidated"),
+                   ("GARAN", "2026Q1", "consolidated")])
+    if extra_loans:
+        c.execute("CREATE TABLE loans (year INT, month INT, item_order INT, "
+                  "amount_tl REAL, downloaded_at TIMESTAMP)")
+        c.execute("INSERT INTO loans VALUES (2026,6,1,5.0,datetime('now'))")
+    c.commit()
+    c.close()
+    return p
+
+
+def _run(monkeypatch, db, *extra):
+    monkeypatch.setattr(sys, "argv",
+                        ["push_to_d1.py", "--db", str(db), "--dry-run",
+                         "--no-cycle-check", *extra])
+    return P.main()
+
+
+def _generated_sql() -> str:
+    import tempfile as _t
+    return (Path(_t.gettempdir()) / "d1_incremental.sql").read_text(encoding="utf-8")
+
+
+def _listing(tmp_path, *parts):
+    f = tmp_path / "parts.txt"
+    f.write_text("\n".join(parts) + "\n", encoding="utf-8")
+    return f
+
+
+def test_replace_mode_refuses_without_an_explicit_table_set(tmp_path, monkeypatch):
+    """Reproduced: an AKBNK replacement also emitted an unrelated recent `loans`
+    row. With no filter the loop walks every sync table, and the ones without a
+    partition key silently keep their ordinary window behaviour."""
+    db = _audit_db_file(tmp_path)
+    lst = _listing(tmp_path, "AKBNK|2026Q1|consolidated")
+    assert _run(monkeypatch, db, "--replace-partitions", str(lst)) == 2
+
+
+def test_replace_mode_rejects_a_table_that_cannot_be_scoped(tmp_path, monkeypatch):
+    db = _audit_db_file(tmp_path)
+    lst = _listing(tmp_path, "AKBNK|2026Q1|consolidated")
+    assert _run(monkeypatch, db, "--replace-partitions", str(lst),
+                "--only-tables", "bank_audit_capital,loans") == 2
+
+
+def test_replace_mode_rejects_a_full_rebuild_table(tmp_path, monkeypatch):
+    db = _audit_db_file(tmp_path)
+    lst = _listing(tmp_path, "AKBNK|2026Q1|consolidated")
+    assert _run(monkeypatch, db, "--replace-partitions", str(lst),
+                "--only-tables", "bank_audit_capital,api_series") == 2
+
+
+def test_replacing_akbnk_never_emits_garan_anywhere(tmp_path, monkeypatch):
+    """Including bank_audit_extractions. It sits in _NO_PARTITION_SKIP, which
+    used to switch OFF partition mode entirely — so during an explicit
+    replacement it fell back to the time window, emitted GARAN's log row and
+    produced no scoped DELETE. The exemption must suppress the digest skip, not
+    the selection."""
+    db = _audit_db_file(tmp_path)
+    lst = _listing(tmp_path, "AKBNK|2026Q1|consolidated")
+    rc = _run(monkeypatch, db, "--replace-partitions", str(lst),
+              "--only-tables", "bank_audit_capital,bank_audit_extractions")
+    assert rc == 0
+    sql = _generated_sql()
+    assert "AKBNK" in sql
+    assert "GARAN" not in sql
+    assert sql.count("DELETE FROM bank_audit_extractions") == 1
+
+
+def test_a_legacy_100_to_1_shrink_prices_the_remote_delete(tmp_path, monkeypatch):
+    """Reproduced at 4 billed rows instead of 202. The local count is the remote
+    count ONLY when the digest matched; a shrunk partition's digest differs, so
+    its one remaining row says nothing about the 100 D1 still holds. Because a
+    row remained, the remote probe was never reached."""
+    db = tmp_path / "shrink.db"
+    c = sqlite3.connect(db)
+    c.execute("CREATE TABLE bank_audit_capital (bank_ticker TEXT, period TEXT, "
+              "kind TEXT, item TEXT, value REAL, extracted_at TIMESTAMP)")
+    c.execute("CREATE INDEX ix ON bank_audit_capital(bank_ticker)")
+    c.executemany("INSERT INTO bank_audit_capital VALUES "
+                  "('AKBNK','2026Q1','consolidated',?,?,datetime('now'))",
+                  [(f"i{i}", float(i)) for i in range(100)])
+    c.execute("CREATE TABLE bank_audit_extractions (bank_ticker TEXT, period TEXT, "
+              "kind TEXT, success INT, extracted_at TIMESTAMP)")
+    c.execute("INSERT INTO bank_audit_extractions VALUES "
+              "('AKBNK','2026Q1','consolidated',1,datetime('now'))")
+    c.commit()
+    d: dict = {}
+    P.fetch_recent(c, "bank_audit_capital", 48, digests=d, skip_partitions=True)
+    # Legacy state on purpose: digest, no row_count.
+    P.record_partition_digests(c, "bank_audit_capital", d["bank_audit_capital"])
+    c.execute("DELETE FROM bank_audit_capital WHERE item != 'i0'")
+    c.commit()
+    assert c.execute("SELECT COUNT(*) FROM bank_audit_capital").fetchone()[0] == 1
+
+    probed: list = []
+    monkeypatch.setattr(
+        P, "remote_partition_rows",
+        lambda t, parts: (probed.append(list(parts)), {p: 100 for p in parts})[1])
+    counts: dict = {}
+    P.fetch_recent(c, "bank_audit_capital", 48, digests={}, rowcounts={},
+                   dropped={}, counts=counts, skip_partitions=True)
+    assert probed, "a shrunk partition with no recorded count must ask D1"
+    # 100 deleted + 1 inserted, at (1 row + 1 index) each = 202.
+    assert counts["bank_audit_capital"] == 202
+
+
+def test_a_nonempty_partition_with_no_stored_digest_is_probed(tmp_path, monkeypatch):
+    """A missing or stale digest is not 'matched'. Nothing then licenses the
+    local count as the remote one either."""
+    c = _audit_partition_db(tmp_path)
+    P.record_partition_digests(c, "bank_audit_capital",
+                               {"AKBNK|2026Q1|consolidated": "stale-digest"})
+    probed: list = []
+    monkeypatch.setattr(
+        P, "remote_partition_rows",
+        lambda t, parts: (probed.append(list(parts)), {p: 50 for p in parts})[1])
+    P.fetch_recent(c, "bank_audit_capital", 48, digests={}, rowcounts={},
+                   dropped={}, counts={}, skip_partitions=True)
+    assert any("AKBNK|2026Q1|consolidated" in p for p in probed)
+
+
+def test_queued_outbox_deletes_are_priced(tmp_path, monkeypatch):
+    """Reproduced: a queued DELETE executed while the guard printed 0."""
+    db = _audit_db_file(tmp_path, extra_loans=False)
+    c = sqlite3.connect(db)
+    c.execute("CREATE TABLE d1_pending_deletes (sql TEXT)")
+    c.execute("INSERT INTO d1_pending_deletes VALUES (?)",
+              ("DELETE FROM bank_audit_capital WHERE bank_ticker='X' "
+               "AND period='Y' AND kind='Z';",))
+    c.commit()
+    c.close()
+    assert _run(monkeypatch, db, "--only-tables", "bank_audit_capital",
+                "--max-billed-rows", "1") == 3
+
+
+def test_an_unbounded_queued_delete_is_refused(tmp_path, monkeypatch):
+    """The outbox contract is one PK-scoped row per statement. A bare DELETE
+    would blow the budget while the guard priced it as a single row."""
+    db = _audit_db_file(tmp_path, extra_loans=False)
+    c = sqlite3.connect(db)
+    c.execute("CREATE TABLE d1_pending_deletes (sql TEXT)")
+    c.execute("INSERT INTO d1_pending_deletes VALUES (?)",
+              ("DELETE FROM bank_audit_capital;",))
+    c.commit()
+    c.close()
+    assert _run(monkeypatch, db, "--only-tables", "bank_audit_capital") == 2
+
+
+def test_replacement_does_not_replay_unrelated_outbox_entries(tmp_path, monkeypatch):
+    """Another lane's queued delete must not be smuggled into a targeted repair."""
+    db = _audit_db_file(tmp_path, extra_loans=False)
+    c = sqlite3.connect(db)
+    c.execute("CREATE TABLE d1_pending_deletes (sql TEXT)")
+    c.execute("INSERT INTO d1_pending_deletes VALUES (?)",
+              ("DELETE FROM tefas_top_funds WHERE date='2026-01-01' "
+               "AND fon_tipi='YAT' AND fon_kodu='AFA';",))
+    c.commit()
+    c.close()
+    lst = _listing(tmp_path, "AKBNK|2026Q1|consolidated")
+    assert _run(monkeypatch, db, "--replace-partitions", str(lst),
+                "--only-tables", "bank_audit_capital") == 0
+    assert "tefas_top_funds" not in _generated_sql()
+
+
+def test_the_npl_history_backfill_cannot_push_unguarded():
+    """It built DELETE+INSERT files and handed them straight to run_wrangler —
+    an explicitly high-volume audit backfill with no billed-row guard and no
+    partition digest state."""
+    src = (REPO / "scripts" / "backfills" / "backfill_npl_history.py").read_text(
+        encoding="utf-8")
+    code = "\n".join(ln for ln in src.splitlines() if not ln.lstrip().startswith("#"))
+    assert "run_wrangler(" not in code, "must not push outside the guarded path"
+    assert "import run_wrangler" not in code
+    assert "replace_partitions(" in code
