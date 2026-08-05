@@ -161,15 +161,18 @@ Secrets screen, or `npx wrangler secret put GITHUB_DISPATCH_TOKEN`).
 
 Enable Web Analytics for the site, create an account API token with **Analytics:
 Read**, then set:
-- vars `CF_ANALYTICS_SITE_TAG`, `CF_ACCOUNT_TAG` (in `web/wrangler.jsonc`)
+- vars `CF_ANALYTICS_SITE_TAG`, `CF_ANALYTICS_SITE_TOKEN`, `CF_ACCOUNT_TAG`
+  (in `web/wrangler.jsonc`)
 - secret `CF_ANALYTICS_TOKEN`
 
-> `CF_ANALYTICS_SITE_TAG` is **dual-purpose**: it's the key this panel queries against
-> *and* the token of the client RUM beacon. Do not turn on Cloudflare's "automatic"
-> (edge) injection expecting it to work — it does **not** fire on the OpenNext Worker
-> response, which is why the beacon is rendered by hand in
-> `web/app/components/Beacon.tsx`. If RUM reads 0 while the panel works, check that
-> component, not the Cloudflare dashboard toggle.
+> Cloudflare returns two different identifiers for one Web Analytics site:
+> `site_tag` is the GraphQL filter (`CF_ANALYTICS_SITE_TAG`), while `site_token` is
+> the public client-beacon token (`CF_ANALYTICS_SITE_TOKEN`). They are not
+> interchangeable: using the token as `siteTag` produces a successful but empty
+> GraphQL result. List both with `GET /accounts/{account_id}/rum/site_info/list`.
+> Do not turn on Cloudflare's "automatic" edge injection expecting it to cover the
+> OpenNext Worker response; the beacon is rendered explicitly in
+> `web/app/components/Beacon.tsx`.
 
 ### 4. Cloudflare Access (optional — only on a custom domain)
 

@@ -18,7 +18,8 @@ interface CloudflareEnv {
 
   // Cloudflare Web Analytics (traffic panel). Token is a `secret`, the rest `vars`.
   CF_ANALYTICS_TOKEN?: string; // account API token with Analytics: Read
-  CF_ANALYTICS_SITE_TAG?: string; // Web Analytics site tag
+  CF_ANALYTICS_SITE_TAG?: string; // GraphQL siteTag filter (not the beacon token)
+  CF_ANALYTICS_SITE_TOKEN?: string; // public browser-beacon token
   CF_ACCOUNT_TAG?: string; // Cloudflare account id/tag
 
   // Google Analytics 4 (gtag.js). Non-secret `var` — the GA4 measurement ID

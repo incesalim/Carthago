@@ -5,6 +5,14 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-04.
 
+2026-08-05 — **Admin traffic now queries the site it actually measures.**
+Cloudflare Web Analytics exposes a `site_tag` for GraphQL and a separate
+`site_token` for the browser beacon. The original wiring put the token in both
+places; Cloudflare accepted that query but returned an empty dataset. The Worker
+now carries separate `CF_ANALYTICS_SITE_TAG` and `CF_ANALYTICS_SITE_TOKEN` vars,
+the admin query returns live page views/visits/paths, and the manual beacon uses
+the token (with Cloudflare's current `type="module"` embed shape).
+
 2026-08-05 — **A campaign now costs what it changed, not what it touched.** Each
 `(bank_audit_* table, bank·period·kind)` partition carries a digest in
 `d1_pushed_partitions`, and an unchanged partition is not pushed at all.
@@ -1260,9 +1268,10 @@ Also `e073815`: register `generate-reads.yml` in the pipeline graph, which its o
 Wired the analytics tags for the `/admin` traffic panel (`01fe505`), then found RUM stuck at 0: the
 beacon was absent from the live HTML because Cloudflare's *automatic* edge injection does not fire on
 the OpenNext Worker response. Fixed by rendering the snippet ourselves in
-`web/app/components/Beacon.tsx` (`e7222a1`). The token is the non-secret `CF_ANALYTICS_SITE_TAG`,
-now **dual-purpose**: the client beacon's token and the key the traffic panel queries against. It
-renders nothing when unset, so `next dev` never pollutes production analytics.
+`web/app/components/Beacon.tsx` (`e7222a1`). At the time this treated Cloudflare's
+site token and site tag as one identifier; the 2026-08-05 fix above split them after
+the GraphQL query was found to return an empty dataset. The beacon renders nothing
+when unset, so `next dev` never pollutes production analytics.
 Also `5b348de`: real per-bank brand logos on `/banks` (static PNGs + `fetch_bank_logos.py`).
 
 2026-07-04 — **Audit / financials: five dropped P&L lines recovered, cash-flow signs normalized, P&L flow now reconciles exactly.**

@@ -45,7 +45,10 @@
   "vars": {
     "CF_ACCESS_TEAM_DOMAIN": "",
     "CF_ACCESS_AUD": "",
-    "CF_ANALYTICS_SITE_TAG": "db5a28b26759487392e8f7947754edd8",
+    // Cloudflare exposes two different Web Analytics identifiers. site_tag is
+    // the GraphQL filter key; site_token is the public browser-beacon token.
+    "CF_ANALYTICS_SITE_TAG": "97d195dc544a45b798004bf3df0e10d1",
+    "CF_ANALYTICS_SITE_TOKEN": "db5a28b26759487392e8f7947754edd8",
     "CF_ACCOUNT_TAG": "fc990982b0035bafc9f08b1a98ae0664",
     "GA_MEASUREMENT_ID": "G-3BLDJPYVPE"
   },

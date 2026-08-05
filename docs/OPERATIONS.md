@@ -1035,8 +1035,9 @@ degrades gracefully when its key is unset:
 | `APP_API_DISABLED` | kill switch for the mobile app's `/api/app/v1` API. **Separate from `PUBLIC_API_DISABLED` on purpose** — that one sheds third-party load in an incident, and reusing it would black out every installed app at the same moment. Setting this 503s the app while the website and public API stay up |
 
 Bot detail: [TELEGRAM_BOT.md](TELEGRAM_BOT.md). Public API: [API.md](API.md). Non-secret vars live in
-`web/wrangler.jsonc`: `CF_ANALYTICS_SITE_TAG` (dual-purpose — the traffic panel's
-query key *and* the client beacon's token), `CF_ACCOUNT_TAG`, `GA_MEASUREMENT_ID`
+`web/wrangler.jsonc`: `CF_ANALYTICS_SITE_TAG` (the traffic panel's GraphQL
+filter), `CF_ANALYTICS_SITE_TOKEN` (the public client-beacon token),
+`CF_ACCOUNT_TAG`, `GA_MEASUREMENT_ID`
 (the Google Analytics 4 gtag.js measurement ID, `G-…`; the tag is only emitted
 when this is set **and** the visitor has opted in — GA has been consent-gated
 since 2026-07-25, so expect GA4 traffic to read well below the Cloudflare beacon's,

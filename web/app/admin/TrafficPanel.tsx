@@ -32,9 +32,10 @@ export default async function TrafficPanel() {
           <span className="font-medium text-foreground">Web Analytics not configured.</span> Enable
           Cloudflare Web Analytics for the site, then set{" "}
           <code className="rounded bg-muted px-1 font-mono text-[11px]">CF_ANALYTICS_TOKEN</code>,{" "}
-          <code className="rounded bg-muted px-1 font-mono text-[11px]">CF_ANALYTICS_SITE_TAG</code>{" "}
+          <code className="rounded bg-muted px-1 font-mono text-[11px]">CF_ANALYTICS_SITE_TAG</code>,{" "}
+          <code className="rounded bg-muted px-1 font-mono text-[11px]">CF_ANALYTICS_SITE_TOKEN</code>{" "}
           and <code className="rounded bg-muted px-1 font-mono text-[11px]">CF_ACCOUNT_TAG</code> to
-          light this up.
+          collect visits and light this up.
         </p>
       </>
     );

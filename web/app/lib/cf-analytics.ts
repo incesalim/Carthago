@@ -3,8 +3,11 @@
  * Analytics API. Needs three values (all optional — the panel degrades to a
  * "not configured" state when any is missing):
  *   CF_ANALYTICS_TOKEN     account API token with Analytics: Read   (secret)
- *   CF_ANALYTICS_SITE_TAG  the Web Analytics site tag               (var)
+ *   CF_ANALYTICS_SITE_TAG  GraphQL siteTag filter; not site_token    (var)
  *   CF_ACCOUNT_TAG         Cloudflare account id                    (var)
+ *
+ * The browser beacon deliberately uses CF_ANALYTICS_SITE_TOKEN instead. The
+ * Web Analytics API returns both identifiers and they are not interchangeable.
  */
 import { getEnv } from "./cf-env";
 
