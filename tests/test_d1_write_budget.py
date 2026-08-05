@@ -34,6 +34,14 @@ sys.path.insert(0, str(REPO / "scripts"))
 import push_to_d1 as P  # noqa: E402
 
 
+def fake_remote(rows_per_partition=0):
+    """Deterministic stand-in for remote_partition_rows. Injected explicitly so
+    no unit test can reach `npx wrangler` by omission."""
+    def _f(table, parts):
+        return {p: rows_per_partition for p in parts}
+    return _f
+
+
 # --- full-rebuild tables only rebuild when their content moved ---------------
 
 def _catalog(rows=3, stamp="2026-01-01 00:00:00"):
@@ -521,7 +529,9 @@ def test_transcripts_batch_one_row_at_a_time():
 # and July's overage was campaigns. Each partition now carries a digest.
 #
 # The danger is the mirror image of the saving: a wrong skip means rows silently
-# never reach D1. These tests pin the safe defaults.
+# never reach D1. These tests pin the safe defaults. (The clear-then-push callers
+# these once had to defend against are gone — every repair tool now goes through
+# audit_d1.replace_partitions, one atomic guarded call.)
 
 def _audit_partition_db(tmp_path):
     p = tmp_path / "audit.db"
@@ -547,6 +557,7 @@ def _audit_partition_db(tmp_path):
 def _push3(c, **kw):
     """(block, digests, rowcounts) — the three out-params main() threads through."""
     kw.setdefault("skip_partitions", True)
+    kw.setdefault("remote_rows", fake_remote())
     d: dict = {}
     rc: dict = {}
     block = P.fetch_recent(c, "bank_audit_capital", 48, digests=d, rowcounts=rc, **kw)
@@ -558,6 +569,7 @@ def _push(c, **kw):
     the whole point: several callers clear the partitions in D1 before invoking
     the push, and a skip after such a clear would leave them empty."""
     kw.setdefault("skip_partitions", True)
+    kw.setdefault("remote_rows", fake_remote())
     d: dict = {}
     _push.rowcounts = rc = {}
     block = P.fetch_recent(c, "bank_audit_capital", 48, digests=d, rowcounts=rc, **kw)
@@ -1030,6 +1042,7 @@ def _replace(c, parts, **kw):
     rc: dict = {}
     dr: dict = {}
     cnt: dict = {}
+    kw.setdefault("remote_rows", fake_remote())
     block = P.fetch_recent(c, "bank_audit_capital", 48, digests=d, rowcounts=rc,
                            dropped=dr, counts=cnt, replace=set(parts), **kw)
     return block, d, rc, dr, cnt
@@ -1108,11 +1121,10 @@ def test_a_legacy_emptied_partition_is_never_priced_as_one_row(tmp_path, monkeyp
 
     c.execute("DELETE FROM bank_audit_capital WHERE bank_ticker='ISCTR'")
     c.commit()
-    monkeypatch.setattr(P, "remote_partition_rows",
-                        lambda t, parts: {p: 100 for p in parts})
     counts: dict = {}
     P.fetch_recent(c, "bank_audit_capital", 48, digests={}, rowcounts={},
-                   dropped={}, counts=counts, skip_partitions=True)
+                   dropped={}, counts=counts, skip_partitions=True,
+                   remote_rows=fake_remote(100))
     # The fixture table carries no indexes, so the factor is 1: the estimate is
     # the row count itself. What matters is that it reflects the 100 rows D1
     # actually holds and not the 1 the old fallback assumed.
@@ -1129,10 +1141,10 @@ def test_it_refuses_rather_than_guess_when_d1_cannot_be_asked(tmp_path, monkeypa
     P.record_partition_digests(c, "bank_audit_capital", d["bank_audit_capital"])
     c.execute("DELETE FROM bank_audit_capital WHERE bank_ticker='AKBNK'")
     c.commit()
-    monkeypatch.setattr(P, "remote_partition_rows", lambda t, parts: None)
     with pytest.raises(RuntimeError, match="cannot price the DELETE"):
         P.fetch_recent(c, "bank_audit_capital", 48, digests={}, rowcounts={},
-                       dropped={}, skip_partitions=True)
+                       dropped={}, counts={}, skip_partitions=True,
+                       remote_rows=lambda t, parts: None)
 
 
 def test_state_advances_only_after_the_push_succeeds():
@@ -1156,7 +1168,8 @@ def _audit_db_file(tmp_path, extra_loans=True):
     p = tmp_path / "stage.db"
     c = sqlite3.connect(p)
     c.execute("CREATE TABLE bank_audit_capital (bank_ticker TEXT, period TEXT, "
-              "kind TEXT, item TEXT, value REAL, extracted_at TIMESTAMP)")
+              "kind TEXT, item TEXT, value REAL, extracted_at TIMESTAMP, "
+              "PRIMARY KEY (bank_ticker, period, kind, item))")
     c.executemany("INSERT INTO bank_audit_capital VALUES (?,?,?,?,?,datetime('now'))",
                   [("AKBNK", "2026Q1", "consolidated", "cet1", 1.0),
                    ("GARAN", "2026Q1", "consolidated", "cet1", 2.0)])
@@ -1174,7 +1187,15 @@ def _audit_db_file(tmp_path, extra_loans=True):
     return p
 
 
-def _run(monkeypatch, db, *extra):
+def _run(monkeypatch, db, *extra, remote=0):
+    """Drive main() with a deterministic fake remote reader.
+
+    main() resolves `remote_partition_rows` as a module global at call time, so
+    replacing it here keeps even the orchestration tests offline. Without this
+    they shell out to `npx wrangler --remote`, which is exactly the defect these
+    tests exist to prevent — and which passed locally only because this machine
+    happens to hold Cloudflare credentials."""
+    monkeypatch.setattr(P, "remote_partition_rows", fake_remote(remote))
     monkeypatch.setattr(sys, "argv",
                         ["push_to_d1.py", "--db", str(db), "--dry-run",
                          "--no-cycle-check", *extra])
@@ -1259,12 +1280,14 @@ def test_a_legacy_100_to_1_shrink_prices_the_remote_delete(tmp_path, monkeypatch
     assert c.execute("SELECT COUNT(*) FROM bank_audit_capital").fetchone()[0] == 1
 
     probed: list = []
-    monkeypatch.setattr(
-        P, "remote_partition_rows",
-        lambda t, parts: (probed.append(list(parts)), {p: 100 for p in parts})[1])
+
+    def _probe(t, parts):
+        probed.append(list(parts))
+        return {p: 100 for p in parts}
     counts: dict = {}
     P.fetch_recent(c, "bank_audit_capital", 48, digests={}, rowcounts={},
-                   dropped={}, counts=counts, skip_partitions=True)
+                   dropped={}, counts=counts, skip_partitions=True,
+                   remote_rows=_probe)
     assert probed, "a shrunk partition with no recorded count must ask D1"
     # 100 deleted + 1 inserted, at (1 row + 1 index) each = 202.
     assert counts["bank_audit_capital"] == 202
@@ -1277,11 +1300,12 @@ def test_a_nonempty_partition_with_no_stored_digest_is_probed(tmp_path, monkeypa
     P.record_partition_digests(c, "bank_audit_capital",
                                {"AKBNK|2026Q1|consolidated": "stale-digest"})
     probed: list = []
-    monkeypatch.setattr(
-        P, "remote_partition_rows",
-        lambda t, parts: (probed.append(list(parts)), {p: 50 for p in parts})[1])
+
+    def _probe(t, parts):
+        probed.append(list(parts))
+        return {p: 50 for p in parts}
     P.fetch_recent(c, "bank_audit_capital", 48, digests={}, rowcounts={},
-                   dropped={}, counts={}, skip_partitions=True)
+                   dropped={}, counts={}, skip_partitions=True, remote_rows=_probe)
     assert any("AKBNK|2026Q1|consolidated" in p for p in probed)
 
 
@@ -1292,7 +1316,7 @@ def test_queued_outbox_deletes_are_priced(tmp_path, monkeypatch):
     c.execute("CREATE TABLE d1_pending_deletes (sql TEXT)")
     c.execute("INSERT INTO d1_pending_deletes VALUES (?)",
               ("DELETE FROM bank_audit_capital WHERE bank_ticker='X' "
-               "AND period='Y' AND kind='Z';",))
+               "AND period='Y' AND kind='Z' AND item='cet1';",))
     c.commit()
     c.close()
     assert _run(monkeypatch, db, "--only-tables", "bank_audit_capital",
@@ -1338,3 +1362,188 @@ def test_the_npl_history_backfill_cannot_push_unguarded():
     assert "run_wrangler(" not in code, "must not push outside the guarded path"
     assert "import run_wrangler" not in code
     assert "replace_partitions(" in code
+
+
+# --- the suite must stay OFFLINE ---------------------------------------------
+#
+# A fresh partition with no stored digest went straight into the "unknown" set
+# and called remote_partition_rows, which shells out to `npx wrangler ... --remote`.
+# Ordinary tests did that. Locally it SUCCEEDED because this machine has
+# Cloudflare credentials — so the suite was making live D1 reads while being
+# reported as offline verification, and in CI (no Node, no credentials) it would
+# have failed closed. Probing is now part of pricing only, and the resolver is
+# injected, so reaching the network by omission is impossible.
+
+def test_pytest_never_shells_out(tmp_path, monkeypatch):
+    """THE sentinel. Any subprocess launch from a unit path is a bug: it makes
+    the suite depend on credentials CI does not have, and can spend real money."""
+    calls: list = []
+    monkeypatch.setattr(P.subprocess, "run",
+                        lambda *a, **k: calls.append(a) or (_ for _ in ()).throw(
+                            AssertionError("unit test tried to launch a subprocess")))
+    c = _audit_partition_db(tmp_path)
+    # A first push: every partition is fresh, none has a digest or a row_count.
+    P.fetch_recent(c, "bank_audit_capital", 48, digests={}, rowcounts={},
+                   dropped={}, skip_partitions=True)
+    assert calls == []
+
+
+def test_pricing_without_a_remote_reader_refuses_rather_than_shelling_out(tmp_path):
+    """No resolver injected means no remote reader — refuse, never reach for one."""
+    c = _audit_partition_db(tmp_path)
+    with pytest.raises(RuntimeError, match="cannot price the DELETE"):
+        P.fetch_recent(c, "bank_audit_capital", 48, digests={}, rowcounts={},
+                       dropped={}, counts={}, skip_partitions=True)
+
+
+def test_no_estimate_requested_means_no_remote_call(tmp_path):
+    """Probing exists to price. Without `counts` there is nothing to price."""
+    c = _audit_partition_db(tmp_path)
+    block = P.fetch_recent(c, "bank_audit_capital", 48, digests={}, rowcounts={},
+                           dropped={}, skip_partitions=True)   # no counts, no remote_rows
+    assert any(ln.startswith("INSERT") for ln in block)
+
+
+def test_the_wrangler_json_parser_handles_a_captured_response(monkeypatch):
+    """The parse path of remote_partition_rows, exercised against a static
+    captured response instead of a live call."""
+    captured = (
+        'Some wrangler preamble\n'
+        '[\n {\n  "results": [\n'
+        '    {"p": "AKBNK|2026Q1|consolidated", "n": 181},\n'
+        '    {"p": "GARAN|2026Q1|consolidated", "n": 12}\n'
+        '  ],\n  "success": true\n }\n]\n')
+    monkeypatch.setattr(
+        P.subprocess, "run",
+        lambda *a, **k: type("R", (), {"returncode": 0, "stdout": captured})())
+    out = P.remote_partition_rows(
+        "bank_audit_balance_sheet",
+        ["AKBNK|2026Q1|consolidated", "GARAN|2026Q1|consolidated",
+         "ISCTR|2026Q1|consolidated"])
+    assert out == {"AKBNK|2026Q1|consolidated": 181,
+                   "GARAN|2026Q1|consolidated": 12,
+                   # absent from the response = D1 holds nothing, which is an answer
+                   "ISCTR|2026Q1|consolidated": 0}
+
+
+def test_the_wrangler_parser_returns_none_on_a_bad_response(monkeypatch):
+    monkeypatch.setattr(
+        P.subprocess, "run",
+        lambda *a, **k: type("R", (), {"returncode": 1, "stdout": ""})())
+    assert P.remote_partition_rows("bank_audit_capital", ["A|B|C"]) is None
+
+
+# --- replacement must reject a table it cannot actually replace ---------------
+
+def test_replace_mode_rejects_a_table_missing_from_the_staging_db(tmp_path, monkeypatch):
+    """Reproduced: replacing into a DB without the table logged 'not present in
+    this staging DB' and exited 0 — a successful repair that repaired nothing.
+    Absence is fine for a windowed push (the staging DBs hold disjoint sets); in
+    replacement mode the caller named the table, so absence is an error."""
+    db = tmp_path / "empty.db"
+    sqlite3.connect(db).close()
+    lst = _listing(tmp_path, "AKBNK|2026Q1|consolidated")
+    assert _run(monkeypatch, db, "--replace-partitions", str(lst),
+                "--only-tables", "balance_sheet") == 2
+
+
+def test_a_present_but_empty_partition_capable_table_is_valid(tmp_path, monkeypatch):
+    """The distinction that matters: present-and-empty is a legitimate
+    DELETE-only replacement, not a missing table."""
+    db = tmp_path / "empty_table.db"
+    c = sqlite3.connect(db)
+    c.execute("CREATE TABLE bank_audit_capital (bank_ticker TEXT, period TEXT, "
+              "kind TEXT, item TEXT, value REAL, extracted_at TIMESTAMP)")
+    c.execute("CREATE TABLE bank_audit_extractions (bank_ticker TEXT, period TEXT, "
+              "kind TEXT, success INT, extracted_at TIMESTAMP)")
+    c.commit()
+    c.close()
+    lst = _listing(tmp_path, "AKBNK|2026Q1|consolidated")
+    rc = _run(monkeypatch, db, "--replace-partitions", str(lst),
+              "--only-tables", "bank_audit_capital")
+    assert rc == 0
+    assert "DELETE FROM bank_audit_capital" in _generated_sql()
+
+
+# --- the outbox must PROVE one row, not assume it ----------------------------
+
+def _outbox_conn():
+    c = sqlite3.connect(":memory:")
+    c.execute("CREATE TABLE bank_audit_capital (bank_ticker TEXT, period TEXT, "
+              "kind TEXT, item TEXT, value REAL, "
+              "PRIMARY KEY (bank_ticker, period, kind, item))")
+    c.execute("CREATE TABLE tefas_top_funds (date TEXT, fon_tipi TEXT, fon_kodu TEXT, "
+              "aum_try REAL, PRIMARY KEY (date, fon_tipi, fon_kodu))")
+    return c
+
+
+def test_a_full_primary_key_delete_is_provably_one_row():
+    c = _outbox_conn()
+    assert P.outbox_delete_rows(c, "DELETE FROM tefas_top_funds WHERE date='2026-01-01' "
+                                  "AND fon_tipi='YAT' AND fon_kodu='AFA';") \
+        == ("tefas_top_funds", 1)
+
+
+def test_where_1_equals_1_is_refused():
+    """It has a WHERE and it empties the table. Reproduced as accepted and
+    priced at 3 billed rows."""
+    c = _outbox_conn()
+    assert P.outbox_delete_rows(c, "DELETE FROM bank_audit_capital WHERE 1=1;") is None
+
+
+def test_a_partial_key_delete_is_refused():
+    c = _outbox_conn()
+    assert P.outbox_delete_rows(
+        c, "DELETE FROM bank_audit_capital WHERE bank_ticker='X' AND period='Y';") is None
+
+
+def test_an_or_clause_is_refused():
+    c = _outbox_conn()
+    assert P.outbox_delete_rows(
+        c, "DELETE FROM tefas_top_funds WHERE date='a' AND fon_tipi='b' "
+           "AND fon_kodu='c' OR 1=1;") is None
+
+
+def test_two_statements_are_refused():
+    c = _outbox_conn()
+    assert P.outbox_delete_rows(
+        c, "DELETE FROM tefas_top_funds WHERE date='a' AND fon_tipi='b' AND "
+           "fon_kodu='c'; DROP TABLE tefas_top_funds;") is None
+
+
+def test_an_unparseable_statement_is_refused():
+    c = _outbox_conn()
+    assert P.outbox_delete_rows(c, "DELETE FROM tefas_top_funds") is None
+    assert P.outbox_delete_rows(c, "UPDATE tefas_top_funds SET aum_try=1 WHERE date='a';") is None
+
+
+def test_an_unknown_table_is_refused():
+    c = _outbox_conn()
+    assert P.outbox_delete_rows(
+        c, "DELETE FROM not_a_table WHERE a='1';") is None
+
+
+def test_a_table_without_a_primary_key_is_refused():
+    """Without a PK nothing can prove the predicate selects one row."""
+    c = _outbox_conn()
+    c.execute("CREATE TABLE loose (a TEXT, b TEXT)")
+    assert P.outbox_delete_rows(c, "DELETE FROM loose WHERE a='1' AND b='2';") is None
+
+
+def test_todays_producers_all_emit_provable_statements():
+    """news.bank_tagger, tefas.loader and update_kap_ownership each queue one
+    full-primary-key DELETE. The consumer fails closed regardless, but their
+    current output must keep working."""
+    c = _outbox_conn()
+    c.execute("CREATE TABLE news_item_banks (source TEXT, external_id TEXT, "
+              "ticker TEXT, PRIMARY KEY (source, external_id, ticker))")
+    c.execute("CREATE TABLE kap_ownership (bank_ticker TEXT, item TEXT, "
+              "PRIMARY KEY (bank_ticker, item))")
+    for stmt in (
+        "DELETE FROM tefas_top_funds WHERE date='2026-01-01' AND fon_tipi='YAT' "
+        "AND fon_kodu='AFA';",
+        "DELETE FROM news_item_banks WHERE source='kap' AND external_id='1' "
+        "AND ticker='AKBNK';",
+        "DELETE FROM kap_ownership WHERE bank_ticker='AKBNK' AND item='sermaye';",
+    ):
+        assert P.outbox_delete_rows(c, stmt) is not None, stmt

@@ -314,7 +314,12 @@ def push_snapshot(db_path: Path = DB) -> None:
 def push_to_d1(db_path: Path = DB, window_hours: int = PUSH_WINDOW_HOURS,
                tables: list[str] = AUDIT_TABLES) -> None:
     """Run scripts/push_to_d1.py for the audit tables within the window, with the
-    same retry/backoff as the D1 schema/clear calls."""
+    same retry/backoff as the D1 schema calls.
+
+    A windowed push is upsert-only for the ROWS it carries, but the file may also
+    contain outbox deletes and full-rebuild DELETEs — it is not "upsert-only" as
+    a whole. Either way wrangler executes it atomically, so a failure leaves D1
+    unchanged. Targeted repairs use replace_partitions instead."""
     cmd = [sys.executable, str(REPO / "scripts" / "push_to_d1.py"),
            "--db", str(db_path), "--hours", str(window_hours),
            "--only-tables", ",".join(tables)]
@@ -332,10 +337,11 @@ def push_to_d1(db_path: Path = DB, window_hours: int = PUSH_WINDOW_HOURS,
 
 def push_partitions(parts: list[tuple[str, str, str]], db_path: Path = DB,
                     window_hours: int = 1, tables: list[str] = AUDIT_TABLES) -> None:
-    """Ensure schema, clear the explicit (bank, period, kind) partitions, then push
-    the fresh rows within the window. Used by the targeted manual-correction tools
-    (overlay-statement / override-cells / reextract-pl), which touch a known set of
-    partitions rather than deriving them from the extracted_at window."""
+    """Replace the explicit (bank, period, kind) partitions in ONE atomic call.
+
+    Used by the targeted manual-correction tools (overlay-statement /
+    override-cells / reextract-pl), which know exactly which partitions they
+    touched rather than deriving them from the extracted_at window."""
     replace_partitions(parts, db_path, tables)
 
 

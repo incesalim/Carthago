@@ -9,18 +9,17 @@ foreign-currency-only NPL sub-table; re-extracting with the fixed parser pulls
 the total III/IV/V classification instead. (Year-end quarters that used the
 inline `loans_amounts` row re-extract identically — idempotent.)
 
-Why this isn't just `backfill_extraction.py --banks <list>`: a single
-upsert push of N banks × all periods is hundreds of thousands of rows, past
-D1's per-`execute` limit, and the clear-then-push isn't atomic — an oversized
-push that fails would leave cleared-but-empty partitions. So we re-extract
-everything locally ONCE, then push PER PERIOD (each ≈ the proven weekly
-latest-period size), each chunk self-contained (DELETE + INSERT OR REPLACE for
-that period's partitions in one file).
+Why this isn't just `backfill_extraction.py --banks <list>`: a single push of
+N banks × all periods is hundreds of thousands of rows, past D1's per-`execute`
+limit. So we re-extract everything locally ONCE, then replace PER PERIOD (each ≈
+the proven weekly latest-period size) through `audit_d1.replace_partitions`,
+which builds each period's scoped DELETEs and rows into one cost-guarded file
+that wrangler executes atomically.
 
 Requires R2_* and CLOUDFLARE_API_TOKEN env vars.
 
-  python scripts/backfill_npl_history.py            # all affected banks, all periods
-  python scripts/backfill_npl_history.py --dry-run  # re-extract locally; skip D1 + upload
+  python scripts/backfills/backfill_npl_history.py            # all banks, all periods
+  python scripts/backfills/backfill_npl_history.py --dry-run  # local only
 """
 from __future__ import annotations
 
@@ -48,18 +47,6 @@ AFFECTED_BANKS = [
     "AKBNK", "AKTIF", "DENIZ", "FIBA", "ICBCT", "ISCTR",
     "KUVEYT", "ODEA", "TEB", "YKBNK", "ZIRAAT",
 ]
-BATCH = 100  # rows per INSERT OR REPLACE statement (audit rows are skinny)
-
-
-def _esc(v) -> str:
-    if v is None:
-        return "NULL"
-    if isinstance(v, (int, float)):
-        return str(v)
-    # Audit text columns (heading_snippet, item_name) are short single-line
-    # snippets — simple quote-doubling is sufficient (no embedded newlines).
-    return "'" + str(v).replace("'", "''") + "'"
-
 
 def main() -> None:
     ap = argparse.ArgumentParser()

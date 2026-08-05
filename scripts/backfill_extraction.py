@@ -7,9 +7,11 @@ PDFs already extracted with success=1, so it won't self-heal). It:
   2. deletes the named banks' bank_audit_extractions rows (forces re-extract)
   3. re-extracts those banks from their R2 PDFs with the current extractor
   4. rebuilds bank_audit_stages
-  5. clears the re-extracted (bank, period, kind) partitions in D1, then pushes
-     the fresh rows (push_to_d1 is INSERT OR REPLACE — without the clear an old,
-     larger extraction would leave orphan rows the fresh extract no longer makes)
+  5. REPLACES the re-extracted (bank, period, kind) partitions in D1 — scoped
+     DELETEs plus the fresh rows in ONE cost-guarded file that wrangler executes
+     atomically. The DELETE half matters because a plain push is INSERT OR
+     REPLACE and cannot delete, so an old, larger extraction would otherwise
+     leave orphan rows the fresh extract no longer produces.
   6. re-uploads the snapshot (with a dated history backup)
 
 The D1/R2 plumbing lives in scripts/audit_d1.py (shared with audit_correct etc.).

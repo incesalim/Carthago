@@ -29,6 +29,7 @@ import sqlite3
 import subprocess
 import sys
 import tempfile
+from collections.abc import Callable
 from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8")
@@ -450,6 +451,51 @@ def record_partition_digests(conn: sqlite3.Connection, table: str,
     conn.commit()
 
 
+# A queued outbox statement is only safe to price as one row if it can be PROVEN
+# to touch at most one. `WHERE` alone proves nothing: `DELETE FROM t WHERE 1=1`
+# has a WHERE and empties the table, and it was accepted and priced at 3.
+_OUTBOX_DELETE_RX = re.compile(
+    r"^\s*DELETE\s+FROM\s+([A-Za-z_][A-Za-z0-9_]*)\s+WHERE\s+(.+?)\s*;?\s*$",
+    re.I | re.S)
+_EQ_TERM_RX = re.compile(
+    r"^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*('(?:[^']|'')*'|-?\d+(?:\.\d+)?)\s*$")
+
+
+def outbox_delete_rows(conn: sqlite3.Connection, stmt: str) -> tuple[str, int] | None:
+    """(table, 1) if `stmt` provably deletes at most one row, else None.
+
+    The consumer must fail closed rather than trust producers. Today's three
+    (`news.bank_tagger`, `tefas.loader`, `update_kap_ownership`) each emit one
+    full-primary-key DELETE per statement, but nothing enforced that, and an
+    unbounded statement would blow the budget while the guard priced it as one
+    row. Proof requires: exactly one DELETE, a table that exists, and every
+    primary-key column pinned by `col = <literal>` with nothing but AND between
+    them — no OR, no ranges, no unparsed syntax.
+    """
+    body = stmt.strip()
+    if body.count(";") > (1 if body.endswith(";") else 0):
+        return None                                   # more than one statement
+    m = _OUTBOX_DELETE_RX.match(body)
+    if not m:
+        return None
+    table, where = m.group(1), m.group(2)
+    if re.search(r"\bOR\b|\bIN\b|\bLIKE\b|\bNOT\b|--|/\*|\(|\)|<|>|!", where, re.I):
+        return None
+    if not conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
+                        (table,)).fetchone():
+        return None
+    pinned = set()
+    for term in re.split(r"\bAND\b", where, flags=re.I):
+        t = _EQ_TERM_RX.match(term)
+        if not t:
+            return None
+        pinned.add(t.group(1))
+    pk = {c[1] for c in conn.execute(f"PRAGMA table_info({table})") if c[5]}
+    if not pk or not pk <= pinned:
+        return None                                   # partial key: many rows
+    return table, 1
+
+
 def remote_partition_rows(table: str, parts: list[str]) -> dict[str, int] | None:
     """Ask D1 how many rows it holds for each partition, or None if it cannot say.
 
@@ -574,7 +620,9 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int,
                  resend: bool = False,
                  rowcounts: dict[str, dict[str, int]] | None = None,
                  dropped: dict[str, list[str]] | None = None,
-                 replace: set[str] | None = None) -> list[str]:
+                 replace: set[str] | None = None,
+                 remote_rows: Callable[[str, list[str]], dict[str, int] | None]
+                 | None = None) -> list[str]:
     """Return SQL statements (INSERT OR REPLACE) for rows updated in last `hours`.
 
     Tables with a `downloaded_at` column are filtered by it.
@@ -779,30 +827,35 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int,
         # There is deliberately no fourth. Assuming a number here is how a 100-row
         # delete gets priced as one row, and the guard then waves through the very
         # push it exists to stop.
-        local_rows = {
-            k: conn.execute(
-                f"SELECT COUNT(*) FROM {table} WHERE "
-                + " AND ".join(f"{c} = ?" for c in _PART_KEY), k.split("|")
-            ).fetchone()[0] for k in to_delete
-        }
-        unknown = [k for k in to_delete
-                   if k not in stored_rows and k not in digest_matched]
-        if unknown:
-            probed = remote_partition_rows(table, unknown)
-            if probed is None:
-                raise RuntimeError(
-                    f"{table}: cannot price the DELETE of {len(unknown)} partition(s) "
-                    f"— no recorded row_count, no local rows, and D1 could not be "
-                    f"queried. Refusing rather than guessing; a wrong guess here "
-                    f"defeats the cost guard. No flag bypasses this — the number "
-                    f"is unknown, not merely large. Retry when D1 is reachable, or "
-                    f"record the partition's size by pushing it once with "
-                    f"--resend-partitions while D1 is up."
-                )
-            stored_rows = {**stored_rows, **probed}
-        del_rows = sum(
-            stored_rows[k] if k in stored_rows else local_rows.get(k, 0)
-            for k in to_delete)
+        # Probing is part of PRICING and nothing else. When no estimate was
+        # requested there is nothing to price, so no remote call is made — that
+        # is what keeps the unit suite offline. `remote_rows` is injected rather
+        # than reached for directly, so a test cannot launch npx by omission.
+        if counts is not None:
+            local_rows = {
+                k: conn.execute(
+                    f"SELECT COUNT(*) FROM {table} WHERE "
+                    + " AND ".join(f"{c} = ?" for c in _PART_KEY), k.split("|")
+                ).fetchone()[0] for k in to_delete
+            }
+            unknown = [k for k in to_delete
+                       if k not in stored_rows and k not in digest_matched]
+            if unknown:
+                probed = remote_rows(table, unknown) if remote_rows else None
+                if probed is None:
+                    raise RuntimeError(
+                        f"{table}: cannot price the DELETE of {len(unknown)} "
+                        f"partition(s) — no recorded row_count, no digest proving "
+                        f"the local count matches D1, and no usable remote reader. "
+                        f"Refusing rather than guessing; a wrong guess defeats the "
+                        f"cost guard. No flag bypasses this: the number is unknown, "
+                        f"not merely large. Retry when D1 is reachable, or record "
+                        f"the sizes by pushing once with --resend-partitions."
+                    )
+                stored_rows = {**stored_rows, **probed}
+            del_rows = sum(
+                stored_rows[k] if k in stored_rows else local_rows.get(k, 0)
+                for k in to_delete)
         digests[table] = changed
         if rowcounts is not None:
             rowcounts[table] = {
@@ -1091,14 +1144,31 @@ def main() -> int:
             return 2
         probe = sqlite3.connect(str(db))
         try:
-            unsupported = sorted(
-                t for t in allowed_tables
-                if t in _FULL_REBUILD
-                or (probe.execute(
+            missing, unsupported = [], []
+            for t in sorted(allowed_tables):
+                if t in _FULL_REBUILD:
+                    unsupported.append(t)
+                elif not probe.execute(
                         "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
-                        (t,)).fetchone() and not has_partition_key(probe, t)))
+                        (t,)).fetchone():
+                    missing.append(t)
+                elif not has_partition_key(probe, t):
+                    unsupported.append(t)
         finally:
             probe.close()
+        # A table absent from the staging DB is fine for a WINDOWED push — the
+        # two staging DBs hold disjoint sets — but in replacement mode it means
+        # the repair silently did nothing. Reproduced: replacing into an empty
+        # DB logged "not present in this staging DB" and exited 0, a successful
+        # repair that repaired nothing. A PRESENT but empty partition-capable
+        # table is different and stays valid: that is a DELETE-only replacement.
+        if missing:
+            print(f"ERROR: these tables are not in {db} and cannot be replaced: "
+                  f"{missing}. Replacement names what it owns, so a missing table "
+                  f"is an error, not a skip — otherwise the run reports success "
+                  f"having done nothing. Check --db and the table scope.",
+                  file=sys.stderr)
+            return 2
         if unsupported:
             print(f"ERROR: these tables cannot honour partition replacement: "
                   f"{unsupported}. A full-rebuild rollup has no partition key and "
@@ -1132,16 +1202,20 @@ def main() -> int:
         # dropped out of the top 15); an unbounded DELETE would blow the budget
         # while the guard printed zero, so refuse rather than replay one.
         for _, stmt in pending:
-            if not re.search(r"\bWHERE\b", stmt, re.I):
-                print(f"ERROR: queued outbox statement has no WHERE clause and "
-                      f"could delete a whole table: {stmt[:120]!r}. The outbox "
-                      f"contract is one PK-scoped row per statement.",
+            proven = outbox_delete_rows(conn, stmt)
+            if proven is None:
+                print(f"ERROR: cannot prove this queued outbox statement deletes "
+                      f"at most one row, so it cannot be priced or replayed: "
+                      f"{stmt[:160]!r}.\n"
+                      f"  The outbox contract is ONE DELETE per statement with "
+                      f"every primary-key column pinned by equality, ANDed. "
+                      f"`WHERE 1=1` satisfies 'has a WHERE' and empties the "
+                      f"table, which is why that is no longer the test.",
                       file=sys.stderr)
                 return 2
-            m = re.search(r"DELETE\s+FROM\s+([A-Za-z_][A-Za-z0-9_]*)", stmt, re.I)
-            if m:
-                billed_pending[m.group(1)] = billed_pending.get(m.group(1), 0) + \
-                    billed_estimate(conn, m.group(1), 1, False)
+            tbl, rows = proven
+            billed_pending[tbl] = billed_pending.get(tbl, 0) + \
+                billed_estimate(conn, tbl, rows, False)
         lines.append(f"-- d1_pending_deletes outbox: {len(pending)} statements")
         lines.extend(stmt for _, stmt in pending)
         lines.append("")
@@ -1163,7 +1237,8 @@ def main() -> int:
                                               or args.resend_partitions),
                              resend=args.resend_partitions,
                              rowcounts=rowcounts, dropped=dropped,
-                             replace=replace)
+                             replace=replace,
+                             remote_rows=remote_partition_rows)
         lines.extend(block)
         lines.append("")
         n_ins = sum(1 for ln in block if ln.startswith("INSERT"))
