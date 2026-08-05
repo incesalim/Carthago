@@ -523,12 +523,46 @@ def remote_partition_rows(table: str, parts: list[str]) -> dict[str, int] | None
         if res.returncode != 0:
             return None
         m = re.search(r"\[\s*\{.*\}\s*\]", res.stdout, re.S)
-        rows = json.loads(m.group(0))[0]["results"]
+        payload = json.loads(m.group(0))[0]
+        # wrangler exits 0 while reporting a failed query, and an empty `results`
+        # then reads as "every partition holds nothing" — which underprices the
+        # DELETE to zero. Demand a structurally valid SUCCESS, or say None.
+        if payload.get("success") is not True:
+            return None
+        rows = payload["results"]
+        if not isinstance(rows, list):
+            return None
+        counts: dict[str, int] = {}
+        for r in rows:
+            key, n = r["p"], r["n"]
+            if not isinstance(key, str) or not isinstance(n, int) or n < 0:
+                return None
+            counts[key] = n
     except Exception:
         return None
-    counts = {r["p"]: r["n"] for r in rows}
-    # A partition D1 does not know about holds nothing — that is an answer.
+    # A partition absent from a SUCCESSFUL response holds nothing — that is an
+    # answer, unlike an absent response.
     return {p: counts.get(p, 0) for p in parts}
+
+
+def invalidate_partition_state(conn: sqlite3.Connection, table: str,
+                               parts: list[str]) -> None:
+    """Forget what we recorded for these partitions.
+
+    Called only AFTER a successful push that touched them WITHOUT owning them —
+    a plain upsert-only window. The recorded digest and row_count described the
+    partition as it was at the last owning push; once other rows land the count
+    no longer describes D1, and a later replacement would price its remote DELETE
+    against a stale number. Forgetting is the safe direction: the next
+    replacement then has no stored count, so it probes D1 or refuses.
+    """
+    if not parts:
+        return
+    _ensure_partition_state(conn)
+    conn.executemany(
+        "DELETE FROM d1_pushed_partitions WHERE table_name = ? AND part_key = ?",
+        [(table, k) for k in parts])
+    conn.commit()
 
 
 def touched_partitions(conn: sqlite3.Connection, hours: int) -> set[str] | None:
@@ -622,7 +656,8 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int,
                  dropped: dict[str, list[str]] | None = None,
                  replace: set[str] | None = None,
                  remote_rows: Callable[[str, list[str]], dict[str, int] | None]
-                 | None = None) -> list[str]:
+                 | None = None,
+                 stale: dict[str, list[str]] | None = None) -> list[str]:
     """Return SQL statements (INSERT OR REPLACE) for rows updated in last `hours`.
 
     Tables with a `downloaded_at` column are filtered by it.
@@ -752,6 +787,21 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int,
     # the digest says whether the re-extraction produced anything different.
     part_delete: list[str] | None = None
     del_rows = 0
+    if (not partition_mode and not full_rebuild and stale is not None
+            and has_partition_key(conn, table)):
+        # A plain windowed push is upsert-only: it does NOT own these partitions,
+        # so any recorded digest/row_count for them stops being trustworthy the
+        # moment it lands. Left alone, a later replacement believes the old count
+        # and underprices its remote DELETE (reproduced: 15 billed against a
+        # correct 18, and the gap scales with real partitions). Report them;
+        # main() clears the state only after wrangler succeeds.
+        touched_now = {
+            "|".join("" if v is None else str(v) for v in r)
+            for r in conn.execute(
+                f"SELECT DISTINCT {', '.join(_PART_KEY)} FROM {table} {where}")
+        }
+        if touched_now:
+            stale[table] = sorted(touched_now)
     if partition_mode:
         current = partition_digests(conn, table, where)
         stored = stored_partition_digests(conn, table)
@@ -1093,6 +1143,16 @@ def main() -> int:
 
     conn = sqlite3.connect(str(db))
     conn.execute("PRAGMA foreign_keys = OFF")
+    # Snapshot the tables that EXIST NOW, before the initialisers below create
+    # any missing ones. Replacement ownership must be judged against what the
+    # staging DB actually held: init_schema creates the whole bank_audit_* set,
+    # so a presence check made afterwards passes for a table this DB never had —
+    # and a replacement into a wrong or empty snapshot then emits a scoped DELETE
+    # with no INSERT, erasing the partition remotely. Reproduced at exit 0.
+    pre_existing = {
+        r[0] for r in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'")
+    }
     # The R2 snapshot may predate recent schema additions (new bank_audit_*
     # tables, regulation_briefings). The daily news / EVDS workflows don't
     # run any extractor that would call init_schema, so without this they
@@ -1142,20 +1202,14 @@ def main() -> int:
                   "(--only-tables or --table-set). Without one this would also "
                   "push every other table's ordinary window.", file=sys.stderr)
             return 2
-        probe = sqlite3.connect(str(db))
-        try:
-            missing, unsupported = [], []
-            for t in sorted(allowed_tables):
-                if t in _FULL_REBUILD:
-                    unsupported.append(t)
-                elif not probe.execute(
-                        "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
-                        (t,)).fetchone():
-                    missing.append(t)
-                elif not has_partition_key(probe, t):
-                    unsupported.append(t)
-        finally:
-            probe.close()
+        missing, unsupported = [], []
+        for t in sorted(allowed_tables):
+            if t in _FULL_REBUILD:
+                unsupported.append(t)
+            elif t not in pre_existing:          # judged BEFORE init_schema ran
+                missing.append(t)
+            elif not has_partition_key(conn, t):
+                unsupported.append(t)
         # A table absent from the staging DB is fine for a WINDOWED push — the
         # two staging DBs hold disjoint sets — but in replacement mode it means
         # the repair silently did nothing. Reproduced: replacing into an empty
@@ -1163,10 +1217,13 @@ def main() -> int:
         # repair that repaired nothing. A PRESENT but empty partition-capable
         # table is different and stays valid: that is a DELETE-only replacement.
         if missing:
-            print(f"ERROR: these tables are not in {db} and cannot be replaced: "
-                  f"{missing}. Replacement names what it owns, so a missing table "
-                  f"is an error, not a skip — otherwise the run reports success "
-                  f"having done nothing. Check --db and the table scope.",
+            print(f"ERROR: these tables were not in {db} before this run and "
+                  f"cannot be replaced: {missing}. Replacement names what it owns, "
+                  f"so a table this staging DB never held is an error, not a skip: "
+                  f"otherwise a wrong or empty snapshot emits a scoped DELETE with "
+                  f"nothing to re-insert and erases the partition remotely. (The "
+                  f"schema initialisers create audit tables, which is why this is "
+                  f"judged against the pre-init snapshot.) Check --db and the scope.",
                   file=sys.stderr)
             return 2
         if unsupported:
@@ -1227,6 +1284,7 @@ def main() -> int:
     digests: dict[str, dict[str, str]] = {}
     rowcounts: dict[str, dict[str, int]] = {}
     dropped: dict[str, list[str]] = {}
+    stale: dict[str, list[str]] = {}
     for tbl in SYNC_TABLES:
         if allowed_tables is not None and tbl not in allowed_tables:
             continue
@@ -1238,7 +1296,8 @@ def main() -> int:
                              resend=args.resend_partitions,
                              rowcounts=rowcounts, dropped=dropped,
                              replace=replace,
-                             remote_rows=remote_partition_rows)
+                             remote_rows=remote_partition_rows,
+                             stale=stale)
         lines.extend(block)
         lines.append("")
         n_ins = sum(1 for ln in block if ln.startswith("INSERT"))
@@ -1325,6 +1384,12 @@ def main() -> int:
         record_partition_digests(conn, tbl, digests.get(tbl, {}),
                                  rows=rowcounts.get(tbl),
                                  dropped=dropped.get(tbl))
+    # Partitions an upsert-only push just touched without owning: their recorded
+    # state no longer describes D1, so drop it rather than let a later
+    # replacement price against a count that has moved. After the push, never
+    # during generation, --check-only, dry-run, or a failed execute.
+    for tbl, parts in stale.items():
+        invalidate_partition_state(conn, tbl, parts)
     print("D1 push complete")
     return 0
 

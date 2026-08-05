@@ -898,11 +898,14 @@ def test_a_small_partition_set_is_one_delete():
     assert len(stmts) == 1 and stmts[0].endswith(");")
 
 
-# --- a refusal must never land AFTER the rows are gone ------------------------
+# --- --check-only: price a push without executing it -------------------------
 #
-# Making the skip opt-in fixed clear->skip. It did not fix clear->REFUSAL:
-# backfill_extraction.py clears the partitions in D1 and then pushes, and under
-# the spent-cycle 250k cap that push can exit 3 with the rows already deleted.
+# This began as a preflight for the clear-then-push callers, so a refusal could
+# land before the DELETE rather than after it. That sequence is gone — every
+# repair tool now goes through audit_d1.replace_partitions, one atomic guarded
+# call — and a preflight could never have made two remote calls atomic anyway.
+# The flag survives as an operator affordance: ask what a push would cost, and
+# get exit 3 if it would be refused, without executing anything.
 
 def test_check_only_refuses_without_generating_a_push(tmp_path, monkeypatch):
     p, _ = _loans_db(tmp_path, rows=500, indexes=1)
@@ -1547,3 +1550,214 @@ def test_todays_producers_all_emit_provable_statements():
         "DELETE FROM kap_ownership WHERE bank_ticker='AKBNK' AND item='sermaye';",
     ):
         assert P.outbox_delete_rows(c, stmt) is not None, stmt
+
+
+# --- ownership is judged BEFORE the schema initialisers run -------------------
+#
+# main() calls _init_audit_schema() and friends, which CREATE the whole
+# bank_audit_* set. A presence check made after that passes for a table the
+# staging DB never held — so replacing into a wrong or empty snapshot emitted a
+# scoped DELETE with no INSERT and would have erased the partition remotely.
+# Reproduced at exit 0 with 543 billed rows. The earlier test used
+# `balance_sheet`, which no initialiser creates, so it passed for the wrong
+# reason and never covered the production audit path.
+
+def test_a_missing_audit_table_is_rejected_despite_schema_init(tmp_path, monkeypatch):
+    db = tmp_path / "empty.db"
+    sqlite3.connect(db).close()
+    lst = _listing(tmp_path, "AKBNK|2026Q1|consolidated")
+    rc = _run(monkeypatch, db, "--replace-partitions", str(lst),
+              "--only-tables", "bank_audit_capital", remote=181)
+    assert rc == 2, "an audit table the snapshot never held must be rejected"
+
+
+def test_a_precreated_empty_audit_table_is_still_a_valid_delete_only_replace(
+        tmp_path, monkeypatch):
+    """The distinction the check must preserve: explicitly present-and-empty is a
+    legitimate DELETE-only replacement, not a missing table."""
+    db = tmp_path / "present_empty.db"
+    c = sqlite3.connect(db)
+    c.execute("CREATE TABLE bank_audit_capital (bank_ticker TEXT, period TEXT, "
+              "kind TEXT, item TEXT, value REAL, extracted_at TIMESTAMP)")
+    c.commit()
+    c.close()
+    lst = _listing(tmp_path, "AKBNK|2026Q1|consolidated")
+    rc = _run(monkeypatch, db, "--replace-partitions", str(lst),
+              "--only-tables", "bank_audit_capital", remote=7)
+    assert rc == 0
+    sql = _generated_sql()
+    assert "DELETE FROM bank_audit_capital" in sql
+    assert "INSERT" not in sql
+
+
+# --- the remote reader must not read failure as zero -------------------------
+
+def _stdout(payload):
+    return type("R", (), {"returncode": 0, "stdout": payload})()
+
+
+def test_a_failed_d1_result_is_not_zero_rows(monkeypatch):
+    """wrangler exits 0 while reporting a failed query; empty `results` then
+    reads as 'every partition holds nothing' and prices the DELETE at zero."""
+    monkeypatch.setattr(P.subprocess, "run", lambda *a, **k: _stdout(
+        '[{"results":[],"success":false,"errors":[{"message":"boom"}]}]'))
+    assert P.remote_partition_rows("bank_audit_capital", ["A|B|C"]) is None
+
+
+def test_a_malformed_results_payload_returns_none(monkeypatch):
+    monkeypatch.setattr(P.subprocess, "run", lambda *a, **k: _stdout(
+        '[{"results":"not-a-list","success":true}]'))
+    assert P.remote_partition_rows("bank_audit_capital", ["A|B|C"]) is None
+
+
+def test_invalid_counts_return_none(monkeypatch):
+    for bad in ('[{"results":[{"p":"A|B|C","n":-1}],"success":true}]',
+                '[{"results":[{"p":"A|B|C","n":"12"}],"success":true}]',
+                '[{"results":[{"p":123,"n":4}],"success":true}]'):
+        monkeypatch.setattr(P.subprocess, "run",
+                            (lambda _b: lambda *a, **k: _stdout(_b))(bad))
+        assert P.remote_partition_rows("bank_audit_capital", ["A|B|C"]) is None
+
+
+def test_a_successful_response_still_parses(monkeypatch):
+    monkeypatch.setattr(P.subprocess, "run", lambda *a, **k: _stdout(
+        '[{"results":[{"p":"A|B|C","n":9}],"success":true}]'))
+    assert P.remote_partition_rows("t", ["A|B|C", "D|E|F"]) == {
+        "A|B|C": 9, "D|E|F": 0}
+
+
+def test_failed_remote_pricing_refuses_rather_than_assuming_zero(tmp_path, monkeypatch):
+    c = _audit_partition_db(tmp_path)
+    monkeypatch.setattr(P.subprocess, "run", lambda *a, **k: _stdout(
+        '[{"results":[],"success":false}]'))
+    with pytest.raises(RuntimeError, match="cannot price the DELETE"):
+        P.fetch_recent(c, "bank_audit_capital", 48, digests={}, rowcounts={},
+                       dropped={}, counts={}, skip_partitions=True,
+                       remote_rows=P.remote_partition_rows)
+
+
+# --- a non-owning push must not leave stale state behind ---------------------
+
+def test_a_plain_upsert_reports_the_partitions_it_did_not_own(tmp_path):
+    """A windowed push is upsert-only: it touches partitions without owning
+    them, so any recorded digest/row_count stops describing D1 the moment it
+    lands. It must be reported for invalidation."""
+    c = _audit_partition_db(tmp_path)
+    stale: dict = {}
+    P.fetch_recent(c, "bank_audit_capital", 48, stale=stale)   # no skip, no replace
+    assert set(stale["bank_audit_capital"]) == {
+        "AKBNK|2026Q1|consolidated", "GARAN|2026Q1|consolidated"}
+
+
+def test_an_owning_push_reports_nothing_stale(tmp_path):
+    """Replacement and the opt-in skip DO own their partitions and record fresh
+    state, so nothing there is stale."""
+    c = _audit_partition_db(tmp_path)
+    stale: dict = {}
+    P.fetch_recent(c, "bank_audit_capital", 48, digests={}, rowcounts={},
+                   dropped={}, skip_partitions=True, stale=stale,
+                   remote_rows=fake_remote())
+    assert stale == {}
+
+
+def test_invalidation_clears_only_the_named_partitions(tmp_path):
+    c = _audit_partition_db(tmp_path)
+    P.record_partition_digests(c, "bank_audit_capital",
+                               {"AKBNK|2026Q1|consolidated": "d1",
+                                "GARAN|2026Q1|consolidated": "d2"},
+                               rows={"AKBNK|2026Q1|consolidated": 2,
+                                     "GARAN|2026Q1|consolidated": 1})
+    P.invalidate_partition_state(c, "bank_audit_capital",
+                                 ["AKBNK|2026Q1|consolidated"])
+    assert set(P.stored_partition_digests(c, "bank_audit_capital")) == {
+        "GARAN|2026Q1|consolidated"}
+
+
+def test_a_plain_upsert_then_a_replacement_does_not_trust_the_old_count(
+        tmp_path, monkeypatch):
+    """THE reproduction: own a 2-row partition (row_count=2), add a third row,
+    push it the plain upsert-only way, then replace. Trusting the stored 2
+    underpriced the remote DELETE (15 billed against a correct 18)."""
+    db = tmp_path / "stale.db"
+    c = sqlite3.connect(db)
+    c.execute("CREATE TABLE bank_audit_capital (bank_ticker TEXT, period TEXT, "
+              "kind TEXT, item TEXT, value REAL, extracted_at TIMESTAMP)")
+    c.execute("CREATE INDEX ix1 ON bank_audit_capital(bank_ticker)")
+    c.execute("CREATE INDEX ix2 ON bank_audit_capital(period)")
+    c.executemany("INSERT INTO bank_audit_capital VALUES "
+                  "('AKBNK','2026Q1','consolidated',?,?,datetime('now'))",
+                  [("cet1", 1.0), ("tier1", 2.0)])
+    c.execute("CREATE TABLE bank_audit_extractions (bank_ticker TEXT, period TEXT, "
+              "kind TEXT, success INT, extracted_at TIMESTAMP)")
+    c.execute("INSERT INTO bank_audit_extractions VALUES "
+              "('AKBNK','2026Q1','consolidated',1,datetime('now'))")
+    c.commit()
+    c.close()
+
+    # 1. own it: digest + row_count=2 recorded.
+    c = sqlite3.connect(db)
+    d: dict = {}
+    rc: dict = {}
+    P.fetch_recent(c, "bank_audit_capital", 48, digests=d, rowcounts=rc,
+                   skip_partitions=True, remote_rows=fake_remote())
+    P.record_partition_digests(c, "bank_audit_capital", d["bank_audit_capital"],
+                               rows=rc["bank_audit_capital"])
+    assert P.stored_partition_rows(c, "bank_audit_capital") == {
+        "AKBNK|2026Q1|consolidated": 2}
+    # 2. a third row lands.
+    c.execute("INSERT INTO bank_audit_capital VALUES "
+              "('AKBNK','2026Q1','consolidated','tier2',3.0,datetime('now'))")
+    c.commit()
+    c.close()
+
+    # 3. the supported plain windowed push, through main() so invalidation runs.
+    monkeypatch.setattr(P, "run_wrangler", lambda path: 0)
+    monkeypatch.setattr(P, "remote_partition_rows", fake_remote(3))
+    monkeypatch.setattr(sys, "argv",
+                        ["push_to_d1.py", "--db", str(db), "--no-cycle-check",
+                         "--only-tables", "bank_audit_capital"])
+    assert P.main() == 0
+
+    # 4. the stale count must be gone, so a replacement prices against truth.
+    c = sqlite3.connect(db)
+    assert P.stored_partition_rows(c, "bank_audit_capital") == {}, \
+        "an upsert-only push must not leave a row_count claiming to describe D1"
+    counts: dict = {}
+    P.fetch_recent(c, "bank_audit_capital", 48, digests={}, rowcounts={},
+                   dropped={}, counts=counts, replace={"AKBNK|2026Q1|consolidated"},
+                   remote_rows=fake_remote(3))
+    # 3 deleted + 3 inserted. The factor is read from the table rather than
+    # hardcoded: main()'s schema initialisers add their own index, so a literal
+    # here would pin the wrong number for the wrong reason.
+    factor = 1 + P.index_count(c, "bank_audit_capital")
+    assert counts["bank_audit_capital"] == 6 * factor
+    assert counts["bank_audit_capital"] != 5 * factor, \
+        "pricing must not use the stale row_count of 2"
+
+
+def test_state_is_never_mutated_during_generation_or_a_dry_run(tmp_path, monkeypatch):
+    """Invalidation belongs after a successful wrangler execute — never during
+    SQL generation, --check-only or --dry-run."""
+    c = _audit_partition_db(tmp_path)
+    P.record_partition_digests(c, "bank_audit_capital",
+                               {"AKBNK|2026Q1|consolidated": "d"}, rows={})
+    P.fetch_recent(c, "bank_audit_capital", 48, stale={})     # generation only
+    assert P.stored_partition_digests(c, "bank_audit_capital")
+
+    db = tmp_path / "audit.db"
+    monkeypatch.setattr(P, "remote_partition_rows", fake_remote())
+    monkeypatch.setattr(sys, "argv",
+                        ["push_to_d1.py", "--db", str(db), "--dry-run",
+                         "--no-cycle-check", "--only-tables", "bank_audit_capital"])
+    P.main()
+    c2 = sqlite3.connect(db)
+    assert P.stored_partition_digests(c2, "bank_audit_capital"), \
+        "a dry run must not touch recorded state"
+
+
+def test_invalidation_is_wired_after_the_wrangler_call():
+    src = (REPO / "scripts" / "push_to_d1.py").read_text(encoding="utf-8")
+    after = src.split("rc = run_wrangler(sql_path)", 1)[1]
+    assert "invalidate_partition_state" in after
+    before = src.split("rc = run_wrangler(sql_path)", 1)[0]
+    assert "invalidate_partition_state(" not in before.split("def main(", 1)[-1]
