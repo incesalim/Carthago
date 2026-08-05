@@ -533,8 +533,24 @@ def _audit_partition_db(tmp_path):
             ("GARAN", "2026Q1", "consolidated", "cet1", 300.0)]
     c.executemany(
         "INSERT INTO bank_audit_capital VALUES (?,?,?,?,?,datetime('now'))", rows)
+    # The extraction log. It is the only record that a partition was touched
+    # which survives that partition losing all of its rows.
+    c.execute("CREATE TABLE bank_audit_extractions (bank_ticker TEXT, period TEXT, "
+              "kind TEXT, success INT, extracted_at TIMESTAMP)")
+    c.executemany("INSERT INTO bank_audit_extractions VALUES (?,?,?,1,datetime('now'))",
+                  [("AKBNK", "2026Q1", "consolidated"),
+                   ("GARAN", "2026Q1", "consolidated")])
     c.commit()
     return c
+
+
+def _push3(c, **kw):
+    """(block, digests, rowcounts) — the three out-params main() threads through."""
+    kw.setdefault("skip_partitions", True)
+    d: dict = {}
+    rc: dict = {}
+    block = P.fetch_recent(c, "bank_audit_capital", 48, digests=d, rowcounts=rc, **kw)
+    return block, d, rc
 
 
 def _push(c, **kw):
@@ -744,20 +760,31 @@ def test_removing_a_row_locally_removes_it_remotely(tmp_path):
     assert _rows(remote) == _rows(c)
 
 
-def test_emptying_a_partition_converges_remotely(tmp_path):
-    """A partition that lost EVERY row. The window can no longer see it, so the
-    rows must go via the partition DELETE or they are stranded remotely."""
+def test_emptying_a_partition_entirely_converges_remotely(tmp_path):
+    """A partition that lost EVERY row — the case the first version could not
+    see. With no rows left it is absent from the window and from any comparison
+    keyed on rows currently present, so D1 kept its contents forever while the
+    log cheerfully printed "none changed". The extraction log is what makes it
+    findable. This deletes ALL of AKBNK, not one item of it: the earlier test
+    claimed to empty the partition and left `cet1` behind, so it never exercised
+    this path at all."""
     c = _audit_partition_db(tmp_path)
-    block, d = _push(c)
+    _, d, rc = _push3(c)
     remote = _remote_from(c)
-    P.record_partition_digests(c, "bank_audit_capital", d["bank_audit_capital"])
+    P.record_partition_digests(c, "bank_audit_capital", d["bank_audit_capital"],
+                               rows=rc.get("bank_audit_capital"))
 
-    c.execute("UPDATE bank_audit_capital SET value = value + 1 WHERE bank_ticker='GARAN'")
-    c.execute("DELETE FROM bank_audit_capital WHERE bank_ticker='AKBNK' AND item='tier1'")
+    c.execute("DELETE FROM bank_audit_capital WHERE bank_ticker='AKBNK'")
     c.commit()
-    block, _ = _push(c)
+    assert not list(c.execute(
+        "SELECT 1 FROM bank_audit_capital WHERE bank_ticker='AKBNK'")), "must be empty"
+
+    block, _, _ = _push3(c)
+    assert [ln for ln in block if ln.startswith("DELETE")], "no DELETE emitted"
     _apply(remote, block)
     assert _rows(remote) == _rows(c)
+    assert not list(remote.execute(
+        "SELECT 1 FROM bank_audit_capital WHERE bank_ticker='AKBNK'"))
 
 
 def test_only_changed_partitions_are_deleted(tmp_path):
@@ -848,3 +875,120 @@ def test_the_partition_delete_is_chunked_under_the_limit():
 def test_a_small_partition_set_is_one_delete():
     stmts = P.partition_deletes("bank_audit_capital", ["AKBNK|2026Q1|consolidated"])
     assert len(stmts) == 1 and stmts[0].endswith(");")
+
+
+# --- a refusal must never land AFTER the rows are gone ------------------------
+#
+# Making the skip opt-in fixed clear->skip. It did not fix clear->REFUSAL:
+# backfill_extraction.py clears the partitions in D1 and then pushes, and under
+# the spent-cycle 250k cap that push can exit 3 with the rows already deleted.
+
+def test_check_only_refuses_without_generating_a_push(tmp_path, monkeypatch):
+    p, _ = _loans_db(tmp_path, rows=500, indexes=1)
+    monkeypatch.setattr(sys, "argv",
+                        ["push_to_d1.py", "--db", str(p), "--hours", "48",
+                         "--check-only", "--max-billed-rows", "100"])
+    assert P.main() == 3
+
+
+def test_check_only_accepts_an_affordable_push(tmp_path, monkeypatch):
+    p, _ = _loans_db(tmp_path, rows=500, indexes=1)
+    monkeypatch.setattr(sys, "argv",
+                        ["push_to_d1.py", "--db", str(p), "--hours", "48",
+                         "--check-only", "--max-billed-rows", "100000"])
+    assert P.main() == 0
+
+
+def test_clearing_aborts_when_the_follow_up_push_would_be_refused(tmp_path, monkeypatch):
+    """THE ordering guarantee: no remote DELETE is issued unless the push that
+    must follow it is known to be affordable."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("ad", REPO / "scripts" / "audit_d1.py")
+    ad = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(ad)
+
+    cleared: list[str] = []
+    monkeypatch.setattr(ad, "retry_wrangler",
+                        lambda *a, **k: cleared.append("CLEARED"))
+    monkeypatch.setattr(ad.subprocess, "run",
+                        lambda *a, **k: type("R", (), {"returncode": 3})())
+
+    db = tmp_path / "s.db"
+    c = sqlite3.connect(db)
+    c.execute("CREATE TABLE bank_audit_extractions (bank_ticker TEXT, period TEXT, "
+              "kind TEXT, extracted_at TIMESTAMP)")
+    c.execute("INSERT INTO bank_audit_extractions VALUES "
+              "('AKBNK','2026Q1','consolidated',datetime('now'))")
+    c.commit(); c.close()
+
+    with pytest.raises(SystemExit):
+        ad.clear_d1_partitions(db, 48)
+    assert cleared == [], "a refusal must abort BEFORE anything is deleted"
+
+
+# --- delete-only work, pricing, and deliberate resend -------------------------
+
+def test_a_delete_only_push_is_not_discarded_as_no_work(tmp_path, monkeypatch):
+    """total_inserts == 0 used to mean 'nothing to push'. An emptied partition
+    has nothing to insert and everything to delete."""
+    c = _audit_partition_db(tmp_path)
+    _, d, rc = _push3(c)
+    P.record_partition_digests(c, "bank_audit_capital", d["bank_audit_capital"],
+                               rows=rc.get("bank_audit_capital"))
+    c.execute("DELETE FROM bank_audit_capital WHERE bank_ticker='AKBNK'")
+    c.commit()
+    block, _, _ = _push3(c)
+    assert sum(1 for ln in block if ln.startswith("INSERT")) == 0
+    assert sum(1 for ln in block if ln.startswith("DELETE")) == 1
+
+
+def test_replacing_a_partition_prices_both_sides(tmp_path):
+    """Skip mode emits DELETE *and* INSERT and D1 bills both. Pricing only the
+    insert side understated a replacement by half."""
+    c = _audit_partition_db(tmp_path)
+    _, d, rc = _push3(c)
+    P.record_partition_digests(c, "bank_audit_capital", d["bank_audit_capital"],
+                               rows=rc.get("bank_audit_capital"))
+    c.execute("UPDATE bank_audit_capital SET value = 999 WHERE bank_ticker='AKBNK'")
+    c.commit()
+    counts: dict = {}
+    P.fetch_recent(c, "bank_audit_capital", 48, digests={}, rowcounts={},
+                   counts=counts, skip_partitions=True)
+    # AKBNK holds 2 rows: 2 deleted remotely + 2 re-inserted.
+    assert counts["bank_audit_capital"] == 4
+
+
+def test_resend_leaves_digest_state_current(tmp_path):
+    """A deliberate repair must not cost a second full push on the next opt-in
+    run. --resend-partitions resends everything AND records the state."""
+    c = _audit_partition_db(tmp_path)
+    _, d, rc = _push3(c)
+    P.record_partition_digests(c, "bank_audit_capital", d["bank_audit_capital"],
+                               rows=rc.get("bank_audit_capital"))
+
+    block, d2, rc2 = _push3(c, resend=True)
+    assert _emitted_values(block), "resend must send everything"
+    assert set(d2["bank_audit_capital"]) == set(d["bank_audit_capital"])
+    P.record_partition_digests(c, "bank_audit_capital", d2["bank_audit_capital"],
+                               rows=rc2.get("bank_audit_capital"))
+
+    block, _, _ = _push3(c)                 # normal opt-in run right after
+    assert not _emitted_values(block), "resend left state stale"
+
+
+def test_historical_partitions_outside_the_window_are_never_deleted(tmp_path):
+    """The emptied check compares stored keys against the LOG's window, not
+    against every stored key — otherwise every partition older than the window
+    would look 'missing' and be deleted from D1."""
+    c = _audit_partition_db(tmp_path)
+    _, d, rc = _push3(c)
+    P.record_partition_digests(c, "bank_audit_capital", d["bank_audit_capital"],
+                               rows=rc.get("bank_audit_capital"))
+    # An old partition we pushed long ago: in the digest state, not in the window.
+    P.record_partition_digests(c, "bank_audit_capital",
+                               {"ISCTR|2019Q1|consolidated": "old"}, rows={})
+    dropped: dict = {}
+    blk = P.fetch_recent(c, "bank_audit_capital", 48, digests={}, rowcounts={},
+                         dropped=dropped, skip_partitions=True)
+    assert "ISCTR" not in " ".join(blk)
+    assert not dropped.get("bank_audit_capital")

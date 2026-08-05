@@ -228,6 +228,28 @@ def ensure_d1_schema() -> None:
     retry_wrangler(alter_path, "D1 schema column add")
 
 
+def assert_push_affordable(db_path: Path, window_hours: int,
+                           tables: list[str] = AUDIT_TABLES) -> None:
+    """Abort BEFORE clearing anything if the follow-up push would be refused.
+
+    The clear and the push are two remote calls, and the push can decline: the
+    cost guard exits 3 when the estimate exceeds the cap, and while a cycle's
+    allowance is spent that cap is 250,000. Without this the sequence is
+    "delete the partitions, then discover we may not re-insert them" — the rows
+    are gone and nothing local knows to put them back.
+
+    Runs the real guard (`--check-only`) rather than re-deriving the estimate, so
+    the two can never disagree about what is affordable.
+    """
+    cmd = [sys.executable, str(REPO / "scripts" / "push_to_d1.py"),
+           "--db", str(db_path), "--hours", str(window_hours),
+           "--only-tables", ",".join(tables), "--check-only"]
+    if subprocess.run(cmd).returncode != 0:
+        sys.exit("[d1] refusing to clear: the follow-up push would be rejected by "
+                 "the cost guard. Nothing has been deleted. Narrow the window or "
+                 "raise --max-billed-rows deliberately.")
+
+
 def clear_d1_partitions(db_path: Path, window_hours: int,
                         tables: list[str] = AUDIT_TABLES) -> None:
     """Clear the just-re-extracted partitions in remote D1 so the subsequent push
@@ -242,6 +264,7 @@ def clear_d1_partitions(db_path: Path, window_hours: int,
     if not parts:
         print("[d1] no freshly-extracted partitions to clear in D1")
         return
+    assert_push_affordable(db_path, window_hours, tables)
     sql_path = Path(tempfile.gettempdir()) / "d1_partition_deletes.sql"
     sql_path.write_text(partition_delete_sql(parts, tables), encoding="utf-8")
     print(f"[d1] clearing {len(parts)} partitions × {len(tables)} tables in D1")
@@ -299,6 +322,7 @@ def push_partitions(parts: list[tuple[str, str, str]], db_path: Path = DB,
     (overlay-statement / override-cells / reextract-pl), which touch a known set of
     partitions rather than deriving them from the extracted_at window."""
     ensure_d1_schema()
+    assert_push_affordable(db_path, window_hours, tables)
     sql_path = Path(tempfile.gettempdir()) / "d1_targeted_deletes.sql"
     sql_path.write_text(partition_delete_sql(parts, tables), encoding="utf-8")
     print(f"[d1] clearing {len(parts)} partition(s) × {len(tables)} tables in D1")

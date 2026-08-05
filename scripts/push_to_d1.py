@@ -182,11 +182,16 @@ CREATE TABLE IF NOT EXISTS d1_push_state (
 # So each (table, bank_ticker|period|kind) carries a digest of its own rows, and
 # a partition whose digest is unchanged is not emitted at all. State lives in the
 # STAGING db, which rides the R2 snapshot, exactly like d1_push_state.
+# `row_count` is what the partition held when we last pushed it. It exists so a
+# SHRINKING or EMPTIED partition can price its own remote DELETE: the local rows
+# are gone, so nothing else remembers how many rows D1 still holds. Legacy state
+# written before this column falls back to a conservative estimate.
 _PARTITION_STATE_DDL = """
 CREATE TABLE IF NOT EXISTS d1_pushed_partitions (
     table_name TEXT NOT NULL,
     part_key   TEXT NOT NULL,
     digest     TEXT NOT NULL,
+    row_count  INTEGER,
     PRIMARY KEY (table_name, part_key)
 );
 """
@@ -384,8 +389,18 @@ def partition_deletes(table: str, parts: list[str]) -> list[str]:
     return out
 
 
-def stored_partition_digests(conn: sqlite3.Connection, table: str) -> dict[str, str]:
+def _ensure_partition_state(conn: sqlite3.Connection) -> None:
     conn.executescript(_PARTITION_STATE_DDL)
+    # State written before row_count existed: add it rather than rebuild, so a
+    # staging DB carrying digests keeps them (rebuilding would re-push everything).
+    cols = {c[1] for c in conn.execute("PRAGMA table_info(d1_pushed_partitions)")}
+    if "row_count" not in cols:
+        conn.execute("ALTER TABLE d1_pushed_partitions ADD COLUMN row_count INTEGER")
+        conn.commit()
+
+
+def stored_partition_digests(conn: sqlite3.Connection, table: str) -> dict[str, str]:
+    _ensure_partition_state(conn)
     return {
         r[0]: r[1] for r in conn.execute(
             "SELECT part_key, digest FROM d1_pushed_partitions WHERE table_name = ?",
@@ -393,17 +408,64 @@ def stored_partition_digests(conn: sqlite3.Connection, table: str) -> dict[str, 
     }
 
 
+def stored_partition_rows(conn: sqlite3.Connection, table: str) -> dict[str, int]:
+    """{partition: rows D1 holds for it}. Missing/legacy entries are absent, and
+    callers must fall back conservatively rather than treat them as zero."""
+    _ensure_partition_state(conn)
+    return {
+        r[0]: r[1] for r in conn.execute(
+            "SELECT part_key, row_count FROM d1_pushed_partitions "
+            "WHERE table_name = ? AND row_count IS NOT NULL", (table,))
+    }
+
+
 def record_partition_digests(conn: sqlite3.Connection, table: str,
-                             digests: dict[str, str]) -> None:
+                             digests: dict[str, str],
+                             rows: dict[str, int] | None = None,
+                             dropped: list[str] | None = None) -> None:
     """Called only AFTER wrangler reports success — a remembered-but-failed push
     would skip those partitions forever, which is the silent-wrong failure this
-    whole mechanism has to avoid being."""
-    conn.executescript(_PARTITION_STATE_DDL)
+    whole mechanism has to avoid being.
+
+    `dropped` are partitions the push DELETED and did not re-insert (they now hold
+    no rows locally). Their state is removed, not rewritten: keeping a digest for
+    a partition that no longer exists would resurrect it as "unchanged" forever.
+    """
+    _ensure_partition_state(conn)
+    rows = rows or {}
     conn.executemany(
-        "INSERT OR REPLACE INTO d1_pushed_partitions(table_name, part_key, digest) "
-        "VALUES (?, ?, ?)",
-        [(table, k, d) for k, d in digests.items()])
+        "INSERT OR REPLACE INTO d1_pushed_partitions"
+        "(table_name, part_key, digest, row_count) VALUES (?, ?, ?, ?)",
+        [(table, k, d, rows.get(k)) for k, d in digests.items()])
+    if dropped:
+        conn.executemany(
+            "DELETE FROM d1_pushed_partitions WHERE table_name = ? AND part_key = ?",
+            [(table, k) for k in dropped])
     conn.commit()
+
+
+def touched_partitions(conn: sqlite3.Connection, hours: int) -> set[str] | None:
+    """Partitions re-extracted inside the window, from the lane's own log.
+
+    This is the ONLY reliable way to see a partition that now holds ZERO rows:
+    it has nothing left in its own table to be found by, so a comparison against
+    rows currently present can never notice it. Scoping to the log's window is
+    what keeps that safe — comparing every stored key against a windowed view of
+    the table would delete historical partitions that are simply out of window.
+
+    None when the log is absent (a non-audit staging DB): the caller then skips
+    emptied-partition detection entirely rather than guessing.
+    """
+    if not conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='bank_audit_extractions'"
+    ).fetchone():
+        return None
+    return {
+        "|".join("" if v is None else str(v) for v in r)
+        for r in conn.execute(
+            "SELECT bank_ticker, period, kind FROM bank_audit_extractions "
+            f"WHERE extracted_at >= datetime('now', '-{hours} hours')")
+    }
 
 
 def effective_cap(declared: int, used: int | None) -> tuple[int, str]:
@@ -467,7 +529,10 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int,
                  skip_unchanged: bool = True,
                  counts: dict[str, int] | None = None,
                  digests: dict[str, dict[str, str]] | None = None,
-                 skip_partitions: bool = False) -> list[str]:
+                 skip_partitions: bool = False,
+                 resend: bool = False,
+                 rowcounts: dict[str, dict[str, int]] | None = None,
+                 dropped: dict[str, list[str]] | None = None) -> list[str]:
     """Return SQL statements (INSERT OR REPLACE) for rows updated in last `hours`.
 
     Tables with a `downloaded_at` column are filtered by it.
@@ -560,7 +625,13 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int,
         return [f"-- {table}: no time column, skipped"]
 
     n = conn.execute(f"SELECT COUNT(*) FROM {table} {where}").fetchone()[0]
-    if n == 0:
+    partition_mode = (skip_partitions and not full_rebuild and digests is not None
+                      and table not in _NO_PARTITION_SKIP
+                      and has_partition_key(conn, table))
+    # A partition emptied by re-extraction has NO rows left, so `n` can be 0 while
+    # D1 still holds everything it used to. Returning here would strand it, which
+    # is exactly what happened before: the log even printed "none changed".
+    if n == 0 and not partition_mode:
         # Never emit a bare DELETE for a full-rebuild table when the LOCAL copy is
         # empty — that WIPES D1. The daily crons push from data/bddk_data.db, where
         # the bank_audit_* spine tables (coverage/expected/statement_types) exist
@@ -576,46 +647,88 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int,
     # than what it touched: the window says "this partition was re-extracted",
     # the digest says whether the re-extraction produced anything different.
     part_delete: list[str] | None = None
-    if (skip_partitions and not full_rebuild and digests is not None
-            and table not in _NO_PARTITION_SKIP
-            and has_partition_key(conn, table)):
+    del_rows = 0
+    if partition_mode:
         current = partition_digests(conn, table, where)
         stored = stored_partition_digests(conn, table)
+        stored_rows = stored_partition_rows(conn, table)
         # A partition we have never pushed has no stored digest and is therefore
         # always sent — the safe default when the state is missing or reseeded.
-        changed = {k: v for k, v in current.items() if stored.get(k) != v}
-        if not changed:
+        changed = {k: v for k, v in current.items()
+                   if resend or stored.get(k) != v}
+
+        # Partitions the log says were re-extracted, which now hold NO rows: D1
+        # still has their old contents and nothing local can point at them.
+        # Scoped to the window via the log, so historical partitions that are
+        # merely out of window are never touched.
+        touched = touched_partitions(conn, hours)
+        emptied = sorted(
+            k for k in stored
+            if k not in current and (touched is None or k in touched)
+        ) if touched is not None else []
+
+        if not changed and not emptied:
             print(f"  [skip] {table}: {len(current)} partition(s) in window, "
                   f"none changed", flush=True)
             return [f"-- {table}: {len(current)} partitions in window, "
                     f"none changed — nothing to push"]
-        keys = ", ".join(
-            "(" + ",".join("'" + p.replace("'", "''") + "'"
-                           for p in k.split("|")) + ")"
-            for k in sorted(changed))
-        if len(changed) < len(current):
-            print(f"  [part] {table}: {len(changed)}/{len(current)} partitions "
-                  f"changed", flush=True)
+
+        # Every partition the push is about to replace or remove. Deleting only
+        # the changed ones would leave an emptied partition's rows in D1 forever.
+        to_delete = sorted(set(changed) | set(emptied))
+        if len(changed) < len(current) or emptied:
+            print(f"  [part] {table}: {len(changed)}/{len(current)} changed"
+                  + (f", {len(emptied)} emptied" if emptied else ""), flush=True)
+        if changed:
+            keys = ", ".join(
+                "(" + ",".join("'" + p.replace("'", "''") + "'"
+                               for p in k.split("|")) + ")"
+                for k in sorted(changed))
             where += f" AND ({', '.join(_PART_KEY)}) IN (VALUES {keys})"
-            n = conn.execute(f"SELECT COUNT(*) FROM {table} {where}").fetchone()[0]
-        # DELETE the changed partitions in the SAME statement file as their
+        else:
+            where += " AND 1 = 0"          # delete-only push: insert nothing
+        n = conn.execute(f"SELECT COUNT(*) FROM {table} {where}").fetchone()[0]
+
+        # DELETE the affected partitions in the SAME statement file as their
         # INSERTs. Without this the push only ever upserts, so a row the
         # re-extraction REMOVED survives in D1 — and then its partition's digest
         # is recorded as synced, so every later push skips a partition that has
         # silently diverged. Emitting the delete here also means the push is
         # self-contained: wrangler runs the file as one unit and rolls the whole
         # thing back on failure, so a partition is never left cleared-but-empty.
-        part_delete = partition_deletes(table, sorted(changed))
+        part_delete = partition_deletes(table, to_delete)
+        # What D1 will actually delete — the rows it HOLDS, not the rows we hold.
+        # A shrinking or emptied partition has fewer (or none) locally, so pricing
+        # off the local count would understate the bill. Legacy state with no
+        # recorded count falls back to the local count, or to the table's mean
+        # partition size when even that is zero.
+        fallback = max(1, n // max(1, len(changed))) if changed else 1
+        del_rows = sum(stored_rows.get(k, fallback) for k in to_delete)
         digests[table] = changed
+        if rowcounts is not None:
+            rowcounts[table] = {
+                k: conn.execute(
+                    f"SELECT COUNT(*) FROM {table} WHERE "
+                    + " AND ".join(f"{c} = ?" for c in _PART_KEY), k.split("|")
+                ).fetchone()[0] for k in changed
+            }
+        if dropped is not None and emptied:
+            dropped[table] = emptied
 
     if counts is not None:
-        counts[table] = billed_estimate(conn, table, n, full_rebuild)
+        # Skip mode emits DELETE *and* INSERT, and D1 bills both (plus index
+        # maintenance on each). Pricing only the insert side understated a
+        # partition replacement by half, and an emptied partition — all delete,
+        # no insert — priced at zero.
+        counts[table] = billed_estimate(conn, table, n + del_rows, full_rebuild)
 
     if full_rebuild:
         out: list[str] = [f"-- {table}: full rebuild, {n} rows", f"DELETE FROM {table};"]
     elif part_delete:
         out = [f"-- {table}: {n} rows in {len(digests[table])} changed partition(s)",
                *part_delete]
+        if not n:
+            return out          # delete-only: an emptied partition, nothing to insert
     else:
         out = [f"-- {table}: {n} rows from last {hours}h"]
     batch: list[str] = []
@@ -782,6 +895,19 @@ def main() -> int:
                              "where nothing else mutates D1 first — the push then "
                              "emits its own scoped DELETE and owns the partition "
                              "end to end.")
+    parser.add_argument("--resend-partitions", action="store_true",
+                        help="Resend every partition in the window and leave the "
+                             "digest state current — the deliberate-repair mode, "
+                             "for when D1 was edited by hand. Implies the "
+                             "self-contained DELETE+INSERT path, so unlike simply "
+                             "omitting --skip-unchanged-partitions it does not "
+                             "leave the next opt-in run re-pushing everything.")
+    parser.add_argument("--check-only", action="store_true",
+                        help="Generate the SQL and apply the cost guard, then exit "
+                             "WITHOUT executing: 0 if the push would be affordable, "
+                             "3 if it would be refused. Callers that DELETE "
+                             "partitions in D1 before pushing must run this first, "
+                             "or a refusal lands after the rows are already gone.")
     parser.add_argument("--no-cycle-check", action="store_true",
                         help="Skip reading this cycle's rows-written from Cloudflare. "
                              "The per-push cap still applies. Use when the analytics "
@@ -848,24 +974,34 @@ def main() -> int:
         lines.append("")
 
     total_inserts = 0
+    total_deletes = 0
     rebuilt: list[str] = []   # full-rebuild tables actually emitted this run
     billed: dict[str, int] = {}
     digests: dict[str, dict[str, str]] = {}
+    rowcounts: dict[str, dict[str, int]] = {}
+    dropped: dict[str, list[str]] = {}
     for tbl in SYNC_TABLES:
         if allowed_tables is not None and tbl not in allowed_tables:
             continue
         block = fetch_recent(conn, tbl, args.hours,
                              skip_unchanged=not args.force_rebuild,
                              counts=billed, digests=digests,
-                             skip_partitions=args.skip_unchanged_partitions)
+                             skip_partitions=(args.skip_unchanged_partitions
+                                              or args.resend_partitions),
+                             resend=args.resend_partitions,
+                             rowcounts=rowcounts, dropped=dropped)
         lines.extend(block)
         lines.append("")
         n_ins = sum(1 for ln in block if ln.startswith("INSERT"))
         total_inserts += n_ins
+        total_deletes += sum(1 for ln in block if ln.startswith("DELETE"))
         if tbl in _FULL_REBUILD and n_ins:
             rebuilt.append(tbl)
 
-    if total_inserts == 0 and not pending:
+    # A push can legitimately be DELETE-only: a partition emptied by re-extraction
+    # has nothing left to insert, and discarding the run here would strand its
+    # rows in D1 exactly as the missing detection did.
+    if total_inserts == 0 and total_deletes == 0 and not pending:
         print(f"no new rows in last {args.hours}h — nothing to push")
         return 0
 
@@ -906,6 +1042,10 @@ def main() -> int:
             file=sys.stderr)
         return 3
 
+    if args.check_only:
+        print("check-only: this push would be accepted")
+        return 0
+
     sql_path = Path(tempfile.gettempdir()) / "d1_incremental.sql"
     sql_path.write_text("\n".join(lines), encoding="utf-8")
     size_mb = sql_path.stat().st_size / 1024 / 1024
@@ -930,8 +1070,10 @@ def main() -> int:
     # partition) would be skipped forever after.
     for tbl in rebuilt:
         record_hash(conn, tbl, content_hash(conn, tbl))
-    for tbl, parts in digests.items():
-        record_partition_digests(conn, tbl, parts)
+    for tbl in set(digests) | set(dropped):
+        record_partition_digests(conn, tbl, digests.get(tbl, {}),
+                                 rows=rowcounts.get(tbl),
+                                 dropped=dropped.get(tbl))
     print("D1 push complete")
     return 0
 

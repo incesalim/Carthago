@@ -670,8 +670,29 @@ it equals local**, because "an INSERT was emitted" was never the question:
   are **excluded** — a re-extraction bumps them on purpose, and including them
   would make every partition look changed and defeat the whole mechanism.
 - A partition that **lost** a row counts as changed, and converges remotely.
+- A partition that lost **every** row is found via `bank_audit_extractions` — with
+  no rows left it is invisible to anything keyed on rows currently present, and
+  the log was the only record that it had been touched. Scoping to the log's
+  window is what makes that safe: comparing *all* stored keys against a windowed
+  view would delete every historical partition merely out of window. Such a push
+  is **DELETE-only**, and `total_inserts == 0` no longer discards it.
 - An unchanged partition emits **no DELETE either** — clearing something the push
   then declines to re-insert is the failure this whole design exists to avoid.
+- The estimate prices **both sides**. Skip mode emits DELETE *and* INSERT and D1
+  bills both, so pricing the insert alone understated a replacement by half and
+  an emptied partition at zero. `d1_pushed_partitions.row_count` records what D1
+  holds, because a shrunk partition no longer has the rows locally to count.
+- `--resend-partitions` is the deliberate-repair mode: resend everything **and**
+  leave the digest state current, so the next opt-in run does not re-push it all
+  again. (Simply omitting the opt-in flag pushes everything but records nothing.)
+
+⚠️ **Cost validation must happen BEFORE any remote DELETE.** The clear-then-push
+callers issue two remote calls, and the second can decline — the guard exits 3
+when the estimate exceeds the cap, and that cap is 250,000 while a cycle's
+allowance is spent. `audit_d1.assert_push_affordable()` runs the real guard via
+`push_to_d1.py --check-only` before `clear_d1_partitions()` /
+`push_partitions()` delete anything, and aborts with nothing removed. It shells
+out to the guard rather than re-deriving the estimate so the two cannot disagree.
 - ⚠️ **`bank_audit_extractions` is exempt.** It is the extraction *log*: its job
   is to record that an extraction ran, and `extracted_at` — the fact it exists to
   carry — is excluded from every digest. Skipping it would freeze D1's audit
