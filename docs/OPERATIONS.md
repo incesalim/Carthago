@@ -586,19 +586,28 @@ announcing what it was about to write, and nothing stopped it. Now:
   full rebuild's `DELETE` — which lands near the measured 3.6x for the usual
   table mix. It is an estimate for authorising a push, never a report of spend;
   read actuals from the analytics query above.
+- **A single row over D1's 100,000-byte statement limit fails locally**, naming
+  the table and row, instead of shipping a file doomed to return a bare
+  `SQLITE_TOOBIG`. Byte-sized batching handles every other case, but no batch
+  size can send one oversized row: D1 permits a 2 MB *row* and caps a
+  *statement* at 100 KB, so a value in between has to go to R2 with a reference
+  kept in D1, or be split.
 - **A push over `--max-billed-rows` FAILS (exit 3)**, it does not warn. Default
   **2,500,000**: a whole-audit-corpus push is 1,678,540 and the pending one-off
   prose push is 1,110,204, so both clear it, while July's smallest campaign day
   (9.4M) does not. Raise it deliberately — and because the number then lives in
   the workflow file, the cost is reviewable in a diff instead of discovered on
   the invoice.
-- **The cap tightens itself when the cycle is spent.** Before pushing, the script
+- **The cap tightens itself as the cycle fills.** Before pushing, the script
   reads rows-written for the current cycle from `d1AnalyticsAdaptiveGroups`
   (needs `CLOUDFLARE_API_TOKEN` + `CF_ACCOUNT_TAG`/`R2_ACCOUNT_ID`; skipped when
-  absent, or with `--no-cycle-check`). Past 50M the cap drops to **250,000** —
-  routine crons keep running, campaigns wait for the 11th. Freezing everything
-  was July's *other* mistake: four days with nothing watching the data, for a
-  bill the crons were not causing.
+  absent, or with `--no-cycle-check`). The cap becomes
+  `min(declared, max(remaining_headroom, 250,000))` — so 100k of headroom left
+  will **not** wave a 2.5M push through to land 2.4M past the allowance, which
+  the first version did: the guard would have "passed" the very run that blew the
+  budget. The 250,000 floor keeps routine crons alive when headroom is gone;
+  campaigns wait for the 11th. Freezing everything was July's *other* mistake:
+  four days with nothing watching the data, for a bill the crons were not causing.
 - **An unreadable API means unknown, not zero.** The cycle reading returns `None`
   on any failure and the declared cap is used unchanged — it neither relaxes nor
   tightens. A missing reading reported as "plenty of headroom" is precisely the
@@ -628,16 +637,41 @@ Measured on the real balance-sheet corpus (1,050 partitions / 182,141 rows):
 | Re-extraction that changed nothing | 182,141 | **0** |
 | Re-extraction that fixed one cell | 182,141 | **181** (1 partition) |
 
-Rules that keep it safe, each pinned by a test in `tests/test_d1_write_budget.py`:
+⚠️ **The skip is OPT-IN (`--skip-unchanged-partitions`), and that is load-bearing.**
+Five callers **DELETE the partitions in D1 and then invoke `push_to_d1` to
+re-insert them** — `apply_overrides.py`, `load_partition.py`, `reextract_pl.py`,
+`push_from_scratch.py`, and `audit_d1.clear_d1_partitions()` (used by
+`backfill_extraction.py`). That split only works while the push always re-emits
+what the clear removed. A skip in that window — or a budget refusal — leaves the
+partition **cleared and empty**, and the digest then records it as synced so
+every later push skips it too. `audit_d1.push_to_d1()` already warned "partitions
+may be cleared but unpushed" for the *failure* case; the skip made it reachable
+on a *successful* run. So the default is off, and only `refresh-audit.yml` opts
+in, because it calls the push directly with nothing clearing D1 first.
+
+When it IS on, the push **owns the partition end to end**: it emits its own
+scoped `DELETE` for the changed partitions followed by their current rows, in the
+same wrangler file (which executes atomically and rolls back as a unit). Without
+that delete the push only upserts, so a row a re-extraction *removed* survives in
+D1 — and its digest is then recorded as synced, leaving the partition silently
+divergent for good. The deletes are chunked to stay under the statement limit;
+the fleet gains 76 partitions a quarter and one statement would eventually breach
+it.
+
+Rules that keep it safe, each pinned by a test in `tests/test_d1_write_budget.py`
+— several of which **replay the emitted SQL against a simulated remote and assert
+it equals local**, because "an INSERT was emitted" was never the question:
 
 - A partition with **no stored digest is always sent** — missing state means
   "send it", never "assume it landed". A reseeded staging DB pushes once.
-- Digests are recorded **only after wrangler succeeds**, like the content hash.
+- Digests are recorded **only after wrangler succeeds**, like the content hash;
+  generating the SQL persists nothing.
 - Stamp columns (`extracted_at`, `validated_at`, `derived_at`, `downloaded_at`)
   are **excluded** — a re-extraction bumps them on purpose, and including them
   would make every partition look changed and defeat the whole mechanism.
-- A partition that **lost** a row counts as changed (the digest covers row count).
-- `--force-partitions` resends everything, for when D1 was edited by hand.
+- A partition that **lost** a row counts as changed, and converges remotely.
+- An unchanged partition emits **no DELETE either** — clearing something the push
+  then declines to re-insert is the failure this whole design exists to avoid.
 - ⚠️ **`bank_audit_extractions` is exempt.** It is the extraction *log*: its job
   is to record that an extraction ran, and `extracted_at` — the fact it exists to
   carry — is excluded from every digest. Skipping it would freeze D1's audit

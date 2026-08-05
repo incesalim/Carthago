@@ -174,7 +174,17 @@ jobs:
         # extracted, validated and snapshotted every run, and silently never
         # reached D1 — /market-risk went stale for weeks while every other audit
         # page advanced, and the push exited 0 the whole time.
-        run: python scripts/push_to_d1.py --db data/bank_audit.db --hours 168 --table-set audit
+        #
+        # --skip-unchanged-partitions is safe HERE and only here among the audit
+        # paths: this lane calls push_to_d1 directly, with nothing clearing D1
+        # first, so the push owns each partition end to end (its own scoped
+        # DELETE + the current rows, in one wrangler file). The clear-then-push
+        # callers (apply_overrides, load_partition, reextract_pl,
+        # push_from_scratch, audit_d1.clear_d1_partitions) must NOT pass it — a
+        # skip after their clear would leave the partition empty.
+        run: >
+          python scripts/push_to_d1.py --db data/bank_audit.db --hours 168
+          --table-set audit --skip-unchanged-partitions
 
       - name: Sync coverage spine to D1 (expected universe + registry + rollup)
         env:

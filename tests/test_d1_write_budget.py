@@ -538,6 +538,10 @@ def _audit_partition_db(tmp_path):
 
 
 def _push(c, **kw):
+    """The skip is OPT-IN, so these tests ask for it explicitly. Default-off is
+    the whole point: several callers clear the partitions in D1 before invoking
+    the push, and a skip after such a clear would leave them empty."""
+    kw.setdefault("skip_partitions", True)
     d: dict = {}
     block = P.fetch_recent(c, "bank_audit_capital", 48, digests=d, **kw)
     return block, d
@@ -598,12 +602,17 @@ def test_a_partition_never_pushed_is_always_sent(tmp_path):
     assert "ISCTR" in " ".join(_emitted_values(block))
 
 
-def test_force_partitions_overrides_the_skip(tmp_path):
+def test_the_skip_is_off_unless_asked_for(tmp_path):
+    """THE safety default. scripts/apply_overrides.py, load_partition.py,
+    reextract_pl.py, push_from_scratch.py and audit_d1.clear_d1_partitions all
+    DELETE the partitions in D1 and then invoke this script to re-insert them.
+    A skip in that window leaves the partition cleared and empty — so skipping
+    must be something a caller opts into, never something it inherits."""
     c = _audit_partition_db(tmp_path)
     _, d = _push(c)
     P.record_partition_digests(c, "bank_audit_capital", d["bank_audit_capital"])
     block, _ = _push(c, skip_partitions=False)
-    assert _emitted_values(block), "--force-partitions must resend everything"
+    assert _emitted_values(block), "default must resend everything in the window"
 
 
 def test_digests_ignore_the_extraction_stamp(tmp_path):
@@ -686,3 +695,156 @@ def test_silent_when_the_reading_is_unavailable(monkeypatch):
     monkeypatch.delenv("CF_ACCOUNT_TAG", raising=False)
     monkeypatch.delenv("R2_ACCOUNT_ID", raising=False)
     assert _spend(None) is None
+
+
+# --- convergence: does the emitted SQL make the REMOTE match local? -----------
+#
+# Every test above asks "was an INSERT emitted". That is not the question. The
+# question is whether replaying the emitted SQL against a copy of D1 leaves it
+# equal to the staging table — and it did not: a changed partition emitted only
+# INSERT OR REPLACE, so a row that re-extraction REMOVED survived remotely, and
+# its digest was then recorded as synced so every later push skipped it.
+#
+# These replay the generated statements against a simulated remote and compare.
+
+def _remote_from(local: sqlite3.Connection) -> sqlite3.Connection:
+    """A 'D1' seeded with the same rows the staging table currently holds."""
+    remote = sqlite3.connect(":memory:")
+    remote.execute("CREATE TABLE bank_audit_capital (bank_ticker TEXT, period TEXT, "
+                   "kind TEXT, item TEXT, value REAL, extracted_at TIMESTAMP)")
+    remote.executemany("INSERT INTO bank_audit_capital VALUES (?,?,?,?,?,?)",
+                       list(local.execute("SELECT * FROM bank_audit_capital")))
+    remote.commit()
+    return remote
+
+
+def _apply(remote: sqlite3.Connection, block: list[str]) -> None:
+    for stmt in block:
+        if stmt.startswith(("INSERT", "DELETE")):
+            remote.executescript(stmt)
+    remote.commit()
+
+
+def _rows(conn: sqlite3.Connection) -> set:
+    return set(conn.execute(
+        "SELECT bank_ticker, period, kind, item, value FROM bank_audit_capital"))
+
+
+def test_removing_a_row_locally_removes_it_remotely(tmp_path):
+    """THE convergence case. Upsert-only left the removed row behind for good."""
+    c = _audit_partition_db(tmp_path)
+    block, d = _push(c)
+    remote = _remote_from(c)
+    P.record_partition_digests(c, "bank_audit_capital", d["bank_audit_capital"])
+
+    c.execute("DELETE FROM bank_audit_capital WHERE bank_ticker='AKBNK' AND item='tier1'")
+    c.commit()
+    block, _ = _push(c)
+    _apply(remote, block)
+    assert _rows(remote) == _rows(c)
+
+
+def test_emptying_a_partition_converges_remotely(tmp_path):
+    """A partition that lost EVERY row. The window can no longer see it, so the
+    rows must go via the partition DELETE or they are stranded remotely."""
+    c = _audit_partition_db(tmp_path)
+    block, d = _push(c)
+    remote = _remote_from(c)
+    P.record_partition_digests(c, "bank_audit_capital", d["bank_audit_capital"])
+
+    c.execute("UPDATE bank_audit_capital SET value = value + 1 WHERE bank_ticker='GARAN'")
+    c.execute("DELETE FROM bank_audit_capital WHERE bank_ticker='AKBNK' AND item='tier1'")
+    c.commit()
+    block, _ = _push(c)
+    _apply(remote, block)
+    assert _rows(remote) == _rows(c)
+
+
+def test_only_changed_partitions_are_deleted(tmp_path):
+    """The scoped DELETE must not sweep partitions the push is not resending."""
+    c = _audit_partition_db(tmp_path)
+    _, d = _push(c)
+    P.record_partition_digests(c, "bank_audit_capital", d["bank_audit_capital"])
+
+    c.execute("UPDATE bank_audit_capital SET value = 999 WHERE bank_ticker='GARAN'")
+    c.commit()
+    block, _ = _push(c)
+    dels = [ln for ln in block if ln.startswith("DELETE")]
+    assert len(dels) == 1
+    assert "GARAN" in dels[0] and "AKBNK" not in dels[0]
+
+
+def test_an_unchanged_partition_emits_no_delete(tmp_path):
+    """Nothing changed ⇒ nothing emitted at all. A DELETE here would clear a
+    partition the push then declines to re-insert."""
+    c = _audit_partition_db(tmp_path)
+    _, d = _push(c)
+    P.record_partition_digests(c, "bank_audit_capital", d["bank_audit_capital"])
+    block, _ = _push(c)
+    assert not [ln for ln in block if ln.startswith(("DELETE", "INSERT"))]
+
+
+def test_a_failed_push_does_not_advance_digest_state(tmp_path):
+    """Digests are recorded by main() only after wrangler exits 0. Generating the
+    SQL must not itself persist anything, or a failed push would be remembered as
+    done and the partition skipped forever."""
+    c = _audit_partition_db(tmp_path)
+    _push(c)                                   # generate, never "execute"
+    assert P.stored_partition_digests(c, "bank_audit_capital") == {}
+
+
+# --- the cycle cap must respect what is actually left ------------------------
+
+def test_positive_but_insufficient_headroom_still_tightens_the_cap():
+    """49.9M of 50M used: a 2.5M push must not be waved through to land 2.4M
+    past the allowance. The guard would have 'passed' the run that blew it."""
+    cap, why = P.effective_cap(P.DEFAULT_MAX_BILLED_ROWS, used=49_900_000)
+    assert cap == P.EXHAUSTED_CYCLE_CAP        # floor keeps routine lanes alive
+    assert cap < P.DEFAULT_MAX_BILLED_ROWS
+    assert "only 100,000 rows" in why
+
+
+def test_headroom_between_the_floor_and_the_cap_is_the_cap():
+    cap, _ = P.effective_cap(P.DEFAULT_MAX_BILLED_ROWS, used=49_000_000)
+    assert cap == 1_000_000                    # exactly the remaining headroom
+
+
+def test_ample_headroom_leaves_the_declared_cap_intact():
+    cap, _ = P.effective_cap(P.DEFAULT_MAX_BILLED_ROWS, used=10_000_000)
+    assert cap == P.DEFAULT_MAX_BILLED_ROWS
+
+
+# --- a single row over the statement ceiling -------------------------------
+
+def test_a_row_over_the_statement_limit_fails_loudly(tmp_path):
+    """No batch size can send it: D1 allows a 2 MB row but caps a STATEMENT at
+    100,000 bytes. Emitting it produced a doomed file that failed remotely with a
+    bare SQLITE_TOOBIG naming neither table nor row."""
+    c = _fat_rows_db(tmp_path, rows=1, chars=150_000)
+    with pytest.raises(ValueError, match="over D1's .* statement limit"):
+        P.fetch_recent(c, "loans", 48)
+
+
+def test_the_oversized_check_does_not_fire_on_a_batchable_row(tmp_path):
+    """80k is under the ceiling on its own — it must get its own statement, not
+    an exception."""
+    c = _fat_rows_db(tmp_path, rows=3, chars=80_000)
+    stmts = [s for s in P.fetch_recent(c, "loans", 48) if s.startswith("INSERT")]
+    assert len(stmts) == 3
+
+
+def test_the_partition_delete_is_chunked_under_the_limit():
+    """The fleet gains 76 partitions a quarter, so a single DELETE eventually
+    crosses D1's statement ceiling and fails remotely with a bare SQLITE_TOOBIG.
+    Every chunk must fit, and together they must name every partition."""
+    parts = [f"BANK{i:04d}|2026Q1|consolidated" for i in range(20_000)]
+    stmts = P.partition_deletes("bank_audit_capital", parts)
+    assert len(stmts) > 1
+    assert max(len(s.encode("utf-8")) for s in stmts) <= P.D1_MAX_SQL_BYTES
+    joined = " ".join(stmts)
+    assert all(f"'BANK{i:04d}'" in joined for i in (0, 9_999, 19_999))
+
+
+def test_a_small_partition_set_is_one_delete():
+    stmts = P.partition_deletes("bank_audit_capital", ["AKBNK|2026Q1|consolidated"])
+    assert len(stmts) == 1 and stmts[0].endswith(");")

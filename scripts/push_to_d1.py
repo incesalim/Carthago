@@ -356,6 +356,34 @@ def partition_digests(conn: sqlite3.Connection, table: str,
     return {k: v.hexdigest() for k, v in out.items()}
 
 
+def partition_deletes(table: str, parts: list[str]) -> list[str]:
+    """Scoped DELETEs for `parts`, chunked to stay under D1's statement limit.
+
+    One statement per push would be simpler and is fine today — 1,050 partitions
+    is 38 KB against a 100,000-byte ceiling. But the fleet gains 76 partitions
+    every quarter (38 banks x 2 bases), so a single statement crosses the limit
+    in a few years and would fail exactly the way the transcripts push did:
+    remotely, with a bare SQLITE_TOOBIG. Chunking now costs nothing.
+    """
+    key = ", ".join(_PART_KEY)
+    head = f"DELETE FROM {table} WHERE ({key}) IN (VALUES "
+    out: list[str] = []
+    batch: list[str] = []
+    size = len(head.encode("utf-8"))
+    for p in parts:
+        tup = "(" + ",".join("'" + f.replace("'", "''") + "'"
+                             for f in p.split("|")) + ")"
+        b = len(tup.encode("utf-8")) + 2
+        if batch and size + b > _SAFE_STMT_BYTES:
+            out.append(head + ", ".join(batch) + ");")
+            batch, size = [], len(head.encode("utf-8"))
+        batch.append(tup)
+        size += b
+    if batch:
+        out.append(head + ", ".join(batch) + ");")
+    return out
+
+
 def stored_partition_digests(conn: sqlite3.Connection, table: str) -> dict[str, str]:
     conn.executescript(_PARTITION_STATE_DDL)
     return {
@@ -392,11 +420,20 @@ def effective_cap(declared: int, used: int | None) -> tuple[int, str]:
     if used is None:
         return declared, "cycle usage unknown - per-push cap only"
     headroom = D1_MONTHLY_ALLOWANCE - used
-    if headroom > 0:
-        return declared, f"{headroom:,} rows of allowance left this cycle"
-    return (min(declared, EXHAUSTED_CYCLE_CAP),
-            f"allowance SPENT ({used:,}/{D1_MONTHLY_ALLOWANCE:,}) - "
-            f"campaign-sized pushes are held until the cycle rolls over")
+    if headroom <= 0:
+        return (min(declared, EXHAUSTED_CYCLE_CAP),
+                f"allowance SPENT ({used:,}/{D1_MONTHLY_ALLOWANCE:,}) - "
+                f"campaign-sized pushes are held until the cycle rolls over")
+    # Positive headroom is not a blank cheque. Returning the full declared cap
+    # here let a 2.5M push through on 100k of remaining allowance and sail 2.4M
+    # past it — the guard would have "passed" the very run that blew the budget.
+    # The floor keeps routine lanes working when headroom is nearly gone, which
+    # is the same trade EXHAUSTED_CYCLE_CAP makes: crons run, campaigns wait.
+    cap = min(declared, max(headroom, EXHAUSTED_CYCLE_CAP))
+    if cap < declared:
+        return cap, (f"only {headroom:,} rows of allowance left this cycle - "
+                     f"cap tightened from {declared:,}")
+    return declared, f"{headroom:,} rows of allowance left this cycle"
 
 
 def index_count(conn: sqlite3.Connection, table: str) -> int:
@@ -430,7 +467,7 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int,
                  skip_unchanged: bool = True,
                  counts: dict[str, int] | None = None,
                  digests: dict[str, dict[str, str]] | None = None,
-                 skip_partitions: bool = True) -> list[str]:
+                 skip_partitions: bool = False) -> list[str]:
     """Return SQL statements (INSERT OR REPLACE) for rows updated in last `hours`.
 
     Tables with a `downloaded_at` column are filtered by it.
@@ -538,6 +575,7 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int,
     # is what makes a re-extraction campaign cost what it actually changed rather
     # than what it touched: the window says "this partition was re-extracted",
     # the digest says whether the re-extraction produced anything different.
+    part_delete: list[str] | None = None
     if (skip_partitions and not full_rebuild and digests is not None
             and table not in _NO_PARTITION_SKIP
             and has_partition_key(conn, table)):
@@ -551,15 +589,23 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int,
                   f"none changed", flush=True)
             return [f"-- {table}: {len(current)} partitions in window, "
                     f"none changed — nothing to push"]
+        keys = ", ".join(
+            "(" + ",".join("'" + p.replace("'", "''") + "'"
+                           for p in k.split("|")) + ")"
+            for k in sorted(changed))
         if len(changed) < len(current):
             print(f"  [part] {table}: {len(changed)}/{len(current)} partitions "
                   f"changed", flush=True)
-            keys = ", ".join(
-                "(" + ",".join("'" + p.replace("'", "''") + "'"
-                               for p in k.split("|")) + ")"
-                for k in sorted(changed))
             where += f" AND ({', '.join(_PART_KEY)}) IN (VALUES {keys})"
             n = conn.execute(f"SELECT COUNT(*) FROM {table} {where}").fetchone()[0]
+        # DELETE the changed partitions in the SAME statement file as their
+        # INSERTs. Without this the push only ever upserts, so a row the
+        # re-extraction REMOVED survives in D1 — and then its partition's digest
+        # is recorded as synced, so every later push skips a partition that has
+        # silently diverged. Emitting the delete here also means the push is
+        # self-contained: wrangler runs the file as one unit and rolls the whole
+        # thing back on failure, so a partition is never left cleared-but-empty.
+        part_delete = partition_deletes(table, sorted(changed))
         digests[table] = changed
 
     if counts is not None:
@@ -567,6 +613,9 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int,
 
     if full_rebuild:
         out: list[str] = [f"-- {table}: full rebuild, {n} rows", f"DELETE FROM {table};"]
+    elif part_delete:
+        out = [f"-- {table}: {n} rows in {len(digests[table])} changed partition(s)",
+               *part_delete]
     else:
         out = [f"-- {table}: {n} rows from last {hours}h"]
     batch: list[str] = []
@@ -615,10 +664,29 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int,
         # limit. The per-table row counts above are a hint tuned by hand, and a
         # hand-tuned hint drifts: bank_call_transcripts had none, so it batched
         # at the default 100 with a MEDIAN row of 30k chars and the lane's first
-        # push died on SQLITE_TOOBIG. Sizing the batch by bytes makes that
-        # unreachable for every table, including the ones not added here yet.
+        # push died on SQLITE_TOOBIG. Sizing the batch by bytes handles every
+        # table, including ones not listed above — EXCEPT a single row that is
+        # itself over the ceiling, which no batch size can fix and which the
+        # check below rejects explicitly rather than shipping a doomed file.
         if batch and batch_bytes + row_bytes > _SAFE_STMT_BYTES:
             flush()
+        # A single row can exceed the ceiling on its own, and flushing cannot
+        # help — the batch is already empty. D1 caps a STATEMENT at 100,000 bytes
+        # while allowing a 2 MB row, so a value in between simply cannot travel
+        # in a VALUES statement. Emitting it anyway produced a doomed file that
+        # failed remotely with a bare SQLITE_TOOBIG naming neither table nor row.
+        # Fail here instead, pointing at the offending row.
+        if not batch and header_bytes + row_bytes > D1_MAX_SQL_BYTES:
+            key = ", ".join(
+                f"{c}={v!r}" for c, v in zip(cols, r)
+                if c in _PART_KEY or c.endswith("_id") or c == "period_date")
+            raise ValueError(
+                f"{table}: one row is {row_bytes:,} bytes of SQL, over D1's "
+                f"{D1_MAX_SQL_BYTES:,}-byte statement limit, so it cannot be sent "
+                f"in an INSERT ... VALUES at any batch size. Row: {key or r[:3]!r}. "
+                f"Store the oversized value in R2 and keep a reference in D1, or "
+                f"split the column."
+            )
         batch.append(row_sql)
         batch_bytes += row_bytes
         if len(batch) >= batch_size:
@@ -704,12 +772,16 @@ def main() -> int:
                              "lane and a whole-audit-corpus push, and stops a "
                              "runaway campaign. Raise it deliberately, in the "
                              "workflow file, so the cost is reviewable in the diff.")
-    parser.add_argument("--force-partitions", action="store_true",
-                        help="Push every partition in the window, even ones whose "
-                             "rows are identical to what was last pushed. Use "
-                             "after editing D1 by hand, or to repair drift between "
-                             "the staging DB and D1 — the skip trusts that the "
-                             "last successful push landed.")
+    parser.add_argument("--skip-unchanged-partitions", action="store_true",
+                        help="Skip partitions whose rows are byte-identical to what "
+                             "was last pushed (a fleet re-extraction then costs what "
+                             "it CHANGED, not what it touched). OFF BY DEFAULT and "
+                             "deliberately so: several callers clear the partitions "
+                             "in D1 BEFORE invoking this script, and a skip after "
+                             "such a clear would leave them empty. Only pass it "
+                             "where nothing else mutates D1 first — the push then "
+                             "emits its own scoped DELETE and owns the partition "
+                             "end to end.")
     parser.add_argument("--no-cycle-check", action="store_true",
                         help="Skip reading this cycle's rows-written from Cloudflare. "
                              "The per-push cap still applies. Use when the analytics "
@@ -785,7 +857,7 @@ def main() -> int:
         block = fetch_recent(conn, tbl, args.hours,
                              skip_unchanged=not args.force_rebuild,
                              counts=billed, digests=digests,
-                             skip_partitions=not args.force_partitions)
+                             skip_partitions=args.skip_unchanged_partitions)
         lines.extend(block)
         lines.append("")
         n_ins = sum(1 for ln in block if ln.startswith("INSERT"))
