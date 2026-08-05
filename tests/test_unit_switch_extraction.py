@@ -19,6 +19,7 @@ PDFs because `data/_bench/` is gitignored and CI has no filings to read.
 """
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 
@@ -169,6 +170,46 @@ def test_the_identity_is_absolute_not_relative():
 
 
 # --- 5. the whole chain, on the four filing lines that failed ----------------
+
+# --- 6. a free-provision REVERSAL is not a stock ------------------------------
+
+TEB_FP_NOTE = ("(*) 30 Haziran 2026 tarihi itibarıyla 862 TL tutarında ayrılan "
+               "serbest karşılık iptal tutarını içermektedir "
+               "(30 Haziran 2025: 150 TL ayrılan karşılık).")
+
+
+def test_a_free_provision_reversal_is_never_read_as_the_stock():
+    """TEB 2026Q2's only free-provision line in the notes is a REVERSAL of
+    ₺862mn, footnoting the "Diğer" provision-expense row (current (798), prior
+    170). `bank_audit_free_provision` holds the STOCK, and reading a flow into
+    it is the documented /franchise trap the lane was built to avoid.
+
+    Three independent guards reject it, and this pins all three — the Milyon
+    switch made the third one fire for a new reason, and a future widening of
+    `_NUM` to accept separator-less amounts must not quietly start storing
+    reversals as stocks.
+    """
+    from src.audit_reports import free_provision as FP
+    assert FP._FLOW.search(TEB_FP_NOTE), "the reversal verb 'iptal' must veto it"
+    assert not FP._PRIOR.search(TEB_FP_NOTE), \
+        "there is no Dec-31 stock anchor — the parenthetical is a prior-period FLOW"
+    assert not re.fullmatch(FP._NUM, "862"), \
+        "in Milyon TL a real amount can be 3 digits; _NUM still requires a group"
+
+
+def test_the_audit_opinion_is_not_a_substitute_source_for_the_stock():
+    """TEB's opinion states the stock outright (₺1,230mn set aside − ₺862mn
+    reversed = ₺368mn), which makes an opinion-derived fallback tempting.
+    Measured over the 380 opinions that mention a free provision, the two
+    sources disagree in 42 cases and the fallback would recover exactly ONE
+    row — because the opinion reports what was SET ASIDE and the note reports
+    what REMAINS. ALBRK is the clearest: opinion ₺7,300,000k, note ₺245,000k,
+    the reversal being the whole ALBRK story. So the arithmetic is pinned here
+    and the fallback is deliberately NOT implemented.
+    """
+    set_aside, reversed_, remaining = 1_230.0, 862.0, 368.0
+    assert set_aside - reversed_ == remaining
+
 
 def test_the_five_defects_are_independent():
     """Each fix addresses a different heuristic; this pins that none of them

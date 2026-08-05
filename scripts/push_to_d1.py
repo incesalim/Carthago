@@ -599,13 +599,68 @@ def touched_partitions(conn: sqlite3.Connection, hours: int) -> set[str] | None:
     }
 
 
-def effective_cap(declared: int, used: int | None) -> tuple[int, str]:
+# A single workflow run calls this script more than once — the 2026Q2 audit
+# refresh pushed the audit tables, then the coverage spine. The cap was applied
+# per INVOCATION, so two pushes of 203,799 and 226,069 estimated rows each
+# "passed" a 250,000 cap while the run as a whole spent 429,868. The ledger
+# below makes the cap cumulative: set D1_RUN_LEDGER to a path (the workflow
+# points every push in a run at the same file) and each push counts what the
+# earlier ones already spent.
+RUN_LEDGER_ENV = "D1_RUN_LEDGER"
+
+
+def _ledger_path() -> Path | None:
+    p = os.environ.get(RUN_LEDGER_ENV)
+    return Path(p) if p else None
+
+
+def run_ledger_spent() -> int:
+    """Estimated billed rows already committed by earlier pushes in this run."""
+    p = _ledger_path()
+    if p is None or not p.is_file():
+        return 0
+    try:
+        return int(json.loads(p.read_text(encoding="utf-8")).get("estimated", 0))
+    except (ValueError, OSError):
+        # A corrupt ledger must not read as "nothing spent" — that is the
+        # failure-open direction, and this guard exists to fail closed.
+        raise SystemExit(
+            f"{RUN_LEDGER_ENV}={p} is unreadable; refusing to push blind")
+
+
+def run_ledger_add(estimated: int) -> None:
+    """Record what this push is about to spend, before it spends it."""
+    p = _ledger_path()
+    if p is None:
+        return
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps({"estimated": run_ledger_spent() + int(estimated)}),
+                 encoding="utf-8")
+
+
+def effective_cap(declared: int, used: int | None,
+                  run_spent: int = 0) -> tuple[int, str]:
     """(cap, why) — the declared cap, tightened when the cycle is spent.
 
     `used is None` leaves the declared cap alone: an unobservable cycle must not
     silently relax OR tighten the rule, or the guard's behaviour depends on
     whether an API answered.
+
+    `run_spent` is what earlier pushes in the SAME workflow run already booked.
+    It is subtracted from the RESULT, not from `declared` — taking it off the
+    input lets the cycle guard's own floor swallow it (min(2.3M, 250k) is still
+    250k), and the run ledger would silently stop applying in exactly the state
+    where it matters most: an exhausted allowance.
     """
+    cap, why = _cycle_cap(declared, used)
+    if run_spent:
+        cap = max(0, cap - run_spent)
+        why = f"{why}; {run_spent:,} already booked earlier in this run"
+    return cap, why
+
+
+def _cycle_cap(declared: int, used: int | None) -> tuple[int, str]:
+    """The declared cap tightened by what the billing cycle has left."""
     # ASCII only in these strings: they reach stderr on the refusal path, and
     # stderr is NOT reconfigured to UTF-8 (only stdout is, at the top of this
     # file), so a dash here mojibakes on a Windows console. Same reason as the
@@ -1336,10 +1391,12 @@ def main() -> int:
         tok = os.environ.get("CLOUDFLARE_API_TOKEN")
         if acct and tok:
             used = cycle_rows_written(acct, tok)
-    cap, why = effective_cap(args.max_billed_rows, used)
+    cap, why = effective_cap(args.max_billed_rows, used, run_ledger_spent())
 
     print(f"\nestimated billed rows: {est_total:,}   (cap {cap:,} — {why})")
-    for tbl, n in sorted(billed.items(), key=lambda kv: -kv[1])[:8]:
+    # Every table, not the top 8. The truncated list is what made the 2026Q2
+    # per-table figures fail to sum to the total when they were read back.
+    for tbl, n in sorted(billed.items(), key=lambda kv: -kv[1]):
         if n:
             print(f"   {n:>10,}  {tbl}")
     if est_total > cap:
@@ -1370,6 +1427,11 @@ def main() -> int:
     if args.dry_run:
         print("dry-run — skipping wrangler execute")
         return 0
+
+    # Book the spend BEFORE the write, not after. If wrangler dies mid-import
+    # the rows are still billed, and a later push in the same run must not get
+    # to spend the cap a second time on the strength of a failure.
+    run_ledger_add(est_total)
 
     rc = run_wrangler(sql_path)
     if rc != 0:

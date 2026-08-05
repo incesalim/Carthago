@@ -929,20 +929,49 @@ def upsert_pl_roles(conn, bank: str, period: str, kind: str,
     idempotently. Rebuilt from stored rows wherever validation is (the two are
     derived from the same rows and must never disagree about a partition), so a
     consumer joining bank_audit_pl_roles always sees the current resolution."""
+    roles = pl_roles(pl_rows)
+    # Same rule as upsert_validation: an unchanged role map keeps its
+    # `derived_at`, so the windowed push does not ship it again. The map is
+    # rebuilt for every partition on every refresh and almost never moves —
+    # it was 56,877 estimated billed rows in the 2026Q2 run.
+    new = sorted(roles.items())
+    cur = sorted(tuple(r) for r in conn.execute(
+        "SELECT hierarchy, role FROM bank_audit_pl_roles "
+        "WHERE bank_ticker=? AND period=? AND kind=?", (bank, period, kind)))
+    if cur and cur == new:
+        return len(roles)
     conn.execute(
         "DELETE FROM bank_audit_pl_roles WHERE bank_ticker=? AND period=? AND kind=?",
         (bank, period, kind))
-    roles = pl_roles(pl_rows)
     conn.executemany(
         "INSERT INTO bank_audit_pl_roles (bank_ticker, period, kind, hierarchy, role, derived_at) "
         "VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
-        [(bank, period, kind, h, role) for h, role in roles.items()])
+        [(bank, period, kind, h, role) for h, role in new])
     return len(roles)
 
 
 def upsert_validation(conn, bank: str, period: str, kind: str,
-                      results: dict[str, ValidationResult]) -> None:
-    """Persist per-statement results; replaces the partition idempotently."""
+                      results: dict[str, ValidationResult]) -> bool:
+    """Persist per-statement results; replaces the partition idempotently.
+
+    A partition whose verdict has NOT moved is left alone rather than rewritten
+    with identical values. `validated_at` defaults to CURRENT_TIMESTAMP and
+    `push_to_d1` windows on it, so a blind DELETE+INSERT re-stamps all 1,061
+    partitions and ships every validation row to D1 on every refresh — 180,801
+    of the 2026Q2 run's 429,868 estimated billed rows, for verdicts that had not
+    changed. Rows written cost ~1000x rows read, and AGENTS.md's rule is exactly
+    this: never re-stamp a row whose values did not change.
+
+    Returns True when the partition was written.
+    """
+    new = sorted((stmt, r.passed, r.failed, r.skipped, r.detail_json())
+                 for stmt, r in results.items())
+    cur = sorted(tuple(r) for r in conn.execute(
+        "SELECT statement, checks_passed, checks_failed, checks_skipped, failed_detail "
+        "FROM bank_audit_validation WHERE bank_ticker=? AND period=? AND kind=?",
+        (bank, period, kind)))
+    if cur and cur == new:
+        return False
     conn.execute(
         "DELETE FROM bank_audit_validation WHERE bank_ticker=? AND period=? AND kind=?",
         (bank, period, kind))
@@ -950,8 +979,8 @@ def upsert_validation(conn, bank: str, period: str, kind: str,
         "INSERT INTO bank_audit_validation (bank_ticker, period, kind, statement, "
         " checks_passed, checks_failed, checks_skipped, failed_detail) "
         "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-        [(bank, period, kind, stmt, r.passed, r.failed, r.skipped, r.detail_json())
-         for stmt, r in results.items()])
+        [(bank, period, kind, stmt, p, f, s, d) for stmt, p, f, s, d in new])
+    return True
 
 
 def statement_passes(conn, bank: str, period: str, kind: str, statement: str) -> bool:

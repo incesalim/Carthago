@@ -427,8 +427,11 @@ def main() -> int:
         from scripts.audit_d1 import ensure_d1_schema
         ensure_d1_schema()  # create the three tables on D1 if a deploy hasn't yet
         print("[sync] pushing to D1 (full rebuild)…")
-        # Push the freshly-recomputed validation too (its validated_at was just
-        # bumped) so the /admin drill-down matches the rollup the matrix shows.
+        # Push the recomputed validation too, so the /admin drill-down matches
+        # the rollup the matrix shows. Only partitions whose verdict actually
+        # MOVED carry a fresh validated_at (upsert_validation leaves the rest
+        # alone), so this window is now near-empty on a quiet run instead of
+        # shipping all 1,061 partitions.
         subprocess.run(
             [sys.executable, str(REPO / "scripts" / "push_to_d1.py"), "--db", args.db,
              "--hours", "1", "--only-tables", ",".join([*COVERAGE_TABLES, "bank_audit_validation"])],

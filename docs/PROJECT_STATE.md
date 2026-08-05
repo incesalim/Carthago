@@ -145,17 +145,72 @@ designed against six banks instead of one. `acquire-audit.yml` now takes a `bank
 dispatch input (`ALL` sentinel) so a run can be scoped away from a bank serving
 the wrong document — which is how TSKB was skipped.
 
-**✅ Normalisation wired and the 11 held filings verified — NOT pushed
-(2026-08-05).** `src/audit_reports/units.py` is the one detector (the analyst
+**✅ 2026Q2 IS LIVE — 11 partitions across six banks, normalised (2026-08-05).**
+Run [31028845341](https://github.com/incesalim/Carthago/actions/runs/31028845341),
+`refresh-audit.yml` with `skip_scrape=true` scoped to
+`AKBNK,GARAN,YKBNK,KLNMA,TEB,ENPARA` (TSKB excluded by construction — its Q2
+"filing" is still a KAP cover sheet). All 11 carry `source_unit='milyon'` and
+`success=1`. **The scale is verified against the live rows**: TEB total assets
+₺830.6bn @2026Q1 → **₺875.5bn** @2026Q2 (+5.4%), AKBNK ₺3.64tn → ₺4.01tn
+(+10.1%) — against the pre-fix failure that landed TEB at ₺841m. Migration 0039
+applied by the deploy that preceded it; `source_unit` confirmed present in D1.
+
+**The run's write cost, in the three quantities that were being conflated
+(2026-08-05).** An earlier note here mixed them; these are separate numbers and
+only the last one is spend:
+
+| | rows | what it is |
+|---|---|---|
+| logical | ~98,450 | rows the generated SQL actually inserts |
+| **estimated billed** | **429,868** | `billed_estimate()` = logical × (1+indexes) × 2 if full-rebuild. Deliberately conservative; its own docstring says *"never reported as actual spend"* |
+| **actual `rows_written`** | **306,647** | what D1 itself reported: 142,135 (audit push) + 164,512 (coverage spine) |
+
+So the estimator ran **1.40× hot** and the real multiplier over logical rows was
+**3.11×** — close to the ~3.6× in OPERATIONS.md. ~$0.31 at $1.00/M, billed
+because the cycle allowance is spent (63.0M / 50M). The per-table figures quoted
+anywhere are **estimates**, and the push printed only its top 8 tables, which is
+why they never summed to the total; it now prints every table.
+
+Of that, the Q2 data itself was ~13.7k estimated (BS 7,892 · P&L 2,768 · CF
+1,419 · equity 1,113 · OCI 519). Everything else was three derived tables
+rewritten wholesale on **every** run, and one full rebuild:
+
+**✅ Fixed offline 2026-08-05 — the recurring part.** `upsert_validation`,
+`upsert_pl_roles` and `build_stages` all did an unconditional DELETE+INSERT.
+Each of those tables carries a stamp (`validated_at` / `derived_at` /
+`extracted_at`) that defaults to `CURRENT_TIMESTAMP` and that `push_to_d1`
+windows on — so rewriting an identical row is not free, it is a full re-ship.
+`--skip-unchanged-partitions` could not help: the rows genuinely changed.
+Measured on the real snapshot, a second NOTHING-CHANGED pass re-stamped
+**19,950 validation + 9,439 pl_roles rows; after the fix, 0.** `build_stages`
+also lost its `DELETE FROM bank_audit_stages` — with an incremental insert that
+delete-all would have emptied the table, so the rebuild now owns row lifecycle
+and removes only keys it no longer produces.
+
+`bank_audit_coverage` is **not** in that class: full-rebuild tables already carry
+a content hash, so the spine is skipped entirely on a run that changes nothing.
+It cost 161,272 here because 11 new partitions genuinely changed it. Making it
+per-partition needs a stamp column and removal from `_FULL_REBUILD` — real, but
+smaller, and it wants a supervised first run.
+
+**The 250,000 cap now bounds the RUN, not each push.** It was applied per
+invocation, so 203,799 then 226,069 each "passed" while the run spent 429,868.
+A `D1_RUN_LEDGER` file, shared by every push in a job, is debited *before* each
+write (a failed import still bills) and subtracted from the *result* of the
+cycle guard — subtracting it from the input let the guard's own floor swallow
+it, which would have disabled the ledger in exactly the exhausted-allowance
+state where it matters most.
+
+*(prior status, for the record)* Normalisation wired and the 11 held filings
+verified on a copy before any push (2026-08-05): `src/audit_reports/units.py` is the one detector (the analyst
 lane imports it); `UnitContext` carries `(source_unit, factor)` and refuses to
 exist inconsistently; all 12 raw monetary writers scale through it and each has a
 read-back test against a real schema; `bank_audit_stages` is DERIVED and is
 rebuilt, never scaled (scaling both would be ×1,000,000 with every coverage ratio
 still footing). Migration `0039_extractions_source_unit.sql` records what the
 PAGE said — **authored, unapplied**. Dry run over all 11 held PDFs on a copy of
-the snapshot: **9 of 11 partitions fully green**, 4,161 rows, ≈15k billed D1
-writes (≈$0.015). Two PDF-verified exceptions remain, both pre-existing and
-neither affecting a total: AKBNK cons prior-period equity row X (the text layer
+the snapshot: **9 of 11 partitions fully green**, 4,161 rows. Two PDF-verified
+exceptions remain, both pre-existing and neither affecting a total: AKBNK cons prior-period equity row X (the text layer
 emits 14 of 16 cells; the two offsetting ±₺46mn components land in the wrong
 columns, all three totals correct) and KLNMA cash-flow row III (a leading `(58)`
 is indistinguishable from a dipnot ref in a 2-column statement — see below).
@@ -190,8 +245,42 @@ off-balance / P&L / cash flow: **11 of 145 changed, 8 rows added, 0 removed,
 repairs are real: ICBCT 2025Q3/Q4 rows 16.4 were losing an **entire prior-period
 triplet**, and the equity lane's own 145-PDF sweep repaired 13 pre-Q2 partitions
 (QNBFB 2022Q1 and KLNMA 2026Q1 had lost the whole minority-interest column).
-**These corrections are in the code only — no partition has been re-extracted or
-re-pushed**, so the stored rows still carry the old readings.
+**Only 2026Q2 was re-extracted** — the ~13 repaired pre-Q2 partitions still hold
+their old readings in D1, because the refresh lane skips any partition already
+extracted with `success=1`. Correcting them is a `backfill-audit.yml` decision,
+not a side effect of the Q2 batch.
+
+**⚠️ TEB 2026Q2 released ₺862mn of free provision — read by hand, extractor
+correctly silent (2026-08-05).** The alert-only check flagged both TEB
+partitions. Reading the filings:
+
+- **Notes** (cons p91 / unco p88) footnote the *"Diğer (\*)"* line of the
+  provision-expense table — current **(798)**, prior **170**, Toplam 4,691 —
+  with: *"30 Haziran 2026 tarihi itibarıyla **862 TL** tutarında ayrılan serbest
+  karşılık **iptal** tutarını içermektedir (30 Haziran 2025: 150 TL ayrılan
+  karşılık)."* A **reversal**, i.e. income: ex-free-provision that line is a
+  ₺64mn charge, not a ₺798mn credit — a ₺1,012mn year-on-year swing.
+- **The auditor's qualification** (p1, EY, *şartlı*) gives the stock outright:
+  *"**1.230 milyon TL'si geçmiş yıllarda ayrılan, 862 milyon TL'si de cari
+  dönemde iptal edilen toplam 368 milyon TL tutarında** … TMS 37 …
+  karşılamayan serbest karşılığı içermektedir."* → remaining stock **₺368mn**
+  (1,230 − 862 = 368), cited to notes §5 II.7.d and IV.5.
+
+**No row should exist in `bank_audit_free_provision` from the note**, and the
+extractor is right to skip it: the lane holds the STOCK, and its docstring names
+grabbing a flow instead as the trap it was built against. Three independent
+guards fire — `_FLOW` matches `iptal`, there is no Dec-31 parenthetical, and
+`_NUM` requires a thousands group that "862" lacks.
+
+**An opinion-derived fallback was tested and rejected on the evidence.** Across
+the 380 opinions mentioning a free provision, the opinion figure matches the
+stored stock 160 times and **disagrees 42 times**, while recovering exactly
+**one** missing row — because the opinion reports what was **set aside** and the
+note what **remains**. ALBRK is the clearest case: opinion ₺7,300,000k against a
+stored ₺245,000k, the reversal being the entire ALBRK story. So TEB's ₺368mn
+belongs in `audit_overrides.json` as a curated cell (the established route for a
+figure disclosed in prose rather than a table), **not** in a general fallback.
+Not applied — that is a data write.
 
 **A new quarter arrives one bank at a time — sector "latest" needs a quorum
 (2026-07-26).** Three consumers took a bare `MAX(period)` over an audit table,
@@ -848,10 +937,12 @@ names distribution as the project's biggest gap.
 **Cloudflare Web Analytics (2026-07-05).** RUM is wired via a **manually rendered**
 beacon (`web/app/components/Beacon.tsx`), because Cloudflare's automatic edge
 injection does **not** fire on the OpenNext Worker response — verified the beacon was
-absent from the live HTML while RUM sat at 0. The beacon token is the non-secret
-`CF_ANALYTICS_SITE_TAG` var, which is therefore **dual-purpose**: the client beacon's
-token *and* the key the `/admin` Traffic panel queries against. It renders nothing
-when unset, so `next dev` never pollutes production analytics.
+absent from the live HTML while RUM sat at 0. The browser uses the non-secret
+`CF_ANALYTICS_SITE_TOKEN`; `/admin` queries with the distinct
+`CF_ANALYTICS_SITE_TAG`. Cloudflare returns both for the same site, but they are
+not interchangeable — using the token as the GraphQL tag returns an empty
+dataset with no API error. The beacon renders nothing when unset, so `next dev`
+never pollutes production analytics.
 
 **Ratios merged into the Overview Snapshot (2026-07-04):** the standalone
 `/sector/ratios` page (six KPI cards whose only distinct value was the

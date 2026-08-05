@@ -139,8 +139,11 @@ def build_stages(conn: sqlite3.Connection) -> int:
             PRIMARY KEY (bank_ticker, period, kind, period_type)
         )
     """)
-    conn.execute("DELETE FROM bank_audit_stages")
-
+    # NO delete-all here: the write below is incremental and owns row lifecycle
+    # (it removes the keys the rebuild no longer produces). Wiping first would
+    # re-stamp every surviving row's `extracted_at` — the whole cost this
+    # rebuild is trying to avoid — and, worse, combined with an insert of only
+    # the CHANGED rows it would empty the table.
     rows: list[tuple] = []
     for r in conn.execute(_SQL_AGG):
         bt, p, k, pt, s1, s2, s3, e1, e2, e3 = r
@@ -170,16 +173,35 @@ def build_stages(conn: sqlite3.Connection) -> int:
         cov3 = (e3 / s3) if (e3 is not None and s3 not in (None, 0)) else None
         rows.append((bt, p, k, pt, s1, s2, s3, tot_a, e1, e2, e3, tot_e, cov1, cov2, cov3))
 
+    # Write only the rows that actually moved. `extracted_at` defaults to
+    # CURRENT_TIMESTAMP and push_to_d1 windows on it, so re-inserting the whole
+    # derived table re-stamps every row and ships it to D1 on every refresh —
+    # 11,346 estimated billed rows in the 2026Q2 run for a table almost none of
+    # which changed. Same rule as upsert_validation / upsert_pl_roles.
+    _KEY = 4        # (bank_ticker, period, kind, period_type)
+    stored = {r[:_KEY]: tuple(r[_KEY:]) for r in conn.execute(
+        "SELECT bank_ticker, period, kind, period_type, "
+        " stage1_amount, stage2_amount, stage3_amount, total_amount, "
+        " stage1_ecl, stage2_ecl, stage3_ecl, total_ecl, "
+        " stage1_coverage, stage2_coverage, stage3_coverage FROM bank_audit_stages")}
+    changed = [r for r in rows if stored.get(r[:_KEY]) != tuple(r[_KEY:])]
+    gone = set(stored) - {r[:_KEY] for r in rows}
+    for key in gone:
+        conn.execute(
+            "DELETE FROM bank_audit_stages WHERE bank_ticker=? AND period=? "
+            "AND kind=? AND period_type=?", key)
     conn.executemany(
-        "INSERT INTO bank_audit_stages "
+        "INSERT OR REPLACE INTO bank_audit_stages "
         "(bank_ticker, period, kind, period_type, "
         " stage1_amount, stage2_amount, stage3_amount, total_amount, "
         " stage1_ecl, stage2_ecl, stage3_ecl, total_ecl, "
         " stage1_coverage, stage2_coverage, stage3_coverage) "
         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        rows,
+        changed,
     )
     conn.commit()
+    print(f"bank_audit_stages: {len(changed)} of {len(rows)} rows changed"
+          f"{f', {len(gone)} removed' if gone else ''}")
 
     # Stats
     total = len(rows)
