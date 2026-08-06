@@ -115,6 +115,16 @@ ALIASES = {
 VALIDATOR_NAME = {"bs_assets": "assets", "bs_liabilities": "liabilities"}
 
 
+def should_pull_snapshot(*, dry_run: bool, pull_snapshot_requested: bool) -> bool:
+    """Whether this invocation needs the authoritative R2 database snapshot.
+
+    Local dry-runs keep their existing database by default.  CI dry-runs run in
+    a fresh checkout with no populated database, so the workflow explicitly
+    requests a pull; without it ``--only-failing`` silently selects zero rows.
+    """
+    return not dry_run or pull_snapshot_requested
+
+
 def _worker(args):
     """Pickleable worker: download one PDF, extract ONLY the requested statement,
     return its rows. Upsert happens in the parent (single DB connection)."""
@@ -295,6 +305,8 @@ def main() -> int:
     ap.add_argument("--latest-period", action="store_true")
     ap.add_argument("--dry-run", action="store_true",
                     help="re-extract + upsert LOCAL db only; no D1 push / snapshot")
+    ap.add_argument("--pull-snapshot", action="store_true",
+                    help="refresh the local DB from R2 before parsing; used by CI dry-runs")
     ap.add_argument("--only-failing", action="store_true",
                     help="re-extract ONLY partitions NOT currently passing this statement's "
                          "validation — i.e. failing (checks_failed>0) OR empty/un-validated "
@@ -315,7 +327,8 @@ def main() -> int:
              else {b.strip().upper() for b in args.banks.split(",") if b.strip()})
     periods = {p.strip().upper() for p in args.periods.split(",") if p.strip()} or None
 
-    if not args.dry_run:
+    if should_pull_snapshot(dry_run=args.dry_run,
+                            pull_snapshot_requested=args.pull_snapshot):
         pull_snapshot(guard=True)
 
     # Ensure any newly-added audit tables exist on the pulled snapshot DB. The

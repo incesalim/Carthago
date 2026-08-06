@@ -6,7 +6,9 @@ import pytest
 
 pytest.importorskip("fitz")  # reextract_statement imports the extractor (fitz-only)
 
-from reextract_statement import ALIASES, STATEMENT_TABLE, VALIDATOR_NAME  # noqa: E402
+from reextract_statement import (  # noqa: E402
+    ALIASES, STATEMENT_TABLE, VALIDATOR_NAME, should_pull_snapshot,
+)
 
 # Mirror of web/app/lib/github.ts STATEMENT_TYPES — the registry keys the matrix
 # cells use. Keep in sync if a statement type is added.
@@ -32,3 +34,14 @@ def test_aliases_point_at_real_tokens():
 def test_validator_name_keys_are_known_tokens():
     for token in VALIDATOR_NAME:
         assert token in STATEMENT_TABLE
+
+
+@pytest.mark.parametrize("dry_run,requested,expected", [
+    (False, False, True),
+    (False, True, True),
+    (True, False, False),
+    (True, True, True),
+])
+def test_snapshot_pull_policy(dry_run, requested, expected):
+    assert should_pull_snapshot(
+        dry_run=dry_run, pull_snapshot_requested=requested) is expected

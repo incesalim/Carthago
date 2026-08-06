@@ -41,7 +41,7 @@ on:
         type: boolean
         default: false
       dry_run:
-        description: "Re-extract locally only; skip the D1 push + snapshot upload"
+        description: "Pull the live snapshot and re-extract locally only; skip D1 and snapshot writes"
         type: boolean
         default: false
 
@@ -95,7 +95,7 @@ jobs:
           FORCE: ${{ inputs.force && '--force' || '' }}
           DRY: ${{ inputs.dry_run && '--dry-run' || '' }}
         run: |
-          args=(--statement "$STATEMENT" --banks "$BANKS")
+          args=(--statement "$STATEMENT" --banks "$BANKS" --pull-snapshot)
           [ -n "$PERIODS" ] && args+=(--periods "$PERIODS")
           [ -n "$KIND" ] && args+=(--kind "$KIND")
           [ -n "$ONLY_FAILING" ] && args+=("$ONLY_FAILING")
