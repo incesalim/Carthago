@@ -645,20 +645,31 @@ statement is self-validated (internal-sum / roll-forward / cross identities); th
 | `loans_by_sector` | 171 | **0** | 804 | **annual-only** disclosure (interim has no table). **2026-06-21: 36→0.** YKBNK (22) extracted the WRONG table (capital/equity rows) — locator missed "Information ACCORDING TO sectors and counterparties" + false-matched the risk-profile/investments tables (fixed + sector wordings). The rest were per-bank multi-column structures, fixed by rewriting the parse to **x-coordinate column alignment** (`_extract_section_xy`): align each row's numbers to the Stage 2/Stage 3 header columns by word x-position; recognise "(Second/Third Stage)" + Turkish İkinci/Üçüncü; `_pick_total` chooses the total that foots when a page has two tables (ICBCT); keep whichever parse (aligned vs text) FOOTS better → no regression. Also `\d{1,4}` leading group for a missing-comma typo "1466,551" (ICBCT 2025Q4). **2026-07-17: 6 err + 7 miss → 0/0, plus 6 silent-wrong `ok` cells corrected — LANE COMPLETE** (coverage `223 ok / 9 manual / 0 err / 8 miss / 810 n·a`; see [audit-loans-by-sector-lane-to-zero-2026-07-17](knowledge/audit-loans-by-sector-lane-to-zero-2026-07-17.md)). **TAKAS ×4** stored an average VALUE-AT-RISK (`Toplam Riske Maruz Değer`) as a loan sector total: the heading regex matched the note that DECLARES ITSELF NIL ("Önemli Sektörlere… Bulunmamaktadır"), found no rows, and the GARAN-split retry appended the next page (§III market risk). Fixed with `_is_nil_declared_note` (a heading answered Bulunmamaktadır/None is skipped) — proven NEUTRAL on 6 varied banks (extractor with-vs-without = identical counts); TAKAS → 0 rows → N/A with citation. **TOMK 2024Q4** → `_LBS_SKIP`: the source itself prints "Hizmetler -" while its only child Mali Kuruluşlar carries 85.003, and the bank's own Toplam includes it — a source defect, not ours. **7 missing → N/A** (COLENDI/DUNYAK×2/ENPARA/HAYATK/TOMK/ZIRAATD), all verified with citations — and four turned out to be **TFRS-9 non-appliers** (DUNYAK/ZIRAATD/COLENDI + the known TOMK), each wording the art. 9/6 exemption differently. **⚠️ ALNTF ×8 N/A was FALSE** — it discloses stage-by-sector in all 8 reports; the captions are legacy ("Değer Kaybına Uğramış"/"Tahsili gecikmiş") but the NUMBERS are the stages (sector TOPLAM = the report's own "Yakın İzlemedeki"/"Takipteki" stage note to the lira), and ALNTF states it APPLIES TFRS 9 — so `_is_legacy_pastdue_table` fires correctly but its PREMISE is false. Removed the false N/A; the 8 cells now read honest `missing` (disclosed, our extractor skips legacy captions — extractor enhancement is a follow-up). **Two new zero-FP checks: `loans_sector_year_swap`** (this year's total ≠ last year's to the lira — footing is BLIND to a wholesale year-swap; ICBCT 2023Q4 stacks two DATED tables so the period never flips and _dedupe backfilled dropped current rows from 2022 → unconsolidated read a flawless `ok` while storing its own 2022 total, Stage 3 understated 3.1×; calibrated 2/236, both ICBCT) and **`loans_sector_child_exceeds_parent`** (a child sector can't exceed its group total — a mathematical invariant catching merged-label corruption footing misses; surfaced 8 partitions). Both are validation-only. **9 partitions hand-transcribed** off the printed page (ICBCT ×7, AKTIF ×2), every cell 7–13× pixel-verified and foot-checked, via a new `loans_by_sector_replace` override + `_STMT_TO_KEY` entry so they read `manual`; each corrected a silent live-wrong figure (e.g. AKTIF 2025Q4 `agri_fishery` 60,627→0, ICBCT 2022Q4 `agri_fishery` 635,214→0 — prior-year Sanayi totals y-bucketed onto nil children). Root cause is the shared `_fitz_page_text` y-bucketing (`int(round(y0))` aliasing a 3.4pt intra-row offset), unfixable without touching every frozen statement lane — hence overrides. ⚠️ **A `--force` whole-lane re-extract regressed AKBNK/DENIZ mid-session and was reverted from the R2 snapshot** — `--force` re-extracts under current code over rows frozen by older code; never use it lane-wide as a calibration |
 
 **Equity repair — live D1, 2026-08-06.** Coverage moved from **892 ok / 128 error /
-44 missing** to **955 ok / 66 error / 43 missing**. A snapshot-backed fleet dry-run
-tested 170 not-passing partitions: **63 changed and reached a proven pass; 107 still
-failed and were rolled back; 0 extraction errors; 0 no-op restamps**. The production
-run used the same `only_failing=true`, `force=false`, `require_passing=true` gates, so
-only the 63 validated partitions were atomically replaced; the R2 snapshot was
-refreshed at 21:39:14 UTC. This includes the two 2026Q2 parser defects: AKBNK's
-offsetting parenthesised movements no longer shift columns, and PASHA's dotted
-`(5.5.3)` note reference no longer becomes amounts (dividend correctly stores
-−₺65m). TSKB's two 2026Q2 cells remain honestly missing. The **66 remaining errors
-are explicit residuals**, not silently overwritten candidates.
+44 missing** to **970 ok / 51 error / 43 missing**. Two snapshot-backed, guarded
+waves repaired **78 partitions** in total: wave 1 admitted 63 of 170 candidates and
+wave 2 admitted 15 of the remaining 107; every other candidate was rolled back.
+Both production runs used `only_failing=true`, `force=false`, and
+`require_passing=true`, so only partitions with at least one passing check and zero
+failures were atomically replaced. The authoritative R2 snapshot was last refreshed
+at **22:10:04 UTC**. Live validation independently reports **970 passing / 51 failing
+/ 41 unvalidated**.
 
-OCI/CF/NPL were fixed this way: a recent-vs-older-quarter diagnostic → small generic
-fixes → ship via `reextract-statement.yml`. Residual fails are genuine per-bank
-non-reconciling disclosures + image-only PDFs, not extractor bugs.
+Wave 1 fixed the 2026Q2 footnote/value ambiguity (AKBNK parenthesised movements;
+PASHA dotted `(5.5.3)` reference). Wave 2 fixed three more source-proven shapes:
+closing-row dipnot `(V)` misread as roman V (VAKIFK), prior-first single-page blocks
+without date labels (ANADOLU and related layouts), and a clipped consolidated total
+recoverable from both component and minority/grand-total identities (TSKB). The 15
+wave-2 partitions are ANADOLU ×4, TAKAS ×4, VAKIFK ×4, QNBFB, SKBNK, and TSKB.
+Dry-run/production: Actions `31128759982` / `31128789928`; code `2e07c11`.
+
+The **51 remaining errors are explicit residuals**: 26 dropped-cell, 14 missing-row,
+and 11 column-slip partitions (largest banks: TSKB 13, ANADOLU 6, FIBA 5, EMLAK 4).
+Representative source traces show clipped/merged component cells whose row and
+cross-statement identities detect the loss but cannot determine the correct component
+column; filling the arithmetic remainder would make validation tautological. The 43
+missing cells are concentrated in ISCTR 33 and FIBA 6, plus TSKB 2 / ATBANK 1 / TFKB
+1; TSKB's two 2026Q2 objects are invalid KAP notifications rather than statements.
+These require x-coordinate or curated source-backed work, not a wider force run.
 
 ## Bank-type taxonomy
 
