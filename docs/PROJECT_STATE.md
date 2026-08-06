@@ -1555,6 +1555,31 @@ reader at `/banks/[ticker]/calls/[period]`.
 
 ## Known issues / pending work
 
+- **✅ An invalid R2 object no longer freezes a partition (2026-08-06).**
+  `exists(key)` was read as "acquired". TSKB's 2026Q2 KAP notification — 14
+  pages of cover sheet — sat under the key, so every acquisition run skipped the
+  partition, and the day the real report appeared **nothing would have fetched
+  it**. One bad object froze it for good.
+
+  Acquisition now validates the object it finds (`report_validity`: page floor,
+  BRSA structure markers, positive KAP-cover fingerprint), re-checks the source
+  when it is not a report, and **replaces** it when the real filing appears.
+  A source still serving the notification leaves the partition `pending`, not
+  `failed`. Extraction refuses one too — a cover sheet parses without raising
+  and yields near-empty statements that validate as `missing` rather than
+  failing, the quiet kind of wrong. Both record the verdict in
+  `bank_audit_invalid_pdfs`, cleared the moment a real report replaces it, so
+  **coverage reports `pdf_present` only for genuine reports** without
+  re-downloading 1,061 PDFs per sync.
+
+  Also from that run: **the snapshot upload now precedes the coverage spine**,
+  which is `continue-on-error`. A metadata rollup must not discard a successful
+  extraction — when coverage ran first, its budget refusal failed the job and
+  skipped the upload, leaving PASHA's rows in D1 and absent from the snapshot.
+  And `_COVERAGE_INCREMENTAL` is **enabled**: the full rebuild asked 161,728
+  rows to restate a barely-changed table, which is what breached the 250,000
+  run cap in the first place.
+
 - **⚠️ PROCESS: a migration was applied live against an explicit instruction not
   to run one (2026-08-05).** The instruction was *"Commit and push only these
   offline fixes. Do not run another refresh, migration, or targeted D1/R2

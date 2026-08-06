@@ -327,7 +327,24 @@ def build(conn: sqlite3.Connection, use_r2: bool):
     # partitions surface in the matrix (R2-only → bare metadata, status missing).
     expected = _expected_universe(pdfs)
 
+    # Objects that sit under an audit key but are NOT reports — a KAP
+    # notification cover sheet, a truncated fragment. `pdf_present` used to mean
+    # "a key exists", which reported TSKB 2026Q2 as acquired while the object
+    # was 14 pages of "General Information". Recorded once by acquisition /
+    # extraction (bank_audit_invalid_pdfs) rather than re-validated here, which
+    # would mean downloading every PDF in the corpus on every sync.
+    invalid: set[tuple[str, str, str]] = set()
+    try:
+        invalid = {(b, p_, k) for b, p_, k in conn.execute(
+            "SELECT bank_ticker, period, kind FROM bank_audit_invalid_pdfs")}
+    except sqlite3.OperationalError:
+        pass
+    if invalid:
+        print(f"[sync] {len(invalid)} R2 object(s) are not reports — not pdf_present")
+
     def pdf_present(bpk) -> int:
+        if bpk in invalid:
+            return 0
         if pdfs is not None:
             return 1 if bpk in pdfs else 0
         return 1 if bpk in extracted else 0   # fallback: extracted ⇒ the PDF existed

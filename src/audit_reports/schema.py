@@ -634,6 +634,23 @@ CREATE INDEX IF NOT EXISTS idx_bank_coverage_status
 CREATE INDEX IF NOT EXISTS idx_bank_coverage_type_kind
   ON bank_audit_coverage(statement_type, kind);
 
+-- Objects that sit under an audit-PDF key but are NOT a report — a KAP
+-- notification cover sheet, a truncated fragment. Written by acquisition and by
+-- extraction whenever `report_validity` refuses one, cleared the moment a real
+-- report replaces it.
+--
+-- It exists so coverage can answer "is a report present?" without downloading
+-- 1,061 PDFs on every sync. `pdf_present` used to mean "a key exists", which
+-- reported TSKB 2026Q2 as acquired while the object was a 14-page cover sheet.
+CREATE TABLE IF NOT EXISTS bank_audit_invalid_pdfs (
+    bank_ticker TEXT NOT NULL,
+    period      TEXT NOT NULL,
+    kind        TEXT NOT NULL,
+    reason      TEXT NOT NULL,
+    checked_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (bank_ticker, period, kind)
+);
+
 -- Staging-side outbox for rows that VANISHED locally. Same contract as the
 -- news / tefas / kap lanes: one full-primary-key DELETE per statement, replayed
 -- by push_to_d1 before the inserts and priced through outbox_delete_rows.

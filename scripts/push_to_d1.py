@@ -162,12 +162,14 @@ _FULL_REBUILD = {
 # only rows whose values moved and deletes keys the rebuild no longer produces,
 # and the windowed branch below already knows the column.
 #
-# It is OFF because the order matters and cannot be enforced from here: the
-# windowed push reads `derived_at`, so D1 must have the column BEFORE the first
-# incremental push, and migration 0040 lands via the deploy that follows this
-# commit. Flipping this to True in a later, deliberate change is the whole
-# activation — a supervised first run, per the plan.
-_COVERAGE_INCREMENTAL = False
+# ENABLED 2026-08-06. Migration 0040 is applied in live D1 (verified: the
+# column exists, nullable, and the ALTER rewrote no rows), which was the one
+# ordering constraint. The full rebuild was also actively harmful by then: the
+# PASHA run booked 122,438 rows for the audit tables and the coverage spine then
+# asked for 166,041 more, breaching the 250,000 run cap and stranding the
+# snapshot upload. 161,728 of that was this table restating rows that had not
+# changed.
+_COVERAGE_INCREMENTAL = True
 if _COVERAGE_INCREMENTAL:                      # pragma: no cover - off by default
     _FULL_REBUILD.discard("bank_audit_coverage")
 

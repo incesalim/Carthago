@@ -17,11 +17,11 @@ statements. Partition-scoped replacement is not an option here — this table
 stamps CELLS, and replacing a partition while re-inserting only the stamped
 cells would erase every unchanged sibling in it.
 
-STATE: migration 0040 IS applied in live D1 (deploy 31045271052, 2026-08-05) —
-the column exists remotely. Incremental behaviour is still OFF
-(`push_to_d1._COVERAGE_INCREMENTAL = False`, coverage still in `_FULL_REBUILD`),
-so the push behaves exactly as it did before. Flipping that flag is the whole
-activation, and it has not been flipped.
+STATE: ACTIVE. Migration 0040 is applied in live D1 (deploy 31045271052,
+2026-08-05) and `_COVERAGE_INCREMENTAL` was enabled 2026-08-06, after the full
+rebuild breached the 250,000 run cap on the PASHA extraction — asking 161,728
+rows to restate a table that had barely changed, and stranding the snapshot
+upload behind the resulting failure.
 """
 from __future__ import annotations
 
@@ -136,15 +136,14 @@ def test_a_whole_partition_can_disappear(tmp_path):
 
 # --- the push side -----------------------------------------------------------
 
-def test_the_incremental_push_is_prepared_but_NOT_active():
-    """The switch is deliberately off. The windowed push reads `derived_at`, so
-    D1 must have the column before the first incremental push, and migration
-    0040 lands on the deploy that follows this commit. Flipping
-    `_COVERAGE_INCREMENTAL` is the supervised activation."""
+def test_the_incremental_push_is_ACTIVE():
+    """Enabled 2026-08-06, once migration 0040 was applied in live D1 — the one
+    ordering constraint. The full rebuild had by then become actively harmful:
+    it asked for 161,728 rows to restate a table that had barely changed,
+    breached the 250,000 run cap and stranded the snapshot upload."""
     P = _push()
-    assert P._COVERAGE_INCREMENTAL is False
-    assert "bank_audit_coverage" in P._FULL_REBUILD, (
-        "activating before 0040 is applied would window on a column D1 lacks")
+    assert P._COVERAGE_INCREMENTAL is True
+    assert "bank_audit_coverage" not in P._FULL_REBUILD
     assert "bank_audit_expected" in P._FULL_REBUILD, "the others are unchanged"
     assert "api_series" in P._FULL_REBUILD
 
@@ -183,17 +182,23 @@ def test_a_null_stamp_is_out_of_window(tmp_path):
     assert "INSERT" not in sql
 
 
-def test_while_inactive_the_full_rebuild_still_works(tmp_path):
-    """Until the switch flips, behaviour must be exactly what shipped before —
-    the incremental writer changes the staging table, not the push."""
-    conn = _db(tmp_path, "inactive.db")
+def test_the_windowed_push_carries_only_what_changed(tmp_path):
+    """The point of the switch: a run that moves two cells ships two cells, not
+    the whole ~20,000-row table."""
+    conn = _db(tmp_path, "active.db")
     S, P = _sync(), _push()
-    S.write_coverage(conn, [_row(st="balance_sheet_assets"), _row(st="profit_loss")])
-    sql = "\n".join(P.fetch_recent(conn, "bank_audit_coverage", 24,
-                                   skip_unchanged=False))
-    assert any(ln.startswith("DELETE FROM bank_audit_coverage") for ln in sql.split("\n")), \
-        "a full rebuild must still clear the table first"
-    assert "balance_sheet_assets" in sql and "profit_loss" in sql
+    S.write_coverage(conn, [_row(st=f"stmt_{i}") for i in range(8)])
+    # Age them all out, then move exactly one.
+    conn.execute("UPDATE bank_audit_coverage SET derived_at = datetime('now','-40 days')")
+    conn.commit()
+    S.write_coverage(conn, [_row(st=f"stmt_{i}") for i in range(7)]
+                     + [_row(st="stmt_7", status="error", failed=2)])
+    lines = P.fetch_recent(conn, "bank_audit_coverage", 24)
+    sql = "\n".join(lines)
+    assert "stmt_7" in sql
+    assert "stmt_0" not in sql, "an unchanged cell was re-shipped"
+    assert not any(ln.strip().startswith("DELETE FROM bank_audit_coverage;")
+                   for ln in lines), "no table-wide DELETE any more"
 
 
 def test_coverage_has_a_partition_key_so_the_scoped_delete_works(tmp_path):

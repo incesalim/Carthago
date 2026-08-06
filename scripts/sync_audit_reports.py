@@ -172,6 +172,90 @@ def report_basis_from_pdf(body: bytes, max_pages: int = 3) -> str | None:
     return classify_report_basis(text)
 
 
+# --- is this object actually a report? ---------------------------------------
+#
+# A bank's IR page can serve a KAP *notification* — a dozen pages of cover sheet
+# and "General Information" — in place of the filing. TSKB has served exactly
+# that for 2026Q2 since 2026-08-01: 14 pages, no reporting-unit line, no BRSA
+# section headings.
+#
+# On its own that is only a nuisance. The damage was `exists(key)` being treated
+# as "acquired": once the cover sheet sat in R2, every later acquisition run
+# skipped that partition, so the day the real report appeared nothing would have
+# fetched it. An invalid object made the partition permanently pending.
+#
+# The thresholds are deliberately loose. This separates a ~14-page notification
+# from a ~90-300-page filing; it is not a quality judgement, and the smallest
+# genuine report in the corpus is comfortably clear of it.
+_MIN_REPORT_PAGES = 40
+
+# Every BRSA filing prints its reporting unit ("Bin/Milyon Türk Lirası") and
+# carries the numbered Bölüm structure. A KAP notification has neither.
+_REPORT_MARKERS = (
+    r"B[İIi]R[İIi]NC[İIi]\s+B[ÖO]L[ÜU]M|[İIi]K[İIi]NC[İIi]\s+B[ÖO]L[ÜU]M"
+    r"|BE[ŞS][İIi]NC[İIi]\s+B[ÖO]L[ÜU]M|SECTION\s+(?:ONE|TWO|FIVE)"
+    r"|Bin\s+T[üu]rk\s+Liras[ıi]|Milyon\s+T[üu]rk\s+Liras[ıi]"
+    r"|Thousand\s+(?:of\s+)?Turkish\s+Lira"
+)
+_REPORT_MARKER_RX = re.compile(_REPORT_MARKERS, re.I)
+
+# The KAP notification's own fingerprint, so a positive identification is
+# possible rather than only an absence of evidence.
+_KAP_COVER_RX = re.compile(
+    r"KAMUYU\s+AYDINLATMA\s+PLATFORMU|Monthly\s+Notification"
+    r"|Bank\s+Financial\s+Report\b.{0,40}?Notification",
+    re.I | re.S)
+
+
+def report_validity(body: bytes) -> tuple[bool, str]:
+    """(is_a_real_report, reason). Cheap, deterministic, fitz-only.
+
+    Returns False for a KAP cover sheet, a truncated fragment, or anything
+    whose text layer carries none of a filing's structural markers. The reason
+    is carried through to the log so a skipped partition says WHY.
+    """
+    try:
+        with fitz.open(stream=body, filetype="pdf") as doc:
+            pages = len(doc)
+            head = " ".join(doc[i].get_text()
+                            for i in range(min(6, pages)))
+    except Exception as e:                                      # noqa: BLE001
+        return False, f"unreadable:{type(e).__name__}"
+    if _KAP_COVER_RX.search(head):
+        return False, f"kap-cover-sheet:{pages}pp"
+    if pages < _MIN_REPORT_PAGES:
+        return False, f"too-short:{pages}pp"
+    if not _REPORT_MARKER_RX.search(head):
+        return False, f"no-report-markers:{pages}pp"
+    return True, f"ok:{pages}pp"
+
+
+def record_pdf_validity(db_path: Path,
+                        verdicts: dict[tuple[str, str, str], str | None]) -> None:
+    """Persist which R2 objects are not reports, and clear the ones that now are.
+
+    Coverage needs the answer without downloading 1,061 PDFs per sync, and the
+    flag has to CLEAR itself the moment a real report replaces a cover sheet —
+    otherwise the fix trades one permanent state for another.
+    """
+    if not verdicts:
+        return
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(str(db_path)) as conn:
+        init_schema(conn)
+        for (b, p, k), reason in verdicts.items():
+            if reason is None:
+                conn.execute(
+                    "DELETE FROM bank_audit_invalid_pdfs WHERE bank_ticker=? "
+                    "AND period=? AND kind=?", (b, p, k))
+            else:
+                conn.execute(
+                    "INSERT OR REPLACE INTO bank_audit_invalid_pdfs "
+                    "(bank_ticker, period, kind, reason, checked_at) "
+                    "VALUES (?,?,?,?,CURRENT_TIMESTAMP)", (b, p, k, reason))
+        conn.commit()
+
+
 def verify_basis_in_r2(workers: int = 16,
                        only: set[str] | None = None) -> list[tuple[str, str, str, str]]:
     """Sweep EXISTING R2 audit PDFs and report any whose front matter confidently
@@ -209,7 +293,8 @@ def verify_basis_in_r2(workers: int = 16,
 
 
 def scrape_to_r2(
-    workers: int = 16, only: set[str] | None = None, latest_period: bool = False
+    workers: int = 16, only: set[str] | None = None, latest_period: bool = False,
+    db_path: Path | None = None,
 ) -> dict[str, int]:
     """Walk audit_report_urls.json; upload any new PDFs to R2.
 
@@ -243,19 +328,40 @@ def scrape_to_r2(
     if latest_period:
         targets = _restrict_to_latest_period(targets)
 
-    counts = {"new": 0, "skipped": 0, "failed": 0}
+    counts = {"new": 0, "replaced": 0, "skipped": 0, "pending": 0, "failed": 0}
+    # (bank, period, kind) -> reason | None. None clears a previous refusal.
+    verdicts: dict[tuple[str, str, str], str | None] = {}
 
     def _one(t: tuple[str, str, str, str]) -> tuple[str, str, str, str, int]:
         ticker, period, kind, url = t
         key = r2_storage.make_key(ticker, period, kind)
+        # `exists(key)` is not "acquired" — the object has to BE a report.
+        # A KAP cover sheet stored under the key used to make the partition
+        # permanently pending: every later run skipped it on the strength of the
+        # key existing, so the day the real filing appeared nothing fetched it.
+        # Re-check the source instead, and replace the object when the real one
+        # turns up.
+        replacing = ""
         try:
             if r2_storage.exists(key):
-                return ticker, period, kind, "skip", 0
+                with tempfile.TemporaryDirectory() as td:
+                    have = Path(td) / "have.pdf"
+                    r2_storage.download_to(key, have)
+                    ok, why = report_validity(have.read_bytes())
+                if ok:
+                    return ticker, period, kind, "skip", 0
+                replacing = why
         except Exception as e:
             return ticker, period, kind, f"err:r2head:{e}", 0
         body, note = fetch_pdf_bytes(url, ticker)
         if body is None:
             return ticker, period, kind, note, 0
+        # Never replace — or store — one invalid object with another. A source
+        # still serving the notification leaves the partition pending, and the
+        # next run looks again.
+        ok, why = report_validity(body)
+        if not ok:
+            return ticker, period, kind, f"not-a-report:{why}", 0
         # Consolidation-basis guard: refuse to store a PDF whose OWN front matter
         # confidently declares the opposite basis to this key's `kind`. This is how
         # GARAN's poisoned "Unconsolidated" URL (serves the consolidated report) and
@@ -269,7 +375,7 @@ def scrape_to_r2(
             r2_storage.upload_bytes(body, key)
         except Exception as e:
             return ticker, period, kind, f"err:r2put:{e}", 0
-        return ticker, period, kind, "ok", len(body)
+        return ticker, period, kind, ("replaced" if replacing else "ok"), len(body)
 
     print(f"[scrape] {len(targets)} targets · {workers} parallel · uploading to R2")
     with ThreadPoolExecutor(max_workers=workers) as ex:
@@ -277,14 +383,27 @@ def scrape_to_r2(
             ticker, period, kind, note, size = fut.result()
             if note == "skip":
                 counts["skipped"] += 1
-            elif note == "ok":
+            elif note in ("ok", "replaced"):
                 counts["new"] += 1
+                counts["replaced"] += note == "replaced"
+                tag = "REPL" if note == "replaced" else "NEW "
                 if counts["new"] % 10 == 1 or counts["new"] <= 10:
-                    print(f"  [NEW]  {ticker:<8} {period} {kind:<14} {size/1024:.1f} KB")
+                    print(f"  [{tag}] {ticker:<8} {period} {kind:<14} {size/1024:.1f} KB")
+                verdicts[(ticker, period, kind)] = None
+            elif note.startswith("not-a-report:"):
+                verdicts[(ticker, period, kind)] = note.split(":", 1)[1]
+                # NOT a failure: the bank has not published yet. The partition
+                # stays pending and the next run looks again.
+                counts["pending"] += 1
+                print(f"  [PEND] {ticker:<8} {period} {kind:<14} {note}", flush=True)
             else:
                 counts["failed"] += 1
                 print(f"  [FAIL] {ticker:<8} {period} {kind:<14} {note}", flush=True)
-    print(f"[scrape] new={counts['new']} skipped={counts['skipped']} failed={counts['failed']}")
+    print(f"[scrape] new={counts['new']} (replaced={counts['replaced']}) "
+          f"skipped={counts['skipped']} pending={counts['pending']} "
+          f"failed={counts['failed']}")
+    if db_path is not None:
+        record_pdf_validity(db_path, verdicts)
     return counts
 
 
@@ -322,6 +441,15 @@ def _worker_extract(args):
         return (ticker, period, kind, key, False, 0, 0, 0, 0, 0,
                 time.time() - t0, f"r2get:{type(e).__name__}:{str(e)[:80]}",
                 None, str(dest))
+    # Do not extract an object that is not a report. A KAP cover sheet parses
+    # without raising and yields a partition of near-empty statements, which
+    # validates as "missing" rather than failing loudly — the quiet kind of
+    # wrong. Acquisition now refuses to store one, but the archive already
+    # holds some (TSKB 2026Q2), so the reader checks too.
+    ok, why = report_validity(dest.read_bytes())
+    if not ok:
+        return (ticker, period, kind, key, False, 0, 0, 0, 0, 0,
+                time.time() - t0, f"not-a-report:{why}", None, str(dest))
     try:
         rep = extract(str(dest))
     except Exception as e:
@@ -367,9 +495,10 @@ def extract_from_r2(
         todo = [(t, p, k, key) for (t, p, k, key) in pdfs if (t, p, k) not in done]
         print(f"[extract] {len(pdfs)} in R2 · {len(done)} already done · {len(todo)} to extract")
     if not todo:
-        return {"ok": 0, "fail": 0}
+        return {"ok": 0, "fail": 0, "not_a_report": 0}
 
-    counts = {"ok": 0, "fail": 0}
+    counts = {"ok": 0, "fail": 0, "not_a_report": 0}
+    invalid: dict[tuple[str, str, str], str] = {}
     with tempfile.TemporaryDirectory(prefix="bddk_pdfs_") as tmp_dir:
         work = [(t, p, k, key, tmp_dir) for (t, p, k, key) in todo]
         with sqlite3.connect(str(db_path)) as conn, \
@@ -381,6 +510,16 @@ def extract_from_r2(
                  bsa, bsl, obs, pl, cq,
                  secs, err, rep, path_str) = res
                 if not succ:
+                    if (err or "").startswith("not-a-report:"):
+                        # Not an extraction failure: the object under this
+                        # key is a notification, not a filing. Record it so
+                        # coverage stops calling it pdf_present, and leave
+                        # the partition pending for acquisition to replace.
+                        counts["not_a_report"] += 1
+                        invalid[(ticker, period, kind)] = err.split(":", 1)[1]
+                        print(f"  [PEND] {ticker:<8} {period} {kind:<14} {err}",
+                              flush=True)
+                        continue
                     counts["fail"] += 1
                     print(f"  [FAIL] {ticker:<8} {period} {kind:<14} {err}", flush=True)
                     continue
@@ -397,6 +536,7 @@ def extract_from_r2(
                     continue
                 upsert_report(conn, ticker, period, kind, rep, key,
                               force=overwrite_correct, unit=unit)
+                invalid[(ticker, period, kind)] = None
                 tag = "OK" if (bsa >= 20 and bsl >= 20 and pl >= 20) else "WARN"
                 counts["ok"] += 1
                 print(
@@ -410,7 +550,9 @@ def extract_from_r2(
                 except OSError:
                     pass
 
-    print(f"[extract] ok={counts['ok']} fail={counts['fail']}")
+    print(f"[extract] ok={counts['ok']} fail={counts['fail']} "
+          f"not_a_report={counts['not_a_report']}")
+    record_pdf_validity(db_path, invalid)
     return counts
 
 
@@ -500,7 +642,7 @@ def main():
     scrape_counts: dict[str, int] = {}
     extract_counts: dict[str, int] = {}
     if not args.no_scrape:
-        scrape_counts = scrape_to_r2(
+        scrape_counts = scrape_to_r2(db_path=db_path, 
             workers=args.workers, only=only, latest_period=args.latest_period)
     if args.new_count_file:
         Path(args.new_count_file).write_text(str(scrape_counts.get("new", 0)), encoding="utf-8")
