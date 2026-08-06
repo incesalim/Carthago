@@ -125,6 +125,33 @@ def should_pull_snapshot(*, dry_run: bool, pull_snapshot_requested: bool) -> boo
     return not dry_run or pull_snapshot_requested
 
 
+def _partition_content(conn: sqlite3.Connection, table: str,
+                       bank: str, period: str, kind: str) -> tuple[tuple, ...]:
+    """Return stable partition content, excluding write-only timestamps.
+
+    Targeted repairs delete and reinsert statement rows, which refreshes
+    ``extracted_at`` even when every disclosed value is identical.  Comparing
+    the business columns lets the caller roll that no-op back instead of
+    billing D1 for a partition replacement whose facts did not change.
+    """
+    columns = [row[1] for row in conn.execute(f'PRAGMA table_info("{table}")')
+               if row[1] != "extracted_at"]
+    if not columns:
+        raise ValueError(f"table {table!r} does not exist or has no comparable columns")
+    quoted = [f'"{name.replace(chr(34), chr(34) * 2)}"' for name in columns]
+    select = ", ".join(quoted)
+    order = ", ".join(str(i) for i in range(1, len(quoted) + 1))
+    return tuple(conn.execute(
+        f'SELECT {select} FROM "{table}" '
+        f'WHERE bank_ticker=? AND period=? AND kind=? ORDER BY {order}',
+        (bank, period, kind)).fetchall())
+
+
+def _is_proven_pass(result: _validator.ValidationResult) -> bool:
+    """Match ``statement_passes`` for an in-memory candidate result."""
+    return result.failed == 0 and result.passed > 0
+
+
 def _worker(args):
     """Pickleable worker: download one PDF, extract ONLY the requested statement,
     return its rows. Upsert happens in the parent (single DB connection)."""
@@ -315,10 +342,16 @@ def main() -> int:
     ap.add_argument("--no-inline-validate", action="store_true",
                     help="skip inline per-partition validation (fall back to the separate "
                          "revalidate_audit_db.py step)")
+    ap.add_argument("--require-passing", action="store_true",
+                    help="reject and roll back a candidate when this statement has a "
+                         "validator but does not finish with at least one passing check "
+                         "and zero failures; intended for safe fleet repairs")
     ap.add_argument("--force", action="store_true",
                     help="overwrite even partitions whose stored data already PASSES this "
                          "statement's validation (default: leave correct data untouched)")
     args = ap.parse_args()
+    if args.require_passing and args.no_inline_validate:
+        ap.error("--require-passing requires inline validation")
     statement = ALIASES.get(args.statement, args.statement)
     table = STATEMENT_TABLE[statement]
     vname = VALIDATOR_NAME.get(statement, statement)  # name in bank_audit_validation
@@ -368,8 +401,10 @@ def main() -> int:
     if not pdfs:
         print("[reext] nothing to do"); return 0
 
-    touched: list[tuple[str, str, str]] = []
-    counts = {"ok": 0, "fail": 0, "rows": 0, "vok": 0, "vfail": 0, "keep": 0}
+    data_touched: list[tuple[str, str, str]] = []
+    validation_touched: set[tuple[str, str, str]] = set()
+    counts = {"ok": 0, "fail": 0, "rows": 0, "vok": 0, "vfail": 0,
+              "keep": 0, "same": 0, "reject": 0}
     inline = not args.no_inline_validate
     with tempfile.TemporaryDirectory(prefix="bddk_reext_") as td:
         work = [(t, p, k, key, statement, td) for (t, p, k, key) in pdfs]
@@ -394,30 +429,65 @@ def main() -> int:
                 if not args.force and _validator.statement_passes(conn, t, p, k, vname):
                     counts["keep"] += 1
                     continue
+                before = _partition_content(conn, table, t, p, k)
+                conn.execute("SAVEPOINT reextract_candidate")
                 _upsert(conn, statement, t, p, k, rep, unit=unit)
-                conn.execute(
-                    "UPDATE bank_audit_extractions SET extracted_at=CURRENT_TIMESTAMP, "
-                     "source_unit=? "
-                    "WHERE bank_ticker=? AND period=? AND kind=?",
-                    (unit.source_unit, t, p, k))
-                touched.append((t, p, k))
-                counts["ok"] += 1
-                counts["rows"] += n
+                after = _partition_content(conn, table, t, p, k)
+                data_changed = before != after
+                results = None
+                validation_changed = False
+                candidate_rejected = False
                 # Inline validation: recompute the WHOLE partition from stored rows
                 # (the just-upserted statement + the others already in the db) and
                 # persist it, so failures surface DURING the run and the separate
                 # revalidate_audit_db.py pass is unnecessary for touched partitions.
                 if inline:
                     results = revalidate_partition(conn, t, p, k)
-                    _validator.upsert_validation(conn, t, p, k, results)
+                    validation_changed = _validator.upsert_validation(conn, t, p, k, results)
                     eqr = results.get(vname)
-                    if eqr is not None and eqr.failed:
+                    if eqr is not None and not _is_proven_pass(eqr):
                         counts["vfail"] += 1
-                        chk = eqr.failures[0].get("check", "?") if eqr.failures else "?"
+                        chk = (eqr.failures[0].get("check", "?") if eqr.failures
+                               else "no_checks_passed")
                         print(f"  [vFAIL] {t:<8} {p} {k:<14} {statement} "
                               f"P{eqr.passed}/F{eqr.failed}/S{eqr.skipped} {chk}", flush=True)
                     elif eqr is not None:
                         counts["vok"] += 1
+                    candidate_rejected = bool(
+                        args.require_passing and eqr is not None
+                        and not _is_proven_pass(eqr))
+
+                if candidate_rejected:
+                    # Restore both the original statement and its original
+                    # validation rows.  A fleet repair may improve only some
+                    # source layouts; the rest must remain byte-for-byte intact.
+                    conn.execute("ROLLBACK TO reextract_candidate")
+                    conn.execute("RELEASE reextract_candidate")
+                    counts["reject"] += 1
+                    print(f"  [REJECT] {t:<8} {p} {k:<14} candidate did not pass",
+                          flush=True)
+                elif not data_changed:
+                    # The extractor produced the same facts.  Roll back its fresh
+                    # timestamps, then retain only a genuinely changed validation
+                    # verdict (upsert_validation is itself value-idempotent).
+                    conn.execute("ROLLBACK TO reextract_candidate")
+                    conn.execute("RELEASE reextract_candidate")
+                    counts["same"] += 1
+                    if inline and validation_changed and results is not None:
+                        if _validator.upsert_validation(conn, t, p, k, results):
+                            validation_touched.add((t, p, k))
+                else:
+                    conn.execute(
+                        "UPDATE bank_audit_extractions SET extracted_at=CURRENT_TIMESTAMP, "
+                         "source_unit=? "
+                        "WHERE bank_ticker=? AND period=? AND kind=?",
+                        (unit.source_unit, t, p, k))
+                    conn.execute("RELEASE reextract_candidate")
+                    data_touched.append((t, p, k))
+                    if validation_changed:
+                        validation_touched.add((t, p, k))
+                    counts["ok"] += 1
+                    counts["rows"] += n
                 if done % 50 == 0:
                     conn.commit()
                     tally = f" vpass={counts['vok']} vfail={counts['vfail']}" if inline else ""
@@ -429,33 +499,53 @@ def main() -> int:
                     pass
             conn.commit()
     vtally = f" | validated: pass={counts['vok']} FAIL={counts['vfail']}" if inline else ""
-    keptt = f" kept={counts['keep']}" if counts['keep'] else ""
-    print(f"[reext] ok={counts['ok']} fail={counts['fail']}{keptt} rows={counts['rows']}{vtally}",
+    extras = (f" unchanged={counts['same']} rejected={counts['reject']}"
+              f" kept={counts['keep']}")
+    print(f"[reext] changed={counts['ok']} fail={counts['fail']}{extras} "
+          f"rows={counts['rows']}{vtally}",
           flush=True)
 
     # Push the validation rows too when computed inline, so the dashboard/matrix
     # reflect the fresh pass/fail without a separate revalidate+push.
-    push_tables = [table] + (["bank_audit_validation"] if inline else [])
+    data_tables = [table]
     # credit_quality feeds the DERIVED bank_audit_stages table. Rebuild it from the
     # fresh rows, then re-validate the touched partitions so `stages` reflects the
     # new loans_by_stage (the inline pass above saw the pre-rebuild stages). Done
     # before the dry-run return so a dry-run still verifies the stages locally.
-    if statement == "credit_quality" and touched:
+    if statement == "credit_quality" and data_touched:
         subprocess.run(
             [sys.executable, str(REPO / "scripts" / "build_bank_audit_stages.py"),
              "--db", str(DB)], check=True)
         with sqlite3.connect(str(DB)) as conn:
-            for t, p, k in touched:
-                _validator.upsert_validation(conn, t, p, k, revalidate_partition(conn, t, p, k))
+            for t, p, k in data_touched:
+                if _validator.upsert_validation(
+                        conn, t, p, k, revalidate_partition(conn, t, p, k)):
+                    validation_touched.add((t, p, k))
             conn.commit()
-        push_tables.append("bank_audit_stages")
-        print(f"[reext] rebuilt bank_audit_stages + revalidated {len(touched)} partition(s)",
+        data_tables.append("bank_audit_stages")
+        print(f"[reext] rebuilt bank_audit_stages + revalidated "
+              f"{len(data_touched)} partition(s)",
               flush=True)
 
     if args.dry_run:
         print("[reext] dry-run — no D1 push / snapshot", flush=True)
         return 0
-    push_partitions(touched, db_path=DB, window_hours=24, tables=push_tables)
+    data_parts = set(data_touched)
+    if not data_parts and not validation_touched:
+        print("[reext] no factual or validation changes — no D1/snapshot writes",
+              flush=True)
+        return 0
+    both = sorted(data_parts & validation_touched)
+    data_only = sorted(data_parts - validation_touched)
+    validation_only = sorted(validation_touched - data_parts)
+    if both:
+        push_partitions(both, db_path=DB, window_hours=24,
+                        tables=data_tables + ["bank_audit_validation"])
+    if data_only:
+        push_partitions(data_only, db_path=DB, window_hours=24, tables=data_tables)
+    if validation_only:
+        push_partitions(validation_only, db_path=DB, window_hours=24,
+                        tables=["bank_audit_validation"])
     push_snapshot(DB)
     print("[reext] done", flush=True)
     return 0

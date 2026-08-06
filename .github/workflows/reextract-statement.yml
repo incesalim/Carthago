@@ -3,9 +3,10 @@ name: Re-extract one statement
 # Targeted single-statement re-extract via scripts/reextract_statement.py: pull
 # snapshot → re-extract ONLY the named statement for the selected partitions →
 # inline-validate → push that table + bank_audit_validation to D1 → re-upload the
-# snapshot → refresh the coverage matrix. The non-destructive guard means passing
-# partitions are left untouched (only failing/missing/empty are rewritten), so this
-# never regresses correct data — including the frozen BS/P&L. Manual only.
+# snapshot → refresh the coverage matrix. The non-destructive guards leave passing
+# partitions untouched, roll back candidates that remain invalid, and skip statement
+# rows whose facts did not change. This cannot regress correct data — including the
+# frozen BS/P&L — or restamp a no-op repair. Manual only.
 #
 # only_failing selects partitions NOT currently passing = failing (checks_failed>0)
 # OR empty/un-validated (checks_passed=0, e.g. 0 rows → validation skipped). It
@@ -40,6 +41,10 @@ on:
         description: "Overwrite even partitions whose THIS statement already passes (needed when the defect is in a DERIVED table — credit_quality passes but its derived stages fails). Use with --banks, turn only_failing OFF"
         type: boolean
         default: false
+      require_passing:
+        description: "Roll back any candidate that does not finish with a proven passing validation result"
+        type: boolean
+        default: true
       dry_run:
         description: "Pull the live snapshot and re-extract locally only; skip D1 and snapshot writes"
         type: boolean
@@ -93,6 +98,7 @@ jobs:
           KIND: ${{ inputs.kind }}
           ONLY_FAILING: ${{ inputs.only_failing && '--only-failing' || '' }}
           FORCE: ${{ inputs.force && '--force' || '' }}
+          REQUIRE_PASSING: ${{ inputs.require_passing && '--require-passing' || '' }}
           DRY: ${{ inputs.dry_run && '--dry-run' || '' }}
         run: |
           args=(--statement "$STATEMENT" --banks "$BANKS" --pull-snapshot)
@@ -100,6 +106,7 @@ jobs:
           [ -n "$KIND" ] && args+=(--kind "$KIND")
           [ -n "$ONLY_FAILING" ] && args+=("$ONLY_FAILING")
           [ -n "$FORCE" ] && args+=("$FORCE")
+          [ -n "$REQUIRE_PASSING" ] && args+=("$REQUIRE_PASSING")
           [ -n "$DRY" ] && args+=("$DRY")
           python scripts/reextract_statement.py "${args[@]}"
 
