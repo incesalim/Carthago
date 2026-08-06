@@ -29,6 +29,12 @@
     "2026Q1": {"consolidated": {"free_provision": 8700000, "source": "'toplam 8.700.000 Bin TL ... serbest karsiligi'"}, "unconsolidated": {"free_provision": 8700000, "source": "'toplam 8.700.000 Bin TL'"}}
   },
   "TEB": {
+    "2026Q1": {
+      "consolidated":   {"free_provision": 1108135, "free_provision_prior": 1230000,
+        "source": "p74: '31 Mart 2026 itibariyla 1,108,135 TL (31 Aralik 2025: 1,230,000 TL) tutarinda serbest karsiligi icermektedir'. Extractor read 0 off p79, a SEPARATE 121,865 TL reversal note whose parenthetical says (31 Mart 2025: Bulunmamaktadir). Chain: 1,230,000 @2025Q4 - 121,865 = 1,108,135."},
+      "unconsolidated": {"free_provision": 1108135, "free_provision_prior": 1230000,
+        "source": "p71: same sentence and figures as consolidated; extractor read 0 off p76 (the reversal note)."}
+    },
     "2026Q2": {
       "consolidated":   {"unit": "milyon", "free_provision": 368, "free_provision_prior": 1230,
         "source": "auditor qualification p1 (EY, sartli): '1.230 milyon TL’si gecmis yillarda ayrilan, 862 milyon TL’si de cari donemde iptal edilen toplam 368 milyon TL tutarinda ... serbest karsiligi icermektedir'; cites notes 5 II.7.d + IV.5. Note p91 carries only the 862 REVERSAL (footnote on Diger, current (798) prior 170), which is a flow and correctly not extracted. Prior 1.230 reconciles exactly with TEB 2025Q4 stored current 1,230,000."},
@@ -57,6 +63,12 @@
     "2024Q2": {"unconsolidated": {"free_provision": 500000, "source": "auditor: net 500,000"}}
   },
   "ZIRAATK": {
+    "2024Q1": {
+      "consolidated":   {"free_provision": 0, "free_provision_prior": 500000,
+        "source": "p78: 'tamami gecmis yillarda ayrilan 500.000 TL tutarinda serbest karsilik cari donemde iptal edilmistir (31 Aralik 2023: ... toplam 500.000 TL ... yer almaktadir)'. Cancelled in FULL -> stock 0, prior 500,000. Stored 0 was right but sourced from an unrelated sentence's prior-period 'Bulunmamaktadir'."},
+      "unconsolidated": {"free_provision": 0, "free_provision_prior": 500000,
+        "source": "p76: same sentence and figures as consolidated."}
+    },
     "2023Q1": {"consolidated": {"free_provision": 404000, "free_provision_prior": 1004000, "source": "'1.004.000 - 600.000 iptal = toplam 404.000'"}, "unconsolidated": {"free_provision": 404000, "free_provision_prior": 1004000, "source": "'toplam 404.000'"}},
     "2023Q2": {"consolidated": {"free_provision": 404000, "free_provision_prior": 1004000, "source": "'toplam 404.000'"}, "unconsolidated": {"free_provision": 404000, "free_provision_prior": 1004000, "source": "'toplam 404.000'"}},
     "2023Q3": {"unconsolidated": {"free_provision": 404000, "source": "'toplam 404.000'"}},

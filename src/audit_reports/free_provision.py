@@ -50,12 +50,7 @@ _CCY_AMT = r"(?:thousand\s+)?" + _CCY + r"\s*(" + _NUM + r")(?:\s+thousand)?"
 # "free provision" / "serbest karşılık" — the subject. `serbest kar[sş]ıl` also
 # folds the diacritic-dropped text layer some PDFs produce.
 _SUBJ_EN = r"free\s+provision"
-# The final `k` softens to `ğ` before a vowel suffix — "serbest karşılık" but
-# "serbest karşılığı" / "karşılığın". Requiring the hard `k` made the possessive
-# form invisible, which is the form banks use in the very sentence that states
-# the stock ("… tutarında serbest karşılığı içermektedir"). TEB 2026Q1 stored 0
-# because of it.
-_SUBJ_TR = r"serbest\s+kar[şs][ıi]l[ıi][kğ]"
+_SUBJ_TR = r"serbest\s+kar[şs][ıi]l[ıi]k"
 
 # Prior-period parenthetical: "(December 31, 2024: TL 7.300.000)" /
 # "(31 Aralık 2024: 15,000,000 TL)" / "(31 December 2024: TL 701,889)". The value
@@ -116,68 +111,11 @@ _STOCK_PATTERNS = [
     re.compile(r"amount(?:ing|s)?\s+(?:to|of)\s+" + _CCY_AMT + r".{0,80}?for\s+" + _SUBJ_EN, re.I),
     # TR — "serbest karşılık tutarı 4,000,000 TL"
     re.compile(_SUBJ_TR + r"\s+tutar[ıi]\s+(" + _NUM + r")\s*(?:bin\s+)?" + _CCY, re.I),
-    # TR — "9.000.000 TL tutarında(ki) … serbest karşılık", and the same shape
-    # with the prior-period comparison sitting between the amount and
-    # "tutarında": TEB writes "1,108,135 TL (31 Aralık 2025: 1,230,000 TL)
-    # tutarında serbest karşılığı içermektedir". Requiring the two adjacent made
-    # that textbook stock invisible, so nothing outranked the reversal note on a
-    # later page and the partition stored 0. One optional parenthetical, capped
-    # at 60 chars, so it cannot swallow a sentence.
-    re.compile(r"(" + _NUM + r")\s*(?:bin\s+)?" + _CCY
-               + r"\s*(?:\([^)]{0,60}\)\s*)?\s*tutar[ıi]nda(?:ki)?.{0,60}?" + _SUBJ_TR, re.I),
+    # TR — "9.000.000 TL tutarında(ki) … serbest karşılık"
+    re.compile(r"(" + _NUM + r")\s*(?:bin\s+)?" + _CCY + r"\s+tutar[ıi]nda(?:ki)?.{0,60}?" + _SUBJ_TR, re.I),
     # TR — "serbest karşılık … 9.000.000 TL … yer almaktadır"
     re.compile(_SUBJ_TR + r".{0,60}?(" + _NUM + r")\s*(?:bin\s+)?" + _CCY + r".{0,40}?yer\s+almaktad[ıi]r", re.I),
 ]
-
-
-# --- opening stock vs current stock ------------------------------------------
-#
-# Turkish marks the difference grammatically, and the amounts either side of it
-# differ by the whole reversal:
-#
-#   ZIRAAT 2024Q1  "…ayırmış olduğu 17.800.000 TL tutarındaki serbest KARŞILIĞIN
-#                   4.800.000 TL tutarındaki kısmı cari dönemde iptal edilmiş
-#                   olup, 31 Mart 2024 tarihi itibarıyla … 13.000.000 TL
-#                   tutarında serbest KARŞILIK yer almaktadır."
-#
-# The genitive `karşılığın` ("of the free provision") introduces the OPENING
-# balance — the thing a part was taken out of. The nominative/accusative
-# (`karşılık yer almaktadır`, `karşılığı bulunmaktadır`, `karşılığı
-# içermektedir`) states the balance itself. Reading the genitive amount as the
-# stock is the ALBRK trap in another dress: 17,800,000 is what the bank HAD.
-#
-# Not a wider flow window: VAKBN 2025Q4 writes "toplam 8,000,000 TL tutarındaki
-# serbest karşılığın 15,000,000 TL'si geçmiş yıllarda ayrılan, 11,000,000 TL'si
-# cari dönemde iptal edilen ve 4,000,000 TL'si de cari dönemde ayrılan
-# karşılıktan oluşmaktadır" — same genitive, same reversal verb, and there the
-# leading figure IS the current stock (15,000,000 − 11,000,000 + 4,000,000).
-# So a genitive-with-cancellation is DEMOTED, not discarded: where the filing
-# also states the balance directly that wording wins, and where it does not the
-# genitive figure is still the best available answer.
-_SUBJ_TR_GENITIVE = r"serbest\s+kar[şs][ıi]l[ıi]ğ[ıi]n"
-_CANCEL_VERB = r"iptal|ters\s*çevr|geri\s*çevr"
-_GENITIVE_CANCEL = re.compile(
-    _SUBJ_TR_GENITIVE + r".{0,150}?(?:" + _CANCEL_VERB + r")", re.I | re.S)
-
-# Rank demotion for an opening-stock reading. Large enough that a direct
-# statement on the same page always outranks it (4 vs 1 without a prior), small
-# enough that it still beats "nothing found".
-_OPENING_STOCK_DEMOTION = 3
-
-# The whole provision cancelled — the current stock is 0, and the amount named
-# is the PRIOR one. ZIRAATK 2024Q1: "…tamamı geçmiş yıllarda ayrılan 500.000 TL
-# tutarında serbest karşılık cari dönemde iptal edilmiştir". The override file's
-# own rule already says a full cancellation reads as 0; this reads it from the
-# sentence instead of requiring a human to.
-_FULL_CANCEL = re.compile(
-    r"tamam[ıi]\b[^.]{0,120}?(" + _NUM + r")\s*(?:bin\s+)?" + _CCY
-    + r"\s+tutar[ıi]nda\s+" + _SUBJ_TR + r"[^.]{0,80}?(?:" + _CANCEL_VERB + r")",
-    re.I)
-
-
-def _is_opening_stock(text: str, m: "re.Match") -> bool:
-    """True when this amount is what the bank HELD, not what it holds."""
-    return bool(_GENITIVE_CANCEL.search(text[m.start(): m.end() + 150]))
 
 
 def _parse_amt(s: str) -> int | None:
@@ -185,40 +123,6 @@ def _parse_amt(s: str) -> int | None:
         return None
     cleaned = s.replace(".", "").replace(",", "")
     return int(cleaned) if cleaned.isdigit() else None
-
-
-# A prior-period parenthetical opener: "(31 Aralık 2025:", "(31 Mart 2025:",
-# "(December 31, 2024:". What follows it describes the PRIOR period.
-_PRIOR_PAREN_OPEN = re.compile(
-    r"\(\s*(?:\d{1,2}\s+\S+\s+20\d\d|(?:31\s+)?(?:December|Aral[ıi]k)[^):]{0,20})\s*:",
-    re.I)
-
-
-def _none_describes_only_the_prior(text: str, m: re.Match) -> bool:
-    """True when the 'none' word sits inside a PRIOR-period parenthetical.
-
-    TEB 2026Q1's reversal note reads "… serbest karşılık iptal tutarını
-    içermektedir (31 Mart 2025: Bulunmamaktadır)". The bank held ₺1,108,135k of
-    free provision at the reporting date — stated on an earlier page — and it is
-    the COMPARATIVE that is none. Read as the current stock it stored 0, and the
-    page also outranked nothing, so 0 won.
-
-    Deliberately narrower than a flow veto: "held one and cancelled it in full"
-    is a legitimate route to a current stock of 0 (the override file says so),
-    and vetoing on the reversal verb would lose those.
-    """
-    span = m.group(0)
-    none_at = len(span)
-    for word in ("bulunmamaktad", "none", "yoktur"):
-        i = span.lower().rfind(word)
-        if i != -1:
-            none_at = min(none_at, i)
-    head = span[:none_at]
-    # Inside an unclosed parenthetical that opened with a prior-period date?
-    open_at = head.rfind("(")
-    if open_at == -1 or ")" in head[open_at:]:
-        return False
-    return bool(_PRIOR_PAREN_OPEN.match(head[open_at:]))
 
 
 def _parse_prior(tok: str) -> int | None:
@@ -297,8 +201,6 @@ def classify_free_provision(pages: list[str]) -> FreeProvision:
                 is_total = (bool(_TOTAL_SIGNAL.search(text[max(0, m.start() - 20): m.end() + 45]))
                             and not _FLOW.search(text[max(0, m.start(1) - 90): m.start(1)]))
                 rank = page_rank + 2 + (2 if prior else 0) + (5 if is_total else 0)
-                if _is_opening_stock(text, m):
-                    rank -= _OPENING_STOCK_DEMOTION
                 if rank > best_rank:
                     best_rank = rank
                     res.disclosed = True
@@ -309,30 +211,13 @@ def classify_free_provision(pages: list[str]) -> FreeProvision:
                     res.source_page = i
                     res.snippet = re.sub(r"\s+", " ", text[m.start(): m.start() + 140]).strip()
 
-        # The whole provision cancelled this period: the stock is 0 and the
-        # amount named is the prior one. Ranked with the amount candidates
-        # (page_rank + 2), so a direct statement elsewhere can still outrank it,
-        # but it beats a bare "none" and beats nothing found.
-        fc = _FULL_CANCEL.search(text)
-        if fc is not None and page_rank + 2 > best_rank:
-            best_rank = page_rank + 2
-            res.disclosed = True
-            res.free_provision = 0
-            res.free_provision_prior = _parse_amt(fc.group(1))
-            res.source_page = i
-            res.snippet = re.sub(r"\s+", " ",
-                                 text[fc.start(): fc.start() + 140]).strip()
-
         # Explicit "none" — beats "nothing found", loses to any real amount.
-        # A "none" that only describes the PRIOR period says nothing about the
-        # current stock and must not stand in for it.
-        nm = next((x for x in _NONE.finditer(text)
-                   if not _none_describes_only_the_prior(text, x)), None)
-        if best_rank < page_rank and nm is not None:
+        if best_rank < page_rank and _NONE.search(text):
             best_rank = page_rank
             res.disclosed = True
             res.free_provision = 0
             res.source_page = i
+            nm = _NONE.search(text)
             res.snippet = re.sub(r"\s+", " ", text[nm.start(): nm.start() + 120]).strip()
 
     return res

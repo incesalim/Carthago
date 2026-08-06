@@ -411,41 +411,45 @@ stock of 0 (the override file says so), and a flow veto would lose those. It
 fires only when the none-word sits inside an unclosed parenthetical that opened
 with a prior-period date.
 
-**⚠️ The first attempt regressed ZIRAAT, and the corpus run caught it.** 46 of
-488 partitions moved, 42 of them unexpected. The `k`→`ğ` widening made a new
-sentence shape match, and ZIRAAT ×11 started reading the **pre-reversal gross**:
+**❌ The parser fix was REVERTED after the full-corpus gate (2026-08-06).**
+Three sentence-level fixes were built — Turkish `k`→`ğ` softening, an
+amount-before-subject pattern tolerating the prior parenthetical, and a
+genitive/direct distinction so *"X serbest karşılı**ğın** Y kısmı iptal edildi"*
+could not read X as the balance. All three worked on their target sentences and
+the second run cleared the ZIRAAT ×11 regression the first one caused.
 
-> *"…ayırmış olduğu **17.800.000** TL tutarındaki serbest karşılı**ğın**
-> 4.800.000 TL tutarındaki kısmı cari dönemde iptal edilmiş olup, 31 Mart 2024
-> tarihi itibarıyla … **13.000.000** TL tutarında serbest karşılık yer
-> almaktadır."*
+The corpus run rejected them anyway. **1,061 PDFs, read-only, in Actions: 459
+unchanged, 37 changed, 0 unreadable — and 11 of the movers carried a value the
+filing does not support:**
 
-Turkish marks the distinction grammatically. The **genitive** `karşılığın`
-("*of* the free provision") introduces the balance a part was taken out of; the
-nominative/accusative (`karşılık yer almaktadır`, `karşılığı bulunmaktadır`,
-`karşılığı içermektedir`) states the balance itself. So a genitive reading
-carrying a cancellation verb is **demoted, not discarded** — because VAKBN
-2025Q4 writes the same shape where the leading figure IS the stock
-(15,000,000 − 11,000,000 + 4,000,000 = 8,000,000), and a blunt flow veto would
-have thrown a correct value away. Where the filing also states the balance
-directly, that wording wins.
+| Mover | Why it is wrong |
+|---|---|
+| ALNTF 2023Q4 ×2 | 55,000 was *"ters çevrilmesi"* — reversed. Not a stock |
+| ICBCT 2022Q4 unco ×1 | read `0` from a **malformed** parenthetical in the very sentence that states *"Bankamızın 7,015 TL serbest karşılığı"* |
+| ZIRAATK 2025Q1–Q4 ×8 | stock 0 is right, but the prior of 500,000 belongs to 2023, not to the preceding period |
 
-Two more cases fell out of reading the filings rather than the numbers:
+Page selection is corpus-wide in a way three sentence shapes cannot bound. So
+the classifier is back to its measured-good state, and **only the partitions
+verified against their own source passage are curated**:
 
-- **A provision cancelled in full** reads as stock 0 with the named amount as
-  the PRIOR — ZIRAATK 2024Q1 (*"tamamı geçmiş yıllarda ayrılan 500.000 TL …
-  cari dönemde iptal edilmiştir"*). Its stored 0 was right, but sourced from an
-  unrelated sentence's prior-period "none".
-- **ALNTF's 55,000 is not rejected for being front matter** — an auditor
-  qualification can be authoritative, and one on a rank-0 page still supplies a
-  stock when it states one. It is rejected because the auditor says that
-  provision was *"ters çevrilmesi"* — reversed.
+| Partition | Stock | Prior | Source |
+|---|---|---|---|
+| TEB 2026Q1 c+u | 1,108,135 | 1,230,000 | p74/p71 direct wording |
+| TEB 2026Q2 c+u | 368,000 | 1,230,000 | auditor qualification p1 |
+| ZIRAATK 2024Q1 c+u | 0 | 500,000 | p78 — cancelled in full |
 
-`measure-free-provision.yml` (dispatch-only, read-only) re-runs the classifier
-over every R2 PDF and diffs against the stored values, because a page-selection
-change is corpus-wide by nature. Its artifact carries the new snippet **and the
-stored one**, since a removed value has no new sentence to show. **Every mover
-must be approved on its own wording before any re-extraction.**
+The chain reconciles without a parser: 1,230,000 − 121,865 = 1,108,135 (2026Q1);
+1,230,000 − 862,000 = 368,000 (2026Q2).
+
+Genuine repairs seen in the run and **deliberately not taken**, because the
+change that produced them is reverted: TEB 2025Q2 (150,000 is the period's
+*allocation*, the stock is 1,650,000 — and 1,500,000 + 150,000 = 1,650,000),
+HSBC ×13 and ICBCT ×3 (explicit *"bulunmamaktadır"* = 0 where we hold null),
+VAKBN 2025Q4 c (8,000,000, matching its curated twin), EMLAK/TEB 2023Q4 (prior
+gained, stock unchanged). They are recorded here rather than acted on.
+
+**`_SUBJ_TR` carries a test pinning it un-widened.** Anyone widening it again
+must re-run `measure-free-provision.yml` first.
 
 **A new quarter arrives one bank at a time — sector "latest" needs a quorum
 (2026-07-26).** Three consumers took a bare `MAX(period)` over an audit table,
