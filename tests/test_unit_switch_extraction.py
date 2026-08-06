@@ -69,6 +69,30 @@ def test_without_a_template_the_behaviour_is_exactly_the_old_one():
     assert len(EC._parse_row_tokens(TEB_OPENING)) == 15
 
 
+def test_a_small_negative_survives_when_one_other_cell_is_blank():
+    """AKBNK 2026Q2 consolidated row X, verbatim from the PDF text layer.
+
+    The final zero cell is visually blank, so the row has 15 tokens.  Masking
+    ``(46)`` reduced it to 14 and the old two-zero recovery shifted +46 into
+    prior-period profit/loss.  The source actually carries an offsetting
+    -46/+46 pair and a zero total.
+    """
+    line = "X. - - - - (46) - - - - - 46 - - - -"
+    tokens = EC._parse_row_tokens(line, 16)
+    assert len(tokens) == 15
+    assert EC._try_fit(tokens, 16) == [
+        0.0, 0.0, 0.0, 0.0, -46.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 46.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+    ]
+
+
+def test_extractor_gate_never_admits_a_row_the_validator_rejects():
+    """Both layers recheck the same 13-component identity and tolerance."""
+    slipped = [0.0] * 16
+    slipped[11] = 46.0
+    assert not EC._row_gate(slipped, 16)
+
+
 # --- 2. the value region: label numerals and trailing fragments ---------------
 
 @pytest.mark.parametrize("line,expected", [
@@ -101,6 +125,25 @@ def test_a_trailing_header_fragment_does_not_swallow_the_row():
 def test_a_date_beside_the_label_is_not_a_value():
     line = "Dönem Sonu Bakiyesi 30.06.2025 (III+IV+V+VI+VII+VIII+IX+X+XI) 1 2 3 4"
     assert EC._parse_row_tokens(line, 4) == [1.0, 2.0, 3.0, 4.0]
+
+
+def test_a_dotted_dipnot_reference_is_not_equity_value_data():
+    """PASHA 2026Q2 current dividend row, verbatim from the PDF text layer."""
+    line = "11.1 Dağıtılan Temettü (5.5.3) - - - - - - - - - - (65) - - (65)"
+    expected = [0.0] * 10 + [-65.0, 0.0, 0.0, -65.0]
+    tokens = EC._parse_row_tokens(line, 14)
+    assert tokens == expected
+    assert EC._try_fit(tokens, 14) == expected
+    assert EC._eq_split(line) == ("11.1", "Dağıtılan Temettü")
+
+
+def test_a_dotted_dipnot_reference_is_masked_on_the_closing_row():
+    line = ("Dönem Sonu Bakiyesi (III+IV+…...+X+XI) (5.2.15) "
+            "500 - - - - - - - 1 - 1,823 - 192 2,516")
+    assert EC._parse_row_tokens(line, 14) == [
+        500.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 1.0, 0.0, 1823.0, 0.0, 192.0, 2516.0,
+    ]
 
 
 # --- 3. a numeric sub-marker glued to its label ------------------------------

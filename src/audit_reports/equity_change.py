@@ -46,7 +46,8 @@ import sqlite3
 from dataclasses import dataclass, field
 
 from .extractor import (
-    HIERARCHY_PAT, NUM_PAT, _FOOTNOTE_RX, _LINE_HIER_RX, _fitz_page_text, _fitz_page_count, parse_num,
+    HIERARCHY_PAT, NUM_PAT, _FOOTNOTE_RX, _LINE_HIER_RX, _SECTION_REF_RX,
+    _fitz_page_text, _fitz_page_count, parse_num,
 )
 # Self-contained equity validators reused to SCORE reconstruction candidates
 # (validator.py imports only stdlib → no circular import).
@@ -135,7 +136,8 @@ class EquityChangeReport:
 
 def _count_value_tokens(line: str) -> int:
     """Count numeric value tokens on a line, stripping the leading hierarchy marker."""
-    masked = _FOOTNOTE_RX.sub(lambda m: " " * len(m.group()), _norm_dashes(line))
+    masked = _SECTION_REF_RX.sub(lambda m: " " * len(m.group()), _norm_dashes(line))
+    masked = _FOOTNOTE_RX.sub(lambda m: " " * len(m.group()), masked)
     hier_m = _LINE_HIER_RX.match(masked)
     if hier_m:
         masked = masked[hier_m.end():]
@@ -167,6 +169,18 @@ def _modal_ncols(lines: list[str], min_tokens: int = 10) -> int:
 _STD_REF_RX = re.compile(r'\b(?:TMS|TAS|TFRS|IFRS|IAS|UFRS)\s*\d{1,2}\b', re.I)
 
 
+def _mask_label_refs(text: str) -> str:
+    """Blank numeric references that belong to the label, preserving offsets.
+
+    Equity rows use both standards citations (``TMS 8``) and dotted dipnot
+    references (``(5.5.3)`` / ``(5.2.15)``).  ``NUM_PAT`` otherwise splits a
+    dotted reference into value tokens and can make the reference plus a row of
+    dashes look like a complete value grid.
+    """
+    text = _STD_REF_RX.sub(lambda m: " " * len(m.group()), text)
+    return _SECTION_REF_RX.sub(lambda m: " " * len(m.group()), text)
+
+
 def _value_region(text: str) -> str:
     """The value grid alone: the longest run of numeric tokens that no letter
     interrupts.
@@ -192,7 +206,7 @@ def _value_region(text: str) -> str:
     Also drops a date printed beside the label ("Dönem Sonu Bakiyesi
     30.06.2025"), which the same window would otherwise read as two values.
     """
-    scan = _STD_REF_RX.sub(lambda m: " " * len(m.group()), text)
+    scan = _mask_label_refs(text)
     runs: list[list] = []
     cur: list = []
     prev_end = 0
@@ -218,7 +232,7 @@ def _trailing_text(text: str) -> str:
     column-header fragment onto the closing row itself ("… 324.751 Kâr veya").
     So the label of row N+1 has to be read off the end of row N.
     """
-    scan = _STD_REF_RX.sub(lambda m: " " * len(m.group()), text)
+    scan = _mask_label_refs(text)
     region = _value_region(text)
     if not region:
         return ""
@@ -247,7 +261,11 @@ def _parse_row_tokens(line: str,
     case, which is exactly today's behaviour — a row that already fits cannot
     change.
     """
-    base = _norm_dashes(line)
+    # Dotted dipnot references are unambiguously label metadata.  Mask them
+    # before deciding whether a short parenthesised integer is a footnote or a
+    # real negative value; PASHA's ``(5.5.3)`` otherwise becomes 5.5 and 3 and
+    # displaces the genuine ``(65)`` dividend cells.
+    base = _mask_label_refs(_norm_dashes(line))
 
     def _tokens_of(text: str) -> list[float | None]:
         # Strip the row marker only when it is one this table can actually
@@ -266,6 +284,19 @@ def _parse_row_tokens(line: str,
         unmasked = _tokens_of(base)
         if len(unmasked) == n_cols:
             masked = unmasked
+        elif n_cols in (14, 16) and n_cols - 2 <= len(unmasked) < n_cols:
+            # A real 1-2 digit negative can coexist with one genuinely blank
+            # grid cell.  In that case neither token count equals the template:
+            # compare the identity-gated reconstructions and keep the unmasked
+            # read only when it is strictly better.  Masked keeps every tie, so
+            # established footnote handling is unchanged.
+            masked_fit = _try_fit(masked, n_cols)
+            unmasked_fit = _try_fit(unmasked, n_cols)
+            if (unmasked_fit is not None
+                    and (masked_fit is None
+                         or _row_fit_residual(unmasked_fit, n_cols)
+                         < _row_fit_residual(masked_fit, n_cols))):
+                masked = unmasked
     return masked if len(masked) >= 2 else None
 
 
@@ -279,7 +310,11 @@ def _row_gate(vals: list[float | None], n_cols: int) -> bool:
     if total is None or not components:
         return False
     comp_sum = sum(components)
-    tol = max(n_cols * 3.0, abs(total) * 5e-5)
+    # Match validator.check_equity_change exactly.  Using n_cols here gave a
+    # 16-column row a tolerance of 48 while the stored row was rechecked with
+    # 13 components (tolerance 39), so the extractor could knowingly emit a row
+    # that validation rejected immediately.
+    tol = max(len(components) * 3.0, abs(total) * 5e-5)
     if abs(comp_sum - total) > tol:
         return False
     if n_cols == 16:
@@ -290,6 +325,17 @@ def _row_gate(vals: list[float | None], n_cols: int) -> bool:
             if abs((total + minority) - grand) > tol2:
                 return False
     return True
+
+
+def _row_fit_residual(vals: list[float | None], n_cols: int) -> float:
+    """Absolute identity error used only to choose between two gated reads."""
+    total = vals[13]
+    if total is None:
+        return float("inf")
+    residual = abs(sum(v for v in vals[:13] if v is not None) - total)
+    if n_cols == 16 and vals[14] is not None and vals[15] is not None:
+        residual += abs(total + vals[14] - vals[15])
+    return residual
 
 
 def _try_fit(tokens: list[float | None], n_cols: int) -> list[float | None] | None:
@@ -318,7 +364,11 @@ def _try_fit(tokens: list[float | None], n_cols: int) -> list[float | None] | No
             return last
         return None
     if len(tokens) == n_cols - 1:
-        for ins in range(n_cols):
+        # Preserve the positions already present whenever the identity cannot
+        # distinguish several zero-insertion sites.  A missing/blank trailing
+        # cell is common; inserting from the left instead shifted every real
+        # value to its right (AKBNK's offsetting -46/+46 pair).
+        for ins in range(n_cols - 1, -1, -1):
             cand = tokens[:ins] + [0.0] + tokens[ins:]
             if _row_gate(cand, n_cols):
                 return cand
@@ -337,8 +387,8 @@ def _try_fit(tokens: list[float | None], n_cols: int) -> list[float | None] | No
         # (checks skip), so the non-destructive skip-if-passing guard and the
         # --only-failing re-extract lane both leave them untouched — n-2 only ever
         # runs on a partition deliberately being re-extracted (failing/--force).
-        for a in range(n_cols - 1):
-            for b in range(a + 1, n_cols):
+        for b in range(n_cols - 1, 0, -1):
+            for a in range(b - 1, -1, -1):
                 cand, it = [], iter(tokens)
                 for pos in range(n_cols):
                     cand.append(0.0 if pos in (a, b) else next(it))
@@ -354,13 +404,13 @@ def _split_label_eq(line: str) -> tuple[str, str]:
     m = HIERARCHY_PAT.match(stripped)
     if m:
         h = m.group('h')
-        name = m.group('rest').strip()
+        name = _mask_label_refs(m.group('rest')).strip()
         # Strip trailing numeric garbage
         name = _NUM_RX.sub('', name).rstrip('()-, ').strip()
         return h, name
     # Closing row: "Dönem Sonu Bakiyesi …" or "Closing Balance …"
     if _CLOSING_RX.search(stripped[:60]):
-        name = _NUM_RX.sub('', stripped).rstrip('()-, ').strip()
+        name = _NUM_RX.sub('', _mask_label_refs(stripped)).rstrip('()-, ').strip()
         return '', name
     return '', ''
 
@@ -477,11 +527,12 @@ def _eq_split(line: str) -> tuple[str | None, str]:
         if marker_core is None:
             continue
         marker = marker_core + '.' if marker_core in _EQ_ROMANS else marker_core
-        after = (rest + ' ' + ' '.join(toks[i + 1:])).strip()
+        after = _mask_label_refs((rest + ' ' + ' '.join(toks[i + 1:])).strip())
         label = _NUM_RX.sub('', after).rstrip('()-, ').strip()
         return marker, label
     if _eq_is_closing(line):
-        return None, _NUM_RX.sub('', line).rstrip('()-, ').strip()
+        clean = _mask_label_refs(line)
+        return None, _NUM_RX.sub('', clean).rstrip('()-, ').strip()
     return None, ''
 
 
