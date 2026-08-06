@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sqlite3
 import sys
 import tempfile
@@ -32,6 +33,30 @@ from src.audit_reports import r2_storage  # noqa: E402
 from src.audit_reports.free_provision import (  # noqa: E402
     classify_free_provision, _override_for,
 )
+from src.audit_reports.units import UnitContext  # noqa: E402
+
+# Exactly the column list upsert_free_provision passes, so the measurement
+# scales what production scales — if MONEY_COLUMNS moves, this follows.
+_FP_COLS = ["bank_ticker", "period", "kind", "free_provision",
+            "free_provision_prior", "source_page", "source_text"]
+
+
+def _canonical(res, part, pdf: Path):
+    """The classifier's raw amounts, normalised the way production stores them.
+
+    The classifier reads what the PAGE prints. Since 2026Q2 that page is in
+    Milyon TL, and `upsert_free_provision` multiplies by the filing's factor on
+    the way into the row. Comparing the raw read against a canonical `bin` row
+    makes every non-overridden Q2 disclosure look like a mover — ENPARA stores
+    2,500,000 from a printed "2.500", so a 1000x false positive would have been
+    reported as a regression of the fix.
+    """
+    unit = UnitContext.for_partition(part[1], str(pdf))
+    row = unit.scale_rows(
+        "bank_audit_free_provision", _FP_COLS,
+        [(part[0], part[1], part[2], res.free_provision,
+          res.free_provision_prior, res.source_page, res.snippet or "")])[0]
+    return row[3], row[4], unit.source_unit
 
 DB = REPO / "data" / "bank_audit.db"
 
@@ -78,17 +103,19 @@ def main() -> int:
             try:
                 r2_storage.download_to(key, dest)
                 res = classify_free_provision(_pages(dest))
+                fp, prior, unit_read = _canonical(res, part, dest)
             except Exception as e:                              # noqa: BLE001
                 unreadable.append((*part, f"{type(e).__name__}: {e}"))
                 continue
         old = stored.get(part)
-        new = (res.free_provision, res.free_provision_prior, res.source_page)
+        new = (fp, prior, res.source_page)
+        snip = re.sub(r"\s+", " ", res.snippet or "").strip()[:200]
         if old is None:
             if res.disclosed:
-                changed.append((*part, None, new))
+                changed.append((*part, None, new, unit_read, snip))
             continue
         if (old[0], old[1]) != (new[0], new[1]):
-            changed.append((*part, old, new))
+            changed.append((*part, old, new, unit_read, snip))
         else:
             same += 1
         if i % 50 == 0:
@@ -100,21 +127,25 @@ def main() -> int:
     print(f"CHANGED          : {len(changed)}")
     print(f"unreadable       : {len(unreadable)}")
     print("=" * 72)
-    for b, p, k, old, new in sorted(changed):
-        print(f"  {b:8s} {p} {k:14s}  {old} -> {new}")
+    for b, p, k, old, new, unit_read, snip in sorted(changed):
+        print(f"  {b:8s} {p} {k:14s} [{unit_read}]  {old} -> {new}")
+        print(f"      {snip}")
     for row in sorted(unreadable):
         print(f"  [unreadable] {row}")
 
     expected = {("TEB", "2026Q1", "consolidated"), ("TEB", "2026Q1", "unconsolidated"),
                 ("ZIRAATK", "2024Q1", "consolidated"),
                 ("ZIRAATK", "2024Q1", "unconsolidated")}
-    actual = {(b, p, k) for b, p, k, _, _ in changed}
+    actual = {(b, p, k) for b, p, k, *_ in changed}
     print("\nexpected to change:", sorted(expected))
     print("unexpected movers :", sorted(actual - expected) or "NONE")
     print("expected but still:", sorted(expected - actual) or "NONE")
 
     Path("free_provision_change.json").write_text(
-        json.dumps({"changed": [[b, p, k, old, new] for b, p, k, old, new in changed],
+        json.dumps({"changed": [{"bank": b, "period": p, "kind": k,
+                                 "old": old, "new": new, "unit_read": u,
+                                 "snippet": s}
+                                for b, p, k, old, new, u, s in changed],
                     "unreadable": unreadable, "unchanged": same}, default=str),
         encoding="utf-8")
     # Read-only measurement: never fail the run on data, only on a crash.
