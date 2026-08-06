@@ -1,0 +1,84 @@
+name: Measure free-provision classifier change
+
+# READ-ONLY corpus measurement. Downloads each audit PDF from R2, re-runs the
+# free-provision classifier, and diffs against the snapshot's stored values.
+# Writes NOTHING — no D1, no R2 upload, no snapshot write.
+#
+# It exists because the classifier fix touches page SELECTION, which is
+# corpus-wide, and two partitions were knowingly wrong while two more carried
+# the same fingerprint. Anything else that moves is a regression.
+#
+# Dispatch-only, no `schedule:` — a new workflow is born ENABLED, and a
+# scheduled job that pulls ~580 PDFs is not something to acquire by accident.
+on:
+  workflow_dispatch:
+    inputs:
+      banks:
+        description: "Restrict to tickers (comma-separated) or ALL"
+        type: string
+        default: "ALL"
+      limit:
+        description: "Scan at most N PDFs (0 = the whole corpus)"
+        type: string
+        default: "0"
+
+permissions:
+  contents: read
+
+# Shares the audit lane's group so it cannot race a refresh for the R2 snapshot
+# it reads. It only READS, but a snapshot swapped underneath it would make the
+# measurement meaningless.
+concurrency:
+  group: bddk-audit
+  cancel-in-progress: false
+
+jobs:
+  measure:
+    name: Re-classify the corpus and diff
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      PYTHONIOENCODING: utf-8
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Fetch audit snapshot from R2 (read-only — never uploaded back)
+        run: |
+          python - <<'PY'
+          import gzip, pathlib, shutil
+          from src.audit_reports import r2_storage
+          gz = pathlib.Path("data/bank_audit.db.gz")
+          gz.parent.mkdir(parents=True, exist_ok=True)
+          r2_storage.download_to("state/bank_audit.db.gz", gz)
+          with gzip.open(gz, "rb") as f, open("data/bank_audit.db", "wb") as o:
+              shutil.copyfileobj(f, o)
+          print("snapshot restored")
+          PY
+
+      - name: Measure
+        run: |
+          BANKS="${{ inputs.banks }}"
+          [ "$BANKS" = "ALL" ] && BANKS=""
+          python scripts/measure_free_provision_change.py \
+            --limit "${{ inputs.limit }}" --banks "$BANKS"
+
+      - name: Upload the diff
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: free-provision-change
+          path: free_provision_change.json
+          if-no-files-found: warn

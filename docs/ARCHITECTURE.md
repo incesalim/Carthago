@@ -189,6 +189,17 @@ derived-table defects (a partition can pass `credit_quality` yet fail the derive
 `bank_audit_stages`). This is how OCI/CF/NPL/loans_by_stage were fixed fleet-wide
 without re-running the frozen BS/P&L extraction.
 
+**`measure-free-provision.yml`** (dispatch-only) — the same read-only posture,
+aimed at one extractor. It downloads every audit PDF from R2, re-runs
+`classify_free_provision`, and diffs the result against the values already in
+the snapshot; the diff returns as an artifact and nothing is written anywhere.
+It exists because a *page-selection* change is corpus-wide by construction: the
+defect that prompted it made TEB 2026Q1 store a free provision of 0 while the
+filing states ₺1,108,135k, because the classifier read a later reversal note
+whose prior-period parenthetical said `Bulunmamaktadır`. Two more partitions
+carried the same fingerprint. Knowing which cells a fix moves — and that it
+moves no others — has to come before any re-extraction is authorised.
+
 **`audit-triage.yml`** (dispatch-only) — the *diagnosis* half of the same lane,
 and the only one that writes nothing at all. The validator records which identity
 broke; `src/audit_reports/triage.py` works out why, by comparing the stored rows

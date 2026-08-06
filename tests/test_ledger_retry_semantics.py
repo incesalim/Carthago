@@ -169,6 +169,69 @@ def test_both_loops_treat_a_budget_refusal_as_terminal_either_way(
     assert n == 1 and "deterministic" in msg
 
 
+# --- what the operator is told after a failed remote call --------------------
+#
+# Atomicity is not knowledge. The import is all-or-nothing, so D1 either took the
+# whole file or none of it — but if wrangler loses the response after submitting
+# ("import polling failed" is one of the transients this lane retries), exit 4
+# cannot say which happened. Telling an operator "D1 is unchanged" there invites
+# them to clear the ledger and re-run on a state nobody has looked at.
+
+_BANNED = ("d1 is unchanged", "content is unchanged", "leaves d1 unchanged",
+           "d1 is untouched", "leaves d1 untouched")
+
+
+@pytest.mark.parametrize("which", ["replace", "push"])
+def test_a_failed_remote_call_reports_the_outcome_as_unknown(
+        which, tmp_path, monkeypatch):
+    """Both the retries-exhausted path and the ledger path."""
+    AD = _mod(f"ad_{which}_msg", "scripts/audit_d1.py")
+    monkeypatch.delenv("D1_RUN_LEDGER", raising=False)
+    _, msg = _drive(AD, monkeypatch, tmp_path, which, AD.EXIT_PUSH_FAILED)
+    low = msg.lower()
+    assert "outcome is unknown" in low, f"{which}: {msg}"
+    assert "verify d1" in low, f"{which}: must tell them to check: {msg}"
+    for claim in _BANNED:
+        assert claim not in low, f"{which}: still claims {claim!r}: {msg}"
+
+
+@pytest.mark.parametrize("which", ["replace", "push"])
+def test_the_ledger_message_also_reports_the_outcome_as_unknown(
+        which, tmp_path, monkeypatch):
+    AD = _mod(f"ad_{which}_msg2", "scripts/audit_d1.py")
+    monkeypatch.setenv("D1_RUN_LEDGER", str(tmp_path / "l.json"))
+    _, msg = _drive(AD, monkeypatch, tmp_path, which, AD.EXIT_PUSH_FAILED)
+    low = msg.lower()
+    assert "outcome is unknown" in low, f"{which}: {msg}"
+    assert "verify d1 before clearing the ledger" in low, (
+        f"{which}: clearing the ledger on an unverified state is the specific "
+        f"hazard: {msg}")
+    for claim in _BANNED:
+        assert claim not in low, f"{which}: still claims {claim!r}: {msg}"
+
+
+@pytest.mark.parametrize("which", ["replace", "push"])
+def test_only_a_pre_write_refusal_may_claim_nothing_was_written(
+        which, tmp_path, monkeypatch):
+    """A validation/budget refusal is decided before wrangler is invoked, so
+    there it IS known — and the message says why, so the wording cannot be
+    copied to a path that has already called out."""
+    AD = _mod(f"ad_{which}_ref", "scripts/audit_d1.py")
+    monkeypatch.delenv("D1_RUN_LEDGER", raising=False)
+    _, msg = _drive(AD, monkeypatch, tmp_path, which, AD.EXIT_BUDGET)
+    low = msg.lower()
+    assert "nothing was written" in low
+    assert "before any remote call" in low, (
+        f"the claim must carry its justification: {msg}")
+
+
+def test_no_message_in_the_module_claims_d1_is_unchanged():
+    """Guards every future message, not just the ones a test drives."""
+    src = (REPO / "scripts" / "audit_d1.py").read_text(encoding="utf-8").lower()
+    for claim in _BANNED:
+        assert claim not in src, f"audit_d1.py still asserts {claim!r}"
+
+
 def test_the_two_loops_share_one_decision_point():
     """They were separate copies of the same seven lines, which is exactly how
     the rule ended up in one of them. Guard the de-duplication."""

@@ -391,9 +391,29 @@ once the right page wins: 1,230,000 @2025Q4 − 121,865 (Q1 reversal) = 1,108,13
 
 Bounded exposure: **4 partitions** carry that fingerprint (a machine-extracted 0
 whose snippet mentions a reversal) — TEB 2026Q1 ×2 and ZIRAATK 2024Q1 ×2, out of
-78 zeros / 580 rows. Curating TEB alone would paper over a defect that has at
-least one other victim, so the fix belongs in the classifier's page selection,
-measured against the corpus first. Neither curated nor fixed here.
+78 zeros / 580 rows.
+
+**✅ Fixed in the classifier, not by curating the partition (2026-08-06).**
+Curating TEB alone would have left ZIRAATK wrong. Three defects stacked:
+
+1. **`_SUBJ_TR` required the hard final `k`.** Turkish softens it to `ğ` before
+   a vowel suffix, and *"serbest karşılı**ğ**ı"* is the form banks use in the
+   very sentence that states the stock. The subject never matched, so no stock
+   candidate existed on that page at all.
+2. The amount-before-subject pattern required `N TL` and `tutarında` adjacent;
+   TEB puts the prior-period comparison between them.
+3. `_NONE` matched the later reversal note, where the "none" sits inside a
+   **prior-period parenthetical** and describes 2025, not the reporting date.
+
+The `_NONE` veto is deliberately narrower than "a reversal verb is present":
+holding a provision and cancelling it in full is a legitimate route to a current
+stock of 0 (the override file says so), and a flow veto would lose those. It
+fires only when the none-word sits inside an unclosed parenthetical that opened
+with a prior-period date.
+
+`measure-free-provision.yml` (dispatch-only, read-only) re-runs the classifier
+over every R2 PDF and diffs against the stored values, because a page-selection
+change is corpus-wide by nature. **No partition outside those four may move.**
 
 **A new quarter arrives one bank at a time — sector "latest" needs a quorum
 (2026-07-26).** Three consumers took a bare `MAX(period)` over an audit table,

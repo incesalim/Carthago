@@ -56,9 +56,9 @@ def terminal_exits() -> tuple[int, ...]:
         attempt 2  cap is now 250,000 - 203,799 = 46,201
                    estimate 203,799 > 46,201       -> exit 3 (TERMINAL)
 
-    A service-side blip becomes a permanent budget refusal, and the operator
-    reads "a validation or budget refusal is deterministic ... Nothing was
-    written" — neither half of which is true. Whether a failed import billed is
+    A service-side blip became a permanent budget refusal, and the operator read
+    "a validation or budget refusal is deterministic ... Nothing was written" —
+    neither half of which was true there. Whether a failed import billed is
     not observable from here: if it did, retrying spends twice; if it did not,
     the ledger has over-booked and the retry is refused for nothing. Neither
     branch is safe to automate, so under a ledger the loop stops after one
@@ -90,12 +90,21 @@ def stop_if_terminal(rc: int, what: str) -> None:
             "not, the ledger has over-booked and the retry would be refused as "
             "a budget breach — a transient blip reported as a deterministic "
             "refusal.\n"
-            "  D1 content is unchanged either way (the import is atomic). Check "
-            "the cycle usage, clear or adjust the ledger, then re-run.")
+            "  The remote OUTCOME IS UNKNOWN. The import is atomic, so D1 either "
+            "committed the whole file or none of it — that is not the same as "
+            "knowing which, and a lost response ('import polling failed') is "
+            "precisely the case where the request was accepted and the answer "
+            "never arrived.\n"
+            "  VERIFY D1 before clearing the ledger or re-running.")
     if rc in TERMINAL_EXITS:
+        # This one CAN say nothing was written: a validation or budget refusal
+        # is decided inside push_to_d1 before wrangler is invoked at all, so no
+        # request ever reached D1. Do not copy this wording to a path that has
+        # already called out.
         sys.exit(f"[d1] {what} refused (exit {rc}) — a validation or budget "
                  "refusal is deterministic, so retrying would only defeat it. "
-                 "Nothing was written. Fix the cause and re-run.")
+                 "Nothing was written: the refusal happens before any remote "
+                 "call. Fix the cause and re-run.")
 
 # --- audit-lane constants -------------------------------------------------
 DB = REPO / "data" / "bank_audit.db"
@@ -107,8 +116,15 @@ PUSH_WINDOW_HOURS = 24
 
 # D1 occasionally drops a remote execute with a service-side transient
 # ("D1_RESET_DO" / "import polling failed" / fetch failed) — seen during a
-# Phase-3 batch run right after a heavy partition replace. Imports are
-# transactional, so a failed file leaves D1 untouched and retrying is safe.
+# Phase-3 batch run right after a heavy partition replace.
+#
+# Imports are transactional, so D1 either committed the whole file or none of
+# it. That is NOT the same as knowing which. "import polling failed" is exactly
+# the case where the request was accepted and the RESPONSE was lost: the client
+# cannot distinguish "never committed" from "committed, answer never arrived".
+# Retrying is safe for CONTENT — the file is idempotent (scoped DELETE +
+# INSERT OR REPLACE), so replaying a committed file reproduces the same rows.
+# It is not free: a commit we never saw was still billed.
 D1_RETRIES = 3
 D1_RETRY_WAIT_S = 90
 
@@ -322,8 +338,10 @@ def replace_partitions(parts: Sequence[tuple[str, str, str]],
             return
         stop_if_terminal(rc, "replace")
         if attempt == D1_RETRIES:
-            sys.exit(f"[d1] replace failed after {D1_RETRIES} attempts. The push is "
-                     "atomic, so D1 is unchanged — fix the cause and re-run.")
+            sys.exit(f"[d1] replace failed after {D1_RETRIES} attempts. The remote "
+                     "OUTCOME IS UNKNOWN: the import is atomic, so D1 either "
+                     "took the whole file or none of it, but a lost response "
+                     "cannot tell you which. VERIFY D1 before re-running.")
         print(f"[d1] replace failed (attempt {attempt}/{D1_RETRIES}, exit {rc}) — "
               f"retrying in {D1_RETRY_WAIT_S}s", flush=True)
         time.sleep(D1_RETRY_WAIT_S)
@@ -379,8 +397,10 @@ def push_to_d1(db_path: Path = DB, window_hours: int = PUSH_WINDOW_HOURS,
 
     A windowed push is upsert-only for the ROWS it carries, but the file may also
     contain outbox deletes and full-rebuild DELETEs — it is not "upsert-only" as
-    a whole. Either way wrangler executes it atomically, so a failure leaves D1
-    unchanged. Targeted repairs use replace_partitions instead."""
+    a whole. wrangler executes it atomically, so D1 takes all of it or none of
+    it — which is not the same as knowing which after a failure: a lost
+    response leaves the remote outcome UNKNOWN. Targeted repairs use
+    replace_partitions instead."""
     cmd = [sys.executable, str(REPO / "scripts" / "push_to_d1.py"),
            "--db", str(db_path), "--hours", str(window_hours),
            "--only-tables", ",".join(tables)]
@@ -390,9 +410,11 @@ def push_to_d1(db_path: Path = DB, window_hours: int = PUSH_WINDOW_HOURS,
             return
         stop_if_terminal(rc, "push")
         if attempt == D1_RETRIES:
-            sys.exit(f"[d1] push failed after {D1_RETRIES} attempts. wrangler "
-                     "executes a file atomically, so D1 is unchanged — fix the "
-                     "cause and re-run.")
+            sys.exit(f"[d1] push failed after {D1_RETRIES} attempts. The remote "
+                     "OUTCOME IS UNKNOWN: wrangler executes the file "
+                     "atomically, so D1 took all of it or none of it, but a "
+                     "lost response cannot tell you which. VERIFY D1 before "
+                     "re-running.")
         print(f"[d1] push failed (attempt {attempt}/{D1_RETRIES}, exit {rc}) — "
               f"retrying in {D1_RETRY_WAIT_S}s", flush=True)
         time.sleep(D1_RETRY_WAIT_S)
