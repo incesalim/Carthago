@@ -9,7 +9,7 @@ name: Measure free-provision classifier change
 # the same fingerprint. Anything else that moves is a regression.
 #
 # Dispatch-only, no `schedule:` — a new workflow is born ENABLED, and a
-# scheduled job that pulls ~580 PDFs is not something to acquire by accident.
+# scheduled job that pulls 1,061 PDFs is not something to acquire by accident.
 on:
   workflow_dispatch:
     inputs:

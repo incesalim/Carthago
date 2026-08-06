@@ -411,9 +411,41 @@ stock of 0 (the override file says so), and a flow veto would lose those. It
 fires only when the none-word sits inside an unclosed parenthetical that opened
 with a prior-period date.
 
+**⚠️ The first attempt regressed ZIRAAT, and the corpus run caught it.** 46 of
+488 partitions moved, 42 of them unexpected. The `k`→`ğ` widening made a new
+sentence shape match, and ZIRAAT ×11 started reading the **pre-reversal gross**:
+
+> *"…ayırmış olduğu **17.800.000** TL tutarındaki serbest karşılı**ğın**
+> 4.800.000 TL tutarındaki kısmı cari dönemde iptal edilmiş olup, 31 Mart 2024
+> tarihi itibarıyla … **13.000.000** TL tutarında serbest karşılık yer
+> almaktadır."*
+
+Turkish marks the distinction grammatically. The **genitive** `karşılığın`
+("*of* the free provision") introduces the balance a part was taken out of; the
+nominative/accusative (`karşılık yer almaktadır`, `karşılığı bulunmaktadır`,
+`karşılığı içermektedir`) states the balance itself. So a genitive reading
+carrying a cancellation verb is **demoted, not discarded** — because VAKBN
+2025Q4 writes the same shape where the leading figure IS the stock
+(15,000,000 − 11,000,000 + 4,000,000 = 8,000,000), and a blunt flow veto would
+have thrown a correct value away. Where the filing also states the balance
+directly, that wording wins.
+
+Two more cases fell out of reading the filings rather than the numbers:
+
+- **A provision cancelled in full** reads as stock 0 with the named amount as
+  the PRIOR — ZIRAATK 2024Q1 (*"tamamı geçmiş yıllarda ayrılan 500.000 TL …
+  cari dönemde iptal edilmiştir"*). Its stored 0 was right, but sourced from an
+  unrelated sentence's prior-period "none".
+- **ALNTF's 55,000 is not rejected for being front matter** — an auditor
+  qualification can be authoritative, and one on a rank-0 page still supplies a
+  stock when it states one. It is rejected because the auditor says that
+  provision was *"ters çevrilmesi"* — reversed.
+
 `measure-free-provision.yml` (dispatch-only, read-only) re-runs the classifier
 over every R2 PDF and diffs against the stored values, because a page-selection
-change is corpus-wide by nature. **No partition outside those four may move.**
+change is corpus-wide by nature. Its artifact carries the new snippet **and the
+stored one**, since a removed value has no new sentence to show. **Every mover
+must be approved on its own wording before any re-extraction.**
 
 **A new quarter arrives one bank at a time — sector "latest" needs a quorum
 (2026-07-26).** Three consumers took a bare `MAX(period)` over an audit table,

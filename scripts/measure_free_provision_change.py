@@ -5,13 +5,13 @@ READ-ONLY. Downloads each audit PDF from R2 to a temp file, re-runs
 in the snapshot. Writes nothing — not D1, not R2, not the local snapshot.
 
 It exists because the fix touches page SELECTION, which is corpus-wide: the
-Turkish `k`→`ğ` softening alone widens the subject pattern everywhere. Two
-partitions are known to be wrong (TEB 2026Q1) and two more carry the same
-fingerprint (ZIRAATK 2024Q1); anything ELSE that moves is a regression and has
-to be looked at by hand.
+Turkish `k`→`ğ` softening alone widens the subject pattern everywhere, and the
+first attempt regressed ZIRAAT into reading a pre-reversal gross. Every mover
+has to be judged on the SENTENCE the classifier matched, which is why the
+artifact carries both the new snippet and the stored one.
 
-Runs in Actions, not locally: the PDFs live in R2 and the corpus is ~580
-partitions.
+Runs in Actions, not locally: the PDFs live in R2 and the corpus is 1,061
+partitions (580 of which currently carry a free-provision row).
 
     python scripts/measure_free_provision_change.py [--limit N] [--banks A,B]
 """
@@ -96,10 +96,11 @@ def main() -> int:
 
     conn = sqlite3.connect(args.db)
     stored = {
-        (b, p, k): (fp, pr, sp)
-        for b, p, k, fp, pr, sp in conn.execute(
+        (b, p, k): (fp, pr, sp, (txt or "")[:200])
+        for b, p, k, fp, pr, sp, txt in conn.execute(
             "SELECT bank_ticker, period, kind, free_provision, "
-            "free_provision_prior, source_page FROM bank_audit_free_provision")
+            "free_provision_prior, source_page, source_text "
+            "FROM bank_audit_free_provision")
     }
     print(f"[measure] {len(stored)} stored free-provision rows", flush=True)
 
@@ -132,10 +133,13 @@ def main() -> int:
         snip = re.sub(r"\s+", " ", res.snippet or "").strip()[:200]
         if old is None:
             if res.disclosed:
-                changed.append((*part, None, new, unit_read, snip))
+                changed.append((*part, None, new, unit_read, snip, ""))
             continue
         if (old[0], old[1]) != (new[0], new[1]):
-            changed.append((*part, old, new, unit_read, snip))
+            # The stored snippet matters most where the NEW read has none:
+            # ZIRAATK's correction removes a value, so only the old sentence
+            # can show what was being relied on.
+            changed.append((*part, old[:3], new, unit_read, snip, old[3]))
         else:
             same += 1
         if i % 50 == 0:
@@ -147,9 +151,10 @@ def main() -> int:
     print(f"CHANGED          : {len(changed)}")
     print(f"unreadable       : {len(unreadable)}")
     print("=" * 72)
-    for b, p, k, old, new, unit_read, snip in sorted(changed):
+    for b, p, k, old, new, unit_read, snip, old_snip in sorted(changed):
         print(f"  {b:8s} {p} {k:14s} [{unit_read}]  {old} -> {new}")
-        print(f"      {snip}")
+        print(f"      old: {old_snip or '(none stored)'}")
+        print(f"      new: {snip or '(no sentence matched)'}")
     for row in sorted(unreadable):
         print(f"  [unreadable] {row}")
 
@@ -164,8 +169,8 @@ def main() -> int:
     Path("free_provision_change.json").write_text(
         json.dumps({"changed": [{"bank": b, "period": p, "kind": k,
                                  "old": old, "new": new, "unit_read": u,
-                                 "snippet": s}
-                                for b, p, k, old, new, u, s in changed],
+                                 "snippet": s, "old_snippet": os_}
+                                for b, p, k, old, new, u, s, os_ in changed],
                     "unreadable": unreadable, "unchanged": same}, default=str),
         encoding="utf-8")
     # Read-only measurement: never fail the run on data, only on a crash.

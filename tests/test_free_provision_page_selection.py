@@ -144,6 +144,100 @@ def test_ziraatk_2024q1_no_longer_reads_a_prior_none_as_the_stock():
         "a prior-period 'none' must not stand in for the current stock")
 
 
+# --- opening stock vs current stock, verbatim from the filings ---------------
+
+ZIRAAT_2024Q1_CONS = (
+    "9.3. Diğer Karşılıklara İlişkin Bilgiler Grup yönetiminin önceki dönemlerde "
+    "BDDK Muhasebe ve Finansal Raporlama Mevzuatı gereklilikleri dışında ayırmış "
+    "olduğu 17.800.000 TL tutarındaki serbest karşılığın 4.800.000 TL tutarındaki "
+    "kısmı cari dönemde iptal edilmiş olup, 31 Mart 2024 tarihi itibarıyla "
+    "hazırlanan konsolide finansal tablolarda 13.000.000 TL tutarında serbest "
+    "karşılık yer almaktadır."
+)
+ZIRAAT_2024Q1_UNCO = ZIRAAT_2024Q1_CONS.replace("17.800.000", "17.300.000") \
+    .replace("4.800.000", "4.300.000").replace("konsolide ", "")
+VAKBN_2025Q4_CONS = (
+    "Muhtemel riskler için ayrılan serbest karşılıklara ilişkin bilgiler "
+    "31 Aralık 2025 tarihi itibarıyla finansal tablolarda yer alan toplam "
+    "8,000,000 TL tutarındaki serbest karşılığın 15,000,000 TL'si geçmiş yıllarda "
+    "ayrılan, 11,000,000 TL'si cari dönemde iptal edilen ve 4,000,000 TL'si de "
+    "cari dönemde ayrılan karşılıktan oluşmaktadır."
+)
+ZIRAATK_2024Q1 = (
+    "c.1) Muhtemel risklere ilişkin serbest karşılıklara ilişkin bilgiler Banka "
+    "yönetimi tarafından BDDK Muhasebe ve Finansal Raporlama Mevzuatı "
+    "gereklilikleri dışında tamamı geçmiş yıllarda ayrılan 500.000 TL tutarında "
+    "serbest karşılık cari dönemde iptal edilmiştir (31 Aralık 2023: Banka "
+    "yönetimi tarafından 1.004.000 TL tutarındaki kısmı geçmiş dönemler "
+    "içerisinde ayrılan)."
+)
+ALNTF_2023Q1_AUDITOR = (
+    "31 Aralık 2021 tarihi itibarıyla Grup yönetimi tarafından ekonomide ve "
+    "piyasalarda meydana gelebilecek olumsuz gelişmelerin olası etkileri "
+    "nedeniyle ayrılan 55,000 bin TL tutarında serbest karşılığın ve söz konusu "
+    "karşılıklar üzerinden ayrılan 12,650 bin TL tutarında ertelenmiş vergi "
+    "varlığının 31 Aralık 2022 tarihi itibarıyla ters çevrilmesi sebebiyle "
+    "şartlı görüş bildirilmiştir."
+)
+ICBCT_2022Q4_CONS = (
+    "d.1) Muhtemel riskler için ayrılan serbest karşılıklara ilişkin bilgiler: "
+    "Bankanın 31 Aralık 2022 tarihi itibarıyla 7,015 TL tutarında serbest "
+    "karşılığı bulunmaktadır.(31 Aralık 2021: Bulunmamaktadır.)"
+)
+
+
+@pytest.mark.parametrize("name,page,expected", [
+    # The genitive names the OPENING balance; the same sentence then states the
+    # closing one directly. Taking 17.8m stored the pre-reversal gross.
+    ("ZIRAAT cons", ZIRAAT_2024Q1_CONS, 13_000_000),
+    ("ZIRAAT unco", ZIRAAT_2024Q1_UNCO, 13_000_000),
+    # Same genitive, same reversal verb — but here the leading figure IS the
+    # balance (15,000,000 - 11,000,000 + 4,000,000). A blunt flow veto would
+    # have discarded a correct value, which is why the rule demotes.
+    ("VAKBN cons", VAKBN_2025Q4_CONS, 8_000_000),
+    # Cancelled in full: the stock is 0 and the amount named is the prior one.
+    ("ZIRAATK", ZIRAATK_2024Q1, 0),
+    ("TEB stock", TEB_STOCK_PAGE, 1_108_135),
+    ("ICBCT cons", ICBCT_2022Q4_CONS, 7_015),
+])
+def test_the_filings_own_wording_decides(name, page, expected):
+    assert classify_free_provision(_pages(page)).free_provision == expected, name
+
+
+def test_the_vakbn_decomposition_actually_nets_to_its_leading_figure():
+    """Why VAKBN must not be discarded, stated as arithmetic rather than faith."""
+    assert 15_000_000 - 11_000_000 + 4_000_000 == 8_000_000
+
+
+def test_ziraat_keeps_the_closing_balance_when_both_are_present():
+    """Both figures are in one sentence; the difference IS the reversal."""
+    r = classify_free_provision(_pages(ZIRAAT_2024Q1_CONS))
+    assert r.free_provision == 13_000_000
+    assert 17_800_000 - 4_800_000 == r.free_provision
+
+
+def test_ziraatk_full_cancellation_records_the_prior():
+    r = classify_free_provision(_pages(ZIRAATK_2024Q1))
+    assert (r.free_provision, r.free_provision_prior) == (0, 500_000)
+    assert r.disclosed is True, "0 is a disclosure — the bank says it holds none"
+
+
+def test_alntf_reversed_provision_is_not_the_current_stock():
+    """Not rejected for being front matter — an auditor qualification can be
+    authoritative. Rejected because the auditor says this provision was
+    REVERSED ('ters çevrilmesi'), so it is not what the bank holds."""
+    r = classify_free_provision(["a", "b", ALNTF_2023Q1_AUDITOR] + ["c"] * 4)
+    assert r.free_provision != 55_000
+
+
+def test_an_auditor_page_can_still_supply_a_stock():
+    """The demotion is about WORDING, not about which page it sits on."""
+    page = ("Şartlı Sonucun Dayanağı: 31 Mart 2026 tarihi itibarıyla 4.000.000 TL "
+            "tutarında serbest karşılığı içermektedir.")
+    r = classify_free_provision(["x", page] + ["y"] * 5)
+    assert r.free_provision == 4_000_000
+
+
 def test_teb_2026q1_is_pinned():
     """Both kinds carry identical figures; 1,230,000 is TEB's stored 2025Q4
     current stock, and 1,230,000 - 121,865 = 1,108,135."""

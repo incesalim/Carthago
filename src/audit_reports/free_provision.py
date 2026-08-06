@@ -130,6 +130,56 @@ _STOCK_PATTERNS = [
 ]
 
 
+# --- opening stock vs current stock ------------------------------------------
+#
+# Turkish marks the difference grammatically, and the amounts either side of it
+# differ by the whole reversal:
+#
+#   ZIRAAT 2024Q1  "…ayırmış olduğu 17.800.000 TL tutarındaki serbest KARŞILIĞIN
+#                   4.800.000 TL tutarındaki kısmı cari dönemde iptal edilmiş
+#                   olup, 31 Mart 2024 tarihi itibarıyla … 13.000.000 TL
+#                   tutarında serbest KARŞILIK yer almaktadır."
+#
+# The genitive `karşılığın` ("of the free provision") introduces the OPENING
+# balance — the thing a part was taken out of. The nominative/accusative
+# (`karşılık yer almaktadır`, `karşılığı bulunmaktadır`, `karşılığı
+# içermektedir`) states the balance itself. Reading the genitive amount as the
+# stock is the ALBRK trap in another dress: 17,800,000 is what the bank HAD.
+#
+# Not a wider flow window: VAKBN 2025Q4 writes "toplam 8,000,000 TL tutarındaki
+# serbest karşılığın 15,000,000 TL'si geçmiş yıllarda ayrılan, 11,000,000 TL'si
+# cari dönemde iptal edilen ve 4,000,000 TL'si de cari dönemde ayrılan
+# karşılıktan oluşmaktadır" — same genitive, same reversal verb, and there the
+# leading figure IS the current stock (15,000,000 − 11,000,000 + 4,000,000).
+# So a genitive-with-cancellation is DEMOTED, not discarded: where the filing
+# also states the balance directly that wording wins, and where it does not the
+# genitive figure is still the best available answer.
+_SUBJ_TR_GENITIVE = r"serbest\s+kar[şs][ıi]l[ıi]ğ[ıi]n"
+_CANCEL_VERB = r"iptal|ters\s*çevr|geri\s*çevr"
+_GENITIVE_CANCEL = re.compile(
+    _SUBJ_TR_GENITIVE + r".{0,150}?(?:" + _CANCEL_VERB + r")", re.I | re.S)
+
+# Rank demotion for an opening-stock reading. Large enough that a direct
+# statement on the same page always outranks it (4 vs 1 without a prior), small
+# enough that it still beats "nothing found".
+_OPENING_STOCK_DEMOTION = 3
+
+# The whole provision cancelled — the current stock is 0, and the amount named
+# is the PRIOR one. ZIRAATK 2024Q1: "…tamamı geçmiş yıllarda ayrılan 500.000 TL
+# tutarında serbest karşılık cari dönemde iptal edilmiştir". The override file's
+# own rule already says a full cancellation reads as 0; this reads it from the
+# sentence instead of requiring a human to.
+_FULL_CANCEL = re.compile(
+    r"tamam[ıi]\b[^.]{0,120}?(" + _NUM + r")\s*(?:bin\s+)?" + _CCY
+    + r"\s+tutar[ıi]nda\s+" + _SUBJ_TR + r"[^.]{0,80}?(?:" + _CANCEL_VERB + r")",
+    re.I)
+
+
+def _is_opening_stock(text: str, m: "re.Match") -> bool:
+    """True when this amount is what the bank HELD, not what it holds."""
+    return bool(_GENITIVE_CANCEL.search(text[m.start(): m.end() + 150]))
+
+
 def _parse_amt(s: str) -> int | None:
     if not s:
         return None
@@ -247,6 +297,8 @@ def classify_free_provision(pages: list[str]) -> FreeProvision:
                 is_total = (bool(_TOTAL_SIGNAL.search(text[max(0, m.start() - 20): m.end() + 45]))
                             and not _FLOW.search(text[max(0, m.start(1) - 90): m.start(1)]))
                 rank = page_rank + 2 + (2 if prior else 0) + (5 if is_total else 0)
+                if _is_opening_stock(text, m):
+                    rank -= _OPENING_STOCK_DEMOTION
                 if rank > best_rank:
                     best_rank = rank
                     res.disclosed = True
@@ -256,6 +308,20 @@ def classify_free_provision(pages: list[str]) -> FreeProvision:
                         else _parse_prior(prior.group(1)) if prior else None)
                     res.source_page = i
                     res.snippet = re.sub(r"\s+", " ", text[m.start(): m.start() + 140]).strip()
+
+        # The whole provision cancelled this period: the stock is 0 and the
+        # amount named is the prior one. Ranked with the amount candidates
+        # (page_rank + 2), so a direct statement elsewhere can still outrank it,
+        # but it beats a bare "none" and beats nothing found.
+        fc = _FULL_CANCEL.search(text)
+        if fc is not None and page_rank + 2 > best_rank:
+            best_rank = page_rank + 2
+            res.disclosed = True
+            res.free_provision = 0
+            res.free_provision_prior = _parse_amt(fc.group(1))
+            res.source_page = i
+            res.snippet = re.sub(r"\s+", " ",
+                                 text[fc.start(): fc.start() + 140]).strip()
 
         # Explicit "none" — beats "nothing found", loses to any real amount.
         # A "none" that only describes the PRIOR period says nothing about the
