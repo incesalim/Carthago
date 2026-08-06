@@ -11,7 +11,11 @@ import pytest
 
 pytest.importorskip("fitz")
 
-from src.audit_reports.equity_change import _CURRENT_RX, _PRIOR_RX, _max_year  # noqa: E402
+from src.audit_reports import equity_change as EC  # noqa: E402
+
+_CURRENT_RX = EC._CURRENT_RX
+_PRIOR_RX = EC._PRIOR_RX
+_max_year = EC._max_year
 
 
 def test_max_year_picks_latest_period_end():
@@ -34,3 +38,30 @@ def test_current_marker_matches_cari():
     for s in ("Cari Dönem", "CARİ DÖNEM", "Current Period"):
         assert _CURRENT_RX.search(s), s
         assert not _PRIOR_RX.search(s), s
+
+
+def test_single_page_prior_first_uses_explicit_block_headers(monkeypatch):
+    """ANADOLU prints prior first and current second, with no dates beside the
+    block headers.  The report-title year therefore cannot establish order."""
+    text = "\n".join([
+        "31 MART 2024 ... ÖZKAYNAKLAR DEĞİŞİM TABLOSU",
+        "Önceki Dönem",
+        "I. Önceki Dönem Sonu Bakiyesi " + "- " * 16,
+        "Dönem Sonu Bakiyesi (III+IV+…+X+XI) " + "- " * 16,
+        "Cari Dönem",
+        "I. Önceki Dönem Sonu Bakiyesi " + "- " * 16,
+    ])
+    monkeypatch.setattr(EC, "_fitz_page_text", lambda *_: text)
+    assert EC._block1_period_for_split("unused.pdf", 13) == "prior"
+
+
+def test_single_page_current_first_stays_current(monkeypatch):
+    text = "\n".join([
+        "Cari Dönem",
+        "I. Önceki Dönem Sonu Bakiyesi " + "- " * 16,
+        "Dönem Sonu Bakiyesi (III+IV+…+X+XI) " + "- " * 16,
+        "Önceki Dönem",
+        "I. Önceki Dönem Sonu Bakiyesi " + "- " * 16,
+    ])
+    monkeypatch.setattr(EC, "_fitz_page_text", lambda *_: text)
+    assert EC._block1_period_for_split("unused.pdf", 13) == "current"

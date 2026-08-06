@@ -146,6 +146,41 @@ def test_a_dotted_dipnot_reference_is_masked_on_the_closing_row():
     ]
 
 
+def test_a_closing_row_dipnot_v_is_not_read_as_roman_v():
+    """VAKIFK 2025Q4 consolidated closing row, verbatim from the PDF layer."""
+    line = ("Dönem Sonu Bakiyesi (III+IV+…...+X+XI) (V) 30.000.000 - - "
+            "10.098 2.682.348 (18.155) - - 9.909 - 6.045.689 - 7.659.652 "
+            "46.389.541 - 46.389.541")
+    marker, label = EC._eq_split(line)
+    assert marker is None
+    assert "Dönem Sonu Bakiyesi" in label
+    tokens = EC._parse_row_tokens(line, 16)
+    assert EC._try_fit(tokens, 16)[13:] == [46_389_541.0, 0.0, 46_389_541.0]
+
+
+def test_a_clipped_consolidated_total_is_recovered_from_both_identities():
+    """TSKB 2024Q4 row IV: the visual/text token is clipped to ``8.647.3``.
+
+    Components sum to 8,647,377 and adding minority interest 184,882 reaches
+    the independently printed grand total 8,832,259, so the repair is exact.
+    """
+    line = ("IV. Total Comprehensive Income - - - - 930.636 2.233 1.502.373 "
+            "212.135 (569.511) (395.533) - - 6.965.044 8.647.3 184.882 "
+            "8.832.259")
+    tokens = EC._parse_row_tokens(line, 16)
+    assert tokens[13] == 86_473.0, "preserve the literal parser reading"
+    fitted = EC._try_fit(tokens, 16)
+    assert fitted is not None
+    assert fitted[13:] == [8_647_377.0, 184_882.0, 8_832_259.0]
+
+
+def test_a_clipped_unconsolidated_total_is_not_invented():
+    """Without minority + grand-total columns there is no independent proof."""
+    vals = [0.0] * 14
+    vals[4], vals[13] = 100.0, 10.0
+    assert EC._try_fit(vals, 14) is None
+
+
 # --- 3. a numeric sub-marker glued to its label ------------------------------
 
 @pytest.mark.parametrize("line,marker", [

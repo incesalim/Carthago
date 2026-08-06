@@ -354,7 +354,27 @@ def _try_fit(tokens: list[float | None], n_cols: int) -> list[float | None] | No
         row that already fits.
     """
     if len(tokens) == n_cols:
-        return tokens if _row_gate(tokens, n_cols) else None
+        if _row_gate(tokens, n_cols):
+            return tokens
+        if n_cols == 16 and all(v is not None for v in tokens[:13]):
+            # A few consolidated filings carry a visibly clipped text-layer
+            # token in total_equity while every component, minority interest,
+            # and the grand total remains intact (TSKB 2024Q4 prints
+            # ``8.647.3`` for 8,647,377).  Consolidated rows give us two
+            # independent identities, so recover the damaged total only when
+            # Σ(components) + minority == grand total.  This cannot run on a
+            # 14-column row, where there is no independent grand-total check,
+            # and it never changes a row that already passed the normal gate.
+            inferred_total = sum(v for v in tokens[:13] if v is not None)
+            minority, grand = tokens[14], tokens[15]
+            if minority is not None and grand is not None:
+                grand_tol = max(3.0, abs(grand) * 5e-5)
+                if abs(inferred_total + minority - grand) <= grand_tol:
+                    repaired = list(tokens)
+                    repaired[13] = inferred_total
+                    if _row_gate(repaired, n_cols):
+                        return repaired
+        return None
     if len(tokens) > n_cols:
         first = tokens[:n_cols]
         if _row_gate(first, n_cols):
@@ -513,6 +533,16 @@ def _eq_split(line: str) -> tuple[str | None, str]:
     is glued to its label. The closing row returns (None, <label>). Value
     extraction is unaffected: `_parse_row_tokens` finds the numeric tokens
     regardless of any leading words."""
+    # The closing formula can carry a parenthesised dipnot marker immediately
+    # before the values (VAKIFK: ``...+X+XI) (V) 30.000.000 ...``).  Scanning
+    # the first six tokens first reads that note as row V., after which the
+    # real row V wins duplicate removal and both closing balances disappear.
+    # The formula reaching XI is unambiguous and, unlike the word "Bakiye",
+    # cannot occur on the opening I. row, so give it priority over marker scan.
+    if _EQ_CLOSING_FORMULA_RX.search(line[:100]):
+        clean = _mask_label_refs(line)
+        return None, _NUM_RX.sub('', clean).rstrip('()-, ').strip()
+
     toks = line.split()
     for i, tok in enumerate(toks[:6]):
         marker_core, rest = None, ''
@@ -549,13 +579,35 @@ def _block1_period_for_split(pdf_path: str, page_idx_1: int) -> str:
     year sits before the closing) and works for annual AND interim. Defaults to
     'current' when undetermined (the standard order)."""
     text = _fitz_page_text(pdf_path, page_idx_1 - 1) if _HAS_FITZ else ''
-    years = [int(m.group(1)) for m in _YEAR_RX.finditer(text)]
-    if not years:
-        return 'current'
     lines = text.split('\n')
     close_i = next((i for i, ln in enumerate(lines)
                     if _EQ_CLOSING_FORMULA_RX.search(ln)), None)
-    if close_i is None:
+    # Prefer the table's own short block header.  Some prior-first pages
+    # (ANADOLU) print only "Önceki Dönem" above block 1 and "Cari Dönem" above
+    # block 2; the only year on the page is the report-title year, so the old
+    # latest-year heuristic defaulted to current and swapped every value.  Data
+    # rows such as "I. Önceki Dönem Sonu Bakiyesi" are excluded by their wide
+    # value grid.
+    headers: list[tuple[int, str]] = []
+    for i, line in enumerate(lines):
+        if _count_value_tokens(line) >= 2:
+            continue
+        if _CURRENT_RX.search(line):
+            headers.append((i, 'current'))
+        elif _PRIOR_RX.search(line):
+            headers.append((i, 'prior'))
+    if headers:
+        if close_i is None:
+            return headers[0][1]
+        before = [kind for i, kind in headers if i < close_i]
+        if before:
+            return before[-1]
+        after = [kind for i, kind in headers if i > close_i]
+        if after:
+            return 'prior' if after[0] == 'current' else 'current'
+
+    years = [int(m.group(1)) for m in _YEAR_RX.finditer(text)]
+    if not years or close_i is None:
         return 'current'
     after = '\n'.join(lines[close_i + 1:])
     return 'prior' if str(max(years)) in after else 'current'
