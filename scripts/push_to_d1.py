@@ -241,7 +241,15 @@ _PART_KEY = ("bank_ticker", "period", "kind")
 # rows it describes had genuinely been re-extracted — the audit trail quietly
 # disagreeing with the audit. It is 1,050 rows; pushing it always is cheap and
 # correct. `/admin` reads MAX(extracted_at) from it for the audit panel's age.
-_NO_PARTITION_SKIP = {"bank_audit_extractions"}
+# bank_audit_coverage is here for a different reason than the extraction log,
+# and it is structural rather than a preference: sync_audit_expected stamps
+# `derived_at` on the CELLS whose values moved, not on every cell of a touched
+# partition. Partition mode would DELETE the whole (bank, period, kind) and
+# re-INSERT only the stamped cells — erasing every unchanged sibling in that
+# partition. Its removals travel through the d1_pending_deletes outbox as
+# full-primary-key statements instead. Nothing passes --skip-unchanged-partitions
+# for this table today; this makes it impossible to start.
+_NO_PARTITION_SKIP = {"bank_audit_extractions", "bank_audit_coverage"}
 
 
 # Columns that record WHEN a rebuild ran, not WHAT it produced. They must be

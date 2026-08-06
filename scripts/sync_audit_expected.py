@@ -411,10 +411,14 @@ def write_coverage(conn, coverage_rows) -> tuple[int, int]:
     cost 161,272 estimated billed rows in the 2026Q2 refresh because eleven
     partitions changed — the other ~19,000 rows were identical.
 
-    Rows the rebuild no longer produces are DELETEd here, which is what the
-    delete-all used to do. That matters more than the saving: a coverage cell
-    for a partition that has left the expected universe would otherwise sit in
-    D1 for ever, and the matrix would keep showing it.
+    Rows the rebuild no longer produces are deleted here AND queued in the
+    d1_pending_deletes outbox. Deleting locally is not enough: the push carries
+    rows by `derived_at`, a deleted cell has no row and therefore no stamp, so
+    an upsert-only window can never express its removal and D1 would keep the
+    cell for ever. Queuing a full-primary-key DELETE is the only convergent
+    option here — partition-scoped replacement is not available, because this
+    function stamps CELLS, and replacing a whole partition while re-inserting
+    only the stamped cells would erase every unchanged sibling in it.
     """
     key_len = 4                              # bank, period, kind, statement_type
     stored = {tuple(r[:key_len]): tuple(r[key_len:]) for r in conn.execute(
@@ -423,10 +427,27 @@ def write_coverage(conn, coverage_rows) -> tuple[int, int]:
     incoming = {tuple(r[:key_len]): tuple(r[key_len:]) for r in coverage_rows}
 
     gone = sorted(set(stored) - set(incoming))
-    for key in gone:
+    if gone:
         conn.execute(
+            "CREATE TABLE IF NOT EXISTS d1_pending_deletes ("
+            " sql TEXT NOT NULL,"
+            " created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)")
+        for key in gone:
+            # Keys are internal identifiers — our tickers, 2026Q2, consolidated,
+            # registry keys — so no quoting hazard. Refuse rather than emit a
+            # statement the outbox's own single-row proof could misread.
+            if any("'" in str(part) or '"' in str(part) for part in key):
+                raise ValueError(
+                    f"coverage key {key!r} contains a quote; refusing to queue "
+                    f"a literal-SQL outbox delete for it")
+        conn.executemany(
+            "INSERT INTO d1_pending_deletes (sql) VALUES (?)",
+            [(f"DELETE FROM bank_audit_coverage WHERE bank_ticker='{b}'"
+              f" AND period='{p}' AND kind='{k}'"
+              f" AND statement_type='{s}';",) for b, p, k, s in gone])
+        conn.executemany(
             "DELETE FROM bank_audit_coverage WHERE bank_ticker=? AND period=? "
-            "AND kind=? AND statement_type=?", key)
+            "AND kind=? AND statement_type=?", gone)
 
     changed = [(*k, *v) for k, v in incoming.items() if stored.get(k) != v]
     cols = ["bank_ticker", "period", "kind", "statement_type", *_COVERAGE_VALUE_COLS]

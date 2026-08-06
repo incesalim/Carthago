@@ -70,6 +70,33 @@ def terminal_exits() -> tuple[int, ...]:
         return (*TERMINAL_EXITS, EXIT_PUSH_FAILED)
     return TERMINAL_EXITS
 
+
+def stop_if_terminal(rc: int, what: str) -> None:
+    """Exit when `rc` must not be retried. Used by BOTH retry loops.
+
+    They were separate copies of the same seven lines, and that is precisely how
+    the ledger rule ended up in `replace_partitions` and not in `push_to_d1`:
+    one loop stopped after a single attempt under a ledger while the other kept
+    retrying exit 4 into a guaranteed budget refusal. One function now, so a
+    future rule cannot land in half the lane again.
+    """
+    if rc == EXIT_PUSH_FAILED and rc in terminal_exits():
+        sys.exit(
+            f"[d1] {what} failed (exit {rc}) and a run ledger is active "
+            f"(D1_RUN_LEDGER={os.environ.get('D1_RUN_LEDGER')}), so this "
+            "attempt's estimate is already booked against the run's cap.\n"
+            "  NOT retrying: whether a half-finished import billed is not "
+            "observable from here. If it did, a retry spends twice; if it did "
+            "not, the ledger has over-booked and the retry would be refused as "
+            "a budget breach — a transient blip reported as a deterministic "
+            "refusal.\n"
+            "  D1 content is unchanged either way (the import is atomic). Check "
+            "the cycle usage, clear or adjust the ledger, then re-run.")
+    if rc in TERMINAL_EXITS:
+        sys.exit(f"[d1] {what} refused (exit {rc}) — a validation or budget "
+                 "refusal is deterministic, so retrying would only defeat it. "
+                 "Nothing was written. Fix the cause and re-run.")
+
 # --- audit-lane constants -------------------------------------------------
 DB = REPO / "data" / "bank_audit.db"
 GZ = REPO / "data" / "bank_audit.db.gz"
@@ -293,22 +320,7 @@ def replace_partitions(parts: Sequence[tuple[str, str, str]],
         rc = subprocess.run(cmd).returncode
         if rc == 0:
             return
-        if rc == EXIT_PUSH_FAILED and rc in terminal_exits():
-            sys.exit(
-                f"[d1] replace failed (exit {rc}) and a run ledger is active "
-                f"(D1_RUN_LEDGER={os.environ.get('D1_RUN_LEDGER')}), so this "
-                "attempt's estimate is already booked against the run's cap.\n"
-                "  NOT retrying: whether a half-finished import billed is not "
-                "observable from here. If it did, a retry spends twice; if it "
-                "did not, the ledger has over-booked and the retry would be "
-                "refused as a budget breach — a transient blip reported as a "
-                "deterministic refusal.\n"
-                "  D1 content is unchanged either way (the import is atomic). "
-                "Check the cycle usage, clear or adjust the ledger, then re-run.")
-        if rc in TERMINAL_EXITS:
-            sys.exit(f"[d1] replace refused (exit {rc}) — a validation or budget "
-                     "refusal is deterministic, so retrying would only defeat it. "
-                     "Nothing was written. Fix the cause and re-run.")
+        stop_if_terminal(rc, "replace")
         if attempt == D1_RETRIES:
             sys.exit(f"[d1] replace failed after {D1_RETRIES} attempts. The push is "
                      "atomic, so D1 is unchanged — fix the cause and re-run.")
@@ -376,10 +388,7 @@ def push_to_d1(db_path: Path = DB, window_hours: int = PUSH_WINDOW_HOURS,
         rc = subprocess.run(cmd).returncode
         if rc == 0:
             return
-        if rc in TERMINAL_EXITS:
-            sys.exit(f"[d1] push refused (exit {rc}) — a validation or budget "
-                     "refusal is deterministic; retrying cannot help. Nothing "
-                     "was written.")
+        stop_if_terminal(rc, "push")
         if attempt == D1_RETRIES:
             sys.exit(f"[d1] push failed after {D1_RETRIES} attempts. wrangler "
                      "executes a file atomically, so D1 is unchanged — fix the "

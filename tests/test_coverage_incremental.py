@@ -9,12 +9,19 @@ Migration 0040 adds `derived_at`; sync_audit_expected stamps only rows whose
 values moved and deletes keys the rebuild no longer produces; push_to_d1 windows
 the table like every other bank_audit_* one.
 
-The deletion half matters more than the saving. The delete-all this replaces is
-what stopped D1 keeping a cell for a partition that has left the expected
-universe, and losing that quietly would leave the coverage matrix showing rows
-that no longer exist.
+The deletion half matters more than the saving, and deleting LOCALLY is not
+enough: the push carries rows by `derived_at`, so a removed cell has no row and
+therefore no stamp, and an upsert-only window can never express its removal.
+Removals travel through the `d1_pending_deletes` outbox as full-primary-key
+statements. Partition-scoped replacement is not an option here — this table
+stamps CELLS, and replacing a partition while re-inserting only the stamped
+cells would erase every unchanged sibling in it.
 
-NOT YET ACTIVATED LIVE: migration 0040 is unapplied and no push has run with it.
+STATE: migration 0040 IS applied in live D1 (deploy 31045271052, 2026-08-05) —
+the column exists remotely. Incremental behaviour is still OFF
+(`push_to_d1._COVERAGE_INCREMENTAL = False`, coverage still in `_FULL_REBUILD`),
+so the push behaves exactly as it did before. Flipping that flag is the whole
+activation, and it has not been flipped.
 """
 from __future__ import annotations
 
@@ -195,3 +202,139 @@ def test_coverage_has_a_partition_key_so_the_scoped_delete_works(tmp_path):
     conn = _db(tmp_path, "key.db")
     P = _push()
     assert P.has_partition_key(conn, "bank_audit_coverage")
+
+
+# --- convergence against a SIMULATED REMOTE ----------------------------------
+#
+# Local deletion alone does not reach D1. The push carries rows by `derived_at`,
+# and a removed cell has no row and therefore no stamp — so an upsert-only
+# window can never express its removal. These tests execute the SQL the push
+# would actually send into a second SQLite standing in for D1, and assert the
+# only thing that matters: remote == local, exactly.
+
+
+def _remote(tmp_path, name="remote.db"):
+    """A stand-in for D1, built from the real migrations."""
+    r = sqlite3.connect(tmp_path / name)
+    for f in sorted((REPO / "web" / "migrations").glob("*.sql")):
+        r.executescript(f.read_text(encoding="utf-8"))
+    return r
+
+
+def _ship(local, remote, P):
+    """Replay what push_to_d1.main() sends, in its order: outbox deletes first
+    (so D1 cannot keep orphans the upsert would never touch), then the window."""
+    pending = local.execute(
+        "SELECT rowid, sql FROM d1_pending_deletes ORDER BY rowid").fetchall()
+    for _, stmt in pending:
+        # Every queued statement must survive the push's own single-row proof,
+        # or main() refuses the whole push rather than replay it.
+        assert P.outbox_delete_rows(local, stmt) is not None, \
+            f"outbox statement not provably single-row: {stmt!r}"
+        remote.executescript(stmt)
+    for stmt in P.fetch_recent(local, "bank_audit_coverage", 24):
+        if stmt.startswith(("INSERT", "DELETE")):
+            remote.executescript(stmt)
+    remote.commit()
+    local.executemany("DELETE FROM d1_pending_deletes WHERE rowid = ?",
+                      [(rid,) for rid, _ in pending])
+    local.commit()
+
+
+def _cells(conn):
+    return sorted(conn.execute(
+        "SELECT bank_ticker, period, kind, statement_type, status, row_count, "
+        "checks_failed, is_manual, pdf_present FROM bank_audit_coverage"))
+
+
+def test_removing_one_cell_removes_it_remotely(tmp_path):
+    local, remote = _db(tmp_path, "l1.db"), _remote(tmp_path, "r1.db")
+    S, P = _sync(), _activated(_push())
+    S.write_coverage(local, [_row(st="balance_sheet_assets"), _row(st="profit_loss")])
+    _ship(local, remote, P)
+    assert len(_cells(remote)) == 2
+
+    S.write_coverage(local, [_row(st="balance_sheet_assets")])
+    _ship(local, remote, P)
+    assert [c[3] for c in _cells(remote)] == ["balance_sheet_assets"]
+    assert _cells(remote) == _cells(local)
+
+
+def test_removing_a_whole_partition_removes_it_remotely(tmp_path):
+    local, remote = _db(tmp_path, "l2.db"), _remote(tmp_path, "r2.db")
+    S, P = _sync(), _activated(_push())
+    S.write_coverage(local, [
+        _row(bank="TEB", st="balance_sheet_assets"), _row(bank="TEB", st="profit_loss"),
+        _row(bank="GONE", st="balance_sheet_assets"), _row(bank="GONE", st="profit_loss")])
+    _ship(local, remote, P)
+    assert len({c[0] for c in _cells(remote)}) == 2
+
+    S.write_coverage(local, [_row(bank="TEB", st="balance_sheet_assets"),
+                             _row(bank="TEB", st="profit_loss")])
+    _ship(local, remote, P)
+    assert {c[0] for c in _cells(remote)} == {"TEB"}
+    assert _cells(remote) == _cells(local)
+
+
+def test_changing_one_cell_does_not_erase_its_unchanged_siblings(tmp_path):
+    """THE trap in doing this with partition mode: a partition-scoped DELETE
+    plus a re-insert of only the stamped cells drops every sibling."""
+    local, remote = _db(tmp_path, "l3.db"), _remote(tmp_path, "r3.db")
+    S, P = _sync(), _activated(_push())
+    siblings = [_row(st=f"stmt_{i}") for i in range(6)]
+    S.write_coverage(local, siblings)
+    _ship(local, remote, P)
+    assert len(_cells(remote)) == 6
+
+    moved = list(siblings)
+    moved[2] = _row(st="stmt_2", status="error", failed=3)
+    S.write_coverage(local, moved)
+    _ship(local, remote, P)
+    assert len(_cells(remote)) == 6, "unchanged siblings were erased"
+    assert remote.execute(
+        "SELECT status, checks_failed FROM bank_audit_coverage "
+        "WHERE statement_type='stmt_2'").fetchone() == ("error", 3)
+    assert _cells(remote) == _cells(local)
+
+
+def test_remote_equals_local_after_a_mixed_sequence(tmp_path):
+    """Adds, edits and removals interleaved — the only assertion that matters."""
+    local, remote = _db(tmp_path, "l4.db"), _remote(tmp_path, "r4.db")
+    S, P = _sync(), _activated(_push())
+    rounds = [
+        [_row(bank="TEB", st="a"), _row(bank="TEB", st="b"), _row(bank="AKBNK", st="a")],
+        [_row(bank="TEB", st="a", status="error", failed=1),
+         _row(bank="TEB", st="b"), _row(bank="AKBNK", st="a"), _row(bank="AKBNK", st="b")],
+        [_row(bank="TEB", st="a", status="error", failed=1), _row(bank="AKBNK", st="b")],
+        [_row(bank="GARAN", st="c")],
+    ]
+    for rows in rounds:
+        S.write_coverage(local, rows)
+        _ship(local, remote, P)
+        assert _cells(remote) == _cells(local), (
+            f"diverged after {len(rows)} rows:\n  local ={_cells(local)}\n"
+            f"  remote={_cells(remote)}")
+    assert [c[0] for c in _cells(remote)] == ["GARAN"]
+
+
+def test_a_queued_delete_is_priced_and_provable(tmp_path):
+    """An unbounded statement would blow the budget while the guard priced it as
+    one row, so main() refuses to replay anything it cannot prove."""
+    local = _db(tmp_path, "l5.db")
+    S, P = _sync(), _push()
+    S.write_coverage(local, [_row(st="a"), _row(st="b")])
+    S.write_coverage(local, [_row(st="a")])
+    queued = [r[0] for r in local.execute("SELECT sql FROM d1_pending_deletes")]
+    assert len(queued) == 1
+    assert P.outbox_delete_rows(local, queued[0]) == ("bank_audit_coverage", 1)
+
+
+def test_coverage_can_never_enter_partition_mode(tmp_path):
+    """Cell-level stamping and partition-level replacement are incompatible.
+    Even if a caller passes --skip-unchanged-partitions, coverage must not be
+    swept in — that is what would erase unchanged siblings."""
+    P = _push()
+    assert "bank_audit_coverage" in P._NO_PARTITION_SKIP
+    from src.audit_reports.registry import AUDIT_TABLES
+    assert "bank_audit_coverage" not in AUDIT_TABLES, \
+        "the --table-set audit push passes --skip-unchanged-partitions"

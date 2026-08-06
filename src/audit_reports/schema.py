@@ -633,6 +633,19 @@ CREATE INDEX IF NOT EXISTS idx_bank_coverage_status
   ON bank_audit_coverage(status);
 CREATE INDEX IF NOT EXISTS idx_bank_coverage_type_kind
   ON bank_audit_coverage(statement_type, kind);
+
+-- Staging-side outbox for rows that VANISHED locally. Same contract as the
+-- news / tefas / kap lanes: one full-primary-key DELETE per statement, replayed
+-- by push_to_d1 before the inserts and priced through outbox_delete_rows.
+--
+-- The audit lane needs it because bank_audit_coverage is pushed by row stamp:
+-- a deleted cell has no row and therefore no stamp, so an upsert-only window
+-- can never carry its removal and D1 would keep the cell for ever. Local-only
+-- (it rides the R2 snapshot); never pushed to D1 itself.
+CREATE TABLE IF NOT EXISTS d1_pending_deletes (
+    sql        TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 """
 
 

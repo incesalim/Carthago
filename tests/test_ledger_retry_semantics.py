@@ -111,18 +111,15 @@ def test_the_static_terminal_set_is_still_the_no_ledger_answer(monkeypatch):
     assert set(AD.terminal_exits()) == set(AD.TERMINAL_EXITS)
 
 
-def test_the_replace_loop_does_not_retry_a_failed_push_under_a_ledger(
-        tmp_path, monkeypatch):
-    """Drive the real retry loop: with a ledger active it must exit after ONE
-    attempt instead of three."""
-    AD = _mod("ad_loop", "scripts/audit_d1.py")
-    monkeypatch.setenv("D1_RUN_LEDGER", str(tmp_path / "l.json"))
+def _drive(AD, monkeypatch, tmp_path, which, rc):
+    """Run one of the two retry loops with a stubbed subprocess; count attempts."""
     monkeypatch.setattr(AD, "ensure_d1_schema", lambda *a, **k: None)
     monkeypatch.setattr(AD, "D1_RETRY_WAIT_S", 0)
+    monkeypatch.setattr(AD.time, "sleep", lambda *_: None)
     attempts = {"n": 0}
 
     class _R:
-        returncode = AD.EXIT_PUSH_FAILED
+        returncode = rc
 
     def _run(cmd, *a, **k):
         attempts["n"] += 1
@@ -130,9 +127,52 @@ def test_the_replace_loop_does_not_retry_a_failed_push_under_a_ledger(
 
     monkeypatch.setattr(AD.subprocess, "run", _run)
     with pytest.raises(SystemExit) as e:
-        AD.replace_partitions([("TEB", "2026Q2", "consolidated")],
-                              db_path=tmp_path / "x.db",
-                              tables=["bank_audit_balance_sheet"])
-    assert attempts["n"] == 1, f"retried {attempts['n']} times under a ledger"
-    assert "ledger" in str(e.value).lower(), \
-        f"the reason must be explained to whoever reads it: {e.value}"
+        if which == "replace":
+            AD.replace_partitions([("TEB", "2026Q2", "consolidated")],
+                                  db_path=tmp_path / "x.db",
+                                  tables=["bank_audit_balance_sheet"])
+        else:
+            AD.push_to_d1(tmp_path / "x.db", 24, tables=["bank_audit_balance_sheet"])
+    return attempts["n"], str(e.value)
+
+
+# BOTH loops. The ledger rule first landed in replace_partitions only, and
+# push_to_d1 kept retrying exit 4 into a guaranteed budget refusal.
+@pytest.mark.parametrize("which", ["replace", "push"])
+def test_neither_loop_retries_a_failed_push_under_a_ledger(
+        which, tmp_path, monkeypatch):
+    AD = _mod(f"ad_{which}_on", "scripts/audit_d1.py")
+    monkeypatch.setenv("D1_RUN_LEDGER", str(tmp_path / "l.json"))
+    n, msg = _drive(AD, monkeypatch, tmp_path, which, AD.EXIT_PUSH_FAILED)
+    assert n == 1, f"{which}: retried {n} times under a ledger"
+    assert "ledger" in msg.lower(), \
+        f"{which}: the reason must be explained to whoever reads it: {msg}"
+
+
+@pytest.mark.parametrize("which", ["replace", "push"])
+def test_both_loops_still_retry_without_a_ledger(which, tmp_path, monkeypatch):
+    """No ledger, no double-booking risk — a transient failure gets its retries
+    back, which is what every non-audit caller relies on."""
+    AD = _mod(f"ad_{which}_off", "scripts/audit_d1.py")
+    monkeypatch.delenv("D1_RUN_LEDGER", raising=False)
+    n, msg = _drive(AD, monkeypatch, tmp_path, which, AD.EXIT_PUSH_FAILED)
+    assert n == AD.D1_RETRIES, f"{which}: made {n} attempts, expected {AD.D1_RETRIES}"
+    assert "ledger" not in msg.lower()
+
+
+@pytest.mark.parametrize("which", ["replace", "push"])
+def test_both_loops_treat_a_budget_refusal_as_terminal_either_way(
+        which, tmp_path, monkeypatch):
+    AD = _mod(f"ad_{which}_bud", "scripts/audit_d1.py")
+    monkeypatch.delenv("D1_RUN_LEDGER", raising=False)
+    n, msg = _drive(AD, monkeypatch, tmp_path, which, AD.EXIT_BUDGET)
+    assert n == 1 and "deterministic" in msg
+
+
+def test_the_two_loops_share_one_decision_point():
+    """They were separate copies of the same seven lines, which is exactly how
+    the rule ended up in one of them. Guard the de-duplication."""
+    src = (REPO / "scripts" / "audit_d1.py").read_text(encoding="utf-8")
+    assert src.count("def stop_if_terminal") == 1
+    assert src.count("stop_if_terminal(rc,") == 2, \
+        "both retry loops must go through the shared helper"

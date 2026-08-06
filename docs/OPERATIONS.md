@@ -1004,6 +1004,16 @@ GitHub repo → Settings → Secrets and variables → Actions:
 | `OPEN_ROUTER_API` | OpenRouter (DeepSeek et al). Added 2026-07-05 and **unused by any lane** — read only by the scratch probe `test-openrouter.yml`. ⚠️ Note the name: no `_KEY` suffix, unlike every other provider secret |
 | `KIMI_API_TOKEN` | weekly regulation briefing (`summarize-regulations.yml`). ⚠️ **Name mismatch**: the repo secret is `KIMI_API_TOKEN`, but the workflow maps it to env `KIMI_API_KEY`, which is what `src/news/kimi.py` reads. Provision the *secret* under the token name |
 
+### Workflow env keys (not secrets, not Worker bindings)
+
+`check_docs_sync.py` covers `secrets.X` and `CloudflareEnv` keys; a plain `env:`
+value on a step is invisible to it. AGENTS.md still requires every env key the
+code reads to be named here, and this one is load-bearing.
+
+| Env key | Used by |
+|---|---|
+| `D1_RUN_LEDGER` | Path to a per-RUN file that `scripts/push_to_d1.py` debits before each write, so the 250,000 emergency cap bounds the whole workflow rather than each push. Applied per invocation it did not: the 2026Q2 audit refresh sent 203,799 then 226,069 estimated billed rows, each "under the cap", 429,868 for the run. Every pushing step in a job must be given the **same** run-scoped path (`${{ runner.temp }}/d1_run_ledger.json`) — `tests/test_workflow_ledger_wiring.py` fails the build otherwise. It also changes retry semantics: while it is set, `scripts/audit_d1.py` treats `EXIT_PUSH_FAILED` as terminal, because the estimate is booked *before* wrangler runs and nobody can observe whether a half-finished import billed. Unset = no ledger, per-push cap, exit 4 retryable as before. Wired in `refresh-audit.yml`, `refresh-bddk-bulletins.yml`, `refresh-data.yml` |
+
 Actions **variables** (same screen, "Variables" tab — not secrets):
 
 | Variable | Used by |
