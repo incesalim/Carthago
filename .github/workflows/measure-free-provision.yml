@@ -21,6 +21,10 @@ on:
         description: "Scan at most N PDFs (0 = the whole corpus)"
         type: string
         default: "0"
+      context:
+        description: "BANK:PERIOD:KIND[,…] — dump the wording around every free-provision mention and stop (NONE = measure)"
+        type: string
+        default: "NONE"
 
 permissions:
   contents: read
@@ -72,8 +76,10 @@ jobs:
         run: |
           BANKS="${{ inputs.banks }}"
           [ "$BANKS" = "ALL" ] && BANKS=""
+          CTX="${{ inputs.context }}"
+          [ "$CTX" = "NONE" ] && CTX=""
           python scripts/measure_free_provision_change.py \
-            --limit "${{ inputs.limit }}" --banks "$BANKS"
+            --limit "${{ inputs.limit }}" --banks "$BANKS" --context "$CTX"
 
       - name: Upload the diff
         if: always()

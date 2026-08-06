@@ -72,7 +72,27 @@ def main() -> int:
     ap.add_argument("--db", default=str(DB))
     ap.add_argument("--limit", type=int, default=0, help="0 = the whole corpus")
     ap.add_argument("--banks", default="", help="comma-separated, blank = all")
+    ap.add_argument("--context", default="",
+                    help="BANK:PERIOD:KIND[,…] — dump the full wording around "
+                         "every free-provision mention and stop. Read-only; for "
+                         "judging a mover by its sentence rather than its number.")
     args = ap.parse_args()
+
+    if args.context:
+        wanted = {tuple(x.split(":")) for x in args.context.split(",") if x}
+        for ticker, period, kind, key in sorted(r2_storage.list_audit_pdfs()):
+            if (ticker.upper(), period.upper(), kind) not in wanted:
+                continue
+            with tempfile.TemporaryDirectory() as td:
+                dest = Path(td) / "r.pdf"
+                r2_storage.download_to(key, dest)
+                print(f"\n===== {ticker} {period} {kind}", flush=True)
+                for pno, page in enumerate(_pages(dest), 1):
+                    flat = re.sub(r"\s+", " ", page)
+                    for m in re.finditer(r"serbest\s+kar[şs][ıi]l[ıiğ]", flat, re.I):
+                        s = max(0, m.start() - 320)
+                        print(f"  p{pno}: …{flat[s:m.start() + 420]}…\n")
+        return 0
 
     conn = sqlite3.connect(args.db)
     stored = {
