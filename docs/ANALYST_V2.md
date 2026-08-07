@@ -118,10 +118,15 @@ acceptance case (2026-08-04) showed each one's absence failing in a specific
 way:
 
 - **The case file.** Every delivered evidence record stays visible in the
-  prompt (compact rendering, 45KB budget, oldest non-seed entries evicted to
-  a stub; re-calling after eviction re-delivers). A last-result-only loop was
+  prompt (compact rendering, oldest non-seed entries evicted to a stub;
+  re-calling after eviction re-delivers). A last-result-only loop was
   measured driving the model to re-fetch one table 16 turns straight —
-  it re-asked because the data had genuinely left its context.
+  it re-asked because the data had genuinely left its context. The budget is
+  **150KB** (`DIGEST_BUDGET`), sized so a full 32-turn run never evicts in
+  practice: at the original 45KB, 8KB pages overflowed the file mid-run and
+  the model spent 9 turns re-delivering its own evicted evidence (measured,
+  round 6). 150KB ≈ 40k tokens still fits the smallest fallback model's
+  context with headroom.
 - **Tablified results.** Row arrays render as pipe-tables (`∅` = null =
   not-disclosed, one nesting level flattened), so a 14-column equity matrix
   that overflowed the old window as verbose JSON now arrives whole. Stored

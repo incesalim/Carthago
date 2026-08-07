@@ -6,18 +6,22 @@ name: Analyst signals + memos
 # grounded analyst memos for the requested banks with the free-model chain
 # (web/scripts/analyst-run.ts --memo → prompt → LLM → figure guard).
 #
-# DISPATCH-ONLY under the 2026-08-01 D1-write freeze (indefinite):
-#   - No schedule. The intended cadence when the freeze lifts is daily 07:00 UTC
-#     (after refresh-news-daily, before European open):
+# DISPATCH-ONLY (state as of 2026-08-07 — the 2026-08-01 write freeze that
+# originally forced this has since lifted):
+#   - No schedule. The intended cadence is daily 07:00 UTC (after
+#     refresh-news-daily, before European open):
 #       # schedule:
 #       #   - cron: "0 7 * * *"
-#     A new workflow is born ENABLED and `gh workflow disable` leaves no trace
-#     in git — shipping dispatch-only is what keeps this lane inert (the
+#     Nothing blocks turning that on now; it is a decision nobody has taken.
+#     Note a new workflow is born ENABLED and `gh workflow disable` leaves no
+#     trace in git — shipping dispatch-only is what kept this lane inert (the
 #     refresh-transcripts-weekly.yml precedent).
-#   - NO D1 push steps exist here yet. Signals + basis metadata + memos leave
-#     as run artifacts only. At freeze-lift, add: apply migration
-#     0037_analyst_signals.sql, then a push step reading data/analyst.db
-#     (registration goes through push_to_d1's table handling, not a hand list).
+#   - A D1 push step DOES exist (see "Push analyst tables to Cloudflare D1"
+#     below), gated on the `push` input and OFF by default. Migration
+#     0037_analyst_signals.sql is APPLIED: analyst_signals (455 rows),
+#     analyst_basis_metadata (1,050) and analyst_notes (2) are live in D1.
+#     Without `push`, signals + basis metadata + memos still leave as run
+#     artifacts only.
 #
 # Everything model-touching runs HERE because the LLM keys are CI secrets by
 # design (no local keys exist), and batch generation belongs in Actions like

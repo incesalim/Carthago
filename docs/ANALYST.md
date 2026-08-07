@@ -31,7 +31,7 @@ flowchart TD
     end
 
     I --> K["today: run artifacts + data/analyst.db (R2-persisted)"]
-    I -.->|"when the D1 write freeze lifts"| L["D1 → the bank page's\n'Analyst's read' section"]
+    I -.->|"when dispatched with push=true"| L["D1 → the bank page's\n'Analyst's read' section"]
 ```
 
 ## Step by step, in plain words
@@ -107,7 +107,9 @@ at the gate.
 
 ## Running it
 
-From `/admin` → Pipeline panel → **Analyst memos**, or:
+From `/admin/agents` — the agent register, which carries both analyst lanes with
+their inputs, stage diagrams and a Run control (see [ADMIN.md](ADMIN.md)) — or
+`/admin` → Pipeline panel → **Analyst memos**, or:
 
 ```
 gh workflow run analyst-daily.yml -f banks=GARAN -f period=2026Q1 -f kind=consolidated
@@ -130,8 +132,8 @@ detail). A scoreboard step prints structure/lead/coverage per report.
 | Detectors, assembly, gates, guard, reports | **Live** — dispatch any bank |
 | Report artifacts + R2-persisted staging (`data/analyst.db`) | **Live** |
 | Comparability badge on `/banks/[ticker]` | **Live** (built from already-pushed tables) |
-| Memos on the bank page, `analyst_signals`/`analyst_notes` in D1 | **Waiting on the D1 write freeze** — migration `0037` is authored, unapplied; the page shows "Analysis pending" and lights up on its own once pushed |
-| Daily schedule | **Deliberately absent** until the freeze lifts (dispatch-only) |
+| Memos on the bank page, `analyst_signals`/`analyst_notes` in D1 | **Live.** Migration `0037` is **applied** and the tables hold data — `analyst_signals` 455 rows, `analyst_basis_metadata` 1,050, `analyst_notes` 2 (verified against production D1, 2026-08-07). The push is opt-in per dispatch (`push` input, default false), so a memo reaches the page only when a run is dispatched with it on |
+| Daily schedule | **Still absent** — `analyst-daily.yml` is `workflow_dispatch` only, with the 07:00 UTC cron left commented out. The write freeze that was the original reason has lifted; the schedule is now simply a decision nobody has taken. Turning it on is uncommenting the `schedule:` block |
 | 2026Q2 filings | Held in R2, unextracted — the unit-switch detectors built here are what makes re-extracting them safe |
 
 ## Where the pieces live
