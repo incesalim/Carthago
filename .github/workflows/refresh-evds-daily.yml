@@ -3,8 +3,10 @@ name: Refresh EVDS (daily)
 # When to run:
 #   - Sunday through Friday 05:00 UTC (08:00 Turkey).
 #     Saturday is intentionally skipped — the weekly Refresh BDDK data
-#     workflow already pulls EVDS as part of its broader refresh, and
-#     both jobs share the same R2 snapshot.
+#     workflow already polls every EVDS cadence as part of its broader refresh.
+#   - This daily lane polls only series declared daily/workday. Weekly, monthly
+#     and quarterly series are polled by the Saturday full refresh instead of
+#     being treated as if they published every day.
 #   - Manually from the Actions tab.
 on:
   schedule:
@@ -61,17 +63,26 @@ jobs:
               print("No snapshot in R2 yet — starting from empty DB.")
           PY
 
-      - name: Refresh EVDS only (skip monthly + weekly)
+      - name: Refresh daily EVDS series only (and detect a quiet run)
+        id: refresh
         env:
           EVDS_API_KEY: ${{ secrets.EVDS_API_KEY }}
-        run: python scripts/refresh.py --skip-monthly --skip-weekly
+        run: |
+          python scripts/refresh.py \
+            --skip-monthly --skip-weekly --skip-nonbank --skip-tbb --skip-tkbb \
+            --skip-kap --skip-tefas --skip-faaliyet --skip-tuik \
+            --evds-frequencies daily --change-file refresh_changed.txt \
+            --defer-packaging
+          echo "changed=$(cat refresh_changed.txt)" >> "$GITHUB_OUTPUT"
 
       - name: Setup Node (for wrangler)
+        if: steps.refresh.outputs.changed == 'true'
         uses: actions/setup-node@v7
         with:
           node-version: "22"
 
       - name: Push new evds_series rows to Cloudflare D1
+        if: steps.refresh.outputs.changed == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         # 30h window — covers daily cadence with a 6h safety margin so a
@@ -80,11 +91,17 @@ jobs:
         run: python scripts/push_to_d1.py --hours 30
 
       - name: Upload new SQLite snapshot back to R2
+        if: steps.refresh.outputs.changed == 'true'
         run: |
           python - <<'PY'
           from src.audit_reports import r2_storage
-          import pathlib
+          import gzip, pathlib, shutil, sqlite3
+          db = pathlib.Path("data/bddk_data.db")
           gz = pathlib.Path("data/bddk_data.db.gz")
+          with sqlite3.connect(db) as conn:
+              conn.execute("VACUUM")
+          with open(db, "rb") as src, gzip.open(gz, "wb", compresslevel=9) as dst:
+              shutil.copyfileobj(src, dst)
           size = r2_storage.upload_file(gz, "state/bddk_data.db.gz")
           print(f"Uploaded {size/1e6:.1f} MB to R2 state/bddk_data.db.gz")
           PY

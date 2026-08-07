@@ -33,9 +33,10 @@ health**, **manual refresh triggers**, and **site traffic** into one view.
 
 ### Managing audit reports (the intended workflow)
 
-Audit extraction is **not scheduled** — you run it from here. `acquire-audit.yml` (weekly)
-downloads newly published PDFs into R2 by itself and pings Telegram; they then show up in the
-coverage matrix as **missing** for you to extract.
+Audit discovery and extraction run automatically each day during the quarterly filing
+windows. `refresh-audit.yml` takes a valid new PDF all the way from the bank site through R2,
+extraction, validation, one D1 batch and the snapshot. This panel remains the control surface
+for targeted repairs and for manual checks outside those windows.
 
 - **Coverage matrix** — a **per-statement-type summary table** plus an **errors & missing
   sidebar**, both fed by one `?summary=1` round-trip (`coverageSummary` + `coverageProblems`).
@@ -61,14 +62,26 @@ coverage matrix as **missing** for you to extract.
   (the curated skip lists in `scripts/revalidate_audit_db.py` — a source that genuinely doesn't
   foot, verified against the PDF) also have zero passes but stay **ok**.
 
-  **17 of the 18 lanes have a validator.** The exception is `free_provision`, and deliberately:
-  it is `conditional`, so an empty cell becomes **N/A** before any verdict is read — a
-  per-partition validator could never see the N/A cells, which are the only ones with a real
-  problem. Its checks are corpus-wide instead and live in `check_audit_quality._free_provision`.
-  For that lane **ok** asserts only that a row exists, so the label `✓` and the coverage `✓`
-  are both withheld and the drawer says so explicitly — treat its green as "present", not
-  "verified". `docs/knowledge/validator-robustness-audit-2026-07-17.md` measures how much each
-  lane's green is actually worth.
+  **All 19 registered lanes have a validator.** `free_provision` remains conditional, but is
+  no longer unverified: an empty row is **N/A only when no independent evidence contradicts
+  it**. A modified audit-opinion basis that names the reserve turns that absence into an
+  `error`; existing rows get a value-range check and reconcile their stated comparative to
+  the prior year's Q4 current stock. The same matcher feeds the corpus-wide alert check.
+  `docs/knowledge/validator-robustness-audit-2026-07-17.md` measures how much each lane's
+  green is actually worth.
+
+  Some lanes require more than their own result. `registry.validation_gate()` is the shared
+  relationship graph: either balance-sheet side requires `assets`, `liabilities` and `cross`;
+  credit quality and derived stages require both `credit_quality` and `stages`. Coverage,
+  overwrite protection, targeted-repair rollback and the drawer all consume that same gate.
+  For the eight source-captured normalized/summary lanes, the lane's own validation row also
+  absorbs the capture checks once a manifest exists. A near-full table with an unfamiliar
+  numeric source row therefore becomes an ordinary `error` cell with
+  `capture_unmapped_rows` in `failed_detail`; a source table detected while zero normalized
+  rows were stored becomes `capture_rows_missed`. Selected-summary detail is retained and
+  counted in `bank_audit_capture_manifest` but does not become a false error merely because
+  the analytical schema is intentionally narrower. Historical cells acquire this behavior
+  as `backfill-audit-source-capture.yml` reaches them.
   The kind control (**unconsolidated / consolidated / both**) re-aggregates the counts; a
   header tally shows total errors + missing for the current mode. Click a row to filter the
   sidebar to that lane. New quarters fold into the counts automatically when acquired (the
@@ -78,7 +91,8 @@ coverage matrix as **missing** for you to extract.
   defaulting to errors) and a bank-substring filter. The list is capped at 300 rendered rows
   (the count badge still shows the true total) so the long missing tail (profile, repricing)
   can't bloat the DOM. Click a cell to open the drawer.
-- **Cell drawer** — extraction counts/note, the failing validator identities (`failed_detail`),
+- **Cell drawer** — extraction counts/note and every result in the lane's relationship gate
+  (including dependent `failed_detail`, not just the lane's own row),
   and a context hint: a PDF-present *missing* cell with **no extraction row** says "acquired, not
   yet extracted — click Re-extract"; one that's been extracted but has an empty statement says
   "likely scanned-image — hand-transcribe." The drawer's **Re-extract** dispatches
@@ -91,8 +105,8 @@ coverage matrix as **missing** for you to extract.
 Data comes from `bank_audit_coverage` / `bank_audit_expected` / `bank_audit_statement_types`,
 rebuilt by `scripts/sync_audit_expected.py` (in both the acquire and extract workflows).
 
-Audit **health** in the data-health cards is no longer time-based (extraction isn't scheduled):
-it reads `fresh` when every extracted partition succeeded, else `late`.
+Audit **health** remains completeness-based rather than cron-age-based: reports publish
+quarterly, so it reads `fresh` when every extracted partition succeeded, else `late`.
 
 ## Presentation deck (PDF)
 
@@ -190,7 +204,7 @@ Local dev: set `ADMIN_DEV_BYPASS=1` (e.g. in `web/.dev.vars`) to skip auth.
 The **Audit reports** card has a bank dropdown. Leave it on **All banks** for
 the normal full sweep (every bank, every quarter — idempotent), or pick a single
 ticker to scrape + extract just that bank's **latest published quarter** — handy
-the moment a bank publishes a new report instead of waiting for the Sunday cron.
+outside a filing window or when you do not want to wait for the next daily check.
 
 It forwards a `bank` input to `refresh-audit.yml`. Because a per-bank trigger
 means "grab the quarter this bank just published", the workflow also adds

@@ -128,11 +128,12 @@ carthago/
 │   #   bddk_data.db / bank_audit.db ← rebuilt in each cron run from the R2 snapshot
 │
 └── .github/workflows/
-    ├── refresh-evds-daily.yml      ← Sun-Fri 05 UTC: EVDS only → D1
-    ├── refresh-bddk-bulletins.yml  ← Sat 02 UTC: monthly + weekly bulletins → D1
+    ├── refresh-evds-daily.yml      ← Sun-Fri 05 UTC: daily-frequency EVDS → D1
+    ├── refresh-bddk-bulletins.yml  ← month edges + Fridays: BDDK bulletins → D1
     ├── refresh-data.yml            ← Sat 03 UTC: monthly + weekly + EVDS + TBB digital → D1
-    ├── acquire-audit.yml           ← Sun 04 UTC: discover + download audit PDFs → R2 (own lane)
-    ├── refresh-audit.yml           ← manual only: audit PDFs → bank_audit_* → D1 (own lane)
+    ├── acquire-audit.yml           ← manual: download audit PDFs without extraction
+    ├── refresh-audit.yml           ← filing windows daily: acquire + extract + one D1 batch
+    ├── backfill-audit-source-capture.yml ← manual: preserve omitted audit-table source rows
     ├── refresh-news-daily.yml      ← daily: KAP/TCMB/BDDK news → D1
     ├── summarize-regulations.yml   ← weekly: LLM regulation briefing → D1
     ├── healthcheck.yml             ← daily: D1 freshness → Telegram/Discord alert
@@ -145,11 +146,11 @@ carthago/
 
 | | When | Workflow |
 |---|---|---|
-| **EVDS daily refresh** | Sun–Fri 05:00 UTC | `refresh-evds-daily.yml` |
-| **Weekly bulletins** | Saturday 02:00 UTC | `refresh-bddk-bulletins.yml` (monthly + weekly, no EVDS/audit) |
+| **EVDS daily refresh** | Sun–Fri 05:00 UTC | `refresh-evds-daily.yml` (daily/workday series only) |
+| **BDDK bulletins** | First/last five days + Friday publication window | `refresh-bddk-bulletins.yml` (no EVDS/audit) |
 | **Full weekly refresh** | Saturday 03:00 UTC | `refresh-data.yml` (monthly + weekly + EVDS + TBB digital + D1 push) |
-| **Audit-report acquisition** | Sunday 04:00 UTC | `acquire-audit.yml` — own DB + R2 snapshot; discovers + downloads new bank IR PDFs → R2, refreshes the coverage matrix |
-| **Audit-report extraction** | Manual / admin only | `refresh-audit.yml` — PDFs from R2 → `bank_audit_*` → D1. Deliberately not scheduled: you review the coverage matrix after |
+| **Audit-report arrival** | Daily in quarterly filing windows | `refresh-audit.yml` — discover → R2 → extract/validate/coverage → one D1 batch → snapshot; quiet checks write nothing |
+| **Acquisition-only diagnostic** | Manual / admin only | `acquire-audit.yml` — download a PDF without extracting it |
 | **Health check** | Daily 06:00 UTC | `healthcheck.yml` — D1 freshness → alert if stale |
 | **CI quality gates** | Every PR | `ci.yml` — ruff + pytest + eslint + tsc |
 | **Cloudflare dashboard deploy** | Every push to `web/` | `deploy-cloudflare.yml` (migrate + build + deploy) |

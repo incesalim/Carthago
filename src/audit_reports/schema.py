@@ -526,6 +526,72 @@ CREATE INDEX IF NOT EXISTS idx_bank_repricing_bank_period
   ON bank_audit_repricing(bank_ticker, period);
 
 
+-- Lossless source-line ledger for the tables whose analytical schemas are
+-- deliberately narrower than the filing.  One row is one physical text line
+-- rebuilt from PyMuPDF words on a selected source page.  `numeric_tokens_json`
+-- keeps the printed cells exactly as tokens (including dashes); `mapped_key`
+-- records which normalized row/measure consumed the line, or NULL when the
+-- filing contains a numeric row our analytical schema did not map.
+--
+-- This table is LOCAL/R2-SNAPSHOT ONLY.  It is intentionally absent from
+-- registry.AUDIT_TABLES, push_to_d1.SYNC_TABLES and the Worker migrations: the
+-- raw evidence is high-volume, while D1 rows are the cost centre.  The compact
+-- manifest immediately below is the D1-facing completeness/alert contract.
+CREATE TABLE IF NOT EXISTS bank_audit_source_lines (
+    bank_ticker         TEXT NOT NULL,
+    period              TEXT NOT NULL,
+    kind                TEXT NOT NULL,
+    statement_type      TEXT NOT NULL,
+    source_page         INTEGER NOT NULL,
+    line_order          INTEGER NOT NULL,
+    line_text           TEXT NOT NULL,
+    numeric_tokens_json TEXT NOT NULL DEFAULT '[]',
+    numeric_token_count INTEGER NOT NULL DEFAULT 0,
+    is_data_row         INTEGER NOT NULL DEFAULT 0,
+    mapped_key          TEXT,
+    line_hash           TEXT NOT NULL,
+    shape_hash          TEXT NOT NULL,
+    captured_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (
+        bank_ticker, period, kind, statement_type, source_page, line_order
+    )
+);
+
+CREATE INDEX IF NOT EXISTS idx_bank_source_lines_unmapped
+  ON bank_audit_source_lines(statement_type, is_data_row, mapped_key);
+
+
+-- Compact, D1-synchronised completeness footprint.  It says which source pages
+-- were retained, how many table-like rows were detected/mapped, how many
+-- normalized rows were written, and whether the source shape changed.  Hashes
+-- are content-addressed; the upsert leaves `extracted_at` untouched when these
+-- facts are unchanged, so routine refreshes do not re-bill identical rows.
+CREATE TABLE IF NOT EXISTS bank_audit_capture_manifest (
+    bank_ticker             TEXT NOT NULL,
+    period                  TEXT NOT NULL,
+    kind                    TEXT NOT NULL,
+    statement_type          TEXT NOT NULL,
+    capture_scope           TEXT NOT NULL, -- 'near_full' | 'selected_summary'
+    source_pages_json       TEXT NOT NULL DEFAULT '[]',
+    source_page_count       INTEGER NOT NULL DEFAULT 0,
+    source_line_count       INTEGER NOT NULL DEFAULT 0,
+    source_numeric_line_count INTEGER NOT NULL DEFAULT 0,
+    source_data_row_count   INTEGER NOT NULL DEFAULT 0,
+    mapped_data_row_count   INTEGER NOT NULL DEFAULT 0,
+    unmapped_data_row_count INTEGER NOT NULL DEFAULT 0,
+    normalized_row_count    INTEGER NOT NULL DEFAULT 0,
+    content_hash            TEXT NOT NULL,
+    shape_hash              TEXT NOT NULL,
+    mapping_hash            TEXT NOT NULL,
+    capture_status          TEXT NOT NULL, -- 'captured' | 'not_found' | 'unreadable'
+    extracted_at            TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (bank_ticker, period, kind, statement_type)
+);
+
+CREATE INDEX IF NOT EXISTS idx_bank_capture_manifest_status
+  ON bank_audit_capture_manifest(statement_type, capture_status);
+
+
 -- Structural-validation results per extracted statement (see
 -- src/audit_reports/validator.py and docs/AUDIT_REWORK_PLAN.md). One row per
 -- (bank, period, kind, statement); statement is 'assets' | 'liabilities' |
@@ -607,6 +673,7 @@ CREATE TABLE IF NOT EXISTS bank_audit_statement_types (
     --                                    statement vs note. is_core does NOT (registry.py).
     is_core       INTEGER NOT NULL DEFAULT 0,  -- severity: gates extractions.success
     has_validator INTEGER NOT NULL DEFAULT 0,
+    validation_gate TEXT NOT NULL DEFAULT '',  -- comma-separated validation results, all required
     section_rank  INTEGER NOT NULL DEFAULT 99, -- registry.SECTION_ORDER position (display)
     sort_order    INTEGER NOT NULL DEFAULT 0
 );
@@ -700,6 +767,11 @@ _COLUMN_MIGRATIONS: list[tuple[str, str, str]] = [
     # dies on "no such column: section".
     ("bank_audit_statement_types", "section", "TEXT NOT NULL DEFAULT ''"),
     ("bank_audit_statement_types", "section_rank", "INTEGER NOT NULL DEFAULT 99"),
+    # Added 2026-08-07 (migration 0041): exposes the registry's relationship
+    # gate to the admin drawer and future alert consumers. A coverage error can
+    # then name the dependent result that caused it instead of showing only the
+    # lane's own (passing) validation row.
+    ("bank_audit_statement_types", "validation_gate", "TEXT NOT NULL DEFAULT ''"),
     # Added 2026-08-05 (migration 0040): the per-row stamp that lets
     # bank_audit_coverage leave the full-rebuild set and be pushed per
     # partition. NULL = written before the column existed, i.e. already in D1.

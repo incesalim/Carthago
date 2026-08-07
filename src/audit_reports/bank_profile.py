@@ -384,6 +384,8 @@ def upsert_profile(
     period: str,
     kind: str,
     profile: BankProfile,
+    *,
+    commit: bool = True,
 ) -> None:
     """Idempotently store one bank's profile row."""
     conn.execute(
@@ -396,7 +398,8 @@ def upsert_profile(
             profile.branches_total, profile.personnel,
         ),
     )
-    conn.commit()
+    if commit:
+        conn.commit()
 
 
 if __name__ == "__main__":

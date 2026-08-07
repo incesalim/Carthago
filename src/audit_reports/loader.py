@@ -62,6 +62,7 @@ def upsert_report(
     *,
     unit: UnitContext,
     with_prose: bool = False,
+    source_pdf_path: str | Path | None = None,
 ) -> dict[str, int]:
     """Idempotently insert one bank's report. Replaces existing rows for the
     same (bank, period, kind).
@@ -76,9 +77,19 @@ def upsert_report(
 
     from .validator import statement_passes
 
-    def _keep(statement: str) -> bool:
-        """Protect this statement's stored rows (skip the re-write)?"""
-        return (not force) and statement_passes(conn, bank_ticker, period, kind, statement)
+    def _keep(lane_key: str) -> bool:
+        """Protect this registered lane's stored rows (skip the re-write)?
+
+        A lane can depend on more than its own validation row.  In particular,
+        either balance-sheet side also depends on ``cross`` and credit_quality
+        also owns the derived stages view.  The registry is the single source of
+        that relationship graph.
+        """
+        gates = registry.validation_gate(lane_key)
+        return bool(gates) and (not force) and all(
+            statement_passes(conn, bank_ticker, period, kind, statement)
+            for statement in gates
+        )
 
     def _existing(table: str, statement: str | None = None) -> int:
         q = f"SELECT COUNT(*) FROM {table} WHERE bank_ticker=? AND period=? AND kind=?"
@@ -93,7 +104,8 @@ def upsert_report(
     # --- Balance sheet (assets / liabilities / off_balance), per statement ---
     # assets & liabilities cross-check each other (the 'cross' identity), so they
     # are protected as a pair; off_balance is independent.
-    _bs_pair_keep = _keep('assets') and _keep('liabilities')
+    _bs_pair_keep = (_keep('balance_sheet_assets')
+                     and _keep('balance_sheet_liabilities'))
     for stmt_name, ckey, rows, keep in (
         ('assets',      'bs_assets',      rep.bs_assets,      _bs_pair_keep),
         ('liabilities', 'bs_liabilities', rep.bs_liabilities, _bs_pair_keep),
@@ -124,12 +136,12 @@ def upsert_report(
         counts[ckey] = len(rows)
 
     # --- single-column statements: P&L / OCI / cash flow ---
-    for stmt_name, table, ckey, rows in (
-        ('profit_loss', 'bank_audit_profit_loss', 'profit_loss', rep.profit_loss),
-        ('oci',         'bank_audit_oci',         'oci',         getattr(rep, 'other_comprehensive_income', [])),
-        ('cash_flow',   'bank_audit_cash_flow',   'cash_flow',   getattr(rep, 'cash_flow', [])),
+    for lane_key, stmt_name, table, ckey, rows in (
+        ('profit_loss', 'profit_loss', 'bank_audit_profit_loss', 'profit_loss', rep.profit_loss),
+        ('other_comprehensive_income', 'oci', 'bank_audit_oci', 'oci', getattr(rep, 'other_comprehensive_income', [])),
+        ('cash_flow', 'cash_flow', 'bank_audit_cash_flow', 'cash_flow', getattr(rep, 'cash_flow', [])),
     ):
-        if _keep(stmt_name):
+        if _keep(lane_key):
             counts[ckey] = _existing(table)
             continue
         cur.execute(f'DELETE FROM {table} WHERE bank_ticker=? AND period=? AND kind=?',
@@ -182,34 +194,37 @@ def upsert_report(
         # profile is INSERT OR REPLACE (no delete) — skip when empty so a failed
         # re-extract doesn't wipe a previously-captured branches/personnel row.
         ('profile',         lambda: getattr(rep, 'bank_profile', None),                                                    _upsert_bp,  True),
-        # opinion is INSERT OR REPLACE + skip-if-empty (no validator), like profile:
-        # a failed re-extract (opinion_type='unknown') must not wipe a stored verdict.
-        ('opinion',         lambda: getattr(rep, 'audit_opinion', None),                                                   _upsert_op,  True),
-        # free provision: INSERT OR REPLACE + skip-if-empty (no validator), like
-        # opinion/profile — a re-extract that finds no disclosure keeps the value.
+        # audit opinion is INSERT OR REPLACE + skip-if-empty: an unknown parse
+        # must not wipe a stored verdict; a passing stored row is additionally
+        # protected by its validator through the registry-driven gate below.
+        ('audit_opinion',   lambda: getattr(rep, 'audit_opinion', None),                                                   _upsert_op,  True),
+        # Free provision is conditional, but it is still validated: a row gets
+        # range/prior-chain checks and a missing row can fail against the opinion.
         ('free_provision',  lambda: getattr(rep, 'free_provision', None),                                                  _upsert_fp,  True),
         ('equity_change',   lambda: getattr(rep, 'equity_change', None) or EquityChangeReport(pdf_path=pdf_path),          _upsert_eq,  False),
         # prose: DELETE+INSERT (item_order is positional), gated on its own
         # validation statement like the footnote lanes below.
         ('prose',           lambda: getattr(rep, 'prose', None) or ProseResult(),                                         _upsert_prose, False),
     ]
-    # Footnote / §4 persisters: gate each on its own validation statement so a
-    # passing one is left intact (same non-destructive rule as above). 'profile'
-    # has no validator — its skip-if-empty + INSERT-OR-REPLACE already protect it.
+    # Every persister key above is now a registry key.  Derive its table instead
+    # of maintaining another hand-written validator/protection list — that old
+    # list omitted profile and audit_opinion after their validators shipped.
     _PERSISTER_TABLE = {
-        'credit_quality':  'bank_audit_credit_quality',
-        'loans_by_sector': 'bank_audit_loans_by_sector',
-        'npl_movement':    'bank_audit_npl_movement',
-        'capital':         'bank_audit_capital',
-        'liquidity':       'bank_audit_liquidity',
-        'fx_position':     'bank_audit_fx_position',
-        'repricing':       'bank_audit_repricing',
-        'equity_change':   'bank_audit_equity_change',
-        'prose':           'bank_audit_prose',
+        key: registry.BY_KEY[key].table
+        for key, _build, _upsert_fn, _skip in persisters
+        if key in registry.BY_KEY
     }
     _UNIT_AWARE_PERSISTERS = {
         'credit_quality', 'loans_by_sector', 'npl_movement', 'capital',
         'liquidity', 'fx_position', 'repricing', 'equity_change',
+        'free_provision',
+    }
+    # These legacy writers normally commit for standalone use. The loader owns
+    # the report transaction, so suppress those commits here; otherwise a later
+    # validation/statement failure can leave a half-written partition.
+    _COMMIT_AWARE_PERSISTERS = {
+        'credit_quality', 'loans_by_sector', 'npl_movement', 'capital',
+        'liquidity', 'fx_position', 'repricing', 'profile', 'audit_opinion',
         'free_provision',
     }
     # The prose lane is FROZEN: 369,007 rows live in their own local
@@ -228,21 +243,34 @@ def upsert_report(
         if skip_if_empty and (report is None or getattr(report, 'is_empty', lambda: True)()):
             continue
         # Only the writers that touch money take a context. `profile` (branch and
-        # personnel counts), `opinion` (a verdict + flag) and `prose` (sentences)
+        # personnel counts), `audit_opinion` (a verdict + flag) and `prose` (sentences)
         # carry no figures, so handing them one would be noise — and a signature
         # they do not have. `liquidity` DOES take one despite being all ratios:
         # it proves, per run, that nothing there is scaled.
+        kwargs = {}
         if key in _UNIT_AWARE_PERSISTERS:
-            n = upsert_fn(conn, bank_ticker, period, kind, report, unit=unit)
-        else:
-            n = upsert_fn(conn, bank_ticker, period, kind, report)
+            kwargs['unit'] = unit
+        if key in _COMMIT_AWARE_PERSISTERS:
+            kwargs['commit'] = False
+        n = upsert_fn(conn, bank_ticker, period, kind, report, **kwargs)
         if n is not None:
             counts[key] = n
+
+    # Preserve the physical source rows for lanes whose stable analytical
+    # schemas are intentionally normalized or summary-only. `pdf_path` is often
+    # an R2 key, so callers pass the still-live downloaded file separately.
+    # Capture runs before revalidation in this same transaction: an unknown
+    # numeric source row immediately becomes part of the lane's normal gate.
+    if source_pdf_path is not None and Path(source_pdf_path).is_file():
+        from .source_capture import capture_and_upsert
+
+        capture_and_upsert(
+            conn, bank_ticker, period, kind, source_pdf_path, report=rep)
 
     # Structural validation — recompute the WHOLE partition from its STORED rows
     # (not the in-memory report) so the recorded result always matches what's in
     # the DB, including any statements left untouched above. This also covers all
-    # 14 statement types (validate_report only covers the core 8). Isolated: a
+    # every registered statement type (validate_report covers only the core set). Isolated: a
     # validator bug must never sink the extraction itself.
     try:
         import sys as _sys
@@ -295,7 +323,7 @@ def load_pdf(
     rep = extract(str(pdf_path))
     with sqlite3.connect(str(db_path)) as conn:
         return upsert_report(conn, bank_ticker, period, kind, rep, str(pdf_path),
-                             unit=unit)
+                             unit=unit, source_pdf_path=pdf_path)
 
 
 if __name__ == '__main__':

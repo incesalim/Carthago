@@ -40,7 +40,7 @@ if str(REPO) not in sys.path:
 from scripts.audit_d1 import (  # noqa: E402
     DB, partition_delete_sql, pull_snapshot, push_snapshot, retry_wrangler,
 )
-from src.audit_reports.registry import AUDIT_TABLES  # noqa: E402
+from src.audit_reports.registry import AUDIT_TABLES, LOCAL_AUDIT_TABLES  # noqa: E402
 
 KINDS = ("consolidated", "unconsolidated")
 
@@ -49,7 +49,7 @@ def count_rows(conn: sqlite3.Connection, parts: list[tuple[str, str, str]],
                ) -> dict[str, int]:
     """{table: rows matching any of the partitions} — the read-only preview."""
     out: dict[str, int] = {}
-    for tbl in AUDIT_TABLES:
+    for tbl in LOCAL_AUDIT_TABLES:
         total = 0
         for bank, period, kind in parts:
             try:
@@ -68,7 +68,7 @@ def count_rows(conn: sqlite3.Connection, parts: list[tuple[str, str, str]],
 def delete_local(conn: sqlite3.Connection,
                  parts: list[tuple[str, str, str]]) -> int:
     deleted = 0
-    for tbl in AUDIT_TABLES:
+    for tbl in LOCAL_AUDIT_TABLES:
         for bank, period, kind in parts:
             try:
                 cur = conn.execute(

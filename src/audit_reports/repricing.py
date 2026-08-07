@@ -436,7 +436,7 @@ _VALUE_COLS = ["rate_sensitive_assets", "rate_sensitive_liab", "gap", "cumulativ
 
 
 def upsert(conn: sqlite3.Connection, bank_ticker: str, period: str, kind: str,
-           rep: RepricingReport, *, unit: UnitContext) -> int:
+           rep: RepricingReport, *, unit: UnitContext, commit: bool = True) -> int:
     cur = conn.cursor()
     cur.execute(
         "DELETE FROM bank_audit_repricing WHERE bank_ticker=? AND period=? AND kind=?",
@@ -456,7 +456,8 @@ def upsert(conn: sqlite3.Connection, bank_ticker: str, period: str, kind: str,
         cur.executemany(
             f"INSERT INTO bank_audit_repricing ({', '.join(cols)}) VALUES ({ph})", rows
         )
-    conn.commit()
+    if commit:
+        conn.commit()
     return len(rows)
 
 

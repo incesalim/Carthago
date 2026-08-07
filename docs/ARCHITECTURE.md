@@ -98,38 +98,42 @@ so a push can never wipe a table it has no rows for. (Recovery recipe in
 One audit table is **derived, not extracted**: `bank_audit_stages` is built from
 `bank_audit_credit_quality` (Stage-1/2 loan amounts + the BRSA NPL Stage-3 +
 ECLs) by `scripts/build_bank_audit_stages.py`. So re-extracting `credit_quality`
-must **rebuild stages** afterward — the audit + reextract workflows do this.
+must **rebuild stages**. The routine audit workflow rebuilds afterward; targeted
+re-extraction rebuilds the affected partition inside the candidate savepoint,
+before acceptance, so source and derived rows cannot disagree after a repair.
 
 ### Daily — `.github/workflows/refresh-evds-daily.yml`
-Sun–Fri 05:00 UTC. EVDS scraper (fresh FX / rates / sterilization data in D1
-within 24h) plus the non-critical BIST / TBB / TKBB / KAP / TEFAS / Faaliyet steps
-of `refresh.py` (BIST re-fetches a trailing 35-day window daily, TEFAS a trailing
-7-day window). Saturday is skipped because the weekly workflow already covers
-everything. A separate daily job, `refresh-news-daily.yml` (04:00 UTC), refreshes
-`news_items`.
+Sun–Fri 05:00 UTC. Polls only EVDS series declared daily/workday, keeping FX,
+policy/funding rates and sterilization current within 24h. Weekly, monthly and
+quarterly EVDS series are polled by Saturday's full refresh. Every unrelated
+`refresh.py` lane is explicitly skipped, and a byte-stable DB result skips the
+D1 push and R2 upload. A separate daily job, `refresh-news-daily.yml` (04:00 UTC),
+refreshes `news_items`.
 
 ### BDDK bulletins — `.github/workflows/refresh-bddk-bulletins.yml`
 Isolated BDDK-only refresh (`--skip-evds`, no audit), split by schedule via
 `github.event.schedule`:
-- **Daily 13:00 UTC** (10:00 Turkey) — monthly check. The monthly bulletin lands
-  mid-month on no fixed day, so `update_monthly.py` probes daily and scrapes only
-  when BDDK has published a new month (cheap otherwise).
+- **13:00 UTC on the first and last five days** — monthly check around BDDK's
+  normal month-end publication window. `update_monthly.py` still probe-then-fetches.
 - **Friday 13:30 + 15:30 UTC** (16:30 & 18:30 Turkey) — weekly. BDDK publishes the
   weekly bulletin Friday afternoon; two runs bracket the window (~30 min).
-- **Saturday 02:00 UTC** — weekly backstop.
+
+The former Saturday 02:00 backstop is removed: the full Saturday workflow runs
+at 03:00. Quiet runs stop before D1 and R2.
 
 A positive Telegram ping ("published & fetched", `notify_new_bddk.py`) fires when
 a weekly/monthly period newly lands; quiet otherwise.
 
 ### Weekly full — `.github/workflows/refresh-data.yml`
-Saturday 03:00 UTC. BDDK bulletins + EVDS + BIST + TBB digital + TKBB participation
+Saturday 03:00 UTC. BDDK bulletins + EVDS + TBB digital + TKBB participation
 digital + KAP + TEFAS + Faaliyet franchise:
 1. Decompress `state/bddk_data.db.gz` (pulled from R2) → `data/bddk_data.db`
 2. `scripts/refresh.py` — monthly + weekly + EVDS scrapes + TBB quarterly
    digital-banking refresh + KAP ownership + TEFAS fund market into SQLite
    (TBB/KAP/TEFAS are non-critical steps; an outage in one won't abort the
    BDDK refresh)
-3. `scripts/push_to_d1.py --hours 168` — push the week's rows to D1
+3. If SQLite is unchanged, stop. Otherwise `scripts/push_to_d1.py --hours 168`
+   pushes the week's rows to D1
    (idempotent via INSERT OR REPLACE; covers `tbb_digital_stats`,
    `kap_ownership` and the `tefas_*` tables too)
 4. VACUUM + re-gzip + upload the snapshot back to R2
@@ -148,46 +152,49 @@ knows is running:
 | `summarize-regulations.yml` | Sun 06:00 UTC | `summarize_regulations.py` → `regulation_briefings` (weekly Kimi briefing; needs `KIMI_API_TOKEN`) |
 | `generate-reads.yml` | Sun 07:30 UTC | `generate_read_headlines.py` → `read_headlines` (free-LLM rewrite of the one-sentence lead on each T1 tab; number-validated, and shown only while its `det_hash` matches the live page) |
 
-Five more workflows are **manual dispatch only**. Four exist to load history, not
-to keep it fresh: `backfill-audit.yml`, `backfill-faaliyet.yml`,
-`backfill-nonbank.yml` and `backfill-tefas.yml`. The fifth,
+Six more workflows are **manual dispatch only**. Five exist to load or strengthen
+history, not to keep it fresh: `backfill-audit.yml`,
+`backfill-audit-source-capture.yml`, `backfill-faaliyet.yml`,
+`backfill-nonbank.yml` and `backfill-tefas.yml`. The sixth,
 `repair-loans-zeros.yml`, is a one-time idempotent correction — it re-derives the
 zeros `_save_loans` discarded (falsy `or` chains turned every reported 0 into
 NULL) from the raw responses already on disk. Recipes in
 [OPERATIONS.md](OPERATIONS.md).
 
-### Audit reports — two workflows, one `bddk-audit` lane
-Standalone audit pipeline on its own DB + snapshot. **Acquisition is automated;
-extraction is admin-triggered** (they share the concurrency group, so never overlap).
-
-**`acquire-audit.yml`** (Sunday 04:00 UTC) — the only scheduled part:
-1. Pull `state/bank_audit.db.gz` (read-only, for coverage row counts)
-2. `scripts/sync_audit_reports.py --no-extract` — scrape new bank IR PDFs to R2.
-   URLs from `data/banks/audit_report_urls.json`; 13 banks also auto-discover new
-   quarters from their IR page (`src/audit_reports/discovery.py`)
-3. `scripts/sync_audit_expected.py --push` — refresh the coverage matrix (new PDFs
-   appear as `missing`); notify Telegram on new reports. **Never writes the snapshot.**
-
-**`refresh-audit.yml`** (dispatch-only, from /admin) — extraction:
+### Audit reports — one automatic path, one manual diagnostic
+Standalone audit pipeline on its own DB + snapshot. `refresh-audit.yml` runs
+daily only during filing windows and remains manually dispatchable:
 1. Pull/seed `data/bank_audit.db`
-2. `scripts/sync_audit_reports.py` — extract pending PDFs from R2 (or `--only-bank`
+2. Discover/download new PDFs and extract pending PDFs from R2 (or `--only-bank`
    / `--periods … --force` for a targeted re-extract, passed via the workflow's
    `bank`/`period` inputs from the /admin coverage matrix)
-3. `build_bank_audit_stages.py` → `revalidate_audit_db.py` → `check_audit_quality.py`
-4. `push_to_d1.py --table-set audit` + `sync_audit_expected.py --push` (the table
-   list is derived from the statement registry — never hand-listed)
-5. VACUUM + re-gzip + upload `state/bank_audit.db.gz` (the snapshot WRITER)
+3. If nothing changed, stop with no D1 or snapshot write
+4. Build stages, revalidate and rebuild the coverage spine locally
+5. One `push_to_d1.py --table-set audit-refresh` batch (registry tables + spine)
+6. VACUUM + re-gzip + upload `state/bank_audit.db.gz` (the snapshot WRITER)
+
+`acquire-audit.yml` is now manual-only: an acquisition-only diagnostic for an
+operator who deliberately wants a PDF in R2 without running extraction. Both
+workflows share `bddk-audit`, so they cannot overlap.
 
 **`reextract-statement.yml`** (dispatch-only) — targeted **single-statement** fix
-on the same lane. Re-extracts one statement (`oci` / `cash_flow` / `equity_change`
-/ `npl_movement` / `loans_by_sector` / `bank_profile` / `credit_quality`) for the
-selected banks/periods via `scripts/reextract_statement.py`, inline-validates, and
-pushes only that table + `bank_audit_validation` + a fresh snapshot. The
-**non-destructive guard** leaves passing partitions untouched (`only_failing=true`
-re-touches only the not-passing ones); `force=true` overrides it for
-derived-table defects (a partition can pass `credit_quality` yet fail the derived
-`bank_audit_stages`). This is how OCI/CF/NPL/loans_by_stage were fixed fleet-wide
-without re-running the frozen BS/P&L extraction.
+on the same lane. Registry keys resolve to the extractor token, source table and
+complete validation gate. `only_failing=true` selects a partition when any required
+relationship is not a proven pass; `require_passing=true` accepts a candidate only
+after all required results pass. Balance-sheet repairs require both internal
+hierarchies plus A=L+E; credit-quality repairs rebuild and validate stages inside the
+same savepoint. Rejected source, derived and validation rows roll back together, and
+only factually changed tables are pushed. This is how OCI/CF/NPL/loans_by_stage were
+fixed fleet-wide without re-running the frozen BS/P&L extraction.
+
+**`backfill-audit-source-capture.yml`** (dispatch-only) — the evidence-only
+historical upgrade for eight normalized/summary lanes. It downloads the existing
+R2 PDFs, stores their bounded disclosure-page lines in the local/R2 snapshot, and
+pushes only a compact source-count/hash manifest plus changed validation rows to
+D1. It never calls an analytical upsert. Near-full lanes fail on an unknown numeric
+source row; selected-summary lanes retain/count their intentionally omitted detail.
+New extracts do this in the normal transaction; this workflow only closes the
+historical gap.
 
 **`measure-free-provision.yml`** (dispatch-only) — the same read-only posture,
 aimed at one extractor. It downloads every audit PDF from R2, re-runs

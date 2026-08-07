@@ -232,10 +232,9 @@ async function auditSource(db: DB): Promise<SourceHealth> {
     "SELECT MAX(period) AS latest, MAX(extracted_at) AS last_refresh, COUNT(*) AS n, " +
       "SUM(CASE WHEN success=0 THEN 1 ELSE 0 END) AS failed FROM bank_audit_extractions",
   );
-  // Extraction is admin-triggered (no schedule), so audit freshness isn't
-  // time-based — health = whether every extracted partition succeeded.
-  // Acquisition (acquire-audit.yml, weekly) keeps new PDFs flowing; the coverage
-  // matrix is where "what's missing" is surfaced and acted on.
+  // Reports publish quarterly, so audit freshness remains completeness-based
+  // even though refresh-audit now checks daily during filing windows. The
+  // coverage matrix is where missing/failed partitions are surfaced and acted on.
   const n = agg?.n ?? 0;
   const status: FreshnessStatus =
     n === 0 ? "unknown" : (agg?.failed ?? 0) > 0 ? "late" : "fresh";

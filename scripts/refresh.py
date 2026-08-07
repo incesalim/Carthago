@@ -21,7 +21,7 @@ Cloudflare D1 — which the production dashboard reads from.
 
 Example:
     python scripts/refresh.py                                    # full refresh
-    python scripts/refresh.py --skip-monthly --skip-weekly       # EVDS only
+    python -m src.scrapers.evds_scraper --frequencies all        # EVDS only
     python scripts/refresh.py --push                             # also commit + push
 """
 
@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import argparse
 import gzip
+import hashlib
 import shutil
 import sqlite3
 import subprocess
@@ -39,6 +40,21 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 DB_PATH = ROOT / "data" / "bddk_data.db"
 DB_GZ = ROOT / "data" / "bddk_data.db.gz"
+
+
+def file_digest(path: Path) -> str | None:
+    """Hash the SQLite file before packaging can alter its bytes.
+
+    A loader that commits no mutation leaves the database file unchanged.
+    Workflows use this signal to avoid D1 and R2 writes on quiet source days.
+    """
+    if not path.exists():
+        return None
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def _run_step(name: str, cmd: list[str], critical: bool = True) -> None:
@@ -89,6 +105,12 @@ def main():
                         help="skip the BDDK non-bank sector (leasing/factoring/"
                              "financing/VYŞ) refresh")
     parser.add_argument("--skip-evds", action="store_true")
+    parser.add_argument(
+        "--evds-frequencies",
+        default="all",
+        help=("comma-separated EVDS frequency groups to poll: daily, weekly, "
+              "monthly, quarterly, or all (default: all)"),
+    )
     parser.add_argument("--skip-tbb", action="store_true",
                         help="skip the TBB quarterly digital-banking refresh")
     parser.add_argument("--skip-tkbb", action="store_true",
@@ -101,10 +123,23 @@ def main():
                         help="skip the Faaliyet-raporları franchise refresh")
     parser.add_argument("--skip-tuik", action="store_true",
                         help="skip the TÜİK national-accounts/PPI-detail refresh")
+    parser.add_argument(
+        "--change-file",
+        default="",
+        help=("write 'true' when SQLite changed, otherwise 'false'; workflows "
+              "use this to make quiet runs read-only"),
+    )
+    parser.add_argument(
+        "--defer-packaging",
+        action="store_true",
+        help=("do not VACUUM/gzip a changed DB here; workflows use this so they "
+              "package after the D1 writer records successful push state"),
+    )
     args = parser.parse_args()
 
     start = datetime.now()
     print(f"Refresh starting at {start:%Y-%m-%d %H:%M}", flush=True)
+    before_digest = file_digest(DB_PATH)
 
     if not args.skip_monthly:
         _run_step("Monthly update",
@@ -122,7 +157,8 @@ def main():
                    critical=False)
     if not args.skip_evds:
         _run_step("EVDS update",
-                   [sys.executable, "-m", "src.scrapers.evds_scraper"])
+                   [sys.executable, "-m", "src.scrapers.evds_scraper",
+                    "--frequencies", args.evds_frequencies])
     if not args.skip_tbb:
         # Quarterly source; latest 2 reports refresh the newest quarter and pick
         # up TBB's revisions. Non-critical: a TBB outage must not abort the core
@@ -183,10 +219,23 @@ def main():
                    [sys.executable, "scripts/update_faaliyet.py"],
                    critical=False)
 
-    vacuum()
-    gzip_db()
+    changed = before_digest != file_digest(DB_PATH)
+    if args.change_file:
+        change_path = Path(args.change_file)
+        change_path.parent.mkdir(parents=True, exist_ok=True)
+        change_path.write_text("true" if changed else "false", encoding="utf-8")
 
-    if args.push:
+    if changed and not args.defer_packaging:
+        vacuum()
+        gzip_db()
+    elif changed:
+        print("\nSQLite changed; packaging deferred to the workflow handoff.",
+              flush=True)
+    else:
+        print("\n======== QUIET RUN ========", flush=True)
+        print("No SQLite changes; skipping VACUUM, gzip, D1/R2 handoff.", flush=True)
+
+    if args.push and changed:
         git_push(start.strftime("%Y-%m-%d"))
 
     elapsed = (datetime.now() - start).total_seconds() / 60

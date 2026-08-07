@@ -24,7 +24,9 @@ from pathlib import Path
 import pytest
 
 from push_to_d1 import SYNC_TABLES, fetch_recent, resolve_tables
-from src.audit_reports.registry import AUDIT_TABLES, INFRA_TABLES, REGISTRY
+from src.audit_reports.registry import (
+    AUDIT_TABLES, INFRA_TABLES, LOCAL_AUDIT_TABLES, LOCAL_ONLY_TABLES, REGISTRY,
+)
 
 REPO = Path(__file__).resolve().parents[1]
 WORKFLOWS = REPO / ".github" / "workflows"
@@ -48,9 +50,13 @@ def _d1_schema() -> sqlite3.Connection:
     return conn
 
 
-def test_audit_tables_is_the_registry_plus_the_infra_pair():
+def test_audit_tables_is_the_registry_plus_infra_and_excludes_local_evidence():
     assert set(AUDIT_TABLES) == {st.table for st in REGISTRY} | set(INFRA_TABLES)
     assert len(AUDIT_TABLES) == len(set(AUDIT_TABLES)), "duplicate table in AUDIT_TABLES"
+    assert set(LOCAL_AUDIT_TABLES) == set(AUDIT_TABLES) | set(LOCAL_ONLY_TABLES)
+    assert "bank_audit_source_lines" in LOCAL_AUDIT_TABLES
+    assert "bank_audit_source_lines" not in AUDIT_TABLES
+    assert "bank_audit_source_lines" not in SYNC_TABLES
 
 
 def test_every_audit_table_can_actually_be_pushed():
@@ -69,6 +75,15 @@ def test_table_set_audit_resolves_to_every_audit_table():
     # The two that went missing. Named explicitly so a future edit that drops
     # them from the registry fails here rather than in production.
     assert {"bank_audit_fx_position", "bank_audit_repricing"} <= resolved
+
+
+def test_whole_audit_refresh_adds_the_coverage_spine_without_changing_repairs():
+    repair = resolve_tables(None, "audit")
+    refresh = resolve_tables(None, "audit-refresh")
+    spine = {"bank_audit_expected", "bank_audit_statement_types",
+             "bank_audit_coverage"}
+    assert refresh == repair | spine
+    assert repair.isdisjoint(spine)
 
 
 def test_an_unknown_only_tables_name_is_a_hard_error():

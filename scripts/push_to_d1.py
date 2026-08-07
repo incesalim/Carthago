@@ -97,6 +97,7 @@ SYNC_TABLES = [
     "bank_audit_validation",
     "bank_audit_extractions",
     "bank_audit_pl_roles",
+    "bank_audit_capture_manifest",
     "evds_series",
     "news_items",
     "news_item_banks",
@@ -135,7 +136,8 @@ SYNC_TABLES = [
 # Precomputed rollups with no per-row timestamp: scripts/sync_audit_expected.py
 # (and scripts/build_api_catalog.py for api_series) rebuild them wholesale, so
 # the push clears the D1 table and re-inserts every row (a `--hours` window
-# doesn't apply). Pushed only when named in --only-tables.
+# doesn't apply). A general push includes them; a content hash makes unchanged
+# rebuilds free, while --only-tables can still select one explicitly for repair.
 _FULL_REBUILD = {
     "bank_audit_expected",
     "bank_audit_statement_types",
@@ -178,14 +180,23 @@ if _COVERAGE_INCREMENTAL:                      # pragma: no cover - off by defau
 # or none: a hand-written subset in a workflow is exactly how bank_audit_fx_position
 # and bank_audit_repricing stopped reaching D1 while still being extracted,
 # validated and snapshotted every quarter.
-_TABLE_SETS: dict[str, list[str]] = {"audit": _AUDIT_TABLES}
+_AUDIT_REFRESH_TABLES = list(dict.fromkeys(_AUDIT_TABLES + [
+    "bank_audit_expected",
+    "bank_audit_statement_types",
+    "bank_audit_coverage",
+]))
+_TABLE_SETS: dict[str, list[str]] = {
+    # Partition-safe set used by targeted replacement/repair callers.
+    "audit": _AUDIT_TABLES,
+    # Whole refresh set: the same rows plus the locally rebuilt coverage spine.
+    "audit-refresh": _AUDIT_REFRESH_TABLES,
+}
 
 # Full-rebuild tables emit `DELETE FROM t; INSERT …` for EVERY row, and D1 bills
 # rows written — DELETEs included, index maintenance included (~3.6x per logical
-# row measured on this database). `api_series` alone is 19,787 rows, rebuilt on
-# the DAILY bulletin cron: ~40k logical writes a day for a catalogue that only
-# changes when BDDK adds a series. `bank_audit_coverage` is 18,936 more on every
-# audit and override run.
+# row measured on this database). `api_series` alone is 19,787 rows: before the
+# cadence/no-op gate, rebuilding it on every daily bulletin check meant ~40k
+# logical writes for a catalogue that only changes when source coverage moves.
 #
 # So a full-rebuild table now carries a content hash. If the local rows hash to
 # what was last pushed, the rebuild is skipped entirely. State lives in the
@@ -768,9 +779,7 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int,
     """
     # A table absent from THIS staging DB is not an error. The two DBs hold
     # disjoint sets (see docs/OPERATIONS.md §Two staging DBs), and `api_series`
-    # is built by build_api_catalog.py in the refresh lane only — it is a
-    # _FULL_REBUILD table, pushed solely when named in --only-tables, so a
-    # general `--hours` push has no business reading it at all. Before this
+    # is built by build_api_catalog.py in the refresh lane only. Before this
     # guard, its absence raised OperationalError and took the whole push down:
     # that is what failed the regulation briefing on 2026-07-19. Noisy, not
     # silent — an unexpectedly missing table should still be visible in the log.
@@ -806,7 +815,7 @@ def fetch_recent(conn: sqlite3.Connection, table: str, hours: int,
     elif table in ("news_items", "news_item_banks", "bank_earnings",
                    "bank_call_transcripts", "regulation_briefings"):
         where = f"WHERE fetched_at >= datetime('now', '-{hours} hours')"
-    elif table == "bank_audit_extractions":
+    elif table in ("bank_audit_extractions", "bank_audit_capture_manifest"):
         where = f"WHERE extracted_at >= datetime('now', '-{hours} hours')"
     elif table == "bank_audit_validation":
         where = f"WHERE validated_at >= datetime('now', '-{hours} hours')"
@@ -1181,8 +1190,9 @@ def main() -> int:
     parser.add_argument("--table-set", choices=sorted(_TABLE_SETS), default=None,
                         help="Push a named group instead of hand-listing tables. "
                              "'audit' = every bank_audit_* table the audit lane writes, "
-                             "derived from src/audit_reports/registry.py — so a new "
-                             "statement type is pushed the moment it is registered.")
+                             "derived from src/audit_reports/registry.py; "
+                             "'audit-refresh' adds the three coverage-spine tables. "
+                             "The latter is for whole refreshes, not partition replacement.")
     parser.add_argument("--max-billed-rows", type=int, default=DEFAULT_MAX_BILLED_ROWS,
                         help="Refuse the push if the estimated BILLED rows exceed "
                              "this (default %(default)s). Billed != logical: D1 "

@@ -6,11 +6,15 @@ that window to D1 carrying identical values. D1 bills rows written (~1000x the
 price of a read, index maintenance counted), so that is pure cost — and it is
 invisible: the run succeeds, the data is correct, only the bill moves.
 
-Three lanes have carried this bug:
+Seven ingestion paths have carried this bug:
   - EVDS   (fixed 2026-07-27) — whole history re-fetched daily, ~17M rows/month
   - weekly (fixed 2026-08-04) — trailing 13-week window, ~26,600 rows a run,
                                 of which only the newest week is ever new
   - TEFAS  (fixed 2026-08-04) — trailing 7-day window, re-fetched every day
+  - TBB    (fixed 2026-08-06) — overlapping quarterly/cumulative workbooks
+  - TKBB   (fixed 2026-08-06) — newest quarter + rolling 12-month window
+  - TÜİK   (fixed 2026-08-06) — complete workbook history re-fetched weekly
+  - KAP    (fixed 2026-08-06) — complete bank partitions re-fetched weekly
 
 These tests are the gate. Each asserts that a second, identical ingest writes
 nothing at all, and that a genuine revision still lands. Backdating the stamp
@@ -29,8 +33,14 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from src.scrapers.weekly_api_scraper import BDDKWeeklyAPIScraper  # noqa: E402
+from src.tbb import loader as tbb_loader, schema as tbb_schema  # noqa: E402
+from src.tbb.acquisition import AcqStat  # noqa: E402
+from src.tbb.parser import TbbStat  # noqa: E402
 from src.tefas.loader import upsert_day  # noqa: E402
 from src.tefas.schema import init_schema as init_tefas_schema  # noqa: E402
+from src.tkbb import loader as tkbb_loader, schema as tkbb_schema  # noqa: E402
+from src.tkbb.acquisition import TkbbAcqStat  # noqa: E402
+from src.tkbb.digital import TkbbStat  # noqa: E402
 
 BACKDATE = "2020-01-01 00:00:00"
 
@@ -208,3 +218,94 @@ def test_tefas_dropped_top_fund_still_queues_its_delete(tmp_path):
     queued = [r[0] for r in conn.execute("SELECT sql FROM d1_pending_deletes")]
     assert len(queued) == 1
     assert "fon_kodu='AFA'" in queued[0]
+
+
+# --------------------------------------------------------------------------
+# Saturday catch-up sources - overlapping source files/windows
+# --------------------------------------------------------------------------
+def test_tbb_digital_identical_refetch_writes_nothing():
+    conn = sqlite3.connect(":memory:")
+    tbb_schema.init_schema(conn)
+    stat = TbbStat(
+        "2026-06", "digital", "total", "I", "Customers", "Active",
+        "active", "persons_thousands", 42.0, "Digital",
+    )
+    assert tbb_loader.upsert_stats(conn, [stat]) == 1
+    conn.execute("UPDATE tbb_digital_stats SET downloaded_at=?", (BACKDATE,))
+    conn.commit()
+
+    assert tbb_loader.upsert_stats(conn, [stat]) == 0
+    assert conn.execute(
+        "SELECT downloaded_at FROM tbb_digital_stats"
+    ).fetchone()[0] == BACKDATE
+
+
+def test_tbb_acquisition_revision_writes_only_when_value_moves():
+    conn = sqlite3.connect(":memory:")
+    tbb_schema.init_acquisition_schema(conn)
+    first = AcqStat("2026-06", "individual", "branch", "Branch", 100.0)
+    assert tbb_loader.upsert_acquisition(conn, [first]) == 1
+    conn.execute("UPDATE tbb_acquisition_stats SET downloaded_at=?", (BACKDATE,))
+    conn.commit()
+
+    assert tbb_loader.upsert_acquisition(conn, [first]) == 0
+    revised = AcqStat("2026-06", "individual", "branch", "Branch", 101.0)
+    assert tbb_loader.upsert_acquisition(conn, [revised]) == 1
+    assert conn.execute(
+        "SELECT value FROM tbb_acquisition_stats"
+    ).fetchone()[0] == 101.0
+
+
+def test_tkbb_digital_identical_refetch_writes_nothing():
+    conn = sqlite3.connect(":memory:")
+    tkbb_schema.init_schema(conn)
+    stat = TkbbStat(
+        "2026-06", "active_customers", "total", "total", "", "persons",
+        7_900_000.0, "2026 Q2", "DL-X",
+    )
+    assert tkbb_loader.upsert_stats(conn, [stat]) == 1
+    conn.execute("UPDATE tkbb_digital_stats SET downloaded_at=?", (BACKDATE,))
+    conn.commit()
+
+    assert tkbb_loader.upsert_stats(conn, [stat]) == 0
+    assert conn.execute(
+        "SELECT downloaded_at FROM tkbb_digital_stats"
+    ).fetchone()[0] == BACKDATE
+
+
+def test_tkbb_acquisition_identical_refetch_writes_nothing():
+    conn = sqlite3.connect(":memory:")
+    tkbb_schema.init_acquisition_schema(conn)
+    stat = TkbbAcqStat(
+        "2026-06", "remote", "customers", "Customers", 200.0, "DL-A",
+    )
+    assert tkbb_loader.upsert_acquisition(conn, [stat]) == 1
+    conn.execute("UPDATE tkbb_acquisition_stats SET downloaded_at=?", (BACKDATE,))
+    conn.commit()
+
+    assert tkbb_loader.upsert_acquisition(conn, [stat]) == 0
+    assert conn.execute(
+        "SELECT downloaded_at FROM tkbb_acquisition_stats"
+    ).fetchone()[0] == BACKDATE
+
+
+def test_tuik_identical_refetch_writes_nothing(tmp_path, monkeypatch):
+    from scripts import update_tuik
+    from src.scrapers.evds_scraper import init_schema as init_evds_schema
+    from src.tuik.parser import Row
+
+    db = tmp_path / "tuik.db"
+    with sqlite3.connect(db) as conn:
+        init_evds_schema(conn)
+    monkeypatch.setattr(update_tuik, "DB", db)
+    blocks = [([Row("TUIK.TEST", "2026-06-01", 100.0, "Test")], "tuik_test")]
+
+    assert update_tuik.write_db(blocks) == 1
+    with sqlite3.connect(db) as conn:
+        conn.execute("UPDATE evds_series SET downloaded_at=?", (BACKDATE,))
+        conn.commit()
+    assert update_tuik.write_db(blocks) == 0
+    with sqlite3.connect(db) as conn:
+        assert conn.execute(
+            "SELECT downloaded_at FROM evds_series"
+        ).fetchone()[0] == BACKDATE

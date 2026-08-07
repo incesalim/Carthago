@@ -34,6 +34,7 @@ interface TypeRow {
   statement: string | null;
   section: string;
   has_validator: number;
+  validation_gate: string;
   section_rank: number;
   sort_order: number;
 }
@@ -238,7 +239,9 @@ export default function CoverageMatrix() {
       status: p.status,
       pdfPresent: !!p.pdf_present,
       hasValidator: !!t?.has_validator,
-      validationStatement: t?.statement ?? p.statement_type,
+      validationGate: (t?.validation_gate ?? t?.statement ?? p.statement_type)
+        .split(",")
+        .filter(Boolean),
     });
   }
 

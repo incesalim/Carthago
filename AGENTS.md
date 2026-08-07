@@ -73,7 +73,8 @@ ones a reader sees.)*
 It gated on **provenance**: parser-extracted trusted, model-read forbidden. That
 premise did not survive measurement. Corrupt one stored cell and re-run every
 check the lane actually gets, and **cash flow misses 79.9%**, OCI 52.6%, P&L
-sub-items 38.7%; `free_provision` has 580 cells and no validator at all. The
+sub-items 38.7%; at measurement time `free_provision` had 580 cells and no
+per-partition validator (it now has opinion/prior-chain gates). The
 deterministic pipeline already ships unverified figures in volume, so "a parser
 produced it" was never the guarantee the rule implied.
 

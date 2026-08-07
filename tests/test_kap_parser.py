@@ -196,9 +196,26 @@ def test_replace_bank_rows_reports_shrink():
         {"kpy41_acc5_sermayede_dogrudan": dict(_DIRECT, value=_DIRECT["value"][:1])},
     )
     n, removed = replace_bank_rows(conn, "AKBNK", shrunk)
-    assert n == 1
+    assert n == 0  # the retained row is identical and is not re-stamped
     assert ("AKBNK", "paid_in_capital", 0) in removed
     assert ("AKBNK", "shareholder", 1) in removed
     assert ("AKBNK", "shareholder", 2) in removed
     left = conn.execute("SELECT COUNT(*) FROM kap_ownership").fetchone()[0]
     assert left == 1
+
+
+def test_replace_bank_rows_leaves_identical_partition_untouched():
+    conn = sqlite3.connect(":memory:")
+    init_schema(conn)
+    items = {o["itemKey"]: o for o in (_DIRECT, _PAID_IN)}
+    rows = ownership_rows("AKBNK", "AKBANK T.A.S.", 2413, items)
+    assert replace_bank_rows(conn, "AKBNK", rows)[0] == 4
+    conn.execute(
+        "UPDATE kap_ownership SET downloaded_at='2020-01-01 00:00:00'"
+    )
+    conn.commit()
+
+    assert replace_bank_rows(conn, "AKBNK", rows) == (0, [])
+    assert {r[0] for r in conn.execute(
+        "SELECT downloaded_at FROM kap_ownership"
+    )} == {"2020-01-01 00:00:00"}

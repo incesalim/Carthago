@@ -22,6 +22,7 @@ from src.audit_reports.registry import (
     REGISTRY,
     SECTION_ORDER,
     core_types,
+    validation_gate,
     web_metadata,
 )
 
@@ -85,6 +86,25 @@ def test_web_metadata_carries_section_and_rank():
     for m in web_metadata():
         assert m["section"] in SECTION_ORDER
         assert m["section_rank"] == SECTION_ORDER.index(m["section"])
+        assert m["validation_gate"] == ",".join(validation_gate(m["key"]))
+
+
+def test_every_validated_lane_has_an_enforced_relationship_gate():
+    for st in REGISTRY:
+        gate = validation_gate(st.key)
+        if st.has_validator:
+            assert st.validation_statement in gate, (
+                f"{st.key} validator exists but its own result is not enforced")
+        else:
+            assert gate == ()
+
+
+def test_cross_table_dependencies_are_in_the_registry_graph():
+    balance_gate = ("assets", "liabilities", "cross")
+    assert validation_gate("balance_sheet_assets") == balance_gate
+    assert validation_gate("balance_sheet_liabilities") == balance_gate
+    assert validation_gate("credit_quality") == ("credit_quality", "stages")
+    assert validation_gate("stages") == ("credit_quality", "stages")
 
 
 def test_migration_0030_backfill_matches_the_registry():
@@ -110,6 +130,30 @@ def test_migration_0030_backfill_matches_the_registry():
     assert got == want, "migration 0030's backfill has drifted from the registry"
 
 
+def test_migration_0041_backfill_matches_relationship_registry():
+    conn = sqlite3.connect(":memory:")
+    conn.executescript(
+        (MIGRATIONS / "0008_audit_registry_expected.sql").read_text(encoding="utf-8"))
+    conn.executescript(
+        (MIGRATIONS / "0030_audit_statement_type_section.sql").read_text(encoding="utf-8"))
+    conn.executemany(
+        "INSERT INTO bank_audit_statement_types (key, label, source_table, statement, "
+        "section, is_core, has_validator, section_rank, sort_order) "
+        "VALUES (?,?,?,?,?,?,?,?,?)",
+        [(m["key"], m["label"], m["table"], m["statement"], m["section"],
+          m["is_core"], 0 if m["key"] == "free_provision" else m["has_validator"],
+          m["section_rank"], m["sort_order"])
+         for m in web_metadata()],
+    )
+    conn.executescript(
+        (MIGRATIONS / "0041_audit_validation_gate.sql").read_text(encoding="utf-8"))
+    got = {key: (has_validator, gate) for key, has_validator, gate in conn.execute(
+        "SELECT key, has_validator, validation_gate FROM bank_audit_statement_types")}
+    want = {m["key"]: (m["has_validator"], m["validation_gate"])
+            for m in web_metadata()}
+    assert got == want
+
+
 def test_fresh_schema_and_the_sync_insert_agree():
     """schema.py's DDL and sync_audit_expected.write()'s column list are edited in
     different files; a mismatch silently lands values in the wrong column."""
@@ -117,16 +161,20 @@ def test_fresh_schema_and_the_sync_insert_agree():
     schema.init_schema(conn)
     conn.executemany(
         "INSERT INTO bank_audit_statement_types (key, label, source_table, statement, "
-        "section, is_core, has_validator, section_rank, sort_order) VALUES (?,?,?,?,?,?,?,?,?)",
+        "section, is_core, has_validator, validation_gate, section_rank, sort_order) "
+        "VALUES (?,?,?,?,?,?,?,?,?,?)",
         [(m["key"], m["label"], m["table"], m["statement"], m["section"],
-          m["is_core"], m["has_validator"], m["section_rank"], m["sort_order"])
+          m["is_core"], m["has_validator"], m["validation_gate"],
+          m["section_rank"], m["sort_order"])
          for m in web_metadata()])
     rows = conn.execute(
-        "SELECT key, section, is_core, section_rank FROM bank_audit_statement_types "
+        "SELECT key, section, is_core, section_rank, validation_gate "
+        "FROM bank_audit_statement_types "
         "ORDER BY section_rank, sort_order").fetchall()
     assert len(rows) == len(REGISTRY)
     assert [r[1] for r in rows] == sorted(
         (r[1] for r in rows), key=SECTION_ORDER.index), "not grouped by SECTION_ORDER"
-    for key, section, is_core, rank in rows:
+    for key, section, is_core, rank, gate in rows:
         assert (section, rank) == (BY_KEY[key].section, SECTION_ORDER.index(section))
         assert bool(is_core) == BY_KEY[key].is_core
+        assert gate == ",".join(validation_gate(key))

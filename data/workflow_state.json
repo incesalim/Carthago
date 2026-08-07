@@ -28,6 +28,10 @@
   "backfill-audit.yml": {
    "state": "active"
   },
+  "backfill-audit-source-capture.yml": {
+   "state": "active",
+   "reason": "Active but DISPATCH-ONLY. Evidence-only historical upgrade for normalized/summary audit tables; no schedule, and content-idempotent D1 writes are limited to compact manifests plus changed validation rows."
+  },
   "backfill-faaliyet.yml": {
    "state": "active"
   },

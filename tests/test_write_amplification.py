@@ -193,6 +193,27 @@ def test_stages_removes_a_row_whose_source_disappeared(tmp_path):
     assert conn.execute("SELECT COUNT(*) FROM bank_audit_stages").fetchone()[0] == 0
 
 
+def test_partition_stage_rebuild_obeys_candidate_savepoint(tmp_path):
+    """Targeted repair must judge derived stages before acceptance and be able
+    to roll both source and derived rows back together."""
+    conn = _db(tmp_path, "stg_savepoint.db")
+    _seed_cq(conn, total=100.0)
+    ST = _stages_mod()
+    ST.build_stages(conn)
+    conn.execute("SAVEPOINT candidate")
+    conn.execute(
+        "UPDATE bank_audit_credit_quality SET stage1_amount=999 "
+        "WHERE bank_ticker='TEB' AND period='2026Q2' AND kind='consolidated'")
+    assert ST.rebuild_stages_partition(
+        conn, "TEB", "2026Q2", "consolidated") == 1
+    assert conn.execute(
+        "SELECT stage1_amount FROM bank_audit_stages").fetchone()[0] == 999.0
+    conn.execute("ROLLBACK TO candidate")
+    conn.execute("RELEASE candidate")
+    assert conn.execute(
+        "SELECT stage1_amount FROM bank_audit_stages").fetchone()[0] == 100.0
+
+
 # --- the cap must bound the RUN, not each invocation -------------------------
 
 def _push_mod():

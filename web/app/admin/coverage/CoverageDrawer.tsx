@@ -14,7 +14,7 @@ export interface OpenCell {
   status: string;
   pdfPresent: boolean;
   hasValidator: boolean;
-  validationStatement: string | null; // which validation row to surface
+  validationGate: string[]; // every validation result required by this lane
 }
 
 interface Detail {
@@ -133,10 +133,11 @@ export default function CoverageDrawer({
   if (!open) return null;
 
   const ex = detail?.extraction;
-  const valRow = detail?.validation.find(
-    (v) => v.statement === (open.validationStatement ?? open.type),
-  );
-  const failures = parseFailures(valRow?.failed_detail ?? null);
+  const validationGate = open.validationGate.length > 0 ? open.validationGate : [open.type];
+  const gateRows = validationGate.map((gate) => ({
+    gate,
+    row: detail?.validation.find((v) => v.statement === gate),
+  }));
   // A missing cell with a PDF is one of two things, told apart by whether the
   // partition has ANY extraction row: never-extracted (acquired, ready to ingest)
   // vs extracted-but-this-statement-empty (likely a scanned-image page → manual).
@@ -278,37 +279,52 @@ export default function CoverageDrawer({
             </div>
           )}
 
-          {open.hasValidator && valRow && (
+          {open.hasValidator && (
             <div>
               <p className="mb-1 text-xs font-medium text-muted-foreground">
-                Validation — {valRow.checks_passed} passed, {valRow.checks_failed} failed
+                Relationship validation
               </p>
-              {valRow.checks_passed === 0 && valRow.checks_failed === 0 && (
-                <p className="mb-1 text-xs text-warning">
-                  Every check skipped — nothing about this cell was actually verified.
-                </p>
-              )}
-              {failures.length === 0 ? (
-                <p className="text-xs text-positive">All identity checks foot.</p>
-              ) : (
-                <ul className="flex flex-col gap-1">
-                  {failures.map((f, i) => (
-                    <li
-                      key={i}
-                      className="rounded border border-negative/30 bg-negative/5 px-2 py-1 text-xs"
-                    >
-                      <span className="font-medium">{f.node ?? f.check}</span>
-                      {f.expected != null && f.actual != null && (
-                        <span className="text-muted-foreground">
-                          {" "}
-                          — expected {nf.format(f.expected)}, got {nf.format(f.actual)}
-                          {f.diff != null ? ` (Δ ${nf.format(f.diff)})` : ""}
-                        </span>
+              <div className="flex flex-col gap-2">
+                {gateRows.map(({ gate, row }) => {
+                  const failures = parseFailures(row?.failed_detail ?? null);
+                  return (
+                    <div key={gate} className="rounded border border-border px-2 py-1.5">
+                      <p className="font-mono text-[10px] uppercase tracking-wide text-muted-foreground">
+                        {gate.replace(/_/g, " ")}
+                      </p>
+                      {!row ? (
+                        <p className="text-xs text-warning">No validation result recorded.</p>
+                      ) : row.checks_passed === 0 && row.checks_failed === 0 ? (
+                        <p className="text-xs text-warning">
+                          Every check skipped — nothing was verified.
+                        </p>
+                      ) : failures.length === 0 ? (
+                        <p className="text-xs text-positive">
+                          {row.checks_passed} check{row.checks_passed === 1 ? "" : "s"} passed.
+                        </p>
+                      ) : (
+                        <ul className="mt-1 flex flex-col gap-1">
+                          {failures.map((f, i) => (
+                            <li
+                              key={i}
+                              className="rounded border border-negative/30 bg-negative/5 px-2 py-1 text-xs"
+                            >
+                              <span className="font-medium">{f.node ?? f.check}</span>
+                              {f.expected != null && f.actual != null && (
+                                <span className="text-muted-foreground">
+                                  {" "}
+                                  — expected {nf.format(f.expected)}, got {nf.format(f.actual)}
+                                  {f.diff != null ? ` (Δ ${nf.format(f.diff)})` : ""}
+                                </span>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
                       )}
-                    </li>
-                  ))}
-                </ul>
-              )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
@@ -317,13 +333,15 @@ export default function CoverageDrawer({
           <Button
             className="w-full"
             size="sm"
-            disabled={reextractBusy || !open.pdfPresent}
+            disabled={reextractBusy || !open.pdfPresent || open.type === "prose"}
             onClick={() => onReextract(open.bank, open.period, open.kind, open.type)}
           >
             {reextractBusy ? "Triggering…" : `Force re-extract this cell`}
           </Button>
           <p className="mt-1 text-center text-[11px] text-muted-foreground">
-            {open.pdfPresent
+            {open.type === "prose"
+              ? "Narrative prose is a parked local-only lane and cannot be dispatched from D1."
+              : open.pdfPresent
               ? `Re-extracts only ${open.typeLabel} (${open.kind}) for ${open.bank} ${open.period}, overwriting it even if it passes.`
               : "No PDF in R2 to re-extract."}
           </p>

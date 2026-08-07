@@ -46,24 +46,12 @@ def _pushing_steps(path: Path):
             if _PUSHES_TO_D1.search(str(s.get("run") or ""))]
 
 
-def test_refresh_audit_gives_both_pushes_the_same_ledger():
-    """The 2026Q2 run: 203,799 then 226,069, each 'under' a 250,000 cap,
-    429,868 for the run. Both steps must now share one ledger path."""
+def test_refresh_audit_batches_everything_into_one_budgeted_push():
+    """The old two-push run bypassed the per-run intent of the cap."""
     wf = WORKFLOWS / "refresh-audit.yml"
     steps = _pushing_steps(wf)
-    assert len(steps) >= 2, (
-        f"expected at least two D1-pushing steps in {wf.name}, found "
-        f"{[s.get('name') for s in steps]}")
-    paths = {}
-    for s in steps:
-        env = s.get("env") or {}
-        assert LEDGER in env, (
-            f"step {s.get('name')!r} pushes to D1 without {LEDGER}: the cap "
-            f"falls back to per-invocation and the run is unbounded again")
-        paths[s.get("name")] = env[LEDGER]
-    assert len(set(paths.values())) == 1, (
-        f"the pushing steps use DIFFERENT ledgers, so neither sees the other's "
-        f"spend: {paths}")
+    assert len(steps) == 1, [s.get("name") for s in steps]
+    assert LEDGER in (steps[0].get("env") or {})
 
 
 def test_the_ledger_path_is_run_scoped_not_shared_between_runs():

@@ -1698,6 +1698,7 @@ def upsert(
     rep: CreditQualityReport,
     *,
     unit: UnitContext,
+    commit: bool = True,
 ) -> int:
     """Idempotently store one bank's credit-quality rows. Returns row count."""
     cur = conn.cursor()
@@ -1721,7 +1722,8 @@ def upsert(
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             rows,
         )
-    conn.commit()
+    if commit:
+        conn.commit()
     return len(rows)
 
 

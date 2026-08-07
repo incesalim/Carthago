@@ -146,6 +146,7 @@ node_modules/
 .next/
 .wrangler/
 .open-next/
+.pnpm-store/
 .dev.vars
 # Migration log from one-shot migrate_pdfs_to_r2.py runs
 migrate.log

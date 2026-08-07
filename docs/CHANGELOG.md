@@ -5,6 +5,51 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-04.
 
+2026-08-07 — **Refreshes now poll on each source's cadence and stop writing the
+moment nothing changed.** The BDDK monthly probe runs on the first/last five
+days of the month instead of daily; the Saturday 02:00 weekly backstop is gone
+(the 03:00 full refresh follows anyway); the daily EVDS lane polls only series
+declared daily/workday and passes explicit `--skip-*` flags for every unrelated
+loader. `refresh.py` hashes the SQLite file before and after (`--change-file`)
+and defers VACUUM/gzip to the workflow (`--defer-packaging`), so a quiet run
+performs no Node setup, no D1 push and no R2 upload. Four more Saturday-path
+writers — TBB, TKBB, TÜİK and KAP — now compare the stored tuple before writing,
+so identical re-fetches no longer refresh `downloaded_at` and the no-change gate
+can actually fire (`tests/test_d1_write_economy.py`, `tests/test_refresh_cadence.py`).
+
+Same day — **the audit lane owns its arrival path.** `refresh-audit.yml` is
+scheduled daily during the quarterly filing windows (Jan 20–end Feb, Mar 1–15,
+Apr/Jul/Oct 20 → May/Aug/Nov 20) and carries a valid new PDF from discovery
+through extraction, validation, coverage and **one** `--table-set audit-refresh`
+D1 batch to the snapshot; a quiet check stops after discovery and writes
+nothing. `acquire-audit.yml` loses its Sunday cron and becomes a manual
+acquisition-only diagnostic.
+
+Same day — **a lane's verdict is now the whole relationship, not one row.**
+`registry.validation_gate()` encodes the dependency graph — either balance-sheet
+side requires `assets`+`liabilities`+`cross`, credit-quality and derived stages
+require each other — and coverage, loader overwrite protection, targeted-repair
+acceptance and the admin drawer all consume the same gate (migration `0041`).
+Targeted re-extraction rebuilds stages inside the candidate's savepoint, judges
+the full gate, and rolls source, derived and validation rows back together on
+rejection; unchanged tables are restored byte-exact so nothing is re-stamped.
+`free_provision` gains a real per-partition validator (range, prior-year chain,
+audit-opinion recall/precision cross-checks) — conditional absence stays N/A
+only while no independent evidence contradicts it.
+
+Same day — **eight normalized/summary lanes carry source-completeness evidence.**
+`source_capture.py` re-locates each disclosure with parser-independent anchors,
+stores every physical source line in the local/R2 snapshot
+(`bank_audit_source_lines`, never D1), and writes one compact
+`bank_audit_capture_manifest` row per filing/lane to D1 (migration `0042`).
+Near-full lanes (`equity_change`, `loans_by_sector`, `npl_movement`) fail on an
+unmapped numeric source row; selected-summary lanes count their intentionally
+omitted detail instead. Capture rides the normal extraction transaction; the
+historical corpus stays grandfathered until `backfill-audit-source-capture.yml`
+(new, dispatch-only) reaches it. At commit time the migrations are unapplied and
+the backfill undispatched — production statuses move only after the deploy and
+the normal revalidation workflow.
+
 2026-08-05 — **Admin traffic now queries the site it actually measures.**
 Cloudflare Web Analytics exposes a `site_tag` for GraphQL and a separate
 `site_token` for the browser beacon. The original wiring put the token in both

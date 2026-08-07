@@ -62,9 +62,16 @@ def test_curated_skip_does_not_excuse_a_real_failure():
 
 
 def test_unvalidated_lane_is_not_errored_for_zero_passes():
-    """profile / audit_opinion / free_provision have no validator, so they never
-    write a validation row. They must not all turn red."""
+    """A future explicitly unvalidated lane must not turn red for zero passes."""
     assert _status(has_validator=False, checks_passed=0) == "ok"
+
+
+def test_conditional_absence_is_not_expected_without_contradiction():
+    assert S._conditional_status("missing", checks_failed=0) == "not_expected"
+
+
+def test_conditional_absence_is_error_when_independent_check_fails():
+    assert S._conditional_status("missing", checks_failed=1) == "error"
 
 
 def test_manual_cell_is_manual():

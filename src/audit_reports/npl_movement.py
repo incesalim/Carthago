@@ -565,6 +565,7 @@ def upsert(
     rep: NplMovementReport,
     *,
     unit: UnitContext,
+    commit: bool = True,
 ) -> int:
     cur = conn.cursor()
     cur.execute(
@@ -591,7 +592,8 @@ def upsert(
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             rows,
         )
-    conn.commit()
+    if commit:
+        conn.commit()
     return len(rows)
 
 

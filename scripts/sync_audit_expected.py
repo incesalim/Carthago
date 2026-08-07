@@ -28,8 +28,8 @@ Status per cell (worst → best): missing < error < manual < ok
            curated data/audit_not_disclosed.json entry.
 
 Caveat worth knowing before reading a row: 'ok' is only as strong as the lane's
-validator, and three lanes (profile, audit_opinion, free_provision) have none —
-for those, registry.has_validator is False and 'ok' asserts only "a row exists".
+validator. Relationship gates come from registry.validation_gate(), so dependent
+checks (balance-sheet cross-footing and credit-quality → stages) roll up together.
 
   python scripts/sync_audit_expected.py --db data/bank_audit.db --dry-run
   python scripts/sync_audit_expected.py --db data/bank_audit.db --push
@@ -300,6 +300,13 @@ def _cell_status(rows: int, min_rows: int, has_validator: bool,
     return "ok"
 
 
+def _conditional_status(status: str, checks_failed: int) -> str:
+    """Map a conditional absence to N/A unless independent evidence refutes it."""
+    if status != "missing":
+        return status
+    return "error" if checks_failed > 0 else "not_expected"
+
+
 def build(conn: sqlite3.Connection, use_r2: bool):
     _refresh_validation(conn)  # spine is derived from current-code verdicts, not the snapshot's frozen ones
     manual = _manual_cells()
@@ -356,21 +363,21 @@ def build(conn: sqlite3.Connection, use_r2: bool):
         present = pdf_present(bpk)
         expected_rows.append((b, p, k, meta["bank_type"], meta["language"],
                               meta["equity_numeral"], present))
-        # check_cross_statement (total assets = liabilities + equity — the single
-        # most important BS identity) writes a 'cross' row to bank_audit_validation
-        # that NO registry lane maps to, so a failure reached no cell and both
-        # balance-sheet lanes would have stayed green. 0 failures today, so this is
-        # latent, not a live wrong number — but it is a check wired to nothing.
-        # Fold it into both sides, which is where it belongs: the identity is a
-        # statement about the pair, and neither is trustworthy if it breaks.
-        cross_cf = validation.get((b, p, k, "cross"), (1, 0))[1]
         for st in registry.REGISTRY:
             rows = counts[st.key].get(bpk, 0)
             min_rows = st.present_min_rows or 1
-            cp, cf = validation.get((b, p, k, st.validation_statement), (0, 0)) \
-                if st.has_validator else (1, 0)
-            if st.key in ("balance_sheet_assets", "balance_sheet_liabilities"):
-                cf += cross_cf
+            gates = registry.validation_gate(st.key)
+            if gates:
+                gate_results = [validation.get((b, p, k, gate), (0, 0))
+                                for gate in gates]
+                # Every dependency needs affirmative evidence. A sum would let a
+                # strong sibling mask a zero-pass gate, so collapse to zero when
+                # any required result has no passing check.
+                cp = (sum(result[0] for result in gate_results)
+                      if all(result[0] > 0 for result in gate_results) else 0)
+                cf = sum(result[1] for result in gate_results)
+            else:
+                cp, cf = 1, 0
             is_manual = (b, p, k, st.key) in manual
             curated = ((b, p, k, st.key) in skips or (b, st.key) in skip_banks)
             status = _cell_status(rows, min_rows, st.has_validator, cf, is_manual,
@@ -380,13 +387,12 @@ def build(conn: sqlite3.Connection, use_r2: bool):
             # it's not-applicable. (A bank that DOES disclose interim has rows → ok/error.)
             if status == "missing" and st.annual_only and not p.upper().endswith("Q4"):
                 status = "not_expected"
-            # Conditional-disclosure lanes (e.g. free provision): only banks that
-            # actually HOLD one disclose it, so an empty cell means "no such reserve",
-            # not a gap. The recall cross-check (check_audit_quality freeprov) has
-            # already proven no real holding is hidden among the empties, so absence
-            # is genuinely not-applicable.
+            # Conditional-disclosure lanes (e.g. free provision): an empty cell is
+            # normally N/A, but an independent contradiction (the modified audit
+            # opinion names the reserve) must stay an error rather than being hidden
+            # by the conditional rule.
             if status == "missing" and getattr(st, "conditional", False):
-                status = "not_expected"
+                status = _conditional_status(status, cf)
             # Curated: this partition's report genuinely doesn't disclose the lane
             # (verified vs PDF) — a brief interim/summary filing, or a bank that
             # structurally never states the lane (period/kind '*'). '*' statement
@@ -396,7 +402,8 @@ def build(conn: sqlite3.Connection, use_r2: bool):
             coverage_rows.append((b, p, k, st.key, status, rows, cf, int(is_manual), present))
 
     type_rows = [(m["key"], m["label"], m["table"], m["statement"], m["section"],
-                  m["is_core"], m["has_validator"], m["section_rank"], m["sort_order"])
+                  m["is_core"], m["has_validator"], m["validation_gate"],
+                  m["section_rank"], m["sort_order"])
                  for m in registry.web_metadata()]
     return expected_rows, type_rows, coverage_rows
 
@@ -410,8 +417,8 @@ def write(conn: sqlite3.Connection, expected_rows, type_rows, coverage_rows) -> 
     conn.execute("DELETE FROM bank_audit_statement_types")
     conn.executemany(
         "INSERT INTO bank_audit_statement_types (key, label, source_table, statement, "
-        "section, is_core, has_validator, section_rank, sort_order) "
-        "VALUES (?,?,?,?,?,?,?,?,?)", type_rows)
+        "section, is_core, has_validator, validation_gate, section_rank, sort_order) "
+        "VALUES (?,?,?,?,?,?,?,?,?,?)", type_rows)
     write_coverage(conn, coverage_rows)
     conn.commit()
 

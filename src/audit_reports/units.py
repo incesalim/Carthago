@@ -198,6 +198,11 @@ NON_MONEY_NUMERIC: dict[str, frozenset[str]] = {
     "bank_audit_prose": frozenset({
         "item_order", "section", "page_start", "page_end", "char_count"}),
     "bank_audit_pl_roles": frozenset(),
+    "bank_audit_capture_manifest": frozenset({
+        "source_page_count", "source_line_count", "source_numeric_line_count",
+        "source_data_row_count", "mapped_data_row_count",
+        "unmapped_data_row_count", "normalized_row_count",
+    }),
 }
 
 

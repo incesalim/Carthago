@@ -19,6 +19,10 @@ Validators run per (bank, period, kind):
   - stages (total sums, coverage, NPL=100% fingerprint)
   - NPL movement (opening + flows = closing; skips rows with NULL write_offs/sold/transfers_out)
   - loans by sector (Σ top-level sectors = total)
+  - FX position + repricing schedules (footings and prior-year anchors)
+  - bank profile (cross-kind branches/personnel) + audit opinion completeness
+  - conditional free provision (opinion recall + prior-year stock chain)
+  - narrative prose section topology
 """
 from __future__ import annotations
 
@@ -31,8 +35,10 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 sys.stdout.reconfigure(encoding="utf-8")
 
+from src.audit_reports import registry  # noqa: E402
 from src.audit_reports import validator as v  # noqa: E402
 from src.audit_reports.schema import init_schema  # noqa: E402
+from src.audit_reports.source_capture import load_manifest  # noqa: E402
 
 # Known false-positive capital banks (BRSA temporary-measure CARs):
 # These banks' reported CAR systematically differs from Total_Capital/RWA*100
@@ -489,6 +495,32 @@ def _opinion_rows(conn, bank, period, kind):
                 (bank, period, kind))]
 
 
+def _free_provision_rows(conn, bank, period, kind):
+    if not _has_table(conn, "bank_audit_free_provision"):
+        return []
+    return [dict(zip(("free_provision", "free_provision_prior", "source_page"), r))
+            for r in conn.execute(
+                "SELECT free_provision, free_provision_prior, source_page "
+                "FROM bank_audit_free_provision "
+                "WHERE bank_ticker=? AND period=? AND kind=?",
+                (bank, period, kind))]
+
+
+def _prior_year_free_provision(conn, bank, period, kind) -> float | None:
+    """Prior-year Q4 current stock independently reprinted by this filing."""
+    if not _has_table(conn, "bank_audit_free_provision"):
+        return None
+    try:
+        prior_period = f"{int(period[:4]) - 1}Q4"
+    except (TypeError, ValueError):
+        return None
+    row = conn.execute(
+        "SELECT free_provision FROM bank_audit_free_provision "
+        "WHERE bank_ticker=? AND period=? AND kind=?",
+        (bank, prior_period, kind)).fetchone()
+    return None if row is None else row[0]
+
+
 def _prose_rows(conn, bank, period, kind):
     if not _has_table(conn, "bank_audit_prose"):
         return []
@@ -595,6 +627,35 @@ def _skip_result() -> v.ValidationResult:
     return res
 
 
+def _merge_source_capture(
+    conn: sqlite3.Connection,
+    bank: str,
+    period: str,
+    kind: str,
+    lane: str,
+    result: v.ValidationResult,
+    actual_row_count: int,
+) -> None:
+    """Activate source completeness once this partition has been captured."""
+    manifest = load_manifest(conn, bank, period, kind, lane)
+    if manifest is None:
+        return  # historical partition awaiting the capture backfill
+    ledger_line_count = ledger_data_row_count = None
+    if _has_table(conn, "bank_audit_source_lines"):
+        ledger_line_count, ledger_data_row_count = conn.execute(
+            "SELECT COUNT(*), COALESCE(SUM(is_data_row), 0) "
+            "FROM bank_audit_source_lines WHERE bank_ticker=? AND period=? "
+            "AND kind=? AND statement_type=?",
+            (bank, period, kind, lane),
+        ).fetchone()
+    result.merge(v.check_source_capture(
+        manifest,
+        actual_row_count=actual_row_count,
+        ledger_line_count=ledger_line_count,
+        ledger_data_row_count=ledger_data_row_count,
+    ))
+
+
 def revalidate_partition(conn, bank: str, period: str, kind: str) -> dict[str, "v.ValidationResult"]:
     """Recompute ALL validation checks for one partition from its STORED rows
     (no PDF re-read). Returns the per-statement results dict — the caller persists
@@ -633,9 +694,10 @@ def revalidate_partition(conn, bank: str, period: str, kind: str) -> dict[str, "
     else:
         results["capital"] = v.check_capital(cap_rows)
 
+    liquidity_rows = _liquidity_rows(conn, bank, period, kind)
     results["liquidity"] = (
         _skip_result() if (bank, period, kind) in _LIQ_SKIP
-        else v.check_liquidity(_liquidity_rows(conn, bank, period, kind)))
+        else v.check_liquidity(liquidity_rows))
     cq_rows  = _cq_rows(conn, bank, period, kind)
     npl_rows = _npl_movement_rows(conn, bank, period, kind)
     results["credit_quality"] = (_skip_result() if (bank, period, kind) in _CQ_SKIP
@@ -654,9 +716,10 @@ def revalidate_partition(conn, bank: str, period: str, kind: str) -> dict[str, "
     _gbg = ({"III": _gross.get("stage1_amount"), "IV": _gross.get("stage2_amount"),
              "V": _gross.get("stage3_amount")} if _gross else None)
     results["npl_movement"]   = v.check_npl_movement(npl_rows, gross_by_group=_gbg)
+    sector_rows = _loans_sector_rows(conn, bank, period, kind)
     results["loans_by_sector"] = (
         _skip_result() if (bank, period, kind) in _LBS_SKIP
-        else v.check_loans_by_sector(_loans_sector_rows(conn, bank, period, kind),
+        else v.check_loans_by_sector(sector_rows,
                                      prior_year_total=_prior_year_sector_total(
                                          conn, bank, period, kind)))
     # prior_ye_totals drives the cross-period anchor; withhold it (only) for the
@@ -664,15 +727,33 @@ def revalidate_partition(conn, bank: str, period: str, kind: str) -> dict[str, "
     # and completeness still run.
     _fx_ye = (None if (bank, period, kind) in _FX_XPERIOD_SKIP
               else _fx_prior_ye_totals(conn, bank, period, kind))
+    fx_rows = _fx_position_rows(conn, bank, period, kind)
     results["fx_position"] = (
         _skip_result() if (bank, period, kind) in _FX_SKIP
-        else v.check_fx_position(_fx_position_rows(conn, bank, period, kind),
+        else v.check_fx_position(fx_rows,
                                  prior_ye_totals=_fx_ye))
+    repricing_rows = _repricing_rows(conn, bank, period, kind)
     results["repricing"]      = (
         _skip_result() if (bank, period, kind) in _RP_SKIP
         else v.check_repricing(
-            _repricing_rows(conn, bank, period, kind),
+            repricing_rows,
             check_prior=(bank, period, kind) not in _RP_PRIOR_SKIP))
+
+    # Once a partition has source evidence, completeness is part of the lane's
+    # existing verdict (and therefore its overwrite/coverage gate). Partitions
+    # without a manifest are historical and remain unchanged until backfilled.
+    for _lane, _rows in (
+        ("equity_change", eq),
+        ("loans_by_sector", sector_rows),
+        ("npl_movement", npl_rows),
+        ("credit_quality", cq_rows),
+        ("capital", cap_rows),
+        ("liquidity", liquidity_rows),
+        ("fx_position", fx_rows),
+        ("repricing", repricing_rows),
+    ):
+        _merge_source_capture(
+            conn, bank, period, kind, _lane, results[_lane], len(_rows))
     # The bank's OTHER filing for the same quarter. A consolidated group contains
     # the parent, so cons >= unco on branches and staff is arithmetic, not a
     # heuristic — and it is the only independent read this lane has (there is no
@@ -681,8 +762,13 @@ def revalidate_partition(conn, bank: str, period: str, kind: str) -> dict[str, "
     results["profile"] = v.check_profile(
         _profile_rows(conn, bank, period, kind),
         counterpart=_profile_rows(conn, bank, period, _other), kind=kind)
-    results["audit_opinion"] = v.check_audit_opinion(
-        _opinion_rows(conn, bank, period, kind))
+    opinion_rows = _opinion_rows(conn, bank, period, kind)
+    results["audit_opinion"] = v.check_audit_opinion(opinion_rows)
+    results["free_provision"] = v.check_free_provision(
+        _free_provision_rows(conn, bank, period, kind),
+        opinion_rows=opinion_rows,
+        prior_year_current=_prior_year_free_provision(conn, bank, period, kind),
+    )
     results["prose"] = v.check_prose(_prose_rows(conn, bank, period, kind))
     return results
 
@@ -695,12 +781,9 @@ def revalidate_all(conn, progress: bool = False) -> tuple[int, int]:
     # Union all table sources so even partitions without BS data get checked
     # (in practice all extracted partitions have BS rows, but be safe).
     parts_query = "SELECT DISTINCT bank_ticker, period, kind FROM bank_audit_balance_sheet"
-    for tbl in ("bank_audit_credit_quality", "bank_audit_stages",
-                "bank_audit_capital", "bank_audit_liquidity",
-                "bank_audit_fx_position", "bank_audit_repricing",
-                "bank_audit_npl_movement", "bank_audit_loans_by_sector",
-                "bank_audit_oci", "bank_audit_cash_flow", "bank_audit_equity_change",
-                "bank_audit_prose"):
+    for tbl in dict.fromkeys(st.table for st in registry.REGISTRY):
+        if tbl == "bank_audit_balance_sheet":
+            continue
         if _has_table(conn, tbl):
             parts_query += f" UNION SELECT bank_ticker, period, kind FROM {tbl}"
 

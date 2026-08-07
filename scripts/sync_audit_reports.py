@@ -231,7 +231,7 @@ def report_validity(body: bytes) -> tuple[bool, str]:
 
 
 def record_pdf_validity(db_path: Path,
-                        verdicts: dict[tuple[str, str, str], str | None]) -> None:
+                        verdicts: dict[tuple[str, str, str], str | None]) -> int:
     """Persist which R2 objects are not reports, and clear the ones that now are.
 
     Coverage needs the answer without downloading 1,061 PDFs per sync, and the
@@ -239,21 +239,33 @@ def record_pdf_validity(db_path: Path,
     otherwise the fix trades one permanent state for another.
     """
     if not verdicts:
-        return
+        return 0
     db_path.parent.mkdir(parents=True, exist_ok=True)
+    changed = 0
     with sqlite3.connect(str(db_path)) as conn:
         init_schema(conn)
         for (b, p, k), reason in verdicts.items():
             if reason is None:
-                conn.execute(
+                cur = conn.execute(
                     "DELETE FROM bank_audit_invalid_pdfs WHERE bank_ticker=? "
                     "AND period=? AND kind=?", (b, p, k))
+                changed += max(cur.rowcount, 0)
             else:
-                conn.execute(
-                    "INSERT OR REPLACE INTO bank_audit_invalid_pdfs "
-                    "(bank_ticker, period, kind, reason, checked_at) "
-                    "VALUES (?,?,?,?,CURRENT_TIMESTAMP)", (b, p, k, reason))
+                previous = conn.execute(
+                    "SELECT reason FROM bank_audit_invalid_pdfs "
+                    "WHERE bank_ticker=? AND period=? AND kind=?", (b, p, k)
+                ).fetchone()
+                # A scheduled recheck of the same invalid object is evidence in
+                # the log, not new production data. Keep checked_at stable so a
+                # quiet earnings-window run writes neither SQLite nor D1/R2.
+                if previous is None or previous[0] != reason:
+                    conn.execute(
+                        "INSERT OR REPLACE INTO bank_audit_invalid_pdfs "
+                        "(bank_ticker, period, kind, reason, checked_at) "
+                        "VALUES (?,?,?,?,CURRENT_TIMESTAMP)", (b, p, k, reason))
+                    changed += 1
         conn.commit()
+    return changed
 
 
 def verify_basis_in_r2(workers: int = 16,
@@ -495,7 +507,8 @@ def extract_from_r2(
         todo = [(t, p, k, key) for (t, p, k, key) in pdfs if (t, p, k) not in done]
         print(f"[extract] {len(pdfs)} in R2 · {len(done)} already done · {len(todo)} to extract")
     if not todo:
-        return {"ok": 0, "fail": 0, "not_a_report": 0}
+        return {"ok": 0, "fail": 0, "not_a_report": 0,
+                "validity_changed": 0}
 
     counts = {"ok": 0, "fail": 0, "not_a_report": 0}
     invalid: dict[tuple[str, str, str], str] = {}
@@ -535,7 +548,8 @@ def extract_from_r2(
                     print(f"  [UNIT] {ticker:<8} {period} {kind:<14} {e}", flush=True)
                     continue
                 upsert_report(conn, ticker, period, kind, rep, key,
-                              force=overwrite_correct, unit=unit)
+                              force=overwrite_correct, unit=unit,
+                              source_pdf_path=path_str)
                 invalid[(ticker, period, kind)] = None
                 tag = "OK" if (bsa >= 20 and bsl >= 20 and pl >= 20) else "WARN"
                 counts["ok"] += 1
@@ -552,7 +566,7 @@ def extract_from_r2(
 
     print(f"[extract] ok={counts['ok']} fail={counts['fail']} "
           f"not_a_report={counts['not_a_report']}")
-    record_pdf_validity(db_path, invalid)
+    counts["validity_changed"] = record_pdf_validity(db_path, invalid)
     return counts
 
 
@@ -586,6 +600,8 @@ def main():
     ap.add_argument("--new-count-file", type=str, default="",
                     help="write the count of newly-scraped PDFs to this file "
                          "(so acquire-audit.yml can notify when new reports land).")
+    ap.add_argument("--result-file", type=str, default="",
+                    help="write scrape/extract counts and a changed boolean as JSON")
     ap.add_argument("--db", type=str, default=str(DB_PATH),
                     help="SQLite DB to upsert extracted rows into (default "
                          "data/bddk_data.db). The standalone audit pipeline "
@@ -654,6 +670,20 @@ def main():
             workers=cpu_workers, db_path=db_path, only=only,
             latest_period=args.latest_period, periods=periods, force=args.force,
             overwrite_correct=args.force_overwrite)
+    if args.result_file:
+        changed = bool(
+            scrape_counts.get("new", 0)
+            or extract_counts.get("ok", 0)
+            or extract_counts.get("validity_changed", 0)
+        )
+        Path(args.result_file).write_text(
+            json.dumps({
+                "changed": changed,
+                "scrape": scrape_counts,
+                "extract": extract_counts,
+            }, sort_keys=True),
+            encoding="utf-8",
+        )
     print(f"\ntotal {time.time() - t0:.1f}s")
 
     # Systemic-failure guard: make the run exit non-zero (→ CI failure email +

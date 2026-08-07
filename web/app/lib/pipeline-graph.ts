@@ -73,8 +73,8 @@ export const PIPELINE_NODES: PipelineNode[] = [
   { id: "src-product-research", kind: "source", layer: "source", lane: "bulletin", label: "Bank product pages", sublabel: "each bank's own site · product shelf scored on a fixed taxonomy" },
 
   // ── Bulletin lane · ingestion (workflows) ──────────────────────────────
-  { id: "wf-evds-daily", kind: "workflow", layer: "ingestion", lane: "bulletin", label: "refresh-evds-daily", sublabel: "Sun–Fri 05:00 · EVDS + TBB/KAP/TEFAS", workflowFile: "refresh-evds-daily.yml" },
-  { id: "wf-bddk-bulletins", kind: "workflow", layer: "ingestion", lane: "bulletin", label: "refresh-bddk-bulletins", sublabel: "Sat 02:00 · update_monthly / update_weekly", workflowFile: "refresh-bddk-bulletins.yml" },
+  { id: "wf-evds-daily", kind: "workflow", layer: "ingestion", lane: "bulletin", label: "refresh-evds-daily", sublabel: "Sun–Fri 05:00 · daily/workday EVDS only", workflowFile: "refresh-evds-daily.yml" },
+  { id: "wf-bddk-bulletins", kind: "workflow", layer: "ingestion", lane: "bulletin", label: "refresh-bddk-bulletins", sublabel: "month-edge + Friday · BDDK only", workflowFile: "refresh-bddk-bulletins.yml" },
   { id: "wf-refresh-data", kind: "workflow", layer: "ingestion", lane: "bulletin", label: "refresh-data", sublabel: "Sat 03:00 · refresh.py (full) → push_to_d1", workflowFile: "refresh-data.yml" },
   { id: "wf-backfill-tefas", kind: "workflow", layer: "ingestion", lane: "bulletin", label: "backfill-tefas", sublabel: "manual · ~5y TEFAS history", workflowFile: "backfill-tefas.yml" },
   { id: "wf-backfill-faaliyet", kind: "workflow", layer: "ingestion", lane: "bulletin", label: "backfill-faaliyet", sublabel: "manual · annual-report franchise backfill", workflowFile: "backfill-faaliyet.yml" },
@@ -108,10 +108,11 @@ export const PIPELINE_NODES: PipelineNode[] = [
   { id: "src-ir-pdf", kind: "source", layer: "source", lane: "audit", label: "Bank IR / BRSA PDFs", sublabel: `${BANK_COUNT} banks · +13 auto-discover quarters`, statusKey: "audit" },
 
   // ── Audit lane · ingestion (workflows) ─────────────────────────────────
-  { id: "wf-acquire-audit", kind: "workflow", layer: "ingestion", lane: "audit", label: "acquire-audit", sublabel: "Sun 04:00 · discover + download (no extract)", workflowFile: "acquire-audit.yml" },
-  { id: "wf-refresh-audit", kind: "workflow", layer: "ingestion", lane: "audit", label: "refresh-audit", sublabel: "manual · extract → validate → push", workflowFile: "refresh-audit.yml" },
+  { id: "wf-acquire-audit", kind: "workflow", layer: "ingestion", lane: "audit", label: "acquire-audit", sublabel: "manual · download only (diagnostic)", workflowFile: "acquire-audit.yml" },
+  { id: "wf-refresh-audit", kind: "workflow", layer: "ingestion", lane: "audit", label: "refresh-audit", sublabel: "filing windows daily · acquire → extract → one push", workflowFile: "refresh-audit.yml" },
   { id: "wf-reextract", kind: "workflow", layer: "ingestion", lane: "audit", label: "reextract-statement", sublabel: "manual · one lane (oci/cf/equity/…)", workflowFile: "reextract-statement.yml" },
   { id: "wf-backfill-audit", kind: "workflow", layer: "ingestion", lane: "audit", label: "backfill-audit", sublabel: "manual · full re-extract (5-bank chunks)", workflowFile: "backfill-audit.yml" },
+  { id: "wf-audit-source-capture", kind: "workflow", layer: "ingestion", lane: "audit", label: "backfill source capture", sublabel: "manual · preserve omitted rows; facts unchanged", workflowFile: "backfill-audit-source-capture.yml" },
   { id: "wf-purge-partition", kind: "workflow", layer: "ingestion", lane: "audit", label: "purge-partition", sublabel: "manual · remove a known-wrong partition (keeps the PDF)", workflowFile: "purge-partition.yml" },
   { id: "wf-audit-triage", kind: "workflow", layer: "ingestion", lane: "audit", label: "audit-triage", sublabel: "manual · read-only · why a partition fails (writes nothing)", workflowFile: "audit-triage.yml" },
   { id: "wf-measure-fp", kind: "workflow", layer: "ingestion", lane: "audit", label: "measure-free-provision", sublabel: "manual · read-only · classifier diff vs stored (writes nothing)", workflowFile: "measure-free-provision.yml" },
@@ -123,7 +124,7 @@ export const PIPELINE_NODES: PipelineNode[] = [
   { id: "store-d1-audit-fin", kind: "store", layer: "storage", lane: "audit", label: "D1 · bank_audit financials", sublabel: "balance_sheet · profit_loss · oci · cash_flow · equity_change", statusKey: "audit:balance_sheet" },
   { id: "store-d1-audit-credit", kind: "store", layer: "storage", lane: "audit", label: "D1 · bank_audit credit", sublabel: "credit_quality · stages · npl_movement · loans_by_sector", statusKey: "audit:stages" },
   { id: "store-d1-audit-reg", kind: "store", layer: "storage", lane: "audit", label: "D1 · bank_audit §4", sublabel: "capital · liquidity · fx_position · repricing", statusKey: "audit:capital" },
-  { id: "store-d1-audit-spine", kind: "store", layer: "storage", lane: "audit", label: "D1 · coverage spine", sublabel: "coverage · expected · validation · empty-copy guarded", statusKey: "audit:coverage" },
+  { id: "store-d1-audit-spine", kind: "store", layer: "storage", lane: "audit", label: "D1 · coverage spine", sublabel: "coverage · expected · validation · source-capture manifest", statusKey: "audit:coverage" },
 
   // ── Shared · infra & ops ───────────────────────────────────────────────
   { id: "wf-ci", kind: "workflow", layer: "ingestion", lane: "shared", label: "ci", sublabel: "on PR · ruff + pytest + eslint + tsc + vitest", workflowFile: "ci.yml" },
@@ -184,18 +185,17 @@ export const PIPELINE_EDGES: PipelineEdge[] = [
   { source: "src-bddk-monthly", target: "wf-refresh-data" },
   { source: "src-bddk-weekly", target: "wf-bddk-bulletins" },
   { source: "src-bddk-weekly", target: "wf-refresh-data" },
-  { source: "src-bddk-nonbank", target: "wf-bddk-bulletins" },
   { source: "src-bddk-nonbank", target: "wf-refresh-data" },
   { source: "src-bddk-nonbank", target: "wf-backfill-nonbank" },
   { source: "src-evds", target: "wf-evds-daily" },
   { source: "src-evds", target: "wf-refresh-data" },
-  { source: "src-tuik", target: "wf-evds-daily" },
-  { source: "src-tbb-digital", target: "wf-evds-daily" },
+  { source: "src-tuik", target: "wf-refresh-data" },
+  { source: "src-tbb-digital", target: "wf-refresh-data" },
   { source: "src-tbb-acq", target: "wf-refresh-data" },
-  { source: "src-tkbb-digital", target: "wf-evds-daily" },
+  { source: "src-tkbb-digital", target: "wf-refresh-data" },
   { source: "src-tkbb-acq", target: "wf-refresh-data" },
-  { source: "src-kap", target: "wf-evds-daily" },
-  { source: "src-tefas", target: "wf-evds-daily" },
+  { source: "src-kap", target: "wf-refresh-data" },
+  { source: "src-tefas", target: "wf-refresh-data" },
   { source: "src-tefas", target: "wf-backfill-tefas" },
   { source: "src-faaliyet", target: "wf-backfill-faaliyet" },
   { source: "src-faaliyet", target: "wf-refresh-data" },
@@ -211,10 +211,6 @@ export const PIPELINE_EDGES: PipelineEdge[] = [
 
   // bulletin workflows → D1 stores
   { source: "wf-evds-daily", target: "store-d1-evds" },
-  { source: "wf-evds-daily", target: "store-d1-tbb" },
-  { source: "wf-evds-daily", target: "store-d1-tkbb" },
-  { source: "wf-evds-daily", target: "store-d1-kap" },
-  { source: "wf-evds-daily", target: "store-d1-tefas" },
   { source: "wf-advertised-rates", target: "store-d1-advertised-rates" },
   { source: "wf-calendar", target: "store-d1-release-calendar" },
   { source: "src-product-research", target: "wf-build-products" },
@@ -222,7 +218,6 @@ export const PIPELINE_EDGES: PipelineEdge[] = [
   // No store→page edge: /products is unlisted, so the topology documents the
   // lane but exposes no clickable link to it (like the advertised-rates store).
   { source: "wf-bddk-bulletins", target: "store-d1-bulletin" },
-  { source: "wf-bddk-bulletins", target: "store-d1-nonbank" },
   { source: "wf-refresh-data", target: "store-d1-bulletin" },
   { source: "wf-refresh-data", target: "store-d1-nonbank" },
   { source: "wf-backfill-nonbank", target: "store-d1-nonbank" },
@@ -231,6 +226,7 @@ export const PIPELINE_EDGES: PipelineEdge[] = [
   { source: "wf-refresh-data", target: "store-d1-evds" },
   { source: "wf-refresh-data", target: "store-d1-tbb" },
   { source: "wf-refresh-data", target: "store-d1-tkbb" },
+  { source: "wf-refresh-data", target: "store-d1-kap" },
   { source: "wf-refresh-data", target: "store-d1-tefas" },
   { source: "wf-backfill-tefas", target: "store-d1-tefas" },
   { source: "wf-backfill-faaliyet", target: "store-d1-faaliyet" },
@@ -243,11 +239,14 @@ export const PIPELINE_EDGES: PipelineEdge[] = [
 
   // audit lane
   { source: "src-ir-pdf", target: "wf-acquire-audit" },
+  { source: "src-ir-pdf", target: "wf-refresh-audit" },
   { source: "wf-acquire-audit", target: "store-r2-pdf" },
   { source: "wf-acquire-audit", target: "store-d1-audit-spine" },
+  { source: "wf-refresh-audit", target: "store-r2-pdf" },
   { source: "store-r2-pdf", target: "wf-refresh-audit" },
   { source: "store-r2-pdf", target: "wf-reextract" },
   { source: "store-r2-pdf", target: "wf-backfill-audit" },
+  { source: "store-r2-pdf", target: "wf-audit-source-capture" },
   { source: "wf-refresh-audit", target: "store-d1-audit-fin" },
   { source: "wf-refresh-audit", target: "store-d1-audit-credit" },
   { source: "wf-refresh-audit", target: "store-d1-audit-reg" },
@@ -257,6 +256,7 @@ export const PIPELINE_EDGES: PipelineEdge[] = [
   { source: "wf-backfill-audit", target: "store-d1-audit-fin" },
   { source: "wf-backfill-audit", target: "store-d1-audit-credit" },
   { source: "wf-backfill-audit", target: "store-d1-audit-reg" },
+  { source: "wf-audit-source-capture", target: "store-d1-audit-spine", kind: "guard" },
   // Purge REMOVES rows: it writes to the same stores, plus the spine (the cell
   // returns to `missing`). It never touches the PDF bucket — that's the point.
   { source: "wf-purge-partition", target: "store-d1-audit-fin" },
@@ -276,6 +276,7 @@ export const PIPELINE_EDGES: PipelineEdge[] = [
   // R2 snapshots (push side)
   { source: "wf-refresh-data", target: "store-r2-snap", kind: "snapshot" },
   { source: "wf-refresh-audit", target: "store-r2-snap", kind: "snapshot" },
+  { source: "wf-audit-source-capture", target: "store-r2-snap", kind: "snapshot" },
   { source: "wf-presentations", target: "store-r2-snap", kind: "snapshot" },
   { source: "wf-transcripts", target: "store-r2-snap", kind: "snapshot" },
 

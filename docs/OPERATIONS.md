@@ -15,17 +15,17 @@ machine involvement is required for routine refreshes.
 
 | When | Workflow | What it does |
 |---|---|---|
-| Sun–Fri 05:00 UTC | `refresh-evds-daily.yml` | TCMB EVDS scrape (FX, rates, sterilization, …) + the non-critical TBB/TKBB/KAP/TEFAS/Faaliyet steps of `refresh.py` → D1 |
+| Sun–Fri 05:00 UTC | `refresh-evds-daily.yml` | TCMB EVDS **daily/workday series only** (FX, policy/funding rates, sterilization, …) → D1. Weekly/monthly/quarterly series are polled by Saturday's full refresh. A run with no changed observation performs no D1 or R2 write |
 | Daily 04:00 UTC | `refresh-news-daily.yml` | `sync_news.py` → `news_items` + `news_item_banks` (KAP filings, TCMB/BDDK announcements, bank press rooms, Google News) → D1 |
-| Daily 13:00 UTC + Fri 13:30/15:30 UTC + Sat 02:00 UTC | `refresh-bddk-bulletins.yml` | BDDK bulletins (no EVDS, no audit) → D1. **Daily 13:00** = **monthly** check (probe-then-fetch; the month lands mid-month on no fixed day). **Fri 16:30 & 18:30 Turkey** = **weekly** (BDDK publishes it Friday afternoon). **Sat 02:00** = weekly backstop. Each per-schedule run skips the other lane via `github.event.schedule`; manual dispatch does both. Sends a positive Telegram ping ("published & fetched") when a new weekly/monthly period lands (`notify_new_bddk.py`); quiet otherwise |
-| Saturday 03:00 UTC | `refresh-data.yml` | Monthly + weekly BDDK + EVDS → D1 |
+| First + last 5 days 13:00 UTC; Fri 13:30/15:30 UTC | `refresh-bddk-bulletins.yml` | BDDK bulletins only. The 13:00 runs probe the **monthly** bulletin around month-end; the Friday runs bracket the **weekly** publication window. The redundant Saturday 02:00 run is gone because `refresh-data.yml` follows at 03:00. A byte-stable SQLite result skips VACUUM, gzip, D1 and R2 entirely |
+| Saturday 03:00 UTC | `refresh-data.yml` | Full weekly catch-up: monthly + weekly BDDK, every EVDS cadence, TBB/TKBB/KAP/TEFAS/Faaliyet → one incremental D1 handoff + snapshot only when something changed |
 | Saturday 06:00 UTC | `refresh-presentations-weekly.yml` | `update_presentations.py` → `bank_earnings` (IR presentation decks) → D1 (`--only-tables=bank_earnings`). Bulletin lane (`bddk-pipeline` group). Tier-1 results filings ride `refresh-news-daily.yml` instead |
 | Monday 06:00 UTC | `refresh-advertised-rates.yml` | `src.rates.scraper` → `bank_advertised_rates` → D1 (`--only-tables=bank_advertised_rates`). Per-bank **advertised** (posted-to-new-customers) loan + deposit rates scraped from doviz.com (loans) and hangikredi (deposits) — the only per-bank rate source; EVDS/BDDK publish rates at sector level only. Each run appends a dated `snapshot_date`, so history accretes (the sources only expose "today"). Bulletin lane (`bddk-pipeline` group) |
 | 1st of month 06:00 UTC | `refresh-calendar.yml` | `src.release_calendar.scraper` → `release_calendar` → D1 (`--only-tables=release_calendar`). Scrapes TCMB's published calendar (MPC decisions + minutes + Inflation Report + Financial Stability Report) so the **Ahead** strips fill themselves — retires the hand-typed `MPC_DATES` (now a render-time fallback, still guarded by `check_calendar_fresh.py`). `requests`+`lxml`, no browser. Bulletin lane (`bddk-pipeline` group) |
-| Sunday 04:00 UTC | `acquire-audit.yml` | Audit-report **acquisition only**: discover + download new PDFs → R2, refresh the coverage matrix, notify on new reports (own `bddk-audit` group, read-only on the snapshot) |
+| Manual only | `acquire-audit.yml` | Acquisition-only diagnostic: discover + download new audit PDFs → R2. Scheduled discovery moved to `refresh-audit.yml`, where a new filing is extracted immediately |
 | Sunday 06:00 UTC | `summarize-regulations.yml` | Weekly regulation briefing via Kimi → `regulation_briefings` → D1. **Needs the `KIMI_API_TOKEN` secret** (see Secrets). Runs with `--require-baseline`, so it **fails rather than shipping an ungrounded briefing** (it warned-and-continued for 7 weeks unnoticed — see [regulation_followups.md](regulation_followups.md) §A). **Annual pin:** once a year dispatch it with `baseline_year=YYYY` + `baseline_url=<TCMB "Monetary Policy for YYYY" PDF>` — the ingest must run *here*, between the snapshot pull and upload, because a local run writes a DB production never reads. **Posts the briefing to Telegram** (every section + bullet, split across messages under the 4k cap) whenever the LLM actually runs; silent on unchanged-input weeks. `force=true` regenerates on demand |
 | Sunday 07:30 UTC | `generate-reads.yml` | "The Read" — LLM-rewritten headline per dashboard tab → `read_headlines` → D1. Free providers with per-family pacing + magnitude-match number validation; falls back to a deterministic template |
-| Manual / admin only | `refresh-audit.yml` | Audit-report **extraction**: PDFs from R2 → `bank_audit_*` → D1 + snapshot. Triggered from `/admin` (Pipeline "Extract audit reports" card or the coverage matrix's per-cell Re-extract). No schedule — extraction is reviewed, not automated |
+| Daily in earnings windows + manual/admin | `refresh-audit.yml` | Discover new audit PDFs → R2 → extract pending partitions → rebuild validation + coverage locally → **one** D1 push → snapshot. Filing windows: Jan 20–all February, Mar 1–15, and Apr/Jul/Oct 20 through May/Aug/Nov 20. Quiet checks stop after discovery and write nothing. Manual targeted re-extraction remains available from `/admin` |
 | Manual only (eval) | `analyst-research.yml` | **Analyst V2 — agentic discovery over deterministic evidence** ([ANALYST_V2.md](ANALYST_V2.md)): pulls the R2 snapshots + the filing PDF's per-page text, runs the story-agnostic anomaly scout, then a bounded hypothesis-driven research loop over typed read-only tools, deterministic verification of structured findings, and a rendered summary of survivors. **Artifact-only, no D1 writes, no schedule, nothing publishes automatically** — V1 (`analyst-daily.yml`) stays the baseline; publishing waits on the evaluation corpus + explicit human approval. `scout_only=true` runs without any LLM |
 | Manual only (freeze) | `analyst-daily.yml` | The analyst layer: pulls both R2 snapshots, runs the deterministic detectors (`scripts/analyst/detect.py` — unit switches, cross-period restatements, opinion changes, perimeter, CAR−CET1 / NPL-vs-coverage divergences), then generates grounded LLM memos for the requested banks (`web/scripts/analyst-run.ts --memo`, free-model chain, figure guard). Migration `0037_analyst_signals.sql` is **applied**, and a **`push` input (default false)** sends `analyst_signals` + `analyst_basis_metadata` + `analyst_notes` to D1 via `push_to_d1.py --db data/analyst.db`. All three are `_FULL_REBUILD` (derived wholesale each run, so a signal that stops firing must disappear rather than linger) and tiny — ~9,030 billed rows, and the content hash makes an unchanged re-run free. ⚠️ `fired_at` is excluded from that hash: `detect.py` omits the column on INSERT so it takes a fresh `CURRENT_TIMESTAMP` every run, and leaving it in would rebuild the tables daily forever. The daily 07:00 UTC cron is live; `push` stays opt-in per dispatch. `banks=CALIBRATE` runs the ALBRK+SKBNK calibration pair from the feasibility test; Telegram ping on critical signals |
 | Manual only | `backfill-tefas.yml` | One-time (re-runnable) ~5-year TEFAS fund-market history backfill (API cap) — resumable via `tefas_fetch_log` (re-dispatch with the same `from` date) |
@@ -44,6 +44,7 @@ machine involvement is required for routine refreshes.
 | Manual only | `telegram-webhook.yml` | Register (`set`) / inspect (`info`) / verify (`check`) the Q&A bot webhook. Lives in CI because `TELEGRAM_BOT_TOKEN` + `TELEGRAM_WEBHOOK_SECRET` aren't available locally. Run `set` after anything that moves the site origin — notably a **Worker rename**, which changes the `workers.dev` hostname and silently orphans the webhook |
 | After CI passes on `master` | `deploy-cloudflare.yml` | Apply D1 migrations, build OpenNext bundle, deploy to Workers |
 | On every PR | `ci.yml` | ruff + pytest + eslint + tsc + vitest quality gates |
+| Manual only | `backfill-audit-source-capture.yml` | Preserve and classify the physical source lines for the eight normalized/summary audit lanes without changing analytical facts. Pulls the audit snapshot, downloads existing PDFs, writes local/R2 `bank_audit_source_lines`, pushes only compact `bank_audit_capture_manifest` + changed validation rows, refreshes coverage, and re-uploads the snapshot. Missing/non-captured manifests are the default scope; `refresh_existing=true` recomputes content-idempotently. `dry_run=true` writes only the runner-local DB. Shares `bddk-audit` concurrency. |
 
 All are also triggerable manually: **GitHub → Actions → pick
 workflow → Run workflow**.
@@ -62,15 +63,15 @@ There are **two** local SQLite staging DBs, each with its own R2 snapshot:
 | `data/bank_audit.db` | the `bank_audit_*` tables (PDF extraction) | `state/bank_audit.db.gz` | `bddk-audit` |
 
 Both lanes push to the **same D1**, writing a disjoint set of tables. The catch:
-the coverage-matrix **spine tables** (`bank_audit_coverage` / `bank_audit_expected`
-/ `bank_audit_statement_types`) are **full-rebuild** — `push_to_d1.py` issues
-`DELETE FROM <t>; INSERT …` from the local copy, not a time-windowed upsert. Those
-tables are only populated in `bank_audit.db` (by `sync_audit_expected.py`); in
+the coverage-matrix spine is populated only in `bank_audit.db`. Two small
+registry tables (`bank_audit_expected` / `bank_audit_statement_types`) are
+content-hashed full rebuilds; `bank_audit_coverage` is row-delta + deletion
+outbox. In
 `bddk_data.db` they exist but are **empty**. A daily news/EVDS push from
 `bddk_data.db` would therefore `DELETE` the spine and insert nothing — **wiping the
-/admin coverage matrix**. The guard: `push_to_d1.fetch_recent` now **skips a
-full-rebuild table when the local copy is empty** (it never emits the wiping
-`DELETE`). See *Troubleshooting → coverage matrix blank* for the restore recipe.
+/admin coverage matrix**. The guard skips an empty local full-rebuild table, and
+the incremental coverage table has no rows in the bulletin push window. See
+*Troubleshooting → coverage matrix blank* for the restore recipe.
 
 ## Manual operations (rare)
 
@@ -92,7 +93,7 @@ Or use the **/admin** control center's Pipeline trigger buttons (needs
 python scripts/refresh.py
 
 # EVDS-only
-python scripts/refresh.py --skip-monthly --skip-weekly
+python -m src.scrapers.evds_scraper --frequencies all
 
 # Scrape new audit PDFs to R2 + extract into the standalone audit SQLite
 # (requires R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY)
@@ -132,19 +133,44 @@ October / February):
 - **Every other bank**: add the URL to `data/banks/audit_report_urls.json`
   — that's the only edit needed.
 
-The Sunday `acquire-audit.yml` cron then **downloads the PDF to R2 by itself**,
-refreshes the coverage matrix (the new quarter shows as a **missing** column),
-and pings Telegram. **Extraction is a deliberate second step**: open **/admin**,
-find the new cell, and click **Re-extract** (or run the Pipeline "Extract audit
-reports" card). Extraction is not automatic — you review the matrix after.
+During the filing windows, `refresh-audit.yml` checks daily. A valid new PDF is
+downloaded to R2, extracted, validated, added to the coverage matrix, pushed to
+D1 in the same batch, and snapshotted in that one run. If nothing new or pending
+is found, the workflow stops before Node, D1 and the snapshot upload.
 
-To acquire before the next Sunday cron, trigger `acquire-audit.yml` manually
-(GitHub → Actions, or the /admin Pipeline "Acquire audit PDFs" card).
+Outside a filing window, trigger `refresh-audit.yml` manually (GitHub → Actions
+or `/admin`). `acquire-audit.yml` remains available only when an operator wants
+to download/inspect a PDF without extracting it.
 
 To enable auto-discovery for more banks, run
 `python scripts/diagnostics/validate_discovery.py` (it checks discovery against
 the config) and add any passing ticker to `DISCOVERY_BANKS`. See
 [ADMIN.md](ADMIN.md) §Auto-discovery.
+
+### Audit source-completeness backfill
+
+Use **Actions → Backfill audit source capture** after migration `0042` is deployed.
+The default run processes only missing or non-captured manifests across all eight target
+lanes; narrow with `banks`, `periods`, `kind` or `lanes`. This is the safe historical
+upgrade because it never calls an analytical upsert and never needs `--force`:
+
+```bash
+# Local inspection against an already-pulled snapshot; no D1/R2 writes.
+python scripts/backfill_audit_source_capture.py --no-pull --dry-run \
+  --banks AKBNK --periods 2025Q4 --lanes capital,equity_change
+```
+
+The raw `bank_audit_source_lines` table stays in `state/bank_audit.db.gz`; it is not a
+D1 sync table. D1 receives `bank_audit_capture_manifest` (one row per partition/lane)
+and any lane validation whose verdict changed. Source and manifest upserts compare factual
+content before writing, so an identical `refresh_existing` run keeps its timestamps and
+costs no D1 row writes. Near-full lanes fail on an unfamiliar numeric source row; selected
+summary lanes retain/count their intentionally omitted detail and expose `shape_hash` for
+the future alert mechanism.
+
+Until this workflow has run over the historical corpus, partitions without a manifest keep
+their pre-capture validator verdict. New extracts and targeted re-extracts populate evidence
+automatically and enforce it immediately.
 
 ### Narrative prose lane — local backfill, deferred D1 push
 
@@ -435,7 +461,7 @@ Routine row updates go through `push_to_d1.py`.
 
 The public API (`/api/v1`, see [API.md](API.md)) serves only what's listed in the
 `api_series` catalog. **Both** BDDK ingest workflows rebuild and push it:
-`refresh-bddk-bulletins.yml` (daily monthly-probe / Friday weekly — the runs that
+`refresh-bddk-bulletins.yml` (month-edge monthly probe / Friday weekly — the runs that
 actually land new periods) and `refresh-data.yml` (Saturday). The steps below are
 for out-of-band rebuilds.
 
@@ -747,15 +773,20 @@ minimal-deps health-check job can import it.
    `downloaded_at`, so a scraper that re-fetches history and rewrites it
    identically re-pushes the whole table. **Any lane that re-fetches an
    overlapping window has this bug until it is shown not to** — the run succeeds,
-   the data is correct, and only the bill moves. Three lanes have carried it:
+   the data is correct, and only the bill moves. Seven ingestion paths have
+   carried it:
 
    | Lane | Why it re-fetches | Waste before the fix | Fixed |
    |---|---|---|---|
    | `evds_scraper.fetch_one` | no incremental endpoint — pulls each series back to 2018 every run | 52,828 of 53,521 rows looked new **daily**, ~17M rows/month | 2026-07-27 |
    | `weekly_api_scraper.fetch_and_store` | the BDDK weekly API only serves a trailing **13-week** window | ~26,600 rows a run, of which 12/13 (~24,550) unchanged; 4 runs/week ⇒ **~1.5M billed writes/month** | 2026-08-04 |
    | `tefas.loader.upsert_day` | `update_tefas.py` re-fetches a trailing **7-day** window every day | ~2,150 rows/day, 6/7 unchanged ⇒ **~0.2M billed writes/month** | 2026-08-04 |
+   | `tbb.loader` | newest quarterly workbooks and the cumulative monthly workbook overlap stored history | identical TBB rows were re-stamped on the Saturday catch-up | 2026-08-06 |
+   | `tkbb.loader` | newest-quarter revision check + rolling 12-month acquisition window | identical TKBB rows were re-stamped on the Saturday catch-up | 2026-08-06 |
+   | `update_tuik.write_db` | each workbook carries previously stored history | every returned TÜİK row was re-stamped on the Saturday catch-up | 2026-08-06 |
+   | `kap.loader.replace_bank_rows` | each bank's complete ownership partition is re-fetched | every unchanged KAP partition was deleted and reinserted | 2026-08-06 |
 
-   All three now compare the stored tuple before writing, so an unchanged row
+   All seven now compare the stored tuple before writing, so an unchanged row
    keeps its old `downloaded_at` and the push window never sees it. A revision, a
    rebase or a new period still writes, because the tuple differs. A settled
    series reporting **0 rows written is the healthy reading** — the weekly
@@ -778,14 +809,16 @@ minimal-deps health-check job can import it.
    date>)` instead. Either is fine; leaving the old threshold is not.
 
    ⚠️ **This class is the flat daily baseline, not the overage.** Together the
-   weekly + TEFAS fixes take ~1.7M/month off a ~14.6M/month quiet baseline. The
+   first measured weekly + TEFAS fixes took ~1.7M/month off a ~14.6M/month quiet
+   baseline. The four Saturday-path fixes above reduce it further; that saving
+   has not yet been measured against a live D1 run. The
    50M is blown by **campaign days** (Jul 15/17/26 alone were 36.9M of 68.1M) —
    backfills, re-extractions and override pushes. Fixing scrapers does not
    address those; budgeting the campaign does.
 2. **Full-rebuild tables carry a content hash.** `api_series` (19,787 rows,
-   rebuilt on the DAILY bulletin cron) and the audit spine
-   (`bank_audit_coverage`, 18,936 rows, on every audit and override run) emit
-   `DELETE` + `INSERT` for every row. `push_to_d1` now hashes the local contents
+   rebuilt locally only after changed BDDK/full refreshes) and the two audit
+   registry tables emit `DELETE` + `INSERT` for every row. `bank_audit_coverage`
+   graduated to row-delta syncing in migration 0040. `push_to_d1` hashes the local contents
    against what it last pushed and skips entirely when nothing moved. Build-stamp
    columns (`built_at`, `downloaded_at`, …) are excluded from the hash — without
    that the skip could never fire, because `build_api_catalog` re-INSERTs without
@@ -907,9 +940,9 @@ would be permanent and would show on `/actions` and the per-bank news tabs
 forever. It is also the cheapest of the daily jobs. Never freeze this one.
 
 Consequences to expect while frozen: `/admin` freshness goes red across the
-board (that is the freeze, not a break), no Telegram bulletin pings, and the
-monthly BDDK bulletin — which lands mid-month on no fixed day — is picked up
-whenever the daily probe resumes rather than the day it publishes.
+board (that is the freeze, not a break), no Telegram bulletin pings, and a
+month-end BDDK bulletin is picked up whenever the probe resumes rather than the
+day it publishes.
 
 **Publishing a release during the freeze** (done for 2026-06 on 2026-07-30 —
 BDDK published while frozen and the site would otherwise have shown May until
@@ -1013,7 +1046,7 @@ code reads to be named here, and this one is load-bearing.
 
 | Env key | Used by |
 |---|---|
-| `D1_RUN_LEDGER` | Path to a per-RUN file that `scripts/push_to_d1.py` debits before each write, so the 250,000 emergency cap bounds the whole workflow rather than each push. Applied per invocation it did not: the 2026Q2 audit refresh sent 203,799 then 226,069 estimated billed rows, each "under the cap", 429,868 for the run. Every pushing step in a job must be given the **same** run-scoped path (`${{ runner.temp }}/d1_run_ledger.json`) — `tests/test_workflow_ledger_wiring.py` fails the build otherwise. It also changes retry semantics: while it is set, `scripts/audit_d1.py` treats `EXIT_PUSH_FAILED` as terminal, because the estimate is booked *before* wrangler runs and nobody can observe whether a half-finished import billed. Unset = no ledger, per-push cap, exit 4 retryable as before. Wired in `refresh-audit.yml`, `refresh-bddk-bulletins.yml`, `refresh-data.yml` |
+| `D1_RUN_LEDGER` | Path to a per-RUN file that `scripts/push_to_d1.py` debits before each write. It was introduced after a 2026Q2 audit run sent 203,799 then 226,069 estimated rows, each below a per-call 250,000 cap. Routine audit and bulletin workflows now batch into **one** D1 call, but the ledger remains the guard if another call is ever added; every pushing step must share `${{ runner.temp }}/d1_run_ledger.json` (`tests/test_workflow_ledger_wiring.py`). With a ledger, `EXIT_PUSH_FAILED` is terminal because nobody can observe whether a half-finished import billed. Wired in `refresh-audit.yml`, `refresh-bddk-bulletins.yml`, `refresh-data.yml` |
 
 Actions **variables** (same screen, "Variables" tab — not secrets):
 

@@ -420,7 +420,7 @@ _VALUE_COLS = [
 
 
 def upsert(conn: sqlite3.Connection, bank_ticker: str, period: str, kind: str,
-           rep: FxReport, *, unit: UnitContext) -> int:
+           rep: FxReport, *, unit: UnitContext, commit: bool = True) -> int:
     cur = conn.cursor()
     cur.execute(
         "DELETE FROM bank_audit_fx_position WHERE bank_ticker=? AND period=? AND kind=?",
@@ -440,7 +440,8 @@ def upsert(conn: sqlite3.Connection, bank_ticker: str, period: str, kind: str,
         cur.executemany(
             f"INSERT INTO bank_audit_fx_position ({', '.join(cols)}) VALUES ({ph})", rows
         )
-    conn.commit()
+    if commit:
+        conn.commit()
     return len(rows)
 
 

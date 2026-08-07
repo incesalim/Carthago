@@ -296,6 +296,7 @@ def upsert_free_provision(
     fp: FreeProvision,
     *,
     unit: UnitContext,
+    commit: bool = True,
 ) -> int | None:
     """Store one bank's free-provision row. Skip-if-empty (no disclosure found),
     so a failed re-extract can't wipe a captured value — same rule as profile.
@@ -319,7 +320,8 @@ def upsert_free_provision(
             [(bank_ticker, period, kind, fp.free_provision, fp.free_provision_prior,
               fp.source_page, (fp.snippet or "")[:300])])[0],
     )
-    conn.commit()
+    if commit:
+        conn.commit()
     return 1
 
 

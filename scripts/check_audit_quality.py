@@ -69,7 +69,10 @@ sys.stdout.reconfigure(encoding="utf-8")
 
 # Reuse the validator's canonical grand-total / Σ-romans logic so the off-balance
 # vertical check can't drift from the BS one.
-from src.audit_reports.validator import _statement_total  # noqa: E402
+from src.audit_reports.validator import (  # noqa: E402
+    _statement_total,
+    free_provision_basis_mentions,
+)
 
 BALANCE_TOL = 0.005       # 0.5%
 DUP_FRACTION = 0.95       # >=95% of line items identical to prior quarter
@@ -472,8 +475,9 @@ def _pl_sign_convention(conn: sqlite3.Connection) -> list[str]:
 FREEPROV_MAX = 100_000_000        # thousand TL (= 100bn TL) — generous ceiling
 FREEPROV_PRIOR_TOL = 0.01         # stated prior vs prior-year-end current: 1%
 
-# How an auditor NAMES the reserve when qualifying over it. The recall check
-# below is only as wide as this list, and it was too narrow: BURGAN's 2023Q2–
+# How an auditor NAMES the reserve when qualifying over it. The canonical
+# matcher now lives in validator.free_provision_basis_mentions(), and it was
+# deliberately widened after BURGAN's 2023Q2–
 # 2024Q1 basis paragraphs say "general reserve" / "general provision" where its
 # 2024Q2 paragraph — same boilerplate, same Note 2.h.2.ii, same purpose clause —
 # says "free provision". The auditor merely translated it differently. Result:
@@ -494,10 +498,6 @@ FREEPROV_PRIOR_TOL = 0.01         # stated prior vs prior-year-end current: 1%
 # r"serbest\s+kar[şs][ıi]l[ıi]k"), so SKBNK 2022Q1–Q3 have rows only because
 # their text literally says "free provision". These alarms are correct and the
 # data fix needs the extractor widened too.
-_FREEPROV_SUBJECTS = ("%free provision%", "%serbest kar%",
-                      "%general reserve%", "%general provision%")
-
-
 def _free_provision(conn: sqlite3.Connection) -> list[str]:
     """Data-quality checks for bank_audit_free_provision (the serbest karşılık
     stock). There is no intra-row arithmetic to reconcile, so the checks are
@@ -537,13 +537,16 @@ def _free_provision(conn: sqlite3.Connection) -> list[str]:
                     out.append(f"{tag} stated prior {prior:,.0f} != prior-year-end current "
                                f"{q4_prev:,.0f} ({int(period[:4]) - 1}Q4) — one side mis-extracted")
     if _has_table(conn, "bank_audit_opinion"):
-        _subj_sql = " OR ".join(["lower(o.basis_text) LIKE ?"] * len(_FREEPROV_SUBJECTS))
-        for bank, period, kind in conn.execute(
-                "SELECT o.bank_ticker, o.period, o.kind FROM bank_audit_opinion o "
-                f"WHERE o.is_modified=1 AND ({_subj_sql}) "
-                "AND NOT EXISTS (SELECT 1 FROM bank_audit_free_provision f "
-                "  WHERE f.bank_ticker=o.bank_ticker AND f.period=o.period "
-                "    AND f.kind=o.kind)", _FREEPROV_SUBJECTS):
+        missing_rows = conn.execute(
+            "SELECT o.bank_ticker, o.period, o.kind, o.basis_text "
+            "FROM bank_audit_opinion o WHERE o.is_modified=1 "
+            "AND NOT EXISTS (SELECT 1 FROM bank_audit_free_provision f "
+            "  WHERE f.bank_ticker=o.bank_ticker AND f.period=o.period "
+            "    AND f.kind=o.kind)"
+        )
+        for bank, period, kind, basis_text in missing_rows:
+            if not free_provision_basis_mentions(basis_text):
+                continue
             # No row at all — not merely a captured 0 (a bank that reversed to
             # zero and disclosed "none" is covered, not a gap).
             out.append(f"freeprov  {bank} {period} {kind}: auditor qualified over a free "

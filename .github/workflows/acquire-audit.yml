@@ -1,10 +1,10 @@
 name: Acquire audit reports
 
-# Audit-report ACQUISITION — the only automated part of the audit lane. Banks
+# Audit-report ACQUISITION — a manual acquisition-only diagnostic. Banks
 # publish quarterly BRSA PDFs on their IR sites; this discovers + downloads any
 # new ones to R2 and refreshes the /admin coverage matrix so they appear as
-# "missing" (acquired, not yet extracted). It does NOT extract — extraction is
-# managed by hand from /admin (refresh-audit.yml).
+# "missing" (acquired, not yet extracted). It does NOT extract; the normal
+# scheduled arrival path is refresh-audit.yml, while this is an operator tool.
 #
 # Decoupled by design:
 #   - Reuses the bddk-audit concurrency group, so it NEVER runs at the same time
@@ -14,11 +14,9 @@ name: Acquire audit reports
 #   - Touches only the PDF bucket (scrape) and the three coverage tables in D1.
 #
 # When to run:
-#   - Sunday 04:00 UTC (weekly check; banks publish quarterly, 49/52 weeks a
-#     cheap no-op). Manually from the Actions tab or /admin Pipeline panel.
+#   - Manually from the Actions tab or /admin Pipeline panel. Scheduled filing-
+#     window checks now use refresh-audit.yml so a new PDF is extracted at once.
 on:
-  schedule:
-    - cron: "0 4 * * 0"
   workflow_dispatch:
     inputs:
       banks:
@@ -100,13 +98,13 @@ jobs:
           node-version: "22"
 
       - name: Scrape new audit PDFs to R2 (discover + download; no extraction)
+        id: scrape
         # --no-extract: acquisition only. Idempotent — skips PDFs already in R2.
         # Writes the new-PDF count to new_count.txt for the notify step.
         #
-        # On `schedule` the input is empty, and ALL is the explicit sentinel for
-        # a dispatch — both mean every bank, so neither passes --only-bank. Any
-        # other value scopes the run; the resolved scope is echoed because an
-        # unset input silently falling back to the default has bitten us before.
+        # ALL is the explicit sentinel for every bank, so it does not pass
+        # --only-bank. Any other value scopes the run; echo the resolved scope
+        # because dispatch defaults have silently narrowed runs before.
         env:
           BANKS: ${{ inputs.banks }}
         run: |
@@ -120,8 +118,10 @@ jobs:
               --no-extract --workers 16 --new-count-file new_count.txt \
               --only-bank "$BANKS"
           fi
+          echo "new=$(cat new_count.txt)" >> "$GITHUB_OUTPUT"
 
       - name: Refresh coverage spine in D1 (so new PDFs show as "missing")
+        if: steps.scrape.outputs.new != '0'
         # D1-only full rebuild of bank_audit_expected/_statement_types/_coverage.
         # No R2 snapshot write. With the R2∪profiles universe, freshly-acquired
         # PDFs appear as missing + pdf_present = ready to extract from /admin.

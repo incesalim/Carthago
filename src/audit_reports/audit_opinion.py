@@ -276,6 +276,8 @@ def upsert_opinion(
     period: str,
     kind: str,
     result: OpinionResult,
+    *,
+    commit: bool = True,
 ) -> int | None:
     """Idempotently store one bank's opinion row. Returns 1 if written, None if
     the classification was 'unknown' (so a failed re-extract can't overwrite a
@@ -293,7 +295,8 @@ def upsert_opinion(
             result.basis_text, result.auditor, result.language, result.source_page,
         ),
     )
-    conn.commit()
+    if commit:
+        conn.commit()
     return 1
 
 

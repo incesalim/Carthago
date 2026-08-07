@@ -358,8 +358,8 @@ not recomputed by us.
 | Rate limit | none currently |
 | Caching | responses cached 1 hour |
 
-Data updates weekly (BDDK's Friday weekly bulletin) and monthly (mid-month, no
-fixed day). There's no webhook — poll `/api/v1` and watch `coverage.latest`.
+Data updates weekly (BDDK's Friday bulletin) and monthly, normally around
+month-end. There's no webhook — poll `/api/v1` and watch `coverage.latest`.
 
 ---
 

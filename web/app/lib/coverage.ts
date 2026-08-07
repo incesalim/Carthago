@@ -1,6 +1,6 @@
 /**
  * Read side of the audit coverage matrix. All three tables are built by
- * scripts/sync_audit_expected.py (full rebuild each refresh-audit run); the
+ * scripts/sync_audit_expected.py (rebuilt locally in each changed audit run); the
  * Worker only reads them. Every query is wrapped so a not-yet-migrated D1
  * (tables absent) degrades to empty rather than 500-ing the admin page.
  */
@@ -17,6 +17,9 @@ export interface StatementTypeRow {
   section: string;
   is_core: number;
   has_validator: number;
+  /** Comma-separated bank_audit_validation.statement values; every result is
+   *  required for this lane to be trustworthy. */
+  validation_gate: string;
   section_rank: number;
   sort_order: number;
 }
@@ -86,7 +89,7 @@ export async function statementTypes(): Promise<StatementTypeRow[]> {
     const { results } = await db
       .prepare(
         `SELECT key, label, source_table, statement, section, is_core, has_validator,
-                section_rank, sort_order
+                validation_gate, section_rank, sort_order
          FROM bank_audit_statement_types ORDER BY section_rank, sort_order`,
       )
       .all<StatementTypeRow>();

@@ -126,6 +126,87 @@ class ValidationResult:
         return json.dumps(head, ensure_ascii=False)
 
 
+def check_source_capture(
+    manifest: dict,
+    *,
+    actual_row_count: int,
+    ledger_line_count: int | None = None,
+    ledger_data_row_count: int | None = None,
+) -> ValidationResult:
+    """Validate the source-evidence contract for one normalized/summary lane.
+
+    This check is merged into a lane only when that partition has a manifest.
+    Historical rows therefore keep their existing verdict until the capture
+    backfill reaches them; from that point onward source completeness is part of
+    the same gate that protects writes and drives coverage.
+    """
+    res = ValidationResult()
+
+    def require(ok: bool, check: str, node: str, expected: int, actual: int) -> None:
+        if ok:
+            res.add_pass()
+        else:
+            res.add_fail(check, node, float(expected), float(actual))
+
+    status = str(manifest.get("capture_status") or "")
+    scope = str(manifest.get("capture_scope") or "")
+    pages = int(manifest.get("source_page_count") or 0)
+    lines = int(manifest.get("source_line_count") or 0)
+    numeric_lines = int(manifest.get("source_numeric_line_count") or 0)
+    data_rows = int(manifest.get("source_data_row_count") or 0)
+    mapped = int(manifest.get("mapped_data_row_count") or 0)
+    unmapped = int(manifest.get("unmapped_data_row_count") or 0)
+    recorded_rows = int(manifest.get("normalized_row_count") or 0)
+
+    require(status == "captured", "capture_status", "source capture",
+            1, int(status == "captured"))
+    require(pages > 0, "capture_pages", "source pages", 1, pages)
+    require(lines > 0, "capture_lines", "source lines", 1, lines)
+    require(numeric_lines > 0, "capture_numeric_lines", "numeric source lines",
+            1, numeric_lines)
+    require(data_rows == mapped + unmapped, "capture_mapping_partition",
+            "mapped + unmapped rows", data_rows, mapped + unmapped)
+    require(recorded_rows == actual_row_count, "capture_normalized_row_count",
+            "stored normalized rows", actual_row_count, recorded_rows)
+
+    if actual_row_count > 0:
+        require(mapped > 0, "capture_traceability", "mapped source rows", 1, mapped)
+    elif data_rows > 0:
+        # Independent anchors found a table-like source row, but the normalized
+        # extractor wrote nothing: this is the exact silent omission the ledger
+        # exists to expose.
+        require(False, "capture_rows_missed", "source rows without normalized rows",
+                data_rows, 0)
+    else:
+        res.add_pass()
+
+    if scope == "near_full":
+        # Near-full lanes promise standard source rows, not a curated subset.
+        # Any unclassified numeric data row is therefore schema drift or a row
+        # the parser dropped and must stop the lane from being called complete.
+        require(unmapped == 0, "capture_unmapped_rows", "unmapped source rows",
+                0, unmapped)
+    else:
+        # Selected-summary lanes intentionally leave detailed rows unmapped;
+        # the count is evidence for alerts, not a false validation failure.
+        require(scope == "selected_summary", "capture_scope", "known capture scope",
+                1, int(scope == "selected_summary"))
+
+    if ledger_line_count is not None:
+        require(ledger_line_count == lines, "capture_ledger_lines",
+                "raw ledger line count", lines, ledger_line_count)
+    if ledger_data_row_count is not None:
+        require(ledger_data_row_count == data_rows, "capture_ledger_data_rows",
+                "raw ledger data-row count", data_rows, ledger_data_row_count)
+
+    hashes = (manifest.get("content_hash"), manifest.get("shape_hash"),
+              manifest.get("mapping_hash"))
+    require(all(isinstance(value, str) and len(value) == 64 for value in hashes),
+            "capture_hashes", "content/shape/mapping hashes", 3,
+            sum(isinstance(value, str) and len(value) == 64 for value in hashes))
+    return res
+
+
 def _tol(expected: float, base: float, rel: float) -> float:
     return max(base, abs(expected) * rel)
 
@@ -1995,6 +2076,102 @@ def check_audit_opinion(rows: list[dict]) -> ValidationResult:
             res.add_fail("opinion_basis_missing",
                          "opinion is modified but no basis captured (ISA 705 "
                          "requires the paragraph)", expected=1.0, actual=0.0)
+    return res
+
+
+_FREE_PROVISION_SUBJECT_RX = re.compile(
+    r"\bfree\s+provisions?\b"
+    r"|\bserbest\s+kar[şs][ıi]l[ıi]k(?:lar)?\b"
+    r"|\bgeneral\s+(?:reserve|provision)s?\b",
+    re.I,
+)
+_FREE_PROVISION_MAX = 100_000_000.0
+_FREE_PROVISION_PRIOR_TOL = 0.01
+
+
+def free_provision_basis_mentions(text: str | None) -> bool:
+    """Whether an auditor's basis paragraph names the reserve subject."""
+    return bool(_FREE_PROVISION_SUBJECT_RX.search(text or ""))
+
+
+def check_free_provision(
+    rows: list[dict],
+    opinion_rows: list[dict] | None = None,
+    prior_year_current: float | None = None,
+) -> ValidationResult:
+    """Validate the conditional free-provision disclosure.
+
+    Absence normally means N/A, not zero.  It becomes a recall failure only
+    when the independently extracted modified-opinion basis says the reserve
+    exists. Existing rows get a range check and, where available, reconcile the
+    reprinted comparative to the prior year's Q4 current stock.
+    """
+    res = ValidationResult()
+    cur = rows[0] if rows else None
+    opinion = opinion_rows[0] if opinion_rows else None
+    opinion_mentions = bool(
+        opinion and opinion.get("is_modified")
+        and free_provision_basis_mentions(opinion.get("basis_text"))
+    )
+
+    if cur is None:
+        if opinion_mentions:
+            res.add_fail(
+                "freeprov_recall_gap",
+                "modified audit opinion names a free provision but no row was extracted",
+                expected=1.0,
+                actual=0.0,
+            )
+        else:
+            res.add_skip()
+        return res
+
+    amount = cur.get("free_provision")
+    if amount is None:
+        res.add_fail(
+            "freeprov_value_missing",
+            "disclosure row exists but current stock is null",
+            expected=1.0,
+            actual=0.0,
+        )
+    elif 0 <= amount <= _FREE_PROVISION_MAX:
+        res.add_pass()
+    else:
+        res.add_fail(
+            "freeprov_range",
+            "free-provision stock outside the measured plausible band",
+            expected=_FREE_PROVISION_MAX,
+            actual=amount,
+        )
+
+    # A clean opinion does not prove that the stock is wrong, but across this
+    # corpus it is a high-signal contradiction for parser-produced positive
+    # holdings (0 observed legitimate cases). Manual source_page=-1 rows were
+    # already read and verified by a human, so they are exempt.
+    if (amount is not None and amount > 0 and opinion
+            and not opinion.get("is_modified")
+            and cur.get("source_page") != -1):
+        res.add_fail(
+            "freeprov_clean_opinion",
+            "positive parser-read stock under a clean audit opinion",
+            expected=0.0,
+            actual=amount,
+        )
+
+    prior = cur.get("free_provision_prior")
+    if prior is not None and prior_year_current is not None:
+        denom = max(abs(prior), abs(prior_year_current), 1.0)
+        if abs(prior - prior_year_current) / denom <= _FREE_PROVISION_PRIOR_TOL:
+            res.add_pass()
+        else:
+            res.add_fail(
+                "freeprov_prior_chain",
+                "stated comparative differs from prior-year Q4 current stock",
+                expected=prior_year_current,
+                actual=prior,
+            )
+    else:
+        res.add_skip()
     return res
 
 

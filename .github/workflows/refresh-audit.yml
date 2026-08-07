@@ -1,10 +1,8 @@
 name: Refresh audit reports
 
-# Bank audit-report EXTRACTION — dispatch-only (admin-triggered). Acquisition
-# (discover + download new PDFs → R2) is automated separately in acquire-audit.yml;
-# extraction is run by hand from the /admin panel (Pipeline "Audit reports" card,
-# or the coverage matrix's per-cell re-extract). This job extracts PDFs from R2,
-# runs the validators, and pushes the bank_audit_* tables to D1.
+# Bank audit-report acquisition + extraction. During quarterly earnings windows
+# this checks every day and immediately carries each valid new filing through to
+# D1. Manual dispatch remains available for targeted repairs from /admin.
 #
 # Decoupled by design:
 #   - Own staging DB:        data/bank_audit.db (NOT the shared bddk_data.db)
@@ -16,10 +14,15 @@ name: Refresh audit reports
 # of tables (bank_audit_*) with idempotent INSERT OR REPLACE.
 #
 # When to run:
-#   - Manually only — from the /admin panel or the Actions tab. There is no
-#     schedule: extraction is a managed step (review the coverage matrix after).
-#     acquire-audit.yml runs weekly to keep new PDFs flowing into R2.
+#   - Daily in the filing windows: late Jan/Apr/Jul/Oct through the following
+#     reporting-deadline month (plus early March for annual consolidated reports).
+#   - Manually from the /admin panel or Actions for targeted repairs.
 on:
+  schedule:
+    - cron: "0 4 20-31 1,4,7,10 *"
+    - cron: "0 4 1-29 2 *"
+    - cron: "0 4 1-20 5,8,11 *"
+    - cron: "0 4 1-15 3 *"
   workflow_dispatch:
     inputs:
       skip_scrape:
@@ -106,6 +109,7 @@ jobs:
           PY
 
       - name: Sync audit reports (scrape new PDFs → R2 → extract → audit DB)
+        id: sync
         # Idempotent: skips PDFs already in R2 and (ticker,period,kind) already
         # extracted with success=1. Writes to the standalone data/bank_audit.db.
         env:
@@ -131,14 +135,28 @@ jobs:
             [ -n "$NO_SCRAPE" ] && args+=("$NO_SCRAPE")
             [ -n "$LATEST" ] && args+=("$LATEST")
           fi
-          python scripts/sync_audit_reports.py "${args[@]}"
+          python scripts/sync_audit_reports.py "${args[@]}" \
+            --result-file sync_result.json
+          python - <<'PY'
+          import json, os
+          result = json.load(open("sync_result.json", encoding="utf-8"))
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
+              out.write(f"changed={str(result['changed']).lower()}\n")
+              out.write(f"new={result.get('scrape', {}).get('new', 0)}\n")
+              out.write(f"extracted={result.get('extract', {}).get('ok', 0)}\n")
+          print(f"handoff: changed={result['changed']} "
+                f"new={result.get('scrape', {}).get('new', 0)} "
+                f"extracted={result.get('extract', {}).get('ok', 0)}")
+          PY
 
       - name: Rebuild bank_audit_stages from credit-quality
+        if: steps.sync.outputs.changed == 'true'
         # Derived table the dashboard's Stage 1/2/3 view reads. Rebuild from the
         # standalone audit DB so push_to_d1 has fresh stage rows to send.
         run: python scripts/build_bank_audit_stages.py --db data/bank_audit.db
 
       - name: Revalidate all partitions (recompute bank_audit_validation)
+        if: steps.sync.outputs.changed == 'true'
         # Cheap pure-stored-row recompute so the coverage matrix + /banks badges
         # reflect the CURRENT validator across the whole corpus, not just freshly
         # re-extracted banks. Only a partition whose VERDICT moved is rewritten:
@@ -147,7 +165,15 @@ jobs:
         # pl_roles rows per no-op run, measured on the real snapshot.
         run: python scripts/revalidate_audit_db.py --db data/bank_audit.db
 
+      - name: Rebuild coverage spine locally
+        if: steps.sync.outputs.changed == 'true'
+        # Batch the coverage changes with the extracted rows. The single D1 push
+        # below owns the entire audit result; a quiet discovery run reaches none
+        # of these steps.
+        run: python scripts/sync_audit_expected.py --db data/bank_audit.db
+
       - name: Audit data-quality check (alert-only)
+        if: steps.sync.outputs.changed == 'true'
         # Flags silent extraction errors — a quarter whose lines are identical to
         # the prior one (period-shift, the Eximbank fingerprint), a balance sheet
         # that doesn't balance, or missing rows — and pings Telegram/Discord.
@@ -159,21 +185,22 @@ jobs:
         run: python scripts/check_audit_quality.py --db data/bank_audit.db --alert
 
       - name: Setup Node (for wrangler)
+        if: steps.sync.outputs.changed == 'true'
         uses: actions/setup-node@v7
         with:
           node-version: "22"
 
-      - name: Push fresh bank_audit_* rows to Cloudflare D1
+      - name: Push the complete audit batch to Cloudflare D1 once
+        if: steps.sync.outputs.changed == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          # Both pushes in this job share one ledger, so the 250,000 cap bounds
-          # the RUN. Applied per invocation it did not: the 2026Q2 refresh sent
-          # 203,799 then 226,069, each "under the cap", 429,868 for the run.
+          # Retained even though this is now one push: it preserves the run-level
+          # budget contract if another batched step is ever added.
           D1_RUN_LEDGER: ${{ runner.temp }}/d1_run_ledger.json
         # 168h window — a new quarter's reports trickle in over weeks, so a wide
-        # window is harmless (INSERT OR REPLACE is idempotent). --table-set audit
-        # is every bank_audit_* table in src/audit_reports/registry.py; everything
-        # else is owned by the bulletin pipeline.
+        # window is harmless (INSERT OR REPLACE is idempotent).
+        # --table-set audit-refresh is every registry-derived bank_audit_* table
+        # plus the three locally rebuilt coverage-spine tables.
         #
         # NEVER hand-list these tables again. The literal that used to live here
         # named 14 of the 16: bank_audit_fx_position and bank_audit_repricing were
@@ -190,11 +217,12 @@ jobs:
         # skip after their clear would leave the partition empty.
         run: >
           python scripts/push_to_d1.py --db data/bank_audit.db --hours 168
-          --table-set audit --skip-unchanged-partitions
+          --table-set audit-refresh --skip-unchanged-partitions
 
       - name: Upload audit snapshot back to R2
-        # BEFORE the coverage spine: this is the durable result of the run, and
-        # nothing optional may be able to prevent it.
+        if: steps.sync.outputs.changed == 'true'
+        # Package only after the single D1 call succeeds, so the durable snapshot
+        # includes both the new rows and push_to_d1's confirmed digest/row state.
         run: |
           python - <<'PY'
           import gzip, shutil, sqlite3, pathlib
@@ -215,19 +243,16 @@ jobs:
           print(f"Backup → {hkey} (history pruned to last 7)")
           PY
 
-      - name: Sync coverage spine to D1 (expected universe + registry + rollup)
+      - name: Notify on newly acquired reports
+        if: steps.sync.outputs.new != '0' && success()
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          D1_RUN_LEDGER: ${{ runner.temp }}/d1_run_ledger.json
-        # LAST, and deliberately so. This step is METADATA — the coverage matrix's
-        # rollup — while the snapshot above is the extraction itself. When it ran
-        # FIRST, its budget refusal failed the job and skipped the upload, leaving
-        # PASHA's rows in D1 and absent from the snapshot: D1 and R2 stranded out
-        # of sync over a rollup. `continue-on-error` for the same reason — a
-        # metadata step must not discard a successful extraction. A failure here
-        # still shows red in the run and still alerts.
-        continue-on-error: true
-        run: python scripts/sync_audit_expected.py --db data/bank_audit.db --push
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+        run: >
+          python scripts/notify.py
+          "🆕 audit refresh: ${{ steps.sync.outputs.new }} new PDF(s) acquired;
+          ${{ steps.sync.outputs.extracted }} partition(s) extracted and saved."
 
       - name: Alert on failure
         if: failure()

@@ -20,34 +20,32 @@ export interface WorkflowDef {
 /**
  * Allow-list of dispatchable workflows (also used to label runs).
  *
- * Descriptions name every data lane each cron actually pulls — not just the
- * headline one. The daily/weekly refreshes both run `scripts/refresh.py`, which
- * orchestrates nine scrapers; the daily run does everything except the BDDK
- * monthly/weekly bulletins, so BIST, TEFAS, KAP, TBB, TÜİK and the non-bank
- * sector all refresh daily even though older labels only said "TCMB rates / FX".
+ * Descriptions name every data lane each cron actually pulls. The narrow daily
+ * jobs pass explicit skip lists; the Saturday job is the only full `refresh.py`
+ * sweep. Quiet runs stop before D1 and R2.
  */
 export const WORKFLOWS: WorkflowDef[] = [
   {
     file: "refresh-bddk-bulletins.yml",
     label: "BDDK bulletins",
-    description: "Monthly + weekly BDDK bulletins → D1 · weekly (Sat)",
+    description: "BDDK monthly at month edges + weekly on Fridays → D1 · no-op when unchanged",
   },
   {
     file: "refresh-data.yml",
     label: "Full refresh",
     description:
-      "Full weekly sweep: bulletins + EVDS + BIST + TEFAS + KAP + TBB + TÜİK + non-bank → D1 · weekly (Sat)",
+      "Full weekly sweep: bulletins + every EVDS cadence + TEFAS + KAP + TBB/TKBB + TÜİK + non-bank → D1 · Sat",
   },
   {
     file: "refresh-evds-daily.yml",
-    label: "EVDS + daily lanes",
+    label: "EVDS daily series",
     description:
-      "Daily (all but bulletins): EVDS macro/FX + BIST + TEFAS + KAP ownership + TBB digital + TÜİK + non-bank → D1",
+      "Daily/workday EVDS only (FX, policy/funding, sterilization) → D1 · Sun–Fri · no-op when unchanged",
   },
   {
     file: "acquire-audit.yml",
     label: "Acquire audit PDFs",
-    description: "Discover + download new audit PDFs → R2 (no extraction) · weekly (Sun)",
+    description: "Download new audit PDFs → R2 without extraction · manual diagnostic",
   },
   {
     file: "analyst-daily.yml",
@@ -63,8 +61,8 @@ export const WORKFLOWS: WorkflowDef[] = [
   },
   {
     file: "refresh-audit.yml",
-    label: "Extract audit reports",
-    description: "Extract audit PDFs from R2 → bank_audit_* → D1 (manual)",
+    label: "Audit reports",
+    description: "Filing-window daily: discover → extract → validate/coverage → one D1 batch · manual repairs too",
   },
   {
     file: "refresh-news-daily.yml",
@@ -101,7 +99,10 @@ export const STATEMENT_TYPES = new Set<string>([
   "balance_sheet_assets", "balance_sheet_liabilities", "profit_loss",
   "other_comprehensive_income", "equity_change", "cash_flow", "off_balance",
   "credit_quality", "stages", "loans_by_sector", "npl_movement",
-  "capital", "liquidity", "profile",
+  "capital", "liquidity", "fx_position", "repricing", "profile",
+  "audit_opinion", "free_provision",
+  // prose is deliberately parked in a local-only database; do not dispatch it
+  // from the D1 coverage UI until that lane is explicitly reactivated.
 ]);
 
 /**

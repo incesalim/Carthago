@@ -107,6 +107,27 @@ LEFT JOIN s3_prov sp   USING (bank_ticker, period, kind, period_type)
 """
 
 
+def _derived_stage_row(source: tuple) -> tuple:
+    """Turn one _SQL_AGG source row into the persisted derived-stage row."""
+    bt, p, k, pt, s1, s2, s3, e1, e2, e3 = source
+    # `total` is the LOAN BOOK, and S1+S2 are what make it one. With both
+    # absent, summing the surviving S3 would fabricate a 100% NPL row. Unknown
+    # is therefore NULL, not zero. One missing S1/S2 is retained because 40
+    # current rows legitimately have that partial shape.
+    if s1 is None and s2 is None:
+        tot_a = None
+    else:
+        amounts = [x for x in (s1, s2, s3) if x is not None]
+        tot_a = sum(amounts) if amounts else None
+    ecls = [x for x in (e1, e2, e3) if x is not None]
+    tot_e = sum(ecls) if ecls else None
+    cov1 = (e1 / s1) if (e1 is not None and s1 not in (None, 0)) else None
+    cov2 = (e2 / s2) if (e2 is not None and s2 not in (None, 0)) else None
+    cov3 = (e3 / s3) if (e3 is not None and s3 not in (None, 0)) else None
+    return (bt, p, k, pt, s1, s2, s3, tot_a,
+            e1, e2, e3, tot_e, cov1, cov2, cov3)
+
+
 def build_stages(conn: sqlite3.Connection) -> int:
     """Rebuild bank_audit_stages from bank_audit_credit_quality, in process.
 
@@ -144,34 +165,7 @@ def build_stages(conn: sqlite3.Connection) -> int:
     # re-stamp every surviving row's `extracted_at` — the whole cost this
     # rebuild is trying to avoid — and, worse, combined with an insert of only
     # the CHANGED rows it would empty the table.
-    rows: list[tuple] = []
-    for r in conn.execute(_SQL_AGG):
-        bt, p, k, pt, s1, s2, s3, e1, e2, e3 = r
-        # Total amount + total ECL when all three present.
-        #
-        # ...except `total` is the LOAN BOOK, and S1+S2 are what make it one.
-        # With both absent the sum collapses to S3 alone and the row then
-        # states "every lira this bank lent is non-performing" — NPL 100%,
-        # fabricated from a gap. 161 of 836 prior rows were in exactly that
-        # state (and are exactly the corpus's 161 NPL==100% rows); no
-        # `current` row is, which is why no chart ever showed it and no
-        # check caught it — validation reads current only. Latent, not live:
-        # every consumer filters period_type='current' (audit.ts:634,
-        # credit-risk.ts:49, every bot-schema.ts example). But bot-sql.ts
-        # lets an LLM write its own SQL over this table, so a fabricated
-        # 100% is one forgotten WHERE clause from being quoted as fact.
-        # Unknown ≠ zero: emit NULL and let the identity skip.
-        # NOT `all(...)`: 40 current rows have exactly one of S1/S2 null and
-        # a real total; this touches only the both-absent case.
-        if s1 is None and s2 is None:
-            tot_a = None
-        else:
-            tot_a = sum(x for x in (s1, s2, s3) if x is not None) if any(x is not None for x in (s1, s2, s3)) else None
-        tot_e = sum(x for x in (e1, e2, e3) if x is not None) if any(x is not None for x in (e1, e2, e3)) else None
-        cov1 = (e1 / s1) if (e1 is not None and s1 not in (None, 0)) else None
-        cov2 = (e2 / s2) if (e2 is not None and s2 not in (None, 0)) else None
-        cov3 = (e3 / s3) if (e3 is not None and s3 not in (None, 0)) else None
-        rows.append((bt, p, k, pt, s1, s2, s3, tot_a, e1, e2, e3, tot_e, cov1, cov2, cov3))
+    rows = [_derived_stage_row(r) for r in conn.execute(_SQL_AGG)]
 
     # Write only the rows that actually moved. `extracted_at` defaults to
     # CURRENT_TIMESTAMP and push_to_d1 windows on it, so re-inserting the whole
@@ -213,6 +207,49 @@ def build_stages(conn: sqlite3.Connection) -> int:
     print(f"  with at least one amount field:               {any_amt}")
     print(f"  with at least one ECL field:                  {any_ecl}")
     return total
+
+
+def rebuild_stages_partition(conn: sqlite3.Connection, bank: str, period: str,
+                             kind: str) -> int:
+    """Rebuild one derived stages partition inside the caller's transaction.
+
+    Targeted credit-quality repairs use a SAVEPOINT and must validate the
+    candidate *after* its dependent stages row has been rebuilt.  The full
+    builder commits, which would release that savepoint; this scoped form writes
+    only changed period rows and deliberately leaves commit/rollback ownership
+    to the caller. Returns the number of factual stage rows changed or removed.
+    """
+    query = _SQL_AGG + (
+        "\nWHERE b.bank_ticker=? AND b.period=? AND b.kind=?"
+    )
+    rows = [_derived_stage_row(r)
+            for r in conn.execute(query, (bank, period, kind))]
+    key_len = 4
+    stored = {r[:key_len]: tuple(r[key_len:]) for r in conn.execute(
+        "SELECT bank_ticker, period, kind, period_type, "
+        " stage1_amount, stage2_amount, stage3_amount, total_amount, "
+        " stage1_ecl, stage2_ecl, stage3_ecl, total_ecl, "
+        " stage1_coverage, stage2_coverage, stage3_coverage "
+        "FROM bank_audit_stages WHERE bank_ticker=? AND period=? AND kind=?",
+        (bank, period, kind))}
+    changed = [r for r in rows
+               if stored.get(r[:key_len]) != tuple(r[key_len:])]
+    current_keys = {r[:key_len] for r in rows}
+    gone = set(stored) - current_keys
+    for key in gone:
+        conn.execute(
+            "DELETE FROM bank_audit_stages WHERE bank_ticker=? AND period=? "
+            "AND kind=? AND period_type=?", key)
+    conn.executemany(
+        "INSERT OR REPLACE INTO bank_audit_stages "
+        "(bank_ticker, period, kind, period_type, "
+        " stage1_amount, stage2_amount, stage3_amount, total_amount, "
+        " stage1_ecl, stage2_ecl, stage3_ecl, total_ecl, "
+        " stage1_coverage, stage2_coverage, stage3_coverage) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        changed,
+    )
+    return len(changed) + len(gone)
 
 
 def main() -> None:

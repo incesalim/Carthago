@@ -2,9 +2,9 @@
 
 One tidy long table: each row is one line of a bank's KAP Genel Bilgi Formu
 §5 capital/ownership section (shareholder grid row, free-float line, or a
-scalar like paid-in capital). The lane does a full per-bank replace on every
-weekly run, so (bank_ticker, item, seq) is a stable natural key for the
-idempotent D1 push.
+scalar like paid-in capital). The lane reconciles each bank partition on every
+weekly run while leaving identical rows untouched, so (bank_ticker, item, seq)
+is a stable natural key for the incremental D1 push.
 
 ``d1_pending_deletes`` is a staging-side outbox: when a bank's grid shrinks,
 the loader queues matching DELETEs here and ``push_to_d1.py`` replays them

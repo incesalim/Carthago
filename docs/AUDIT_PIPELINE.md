@@ -7,12 +7,12 @@ D1 tables, so it can run in parallel with the bulletin lane. See
 [`docs/ARCHITECTURE.md`](ARCHITECTURE.md) for the lane model and [`scripts/README.md`](../scripts/README.md)
 for the full script index.
 
-## Two lanes: ACQUISITION is automated, EXTRACTION is managed by hand
-Only **acquisition** (getting new PDFs into R2) runs on a schedule. **Extraction** (turning
-PDFs into `bank_audit_*` rows) is triggered manually from `/admin` — review the coverage matrix
-after. Both share the `bddk-audit` concurrency group, so they never run at the same time.
+## One automatic arrival path; one manual acquisition diagnostic
+During each quarterly filing window, **acquisition and extraction run together daily** in
+`refresh-audit.yml`. A valid newly published PDF reaches R2, the audit tables, D1 and the
+snapshot in one run. Both workflows share `bddk-audit`, so manual work never overlaps it.
 
-### Acquisition (`.github/workflows/acquire-audit.yml`, Sun 04:00 UTC)
+### Acquisition-only diagnostic (`.github/workflows/acquire-audit.yml`, manual)
 1. **Pull snapshot, read-only** — download `state/bank_audit.db.gz` → `data/bank_audit.db`
    (first run: `seed_audit_db.py` bootstraps from the bulletin snapshot). Needed only so the
    coverage refresh below has accurate row counts; this job **never re-uploads the snapshot**.
@@ -23,28 +23,31 @@ after. Both share the `bddk-audit` concurrency group, so they never run at the s
    appear in the matrix as **missing + pdf_present** ("acquired, not yet extracted"). The
    expected universe is `audit_profiles.json` **∪ the R2 PDF list**, so a brand-new quarter
    shows up even before the profile census is regenerated.
-4. **Notify** — if any new PDFs landed, ping Telegram so an admin knows to extract them.
+4. **Notify** — if any new PDFs landed, ping Telegram. This path intentionally leaves them
+   missing; normal scheduled arrivals use the combined workflow below.
 
-### Extraction (`.github/workflows/refresh-audit.yml`, dispatch-only)
-Triggered from `/admin` (Pipeline "Extract audit reports" card, or the coverage matrix's
-per-cell **Re-extract**). No schedule.
+### Combined arrival/extraction (`.github/workflows/refresh-audit.yml`)
+Scheduled daily in the earnings windows and manually triggerable from `/admin` (Pipeline
+"Extract audit reports" card, or the coverage matrix's per-cell **Re-extract**).
 1. **Pull/seed snapshot** → `data/bank_audit.db`.
 2. **`sync_audit_reports.py`** — extract PDFs from R2 not already in `bank_audit_extractions`
    (or a forced re-extract). Flags: `--only-bank`, `--periods`, `--latest-period`,
    `--no-scrape`, `--force`, `--workers`. The matrix's per-cell re-extract dispatches
    `bank` + `period` → `--periods YYYYQn --force --no-scrape` (re-runs one quarter).
-3. **`build_bank_audit_stages.py`** — derive the `bank_audit_stages` view (S1/S2/S3 + ECL).
-4. **`revalidate_audit_db.py`** — recompute `bank_audit_validation` corpus-wide from stored
+3. **Quiet gate** — when no PDF was acquired and no partition was extracted, stop. No Node,
+   D1 write, snapshot upload or timestamp refresh follows.
+4. **`build_bank_audit_stages.py`** — derive the `bank_audit_stages` view (S1/S2/S3 + ECL).
+5. **`revalidate_audit_db.py`** — recompute `bank_audit_validation` corpus-wide from stored
    rows so the matrix + `/banks` badges reflect the current validator everywhere.
-5. **`check_audit_quality.py --alert`** — alert-only anomaly checks → Telegram/Discord.
+6. **`sync_audit_expected.py` + `check_audit_quality.py --alert`** — build coverage locally,
+   then run the alert-only anomaly checks → Telegram/Discord.
    **Delta-based:** it diffs the current anomaly set against a baseline in R2
    (`state/audit_anomaly_baseline.json`) and pings ONLY on new/resolved anomalies — so a
    routine run or a single-cell re-extract that changes nothing stays silent (the standing
    backlog isn't re-blasted). First run seeds the baseline quietly; an R2 error falls back
    to a full-list alert.
-6. **`push_to_d1.py --only-tables bank_audit_*`** — windowed sync of the row tables +
-   `bank_audit_validation` to D1.
-7. **`sync_audit_expected.py --push`** — rebuild the coverage spine (full D1 push, no R2 write).
+7. **One `push_to_d1.py --table-set audit-refresh` call** — extracted, derived, validation and
+   coverage rows share one priced/guarded D1 batch.
 8. **Snapshot** — VACUUM + gzip → upload `state/bank_audit.db.gz` (+ dated history, keep 7).
    This is the **only** job that writes the snapshot.
 
@@ -76,23 +79,54 @@ balance-sheet page — but one unreadable note-page shouldn't discard a good BS+
 extraction, so none of them gates `success`. Grouping the matrix on `is_core` is what
 labelled those four "Footnotes & §4" until 2026-07-17 (`section` was added to fix it).
 
-All types with `has_validator=True` write a `bank_audit_validation` row keyed by their
-`validation_statement`.
+All 19 registry types have `has_validator=True` and write a
+`bank_audit_validation` row keyed by their `validation_statement`. A lane may require
+additional results before it is trustworthy: `registry.validation_gate()` is the single
+relationship graph consumed by coverage, loader overwrite protection, targeted-repair
+acceptance and the admin drawer. Both balance-sheet lanes require
+`assets,liabilities,cross`; both the raw credit-quality and derived-stages lanes require
+`credit_quality,stages`.
 
-| Type | Table | `section` | `is_core` | Validator (`validation_statement`) |
+### Source completeness for normalized and summary tables
+
+Arithmetic validators prove the values that were stored; by themselves they cannot prove
+that every row printed in the PDF was stored. Eight lanes therefore carry a second,
+source-facing contract from 2026-08-07 onward:
+
+| Capture class | Lanes | Completeness rule |
+|---|---|---|
+| Near-full normalized | `equity_change`, `loans_by_sector`, `npl_movement` | Every table-like numeric source line is retained and must map to a known normalized row. An unfamiliar/unmapped line fails the lane with `capture_unmapped_rows`. |
+| Selected summary | `credit_quality`, `capital`, `liquidity`, `fx_position`, `repricing` | The stable summary schema remains unchanged, but all lines on the bounded disclosure pages are retained. Detailed unmapped rows are counted rather than treated as an error; a detected source table with zero normalized rows fails as `capture_rows_missed`. |
+
+`bank_audit_source_lines` is the lossless ledger: one PyMuPDF-reconstructed physical line,
+its printed numeric tokens, and its `mapped_key` (or NULL) per source page. It stays only in
+the local/R2 SQLite snapshot because sending hundreds of thousands of evidence rows to D1
+would make writes the cost centre. `bank_audit_capture_manifest` is the D1-facing footprint:
+source pages, line/data/mapped/unmapped counts, normalized row count, capture status, and
+content/shape/mapping hashes (migration `0042`). The hashes make layout drift directly
+queryable by a later alert without changing the analytical tables.
+
+Capture and normalized writes are one transaction. Once a manifest exists, its checks are
+merged into the lane's existing `bank_audit_validation` result, so coverage, overwrite
+protection and targeted-repair acceptance enforce the same verdict. A historical partition
+without a manifest is deliberately grandfathered until
+`backfill-audit-source-capture.yml` reaches it; the backfill downloads the PDF and writes
+only evidence/validation, never re-extracting or overwriting analytical facts.
+
+| Type | Table | `section` | `is_core` | Validator / enforced gate |
 |---|---|---|---|---|
-| Balance sheet — assets | `bank_audit_balance_sheet` (statement='assets') | §2 | ✓ | structural: TL+FC=Total, parent=Σchildren, Σromans=TOTAL, assets=liab+equity (`assets`) |
-| Balance sheet — liabilities | `bank_audit_balance_sheet` (statement='liabilities') | §2 | ✓ | structural: TL+FC=Total, parent=Σchildren, Σromans=TOTAL; A=L+E cross-check (`liabilities`) |
+| Balance sheet — assets | `bank_audit_balance_sheet` (statement='assets') | §2 | ✓ | structural: TL+FC=Total, parent=Σchildren, Σromans=TOTAL; enforced gate `assets,liabilities,cross` (A=L+E) |
+| Balance sheet — liabilities | `bank_audit_balance_sheet` (statement='liabilities') | §2 | ✓ | structural: TL+FC=Total, parent=Σchildren, Σromans=TOTAL; enforced gate `assets,liabilities,cross` (A=L+E) |
 | Off-balance sheet | `bank_audit_balance_sheet` (statement='off_balance') | §2 | — | TL+FC=Total row triplets only; hierarchy-sum skipped (off-balance uses I./II./III. top-level with non-contiguous 1.x sub-items) (`off_balance`) |
 | Income statement (P&L) | `bank_audit_profit_loss` | §2 | ✓ | identity chain + net = BS equity 16.6.2 / 14.6.2 (`profit_loss`) |
 | Other comprehensive income (OCI) | `bank_audit_oci` | §2 | — | `III = I + II`; 2.x subtree sums; **OCI row I = P&L net** (`oci`) |
 | Statement of changes in equity | `bank_audit_equity_change` | §2 | — | row-sum (total_equity≈Σ13 cols); col chain III=I+II, closing=III+IV+…+XI; OCI cross (IV.total==OCI.III); BS equity cross (0.5% tol); opening==prior-closing Q4 only (`equity_change`) |
 | Cash flow statement | `bank_audit_cash_flow` | §2 | — | hierarchy subtree sums; roman chain **V=I+II+III+IV**, **VII=V+VI** (`cash_flow`) |
-| Credit quality / IFRS-9 | `bank_audit_credit_quality` | §5 | — | per-section total=S1+S2+S3; coverage∈[0,1]; cross-section reconciliations (`credit_quality`) — note: gross−prov=net check removed (BRSA provision rows include collective reserves) |
-| IFRS-9 stages (derived) | `bank_audit_stages` | §5 | — | total_ecl=ΣSx_ecl; coverage∈[0,1]; **stage3==total fingerprint** (`stages`) |
+| Credit quality / IFRS-9 | `bank_audit_credit_quality` | §5 | — | per-section total=S1+S2+S3; coverage∈[0,1]; cross-section reconciliations; enforced with derived `stages` — note: gross−prov=net check removed (BRSA provision rows include collective reserves) |
+| IFRS-9 stages (derived) | `bank_audit_stages` | §5 | — | total_ecl=ΣSx_ecl; coverage∈[0,1]; **stage3==total fingerprint**; BS-loans cross; enforced with source `credit_quality` |
 | Loans by sector | `bank_audit_loans_by_sector` | §5 | — | Σ top-level sectors ≈ total row; falls back to sub-sector sums when group aggregate (agri_total/mfg_total/svc_total) is absent (`loans_by_sector`) |
 | NPL movement | `bank_audit_npl_movement` | §5 | — | opening±flows=closing (0.2% + 100 tol); row skipped when write_offs/sold/transfers_out is NULL (column not extracted) (`npl_movement`) |
-| Free provision (serbest karşılık) | `bank_audit_free_provision` | §5 | — | none per-partition **by design** — `conditional=True` routes an empty partition to `not_expected` before any verdict is read, so its checks are corpus-wide and live in `check_audit_quality._free_provision` |
+| Free provision (serbest karşılık) | `bank_audit_free_provision` | §5 | — | conditional validator: range; prior stated stock = prior-year Q4 current; positive parser-read stock under a clean opinion; modified opinion names reserve but no row = recall failure (`free_provision`). Only an uncontradicted absence becomes N/A; the alert layer reuses the same subject matcher |
 | Capital adequacy (§4) | `bank_audit_capital` | §4 | — | CET1≤Tier1≤Total; CAR=capital/RWA ±2pp; band [5,80] (`capital`) |
 | Liquidity (§4) | `bank_audit_liquidity` | §4 | — | leverage∈(0,30); LCR/NSFR∈(0,2000); LCR≥50 (`liquidity`) |
 | FX net open position (§4) | `bank_audit_fx_position` | §4 | — | current period only: Σ per-currency rows = TOTAL (assets, liab, net BS, net off, net position); net BS = assets−liab; net position = net BS + net off (`fx_position`) |
@@ -118,7 +152,10 @@ ECL fix, recorded in [RESUME_AUDIT_FIX.md](RESUME_AUDIT_FIX.md).
 The quickest entry for a single bad cell is the **/admin coverage matrix**: click the cell
 → **Force re-extract this cell** dispatches `reextract-statement.yml` for just that
 `(bank, period, kind, statement)` with `--force` — it overwrites that one statement even if
-it currently passes, while broad/fleet re-extracts keep the non-destructive guard. It's the
+it currently passes, while broad/fleet re-extracts keep the non-destructive guard. The
+candidate is validated inside a savepoint and is accepted only if its complete relationship
+gate passes; a credit-quality candidate rebuilds stages before that verdict. A rejection
+rolls back source rows, derived rows and validation together. It's the
 UI form of step 2's targeted re-extract. For a deterministic BS/P&L Δ, prefer step 4 (cell
 override): a re-extract reproduces the same rows, so it won't move the discrepancy.
 
@@ -141,7 +178,7 @@ override): a re-extract reproduces the same rows, so it won't move the discrepan
    the text statements and overlays the manual ones. The balance sheet is validated to 0 and
    the P&L net is cross-checked to BS equity before push.
 6. **Validator logic changed** — `scripts/revalidate_audit_db.py --db <db>` recomputes
-   `bank_audit_validation` from stored rows (all 12 statement types, no re-extraction); push
+   `bank_audit_validation` from stored rows (all 19 registered types, no re-extraction); push
    with `scripts/push_to_d1.py --db <db> --hours 9999 --only-tables bank_audit_validation`.
 
 After any repair, confirm on D1: `bank_audit_validation` failing partitions and the

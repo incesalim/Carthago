@@ -124,7 +124,7 @@ const EXT_SOURCES: { key: string; sql: string; cadenceHours: number }[] = [
   },
 ];
 
-/** Audit D1 groups — extraction is admin-triggered, so health = "has rows". */
+/** Audit D1 groups — quarterly source cadence, so health = "has rows". */
 const AUDIT_TABLES: { key: string; table: string }[] = [
   { key: "audit:balance_sheet", table: "bank_audit_balance_sheet" },
   { key: "audit:stages", table: "bank_audit_stages" },

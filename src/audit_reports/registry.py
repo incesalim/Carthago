@@ -40,7 +40,8 @@ class StatementType:
     annual_only: bool = False     # disclosed only in the Q4 (annual) report (e.g. loans-by-sector);
     #                               interim cells with no data are N/A in the matrix, not "missing"
     conditional: bool = False     # disclosed only when the bank HOLDS one (e.g. free provision);
-    #                               an empty cell means "no such reserve" = N/A, not "missing"
+    #                               an empty cell is N/A unless an independent validator
+    #                               proves the disclosure was missed
 
 
 # Order: the §2 primary statements first, then the §5 notes, the §4 risk
@@ -122,19 +123,15 @@ REGISTRY: list[StatementType] = [
                   "bank_audit_opinion", None, None, section="7",
                   is_core=False, present_min_rows=1, has_validator=True,
                   validation_statement="audit_opinion", sort_order=115),
-    # free_provision stays has_validator=False DELIBERATELY, and not for want of
-    # a check. conditional=True routes a 0-row partition missing → not_expected
-    # in sync_audit_expected.build() BEFORE any verdict is read, so a
-    # per-partition validator could never see the 469 N/A cells — the only ones
-    # with a real problem (52 of them are suspect; BURGAN 2023Q2–2024Q1 read N/A
-    # while the auditor qualified over exactly that reserve). Its checks are
-    # corpus-wide and longitudinal by nature, so they live in
-    # check_audit_quality._free_provision alongside the prior_chain check that is
-    # already there.
+    # Conditional does NOT mean unvalidated. A missing row is normally N/A, but
+    # the independently-parsed audit opinion can prove that a reserve was
+    # disclosed and therefore that the row is missing in error. The validator
+    # records that disagreement before coverage applies the conditional N/A rule.
+    # Existing rows also get the longitudinal prior-year-end reconciliation.
     StatementType("free_provision", "Free provision (serbest karşılık)",
                   "bank_audit_free_provision", None, None, section="5",
-                  is_core=False, present_min_rows=1, has_validator=False,
-                  validation_statement=None, sort_order=116, conditional=True),
+                  is_core=False, present_min_rows=1, has_validator=True,
+                  validation_statement="free_provision", sort_order=116, conditional=True),
     # The only type whose rows are sentences rather than figures, and the only
     # one that spans the filing instead of sitting in one Bölüm — hence
     # section='0'. Its rows carry their own `section` (1..8) and `section_role`.
@@ -152,13 +149,82 @@ SECTION_ORDER: list[str] = ["2", "5", "4", "1", "7", "0"]
 
 BY_KEY: dict[str, StatementType] = {st.key: st for st in REGISTRY}
 
+# Registry key → extractor ``only=`` token. The coverage matrix, loader and
+# targeted repair workflow speak registry keys; the extractor predates the
+# registry and retains a few shorter/internal tokens. Keep the translation here
+# so a new validator cannot be added without also giving repair code one
+# canonical route to it.
+_REEXTRACT_TOKEN_OVERRIDES: dict[str, str] = {
+    "balance_sheet_assets": "bs_assets",
+    "balance_sheet_liabilities": "bs_liabilities",
+    "other_comprehensive_income": "oci",
+    "profile": "bank_profile",
+    # stages is derived from credit_quality, so repairing it re-reads the source
+    # disclosure and rebuilds the derived row before the candidate is judged.
+    "stages": "credit_quality",
+}
+
+# Validation statements that must ALL pass before a lane is protected from
+# overwrite or a targeted repair is accepted. Most lanes own one result. These
+# exceptions encode real dependency edges in the accounting graph:
+#
+# * either balance-sheet side is trustworthy only when both internal hierarchies
+#   and the cross-table A = L + E identity pass;
+# * credit_quality feeds stages, so changing that source must leave both the raw
+#   and derived views valid; a repair requested from the stages cell uses the
+#   same two-result gate.
+_VALIDATION_GATE_OVERRIDES: dict[str, tuple[str, ...]] = {
+    "balance_sheet_assets": ("assets", "liabilities", "cross"),
+    "balance_sheet_liabilities": ("assets", "liabilities", "cross"),
+    "credit_quality": ("credit_quality", "stages"),
+    "stages": ("credit_quality", "stages"),
+}
+
+
+def reextract_token(key: str) -> str:
+    """Extractor token for one registry statement key."""
+    if key not in BY_KEY:
+        raise KeyError(f"unknown audit statement type {key!r}")
+    return _REEXTRACT_TOKEN_OVERRIDES.get(key, key)
+
+
+_KEY_BY_REEXTRACT_TOKEN: dict[str, str] = {}
+for _st in REGISTRY:
+    # ``credit_quality`` is intentionally the canonical meaning of its direct
+    # token; the distinct registry key ``stages`` keeps its identity until after
+    # routing, even though both use that extractor token.
+    _KEY_BY_REEXTRACT_TOKEN.setdefault(reextract_token(_st.key), _st.key)
+
+
+def canonical_statement_key(value: str) -> str:
+    """Resolve a registry key or legacy extractor token to a registry key."""
+    if value in BY_KEY:
+        return value
+    try:
+        return _KEY_BY_REEXTRACT_TOKEN[value]
+    except KeyError:
+        raise KeyError(f"unknown audit statement type/token {value!r}") from None
+
+
+def validation_gate(key: str) -> tuple[str, ...]:
+    """Validation result names required to trust one registered lane.
+
+    An empty tuple means the lane has no per-partition validator. Keeping this
+    as executable registry data lets coverage, overwrite protection, repair
+    rollback and future alerts share the same relationship topology.
+    """
+    st = BY_KEY[key]
+    if not st.has_validator or st.validation_statement is None:
+        return ()
+    return _VALIDATION_GATE_OVERRIDES.get(key, (st.validation_statement,))
+
 # The tables that carry no statement rows: the structural-validation results, the
 # per-partition extraction log, and the derived P&L role map (which row is the
 # period-net / gross / opex under THIS filer's roman numbering — see schema.py).
 # Not statement types — but every audit D1 push and every partition clear must
 # carry them.
 INFRA_TABLES: list[str] = ["bank_audit_validation", "bank_audit_extractions",
-                           "bank_audit_pl_roles"]
+                           "bank_audit_pl_roles", "bank_audit_capture_manifest"]
 
 # Every bank_audit_* table the audit lane writes: one per registered statement
 # type (deduped — the balance sheet carries three sub-statements) plus the infra
@@ -171,6 +237,12 @@ INFRA_TABLES: list[str] = ["bank_audit_validation", "bank_audit_extractions",
 # quarter, and silently never arrived. Registering a statement type above is now
 # the only step needed to get its table pushed.
 AUDIT_TABLES: list[str] = list(dict.fromkeys([st.table for st in REGISTRY] + INFRA_TABLES))
+
+# High-volume evidence that rides only the R2 SQLite snapshot. It must be
+# included in LOCAL destructive operations (purge/restore) but never in D1
+# table discovery or sync routing.
+LOCAL_ONLY_TABLES: list[str] = ["bank_audit_source_lines"]
+LOCAL_AUDIT_TABLES: list[str] = AUDIT_TABLES + LOCAL_ONLY_TABLES
 
 
 def core_types() -> list[StatementType]:
@@ -192,6 +264,7 @@ def web_metadata() -> list[dict]:
         {"key": st.key, "label": st.label, "table": st.table,
          "statement": st.statement, "section": st.section, "is_core": int(st.is_core),
          "has_validator": int(st.has_validator),
+         "validation_gate": ",".join(validation_gate(st.key)),
          "section_rank": SECTION_ORDER.index(st.section) if st.section in SECTION_ORDER else 99,
          "sort_order": st.sort_order}
         for st in REGISTRY

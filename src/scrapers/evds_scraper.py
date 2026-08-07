@@ -1,12 +1,14 @@
 """EVDS scraper — pull selected TCMB series and write to evds_series table.
 
-Designed to run inside scripts/refresh.py weekly.
+Designed to run inside scripts/refresh.py. The daily workflow polls only
+daily/workday series; the Saturday full refresh polls every declared cadence.
 Idempotent via INSERT OR REPLACE on (code, period_date).
 
 Uses the EVDS HTTP client at src/scrapers/evds_client.py.
 """
 from __future__ import annotations
 
+import argparse
 import sqlite3
 import sys
 from datetime import datetime
@@ -348,6 +350,27 @@ def init_schema(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
+FREQUENCY_GROUPS: dict[str, frozenset[int]] = {
+    "daily": frozenset({evds.FREQ_DAILY, evds.FREQ_WORKDAY}),
+    "weekly": frozenset({evds.FREQ_WEEKLY, evds.FREQ_BIWEEKLY}),
+    "monthly": frozenset({evds.FREQ_MONTHLY}),
+    "quarterly": frozenset({evds.FREQ_QUARTERLY}),
+}
+
+
+def parse_frequency_groups(value: str) -> set[int] | None:
+    """Resolve CLI frequency names; ``None`` means every configured series."""
+    names = {part.strip().lower() for part in value.split(",") if part.strip()}
+    if not names or names == {"all"}:
+        return None
+    unknown = names - set(FREQUENCY_GROUPS)
+    if unknown or "all" in names:
+        choices = "all, " + ", ".join(FREQUENCY_GROUPS)
+        bad = ", ".join(sorted(unknown or {"all"}))
+        raise ValueError(f"unknown EVDS frequency group(s): {bad}; choose {choices}")
+    return set().union(*(FREQUENCY_GROUPS[name] for name in names))
+
+
 def fetch_one(s: Series, start: str = "01-01-2018") -> int:
     """Pull one series via the EVDS client. Returns row count written."""
     end = datetime.now().strftime("%d-%m-%Y")
@@ -407,8 +430,9 @@ def fetch_one(s: Series, start: str = "01-01-2018") -> int:
     return len(changed)
 
 
-def update_all(start: str = "01-01-2018") -> dict[str, int]:
-    """Fetch + upsert every configured series.
+def update_all(start: str = "01-01-2018",
+               frequencies: set[int] | None = None) -> dict[str, int]:
+    """Fetch + upsert configured series in the requested cadence groups.
 
     Returns per-series counts of rows actually WRITTEN (not fetched) — a settled
     series reports 0 on a normal day, and that is the healthy reading. `-1` is a
@@ -421,8 +445,9 @@ def update_all(start: str = "01-01-2018") -> dict[str, int]:
     finally:
         conn.close()
 
+    selected = [s for s in SERIES if frequencies is None or s.freq in frequencies]
     counts: dict[str, int] = {}
-    for s in SERIES:
+    for s in selected:
         try:
             n = fetch_one(s, start=start)
             counts[s.code] = n
@@ -435,7 +460,18 @@ def update_all(start: str = "01-01-2018") -> dict[str, int]:
 
 if __name__ == "__main__":
     sys.stdout.reconfigure(encoding="utf-8")
-    counts = update_all()
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--frequencies",
+        default="all",
+        help="comma-separated: daily, weekly, monthly, quarterly, or all",
+    )
+    cli = parser.parse_args()
+    try:
+        wanted = parse_frequency_groups(cli.frequencies)
+    except ValueError as exc:
+        parser.error(str(exc))
+    counts = update_all(frequencies=wanted)
     total = sum(c for c in counts.values() if c >= 0)
     fails = sum(1 for c in counts.values() if c < 0)
     print(f"\n{len(counts)} series · {total} rows written · {fails} failures")

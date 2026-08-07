@@ -53,19 +53,33 @@ def collect() -> list[P.Row]:
 
 def write_db(blocks) -> int:
     conn = sqlite3.connect(str(DB))
-    n = 0
     try:
-        for rows, cat in blocks:
-            conn.executemany(
-                "INSERT OR REPLACE INTO evds_series(code, period_date, value, label, category) "
-                "VALUES (?, ?, ?, ?, ?)",
-                [(r.code, r.period_date, r.value, r.label, cat) for r in rows],
+        incoming = [
+            (r.code, r.period_date, r.value, r.label, cat)
+            for rows, cat in blocks for r in rows
+        ]
+        existing = {
+            (r[0], r[1]): (r[2], r[3], r[4])
+            for r in conn.execute(
+                "SELECT code, period_date, value, label, category "
+                "FROM evds_series WHERE code LIKE 'TUIK.%'"
             )
-            n += len(rows)
+        }
+        changed = [
+            row for row in incoming
+            if existing.get((row[0], row[1])) != (row[2], row[3], row[4])
+        ]
+        if changed:
+            conn.executemany(
+                "INSERT OR REPLACE INTO evds_series"
+                "(code, period_date, value, label, category) "
+                "VALUES (?, ?, ?, ?, ?)",
+                changed,
+            )
         conn.commit()
     finally:
         conn.close()
-    return n
+    return len(changed)
 
 
 def main() -> int:

@@ -491,6 +491,7 @@ def upsert(
     rep: CapitalReport,
     *,
     unit: UnitContext,
+    commit: bool = True,
 ) -> int:
     cur = conn.cursor()
     cur.execute(
@@ -511,7 +512,8 @@ def upsert(
         cur.executemany(
             f"INSERT INTO bank_audit_capital ({', '.join(cols)}) VALUES ({ph})", rows
         )
-    conn.commit()
+    if commit:
+        conn.commit()
     return len(rows)
 
 

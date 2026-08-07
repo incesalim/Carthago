@@ -9,6 +9,7 @@ import sqlite3
 
 from src.audit_reports import validator as v
 from src.audit_reports.schema import init_schema
+from scripts.revalidate_audit_db import revalidate_partition
 
 
 def _row(h, name, tl, fc, total, scale=1000):
@@ -1869,3 +1870,78 @@ def test_pl_subitem_sum_skips_a_single_child():
     rows = [_pl_sub("1.5", "Menkul Değerler", 100), _pl_sub("1.5.1", "Only child", 90)]
     res = v.check_pl_subitem_sums(rows)
     assert res.failed == 0 and res.passed == 0
+
+
+def _freeprov_opinion(*, modified: bool, basis: str = "") -> list[dict]:
+    return [{"is_modified": int(modified), "basis_text": basis}]
+
+
+def test_free_provision_missing_is_conditional_skip_without_evidence():
+    res = v.check_free_provision([], opinion_rows=_freeprov_opinion(modified=False))
+    assert res.failed == 0 and res.passed == 0 and res.skipped == 1
+
+
+def test_free_provision_opinion_recall_gap_fails():
+    res = v.check_free_provision(
+        [], opinion_rows=_freeprov_opinion(
+            modified=True,
+            basis="The financial statements include a general reserve outside regulation.",
+        ))
+    assert {f["check"] for f in res.failures} == {"freeprov_recall_gap"}
+
+
+def test_free_provision_subject_matcher_handles_turkish_and_line_breaks():
+    assert v.free_provision_basis_mentions("serbest\nkarşılık ayrılmıştır")
+    assert v.free_provision_basis_mentions("FREE\nPROVISION")
+    assert not v.free_provision_basis_mentions("genel karşılık")
+
+
+def test_free_provision_valid_row_and_prior_chain_pass():
+    rows = [{"free_provision": 1_500_000, "free_provision_prior": 1_200_000,
+             "source_page": 61}]
+    res = v.check_free_provision(
+        rows,
+        opinion_rows=_freeprov_opinion(modified=True, basis="free provision"),
+        prior_year_current=1_200_000,
+    )
+    assert res.failed == 0 and res.passed == 2
+
+
+def test_free_provision_prior_chain_break_fails():
+    rows = [{"free_provision": 1_500_000, "free_provision_prior": 900_000,
+             "source_page": 61}]
+    res = v.check_free_provision(
+        rows,
+        opinion_rows=_freeprov_opinion(modified=True, basis="free provision"),
+        prior_year_current=1_200_000,
+    )
+    assert any(f["check"] == "freeprov_prior_chain" for f in res.failures)
+
+
+def test_free_provision_positive_parser_value_under_clean_opinion_fails():
+    rows = [{"free_provision": 1_500_000, "free_provision_prior": None,
+             "source_page": 61}]
+    res = v.check_free_provision(
+        rows, opinion_rows=_freeprov_opinion(modified=False))
+    assert any(f["check"] == "freeprov_clean_opinion" for f in res.failures)
+
+
+def test_free_provision_manual_value_is_exempt_from_clean_opinion_warning():
+    rows = [{"free_provision": 1_500_000, "free_provision_prior": None,
+             "source_page": -1}]
+    res = v.check_free_provision(
+        rows, opinion_rows=_freeprov_opinion(modified=False))
+    assert res.failed == 0 and res.passed == 1
+
+
+def test_partition_revalidation_wires_opinion_to_free_provision_recall():
+    conn = sqlite3.connect(":memory:")
+    init_schema(conn)
+    conn.execute(
+        "INSERT INTO bank_audit_opinion "
+        "(bank_ticker, period, kind, opinion_type, is_modified, basis_text, auditor) "
+        "VALUES ('BURGAN', '2024Q1', 'consolidated', 'qualified', 1, "
+        "'includes a general provision outside regulation', 'Auditor A')")
+    result = revalidate_partition(
+        conn, "BURGAN", "2024Q1", "consolidated")["free_provision"]
+    assert any(f["check"] == "freeprov_recall_gap" for f in result.failures)

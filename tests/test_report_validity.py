@@ -199,17 +199,36 @@ def test_coverage_does_not_call_an_invalid_object_pdf_present(tmp_path):
 
 # --- the one-run guarantee ---------------------------------------------------
 
-def test_the_snapshot_uploads_before_the_optional_coverage_step():
-    """A metadata rollup must not be able to discard a successful extraction.
-    When coverage ran first, its budget refusal failed the job and skipped the
-    upload — PASHA's rows in D1, absent from the snapshot."""
+def test_coverage_is_built_locally_and_ships_in_the_one_audit_push():
+    """Extraction and its coverage result must be one D1 batch.
+
+    Splitting them once allowed each invocation to pass the cap independently
+    and made a small audit refresh bill as two large pushes.
+    """
     wf = (REPO / ".github" / "workflows" / "refresh-audit.yml").read_text(
         encoding="utf-8")
+    local = wf.index("- name: Rebuild coverage spine locally")
+    push = wf.index("- name: Push the complete audit batch")
     upload = wf.index("- name: Upload audit snapshot back to R2")
-    coverage = wf.index("- name: Sync coverage spine to D1")
-    assert upload < coverage, "the snapshot must be durable before anything optional"
-    assert "continue-on-error: true" in wf[coverage:coverage + 1200], \
-        "a coverage failure must not discard the extraction"
+    assert local < push < upload
+    assert "sync_audit_expected.py --db data/bank_audit.db --push" not in wf
+    assert wf.count("python scripts/push_to_d1.py") == 1
+    assert "--table-set audit-refresh" in wf
+
+
+def test_rechecking_the_same_invalid_pdf_does_not_rewrite_its_timestamp(tmp_path):
+    m = _sync()
+    db = tmp_path / "audit.db"
+    key = {("TSKB", "2026Q2", "consolidated"): "kap-cover-sheet:14pp"}
+    assert m.record_pdf_validity(db, key) == 1
+    before = sqlite3.connect(db).execute(
+        "SELECT reason, checked_at FROM bank_audit_invalid_pdfs"
+    ).fetchall()
+    assert m.record_pdf_validity(db, key) == 0
+    after = sqlite3.connect(db).execute(
+        "SELECT reason, checked_at FROM bank_audit_invalid_pdfs"
+    ).fetchall()
+    assert after == before
 
 
 def test_incremental_coverage_is_enabled():

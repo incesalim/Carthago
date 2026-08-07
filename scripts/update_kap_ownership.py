@@ -2,7 +2,7 @@
 
 For every bank in ``data/banks/kap_company_map.json``, fetches the KAP
 "Genel Bilgi Formu" page (server-rendered — plain requests, no API key) and
-replaces the bank's rows in ``kap_ownership`` in the bulletin-lane DB
+reconciles the bank's rows in ``kap_ownership`` in the bulletin-lane DB
 (``data/bddk_data.db``). ``scripts/push_to_d1.py`` then syncs the rows to
 Cloudflare D1; if a bank's grid shrank, the loader queues DELETEs in
 ``d1_pending_deletes`` which the push replays remotely.

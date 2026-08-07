@@ -6,22 +6,21 @@ name: Refresh BDDK bulletins
 # so they serialize via the `bddk-pipeline` concurrency group.
 #
 # When to run:
-#   - DAILY 13:00 UTC (16:00 Turkey): MONTHLY check. The monthly bulletin lands
-#     mid-month on no fixed day, so we probe every day — update_monthly.py only
-#     scrapes when BDDK has actually published a new month (cheap otherwise), and
-#     the notify step pings the day it lands. Weekly-only-skipped on this run.
+#   - 13:00 UTC (16:00 Turkey) on the first and last five days of each month:
+#     MONTHLY check. BDDK normally publishes around month-end; February includes
+#     one extra safety day in leap years because cron has no "last day" syntax.
 #   - Friday 13:30 + 15:30 UTC (16:30 & 18:30 Turkey): WEEKLY. BDDK publishes the
 #     weekly bulletin Friday AFTERNOON (~16:00–18:00 Turkey), so we grab it the
 #     same evening; two runs bracket the window (~30 min). Monthly-skipped.
-#   - Saturday 02:00 UTC (05:00 Turkey): weekly backstop (in case both Friday runs
-#     failed). Monthly-skipped — the daily run covers it.
 #   - Manually from the Actions tab (does both).
 on:
   schedule:
-    - cron: "0 13 * * *" # daily 16:00 Turkey — monthly-only (see SKIP_WEEKLY)
+    - cron: "0 13 1-5 * *" # first five days — monthly-only
+    - cron: "0 13 27-31 1,3,5,7,8,10,12 *" # last five days of 31-day months
+    - cron: "0 13 26-30 4,6,9,11 *" # last five days of 30-day months
+    - cron: "0 13 24-29 2 *" # February last five (+ leap-year safety day)
     - cron: "30 13 * * 5" # Fri 16:30 Turkey — weekly-only (see SKIP_MONTHLY)
     - cron: "30 15 * * 5" # Fri 18:30 Turkey — weekly-only
-    - cron: "0 2 * * 6" # Sat 05:00 Turkey — weekly backstop (weekly-only)
   workflow_dispatch:
     inputs:
       skip_monthly:
@@ -100,23 +99,38 @@ jobs:
           print(f"before: weekly={w} monthly={m}")
           PY
 
-      - name: Refresh BDDK bulletins (skip EVDS, no audit-report sync)
-        # refresh.py orchestrates: monthly → weekly → VACUUM → gzip.
-        # --skip-evds keeps this workflow strictly BDDK-only; --skip-tbb defers
-        # the quarterly TBB digital-banking refresh to the 03:00 full refresh.
+      - name: Refresh BDDK bulletins (and detect a quiet run)
+        id: refresh
+        # refresh.py orchestrates the selected loaders and reports whether the
+        # SQLite content moved. Packaging is deferred until after the D1 handoff.
         env:
-          # Per-schedule split: the daily run is monthly-only; the Friday +
-          # Saturday runs are weekly-only. Manual dispatch does both (minus inputs).
-          SKIP_MONTHLY: ${{ (inputs.skip_monthly || github.event.schedule == '30 13 * * 5' || github.event.schedule == '30 15 * * 5' || github.event.schedule == '0 2 * * 6') && '--skip-monthly' || '' }}
-          SKIP_WEEKLY: ${{ (inputs.skip_weekly || github.event.schedule == '0 13 * * *') && '--skip-weekly' || '' }}
-        run: python scripts/refresh.py --skip-evds --skip-tbb $SKIP_MONTHLY $SKIP_WEEKLY
+          # Every monthly cron begins "0 13"; both weekly crons begin "30".
+          # Manual dispatch has no schedule string and therefore does both.
+          SKIP_MONTHLY: ${{ (inputs.skip_monthly || startsWith(github.event.schedule, '30 ')) && '--skip-monthly' || '' }}
+          SKIP_WEEKLY: ${{ (inputs.skip_weekly || startsWith(github.event.schedule, '0 13 ')) && '--skip-weekly' || '' }}
+        run: |
+          python scripts/refresh.py \
+            --skip-evds --skip-nonbank --skip-tbb --skip-tkbb --skip-kap \
+            --skip-tefas --skip-faaliyet --skip-tuik \
+            --change-file refresh_changed.txt --defer-packaging \
+            $SKIP_MONTHLY $SKIP_WEEKLY
+          echo "changed=$(cat refresh_changed.txt)" >> "$GITHUB_OUTPUT"
+
+      - name: Rebuild the public-API series catalog locally
+        if: steps.refresh.outputs.changed == 'true'
+        # Build before the one D1 call. api_series is a content-hashed full-
+        # rebuild table, so the general push below includes it only when its
+        # meaningful contents changed.
+        run: python scripts/build_api_catalog.py
 
       - name: Setup Node (for wrangler)
+        if: steps.refresh.outputs.changed == 'true'
         uses: actions/setup-node@v7
         with:
           node-version: "22"
 
-      - name: Push fresh BDDK rows to Cloudflare D1
+      - name: Push the BDDK batch and API catalog to Cloudflare D1 once
+        if: steps.refresh.outputs.changed == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           D1_RUN_LEDGER: ${{ runner.temp }}/d1_run_ledger.json
@@ -125,26 +139,6 @@ jobs:
         # missed earlier in the week. INSERT OR REPLACE is idempotent so
         # overlap between the two workflows is harmless.
         run: python scripts/push_to_d1.py --hours 30
-
-      # The public API (/api/v1) serves what's listed in api_series, including
-      # each series' advertised end_date and obs_count. THIS is the workflow that
-      # lands new BDDK periods (daily for monthly, Fridays for weekly), so the
-      # catalog has to be rebuilt here — not only in the Saturday refresh-data.yml
-      # run, which left /serieList understating coverage by up to a week while
-      # /series happily returned the newer observations.
-      #
-      # Cheap and idempotent: ~20k rows re-derived from the local snapshot, and
-      # codes are carried forward, never renumbered. Non-critical — a failure
-      # here must not fail a bulletin ingest that already succeeded.
-      - name: Rebuild + push the public-API series catalog
-        if: success()
-        continue-on-error: true
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          D1_RUN_LEDGER: ${{ runner.temp }}/d1_run_ledger.json
-        run: |
-          python scripts/build_api_catalog.py
-          python scripts/push_to_d1.py --only-tables api_series
 
       # Positive ping: a weekly and/or monthly bulletin was published AND fetched
       # this run. Quiet when nothing new landed (the before/after diff decides).
@@ -160,11 +154,17 @@ jobs:
             --before-monthly "${{ steps.before.outputs.monthly }}"
 
       - name: Upload new SQLite snapshot back to R2
+        if: steps.refresh.outputs.changed == 'true'
         run: |
           python - <<'PY'
           from src.audit_reports import r2_storage
-          import pathlib
+          import gzip, pathlib, shutil, sqlite3
+          db = pathlib.Path("data/bddk_data.db")
           gz = pathlib.Path("data/bddk_data.db.gz")
+          with sqlite3.connect(db) as conn:
+              conn.execute("VACUUM")
+          with open(db, "rb") as src, gzip.open(gz, "wb", compresslevel=9) as dst:
+              shutil.copyfileobj(src, dst)
           size = r2_storage.upload_file(gz, "state/bddk_data.db.gz")
           print(f"Uploaded {size/1e6:.1f} MB to R2 state/bddk_data.db.gz")
           PY

@@ -82,3 +82,40 @@ def test_unvalidated_statement_is_not_protected():
     c.commit()
     upsert_report(c, B, P, K, _empty(), "x.pdf", unit=UnitContext.canonical())
     assert _eq_rows(c) == 0
+
+
+def _seed_balance_sheet(c: sqlite3.Connection, *, cross_failed: int) -> None:
+    c.executemany(
+        "INSERT INTO bank_audit_balance_sheet "
+        "(bank_ticker, period, kind, statement, item_order, item_name, amount_total) "
+        "VALUES (?,?,?,?,?,?,?)",
+        [(B, P, K, "assets", 1, "asset", 100),
+         (B, P, K, "liabilities", 1, "liability", 100)],
+    )
+    c.executemany(
+        "INSERT INTO bank_audit_validation "
+        "(bank_ticker, period, kind, statement, checks_passed, checks_failed) "
+        "VALUES (?,?,?,?,?,?)",
+        [(B, P, K, "assets", 1, 0),
+         (B, P, K, "liabilities", 1, 0),
+         (B, P, K, "cross", 1, cross_failed)],
+    )
+    c.commit()
+
+
+def test_balance_sheet_is_not_protected_when_cross_identity_fails():
+    c = _conn()
+    _seed_balance_sheet(c, cross_failed=1)
+    upsert_report(c, B, P, K, _empty(), "x.pdf", unit=UnitContext.canonical())
+    assert c.execute(
+        "SELECT COUNT(*) FROM bank_audit_balance_sheet WHERE bank_ticker=?",
+        (B,)).fetchone()[0] == 0
+
+
+def test_balance_sheet_pair_is_protected_only_when_full_gate_passes():
+    c = _conn()
+    _seed_balance_sheet(c, cross_failed=0)
+    upsert_report(c, B, P, K, _empty(), "x.pdf", unit=UnitContext.canonical())
+    assert c.execute(
+        "SELECT COUNT(*) FROM bank_audit_balance_sheet WHERE bank_ticker=?",
+        (B,)).fetchone()[0] == 2
