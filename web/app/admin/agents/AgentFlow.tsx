@@ -252,11 +252,12 @@ export default function AgentFlow({
           {drawn}
 
           {stages.map((s, i) => {
-            const color = KIND_COLOR[s.kind];
             const detail = s.detail ? wrap(s.detail) : [];
             const top = nodeTop(s.kind);
             return (
               <g key={s.id}>
+                {/* No kind-coloured rule on the node: the LANE already says what
+                    kind of work this is, so a stripe per box only repeats it. */}
                 <rect
                   x={x(i)}
                   y={top}
@@ -267,7 +268,6 @@ export default function AgentFlow({
                   stroke="var(--border)"
                   strokeWidth={1}
                 />
-                <rect x={x(i)} y={top} width={2.5} height={NH} rx={1} fill={color} />
                 <text
                   x={x(i) + 10}
                   y={top + 16}
