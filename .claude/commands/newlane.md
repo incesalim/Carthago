@@ -1,136 +1,111 @@
 ---
-description: Scaffold a new data lane end-to-end — table, migration, ingest, validation, UI, workflow, docs — with the steps that get forgotten made explicit.
+description: "Scaffold a new data lane end to end: schema, ingestion, validation, UI, automation, and documentation."
 argument-hint: <lane name> [audit-statement | data-source]
 ---
 
-## Current state
+Scaffold the lane described by `$ARGUMENTS`. State whether it is an
+`audit-statement` or `data-source` lane. If the choice cannot be inferred without
+materially changing the design, ask before implementing it.
 
-- Highest migration: !`ls web/migrations | tail -3`
-- Audit table-set source of truth: `src/audit_reports/registry.py`
-- Chart catalog: `web/app/lib/chart-specs.catalog.json`
+This command authorizes the scoped repository implementation. It does not by
+itself authorize a commit, push, deployment, workflow dispatch, D1/R2 write, or
+cache purge. Leave those for an explicit request such as `/ship` or a requested
+first production run.
 
-## Task
+## 1. Inspect current sources of truth
 
-Scaffold the lane described by `$ARGUMENTS`. Two shapes — pick from the
-argument or infer, and say which you picked:
+Read the root `AGENTS.md` and any nested instructions for touched directories.
+Then inspect:
 
-- **audit-statement** — a new `bank_audit_*` statement type extracted from
-  the BRSA quarterly PDFs.
-- **data-source** — a new external feed (EVDS / TÜİK / TBB / an API) landing
-  in its own table.
+- `src/audit_reports/registry.py` for audit lane topology;
+- `web/migrations/` and `docs/SCHEMA_CONVENTIONS.md` for schema conventions;
+- `scripts/refresh.py`, relevant update scripts, and current workflows for
+  ingestion topology;
+- `web/app/lib/chart-specs.catalog.json` for chart contracts;
+- `.github/workflows/ci.yml` for the checks that exist now.
 
-Work through the checklist. Do not skip a step silently: if one doesn't
-apply, say so and why.
+Do not copy a lane shape from memory. Recheck the highest migration number
+immediately before creating the migration because other sessions share this
+worktree.
 
----
+## 2. Add the schema
 
-### 1. Migration
+- Use the next unused migration number; never reuse a number.
+- Follow `docs/SCHEMA_CONVENTIONS.md`, including `bank_ticker`, `amount_fc`,
+  snake_case names, natural keys, and current migration structure.
+- Keep `null`, disclosed zero, missing, and not-applicable semantically distinct.
+- If a workflow must run before the normal deploy applies the migration, use an
+  existing reviewed remote-DDL pattern and document it. Do not execute it now
+  unless production execution was explicitly requested.
 
-Next number is one above the highest above — **numbers are unique, never
-reused**, and `scripts/check_schema_naming.py` gates ≥ 0022 against
-`docs/SCHEMA_CONVENTIONS.md`:
+## 3. Build ingestion
 
-- per-bank key column is `bank_ticker` (never `ticker`, `bank`, `symbol`)
-- foreign-currency amounts are `amount_fc`
-- snake_case throughout, no SQL reserved words
-- one `CREATE TABLE IF NOT EXISTS` per migration file
+For an audit statement:
 
-Migrations apply on a `web/**` push via `deploy-cloudflare.yml`. If the lane
-needs the table before the next deploy, its workflow should run the DDL
-against remote D1 itself (`build-products.yml` does this).
+- Add its `StatementType` to the registry with correct section provenance,
+  severity, annual-only, conditional, table, re-extraction, and validation
+  metadata.
+- Add the extractor under `src/audit_reports/` using PyMuPDF (`fitz`) only.
+- Anchor by labels and filing structure, not fixed Roman ordinals.
+- Render pages when text extraction is empty or garbled before classifying a
+  disclosure as absent.
 
-### 2. Ingest
+For an external data source:
 
-**audit-statement:**
-- Add a `StatementType(...)` to `REGISTRY` in `src/audit_reports/registry.py`.
-  Get these right, they are load-bearing:
-  - `section` — the report Bölüm ('2' primary statement, '5' note, '4' risk
-    disclosure). This is **provenance**, and what the /admin matrix groups on.
-  - `is_core` — **severity only**. True means "an empty lane here fails the
-    whole report". OCI / equity-change / cash-flow / off-balance are §2
-    primary statements deliberately marked `is_core=False`. Do not conflate
-    the two flags; the matrix mislabelled four statements for months by
-    grouping on `is_core`.
-  - `annual_only` — disclosed only in the Q4 report → interim cells are N/A,
-    not missing.
-  - `conditional` — disclosed only when the bank holds one → empty means
-    "no such item", also N/A.
-- Extractor in `src/audit_reports/`. **fitz / PyMuPDF only** — a CI gate
-  blocks `pdfplumber`. Garbled text → check `page.rotation` first. Empty
-  `get_text()` means render the page and look; it is not evidence of
-  non-disclosure.
-- Anchor rows by **label**, never by roman ordinal. BRSA ordinals are not
-  fixed across filers.
+- Add the scraper in the established package and connect it to the appropriate
+  refresh cadence.
+- Define and enforce the true natural key.
+- Compare fetched business values with stored values and write only new or
+  changed rows. `INSERT OR REPLACE` by itself is not cost-safe idempotence
+  because unchanged rows are still billed when pushed to D1.
+- Preserve corrected vintages without restamping settled rows.
 
-**data-source:**
-- Scraper module under `src/scrapers/` (or its own package for a bigger feed).
-- Make it idempotent — `INSERT OR REPLACE` on the natural key. Check the key
-  really is unique: `other_data` collides on `item_order` alone and needs
-  `item_name` too.
-- Wire into `scripts/refresh.py`, or give it its own `update_*.py` if it has
-  a different cadence.
+## 4. Add validation and push routing
 
-### 3. Validation
+- Prefer structural reconciliation, source anchors, and cross-statement
+  identities over plausibility bands.
+- For an audit lane, register the validator and dependencies so repair routing,
+  coverage, and `--table-set audit` derive from the registry. Never hand-list
+  audit tables.
+- For a non-audit table, add the narrow push route and confirm its workflow names
+  the intended table.
+- Review full-rebuild and partition-replacement behavior carefully. An empty
+  local source must not erase valid remote data, and deletes must be atomic with
+  replacement rows.
 
-- **audit-statement:** set `has_validator=True` + `validation_statement`,
-  and add the structural checks. Validate by **reconciliation** (parent =
-  Σ children, cross-statement identities), not by plausibility bands —
-  bands pass silently-wrong numbers and reject legitimate new banks.
-- **data-source:** if the lane feeds a chart, a `verify` block in the chart
-  catalog (step 5) is the equivalent gate.
+## 5. Add the product surface
 
-### 4. Push path
+- Follow `web/AGENTS.md` and `web/DESIGN.md` for dashboard work.
+- Reuse shared chart colors and number formatters.
+- Add a chart catalog entry with an authoritative verification date, value, and
+  tolerance for every new quantitative chart.
+- Generate prose claims from data through the existing prose helpers rather
+  than hard-coding changing directions, rankings, or levels.
+- If the mobile app changes, follow `mobile/AGENTS.md` and its token rules.
 
-- Audit tables: covered automatically by `--table-set audit`, which expands
-  from the registry. **Never hand-list tables** — the literal list that used
-  to exist omitted two tables for weeks while the push exited 0.
-- New non-audit table: confirm `push_to_d1.py` picks it up, and that the
-  lane's workflow passes `--only-tables` where it should.
-- Full-rebuild tables (`DELETE` + `INSERT`) are dangerous from a lane whose
-  local copy is empty — that is how the coverage matrix got wiped. The guard
-  skips a full-rebuild table when local is empty; don't defeat it.
+## 6. Add automation and documentation
 
-### 5. UI
+- Add or update the appropriate workflow without silently enabling a schedule.
+- Keep `web/app/lib/pipeline-graph.ts` synchronized with workflow topology.
+- Use explicit input sentinels where an empty dispatch value would resolve to a
+  default, and print the resolved production scope.
+- Update `docs/PROJECT_STATE.md`, `docs/OPERATIONS.md`,
+  `docs/ARCHITECTURE.md`, `docs/ADMIN.md`, and `docs/CHANGELOG.md` only where the
+  change affects their stated contract.
+- Document every workflow, secret, variable, environment key, schedule, and
+  manual input introduced by the lane.
 
-- Page or section under `web/app/`, following `web/DESIGN.md` ("The Desk").
-- Chart colours from `app/lib/chart-theme.ts`, number formatting from
-  `app/lib/chart-format.ts` (`nf`, `formatters`) — don't re-declare a local `nf`.
-- **Add an entry to `web/app/lib/chart-specs.catalog.json`** with a `verify`
-  block (series / date / value / tolerance). `scripts/verify_chart_spec.py`
-  runs in the daily healthcheck and is what catches a silently-empty chart —
-  a 0-row query renders a blank panel, not an error.
-- Any sentence asserting a direction, level or ranking must be **computed**
-  via `lib/prose.ts` (`direction()` / `claim()` / `seriesFinding()`), or it
-  fails `scripts/check_prose_claims.py`.
+## 7. Verify and hand off
 
-### 6. Automation
+Run the checks required by the current root and nested instructions, scoped to
+the files changed, unless the user explicitly opts out. Read the current CI
+workflow rather than relying on a copied gate list. Include focused tests for
+the new natural key, no-op write behavior, null-versus-zero handling, validator,
+and chart verification as applicable.
 
-- New workflow in `.github/workflows/`, or a step on an existing one.
-- Add it to `web/app/lib/pipeline-graph.ts` — `check_pipeline_graph_sync.py`
-  requires the topology and the workflow files to reference each other both
-  ways.
-- Dispatch inputs: `-f x=` does **not** arrive empty, the default wins. Use
-  an explicit `ALL`/`NONE` sentinel and echo the resolved scope.
-
-### 7. Docs — part of this change, not a follow-up
-
-- `docs/PROJECT_STATE.md` — a row in the coverage table: source, range, what
-  it actually contains, and any known defect.
-- `docs/OPERATIONS.md` — the workflow, its schedule, **every** `secrets.*` /
-  `vars.*` it reads. `check_docs_sync.py` fails otherwise, and an
-  undocumented secret is a lane that dies silently on re-provision.
-- `docs/ARCHITECTURE.md` if the shape of the system changed.
-- `docs/CHANGELOG.md` — dated entry.
-
-### 8. Gates
-
-Run the CI set before committing (see `/ship`), then commit to `master`
-staging explicit paths.
-
-### 9. First run
-
-Ingest runs in **CI, not locally** — and any step touching the R2 snapshot
-must sit between the workflow's pull and upload, or it writes a DB
-production never reads. Dispatch the workflow, read the log rather than
-trusting the exit code, then confirm the data reached D1 and the page.
-Public pages cache D1 reads, so allow for the lag or purge the cache.
+Report what was implemented, which checks ran, what did not run, and the exact
+production action still required. Do not commit or run the first ingestion
+unless the current request explicitly asks for it. When a production run is
+authorized, use GitHub Actions for heavy work, inspect per-series or
+per-partition logs, and verify the resulting rows rather than trusting exit
+status alone.

@@ -1,80 +1,81 @@
 ---
-description: Run every CI gate locally, update the docs that must move with the change, then commit and push to master.
+description: Verify the intended working-tree change, update required docs, commit explicit paths, and push master.
 argument-hint: [optional commit subject]
-allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git log:*)
 ---
 
-## Current state
+Ship the intended working-tree change. `$ARGUMENTS`, when provided, is the
+intended commit subject; otherwise derive one from the reviewed diff.
 
-- Branch/status: !`git status --short --branch`
-- Staged + unstaged diff: !`git diff HEAD --stat`
-- Recent commits (for message style): !`git log --oneline -8`
+Invoking `/ship` authorizes the in-scope commit and push described here. It does
+not authorize staging unrelated work, deploying manually, dispatching data
+workflows, or mutating production data.
 
-## Task
+## 1. Establish exactly what belongs to this change
 
-Ship the working-tree change. `$ARGUMENTS` — if provided — is the intended
-commit subject; otherwise derive one from the diff.
+- Read the root `AGENTS.md` and nested instructions for every touched area.
+- Inspect branch, status, staged and unstaged diffs, and recent commit style.
+- Identify files that belong to this request versus pre-existing or concurrent
+  work. Shared-worktree changes belong to their author unless proven otherwise.
+- Review the actual diff, including generated files and migrations, before
+  staging anything.
 
-### 1. Run the gates that CI will run
+If ownership or scope cannot be resolved safely, stop before staging and ask.
 
-These are the exact steps in `.github/workflows/ci.yml`. Run them locally so
-CI is a formality, not a discovery mechanism. Stop at the first failure and
-fix it rather than reporting a red gate as "expected".
+## 2. Run the current required checks
 
-Python:
-```
-ruff check .
-python scripts/check_pipeline_graph_sync.py
-python scripts/check_docs_sync.py
-python scripts/check_schema_naming.py
-python scripts/check_no_pdfplumber.py
-python scripts/check_calendar_fresh.py
-python scripts/check_prose_claims.py
-pytest
-```
+Read `.github/workflows/ci.yml` and the applicable `AGENTS.md` files at execution
+time. Run the commands they require now; do not rely on a copied checklist in
+this command.
 
-Web — only if the change touches `web/**`:
-```
-cd web && npm run lint && npx tsc --noEmit && npm run test
-```
+Cover every applicable CI job, including Python gates and tests, web lint/type
+checks/tests, and mobile lint/type/token/bundle checks. Use focused checks first
+when they shorten the feedback loop, then run the required full set before
+pushing.
 
-Skip a gate only when it cannot apply to this diff, and say which and why.
+Stop on a real failure, fix it within scope, and rerun the affected check. If a
+required check needs unavailable credentials, network access, or an environment
+that cannot be reproduced locally, name it precisely and do not call it passed.
+Do not push past an unresolved required check unless the user explicitly accepts
+that risk after seeing the limitation.
 
-### 2. Docs are part of the change, not a follow-up
+## 3. Keep documentation synchronized
 
-Before committing, check each and update in the **same** commit:
+Update only the documents whose current contract changed:
 
-- **`docs/PROJECT_STATE.md`** — did coverage, a row count, a pass rate, or a
-  known issue change? Update the "Last verified" date if you touched it.
-- **`docs/OPERATIONS.md`** — `check_docs_sync.py` fails unless it names every
-  workflow, every `secrets.*` / `vars.*` a workflow reads, and every
-  `CloudflareEnv` key. A new secret or workflow input must be documented here
-  or the gate is red.
-- **`docs/ADMIN.md`** — did anything on `/admin` move?
-- **`docs/CHANGELOG.md`** — dated entry for a user-visible or pipeline change.
-- **`docs/SCHEMA_CONVENTIONS.md`** — new migration ≥ 0022 must conform
-  (`bank_ticker` / `amount_fc` / snake_case / unique number).
+- `docs/PROJECT_STATE.md` for deployed or measured state, coverage, counts,
+  pass rates, and known defects;
+- `docs/OPERATIONS.md` for workflows, schedules, inputs, secrets, variables,
+  environment keys, and runbooks;
+- `docs/ADMIN.md` for `/admin` behavior;
+- `docs/ARCHITECTURE.md` for system topology;
+- `docs/CHANGELOG.md` for a user-visible or pipeline change;
+- `docs/SCHEMA_CONVENTIONS.md` only when the convention itself changes.
 
-### 3. Commit and push
+Do not claim a production state change merely because code for it was committed.
 
-Solo repo, work happens on `master` — commit and push there directly, no
-branch, no PR.
+## 4. Commit safely
 
-**Stage explicit paths, never `git add -A`.** A concurrent session commits in
-this same worktree; a blanket add sweeps up its in-progress work.
+- Recheck status after validation because another session may have changed the
+  worktree.
+- Stage explicit paths only. Never use `git add -A`, `git add .`, or another
+  blanket add.
+- Inspect the staged diff and staged file list before committing.
+- Use the repository's current message style: `type(scope): imperative subject`,
+  lowercase, no trailing period unless recent history shows otherwise.
+- Add a co-author trailer only when a real co-author and the user explicitly
+  require it. Never hard-code a model name or version into attribution.
 
-Write the message in the style of the recent commits above —
-`type(scope): imperative subject`, lowercase, no trailing period. Body only
-when the *why* isn't obvious from the diff. End with:
+Commit on `master` as required by the repository instructions, then push the
+current `master` commit to its configured remote. Do not create a branch or pull
+request unless the user asks or the repository instructions change.
 
-```
-Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
-```
+## 5. Verify and report
 
-Then push to `master`.
+After the push, verify the remote accepted the intended commit. Report:
 
-### 4. Report
-
-State what shipped, which gates passed, which docs moved, and anything you
-deliberately left out. If a gate failed and you could not fix it, say so
-plainly with the output — do not push over it.
+- the commit and what shipped;
+- every check that passed;
+- any check not run or limitation explicitly accepted by the user;
+- documentation updated;
+- unrelated files deliberately left unstaged;
+- any separate deployment or data workflow still required.

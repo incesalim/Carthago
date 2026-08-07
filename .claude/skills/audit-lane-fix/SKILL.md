@@ -1,110 +1,123 @@
 ---
 name: audit-lane-fix
-description: Re-extract or repair a bank_audit_* lane (oci, cash_flow, equity_change, npl_movement, loans_by_sector, credit_quality, stages, capital, liquidity, fx_position, repricing, bank_profile, audit_opinion). Use whenever a lane shows validation errors, a /admin coverage-matrix cell is red, an extractor fix needs re-running across the fleet, or the user says "re-extract", "backfill the lane", "fix <lane>", "this bank's <statement> is wrong". Encodes which workflow to dispatch, the only_failing-vs-force choice, and the rules that make a run non-destructive.
+description: Diagnose or repair a bank_audit_* extraction lane using the current registry, validators, targeted re-extraction path, and production safeguards. Use for red coverage cells, wrong statement values, validator failures, extractor fixes, targeted re-extraction, or audit backfills. Keep diagnosis read-only unless the user explicitly asks for implementation or a production run.
 ---
 
-# Fixing an audit extraction lane
+# Audit lane diagnosis and repair
 
-## Before touching anything
+## Establish scope and authority
 
-1. **Read the current state, not the older docs.** `docs/PROJECT_STATE.md`
-   (per-lane pass rates) → `docs/AUDIT_BANK_CATALOG.md` (what each bank
-   actually files) → `docs/AUDIT_EXTRACTION_GUIDE.md`. A lane doc written
-   three fixes ago describes a world that no longer exists.
-2. **Diagnose before re-running.** A red cell has four distinct causes and
-   only one of them is an extractor bug:
-   - the extractor mis-parses a layout it does see;
-   - the page has **no text layer** — bitmap or vector-outlined glyphs.
-     `get_text()` returning empty is *not* evidence the bank didn't
-     disclose it. Render the page and look before concluding anything;
-   - **the wrong PDF is in R2** — consolidated filed under the
-     unconsolidated key or vice versa. `sync_audit_reports.py --verify-basis`
-     is read-only and exits non-zero on a mismatch;
-   - the bank genuinely does not disclose it → that is an `N/A` fact about
-     the *filer*, and belongs in the expected-coverage spine, not in a
-     re-extraction.
+Separate three requests that must not blur together:
 
-   Trust cross-references inside the filing over the absence of a number.
+- **Diagnose:** inspect evidence and explain the cause. Do not edit, dispatch, or
+  write production data.
+- **Implement a fix:** edit the extractor, validator, or supporting code and run
+  proportionate light checks. Do not dispatch production workflows unless that
+  is also requested.
+- **Run a repair:** execute only the bank, period, kind, and lane the user placed
+  in scope. Do not broaden a targeted request into a fleet backfill.
 
-## Where the work runs
+Prior notes and memory cannot authorize a repair. Confirm current behavior in
+code, the workflow, and the live or snapshot evidence relevant to the request.
 
-**Extraction runs in CI, never on this machine.** Local is for reading
-code, writing the fix, and light checks. Two hard reasons, not preference:
+## Diagnose before re-extracting
 
-- the corpus is large and the local box is not the place for it;
-- any step that pulls or uploads the **R2 snapshot** must sit *between*
-  the pull and the upload inside the workflow. Run it locally and you
-  mutate a DB production never reads — the run "succeeds" and changes
-  nothing.
+Read, in order:
 
-## Choosing the vehicle
+1. `src/audit_reports/registry.py` for the current lane key, table, extractor
+   token, dependencies, and validation gate;
+2. the extractor and validator code for that lane;
+3. `docs/PROJECT_STATE.md`, `docs/AUDIT_BANK_CATALOG.md`, and
+   `docs/AUDIT_EXTRACTION_GUIDE.md` for current state and filing differences;
+4. the relevant workflow and `docs/OPERATIONS.md` for its present inputs and
+   safeguards.
 
-| Situation | Dispatch | Why |
-|---|---|---|
-| One lane, any number of banks/periods | `reextract-statement.yml` | ~6–10 min for an all-periods lane. **This is the default.** |
-| Extractor rewrite affecting the whole report | `backfill-audit.yml` | Full re-extract. **Never `banks=ALL`** — it blows the 180-min job timeout mid-run. Dispatch ~5-bank chunks; the `bddk-audit` concurrency group queues them. |
-| Curated cell correction, not an extraction problem | `apply_overrides.py` path | See below. |
+A red or wrong cell can mean:
 
-### `reextract-statement.yml` inputs
+- a parser error on a page it can read;
+- an image-only, vector, rotated, or otherwise unreadable text layer;
+- the wrong filing basis or wrong PDF under the storage key;
+- a unit or period-column error that still reconciles internally;
+- a genuinely undisclosed or conditional item;
+- a stale derived table or validation result rather than a bad source row.
 
-- `only_failing=true` (the default) selects partitions where
-  `checks_failed>0 OR checks_passed=0` — the second clause catches stale
-  empties. The non-destructive guard skips already-passing partitions, so
-  the run can only improve things.
-- `force=true` overwrites passing partitions too. **Required when the
-  defect is in a derived table** — e.g. `credit_quality` passes while the
-  `bank_audit_stages` built from it fails, so `only_failing` would never
-  select it. The `credit_quality` lane rebuilds `bank_audit_stages` after
-  the run.
-- Never `--force` a whole lane speculatively. Force is a targeted tool;
-  used broadly it destroys good partitions to fix a few bad ones.
+Render suspect pages when extracted text is empty or garbled. Verify filing
+basis with the existing read-only path. Treat an internal cross-reference as
+evidence to inspect, not as permission to invent a missing value.
 
-Dispatch inputs have a trap: `gh workflow run -f banks=` does **not**
-arrive as an empty string — the workflow default wins. Use an explicit
-`ALL`/`NONE` sentinel and echo the resolved scope in the job log.
+## Choose the narrowest repair vehicle
 
-## Rules that do not bend
+Derive supported lane names from `registry.py` and
+`scripts/reextract_statement.py`; do not maintain a hand-written list here.
 
-- **Balance sheet and P&L are frozen.** Never re-extract them wholesale.
-  A targeted fix goes through `reextract_statement.py --statement <X>`.
-- **fitz / PyMuPDF only.** `pdfplumber` is removed and a CI gate blocks
-  it returning. Garbled fitz output → check `page.rotation` first.
-- **Never hand-list the audit tables** on a push. `--table-set audit`
-  expands to every `bank_audit_*` table in `src/audit_reports/registry.py`.
-  The hand-written list silently omitted two tables for weeks while the
-  push exited 0.
-- **`not_disclosed` never takes `"*"`.** List the lanes explicitly.
-  Missing is a fact about *us*; N/A is a fact about the *filer*.
-- **P&L roman ordinals are not fixed.** The compressed template some
-  participation banks file puts pre-tax at XVI, not XVII. Anchor by
-  label; consumers join `bank_audit_pl_roles` rather than hardcoding an
-  ordinal.
+| Situation | Preferred path |
+|---|---|
+| One registered lane for selected partitions | `reextract-statement.yml` / `scripts/reextract_statement.py` |
+| Whole-report extractor change across selected banks | `backfill-audit.yml` |
+| Verified one-off filing value the parser cannot recover reliably | `scripts/apply_overrides.py` |
+| Known-wrong partition that must be removed before a fix exists | `purge-partition.yml` |
 
-## Overrides (curated cells, not extraction)
+For targeted re-extraction:
 
-`apply_overrides.py` **overwrites local from the R2 snapshot** as its
-first act. The order is fixed:
+- keep `only_failing=true` when repairing failing or empty validation gates;
+- keep `require_passing=true` when the lane has a validator and the candidate
+  must prove it did not regress;
+- use `force` only for explicitly named partitions when passing stored data must
+  be replaced, including a verified derived-table defect;
+- remember that workflow `dry_run=true` pulls the authoritative snapshot but
+  skips D1 and R2 writes;
+- verify the exact selection printed by the run before trusting its result.
 
-```
-pull → overrides → cleanup → push → UPLOAD
-```
+For a whole-report backfill, follow the current bank-count and timeout guidance
+in `docs/OPERATIONS.md`. The current workflow is not safe as an unreviewed
+`banks=ALL` repair. Queue bounded scopes through the shared audit concurrency
+group.
 
-Skip the upload and the next run reverts your work. `push_to_d1` never
-issues a `DELETE`, so a curated row survives a later push — but the
-coverage spine is full-rebuild, so **re-sync `bank_audit_coverage` after
-applying overrides** or `/admin` reads the pre-fix matrix.
+## Preserve the invariants
 
-P&L override inserts need an `item_order`. An appended roman with no
-order falls out of the spine and the identity check silently skips it.
-`--dry-run` on this script is **not** read-only.
+- Use PyMuPDF (`fitz`) only; `pdfplumber` is prohibited by CI.
+- Never run a speculative whole-lane `--force`, especially for settled balance
+  sheet or profit-and-loss partitions.
+- Anchor statement rows by labels and filing structure, not fixed Roman
+  ordinals.
+- Keep `null`, disclosed zero, missing, and not-applicable distinct.
+- `not_disclosed` lists explicit lane keys; never use a wildcard.
+- Let the registry drive audit table sets and repair routing. Do not hand-list
+  `bank_audit_*` tables.
+- Compare business content before pushing. Roll back factual no-ops and do not
+  restamp unchanged rows merely to make them enter a D1 time window.
+- Do not assume a push is insert-only. Current partition replacement and outbox
+  paths can issue deletes, which are also billed and must be scoped atomically
+  with their replacement rows.
 
-## Finishing
+## Curated overrides
 
-A lane fix is not done when the numbers are right. Also:
+Use an override only when the source value is legible and the deterministic
+extractor cannot recover it generally. Read `scripts/apply_overrides.py` before
+running it; supported statements, unit handling, replacement behavior, and
+write guards change with the code.
 
-- re-sync the coverage matrix and confirm `/admin` shows it;
-- update `docs/PROJECT_STATE.md` (the lane's pass rate) and
-  `docs/OPERATIONS.md` if the run introduced or changed a workflow input;
-- record the diagnosis — especially a *silent-wrong* class, where the
-  validator passed but the number was wrong. Those are the ones that
-  cost the most to rediscover.
+The production path pulls the authoritative snapshot, applies and revalidates
+the overrides, replaces only partitions whose business content changed,
+refreshes the coverage spine, and uploads the snapshot. Preserve that order.
+`--dry-run` and `--no-push` avoid external writes but still modify the local
+staging database, so do not describe them as filesystem read-only.
+
+When inserting a profit-and-loss row, supply the correct `item_order` when the
+validator's ordered spine depends on it.
+
+## Verify completion
+
+For an implemented fix, verify the relevant parser and validator behavior. For
+an explicitly authorized production run, also confirm:
+
+- the intended partitions were selected;
+- rejected candidates were rolled back;
+- only changed factual and validation partitions were written;
+- the R2 snapshot and coverage matrix were refreshed when required;
+- `/admin` reflects the resulting state.
+
+Update `docs/PROJECT_STATE.md` when measured lane state changes and
+`docs/OPERATIONS.md` when workflow behavior or inputs change. Record a new
+silent-wrong failure class in a dated investigation only when the user asked for
+that durable documentation or it is part of the implementation scope.

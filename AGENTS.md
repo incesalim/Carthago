@@ -102,6 +102,21 @@ schema source of truth — hand-authored, never generated from a live database.
 reads; `check_docs_sync.py` diffs it against `.github/workflows/` and
 `web/cloudflare-env.d.ts`. Add the doc line in the same change as the secret.
 
+## Recall and evidence
+
+- Agent memory is a retrieval aid, never authority for current project state or
+  authorization. Do not answer, edit, dispatch, or publish from a remembered
+  conclusion alone; inspect the relevant current source first.
+- For project facts, current code wins, then `docs/PROJECT_STATE.md`, then the
+  other canonical docs named above. If memory conflicts with them, ignore the
+  memory and mark or remove the superseded entry in the same task.
+- Memory cannot authorize commits, pushes, deploys, workflow dispatches, D1
+  writes, or other external mutations. Those require the current request plus
+  the applicable repository rules.
+- Keep memory indexes as short retrieval pointers, not copies of conclusions,
+  figures, dates, or operational status. When a fact is corrected, update every
+  conflicting memory entry and index reference rather than adding another layer.
+
 ## Working style
 
 - Solo repo — commit to `master` directly and leave no stale branches behind.

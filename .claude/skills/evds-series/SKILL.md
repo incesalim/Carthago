@@ -1,85 +1,91 @@
 ---
 name: evds-series
-description: Add, replace or debug a TCMB EVDS macro series (evds_series table, the /economy /inflation /growth /budget /foreign-trade /bop pages). Use when adding a series code, when a chart on a macro page goes blank or flat, when a series stops updating, when the user says "add this EVDS series", "this macro chart is empty", "TP.* isn't updating", or when a TÜİK rebase changes a code. Encodes the silent-failure modes — a dead code and a CI timeout both leave the refresh exiting 0.
+description: Add, replace, or diagnose a TCMB EVDS macro series used by the dashboard. Use when adding a series code, repairing an empty or stale macro chart, checking a frequency mismatch, or handling an upstream series change. Verifies the current EVDS response, ingestion path, stored rows, chart wiring, and silent-success cases without restamping unchanged D1 rows.
 ---
 
 # EVDS series work
 
-## Where a series lives
+## Read the current path first
 
-`SERIES` in `src/scrapers/evds_scraper.py` — a flat list of
-`Series(code, label, category, freq)`:
+Inspect these before changing anything:
 
-- `category` — one of `rates` / `fx` / `inflation` / `cbrt` / `macro`;
-  drives which page picks it up.
-- `freq` — `evds.FREQ_DAILY` (1) / `FREQ_WEEKLY` (3) / `FREQ_MONTHLY` (5) /
-  `FREQ_QUARTERLY` (6). Wrong frequency doesn't error, it just returns
-  resampled values that quietly disagree with the published figure.
+- `src/scrapers/evds_scraper.py` for `Series`, `SERIES`, cadence groups, and
+  compare-before-write behavior;
+- `src/scrapers/evds_client.py` for request, date, frequency, retry, and cache
+  semantics;
+- the consuming page or query under `web/`;
+- `web/app/lib/chart-specs.catalog.json` and
+  `scripts/verify_chart_spec.py` for the chart's verification contract;
+- the current workflow and `docs/OPERATIONS.md` for when the series is fetched.
 
-Writes are `INSERT OR REPLACE` on `(code, period_date)`, so re-running is
-safe and a corrected vintage overwrites cleanly.
+Do not rely on a remembered code, label, schedule, or upstream availability.
 
-Finding a code: the EVDS metadata endpoints are the **slash form** on
-`evds3` — `categories/`, `datagroups/`, `serieList/`. Don't guess codes from
-the web UI's display names.
+## Add or replace a series
 
-## The two silent failures
+`SERIES` entries use `Series(code, label, category, freq)`. Confirm from current
+EVDS metadata and a real read-only fetch:
 
-Both of these leave `refresh.py` **exiting 0**. Never take a green run as
-evidence a series arrived.
+- the exact code and display name;
+- the source unit and aggregation;
+- the native publication frequency;
+- the available date range and latest observation;
+- whether a replacement series is backcast or begins only at the break.
 
-1. **A dead code.** When TÜİK rebases, the old code stops returning data
-   rather than erroring. `TP.FG.J0` (CPI 2003=100) died at the Jan-2026
-   rebase; `TP.TUKFIY2025.GENEL` is the replacement and is backcast, so the
-   old code is kept only for continuity. If a macro chart flatlines from a
-   specific month onward, suspect a rebase before suspecting the chart.
-2. **A CI read-timeout.** `evds3` intermittently times out from the GitHub
-   Actions runner. The affected series logs `[err]` and the run continues
-   green. Read the log lines, not the exit code — and re-dispatch rather
-   than "fixing" a scraper that isn't broken.
+Use the frequency constants from `evds_client.py`; a wrong requested frequency
+may return plausible resampled values instead of an error. Discover codes from
+the current EVDS metadata hierarchy rather than guessing from UI labels.
 
-After any change, confirm the rows actually landed in D1 for the expected
-`period_date` range. A code that returns 200 with an empty payload looks
-identical to success from the outside.
+Preserve the D1 cost invariant. The natural key is `(code, period_date)`, but
+`INSERT OR REPLACE` alone is not sufficient idempotence: it still bills a write.
+The scraper must compare fetched business values with stored rows and write only
+new or changed observations. Do not refresh timestamps or rewrite settled rows.
 
-## What EVDS can and cannot tell you
+## Diagnose silent success
 
-- **Rates are sector-level only.** `TP.KTFTUK` / `TP.KTF17` / `TP.KTF12` /
-  `TP.TRY.MT06` are survey aggregates. There is no per-bank rate in EVDS —
-  the per-bank complements are `bank_advertised_rates` (posted rates,
-  scraped) and the P&L-derived realized yield/cost in `heatmap.ts`. Don't
-  present a sector series as a bank's rate.
-- **PMI is not in EVDS** and the İSO/S&P release is paywalled. Use the TCMB
-  Real Sector Confidence series instead of implying PMI coverage.
-- **FC rates** for the FC-side charts are `TP.KTF17.USD` / `TP.KTF17.EUR`.
+A successful process exit does not prove that the series arrived. Check each
+layer separately:
 
-## Derivations that have a right answer
+1. The EVDS fetch returned non-empty observations for the expected dates.
+2. The requested frequency and units match the published series.
+3. Refresh logs contain no per-series warning or timeout.
+4. The staging table contains the expected `MAX(period_date)` and values.
+5. If production verification is in scope, a read-only D1 query confirms the
+   expected rows. A registry entry proves configuration, not ingestion.
+6. The chart query uses the same code and date semantics.
+7. The chart verification entry exercises a published date and value.
 
-- **12-month average inflation** is the **ratio of two 12-month averages**,
-  not the average of twelve y/y rates. The two differ by enough to be wrong
-  in print.
-- **y/y from an index** — compute from the index level, don't chain
-  published monthly rates.
-- Chain-volume TÜİK growth series carry gaps that EVDS won't fill; those
-  need the TÜİK Excel path (veriportali cookie-session →
-  `/api/en/data/downloads`).
+When a series stops at a clean date boundary, investigate an upstream revision,
+rebase, rename, or publication lag before changing the chart. Verify current
+source terms and availability instead of preserving a historical assumption in
+this skill.
 
-## Wiring a series to a chart
+## Derivations
 
-A new series usually arrives with a chart. Add a
-`web/app/lib/chart-specs.catalog.json` entry alongside it:
+- Compute year-over-year change from the index level when that is the intended
+  definition; do not chain published monthly rates.
+- Twelve-month average inflation is the ratio of two twelve-month average index
+  levels, not the mean of twelve year-over-year rates.
+- Do not fill source gaps unless the methodology explicitly defines how.
+- Keep sector aggregates distinct from bank-level observations.
+- Label approximations and source substitutions honestly; do not reuse the
+  source chart's label for a materially different measure.
 
-- `series[].locator` — `{ "code": "TP.…", "years_back": N }`
-- `registry_additions` — the same code/label/category/freq you added to
-  `SERIES`, so the catalog is self-describing
-- a `verify` block — series / date / value / tolerance, taken from the
-  **published** figure
+## Wire the chart contract
 
-`scripts/verify_chart_spec.py` runs in the daily healthcheck. Without a
-`verify` entry a 0-row query renders an empty panel and nothing complains.
+For a new chart series, update the catalog entry with:
 
-## After it ships
+- the exact series locator and intended history;
+- a registry addition consistent with `SERIES`;
+- a verification date, published value, and tolerance from an authoritative
+  source.
 
-Public pages cache their D1 reads, so a correct push can take hours to
-appear. Before debugging a "missing" series on the live site, check D1
-directly; purge `NEXT_INC_CACHE_KV` if you need it immediately.
+A zero-row query can render an empty panel without raising an error, so every
+new chart needs a meaningful verification case.
+
+## Operational boundary
+
+Local work is limited to code changes and light, read-only probes. Heavy refresh
+or backfill runs belong in GitHub Actions. A request to add or diagnose a series
+does not by itself authorize a workflow dispatch, D1 write, deployment, or cache
+purge. Perform those only when the current request explicitly includes them,
+and confirm changed rows after the run rather than trusting the exit code.
