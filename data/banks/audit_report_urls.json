@@ -1,6 +1,6 @@
 {
   "_doc": "Direct PDF URLs for quarterly BRSA Financial Reports per Turkish bank. Sourced from each bank's investor relations site. Filenames are heterogeneous; future quarters need re-scraping (see README).",
-  "_updated": "2026-07-12",
+  "_updated": "2026-08-07",
   "banks": {
     "AKBNK": {
       "name": "Akbank T.A.Ş.",
@@ -404,7 +404,8 @@
           "2025Q1": "https://www.isbank.com.tr/contentmanagement/IsbankFinancialDocuments/TAS%20Consolidated/pdf/isbnk31032025cons.pdf",
           "2025Q2": "https://www.isbank.com.tr/contentmanagement/IsbankFinancialDocuments/TAS%20Consolidated/pdf/isbnk30062025cons.pdf",
           "2025Q3": "https://www.isbank.com.tr/contentmanagement/IsbankFinancialDocuments/TAS%20Consolidated/pdf/isbnk30092025cons.pdf",
-          "2025Q4": "https://www.isbank.com.tr/contentmanagement/IsbankFinancialDocuments/TAS%20Consolidated/pdf/isbnk31122025cons.pdf"
+          "2025Q4": "https://www.isbank.com.tr/contentmanagement/IsbankFinancialDocuments/TAS%20Consolidated/pdf/isbnk31122025cons.pdf",
+          "2026Q1": "https://www.isbank.com.tr/contentmanagement/IsbankFinancialDocuments/TAS%20Consolidated/pdf/isbnk31032026cons.pdf"
         },
         "unconsolidated": {
           "2022Q1": "https://www.isbank.com.tr/contentmanagement/IsbankFinancialDocuments/TAS%20Bank-only/pdf/IsbankUnconsolidatedFinancial31032022.pdf",
