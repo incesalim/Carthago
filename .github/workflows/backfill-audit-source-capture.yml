@@ -24,13 +24,9 @@ on:
         type: string
         default: ""
       limit:
-        # A string on purpose: workflow_dispatch typed inputs are string/boolean/
-        # choice/environment — `type: number` fails GitHub's workflow validation
-        # (the push registered a 0-second "workflow file issue" run). The script
-        # parses it with argparse type=int either way.
         description: "Maximum PDFs after filters; 0 = all"
-        type: string
-        default: "0"
+        type: number
+        default: 0
       refresh_existing:
         description: "Recompute existing manifests too (unchanged rows are not re-stamped)"
         type: boolean
@@ -57,7 +53,6 @@ jobs:
       R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
       R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      D1_RUN_LEDGER: ${{ runner.temp }}/d1_run_ledger.json
       PYTHONIOENCODING: utf-8
     steps:
       - name: Checkout repo
@@ -79,6 +74,11 @@ jobs:
 
       - name: Capture source evidence
         env:
+          # Step-level, not job-level: the `runner` context is unavailable in a
+          # job's `env` and GitHub rejects the whole file at push time (the only
+          # trace is a 0-second "workflow file issue" run). Both D1-writing
+          # steps share this one run-scoped path so the cap bounds the run.
+          D1_RUN_LEDGER: ${{ runner.temp }}/d1_run_ledger.json
           LANES: ${{ inputs.lanes }}
           BANKS: ${{ inputs.banks }}
           PERIODS: ${{ inputs.periods }}
@@ -96,6 +96,8 @@ jobs:
 
       - name: Refresh coverage matrix
         if: ${{ !inputs.dry_run }}
+        env:
+          D1_RUN_LEDGER: ${{ runner.temp }}/d1_run_ledger.json
         run: python scripts/sync_audit_expected.py --push
 
       - name: Audit data-quality check (alert-only)
