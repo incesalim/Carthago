@@ -17,14 +17,24 @@ import { getForeignTradeData } from "@/app/lib/foreign-trade";
 import { Section, Stat } from "@/app/components/ui";
 import { GlobalRangeSelector } from "@/app/components/range-context";
 import {
+  Ahead,
   Colophon,
   Depth,
   DeskHeader,
+  Flags,
+  Movers,
   SecHead,
+  Transmission,
   Vital,
   Vitals,
+  type Flag,
+  type MoverRow,
+  type TransmissionItem,
 } from "@/app/components/desk";
 import { lastVal, monthLabel, signedPp, valAgo } from "@/app/lib/desk";
+import { tradeInsights } from "@/app/lib/insights";
+import { aheadSlots } from "@/app/lib/ahead-data";
+import Takeaway from "@/app/components/Takeaway";
 import { ChartCard } from "@/app/components/ui/chart-card";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
 import BopFlowChart, { type BarSeries, type OverlayLine } from "@/app/components/BopFlowChart";
@@ -74,7 +84,7 @@ function topSeries(rec: Record<string, { value: number }[]>): string | null {
 }
 
 export default async function ForeignTradePage() {
-  const d = await getForeignTradeData();
+  const [d, ahead] = await Promise.all([getForeignTradeData(), aheadSlots()]);
 
   // The section reads — the trade gap and the leading BEC groups, off the charts'
   // own data. "Imports run well above exports" and "intermediate goods dominate
@@ -118,6 +128,203 @@ export default async function ForeignTradePage() {
   const brentS = d.energy
     .map((r) => ({ period: String(r.x), value: num(r.brent) }))
     .filter((r) => r.value != null);
+
+  // ---- "The Read" — computed from the same series the charts show ----------
+  const termsS = sp(d.terms["Terms of trade"]);
+  const read = tradeInsights({
+    balance12m: balS,
+    exEnergy12m: exEnS,
+    exports12m: expS,
+    imports12m: impS,
+    coverage: covS,
+    terms: termsS,
+  });
+
+  // ---- movers: the 12-month sums, this month against last ------------------
+  // One customs release, one 12-month basis, so a single from→to header is
+  // honest. The Δ is between consecutive rolling windows — what "the deficit
+  // widened this month" actually measures.
+  const rollMover = (
+    label: string,
+    s: { period: string; value: number | null }[],
+    good: MoverRow["good"],
+    fmt: (v: number) => string,
+    deltaUnit = "bn",
+  ): MoverRow => ({
+    label,
+    prev: valAgo(s, 1),
+    curr: lastVal(s),
+    good,
+    fmt,
+    deltaDecimals: 1,
+    deltaUnit,
+  });
+  const usdBn = (v: number) => `$${v.toFixed(1)}bn`;
+  const movers: MoverRow[] = [
+    rollMover("Exports, 12m", expS, "up", usdBn),
+    rollMover("Imports, 12m", impS, "neutral", usdBn),
+    rollMover("Trade balance, 12m", balS, "up", usdBn),
+    rollMover("Balance ex energy, 12m", exEnS, "up", usdBn),
+    rollMover("Coverage ratio", covS, "up", (v) => `${v.toFixed(1)}%`, "pp"),
+    rollMover("Terms of trade", termsS, "up", (v) => v.toFixed(1), "pts"),
+  ];
+
+  // ---- transmission: the goods gap → the banks -----------------------------
+  const termsNow = lastVal(termsS);
+  const transmission: TransmissionItem[] = [
+    {
+      k: "Trade balance, 12m",
+      v: bal12 != null ? `$${Math.abs(bal12).toFixed(1)}bn` : "—",
+      effect: (
+        <>
+          The goods gap is the largest single line in the{" "}
+          <Link href="/economy/balance-of-payments" className="font-semibold text-primary">
+            current account
+          </Link>
+          , so it is the main driver of the external financing need the banks help
+          fund.
+        </>
+      ),
+    },
+    {
+      k: "Energy bill, 12m",
+      v: energy12 != null ? `$${Math.abs(energy12).toFixed(1)}bn` : "—",
+      effect: (
+        <>
+          The part of the gap set abroad. Energy is priced in dollars and consumed
+          regardless of the lira, which is why the ex-energy balance is the read on
+          what domestic policy can actually move.
+        </>
+      ),
+    },
+    {
+      k: "Coverage ratio",
+      v: cov != null ? `${cov.toFixed(1)}%` : "—",
+      effect: (
+        <>
+          How much of the import bill exports pay for. The shortfall has to be
+          borrowed or drawn from reserves every year it persists —{" "}
+          <Link href="/economy" className="font-semibold text-primary">
+            the buffer
+          </Link>{" "}
+          is the other half of that sentence.
+        </>
+      ),
+    },
+    {
+      k: "Terms of trade",
+      v: termsNow != null ? termsNow.toFixed(1) : "—",
+      effect: (
+        <>
+          Export prices against import prices. A higher index buys more imports per
+          unit exported, so it moves the gap without any change in volume — a price
+          effect that is easy to misread as a demand one.
+        </>
+      ),
+    },
+    {
+      k: "Exporters' FX",
+      v: expYoY != null ? `${expYoY >= 0 ? "" : "−"}${Math.abs(expYoY).toFixed(1)}%` : "—",
+      effect: (
+        <>
+          Export growth y/y on 12-month sums. Exporters are the system&rsquo;s natural
+          source of foreign currency and a core commercial-banking segment — their
+          receipts are an FC{" "}
+          <Link href="/liquidity" className="font-semibold text-primary">
+            funding
+          </Link>{" "}
+          input, not just a trade statistic.
+        </>
+      ),
+    },
+  ];
+
+  // ---- flags ----------------------------------------------------------------
+  const flagList: Flag[] = [
+    {
+      code: "COVER_LOW",
+      active: cov != null && cov < 70,
+      rule: "exports_12m / imports_12m < 70%",
+      body: (
+        <>
+          <b className="font-semibold">Exports cover under 70% of the import bill.</b>{" "}
+          At {cov?.toFixed(1)}%, close to a third of imports is funded from something
+          other than export earnings.
+        </>
+      ),
+      clear: (
+        <>
+          Exports cover {cov != null ? `${cov.toFixed(1)}%` : "—"} of imports — at or
+          above the 70% line.
+        </>
+      ),
+    },
+    {
+      code: "ENERGY_HEAVY",
+      active:
+        energy12 != null && bal12 != null && bal12 !== 0 &&
+        Math.abs(energy12) / Math.abs(bal12) > 0.5,
+      rule: "|energy_balance_12m| / |trade_balance_12m| > 50%",
+      body: (
+        <>
+          <b className="font-semibold">Energy is more than half the goods gap.</b> $
+          {energy12 != null ? Math.abs(energy12).toFixed(1) : "—"}bn of a $
+          {bal12 != null ? Math.abs(bal12).toFixed(1) : "—"}bn deficit — a gap set by
+          world prices rather than domestic demand.
+        </>
+      ),
+      clear: (
+        <>
+          Energy is $
+          {energy12 != null ? Math.abs(energy12).toFixed(1) : "—"}bn of the $
+          {bal12 != null ? Math.abs(bal12).toFixed(1) : "—"}bn gap — inside half.
+        </>
+      ),
+    },
+    {
+      code: "IMPORTS_OUTPACE",
+      active: expYoY != null && impYoY != null && impYoY > expYoY,
+      rule: "imports_yoy > exports_yoy (12m sums)",
+      body: (
+        <>
+          <b className="font-semibold">Imports grow faster than exports.</b> Imports at{" "}
+          {impYoY?.toFixed(1)}% y/y against exports at {expYoY?.toFixed(1)}% — the gap
+          widens on volume, before any price effect.
+        </>
+      ),
+      clear: (
+        <>
+          Exports ({expYoY != null ? `${expYoY.toFixed(1)}%` : "—"}) grow at or above
+          imports ({impYoY != null ? `${impYoY.toFixed(1)}%` : "—"}) on 12-month sums.
+        </>
+      ),
+    },
+    {
+      code: "EXPORTS_SHRINK",
+      active: expYoY != null && expYoY < 0,
+      rule: "exports_12m_yoy < 0",
+      body: (
+        <>
+          <b className="font-semibold">Export earnings are below their year-ago level.</b>{" "}
+          {expYoY?.toFixed(1)}% y/y on trailing-12-month sums — the economy&rsquo;s
+          primary source of foreign currency.
+        </>
+      ),
+      clear: (
+        <>
+          12-month exports are {expYoY != null ? `${expYoY.toFixed(1)}%` : "—"} y/y — at
+          or above their year-ago level.
+        </>
+      ),
+    },
+  ];
+
+  const aheadItems = [
+    { when: "~1st", what: <>TÜİK / Ministry of Trade provisional foreign-trade figures</> },
+    { when: "~end", what: <>TÜİK final foreign-trade statistics for the month</> },
+    { when: "~11th", what: <>TCMB balance of payments — where this gap lands</>, href: "/economy/balance-of-payments" },
+    ...(ahead.mpc ? [{ when: ahead.mpc.when, what: <>CBRT rate decision</>, href: "/rates" }] : []),
+  ];
 
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
@@ -239,6 +446,47 @@ export default async function ForeignTradePage() {
           }
         />
       </Vitals>
+
+      {/* ── The Read ──────────────────────────────────────────────────── */}
+      <div className="mt-7">
+        <Takeaway data={read} variant="desk" />
+      </div>
+
+      {/* ── Movers | Transmission ─────────────────────────────────────── */}
+      <div className="mt-8 grid grid-cols-1 gap-x-9 gap-y-7 lg:grid-cols-[5fr_7fr]">
+        <div>
+          <SecHead
+            title="The 12-month sums"
+            meta="consecutive rolling windows · one customs release"
+            className="mb-2.5"
+          />
+          <Movers
+            from={monthLabel(prevP, false)}
+            to={monthLabel(recP ?? d.latestPeriod, false)}
+            rows={movers}
+          />
+        </div>
+        <div>
+          <SecHead title="Transmission" meta="the goods gap → the banks · computed" className="mb-2.5" />
+          <Transmission items={transmission} />
+        </div>
+      </div>
+
+      {/* ── Flags | Ahead ─────────────────────────────────────────────── */}
+      <div className="mt-8 grid grid-cols-1 gap-x-9 gap-y-7 lg:grid-cols-[7fr_5fr]">
+        <div>
+          <SecHead title="Flags" meta="rules printed whether or not they fire" className="mb-2.5" />
+          <Flags
+            flags={flagList}
+            showCleared
+            quietNote="Every trade rule below was tested against the current release and none tripped."
+          />
+        </div>
+        <div>
+          <SecHead title="Ahead" meta="scraped calendar + fixed cadence" className="mb-2.5" />
+          <Ahead items={aheadItems} />
+        </div>
+      </div>
 
       <Depth action={<GlobalRangeSelector />}>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

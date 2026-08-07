@@ -39,17 +39,10 @@ import {
 import { wideToTable } from "@/app/lib/chart-csv";
 import { useRangeFilter } from "@/app/lib/use-date-range";
 
-export interface BufferPoint {
-  period: string;
-  /** Gross reserves (AB.TOPLAM), USD bn. */
-  gross: number;
-  /** Derived net international reserves, USD bn. */
-  net: number;
-  /** Net excluding swaps — the CBRT's own FX, USD bn. May be negative. */
-  own: number;
-  /** Index signature so the row satisfies the chart helpers' `Row` shape. */
-  [k: string]: string | number;
-}
+// The point shape and the arithmetic behind it live in lib/reserves.ts, so
+// /liquidity and /economy draw the same three levels from one derivation.
+export type { BufferPoint } from "@/app/lib/reserves";
+import { type BufferPoint } from "@/app/lib/reserves";
 
 const LABELS: Record<string, string> = {
   gross: "Gross",

@@ -26,17 +26,27 @@ import {
   toneFor,
 } from "@/app/components/ui";
 import {
+  Ahead,
   Colophon,
   Depth,
   DeskHeader,
+  Flags,
+  Movers,
   SecHead,
+  Transmission,
   Vital,
   Vitals,
+  type Flag,
+  type MoverRow,
+  type TransmissionItem,
 } from "@/app/components/desk";
-import { lastVal, signedPp, valAgo, windowExtremes, type Pt } from "@/app/lib/desk";
+import { lastVal, signedPp, streak, valAgo, windowExtremes, type Pt } from "@/app/lib/desk";
 import { VERBS, direction, signed } from "@/app/lib/prose";
 import { GlobalRangeSelector } from "@/app/components/range-context";
 import { ChartCard } from "@/app/components/ui/chart-card";
+import Takeaway from "@/app/components/Takeaway";
+import { growthInsights } from "@/app/lib/insights";
+import { aheadSlots } from "@/app/lib/ahead-data";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
 import BopFlowChart, { type BarSeries, type OverlayLine } from "@/app/components/BopFlowChart";
 import { nf } from "@/app/lib/chart-format";
@@ -151,7 +161,7 @@ function YoyTable({ table, note }: { table: GrowthTable; note?: string }) {
 const pp = (v: number) => signed(v, (x) => `${x.toFixed(1)}pp`);
 
 export default async function EconomicGrowthPage() {
-  const d = await getGrowthData();
+  const [d, ahead] = await Promise.all([getGrowthData(), aheadSlots()]);
 
   // ---- the brief's computed vitals ------------------------------------------
   // Every cell below is derived from the series this page already fetches.
@@ -194,6 +204,190 @@ export default async function EconomicGrowthPage() {
         (weakSec ? `${topSec ? ";" : ""} ${weakSec.label.toLowerCase()} lagged (${pp(weakSec.value)})` : "") +
         ". Figures use the unadjusted chain-volume index (see table note)."
       : null;
+
+  // ---- "The Read" — computed from the same series the charts show ----------
+  const read = growthInsights({
+    gdp,
+    ip: toPts(d.s1["GDP (y/y)"] ?? []).length ? toPts(d.s1["GDP (y/y)"]) : [],
+    consumption: toPts(d.expYoY["Household consumption"] ?? []),
+    investment: toPts(d.expYoY["Fixed investment"] ?? []),
+    exports: toPts(d.expYoY["Exports"] ?? []),
+    imports: toPts(d.expYoY["Imports"] ?? []),
+  });
+
+  // ---- movers: the expenditure side, quarter on quarter --------------------
+  // All five rows are the SAME quarterly cadence off the same national-accounts
+  // release, so one from→to header is honest here (unlike the hub's mixed
+  // monthly vintages).
+  const expMover = (label: string): MoverRow => {
+    const s = toPts(d.expYoY[label] ?? []);
+    return {
+      label,
+      prev: valAgo(s, 1),
+      curr: lastVal(s),
+      good: label === "Imports" ? "neutral" : "up",
+      fmt: (v: number) => `${v.toFixed(1)}%`,
+      deltaDecimals: 1,
+    };
+  };
+  const movers: MoverRow[] = [
+    expMover("Household consumption"),
+    expMover("Fixed investment"),
+    expMover("Government consumption"),
+    expMover("Exports"),
+    expMover("Imports"),
+  ];
+
+  // BarRow cells are `number | string`, so the quarter key is stringified before
+  // it becomes a column header.
+  const prevQuarter = d.s2.at(-2)?.x != null ? String(d.s2.at(-2)!.x) : "Prior";
+  const latestQuarter = gdpQuarter != null ? String(gdpQuarter) : "Latest";
+
+  // ---- transmission: output → the banks ------------------------------------
+  const consNow = lastVal(toPts(d.expYoY["Household consumption"] ?? []));
+  const invNow = lastVal(toPts(d.expYoY["Fixed investment"] ?? []));
+  const finNow = lastVal(toPts(d.prodYoY["Finance & insurance"] ?? []));
+  const constrNow = lastVal(toPts(d.prodYoY["Construction"] ?? []));
+  const transmission: TransmissionItem[] = [
+    {
+      k: "GDP, y/y",
+      v: pct1(d.gdpYoY),
+      effect: (
+        <>
+          The demand behind the loan book, and the denominator under every
+          %-of-GDP ratio on the site. Output turns before{" "}
+          <Link href="/asset-quality" className="font-semibold text-primary">
+            NPL formation
+          </Link>{" "}
+          does, so this is the leading half of the credit-quality question.
+        </>
+      ),
+    },
+    {
+      k: "Household consumption",
+      v: pct1(consNow),
+      effect: (
+        <>
+          The largest expenditure component, and the one that shows up first in
+          card spending and{" "}
+          <Link href="/credit" className="font-semibold text-primary">
+            consumer credit
+          </Link>
+          . Retail demand is a volume signal for the unsecured book.
+        </>
+      ),
+    },
+    {
+      k: "Fixed investment",
+      v: pct1(invNow),
+      effect: (
+        <>
+          Corporate capex is what long-tenor commercial lending funds. Investment
+          is the component most sensitive to the real rate, so it carries the
+          policy stance into the loan book.
+        </>
+      ),
+    },
+    {
+      k: "Construction GVA",
+      v: pct1(constrNow),
+      effect: (
+        <>
+          Construction is a concentrated exposure for Turkish banks and a
+          historically early source of problem loans — worth reading separately
+          from the services aggregate it usually sits inside.
+        </>
+      ),
+    },
+    {
+      k: "Finance & insurance GVA",
+      v: pct1(finNow),
+      effect: (
+        <>
+          The sector&rsquo;s own value added, on the production side of the
+          accounts — the banks as an industry rather than as a lender to one.
+        </>
+      ),
+    },
+  ];
+
+  // ---- flags ----------------------------------------------------------------
+  const gdpFallRun = streak(gdp, "down");
+  const importDrag = cell(d.s2.at(-1), "imports");
+  const invContrib = cell(d.s2.at(-1), "investment");
+  const flagList: Flag[] = [
+    {
+      code: "GDP_NEG",
+      active: gdpNow != null && gdpNow < 0,
+      rule: "gdp_yoy < 0",
+      body: (
+        <>
+          <b className="font-semibold">Output is below its year-ago level.</b> GDP at{" "}
+          {pct1(gdpNow)} y/y in {gdpQuarter ?? "the latest quarter"} — a contraction on
+          the chain-volume index.
+        </>
+      ),
+      clear: <>GDP is {pct1(gdpNow)} y/y — at or above its year-ago level.</>,
+    },
+    {
+      code: "GDP_RUN",
+      active: gdpFallRun >= 3,
+      rule: "consecutive_fall(gdp_yoy) ≥ 3 quarters",
+      body: (
+        <>
+          <b className="font-semibold">
+            Growth has slowed for {gdpFallRun} quarters running.
+          </b>{" "}
+          Three consecutive lower y/y prints is a trend rather than a base effect.
+        </>
+      ),
+      clear: <>The y/y growth rate has not fallen three quarters running.</>,
+    },
+    {
+      code: "INV_NEG",
+      active: invContrib != null && invContrib < 0,
+      rule: "investment_contribution_pp < 0",
+      body: (
+        <>
+          <b className="font-semibold">Investment is subtracting from growth.</b> Fixed
+          capital formation contributed {pp(invContrib as number)} in{" "}
+          {gdpQuarter ?? "the latest quarter"} — the component that funds long-tenor
+          commercial lending.
+        </>
+      ),
+      clear: (
+        <>
+          Investment contributed {invContrib != null ? pp(invContrib) : "—"} to growth —
+          not a drag.
+        </>
+      ),
+    },
+    {
+      code: "NET_TRADE_DRAG",
+      active: importDrag != null && importDrag < -2,
+      rule: "import_contribution_pp < −2pp",
+      body: (
+        <>
+          <b className="font-semibold">Imports are a heavy drag on growth.</b> Import
+          volumes subtracted {pp(importDrag as number)} in{" "}
+          {gdpQuarter ?? "the latest quarter"} — domestic demand met from abroad, which
+          lands in the current account.
+        </>
+      ),
+      clear: (
+        <>
+          Imports contributed {importDrag != null ? pp(importDrag) : "—"} — inside the
+          −2pp drag line.
+        </>
+      ),
+    },
+  ];
+
+  const aheadItems = [
+    ...(ahead.mpc ? [{ when: ahead.mpc.when, what: <>CBRT rate decision</>, href: "/rates" }] : []),
+    { when: "quarterly", what: <>TÜİK national accounts — the next GDP release</> },
+    { when: "monthly", what: <>TÜİK industrial production — the read between quarters</> },
+  ];
 
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
@@ -306,6 +500,43 @@ export default async function EconomicGrowthPage() {
           }
         />
       </Vitals>
+
+      {/* ── The Read ──────────────────────────────────────────────────── */}
+      <div className="mt-7">
+        <Takeaway data={read} variant="desk" />
+      </div>
+
+      {/* ── Movers | Transmission ─────────────────────────────────────── */}
+      <div className="mt-8 grid grid-cols-1 gap-x-9 gap-y-7 lg:grid-cols-[5fr_7fr]">
+        <div>
+          <SecHead
+            title="The expenditure side"
+            meta="y/y %, chain-volume · one national-accounts release"
+            className="mb-2.5"
+          />
+          <Movers from={prevQuarter} to={latestQuarter} rows={movers} />
+        </div>
+        <div>
+          <SecHead title="Transmission" meta="output → the banks · computed" className="mb-2.5" />
+          <Transmission items={transmission} />
+        </div>
+      </div>
+
+      {/* ── Flags | Ahead ─────────────────────────────────────────────── */}
+      <div className="mt-8 grid grid-cols-1 gap-x-9 gap-y-7 lg:grid-cols-[7fr_5fr]">
+        <div>
+          <SecHead title="Flags" meta="rules printed whether or not they fire" className="mb-2.5" />
+          <Flags
+            flags={flagList}
+            showCleared
+            quietNote="Every growth rule below was tested against the latest national accounts and none tripped."
+          />
+        </div>
+        <div>
+          <SecHead title="Ahead" meta="scraped calendar + fixed cadence" className="mb-2.5" />
+          <Ahead items={aheadItems} />
+        </div>
+      </div>
 
       {/* ── In depth — the evidence layer ──────────────────────────────── */}
       <Depth action={<GlobalRangeSelector />}>

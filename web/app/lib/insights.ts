@@ -16,6 +16,7 @@
  */
 
 import { VERBS, direction } from "./prose";
+import { seriesFinding } from "./chart-findings";
 
 /**
  * Minimal series shape the engine needs — structurally satisfied by
@@ -644,6 +645,414 @@ export function marketRiskInsights(d: {
   const headline =
     `Direct FX risk is ${nop != null && Math.abs(nop) < 5 ? "small" : "material"} (NOP ${nop != null ? `${nop >= 0 ? "+" : ""}${nop.toFixed(1)}%` : "—"} of capital); ` +
     `the real sensitivity is rates — ${gap != null && gap < 0 ? "a negative repricing gap gears earnings to the easing cycle continuing" : "an asset-sensitive book"}.`;
+
+  return { asOf: period, headline, items };
+}
+
+// ───────────────────────────────────────────────────────────── the economy ──
+
+/*
+ * The macro builders. Same contract as the sector ones above, and registered in
+ * the same regime-flip gate: every directional word arrives from `direction()`
+ * or from `seriesFinding()` (which is itself built on it), never typed.
+ *
+ * Two habits these six keep that the sector builders did not have to:
+ *
+ *   A GAP GETS NO DIRECTION WORD. Every input in the gate's fixture is the SAME
+ *   monotone ramp, so every derived spread is CONSTANT — the fixture cannot give
+ *   a gap a direction to contradict, which means a gap sentence is exactly where
+ *   an unchecked directional word would survive the gate. Gaps here are phrased
+ *   structurally ("sits 4.1pp above"), never as "widening"/"compressing".
+ *
+ *   A LEVEL READ GOES THROUGH `seriesFinding`. It already owns the sentence
+ *   shape, the scale-aware verb bands and the null guard, so a macro level read
+ *   and a chart headline for the same series cannot word themselves differently.
+ */
+
+/** A level read, or null — `seriesFinding` with the macro defaults. */
+const levelRead = (
+  s: SeriesPoint[],
+  noun: string,
+  decimals = 1,
+  window = 12,
+  windowLabel?: string,
+): string | null =>
+  seriesFinding(s, { noun, decimals, window, windowLabel });
+
+/** "+4.1pp" / "−4.1pp" — a gap, stated without a direction verb. */
+const gapPp = (v: number, d = 1): string =>
+  `${Math.abs(v).toFixed(d)}pp ${v >= 0 ? "above" : "below"}`;
+
+/** Economy — "what backdrop are the banks operating in?" */
+export function economyInsights(d: {
+  cpi: SeriesPoint[]; // headline CPI y/y, monthly
+  exp12m: SeriesPoint[]; // market participants' 12m-ahead expectation
+  funding: SeriesPoint[]; // CBRT effective cost of funding, monthly avg
+  realRate: SeriesPoint[]; // ex-ante real funding rate
+  gdp: SeriesPoint[]; // GDP y/y, quarterly
+  unemployment: SeriesPoint[]; // SA %
+  caPctGdp: SeriesPoint[]; // 12m current account, % of GDP
+  usdtry: SeriesPoint[]; // MONTHLY average — a daily array would misread the lag
+  budgetPctGdp: SeriesPoint[]; // 12m general-budget balance, % of GDP
+  importCover?: number | null; // months of imports gross reserves cover
+  ownReserves?: number | null; // net reserves excluding swaps, USD bn
+}): TabTakeaway {
+  const period = asOf(d.cpi);
+  const items: Insight[] = [];
+
+  // Prices — the level read, then where expectations sit against it. The gap is
+  // the forward-looking half: a falling print with expectations anchored above
+  // it is a different regime from the same print with expectations below.
+  const cpiNow = last(d.cpi);
+  const expNow = last(d.exp12m);
+  const cpiLine = levelRead(d.cpi, "Consumer inflation");
+  if (cpiLine) {
+    const expClause =
+      cpiNow != null && expNow != null
+        ? ` — the market's 12m-ahead expectation sits ${gapPp(expNow - cpiNow)} it`
+        : "";
+    items.push({ text: `${cpiLine}${expClause}.`, tone: "neutral", href: "/economy/inflation" });
+  }
+
+  // Policy — the nominal cost of funding, and whether it clears expected prices.
+  // The sign of the ex-ante real rate is the single most consequential macro fact
+  // for a bank's deposit book, so it gets its own sentence rather than a clause.
+  const fundNow = last(d.funding);
+  const realNow = last(d.realRate);
+  if (fundNow != null) {
+    items.push({
+      text:
+        `CBRT funding costs ${pct(fundNow)}` +
+        (realNow != null
+          ? ` — ${realNow >= 0 ? "positive" : "negative"} in real terms at ${realNow >= 0 ? "+" : "−"}${Math.abs(realNow).toFixed(1)}% against the 12m expectation.`
+          : "."),
+      tone: realNow != null && realNow < 0 ? "warn" : "neutral",
+      href: "/rates",
+    });
+  }
+
+  // Activity — output and the labour market in one line; they answer the same
+  // question (is there demand for credit) from opposite ends.
+  const gdpLine = levelRead(d.gdp, "GDP growth", 1, 4, "4 quarters");
+  const unempNow = last(d.unemployment);
+  if (gdpLine) {
+    items.push({
+      text: `${gdpLine}${unempNow != null ? `, with unemployment at ${pct(unempNow)}` : ""}.`,
+      tone: "neutral",
+      href: "/economy/economic-growth",
+    });
+  }
+
+  // External — the deficit against the buffer that has to finance it.
+  const caNow = last(d.caPctGdp);
+  if (caNow != null) {
+    const cover = d.importCover;
+    items.push({
+      text:
+        `The current account runs ${Math.abs(caNow).toFixed(1)}% of GDP ${caNow >= 0 ? "in surplus" : "in deficit"}` +
+        (cover != null ? `, against gross reserves covering ${cover.toFixed(1)} months of imports` : "") +
+        ".",
+      tone: caNow < -4 ? "warn" : "neutral",
+      href: "/economy/balance-of-payments",
+    });
+  }
+
+  // The lira — a 12-month move, on the monthly average so one volatile session
+  // cannot set the read.
+  const fxMove = growthOver(d.usdtry, 12);
+  if (fxMove != null) {
+    items.push({
+      // Not "the lira weakened": the sentence names WHICH way the pair moved and
+      // lets the reader hold the sign. A currency verb is where a flipped sign
+      // reads as fluent English and passes review.
+      text: `USD/TRY is ${Math.abs(fxMove).toFixed(1)}% ${fxMove >= 0 ? "higher" : "lower"} over 12 months — ${fxMove >= 0 ? "each dollar costs more lira" : "each dollar costs less lira"}.`,
+      tone: "neutral",
+    });
+  }
+
+  // Fiscal — the 12m general-budget balance. Named as the general budget because
+  // the published headline most readers carry is the central-government one.
+  const budNow = last(d.budgetPctGdp);
+  if (budNow != null) {
+    items.push({
+      text: `The general budget runs ${Math.abs(budNow).toFixed(1)}% of GDP ${budNow >= 0 ? "in surplus" : "in deficit"} on a 12-month basis.`,
+      tone: budNow < -5 ? "warn" : "neutral",
+      href: "/economy/budget",
+    });
+  }
+
+  const stance =
+    realNow == null ? "unscored" : realNow >= 0 ? "restrictive in real terms" : "accommodative in real terms";
+  const headline =
+    `Policy is ${stance} — funding at ${pct(fundNow)} against ${pct(expNow)} expected inflation` +
+    `, with prices at ${pct(cpiNow)} and output ${pct(last(d.gdp))} y/y` +
+    `${caNow != null ? `, on a current account of ${Math.abs(caNow).toFixed(1)}% of GDP` : ""}.`;
+
+  return { asOf: period, headline, items };
+}
+
+/** Inflation — "what is actually driving the price level, and is it broad?" */
+export function inflationInsights(d: {
+  cpi: SeriesPoint[]; // headline y/y
+  core: SeriesPoint[]; // core-C y/y
+  ppi: SeriesPoint[]; // producer prices y/y
+  cpiMoM: SeriesPoint[]; // headline m/m
+  exp12m: SeriesPoint[]; // 12m-ahead expectation
+  /** Share of CPI groups whose m/m print is above the headline's — 0..100. */
+  diffusion?: number | null;
+  /** How many groups that share was computed over (never print a bare share). */
+  diffusionOf?: number | null;
+}): TabTakeaway {
+  const period = asOf(d.cpi);
+  const items: Insight[] = [];
+
+  const cpiLine = levelRead(d.cpi, "Headline CPI");
+  if (cpiLine) items.push({ text: `${cpiLine}.`, tone: "neutral" });
+
+  // Core against headline — the underlying read. Structural phrasing, no verb:
+  // "core above headline" is a level comparison, not a direction.
+  const coreNow = last(d.core);
+  const cpiNow = last(d.cpi);
+  if (coreNow != null && cpiNow != null) {
+    items.push({
+      text: `Core-C is ${pct(coreNow)}, ${gapPp(coreNow - cpiNow)} headline — the read with energy, food, alcohol-tobacco and gold stripped out.`,
+      tone: coreNow > cpiNow ? "warn" : "neutral",
+    });
+  }
+
+  // Producer prices — the cost-push pipeline into next year's consumer prints.
+  const ppiNow = last(d.ppi);
+  if (ppiNow != null && cpiNow != null) {
+    items.push({
+      text: `Producer prices run ${pct(ppiNow)}, ${gapPp(ppiNow - cpiNow)} consumer prices.`,
+      tone: ppiNow > cpiNow + 5 ? "warn" : "neutral",
+    });
+  }
+
+  // The monthly print — what the annual rate will be built from next.
+  const mmLine = levelRead(d.cpiMoM, "The monthly print", 2);
+  if (mmLine) items.push({ text: `${mmLine}.`, tone: "neutral" });
+
+  // Breadth. A headline can fall on two or three groups while most of the basket
+  // does nothing — the diffusion share is what separates the two cases, and it
+  // always prints its denominator.
+  if (d.diffusion != null && d.diffusionOf) {
+    items.push({
+      text: `${Math.round((d.diffusion / 100) * d.diffusionOf)} of ${d.diffusionOf} CPI groups printed a monthly rise above the headline's — the breadth behind the number.`,
+      tone: d.diffusion > 60 ? "warn" : "neutral",
+    });
+  }
+
+  const expNow = last(d.exp12m);
+  if (expNow != null && cpiNow != null) {
+    items.push({
+      text: `The market expects ${pct(expNow)} twelve months out, ${gapPp(expNow - cpiNow)} today's print.`,
+      tone: "neutral",
+    });
+  }
+
+  const headline =
+    `Headline CPI is ${pct(cpiNow)} with core-C at ${pct(coreNow)}` +
+    `${ppiNow != null ? ` and producer prices at ${pct(ppiNow)}` : ""}` +
+    `${expNow != null ? `; the market prices ${pct(expNow)} a year out` : ""}.`;
+
+  return { asOf: period, headline, items };
+}
+
+/** Growth — "where is output coming from, and is it demand or net trade?" */
+export function growthInsights(d: {
+  gdp: SeriesPoint[]; // GDP y/y, quarterly
+  ip: SeriesPoint[]; // industrial production y/y, monthly
+  consumption: SeriesPoint[]; // household consumption y/y, quarterly
+  investment: SeriesPoint[]; // GFCF y/y, quarterly
+  exports: SeriesPoint[]; // exports y/y, quarterly
+  imports: SeriesPoint[]; // imports y/y, quarterly
+}): TabTakeaway {
+  const period = asOf(d.gdp);
+  const items: Insight[] = [];
+
+  const gdpLine = levelRead(d.gdp, "GDP", 1, 4, "4 quarters");
+  if (gdpLine) items.push({ text: `${gdpLine}.`, tone: "neutral" });
+
+  const consLine = levelRead(d.consumption, "Household consumption", 1, 4, "4 quarters");
+  if (consLine) items.push({ text: `${consLine} — the largest expenditure component.`, tone: "neutral" });
+
+  const invLine = levelRead(d.investment, "Fixed investment", 1, 4, "4 quarters");
+  if (invLine) items.push({ text: `${invLine}.`, tone: "neutral", href: "/credit" });
+
+  // Net trade: exports against imports, as levels of growth. The CONTRIBUTION
+  // needs the expenditure weights (the page computes those for its own chart);
+  // here the two growth rates are compared without asserting a contribution.
+  const ex = last(d.exports);
+  const im = last(d.imports);
+  if (ex != null && im != null) {
+    items.push({
+      text: `Exports grow ${pct(ex)} against imports at ${pct(im)} — real trade volumes, not the customs bill.`,
+      tone: "neutral",
+      href: "/economy/foreign-trade",
+    });
+  }
+
+  const ipLine = levelRead(d.ip, "Industrial production");
+  if (ipLine) items.push({ text: `${ipLine} — the monthly read between quarterly national accounts.`, tone: "neutral" });
+
+  const headline =
+    `Output runs ${pct(last(d.gdp))} y/y` +
+    `${last(d.consumption) != null ? `, with household consumption at ${pct(last(d.consumption))}` : ""}` +
+    `${last(d.investment) != null ? ` and fixed investment at ${pct(last(d.investment))}` : ""}.`;
+
+  return { asOf: period, headline, items };
+}
+
+/** Balance of payments — "is the deficit financed, and by what quality of money?" */
+export function bopInsights(d: {
+  ca12m: SeriesPoint[]; // 12m current account, USD bn
+  core12m: SeriesPoint[]; // 12m CA ex gold & energy, USD bn
+  neo12m: SeriesPoint[]; // 12m net errors & omissions, USD bn
+  fdi12m: SeriesPoint[]; // 12m net FDI liabilities incurred, USD bn
+  portfolio12m: SeriesPoint[]; // 12m net portfolio liabilities incurred, USD bn
+}): TabTakeaway {
+  const period = asOf(d.ca12m);
+  const items: Insight[] = [];
+
+  const caNow = last(d.ca12m);
+  const coreNow = last(d.core12m);
+  if (caNow != null) {
+    items.push({
+      text:
+        `The 12-month current account stands at $${Math.abs(caNow).toFixed(1)}bn ${caNow >= 0 ? "in surplus" : "in deficit"}` +
+        (coreNow != null
+          ? `; stripping gold and energy leaves $${Math.abs(coreNow).toFixed(1)}bn ${coreNow >= 0 ? "in surplus" : "in deficit"} — the structural read.`
+          : "."),
+      tone: caNow < -40 ? "warn" : "neutral",
+    });
+  }
+
+  // Financing quality: FDI is the money that does not leave on a headline;
+  // portfolio is the money that can. Both stated as levels, no direction verb.
+  const fdi = last(d.fdi12m);
+  const port = last(d.portfolio12m);
+  if (fdi != null && port != null) {
+    items.push({
+      text: `Financing over 12 months: $${fdi.toFixed(1)}bn direct investment against $${port.toFixed(1)}bn portfolio — the first is committed capital, the second reprices daily.`,
+      tone: "neutral",
+    });
+  }
+
+  const neo = last(d.neo12m);
+  if (neo != null) {
+    items.push({
+      text: `Net errors and omissions run $${Math.abs(neo).toFixed(1)}bn over 12 months — unidentified flows, ${Math.abs(neo) > 10 ? "large enough to matter to the financing story" : "small against the financing need"}.`,
+      tone: Math.abs(neo) > 20 ? "warn" : "neutral",
+    });
+  }
+
+  const caLine = levelRead(d.ca12m, "The 12-month balance", 1);
+  if (caLine) items.push({ text: `${caLine} (USD bn).`, tone: "neutral" });
+
+  const headline =
+    `The 12-month current account is $${caNow != null ? Math.abs(caNow).toFixed(1) : "—"}bn ${caNow != null && caNow >= 0 ? "in surplus" : "in deficit"}` +
+    `${fdi != null && port != null ? `, financed by $${fdi.toFixed(1)}bn of direct and $${port.toFixed(1)}bn of portfolio investment` : ""}.`;
+
+  return { asOf: period, headline, items };
+}
+
+/** Budget — "what does the fiscal stance cost, in real terms?" */
+export function budgetInsights(d: {
+  balancePctGdp: SeriesPoint[]; // 12m budget balance, % of GDP
+  primaryPctGdp: SeriesPoint[]; // 12m primary balance, % of GDP
+  taxRealYoY: SeriesPoint[]; // tax revenue y/y, CPI-DEFLATED
+  expRealYoY: SeriesPoint[]; // primary expenditure y/y, CPI-DEFLATED
+  interestShare: SeriesPoint[]; // interest expenditure as % of tax revenue
+}): TabTakeaway {
+  const period = asOf(d.balancePctGdp);
+  const items: Insight[] = [];
+
+  const bal = last(d.balancePctGdp);
+  const prim = last(d.primaryPctGdp);
+  if (bal != null) {
+    items.push({
+      text:
+        `The 12-month budget balance is ${Math.abs(bal).toFixed(1)}% of GDP ${bal >= 0 ? "in surplus" : "in deficit"}` +
+        (prim != null
+          ? `; before interest, ${Math.abs(prim).toFixed(1)}% ${prim >= 0 ? "in surplus" : "in deficit"}.`
+          : "."),
+      tone: bal < -5 ? "warn" : "neutral",
+    });
+  }
+
+  // Real, not nominal. At a ~30% price level a nominal revenue line is mostly a
+  // chart of the deflator (DESIGN.md: every nominal ₺ level ships with its real
+  // twin), and "tax revenues up 28%" is a real CUT nobody would read as one.
+  const taxLine = levelRead(d.taxRealYoY, "Real tax revenue", 1);
+  if (taxLine) items.push({ text: `${taxLine}, CPI-deflated.`, tone: "neutral" });
+
+  const expLine = levelRead(d.expRealYoY, "Real primary spending", 1);
+  if (expLine) items.push({ text: `${expLine}, CPI-deflated.`, tone: "neutral" });
+
+  const int = last(d.interestShare);
+  if (int != null) {
+    items.push({
+      text: `Interest takes ${pct(int)} of tax revenue — the claim on the budget before any policy choice is made.`,
+      tone: int > 25 ? "warn" : "neutral",
+    });
+  }
+
+  const headline =
+    `The budget runs ${bal != null ? Math.abs(bal).toFixed(1) : "—"}% of GDP ${bal != null && bal >= 0 ? "in surplus" : "in deficit"} over 12 months` +
+    `${int != null ? `, with interest absorbing ${pct(int)} of tax revenue` : ""}.`;
+
+  return { asOf: period, headline, items };
+}
+
+/** Foreign trade — "what does the goods gap cost, and how much is energy?" */
+export function tradeInsights(d: {
+  balance12m: SeriesPoint[]; // 12m trade balance, USD bn
+  exEnergy12m: SeriesPoint[]; // 12m balance excluding energy, USD bn
+  exports12m: SeriesPoint[]; // 12m exports, USD bn
+  imports12m: SeriesPoint[]; // 12m imports, USD bn
+  coverage: SeriesPoint[]; // exports ÷ imports, %
+  terms: SeriesPoint[]; // terms of trade index
+}): TabTakeaway {
+  const period = asOf(d.balance12m);
+  const items: Insight[] = [];
+
+  const bal = last(d.balance12m);
+  const exEn = last(d.exEnergy12m);
+  if (bal != null) {
+    const energy = exEn != null ? bal - exEn : null;
+    items.push({
+      text:
+        `The 12-month goods balance is $${Math.abs(bal).toFixed(1)}bn ${bal >= 0 ? "in surplus" : "in deficit"}` +
+        (energy != null ? `, of which $${Math.abs(energy).toFixed(1)}bn is the energy bill.` : "."),
+      tone: "neutral",
+    });
+  }
+
+  const covLine = levelRead(d.coverage, "Export cover of imports", 1);
+  if (covLine) items.push({ text: `${covLine} — how much of the import bill exports pay for.`, tone: "neutral" });
+
+  const exp = last(d.exports12m);
+  const imp = last(d.imports12m);
+  if (exp != null && imp != null) {
+    items.push({
+      text: `Exports run $${exp.toFixed(0)}bn against imports of $${imp.toFixed(0)}bn on trailing-12-month sums.`,
+      tone: "neutral",
+    });
+  }
+
+  const termsLine = levelRead(d.terms, "Terms of trade", 1);
+  if (termsLine) {
+    items.push({
+      text: `${termsLine} — export prices against import prices, so a higher index buys more imports per unit exported.`,
+      tone: "neutral",
+    });
+  }
+
+  const headline =
+    `The goods gap is $${bal != null ? Math.abs(bal).toFixed(1) : "—"}bn over 12 months` +
+    `${exEn != null && bal != null ? `, $${Math.abs(bal - exEn).toFixed(1)}bn of it energy` : ""}` +
+    `${last(d.coverage) != null ? `, with exports covering ${pct(last(d.coverage))} of imports` : ""}.`;
 
   return { asOf: period, headline, items };
 }

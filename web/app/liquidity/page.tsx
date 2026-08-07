@@ -36,6 +36,7 @@ import {
   type EvdsRow,
 } from "@/app/lib/metrics";
 import { sectorLiquidityRatios, AUDIT_LIQUIDITY_LABELS } from "@/app/lib/audit-ratios";
+import { FWD_YEARS_BACK, RESERVE_CODES, reserveBuffer } from "@/app/lib/reserves";
 import {
   Ahead,
   ChartFoot,
@@ -63,7 +64,7 @@ import { aheadSlots } from "@/app/lib/ahead-data";
 import { GlobalRangeSelector } from "@/app/components/range-context";
 import TrendChart from "@/app/components/TrendChart";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
-import ReserveBuffer, { type BufferPoint } from "@/app/liquidity/ReserveBuffer";
+import ReserveBuffer from "@/app/components/ReserveBuffer";
 import Takeaway from "@/app/components/Takeaway";
 import { liquidityInsights } from "@/app/lib/insights";
 import { seriesFinding } from "@/app/lib/chart-findings";
@@ -147,7 +148,7 @@ export default async function LiquidityPage() {
     tlLtd, fcLtd,
     tlGrowthYoY, tlGrowth13w, tlGrowthOwn,
     dollarization,
-    evds, reer, liqRatios,
+    evds, reer, fwdDeep, liqRatios,
   ] = await Promise.all([
     // Loan-to-deposit ratios, public vs private
     weeklyOwnershipRatio(LOANS.category, LOANS.item_id, DEPOSITS.category, DEPOSITS.item_id, "TL"),
@@ -164,13 +165,16 @@ export default async function LiquidityPage() {
     // DK.USD.A converts them from TL to USD; DOVVARNC.K15 is the forward/swap
     // short position used to split NIR into with-/excluding-swaps.
     evdsMulti(
-      ["TP.APIFON3", "TP.AB.TOPLAM", "TP.BL054", "TP.BL122", "TP.DK.USD.A",
-       "TP.DOVVARNC.K15",
+      ["TP.APIFON3", ...RESERVE_CODES,
        "TP.HPBITABLO4.4", "TP.HPBITABLO4.5", "TP.HPBITABLO4.7"],
       3,
     ),
     // REER over a longer horizon to show the real-appreciation trend
     evdsSeries("TP.RK.T1.Y", 8),
+    // The swap/forward leg, fetched deeper than the 3-year buffer window: it is
+    // monthly, so on a 3-year fetch the first weeks of the balance sheet precede
+    // its first row and would drop out (lib/reserves.ts, FWD_YEARS_BACK).
+    evdsSeries("TP.DOVVARNC.K15", FWD_YEARS_BACK),
     // Audited §4 regulatory-liquidity ratios (LCR/NSFR/leverage), sector view
     sectorLiquidityRatios(),
   ]);
@@ -189,36 +193,13 @@ export default async function LiquidityPage() {
   ];
 
   // Reserves & residents' FC are in USD millions → /1000 for USD bn.
-  // Derived net international reserves: (FX assets − FX liabilities) from the
-  // CBRT analytical balance sheet (both TL thousand, weekly), converted to USD
-  // bn at the same-date USD/TRY. (BL054−BL122) / USDTRY / 1e6 = USD bn. The
-  // swap SPOT leg sits in BL054 (verified: net FX position moves with it), so
-  // this net position INCLUDES swap FX.
-  const usdMap = new Map((evds["TP.DK.USD.A"] ?? []).map((r) => [r.period_date, r.value]));
-  const bl122Map = new Map((evds["TP.BL122"] ?? []).map((r) => [r.period_date, r.value]));
-  const nir = (evds["TP.BL054"] ?? [])
-    .filter((r) => bl122Map.has(r.period_date) && usdMap.get(r.period_date))
-    .map((r) => ({
-      period_date: r.period_date,
-      value: (r.value - bl122Map.get(r.period_date)!) / usdMap.get(r.period_date)! / 1e6,
-    }));
-  // Forward/swap short position (IMF reserve template §2.2.1, monthly, USD m,
-  // negative) = the off-BS FX owed forward, dominated by swaps. Net-excl-swaps
-  // = NIR − |K15|. Stepped onto the weekly NIR dates (nearest-earlier month).
-  const fwdRows = evds["TP.DOVVARNC.K15"] ?? [];
-  const fwdBnAt = (date: string): number => {
-    for (let i = fwdRows.length - 1; i >= 0; i--) {
-      if (fwdRows[i].period_date <= date) return Math.abs(fwdRows[i].value) / 1000;
-    }
-    return 0;
-  };
-  const nirExSwaps = nir.map((p) => ({
-    period_date: p.period_date,
-    value: p.value - fwdBnAt(p.period_date),
-  }));
   // Gross / net / net-excl-swaps are no longer three lines on a shared axis —
   // they are the buffer DECOMPOSITION (see <ReserveBuffer/>), where the gaps
   // between them are named: the banks' required reserves and the swap stock.
+  // The arithmetic moved to lib/reserves.ts when /economy needed the same three
+  // levels — one module owns them, so the two pages cannot disagree.
+  const buf = reserveBuffer(evds, fwdDeep);
+  const nir = buf.points.map((p) => ({ period_date: p.period, value: p.net }));
   const residentsFc = {
     "FX cash (USD + EUR)": sumByDate(
       [evds["TP.HPBITABLO4.4"] ?? [], evds["TP.HPBITABLO4.5"] ?? []],
@@ -275,28 +256,18 @@ export default async function LiquidityPage() {
   // The page already DERIVES net reserves and the swap-excluded net; it has
   // never read them out. Gross − net is the banks' own FX, held at the CBRT as
   // required reserves; net − net-excl-swaps is the CBRT's swap stock.
-  const grossAt = new Map((evds["TP.AB.TOPLAM"] ?? []).map((r) => [r.period_date, r.value / 1000]));
-  const exAt = new Map(nirExSwaps.map((r) => [r.period_date, r.value]));
-  const buffer: BufferPoint[] = nir
-    .filter((r) => grossAt.has(r.period_date) && exAt.has(r.period_date))
-    .map((r) => ({
-      period: r.period_date,
-      gross: grossAt.get(r.period_date) as number,
-      net: r.value,
-      own: exAt.get(r.period_date) as number,
-    }));
-
-  const bNow = buffer.at(-1) ?? null;
+  const buffer = buf.points;
+  const bNow = buf.latest;
   const grossNow = bNow?.gross ?? null;
   const netNow = bNow?.net ?? null;
   const ownNow = bNow?.own ?? null;
-  const swapStock = netNow != null && ownNow != null ? netNow - ownNow : null;
-  const banksFx = grossNow != null && netNow != null ? grossNow - netNow : null;
+  const swapStock = buf.swapStock;
+  const banksFx = buf.banksFx;
   const ownPctGross = ownNow != null && grossNow ? (ownNow / grossNow) * 100 : null;
   const swapPctNet = swapStock != null && netNow ? (swapStock / netNow) * 100 : null;
   // How long the CBRT's own net FX has been below zero in this window — the
   // reason this is three lines and not a stacked area.
-  const weeksOwnNegative = buffer.filter((b) => b.own < 0).length;
+  const weeksOwnNegative = buf.weeksOwnNegative;
 
   // ---- households vs the central bank -------------------------------------
   // Residents' FC is MONTHLY, the reserves WEEKLY: pair them on the same date

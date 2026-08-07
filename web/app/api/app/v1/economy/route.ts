@@ -1,11 +1,17 @@
 /**
  * GET /api/app/v1/economy — the macro backdrop.
  *
- * `getEconomyData()` fans out to ~20 EVDS series in one round trip and returns
+ * `getEconomyData()` fans out to ~35 EVDS series in one round trip and returns
  * them chart-ready (y/y computed, 12m rolling summed, GDP-scaled). The website's
  * /economy tab renders exactly this object, so the derivations — the CPI rebase
  * handling, the ex-ante real rate, the %-of-GDP bases — are shared rather than
  * re-derived against the raw codes.
+ *
+ * The loader grew past what this endpoint exposes (the transmission chain, the
+ * reserve buffer, households' FX, EUR/TRY, the CA as % of GDP). Those are NOT
+ * served here on purpose: the wire format is private but the app ships against a
+ * pinned shape, so a new field lands when the app has a screen for it — not
+ * because the website gained one.
  *
  * Series are trimmed on the way out. The tab plots eight years because a laptop
  * can show it; a phone chart resolves maybe three, and the untrimmed payload is

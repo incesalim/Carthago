@@ -158,6 +158,18 @@ export interface GrowthData {
   hasTuik: boolean; // TÜİK detail present in D1
   expTable: GrowthTable;
   prodTable: GrowthTable;
+  /**
+   * The expenditure aggregates as y/y SERIES, not table cells.
+   *
+   * `expTable` already holds these numbers, but as six quarters of rounded
+   * strings per row — a shape a read engine cannot take a direction from. The
+   * brief needs the series; the table keeps the grid.
+   */
+  expYoY: Record<string, Point[]>;
+  /** Production-side y/y series, same reason. */
+  prodYoY: Record<string, Point[]>;
+  /** Nominal GDP, ₺ trillion per quarter — the level under the growth rate. */
+  nominalQuarterly: Point[];
 }
 
 const QBARS = 24; // quarters shown on the time-series bar charts
@@ -210,6 +222,22 @@ export async function getGrowthData(yearsBack = 10): Promise<GrowthData> {
     ),
     s6: barRowsQ([{ key: "gov", rows: yoy(s[C.gov] ?? []) }], QBARS),
     hasTuik: (s[C.consDurable]?.length ?? 0) > 0,
+
+    expYoY: {
+      "Household consumption": yoy(s[C.cons] ?? []),
+      "Government consumption": yoy(s[C.gov] ?? []),
+      "Fixed investment": yoy(s[C.inv] ?? []),
+      "Exports": yoy(s[C.exp] ?? []),
+      "Imports": yoy(s[C.imp] ?? []),
+    },
+    prodYoY: {
+      "Agriculture": yoy(s[C.agri] ?? []),
+      "Industry": yoy(s[C.industry] ?? []),
+      "Construction": yoy(s[C.constr] ?? []),
+      "Services": yoy(s[C.services] ?? []),
+      "Finance & insurance": yoy(s[C.finance] ?? []),
+    },
+    nominalQuarterly: cf.map((r) => ({ period_date: r.period_date, value: r.value / 1e9 })),
 
     expTable: buildTable(
       s,

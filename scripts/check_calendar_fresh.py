@@ -32,7 +32,16 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 AHEAD_TS = REPO_ROOT / "web" / "app" / "lib" / "ahead.ts"
-ECONOMY_TS = REPO_ROOT / "web" / "app" / "lib" / "economy.ts"
+# The baseline has lived in economy.ts and, since the pure/loader split, in
+# economy-calc.ts. Both are searched: `check()` only reports a problem when it
+# FINDS an asOf, so a moved constant makes this gate pass vacuously rather than
+# fail — which is exactly what happened, and what
+# tests/test_calendar_fresh.py::test_the_bbva_baseline_declares_its_vintage
+# exists to catch. Searching a list keeps the next move from blinding it again.
+ECONOMY_TS_CANDIDATES = [
+    REPO_ROOT / "web" / "app" / "lib" / "economy-calc.ts",
+    REPO_ROOT / "web" / "app" / "lib" / "economy.ts",
+]
 
 # Refresh the calendar before it gets this close to the end. TCMB publishes the
 # next year's dates well inside this window, so it is always actionable.
@@ -64,8 +73,13 @@ def mpc_dates() -> list[str]:
 
 
 def baseline_as_of() -> str | None:
-    m = _AS_OF.search(ECONOMY_TS.read_text(encoding="utf-8"))
-    return m.group(1) if m else None
+    for path in ECONOMY_TS_CANDIDATES:
+        if not path.exists():
+            continue
+        m = _AS_OF.search(path.read_text(encoding="utf-8"))
+        if m:
+            return m.group(1)
+    return None
 
 
 def _parse_as_of(s: str) -> date | None:

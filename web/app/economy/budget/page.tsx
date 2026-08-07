@@ -28,14 +28,25 @@ import {
 import { direction } from "@/app/lib/prose";
 import { GlobalRangeSelector } from "@/app/components/range-context";
 import {
+  Ahead,
   Colophon,
   Depth,
   DeskHeader,
+  Flags,
+  Movers,
   SecHead,
+  Transmission,
   Vital,
   Vitals,
+  type Flag,
+  type MoverRow,
+  type TransmissionItem,
 } from "@/app/components/desk";
-import { monthLabel, signedPp } from "@/app/lib/desk";
+import { lastVal, monthLabel, signedPp, valAgo, type Pt } from "@/app/lib/desk";
+import { seriesFinding } from "@/app/lib/chart-findings";
+import { budgetInsights } from "@/app/lib/insights";
+import { aheadSlots } from "@/app/lib/ahead-data";
+import Takeaway from "@/app/components/Takeaway";
 import { nf } from "@/app/lib/chart-format";
 import { ChartCard } from "@/app/components/ui/chart-card";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
@@ -68,7 +79,7 @@ const sp = (pts: { period_date: string; value: number }[] | undefined) =>
   (pts ?? []).map((p) => ({ period: p.period_date, value: p.value }));
 
 export default async function BudgetPage() {
-  const d = await getBudgetData();
+  const [d, ahead] = await Promise.all([getBudgetData(), aheadSlots()]);
 
   // ---- the brief's computed vitals ------------------------------------------
   // The summary table carries [now monthly, now 12m, year-ago monthly,
@@ -76,6 +87,10 @@ export default async function BudgetPage() {
   const cells = (label: string) =>
     d.table.find((r) => r.label === label)?.cells ?? [null, null, null, null];
   const bn = (v: number | null) => (v == null ? null : v / 1e3); // ₺ mn → ₺ bn
+
+  /** EVDS rows ({period_date}) → the desk helpers' Pt shape ({period}). */
+  const toPts = (s: { period_date: string; value: number }[] | undefined): Pt[] =>
+    (s ?? []).map((r) => ({ period: r.period_date, value: r.value }));
   const yoy = (now: number | null, ago: number | null) =>
     now != null && ago != null && ago !== 0 ? (now / ago - 1) * 100 : null;
 
@@ -122,6 +137,184 @@ export default async function BudgetPage() {
   const intShareAgo =
     int12Ago != null && rev12Ago != null && rev12Ago !== 0 ? (int12Ago / rev12Ago) * 100 : null;
   const intShareD = intShare != null && intShareAgo != null ? intShare - intShareAgo : null;
+
+  // ---- "The Read" — computed from the same series the charts show ----------
+  const taxReal = toPts(d.real["Tax revenues (real y/y)"]);
+  const expReal = toPts(d.real["Primary expenditure (real y/y)"]);
+  const intReal = toPts(d.real["Interest expenditure (real y/y)"]);
+  const balGdp = toPts(d.pctGdp["Budget balance"]);
+  const primGdp = toPts(d.pctGdp["Primary balance"]);
+  const intShareS = toPts(d.interestShare);
+
+  const read = budgetInsights({
+    balancePctGdp: balGdp,
+    primaryPctGdp: primGdp,
+    taxRealYoY: taxReal,
+    expRealYoY: expReal,
+    interestShare: intShareS,
+  });
+
+  // ---- movers: REAL growth, not nominal ------------------------------------
+  // A nominal Movers table here would say every line grew every month at a ~30%
+  // price level — true, uninformative, and the opposite of the real direction
+  // about as often as not. All four rows are CPI-deflated y/y on the same
+  // monthly release.
+  const realMover = (label: string, s: Pt[], good: MoverRow["good"] = "up"): MoverRow => ({
+    label,
+    prev: valAgo(s, 1),
+    curr: lastVal(s),
+    good,
+    fmt: (v: number) => `${v.toFixed(1)}%`,
+    deltaDecimals: 1,
+  });
+  const movers: MoverRow[] = [
+    realMover("Tax revenues, real", taxReal),
+    realMover("Primary expenditure, real", expReal, "down"),
+    realMover("Interest expenditure, real", intReal, "down"),
+    realMover("Budget balance, % GDP", balGdp),
+    realMover("Primary balance, % GDP", primGdp),
+    realMover("Interest / tax revenue", intShareS, "down"),
+  ];
+
+  // ---- transmission: the fiscal stance → the banks --------------------------
+  const transmission: TransmissionItem[] = [
+    {
+      k: "Budget balance, 12m",
+      v: d.balancePctGdpNow != null ? `${d.balancePctGdpNow.toFixed(1)}%` : "—",
+      effect: (
+        <>
+          Of GDP. The deficit is funded by issuance the banks buy, so the fiscal
+          stance sets how much government paper the sector carries — and how much of
+          its balance sheet is not lending.
+        </>
+      ),
+    },
+    {
+      k: "Interest / tax revenue",
+      v: d.interestShareNow != null ? `${d.interestShareNow.toFixed(1)}%` : "—",
+      effect: (
+        <>
+          Debt service as a claim on the tax take. It is also the sector&rsquo;s
+          interest income on government paper — the same flow, seen from the other
+          side of the balance sheet.
+        </>
+      ),
+    },
+    {
+      k: "Tax revenue, real y/y",
+      v: d.taxRealYoYNow != null ? `${d.taxRealYoYNow.toFixed(1)}%` : "—",
+      effect: (
+        <>
+          CPI-deflated. Consumption taxes (VAT, ÖTV) move with the same household
+          demand that drives{" "}
+          <Link href="/credit" className="font-semibold text-primary">
+            retail credit
+          </Link>
+          , so real tax intake is a demand signal as well as a fiscal one.
+        </>
+      ),
+    },
+    {
+      k: "Primary balance, 12m",
+      v: d.primaryPctGdpNow != null ? `${d.primaryPctGdpNow.toFixed(1)}%` : "—",
+      effect: (
+        <>
+          Of GDP, before interest. This is the number that says whether the debt path
+          is stabilising on policy or on the rate cycle — the part of the budget the
+          government still controls.
+        </>
+      ),
+    },
+  ];
+
+  // ---- flags ----------------------------------------------------------------
+  const taxRealNow = d.taxRealYoYNow;
+  const expRealNow = lastVal(expReal);
+  const flagList: Flag[] = [
+    {
+      code: "DEFICIT_3PCT",
+      active: d.balancePctGdpNow != null && d.balancePctGdpNow < -3,
+      rule: "budget_balance_12m / gdp < −3%",
+      body: (
+        <>
+          <b className="font-semibold">The deficit is past the 3% reference value.</b>{" "}
+          The 12-month central-government balance is{" "}
+          {d.balancePctGdpNow?.toFixed(1)}% of GDP, with the primary balance at{" "}
+          {d.primaryPctGdpNow?.toFixed(1)}%.
+        </>
+      ),
+      clear: (
+        <>
+          The 12-month balance is{" "}
+          {d.balancePctGdpNow != null ? `${d.balancePctGdpNow.toFixed(1)}%` : "—"} of GDP
+          — inside the 3% reference value.
+        </>
+      ),
+    },
+    {
+      code: "TAX_REAL_NEG",
+      active: taxRealNow != null && taxRealNow < 0,
+      rule: "tax_revenue_yoy_real < 0",
+      body: (
+        <>
+          <b className="font-semibold">Tax revenue is shrinking in real terms.</b>{" "}
+          {taxRealNow?.toFixed(1)}% y/y once CPI is taken out — the nominal line grows
+          and the purchasing power behind it does not.
+        </>
+      ),
+      clear: (
+        <>
+          Real tax revenue is {taxRealNow != null ? `${taxRealNow.toFixed(1)}%` : "—"} y/y
+          — at or above zero in CPI-deflated terms.
+        </>
+      ),
+    },
+    {
+      code: "SPEND_OUTPACES",
+      active: taxRealNow != null && expRealNow != null && expRealNow > taxRealNow,
+      rule: "primary_expenditure_yoy_real > tax_revenue_yoy_real",
+      body: (
+        <>
+          <b className="font-semibold">Real spending outpaces real revenue.</b> Primary
+          expenditure at {expRealNow?.toFixed(1)}% against tax revenue at{" "}
+          {taxRealNow?.toFixed(1)}%, both CPI-deflated — the gap the primary balance
+          absorbs.
+        </>
+      ),
+      clear: (
+        <>
+          Real primary spending ({expRealNow != null ? `${expRealNow.toFixed(1)}%` : "—"})
+          is at or below real tax growth (
+          {taxRealNow != null ? `${taxRealNow.toFixed(1)}%` : "—"}).
+        </>
+      ),
+    },
+    {
+      code: "INTEREST_HEAVY",
+      active: d.interestShareNow != null && d.interestShareNow > 25,
+      rule: "interest_expenditure_12m / tax_revenue_12m > 25%",
+      body: (
+        <>
+          <b className="font-semibold">Debt service takes more than a quarter of taxes.</b>{" "}
+          Interest absorbs {d.interestShareNow?.toFixed(1)}% of the 12-month tax take
+          before any spending decision is made.
+        </>
+      ),
+      clear: (
+        <>
+          Interest takes{" "}
+          {d.interestShareNow != null ? `${d.interestShareNow.toFixed(1)}%` : "—"} of tax
+          revenue — inside the 25% line.
+        </>
+      ),
+    },
+  ];
+
+  const aheadItems = [
+    { when: "~15th", what: <>Treasury monthly budget realisations</> },
+    { when: "monthly", what: <>Treasury domestic-debt auction calendar — the funding side</> },
+    ...(ahead.mpc ? [{ when: ahead.mpc.when, what: <>CBRT rate decision — the cost of the debt stock</>, href: "/rates" }] : []),
+  ];
 
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
@@ -243,7 +436,92 @@ export default async function BudgetPage() {
         />
       </Vitals>
 
+      {/* ── The Read ──────────────────────────────────────────────────── */}
+      <div className="mt-7">
+        <Takeaway data={read} variant="desk" />
+      </div>
+
+      {/* ── Movers | Transmission ─────────────────────────────────────── */}
+      <div className="mt-8 grid grid-cols-1 gap-x-9 gap-y-7 lg:grid-cols-[5fr_7fr]">
+        <div>
+          <SecHead
+            title="Real growth by line"
+            meta="cpi-deflated y/y · nominal growth is mostly the deflator"
+            className="mb-2.5"
+          />
+          <Movers from="Prior month" to={d.asOfLabel} rows={movers} />
+        </div>
+        <div>
+          <SecHead title="Transmission" meta="the fiscal stance → the banks · computed" className="mb-2.5" />
+          <Transmission items={transmission} />
+        </div>
+      </div>
+
+      {/* ── Flags | Ahead ─────────────────────────────────────────────── */}
+      <div className="mt-8 grid grid-cols-1 gap-x-9 gap-y-7 lg:grid-cols-[7fr_5fr]">
+        <div>
+          <SecHead title="Flags" meta="rules printed whether or not they fire" className="mb-2.5" />
+          <Flags
+            flags={flagList}
+            showCleared
+            quietNote="Every fiscal rule below was tested against the current release and none tripped."
+          />
+        </div>
+        <div>
+          <SecHead title="Ahead" meta="scraped calendar + fixed cadence" className="mb-2.5" />
+          <Ahead items={aheadItems} />
+        </div>
+      </div>
+
       <Depth action={<GlobalRangeSelector />}>
+        {/* ── NEW: the real twin ───────────────────────────────────────── */}
+        <Section
+          title="Nominal vs Real"
+          description={
+            d.taxRealYoYNow != null
+              ? `Tax revenue grows ${d.taxRealYoYNow.toFixed(1)}% in real terms once CPI is taken out. Every figure elsewhere on this page is nominal lira, and at the current price level a nominal line is largely a chart of the deflator — so the same series is shown both ways here.`
+              : "Budget lines in nominal lira and deflated by CPI."
+          }
+        >
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <TimeSeriesChart
+              series={d.taxNominalVsReal}
+              title={
+                seriesFinding(toPts(d.taxNominalVsReal["Real (CPI-deflated)"]), {
+                  noun: "Real tax revenue growth",
+                  decimals: 1,
+                }) ?? "Tax Revenue Growth — Nominal vs Real (y/y %)"
+              }
+              description="The same series twice: nominal y/y, and deflated by the CPI index at both ends of the comparison. The gap between the lines is the price level."
+              yFormat="pct"
+              decimals={1}
+              hero="Real (CPI-deflated)"
+            />
+            <TimeSeriesChart
+              series={d.real}
+              title="Revenue & Spending, CPI-deflated (y/y %)"
+              description="Tax revenue, primary expenditure and interest, all in real terms — what the money actually bought, year on year."
+              yFormat="pct"
+              decimals={1}
+            />
+            <TimeSeriesChart
+              series={d.pctGdp}
+              title="Central-Government Balances (12m, % of GDP)"
+              description="The 12-month balance over trailing-4Q nominal GDP. Both sides are lira, so the price level cancels — this is the ratio that is comparable across years."
+              yFormat="pct"
+              decimals={1}
+              hero="Budget balance"
+            />
+            <TimeSeriesChart
+              series={{ "Interest / tax revenue": d.interestShare }}
+              title="Interest Expenditure as % of Tax Revenue (12m)"
+              description="What debt service claims out of the tax take before any policy choice is made."
+              yFormat="pct"
+              decimals={1}
+            />
+          </div>
+        </Section>
+
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Stat
             label="Budget balance · 12-month"

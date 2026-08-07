@@ -24,17 +24,28 @@ import {
   toneFor,
 } from "@/app/components/ui";
 import {
+  Ahead,
   Colophon,
   Depth,
   DeskHeader,
+  Flags,
+  Movers,
   SecHead,
+  Transmission,
   Vital,
   Vitals,
+  type Flag,
+  type MoverRow,
+  type TransmissionItem,
 } from "@/app/components/desk";
 import { monthLabel, signedPp, streak, valAgo, type Pt } from "@/app/lib/desk";
+import { seriesFinding } from "@/app/lib/chart-findings";
+import { inflationInsights } from "@/app/lib/insights";
+import { aheadSlots } from "@/app/lib/ahead-data";
 import { GlobalRangeSelector } from "@/app/components/range-context";
 import { nf } from "@/app/lib/chart-format";
 import { ChartCard } from "@/app/components/ui/chart-card";
+import Takeaway from "@/app/components/Takeaway";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
 import BopFlowChart, { type BarSeries } from "@/app/components/BopFlowChart";
 
@@ -68,13 +79,16 @@ const mean12 = (s: Pt[], skip = 0): number | null => {
 };
 
 export default async function InflationPage() {
-  const d = await getInflationData();
+  const [d, ahead] = await Promise.all([getInflationData(), aheadSlots()]);
 
   // ---- the brief's computed vitals ------------------------------------------
   // Every cell below is derived from the series this page already fetches.
   const cpi = toPts(d.s1["CPI (y/y)"]);
   const core = toPts(d.s1["Core C (y/y)"]);
   const ppi = toPts(d.s1["PPI / Yİ-ÜFE (y/y)"]);
+  const mom = toPts(d.cpiMoM);
+  const diff = toPts(d.diffusion);
+  const exp = toPts(d.exp12m);
 
   const cpiAgo = valAgo(cpi, 12);
   const cpiD12 = d.cpiYoY != null && cpiAgo != null ? d.cpiYoY - cpiAgo : null;
@@ -98,6 +112,217 @@ export default async function InflationPage() {
   const mmNow = d.table1[0]?.cpiMM ?? null;
   const mmPrev = d.table1[1]?.cpiMM ?? null;
   const mmD = mmNow != null && mmPrev != null ? mmNow - mmPrev : null;
+
+  // ---- "The Read" — computed from the same series the charts show ----------
+  const read = inflationInsights({
+    cpi,
+    core,
+    ppi,
+    cpiMoM: mom,
+    exp12m: exp,
+    diffusion: d.diffusionNow,
+    diffusionOf: d.diffusionOf,
+  });
+
+  // ---- movers: the groups that moved, not the groups that are high ---------
+  // Ranked by |Δ| on the monthly print, so a group sitting still at a high level
+  // does not crowd out the one that turned. Eight rows: enough to carry the
+  // month, short enough to read.
+  const groupMovers: MoverRow[] = d.groupMoves.slice(0, 8).map((r) => ({
+    label: r.label,
+    prev: r.prev,
+    curr: r.curr,
+    good: "down",
+    fmt: (v: number) => `${v.toFixed(2)}%`,
+    deltaDecimals: 2,
+  }));
+
+  // ---- transmission: prices → the banks ------------------------------------
+  const realDrift = d.cpiYoY;
+  const transmission: TransmissionItem[] = [
+    {
+      k: "Headline CPI, y/y",
+      v: pct(d.cpiYoY, 1),
+      effect: (
+        <>
+          The deflator on every nominal balance-sheet line. A book growing slower than
+          this is shrinking in real terms, which is why{" "}
+          <Link href="/credit" className="font-semibold text-primary">
+            the loan book
+          </Link>{" "}
+          is read against the price level rather than in lira alone.
+        </>
+      ),
+    },
+    {
+      k: "Core-C, y/y",
+      v: pct(d.coreYoY, 1),
+      effect:
+        d.coreYoY != null && d.cpiYoY != null ? (
+          <>
+            Underlying prices sit {Math.abs(d.coreYoY - d.cpiYoY).toFixed(1)}pp{" "}
+            {d.coreYoY >= d.cpiYoY ? "above" : "below"} the headline. Core is what the
+            CBRT&rsquo;s reaction function tracks, so it — not the headline — is the
+            better read on where{" "}
+            <Link href="/rates" className="font-semibold text-primary">
+              policy
+            </Link>{" "}
+            goes next.
+          </>
+        ) : (
+          "Underlying prices, with energy, food, alcohol-tobacco and gold stripped out."
+        ),
+    },
+    {
+      k: "Yİ-ÜFE, y/y",
+      v: pct(d.ppiYoY, 1),
+      effect:
+        d.ppiYoY != null && d.cpiYoY != null ? (
+          <>
+            Producer prices run {Math.abs(d.ppiYoY - d.cpiYoY).toFixed(1)}pp{" "}
+            {d.ppiYoY >= d.cpiYoY ? "above" : "below"} consumer prices — the cost-push
+            pipeline. Where producers cannot pass costs through, the squeeze lands on
+            corporate margins and then on{" "}
+            <Link href="/asset-quality" className="font-semibold text-primary">
+              credit quality
+            </Link>
+            .
+          </>
+        ) : (
+          "Domestic producer prices — the cost-push pipeline into consumer prices."
+        ),
+    },
+    {
+      k: "Breadth",
+      v: d.diffusionNow != null ? `${Math.round(d.diffusionNow)}%` : "—",
+      effect: (
+        <>
+          The share of the {d.diffusionOf} COICOP groups printing above the headline.
+          Breadth is what separates a relative-price shock from a general one — the
+          first fades on its own, the second has to be paid for in rates.
+        </>
+      ),
+    },
+    {
+      k: "12m expectation",
+      v: pct(d.exp12mNow, 1),
+      effect:
+        d.exp12mNow != null && realDrift != null ? (
+          <>
+            The market prices {d.exp12mNow.toFixed(1)}% a year out, {Math.abs(d.exp12mNow - realDrift).toFixed(1)}pp{" "}
+            {d.exp12mNow >= realDrift ? "above" : "below"} today&rsquo;s print. This is
+            the number every real rate on the site is deflated by, so it sets what a
+            deposit is expected to be worth.
+          </>
+        ) : (
+          "The CBRT survey's 12-month-ahead market expectation — the deflator behind every ex-ante real rate here."
+        ),
+    },
+  ];
+
+  // ---- flags ----------------------------------------------------------------
+  const mmRun = streak(mom, "up");
+  const coreGapNow = d.coreYoY != null && d.cpiYoY != null ? d.coreYoY - d.cpiYoY : null;
+  const ppiGapNow = d.ppiYoY != null && d.cpiYoY != null ? d.ppiYoY - d.cpiYoY : null;
+  const flagList: Flag[] = [
+    {
+      code: "CORE_ABOVE",
+      active: coreGapNow != null && coreGapNow > 0,
+      rule: "core_c_yoy > headline_yoy",
+      body: (
+        <>
+          <b className="font-semibold">Underlying inflation is above the headline.</b>{" "}
+          Core-C at {pct(d.coreYoY, 1)} against {pct(d.cpiYoY, 1)} means the headline is
+          being held down by the volatile items core excludes, not by the trend.
+        </>
+      ),
+      clear: (
+        <>
+          Core-C {pct(d.coreYoY, 1)} against a {pct(d.cpiYoY, 1)} headline — underlying
+          is at or below the headline.
+        </>
+      ),
+    },
+    {
+      code: "PPI_PIPELINE",
+      active: ppiGapNow != null && ppiGapNow > 5,
+      rule: "ppi_yoy − cpi_yoy > 5pp",
+      body: (
+        <>
+          <b className="font-semibold">Producer prices lead consumer prices by more than 5pp.</b>{" "}
+          Yİ-ÜFE at {pct(d.ppiYoY, 1)} against {pct(d.cpiYoY, 1)} — unpassed cost sitting
+          in the pipeline.
+        </>
+      ),
+      clear: (
+        <>
+          Producer prices run {ppiGapNow != null ? `${signedPp(ppiGapNow, 1)}` : "—"} against
+          consumer prices — inside the 5pp line.
+        </>
+      ),
+    },
+    {
+      code: "BROAD",
+      active: d.diffusionNow != null && d.diffusionNow > 60,
+      rule: "share_of_groups_above_headline > 60%",
+      body: (
+        <>
+          <b className="font-semibold">The monthly move is broad.</b>{" "}
+          {d.diffusionNow != null ? Math.round((d.diffusionNow / 100) * d.diffusionOf) : "—"} of{" "}
+          {d.diffusionOf} groups printed above the headline — a general price move rather
+          than a few heavy items.
+        </>
+      ),
+      clear: (
+        <>
+          {d.diffusionNow != null ? Math.round((d.diffusionNow / 100) * d.diffusionOf) : "—"} of{" "}
+          {d.diffusionOf} groups printed above the headline — inside the 60% breadth line.
+        </>
+      ),
+    },
+    {
+      code: "MM_RUN",
+      active: mmRun >= 3,
+      rule: "consecutive_rise(cpi_m/m) ≥ 3",
+      body: (
+        <>
+          <b className="font-semibold">The monthly print has risen {mmRun} months running.</b>{" "}
+          The annual rate is assembled from these, so a run sets the floor under the next
+          few readings before any base effect.
+        </>
+      ),
+      clear: <>The monthly print has not risen three months running.</>,
+    },
+    {
+      code: "EXP_ABOVE",
+      active: d.exp12mNow != null && d.cpiYoY != null && d.exp12mNow > d.cpiYoY,
+      rule: "expectation_12m_ahead > headline_yoy",
+      body: (
+        <>
+          <b className="font-semibold">The market expects more inflation than it is seeing.</b>{" "}
+          {pct(d.exp12mNow, 1)} expected twelve months out against a {pct(d.cpiYoY, 1)}{" "}
+          print — disinflation the survey does not yet believe.
+        </>
+      ),
+      clear: (
+        <>
+          The 12m-ahead expectation is {pct(d.exp12mNow, 1)} against a {pct(d.cpiYoY, 1)}{" "}
+          print — at or below the current rate.
+        </>
+      ),
+    },
+  ];
+
+  const aheadItems = [
+    { when: "3rd", what: <>TÜİK CPI &amp; Yİ-ÜFE — next month&rsquo;s print</> },
+    ...(ahead.mpc
+      ? [{ when: ahead.mpc.when, what: <>CBRT rate decision</>, href: "/rates" }]
+      : []),
+    ...(ahead["inflation-report"]
+      ? [{ when: ahead["inflation-report"].when, what: <>CBRT Inflation Report — the forecast path</> }]
+      : []),
+    { when: "monthly", what: <>CBRT Survey of Market Participants — the expectation above</> },
+  ];
 
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
@@ -229,6 +454,43 @@ export default async function InflationPage() {
         />
       </Vitals>
 
+      {/* ── The Read ──────────────────────────────────────────────────── */}
+      <div className="mt-7">
+        <Takeaway data={read} variant="desk" />
+      </div>
+
+      {/* ── Movers | Transmission ─────────────────────────────────────── */}
+      <div className="mt-8 grid grid-cols-1 gap-x-9 gap-y-7 lg:grid-cols-[5fr_7fr]">
+        <div>
+          <SecHead
+            title="What moved"
+            meta={`coicop groups · ${d.asOfLabel} m/m vs prior month`}
+            className="mb-2.5"
+          />
+          <Movers from="Prior m/m" to={`${d.asOfLabel} m/m`} rows={groupMovers} />
+        </div>
+        <div>
+          <SecHead title="Transmission" meta="prices → the banks · computed" className="mb-2.5" />
+          <Transmission items={transmission} />
+        </div>
+      </div>
+
+      {/* ── Flags | Ahead ─────────────────────────────────────────────── */}
+      <div className="mt-8 grid grid-cols-1 gap-x-9 gap-y-7 lg:grid-cols-[7fr_5fr]">
+        <div>
+          <SecHead title="Flags" meta="rules printed whether or not they fire" className="mb-2.5" />
+          <Flags
+            flags={flagList}
+            showCleared
+            quietNote="Every price rule below was tested against the current print and none tripped."
+          />
+        </div>
+        <div>
+          <SecHead title="Ahead" meta="scraped calendar + fixed cadence" className="mb-2.5" />
+          <Ahead items={aheadItems} />
+        </div>
+      </div>
+
       {/* ── In depth — the evidence layer ──────────────────────────────── */}
       <Depth action={<GlobalRangeSelector />}>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -236,6 +498,37 @@ export default async function InflationPage() {
           <Stat label="PPI · y/y" value={pct(d.ppiYoY)} hint={`Yİ-ÜFE · ${d.asOfLabel}`} tone="warning" />
           <Stat label="Core CPI · y/y" value={pct(d.coreYoY)} hint={`C index · ${d.asOfLabel}`} tone="warning" />
         </div>
+
+        {/* ── NEW: how broad is it? ────────────────────────────────────── */}
+        <Section
+          title="Breadth"
+          description={
+            d.diffusionNow != null
+              ? `${Math.round((d.diffusionNow / 100) * d.diffusionOf)} of ${d.diffusionOf} COICOP groups printed a monthly change above the headline's. A headline can move on two heavy groups while the rest of the basket does nothing — this counts groups, so it says how broad the move is, never how large.`
+              : "Share of COICOP groups printing above the headline monthly change."
+          }
+        >
+          <Grid>
+            <TimeSeriesChart
+              series={{ "Groups above the headline m/m": d.diffusion }}
+              title={
+                seriesFinding(diff, { noun: "Breadth", decimals: 0 }) ??
+                "CPI Diffusion — Share of Groups Above the Headline (%)"
+              }
+              description={`Share of the ${d.diffusionOf} COICOP main groups whose monthly change exceeds the headline's. A month is plotted only when every group reports, so the denominator never moves.`}
+              yFormat="pct"
+              decimals={0}
+            />
+            <TimeSeriesChart
+              series={{ "CPI (y/y)": d.s1["CPI (y/y)"], "12m-ahead expectation": d.exp12m }}
+              title="The Print Against What Was Expected (%)"
+              description="Headline y/y and the CBRT survey's 12-month-ahead market expectation on one axis — the expectation is a forecast of the next twelve months, not of this print."
+              yFormat="pct"
+              decimals={1}
+              hero="CPI (y/y)"
+            />
+          </Grid>
+        </Section>
 
         <Section
           title="Headline & Core Inflation"

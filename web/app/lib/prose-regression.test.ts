@@ -23,13 +23,19 @@ import { describe, expect, it } from "vitest";
 import { DOWN_WORDS, UP_WORDS } from "./prose";
 import {
   assetQualityInsights,
+  bopInsights,
+  budgetInsights,
   capitalInsights,
   creditInsights,
   depositsInsights,
+  economyInsights,
+  growthInsights,
+  inflationInsights,
   liquidityInsights,
   marketRiskInsights,
   overviewInsights,
   profitabilityInsights,
+  tradeInsights,
   type SeriesPoint,
   type TabTakeaway,
 } from "./insights";
@@ -116,6 +122,44 @@ function allTabs(sign: 1 | -1): Array<[string, TabTakeaway]> {
       }),
     ],
     ["marketRisk", marketRiskInsights({ nop: s, gap1y: s })],
+    // The macro builders. `importCover`/`ownReserves`/`diffusion` are scalars,
+    // not series — the ramp cannot flip them, so they are passed at a fixed value
+    // purely to exercise the branches that print them.
+    [
+      "economy",
+      economyInsights({
+        cpi: s, exp12m: s, funding: s, realRate: s, gdp: s, unemployment: s,
+        caPctGdp: s, usdtry: s, budgetPctGdp: s, importCover: 4.2, ownReserves: 12,
+      }),
+    ],
+    [
+      "inflation",
+      inflationInsights({
+        cpi: s, core: s, ppi: s, cpiMoM: s, exp12m: s, diffusion: 50, diffusionOf: 12,
+      }),
+    ],
+    [
+      "growth",
+      growthInsights({
+        gdp: s, ip: s, consumption: s, investment: s, exports: s, imports: s,
+      }),
+    ],
+    [
+      "bop",
+      bopInsights({ ca12m: s, core12m: s, neo12m: s, fdi12m: s, portfolio12m: s }),
+    ],
+    [
+      "budget",
+      budgetInsights({
+        balancePctGdp: lo, primaryPctGdp: lo, taxRealYoY: s, expRealYoY: s, interestShare: s,
+      }),
+    ],
+    [
+      "trade",
+      tradeInsights({
+        balance12m: s, exEnergy12m: s, exports12m: s, imports12m: s, coverage: s, terms: s,
+      }),
+    ],
   ];
 }
 

@@ -28,15 +28,25 @@ import {
 } from "@/app/components/ui";
 import { GlobalRangeSelector } from "@/app/components/range-context";
 import {
+  Ahead,
   ChartRow,
   Colophon,
   Depth,
   DeskHeader,
+  Flags,
+  Movers,
   SecHead,
+  Transmission,
   Vital,
   Vitals,
+  type Flag,
+  type MoverRow,
+  type TransmissionItem,
 } from "@/app/components/desk";
-import { lastVal, monthLabel } from "@/app/lib/desk";
+import { lastVal, monthLabel, valAgo } from "@/app/lib/desk";
+import { bopInsights } from "@/app/lib/insights";
+import { aheadSlots } from "@/app/lib/ahead-data";
+import Takeaway from "@/app/components/Takeaway";
 import { ChartCard } from "@/app/components/ui/chart-card";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
 import BopFlowChart, { type BarSeries, type OverlayLine } from "@/app/components/BopFlowChart";
@@ -87,7 +97,7 @@ const tsRows = (s: Record<string, { period_date: string; value: number | null }[
   );
 
 export default async function BalanceOfPaymentsPage() {
-  const [d, pf] = await Promise.all([getBopData(), getPortfolioFlowsData()]);
+  const [d, pf, ahead] = await Promise.all([getBopData(), getPortfolioFlowsData(), aheadSlots()]);
 
   // ---- the brief's computed vitals ------------------------------------------
   // The summary table already carries [now monthly, now 12m, year-ago monthly,
@@ -126,6 +136,205 @@ export default async function BalanceOfPaymentsPage() {
   const res12 = bn(cells("Reserve assets")[1]);
   const res12Ago = bn(cells("Reserve assets")[3]);
   const resYoY = res12 != null && res12Ago != null ? res12 - res12Ago : null;
+
+  // ---- "The Read" — computed from the same series the charts show ----------
+  const coreRoll = sp(d.s1["Core (ex gold & energy)"] ?? []);
+  const fdiRoll = sp(d.fdi12m);
+  const portRoll = sp(d.port12m);
+  const nfiRoll = sp(d.nfi12m);
+  const read = bopInsights({
+    ca12m: caRoll,
+    core12m: coreRoll,
+    neo12m: neoRoll,
+    fdi12m: fdiRoll,
+    portfolio12m: portRoll,
+  });
+
+  // ---- movers: the 12-month balances, this month against last -------------
+  // Every row is the same monthly BoP release on the same 12-month basis, so one
+  // from→to header is honest. The Δ is between consecutive 12-month windows,
+  // which is what "the deficit widened this month" actually means.
+  const rollMover = (label: string, s: { period: string; value: number | null }[]): MoverRow => ({
+    label,
+    prev: valAgo(s, 1),
+    curr: lastVal(s),
+    good: "up",
+    fmt: (v: number) => `$${v.toFixed(1)}bn`,
+    deltaDecimals: 1,
+    deltaUnit: "bn",
+  });
+  const movers: MoverRow[] = [
+    rollMover("Current account", caRoll),
+    rollMover("Core (ex gold & energy)", coreRoll),
+    rollMover("Trade balance (goods)", goodsRoll),
+    rollMover("Direct investment (in)", fdiRoll),
+    rollMover("Portfolio investment (in)", portRoll),
+    rollMover("Net errors & omissions", neoRoll),
+  ];
+
+  // ---- transmission: the external account → the banks ----------------------
+  const fdiNow = lastVal(fdiRoll);
+  const portNow = lastVal(portRoll);
+  const nfiNow = lastVal(nfiRoll);
+  const transmission: TransmissionItem[] = [
+    {
+      k: "Current account, 12m",
+      v: d.ca12m != null ? `$${Math.abs(d.ca12m).toFixed(1)}bn` : "—",
+      effect: (
+        <>
+          The economy&rsquo;s net external{" "}
+          {d.ca12m != null && d.ca12m < 0 ? "borrowing" : "lending"} over a year. A
+          deficit has to be funded every month it persists, and the banks are one of
+          the channels it is funded through.
+        </>
+      ),
+    },
+    {
+      k: "Direct investment (in)",
+      v: fdiNow != null ? `$${fdiNow.toFixed(1)}bn` : "—",
+      effect: (
+        <>
+          Committed capital: it does not leave on a headline. The higher the share of
+          the financing need this covers, the less the external account depends on
+          rollover.
+        </>
+      ),
+    },
+    {
+      k: "Portfolio investment (in)",
+      v: portNow != null ? `$${portNow.toFixed(1)}bn` : "—",
+      effect: (
+        <>
+          Money that reprices daily. Its weekly counterpart sits on{" "}
+          <Link href="/economy" className="font-semibold text-primary">
+            /economy
+          </Link>{" "}
+          as non-resident flows — the same investors, a far shorter lag.
+        </>
+      ),
+    },
+    {
+      k: "Net foreign investment",
+      v: nfiNow != null ? `$${nfiNow.toFixed(1)}bn` : "—",
+      effect: (
+        <>
+          FDI, portfolio and other investment together. What this does not cover is
+          met from reserves or lands in errors and omissions — which is exactly the
+          financing identity the last chart on this page draws.
+        </>
+      ),
+    },
+    {
+      k: "Banks' external loans",
+      v: "see Şekil 6",
+      effect: (
+        <>
+          Loans by borrower sector splits out the banks&rsquo; own external
+          borrowing. Rollover on that line is a direct{" "}
+          <Link href="/liquidity" className="font-semibold text-primary">
+            FC funding
+          </Link>{" "}
+          question, not just a balance-of-payments one.
+        </>
+      ),
+    },
+  ];
+
+  // ---- flags ----------------------------------------------------------------
+  const financingCover =
+    nfiNow != null && d.ca12m != null && d.ca12m < 0 ? (nfiNow / Math.abs(d.ca12m)) * 100 : null;
+  const flagList: Flag[] = [
+    {
+      code: "UNFUNDED",
+      active: financingCover != null && financingCover < 100,
+      rule: "net_foreign_investment_12m / |current_account_12m| < 100%",
+      body: (
+        <>
+          <b className="font-semibold">Foreign investment does not cover the deficit.</b>{" "}
+          Net foreign investment of ${nfiNow?.toFixed(1)}bn against a $
+          {d.ca12m != null ? Math.abs(d.ca12m).toFixed(1) : "—"}bn financing need —{" "}
+          {financingCover?.toFixed(0)}% cover, with the remainder met from reserves or
+          unidentified flows.
+        </>
+      ),
+      clear: (
+        <>
+          Net foreign investment covers{" "}
+          {financingCover != null ? `${financingCover.toFixed(0)}%` : "—"} of the
+          12-month financing need.
+        </>
+      ),
+    },
+    {
+      code: "NEO_LARGE",
+      active: neoShare != null && neoShare > 25,
+      rule: "|net_errors_omissions_12m| / |current_account_12m| > 25%",
+      body: (
+        <>
+          <b className="font-semibold">Unidentified flows are large.</b> Net errors and
+          omissions run ${neo12 != null ? Math.abs(neo12).toFixed(1) : "—"}bn,{" "}
+          {neoShare?.toFixed(0)}% of the current-account balance — money the accounts
+          cannot attribute.
+        </>
+      ),
+      clear: (
+        <>
+          Net errors and omissions are{" "}
+          {neoShare != null ? `${neoShare.toFixed(0)}%` : "—"} of the current-account
+          balance — inside the 25% line.
+        </>
+      ),
+    },
+    {
+      code: "PORTFOLIO_LED",
+      active: fdiNow != null && portNow != null && portNow > fdiNow && portNow > 0,
+      rule: "portfolio_inflow_12m > fdi_inflow_12m",
+      body: (
+        <>
+          <b className="font-semibold">
+            Financing leans on portfolio money rather than direct investment.
+          </b>{" "}
+          ${portNow?.toFixed(1)}bn portfolio against ${fdiNow?.toFixed(1)}bn direct —
+          the first can reverse in a week, the second cannot.
+        </>
+      ),
+      clear: (
+        <>
+          Direct investment (${fdiNow?.toFixed(1) ?? "—"}bn) is at or above portfolio
+          inflow (${portNow?.toFixed(1) ?? "—"}bn).
+        </>
+      ),
+    },
+    {
+      code: "CORE_DEFICIT",
+      active: lastVal(coreRoll) != null && (lastVal(coreRoll) as number) < 0,
+      rule: "current_account_ex_gold_energy_12m < 0",
+      body: (
+        <>
+          <b className="font-semibold">The core balance is in deficit.</b> Excluding
+          gold and energy, the 12-month current account is $
+          {Math.abs(lastVal(coreRoll) as number).toFixed(1)}bn negative — a structural
+          gap rather than a commodity-price one.
+        </>
+      ),
+      clear: (
+        <>
+          The core balance (ex gold &amp; energy) is $
+          {lastVal(coreRoll) != null ? (lastVal(coreRoll) as number).toFixed(1) : "—"}bn —
+          at or above zero.
+        </>
+      ),
+    },
+  ];
+
+  const aheadItems = [
+    { when: "~11th", what: <>TCMB balance of payments — the month&rsquo;s release</> },
+    { when: "FRI", what: <>TCMB non-resident securities statistics — the weekly portfolio leg</>, href: "/economy" },
+    ...(ahead.mpc ? [{ when: ahead.mpc.when, what: <>CBRT rate decision</>, href: "/rates" }] : []),
+    ...(ahead.fsr
+      ? [{ when: ahead.fsr.when, what: <>TCMB Financial Stability Report — external financing risks</> }]
+      : []),
+  ];
 
   return (
     <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-9">
@@ -240,6 +449,47 @@ export default async function BalanceOfPaymentsPage() {
           }
         />
       </Vitals>
+
+      {/* ── The Read ──────────────────────────────────────────────────── */}
+      <div className="mt-7">
+        <Takeaway data={read} variant="desk" />
+      </div>
+
+      {/* ── Movers | Transmission ─────────────────────────────────────── */}
+      <div className="mt-8 grid grid-cols-1 gap-x-9 gap-y-7 lg:grid-cols-[5fr_7fr]">
+        <div>
+          <SecHead
+            title="The 12-month balances"
+            meta="consecutive rolling windows · one bop release"
+            className="mb-2.5"
+          />
+          <Movers
+            from={monthLabel(prevP, false)}
+            to={monthLabel(recP ?? null, false)}
+            rows={movers}
+          />
+        </div>
+        <div>
+          <SecHead title="Transmission" meta="the external account → the banks · computed" className="mb-2.5" />
+          <Transmission items={transmission} />
+        </div>
+      </div>
+
+      {/* ── Flags | Ahead ─────────────────────────────────────────────── */}
+      <div className="mt-8 grid grid-cols-1 gap-x-9 gap-y-7 lg:grid-cols-[7fr_5fr]">
+        <div>
+          <SecHead title="Flags" meta="rules printed whether or not they fire" className="mb-2.5" />
+          <Flags
+            flags={flagList}
+            showCleared
+            quietNote="Every financing rule below was tested against the current release and none tripped."
+          />
+        </div>
+        <div>
+          <SecHead title="Ahead" meta="scraped calendar + fixed cadence" className="mb-2.5" />
+          <Ahead items={aheadItems} />
+        </div>
+      </div>
 
       <Depth action={<GlobalRangeSelector />}>
         {/* Cover KPIs — mirror the report's three headline balances. */}

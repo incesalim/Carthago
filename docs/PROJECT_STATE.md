@@ -1265,10 +1265,57 @@ An **Economy** tab (`/economy`) adapts the Türkiye macro section of the BBVA
 "Türkiye Economic Outlook" (1Q26): GDP growth, industrial production, labor
 market, CPI vs CBRT funding cost, inflation expectations, ex-ante real rate,
 USD/TRY + REER, 12m-rolling current account (total / ex-gold / ex-gold&energy)
-and net errors & omissions, fiscal balances as % of GDP, plus BBVA's static
-baseline-scenario table. Fed by a `macro` EVDS block (GDP, IP, labor, BoP,
-budget — 15 new series incl. CPI 2025=100, which replaces the dead 2003=100
-index). See [METRICS.md](METRICS.md) §14.
+and net errors & omissions, fiscal balances as % of GDP. Fed by a `macro` EVDS
+block (GDP, IP, labor, BoP, budget — 15 new series incl. CPI 2025=100, which
+replaces the dead 2003=100 index). See [METRICS.md](METRICS.md) §14.
+
+**All six economy pages carry the full Desk brief (2026-08-07).** Until then the
+section was a header, a vitals band and a grid of one-series line charts: none of
+the six had a `<Takeaway>`, `<Movers>`, `<Transmission>`, `<Flags>` or `<Ahead>`
+block, on the one part of the site whose job is to explain the conditions the
+banking tabs measure. Each page now computes a Read, a movers table on a single
+stated cadence, a transmission strip that says what each macro figure does to a
+bank, rule-printed flags (`<Flags showCleared>`) and a release schedule. Six new
+builders in `lib/insights.ts` (`economyInsights`, `inflationInsights`,
+`growthInsights`, `bopInsights`, `budgetInsights`, `tradeInsights`), all
+registered in the regime-flip gate (`prose-regression.test.ts`) — verified
+decisive by injecting a typed directional word and watching it fail.
+
+Coverage the data always supported and nothing rendered:
+
+- **The reserve buffer** on `/economy` (gross → net → net-excl-swaps + import
+  cover). The NIR derivation moved out of `liquidity/page.tsx` into
+  **`web/app/lib/reserves.ts`**, which both pages now import, so the two cannot
+  print rival numbers for a figure TCMB does not publish. `ReserveBuffer.tsx`
+  moved to `app/components/` with it. The extraction also fixed a live bug: a
+  week with no IMF-reserve-template row was scored as *zero swaps*, overstating
+  the CBRT's own FX by the whole swap book. Callers on a short window pass K15
+  fetched at `FWD_YEARS_BACK` so the step resolves instead of dropping weeks.
+- **The policy→deposit→loan transmission chain** (`TP.PY.P02.1H`, `TP.TRY.MT06`,
+  `TP.KTF17/KTFTUK/KTF12`, monthly-averaged), the loan−deposit spread, and the
+  real *deposit* rate beside the real policy rate.
+- **CPI breadth** on `/economy/inflation` — the share of COICOP groups printing
+  above the headline m/m, on a constant denominator (a month is emitted only when
+  every group reports). Weight-free by construction, since TÜİK's group weights
+  are not in EVDS; it answers "how broad", never "how much".
+- **The real twin** on `/economy/budget`: every line there was nominal lira, which
+  at a ~30% price level is mostly a chart of the deflator. Tax/spending/interest
+  now also print CPI-deflated, balances as % of trailing-4Q GDP, and interest as a
+  share of the tax take.
+- Non-resident portfolio flows, households' FX and gold, EUR/TRY, the current
+  account as % of GDP (USD-converted at the *window-average* rate, not spot), and
+  households' inflation expectation (quoted, not charted — `TP.HANEBEK.HAN14A`
+  holds only 7 prints in D1).
+
+BBVA's static baseline table is now **scored** rather than carried: the published
+2026 column is set against what our own series actually printed, with the
+observation count in brackets. Rows we cannot score say why — end-of-period rows
+do not settle before December, and the two %-of-GDP budget rows are refused
+outright because BBVA quotes central government while our 12-month ratio is the
+general budget. The pure half of the tab (`lib/economy-calc.ts`, split from
+`economy.ts` so no D1 import sits in its module graph) and `lib/reserves.ts` are
+unit-tested (22 cases) — the scorecard's *refusals* are the assertions that
+matter, since a silently-graded partial year would look entirely plausible.
 
 A **Balance of Payments** sub-page (`/economy/balance-of-payments`, linked
 from the Economy header) reproduces the Albaraka «Ödemeler Dengesi» monthly

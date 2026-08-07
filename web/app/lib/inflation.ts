@@ -71,6 +71,10 @@ const CODES = [
   ...CPI_GROUPS.map((g) => g.code),
   ...PPI_SECTORS.map((g) => g.code),
   ...PPI_MIG.map((g) => g.code),
+  // The expectation the print is judged against — an inflation page that never
+  // shows what the market expects can say a number changed but not whether it
+  // surprised anyone.
+  "TP.PKAUO.S01.E.U",
 ];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -109,6 +113,63 @@ function momBars(groups: { code: string; label: string }[], s: Record<string, Ev
     .map((r) => ({ x: r.label, mm: r.value }));
 }
 
+/**
+ * Latest AND prior m/m per group, sorted by the size of the move between them.
+ *
+ * The ranked snapshot above answers "who is expensive this month"; it cannot
+ * answer "what changed", which is the question a monthly report is actually
+ * about. A group printing 3% two months running is not news; one going 0% → 3%
+ * is the story, and on the single-month bars the two are indistinguishable.
+ */
+function groupMoves(
+  groups: { code: string; label: string }[],
+  s: Record<string, EvdsRow[]>,
+): GroupMove[] {
+  return groups
+    .map((g) => {
+      const m = mom(s[g.code] ?? []);
+      return { label: g.label, prev: m.at(-2)?.value ?? null, curr: m.at(-1)?.value ?? null };
+    })
+    .filter((r) => r.curr != null)
+    .sort((a, b) => {
+      const da = a.prev != null && a.curr != null ? Math.abs(a.curr - a.prev) : -1;
+      const db = b.prev != null && b.curr != null ? Math.abs(b.curr - b.prev) : -1;
+      return db - da;
+    });
+}
+
+/**
+ * Breadth: the share of COICOP groups whose monthly change exceeds the headline's,
+ * month by month.
+ *
+ * A headline can fall because two heavy groups fell while the rest of the basket
+ * did exactly what it did last month — and it can fall with every group cooling.
+ * Those are different regimes and the headline number alone cannot separate them.
+ * This is the standard diffusion construction, and it needs no weights (which
+ * TÜİK does not publish in EVDS), because it counts groups rather than weighting
+ * them: it answers "how broad", never "how much".
+ *
+ * A month is emitted only when EVERY group reports, so the denominator is
+ * constant down the series — a diffusion share whose base silently drops from 12
+ * to 9 groups is a different statistic wearing the same axis.
+ */
+function diffusion(
+  groups: { code: string; label: string }[],
+  s: Record<string, EvdsRow[]>,
+  headline: Point[],
+): { series: Point[]; of: number } {
+  const perGroup = groups.map((g) => new Map(mom(s[g.code] ?? []).map((p) => [p.period_date, p.value])));
+  const of = groups.length;
+  const series: Point[] = [];
+  for (const h of headline) {
+    const vals = perGroup.map((m) => m.get(h.period_date));
+    if (vals.some((v) => v === undefined)) continue;
+    const above = (vals as number[]).filter((v) => v > h.value).length;
+    series.push({ period_date: h.period_date, value: (above / of) * 100 });
+  }
+  return { series, of };
+}
+
 // ---------------------------------------------------------------------------
 // Tables
 // ---------------------------------------------------------------------------
@@ -134,6 +195,13 @@ export interface MigRow {
   yy: number | null;
 }
 
+/** A group's monthly print this month and last — the Movers row. */
+export interface GroupMove {
+  label: string;
+  prev: number | null;
+  curr: number | null;
+}
+
 // ---------------------------------------------------------------------------
 // Loader
 // ---------------------------------------------------------------------------
@@ -153,6 +221,19 @@ export interface InflationData {
   core: CoreRow[];
   mig: MigRow[]; // PPI Main Industrial Groupings (TÜİK detail)
   hasMig: boolean;
+  // ---- breadth & expectations ----
+  cpiMoM: Point[]; // headline m/m, as a series
+  exp12m: Point[]; // market participants' 12m-ahead expectation
+  exp12mNow: number | null;
+  /** Share of COICOP groups printing above the headline m/m, over time (%). */
+  diffusion: Point[];
+  diffusionNow: number | null;
+  /** The constant denominator behind `diffusion` — never print the share alone. */
+  diffusionOf: number;
+  /** CPI groups ranked by how much their monthly print moved. */
+  groupMoves: GroupMove[];
+  /** The same, for producer prices. */
+  ppiMoves: GroupMove[];
 }
 
 const T1_MONTHS = 17;
@@ -162,8 +243,10 @@ export async function getInflationData(yearsBack = 9): Promise<InflationData> {
   const g = (code: string) => s[code] ?? [];
 
   const cpiY = yoy(g(C.cpi));
+  const cpiM = mom(g(C.cpi));
   const last = cpiY.at(-1)?.period_date ?? "";
   const asOfLabel = last ? `${MONTHS[Number(last.slice(5, 7)) - 1]} ${last.slice(0, 4)}` : "";
+  const diff = diffusion(CPI_GROUPS, s, cpiM);
 
   // Table 1 — CPI & PPI m/m + y/y, most recent T1_MONTHS, newest first
   const map = (pts: Point[]) => new Map(pts.map((p) => [p.period_date, p.value]));
@@ -218,5 +301,14 @@ export async function getInflationData(yearsBack = 9): Promise<InflationData> {
       yy: latest(yoy(g(m.code))),
     })),
     hasMig: (g("TUIK.PPI.MIG_ENERGY")?.length ?? 0) > 0,
+
+    cpiMoM: cpiM,
+    exp12m: (g("TP.PKAUO.S01.E.U") ?? []).map((r) => ({ period_date: r.period_date, value: r.value })),
+    exp12mNow: g("TP.PKAUO.S01.E.U").at(-1)?.value ?? null,
+    diffusion: diff.series,
+    diffusionNow: diff.series.at(-1)?.value ?? null,
+    diffusionOf: diff.of,
+    groupMoves: groupMoves(CPI_GROUPS, s),
+    ppiMoves: groupMoves(PPI_SECTORS, s),
   };
 }

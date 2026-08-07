@@ -43,7 +43,14 @@ const C = {
   interestExp: "TP.KB.GID152",
 } as const;
 
-const CODES = Object.values(C);
+// The deflator and the denominator. Neither is a budget series, and that is the
+// point: at a ~30% price level every nominal line on this page is mostly a chart
+// of the deflator (DESIGN.md — "every nominal ₺ level ships with its real twin"),
+// and "tax revenues up 28%" is a real CUT that reads as growth.
+const CPI = "TP.TUKFIY2025.GENEL";
+const GDP_CF = "TP.GSYIH26.HY.CF";
+
+const CODES = [...Object.values(C), CPI, GDP_CF];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 // ---------------------------------------------------------------------------
@@ -78,6 +85,69 @@ function yoyPct(rows: EvdsRow[]): Point[] {
     const prev = rows[i - 12].value;
     if (!prev) continue;
     out.push({ period_date: rows[i].period_date, value: 100 * (rows[i].value / prev - 1) });
+  }
+  return out;
+}
+
+/**
+ * y/y % change of a monthly series DEFLATED by CPI — the real growth rate.
+ *
+ * Both the flow and the price index are taken at the same two dates, so this is
+ * (nominal ratio ÷ price ratio − 1): what the money actually bought, year on
+ * year. A nominal budget line at 28% growth against a 30% price level is a real
+ * contraction, and the nominal chart cannot show that.
+ */
+function realYoY(rows: EvdsRow[], cpi: EvdsRow[]): Point[] {
+  const p = new Map(cpi.map((r) => [r.period_date, r.value]));
+  const out: Point[] = [];
+  for (let i = 12; i < rows.length; i++) {
+    const prevV = rows[i - 12].value;
+    const pNow = p.get(rows[i].period_date);
+    const pPrev = p.get(rows[i - 12].period_date);
+    if (!prevV || !pNow || !pPrev) continue;
+    const nominal = rows[i].value / prevV;
+    const prices = pNow / pPrev;
+    out.push({ period_date: rows[i].period_date, value: 100 * (nominal / prices - 1) });
+  }
+  return out;
+}
+
+/**
+ * A 12-month rolling flow as % of trailing-4-quarter nominal GDP.
+ *
+ * Both sides are TL (thousand vs thousand), so units cancel. Each month takes
+ * the most recent completed 4-quarter GDP window at or before it — a monthly
+ * flow against a quarterly stock needs the stock stepped, never interpolated.
+ */
+function pctOfGdp(monthlyFlow: EvdsRow[], gdpQ: EvdsRow[]): Point[] {
+  const gdp4q: { d: string; v: number }[] = [];
+  for (let i = 3; i < gdpQ.length; i++) {
+    gdp4q.push({
+      d: gdpQ[i].period_date,
+      v: gdpQ[i].value + gdpQ[i - 1].value + gdpQ[i - 2].value + gdpQ[i - 3].value,
+    });
+  }
+  const flow12 = rollingSum(monthlyFlow, 12);
+  const out: Point[] = [];
+  for (const f of flow12) {
+    let g: number | undefined;
+    for (let i = gdp4q.length - 1; i >= 0; i--) {
+      if (gdp4q[i].d <= f.period_date) { g = gdp4q[i].v; break; }
+    }
+    if (!g) continue;
+    out.push({ period_date: f.period_date, value: 100 * (f.value / g) });
+  }
+  return out;
+}
+
+/** Ratio of two 12-month rolling flows, as a percentage. */
+function ratio12(num: EvdsRow[], den: EvdsRow[]): Point[] {
+  const d = new Map(rollingSum(den, 12).map((p) => [p.period_date, p.value]));
+  const out: Point[] = [];
+  for (const n of rollingSum(num, 12)) {
+    const dv = d.get(n.period_date);
+    if (!dv) continue;
+    out.push({ period_date: n.period_date, value: 100 * (n.value / dv) });
   }
   return out;
 }
@@ -140,6 +210,19 @@ export interface BudgetData {
   s3: BarRow[]; // tax category bars
   barLabels: { prev: string; now: string }; // "Apr 2025" / "Apr 2026"
   table: TableRow[];
+  // ---- the real twin, and the ratios that need a denominator ----
+  /** Revenue and spending growth, CPI-deflated (%). */
+  real: Record<string, Point[]>;
+  /** Nominal vs real tax revenue growth on one axis (%). */
+  taxNominalVsReal: Record<string, Point[]>;
+  /** 12m central-government balances as % of trailing-4Q nominal GDP. */
+  pctGdp: Record<string, Point[]>;
+  /** Interest expenditure as % of tax revenue, 12m rolling. */
+  interestShare: Point[];
+  balancePctGdpNow: number | null;
+  primaryPctGdpNow: number | null;
+  interestShareNow: number | null;
+  taxRealYoYNow: number | null;
 }
 
 export async function getBudgetData(yearsBack = 9): Promise<BudgetData> {
@@ -153,6 +236,13 @@ export async function getBudgetData(yearsBack = 9): Promise<BudgetData> {
   const latest = g(C.rev).at(-1)?.period_date ?? "";
   const last12 = (rows: EvdsRow[]) =>
     rows.length >= 12 ? rows.slice(-12).reduce((a, r) => a + r.value, 0) * BN : null;
+
+  const cpi = g(CPI);
+  const gdpQ = g(GDP_CF);
+  const taxReal = realYoY(g(C.tax), cpi);
+  const balancePctGdp = pctOfGdp(balance, gdpQ);
+  const primaryPctGdp = pctOfGdp(primary, gdpQ);
+  const interestShare = ratio12(g(C.interestExp), g(C.tax));
 
   return {
     asOfLabel: latest ? monthLabel(latest) : "",
@@ -192,6 +282,25 @@ export async function getBudgetData(yearsBack = 9): Promise<BudgetData> {
       prev: latest ? monthLabel(`${Number(latest.slice(0, 4)) - 1}${latest.slice(4)}`) : "year ago",
       now: latest ? monthLabel(latest) : "latest",
     },
+
+    real: {
+      "Tax revenues (real y/y)": taxReal,
+      "Primary expenditure (real y/y)": realYoY(g(C.primExp), cpi),
+      "Interest expenditure (real y/y)": realYoY(g(C.interestExp), cpi),
+    },
+    taxNominalVsReal: {
+      "Nominal": yoyPct(g(C.tax)),
+      "Real (CPI-deflated)": taxReal,
+    },
+    pctGdp: {
+      "Budget balance": balancePctGdp,
+      "Primary balance": primaryPctGdp,
+    },
+    interestShare,
+    balancePctGdpNow: balancePctGdp.at(-1)?.value ?? null,
+    primaryPctGdpNow: primaryPctGdp.at(-1)?.value ?? null,
+    interestShareNow: interestShare.at(-1)?.value ?? null,
+    taxRealYoYNow: taxReal.at(-1)?.value ?? null,
 
     table: [
       { label: "Budget revenues", cells: tableCells(g(C.rev)) },

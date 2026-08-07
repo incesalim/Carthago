@@ -1,26 +1,44 @@
 /**
- * Economy tab data layer — adapts the macro section of the BBVA (Garanti
- * BBVA Research) "Türkiye Economic Outlook" into our EVDS data.
+ * Economy tab data layer — the macro backdrop, derived from raw `evds_series`
+ * rows: y/y and m/m growth from index levels, 12-month rolling sums for flows
+ * (current account, budget), %-of-GDP ratios against rolling-4Q nominal GDP, the
+ * ex-ante real policy rate (funding rate deflated by the 12-month-ahead market
+ * inflation expectation), the policy→deposit→loan transmission chain, and the
+ * reserve buffer (via lib/reserves.ts, which /liquidity shares).
  *
- * Everything here derives chart-ready series from raw `evds_series` rows:
- * y/y and m/m growth from index levels, 12-month rolling sums for flows
- * (current account, budget), %-of-GDP ratios against rolling-4Q nominal
- * GDP, and the ex-ante real policy rate (funding rate deflated by the
- * 12-month-ahead market inflation expectation).
+ * Out of scope (no data source here): CDS / OIS / sovereign curves (Bloomberg),
+ * the GDP nowcast and FCI composite (BBVA-proprietary). (BIST index levels were
+ * carried here until 2026-08-01, sourced from Yahoo; that feed was removed
+ * because its terms forbid redistribution, and nothing replaces it until a
+ * licensed source exists.)
  *
- * Out of scope (no data source here): CDS / OIS / sovereign curves
- * (Bloomberg), the GDP nowcast and FCI (BBVA-proprietary), foreigners'
- * positioning (CBRT securities stats not ingested), and BBVA's scenario
- * sensitivities. (BIST index levels were carried here until 2026-08-01, sourced
- * from Yahoo; that feed was removed because its terms forbid redistribution, and
- * nothing replaces it until a licensed source exists.)
+ * Non-resident portfolio positioning WAS listed here as "not ingested". It has
+ * been in D1 since the bie_mknethar lane landed and `lib/portfolio-flows.ts`
+ * reads it — the note was stale, and a stale scope note is how a page stays
+ * primitive: nobody adds what the file says isn't there.
  */
-import { evdsMulti, type EvdsRow } from "@/app/lib/metrics";
+import { evdsMulti } from "@/app/lib/metrics";
+import { RESERVE_CODES, reserveBuffer, importCoverMonths } from "@/app/lib/reserves";
+import {
+  monthlyAverage,
+  pctChange,
+  rolling4qGdp,
+  rollingSum,
+  scaled,
+  spread,
+  stepAt,
+  sumByDate,
+  trailingMean,
+  exAnteReal,
+  pctOfGdp,
+  type EconomyData,
+  type Point,
+} from "@/app/lib/economy-calc";
 
-export interface Point {
-  period_date: string;
-  value: number;
-}
+// The pure half — transforms and the forecast scorecard — lives in
+// economy-calc.ts so it can be unit-tested without a D1 import in the module
+// graph. Re-exported here so every existing importer is unchanged.
+export * from "@/app/lib/economy-calc";
 
 // EVDS codes used by the tab (all already in D1 via the daily cron).
 const CODES = [
@@ -35,203 +53,120 @@ const CODES = [
   "TP.TUKFIY2025.GENEL", // CPI (2025=100)
   "TP.PKAUO.S01.D.U",    // CPI expectation, current year-end
   "TP.PKAUO.S01.I.U",    // CPI expectation, next year-end
-  "TP.PKAUO.S01.E.U",    // CPI expectation, 12m ahead
+  "TP.PKAUO.S01.E.U",    // CPI expectation, 12m ahead (market participants)
+  "TP.HANEBEK.HAN14A",   // CPI expectation, 12m ahead (households)
   "TP.APIFON4",          // CBRT effective cost of funding, daily
+  "TP.PY.P02.1H",        // policy rate (1-week repo), daily
+  // the transmission chain (weekly bank pricing)
+  "TP.TRY.MT06",  // TL deposit rate, total
+  "TP.KTF17",     // commercial loan rate
+  "TP.KTFTUK",    // consumer loan rate
+  "TP.KTF12",     // housing loan rate
   // lira & external
   "TP.DK.USD.A",         // USD/TRY, daily
+  "TP.DK.EUR.A",         // EUR/TRY, daily
   "TP.RK.T1.Y",          // REER (CPI based, 2003=100)
   "TP.ODANA6.Q01",       // current account (USD m)
   "TP.ODANA6.Q31",       // net errors & omissions (USD m)
   "TP.HARICCARIACIK.K8", // CA ex gold (USD m)
   "TP.HARICCARIACIK.K10",// CA ex gold & energy (USD m)
+  "TP.ITHALATBEC.9999",  // customs imports, total (USD k) — reserve import cover
+  // residents' FC (the dollarization the households choose)
+  "TP.HPBITABLO4.4", // households USD deposits (USD m)
+  "TP.HPBITABLO4.5", // households EUR deposits (USD eq, USD m)
+  "TP.HPBITABLO4.7", // households precious metals (USD m)
   // fiscal (TL thousand, monthly)
   "TP.KB.GEN34", // primary balance
   "TP.KB.GEN35", // budget balance
   "TP.KB.GEN39", // cash balance
+  // the reserve buffer (gross / net / net-excl-swaps)
+  ...RESERVE_CODES,
 ] as const;
-
-// ---------------------------------------------------------------------------
-// Pure transforms
-// ---------------------------------------------------------------------------
-
-/** % change vs `lag` observations earlier (12 = y/y monthly, 4 = y/y quarterly). */
-export function pctChange(rows: EvdsRow[], lag: number): Point[] {
-  const out: Point[] = [];
-  for (let i = lag; i < rows.length; i++) {
-    const prev = rows[i - lag].value;
-    if (prev === 0) continue;
-    out.push({
-      period_date: rows[i].period_date,
-      value: 100 * (rows[i].value / prev - 1),
-    });
-  }
-  return out;
-}
-
-/** Rolling sum over the trailing `window` observations, scaled. */
-export function rollingSum(rows: EvdsRow[], window: number, scale = 1): Point[] {
-  const out: Point[] = [];
-  let acc = 0;
-  for (let i = 0; i < rows.length; i++) {
-    acc += rows[i].value;
-    if (i >= window) acc -= rows[i - window].value;
-    if (i >= window - 1) {
-      out.push({ period_date: rows[i].period_date, value: acc * scale });
-    }
-  }
-  return out;
-}
-
-/** Collapse a daily series to monthly averages (dated at month start). */
-function monthlyAverage(rows: EvdsRow[]): Point[] {
-  const acc = new Map<string, { sum: number; n: number }>();
-  for (const r of rows) {
-    const month = `${r.period_date.slice(0, 7)}-01`;
-    const cur = acc.get(month) ?? { sum: 0, n: 0 };
-    cur.sum += r.value;
-    cur.n += 1;
-    acc.set(month, cur);
-  }
-  return Array.from(acc.entries())
-    .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([period_date, { sum, n }]) => ({ period_date, value: sum / n }));
-}
-
-/** Simple value scaling (unit conversions). */
-export function scaled(rows: EvdsRow[], scale: number): Point[] {
-  return rows.map((r) => ({ period_date: r.period_date, value: r.value * scale }));
-}
-
-/**
- * Ex-ante real rate: nominal monthly rate deflated by the 12m-ahead
- * inflation expectation, compounded — ((1+i)/(1+πᵉ) − 1) × 100.
- */
-function exAnteReal(nominal: Point[], expectation: EvdsRow[]): Point[] {
-  const exp = new Map(expectation.map((r) => [r.period_date, r.value]));
-  const out: Point[] = [];
-  for (const p of nominal) {
-    const e = exp.get(p.period_date);
-    if (e === undefined) continue;
-    out.push({
-      period_date: p.period_date,
-      value: 100 * ((1 + p.value / 100) / (1 + e / 100) - 1),
-    });
-  }
-  return out;
-}
-
-/**
- * 12-month rolling fiscal balance as % of rolling-4-quarter nominal GDP.
- * Both sides are in TL thousand, so units cancel. Each month is matched
- * with the most recent completed 4-quarter GDP window at or before it —
- * the same convention BBVA charts use for "% of GDP" monthly fiscal lines.
- */
-function pctOfGdp(monthlyFlow: EvdsRow[], nominalGdpQ: EvdsRow[]): Point[] {
-  const gdp4q: Point[] = [];
-  for (let i = 3; i < nominalGdpQ.length; i++) {
-    gdp4q.push({
-      period_date: nominalGdpQ[i].period_date,
-      value:
-        nominalGdpQ[i].value + nominalGdpQ[i - 1].value +
-        nominalGdpQ[i - 2].value + nominalGdpQ[i - 3].value,
-    });
-  }
-  const flow12 = rollingSum(monthlyFlow, 12);
-  const out: Point[] = [];
-  for (const f of flow12) {
-    // latest 4Q GDP window dated at or before this month
-    let g: number | undefined;
-    for (let i = gdp4q.length - 1; i >= 0; i--) {
-      if (gdp4q[i].period_date <= f.period_date) {
-        g = gdp4q[i].value;
-        break;
-      }
-    }
-    if (!g) continue;
-    out.push({ period_date: f.period_date, value: 100 * (f.value / g) });
-  }
-  return out;
-}
 
 // ---------------------------------------------------------------------------
 // Loader — one round trip, chart-ready output
 // ---------------------------------------------------------------------------
 
-export interface EconomyData {
-  gdpGrowth: Point[];          // y/y %, quarterly
-  ipGrowth: Point[];           // y/y %, monthly (SA index)
-  unemployment: Point[];       // SA %
-  participation: Point[];      // SA %
-  employedMn: Point[];         // million persons, SA
-  cpiYoY: Point[];             // y/y %
-  cpiMoM: Point[];             // m/m %
-  expCurrentYearEnd: Point[];  // survey, %
-  expNextYearEnd: Point[];     // survey, %
-  exp12m: Point[];             // survey, %
-  fundingMonthly: Point[];     // CBRT effective funding cost, monthly avg %
-  realRate: Point[];           // ex-ante real funding rate, %
-  usdtry: Point[];             // daily level
-  reer: Point[];               // monthly index
-  ca12m: Point[];              // 12m rolling, USD bn
-  caExGold12m: Point[];        // 12m rolling, USD bn
-  caExGoldEnergy12m: Point[];  // 12m rolling, USD bn
-  neo12m: Point[];             // net errors & omissions, 12m rolling, USD bn
-  budgetPctGdp: Point[];       // 12m rolling, % GDP
-  primaryPctGdp: Point[];      // 12m rolling, % GDP
-  cashPctGdp: Point[];         // 12m rolling, % GDP
-}
 
 export async function getEconomyData(yearsBack = 8): Promise<EconomyData> {
   const s = await evdsMulti([...CODES], yearsBack);
-  const fundingMonthly = monthlyAverage(s["TP.APIFON4"] ?? []);
+  const g = (code: string) => s[code] ?? [];
+
+  const fundingMonthly = monthlyAverage(g("TP.APIFON4"));
+  const exp12mRows = g("TP.PKAUO.S01.E.U");
+  const exp12m = scaled(exp12mRows, 1);
+  const hhExp12m = scaled(g("TP.HANEBEK.HAN14A"), 1);
+  const depositRate = monthlyAverage(g("TP.TRY.MT06"));
+  const loanCommercial = monthlyAverage(g("TP.KTF17"));
+
+  // Current account as % of GDP, both sides in USD. The CA is already USD;
+  // nominal GDP is TL, so the 4Q window is converted at the average USD/TRY over
+  // the SAME window rather than the spot rate — a spot conversion of a year of
+  // TL output would price four quarters at one day's lira.
+  const usdMonthly = monthlyAverage(g("TP.DK.USD.A"));
+  const gdp4q = rolling4qGdp(g("TP.GSYIH26.HY.CF"));
+  const ca12m = rollingSum(g("TP.ODANA6.Q01"), 12, 1 / 1000);
+  const caPctGdp: Point[] = [];
+  for (const c of ca12m) {
+    const gdpTl = stepAt(gdp4q, c.period_date);
+    const fx = trailingMean(usdMonthly, c.period_date, 12);
+    if (!gdpTl || !fx) continue;
+    // GDP is TL thousand → ÷1e6 for TL bn ÷ fx = USD bn.
+    const gdpUsdBn = gdpTl / 1e6 / fx;
+    caPctGdp.push({ period_date: c.period_date, value: 100 * (c.value / gdpUsdBn) });
+  }
+
+  const imports12m = rollingSum(g("TP.ITHALATBEC.9999"), 12, 1 / 1e6); // USD k → bn
+  const reserves = reserveBuffer(s);
+
+  // The scorecard scores against the latest year the CPI series actually has,
+  // never a year typed into the file — a hardcoded forecast year silently starts
+  // scoring a year we hold no data for the January it rolls over.
+  const cpiYoY = pctChange(g("TP.TUKFIY2025.GENEL"), 12);
+  const scoreYear = cpiYoY.at(-1)?.period_date.slice(0, 4) ?? "";
 
   return {
-    gdpGrowth: pctChange(s["TP.GSYIH26.HY.ZH"] ?? [], 4),
-    ipGrowth: pctChange(s["TP.TSANAYMT2021.Y1"] ?? [], 12),
-    unemployment: scaled(s["TP.TIG08"] ?? [], 1),
-    participation: scaled(s["TP.TIG06"] ?? [], 1),
-    employedMn: scaled(s["TP.TIG03"] ?? [], 1 / 1000),
-    cpiYoY: pctChange(s["TP.TUKFIY2025.GENEL"] ?? [], 12),
-    cpiMoM: pctChange(s["TP.TUKFIY2025.GENEL"] ?? [], 1),
-    expCurrentYearEnd: scaled(s["TP.PKAUO.S01.D.U"] ?? [], 1),
-    expNextYearEnd: scaled(s["TP.PKAUO.S01.I.U"] ?? [], 1),
-    exp12m: scaled(s["TP.PKAUO.S01.E.U"] ?? [], 1),
+    gdpGrowth: pctChange(g("TP.GSYIH26.HY.ZH"), 4),
+    ipGrowth: pctChange(g("TP.TSANAYMT2021.Y1"), 12),
+    unemployment: scaled(g("TP.TIG08"), 1),
+    participation: scaled(g("TP.TIG06"), 1),
+    employedMn: scaled(g("TP.TIG03"), 1 / 1000),
+    cpiYoY,
+    cpiMoM: pctChange(g("TP.TUKFIY2025.GENEL"), 1),
+    expCurrentYearEnd: scaled(g("TP.PKAUO.S01.D.U"), 1),
+    expNextYearEnd: scaled(g("TP.PKAUO.S01.I.U"), 1),
+    exp12m,
+    hhExp12m,
+    expGap: spread(hhExp12m, exp12m),
     fundingMonthly,
-    realRate: exAnteReal(fundingMonthly, s["TP.PKAUO.S01.E.U"] ?? []),
-    usdtry: scaled(s["TP.DK.USD.A"] ?? [], 1),
-    reer: scaled(s["TP.RK.T1.Y"] ?? [], 1),
-    ca12m: rollingSum(s["TP.ODANA6.Q01"] ?? [], 12, 1 / 1000),
-    caExGold12m: rollingSum(s["TP.HARICCARIACIK.K8"] ?? [], 12, 1 / 1000),
-    caExGoldEnergy12m: rollingSum(s["TP.HARICCARIACIK.K10"] ?? [], 12, 1 / 1000),
-    neo12m: rollingSum(s["TP.ODANA6.Q31"] ?? [], 12, 1 / 1000),
-    budgetPctGdp: pctOfGdp(s["TP.KB.GEN35"] ?? [], s["TP.GSYIH26.HY.CF"] ?? []),
-    primaryPctGdp: pctOfGdp(s["TP.KB.GEN34"] ?? [], s["TP.GSYIH26.HY.CF"] ?? []),
-    cashPctGdp: pctOfGdp(s["TP.KB.GEN39"] ?? [], s["TP.GSYIH26.HY.CF"] ?? []),
+    policyRate: monthlyAverage(g("TP.PY.P02.1H")),
+    realRate: exAnteReal(fundingMonthly, exp12mRows),
+    depositRate,
+    realDepositRate: exAnteReal(depositRate, exp12mRows),
+    loanCommercial,
+    loanConsumer: monthlyAverage(g("TP.KTFTUK")),
+    loanHousing: monthlyAverage(g("TP.KTF12")),
+    loanDepositSpread: spread(loanCommercial, depositRate),
+    usdtry: scaled(g("TP.DK.USD.A"), 1),
+    eurtry: scaled(g("TP.DK.EUR.A"), 1),
+    reer: scaled(g("TP.RK.T1.Y"), 1),
+    ca12m,
+    caExGold12m: rollingSum(g("TP.HARICCARIACIK.K8"), 12, 1 / 1000),
+    caExGoldEnergy12m: rollingSum(g("TP.HARICCARIACIK.K10"), 12, 1 / 1000),
+    neo12m: rollingSum(g("TP.ODANA6.Q31"), 12, 1 / 1000),
+    caPctGdp,
+    budgetPctGdp: pctOfGdp(g("TP.KB.GEN35"), g("TP.GSYIH26.HY.CF")),
+    primaryPctGdp: pctOfGdp(g("TP.KB.GEN34"), g("TP.GSYIH26.HY.CF")),
+    cashPctGdp: pctOfGdp(g("TP.KB.GEN39"), g("TP.GSYIH26.HY.CF")),
+    // GDP arrives as TL thousand, so ÷1e9 lands in ₺ trillion.
+    nominalGdp4q: gdp4q.map((p) => ({ period_date: p.period_date, value: p.value / 1e9 })),
+    reserves,
+    importCover: importCoverMonths(reserves.latest?.gross ?? null, imports12m.at(-1)?.value ?? null),
+    imports12m,
+    householdFx: sumByDate([g("TP.HPBITABLO4.4"), g("TP.HPBITABLO4.5")], 1 / 1000),
+    householdGold: scaled(g("TP.HPBITABLO4.7"), 1 / 1000),
+    scoreYear,
   };
 }
 
-// ---------------------------------------------------------------------------
-// BBVA baseline scenario (static) — Garanti BBVA Research, "Türkiye
-// Economic Outlook", March 2026, p. 42. Forecast column = 2026.
-// ---------------------------------------------------------------------------
 
-export const BBVA_BASELINE = {
-  asOf: "March 2026",
-  source: "Garanti BBVA Research — Türkiye Economic Outlook 1Q26",
-  years: ["2023", "2024", "2025", "2026 (f)"],
-  rows: [
-    { label: "GDP growth (avg)", values: ["5.0%", "3.3%", "3.6%", "4.0%"] },
-    { label: "Unemployment rate (avg)", values: ["9.4%", "8.7%", "8.4%", "9.0%"] },
-    { label: "Inflation (avg)", values: ["53.9%", "58.5%", "34.9%", "28.0%"] },
-    { label: "Inflation (eop)", values: ["64.8%", "44.4%", "30.9%", "25.0%"] },
-    { label: "CBRT cost of funding (avg)", values: ["20.5%", "49.6%", "43.6%", "35.8%"] },
-    { label: "CBRT cost of funding (eop)", values: ["42.5%", "47.5%", "38.0%", "32.0%"] },
-    { label: "USD/TRY (avg)", values: ["23.7", "32.8", "39.5", "47.3"] },
-    { label: "USD/TRY (eop)", values: ["29.4", "35.3", "42.8", "52.0"] },
-    { label: "EUR/TRY (avg)", values: ["25.7", "35.5", "44.7", "55.7"] },
-    { label: "EUR/TRY (eop)", values: ["32.6", "36.7", "50.3", "62.2"] },
-    { label: "Current account (% GDP)", values: ["-3.6%", "-1.0%", "-1.9%", "-2.4%"] },
-    { label: "CG primary balance (% GDP)", values: ["-2.6%", "-1.9%", "0.4%", "0.1%"] },
-    { label: "CG budget balance (% GDP)", values: ["-5.1%", "-4.7%", "-2.9%", "-3.5%"] },
-  ],
-} as const;

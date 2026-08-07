@@ -162,6 +162,17 @@ export interface BopData {
   s6: BarRow[];
   s10: BarRow[];
   table: TableRow[];
+  /**
+   * The financing legs as 12-month SERIES (USD bn), not bar cells.
+   *
+   * `s4`/`s5` already carry these under a `twelveM` key, but wide bar rows keyed
+   * by a display label are not something a read engine can take a direction
+   * from. The brief needs the series; the bars keep the monthly detail.
+   */
+  fdi12m: Point[];
+  port12m: Point[];
+  /** Net foreign investment (FDI + portfolio + other, net), 12m, USD bn. */
+  nfi12m: Point[];
 }
 
 const SHORT = 28; // months on the financial-account bar charts (Jan-24 → latest)
@@ -261,6 +272,10 @@ export async function getBopData(yearsBack = 9): Promise<BopData> {
       ],
       LONG,
     ),
+
+    fdi12m: roll12(g(C.fdiLiab)),
+    port12m: roll12(g(C.portLiab)),
+    nfi12m: roll12(netForeignInv),
 
     // Summary table (USD million) — mirrors the report's page-4 grid
     table: [
