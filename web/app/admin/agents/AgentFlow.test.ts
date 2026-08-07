@@ -1,32 +1,33 @@
 import { describe, expect, it } from "vitest";
+// Relative, not "@/…": vitest does not resolve the alias here. The component
+// gets away with the alias because its import is types-only and erases.
+import { AGENTS } from "../../lib/agents-registry";
 import { wrap } from "./AgentFlow";
 
 /**
- * The first version broke out of the loop as soon as it filled line one, so
- * every node detail rendered as a single truncated line — visible only in a
- * browser, invisible to tsc and to every other test. Pinned here.
+ * These assert BEHAVIOUR, not the constants. An earlier version hard-coded the
+ * 19-char default and broke the moment the swimlane columns widened it to 23 —
+ * a failing test that signalled nothing about the code being wrong.
  */
 describe("wrap", () => {
-  it("uses both lines before truncating", () => {
-    const out = wrap("QoQ/YoY z-scores · sign flips · reconciliation breaks");
-    expect(out.length).toBe(2);
-    expect(out[0]).not.toMatch(/…$/);
+  it("uses every available line before eliding", () => {
+    const out = wrap("QoQ/YoY z-scores · sign flips · reconciliation breaks", 20, 3);
+    expect(out.length).toBe(3);
+    expect(out.slice(0, -1).some((l) => l.endsWith("…"))).toBe(false);
   });
 
-  it("fills greedily and leaves a short detail alone", () => {
-    expect(wrap("read-only · SELECT only")).toEqual(["read-only · SELECT", "only"]);
+  it("leaves a short detail alone", () => {
     expect(wrap("survivors")).toEqual(["survivors"]);
   });
 
   it("hard-breaks a token too long to ever fit", () => {
-    // `registry-allowlisted` is 20 chars against a 19-char line — word wrapping
-    // alone leaves it overflowing the node.
-    const out = wrap("registry-allowlisted tools");
+    const out = wrap("registry-allowlisted tools", 19, 2);
     for (const line of out) expect(line.length).toBeLessThanOrEqual(19);
+    expect(out[0]).toBe("registry-allowliste");
   });
 
-  it("elides only what does not fit", () => {
-    const out = wrap("one two three four five six seven eight nine ten eleven twelve");
+  it("elides visibly when it genuinely cannot fit", () => {
+    const out = wrap("one two three four five six seven eight nine ten", 10, 2);
     expect(out.length).toBe(2);
     expect(out[1]).toMatch(/…$/);
   });
@@ -35,5 +36,28 @@ describe("wrap", () => {
     const out = wrap("a".repeat(60), 19, 2);
     expect(out.length).toBeLessThanOrEqual(2);
     for (const line of out) expect(line.length).toBeLessThanOrEqual(19);
+  });
+});
+
+/**
+ * The invariant that actually matters on the page: a stage detail must be
+ * READABLE. The first shipped diagram elided nearly every one of them, which
+ * looks like information without being any. If a new stage detail is too long
+ * for the node, this fails here rather than quietly growing an ellipsis in the
+ * UI — either shorten the detail or resize the node deliberately.
+ */
+describe("registry stage details fit their nodes", () => {
+  it("renders every stage detail without eliding", () => {
+    const offenders: string[] = [];
+    for (const agent of AGENTS) {
+      for (const stage of agent.stages) {
+        if (!stage.detail) continue;
+        const lines = wrap(stage.detail); // component defaults = the real node size
+        if (lines.some((l) => l.endsWith("…"))) {
+          offenders.push(`${agent.id}/${stage.id}: "${stage.detail}" (${stage.detail.length} chars)`);
+        }
+      }
+    }
+    expect(offenders, `stage details too long for the node:\n  ${offenders.join("\n  ")}`).toEqual([]);
   });
 });

@@ -1,39 +1,42 @@
 /**
- * Agent workflow diagram — one inline SVG per agent, computed from the
- * registry's `stages` + `edges`.
+ * Agent workflow diagram — swimlanes by kind.
  *
- * Deliberately NOT React Flow. /pipeline uses it for a 60-node topology that
- * needs pan, zoom and a minimap; an agent is five to seven stages and reads
- * better as a fixed strip — no client JS, crisp at any zoom, prints, and it
- * cannot drift out of layout when a stage is added.
+ * A row per kind of work (deterministic · model · guard · output), a column per
+ * step in the flow. That makes the architectural claim STRUCTURAL rather than a
+ * colour legend: you can see the investigation crossing out of deterministic
+ * code into the model and back again, and you can see that everything reaching
+ * the output row passed through guard.
  *
- * The colour carries the architectural claim: deterministic stages find and
- * prove, model stages investigate and write, guard stages decide what survives.
- * Where judgment enters is the thing you should be able to see from across the
- * room. These are marks, not text, so they sit outside check_contrast.py — the
- * legend labels beside them use real text tokens.
+ * Replaces a single-row strip whose details all truncated to "…" and whose
+ * return arcs crossed each other under the nodes — it looked like information
+ * without being readable.
+ *
+ * Routing is orthogonal, which is what keeps it legible: forward edges elbow
+ * between columns, and RETURN edges (loop/retry, i.e. anything going backwards)
+ * drop into a dedicated channel below the lanes, each at its own depth so two
+ * returns never share a line. Deliberately not React Flow — see the git history
+ * on this file; a fixed diagram costs no client JS and prints.
  */
 import type { AgentStage, AgentStageEdge, StageEdgeKind, StageKind } from "@/app/lib/agents-registry";
 
-const W = 128; // node width
-const H = 58; // node height
-const GAP = 34; // horizontal gap between nodes
-const MARGIN = 16; // room for the outermost arcs
-const TOP = 50; // headroom for arcs, and for adjacent-edge labels
-const BOTTOM = 52; // headroom for arcs drawn below
+const LABEL_W = 86; // left gutter for lane names
+const W = 140; // column width
+const GAP = 30;
+const NH = 60; // node height — sized so the longest stage detail (64 chars) fits without eliding
+const LH = 78; // lane height
+const MARGIN = 14;
+const TOP_PAD = 8;
+const CHANNEL_GAP = 12; // first return channel, below the last lane
+const CHANNEL_STEP = 11; // each further return drops another step
+
+/** Fixed lane order — work flows down this list, never up it. */
+const LANE_ORDER: StageKind[] = ["deterministic", "model", "guard", "output"];
 
 const KIND_COLOR: Record<StageKind, string> = {
   deterministic: "var(--data)",
   model: "var(--info)",
   guard: "var(--positive)",
   output: "var(--muted-foreground)",
-};
-
-const KIND_LABEL: Record<StageKind, string> = {
-  deterministic: "deterministic",
-  model: "model",
-  guard: "guard",
-  output: "output",
 };
 
 const EDGE_COLOR: Record<StageEdgeKind, string> = {
@@ -44,14 +47,12 @@ const EDGE_COLOR: Record<StageEdgeKind, string> = {
 };
 
 /**
- * Split a detail line into at most `maxLines` SVG lines — SVG has no text
- * wrapping. Greedy fill; anything past the last line is elided with an ellipsis
- * so a long detail truncates visibly rather than overrunning the node.
+ * Split a detail into at most `maxLines` SVG lines — SVG has no text wrapping.
+ * Greedy fill; tokens longer than a line are hard-broken (`registry-allowlisted`
+ * is 20 chars against a 19-char line and would otherwise overrun the node);
+ * anything past the last line is elided so truncation is visible, not silent.
  */
-export function wrap(text: string, perLine = 19, maxLines = 2): string[] {
-  // Hard-break tokens that can never fit — `registry-allowlisted` is 20 chars
-  // against a 19-char line, and word wrapping alone would push it past the
-  // node's right edge with nothing to clip it.
+export function wrap(text: string, perLine = 25, maxLines = 3): string[] {
   const words = text.split(" ").flatMap((w) => {
     if (w.length <= perLine) return [w];
     const parts: string[] = [];
@@ -61,7 +62,6 @@ export function wrap(text: string, perLine = 19, maxLines = 2): string[] {
   const lines: string[] = [];
   let line = "";
   let consumed = 0;
-
   for (const w of words) {
     const candidate = line ? `${line} ${w}` : w;
     if (line && candidate.length > perLine) {
@@ -95,94 +95,83 @@ export default function AgentFlow({
   edges: AgentStageEdge[];
 }) {
   const index = new Map(stages.map((s, i) => [s.id, i]));
-  const x = (i: number) => MARGIN + i * (W + GAP);
-  const spineY = TOP + H / 2;
-  const width = MARGIN * 2 + stages.length * W + (stages.length - 1) * GAP;
-  const height = TOP + H + BOTTOM;
+  // Only lanes this agent actually uses — a four-row grid with an empty row
+  // reads as a missing stage.
+  const lanes = LANE_ORDER.filter((k) => stages.some((s) => s.kind === k));
+  const laneOf = new Map(lanes.map((k, i) => [k, i]));
 
-  // Arc depth grows with span so two edges over the same stretch don't coincide.
-  const arcDepth = (span: number) => Math.min(14 + span * 9, TOP - 8);
+  const x = (col: number) => LABEL_W + MARGIN + col * (W + GAP);
+  const cx = (col: number) => x(col) + W / 2;
+  const laneTop = (k: StageKind) => TOP_PAD + (laneOf.get(k) ?? 0) * LH;
+  const nodeTop = (k: StageKind) => laneTop(k) + (LH - NH) / 2;
+  const midY = (k: StageKind) => nodeTop(k) + NH / 2;
+  const nodeBottom = (k: StageKind) => nodeTop(k) + NH;
 
-  // Edges are drawn in two passes — every line first, then every label. Keeping
-  // a label inside its own edge's group let a LATER arc paint straight through
-  // it, which no amount of halo fixes.
+  const lanesBottom = TOP_PAD + lanes.length * LH;
+  const returns = edges.filter((e) => {
+    const a = index.get(e.from);
+    const b = index.get(e.to);
+    return a != null && b != null && b <= a;
+  });
+  const height = lanesBottom + CHANNEL_GAP + Math.max(returns.length, 1) * CHANNEL_STEP + 16;
+  const width = LABEL_W + MARGIN * 2 + stages.length * W + (stages.length - 1) * GAP;
+
+  // Channel assignment is computed up front, not accumulated during render:
+  // mutating a counter inside the map callback trips react-hooks/immutability
+  // ("cannot reassign after render completes") and would give a different
+  // layout on a re-render.
+  const returnChannel = new Map(
+    edges
+      .map((e, i) => [i, e] as const)
+      .filter(([, e]) => {
+        const a = index.get(e.from);
+        const b = index.get(e.to);
+        return a != null && b != null && b <= a;
+      })
+      .map(([i], slot) => [i, slot] as const),
+  );
+
   const drawn = edges.flatMap((e, n) => {
     const a = index.get(e.from);
     const b = index.get(e.to);
     if (a == null || b == null) return []; // unresolved ids are caught by the test
+    const from = stages[a];
+    const to = stages[b];
     const kind: StageEdgeKind = e.kind ?? "flow";
     const color = EDGE_COLOR[kind];
-    const dashed = kind !== "flow";
-    const span = Math.abs(b - a);
     const forward = b > a;
 
     let d: string;
-    let labelX: number;
-    let labelY: number;
 
-    if (forward && span === 1) {
-      // Adjacent step — a straight line along the spine. Its label goes ABOVE
-      // the node row, not in the gap: at 34px the gap cannot hold "ranked
-      // leads", and a label centred there renders underneath both nodes
-      // (nodes paint after edges), which is how it first shipped.
+    if (forward) {
+      // Elbow: out the right edge, across at the column midpoint, into the left.
       const x1 = x(a) + W;
-      const x2 = x(b);
-      d = `M ${x1} ${spineY} L ${x2 - 6} ${spineY}`;
-      labelX = (x1 + x2) / 2;
-      labelY = TOP - 7;
+      const y1 = midY(from.kind);
+      const x2 = x(b) - 5;
+      const y2 = midY(to.kind);
+      const mx = (x1 + x2) / 2;
+      d = y1 === y2 ? `M ${x1} ${y1} L ${x2} ${y2}` : `M ${x1} ${y1} H ${mx} V ${y2} H ${x2}`;
     } else {
-      // Everything else arcs clear of the spine: forward skips above,
-      // returns (loop/retry) below, rejections above in their own colour.
-      const below = !forward || kind === "loop" || kind === "retry";
-      const depth = arcDepth(span);
-      const x1 = forward ? x(a) + W / 2 : x(a) + W / 2;
-      const x2 = forward ? x(b) + W / 2 : x(b) + W / 2;
-      const edgeY = below ? TOP + H : TOP;
-      const ctrlY = below ? edgeY + depth : edgeY - depth;
-      d = `M ${x1} ${edgeY} C ${x1} ${ctrlY}, ${x2} ${ctrlY}, ${x2} ${below ? edgeY : edgeY - 4}`;
-      labelX = (x1 + x2) / 2;
-      // A cubic with both controls at ctrlY peaks at ~0.75 of that depth, so
-      // +3 put the glyphs straight through the curve. Clear it properly.
-      labelY = below ? ctrlY + 9 : ctrlY - 8;
+      // Return: drop out the bottom into this edge's own channel, travel back,
+      // rise into the target's underside. One channel per return keeps two
+      // from sharing a line.
+      const depth = lanesBottom + CHANNEL_GAP + (returnChannel.get(n) ?? 0) * CHANNEL_STEP;
+      const x1 = cx(a);
+      const x2 = cx(b);
+      d = `M ${x1} ${nodeBottom(from.kind)} V ${depth} H ${x2} V ${nodeBottom(to.kind) + 4}`;
     }
 
-    const key = `${e.from}-${e.to}-${n}`;
     return [
-      {
-        path: (
-          <path
-            key={key}
-            d={d}
-            fill="none"
-            stroke={color}
-            strokeWidth={kind === "flow" ? 1.4 : 1.1}
-            strokeDasharray={dashed ? "4 3" : undefined}
-            strokeOpacity={kind === "flow" ? 0.6 : 0.85}
-            markerEnd={`url(#agent-arrow-${kind})`}
-          />
-        ),
-        label: e.label ? (
-          <text
-            key={key}
-            x={labelX}
-            y={labelY}
-            textAnchor="middle"
-            fontSize={8}
-            fill={color}
-            fillOpacity={0.95}
-            // Arcs of different spans cross the same strip of space, so a label
-            // will sometimes land on another curve even in the second pass. A
-            // background-coloured halo under the glyphs keeps it readable
-            // wherever it falls — cheaper than solving the geometry.
-            stroke="var(--background)"
-            strokeWidth={3}
-            paintOrder="stroke"
-            style={{ fontFamily: "var(--font-mono)", letterSpacing: "0.04em" }}
-          >
-            {e.label}
-          </text>
-        ) : null,
-      },
+      <path
+        key={`${e.from}-${e.to}-${n}`}
+        d={d}
+        fill="none"
+        stroke={color}
+        strokeWidth={kind === "flow" ? 1.4 : 1.1}
+        strokeDasharray={kind === "flow" ? undefined : "4 3"}
+        strokeOpacity={kind === "flow" ? 0.65 : 0.85}
+        markerEnd={`url(#agent-arrow-${kind})`}
+      />,
     ];
   });
 
@@ -195,7 +184,16 @@ export default function AgentFlow({
           height={height}
           viewBox={`0 0 ${width} ${height}`}
           role="img"
-          aria-label={`Workflow: ${stages.map((s) => s.label).join(" then ")}`}
+          // Edge labels are not drawn — they crowded the nodes. Their text is
+          // kept in the registry and folded in here, so the semantics survive
+          // for a screen reader even though the picture stays quiet.
+          aria-label={
+            `Workflow: ${stages.map((s) => `${s.label} (${s.kind})`).join(", then ")}. ` +
+            edges
+              .filter((e) => e.label)
+              .map((e) => `${e.from} to ${e.to}: ${e.label}`)
+              .join("; ")
+          }
           className="max-w-none"
         >
           <defs>
@@ -215,28 +213,64 @@ export default function AgentFlow({
             ))}
           </defs>
 
-          {drawn.map((e) => e.path)}
+          {/* Lane rules + names. Hairlines, per DESIGN.md — the lane is the
+              structure, so it gets the rule and the node does not get a box. */}
+          {lanes.map((k, i) => {
+            const top = TOP_PAD + i * LH;
+            return (
+              <g key={k}>
+                <line
+                  x1={0}
+                  y1={top}
+                  x2={width}
+                  y2={top}
+                  stroke="var(--hair)"
+                  strokeWidth={1}
+                />
+                <text
+                  x={0}
+                  y={top + 14}
+                  fontSize={8}
+                  fill={KIND_COLOR[k]}
+                  fillOpacity={0.9}
+                  style={{ fontFamily: "var(--font-mono)", letterSpacing: "0.08em" }}
+                >
+                  {k.toUpperCase()}
+                </text>
+              </g>
+            );
+          })}
+          <line
+            x1={0}
+            y1={lanesBottom}
+            x2={width}
+            y2={lanesBottom}
+            stroke="var(--hair)"
+            strokeWidth={1}
+          />
+
+          {drawn}
 
           {stages.map((s, i) => {
             const color = KIND_COLOR[s.kind];
             const detail = s.detail ? wrap(s.detail) : [];
+            const top = nodeTop(s.kind);
             return (
               <g key={s.id}>
                 <rect
                   x={x(i)}
-                  y={TOP}
+                  y={top}
                   width={W}
-                  height={H}
-                  rx={3}
+                  height={NH}
+                  rx={2}
                   fill="var(--card)"
                   stroke="var(--border)"
                   strokeWidth={1}
                 />
-                {/* Kind reads as a left rule, not a fill — hairlines over boxes. */}
-                <rect x={x(i)} y={TOP} width={2.5} height={H} rx={1} fill={color} />
+                <rect x={x(i)} y={top} width={2.5} height={NH} rx={1} fill={color} />
                 <text
-                  x={x(i) + 11}
-                  y={TOP + 17}
+                  x={x(i) + 10}
+                  y={top + 16}
                   fontSize={10.5}
                   fill="var(--foreground)"
                   style={{ fontWeight: 600 }}
@@ -246,8 +280,8 @@ export default function AgentFlow({
                 {detail.map((line, li) => (
                   <text
                     key={li}
-                    x={x(i) + 11}
-                    y={TOP + 32 + li * 10}
+                    x={x(i) + 10}
+                    y={top + 29 + li * 10}
                     fontSize={8}
                     fill="var(--muted-foreground)"
                     style={{ fontFamily: "var(--font-mono)" }}
@@ -259,26 +293,12 @@ export default function AgentFlow({
             );
           })}
 
-          {/* Labels last: above every line AND every node. */}
-          {drawn.map((e) => e.label)}
         </svg>
       </div>
 
-      <figcaption className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5">
-        {(Object.keys(KIND_COLOR) as StageKind[]).map((k) => (
-          <span key={k} className="inline-flex items-center gap-1.5">
-            <span
-              aria-hidden
-              className="inline-block h-2 w-[3px] rounded-sm"
-              style={{ background: KIND_COLOR[k] }}
-            />
-            <span className="font-mono text-[8.5px] uppercase tracking-[0.06em] text-muted-foreground">
-              {KIND_LABEL[k]}
-            </span>
-          </span>
-        ))}
+      <figcaption className="mt-1.5">
         <span className="font-mono text-[8.5px] uppercase tracking-[0.06em] text-faint">
-          dashed = return path · loop / retry / reject
+          rows = what kind of work · columns = order · dashed = return path (loop / retry / reject)
         </span>
       </figcaption>
     </figure>
