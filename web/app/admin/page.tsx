@@ -12,9 +12,11 @@ import type { Metadata } from "next";
 import { AdminAuthError, requireAdmin } from "@/app/lib/admin-auth";
 import { getHealthReport, type FreshnessStatus, type SourceHealth } from "@/app/lib/admin-health";
 import { relativeFromHours } from "@/app/lib/format-time";
+import { getFilingSeason } from "@/app/lib/filing-season";
 import { Card } from "@/app/components/ui";
 import { Colophon, SecHead, Vitals } from "@/app/components/desk";
 import CoverageMatrix from "./coverage/CoverageMatrix";
+import FilingSeason from "./FilingSeason";
 import LoginForm from "./LoginForm";
 import PipelinePanel from "./PipelinePanel";
 import PurgeCacheButton from "./PurgeCacheButton";
@@ -117,7 +119,7 @@ export default async function AdminPage({
     return <Forbidden />;
   }
 
-  const { sources } = await getHealthReport();
+  const [{ sources }, filingSeason] = await Promise.all([getHealthReport(), getFilingSeason()]);
   const flagged = sources.filter((s) => s.status === "late" || s.status === "stale");
   const record =
     flagged.length === 0
@@ -162,6 +164,10 @@ export default async function AdminPage({
             <HealthVital key={s.key} s={s} />
           ))}
         </Vitals>
+      </section>
+
+      <section className="mt-9">
+        <FilingSeason report={filingSeason} />
       </section>
 
       <section className="mt-9">

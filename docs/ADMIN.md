@@ -38,6 +38,20 @@ windows. `refresh-audit.yml` takes a valid new PDF all the way from the bank sit
 extraction, validation, one D1 batch and the snapshot. This panel remains the control surface
 for targeted repairs and for manual checks outside those windows.
 
+- **Filing season panel** (`web/app/admin/FilingSeason.tsx`, `web/app/lib/filing-season.ts`) —
+  one level above the matrix: per bank, has the **in-window quarter** been published, and in
+  what form? Read-time derivation, no new table or workflow. The tracked window mirrors
+  `refresh-audit.yml`'s schedule (Q4: Jan 20 → Mar 15; Q1/Q2/Q3: the 20th of month+1 → the
+  20th of month+2); between windows the panel keeps showing the last opened one. Each bank's
+  expected filing shape (unconsolidated/consolidated) comes from its **prior-period**
+  `bank_audit_expected` rows, so a bank that has filed nothing this quarter still appears.
+  States, worst → best: **no signal** (nothing anywhere — deliberately *not* "not published";
+  unlisted banks may never emit a KAP signal), **results out · audit report pending** (a
+  `bank_earnings` KAP `results_filing` row exists for the period but no BRSA PDF is in R2 —
+  the bank released results while the audit report is still unpublished or its URL is missing
+  from `data/banks/audit_report_urls.json`), **acquired / extraction pending or failed**
+  (PDF in R2), **extracted**. The KAP evidence links to the filing. Kind chips mark each of
+  unco/cons separately; a failed extraction shows ✕.
 - **Coverage matrix** — a **per-statement-type summary table** plus an **errors & missing
   sidebar**, both fed by one `?summary=1` round-trip (`coverageSummary` + `coverageProblems`).
   Each row is a statement type with its cell counts — **ok / manual / error / missing / N/A**

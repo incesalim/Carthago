@@ -5,6 +5,19 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-04.
 
+2026-08-07 — **/admin now answers "who has published this quarter?" directly.**
+A filing-season panel above the coverage matrix tracks the in-window quarter per
+bank: extracted, acquired-awaiting-extraction, **results out but audit report
+pending** (an independent KAP `results_filing` row exists in `bank_earnings`
+while no BRSA PDF is in R2 — İş Bankası's exact 2026Q2 shape, which previously
+had no surface anywhere), or no signal. Pure read-time derivation over existing
+tables — no migration, no scraper, no schedule. Each bank's expected
+unconsolidated/consolidated shape comes from its prior-period expected rows, so
+banks that have filed nothing still appear; "no signal" is worded as absence of
+evidence, never as proof of non-publication. Window model mirrors
+`refresh-audit.yml` (Q4: Jan 20–Mar 15; Q1/Q2/Q3: 20th of month+1 → 20th of
+month+2). `web/app/lib/filing-season.ts` + tests.
+
 2026-08-07 — **Refreshes now poll on each source's cadence and stop writing the
 moment nothing changed.** The BDDK monthly probe runs on the first/last five
 days of the month instead of daily; the Saturday 02:00 weekly backstop is gone
