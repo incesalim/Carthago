@@ -24,9 +24,13 @@ on:
         type: string
         default: ""
       limit:
+        # A string on purpose: workflow_dispatch typed inputs are string/boolean/
+        # choice/environment — `type: number` fails GitHub's workflow validation
+        # (the push registered a 0-second "workflow file issue" run). The script
+        # parses it with argparse type=int either way.
         description: "Maximum PDFs after filters; 0 = all"
-        type: number
-        default: 0
+        type: string
+        default: "0"
       refresh_existing:
         description: "Recompute existing manifests too (unchanged rows are not re-stamped)"
         type: boolean
