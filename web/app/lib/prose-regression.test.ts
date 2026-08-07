@@ -129,7 +129,7 @@ function allTabs(sign: 1 | -1): Array<[string, TabTakeaway]> {
       "economy",
       economyInsights({
         cpi: s, exp12m: s, funding: s, realRate: s, gdp: s, unemployment: s,
-        caPctGdp: s, usdtry: s, budgetPctGdp: s, importCover: 4.2, ownReserves: 12,
+        caPctGdp: s, usdtry: s, budgetPctGdp: s, importCover: 4.2,
       }),
     ],
     [

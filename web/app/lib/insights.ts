@@ -695,7 +695,6 @@ export function economyInsights(d: {
   usdtry: SeriesPoint[]; // MONTHLY average — a daily array would misread the lag
   budgetPctGdp: SeriesPoint[]; // 12m general-budget balance, % of GDP
   importCover?: number | null; // months of imports gross reserves cover
-  ownReserves?: number | null; // net reserves excluding swaps, USD bn
 }): TabTakeaway {
   const period = asOf(d.cpi);
   const items: Insight[] = [];

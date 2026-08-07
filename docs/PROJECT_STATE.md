@@ -1283,14 +1283,41 @@ decisive by injecting a typed directional word and watching it fail.
 
 Coverage the data always supported and nothing rendered:
 
-- **The reserve buffer** on `/economy` (gross → net → net-excl-swaps + import
-  cover). The NIR derivation moved out of `liquidity/page.tsx` into
-  **`web/app/lib/reserves.ts`**, which both pages now import, so the two cannot
-  print rival numbers for a figure TCMB does not publish. `ReserveBuffer.tsx`
-  moved to `app/components/` with it. The extraction also fixed a live bug: a
-  week with no IMF-reserve-template row was scored as *zero swaps*, overstating
-  the CBRT's own FX by the whole swap book. Callers on a short window pass K15
-  fetched at `FWD_YEARS_BACK` so the step resolves instead of dropping weeks.
+- **Reserves** on `/economy` — the **published gross** (`TP.AB.TOPLAM`, which
+  matches the reported headline to the decimal) plus import cover, and a derived
+  net line plotted and labelled as ours. The NIR derivation moved out of
+  `liquidity/page.tsx` into **`web/app/lib/reserves.ts`**, which both pages
+  import, so the two cannot print rival numbers for a figure TCMB does not
+  publish. `ReserveBuffer.tsx` moved to `app/components/` with it.
+
+  **No swap-adjusted figure prints on `/economy` (removed 2026-08-07).** It was
+  shipped as a vitals cell, a flag and the third line of the buffer chart, and
+  measurement against the figures the press reports killed all three: over five
+  consecutive weeks it ran **~$5bn low every week** (31 Jul: ours $35.7bn vs
+  $40.8bn reported) and missed an independent anchor by $9.8bn — TCMB's own MPC
+  summary put ex-swaps at **$66.0bn on 12 Dec 2025**; the formula gave $56.2bn.
+  It is not a bug a better series fixes:
+  **TCMB publishes no net-reserves series at all** (every reserve datagroup in
+  EVDS carries gold / FX / total and nothing else), so both "net rezerv" and
+  "swap hariç net rezerv" in the press are *analyst* constructs, each house with
+  its own method. The ~$13.4bn deduction they imply matches nothing official —
+  the CBRT's own swap book now reads **zero** across all six `bie_swaptektarf`
+  outstanding series, the IMF template's forward/futures short leg
+  (`TP.DOVVARNC.K15`) is $17.7bn and only monthly, and non-resident liabilities
+  are $14.6bn and move the wrong way. Gross is published and exact; net is ours
+  and says so; the swap-adjusted level is not computable here and therefore does
+  not print. Do not re-add it without a source that reproduces the published
+  figure.
+
+  Two things this did NOT touch, deliberately: `/liquidity` still renders the
+  same swap-adjusted figure (vitals, two flags, a transmission item and the
+  three-line buffer chart), and `lib/reserves.ts` still derives it. Both are
+  owned by separate in-flight work.
+
+  Separately, the extraction fixed a live bug: a week with no IMF-reserve-template
+  row was scored as *zero swaps*, overstating the CBRT's own FX by the whole swap
+  book. Callers on a short window pass K15 fetched at `FWD_YEARS_BACK` so the step
+  resolves instead of dropping weeks.
 - **The policy→deposit→loan transmission chain** (`TP.PY.P02.1H`, `TP.TRY.MT06`,
   `TP.KTF17/KTFTUK/KTF12`, monthly-averaged), the loan−deposit spread, and the
   real *deposit* rate beside the real policy rate.

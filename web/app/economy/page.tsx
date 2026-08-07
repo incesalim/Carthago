@@ -9,8 +9,9 @@
  * whose entire job is to explain the conditions the rest of the site measures.
  *
  * Three things it now carries that the data always supported and nobody wired:
- *   the reserve buffer   gross → net → net-excl-swaps (lib/reserves.ts, shared
- *                        with /liquidity so the two cannot print rival numbers)
+ *   the reserve buffer   published gross + a derived net (lib/reserves.ts).
+ *                        NOTHING swap-adjusted prints here — see the reserves
+ *                        section for the measurement that removed it
  *   the transmission     policy → deposit → loan pricing, weekly bank rates that
  *                        sat in D1 unread by this page
  *   the scorecard        the third-party baseline, scored against what actually
@@ -67,7 +68,6 @@ import { fmtQuarter } from "@/app/lib/chart-format";
 import Takeaway from "@/app/components/Takeaway";
 import TimeSeriesChart from "@/app/components/TimeSeriesChart";
 import BopFlowChart, { type BarSeries } from "@/app/components/BopFlowChart";
-import ReserveBuffer from "@/app/components/ReserveBuffer";
 import { ChartCard } from "@/app/components/ui/chart-card";
 
 const MAROON = { light: "#9c1f2f", dark: "#d65a5a" };
@@ -178,11 +178,10 @@ export default async function EconomyPage() {
   const caXgeNow = lastVal(toPts(d.caExGoldEnergy12m));
   const primNow = lastVal(toPts(d.primaryPctGdp));
 
-  // The reserve buffer — one derivation, shared with /liquidity.
-  const res = d.reserves.latest;
-  const grossNow = res?.gross ?? null;
-  const netNow = res?.net ?? null;
-  const ownNow = res?.own ?? null;
+  // Reserves. Only the PUBLISHED gross drives a headline figure here; the
+  // derived net is plotted and labelled as ours, and nothing swap-adjusted is
+  // shown at all (see the reserves section).
+  const grossNow = d.reserves.latest?.gross ?? null;
   const hhFxNow = lastVal(toPts(d.householdFx));
   const hhGoldNow = lastVal(toPts(d.householdGold));
 
@@ -198,7 +197,6 @@ export default async function EconomyPage() {
     usdtry: usdMonthly,
     budgetPctGdp: budget,
     importCover: d.importCover,
-    ownReserves: ownNow,
   });
 
   // ---- movers: MONTHLY series only -----------------------------------------
@@ -376,28 +374,10 @@ export default async function EconomyPage() {
         </>
       ),
     },
-    {
-      code: "OWN_FX_NEG",
-      active: ownNow != null && ownNow < 0,
-      rule: "net_reserves_excluding_swaps < 0",
-      body: (
-        <>
-          <b className="font-semibold">The CBRT&rsquo;s own net FX is negative.</b> Net
-          reserves of {bn(netNow)} rest on a swap book; excluding it leaves{" "}
-          {bn(ownNow)} —{" "}
-          <Link href="/liquidity" className="font-semibold text-primary">
-            the buffer, decomposed
-          </Link>
-          .
-        </>
-      ),
-      clear: (
-        <>
-          Net reserves excluding the swap book are {bn(ownNow)} — the CBRT&rsquo;s own FX
-          is at or above zero.
-        </>
-      ),
-    },
+    // A swap-adjusted flag used to sit here ("the CBRT's own net FX is
+    // negative"). It tested a quantity this page cannot compute — see the
+    // reserves section — so the rule is gone rather than left firing off a
+    // number that was $5bn out.
     {
       code: "CA_WIDE",
       active: caGdpNow != null && caGdpNow < -4,
@@ -511,7 +491,7 @@ export default async function EconomyPage() {
       <Levels
         items={[
           { k: "Nominal GDP, 4Q", v: lastVal(toPts(d.nominalGdp4q))?.toFixed(1) ?? "—", unit: "₺trn" },
-          { k: "Gross reserves", v: grossNow?.toFixed(0) ?? "—", unit: "$bn" },
+          { k: "Reserve cover", v: d.importCover?.toFixed(1) ?? "—", unit: "months" },
           { k: "Imports, 12m", v: lastVal(toPts(d.imports12m))?.toFixed(0) ?? "—", unit: "$bn" },
           { k: "Employed", v: lastVal(toPts(d.employedMn))?.toFixed(1) ?? "—", unit: "mn" },
         ]}
@@ -588,23 +568,25 @@ export default async function EconomyPage() {
             )
           }
         />
+        {/* The PUBLISHED figure, not a derived one. This cell used to carry
+            "net reserves, ex-swaps", which was wrong by ~$5bn on every week
+            checked — see the reserves section below for what happened and why
+            nothing swap-adjusted prints here now. */}
         <Vital
-          label="Net reserves, ex-swaps"
-          value={ownNow != null ? ownNow.toFixed(1) : "—"}
+          label="Gross reserves"
+          value={grossNow != null ? grossNow.toFixed(1) : "—"}
           unit="$bn"
-          series={d.reserves.points.slice(-26).map((p) => ({ period: p.period, value: p.own }))}
+          series={d.reserves.points.slice(-26).map((p) => ({ period: p.period, value: p.gross }))}
           format="raw"
           decimals={1}
           note={
-            netNow != null && grossNow != null ? (
+            d.importCover != null ? (
               <>
-                {bn(netNow)} net of {bn(grossNow)} gross · derived, not published ·{" "}
-                <Link href="/liquidity" className="font-semibold text-primary">
-                  /liquidity
-                </Link>
+                {d.importCover.toFixed(1)} months of the goods import bill · TCMB weekly,
+                as published
               </>
             ) : (
-              "CBRT analytical balance sheet, weekly"
+              "TCMB weekly total reserves, as published"
             )
           }
         />
@@ -898,26 +880,67 @@ export default async function EconomyPage() {
         </Section>
 
         {/* ── NEW: the buffer that finances the deficit ─────────────────── */}
+        {/* This section used to draw a third line, "net excluding swaps", and a
+            vitals cell and a flag on top of it. All three are gone. Measured
+            2026-08-07 against the figures the press reports, over five
+            consecutive weeks, the swap-adjusted line was ~$5bn low EVERY week
+            (31 Jul: ours $35.7bn against $40.8bn reported) and missed an
+            independent 2025 anchor by $9.8bn (TCMB's own MPC summary put
+            ex-swaps at $66.0bn on 12 Dec 2025; the formula gave $56.2bn).
+            The cause is not a bug that can be fixed by picking a better series:
+              · TCMB publishes NO net-reserves series at all — every reserve
+                datagroup in EVDS carries gold / FX / total and nothing else, so
+                both "net rezerv" and "swap hariç net rezerv" in the press are
+                ANALYST constructs, each house with its own method.
+              · The deduction those figures imply (~$13.4bn) matches no official
+                series: the CBRT's own swap book now reads ZERO across all six
+                `bie_swaptektarf` outstanding series, the IMF template's
+                forward/futures short leg (TP.DOVVARNC.K15) is $17.7bn and only
+                monthly, and non-resident liabilities are $14.6bn and move the
+                wrong way.
+            So the swap-adjusted level is not something this page can compute
+            from source series, and a number that LOOKS like the headline figure
+            while sitting $5bn under it is the worst thing this dashboard can
+            print. Gross is published and matches to the decimal; net is our own
+            derivation and is labelled as one. Do not re-add a swap-adjusted
+            line here without a source that reproduces the published figure. */}
         <Section
           title="Reserves & the External Buffer"
-          description={`Gross reserves ${bn(grossNow)}, net ${bn(netNow)}, and ${bn(ownNow)} once the swap book is excluded — ${
-            d.importCover != null ? `${d.importCover.toFixed(1)} months of the goods import bill` : "the import-cover read"
-          }. TCMB publishes no net-reserves headline; net is derived from the analytical balance sheet.`}
+          description={`Gross reserves ${bn(grossNow)} as published by TCMB${
+            d.importCover != null ? `, ${d.importCover.toFixed(1)} months of the goods import bill` : ""
+          }. The net line is our own derivation from the CBRT balance sheet — TCMB publishes no net-reserves series, so there is no official figure to carry.`}
         >
-          <ReserveBuffer
-            data={d.reserves.points}
-            title="The Reserve Buffer, Decomposed (USD bn, weekly)"
-            description="Gross → net → net excluding swaps. The gross-to-net gap is the banks' own FX held at the CBRT as required reserves; the net-to-ex-swaps gap is the swap stock."
-            source="Source: TCMB analytical balance sheet + IMF reserve template, via EVDS"
+          <TimeSeriesChart
+            series={{
+              "Gross reserves (published)": d.reserves.points.map((p) => ({
+                period_date: p.period,
+                value: p.gross,
+              })),
+              "Net FX position (derived)": d.reserves.points.map((p) => ({
+                period_date: p.period,
+                value: p.net,
+              })),
+            }}
+            title="Reserves — Published Gross and a Derived Net (USD bn, weekly)"
+            description="Gross is TP.AB.TOPLAM exactly as TCMB publishes it. The net line is total FX assets less total FX liabilities from the CBRT balance sheet, converted at the same-date USD/TRY."
+            source="Source: TCMB, via EVDS"
+            yFormat="raw"
+            decimals={1}
+            hero="Gross reserves (published)"
+            height={340}
           />
           <p className="text-xs text-muted-foreground">
-            Drawn as three lines rather than a stack because the CBRT&rsquo;s own net FX
-            goes below zero — a stacked area cannot draw a negative band without
-            misstating the total. The same derivation feeds{" "}
-            <Link href="/liquidity" className="text-primary hover:underline">
-              /liquidity
-            </Link>
-            , so the two pages cannot disagree.
+            <b className="font-semibold text-foreground">
+              No swap-adjusted figure is shown, deliberately.
+            </b>{" "}
+            The &ldquo;swap hariç net rezerv&rdquo; quoted in the press is an analyst
+            calculation, not a TCMB release — there is no net-reserves series in EVDS to
+            carry, and the deduction those figures imply does not correspond to any
+            published series we could find. Our derived net tracks the reported net
+            within about a billion dollars, which is close enough to plot and not close
+            enough to call the same number, so it is labelled as ours. Where a figure
+            cannot be computed from a source, this site prints nothing rather than an
+            approximation dressed as the headline.
           </p>
         </Section>
 
