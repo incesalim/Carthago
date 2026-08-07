@@ -7,16 +7,18 @@ import { requireAdminOr403 } from "@/app/lib/admin-auth";
 import {
   AUDIT_BANKS,
   AUDIT_WORKFLOW,
+  DISPATCHABLE,
   GitHubNotConfigured,
   REEXTRACT_WORKFLOW,
   STATEMENT_TYPES,
-  WORKFLOWS,
   dispatchWorkflow,
 } from "@/app/lib/github";
 
 export const dynamic = "force-dynamic";
 
-const ALLOWED = new Set([...WORKFLOWS.map((w) => w.file), REEXTRACT_WORKFLOW]);
+// Use github.ts's own allow-list rather than re-deriving one. The two used to
+// disagree, and the re-extract button paid for it.
+const ALLOWED = DISPATCHABLE;
 const AUDIT_BANK_SET = new Set<string>(AUDIT_BANKS);
 const KINDS = new Set(["consolidated", "unconsolidated"]);
 const PERIOD_RE = /^\d{4}Q[1-4]$/;

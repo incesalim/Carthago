@@ -81,8 +81,6 @@ export const WORKFLOWS: WorkflowDef[] = [
   },
 ];
 
-const ALLOWED = new Set(WORKFLOWS.map((w) => w.file));
-
 /** The audit workflow accepts a per-bank `bank` dispatch input. */
 export const AUDIT_WORKFLOW = "refresh-audit.yml";
 
@@ -92,6 +90,23 @@ export const AUDIT_WORKFLOW = "refresh-audit.yml";
  * a statement (it's not a blind "trigger" like the others), but it IS dispatchable.
  */
 export const REEXTRACT_WORKFLOW = "reextract-statement.yml";
+
+/**
+ * THE allow-list for dispatch — every workflow this module will trigger.
+ *
+ * Exported because callers were re-deriving it and drifting: the admin dispatch
+ * route allowed `WORKFLOWS + REEXTRACT_WORKFLOW` while the guard inside
+ * `dispatchWorkflow` was built from `WORKFLOWS` alone. Since REEXTRACT_WORKFLOW
+ * is deliberately not in WORKFLOWS (it needs a statement, so it is not a blind
+ * trigger and does not belong in the panel's button list), every press of the
+ * coverage matrix's "Force re-extract this cell" died on
+ * `workflow not allowed: reextract-statement.yml` — a 502 the route reported as
+ * a GitHub failure. Two allow-lists that must agree is the bug; one is the fix.
+ */
+export const DISPATCHABLE = new Set<string>([
+  ...WORKFLOWS.map((w) => w.file),
+  REEXTRACT_WORKFLOW,
+]);
 
 /** Statement-type keys the coverage matrix uses (registry keys) — validated
  *  server-side before being forwarded as the `statement` dispatch input. */
@@ -190,7 +205,7 @@ export async function dispatchWorkflow(
   file: string,
   opts: { ref?: string; inputs?: Record<string, string> } = {},
 ): Promise<void> {
-  if (!ALLOWED.has(file)) throw new Error(`workflow not allowed: ${file}`);
+  if (!DISPATCHABLE.has(file)) throw new Error(`workflow not allowed: ${file}`);
   const { ref = "master", inputs } = opts;
   const body = inputs && Object.keys(inputs).length ? { ref, inputs } : { ref };
   const res = await fetch(`${API}/repos/${REPO}/actions/workflows/${file}/dispatches`, {
