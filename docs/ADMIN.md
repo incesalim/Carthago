@@ -30,6 +30,9 @@ health**, **manual refresh triggers**, and **site traffic** into one view.
 | Telegram webhook self-register | `web/app/api/admin/telegram-register/route.ts` |
 | Telegram bot test harness (gated by `BOT_TEST_KEY`; 404s while unset) | `web/app/api/admin/bot-ask/route.ts` |
 | Web Analytics RUM beacon (rendered manually — see §3) | `web/app/components/Beacon.tsx` |
+| **Agent register** (page + diagram + run controls) | `web/app/admin/agents/{page,AgentFlow,AgentRunControls}.tsx` |
+| Agent roster (hand-authored, CI-gated) | `web/app/lib/agents-registry.ts` |
+| Agent list / dispatch endpoints | `web/app/api/admin/agents/{route,dispatch/route}.ts` |
 
 ### Managing audit reports (the intended workflow)
 
@@ -121,6 +124,59 @@ rebuilt by `scripts/sync_audit_expected.py` (in both the acquire and extract wor
 
 Audit **health** remains completeness-based rather than cron-age-based: reports publish
 quarterly, so it reads `fresh` when every extracted partition succeeded, else `late`.
+
+## Agents (`/admin/agents`)
+
+The register of every model-driven lane: what question each one answers and for
+whom, its workflow stage by stage, and a Run control. Linked from the control
+center header; same `requireAdmin()` gate, `noindex`.
+
+**The roster is hand-authored** in `web/app/lib/agents-registry.ts`. One
+`AgentDef` per agent carries its audience and question, the `stages` + `edges`
+the diagram draws, and the `inputs` that generate *both* the run form and its
+server-side validation. Adding an agent is one registry entry — there is no
+second place to update.
+
+The diagram colours stages by what they are — **deterministic** (finds and
+proves), **model** (investigates and writes), **guard** (decides what survives),
+**output** — because where judgment enters is the thing worth seeing at a
+glance. Dashed edges are return paths: loop, retry, reject.
+
+### Running one
+
+Press Run. The confirm dialog names the inputs and **what the run persists** —
+artifacts, or D1. Dispatch goes to `POST /api/admin/agents/dispatch`, which
+validates against the agent's declared inputs (unknown keys rejected, patterns
+and option sets enforced, declared defaults filled) before forwarding to GitHub.
+Run status is read server-side and refreshes a few seconds after dispatch.
+
+Needs `GITHUB_DISPATCH_TOKEN` (§2) — without it the roster still reads and the
+Run controls are disabled with a setup hint.
+
+Two deliberate omissions, both load-bearing:
+
+- **`analyst-daily.yml`'s `push` input is not exposed.** It is a publishing
+  decision, not an agent parameter, and it rebuilds three D1 tables wholesale
+  (~9,030 billed rows). Dispatch it from Actions when you mean it. A test pins
+  this — `agents-registry.test.ts` fails if `push` ever appears in a run form.
+- **Worker-resident agents have no Run button.** The Q&A bot answers per
+  request; there is nothing to trigger. Exercise it via
+  `/api/admin/bot-ask?key=<BOT_TEST_KEY>&q=…`, which returns the reply plus the
+  full query trace.
+
+### The gate
+
+`scripts/check_agents_registry.py` (CI, stdlib-only) diffs the registry against
+`.github/workflows/`: every `workflowFile` must exist, and every declared input
+must be a real `workflow_dispatch` input of that file. Without it a renamed
+input surfaces as a GitHub 422 only when someone presses Run — or, worse,
+silently stops being sent and the workflow quietly applies its own default.
+
+> Its own first version reported `OK: 3 dispatchable agent(s), 0 declared
+> input(s)` — green while parsing nothing, because stage entries carry an `id:`
+> too and every agent block ended before its `inputs:` array. The negative tests
+> in `tests/test_agents_registry.py` exist so the gate's ability to *fail* stays
+> tested.
 
 ## Presentation deck (PDF)
 

@@ -138,14 +138,22 @@ export default async function AdminPage({
           </p>
         </div>
         <div className="flex flex-col items-end gap-1.5">
-          <form method="post" action="/api/admin/logout">
-            <button
-              type="submit"
+          <div className="flex items-center gap-4">
+            <a
+              href="/admin/agents"
               className="font-mono text-[9.5px] uppercase tracking-[0.06em] text-muted-foreground underline decoration-border underline-offset-4 transition-colors hover:text-foreground hover:decoration-current"
             >
-              Sign out
-            </button>
-          </form>
+              Agents
+            </a>
+            <form method="post" action="/api/admin/logout">
+              <button
+                type="submit"
+                className="font-mono text-[9.5px] uppercase tracking-[0.06em] text-muted-foreground underline decoration-border underline-offset-4 transition-colors hover:text-foreground hover:decoration-current"
+              >
+                Sign out
+              </button>
+            </form>
+          </div>
           <span className="font-mono text-[8.5px] uppercase tracking-[0.07em] text-faint">
             read-only · computed on view
           </span>

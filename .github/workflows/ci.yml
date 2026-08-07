@@ -47,6 +47,13 @@ jobs:
         # /pipeline topology (web/app/lib/pipeline-graph.ts) must reference every
         # .github/workflows/*.yml and vice versa. Stdlib-only, no extra deps.
         run: python scripts/check_pipeline_graph_sync.py
+      - name: Agent registry sync
+        # /admin/agents (web/app/lib/agents-registry.ts) forwards each agent's
+        # declared inputs straight to the GitHub dispatch API. A renamed or
+        # removed workflow input surfaces as a 422 only when someone presses
+        # Run — or, worse, silently stops being sent and the workflow applies
+        # its own default. Stdlib-only, no extra deps.
+        run: python scripts/check_agents_registry.py
       - name: Docs sync
         # docs/OPERATIONS.md must name every workflow and every secrets./vars. a
         # workflow reads; every CloudflareEnv key must be documented somewhere.
