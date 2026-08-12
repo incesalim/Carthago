@@ -526,12 +526,31 @@ serves a 14-page KAP cover sheet, not the filing (bad target, not an extractor
 bug); and FIBA 2026Q2 extracted cleanly (`BSA=47 BSL=48`), so unlike its older
 vector-outline filings this one carries a real text layer.
 
-Still open: nothing quarantines the chronically dead targets, so they remain
-`[FAIL]` noise in every run. `backfill-audit.yml --latest-period` is also **unsafe
-whenever R2 is ahead of the DB** — it clears `MAX(period)` from
-`bank_audit_extractions` while `extract_from_r2` restricts to the latest period in
-R2, so it would delete the older quarter's extraction rows and never re-extract
-them. That is exactly the state a stall creates.
+**Both follow-ups are now fixed (2026-08-12).**
+
+The "chronically dead targets" were not dead. All six — AKTIF 2023Q4/2024Q4/
+2025Q4, COLENDI 2025Q4, VAKBN 2025Q4, EXIM 2023Q4 — were present in R2 *and*
+extracted in D1, and every one was a **Q4**. `report_validity` scanned only the
+first 6 pages for structural markers, and an annual filing prints the full
+independent auditor's report before the Bölüm structure begins. A stored PDF
+judged not-a-report sends the scraper back to the source on every run, so ~80
+genuine filings were re-fetched daily and the slow sources timed out into the
+alarm. Measured over 60 random Q4s: first-marker page 1–9, **19 of 60 (32%) past
+page 6**, non-Q4 never past page 4. Window widened to **16** (`_HEAD_PAGES`);
+diffed at 6 vs 16 over 80 filings, **10 gained / 0 lost**. `bank_audit_invalid_pdfs`
+in D1 was empty throughout, so coverage never mis-reported `pdf_present`.
+
+`backfill_extraction --latest-period` resolved "latest" from `MAX(period)` in
+`bank_audit_extractions` for its DELETE and from R2 for the re-extract. Both now
+go through `latest_period_in_r2()`, and an empty listing refuses rather than
+clearing everything.
+
+Still open: **ICBCT** filings (77–108pp) carry KAP text in their front matter and
+are refused as `kap-cover-sheet`; pre-existing and untouched by the window
+change. **TSKB 2026Q2** is not a bug — both URLs on TSKB's own IR page serve
+14-page KAP notifications, so the bank has not filed; R2 holds two stale cover
+sheets that scrape, extraction and coverage all correctly refuse
+(`pdf_present=0 / missing`), and it self-heals when the real report appears.
 
 **Source-table completeness contract added 2026-08-07 (historical backfill pending).**
 The stable audit tables no longer have to pretend that their schema proves the whole PDF

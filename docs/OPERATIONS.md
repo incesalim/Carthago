@@ -156,10 +156,27 @@ complete (`new` ≈ 0), four permanently-unreachable bank URLs were 100% of a
 each one discarded the same eight 2026Q2 partitions. Pinned by
 `tests/test_sync_systemic_gate.py`, using those runs' real counts as fixtures.
 
-⚠️ Chronically unreachable targets are a separate, still-open problem: AKTIF
-(2023Q4/2024Q4/2025Q4), COLENDI 2025Q4, VAKBN 2025Q4 and EXIM 2023Q4 time out on
-every run. They no longer stall the lane, but nothing quarantines them either, so
-they will keep appearing as `[FAIL]` noise in every log.
+**Those "unreachable" targets were the same bug, one layer down (fixed
+2026-08-12).** AKTIF, COLENDI, VAKBN and EXIM were not missing — all six PDFs
+were present in R2 *and* extracted in D1. `report_validity` read only the first
+**6** pages looking for a filing's structural markers, and an ANNUAL report
+prints the full independent auditor's report before the numbered Bölüm structure
+starts. Every one of the six was a Q4. A stored PDF judged not-a-report sends
+the scraper back to the bank's site on every run (the `replacing` branch in
+`scrape_to_r2`), so ~80 genuine filings were re-fetched daily and the slow
+sources timed out.
+
+Measured over 60 random Q4 filings: first-marker page 1–9, with **19 of 60 (32%)
+past page 6**; a non-Q4 sample never exceeded page 4. The window is now **16**
+pages (`_HEAD_PAGES`), ~1.8× the observed tail. Diffed at 6 vs 16 across 80
+filings: **10 gained, 0 lost** — widening is bounded by `_KAP_COVER_RX`, which is
+tested first and positively identifies a notification, and by the 40-page floor
+(a KAP cover sheet is ~14pp).
+
+⚠️ Still expect some `[FAIL]` lines. ICBCT's filings carry KAP text in their
+front matter and are refused as `kap-cover-sheet` despite being 77–108pp — a
+separate, pre-existing issue this change did not touch (it moved ICBCT 2022Q4
+from one refusal reason to the other, same outcome).
 
 Outside a filing window, trigger `refresh-audit.yml` manually (GitHub → Actions
 or `/admin`). `acquire-audit.yml` remains available only when an operator wants

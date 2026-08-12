@@ -5,6 +5,35 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-04.
 
+2026-08-12 — **A third of all Q4 filings were being judged "not a report".**
+`report_validity` scanned the first **6** pages for a filing's structural
+markers, and an ANNUAL report prints the full independent auditor's report
+before the numbered Bölüm structure begins. Measured over 60 random Q4 filings
+in R2: **19 of 60 (32%)** had their first marker on page 6–9, max 9, while a
+non-Q4 sample never exceeded page 4. Nothing reported a wrong number — the cost
+was permanent churn, because a stored PDF judged not-a-report sends the scraper
+back to the bank's site on *every* run, so ~80 genuine filings were
+re-downloaded from R2 and re-fetched from source daily. Where the source was
+slow (AKTIF, COLENDI, VAKBN, EXIM) those became the `[FAIL]` timeouts that fired
+the systemic alarm and stalled the audit lane for six days. The window is now
+**16** pages, ~1.8× the observed tail; widening is bounded against false
+positives by `_KAP_COVER_RX` (tested first) and the 40-page floor. Diffed at 6
+vs 16 over 80 filings: **10 gained, 0 lost.** `scripts/sync_audit_reports.py`,
+`tests/test_report_validity.py`.
+
+2026-08-12 — **`backfill_extraction --latest-period` cleared one quarter and
+re-extracted another.** The DELETE resolved "latest" as `MAX(period)` from
+`bank_audit_extractions` while `extract_from_r2` resolved it from R2. Those
+agree only while every acquired PDF has been extracted, so whenever R2 was ahead
+— a live filing season, or any extraction stall — the clear took the older
+quarter and the re-extract took the newer, leaving the older with no extraction
+log row and nothing to rebuild it. Running `backfill-audit.yml` with
+`latest_period=true` during the 08-08 → 08-12 stall would have deleted 2026Q1
+for every named bank. Both sides now read R2 through one shared
+`latest_period_in_r2()`, and an empty listing refuses rather than collapsing to
+a WHERE that matches everything. `scripts/backfill_extraction.py`,
+`tests/test_backfill_latest_period.py`.
+
 2026-08-12 — **The audit scrape alarm stopped eating six days of extraction.**
 `sync_audit_reports.py`'s systemic-failure guard fired on five consecutive
 `refresh-audit.yml` runs (08-08 → 08-12) and each exited before the D1 push and
