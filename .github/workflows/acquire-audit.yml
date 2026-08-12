@@ -108,6 +108,12 @@ jobs:
         env:
           BANKS: ${{ inputs.banks }}
         run: |
+          # Exit 8 is the systemic-failure ALARM. The PDFs it is complaining
+          # about are already durable in R2 (uploads happen inside the scrape),
+          # so failing here only skips the coverage-spine refresh and leaves
+          # /admin blind to reports that did arrive. Persist first, fail last.
+          # Any other nonzero code is a real crash and stops the job here.
+          set +e
           if [ -z "$BANKS" ] || [ "$BANKS" = "ALL" ]; then
             echo "Scope: ALL banks"
             python scripts/sync_audit_reports.py --db data/bank_audit.db \
@@ -117,6 +123,14 @@ jobs:
             python scripts/sync_audit_reports.py --db data/bank_audit.db \
               --no-extract --workers 16 --new-count-file new_count.txt \
               --only-bank "$BANKS"
+          fi
+          rc=$?
+          set -e
+          if [ "$rc" -eq 8 ]; then
+            echo "::warning::scrape raised a systemic-failure alarm (exit 8) — refreshing coverage, then failing the job at the end"
+            echo "systemic=true" >> "$GITHUB_OUTPUT"
+          elif [ "$rc" -ne 0 ]; then
+            exit "$rc"
           fi
           echo "new=$(cat new_count.txt)" >> "$GITHUB_OUTPUT"
 
@@ -142,6 +156,16 @@ jobs:
           else
             echo "No new audit PDFs this run."
           fi
+
+      # LAST: re-raise the alarm only after the coverage spine has been refreshed,
+      # so newly acquired PDFs are visible in /admin even on an alarming run.
+      - name: Fail the job if the scrape raised a systemic alarm
+        if: steps.scrape.outputs.systemic == 'true'
+        run: |
+          echo "The scrape reported a systemic failure (see its log for the ratio)."
+          echo "Acquired PDFs are already in R2 and the coverage spine has been"
+          echo "refreshed — only the alarm is outstanding."
+          exit 1
 
       - name: Alert on failure
         if: failure()

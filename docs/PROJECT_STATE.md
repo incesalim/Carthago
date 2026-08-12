@@ -49,7 +49,7 @@ coverage or known issues change.
 | `bank_audit_oci`, `_cash_flow`, `_equity_change`, `_npl_movement`, `_stages`, `_loans_by_sector` | BRSA PDFs (statement pages + IFRS-9/credit footnotes) | 2022-Q1 → 2026-Q1 | per-bank; per-lane pass rates in the validation-status table below |
 | `bank_audit_source_lines` | BRSA PDFs, bounded disclosure pages for 8 completeness-targeted lanes | **schema + automatic capture complete 2026-08-07; historical population pending the manual backfill** | Local/R2 snapshot only, never D1: every PyMuPDF-reconstructed physical line + printed numeric tokens + `mapped_key`. Near-full lanes (`equity_change`, `loans_by_sector`, `npl_movement`) treat an unmapped numeric data row as validation failure; selected-summary lanes retain the deliberately omitted detail for inspection without redefining their analytical schemas. |
 | `bank_audit_capture_manifest` | Derived from `bank_audit_source_lines` + normalized row counts | **migration `0042`; new extracts populate automatically; historical backfill not yet dispatched** | One compact D1 row per filing/lane: pages, line/data/mapped/unmapped counts, normalized row count, capture status and content/shape/mapping hashes. Source checks merge into the lane's existing validator once its manifest exists. Alert-ready; no shape-drift alert has been activated yet. |
-| `bank_audit_extractions` | extraction log | one row per PDF | **1,050 rows, 1,050 core-success (100%)** across the 38-bank universe (D1, 2026-07-14). The per-lane pass/fail tables below are a dated **2026-06-14** snapshot taken when the fleet was 31 banks / ~975 partitions — read their counts as of that date, not as today's totals |
+| `bank_audit_extractions` | extraction log | one row per PDF | **1,073 rows / 38 banks / 18 periods, all success=1** (live D1, 2026-08-12). 2026Q2 is the live edge at **23 partitions**. The per-lane pass/fail tables below are a dated **2026-06-14** snapshot taken when the fleet was 31 banks / ~975 partitions — read their counts as of that date, not as today's totals |
 | `bank_types`, `table_definitions`, `download_log` | metadata | — | — |
 | `banks` (+ alias views `v_bist_prices` / `v_news_items` / `v_bank_earnings`) | dimension (migration 0021; +0022 new entrants; +0024 Takasbank), seeded from `bddk_bank_list.json` + `bank_names.ts` | 38-bank audited universe | canonical per-bank identity + single join key across lanes (`ticker` == `bank_ticker` == `symbol`); the views alias each lane's id column to `bank_ticker`. Powers cross-lane joins + the text-to-SQL bot. **One bank is carried but peer-excluded** — `TAKAS` (Takasbank), see below |
 
@@ -495,6 +495,43 @@ extract → validate/coverage → one D1 batch → snapshot. A quiet check stops
 discovery and writes nothing. `/admin` still triggers targeted repairs or checks
 outside the window; `acquire-audit.yml` is manual-only for deliberate acquisition
 without extraction.
+
+**⚠️ The audit lane silently stalled for six days (2026-08-08 → 08-12), and the
+alarm was the cause.** `refresh-audit.yml` failed every morning on
+`SYSTEMIC FAILURE: scrape N/N failed`, raised at the END of
+`sync_audit_reports.main()` — after extraction had already written the local DB.
+A failing step skips the rest of the job, so the D1 push **and the R2 snapshot
+upload** were skipped. Each run therefore pulled the Aug-6 snapshot, extracted
+the same eight 2026Q2 partitions cleanly (`ok=8 fail=0`), and discarded them:
+
+```
+[extract] 1070 in R2 · 1062 already done · 8 to extract     (identical Aug 10, 11, 12)
+```
+
+The trigger was four chronically unreachable bank URLs — AKTIF ×3, COLENDI,
+VAKBN, later EXIM — timing out. With the corpus complete, `new` ≈ 0, and the
+ratio counted only `failed + new`, so those four were 100% of a "batch" of four.
+`pending` (103–104 PDFs downloaded and inspected as `not-a-report`) is a
+**successful fetch** and now counts in the denominator: 5/109 = 4.6%, not 5/5.
+The alarm also exits `EXIT_SYSTEMIC` (8) instead of 1, and both audit workflows
+persist first and re-raise last, so an alarm can never again discard extraction
+it did not affect. `tests/test_sync_systemic_gate.py` pins both halves against
+the real runs' counts.
+
+Recovery, 2026-08-12: `refresh-audit.yml` with `skip_scrape=true` (no scrape ⇒
+`sc_total` 0 ⇒ gate cannot fire, and no `--force`, so settled partitions were
+untouched) extracted the backlog — `ok=11 fail=0 not_a_report=2`, 213,010 rows
+written. **2026Q2 went 12 → 23 partitions.** Two notes from that run: TSKB 2026Q2
+serves a 14-page KAP cover sheet, not the filing (bad target, not an extractor
+bug); and FIBA 2026Q2 extracted cleanly (`BSA=47 BSL=48`), so unlike its older
+vector-outline filings this one carries a real text layer.
+
+Still open: nothing quarantines the chronically dead targets, so they remain
+`[FAIL]` noise in every run. `backfill-audit.yml --latest-period` is also **unsafe
+whenever R2 is ahead of the DB** — it clears `MAX(period)` from
+`bank_audit_extractions` while `extract_from_r2` restricts to the latest period in
+R2, so it would delete the older quarter's extraction rows and never re-extract
+them. That is exactly the state a stall creates.
 
 **Source-table completeness contract added 2026-08-07 (historical backfill pending).**
 The stable audit tables no longer have to pretend that their schema proves the whole PDF

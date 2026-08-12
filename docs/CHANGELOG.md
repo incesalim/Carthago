@@ -5,6 +5,21 @@ current state of the system see [PROJECT_STATE.md](PROJECT_STATE.md).
 
 Last verified: 2026-08-04.
 
+2026-08-12 — **The audit scrape alarm stopped eating six days of extraction.**
+`sync_audit_reports.py`'s systemic-failure guard fired on five consecutive
+`refresh-audit.yml` runs (08-08 → 08-12) and each exited before the D1 push and
+the snapshot upload, so the same eight 2026Q2 partitions were extracted and
+thrown away every morning while 2026Q2 sat frozen at 12 partitions. Two defects:
+the scrape ratio omitted `pending` from its denominator — a `not-a-report` is a
+*successful* fetch, so with the corpus complete four dead bank URLs were 100% of
+a "batch" of four (5/109 = 4.6% correctly, 5/5 = 100% as measured) — and the
+alarm exited 1 mid-job, indistinguishable from a crash. It now exits
+`EXIT_SYSTEMIC` (8); both workflows persist everything, then re-raise in a final
+step so the job still goes red and still alerts, while any other nonzero code
+still aborts immediately. 2026Q2 recovered 12 → 23 partitions.
+`scripts/sync_audit_reports.py`, `refresh-audit.yml`, `acquire-audit.yml`,
+`tests/test_sync_systemic_gate.py` (14 tests, fixtured on the real runs).
+
 2026-08-12 — **The D1 write cost guard is removed.** No push is refused on cost
 any more, at any size, in any lane. Gone: `--max-billed-rows` (the 2.5M per-push
 ceiling that exited 3), the cycle-aware cap that tightened as the 50M allowance

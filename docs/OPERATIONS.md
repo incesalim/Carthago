@@ -138,6 +138,29 @@ downloaded to R2, extracted, validated, added to the coverage matrix, pushed to
 D1 in the same batch, and snapshotted in that one run. If nothing new or pending
 is found, the workflow stops before Node, D1 and the snapshot upload.
 
+**The systemic-failure alarm exits 8, and 8 does not abort the run** (changed
+2026-08-12). `sync_audit_reports.py` raises the alarm at the very END of `main()`,
+after extraction has already written the local DB, so failing there skips the D1
+push and the snapshot upload and destroys work the problem never touched. Both
+`refresh-audit.yml` and `acquire-audit.yml` now special-case exit 8: they log a
+`::warning::`, finish every persisting step, and re-raise in a final step so the
+job still goes red and still alerts. **Any other nonzero code is a crash and
+still stops the step immediately** — a half-written DB must never be pushed.
+
+The alarm's scrape ratio also counts `pending` in its denominator. A
+`not-a-report` verdict is a *successful* fetch — the PDF downloaded and was
+inspected, it simply is not a filing yet — so excluding it measured the ratio
+over only the handful of targets that resolved to a download. With the corpus
+complete (`new` ≈ 0), four permanently-unreachable bank URLs were 100% of a
+"batch" of four. That fired on five consecutive runs, 2026-08-08 → 08-12, and
+each one discarded the same eight 2026Q2 partitions. Pinned by
+`tests/test_sync_systemic_gate.py`, using those runs' real counts as fixtures.
+
+⚠️ Chronically unreachable targets are a separate, still-open problem: AKTIF
+(2023Q4/2024Q4/2025Q4), COLENDI 2025Q4, VAKBN 2025Q4 and EXIM 2023Q4 time out on
+every run. They no longer stall the lane, but nothing quarantines them either, so
+they will keep appearing as `[FAIL]` noise in every log.
+
 Outside a filing window, trigger `refresh-audit.yml` manually (GitHub → Actions
 or `/admin`). `acquire-audit.yml` remains available only when an operator wants
 to download/inspect a PDF without extracting it.

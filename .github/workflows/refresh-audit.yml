@@ -135,8 +135,25 @@ jobs:
             [ -n "$NO_SCRAPE" ] && args+=("$NO_SCRAPE")
             [ -n "$LATEST" ] && args+=("$LATEST")
           fi
+          # Exit 8 is the systemic-failure ALARM, raised after extraction has
+          # already written the local DB. Swallow it here and re-raise at the end
+          # of the job (see "Fail the job if the sync raised a systemic alarm"),
+          # so the snapshot upload and the D1 push still run. Failing here is
+          # what discarded six days of good extraction over four dead bank URLs
+          # (2026-08-08 → 08-12). Any OTHER nonzero code is a real crash and
+          # still fails the step immediately, because a crashed sync must not
+          # have its half-written DB pushed anywhere.
+          set +e
           python scripts/sync_audit_reports.py "${args[@]}" \
             --result-file sync_result.json
+          rc=$?
+          set -e
+          if [ "$rc" -eq 8 ]; then
+            echo "::warning::sync raised a systemic-failure alarm (exit 8) — persisting this run's work, then failing the job at the end"
+            echo "systemic=true" >> "$GITHUB_OUTPUT"
+          elif [ "$rc" -ne 0 ]; then
+            exit "$rc"
+          fi
           python - <<'PY'
           import json, os
           result = json.load(open("sync_result.json", encoding="utf-8"))
@@ -250,6 +267,19 @@ jobs:
           python scripts/notify.py
           "🆕 audit refresh: ${{ steps.sync.outputs.new }} new PDF(s) acquired;
           ${{ steps.sync.outputs.extracted }} partition(s) extracted and saved."
+
+      # LAST, deliberately. The alarm is raised by the sync step but re-raised
+      # here, after the D1 push and the snapshot upload, so a scrape problem
+      # reports loudly WITHOUT discarding the extraction it did not affect.
+      # Placed above "Alert on failure" so that step still fires for it.
+      - name: Fail the job if the sync raised a systemic alarm
+        if: steps.sync.outputs.systemic == 'true'
+        run: |
+          echo "The sync reported a systemic failure (see its log for the ratio)."
+          echo "This run's extraction, D1 push and snapshot upload have already"
+          echo "completed — only the alarm is outstanding. Investigate the"
+          echo "failing targets; nothing was lost."
+          exit 1
 
       - name: Alert on failure
         if: failure()

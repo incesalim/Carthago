@@ -57,6 +57,14 @@ from src.scrapers._http import bddk_verify  # noqa: E402
 CONFIG = REPO_ROOT / "data" / "banks" / "audit_report_urls.json"
 DB_PATH = REPO_ROOT / "data" / "bddk_data.db"
 
+# The systemic-failure alarm's own exit code, distinct from 1 (a crash) so a
+# caller can tell "the run finished and the numbers look wrong" from "the run
+# died". The difference is load-bearing: the alarm fires AFTER extraction has
+# written the local DB, so the caller must still upload the snapshot and push
+# before failing the job. A crash must persist nothing. See the guard at the
+# bottom of main().
+EXIT_SYSTEMIC = 8
+
 UA = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
                   "(KHTML, like Gecko) Chrome/120 Safari/537.36",
@@ -689,9 +697,27 @@ def main():
     # Systemic-failure guard: make the run exit non-zero (→ CI failure email +
     # webhook alert) when a non-trivial batch mostly failed. Tiny batches and the
     # known-partial baseline don't trip it.
+    #
+    # ⚠️ `pending` belongs in the scrape denominator, and leaving it out cost six
+    # days of extraction (2026-08-08 → 08-12). A `not-a-report` verdict is a
+    # SUCCESSFUL fetch — the PDF was downloaded and inspected, it simply is not a
+    # filing yet. Counting only `failed + new` measures the ratio over the
+    # handful of targets that resolved to a download, so once the corpus is
+    # complete (`new` ≈ 0) four permanently-unreachable URLs are 100% of a
+    # "batch" of four. Measured on the runs it broke:
+    #
+    #     Aug 10   new=0 pending=104 failed=5   ->  5/5 = 100%   fired
+    #                                               5/109 = 4.6%  correct
+    #     Aug 12   new=2 pending=104 failed=5   ->  5/7  = 71%   fired
+    #                                               5/111 = 4.5%  correct
+    #
+    # A genuinely systemic break still fires: if the network or the config is
+    # gone, nothing downloads, so `pending` and `new` are both 0 and the ratio is
+    # 100% over whatever was attempted.
     problems = []
     sc_fail = scrape_counts.get("failed", 0)
-    sc_total = sc_fail + scrape_counts.get("new", 0)
+    sc_total = (sc_fail + scrape_counts.get("new", 0)
+                + scrape_counts.get("pending", 0))
     if sc_total >= 4 and sc_fail / sc_total > args.fail_threshold:
         problems.append(f"scrape {sc_fail}/{sc_total} failed")
     ex_fail = extract_counts.get("fail", 0)
@@ -700,7 +726,15 @@ def main():
         problems.append(f"extract {ex_fail}/{ex_total} failed")
     if problems:
         print(f"SYSTEMIC FAILURE: {'; '.join(problems)}", file=sys.stderr)
-        sys.exit(1)
+        # EXIT_SYSTEMIC, not 1. The alarm fires at the END of main(), after
+        # extraction has already written the local DB — so a plain exit 1 fails
+        # the workflow step and SKIPS the snapshot upload and the D1 push,
+        # destroying work that succeeded. That is what turned four dead bank URLs
+        # into six days of re-extracting and discarding the same eight
+        # partitions. The caller distinguishes this code from a crash: persist
+        # first, then fail the job. A real crash still exits 1 and must not
+        # persist anything.
+        sys.exit(EXIT_SYSTEMIC)
 
 
 if __name__ == "__main__":
