@@ -214,7 +214,17 @@ def test_partition_stage_rebuild_obeys_candidate_savepoint(tmp_path):
         "SELECT stage1_amount FROM bank_audit_stages").fetchone()[0] == 100.0
 
 
-# --- the cap must bound the RUN, not each invocation -------------------------
+# --- the run ledger is gone (2026-08-12) -------------------------------------
+#
+# Four tests lived here pinning that a cap bounded the RUN and not each
+# invocation — the 203,799-then-226,069 case where two pushes each passed a
+# 250,000 ceiling and the run spent 429,868. There is no cap to bound anything
+# now, so they were removed with the guard rather than left asserting on
+# symbols that no longer exist.
+#
+# The rest of this file matters MORE for that, not less: every test above and
+# below is about not GENERATING a write that changed nothing, which is the only
+# mechanism still holding the bill down.
 
 def _push_mod():
     spec = importlib.util.spec_from_file_location(
@@ -224,43 +234,13 @@ def _push_mod():
     return m
 
 
-def test_two_pushes_under_the_cap_can_exceed_it_together(tmp_path, monkeypatch):
-    """Exactly what happened: 203,799 then 226,069, each under a 250,000 cap,
-    429,868 for the run."""
+def test_nothing_in_the_push_path_reads_a_run_ledger():
+    """A leftover D1_RUN_LEDGER in an environment must be inert, not
+    half-honoured. Reading it without a cap to apply it to would be worse than
+    ignoring it: the file would grow and mean nothing."""
     P = _push_mod()
-    ledger = tmp_path / "ledger.json"
-    monkeypatch.setenv(P.RUN_LEDGER_ENV, str(ledger))
-    assert P.run_ledger_spent() == 0
-    cap, _ = P.effective_cap(250_000, None, P.run_ledger_spent())
-    assert cap == 250_000 and 203_799 <= cap
-    P.run_ledger_add(203_799)
-    cap2, why = P.effective_cap(250_000, None, P.run_ledger_spent())
-    assert cap2 == 250_000 - 203_799
-    assert 226_069 > cap2, "the second push must now be refused"
-
-
-def test_the_ledger_is_ignored_when_unset(tmp_path, monkeypatch):
-    P = _push_mod()
-    monkeypatch.delenv(P.RUN_LEDGER_ENV, raising=False)
-    P.run_ledger_add(999_999)                      # no-op
-    assert P.run_ledger_spent() == 0
-    assert P.effective_cap(250_000, None, 0)[0] == 250_000
-
-
-def test_a_corrupt_ledger_refuses_rather_than_reads_as_zero(tmp_path, monkeypatch):
-    """Failing open here would restore exactly the behaviour being fixed."""
-    P = _push_mod()
-    bad = tmp_path / "bad.json"
-    bad.write_text("{not json", encoding="utf-8")
-    monkeypatch.setenv(P.RUN_LEDGER_ENV, str(bad))
-    with pytest.raises(SystemExit):
-        P.run_ledger_spent()
-
-
-def test_the_cycle_guard_still_applies_on_top_of_the_run_ledger():
-    P = _push_mod()
-    spent_cycle = P.D1_MONTHLY_ALLOWANCE + 1        # allowance exhausted
-    cap, why = P.effective_cap(2_500_000, spent_cycle, 0)
-    assert cap == P.EXHAUSTED_CYCLE_CAP and "SPENT" in why
-    cap2, _ = P.effective_cap(2_500_000, spent_cycle, 200_000)
-    assert cap2 == P.EXHAUSTED_CYCLE_CAP - 200_000
+    for gone in ("RUN_LEDGER_ENV", "run_ledger_spent", "run_ledger_add",
+                 "effective_cap", "D1_MONTHLY_ALLOWANCE"):
+        assert not hasattr(P, gone), f"{gone} is back without its tests"
+    assert "D1_RUN_LEDGER" not in (
+        REPO / "scripts" / "push_to_d1.py").read_text(encoding="utf-8")

@@ -21,6 +21,7 @@ These tests pin the fixes. They are cost regressions, which is why they are wort
 a test at all: nothing breaks when they regress, the bill just goes up.
 """
 
+import re
 import sqlite3
 import sys
 from pathlib import Path
@@ -387,33 +388,54 @@ def _run_main(monkeypatch, db_path, *extra):
     return P.main()
 
 
-def test_push_refuses_when_it_would_write_more_than_the_cap(tmp_path, monkeypatch):
-    """THE guard. A push over the cap must FAIL, not warn — a campaign that
-    exits 0 is a campaign nobody reviews."""
-    p, _ = _loans_db(tmp_path, rows=500, indexes=1)
-    assert _run_main(monkeypatch, p, "--max-billed-rows", "100") == 3
-
-
-def test_push_proceeds_when_the_cost_is_declared(tmp_path, monkeypatch):
-    """Raising the cap is how a legitimate campaign says so — and because it
-    lands in the workflow file, the number is reviewable in the diff."""
-    p, _ = _loans_db(tmp_path, rows=500, indexes=1)
-    assert _run_main(monkeypatch, p, "--max-billed-rows", "10000") == 0
-
-
-def test_the_default_cap_clears_a_whole_audit_corpus():
-    """The cap must not block legitimate work or it will be raised habitually
-    and stop meaning anything. A whole-audit-corpus push is ~440k rows at a ~4x
-    index factor; the pending one-off prose push is ~369k rows."""
-    assert P.DEFAULT_MAX_BILLED_ROWS >= 440_545 * 4
-    assert P.DEFAULT_MAX_BILLED_ROWS < 9_400_000   # July's smallest campaign day
-
-
-# --- the cycle-aware layer ---------------------------------------------------
+# --- there is no cost guard, and that is deliberate --------------------------
 #
-# The per-push cap bounds ONE invocation. It cannot bound a day, and July's
-# campaign days were several pushes each — no single one would have tripped a
-# 2.5M ceiling. So the cap also tightens once the cycle's allowance is spent.
+# Removed 2026-08-12 at the owner's direction. These tests pin the REMOVAL: not
+# because refusing was wrong, but because a half-restored guard is the worst of
+# both worlds — a workflow that still passes --max-billed-rows would start
+# failing on a flag nobody meant to re-arm. If the guard is ever put back, these
+# are the tests to delete, deliberately, in the same change.
+
+def test_a_push_far_over_the_old_cap_now_proceeds(tmp_path, monkeypatch):
+    """The former guard exited 3 here. Nothing refuses on cost now."""
+    p, _ = _loans_db(tmp_path, rows=500, indexes=1)
+    assert _run_main(monkeypatch, p, "--max-billed-rows", "100") == 0
+
+
+def test_the_retired_flags_are_accepted_and_ignored(tmp_path, monkeypatch):
+    """Six workflow files and any number of pasted command lines still pass
+    these. Accepting-and-ignoring keeps them running; rejecting would turn a
+    dead flag into a dead lane."""
+    p, _ = _loans_db(tmp_path, rows=500, indexes=1)
+    assert _run_main(monkeypatch, p, "--max-billed-rows", "1",
+                     "--no-cycle-check") == 0
+
+
+def test_the_guard_symbols_are_really_gone():
+    """Named individually so a partial revival fails loudly rather than leaving
+    a cap that applies on some paths and not others."""
+    for gone in ("EXIT_BUDGET", "DEFAULT_MAX_BILLED_ROWS", "EXHAUSTED_CYCLE_CAP",
+                 "effective_cap", "_cycle_cap", "run_ledger_spent",
+                 "run_ledger_add", "RUN_LEDGER_ENV"):
+        assert not hasattr(P, gone), f"{gone} is back without its tests"
+
+
+def test_the_cost_is_still_priced_and_printed(tmp_path, monkeypatch, capsys):
+    """The estimate survived the guard. Removing the refusal was the point;
+    removing the number would just make the spend invisible."""
+    p, _ = _loans_db(tmp_path, rows=500, indexes=1)
+    assert _run_main(monkeypatch, p) == 0
+    out = capsys.readouterr().out
+    assert "estimated billed rows:" in out
+    assert "advisory" in out          # says plainly that nothing is capped
+    assert "loans" in out             # and breaks it down per table
+
+
+# --- the billing cycle is still READ, just not enforced ----------------------
+#
+# src/d1_usage.py outlived the guard: scripts/healthcheck.py still reports
+# rows-written for the cycle, and is now the only thing watching the allowance
+# at all. These pin the reader itself.
 
 import datetime as _dt
 
@@ -431,37 +453,6 @@ def test_billing_cycle_runs_the_11th_to_the_10th(today, expected):
     """NOT the calendar month. Cloudflare labels Jul 11 -> Aug 10 as 'Aug 2026';
     reading it as a calendar month has twice produced wrong days-remaining."""
     assert U.cycle_start(_dt.date.fromisoformat(today)) == _dt.date.fromisoformat(expected)
-
-
-def test_headroom_left_leaves_the_declared_cap_alone():
-    cap, why = P.effective_cap(P.DEFAULT_MAX_BILLED_ROWS, used=10_000_000)
-    assert cap == P.DEFAULT_MAX_BILLED_ROWS
-    assert "40,000,000" in why
-
-
-def test_a_spent_cycle_tightens_the_cap_to_routine_size():
-    """Campaigns wait for the roll-over; daily crons keep running. Freezing the
-    whole pipeline was July's other mistake — four days unwatched for a bill the
-    crons were not causing."""
-    cap, why = P.effective_cap(P.DEFAULT_MAX_BILLED_ROWS, used=68_100_000)
-    assert cap == P.EXHAUSTED_CYCLE_CAP
-    assert "SPENT" in why
-    # A daily cron still fits; a whole-corpus audit push does not.
-    assert 50_000 < cap < 1_678_540
-
-
-def test_a_spent_cycle_never_RAISES_a_lower_declared_cap():
-    """min(), not replace — an operator who asked for a tighter cap keeps it."""
-    cap, _ = P.effective_cap(1_000, used=68_100_000)
-    assert cap == 1_000
-
-
-def test_unobservable_usage_neither_tightens_nor_relaxes():
-    """None means 'could not observe'. Treating it as zero would report a
-    missing reading as plenty of headroom, which is the silent-wrong shape."""
-    cap, why = P.effective_cap(P.DEFAULT_MAX_BILLED_ROWS, used=None)
-    assert cap == P.DEFAULT_MAX_BILLED_ROWS
-    assert "unknown" in why
 
 
 def test_cycle_reading_returns_none_rather_than_raising(monkeypatch):
@@ -846,27 +837,6 @@ def test_a_failed_push_does_not_advance_digest_state(tmp_path):
     assert P.stored_partition_digests(c, "bank_audit_capital") == {}
 
 
-# --- the cycle cap must respect what is actually left ------------------------
-
-def test_positive_but_insufficient_headroom_still_tightens_the_cap():
-    """49.9M of 50M used: a 2.5M push must not be waved through to land 2.4M
-    past the allowance. The guard would have 'passed' the run that blew it."""
-    cap, why = P.effective_cap(P.DEFAULT_MAX_BILLED_ROWS, used=49_900_000)
-    assert cap == P.EXHAUSTED_CYCLE_CAP        # floor keeps routine lanes alive
-    assert cap < P.DEFAULT_MAX_BILLED_ROWS
-    assert "only 100,000 rows" in why
-
-
-def test_headroom_between_the_floor_and_the_cap_is_the_cap():
-    cap, _ = P.effective_cap(P.DEFAULT_MAX_BILLED_ROWS, used=49_000_000)
-    assert cap == 1_000_000                    # exactly the remaining headroom
-
-
-def test_ample_headroom_leaves_the_declared_cap_intact():
-    cap, _ = P.effective_cap(P.DEFAULT_MAX_BILLED_ROWS, used=10_000_000)
-    assert cap == P.DEFAULT_MAX_BILLED_ROWS
-
-
 # --- a single row over the statement ceiling -------------------------------
 
 def test_a_row_over_the_statement_limit_fails_loudly(tmp_path):
@@ -909,23 +879,35 @@ def test_a_small_partition_set_is_one_delete():
 # land before the DELETE rather than after it. That sequence is gone — every
 # repair tool now goes through audit_d1.replace_partitions, one atomic guarded
 # call — and a preflight could never have made two remote calls atomic anyway.
-# The flag survives as an operator affordance: ask what a push would cost, and
-# get exit 3 if it would be refused, without executing anything.
+#
+# With the cost guard removed (2026-08-12) there is no refusal left to preflight
+# either, so the flag now means exactly one thing: tell me what this push WOULD
+# write, and do not write it. That is still worth having — it is the only way to
+# see a number before paying for it.
 
-def test_check_only_refuses_without_generating_a_push(tmp_path, monkeypatch):
+def test_check_only_prices_without_executing(tmp_path, monkeypatch, capsys):
     p, _ = _loans_db(tmp_path, rows=500, indexes=1)
     monkeypatch.setattr(sys, "argv",
                         ["push_to_d1.py", "--db", str(p), "--hours", "48",
-                         "--check-only", "--max-billed-rows", "100"])
-    assert P.main() == 3
-
-
-def test_check_only_accepts_an_affordable_push(tmp_path, monkeypatch):
-    p, _ = _loans_db(tmp_path, rows=500, indexes=1)
-    monkeypatch.setattr(sys, "argv",
-                        ["push_to_d1.py", "--db", str(p), "--hours", "48",
-                         "--check-only", "--max-billed-rows", "100000"])
+                         "--check-only"])
     assert P.main() == 0
+    out = capsys.readouterr().out
+    assert "estimated billed rows:" in out       # the number is the whole point
+    assert "not executing" in out
+
+
+def test_check_only_never_reaches_wrangler(tmp_path, monkeypatch):
+    """The one hard guarantee of the flag. It used to be enforced by the guard
+    returning before the execute; now it is enforced only by the early return,
+    so it gets its own test."""
+    p, _ = _loans_db(tmp_path, rows=500, indexes=1)
+    called: list = []
+    monkeypatch.setattr(P, "run_wrangler", lambda *a, **k: called.append(a) or 0)
+    monkeypatch.setattr(sys, "argv",
+                        ["push_to_d1.py", "--db", str(p), "--hours", "48",
+                         "--check-only"])
+    assert P.main() == 0
+    assert not called, "--check-only must not execute the push"
 
 
 def test_no_migrated_caller_issues_a_standalone_remote_delete(monkeypatch, tmp_path):
@@ -1317,18 +1299,35 @@ def test_a_nonempty_partition_with_no_stored_digest_is_probed(tmp_path, monkeypa
     assert any("AKBNK|2026Q1|consolidated" in p for p in probed)
 
 
-def test_queued_outbox_deletes_are_priced(tmp_path, monkeypatch):
-    """Reproduced: a queued DELETE executed while the guard printed 0."""
+def _estimate_from(out: str) -> int:
+    """The printed total. Since the cap was removed this line IS the guard's
+    entire remaining output, so tests that used to assert on a refusal assert on
+    the number instead."""
+    m = re.search(r"estimated billed rows:\s*([\d,]+)", out)
+    assert m, f"no estimate printed in:\n{out}"
+    return int(m.group(1).replace(",", ""))
+
+
+def test_queued_outbox_deletes_are_priced(tmp_path, monkeypatch, capsys):
+    """Reproduced: a queued DELETE executed while the guard printed 0. Nothing
+    refuses on cost any more, so the assertion is that the pending DELETE is
+    COUNTED — an unpriced write is now an unnoticed write."""
     db = _audit_db_file(tmp_path, extra_loans=False)
     c = sqlite3.connect(db)
     c.execute("CREATE TABLE d1_pending_deletes (sql TEXT)")
+    c.commit()
+    c.close()
+    assert _run(monkeypatch, db, "--only-tables", "bank_audit_capital") == 0
+    without = _estimate_from(capsys.readouterr().out)
+
+    c = sqlite3.connect(db)
     c.execute("INSERT INTO d1_pending_deletes VALUES (?)",
               ("DELETE FROM bank_audit_capital WHERE bank_ticker='X' "
                "AND period='Y' AND kind='Z' AND item='cet1';",))
     c.commit()
     c.close()
-    assert _run(monkeypatch, db, "--only-tables", "bank_audit_capital",
-                "--max-billed-rows", "1") == 3
+    assert _run(monkeypatch, db, "--only-tables", "bank_audit_capital") == 0
+    assert _estimate_from(capsys.readouterr().out) > without
 
 
 def test_an_unbounded_queued_delete_is_refused(tmp_path, monkeypatch):
@@ -1840,12 +1839,17 @@ def test_replace_partitions_does_not_retry_a_validation_refusal(tmp_path, monkey
     assert len(calls) == 1, "a validation refusal must not be retried"
 
 
-def test_replace_partitions_does_not_retry_a_budget_refusal(tmp_path, monkeypatch):
+def test_a_transport_failure_is_retryable_even_under_a_ledger_env(tmp_path, monkeypatch):
+    """Until 2026-08-12 an active D1_RUN_LEDGER made exit 4 terminal, because a
+    booked-but-failed estimate would refuse the retry on cost. No ledger and no
+    cap, so a stray env var left over in someone's shell must not resurrect
+    single-attempt behaviour."""
     ad = _audit_d1()
-    calls = _count_child_calls(ad, monkeypatch, ad.EXIT_BUDGET)
+    monkeypatch.setenv("D1_RUN_LEDGER", str(tmp_path / "stale.json"))
+    calls = _count_child_calls(ad, monkeypatch, 4)
     with pytest.raises(SystemExit):
         ad.replace_partitions([("AKBNK", "2026Q1", "consolidated")], tmp_path / "x.db")
-    assert len(calls) == 1, "a budget refusal must not be retried"
+    assert len(calls) == ad.D1_RETRIES
 
 
 def test_replace_partitions_still_retries_a_transport_failure(tmp_path, monkeypatch):
@@ -1861,7 +1865,7 @@ def test_replace_partitions_still_retries_a_transport_failure(tmp_path, monkeypa
 
 def test_the_push_wrapper_also_treats_refusals_as_terminal(tmp_path, monkeypatch):
     ad = _audit_d1()
-    calls = _count_child_calls(ad, monkeypatch, ad.EXIT_BUDGET)
+    calls = _count_child_calls(ad, monkeypatch, ad.EXIT_VALIDATION)
     with pytest.raises(SystemExit):
         ad.push_to_d1(tmp_path / "x.db", 24, ["bank_audit_capital"])
     assert len(calls) == 1
