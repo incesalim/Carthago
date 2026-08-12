@@ -207,6 +207,33 @@ _REPORT_MARKERS = (
 )
 _REPORT_MARKER_RX = re.compile(_REPORT_MARKERS, re.I)
 
+# How many leading pages `report_validity` reads looking for those markers.
+#
+# ⚠️ This was 6, and 6 is below the ANNUAL filings. A Q4 report prints the full
+# independent auditor's report before the numbered Bölüm structure begins, so its
+# first marker lands well past where a quarterly's does. Measured over 60 random
+# Q4 filings from R2 (2026-08-12), first-marker page, 0-indexed:
+#
+#     page 1: 11   page 3: 2   page 5: 8   page 7: 4   page 9: 2
+#     page 2: 18   page 4: 2   page 6: 9   page 8: 4   none: 0
+#
+# **19 of 60 — 32% of Q4 filings — sat beyond a 6-page window**, and a
+# non-Q4 sample never exceeded page 4. Max observed anywhere is 9.
+#
+# The consequence was not a wrong number, it was permanent churn: a stored PDF
+# judged not-a-report sends the scraper back to the bank's site on EVERY run
+# (see the `replacing` branch in scrape_to_r2), so ~80 genuine filings were
+# re-downloaded from R2 and re-fetched from source daily. Where the source was
+# slow — AKTIF, COLENDI, VAKBN, EXIM — that surfaced as the [FAIL] timeouts
+# that fired the systemic alarm and stalled the lane for six days.
+#
+# 16 is ~1.8x the observed tail. Widening is cheap (a text extract on ten more
+# pages of a 130-page document) and bounded against false positives from both
+# sides: _KAP_COVER_RX is tested FIRST and positively identifies a notification,
+# and _MIN_REPORT_PAGES rejects anything under 40 pages — a KAP cover sheet is
+# ~14. Verified by tests/test_report_validity.py.
+_HEAD_PAGES = 16
+
 # The KAP notification's own fingerprint, so a positive identification is
 # possible rather than only an absence of evidence.
 _KAP_COVER_RX = re.compile(
@@ -226,7 +253,7 @@ def report_validity(body: bytes) -> tuple[bool, str]:
         with fitz.open(stream=body, filetype="pdf") as doc:
             pages = len(doc)
             head = " ".join(doc[i].get_text()
-                            for i in range(min(6, pages)))
+                            for i in range(min(_HEAD_PAGES, pages)))
     except Exception as e:                                      # noqa: BLE001
         return False, f"unreadable:{type(e).__name__}"
     if _KAP_COVER_RX.search(head):

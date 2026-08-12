@@ -91,6 +91,72 @@ def test_other_invalid_shapes_are_refused(pages, text, expect):
     assert ok is False and expect in why, why
 
 
+# --- the ANNUAL filing's front matter ----------------------------------------
+#
+# A Q4 report prints the full independent auditor's report before the numbered
+# Bölüm structure starts, so its first marker sits far later than a quarterly's.
+# The head window was 6 pages, which is below that: measured over 60 random Q4
+# filings from R2 (2026-08-12), 19 of them — 32% — had their first marker on
+# page 6..9, and a non-Q4 sample never went past page 4.
+#
+# Nothing reported a wrong number. The cost was churn: a stored PDF judged
+# not-a-report sends the scraper back to the bank's site on EVERY run, so ~80
+# genuine filings were re-downloaded and re-fetched daily, and where the source
+# was slow (AKTIF, COLENDI, VAKBN, EXIM) the timeouts fired the systemic alarm
+# and stalled the audit lane for six days.
+
+def _pdf_with_marker_on(page_index: int, pages: int = 120) -> bytes:
+    """An annual filing: auditor's report first, Bölüm structure at `page_index`."""
+    import fitz
+    doc = fitz.open()
+    for i in range(pages):
+        pg = doc.new_page()
+        if i == 0:
+            pg.insert_textbox(fitz.Rect(40, 40, 560, 760),
+                              "AKTIF YATIRIM BANKASI ANONIM SIRKETI 31 ARALIK 2025 "
+                              "TARIHINDE SONA EREN HESAP DONEMINE AIT KONSOLIDE "
+                              "OLMAYAN FINANSAL TABLOLAR VE BAGIMSIZ DENETCI RAPORU "
+                              "BAGIMSIZ DENETCI RAPORU Genel Kuruluna", fontsize=9)
+        elif i == page_index:
+            pg.insert_textbox(fitz.Rect(40, 40, 560, 760),
+                              "BIRINCI BOLUM Genel Bilgiler (Tutarlar aksi "
+                              "belirtilmedikce Bin Turk Lirasi olarak)", fontsize=9)
+        else:
+            pg.insert_text((72, 72), f"page {i}", fontsize=9)
+    out = doc.tobytes()
+    doc.close()
+    return out
+
+
+@pytest.mark.parametrize("first_marker_page", [1, 2, 5, 6, 7, 8, 9])
+def test_an_annual_filing_is_a_report_wherever_its_bolum_starts(first_marker_page):
+    """9 is the deepest first-marker page measured across the corpus; 6, 7, 8
+    and 9 all failed before the window was widened."""
+    ok, why = _sync().report_validity(_pdf_with_marker_on(first_marker_page))
+    assert ok is True, f"marker on page {first_marker_page}: {why}"
+
+
+def test_the_head_window_clears_the_measured_tail_with_margin():
+    """Pinned so a future trim silently re-breaks the annual filings."""
+    M = _sync()
+    assert M._HEAD_PAGES >= 10, "must exceed the deepest observed marker (page 9)"
+    assert M._HEAD_PAGES == 16
+
+
+def test_a_cover_sheet_is_still_refused_under_the_wider_window():
+    """Widening the window widens what the KAP regex sees too. The positive
+    identification must keep winning over the extra pages."""
+    ok, why = _sync().report_validity(KAP_COVER)
+    assert ok is False and "kap-cover-sheet" in why, why
+
+
+def test_a_long_document_with_no_markers_at_all_is_still_refused():
+    """The window is wider, not absent — the marker requirement still bites."""
+    ok, why = _sync().report_validity(_pdf(120, "An annual activity report with "
+                                                "no BRSA statement structure"))
+    assert ok is False and "no-report-markers" in why, why
+
+
 # --- 1. an invalid object keeps the partition pending ------------------------
 
 def test_an_invalid_object_does_not_count_as_acquired(tmp_path, monkeypatch):
